@@ -454,7 +454,7 @@ UHoudiniAssetInput::PostEditUndo()
 
     if ( InputCurve && ChoiceIndex == EHoudiniAssetInputType::CurveInput )
     {
-        if( USceneComponent* RootComp = GetHoudiniAssetComponent() )
+        if ( USceneComponent* RootComp = GetHoudiniAssetComponent() )
         {
             AActor* Owner = RootComp->GetOwner();
             Owner->AddOwnedComponent( InputCurve );
@@ -466,20 +466,20 @@ UHoudiniAssetInput::PostEditUndo()
     }
 }
 
-// Note: This method is only used for testing
-void 
-UHoudiniAssetInput::ForceSetInputObject( UObject * InObject, int32 AtIndex, bool CommitChange )
+void
+UHoudiniAssetInput::ForceSetInputObject(UObject * InObject, int32 AtIndex, bool CommitChange)
 {
-    if( AActor* Actor = Cast<AActor>( InObject ) )
+    // Note: This method is to be only used for testing or for presetting Houdini tools input!!
+    if ( AActor* Actor = Cast<AActor>( InObject ) )
     {
-        for( UActorComponent * Component : Actor->GetComponentsByClass( UStaticMeshComponent::StaticClass() ) )
+        for ( UActorComponent * Component : Actor->GetComponentsByClass( UStaticMeshComponent::StaticClass() ) )
         {
             UStaticMeshComponent * StaticMeshComponent = CastChecked< UStaticMeshComponent >( Component );
-            if( !StaticMeshComponent )
+            if ( !StaticMeshComponent )
                 continue;
 
             UStaticMesh * StaticMesh = StaticMeshComponent->GetStaticMesh();
-            if( !StaticMesh )
+            if ( !StaticMesh )
                 continue;
 
             // Add the mesh to the array
@@ -497,10 +497,10 @@ UHoudiniAssetInput::ForceSetInputObject( UObject * InObject, int32 AtIndex, bool
         }
 
         // Looking for Splines
-        for( UActorComponent * Component : Actor->GetComponentsByClass( USplineComponent::StaticClass() ) )
+        for ( UActorComponent * Component : Actor->GetComponentsByClass( USplineComponent::StaticClass() ) )
         {
             USplineComponent * SplineComponent = CastChecked< USplineComponent >( Component );
-            if( !SplineComponent )
+            if ( !SplineComponent )
                 continue;
 
             // Add the spline to the array
@@ -516,25 +516,61 @@ UHoudiniAssetInput::ForceSetInputObject( UObject * InObject, int32 AtIndex, bool
 
             InputOutlinerMeshArray.Add( OutlinerMesh );
         }
-    }
 
-    if( InputObjects.IsValidIndex( AtIndex ) )
-    {
-        InputObjects[ AtIndex ] = InObject;
+        // Looking for houdini assets
+        if ( AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>( Actor ) )
+        {
+            UHoudiniAssetComponent * ConnectedHoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
+
+            // Ignore the existing asset component or ourselves
+            if ( ConnectedHoudiniAssetComponent
+                && ConnectedHoudiniAssetComponent != InputAssetComponent
+                && ConnectedHoudiniAssetComponent != PrimaryObject )
+            {
+                // Tell the old input asset we are no longer connected.
+                if ( InputAssetComponent )
+                    InputAssetComponent->RemoveDownstreamAsset( GetHoudiniAssetComponent(), InputIndex );
+
+                InputAssetComponent = ConnectedHoudiniAssetComponent;
+                ConnectedAssetId = InputAssetComponent->GetAssetId();
+
+                // Do we have to wait for the input asset to cook?
+                if ( GetHoudiniAssetComponent() )
+                    GetHoudiniAssetComponent()->UpdateWaitingForUpstreamAssetsToInstantiate( true );
+
+                // Mark as disconnected since we need to reconnect to the new asset.
+                bInputAssetConnectedInHoudini = false;
+            }
+        }
+
+        // Looking for Landscapes
+        if ( ALandscapeProxy * Landscape = Cast< ALandscapeProxy >( Actor ) )
+        {
+            // Store new landscape.
+            InputLandscapeProxy = Landscape;
+        }
     }
     else
     {
-        InputObjects.Insert( InObject, AtIndex );
-    }
+        // The object is not a world actor, so add it to the geo input
+        if( InputObjects.IsValidIndex( AtIndex ) )
+        {
+            InputObjects[ AtIndex ] = InObject;
+        }
+        else
+        {
+            InputObjects.Insert( InObject, AtIndex );
+        }
 
-    if ( !InputTransforms.IsValidIndex( AtIndex ) )
-    {
-        InputTransforms.Insert( FTransform::Identity, AtIndex );
-    }
+        if ( !InputTransforms.IsValidIndex( AtIndex ) )
+        {
+            InputTransforms.Insert( FTransform::Identity, AtIndex );
+        }
 
-    if ( !TransformUIExpanded.IsValidIndex( AtIndex ) )
-    {
-        TransformUIExpanded.Insert( false, AtIndex );
+        if ( !TransformUIExpanded.IsValidIndex( AtIndex ) )
+        {
+            TransformUIExpanded.Insert( false, AtIndex );
+        }
     }
 
     if( CommitChange )
@@ -1362,7 +1398,7 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice )
 bool
 UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
 {
-    switch (ChoiceIndex)
+    switch ( ChoiceIndex )
     {
         case EHoudiniAssetInputType::GeometryInput:
         {
@@ -1385,14 +1421,6 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
 
         case EHoudiniAssetInputType::LandscapeInput:
         {
-            /*
-            // We are switching away from landscape input.
-            if ( newType != ChoiceIndex )
-            {
-                // Reset selected landscape.
-                InputLandscapeProxy = nullptr;
-            }
-            */
             break;
         }
 
@@ -1425,7 +1453,7 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
     ChoiceIndex = newType;
 
     // Switch mode.
-    switch (newType)
+    switch ( newType )
     {
         case EHoudiniAssetInputType::GeometryInput:
         {
@@ -1497,6 +1525,14 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
             check(0);
             break;
         }
+    }
+
+    // Make sure the Input choice string corresponds to the selected input type
+    if ( StringChoiceLabels.IsValidIndex( ChoiceIndex ) )
+    {
+        FString NewStringChoice = *( StringChoiceLabels[ ChoiceIndex ].Get() );
+        if ( !ChoiceStringValue.Equals(NewStringChoice, ESearchCase::IgnoreCase ) )
+            ChoiceStringValue = NewStringChoice;
     }
 
     // If we have input object and geometry asset, we need to connect it back.
@@ -3376,23 +3412,24 @@ UHoudiniAssetInput::AddInputObject( UObject* ObjectToAdd )
     if ( !ObjectToAdd )
         return false;
 
+    // Fix for the bug due to the first (but null) geometry input mesh
     int32 IndexToAdd = InputObjects.Num();
     if ( IndexToAdd == 1 && ( InputObjects[ 0 ] == nullptr ) )
         IndexToAdd = 0;
 
-    UStaticMesh* StaticMesh = Cast< UStaticMesh >( ObjectToAdd );
-    if ( StaticMesh )
+    if ( UStaticMesh* StaticMesh = Cast< UStaticMesh >( ObjectToAdd ) )
+    {
+        ForceSetInputObject( ObjectToAdd, IndexToAdd, true );
+        return true;
+    }
+    else if ( AActor* WorldActor = Cast< AActor >( ObjectToAdd ) )
     {
         ForceSetInputObject( ObjectToAdd, IndexToAdd, true );
         return true;
     }
 
-    AActor* WorldActor = Cast< AActor >( ObjectToAdd );
-    if ( WorldActor )
-    {
-        ForceSetInputObject( ObjectToAdd, IndexToAdd, true );
-        return true;
-    }
+    //if ( InputAssetComponent )
+    //    InputAssetComponent->bEditorPropertiesNeedFullUpdate = true;
 
     return false;
 }

@@ -232,26 +232,21 @@ FReply SHoudiniToolPalette::OnDraggingListViewWidget( const FGeometry& MyGeometr
 
 
 void 
-SHoudiniToolPalette::OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniTool> ToolType )
+SHoudiniToolPalette::OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniTool> HoudiniTool )
 {
-    if ( !ToolType.IsValid() )
+    if ( !HoudiniTool.IsValid() )
         return;
 
     FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>( "AssetRegistry" );
 
     // Load the asset
-    UObject* AssetObj = ToolType->HoudiniAsset.LoadSynchronous();
+    UObject* AssetObj = HoudiniTool->HoudiniAsset.LoadSynchronous();
     if ( !AssetObj )
         return;
 
     // Get the asset Factory
     UActorFactory* Factory = GEditor->FindActorFactoryForActorClass( AHoudiniAssetActor::StaticClass() );
     if ( !Factory )
-        return;
-
-    // Create the asset actor
-    AActor* CreatedActor = Factory->CreateActor( AssetObj, GEditor->GetEditorWorldContext().World()->GetCurrentLevel(), GetDefaulToolSpawnTransform() );
-    if ( !CreatedActor )
         return;
 
     // Get the current Level Editor Selection
@@ -263,133 +258,110 @@ SHoudiniToolPalette::OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniTool> Too
     int32 ContentBrowserSelectionCount = GetContentBrowserSelection( ContentBrowserSelection );
 
     // Modify the created actor's position from the current editor world selection
+    FTransform SpawnTransform = GetDefaulToolSpawnTransform();
     if ( WorldSelectionCount > 0 )
     {
         // Get the "mean" transform of all the selected actors
-        FTransform MeanWorldSelectionTransform = GetMeanWorldSelectionTransform();
-        CreatedActor->SetActorTransform( MeanWorldSelectionTransform );
+        SpawnTransform = GetMeanWorldSelectionTransform();
     }
 
-    // Depending on the type of Houdini Tool, the current selection will be handled differently
-    switch ( ToolType->Type )
+    // If the current tool is a batch one, we'll need to create multiple instances of the HDA
+    if ( HoudiniTool->Type == EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH )
     {
-        case ( EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE ):
+        // Unselect the current selection to select the created actor after
+        if ( GEditor )
+            GEditor->SelectNone( true, true, false );
+
+        // An instance of the asset will be created for each selected object
+        bool UseCBSelection = ContentBrowserSelectionCount > 0;
+        for( int32 SelecIndex = 0; SelecIndex < ( UseCBSelection ? ContentBrowserSelectionCount : WorldSelectionCount ); SelecIndex++ )
         {
-            // All the selection will be applied to the asset's first input
-            // World selection has priority over CB selection
-            // World selection => World Input
-            // CB selection => Geometry Input
-            AHoudiniAssetActor* HoudiniAssetActor = (AHoudiniAssetActor*)CreatedActor;
+            // Get the current object
+            UObject* CurrentSelectedObject = UseCBSelection ? ContentBrowserSelection[ SelecIndex ] : WorldSelection[ SelecIndex ];
+            if ( !CurrentSelectedObject )
+                continue;
+
+            // If it's an actor, use its Transform to spawn the HDA
+            AActor* CurrentSelectedActor = Cast<AActor>( CurrentSelectedObject );
+            if ( CurrentSelectedActor )
+                SpawnTransform = CurrentSelectedActor->GetTransform();
+            else
+                SpawnTransform = GetDefaulToolSpawnTransform();
+
+            // Create the actor for the HDA
+            AActor* CreatedActor = Factory->CreateActor( AssetObj, GEditor->GetEditorWorldContext().World()->GetCurrentLevel(), SpawnTransform );
+            if ( !CreatedActor )
+                continue;
+
+            // Get the HoudiniAssetActor / HoudiniAssetComponent we just created
+            AHoudiniAssetActor* HoudiniAssetActor = ( AHoudiniAssetActor* )CreatedActor;
             if ( !HoudiniAssetActor )
-                break;
+                continue;
 
             UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
             if ( !HoudiniAssetComponent )
-                break;
+                continue;
 
-            TMap<UObject*, int32> InputPresets;
-            if  ( ContentBrowserSelectionCount > 0 )
-            {
-                // Build the preset map using the CB selection
-                // All selected objects will go to the first input
-                for ( auto CurrentObject : ContentBrowserSelection )
-                {
-                    if ( CurrentObject )
-                        InputPresets.Add( CurrentObject, 0 );
-                }
-            }
-            else if ( WorldSelectionCount > 0 )
-            {
-                // Build the preset map using the world selection
-                // All selected actors will go to the first input
-                for ( auto CurrentObject : WorldSelection )
-                {
-                    if ( CurrentObject )
-                        InputPresets.Add( CurrentObject, 0 );
-                }
-            }
+            // Create and set the input preset for this HDA and selected Object
+            TMap< UObject*, int32 > InputPreset;
+            InputPreset.Add( CurrentSelectedObject, 0 );
+            HoudiniAssetComponent->SetHoudiniToolInputPresets( InputPreset );
 
-            if ( InputPresets.Num() > 0 )
-            {
-                // set the input preset on the HoudiniAssetComponent
-                HoudiniAssetComponent->SetHoudiniToolInputPresets( InputPresets );
-            }
+            // Select the Actor we just created
+            if ( GEditor && GEditor->CanSelectActor( CreatedActor, true, false ) )
+                GEditor->SelectActor( CreatedActor, true, true, true );
         }
-        break;
-
-        case ( EHoudiniToolType::HTOOLTYPE_OPERATOR_MULTI ):
-        {
-            // The selection will be applied individually to multiple inputs
-            // (first object to first input, second object to second input etc...)
-            // World selection has priority over CB selection
-            // World selection => World Input
-            // CB selection => Geometry Input
-
-            AHoudiniAssetActor* HoudiniAssetActor = (AHoudiniAssetActor*)CreatedActor;
-            if ( !HoudiniAssetActor )
-                break;
-
-            UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
-            if ( !HoudiniAssetComponent )
-                break;
-
-            TMap<UObject*, int32> InputPresets;
-            if  ( ContentBrowserSelectionCount > 0 )
-            {
-                // Build the preset map using the CB selection
-                // Each selected object will go to a separated input if possible
-                int nInput = 0;
-                for ( auto CurrentObject : ContentBrowserSelection )
-                {
-                    if ( CurrentObject )
-                        InputPresets.Add( CurrentObject, nInput++ );
-                }
-            }
-            else if ( WorldSelectionCount > 0 )
-            {
-                // Build the preset map using the world selection
-                // Each selected object will go to a separated input if possible
-                int nInput = 0;
-                for ( auto CurrentObject : WorldSelection )
-                {
-                    if ( CurrentObject )
-                        InputPresets.Add( CurrentObject, nInput++ );
-                }
-            }
-
-            if ( InputPresets.Num() > 0 )
-            {
-                // set the input preset on the HoudiniAssetComponent
-                HoudiniAssetComponent->SetHoudiniToolInputPresets( InputPresets );		
-            }
-        }
-        break;
-
-        case ( EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH ):
-        {
-            // The asset will be duplicated and applied multiple times to the current selection
-            // One asset => One Input => One selected object
-            // World selection has priority over CB selection
-            // World selection => World Input
-            // CB selection => Geometry Input
-        }
-        break;
-
-        case( EHoudiniToolType::HTOOLTYPE_GENERATOR ):
-        default:
-        {
-            // The asset just generates geometry
-            // CB / World selection are ignored
-            // World selection will be used to set the asset transform?	    
-        }
-        break;
     }
-
-    // Select the Actor we just created
-    if ( GEditor->CanSelectActor( CreatedActor, true, true ) )
+    else
     {
-        GEditor->SelectNone(true, true, false);
-        GEditor->SelectActor( CreatedActor, true, true, true );
+        // We only need to create a single instance of the asset, regarding of the selection
+        AActor* CreatedActor = Factory->CreateActor( AssetObj, GEditor->GetEditorWorldContext().World()->GetCurrentLevel(), SpawnTransform );
+        if ( !CreatedActor )
+            return;
+
+        // Generator tools don't need to preset their input
+        if ( HoudiniTool->Type != EHoudiniToolType::HTOOLTYPE_GENERATOR )
+        {
+            TMap<UObject*, int32> InputPresets;
+            AHoudiniAssetActor* HoudiniAssetActor = (AHoudiniAssetActor*)CreatedActor;            
+            UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor ? HoudiniAssetActor->GetHoudiniAssetComponent() : nullptr;
+            if ( HoudiniAssetComponent )
+            {
+                //  Content browser selection has a priority over the world selection
+                bool UseCBSelection = ContentBrowserSelectionCount > 0;
+
+                // Build the preset map
+                int InputIndex = 0;
+                for ( auto CurrentObject : ( UseCBSelection ? ContentBrowserSelection : WorldSelection ) )
+                {
+                    if ( !CurrentObject )
+                        continue;
+
+                    if ( HoudiniTool->Type == HTOOLTYPE_OPERATOR_MULTI )
+                    {
+                        // The selection will be applied individually to multiple inputs
+                        // (first object to first input, second object to second input etc...)
+                        InputPresets.Add( CurrentObject, InputIndex++ );
+                    }
+                    else
+                    {
+                        // All the selection will be applied to the asset's first input
+                        InputPresets.Add( CurrentObject, 0 );
+                    }
+                }
+
+                // Set the input preset on the HoudiniAssetComponent
+                if ( InputPresets.Num() > 0 )
+                    HoudiniAssetComponent->SetHoudiniToolInputPresets( InputPresets );
+            }
+        }
+
+        // Select the Actor we just created
+        if ( GEditor->CanSelectActor( CreatedActor, true, true ) )
+        {
+            GEditor->SelectNone( true, true, false );
+            GEditor->SelectActor( CreatedActor, true, true, true );
+        }
     }
 }
 

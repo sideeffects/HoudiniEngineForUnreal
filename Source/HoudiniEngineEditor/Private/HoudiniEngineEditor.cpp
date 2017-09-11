@@ -656,7 +656,7 @@ FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescript
     // 3. Polyreducer
     ToolArray.Insert( FHoudiniToolDescription{
         TEXT( "Polyreducer" ),
-        EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE,
+        EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH,
         TEXT( "Reduces the number of polygons of the input objects" ),
         FFilePath{ DefaultIconPath },
         TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_polyreduce.he_sop_polyreduce'" ) ) ),

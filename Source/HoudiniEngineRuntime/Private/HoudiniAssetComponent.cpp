@@ -5833,7 +5833,7 @@ UHoudiniAssetComponent::HasAnySockets() const
 void 
 UHoudiniAssetComponent::QuerySupportedSockets( TArray<FComponentSocketDescription>& OutSockets ) const
 {
-     //Query all the sockets in our StaticMeshComponents
+     // Query all the sockets in our StaticMeshComponents
     for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TConstIterator Iter(StaticMeshComponents); Iter; ++Iter )
     {
         UStaticMeshComponent * StaticMeshComponent = Iter.Value();
@@ -5854,7 +5854,7 @@ UHoudiniAssetComponent::QuerySupportedSockets( TArray<FComponentSocketDescriptio
 bool 
 UHoudiniAssetComponent::DoesSocketExist( FName SocketName ) const
 {
-    //Query all the sockets in our StaticMeshComponents
+    // Query all the sockets in our StaticMeshComponents
     for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TConstIterator Iter( StaticMeshComponents ); Iter; ++Iter )
     {
         UStaticMeshComponent * StaticMeshComponent = Iter.Value();
@@ -5872,7 +5872,7 @@ UHoudiniAssetComponent::DoesSocketExist( FName SocketName ) const
 FTransform 
 UHoudiniAssetComponent::GetSocketTransform( FName InSocketName, ERelativeTransformSpace TransformSpace ) const
 {
-    //Query all the sockets in our StaticMeshComponents
+    // Query all the sockets in our StaticMeshComponents
     for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TConstIterator Iter( StaticMeshComponents ); Iter; ++Iter )
     {
         UStaticMeshComponent * StaticMeshComponent = Iter.Value();
@@ -5944,7 +5944,7 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
     }
 
     // ... all our landscapes
-    if (!bIgnoreGeneratedLandscape)
+    if ( !bIgnoreGeneratedLandscape )
     {
         for (TMap< FHoudiniGeoPartObject, ALandscape * >::TConstIterator Iter( LandscapeComponents); Iter; ++Iter )
         {
@@ -6012,6 +6012,7 @@ UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
     // Identify some special cases first
     bool OnlyHoudiniAssets = true;
     bool OnlyLandscapes = true;
+    bool OnlyOneInput = true;
     for ( TMap< UObject*, int32 >::TIterator IterToolPreset( HoudiniToolInputPreset ); IterToolPreset; ++IterToolPreset )
     {
         UObject * Object = IterToolPreset.Key();
@@ -6022,8 +6023,12 @@ UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
         ALandscape* Landscape = Cast<ALandscape>( Object );
         if ( !Landscape )
             OnlyLandscapes = false;
+
+        if ( IterToolPreset.Value() != 0 )
+            OnlyOneInput = false;
     }
 
+    /*
     if ( OnlyHoudiniAssets )
     {
         // Try to apply the supplied Object to the Input
@@ -6059,6 +6064,7 @@ UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
         }
     }
     else
+    */
     {
         // Try to apply the supplied Object to the Input
         for (TMap< UObject*, int32 >::TIterator IterToolPreset( HoudiniToolInputPreset ); IterToolPreset; ++IterToolPreset)
@@ -6070,6 +6076,13 @@ UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
                 continue;
 
             InputArray[ InputNumber ]->AddInputObject( Object );
+
+            if ( OnlyLandscapes && ( InputArray[ InputNumber ]->GetChoiceIndex() != EHoudiniAssetInputType::LandscapeInput ) )
+                InputArray[ InputNumber ]->ChangeInputType( EHoudiniAssetInputType::LandscapeInput );
+
+            // Dont auto select asset inputs because they dont have the unreal transform, which can cause issue, prefer WorldInput instead
+            //if ( OnlyHoudiniAssets && ( InputArray[ InputNumber ]->GetChoiceIndex() != EHoudiniAssetInputType::AssetInput ) )
+            //    InputArray[ InputNumber ]->ChangeInputType( EHoudiniAssetInputType::AssetInput );
         }
     }
 

@@ -138,8 +138,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 #if WITH_EDITOR
         virtual void PostEditUndo() override;
 
-        /** Directly set the input (for testing ) */
+	// Note: This method is to be only used for testing or for presetting Houdini tools input!!
         void ForceSetInputObject( UObject * InObject, int32 AtIndex, bool CommitChange );
+
+	// Clears all selected objects for all input types and revert back to the default geo input
         void ClearInputs();
 
         bool AddInputObject( UObject* ObjectToAdd );
