@@ -49,6 +49,10 @@
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
 #include "EditorViewportClient.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "AssetToolsModule.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Toolkits/GlobalEditorCommonCommands.h"
 
 #define LOCTEXT_NAMESPACE "HoudiniToolPalette"
 
@@ -71,10 +75,11 @@ void SHoudiniToolPalette::Construct( const FArguments& InArgs )
     TSharedRef<SHoudiniToolListView> ListViewWidget =
         SNew( SHoudiniToolListView )
         .SelectionMode( ESelectionMode::Single )
-        .ListItemsSource( &HoudiniEngineEditor.GetToolTypes() )
+        .ListItemsSource( &HoudiniEngineEditor.GetHoudiniTools() )
         .OnGenerateRow( this, &SHoudiniToolPalette::MakeListViewWidget )
         .OnSelectionChanged( this, &SHoudiniToolPalette::OnSelectionChanged )
-        .OnMouseButtonDoubleClick( this, &SHoudiniToolPalette::OnDoubleClickedListViewWidget)
+        .OnMouseButtonDoubleClick( this, &SHoudiniToolPalette::OnDoubleClickedListViewWidget )
+        .OnContextMenuOpening( this, &SHoudiniToolPalette::ConstructHoudiniToolContextMenu )
         .ItemHeight( 35 );
 
     ChildSlot
@@ -93,9 +98,9 @@ void SHoudiniToolPalette::Construct( const FArguments& InArgs )
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudiniTool> ToolType, const TSharedRef<STableViewBase>& OwnerTable )
+TSharedRef< ITableRow > SHoudiniToolPalette::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, const TSharedRef< STableViewBase >& OwnerTable )
 {
-    check( ToolType.IsValid() );
+    check( HoudiniTool.IsValid() );
  
     auto Style = FHoudiniEngineEditor::Get().GetSlateStyle();
 
@@ -105,11 +110,37 @@ TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudi
     TSharedPtr< SImage > HelpButtonImage;
     TSharedPtr< SButton > HelpButton;
 
-    FString HelpURL = ToolType->HelpURL;
-    FText ToolTip = ToolType->ToolTipText;
+    // Building the tool's tooltip
+    FString ToolTip = HoudiniTool->Name.ToString() + TEXT( "\n" );
+    if ( HoudiniTool->HoudiniAsset.IsValid() )
+        ToolTip += HoudiniTool->HoudiniAsset.ToStringReference().ToString() /*->AssetFileName */+ TEXT( "\n\n" );
+    if ( !HoudiniTool->ToolTipText.IsEmpty() )
+        ToolTip += HoudiniTool->ToolTipText.ToString() + TEXT("\n\n");
+
+    // Adding a description of the tools behavior deriving from its type
+    switch ( HoudiniTool->Type )
+    {
+        case EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE:
+            ToolTip += TEXT("Operator (Single):\nDouble clicking on this tool will instantiate the asset in the world.\nThe current selection will be automatically assigned to the asset's first input.\nIf objects are selected in the world outliner, the asset's transform will default to the mean Transform of the select objects.\nIf objects are selected in the content browser, the world selection will be ignored.");
+            break;
+        case EHoudiniToolType::HTOOLTYPE_OPERATOR_MULTI:
+            ToolTip += TEXT("Operator (Multiple):\nDouble clicking on this tool will instantiate the asset in the world.\nEach of the selected object will be assigned to one of the asset's input (object1 to input1, object2 to input2 etc.)\nIf objects are selected in the world outliner, the asset's transform will default to the mean Transform of the select objects.\nIf objects are selected in the content browser, the world selection will be ignored.");
+            break;
+        case EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH:
+            ToolTip += TEXT("Operator (Batch):\nDouble clicking on this tool will instantiate the asset in the world.\nAn instance of the asset will be created for each of the selected object, and the asset's first input will be set to that object.\nIf objects are selected in the world outliner, each created asset will use its object transform.\nIf objects are selected in the content browser, the world selection will be ignored.");
+            break;
+        case EHoudiniToolType::HTOOLTYPE_GENERATOR:
+        default:
+            ToolTip += TEXT("Generator:\nDouble clicking on this tool will instantiate the asset in the world.\nIf objects are selected in the world outliner, the asset's transform will default to the mean Transform of the select objects.");
+            break;
+    }
+
+    FText ToolTipText = FText::FromString( ToolTip );
+
+    FString HelpURL = HoudiniTool->HelpURL;
     FText HelpTip = HelpURL.Len() > 0 ? 
         FText::Format( LOCTEXT( "OpenHelp", "Click to view tool help: {0}" ), FText::FromString( HelpURL ) ) : 
-        ToolType->Name;
+        HoudiniTool->Name;
 
     TSharedRef< STableRow<TSharedPtr<FHoudiniTool>> > TableRowWidget =
         SNew( STableRow<TSharedPtr<FHoudiniTool>>, OwnerTable )
@@ -120,7 +151,7 @@ TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudi
         SNew( SBorder )
         .BorderImage( FCoreStyle::Get().GetBrush( "NoBorder" ) )
         .Padding( 0 )
-        .ToolTip( SNew( SToolTip ).Text( ToolTip ) )
+        .ToolTip( SNew( SToolTip ).Text( ToolTipText ) )
         .Cursor( EMouseCursor::GrabHand )
         [
             SNew( SHorizontalBox )
@@ -143,8 +174,8 @@ TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudi
                         .VAlign( VAlign_Center )
                         [
                             SNew( SImage )
-                            .Image( ToolType->Icon )
-                            .ToolTip( SNew( SToolTip ).Text( ToolTip ) )
+                            .Image( HoudiniTool->Icon )
+                            .ToolTip( SNew( SToolTip ).Text( ToolTipText ) )
                         ]
                     ]
                 ]
@@ -157,8 +188,8 @@ TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudi
                 [
                     SNew( STextBlock )
                     .TextStyle( *Style, "HoudiniEngine.ThumbnailText" )
-                    .Text( ToolType->Name )
-                    .ToolTip( SNew( SToolTip ).Text( ToolTip ) )
+                    .Text( HoudiniTool->Name )
+                    .ToolTip( SNew( SToolTip ).Text( ToolTipText ) )
                 ]
 
             + SHorizontalBox::Slot()
@@ -208,6 +239,10 @@ void SHoudiniToolPalette::OnSelectionChanged( TSharedPtr<FHoudiniTool> ToolType,
     {
         ActiveTool = ToolType;
     }
+    else
+    {
+        ActiveTool = NULL;
+    }
 }
 
 FReply SHoudiniToolPalette::OnDraggingListViewWidget( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -230,11 +265,19 @@ FReply SHoudiniToolPalette::OnDraggingListViewWidget( const FGeometry& MyGeometr
     return FReply::Unhandled();
 }
 
-
-void 
+void
 SHoudiniToolPalette::OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniTool> HoudiniTool )
 {
     if ( !HoudiniTool.IsValid() )
+        return;
+
+    return InstantiateHoudiniTool( HoudiniTool.Get() );
+}
+
+void 
+SHoudiniToolPalette::InstantiateHoudiniTool( FHoudiniTool* HoudiniTool )
+{
+    if ( !HoudiniTool )
         return;
 
     FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>( "AssetRegistry" );
@@ -485,6 +528,34 @@ SHoudiniToolPalette::GetWorldSelection( TArray< UObject* >& WorldSelection )
     }
 
     return WorldSelection.Num();
+}
+
+
+
+// Builds the context menu for the selected tool
+TSharedPtr<SWidget> SHoudiniToolPalette::ConstructHoudiniToolContextMenu()
+{
+    FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked< FAssetRegistryModule >( "AssetRegistry" );
+
+    FMenuBuilder MenuBuilder( true, NULL );
+    
+    TArray< UObject* > AssetArray;
+    if ( ActiveTool.IsValid() && !ActiveTool->HoudiniAsset.IsNull() )
+    {
+        // Load the asset
+        UObject* AssetObj = ActiveTool->HoudiniAsset.LoadSynchronous();
+        if( AssetObj )
+            AssetArray.Add( AssetObj );
+    }
+
+    //MenuBuilder.AddMenuEntry(FGlobalEditorCommonCommands::Get().FindInContentBrowser );
+
+    FAssetToolsModule & AssetToolsModule = FModuleManager::GetModuleChecked< FAssetToolsModule >( "AssetTools" );
+    TSharedPtr< IAssetTypeActions > EngineActions = AssetToolsModule.Get().GetAssetTypeActionsForClass( UHoudiniAsset::StaticClass() ).Pin();
+    if ( EngineActions.IsValid() )
+        EngineActions->GetActions( AssetArray, MenuBuilder );
+
+    return MenuBuilder.MakeWidget();
 }
 
 #undef LOCTEXT_NAMESPACE

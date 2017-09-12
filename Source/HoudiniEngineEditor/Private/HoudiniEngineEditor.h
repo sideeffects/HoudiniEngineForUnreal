@@ -156,7 +156,7 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Helper delegate used to determine if BakeAllAssets can be executed. **/
         bool CanBakeAllAssets() const;
 
-        const TArray< TSharedPtr<FHoudiniTool> >& GetToolTypes() { return ToolTypes; }
+        const TArray< TSharedPtr<FHoudiniTool> >& GetHoudiniTools() { return HoudiniTools; }
 
     protected:
 
@@ -166,8 +166,8 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Add menu extension for our module. **/
         void AddHoudiniMenuExtension( FMenuBuilder & MenuBuilder );
 
-	/** Add the default Houdini Tools to the Houdini Engine Shelft tool **/
-	void AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescription >& ToolArray );
+        /** Add the default Houdini Tools to the Houdini Engine Shelft tool **/
+        void AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescription >& ToolArray );
 
     private:
 
@@ -196,6 +196,6 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
 
         /** Stored last used Houdini component which was involved in undo. **/
         mutable UHoudiniAssetComponent * LastHoudiniAssetComponentUndoObject;
-        
-        TArray< TSharedPtr<FHoudiniTool> > ToolTypes;
+
+        TArray< TSharedPtr<FHoudiniTool> > HoudiniTools;
 };

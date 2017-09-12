@@ -50,6 +50,9 @@ public:
     static int32 GetContentBrowserSelection( TArray< UObject* >& ContentBrowserSelection );
     static int32 GetWorldSelection( TArray< UObject* >& WorldSelection );
 
+    /** Instantiate the selected HoudiniTool and assigns input depending on the current selection and tool type **/
+    static void InstantiateHoudiniTool( FHoudiniTool* HoudiniTool );
+
 private:
 
     /** Make a widget for the list view display */
@@ -61,7 +64,11 @@ private:
     /** Begin dragging a list widget */
    FReply OnDraggingListViewWidget( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 
+   /** Handler for double clicking on a Houdini tool **/
    void OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniTool> ListItem );
+
+   /** Handler for the right click context menu on a Houdini tool **/
+   TSharedPtr< SWidget > ConstructHoudiniToolContextMenu();
 
 private:
     TSharedPtr<FHoudiniTool> ActiveTool;

@@ -581,7 +581,6 @@ FHoudiniEngineEditor::UnregisterModes()
 void 
 FHoudiniEngineEditor::RegisterPlacementModeExtensions()
 {
-
     // Load custom houdini tools 
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
     check( HoudiniRuntimeSettings );
@@ -611,7 +610,8 @@ FHoudiniEngineEditor::RegisterPlacementModeExtensions()
         {
             CustomIconBrush = StyleSet->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
         }
-        ToolTypes.Add( MakeShareable( new FHoudiniTool( HoudiniTool.HoudiniAsset, ToolName, HoudiniTool.Type, ToolTip, CustomIconBrush, HoudiniTool.HelpURL ) ) );
+
+        HoudiniTools.Add( MakeShareable( new FHoudiniTool( HoudiniTool.HoudiniAsset, ToolName, HoudiniTool.Type, ToolTip, CustomIconBrush, HoudiniTool.HelpURL ) ) );
     }
 
     FPlacementCategoryInfo Info(
@@ -631,7 +631,7 @@ FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescript
     // Default paths
     FString ToolsDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine/Content/Tools/");
     FString DefaultIconPath = FPaths::EnginePluginsDir() / TEXT( "Runtime/HoudiniEngine/Content/Icons/icon_houdini_logo_40.png" );    
-        
+
     int32 nInsertPos = 0;
     // 1. Rock Generator
     ToolArray.Insert( FHoudiniToolDescription{

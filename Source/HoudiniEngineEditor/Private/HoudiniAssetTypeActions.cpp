@@ -36,6 +36,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngineEditor.h"
 #include "HoudiniEngine.h"
+#include "SHoudiniToolPalette.h"
 #include "ThumbnailRendering/SceneThumbnailInfo.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
@@ -93,7 +94,13 @@ FHoudiniAssetTypeActions::HasActions( const TArray< UObject * > & InObjects ) co
 void
 FHoudiniAssetTypeActions::GetActions( const TArray< UObject * > & InObjects, class FMenuBuilder & MenuBuilder )
 {
-    auto HoudiniAssets = GetTypedWeakObjectPtrs< UHoudiniAsset >( InObjects );
+    bool ValidObjects = false;
+    TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets;
+    if ( InObjects.Num() > 0 )
+    {
+        HoudiniAssets = GetTypedWeakObjectPtrs< UHoudiniAsset >( InObjects );
+        ValidObjects = true;
+    }
 
     FHoudiniEngineEditor & HoudiniEngineEditor = FHoudiniEngineEditor::Get();
     TSharedPtr< ISlateStyle > StyleSet = HoudiniEngineEditor.GetSlateStyle();
@@ -104,7 +111,7 @@ FHoudiniAssetTypeActions::GetActions( const TArray< UObject * > & InObjects, cla
         FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
         FUIAction(
             FExecuteAction::CreateSP( this, &FHoudiniAssetTypeActions::ExecuteReimport, HoudiniAssets ),
-            FCanExecuteAction()
+            FCanExecuteAction::CreateLambda( [=] { return ValidObjects; } )
         )
     );
 
@@ -114,7 +121,7 @@ FHoudiniAssetTypeActions::GetActions( const TArray< UObject * > & InObjects, cla
         FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
         FUIAction(
             FExecuteAction::CreateSP(this, &FHoudiniAssetTypeActions::ExecuteRebuildAllInstances, HoudiniAssets),
-            FCanExecuteAction()
+            FCanExecuteAction::CreateLambda( [=] { return ValidObjects; } )
         )
     );
 
@@ -126,7 +133,7 @@ FHoudiniAssetTypeActions::GetActions( const TArray< UObject * > & InObjects, cla
         FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
         FUIAction(
             FExecuteAction::CreateSP( this, &FHoudiniAssetTypeActions::ExecuteFindInExplorer, HoudiniAssets ),
-            FCanExecuteAction()
+            FCanExecuteAction::CreateLambda( [=] { return ValidObjects; } )
         )
     );
 
@@ -139,6 +146,44 @@ FHoudiniAssetTypeActions::GetActions( const TArray< UObject * > & InObjects, cla
         FUIAction(
             FExecuteAction::CreateSP(this, &FHoudiniAssetTypeActions::ExecuteOpenInHoudini, HoudiniAssets),
             FCanExecuteAction::CreateLambda( [=] { return ( HoudiniAssets.Num() == 1 ); } )
+        )
+    );
+
+    MenuBuilder.AddMenuSeparator();
+
+    MenuBuilder.AddMenuEntry(
+        NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_ApplyOpSingle", "Apply to the current selection (single input)"),
+        NSLOCTEXT(
+            "HoudiniAssetTypeActions", "HoudiniAsset_ApplyOpSingleTooltip",
+            "Applies the selected asset to the current world selection. All the selected object will be assigned to the first input."),
+        FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+        FUIAction(
+            FExecuteAction::CreateSP(this, &FHoudiniAssetTypeActions::ExecuteApplyOpSingle, HoudiniAssets),
+            FCanExecuteAction::CreateLambda([=] { return (HoudiniAssets.Num() == 1); })
+        )
+    );
+
+    MenuBuilder.AddMenuEntry(
+        NSLOCTEXT( "HoudiniAssetTypeActions", "HoudiniAsset_ApplyOpMulti", "Apply to the current selection (multiple inputs )"),
+        NSLOCTEXT(
+            "HoudiniAssetTypeActions", "HoudiniAsset_ApplyOpMultiTooltip",
+            "Applies the selected asset to the current world selection. Each selected object will be assigned to its own input (one object per input)."),
+        FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+        FUIAction(
+            FExecuteAction::CreateSP( this, &FHoudiniAssetTypeActions::ExecuteApplyOpMulti, HoudiniAssets ),
+            FCanExecuteAction::CreateLambda( [=] { return (HoudiniAssets.Num() == 1); } )
+        )
+    );
+
+    MenuBuilder.AddMenuEntry(
+        NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_ApplyBatch", "Batch Apply to the current selection"),
+        NSLOCTEXT(
+            "HoudiniAssetTypeActions", "HoudiniAsset_ApplyBatchTooltip",
+            "Batch apply the selected asset to the current world selection. An instance of the selected Houdini asset will be created for each selected object."),
+        FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+        FUIAction(
+            FExecuteAction::CreateSP( this, &FHoudiniAssetTypeActions::ExecuteApplyBatch, HoudiniAssets ),
+            FCanExecuteAction::CreateLambda( [=] { return (HoudiniAssets.Num() == 1); } )
         )
     );
 }
@@ -189,7 +234,7 @@ FHoudiniAssetTypeActions::ExecuteFindInExplorer( TArray< TWeakObjectPtr< UHoudin
         {
             const FString SourceFilePath = HoudiniAsset->AssetImportData->GetFirstFilename();
             if ( SourceFilePath.Len() && IFileManager::Get().FileSize( *SourceFilePath ) != INDEX_NONE )
-                FPlatformProcess::ExploreFolder( *SourceFilePath );
+                return FPlatformProcess::ExploreFolder( *SourceFilePath );
         }
     }
 }
@@ -236,6 +281,43 @@ FHoudiniAssetTypeActions::ExecuteOpenInHoudini( TArray< TWeakObjectPtr< UHoudini
         nullptr, 0,
         FPlatformProcess::UserTempDir(),
         nullptr, nullptr );
+}
+
+void
+FHoudiniAssetTypeActions::ExecuteApplyOpSingle( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets )
+{
+    return ExecuteApplyAssetToSelection( HoudiniAssets, EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE );
+}
+
+void
+FHoudiniAssetTypeActions::ExecuteApplyOpMulti( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets )
+{
+    return ExecuteApplyAssetToSelection( HoudiniAssets, EHoudiniToolType::HTOOLTYPE_OPERATOR_MULTI );
+}
+void
+FHoudiniAssetTypeActions::ExecuteApplyBatch( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets )
+{
+    return ExecuteApplyAssetToSelection( HoudiniAssets, EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH );
+}
+
+void
+FHoudiniAssetTypeActions::ExecuteApplyAssetToSelection( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets, EHoudiniToolType Type )
+{
+    if ( !FHoudiniEngine::IsInitialized() )
+        return;
+
+    if ( HoudiniAssets.Num() != 1 )
+        return;
+
+    UHoudiniAsset * HoudiniAsset = HoudiniAssets[ 0 ].Get();
+    if ( !HoudiniAsset || !( HoudiniAsset->AssetImportData ) )
+        return;
+
+    // Creating a temporary tool for the selected asset
+    TAssetPtr<UHoudiniAsset> HoudiniAssetPtr( HoudiniAsset );
+    FHoudiniTool HoudiniTool( HoudiniAssetPtr, FText::FromString( HoudiniAsset->GetName() ), Type, FText(), NULL, FString() );
+
+    SHoudiniToolPalette::InstantiateHoudiniTool( &HoudiniTool );
 }
 
 #undef LOCTEXT_NAMESPACE

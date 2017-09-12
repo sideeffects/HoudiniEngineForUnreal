@@ -38,6 +38,7 @@ class UObject;
 class UHoudiniAsset;
 class UThumbnailInfo;
 
+enum EHoudiniToolType;
 
 class FHoudiniAssetTypeActions : public FAssetTypeActions_Base
 {
@@ -65,4 +66,15 @@ class FHoudiniAssetTypeActions : public FAssetTypeActions_Base
 
         /** Handler for the open in Houdini option */
         void ExecuteOpenInHoudini( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets );
+
+        /** Handler to apply the current hda to the current world selection (single input) */
+        void ExecuteApplyOpSingle( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets );
+
+        /** Handler to apply the current hda to the current world selection (multi input) */
+        void ExecuteApplyOpMulti( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets );
+
+        /** Handler to batch apply the current hda to the current world selection */
+        void ExecuteApplyBatch( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets );
+
+        void ExecuteApplyAssetToSelection( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets, EHoudiniToolType Type );
 };
