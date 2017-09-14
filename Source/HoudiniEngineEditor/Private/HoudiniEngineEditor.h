@@ -43,10 +43,10 @@ struct FHoudiniTool
     FHoudiniTool( TAssetPtr < class UHoudiniAsset > InHoudiniAsset, const FText& InName, const EHoudiniToolType& InType, const FText& InToolTipText, const FSlateBrush* InIcon, const FString& InHelpURL )
         : HoudiniAsset( InHoudiniAsset )
         , Name( InName )
-        , Type ( InType )
         , ToolTipText( InToolTipText )
         , Icon( InIcon )
         , HelpURL( InHelpURL )
+        , Type( InType )
     {
     }
     TAssetPtr < class UHoudiniAsset > HoudiniAsset;
