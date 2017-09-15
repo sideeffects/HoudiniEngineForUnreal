@@ -638,7 +638,7 @@ FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescript
         TEXT( "Rock Generator" ),
         EHoudiniToolType::HTOOLTYPE_GENERATOR,
         TEXT( "Generates procedural rock meshes" ),
-        FFilePath{ ToolsDir / TEXT("rock_generator_40.png") },
+        FFilePath{ ToolsDir / TEXT("rock_generator.png") },
         TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/rock_generator.rock_generator'" ) ) ),
         TEXT("http://www.sidefx.com/docs/unreal/")
     }, nInsertPos++ );
@@ -648,7 +648,7 @@ FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescript
         TEXT( "Boolean" ),
         EHoudiniToolType::HTOOLTYPE_OPERATOR_MULTI,
         TEXT( "Apply boolean operations to two input objects" ),
-        FFilePath{ DefaultIconPath },
+        FFilePath{ ToolsDir / TEXT("he_sop_boolean.png") },
         TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_boolean.he_sop_boolean'" ) ) ),
         TEXT("http://www.sidefx.com/docs/unreal/")
     }, nInsertPos++ );
@@ -658,7 +658,7 @@ FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescript
         TEXT( "Polyreducer" ),
         EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH,
         TEXT( "Reduces the number of polygons of the input objects" ),
-        FFilePath{ DefaultIconPath },
+        FFilePath{ ToolsDir / TEXT("he_sop_polyreduce.png") },
         TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_polyreduce.he_sop_polyreduce'" ) ) ),
         TEXT("http://www.sidefx.com/docs/unreal/")
     }, nInsertPos++ );
@@ -668,7 +668,7 @@ FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescript
         TEXT( "Curve Instancer" ),
         EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE,
         TEXT( "Scatters and instances the input objects along a curve or in a zone defined by a closed curve." ),
-        FFilePath{ DefaultIconPath },
+        FFilePath{ ToolsDir / TEXT("he_sop_curve_instancer.png") },
         TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_curve_instancer.he_sop_curve_instancer'" ) ) ),
         TEXT("http://www.sidefx.com/docs/unreal/")
     }, nInsertPos++ );
