@@ -38,6 +38,7 @@ struct FHoudiniEngineTask;
 struct FHoudiniEngineTaskInfo;
 struct HAPI_Session;
 struct FHoudiniCookParams;
+class ALandscape;
 
 
 class IHoudiniEngine : public IModuleInterface
@@ -91,6 +92,9 @@ public:
     virtual bool CookNode(
         HAPI_NodeId AssetId, FHoudiniCookParams& HoudiniCookParams,
         bool ForceRebuildStaticMesh, bool ForceRecookAll,
-        const TMap< FHoudiniGeoPartObject, class UStaticMesh * > & StaticMeshesIn,
-        TMap< FHoudiniGeoPartObject, class UStaticMesh * > & StaticMeshesOut, FTransform & ComponentTransform ) = 0;
+        const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
+        TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut,
+        TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesIn,
+        TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesOut,
+        FTransform & ComponentTransform ) = 0;
 };

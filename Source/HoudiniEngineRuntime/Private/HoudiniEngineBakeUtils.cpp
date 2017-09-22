@@ -998,6 +998,7 @@ FHoudiniCookParams::FHoudiniCookParams( UHoudiniAssetComponent* HoudiniAssetComp
     BakedMaterialPackagesForIds = &HoudiniAssetComponent->BakedMaterialPackagesForIds;
     CookedTemporaryStaticMeshPackages = &HoudiniAssetComponent->CookedTemporaryStaticMeshPackages;
     CookedTemporaryPackages = &HoudiniAssetComponent->CookedTemporaryPackages;
+    CookedTemporaryLandscapeLayers = &HoudiniAssetComponent->CookedTemporaryLandscapeLayers;
     TempCookFolder = HoudiniAssetComponent->GetTempCookFolder();
     BakeFolder = HoudiniAssetComponent->GetBakeFolder();
     IntermediateOuter = HoudiniAssetComponent->GetComponentLevel();

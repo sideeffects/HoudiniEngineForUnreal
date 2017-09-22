@@ -519,6 +519,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static void ApplyUPropertyAttributesOnObject(
             UObject* MeshComponent, const TArray< UGenericAttribute >& UPropertiesToModify );
 
+        //static bool TryToFindInStructProperty( UObject* Object, FString UPropertyNameToFind, UStructProperty* ArrayProperty, UProperty*& FoundProperty, void*& StructContainer );
+
+        //static bool TryToFindInArrayProperty( UObject* Object, FString UPropertyNameToFind, UArrayProperty* ArrayProperty, UProperty*& FoundProperty, void*& StructContainer );
+
         /** Helper function to extract a raw name from a given Fstring. Caller is responsible for clean up. **/
         static char * ExtractRawName(const FString & Name);
 

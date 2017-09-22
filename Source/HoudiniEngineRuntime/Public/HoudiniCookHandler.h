@@ -79,6 +79,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniCookParams
     TMap<FHoudiniGeoPartObject, TWeakObjectPtr<class UPackage> >* CookedTemporaryStaticMeshPackages = nullptr;
     // Cache of the temp cook content packages created by the asset for its materials/textures
     TMap<FString, TWeakObjectPtr<class UPackage> >* CookedTemporaryPackages = nullptr;
+    /** Cache of the temp cook content packages created by the asset for its Landscape layers		    **/
+    /** As packages are unique their are used as the key (we can have multiple package for the same geopartobj  **/
+    TMap< TWeakObjectPtr<class UPackage>, FHoudiniGeoPartObject >* CookedTemporaryLandscapeLayers = nullptr;
 
     // When cooking in temp mode - folder to create assets in
     FText TempCookFolder;

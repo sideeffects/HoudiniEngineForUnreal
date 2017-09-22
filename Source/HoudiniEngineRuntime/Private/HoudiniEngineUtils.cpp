@@ -5081,6 +5081,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         }
                     }
 
+                    // Try to update the uproperties of the StaticMesh
+                    UpdateUPropertyAttributesOnObject( StaticMesh, HoudiniGeoPartObject);
+
                     // Free any RHI resources.
                     StaticMesh->PreEditChange( nullptr );
 
@@ -7003,6 +7006,92 @@ FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
         FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(MeshComponent, UPropertiesAttributesToModify );
     }
 }
+/*
+bool
+FHoudiniEngineUtils::TryToFindInStructProperty(UObject* Object, FString UPropertyNameToFind, UStructProperty* StructProperty, UProperty*& FoundProperty, void*& StructContainer )
+{
+    if ( !StructProperty || !Object )
+        return false;
+
+    // Walk the structs' properties and try to find the one we're looking for
+    UScriptStruct* Struct = StructProperty->Struct;
+    for (TFieldIterator< UProperty > It(Struct); It; ++It)
+    {
+        UProperty* Property = *It;
+        if ( !Property )
+            continue;
+
+        FString DisplayName = It->GetDisplayNameText().ToString().Replace(TEXT(" "), TEXT(""));
+        FString Name = It->GetName();
+
+        // If the property name contains the uprop attribute name, we have a candidate
+        if ( Name.Contains( UPropertyNameToFind ) || DisplayName.Contains( UPropertyNameToFind ) )
+        {
+            // We found the property in the struct property, we need to keep the ValuePtr in the object
+            // of the structProp in order to be able to access the property value afterwards...
+            FoundProperty = Property;
+            StructContainer = StructProperty->ContainerPtrToValuePtr< void >( Object, 0);
+
+            // If it's an equality, we dont need to keep searching
+            if ( ( Name == UPropertyNameToFind ) || ( DisplayName == UPropertyNameToFind ) )
+                return true;
+        }
+
+        if ( FoundProperty )
+            continue;
+
+        UStructProperty* NestedStruct = Cast<UStructProperty>( Property );
+        if ( NestedStruct && TryToFindInStructProperty( Object, UPropertyNameToFind, NestedStruct, FoundProperty, StructContainer ) )
+            return true;
+
+        UArrayProperty* ArrayProp = Cast<UArrayProperty>( Property );
+        if ( ArrayProp && TryToFindInArrayProperty( Object, UPropertyNameToFind, ArrayProp, FoundProperty, StructContainer ) )
+            return true;
+    }
+
+    return false;
+}
+
+bool
+FHoudiniEngineUtils::TryToFindInArrayProperty(UObject* Object, FString UPropertyNameToFind, UArrayProperty* ArrayProperty, UProperty*& FoundProperty, void*& StructContainer )
+{
+    if ( !ArrayProperty || !Object )
+        return false;
+
+    UProperty* Property = ArrayProperty->Inner;
+    if ( !Property )
+        return false;
+
+    FString DisplayName = Property->GetDisplayNameText().ToString().Replace(TEXT(" "), TEXT(""));
+    FString Name = Property->GetName();
+
+    // If the property name contains the uprop attribute name, we have a candidate
+    if ( Name.Contains( UPropertyNameToFind ) || DisplayName.Contains( UPropertyNameToFind ) )
+    {
+        // We found the property in the struct property, we need to keep the ValuePtr in the object
+        // of the structProp in order to be able to access the property value afterwards...
+        FoundProperty = Property;
+        StructContainer = ArrayProperty->ContainerPtrToValuePtr< void >( Object, 0);
+
+        // If it's an equality, we dont need to keep searching
+        if ( ( Name == UPropertyNameToFind ) || ( DisplayName == UPropertyNameToFind ) )
+            return true;
+    }
+
+    if ( !FoundProperty )
+    {
+        UStructProperty* NestedStruct = Cast<UStructProperty>( Property );
+        if ( NestedStruct && TryToFindInStructProperty( ArrayProperty, UPropertyNameToFind, NestedStruct, FoundProperty, StructContainer ) )
+            return true;
+
+        UArrayProperty* ArrayProp = Cast<UArrayProperty>( Property );
+        if ( ArrayProp && TryToFindInArrayProperty( ArrayProperty, UPropertyNameToFind, ArrayProp, FoundProperty, StructContainer ) )
+            return true;
+    }
+
+    return false;
+}
+*/
 
 void 
 FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
@@ -7020,11 +7109,12 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
     UStaticMeshComponent* SMC = Cast< UStaticMeshComponent >( MeshComponent );
     UInstancedStaticMeshComponent* ISMC = Cast< UInstancedStaticMeshComponent >( MeshComponent );
     UHoudiniInstancedActorComponent* IAC = Cast< UHoudiniInstancedActorComponent >( MeshComponent );
+    UStaticMesh* SM = Cast< UStaticMesh >( MeshComponent );
 
-    if ( !SMC && !ISMC && !IAC )
+    if ( !SMC && !ISMC && !IAC && !SM )
         return;
 
-    UClass* MeshClass = IAC ? IAC->StaticClass() : ISMC ? ISMC->StaticClass() : SMC->StaticClass();
+    UClass* MeshClass = IAC ? IAC->StaticClass() : ISMC ? ISMC->StaticClass() : SMC ? SMC->StaticClass() : SM->StaticClass();
 
     // Trying to find the UProps in the object 
     for ( int32 nAttributeIdx = 0; nAttributeIdx < nUPropsCount; nAttributeIdx++ )
@@ -7057,6 +7147,14 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
                     break;
                 }
             }
+
+            /*
+            // StructProperty need to be a nested struct
+            if (UStructProperty* StructProperty = Cast< UStructProperty >(CurrentProperty))
+                bPropertyHasBeenFound = TryToFindInStructProperty(MeshComponent, CurrentUPropertyName, StructProperty, FoundProperty, StructContainer);
+            else if (UArrayProperty* ArrayProperty = Cast< UArrayProperty >(CurrentProperty))
+                bPropertyHasBeenFound = TryToFindInArrayProperty(MeshComponent, CurrentUPropertyName, ArrayProperty, FoundProperty, StructContainer);
+            */
 
             // StructProperty need to be a nested struct
             if ( UStructProperty* StructProperty = Cast< UStructProperty >( CurrentProperty ) )
