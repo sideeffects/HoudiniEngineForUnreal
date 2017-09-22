@@ -2680,7 +2680,7 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
             FloatMax = fGlobalMax;
         }
 
-	/*
+/*
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // Preparing the heightfield transform
 
@@ -2698,7 +2698,7 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
         float xLength = xmax - xmin;
         float yLength = ymax - ymin;
         float zLength = zmax - zmin;
-	*/
+*/
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2714,7 +2714,7 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
             NumQuadsPerLandscapeSection ) )
             continue;
 
-	/*
+/*
         if ( false )
         {
             // Mess up the unreal Transformation with the houdini one
@@ -2726,12 +2726,12 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
 
             // Landscape have a 1meter spacing by default
             FVector Scale = LandscapeTransform.GetScale3D();
-            Scale.X = xLength / ( XSize - 1 );
-            Scale.Y = yLength / ( YSize - 1 );
+            Scale.X = xLength / ( XSize - 1 ) * 100.0f;
+            Scale.Y = yLength / ( YSize - 1 ) * 100.0f;
 
             LandscapeTransform.SetScale3D( Scale );
         }
-	*/
+*/
 
         // Look for all the layers/masks corresponding to the current heightfield
         TArray< const FHoudiniGeoPartObject* > FoundLayers;
@@ -2978,7 +2978,7 @@ bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
 {    
     // Verifying HoudiniCookParams validity
     if ( !HoudiniCookParams.HoudiniAsset || !HoudiniCookParams.CookedTemporaryLandscapeLayers )
-	return nullptr;
+        return false;
 
     ImportLayerInfos.Empty();
 
