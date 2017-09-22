@@ -126,7 +126,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             int32& SizeX, int32& SizeY,
             int32& NumberOfSectionsPerComponent,
             int32& NumberOfQuadsPerSection,
-            FVector& LandscapeResizeFactor );
+            FVector& LandscapeResizeFactor,
+            FVector& LandscapePositionOffset );
 
         // Resizes LayerData so that it fits the Landscape size
         static bool ResizeLayerDataForLandscape(

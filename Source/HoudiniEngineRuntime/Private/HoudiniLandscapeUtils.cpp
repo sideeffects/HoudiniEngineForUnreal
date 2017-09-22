@@ -403,12 +403,14 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     int32 OldYSize = YSize;
     NumSectionPerLandscapeComponent = 1;
     NumQuadsPerLandscapeSection = XSize - 1;
-    FVector LandscapeResizeFactor = FVector( 1.0f, 1.0f, 1.0f );
+    FVector LandscapeResizeFactor = FVector::OneVector;
+    FVector LandscapePositionOffsetInPixels = FVector::ZeroVector;
+
     if ( !FHoudiniLandscapeUtils::ResizeHeightDataForLandscape(
         IntHeightData, XSize, YSize,
         NumSectionPerLandscapeComponent,
         NumQuadsPerLandscapeSection,
-        LandscapeResizeFactor ) )
+        LandscapeResizeFactor, LandscapePositionOffsetInPixels ) )
         return false;
 
     // If the landscape has been resized
@@ -509,6 +511,16 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     }
 
     LandscapePosition.Z += ZOffset;
+
+    // If we have padded the data when resizing the landscape, we need to offset the position because of
+    // the added values on the topLeft Corner of the Landscape
+    if ( LandscapePositionOffsetInPixels != FVector::ZeroVector )
+    {
+        FVector LandscapeOffset = LandscapePositionOffsetInPixels * LandscapeScale;
+        LandscapeOffset.Z = 0.0f;
+
+        LandscapePosition += LandscapeOffset;
+    }
 
     // Landscape rotation
     //FRotator LandscapeRotation( 0.0, -90.0, 0.0 );
@@ -687,7 +699,8 @@ void ExpandData(T* OutData, const T* InData,
 template<typename T>
 TArray<T> ExpandData(const TArray<T>& Data,
     int32 OldMinX, int32 OldMinY, int32 OldMaxX, int32 OldMaxY,
-    int32 NewMinX, int32 NewMinY, int32 NewMaxX, int32 NewMaxY)
+    int32 NewMinX, int32 NewMinY, int32 NewMaxX, int32 NewMaxY,
+    int32* PadOffsetX = nullptr, int32* PadOffsetY = nullptr )
 {
     const int32 NewWidth = NewMaxX - NewMinX + 1;
     const int32 NewHeight = NewMaxY - NewMinY + 1;
@@ -699,6 +712,13 @@ TArray<T> ExpandData(const TArray<T>& Data,
     ExpandData(Result.GetData(), Data.GetData(),
         OldMinX, OldMinY, OldMaxX, OldMaxY,
         NewMinX, NewMinY, NewMaxX, NewMaxY);
+
+    // Return the padding so we can offset the terrain position after
+    if ( PadOffsetX )
+        *PadOffsetX = NewMinX;
+
+    if ( PadOffsetY )
+        *PadOffsetY = NewMinY;
 
     return Result;
 }
@@ -740,8 +760,12 @@ FHoudiniLandscapeUtils::ResizeHeightDataForLandscape(
     int32& SizeX, int32& SizeY,
     int32& NumberOfSectionsPerComponent,
     int32& NumberOfQuadsPerSection,
-    FVector& LandscapeResizeFactor )
+    FVector& LandscapeResizeFactor,
+    FVector& LandscapePositionOffset )
 {
+    LandscapeResizeFactor = FVector::OneVector;
+    LandscapePositionOffset = FVector::ZeroVector;
+
     if ( HeightData.Num() <= 4 )
         return false;
 
@@ -872,14 +896,23 @@ FHoudiniLandscapeUtils::ResizeHeightDataForLandscape(
             const int32 OffsetX = (int32)( NewSizeX - SizeX ) / 2;
             const int32 OffsetY = (int32)( NewSizeY - SizeY ) / 2;
 
+            // Store the offset in pixel due to the padding
+            int32 PadOffsetX = 0;
+            int32 PadOffsetY = 0;
+
             // Expanding the Data
             NewData = ExpandData(
                 HeightData, 0, 0, SizeX - 1, SizeY - 1,
-                -OffsetX, -OffsetY, NewSizeX - OffsetX - 1, NewSizeY - OffsetY - 1);
+                -OffsetX, -OffsetY, NewSizeX - OffsetX - 1, NewSizeY - OffsetY - 1,
+                &PadOffsetX, &PadOffsetY );
 
             // The landscape has been resized, we'll need to take that into account when sizing it
             //LandscapeResizeFactor.X = (float)NewSizeX / (float)SizeX;
             //LandscapeResizeFactor.Y = (float)NewSizeY / (float)SizeY;
+
+            // We will need to offset the landscape position due to the value added by the padding
+            LandscapePositionOffset.X = (float)PadOffsetX;
+            LandscapePositionOffset.Y = (float)PadOffsetY;
         }
         else
         {
@@ -2680,28 +2713,6 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
             FloatMax = fGlobalMax;
         }
 
-/*
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        // Preparing the heightfield transform
-
-        // Retrieve the VolumeBounds
-        float xmin, xmax, xcenter;
-        float ymin, ymax, ycenter;
-        float zmin, zmax, zcenter;
-        if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetVolumeBounds(FHoudiniEngine::Get().GetSession(),
-            HeightFieldNodeId, CurrentHeightfield->PartId,
-            &xmin, &zmin, &ymin,
-            &xmax, &zmax, &ymax,
-            &xcenter, &zcenter, &ycenter ) )
-            continue;
-
-        float xLength = xmax - xmin;
-        float yLength = ymax - ymin;
-        float zLength = zmax - zmin;
-*/
-
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
         // Convert the height data from Houdini's heightfield to Unreal's Landscape
         TArray< uint16 > IntHeightData;
         FTransform LandscapeTransform;
@@ -2714,9 +2725,25 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
             NumQuadsPerLandscapeSection ) )
             continue;
 
-/*
+        /*
+        // DEBUG: for checking the landscape sizing / scale 
         if ( false )
         {
+            // Retrieve the VolumeBounds
+            float xmin, xmax, xcenter;
+            float ymin, ymax, ycenter;
+            float zmin, zmax, zcenter;
+            if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetVolumeBounds(FHoudiniEngine::Get().GetSession(),
+                HeightFieldNodeId, CurrentHeightfield->PartId,
+                &xmin, &zmin, &ymin,
+                &xmax, &zmax, &ymax,
+                &xcenter, &zcenter, &ycenter))
+                continue;
+
+            float xLength = xmax - xmin;
+            float yLength = ymax - ymin;
+            float zLength = zmax - zmin;
+
             // Mess up the unreal Transformation with the houdini one
             FVector Pos = LandscapeTransform.GetLocation();
             Pos.X = ( xcenter - xLength / 2.0f ) * 100.0f;
@@ -2731,7 +2758,7 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
 
             LandscapeTransform.SetScale3D( Scale );
         }
-*/
+        */
 
         // Look for all the layers/masks corresponding to the current heightfield
         TArray< const FHoudiniGeoPartObject* > FoundLayers;
