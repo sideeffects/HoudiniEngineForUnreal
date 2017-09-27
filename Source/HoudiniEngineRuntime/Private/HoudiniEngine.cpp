@@ -536,7 +536,7 @@ FHoudiniEngine::CookNode(
 #if WITH_EDITOR
     // The meshes are already created but we need to create the landscape too
     if ( FoundVolumes.Num() > 0 )
-        bReturn = FHoudiniLandscapeUtils::CreateAllLandscapes( HoudiniCookParams, FoundVolumes, LandscapesIn, LandscapesOut );
+        bReturn = FHoudiniLandscapeUtils::CreateAllLandscapes( HoudiniCookParams, FoundVolumes, LandscapesIn, LandscapesOut, -200.0f, 200.0f );
 #endif
 
     return bReturn;

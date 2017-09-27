@@ -2635,15 +2635,17 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
     FHoudiniCookParams& HoudiniCookParams,
     const TArray< FHoudiniGeoPartObject > & FoundVolumes, 
     TMap< FHoudiniGeoPartObject, ALandscape * >& Landscapes,
-    TMap< FHoudiniGeoPartObject, ALandscape * >& NewLandscapes )
+    TMap< FHoudiniGeoPartObject, ALandscape * >& NewLandscapes,
+    float ForcedZMin, float ForcedZMax )
 {
     // First, we need to extract proper height data from FoundVolumes
     TArray< const FHoudiniGeoPartObject* > FoundHeightfields;
     FHoudiniLandscapeUtils::GetHeightfieldsInArray( FoundVolumes, FoundHeightfields );
 
     // If we have multiple heightfields, we want to convert them using the same Z range
-    float fGlobalMin = 0.0f, fGlobalMax = 0.0f; 
-    if ( FoundHeightfields.Num() > 1 )
+    // Either that range has been specified/forced by the user, or we'll have to calculate it from all the height volumes.
+    float fGlobalMin = ForcedZMin, fGlobalMax = ForcedZMax;
+    if ( FoundHeightfields.Num() > 1 && ( fGlobalMin == 0.0f && fGlobalMax == 0.0f ) )
         FHoudiniLandscapeUtils::CalcHeightfieldsArrayGlobalZMinZMax( FoundHeightfields, fGlobalMin, fGlobalMax );
 
     // Try to create a Landscape for each HeightData found
