@@ -1657,7 +1657,7 @@ FHoudiniLandscapeUtils::SetHeighfieldData(
     float * HeightData = FloatValues.GetData();
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetHeightFieldData(
         FHoudiniEngine::Get().GetSession(),
-        DisplayGeoInfo.nodeId, Part.id, HeightData, 0, FloatValues.Num(), NameStr.c_str() ), false );
+        DisplayGeoInfo.nodeId, Part.id, NameStr.c_str(), HeightData, 0, FloatValues.Num() ), false );
 
     return true;
 }
