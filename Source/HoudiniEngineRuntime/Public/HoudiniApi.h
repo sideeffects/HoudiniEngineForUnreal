@@ -167,6 +167,7 @@ public:
 	typedef HAPI_Result (*GetWorkitemFloatDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, float * data_array, int length);
 	typedef HAPI_Result (*GetWorkitemInfoFuncPtr)(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_PDG_WorkitemId workitem_id, HAPI_PDG_WorkitemInfo * workitem_info);
 	typedef HAPI_Result (*GetWorkitemIntDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char* data_name, int * data_array, int length);
+	typedef HAPI_Result (*GetWorkitemResultInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, HAPI_PDG_WorkitemResultInfo * resultinfo_array, int resultinfo_count);
 	typedef HAPI_Result (*GetWorkitemStringDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, char * data_array, int length);
 	typedef HAPI_Result (*GetWorkitemsFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int * workitem_ids, int length);
 	typedef HAPI_Result (*InitializeFuncPtr)(const HAPI_Session * session, const HAPI_CookOptions * cook_options, HAPI_Bool use_cooking_thread, int cooking_thread_stack_size, const char * houdini_environment_files, const char * otl_search_path, const char * dso_search_path, const char * image_dso_search_path, const char * audio_dso_search_path);
@@ -364,6 +365,7 @@ public:
 	static GetWorkitemFloatDataFuncPtr GetWorkitemFloatData;
 	static GetWorkitemInfoFuncPtr GetWorkitemInfo;
 	static GetWorkitemIntDataFuncPtr GetWorkitemIntData;
+	static GetWorkitemResultInfoFuncPtr GetWorkitemResultInfo;
 	static GetWorkitemStringDataFuncPtr GetWorkitemStringData;
 	static GetWorkitemsFuncPtr GetWorkitems;
 	static InitializeFuncPtr Initialize;
@@ -561,6 +563,7 @@ public:
 	static HAPI_Result GetWorkitemFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, float * data_array, int length);
 	static HAPI_Result GetWorkitemInfoEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_PDG_WorkitemId workitem_id, HAPI_PDG_WorkitemInfo * workitem_info);
 	static HAPI_Result GetWorkitemIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char* data_name, int * data_array, int length);
+	static HAPI_Result GetWorkitemResultInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, HAPI_PDG_WorkitemResultInfo * resultinfo_array, int resultinfo_count);
 	static HAPI_Result GetWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, char * data_array, int length);
 	static HAPI_Result GetWorkitemsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int * workitem_ids, int length);
 	static HAPI_Result InitializeEmptyStub(const HAPI_Session * session, const HAPI_CookOptions * cook_options, HAPI_Bool use_cooking_thread, int cooking_thread_stack_size, const char * houdini_environment_files, const char * otl_search_path, const char * dso_search_path, const char * image_dso_search_path, const char * audio_dso_search_path);

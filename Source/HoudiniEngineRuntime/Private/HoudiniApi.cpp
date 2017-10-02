@@ -414,6 +414,9 @@ FHoudiniApi::GetWorkitemInfo = &FHoudiniApi::GetWorkitemInfoEmptyStub;
 FHoudiniApi::GetWorkitemIntDataFuncPtr
 FHoudiniApi::GetWorkitemIntData = &FHoudiniApi::GetWorkitemIntDataEmptyStub;
 
+FHoudiniApi::GetWorkitemResultInfoFuncPtr
+FHoudiniApi::GetWorkitemResultInfo = &FHoudiniApi::GetWorkitemResultInfoEmptyStub;
+
 FHoudiniApi::GetWorkitemStringDataFuncPtr
 FHoudiniApi::GetWorkitemStringData = &FHoudiniApi::GetWorkitemStringDataEmptyStub;
 
@@ -744,6 +747,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetWorkitemFloatData = (GetWorkitemFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkitemFloatData"));
 	FHoudiniApi::GetWorkitemInfo = (GetWorkitemInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkitemInfo"));
 	FHoudiniApi::GetWorkitemIntData = (GetWorkitemIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkitemIntData"));
+	FHoudiniApi::GetWorkitemResultInfo = (GetWorkitemResultInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkitemResultInfo"));
 	FHoudiniApi::GetWorkitemStringData = (GetWorkitemStringDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkitemStringData"));
 	FHoudiniApi::GetWorkitems = (GetWorkitemsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkitems"));
 	FHoudiniApi::Initialize = (InitializeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_Initialize"));
@@ -944,6 +948,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetWorkitemFloatData = &FHoudiniApi::GetWorkitemFloatDataEmptyStub;
 	FHoudiniApi::GetWorkitemInfo = &FHoudiniApi::GetWorkitemInfoEmptyStub;
 	FHoudiniApi::GetWorkitemIntData = &FHoudiniApi::GetWorkitemIntDataEmptyStub;
+	FHoudiniApi::GetWorkitemResultInfo = &FHoudiniApi::GetWorkitemResultInfoEmptyStub;
 	FHoudiniApi::GetWorkitemStringData = &FHoudiniApi::GetWorkitemStringDataEmptyStub;
 	FHoudiniApi::GetWorkitems = &FHoudiniApi::GetWorkitemsEmptyStub;
 	FHoudiniApi::Initialize = &FHoudiniApi::InitializeEmptyStub;
@@ -1917,6 +1922,13 @@ FHoudiniApi::GetWorkitemInfoEmptyStub(const HAPI_Session * session, HAPI_PDG_Gra
 
 HAPI_Result
 FHoudiniApi::GetWorkitemIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char* data_name, int * data_array, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetWorkitemResultInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, HAPI_PDG_WorkitemResultInfo * resultinfo_array, int resultinfo_count)
 {
 	return HAPI_RESULT_FAILURE;
 }
