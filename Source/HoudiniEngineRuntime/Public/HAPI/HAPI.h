@@ -4522,7 +4522,7 @@ HAPI_DECL HAPI_SetVolumeTileIntData( const HAPI_Session * session,
 /// @param[in]      z_index
 ///                 The z index/coordinate of the voxel.
 ///
-/// @param[out]     values_array
+/// @param[in]     values_array
 ///                 The values of the voxel.
 ///
 /// @param[in]      value_count
@@ -4535,7 +4535,7 @@ HAPI_DECL HAPI_SetVolumeVoxelFloatData( const HAPI_Session * session,
                                         int x_index,
                                         int y_index,
                                         int z_index,
-                                        float * values_array,
+                                        const float * values_array,
                                         int value_count );
 
 /// @brief  Set the values of a integer voxel in the volume.
@@ -4560,7 +4560,7 @@ HAPI_DECL HAPI_SetVolumeVoxelFloatData( const HAPI_Session * session,
 /// @param[in]      z_index
 ///                 The z index/coordinate of the voxel.
 ///
-/// @param[out]     values_array
+/// @param[in]     values_array
 ///                 The values of the voxel.
 ///
 /// @param[in]      value_count
@@ -4573,7 +4573,7 @@ HAPI_DECL HAPI_SetVolumeVoxelIntData(   const HAPI_Session * session,
                                         int x_index,
                                         int y_index,
                                         int z_index,
-                                        int * values_array,
+                                        const int * values_array,
                                         int value_count );
 
 /// @brief  Get the bounding values of a volume.
@@ -4648,7 +4648,7 @@ HAPI_DECL HAPI_GetVolumeBounds( const HAPI_Session * session,
 /// @param[in]      part_id
 ///                 The part id.
 ///
-/// @param[out]     values_array
+/// @param[in]     values_array
 ///                 Heightfield flattened array. Should be at least the size of
 ///                 @p start + @p length.
 ///
@@ -4670,9 +4670,9 @@ HAPI_DECL HAPI_GetVolumeBounds( const HAPI_Session * session,
 HAPI_DECL HAPI_SetHeightFieldData(  const HAPI_Session * session,
                                     HAPI_NodeId node_id,
                                     HAPI_PartId part_id,
-                                    float * values_array,
-                                    int start, int length,
-                                    const char * name );
+                                    const char * name,
+                                    const float * values_array,
+                                    int start, int length );
 
 // CURVES -------------------------------------------------------------------
 
