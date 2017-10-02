@@ -1510,20 +1510,28 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_SphereInfo )
 
 struct HAPI_API HAPI_PDG_EventInfo
 {
-    HAPI_NodeId node_id;                     /// id of related node
-    HAPI_PDG_WorkitemId workitem_id;         /// id of related workitem
-    HAPI_PDG_WorkitemId dependency_id;       /// id of related workitem dependency
-    int current_state;                       /// (HAPI_PDG_WorkItemState) value of current state for state change
-    int last_state;                          /// (HAPI_PDG_WorkItemState) value of last state for state change
-    int event_type;                          /// (HAPI_PDG_EventType) event type
+    HAPI_NodeId nodeId;                     /// id of related node
+    HAPI_PDG_WorkitemId workitemId;         /// id of related workitem
+    HAPI_PDG_WorkitemId dependencyId;       /// id of related workitem dependency
+    int currentState;                       /// (HAPI_PDG_WorkItemState) value of current state for state change
+    int lastState;                          /// (HAPI_PDG_WorkItemState) value of last state for state change
+    int eventType;                          /// (HAPI_PDG_EventType) event type
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_EventInfo )
 
 struct HAPI_API HAPI_PDG_WorkitemInfo
 {
     int index;                    /// index of the workitem
+    int numResults;		  /// number of results reported
     HAPI_StringHandle nameSH;     /// name of the workitem
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkitemInfo )
+
+struct HAPI_API HAPI_PDG_WorkitemResultInfo
+{
+    int resultSH;		  /// result string
+    HAPI_Int64 resultHash;	  /// hash value of result
+};
+HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkitemResultInfo )
 
 #endif // __HAPI_COMMON_h__

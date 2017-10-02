@@ -5574,4 +5574,32 @@ HAPI_DECL HAPI_GetWorkitemStringData( const HAPI_Session * session,
                                       char * data_array,
                                       int length );                               
 
+// @brief  Gets the info for workitem results.
+///        The number of workitem results is found on the ::HAPI_PDG_WorkitemInfo
+///        returned by HAPI_GetWorkitemInfo.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      workitem_id
+///                 The id of the workitem
+///
+/// @param[in]      resultinfo_array
+///                 buffer to fill with info structs.  String handles are valid
+///                 until the next call of this function.
+///
+/// @param[out]     resultinfo_count
+///                 The length of resultinfo_array
+///
+HAPI_DECL HAPI_GetWorkitemResultInfo( const HAPI_Session * session,
+				      HAPI_NodeId node_id,
+				      HAPI_PDG_WorkitemId workitem_id,
+				      HAPI_PDG_WorkitemResultInfo * resultinfo_array,
+				      int resultinfo_count );
+
 #endif // __HAPI_h__
