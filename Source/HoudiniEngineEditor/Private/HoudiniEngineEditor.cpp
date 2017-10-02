@@ -51,7 +51,7 @@
 #include "ThumbnailRendering/ThumbnailManager.h"
 
 #include "SHoudiniToolPalette.h"
-#include "IPlacementModeModule.h"
+#include "Editor/PlacementMode/Public/IPlacementModeModule.h"
 
 const FName
 FHoudiniEngineEditor::HoudiniEngineEditorAppIdentifier = FName( TEXT( "HoudiniEngineEditorApp" ) );
