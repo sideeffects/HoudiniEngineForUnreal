@@ -28,6 +28,7 @@
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniLandscapeUtils.h"
 #include "HoudiniAsset.h"
 #include "HoudiniRuntimeSettings.h"
 
@@ -495,11 +496,49 @@ FHoudiniEngine::CookNode(
     HAPI_NodeId AssetId, FHoudiniCookParams& HoudiniCookParams,
     bool ForceRebuildStaticMesh, bool ForceRecookAll,
     const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
-    TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut, FTransform & ComponentTransform )
+    TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut,
+    TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesIn,
+    TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesOut,
+    FTransform & ComponentTransform )
 {
-    return FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
+    // 
+    TMap< FHoudiniGeoPartObject, UStaticMesh * > CookResultArray;
+    bool bReturn = FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         AssetId, HoudiniCookParams, ForceRebuildStaticMesh, 
-        ForceRecookAll, StaticMeshesIn, StaticMeshesOut, ComponentTransform );
+        ForceRecookAll, StaticMeshesIn, CookResultArray, ComponentTransform );
+
+    if ( !bReturn )
+        return false;
+
+    // Extract the static mesh and the volumes/heightfields from the CookResultArray
+    TArray< FHoudiniGeoPartObject > FoundVolumes;
+    for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( CookResultArray ); Iter; ++Iter )
+    {
+        const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
+        UStaticMesh * StaticMesh = Iter.Value();
+
+        if ( HoudiniGeoPartObject.IsInstancer() )
+            continue;
+        else if (HoudiniGeoPartObject.IsPackedPrimitiveInstancer())
+            continue;
+        else if (HoudiniGeoPartObject.IsCurve())
+            continue;
+        else if (HoudiniGeoPartObject.IsVolume())
+        {
+            FoundVolumes.Add( HoudiniGeoPartObject );
+        }
+        else
+        {
+            StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
+        }
+    }
+#if WITH_EDITOR
+    // The meshes are already created but we need to create the landscape too
+    if ( FoundVolumes.Num() > 0 )
+        bReturn = FHoudiniLandscapeUtils::CreateAllLandscapes( HoudiniCookParams, FoundVolumes, LandscapesIn, LandscapesOut, -200.0f, 200.0f );
+#endif
+
+    return bReturn;
 }
 
 #undef LOCTEXT_NAMESPACE
