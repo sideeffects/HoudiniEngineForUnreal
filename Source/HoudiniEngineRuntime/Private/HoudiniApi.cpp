@@ -2201,7 +2201,7 @@ FHoudiniApi::SetGroupMembershipEmptyStub(const HAPI_Session * session, HAPI_Node
 
 
 HAPI_Result
-FHoudiniApi::SetHeightFieldDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float * values_array, int start, int length, const char * name)
+FHoudiniApi::SetHeightFieldDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, float * values_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
