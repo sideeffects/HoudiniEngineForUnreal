@@ -2951,7 +2951,7 @@ bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
 {    
     // Verifying HoudiniCookParams validity
     if ( !HoudiniCookParams.HoudiniAsset || !HoudiniCookParams.CookedTemporaryLandscapeLayers )
-	return nullptr;
+	return false;
 
     ImportLayerInfos.Empty();
 
