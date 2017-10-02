@@ -1975,12 +1975,14 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
 
     if ( InParam.StringChoiceLabels.Num() > 0 )
     {
-	// ComboBox :  Input Type
-        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
+        // ComboBox :  Input Type
+        TSharedPtr< SComboBox< TSharedPtr< FString > > > ComboBoxInputType;
+        VerticalBox->AddSlot().Padding(2, 2, 5, 2)
         [
-            SNew( SComboBox<TSharedPtr< FString > > )
+            //SNew(SComboBox<TSharedPtr< FString > >)
+            SAssignNew( ComboBoxInputType, SComboBox< TSharedPtr< FString > > )
             .OptionsSource( &InParam.StringChoiceLabels )
-            .InitiallySelectedItem( InParam.StringChoiceLabels[InParam.ChoiceIndex ] )
+            .InitiallySelectedItem( InParam.StringChoiceLabels[ InParam.ChoiceIndex ] )
             .OnGenerateWidget( SComboBox< TSharedPtr< FString > >::FOnGenerateWidget::CreateLambda(
                 []( TSharedPtr< FString > ChoiceEntry ) {
                     FText ChoiceEntryText = FText::FromString( *ChoiceEntry );

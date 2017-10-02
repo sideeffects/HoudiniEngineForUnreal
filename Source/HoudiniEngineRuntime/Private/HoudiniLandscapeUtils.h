@@ -34,6 +34,8 @@
 #include "HoudiniGeoPartObject.h"
 #include "Landscape.h"
 
+struct FHoudiniCookParams;
+
 struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
 {
     public:
@@ -41,7 +43,42 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         //--------------------------------------------------------------------------------------------------
         // Houdini to Unreal
         //--------------------------------------------------------------------------------------------------
+#if WITH_EDITOR
+        // Creates all the landscapes/layers from the volume array
+        static bool CreateAllLandscapes(
+            FHoudiniCookParams& HoudiniCookParams,
+            const TArray< FHoudiniGeoPartObject > & FoundVolumes,
+            TMap< FHoudiniGeoPartObject, ALandscape * >& Landscapes,
+            TMap< FHoudiniGeoPartObject, ALandscape * >& NewLandscapes,
+            float ForcedZMin = 0.0f, float ForcedZMax = 0.0f );
 
+        // Creates a single landscape object from the converted data
+        static ALandscape * CreateLandscape(
+            const TArray< uint16 >& IntHeightData,
+            const TArray< FLandscapeImportLayerInfo >& ImportLayerInfos,
+            const FTransform& LandscapeTransform,
+            const int32& XSize, const int32& YSize,
+            const int32& NumSectionPerLandscapeComponent, const int32& NumQuadsPerLandscapeSection,
+            UMaterialInterface* LandscapeMaterial, UMaterialInterface* LandscapeHoleMaterial );
+
+        // Returns the materials assigned to the heightfield
+        static void GetHeightFieldLandscapeMaterials(
+            const FHoudiniGeoPartObject& Heightfield,
+            UMaterialInterface*& LandscapeMaterial,
+            UMaterialInterface*& LandscapeHoleMaterial );
+
+        // Creates the package needed to store landscape layer infos
+        static ULandscapeLayerInfoObject* CreateLandscapeLayerInfoObject( 
+            FHoudiniCookParams& HoudiniCookParams, const TCHAR* LayerName, UPackage*& Package );
+
+        // Creates all the landscape layers for a given heightfield
+        static bool CreateLandscapeLayers(
+            FHoudiniCookParams& HoudiniCookParams,
+            const TArray< const FHoudiniGeoPartObject* >& FoundLayers,
+            const FHoudiniGeoPartObject& Heightfield,
+            const int32& LandscapeXSize, const int32& LandscapeYSize,
+            TArray<FLandscapeImportLayerInfo>& ImportLayerInfos );
+#endif
         // Returns Heightfield contained in the GeoPartObject array
         static void GetHeightfieldsInArray(
             const TArray< FHoudiniGeoPartObject >& InArray,
@@ -90,7 +127,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             int32& SizeX, int32& SizeY,
             int32& NumberOfSectionsPerComponent,
             int32& NumberOfQuadsPerSection,
-            FVector& LandscapeResizeFactor );
+            FVector& LandscapeResizeFactor,
+            FVector& LandscapePositionOffset );
 
         // Resizes LayerData so that it fits the Landscape size
         static bool ResizeLayerDataForLandscape(

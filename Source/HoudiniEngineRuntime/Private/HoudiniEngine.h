@@ -67,8 +67,11 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
         virtual bool CookNode(
             HAPI_NodeId AssetId, FHoudiniCookParams& HoudiniCookParams,
             bool ForceRebuildStaticMesh, bool ForceRecookAll,
-            const TMap< FHoudiniGeoPartObject, class UStaticMesh * > & StaticMeshesIn,
-            TMap< FHoudiniGeoPartObject, class UStaticMesh * > & StaticMeshesOut, FTransform & ComponentTransform ) override;
+            const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
+            TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut,
+            TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesIn,
+            TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesOut,
+            FTransform & ComponentTransform ) override;
 
     public:
 

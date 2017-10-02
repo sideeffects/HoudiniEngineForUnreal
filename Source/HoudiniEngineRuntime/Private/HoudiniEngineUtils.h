@@ -590,7 +590,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Tries to update values for all the UProperty attributes to apply on the object. **/
         static void ApplyUPropertyAttributesOnObject(
-            UObject* MeshComponent, const TArray< UPropertyAttribute >& UPropertiesToModify);
+            UObject* MeshComponent, const TArray< UPropertyAttribute >& UPropertiesToModify );
 
         static bool CheckPackageSafeForBake(UPackage* Package, FString& FoundAssetName);
 
@@ -600,7 +600,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
     protected:
 
 #if PLATFORM_WINDOWS
-    
         /** Attempt to locate libHAPI on Windows in the registry. Return handle if located and return location. **/
         static void* LocateLibHAPIInRegistry(
             const FString & HoudiniInstallationType, const FString & HoudiniVersionString, FString & StoredLibHAPILocation );
@@ -680,7 +679,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             UPackage * Package, const FString & TextureName,
             const TArray< char > & ImageBuffer, const FString & TextureType,
             const FCreateTexture2DParameters & TextureParameters, TextureGroup LODGroup );
-
         /** Reset streams used by the given RawMesh. **/
         static void ResetRawMesh( FRawMesh & RawMesh );
 

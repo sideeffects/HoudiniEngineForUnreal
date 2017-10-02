@@ -5776,6 +5776,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         }
                     }
 
+                    // Try to update the uproperties of the StaticMesh
+                    UpdateUPropertyAttributesOnObject( StaticMesh, HoudiniGeoPartObject);
+
                     // Free any RHI resources.
                     StaticMesh->PreEditChange( nullptr );
 
@@ -9743,11 +9746,12 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
     UStaticMeshComponent* SMC = Cast< UStaticMeshComponent >( MeshComponent );
     UInstancedStaticMeshComponent* ISMC = Cast< UInstancedStaticMeshComponent >( MeshComponent );
     UHoudiniInstancedActorComponent* IAC = Cast< UHoudiniInstancedActorComponent >( MeshComponent );
+    UStaticMesh* SM = Cast< UStaticMesh >( MeshComponent );
 
-    if ( !SMC && !ISMC && !IAC )
+    if ( !SMC && !ISMC && !IAC && !SM )
         return;
 
-    UClass* MeshClass = IAC ? IAC->StaticClass() : ISMC ? ISMC->StaticClass() : SMC->StaticClass();
+    UClass* MeshClass = IAC ? IAC->StaticClass() : ISMC ? ISMC->StaticClass() : SMC ? SMC->StaticClass() : SM->StaticClass();
 
     // Trying to find the UProps in the object 
     for ( int32 nAttributeIdx = 0; nAttributeIdx < nUPropsCount; nAttributeIdx++ )
