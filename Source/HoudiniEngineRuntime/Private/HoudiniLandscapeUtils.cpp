@@ -36,14 +36,14 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniCookHandler.h"
+#include "HoudiniAsset.h"
 #include "LandscapeInfo.h"
 #include "LandscapeComponent.h"
 #include "LandscapeEdit.h"
 #include "LandscapeLayerInfoObject.h"
 #include "LightMap.h"
-#if WITH_EDITOR
-#include "Materials/Material.h"
-#endif
+
 void
 FHoudiniLandscapeUtils::GetHeightfieldsInArray(
     const TArray< FHoudiniGeoPartObject >& InArray,
@@ -402,11 +402,13 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     NumSectionPerLandscapeComponent = 1;
     NumQuadsPerLandscapeSection = XSize - 1;
     FVector LandscapeResizeFactor = FVector( 1.0f, 1.0f, 1.0f );
+    FVector LandscapePositionOffsetInPixels = FVector::ZeroVector;
+
     if ( !FHoudiniLandscapeUtils::ResizeHeightDataForLandscape(
         IntHeightData, XSize, YSize,
         NumSectionPerLandscapeComponent,
         NumQuadsPerLandscapeSection,
-        LandscapeResizeFactor ) )
+        LandscapeResizeFactor, LandscapePositionOffsetInPixels ) )
         return false;
 
     // If the landscape has been resized
@@ -507,6 +509,16 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     }
 
     LandscapePosition.Z += ZOffset;
+
+    // If we have padded the data when resizing the landscape, we need to offset the position because of
+    // the added values on the topLeft Corner of the Landscape
+    if ( LandscapePositionOffsetInPixels != FVector::ZeroVector )
+    {
+        FVector LandscapeOffset = LandscapePositionOffsetInPixels * LandscapeScale;
+        LandscapeOffset.Z = 0.0f;
+
+        LandscapePosition += LandscapeOffset;
+    }
 
     // Landscape rotation
     //FRotator LandscapeRotation( 0.0, -90.0, 0.0 );
@@ -685,7 +697,8 @@ void ExpandData(T* OutData, const T* InData,
 template<typename T>
 TArray<T> ExpandData(const TArray<T>& Data,
     int32 OldMinX, int32 OldMinY, int32 OldMaxX, int32 OldMaxY,
-    int32 NewMinX, int32 NewMinY, int32 NewMaxX, int32 NewMaxY)
+    int32 NewMinX, int32 NewMinY, int32 NewMaxX, int32 NewMaxY,
+    int32* PadOffsetX = nullptr, int32* PadOffsetY = nullptr )
 {
     const int32 NewWidth = NewMaxX - NewMinX + 1;
     const int32 NewHeight = NewMaxY - NewMinY + 1;
@@ -697,6 +710,13 @@ TArray<T> ExpandData(const TArray<T>& Data,
     ExpandData(Result.GetData(), Data.GetData(),
         OldMinX, OldMinY, OldMaxX, OldMaxY,
         NewMinX, NewMinY, NewMaxX, NewMaxY);
+
+    // Return the padding so we can offset the terrain position after
+    if ( PadOffsetX )
+        *PadOffsetX = NewMinX;
+
+    if ( PadOffsetY )
+        *PadOffsetY = NewMinY;
 
     return Result;
 }
@@ -738,8 +758,12 @@ FHoudiniLandscapeUtils::ResizeHeightDataForLandscape(
     int32& SizeX, int32& SizeY,
     int32& NumberOfSectionsPerComponent,
     int32& NumberOfQuadsPerSection,
-    FVector& LandscapeResizeFactor )
+    FVector& LandscapeResizeFactor,
+    FVector& LandscapePositionOffset )
 {
+    LandscapeResizeFactor = FVector(1.0f, 1.0f, 1.0f);
+    LandscapePositionOffset = FVector::ZeroVector;
+
     if ( HeightData.Num() <= 4 )
         return false;
 
@@ -870,14 +894,23 @@ FHoudiniLandscapeUtils::ResizeHeightDataForLandscape(
             const int32 OffsetX = (int32)( NewSizeX - SizeX ) / 2;
             const int32 OffsetY = (int32)( NewSizeY - SizeY ) / 2;
 
+            // Store the offset in pixel due to the padding
+            int32 PadOffsetX = 0;
+            int32 PadOffsetY = 0;
+
             // Expanding the Data
             NewData = ExpandData(
                 HeightData, 0, 0, SizeX - 1, SizeY - 1,
-                -OffsetX, -OffsetY, NewSizeX - OffsetX - 1, NewSizeY - OffsetY - 1);
+                -OffsetX, -OffsetY, NewSizeX - OffsetX - 1, NewSizeY - OffsetY - 1,
+                &PadOffsetX, &PadOffsetY );
 
             // The landscape has been resized, we'll need to take that into account when sizing it
             //LandscapeResizeFactor.X = (float)NewSizeX / (float)SizeX;
             //LandscapeResizeFactor.Y = (float)NewSizeY / (float)SizeY;
+
+            // We will need to offset the landscape position due to the value added by the padding
+            LandscapePositionOffset.X = (float)PadOffsetX;
+            LandscapePositionOffset.Y = (float)PadOffsetY;
         }
         else
         {
@@ -2431,7 +2464,7 @@ bool FHoudiniLandscapeUtils::AddLandscapeMeshIndicesAndMaterialsAttribute(
 {
     if ( !LandscapeProxy )
         return false;
-#if WITH_EDITOR
+
     // Compute number of necessary indices.
     int32 IndexCount = QuadCount * 4;
     if ( IndexCount < 0 )
@@ -2589,11 +2622,462 @@ bool FHoudiniLandscapeUtils::AddLandscapeMeshIndicesAndMaterialsAttribute(
         NodeId, 0, MarshallingAttributeMaterialHoleName.c_str(),
         &AttributeInfoPrimitiveMaterialHole, (const char **) FaceHoleMaterials.GetData(), 0,
         AttributeInfoPrimitiveMaterialHole.count ), false );
-#endif // WITH_EDITOR
+
     return true;
 }
 
 #if WITH_EDITOR
+bool
+FHoudiniLandscapeUtils::CreateAllLandscapes( 
+    FHoudiniCookParams& HoudiniCookParams,
+    const TArray< FHoudiniGeoPartObject > & FoundVolumes, 
+    TMap< FHoudiniGeoPartObject, ALandscape * >& Landscapes,
+    TMap< FHoudiniGeoPartObject, ALandscape * >& NewLandscapes,
+    float ForcedZMin, float ForcedZMax )
+{
+    // First, we need to extract proper height data from FoundVolumes
+    TArray< const FHoudiniGeoPartObject* > FoundHeightfields;
+    FHoudiniLandscapeUtils::GetHeightfieldsInArray( FoundVolumes, FoundHeightfields );
+
+    // If we have multiple heightfields, we want to convert them using the same Z range
+    // Either that range has been specified/forced by the user, or we'll have to calculate it from all the height volumes.
+    float fGlobalMin = ForcedZMin, fGlobalMax = ForcedZMax;
+    if ( FoundHeightfields.Num() > 1 && ( fGlobalMin == 0.0f && fGlobalMax == 0.0f ) )
+        FHoudiniLandscapeUtils::CalcHeightfieldsArrayGlobalZMinZMax( FoundHeightfields, fGlobalMin, fGlobalMax );
+
+    // Try to create a Landscape for each HeightData found
+    //TMap< FHoudiniGeoPartObject, ALandscape * > NewLandscapes;
+    NewLandscapes.Empty();
+    for ( TArray< const FHoudiniGeoPartObject* >::TConstIterator IterHeighfields( FoundHeightfields ); IterHeighfields; ++IterHeighfields )
+    {
+        // Get the current Heightfield GeoPartObject
+        const FHoudiniGeoPartObject* CurrentHeightfield = *IterHeighfields;
+        if ( !CurrentHeightfield )
+            continue;
+
+        bool bLandscapeNeedsRecreate = true;
+        if ( !CurrentHeightfield->bHasGeoChanged )
+        {
+            // The Geo has not changed, do we need to recreate the landscape?
+            ALandscape * FoundLandscape = Landscapes.FindChecked( *CurrentHeightfield );
+            if ( FoundLandscape )
+            {
+                // Check that all layers/mask have not changed too
+                TArray< const FHoudiniGeoPartObject* > FoundLayers;
+                FHoudiniLandscapeUtils::GetHeightfieldsLayersInArray( FoundVolumes, *CurrentHeightfield, FoundLayers );
+
+                bool bLayersHaveChanged = false;
+                for ( int32 n = 0; n < FoundLayers.Num(); n++ )
+                {
+                    if ( FoundLayers[ n ] && FoundLayers[ n ]->bHasGeoChanged )
+                    {
+                        bLayersHaveChanged = true;
+                        break;
+                    }
+                }
+
+                if ( !bLayersHaveChanged )
+                {
+                    // Height and layers/masks have not changed, there is no need to reimport the landscape
+                    bLandscapeNeedsRecreate = false;
+
+                    // We can add the landscape to the map and remove it from the old one to avoid its destruction
+                    NewLandscapes.Add( *CurrentHeightfield, FoundLandscape );
+                    Landscapes.Remove( *CurrentHeightfield );
+                }
+            }
+        }
+
+        if ( !bLandscapeNeedsRecreate )
+            continue;
+
+        HAPI_NodeId HeightFieldNodeId = CurrentHeightfield->HapiGeoGetNodeId();
+
+        // We need to see if the current heightfield has an unreal_material or unreal_hole_material assigned to it
+        UMaterialInterface* LandscapeMaterial = nullptr;
+        UMaterialInterface* LandscapeHoleMaterial = nullptr;
+        FHoudiniLandscapeUtils::GetHeightFieldLandscapeMaterials( *CurrentHeightfield, LandscapeMaterial, LandscapeHoleMaterial );
+
+        // Extract the Float Data from the Heightfield
+        TArray< float > FloatValues;
+        HAPI_VolumeInfo VolumeInfo;
+        float FloatMin, FloatMax;
+        if ( !FHoudiniLandscapeUtils::GetHeightfieldData( *CurrentHeightfield, FloatValues, VolumeInfo, FloatMin, FloatMax ) )
+            continue;
+
+        // Do we need to convert the heightfields using the same global Min/Max
+        if ( fGlobalMin != fGlobalMax )
+        {
+            FloatMin = fGlobalMin;
+            FloatMax = fGlobalMax;
+        }
+
+        // Convert the height data from Houdini's heightfield to Unreal's Landscape
+        TArray< uint16 > IntHeightData;
+        FTransform LandscapeTransform;
+        int32 XSize, YSize, NumSectionPerLandscapeComponent, NumQuadsPerLandscapeSection;
+        if ( !FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
+            FloatValues, VolumeInfo, FloatMin, FloatMax,
+            IntHeightData, LandscapeTransform,
+            XSize, YSize,
+            NumSectionPerLandscapeComponent,
+            NumQuadsPerLandscapeSection ) )
+            continue;
+
+        // Look for all the layers/masks corresponding to the current heightfield
+        TArray< const FHoudiniGeoPartObject* > FoundLayers;
+        FHoudiniLandscapeUtils::GetHeightfieldsLayersInArray( FoundVolumes, *CurrentHeightfield, FoundLayers );
+
+        // Extract and convert the Landscape layers
+        TArray< FLandscapeImportLayerInfo > ImportLayerInfos;
+        if ( !FHoudiniLandscapeUtils::CreateLandscapeLayers( HoudiniCookParams, FoundLayers, *CurrentHeightfield,
+            XSize, YSize, ImportLayerInfos ) )
+            continue;
+
+        // Create the actual Landscape
+        ALandscape * CurrentLandscape = CreateLandscape( 
+            IntHeightData, ImportLayerInfos,
+            LandscapeTransform, XSize, YSize,
+            NumSectionPerLandscapeComponent, NumQuadsPerLandscapeSection,
+            LandscapeMaterial, LandscapeHoleMaterial );
+
+        if ( !CurrentLandscape )
+            continue;
+
+        // Add the new landscape to the map
+        NewLandscapes.Add( *CurrentHeightfield, CurrentLandscape );
+    }
+
+    return true;
+}
+
+ALandscape *
+FHoudiniLandscapeUtils::CreateLandscape(
+    const TArray< uint16 >& IntHeightData,
+    const TArray< FLandscapeImportLayerInfo >& ImportLayerInfos,
+    const FTransform& LandscapeTransform,
+    const int32& XSize, const int32& YSize, 
+    const int32& NumSectionPerLandscapeComponent, const int32& NumQuadsPerLandscapeSection,
+    UMaterialInterface* LandscapeMaterial, UMaterialInterface* LandscapeHoleMaterial )
+{
+    if ( ( XSize < 2 ) || ( YSize < 2 ) )
+        return nullptr;
+
+    if ( IntHeightData.Num() != ( XSize * YSize ) )
+        return nullptr;
+
+    if ( !GEditor )
+        return nullptr;
+
+    // Get the world we'll spawn the landscape in
+    UWorld* MyWorld = nullptr;
+    {
+        // We want to create the landscape in the landscape editor mode's world
+        FWorldContext& EditorWorldContext = GEditor->GetEditorWorldContext();
+        MyWorld = EditorWorldContext.World();
+
+//         // Activate Landscape mode
+//         bool bLandscapeModeWasActive = GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape );
+//         if ( !bLandscapeModeWasActive )
+//             GLevelEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Landscape );
+//
+//         FEdMode* LandscapeEditorMode = GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Landscape );
+//         if ( LandscapeEditorMode )
+//             MyWorld = LandscapeEditorMode->GetWorld();
+//
+//         // Deactivate Landscape Edition mode
+//         if ( !bLandscapeModeWasActive )
+//            GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Landscape );
+    }
+
+    if ( !MyWorld )
+        return nullptr;
+
+    // We need to create the landscape now and assign it a new GUID so we can create the LayerInfos
+    ALandscape* Landscape = MyWorld->SpawnActor< ALandscape >();
+    if ( !Landscape )
+        return nullptr;
+
+    FGuid currentGUID = FGuid::NewGuid();
+    Landscape->SetLandscapeGuid( currentGUID );
+
+    // Set the landscape Transform
+    Landscape->SetActorTransform( LandscapeTransform );
+    // Scale
+    //Landscape->SetActorRelativeScale3D( LandscapeTransform.GetScale3D() );
+
+    // Landscape rotation
+    //FRotator LandscapeRotation( 0.0, -90.0, 0.0 );
+    //Landscape->SetActorRelativeRotation( LandscapeRotation );
+    //Landscape->SetActorRelativeRotation( LandscapeTransform.GetRotation() );
+
+    // Position
+    //Landscape->SetActorLocation( LandscapePosition );
+
+    // Autosaving the layers prevents them for being deleted with the Asset
+    // Save the packages created for the LayerInfos
+    //if ( CreatedLayerInfoPackage.Num() > 0 )
+    //    FEditorFileUtils::PromptForCheckoutAndSave( CreatedLayerInfoPackage, true, false );
+
+
+    // Import the landscape data
+
+    // Deactivate CastStaticShadow on the landscape to avoid "grid shadow" issue
+    Landscape->bCastStaticShadow = false;
+
+    if ( LandscapeMaterial )
+        Landscape->LandscapeMaterial = LandscapeMaterial;
+
+    if ( LandscapeHoleMaterial )
+        Landscape->LandscapeHoleMaterial = LandscapeHoleMaterial;
+
+    // Setting the layer type here.
+    // Need attribute to change it?
+    ELandscapeImportAlphamapType ImportLayerType = ELandscapeImportAlphamapType::Additive;
+
+    // Import the data
+    Landscape->Import(
+        currentGUID,
+        0, 0, XSize - 1, YSize - 1,
+        NumSectionPerLandscapeComponent, NumQuadsPerLandscapeSection,
+        &( IntHeightData[ 0 ] ), NULL,
+        ImportLayerInfos, ImportLayerType );
+
+    // Copied straight from UE source code to avoid crash after importing the landscape:
+    // automatically calculate a lighting LOD that won't crash lightmass (hopefully)
+    // < 2048x2048 -> LOD0,  >=2048x2048 -> LOD1,  >= 4096x4096 -> LOD2,  >= 8192x8192 -> LOD3
+    Landscape->StaticLightingLOD = FMath::DivideAndRoundUp( FMath::CeilLogTwo( ( XSize * YSize ) / ( 2048 * 2048 ) + 1 ), ( uint32 )2 );
+
+    /*
+    // The asset needs to be static in order to attach the landscape to it
+    SetMobility( EComponentMobility::Static );
+    Landscape->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
+    */
+
+    // Register all the landscape components
+    Landscape->RegisterAllComponents();
+
+    return Landscape;
+}
+
+void FHoudiniLandscapeUtils::GetHeightFieldLandscapeMaterials(
+    const FHoudiniGeoPartObject& Heightfield,
+    UMaterialInterface*& LandscapeMaterial,
+    UMaterialInterface*& LandscapeHoleMaterial )
+{
+    LandscapeMaterial = nullptr;
+    LandscapeHoleMaterial = nullptr;
+
+    if ( !Heightfield.IsVolume() )
+        return;
+
+    std::string MarshallingAttributeNameMaterial = HAPI_UNREAL_ATTRIB_MATERIAL;
+    std::string MarshallingAttributeNameMaterialHole = HAPI_UNREAL_ATTRIB_MATERIAL_HOLE;
+
+    // Get runtime settings.
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if ( HoudiniRuntimeSettings )
+    {
+        if ( !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty() )
+            FHoudiniEngineUtils::ConvertUnrealString(
+                HoudiniRuntimeSettings->MarshallingAttributeMaterial,
+                MarshallingAttributeNameMaterial);
+
+        if ( !HoudiniRuntimeSettings->MarshallingAttributeMaterialHole.IsEmpty() )
+            FHoudiniEngineUtils::ConvertUnrealString(
+                HoudiniRuntimeSettings->MarshallingAttributeMaterialHole,
+                MarshallingAttributeNameMaterialHole );
+    }
+
+    TArray< FString > Materials;
+    HAPI_AttributeInfo AttribMaterials;
+    FMemory::Memset< HAPI_AttributeInfo >( AttribMaterials, 0 );
+    // First, look for landscape material
+    {
+        FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+            Heightfield, MarshallingAttributeNameMaterial.c_str(),
+            AttribMaterials, Materials );
+
+        if ( AttribMaterials.exists && AttribMaterials.owner != HAPI_ATTROWNER_PRIM && AttribMaterials.owner != HAPI_ATTROWNER_DETAIL )
+        {
+            HOUDINI_LOG_WARNING( TEXT( "Landscape:  unreal_material must be a primitive or detail attribute, ignoring attribute." ) );
+            AttribMaterials.exists = false;
+            Materials.Empty();
+        }
+
+        if ( AttribMaterials.exists && Materials.Num() > 0 )
+        {
+            // Load the material
+            LandscapeMaterial = Cast< UMaterialInterface >( StaticLoadObject(
+                UMaterialInterface::StaticClass(),
+                nullptr, *( Materials[ 0 ] ), nullptr, LOAD_NoWarn, nullptr ) );
+        }
+    }
+
+    Materials.Empty();
+    FMemory::Memset< HAPI_AttributeInfo >( AttribMaterials, 0 );
+    
+    // Then, for the hole_material
+    {
+        FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+            Heightfield, MarshallingAttributeNameMaterialHole.c_str(),
+            AttribMaterials, Materials );
+
+        if ( AttribMaterials.exists && AttribMaterials.owner != HAPI_ATTROWNER_PRIM && AttribMaterials.owner != HAPI_ATTROWNER_DETAIL )
+        {
+            HOUDINI_LOG_WARNING( TEXT( "Landscape:  unreal_material must be a primitive or detail attribute, ignoring attribute." ) );
+            AttribMaterials.exists = false;
+            Materials.Empty();
+        }
+
+        if ( AttribMaterials.exists && Materials.Num() > 0 )
+        {
+            // Load the material
+            LandscapeHoleMaterial = Cast< UMaterialInterface >( StaticLoadObject(
+                UMaterialInterface::StaticClass(),
+                nullptr, *( Materials[ 0 ] ), nullptr, LOAD_NoWarn, nullptr ) );
+        }
+    }
+}
+
+bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
+    FHoudiniCookParams& HoudiniCookParams,
+    const TArray< const FHoudiniGeoPartObject* >& FoundLayers,
+    const FHoudiniGeoPartObject& Heightfield,
+    const int32& LandscapeXSize, const int32& LandscapeYSize,
+    TArray<FLandscapeImportLayerInfo>& ImportLayerInfos )
+{    
+    // Verifying HoudiniCookParams validity
+    if ( !HoudiniCookParams.HoudiniAsset || !HoudiniCookParams.CookedTemporaryLandscapeLayers )
+        return false;
+
+    ImportLayerInfos.Empty();
+
+    // Get the names of all the non weight blended layers
+    TArray< FString > NonWeightBlendedLayerNames;
+    FHoudiniLandscapeUtils::GetNonWeightBlendedLayerNames( Heightfield, NonWeightBlendedLayerNames );
+
+    // Try to create all the layers
+    ELandscapeImportAlphamapType ImportLayerType = ELandscapeImportAlphamapType::Additive;
+    for ( TArray<const FHoudiniGeoPartObject *>::TConstIterator IterLayers( FoundLayers ); IterLayers; ++IterLayers )
+    {
+        const FHoudiniGeoPartObject * LayerGeoPartObject = *IterLayers;
+        if ( !LayerGeoPartObject )
+            continue;
+
+        if ( !LayerGeoPartObject->IsValid() )
+            continue;
+
+        if ( LayerGeoPartObject->AssetId == -1 )
+            continue;
+
+        TArray< float > FloatLayerData;
+        HAPI_VolumeInfo LayerVolumeInfo;
+        float LayerMin = 0;
+        float LayerMax = 0;
+
+        if ( !FHoudiniLandscapeUtils::GetHeightfieldData( *LayerGeoPartObject, FloatLayerData, LayerVolumeInfo, LayerMin, LayerMax ) )
+            continue;
+
+        // No need to create flat layers as Unreal will remove them afterwards..
+        if ( LayerMin == LayerMax )
+            continue;
+
+        // Creating the ImportLayerInfo and LayerInfo objects
+        FString LayerString;
+        FHoudiniEngineString( LayerVolumeInfo.nameSH ).ToFString( LayerString );
+        ObjectTools::SanitizeObjectName( LayerString );
+
+        FName LayerName( *LayerString );
+        FLandscapeImportLayerInfo currentLayerInfo( LayerName );
+
+        UPackage * Package;
+        currentLayerInfo.LayerInfo = FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( HoudiniCookParams, LayerString.GetCharArray().GetData(), Package );
+        if ( !currentLayerInfo.LayerInfo || !Package )
+            continue;
+
+        // Convert the float data to uint8
+        if ( !FHoudiniLandscapeUtils::ConvertHeightfieldLayerToLandscapeLayer(
+            FloatLayerData, LayerVolumeInfo.xLength, LayerVolumeInfo.yLength,
+            LayerMin, LayerMax,
+            LandscapeXSize, LandscapeYSize,
+            currentLayerInfo.LayerData ) )
+            continue;
+
+        // We will store the data used to convert from Houdini values to int in the DebugColor
+        // This is the only way we'll be able to reconvert those values back to their houdini equivalent afterwards...
+        // R = Min, G = Max, B = Spacing, A = ?
+        currentLayerInfo.LayerInfo->LayerUsageDebugColor.R = LayerMin;
+        currentLayerInfo.LayerInfo->LayerUsageDebugColor.G = LayerMax;
+        currentLayerInfo.LayerInfo->LayerUsageDebugColor.B = ( LayerMax - LayerMin) / 255.0f;
+        currentLayerInfo.LayerInfo->LayerUsageDebugColor.A = PI;
+
+        // Should remove package if convert fail!
+        HoudiniCookParams.CookedTemporaryLandscapeLayers->Add( Package, Heightfield );
+
+        if ( NonWeightBlendedLayerNames.Contains( LayerString ) )
+            currentLayerInfo.LayerInfo->bNoWeightBlend = true;
+        else
+            currentLayerInfo.LayerInfo->bNoWeightBlend = false;
+
+        // Mark the package dirty...
+        //Package->MarkPackageDirty();
+
+        ImportLayerInfos.Add( currentLayerInfo );
+    }
+
+    // Autosaving the layers prevents them for being deleted with the Asset
+    // Save the packages created for the LayerInfos
+    //if ( CreatedLayerInfoPackage.Num() > 0 )
+    //    FEditorFileUtils::PromptForCheckoutAndSave( CreatedLayerInfoPackage, true, false );
+    
+    return true;
+}
+
+ULandscapeLayerInfoObject *
+FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( FHoudiniCookParams& HoudiniCookParams, const TCHAR* LayerName, UPackage*& Package )
+{
+    // Verifying HoudiniCookParams validity
+    if ( !HoudiniCookParams.HoudiniAsset )
+        return nullptr;
+
+    FString ComponentGUIDString = HoudiniCookParams.PackageGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDComponentNameLength );
+
+    FString LayerNameString = FString::Printf( TEXT( "%s" ), LayerName );
+    LayerNameString = PackageTools::SanitizePackageName( LayerNameString );
+
+    // Create the LandscapeInfoObjectName from the Asset name and the mask name
+    FName LayerObjectName = FName( * (HoudiniCookParams.HoudiniAsset->GetName() + ComponentGUIDString + TEXT( "_LayerInfoObject_" ) + LayerNameString ) );
+
+    // Save the package in the temp folder
+    FString Path = HoudiniCookParams.TempCookFolder.ToString() + TEXT( "/" );
+    FString PackageName = Path + LayerObjectName.ToString();
+    PackageName = PackageTools::SanitizePackageName( PackageName );
+
+    // See if package exists, if it does, reuse it
+    //UPackage * Package = FindPackage( nullptr , *PackageName );
+    Package = FindPackage( nullptr, *PackageName );
+    if ( !Package )
+    {
+        // Package does not exists, create it
+        Package = CreatePackage( nullptr, *PackageName );
+    }
+
+    if ( !Package )
+        return nullptr;
+
+    ULandscapeLayerInfoObject* LayerInfo = NewObject<ULandscapeLayerInfoObject>( Package, LayerObjectName, RF_Public | RF_Standalone /*| RF_Transactional*/ );
+    LayerInfo->LayerName = LayerName;
+
+    // Notify the asset registry
+    FAssetRegistryModule::AssetCreated( LayerInfo );
+
+    // Mark the package dirty...
+    Package->MarkPackageDirty();
+
+    return LayerInfo;
+}
+
 bool FHoudiniLandscapeUtils::AddLandscapeGlobalMaterialAttribute( const HAPI_NodeId& NodeId, ALandscapeProxy * LandscapeProxy )
 {
     if ( !LandscapeProxy )

@@ -95,5 +95,5 @@ public:
     static void BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * HoudiniAssetComponent );
 
     /** Bakes landscape (detach them from the asset), if OnlyBakeThisLandscape is null, all landscapes will be baked **/
-    static bool BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, class ALandscape * OnlyBakeThisLandscape = nullptr );
+    static bool BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, ALandscape * OnlyBakeThisLandscape = nullptr );
 };

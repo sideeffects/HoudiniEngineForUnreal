@@ -558,7 +558,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             TArray< FString >& AllSocketsActors );
 
         /** Add the actor stored in the socket tag to the socket for the given static mesh component 			**/
-        static bool AddActorsToMeshSocket( UStaticMeshSocket* Socket, class UStaticMeshComponent* StaticMeshComponent );
+        static bool AddActorsToMeshSocket( UStaticMeshSocket* Socket, UStaticMeshComponent* StaticMeshComponent );
 
         /** Add the mesh aggregate collision geo to the specified StaticMesh						**/
         static bool AddAggregateCollisionGeometryToStaticMesh(
@@ -589,7 +589,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Tries to update values for all the UProperty attributes to apply on the object. **/
         static void ApplyUPropertyAttributesOnObject(
-            UObject* MeshComponent, const TArray< UPropertyAttribute >& UPropertiesToModify);
+            UObject* MeshComponent, const TArray< UPropertyAttribute >& UPropertiesToModify );
 
         static bool CheckPackageSafeForBake(UPackage* Package, FString& FoundAssetName);
 
@@ -599,7 +599,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
     protected:
 
 #if PLATFORM_WINDOWS
-    
         /** Attempt to locate libHAPI on Windows in the registry. Return handle if located and return location. **/
         static void* LocateLibHAPIInRegistry(
             const FString & HoudiniInstallationType, const FString & HoudiniVersionString, FString & StoredLibHAPILocation );
@@ -642,6 +641,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Helper routine to count number of degenerate triangles. **/
         static int32 CountDegenerateTriangles( const FRawMesh & RawMesh );
 
+#endif // WITH_EDITOR
+
         /** Create helper array of material names, we use it for marshalling. **/
         static void CreateFaceMaterialArray(
             const TArray< UMaterialInterface* > & Materials,
@@ -650,8 +651,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Delete helper array of material names. **/
         static void DeleteFaceMaterialArray( TArray< char * > & OutStaticMeshFaceMaterials );
-
-#endif // WITH_EDITOR
 
         /** Return a specified HAPI status string. **/
         static const FString GetStatusString( HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity );
@@ -679,7 +678,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             UPackage * Package, const FString & TextureName,
             const TArray< char > & ImageBuffer, const FString & TextureType,
             const FCreateTexture2DParameters & TextureParameters, TextureGroup LODGroup );
-
         /** Reset streams used by the given RawMesh. **/
         static void ResetRawMesh( FRawMesh & RawMesh );
 

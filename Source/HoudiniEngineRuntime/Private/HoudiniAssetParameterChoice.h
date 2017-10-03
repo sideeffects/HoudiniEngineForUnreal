@@ -81,6 +81,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterChoice : public UHoudiniAss
         void SetValueInt( int32 Value, bool bTriggerModify = true, bool bRecordUndo = true );
 
 #if WITH_EDITOR
+
+        /** Helper method used to generate choice entry widget. **/
+        TSharedRef< SWidget > CreateChoiceEntryWidget( TSharedPtr< FString > ChoiceEntry );
+
         /** Called when change of selection is triggered. **/
         void OnChoiceChange( TSharedPtr< FString > NewChoice );
 

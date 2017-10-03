@@ -23,6 +23,8 @@
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniApi.h"
+#include "HoudiniAsset.h"
+#include "HoudiniAssetComponent.h"
 #include "Editor.h"
 #include "SHoudiniToolPalette.h"
 #include "Modules/ModuleManager.h"

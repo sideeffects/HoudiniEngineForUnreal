@@ -19,6 +19,14 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
+* Produced by:
+*      Chris Grebeldinger
+*      Side Effects Software Inc
+*      123 Front Street West, Suite 1401
+*      Toronto, Ontario
+*      Canada   M5J 2M2
+*      416-504-9876
+*
 */
 
 #pragma once
@@ -35,7 +43,7 @@ enum EHoudiniVertexAttributeDataType
 
 struct FHoudiniPointAttributeData
 {
-    FHoudiniPointAttributeData( const FString& InAttrName, class UStaticMeshComponent* InComponent, EHoudiniVertexAttributeDataType InDataType, int32 InCount, int32 InTupleSize )
+    FHoudiniPointAttributeData( const FString& InAttrName, UStaticMeshComponent* InComponent, EHoudiniVertexAttributeDataType InDataType, int32 InCount, int32 InTupleSize )
     : AttrName( InAttrName )
     , Component ( InComponent )
     , DataType( InDataType )
@@ -56,7 +64,7 @@ struct FHoudiniPointAttributeData
         }
     }
     FString AttrName;
-    TWeakObjectPtr<class UStaticMeshComponent> Component;
+    TWeakObjectPtr<UStaticMeshComponent> Component;
     EHoudiniVertexAttributeDataType DataType;
     int32 Count;
     int32 TupleSize;

@@ -32,10 +32,7 @@
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAssetThumbnailRenderer.h"
 #include "HoudiniAssetThumbnailScene.h"
-#include "RendererInterface.h"
 #include "HoudiniAsset.h"
-#include "SceneInterface.h"
-#include "SceneView.h"
 
 
 UHoudiniAssetThumbnailRenderer::UHoudiniAssetThumbnailRenderer( const FObjectInitializer & ObjectInitializer )

@@ -19,6 +19,14 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
+* Produced by:
+*      Damian Campeanu, Mykola Konyk
+*      Side Effects Software Inc
+*      123 Front Street West, Suite 1401
+*      Toronto, Ontario
+*      Canada   M5J 2M2
+*      416-504-9876
+*
 */
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
@@ -28,10 +36,10 @@
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniLandscapeUtils.h"
+#include "HoudiniRuntimeSettings.h"
 #include "HoudiniAsset.h"
 #include "PlatformMisc.h"
-#include "SlateApplication.h"
-#include "Materials/Material.h"
 
 const FName FHoudiniEngine::HoudiniEngineAppIdentifier = FName( TEXT( "HoudiniEngineApp" ) );
 
@@ -62,22 +70,22 @@ FHoudiniEngine::GetHoudiniLogoBrush() const
 
 #endif
 
-TWeakObjectPtr<UStaticMesh>
+UStaticMesh *
 FHoudiniEngine::GetHoudiniLogoStaticMesh() const
 {
-    return HoudiniLogoStaticMesh;
+    return HoudiniLogoStaticMesh.Get();
 }
 
-TWeakObjectPtr<UMaterial>
+UMaterial *
 FHoudiniEngine::GetHoudiniDefaultMaterial() const
 {
-    return HoudiniDefaultMaterial;
+    return HoudiniDefaultMaterial.Get();
 }
 
-TWeakObjectPtr<UHoudiniAsset>
+UHoudiniAsset *
 FHoudiniEngine::GetHoudiniBgeoAsset() const
 {
-    return HoudiniBgeoAsset;
+    return HoudiniBgeoAsset.Get();
 }
 
 bool
@@ -487,9 +495,47 @@ FHoudiniEngine::CookNode(
     HAPI_NodeId AssetId, FHoudiniCookParams& HoudiniCookParams,
     bool ForceRebuildStaticMesh, bool ForceRecookAll,
     const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
-    TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut, FTransform & ComponentTransform )
+    TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut,
+    TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesIn,
+    TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesOut,
+    FTransform & ComponentTransform )
 {
-    return FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
+    // 
+    TMap< FHoudiniGeoPartObject, UStaticMesh * > CookResultArray;
+    bool bReturn = FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         AssetId, HoudiniCookParams, ForceRebuildStaticMesh, 
-        ForceRecookAll, StaticMeshesIn, StaticMeshesOut, ComponentTransform );
+        ForceRecookAll, StaticMeshesIn, CookResultArray, ComponentTransform );
+
+    if ( !bReturn )
+        return false;
+
+    // Extract the static mesh and the volumes/heightfields from the CookResultArray
+    TArray< FHoudiniGeoPartObject > FoundVolumes;
+    for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( CookResultArray ); Iter; ++Iter )
+    {
+        const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
+        UStaticMesh * StaticMesh = Iter.Value();
+
+        if ( HoudiniGeoPartObject.IsInstancer() )
+            continue;
+        else if (HoudiniGeoPartObject.IsPackedPrimitiveInstancer())
+            continue;
+        else if (HoudiniGeoPartObject.IsCurve())
+            continue;
+        else if (HoudiniGeoPartObject.IsVolume())
+        {
+            FoundVolumes.Add( HoudiniGeoPartObject );
+        }
+        else
+        {
+            StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
+        }
+    }
+#if WITH_EDITOR
+    // The meshes are already created but we need to create the landscape too
+    if ( FoundVolumes.Num() > 0 )
+        bReturn = FHoudiniLandscapeUtils::CreateAllLandscapes( HoudiniCookParams, FoundVolumes, LandscapesIn, LandscapesOut, -200.0f, 200.0f );
+#endif
+
+    return bReturn;
 }

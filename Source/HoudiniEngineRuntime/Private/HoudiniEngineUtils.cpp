@@ -19,6 +19,14 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
+* Produced by:
+*      Mykola Konyk
+*      Side Effects Software Inc
+*      123 Front Street West, Suite 1401
+*      Toronto, Ontario
+*      Canada   M5J 2M2
+*      416-504-9876
+*
 */
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
@@ -5435,7 +5443,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                 if ( !MaterialInterface )
                                 {
                                     // Material/Replacement does not exist, use default material.
-                                    MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+                                    MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
                                     bMissingReplacement = true;
                                 }
 
@@ -5458,7 +5466,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         if ( bMaterialsFound && bMissingReplacement )
                         {
                             // Get default Houdini material.
-                            UMaterial * MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+                            UMaterial * MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 
                             // Extract native Houdini materials.
                             TMap< HAPI_NodeId, UMaterialInterface * > NativeMaterials;
@@ -5514,7 +5522,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             if ( bSingleFaceMaterial )
                             {
                                 // Use default Houdini material if no valid material is assigned to any of the faces.
-                                UMaterialInterface * Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+                                UMaterialInterface * Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 
                                 // We have only one material.
                                 RawMesh.FaceMaterialIndices.SetNumZeroed( FaceCount );
@@ -5540,7 +5548,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             else
                             {
                                 // Get default Houdini material.
-                                UMaterial * MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+                                UMaterial * MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 
                                 // We have multiple materials.
                                 int32 MaterialIndex = 0;
@@ -5605,7 +5613,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             // No materials were found, we need to use default Houdini material.
                             RawMesh.FaceMaterialIndices.SetNumZeroed( FaceCount );
 
-                            UMaterialInterface * Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+                            UMaterialInterface * Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
                             FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
 
                             // If we have replacement material for this geo part object and this shop material name.
@@ -5696,6 +5704,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
                         }
                     }
+
+                    // Try to update the uproperties of the StaticMesh
+                    UpdateUPropertyAttributesOnObject( StaticMesh, HoudiniGeoPartObject);
 
                     // Free any RHI resources.
                     StaticMesh->PreEditChange( nullptr );
@@ -6157,7 +6168,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(
     FMaterialUpdateContext MaterialUpdateContext;
 
     // Default Houdini material.
-    UMaterial * DefaultMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+    UMaterial * DefaultMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
     Materials.Add( HAPI_UNREAL_DEFAULT_MATERIAL_NAME, DefaultMaterial );
 
     // Factory to create materials.
@@ -8108,7 +8119,6 @@ FHoudiniEngineUtils::ExtractRawName( const FString & Name )
     return nullptr;
 }
 
-#if WITH_EDITOR
 void
 FHoudiniEngineUtils::CreateFaceMaterialArray(
     const TArray< UMaterialInterface* > & Materials, const TArray< int32 > & FaceMaterialIndices,
@@ -8130,7 +8140,7 @@ FHoudiniEngineUtils::CreateFaceMaterialArray(
             if ( !MaterialInterface )
             {
                 // Null material interface found, add default instead.
-                MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+                MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
             }
 
             FString FullMaterialName = MaterialInterface->GetPathName();
@@ -8141,7 +8151,7 @@ FHoudiniEngineUtils::CreateFaceMaterialArray(
     else
     {
         // We do not have any materials, add default.
-        MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+        MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
         FString FullMaterialName = MaterialInterface->GetPathName();
         UniqueName = FHoudiniEngineUtils::ExtractRawName( FullMaterialName );
         UniqueMaterialList.Add( UniqueName );
@@ -8168,8 +8178,6 @@ FHoudiniEngineUtils::DeleteFaceMaterialArray( TArray< char * > & OutStaticMeshFa
 
     OutStaticMeshFaceMaterials.Empty();
 }
-
-#endif // WITH_EDITOR
 
 void
 FHoudiniEngineUtils::ExtractStringPositions( const FString & Positions, TArray< FVector > & OutPositions )
@@ -8786,11 +8794,11 @@ FHoudiniEngineUtils::MaterialLocateExpression( UMaterialExpression * Expression,
 {
     if ( !Expression )
         return nullptr;
-#if WITH_EDITOR
+
     if ( ExpressionClass == Expression->GetClass() )
         return Expression;
 
-
+#if WITH_EDITOR
     // If this is a channel multiply expression, we can recurse.
     UMaterialExpressionMultiply * MaterialExpressionMultiply = Cast< UMaterialExpressionMultiply >( Expression );
     if ( MaterialExpressionMultiply )
@@ -9664,11 +9672,12 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
     UStaticMeshComponent* SMC = Cast< UStaticMeshComponent >( MeshComponent );
     UInstancedStaticMeshComponent* ISMC = Cast< UInstancedStaticMeshComponent >( MeshComponent );
     UHoudiniInstancedActorComponent* IAC = Cast< UHoudiniInstancedActorComponent >( MeshComponent );
+    UStaticMesh* SM = Cast< UStaticMesh >( MeshComponent );
 
-    if ( !SMC && !ISMC && !IAC )
+    if ( !SMC && !ISMC && !IAC && !SM )
         return;
 
-    UClass* MeshClass = IAC ? IAC->StaticClass() : ISMC ? ISMC->StaticClass() : SMC->StaticClass();
+    UClass* MeshClass = IAC ? IAC->StaticClass() : ISMC ? ISMC->StaticClass() : SMC ? SMC->StaticClass() : SM->StaticClass();
 
     // Trying to find the UProps in the object 
     for ( int32 nAttributeIdx = 0; nAttributeIdx < nUPropsCount; nAttributeIdx++ )

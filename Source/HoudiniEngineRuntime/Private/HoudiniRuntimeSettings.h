@@ -30,8 +30,6 @@
 */
 
 #pragma once
-
-#include "AssetPtr.h"
 #include "HoudiniRuntimeSettings.generated.h"
 
 struct FRawMesh;

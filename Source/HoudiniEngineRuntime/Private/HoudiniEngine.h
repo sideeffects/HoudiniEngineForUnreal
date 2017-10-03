@@ -43,9 +43,9 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
     /** IHoudiniEngine methods. **/
     public:
 
-        virtual TWeakObjectPtr<UStaticMesh> GetHoudiniLogoStaticMesh() const override;
-        virtual TWeakObjectPtr<UMaterial> GetHoudiniDefaultMaterial() const override;
-        virtual TWeakObjectPtr<UHoudiniAsset> GetHoudiniBgeoAsset() const override;
+        virtual UStaticMesh * GetHoudiniLogoStaticMesh() const override;
+        virtual UMaterial * GetHoudiniDefaultMaterial() const override;
+        virtual UHoudiniAsset * GetHoudiniBgeoAsset() const override;
 
 #if WITH_EDITOR
 
@@ -65,8 +65,11 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
         virtual bool CookNode(
             HAPI_NodeId AssetId, FHoudiniCookParams& HoudiniCookParams,
             bool ForceRebuildStaticMesh, bool ForceRecookAll,
-            const TMap< FHoudiniGeoPartObject, class UStaticMesh * > & StaticMeshesIn,
-            TMap< FHoudiniGeoPartObject, class UStaticMesh * > & StaticMeshesOut, FTransform & ComponentTransform ) override;
+            const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
+            TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut,
+            TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesIn,
+            TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesOut,
+            FTransform & ComponentTransform ) override;
 
     public:
 

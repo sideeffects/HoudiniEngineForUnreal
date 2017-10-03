@@ -42,34 +42,25 @@
 #include "HoudiniAssetParameterString.h"
 #include "HoudiniAssetParameterToggle.h"
 #include "HoudiniRuntimeSettings.h"
-#include "SNewFilePathPicker.h"
+#include "HoudiniAssetComponent.h"
 
+#include "SNewFilePathPicker.h"
 #include "CurveEditorSettings.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerPublicTypes.h"
-#include "Editor/UnrealEd/Public/AssetThumbnail.h"
-#include "Editor/UnrealEd/Public/Layers/ILayers.h"
-#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
-#include "Editor/PropertyEditor/Private/PropertyNode.h"
-#include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
 #include "EditorDirectories.h"
 #include "Engine/Selection.h"
 #include "Engine/SkeletalMesh.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Internationalization.h"
+#include "NumericUnitTypeInterface.inl"
 #include "Particles/ParticleSystemComponent.h"
-#include "SCurveEditor.h"
 #include "Sound/SoundBase.h"
 #include "UnitConversion.h"
-#include "Widgets/Colors/SColorPicker.h"
 #include "Widgets/Colors/SColorBlock.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SComboBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
-#include "Widgets/Input/SNumericEntryBox.h"
-#include "Widgets/Input/SRotatorInputBox.h"
-#include "Widgets/Input/NumericUnitTypeInterface.inl"
-#include "Widgets/Input/SVectorInputBox.h"
 #include "Widgets/Layout/SSeparator.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 
@@ -1100,8 +1091,6 @@ FHoudiniParameterDetails::CreateWidgetInt( IDetailCategoryBuilder & LocalDetailC
 void 
 FHoudiniParameterDetails::CreateWidgetInstanceInput( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetInstanceInput& InParam )
 {
-    TWeakObjectPtr<UHoudiniAssetInstanceInput> MyParam(&InParam);
-
     // Get thumbnail pool for this builder.
     IDetailLayoutBuilder & DetailLayoutBuilder = LocalDetailCategoryBuilder.GetParentLayout();
     TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
@@ -1147,7 +1136,7 @@ FHoudiniParameterDetails::CreateWidgetInstanceInput( IDetailCategoryBuilder & Lo
             [
                 PickerVerticalBox
             ];
-            TWeakObjectPtr<UHoudiniAssetInstanceInputField> InputFieldPtr( HoudiniAssetInstanceInputField );
+
             PickerVerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
             [
                 SNew( SAssetDropTarget )
@@ -1172,6 +1161,9 @@ FHoudiniParameterDetails::CreateWidgetInstanceInput( IDetailCategoryBuilder & Lo
             [
                 SAssignNew( StaticMeshThumbnailBorder, SBorder )
                 .Padding( 5.0f )
+                .BorderImage( TAttribute< const FSlateBrush * >::Create(
+                TAttribute< const FSlateBrush * >::FGetter::CreateUObject(
+                    &InParam, &UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder, HoudiniAssetInstanceInputField, FieldIdx, VariationIdx ) ) )
                 .OnMouseDoubleClick( FPointerEventHandler::CreateUObject(
                     &InParam, &UHoudiniAssetInstanceInput::OnThumbnailDoubleClick, InstancedObject ) )
                 [
@@ -1184,15 +1176,6 @@ FHoudiniParameterDetails::CreateWidgetInstanceInput( IDetailCategoryBuilder & Lo
                     ]
                 ]
             ];
-
-            StaticMeshThumbnailBorder->SetBorderImage( TAttribute< const FSlateBrush * >::Create(
-                TAttribute< const FSlateBrush * >::FGetter::CreateLambda([=]() {
-                    
-                    if ( StaticMeshThumbnailBorder.IsValid() && StaticMeshThumbnailBorder->IsHovered() )
-                        return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailLight" );
-                    else
-                        return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailShadow" );
-            } ) ) );
 
             PickerHorizontalBox->AddSlot().AutoWidth().Padding( 0.0f, 28.0f, 0.0f, 28.0f )
             [
@@ -1211,6 +1194,9 @@ FHoudiniParameterDetails::CreateWidgetInstanceInput( IDetailCategoryBuilder & Lo
                         HoudiniAssetInstanceInputField, VariationIdx ),
                     LOCTEXT("RemoveLastInstanceToolTip", "Remove Last Instance"))
             ];
+
+            // Store thumbnail border for this static mesh.
+            HoudiniAssetInstanceInputField->AssignThumbnailBorder( StaticMeshThumbnailBorder );
 
             TSharedPtr< SComboButton > AssetComboButton;
             TSharedPtr< SHorizontalBox > ButtonBox;
@@ -1253,20 +1239,18 @@ FHoudiniParameterDetails::CreateWidgetInstanceInput( IDetailCategoryBuilder & Lo
                     PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
                         FAssetData( InstancedObject ), true,
                         AllowedClasses, NewAssetFactories, FOnShouldFilterAsset(),
-                        FOnAssetSelected::CreateLambda( [=]( const FAssetData& AssetData ) {
-                            if ( AssetComboButton.IsValid() && MyParam.IsValid() && InputFieldPtr.IsValid() )
-                            {
-                                AssetComboButton->SetIsOpen( false );
-                                UObject * Object = AssetData.GetAsset();
-                                MyParam->OnStaticMeshDropped( Object, InputFieldPtr.Get(), FieldIdx, VariationIdx );
-                            }
-                        }),
+                        FOnAssetSelected::CreateUObject(
+                            &InParam, &UHoudiniAssetInstanceInput::OnStaticMeshSelected,
+                            HoudiniAssetInstanceInputField, FieldIdx, VariationIdx ),
                         FSimpleDelegate::CreateUObject(
                             &InParam, &UHoudiniAssetInstanceInput::CloseStaticMeshComboButton,
                             HoudiniAssetInstanceInputField, FieldIdx, VariationIdx ) );
 
                 AssetComboButton->SetMenuContent( PropertyMenuAssetPicker );
             }
+
+            // Store combo button for this static mesh.
+            HoudiniAssetInstanceInputField->AssignComboButton( AssetComboButton );
 
             // Create tooltip.
             FFormatNamedArguments Args;
@@ -1380,26 +1364,16 @@ FHoudiniParameterDetails::CreateWidgetInstanceInput( IDetailCategoryBuilder & Lo
                     SNew( SCheckBox )
                     .Style( FEditorStyle::Get(), "TransparentCheckBox" )
                     .ToolTipText( LOCTEXT( "PreserveScaleToolTip", "When locked, scales uniformly based on the current xyz scale values so the object maintains its shape in each direction when scaled" ) )
-                    .OnCheckStateChanged( FOnCheckStateChanged::CreateLambda( [=]( ECheckBoxState NewState ) {
-                        if ( MyParam.IsValid() && InputFieldPtr.IsValid() )
-                            MyParam->CheckStateChanged( NewState == ECheckBoxState::Checked, InputFieldPtr.Get(), VariationIdx );
-                    }))
+                    .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                        &InParam, &UHoudiniAssetInstanceInput::CheckStateChanged, HoudiniAssetInstanceInputField, VariationIdx ) )
                     .IsChecked( TAttribute< ECheckBoxState >::Create(
-                        TAttribute<ECheckBoxState>::FGetter::CreateLambda( [=]() {
-                            if ( InputFieldPtr.IsValid() && InputFieldPtr->AreOffsetsScaledLinearly( VariationIdx ) )
-                                return ECheckBoxState::Checked;
-                            return ECheckBoxState::Unchecked;
-                    })))
+                        TAttribute<ECheckBoxState>::FGetter::CreateUObject(
+                            &InParam, &UHoudiniAssetInstanceInput::IsChecked, HoudiniAssetInstanceInputField, VariationIdx ) ) )
                     [
                         SNew( SImage )
                         .Image( TAttribute<const FSlateBrush*>::Create(
-                            TAttribute<const FSlateBrush*>::FGetter::CreateLambda( [=]() {
-                            if ( InputFieldPtr.IsValid() && InputFieldPtr->AreOffsetsScaledLinearly( VariationIdx ) )
-                            {
-                                return FEditorStyle::GetBrush( TEXT( "GenericLock" ) );
-                            }
-                            return FEditorStyle::GetBrush( TEXT( "GenericUnlock" ) );
-                        })))
+                            TAttribute<const FSlateBrush*>::FGetter::CreateUObject(
+                                &InParam, &UHoudiniAssetInstanceInput::GetPreserveScaleRatioImage, HoudiniAssetInstanceInputField, VariationIdx )))
                         .ColorAndOpacity( FSlateColor::UseForeground() )
                     ]
                 ]
@@ -1969,12 +1943,14 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
 
     if ( InParam.StringChoiceLabels.Num() > 0 )
     {
-	// ComboBox :  Input Type
-        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
+        // ComboBox :  Input Type
+        TSharedPtr< SComboBox< TSharedPtr< FString > > > ComboBoxInputType;
+        VerticalBox->AddSlot().Padding(2, 2, 5, 2)
         [
-            SNew( SComboBox<TSharedPtr< FString > > )
+            //SNew(SComboBox<TSharedPtr< FString > >)
+            SAssignNew( ComboBoxInputType, SComboBox< TSharedPtr< FString > > )
             .OptionsSource( &InParam.StringChoiceLabels )
-            .InitiallySelectedItem( InParam.StringChoiceLabels[InParam.ChoiceIndex ] )
+            .InitiallySelectedItem( InParam.StringChoiceLabels[ InParam.ChoiceIndex ] )
             .OnGenerateWidget( SComboBox< TSharedPtr< FString > >::FOnGenerateWidget::CreateLambda(
                 []( TSharedPtr< FString > ChoiceEntry ) {
                     FText ChoiceEntryText = FText::FromString( *ChoiceEntry );

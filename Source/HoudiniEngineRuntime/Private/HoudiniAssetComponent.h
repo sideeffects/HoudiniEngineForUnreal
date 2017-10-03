@@ -19,6 +19,14 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
+* Produced by:
+*      Damian Campeanu, Mykola Konyk
+*      Side Effects Software Inc
+*      123 Front Street West, Suite 1401
+*      Toronto, Ontario
+*      Canada   M5J 2M2
+*      416-504-9876
+*
 */
 
 #pragma once
@@ -27,14 +35,6 @@
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniCookHandler.h"
-
-#include "Landscape.h"
-#include "TimerManager.h"
-#include "Components/PrimitiveComponent.h"
-#if WITH_EDITOR
-#include "Factories/Factory.h"
-#endif
-#include "PhysicsEngine/BodySetup.h"
 #include "HoudiniAssetComponent.generated.h"
 
 class UClass;
@@ -45,7 +45,6 @@ class UStaticMesh;
 class UHoudiniAsset;
 class UObjectProperty;
 class USplineComponent;
-class UInstancedStaticMeshComponent;
 class UPhysicalMaterial;
 class UHoudiniAssetInput;
 class AHoudiniAssetActor;
@@ -481,39 +480,10 @@ public:
         bool CreateHandles();
 
         /** Create all landscapes in the GeoPartObject array **/
-        bool CreateAllLandscapes(const TArray< FHoudiniGeoPartObject > & FoundVolumes );
+        bool CreateAllLandscapes( const TArray< FHoudiniGeoPartObject > & FoundVolumes );
 
-        /** Create all the landscapes layers for a given hieghtfield from the GeoPartObject array **/
-        bool CreateLandscapeLayers(
-            const TArray< const FHoudiniGeoPartObject* >& FoundLayers,
-            const FHoudiniGeoPartObject& Heightfield,
-            const int32& XSize, const int32& YSize,
-            TArray<FLandscapeImportLayerInfo>& ImportLayerInfos);
-
-        /** Create a Landscape actor from the data extracted from heightfield nodes **/
-        ALandscape* CreateLandscape(
-            const TArray<uint16>& IntHeightData,
-            const TArray<FLandscapeImportLayerInfo>& ImportLayerInfos,
-            const FTransform& LandscapeTransform,
-            const int32& XSize, const int32& YSize,
-            const int32& NumSectionPerLandscapeComponent, const int32& NumQuadsPerLandscapeSection,
-            UMaterialInterface* LandscapeMaterial, UMaterialInterface* LandscapeHoleMaterial);
-
-        /** Creates a LandscapeLayerInfoObject in the TempCook folder **/
-        ULandscapeLayerInfoObject * CreateLandscapeLayerInfoObject( const TCHAR* LayerName, UPackage*& Package );
-
-        /** Find the materials used by a heighfield / landscape **/
-        void GetHeightFieldLandscapeMaterials(
-            const FHoudiniGeoPartObject& Heightfield,
-            UMaterialInterface*& LandscapeMaterial,
-            UMaterialInterface*& LandscapeHoleMaterial);
-
-        /** Resizes the HeightData so that it matches Unreal's requirement for Landscape import **/
-        void ResizeHeightDataForLandscape(
-            int32& SizeX, int32& SizeY,
-            int32& NumberOfSectionsPerComponent,
-            int32& NumberOfQuadsPerSection,
-            TArray<uint16>& HeightData );
+        /** Updates the materials for a newly created landscape **/
+        void UpdateLandscapeMaterialsAssignementsAndReplacements( ALandscape* Landscape, FHoudiniGeoPartObject Heightfield );
 
         /** Unmark all changed parameters. **/
         void UnmarkChangedParameters();
@@ -735,7 +705,7 @@ public:
 #if WITH_EDITOR
 
         /** Notification used by this component. **/
-        TWeakPtr< class SNotificationItem > NotificationPtr;
+        TWeakPtr< SNotificationItem > NotificationPtr;
 
         /** Component from which this component has been copied. **/
         UHoudiniAssetComponent * CopiedHoudiniComponent;

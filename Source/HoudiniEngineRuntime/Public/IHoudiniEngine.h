@@ -35,6 +35,7 @@ struct FHoudiniEngineTask;
 struct FHoudiniEngineTaskInfo;
 struct HAPI_Session;
 struct FHoudiniCookParams;
+class ALandscape;
 
 
 class IHoudiniEngine : public IModuleInterface
@@ -49,13 +50,13 @@ public:
 #endif
 
     /** Return static mesh reprensenting Houdini logo. **/
-    virtual TWeakObjectPtr<UStaticMesh> GetHoudiniLogoStaticMesh() const = 0;
+    virtual UStaticMesh* GetHoudiniLogoStaticMesh() const = 0;
 
     /** Return default material. **/
-    virtual TWeakObjectPtr<UMaterial> GetHoudiniDefaultMaterial() const = 0;
+    virtual UMaterial* GetHoudiniDefaultMaterial() const = 0;
 
     /** Return Houdini digital asset used for bgeo file loading. **/
-    virtual TWeakObjectPtr<UHoudiniAsset> GetHoudiniBgeoAsset() const = 0;
+    virtual UHoudiniAsset* GetHoudiniBgeoAsset() const = 0;
 
     /** Return true if HAPI version mismatch is detected (between defined and running versions). **/
     virtual bool CheckHapiVersionMismatch() const = 0;
@@ -88,6 +89,9 @@ public:
     virtual bool CookNode(
         HAPI_NodeId AssetId, FHoudiniCookParams& HoudiniCookParams,
         bool ForceRebuildStaticMesh, bool ForceRecookAll,
-        const TMap< FHoudiniGeoPartObject, class UStaticMesh * > & StaticMeshesIn,
-        TMap< FHoudiniGeoPartObject, class UStaticMesh * > & StaticMeshesOut, FTransform & ComponentTransform ) = 0;
+        const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
+        TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut,
+        TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesIn,
+        TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesOut,
+        FTransform & ComponentTransform ) = 0;
 };
