@@ -380,12 +380,12 @@ FHoudiniEngine::StartupModule()
                 HAPI_VERSION_HOUDINI_ENGINE_MAJOR, HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API,
                 RunningEngineMajor, RunningEngineMinor, RunningEngineApi );
         }
-    }
 
-    // Create HAPI scheduler and processing thread.
-    HoudiniEngineScheduler = new FHoudiniEngineScheduler();
-    HoudiniEngineSchedulerThread = FRunnableThread::Create(
-        HoudiniEngineScheduler, TEXT( "HoudiniTaskCookAsset" ), 0, TPri_Normal );
+        // Create HAPI scheduler and processing thread.
+        HoudiniEngineScheduler = new FHoudiniEngineScheduler();
+        HoudiniEngineSchedulerThread = FRunnableThread::Create(
+            HoudiniEngineScheduler, TEXT( "HoudiniTaskCookAsset" ), 0, TPri_Normal );
+    }
 
 #endif
 
