@@ -183,9 +183,9 @@ UHoudiniHandleComponent::UpdateTransformParameters()
     XformParms[ EXformParameter::TY ] = HapiEulerXform.position[ 1 ];
     XformParms[ EXformParameter::TZ ] = HapiEulerXform.position[ 2 ];
 
-    XformParms[ EXformParameter::RX ] = HapiEulerXform.rotationEuler[ 0 ];
-    XformParms[ EXformParameter::RY ] = HapiEulerXform.rotationEuler[ 1 ];
-    XformParms[ EXformParameter::RZ ] = HapiEulerXform.rotationEuler[ 2 ];
+    XformParms[ EXformParameter::RX ] = FMath::RadiansToDegrees(HapiEulerXform.rotationEuler[ 0 ]);
+    XformParms[ EXformParameter::RY ] = FMath::RadiansToDegrees(HapiEulerXform.rotationEuler[ 1 ]);
+    XformParms[ EXformParameter::RZ ] = FMath::RadiansToDegrees(HapiEulerXform.rotationEuler[ 2 ]);
 
     constexpr float MaxFloat = TNumericLimits<float>::Max();
     constexpr float MinFloat = TNumericLimits<float>::Min();

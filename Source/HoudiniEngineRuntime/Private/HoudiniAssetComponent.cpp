@@ -5615,8 +5615,8 @@ UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
     for ( TMap< UObject*, int32 >::TIterator IterToolPreset( HoudiniToolInputPreset ); IterToolPreset; ++IterToolPreset )
     {
         UObject * Object = IterToolPreset.Key();
-        AHoudiniAssetActor* HoudiniAsset = Cast<AHoudiniAssetActor>( Object );
-        if ( !HoudiniAsset )
+        AHoudiniAssetActor* HAsset = Cast<AHoudiniAssetActor>( Object );
+        if ( !HAsset )
             OnlyHoudiniAssets = false;
 
         ALandscape* Landscape = Cast<ALandscape>( Object );
@@ -5633,8 +5633,8 @@ UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
         // Try to apply the supplied Object to the Input
         for (TMap< UObject*, int32 >::TIterator IterToolPreset( HoudiniToolInputPreset ); IterToolPreset; ++IterToolPreset)
         {
-            AHoudiniAssetActor* HoudiniAsset = Cast< AHoudiniAssetActor >( IterToolPreset.Key() );
-            if (!HoudiniAsset)
+            AHoudiniAssetActor* HAsset = Cast< AHoudiniAssetActor >( IterToolPreset.Key() );
+            if (!HAsset)
                 continue;
 
             int32 InputNumber = IterToolPreset.Value();
@@ -5642,7 +5642,7 @@ UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
                 continue;
 
             InputArray[ InputNumber ]->ChangeInputType( EHoudiniAssetInputType::AssetInput );
-            InputArray[ InputNumber ]->OnInputActorSelected( HoudiniAsset );
+            InputArray[ InputNumber ]->OnInputActorSelected( HAsset );
         }
     }
     else if ( OnlyLandscapes )
