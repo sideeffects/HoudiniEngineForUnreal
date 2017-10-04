@@ -3360,7 +3360,7 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters( UStaticMesh * StaticM
     StaticMesh->LpvBiasMultiplier = GeneratedLpvBiasMultiplier;
 
     // Set the global light map coordinate index if it looks valid
-    if ( StaticMesh->RenderData.IsValid() )
+    if ( StaticMesh->RenderData.IsValid() && StaticMesh->RenderData->LODResources.Num() > 0)
     {
         int32 NumUVs = StaticMesh->RenderData->LODResources[0].GetNumTexCoords();
         if ( NumUVs > GeneratedLightMapCoordinateIndex )
