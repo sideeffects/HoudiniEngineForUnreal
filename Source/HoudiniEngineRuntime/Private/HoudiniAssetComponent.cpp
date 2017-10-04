@@ -2815,12 +2815,15 @@ UHoudiniAssetComponent::PostLoadReattachComponents()
     }
 }
 
+
+#if WITH_EDITOR
+
 void
 UHoudiniAssetComponent::OnComponentCreated()
 {
     // This event will only be fired for native Actor and native Component.
     Super::OnComponentCreated();
-
+    
     if ( !GetOwner() || !GetOwner()->GetWorld() )
         return;
 
@@ -2838,18 +2841,8 @@ UHoudiniAssetComponent::OnComponentCreated()
                 this, UHoudiniAssetComponentMaterials::StaticClass(), NAME_None, RF_Public | RF_Transactional );
     }
 
-#if WITH_EDITOR
-
     // Subscribe to delegates.
     SubscribeEditorDelegates();
-
-#endif
-}
-
-void
-UHoudiniAssetComponent::BeginDestroy()
-{
-    Super::BeginDestroy();
 }
 
 void
@@ -2884,15 +2877,11 @@ UHoudiniAssetComponent::OnComponentDestroyed( bool bDestroyingHierarchy )
     // Clear cook content temp file
     ClearCookTempFile();
 
-#if WITH_EDITOR
-
     // Release all Houdini related resources.
     ResetHoudiniResources();
 
     // Unsubscribe from Editor events.
     UnsubscribeEditorDelegates();
-
-#endif
 
     Super::OnComponentDestroyed( bDestroyingHierarchy );
 }
@@ -2930,12 +2919,7 @@ UHoudiniAssetComponent::OnRegister()
         }
     }
 }
-
-void
-UHoudiniAssetComponent::OnUnregister()
-{
-    Super::OnUnregister();
-}
+#endif
 
 bool
 UHoudiniAssetComponent::ContainsHoudiniLogoGeometry() const
@@ -2956,19 +2940,35 @@ UHoudiniAssetComponent::CreateStaticMeshHoudiniLogoResource( TMap< FHoudiniGeoPa
     bContainsHoudiniLogoGeometry = true;
 }
 
+#if WITH_EDITOR
 void
 UHoudiniAssetComponent::PostLoad()
 {
     Super::PostLoad();
 
-#if WITH_EDITOR
+    // If we are being cooked, we don't want to do anything
+    if( GIsCookerLoadingPackage )
+        return;
+
     // Only do PostLoad stuff if we are in the editor world
-    if(UWorld* World = GetWorld())
-        if ( World->WorldType != EWorldType::Editor && World->WorldType != EWorldType::Inactive )
+    if( UWorld* World = GetWorld() )
+    {
+        if( World->WorldType != EWorldType::Editor && World->WorldType != EWorldType::Inactive )
+        {
             return;
+        }
+    }
+    else
+    {
+        // we aren't in _any_ world - how unusual
+        return;
+    }
 
     SanitizePostLoad();
-#endif
+
+    // The rest of the steps below are only for post-duplicate, not post-deserialize-load
+    if( GIsEditorLoadingPackage )
+        return;
 
     // We loaded a component which has no asset associated with it.
     if ( !HoudiniAsset && StaticMeshes.Num() <= 0)
@@ -2978,12 +2978,8 @@ UHoudiniAssetComponent::PostLoad()
         return;
     }
 
-#if WITH_EDITOR
-
     // Show busy cursor.
     FScopedBusyCursor ScopedBusyCursor;
-
-#endif
 
     if ( StaticMeshes.Num() > 0 )
     {
@@ -3021,17 +3017,14 @@ UHoudiniAssetComponent::PostLoad()
     // Need to update rendering information.
     UpdateRenderingInformation();
 
-#if WITH_EDITOR
-
     // Force editor to redraw viewports.
     if ( GEditor )
         GEditor->RedrawAllViewports();
 
     // Update properties panel after instantiation.
     UpdateEditorProperties( false );
-
-#endif
 }
+#endif
 
 void
 UHoudiniAssetComponent::Serialize( FArchive & Ar )
@@ -3622,8 +3615,6 @@ void UHoudiniAssetComponent::SanitizePostLoad()
     }
 }
 
-#endif
-
 void
 UHoudiniAssetComponent::PostInitProperties()
 {
@@ -3653,6 +3644,8 @@ UHoudiniAssetComponent::PostInitProperties()
         GeneratedDistanceFieldResolutionScale = HoudiniRuntimeSettings->GeneratedDistanceFieldResolutionScale;
     }
 }
+
+#endif
 
 bool
 UHoudiniAssetComponent::LocateStaticMeshes(

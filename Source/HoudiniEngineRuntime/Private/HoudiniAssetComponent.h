@@ -372,21 +372,17 @@ public:
         virtual void PostEditChangeProperty( FPropertyChangedEvent & PropertyChangedEvent ) override;
         virtual void PostEditUndo() override;
         virtual void PostEditImport() override;
-#endif
-
         virtual void PostLoad() override;
-        virtual void Serialize( FArchive & Ar ) override;
         virtual void PostInitProperties() override;
-        virtual void BeginDestroy() override;
-        static void AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector );
-
     /** UActorComponent methods. **/
     protected:
 
         virtual void OnComponentCreated() override;
-        virtual void OnComponentDestroyed( bool bDestroyingHierarchy ) override;
+        virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
         virtual void OnRegister() override;
-        virtual void OnUnregister() override;
+#endif
+        virtual void Serialize( FArchive & Ar ) override;
+        static void AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector );
 
     /** USceneComponent methods. **/
     private:
