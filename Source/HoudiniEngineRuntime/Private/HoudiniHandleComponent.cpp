@@ -134,8 +134,8 @@ UHoudiniHandleComponent::Construct(
 
     HapiEulerXform.rstOrder = GetHapiRSTOrder( RSTOrderStrPtr );
     HapiEulerXform.rotationOrder = GetHapiXYZOrder( XYZOrderStrPtr );
-    constexpr float MaxFloat = std::numeric_limits<float>::max();
-    constexpr float MinFloat = std::numeric_limits<float>::min();
+    constexpr float MaxFloat = TNumericLimits<float>::Max();
+    constexpr float MinFloat = TNumericLimits<float>::Min();
     HapiEulerXform.scale[ 0 ] = FMath::Clamp( HapiEulerXform.scale[ 0 ], MinFloat, MaxFloat );
     HapiEulerXform.scale[ 1 ] = FMath::Clamp( HapiEulerXform.scale[ 1 ], MinFloat, MaxFloat );
     HapiEulerXform.scale[ 2 ] = FMath::Clamp( HapiEulerXform.scale[ 2 ], MinFloat, MaxFloat );
@@ -187,8 +187,8 @@ UHoudiniHandleComponent::UpdateTransformParameters()
     XformParms[ EXformParameter::RY ] = HapiEulerXform.rotationEuler[ 1 ];
     XformParms[ EXformParameter::RZ ] = HapiEulerXform.rotationEuler[ 2 ];
 
-    constexpr float MaxFloat = std::numeric_limits<float>::max();
-    constexpr float MinFloat = std::numeric_limits<float>::min();
+    constexpr float MaxFloat = TNumericLimits<float>::Max();
+    constexpr float MinFloat = TNumericLimits<float>::Min();
     HapiEulerXform.scale[ 0 ] = FMath::Clamp( HapiEulerXform.scale[ 0 ], MinFloat, MaxFloat );
     HapiEulerXform.scale[ 1 ] = FMath::Clamp( HapiEulerXform.scale[ 1 ], MinFloat, MaxFloat );
     HapiEulerXform.scale[ 2 ] = FMath::Clamp( HapiEulerXform.scale[ 2 ], MinFloat, MaxFloat );
