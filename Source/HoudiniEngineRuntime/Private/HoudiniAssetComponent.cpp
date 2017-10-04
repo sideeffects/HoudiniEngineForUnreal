@@ -2966,10 +2966,6 @@ UHoudiniAssetComponent::PostLoad()
 
     SanitizePostLoad();
 
-    // The rest of the steps below are only for post-duplicate, not post-deserialize-load
-    if( GIsEditorLoadingPackage )
-        return;
-
     // We loaded a component which has no asset associated with it.
     if ( !HoudiniAsset && StaticMeshes.Num() <= 0)
     {
