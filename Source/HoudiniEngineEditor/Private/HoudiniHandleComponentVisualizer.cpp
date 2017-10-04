@@ -205,32 +205,19 @@ FHoudiniHandleComponentVisualizer::HandleInputDelta(
     if ( !EditedComponent )
         return false;
 
-    bool bUpdated = false;
     if ( !DeltaTranslate.IsZero() && bAllowTranslate )
     {
         EditedComponent->SetWorldLocation( EditedComponent->GetComponentTransform().GetLocation() + DeltaTranslate );
-        bUpdated = true;
     }
 
     if ( !DeltaRotate.IsZero() && bAllowRotation )
     {
         EditedComponent->SetWorldRotation( DeltaRotate.Quaternion() * EditedComponent->GetComponentTransform().GetRotation() );
-        bUpdated = true;
     }
 
     if ( !DeltaScale.IsZero() && bAllowScale )
     {
         EditedComponent->SetWorldScale3D( EditedComponent->GetComponentTransform().GetScale3D() + DeltaScale );
-        bUpdated = true;
-    }
-
-    // Don't continuously update bounder because it jitters badly
-    if( bUpdated && (EditedComponent->HandleType != EHoudiniHandleType::Bounder) )
-    {
-        if( GEditor )
-            GEditor->RedrawLevelEditingViewports( true );
-
-        EditedComponent->UpdateTransformParameters();
     }
 
     return true;
