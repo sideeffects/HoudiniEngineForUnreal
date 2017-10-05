@@ -290,6 +290,17 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
         UPROPERTY(GlobalConfig, EditAnywhere, Category = GeometryMarshalling)
         bool MarshallingLandscapesUseFullResolution;
 
+        // If true, the min/max values used to convert heightfields to landscape will be forced values
+        // This is usefull when importing multiple landscapes from different HDAs
+        UPROPERTY(GlobalConfig, EditAnywhere, Category = GeometryMarshalling)
+        bool MarshallingLandscapesForceMinMaxValues;
+        // The minimum value to be used for Landscape conversion when MarshallingLandscapesForceMinMaxValues is enabled
+        UPROPERTY(GlobalConfig, EditAnywhere, Category = GeometryMarshalling)
+        float MarshallingLandscapesForcedMinValue;
+        // The maximum value to be used for Landscape conversion when MarshallingLandscapesForceMinMaxValues is enabled
+        UPROPERTY(GlobalConfig, EditAnywhere, Category = GeometryMarshalling)
+        float MarshallingLandscapesForcedMaxValue;
+
     /** Geometry scaling. **/
     public:
 
