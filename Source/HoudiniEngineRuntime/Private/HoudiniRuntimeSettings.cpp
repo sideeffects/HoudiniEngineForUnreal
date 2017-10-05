@@ -84,6 +84,9 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     MarshallingAttributeInputMeshName = TEXT( HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME );
     MarshallingSplineResolution = HAPI_UNREAL_PARAM_SPLINE_RESOLUTION_DEFAULT;
     MarshallingLandscapesUseFullResolution = true;
+    MarshallingLandscapesForceMinMaxValues = false;
+    MarshallingLandscapesForcedMinValue = -2000.0f;
+    MarshallingLandscapesForcedMaxValue = 4553.0f;
 
     /** Geometry scaling. **/
     GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
@@ -209,6 +212,15 @@ UHoudiniRuntimeSettings::PostInitProperties()
             Property->SetPropertyFlags( CPF_EditConst );
     }
 
+    // Set Landscape forced min/max as read only when not overriden
+    if ( !MarshallingLandscapesForceMinMaxValues )
+    {
+        if ( UProperty* Property = LocateProperty( TEXT( "MarshallingLandscapesForcedMinValue" ) ) )
+            Property->SetPropertyFlags( CPF_EditConst );
+        if ( UProperty* Property = LocateProperty( TEXT( "MarshallingLandscapesForcedMaxValue" ) ) )
+            Property->SetPropertyFlags( CPF_EditConst );
+    }
+
     // Disable UI elements depending on current session type.
 #if WITH_EDITOR
 
@@ -260,7 +272,26 @@ UHoudiniRuntimeSettings::PostEditChangeProperty( struct FPropertyChangedEvent & 
         }
     }
     else if (Property->GetName() == TEXT("MarshallingSplineResolution"))
-	MarshallingSplineResolution = FMath::Clamp(MarshallingSplineResolution, 0.0f, 10000.0f);
+        MarshallingSplineResolution = FMath::Clamp(MarshallingSplineResolution, 0.0f, 10000.0f);
+
+    if ( Property->GetName() == TEXT( "MarshallingLandscapesForceMinMaxValues" ) )
+    {
+        // Set Landscape forced min/max as read only when not overriden
+        if ( !MarshallingLandscapesForceMinMaxValues )
+        {
+            if ( UProperty* MinProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMinValue") ) )
+                MinProperty->SetPropertyFlags( CPF_EditConst );
+            if ( UProperty* MaxProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMaxValue" ) ) )
+                MaxProperty->SetPropertyFlags( CPF_EditConst );
+        }
+        else
+        {
+            if ( UProperty* MinProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMinValue") ) )
+                MinProperty->ClearPropertyFlags( CPF_EditConst );
+            if ( UProperty* MaxProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMaxValue" ) ) )
+                MaxProperty->ClearPropertyFlags( CPF_EditConst );
+        }
+    }
 
     /*
     if ( Property->GetName() == TEXT( "bEnableCooking" ) )
