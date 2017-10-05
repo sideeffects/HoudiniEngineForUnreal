@@ -45,7 +45,9 @@
 #include "LandscapeLayerInfoObject.h"
 #include "LightMap.h"
 #include "Engine/MapBuildDataRegistry.h"
-#include "FileHelpers.h"
+#if WITH_EDITOR
+    #include "FileHelpers.h"
+#endif
 
 void
 FHoudiniLandscapeUtils::GetHeightfieldsInArray(
