@@ -2237,13 +2237,14 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             // Each selected landscape component will be exported as a separate heightfield
             bSuccess = FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray( LandscapeProxy, SelectedComponents, MergeId, OutCreatedNodeIds );
         }
-        
+        /*
         // Reconnect the merge and volvis?
         HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
             FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, MergeId ), false);
 
         HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
             FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr), false);
+        */
 
         return bSuccess;
     }

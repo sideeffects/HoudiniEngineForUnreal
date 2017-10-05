@@ -447,11 +447,19 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
         }
 
         // Add references to all Landscape
-        for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator
-            Iter(HoudiniAssetComponent->LandscapeComponents); Iter; ++Iter)
+        for ( TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator
+            Iter( HoudiniAssetComponent->LandscapeComponents ); Iter; ++Iter)
         {
             ALandscape * HoudiniLandscape = Iter.Value();
             Collector.AddReferencedObject( HoudiniLandscape, InThis );
+        }
+
+        // Add references to all generated Landscape layer objects
+        for ( TMap< TWeakObjectPtr<class UPackage>, FHoudiniGeoPartObject > ::TIterator
+            Iter( HoudiniAssetComponent->CookedTemporaryLandscapeLayers ); Iter; ++Iter )
+        {
+            UPackage * LayerPackage = Iter.Key().Get();
+            Collector.AddReferencedObject( LayerPackage, InThis );
         }
 
         // Retrieve asset associated with this component and add reference to it.
