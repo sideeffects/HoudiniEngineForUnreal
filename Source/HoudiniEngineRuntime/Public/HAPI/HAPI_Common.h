@@ -455,6 +455,27 @@ enum HAPI_StorageType
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_StorageType )
 
+enum HAPI_AttributeTypeInfo
+{
+    HAPI_ATTRIBUTE_TYPE_INVALID = -1,
+    HAPI_ATTRIBUTE_TYPE_NONE,	    // Implicit type based on data
+    HAPI_ATTRIBUTE_TYPE_POINT,	    // Position
+    HAPI_ATTRIBUTE_TYPE_HPOINT,	    // Homogeneous position
+    HAPI_ATTRIBUTE_TYPE_VECTOR,	    // Direction vector
+    HAPI_ATTRIBUTE_TYPE_NORMAL,	    // Normal
+    HAPI_ATTRIBUTE_TYPE_COLOR,	    // Color
+    HAPI_ATTRIBUTE_TYPE_QUATERNION, // Quaternion
+    HAPI_ATTRIBUTE_TYPE_MATRIX3,    // 3x3 Matrix
+    HAPI_ATTRIBUTE_TYPE_MATRIX,	    // Matrix
+    HAPI_ATTRIBUTE_TYPE_ST,	    // Parametric interval
+    HAPI_ATTRIBUTE_TYPE_HIDDEN,	    // "Private" (hidden)
+    HAPI_ATTRIBUTE_TYPE_BOX2,       // 2x2 Bounding box
+    HAPI_ATTRIBUTE_TYPE_BOX,        // 3x3 Bounding box
+    HAPI_ATTRIBUTE_TYPE_TEXTURE,     // Texture coordinate
+    HAPI_ATTRIBUTE_TYPE_MAX
+};
+HAPI_C_ENUM_TYPEDEF( HAPI_AttributeTypeInfo )
+
 enum HAPI_GeoType
 {
     HAPI_GEOTYPE_INVALID = -1,
@@ -1333,6 +1354,12 @@ struct HAPI_API HAPI_AttributeInfo
     /// size of the ::HAPI_AttributeInfo::storage will give you the memory
     /// size per attribute.
     int tupleSize;
+
+    /// Attribute type info
+    /// This is used to help identify the type of data stored in an attribute.
+    /// Using the type is recommended over using just an attribute's name to identify
+    /// its purpose.
+    HAPI_AttributeTypeInfo typeInfo;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_AttributeInfo )
 
