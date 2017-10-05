@@ -44,6 +44,9 @@
 #include "LandscapeLayerInfoObject.h"
 #include "LightMap.h"
 #include "Engine/MapBuildDataRegistry.h"
+#if WITH_EDITOR
+    #include "FileHelpers.h"
+#endif
 
 void
 FHoudiniLandscapeUtils::GetHeightfieldsInArray(
@@ -2635,8 +2638,16 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
     const TArray< FHoudiniGeoPartObject > & FoundVolumes, 
     TMap< FHoudiniGeoPartObject, ALandscape * >& Landscapes,
     TMap< FHoudiniGeoPartObject, ALandscape * >& NewLandscapes,
-    float ForcedZMin, float ForcedZMax )
+    float ForcedZMin , float ForcedZMax )
 {
+    // Get runtime settings.
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if ( HoudiniRuntimeSettings && HoudiniRuntimeSettings->MarshallingLandscapesForceMinMaxValues )
+    {
+        ForcedZMin = HoudiniRuntimeSettings->MarshallingLandscapesForcedMinValue;
+        ForcedZMax = HoudiniRuntimeSettings->MarshallingLandscapesForcedMaxValue;
+    }
+
     // First, we need to extract proper height data from FoundVolumes
     TArray< const FHoudiniGeoPartObject* > FoundHeightfields;
     FHoudiniLandscapeUtils::GetHeightfieldsInArray( FoundVolumes, FoundHeightfields );
@@ -2959,6 +2970,8 @@ bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
     TArray< FString > NonWeightBlendedLayerNames;
     FHoudiniLandscapeUtils::GetNonWeightBlendedLayerNames( Heightfield, NonWeightBlendedLayerNames );
 
+    TArray<UPackage*> CreatedLandscapeLayerPackage;
+
     // Try to create all the layers
     ELandscapeImportAlphamapType ImportLayerType = ELandscapeImportAlphamapType::Additive;
     for ( TArray<const FHoudiniGeoPartObject *>::TConstIterator IterLayers( FoundLayers ); IterLayers; ++IterLayers )
@@ -3014,7 +3027,6 @@ bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
         currentLayerInfo.LayerInfo->LayerUsageDebugColor.B = ( LayerMax - LayerMin) / 255.0f;
         currentLayerInfo.LayerInfo->LayerUsageDebugColor.A = PI;
 
-        // Should remove package if convert fail!
         HoudiniCookParams.CookedTemporaryLandscapeLayers->Add( Package, Heightfield );
 
         if ( NonWeightBlendedLayerNames.Contains( LayerString ) )
@@ -3025,14 +3037,15 @@ bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
         // Mark the package dirty...
         //Package->MarkPackageDirty();
 
+        CreatedLandscapeLayerPackage.Add( Package );
+
         ImportLayerInfos.Add( currentLayerInfo );
     }
 
     // Autosaving the layers prevents them for being deleted with the Asset
     // Save the packages created for the LayerInfos
-    //if ( CreatedLayerInfoPackage.Num() > 0 )
-    //    FEditorFileUtils::PromptForCheckoutAndSave( CreatedLayerInfoPackage, true, false );
-    
+    FEditorFileUtils::PromptForCheckoutAndSave( CreatedLandscapeLayerPackage, true, false );
+
     return true;
 }
 
