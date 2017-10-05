@@ -270,17 +270,17 @@ UHoudiniRuntimeSettings::PostEditChangeProperty( struct FPropertyChangedEvent & 
         // Set Landscape forced min/max as read only when not overriden
         if ( !MarshallingLandscapesForceMinMaxValues )
         {
-            if ( UProperty* Property = LocateProperty( TEXT( "MarshallingLandscapesForcedMinValue") ) )
-                Property->SetPropertyFlags( CPF_EditConst );
-            if ( UProperty* Property = LocateProperty( TEXT( "MarshallingLandscapesForcedMaxValue" ) ) )
-                Property->SetPropertyFlags( CPF_EditConst );
+            if ( UProperty* MinProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMinValue") ) )
+                MinProperty->SetPropertyFlags( CPF_EditConst );
+            if ( UProperty* MaxProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMaxValue" ) ) )
+                MaxProperty->SetPropertyFlags( CPF_EditConst );
         }
         else
         {
-            if ( UProperty* Property = LocateProperty( TEXT( "MarshallingLandscapesForcedMinValue") ) )
-                Property->ClearPropertyFlags( CPF_EditConst );
-            if ( UProperty* Property = LocateProperty( TEXT( "MarshallingLandscapesForcedMaxValue" ) ) )
-                Property->ClearPropertyFlags( CPF_EditConst );
+            if ( UProperty* MinProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMinValue") ) )
+                MinProperty->ClearPropertyFlags( CPF_EditConst );
+            if ( UProperty* MaxProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMaxValue" ) ) )
+                MaxProperty->ClearPropertyFlags( CPF_EditConst );
         }
     }
 
