@@ -9447,7 +9447,7 @@ FHoudiniEngineUtils::GetUPropertyAttributesList(
     int PrimNumberForSplit = -1;
     if ( AttributeOwner != HAPI_ATTROWNER_DETAIL )
     {
-        if ( !GeoPartObject.SplitName.IsEmpty() )
+        if ( !GeoPartObject.SplitName.IsEmpty() && ( GeoPartObject.SplitName != TEXT("main_geo") ) )
         {
             HandleSplit = true;
 
