@@ -2359,6 +2359,13 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
         return false;
 
     // First, make sure this geopartObj has a material instance attribute
+    if ( !FHoudiniEngineUtils::HapiCheckAttributeExists(
+        HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
+        HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId,
+        AttributeName.c_str() ) )
+        return false;
+
+    // Get the material instance attribute info
     HAPI_AttributeInfo AttribMaterialInstances;
     FMemory::Memset< HAPI_AttributeInfo >( AttribMaterialInstances, 0 );
 
