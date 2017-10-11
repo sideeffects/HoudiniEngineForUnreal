@@ -141,12 +141,6 @@ typedef int HAPI_ParmId;
 /// See @ref HAPI_Parts.
 typedef int HAPI_PartId;
 
-/// Use this with PDG functions
-typedef int HAPI_PDG_WorkitemId;
-
-/// Use this with PDG functions
-typedef int HAPI_PDG_GraphContextId;
-
 /////////////////////////////////////////////////////////////////////////////
 // Enums
 
@@ -372,7 +366,6 @@ enum HAPI_NodeType
     HAPI_NODETYPE_COP       = 1 << 6,
     HAPI_NODETYPE_VOP       = 1 << 7,
     HAPI_NODETYPE_DOP       = 1 << 8,
-    HAPI_NODETYPE_TOP       = 1 << 9
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_NodeType )
 typedef int HAPI_NodeTypeBits;
@@ -688,65 +681,6 @@ enum HAPI_CacheProperty
 };
 /// [HAPI_CacheProperty]
 HAPI_C_ENUM_TYPEDEF( HAPI_CacheProperty )
-
-/// Used with PDG functions
-enum HAPI_PDG_State
-{
-    HAPI_PDG_STATE_READY,
-    HAPI_PDG_STATE_COOKING,
-    HAPI_PDG_STATE_MAX,
-
-    HAPI_PDG_STATE_MAX_READY_STATE = HAPI_PDG_STATE_READY
-};
-HAPI_C_ENUM_TYPEDEF( HAPI_PDG_State )
-
-/// Used with PDG functions
-enum HAPI_PDG_CookType
-{
-    HAPI_PDG_COOK_FULL,
-    HAPI_PDG_COOK_LAZY,
-    HAPI_PDG_COOK_NODE,
-    HAPI_PDG_COOK_ROOTGEN,
-    HAPI_PDG_COOK_NODEGEN
-};
-HAPI_C_ENUM_TYPEDEF( HAPI_PDG_CookType )
-
-/// Used with PDG functions
-enum HAPI_PDG_EventType
-{
-    HAPI_PDG_EVENT_NULL,
-
-    HAPI_PDG_EVENT_WORKITEM_ADD,
-    HAPI_PDG_EVENT_WORKITEM_REMOVE,
-    HAPI_PDG_EVENT_WORKITEM_STATE_CHANGE,
-
-    HAPI_PDG_EVENT_WORKITEM_ADD_DEP,
-    HAPI_PDG_EVENT_WORKITEM_REMOVE_DEP,
-
-    HAPI_PDG_EVENT_WORKITEM_ADD_PARENT,
-    HAPI_PDG_EVENT_WORKITEM_REMOVE_PARENT,
-
-    HAPI_PDG_EVENT_NODE_CLEAR,
-
-    HAPI_PDG_EVENT_COOK_ERROR,
-    HAPI_PDG_EVENT_COOK_WARNING
-};
-HAPI_C_ENUM_TYPEDEF( HAPI_PDG_EventType )
-
-/// Used with PDG functions
-enum HAPI_PDG_WorkitemState
-{
-    HAPI_PDG_WORKITEM_NEEDS_COOK,
-    HAPI_PDG_WORKITEM_WAITING,
-    HAPI_PDG_WORKITEM_NEEDS_SCHEDULE,
-    HAPI_PDG_WORKITEM_SCHEDULED,
-    HAPI_PDG_WORKITEM_COOKED,
-    HAPI_PDG_WORKITEM_FAILED,
-    HAPI_PDG_WORKITEM_CANCELED,
-    HAPI_PDG_WORKITEM_NEEDS_DIRTY,
-    HAPI_PDG_WORKITEM_UNDEFINED
-};
-HAPI_C_ENUM_TYPEDEF( HAPI_PDG_WorkitemState )
 
 /////////////////////////////////////////////////////////////////////////////
 // Main API Structs
@@ -1532,33 +1466,5 @@ struct HAPI_API HAPI_SphereInfo
     float radius;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_SphereInfo )
-
-// PDG Structs ---------------------------------------------------------------
-
-struct HAPI_API HAPI_PDG_EventInfo
-{
-    HAPI_NodeId nodeId;                     /// id of related node
-    HAPI_PDG_WorkitemId workitemId;         /// id of related workitem
-    HAPI_PDG_WorkitemId dependencyId;       /// id of related workitem dependency
-    int currentState;                       /// (HAPI_PDG_WorkItemState) value of current state for state change
-    int lastState;                          /// (HAPI_PDG_WorkItemState) value of last state for state change
-    int eventType;                          /// (HAPI_PDG_EventType) event type
-};
-HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_EventInfo )
-
-struct HAPI_API HAPI_PDG_WorkitemInfo
-{
-    int index;                    /// index of the workitem
-    int numResults;		  /// number of results reported
-    HAPI_StringHandle nameSH;     /// name of the workitem
-};
-HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkitemInfo )
-
-struct HAPI_API HAPI_PDG_WorkitemResultInfo
-{
-    int resultSH;		  /// result string
-    HAPI_Int64 resultHash;	  /// hash value of result
-};
-HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkitemResultInfo )
 
 #endif // __HAPI_COMMON_h__
