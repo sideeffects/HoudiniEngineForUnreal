@@ -1281,6 +1281,8 @@ int32 FHoudiniEngineUtils::HapiFindParameterByNameOrTag( const HAPI_NodeId& Node
 {
     HAPI_NodeInfo NodeInfo;
     FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo );
+    if ( NodeInfo.parmCount <= 0 )
+        return -1;
 
     TArray< HAPI_ParmInfo > NodeParams;
     NodeParams.SetNumUninitialized( NodeInfo.parmCount );
