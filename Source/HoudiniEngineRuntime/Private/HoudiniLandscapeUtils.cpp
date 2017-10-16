@@ -38,6 +38,7 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniCookHandler.h"
 #include "HoudiniAsset.h"
+#include "HoudiniAssetActor.h"
 
 #include "LandscapeInfo.h"
 #include "LandscapeComponent.h"
@@ -47,6 +48,7 @@
 #include "Engine/MapBuildDataRegistry.h"
 #if WITH_EDITOR
     #include "FileHelpers.h"
+    #include "EngineUtils.h"
 #endif
 
 void
@@ -3072,4 +3074,40 @@ bool FHoudiniLandscapeUtils::AddLandscapeGlobalMaterialAttribute( const HAPI_Nod
     
     return true;
 }
+
+bool
+FHoudiniLandscapeUtils::UpdateOldLandscapeReference(ALandscape* OldLandscape, ALandscape*  NewLandscape)
+{
+    if ( !OldLandscape || !NewLandscape )
+        return false;
+
+    bool bReturn = false;
+
+    // Iterates through all the Houdini Assets in the scene
+    UWorld* editorWorld = GEditor->GetEditorWorldContext().World();
+    for ( TActorIterator<AHoudiniAssetActor> ActorItr( editorWorld ); ActorItr; ++ActorItr )
+    {
+        AHoudiniAssetActor* Actor = *ActorItr;
+        UHoudiniAssetComponent * HoudiniAssetComponent = Actor->GetHoudiniAssetComponent();	
+        if ( !HoudiniAssetComponent || !HoudiniAssetComponent->IsValidLowLevel() )
+        {
+            HOUDINI_LOG_ERROR(TEXT("Failed to export a Houdini Asset in the scene!"));
+            continue;
+        }
+
+        if ( HoudiniAssetComponent->IsTemplate() )
+            continue;
+
+        if ( HoudiniAssetComponent->IsPendingKillOrUnreachable() )
+            continue;
+
+        if ( !HoudiniAssetComponent->GetOuter() )
+            continue;
+
+        bReturn = HoudiniAssetComponent->ReplaceLandscapeInInputs( OldLandscape, NewLandscape );
+    }
+
+    return bReturn;
+}
+
 #endif

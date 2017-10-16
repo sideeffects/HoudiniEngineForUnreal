@@ -353,6 +353,9 @@ public:
 
         FORCEINLINE const TArray< UHoudiniAssetInput* >& GetInputs() const { return Inputs; }
 
+        /** Returns an array containing all the inputs (including the object path parameters)**/
+        void GetInputs(TArray< UHoudiniAssetInput* >& Inputs, bool IncludeObjectPathParameter = true );
+
         /** Returns the path to the baking folder */
         FText GetBakeFolder() const;
 
@@ -614,6 +617,9 @@ public:
 
         /** Set the preset Input for HoudiniTools **/
         void SetHoudiniToolInputPresets( const TMap< UObject*, int32 >& InPresets );
+
+        /** Replaces references to a landscape actor by the newly generated one **/
+        bool ReplaceLandscapeInInputs( ALandscape* Old, ALandscape* New );
 
     private:
 
