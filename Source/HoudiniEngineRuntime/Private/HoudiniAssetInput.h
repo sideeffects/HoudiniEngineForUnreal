@@ -202,7 +202,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void DuplicateCurves(UHoudiniAssetInput * OriginalInput);
 
         FORCEINLINE const TArray< FHoudiniAssetInputOutlinerMesh >& GetWorldOutlinerInputs() const { return InputOutlinerMeshArray; }
-        
+
+        /** Returns the selected landscape Actor **/
+        const ALandscape* GetLandscapeInput() const { return InputLandscapeProxy ? InputLandscapeProxy->GetLandscapeActor() : nullptr; }
+
         /** Remove a specific element of the world outliner input selection */
         void RemoveWorldOutlinerInput( int32 AtIndex );
 
