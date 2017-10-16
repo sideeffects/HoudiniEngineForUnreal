@@ -88,7 +88,6 @@
 #include "StaticMeshResources.h"
 #include "SlateApplication.h"
 #endif
-
 #include "Internationalization.h"
 
 
@@ -1053,6 +1052,33 @@ UHoudiniAssetComponent::FindParameter( const FString & ParameterName ) const
         HoudiniAssetParameter = *FoundHoudiniAssetParameter;
 
     return HoudiniAssetParameter;
+}
+
+void
+UHoudiniAssetComponent::GetInputs( TArray< UHoudiniAssetInput* >& Inputs, bool IncludeObjectPathParameter )
+{
+    Inputs.Empty();
+
+    for ( TArray< UHoudiniAssetInput * >::TIterator IterInputs( Inputs ); IterInputs; ++IterInputs )
+    {
+        UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
+        if ( !HoudiniAssetInput )
+            continue;
+
+        Inputs.Add( HoudiniAssetInput );
+    }
+
+    if ( !IncludeObjectPathParameter )
+        return;
+
+    for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TConstIterator IterParams( Parameters ); IterParams; ++IterParams )
+    {
+        UHoudiniAssetInput* ObjectPathInput = Cast< UHoudiniAssetInput >( IterParams.Value() );
+        if ( !ObjectPathInput )
+            continue;
+
+        Inputs.Add ( ObjectPathInput );
+    }
 }
 
 void
@@ -4519,6 +4545,11 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
 
         // Update the materials from our assignement/replacement and the materials assigned on the previous version of this landscape
         UpdateLandscapeMaterialsAssignementsAndReplacements( Landscape, Heightfield );
+
+        // Replace any reference we might still have to the old landscape with the new one
+        ALandscape** OldLandscape = LandscapeComponents.Find( Heightfield );
+        if ( OldLandscape )
+            FHoudiniLandscapeUtils::UpdateOldLandscapeReference(*OldLandscape, Landscape);
     }
 
     // Replace the old landscapes with the new ones
@@ -4610,6 +4641,37 @@ void UHoudiniAssetComponent::UpdateLandscapeMaterialsAssignementsAndReplacements
         Landscape->PostEditChangeProperty(PropChanged);
     }
     */
+}
+
+bool
+UHoudiniAssetComponent::ReplaceLandscapeInInputs( ALandscape* Old, ALandscape* New )
+{
+    bool bReturn = false;
+
+    // First, get all the inputs, including the object path parameters
+    TArray< UHoudiniAssetInput * > AllInputs;
+    GetInputs( AllInputs, true );
+
+    // Look for landscape input, selecting the old landscape
+    for ( TArray< UHoudiniAssetInput * >::TIterator IterInputs( AllInputs ); IterInputs; ++IterInputs )
+    {
+        UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
+        if ( !HoudiniAssetInput )
+            continue;
+
+        if ( HoudiniAssetInput->GetChoiceIndex() != EHoudiniAssetInputType::LandscapeInput )
+            continue;
+
+        if ( Old != HoudiniAssetInput->GetLandscapeInput() )
+            continue;
+
+        HoudiniAssetInput->OnLandscapeActorSelected( New );
+        HoudiniAssetInput->UploadParameterValue();
+
+        bReturn = true;
+    }
+
+    return bReturn;
 }
 
 #endif

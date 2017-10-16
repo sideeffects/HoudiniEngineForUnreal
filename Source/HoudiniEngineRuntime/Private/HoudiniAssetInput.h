@@ -197,7 +197,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void DuplicateCurves(UHoudiniAssetInput * OriginalInput);
 
         FORCEINLINE const TArray< FHoudiniAssetInputOutlinerMesh >& GetWorldOutlinerInputs() const { return InputOutlinerMeshArray; }
-        
+
+        /** Returns the selected landscape Actor **/
+        const ALandscape* GetLandscapeInput() const { return InputLandscapeProxy ? InputLandscapeProxy->GetLandscapeActor() : nullptr; }
+
         /** Remove a specific element of the world outliner input selection */
         void RemoveWorldOutlinerInput( int32 AtIndex );
 
@@ -241,6 +244,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void SetScaleY(float Value, int32 AtIndex);
         void SetScaleZ(float Value, int32 AtIndex);
 
+        /** Called when change of input actor selection. **/
+        void OnInputActorSelected( AActor * Actor );
+
+        /** Called when change of landscape selection. **/
+        void OnLandscapeActorSelected( AActor * Actor );
+
     protected:
 
 #if WITH_EDITOR
@@ -267,12 +276,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Called when actor selection changed. **/
         void OnActorSelected(AActor * Actor);
-
-        /** Called when change of input actor selection. **/
-        void OnInputActorSelected( AActor * Actor );
-
-        /** Called when change of landscape selection. **/
-        void OnLandscapeActorSelected( AActor * Actor );
 
         /** Called when change of World Outliner selection in Actor Picker. **/
         void OnWorldOutlinerActorSelected( AActor * Actor );
