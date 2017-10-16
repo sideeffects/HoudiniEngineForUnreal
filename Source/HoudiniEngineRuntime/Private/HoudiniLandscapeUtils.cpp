@@ -441,9 +441,9 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
             HapiTransform.rotationQuaternion[2], -HapiTransform.rotationQuaternion[3] );
         Swap( ObjectRotation.Y, ObjectRotation.Z );
 
-        FVector ObjectTranslation( HapiTransform.position[0], HapiTransform.position[1], HapiTransform.position[2] );
+        // Unreal XYZ becomes Houdini ZXY (since heightfields are also rotated due the ZX transform) 
+        FVector ObjectTranslation( HapiTransform.position[2], HapiTransform.position[0], HapiTransform.position[1] );
         ObjectTranslation *= 100.0f;
-        Swap( ObjectTranslation[2], ObjectTranslation[1] );
 
         FVector ObjectScale3D( HapiTransform.scale[0], HapiTransform.scale[1], HapiTransform.scale[2] );
         //Swap( ObjectScale3D.Y, ObjectScale3D.Z );
@@ -972,7 +972,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
     //--------------------------------------------------------------------------------------------------
     TArray<float> HeightfieldFloatValues;
     HAPI_VolumeInfo HeightfieldVolumeInfo;
-    FTransform LandscapeTransform = Landscape->GetActorTransform();
+    FTransform LandscapeTransform = Landscape->LandscapeActorToWorld();
 
     if ( !ConvertLandscapeDataToHeightfieldData(
         HeightData, XSize, YSize, Min, Max, LandscapeTransform,
@@ -981,8 +981,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
 
     //--------------------------------------------------------------------------------------------------
     // 3. Set the HeightfieldData in Houdini
-    //--------------------------------------------------------------------------------------------------
-    
+    //--------------------------------------------------------------------------------------------------    
     HAPI_NodeId VolumeNodeId = -1;
     HAPI_PartId PartId = 0;
     FString Name = TEXT("height");
@@ -1066,15 +1065,6 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
 
     if ( !bMaskCreated )
         return false;
-
-    // If we are marshalling material information.
-    /*
-    if (bExportMaterials)
-    {
-        if ( !FHoudiniLandscapeUtils::AddLandscapeGlobalMaterialAttribute( InputMergeNodeId, LandscapeProxy ) )
-            return false;
-    }
-    */
 
     return true;
 }
@@ -1680,72 +1670,120 @@ FHoudiniLandscapeUtils::CreateHeightfieldInputNode( HAPI_NodeId& DisplayNodeId, 
     std::string NameStr;
     FHoudiniEngineUtils::ConvertUnrealString( NodeName, NameStr );
 
-    // Start by creating a volvis node
-    HAPI_NodeId VolVisId = -1;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
+    // ---------------------------------------------------------
+    // Start by creating a Transform node to set the heightfield orientation to ZX
+    // this will be our display SOP
+    HAPI_NodeId TransformId = -1;
+    //FHoudiniEngineUtils::ConvertUnrealString(TEXT("ZX"), NameStr);
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
         FHoudiniEngine::Get().GetSession(), -1,
-        "SOP/volumevisualization", NameStr.c_str(), false, &VolVisId ), false );
+        "SOP/xform", NameStr.c_str(), true, &TransformId), false);
+
+    // And set the rx ry parameters
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmFloatValue(
+        FHoudiniEngine::Get().GetSession(),
+        TransformId, "rx", 0, -90.0f), false);
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmFloatValue(
+        FHoudiniEngine::Get().GetSession(),
+        TransformId, "rx", 1, -90.0f), false);
+
+    // Cook it
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
+        FHoudiniEngine::Get().GetSession(), TransformId, nullptr), false);
+
+    // We need to get the xform NodeInfo to get its parent id
+    HAPI_NodeInfo NodeInfo;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
+        FHoudiniEngine::Get().GetSession(), TransformId, &NodeInfo), false);
+
+    // ---------------------------------------------------------
+    // Now, create a volvis node
+    HAPI_NodeId VolVisId = -1;
+    FHoudiniEngineUtils::ConvertUnrealString(TEXT("volumevisualization"), NameStr);
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
+        FHoudiniEngine::Get().GetSession(), NodeInfo.parentId,
+        "volumevisualization", NameStr.c_str(), false, &VolVisId), false);
 
     // Finally we need to setup the volvis node for heightfields
     // Change the vismode parameter to heightfield
-    const std::string sVismode = "vismode";
-    HAPI_ParmId visId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( VolVisId, sVismode );
-    if ( visId != -1 )
-    {
-        HAPI_ParmInfo ParmInfo;
-        FMemory::Memset< HAPI_ParmInfo >( ParmInfo, 0 );
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmIntValue(
-            FHoudiniEngine::Get().GetSession(),
-            VolVisId, sVismode.c_str(), 0, 2 ), false );
-    }
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(
+        FHoudiniEngine::Get().GetSession(),
+        VolVisId, "vismode", 0, 2), false);
 
-    // And the desnity field parameter to "height"
-    const std::string sDensityField = "densityfield";
-    HAPI_ParmId densId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( VolVisId, sDensityField );
-    if ( densId != -1 )
+    // And the density field parameter to "height"
+    //const std::string sDensityField = "densityfield";
+    HAPI_ParmId densId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag(VolVisId, "densityfield");
+    if (densId != -1)
     {
         HAPI_ParmInfo ParmInfo;
-        FMemory::Memset< HAPI_ParmInfo >( ParmInfo, 0 );
-        if ( FHoudiniApi::GetParmInfo(
+        FMemory::Memset< HAPI_ParmInfo >(ParmInfo, 0);
+        if (FHoudiniApi::GetParmInfo(
             FHoudiniEngine::Get().GetSession(), VolVisId,
-            densId, &ParmInfo ) == HAPI_RESULT_SUCCESS )
+            densId, &ParmInfo) == HAPI_RESULT_SUCCESS)
         {
             const std::string sHeight = "height";
             HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(
                 FHoudiniEngine::Get().GetSession(),
-                VolVisId, sHeight.c_str(), densId, 0 ), false );
+                VolVisId, sHeight.c_str(), densId, 0), false);
+        }
+    }
+
+    // And the diffuse field parameter to "mask"
+    //const std::string sDiffuseField = "cdfield";
+    HAPI_ParmId diffId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag(VolVisId, "cdfield");
+    if (diffId != -1)
+    {
+        HAPI_ParmInfo ParmInfo;
+        FMemory::Memset< HAPI_ParmInfo >(ParmInfo, 0);
+        if (FHoudiniApi::GetParmInfo(
+            FHoudiniEngine::Get().GetSession(), VolVisId,
+            diffId, &ParmInfo) == HAPI_RESULT_SUCCESS)
+        {
+            const std::string sMask = "mask";
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(
+                FHoudiniEngine::Get().GetSession(),
+                VolVisId, sMask.c_str(), diffId, 0), false);
         }
     }
 
     // Cook it
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-        FHoudiniEngine::Get().GetSession(), VolVisId, nullptr ), false );
+        FHoudiniEngine::Get().GetSession(), VolVisId, nullptr), false);
 
-    // We need to get the volvis NodeInfo to get its parent id
-    HAPI_NodeInfo NodeInfo;
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
-        FHoudiniEngine::Get().GetSession(), VolVisId, &NodeInfo ), false );
-
+    // ---------------------------------------------------------
     // We can now create the merge node, this will our InAssetId since
     // we will be connecting inputs to it
     HAPI_NodeId MergeId = -1;
-    FHoudiniEngineUtils::ConvertUnrealString( TEXT( "Heightfield Merge" ), NameStr );
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
+    FHoudiniEngineUtils::ConvertUnrealString(TEXT("Heightfield Merge"), NameStr);
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
         FHoudiniEngine::Get().GetSession(), NodeInfo.parentId,
-        "merge", NameStr.c_str(), true, &MergeId), false );
-
-    // Then connect the merge to the volvis node input
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-        FHoudiniEngine::Get().GetSession(), VolVisId, 0, MergeId ), false );
+        "merge", NameStr.c_str(), false, &MergeId), false);
 
     // Cook it
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-        FHoudiniEngine::Get().GetSession(), VolVisId, nullptr ), false );
+        FHoudiniEngine::Get().GetSession(), MergeId, nullptr), false);
 
-    // The volvis node ID will be our connected asset ID
-    DisplayNodeId = VolVisId;
+    // ---------------------------------------------------------
+    // Then connect the volvis to the xform node input
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+        FHoudiniEngine::Get().GetSession(), TransformId, 0, VolVisId), false);
 
-    // We also need the merge node ID to connect all the layers to the merge
+    // Cook it
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
+        FHoudiniEngine::Get().GetSession(), TransformId, nullptr), false);
+
+    // Then connect the merge to the volvis node input
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+        FHoudiniEngine::Get().GetSession(), VolVisId, 0, MergeId), false);
+
+    // Cook it
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
+        FHoudiniEngine::Get().GetSession(), VolVisId, nullptr), false);
+
+    // The xform node ID will be our connected asset ID
+    DisplayNodeId = TransformId;
+    // We need to keep the merge node ID to connect inputs to it later on
     MergeNodeId = MergeId;
 
     return true;
@@ -1800,14 +1838,6 @@ FHoudiniLandscapeUtils::CommitVolumeInputNode(
             FHoudiniEngine::Get().GetSession(), NodeToConnectTo, InputToConnect,
             NodeToCommit ), false );
     }
-
-    // We need to rotate the heightfield volume
-    FTransform Transform;
-    Transform.SetIdentity();
-    FQuat Rotate = FQuat::MakeFromEuler( FVector( -90.0, 0.0, 90.0 ) );
-    Transform.SetRotation( Rotate );
-
-    FHoudiniEngineUtils::HapiSetAssetTransform( NodeToCommit, Transform );
 
     return true;
 }
