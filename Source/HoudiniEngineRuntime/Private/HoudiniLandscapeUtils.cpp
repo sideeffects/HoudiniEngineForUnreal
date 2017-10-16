@@ -441,9 +441,9 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
             HapiTransform.rotationQuaternion[2], -HapiTransform.rotationQuaternion[3] );
         Swap( ObjectRotation.Y, ObjectRotation.Z );
 
-        // Unreal XYZ becomes Houdini ZXY (since heightfields are also rotated due the ZX transform) 
-        FVector ObjectTranslation( HapiTransform.position[2], HapiTransform.position[0], HapiTransform.position[1] );
+        FVector ObjectTranslation(HapiTransform.position[0], HapiTransform.position[1], HapiTransform.position[2]);
         ObjectTranslation *= 100.0f;
+        Swap(ObjectTranslation[2], ObjectTranslation[1]);
 
         FVector ObjectScale3D( HapiTransform.scale[0], HapiTransform.scale[1], HapiTransform.scale[2] );
         //Swap( ObjectScale3D.Y, ObjectScale3D.Z );
@@ -1505,10 +1505,11 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
         // Heightfield are centered, landscapes are not
         FVector CenterOffset = ( Max - Min ) * 0.5f;
 
+        // Unreal XYZ becomes Houdini ZXY (since heightfields are also rotated due the ZX transform) 
         FVector Position = LandscapeTransform.GetLocation() / 100.0f;
-        HapiTransform.position[ 0 ] = Position.X + CenterOffset.X;
-        HapiTransform.position[ 1 ] = Position.Y + CenterOffset.Y;
-        HapiTransform.position[ 2 ] = 0.0f;// Position.Z;// +CenterOffset.Z;
+        HapiTransform.position[ 2 ] = Position.X + CenterOffset.X;
+        HapiTransform.position[ 0 ] = Position.Y + CenterOffset.Y;
+        HapiTransform.position[ 1 ] = 0.0f;
 
         FVector Scale = LandscapeTransform.GetScale3D() / 100.0f;
         HapiTransform.scale[ 0 ] = Scale.X * 0.5f * HoudiniXSize;
