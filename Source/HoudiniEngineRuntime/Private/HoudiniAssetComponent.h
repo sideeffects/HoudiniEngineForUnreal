@@ -354,7 +354,7 @@ public:
         FORCEINLINE const TArray< UHoudiniAssetInput* >& GetInputs() const { return Inputs; }
 
         /** Returns an array containing all the inputs (including the object path parameters)**/
-        void GetInputs(TArray< UHoudiniAssetInput* >& Inputs, bool IncludeObjectPathParameter = true );
+        void GetInputs(TArray< UHoudiniAssetInput* >& AllInputs, bool IncludeObjectPathParameter = true );
 
         /** Returns the path to the baking folder */
         FText GetBakeFolder() const;
