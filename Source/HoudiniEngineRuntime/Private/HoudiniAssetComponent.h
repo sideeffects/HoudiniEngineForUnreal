@@ -351,6 +351,9 @@ public:
 
         FORCEINLINE const TArray< UHoudiniAssetInput* >& GetInputs() const { return Inputs; }
 
+        /** Returns an array containing all the inputs (including the object path parameters)**/
+        void GetInputs(TArray< UHoudiniAssetInput* >& AllInputs, bool IncludeObjectPathParameter = true );
+
         /** Returns the path to the baking folder */
         FText GetBakeFolder() const;
 
@@ -614,6 +617,9 @@ public:
 
         /** Returns a pointer to the landscape component map **/
         TMap< FHoudiniGeoPartObject, ALandscape * > * GetLandscapeComponents();
+
+        /** Replaces references to a landscape actor by the newly generated one **/
+        bool ReplaceLandscapeInInputs( ALandscape* Old, ALandscape* New );
 
     private:
 

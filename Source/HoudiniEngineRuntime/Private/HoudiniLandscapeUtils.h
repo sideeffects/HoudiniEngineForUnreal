@@ -78,6 +78,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const FHoudiniGeoPartObject& Heightfield,
             const int32& LandscapeXSize, const int32& LandscapeYSize,
             TArray<FLandscapeImportLayerInfo>& ImportLayerInfos );
+
+        /** Updates a reference to a generated landscape by the newly created one **/
+        static bool UpdateOldLandscapeReference(
+            ALandscape* OldLandscape, ALandscape*  NewLandscape );
 #endif
         // Returns Heightfield contained in the GeoPartObject array
         static void GetHeightfieldsInArray(
