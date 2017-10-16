@@ -1059,9 +1059,9 @@ UHoudiniAssetComponent::FindParameter( const FString & ParameterName ) const
 }
 
 void
-UHoudiniAssetComponent::GetInputs( TArray< UHoudiniAssetInput* >& Inputs, bool IncludeObjectPathParameter )
+UHoudiniAssetComponent::GetInputs( TArray< UHoudiniAssetInput* >& AllInputs, bool IncludeObjectPathParameter )
 {
-    Inputs.Empty();
+    AllInputs.Empty();
 
     for ( TArray< UHoudiniAssetInput * >::TIterator IterInputs( Inputs ); IterInputs; ++IterInputs )
     {
@@ -1069,7 +1069,7 @@ UHoudiniAssetComponent::GetInputs( TArray< UHoudiniAssetInput* >& Inputs, bool I
         if ( !HoudiniAssetInput )
             continue;
 
-        Inputs.Add( HoudiniAssetInput );
+        AllInputs.Add( HoudiniAssetInput );
     }
 
     if ( !IncludeObjectPathParameter )
@@ -1081,7 +1081,7 @@ UHoudiniAssetComponent::GetInputs( TArray< UHoudiniAssetInput* >& Inputs, bool I
         if ( !ObjectPathInput )
             continue;
 
-        Inputs.Add ( ObjectPathInput );
+        AllInputs.Add ( ObjectPathInput );
     }
 }
 
