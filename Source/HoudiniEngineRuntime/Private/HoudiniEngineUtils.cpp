@@ -732,6 +732,8 @@ FHoudiniEngineUtils::HapiCheckAttributeExists(
     HAPI_PartId PartId, const char * Name, HAPI_AttributeOwner Owner )
 {
     HAPI_AttributeInfo AttribInfo;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttribInfo );
+
     if ( FHoudiniApi::GetAttributeInfo(
         FHoudiniEngine::Get().GetSession(),
         GeoId, PartId, Name, Owner, &AttribInfo ) != HAPI_RESULT_SUCCESS )
@@ -766,6 +768,8 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
 
     int32 OriginalTupleSize = TupleSize;
     HAPI_AttributeInfo AttributeInfo;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+
     for ( int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx )
     {
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
@@ -818,6 +822,8 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
 
     int32 OriginalTupleSize = TupleSize;
     HAPI_AttributeInfo AttributeInfo;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+
     for ( int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx )
     {
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
@@ -871,6 +877,8 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsString(
 
     int32 OriginalTupleSize = TupleSize;
     HAPI_AttributeInfo AttributeInfo;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+
     for ( int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx )
     {
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
@@ -1583,12 +1591,13 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
 
             // and the attribute infos
             HAPI_AttributeInfo attr_info;
-            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeInfo(
+            FMemory::Memzero< HAPI_AttributeInfo >( attr_info );
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
                 FHoudiniEngine::Get().GetSession(),
                 ConnectedAssetId, 0,
                 attr_name.c_str(), 
-                (HAPI_AttributeOwner)nOwner,
-                &attr_info), false);
+                ( HAPI_AttributeOwner )nOwner,
+                &attr_info ), false );
 
             switch (attr_info.storage)
             {
@@ -1830,7 +1839,7 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
     {
         // Create ROTATION attribute info
         HAPI_AttributeInfo AttributeInfoRotation;
-        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoRotation);
+        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoRotation );
         AttributeInfoRotation.count = NumberOfCVs;
         AttributeInfoRotation.tupleSize = 4;
         AttributeInfoRotation.exists = true;
@@ -3014,7 +3023,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             HoudiniRuntimeSettings->MarshallingAttributeInputMeshName,
             MarshallingAttributeName );
         
-        HAPI_AttributeInfo AttributeInfo {};
+        HAPI_AttributeInfo AttributeInfo;
+        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
         AttributeInfo.count = Part.faceCount;
         AttributeInfo.tupleSize = 1;
         AttributeInfo.exists = true;
@@ -3061,7 +3071,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
                 HoudiniRuntimeSettings->MarshallingAttributeInputSourceFile,
                 MarshallingAttributeName );
 
-            HAPI_AttributeInfo AttributeInfo{};
+            HAPI_AttributeInfo AttributeInfo;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
             AttributeInfo.count = Part.faceCount;
             AttributeInfo.tupleSize = 1;
             AttributeInfo.exists = true;
@@ -3384,7 +3395,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     // Containers used for raw data extraction.
     TArray< int32 > VertexList;
     TArray< float > Positions;
-    TArray< float > TextureCoordinates[ MAX_STATIC_TEXCOORDS ];
+    TArray< TArray< float > > TextureCoordinates;
+    TextureCoordinates.SetNumZeroed( MAX_STATIC_TEXCOORDS );
     TArray< float > Normals;
     TArray< float > Colors;
     TArray< float > Alphas;
@@ -3658,6 +3670,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                 // Get name of attribute used for marshalling generated mesh name.
                 HAPI_AttributeInfo AttribGeneratedMeshName;
+                FMemory::Memzero< HAPI_AttributeInfo >( AttribGeneratedMeshName );
+
                 TArray< FString > GeneratedMeshNames;
 
                 {
@@ -4296,14 +4310,23 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     FaceMaterials.Empty();
 
                     // Attributes we are interested in.
-                    HAPI_AttributeInfo AttribInfoPositions{};
-                    HAPI_AttributeInfo AttribLightmapResolution{};
-                    HAPI_AttributeInfo AttribFaceMaterials{};
-                    HAPI_AttributeInfo AttribInfoColors{};
-                    HAPI_AttributeInfo AttribInfoAlpha{};
-                    HAPI_AttributeInfo AttribInfoNormals{};
-                    HAPI_AttributeInfo AttribInfoFaceSmoothingMasks{};
-                    HAPI_AttributeInfo AttribInfoUVs[ MAX_STATIC_TEXCOORDS ]{};
+                    HAPI_AttributeInfo AttribInfoPositions;
+                    FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoPositions );
+                    HAPI_AttributeInfo AttribLightmapResolution;
+                    FMemory::Memzero< HAPI_AttributeInfo >( AttribLightmapResolution );
+                    HAPI_AttributeInfo AttribFaceMaterials;
+                    FMemory::Memzero< HAPI_AttributeInfo >( AttribFaceMaterials );
+                    HAPI_AttributeInfo AttribInfoColors;
+                    FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoColors );
+                    HAPI_AttributeInfo AttribInfoAlpha;
+                    FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoAlpha );
+                    HAPI_AttributeInfo AttribInfoNormals;
+                    FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoNormals );
+                    HAPI_AttributeInfo AttribInfoFaceSmoothingMasks;
+                    FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoFaceSmoothingMasks );
+                    //HAPI_AttributeInfo AttribInfoUVs[ MAX_STATIC_TEXCOORDS ]{};
+                    TArray< HAPI_AttributeInfo > AttribInfoUVs;
+                    AttribInfoUVs.SetNumZeroed( MAX_STATIC_TEXCOORDS );
 
                     if ( bRebuildStaticMesh )
                     {
@@ -4411,24 +4434,14 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             PartInfo.id, MarshallingAttributeNameFaceSmoothingMask.c_str(),
                             AttribInfoFaceSmoothingMasks, FaceSmoothingMasks );
 
-                        // The second UV set should be called uv2, but we will still check if need to look for a uv1 set.
-                        // If uv1 exists, we'll look for uv, uv1, uv2 etc.. if not we'll look for uv, uv2, uv3 etc..
-                        bool bUV1Exists = FHoudiniEngineUtils::HapiCheckAttributeExists( AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, "uv1" );
+                        // Retrieve all the UVs
+                        FHoudiniEngineUtils::GetAllUVAttributesInfoAndTexCoords(
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                            AttribInfoUVs, TextureCoordinates );
 
-                        // Retrieve UVs.
+                        // See if we need to transfer uv point attributes to vertex attributes.
                         for ( int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx )
                         {
-                            std::string UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
-
-                            if ( TexCoordIdx > 0 )
-                                UVAttributeName += std::to_string( bUV1Exists ? TexCoordIdx : TexCoordIdx + 1 );
-
-                            const char * UVAttributeNameString = UVAttributeName.c_str();
-                            FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, UVAttributeNameString,
-                                AttribInfoUVs[ TexCoordIdx ], TextureCoordinates[ TexCoordIdx ], 2 );
-
-                            // See if we need to transfer uv point attributes to vertex attributes.
                             FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
                                 SplitGroupVertexList, AttribInfoUVs[ TexCoordIdx ], TextureCoordinates[ TexCoordIdx ] );
                         }
@@ -6837,6 +6850,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
 
             // Get the Attribute Info
             HAPI_AttributeInfo AttribInfo;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfo );
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
                 FHoudiniEngine::Get().GetSession(),
                 NodeId, PartId, TCHAR_TO_UTF8( *HapiString ),
@@ -7427,6 +7441,179 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
         }
     }
 #endif
+}
+
+int32
+FHoudiniEngineUtils::HapiGetAttributeOfType(
+    const HAPI_NodeId& AssetId,
+    const HAPI_NodeId& ObjectId,
+    const HAPI_NodeId& GeoId,
+    const HAPI_NodeId& PartId,
+    const HAPI_AttributeOwner& AttributeOwner,
+    const HAPI_AttributeTypeInfo& AttributeType,
+    TArray< HAPI_AttributeInfo >& MatchingAttributesInfo,
+    TArray< FString >& MatchingAttributesName )
+{
+    int32 NumberOfAttributeFound = 0;
+
+    // Get the part infos
+    HAPI_PartInfo PartInfo;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetPartInfo(
+        FHoudiniEngine::Get().GetSession(), 
+        GeoId, PartId, &PartInfo ), NumberOfAttributeFound );
+
+    // Get All attribute names for that part
+    int32 nAttribCount = PartInfo.attributeCounts[AttributeOwner];
+
+    TArray<HAPI_StringHandle> AttribNameSHArray;
+    AttribNameSHArray.SetNum( nAttribCount );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeNames(
+        FHoudiniEngine::Get().GetSession(),
+        GeoId, PartInfo.id, AttributeOwner,
+        AttribNameSHArray.GetData(), nAttribCount ), NumberOfAttributeFound );
+
+    // Iterate on all the attributes, and get their part infos to get their type    
+    for ( int32 Idx = 0; Idx < AttribNameSHArray.Num(); ++Idx )
+    {
+        // Get the name ...
+        FString HapiString = TEXT("");
+        FHoudiniEngineString HoudiniEngineString( AttribNameSHArray[ Idx ] );
+        HoudiniEngineString.ToFString( HapiString );
+
+        // ... then the attribute info
+        HAPI_AttributeInfo AttrInfo;
+        FMemory::Memzero< HAPI_AttributeInfo >( AttrInfo );
+
+        if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeInfo( 
+            FHoudiniEngine::Get().GetSession(),
+            GeoId, PartInfo.id, TCHAR_TO_UTF8( *HapiString ),
+            AttributeOwner, &AttrInfo ) )
+            continue;
+
+        if ( !AttrInfo.exists )
+            continue;
+
+        // ... check the type
+        if ( AttrInfo.typeInfo != AttributeType )
+            continue;
+
+        MatchingAttributesInfo.Add( AttrInfo );
+        MatchingAttributesName.Add( HapiString );
+
+        NumberOfAttributeFound++;
+    }
+
+    return NumberOfAttributeFound;
+}
+
+void
+FHoudiniEngineUtils::GetAllUVAttributesInfoAndTexCoords( 
+    const HAPI_NodeId& AssetId, const HAPI_NodeId& ObjectId,
+    const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, 
+    TArray< HAPI_AttributeInfo >& AttribInfoUVs,
+    TArray< TArray< float > >& TextureCoordinates )
+{
+    // The second UV set should be called uv2, but we will still check if need to look for a uv1 set.
+    // If uv1 exists, we'll look for uv, uv1, uv2 etc.. if not we'll look for uv, uv2, uv3 etc..
+    bool bUV1Exists = FHoudiniEngineUtils::HapiCheckAttributeExists(AssetId, ObjectId, GeoId, PartId, "uv1");
+
+    // Retrieve UVs.
+    for ( int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx )
+    {
+        std::string UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
+
+        if ( TexCoordIdx > 0 )
+            UVAttributeName += std::to_string( bUV1Exists ? TexCoordIdx : TexCoordIdx + 1 );
+
+        const char * UVAttributeNameString = UVAttributeName.c_str();
+        FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+            AssetId, ObjectId, GeoId, PartId, UVAttributeNameString,
+            AttribInfoUVs[ TexCoordIdx ], TextureCoordinates[ TexCoordIdx ], 2 );
+    }
+
+    // Also look for 16.5 uvs (attributes with a Texture type) 
+    // For that, we'll have to iterate through ALL the attributes and check their types
+    TArray< HAPI_AttributeInfo > FoundAttributeInfos;
+    TArray< FString > FoundAttributeNames;
+    for ( int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx )
+    {
+        HapiGetAttributeOfType( AssetId, ObjectId, GeoId, PartId,
+            ( HAPI_AttributeOwner ) AttrIdx, HAPI_ATTRIBUTE_TYPE_TEXTURE, 
+            FoundAttributeInfos, FoundAttributeNames );
+    }
+
+    if ( FoundAttributeInfos.Num() <= 0 )
+        return;
+
+    // We found some additionnal uv attributes
+    int32 AvailableIdx = 0;
+    for( int32 attrIdx = 0; attrIdx < FoundAttributeInfos.Num(); attrIdx++ )
+    {
+        // Ignore the old uvs
+        if ( FoundAttributeNames[ attrIdx ] == TEXT("uv") 
+            || FoundAttributeNames[ attrIdx ] == TEXT("uv1")
+            || FoundAttributeNames[ attrIdx ] == TEXT("uv2")
+            || FoundAttributeNames[ attrIdx ] == TEXT("uv3")
+            || FoundAttributeNames[ attrIdx ] == TEXT("uv4")
+            || FoundAttributeNames[ attrIdx ] == TEXT("uv5")
+            || FoundAttributeNames[ attrIdx ] == TEXT("uv6")
+            || FoundAttributeNames[ attrIdx ] == TEXT("uv7")
+            || FoundAttributeNames[ attrIdx ] == TEXT("uv8") )
+            continue;
+
+        HAPI_AttributeInfo CurrentAttrInfo = FoundAttributeInfos[ attrIdx ];
+        if ( !CurrentAttrInfo.exists )
+            continue;
+
+        // Look for the next available index in the return arrays
+        for ( AvailableIdx; AvailableIdx < AttribInfoUVs.Num(); AvailableIdx++ )
+        {
+            if ( !AttribInfoUVs[ AvailableIdx ].exists )
+                break;
+        }
+
+        // We are limited to MAX_STATIC_TEXCOORDS uv sets!
+        // If we already have too many uv sets, skip the rest
+        if ( ( AvailableIdx >= MAX_STATIC_TEXCOORDS ) || ( AvailableIdx >= AttribInfoUVs.Num() ) )
+	{
+	    HOUDINI_LOG_WARNING( TEXT( "Too many UV sets found. Unreal only supports %d , skipping the remaining uv sets." ), (int32)MAX_STATIC_TEXCOORDS );
+	    break;
+	}
+        
+        /*
+        // We need to add a new attribute info and a new float array for the texcoords
+        if ( AvailableIdx > AttribInfoUVs.Num() )
+        {
+            HAPI_AttributeInfo NewAttrInfo;
+            FMemory::MemZero<HAPI_AttributeInfo>( NewAttrInfo );
+            AttribInfoUVs.Add( NewAttrInfo );
+
+            TArray< float > NewTexCoords;
+            TextureCoordinates.Add( NewTexCoords );
+        }
+        */
+
+        // Force the tuple size to 2 ?
+        CurrentAttrInfo.tupleSize = 2;
+
+        // Add the attribute infos we found
+        AttribInfoUVs[ AvailableIdx ] = CurrentAttrInfo;
+
+        // Allocate sufficient buffer for the attribute's data.
+        TextureCoordinates[ AvailableIdx ].SetNumUninitialized( CurrentAttrInfo.count * CurrentAttrInfo.tupleSize );
+
+        // Get the texture coordinates
+        if ( HAPI_RESULT_SUCCESS !=  FHoudiniApi::GetAttributeFloatData(
+            FHoudiniEngine::Get().GetSession(), GeoId, PartId, 
+            TCHAR_TO_UTF8( *( FoundAttributeNames[ attrIdx ] ) ),
+            &AttribInfoUVs[ AvailableIdx ], -1,
+            &TextureCoordinates[ AvailableIdx ][0], 0, CurrentAttrInfo.count ) )
+        {
+            // Something went wrong when trying to access the uv values, invalidate this set
+            AttribInfoUVs[ AvailableIdx ].exists = false;
+        }
+    }
 }
 
 FHoudiniCookParams::FHoudiniCookParams( class UHoudiniAsset* InHoudiniAsset )

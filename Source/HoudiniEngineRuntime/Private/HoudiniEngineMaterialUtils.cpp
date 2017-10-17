@@ -2367,7 +2367,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
 
     // Get the material instance attribute info
     HAPI_AttributeInfo AttribMaterialInstances;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribMaterialInstances, 0 );
+    FMemory::Memzero< HAPI_AttributeInfo >( AttribMaterialInstances );
 
     TArray< FString > MaterialInstances;
     FHoudiniEngineUtils::HapiGetAttributeDataAsString(

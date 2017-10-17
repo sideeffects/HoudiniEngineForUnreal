@@ -1996,6 +1996,8 @@ UHoudiniAssetInput::UpdateInputCurve()
     HoudiniGeoPartObject.bIsCurve = true;
 
     HAPI_AttributeInfo AttributeRefinedCurvePositions;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeRefinedCurvePositions );
+
     TArray< float > RefinedCurvePositions;
     FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
         HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_POSITION,
