@@ -247,6 +247,8 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
             MarshallingAttributeInstanceOverride );
 
         HAPI_AttributeInfo ResultAttributeInfo;
+        FMemory::Memzero< HAPI_AttributeInfo >( ResultAttributeInfo );
+
         if ( !HoudiniGeoPartObject.HapiGetAttributeInfo(
             AssetId, MarshallingAttributeInstanceOverride,
             ResultAttributeInfo ) )

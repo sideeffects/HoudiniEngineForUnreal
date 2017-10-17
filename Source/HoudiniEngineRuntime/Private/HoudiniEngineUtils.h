@@ -395,6 +395,15 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, const char * Name );
 
+        /** HAPI: Returns all the attributes of a given type for a given owner **/
+        static int32 HapiGetAttributeOfType(
+                const HAPI_NodeId& AssetId, const HAPI_NodeId& ObjectId,
+                const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId,
+                const HAPI_AttributeOwner& AttributeOwner,
+                const HAPI_AttributeTypeInfo& AttributeType, 
+                TArray< HAPI_AttributeInfo >& MatchingAttributesInfo,
+                TArray< FString >& MatchingAttributesName );
+
         /** HAPI : Get attribute data as float. **/
         static bool HapiGetAttributeDataAsFloat(
             HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
@@ -525,6 +534,13 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Helper function to extract a raw name from a given Fstring. Caller is responsible for clean up. **/
         static char * ExtractRawName(const FString & Name);
+
+        /** Helper function for retrieving attribute infos and texture cooordinates of both "regular" uv attributes (uv1..uv7) and 16.5 uvs (texture type attributes) **/
+        static void GetAllUVAttributesInfoAndTexCoords(
+            const HAPI_NodeId& AssetId, const HAPI_NodeId& ObjectId,
+            const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId,
+            TArray< HAPI_AttributeInfo >& AttribInfoUVs,
+            TArray< TArray< float > >& TextureCoordinates );
 
     protected:
 

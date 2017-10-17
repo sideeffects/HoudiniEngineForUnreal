@@ -3820,6 +3820,8 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
         int32 CurveClosed = 1;
 
         HAPI_AttributeInfo AttributeRefinedCurvePositions;
+        FMemory::Memzero< HAPI_AttributeInfo >( AttributeRefinedCurvePositions );
+
         TArray< float > RefinedCurvePositions;
         if ( !FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
             HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_POSITION,

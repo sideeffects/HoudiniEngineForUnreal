@@ -81,7 +81,8 @@ UHoudiniAttributeDataComponent::Upload( HAPI_NodeId GeoNodeId, class UStaticMesh
     {
         if ( AttributeData.Component.IsValid() && AttributeData.Component.Get() == StaticMeshComponent )
         {
-            HAPI_AttributeInfo AttributeInfoPoint {};
+            HAPI_AttributeInfo AttributeInfoPoint;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPoint );
             AttributeInfoPoint.count = AttributeData.Count;
             AttributeInfoPoint.tupleSize = AttributeData.TupleSize;
             AttributeInfoPoint.exists = true;
