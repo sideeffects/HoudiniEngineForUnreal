@@ -852,11 +852,9 @@ struct HAPI_API HAPI_AssetInfo
     /// See @ref HAPI_AssetInputs.
     int transformInputCount;
 
-    /// Geometry inputs exposed by the asset. For OBJ assets this is the
-    /// number of SOP-filtered node path parameters exposed plus the Object
-    /// Merge SOPs inside marked as Editable Nodes. For SOP assets this is
-    /// the number of geometry inputs on the SOP node itself plus SOP-filtered
-    /// node path parameters exposed.
+    /// Geometry inputs exposed by the asset. For SOP assets this is
+    /// the number of geometry inputs on the SOP node itself. OBJ assets
+    /// will always have zero geometry inputs.
     /// See @ref HAPI_AssetInputs.
     int geoInputCount;
 
@@ -1196,6 +1194,8 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_HandleBindingInfo )
 struct HAPI_API HAPI_ObjectInfo
 {
     HAPI_StringHandle nameSH;
+
+    /// (deprecated) 
     HAPI_StringHandle objectInstancePathSH;
 
     /// For incremental updates. Indicates whether the object's transform
@@ -1221,8 +1221,8 @@ struct HAPI_API HAPI_ObjectInfo
     /// See @ref HAPI_Instancing.
     HAPI_Bool isInstanced;
 
-    /// The number of geometries under this object. For those familiar with
-    /// Houdini, this number will always include the one visible SOP and any
+    /// (deprecated) The number of geometries under this object. For those familiar
+    /// with Houdini, this number will always include the one visible SOP and any
     /// SOPs that were exposed as "editable" or "templated".
     /// See @ref HAPI_Geos.
     int geoCount;
