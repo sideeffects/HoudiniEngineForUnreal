@@ -32,9 +32,9 @@
 
 /*
 
-    Houdini Version: 16.0.762
+    Houdini Version: 16.0.772
     Houdini Engine Version: 3.0.62
-    Unreal Version: 4.17.0
+    Unreal Version: 4.18.0
 
 */
 
@@ -44,139 +44,139 @@ using System.IO;
 
 public class HoudiniEngineRuntime : ModuleRules
 {
-	public HoudiniEngineRuntime( ReadOnlyTargetRules Target ) : base( Target )
-	{
-		PCHUsage = PCHUsageMode.UseSharedPCHs;
-		bool bIsRelease = true;
-		string HFSPath = "";
-		string HoudiniVersion = "16.0.762";
-		PlatformID platformId = Environment.OSVersion.Platform;
+    public HoudiniEngineRuntime( ReadOnlyTargetRules Target ) : base( Target )
+    {
+        PCHUsage = PCHUsageMode.UseSharedPCHs;
+        bool bIsRelease = true;
+        string HFSPath = "";
+        string HoudiniVersion = "16.0.772";
+        PlatformID platformId = Environment.OSVersion.Platform;
 
-		// Check if we are compiling on unsupported platforms.
-		if( Target.Platform != UnrealTargetPlatform.Win64 &&
-		    Target.Platform != UnrealTargetPlatform.Mac &&
-		    Target.Platform != UnrealTargetPlatform.Linux &&
-		    Target.Platform != UnrealTargetPlatform.Switch )
-		{
-			System.Console.WriteLine( string.Format( "Houdini Engine : Compiling on untested platform.  Please let us know how it goes!" ) );
-		}
+        // Check if we are compiling on unsupported platforms.
+        if( Target.Platform != UnrealTargetPlatform.Win64 &&
+            Target.Platform != UnrealTargetPlatform.Mac &&
+            Target.Platform != UnrealTargetPlatform.Linux &&
+            Target.Platform != UnrealTargetPlatform.Switch )
+        {
+            System.Console.WriteLine( string.Format( "Houdini Engine : Compiling on untested platform.  Please let us know how it goes!" ) );
+        }
 
-		if( bIsRelease )
-		{
-			if( platformId == PlatformID.Win32NT )
-			{
-				// We first check if Houdini Engine is installed.
-				string HPath = "C:/Program Files/Side Effects Software/Houdini Engine " + HoudiniVersion;
-				if( !Directory.Exists( HPath ) )
-				{
-					// If Houdini Engine is not installed, we check for Houdini installation.
-					HPath = "C:/Program Files/Side Effects Software/Houdini " + HoudiniVersion;
-					if( !Directory.Exists( HPath ) )
-					{
-						if ( !Directory.Exists( HFSPath ) )
-						{
-							string Err = string.Format( "Houdini Engine : Please install Houdini or Houdini Engine {0}", HoudiniVersion );
-							System.Console.WriteLine( Err );
-						}
-					}
-					else
-					{
-						HFSPath = HPath;
-					}
-				}
-				else
-				{
-					HFSPath = HPath;
-				}
-			}
-			else if( platformId == PlatformID.MacOSX )
-			{
-				string HPath = "/Applications/Houdini/Houdini" + HoudiniVersion + "/Frameworks/Houdini.framework/Versions/Current/Resources";
-				if( !Directory.Exists( HPath ) )
-				{
-					if ( !Directory.Exists( HFSPath ) )
-					{
-						string Err = string.Format( "Houdini Engine : Please install Houdini {0}", HoudiniVersion );
-						System.Console.WriteLine( Err );
-					}
-				}
-				else
-				{
-					HFSPath = HPath;
-				}
-			}
-			else if( platformId == PlatformID.Unix )
-			{
-				HFSPath = System.Environment.GetEnvironmentVariable( "HFS" );
-				System.Console.WriteLine( "Linux - found HFS:" + HFSPath );
-			}
-			else
-			{
-				System.Console.WriteLine( string.Format("Unknown environment!") );
-			}
-		}
+        if( bIsRelease )
+        {
+            if( platformId == PlatformID.Win32NT )
+            {
+                // We first check if Houdini Engine is installed.
+                string HPath = "C:/Program Files/Side Effects Software/Houdini Engine " + HoudiniVersion;
+                if( !Directory.Exists( HPath ) )
+                {
+                    // If Houdini Engine is not installed, we check for Houdini installation.
+                    HPath = "C:/Program Files/Side Effects Software/Houdini " + HoudiniVersion;
+                    if( !Directory.Exists( HPath ) )
+                    {
+                        if ( !Directory.Exists( HFSPath ) )
+                        {
+                            string Err = string.Format( "Houdini Engine : Please install Houdini or Houdini Engine {0}", HoudiniVersion );
+                            System.Console.WriteLine( Err );
+                        }
+                    }
+                    else
+                    {
+                        HFSPath = HPath;
+                    }
+                }
+                else
+                {
+                    HFSPath = HPath;
+                }
+            }
+            else if( platformId == PlatformID.MacOSX )
+            {
+                string HPath = "/Applications/Houdini/Houdini" + HoudiniVersion + "/Frameworks/Houdini.framework/Versions/Current/Resources";
+                if( !Directory.Exists( HPath ) )
+                {
+                    if ( !Directory.Exists( HFSPath ) )
+                    {
+                        string Err = string.Format( "Houdini Engine : Please install Houdini {0}", HoudiniVersion );
+                        System.Console.WriteLine( Err );
+                    }
+                }
+                else
+                {
+                    HFSPath = HPath;
+                }
+            }
+            else if( platformId == PlatformID.Unix )
+            {
+                HFSPath = System.Environment.GetEnvironmentVariable( "HFS" );
+                System.Console.WriteLine( "Linux - found HFS:" + HFSPath );
+            }
+            else
+            {
+                System.Console.WriteLine( string.Format("Unknown environment!") );
+            }
+        }
 
-		string HAPIIncludePath = "";
+        string HAPIIncludePath = "";
 
-		if( HFSPath != "" )
-		{
-			HAPIIncludePath = HFSPath + "/toolkit/include/HAPI";
+        if( HFSPath != "" )
+        {
+            HAPIIncludePath = HFSPath + "/toolkit/include/HAPI";
 
-			if( platformId == PlatformID.Win32NT )
-			{
-				Definitions.Add( "HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath );
-			}
-		}
+            if( platformId == PlatformID.Win32NT )
+            {
+                Definitions.Add( "HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath );
+            }
+        }
 
-		if( HAPIIncludePath != "" )
-		{
-			PublicIncludePaths.Add( HAPIIncludePath );
+        if( HAPIIncludePath != "" )
+        {
+            PublicIncludePaths.Add( HAPIIncludePath );
 
-			// Add the custom include path as well in case the toolkit path doesn't exist yet.
-			PublicIncludePaths.Add( HFSPath + "/custom/houdini/include/HAPI" );
-		}
+            // Add the custom include path as well in case the toolkit path doesn't exist yet.
+            PublicIncludePaths.Add( HFSPath + "/custom/houdini/include/HAPI" );
+        }
 
-		PublicIncludePaths.AddRange(
-			new string[] {
-				"HoudiniEngineRuntime/Public/HAPI",
-				"HoudiniEngineRuntime/Public"
-			}
-		);
+        PublicIncludePaths.AddRange(
+            new string[] {
+                "HoudiniEngineRuntime/Public/HAPI",
+                "HoudiniEngineRuntime/Public"
+            }
+        );
 
-		PrivateIncludePaths.AddRange(
-			new string[] {
-				"HoudiniEngineRuntime/Private"
-			}
-		);
+        PrivateIncludePaths.AddRange(
+            new string[] {
+                "HoudiniEngineRuntime/Private"
+            }
+        );
 
-		// Add common dependencies.
-		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"Core",
-				"CoreUObject",
-				"Engine",
-				"RenderCore",
-				"ShaderCore",
-				"InputCore",
-				"RHI",
-				"Foliage",
-				"Landscape"
-			}
-		);
+        // Add common dependencies.
+        PublicDependencyModuleNames.AddRange(
+            new string[]
+            {
+                "Core",
+                "CoreUObject",
+                "Engine",
+                "RenderCore",
+                "ShaderCore",
+                "InputCore",
+                "RHI",
+                "Foliage",
+                "Landscape"
+             }
+        );
 
        PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
-				// ... add private dependencies that you statically link with here ...
-			}
-			);
+            new string[]
+            {
+                // ... add private dependencies that you statically link with here ...
+            }
+       );
 
-		if (UEBuildConfiguration.bBuildEditor == true)
-		{
+       if (Target.bBuildEditor == true)
+       {
             PrivateDependencyModuleNames.AddRange(
-			    new string[]
-			    {
+            new string[]
+            {
                     "AppFramework",
                     "AssetTools",
                     "EditorStyle",
@@ -190,16 +190,17 @@ public class HoudiniEngineRuntime : ModuleRules
                     "Slate",
                     "SlateCore",
                     "TargetPlatform",
-                    "UnrealEd"
+                    "UnrealEd",
+                    "ApplicationCore",
                 }
-			);
-		}
+            );
+        }
 
-		DynamicallyLoadedModuleNames.AddRange(
-			new string[]
-			{
-				// ... add any modules that your module loads dynamically here ...
-			}
-			);
-	}
+        DynamicallyLoadedModuleNames.AddRange(
+            new string[]
+            {
+                // ... add any modules that your module loads dynamically here ...
+            }
+        );
+    }
 }
