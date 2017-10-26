@@ -193,13 +193,13 @@ FHoudiniEngine::StartupModule()
     if ( !IsRunningCommandlet() && !IsRunningDedicatedServer() )
     {
         // Create Houdini logo brush.
-        const TArray< FPluginStatus > Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
+        const TArray< TSharedRef< IPlugin > > Plugins = IPluginManager::Get().GetDiscoveredPlugins();
         for ( auto PluginIt( Plugins.CreateConstIterator() ); PluginIt; ++PluginIt )
         {
-            const FPluginStatus & PluginStatus = *PluginIt;
-            if ( PluginStatus.Name == TEXT( "HoudiniEngine" ) )
+            const TSharedRef< IPlugin > & Plugin = *PluginIt;
+            if ( Plugin->GetName() == TEXT( "HoudiniEngine" ) )
             {
-                FString Icon128FilePath = PluginStatus.PluginDirectory / TEXT( "Resources/Icon128.png" );
+                FString Icon128FilePath = Plugin->GetBaseDir() / TEXT( "Resources/Icon128.png" );
 
                 if ( FPlatformFileManager::Get().GetPlatformFile().FileExists( *Icon128FilePath ) )
                 {

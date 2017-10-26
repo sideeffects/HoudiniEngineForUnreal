@@ -113,7 +113,7 @@ TSharedRef< ITableRow > SHoudiniToolPalette::MakeListViewWidget( TSharedPtr< FHo
     // Building the tool's tooltip
     FString ToolTip = HoudiniTool->Name.ToString() + TEXT( "\n" );
     if ( HoudiniTool->HoudiniAsset.IsValid() )
-        ToolTip += HoudiniTool->HoudiniAsset.ToStringReference().ToString() /*->AssetFileName */+ TEXT( "\n\n" );
+        ToolTip += HoudiniTool->HoudiniAsset.ToSoftObjectPath().ToString() /*->AssetFileName */+ TEXT( "\n\n" );
     if ( !HoudiniTool->ToolTipText.IsEmpty() )
         ToolTip += HoudiniTool->ToolTipText.ToString() + TEXT("\n\n");
 
