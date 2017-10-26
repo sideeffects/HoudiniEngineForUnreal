@@ -3372,4 +3372,10 @@ UHoudiniAssetInput::SetScaleZ( float Value, int32 AtIndex )
 
 #endif
 
+const ALandscape*
+UHoudiniAssetInput::GetLandscapeInput() const
+{
+    return InputLandscapeProxy ? InputLandscapeProxy->GetLandscapeActor() : nullptr;
+}
+
 #undef LOCTEXT_NAMESPACE

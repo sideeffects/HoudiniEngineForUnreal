@@ -39,6 +39,8 @@
 #include "HoudiniCookHandler.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
+#include "HoudiniAssetComponent.h"
+
 #include "LandscapeInfo.h"
 #include "LandscapeComponent.h"
 #include "LandscapeEdit.h"
