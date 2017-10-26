@@ -40,7 +40,7 @@ struct FHoudiniToolDescription;
 
 struct FHoudiniTool
 {
-    FHoudiniTool( TAssetPtr < class UHoudiniAsset > InHoudiniAsset, const FText& InName, const EHoudiniToolType& InType, const FText& InToolTipText, const FSlateBrush* InIcon, const FString& InHelpURL )
+    FHoudiniTool(TSoftObjectPtr < class UHoudiniAsset > InHoudiniAsset, const FText& InName, const EHoudiniToolType& InType, const FText& InToolTipText, const FSlateBrush* InIcon, const FString& InHelpURL )
         : HoudiniAsset( InHoudiniAsset )
         , Name( InName )
         , ToolTipText( InToolTipText )
@@ -49,7 +49,7 @@ struct FHoudiniTool
         , Type( InType )
     {
     }
-    TAssetPtr < class UHoudiniAsset > HoudiniAsset;
+    TSoftObjectPtr < class UHoudiniAsset > HoudiniAsset;
 
     /** The name to be displayed */
     FText Name;

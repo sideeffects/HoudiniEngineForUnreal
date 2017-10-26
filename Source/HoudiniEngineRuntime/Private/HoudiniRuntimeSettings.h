@@ -24,7 +24,7 @@
 #pragma once
 #include <string>
 #include "Engine/EngineTypes.h"
-#include "AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "HoudiniRuntimeSettings.generated.h"
 
@@ -116,7 +116,7 @@ struct FHoudiniToolDescription
 
     /** Houdini uasset */
     UPROPERTY( Category = Tool, EditAnywhere )
-    TAssetPtr < class UHoudiniAsset > HoudiniAsset;
+    TSoftObjectPtr < class UHoudiniAsset > HoudiniAsset;
 
     /** Clicking on help icon will bring up this URL */
     UPROPERTY( Category = Tool, EditAnywhere )
