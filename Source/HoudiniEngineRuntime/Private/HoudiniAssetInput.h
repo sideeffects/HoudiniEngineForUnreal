@@ -30,6 +30,7 @@
 #endif
 #include "HoudiniAssetInput.generated.h"
 
+class ALandscape;
 class ALandscapeProxy;
 class UHoudiniSplineComponent;
 class USplineComponent;
@@ -199,7 +200,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         FORCEINLINE const TArray< FHoudiniAssetInputOutlinerMesh >& GetWorldOutlinerInputs() const { return InputOutlinerMeshArray; }
 
         /** Returns the selected landscape Actor **/
-        const ALandscape* GetLandscapeInput() const { return InputLandscapeProxy ? InputLandscapeProxy->GetLandscapeActor() : nullptr; }
+        const ALandscape* GetLandscapeInput() const;
 
         /** Remove a specific element of the world outliner input selection */
         void RemoveWorldOutlinerInput( int32 AtIndex );

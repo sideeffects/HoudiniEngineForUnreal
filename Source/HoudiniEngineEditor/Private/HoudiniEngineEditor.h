@@ -46,7 +46,7 @@ struct FHoudiniToolType
         , HelpURL( InHelpURL )
     {
     }
-    TAssetPtr < class UHoudiniAsset > HoudiniAsset;
+    TSoftObjectPtr < class UHoudiniAsset > HoudiniAsset;
 
     /** The name to be displayed */
     FText Text;

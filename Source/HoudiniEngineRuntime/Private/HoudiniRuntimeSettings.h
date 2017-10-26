@@ -95,7 +95,7 @@ struct FHoudiniTool
 
     /** Houdini uasset */
     UPROPERTY( Category = Tool, EditAnywhere )
-    TAssetPtr < class UHoudiniAsset > HoudiniAsset;
+    TSoftObjectPtr < class UHoudiniAsset > HoudiniAsset;
 
     /** Clicking on help icon will bring up this URL */
     UPROPERTY( Category = Tool, EditAnywhere )

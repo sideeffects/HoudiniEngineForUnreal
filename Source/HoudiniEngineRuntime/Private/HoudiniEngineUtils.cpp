@@ -59,6 +59,7 @@
     #include "Materials/MaterialExpressionVectorParameter.h"
     #include "Materials/MaterialExpressionScalarParameter.h"
 #endif
+
 #include "EngineUtils.h"
 #include "MetaData.h"
 #include "PhysicsEngine/BodySetup.h"
@@ -75,6 +76,9 @@
 	#undef GetGeoInfo
     #endif
 #endif
+
+#include "HAL/PlatformMisc.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #include "Internationalization.h"
 
@@ -8921,7 +8925,9 @@ FHoudiniEngineUtils::LocateClipboardActor( const AActor* IgnoreActor, const FStr
     if ( ClipboardText.IsEmpty() )
     {
         FString PasteString;
-        FPlatformMisc::ClipboardPaste( PasteString );
+#if WITH_EDITOR
+        FPlatformApplicationMisc::ClipboardPaste( PasteString );
+#endif
         Paste = *PasteString;
     }
     else
@@ -8936,23 +8942,23 @@ FHoudiniEngineUtils::LocateClipboardActor( const AActor* IgnoreActor, const FStr
     FString StrLine;
     while ( FParse::Line( &Paste, StrLine ) )
     {
-        StrLine = StrLine.Trim();
+        StrLine = StrLine.TrimStart();
 
         const TCHAR * Str = *StrLine;
         FString ClassName;
-	if (StrLine.StartsWith(TEXT("Begin Actor")) && FParse::Value(Str, TEXT("Class="), ClassName))
-	{
-	    if (ClassName == *AHoudiniAssetActor::StaticClass()->GetFName().ToString())
-	    {
-		if (FParse::Value(Str, TEXT("Name="), ActorName))
-		    break;
-	    }
-	}
-	else if (StrLine.StartsWith(TEXT("ActorLabel")))
-	{
-	    if (FParse::Value(Str, TEXT("ActorLabel="), ActorName))
-		break;
-	}
+        if (StrLine.StartsWith(TEXT("Begin Actor")) && FParse::Value(Str, TEXT("Class="), ClassName))
+        {
+            if (ClassName == *AHoudiniAssetActor::StaticClass()->GetFName().ToString())
+            {
+                if (FParse::Value(Str, TEXT("Name="), ActorName))
+                    break;
+            }
+        }
+        else if (StrLine.StartsWith(TEXT("ActorLabel")))
+        {
+            if (FParse::Value(Str, TEXT("ActorLabel="), ActorName))
+                break;
+        }
     }
 
 #if WITH_EDITOR
@@ -8961,8 +8967,8 @@ FHoudiniEngineUtils::LocateClipboardActor( const AActor* IgnoreActor, const FStr
     UWorld* editorWorld = GEditor->GetEditorWorldContext().World();
     for (TActorIterator<AHoudiniAssetActor> ActorItr(editorWorld); ActorItr; ++ActorItr)
     {
-	if ( *ActorItr != IgnoreActor && (ActorItr->GetActorLabel() == ActorName || ActorItr->GetName() == ActorName))
-	    HoudiniAssetActor = *ActorItr;
+        if ( *ActorItr != IgnoreActor && (ActorItr->GetActorLabel() == ActorName || ActorItr->GetName() == ActorName))
+            HoudiniAssetActor = *ActorItr;
     }
 #endif
 
