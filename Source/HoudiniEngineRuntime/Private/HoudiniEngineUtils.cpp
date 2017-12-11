@@ -66,6 +66,9 @@
     #endif
 #endif
 
+#include <string>
+#include <sstream>
+
 #include "HAL/PlatformMisc.h"
 #include "HAL/PlatformApplicationMisc.h"
 
@@ -74,6 +77,14 @@
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 DECLARE_CYCLE_STAT( TEXT( "Houdini: Build Static Mesh" ), STAT_BuildStaticMesh, STATGROUP_HoudiniEngine );
+
+template <typename T>
+std::string to_string(T value)
+{
+	std::ostringstream os;
+	os << value;
+	return os.str();
+}
 
 const FString kResultStringSuccess( TEXT( "Success" ) );
 const FString kResultStringFailure( TEXT( "Generic Failure" ) );
@@ -2695,7 +2706,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             std::string UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
 
             if ( MeshTexCoordIdx > 0 )
-                UVAttributeName += std::to_string( MeshTexCoordIdx + 1 );
+                UVAttributeName += to_string( MeshTexCoordIdx + 1 );
 
             const char * UVAttributeNameString = UVAttributeName.c_str();
 
@@ -7530,7 +7541,7 @@ FHoudiniEngineUtils::GetAllUVAttributesInfoAndTexCoords(
         std::string UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
 
         if ( TexCoordIdx > 0 )
-            UVAttributeName += std::to_string( bUV1Exists ? TexCoordIdx : TexCoordIdx + 1 );
+            UVAttributeName += to_string( bUV1Exists ? TexCoordIdx : TexCoordIdx + 1 );
 
         const char * UVAttributeNameString = UVAttributeName.c_str();
         FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
@@ -7573,7 +7584,7 @@ FHoudiniEngineUtils::GetAllUVAttributesInfoAndTexCoords(
             continue;
 
         // Look for the next available index in the return arrays
-        for ( AvailableIdx; AvailableIdx < AttribInfoUVs.Num(); AvailableIdx++ )
+        for ( ; AvailableIdx < AttribInfoUVs.Num(); AvailableIdx++ )
         {
             if ( !AttribInfoUVs[ AvailableIdx ].exists )
                 break;
