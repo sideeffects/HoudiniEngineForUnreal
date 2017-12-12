@@ -45,8 +45,8 @@
 UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput( const FObjectInitializer& ObjectInitializer )
     : Super( ObjectInitializer )
     , ObjectToInstanceId( -1 )
-    , HoudiniAssetInstanceInputFlagsPacked( 0u )
 {
+    Flags = { 0 };
     TupleSize = 0;
 }
 
@@ -55,59 +55,59 @@ UHoudiniAssetInstanceInput::Create(
     UHoudiniAssetComponent * InPrimaryObject,
     const FHoudiniGeoPartObject & InHoudiniGeoPartObject )
 {
-    UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = nullptr;
-
-    std::string MarshallingAttributeInstanceOverride = HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE;
-    UHoudiniRuntimeSettings::GetSettingsValue(
-        TEXT( "MarshallingAttributeInstanceOverride" ),
-        MarshallingAttributeInstanceOverride );
+    UHoudiniAssetInstanceInput * NewInstanceInput = nullptr;
 
     // Get object to be instanced.
     HAPI_NodeId ObjectToInstance = InHoudiniGeoPartObject.HapiObjectGetToInstanceId();
 
-    bool bIsPackedPrimitiveInstancerCheck = InHoudiniGeoPartObject.IsPackedPrimitiveInstancer();
-
-    // If this is an attribute instancer, see if attribute exists.
-    bool bAttributeCheck = InHoudiniGeoPartObject.HapiCheckAttributeExistance(
-        HAPI_UNREAL_ATTRIB_INSTANCE,
-        HAPI_ATTROWNER_POINT );
-
-    // Check if this is an attribute override instancer (on detail or point).
-    bool bAttributeOverrideCheck = InHoudiniGeoPartObject.HapiCheckAttributeExistance(
-        MarshallingAttributeInstanceOverride,
-        HAPI_ATTROWNER_DETAIL );
-
-    bAttributeOverrideCheck |=
-        InHoudiniGeoPartObject.HapiCheckAttributeExistance(
-            MarshallingAttributeInstanceOverride,
-            HAPI_ATTROWNER_POINT );
-
-    // Check if this is a No-Instancers ( unreal_split_instances )
-    bool bIsSplitMeshInstancerCheck = InHoudiniGeoPartObject.HapiCheckAttributeExistance(
-	HAPI_UNREAL_ATTRIB_SPLIT_INSTANCES,
-	HAPI_ATTROWNER_DETAIL);
+    auto Flags = GetInstancerFlags(InHoudiniGeoPartObject);
 
     // This is invalid combination, no object to instance and input is not an attribute instancer.
-    if ( !bAttributeCheck && !bAttributeOverrideCheck && ObjectToInstance == -1 && !bIsPackedPrimitiveInstancerCheck )
-        return HoudiniAssetInstanceInput;
+    if ( !Flags.bIsAttributeInstancer && !Flags.bAttributeInstancerOverride && ObjectToInstance == -1 && !Flags.bIsPackedPrimitiveInstancer )
+        return nullptr;
 
-    HoudiniAssetInstanceInput = NewObject< UHoudiniAssetInstanceInput >(
+    NewInstanceInput = NewObject< UHoudiniAssetInstanceInput >(
         InPrimaryObject, 
         UHoudiniAssetInstanceInput::StaticClass(),
         NAME_None, RF_Public | RF_Transactional );
 
-    HoudiniAssetInstanceInput->PrimaryObject = InPrimaryObject;
-    HoudiniAssetInstanceInput->HoudiniGeoPartObject = InHoudiniGeoPartObject;
-    HoudiniAssetInstanceInput->SetNameAndLabel( InHoudiniGeoPartObject.ObjectName );
-    HoudiniAssetInstanceInput->ObjectToInstanceId = ObjectToInstance;
+    NewInstanceInput->PrimaryObject = InPrimaryObject;
+    NewInstanceInput->HoudiniGeoPartObject = InHoudiniGeoPartObject;
+    NewInstanceInput->SetNameAndLabel( InHoudiniGeoPartObject.ObjectName );
+    NewInstanceInput->ObjectToInstanceId = ObjectToInstance;
 
-    // Set up the type of instancer
-    HoudiniAssetInstanceInput->bIsAttributeInstancer = bAttributeCheck;
-    HoudiniAssetInstanceInput->bAttributeInstancerOverride = bAttributeOverrideCheck;
-    HoudiniAssetInstanceInput->bIsPackedPrimitiveInstancer = bIsPackedPrimitiveInstancerCheck;
-    HoudiniAssetInstanceInput->bIsSplitMeshInstancer = bIsSplitMeshInstancerCheck;
+    NewInstanceInput->Flags = Flags;
 
-    return HoudiniAssetInstanceInput;
+    return NewInstanceInput;
+}
+
+UHoudiniAssetInstanceInput::FHoudiniAssetInstanceInputFlags
+UHoudiniAssetInstanceInput::GetInstancerFlags(const FHoudiniGeoPartObject & InHoudiniGeoPartObject)
+{
+    FHoudiniAssetInstanceInputFlags Flags{ 0 };
+
+    // Get object to be instanced.
+    HAPI_NodeId ObjectToInstance = InHoudiniGeoPartObject.HapiObjectGetToInstanceId();
+
+    Flags.bIsPackedPrimitiveInstancer = InHoudiniGeoPartObject.IsPackedPrimitiveInstancer();
+
+    // If this is an attribute instancer, see if attribute exists.
+    Flags.bIsAttributeInstancer = InHoudiniGeoPartObject.HapiCheckAttributeExistance(
+	HAPI_UNREAL_ATTRIB_INSTANCE,
+	HAPI_ATTROWNER_POINT);
+
+    // Check if this is an attribute override instancer (on detail or point).
+    Flags.bAttributeInstancerOverride =
+	InHoudiniGeoPartObject.HapiCheckAttributeExistance(
+	    HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE, HAPI_ATTROWNER_DETAIL) |
+	InHoudiniGeoPartObject.HapiCheckAttributeExistance(
+	    HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE, HAPI_ATTROWNER_POINT);
+
+    // Check if this is a No-Instancers ( unreal_split_instances )
+    Flags.bIsSplitMeshInstancer =
+	InHoudiniGeoPartObject.HapiCheckAttributeExistance(
+	    HAPI_UNREAL_ATTRIB_SPLIT_INSTANCES, HAPI_ATTROWNER_DETAIL);
+    return Flags;
 }
 
 UHoudiniAssetInstanceInput *
@@ -147,7 +147,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
     // List of new fields. Reused input fields will also be placed here.
     TArray< UHoudiniAssetInstanceInputField * > NewInstanceInputFields;
 
-    if ( bIsPackedPrimitiveInstancer )
+    if ( Flags.bIsPackedPrimitiveInstancer )
     {
         // This is using packed primitives
         HAPI_PartInfo PartInfo;
@@ -201,7 +201,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
             CreateInstanceInputField( InstancedPart, ObjectTransforms, InstanceInputFields, NewInstanceInputFields );
         }
     }
-    else if ( bIsAttributeInstancer )
+    else if ( Flags.bIsAttributeInstancer )
     {
         int32 NumPoints = HoudiniGeoPartObject.HapiPartGetPointCount();
         TArray< HAPI_NodeId > InstancedObjectIds;
@@ -242,7 +242,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
             }
         }
     }
-    else if ( bAttributeInstancerOverride )
+    else if ( Flags.bAttributeInstancerOverride )
     {
         // This is an attribute override. Unreal mesh is specified through an attribute and we use points.
 
@@ -703,11 +703,11 @@ FString UHoudiniAssetInstanceInput::GetFieldLabel( int32 FieldIdx, int32 Variati
 {
     FString FieldNameText;
     UHoudiniAssetInstanceInputField * Field = InstanceInputFields[ FieldIdx ];
-    if ( bIsPackedPrimitiveInstancer )
+    if ( Flags.bIsPackedPrimitiveInstancer )
     {
         FieldNameText = Field->GetHoudiniGeoPartObject().GetNodePath();
     }
-    else if ( bAttributeInstancerOverride )
+    else if ( Flags.bAttributeInstancerOverride )
     {
         FieldNameText = HoudiniGeoPartObject.GetNodePath() + TEXT( "/Override_" ) + FString::FromInt( FieldIdx );
     }
@@ -756,7 +756,7 @@ UHoudiniAssetInstanceInput::Serialize( FArchive & Ar )
 
     Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
 
-    Ar << HoudiniAssetInstanceInputFlagsPacked;
+    Ar << Flags.HoudiniAssetInstanceInputFlagsPacked;
     Ar << HoudiniGeoPartObject;
 
     Ar << ObjectToInstanceId;
@@ -786,26 +786,6 @@ UHoudiniAssetInstanceInput::AddReferencedObjects( UObject * InThis, FReferenceCo
 
     // Call base implementation.
     Super::AddReferencedObjects( InThis, Collector );
-}
-
-bool
-UHoudiniAssetInstanceInput::IsAttributeInstancer() const
-{
-    return bIsAttributeInstancer;
-}
-
-
-bool
-UHoudiniAssetInstanceInput::IsObjectInstancer() const
-{
-    return (-1 != ObjectToInstanceId);
-}
-
-
-bool
-UHoudiniAssetInstanceInput::IsAttributeInstancerOverride() const
-{
-    return bAttributeInstancerOverride;
 }
 
 #if WITH_EDITOR

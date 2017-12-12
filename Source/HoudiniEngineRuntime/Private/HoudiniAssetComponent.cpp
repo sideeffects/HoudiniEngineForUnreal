@@ -4376,8 +4376,11 @@ UHoudiniAssetComponent::LocateInstanceInput( const FHoudiniGeoPartObject& GeoPar
 {
     for ( UHoudiniAssetInstanceInput* InstanceInput : InstanceInputs )
     {
-        if ( InstanceInput->GetGeoPartObject().GetNodePath() == GeoPart.GetNodePath() )
-        {
+	// Verify path to instancer + various configuration flags
+        if ( InstanceInput->GetGeoPartObject().GetNodePath() == GeoPart.GetNodePath() &&
+	    UHoudiniAssetInstanceInput::GetInstancerFlags(GeoPart).HoudiniAssetInstanceInputFlagsPacked ==
+		InstanceInput->Flags.HoudiniAssetInstanceInputFlagsPacked )
+	{
             return InstanceInput;
         }
     }

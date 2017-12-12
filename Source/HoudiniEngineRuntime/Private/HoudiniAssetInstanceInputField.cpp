@@ -235,7 +235,7 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
                 InstancerHoudiniGeoPartObject.InstancerMaterialName);
 
         USceneComponent* NewComp = nullptr;
-        if( HoudiniAssetInstanceInput->bIsSplitMeshInstancer )
+        if( HoudiniAssetInstanceInput->Flags.bIsSplitMeshInstancer )
         {
             UHoudiniMeshSplitInstancerComponent* MSIC = NewObject< UHoudiniMeshSplitInstancerComponent >(
                 RootComp->GetOwner(), UHoudiniMeshSplitInstancerComponent::StaticClass(),
