@@ -24,6 +24,7 @@
 #include "HoudiniApi.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "HoudiniInstancedActorComponent.h"
+#include "HoudiniMeshSplitInstancerComponent.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #if WITH_EDITOR
 #include "LevelEditorViewport.h"
@@ -150,19 +151,20 @@ UHoudiniInstancedActorComponent::OnComponentCreated()
 }
 
 void
-UHoudiniInstancedActorComponent::UpdateInstancedStaticMeshComponentInstances(
+UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
     USceneComponent * Component,
     const TArray< FTransform > & InstancedTransforms,
-    const FRotator & RotationOffset, const FVector & ScaleOffset )
+    const FRotator & RotationOffset, const FVector & ScaleOffset)
 {
-    UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( Component );
-    UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( Component );
+    UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>(Component);
+    UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>(Component);
+    UHoudiniMeshSplitInstancerComponent* MSIC = Cast<UHoudiniMeshSplitInstancerComponent>(Component);
 
-    check( ISMC || IAC );
+    check(ISMC || IAC || MSIC);
 
     auto ProcessOffsets = [&]() {
         TArray<FTransform> ProcessedTransforms;
-        ProcessedTransforms.Reserve( InstancedTransforms.Num() );
+        ProcessedTransforms.Reserve(InstancedTransforms.Num());
 
         for( int32 InstanceIdx = 0; InstanceIdx < InstancedTransforms.Num(); ++InstanceIdx )
         {
@@ -183,10 +185,10 @@ UHoudiniInstancedActorComponent::UpdateInstancedStaticMeshComponentInstances(
             if( TransformScale3D.Z < HAPI_UNREAL_SCALE_SMALL_VALUE )
                 TransformScale3D.Z = HAPI_UNREAL_SCALE_SMALL_VALUE;
 
-            Transform.SetRotation( TransformRotation );
-            Transform.SetScale3D( TransformScale3D );
+            Transform.SetRotation(TransformRotation);
+            Transform.SetScale3D(TransformScale3D);
 
-            ProcessedTransforms.Add( Transform );
+            ProcessedTransforms.Add(Transform);
         }
         return ProcessedTransforms;
     };
@@ -196,12 +198,16 @@ UHoudiniInstancedActorComponent::UpdateInstancedStaticMeshComponentInstances(
         ISMC->ClearInstances();
         for( const auto& Transform : ProcessOffsets() )
         {
-            ISMC->AddInstance( Transform );
+            ISMC->AddInstance(Transform);
         }
     }
     else if( IAC )
     {
-        IAC->SetInstances( ProcessOffsets() );
+        IAC->SetInstances(ProcessOffsets());
+    }
+    else if( MSIC )
+    {
+        MSIC->SetInstances(ProcessOffsets());
     }
 }
 

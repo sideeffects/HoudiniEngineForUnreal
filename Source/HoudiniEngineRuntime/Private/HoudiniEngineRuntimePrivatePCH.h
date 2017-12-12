@@ -191,6 +191,7 @@
 
 /** Names of attributes used for data exchange between Unreal and Houdini Engine. **/
 #define HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE            "unreal_instance"
+#define HAPI_UNREAL_ATTRIB_SPLIT_INSTANCES              "unreal_split_instances"
 #define HAPI_UNREAL_ATTRIB_MATERIAL                     "unreal_material"
 #define HAPI_UNREAL_ATTRIB_MATERIAL_HOLE                "unreal_material_hole"
 #define HAPI_UNREAL_ATTRIB_MATERIAL_FALLBACK            "unreal_face_material"
@@ -323,7 +324,7 @@
 
 /** Default values for new curves. **/
 #define HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT    "0.0, 0.0, 3.0 3.0, 0.0, 3.0"
-#define HAPI_UNREAL_PARAM_SPLINE_RESOLUTION_DEFAULT	50.0f
+#define HAPI_UNREAL_PARAM_SPLINE_RESOLUTION_DEFAULT     50.0f
 
 /** Default values for certain UI min and max parameter values **/
 #define HAPI_UNREAL_PARAM_INT_UI_MIN                    0
@@ -341,11 +342,11 @@
 #define HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION   "rendered_collision_geo"
 
 /** Group name prefix used for UCX collision geometry generation **/
-#define HAPI_UNREAL_GROUP_GEOMETRY_COLLISION_UCX	"collision_geo_ucx"
+#define HAPI_UNREAL_GROUP_GEOMETRY_COLLISION_UCX        "collision_geo_ucx"
 #define HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION_UCX "rendered_collision_geo_ucx"
 
-#define HAPI_UNREAL_GROUP_GEOMETRY_SIMPLE_COLLISION  		"collision_geo_simple"
-#define HAPI_UNREAL_GROUP_GEOMETRY_SIMPLE_RENDERED_COLLISION	"rendered_collision_geo_simple"
+#define HAPI_UNREAL_GROUP_GEOMETRY_SIMPLE_COLLISION             "collision_geo_simple"
+#define HAPI_UNREAL_GROUP_GEOMETRY_SIMPLE_RENDERED_COLLISION    "rendered_collision_geo_simple"
 
 /** Group name used to mark everything that is not a member of collision or rendered collision group. **/
 #define HAPI_UNREAL_GROUP_GEOMETRY_NOT_COLLISION        "main_geo"

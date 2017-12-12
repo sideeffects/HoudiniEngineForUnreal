@@ -27,6 +27,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniInstancedActorComponent.h"
+#include "HoudiniMeshSplitInstancerComponent.h"
 
 #include "Components/InstancedStaticMeshComponent.h"
 
@@ -179,6 +180,10 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
                 {
                     Comp->SetStaticMesh( StaticMesh );
                 }
+                else if( UHoudiniMeshSplitInstancerComponent* Comp = Cast<UHoudiniMeshSplitInstancerComponent>(InstancerComponents[Idx]) )
+                {
+                    Comp->SetStaticMesh( StaticMesh );
+                }
             }
             else
             {
@@ -215,48 +220,60 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
 
     if ( UStaticMesh * StaticMesh = Cast<UStaticMesh>( InstancedObjects[ VariationIdx ] ) )
     {
-        UInstancedStaticMeshComponent * InstancedStaticMeshComponent =
-            NewObject< UInstancedStaticMeshComponent >(
-                RootComp->GetOwner(),
-                UInstancedStaticMeshComponent::StaticClass(),
-                NAME_None, RF_Transactional );
-
-        InstancerComponents.Insert( InstancedStaticMeshComponent, VariationIdx );
-
-        InstancedStaticMeshComponent->SetStaticMesh( StaticMesh );
-        InstancedStaticMeshComponent->SetMobility( RootComp->Mobility );
-        InstancedStaticMeshComponent->AttachToComponent(
-            RootComp, FAttachmentTransformRules::KeepRelativeTransform );
-        InstancedStaticMeshComponent->RegisterComponent();
-        InstancedStaticMeshComponent->GetBodyInstance()->bAutoWeld = false;
-
-        // We want to make this invisible if it's a collision instancer.
-        InstancedStaticMeshComponent->SetVisibility( !HoudiniGeoPartObject.bIsCollidable );
-
         UMaterialInterface * InstancerMaterial = nullptr;
 
         // We check attribute material first.
-        if ( InstancerHoudiniGeoPartObject.bInstancerAttributeMaterialAvailable )
+        if( InstancerHoudiniGeoPartObject.bInstancerAttributeMaterialAvailable )
         {
             InstancerMaterial = Comp->GetAssignmentMaterial(
-                InstancerHoudiniGeoPartObject.InstancerAttributeMaterialName );
+                InstancerHoudiniGeoPartObject.InstancerAttributeMaterialName);
         }
 
         // If attribute material was not found, we check for presence of shop instancer material.
-        if ( !InstancerMaterial && InstancerHoudiniGeoPartObject.bInstancerMaterialAvailable )
+        if( !InstancerMaterial && InstancerHoudiniGeoPartObject.bInstancerMaterialAvailable )
             InstancerMaterial = Comp->GetAssignmentMaterial(
-                InstancerHoudiniGeoPartObject.InstancerMaterialName );
+                InstancerHoudiniGeoPartObject.InstancerMaterialName);
 
-        if ( InstancerMaterial )
+        USceneComponent* NewComp = nullptr;
+        if( HoudiniAssetInstanceInput->bIsSplitMeshInstancer )
         {
-            InstancedStaticMeshComponent->OverrideMaterials.Empty();
+            UHoudiniMeshSplitInstancerComponent* MSIC = NewObject< UHoudiniMeshSplitInstancerComponent >(
+                RootComp->GetOwner(), UHoudiniMeshSplitInstancerComponent::StaticClass(),
+                NAME_None, RF_Transactional);
 
-            int32 MeshMaterialCount = StaticMesh->StaticMaterials.Num();
-            for ( int32 Idx = 0; Idx < MeshMaterialCount; ++Idx )
-                InstancedStaticMeshComponent->SetMaterial( Idx, InstancerMaterial );
+            MSIC->SetStaticMesh(StaticMesh);
+            MSIC->SetOverrideMaterial(InstancerMaterial);
+            NewComp = MSIC;
         }
+        else
+        {
+            UInstancedStaticMeshComponent * InstancedStaticMeshComponent =
+                NewObject< UInstancedStaticMeshComponent >(
+                    RootComp->GetOwner(),
+                    UInstancedStaticMeshComponent::StaticClass(),
+                    NAME_None, RF_Transactional);
 
-        FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( InstancedStaticMeshComponent, InstancerHoudiniGeoPartObject);
+            InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
+            InstancedStaticMeshComponent->GetBodyInstance()->bAutoWeld = false;
+            if( InstancerMaterial )
+            {
+                InstancedStaticMeshComponent->OverrideMaterials.Empty();
+
+                int32 MeshMaterialCount = StaticMesh->StaticMaterials.Num();
+                for( int32 Idx = 0; Idx < MeshMaterialCount; ++Idx )
+                    InstancedStaticMeshComponent->SetMaterial(Idx, InstancerMaterial);
+            }
+            NewComp = InstancedStaticMeshComponent;
+        }
+        NewComp->SetMobility(RootComp->Mobility);
+        NewComp->AttachToComponent(
+            RootComp, FAttachmentTransformRules::KeepRelativeTransform);
+        NewComp->RegisterComponent();
+        // We want to make this invisible if it's a collision instancer.
+        NewComp->SetVisibility(!HoudiniGeoPartObject.bIsCollidable);
+
+        InstancerComponents.Insert(NewComp, VariationIdx);
+        FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(NewComp, InstancerHoudiniGeoPartObject);
     }
     else
     {
@@ -320,7 +337,7 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms( bool RecomputeVariati
 
     for ( int32 Idx = 0; Idx < VariationCount; Idx++ )
     {
-        UHoudiniInstancedActorComponent::UpdateInstancedStaticMeshComponentInstances(
+        UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
             InstancerComponents[ Idx ],
             VariationTransformsArray[ Idx ],
             RotationOffsets[ Idx ],
@@ -440,6 +457,14 @@ UHoudiniAssetInstanceInputField::ReplaceInstanceVariation( UObject * InObject, i
             if ( !ISMC->IsPendingKill() )
             {
                 ISMC->SetStaticMesh( Cast<UStaticMesh>( InObject ) ); 
+                bComponentNeedToBeCreated = false;
+            }
+        }
+        else if( UHoudiniMeshSplitInstancerComponent* MSPIC = Cast<UHoudiniMeshSplitInstancerComponent>(InstancerComponents[Index]) )
+        {
+            if( !MSPIC->IsPendingKill() )
+            {
+                MSPIC->SetStaticMesh(Cast<UStaticMesh>(InObject));
                 bComponentNeedToBeCreated = false;
             }
         }
@@ -623,6 +648,10 @@ UHoudiniAssetInstanceInputField::FixInstancedObjects( const TMap<UObject*, UObje
             if( UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( InstancerComponents[ Idx ] ) )
             {
                 ISMC->SetStaticMesh( CastChecked<UStaticMesh>( *ReplacementObj ) );
+            }
+            else if( UHoudiniMeshSplitInstancerComponent* MSIC = Cast<UHoudiniMeshSplitInstancerComponent>(InstancerComponents[Idx]) )
+            {
+                MSIC->SetStaticMesh(CastChecked<UStaticMesh>(*ReplacementObj));
             }
             else if( UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( InstancerComponents[ Idx ] ) )
             {

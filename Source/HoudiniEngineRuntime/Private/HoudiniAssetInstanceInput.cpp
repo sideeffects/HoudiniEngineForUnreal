@@ -30,6 +30,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniInstancedActorComponent.h"
+#include "HoudiniMeshSplitInstancerComponent.h"
 #include "Components/AudioComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Particles/ParticleSystemComponent.h"
@@ -64,7 +65,7 @@ UHoudiniAssetInstanceInput::Create(
     // Get object to be instanced.
     HAPI_NodeId ObjectToInstance = InHoudiniGeoPartObject.HapiObjectGetToInstanceId();
 
-    bool bIsPackedPrimitiveInstancerLocal = InHoudiniGeoPartObject.IsPackedPrimitiveInstancer();
+    bool bIsPackedPrimitiveInstancerCheck = InHoudiniGeoPartObject.IsPackedPrimitiveInstancer();
 
     // If this is an attribute instancer, see if attribute exists.
     bool bAttributeCheck = InHoudiniGeoPartObject.HapiCheckAttributeExistance(
@@ -81,8 +82,13 @@ UHoudiniAssetInstanceInput::Create(
             MarshallingAttributeInstanceOverride,
             HAPI_ATTROWNER_POINT );
 
+    // Check if this is a No-Instancers ( unreal_split_instances )
+    bool bIsSplitMeshInstancerCheck = InHoudiniGeoPartObject.HapiCheckAttributeExistance(
+	HAPI_UNREAL_ATTRIB_SPLIT_INSTANCES,
+	HAPI_ATTROWNER_DETAIL);
+
     // This is invalid combination, no object to instance and input is not an attribute instancer.
-    if ( !bAttributeCheck && !bAttributeOverrideCheck && ObjectToInstance == -1 && !bIsPackedPrimitiveInstancerLocal )
+    if ( !bAttributeCheck && !bAttributeOverrideCheck && ObjectToInstance == -1 && !bIsPackedPrimitiveInstancerCheck )
         return HoudiniAssetInstanceInput;
 
     HoudiniAssetInstanceInput = NewObject< UHoudiniAssetInstanceInput >(
@@ -95,12 +101,11 @@ UHoudiniAssetInstanceInput::Create(
     HoudiniAssetInstanceInput->SetNameAndLabel( InHoudiniGeoPartObject.ObjectName );
     HoudiniAssetInstanceInput->ObjectToInstanceId = ObjectToInstance;
 
-    // Check if this instancer is an attribute instancer and if it is, mark it as such.
+    // Set up the type of instancer
     HoudiniAssetInstanceInput->bIsAttributeInstancer = bAttributeCheck;
-
-    // Check if this instancer is an attribute override instancer.
     HoudiniAssetInstanceInput->bAttributeInstancerOverride = bAttributeOverrideCheck;
-    HoudiniAssetInstanceInput->bIsPackedPrimitiveInstancer = bIsPackedPrimitiveInstancerLocal;
+    HoudiniAssetInstanceInput->bIsPackedPrimitiveInstancer = bIsPackedPrimitiveInstancerCheck;
+    HoudiniAssetInstanceInput->bIsSplitMeshInstancer = bIsSplitMeshInstancerCheck;
 
     return HoudiniAssetInstanceInput;
 }
@@ -810,21 +815,21 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
 {
     USceneComponent * RootComponent = Actor->GetRootComponent();
 
+    TMap< const UStaticMesh*, UStaticMesh* > OriginalToBakedMesh;
+
     for ( int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx )
     {
         UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = InstanceInputFields[ Idx ];
 
-        bool HasBakedOriginalStaticMesh = false;
-
         for ( int32 VariationIdx = 0;
             VariationIdx < HoudiniAssetInstanceInputField->InstanceVariationCount(); VariationIdx++ )
         {
-            UStaticMesh * OutStaticMesh = nullptr;
-
-            UInstancedStaticMeshComponent * InstancedStaticMeshComponent =
+            UInstancedStaticMeshComponent * ISMC =
                 Cast<UInstancedStaticMeshComponent>( HoudiniAssetInstanceInputField->GetInstancedComponent( VariationIdx ) );
+	    UHoudiniMeshSplitInstancerComponent * MSIC =
+		Cast<UHoudiniMeshSplitInstancerComponent>( HoudiniAssetInstanceInputField->GetInstancedComponent(VariationIdx) );
 
-            if ( ! InstancedStaticMeshComponent )
+            if ( !ISMC && !MSIC )
             {
                 if( UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( HoudiniAssetInstanceInputField->GetInstancedComponent( VariationIdx )) )
                 {
@@ -900,62 +905,66 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
                 continue;
             }
 
-            // If original static mesh is used, then we need to bake it.
-            if ( HoudiniAssetInstanceInputField->IsOriginalObjectUsed( VariationIdx ) && !HasBakedOriginalStaticMesh )
+            // If original static mesh is used, then we need to bake it (once) and use that one instead.
+	    UStaticMesh* OutStaticMesh = Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetInstanceVariation(VariationIdx));
+            if ( HoudiniAssetInstanceInputField->IsOriginalObjectUsed( VariationIdx ) )
             {
-                if( UHoudiniAssetComponent* Comp = GetHoudiniAssetComponent() )
-                {
-                    const FHoudiniGeoPartObject & ItemHoudiniGeoPartObject =
-                        Comp->LocateGeoPartObject(
-                            Cast<UStaticMesh>( HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx ) ) );
-
-                    // Bake the referenced static mesh.
-                    OutStaticMesh =
-                        FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
-                            Cast<UStaticMesh>( HoudiniAssetInstanceInputField->GetOriginalObject() ),
-                            Comp, ItemHoudiniGeoPartObject, EBakeMode::CreateNewAssets );
-
-                    HasBakedOriginalStaticMesh = true;
-                    if( OutStaticMesh )
-                        FAssetRegistryModule::AssetCreated( OutStaticMesh );
-                    else
-                        continue;
-                }
-                else
-                    continue;
-            }
-            else
-            {
-                OutStaticMesh = Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx ));
+		if( UStaticMesh* OriginalSM = Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetOriginalObject()) )
+		{
+		    auto Comp = GetHoudiniAssetComponent();
+		    check(Comp);
+		    auto&& ItemGeoPartObject = Comp->LocateGeoPartObject(OutStaticMesh);
+		    FHoudiniEngineBakeUtils::CheckedBakeStaticMesh(Comp, OriginalToBakedMesh, ItemGeoPartObject, OriginalSM);
+		    OutStaticMesh = OriginalToBakedMesh[OutStaticMesh];
+		}
             }
 
-            UInstancedStaticMeshComponent* DuplicatedComponent = NewObject< UInstancedStaticMeshComponent >(
-                    Actor, UInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Public );
+	    if( ISMC )
+	    {
+		UInstancedStaticMeshComponent* DuplicatedComponent = NewObject< UInstancedStaticMeshComponent >(
+		    Actor, UInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Public);
 
-            Actor->AddInstanceComponent( DuplicatedComponent );
-            DuplicatedComponent->SetStaticMesh( OutStaticMesh );
+		Actor->AddInstanceComponent(DuplicatedComponent);
+		DuplicatedComponent->SetStaticMesh(OutStaticMesh);
 
-            // Reapply the uproperties modified by attributes on the duplicated component
-            FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( DuplicatedComponent, HoudiniGeoPartObject );
+		// Reapply the uproperties modified by attributes on the duplicated component
+		FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(DuplicatedComponent, HoudiniGeoPartObject);
 
-            // Set component instances.
-            {
-                FRotator RotationOffset = HoudiniAssetInstanceInputField->GetRotationOffset( VariationIdx );
-                FVector ScaleOffset = HoudiniAssetInstanceInputField->GetScaleOffset( VariationIdx );
+		// Set component instances.
+		{
+		    FRotator RotationOffset = HoudiniAssetInstanceInputField->GetRotationOffset(VariationIdx);
+		    FVector ScaleOffset = HoudiniAssetInstanceInputField->GetScaleOffset(VariationIdx);
 
-                const TArray< FTransform > & InstancedTransforms =
-                    HoudiniAssetInstanceInputField->GetInstancedTransforms( VariationIdx );
+		    const TArray< FTransform > & InstancedTransforms =
+			HoudiniAssetInstanceInputField->GetInstancedTransforms(VariationIdx);
 
-                UHoudiniInstancedActorComponent::UpdateInstancedStaticMeshComponentInstances(
-                    DuplicatedComponent, InstancedTransforms, RotationOffset, ScaleOffset );
-            }
+		    UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
+			DuplicatedComponent, InstancedTransforms, RotationOffset, ScaleOffset);
+		}
 
-            // Copy visibility.
-            DuplicatedComponent->SetVisibility( InstancedStaticMeshComponent->IsVisible() );
+		// Copy visibility.
+		DuplicatedComponent->SetVisibility(ISMC->IsVisible());
 
-            DuplicatedComponent->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepRelativeTransform );
-            DuplicatedComponent->RegisterComponent();
-            DuplicatedComponent->GetBodyInstance()->bAutoWeld = false;
+		DuplicatedComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+		DuplicatedComponent->RegisterComponent();
+		DuplicatedComponent->GetBodyInstance()->bAutoWeld = false;
+	    }
+	    else if ( MSIC )
+	    {
+		for( UStaticMeshComponent* OtherSMC : MSIC->GetInstances() )
+		{
+		    FString CompName = OtherSMC->GetName();
+		    CompName.ReplaceInline(TEXT("StaticMeshComponent"), TEXT("StaticMesh"));
+		    if( UStaticMeshComponent* NewSMC = DuplicateObject< UStaticMeshComponent >(OtherSMC, Actor, *CompName) )
+		    {
+			NewSMC->SetupAttachment(RootComponent);
+			NewSMC->SetStaticMesh(OutStaticMesh);
+			Actor->AddInstanceComponent(NewSMC);
+			NewSMC->SetWorldTransform(OtherSMC->GetComponentTransform());
+			NewSMC->RegisterComponent();
+		    }
+		}
+	    }
 
         }
         

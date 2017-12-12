@@ -265,6 +265,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
                 /** Set to true if this is a packed primitive instancer **/
                 uint32 bIsPackedPrimitiveInstancer : 1;
+
+                /** Set to true if this is a split mesh instancer */
+                uint32 bIsSplitMeshInstancer : 1;
             };
 
             uint32 HoudiniAssetInstanceInputFlagsPacked;

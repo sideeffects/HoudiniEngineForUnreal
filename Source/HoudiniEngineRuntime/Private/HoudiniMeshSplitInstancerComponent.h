@@ -19,33 +19,33 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Chris Grebeldinger
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
 
 #include "Components/SceneComponent.h"
-#include "HoudiniInstancedActorComponent.generated.h"
+#include "HoudiniMeshSplitInstancerComponent.generated.h"
 
-
+/**
+* UHoudiniMeshSplitInstancerComponent is used to manage a single static mesh being
+* 'instanced' multiple times by multiple UStaticMeshComponents.  This is as opposed to the
+* UInstancedStaticMeshComponent wherein a signle mesh is instanced multiple times by one component.
+*/
 UCLASS( config = Engine )
-class HOUDINIENGINERUNTIME_API UHoudiniInstancedActorComponent : public USceneComponent
+class HOUDINIENGINERUNTIME_API UHoudiniMeshSplitInstancerComponent : public USceneComponent
 {
    GENERATED_UCLASS_BODY()
 
 public:
-    virtual void OnComponentCreated() override;
     virtual void OnComponentDestroyed( bool bDestroyingHierarchy ) override;
     virtual void Serialize( FArchive & Ar ) override;
 
     static void AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector );
+
+    void SetStaticMesh(UStaticMesh* StaticMesh) { InstancedMesh = StaticMesh; }
+    UStaticMesh* GetStaticMesh() const { return InstancedMesh; }
+
+    void SetOverrideMaterial(UMaterialInterface* MI) { OverrideMaterial = MI; }
     
     /** Set the instances. Transforms are given in local space of this component. */
     void SetInstances( const TArray<FTransform>& InstanceTransforms );
@@ -56,20 +56,16 @@ public:
     /** Destroy all extant instances */
     void ClearInstances();
 
-    /** Spawn a single instance */
-    AActor* SpawnInstancedActor( const FTransform& InstancedTransform ) const;
+    const TArray< UStaticMeshComponent* >& GetInstances() const { return Instances; }
 
-    /** Update instances of a given instancer component. (could be ISMC, IAC or MSIC) **/
-    static void UpdateInstancerComponentInstances(
-        USceneComponent * Component,
-        const TArray< FTransform > & InstancedTransforms,
-        const FRotator & RotationOffset,
-        const FVector & ScaleOffset );
-
-    UPROPERTY( SkipSerialization, VisibleAnywhere, Category = Instances )
-    UObject* InstancedAsset;
-
+private:
     UPROPERTY( SkipSerialization, VisibleInstanceOnly, Category = Instances )
-    TArray< AActor* > Instances;
+    TArray< UStaticMeshComponent* > Instances;
+
+    UPROPERTY( SkipSerialization, VisibleInstanceOnly, Category=Instances)
+    UMaterialInterface* OverrideMaterial;
+
+    UPROPERTY(SkipSerialization, VisibleAnywhere, Category = Instances)
+    UStaticMesh* InstancedMesh;
 
 };
