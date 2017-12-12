@@ -146,6 +146,12 @@ public class HoudiniEngineEditor : ModuleRules
             }
         );
 
+        PrivateIncludePathModuleNames.AddRange(
+            new string[] {
+                "PlacementMode"
+            }
+        );
+
         // Add common dependencies.
         PublicDependencyModuleNames.AddRange(
             new string[]
@@ -171,7 +177,6 @@ public class HoudiniEngineEditor : ModuleRules
                 "InputCore",
                 "LevelEditor",
                 "MainFrame",
-                "PlacementMode",
                 "Projects",
                 "PropertyEditor",
                 "RHI",
@@ -182,12 +187,12 @@ public class HoudiniEngineEditor : ModuleRules
                 "UnrealEd",
                 "ApplicationCore",
             }
-            );
+        );
 
         DynamicallyLoadedModuleNames.AddRange(
             new string[]
             {
-                // ... add any modules that your module loads dynamically here ...
+                "PlacementMode",
             }
         );
     }
