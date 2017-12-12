@@ -42,10 +42,10 @@ public:
 
     static void AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector );
 
-    void SetStaticMesh(UStaticMesh* StaticMesh) { InstancedMesh = StaticMesh; }
-    UStaticMesh* GetStaticMesh() const { return InstancedMesh; }
+    void SetStaticMesh(class UStaticMesh* StaticMesh) { InstancedMesh = StaticMesh; }
+    class UStaticMesh* GetStaticMesh() const { return InstancedMesh; }
 
-    void SetOverrideMaterial(UMaterialInterface* MI) { OverrideMaterial = MI; }
+    void SetOverrideMaterial(class UMaterialInterface* MI) { OverrideMaterial = MI; }
     
     /** Set the instances. Transforms are given in local space of this component. */
     void SetInstances( const TArray<FTransform>& InstanceTransforms );
@@ -56,16 +56,16 @@ public:
     /** Destroy all extant instances */
     void ClearInstances();
 
-    const TArray< UStaticMeshComponent* >& GetInstances() const { return Instances; }
+    const TArray< class UStaticMeshComponent* >& GetInstances() const { return Instances; }
 
 private:
     UPROPERTY( SkipSerialization, VisibleInstanceOnly, Category = Instances )
-    TArray< UStaticMeshComponent* > Instances;
+    TArray< class UStaticMeshComponent* > Instances;
 
     UPROPERTY( SkipSerialization, VisibleInstanceOnly, Category=Instances)
-    UMaterialInterface* OverrideMaterial;
+    class UMaterialInterface* OverrideMaterial;
 
     UPROPERTY(SkipSerialization, VisibleAnywhere, Category = Instances)
-    UStaticMesh* InstancedMesh;
+    class UStaticMesh* InstancedMesh;
 
 };

@@ -25,6 +25,7 @@
 #include "HoudiniAssetParameter.h"
 #include "CoreMinimal.h"
 #include "TimerManager.h"
+#include "GameFramework/Actor.h"
 #if WITH_EDITOR
 #include "Styling/SlateTypes.h"
 #include "Input/Reply.h"
