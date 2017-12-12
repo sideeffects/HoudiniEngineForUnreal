@@ -46,7 +46,7 @@ UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput( const FObjectInitializer
     : Super( ObjectInitializer )
     , ObjectToInstanceId( -1 )
 {
-    Flags = { 0 };
+    Flags.HoudiniAssetInstanceInputFlagsPacked = 0;
     TupleSize = 0;
 }
 
@@ -84,7 +84,8 @@ UHoudiniAssetInstanceInput::Create(
 UHoudiniAssetInstanceInput::FHoudiniAssetInstanceInputFlags
 UHoudiniAssetInstanceInput::GetInstancerFlags(const FHoudiniGeoPartObject & InHoudiniGeoPartObject)
 {
-    FHoudiniAssetInstanceInputFlags Flags{ 0 };
+    FHoudiniAssetInstanceInputFlags Flags;
+    Flags.HoudiniAssetInstanceInputFlagsPacked = 0;
 
     // Get object to be instanced.
     HAPI_NodeId ObjectToInstance = InHoudiniGeoPartObject.HapiObjectGetToInstanceId();

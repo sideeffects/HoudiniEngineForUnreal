@@ -176,20 +176,20 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
         {
             if ( UStaticMesh* StaticMesh = Cast<UStaticMesh>( InstancedObjects[ Idx ] ) )
             {
-                if ( UInstancedStaticMeshComponent* Comp = Cast<UInstancedStaticMeshComponent>( InstancerComponents[ Idx ]) )
+                if ( UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( InstancerComponents[ Idx ]) )
                 {
-                    Comp->SetStaticMesh( StaticMesh );
+		    ISMC->SetStaticMesh( StaticMesh );
                 }
-                else if( UHoudiniMeshSplitInstancerComponent* Comp = Cast<UHoudiniMeshSplitInstancerComponent>(InstancerComponents[Idx]) )
+                else if( UHoudiniMeshSplitInstancerComponent* MSIC = Cast<UHoudiniMeshSplitInstancerComponent>(InstancerComponents[Idx]) )
                 {
-                    Comp->SetStaticMesh( StaticMesh );
+		    MSIC->SetStaticMesh( StaticMesh );
                 }
             }
             else
             {
-                if ( UHoudiniInstancedActorComponent* Comp = Cast<UHoudiniInstancedActorComponent>( InstancerComponents[ Idx ] ) )
+                if ( UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( InstancerComponents[ Idx ] ) )
                 {
-                    Comp->InstancedAsset = InstancedObjects[ Idx ];
+		    IAC->InstancedAsset = InstancedObjects[ Idx ];
                 }
             }
         }
@@ -197,8 +197,8 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
 
     UpdateInstanceTransforms( true );
 
-    if ( UHoudiniAssetComponent* Comp = Cast<UHoudiniAssetComponent>(HoudiniAssetComponent) )
-        Comp->UpdateEditorProperties( false );
+    if ( UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(HoudiniAssetComponent) )
+	HAC->UpdateEditorProperties( false );
 
     UpdateInstanceUPropertyAttributes();
 }

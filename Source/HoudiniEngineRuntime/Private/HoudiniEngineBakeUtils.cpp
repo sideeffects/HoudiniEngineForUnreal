@@ -32,6 +32,7 @@
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniInstancedActorComponent.h"
+#include "HoudiniMeshSplitInstancerComponent.h"
 
 #include "CoreMinimal.h"
 #include "Engine/StaticMesh.h"
