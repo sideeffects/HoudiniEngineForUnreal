@@ -38,7 +38,7 @@ class UObject;
 class UHoudiniAsset;
 class UThumbnailInfo;
 
-enum EHoudiniToolType;
+enum class EHoudiniToolType: uint8;
 
 class FHoudiniAssetTypeActions : public FAssetTypeActions_Base
 {
