@@ -67,6 +67,8 @@
     #endif
 #endif
 
+#include <string>
+
 #include "HAL/PlatformMisc.h"
 #include "HAL/PlatformApplicationMisc.h"
 
@@ -2693,12 +2695,10 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             }
 
             // Construct attribute name for this index.
-            std::string UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
+            FString UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
 
             if ( MeshTexCoordIdx > 0 )
-                UVAttributeName += std::to_string( MeshTexCoordIdx + 1 );
-
-            const char * UVAttributeNameString = UVAttributeName.c_str();
+                UVAttributeName += FString::Printf(TEXT("%d"), MeshTexCoordIdx + 1);
 
             // Create attribute for UVs
             HAPI_AttributeInfo AttributeInfoVertex;
@@ -2711,10 +2711,10 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
                 FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
-                0, UVAttributeNameString, &AttributeInfoVertex ), false );
+                0, TCHAR_TO_ANSI(*UVAttributeName), &AttributeInfoVertex ), false );
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
                 FHoudiniEngine::Get().GetSession(),
-                DisplayGeoInfo.nodeId, 0, UVAttributeNameString, &AttributeInfoVertex,
+                DisplayGeoInfo.nodeId, 0, TCHAR_TO_ANSI(*UVAttributeName), &AttributeInfoVertex,
                 (const float *) StaticMeshUVs.GetData(), 0, AttributeInfoVertex.count ), false );
         }
     }
@@ -7529,14 +7529,13 @@ FHoudiniEngineUtils::GetAllUVAttributesInfoAndTexCoords(
     // Retrieve UVs.
     for ( int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx )
     {
-        std::string UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
+        FString UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
 
         if ( TexCoordIdx > 0 )
-            UVAttributeName += std::to_string( bUV1Exists ? TexCoordIdx : TexCoordIdx + 1 );
+            UVAttributeName += FString::Printf( TEXT("%d"), bUV1Exists ? TexCoordIdx : TexCoordIdx + 1 );
 
-        const char * UVAttributeNameString = UVAttributeName.c_str();
         FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-            AssetId, ObjectId, GeoId, PartId, UVAttributeNameString,
+            AssetId, ObjectId, GeoId, PartId, TCHAR_TO_ANSI(*UVAttributeName),
             AttribInfoUVs[ TexCoordIdx ], TextureCoordinates[ TexCoordIdx ], 2 );
     }
 
@@ -7575,7 +7574,7 @@ FHoudiniEngineUtils::GetAllUVAttributesInfoAndTexCoords(
             continue;
 
         // Look for the next available index in the return arrays
-        for ( AvailableIdx; AvailableIdx < AttribInfoUVs.Num(); AvailableIdx++ )
+        for ( ; AvailableIdx < AttribInfoUVs.Num(); AvailableIdx++ )
         {
             if ( !AttribInfoUVs[ AvailableIdx ].exists )
                 break;
