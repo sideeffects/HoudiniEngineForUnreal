@@ -106,18 +106,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
         virtual void Serialize( FArchive & Ar ) override;
         static void AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector );
 
-    public:
-
-        /** Return true if this is an attribute instancer. **/
-        bool IsAttributeInstancer() const;
-
-        /** Return true if this is an object instancer. Attribute instancer and object instancers are   **/
-        /** not mutually exclusive.                                                                     **/
-        bool IsObjectInstancer() const;
-
-        /** Return true if this is an attribute instancer with overrides. **/
-        bool IsAttributeInstancerOverride() const;
-
 #if WITH_EDITOR
 
         /** Clone all used instance static mesh components and and attach them to provided actor. **/
@@ -252,8 +240,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
         /** Id of an object to instance. **/
         HAPI_NodeId ObjectToInstanceId;
 
+public:
         /** Flags used by this input. **/
-        union
+        union FHoudiniAssetInstanceInputFlags
         {
             struct
             {
@@ -265,8 +254,14 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
                 /** Set to true if this is a packed primitive instancer **/
                 uint32 bIsPackedPrimitiveInstancer : 1;
+
+                /** Set to true if this is a split mesh instancer */
+                uint32 bIsSplitMeshInstancer : 1;
             };
 
             uint32 HoudiniAssetInstanceInputFlagsPacked;
         };
+	FHoudiniAssetInstanceInputFlags Flags;
+
+    static FHoudiniAssetInstanceInputFlags GetInstancerFlags(const FHoudiniGeoPartObject & InHoudiniGeoPartObject);
 };

@@ -59,7 +59,12 @@ public:
     /** Helper for baking to actors */
     static TArray< AActor* > BakeHoudiniActorToActors_InstancedActors( UHoudiniAssetComponent * HoudiniAssetComponent,
         TMap< const class UHoudiniInstancedActorComponent*, FHoudiniGeoPartObject >& ComponentToPart );
-
+    static TArray< AActor* > BakeHoudiniActorToActors_SplitMeshInstancers(UHoudiniAssetComponent * HoudiniAssetComponent,
+        TMap<const class UHoudiniMeshSplitInstancerComponent *, FHoudiniGeoPartObject> SplitMeshInstancerComponentToPart);
+    /** Helper for baking an SM only if necessary */
+    static void CheckedBakeStaticMesh(
+        class UHoudiniAssetComponent* HoudiniAssetComponent, TMap< const UStaticMesh*, UStaticMesh* >& OriginalToBakedMesh,
+        const FHoudiniGeoPartObject & HoudiniGeoPartObject, UStaticMesh* OriginalSM);
     /** Duplicate a given material. This will create a new package for it. This will also create necessary textures **/
     /** and their corresponding packages. **/
     static class UMaterial * DuplicateMaterialAndCreatePackage(

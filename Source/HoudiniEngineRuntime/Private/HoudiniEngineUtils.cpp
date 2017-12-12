@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Copyright (c) <2017> Side Effects Software Inc.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -38,6 +38,7 @@
 #include "LandscapeInfo.h"
 #include "LandscapeComponent.h"
 #include "HoudiniInstancedActorComponent.h"
+#include "HoudiniMeshSplitInstancerComponent.h"
 
 #include "CoreMinimal.h"
 #include "AI/Navigation/NavCollision.h"
@@ -62,7 +63,7 @@
     // Of course, Windows defines its own GetGeoInfo,
     // So we need to undefine that before including HoudiniApi.h to avoid collision...
     #ifdef GetGeoInfo
-	#undef GetGeoInfo
+        #undef GetGeoInfo
     #endif
 #endif
 
@@ -2072,43 +2073,43 @@ FHoudiniEngineUtils::HapiGetObjectInfos( HAPI_NodeId AssetId, TArray< HAPI_Objec
 {
     HAPI_NodeInfo LocalAssetNodeInfo;
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
-	FHoudiniEngine::Get().GetSession(), AssetId,
-	&LocalAssetNodeInfo), false);
+        FHoudiniEngine::Get().GetSession(), AssetId,
+        &LocalAssetNodeInfo), false);
 
     int32 ObjectCount = 0;
     if (LocalAssetNodeInfo.type == HAPI_NODETYPE_SOP)
     {
-	ObjectCount = 1;
-	ObjectInfos.SetNumUninitialized(1);
+        ObjectCount = 1;
+        ObjectInfos.SetNumUninitialized(1);
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetObjectInfo(
-	    FHoudiniEngine::Get().GetSession(), LocalAssetNodeInfo.parentId,
-	    &ObjectInfos[0]), false);
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetObjectInfo(
+            FHoudiniEngine::Get().GetSession(), LocalAssetNodeInfo.parentId,
+            &ObjectInfos[0]), false);
     }
     else if (LocalAssetNodeInfo.type == HAPI_NODETYPE_OBJ)
     {
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeObjectList(
-	    FHoudiniEngine::Get().GetSession(), AssetId, nullptr, &ObjectCount), false);
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeObjectList(
+            FHoudiniEngine::Get().GetSession(), AssetId, nullptr, &ObjectCount), false);
 
-	if (ObjectCount <= 0)
-	{
-	    ObjectCount = 1;
-	    ObjectInfos.SetNumUninitialized(1);
+        if (ObjectCount <= 0)
+        {
+            ObjectCount = 1;
+            ObjectInfos.SetNumUninitialized(1);
 
-	    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetObjectInfo(
-		FHoudiniEngine::Get().GetSession(), AssetId,
-		&ObjectInfos[0]), false);
-	}
-	else
-	{
-	    ObjectInfos.SetNumUninitialized(ObjectCount);
-	    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetComposedObjectList(
-		FHoudiniEngine::Get().GetSession(), AssetId,
-		&ObjectInfos[0], 0, ObjectCount), false);
-	}
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetObjectInfo(
+                FHoudiniEngine::Get().GetSession(), AssetId,
+                &ObjectInfos[0]), false);
+        }
+        else
+        {
+            ObjectInfos.SetNumUninitialized(ObjectCount);
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetComposedObjectList(
+                FHoudiniEngine::Get().GetSession(), AssetId,
+                &ObjectInfos[0], 0, ObjectCount), false);
+        }
     }
     else
-	return false;
+        return false;
 
     return true;
 }
@@ -3172,7 +3173,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         
         // Updating the Transform
         HAPI_TransformEuler HapiTransform;
-	FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
+        FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
         FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerMesh.ComponentTransform, HapiTransform );
 
         HAPI_NodeInfo LocalAssetNodeInfo;
@@ -6865,7 +6866,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
             // Get the attribute type and tuple size
             CurrentUProperty.AttributeType = AttribInfo.storage;
             CurrentUProperty.AttributeCount = AttribInfo.count;
-            CurrentUProperty.AttributeTupleSize = AttribInfo.tupleSize;	    
+            CurrentUProperty.AttributeTupleSize = AttribInfo.tupleSize;     
 
             if ( CurrentUProperty.AttributeType == HAPI_STORAGETYPE_FLOAT64 )
             {
@@ -7132,12 +7133,13 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
     UStaticMeshComponent* SMC = Cast< UStaticMeshComponent >( MeshComponent );
     UInstancedStaticMeshComponent* ISMC = Cast< UInstancedStaticMeshComponent >( MeshComponent );
     UHoudiniInstancedActorComponent* IAC = Cast< UHoudiniInstancedActorComponent >( MeshComponent );
+    UHoudiniMeshSplitInstancerComponent* MSPIC = Cast<UHoudiniMeshSplitInstancerComponent>(MeshComponent);
     UStaticMesh* SM = Cast< UStaticMesh >( MeshComponent );
 
-    if ( !SMC && !ISMC && !IAC && !SM )
+    if ( !SMC && !ISMC && !IAC && !MSPIC && !SM )
         return;
 
-    UClass* MeshClass = IAC ? IAC->StaticClass() : ISMC ? ISMC->StaticClass() : SMC ? SMC->StaticClass() : SM->StaticClass();
+    UClass* MeshClass = IAC ? IAC->StaticClass() : ISMC ? ISMC->StaticClass() : MSPIC ? MSPIC->StaticClass() : SMC ? SMC->StaticClass() : SM->StaticClass();
 
     // Trying to find the UProps in the object 
     for ( int32 nAttributeIdx = 0; nAttributeIdx < nUPropsCount; nAttributeIdx++ )
@@ -7188,7 +7190,7 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
                 {
                     UProperty* Property = *It;
 
-                    DisplayName = It->GetDisplayNameText().ToString().Replace( TEXT(" "), TEXT("") );		    
+                    DisplayName = It->GetDisplayNameText().ToString().Replace( TEXT(" "), TEXT("") );               
                     Name = It->GetName();
 
                     // If the property name contains the uprop attribute name, we have a candidate
@@ -7582,10 +7584,10 @@ FHoudiniEngineUtils::GetAllUVAttributesInfoAndTexCoords(
         // We are limited to MAX_STATIC_TEXCOORDS uv sets!
         // If we already have too many uv sets, skip the rest
         if ( ( AvailableIdx >= MAX_STATIC_TEXCOORDS ) || ( AvailableIdx >= AttribInfoUVs.Num() ) )
-	{
-	    HOUDINI_LOG_WARNING( TEXT( "Too many UV sets found. Unreal only supports %d , skipping the remaining uv sets." ), (int32)MAX_STATIC_TEXCOORDS );
-	    break;
-	}
+        {
+            HOUDINI_LOG_WARNING( TEXT( "Too many UV sets found. Unreal only supports %d , skipping the remaining uv sets." ), (int32)MAX_STATIC_TEXCOORDS );
+            break;
+        }
         
         /*
         // We need to add a new attribute info and a new float array for the texcoords

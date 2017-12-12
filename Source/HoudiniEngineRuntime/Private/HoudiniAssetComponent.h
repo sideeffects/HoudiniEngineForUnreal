@@ -134,7 +134,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
             Category = HoudiniGeneratedStaticMeshSettings,
             meta = ( DisplayName = "Light Map Resolution", FixedIncrement = "4.0" ) )
         int32 GeneratedLightMapResolution;
-	
+        
         /** Bias multiplier for Light Propagation Volume lighting. */
         UPROPERTY( EditAnywhere, BlueprintReadOnly,
             Category = HoudiniGeneratedStaticMeshSettings,
@@ -271,7 +271,9 @@ public:
 
         /** Return all the UHoudiniInstancedActorComponents that have content */
         TMap<const class UHoudiniInstancedActorComponent *, FHoudiniGeoPartObject> CollectAllInstancedActorComponents() const;
-       
+        /** Return all the UHoudiniMeshSplitInstancerComponent that have content */
+        TMap<const class UHoudiniMeshSplitInstancerComponent *, FHoudiniGeoPartObject> CollectAllMeshSplitInstancerComponents() const;
+
         /** Return true if global setting scale factors are different from the ones used for this component. **/
         bool CheckGlobalSettingScaleFactors() const;
 
@@ -300,8 +302,8 @@ public:
         /** Locate geo part object for given static mesh. Reverse map search. **/
         FHoudiniGeoPartObject LocateGeoPartObject( UStaticMesh * StaticMesh ) const;
 
-	/** Locate spline component for a given geo part. **/
-	UHoudiniSplineComponent * LocateSplineComponent(const FHoudiniGeoPartObject & HoudiniGeoPartObject) const;
+        /** Locate spline component for a given geo part. **/
+        UHoudiniSplineComponent * LocateSplineComponent(const FHoudiniGeoPartObject & HoudiniGeoPartObject) const;
 
         /** Return true if this component is in playmode. **/
         bool IsPIEActive() const;
@@ -642,16 +644,16 @@ public:
         /** Transient cache of last baked materials and textures */
         TMap<FString, TWeakObjectPtr<class UPackage> > BakedMaterialPackagesForIds;
 
-        /** Cache of the temp cook content packages created by the asset for its meshes				    **/
+        /** Cache of the temp cook content packages created by the asset for its meshes                             **/
         TMap<FHoudiniGeoPartObject, TWeakObjectPtr<class UPackage> > CookedTemporaryStaticMeshPackages;
-        /** Cache of the temp cook content packages created by the asset for its materials/textures		    **/
+        /** Cache of the temp cook content packages created by the asset for its materials/textures                 **/
         TMap<FString, TWeakObjectPtr<class UPackage> > CookedTemporaryPackages;
-        /** Cache of the temp cook content packages created by the asset for its Landscape layers		    **/
+        /** Cache of the temp cook content packages created by the asset for its Landscape layers                   **/
         /** As packages are unique their are used as the key (we can have multiple package for the same geopartobj  **/
         TMap< TWeakObjectPtr<class UPackage> , FHoudiniGeoPartObject > CookedTemporaryLandscapeLayers;
 
         /** Indicates that the details panels doesn't need a "full" update to avoid breaking parameter selection    **/
-        /** (default behavior is true)										    **/
+        /** (default behavior is true)                                                                              **/
         bool bEditorPropertiesNeedFullUpdate;
 
     protected:

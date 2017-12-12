@@ -32,6 +32,7 @@
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniInstancedActorComponent.h"
+#include "HoudiniMeshSplitInstancerComponent.h"
 
 #include "CoreMinimal.h"
 #include "Engine/StaticMesh.h"
@@ -64,7 +65,7 @@
     // Of course, Windows defines its own GetGeoInfo,
     // So we need to undefine that before including HoudiniApi.h to avoid collision...
     #ifdef GetGeoInfo
-	#undef GetGeoInfo
+        #undef GetGeoInfo
     #endif
 #endif
 
@@ -511,6 +512,9 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Houd
     auto IAComponentToPart = HoudiniAssetComponent->CollectAllInstancedActorComponents();
     NewActors.Append( BakeHoudiniActorToActors_InstancedActors( HoudiniAssetComponent, IAComponentToPart ) );
 
+    auto SplitMeshInstancerComponentToPart = HoudiniAssetComponent->CollectAllMeshSplitInstancerComponents();
+    NewActors.Append(BakeHoudiniActorToActors_SplitMeshInstancers(HoudiniAssetComponent, SplitMeshInstancerComponentToPart));
+
     if( SelectNewActors && NewActors.Num() )
     {
         GEditor->SelectNone( false, true );
@@ -552,6 +556,40 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_InstancedActors(
     return NewActors;
 }
 
+void
+FHoudiniEngineBakeUtils::CheckedBakeStaticMesh(
+    UHoudiniAssetComponent* HoudiniAssetComponent,
+    TMap< const UStaticMesh*, UStaticMesh* >& OriginalToBakedMesh,
+    const FHoudiniGeoPartObject & HoudiniGeoPartObject, UStaticMesh* OriginalSM)
+{
+    UStaticMesh* BakedSM = nullptr;
+    if( UStaticMesh ** FoundMeshPtr = OriginalToBakedMesh.Find(OriginalSM) )
+    {
+        // We've already baked this mesh, use it
+        BakedSM = *FoundMeshPtr;
+    }
+    else
+    {
+        if( FHoudiniEngineBakeUtils::StaticMeshRequiresBake(OriginalSM) )
+        {
+            // Bake the found mesh into the project
+            BakedSM = FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
+                OriginalSM, HoudiniAssetComponent, HoudiniGeoPartObject, EBakeMode::CreateNewAssets);
+
+            if( ensure(BakedSM) )
+            {
+                FAssetRegistryModule::AssetCreated(BakedSM);
+            }
+        }
+        else
+        {
+            // We didn't bake this mesh, but it's already baked so we will just use it as is
+            BakedSM = OriginalSM;
+        }
+        OriginalToBakedMesh.Add(OriginalSM, BakedSM);
+    }
+}
+
 TArray< AActor* >
 FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
     UHoudiniAssetComponent * HoudiniAssetComponent,
@@ -567,38 +605,16 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
         const FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Value;
         const UStaticMeshComponent * OtherSMC = Iter.Key;
 
-        if( !ensure( OtherSMC->GetStaticMesh() ) )
+        UStaticMesh * OtherSM = OtherSMC->GetStaticMesh();
+
+        if( !ensure( OtherSM ) )
             continue;
 
-        UStaticMesh* BakedSM = nullptr;
-        if( UStaticMesh ** FoundMeshPtr = OriginalToBakedMesh.Find( OtherSMC->GetStaticMesh() ) )
-        {
-            // We've already baked this mesh, use it
-            BakedSM = *FoundMeshPtr;
-        }
-        else
-        {
-            if( FHoudiniEngineBakeUtils::StaticMeshRequiresBake( OtherSMC->GetStaticMesh() ) )
-            {
-                // Bake the found mesh into the project
-                BakedSM = FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
-                    OtherSMC->GetStaticMesh(), HoudiniAssetComponent, HoudiniGeoPartObject, EBakeMode::CreateNewAssets );
-
-                if( ensure( BakedSM ) )
-                {
-                    FAssetRegistryModule::AssetCreated( BakedSM );
-                }
-            }
-            else
-            {
-                // We didn't bake this mesh, but it's already baked so we will just use it as is
-                BakedSM = OtherSMC->GetStaticMesh();
-            }
-            OriginalToBakedMesh.Add( OtherSMC->GetStaticMesh(), BakedSM );
-        }
+        CheckedBakeStaticMesh(HoudiniAssetComponent, OriginalToBakedMesh, HoudiniGeoPartObject, OtherSM);
     }
 
     // Finished baking, now spawn the actors
+
     for( const auto& Iter : SMComponentToPart )
     {
         const UStaticMeshComponent * OtherSMC = Iter.Key;
@@ -708,6 +724,74 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
                 {
                     PrepNewStaticMeshActor( NewActor );
                 }
+            }
+        }
+    }
+#endif
+    return NewActors;
+}
+
+TArray<AActor*>
+FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_SplitMeshInstancers(UHoudiniAssetComponent * HoudiniAssetComponent,
+    TMap<const UHoudiniMeshSplitInstancerComponent *, FHoudiniGeoPartObject> SplitMeshInstancerComponentToPart)
+{
+    TArray< AActor* > NewActors;
+#if WITH_EDITOR
+    TMap< const UStaticMesh*, UStaticMesh* > OriginalToBakedMesh;
+
+    for( auto&& Iter : SplitMeshInstancerComponentToPart )
+    {
+        auto&& HoudiniGeoPartObject = Iter.Value;
+        auto&& OtherMSIC = Iter.Key;
+
+        UStaticMesh * OtherSM = OtherMSIC->GetStaticMesh();
+
+        if( !ensure(OtherSM) )
+            continue;
+
+        CheckedBakeStaticMesh(HoudiniAssetComponent, OriginalToBakedMesh, HoudiniGeoPartObject, OtherSM);
+    }
+    // Done baking, now spawn the actors
+    for( auto&& Iter : SplitMeshInstancerComponentToPart )
+    {
+        auto&& OtherMSIC = Iter.Key;
+        UStaticMesh* BakedSM = OriginalToBakedMesh[OtherMSIC->GetStaticMesh()];
+
+        if( ensure(BakedSM) )
+        {
+            ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+            FName BaseName(*( HoudiniAssetComponent->GetOwner()->GetName() + TEXT("_Baked") ));
+
+            // This is a split mesh instancer component - we will create a generic AActor with a bunch of SMC
+            FActorSpawnParameters SpawnInfo;
+            SpawnInfo.OverrideLevel = DesiredLevel;
+            SpawnInfo.ObjectFlags = RF_Transactional;
+            SpawnInfo.Name = MakeUniqueObjectName(DesiredLevel, AActor::StaticClass(), BaseName);
+            SpawnInfo.bDeferConstruction = true;
+
+            if( AActor* NewActor = DesiredLevel->OwningWorld->SpawnActor<AActor>(SpawnInfo) )
+            {
+                NewActor->SetActorLabel(NewActor->GetName());
+                NewActor->SetActorHiddenInGame(OtherMSIC->bHiddenInGame);
+
+                for( UStaticMeshComponent* OtherSMC : OtherMSIC->GetInstances() )
+                {
+                    if( UStaticMeshComponent* NewSMC = DuplicateObject< UStaticMeshComponent >(OtherSMC, NewActor, *OtherSMC->GetName()) )
+                    {
+                        NewSMC->SetupAttachment(nullptr);
+                        NewSMC->SetStaticMesh(BakedSM);
+                        NewActor->AddInstanceComponent(NewSMC);
+                        NewSMC->SetWorldTransform(OtherSMC->GetComponentTransform());
+                        NewSMC->RegisterComponent();
+                    }
+                }
+                NewActor->SetFolderPath(BaseName);
+                NewActor->FinishSpawning(OtherMSIC->GetComponentTransform());
+
+                NewActors.Add(NewActor);
+                NewActor->InvalidateLightingCache();
+                NewActor->PostEditMove(true);
+                NewActor->MarkPackageDirty();
             }
         }
     }
