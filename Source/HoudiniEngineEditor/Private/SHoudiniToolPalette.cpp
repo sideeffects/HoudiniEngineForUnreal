@@ -380,7 +380,7 @@ SHoudiniToolPalette::InstantiateHoudiniTool( FHoudiniTool* HoudiniTool )
                     if ( !CurrentObject )
                         continue;
 
-                    if ( HoudiniTool->Type == HTOOLTYPE_OPERATOR_MULTI )
+                    if ( HoudiniTool->Type == EHoudiniToolType::HTOOLTYPE_OPERATOR_MULTI )
                     {
                         // The selection will be applied individually to multiple inputs
                         // (first object to first input, second object to second input etc...)

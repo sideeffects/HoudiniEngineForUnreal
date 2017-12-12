@@ -56,6 +56,7 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniAssetInstanceInputField.h"
 #include "HoudiniInstancedActorComponent.h"
+#include "HoudiniMeshSplitInstancerComponent.h"
 #include "HoudiniParamUtils.h"
 #include "HoudiniLandscapeUtils.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -981,7 +982,7 @@ UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
             continue;
 
         // Check if object is referenced and get its referencers, if it is.
-        FReferencerInformationList Referencers;	
+        FReferencerInformationList Referencers; 
         bool bReferenced = IsReferenced(
             ObjectMesh, GARBAGE_COLLECTION_KEEPFLAGS,
             EInternalObjectFlags::GarbageCollectionKeepFlags, true, &Referencers);
@@ -1146,6 +1147,27 @@ UHoudiniAssetComponent::CollectAllInstancedActorComponents() const
                 if ( InputField->GetInstanceVariation( VarIndex ) && Comp->IsA<UHoudiniInstancedActorComponent>() )
                 {
                     OutSMComponentToPart.Add( Cast<UHoudiniInstancedActorComponent>( Comp ), InputField->GetHoudiniGeoPartObject() );
+                }
+            }
+        }
+    }
+    return OutSMComponentToPart;
+}
+
+TMap<const UHoudiniMeshSplitInstancerComponent *, FHoudiniGeoPartObject>
+UHoudiniAssetComponent::CollectAllMeshSplitInstancerComponents() const
+{
+    TMap<const UHoudiniMeshSplitInstancerComponent *, FHoudiniGeoPartObject> OutSMComponentToPart;
+    for( const UHoudiniAssetInstanceInput* InstanceInput : InstanceInputs )
+    {
+        for( const UHoudiniAssetInstanceInputField* InputField : InstanceInput->GetInstanceInputFields() )
+        {
+            for( int32 VarIndex = 0; VarIndex < InputField->InstanceVariationCount(); ++VarIndex )
+            {
+                UObject* Comp = InputField->GetInstancedComponent(VarIndex);
+                if( InputField->GetInstanceVariation(VarIndex) && Comp->IsA<UHoudiniMeshSplitInstancerComponent>() )
+                {
+                    OutSMComponentToPart.Add(Cast<UHoudiniMeshSplitInstancerComponent>(Comp), InputField->GetHoudiniGeoPartObject());
                 }
             }
         }
@@ -3450,7 +3472,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
     USceneComponent * RootComponent =
         NewObject< USceneComponent >( Actor, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional );
 
-    RootComponent->Mobility = EComponentMobility::Movable;
+    RootComponent->SetMobility(EComponentMobility::Static);
     RootComponent->bVisualizeComponent = true;
 
     const FTransform & ComponentWorldTransform = GetComponentTransform();
@@ -4354,8 +4376,11 @@ UHoudiniAssetComponent::LocateInstanceInput( const FHoudiniGeoPartObject& GeoPar
 {
     for ( UHoudiniAssetInstanceInput* InstanceInput : InstanceInputs )
     {
-        if ( InstanceInput->GetGeoPartObject().GetNodePath() == GeoPart.GetNodePath() )
-        {
+	// Verify path to instancer + various configuration flags
+        if ( InstanceInput->GetGeoPartObject().GetNodePath() == GeoPart.GetNodePath() &&
+	    UHoudiniAssetInstanceInput::GetInstancerFlags(GeoPart).HoudiniAssetInstanceInputFlagsPacked ==
+		InstanceInput->Flags.HoudiniAssetInstanceInputFlagsPacked )
+	{
             return InstanceInput;
         }
     }

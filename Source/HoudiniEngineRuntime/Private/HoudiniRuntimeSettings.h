@@ -78,7 +78,7 @@ enum EHoudiniRuntimeSettingsAxisImport
 };
 
 UENUM()
-enum EHoudiniToolType
+enum class EHoudiniToolType : uint8
 {
     // For tools that generates geometry, and do not need input
     HTOOLTYPE_GENERATOR UMETA( DisplayName = "Generator" ),
@@ -104,7 +104,7 @@ struct FHoudiniToolDescription
 
     /** Type of the tool */
     UPROPERTY(Category = Tool, EditAnywhere)
-    TEnumAsByte< enum EHoudiniToolType > Type;
+    EHoudiniToolType Type;
 
     /** Tooltip shown on mouse hover */
     UPROPERTY( Category = Tool, EditAnywhere )

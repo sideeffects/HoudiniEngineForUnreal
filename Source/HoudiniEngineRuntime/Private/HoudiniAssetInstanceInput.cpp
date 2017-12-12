@@ -30,6 +30,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniInstancedActorComponent.h"
+#include "HoudiniMeshSplitInstancerComponent.h"
 #include "Components/AudioComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Particles/ParticleSystemComponent.h"
@@ -44,8 +45,8 @@
 UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput( const FObjectInitializer& ObjectInitializer )
     : Super( ObjectInitializer )
     , ObjectToInstanceId( -1 )
-    , HoudiniAssetInstanceInputFlagsPacked( 0u )
 {
+    Flags.HoudiniAssetInstanceInputFlagsPacked = 0;
     TupleSize = 0;
 }
 
@@ -54,55 +55,60 @@ UHoudiniAssetInstanceInput::Create(
     UHoudiniAssetComponent * InPrimaryObject,
     const FHoudiniGeoPartObject & InHoudiniGeoPartObject )
 {
-    UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = nullptr;
-
-    std::string MarshallingAttributeInstanceOverride = HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE;
-    UHoudiniRuntimeSettings::GetSettingsValue(
-        TEXT( "MarshallingAttributeInstanceOverride" ),
-        MarshallingAttributeInstanceOverride );
+    UHoudiniAssetInstanceInput * NewInstanceInput = nullptr;
 
     // Get object to be instanced.
     HAPI_NodeId ObjectToInstance = InHoudiniGeoPartObject.HapiObjectGetToInstanceId();
 
-    bool bIsPackedPrimitiveInstancerLocal = InHoudiniGeoPartObject.IsPackedPrimitiveInstancer();
-
-    // If this is an attribute instancer, see if attribute exists.
-    bool bAttributeCheck = InHoudiniGeoPartObject.HapiCheckAttributeExistance(
-        HAPI_UNREAL_ATTRIB_INSTANCE,
-        HAPI_ATTROWNER_POINT );
-
-    // Check if this is an attribute override instancer (on detail or point).
-    bool bAttributeOverrideCheck = InHoudiniGeoPartObject.HapiCheckAttributeExistance(
-        MarshallingAttributeInstanceOverride,
-        HAPI_ATTROWNER_DETAIL );
-
-    bAttributeOverrideCheck |=
-        InHoudiniGeoPartObject.HapiCheckAttributeExistance(
-            MarshallingAttributeInstanceOverride,
-            HAPI_ATTROWNER_POINT );
+    auto Flags = GetInstancerFlags(InHoudiniGeoPartObject);
 
     // This is invalid combination, no object to instance and input is not an attribute instancer.
-    if ( !bAttributeCheck && !bAttributeOverrideCheck && ObjectToInstance == -1 && !bIsPackedPrimitiveInstancerLocal )
-        return HoudiniAssetInstanceInput;
+    if ( !Flags.bIsAttributeInstancer && !Flags.bAttributeInstancerOverride && ObjectToInstance == -1 && !Flags.bIsPackedPrimitiveInstancer )
+        return nullptr;
 
-    HoudiniAssetInstanceInput = NewObject< UHoudiniAssetInstanceInput >(
+    NewInstanceInput = NewObject< UHoudiniAssetInstanceInput >(
         InPrimaryObject, 
         UHoudiniAssetInstanceInput::StaticClass(),
         NAME_None, RF_Public | RF_Transactional );
 
-    HoudiniAssetInstanceInput->PrimaryObject = InPrimaryObject;
-    HoudiniAssetInstanceInput->HoudiniGeoPartObject = InHoudiniGeoPartObject;
-    HoudiniAssetInstanceInput->SetNameAndLabel( InHoudiniGeoPartObject.ObjectName );
-    HoudiniAssetInstanceInput->ObjectToInstanceId = ObjectToInstance;
+    NewInstanceInput->PrimaryObject = InPrimaryObject;
+    NewInstanceInput->HoudiniGeoPartObject = InHoudiniGeoPartObject;
+    NewInstanceInput->SetNameAndLabel( InHoudiniGeoPartObject.ObjectName );
+    NewInstanceInput->ObjectToInstanceId = ObjectToInstance;
 
-    // Check if this instancer is an attribute instancer and if it is, mark it as such.
-    HoudiniAssetInstanceInput->bIsAttributeInstancer = bAttributeCheck;
+    NewInstanceInput->Flags = Flags;
 
-    // Check if this instancer is an attribute override instancer.
-    HoudiniAssetInstanceInput->bAttributeInstancerOverride = bAttributeOverrideCheck;
-    HoudiniAssetInstanceInput->bIsPackedPrimitiveInstancer = bIsPackedPrimitiveInstancerLocal;
+    return NewInstanceInput;
+}
 
-    return HoudiniAssetInstanceInput;
+UHoudiniAssetInstanceInput::FHoudiniAssetInstanceInputFlags
+UHoudiniAssetInstanceInput::GetInstancerFlags(const FHoudiniGeoPartObject & InHoudiniGeoPartObject)
+{
+    FHoudiniAssetInstanceInputFlags Flags;
+    Flags.HoudiniAssetInstanceInputFlagsPacked = 0;
+
+    // Get object to be instanced.
+    HAPI_NodeId ObjectToInstance = InHoudiniGeoPartObject.HapiObjectGetToInstanceId();
+
+    Flags.bIsPackedPrimitiveInstancer = InHoudiniGeoPartObject.IsPackedPrimitiveInstancer();
+
+    // If this is an attribute instancer, see if attribute exists.
+    Flags.bIsAttributeInstancer = InHoudiniGeoPartObject.HapiCheckAttributeExistance(
+	HAPI_UNREAL_ATTRIB_INSTANCE,
+	HAPI_ATTROWNER_POINT);
+
+    // Check if this is an attribute override instancer (on detail or point).
+    Flags.bAttributeInstancerOverride =
+	InHoudiniGeoPartObject.HapiCheckAttributeExistance(
+	    HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE, HAPI_ATTROWNER_DETAIL) |
+	InHoudiniGeoPartObject.HapiCheckAttributeExistance(
+	    HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE, HAPI_ATTROWNER_POINT);
+
+    // Check if this is a No-Instancers ( unreal_split_instances )
+    Flags.bIsSplitMeshInstancer =
+	InHoudiniGeoPartObject.HapiCheckAttributeExistance(
+	    HAPI_UNREAL_ATTRIB_SPLIT_INSTANCES, HAPI_ATTROWNER_DETAIL);
+    return Flags;
 }
 
 UHoudiniAssetInstanceInput *
@@ -142,7 +148,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
     // List of new fields. Reused input fields will also be placed here.
     TArray< UHoudiniAssetInstanceInputField * > NewInstanceInputFields;
 
-    if ( bIsPackedPrimitiveInstancer )
+    if ( Flags.bIsPackedPrimitiveInstancer )
     {
         // This is using packed primitives
         HAPI_PartInfo PartInfo;
@@ -196,7 +202,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
             CreateInstanceInputField( InstancedPart, ObjectTransforms, InstanceInputFields, NewInstanceInputFields );
         }
     }
-    else if ( bIsAttributeInstancer )
+    else if ( Flags.bIsAttributeInstancer )
     {
         int32 NumPoints = HoudiniGeoPartObject.HapiPartGetPointCount();
         TArray< HAPI_NodeId > InstancedObjectIds;
@@ -237,7 +243,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
             }
         }
     }
-    else if ( bAttributeInstancerOverride )
+    else if ( Flags.bAttributeInstancerOverride )
     {
         // This is an attribute override. Unreal mesh is specified through an attribute and we use points.
 
@@ -698,11 +704,11 @@ FString UHoudiniAssetInstanceInput::GetFieldLabel( int32 FieldIdx, int32 Variati
 {
     FString FieldNameText;
     UHoudiniAssetInstanceInputField * Field = InstanceInputFields[ FieldIdx ];
-    if ( bIsPackedPrimitiveInstancer )
+    if ( Flags.bIsPackedPrimitiveInstancer )
     {
         FieldNameText = Field->GetHoudiniGeoPartObject().GetNodePath();
     }
-    else if ( bAttributeInstancerOverride )
+    else if ( Flags.bAttributeInstancerOverride )
     {
         FieldNameText = HoudiniGeoPartObject.GetNodePath() + TEXT( "/Override_" ) + FString::FromInt( FieldIdx );
     }
@@ -751,7 +757,7 @@ UHoudiniAssetInstanceInput::Serialize( FArchive & Ar )
 
     Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
 
-    Ar << HoudiniAssetInstanceInputFlagsPacked;
+    Ar << Flags.HoudiniAssetInstanceInputFlagsPacked;
     Ar << HoudiniGeoPartObject;
 
     Ar << ObjectToInstanceId;
@@ -783,26 +789,6 @@ UHoudiniAssetInstanceInput::AddReferencedObjects( UObject * InThis, FReferenceCo
     Super::AddReferencedObjects( InThis, Collector );
 }
 
-bool
-UHoudiniAssetInstanceInput::IsAttributeInstancer() const
-{
-    return bIsAttributeInstancer;
-}
-
-
-bool
-UHoudiniAssetInstanceInput::IsObjectInstancer() const
-{
-    return (-1 != ObjectToInstanceId);
-}
-
-
-bool
-UHoudiniAssetInstanceInput::IsAttributeInstancerOverride() const
-{
-    return bAttributeInstancerOverride;
-}
-
 #if WITH_EDITOR
 
 void
@@ -810,21 +796,21 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
 {
     USceneComponent * RootComponent = Actor->GetRootComponent();
 
+    TMap< const UStaticMesh*, UStaticMesh* > OriginalToBakedMesh;
+
     for ( int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx )
     {
         UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = InstanceInputFields[ Idx ];
 
-        bool HasBakedOriginalStaticMesh = false;
-
         for ( int32 VariationIdx = 0;
             VariationIdx < HoudiniAssetInstanceInputField->InstanceVariationCount(); VariationIdx++ )
         {
-            UStaticMesh * OutStaticMesh = nullptr;
-
-            UInstancedStaticMeshComponent * InstancedStaticMeshComponent =
+            UInstancedStaticMeshComponent * ISMC =
                 Cast<UInstancedStaticMeshComponent>( HoudiniAssetInstanceInputField->GetInstancedComponent( VariationIdx ) );
+	    UHoudiniMeshSplitInstancerComponent * MSIC =
+		Cast<UHoudiniMeshSplitInstancerComponent>( HoudiniAssetInstanceInputField->GetInstancedComponent(VariationIdx) );
 
-            if ( ! InstancedStaticMeshComponent )
+            if ( !ISMC && !MSIC )
             {
                 if( UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( HoudiniAssetInstanceInputField->GetInstancedComponent( VariationIdx )) )
                 {
@@ -900,62 +886,66 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
                 continue;
             }
 
-            // If original static mesh is used, then we need to bake it.
-            if ( HoudiniAssetInstanceInputField->IsOriginalObjectUsed( VariationIdx ) && !HasBakedOriginalStaticMesh )
+            // If original static mesh is used, then we need to bake it (once) and use that one instead.
+	    UStaticMesh* OutStaticMesh = Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetInstanceVariation(VariationIdx));
+            if ( HoudiniAssetInstanceInputField->IsOriginalObjectUsed( VariationIdx ) )
             {
-                if( UHoudiniAssetComponent* Comp = GetHoudiniAssetComponent() )
-                {
-                    const FHoudiniGeoPartObject & ItemHoudiniGeoPartObject =
-                        Comp->LocateGeoPartObject(
-                            Cast<UStaticMesh>( HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx ) ) );
-
-                    // Bake the referenced static mesh.
-                    OutStaticMesh =
-                        FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
-                            Cast<UStaticMesh>( HoudiniAssetInstanceInputField->GetOriginalObject() ),
-                            Comp, ItemHoudiniGeoPartObject, EBakeMode::CreateNewAssets );
-
-                    HasBakedOriginalStaticMesh = true;
-                    if( OutStaticMesh )
-                        FAssetRegistryModule::AssetCreated( OutStaticMesh );
-                    else
-                        continue;
-                }
-                else
-                    continue;
-            }
-            else
-            {
-                OutStaticMesh = Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx ));
+		if( UStaticMesh* OriginalSM = Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetOriginalObject()) )
+		{
+		    auto Comp = GetHoudiniAssetComponent();
+		    check(Comp);
+		    auto&& ItemGeoPartObject = Comp->LocateGeoPartObject(OutStaticMesh);
+		    FHoudiniEngineBakeUtils::CheckedBakeStaticMesh(Comp, OriginalToBakedMesh, ItemGeoPartObject, OriginalSM);
+		    OutStaticMesh = OriginalToBakedMesh[OutStaticMesh];
+		}
             }
 
-            UInstancedStaticMeshComponent* DuplicatedComponent = NewObject< UInstancedStaticMeshComponent >(
-                    Actor, UInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Public );
+	    if( ISMC )
+	    {
+		UInstancedStaticMeshComponent* DuplicatedComponent = NewObject< UInstancedStaticMeshComponent >(
+		    Actor, UInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Public);
 
-            Actor->AddInstanceComponent( DuplicatedComponent );
-            DuplicatedComponent->SetStaticMesh( OutStaticMesh );
+		Actor->AddInstanceComponent(DuplicatedComponent);
+		DuplicatedComponent->SetStaticMesh(OutStaticMesh);
 
-            // Reapply the uproperties modified by attributes on the duplicated component
-            FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( DuplicatedComponent, HoudiniGeoPartObject );
+		// Reapply the uproperties modified by attributes on the duplicated component
+		FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(DuplicatedComponent, HoudiniGeoPartObject);
 
-            // Set component instances.
-            {
-                FRotator RotationOffset = HoudiniAssetInstanceInputField->GetRotationOffset( VariationIdx );
-                FVector ScaleOffset = HoudiniAssetInstanceInputField->GetScaleOffset( VariationIdx );
+		// Set component instances.
+		{
+		    FRotator RotationOffset = HoudiniAssetInstanceInputField->GetRotationOffset(VariationIdx);
+		    FVector ScaleOffset = HoudiniAssetInstanceInputField->GetScaleOffset(VariationIdx);
 
-                const TArray< FTransform > & InstancedTransforms =
-                    HoudiniAssetInstanceInputField->GetInstancedTransforms( VariationIdx );
+		    const TArray< FTransform > & InstancedTransforms =
+			HoudiniAssetInstanceInputField->GetInstancedTransforms(VariationIdx);
 
-                UHoudiniInstancedActorComponent::UpdateInstancedStaticMeshComponentInstances(
-                    DuplicatedComponent, InstancedTransforms, RotationOffset, ScaleOffset );
-            }
+		    UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
+			DuplicatedComponent, InstancedTransforms, RotationOffset, ScaleOffset);
+		}
 
-            // Copy visibility.
-            DuplicatedComponent->SetVisibility( InstancedStaticMeshComponent->IsVisible() );
+		// Copy visibility.
+		DuplicatedComponent->SetVisibility(ISMC->IsVisible());
 
-            DuplicatedComponent->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepRelativeTransform );
-            DuplicatedComponent->RegisterComponent();
-            DuplicatedComponent->GetBodyInstance()->bAutoWeld = false;
+		DuplicatedComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+		DuplicatedComponent->RegisterComponent();
+		DuplicatedComponent->GetBodyInstance()->bAutoWeld = false;
+	    }
+	    else if ( MSIC )
+	    {
+		for( UStaticMeshComponent* OtherSMC : MSIC->GetInstances() )
+		{
+		    FString CompName = OtherSMC->GetName();
+		    CompName.ReplaceInline(TEXT("StaticMeshComponent"), TEXT("StaticMesh"));
+		    if( UStaticMeshComponent* NewSMC = DuplicateObject< UStaticMeshComponent >(OtherSMC, Actor, *CompName) )
+		    {
+			NewSMC->SetupAttachment(RootComponent);
+			NewSMC->SetStaticMesh(OutStaticMesh);
+			Actor->AddInstanceComponent(NewSMC);
+			NewSMC->SetWorldTransform(OtherSMC->GetComponentTransform());
+			NewSMC->RegisterComponent();
+		    }
+		}
+	    }
 
         }
         
