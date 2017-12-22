@@ -96,6 +96,11 @@ UHoudiniAssetParameterChoice::CreateParameter(
         {
             return false;
         }
+        if( CurrentValue >= ParmInfo.choiceCount )
+        {
+            HOUDINI_LOG_WARNING(TEXT("parm '%s' has an invalid value %d, menu tokens are not supported for choice menus"), *GetParameterName(), CurrentValue);
+            CurrentValue = 0;
+        }
     }
     else if ( ParmInfo.type == HAPI_PARMTYPE_STRING )
     {
