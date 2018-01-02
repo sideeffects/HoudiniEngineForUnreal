@@ -5938,7 +5938,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                 // Add the aggregate collision geo to the static mesh
                 if ( AddAggregateCollisionGeometryToStaticMesh(
-                StaticMesh, *CollisionHoudiniGeoPartObject, AggregateCollisionGeo ) )
+                    CollisionStaticMesh, *CollisionHoudiniGeoPartObject, AggregateCollisionGeo ) )
                 {
                     bHasAggregateGeometryCollision = false;
                 }
