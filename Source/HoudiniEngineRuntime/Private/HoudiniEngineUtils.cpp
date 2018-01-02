@@ -6528,30 +6528,30 @@ FHoudiniEngineUtils::GetMeshSocketList(
             FVector currentScale = FVector( 1.0f, 1.0f, 1.0f );
             FQuat currentRotation = FQuat::Identity;
 
-            currentPosition.X = Positions[ PointIdx * 3 ] * GeneratedGeometryScaleFactor;
-
-            if( bHasScale )
-             currentScale.X = Scales[PointIdx * 3];
-
             if ( ImportAxis == HRSAI_Unreal )
             {
-                currentPosition.Y = Positions[ PointIdx * 3 + 2 ] * GeneratedGeometryScaleFactor;
-                currentPosition.Z = Positions[ PointIdx * 3 + 1 ] * GeneratedGeometryScaleFactor;
-
-                if ( bHasScale )
+                if ( Positions.IsValidIndex( PointIdx * 3 + 2 ) )
                 {
+                    currentPosition.X = Positions[ PointIdx * 3 ] * GeneratedGeometryScaleFactor;
+                    currentPosition.Y = Positions[ PointIdx * 3 + 2 ] * GeneratedGeometryScaleFactor;
+                    currentPosition.Z = Positions[ PointIdx * 3 + 1 ] * GeneratedGeometryScaleFactor;
+                }
+
+                if ( bHasScale && Scales.IsValidIndex( PointIdx * 3 + 2 ) )
+                {
+                    currentScale.X = Scales[ PointIdx * 3 ];
                     currentScale.Y = Scales[ PointIdx * 3 + 2 ];
                     currentScale.Z = Scales[ PointIdx * 3 + 1 ];
                 }
 
-                if ( bHasRotation )
+                if ( bHasRotation && Rotations.IsValidIndex( PointIdx * 4 + 3 ) )
                 {
                     currentRotation.X = Rotations[ PointIdx * 4 ];
                     currentRotation.Y = Rotations[ PointIdx * 4 + 2 ];
                     currentRotation.Z = Rotations[ PointIdx * 4 + 1 ];
                     currentRotation.W = -Rotations[ PointIdx * 4 + 3 ];
                 }
-                else if ( bHasNormals )
+                else if ( bHasNormals && Normals.IsValidIndex( PointIdx * 3 + 2 ) )
                 {
                     FVector vNormal;
                     vNormal.X = Normals[ PointIdx * 3 ];
@@ -6564,23 +6564,28 @@ FHoudiniEngineUtils::GetMeshSocketList(
             }
             else
             {
-                currentPosition.Y = Positions[ PointIdx * 3 + 1 ] * GeneratedGeometryScaleFactor;
-                currentPosition.Z = Positions[ PointIdx * 3 + 2 ] * GeneratedGeometryScaleFactor;
-
-                if ( bHasScale )
+                if ( Positions.IsValidIndex( PointIdx * 3 + 2 ) )
                 {
+                    currentPosition.X = Positions[ PointIdx * 3 ] * GeneratedGeometryScaleFactor;
+                    currentPosition.Y = Positions[ PointIdx * 3 + 1 ] * GeneratedGeometryScaleFactor;
+                    currentPosition.Z = Positions[ PointIdx * 3 + 2 ] * GeneratedGeometryScaleFactor;
+                }
+
+                if ( bHasScale && Scales.IsValidIndex( PointIdx * 3 + 2 ) )
+                {
+                    currentScale.X = Scales[ PointIdx * 3 ];
                     currentScale.Y = Scales[ PointIdx * 3 + 1 ];
                     currentScale.Z = Scales[ PointIdx * 3 + 2 ];
                 }
 
-                if ( bHasRotation )
+                if ( bHasRotation && Rotations.IsValidIndex( PointIdx * 4 + 3 ) )
                 {
                     currentRotation.X = Rotations[ PointIdx * 4 ];
                     currentRotation.Y = Rotations[ PointIdx * 4 + 1 ];
                     currentRotation.Z = Rotations[ PointIdx * 4 + 2 ];
                     currentRotation.W = Rotations[ PointIdx * 4 + 3 ];
                 }
-                else if ( bHasNormals )
+                else if ( bHasNormals && Normals.IsValidIndex( PointIdx * 3 + 2 ) )
                 {
                     FVector vNormal;
                     vNormal.X = Normals[ PointIdx * 3 ];
@@ -6593,16 +6598,16 @@ FHoudiniEngineUtils::GetMeshSocketList(
             }
 
             FString currentName;
-            if ( bHasNames )
+            if ( bHasNames && Names.IsValidIndex( PointIdx ) )
                 currentName = Names[ PointIdx ];
 
             FString currentActors;
-            if ( bHasActors )
+            if ( bHasActors && Actors.IsValidIndex( PointIdx ) )
                 currentActors = Actors[ PointIdx ];
 
             // If the scale attribute wasn't set on all socket, we might end up
             // with a zero scale socket, avoid that.
-            if ( currentScale == FVector::ZeroVector)
+            if ( currentScale == FVector::ZeroVector )
                 currentScale = FVector( 1.0f, 1.0f, 1.0f );
 
             currentSocketTransform.SetLocation( currentPosition );
