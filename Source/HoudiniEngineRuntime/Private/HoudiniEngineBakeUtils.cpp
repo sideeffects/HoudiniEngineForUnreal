@@ -648,8 +648,17 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
                         SMC->LightmassSettings = OtherSMC->LightmassSettings;
                         SMC->CastShadow = OtherSMC->CastShadow;
                         SMC->SetMobility( OtherSMC->Mobility );
-                        if( OtherSMC_NonConst->GetBodySetup() )
-                            SMC->SetPhysMaterialOverride( OtherSMC_NonConst->GetBodySetup()->GetPhysMaterial() );
+
+                        if (OtherSMC_NonConst->GetBodySetup() && SMC->GetBodySetup())
+                        {
+                            // Copy the BodySetup
+                            SMC->GetBodySetup()->CopyBodyPropertiesFrom(OtherSMC_NonConst->GetBodySetup());
+
+                            // Only copy the physical material if it's different from the default one,
+                            // As this was causing crashes on BakeToActors in some cases
+                            if (GEngine != NULL && OtherSMC_NonConst->GetBodySetup()->GetPhysMaterial() != GEngine->DefaultPhysMaterial)
+                                SMC->SetPhysMaterialOverride(OtherSMC_NonConst->GetBodySetup()->GetPhysMaterial());
+                        }
                         SMActor->SetActorHiddenInGame( OtherSMC->bHiddenInGame );
                         SMC->SetVisibility( OtherSMC->IsVisible() );
 
