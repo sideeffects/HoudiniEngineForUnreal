@@ -522,7 +522,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const FHoudiniGeoPartObject& GeoPartObject,
             const FString& GenericAttributePrefix,
             TArray< UGenericAttribute >& AllUProps,
-            const HAPI_AttributeOwner& AttributeOwner );
+            const HAPI_AttributeOwner& AttributeOwner,
+            int32 PrimitiveIndex = -1);
 
         /** Tries to update values for all the UProperty attributes to apply on the object. **/
         static void ApplyUPropertyAttributesOnObject(

@@ -6789,7 +6789,8 @@ FHoudiniEngineUtils::GetGenericAttributeList(
     const FHoudiniGeoPartObject& GeoPartObject,
     const FString& GenericAttributePrefix,
     TArray< UGenericAttribute >& AllUProps,
-    const HAPI_AttributeOwner& AttributeOwner )
+    const HAPI_AttributeOwner& AttributeOwner,
+    int32 PrimitiveIndex )
 {
     HAPI_NodeId NodeId = GeoPartObject.HapiGeoGetNodeId();
     HAPI_PartInfo PartInfo;
@@ -6812,19 +6813,26 @@ FHoudiniEngineUtils::GetGenericAttributeList(
         AttribNameSHArray.GetData(), nAttribCount ) )
         return 0;
 
-    // As the uprop can be on primitives, if so, we'll have to identify
-    // if a split occured during the mesh creation, and find a suitable primitive
-    // taht correspond to that split
+    // Since generic attributes can be on primitives, we may have to identify
+    // if a split occured during the mesh creation.
+    // If the primitive index was not specified, we need to a suitable primitive
+    // corresponding to that split 
     bool HandleSplit = false;
     int PrimNumberForSplit = -1;
     if ( AttributeOwner != HAPI_ATTROWNER_DETAIL )
     {
-        if ( !GeoPartObject.SplitName.IsEmpty() && ( GeoPartObject.SplitName != TEXT("main_geo") ) )
+        if ( PrimitiveIndex != -1 )
+        {
+            // The index has already been specified so we'll use it
+            HandleSplit = true;
+            PrimNumberForSplit = PrimitiveIndex;
+        }
+        else if ( !GeoPartObject.SplitName.IsEmpty() && ( GeoPartObject.SplitName != TEXT("main_geo") ) )
         {
             HandleSplit = true;
 
             // Since the meshes have been split, we need to find a primitive that belongs to the proper group
-            // so we can read the proper value for its uprop attribute
+            // so we can read the proper value for its generic attribute
             TArray< int32 > PartGroupMembership;
             FHoudiniEngineUtils::HapiGetGroupMembership(
                 GeoPartObject.AssetId, GeoPartObject.GetObjectId(), GeoPartObject.GetGeoId(), GeoPartObject.GetPartId(), 
