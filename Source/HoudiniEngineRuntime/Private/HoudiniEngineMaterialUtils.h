@@ -67,7 +67,7 @@ public:
     static bool CreateMaterialInstances( 
         const FHoudiniGeoPartObject& HoudiniGeoPartObject, FHoudiniCookParams& CookParams,
         UMaterialInstance *& CreatedMaterialInstance, UMaterialInterface*& OriginalMaterialInterface,
-        std::string AttributeName );
+        std::string AttributeName, int32 MaterialIndex = 0 );
 
     /** Updates the material instance parameter corresponding to the generic parameter found in the asset **/
     static bool UpdateMaterialInstanceParameter( UGenericAttribute MaterialParam, UMaterialInstanceConstant* MaterialInstance, FHoudiniCookParams& CookParams );
