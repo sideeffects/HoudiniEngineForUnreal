@@ -2352,7 +2352,7 @@ bool
 FHoudiniEngineMaterialUtils::CreateMaterialInstances(
     const FHoudiniGeoPartObject& HoudiniGeoPartObject, FHoudiniCookParams& CookParams,
     UMaterialInstance*& CreatedMaterialInstance, UMaterialInterface*& OriginalMaterialInterface,
-    std::string AttributeName )
+    std::string AttributeName, int32 MaterialIndex)
 {
 #if WITH_EDITOR
     if ( !HoudiniGeoPartObject.IsValid() )
@@ -2380,7 +2380,35 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
     if ( !AttribMaterialInstances.exists || MaterialInstances.Num() <= 0 )
         return false;
 
-    const FString & MaterialName = MaterialInstances[ 0 ];
+    // Get the material name from the material_instance attribute 
+    // Since the material instance attribute can be set per primitive, it's going to be very difficult to know 
+    // exactly where to look for the nth material instance, so we'll have to iterate on them to find it.
+    // In order for the material slot to be created, the material instance attribute had to be different, 
+    // so we'll use this to hopefully fetch the right value.
+    // This is pretty hacky and we should probably require an extra material_instance_index attribute instead.
+    // but still a better solution than ignore all the material slots but the first
+    int32 MaterialIndexToAttributeIndex = 0;
+    if ( MaterialIndex > 0 && AttribMaterialInstances.owner == HAPI_ATTROWNER_PRIM )
+    {
+        int32 CurrentMaterialIndex = 0;
+        FString CurrentMatName = MaterialInstances[ 0 ];
+        for ( int32 n = 0; n < MaterialInstances.Num(); n++ )
+        {
+            if ( MaterialInstances[ n ].Equals( CurrentMatName ) )
+                continue;
+
+            CurrentMatName = MaterialInstances[ n ];
+            CurrentMaterialIndex++;
+
+            if ( CurrentMaterialIndex == MaterialIndex )
+            {
+                MaterialIndexToAttributeIndex = n;
+                break;
+            }
+        }
+    }
+
+    const FString & MaterialName = MaterialInstances[ MaterialIndexToAttributeIndex ];
     if ( MaterialName.IsEmpty() )
         return false;
 
@@ -2398,7 +2426,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
 
     // Create/Retrieve the package for the MI
     FString MaterialInstanceName;
-    FString MaterialInstanceNamePrefix = PackageTools::SanitizePackageName( ParentMaterial->GetName() + TEXT("_instance_") );
+    FString MaterialInstanceNamePrefix = PackageTools::SanitizePackageName( ParentMaterial->GetName() + TEXT("_instance_") + FString::FromInt(MaterialIndex) );
     
     // See if we can find the package in the cooked temp package cache
     UPackage * MaterialInstancePackage = nullptr;
@@ -2473,7 +2501,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
     // Get the detail material parameters
     int ParamCount = FHoudiniEngineUtils::GetGenericAttributeList( HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX, AllMatParams, HAPI_ATTROWNER_DETAIL );
     // Then the primitive material parameters
-    ParamCount += FHoudiniEngineUtils::GetGenericAttributeList( HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX, AllMatParams, HAPI_ATTROWNER_PRIM );
+    ParamCount += FHoudiniEngineUtils::GetGenericAttributeList( HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX, AllMatParams, HAPI_ATTROWNER_PRIM, MaterialIndexToAttributeIndex );
     for ( int32 ParamIdx = 0; ParamIdx < AllMatParams.Num(); ParamIdx++ )
     {
         // Try to update the material instance parameter corresponding to the attribute

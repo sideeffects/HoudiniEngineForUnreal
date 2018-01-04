@@ -5353,21 +5353,22 @@ UHoudiniAssetComponent::CreateOrUpdateMaterialInstances()
         if ( !StaticMesh )
             continue;
 
-        // The "source" material we want to create an instance of should have already been assigned to the mesh
-        UMaterialInstance* NewMaterialInstance = nullptr;
-        UMaterialInterface* SourceMaterialInterface = nullptr;
-
-        // Create a new material instance if needed and update its parameter if needed
-        if ( !FHoudiniEngineMaterialUtils::CreateMaterialInstances( 
-            HoudiniGeoPartObject, HoudiniCookParams, NewMaterialInstance, SourceMaterialInterface, HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE ) )
-            continue;
-
-        if ( !NewMaterialInstance || !SourceMaterialInterface )
-            continue;
-
         // Replace the source material with the newly created/updated instance
         for( int32 MatIdx = 0; MatIdx < StaticMesh->StaticMaterials.Num(); MatIdx++ )
         {
+            // The "source" material we want to create an instance of should have already been assigned to the mesh
+            UMaterialInstance* NewMaterialInstance = nullptr;
+            UMaterialInterface* SourceMaterialInterface = nullptr;
+
+            // Create a new material instance if needed and update its parameter if needed
+            if (!FHoudiniEngineMaterialUtils::CreateMaterialInstances(
+                HoudiniGeoPartObject, HoudiniCookParams, NewMaterialInstance, SourceMaterialInterface, 
+                HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE, MatIdx ) )
+                continue;
+
+            if (!NewMaterialInstance || !SourceMaterialInterface)
+                continue;
+
             UMaterialInterface * SMMatInterface = StaticMesh->StaticMaterials[ MatIdx ].MaterialInterface;
             if ( SMMatInterface != SourceMaterialInterface && SMMatInterface->GetBaseMaterial() != SourceMaterialInterface )
                 continue;
