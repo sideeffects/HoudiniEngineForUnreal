@@ -183,6 +183,7 @@ public class HoudiniEngineRuntime : ModuleRules
                     "EditorWidgets",
                     "LevelEditor",
                     "MainFrame",
+                    "MeshPaint",
                     "Projects",
                     "PropertyEditor",
                     "RawMesh",
