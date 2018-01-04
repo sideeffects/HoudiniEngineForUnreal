@@ -22,6 +22,7 @@
 */
 
 #include "HoudiniApi.h"
+#include "HoudiniEngine.h"
 #include "HoudiniAssetInstanceInputField.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetComponent.h"
