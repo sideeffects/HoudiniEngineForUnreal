@@ -150,10 +150,9 @@ UHoudiniInstancedActorComponent::OnComponentCreated()
     }
 }
 
-void
-UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
+void UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
     USceneComponent * Component,
-    const TArray< FTransform > & InstancedTransforms,
+    const TArray< FTransform > & InstancedTransforms, const TArray<FLinearColor> & InstancedColors,
     const FRotator & RotationOffset, const FVector & ScaleOffset)
 {
     UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>(Component);
@@ -207,7 +206,7 @@ UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
     }
     else if( MSIC )
     {
-        MSIC->SetInstances(ProcessOffsets());
+        MSIC->SetInstances(ProcessOffsets(), InstancedColors);
     }
 }
 

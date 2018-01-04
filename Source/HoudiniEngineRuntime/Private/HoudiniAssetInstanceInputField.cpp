@@ -124,6 +124,12 @@ UHoudiniAssetInstanceInputField::Serialize( FArchive & Ar )
     Ar << InstancedTransforms;
     Ar << VariationTransformsArray;
 
+    if( LinkerVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INSTANCE_COLORS )
+    {
+	Ar << InstanceColorOverride;
+	Ar << VariationInstanceColorOverrideArray;
+    }
+
     Ar << InstancerComponents;
     Ar << InstancedObjects;
     Ar << OriginalObject;
@@ -243,6 +249,33 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
 
             MSIC->SetStaticMesh(StaticMesh);
             MSIC->SetOverrideMaterial(InstancerMaterial);
+
+	    // Check for instance colors
+	    HAPI_AttributeInfo AttributeInfo = {};
+	    if( HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeInfo(
+		FHoudiniEngine::Get().GetSession(), InstancerHoudiniGeoPartObject.GeoId, InstancerHoudiniGeoPartObject.PartId,
+		HAPI_UNREAL_ATTRIB_INSTANCE_COLOR, HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM, &AttributeInfo) )
+	    {
+		if( AttributeInfo.exists )
+		{
+		    if( AttributeInfo.tupleSize == 4 )
+		    {
+			// Allocate sufficient buffer for data.
+			InstanceColorOverride.SetNumUninitialized(AttributeInfo.count);
+
+			if( HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeFloatData(
+			    FHoudiniEngine::Get().GetSession(), InstancerHoudiniGeoPartObject.GeoId, InstancerHoudiniGeoPartObject.PartId,
+			    HAPI_UNREAL_ATTRIB_INSTANCE_COLOR, &AttributeInfo, -1, (float*)InstanceColorOverride.GetData(), 0, AttributeInfo.count) )
+			{
+			    // got some override colors
+			}
+		    }
+		    else
+		    {
+			HOUDINI_LOG_WARNING(TEXT(HAPI_UNREAL_ATTRIB_INSTANCE_COLOR " must be a float[4] prim attribute"));
+		    }
+		}
+	    }
             NewComp = MSIC;
         }
         else
@@ -307,31 +340,26 @@ UHoudiniAssetInstanceInputField::SetInstanceTransforms( const TArray< FTransform
 void
 UHoudiniAssetInstanceInputField::UpdateInstanceTransforms( bool RecomputeVariationAssignments )
 {
-    int32 NumInstancTransforms = InstancedTransforms.Num();
+    int32 NumInstanceTransforms = InstancedTransforms.Num();
+    int32 NumInstanceColors = InstanceColorOverride.Num();
     int32 VariationCount = InstanceVariationCount();
 
     int nSeed = 1234;
     if ( RecomputeVariationAssignments )
     {
-        //clear the previous cached transform assignments.
-        for ( int32 Idx = 0; Idx < VariationTransformsArray.Num(); Idx++ )
-        {
-            VariationTransformsArray[ Idx ].Empty();
-        }
+	VariationTransformsArray.Empty();
+	VariationTransformsArray.SetNum(VariationCount);
+	VariationInstanceColorOverrideArray.Empty();
+	VariationInstanceColorOverrideArray.SetNum(VariationCount);
 
-        VariationTransformsArray.Empty();
-
-        for ( int32 Idx = 0; Idx < VariationCount; Idx++ )
+        for ( int32 Idx = 0; Idx < NumInstanceTransforms; Idx++ )
         {
-            TArray< FTransform > VariationTransforms;
-            VariationTransformsArray.Add( VariationTransforms );
-        }
-
-        for ( int32 Idx = 0; Idx < NumInstancTransforms; Idx++ )
-        {
-            FTransform Xform = InstancedTransforms[ Idx ];
             int32 VariationIndex = fastrand(nSeed) % VariationCount;
-            VariationTransformsArray[ VariationIndex ].Add( Xform );
+            VariationTransformsArray[ VariationIndex ].Add(InstancedTransforms[Idx]);
+	    if( NumInstanceColors > Idx )
+	    {
+		VariationInstanceColorOverrideArray[VariationIndex].Add(InstanceColorOverride[Idx]);
+	    }
         }
     }
 
@@ -339,8 +367,8 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms( bool RecomputeVariati
     {
         UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
             InstancerComponents[ Idx ],
-            VariationTransformsArray[ Idx ],
-            RotationOffsets[ Idx ],
+            VariationTransformsArray[ Idx ], VariationInstanceColorOverrideArray[ Idx ],
+            RotationOffsets[ Idx ] ,
             ScaleOffsets[ Idx ] );
     }
 }

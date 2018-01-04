@@ -48,10 +48,7 @@ public:
     void SetOverrideMaterial(class UMaterialInterface* MI) { OverrideMaterial = MI; }
     
     /** Set the instances. Transforms are given in local space of this component. */
-    void SetInstances( const TArray<FTransform>& InstanceTransforms );
-
-    /** Add an instance to this component. Transform is given in local space of this component. */
-    int32 AddInstance( const FTransform& InstanceTransform );
+    void SetInstances( const TArray<FTransform>& InstanceTransforms, const TArray<FLinearColor> & InstancedColors );
     
     /** Destroy all extant instances */
     void ClearInstances();
@@ -65,7 +62,6 @@ private:
     UPROPERTY( SkipSerialization, VisibleInstanceOnly, Category=Instances)
     class UMaterialInterface* OverrideMaterial;
 
-    UPROPERTY(SkipSerialization, VisibleAnywhere, Category = Instances)
+    UPROPERTY(SkipSerialization, VisibleAnywhere, Category = Instances )
     class UStaticMesh* InstancedMesh;
-
 };
