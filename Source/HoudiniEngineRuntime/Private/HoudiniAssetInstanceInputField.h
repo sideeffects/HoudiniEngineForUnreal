@@ -130,6 +130,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         /** Return the array of transforms for all variations **/
         FORCEINLINE const TArray< FTransform > & GetInstancedTransforms() { return InstancedTransforms; }
 
+	/** Return transformations of all instances used by the variation **/
+	FORCEINLINE const TArray< FLinearColor > & GetInstancedColors(int32 VariationIdx) const { return VariationInstanceColorOverrideArray[VariationIdx]; }
+
+	/** Return the array of transforms for all variations **/
+	FORCEINLINE const TArray< FLinearColor > & GetInstancedColors() { return InstanceColorOverride; }
+
         /** Recreates render states for instanced static mesh component. **/
         void RecreateRenderState();
 
@@ -175,6 +181,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
 
         /** Assignment of Transforms to each variation **/
         TArray< TArray< FTransform > > VariationTransformsArray;
+
+	/** Color overrides, one per instance **/
+	TArray<FLinearColor> InstanceColorOverride;
+
+	/** Per-variation color override assignments */
+	TArray< TArray< FLinearColor > > VariationInstanceColorOverrideArray;
 
         /** Corresponding geo part object. **/
         FHoudiniGeoPartObject HoudiniGeoPartObject;
