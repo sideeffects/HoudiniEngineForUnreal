@@ -508,6 +508,17 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             FHoudiniGeoPartObject& HoudiniGeoPartObject,
             FKAggregateGeom& AggregateCollisionGeo );
 
+        /** Add convex hull to the mesh's aggregate collision geometry							**/
+        static bool AddConvexCollision(
+            const TArray<float>& Positions, const TArray<int32>& SplitGroupVertexList,
+            const bool& MultiHullDecomp, FKAggregateGeom& AggregateCollisionGeo );
+
+        /** Add convex hull to the mesh's aggregate collision geometry							**/
+        static bool AddSimpleCollision(
+            const FString& SplitGroupName, UStaticMesh* StaticMesh,
+            FHoudiniGeoPartObject& HoudiniGeoPartObject, FKAggregateGeom& AggregateCollisionGeo,
+            bool& bSimpleCollisionAddedToAggregate );
+
         /** Updates all Uproperty attributes found on the given object **/
         static void UpdateUPropertyAttributesOnObject(
                 UObject* MeshComponent, const FHoudiniGeoPartObject& HoudiniGeoPartObject );
