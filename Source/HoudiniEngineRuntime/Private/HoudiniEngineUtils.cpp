@@ -49,6 +49,7 @@
     #include "Interfaces/ITargetPlatform.h"
     #include "Interfaces/ITargetPlatformManagerModule.h"
     #include "Editor/UnrealEd/Private/GeomFitUtils.h"
+    #include "Private/ConvexDecompTool.h"
 #endif
 #include "EngineUtils.h"
 #include "PhysicsEngine/BodySetup.h"
@@ -4069,92 +4070,16 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     // Boolean used to avoid asking the Positions to HAPI twice if we have a rendered collision UCX
                     bool bAlreadyCalledGetPositions = false;
 
-                    // Handling UCX colliders
+                    // Handling UCX/Convex Hull colliders
                     if ( HoudiniGeoPartObject.bIsUCXCollisionGeo )
                     {
-                        bool bCollisionCreated = false;
-                        if ( HoudiniGeoPartObject.bIsBox )
+                        // First we need to retrieve the vertices positions
+                        if ( !bAlreadyCalledGetPositions )
                         {
-                            // BOX ELEMENT
-                            // For now, boxes are not handled in the cook options, so box will be treated as UCX anyway
-                            HAPI_BoxInfo BoxInfo;
-                            if ( HAPI_RESULT_SUCCESS == FHoudiniApi::GetBoxInfo(
-                                FHoudiniEngine::Get().GetSession(), GeoId, PartInfo.id, &BoxInfo ) )
-                            {
-                                FKBoxElem BoxCollision;
-                                FVector Rotation;
-
-                                BoxCollision.Center.X = BoxInfo.center[0] * GeneratedGeometryScaleFactor;
-                                BoxCollision.X = BoxInfo.size[0] * 2.0f * GeneratedGeometryScaleFactor;
-                                Rotation.X = BoxInfo.rotation[0];
-
-                                if ( ImportAxis == HRSAI_Unreal )
-                                {
-                                    BoxCollision.Center.Y = BoxInfo.center[2] * GeneratedGeometryScaleFactor;
-                                    BoxCollision.Center.Z = BoxInfo.center[1] * GeneratedGeometryScaleFactor;
-
-                                    BoxCollision.Y = BoxInfo.size[2] * 2.0f * GeneratedGeometryScaleFactor;
-                                    BoxCollision.Z = BoxInfo.size[1] * 2.0f * GeneratedGeometryScaleFactor;
-
-                                    Rotation.Y = BoxInfo.rotation[2];
-                                    Rotation.Z = BoxInfo.rotation[1];
-                                }
-                                else
-                                {
-                                    BoxCollision.Center.Y = BoxInfo.center[1] * GeneratedGeometryScaleFactor;
-                                    BoxCollision.Center.Z = BoxInfo.center[2] * GeneratedGeometryScaleFactor;
-
-                                    BoxCollision.Y = BoxInfo.size[1] * 2.0f * GeneratedGeometryScaleFactor;
-                                    BoxCollision.Z = BoxInfo.size[2] * 2.0f * GeneratedGeometryScaleFactor;
-
-                                    Rotation.Y = BoxInfo.rotation[1];
-                                    Rotation.Z = BoxInfo.rotation[2];
-                                }
-
-                                BoxCollision.Rotation = FRotator::MakeFromEuler( Rotation );
-
-                                AggregateCollisionGeo.BoxElems.Add( BoxCollision );
-
-                                bCollisionCreated = true;
-                            }
-                        }
-                        else if ( HoudiniGeoPartObject.bIsSphere )
-                        {
-                            // SPHERE ELEMENT
-                            // For now, Spheres are not handled in the cook options, so spheres will be treated as UCX anyway
-                            HAPI_SphereInfo SphereInfo;
-                            if ( HAPI_RESULT_SUCCESS == FHoudiniApi::GetSphereInfo(
-                                FHoudiniEngine::Get().GetSession(), GeoId, PartInfo.id, &SphereInfo))
-                            {
-                                FKSphereElem SphereCollision;
-                                SphereCollision.Center.X = SphereInfo.center[0] * GeneratedGeometryScaleFactor;
-
-                                if ( ImportAxis == HRSAI_Unreal )
-                                {
-                                    SphereCollision.Center.Y = SphereInfo.center[2] * GeneratedGeometryScaleFactor;
-                                    SphereCollision.Center.Z = SphereInfo.center[1] * GeneratedGeometryScaleFactor;
-                                }
-                                else
-                                {
-                                    SphereCollision.Center.Y = SphereInfo.center[1] * GeneratedGeometryScaleFactor;
-                                    SphereCollision.Center.Z = SphereInfo.center[2] * GeneratedGeometryScaleFactor;
-                                }
-
-                                SphereCollision.Radius = SphereInfo.radius * GeneratedGeometryScaleFactor;
-
-                                AggregateCollisionGeo.SphereElems.Add( SphereCollision );
-
-                                bCollisionCreated = true;
-                            }
-                        }
-                        else
-                        {
-                            // CONVEX HULL
-                            // We need to retrieve the vertices positions
                             HAPI_AttributeInfo AttribInfoPositions;
                             FMemory::Memset< HAPI_AttributeInfo >( AttribInfoPositions, 0 );
 
-                            if (!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                            if ( !FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
                                 AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
                                 PartInfo.id, HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, Positions ) )
                             {
@@ -4162,58 +4087,25 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                 HOUDINI_LOG_MESSAGE(
                                     TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data ")
                                     TEXT("- skipping."),
-                                    ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName);
+                                    ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
 
                                 break;
                             }
 
                             bAlreadyCalledGetPositions = true;
-
-                            // We're only interested in the unique vertices
-                            TArray<int32> UniqueVertexIndexes;
-                            for ( int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx++ )
-                            {
-                                int32 Index = SplitGroupVertexList[VertexIdx];
-                                if ( Index < 0 || (Index >= Positions.Num() ) )
-                                    continue;
-
-                                UniqueVertexIndexes.AddUnique( Index );
-                            }
-                            
-                            // Extract the collision geo's vertices
-                            TArray< FVector > VertexArray;
-                            VertexArray.SetNum(UniqueVertexIndexes.Num());
-                            for ( int32 Idx = 0; Idx < UniqueVertexIndexes.Num(); Idx++ )
-                            {
-                                int32 VertexIndex = UniqueVertexIndexes[Idx];
-
-                                VertexArray[Idx].X = Positions[VertexIndex * 3 + 0] * GeneratedGeometryScaleFactor;
-                                if ( ImportAxis == HRSAI_Unreal )
-                                {
-                                    VertexArray[Idx].Y = Positions[VertexIndex * 3 + 2] * GeneratedGeometryScaleFactor;
-                                    VertexArray[Idx].Z = Positions[VertexIndex * 3 + 1] * GeneratedGeometryScaleFactor;
-                                }
-                                else
-                                {
-                                    VertexArray[Idx].Y = Positions[VertexIndex * 3 + 1] * GeneratedGeometryScaleFactor;
-                                    VertexArray[Idx].Z = Positions[VertexIndex * 3 + 2] * GeneratedGeometryScaleFactor;
-                                }
-                            }
-
-                            // Creating Convex collision
-                            FKConvexElem ConvexCollision;
-                            ConvexCollision.VertexData = VertexArray;
-                            ConvexCollision.UpdateElemBox();
-
-                            AggregateCollisionGeo.ConvexElems.Add( ConvexCollision );
-
-                            bCollisionCreated = true;
                         }
 
-                        // We'll add the collision after all the meshes are generated
-                        // unless this a rendered_collision_geo_ucx
-                        if( bCollisionCreated )
+
+                        bool MultiHullDecomp = false;
+                        if ( SplitGroupName.Contains( TEXT("ucx_multi"), ESearchCase::IgnoreCase ) )
+                            MultiHullDecomp = true;
+
+                        // Create the convex hull colliders and add them to the Aggregate
+                        if ( AddConvexCollision( Positions, SplitGroupVertexList, MultiHullDecomp, AggregateCollisionGeo ) )
+                        {
+                            // We'll add the collision after all the meshes are generated unless this a rendered_collision_geo_ucx
                             bHasAggregateGeometryCollision = true;
+                        }
 
                         if ( !HoudiniGeoPartObject.bIsRenderCollidable )
                             continue;
@@ -4331,7 +4223,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                     if ( bRebuildStaticMesh )
                     {
-                        // We may already have gooten the positions when creating the ucx collisions
+                        // We may already have gotten the positions when creating the ucx collisions
                         if ( !bAlreadyCalledGetPositions )
                         {
                             // Retrieve position data.
@@ -4350,6 +4242,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                                 break;
                             }
+
+                            bAlreadyCalledGetPositions = true;
                         }
 
                         // Get lightmap resolution (if present).
@@ -5120,143 +5014,22 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName, SplitId, *( TextError.ToString() ) );
                     }
 
-                    // Do we want to add simple collisions ?
-                    bool bAddSimpleCollisions = false;
-                    if (!HoudiniRuntimeSettings->SimpleCollisionGroupNamePrefix.IsEmpty() &&
-                        SplitGroupName.StartsWith(
-                            HoudiniRuntimeSettings->SimpleCollisionGroupNamePrefix,
-                            ESearchCase::IgnoreCase ) )
+                    // Do we need to add simple collisions ?
+                    bool bSimpleCollisionAddedToAggregate = false;
+                    if ( HoudiniGeoPartObject.bIsSimpleCollisionGeo )
                     {
-                        bAddSimpleCollisions = true;
-                        // This geo part will have to be considered as a collision geo
-                        HoudiniGeoPartObject.bIsCollidable = true;
-                    }
-                    else if(!HoudiniRuntimeSettings->SimpleRenderedCollisionGroupNamePrefix.IsEmpty() &&
-                        SplitGroupName.StartsWith(
-                            HoudiniRuntimeSettings->SimpleRenderedCollisionGroupNamePrefix,
-                            ESearchCase::IgnoreCase ) )
-                    {
-                        bAddSimpleCollisions = true;
-                        // This geo part will have to be considered as a rendered collision
-                        HoudiniGeoPartObject.bIsRenderCollidable = true;
-                    }
-
-                    if ( bAddSimpleCollisions )
-                    {
-                        int32 PrimIndex = INDEX_NONE;
-                        bool bSimpleCollisionAddedToAggregate = false;
-                        if ( SplitGroupName.Contains( "Box" ) )
+                        if ( AddSimpleCollision( SplitGroupName, StaticMesh, HoudiniGeoPartObject, AggregateCollisionGeo, bSimpleCollisionAddedToAggregate ) )
                         {
-                            PrimIndex = GenerateBoxAsSimpleCollision( StaticMesh );
-                            if ( !HoudiniGeoPartObject.bIsRenderCollidable )
+                            if ( bSimpleCollisionAddedToAggregate )
                             {
-                                // If this part is not renderCollidable, we want to extract the Box collider
-                                // and add it to the AggregateCollisionGeo to avoid creating extra meshes
-                                UBodySetup* bs = StaticMesh->BodySetup;
-                                if (bs && bs->AggGeom.BoxElems.IsValidIndex( PrimIndex ) )
-                                {
-                                    AggregateCollisionGeo.BoxElems.Add( bs->AggGeom.BoxElems[PrimIndex] );
-                                    bSimpleCollisionAddedToAggregate = true;
-                                }
-                            }
-                        }
-                        else if ( SplitGroupName.Contains( "Sphere" ) )
-                        {
-                            PrimIndex = GenerateSphereAsSimpleCollision( StaticMesh );
-                            if (!HoudiniGeoPartObject.bIsRenderCollidable)
-                            {
-                                // If this part is not renderCollidable, we want to extract the Sphere collider
-                                // and add it to the AggregateCollisionGeo to avoid creating extra meshes
-                                UBodySetup* bs = StaticMesh->BodySetup;
-                                if ( bs && bs->AggGeom.SphereElems.IsValidIndex( PrimIndex ) )
-                                {
-                                    AggregateCollisionGeo.SphereElems.Add(bs->AggGeom.SphereElems[PrimIndex]);
-                                    bSimpleCollisionAddedToAggregate = true;
-                                }
-                            }
-                        }
-                        else if ( SplitGroupName.Contains( "Capsule" ) )
-                        {
-                            PrimIndex = GenerateSphylAsSimpleCollision( StaticMesh );
-                            if (!HoudiniGeoPartObject.bIsRenderCollidable)
-                            {
-                                // If this part is not renderCollidable, we want to extract the Capsule collider
-                                // and add it to the AggregateCollisionGeo to avoid creating extra meshes
-                                UBodySetup* bs = StaticMesh->BodySetup;
-                                if ( bs && bs->AggGeom.SphylElems.IsValidIndex( PrimIndex ) )
-                                {
-                                    AggregateCollisionGeo.SphylElems.Add(bs->AggGeom.SphylElems[PrimIndex]);
-                                    bSimpleCollisionAddedToAggregate = true;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // We need to see what type of collision the user wants
-                            // by default, a kdop26 will be created
-                            uint32 NumDirections = 26;
-                            const FVector* Directions = KDopDir26;
-
-                            if ( SplitGroupName.Contains( "kdop10X" ) )
-                            {
-                                NumDirections = 10;
-                                Directions = KDopDir10X;
-                            }
-                            else if (SplitGroupName.Contains( "kdop10Y" ) )
-                            {
-                                NumDirections = 10;
-                                Directions = KDopDir10Y;
-                            }
-                            else if (SplitGroupName.Contains( "kdop10Z" ) )
-                            {
-                                NumDirections = 10;
-                                Directions = KDopDir10Z;
-                            }
-                            else if (SplitGroupName.Contains( "kdop18" ) )
-                            {
-                                NumDirections = 18;
-                                Directions = KDopDir18;
-                            }
-
-                            // Converting the directions to a TArray
-                            TArray<FVector> DirArray;
-                            for ( uint32 DirectionIndex = 0; DirectionIndex < NumDirections; DirectionIndex++ )
-                            {
-                                DirArray.Add( Directions[DirectionIndex] );
-                            }
-
-                            PrimIndex = GenerateKDopAsSimpleCollision( StaticMesh, DirArray );
-
-                            if (!HoudiniGeoPartObject.bIsRenderCollidable)
-                            {
-                                // If this part is not renderCollidable, we want to extract the KDOP collider
-                                // and add it to the AggregateCollisionGeo to avoid creating extra meshes
-                                UBodySetup* bs = StaticMesh->BodySetup;
-                                if (bs && bs->AggGeom.ConvexElems.IsValidIndex( PrimIndex ) )
-                                {
-                                    AggregateCollisionGeo.ConvexElems.Add(bs->AggGeom.ConvexElems[PrimIndex]);
-                                    bSimpleCollisionAddedToAggregate = true;
-                                }
-                            }
-                        }
-
-                        if ( PrimIndex == INDEX_NONE )
-                        {
-                            HoudiniGeoPartObject.bIsSimpleCollisionGeo = false;
-                            HoudiniGeoPartObject.bIsCollidable = false;
-                            HoudiniGeoPartObject.bIsRenderCollidable = false;
-                        }
-                        else
-                        {
-                            if (bSimpleCollisionAddedToAggregate)
-                            {
-                                // We will add the colliders after
+                                // The colliders are invisible and have been added to the aggregate,
+                                // we can skip to the next object and this collider will be added after
                                 bHasAggregateGeometryCollision = true;
                                 continue;
                             }
                             else
                             {
-                                // We don't want these collisions to be removed
+                                // We don't want these collisions to be removed afterwards
                                 HoudiniGeoPartObject.bHasCollisionBeenAdded = true;
                             }
                         }
@@ -7628,6 +7401,233 @@ FHoudiniEngineUtils::GetAllUVAttributesInfoAndTexCoords(
             AttribInfoUVs[ AvailableIdx ].exists = false;
         }
     }
+}
+
+bool
+FHoudiniEngineUtils::AddConvexCollision(
+    const TArray<float>& Positions, const TArray<int32>& SplitGroupVertexList,
+    const bool& MultiHullDecomp, FKAggregateGeom& AggregateCollisionGeo )
+{
+#if WITH_EDITOR
+    // Get runtime settings.
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    check( HoudiniRuntimeSettings );
+
+    float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
+    EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+
+    if ( HoudiniRuntimeSettings )
+    {
+        GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+        ImportAxis = HoudiniRuntimeSettings->ImportAxis;
+    }
+
+    // We're only interested in the unique vertices
+    TArray<int32> UniqueVertexIndexes;
+    for ( int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx++ )
+    {
+        int32 Index = SplitGroupVertexList[ VertexIdx ];
+        if ( Index < 0 || ( Index >= Positions.Num() ) )
+            continue;
+
+        UniqueVertexIndexes.AddUnique( Index );
+    }
+
+    // Extract the collision geo's vertices
+    TArray< FVector > VertexArray;
+    VertexArray.SetNum( UniqueVertexIndexes.Num() );
+    for ( int32 Idx = 0; Idx < UniqueVertexIndexes.Num(); Idx++ )
+    {
+        int32 VertexIndex = UniqueVertexIndexes[ Idx ];
+
+        VertexArray[ Idx ].X = Positions[ VertexIndex * 3 + 0 ] * GeneratedGeometryScaleFactor;
+        if ( ImportAxis == HRSAI_Unreal )
+        {
+            VertexArray[ Idx ].Y = Positions[ VertexIndex * 3 + 2 ] * GeneratedGeometryScaleFactor;
+            VertexArray[ Idx ].Z = Positions[ VertexIndex * 3 + 1 ] * GeneratedGeometryScaleFactor;
+        }
+        else
+        {
+            VertexArray[ Idx ].Y = Positions[ VertexIndex * 3 + 1 ] * GeneratedGeometryScaleFactor;
+            VertexArray[ Idx ].Z = Positions[ VertexIndex * 3 + 2 ] * GeneratedGeometryScaleFactor;
+        }
+    }
+
+    if ( MultiHullDecomp && ( VertexArray.Num() >= 3 || UniqueVertexIndexes.Num() >= 3 ) )
+    {
+        // creating multiple convex hull collision
+        // ... this might take a while
+        // We'll be using Unreal's DecomposeMeshToHulls() so we have to create a fake BodySetup
+        UBodySetup* bs = NewObject<UBodySetup>();
+
+        // We're only interested in the valid indices!
+        TArray<uint32> Indices;
+        for ( int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx++ )
+        {
+            int32 Index = SplitGroupVertexList[ VertexIdx ];
+            if ( Index < 0 || ( Index >= Positions.Num() ) )
+                continue;
+
+            Indices.Add( Index );
+        }
+
+        // But we need all the positions as vertex
+        TArray< FVector > Vertices;
+        Vertices.SetNum(Positions.Num() / 3);
+        for ( int32 Idx = 0; Idx < Vertices.Num(); Idx++ )
+        {
+            Vertices[ Idx ].X = Positions[ Idx * 3 + 0 ] * GeneratedGeometryScaleFactor;
+            if ( ImportAxis == HRSAI_Unreal )
+            {
+                Vertices[ Idx ].Y = Positions[ Idx * 3 + 2 ] * GeneratedGeometryScaleFactor;
+                Vertices[ Idx ].Z = Positions[ Idx * 3 + 1 ] * GeneratedGeometryScaleFactor;
+            }
+            else
+            {
+                Vertices[ Idx ].Y = Positions[ Idx * 3 + 1 ] * GeneratedGeometryScaleFactor;
+                Vertices[ Idx ].Z = Positions[ Idx * 3 + 2 ] * GeneratedGeometryScaleFactor;
+            }
+        }
+
+        // Run actual util to do the work (if we have some valid input)
+        DecomposeMeshToHulls( bs, Vertices, Indices, 0.5f, 16.0f );
+
+        // If we succeed, return here
+        // If not, keep going and we'll try to do a single hull decomposition
+        if ( bs->AggGeom.ConvexElems.Num() > 0 )
+        {
+            // Copy the convex elem to our aggregate
+            for ( int32 n = 0; n < bs->AggGeom.ConvexElems.Num(); n++ )
+                AggregateCollisionGeo.ConvexElems.Add( bs->AggGeom.ConvexElems[ n ] );
+
+            return true;
+        }
+    }
+
+    // Creating a single Convex collision
+    FKConvexElem ConvexCollision;
+    ConvexCollision.VertexData = VertexArray;
+    ConvexCollision.UpdateElemBox();
+
+    AggregateCollisionGeo.ConvexElems.Add( ConvexCollision );
+#endif
+    return true;
+}
+
+bool
+FHoudiniEngineUtils::AddSimpleCollision(
+    const FString& SplitGroupName, UStaticMesh* StaticMesh,
+    FHoudiniGeoPartObject& HoudiniGeoPartObject, FKAggregateGeom& AggregateCollisionGeo, bool& bSimpleCollisionAddedToAggregate )
+
+{
+#if WITH_EDITOR
+    int32 PrimIndex = INDEX_NONE;
+    if ( SplitGroupName.Contains( "Box" ) )
+    {
+        PrimIndex = GenerateBoxAsSimpleCollision( StaticMesh );
+        if ( !HoudiniGeoPartObject.bIsRenderCollidable )
+        {
+            // If this part is not renderCollidable, we want to extract the Box collider
+            // and add it to the AggregateCollisionGeo to avoid creating extra meshes
+            UBodySetup* bs = StaticMesh->BodySetup;
+            if (bs && bs->AggGeom.BoxElems.IsValidIndex( PrimIndex ) )
+            {
+                AggregateCollisionGeo.BoxElems.Add( bs->AggGeom.BoxElems[PrimIndex] );
+                bSimpleCollisionAddedToAggregate = true;
+            }
+        }
+    }
+    else if ( SplitGroupName.Contains( "Sphere" ) )
+    {
+        PrimIndex = GenerateSphereAsSimpleCollision( StaticMesh );
+        if (!HoudiniGeoPartObject.bIsRenderCollidable)
+        {
+            // If this part is not renderCollidable, we want to extract the Sphere collider
+            // and add it to the AggregateCollisionGeo to avoid creating extra meshes
+            UBodySetup* bs = StaticMesh->BodySetup;
+            if ( bs && bs->AggGeom.SphereElems.IsValidIndex( PrimIndex ) )
+            {
+                AggregateCollisionGeo.SphereElems.Add(bs->AggGeom.SphereElems[PrimIndex]);
+                bSimpleCollisionAddedToAggregate = true;
+            }
+        }
+    }
+    else if ( SplitGroupName.Contains( "Capsule" ) )
+    {
+        PrimIndex = GenerateSphylAsSimpleCollision( StaticMesh );
+        if (!HoudiniGeoPartObject.bIsRenderCollidable)
+        {
+            // If this part is not renderCollidable, we want to extract the Capsule collider
+            // and add it to the AggregateCollisionGeo to avoid creating extra meshes
+            UBodySetup* bs = StaticMesh->BodySetup;
+            if ( bs && bs->AggGeom.SphylElems.IsValidIndex( PrimIndex ) )
+            {
+                AggregateCollisionGeo.SphylElems.Add(bs->AggGeom.SphylElems[PrimIndex]);
+                bSimpleCollisionAddedToAggregate = true;
+            }
+        }
+    }
+    else
+    {
+        // We need to see what type of collision the user wants
+        // by default, a kdop26 will be created
+        uint32 NumDirections = 26;
+        const FVector* Directions = KDopDir26;
+
+        if ( SplitGroupName.Contains( "kdop10X" ) )
+        {
+            NumDirections = 10;
+            Directions = KDopDir10X;
+        }
+        else if (SplitGroupName.Contains( "kdop10Y" ) )
+        {
+            NumDirections = 10;
+            Directions = KDopDir10Y;
+        }
+        else if (SplitGroupName.Contains( "kdop10Z" ) )
+        {
+            NumDirections = 10;
+            Directions = KDopDir10Z;
+        }
+        else if (SplitGroupName.Contains( "kdop18" ) )
+        {
+            NumDirections = 18;
+            Directions = KDopDir18;
+        }
+
+        // Converting the directions to a TArray
+        TArray<FVector> DirArray;
+        for ( uint32 DirectionIndex = 0; DirectionIndex < NumDirections; DirectionIndex++ )
+        {
+            DirArray.Add( Directions[DirectionIndex] );
+        }
+
+        PrimIndex = GenerateKDopAsSimpleCollision( StaticMesh, DirArray );
+
+        if (!HoudiniGeoPartObject.bIsRenderCollidable)
+        {
+            // If this part is not renderCollidable, we want to extract the KDOP collider
+            // and add it to the AggregateCollisionGeo to avoid creating extra meshes
+            UBodySetup* bs = StaticMesh->BodySetup;
+            if (bs && bs->AggGeom.ConvexElems.IsValidIndex( PrimIndex ) )
+            {
+                AggregateCollisionGeo.ConvexElems.Add(bs->AggGeom.ConvexElems[PrimIndex]);
+                bSimpleCollisionAddedToAggregate = true;
+            }
+        }
+    }
+
+    // We somehow couldnt create the simple collider
+    if ( PrimIndex == INDEX_NONE )
+    {
+        HoudiniGeoPartObject.bIsSimpleCollisionGeo = false;
+        HoudiniGeoPartObject.bIsCollidable = false;
+        HoudiniGeoPartObject.bIsRenderCollidable = false;
+
+        return false;
+    }
+#endif
+    return true;
 }
 
 FHoudiniCookParams::FHoudiniCookParams( class UHoudiniAsset* InHoudiniAsset )
