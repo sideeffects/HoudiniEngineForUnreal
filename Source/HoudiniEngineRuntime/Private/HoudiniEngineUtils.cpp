@@ -56,6 +56,8 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "StaticMeshResources.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
+#include "SkeletalMeshTypes.h"
 #include "Paths.h"
 
 #if PLATFORM_WINDOWS
@@ -2541,7 +2543,6 @@ bool
 FHoudiniEngineUtils::HapiCreateInputNodeForData(
     HAPI_NodeId HostAssetId, 
     UStaticMesh * StaticMesh,
-    const FTransform& InputTransform,
     HAPI_NodeId & ConnectedAssetId,
     UStaticMeshComponent* StaticMeshComponent /* = nullptr */)
 {
@@ -2902,11 +2903,16 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     // Marshall face material indices.
     if ( RawMesh.FaceMaterialIndices.Num() > 0 )
     {
+        // Create an array of Material Interfaces
+        TArray< UMaterialInterface * > MaterialInterfaces;
+        MaterialInterfaces.SetNum(StaticMesh->StaticMaterials.Num());
+        for( int32 MatIdx = 0; MatIdx < StaticMesh->StaticMaterials.Num(); MatIdx++ )
+            MaterialInterfaces[MatIdx] = StaticMesh->StaticMaterials[ MatIdx ].MaterialInterface;
+
         // Create list of materials, one for each face.
         TArray< char * > StaticMeshFaceMaterials;
         FHoudiniEngineUtils::CreateFaceMaterialArray(
-            StaticMesh->StaticMaterials, RawMesh.FaceMaterialIndices,
-            StaticMeshFaceMaterials );
+            MaterialInterfaces, RawMesh.FaceMaterialIndices, StaticMeshFaceMaterials );
 
         // Get name of attribute used for marshalling materials.
         std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_MATERIAL;
@@ -3146,7 +3152,6 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             bInputCreated = HapiCreateInputNodeForData(
                 ConnectedAssetId,
                 OutlinerMesh.StaticMesh,
-                FTransform::Identity,
                 OutlinerMesh.AssetId,
                 OutlinerMesh.StaticMeshComponent );
         }
@@ -3215,7 +3220,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 
                 HAPI_NodeId MeshAssetNodeId = -1;
                 // Creating an Input Node for Mesh Data
-                bool bInputCreated = HapiCreateInputNodeForData( ConnectedAssetId, InputStaticMesh, InputTransform, MeshAssetNodeId, nullptr );
+                bool bInputCreated = HapiCreateInputNodeForData( ConnectedAssetId, InputStaticMesh, MeshAssetNodeId, nullptr );
                 if ( !bInputCreated )
                 {
                     HOUDINI_LOG_WARNING( TEXT( "Error creating input index %d on %d" ), InputIdx, ConnectedAssetId );
@@ -3263,8 +3268,685 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
                     }
                 }
             }
+            else if (USkeletalMesh* InputSkeletalMesh = Cast< USkeletalMesh >(InputObjects[InputIdx]))
+            {
+                HAPI_NodeId MeshAssetNodeId = -1;
+
+                // Creating an Input Node for Mesh Data
+                bool bInputCreated = HapiCreateInputNodeForData( ConnectedAssetId, InputSkeletalMesh, MeshAssetNodeId );
+                if (!bInputCreated)
+                {
+                    HOUDINI_LOG_WARNING(TEXT("Error creating input index %d on %d"), InputIdx, ConnectedAssetId);
+                }
+
+                if ( MeshAssetNodeId >= 0 )
+                {
+                    OutCreatedNodeIds.Add( MeshAssetNodeId );
+
+                    // Now we can connect the input node to the asset node.
+                    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+                        FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
+                        MeshAssetNodeId ), false);
+                }
+            }
         }
     }
+#endif
+    return true;
+}
+
+bool
+FHoudiniEngineUtils::HapiCreateInputNodeForData(
+    HAPI_NodeId HostAssetId,
+    USkeletalMesh * SkeletalMesh,
+    HAPI_NodeId & ConnectedAssetId )
+{
+#if WITH_EDITOR
+    // If we don't have a skeletal mesh, or host asset is invalid, there's nothing to do.
+    if ( !SkeletalMesh || !FHoudiniEngineUtils::IsHoudiniAssetValid( HostAssetId ) )
+        return false;
+
+    // Check if connected asset id is valid, if it is not, we need to create an input asset.
+    if ( ConnectedAssetId < 0 )
+    {
+        HAPI_NodeId AssetId = -1;
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputNode(
+            FHoudiniEngine::Get().GetSession(), &AssetId, nullptr ), false );
+
+        // Check if we have a valid id for this new input asset.
+        if ( !FHoudiniEngineUtils::IsHoudiniAssetValid( AssetId ) )
+            return false;
+
+        // We now have a valid id.
+        ConnectedAssetId = AssetId;
+
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CookNode(
+            FHoudiniEngine::Get().GetSession(), AssetId, nullptr ), false );
+    }
+
+    // Get runtime settings.
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    check( HoudiniRuntimeSettings );
+
+    float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
+    EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+    int32 GeneratedLightMapResolution = 32;
+
+    if ( HoudiniRuntimeSettings )
+    {
+        GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+        ImportAxis = HoudiniRuntimeSettings->ImportAxis;
+        GeneratedLightMapResolution = HoudiniRuntimeSettings->LightMapResolution;
+    }
+
+    // Grab base LOD level.
+    const FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetImportedResource();
+    const FStaticLODModel& SourceModel = SkelMeshResource->LODModels[0];
+    const int32 VertexCount = SourceModel.GetNumNonClothingVertices();
+
+    // Verify the integrity of the mesh.
+    if ( VertexCount <= 0 ) 
+        return false;
+
+    // Extract the vertices buffer (this also contains normals, uvs, colors...)
+    TArray<FSoftSkinVertex> SoftSkinVertices;
+    SourceModel.GetNonClothVertices( SoftSkinVertices );
+    if ( SoftSkinVertices.Num() != VertexCount )
+        return false;
+
+    // Extract the indices
+    TArray<uint32> Indices;
+    SourceModel.MultiSizeIndexContainer.GetIndexBuffer(Indices);
+    int32 FaceCount = Indices.Num() / 3;
+
+    // Create part.
+    HAPI_PartInfo Part;
+    FMemory::Memzero< HAPI_PartInfo >(Part);
+    Part.id = 0;
+    Part.nameSH = 0;
+    Part.attributeCounts[ HAPI_ATTROWNER_POINT ] = 0;
+    Part.attributeCounts[ HAPI_ATTROWNER_PRIM ] = 0;
+    Part.attributeCounts[ HAPI_ATTROWNER_VERTEX ] = 0;
+    Part.attributeCounts[ HAPI_ATTROWNER_DETAIL ] = 0;
+    Part.vertexCount = Indices.Num();
+    Part.faceCount = FaceCount;
+    Part.pointCount = SoftSkinVertices.Num();
+    Part.type = HAPI_PARTTYPE_MESH;
+
+    HAPI_GeoInfo DisplayGeoInfo;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetDisplayGeoInfo(
+        FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &DisplayGeoInfo), false);
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(
+        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0, &Part), false);
+
+
+    //-------------------------------------------------------------------------
+    // POSITIONS
+    //-------------------------------------------------------------------------
+    
+    // Create point attribute info.
+    HAPI_AttributeInfo AttributeInfoPoint;
+    FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoPoint);
+    AttributeInfoPoint.count = SoftSkinVertices.Num();
+    AttributeInfoPoint.tupleSize = 3;
+    AttributeInfoPoint.exists = true;
+    AttributeInfoPoint.owner = HAPI_ATTROWNER_POINT;
+    AttributeInfoPoint.storage = HAPI_STORAGETYPE_FLOAT;
+    AttributeInfoPoint.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
+        HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
+
+    // Convert vertices from the skeletal mesh to a float array
+    TArray< float > SkelMeshVertices;
+    SkelMeshVertices.SetNumZeroed( SoftSkinVertices.Num() * 3 );
+    for ( int32 VertexIdx = 0; VertexIdx < SoftSkinVertices.Num(); ++VertexIdx )
+    {
+        // Grab vertex at this index.
+        const FVector & PositionVector = SoftSkinVertices[ VertexIdx ].Position;	
+
+        if ( ImportAxis == HRSAI_Unreal )
+        {
+            SkelMeshVertices[ VertexIdx * 3 + 0 ] = PositionVector.X / GeneratedGeometryScaleFactor;
+            SkelMeshVertices[ VertexIdx * 3 + 1 ] = PositionVector.Z / GeneratedGeometryScaleFactor;
+            SkelMeshVertices[ VertexIdx * 3 + 2 ] = PositionVector.Y / GeneratedGeometryScaleFactor;
+        }
+        else
+        {
+            SkelMeshVertices[ VertexIdx * 3 + 0 ] = PositionVector.X / GeneratedGeometryScaleFactor;
+            SkelMeshVertices[ VertexIdx * 3 + 1 ] = PositionVector.Y / GeneratedGeometryScaleFactor;
+            SkelMeshVertices[ VertexIdx * 3 + 2 ] = PositionVector.Z / GeneratedGeometryScaleFactor;
+        }
+    }
+
+    // Now that we have raw positions, we can upload them for our attribute.
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
+        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+        0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint,
+        SkelMeshVertices.GetData(), 0,
+        AttributeInfoPoint.count ), false );
+
+
+    //-------------------------------------------------------------------------
+    // UVS
+    //-------------------------------------------------------------------------
+    // See if we have texture coordinates to upload.
+    for ( uint32 MeshTexCoordIdx = 0; MeshTexCoordIdx < SourceModel.NumTexCoords; ++MeshTexCoordIdx )
+    {
+        TArray< FVector > MeshUVs;
+        MeshUVs.SetNumUninitialized( Indices.Num() );	
+
+        // Transfer UV data.
+        for ( int32 UVIdx = 0; UVIdx < Indices.Num(); ++UVIdx )
+        {
+            // Grab uv for this coordSet at this index.
+            const FVector2D & UV = SoftSkinVertices[ Indices[UVIdx] ].UVs[ MeshTexCoordIdx ];
+            MeshUVs[ UVIdx ] = FVector(UV.X, 1.0 - UV.Y, 0);
+        }
+
+        if ( ImportAxis == HRSAI_Unreal )
+        {
+            // We need to re-index UVs due to swapped indices in the faces (due to winding order differences) 
+            for ( int32 WedgeIdx = 0; WedgeIdx < Indices.Num(); WedgeIdx += 3 )
+            {
+                // Swap second and third values for the vertices of the face
+                MeshUVs.SwapMemory( WedgeIdx + 1, WedgeIdx + 2 );
+            }
+        }
+
+        // Construct attribute name for this index.
+        FString UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
+        if ( MeshTexCoordIdx > 0 )
+            UVAttributeName += FString::Printf(TEXT("%d"), MeshTexCoordIdx + 1);
+
+        // Create attribute for UVs
+        HAPI_AttributeInfo AttributeInfoUVS;
+        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoUVS );
+        AttributeInfoUVS.count = MeshUVs.Num();
+        AttributeInfoUVS.tupleSize = 3;
+        AttributeInfoUVS.exists = true;
+        AttributeInfoUVS.owner = HAPI_ATTROWNER_VERTEX;
+        AttributeInfoUVS.storage = HAPI_STORAGETYPE_FLOAT;
+        AttributeInfoUVS.originalOwner = HAPI_ATTROWNER_INVALID;
+
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+            FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+            0, TCHAR_TO_ANSI( *UVAttributeName ), &AttributeInfoUVS), false );
+
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
+            FHoudiniEngine::Get().GetSession(),
+            DisplayGeoInfo.nodeId, 0, TCHAR_TO_ANSI( *UVAttributeName ), &AttributeInfoUVS,
+            (const float *) MeshUVs.GetData(), 0, AttributeInfoUVS.count ), false );
+    }
+    
+
+    //-------------------------------------------------------------------------
+    // NORMALS
+    //-------------------------------------------------------------------------
+    TArray< FVector > MeshNormals;
+    MeshNormals.SetNumUninitialized( Indices.Num() );
+
+    // Transfer Normal data.
+    for (int32 NormalIdx = 0; NormalIdx < Indices.Num(); ++NormalIdx)
+    {
+        MeshNormals[ NormalIdx ] = FVector( SoftSkinVertices[ Indices[NormalIdx]  ].TangentZ );
+    }
+
+    if ( ImportAxis == HRSAI_Unreal )
+    {
+        // We need to re-index normals due to swapped indices on the faces (due to winding differences).
+        for ( int32 WedgeIdx = 0; WedgeIdx < Indices.Num(); WedgeIdx += 3 )
+        {
+            // Swap second and third values for the vertices of the face
+            MeshNormals.SwapMemory( WedgeIdx + 1, WedgeIdx + 2 );
+        }
+
+        // Also swap the normal's Y and Z
+        for ( int32 WedgeIdx = 0; WedgeIdx < Indices.Num(); ++WedgeIdx )
+            Swap( MeshNormals[ WedgeIdx ].Y, MeshNormals[ WedgeIdx ].Z );
+    }
+
+    // Create attribute for normals.
+    HAPI_AttributeInfo AttributeInfoNormals;
+    FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoNormals);
+    AttributeInfoNormals.count = MeshNormals.Num();
+    AttributeInfoNormals.tupleSize = 3;
+    AttributeInfoNormals.exists = true;
+    AttributeInfoNormals.owner = HAPI_ATTROWNER_VERTEX;
+    AttributeInfoNormals.storage = HAPI_STORAGETYPE_FLOAT;
+    AttributeInfoNormals.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+        0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoNormals), false );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
+        FHoudiniEngine::Get().GetSession(),
+        DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoNormals,
+        (const float *)MeshNormals.GetData(),
+        0, AttributeInfoNormals.count ), false );
+
+
+    //-------------------------------------------------------------------------
+    // Vertex Colors
+    //-------------------------------------------------------------------------
+    TArray< FLinearColor > MeshColors;
+    MeshColors.SetNumUninitialized( Indices.Num() );
+
+    // Transfer Color data.
+    for (int32 ColorIdx = 0; ColorIdx < Indices.Num(); ++ColorIdx)
+    {
+        MeshColors[ ColorIdx ] = SoftSkinVertices[ Indices[ColorIdx] ].Color.ReinterpretAsLinear();
+    }
+    
+    if ( ImportAxis == HRSAI_Unreal )
+    {
+        // We need to re-index colors due to swapped indices on the faces (due to winding differences).
+        for ( int32 WedgeIdx = 0; WedgeIdx < Indices.Num(); WedgeIdx += 3 )
+        {
+            // Swap second and third values for the vertices of the face
+            MeshColors.SwapMemory(WedgeIdx + 1, WedgeIdx + 2);
+        }
+    }
+
+    // Create attribute for colors.
+    HAPI_AttributeInfo AttributeInfoColors;
+    FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoColors);
+    AttributeInfoColors.count = MeshColors.Num();
+    AttributeInfoColors.tupleSize = 4;
+    AttributeInfoColors.exists = true;
+    AttributeInfoColors.owner = HAPI_ATTROWNER_VERTEX;
+    AttributeInfoColors.storage = HAPI_STORAGETYPE_FLOAT;
+    AttributeInfoColors.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+        0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoColors), false );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
+        FHoudiniEngine::Get().GetSession(),
+        DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoColors,
+        (const float *)MeshColors.GetData(), 0, AttributeInfoColors.count ), false );
+
+    //-------------------------------------------------------------------------
+    // Indices
+    //-------------------------------------------------------------------------
+
+    // Extract indices from static mesh.
+    TArray< int32 > MeshIndices;
+    MeshIndices.SetNumUninitialized( Indices.Num() );
+
+    if ( ImportAxis == HRSAI_Unreal )
+    {
+        // We have to swap indices to fix the winding order.
+        for ( int32 IndexIdx = 0; IndexIdx < Indices.Num(); IndexIdx += 3 )
+        {            
+            MeshIndices[ IndexIdx + 0 ] = Indices[ IndexIdx + 0 ];
+            MeshIndices[ IndexIdx + 1 ] = Indices[ IndexIdx + 2 ];
+            MeshIndices[ IndexIdx + 2 ] = Indices[ IndexIdx + 1 ];
+        }
+    }
+    else
+    {
+        // Direct copy, no need to change the winding order
+        MeshIndices = TArray< int32 >( Indices );
+    }
+
+    // We can now set the vertex list.
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetVertexList(
+        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+        0, MeshIndices.GetData(), 0, MeshIndices.Num() ), false );
+
+    // We need to generate the array of face counts.
+    TArray< int32 > MeshFaceCounts;
+    MeshFaceCounts.Init( 3, Part.faceCount );
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetFaceCounts(
+        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+        0, MeshFaceCounts.GetData(), 0, MeshFaceCounts.Num() ), false );
+
+    //-------------------------------------------------------------------------
+    // Face Materials
+    //-------------------------------------------------------------------------
+    TArray<int32> FaceMaterialIds;
+    FaceMaterialIds.SetNumUninitialized( FaceCount );
+    int32 FaceIdx = 0;
+    int32 SectionCount = SourceModel.NumNonClothingSections();
+    for (int32 SectionIndex = 0; SectionIndex < SectionCount; ++SectionIndex)
+    {
+        const FSkelMeshSection& Section = SourceModel.Sections[SectionIndex];
+
+        // Copy the material sections for all the faces of the current section
+        int32 CurrentMatIndex = Section.MaterialIndex;
+        for (int32 TriangleIndex = 0; TriangleIndex < (int32)Section.NumTriangles; ++TriangleIndex)
+        {
+            FaceMaterialIds[FaceIdx++] = CurrentMatIndex;
+        }
+    }
+
+    // Create an array of Material Interfaces
+    TArray< UMaterialInterface * > MaterialInterfaces;
+    MaterialInterfaces.SetNum( SkeletalMesh->Materials.Num() );
+    for( int32 MatIdx = 0; MatIdx < SkeletalMesh->Materials.Num(); MatIdx++ )
+        MaterialInterfaces[MatIdx] = SkeletalMesh->Materials[ MatIdx ].MaterialInterface;
+
+    // Create list of materials, one for each face.
+    TArray< char * > MeshFaceMaterials;
+    FHoudiniEngineUtils::CreateFaceMaterialArray(
+        MaterialInterfaces, FaceMaterialIds, MeshFaceMaterials );
+
+    // Get name of attribute used for marshalling materials.
+    std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_MATERIAL;
+    if ( HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty() )
+        FHoudiniEngineUtils::ConvertUnrealString( HoudiniRuntimeSettings->MarshallingAttributeMaterial, MarshallingAttributeName );
+
+    // Create attribute for materials.
+    HAPI_AttributeInfo AttributeInfoMaterial;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoMaterial );
+    AttributeInfoMaterial.count = FaceMaterialIds.Num();
+    AttributeInfoMaterial.tupleSize = 1;
+    AttributeInfoMaterial.exists = true;
+    AttributeInfoMaterial.owner = HAPI_ATTROWNER_PRIM;
+    AttributeInfoMaterial.storage = HAPI_STORAGETYPE_STRING;
+    AttributeInfoMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    bool bAttributeError = false;
+    if ( FHoudiniApi::AddAttribute( FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
+        MarshallingAttributeName.c_str(), &AttributeInfoMaterial ) != HAPI_RESULT_SUCCESS )
+    {
+        bAttributeError = true;
+    }
+
+    if ( FHoudiniApi::SetAttributeStringData(
+        FHoudiniEngine::Get().GetSession(),
+        DisplayGeoInfo.nodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfoMaterial,
+        (const char **) MeshFaceMaterials.GetData(), 0,
+        MeshFaceMaterials.Num() ) != HAPI_RESULT_SUCCESS )
+    {
+        bAttributeError = true;
+    }
+
+    // Delete material names.
+    FHoudiniEngineUtils::DeleteFaceMaterialArray( MeshFaceMaterials );
+
+    if ( bAttributeError )
+    {
+        check( 0 );
+        return false;
+    }
+
+    //-------------------------------------------------------------------------
+    // Mesh name
+    //-------------------------------------------------------------------------
+    if ( !HoudiniRuntimeSettings->MarshallingAttributeInputMeshName.IsEmpty() )
+    {
+        // Create primitive attribute with mesh asset path
+        const FString MeshAssetPath = SkeletalMesh->GetPathName();
+        std::string MeshAssetPathCStr = TCHAR_TO_ANSI( *MeshAssetPath );
+        const char* MeshAssetPathRaw = MeshAssetPathCStr.c_str();
+
+        TArray<const char*> PrimitiveAttrs;
+        PrimitiveAttrs.AddUninitialized( Part.faceCount );
+        for ( int32 Ix = 0; Ix < Part.faceCount; ++Ix )
+        {
+            PrimitiveAttrs[ Ix ] = MeshAssetPathRaw;
+        }
+
+        std::string MarshallingAttributeName;
+        FHoudiniEngineUtils::ConvertUnrealString(
+            HoudiniRuntimeSettings->MarshallingAttributeInputMeshName, MarshallingAttributeName );
+        
+        HAPI_AttributeInfo AttributeInfo;
+        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+        AttributeInfo.count = Part.faceCount;
+        AttributeInfo.tupleSize = 1;
+        AttributeInfo.exists = true;
+        AttributeInfo.owner = HAPI_ATTROWNER_PRIM;
+        AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
+        AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+            FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+            0, MarshallingAttributeName.c_str(), &AttributeInfo ), false );
+
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
+            FHoudiniEngine::Get().GetSession(),
+            DisplayGeoInfo.nodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfo,
+            PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num() ), false );
+    }
+   
+    //-------------------------------------------------------------------------
+    // Mesh asset path
+    //-------------------------------------------------------------------------
+    if( !HoudiniRuntimeSettings->MarshallingAttributeInputSourceFile.IsEmpty() )
+    {
+        // Create primitive attribute with mesh asset path
+        FString Filename;
+        if( UAssetImportData* ImportData = SkeletalMesh->AssetImportData )
+        {
+            for( const auto& SourceFile : ImportData->SourceData.SourceFiles )
+            {
+                Filename = UAssetImportData::ResolveImportFilename( SourceFile.RelativeFilename, ImportData->GetOutermost() );
+                break;
+            }
+        }
+
+        if( !Filename.IsEmpty() )
+        {
+            std::string FilenameCStr = TCHAR_TO_ANSI( *Filename );
+            const char* FilenameCStrRaw = FilenameCStr.c_str();
+
+            TArray<const char*> PrimitiveAttrs;
+            PrimitiveAttrs.AddUninitialized( Part.faceCount );
+            for( int32 Ix = 0; Ix < Part.faceCount; ++Ix )
+            {
+                PrimitiveAttrs[Ix] = FilenameCStrRaw;
+            }
+
+            std::string MarshallingAttributeName;
+            FHoudiniEngineUtils::ConvertUnrealString(
+                HoudiniRuntimeSettings->MarshallingAttributeInputSourceFile, MarshallingAttributeName );
+
+            HAPI_AttributeInfo AttributeInfo;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+            AttributeInfo.count = Part.faceCount;
+            AttributeInfo.tupleSize = 1;
+            AttributeInfo.exists = true;
+            AttributeInfo.owner = HAPI_ATTROWNER_PRIM;
+            AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
+            AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+                FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+                0, MarshallingAttributeName.c_str(), &AttributeInfo ), false );
+
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
+                FHoudiniEngine::Get().GetSession(),
+                DisplayGeoInfo.nodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfo,
+                PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num() ), false );
+        }
+    }
+
+    // Commit the geo.
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );
+
+    // Export the Skeleton!
+    HAPI_NodeInfo NodeInfo;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
+        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, &NodeInfo ), false );
+
+    FHoudiniEngineUtils::HapiCreateSkeletonFromData( HostAssetId, SkeletalMesh, NodeInfo );
+
+#endif
+
+    return true;
+}
+
+bool
+FHoudiniEngineUtils::HapiCreateSkeletonFromData(
+    HAPI_NodeId HostAssetId,
+    USkeletalMesh * SkeletalMesh,
+    const HAPI_NodeInfo& SkelMeshNodeInfo )
+{
+#if WITH_EDITOR
+    if ( !SkeletalMesh )
+        return false;
+
+    // We need to have an input asset already!
+    if ( SkelMeshNodeInfo.parentId < 0 || SkelMeshNodeInfo.id < 0 )
+        return false;
+
+    // Get the skeleton from the skeletal mesh
+    const FReferenceSkeleton& RefSkeleton = SkeletalMesh->RefSkeleton;
+    int32 BoneCount = RefSkeleton.GetRawBoneNum();
+    if ( BoneCount <= 0 )
+        return false;
+
+    // Get runtime settings.
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    check(HoudiniRuntimeSettings);
+
+    float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
+    EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+    int32 GeneratedLightMapResolution = 32;
+
+    if (HoudiniRuntimeSettings)
+    {
+        GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+        ImportAxis = HoudiniRuntimeSettings->ImportAxis;
+        GeneratedLightMapResolution = HoudiniRuntimeSettings->LightMapResolution;
+    }
+
+    // First, we need to create an objnet node that will contains the nulls & bones
+    HAPI_NodeId ObjnetNodeId = -1;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
+        FHoudiniEngine::Get().GetSession(), SkelMeshNodeInfo.parentId, "objnet", "skeleton", true, &ObjnetNodeId), false);
+
+    // Arrays keeping track of the created nulls / bone node IDs
+    TArray<HAPI_NodeId> NullNodeIds;
+    NullNodeIds.Init(-1,  BoneCount );
+    TArray<HAPI_NodeId> BoneNodeIds;
+    BoneNodeIds.Init(-1,  BoneCount );
+
+    HAPI_NodeId RootNullNodeId = -1;
+    for ( int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetRawBoneNum(); ++BoneIndex )
+    {
+        // Get the current bone's info
+        const FMeshBoneInfo& CurrentBone = RefSkeleton.GetRefBoneInfo()[ BoneIndex ];
+        const FTransform& BoneTransform = RefSkeleton.GetRefBonePose()[ BoneIndex ];
+        const FString & BoneName = CurrentBone.ExportName;
+
+        // Create a joint (null node) for this bone
+        HAPI_NodeId NullNodeId = -1;
+        float BoneLength = 0.0f;
+        {
+            std::string NameStr;
+            FHoudiniEngineUtils::ConvertUnrealString( BoneName, NameStr );
+
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
+                FHoudiniEngine::Get().GetSession(), ObjnetNodeId, "null", NameStr.c_str(), true, &NullNodeId ), false);
+
+            // Check if we have a valid id for this new input asset.
+            if ( NullNodeId == -1 )
+                return false;
+
+            // We have a valid node id.
+            NullNodeIds[ BoneIndex ] = NullNodeId;
+
+            // Convert the joint's transform
+            HAPI_TransformEuler HapiTransform;
+            FHoudiniEngineUtils::TranslateUnrealTransform( BoneTransform, HapiTransform );
+
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetObjectTransform(
+                FHoudiniEngine::Get().GetSession(), NullNodeId, &HapiTransform), false);
+
+            // Calc the bone's length
+            BoneLength = FVector( HapiTransform.position[0], HapiTransform.position[1], HapiTransform.position[2] ).Size();
+
+            /*
+            // Cook the null
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CookNode(
+                FHoudiniEngine::Get().GetSession(), NullNodeId, nullptr), false);
+                */
+        }
+
+        // If we're the root node, we don't need to creating bones
+        if ( CurrentBone.ParentIndex < 0 )
+        {
+            RootNullNodeId = NullNodeId;
+            continue;
+        }
+
+        // Get our parent's id
+        HAPI_NodeId ParentNullNodeId = -1;
+        ParentNullNodeId = NullNodeIds[ CurrentBone.ParentIndex ];
+
+        // Connect the joints
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
+            FHoudiniEngine::Get().GetSession(), NullNodeId, 0, ParentNullNodeId ), false );
+
+        // Now we need to create the bone
+        // It has to be named by our parents, and looking at the current null node
+        HAPI_NodeId BoneNodeId = -1;
+        {
+            const FString & ParentName = RefSkeleton.GetRefBoneInfo()[ CurrentBone.ParentIndex ].ExportName + TEXT("_bone");
+            std::string NameStr;
+            FHoudiniEngineUtils::ConvertUnrealString( ParentName, NameStr );
+
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
+                FHoudiniEngine::Get().GetSession(), ObjnetNodeId, "bone", NameStr.c_str(), true, &BoneNodeId), false );
+
+            // Check if we have a valid id for this new input asset.
+            if ( BoneNodeId == -1 )
+                return false;
+
+            // We have a valid node id.
+            //NullNodeIds[ BoneIndex ] = BoneNodeId;
+
+            // We need to change the length, lookatpath attributes
+            // The bone looks at the current null
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmNodeValue(
+                FHoudiniEngine::Get().GetSession(), BoneNodeId, "lookatpath", NullNodeId ), false );
+
+            // Set the length parameter
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmFloatValue(
+                FHoudiniEngine::Get().GetSession(), BoneNodeId, "length", 0, BoneLength), false);
+        }
+
+        // Connect the bone to its parent
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+            FHoudiniEngine::Get().GetSession(), BoneNodeId, 0, ParentNullNodeId ), false);
+    }
+
+    // Finally, we have to create an object merge node, to attach the skeletal mesh's geometry to the skeleton
+    // Start by creating a geo nodes
+    HAPI_NodeId GeoNodeId = -1;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
+        FHoudiniEngine::Get().GetSession(), ObjnetNodeId, "geo", "mesh", true, &GeoNodeId), false );
+
+    // ... and connect it to the skeleton's root
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
+        FHoudiniEngine::Get().GetSession(), GeoNodeId, 0, RootNullNodeId), false );
+
+    // Then create an object merge in the geo node...
+    HAPI_NodeId ObjMergeNodeId = -1;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
+        FHoudiniEngine::Get().GetSession(), GeoNodeId, "object_merge", "mesh", true, &ObjMergeNodeId), false);
+
+    // ... and set it's object path parameter to the skeletal mesh's geometry
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmNodeValue(
+        FHoudiniEngine::Get().GetSession(), ObjMergeNodeId, "objpath1", SkelMeshNodeInfo.id ), false );
+
+    // We have to delete the default file node created by the geometry node
+    HAPI_GeoInfo GeoInfo;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetDisplayGeoInfo(
+        FHoudiniEngine::Get().GetSession(), GeoNodeId, &GeoInfo), false);
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::DeleteNode(
+        FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId ), false);
+
 #endif
     return true;
 }
@@ -5341,8 +6023,7 @@ FHoudiniEngineUtils::ExtractRawName( const FString & Name )
 #if WITH_EDITOR
 void
 FHoudiniEngineUtils::CreateFaceMaterialArray(
-    const TArray< FStaticMaterial > & Materials, const TArray< int32 > & FaceMaterialIndices,
-    TArray< char * > & OutStaticMeshFaceMaterials )
+    const TArray< UMaterialInterface * >& Materials, const TArray< int32 > & FaceMaterialIndices, TArray< char * > & OutStaticMeshFaceMaterials )
 {
     // We need to create list of unique materials.
     TArray< char * > UniqueMaterialList;
@@ -5355,8 +6036,7 @@ FHoudiniEngineUtils::CreateFaceMaterialArray(
         for ( int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); ++MaterialIdx )
         {
             UniqueName = nullptr;
-            MaterialInterface = Materials[ MaterialIdx ].MaterialInterface;
-
+            MaterialInterface = Materials[ MaterialIdx ];
             if ( !MaterialInterface )
             {
                 // Null material interface found, add default instead.

@@ -35,6 +35,7 @@ class UHoudiniAsset;
 class ALandscapeProxy;
 class AHoudiniAssetActor;
 class USplineComponent;
+class USkeletalMesh;
 
 struct FRawMesh;
 
@@ -319,7 +320,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static bool HapiCreateInputNodeForData(
             HAPI_NodeId HostAssetId, 
             UStaticMesh * Mesh,
-            const FTransform& InputTransform,
             HAPI_NodeId & ConnectedAssetId,
             class UStaticMeshComponent* StaticMeshComponent = nullptr );
 
@@ -353,6 +353,18 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             TArray<FQuat>* Rotations = nullptr,
             TArray<FVector>* Scales3d = nullptr,
             TArray<float>* UniformScales = nullptr);
+
+        /** HAPI : Marshaling, extract geometry and skeleton and create input asset for it - return true on success **/
+        static bool HapiCreateInputNodeForData(
+            HAPI_NodeId HostAssetId,
+            USkeletalMesh * SkeletalMesh,
+            HAPI_NodeId & ConnectedAssetId );
+
+        /** HAPI : Marshaling, extract skeleton and creates its Houdini equivalent - return true on success **/
+        static bool HapiCreateSkeletonFromData(
+                HAPI_NodeId HostAssetId,
+                USkeletalMesh * SkeletalMesh,
+                const HAPI_NodeInfo& SkelMeshNodeInfo );
 
         /** HAPI : Marshaling, disconnect input asset from a given slot. **/
         static bool HapiDisconnectAsset( HAPI_NodeId HostAssetId, int32 InputIndex );
@@ -578,7 +590,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Create helper array of material names, we use it for marshalling. **/
         static void CreateFaceMaterialArray(
-            const TArray< FStaticMaterial > & Materials,
+            const TArray< UMaterialInterface * >& Materials,
             const TArray< int32 > & FaceMaterialIndices,
             TArray< char * > & OutStaticMeshFaceMaterials );
 

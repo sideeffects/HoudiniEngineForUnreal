@@ -45,7 +45,8 @@ namespace EHoudiniAssetInputType
         AssetInput,
         CurveInput,
         LandscapeInput,
-        WorldInput
+        WorldInput,
+        SkeletonInput
     };
 }
 
@@ -274,6 +275,15 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Handler for reset static mesh button. **/
         FReply OnResetStaticMeshClicked( int32 AtIndex );
 
+        /** Delegate used when skeleton mesh has been drag and dropped. **/
+        void OnSkeletalMeshDropped( UObject * InObject, int32 AtIndex );
+
+        /** Browse to skeletal mesh. **/
+        void OnSkeletalMeshBrowse( int32 AtIndex );
+
+        /** Handler for reset skeletal mesh button. **/
+        FReply OnResetSkeletalMeshClicked( int32 AtIndex );
+
         /** Called when change of selection is triggered. **/
         void OnChoiceChange( TSharedPtr< FString > NewChoice );
 
@@ -300,10 +310,14 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** NeedCleanUp indicates that existing inputs from Actor needs to be removed **/
         void UpdateInputOulinerArrayFromActor( AActor * Actor, const bool& NeedCleanUp );
 
-        /** Called to append a slot to the list of input objects */
+        /** Called to append a slot to the list of geometry input objects */
         void OnAddToInputObjects();
-        /** Called to empty the list of input objects */
+        /** Called to empty the list of geometry input objects */
         void OnEmptyInputObjects();
+        /** Called to append a slot to the list of skeleton input objects */
+        void OnAddToSkeletonInputObjects();
+        /** Called to empty the list of skeleton input objects */
+        void OnEmptySkeletonInputObjects();
 
 #endif
 
@@ -349,8 +363,11 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Returns the default value for this input Transform Type, 0 = none / 1 = IntoThisObject **/
         uint32 GetDefaultTranformTypeValue() const;
 
-        /** Returns the input object at index or nullptr */
+        /** Returns the geometry input object at index or nullptr */
         UObject* GetInputObject( int32 AtIndex ) const;
+
+        /** Returns the skeleton input object at index or nullptr */
+        UObject* GetSkeletonInputObject(int32 AtIndex) const;
 
         /** Returns the input transform at index or the identity transform */
         FTransform GetInputTransform( int32 AtIndex ) const;
@@ -487,6 +504,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** List of selected meshes and actors from the World Outliner. **/
         TArray< FHoudiniAssetInputOutlinerMesh > InputOutlinerMeshArray;
+
+        /** Objects used for geometry input. **/
+        TArray<UObject *> SkeletonInputObjects;
 
         /** Id of currently connected asset. **/
         HAPI_NodeId ConnectedAssetId;

@@ -228,13 +228,15 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
 
     ChoiceStringValue = TEXT( "" );
 
-    // Initialize the arraysc
+    // Initialize the arrays
     InputObjects.SetNumUninitialized( 1 );
     InputObjects[ 0 ] = nullptr;
     InputTransforms.SetNumUninitialized( 1 );
     InputTransforms[ 0 ] = FTransform::Identity;
     TransformUIExpanded.SetNumUninitialized( 1 );
     TransformUIExpanded[ 0 ] = false;
+    SkeletonInputObjects.SetNumUninitialized(1);
+    SkeletonInputObjects[0] = nullptr;
 }
 
 UHoudiniAssetInput *
@@ -352,6 +354,13 @@ UHoudiniAssetInput::CreateWidgetResources()
         if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
             ChoiceStringValue = *ChoiceLabel;
     }
+    {
+        FString * ChoiceLabel = new FString(TEXT("Skeletal Mesh Input"));
+        StringChoiceLabels.Add(TSharedPtr< FString >(ChoiceLabel));
+
+        if (ChoiceIndex == EHoudiniAssetInputType::SkeletonInput)
+            ChoiceStringValue = *ChoiceLabel;
+    }
 }
 
 void
@@ -411,11 +420,20 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
             }
             CreatedInputDataAssetIds.Empty();
         }
-        else if (ChoiceIndex == EHoudiniAssetInputType::LandscapeInput)
+        else if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
         {
             // Destroy the landscape node
             // If the landscape was sent as a heightfield, also destroy the heightfield's input node
             FHoudiniLandscapeUtils::DestroyLandscapeAssetNode( ConnectedAssetId, CreatedInputDataAssetIds );
+        }
+        else if ( ChoiceIndex == EHoudiniAssetInputType::SkeletonInput )
+        {
+            // Destroy all the skeleton input assets
+            for ( HAPI_NodeId AssetNodeId : CreatedInputDataAssetIds )
+            {
+                FHoudiniEngineUtils::DestroyHoudiniAsset( AssetNodeId );
+            }
+            CreatedInputDataAssetIds.Empty();
         }
 
         if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
@@ -858,6 +876,43 @@ UHoudiniAssetInput::UploadParameterValue()
             break;
         }
 
+        case EHoudiniAssetInputType::SkeletonInput:
+        {
+            if (!SkeletonInputObjects.Num())
+            {
+                // Either mesh was reset or null mesh has been assigned.
+                DisconnectAndDestroyInputAsset();
+            }
+            else
+            {
+                if (bStaticMeshChanged || bLoadedParameter)
+                {
+                    // Disconnect and destroy currently connected asset, if there's one.
+                    DisconnectAndDestroyInputAsset();
+
+                    // Connect input and create connected asset. Will return by reference.
+                    if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData(
+                        HostAssetId, SkeletonInputObjects, InputTransforms,
+                        ConnectedAssetId, CreatedInputDataAssetIds ) )
+                    {
+                        bChanged = false;
+                        ConnectedAssetId = -1;
+                        return false;
+                    }
+                    else
+                    {
+                        Success &= ConnectInputNode();
+                    }
+
+                    bStaticMeshChanged = false;
+                }
+
+                Success &= UpdateObjectMergeTransformType();
+                Success &= UpdateObjectMergePackBeforeMerge();
+            }
+            break;
+        }
+
         default:
         {
             check( 0 );
@@ -900,6 +955,12 @@ FTransform
 UHoudiniAssetInput::GetInputTransform( int32 AtIndex ) const
 {
     return InputTransforms.IsValidIndex( AtIndex ) ? InputTransforms[ AtIndex ] : FTransform::Identity;
+}
+
+UObject*
+UHoudiniAssetInput::GetSkeletonInputObject( int32 AtIndex ) const
+{
+    return SkeletonInputObjects.IsValidIndex( AtIndex ) ? SkeletonInputObjects[ AtIndex ] : nullptr;
 }
 
 UHoudiniAssetComponent* 
@@ -1328,6 +1389,45 @@ UHoudiniAssetInput::OnStaticMeshDropped( UObject * InObject, int32 AtIndex )
     }
 }
 
+void
+UHoudiniAssetInput::OnSkeletalMeshDropped( UObject * InObject, int32 AtIndex )
+{
+    UObject* InputObject = GetSkeletonInputObject( AtIndex );
+    if ( InObject != InputObject )
+    {
+        FScopedTransaction Transaction(
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Skeleton Input Change" ),
+            PrimaryObject );
+        Modify();
+
+        MarkPreChanged();
+        if ( SkeletonInputObjects.IsValidIndex( AtIndex ) )
+        {
+            SkeletonInputObjects[ AtIndex ] = InObject;
+        }
+        else
+        {
+            check( AtIndex == 0 );
+            SkeletonInputObjects.Add( InObject );
+        }
+
+        /*
+        if ( !InputTransforms.IsValidIndex( AtIndex ) )
+            InputTransforms.Add( FTransform::Identity );
+
+        if ( !TransformUIExpanded.IsValidIndex( AtIndex ) )
+            TransformUIExpanded.Add( false );
+        */
+
+        bStaticMeshChanged = true;
+        MarkChanged();
+
+        OnParamStateChanged();
+    }
+}
+
+
 FReply
 UHoudiniAssetInput::OnThumbnailDoubleClick( const FGeometry & InMyGeometry, const FPointerEvent & InMouseEvent, int32 AtIndex )
 {
@@ -1338,9 +1438,20 @@ UHoudiniAssetInput::OnThumbnailDoubleClick( const FGeometry & InMyGeometry, cons
     return FReply::Handled();
 }
 
-void UHoudiniAssetInput::OnStaticMeshBrowse(int32 AtIndex)
+void UHoudiniAssetInput::OnStaticMeshBrowse( int32 AtIndex )
 {
     UObject* InputObject = GetInputObject( AtIndex );
+    if ( GEditor && InputObject )
+    {
+        TArray< UObject * > Objects;
+        Objects.Add( InputObject );
+        GEditor->SyncBrowserToObjects( Objects );
+    }
+}
+
+void UHoudiniAssetInput::OnSkeletalMeshBrowse( int32 AtIndex )
+{
+    UObject* InputObject = GetSkeletonInputObject( AtIndex );
     if ( GEditor && InputObject )
     {
         TArray< UObject * > Objects;
@@ -1356,6 +1467,12 @@ UHoudiniAssetInput::OnResetStaticMeshClicked( int32 AtIndex )
     return FReply::Handled();
 }
 
+FReply
+UHoudiniAssetInput::OnResetSkeletalMeshClicked( int32 AtIndex )
+{
+    OnSkeletalMeshDropped( nullptr, AtIndex );
+    return FReply::Handled();
+}
 
 void
 UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice )
@@ -1431,6 +1548,12 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
             // Stop monitoring the Actors for transform changes.
             StopWorldOutlinerTicking();
 
+            break;
+        }
+
+        case EHoudiniAssetInputType::SkeletonInput:
+        {
+            // We are switching away from a skeleton input.
             break;
         }
 
@@ -1516,6 +1639,14 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
                 ConnectInputNode();
             }
 
+            break;
+        }
+
+        case EHoudiniAssetInputType::SkeletonInput:
+        {
+            // We are switching to skeleton input.
+            if (SkeletonInputObjects.Num())
+                bStaticMeshChanged = true;
             break;
         }
 
@@ -2778,6 +2909,44 @@ void UHoudiniAssetInput::OnEmptyInputObjects()
     OnParamStateChanged();
 }
 
+void UHoudiniAssetInput::OnAddToSkeletonInputObjects()
+{
+    FScopedTransaction Transaction(
+        TEXT(HOUDINI_MODULE_RUNTIME),
+        LOCTEXT("HoudiniInputChange", "Houdini Input Geometry Change"),
+        PrimaryObject);
+    Modify();
+    MarkPreChanged();
+    SkeletonInputObjects.Add(nullptr);
+    //InputTransforms.Add(FTransform::Identity);
+    //TransformUIExpanded.Add(false);
+    MarkChanged();
+    bStaticMeshChanged = true;
+    OnParamStateChanged();
+}
+
+void UHoudiniAssetInput::OnEmptySkeletonInputObjects()
+{
+    FScopedTransaction Transaction(
+        TEXT(HOUDINI_MODULE_RUNTIME),
+        LOCTEXT("HoudiniInputChange", "Houdini Input Geometry Change"),
+        PrimaryObject);
+    Modify();
+    MarkPreChanged();
+
+    // Empty the arrays
+    SkeletonInputObjects.Empty();
+    //InputTransforms.Empty();
+    //TransformUIExpanded.Empty();
+
+    // To avoid displaying 0 elements when there's one (empty), initialize the array
+    SkeletonInputObjects.Add(nullptr);
+    //InputTransforms.Add(FTransform::Identity);
+    //TransformUIExpanded.Add(false);
+    MarkChanged();
+    bStaticMeshChanged = true;
+    OnParamStateChanged();
+}
 
 TOptional< float >
 UHoudiniAssetInput::GetSplineResolutionValue() const

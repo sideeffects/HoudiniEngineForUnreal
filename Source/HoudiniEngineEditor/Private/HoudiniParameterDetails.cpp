@@ -1840,6 +1840,341 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
     }
 }
 
+/** Create a single skeleton widget for the given input object */
+void FHoudiniParameterDetails::Helper_CreateSkeletonWidget(
+    UHoudiniAssetInput& InParam, int32 AtIndex, UObject* InputObject,
+    TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool, TSharedRef< SVerticalBox > VerticalBox )
+{
+    TWeakObjectPtr<UHoudiniAssetInput> MyParam( &InParam );
+
+    // Create thumbnail for this skeleton mesh.
+    TSharedPtr< FAssetThumbnail > SkeletalMeshThumbnail = MakeShareable(
+        new FAssetThumbnail( InputObject, 64, 64, AssetThumbnailPool ) );
+
+    TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
+    // Drop Target: Skeletal Mesh
+    VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
+    [
+        SNew( SAssetDropTarget )
+        .OnIsAssetAcceptableForDrop( SAssetDropTarget::FIsAssetAcceptableForDrop::CreateLambda(
+            [] ( const UObject* InObject )
+            {
+                return InObject && InObject->IsA< USkeletalMesh >();
+            } 
+        ) )
+        .OnAssetDropped( SAssetDropTarget::FOnAssetDropped::CreateUObject(
+            &InParam, &UHoudiniAssetInput::OnSkeletalMeshDropped, AtIndex ) )
+        [
+            SAssignNew(HorizontalBox, SHorizontalBox)
+        ]
+    ];
+
+    // Thumbnail : Skeletal Mesh
+    FText ParameterLabelText = FText::FromString( InParam.GetParameterLabel() );
+    //FText ParameterTooltip = GetParameterTooltip( &InParam, true );
+    TSharedPtr< SBorder > SkeletalMeshThumbnailBorder;
+
+    HorizontalBox->AddSlot().Padding(0.0f, 0.0f, 2.0f, 0.0f).AutoWidth()
+    [
+        SAssignNew( SkeletalMeshThumbnailBorder, SBorder )
+        .Padding(5.0f)
+        .OnMouseDoubleClick(FPointerEventHandler::CreateUObject(&InParam, &UHoudiniAssetInput::OnThumbnailDoubleClick, AtIndex))
+        [
+            SNew(SBox)
+            .WidthOverride(64)
+            .HeightOverride(64)
+            .ToolTipText(ParameterLabelText)
+            [
+                SkeletalMeshThumbnail->MakeThumbnailWidget()
+            ]
+        ]
+    ];
+
+    SkeletalMeshThumbnailBorder->SetBorderImage( TAttribute< const FSlateBrush * >::Create(
+    TAttribute< const FSlateBrush * >::FGetter::CreateLambda( [ SkeletalMeshThumbnailBorder ]()
+    {
+        if ( SkeletalMeshThumbnailBorder.IsValid() && SkeletalMeshThumbnailBorder->IsHovered() )
+            return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailLight" );
+        else
+            return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailShadow" );
+    } ) ) );
+
+    FText MeshNameText = FText::GetEmpty();
+    if ( InputObject )
+        MeshNameText = FText::FromString( InputObject->GetName() );
+
+    // ComboBox : Skeletal Mesh
+    TSharedPtr< SComboButton > SkeletalMeshComboButton;
+
+    TSharedPtr< SHorizontalBox > ButtonBox;
+    HorizontalBox->AddSlot()
+    .FillWidth( 1.0f )
+    .Padding( 0.0f, 4.0f, 4.0f, 4.0f )
+    .VAlign( VAlign_Center )
+    [
+        SNew( SVerticalBox )
+        + SVerticalBox::Slot()
+        .HAlign( HAlign_Fill )
+        [
+            SAssignNew( ButtonBox, SHorizontalBox )
+            + SHorizontalBox::Slot()
+            [
+                SAssignNew(SkeletalMeshComboButton, SComboButton )
+                .ButtonStyle( FEditorStyle::Get(), "PropertyEditor.AssetComboStyle" )
+                .ForegroundColor( FEditorStyle::GetColor( "PropertyEditor.AssetName.ColorAndOpacity" ) )
+                .ContentPadding( 2.0f )
+                .ButtonContent()
+                [
+                    SNew( STextBlock )
+                    .TextStyle( FEditorStyle::Get(), "PropertyEditor.AssetClass" )
+                    .Font( FEditorStyle::GetFontStyle( FName( TEXT( "PropertyWindow.NormalFont" ) ) ) )
+                    .Text( MeshNameText )
+                ]
+            ]
+        ]
+    ];
+
+    SkeletalMeshComboButton->SetOnGetMenuContent( FOnGetContent::CreateLambda( 
+        [ MyParam, AtIndex, SkeletalMeshComboButton ]()
+    {
+        TArray< const UClass * > AllowedClasses;
+        AllowedClasses.Add(USkeletalMesh::StaticClass());
+
+        TArray< UFactory * > NewAssetFactories;
+        return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
+            FAssetData( MyParam->GetInputObject( AtIndex ) ),
+            true,
+            AllowedClasses,
+            NewAssetFactories,
+            FOnShouldFilterAsset(),
+            FOnAssetSelected::CreateLambda(
+                [ MyParam, AtIndex, SkeletalMeshComboButton]( const FAssetData & AssetData )
+            {
+                if (SkeletalMeshComboButton.IsValid())
+                {
+                    SkeletalMeshComboButton->SetIsOpen(false);
+
+                    UObject * Object = AssetData.GetAsset();
+                    MyParam->OnSkeletalMeshDropped(Object, AtIndex);
+                }
+            } ),
+            FSimpleDelegate::CreateLambda( [](){}) 
+        );
+    } ) );
+
+    // Create tooltip.
+    FFormatNamedArguments Args;
+    Args.Add( TEXT("Asset"), MeshNameText );
+    FText SkeletalMeshTooltip = FText::Format(
+        LOCTEXT("BrowseToSpecificAssetInContentBrowser",
+            "Browse to '{Asset}' in Content Browser"), Args);
+
+    // Button : Browse Skeletal Mesh
+    ButtonBox->AddSlot()
+    .AutoWidth()
+    .Padding( 2.0f, 0.0f )
+    .VAlign( VAlign_Center )
+    [
+        PropertyCustomizationHelpers::MakeBrowseButton(
+            FSimpleDelegate::CreateUObject( &InParam, &UHoudiniAssetInput::OnStaticMeshBrowse, AtIndex ),
+            TAttribute< FText >( SkeletalMeshTooltip ) )
+    ];
+
+    // ButtonBox : Reset
+    ButtonBox->AddSlot()
+    .AutoWidth()
+    .Padding( 2.0f, 0.0f )
+    .VAlign( VAlign_Center )
+    [
+        SNew( SButton )
+        .ToolTipText( LOCTEXT( "ResetToBase", "Reset to default skeletal mesh" ) )
+        .ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+        .ContentPadding( 0 )
+        .Visibility( EVisibility::Visible )
+        .OnClicked( FOnClicked::CreateUObject( &InParam, &UHoudiniAssetInput::OnResetSkeletalMeshClicked, AtIndex ) )
+        [
+            SNew( SImage )
+            .Image( FEditorStyle::GetBrush( "PropertyWindow.DiffersFromDefault" ) )
+        ]
+    ];
+
+    ButtonBox->AddSlot()
+    .Padding( 1.0f )
+    .VAlign( VAlign_Center )
+    .AutoWidth()
+    [
+        PropertyCustomizationHelpers::MakeInsertDeleteDuplicateButton(
+            FExecuteAction::CreateLambda( [ MyParam, AtIndex ](){ MyParam->OnInsertGeo( AtIndex ); } ),
+            FExecuteAction::CreateLambda( [ MyParam, AtIndex ](){ MyParam->OnDeleteGeo( AtIndex ); } ),
+            FExecuteAction::CreateLambda( [ MyParam, AtIndex ](){ MyParam->OnDuplicateGeo( AtIndex ); } ) )
+    ];
+
+    /*
+    // TRANSFORM
+    {
+        TSharedPtr<SButton> ExpanderArrow;
+        TSharedPtr<SImage> ExpanderImage;
+        VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
+        [
+            SNew( SHorizontalBox )
+            + SHorizontalBox::Slot()
+            .Padding( 1.0f )
+            .VAlign( VAlign_Center )
+            .AutoWidth()
+            [
+                SAssignNew( ExpanderArrow, SButton )
+                .ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+                .ClickMethod( EButtonClickMethod::MouseDown )
+                .Visibility( EVisibility::Visible )
+                .OnClicked( FOnClicked::CreateUObject( &InParam, &UHoudiniAssetInput::OnExpandInputTransform, AtIndex ) )
+                [
+                    SAssignNew( ExpanderImage, SImage )
+                    .ColorAndOpacity( FSlateColor::UseForeground() )
+                ]
+            ]
+            + SHorizontalBox::Slot()
+            .Padding( 1.0f )
+            .VAlign( VAlign_Center )
+            .AutoWidth()
+            [
+                SNew( STextBlock )
+                .Text( LOCTEXT("GeoInputTransform", "Transform Offset" ) )
+                .ToolTipText( LOCTEXT( "GeoInputTransformTooltip", "Transform offset used for correction before sending the asset to Houdini" ) )
+                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+            ]
+        ];
+
+        // Set delegate for image
+        ExpanderImage->SetImage( TAttribute<const FSlateBrush*>::Create(
+            TAttribute<const FSlateBrush*>::FGetter::CreateLambda( [=]()
+        {
+            FName ResourceName;
+            if ( MyParam->TransformUIExpanded[ AtIndex ] )
+            {
+                if ( ExpanderArrow->IsHovered() )
+                    ResourceName = "TreeArrow_Expanded_Hovered";
+                else
+                    ResourceName = "TreeArrow_Expanded";
+            }
+            else
+            {
+                if ( ExpanderArrow->IsHovered() )
+                    ResourceName = "TreeArrow_Collapsed_Hovered";
+                else
+                    ResourceName = "TreeArrow_Collapsed";
+            }
+            return FEditorStyle::GetBrush( ResourceName );
+        } ) ) );
+    }
+
+    if ( InParam.TransformUIExpanded[ AtIndex ] )
+    {
+        // Position
+        VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
+        [
+            SNew( SHorizontalBox )
+            + SHorizontalBox::Slot()
+            .Padding( 1.0f )
+            .VAlign( VAlign_Center )
+            .AutoWidth()
+            [
+                SNew( STextBlock )
+                .Text( LOCTEXT( "GeoInputTranslate", "T" ) )
+                .ToolTipText( LOCTEXT( "GeoInputTranslateTooltip", "Translate" ) )
+                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+            ]
+            + SHorizontalBox::Slot().MaxWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH )
+            [
+                SNew( SVectorInputBox )
+                .bColorAxisLabels( true )
+                .X( TAttribute< TOptional< float > >::Create(
+                    TAttribute< TOptional< float > >::FGetter::CreateUObject( &InParam, &UHoudiniAssetInput::GetPositionX, AtIndex ) ) )
+                .Y(TAttribute< TOptional< float > >::Create(
+                    TAttribute< TOptional< float > >::FGetter::CreateUObject( &InParam, &UHoudiniAssetInput::GetPositionY, AtIndex ) ) )
+                .Z(TAttribute< TOptional< float > >::Create(
+                    TAttribute< TOptional< float > >::FGetter::CreateUObject( &InParam, &UHoudiniAssetInput::GetPositionZ, AtIndex ) ) )
+                .OnXChanged( FOnFloatValueChanged::CreateUObject( &InParam, &UHoudiniAssetInput::SetPositionX, AtIndex ) )
+                .OnYChanged(FOnFloatValueChanged::CreateUObject( &InParam, &UHoudiniAssetInput::SetPositionY, AtIndex ) )
+                .OnZChanged(FOnFloatValueChanged::CreateUObject( &InParam, &UHoudiniAssetInput::SetPositionZ, AtIndex ) )
+            ]
+        ];
+
+        // Rotation
+        VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
+        [
+            SNew( SHorizontalBox )
+            + SHorizontalBox::Slot()
+            .Padding( 1.0f )
+            .VAlign( VAlign_Center )
+            .AutoWidth()
+            [
+                SNew( STextBlock )
+                .Text( LOCTEXT( "GeoInputRotate", "R" ) )
+                .ToolTipText(LOCTEXT("GeoInputRotateTooltip", "Rotate") )
+                .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+            ]
+            + SHorizontalBox::Slot().MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+            [
+                SNew(SRotatorInputBox)
+                .AllowSpin(true)
+            .bColorAxisLabels(true)
+            .Roll(TAttribute< TOptional< float > >::Create(
+                TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                    &InParam, &UHoudiniAssetInput::GetRotationRoll, AtIndex)))
+            .Pitch(TAttribute< TOptional< float> >::Create(
+                TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                    &InParam, &UHoudiniAssetInput::GetRotationPitch, AtIndex)))
+            .Yaw(TAttribute<TOptional< float > >::Create(
+                TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                    &InParam, &UHoudiniAssetInput::GetRotationYaw, AtIndex)))
+            .OnRollChanged(FOnFloatValueChanged::CreateUObject(
+                &InParam, &UHoudiniAssetInput::SetRotationRoll, AtIndex))
+            .OnPitchChanged(FOnFloatValueChanged::CreateUObject(
+                &InParam, &UHoudiniAssetInput::SetRotationPitch, AtIndex))
+            .OnYawChanged(FOnFloatValueChanged::CreateUObject(
+                &InParam, &UHoudiniAssetInput::SetRotationYaw, AtIndex))
+            ]
+        ];
+
+        // Scale
+        VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot()
+            .Padding(1.0f)
+            .VAlign(VAlign_Center)
+            .AutoWidth()
+            [
+                SNew(STextBlock)
+                .Text(LOCTEXT("GeoInputScale", "S"))
+            .ToolTipText(LOCTEXT("GeoInputScaleTooltip", "Scale"))
+            .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+            ]
+        + SHorizontalBox::Slot().MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+            [
+                SNew(SVectorInputBox)
+                .bColorAxisLabels(true)
+            .X(TAttribute< TOptional< float > >::Create(
+                TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                    &InParam, &UHoudiniAssetInput::GetScaleX, AtIndex)))
+            .Y(TAttribute< TOptional< float > >::Create(
+                TAttribute< TOptional< float> >::FGetter::CreateUObject(
+                    &InParam, &UHoudiniAssetInput::GetScaleY, AtIndex)))
+            .Z(TAttribute< TOptional< float> >::Create(
+                TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                    &InParam, &UHoudiniAssetInput::GetScaleZ, AtIndex)))
+            .OnXChanged(FOnFloatValueChanged::CreateUObject(
+                &InParam, &UHoudiniAssetInput::SetScaleX, AtIndex))
+            .OnYChanged(FOnFloatValueChanged::CreateUObject(
+                &InParam, &UHoudiniAssetInput::SetScaleY, AtIndex))
+            .OnZChanged(FOnFloatValueChanged::CreateUObject(
+                &InParam, &UHoudiniAssetInput::SetScaleZ, AtIndex))
+            ]
+        ];
+    }
+    */
+}
+
 FReply
 FHoudiniParameterDetails::Helper_OnButtonClickSelectActors( TWeakObjectPtr<class UHoudiniAssetInput> InParam )
 {
@@ -2546,6 +2881,43 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
                     ]
                 ]
             ];
+        }
+    }
+    if ( InParam.ChoiceIndex == EHoudiniAssetInputType::SkeletonInput )
+    {
+        const int32 NumInputs = InParam.SkeletonInputObjects.Num();
+        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
+        [
+            SNew( SHorizontalBox )
+            + SHorizontalBox::Slot()
+            .Padding( 1.0f )
+            .VAlign( VAlign_Center )
+            .AutoWidth()
+            [
+                SNew( STextBlock )
+                .Text( FText::Format( LOCTEXT( "NumArrayItemsFmt", "{0} elements" ), FText::AsNumber( NumInputs ) ) )
+                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+            ]
+            + SHorizontalBox::Slot()
+            .Padding( 1.0f )
+            .VAlign( VAlign_Center )
+            .AutoWidth()
+            [
+                PropertyCustomizationHelpers::MakeAddButton( FSimpleDelegate::CreateUObject( &InParam, &UHoudiniAssetInput::OnAddToSkeletonInputObjects ), LOCTEXT( "AddSkeletonInput", "Adds a Skeleton Input" ), true )
+            ]
+            + SHorizontalBox::Slot()
+            .Padding( 1.0f )
+            .VAlign( VAlign_Center )
+            .AutoWidth()
+            [
+                PropertyCustomizationHelpers::MakeEmptyButton( FSimpleDelegate::CreateUObject( &InParam, &UHoudiniAssetInput::OnEmptySkeletonInputObjects ), LOCTEXT( "EmptySkeletonInputs", "Removes All Inputs" ), true )
+            ]
+        ];
+
+        for ( int32 Ix = 0; Ix < NumInputs; Ix++ )
+        {
+            UObject* InputObject = InParam.GetSkeletonInputObject( Ix );
+            Helper_CreateSkeletonWidget( InParam, Ix, InputObject, AssetThumbnailPool, VerticalBox );
         }
     }
 
