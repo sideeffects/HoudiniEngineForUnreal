@@ -3492,8 +3492,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     // Transfer Normal data.
     for (int32 NormalIdx = 0; NormalIdx < Indices.Num(); ++NormalIdx)
     {
-        FVector UnpackedNormal( SoftSkinVertices[ Indices[ NormalIdx ] ].TangentZ );
-        MeshNormals[NormalIdx] = UnpackedNormal;
+	FPackedNormal PackedNormal = SoftSkinVertices[Indices[NormalIdx]].TangentZ;
+        MeshNormals[NormalIdx] = PackedNormal;
 
         // Doesnt work on MacOS ...
         //MeshNormals[ NormalIdx ] = FVector( SoftSkinVertices[ Indices[NormalIdx]  ].TangentZ.Vector. );
