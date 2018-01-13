@@ -50,6 +50,7 @@
     #include "Interfaces/ITargetPlatformManagerModule.h"
     #include "Editor/UnrealEd/Private/GeomFitUtils.h"
     #include "Private/ConvexDecompTool.h"
+    #include "PackedNormal.h"
 #endif
 
 #include "EngineUtils.h"
@@ -3491,7 +3492,11 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     // Transfer Normal data.
     for (int32 NormalIdx = 0; NormalIdx < Indices.Num(); ++NormalIdx)
     {
-        MeshNormals[ NormalIdx ] = FVector( SoftSkinVertices[ Indices[NormalIdx]  ].TangentZ );
+        FVector UnpackedNormal( SoftSkinVertices[ Indices[ NormalIdx ] ].TangentZ );
+        MeshNormals[NormalIdx] = UnpackedNormal;
+
+        // Doesnt work on MacOS ...
+        //MeshNormals[ NormalIdx ] = FVector( SoftSkinVertices[ Indices[NormalIdx]  ].TangentZ.Vector. );
     }
 
     if ( ImportAxis == HRSAI_Unreal )
@@ -3693,7 +3698,6 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             PrimitiveAttrs[ Ix ] = MeshAssetPathRaw;
         }
 
-        std::string MarshallingAttributeName;
         FHoudiniEngineUtils::ConvertUnrealString(
             HoudiniRuntimeSettings->MarshallingAttributeInputMeshName, MarshallingAttributeName );
         
@@ -3744,7 +3748,6 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
                 PrimitiveAttrs[Ix] = FilenameCStrRaw;
             }
 
-            std::string MarshallingAttributeName;
             FHoudiniEngineUtils::ConvertUnrealString(
                 HoudiniRuntimeSettings->MarshallingAttributeInputSourceFile, MarshallingAttributeName );
 
