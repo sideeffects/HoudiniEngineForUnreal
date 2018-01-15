@@ -125,10 +125,10 @@ UHoudiniAssetInstanceInputField::Serialize( FArchive & Ar )
     Ar << InstancedTransforms;
     Ar << VariationTransformsArray;
 
-    if( LinkerVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INSTANCE_COLORS )
+    if ( Ar.IsSaving() || ( Ar.IsLoading() && LinkerVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INSTANCE_COLORS ) )
     {
-	Ar << InstanceColorOverride;
-	Ar << VariationInstanceColorOverrideArray;
+        Ar << InstanceColorOverride;
+        Ar << VariationInstanceColorOverrideArray;
     }
 
     Ar << InstancerComponents;
