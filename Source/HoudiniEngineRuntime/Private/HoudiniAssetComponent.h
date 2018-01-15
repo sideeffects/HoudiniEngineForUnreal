@@ -205,6 +205,9 @@ public:
 
 #if WITH_EDITOR
 
+        /** Start cooking / instantiation ticking. **/
+        void StartHoudiniTicking();
+
         /** Return true if this component has no cooking or instantiation in progress. **/
         bool IsInstantiatingOrCooking() const;
 
@@ -436,9 +439,6 @@ public:
 
         /** Unsubscribe from Editor events. **/
         void UnsubscribeEditorDelegates();
-
-        /** Start cooking / instantiation ticking. **/
-        void StartHoudiniTicking();
 
         /** Stop cooking / instantiation ticking. **/
         void StopHoudiniTicking();
@@ -833,8 +833,8 @@ public:
                 /** Is set to true when one of the parameters has been modified. This will trigger recook. **/
                 uint32 bParametersChanged : 1;
 
-                /** Is set to true when transformation has changed, used for asset recooking on transformation change. **/
-                uint32 bComponentTransformHasChanged : 1;
+                /** Is set to true when the asset needs cooking after a parameter/transform change wasn't cooked. **/
+                uint32 bComponentNeedsCook : 1;
 
                 /** Is set to true when component is loaded and requires instantiation. **/
                 uint32 bLoadedComponentRequiresInstantiation : 1;

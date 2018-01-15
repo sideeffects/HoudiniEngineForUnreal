@@ -1847,6 +1847,11 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
         return;
     }
 
+    // Don't do anything more if HEngine cooking is paused
+    // We need to be able to detect updates/changes to the input actor when cooking is unpaused
+    if ( !FHoudiniEngine::Get().GetEnableCookingGlobal() )
+        return;
+
     // Lambda use to Modify / Prechange only once
     bool bLocalChanged = false;
     auto MarkLocalChanged = [&]()
