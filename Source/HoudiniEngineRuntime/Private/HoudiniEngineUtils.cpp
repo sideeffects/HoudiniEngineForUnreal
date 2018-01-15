@@ -3771,16 +3771,16 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         }
     }
 
+    // Export the Skeleton!
+    HAPI_NodeInfo NodeInfo;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
+        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, &NodeInfo), false );
+
+    FHoudiniEngineUtils::HapiCreateSkeletonFromData(HostAssetId, SkeletalMesh, NodeInfo );
+
     // Commit the geo.
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );
-
-    // Export the Skeleton!
-    HAPI_NodeInfo NodeInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
-        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, &NodeInfo ), false );
-
-    FHoudiniEngineUtils::HapiCreateSkeletonFromData( HostAssetId, SkeletalMesh, NodeInfo );
 
 #endif
 
@@ -3867,12 +3867,6 @@ FHoudiniEngineUtils::HapiCreateSkeletonFromData(
 
             // Calc the bone's length
             BoneLength = FVector( HapiTransform.position[0], HapiTransform.position[1], HapiTransform.position[2] ).Size();
-
-            /*
-            // Cook the null
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CookNode(
-                FHoudiniEngine::Get().GetSession(), NullNodeId, nullptr), false);
-                */
         }
 
         // If we're the root node, we don't need to creating bones
@@ -3949,6 +3943,32 @@ FHoudiniEngineUtils::HapiCreateSkeletonFromData(
 
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::DeleteNode(
         FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId ), false);
+
+
+    // Finally, we'll add a detail attribute with the path to the skeleton root node
+    // This is an OBJ asset, return the path to this geo relative to the asset
+    FString RootNodePath;
+    if ( FHoudiniEngineUtils::HapiGetNodePath( RootNullNodeId, HostAssetId, RootNodePath ) )
+    {
+        const char * NodePathStr = TCHAR_TO_UTF8(*RootNodePath);
+
+        HAPI_AttributeInfo AttributeInfo;
+        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+        AttributeInfo.count = 1;
+        AttributeInfo.tupleSize = 1;
+        AttributeInfo.exists = true;
+        AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+        AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
+        AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+            FHoudiniEngine::Get().GetSession(), SkelMeshNodeInfo.id,
+            0, "unreal_skeleton_root_node", &AttributeInfo), false );
+
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
+            FHoudiniEngine::Get().GetSession(), SkelMeshNodeInfo.id,
+            0, "unreal_skeleton_root_node", &AttributeInfo, (const char**)&NodePathStr, 0, 1 ), false );
+    }
 
 #endif
     return true;
