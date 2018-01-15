@@ -338,6 +338,17 @@ FHoudiniEngineEditor::AddHoudiniMenuExtension( FMenuBuilder & MenuBuilder )
             FExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::BakeAllAssets ),
             FCanExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::CanBakeAllAssets ) ) );
 
+    MenuBuilder.AddMenuEntry(
+        LOCTEXT("HoudiniMenuEntryTitlePauseHEngine", "Pause Houdini Engine Cooking"),
+        LOCTEXT("HoudiniMenuEntryToolTipPauseHEngine", "When activated, prevents Houdini Engine from cooking assets until unpaused."),
+        FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+        FUIAction(
+            FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::PauseAssetCooking ),
+            FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanPauseAssetCooking ),
+            FIsActionChecked::CreateRaw( this, &FHoudiniEngineEditor::IsAssetCookingPaused ) ),
+            NAME_None,
+            EUserInterfaceActionType::Check );
+
     MenuBuilder.EndSection();
 }
 
@@ -881,6 +892,45 @@ FHoudiniEngineEditor::CanBakeAllAssets() const
         return false;
     
     return true;
+}
+
+void
+FHoudiniEngineEditor::PauseAssetCooking()
+{
+    // Revert the global flag
+    bool CurrentEnableCookingGlobal = !FHoudiniEngine::Get().GetEnableCookingGlobal();
+    FHoudiniEngine::Get().SetEnableCookingGlobal( CurrentEnableCookingGlobal );
+
+    if ( !CurrentEnableCookingGlobal )
+        return;
+
+    // If we are unpausing, tick each asset component to "update" them
+    for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
+    {
+        UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
+        if (!HoudiniAssetComponent || !HoudiniAssetComponent->IsValidLowLevel())
+        {
+            HOUDINI_LOG_ERROR(TEXT("Failed to export a Houdini Asset in the scene!"));
+            continue;
+        }
+
+        HoudiniAssetComponent->StartHoudiniTicking();
+    }
+}
+
+bool
+FHoudiniEngineEditor::CanPauseAssetCooking()
+{
+    if ( !FHoudiniEngine::IsInitialized() )
+        return false;
+
+    return true;
+}
+
+bool
+FHoudiniEngineEditor::IsAssetCookingPaused()
+{
+    return !FHoudiniEngine::Get().GetEnableCookingGlobal();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1664,7 +1664,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
     if ( !IsInstantiatingOrCooking() )
     {
-        if ( HasBeenInstantiatedButNotCooked() || bParametersChanged || bComponentTransformHasChanged || bManualRecookRequested )
+        if ( HasBeenInstantiatedButNotCooked() || bParametersChanged || bComponentNeedsCook || bManualRecookRequested )
         {
             // Grab current time for delayed notification.
             HapiNotificationStarted = FPlatformTime::Seconds();
@@ -1684,7 +1684,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
             else if ( bLoadedComponentRequiresInstantiation )
             {
                 // This component has been loaded and requires instantiation.
-
                 bLoadedComponentRequiresInstantiation = false;
                 StartTaskAssetInstantiation( true );
             }
@@ -1713,38 +1712,39 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                 UploadChangedParameters();
 
                 // Reset tranform changed flag.
-                bComponentTransformHasChanged = false;
+                bComponentNeedsCook = false;
 
                 // Create asset cooking task object and submit it for processing.
                 StartTaskAssetCooking();
             }
-            else if ( bEnableCooking || bComponentTransformHasChanged || bManualRecookRequested )
+            else
             {
-                // Uploads parameters and cooks the asset if cook on parameter
-                // changed or cook on transform changed is enabled
+                if ( IsCookingEnabled() || bManualRecookRequested )
+                {
+                    // Upload changed parameters back to HAPI.
+                    UploadChangedParameters();
 
-                // Upload changed parameters back to HAPI.
-                UploadChangedParameters();
+                    // Create asset cooking task object and submit it for processing.
+                    StartTaskAssetCooking();
 
-                // Reset tranform changed flag.
-                bComponentTransformHasChanged = false;
+                    // Reset ComponentNeedsCook flag.
+                    bComponentNeedsCook = false;
+                }
+                else
+                {
+                    // Cooking is disabled, but we still need to upload the parameters
+                    // and update the editor properties
+                    UploadChangedParameters();
 
-                // Create asset cooking task object and submit it for processing.
-                StartTaskAssetCooking();
-            }
-            else if (bParametersChanged && !bEnableCooking)
-            {
-                // Cooking is disabled, but we still need to upload the parameters
-                // and update the editor properties
-                UploadChangedParameters();
+                    // Update properties panel.
+                    UpdateEditorProperties(true);
 
-                // Update properties panel.
-                UpdateEditorProperties(true);
-            }
-            else 
-            {
-                // This will only happen if cooking is disabled.
-                bStopTicking = true;
+                    // Remember that we have uncooked changes
+                    bComponentNeedsCook = true;
+
+                    // Stop ticking
+                    bStopTicking = true;
+                }
             }
         }
         else
@@ -1754,7 +1754,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
         }
     }
 
-    if (bNeedToUpdateNavigationSystem)
+    if ( bNeedToUpdateNavigationSystem )
     {
 #ifdef WITH_EDITOR
         // We need to update the navigation system manually with the Actor or the NavMesh will not update properly
@@ -2716,10 +2716,10 @@ UHoudiniAssetComponent::CheckedUploadTransform()
                 HOUDINI_LOG_MESSAGE( TEXT( "Failed Uploading Transformation change back to HAPI." ) );
         }
 
-        // If transforms trigger cooks, we need to schedule one.
+        // If transforms trigger cooks, we need to schedule a cook.
         if ( bTransformChangeTriggersCooks )
         {
-            bComponentTransformHasChanged = true;
+            bComponentNeedsCook = true;
             StartHoudiniTicking();
         }
     }
@@ -3546,7 +3546,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 bool
 UHoudiniAssetComponent::IsCookingEnabled() const
 {
-    return bEnableCooking;
+    return FHoudiniEngine::Get().GetEnableCookingGlobal() && bEnableCooking;
 }
 
 void

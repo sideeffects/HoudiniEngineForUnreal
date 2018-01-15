@@ -73,6 +73,9 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
             TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesOut,
             FTransform & ComponentTransform ) override;
 
+        void SetEnableCookingGlobal(const bool& enableCooking);
+        bool GetEnableCookingGlobal();
+
     public:
 
         /** App identifier string. **/
@@ -132,4 +135,7 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
 
         /** The Houdini Engine session. **/
         HAPI_Session Session;
+
+        /** Global cooking flag, used to pause HEngine while using the editor **/
+        bool EnableCookingGlobal;
 };
