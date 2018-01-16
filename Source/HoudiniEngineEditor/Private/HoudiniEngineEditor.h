@@ -150,13 +150,22 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Helper delegate used to determine if Clean up temp can be executed. **/
         bool CanCleanUpTempFolder() const;
 
-        /** Menua action to bake/replace all current Houdini Assets with blueprints **/
+        /** Menu action to bake/replace all current Houdini Assets with blueprints **/
         void BakeAllAssets();
 
         /** Helper delegate used to determine if BakeAllAssets can be executed. **/
         bool CanBakeAllAssets() const;
 
         const TArray< TSharedPtr<FHoudiniTool> >& GetHoudiniTools() { return HoudiniTools; }
+
+        /** Menu action to pause cooking for all Houdini Assets  **/
+        void PauseAssetCooking();
+
+        /** Helper delegate used to determine if PauseAssetCooking can be executed. **/
+        bool CanPauseAssetCooking();
+
+        /** Helper delegate used to get the current state of PauseAssetCooking. **/
+        bool IsAssetCookingPaused();
 
     protected:
 

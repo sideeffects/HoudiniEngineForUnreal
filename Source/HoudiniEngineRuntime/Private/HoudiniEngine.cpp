@@ -57,6 +57,7 @@ FHoudiniEngine::FHoudiniEngine()
     , HoudiniBgeoAsset( nullptr )
     , HoudiniEngineSchedulerThread( nullptr )
     , HoudiniEngineScheduler( nullptr )
+    , EnableCookingGlobal( true )
 {
     Session.type = HAPI_SESSION_MAX;
     Session.id = -1;
@@ -540,6 +541,18 @@ FHoudiniEngine::CookNode(
 #endif
 
     return bReturn;
+}
+
+void 
+FHoudiniEngine::SetEnableCookingGlobal(const bool& enableCooking)
+{
+    EnableCookingGlobal = enableCooking;
+}
+
+bool
+FHoudiniEngine::GetEnableCookingGlobal()
+{
+    return EnableCookingGlobal;
 }
 
 #undef LOCTEXT_NAMESPACE
