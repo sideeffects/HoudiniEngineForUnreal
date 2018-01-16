@@ -63,6 +63,7 @@ public:
     static void UpdateInstancerComponentInstances(
         USceneComponent * Component,
         const TArray< FTransform > & InstancedTransforms,
+        const TArray<FLinearColor> & InstancedColors ,
         const FRotator & RotationOffset,
         const FVector & ScaleOffset );
 
