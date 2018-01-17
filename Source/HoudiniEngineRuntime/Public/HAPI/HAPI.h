@@ -1745,7 +1745,7 @@ HAPI_DECL HAPI_GetParmWithTag( const HAPI_Session * session,
 /// @param[out]     value
 ///                 The returned string value.
 ///
-HAPI_DECL HAPI_GetParmExpression ( const HAPI_Session * session,
+HAPI_DECL HAPI_GetParmExpression( const HAPI_Session * session,
                                 HAPI_NodeId node_id,
                                 const char * parm_name,
                                 int index,
@@ -1767,7 +1767,7 @@ HAPI_DECL HAPI_GetParmExpression ( const HAPI_Session * session,
 /// @param[in]      index
 ///                 Index within the parameter's values tuple.
 ///
-HAPI_DECL HAPI_RevertParmToDefault ( const HAPI_Session * session,
+HAPI_DECL HAPI_RevertParmToDefault( const HAPI_Session * session,
                                 HAPI_NodeId node_id,
                                 const char * parm_name,
                                 int index);
@@ -1788,7 +1788,7 @@ HAPI_DECL HAPI_RevertParmToDefault ( const HAPI_Session * session,
 /// @param[in]      index
 ///                 Index within the parameter's values tuple.
 ///
-HAPI_DECL HAPI_RevertParmToDefaults ( const HAPI_Session * session,
+HAPI_DECL HAPI_RevertParmToDefaults( const HAPI_Session * session,
                                 HAPI_NodeId node_id,
                                 const char * parm_name);
 
