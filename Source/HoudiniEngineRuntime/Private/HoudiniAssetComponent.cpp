@@ -504,6 +504,24 @@ UHoudiniAssetComponent::HasValidAssetId() const
     return FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId);
 }
 
+bool
+UHoudiniAssetComponent::IsComponentValid() const
+{
+    if( !IsValidLowLevel() )
+        return false;
+
+    if ( IsTemplate() )
+        return false;
+
+    if ( IsPendingKillOrUnreachable() )
+        return false;
+
+    if ( !GetOuter() ) //|| !GetOuter()->GetLevel() )
+        return false;
+
+    return true;
+}
+
 UHoudiniAsset *
 UHoudiniAssetComponent::GetHoudiniAsset() const
 {

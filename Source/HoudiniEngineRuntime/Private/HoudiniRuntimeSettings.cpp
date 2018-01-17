@@ -44,6 +44,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     bShowMultiAssetDialog = true;
 
     /** Cooking options. **/
+    bPauseCookingOnStart = false;
     bEnableCooking = true;
     bUploadTransformsToHoudiniEngine = true;
     bTransformChangeTriggersCooks = false;

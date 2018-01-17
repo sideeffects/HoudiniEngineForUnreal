@@ -47,9 +47,6 @@ public:
     static FTransform GetDefaulToolSpawnTransform();
     static FTransform GetMeanWorldSelectionTransform();
 
-    static int32 GetContentBrowserSelection( TArray< UObject* >& ContentBrowserSelection );
-    static int32 GetWorldSelection( TArray< UObject* >& WorldSelection );
-
     /** Instantiate the selected HoudiniTool and assigns input depending on the current selection and tool type **/
     static void InstantiateHoudiniTool( FHoudiniTool* HoudiniTool );
 
