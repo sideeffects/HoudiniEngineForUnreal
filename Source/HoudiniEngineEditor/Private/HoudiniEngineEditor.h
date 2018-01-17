@@ -28,6 +28,7 @@
 #include "EditorUndoClient.h"
 #include "Framework/MultiBox/MultiBoxExtender.h"
 #include "HoudiniRuntimeSettings.h"
+#include "Framework/Commands/Commands.h"
 
 
 class IAssetTools;
@@ -104,6 +105,8 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         virtual void RegisterPlacementModeExtensions() override;
         virtual void UnregisterPlacementModeExtensions() override;
 
+        static const FName GetStyleSetName();
+
     /** FEditorUndoClient methods. **/
     public:
 
@@ -153,6 +156,9 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Menu action to bake/replace all current Houdini Assets with blueprints **/
         void BakeAllAssets();
 
+        /** Helper function for baking/replacing the current select Houdini Assets with blueprints **/
+        void BakeSelection();
+
         /** Helper delegate used to determine if BakeAllAssets can be executed. **/
         bool CanBakeAllAssets() const;
 
@@ -167,16 +173,43 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Helper delegate used to get the current state of PauseAssetCooking. **/
         bool IsAssetCookingPaused();
 
+        /** Helper function for creating a temporary Slate notification. **/
+        static void CreateSlateNotification( const FString& NotificationString );
+
+        /** Helper function for recooking all assets in the current level **/
+        void RecookAllAssets();
+
+        /** Helper function for rebuilding all assets in the current level **/
+        void RebuildAllAssets();
+
+        /** Helper function for recooking selected assets **/
+        void RecookSelection();
+
+        /** Helper function for rebuilding selected assets **/
+        void RebuildSelection();
+
+        /** Helper function for accessing the current CB selection **/
+        static int32 GetContentBrowserSelection( TArray< UObject* >& ContentBrowserSelection );
+
+        /** Helper function for accessing the current world selection **/
+        static int32 GetWorldSelection( TArray< UObject* >& WorldSelection, bool bHoudiniAssetActorsOnly = false );
+
     protected:
 
         /** Register AssetType action. **/
         void RegisterAssetTypeAction( IAssetTools & AssetTools, TSharedRef< IAssetTypeActions > Action );
+
+        /** Binds the menu extension's UICommands to their corresponding functions **/
+        void BindMenuCommands();
 
         /** Add menu extension for our module. **/
         void AddHoudiniMenuExtension( FMenuBuilder & MenuBuilder );
 
         /** Add the default Houdini Tools to the Houdini Engine Shelft tool **/
         void AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescription >& ToolArray );
+
+        /** Adds the custom Houdini Engine console commands **/
+        void RegisterConsoleCommands();
 
     private:
 
@@ -207,4 +240,57 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         mutable UHoudiniAssetComponent * LastHoudiniAssetComponentUndoObject;
 
         TArray< TSharedPtr<FHoudiniTool> > HoudiniTools;
+
+        TSharedPtr<class FUICommandList> HEngineCommands;
 };
+
+
+/**
+* Class containing commands for Houdini Engine actions
+*/
+class FHoudiniEngineCommands : public TCommands<FHoudiniEngineCommands>
+{
+public:
+    FHoudiniEngineCommands()
+        : TCommands<FHoudiniEngineCommands>
+        (
+            TEXT("HoudiniEngine"), // Context name for fast lookup
+            NSLOCTEXT("Contexts", "HoudiniEngine", "Houdini Engine Plugin"), // Localized context name for displaying
+            NAME_None, // Parent context name. 
+            FHoudiniEngineEditor::GetStyleSetName() // Icon Style Set
+        )
+    {
+    }
+
+    // TCommand<> interface
+    virtual void RegisterCommands() override;
+
+    /** Menu action called to save a HIP file. **/
+    TSharedPtr<FUICommandInfo> SaveHIPFile;
+
+    /** Menu action called to report a bug. **/
+    TSharedPtr<FUICommandInfo> ReportBug;
+
+    /** Menu action called to open the current scene in Houdini. **/
+    TSharedPtr<FUICommandInfo> OpenInHoudini;
+
+    /** Menu action called to clean up all unused files in the cook temp folder **/
+    TSharedPtr<FUICommandInfo> CleanUpTempFolder;
+
+    /** Menu action to bake/replace all current Houdini Assets with blueprints **/
+    TSharedPtr<FUICommandInfo> BakeAllAssets;
+
+    /** Menu action to pause cooking for all Houdini Assets  **/
+    TSharedPtr<FUICommandInfo> PauseAssetCooking;
+
+    /** UI Action to recook the current world selection  **/
+    TSharedPtr<FUICommandInfo> CookSelec;
+
+    /** UI Action to rebuild the current world selection  **/
+    TSharedPtr<FUICommandInfo> RebuildSelec;
+
+    /** UI Action to bake and replace the current world selection  **/
+    TSharedPtr<FUICommandInfo> BakeSelec;
+
+};
+

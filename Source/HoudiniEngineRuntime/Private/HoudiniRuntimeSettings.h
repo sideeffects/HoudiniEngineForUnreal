@@ -207,6 +207,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
     /** Cooking options. **/
     public:
 
+        // Whether houdini engine cooking is paused or not upon initializing the plugin
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = Cooking )
+        bool bPauseCookingOnStart;
+
         // Enables cooking on parameter or input change for new Houdini Assets.
         UPROPERTY( GlobalConfig, EditAnywhere, Category = Cooking )
         bool bEnableCooking;

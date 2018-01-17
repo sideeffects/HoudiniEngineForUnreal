@@ -28,6 +28,7 @@
 #include "HoudiniAssetThumbnailRenderer.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngine.h"
+#include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniHandleComponentVisualizer.h"
 #include "HoudiniHandleComponent.h"
@@ -40,7 +41,6 @@
 #include "HoudiniAssetActorFactory.h"
 #include "HoudiniShelfEdMode.h"
 #include "HoudiniEngineBakeUtils.h"
-#include "HoudiniAssetActor.h"
 
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
@@ -49,6 +49,13 @@
 #include "Styling/SlateStyleRegistry.h"
 #include "SHoudiniToolPalette.h"
 #include "IPlacementModeModule.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "NotificationManager.h"
+
+#include "AssetRegistryModule.h"
+#include "Engine/Selection.h"
+#include "ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -103,8 +110,11 @@ FHoudiniEngineEditor::StartupModule()
     // Register thumbnails.
     RegisterThumbnails();
 
-    // Extend menu.
+    // Extends the file menu.
     ExtendMenu();
+
+    // Adds the custom console commands
+    RegisterConsoleCommands();
 
     // Register global undo / redo callbacks.
     RegisterForUndo();
@@ -283,10 +293,13 @@ FHoudiniEngineEditor::ExtendMenu()
 {
     if ( !IsRunningCommandlet() )
     {
+        // We need to add/bind the UI Commands to their functions first
+        BindMenuCommands();
+
         // Extend main menu, we will add Houdini section.
         MainMenuExtender = MakeShareable( new FExtender );
         MainMenuExtender->AddMenuExtension(
-            "FileLoadAndSave", EExtensionHook::After, NULL,
+            "FileLoadAndSave", EExtensionHook::After, HEngineCommands,
             FMenuExtensionDelegate::CreateRaw( this, &FHoudiniEngineEditor::AddHoudiniMenuExtension ) );
         FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked< FLevelEditorModule >( "LevelEditor" );
         LevelEditorModule.GetMenuExtensibilityManager()->AddExtender( MainMenuExtender );
@@ -298,58 +311,130 @@ FHoudiniEngineEditor::AddHoudiniMenuExtension( FMenuBuilder & MenuBuilder )
 {
     MenuBuilder.BeginSection( "Houdini", LOCTEXT( "HoudiniLabel", "Houdini Engine" ) );
 
-    MenuBuilder.AddMenuEntry(
-        LOCTEXT("HoudiniMenuEntryTitleOpenHoudini", "Open scene in Houdini"),
-        LOCTEXT("HoudiniMenuEntryToolTipOpenInHoudini", "Opens the current Houdini scene in Houdini."),
-        FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
-        FUIAction(
-            FExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::OpenInHoudini),
-            FCanExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::CanOpenInHoudini)));
-
-    MenuBuilder.AddMenuEntry(
-        LOCTEXT( "HoudiniMenuEntryTitleSaveHip", "Save Houdini scene (HIP)" ),
-        LOCTEXT( "HoudiniMenuEntryToolTipSaveHip", "Saves a .hip file of the current Houdini scene." ),
-        FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
-        FUIAction(
-            FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::SaveHIPFile ),
-            FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanSaveHIPFile ) ) );
-
-    MenuBuilder.AddMenuEntry(
-        LOCTEXT( "HoudiniMenuEntryTitleReportBug", "Report a plugin bug" ),
-        LOCTEXT( "HoudiniMenuEntryToolTipReportBug", "Report a bug for Houdini Engine plugin." ),
-        FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
-        FUIAction(
-            FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::ReportBug ),
-            FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanReportBug ) ) );
-
-    MenuBuilder.AddMenuEntry(
-        LOCTEXT( "HoudiniMenuEntryTitleCleanTemp", "Clean Houdini Engine Temp Folder" ),
-        LOCTEXT( "HoudiniMenuEntryToolTipCleanTemp", "Deletes the unused temporary files in the Temporary Cook Folder." ),
-        FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
-        FUIAction(
-            FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CleanUpTempFolder ),
-            FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanCleanUpTempFolder ) ) );
-
-    MenuBuilder.AddMenuEntry(
-        LOCTEXT( "HoudiniMenuEntryTitleBakeAll", "Bake And Replace All Houdini Assets" ),
-        LOCTEXT( "HoudiniMenuEntryToolTipBakeAll", "Bakes and replaces with blueprints all Houdini Assets in the scene." ),
-        FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
-        FUIAction(
-            FExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::BakeAllAssets ),
-            FCanExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::CanBakeAllAssets ) ) );
-
-    MenuBuilder.AddMenuEntry(
-        LOCTEXT("HoudiniMenuEntryTitlePauseHEngine", "Pause Houdini Engine Cooking"),
-        LOCTEXT("HoudiniMenuEntryToolTipPauseHEngine", "When activated, prevents Houdini Engine from cooking assets until unpaused."),
-        FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
-        FUIAction(
-            FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::PauseAssetCooking ),
-            FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanPauseAssetCooking ),
-            FIsActionChecked::CreateRaw( this, &FHoudiniEngineEditor::IsAssetCookingPaused ) ),
-            NAME_None,
-            EUserInterfaceActionType::Check );
+    MenuBuilder.AddMenuEntry( FHoudiniEngineCommands::Get().OpenInHoudini );
+    MenuBuilder.AddMenuEntry( FHoudiniEngineCommands::Get().SaveHIPFile );
+    MenuBuilder.AddMenuEntry( FHoudiniEngineCommands::Get().ReportBug );
+    MenuBuilder.AddMenuEntry( FHoudiniEngineCommands::Get().CleanUpTempFolder );
+    MenuBuilder.AddMenuEntry( FHoudiniEngineCommands::Get().BakeAllAssets );
+    MenuBuilder.AddMenuEntry( FHoudiniEngineCommands::Get().PauseAssetCooking );
 
     MenuBuilder.EndSection();
+}
+
+void
+FHoudiniEngineEditor::BindMenuCommands()
+{
+    HEngineCommands = MakeShareable( new FUICommandList );
+
+    FHoudiniEngineCommands::Register();
+    const FHoudiniEngineCommands& Commands = FHoudiniEngineCommands::Get();
+
+    HEngineCommands->MapAction(
+        Commands.OpenInHoudini,
+        FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::OpenInHoudini ),
+        FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanOpenInHoudini ) );
+
+    HEngineCommands->MapAction(
+        Commands.SaveHIPFile,
+        FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::SaveHIPFile ),
+        FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanSaveHIPFile ) );
+
+    HEngineCommands->MapAction(
+        Commands.ReportBug,
+        FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::ReportBug ),
+        FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanReportBug ) );
+
+    HEngineCommands->MapAction(
+        Commands.CleanUpTempFolder,
+        FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CleanUpTempFolder ),
+        FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanCleanUpTempFolder ) );
+
+    HEngineCommands->MapAction(
+        Commands.BakeAllAssets,
+        FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::BakeAllAssets ),
+        FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanBakeAllAssets ) );
+
+    HEngineCommands->MapAction(
+        Commands.PauseAssetCooking,
+        FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::PauseAssetCooking ),
+        FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanPauseAssetCooking ),
+        FIsActionChecked::CreateRaw( this, &FHoudiniEngineEditor::IsAssetCookingPaused ) );
+
+    // Non menu command (used for shortcuts only)
+    HEngineCommands->MapAction(
+        Commands.CookSelec,
+        FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::RecookSelection ),
+        FCanExecuteAction() );
+
+    HEngineCommands->MapAction(
+        Commands.RebuildSelec,
+        FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::RebuildSelection ),
+        FCanExecuteAction() );
+
+    HEngineCommands->MapAction(
+        Commands.BakeSelec,
+        FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::BakeSelection ),
+        FCanExecuteAction() );
+
+    // Append the command to the editor module
+    FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked< FLevelEditorModule >("LevelEditor");
+    LevelEditorModule.GetGlobalLevelEditorActions()->Append(HEngineCommands.ToSharedRef());
+}
+
+void
+FHoudiniEngineEditor::RegisterConsoleCommands()
+{
+    // Register corresponding console commands
+    static FAutoConsoleCommand CCmdOpen = FAutoConsoleCommand(
+        TEXT("Houdini.Open"),
+        TEXT("Open the scene in Houdini."),
+        FConsoleCommandDelegate::CreateRaw( this, &FHoudiniEngineEditor::OpenInHoudini ) );
+
+    static FAutoConsoleCommand CCmdSave = FAutoConsoleCommand(
+        TEXT("Houdini.Save"),
+        TEXT("Save the current Houdini scene to a hip file."),
+        FConsoleCommandDelegate::CreateRaw(this, &FHoudiniEngineEditor::SaveHIPFile ) );
+
+    static FAutoConsoleCommand CCmdBake = FAutoConsoleCommand(
+        TEXT("Houdini.BakeAll"),
+        TEXT("Bakes and replaces with blueprints all Houdini Asset Actors in the current level."),
+        FConsoleCommandDelegate::CreateRaw(this, &FHoudiniEngineEditor::BakeAllAssets ) );
+
+    static FAutoConsoleCommand CCmdClean = FAutoConsoleCommand(
+        TEXT("Houdini.Clean"),
+        TEXT("Cleans up unused/unreferenced Houdini Engine temporary files."),
+        FConsoleCommandDelegate::CreateRaw(this, &FHoudiniEngineEditor::CleanUpTempFolder ) );
+
+    static FAutoConsoleCommand CCmdPause = FAutoConsoleCommand(
+        TEXT( "Houdini.Pause"),
+        TEXT( "Pauses Houdini Engine Asset cooking." ),
+        FConsoleCommandDelegate::CreateRaw( this, &FHoudiniEngineEditor::PauseAssetCooking ) );
+
+    // Additional console only commands
+    static FAutoConsoleCommand CCmdCookAll = FAutoConsoleCommand(
+        TEXT("Houdini.CookAll"),
+        TEXT("Re-cooks all Houdini Engine Asset Actors in the current level."),
+        FConsoleCommandDelegate::CreateRaw( this, &FHoudiniEngineEditor::RecookAllAssets ) );
+
+    static FAutoConsoleCommand CCmdRebuildAll = FAutoConsoleCommand(
+        TEXT("Houdini.RebuildAll"),
+        TEXT("Rebuilds all Houdini Engine Asset Actors in the current level."),
+        FConsoleCommandDelegate::CreateRaw( this, &FHoudiniEngineEditor::RebuildAllAssets ) );
+
+    static FAutoConsoleCommand CCmdCookSelec = FAutoConsoleCommand(
+        TEXT("Houdini.Cook"),
+        TEXT("Re-cooks selected Houdini Asset Actors in the current level."),
+        FConsoleCommandDelegate::CreateRaw( this, &FHoudiniEngineEditor::RecookSelection ) );
+
+    static FAutoConsoleCommand CCmdRebuildSelec = FAutoConsoleCommand(
+        TEXT("Houdini.Rebuild"),
+        TEXT("Rebuilds selected Houdini Asset Actors in the current level."),
+        FConsoleCommandDelegate::CreateRaw( this, &FHoudiniEngineEditor::RebuildSelection ) );
+
+    static FAutoConsoleCommand CCmdBakeSelec = FAutoConsoleCommand(
+        TEXT("Houdini.Bake"),
+        TEXT("Bakes and replaces with blueprints selected Houdini Asset Actors in the current level."),
+        FConsoleCommandDelegate::CreateRaw( this, &FHoudiniEngineEditor::BakeSelection ) );
 }
 
 bool
@@ -384,6 +469,13 @@ FHoudiniEngineEditor::SaveHIPFile()
 
         if ( bSaved && SaveFilenames.Num() )
         {
+            // Add a slate notification
+            FString Notification = TEXT("Saving internal Houdini scene...");
+            CreateSlateNotification(Notification);
+
+            // ... and a log message
+            HOUDINI_LOG_MESSAGE(TEXT("Saved Houdini scene to %s"), *SaveFilenames[ 0 ] );
+
             // Get first path.
             std::wstring HIPPath( *SaveFilenames[ 0 ] );
             std::string HIPPathConverted( HIPPath.begin(), HIPPath.end() );
@@ -421,6 +513,13 @@ FHoudiniEngineEditor::OpenInHoudini()
     if ( !FPaths::FileExists( UserTempPath ) )
         return;
     
+    // Add a slate notification
+    FString Notification = TEXT( "Opening scene in Houdini..." );
+    CreateSlateNotification( Notification );
+
+    // ... and a log message
+    HOUDINI_LOG_MESSAGE( TEXT("Opened scene in Houdini.") );
+
     // Then open the hip file in Houdini
     FString LibHAPILocation = FHoudiniEngine::Get().GetLibHAPILocation();
     FString houdiniLocation = LibHAPILocation + "//houdini";
@@ -448,6 +547,12 @@ FHoudiniEngineEditor::CanReportBug() const
     return FHoudiniEngine::IsInitialized();
 }
 
+const FName
+FHoudiniEngineEditor::GetStyleSetName()
+{
+    return FName("HoudiniEngineStyle");
+}
+
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( StyleSet->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( StyleSet->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
 #define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush( StyleSet->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
@@ -462,7 +567,7 @@ FHoudiniEngineEditor::RegisterStyleSet()
     // Create Slate style set.
     if ( !StyleSet.IsValid() )
     {
-        StyleSet = MakeShareable( new FSlateStyleSet( "HoudiniEngineStyle" ) );
+        StyleSet = MakeShareable( new FSlateStyleSet( FHoudiniEngineEditor::GetStyleSetName() ) );
         StyleSet->SetContentRoot( FPaths::EngineContentDir() / TEXT( "Editor/Slate" ) );
         StyleSet->SetCoreContentRoot( FPaths::EngineContentDir() / TEXT( "Slate" ) );
 
@@ -496,6 +601,14 @@ FHoudiniEngineEditor::RegisterStyleSet()
         StyleSet->Set(
             "HoudiniEngine.HoudiniEngineLogo40",
             new FSlateImageBrush( IconsDir + TEXT( "icon_houdini_logo_40.png" ), Icon40x40 ) );
+
+        FSlateImageBrush* HoudiniLogo16 = new FSlateImageBrush( IconsDir + TEXT( "icon_houdini_logo_16.png" ), Icon16x16 );
+        StyleSet->Set( "HoudiniEngine.SaveHIPFile", HoudiniLogo16 );
+        StyleSet->Set( "HoudiniEngine.ReportBug", HoudiniLogo16 );
+        StyleSet->Set( "HoudiniEngine.OpenInHoudini", HoudiniLogo16 );
+        StyleSet->Set( "HoudiniEngine.CleanUpTempFolder", HoudiniLogo16 );
+        StyleSet->Set( "HoudiniEngine.BakeAllAssets", HoudiniLogo16 );
+        StyleSet->Set( "HoudiniEngine.PauseAssetCooking", HoudiniLogo16 );
 
         // We need some colors from Editor Style & this is the only way to do this at the moment
         const FSlateColor DefaultForeground = FEditorStyle::GetSlateColor( "DefaultForeground" );
@@ -749,6 +862,10 @@ FHoudiniEngineEditor::PostRedo( bool bSuccess )
 void
 FHoudiniEngineEditor::CleanUpTempFolder()
 {
+    // Add a slate notification
+    FString Notification = TEXT("Cleaning up Houdini Engine temporary folder");
+    CreateSlateNotification( Notification );
+
     // Get Runtime settings to get the Temp Cook Folder
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
     if (!HoudiniRuntimeSettings)
@@ -759,6 +876,7 @@ FHoudiniEngineEditor::CleanUpTempFolder()
     // The Asset registry will help us finding if the content of the asset is referenced
     FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 
+    int32 DeletedCount = 0;
     bool bDidDeleteAsset = true;
     while ( bDidDeleteAsset )
     {
@@ -838,9 +956,38 @@ FHoudiniEngineEditor::CleanUpTempFolder()
         if ( AssetDataToDelete.Num() <= 0 )
             break;
 
-        if ( ObjectTools::DeleteAssets( AssetDataToDelete, false ) > 0 )
-            bDidDeleteAsset = true;   
+        int32 CurrentDeleted = ObjectTools::DeleteAssets( AssetDataToDelete, false );
+        if ( CurrentDeleted <= 0 )
+        {
+            // Normal deletion failed...  Try to force delete the objects?
+            TArray<UObject*> ObjectsToDelete;
+            for (int i = 0; i < AssetDataToDelete.Num(); i++)
+            {
+                const FAssetData& AssetData = AssetDataToDelete[i];
+                UObject *ObjectToDelete = AssetData.GetAsset();
+                // Assets can be loaded even when their underlying type/class no longer exists...
+                if (ObjectToDelete != nullptr)
+                {
+                    ObjectsToDelete.Add(ObjectToDelete);
+                }
+            }
+
+            CurrentDeleted = ObjectTools::ForceDeleteObjects(ObjectsToDelete, false);
+        }
+
+        if ( CurrentDeleted > 0 )
+        {
+            DeletedCount += CurrentDeleted;
+            bDidDeleteAsset = true;
+        }
     }
+
+    // Add a slate notification
+    Notification = TEXT("Deleted ") + FString::FromInt( DeletedCount ) + TEXT(" temporary files.");
+    CreateSlateNotification( Notification );
+
+    // ... and a log message
+    HOUDINI_LOG_MESSAGE( TEXT("Deleted %d temporary files."), DeletedCount );
 }
 
 bool
@@ -852,37 +999,42 @@ FHoudiniEngineEditor::CanCleanUpTempFolder() const
 void
 FHoudiniEngineEditor::BakeAllAssets()
 {
+    // Add a slate notification
+    FString Notification = TEXT("Baking all assets in the current level...");
+    CreateSlateNotification( Notification );
+
     // Bakes and replaces with blueprints all Houdini Assets in the current level
+    int32 BakedCount = 0;
     for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
-        if ( !HoudiniAssetComponent || !HoudiniAssetComponent->IsValidLowLevel() )
+        if ( !HoudiniAssetComponent )
         {
             HOUDINI_LOG_ERROR( TEXT( "Failed to export a Houdini Asset in the scene!" ) );
             continue;
         }
 
-        if ( HoudiniAssetComponent->IsTemplate() )
-            continue;
-
-        if ( HoudiniAssetComponent->IsPendingKillOrUnreachable() )
-            continue;
-
-        bool bInvalidComponent = false;
-        if ( !HoudiniAssetComponent->GetOuter() )//|| !HoudiniAssetComponent->GetOuter()->GetLevel() )
-            bInvalidComponent = true;
-
-        if ( bInvalidComponent )
+        if ( !HoudiniAssetComponent->IsComponentValid() )
         {
             FString AssetName = HoudiniAssetComponent->GetOuter() ? HoudiniAssetComponent->GetOuter()->GetName() : HoudiniAssetComponent->GetName();
-            HOUDINI_LOG_ERROR(TEXT("Failed to export Houdini Asset: %s in the scene!"), *AssetName );
+            HOUDINI_LOG_ERROR( TEXT("Failed to export Houdini Asset: %s in the scene!"), *AssetName );
             continue;
         }
 
         // If component is not cooking or instancing, we can bake blueprint.
         if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
-            FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithBlueprint( HoudiniAssetComponent );
+        {
+            if ( FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithBlueprint( HoudiniAssetComponent ) )
+                BakedCount++;
+        }
     }
+
+    // Add a slate notification
+    Notification = TEXT("Baked ") + FString::FromInt( BakedCount ) + TEXT(" Houdini assets.");
+    CreateSlateNotification( Notification );
+
+    // ... and a log message
+    HOUDINI_LOG_MESSAGE( TEXT("Baked all %d Houdini assets in the current level."), BakedCount );
 }
 
 bool
@@ -901,6 +1053,18 @@ FHoudiniEngineEditor::PauseAssetCooking()
     bool CurrentEnableCookingGlobal = !FHoudiniEngine::Get().GetEnableCookingGlobal();
     FHoudiniEngine::Get().SetEnableCookingGlobal( CurrentEnableCookingGlobal );
 
+    // Add a slate notification
+    FString Notification = TEXT("Houdini Engine cooking paused");
+    if ( CurrentEnableCookingGlobal )
+        Notification = TEXT("Houdini Engine cooking resumed");
+    CreateSlateNotification( Notification );
+
+    // ... and a log message
+    if ( CurrentEnableCookingGlobal )
+        HOUDINI_LOG_MESSAGE( TEXT("Houdini Engine cooking resumed.") );
+    else
+        HOUDINI_LOG_MESSAGE( TEXT("Houdini Engine cooking paused.") );
+
     if ( !CurrentEnableCookingGlobal )
         return;
 
@@ -910,7 +1074,7 @@ FHoudiniEngineEditor::PauseAssetCooking()
         UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
         if (!HoudiniAssetComponent || !HoudiniAssetComponent->IsValidLowLevel())
         {
-            HOUDINI_LOG_ERROR(TEXT("Failed to export a Houdini Asset in the scene!"));
+            HOUDINI_LOG_ERROR( TEXT("Failed to cook a Houdini Asset in the scene!") );
             continue;
         }
 
@@ -931,6 +1095,308 @@ bool
 FHoudiniEngineEditor::IsAssetCookingPaused()
 {
     return !FHoudiniEngine::Get().GetEnableCookingGlobal();
+}
+
+void
+FHoudiniEngineEditor::RecookSelection()
+{
+    // Get current world selection
+    TArray<UObject*> WorldSelection;
+    int32 SelectedHoudiniAssets = FHoudiniEngineEditor::GetWorldSelection( WorldSelection, true );
+    if ( SelectedHoudiniAssets <= 0 )
+    {
+        HOUDINI_LOG_MESSAGE( TEXT( "No Houdini Assets selected in the world outliner" ) );
+        return;
+    }
+
+    // Add a slate notification
+    FString Notification = TEXT("Cooking selected Houdini Assets...");
+    CreateSlateNotification( Notification );
+
+    // Iterates over the selection and cook the assets if they're in a valid state
+    int32 CookedCount = 0;
+    for ( int32 Idx = 0; Idx < SelectedHoudiniAssets; Idx++ )
+    {
+        AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>( WorldSelection[ Idx ] );
+        if ( !HoudiniAssetActor )
+            continue;
+
+        UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
+        if ( !HoudiniAssetComponent || !HoudiniAssetComponent->IsComponentValid() )
+            continue;
+
+        HoudiniAssetComponent->StartTaskAssetCookingManual();
+        CookedCount++;
+    }
+
+    // Add a slate notification
+    Notification = TEXT("Re-cooked ") + FString::FromInt( CookedCount ) + TEXT(" Houdini assets.");
+    CreateSlateNotification(Notification);
+
+    // ... and a log message
+    HOUDINI_LOG_MESSAGE( TEXT("Re-cooked %d selected Houdini assets."), CookedCount );
+}
+
+void
+FHoudiniEngineEditor::RecookAllAssets()
+{
+    // Add a slate notification
+    FString Notification = TEXT("Cooking all assets in the current level...");
+    CreateSlateNotification(Notification);
+
+    // Bakes and replaces with blueprints all Houdini Assets in the current level
+    int32 CookedCount = 0;
+    for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
+    {
+        UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
+        if (!HoudiniAssetComponent || !HoudiniAssetComponent->IsComponentValid())
+            continue;
+
+        HoudiniAssetComponent->StartTaskAssetCookingManual();
+        CookedCount++;
+    }
+
+    // Add a slate notification
+    Notification = TEXT("Re-cooked ") + FString::FromInt( CookedCount ) + TEXT(" Houdini assets.");
+    CreateSlateNotification( Notification );
+
+    // ... and a log message
+    HOUDINI_LOG_MESSAGE(TEXT("Re-cooked %d Houdini assets in the current level."), CookedCount );
+}
+
+void
+FHoudiniEngineEditor::RebuildAllAssets()
+{
+    // Add a slate notification
+    FString Notification = TEXT("Re-building all assets in the current level...");
+    CreateSlateNotification(Notification);
+
+    // Bakes and replaces with blueprints all Houdini Assets in the current level
+    int32 RebuiltCount = 0;
+    for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
+    {
+        UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
+        if ( !HoudiniAssetComponent || !HoudiniAssetComponent->IsComponentValid() )
+            continue;
+
+        HoudiniAssetComponent->StartTaskAssetRebuildManual();
+        RebuiltCount++;
+    }
+
+    // Add a slate notification
+    Notification = TEXT("Rebuilt ") + FString::FromInt( RebuiltCount ) + TEXT(" Houdini assets.");
+    CreateSlateNotification( Notification );
+
+    // ... and a log message
+    HOUDINI_LOG_MESSAGE(TEXT("Rebuilt %d Houdini assets in the current level."), RebuiltCount );
+}
+
+void
+FHoudiniEngineEditor::RebuildSelection()
+{
+    // Get current world selection
+    TArray<UObject*> WorldSelection;
+    int32 SelectedHoudiniAssets = FHoudiniEngineEditor::GetWorldSelection( WorldSelection, true );
+    if ( SelectedHoudiniAssets <= 0 )
+    {
+        HOUDINI_LOG_MESSAGE(TEXT("No Houdini Assets selected in the world outliner"));
+        return;
+    }
+
+    // Add a slate notification
+    FString Notification = TEXT("Rebuilding selected Houdini Assets...");
+    FHoudiniEngineEditor::CreateSlateNotification( Notification );
+
+    // Iterates over the selection and rebuilds the assets if they're in a valid state
+    int32 RebuiltCount = 0;
+    for ( int32 Idx = 0; Idx < SelectedHoudiniAssets; Idx++ )
+    {
+        AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>( WorldSelection[ Idx ] );
+        if ( !HoudiniAssetActor )
+            continue;
+
+        UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
+        if ( !HoudiniAssetComponent || !HoudiniAssetComponent->IsComponentValid() )
+            continue;
+
+        HoudiniAssetComponent->StartTaskAssetRebuildManual();
+        RebuiltCount++;
+    }
+
+    // Add a slate notification
+    Notification = TEXT("Rebuilt ") + FString::FromInt( RebuiltCount ) + TEXT(" Houdini assets.");
+    CreateSlateNotification( Notification );
+
+    // ... and a log message
+    HOUDINI_LOG_MESSAGE( TEXT("Rebuilt %d selected Houdini assets."), RebuiltCount );
+}
+
+void
+FHoudiniEngineEditor::BakeSelection()
+{
+    // Get current world selection
+    TArray<UObject*> WorldSelection;
+    int32 SelectedHoudiniAssets = FHoudiniEngineEditor::GetWorldSelection( WorldSelection, true );
+    if ( SelectedHoudiniAssets <= 0 )
+    {
+        HOUDINI_LOG_MESSAGE( TEXT("No Houdini Assets selected in the world outliner") );
+        return;
+    }
+
+    // Add a slate notification
+    FString Notification = TEXT("Baking selected Houdini Asset Actors in the current level...");
+    FHoudiniEngineEditor::CreateSlateNotification( Notification );
+
+    // Iterates over the selection and rebuilds the assets if they're in a valid state
+    int32 BakedCount = 0;
+    for ( int32 Idx = 0; Idx < SelectedHoudiniAssets; Idx++ )
+    {
+        AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>( WorldSelection[ Idx ] );
+        if ( !HoudiniAssetActor )
+            continue;
+
+        UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
+        if ( !HoudiniAssetComponent )
+        {
+            HOUDINI_LOG_ERROR( TEXT("Failed to export a Houdini Asset in the scene!") );
+            continue;
+        }
+
+        if ( !HoudiniAssetComponent->IsComponentValid() )
+        {
+            FString AssetName = HoudiniAssetComponent->GetOuter() ? HoudiniAssetComponent->GetOuter()->GetName() : HoudiniAssetComponent->GetName();
+            HOUDINI_LOG_ERROR(TEXT("Failed to export Houdini Asset: %s in the scene!"), *AssetName);
+            continue;
+        }
+
+        // If component is not cooking or instancing, we can bake blueprint.
+        if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
+        {
+            if ( FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithBlueprint( HoudiniAssetComponent ) )
+                BakedCount++;
+        }
+    }
+
+    // Add a slate notification
+    Notification = TEXT("Baked ") + FString::FromInt(BakedCount) + TEXT(" Houdini assets.");
+    CreateSlateNotification( Notification );
+
+    // ... and a log message
+    HOUDINI_LOG_MESSAGE(TEXT("Baked all %d Houdini assets in the current level."), BakedCount);
+}
+
+void
+FHoudiniEngineEditor::CreateSlateNotification( const FString& NotificationString )
+{
+    // Check whether we want to display Slate notifications.
+    bool bDisplaySlateCookingNotifications = true;
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if ( HoudiniRuntimeSettings )
+        bDisplaySlateCookingNotifications = HoudiniRuntimeSettings->bDisplaySlateCookingNotifications;
+
+    if ( !bDisplaySlateCookingNotifications )
+        return;
+
+    static float NotificationFadeOutDuration = 2.0f;
+    static float NotificationExpireDuration = 2.0f;
+
+    FText NotificationText = FText::FromString( NotificationString );
+    FNotificationInfo Info( NotificationText );
+
+    Info.bFireAndForget = true;
+    Info.FadeOutDuration = NotificationFadeOutDuration;
+    Info.ExpireDuration = NotificationExpireDuration;
+
+    TSharedPtr< FSlateDynamicImageBrush > HoudiniBrush = FHoudiniEngine::Get().GetHoudiniLogoBrush();
+    if (HoudiniBrush.IsValid())
+        Info.Image = HoudiniBrush.Get();
+
+    FSlateNotificationManager::Get().AddNotification(Info);
+}
+
+int32
+FHoudiniEngineEditor::GetContentBrowserSelection( TArray< UObject* >& ContentBrowserSelection )
+{
+    ContentBrowserSelection.Empty();
+
+    // Get the current Content browser selection
+    FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked< FContentBrowserModule >( "ContentBrowser" );
+    TArray<FAssetData> SelectedAssets;
+    ContentBrowserModule.Get().GetSelectedAssets( SelectedAssets );
+
+    for( int32 n = 0; n < SelectedAssets.Num(); n++ )
+    {
+        // Get the current object
+        UObject * Object = SelectedAssets[ n ].GetAsset();
+        if ( !Object )
+            continue;
+
+        // Only static meshes are supported
+        if ( Object->GetClass() != UStaticMesh::StaticClass() )
+            continue;
+
+        ContentBrowserSelection.Add( Object );
+    }
+
+    return ContentBrowserSelection.Num();
+}
+
+int32 
+FHoudiniEngineEditor::GetWorldSelection( TArray< UObject* >& WorldSelection, bool bHoudiniAssetActorsOnly )
+{
+    WorldSelection.Empty();
+
+    // Get the current editor selection
+    if ( GEditor )
+    {
+        USelection* SelectedActors = GEditor->GetSelectedActors();
+        for ( FSelectionIterator It( *SelectedActors ); It; ++It )
+        {
+            AActor * Actor = Cast< AActor >( *It );
+            if ( !Actor )
+                continue;
+
+            // Ignore the SkySphere?
+            FString ClassName = Actor->GetClass() ? Actor->GetClass()->GetName() : FString();
+            if ( ClassName == TEXT( "BP_Sky_Sphere_C" ) )
+                continue;
+
+            // We're normally only selecting actors with StaticMeshComponents and SplineComponents
+            // Heightfields? Filter here or later? also allow HoudiniAssets?
+            WorldSelection.Add( Actor );
+        }
+    }
+
+    // If we only want Houdini Actors...
+    if ( bHoudiniAssetActorsOnly )
+    {
+        // ... remove all but them
+        for ( int32 Idx = WorldSelection.Num() - 1; Idx >= 0; Idx-- )
+        {
+            AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>( WorldSelection[ Idx ] );
+            if ( !HoudiniAssetActor)
+                WorldSelection.RemoveAt( Idx );
+        }
+    }
+
+    return WorldSelection.Num();
+}
+
+void 
+FHoudiniEngineCommands::RegisterCommands()
+{  
+    UI_COMMAND( OpenInHoudini, "Open scene in Houdini", "Opens the current Houdini scene in Houdini.", EUserInterfaceActionType::Button, FInputChord( EKeys::O, EModifierKey::Control | EModifierKey::Alt) );
+
+    UI_COMMAND( SaveHIPFile, "Save Houdini scene (HIP)", "Saves a .hip file of the current Houdini scene.", EUserInterfaceActionType::Button, FInputChord() );
+    UI_COMMAND( ReportBug, "Report a plugin bug", "Report a bug for Houdini Engine plugin.", EUserInterfaceActionType::Button, FInputChord() );
+   
+    UI_COMMAND( CleanUpTempFolder, "Clean Houdini Engine Temp Folder", "Deletes the unused temporary files in the Temporary Cook Folder.", EUserInterfaceActionType::Button, FInputChord() );
+    UI_COMMAND( BakeAllAssets, "Bake And Replace All Houdini Assets", "Bakes and replaces with blueprints all Houdini Assets in the scene.", EUserInterfaceActionType::Button, FInputChord() );
+    UI_COMMAND( PauseAssetCooking, "Pause Houdini Engine Cooking", "When activated, prevents Houdini Engine from cooking assets until unpaused.", EUserInterfaceActionType::Check, FInputChord( EKeys::P, EModifierKey::Control | EModifierKey::Alt ) );
+
+    UI_COMMAND( CookSelec, "Recook Selection", "Recooks selected Houdini Asset Actors in the current level.", EUserInterfaceActionType::Button, FInputChord( EKeys::C, EModifierKey::Control | EModifierKey::Alt ) );
+    UI_COMMAND( RebuildSelec, "Rebuild Selection", "Rebuilds selected Houdini Asset Actors in the current level.", EUserInterfaceActionType::Button, FInputChord( EKeys::R, EModifierKey::Control | EModifierKey::Alt ) );
+    UI_COMMAND( BakeSelec, "Bake Selection", "Bakes and replaces with blueprints selected Houdini Asset Actors in the current level.", EUserInterfaceActionType::Button, FInputChord( EKeys::B, EModifierKey::Control | EModifierKey::Alt ) );
 }
 
 #undef LOCTEXT_NAMESPACE

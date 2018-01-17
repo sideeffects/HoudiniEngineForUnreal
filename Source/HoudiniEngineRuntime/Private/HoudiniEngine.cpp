@@ -387,6 +387,9 @@ FHoudiniEngine::StartupModule()
         HoudiniEngineScheduler = new FHoudiniEngineScheduler();
         HoudiniEngineSchedulerThread = FRunnableThread::Create(
             HoudiniEngineScheduler, TEXT( "HoudiniTaskCookAsset" ), 0, TPri_Normal );
+
+        // Set the default value for pausing houdini engine cooking
+        EnableCookingGlobal = !HoudiniRuntimeSettings->bPauseCookingOnStart;
     }
 
 #endif
