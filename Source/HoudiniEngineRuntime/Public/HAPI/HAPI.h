@@ -1676,6 +1676,31 @@ HAPI_DECL HAPI_ParmHasTag( const HAPI_Session * session,
                            const char * tag_name,
                            HAPI_Bool * has_tag );
 
+/// @brief  See if a parameter has an expression
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      parm_name
+///                 The parm name.
+///
+/// @param[in]      index
+///                 The parm index.
+///
+/// @param[out]     has_expression
+///                 True if an expression exists on the parameter, false otherwise.
+///
+HAPI_DECL HAPI_ParmHasExpression( const HAPI_Session * session,
+                           HAPI_NodeId node_id,
+			   const char * parm_name,
+                           int index,
+                           HAPI_Bool * has_expression );
+
 /// @brief  Get the first parm with a specific, ideally unique, tag on it.
 ///         This is particularly useful for getting the ogl parameters on a
 ///         material node.
@@ -1700,6 +1725,160 @@ HAPI_DECL HAPI_GetParmWithTag( const HAPI_Session * session,
                                const char * tag_name,
                                HAPI_ParmId * parm_id );
 
+/// @brief  Get single integer or float parm expression by name
+///         or Null string if no expression is present
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      parm_name
+///                 The parm name.
+///
+/// @param[in]      index
+///                 Index within the parameter's values tuple.
+///
+/// @param[out]     value
+///                 The returned string value.
+///
+HAPI_DECL HAPI_GetParmExpression ( const HAPI_Session * session,
+                                HAPI_NodeId node_id,
+                                const char * parm_name,
+                                int index,
+                                HAPI_StringHandle * value );
+
+/// @brief  Revert single parm by name to default
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      parm_name
+///                 The parm name.
+///
+/// @param[in]      index
+///                 Index within the parameter's values tuple.
+///
+HAPI_DECL HAPI_RevertParmToDefault ( const HAPI_Session * session,
+                                HAPI_NodeId node_id,
+                                const char * parm_name,
+                                int index);
+
+/// @brief  Revert all instances of the parm by name to defaults
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      parm_name
+///                 The parm name.
+///
+/// @param[in]      index
+///                 Index within the parameter's values tuple.
+///
+HAPI_DECL HAPI_RevertParmToDefaults ( const HAPI_Session * session,
+                                HAPI_NodeId node_id,
+                                const char * parm_name);
+
+/// @brief  Set (push) an expression string. We can only set a single value at
+///         a time because we want to avoid fixed size string buffers.
+///
+///         @note Regardless of the value, when calling this function
+///         on a parameter, if that parameter has a callback function
+///         attached to it, that callback function will be called. For
+///         example, if the parameter is a button the button will be
+///         pressed.
+///
+///         @note In threaded mode, this is an _async call_!
+///
+///         This API will invoke the cooking thread if threading is
+///         enabled. This means it will return immediately. Use
+///         the status and cooking count APIs under DIAGNOSTICS to get
+///         a sense of the progress. All other API calls will block
+///         until the cook operation has finished.
+///
+///         Also note that the cook result won't be of type
+///         ::HAPI_STATUS_CALL_RESULT like all calls (including this one).
+///         Whenever the threading cook is done it will fill the
+///         @a cook result which is queried using
+///         ::HAPI_STATUS_COOK_RESULT.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      value
+///                 The expression string.
+///
+/// @param[in]      parm_id
+///                 Parameter id of the parameter being updated.
+///
+/// @param[in]      index
+///                 Index within the parameter's values tuple.
+///
+HAPI_DECL HAPI_SetParmExpression( const HAPI_Session * session,
+                                   HAPI_NodeId node_id,
+                                   const char * value,
+                                   HAPI_ParmId parm_id, int index );
+
+/// @brief  Remove the expression string, leaving the value of the
+///         parm at the current value of the expression
+///
+///         @note Regardless of the value, when calling this function
+///         on a parameter, if that parameter has a callback function
+///         attached to it, that callback function will be called. For
+///         example, if the parameter is a button the button will be
+///         pressed.
+///
+///         @note In threaded mode, this is an _async call_!
+///
+///         This API will invoke the cooking thread if threading is
+///         enabled. This means it will return immediately. Use
+///         the status and cooking count APIs under DIAGNOSTICS to get
+///         a sense of the progress. All other API calls will block
+///         until the cook operation has finished.
+///
+///         Also note that the cook result won't be of type
+///         ::HAPI_STATUS_CALL_RESULT like all calls (including this one).
+///         Whenever the threading cook is done it will fill the
+///         @a cook result which is queried using
+///         ::HAPI_STATUS_COOK_RESULT.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      parm_id
+///                 Parameter id of the parameter being updated.
+///
+/// @param[in]      index
+///                 Index within the parameter's values tuple.
+///
+
+HAPI_DECL HAPI_RemoveParmExpression( const HAPI_Session * session,
+                                   HAPI_NodeId node_id,
+                                   HAPI_ParmId parm_id, int index );
+
 /// @brief  Get single parm int value by name.
 ///
 /// @param[in]      session
@@ -1719,6 +1898,8 @@ HAPI_DECL HAPI_GetParmWithTag( const HAPI_Session * session,
 /// @param[out]     value
 ///                 The returned int value.
 ///
+
+
 HAPI_DECL HAPI_GetParmIntValue( const HAPI_Session * session,
                                 HAPI_NodeId node_id,
                                 const char * parm_name,
