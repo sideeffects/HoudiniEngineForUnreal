@@ -294,11 +294,11 @@ SHoudiniToolPalette::InstantiateHoudiniTool( FHoudiniTool* HoudiniTool )
 
     // Get the current Level Editor Selection
     TArray<UObject * > WorldSelection;
-    int32 WorldSelectionCount = GetWorldSelection( WorldSelection );
+    int32 WorldSelectionCount = FHoudiniEngineEditor::GetWorldSelection( WorldSelection );
 
     // Get the current Content browser selection
     TArray<UObject *> ContentBrowserSelection;
-    int32 ContentBrowserSelectionCount = GetContentBrowserSelection( ContentBrowserSelection );
+    int32 ContentBrowserSelectionCount = FHoudiniEngineEditor::GetContentBrowserSelection( ContentBrowserSelection );
 
     // Modify the created actor's position from the current editor world selection
     FTransform SpawnTransform = GetDefaulToolSpawnTransform();
@@ -473,64 +473,6 @@ SHoudiniToolPalette::GetMeanWorldSelectionTransform()
 
     return SpawnTransform;
 }
-
-int32
-SHoudiniToolPalette::GetContentBrowserSelection(TArray< UObject* >& ContentBrowserSelection )
-{
-    ContentBrowserSelection.Empty();
-
-    // Get the current Content browser selection
-    FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked< FContentBrowserModule >( "ContentBrowser" );
-    TArray<FAssetData> SelectedAssets;
-    ContentBrowserModule.Get().GetSelectedAssets( SelectedAssets );
-
-    for( int32 n = 0; n < SelectedAssets.Num(); n++ )
-    {
-        // Get the current object
-        UObject * Object = SelectedAssets[ n ].GetAsset();
-        if ( !Object )
-            continue;
-
-        // Only static meshes are supported
-        if ( Object->GetClass() != UStaticMesh::StaticClass() )
-            continue;
-
-        ContentBrowserSelection.Add( Object );
-    }
-
-    return ContentBrowserSelection.Num();
-}
-
-int32 
-SHoudiniToolPalette::GetWorldSelection( TArray< UObject* >& WorldSelection )
-{
-    WorldSelection.Empty();
-
-    // Get the current editor selection
-    if ( GEditor )
-    {
-        USelection* SelectedActors = GEditor->GetSelectedActors();
-        for ( FSelectionIterator It( *SelectedActors ); It; ++It )
-        {
-            AActor * Actor = Cast< AActor >( *It );
-            if ( !Actor )
-                continue;
-
-            // Ignore the SkySphere?
-            FString ClassName = Actor->GetClass() ? Actor->GetClass()->GetName() : FString();
-            if ( ClassName == TEXT( "BP_Sky_Sphere_C" ) )
-                continue;
-
-            // We're normally only selecting actors with StaticMeshComponents and SplineComponents
-            // Heightfields? Filter here or later? also allow HoudiniAssets?
-            WorldSelection.Add( Actor );
-        }
-    }
-
-    return WorldSelection.Num();
-}
-
-
 
 // Builds the context menu for the selected tool
 TSharedPtr<SWidget> SHoudiniToolPalette::ConstructHoudiniToolContextMenu()

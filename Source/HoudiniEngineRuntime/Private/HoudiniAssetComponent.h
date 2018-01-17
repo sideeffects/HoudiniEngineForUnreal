@@ -242,6 +242,8 @@ public:
         /** Start manual asset cooking task. **/
         void StartTaskAssetCookingManual();
 
+        /** Start manual asset rebuild task. **/
+        void StartTaskAssetRebuildManual();
 #endif
 
         /** Used to differentiate native components from dynamic ones. **/
@@ -256,6 +258,9 @@ public:
 
         /** Return true if asset id is valid. **/
         bool HasValidAssetId() const;
+
+        /** Returns true if the asset is valid for cook/bake **/
+        bool IsComponentValid() const;
 
         /** Return current referenced Houdini asset. **/
         UHoudiniAsset * GetHoudiniAsset() const;
@@ -457,9 +462,6 @@ public:
 
         /** Start manual asset reset task. **/
         void StartTaskAssetResetManual();
-
-        /** Start manual asset rebuild task. **/
-        void StartTaskAssetRebuildManual();
 
         /** Start asset deletion task. **/
         void StartTaskAssetDeletion();
