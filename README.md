@@ -16,7 +16,7 @@ For support and reporting bugs:
 * [Houdini Engine for UE4 Forum](http://www.sidefx.com/forum/51/)
 * [Bug Submission](https://www.sidefx.com/bugs/submit/)
 
-You can see the latest updates and bug fixes made to the plugin in the [Daily Changelog](https://www.sidefx.com/changelog/?journal=16.0&categories=52&body=&version=&build_0=&build_1=&show_versions=on&show_compatibility=on&items_per_page=100).
+You can see the latest updates and bug fixes made to the plugin in the [Daily Changelog](https://www.sidefx.com/changelog/?journal=16.5&categories=52&body=&version=&build_0=&build_1=&show_versions=on&show_compatibility=on&items_per_page=100).
 
 # Installing from Source
 01. Get the UE4 source code from: https://github.com/EpicGames/UnrealEngine/releases
