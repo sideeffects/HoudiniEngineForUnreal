@@ -87,6 +87,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     /** Generated StaticMesh settings. **/
     bDoubleSidedGeometry = false;
     PhysMaterial = nullptr;
+    DefaultBodyInstance.SetCollisionProfileName("BlockAll");
     CollisionTraceFlag = CTF_UseDefault;
     LightMapResolution = 32;
     LpvBiasMultiplier = 1.0f;
