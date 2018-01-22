@@ -357,6 +357,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     // Initialize static mesh generation parameters.
     bGeneratedDoubleSidedGeometry = false;
     GeneratedPhysMaterial = nullptr;
+    DefaultBodyInstance.SetCollisionProfileName("BlockAll");
     GeneratedCollisionTraceFlag = CTF_UseDefault;
     GeneratedLpvBiasMultiplier = 1.0f;
     GeneratedLightMapResolution = 32;
@@ -3461,6 +3462,8 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters( UStaticMesh * StaticM
     // Assign physical material for simple collision.
     BodySetup->PhysMaterial = GeneratedPhysMaterial;
 
+    BodySetup->DefaultInstance.CopyBodyInstancePropertiesFrom(&DefaultBodyInstance);
+
     // Assign collision trace behavior.
     BodySetup->CollisionTraceFlag = GeneratedCollisionTraceFlag;
 
@@ -3469,6 +3472,7 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters( UStaticMesh * StaticM
 
     // We want to use all of geometry for collision detection purposes.
     BodySetup->bMeshCollideAll = true;
+
 #endif
 }
 
@@ -3709,6 +3713,7 @@ UHoudiniAssetComponent::PostInitProperties()
         // Copy static mesh generation parameters from settings.
         bGeneratedDoubleSidedGeometry = HoudiniRuntimeSettings->bDoubleSidedGeometry;
         GeneratedPhysMaterial = HoudiniRuntimeSettings->PhysMaterial;
+	DefaultBodyInstance = HoudiniRuntimeSettings->DefaultBodyInstance;
         GeneratedCollisionTraceFlag = HoudiniRuntimeSettings->CollisionTraceFlag;
         GeneratedLpvBiasMultiplier = HoudiniRuntimeSettings->LpvBiasMultiplier;
         GeneratedLightMapResolution = HoudiniRuntimeSettings->LightMapResolution;

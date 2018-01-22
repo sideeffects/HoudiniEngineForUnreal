@@ -356,6 +356,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
             Meta = ( DisplayName = "Simple Collision Physical Material" ) )
         UPhysicalMaterial * PhysMaterial;
 
+	//* Default properties of the body instance
+	UPROPERTY(EditAnywhere, Category = GeneratedStaticMeshSettings, meta = ( FullyExpand = "true" ))
+	struct FBodyInstance DefaultBodyInstance;
+
         //* Collision Trace behavior - by default, it will keep simple(convex)/complex(per-poly) separate for new Houdini Assets.
         UPROPERTY(
             GlobalConfig, VisibleDefaultsOnly, Category = GeneratedStaticMeshSettings,
