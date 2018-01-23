@@ -60,9 +60,6 @@ public:
     /** Helper function to locate first Material expression of given class within given expression subgraph. **/
     static UMaterialExpression * MaterialLocateExpression( UMaterialExpression * Expression, UClass * ExpressionClass );
 
-    /** HAPI : Return true if given material is transparent. **/
-    static bool HapiIsMaterialTransparent( const HAPI_MaterialInfo & MaterialInfo );
-
     /** Creates Material Instance from attributes **/
     static bool CreateMaterialInstances( 
         const FHoudiniGeoPartObject& HoudiniGeoPartObject, FHoudiniCookParams& CookParams,
