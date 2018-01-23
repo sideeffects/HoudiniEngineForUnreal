@@ -320,8 +320,11 @@
 #define HAPI_UNREAL_PARAM_VALUE_EMISSIVE_1              "emitcolor"
 
 /** Materials Opacity. **/
-#define HAPI_UNREAL_PARAM_ALPHA                         "ogl_alpha"
-#define HAPI_UNREAL_PARAM_MAP_OPACITY_1                 "ogl_opacitymap"
+#define HAPI_UNREAL_PARAM_ALPHA_0                       "ogl_alpha"
+#define HAPI_UNREAL_PARAM_ALPHA_1                       "opac"
+
+#define HAPI_UNREAL_PARAM_MAP_OPACITY_0                 "ogl_opacitymap"
+#define HAPI_UNREAL_PARAM_MAP_OPACITY_1                 "opaccolor_texture"
 
 /** Default values for new curves. **/
 #define HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT    "0.0, 0.0, 3.0 3.0, 0.0, 3.0"
