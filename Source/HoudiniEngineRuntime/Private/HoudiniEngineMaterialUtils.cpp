@@ -345,15 +345,6 @@ FHoudiniEngineMaterialUtils::HapiGetImagePlanes(
     return true;
 }
 
-bool
-FHoudiniEngineMaterialUtils::HapiIsMaterialTransparent( const HAPI_MaterialInfo & MaterialInfo )
-{
-    float Alpha;
-    FHoudiniEngineUtils::HapiGetParameterDataAsFloat( MaterialInfo.nodeId, HAPI_UNREAL_PARAM_ALPHA, 1.0f, Alpha );
-
-    return Alpha < HAPI_UNREAL_ALPHA_THRESHOLD;
-}
-
 #if WITH_EDITOR
 
 bool
@@ -739,10 +730,20 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentOpacityMask(
 
     // See if opacity texture is available.
     int32 ParmOpacityTextureIdx =
-        FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_OPACITY_1 );
+        FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_OPACITY_0 );
 
     if ( ParmOpacityTextureIdx >= 0 )
-        GeneratingParameterNameTexture = TEXT( HAPI_UNREAL_PARAM_MAP_OPACITY_1 );
+    {
+        GeneratingParameterNameTexture = TEXT( HAPI_UNREAL_PARAM_MAP_OPACITY_0 );
+    }
+    else
+    {
+        ParmOpacityTextureIdx =
+            FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_OPACITY_1 );
+
+        if ( ParmOpacityTextureIdx >= 0 )
+            GeneratingParameterNameTexture = TEXT( HAPI_UNREAL_PARAM_MAP_OPACITY_1 );
+    }
 
     // If we have opacity texture parameter.
     if ( ParmOpacityTextureIdx >= 0 )
@@ -932,10 +933,9 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentOpacity(
                 UTexture2D * DiffuseTexture = Cast< UTexture2D >( ExpressionTextureDiffuseSample->Texture );
                 if ( DiffuseTexture && !DiffuseTexture->CompressionNoAlpha )
                 {
+                    // The diffuse texture has an alpha channel (that wasn't discarded), so we can use it
                     ExpressionTextureOpacitySample = ExpressionTextureDiffuseSample;
-
-                    // Check if material is transparent. If it is, we need to hook up alpha.
-                    bNeedsTranslucency = FHoudiniEngineMaterialUtils::HapiIsMaterialTransparent( MaterialInfo );
+                    bNeedsTranslucency = true;
                 }
             }
         }
@@ -943,12 +943,23 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentOpacity(
 
     // Retrieve opacity uniform parameter.
     int32 ParmOpacityValueIdx =
-        FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_ALPHA );
+        FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_ALPHA_0 );
 
     if ( ParmOpacityValueIdx >= 0 )
     {
-        GeneratingParameterNameScalar = TEXT( HAPI_UNREAL_PARAM_ALPHA );
+        GeneratingParameterNameScalar = TEXT( HAPI_UNREAL_PARAM_ALPHA_0 );
+    }
+    else
+    {
+        ParmOpacityValueIdx =
+            FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_ALPHA_1 );
 
+        if ( ParmOpacityValueIdx >= 0 )
+            GeneratingParameterNameScalar = TEXT( HAPI_UNREAL_PARAM_ALPHA_1 );
+    }
+
+    if ( ParmOpacityValueIdx >= 0 )
+    {
         const HAPI_ParmInfo & ParmInfo = NodeParams[ ParmOpacityValueIdx ];
         if ( ParmInfo.size > 0 && ParmInfo.floatValuesIndex >= 0 )
         {
@@ -2227,13 +2238,34 @@ FHoudiniEngineMaterialUtils::CreateUnrealTexture(
         }
     }
 
+    bool bHasAlphaValue = false;
+    if ( TextureParameters.bUseAlpha )
+    {
+        // See if there is an actual alpha value in the texture or if we can ignore the texture alpha
+        for ( uint32 y = 0; y < SrcHeight; y++ )
+        {
+            for ( uint32 x = 0; x < SrcWidth; x++ )
+            {
+                uint32 DataOffset = y * SrcWidth * 4 + x * 4;
+                if (*(uint8*)(SrcData + DataOffset + 3) != 0xFF)
+                {
+                    bHasAlphaValue = true;
+                    break;
+                }
+            }
+
+            if ( bHasAlphaValue )
+                break;
+        }
+    }
+
     // Unlock the texture.
     Texture->Source.UnlockMip( 0 );
 
     // Texture creation parameters.
     Texture->SRGB = TextureParameters.bSRGB;
     Texture->CompressionSettings = TextureParameters.CompressionSettings;
-    Texture->CompressionNoAlpha = !TextureParameters.bUseAlpha;
+    Texture->CompressionNoAlpha = !bHasAlphaValue;
     Texture->DeferCompression = TextureParameters.bDeferCompression;
 
     // Set the Source Guid/Hash if specified.
