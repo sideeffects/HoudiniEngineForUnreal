@@ -50,6 +50,8 @@
     #include "Interfaces/ITargetPlatformManagerModule.h"
     #include "Editor/UnrealEd/Private/GeomFitUtils.h"
     #include "Private/ConvexDecompTool.h"
+    #include "Widgets/Notifications/SNotificationList.h"
+    #include "NotificationManager.h"
 #endif
 
 #include "EngineUtils.h"
@@ -7634,6 +7636,40 @@ FHoudiniEngineUtils::AddSimpleCollision(
     }
 #endif
     return true;
+}
+
+
+void
+FHoudiniEngineUtils::CreateSlateNotification( const FString& NotificationString )
+{
+#if WITH_EDITOR
+    // Check whether we want to display Slate notifications.
+    bool bDisplaySlateCookingNotifications = true;
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if (HoudiniRuntimeSettings)
+        bDisplaySlateCookingNotifications = HoudiniRuntimeSettings->bDisplaySlateCookingNotifications;
+
+    if (!bDisplaySlateCookingNotifications)
+        return;
+
+    static float NotificationFadeOutDuration = 2.0f;
+    static float NotificationExpireDuration = 2.0f;
+
+    FText NotificationText = FText::FromString(NotificationString);
+    FNotificationInfo Info(NotificationText);
+
+    Info.bFireAndForget = true;
+    Info.FadeOutDuration = NotificationFadeOutDuration;
+    Info.ExpireDuration = NotificationExpireDuration;
+
+    TSharedPtr< FSlateDynamicImageBrush > HoudiniBrush = FHoudiniEngine::Get().GetHoudiniLogoBrush();
+    if (HoudiniBrush.IsValid())
+        Info.Image = HoudiniBrush.Get();
+
+    FSlateNotificationManager::Get().AddNotification(Info);
+#endif
+
+    return;
 }
 
 FHoudiniCookParams::FHoudiniCookParams( class UHoudiniAsset* InHoudiniAsset )
