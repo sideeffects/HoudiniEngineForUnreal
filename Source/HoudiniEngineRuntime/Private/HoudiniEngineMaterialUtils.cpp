@@ -2286,6 +2286,9 @@ FHoudiniEngineMaterialUtils::CreateUnrealTexture(
 bool
 FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( HAPI_NodeId AssetId, HAPI_NodeId MaterialId, FString & Name )
 {
+    if ( AssetId < 0 || MaterialId < 0 )
+        return false;
+
     HAPI_AssetInfo AssetInfo;
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
         FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
