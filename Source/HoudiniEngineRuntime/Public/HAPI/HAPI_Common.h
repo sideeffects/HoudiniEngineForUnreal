@@ -1553,7 +1553,8 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkitemInfo )
 
 struct HAPI_API HAPI_PDG_WorkitemResultInfo
 {
-    int resultSH;		  /// result string
+    int resultSH;		  /// result string data
+    int resultTagSH;		  /// result tag
     HAPI_Int64 resultHash;	  /// hash value of result
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkitemResultInfo )
