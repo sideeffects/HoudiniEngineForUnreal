@@ -173,9 +173,6 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Helper delegate used to get the current state of PauseAssetCooking. **/
         bool IsAssetCookingPaused();
 
-        /** Helper function for creating a temporary Slate notification. **/
-        static void CreateSlateNotification( const FString& NotificationString );
-
         /** Helper function for recooking all assets in the current level **/
         void RecookAllAssets();
 

@@ -206,6 +206,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Return a string representing cooking result. **/
         static const FString GetCookResult();
 
+        /** Helper function for creating a temporary Slate notification. **/
+        static void CreateSlateNotification( const FString& NotificationString );
+
         /** Return true if module has been properly initialized. **/
         static bool IsInitialized();
 

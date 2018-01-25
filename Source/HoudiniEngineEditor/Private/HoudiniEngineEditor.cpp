@@ -49,8 +49,6 @@
 #include "Styling/SlateStyleRegistry.h"
 #include "SHoudiniToolPalette.h"
 #include "IPlacementModeModule.h"
-#include "Widgets/Notifications/SNotificationList.h"
-#include "NotificationManager.h"
 
 #include "AssetRegistryModule.h"
 #include "Engine/Selection.h"
@@ -471,7 +469,7 @@ FHoudiniEngineEditor::SaveHIPFile()
         {
             // Add a slate notification
             FString Notification = TEXT("Saving internal Houdini scene...");
-            CreateSlateNotification(Notification);
+            FHoudiniEngineUtils::CreateSlateNotification(Notification);
 
             // ... and a log message
             HOUDINI_LOG_MESSAGE(TEXT("Saved Houdini scene to %s"), *SaveFilenames[ 0 ] );
@@ -515,7 +513,7 @@ FHoudiniEngineEditor::OpenInHoudini()
     
     // Add a slate notification
     FString Notification = TEXT( "Opening scene in Houdini..." );
-    CreateSlateNotification( Notification );
+    FHoudiniEngineUtils::CreateSlateNotification( Notification );
 
     // ... and a log message
     HOUDINI_LOG_MESSAGE( TEXT("Opened scene in Houdini.") );
@@ -864,7 +862,7 @@ FHoudiniEngineEditor::CleanUpTempFolder()
 {
     // Add a slate notification
     FString Notification = TEXT("Cleaning up Houdini Engine temporary folder");
-    CreateSlateNotification( Notification );
+    FHoudiniEngineUtils::CreateSlateNotification( Notification );
 
     // Get Runtime settings to get the Temp Cook Folder
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
@@ -984,7 +982,7 @@ FHoudiniEngineEditor::CleanUpTempFolder()
 
     // Add a slate notification
     Notification = TEXT("Deleted ") + FString::FromInt( DeletedCount ) + TEXT(" temporary files.");
-    CreateSlateNotification( Notification );
+    FHoudiniEngineUtils::CreateSlateNotification( Notification );
 
     // ... and a log message
     HOUDINI_LOG_MESSAGE( TEXT("Deleted %d temporary files."), DeletedCount );
@@ -1001,7 +999,7 @@ FHoudiniEngineEditor::BakeAllAssets()
 {
     // Add a slate notification
     FString Notification = TEXT("Baking all assets in the current level...");
-    CreateSlateNotification( Notification );
+    FHoudiniEngineUtils::CreateSlateNotification( Notification );
 
     // Bakes and replaces with blueprints all Houdini Assets in the current level
     int32 BakedCount = 0;
@@ -1017,7 +1015,8 @@ FHoudiniEngineEditor::BakeAllAssets()
         if ( !HoudiniAssetComponent->IsComponentValid() )
         {
             FString AssetName = HoudiniAssetComponent->GetOuter() ? HoudiniAssetComponent->GetOuter()->GetName() : HoudiniAssetComponent->GetName();
-            HOUDINI_LOG_ERROR( TEXT("Failed to export Houdini Asset: %s in the scene!"), *AssetName );
+            if ( AssetName != "Default__HoudiniAssetActor" )
+                HOUDINI_LOG_ERROR( TEXT( "Failed to export Houdini Asset: %s in the scene!" ), *AssetName );
             continue;
         }
 
@@ -1031,7 +1030,7 @@ FHoudiniEngineEditor::BakeAllAssets()
 
     // Add a slate notification
     Notification = TEXT("Baked ") + FString::FromInt( BakedCount ) + TEXT(" Houdini assets.");
-    CreateSlateNotification( Notification );
+    FHoudiniEngineUtils::CreateSlateNotification( Notification );
 
     // ... and a log message
     HOUDINI_LOG_MESSAGE( TEXT("Baked all %d Houdini assets in the current level."), BakedCount );
@@ -1057,7 +1056,7 @@ FHoudiniEngineEditor::PauseAssetCooking()
     FString Notification = TEXT("Houdini Engine cooking paused");
     if ( CurrentEnableCookingGlobal )
         Notification = TEXT("Houdini Engine cooking resumed");
-    CreateSlateNotification( Notification );
+    FHoudiniEngineUtils::CreateSlateNotification( Notification );
 
     // ... and a log message
     if ( CurrentEnableCookingGlobal )
@@ -1111,7 +1110,7 @@ FHoudiniEngineEditor::RecookSelection()
 
     // Add a slate notification
     FString Notification = TEXT("Cooking selected Houdini Assets...");
-    CreateSlateNotification( Notification );
+    FHoudiniEngineUtils::CreateSlateNotification( Notification );
 
     // Iterates over the selection and cook the assets if they're in a valid state
     int32 CookedCount = 0;
@@ -1131,7 +1130,7 @@ FHoudiniEngineEditor::RecookSelection()
 
     // Add a slate notification
     Notification = TEXT("Re-cooked ") + FString::FromInt( CookedCount ) + TEXT(" Houdini assets.");
-    CreateSlateNotification(Notification);
+    FHoudiniEngineUtils::CreateSlateNotification(Notification);
 
     // ... and a log message
     HOUDINI_LOG_MESSAGE( TEXT("Re-cooked %d selected Houdini assets."), CookedCount );
@@ -1142,7 +1141,7 @@ FHoudiniEngineEditor::RecookAllAssets()
 {
     // Add a slate notification
     FString Notification = TEXT("Cooking all assets in the current level...");
-    CreateSlateNotification(Notification);
+    FHoudiniEngineUtils::CreateSlateNotification(Notification);
 
     // Bakes and replaces with blueprints all Houdini Assets in the current level
     int32 CookedCount = 0;
@@ -1158,7 +1157,7 @@ FHoudiniEngineEditor::RecookAllAssets()
 
     // Add a slate notification
     Notification = TEXT("Re-cooked ") + FString::FromInt( CookedCount ) + TEXT(" Houdini assets.");
-    CreateSlateNotification( Notification );
+    FHoudiniEngineUtils::CreateSlateNotification( Notification );
 
     // ... and a log message
     HOUDINI_LOG_MESSAGE(TEXT("Re-cooked %d Houdini assets in the current level."), CookedCount );
@@ -1169,7 +1168,7 @@ FHoudiniEngineEditor::RebuildAllAssets()
 {
     // Add a slate notification
     FString Notification = TEXT("Re-building all assets in the current level...");
-    CreateSlateNotification(Notification);
+    FHoudiniEngineUtils::CreateSlateNotification(Notification);
 
     // Bakes and replaces with blueprints all Houdini Assets in the current level
     int32 RebuiltCount = 0;
@@ -1185,7 +1184,7 @@ FHoudiniEngineEditor::RebuildAllAssets()
 
     // Add a slate notification
     Notification = TEXT("Rebuilt ") + FString::FromInt( RebuiltCount ) + TEXT(" Houdini assets.");
-    CreateSlateNotification( Notification );
+    FHoudiniEngineUtils::CreateSlateNotification( Notification );
 
     // ... and a log message
     HOUDINI_LOG_MESSAGE(TEXT("Rebuilt %d Houdini assets in the current level."), RebuiltCount );
@@ -1205,7 +1204,7 @@ FHoudiniEngineEditor::RebuildSelection()
 
     // Add a slate notification
     FString Notification = TEXT("Rebuilding selected Houdini Assets...");
-    FHoudiniEngineEditor::CreateSlateNotification( Notification );
+    FHoudiniEngineUtils::CreateSlateNotification( Notification );
 
     // Iterates over the selection and rebuilds the assets if they're in a valid state
     int32 RebuiltCount = 0;
@@ -1225,7 +1224,7 @@ FHoudiniEngineEditor::RebuildSelection()
 
     // Add a slate notification
     Notification = TEXT("Rebuilt ") + FString::FromInt( RebuiltCount ) + TEXT(" Houdini assets.");
-    CreateSlateNotification( Notification );
+    FHoudiniEngineUtils::CreateSlateNotification( Notification );
 
     // ... and a log message
     HOUDINI_LOG_MESSAGE( TEXT("Rebuilt %d selected Houdini assets."), RebuiltCount );
@@ -1245,7 +1244,7 @@ FHoudiniEngineEditor::BakeSelection()
 
     // Add a slate notification
     FString Notification = TEXT("Baking selected Houdini Asset Actors in the current level...");
-    FHoudiniEngineEditor::CreateSlateNotification( Notification );
+    FHoudiniEngineUtils::CreateSlateNotification( Notification );
 
     // Iterates over the selection and rebuilds the assets if they're in a valid state
     int32 BakedCount = 0;
@@ -1279,39 +1278,10 @@ FHoudiniEngineEditor::BakeSelection()
 
     // Add a slate notification
     Notification = TEXT("Baked ") + FString::FromInt(BakedCount) + TEXT(" Houdini assets.");
-    CreateSlateNotification( Notification );
+    FHoudiniEngineUtils::CreateSlateNotification( Notification );
 
     // ... and a log message
     HOUDINI_LOG_MESSAGE(TEXT("Baked all %d Houdini assets in the current level."), BakedCount);
-}
-
-void
-FHoudiniEngineEditor::CreateSlateNotification( const FString& NotificationString )
-{
-    // Check whether we want to display Slate notifications.
-    bool bDisplaySlateCookingNotifications = true;
-    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-    if ( HoudiniRuntimeSettings )
-        bDisplaySlateCookingNotifications = HoudiniRuntimeSettings->bDisplaySlateCookingNotifications;
-
-    if ( !bDisplaySlateCookingNotifications )
-        return;
-
-    static float NotificationFadeOutDuration = 2.0f;
-    static float NotificationExpireDuration = 2.0f;
-
-    FText NotificationText = FText::FromString( NotificationString );
-    FNotificationInfo Info( NotificationText );
-
-    Info.bFireAndForget = true;
-    Info.FadeOutDuration = NotificationFadeOutDuration;
-    Info.ExpireDuration = NotificationExpireDuration;
-
-    TSharedPtr< FSlateDynamicImageBrush > HoudiniBrush = FHoudiniEngine::Get().GetHoudiniLogoBrush();
-    if (HoudiniBrush.IsValid())
-        Info.Image = HoudiniBrush.Get();
-
-    FSlateNotificationManager::Get().AddNotification(Info);
 }
 
 int32
