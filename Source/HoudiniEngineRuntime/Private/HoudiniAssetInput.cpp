@@ -667,7 +667,7 @@ UHoudiniAssetInput::UploadParameterValue()
                     // Connect input and create connected asset. Will return by reference.
                     if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData( 
                         HostAssetId, InputObjects, InputTransforms,
-                        ConnectedAssetId, CreatedInputDataAssetIds ) )
+                        ConnectedAssetId, CreatedInputDataAssetIds, false ) )
                     {
                         bChanged = false;
                         ConnectedAssetId = -1;
@@ -893,7 +893,7 @@ UHoudiniAssetInput::UploadParameterValue()
                     // Connect input and create connected asset. Will return by reference.
                     if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData(
                         HostAssetId, SkeletonInputObjects, InputTransforms,
-                        ConnectedAssetId, CreatedInputDataAssetIds ) )
+                        ConnectedAssetId, CreatedInputDataAssetIds, true ) )
                     {
                         bChanged = false;
                         ConnectedAssetId = -1;

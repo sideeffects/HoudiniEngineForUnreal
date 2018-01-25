@@ -3201,7 +3201,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 bool 
 FHoudiniEngineUtils::HapiCreateInputNodeForData( 
     HAPI_NodeId HostAssetId, TArray<UObject *>& InputObjects, const TArray< FTransform >& InputTransforms,
-    HAPI_NodeId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds )
+    HAPI_NodeId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds, const bool& bExportSkeleton )
 {
 #if WITH_EDITOR
     if ( ensure( InputObjects.Num() ) )
@@ -3215,81 +3215,67 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 
         for ( int32 InputIdx = 0; InputIdx < InputObjects.Num(); ++InputIdx )
         {
+            HAPI_NodeId MeshAssetNodeId = -1;
+            FTransform InputTransform = FTransform::Identity;
+            if ( InputTransforms.IsValidIndex( InputIdx ) )
+                InputTransform = InputTransforms[ InputIdx ];
+
             if ( UStaticMesh* InputStaticMesh = Cast< UStaticMesh >( InputObjects[ InputIdx ] ) )
             {
-                FTransform InputTransform = FTransform::Identity;
-                if ( InputTransforms.IsValidIndex( InputIdx ) )
-                    InputTransform = InputTransforms[ InputIdx ];
-
-                HAPI_NodeId MeshAssetNodeId = -1;
-                // Creating an Input Node for Mesh Data
-                bool bInputCreated = HapiCreateInputNodeForData( ConnectedAssetId, InputStaticMesh, MeshAssetNodeId, nullptr );
-                if ( !bInputCreated )
+                // Creating an Input Node for Static Mesh Data
+                if ( !HapiCreateInputNodeForData( ConnectedAssetId, InputStaticMesh, MeshAssetNodeId, nullptr ) )
                 {
                     HOUDINI_LOG_WARNING( TEXT( "Error creating input index %d on %d" ), InputIdx, ConnectedAssetId );
                 }
-
-                if ( MeshAssetNodeId >= 0 )
+            }
+            else if ( USkeletalMesh* InputSkeletalMesh = Cast< USkeletalMesh >( InputObjects[ InputIdx ] ) )
+            {
+                // Creating an Input Node for Skeletal Mesh Data
+                if ( !HapiCreateInputNodeForData( ConnectedAssetId, InputSkeletalMesh, MeshAssetNodeId, bExportSkeleton ) )
                 {
-                    OutCreatedNodeIds.Add( MeshAssetNodeId );
-
-                    // Now we can connect the input node to the asset node.
-                    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
-                        FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
-                        MeshAssetNodeId ), false );
-
-                    if ( !InputTransform.Equals( FTransform::Identity ) )
-                    {
-                        // Updating the Transform
-                        HAPI_TransformEuler HapiTransform;
-                        FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
-                        FHoudiniEngineUtils::TranslateUnrealTransform( InputTransform, HapiTransform );
-
-                        /*
-                        FVector InputPosition = InputTransform.GetLocation() / 100.0f;
-                        HapiTransform.position[ 0 ] = InputPosition.X;
-                        HapiTransform.position[ 1 ] = InputPosition.Y;
-                        HapiTransform.position[ 2 ] = InputPosition.Z;
-
-                        FRotator InputRotator = InputTransform.Rotator();
-                        HapiTransform.rotationEuler[ 0 ] = InputRotator.Pitch;
-                        HapiTransform.rotationEuler[ 1 ] = InputRotator.Yaw;
-                        HapiTransform.rotationEuler[ 2 ] = InputRotator.Roll;
-
-                        FVector InputScale = InputTransform.GetScale3D();
-                        HapiTransform.scale[ 0 ] = InputScale.X;
-                        HapiTransform.scale[ 1 ] = InputScale.Y;
-                        HapiTransform.scale[ 2 ] = InputScale.Z;
-                        */
-
-                        HAPI_NodeInfo LocalAssetNodeInfo;
-                        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
-                            FHoudiniEngine::Get().GetSession(), MeshAssetNodeId, &LocalAssetNodeInfo), false);
-
-                        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetObjectTransform(
-                            FHoudiniEngine::Get().GetSession(), LocalAssetNodeInfo.parentId, &HapiTransform ), false);
-                    }
+                    HOUDINI_LOG_WARNING( TEXT( "Error creating input index %d on %d" ), InputIdx, ConnectedAssetId );
                 }
             }
-            else if (USkeletalMesh* InputSkeletalMesh = Cast< USkeletalMesh >(InputObjects[InputIdx]))
+
+            if ( MeshAssetNodeId >= 0 )
             {
-                HAPI_NodeId MeshAssetNodeId = -1;
+                OutCreatedNodeIds.Add( MeshAssetNodeId );
 
-                // Creating an Input Node for Mesh Data
-                bool bInputCreated = HapiCreateInputNodeForData( ConnectedAssetId, InputSkeletalMesh, MeshAssetNodeId );
-                if (!bInputCreated)
+                // Now we can connect the input node to the asset node.
+                HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
+                    FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
+                    MeshAssetNodeId ), false );
+
+                if ( !InputTransform.Equals( FTransform::Identity ) )
                 {
-                    HOUDINI_LOG_WARNING(TEXT("Error creating input index %d on %d"), InputIdx, ConnectedAssetId);
-                }
+                    // Updating the Transform
+                    HAPI_TransformEuler HapiTransform;
+                    FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
+                    FHoudiniEngineUtils::TranslateUnrealTransform( InputTransform, HapiTransform );
 
-                if ( MeshAssetNodeId >= 0 )
-                {
-                    OutCreatedNodeIds.Add( MeshAssetNodeId );
+                    /*
+                    FVector InputPosition = InputTransform.GetLocation() / 100.0f;
+                    HapiTransform.position[ 0 ] = InputPosition.X;
+                    HapiTransform.position[ 1 ] = InputPosition.Y;
+                    HapiTransform.position[ 2 ] = InputPosition.Z;
 
-                    // Now we can connect the input node to the asset node.
-                    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-                        FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
-                        MeshAssetNodeId ), false);
+                    FRotator InputRotator = InputTransform.Rotator();
+                    HapiTransform.rotationEuler[ 0 ] = InputRotator.Pitch;
+                    HapiTransform.rotationEuler[ 1 ] = InputRotator.Yaw;
+                    HapiTransform.rotationEuler[ 2 ] = InputRotator.Roll;
+
+                    FVector InputScale = InputTransform.GetScale3D();
+                    HapiTransform.scale[ 0 ] = InputScale.X;
+                    HapiTransform.scale[ 1 ] = InputScale.Y;
+                    HapiTransform.scale[ 2 ] = InputScale.Z;
+                    */
+
+                    HAPI_NodeInfo LocalAssetNodeInfo;
+                    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
+                        FHoudiniEngine::Get().GetSession(), MeshAssetNodeId, &LocalAssetNodeInfo ), false );
+
+                    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetObjectTransform(
+                        FHoudiniEngine::Get().GetSession(), LocalAssetNodeInfo.parentId, &HapiTransform ), false );
                 }
             }
         }
@@ -3300,9 +3286,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 
 bool
 FHoudiniEngineUtils::HapiCreateInputNodeForData(
-    HAPI_NodeId HostAssetId,
-    USkeletalMesh * SkeletalMesh,
-    HAPI_NodeId & ConnectedAssetId )
+    HAPI_NodeId HostAssetId, USkeletalMesh * SkeletalMesh, HAPI_NodeId & ConnectedAssetId, const bool& bExportSkeleton )
 {
 #if WITH_EDITOR
     // If we don't have a skeletal mesh, or host asset is invalid, there's nothing to do.
@@ -3777,17 +3761,19 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId), false);
 
-    // Export the Skeleton!
-    HAPI_NodeInfo NodeInfo;
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
-        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, &NodeInfo), false );
+    if ( bExportSkeleton )
+    {
+	// Export the Skeleton!
+	HAPI_NodeInfo NodeInfo;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
+	    FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, &NodeInfo), false );
 
-    FHoudiniEngineUtils::HapiCreateSkeletonFromData(HostAssetId, SkeletalMesh, NodeInfo );
+	FHoudiniEngineUtils::HapiCreateSkeletonFromData(HostAssetId, SkeletalMesh, NodeInfo );
 
-    // Commit the geo.
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );
-
+	// Commit the geo.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+	    FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );
+    }
 #endif
 
     return true;

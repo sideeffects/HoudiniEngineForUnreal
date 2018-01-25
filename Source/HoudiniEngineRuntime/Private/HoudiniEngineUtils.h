@@ -332,7 +332,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             TArray<UObject *>& InputObjects,
             const TArray< FTransform >& InputTransforms,
             HAPI_NodeId & ConnectedAssetId, 
-            TArray< HAPI_NodeId >& OutCreatedNodeIds );
+            TArray< HAPI_NodeId >& OutCreatedNodeIds,
+            const bool& bExportSkeleton );
 
         /** HAPI : Marshaling, extract geometry and create input asset for it - return true on success **/
         static bool HapiCreateInputNodeForData(
@@ -359,9 +360,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** HAPI : Marshaling, extract geometry and skeleton and create input asset for it - return true on success **/
         static bool HapiCreateInputNodeForData(
-            HAPI_NodeId HostAssetId,
-            USkeletalMesh * SkeletalMesh,
-            HAPI_NodeId & ConnectedAssetId );
+            HAPI_NodeId HostAssetId, USkeletalMesh * SkeletalMesh, HAPI_NodeId & ConnectedAssetId, const bool& bExportSkeleton = true );
 
         /** HAPI : Marshaling, extract skeleton and creates its Houdini equivalent - return true on success **/
         static bool HapiCreateSkeletonFromData(

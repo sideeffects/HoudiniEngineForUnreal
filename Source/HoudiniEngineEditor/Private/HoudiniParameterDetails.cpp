@@ -1493,9 +1493,9 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
         [
             SNew( SAssetDropTarget )
             .OnIsAssetAcceptableForDrop( SAssetDropTarget::FIsAssetAcceptableForDrop::CreateLambda(
-                []( const UObject* InObject ) {
-                    return InObject && InObject->IsA< UStaticMesh >();
-            } ) )
+                []( const UObject* InObject )
+                    { return InObject && ( InObject->IsA< UStaticMesh >() || InObject->IsA< USkeletalMesh >() ); } 
+            ) )
             .OnAssetDropped( SAssetDropTarget::FOnAssetDropped::CreateUObject(
                 &InParam, &UHoudiniAssetInput::OnStaticMeshDropped, AtIndex ) )
             [
@@ -1571,6 +1571,7 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
         [MyParam, AtIndex, StaticMeshComboButton]() {
             TArray< const UClass * > AllowedClasses;
             AllowedClasses.Add( UStaticMesh::StaticClass() );
+            AllowedClasses.Add( USkeletalMesh::StaticClass() );
 
             TArray< UFactory * > NewAssetFactories;
             return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(

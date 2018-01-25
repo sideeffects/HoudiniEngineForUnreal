@@ -505,7 +505,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** List of selected meshes and actors from the World Outliner. **/
         TArray< FHoudiniAssetInputOutlinerMesh > InputOutlinerMeshArray;
 
-        /** Objects used for geometry input. **/
+        /** Objects used for skeletal mesh input. **/
         TArray<UObject *> SkeletonInputObjects;
 
         /** Id of currently connected asset. **/
