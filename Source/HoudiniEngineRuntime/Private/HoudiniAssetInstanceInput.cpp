@@ -39,11 +39,6 @@
 #include "Internationalization.h"
 #include "HoudiniEngineBakeUtils.h"
 
-#if WITH_EDITOR
-#include "Framework/Notifications/NotificationManager.h"
-#include "Widgets/Notifications/SNotificationList.h"
-#endif
-
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 
@@ -983,16 +978,13 @@ UHoudiniAssetInstanceInput::OnStaticMeshDropped(
 
     if( MyLevel != CurrentLevel )
     {
-	HOUDINI_LOG_ERROR(TEXT("%s: Could not spawn instanced actor because the actor's level is not the Current Level."), *GetHoudiniAssetComponent()->GetOwner()->GetName());
+        HOUDINI_LOG_ERROR( TEXT( "%s: Could not spawn instanced actor because the actor's level is not the Current Level." ), *GetHoudiniAssetComponent()->GetOwner()->GetName() );
+        FHoudiniEngineUtils::CreateSlateNotification( TEXT( "Could not spawn instanced actor because the actor's level is not the Current Level." ) );
 
-	FNotificationInfo Info(NSLOCTEXT("Houdini", "Error_OperationDisallowedOnDifferentLevel", "Could not spawn instanced actor because the actor's level is not the Current Level."));
-	Info.ExpireDuration = 3.0f;
-	FSlateNotificationManager::Get().AddNotification(Info);
-	return;
+        return;
     }
 
     UObject * UsedObj = HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx );
-
     if ( InObject && UsedObj != InObject )
     {
         FScopedTransaction Transaction(
