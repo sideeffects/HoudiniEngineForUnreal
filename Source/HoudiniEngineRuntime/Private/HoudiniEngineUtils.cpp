@@ -3771,6 +3771,10 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         }
     }
 
+    // Commit the geo before doing the skeleton.
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId), false);
+
     // Export the Skeleton!
     HAPI_NodeInfo NodeInfo;
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
@@ -3809,29 +3813,118 @@ FHoudiniEngineUtils::HapiCreateSkeletonFromData(
 
     // Get runtime settings.
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-    check(HoudiniRuntimeSettings);
+    check( HoudiniRuntimeSettings );
 
     float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
     EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
     int32 GeneratedLightMapResolution = 32;
 
-    if (HoudiniRuntimeSettings)
+    if ( HoudiniRuntimeSettings )
     {
         GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
         ImportAxis = HoudiniRuntimeSettings->ImportAxis;
         GeneratedLightMapResolution = HoudiniRuntimeSettings->LightMapResolution;
     }
 
-    // First, we need to create an objnet node that will contains the nulls & bones
+    // First, we need to create an objnet node in the input that will contains the nulls & bones
     HAPI_NodeId ObjnetNodeId = -1;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
+        FHoudiniEngine::Get().GetSession(), SkelMeshNodeInfo.parentId, "objnet", "skeleton", true, &ObjnetNodeId ), false );
+
+    // We also have to create an object merge node inside the objnet, to attach the skeletal mesh's geometry to the skeleton
+    HAPI_NodeId GeoNodeId = -1;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
+        FHoudiniEngine::Get().GetSession(), ObjnetNodeId, "geo", "mesh", true, &GeoNodeId ), false );
+
+    // For now, we dont export skinning info!!
+    // TODO: new HAPI functions are needed to properly set the skinning weights on the vertices
+    
+    /*
+    ///////// DPT: Deactivated skinning export for now
+
+    // We're going to need a capture, capture override and deform node after the object merge,
+    // So we'll create them now.
+
+    // Create the bone deform
+    HAPI_NodeId DeformNodeId = -1;
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
-        FHoudiniEngine::Get().GetSession(), SkelMeshNodeInfo.parentId, "objnet", "skeleton", true, &ObjnetNodeId), false);
+        FHoudiniEngine::Get().GetSession(), GeoNodeId, "deform", "mesh_deform", true, &DeformNodeId), false);
+
+    // We can delete the default file node created by the geometry node, 
+    // This wll set the display flag top the deform node, which is exactly what we want
+    HAPI_GeoInfo GeoInfo;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetDisplayGeoInfo(
+        FHoudiniEngine::Get().GetSession(), GeoNodeId, &GeoInfo), false);
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::DeleteNode(
+        FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId), false);
+
+    // Create the capture attribute pack and unpack nodes
+    HAPI_NodeId CaptureAttrPackNodeId = -1;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
+        FHoudiniEngine::Get().GetSession(), GeoNodeId, "captureattribpack", "mesh_capture_pack", true, &CaptureAttrPackNodeId ), false);
+
+    HAPI_NodeId CaptureAttrUnpackNodeId = -1;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
+        FHoudiniEngine::Get().GetSession(), GeoNodeId, "captureattribunpack", "mesh_capture_unpack", true, &CaptureAttrUnpackNodeId ), false);
+
+    // Create the capture node
+    HAPI_NodeId CaptureNodeId = -1;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
+        FHoudiniEngine::Get().GetSession(), GeoNodeId, "capture", "mesh_capture", true, &CaptureNodeId), false);
+
+    // Then create an object merge in the geo node...
+    HAPI_NodeId ObjMergeNodeId = -1;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
+        FHoudiniEngine::Get().GetSession(), GeoNodeId, "object_merge", "mesh", true, &ObjMergeNodeId), false);
+
+    // ... and set it's object path parameter to the skeletal mesh's geometry
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmNodeValue(
+        FHoudiniEngine::Get().GetSession(), ObjMergeNodeId, "objpath1", SkelMeshNodeInfo.id), false);
+
+    // We can now wire all those nodes together
+    // Oject Merge > Capture > Capture Override > Capture Unpack > Capture Pack > Deform
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+        FHoudiniEngine::Get().GetSession(), CaptureNodeId, 0, ObjMergeNodeId), false);
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+        FHoudiniEngine::Get().GetSession(), CaptureAttrUnpackNodeId, 0, CaptureNodeId ), false);
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+        FHoudiniEngine::Get().GetSession(), CaptureAttrPackNodeId, 0, CaptureAttrUnpackNodeId ), false);
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+        FHoudiniEngine::Get().GetSession(), DeformNodeId, 0, CaptureAttrPackNodeId ), false);
+        
+        */
+
+    // Create an object merge in the geo node...
+    HAPI_NodeId ObjMergeNodeId = -1;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
+        FHoudiniEngine::Get().GetSession(), GeoNodeId, "object_merge", "mesh", true, &ObjMergeNodeId ), false );
+
+    // ... and set it's object path parameter to the skeletal mesh's geometry
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmNodeValue(
+        FHoudiniEngine::Get().GetSession(), ObjMergeNodeId, "objpath1", SkelMeshNodeInfo.id ), false );
+
+    // We can delete the default file node created by the geometry node, 
+    // This will set the display flag to the object merge node
+    HAPI_GeoInfo GeoInfo;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetDisplayGeoInfo(
+        FHoudiniEngine::Get().GetSession(), GeoNodeId, &GeoInfo ), false );
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::DeleteNode(
+        FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId ), false );
 
     // Arrays keeping track of the created nulls / bone node IDs
     TArray<HAPI_NodeId> NullNodeIds;
     NullNodeIds.Init(-1,  BoneCount );
     TArray<HAPI_NodeId> BoneNodeIds;
     BoneNodeIds.Init(-1,  BoneCount );
+
+    // String containing all the relative path to the joints cregion for the capture SOP
+    int32 NumCapture = 0;
+    FString Capture_Region_Paths;
 
     HAPI_NodeId RootNullNodeId = -1;
     for ( int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetRawBoneNum(); ++BoneIndex )
@@ -3867,6 +3960,26 @@ FHoudiniEngineUtils::HapiCreateSkeletonFromData(
 
             // Calc the bone's length
             BoneLength = FVector( HapiTransform.position[0], HapiTransform.position[1], HapiTransform.position[2] ).Size();
+
+            // We also need to create a cregion node inside the null node
+            HAPI_NodeId CRegionId = -1;
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
+                FHoudiniEngine::Get().GetSession(), NullNodeId, "cregion", "cregion", true, &CRegionId ), false );
+            /*
+            ///////// DPT: Deactivated skinning export for now
+
+            // Set the CRegion to XAxis??
+            // Set the squatch and csquatch param to (0, 0, 0) for faster capture cook
+            // (Since we'll be discarding the capture values)
+
+            // Add a path to the cregion of the joint to the paths to be set for capture sop
+            FString NodePathTemp;
+            if ( !FHoudiniEngineUtils::HapiGetNodePath( CRegionId, CaptureNodeId, NodePathTemp ) )
+                continue;
+
+            Capture_Region_Paths += NodePathTemp + TEXT(" ");
+            NumCapture++;
+            */
         }
 
         // If we're the root node, we don't need to creating bones
@@ -3917,33 +4030,120 @@ FHoudiniEngineUtils::HapiCreateSkeletonFromData(
             FHoudiniEngine::Get().GetSession(), BoneNodeId, 0, ParentNullNodeId ), false);
     }
 
-    // Finally, we have to create an object merge node, to attach the skeletal mesh's geometry to the skeleton
-    // Start by creating a geo nodes
-    HAPI_NodeId GeoNodeId = -1;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
-        FHoudiniEngine::Get().GetSession(), ObjnetNodeId, "geo", "mesh", true, &GeoNodeId), false );
+    // Now that the skeleton has been created, we can connect the Geometry node containing the geometry to the skeleton's root
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+        FHoudiniEngine::Get().GetSession(), GeoNodeId, 0, RootNullNodeId), false);
 
-    // ... and connect it to the skeleton's root
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
-        FHoudiniEngine::Get().GetSession(), GeoNodeId, 0, RootNullNodeId), false );
+    /*
+    ///////// DPT: Deactivated skinning export for now
 
-    // Then create an object merge in the geo node...
-    HAPI_NodeId ObjMergeNodeId = -1;
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
-        FHoudiniEngine::Get().GetSession(), GeoNodeId, "object_merge", "mesh", true, &ObjMergeNodeId), false);
+    // We can also set the all the cregion path to the capture sop extraregions parameter
+    // Get param id.
+    HAPI_ParmId ParmId = -1;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParmIdFromName(
+        FHoudiniEngine::Get().GetSession(), CaptureNodeId, "extraregions", &ParmId ), false );
 
-    // ... and set it's object path parameter to the skeletal mesh's geometry
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmNodeValue(
-        FHoudiniEngine::Get().GetSession(), ObjMergeNodeId, "objpath1", SkelMeshNodeInfo.id ), false );
+    std::string ConvertedString = TCHAR_TO_UTF8(*Capture_Region_Paths);
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmStringValue( 
+        FHoudiniEngine::Get().GetSession(), CaptureNodeId, ConvertedString.c_str(), ParmId, 0 ) , false );
 
-    // We have to delete the default file node created by the geometry node
-    HAPI_GeoInfo GeoInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetDisplayGeoInfo(
-        FHoudiniEngine::Get().GetSession(), GeoNodeId, &GeoInfo), false);
 
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::DeleteNode(
-        FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId ), false);
+    //-----------------------------------------------------------------------------------------------------------------
+    // Extract Skinning info on the skeletal mesh
+    // Grab base LOD level.
+    const FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetImportedResource();
+    const FStaticLODModel& SourceModel = SkelMeshResource->LODModels[0];
+    const int32 VertexCount = SourceModel.GetNumNonClothingVertices();
 
+    // Extract the vertices buffer (this also contains normals, uvs, colors...)
+    TArray<FSoftSkinVertex> SoftSkinVertices;
+    SourceModel.GetNonClothVertices(SoftSkinVertices);
+    if ( SoftSkinVertices.Num() != VertexCount )
+        return false;
+
+    // Array containing the weight values for each vertex, this will be converted to boneCapture_data attribute
+    TArray<float> SkinningWeights;
+    SkinningWeights.SetNum( VertexCount * MAX_TOTAL_INFLUENCES );
+
+    // Array containing the index of the bones used for the weight values, this will be converted to boneCapture_index attribute 
+    TArray<int32> SkinningIndexes;
+    SkinningIndexes.SetNum( VertexCount * MAX_TOTAL_INFLUENCES );
+
+    for (int32 BoneIndex = 0; BoneIndex < BoneCount; ++BoneIndex)
+    {
+        // Add all the vertices that are weighted to the current skeletal bone to the cluster
+        // NOTE: the bone influence indices contained in the vertex data are based on a per-chunk
+        // list of verts.  The convert the chunk bone index to the mesh bone index, the chunk's boneMap is needed
+        int32 VertIndex = 0;
+        const int32 SectionCount = SourceModel.Sections.Num();
+        for (int32 SectionIndex = 0; SectionIndex < SectionCount; ++SectionIndex)
+        {
+            const FSkelMeshSection& Section = SourceModel.Sections[SectionIndex];
+
+            for (int32 SoftIndex = 0; SoftIndex < Section.SoftVertices.Num(); ++SoftIndex)
+            {
+                const FSoftSkinVertex& Vert = Section.SoftVertices[SoftIndex];
+
+                //SkinningIndexes[VertIndex].SetNum( MAX_TOTAL_INFLUENCES )
+
+                for (int32 InfluenceIndex = 0; InfluenceIndex < MAX_TOTAL_INFLUENCES; ++InfluenceIndex)
+                {
+                    SkinningIndexes[ VertIndex * MAX_TOTAL_INFLUENCES + InfluenceIndex ] = Section.BoneMap[ Vert.InfluenceBones[ InfluenceIndex ] ];
+                    SkinningWeights[ VertIndex * MAX_TOTAL_INFLUENCES + InfluenceIndex ] = Vert.InfluenceWeights[ InfluenceIndex ] / 255.f;
+                }
+
+                ++VertIndex;
+            }
+        }
+    }
+
+    // We need to make sure the capture/capture unpack SOP are cooked before doing this
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CookNode( 
+        FHoudiniEngine::Get().GetSession(), CaptureNodeId, nullptr ), false );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CookNode(
+        FHoudiniEngine::Get().GetSession(), CaptureAttrUnpackNodeId, nullptr), false);
+
+    // Convert weight to the boneCapture_data attribute
+    HAPI_AttributeInfo DataAttrInfo;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
+        FHoudiniEngine::Get().GetSession(), CaptureAttrUnpackNodeId, 0, "boneCapture_data", HAPI_ATTROWNER_POINT, &DataAttrInfo ), false );
+
+    DataAttrInfo.tupleSize = MAX_TOTAL_INFLUENCES;
+
+    // Get the old values
+    TArray<float> Array;
+    Array.SetNum(DataAttrInfo.count * DataAttrInfo.tupleSize);
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeFloatData(
+        FHoudiniEngine::Get().GetSession(), CaptureAttrUnpackNodeId, 0, "boneCapture_data", &DataAttrInfo, 0, Array.GetData(), 0, DataAttrInfo.count), false);
+
+    // Add the updated attribute
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), SkelMeshNodeInfo.id,//CaptureAttrUnpackNodeId,
+        0, "boneCapture_data", &DataAttrInfo ), false );
+
+    // Set the new values
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
+        FHoudiniEngine::Get().GetSession(), SkelMeshNodeInfo.id,//CaptureAttrUnpackNodeId,
+        0, "boneCapture_data", &DataAttrInfo, SkinningWeights.GetData(), 0, VertexCount ), false );
+
+    // Convert indexes to the boneCapture_index attribute
+    HAPI_AttributeInfo IndexAttrInfo;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeInfo(
+        FHoudiniEngine::Get().GetSession(), CaptureAttrUnpackNodeId, 0, "boneCapture_index", HAPI_ATTROWNER_POINT, &IndexAttrInfo ), false);
+
+    IndexAttrInfo.tupleSize = MAX_TOTAL_INFLUENCES;
+
+    // Add the updated attribute to the mesh node
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), SkelMeshNodeInfo.id,//CaptureAttrUnpackNodeId,
+        0, "boneCapture_index", &IndexAttrInfo), false );
+
+    // Set the new values
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+        FHoudiniEngine::Get().GetSession(), SkelMeshNodeInfo.id,//CaptureAttrUnpackNodeId,
+        0, "boneCapture_index", &IndexAttrInfo, SkinningIndexes.GetData(), 0, VertexCount ), false);
+        */
 
     // Finally, we'll add a detail attribute with the path to the skeleton root node
     // This is an OBJ asset, return the path to this geo relative to the asset
