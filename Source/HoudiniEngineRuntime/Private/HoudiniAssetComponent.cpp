@@ -2678,8 +2678,7 @@ UHoudiniAssetComponent::OnApplyObjectToActor( UObject* ObjectToApply, AActor * A
             {
                 for ( int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx )
                 {
-                    UInstancedStaticMeshComponent * InstancedStaticMeshComponent =
-                        InstancedStaticMeshComponents[ Idx ];
+                    UInstancedStaticMeshComponent * InstancedStaticMeshComponent = InstancedStaticMeshComponents[ Idx ];
 
                     if ( InstancedStaticMeshComponent )
                     {
@@ -4947,8 +4946,7 @@ UHoudiniAssetComponent::LocateStaticMeshComponent( const UStaticMesh * StaticMes
 
 bool
 UHoudiniAssetComponent::LocateInstancedStaticMeshComponents(
-    const UStaticMesh * StaticMesh,
-    TArray< UInstancedStaticMeshComponent * > & Components ) const
+    const UStaticMesh * StaticMesh, TArray< UInstancedStaticMeshComponent * > & Components ) const
 {
     Components.Empty();
 
@@ -5254,7 +5252,7 @@ UHoudiniAssetComponent::ReplaceMaterial(
         if ( !StaticMeshComponent )
         {
             TArray< UInstancedStaticMeshComponent * > InstancedStaticMeshComponents;
-            if (!LocateInstancedStaticMeshComponents( StaticMesh, InstancedStaticMeshComponents ) )
+            if ( !LocateInstancedStaticMeshComponents( StaticMesh, InstancedStaticMeshComponents ) )
                 return false;
         }
     }

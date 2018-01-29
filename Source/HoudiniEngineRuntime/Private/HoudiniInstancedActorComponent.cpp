@@ -155,19 +155,20 @@ void UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
     const TArray< FTransform > & InstancedTransforms, const TArray<FLinearColor> & InstancedColors,
     const FRotator & RotationOffset, const FVector & ScaleOffset)
 {
-    UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>(Component);
-    UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>(Component);
-    UHoudiniMeshSplitInstancerComponent* MSIC = Cast<UHoudiniMeshSplitInstancerComponent>(Component);
+    UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( Component );
+    UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( Component );
+    UHoudiniMeshSplitInstancerComponent* MSIC = Cast<UHoudiniMeshSplitInstancerComponent>( Component );
 
     check(ISMC || IAC || MSIC);
 
-    auto ProcessOffsets = [&]() {
+    auto ProcessOffsets = [&]()
+    {
         TArray<FTransform> ProcessedTransforms;
-        ProcessedTransforms.Reserve(InstancedTransforms.Num());
+        ProcessedTransforms.Reserve( InstancedTransforms.Num() );
 
         for( int32 InstanceIdx = 0; InstanceIdx < InstancedTransforms.Num(); ++InstanceIdx )
         {
-            FTransform Transform = InstancedTransforms[InstanceIdx];
+            FTransform Transform = InstancedTransforms[ InstanceIdx ];
 
             // Compute new rotation and scale.
             FQuat TransformRotation = Transform.GetRotation() * RotationOffset.Quaternion();
@@ -184,10 +185,10 @@ void UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
             if( TransformScale3D.Z < HAPI_UNREAL_SCALE_SMALL_VALUE )
                 TransformScale3D.Z = HAPI_UNREAL_SCALE_SMALL_VALUE;
 
-            Transform.SetRotation(TransformRotation);
-            Transform.SetScale3D(TransformScale3D);
+            Transform.SetRotation( TransformRotation );
+            Transform.SetScale3D( TransformScale3D );
 
-            ProcessedTransforms.Add(Transform);
+            ProcessedTransforms.Add( Transform );
         }
         return ProcessedTransforms;
     };
@@ -197,16 +198,16 @@ void UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
         ISMC->ClearInstances();
         for( const auto& Transform : ProcessOffsets() )
         {
-            ISMC->AddInstance(Transform);
+            ISMC->AddInstance( Transform );
         }
     }
     else if( IAC )
     {
-        IAC->SetInstances(ProcessOffsets());
+        IAC->SetInstances( ProcessOffsets() );
     }
     else if( MSIC )
     {
-        MSIC->SetInstances(ProcessOffsets(), InstancedColors);
+        MSIC->SetInstances( ProcessOffsets(), InstancedColors );
     }
 }
 
