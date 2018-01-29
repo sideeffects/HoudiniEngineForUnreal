@@ -513,7 +513,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Houd
     NewActors.Append( BakeHoudiniActorToActors_InstancedActors( HoudiniAssetComponent, IAComponentToPart ) );
 
     auto SplitMeshInstancerComponentToPart = HoudiniAssetComponent->CollectAllMeshSplitInstancerComponents();
-    NewActors.Append(BakeHoudiniActorToActors_SplitMeshInstancers(HoudiniAssetComponent, SplitMeshInstancerComponentToPart));
+    NewActors.Append( BakeHoudiniActorToActors_SplitMeshInstancers( HoudiniAssetComponent, SplitMeshInstancerComponentToPart ) );
 
     if( SelectNewActors && NewActors.Num() )
     {
@@ -683,7 +683,15 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
                     NewActor->SetActorLabel( NewActor->GetName() );
                     NewActor->SetActorHiddenInGame( OtherISMC->bHiddenInGame );
 
-                    if( UInstancedStaticMeshComponent* NewISMC = DuplicateObject< UInstancedStaticMeshComponent >( OtherISMC, NewActor, *OtherISMC->GetName() ) )
+                    // Do we need to create a HISMC?
+                    const UHierarchicalInstancedStaticMeshComponent* OtherHISMC = Cast< const UHierarchicalInstancedStaticMeshComponent>( OtherSMC );		    
+                    UInstancedStaticMeshComponent* NewISMC = nullptr;
+                    if ( OtherHISMC )
+                        NewISMC = DuplicateObject< UHierarchicalInstancedStaticMeshComponent >(OtherHISMC, NewActor, *OtherHISMC->GetName() ) );
+                    else
+                        NewISMC = DuplicateObject< UInstancedStaticMeshComponent >( OtherISMC, NewActor, *OtherISMC->GetName() ) );
+
+                    if( NewISMC )
                     {
                         NewISMC->SetupAttachment( nullptr );
                         NewISMC->SetStaticMesh( BakedSM );
@@ -714,7 +722,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
                         // We need to set the modified uproperty on the created actor
                         if ( AStaticMeshActor* SMActor = Cast< AStaticMeshActor>(NewActor) )
                         {
-                            if (UStaticMeshComponent* SMC = SMActor->GetStaticMeshComponent())
+                            if ( UStaticMeshComponent* SMC = SMActor->GetStaticMeshComponent() )
                             {
                                 FHoudiniGeoPartObject GeoPartObject = HoudiniAssetComponent->LocateGeoPartObject( OtherSMC->GetStaticMesh() );
 
