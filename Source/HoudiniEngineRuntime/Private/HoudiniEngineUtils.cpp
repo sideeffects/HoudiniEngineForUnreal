@@ -58,6 +58,8 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "StaticMeshResources.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+
 #include "Paths.h"
 
 #if PLATFORM_WINDOWS
@@ -3350,6 +3352,18 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     std::string MarshallingAttributeNameMaterialInstance = HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE;
     std::string MarshallingAttributeNameFaceSmoothingMask = HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK;
 
+    // Group name prefix used for collision geometry generation.
+    FString CollisionGroupNamePrefix = TEXT("collision_geo");
+    FString RenderedCollisionGroupNamePrefix = TEXT("rendered_collision_geo");
+    FString UCXCollisionGroupNamePrefix = TEXT("collision_geo_ucx");
+    FString UCXRenderedCollisionGroupNamePrefix = TEXT("rendered_collision_geo_ucx");
+    FString SimpleCollisionGroupNamePrefix = TEXT("collision_geo_simple");
+    FString SimpleRenderedCollisionGroupNamePrefix = TEXT("rendered_collision_geo_simple");
+
+    // Add runtime setting for those?
+    FString LodGroupNamePrefix = TEXT("lod");
+    FString SocketGroupNamePrefix = TEXT("socket");
+
     if ( HoudiniRuntimeSettings )
     {
         GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
@@ -3357,28 +3371,42 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
         if ( !HoudiniRuntimeSettings->MarshallingAttributeLightmapResolution.IsEmpty() )
             FHoudiniEngineUtils::ConvertUnrealString(
-                HoudiniRuntimeSettings->MarshallingAttributeLightmapResolution,
-                MarshallingAttributeNameLightmapResolution );
+                HoudiniRuntimeSettings->MarshallingAttributeLightmapResolution, MarshallingAttributeNameLightmapResolution );
 
         if ( !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty() )
             FHoudiniEngineUtils::ConvertUnrealString(
-                HoudiniRuntimeSettings->MarshallingAttributeMaterial,
-                MarshallingAttributeNameMaterial );
+                HoudiniRuntimeSettings->MarshallingAttributeMaterial, MarshallingAttributeNameMaterial );
 
         if ( !HoudiniRuntimeSettings->MarshallingAttributeFaceSmoothingMask.IsEmpty() )
             FHoudiniEngineUtils::ConvertUnrealString(
-                HoudiniRuntimeSettings->MarshallingAttributeFaceSmoothingMask,
-                MarshallingAttributeNameFaceSmoothingMask );
+                HoudiniRuntimeSettings->MarshallingAttributeFaceSmoothingMask, MarshallingAttributeNameFaceSmoothingMask );
+
+        if ( !HoudiniRuntimeSettings->CollisionGroupNamePrefix.IsEmpty() )
+            CollisionGroupNamePrefix = HoudiniRuntimeSettings->CollisionGroupNamePrefix;
+
+        if ( !HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix.IsEmpty() )
+            RenderedCollisionGroupNamePrefix = HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix;
+
+        if ( !HoudiniRuntimeSettings->UCXCollisionGroupNamePrefix.IsEmpty() )
+            UCXCollisionGroupNamePrefix = HoudiniRuntimeSettings->UCXCollisionGroupNamePrefix;
+
+        if ( !HoudiniRuntimeSettings->UCXRenderedCollisionGroupNamePrefix.IsEmpty() )
+            UCXRenderedCollisionGroupNamePrefix = HoudiniRuntimeSettings->UCXRenderedCollisionGroupNamePrefix;
+
+        if ( !HoudiniRuntimeSettings->SimpleCollisionGroupNamePrefix.IsEmpty() )
+            SimpleCollisionGroupNamePrefix = HoudiniRuntimeSettings->SimpleCollisionGroupNamePrefix;
+
+        if ( !HoudiniRuntimeSettings->SimpleRenderedCollisionGroupNamePrefix.IsEmpty() )
+            SimpleRenderedCollisionGroupNamePrefix = HoudiniRuntimeSettings->SimpleRenderedCollisionGroupNamePrefix;
     }
 
     // Get platform manager LOD specific information.
     ITargetPlatform * CurrentPlatform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
     check( CurrentPlatform );
     const FStaticMeshLODGroup & LODGroup = CurrentPlatform->GetStaticMeshLODSettings().GetLODGroup( NAME_None );
-    int32 NumLODs = LODGroup.GetDefaultNumLODs();
+    int32 DefaultNumLODs = LODGroup.GetDefaultNumLODs();
 
-    HAPI_Result Result = HAPI_RESULT_SUCCESS;
-
+    // Get the AssetInfo
     HAPI_AssetInfo AssetInfo;
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
         FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
@@ -3399,45 +3427,25 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     TArray< HAPI_Transform > ObjectTransforms;
     if ( !FHoudiniEngineUtils::HapiGetObjectTransforms( AssetId, ObjectTransforms ) )
         return false;
-
-    // Containers used for raw data extraction.
-    TArray< int32 > VertexList;
-    TArray< float > Positions;
-    TArray< TArray< float > > TextureCoordinates;
-    TextureCoordinates.SetNumZeroed( MAX_STATIC_TEXCOORDS );
-    TArray< float > Normals;
-    TArray< float > Colors;
-    TArray< float > Alphas;
-    TArray< FString > FaceMaterials;
-    TArray< int32 > FaceSmoothingMasks;
-    TArray< int32 > LightMapResolutions;
-
     // Retrieve all used unique material ids.
     TSet< HAPI_NodeId > UniqueMaterialIds;
     TSet< HAPI_NodeId > UniqueInstancerMaterialIds;
     TMap< FHoudiniGeoPartObject, HAPI_NodeId > InstancerMaterialMap;
     FHoudiniEngineUtils::ExtractUniqueMaterialIds(
-        AssetInfo, UniqueMaterialIds, UniqueInstancerMaterialIds,
-        InstancerMaterialMap );
+        AssetInfo, UniqueMaterialIds, UniqueInstancerMaterialIds, InstancerMaterialMap );
 
-    // Map to hold materials.
+    // Create All the materials found on the asset
     TMap< FString, UMaterialInterface * > Materials;
-
-    // Create materials.
     FHoudiniEngineMaterialUtils::HapiCreateMaterials(
         AssetId, HoudiniCookParams, AssetInfo, UniqueMaterialIds,
         UniqueInstancerMaterialIds, Materials, ForceRecookAll );
 
-    // Replace all material assignments
+    // Update all material assignments
     HoudiniCookParams.HoudiniCookManager->ClearAssignmentMaterials();
     for( const auto& AssPair : Materials )
     {
         HoudiniCookParams.HoudiniCookManager->AddAssignmentMaterial( AssPair.Key, AssPair.Value );
     }
-
-    UStaticMesh * StaticMesh = nullptr;
-    FString MeshName;
-    FGuid MeshGuid;
 
     // Iterate through all objects.
     for ( int32 ObjectIdx = 0; ObjectIdx < ObjectInfos.Num(); ++ObjectIdx )
@@ -3455,1713 +3463,1686 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         FTransform TransformMatrix;
         FHoudiniEngineUtils::TranslateHapiTransform( ObjectTransform, TransformMatrix );
 
-        // We need both the display Geos and the editables Geos
-        TArray<HAPI_GeoInfo> GeoInfos;
+        // Handle Editable nodes
+        // First, get the number of editable nodes
+        int32 EditableNodeCount = 0;
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ComposeChildNodeList(
+            FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId,
+            HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE, true, &EditableNodeCount ), false );
 
-        // First, get the Display Geo Infos
+        if ( EditableNodeCount > 0 )
         {
-            HAPI_GeoInfo DisplayGeoInfo;
-            if (FHoudiniApi::GetDisplayGeoInfo(
-                FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, &DisplayGeoInfo) != HAPI_RESULT_SUCCESS)
+            TArray< HAPI_NodeId > EditableNodeIds;
+            EditableNodeIds.SetNumUninitialized( EditableNodeCount );
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetComposedChildNodeList(
+                FHoudiniEngine::Get().GetSession(), AssetId,
+                EditableNodeIds.GetData(), EditableNodeCount ), false );
+
+            for ( int nEditable = 0; nEditable < EditableNodeCount; nEditable++ )
             {
-                HOUDINI_LOG_MESSAGE(
-                    TEXT("Creating Static Meshes: Object [%d %s] unable to retrieve GeoInfo, ")
-                    TEXT("- skipping."),
-                    ObjectInfo.nodeId, *ObjectName);
-            }
-            else
-            {
-                GeoInfos.Add(DisplayGeoInfo);
-            }
+                HAPI_GeoInfo CurrentEditableGeoInfo;
+                HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGeoInfo(
+                    FHoudiniEngine::Get().GetSession(), EditableNodeIds[ nEditable ], &CurrentEditableGeoInfo ), false );
 
-            // Then get all the GeoInfos for all the editable nodes
-            int32 EditableNodeCount = 0;
-            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeChildNodeList(
-                FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId,
-                HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
-                true, &EditableNodeCount), false);
+                // do not process the main display geo
+                if ( CurrentEditableGeoInfo.isDisplayGeo )
+                    continue;
 
-            if (EditableNodeCount > 0)
-            {
-                TArray< HAPI_NodeId > EditableNodeIds;
-                EditableNodeIds.SetNumUninitialized(EditableNodeCount);
-                HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetComposedChildNodeList(
-                    FHoudiniEngine::Get().GetSession(), AssetId,
-                    EditableNodeIds.GetData(), EditableNodeCount), false);
+                // We only handle editable curves
+                if (CurrentEditableGeoInfo.type != HAPI_GEOTYPE_CURVE )
+                    continue;
 
-                for (int nEditable = 0; nEditable < EditableNodeCount; nEditable++)
-                {
-                    // don't add editable node if we already have it
-                    if ( DisplayGeoInfo.nodeId == EditableNodeIds[nEditable] )
-                        continue;
-
-                    HAPI_GeoInfo CurrentEditableGeoInfo;
-
-                    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(
-                        FHoudiniEngine::Get().GetSession(), 
-                        EditableNodeIds[nEditable], 
-                        &CurrentEditableGeoInfo), false);
-
-                    GeoInfos.Add(CurrentEditableGeoInfo);
-                }
-            }
-        }
-
-        // Going through the geo infos of the display and editable nodes to create their GeoPartObject/StaticMeshes
-        for ( int32 n = 0; n < GeoInfos.Num(); n++ )
-        {
-            HAPI_GeoInfo GeoInfo = GeoInfos[n];
-            HAPI_NodeId GeoId = GeoInfo.nodeId;
-
-            if ( GeoInfo.type == HAPI_GEOTYPE_CURVE )
-            {
-                // If this geo is a curve, we skip part processing.
+                // Add the editable curve to the output array
                 FHoudiniGeoPartObject HoudiniGeoPartObject(
                     TransformMatrix, ObjectName, ObjectName, AssetId,
-                    ObjectInfo.nodeId, GeoInfo.nodeId, 0 );
+                    ObjectInfo.nodeId, CurrentEditableGeoInfo.nodeId, 0 );
+
                 HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible;
                 HoudiniGeoPartObject.bIsInstancer = false;
                 HoudiniGeoPartObject.bIsCurve = true;
-                HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
-                HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
+                HoudiniGeoPartObject.bIsEditable = CurrentEditableGeoInfo.isEditable;
+                HoudiniGeoPartObject.bHasGeoChanged = CurrentEditableGeoInfo.hasGeoChanged;
 
-                StaticMesh = nullptr;
-                StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
+                StaticMeshesOut.Add( HoudiniGeoPartObject, nullptr );
+            }
+        }
+
+        // Get the Display Geo's info
+        HAPI_GeoInfo GeoInfo;
+        if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetDisplayGeoInfo(
+            FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, &GeoInfo ) )
+        {
+            HOUDINI_LOG_MESSAGE( TEXT("Creating Static Meshes: Object [%d %s] unable to retrieve GeoInfo, ") TEXT("- skipping."), ObjectInfo.nodeId, *ObjectName );
+            continue;
+        }
+
+        // Get object / geo group memberships for primitives.
+        TArray< FString > ObjectGeoGroupNames;
+        if( ! FHoudiniEngineUtils::HapiGetGroupNames(
+            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, HAPI_GROUPTYPE_PRIM, ObjectGeoGroupNames ) )
+        {
+            HOUDINI_LOG_MESSAGE( TEXT( "Creating Static Meshes: Object [%d %s] non-fatal error reading group names" ), 
+                ObjectInfo.nodeId, *ObjectName );
+        }
+
+        // Prepare the object that will store UCX/UBX/USP Collision geo
+        FKAggregateGeom AggregateCollisionGeo;
+        bool bHasAggregateGeometryCollision = false;
+
+        // Prepare the object that will store the mesh sockets and their names
+        TArray< FTransform > AllSockets;
+        TArray< FString > AllSocketsNames;
+        TArray< FString > AllSocketsActors;
+
+        for ( int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx )
+        {
+            // Get part information.
+            HAPI_PartInfo PartInfo;
+            if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(
+                FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, PartIdx, &PartInfo ) )
+            {
+                // Error retrieving part info.
+                HOUDINI_LOG_MESSAGE(
+                    TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d] unable to retrieve PartInfo, " )
+                    TEXT( "- skipping." ),
+                    ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx );
                 continue;
             }
 
-            // Right now only care about display SOPs.
-            if ( !GeoInfo.isDisplayGeo )
+            // Retrieve part name.
+            FString PartName = TEXT("");
+            FHoudiniEngineString HoudiniEngineStringPartName( PartInfo.nameSH );
+            HoudiniEngineStringPartName.ToFString( PartName );
+
+            // Unsupported/Invalid part
+            if( PartInfo.type == HAPI_PARTTYPE_INVALID )
                 continue;
 
-            // Get object / geo group memberships for primitives.
-            TArray< FString > ObjectGeoGroupNames;
-            if( ! FHoudiniEngineUtils::HapiGetGroupNames(
-                AssetId, ObjectInfo.nodeId, GeoId, HAPI_GROUPTYPE_PRIM,
-                ObjectGeoGroupNames ) )
+            // Create geo part object identifier.
+            FHoudiniGeoPartObject HoudiniGeoPartObject(
+                TransformMatrix, ObjectName, PartName, AssetId,
+                ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id );
+
+            HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible && !PartInfo.isInstanced;
+            HoudiniGeoPartObject.bIsInstancer = ObjectInfo.isInstancer;
+            HoudiniGeoPartObject.bIsCurve = ( PartInfo.type == HAPI_PARTTYPE_CURVE );
+            HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
+            HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
+            HoudiniGeoPartObject.bIsBox = ( PartInfo.type == HAPI_PARTTYPE_BOX );
+            HoudiniGeoPartObject.bIsSphere = ( PartInfo.type == HAPI_PARTTYPE_SPHERE );
+            HoudiniGeoPartObject.bIsVolume = ( PartInfo.type == HAPI_PARTTYPE_VOLUME );
+
+            // See if a custom name for the mesh was assigned via the GeneratedMeshName attribute        
+            TArray< FString > GeneratedMeshNames;
             {
-                HOUDINI_LOG_MESSAGE( TEXT( "Creating Static Meshes: Object [%d %s] non-fatal error reading group names" ), 
-                    ObjectInfo.nodeId, *ObjectName );
-            }
-
-            bool bIsRenderCollidable = false;
-            bool bIsCollidable = false;
-            bool bIsUCXCollidable = false;
-            bool bIsSimpleCollidable = false;
-            
-            if ( HoudiniRuntimeSettings )
-            {
-                // Detect if this object has collision geo, rendered collision geo, UCX collisions
-                for ( int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < ObjectGeoGroupNames.Num(); ++GeoGroupNameIdx )
-                {
-                    const FString & GroupName = ObjectGeoGroupNames[ GeoGroupNameIdx ];
-
-                    // UCX and simple collisions need to be checked first as they both start in the same way
-                    // as their non UCX/non simple equivalent!
-                    if ( !HoudiniRuntimeSettings->UCXCollisionGroupNamePrefix.IsEmpty() &&
-                            GroupName.StartsWith(
-                            HoudiniRuntimeSettings->UCXCollisionGroupNamePrefix,
-                            ESearchCase::IgnoreCase ) )
-                    {
-                        bIsUCXCollidable = true;
-                    }
-                    else if ( !HoudiniRuntimeSettings->UCXRenderedCollisionGroupNamePrefix.IsEmpty() &&
-                                GroupName.StartsWith(
-                                HoudiniRuntimeSettings->UCXRenderedCollisionGroupNamePrefix,
-                                ESearchCase::IgnoreCase ) )
-                    {
-                        bIsUCXCollidable = true;
-                    }
-                    else if ( !HoudiniRuntimeSettings->SimpleCollisionGroupNamePrefix.IsEmpty() &&
-                        GroupName.StartsWith(
-                            HoudiniRuntimeSettings->SimpleCollisionGroupNamePrefix,
-                            ESearchCase::IgnoreCase ) )
-                    {
-                        bIsCollidable = true;
-                    }
-                    else if ( !HoudiniRuntimeSettings->SimpleRenderedCollisionGroupNamePrefix.IsEmpty() &&
-                        GroupName.StartsWith(
-                            HoudiniRuntimeSettings->SimpleRenderedCollisionGroupNamePrefix,
-                            ESearchCase::IgnoreCase ) )
-                    {
-                        bIsRenderCollidable = true;
-                    }
-                    else if ( !HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix.IsEmpty() &&
-                                GroupName.StartsWith(
-                                HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix,
-                                ESearchCase::IgnoreCase ) )
-                    {
-                        bIsRenderCollidable = true;
-                    }
-                    else if ( !HoudiniRuntimeSettings->CollisionGroupNamePrefix.IsEmpty() &&
-                                GroupName.StartsWith(
-                                HoudiniRuntimeSettings->CollisionGroupNamePrefix,
-                                ESearchCase::IgnoreCase ) )
-                    {
-                        bIsCollidable = true;
-                    }
-                }
-            }
-
-            // Prepare the object that will store UCX/UBX/USP Collision geo
-            FKAggregateGeom AggregateCollisionGeo;
-            bool bHasAggregateGeometryCollision = false;
-
-            // Prepare the object that will store the mesh sockets and their names
-            TArray< FTransform > AllSockets;
-            TArray< FString > AllSocketsNames;
-            TArray< FString > AllSocketsActors;
-
-            for ( int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx )
-            {
-                // Get part information.
-                HAPI_PartInfo PartInfo;
-                FString PartName = TEXT( "" );
-
-                if ( FHoudiniApi::GetPartInfo(
-                    FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, PartIdx,
-                    &PartInfo ) != HAPI_RESULT_SUCCESS )
-                {
-                    // Error retrieving part info.
-                    HOUDINI_LOG_MESSAGE(
-                        TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve PartInfo, " )
-                        TEXT( "- skipping." ),
-                        ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
-                    continue;
-                }
-
-                // Retrieve part name.
-                FHoudiniEngineString HoudiniEngineStringPartName( PartInfo.nameSH );
-                HoudiniEngineStringPartName.ToFString( PartName );
-
-                if (PartInfo.type == HAPI_PARTTYPE_INSTANCER)
-                {
-                    // This is a Packed Primitive instancer
-                    FHoudiniGeoPartObject HoudiniGeoPartObject(
-                        TransformMatrix, ObjectName, PartName, AssetId,
-                        ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id );
-
-                    HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible && !ObjectInfo.isInstanced;
-                    HoudiniGeoPartObject.bIsInstancer = false;
-                    HoudiniGeoPartObject.bIsCurve = false;
-                    HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
-                    HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
-                    HoudiniGeoPartObject.bIsPackedPrimitiveInstancer = true;
-                    StaticMeshesOut.Add(HoudiniGeoPartObject, nullptr);
-                    continue;
-                }
-                else if ( PartInfo.type == HAPI_PARTTYPE_VOLUME )
-                {
-                    // Volume Data, this is a Terrain?
-                    FHoudiniGeoPartObject HoudiniGeoPartObject(
-                        TransformMatrix, ObjectName, PartName, AssetId,
-                        ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id );
-
-                    HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible && !ObjectInfo.isInstanced;
-                    HoudiniGeoPartObject.bIsInstancer = false;
-                    HoudiniGeoPartObject.bIsCurve = false;
-                    HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
-                    HoudiniGeoPartObject.bIsPackedPrimitiveInstancer = false;
-                    HoudiniGeoPartObject.bIsVolume = true;
-
-                    // We'll set the GeoChanged flag to true if we want to force the landscape reimport
-                    HoudiniGeoPartObject.bHasGeoChanged = ( GeoInfo.hasGeoChanged || ForceRebuildStaticMesh || ForceRecookAll );
-
-                    StaticMeshesOut.Add(HoudiniGeoPartObject, nullptr);
-
-                    continue;
-                }
-                else if( PartInfo.type == HAPI_PARTTYPE_INVALID )
-                {
-                    continue;
-                }
-
-                // Get name of attribute used for marshalling generated mesh name.
                 HAPI_AttributeInfo AttribGeneratedMeshName;
                 FMemory::Memzero< HAPI_AttributeInfo >( AttribGeneratedMeshName );
-
-                TArray< FString > GeneratedMeshNames;
-
+                std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME;
+                if ( HoudiniRuntimeSettings )
                 {
-                    std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME;
-                    if ( HoudiniRuntimeSettings )
-                    {
-                        FHoudiniEngineUtils::ConvertUnrealString(
-                            HoudiniRuntimeSettings->MarshallingAttributeGeneratedMeshName,
-                            MarshallingAttributeName );
-                    }
-
-                    FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-                        AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
-                        MarshallingAttributeName.c_str(), AttribGeneratedMeshName, GeneratedMeshNames );
+                    FHoudiniEngineUtils::ConvertUnrealString(
+                        HoudiniRuntimeSettings->MarshallingAttributeGeneratedMeshName,
+                        MarshallingAttributeName );
                 }
 
-                // There are no vertices and no points.
-                if ( PartInfo.vertexCount <= 0 && PartInfo.pointCount <= 0 )
-                {
-                    HOUDINI_LOG_MESSAGE(
-                        TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] no points or vertices found, " )
-                        TEXT( "- skipping." ),
-                        ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
-                    continue;
-                }
+                FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+                    AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                    MarshallingAttributeName.c_str(), AttribGeneratedMeshName, GeneratedMeshNames );
 
-                // Retrieve material information for this geo part.
-                TArray< HAPI_NodeId > FaceMaterialIds;
-                HAPI_Bool bSingleFaceMaterial = false;
-                bool bMaterialsFound = false;
-                bool bMaterialsChanged = false;
-
-                if ( PartInfo.faceCount > 0 )
-                {
-                    FaceMaterialIds.SetNumUninitialized( PartInfo.faceCount );
-
-                    if ( FHoudiniApi::GetMaterialNodeIdsOnFaces(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoInfo.nodeId, PartInfo.id, &bSingleFaceMaterial,
-                        &FaceMaterialIds[ 0 ], 0, PartInfo.faceCount ) != HAPI_RESULT_SUCCESS )
-                    {
-                        // Error retrieving material face assignments.
-                        HOUDINI_LOG_MESSAGE(
-                            TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve material face assignments, " )
-                            TEXT( "- skipping." ),
-                            ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
-                        continue;
-                    }
-
-                    // Set flag if we have materials.
-                    for ( int32 MaterialIdx = 0; MaterialIdx < FaceMaterialIds.Num(); ++MaterialIdx )
-                    {
-                        if ( FaceMaterialIds[ MaterialIdx ] != -1 )
-                        {
-                            bMaterialsFound = true;
-                            break;
-                        }
-                    }
-
-                    // Set flag if any of the materials have changed.
-                    if ( bMaterialsFound )
-                    {
-                        for ( int32 MaterialFaceIdx = 0; MaterialFaceIdx < FaceMaterialIds.Num(); ++MaterialFaceIdx )
-                        {
-                            HAPI_MaterialInfo MaterialInfo;
-
-                            if ( FHoudiniApi::GetMaterialInfo(
-                                FHoudiniEngine::Get().GetSession(), FaceMaterialIds[ MaterialFaceIdx ],
-                                &MaterialInfo ) != HAPI_RESULT_SUCCESS )
-                            {
-                                continue;
-                            }
-
-                            if ( MaterialInfo.hasChanged )
-                            {
-                                bMaterialsChanged = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                // Extracting Sockets points
-                GetMeshSocketList( AssetId, ObjectInfo.nodeId, GeoId, PartInfo.id, AllSockets, AllSocketsNames, AllSocketsActors );
-
-                // Create geo part object identifier.
-                FHoudiniGeoPartObject HoudiniGeoPartObject(
-                    TransformMatrix, ObjectName, PartName, AssetId,
-                    ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id );
-
-                HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible && !PartInfo.isInstanced;
-                HoudiniGeoPartObject.bIsInstancer = ObjectInfo.isInstancer;
-                HoudiniGeoPartObject.bIsCurve = ( PartInfo.type == HAPI_PARTTYPE_CURVE );
-                HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
-                HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
-                HoudiniGeoPartObject.bIsBox = ( PartInfo.type == HAPI_PARTTYPE_BOX );
-                HoudiniGeoPartObject.bIsSphere = ( PartInfo.type == HAPI_PARTTYPE_SPHERE );
-                HoudiniGeoPartObject.bIsVolume = ( PartInfo.type == HAPI_PARTTYPE_VOLUME );
-
-                if ( AttribGeneratedMeshName.exists && GeneratedMeshNames.Num() > 0 )
+                if ( GeneratedMeshNames.Num() > 0 )
                 {
                     const FString & CustomPartName = GeneratedMeshNames[ 0 ];
                     if ( !CustomPartName.IsEmpty() )
                         HoudiniGeoPartObject.SetCustomName( CustomPartName );
                 }
+            }
 
-                // We do not create mesh for instancers.
-                if ( ObjectInfo.isInstancer )
+            if ( PartInfo.type == HAPI_PARTTYPE_INSTANCER )
+            {
+                // This is a Packed Primitive instancer
+                HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible && !ObjectInfo.isInstanced;
+                HoudiniGeoPartObject.bIsInstancer = false;
+                HoudiniGeoPartObject.bIsPackedPrimitiveInstancer = true;
+
+                StaticMeshesOut.Add( HoudiniGeoPartObject, nullptr );
+                continue;
+            }
+            else if ( PartInfo.type == HAPI_PARTTYPE_VOLUME )
+            {
+                // Volume Data, this is probably a Heightfield
+                HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible && !ObjectInfo.isInstanced;
+                HoudiniGeoPartObject.bIsInstancer = false;
+                HoudiniGeoPartObject.bIsPackedPrimitiveInstancer = false;
+                HoudiniGeoPartObject.bIsVolume = true;
+
+                // We need to set the GeoChanged flag to true if we want to force the landscape reimport
+                HoudiniGeoPartObject.bHasGeoChanged = ( GeoInfo.hasGeoChanged || ForceRebuildStaticMesh || ForceRecookAll );
+
+                StaticMeshesOut.Add(HoudiniGeoPartObject, nullptr);
+
+                continue;
+            }
+            else if ( PartInfo.type == HAPI_PARTTYPE_CURVE )
+            {
+                // This is a curve part.
+                StaticMeshesOut.Add( HoudiniGeoPartObject, nullptr );
+                continue;
+            }
+            else if ( !ObjectInfo.isInstancer && PartInfo.vertexCount <= 0 )
+            {
+                // This is not an instancer, but we do not have vertices, so maybe this is a point cloud 
+                // with attribute override instancing, we will assume it is and let the PostCook figure it out.
+                HoudiniGeoPartObject.bIsInstancer = true;
+                StaticMeshesOut.Add( HoudiniGeoPartObject, nullptr );
+                continue;
+            }
+
+            // There are no vertices AND no points.
+            if ( PartInfo.vertexCount <= 0 && PartInfo.pointCount <= 0 )
+            {
+                HOUDINI_LOG_MESSAGE(
+                    TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] no points or vertices found, " )
+                    TEXT( "- skipping." ),
+                    ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName );
+                continue;
+            }
+
+            // This is an instancer with no points.
+            if ( ObjectInfo.isInstancer && PartInfo.pointCount <= 0 )
+            {
+                HOUDINI_LOG_MESSAGE(
+                    TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] is instancer but has 0 points " )
+                    TEXT( "skipping." ),
+                    ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName );
+                continue;
+            }
+
+            // Retrieve material information for this geo part.
+            TArray< HAPI_NodeId > FaceMaterialIds;
+            HAPI_Bool bSingleFaceMaterial = false;
+            bool bMaterialsFound = false;
+            bool bMaterialsChanged = false;
+
+            if ( PartInfo.faceCount > 0 )
+            {
+                FaceMaterialIds.SetNumUninitialized( PartInfo.faceCount );
+
+                if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialNodeIdsOnFaces(
+                    FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, PartInfo.id,
+                    &bSingleFaceMaterial, &FaceMaterialIds[ 0 ], 0, PartInfo.faceCount ) )
                 {
-                    if ( PartInfo.pointCount > 0 )
+                    // Error retrieving material face assignments.
+                    HOUDINI_LOG_MESSAGE(
+                        TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve material face assignments, " )
+                        TEXT( "- skipping." ),
+                        ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName );
+                    continue;
+                }
+
+                // Set flag if we have materials.
+                for ( int32 MaterialIdx = 0; MaterialIdx < FaceMaterialIds.Num(); ++MaterialIdx )
+                {
+                    if ( FaceMaterialIds[ MaterialIdx ] != -1 )
                     {
-                        // We need to check whether this instancer has a material.
-                        HAPI_NodeId const * FoundInstancerMaterialId =
-                            InstancerMaterialMap.Find( HoudiniGeoPartObject );
-                        if ( FoundInstancerMaterialId )
-                        {
-                            HAPI_NodeId InstancerMaterialId = *FoundInstancerMaterialId;
+                        bMaterialsFound = true;
+                        break;
+                    }
+                }
 
-                            FString InstancerMaterialShopName = TEXT( "" );
-                            if ( InstancerMaterialId > -1 &&
-                                FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( AssetId, InstancerMaterialId, InstancerMaterialShopName ) )
-                            {
-                                HoudiniGeoPartObject.bInstancerMaterialAvailable = true;
-                                HoudiniGeoPartObject.InstancerMaterialName = InstancerMaterialShopName;
-                            }
+                // Set flag if any of the materials have changed.
+                if ( bMaterialsFound )
+                {
+                    for ( int32 MaterialFaceIdx = 0; MaterialFaceIdx < FaceMaterialIds.Num(); ++MaterialFaceIdx )
+                    {
+                        HAPI_MaterialInfo MaterialInfo;
+                        if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialInfo(
+                            FHoudiniEngine::Get().GetSession(), FaceMaterialIds[ MaterialFaceIdx ], &MaterialInfo ) )
+                            continue;
+
+                        if ( MaterialInfo.hasChanged )
+                        {
+                            bMaterialsChanged = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // We do not create mesh for instancers.
+            if ( ObjectInfo.isInstancer && PartInfo.pointCount > 0 )
+            {
+                // We need to check whether this instancer has a material.
+                HAPI_NodeId const * FoundInstancerMaterialId = InstancerMaterialMap.Find( HoudiniGeoPartObject );
+                if ( FoundInstancerMaterialId )
+                {
+                    HAPI_NodeId InstancerMaterialId = *FoundInstancerMaterialId;
+
+                    FString InstancerMaterialShopName = TEXT( "" );
+                    if ( InstancerMaterialId > -1 && FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( AssetId, InstancerMaterialId, InstancerMaterialShopName ) )
+                    {
+                        HoudiniGeoPartObject.bInstancerMaterialAvailable = true;
+                        HoudiniGeoPartObject.InstancerMaterialName = InstancerMaterialShopName;
+                    }
+                }
+
+                // See if we have instancer attribute material present.
+                {
+                    HAPI_AttributeInfo AttribInstancerAttribMaterials;
+                    FMemory::Memset< HAPI_AttributeInfo >( AttribInstancerAttribMaterials, 0 );
+
+                    TArray< FString > InstancerAttribMaterials;
+
+                    FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+                        AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
+                        PartInfo.id, MarshallingAttributeNameMaterial.c_str(), AttribInstancerAttribMaterials,
+                        InstancerAttribMaterials );
+
+                    if ( AttribInstancerAttribMaterials.exists && InstancerAttribMaterials.Num() > 0 )
+                    {
+                        const FString & InstancerAttribMaterialName = InstancerAttribMaterials[ 0 ];
+                        if ( !InstancerAttribMaterialName.IsEmpty() )
+                        {
+                            HoudiniGeoPartObject.bInstancerAttributeMaterialAvailable = true;
+                            HoudiniGeoPartObject.InstancerAttributeMaterialName = InstancerAttribMaterialName;
+                        }
+                    }
+                }
+
+                // Instancer objects have no mesh assigned.
+                StaticMeshesOut.Add( HoudiniGeoPartObject, nullptr );
+                continue;
+            }
+
+            // Extracting Sockets points on the current part and add them to the list
+            AddMeshSocketToList( AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, AllSockets, AllSocketsNames, AllSocketsActors );
+
+            // Containers used for raw data extraction.
+
+            // Vertex Positions
+            TArray< float > PartPositions;
+            HAPI_AttributeInfo AttribInfoPositions;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoPositions );
+
+            // Vertex Normals
+            TArray< float > PartNormals;
+            HAPI_AttributeInfo AttribInfoNormals;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoNormals );
+
+            // Vertex Colors
+            TArray< float > PartColors;
+            HAPI_AttributeInfo AttribInfoColors;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoColors );
+
+            // Vertex Alpha values
+            TArray< float > PartAlphas;
+            HAPI_AttributeInfo AttribInfoAlpha;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoAlpha );
+
+            // UVs
+            TArray< TArray< float > > PartUVs;
+            PartUVs.SetNumZeroed( MAX_STATIC_TEXCOORDS );
+            TArray< HAPI_AttributeInfo > AttribInfoUVs;
+            AttribInfoUVs.SetNumZeroed( MAX_STATIC_TEXCOORDS );
+
+            // Material ID per face
+            TArray< FString > PartFaceMaterials;
+            HAPI_AttributeInfo AttribFaceMaterials;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttribFaceMaterials );
+
+            // Face Smoothing masks
+            TArray< int32 > PartFaceSmoothingMasks;
+            HAPI_AttributeInfo AttribInfoFaceSmoothingMasks;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoFaceSmoothingMasks );
+
+            // Lightmap resolution
+            TArray< int32 > PartLightMapResolutions;
+            HAPI_AttributeInfo AttribLightmapResolution;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttribLightmapResolution );
+
+            // Vertex Indices
+            TArray< int32 > PartVertexList;
+            PartVertexList.SetNumUninitialized( PartInfo.vertexCount );
+
+            if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetVertexList(
+                FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, PartInfo.id,
+                &PartVertexList[ 0 ], 0, PartInfo.vertexCount ) )
+            {
+                // Error getting the vertex list.
+                HOUDINI_LOG_MESSAGE(
+                    TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve vertex list " )
+                    TEXT( "- skipping." ),
+                    ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName );
+
+                continue;
+            }
+
+            // Sort the Group name array so the LODs are ordered
+            ObjectGeoGroupNames.Sort();
+
+            // See if we require splitting.
+            TArray<FString> SplitGroupNames;
+            int32 nLODInsertPos = 0;
+            int32 NumberOfLODs = 0;
+            for ( int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < ObjectGeoGroupNames.Num(); ++GeoGroupNameIdx )
+            {
+                const FString & GroupName = ObjectGeoGroupNames[ GeoGroupNameIdx ];
+
+                // We're going to order the groups:
+                // Simple and convex invisible colliders should be created first as they will have to be attached to the visible meshes
+                // LODs should be created then, ordered by their names
+                // Visible colliders should be created then, and finally, invisible complex colliders
+                if ( GroupName.StartsWith( SimpleCollisionGroupNamePrefix, ESearchCase::IgnoreCase ) )
+                {
+                    // Invisible simple colliders should be treated first
+                    SplitGroupNames.Insert( GroupName, 0 );
+                    nLODInsertPos++;
+                }
+                else if ( GroupName.StartsWith( UCXCollisionGroupNamePrefix, ESearchCase::IgnoreCase ) )
+                {
+                    // Invisible complex colliders should be treated first
+                    SplitGroupNames.Insert( GroupName, 0 );
+                    nLODInsertPos++;
+                }
+                else if ( GroupName.StartsWith( LodGroupNamePrefix, ESearchCase::IgnoreCase ) )
+                {
+                    // LOD meshes should be next
+                    SplitGroupNames.Insert( GroupName, nLODInsertPos++ );
+                    NumberOfLODs++;
+                }
+                else if ( GroupName.StartsWith( RenderedCollisionGroupNamePrefix, ESearchCase::IgnoreCase ) )
+                {
+                    // Visible colliders (simple, convex or complex) should be treated after LODs
+                    SplitGroupNames.Insert( GroupName, nLODInsertPos );
+                }
+                else if ( GroupName.StartsWith(CollisionGroupNamePrefix, ESearchCase::IgnoreCase ) )
+                {
+                    // Invisible complex colliders should be treated last
+                    SplitGroupNames.Add( GroupName );
+                }
+            }
+
+            bool bRequireSplit = SplitGroupNames.Num() > 0;
+
+            TMap< FString, TArray< int32 > > GroupSplitFaces;
+            TMap< FString, int32 > GroupSplitFaceCounts;
+            TMap< FString, TArray< int32 > > GroupSplitFaceIndices;
+
+            int32 GroupVertexListCount = 0;
+            static const FString RemainingGroupName = TEXT( HAPI_UNREAL_GROUP_GEOMETRY_NOT_COLLISION );
+
+            if ( bRequireSplit )
+            {
+                // Buffer for all vertex indices used for split groups.
+                // We need this to figure out all vertex indices that are not part of them. 
+                TArray< int32 > AllSplitVertexList;
+                AllSplitVertexList.SetNumZeroed( PartVertexList.Num() );
+
+                // Buffer for all face indices used for split groups.
+                // We need this to figure out all face indices that are not part of them.
+                TArray< int32 > AllSplitFaceIndices;
+                AllSplitFaceIndices.SetNumZeroed( FaceMaterialIds.Num() );
+
+                // Extract the vertices/faces for each of the split groups
+                for ( int32 SplitIdx = 0; SplitIdx < SplitGroupNames.Num(); SplitIdx++ )
+                {
+                    FString GroupName = SplitGroupNames[ SplitIdx ];
+
+                    // New vertex list just for this group.
+                    TArray< int32 > GroupVertexList;
+                    TArray< int32 > AllFaceList;
+
+                    // Extract vertex indices for this split.
+                    GroupVertexListCount = FHoudiniEngineUtils::HapiGetVertexListForGroup(
+                        AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, GroupName, PartVertexList, GroupVertexList,
+                        AllSplitVertexList, AllFaceList, AllSplitFaceIndices );
+
+                    if ( GroupVertexListCount > 0 )
+                    {
+                        // If list is not empty, we store it for this group - this will define new mesh.
+                        GroupSplitFaces.Add( GroupName, GroupVertexList );
+                        GroupSplitFaceCounts.Add( GroupName, GroupVertexListCount );
+                        GroupSplitFaceIndices.Add( GroupName, AllFaceList );
+                    }
+                }
+
+                // We also need to figure out / construct vertex list for everything that's not in a split group
+                TArray< int32 > GroupSplitFacesRemaining;
+                GroupSplitFacesRemaining.Init( -1, PartVertexList.Num() );
+                bool bMainSplitGroup = false;
+                GroupVertexListCount = 0;
+
+                TArray< int32 > GroupSplitFaceIndicesRemaining;
+                for ( int32 SplitVertexIdx = 0; SplitVertexIdx < AllSplitVertexList.Num(); SplitVertexIdx++ )
+                {
+                    if ( AllSplitVertexList[ SplitVertexIdx ] == 0 )
+                    {
+                        // This is unused index, we need to add it to unused vertex list.
+                        GroupSplitFacesRemaining[ SplitVertexIdx ] = PartVertexList[ SplitVertexIdx ];
+                        bMainSplitGroup = true;
+                        GroupVertexListCount++;
+                    }
+                }
+
+                for ( int32 SplitFaceIdx = 0; SplitFaceIdx < AllSplitFaceIndices.Num(); SplitFaceIdx++ )
+                {
+                    if ( AllSplitFaceIndices[ SplitFaceIdx ] == 0 )
+                    {
+                        // This is unused face, we need to add it to unused faces list.
+                        GroupSplitFaceIndicesRemaining.Add( SplitFaceIdx );
+                    }
+                }
+
+                // We store remaining geo vertex list as a special name.
+                if ( bMainSplitGroup )
+                {
+                    SplitGroupNames.Add( RemainingGroupName );
+                    GroupSplitFaces.Add( RemainingGroupName, GroupSplitFacesRemaining );
+                    GroupSplitFaceCounts.Add( RemainingGroupName, GroupVertexListCount );
+                    GroupSplitFaceIndices.Add( RemainingGroupName, GroupSplitFaceIndicesRemaining );
+                }
+            }
+            else
+            {
+                // No splitting required
+                SplitGroupNames.Add( RemainingGroupName );
+                GroupSplitFaces.Add( RemainingGroupName, PartVertexList );
+                GroupSplitFaceCounts.Add( RemainingGroupName, PartVertexList.Num() );
+
+                TArray<int32> AllFaces;
+                for ( int32 FaceIdx = 0; FaceIdx < PartInfo.faceCount; ++FaceIdx )
+                    AllFaces.Add( FaceIdx );
+
+                GroupSplitFaceIndices.Add( RemainingGroupName, AllFaces );
+            }
+
+            // Keep track of the LOD Index
+            int32 LodIndex = 0;
+            int32 LodSplitId = -1;
+
+            // Iterate through all detected split groups we care about and split geometry.	    
+            for ( int32 SplitId = 0; SplitId < SplitGroupNames.Num(); SplitId++ )
+            {
+                // Get split group name
+                const FString & SplitGroupName = SplitGroupNames[ SplitId ];
+
+                // Get the vertex indices for this group
+                TArray< int32 > & SplitGroupVertexList = GroupSplitFaces[ SplitGroupName ];
+
+                // Get valid count of vertex indices for this split.
+                int32 SplitGroupVertexListCount = GroupSplitFaceCounts[ SplitGroupName ];
+
+                // Get face indices for this split.
+                TArray< int32 > & SplitGroupFaceIndices = GroupSplitFaceIndices[ SplitGroupName ];
+
+                // LOD meshes need to use the same SplitID (as they will be on the same static mesh)
+                bool IsLOD = SplitGroupName.StartsWith( LodGroupNamePrefix, ESearchCase::IgnoreCase );
+                if ( IsLOD && LodSplitId == -1 )
+                    LodSplitId = SplitId;
+
+                // Record split id in geo part.
+                // LODs must use the same SplitID since they belong to the same static mesh
+                HoudiniGeoPartObject.SplitId = !IsLOD ? SplitId : LodSplitId;
+
+                // Reset collision flags for the current GeoPartObj
+                HoudiniGeoPartObject.bIsRenderCollidable = false;
+                HoudiniGeoPartObject.bIsCollidable = false;
+                HoudiniGeoPartObject.bIsSimpleCollisionGeo = false;
+                HoudiniGeoPartObject.bIsUCXCollisionGeo = false;
+
+                // Reset the collision/socket added flags if needed
+                // For LODs, only reset the collision flag for the first LOD level
+                if ( !IsLOD || ( IsLOD && LodIndex == 0 ) )
+                {
+                    HoudiniGeoPartObject.bHasCollisionBeenAdded = false;
+                    HoudiniGeoPartObject.bHasSocketBeenAdded = false;
+                }
+
+                // Determining the type of collision:
+                // UCX and simple collisions need to be checked first as they both start in the same way
+                // as their non UCX/non simple equivalent!}
+                if ( SplitGroupName.StartsWith( UCXCollisionGroupNamePrefix, ESearchCase::IgnoreCase ) )
+                {
+                    HoudiniGeoPartObject.bIsUCXCollisionGeo = true;
+                }
+                else if ( SplitGroupName.StartsWith( UCXRenderedCollisionGroupNamePrefix, ESearchCase::IgnoreCase ) )
+                {
+                    HoudiniGeoPartObject.bIsRenderCollidable = true;
+                    HoudiniGeoPartObject.bIsUCXCollisionGeo = true;
+                }
+                else if ( SplitGroupName.StartsWith( SimpleRenderedCollisionGroupNamePrefix, ESearchCase::IgnoreCase ) )
+                {
+                    HoudiniGeoPartObject.bIsRenderCollidable = true;
+                    HoudiniGeoPartObject.bIsSimpleCollisionGeo = true;
+                }
+                else if ( SplitGroupName.StartsWith( SimpleCollisionGroupNamePrefix, ESearchCase::IgnoreCase ) )
+                {
+                    HoudiniGeoPartObject.bIsCollidable = true;
+                    HoudiniGeoPartObject.bIsSimpleCollisionGeo = true;
+                }
+                else if ( SplitGroupName.StartsWith( RenderedCollisionGroupNamePrefix, ESearchCase::IgnoreCase ) )
+                {
+                    HoudiniGeoPartObject.bIsRenderCollidable = true;
+                }
+                else if ( SplitGroupName.StartsWith( HoudiniRuntimeSettings->CollisionGroupNamePrefix, ESearchCase::IgnoreCase ) )
+                {
+                    HoudiniGeoPartObject.bIsCollidable = true;
+                }
+
+                // Boolean used to avoid asking the Positions to HAPI twice if we have a rendered collision UCX
+                bool bAlreadyCalledGetPositions = false;
+
+                // Handling UCX/Convex Hull colliders
+                if ( HoudiniGeoPartObject.bIsUCXCollisionGeo )
+                {
+                    // First we need to retrieve the vertices positions
+                    if ( PartPositions.Num() <= 0 )//!bAlreadyCalledGetPositions )
+                    {
+                        if ( !FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
+                            PartInfo.id, HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, PartPositions ) )
+                        {
+                            // Error retrieving positions.
+                            HOUDINI_LOG_MESSAGE(
+                                TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data ")
+                                TEXT("- skipping."),
+                                ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName );
+
+                            break;
                         }
 
-                        // See if we have instancer attribute material present.
-                        {
-                            HAPI_AttributeInfo AttribInstancerAttribMaterials;
-                            FMemory::Memset< HAPI_AttributeInfo >( AttribInstancerAttribMaterials, 0 );
+                        //bAlreadyCalledGetPositions = true;
+                    }
 
-                            TArray< FString > InstancerAttribMaterials;
 
-                            FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
-                                PartInfo.id, MarshallingAttributeNameMaterial.c_str(), AttribInstancerAttribMaterials,
-                                InstancerAttribMaterials );
+                    bool MultiHullDecomp = false;
+                    if ( SplitGroupName.Contains( TEXT("ucx_multi"), ESearchCase::IgnoreCase ) )
+                        MultiHullDecomp = true;
 
-                            if ( AttribInstancerAttribMaterials.exists && InstancerAttribMaterials.Num() > 0 )
-                            {
-                                const FString & InstancerAttribMaterialName = InstancerAttribMaterials[ 0 ];
-                                if ( !InstancerAttribMaterialName.IsEmpty() )
-                                {
-                                    HoudiniGeoPartObject.bInstancerAttributeMaterialAvailable = true;
-                                    HoudiniGeoPartObject.InstancerAttributeMaterialName = InstancerAttribMaterialName;
-                                }
-                            }
-                        }
+                    // Create the convex hull colliders and add them to the Aggregate
+                    if ( AddConvexCollision( PartPositions, SplitGroupVertexList, MultiHullDecomp, AggregateCollisionGeo ) )
+                    {
+                        // We'll add the collision after all the meshes are generated unless this a rendered_collision_geo_ucx
+                        bHasAggregateGeometryCollision = true;
+                    }
 
-                        // Instancer objects have no mesh assigned.
-                        StaticMesh = nullptr;
-                        StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
+                    // No need to create a mesh if the colliders is not to be rendered
+                    if ( !HoudiniGeoPartObject.bIsRenderCollidable )
                         continue;
+                }
+
+                // Record split group name.
+                HoudiniGeoPartObject.SplitName = SplitGroupName;
+
+                // Attempt to locate static mesh from previous instantiation.
+                UStaticMesh * const * FoundStaticMesh = StaticMeshesIn.Find( HoudiniGeoPartObject );
+
+                // LODs levels other than the first one need to reuse StaticMesh from the output!
+                if ( IsLOD && LodIndex > 0 )
+                    FoundStaticMesh = StaticMeshesOut.Find( HoudiniGeoPartObject );
+
+                // Flag whether we need to rebuild the mesh.
+                bool bRebuildStaticMesh = false;
+
+                // If the geometry and scaling factor have changed or if the user asked for a cook manually,
+                // we will need to rebuild the static mesh. If not, then we can reuse the corresponding static mesh.
+                if ( GeoInfo.hasGeoChanged || ForceRebuildStaticMesh || ForceRecookAll )
+                    bRebuildStaticMesh = true;
+
+                // The geometry has not changed,
+                if ( !bRebuildStaticMesh )
+                {
+                    // No mesh located, unless this split is a simple/conve collider, this is an error.
+                    if ( !FoundStaticMesh && ( !HoudiniGeoPartObject.bIsSimpleCollisionGeo && !HoudiniGeoPartObject.bIsUCXCollisionGeo ) )
+                    {
+                        HOUDINI_LOG_ERROR(
+                            TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] geometry has not changed ")
+                            TEXT("but static mesh does not exist - skipping."),
+                            ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName);
+                        continue;
+                    }
+
+                    // If any of the materials on corresponding geo part object have not changed.
+                    if ( !bMaterialsChanged )
+                    {
+                        // We can reuse previously created geometry.
+                        StaticMeshesOut.Add( HoudiniGeoPartObject, *FoundStaticMesh );
+                        continue;
+                    }
+                }
+
+                // If the static mesh was not located, we need to create a new one.
+                bool bStaticMeshCreated = false;
+                UStaticMesh * StaticMesh = nullptr;
+                if ( !FoundStaticMesh || *FoundStaticMesh == nullptr )
+                {
+                    FGuid MeshGuid;
+                    MeshGuid.Invalidate();
+
+                    FString MeshName;
+                    UPackage * MeshPackage = FHoudiniEngineBakeUtils::BakeCreateStaticMeshPackageForComponent(
+                        HoudiniCookParams, HoudiniGeoPartObject, MeshName, MeshGuid );
+
+                    if( !MeshPackage )
+                        continue;
+
+                    StaticMesh = NewObject< UStaticMesh >(
+                        MeshPackage, FName( *MeshName ),
+                        ( HoudiniCookParams.StaticMeshBakeMode == EBakeMode::Intermediate ) ? RF_NoFlags : RF_Public | RF_Standalone );
+
+                    // Add meta information to this package.
+                    FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
+                        MeshPackage, MeshPackage, HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT( "true" ) );
+                    FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
+                        MeshPackage, MeshPackage, HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MeshName );
+
+                    // Notify system that new asset has been created.
+                    FAssetRegistryModule::AssetCreated( StaticMesh );
+
+                    bStaticMeshCreated = true;
+                }
+                else
+                {
+                    // Found the corresponding Static Mesh, just reuse it.
+                    StaticMesh = *FoundStaticMesh;
+                }
+
+                if ( !IsLOD || LodIndex == 0 )
+                {
+                    // We need to initialize the LODs used by this mesh
+                    int32 NeededLODs = IsLOD ? NumberOfLODs : 1;
+                    while ( StaticMesh->SourceModels.Num() < NeededLODs )
+                        new (StaticMesh->SourceModels) FStaticMeshSourceModel();
+
+                    // We may have to remove excessive LOD levels
+                    if ( StaticMesh->SourceModels.Num() > NeededLODs )
+                        StaticMesh->SourceModels.SetNum( NeededLODs );
+                }
+
+                // Grab the corresponding SourceModel
+                FStaticMeshSourceModel* SrcModel = &StaticMesh->SourceModels[ IsLOD ? LodIndex : 0 ];
+                if ( !SrcModel )
+                {
+                    HOUDINI_LOG_ERROR(
+                        TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] Could not access SourceModel for the LOD %d - skipping."),
+                        ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, IsLOD ? LodIndex : 0 );
+                    continue;
+                }
+
+                // Load existing raw model. This will be empty as we are constructing a new mesh.
+                FRawMesh RawMesh;
+
+                // Compute number of faces.
+                int32 SplitGroupFaceCount = SplitGroupFaceIndices.Num();
+
+                // Reset Face materials.
+                PartFaceMaterials.Empty();
+
+                if ( bRebuildStaticMesh )
+                {
+                    //--------------------------------------------------------------------------------------------------------------------- 
+                    // NORMALS
+                    //--------------------------------------------------------------------------------------------------------------------- 
+                    TArray< float > SplitGroupNormals;
+
+                    // No need to read the normals if we'll recompute them after
+                    bool bReadNormals = HoudiniRuntimeSettings->RecomputeNormalsFlag != EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Always;		   
+                    if ( bReadNormals )
+                    {
+                        if ( PartNormals.Num() <= 0 )
+                        {
+                            // Retrieve normal data for this part
+                            FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
+                                PartInfo.id, HAPI_UNREAL_ATTRIB_NORMAL, AttribInfoNormals, PartNormals );
+                        }
+
+                        // See if we need to transfer normal point attributes to vertex attributes.
+                        FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+                            SplitGroupVertexList, AttribInfoNormals, PartNormals, SplitGroupNormals );
+                    }
+
+                    // See if we need to generate tangents, we do this only if normals are present, and if we do not recompute them after
+                    bool bGenerateTangents = ( SplitGroupNormals.Num() > 0 );
+                    if ( bGenerateTangents && ( HoudiniRuntimeSettings->RecomputeTangentsFlag == EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Always ) )
+                    {
+                        // No need to generate tangents if we'll recompute them after
+                        bGenerateTangents = false;
+                    }
+
+                    // Transfer normals.
+                    int32 WedgeNormalCount = SplitGroupNormals.Num() / 3;
+                    RawMesh.WedgeTangentZ.SetNumZeroed( WedgeNormalCount );
+                    for ( int32 WedgeTangentZIdx = 0; WedgeTangentZIdx < WedgeNormalCount; ++WedgeTangentZIdx )
+                    {
+                        FVector WedgeTangentZ;
+                        WedgeTangentZ.X = SplitGroupNormals[ WedgeTangentZIdx * 3 + 0 ];
+                        if ( ImportAxis == HRSAI_Unreal )
+                        {
+                            // We need to flip Z and Y coordinate
+                            WedgeTangentZ.Y = SplitGroupNormals[ WedgeTangentZIdx * 3 + 2 ];
+                            WedgeTangentZ.Z = SplitGroupNormals[ WedgeTangentZIdx * 3 + 1 ];
+                        }
+                        else
+                        {
+                            WedgeTangentZ.Y = SplitGroupNormals[ WedgeTangentZIdx * 3 + 1 ];
+                            WedgeTangentZ.Z = SplitGroupNormals[ WedgeTangentZIdx * 3 + 2 ];
+                        }
+
+                        RawMesh.WedgeTangentZ[ WedgeTangentZIdx ] = WedgeTangentZ;
+
+                        // If we need to generate tangents.
+                        if ( bGenerateTangents )
+                        {
+                            FVector TangentX, TangentY;
+                            WedgeTangentZ.FindBestAxisVectors( TangentX, TangentY );
+
+                            RawMesh.WedgeTangentX.Add( TangentX );
+                            RawMesh.WedgeTangentY.Add( TangentY );
+                        }
+                    }
+
+                    //--------------------------------------------------------------------------------------------------------------------- 
+                    //	VERTEX COLORS AND ALPHAS
+                    //--------------------------------------------------------------------------------------------------------------------- 		                        
+                    TArray< float > SplitGroupColors;
+                    if ( PartColors.Num() <= 0 )
+                    {
+                        // Retrieve color data
+                        FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
+                            PartInfo.id, HAPI_UNREAL_ATTRIB_COLOR, AttribInfoColors, PartColors );
+                    }
+
+                    // See if we need to transfer color point attributes to vertex attributes.
+                    FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+                        SplitGroupVertexList, AttribInfoColors, PartColors, SplitGroupColors );
+
+                    TArray< float > SplitGroupAlphas;
+                    if ( PartAlphas.Num() <= 0 )
+                    {
+                        // Retrieve alpha data
+                        FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
+                            PartInfo.id, HAPI_UNREAL_ATTRIB_ALPHA, AttribInfoAlpha, PartAlphas );
+                    }
+
+                    // See if we need to transfer alpha point attributes to vertex attributes.
+                    FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+                        SplitGroupVertexList, AttribInfoAlpha, PartAlphas, SplitGroupAlphas );
+
+                    // Transfer colors and alphas to the raw mesh
+                    if ( AttribInfoColors.exists && ( AttribInfoColors.tupleSize > 0 ) )
+                    {
+                        int32 WedgeColorsCount = SplitGroupColors.Num() / AttribInfoColors.tupleSize;
+                        RawMesh.WedgeColors.SetNumZeroed( WedgeColorsCount );
+                        for ( int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx )
+                        {
+                            FLinearColor WedgeColor;
+                            WedgeColor.R = FMath::Clamp(
+                                SplitGroupColors[ WedgeColorIdx * AttribInfoColors.tupleSize + 0 ], 0.0f, 1.0f );
+                            WedgeColor.G = FMath::Clamp(
+                                SplitGroupColors[ WedgeColorIdx * AttribInfoColors.tupleSize + 1 ], 0.0f, 1.0f );
+                            WedgeColor.B = FMath::Clamp(
+                                SplitGroupColors[ WedgeColorIdx * AttribInfoColors.tupleSize + 2 ], 0.0f, 1.0f );
+
+                            if( AttribInfoAlpha.exists )
+                            {
+                                WedgeColor.A = FMath::Clamp( SplitGroupAlphas[ WedgeColorIdx ], 0.0f, 1.0f );
+                            }
+                            else if ( AttribInfoColors.tupleSize == 4 )
+                            {
+                                // We have alpha.
+                                WedgeColor.A = FMath::Clamp(
+                                    SplitGroupColors[ WedgeColorIdx * AttribInfoColors.tupleSize + 3 ], 0.0f, 1.0f );
+                            }
+                            else
+                            {
+                                WedgeColor.A = 1.0f;
+                            }
+
+                            // Convert linear color to fixed color.
+                            RawMesh.WedgeColors[ WedgeColorIdx ] = WedgeColor.ToFColor( false );
+                        }
                     }
                     else
                     {
-                        // This is an instancer with no points.
-                        HOUDINI_LOG_MESSAGE(
-                            TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] is instancer but has 0 points " )
-                            TEXT( "skipping." ),
-                            ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
-                        continue;
+                        // No Colors or Alphas, init colors to White
+                        FColor DefaultWedgeColor = FLinearColor::White.ToFColor( false );
+                        int32 WedgeColorsCount = RawMesh.WedgeIndices.Num();
+                        if ( WedgeColorsCount > 0 )
+                            RawMesh.WedgeColors.Init( DefaultWedgeColor, WedgeColorsCount );
                     }
-                }
-                else if ( PartInfo.type == HAPI_PARTTYPE_CURVE )
-                {
-                    // This is a curve part.
-                    StaticMesh = nullptr;
-                    StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
-                    continue;
-                }
-                else if ( PartInfo.vertexCount <= 0 )
-                {
-                    // This is not an instancer, but we do not have vertices, but maybe this
-                    // is a point cloud with attribute override instancing, we will assume it is and
-                    // let the PostCook figure it out.
-                    HoudiniGeoPartObject.bIsInstancer = true;
-                    StaticMesh = nullptr;
-                    StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
-                    continue;
-                }
 
-                // Retrieve all vertex indices.
-                VertexList.SetNumUninitialized( PartInfo.vertexCount );
+                    //--------------------------------------------------------------------------------------------------------------------- 
+                    //	FACE SMOOTHING
+                    //--------------------------------------------------------------------------------------------------------------------- 
 
-                if ( FHoudiniApi::GetVertexList(
-                    FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, PartInfo.id,
-                    &VertexList[ 0 ], 0, PartInfo.vertexCount ) != HAPI_RESULT_SUCCESS )
-                {
-                    // Error getting the vertex list.
-                    HOUDINI_LOG_MESSAGE(
-                        TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve vertex list " )
-                        TEXT( "- skipping." ),
-                        ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
-
-                    continue;
-                }
-
-                // See if we require splitting.
-                TMap< FString, TArray< int32 > > GroupSplitFaces;
-                TMap< FString, int32 > GroupSplitFaceCounts;
-                TMap< FString, TArray< int32 > > GroupSplitFaceIndices;
-
-                int32 GroupVertexListCount = 0;
-                static const FString RemainingGroupName = TEXT( HAPI_UNREAL_GROUP_GEOMETRY_NOT_COLLISION );
-
-                if ( bIsRenderCollidable || bIsCollidable || bIsUCXCollidable )
-                {
-                    // Buffer for all vertex indices used for collision. We need this to figure out all vertex
-                    // indices that are not part of collision geos.
-                    TArray< int32 > AllCollisionVertexList;
-                    AllCollisionVertexList.SetNumZeroed( VertexList.Num() );
-
-                    // Buffer for all face indices used for collision. We need this to figure out all face indices
-                    // that are not part of collision geos.
-                    TArray< int32 > AllCollisionFaceIndices;
-                    AllCollisionFaceIndices.SetNumZeroed( FaceMaterialIds.Num() );
-
-                    for ( int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < ObjectGeoGroupNames.Num(); ++GeoGroupNameIdx )
+                    // Retrieve face smoothing data.
+                    if ( PartFaceSmoothingMasks.Num() <= 0 )
                     {
-                        const FString & GroupName = ObjectGeoGroupNames[ GeoGroupNameIdx ];
+                        FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
+                            PartInfo.id, MarshallingAttributeNameFaceSmoothingMask.c_str(),
+                            AttribInfoFaceSmoothingMasks, PartFaceSmoothingMasks );
+                    }
 
-                        if ( ( !HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix.IsEmpty() &&
-                                GroupName.StartsWith( HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix,
-                                ESearchCase::IgnoreCase ) ) ||
-                            ( !HoudiniRuntimeSettings->CollisionGroupNamePrefix.IsEmpty() &&
-                                GroupName.StartsWith( HoudiniRuntimeSettings->CollisionGroupNamePrefix,
-                                ESearchCase::IgnoreCase ) ) ||
-                            ( !HoudiniRuntimeSettings->UCXCollisionGroupNamePrefix.IsEmpty() &&
-                                GroupName.StartsWith( HoudiniRuntimeSettings->UCXCollisionGroupNamePrefix,
-                                ESearchCase::IgnoreCase ) ) ||
-                            ( !HoudiniRuntimeSettings->UCXRenderedCollisionGroupNamePrefix.IsEmpty() &&
-                                GroupName.StartsWith( HoudiniRuntimeSettings->UCXRenderedCollisionGroupNamePrefix,
-                                ESearchCase::IgnoreCase) ) || 
-                            ( !HoudiniRuntimeSettings->SimpleRenderedCollisionGroupNamePrefix.IsEmpty() &&
-                                GroupName.StartsWith( HoudiniRuntimeSettings->SimpleRenderedCollisionGroupNamePrefix,
-                                ESearchCase::IgnoreCase) ) || 
-                            ( !HoudiniRuntimeSettings->SimpleCollisionGroupNamePrefix.IsEmpty() &&
-                                GroupName.StartsWith( HoudiniRuntimeSettings->SimpleCollisionGroupNamePrefix,
-                                ESearchCase::IgnoreCase) ) )
+                    // Set face smoothing masks.
+                    RawMesh.FaceSmoothingMasks.SetNumZeroed( SplitGroupFaceCount );
+                    if ( PartFaceSmoothingMasks.Num() )
+                    {
+                        int32 ValidFaceIdx = 0;
+                        for ( int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3 )
                         {
-                            // New vertex list just for this group.
-                            TArray< int32 > GroupVertexList;
-                            TArray< int32 > AllFaceList;
+                            int32 WedgeCheck = SplitGroupVertexList[ VertexIdx + 0 ];
+                            if ( WedgeCheck == -1 )
+                                continue;
 
-                            // Extract vertex indices for this split.
-                            GroupVertexListCount = FHoudiniEngineUtils::HapiGetVertexListForGroup(
-                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, GroupName, VertexList, GroupVertexList,
-                                AllCollisionVertexList, AllFaceList, AllCollisionFaceIndices );
+                            RawMesh.FaceSmoothingMasks[ ValidFaceIdx ] = PartFaceSmoothingMasks[ VertexIdx / 3 ];
+                            ValidFaceIdx++;
+                        }
+                    }
 
-                            if ( GroupVertexListCount > 0 )
+                    //--------------------------------------------------------------------------------------------------------------------- 
+                    //	UVS
+                    //--------------------------------------------------------------------------------------------------------------------- 
+
+                    // Extract all UV sets
+                    TArray< TArray< float > > SplitGroupUVs;
+                    SplitGroupUVs.SetNumZeroed( MAX_STATIC_TEXCOORDS );
+
+                    if ( PartUVs.Num() && PartUVs[0].Num() <= 0 )
+                    {
+                        // Retrieve all the UVs sets for this part
+                        FHoudiniEngineUtils::GetAllUVAttributesInfoAndTexCoords(
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                            AttribInfoUVs, PartUVs );
+                    }
+
+                    // See if we need to transfer uv point attributes to vertex attributes.
+                    for ( int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx )
+                    {
+                        FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+                            SplitGroupVertexList, AttribInfoUVs[ TexCoordIdx ], PartUVs[ TexCoordIdx ], SplitGroupUVs[ TexCoordIdx ] );
+                    }
+
+                    // Transfer UVs to the Raw Mesh
+                    int32 UVChannelCount = 0;
+                    int32 LightMapUVChannel = 0;
+                    for ( int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx )
+                    {
+                        TArray< float > & TextureCoordinate = SplitGroupUVs[ TexCoordIdx ];
+                        if ( TextureCoordinate.Num() > 0 )
+                        {
+                            int32 WedgeUVCount = TextureCoordinate.Num() / 2;
+                            RawMesh.WedgeTexCoords[ TexCoordIdx ].SetNumZeroed( WedgeUVCount );
+                            for ( int32 WedgeUVIdx = 0; WedgeUVIdx < WedgeUVCount; ++WedgeUVIdx )
                             {
-                                // If list is not empty, we store it for this group - this will define new mesh.
-                                GroupSplitFaces.Add( GroupName, GroupVertexList );
-                                GroupSplitFaceCounts.Add( GroupName, GroupVertexListCount );
-                                GroupSplitFaceIndices.Add( GroupName, AllFaceList );
+                                // We need to flip V coordinate when it's coming from HAPI.
+                                FVector2D WedgeUV;
+                                WedgeUV.X = TextureCoordinate[ WedgeUVIdx * 2 + 0 ];
+                                WedgeUV.Y = 1.0f - TextureCoordinate[ WedgeUVIdx * 2 + 1 ];
+
+                                RawMesh.WedgeTexCoords[ TexCoordIdx ][ WedgeUVIdx ] = WedgeUV;
                             }
+
+                            UVChannelCount++;
+
+                            if ( UVChannelCount <= 2 )
+                                LightMapUVChannel = TexCoordIdx;
                         }
-                    }
-
-                    // We also need to figure out / construct vertex list for everything that's not collision geometry
-                    // or rendered collision geometry.
-                    TArray< int32 > GroupSplitFacesRemaining;
-                    GroupSplitFacesRemaining.Init( -1, VertexList.Num() );
-                    bool bMainSplitGroup = false;
-                    GroupVertexListCount = 0;
-
-                    TArray< int32 > GroupSplitFaceIndicesRemaining;
-
-                    for ( int32 CollisionVertexIdx = 0; CollisionVertexIdx < AllCollisionVertexList.Num();
-                        ++CollisionVertexIdx )
-                    {
-                        int32 VertexIndex = AllCollisionVertexList[CollisionVertexIdx];
-                        if ( VertexIndex == 0 )
+                        else
                         {
-                            // This is unused index, we need to add it to unused vertex list.
-                            //GroupSplitFacesRemaining.Add(VertexList[CollisionVertexIdx]);
-                            GroupSplitFacesRemaining[ CollisionVertexIdx ] = VertexList[ CollisionVertexIdx ];
-                            bMainSplitGroup = true;
-                            GroupVertexListCount++;
+                            RawMesh.WedgeTexCoords[ TexCoordIdx ].Empty();
                         }
                     }
 
-                    for ( int32 CollisionFaceIdx = 0; CollisionFaceIdx < AllCollisionFaceIndices.Num(); ++CollisionFaceIdx )
+                    // We have to have at least one UV channel. If there's none, create one with zero data.
+                    if ( UVChannelCount == 0 )
+                        RawMesh.WedgeTexCoords[ 0 ].SetNumZeroed( SplitGroupVertexListCount );
+
+                    // Set the lightmap Coordinate Index
+                    // If we have more than one UV set, the 2nd set will be used for lightmaps by convention
+                    // If not, the first UV set will be used
+                    StaticMesh->LightMapCoordinateIndex = LightMapUVChannel;
+
+                    //--------------------------------------------------------------------------------------------------------------------- 
+                    // LIGHTMAP RESOLUTION
+                    //--------------------------------------------------------------------------------------------------------------------- 
+
+                    // Get lightmap resolution (if present).
+                    if ( PartLightMapResolutions.Num() <= 0 )
                     {
-                        int32 FaceIndex = AllCollisionFaceIndices[ CollisionFaceIdx ];
-                        if ( FaceIndex == 0 )
+                        FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
+                            PartInfo.id, MarshallingAttributeNameLightmapResolution.c_str(),
+                            AttribLightmapResolution, PartLightMapResolutions );
+                    }
+
+                    //--------------------------------------------------------------------------------------------------------------------- 
+                    //	INDICES
+                    //--------------------------------------------------------------------------------------------------------------------- 
+                    
+                    //
+                    // Because of the splits, we don't need to declare all the vertices in the Part, 
+                    // but only the one that are currently used by the split's faces.
+                    // The indicesMapper array is used to map those indices from Part Vertices to Split Vertices.
+                    // We also keep track of the needed vertices index to declare them easily afterwards.
+                    //
+
+                    // IndicesMapper:
+                    // Maps index values for all vertices in the Part:
+                    // - Vertices unused by the split will be set to -1
+                    // - Used vertices will have their value set to the "NewIndex"
+                    // So that IndicesMapper[ oldIndex ] => newIndex
+                    TArray< int32 > IndicesMapper;
+                    IndicesMapper.Init( -1, SplitGroupVertexList.Num() );
+                    int32 CurrentMapperIndex = 0;
+
+                    // Neededvertices:
+                    // Contains the old index of the needed vertices for the current split
+                    // NeededVertices[ newIndex ] => oldIndex
+                    TArray< int32 > NeededVertices;
+
+                    RawMesh.WedgeIndices.SetNumZeroed( SplitGroupVertexListCount );
+                    int32 ValidVertexId = 0;
+                    for ( int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3 )
+                    {
+                        int32 WedgeCheck = SplitGroupVertexList[ VertexIdx + 0 ];
+                        if ( WedgeCheck == -1 )
+                            continue;
+
+                        int32 WedgeIndices[ 3 ] = 
                         {
-                            // This is unused face, we need to add it to unused faces list.
-                            GroupSplitFaceIndicesRemaining.Add( CollisionFaceIdx );
+                            SplitGroupVertexList[ VertexIdx + 0 ],
+                            SplitGroupVertexList[ VertexIdx + 1 ],
+                            SplitGroupVertexList[ VertexIdx + 2 ]
+                        };
+
+                        // Converting Old (Part) Indices to New (Split) Indices:
+                        for ( int32 i = 0; i < 3; i++ )
+                        {
+                            if ( IndicesMapper[ WedgeIndices[ i ] ] < 0 )
+                            {
+                                // This old index was not yet "converted" to a new index
+                                NeededVertices.Add( WedgeIndices[ i ] );
+
+                                IndicesMapper[ WedgeIndices[ i ] ] = CurrentMapperIndex;
+                                CurrentMapperIndex++;
+                            }
+                               
+                            // Replace the old index with the new one
+                            WedgeIndices[ i ] = IndicesMapper[ WedgeIndices[ i ] ];
+                        }
+
+                        if ( ValidVertexId >= SplitGroupVertexListCount )
+                            continue;
+
+                        if ( ImportAxis == HRSAI_Unreal )
+                        {
+                            // Flip wedge indices to fix the winding order.
+                            RawMesh.WedgeIndices[ ValidVertexId + 0 ] = WedgeIndices[ 0 ];
+                            RawMesh.WedgeIndices[ ValidVertexId + 1 ] = WedgeIndices[ 2 ];
+                            RawMesh.WedgeIndices[ ValidVertexId + 2 ] = WedgeIndices[ 1 ];
+
+                            // Check if we need to patch UVs.
+                            for ( int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx )
+                            {
+                                if ( RawMesh.WedgeTexCoords[ TexCoordIdx ].Num() > 0
+                                    && ( (ValidVertexId + 2) < RawMesh.WedgeTexCoords[ TexCoordIdx ].Num() ) )
+                                {
+                                    Swap( RawMesh.WedgeTexCoords[ TexCoordIdx ][ ValidVertexId + 1 ],
+                                        RawMesh.WedgeTexCoords[ TexCoordIdx ][ ValidVertexId + 2 ] );
+                                }
+                            }
+
+                            // Check if we need to patch colors.
+                            if ( RawMesh.WedgeColors.Num() > 0 )
+                                Swap( RawMesh.WedgeColors[ ValidVertexId + 1 ], RawMesh.WedgeColors[ ValidVertexId + 2 ] );
+
+                            // Check if we need to patch Normals and tangents.
+                            if ( RawMesh.WedgeTangentZ.Num() > 0 )
+                                Swap( RawMesh.WedgeTangentZ[ ValidVertexId + 1 ], RawMesh.WedgeTangentZ[ ValidVertexId + 2 ] );
+
+                            if ( RawMesh.WedgeTangentX.Num() > 0 )
+                                Swap( RawMesh.WedgeTangentX[ ValidVertexId + 1 ], RawMesh.WedgeTangentX[ ValidVertexId + 2 ] );
+
+                            if ( RawMesh.WedgeTangentY.Num() > 0 )
+                                Swap ( RawMesh.WedgeTangentY[ ValidVertexId + 1 ], RawMesh.WedgeTangentY[ ValidVertexId + 2 ] );
+                        }
+                        else if ( ImportAxis == HRSAI_Houdini )
+                        {
+                            // Dont flip the wedge indices
+                            RawMesh.WedgeIndices[ ValidVertexId + 0 ] = WedgeIndices[ 0 ];
+                            RawMesh.WedgeIndices[ ValidVertexId + 1 ] = WedgeIndices[ 1 ];
+                            RawMesh.WedgeIndices[ ValidVertexId + 2 ] = WedgeIndices[ 2 ];
+                        }
+
+                        ValidVertexId += 3;
+                    }
+
+                    //--------------------------------------------------------------------------------------------------------------------- 
+                    // POSITIONS
+                    //--------------------------------------------------------------------------------------------------------------------- 
+
+                    // We may already have gotten the positions when creating the ucx collisions
+                    if ( PartPositions.Num() <= 0 )
+                    {
+                        // Retrieve position data.
+                        if ( !FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
+                            PartInfo.id, HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, PartPositions ) )
+                        {
+                            // Error retrieving positions.
+                            HOUDINI_LOG_MESSAGE(
+                                TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data ")
+                                TEXT("- skipping."),
+                                ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName);
+
+                            if ( bStaticMeshCreated )
+                                StaticMesh->MarkPendingKill();
+
+                            break;
                         }
                     }
 
-                    // We store remaining geo vertex list as a special name.
-                    if ( bMainSplitGroup )
+                    //
+                    // Transfer vertex positions:
+                    //
+                    // Because of the split, we're only interested in the needed vertices.
+                    // Instead of declaring all the Positions, we'll only declare the vertices
+                    // needed by the current split.
+                    //
+                    int32 VertexPositionsCount = NeededVertices.Num();
+                    RawMesh.VertexPositions.SetNumZeroed( VertexPositionsCount );
+                    for ( int32 VertexPositionIdx = 0; VertexPositionIdx < VertexPositionsCount; ++VertexPositionIdx )
                     {
-                        GroupSplitFaces.Add( RemainingGroupName, GroupSplitFacesRemaining );
-                        GroupSplitFaceCounts.Add( RemainingGroupName, GroupVertexListCount );
-                        GroupSplitFaceIndices.Add( RemainingGroupName, GroupSplitFaceIndicesRemaining );
+                        int32 NeededVertexIndex = NeededVertices[ VertexPositionIdx ];
+
+                        FVector VertexPosition;
+                        VertexPosition.X = PartPositions[ NeededVertexIndex * 3 + 0 ] * GeneratedGeometryScaleFactor;
+                        if ( ImportAxis == HRSAI_Unreal )
+                        {
+                            // We need to swap Z and Y coordinate here.                            
+                            VertexPosition.Y = PartPositions[ NeededVertexIndex * 3 + 2 ] * GeneratedGeometryScaleFactor;
+                            VertexPosition.Z = PartPositions[ NeededVertexIndex * 3 + 1 ] * GeneratedGeometryScaleFactor;
+                        }
+                        else if ( ImportAxis == HRSAI_Houdini )
+                        {
+                            // No swap required.
+                            VertexPosition.Y = PartPositions[ NeededVertexIndex * 3 + 1 ] * GeneratedGeometryScaleFactor;
+                            VertexPosition.Z = PartPositions[ NeededVertexIndex * 3 + 2 ] * GeneratedGeometryScaleFactor;
+                        }
+
+                        RawMesh.VertexPositions[ VertexPositionIdx ] = VertexPosition;
+                    }
+
+                    // We need to check if this mesh contains only degenerate triangles.
+                    if ( FHoudiniEngineUtils::CountDegenerateTriangles( RawMesh ) == SplitGroupFaceCount )
+                    {
+                        // This mesh contains only degenerate triangles, there's nothing we can do.
+                        if ( bStaticMeshCreated )
+                            StaticMesh->MarkPendingKill();
+
+                        continue;
                     }
                 }
                 else
                 {
-                    GroupSplitFaces.Add( RemainingGroupName, VertexList );
-                    GroupSplitFaceCounts.Add( RemainingGroupName, VertexList.Num() );
-
-                    TArray<int32> AllFaces;
-                    for ( int32 FaceIdx = 0; FaceIdx < PartInfo.faceCount; ++FaceIdx )
-                        AllFaces.Add( FaceIdx );
-
-                    GroupSplitFaceIndices.Add( RemainingGroupName, AllFaces );
+                    // We dont need to rebuild the mesh (because the geometry hasn't changed, but the materials have)
+                    // So we can just load the old data into the Raw mesh and reuse it.
+                    FRawMeshBulkData * InRawMeshBulkData = SrcModel->RawMeshBulkData;
+                    InRawMeshBulkData->LoadRawMesh( RawMesh );
                 }
 
-                // Keep track of split id.
-                int32 SplitId = 0;
+                //--------------------------------------------------------------------------------------------------------------------- 
+                // MATERIAL IDS
+                //---------------------------------------------------------------------------------------------------------------------
 
-                // Iterate through all detected split groups we care about and split geometry.
-                for ( TMap< FString, TArray< int32 > >::TIterator IterGroups( GroupSplitFaces ); IterGroups; ++IterGroups )
+                // Get Material ID per face
+                if ( PartFaceMaterials.Num() <= 0 )
                 {
-                    // Get split group name and vertex indices.
-                    const FString & SplitGroupName = IterGroups.Key();
-                    TArray< int32 > & SplitGroupVertexList = IterGroups.Value();
+                    FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+                        AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                        MarshallingAttributeNameMaterial.c_str(),
+                        AttribFaceMaterials, PartFaceMaterials );
 
-                    // Get valid count of vertex indices for this split.
-                    int32 SplitGroupVertexListCount = GroupSplitFaceCounts[ SplitGroupName ];
-
-                    // Get face indices for this split.
-                    TArray< int32 > & SplitGroupFaceIndices = GroupSplitFaceIndices[ SplitGroupName ];
-
-                    // Record split id in geo part.
-                    HoudiniGeoPartObject.SplitId = SplitId;
-
-                    // Reset collision flags.
-                    HoudiniGeoPartObject.bIsRenderCollidable = false;
-                    HoudiniGeoPartObject.bIsCollidable = false;
-                    HoudiniGeoPartObject.bIsSimpleCollisionGeo = false;
-                    HoudiniGeoPartObject.bIsUCXCollisionGeo = false;
-                    HoudiniGeoPartObject.bHasCollisionBeenAdded = false;
-                    HoudiniGeoPartObject.bHasSocketBeenAdded = false;
-
-                    // Increment split id.
-                    SplitId++;
-
-                    // Determining the type of collision:
-                    // UCX and simple collisions need to be checked first as they both start in the same way
-                    // as their non UCX/non simple equivalent!}
-                    if ( !HoudiniRuntimeSettings->UCXCollisionGroupNamePrefix.IsEmpty() &&
-                        SplitGroupName.StartsWith(
-                            HoudiniRuntimeSettings->UCXCollisionGroupNamePrefix,
-                            ESearchCase::IgnoreCase ) )
+                    // If material attribute was not found, check fallback compatibility attribute.
+                    if ( !AttribFaceMaterials.exists )
                     {
-                        HoudiniGeoPartObject.bIsUCXCollisionGeo = true;
-                    }
-                    else if ( !HoudiniRuntimeSettings->UCXRenderedCollisionGroupNamePrefix.IsEmpty() &&
-                        SplitGroupName.StartsWith(
-                            HoudiniRuntimeSettings->UCXRenderedCollisionGroupNamePrefix,
-                            ESearchCase::IgnoreCase ) )
-                    {
-                        HoudiniGeoPartObject.bIsRenderCollidable = true;
-                        HoudiniGeoPartObject.bIsUCXCollisionGeo = true;
-                    }
-                    else if ( !HoudiniRuntimeSettings->SimpleRenderedCollisionGroupNamePrefix.IsEmpty() &&
-                        SplitGroupName.StartsWith(
-                            HoudiniRuntimeSettings->SimpleRenderedCollisionGroupNamePrefix,
-                            ESearchCase::IgnoreCase ) )
-                    {
-                        HoudiniGeoPartObject.bIsRenderCollidable = true;
-                        HoudiniGeoPartObject.bIsSimpleCollisionGeo = true;
-                    }
-                    else if ( !HoudiniRuntimeSettings->SimpleCollisionGroupNamePrefix.IsEmpty() &&
-                        SplitGroupName.StartsWith(
-                            HoudiniRuntimeSettings->SimpleCollisionGroupNamePrefix,
-                            ESearchCase::IgnoreCase ) )
-                    {
-                        HoudiniGeoPartObject.bIsCollidable = true;
-                        HoudiniGeoPartObject.bIsSimpleCollisionGeo = true;
-                    }
-                    else if ( !HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix.IsEmpty() &&
-                        SplitGroupName.StartsWith(
-                            HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix,
-                            ESearchCase::IgnoreCase ) )
-                    {
-                        HoudiniGeoPartObject.bIsRenderCollidable = true;
-                    }
-                    else if ( !HoudiniRuntimeSettings->CollisionGroupNamePrefix.IsEmpty() &&
-                        SplitGroupName.StartsWith(
-                            HoudiniRuntimeSettings->CollisionGroupNamePrefix,
-                            ESearchCase::IgnoreCase ) )
-                    {
-                        HoudiniGeoPartObject.bIsCollidable = true;
-                    }
-
-                    // Boolean used to avoid asking the Positions to HAPI twice if we have a rendered collision UCX
-                    bool bAlreadyCalledGetPositions = false;
-
-                    // Handling UCX/Convex Hull colliders
-                    if ( HoudiniGeoPartObject.bIsUCXCollisionGeo )
-                    {
-                        // First we need to retrieve the vertices positions
-                        if ( !bAlreadyCalledGetPositions )
-                        {
-                            HAPI_AttributeInfo AttribInfoPositions;
-                            FMemory::Memset< HAPI_AttributeInfo >( AttribInfoPositions, 0 );
-
-                            if ( !FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
-                                PartInfo.id, HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, Positions ) )
-                            {
-                                // Error retrieving positions.
-                                HOUDINI_LOG_MESSAGE(
-                                    TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data ")
-                                    TEXT("- skipping."),
-                                    ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
-
-                                break;
-                            }
-
-                            bAlreadyCalledGetPositions = true;
-                        }
-
-
-                        bool MultiHullDecomp = false;
-                        if ( SplitGroupName.Contains( TEXT("ucx_multi"), ESearchCase::IgnoreCase ) )
-                            MultiHullDecomp = true;
-
-                        // Create the convex hull colliders and add them to the Aggregate
-                        if ( AddConvexCollision( Positions, SplitGroupVertexList, MultiHullDecomp, AggregateCollisionGeo ) )
-                        {
-                            // We'll add the collision after all the meshes are generated unless this a rendered_collision_geo_ucx
-                            bHasAggregateGeometryCollision = true;
-                        }
-
-                        if ( !HoudiniGeoPartObject.bIsRenderCollidable )
-                            continue;
-                    }
-
-                    // Record split group name.
-                    HoudiniGeoPartObject.SplitName = SplitGroupName;
-
-                    // Attempt to locate static mesh from previous instantiation.
-                    UStaticMesh * const * FoundStaticMesh = StaticMeshesIn.Find( HoudiniGeoPartObject );
-
-                    // Flag whether we need to rebuild the mesh.
-                    bool bRebuildStaticMesh = false;
-
-                    // See if the geometry and scaling factor have changed Or 
-                    // If the user asked for a cook manually, we will need to rebuild the static mesh
-                    // If not, then we can reuse the corresponding static mesh.
-                    if ( GeoInfo.hasGeoChanged || ForceRebuildStaticMesh || ForceRecookAll )
-                        bRebuildStaticMesh = true;
-
-                    if ( !bRebuildStaticMesh )
-                    {
-                        // If geometry has not changed.
-                        if ( FoundStaticMesh )
-                        {
-                            StaticMesh = *FoundStaticMesh;
-
-                            // If any of the materials on corresponding geo part object have not changed.
-                            if ( !bMaterialsChanged )
-                            {
-                                // We can reuse previously created geometry.
-                                StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
-                                continue;
-                            }
-                        }
-                        else
-                        {
-                            // No mesh located, this is an error.
-                            HOUDINI_LOG_ERROR(
-                                TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] geometry has not changed " )
-                                TEXT( "but static mesh does not exist - skipping." ),
-                                ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
-                            continue;
-                        }
-                    }
-
-                    // If static mesh was not located, we need to create one.
-                    bool bStaticMeshCreated = false;
-                    if ( !FoundStaticMesh || *FoundStaticMesh == nullptr )
-                    {
-                        MeshGuid.Invalidate();
-                        UPackage * MeshPackage = FHoudiniEngineBakeUtils::BakeCreateStaticMeshPackageForComponent(
-                            HoudiniCookParams, HoudiniGeoPartObject, MeshName, MeshGuid );
-
-                        if( !MeshPackage )
-                            continue;
-
-                        StaticMesh = NewObject< UStaticMesh >(
-                            MeshPackage, FName( *MeshName ),
-                            ( HoudiniCookParams.StaticMeshBakeMode == EBakeMode::Intermediate ) ? RF_NoFlags : RF_Public | RF_Standalone );
-
-                        // Add meta information to this package.
-                        FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
-                            MeshPackage, MeshPackage,
-                            HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT( "true" ) );
-                        FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
-                            MeshPackage, MeshPackage,
-                            HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MeshName );
-
-                        // Notify system that new asset has been created.
-                        FAssetRegistryModule::AssetCreated( StaticMesh );
-
-                        bStaticMeshCreated = true;
-                    }                    
-                    else
-                    {
-                        // If it was located, we will just reuse it.
-                        StaticMesh = *FoundStaticMesh;
-                    }
-
-                    // Create new source model for current static mesh.
-                    if ( !StaticMesh->SourceModels.Num() )
-                        new ( StaticMesh->SourceModels ) FStaticMeshSourceModel();
-
-                    // Grab current source model.
-                    FStaticMeshSourceModel * SrcModel = &StaticMesh->SourceModels[ 0 ];
-
-                    // Load existing raw model. This will be empty as we are constructing a new mesh.
-                    FRawMesh RawMesh;
-
-                    // Compute number of faces.
-                    int32 FaceCount = SplitGroupFaceIndices.Num();
-
-                    // Reset Face materials.
-                    FaceMaterials.Empty();
-
-                    // Attributes we are interested in.
-                    HAPI_AttributeInfo AttribInfoPositions;
-                    FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoPositions );
-                    HAPI_AttributeInfo AttribLightmapResolution;
-                    FMemory::Memzero< HAPI_AttributeInfo >( AttribLightmapResolution );
-                    HAPI_AttributeInfo AttribFaceMaterials;
-                    FMemory::Memzero< HAPI_AttributeInfo >( AttribFaceMaterials );
-                    HAPI_AttributeInfo AttribInfoColors;
-                    FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoColors );
-                    HAPI_AttributeInfo AttribInfoAlpha;
-                    FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoAlpha );
-                    HAPI_AttributeInfo AttribInfoNormals;
-                    FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoNormals );
-                    HAPI_AttributeInfo AttribInfoFaceSmoothingMasks;
-                    FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoFaceSmoothingMasks );
-                    //HAPI_AttributeInfo AttribInfoUVs[ MAX_STATIC_TEXCOORDS ]{};
-                    TArray< HAPI_AttributeInfo > AttribInfoUVs;
-                    AttribInfoUVs.SetNumZeroed( MAX_STATIC_TEXCOORDS );
-
-                    if ( bRebuildStaticMesh )
-                    {
-                        // We may already have gotten the positions when creating the ucx collisions
-                        if ( !bAlreadyCalledGetPositions )
-                        {
-                            // Retrieve position data.
-                            if (!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
-                                PartInfo.id, HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, Positions))
-                            {
-                                // Error retrieving positions.
-                                HOUDINI_LOG_MESSAGE(
-                                    TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data ")
-                                    TEXT("- skipping."),
-                                    ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName);
-
-                                if ( bStaticMeshCreated )
-                                    StaticMesh->MarkPendingKill();
-
-                                break;
-                            }
-
-                            bAlreadyCalledGetPositions = true;
-                        }
-
-                        // Get lightmap resolution (if present).
-                        FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
-                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
-                            PartInfo.id, MarshallingAttributeNameLightmapResolution.c_str(),
-                            AttribLightmapResolution, LightMapResolutions );
-
-                        // Get name of attribute used for marshalling materials.
-                        {
-                            FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
-                                PartInfo.id, MarshallingAttributeNameMaterial.c_str(),
-                                AttribFaceMaterials, FaceMaterials );
-
-                            // If material attribute was not found, check fallback compatibility attribute.
-                            if ( !AttribFaceMaterials.exists )
-                            {
-                                FaceMaterials.Empty();
-                                FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-                                    AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
-                                    PartInfo.id, MarshallingAttributeNameMaterialFallback.c_str(),
-                                    AttribFaceMaterials, FaceMaterials );
-                            }
-
-                            // If material attribute and fallbacks were not found, check the material instance attribute.
-                            if ( !AttribFaceMaterials.exists )
-                            {
-                                FaceMaterials.Empty();
-                                FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-                                    AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
-                                    PartInfo.id, MarshallingAttributeNameMaterialInstance.c_str(),
-                                    AttribFaceMaterials, FaceMaterials);
-                            }
-
-                            if ( AttribFaceMaterials.exists && AttribFaceMaterials.owner != HAPI_ATTROWNER_PRIM && AttribFaceMaterials.owner != HAPI_ATTROWNER_DETAIL )
-                            {
-                                HOUDINI_LOG_WARNING( TEXT( "Static Mesh [%d %s], Geo [%d], Part [%d %s]: unreal_material must be a primitive or detail attribute, ignoring attribute." ),
-                                    ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName);
-                                AttribFaceMaterials.exists = false;
-                                FaceMaterials.Empty();
-                            }
-                        }
-
-                        // Retrieve color data.
-                        FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
-                            PartInfo.id, HAPI_UNREAL_ATTRIB_COLOR, AttribInfoColors, Colors );
-
-                        // Retrieve alpha data.
-                        FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
-                            PartInfo.id, HAPI_UNREAL_ATTRIB_ALPHA, AttribInfoAlpha, Alphas );
-
-                        // See if we need to transfer color point attributes to vertex attributes.
-                        FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
-                            SplitGroupVertexList,
-                            AttribInfoColors, Colors );
-
-                        // See if we need to transfer alpha point attributes to vertex attributes.
-                        FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
-                            SplitGroupVertexList,
-                            AttribInfoAlpha, Alphas );
-
-                        // No need to read the normals if we'll recompute them after
-                        bool bReadNormals = HoudiniRuntimeSettings->RecomputeNormalsFlag != EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Always;
-
-                        // Retrieve normal data.
-                        if ( bReadNormals )
-                        {
-                            FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
-                                PartInfo.id, HAPI_UNREAL_ATTRIB_NORMAL, AttribInfoNormals, Normals );
-
-                            // See if we need to transfer normal point attributes to vertex attributes.
-                            FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
-                                SplitGroupVertexList, AttribInfoNormals, Normals );
-                        }
-
-                        // Retrieve face smoothing data.
-                        FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
-                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
-                            PartInfo.id, MarshallingAttributeNameFaceSmoothingMask.c_str(),
-                            AttribInfoFaceSmoothingMasks, FaceSmoothingMasks );
-
-                        // Retrieve all the UVs
-                        FHoudiniEngineUtils::GetAllUVAttributesInfoAndTexCoords(
+                        PartFaceMaterials.Empty();
+                        FHoudiniEngineUtils::HapiGetAttributeDataAsString(
                             AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
-                            AttribInfoUVs, TextureCoordinates );
-
-                        // See if we need to transfer uv point attributes to vertex attributes.
-                        for ( int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx )
-                        {
-                            FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
-                                SplitGroupVertexList, AttribInfoUVs[ TexCoordIdx ], TextureCoordinates[ TexCoordIdx ] );
-                        }
-
-                        // We can transfer attributes to raw mesh.
-
-                        // Set face smoothing masks.
-                        {
-                            RawMesh.FaceSmoothingMasks.SetNumZeroed( FaceCount );
-
-                            if ( FaceSmoothingMasks.Num() )
-                            {
-                                int32 ValidFaceIdx = 0;
-                                for ( int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3 )
-                                {
-                                    int32 WedgeCheck = SplitGroupVertexList[ VertexIdx + 0 ];
-                                    if ( WedgeCheck == -1 )
-                                        continue;
-
-                                    RawMesh.FaceSmoothingMasks[ ValidFaceIdx ] = FaceSmoothingMasks[ VertexIdx / 3 ];
-                                    ValidFaceIdx++;
-                                }
-                            }
-                        }
-
-                        // Transfer UVs.
-                        int32 UVChannelCount = 0;
-                        int32 FirstUVChannelIndex = -1;
-                        for ( int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx )
-                        {
-                            TArray< float > & TextureCoordinate = TextureCoordinates[ TexCoordIdx ];
-                            if ( TextureCoordinate.Num() > 0 )
-                            {
-                                int32 WedgeUVCount = TextureCoordinate.Num() / 2;
-                                RawMesh.WedgeTexCoords[ TexCoordIdx ].SetNumZeroed( WedgeUVCount );
-                                for ( int32 WedgeUVIdx = 0; WedgeUVIdx < WedgeUVCount; ++WedgeUVIdx )
-                                {
-                                    // We need to flip V coordinate when it's coming from HAPI.
-                                    FVector2D WedgeUV;
-                                    WedgeUV.X = TextureCoordinate[ WedgeUVIdx * 2 + 0 ];
-                                    WedgeUV.Y = 1.0f - TextureCoordinate[ WedgeUVIdx * 2 + 1 ];
-
-                                    RawMesh.WedgeTexCoords[ TexCoordIdx ][ WedgeUVIdx ] = WedgeUV;
-                                }
-
-                                UVChannelCount++;
-                                if ( FirstUVChannelIndex == -1 )
-                                    FirstUVChannelIndex = TexCoordIdx;
-                            }
-                            else
-                            {
-                                RawMesh.WedgeTexCoords[ TexCoordIdx ].Empty();
-                            }
-                        }
-
-                        switch ( UVChannelCount )
-                        {
-                            case 0:
-                            {
-                                // We have to have at least one UV channel. If there's none, create one with zero data.
-                                RawMesh.WedgeTexCoords[ 0 ].SetNumZeroed( SplitGroupVertexListCount );
-                                StaticMesh->LightMapCoordinateIndex = 0;
-
-                                break;
-                            }
-
-                            case 1:
-                            {
-                                // We have only one UV channel.
-                                StaticMesh->LightMapCoordinateIndex = FirstUVChannelIndex;
-
-                                break;
-                            }
-
-                            default:
-                            {
-                                // We have more than one channel, by convention use 2nd set for lightmaps.
-                                StaticMesh->LightMapCoordinateIndex = 1;
-
-                                break;
-                            }
-                        }
-
-                        // See if we need to generate tangents, we do this only if normals are present, and if we do not recompute them after
-                        bool bGenerateTangents = ( Normals.Num() > 0 );
-                        if ( bGenerateTangents && ( HoudiniRuntimeSettings->RecomputeTangentsFlag == EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Always ) )
-                        {
-                            // No need to generate tangents if we'll recompute them after
-                            bGenerateTangents = false;
-                        }
-
-                        // Transfer normals.
-                        int32 WedgeNormalCount = Normals.Num() / 3;
-                        RawMesh.WedgeTangentZ.SetNumZeroed( WedgeNormalCount );
-                        for ( int32 WedgeTangentZIdx = 0; WedgeTangentZIdx < WedgeNormalCount; ++WedgeTangentZIdx )
-                        {
-                            FVector WedgeTangentZ;
-
-                            WedgeTangentZ.X = Normals[ WedgeTangentZIdx * 3 + 0 ];
-                            WedgeTangentZ.Y = Normals[ WedgeTangentZIdx * 3 + 1 ];
-                            WedgeTangentZ.Z = Normals[ WedgeTangentZIdx * 3 + 2 ];
-
-                            if ( ImportAxis == HRSAI_Unreal )
-                            {
-                                // We need to flip Z and Y coordinate here.
-                                Swap( WedgeTangentZ.Y, WedgeTangentZ.Z );
-                                RawMesh.WedgeTangentZ[ WedgeTangentZIdx ] = WedgeTangentZ;
-                            }
-                            else if( ImportAxis == HRSAI_Houdini )
-                            {
-                                // Do nothing in this case.
-                            }
-                            else
-                            {
-                                // Not valid enum value.
-                                check( 0 );
-                            }
-
-                            // If we need to generate tangents.
-                            if ( bGenerateTangents )
-                            {
-                                FVector TangentX, TangentY;
-                                WedgeTangentZ.FindBestAxisVectors( TangentX, TangentY );
-
-                                RawMesh.WedgeTangentX.Add( TangentX );
-                                RawMesh.WedgeTangentY.Add( TangentY );
-                            }
-                        }
-
-                        // Transfer colors.
-                        if ( AttribInfoColors.exists && AttribInfoColors.tupleSize )
-                        {
-                            int32 WedgeColorsCount = Colors.Num() / AttribInfoColors.tupleSize;
-                            RawMesh.WedgeColors.SetNumZeroed( WedgeColorsCount );
-                            for ( int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx )
-                            {
-                                FLinearColor WedgeColor;
-
-                                WedgeColor.R = FMath::Clamp(
-                                    Colors[ WedgeColorIdx * AttribInfoColors.tupleSize + 0 ], 0.0f, 1.0f );
-                                WedgeColor.G = FMath::Clamp(
-                                    Colors[ WedgeColorIdx * AttribInfoColors.tupleSize + 1 ], 0.0f, 1.0f );
-                                WedgeColor.B = FMath::Clamp(
-                                    Colors[ WedgeColorIdx * AttribInfoColors.tupleSize + 2 ], 0.0f, 1.0f );
-
-                                if( AttribInfoAlpha.exists )
-                                {
-                                    WedgeColor.A = FMath::Clamp( Alphas[ WedgeColorIdx ], 0.0f, 1.0f );
-                                }
-                                else if ( AttribInfoColors.tupleSize == 4 )
-                                {
-                                    // We have alpha.
-                                    WedgeColor.A = FMath::Clamp(
-                                        Colors [WedgeColorIdx * AttribInfoColors.tupleSize + 3 ], 0.0f, 1.0f );
-                                }
-                                else
-                                {
-                                    WedgeColor.A = 1.0f;
-                                }
-
-                                // Convert linear color to fixed color.
-                                RawMesh.WedgeColors[ WedgeColorIdx ] = WedgeColor.ToFColor( false );
-                            }
-                        }
-                        else
-                        {
-                            FColor DefaultWedgeColor = FLinearColor::White.ToFColor( false );
-
-                            int32 WedgeColorsCount = RawMesh.WedgeIndices.Num();
-                            if ( WedgeColorsCount > 0 )
-                            {
-                                RawMesh.WedgeColors.SetNumZeroed( WedgeColorsCount );
-
-                                for ( int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx )
-                                    RawMesh.WedgeColors[ WedgeColorIdx ] = DefaultWedgeColor;
-                            }
-                        }
-
-                        //
-                        // Transfer indices:
-                        //
-                        // Because of the split, we don't need to declare all the vertices in the mesh,
-                        // but only the one that are currently used by the split's faces.
-                        // We need the indicesMapper array to map those indices from all the vertices
-                        // in the part to only the one we need
-                        // We also keep track of the needed vertices index to declare them properly afterwards.
-                        //
-
-                        // IndicesMapper:
-                        // Contains "AllVertices" values
-                        // -1 for unused vertices or the "NewIndex" for used vertices
-                        // IndicesMapper[ oldIndex ] => newIndex
-                        TArray< int32 > IndicesMapper;
-                        IndicesMapper.Init( -1, SplitGroupVertexList.Num() );
-                        int32 CurrentMapperIndex = 0;
-
-                        // Neededvertices:
-                        // Contains the old index of the needed vertices for the current split
-                        // NeededVertices[ newIndex ] => oldIndex
-                        TArray< int32 > NeededVertices;
-
-                        RawMesh.WedgeIndices.SetNumZeroed( SplitGroupVertexListCount );
-                        int32 ValidVertexId = 0;
-                        for ( int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3 )
-                        {
-                            int32 WedgeCheck = SplitGroupVertexList[ VertexIdx + 0 ];
-                            if ( WedgeCheck == -1 )
-                                continue;
-
-                            int32 WedgeIndices[ 3 ] = {
-                                SplitGroupVertexList[ VertexIdx + 0 ],
-                                SplitGroupVertexList[ VertexIdx + 1 ],
-                                SplitGroupVertexList[ VertexIdx + 2 ]
-                            };
-
-                            // Converting Old Indices to New Indices:
-                            for ( int32 i = 0; i < 3; i++ )
-                            {
-                                if ( IndicesMapper[ WedgeIndices[ i ] ] < 0 )
-                                {
-                                    // This old index was not yet "converted" to a new index
-                                    NeededVertices.Add( WedgeIndices[ i ] );
-
-                                    IndicesMapper[ WedgeIndices[ i ] ] = CurrentMapperIndex;
-                                    CurrentMapperIndex++;
-                                }
-                               
-                                // Replace the old index with the new one
-                                WedgeIndices[ i ] = IndicesMapper[ WedgeIndices[ i ] ];
-                            }
-
-                            if ( ValidVertexId >= SplitGroupVertexListCount )
-                                continue;
-
-                            if ( ImportAxis == HRSAI_Unreal )
-                            {
-                                // Flip wedge indices to fix winding order.
-                                RawMesh.WedgeIndices[ ValidVertexId + 0 ] = WedgeIndices[ 0 ];
-                                RawMesh.WedgeIndices[ ValidVertexId + 1 ] = WedgeIndices[ 2 ];
-                                RawMesh.WedgeIndices[ ValidVertexId + 2 ] = WedgeIndices[ 1 ];
-
-                                // Check if we need to patch UVs.
-                                for ( int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx )
-                                {
-                                    if ( RawMesh.WedgeTexCoords[ TexCoordIdx ].Num() > 0
-                                        && ( (ValidVertexId + 2) < RawMesh.WedgeTexCoords[TexCoordIdx].Num() ) )
-                                    {
-                                        Swap( RawMesh.WedgeTexCoords[ TexCoordIdx ][ ValidVertexId + 1 ],
-                                            RawMesh.WedgeTexCoords[ TexCoordIdx ][ ValidVertexId + 2 ] );
-                                    }
-                                }
-
-                                // Check if we need to patch colors.
-                                if ( RawMesh.WedgeColors.Num() > 0 )
-                                    Swap( RawMesh.WedgeColors[ ValidVertexId + 1 ], RawMesh.WedgeColors[ ValidVertexId + 2 ] );
-
-                                // Check if we need to patch tangents.
-                                if ( RawMesh.WedgeTangentZ.Num() > 0 )
-                                    Swap( RawMesh.WedgeTangentZ[ ValidVertexId + 1 ], RawMesh.WedgeTangentZ[ ValidVertexId + 2 ] );
-
-                                /*
-                                if ( RawMesh.WedgeTangentX.Num() > 0 )
-                                    Swap( RawMesh.WedgeTangentX[ ValidVertexId + 1 ], RawMesh.WedgeTangentX[ ValidVertexId + 2 ] );
-
-                                if ( RawMesh.WedgeTangentY.Num() > 0 )
-                                    Swap ( RawMesh.WedgeTangentY[ ValidVertexId + 1 ], RawMesh.WedgeTangentY[ ValidVertexId + 2 ] );
-                                */
-                            }
-                            else if ( ImportAxis == HRSAI_Houdini )
-                            {
-                                // Flip wedge indices to fix winding order.
-                                RawMesh.WedgeIndices[ ValidVertexId + 0 ] = WedgeIndices[ 0 ];
-                                RawMesh.WedgeIndices[ ValidVertexId + 1 ] = WedgeIndices[ 1 ];
-                                RawMesh.WedgeIndices[ ValidVertexId + 2 ] = WedgeIndices[ 2 ];
-                            }
-                            else
-                            {
-                                // Not valid enum value.
-                                check( 0 );
-                            }
-
-                            ValidVertexId += 3;
-                        }
-
-                        //
-                        // Transfer vertex positions:
-                        //
-                        // Because of the split, we're only interested in the needed vertices.
-                        // Instead of declaring all the Positions, we'll only declare the vertices
-                        // needed by the current split.
-                        //
-                        int32 VertexPositionsCount = NeededVertices.Num();// Positions.Num() / 3;
-                        RawMesh.VertexPositions.SetNumZeroed( VertexPositionsCount );
-                        for ( int32 VertexPositionIdx = 0; VertexPositionIdx < VertexPositionsCount; ++VertexPositionIdx )
-                        {
-                            int32 NeededVertexIndex = NeededVertices[ VertexPositionIdx ];
-
-                            FVector VertexPosition;
-                            if ( ImportAxis == HRSAI_Unreal )
-                            {
-                                // We need to swap Z and Y coordinate here.
-                                VertexPosition.X = Positions[ NeededVertexIndex * 3 + 0 ] * GeneratedGeometryScaleFactor;
-                                VertexPosition.Y = Positions[ NeededVertexIndex * 3 + 2 ] * GeneratedGeometryScaleFactor;
-                                VertexPosition.Z = Positions[ NeededVertexIndex * 3 + 1 ] * GeneratedGeometryScaleFactor;
-                            }
-                            else if ( ImportAxis == HRSAI_Houdini )
-                            {
-                                // No swap required.
-                                VertexPosition.X = Positions[ NeededVertexIndex * 3 + 0 ] * GeneratedGeometryScaleFactor;
-                                VertexPosition.Y = Positions[ NeededVertexIndex * 3 + 1 ] * GeneratedGeometryScaleFactor;
-                                VertexPosition.Z = Positions[ NeededVertexIndex * 3 + 2 ] * GeneratedGeometryScaleFactor;
-                            }
-                            else
-                            {
-                                // Not valid enum value.
-                                check( 0 );
-                            }
-
-                            RawMesh.VertexPositions[ VertexPositionIdx ] = VertexPosition;
-                        }
-
-                        // We need to check if this mesh contains only degenerate triangles.
-                        if ( FHoudiniEngineUtils::CountDegenerateTriangles( RawMesh ) == FaceCount )
-                        {
-                            // This mesh contains only degenerate triangles, there's nothing we can do.
-                            if ( bStaticMeshCreated )
-                                StaticMesh->MarkPendingKill();
-
-                            continue;
-                        }
+                            MarshallingAttributeNameMaterialFallback.c_str(),
+                            AttribFaceMaterials, PartFaceMaterials );
                     }
-                    else
+
+                    // If material attribute and fallbacks were not found, check the material instance attribute.
+                    if ( !AttribFaceMaterials.exists )
                     {
-                        // Otherwise we'll just load old data into Raw mesh and reuse it.
-                        FRawMeshBulkData * InRawMeshBulkData = SrcModel->RawMeshBulkData;
-                        InRawMeshBulkData->LoadRawMesh( RawMesh );
+                        PartFaceMaterials.Empty();
+                        FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                            MarshallingAttributeNameMaterialInstance.c_str(),
+                            AttribFaceMaterials, PartFaceMaterials);
                     }
 
-                    // Process material replacements first.
-                    bool bMissingReplacement = false;
-                    bool bMaterialsReplaced = false;
+		    if ( AttribFaceMaterials.exists && AttribFaceMaterials.owner != HAPI_ATTROWNER_PRIM && AttribFaceMaterials.owner != HAPI_ATTROWNER_DETAIL )
+		    {
+			HOUDINI_LOG_WARNING( TEXT( "Static Mesh [%d %s], Geo [%d], Part [%d %s]: unreal_material must be a primitive or detail attribute, ignoring attribute." ),
+			    ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName);
+			AttribFaceMaterials.exists = false;
+			PartFaceMaterials.Empty();
+		    }
+		}
 
-                    if ( FaceMaterials.Num() > 0 )
+		// Process material replacements first.
+		bool bMissingReplacement = false;
+		bool bMaterialsReplaced = false;
+
+		if ( PartFaceMaterials.Num() > 0 )
+		{
+		    // If material name was assigned per detail we replicate it for each primitive.
+		    if ( AttribFaceMaterials.owner == HAPI_ATTROWNER_DETAIL )
+		    {
+			FString SingleFaceMaterial = PartFaceMaterials[ 0 ];
+			PartFaceMaterials.Init( SingleFaceMaterial, SplitGroupVertexList.Num() / 3 );
+		    }
+
+		    StaticMesh->StaticMaterials.Empty();
+		    RawMesh.FaceMaterialIndices.SetNumZeroed( SplitGroupFaceCount );
+
+		    TMap< FString, int32 > FaceMaterialMap;
+		    int32 UniqueMaterialIdx = 0;
+		    int32 FaceIdx = 0;
+
+		    for ( int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3 )
+		    {
+			int32 WedgeCheck = SplitGroupVertexList[ VertexIdx + 0 ];
+			if ( WedgeCheck == -1 )
+			    continue;
+
+			const FString & MaterialName = PartFaceMaterials[ VertexIdx / 3 ];
+			int32 const * FoundFaceMaterialIdx = FaceMaterialMap.Find( MaterialName );
+			int32 CurrentFaceMaterialIdx = 0;
+			if ( FoundFaceMaterialIdx )
+			{
+			    CurrentFaceMaterialIdx = *FoundFaceMaterialIdx;
+			}
+			else
+			{
+			    UMaterialInterface * MaterialInterface = Cast< UMaterialInterface >(
+				StaticLoadObject(
+				    UMaterialInterface::StaticClass(),
+				    nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr ) );
+
+			    if ( MaterialInterface )
+			    {
+				// Make sure this material is in the assignments before replacing it.
+				if( !HoudiniCookParams.HoudiniCookManager->GetAssignmentMaterial( MaterialInterface->GetName() ) )
+				{
+				    HoudiniCookParams.HoudiniCookManager->AddAssignmentMaterial( MaterialInterface->GetName(), MaterialInterface );
+				}
+
+				// See if we have a replacement material for this.
+				UMaterialInterface * ReplacementMaterialInterface = HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialInterface->GetName() );
+				if( ReplacementMaterialInterface )
+				    MaterialInterface = ReplacementMaterialInterface;
+			    }
+
+			    if ( !MaterialInterface )
+			    {
+				// Material/Replacement does not exist, use default material.
+				MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+				bMissingReplacement = true;
+			    }
+
+			    StaticMesh->StaticMaterials.Add( FStaticMaterial(MaterialInterface) );
+			    FaceMaterialMap.Add( MaterialName, UniqueMaterialIdx );
+			    CurrentFaceMaterialIdx = UniqueMaterialIdx;
+			    UniqueMaterialIdx++;
+			}
+
+			RawMesh.FaceMaterialIndices[ FaceIdx ] = CurrentFaceMaterialIdx;
+			FaceIdx++;
+		    }
+
+		    bMaterialsReplaced = true;
+		}
+
+		if ( bMaterialsReplaced )
+		{
+		    // We want to fallback to supplied material only if replacement occurred and there was an issue in the process.
+		    if ( bMaterialsFound && bMissingReplacement )
+		    {
+			// Get default Houdini material.
+			UMaterial * MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+
+			// Extract native Houdini materials.
+			TMap< HAPI_NodeId, UMaterialInterface * > NativeMaterials;
+
+			for(int32 FaceIdx = 0; FaceIdx < SplitGroupFaceIndices.Num(); ++FaceIdx)
+			{
+			    // Get material id for this face.
+			    HAPI_NodeId MaterialId = FaceMaterialIds[ FaceIdx ];
+			    UMaterialInterface * Material = MaterialDefault;
+
+			    FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
+			    FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( AssetId, MaterialId, MaterialShopName );
+			    UMaterialInterface * const * FoundMaterial = Materials.Find( MaterialShopName );
+
+			    if ( FoundMaterial )
+				Material = *FoundMaterial;
+
+			    // If we have replacement material for this geo part object and this shop material name.
+			    UMaterialInterface * ReplacementMaterial = 
+				HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
+
+			    if ( ReplacementMaterial )
+				Material = ReplacementMaterial;
+
+			    // See if this material has been added.
+			    UMaterialInterface * const * FoundNativeMaterial = NativeMaterials.Find( MaterialId );
+			    if ( !FoundNativeMaterial )
+				NativeMaterials.Add( MaterialId, Material );
+			}
+
+			for ( int32 FaceIdx = 0; FaceIdx < RawMesh.FaceMaterialIndices.Num(); ++FaceIdx )
+			{
+			    int32 MaterialIdx = RawMesh.FaceMaterialIndices[ FaceIdx ];
+			    auto FaceMaterial = StaticMesh->StaticMaterials[ MaterialIdx ];
+
+			    if ( FaceMaterial.MaterialInterface == MaterialDefault )
+			    {
+				HAPI_NodeId MaterialId = FaceMaterialIds[ FaceIdx ];
+				if ( MaterialId >= 0 )
+				{
+				    UMaterialInterface * const * FoundNativeMaterial = NativeMaterials.Find( MaterialId );
+				    if ( FoundNativeMaterial )
+					StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface = *FoundNativeMaterial;
+				}
+			    }
+			}
+		    }
+		}
+		else
+		{
+		    if ( bMaterialsFound )
+		    {
+			if ( bSingleFaceMaterial )
+			{
+			    // Use default Houdini material if no valid material is assigned to any of the faces.
+			    UMaterialInterface * Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+
+			    // We have only one material.
+			    RawMesh.FaceMaterialIndices.SetNumZeroed( SplitGroupFaceCount );
+
+			    // Get id of this single material.
+			    FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
+			    FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( AssetId, FaceMaterialIds[ 0 ], MaterialShopName );
+			    UMaterialInterface * const * FoundMaterial = Materials.Find( MaterialShopName );
+
+			    if ( FoundMaterial )
+				Material = *FoundMaterial;
+
+			    // If we have replacement material for this geo part object and this shop material name.
+			    UMaterialInterface * ReplacementMaterial = 
+				HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
+
+			    if ( ReplacementMaterial )
+				Material = ReplacementMaterial;
+
+			    StaticMesh->StaticMaterials.Empty();
+			    StaticMesh->StaticMaterials.Add( FStaticMaterial(Material) );
+			}
+			else
+			{
+			    // Get default Houdini material.
+			    UMaterial * MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+
+			    // We have multiple materials.
+			    int32 MaterialIndex = 0;
+			    TMap< UMaterialInterface *, int32 > MappedMaterials;
+			    TArray< UMaterialInterface * > MappedMaterialsList;
+
+			    // Reset Rawmesh material face assignments.
+			    RawMesh.FaceMaterialIndices.SetNumZeroed( SplitGroupFaceIndices.Num() );
+
+			    for ( int32 FaceIdx = 0; FaceIdx < SplitGroupFaceIndices.Num(); ++FaceIdx )
+			    {
+				int32 SplitFaceIndex = SplitGroupFaceIndices[ FaceIdx ];
+
+				// Get material id for this face.
+				HAPI_NodeId MaterialId = -1; 
+				if( SplitFaceIndex >= 0 && SplitFaceIndex < FaceMaterialIds.Num() )
+				    MaterialId = FaceMaterialIds[ SplitFaceIndex ];
+
+				UMaterialInterface * Material = MaterialDefault;
+
+				FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
+				FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( AssetId, MaterialId, MaterialShopName );
+				UMaterialInterface * const * FoundMaterial = Materials.Find( MaterialShopName );
+
+				if ( FoundMaterial )
+				    Material = *FoundMaterial;
+
+				// If we have replacement material for this geo part object and this shop material name.
+				UMaterialInterface * ReplacementMaterial = 
+				    HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
+
+				if ( ReplacementMaterial )
+				    Material = ReplacementMaterial;
+
+				// See if this material has been added.
+				int32 const * FoundMaterialIdx = MappedMaterials.Find( Material );
+				if ( FoundMaterialIdx )
+				{
+				    // This material has been mapped already.
+				    RawMesh.FaceMaterialIndices[ FaceIdx ] = *FoundMaterialIdx;
+				}
+				else
+				{
+				    // This is the first time we've seen this material.
+				    MappedMaterials.Add( Material, MaterialIndex );
+				    MappedMaterialsList.Add( Material );
+
+				    RawMesh.FaceMaterialIndices[ FaceIdx ] = MaterialIndex;
+
+				    MaterialIndex++;
+				}
+			    }
+
+			    StaticMesh->StaticMaterials.Empty();
+
+			    for ( int32 MaterialIdx = 0; MaterialIdx < MappedMaterialsList.Num(); ++MaterialIdx )
+				StaticMesh->StaticMaterials.Add( FStaticMaterial(MappedMaterialsList[ MaterialIdx ]) );
+			}
+		    }
+		    else
+		    {
+			// No materials were found, we need to use default Houdini material.
+			RawMesh.FaceMaterialIndices.SetNumZeroed( SplitGroupFaceCount );
+
+			UMaterialInterface * Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+			FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
+
+			// If we have replacement material for this geo part object and this shop material name.
+			UMaterialInterface * ReplacementMaterial = 
+			    HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
+
+			if ( ReplacementMaterial )
+			    Material = ReplacementMaterial;
+
+			StaticMesh->StaticMaterials.Empty();
+			StaticMesh->StaticMaterials.Add( FStaticMaterial(Material) );
+		    }
+		}
+
+                // Some mesh generation settings.
+                HoudiniRuntimeSettings->SetMeshBuildSettings( SrcModel->BuildSettings, RawMesh );
+
+                // By default the distance field resolution should be set to 2.0
+                SrcModel->BuildSettings.DistanceFieldResolutionScale = HoudiniCookParams.GeneratedDistanceFieldResolutionScale;
+
+                // We need to check light map uv set for correctness. Unreal seems to have occasional issues with
+                // zero UV sets when building lightmaps.
+                int32 LightMapResolutionOverride = -1;
+                if ( SrcModel->BuildSettings.bGenerateLightmapUVs )
+                {
+                    // See if we need to disable lightmap generation because of bad UVs.
+                    if ( FHoudiniEngineUtils::ContainsInvalidLightmapFaces( RawMesh, StaticMesh->LightMapCoordinateIndex ) )
                     {
-                        // If material name was assigned per detail we replicate it for each primitive.
-                        if ( AttribFaceMaterials.owner == HAPI_ATTROWNER_DETAIL )
-                        {
-                            FString SingleFaceMaterial = FaceMaterials[ 0 ];
-                            FaceMaterials.Init( SingleFaceMaterial, SplitGroupVertexList.Num() / 3 );
-                        }
+                        SrcModel->BuildSettings.bGenerateLightmapUVs = false;
 
-                        StaticMesh->StaticMaterials.Empty();
-                        RawMesh.FaceMaterialIndices.SetNumZeroed( FaceCount );
-
-                        TMap< FString, int32 > FaceMaterialMap;
-                        int32 UniqueMaterialIdx = 0;
-                        int32 FaceIdx = 0;
-
-                        for ( int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3 )
-                        {
-                            int32 WedgeCheck = SplitGroupVertexList[ VertexIdx + 0 ];
-                            if ( WedgeCheck == -1 )
-                                continue;
-
-                            const FString & MaterialName = FaceMaterials[ VertexIdx / 3 ];
-                            int32 const * FoundFaceMaterialIdx = FaceMaterialMap.Find( MaterialName );
-                            int32 CurrentFaceMaterialIdx = 0;
-                            if ( FoundFaceMaterialIdx )
-                            {
-                                CurrentFaceMaterialIdx = *FoundFaceMaterialIdx;
-                            }
-                            else
-                            {
-                                UMaterialInterface * MaterialInterface = Cast< UMaterialInterface >(
-                                    StaticLoadObject(
-                                        UMaterialInterface::StaticClass(),
-                                        nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr ) );
-
-                                if ( MaterialInterface )
-                                {
-                                    // Make sure this material is in the assignments before replacing it.
-                                    if( !HoudiniCookParams.HoudiniCookManager->GetAssignmentMaterial( MaterialInterface->GetName() ) )
-                                    {
-                                        HoudiniCookParams.HoudiniCookManager->AddAssignmentMaterial( MaterialInterface->GetName(), MaterialInterface );
-                                    }
-
-                                    // See if we have a replacement material for this.
-                                    UMaterialInterface * ReplacementMaterialInterface = HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialInterface->GetName() );
-                                    if( ReplacementMaterialInterface )
-                                        MaterialInterface = ReplacementMaterialInterface;
-                                }
-
-                                if ( !MaterialInterface )
-                                {
-                                    // Material/Replacement does not exist, use default material.
-                                    MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
-                                    bMissingReplacement = true;
-                                }
-
-                                StaticMesh->StaticMaterials.Add( FStaticMaterial(MaterialInterface) );
-                                FaceMaterialMap.Add( MaterialName, UniqueMaterialIdx );
-                                CurrentFaceMaterialIdx = UniqueMaterialIdx;
-                                UniqueMaterialIdx++;
-                            }
-
-                            RawMesh.FaceMaterialIndices[ FaceIdx ] = CurrentFaceMaterialIdx;
-                            FaceIdx++;
-                        }
-
-                        bMaterialsReplaced = true;
+                        HOUDINI_LOG_MESSAGE(
+                            TEXT( "Skipping Lightmap Generation: Object [%d %s], Geo [%d], Part [%d %s] invalid face detected " )
+                            TEXT( "- skipping." ),
+                            ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName );
                     }
 
-                    if ( bMaterialsReplaced )
-                    {
-                        // We want to fallback to supplied material only if replacement occurred and there was an issue in the process.
-                        if ( bMaterialsFound && bMissingReplacement )
-                        {
-                            // Get default Houdini material.
-                            UMaterial * MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
-
-                            // Extract native Houdini materials.
-                            TMap< HAPI_NodeId, UMaterialInterface * > NativeMaterials;
-
-                            for(int32 FaceIdx = 0; FaceIdx < SplitGroupFaceIndices.Num(); ++FaceIdx)
-                            {
-                                // Get material id for this face.
-                                HAPI_NodeId MaterialId = FaceMaterialIds[ FaceIdx ];
-                                UMaterialInterface * Material = MaterialDefault;
-
-                                FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
-                                FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( AssetId, MaterialId, MaterialShopName );
-                                UMaterialInterface * const * FoundMaterial = Materials.Find( MaterialShopName );
-
-                                if ( FoundMaterial )
-                                    Material = *FoundMaterial;
-
-                                // If we have replacement material for this geo part object and this shop material name.
-                                UMaterialInterface * ReplacementMaterial = 
-                                    HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
-
-                                if ( ReplacementMaterial )
-                                    Material = ReplacementMaterial;
-
-                                // See if this material has been added.
-                                UMaterialInterface * const * FoundNativeMaterial = NativeMaterials.Find( MaterialId );
-                                if ( !FoundNativeMaterial )
-                                    NativeMaterials.Add( MaterialId, Material );
-                            }
-
-                            for ( int32 FaceIdx = 0; FaceIdx < RawMesh.FaceMaterialIndices.Num(); ++FaceIdx )
-                            {
-                                int32 MaterialIdx = RawMesh.FaceMaterialIndices[ FaceIdx ];
-                                auto FaceMaterial = StaticMesh->StaticMaterials[ MaterialIdx ];
-
-                                if ( FaceMaterial.MaterialInterface == MaterialDefault )
-                                {
-                                    HAPI_NodeId MaterialId = FaceMaterialIds[ FaceIdx ];
-                                    if ( MaterialId >= 0 )
-                                    {
-                                        UMaterialInterface * const * FoundNativeMaterial = NativeMaterials.Find( MaterialId );
-                                        if ( FoundNativeMaterial )
-                                            StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface = *FoundNativeMaterial;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if ( bMaterialsFound )
-                        {
-                            if ( bSingleFaceMaterial )
-                            {
-                                // Use default Houdini material if no valid material is assigned to any of the faces.
-                                UMaterialInterface * Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
-
-                                // We have only one material.
-                                RawMesh.FaceMaterialIndices.SetNumZeroed( FaceCount );
-
-                                // Get id of this single material.
-                                FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
-                                FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( AssetId, FaceMaterialIds[ 0 ], MaterialShopName );
-                                UMaterialInterface * const * FoundMaterial = Materials.Find( MaterialShopName );
-
-                                if ( FoundMaterial )
-                                    Material = *FoundMaterial;
-
-                                // If we have replacement material for this geo part object and this shop material name.
-                                UMaterialInterface * ReplacementMaterial = 
-                                    HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
-
-                                if ( ReplacementMaterial )
-                                    Material = ReplacementMaterial;
-
-                                StaticMesh->StaticMaterials.Empty();
-                                StaticMesh->StaticMaterials.Add( FStaticMaterial(Material) );
-                            }
-                            else
-                            {
-                                // Get default Houdini material.
-                                UMaterial * MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
-
-                                // We have multiple materials.
-                                int32 MaterialIndex = 0;
-                                TMap< UMaterialInterface *, int32 > MappedMaterials;
-                                TArray< UMaterialInterface * > MappedMaterialsList;
-
-                                // Reset Rawmesh material face assignments.
-                                RawMesh.FaceMaterialIndices.SetNumZeroed( SplitGroupFaceIndices.Num() );
-
-                                for ( int32 FaceIdx = 0; FaceIdx < SplitGroupFaceIndices.Num(); ++FaceIdx )
-                                {
-                                    int32 SplitFaceIndex = SplitGroupFaceIndices[FaceIdx];
-
-                                    // Get material id for this face.
-                                    HAPI_NodeId MaterialId = -1; 
-                                    if( SplitFaceIndex >= 0 && SplitFaceIndex < FaceMaterialIds.Num() )
-                                        MaterialId = FaceMaterialIds[ SplitFaceIndex ];
-
-                                    UMaterialInterface * Material = MaterialDefault;
-
-                                    FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
-                                    FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( AssetId, MaterialId, MaterialShopName );
-                                    UMaterialInterface * const * FoundMaterial = Materials.Find( MaterialShopName );
-
-                                    if ( FoundMaterial )
-                                        Material = *FoundMaterial;
-
-                                    // If we have replacement material for this geo part object and this shop material name.
-                                    UMaterialInterface * ReplacementMaterial = 
-                                        HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
-
-                                    if ( ReplacementMaterial )
-                                        Material = ReplacementMaterial;
-
-                                    // See if this material has been added.
-                                    int32 const * FoundMaterialIdx = MappedMaterials.Find( Material );
-                                    if ( FoundMaterialIdx )
-                                    {
-                                        // This material has been mapped already.
-                                        RawMesh.FaceMaterialIndices[ FaceIdx ] = *FoundMaterialIdx;
-                                    }
-                                    else
-                                    {
-                                        // This is the first time we've seen this material.
-                                        MappedMaterials.Add( Material, MaterialIndex );
-                                        MappedMaterialsList.Add( Material );
-
-                                        RawMesh.FaceMaterialIndices[ FaceIdx ] = MaterialIndex;
-
-                                        MaterialIndex++;
-                                    }
-                                }
-
-                                StaticMesh->StaticMaterials.Empty();
-
-                                for ( int32 MaterialIdx = 0; MaterialIdx < MappedMaterialsList.Num(); ++MaterialIdx )
-                                    StaticMesh->StaticMaterials.Add( FStaticMaterial(MappedMaterialsList[ MaterialIdx ]) );
-                            }
-                        }
-                        else
-                        {
-                            // No materials were found, we need to use default Houdini material.
-                            RawMesh.FaceMaterialIndices.SetNumZeroed( FaceCount );
-
-                            UMaterialInterface * Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
-                            FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
-
-                            // If we have replacement material for this geo part object and this shop material name.
-                            UMaterialInterface * ReplacementMaterial = 
-                                HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
-
-                            if ( ReplacementMaterial )
-                                Material = ReplacementMaterial;
-
-                            StaticMesh->StaticMaterials.Empty();
-                            StaticMesh->StaticMaterials.Add( FStaticMaterial(Material) );
-                        }
-                    }
-
-                    // Some mesh generation settings.
-                    HoudiniRuntimeSettings->SetMeshBuildSettings( SrcModel->BuildSettings, RawMesh );
-
-                    // By default the distance field resolution should be set to 2.0
-                    SrcModel->BuildSettings.DistanceFieldResolutionScale = HoudiniCookParams.GeneratedDistanceFieldResolutionScale;
-
-                    // We need to check light map uv set for correctness. Unreal seems to have occasional issues with
-                    // zero UV sets when building lightmaps.
-                    int32 LightMapResolutionOverride = -1;
-                    if ( SrcModel->BuildSettings.bGenerateLightmapUVs )
-                    {
-                        // See if we need to disable lightmap generation because of bad UVs.
-                        if ( FHoudiniEngineUtils::ContainsInvalidLightmapFaces( RawMesh, StaticMesh->LightMapCoordinateIndex ) )
-                        {
-                            SrcModel->BuildSettings.bGenerateLightmapUVs = false;
-
-                            HOUDINI_LOG_MESSAGE(
-                                TEXT( "Skipping Lightmap Generation: Object [%d %s], Geo [%d], Part [%d %s] invalid face detected " )
-                                TEXT( "- skipping." ),
-                                ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
-                        }
-
-                        if( LightMapResolutions.Num() > 0 )
-                        {
-                            LightMapResolutionOverride = LightMapResolutions[0];
-                        }
-                    }
-
-                    // Store the new raw mesh.
-                    SrcModel->RawMeshBulkData->SaveRawMesh( RawMesh );
-
-                    while( StaticMesh->SourceModels.Num() < NumLODs )
-                        new ( StaticMesh->SourceModels ) FStaticMeshSourceModel();
-
-                    for ( int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex )
-                    {
-                        StaticMesh->SourceModels[ ModelLODIndex ].ReductionSettings =
-                            LODGroup.GetDefaultSettings( ModelLODIndex );
-
-                        for ( int32 MaterialIndex = 0; MaterialIndex < StaticMesh->StaticMaterials.Num(); ++MaterialIndex )
-                        {
-                            FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get( ModelLODIndex, MaterialIndex );
-                            Info.MaterialIndex = MaterialIndex;
-                            Info.bEnableCollision = true;
-                            Info.bCastShadow = true;
-                            StaticMesh->SectionInfoMap.Set( ModelLODIndex, MaterialIndex, Info );
-                        }
-                    }
-
-                    // Assign generation parameters for this static mesh.
-                    HoudiniCookParams.HoudiniCookManager->SetStaticMeshGenerationParameters( StaticMesh );
+                    if( PartLightMapResolutions.Num() > 0 )
+                        LightMapResolutionOverride = PartLightMapResolutions[ 0 ];
 
                     // Apply lightmap resolution override if it has been specified
-                    if( LightMapResolutionOverride > 0 )
-                    {
+                    if ( LightMapResolutionOverride > 0 )
                         StaticMesh->LightMapResolution = LightMapResolutionOverride;
-                    }
+                }
 
-                    // Make sure we remove the old simple colliders if needed
-                    if( UBodySetup * BodySetup = StaticMesh->BodySetup )
-                    {
-                        if( !HoudiniGeoPartObject.bHasCollisionBeenAdded )
-                        {
-                            BodySetup->RemoveSimpleCollision();
-                        }
+                // Store the new raw mesh.
+                SrcModel->RawMeshBulkData->SaveRawMesh( RawMesh );
 
-                        // See if we need to enable collisions on the whole mesh.
-                        if( ( HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable() )
-                            && ( !HoudiniGeoPartObject.bIsSimpleCollisionGeo && !bIsUCXCollidable ) )
-                        {
-                            // Enable collisions for this static mesh.
-                            BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
-                        }
-                    }
-
-                    // Try to update the uproperties of the StaticMesh
-                    UpdateUPropertyAttributesOnObject( StaticMesh, HoudiniGeoPartObject);
-
-                    // Free any RHI resources.
-                    StaticMesh->PreEditChange( nullptr );
-
-                    FHoudiniScopedGlobalSilence ScopedGlobalSilence;
-
-                    TArray< FText > BuildErrors;
-                    {
-                        SCOPE_CYCLE_COUNTER( STAT_BuildStaticMesh );
-                        StaticMesh->Build( true, &BuildErrors );
-                    }
-                    for ( int32 BuildErrorIdx = 0; BuildErrorIdx < BuildErrors.Num(); ++BuildErrorIdx )
-                    {
-                        const FText & TextError = BuildErrors[ BuildErrorIdx ];
-                        HOUDINI_LOG_MESSAGE(
-                            TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d] build error " )
-                            TEXT( "- %s." ),
-                            ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName, SplitId, *( TextError.ToString() ) );
-                    }
-
-                    // Do we need to add simple collisions ?
-                    bool bSimpleCollisionAddedToAggregate = false;
-                    if ( HoudiniGeoPartObject.bIsSimpleCollisionGeo )
-                    {
-                        if ( AddSimpleCollision( SplitGroupName, StaticMesh, HoudiniGeoPartObject, AggregateCollisionGeo, bSimpleCollisionAddedToAggregate ) )
-                        {
-                            if ( bSimpleCollisionAddedToAggregate )
-                            {
-                                // The colliders are invisible and have been added to the aggregate,
-                                // we can skip to the next object and this collider will be added after
-                                bHasAggregateGeometryCollision = true;
-                                continue;
-                            }
-                            else
-                            {
-                                // We don't want these collisions to be removed afterwards
-                                HoudiniGeoPartObject.bHasCollisionBeenAdded = true;
-                            }
-                        }
-                    }
-
-                    // We need to handle rendered_ucx collisions now
-                    if ( HoudiniGeoPartObject.bIsUCXCollisionGeo && HoudiniGeoPartObject.bIsRenderCollidable && bHasAggregateGeometryCollision )
-                    {
-                        // Add the aggregate collision geo to the static mesh
-                        if ( AddAggregateCollisionGeometryToStaticMesh(
-                            StaticMesh, HoudiniGeoPartObject, AggregateCollisionGeo ) )
-                        {
-                            bHasAggregateGeometryCollision = false;
-                        }
-                    }
-
-                    // Add sockets to the static mesh if neeeded
-                    AddMeshSocketsToStaticMesh( StaticMesh, HoudiniGeoPartObject, AllSockets, AllSocketsNames, AllSocketsActors );
-
-                    StaticMesh->MarkPackageDirty();
-
-                    StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
-
-                } // end for SplitId
-
-            } // end for PartId
-
-            // We need to add the remaining UCX/UBX/Collisions here
-            if ( bHasAggregateGeometryCollision )
-            {
-                // We want to find a StaticMesh for these collisions...
-                // As there's no way of telling where we should add these, 
-                // We need to find a static mesh for this geo that doesn't have any collision
-                // and add the aggregate UCX/UBX/USP geo to its body setup
-                UStaticMesh * CollisionStaticMesh = nullptr;
-                FHoudiniGeoPartObject * CollisionHoudiniGeoPartObject = nullptr;
-                for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter(StaticMeshesOut); Iter; ++Iter )
+                // Lambda for initializing a LOD level
+                auto InitLODLevel = [ & ]( const int32& LODLevelIndex )
                 {
-                    FHoudiniGeoPartObject * HoudiniGeoPartObject = &(Iter.Key());
+                    // Ensure that this LOD level exisits
+                    while ( StaticMesh->SourceModels.Num() < ( LODLevelIndex + 1 ) )
+                        new ( StaticMesh->SourceModels ) FStaticMeshSourceModel();
 
-                    if ( ( HoudiniGeoPartObject->ObjectId != ObjectInfo.nodeId ) && ( HoudiniGeoPartObject->GeoId != GeoInfo.nodeId ) )
+                    // Set its reduction settings to the default
+                    StaticMesh->SourceModels[ LODLevelIndex ].ReductionSettings = LODGroup.GetDefaultSettings( LODLevelIndex );
+
+                    for ( int32 MaterialIndex = 0; MaterialIndex < StaticMesh->StaticMaterials.Num(); ++MaterialIndex )
                     {
-                        // If we haven't find a mesh for the collision, we might as well use this one but
-                        // we will keep searching for a better one
-                        if ( !CollisionStaticMesh )
-                        {
-                            CollisionStaticMesh = Iter.Value();
-                            CollisionHoudiniGeoPartObject = HoudiniGeoPartObject;
-                        }
-
-                        continue;
+                        FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get( LODLevelIndex, MaterialIndex );
+                        Info.MaterialIndex = MaterialIndex;
+                        Info.bEnableCollision = true;
+                        Info.bCastShadow = true;
+                        StaticMesh->SectionInfoMap.Set( LODLevelIndex, MaterialIndex, Info );
                     }
+                };
 
-                    if ( HoudiniGeoPartObject->IsCollidable() || HoudiniGeoPartObject->IsRenderCollidable() )
+                if ( IsLOD )
+                {
+                    // Init the current LOD level, and increment the LOD index
+                    InitLODLevel( LodIndex++ );
+                }
+                else
+                {
+                    // For non LODed mesh, init the default number of LODs
+                    for ( int32 ModelLODIndex = 0; ModelLODIndex < DefaultNumLODs; ++ModelLODIndex )
+                        InitLODLevel( ModelLODIndex );
+                }
+
+                // The following actions needs to be done only once per Static Mesh,
+                // So if we are a LOD level other than the last one, skip this!
+                if ( IsLOD && ( LodIndex != NumberOfLODs ) )
+                {
+                    // The First LOD still needs to add the mesh to the out list so we can reuse it for the next LOD levels
+                    if ( LodIndex == 1 )
+                        StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
+
+                    continue;
+                }
+
+                // Assign generation parameters for this static mesh.
+                HoudiniCookParams.HoudiniCookManager->SetStaticMeshGenerationParameters( StaticMesh );
+
+                // Make sure we remove the old simple colliders if needed
+                if( UBodySetup * BodySetup = StaticMesh->BodySetup )
+                {
+                    // Simple colliders are from a previous cook, remove them!
+                    if( !HoudiniGeoPartObject.bHasCollisionBeenAdded )
+                        BodySetup->RemoveSimpleCollision();
+
+                    // See if we need to enable collisions on the whole mesh.
+                    if( ( HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable() )
+                        && ( !HoudiniGeoPartObject.bIsSimpleCollisionGeo && !HoudiniGeoPartObject.bIsUCXCollisionGeo ) )
                     {
-                        // We can add collision to this StaticMesh, but as it already has some.
-                        // we'd prefer to find one that has no collision already, so we'll keep searching...
+                        // Enable collisions for this static mesh.
+                        BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
+                    }
+                }
+
+                // Try to update the uproperties of the StaticMesh
+                UpdateUPropertyAttributesOnObject( StaticMesh, HoudiniGeoPartObject);
+
+                // Free any RHI resources.
+                StaticMesh->PreEditChange( nullptr );
+
+                FHoudiniScopedGlobalSilence ScopedGlobalSilence;
+                TArray< FText > BuildErrors;
+                {
+                    SCOPE_CYCLE_COUNTER( STAT_BuildStaticMesh );
+                    StaticMesh->Build( true, &BuildErrors );
+                }
+                for ( int32 BuildErrorIdx = 0; BuildErrorIdx < BuildErrors.Num(); ++BuildErrorIdx )
+                {
+                    const FText & TextError = BuildErrors[ BuildErrorIdx ];
+                    HOUDINI_LOG_MESSAGE(
+                        TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d] build error " )
+                        TEXT( "- %s." ),
+                        ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, SplitId, *( TextError.ToString() ) );
+                }
+
+                // Do we need to add simple collisions ?
+                bool bSimpleCollisionAddedToAggregate = false;
+                if ( HoudiniGeoPartObject.bIsSimpleCollisionGeo )
+                {
+                    if ( AddSimpleCollision( SplitGroupName, StaticMesh, HoudiniGeoPartObject, AggregateCollisionGeo, bSimpleCollisionAddedToAggregate ) )
+                    {
+                        if ( bSimpleCollisionAddedToAggregate )
+                        {
+                            // The colliders are invisible and have been added to the aggregate,
+                            // we can skip to the next object and this collider will be added after
+                            bHasAggregateGeometryCollision = true;
+                            continue;
+                        }
+                        else
+                        {
+                            // We don't want these collisions to be removed afterwards
+                            HoudiniGeoPartObject.bHasCollisionBeenAdded = true;
+                        }
+                    }
+                }
+
+                /*
+                // We need to handle rendered_ucx collisions now
+                if ( HoudiniGeoPartObject.bIsUCXCollisionGeo && HoudiniGeoPartObject.bIsRenderCollidable && bHasAggregateGeometryCollision )
+                */
+
+                // If any simple collider was added to the aggregate, and this mesh is visible, add the colliders now
+                if ( bHasAggregateGeometryCollision )
+                {
+                    // Add the aggregate collision geo to the static mesh
+                    if ( AddAggregateCollisionGeometryToStaticMesh( StaticMesh, HoudiniGeoPartObject, AggregateCollisionGeo ) )
+                        bHasAggregateGeometryCollision = false;
+                }
+
+                // Add sockets to the static mesh if neeeded
+                AddMeshSocketsToStaticMesh( StaticMesh, HoudiniGeoPartObject, AllSockets, AllSocketsNames, AllSocketsActors );
+
+                StaticMesh->MarkPackageDirty();
+
+                StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
+
+            } // end for SplitId
+
+        } // end for PartId
+
+        // There should be no UCX/Simple colliders left now
+        if ( bHasAggregateGeometryCollision )
+            HOUDINI_LOG_ERROR( TEXT("All Simple Colliders found in the HDA were not attached to a static mesh!!") );
+
+        // ... same for the Sockets
+        if ( AllSockets.Num() > 0 )
+            HOUDINI_LOG_ERROR( TEXT("All Sockets found in the HDA were not attached to a static mesh!!") );
+        /*
+        // We need to add the remaining UCX/UBX/Collisions here
+        if ( bHasAggregateGeometryCollision )
+        {
+            // We want to find a StaticMesh for these collisions...
+            // As there's no way of telling where we should add these, 
+            // We need to find a static mesh for this geo that doesn't have any collision
+            // and add the aggregate UCX/UBX/USP geo to its body setup
+            UStaticMesh * CollisionStaticMesh = nullptr;
+            FHoudiniGeoPartObject * CollisionHoudiniGeoPartObject = nullptr;
+            for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter(StaticMeshesOut); Iter; ++Iter )
+            {
+                FHoudiniGeoPartObject * HoudiniGeoPartObject = &(Iter.Key());
+
+                if ( ( HoudiniGeoPartObject->ObjectId != ObjectInfo.nodeId ) && ( HoudiniGeoPartObject->GeoId != GeoInfo.nodeId ) )
+                {
+                    // If we haven't find a mesh for the collision, we might as well use this one but
+                    // we will keep searching for a better one
+                    if ( !CollisionStaticMesh )
+                    {
                         CollisionStaticMesh = Iter.Value();
                         CollisionHoudiniGeoPartObject = HoudiniGeoPartObject;
-                        continue;
                     }
- 
-                    // This mesh is from the same geo, and is not a collision mesh so 
-                    // we will add the simple collision to this mesh's body setup
+
+                    continue;
+                }
+
+                if ( HoudiniGeoPartObject->IsCollidable() || HoudiniGeoPartObject->IsRenderCollidable() )
+                {
+                    // We can add collision to this StaticMesh, but as it already has some.
+                    // we'd prefer to find one that has no collision already, so we'll keep searching...
                     CollisionStaticMesh = Iter.Value();
                     CollisionHoudiniGeoPartObject = HoudiniGeoPartObject;
-                    break;
+                    continue;
                 }
-
-                // Add the aggregate collision geo to the static mesh
-                if ( AddAggregateCollisionGeometryToStaticMesh(
-                    CollisionStaticMesh, *CollisionHoudiniGeoPartObject, AggregateCollisionGeo ) )
-                {
-                    bHasAggregateGeometryCollision = false;
-                }
+ 
+                // This mesh is from the same geo, and is not a collision mesh so 
+                // we will add the simple collision to this mesh's body setup
+                CollisionStaticMesh = Iter.Value();
+                CollisionHoudiniGeoPartObject = HoudiniGeoPartObject;
+                break;
             }
 
-            // We still have socket that need to be attached to a StaticMesh...
-            if (AllSockets.Num() > 0)
+            // Add the aggregate collision geo to the static mesh
+            if ( AddAggregateCollisionGeometryToStaticMesh(
+                CollisionStaticMesh, *CollisionHoudiniGeoPartObject, AggregateCollisionGeo ) )
             {
-                // We want to find a StaticMesh for these socket...
-                // As there's no way of telling where we should add these, 
-                // We need to find a static mesh for this geo that is (preferably) visible
-                UStaticMesh * SocketStaticMesh = nullptr;
-                FHoudiniGeoPartObject * SocketHoudiniGeoPartObject = nullptr;
-                for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshesOut ); Iter; ++Iter )
+                bHasAggregateGeometryCollision = false;
+            }
+        }
+
+        // We still have socket that need to be attached to a StaticMesh...
+        if (AllSockets.Num() > 0)
+        {
+            // We want to find a StaticMesh for these socket...
+            // As there's no way of telling where we should add these, 
+            // We need to find a static mesh for this geo that is (preferably) visible
+            UStaticMesh * SocketStaticMesh = nullptr;
+            FHoudiniGeoPartObject * SocketHoudiniGeoPartObject = nullptr;
+            for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshesOut ); Iter; ++Iter )
+            {
+                FHoudiniGeoPartObject * HoudiniGeoPartObject = &(Iter.Key());
+
+                if ( ( HoudiniGeoPartObject->ObjectId != ObjectInfo.nodeId ) && ( HoudiniGeoPartObject->GeoId != GeoInfo.nodeId ) )
                 {
-                    FHoudiniGeoPartObject * HoudiniGeoPartObject = &(Iter.Key());
-
-                    if ( ( HoudiniGeoPartObject->ObjectId != ObjectInfo.nodeId ) && ( HoudiniGeoPartObject->GeoId != GeoInfo.nodeId ) )
+                    // If we haven't find a mesh for the socket yet, we might as well use this one but
+                    // we will keep searching for a "better" candidate
+                    if ( !SocketStaticMesh )
                     {
-                        // If we haven't find a mesh for the socket yet, we might as well use this one but
-                        // we will keep searching for a "better" candidate
-                        if ( !SocketStaticMesh )
-                        {
-                            SocketStaticMesh = Iter.Value();
-                            SocketHoudiniGeoPartObject = HoudiniGeoPartObject;
-                        }
-
-                        continue;
-                    }
-
-                    if ( HoudiniGeoPartObject->IsCollidable() )
-                    {
-                        // This object has the same geo/node id, but won't be visible,
-                        // so we'll keep looking for a "better" one
                         SocketStaticMesh = Iter.Value();
                         SocketHoudiniGeoPartObject = HoudiniGeoPartObject;
-                        continue;
                     }
 
-                    // This mesh is from the same geo and is visible, we'll add the socket to it..
-                    SocketStaticMesh = Iter.Value();
-                    SocketHoudiniGeoPartObject = HoudiniGeoPartObject;
-                    break;
+                    continue;
                 }
 
-                // Add socket to the mesh if we found a suitable one
-                if ( SocketStaticMesh )
-                    AddMeshSocketsToStaticMesh( SocketStaticMesh, *SocketHoudiniGeoPartObject, AllSockets, AllSocketsNames, AllSocketsActors );
+                if ( HoudiniGeoPartObject->IsCollidable() )
+                {
+                    // This object has the same geo/node id, but won't be visible,
+                    // so we'll keep looking for a "better" one
+                    SocketStaticMesh = Iter.Value();
+                    SocketHoudiniGeoPartObject = HoudiniGeoPartObject;
+                    continue;
+                }
+
+                // This mesh is from the same geo and is visible, we'll add the socket to it..
+                SocketStaticMesh = Iter.Value();
+                SocketHoudiniGeoPartObject = HoudiniGeoPartObject;
+                break;
             }
 
-        } // end for GeoId
+            // Add socket to the mesh if we found a suitable one
+            if ( SocketStaticMesh )
+                AddMeshSocketsToStaticMesh( SocketStaticMesh, *SocketHoudiniGeoPartObject, AllSockets, AllSocketsNames, AllSocketsActors );
+        }
 
+        */
     } // end for ObjectId
-
 
     // Now that all the meshes are built and their collisions meshes and primitives updated,
     // we need to update their pre-built navigation collision used by the navmesh
@@ -5172,7 +5153,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         // Only update for collidable objects
         if ( HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable() )
         {
-            StaticMesh = Iter.Value();
+            UStaticMesh* StaticMesh = Iter.Value();
             if ( !StaticMesh )
                 continue;
 
@@ -5238,82 +5219,92 @@ FHoudiniEngineUtils::CountDegenerateTriangles( const FRawMesh & RawMesh )
 
 int32
 FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
-    const TArray< int32 > & VertexList, const HAPI_AttributeInfo & AttribInfo, TArray< float > & Data )
+    const TArray< int32 > & VertexList, const HAPI_AttributeInfo & AttribInfo, TArray< float > & Data)
 {
+    TArray< float > VertexData;
+    int32 ValidWedgeCount = TransferRegularPointAttributesToVertices( VertexList, AttribInfo, Data, VertexData );
+
+    if ( ValidWedgeCount > 0 )
+        Data = VertexData;
+
+    return ValidWedgeCount;
+}
+
+int32
+FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+    const TArray< int32 > & VertexList, const HAPI_AttributeInfo & AttribInfo, const TArray< float > & Data, TArray< float >& VertexData )
+{
+    if ( !AttribInfo.exists || AttribInfo.tupleSize <= 0 )
+        return 0;
+
     int32 ValidWedgeCount = 0;
 
-    if ( AttribInfo.exists && AttribInfo.tupleSize )
+    // Future optimization - see if we can do direct vertex transfer.
+    int32 WedgeCount = VertexList.Num();
+    VertexData.SetNumZeroed( WedgeCount * AttribInfo.tupleSize );
+
+    int32 LastValidWedgeIdx = 0;
+    for ( int32 WedgeIdx = 0; WedgeIdx < WedgeCount; ++WedgeIdx )
     {
-        // Future optimization - see if we can do direct vertex transfer.
+        int32 VertexId = VertexList[ WedgeIdx ];
 
-        int32 WedgeCount = VertexList.Num();
-        TArray< float > VertexData;
-        VertexData.SetNumZeroed( WedgeCount * AttribInfo.tupleSize );
-
-        int32 LastValidWedgeIdx = 0;
-        for ( int32 WedgeIdx = 0; WedgeIdx < WedgeCount; ++WedgeIdx )
+        if ( VertexId == -1 )
         {
-            int32 VertexId = VertexList[ WedgeIdx ];
-
-            if ( VertexId == -1 )
-            {
-                // This is an index/wedge we are skipping due to split.
-                continue;
-            }
-
-            // Increment wedge count, since this is a valid wedge.
-            ValidWedgeCount++;
-
-            int32 PrimIdx = WedgeIdx / 3;
-            int32 SaveIdx = 0;
-            float Value = 0.0f;
-
-            for ( int32 AttributeIndexIdx = 0; AttributeIndexIdx < AttribInfo.tupleSize; ++AttributeIndexIdx )
-            {
-                switch ( AttribInfo.owner )
-                {
-                    case HAPI_ATTROWNER_POINT:
-                    {
-                        Value = Data[ VertexId * AttribInfo.tupleSize + AttributeIndexIdx ];
-                        break;
-                    }
-
-                    case HAPI_ATTROWNER_PRIM:
-                    {
-                        Value = Data[ PrimIdx * AttribInfo.tupleSize + AttributeIndexIdx ];
-                        break;
-                    }
-
-                    case HAPI_ATTROWNER_DETAIL:
-                    {
-                        Value = Data[ AttributeIndexIdx ];
-                        break;
-                    }
-
-                    case HAPI_ATTROWNER_VERTEX:
-                    {
-                        Value = Data[ WedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx ];
-                        break;
-                    }
-
-                    default:
-                    {
-                        check( false );
-                        continue;
-                    }
-                }
-
-                SaveIdx = LastValidWedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx;
-                VertexData[ SaveIdx ] = Value;
-            }
-
-            // We are re-indexing wedges.
-            LastValidWedgeIdx++;
+            // This is an index/wedge we are skipping due to split.
+            continue;
         }
 
-        VertexData.SetNumZeroed( ValidWedgeCount * AttribInfo.tupleSize );
-        Data = VertexData;
+        // Increment wedge count, since this is a valid wedge.
+        ValidWedgeCount++;
+
+        int32 PrimIdx = WedgeIdx / 3;
+        int32 SaveIdx = 0;
+        float Value = 0.0f;
+
+        for ( int32 AttributeIndexIdx = 0; AttributeIndexIdx < AttribInfo.tupleSize; ++AttributeIndexIdx )
+        {
+            switch ( AttribInfo.owner )
+            {
+                case HAPI_ATTROWNER_POINT:
+                {
+                    Value = Data[ VertexId * AttribInfo.tupleSize + AttributeIndexIdx ];
+                    break;
+                }
+
+                case HAPI_ATTROWNER_PRIM:
+                {
+                    Value = Data[ PrimIdx * AttribInfo.tupleSize + AttributeIndexIdx ];
+                    break;
+                }
+
+                case HAPI_ATTROWNER_DETAIL:
+                {
+                    Value = Data[ AttributeIndexIdx ];
+                    break;
+                }
+
+                case HAPI_ATTROWNER_VERTEX:
+                {
+                    Value = Data[ WedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx ];
+                    break;
+                }
+
+                default:
+                {
+                    check( false );
+                    continue;
+                }
+            }
+
+            SaveIdx = LastValidWedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx;
+            VertexData[ SaveIdx ] = Value;
+        }
+
+        // We are re-indexing wedges.
+        LastValidWedgeIdx++;
     }
+
+    VertexData.SetNumZeroed( ValidWedgeCount * AttribInfo.tupleSize );
 
     return ValidWedgeCount;
 }
@@ -5925,7 +5916,6 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
     TArray< HAPI_ObjectInfo > ObjectInfos;
     if ( !HapiGetObjectInfos( AssetInfo.nodeId, ObjectInfos ) )
         return false;
-    const int32 ObjectCount = ObjectInfos.Num();
 
     // Iterate through all objects.
     for ( int32 ObjectIdx = 0; ObjectIdx < ObjectInfos.Num(); ++ObjectIdx )
@@ -5933,75 +5923,61 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
         // Retrieve object at this index.
         const HAPI_ObjectInfo & ObjectInfo = ObjectInfos[ ObjectIdx ];
 
-        // This is a loop that goes over once and stops. We use this so we can then
-        // exit out of the scope using break or continue.
-        for ( int32 Idx = 0; Idx < 1; ++Idx )
+        // Get Geo information.
+        HAPI_GeoInfo GeoInfo;
+        if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetDisplayGeoInfo( FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, &GeoInfo ) )
+            continue;
+
+        // Iterate through all parts.
+        for ( int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx )
         {
-            // Get Geo information.
-            HAPI_GeoInfo GeoInfo;
-            if ( FHoudiniApi::GetDisplayGeoInfo(
-                FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, &GeoInfo ) != HAPI_RESULT_SUCCESS )
-            {
+            // Get part information.
+            HAPI_PartInfo PartInfo;
+            FString PartName = TEXT( "" );
+
+            if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo( FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, PartIdx, &PartInfo ) )
                 continue;
-            }
 
-            // Iterate through all parts.
-            for ( int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx )
+            // Retrieve material information for this geo part.
+            HAPI_Bool bSingleFaceMaterial = false;
+            bool bMaterialsFound = false;
+
+            if ( PartInfo.faceCount > 0 )
             {
-                // Get part information.
-                HAPI_PartInfo PartInfo;
-                FString PartName = TEXT( "" );
+                TArray< HAPI_NodeId > FaceMaterialIds;
+                FaceMaterialIds.SetNumUninitialized( PartInfo.faceCount );
 
-                if ( FHoudiniApi::GetPartInfo(
-                    FHoudiniEngine::Get().GetSession(),
-                    GeoInfo.nodeId, PartIdx, &PartInfo ) != HAPI_RESULT_SUCCESS )
+                if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialNodeIdsOnFaces(
+                    FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, PartInfo.id, 
+                    &bSingleFaceMaterial, &FaceMaterialIds[ 0 ], 0, PartInfo.faceCount ) )
                 {
                     continue;
                 }
 
-                // Retrieve material information for this geo part.
-                HAPI_Bool bSingleFaceMaterial = false;
-                bool bMaterialsFound = false;
-
-                if ( PartInfo.faceCount > 0 )
+                MaterialIds.Append( FaceMaterialIds );
+            }
+            else
+            {
+                // If this is an instancer, attempt to look up instancer material.
+                if ( ObjectInfo.isInstancer )
                 {
-                    TArray< HAPI_NodeId > FaceMaterialIds;
-                    FaceMaterialIds.SetNumUninitialized( PartInfo.faceCount );
+                    HAPI_NodeId InstanceMaterialId = -1;
 
-                    if ( FHoudiniApi::GetMaterialNodeIdsOnFaces(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoInfo.nodeId, PartInfo.id, &bSingleFaceMaterial,
-                        &FaceMaterialIds[ 0 ], 0, PartInfo.faceCount ) != HAPI_RESULT_SUCCESS )
+                    if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialNodeIdsOnFaces(
+                        FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, PartInfo.id, 
+                        &bSingleFaceMaterial, &InstanceMaterialId, 0, 1 ) )
                     {
                         continue;
                     }
 
-                    MaterialIds.Append( FaceMaterialIds );
-                }
-                else
-                {
-                    // If this is an instancer, attempt to look up instancer material.
-                    if ( ObjectInfo.isInstancer )
+                    MaterialIds.Add( InstanceMaterialId );
+
+                    if ( InstanceMaterialId != -1 )
                     {
-                        HAPI_NodeId InstanceMaterialId = -1;
+                        FHoudiniGeoPartObject GeoPartObject( AssetInfo.nodeId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id );
+                        InstancerMaterialMap.Add( GeoPartObject, InstanceMaterialId );
 
-                        if ( FHoudiniApi::GetMaterialNodeIdsOnFaces(
-                            FHoudiniEngine::Get().GetSession(),
-                            GeoInfo.nodeId, PartInfo.id, &bSingleFaceMaterial,
-                            &InstanceMaterialId, 0, 1 ) != HAPI_RESULT_SUCCESS )
-                        {
-                            continue;
-                        }
-
-                        MaterialIds.Add( InstanceMaterialId );
-
-                        if ( InstanceMaterialId != -1 )
-                        {
-                            FHoudiniGeoPartObject GeoPartObject( AssetInfo.nodeId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id );
-                            InstancerMaterialMap.Add( GeoPartObject, InstanceMaterialId );
-
-                            InstancerMaterialIds.Add( InstanceMaterialId );
-                        }
+                        InstancerMaterialIds.Add( InstanceMaterialId );
                     }
                 }
             }
@@ -6176,7 +6152,7 @@ FHoudiniEngineUtils::GetAssetNames(
 
 
 int32
-FHoudiniEngineUtils::GetMeshSocketList(
+FHoudiniEngineUtils::AddMeshSocketToList(
     HAPI_NodeId AssetId, HAPI_NodeId ObjectId,
     HAPI_NodeId GeoId, HAPI_PartId PartId,
     TArray< FTransform >& AllSockets,
@@ -6301,7 +6277,7 @@ FHoudiniEngineUtils::GetMeshSocketList(
         // Go through all primitives.
         for ( int32 PointIdx = 0; PointIdx < PointGroupMembership.Num(); ++PointIdx )
         {
-            if ( PointGroupMembership[PointIdx] != 1 )
+            if ( PointGroupMembership[PointIdx] == 0 )
                 continue;
 
             FTransform currentSocketTransform;
@@ -6440,7 +6416,8 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
         else
         {
             // Having sockets with empty names can lead to various issues, so we'll create one now
-            Socket->SocketName = FName( TEXT("Socket"), StaticMesh->Sockets.Num() );
+            FString SocketName = TEXT("Socket ") + FString::FromInt( nSocket );
+            Socket->SocketName = FName( *SocketName );
         }
 
 
@@ -6920,14 +6897,15 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
     // MeshComponent should be either a StaticMeshComponent, an InstancedStaticMeshComponent or an InstancedActorComponent
     UStaticMeshComponent* SMC = Cast< UStaticMeshComponent >( MeshComponent );
     UInstancedStaticMeshComponent* ISMC = Cast< UInstancedStaticMeshComponent >( MeshComponent );
+    UHierarchicalInstancedStaticMeshComponent* HISMC = Cast< UHierarchicalInstancedStaticMeshComponent >( MeshComponent );
     UHoudiniInstancedActorComponent* IAC = Cast< UHoudiniInstancedActorComponent >( MeshComponent );
     UHoudiniMeshSplitInstancerComponent* MSPIC = Cast<UHoudiniMeshSplitInstancerComponent>(MeshComponent);
     UStaticMesh* SM = Cast< UStaticMesh >( MeshComponent );
 
-    if ( !SMC && !ISMC && !IAC && !MSPIC && !SM )
+    if ( !SMC && !HISMC && !ISMC && !IAC && !MSPIC && !SM )
         return;
 
-    UClass* MeshClass = IAC ? IAC->StaticClass() : ISMC ? ISMC->StaticClass() : MSPIC ? MSPIC->StaticClass() : SMC ? SMC->StaticClass() : SM->StaticClass();
+    UClass* MeshClass = IAC ? IAC->StaticClass() : HISMC ? HISMC->StaticClass() : ISMC ? ISMC->StaticClass() : MSPIC ? MSPIC->StaticClass() : SMC ? SMC->StaticClass() : SM->StaticClass();
 
     // Trying to find the UProps in the object 
     for ( int32 nAttributeIdx = 0; nAttributeIdx < nUPropsCount; nAttributeIdx++ )

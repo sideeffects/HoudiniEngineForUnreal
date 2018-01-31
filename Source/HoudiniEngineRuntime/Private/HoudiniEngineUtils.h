@@ -487,7 +487,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             TArray< int32 > & AllCollisionFaceIndices );
 
         /** HAPI : Retrieves the mesh sockets list for the current part							**/
-        static int32 GetMeshSocketList(
+        static int32 AddMeshSocketToList(
             HAPI_NodeId AssetId, HAPI_NodeId ObjectId,
             HAPI_NodeId GeoId, HAPI_PartId PartId,
             TArray< FTransform >& AllSockets,
@@ -568,8 +568,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Helper function to extract colors and store them in a given RawMesh. Returns number of wedges. **/
         static int32 TransferRegularPointAttributesToVertices(
-            const TArray< int32 > & VertexList,
-            const HAPI_AttributeInfo & AttribInfo, TArray< float > & Data );
+            const TArray< int32 > & VertexList, const HAPI_AttributeInfo & AttribInfo, TArray< float > & Data );
+
+        /** Helper function to extract colors and store them in a given RawMesh. Returns number of wedges. **/
+        static int32 TransferRegularPointAttributesToVertices(
+            const TArray< int32 > & VertexList, const HAPI_AttributeInfo & AttribInfo, 
+            const TArray< float > & Data, TArray< float >& VertexData );
 
 #if WITH_EDITOR
 

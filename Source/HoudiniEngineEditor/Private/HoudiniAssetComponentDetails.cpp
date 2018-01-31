@@ -305,20 +305,32 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
                 ]
             ];
 
-            FString MeshLabel = TEXT( "" );
-            
-            if( HoudiniGeoPartObject.bIsRenderCollidable )
+            FString MeshLabel = TEXT( "Static Mesh" );
+            if( HoudiniGeoPartObject.bHasCollisionBeenAdded )
             {
-                MeshLabel = TEXT( "Rendered Complex Collision" );
+                int32 NumColliders = 1;
+                if ( StaticMesh->BodySetup )
+                    NumColliders = StaticMesh->BodySetup->AggGeom.GetElementCount();
+
+                MeshLabel += TEXT( "\n(") + FString::FromInt( NumColliders ) + TEXT("Simple Collider" );
+                if ( NumColliders > 1 )
+                    MeshLabel += TEXT("s");
+                MeshLabel += TEXT(")");
+            }
+            else if( HoudiniGeoPartObject.bIsRenderCollidable )
+            {
+                MeshLabel += TEXT( "\n(Rendered Complex Collider)" );
             }
             else if( HoudiniGeoPartObject.bIsCollidable )
             {
-                MeshLabel = TEXT( "Invisible Complex Collision" );
+                MeshLabel += TEXT( "\n(Invisible Complex Collider)" );
             }
-            else if( HoudiniGeoPartObject.bHasCollisionBeenAdded )
-            {
-                MeshLabel = TEXT( "Simple Collision" );
-            }
+
+            if ( StaticMesh->GetNumLODs() > 1 )
+                MeshLabel += TEXT("\n(") + FString::FromInt( StaticMesh->GetNumLODs() ) + TEXT(" LODs)");
+
+            if ( StaticMesh->Sockets.Num() > 0 )
+                MeshLabel += TEXT("\n(") + FString::FromInt( StaticMesh->Sockets.Num() ) + TEXT(" sockets)");
 
             StaticMeshGrp.AddWidgetRow()
             .NameContent()
