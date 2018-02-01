@@ -512,7 +512,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             FKAggregateGeom& AggregateCollisionGeo );
 
         /** Add convex hull to the mesh's aggregate collision geometry							**/
-        static bool AddConvexCollision(
+        static bool AddConvexCollisionToAggregate(
             const TArray<float>& Positions, const TArray<int32>& SplitGroupVertexList,
             const bool& MultiHullDecomp, FKAggregateGeom& AggregateCollisionGeo );
 
