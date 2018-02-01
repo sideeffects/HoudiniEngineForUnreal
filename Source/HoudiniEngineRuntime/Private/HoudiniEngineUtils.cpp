@@ -3928,10 +3928,11 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     }
                 }
 
-                // We store remaining geo vertex list as a special name.
+                // We store the remaining geo vertex list as a special name (main geo)
+                // and make sure its treated before the collider meshes
                 if ( bMainSplitGroup )
                 {
-                    SplitGroupNames.Add( RemainingGroupName );
+                    SplitGroupNames.Insert( RemainingGroupName, nLODInsertPos );
                     GroupSplitFaces.Add( RemainingGroupName, GroupSplitFacesRemaining );
                     GroupSplitFaceCounts.Add( RemainingGroupName, GroupVertexListCount );
                     GroupSplitFaceIndices.Add( RemainingGroupName, GroupSplitFaceIndicesRemaining );
@@ -3955,7 +3956,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             int32 LodIndex = 0;
             int32 LodSplitId = -1;
 
-            // Iterate through all detected split groups we care about and split geometry.	    
+            // Iterate through all detected split groups we care about and split geometry.
+            // The split are ordered in the following way:
+            // Invisible Simple/Convex Colliders > LODs > MainGeo > Visible Colliders > Invisible Colliders
             for ( int32 SplitId = 0; SplitId < SplitGroupNames.Num(); SplitId++ )
             {
                 // Get split group name
@@ -4024,14 +4027,11 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     HoudiniGeoPartObject.bIsCollidable = true;
                 }
 
-                // Boolean used to avoid asking the Positions to HAPI twice if we have a rendered collision UCX
-                bool bAlreadyCalledGetPositions = false;
-
                 // Handling UCX/Convex Hull colliders
                 if ( HoudiniGeoPartObject.bIsUCXCollisionGeo )
                 {
-                    // First we need to retrieve the vertices positions
-                    if ( PartPositions.Num() <= 0 )//!bAlreadyCalledGetPositions )
+                    // Retrieve the vertices positions if necessary
+                    if ( PartPositions.Num() <= 0 )
                     {
                         if ( !FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
                             AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
@@ -4045,23 +4045,21 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                             break;
                         }
-
-                        //bAlreadyCalledGetPositions = true;
                     }
 
-
+                    // Use multiple convex hulls?
                     bool MultiHullDecomp = false;
                     if ( SplitGroupName.Contains( TEXT("ucx_multi"), ESearchCase::IgnoreCase ) )
                         MultiHullDecomp = true;
 
                     // Create the convex hull colliders and add them to the Aggregate
-                    if ( AddConvexCollision( PartPositions, SplitGroupVertexList, MultiHullDecomp, AggregateCollisionGeo ) )
+                    if ( AddConvexCollisionToAggregate( PartPositions, SplitGroupVertexList, MultiHullDecomp, AggregateCollisionGeo ) )
                     {
                         // We'll add the collision after all the meshes are generated unless this a rendered_collision_geo_ucx
                         bHasAggregateGeometryCollision = true;
                     }
 
-                    // No need to create a mesh if the colliders is not to be rendered
+                    // No need to create a mesh if the colliders is not visible
                     if ( !HoudiniGeoPartObject.bIsRenderCollidable )
                         continue;
                 }
@@ -5010,11 +5008,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     }
                 }
 
-                /*
-                // We need to handle rendered_ucx collisions now
-                if ( HoudiniGeoPartObject.bIsUCXCollisionGeo && HoudiniGeoPartObject.bIsRenderCollidable && bHasAggregateGeometryCollision )
-                */
-
                 // If any simple collider was added to the aggregate, and this mesh is visible, add the colliders now
                 if ( bHasAggregateGeometryCollision )
                 {
@@ -5038,106 +5031,11 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         if ( bHasAggregateGeometryCollision )
             HOUDINI_LOG_ERROR( TEXT("All Simple Colliders found in the HDA were not attached to a static mesh!!") );
 
-        // ... same for the Sockets
-        if ( AllSockets.Num() > 0 )
-            HOUDINI_LOG_ERROR( TEXT("All Sockets found in the HDA were not attached to a static mesh!!") );
-        /*
-        // We need to add the remaining UCX/UBX/Collisions here
-        if ( bHasAggregateGeometryCollision )
-        {
-            // We want to find a StaticMesh for these collisions...
-            // As there's no way of telling where we should add these, 
-            // We need to find a static mesh for this geo that doesn't have any collision
-            // and add the aggregate UCX/UBX/USP geo to its body setup
-            UStaticMesh * CollisionStaticMesh = nullptr;
-            FHoudiniGeoPartObject * CollisionHoudiniGeoPartObject = nullptr;
-            for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter(StaticMeshesOut); Iter; ++Iter )
-            {
-                FHoudiniGeoPartObject * HoudiniGeoPartObject = &(Iter.Key());
+        // Clean up the sockets for this part
+        AllSockets.Empty();
+        AllSocketsNames.Empty();
+        AllSocketsActors.Empty();
 
-                if ( ( HoudiniGeoPartObject->ObjectId != ObjectInfo.nodeId ) && ( HoudiniGeoPartObject->GeoId != GeoInfo.nodeId ) )
-                {
-                    // If we haven't find a mesh for the collision, we might as well use this one but
-                    // we will keep searching for a better one
-                    if ( !CollisionStaticMesh )
-                    {
-                        CollisionStaticMesh = Iter.Value();
-                        CollisionHoudiniGeoPartObject = HoudiniGeoPartObject;
-                    }
-
-                    continue;
-                }
-
-                if ( HoudiniGeoPartObject->IsCollidable() || HoudiniGeoPartObject->IsRenderCollidable() )
-                {
-                    // We can add collision to this StaticMesh, but as it already has some.
-                    // we'd prefer to find one that has no collision already, so we'll keep searching...
-                    CollisionStaticMesh = Iter.Value();
-                    CollisionHoudiniGeoPartObject = HoudiniGeoPartObject;
-                    continue;
-                }
- 
-                // This mesh is from the same geo, and is not a collision mesh so 
-                // we will add the simple collision to this mesh's body setup
-                CollisionStaticMesh = Iter.Value();
-                CollisionHoudiniGeoPartObject = HoudiniGeoPartObject;
-                break;
-            }
-
-            // Add the aggregate collision geo to the static mesh
-            if ( AddAggregateCollisionGeometryToStaticMesh(
-                CollisionStaticMesh, *CollisionHoudiniGeoPartObject, AggregateCollisionGeo ) )
-            {
-                bHasAggregateGeometryCollision = false;
-            }
-        }
-
-        // We still have socket that need to be attached to a StaticMesh...
-        if (AllSockets.Num() > 0)
-        {
-            // We want to find a StaticMesh for these socket...
-            // As there's no way of telling where we should add these, 
-            // We need to find a static mesh for this geo that is (preferably) visible
-            UStaticMesh * SocketStaticMesh = nullptr;
-            FHoudiniGeoPartObject * SocketHoudiniGeoPartObject = nullptr;
-            for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshesOut ); Iter; ++Iter )
-            {
-                FHoudiniGeoPartObject * HoudiniGeoPartObject = &(Iter.Key());
-
-                if ( ( HoudiniGeoPartObject->ObjectId != ObjectInfo.nodeId ) && ( HoudiniGeoPartObject->GeoId != GeoInfo.nodeId ) )
-                {
-                    // If we haven't find a mesh for the socket yet, we might as well use this one but
-                    // we will keep searching for a "better" candidate
-                    if ( !SocketStaticMesh )
-                    {
-                        SocketStaticMesh = Iter.Value();
-                        SocketHoudiniGeoPartObject = HoudiniGeoPartObject;
-                    }
-
-                    continue;
-                }
-
-                if ( HoudiniGeoPartObject->IsCollidable() )
-                {
-                    // This object has the same geo/node id, but won't be visible,
-                    // so we'll keep looking for a "better" one
-                    SocketStaticMesh = Iter.Value();
-                    SocketHoudiniGeoPartObject = HoudiniGeoPartObject;
-                    continue;
-                }
-
-                // This mesh is from the same geo and is visible, we'll add the socket to it..
-                SocketStaticMesh = Iter.Value();
-                SocketHoudiniGeoPartObject = HoudiniGeoPartObject;
-                break;
-            }
-
-            // Add socket to the mesh if we found a suitable one
-            if ( SocketStaticMesh )
-                AddMeshSocketsToStaticMesh( SocketStaticMesh, *SocketHoudiniGeoPartObject, AllSockets, AllSocketsNames, AllSocketsActors );
-        }
-
-        */
     } // end for ObjectId
 
     // Now that all the meshes are built and their collisions meshes and primitives updated,
@@ -6425,11 +6323,6 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
     // We don't want these new socket to be removed until next cook
     HoudiniGeoPartObject.bHasSocketBeenAdded = true;
 
-    // Clean up
-    AllSockets.Empty();
-    AllSocketsNames.Empty();
-    AllSocketsActors.Empty();
-
     return true;
 }
 
@@ -7384,7 +7277,7 @@ FHoudiniEngineUtils::GetAllUVAttributesInfoAndTexCoords(
 }
 
 bool
-FHoudiniEngineUtils::AddConvexCollision(
+FHoudiniEngineUtils::AddConvexCollisionToAggregate(
     const TArray<float>& Positions, const TArray<int32>& SplitGroupVertexList,
     const bool& MultiHullDecomp, FKAggregateGeom& AggregateCollisionGeo )
 {
