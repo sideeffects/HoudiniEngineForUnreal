@@ -312,7 +312,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
                 if ( StaticMesh->BodySetup )
                     NumColliders = StaticMesh->BodySetup->AggGeom.GetElementCount();
 
-                MeshLabel += TEXT( "\n(") + FString::FromInt( NumColliders ) + TEXT("Simple Collider" );
+                MeshLabel += TEXT( "\n(") + FString::FromInt( NumColliders ) + TEXT(" Simple Collider" );
                 if ( NumColliders > 1 )
                     MeshLabel += TEXT("s");
                 MeshLabel += TEXT(")");

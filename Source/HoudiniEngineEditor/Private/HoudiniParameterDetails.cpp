@@ -1490,9 +1490,9 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
     TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
     // Drop Target: Static Mesh
     VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
-        [
-            SNew( SAssetDropTarget )
-            .OnIsAssetAcceptableForDrop( SAssetDropTarget::FIsAssetAcceptableForDrop::CreateLambda(
+    [
+        SNew( SAssetDropTarget )
+        .OnIsAssetAcceptableForDrop( SAssetDropTarget::FIsAssetAcceptableForDrop::CreateLambda(
                 []( const UObject* InObject ) {
                     return InObject && InObject->IsA< UStaticMesh >();
             } ) )
@@ -1525,12 +1525,14 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
     ];
 
     StaticMeshThumbnailBorder->SetBorderImage( TAttribute< const FSlateBrush * >::Create(
-        TAttribute< const FSlateBrush * >::FGetter::CreateLambda( [StaticMeshThumbnailBorder]() {
-        if ( StaticMeshThumbnailBorder.IsValid() && StaticMeshThumbnailBorder->IsHovered() )
-            return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailLight" );
-        else
-            return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailShadow" );
-    } ) ) );
+        TAttribute< const FSlateBrush * >::FGetter::CreateLambda( [StaticMeshThumbnailBorder]()
+        {
+            if ( StaticMeshThumbnailBorder.IsValid() && StaticMeshThumbnailBorder->IsHovered() )
+                return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailLight" );
+            else
+                return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailShadow" );
+        }
+    ) ) );
 
     FText MeshNameText = FText::GetEmpty();
     if ( InputObject )
@@ -1568,7 +1570,8 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
         ];
 
     StaticMeshComboButton->SetOnGetMenuContent( FOnGetContent::CreateLambda(
-        [MyParam, AtIndex, StaticMeshComboButton]() {
+        [ MyParam, AtIndex, StaticMeshComboButton ]()
+        {
             TArray< const UClass * > AllowedClasses;
             AllowedClasses.Add( UStaticMesh::StaticClass() );
 
@@ -2058,6 +2061,34 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
             .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
                 &InParam, &UHoudiniAssetInput::CheckStateChangedPackBeforeMerge ) )
         ];
+    }
+
+    // Checkbox Export All LODs
+    if ( InParam.ChoiceIndex == EHoudiniAssetInputType::GeometryInput
+        || InParam.ChoiceIndex == EHoudiniAssetInputType::WorldInput )
+    {
+        // Add a checkbox to export all lods
+        // Checkbox : Keep World Transform
+        TSharedPtr< SCheckBox > CheckBoxExportAllLODs;
+        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
+        [
+            SAssignNew( CheckBoxExportAllLODs, SCheckBox )
+            .Content()
+            [
+                SNew( STextBlock )
+                .Text( LOCTEXT( "ExportAllLOD", "Export all LODs" ) )
+                .ToolTipText( LOCTEXT( "ExportAllLODCheckboxTip", "If enabled, all LOD Meshes in this static mesh will be sent to Houdini." ) )
+                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+            ]
+            .IsChecked( TAttribute< ECheckBoxState >::Create(
+                TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                &InParam, &UHoudiniAssetInput::IsCheckedExportAllLODs ) ) )
+            .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                &InParam, &UHoudiniAssetInput::CheckStateChangedExportAllLODs ) )
+        ];
+
+        // the checkbox is read only if the input doesnt have LODs
+        CheckBoxExportAllLODs->SetEnabled( InParam.HasLODs() );
     }
 
     if ( InParam.ChoiceIndex == EHoudiniAssetInputType::GeometryInput )
