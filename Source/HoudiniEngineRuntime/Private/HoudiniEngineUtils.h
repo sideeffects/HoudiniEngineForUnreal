@@ -324,7 +324,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             HAPI_NodeId HostAssetId, 
             UStaticMesh * Mesh,
             HAPI_NodeId & ConnectedAssetId,
-            class UStaticMeshComponent* StaticMeshComponent = nullptr );
+            class UStaticMeshComponent* StaticMeshComponent = nullptr,
+            const bool& ExportAllLODs = false );
 
         /** HAPI : Marshaling, extract geometry and create input asset for it - return true on success **/
         static bool HapiCreateInputNodeForData(
@@ -333,14 +334,16 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const TArray< FTransform >& InputTransforms,
             HAPI_NodeId & ConnectedAssetId, 
             TArray< HAPI_NodeId >& OutCreatedNodeIds,
-            const bool& bExportSkeleton );
+            const bool& bExportSkeleton,
+            const bool& ExportAllLODs = false );
 
         /** HAPI : Marshaling, extract geometry and create input asset for it - return true on success **/
         static bool HapiCreateInputNodeForData(
             HAPI_NodeId HostAssetId,
             TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
             HAPI_NodeId & ConnectedAssetId,
-            const float& SplineResolution = -1.0f );
+            const float& SplineResolution = -1.0f,
+            const bool& ExportAllLODs = false );
 
         /** HAPI : Marshaling, extract points from the Unreal Spline and create an input curve for it - return true on success **/
         static bool HapiCreateInputNodeForData(

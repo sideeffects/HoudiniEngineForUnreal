@@ -225,6 +225,7 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
     bLandscapeExportAsHeightfield = true;
     bLandscapeAutoSelectComponent = true;
     bPackBeforeMerge = false;
+    bExportAllLODs = false;
 
     ChoiceStringValue = TEXT( "" );
 
@@ -667,7 +668,7 @@ UHoudiniAssetInput::UploadParameterValue()
                     // Connect input and create connected asset. Will return by reference.
                     if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData( 
                         HostAssetId, InputObjects, InputTransforms,
-                        ConnectedAssetId, CreatedInputDataAssetIds, false ) )
+                        ConnectedAssetId, CreatedInputDataAssetIds, false, bExportAllLODs ) )
                     {
                         bChanged = false;
                         ConnectedAssetId = -1;
@@ -854,8 +855,8 @@ UHoudiniAssetInput::UploadParameterValue()
 
                     // Connect input and create connected asset. Will return by reference.
                     if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData(
-                        HostAssetId, InputOutlinerMeshArray,
-                        ConnectedAssetId, UnrealSplineResolution ) )
+                        HostAssetId, InputOutlinerMeshArray, ConnectedAssetId,
+                        UnrealSplineResolution, bExportAllLODs ) )
                     {
                         bChanged = false;
                         ConnectedAssetId = -1;
@@ -2669,6 +2670,41 @@ UHoudiniAssetInput::IsCheckedKeepWorldTransform() const
     return ECheckBoxState::Unchecked;
 }
 
+void
+UHoudiniAssetInput::CheckStateChangedExportAllLODs( ECheckBoxState NewState )
+{
+    int32 bState = ( NewState == ECheckBoxState::Checked );
+
+    if ( bExportAllLODs == bState )
+        return;
+
+    // Record undo information.
+    FScopedTransaction Transaction(
+        TEXT(HOUDINI_MODULE_RUNTIME),
+        LOCTEXT("HoudiniInputChange", "Houdini Input Transform Type change."),
+        PrimaryObject);
+    Modify();
+
+    MarkPreChanged();
+
+    bExportAllLODs = bState;
+
+    // Changing the export of LODs changes the StaticMesh!
+    if ( HasLODs() )
+        bStaticMeshChanged = true;
+
+    // Mark this parameter as changed.
+    MarkChanged();
+}
+
+ECheckBoxState
+UHoudiniAssetInput::IsCheckedExportAllLODs() const
+{
+    if ( bExportAllLODs )
+        return ECheckBoxState::Checked;
+
+    return ECheckBoxState::Unchecked;
+}
 
 void
 UHoudiniAssetInput::CheckStateChangedPackBeforeMerge( ECheckBoxState NewState )
@@ -3616,6 +3652,49 @@ const ALandscape*
 UHoudiniAssetInput::GetLandscapeInput() const
 {
     return InputLandscapeProxy ? InputLandscapeProxy->GetLandscapeActor() : nullptr;
+}
+
+bool
+UHoudiniAssetInput::HasLODs() const
+{
+    switch ( ChoiceIndex )
+    {
+        case EHoudiniAssetInputType::GeometryInput:
+        {
+            if ( !InputObjects.Num() )
+                return false;
+
+            for ( int32 Idx = 0; Idx < InputObjects.Num(); Idx++ )
+            {
+                UStaticMesh* SM = Cast<UStaticMesh>( InputObjects[ Idx ] );
+                if ( !SM )
+                    continue;
+
+                if ( SM->GetNumLODs() > 1 )
+                    return true;
+            }
+        }
+        break;
+
+        case EHoudiniAssetInputType::WorldInput:
+        {
+            if ( !InputOutlinerMeshArray.Num() )
+                return false;
+
+            for ( int32 Idx = 0; Idx < InputOutlinerMeshArray.Num(); Idx++ )
+            {
+                UStaticMesh* SM = InputOutlinerMeshArray[ Idx ].StaticMesh;
+                if ( !SM )
+                    continue;
+
+                if ( SM->GetNumLODs() > 1 )
+                    return true;
+            }
+        }
+        break;
+    }
+
+    return false;
 }
 
 #undef LOCTEXT_NAMESPACE

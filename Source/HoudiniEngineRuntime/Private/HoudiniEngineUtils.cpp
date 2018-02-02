@@ -2548,7 +2548,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     HAPI_NodeId HostAssetId, 
     UStaticMesh * StaticMesh,
     HAPI_NodeId & ConnectedAssetId,
-    UStaticMeshComponent* StaticMeshComponent /* = nullptr */ )
+    UStaticMeshComponent* StaticMeshComponent /* = nullptr */,
+    const bool& ExportAllLODs /* = false */ )
 {
 #if WITH_EDITOR
 
@@ -2557,7 +2558,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         return false;
 
     // Export LODs if there are some
-    bool DoExportLODs = StaticMesh->GetNumLODs() > 1;
+    bool DoExportLODs = ExportAllLODs && ( StaticMesh->GetNumLODs() > 1 );
     if ( DoExportLODs )
     {
         // Create a merge SOP asset. This will be our "ConnectedAssetId".
@@ -3191,7 +3192,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     HAPI_NodeId HostAssetId,
     TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
     HAPI_NodeId & ConnectedAssetId,
-    const float& SplineResolution )
+    const float& SplineResolution,
+    const bool& ExportAllLODs /* = false */ )
 {
 #if WITH_EDITOR
     if ( OutlinerMeshArray.Num() <= 0 )
@@ -3215,7 +3217,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
                 ConnectedAssetId,
                 OutlinerMesh.StaticMesh,
                 OutlinerMesh.AssetId,
-                OutlinerMesh.StaticMeshComponent );
+                OutlinerMesh.StaticMeshComponent,
+                ExportAllLODs );
         }
         else if ( OutlinerMesh.SplineComponent != nullptr )
         {
@@ -3260,7 +3263,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 bool 
 FHoudiniEngineUtils::HapiCreateInputNodeForData( 
     HAPI_NodeId HostAssetId, TArray<UObject *>& InputObjects, const TArray< FTransform >& InputTransforms,
-    HAPI_NodeId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds, const bool& bExportSkeleton )
+    HAPI_NodeId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds, 
+    const bool& bExportSkeleton, const bool& bExportAllLODs /* = false */ )
 {
 #if WITH_EDITOR
     if ( ensure( InputObjects.Num() ) )
@@ -3282,7 +3286,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             if ( UStaticMesh* InputStaticMesh = Cast< UStaticMesh >( InputObjects[ InputIdx ] ) )
             {
                 // Creating an Input Node for Static Mesh Data
-                if ( !HapiCreateInputNodeForData( ConnectedAssetId, InputStaticMesh, MeshAssetNodeId, nullptr ) )
+                if ( !HapiCreateInputNodeForData( ConnectedAssetId, InputStaticMesh, MeshAssetNodeId, nullptr, bExportAllLODs ) )
                 {
                     HOUDINI_LOG_WARNING( TEXT( "Error creating input index %d on %d" ), InputIdx, ConnectedAssetId );
                 }
@@ -7121,7 +7125,7 @@ FHoudiniEngineUtils::AddMeshSocketToList(
         // Go through all primitives.
         for ( int32 PointIdx = 0; PointIdx < PointGroupMembership.Num(); ++PointIdx )
         {
-            if ( PointGroupMembership[PointIdx] == 0 )
+            if ( PointGroupMembership[ PointIdx ] == 0 )
                 continue;
 
             FTransform currentSocketTransform;

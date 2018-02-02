@@ -222,6 +222,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Return true if this parameter has been changed. **/
         bool HasChanged() const override;
 
+        /** Retruns true if at least one object in this input has more than 1 LOD **/
+        bool HasLODs() const;
+
         /** Returns the input's transform scale values **/
         TOptional< float > GetPositionX( int32 AtIndex ) const;
         TOptional< float > GetPositionY( int32 AtIndex ) const;
@@ -448,10 +451,16 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         ECheckBoxState IsCheckedExportTileUVs() const;
 
         /** Check if state of the transform type checkbox has changed. **/
-        void CheckStateChangedKeepWorldTransform(ECheckBoxState NewState);
+        void CheckStateChangedKeepWorldTransform( ECheckBoxState NewState );
 
         /** Return checked state of transform type checkbox. **/
         ECheckBoxState IsCheckedKeepWorldTransform() const;
+
+        /** Check if state of the export all LODs checkbox has changed. **/
+        void CheckStateChangedExportAllLODs( ECheckBoxState NewState );
+
+        /** Return checked state of export LOD checkbox. **/
+        ECheckBoxState IsCheckedExportAllLODs() const;
 
         /** Handler for landscape recommit button. **/
         FReply OnButtonClickRecommit();
@@ -588,8 +597,11 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
                 /** Is set to true when the automatic selection of landscape component is active **/
                 uint32 bLandscapeAutoSelectComponent : 1;
 
-                /** Indicates that the geometry must be packed before merging it into the input**/
+                /** Indicates that the geometry must be packed before merging it into the input **/
                 uint32 bPackBeforeMerge : 1;
+
+                /** Indicates that all LODs in the input should be marshalled to Houdini **/
+                uint32 bExportAllLODs : 1;
             };
 
             uint32 HoudiniAssetInputFlagsPacked;
