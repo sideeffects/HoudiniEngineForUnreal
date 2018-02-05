@@ -100,6 +100,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
         /** Return true if this geo part object corresponds to a packed primitive instancer **/
         bool IsPackedPrimitiveInstancer() const;
 
+	/** Return true if this geo part object corresponds to an attribute instancer **/
+	bool IsAttributeInstancer() const;
+
+	/** Return true if this geo part object corresponds to an attribute override instancer **/
+	bool IsAttributeOverrideInstancer() const;
+
         /** Return true if corresponding geometry has changed. **/
         bool HasGeoChanged() const;
 
