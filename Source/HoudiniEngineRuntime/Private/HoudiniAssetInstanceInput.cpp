@@ -94,21 +94,15 @@ UHoudiniAssetInstanceInput::GetInstancerFlags(const FHoudiniGeoPartObject & InHo
     Flags.bIsPackedPrimitiveInstancer = InHoudiniGeoPartObject.IsPackedPrimitiveInstancer();
 
     // If this is an attribute instancer, see if attribute exists.
-    Flags.bIsAttributeInstancer = InHoudiniGeoPartObject.HapiCheckAttributeExistance(
-	HAPI_UNREAL_ATTRIB_INSTANCE,
-	HAPI_ATTROWNER_POINT);
+    Flags.bIsAttributeInstancer = InHoudiniGeoPartObject.IsAttributeInstancer();
 
     // Check if this is an attribute override instancer (on detail or point).
-    Flags.bAttributeInstancerOverride =
-	InHoudiniGeoPartObject.HapiCheckAttributeExistance(
-	    HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE, HAPI_ATTROWNER_DETAIL) |
-	InHoudiniGeoPartObject.HapiCheckAttributeExistance(
-	    HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE, HAPI_ATTROWNER_POINT);
+    Flags.bAttributeInstancerOverride =	InHoudiniGeoPartObject.IsAttributeOverrideInstancer();
 
     // Check if this is a No-Instancers ( unreal_split_instances )
     Flags.bIsSplitMeshInstancer =
-	InHoudiniGeoPartObject.HapiCheckAttributeExistance(
-	    HAPI_UNREAL_ATTRIB_SPLIT_INSTANCES, HAPI_ATTROWNER_DETAIL);
+        InHoudiniGeoPartObject.HapiCheckAttributeExistance(
+            HAPI_UNREAL_ATTRIB_SPLIT_INSTANCES, HAPI_ATTROWNER_DETAIL );
     return Flags;
 }
 
