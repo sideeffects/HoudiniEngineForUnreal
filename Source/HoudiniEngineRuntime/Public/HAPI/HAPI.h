@@ -2958,7 +2958,7 @@ HAPI_DECL HAPI_GetVertexList( const HAPI_Session * session,
                               int * vertex_list_array,
                               int start, int length );
 
-/// @brief  Get the main geometry info struct (::HAPI_GeoInfo).
+/// @brief  Get the attribute info struct for the attribute specified by name.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
