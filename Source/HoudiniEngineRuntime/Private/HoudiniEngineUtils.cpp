@@ -4464,7 +4464,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetDisplayGeoInfo(
             FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, &GeoInfo ) )
         {
-            HOUDINI_LOG_MESSAGE( TEXT("Creating Static Meshes: Object [%d %s] unable to retrieve GeoInfo, ") TEXT("- skipping."), ObjectInfo.nodeId, *ObjectName );
+            HOUDINI_LOG_MESSAGE( 
+                TEXT("Creating Static Meshes: Object [%d %s] unable to retrieve GeoInfo, - skipping."),
+                ObjectInfo.nodeId, *ObjectName );
             continue;
         }
 
@@ -4495,8 +4497,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             {
                 // Error retrieving part info.
                 HOUDINI_LOG_MESSAGE(
-                    TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d] unable to retrieve PartInfo, " )
-                    TEXT( "- skipping." ),
+                    TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d] unable to retrieve PartInfo - skipping." ),
                     ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx );
                 continue;
             }
@@ -4549,6 +4550,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 }
             }
 
+            // Extracting Sockets points on the current part and add them to the list
+            AddMeshSocketToList( AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, AllSockets, AllSocketsNames, AllSocketsActors );
+
             if ( PartInfo.type == HAPI_PARTTYPE_INSTANCER )
             {
                 // This is a Packed Primitive instancer
@@ -4582,10 +4586,13 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             }
             else if ( !ObjectInfo.isInstancer && PartInfo.vertexCount <= 0 )
             {
-                // This is not an instancer, but we do not have vertices, so maybe this is a point cloud 
-                // with attribute override instancing, we will assume it is and let the PostCook figure it out.
-                HoudiniGeoPartObject.bIsInstancer = true;
-                StaticMeshesOut.Add( HoudiniGeoPartObject, nullptr );
+                // This is not an instancer, but we do not have vertices, so maybe this is a point cloud with attribute override instancing
+                // If it is, add it to the out list, if not skip it
+                if ( HoudiniGeoPartObject.IsAttributeInstancer() || HoudiniGeoPartObject.IsAttributeOverrideInstancer() )
+                {
+                    HoudiniGeoPartObject.bIsInstancer = true;
+                    StaticMeshesOut.Add( HoudiniGeoPartObject, nullptr );
+                }
                 continue;
             }
 
@@ -4593,8 +4600,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             if ( PartInfo.vertexCount <= 0 && PartInfo.pointCount <= 0 )
             {
                 HOUDINI_LOG_MESSAGE(
-                    TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] no points or vertices found, " )
-                    TEXT( "- skipping." ),
+                    TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] no points or vertices found - skipping." ),
                     ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName );
                 continue;
             }
@@ -4603,8 +4609,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             if ( ObjectInfo.isInstancer && PartInfo.pointCount <= 0 )
             {
                 HOUDINI_LOG_MESSAGE(
-                    TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] is instancer but has 0 points " )
-                    TEXT( "skipping." ),
+                    TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] is instancer but has 0 points - skipping." ),
                     ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName );
                 continue;
             }
@@ -4705,9 +4710,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 continue;
             }
 
-            // Extracting Sockets points on the current part and add them to the list
-            AddMeshSocketToList( AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, AllSockets, AllSocketsNames, AllSocketsActors );
-
             // Containers used for raw data extraction.
 
             // Vertex Positions
@@ -4761,8 +4763,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             {
                 // Error getting the vertex list.
                 HOUDINI_LOG_MESSAGE(
-                    TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve vertex list " )
-                    TEXT( "- skipping." ),
+                    TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve vertex list - skipping." ),
                     ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName );
 
                 continue;
@@ -4834,7 +4835,11 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 TArray< int32 > AllSplitFaceIndices;
                 AllSplitFaceIndices.SetNumZeroed( FaceMaterialIds.Num() );
 
-                // Extract the vertices/faces for each of the split groups
+                // Some of the groups may contain invalid geometry 
+                // Store them here so we can remove them afterwards
+                TArray< int32 > InvalidGroupNameIndices;
+
+                // Extract the vertices/faces for each of the split groups		
                 for ( int32 SplitIdx = 0; SplitIdx < SplitGroupNames.Num(); SplitIdx++ )
                 {
                     FString GroupName = SplitGroupNames[ SplitIdx ];
@@ -4848,13 +4853,30 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, GroupName, PartVertexList, GroupVertexList,
                         AllSplitVertexList, AllFaceList, AllSplitFaceIndices );
 
-                    if ( GroupVertexListCount > 0 )
+                    if ( GroupVertexListCount <= 0 )
                     {
-                        // If list is not empty, we store it for this group - this will define new mesh.
-                        GroupSplitFaces.Add( GroupName, GroupVertexList );
-                        GroupSplitFaceCounts.Add( GroupName, GroupVertexListCount );
-                        GroupSplitFaceIndices.Add( GroupName, AllFaceList );
+                        // This group doesn't have vertices/faces, mark it as invalid
+                        InvalidGroupNameIndices.Add( SplitIdx );
+
+                        // Error getting the vertex list.
+                        HOUDINI_LOG_MESSAGE(
+                            TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve vertex list for group %s - skipping." ),
+                            ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, *GroupName );
+
+                        continue;
                     }
+
+                    // If list is not empty, we store it for this group - this will define new mesh.
+                    GroupSplitFaces.Add( GroupName, GroupVertexList );
+                    GroupSplitFaceCounts.Add( GroupName, GroupVertexListCount );
+                    GroupSplitFaceIndices.Add( GroupName, AllFaceList );
+                }
+
+                if ( InvalidGroupNameIndices.Num() > 0 )
+                {
+                    // Remove all invalid split groups
+                    for (int32 InvalIdx = InvalidGroupNameIndices.Num() - 1; InvalIdx >= 0; InvalIdx--)
+                        SplitGroupNames.RemoveAt( InvalidGroupNameIndices[ InvalIdx ] );
                 }
 
                 // We also need to figure out / construct vertex list for everything that's not in a split group
@@ -5972,8 +5994,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         bHasAggregateGeometryCollision = false;
                 }
 
-                // Add sockets to the static mesh if neeeded
-                AddMeshSocketsToStaticMesh( StaticMesh, HoudiniGeoPartObject, AllSockets, AllSocketsNames, AllSocketsActors );
+                // Sockets are attached to the mesh after, for now, clear the existing one ( as they are from a previous cook )
+                if ( !HoudiniGeoPartObject.bHasSocketBeenAdded )
+                    StaticMesh->Sockets.Empty();
 
                 StaticMesh->MarkPackageDirty();
 
@@ -5986,6 +6009,20 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         // There should be no UCX/Simple colliders left now
         if ( bHasAggregateGeometryCollision )
             HOUDINI_LOG_ERROR( TEXT("All Simple Colliders found in the HDA were not attached to a static mesh!!") );
+
+        // Add the sockets we found in the parts of this geo to the meshes it has generated
+        if ( AllSockets.Num() > 0 )
+        {
+            for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshesOut ); Iter; ++Iter )
+            {
+                FHoudiniGeoPartObject * HoudiniGeoPartObject = &( Iter.Key() );
+                if ( ( HoudiniGeoPartObject->ObjectId != ObjectInfo.nodeId ) && ( HoudiniGeoPartObject->GeoId != GeoInfo.nodeId ) )
+                    continue;
+
+                // This GeoPartObject is from the same object/geo, so we can add the sockets to it
+                AddMeshSocketsToStaticMesh( Iter.Value(), *HoudiniGeoPartObject, AllSockets, AllSocketsNames, AllSocketsActors );
+            }
+        }
 
         // Clean up the sockets for this part
         AllSockets.Empty();
@@ -7242,10 +7279,6 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
 
     if ( AllSockets.Num() <= 0 )
         return false;
-
-    // Do we need to clear the previously generated sockets?
-    if ( !HoudiniGeoPartObject.bHasSocketBeenAdded )
-        StaticMesh->Sockets.Empty();
 
     for ( int32 nSocket = 0; nSocket < AllSockets.Num(); nSocket++ )
     {

@@ -507,6 +507,18 @@ bool FHoudiniGeoPartObject::IsPackedPrimitiveInstancer() const
     return bIsPackedPrimitiveInstancer;
 }
 
+bool FHoudiniGeoPartObject::IsAttributeInstancer() const
+{
+    return HapiCheckAttributeExistance(	HAPI_UNREAL_ATTRIB_INSTANCE, HAPI_ATTROWNER_POINT );
+}
+
+bool FHoudiniGeoPartObject::IsAttributeOverrideInstancer() const
+{
+    // Check if this is an attribute override instancer (on detail or point).
+    return HapiCheckAttributeExistance( HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE, HAPI_ATTROWNER_DETAIL) 
+        | HapiCheckAttributeExistance( HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE, HAPI_ATTROWNER_POINT );
+}
+
 bool
 FHoudiniGeoPartObject::HasCustomName() const
 {
