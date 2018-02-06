@@ -5874,16 +5874,72 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     }
                 };
 
-                if ( IsLOD )
+                if ( !IsLOD )
                 {
-                    // Init the current LOD level, and increment the LOD index
-                    InitLODLevel( LodIndex++ );
+                    // For non LODed mesh, init the default number of LODs
+                    for (int32 ModelLODIndex = 0; ModelLODIndex < DefaultNumLODs; ++ModelLODIndex)
+                        InitLODLevel( ModelLODIndex );
                 }
                 else
                 {
-                    // For non LODed mesh, init the default number of LODs
-                    for ( int32 ModelLODIndex = 0; ModelLODIndex < DefaultNumLODs; ++ModelLODIndex )
-                        InitLODLevel( ModelLODIndex );
+                    // Init the current LOD level
+                    InitLODLevel( LodIndex );
+
+                    // Look for LOD Specific attributes
+                    TArray< float > LODScreenSizes;
+                    HAPI_AttributeInfo AttribInfoScreenSize;
+                    FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoScreenSize );
+
+                    // Try to find the "lodX_screensize" detail attribute
+                    FString LODAttributeName = SplitGroupName + TEXT("_screensize");
+                    FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                        AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                        TCHAR_TO_ANSI( *LODAttributeName ), AttribInfoScreenSize, LODScreenSizes);
+
+                    // If the attribute was not found, fallback to the "lod_screensize" attribute
+                    if ( !AttribInfoScreenSize.exists )
+                    {
+                        LODScreenSizes.Empty();
+                        FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                            "lod_screensize", AttribInfoScreenSize, LODScreenSizes);
+                    }
+
+                    // finally, look for a potential uproperty style attribute
+                    if ( !AttribInfoScreenSize.exists )
+                    {
+                        LODScreenSizes.Empty();
+                        FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                            "unreal_uproperty_screensize", AttribInfoScreenSize, LODScreenSizes);
+                    }
+
+                    if ( AttribInfoScreenSize.exists )
+                    {
+                        float screensize = -1.0;
+                        if ( AttribInfoScreenSize.owner == HAPI_ATTROWNER_PRIM )
+                        {
+                            int32 n = 0;
+                            for( ; n <  SplitGroupVertexList.Num(); n++ )
+                            {
+                                if ( SplitGroupVertexList[ n ] > 0 )
+                                    break;
+                            }
+
+                            screensize = LODScreenSizes[ n / 3 ];
+                        }
+                        else
+                            screensize = LODScreenSizes[ 0 ];
+
+                        if ( screensize >= 0.0f )
+                        {
+                            StaticMesh->SourceModels[ LodIndex ].ScreenSize = screensize;
+                            StaticMesh->bAutoComputeLODScreenSize = false;
+                        }
+                    }
+
+                    // Increment the LODIndex
+                    LodIndex++;
                 }
 
                 // The following actions needs to be done only once per Static Mesh,
@@ -7419,19 +7475,17 @@ FHoudiniEngineUtils::GetGenericAttributeList(
         AttribNameSHArray.GetData(), nAttribCount ) )
         return 0;
 
-    // Since generic attributes can be on primitives, we may have to identify
-    // if a split occured during the mesh creation.
-    // If the primitive index was not specified, we need to a suitable primitive
-    // corresponding to that split 
+    // Since generic attributes can be on primitives, we may have to identify if a split occured during the mesh creation.
+    // If the primitive index was not specified, we need to a suitable primitive corresponding to that split
     bool HandleSplit = false;
-    int PrimNumberForSplit = -1;
+    int PrimIndexForSplit = -1;
     if ( AttributeOwner != HAPI_ATTROWNER_DETAIL )
     {
         if ( PrimitiveIndex != -1 )
         {
             // The index has already been specified so we'll use it
             HandleSplit = true;
-            PrimNumberForSplit = PrimitiveIndex;
+            PrimIndexForSplit = PrimitiveIndex;
         }
         else if ( !GeoPartObject.SplitName.IsEmpty() && ( GeoPartObject.SplitName != TEXT("main_geo") ) )
         {
@@ -7448,11 +7502,14 @@ FHoudiniEngineUtils::GetGenericAttributeList(
             {
                 if ( PartGroupMembership[ n ] > 0 )
                 {
-                    PrimNumberForSplit = n;
+                    PrimIndexForSplit = n;
                     break;
                 }
             }
         }
+
+        if ( PrimIndexForSplit < 0 )
+            PrimIndexForSplit = 0;
     }
 
     for ( int32 Idx = 0; Idx < AttribNameSHArray.Num(); ++Idx )
@@ -7496,7 +7553,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
                 {
                     // For split primitives, we'll keep only one value from the proper split prim
                     TArray<double> SplitValues;
-                    CurrentUProperty.GetDoubleTuple( SplitValues, PrimNumberForSplit );
+                    CurrentUProperty.GetDoubleTuple( SplitValues, PrimIndexForSplit );
 
                     CurrentUProperty.DoubleValues.Empty();
                     for ( int32 n = 0; n < SplitValues.Num(); n++ )
@@ -7590,7 +7647,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
                     || ( CurrentUProperty.AttributeType == HAPI_STORAGETYPE_FLOAT ) )
                 {
                     TArray< double > SplitValues;
-                    CurrentUProperty.GetDoubleTuple( SplitValues, PrimNumberForSplit );
+                    CurrentUProperty.GetDoubleTuple( SplitValues, PrimIndexForSplit );
 
                     CurrentUProperty.DoubleValues.Empty();
                     for ( int32 n = 0; n < SplitValues.Num(); n++ )
@@ -7600,7 +7657,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
                     || ( CurrentUProperty.AttributeType == HAPI_STORAGETYPE_INT ) )
                 {
                     TArray< int64 > SplitValues;
-                    CurrentUProperty.GetIntTuple( SplitValues, PrimNumberForSplit );
+                    CurrentUProperty.GetIntTuple( SplitValues, PrimIndexForSplit );
 
                     CurrentUProperty.IntValues.Empty();
                     for ( int32 n = 0; n < SplitValues.Num(); n++ )
@@ -7609,7 +7666,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
                 else if ( CurrentUProperty.AttributeType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
                 {
                     TArray< FString > SplitValues;
-                    CurrentUProperty.GetStringTuple( SplitValues, PrimNumberForSplit );
+                    CurrentUProperty.GetStringTuple( SplitValues, PrimIndexForSplit );
 
                     CurrentUProperty.StringValues.Empty();
                     for ( int32 n = 0; n < SplitValues.Num(); n++ )
@@ -7640,7 +7697,7 @@ FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
     if ( FHoudiniEngineUtils::GetUPropertyAttributeList( HoudiniGeoPartObject, UPropertiesAttributesToModify ) )
     {
         // Try to update uproperty atributes
-        FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(MeshComponent, UPropertiesAttributesToModify );
+        FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject( MeshComponent, UPropertiesAttributesToModify );
     }
 }
 /*
