@@ -4615,18 +4615,18 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             }
 
             // Retrieve material information for this geo part.
-            TArray< HAPI_NodeId > FaceMaterialIds;
+            TArray< HAPI_NodeId > PartFaceMaterialIds;
             HAPI_Bool bSingleFaceMaterial = false;
-            bool bMaterialsFound = false;
+            bool bPartHasMaterials = false;
             bool bMaterialsChanged = false;
 
             if ( PartInfo.faceCount > 0 )
             {
-                FaceMaterialIds.SetNumUninitialized( PartInfo.faceCount );
+                PartFaceMaterialIds.SetNumUninitialized( PartInfo.faceCount );
 
                 if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialNodeIdsOnFaces(
                     FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, PartInfo.id,
-                    &bSingleFaceMaterial, &FaceMaterialIds[ 0 ], 0, PartInfo.faceCount ) )
+                    &bSingleFaceMaterial, &PartFaceMaterialIds[ 0 ], 0, PartInfo.faceCount ) )
                 {
                     // Error retrieving material face assignments.
                     HOUDINI_LOG_MESSAGE(
@@ -4637,23 +4637,21 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 }
 
                 // Set flag if we have materials.
-                for ( int32 MaterialIdx = 0; MaterialIdx < FaceMaterialIds.Num(); ++MaterialIdx )
-                {
-                    if ( FaceMaterialIds[ MaterialIdx ] != -1 )
-                    {
-                        bMaterialsFound = true;
-                        break;
-                    }
-                }
+                TArray< HAPI_NodeId > UniqueMaterialIds;
+                for ( int32 MaterialIdx = 0; MaterialIdx < PartFaceMaterialIds.Num(); ++MaterialIdx )
+                    UniqueMaterialIds.AddUnique( PartFaceMaterialIds[ MaterialIdx ] );
+
+                UniqueMaterialIds.RemoveSingle( -1 );
+                bPartHasMaterials = UniqueMaterialIds.Num() > 0;
 
                 // Set flag if any of the materials have changed.
-                if ( bMaterialsFound )
+                if ( bPartHasMaterials )
                 {
-                    for ( int32 MaterialFaceIdx = 0; MaterialFaceIdx < FaceMaterialIds.Num(); ++MaterialFaceIdx )
+                    for ( int32 MaterialIdx = 0; MaterialIdx < UniqueMaterialIds.Num(); ++MaterialIdx )
                     {
                         HAPI_MaterialInfo MaterialInfo;
                         if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialInfo(
-                            FHoudiniEngine::Get().GetSession(), FaceMaterialIds[ MaterialFaceIdx ], &MaterialInfo ) )
+                            FHoudiniEngine::Get().GetSession(), UniqueMaterialIds[ MaterialIdx ], &MaterialInfo ) )
                             continue;
 
                         if ( MaterialInfo.hasChanged )
@@ -4738,8 +4736,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             TArray< HAPI_AttributeInfo > AttribInfoUVs;
             AttribInfoUVs.SetNumZeroed( MAX_STATIC_TEXCOORDS );
 
-            // Material ID per face
-            TArray< FString > PartFaceMaterials;
+            // Material Overrides per face
+            TArray< FString > PartFaceMaterialAttributeOverrides;
             HAPI_AttributeInfo AttribFaceMaterials;
             FMemory::Memzero< HAPI_AttributeInfo >( AttribFaceMaterials );
 
@@ -4833,13 +4831,13 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // Buffer for all face indices used for split groups.
                 // We need this to figure out all face indices that are not part of them.
                 TArray< int32 > AllSplitFaceIndices;
-                AllSplitFaceIndices.SetNumZeroed( FaceMaterialIds.Num() );
+                AllSplitFaceIndices.SetNumZeroed( PartFaceMaterialIds.Num() );
 
                 // Some of the groups may contain invalid geometry 
                 // Store them here so we can remove them afterwards
                 TArray< int32 > InvalidGroupNameIndices;
 
-                // Extract the vertices/faces for each of the split groups		
+                // Extract the vertices/faces for each of the split groups
                 for ( int32 SplitIdx = 0; SplitIdx < SplitGroupNames.Num(); SplitIdx++ )
                 {
                     FString GroupName = SplitGroupNames[ SplitIdx ];
@@ -4934,6 +4932,11 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             int32 LodIndex = 0;
             int32 LodSplitId = -1;
 
+            // Map of Houdini Material IDs to Unreal Material Indices
+            TMap< HAPI_NodeId, int32 > MapHoudiniMatIdToUnrealIndex;
+            // Map of Houdini Material Attributes to Unreal Material Indices
+            TMap< FString, int32 > MapHoudiniMatAttributesToUnrealIndex;
+
             // Iterate through all detected split groups we care about and split geometry.
             // The split are ordered in the following way:
             // Invisible Simple/Convex Colliders > LODs > MainGeo > Visible Colliders > Invisible Colliders
@@ -4955,6 +4958,14 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 bool IsLOD = SplitGroupName.StartsWith( LodGroupNamePrefix, ESearchCase::IgnoreCase );
                 if ( IsLOD && LodSplitId == -1 )
                     LodSplitId = SplitId;
+
+                // Materials maps (Houdini to Unreal) needs to be reset for each static mesh generated
+                // Only the first LOD resets those maps
+                if ( !IsLOD || ( IsLOD && LodIndex == 0 ) )
+                {
+                    MapHoudiniMatIdToUnrealIndex.Empty();
+                    MapHoudiniMatAttributesToUnrealIndex.Empty();
+                }
 
                 // Record split id in geo part.
                 // LODs must use the same SplitID since they belong to the same static mesh
@@ -5145,9 +5156,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                 // Compute number of faces.
                 int32 SplitGroupFaceCount = SplitGroupFaceIndices.Num();
-
-                // Reset Face materials.
-                PartFaceMaterials.Empty();
 
                 if ( bRebuildStaticMesh )
                 {
@@ -5567,35 +5575,35 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 }
 
                 //--------------------------------------------------------------------------------------------------------------------- 
-                // MATERIAL IDS
+                // MATERIAL ATTRIBUTE OVERRIDES
                 //---------------------------------------------------------------------------------------------------------------------
 
-                // Get Material ID per face
-                if ( PartFaceMaterials.Num() <= 0 )
+                // See if we have material override attributes
+                if ( PartFaceMaterialAttributeOverrides.Num() <= 0 )
                 {
                     FHoudiniEngineUtils::HapiGetAttributeDataAsString(
                         AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
                         MarshallingAttributeNameMaterial.c_str(),
-                        AttribFaceMaterials, PartFaceMaterials );
+                        AttribFaceMaterials, PartFaceMaterialAttributeOverrides );
 
                     // If material attribute was not found, check fallback compatibility attribute.
                     if ( !AttribFaceMaterials.exists )
                     {
-                        PartFaceMaterials.Empty();
+                        PartFaceMaterialAttributeOverrides.Empty();
                         FHoudiniEngineUtils::HapiGetAttributeDataAsString(
                             AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
                             MarshallingAttributeNameMaterialFallback.c_str(),
-                            AttribFaceMaterials, PartFaceMaterials );
+                            AttribFaceMaterials, PartFaceMaterialAttributeOverrides );
                     }
 
                     // If material attribute and fallbacks were not found, check the material instance attribute.
                     if ( !AttribFaceMaterials.exists )
                     {
-                        PartFaceMaterials.Empty();
+                        PartFaceMaterialAttributeOverrides.Empty();
                         FHoudiniEngineUtils::HapiGetAttributeDataAsString(
                             AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
                             MarshallingAttributeNameMaterialInstance.c_str(),
-                            AttribFaceMaterials, PartFaceMaterials);
+                            AttribFaceMaterials, PartFaceMaterialAttributeOverrides);
                     }
 
                     if ( AttribFaceMaterials.exists && AttribFaceMaterials.owner != HAPI_ATTROWNER_PRIM && AttribFaceMaterials.owner != HAPI_ATTROWNER_DETAIL )
@@ -5603,38 +5611,37 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         HOUDINI_LOG_WARNING( TEXT( "Static Mesh [%d %s], Geo [%d], Part [%d %s]: unreal_material must be a primitive or detail attribute, ignoring attribute." ),
                             ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName);
                         AttribFaceMaterials.exists = false;
-                        PartFaceMaterials.Empty();
+                        PartFaceMaterialAttributeOverrides.Empty();
+                    }
+
+                    // If the material name was assigned per detail we replicate it for each primitive.
+                    if ( PartFaceMaterialAttributeOverrides.Num() > 0 && AttribFaceMaterials.owner == HAPI_ATTROWNER_DETAIL )
+                    {
+                        FString SingleFaceMaterial = PartFaceMaterialAttributeOverrides[ 0 ];
+                        PartFaceMaterialAttributeOverrides.Init( SingleFaceMaterial, SplitGroupVertexList.Num() / 3 );
                     }
                 }
 
-                // Process material replacements first.
-                bool bMissingReplacement = false;
-                bool bMaterialsReplaced = false;
+                //--------------------------------------------------------------------------------------------------------------------- 
+                // FACE MATERIALS
+                //---------------------------------------------------------------------------------------------------------------------
 
-                if ( PartFaceMaterials.Num() > 0 )
+                // Process material overrides first.
+                if ( PartFaceMaterialAttributeOverrides.Num() > 0 )
                 {
-                    // If material name was assigned per detail we replicate it for each primitive.
-                    if ( AttribFaceMaterials.owner == HAPI_ATTROWNER_DETAIL )
-                    {
-                        FString SingleFaceMaterial = PartFaceMaterials[ 0 ];
-                        PartFaceMaterials.Init( SingleFaceMaterial, SplitGroupVertexList.Num() / 3 );
-                    }
+                    // Clear the previously generated materials ( unless we're not the first lod level )
+                    if ( !IsLOD || ( IsLOD && LodIndex == 0 ) )
+                        StaticMesh->StaticMaterials.Empty();
 
-                    StaticMesh->StaticMaterials.Empty();
                     RawMesh.FaceMaterialIndices.SetNumZeroed( SplitGroupFaceCount );
-
-                    TMap< FString, int32 > FaceMaterialMap;
-                    int32 UniqueMaterialIdx = 0;
-                    int32 FaceIdx = 0;
-
-                    for ( int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3 )
+                    for ( int32 FaceIdx = 0; FaceIdx < SplitGroupFaceIndices.Num(); ++FaceIdx )
                     {
-                        int32 WedgeCheck = SplitGroupVertexList[ VertexIdx + 0 ];
-                        if ( WedgeCheck == -1 )
+                        int32 SplitFaceIndex = SplitGroupFaceIndices[ FaceIdx ];
+                        if ( !PartFaceMaterialAttributeOverrides.IsValidIndex( SplitFaceIndex ) )
                             continue;
 
-                        const FString & MaterialName = PartFaceMaterials[ VertexIdx / 3 ];
-                        int32 const * FoundFaceMaterialIdx = FaceMaterialMap.Find( MaterialName );
+                        const FString & MaterialName = PartFaceMaterialAttributeOverrides[ SplitFaceIndex ];
+                        int32 const * FoundFaceMaterialIdx = MapHoudiniMatAttributesToUnrealIndex.Find( MaterialName );
                         int32 CurrentFaceMaterialIdx = 0;
                         if ( FoundFaceMaterialIdx )
                         {
@@ -5643,102 +5650,74 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         else
                         {
                             UMaterialInterface * MaterialInterface = Cast< UMaterialInterface >(
-                                StaticLoadObject(
-                                    UMaterialInterface::StaticClass(),
+                                StaticLoadObject( UMaterialInterface::StaticClass(),
                                     nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr ) );
 
                             if ( MaterialInterface )
                             {
                                 // Make sure this material is in the assignments before replacing it.
                                 if( !HoudiniCookParams.HoudiniCookManager->GetAssignmentMaterial( MaterialInterface->GetName() ) )
-                                {
                                     HoudiniCookParams.HoudiniCookManager->AddAssignmentMaterial( MaterialInterface->GetName(), MaterialInterface );
-                                }
 
                                 // See if we have a replacement material for this.
                                 UMaterialInterface * ReplacementMaterialInterface = HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialInterface->GetName() );
                                 if( ReplacementMaterialInterface )
                                     MaterialInterface = ReplacementMaterialInterface;
+
+                                // Add this material to the map
+                                CurrentFaceMaterialIdx = StaticMesh->StaticMaterials.Add( FStaticMaterial( MaterialInterface ) );
+                                MapHoudiniMatAttributesToUnrealIndex.Add( MaterialName, CurrentFaceMaterialIdx );
                             }
-
-                            if ( !MaterialInterface )
+                            else
                             {
-                                // Material/Replacement does not exist, use default material.
-                                MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
-                                bMissingReplacement = true;
-                            }
+                                // The Attribute Material and its replacement do not exist
+                                // See if we can fallback to the Houdini material assigned on the face
 
-                            StaticMesh->StaticMaterials.Add( FStaticMaterial(MaterialInterface) );
-                            FaceMaterialMap.Add( MaterialName, UniqueMaterialIdx );
-                            CurrentFaceMaterialIdx = UniqueMaterialIdx;
-                            UniqueMaterialIdx++;
-                        }
+                                // Get the unreal material corresponding to this houdini one
+                                HAPI_NodeId MaterialId = PartFaceMaterialIds[ SplitFaceIndex ];
 
-                        RawMesh.FaceMaterialIndices[ FaceIdx ] = CurrentFaceMaterialIdx;
-                        FaceIdx++;
-                    }
-
-                    bMaterialsReplaced = true;
-                }
-
-                if ( bMaterialsReplaced )
-                {
-                    // We want to fallback to supplied material only if replacement occurred and there was an issue in the process.
-                    if ( bMaterialsFound && bMissingReplacement )
-                    {
-                        // Get default Houdini material.
-                        UMaterial * MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
-
-                        // Extract native Houdini materials.
-                        TMap< HAPI_NodeId, UMaterialInterface * > NativeMaterials;
-
-                        for(int32 FaceIdx = 0; FaceIdx < SplitGroupFaceIndices.Num(); ++FaceIdx)
-                        {
-                            // Get material id for this face.
-                            HAPI_NodeId MaterialId = FaceMaterialIds[ FaceIdx ];
-                            UMaterialInterface * Material = MaterialDefault;
-
-                            FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
-                            FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( AssetId, MaterialId, MaterialShopName );
-                            UMaterialInterface * const * FoundMaterial = Materials.Find( MaterialShopName );
-
-                            if ( FoundMaterial )
-                                Material = *FoundMaterial;
-
-                            // If we have replacement material for this geo part object and this shop material name.
-                            UMaterialInterface * ReplacementMaterial = 
-                                HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
-
-                            if ( ReplacementMaterial )
-                                Material = ReplacementMaterial;
-
-                            // See if this material has been added.
-                            UMaterialInterface * const * FoundNativeMaterial = NativeMaterials.Find( MaterialId );
-                            if ( !FoundNativeMaterial )
-                                NativeMaterials.Add( MaterialId, Material );
-                        }
-
-                        for ( int32 FaceIdx = 0; FaceIdx < RawMesh.FaceMaterialIndices.Num(); ++FaceIdx )
-                        {
-                            int32 MaterialIdx = RawMesh.FaceMaterialIndices[ FaceIdx ];
-                            auto FaceMaterial = StaticMesh->StaticMaterials[ MaterialIdx ];
-
-                            if ( FaceMaterial.MaterialInterface == MaterialDefault )
-                            {
-                                HAPI_NodeId MaterialId = FaceMaterialIds[ FaceIdx ];
-                                if ( MaterialId >= 0 )
+                                // See if we have already treated that material
+                                int32 const * FoundUnrealMatIndex = MapHoudiniMatIdToUnrealIndex.Find( MaterialId );
+                                if ( FoundUnrealMatIndex )
                                 {
-                                    UMaterialInterface * const * FoundNativeMaterial = NativeMaterials.Find( MaterialId );
-                                    if ( FoundNativeMaterial )
-                                        StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface = *FoundNativeMaterial;
+                                    // This material has been mapped already, just assign the mat index
+                                    CurrentFaceMaterialIdx = *FoundUnrealMatIndex;
+                                }
+                                else
+                                {
+                                    // If everything fails, we'll use the default material
+                                    MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+
+                                    // We need to add this material to the map
+                                    FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
+                                    FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( AssetId, MaterialId, MaterialShopName );
+                                    UMaterialInterface * const * FoundMaterial = Materials.Find( MaterialShopName );
+                                    if ( FoundMaterial )
+                                        MaterialInterface = *FoundMaterial;
+
+                                    // If we have a replacement material for this geo part object and this shop material name.
+                                    UMaterialInterface * ReplacementMaterial =
+                                        HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
+
+                                    if ( ReplacementMaterial )
+                                        MaterialInterface = ReplacementMaterial;
+
+                                    // Add the material to the Static mesh
+                                    CurrentFaceMaterialIdx = StaticMesh->StaticMaterials.Add( FStaticMaterial( MaterialInterface ) );
+
+                                    // Map the Houdini ID to the unreal one
+                                    MapHoudiniMatIdToUnrealIndex.Add( MaterialId, CurrentFaceMaterialIdx );
                                 }
                             }
                         }
+
+                        // Update the Face Material on the mesh
+                        RawMesh.FaceMaterialIndices[ FaceIdx ] = CurrentFaceMaterialIdx;
                     }
                 }
                 else
                 {
-                    if ( bMaterialsFound )
+                    if ( bPartHasMaterials )
                     {
                         if ( bSingleFaceMaterial )
                         {
@@ -5750,7 +5729,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                             // Get id of this single material.
                             FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
-                            FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( AssetId, FaceMaterialIds[ 0 ], MaterialShopName );
+                            FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( AssetId, PartFaceMaterialIds[ 0 ], MaterialShopName );
                             UMaterialInterface * const * FoundMaterial = Materials.Find( MaterialShopName );
 
                             if ( FoundMaterial )
@@ -5768,65 +5747,58 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         }
                         else
                         {
+                            // We have multiple materials
+                            // Clear the previously generated materials ( unless we're not the first lod level )
+                            if ( !IsLOD || ( IsLOD && LodIndex == 0 ) )
+                                StaticMesh->StaticMaterials.Empty();
+
                             // Get default Houdini material.
                             UMaterial * MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
 
-                            // We have multiple materials.
-                            int32 MaterialIndex = 0;
-                            TMap< UMaterialInterface *, int32 > MappedMaterials;
-                            TArray< UMaterialInterface * > MappedMaterialsList;
-
                             // Reset Rawmesh material face assignments.
-                            RawMesh.FaceMaterialIndices.SetNumZeroed( SplitGroupFaceIndices.Num() );
-
+                            RawMesh.FaceMaterialIndices.SetNumZeroed( SplitGroupFaceCount );
                             for ( int32 FaceIdx = 0; FaceIdx < SplitGroupFaceIndices.Num(); ++FaceIdx )
                             {
-                                int32 SplitFaceIndex = SplitGroupFaceIndices[ FaceIdx ];
+                                int32 SplitFaceIndex = SplitGroupFaceIndices[ FaceIdx ];				                                
+                                if ( !PartFaceMaterialIds.IsValidIndex( SplitFaceIndex ) )
+                                    continue;
 
                                 // Get material id for this face.
-                                HAPI_NodeId MaterialId = -1; 
-                                if( SplitFaceIndex >= 0 && SplitFaceIndex < FaceMaterialIds.Num() )
-                                    MaterialId = FaceMaterialIds[ SplitFaceIndex ];
+                                HAPI_NodeId MaterialId = PartFaceMaterialIds[ SplitFaceIndex ];
+
+                                // See if we have already treated that material
+                                int32 const * FoundUnrealMatIndex = MapHoudiniMatIdToUnrealIndex.Find( MaterialId );
+                                if ( FoundUnrealMatIndex )
+                                {
+                                    // This material has been mapped already, just assign the mat index
+                                    RawMesh.FaceMaterialIndices[ FaceIdx ] = *FoundUnrealMatIndex;
+                                    continue;
+                                }
 
                                 UMaterialInterface * Material = MaterialDefault;
 
                                 FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
                                 FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( AssetId, MaterialId, MaterialShopName );
                                 UMaterialInterface * const * FoundMaterial = Materials.Find( MaterialShopName );
-
                                 if ( FoundMaterial )
                                     Material = *FoundMaterial;
 
-                                // If we have replacement material for this geo part object and this shop material name.
+                                // See if we have replacement material for this geo part object and this shop material name.
                                 UMaterialInterface * ReplacementMaterial = 
                                     HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
 
                                 if ( ReplacementMaterial )
                                     Material = ReplacementMaterial;
 
-                                // See if this material has been added.
-                                int32 const * FoundMaterialIdx = MappedMaterials.Find( Material );
-                                if ( FoundMaterialIdx )
-                                {
-                                    // This material has been mapped already.
-                                    RawMesh.FaceMaterialIndices[ FaceIdx ] = *FoundMaterialIdx;
-                                }
-                                else
-                                {
-                                    // This is the first time we've seen this material.
-                                    MappedMaterials.Add( Material, MaterialIndex );
-                                    MappedMaterialsList.Add( Material );
+                                // Add the material to the Static mesh
+                                int32 UnrealMatIndex = StaticMesh->StaticMaterials.Add( FStaticMaterial( Material ) );
 
-                                    RawMesh.FaceMaterialIndices[ FaceIdx ] = MaterialIndex;
+                                // Map the houdini ID to the unreal one
+                                MapHoudiniMatIdToUnrealIndex.Add( MaterialId, UnrealMatIndex );
 
-                                    MaterialIndex++;
-                                }
+                                // Update the face index
+                                RawMesh.FaceMaterialIndices[ FaceIdx ] = UnrealMatIndex;
                             }
-
-                            StaticMesh->StaticMaterials.Empty();
-
-                            for ( int32 MaterialIdx = 0; MaterialIdx < MappedMaterialsList.Num(); ++MaterialIdx )
-                                StaticMesh->StaticMaterials.Add( FStaticMaterial(MappedMaterialsList[ MaterialIdx ]) );
                         }
                     }
                     else
