@@ -3740,21 +3740,21 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 }
 
                 // Set flag if we have materials.
-                TArray< HAPI_NodeId > UniqueMaterialIds;
+                TArray< HAPI_NodeId > PartUniqueMaterialIds;
                 for ( int32 MaterialIdx = 0; MaterialIdx < PartFaceMaterialIds.Num(); ++MaterialIdx )
-                    UniqueMaterialIds.AddUnique( PartFaceMaterialIds[ MaterialIdx ] );
+                    PartUniqueMaterialIds.AddUnique( PartFaceMaterialIds[ MaterialIdx ] );
 
-                UniqueMaterialIds.RemoveSingle( -1 );
-                bPartHasMaterials = UniqueMaterialIds.Num() > 0;
+                PartUniqueMaterialIds.RemoveSingle( -1 );
+                bPartHasMaterials = PartUniqueMaterialIds.Num() > 0;
 
                 // Set flag if any of the materials have changed.
                 if ( bPartHasMaterials )
                 {
-                    for ( int32 MaterialIdx = 0; MaterialIdx < UniqueMaterialIds.Num(); ++MaterialIdx )
+                    for ( int32 MaterialIdx = 0; MaterialIdx < PartUniqueMaterialIds.Num(); ++MaterialIdx )
                     {
                         HAPI_MaterialInfo MaterialInfo;
                         if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialInfo(
-                            FHoudiniEngine::Get().GetSession(), UniqueMaterialIds[ MaterialIdx ], &MaterialInfo ) )
+                            FHoudiniEngine::Get().GetSession(), PartUniqueMaterialIds[ MaterialIdx ], &MaterialInfo ) )
                             continue;
 
                         if ( MaterialInfo.hasChanged )
