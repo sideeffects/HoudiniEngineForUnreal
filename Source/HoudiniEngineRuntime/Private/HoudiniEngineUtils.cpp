@@ -595,29 +595,53 @@ FHoudiniEngineUtils::HapiGetElementCountByGroupType( HAPI_GroupType GroupType, H
 
 bool
 FHoudiniEngineUtils::HapiGetGroupNames(
-    HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
-    HAPI_GroupType GroupType, TArray< FString > & GroupNames )
+    HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId, HAPI_PartId PartId,
+    HAPI_GroupType GroupType, TArray< FString > & GroupNames, const bool& isPackedPrim )
 {
-    HAPI_GeoInfo GeoInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGeoInfo( FHoudiniEngine::Get().GetSession(), GeoId, &GeoInfo ), false );
-
-    int32 GroupCount = FHoudiniEngineUtils::HapiGetGroupCountByType( GroupType, GeoInfo );
-
-    if ( GroupCount > 0 )
+    int32 GroupCount = 0;
+    if ( !isPackedPrim )
     {
-        std::vector< int32 > GroupNameHandles( GroupCount, 0 );
+        // Get group count on the geo
+        HAPI_GeoInfo GeoInfo;
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), GeoId, &GeoInfo), false);
+        GroupCount = FHoudiniEngineUtils::HapiGetGroupCountByType(GroupType, GeoInfo);
+    }
+    else
+    {
+        // We need the group count for this packed prim
+        int32 PointGroupCount = 0, PrimGroupCount = 0;
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGroupCountOnPackedInstancePart( FHoudiniEngine::Get().GetSession(), GeoId, PartId, &PointGroupCount, &PrimGroupCount ), false );
+
+        if ( GroupType == HAPI_GROUPTYPE_POINT )
+            GroupCount = PointGroupCount;
+        else
+            GroupCount = PrimGroupCount;
+    }
+
+    if ( GroupCount <= 0 )
+        return true;
+
+    std::vector< int32 > GroupNameHandles( GroupCount, 0 );
+    if ( !isPackedPrim )
+    {
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGroupNames(
             FHoudiniEngine::Get().GetSession(),
             GeoId, GroupType, &GroupNameHandles[ 0 ], GroupCount ), false );
+    }
+    else
+    {
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGroupNamesOnPackedInstancePart(
+            FHoudiniEngine::Get().GetSession(),
+            GeoId, PartId, GroupType, &GroupNameHandles[ 0 ], GroupCount ), false );
+    }
 
-        for ( int32 NameIdx = 0; NameIdx < GroupCount; ++NameIdx )
-        {
-            FString GroupName = TEXT( "" );
-            FHoudiniEngineString HoudiniEngineString( GroupNameHandles[ NameIdx ] );
+    for ( int32 NameIdx = 0; NameIdx < GroupCount; ++NameIdx )
+    {
+        FString GroupName = TEXT( "" );
+        FHoudiniEngineString HoudiniEngineString( GroupNameHandles[ NameIdx ] );
             
-            HoudiniEngineString.ToFString( GroupName );
-            GroupNames.Add( GroupName );
-        }
+        HoudiniEngineString.ToFString( GroupName );
+        GroupNames.Add( GroupName );
     }
 
     return true;
@@ -625,9 +649,8 @@ FHoudiniEngineUtils::HapiGetGroupNames(
 
 bool
 FHoudiniEngineUtils::HapiGetGroupMembership(
-    HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
-    HAPI_PartId PartId, HAPI_GroupType GroupType,
-    const FString & GroupName, TArray< int32 > & GroupMembership )
+    HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId, HAPI_PartId PartId,
+    HAPI_GroupType GroupType, const FString & GroupName, TArray< int32 > & GroupMembership, const bool& isPackedPrim )
 {
     HAPI_PartInfo PartInfo;
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetPartInfo(
@@ -639,9 +662,19 @@ FHoudiniEngineUtils::HapiGetGroupMembership(
         return false;
 
     GroupMembership.SetNumUninitialized( ElementCount );
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGroupMembership(
-        FHoudiniEngine::Get().GetSession(), GeoId, PartId, GroupType,
-        ConvertedGroupName.c_str(), NULL, &GroupMembership[ 0 ], 0, ElementCount ), false );
+
+    if ( !isPackedPrim )
+    {
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGroupMembership(
+            FHoudiniEngine::Get().GetSession(), GeoId, PartId, GroupType,
+            ConvertedGroupName.c_str(), NULL, &GroupMembership[ 0 ], 0, ElementCount ), false );
+    }
+    else
+    {
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGroupMembershipOnPackedInstancePart(
+            FHoudiniEngine::Get().GetSession(), GeoId, PartId, GroupType,
+            ConvertedGroupName.c_str(), NULL, &GroupMembership[ 0 ], 0, ElementCount ), false );
+    }
 
     return true;
 }
@@ -661,7 +694,7 @@ FHoudiniEngineUtils::HapiCheckGroupMembership(
     HAPI_GroupType GroupType, const FString & GroupName )
 {
     TArray< int32 > GroupMembership;
-    if ( FHoudiniEngineUtils::HapiGetGroupMembership( AssetId, ObjectId, GeoId, PartId, GroupType, GroupName, GroupMembership ) )
+    if ( FHoudiniEngineUtils::HapiGetGroupMembership( AssetId, ObjectId, GeoId, PartId, GroupType, GroupName, GroupMembership, false ) )
     {
         int32 GroupSum = 0;
         for ( int32 Idx = 0; Idx < GroupMembership.Num(); ++Idx )
@@ -3576,7 +3609,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         // Get object / geo group memberships for primitives.
         TArray< FString > ObjectGeoGroupNames;
         if( ! FHoudiniEngineUtils::HapiGetGroupNames(
-            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, HAPI_GROUPTYPE_PRIM, ObjectGeoGroupNames ) )
+            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, 0, HAPI_GROUPTYPE_PRIM, ObjectGeoGroupNames, false ) )
         {
             HOUDINI_LOG_MESSAGE( TEXT( "Creating Static Meshes: Object [%d %s] non-fatal error reading group names" ), 
                 ObjectInfo.nodeId, *ObjectName );
@@ -3654,7 +3687,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             }
 
             // Extracting Sockets points on the current part and add them to the list
-            AddMeshSocketToList( AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, AllSockets, AllSocketsNames, AllSocketsActors );
+            AddMeshSocketToList( AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, AllSockets, AllSocketsNames, AllSocketsActors, PartInfo.isInstanced );
 
             if ( PartInfo.type == HAPI_PARTTYPE_INSTANCER )
             {
@@ -3870,16 +3903,31 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 continue;
             }
 
+            // Array Storing the GroupNames for the current part
+            TArray< FString > GroupNames;
+            if ( !PartInfo.isInstanced )
+            {
+                GroupNames = ObjectGeoGroupNames;
+            }
+            else
+            {
+                // We're a packed primitive, so we want to get the group on the actual
+                // packed geo, not on the main display geo
+                if (!FHoudiniEngineUtils::HapiGetGroupNames(
+                    AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, HAPI_GROUPTYPE_PRIM, GroupNames, true))
+                    GroupNames = ObjectGeoGroupNames;
+            }
+
             // Sort the Group name array so the LODs are ordered
-            ObjectGeoGroupNames.Sort();
+            GroupNames.Sort();
 
             // See if we require splitting.
             TArray<FString> SplitGroupNames;
             int32 nLODInsertPos = 0;
             int32 NumberOfLODs = 0;
-            for ( int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < ObjectGeoGroupNames.Num(); ++GeoGroupNameIdx )
+            for ( int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < GroupNames.Num(); ++GeoGroupNameIdx )
             {
-                const FString & GroupName = ObjectGeoGroupNames[ GeoGroupNameIdx ];
+                const FString & GroupName = GroupNames[ GeoGroupNameIdx ];
 
                 // We're going to order the groups:
                 // Simple and convex invisible colliders should be created first as they will have to be attached to the visible meshes
@@ -3952,7 +4000,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     // Extract vertex indices for this split.
                     GroupVertexListCount = FHoudiniEngineUtils::HapiGetVertexListForGroup(
                         AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, GroupName, PartVertexList, GroupVertexList,
-                        AllSplitVertexList, AllFaceList, AllSplitFaceIndices );
+                        AllSplitVertexList, AllFaceList, AllSplitFaceIndices, PartInfo.isInstanced );
 
                     if ( GroupVertexListCount <= 0 )
                     {
@@ -3977,7 +4025,17 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 {
                     // Remove all invalid split groups
                     for (int32 InvalIdx = InvalidGroupNameIndices.Num() - 1; InvalIdx >= 0; InvalIdx--)
-                        SplitGroupNames.RemoveAt( InvalidGroupNameIndices[ InvalIdx ] );
+                    {
+                        int32 Index = InvalidGroupNameIndices[ InvalIdx ];
+
+                        if ( SplitGroupNames[Index].StartsWith(LodGroupNamePrefix, ESearchCase::IgnoreCase) )
+                            NumberOfLODs--;
+
+                        SplitGroupNames.RemoveAt( Index );
+
+                        if (Index <= nLODInsertPos)
+                            nLODInsertPos--;
+                    }
                 }
 
                 // We also need to figure out / construct vertex list for everything that's not in a split group
@@ -5776,9 +5834,8 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
 #   elif PLATFORM_LINUX
 
     // Attempt to load from standard Linux installation.
-    // TODO: Support this.
-    //HoudiniLocation = FString::Printf(
-        //TEXT( "/opt/dev%s/" ) + HAPI_HFS_SUBFOLDER_LINUX, *HoudiniVersionString );
+    HoudiniLocation = FString::Printf(
+        TEXT( "/opt/hfs%s/%s" ), *HoudiniVersionString, HAPI_HFS_SUBFOLDER_LINUX );
 
 #   endif
 
@@ -5811,7 +5868,7 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(
     HAPI_PartId PartId, const FString & GroupName,
     const TArray< int32 > & FullVertexList, TArray< int32 > & NewVertexList,
     TArray< int32 > & AllVertexList, TArray< int32 > & AllFaceList,
-    TArray< int32 > & AllCollisionFaceIndices )
+    TArray< int32 > & AllCollisionFaceIndices, const bool& isPackedPrim )
 {
     NewVertexList.Init( -1, FullVertexList.Num() );
     int32 ProcessedWedges = 0;
@@ -5820,7 +5877,7 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(
 
     TArray< int32 > PartGroupMembership;
     FHoudiniEngineUtils::HapiGetGroupMembership(
-        AssetId, ObjectId, GeoId, PartId, HAPI_GROUPTYPE_PRIM, GroupName, PartGroupMembership );
+        AssetId, ObjectId, GeoId, PartId, HAPI_GROUPTYPE_PRIM, GroupName, PartGroupMembership, isPackedPrim);
 
     // Go through all primitives.
     for ( int32 FaceIdx = 0; FaceIdx < PartGroupMembership.Num(); ++FaceIdx )
@@ -6175,21 +6232,22 @@ FHoudiniEngineUtils::AddMeshSocketToList(
     HAPI_NodeId GeoId, HAPI_PartId PartId,
     TArray< FTransform >& AllSockets,
     TArray< FString >& AllSocketsNames,
-    TArray< FString >& AllSocketsActors )
+    TArray< FString >& AllSocketsActors,
+    const bool& isPackedPrim )
 {
     // Get object / geo group memberships for primitives.
-    TArray< FString > ObjectGeoGroupNames;
+    TArray< FString > GroupNames;
     if ( !FHoudiniEngineUtils::HapiGetGroupNames(
-        AssetId, ObjectId, GeoId, HAPI_GROUPTYPE_POINT, ObjectGeoGroupNames ) )
+        AssetId, ObjectId, GeoId, PartId, HAPI_GROUPTYPE_POINT, GroupNames, isPackedPrim ) )
     {
         HOUDINI_LOG_MESSAGE( TEXT( "GetMeshSocketList: Object [%d] non-fatal error reading group names" ), ObjectId );
     }
 
     // First, we want to make sure we have at least one socket group before continuing
     bool bHasSocketGroup = false;
-    for ( int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < ObjectGeoGroupNames.Num(); ++GeoGroupNameIdx )
+    for ( int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < GroupNames.Num(); ++GeoGroupNameIdx )
     {
-        const FString & GroupName = ObjectGeoGroupNames[ GeoGroupNameIdx ];
+        const FString & GroupName = GroupNames[ GeoGroupNameIdx ];
         if ( GroupName.StartsWith( TEXT( HAPI_UNREAL_GROUP_MESH_SOCKETS ), ESearchCase::IgnoreCase ) )
         {
             bHasSocketGroup = true;
@@ -6281,16 +6339,16 @@ FHoudiniEngineUtils::AddMeshSocketToList(
         bHasActors = true;
 
     // Extracting Sockets vertices
-    for ( int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < ObjectGeoGroupNames.Num(); ++GeoGroupNameIdx )
+    for ( int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < GroupNames.Num(); ++GeoGroupNameIdx )
     {
-        const FString & GroupName = ObjectGeoGroupNames[ GeoGroupNameIdx ];
+        const FString & GroupName = GroupNames[ GeoGroupNameIdx ];
         if ( !GroupName.StartsWith ( TEXT ( HAPI_UNREAL_GROUP_MESH_SOCKETS ) , ESearchCase::IgnoreCase ) )
             continue;
 
         TArray< int32 > PointGroupMembership;
         FHoudiniEngineUtils::HapiGetGroupMembership(
             AssetId, ObjectId, GeoId, PartId, 
-            HAPI_GROUPTYPE_POINT, GroupName, PointGroupMembership );
+            HAPI_GROUPTYPE_POINT, GroupName, PointGroupMembership, isPackedPrim );
 
         // Go through all primitives.
         for ( int32 PointIdx = 0; PointIdx < PointGroupMembership.Num(); ++PointIdx )
@@ -6601,7 +6659,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
             TArray< int32 > PartGroupMembership;
             FHoudiniEngineUtils::HapiGetGroupMembership(
                 GeoPartObject.AssetId, GeoPartObject.GetObjectId(), GeoPartObject.GetGeoId(), GeoPartObject.GetPartId(), 
-                HAPI_GROUPTYPE_PRIM, GeoPartObject.SplitName, PartGroupMembership );
+                HAPI_GROUPTYPE_PRIM, GeoPartObject.SplitName, PartGroupMembership, false );
 
             for ( int32 n = 0; n < PartGroupMembership.Num(); n++ )
             {
@@ -6925,6 +6983,32 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
         if ( CurrentUPropertyName.IsEmpty() )
             continue;
 
+        // Handle Component Tags manually here
+        if ( CurrentUPropertyName.Contains("Tags") )
+        {
+            TArray<FName>* TagsPtr = nullptr;
+            if ( SMC )
+                TagsPtr = &( SMC->ComponentTags );
+            else if ( MSPIC )
+                TagsPtr = &( MSPIC->ComponentTags );
+            else if ( ISMC )
+                TagsPtr = &( ISMC->ComponentTags );
+            else if ( HISMC )
+                TagsPtr = &( HISMC->ComponentTags );
+
+            if ( !TagsPtr )
+                continue;
+
+            TagsPtr->SetNumUninitialized( CurrentPropAttribute.AttributeCount );
+            for ( int nIdx = 0; nIdx < CurrentPropAttribute.AttributeCount; nIdx++ )
+            {
+                 FName NameAttr = FName( *CurrentPropAttribute.GetStringValue( nIdx ) );
+                 (*TagsPtr)[nIdx] = NameAttr;
+            }
+
+            continue;
+        }
+
         // We have to iterate manually on the properties, in order to handle structProperties correctly
         void* StructContainer = nullptr;
         UProperty* FoundProperty = nullptr;
@@ -7011,11 +7095,14 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
 
             // Do we need to add values to the array?
             FScriptArrayHelper_InContainer ArrayHelper( ArrayProperty, CurrentPropAttribute.GetData() );
-            if ( CurrentPropAttribute.AttributeTupleSize > NumberOfProperties )
-            {
-                ArrayHelper.Resize( CurrentPropAttribute.AttributeTupleSize );
-                NumberOfProperties = CurrentPropAttribute.AttributeTupleSize;
-            }
+
+            //ArrayHelper.ExpandForIndex( CurrentPropAttribute.AttributeTupleSize - 1 );
+
+             if ( CurrentPropAttribute.AttributeTupleSize > NumberOfProperties )
+             {
+                 ArrayHelper.Resize( CurrentPropAttribute.AttributeTupleSize );
+                 NumberOfProperties = CurrentPropAttribute.AttributeTupleSize;
+             }
         }
 
         for( int32 nPropIdx = 0; nPropIdx < NumberOfProperties; nPropIdx++ )

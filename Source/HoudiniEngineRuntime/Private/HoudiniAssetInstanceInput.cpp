@@ -454,7 +454,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
     TArray<UHoudiniAssetInstanceInputField * > & NewInstanceInputFields)
 {
     UHoudiniAssetComponent* Comp = GetHoudiniAssetComponent();
-    UStaticMesh * StaticMesh = Comp ? Comp->LocateStaticMesh( InHoudiniGeoPartObject ) : nullptr;
+    UStaticMesh * StaticMesh = Comp ? Comp->LocateStaticMesh( InHoudiniGeoPartObject, false ) : nullptr;
 
     // Locate static mesh for this geo part.  
     if ( StaticMesh )
@@ -547,7 +547,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
             
             // find static mesh for this instancer
             FHoudiniGeoPartObject TempInstancedPart( InHoudiniGeoPartObject.AssetId, InHoudiniGeoPartObject.ObjectId, InHoudiniGeoPartObject.GeoId, InstancedPartId );
-            if ( UStaticMesh* FoundStaticMesh = Comp->LocateStaticMesh( TempInstancedPart ) )
+            if ( UStaticMesh* FoundStaticMesh = Comp->LocateStaticMesh( TempInstancedPart, false ) )
             {
                 // Build the list of transforms for this instancer
                 TArray< FTransform > AllTransforms;

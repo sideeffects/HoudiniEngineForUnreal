@@ -4915,10 +4915,23 @@ UHoudiniAssetComponent::ClearCookTempFile()
 }
 
 UStaticMesh *
-UHoudiniAssetComponent::LocateStaticMesh( const FHoudiniGeoPartObject & HoudiniGeoPartObject ) const
+UHoudiniAssetComponent::LocateStaticMesh( const FHoudiniGeoPartObject & HoudiniGeoPartObject, const bool& ExactSearch ) const
 {
     UStaticMesh * const * FoundStaticMesh = StaticMeshes.Find( HoudiniGeoPartObject );
     UStaticMesh * StaticMesh = nullptr;
+
+    if ( !ExactSearch && !FoundStaticMesh )
+    {
+        // We couldnt find the exact SM corresponding to this geo part
+        // Try again without caring for the split id
+        for (TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator IterSM( StaticMeshes ); IterSM; ++IterSM )
+        {
+            const FHoudiniGeoPartObject& HGPO = IterSM.Key();
+            if ( HGPO.AssetId == HoudiniGeoPartObject.AssetId && HGPO.ObjectId == HoudiniGeoPartObject.ObjectId
+                && HGPO.GeoId == HoudiniGeoPartObject.GeoId && HGPO.PartId == HoudiniGeoPartObject.PartId )
+                FoundStaticMesh = &IterSM.Value();
+        }
+    }
 
     if ( FoundStaticMesh )
         StaticMesh = *FoundStaticMesh;
@@ -5245,7 +5258,7 @@ UHoudiniAssetComponent::ReplaceMaterial(
         return false;
 
     // Check that we do own this GeoPartObject, either via StaticMeshes or Landscapes
-    UStaticMesh * StaticMesh = LocateStaticMesh( HoudiniGeoPartObject );
+    UStaticMesh * StaticMesh = LocateStaticMesh( HoudiniGeoPartObject, false );
     if ( StaticMesh )
     {
         UStaticMeshComponent * StaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
@@ -5615,7 +5628,8 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
             continue;
 
         FBox StaticMeshBounds = StaticMeshComponent->Bounds.GetBox();
-        BoxBounds += StaticMeshBounds;
+        if ( StaticMeshBounds.IsValid )
+            BoxBounds += StaticMeshBounds;
     }
 
     //... all our Handles
@@ -5654,7 +5668,9 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
         if ( CurrentInput == IgnoreInput )
             continue;
 
-        BoxBounds += CurrentInput->GetInputBounds();
+        FBox StaticMeshBounds = CurrentInput->GetInputBounds();
+        if ( StaticMeshBounds.IsValid )
+            BoxBounds += StaticMeshBounds;
     }
 
     // ... all our landscapes

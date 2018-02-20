@@ -301,7 +301,7 @@ public:
         bool LocateStaticMeshes( int32 ObjectToInstanceId, TArray< FHoudiniGeoPartObject > & InOutObjectsToInstance ) const;
 
         /** Locate static mesh for a given geo part. **/
-        UStaticMesh * LocateStaticMesh( const FHoudiniGeoPartObject & HoudiniGeoPartObject ) const;
+        UStaticMesh * LocateStaticMesh( const FHoudiniGeoPartObject & HoudiniGeoPartObject, const bool& ExactSearch = true ) const;
 
         FORCEINLINE const TMap< FHoudiniGeoPartObject, UStaticMesh * >& GetStaticMeshes() const { return StaticMeshes; }
 
