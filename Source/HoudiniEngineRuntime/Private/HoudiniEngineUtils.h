@@ -367,14 +367,14 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** HAPI : Return all group names for a given Geo. **/
         static bool HapiGetGroupNames(
-            HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
-            HAPI_GroupType GroupType, TArray< FString > & GroupNames );
+            HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId, HAPI_PartId PartId,
+            HAPI_GroupType GroupType, TArray< FString > & GroupNames, const bool& isPackedPrim);
 
         /** HAPI : Retrieve group membership. **/
         static bool HapiGetGroupMembership(
             HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, HAPI_GroupType GroupType, const FString & GroupName,
-            TArray< int32 > & GroupMembership );
+            TArray< int32 > & GroupMembership, const bool& isPackedPrim );
 
         /** HAPI : Get group count by type. **/
         static int32 HapiGetGroupCountByType( HAPI_GroupType GroupType, HAPI_GeoInfo & GeoInfo );
@@ -486,7 +486,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, const FString & GroupName, const TArray< int32 > & FullVertexList,
             TArray< int32 > & NewVertexList, TArray< int32 > & AllVertexList, TArray< int32 > & AllFaceList,
-            TArray< int32 > & AllCollisionFaceIndices );
+            TArray< int32 > & AllCollisionFaceIndices, const bool& isPackedPrim );
 
         /** HAPI : Retrieves the mesh sockets list for the current part							**/
         static int32 AddMeshSocketToList(
@@ -494,7 +494,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             HAPI_NodeId GeoId, HAPI_PartId PartId,
             TArray< FTransform >& AllSockets,
             TArray< FString >& AllSocketsName,
-            TArray< FString >& AllSocketsActors );
+            TArray< FString >& AllSocketsActors,
+            const bool& isPackedPrim );
 
         /** Add the mesh sockets in the list to the specified StaticMesh						**/
         static bool AddMeshSocketsToStaticMesh(
