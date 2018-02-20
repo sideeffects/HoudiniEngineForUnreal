@@ -99,8 +99,11 @@ public:
 	typedef HAPI_Result (*GetFirstVolumeTileFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
 	typedef HAPI_Result (*GetGeoInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GeoInfo * geo_info);
 	typedef HAPI_Result (*GetGeoSizeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, int * size);
+	typedef HAPI_Result (*GetGroupCountOnPackedInstancePartFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * pointGroupCount, int * primitiveGroupCount);
 	typedef HAPI_Result (*GetGroupMembershipFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length);
+	typedef HAPI_Result (*GetGroupMembershipOnPackedInstancePartFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length);
 	typedef HAPI_Result (*GetGroupNamesFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
+	typedef HAPI_Result (*GetGroupNamesOnPackedInstancePartFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
 	typedef HAPI_Result (*GetHandleBindingInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length);
 	typedef HAPI_Result (*GetHandleInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_HandleInfo * handle_infos_array, int start, int length);
 	typedef HAPI_Result (*GetHeightFieldDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float * values_array, int start, int length);
@@ -305,8 +308,11 @@ public:
 	static GetFirstVolumeTileFuncPtr GetFirstVolumeTile;
 	static GetGeoInfoFuncPtr GetGeoInfo;
 	static GetGeoSizeFuncPtr GetGeoSize;
+	static GetGroupCountOnPackedInstancePartFuncPtr GetGroupCountOnPackedInstancePart;
 	static GetGroupMembershipFuncPtr GetGroupMembership;
+	static GetGroupMembershipOnPackedInstancePartFuncPtr GetGroupMembershipOnPackedInstancePart;
 	static GetGroupNamesFuncPtr GetGroupNames;
+	static GetGroupNamesOnPackedInstancePartFuncPtr GetGroupNamesOnPackedInstancePart;
 	static GetHandleBindingInfoFuncPtr GetHandleBindingInfo;
 	static GetHandleInfoFuncPtr GetHandleInfo;
 	static GetHeightFieldDataFuncPtr GetHeightFieldData;
@@ -511,8 +517,11 @@ public:
 	static HAPI_Result GetFirstVolumeTileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
 	static HAPI_Result GetGeoInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GeoInfo * geo_info);
 	static HAPI_Result GetGeoSizeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, int * size);
+	static HAPI_Result GetGroupCountOnPackedInstancePartEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * pointGroupCount, int * primitiveGroupCount);
 	static HAPI_Result GetGroupMembershipEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length);
+	static HAPI_Result GetGroupMembershipOnPackedInstancePartEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length);
 	static HAPI_Result GetGroupNamesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
+	static HAPI_Result GetGroupNamesOnPackedInstancePartEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
 	static HAPI_Result GetHandleBindingInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length);
 	static HAPI_Result GetHandleInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_HandleInfo * handle_infos_array, int start, int length);
 	static HAPI_Result GetHeightFieldDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float * values_array, int start, int length);

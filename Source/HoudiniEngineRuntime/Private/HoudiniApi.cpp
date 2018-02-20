@@ -210,11 +210,20 @@ FHoudiniApi::GetGeoInfo = &FHoudiniApi::GetGeoInfoEmptyStub;
 FHoudiniApi::GetGeoSizeFuncPtr
 FHoudiniApi::GetGeoSize = &FHoudiniApi::GetGeoSizeEmptyStub;
 
+FHoudiniApi::GetGroupCountOnPackedInstancePartFuncPtr
+FHoudiniApi::GetGroupCountOnPackedInstancePart = &FHoudiniApi::GetGroupCountOnPackedInstancePartEmptyStub;
+
 FHoudiniApi::GetGroupMembershipFuncPtr
 FHoudiniApi::GetGroupMembership = &FHoudiniApi::GetGroupMembershipEmptyStub;
 
+FHoudiniApi::GetGroupMembershipOnPackedInstancePartFuncPtr
+FHoudiniApi::GetGroupMembershipOnPackedInstancePart = &FHoudiniApi::GetGroupMembershipOnPackedInstancePartEmptyStub;
+
 FHoudiniApi::GetGroupNamesFuncPtr
 FHoudiniApi::GetGroupNames = &FHoudiniApi::GetGroupNamesEmptyStub;
+
+FHoudiniApi::GetGroupNamesOnPackedInstancePartFuncPtr
+FHoudiniApi::GetGroupNamesOnPackedInstancePart = &FHoudiniApi::GetGroupNamesOnPackedInstancePartEmptyStub;
 
 FHoudiniApi::GetHandleBindingInfoFuncPtr
 FHoudiniApi::GetHandleBindingInfo = &FHoudiniApi::GetHandleBindingInfoEmptyStub;
@@ -703,8 +712,11 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetFirstVolumeTile = (GetFirstVolumeTileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFirstVolumeTile"));
 	FHoudiniApi::GetGeoInfo = (GetGeoInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoInfo"));
 	FHoudiniApi::GetGeoSize = (GetGeoSizeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoSize"));
+	FHoudiniApi::GetGroupCountOnPackedInstancePart = (GetGroupCountOnPackedInstancePartFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupCountOnPackedInstancePart"));
 	FHoudiniApi::GetGroupMembership = (GetGroupMembershipFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupMembership"));
+	FHoudiniApi::GetGroupMembershipOnPackedInstancePart = (GetGroupMembershipOnPackedInstancePartFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupMembershipOnPackedInstancePart"));
 	FHoudiniApi::GetGroupNames = (GetGroupNamesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupNames"));
+	FHoudiniApi::GetGroupNamesOnPackedInstancePart = (GetGroupNamesOnPackedInstancePartFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupNamesOnPackedInstancePart"));
 	FHoudiniApi::GetHandleBindingInfo = (GetHandleBindingInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHandleBindingInfo"));
 	FHoudiniApi::GetHandleInfo = (GetHandleInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHandleInfo"));
 	FHoudiniApi::GetHeightFieldData = (GetHeightFieldDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHeightFieldData"));
@@ -912,8 +924,11 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetFirstVolumeTile = &FHoudiniApi::GetFirstVolumeTileEmptyStub;
 	FHoudiniApi::GetGeoInfo = &FHoudiniApi::GetGeoInfoEmptyStub;
 	FHoudiniApi::GetGeoSize = &FHoudiniApi::GetGeoSizeEmptyStub;
+	FHoudiniApi::GetGroupCountOnPackedInstancePart = &FHoudiniApi::GetGroupCountOnPackedInstancePartEmptyStub;
 	FHoudiniApi::GetGroupMembership = &FHoudiniApi::GetGroupMembershipEmptyStub;
+	FHoudiniApi::GetGroupMembershipOnPackedInstancePart = &FHoudiniApi::GetGroupMembershipOnPackedInstancePartEmptyStub;
 	FHoudiniApi::GetGroupNames = &FHoudiniApi::GetGroupNamesEmptyStub;
+	FHoudiniApi::GetGroupNamesOnPackedInstancePart = &FHoudiniApi::GetGroupNamesOnPackedInstancePartEmptyStub;
 	FHoudiniApi::GetHandleBindingInfo = &FHoudiniApi::GetHandleBindingInfoEmptyStub;
 	FHoudiniApi::GetHandleInfo = &FHoudiniApi::GetHandleInfoEmptyStub;
 	FHoudiniApi::GetHeightFieldData = &FHoudiniApi::GetHeightFieldDataEmptyStub;
@@ -1492,6 +1507,13 @@ FHoudiniApi::GetGeoSizeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_
 
 
 HAPI_Result
+FHoudiniApi::GetGroupCountOnPackedInstancePartEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * pointGroupCount, int * primitiveGroupCount)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetGroupMembershipEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
@@ -1499,7 +1521,21 @@ FHoudiniApi::GetGroupMembershipEmptyStub(const HAPI_Session * session, HAPI_Node
 
 
 HAPI_Result
+FHoudiniApi::GetGroupMembershipOnPackedInstancePartEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetGroupNamesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetGroupNamesOnPackedInstancePartEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count)
 {
 	return HAPI_RESULT_FAILURE;
 }
