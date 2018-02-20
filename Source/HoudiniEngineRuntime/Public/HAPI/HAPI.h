@@ -3360,6 +3360,120 @@ HAPI_DECL HAPI_GetGroupMembership( const HAPI_Session * session,
                                    int * membership_array,
                                    int start, int length );
 
+/// @brief  Get group counts for a specific packed instanced part.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id. (should be a packed primitive)
+///
+/// @param[out]     pointGroupCount
+///                 Number of point groups on the packed instance part.
+///                 Will be set to -1 if the part is not a valid packed part.
+///
+/// @param[out]     primitiveGroupCount
+///                 Number of primitive groups on the instanced part.
+///                 Will be set to -1 if the part is not a valid instancer
+///
+HAPI_DECL HAPI_GetGroupCountOnPackedInstancePart( const HAPI_Session * session,
+                                                  HAPI_NodeId node_id,
+                                                  HAPI_PartId part_id,
+                                                  int * pointGroupCount,
+                                                  int * primitiveGroupCount );
+
+/// @brief  Get the group names for a packed instance part
+///         This functions allows you to get the group name for a specific
+///         packed primitive part.
+///         Keep in mind that the name string handles are only
+///         valid until the next time this function is called.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id. (should be a packed primitive)
+///
+/// @param[in]      group_type
+///                 The group type.
+///
+/// @param[out]     group_names_array
+///                 The array of names to be filled. Should be the size
+///                 given by ::HAPI_GetGroupCountOnInstancedPart() with
+///                 @p group_type and the ::HAPI_PartInfo of @p part_id.
+///                 @note These string handles are only valid until the
+///                 next call to ::HAPI_GetGroupNamesOnPackedInstancePart().
+///
+/// @param[in]      group_count
+///                 Sanity check. Should be less than or equal to the size
+///                 of @p group_names.
+///
+HAPI_DECL HAPI_GetGroupNamesOnPackedInstancePart( const HAPI_Session * session,
+                                                  HAPI_NodeId node_id,
+                                                  HAPI_PartId part_id,
+                                                  HAPI_GroupType group_type,
+                                                  HAPI_StringHandle * group_names_array,
+                                                  int group_count );
+
+/// @brief  Get group membership for a packed instance part
+///         This functions allows you to get the group membership for a specific
+///         packed primitive part.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id. (should be a packed primitive)
+///
+/// @param[in]      group_type
+///                 The group type.
+///
+/// @param[in]      group_name
+///                 The group name.
+///
+/// @param[out]     membership_array_all_equal
+///                 (optional) Quick way to determine if all items are in
+///                 the given group or all items our not in the group.
+///                 You can just pass NULL here if not interested.
+///
+/// @param[out]     membership_array
+///                 Array of ints that represent the membership of this
+///                 group. Should be the size given by
+///                 ::HAPI_PartInfo_GetElementCountByGroupType() with
+///                 @p group_type and the ::HAPI_PartInfo of @p part_id.
+///
+/// @param[in]      start
+///                 Start offset into the membership array. Must be
+///                 less than ::HAPI_PartInfo_GetElementCountByGroupType().
+///
+/// @param[in]      length
+///                 Should be less than or equal to the size
+///                 of @p membership.
+///
+HAPI_DECL HAPI_GetGroupMembershipOnPackedInstancePart( const HAPI_Session * session,
+                                                       HAPI_NodeId node_id,
+                                                       HAPI_PartId part_id,
+                                                       HAPI_GroupType group_type,
+                                                       const char * group_name,
+                                                       HAPI_Bool * membership_array_all_equal,
+                                                       int * membership_array,
+                                                       int start, int length );
+
 /// @brief  Get the part ids that this instancer part is instancing.
 ///
 /// @param[in]      session
