@@ -4506,7 +4506,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         // Get object / geo group memberships for primitives.
         TArray< FString > ObjectGeoGroupNames;
         if( ! FHoudiniEngineUtils::HapiGetGroupNames(
-            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, NULL, HAPI_GROUPTYPE_PRIM, ObjectGeoGroupNames, false ) )
+            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, 0, HAPI_GROUPTYPE_PRIM, ObjectGeoGroupNames, false ) )
         {
             HOUDINI_LOG_MESSAGE( TEXT( "Creating Static Meshes: Object [%d %s] non-fatal error reading group names" ), 
                 ObjectInfo.nodeId, *ObjectName );
