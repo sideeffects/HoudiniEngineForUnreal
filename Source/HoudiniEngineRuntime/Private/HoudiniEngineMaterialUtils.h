@@ -84,43 +84,43 @@ public:
     /** Create various material components. **/
     static bool CreateMaterialComponentDiffuse(
         FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-        const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY);
+        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
+        const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY );
 
     static bool CreateMaterialComponentNormal(
         FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-        const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY);
+        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
+        const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY );
 
     static bool CreateMaterialComponentSpecular(
         FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-        const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY);
+        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
+        const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY );
 
     static bool CreateMaterialComponentRoughness(
         FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-        const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY);
+        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
+        const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY );
 
     static bool CreateMaterialComponentMetallic(
         FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-        const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY);
+        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
+        const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY );
 
     static bool CreateMaterialComponentEmissive(
         FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-        const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY);
+        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
+        const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY );
 
     static bool CreateMaterialComponentOpacity(
         FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-        const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY);
+        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
+        const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY );
 
     static bool CreateMaterialComponentOpacityMask(
         FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-        const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY);
+        UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
+        const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY );
 
 #endif
 
