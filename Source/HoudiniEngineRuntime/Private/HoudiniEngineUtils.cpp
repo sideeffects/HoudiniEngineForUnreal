@@ -603,7 +603,7 @@ FHoudiniEngineUtils::HapiGetGroupNames(
     {
         // Get group count on the geo
         HAPI_GeoInfo GeoInfo;
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), GeoId, &GeoInfo), false);
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo( FHoudiniEngine::Get().GetSession(), GeoId, &GeoInfo), false);
         GroupCount = FHoudiniEngineUtils::HapiGetGroupCountByType(GroupType, GeoInfo);
     }
     else
@@ -1058,60 +1058,44 @@ FHoudiniEngineUtils::ResetRawMesh( FRawMesh & RawMesh )
 
 #endif
 
-int32 FHoudiniEngineUtils::HapiFindParameterByNameOrTag( const HAPI_NodeId& NodeId, const std::string ParmName )
+HAPI_ParmId FHoudiniEngineUtils::HapiFindParameterByNameOrTag( const HAPI_NodeId& NodeId, const std::string ParmName, HAPI_ParmInfo& FoundParmInfo )
 {
-    HAPI_ParmInfo ParmInfo;
-    return HapiFindParameterByNameOrTag( NodeId, ParmName, ParmInfo );
-}
+    FMemory::Memset< HAPI_ParmInfo >( FoundParmInfo, 0 );
 
-int32 FHoudiniEngineUtils::HapiFindParameterByNameOrTag( const HAPI_NodeId& NodeId, const std::string ParmName, HAPI_ParmInfo& FoundParmInfo )
-{
     HAPI_NodeInfo NodeInfo;
     FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo );
     if ( NodeInfo.parmCount <= 0 )
         return -1;
 
-    TArray< HAPI_ParmInfo > NodeParams;
-    NodeParams.SetNumUninitialized( NodeInfo.parmCount );
-    FHoudiniApi::GetParameters(
-        FHoudiniEngine::Get().GetSession(), NodeInfo.id, &NodeParams[0], 0, NodeInfo.parmCount );
-
-    int32 ParmId = HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, ParmName );
-    if ( ( ParmId < 0 ) || ( ParmId >= NodeParams.Num() ) )
+    HAPI_ParmId ParmId = HapiFindParameterByNameOrTag( NodeInfo.id, ParmName );
+    if ( ( ParmId < 0 ) || ( ParmId >= NodeInfo.parmCount ) )
         return -1;
 
-    FoundParmInfo = NodeParams[ParmId];
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParmInfo(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, ParmId, &FoundParmInfo ), -1 );
+
     return ParmId;
 }
 
-int32 FHoudiniEngineUtils::HapiFindParameterByNameOrTag( const TArray< HAPI_ParmInfo > NodeParams, const HAPI_NodeId& NodeId, const std::string ParmName )
+HAPI_ParmId FHoudiniEngineUtils::HapiFindParameterByNameOrTag( const HAPI_NodeId& NodeId, const std::string ParmName )
 {
-   {
-        // First, try to find the parameter by its name
-        TArray< std::string > NodeParamNames;
-        FHoudiniEngineUtils::HapiRetrieveParameterNames( NodeParams, NodeParamNames );
+    // First, try to find the parameter by its name
+    HAPI_ParmId ParmId = -1;
+    HOUDINI_CHECK_ERROR_RETURN ( FHoudiniApi::GetParmIdFromName(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, ParmName.c_str(), &ParmId ), -1 );
 
-        int32 ParmNameIdx = -1;
-        for ( ParmNameIdx = 0; ParmNameIdx < NodeParamNames.Num(); ++ParmNameIdx )
-        {
-            if ( ParmName.compare( 0, ParmName.length(), NodeParamNames[ParmNameIdx] ) == 0 )
-                break;
-        }
+    if ( ParmId >= 0 )
+        return ParmId;
 
-        if ( ( ParmNameIdx >= 0 ) && ( ParmNameIdx < NodeParams.Num() ) )
-            return ParmNameIdx;
-    }
+    // Second, try to find it by its tag
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParmWithTag(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, ParmName.c_str(), &ParmId ), -1 );
 
-    {
-        // Second, try to find it by its tag
-        HAPI_ParmId ParmId;
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParmWithTag(
-            FHoudiniEngine::Get().GetSession(),
-            NodeId, ParmName.c_str(), &ParmId ), false );
-
-        if ( ( ParmId >= 0 ) && ( ParmId < NodeParams.Num() ) )
-            return ParmId;
-    }
+    if ( ParmId >= 0 )
+        return ParmId;
 
     return -1;
 }
@@ -1125,8 +1109,8 @@ FHoudiniEngineUtils::HapiGetParameterDataAsFloat(
     bool bComputed = false;
 
     HAPI_ParmInfo FoundParamInfo;
-    int32 ParmIndex = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo );
-    if ( ParmIndex > -1 )
+    HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo );
+    if ( ParmId > -1 )
     {
         if (FHoudiniApi::GetParmFloatValues(
             FHoudiniEngine::Get().GetSession(), NodeId, &Value,
@@ -1148,8 +1132,8 @@ FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
     bool bComputed = false;
 
     HAPI_ParmInfo FoundParamInfo;
-    int32 ParmIndex = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo );
-    if ( ParmIndex > -1 )
+    HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo );
+    if ( ParmId > -1 )
     {
         if ( FHoudiniApi::GetParmIntValues(
             FHoudiniEngine::Get().GetSession(), NodeId, &Value,
@@ -1172,8 +1156,8 @@ FHoudiniEngineUtils::HapiGetParameterDataAsString(
     bool bComputed = false;
 
     HAPI_ParmInfo FoundParamInfo;
-    int32 ParmIndex = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo );
-    if ( ParmIndex > -1 )
+    HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo );
+    if ( ParmId > -1 )
     {
         HAPI_StringHandle StringHandle;
         if ( FHoudiniApi::GetParmStringValues(
