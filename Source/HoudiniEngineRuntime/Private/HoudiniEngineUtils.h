@@ -472,9 +472,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static void HapiRetrieveParameterNames( const TArray< HAPI_ParmInfo > & ParmInfos, TArray< std::string > & Names );
 
         /** HAPI : Look for a parameter by name or tag and returns its index. Returns -1 if not found. **/
-        static int32 HapiFindParameterByNameOrTag( const HAPI_NodeId& NodeId, const std::string ParmName );
-        static int32 HapiFindParameterByNameOrTag( const HAPI_NodeId& NodeId, const std::string ParmName, HAPI_ParmInfo& FoundParmInfo );
-        static int32 HapiFindParameterByNameOrTag( const TArray< HAPI_ParmInfo > NodeParams, const HAPI_NodeId& NodeId, const std::string ParmName );
+        static HAPI_ParmId HapiFindParameterByNameOrTag( const HAPI_NodeId& NodeId, const std::string ParmName );
+        static HAPI_ParmId HapiFindParameterByNameOrTag( const HAPI_NodeId& NodeId, const std::string ParmName, HAPI_ParmInfo& FoundParmInfo );
 
 #if WITH_EDITOR
 
