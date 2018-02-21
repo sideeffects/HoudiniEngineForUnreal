@@ -4223,7 +4223,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // The geometry has not changed,
                 if ( !bRebuildStaticMesh )
                 {
-                    // No mesh located, unless this split is a simple/conve collider, this is an error.
+                    // No mesh located, unless this split is a simple/convex collider, this is an error.
                     if ( !FoundStaticMesh && ( !HoudiniGeoPartObject.bIsSimpleCollisionGeo && !HoudiniGeoPartObject.bIsUCXCollisionGeo ) )
                     {
                         HOUDINI_LOG_ERROR(
@@ -4234,7 +4234,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     }
 
                     // If any of the materials on corresponding geo part object have not changed.
-                    if ( !bMaterialsChanged )
+                    if ( !bMaterialsChanged && FoundStaticMesh && *FoundStaticMesh )
                     {
                         // We can reuse previously created geometry.
                         StaticMeshesOut.Add( HoudiniGeoPartObject, *FoundStaticMesh );
@@ -6437,6 +6437,19 @@ FHoudiniEngineUtils::AddMeshSocketToList(
             currentSocketTransform.SetRotation( currentRotation );
             currentSocketTransform.SetScale3D( currentScale );
 
+            // We want to make sure we're not adding the same socket multiple times
+            int32 FoundIx = AllSockets.IndexOfByPredicate(
+                [ currentSocketTransform ]( const FTransform InTransform ){ return InTransform.Equals( currentSocketTransform); } );
+
+            //int32 FoundIx = AllSockets.Find( currentSocketTransform );
+            if ( FoundIx >= 0 )
+            {
+                // If the transform, names and actors are identical, skip this duplicate
+                if ( ( AllSocketsNames[ FoundIx ] == currentName )
+                    && ( AllSocketsActors[FoundIx] == currentActors ) )
+                    continue;
+            }
+
             AllSockets.Add( currentSocketTransform );
             AllSocketsNames.Add( currentName );
             AllSocketsActors.Add( currentActors );
@@ -6460,6 +6473,10 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
 
     if ( AllSockets.Num() <= 0 )
         return false;
+
+    // Remove the sockets from the previous cook!
+    if ( !HoudiniGeoPartObject.bHasSocketBeenAdded )
+        StaticMesh->Sockets.Empty();
 
     for ( int32 nSocket = 0; nSocket < AllSockets.Num(); nSocket++ )
     {
