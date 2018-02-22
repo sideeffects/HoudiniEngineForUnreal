@@ -364,13 +364,14 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
 
     // The corresponding unreal digit range (as unreal uses uint16, max is 65535)
     // We may want to not use the full range in order to be able to sculpt the landscape past the min/max values after.
+    const double dUINT16_MAX = (double)UINT16_MAX;
     double DigitZRange = 49152.0;
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
     if ( HoudiniRuntimeSettings && HoudiniRuntimeSettings->MarshallingLandscapesUseFullResolution )
-        DigitZRange = 65535.0;
+        DigitZRange = dUINT16_MAX;
 
     // If we  are not using the full range, we need to center the digit values so the terrain can be edited up and down
-    double DigitCenterOffset = FMath::FloorToDouble( ( 65535.0 - DigitZRange ) / 2.0 );
+    double DigitCenterOffset = FMath::FloorToDouble( ( dUINT16_MAX - DigitZRange ) / 2.0 );
 
     // The factor used to convert from Houdini's ZRange to the desired digit range
     double ZSpacing = ( MeterZRange != 0.0 ) ? ( DigitZRange / MeterZRange ) : 0.0;
@@ -444,13 +445,11 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
             HapiTransform.rotationQuaternion[2], -HapiTransform.rotationQuaternion[3] );
         Swap( ObjectRotation.Y, ObjectRotation.Z );
 
-        FVector ObjectTranslation(HapiTransform.position[0], HapiTransform.position[1], HapiTransform.position[2]);
+        FVector ObjectTranslation( HapiTransform.position[0], HapiTransform.position[1], HapiTransform.position[2] );
         ObjectTranslation *= 100.0f;
         Swap(ObjectTranslation[2], ObjectTranslation[1]);
 
         FVector ObjectScale3D( HapiTransform.scale[0], HapiTransform.scale[1], HapiTransform.scale[2] );
-        //Swap( ObjectScale3D.Y, ObjectScale3D.Z );
-        //Swap( ObjectScale3D.X, ObjectScale3D.Y );
 
         CurrentVolumeTransform.SetComponents( ObjectRotation, ObjectTranslation, ObjectScale3D );
     }
@@ -465,7 +464,7 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
 
     // Calculating the Z Scale so that the Z values in Unreal are the same as in Houdini
     // Unreal has a default Z range is 512m for a scale of a 100%
-    LandscapeScale.Z = (float)( (double)( 65535.0 / DigitZRange ) * MeterZRange / 512.0 );
+    LandscapeScale.Z = (float)( (double)( dUINT16_MAX / DigitZRange ) * MeterZRange / 512.0 );
     LandscapeScale *= 100.f;
 
     // If the data was resized and not expanded, we need to modify the landscape's scale
@@ -482,14 +481,10 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     // ( DIGIT - 32768 ) / 128 * ZScale = ZOffset
 
     // We need the Digit (Unreal) value of Houdini's zero for the scale calculation
-    uint16 HoudiniZeroValueInDigit = FMath::RoundToInt( ( 0.0 - (double)FloatMin ) * ZSpacing + DigitCenterOffset );
-
-    float ZOffset = -( (float)HoudiniZeroValueInDigit - 32768.0f ) / 128.0f * LandscapeScale.Z;
-    if ( false )
-    {
-        ZOffset = ( (double)( 32768 - HoudiniZeroValueInDigit ) - DigitCenterOffset ) / ZSpacing + (double)FloatMin;
-        ZOffset *= LandscapeScale.Z;
-    }
+    // ( float and int32 are used for this because 0 might be out of the landscape Z range!
+    // when using the full range, this would cause an overflow for a uint16!! )
+    float HoudiniZeroValueInDigit = (float)FMath::RoundToInt((0.0 - (double)FloatMin) * ZSpacing + DigitCenterOffset);
+    float ZOffset = -( HoudiniZeroValueInDigit - 32768.0f ) / 128.0f * LandscapeScale.Z;
 
     LandscapePosition.Z += ZOffset;
 
@@ -1467,11 +1462,11 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
         // Heightfield are centered, landscapes are not
         FVector CenterOffset = ( Max - Min ) * 0.5f;
 
-        // Unreal XYZ becomes Houdini ZXY (since heightfields are also rotated due the ZX transform) 
+        // Unreal XYZ becomes Houdini YXZ (since heightfields are also rotated due the ZX transform) 
         FVector Position = LandscapeTransform.GetLocation() / 100.0f;
-        HapiTransform.position[ 2 ] = Position.X + CenterOffset.X;
+        HapiTransform.position[ 1 ] = Position.X + CenterOffset.X;
         HapiTransform.position[ 0 ] = Position.Y + CenterOffset.Y;
-        HapiTransform.position[ 1 ] = 0.0f;
+        HapiTransform.position[ 2 ] = 0.0f;
 
         FVector Scale = LandscapeTransform.GetScale3D() / 100.0f;
         HapiTransform.scale[ 0 ] = Scale.X * 0.5f * HoudiniXSize;
@@ -1709,46 +1704,31 @@ FHoudiniLandscapeUtils::CreateHeightfieldInputNode( HAPI_NodeId& DisplayNodeId, 
         FHoudiniEngine::Get().GetSession(), NodeInfo.parentId,
         "volumevisualization", NameStr.c_str(), false, &VolVisId), false);
 
-    // Finally we need to setup the volvis node for heightfields
-    // Change the vismode parameter to heightfield
+    // Finally we need to setup the volvis node for heightfields:
+    // - change the vismode parameter to heightfield...
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(
         FHoudiniEngine::Get().GetSession(),
         VolVisId, "vismode", 0, 2), false);
 
-    // And the density field parameter to "height"
-    //const std::string sDensityField = "densityfield";
-    HAPI_ParmId densId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag(VolVisId, "densityfield");
-    if (densId != -1)
+    // ... and the density field parameter to "height" ... 
+    HAPI_ParmInfo ParmInfo;
+    HAPI_ParmId densId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag(VolVisId, "densityfield", ParmInfo );
+    if ( densId != -1 )
     {
-        HAPI_ParmInfo ParmInfo;
-        FMemory::Memset< HAPI_ParmInfo >(ParmInfo, 0);
-        if (FHoudiniApi::GetParmInfo(
-            FHoudiniEngine::Get().GetSession(), VolVisId,
-            densId, &ParmInfo) == HAPI_RESULT_SUCCESS)
-        {
-            const std::string sHeight = "height";
-            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(
-                FHoudiniEngine::Get().GetSession(),
-                VolVisId, sHeight.c_str(), densId, 0), false);
-        }
+        const std::string sHeight = "height";
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmStringValue(
+            FHoudiniEngine::Get().GetSession(),
+            VolVisId, sHeight.c_str(), densId, 0 ), false );
     }
 
-    // And the diffuse field parameter to "mask"
-    //const std::string sDiffuseField = "cdfield";
-    HAPI_ParmId diffId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag(VolVisId, "cdfield");
-    if (diffId != -1)
+    // ... and the diffuse field parameter to "mask"
+    HAPI_ParmId diffId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag(VolVisId, "cdfield", ParmInfo );
+    if ( diffId != -1 )
     {
-        HAPI_ParmInfo ParmInfo;
-        FMemory::Memset< HAPI_ParmInfo >(ParmInfo, 0);
-        if (FHoudiniApi::GetParmInfo(
-            FHoudiniEngine::Get().GetSession(), VolVisId,
-            diffId, &ParmInfo) == HAPI_RESULT_SUCCESS)
-        {
-            const std::string sMask = "mask";
-            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(
-                FHoudiniEngine::Get().GetSession(),
-                VolVisId, sMask.c_str(), diffId, 0), false);
-        }
+        const std::string sMask = "mask";
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmStringValue(
+            FHoudiniEngine::Get().GetSession(),
+            VolVisId, sMask.c_str(), diffId, 0 ), false );
     }
 
     // Cook it

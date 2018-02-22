@@ -6446,7 +6446,7 @@ FHoudiniEngineUtils::AddMeshSocketToList(
             {
                 // If the transform, names and actors are identical, skip this duplicate
                 if ( ( AllSocketsNames[ FoundIx ] == currentName )
-                    && ( AllSocketsActors[FoundIx] == currentActors ) )
+                    && ( AllSocketsActors[ FoundIx ] == currentActors ) )
                     continue;
             }
 
