@@ -198,6 +198,7 @@ FHoudiniParamUtils::Build( HAPI_NodeId AssetId, class UObject* PrimaryObject,
                                 FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterMultiparm>();
                             break;
                         case HAPI_PARMTYPE_PATH_FILE:
+                        case HAPI_PARMTYPE_PATH_FILE_DIR:
                         case HAPI_PARMTYPE_PATH_FILE_GEO:
                         case HAPI_PARMTYPE_PATH_FILE_IMAGE:
                             FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterFile>();
@@ -332,6 +333,7 @@ FHoudiniParamUtils::Build( HAPI_NodeId AssetId, class UObject* PrimaryObject,
                 }
 
                 case HAPI_PARMTYPE_PATH_FILE:
+                case HAPI_PARMTYPE_PATH_FILE_DIR:
                 case HAPI_PARMTYPE_PATH_FILE_GEO:
                 case HAPI_PARMTYPE_PATH_FILE_IMAGE:
                 {

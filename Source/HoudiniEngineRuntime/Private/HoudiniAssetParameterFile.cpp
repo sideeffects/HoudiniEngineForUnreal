@@ -81,6 +81,7 @@ UHoudiniAssetParameterFile::CreateParameter(
     switch ( ParmInfo.type )
     {
         case HAPI_PARMTYPE_PATH_FILE:
+        case HAPI_PARMTYPE_PATH_FILE_DIR:
         {
             break;
         }
