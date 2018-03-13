@@ -40,6 +40,13 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     bStartAutomaticServer = HAPI_UNREAL_SESSION_SERVER_AUTOSTART;
     AutomaticServerTimeout = HAPI_UNREAL_SESSION_SERVER_TIMEOUT;
 
+#if PLATFORM_LINUX
+    // Since 4.17, Linux has library conflict, so we need to create an out-of-process session by default
+    // We default to a named pipe, but TCP Sockets should work fine too.
+    SessionType = HRSST_NamedPipe;
+    bStartAutomaticServer = true;
+#endif
+
     /** Instantiation options. **/
     bShowMultiAssetDialog = true;
 
