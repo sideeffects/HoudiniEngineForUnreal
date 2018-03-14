@@ -30,8 +30,8 @@
 /** Declares a log category for this module. */
 //DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngineCommandlet, Log, All );
 
-struct FHoudiniGeoPartObject;
 class UStaticMesh;
+struct FHoudiniGeoPartObject;
 
 struct FHoudiniCommandletUtils
 {
