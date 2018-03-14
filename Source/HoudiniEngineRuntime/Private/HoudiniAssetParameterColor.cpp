@@ -121,7 +121,7 @@ UHoudiniAssetParameterColor::UploadParameterValue()
 bool
 UHoudiniAssetParameterColor::SetParameterVariantValue( const FVariant& Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo )
 {
-    int32 VariantType = Variant.GetType();
+    EVariantTypes VariantType = Variant.GetType();
     FLinearColor VariantLinearColor = FLinearColor::White;
 
     if ( EVariantTypes::Color == VariantType )

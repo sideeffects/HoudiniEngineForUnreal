@@ -217,7 +217,7 @@ UHoudiniAssetParameterFloat::UploadParameterValue()
 bool
 UHoudiniAssetParameterFloat::SetParameterVariantValue( const FVariant & Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo )
 {
-    int32 VariantType = Variant.GetType();
+    EVariantTypes VariantType = Variant.GetType();
     float VariantValue = 0.0f;
 
     if ( Idx >= 0 && Idx < Values.Num() )

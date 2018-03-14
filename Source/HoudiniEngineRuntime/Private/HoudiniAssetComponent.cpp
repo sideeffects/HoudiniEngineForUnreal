@@ -2261,10 +2261,10 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bCastShadowAsTwoSided );
             }
-            else if ( Property->GetName() == TEXT( "bLightAsIfStatic" ) )
+            /*else if ( Property->GetName() == TEXT( "bLightAsIfStatic" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bLightAsIfStatic );
-            }
+            }*/
             else if ( Property->GetName() == TEXT( "bLightAttachmentsAsGroup" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bLightAttachmentsAsGroup );
