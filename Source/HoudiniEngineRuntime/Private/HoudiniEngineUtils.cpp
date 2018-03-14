@@ -61,6 +61,7 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
+#include "Rendering/SkeletalMeshModel.h"
 #include "SkeletalMeshTypes.h"
 #include "Paths.h"
 
@@ -3407,8 +3408,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     }
 
     // Grab base LOD level.
-    const FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetImportedResource();
-    const FStaticLODModel& SourceModel = SkelMeshResource->LODModels[0];
+    const FSkeletalMeshModel* SkelMeshResource = SkeletalMesh->GetImportedModel();
+    const FSkeletalMeshLODModel& SourceModel = SkelMeshResource->LODModels[0];
     const int32 VertexCount = SourceModel.GetNumNonClothingVertices();
 
     // Verify the integrity of the mesh.
@@ -3422,8 +3423,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         return false;
 
     // Extract the indices
-    TArray<uint32> Indices;
-    SourceModel.MultiSizeIndexContainer.GetIndexBuffer(Indices);
+    TArray<uint32> Indices = SourceModel.IndexBuffer;
     int32 FaceCount = Indices.Num() / 3;
 
     // Create part.
