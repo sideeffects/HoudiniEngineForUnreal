@@ -27,9 +27,12 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineBakeUtils.h"
 #include "HoudiniAssetComponent.h"
-#include "HAL/PlatformFileManager.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Engine/StaticMesh.h"
+#include "HAL/PlatformFileManager.h"
 #include "HAL/FileManagerGeneric.h"
+
 
 const FString LocalAutoBakeFolder = TEXT("/HoudiniEngine/AutoBake/");
 
