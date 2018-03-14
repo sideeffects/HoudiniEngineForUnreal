@@ -34,7 +34,7 @@
 
     Houdini Version: 17.0.158
     Houdini Engine Version: 3.2.10
-    Unreal Version: 4.18.0
+    Unreal Version: 4.19.0
 
 */
 
@@ -119,7 +119,7 @@ public class HoudiniEngineEditor : ModuleRules
 
             if( Target.Platform == UnrealTargetPlatform.Win64 )
             {
-                Definitions.Add( "HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath );
+                PublicDefinitions.Add( "HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath );
             }
         }
 
