@@ -32,9 +32,9 @@
 
 /*
 
-    Houdini Version: 16.5.411
+    Houdini Version: 16.5.412
     Houdini Engine Version: 3.1.13
-    Unreal Version: 4.18.0
+    Unreal Version: 4.19.0
 
 */
 
@@ -48,7 +48,7 @@ public class HoudiniEngineEditor : ModuleRules
         PCHUsage = PCHUsageMode.UseSharedPCHs;
         bool bIsRelease = true;
         string HFSPath = "";
-        string HoudiniVersion = "16.5.411";
+        string HoudiniVersion = "16.5.412";
 
         // Check if we are compiling on unsupported platforms.
         if( Target.Platform != UnrealTargetPlatform.Win64 &&
@@ -119,7 +119,7 @@ public class HoudiniEngineEditor : ModuleRules
 
             if( Target.Platform == UnrealTargetPlatform.Win64 )
             {
-                Definitions.Add( "HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath );
+                PublicDefinitions.Add( "HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath );
             }
         }
 
