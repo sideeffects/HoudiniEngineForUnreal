@@ -4300,9 +4300,11 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     FTransform & ComponentTransform )
 {
 #if WITH_EDITOR
-
+    /*
+    // When called via commandlet, this might be perfectly valid
     if ( !FHoudiniEngineUtils::IsHoudiniAssetValid( AssetId ) || !HoudiniCookParams.HoudiniAsset )
         return false;
+    */
 
     // Make sure rendering is done - so we are not changing data being used by collision drawing.
     FlushRenderingCommands();
@@ -7865,11 +7867,17 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
     UHoudiniInstancedActorComponent* IAC = Cast< UHoudiniInstancedActorComponent >( MeshComponent );
     UHoudiniMeshSplitInstancerComponent* MSPIC = Cast<UHoudiniMeshSplitInstancerComponent>(MeshComponent);
     UStaticMesh* SM = Cast< UStaticMesh >( MeshComponent );
-
+    UBodySetup* BS = Cast< UBodySetup >( MeshComponent );
     if ( !SMC && !HISMC && !ISMC && !IAC && !MSPIC && !SM )
         return;
 
-    UClass* MeshClass = IAC ? IAC->StaticClass() : HISMC ? HISMC->StaticClass() : ISMC ? ISMC->StaticClass() : MSPIC ? MSPIC->StaticClass() : SMC ? SMC->StaticClass() : SM->StaticClass();
+    UClass* MeshClass = IAC ? IAC->StaticClass()
+        : HISMC ? HISMC->StaticClass()
+        : ISMC ? ISMC->StaticClass()
+        : MSPIC ? MSPIC->StaticClass()
+        : SMC ? SMC->StaticClass()
+        : SM ? SM->StaticClass()
+        : BS->StaticClass();
 
     // Trying to find the UProps in the object 
     for ( int32 nAttributeIdx = 0; nAttributeIdx < nUPropsCount; nAttributeIdx++ )

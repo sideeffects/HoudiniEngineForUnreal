@@ -780,7 +780,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
             {
                 // Create necessary component.
                 StaticMeshComponent = NewObject< UStaticMeshComponent >(
-                    GetOwner(), UStaticMeshComponent::StaticClass(),
+                    GetOwner() ? GetOwner() : GetOuter(), UStaticMeshComponent::StaticClass(),
                     NAME_None, RF_Transactional );
 
                 // Attach created static mesh component to our Houdini component.
@@ -2814,8 +2814,15 @@ FString UHoudiniAssetComponent::GetBakingBaseName( const FHoudiniGeoPartObject& 
         return GeoPartObject.PartName;
     }
 
-    return FString::Printf( TEXT( "%s_%d_%d_%d_%d" ), *GetOwner()->GetName(),
-        GeoPartObject.ObjectId, GeoPartObject.GeoId, GeoPartObject.PartId, GeoPartObject.SplitId );
+    if ( GetOwner() )
+        return FString::Printf( TEXT( "%s_%d_%d_%d_%d" ),
+            *GetOwner()->GetName(),
+            GeoPartObject.ObjectId, GeoPartObject.GeoId,
+            GeoPartObject.PartId, GeoPartObject.SplitId );
+    else
+        return FString::Printf(TEXT("%d_%d_%d_%d"),
+            GeoPartObject.ObjectId, GeoPartObject.GeoId,
+            GeoPartObject.PartId, GeoPartObject.SplitId );
 
     return FString();
 }
@@ -3483,7 +3490,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
     // Display busy cursor.
     FScopedBusyCursor ScopedBusyCursor;
 
-    ULevel * Level = GetHoudiniAssetActorOwner()->GetLevel();
+    ULevel * Level = GetHoudiniAssetActorOwner() ? GetHoudiniAssetActorOwner()->GetLevel() : nullptr;
     if ( !Level )
         Level = GWorld->GetCurrentLevel();
 

@@ -370,6 +370,16 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms( bool RecomputeVariati
 
     for ( int32 Idx = 0; Idx < VariationCount; Idx++ )
     {
+        if ( !InstancerComponents.IsValidIndex( Idx )
+            || !VariationTransformsArray.IsValidIndex( Idx )
+            || !VariationInstanceColorOverrideArray.IsValidIndex( Idx )
+            || !RotationOffsets.IsValidIndex( Idx )
+            || !ScaleOffsets.IsValidIndex( Idx ) )
+        {
+            // TODO: fix this properly
+            continue;
+        }
+
         UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
             InstancerComponents[ Idx ],
             VariationTransformsArray[ Idx ], VariationInstanceColorOverrideArray[ Idx ],
