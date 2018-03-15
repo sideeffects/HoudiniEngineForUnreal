@@ -8477,7 +8477,7 @@ FHoudiniEngineUtils::AddConvexCollisionToAggregate(
         }
 
         // Run actual util to do the work (if we have some valid input)
-        DecomposeMeshToHulls( bs, Vertices, Indices, 0.5f, 16.0f );
+        DecomposeMeshToHulls( bs, Vertices, Indices, 8, 16 );
 
         // If we succeed, return here
         // If not, keep going and we'll try to do a single hull decomposition
