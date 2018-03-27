@@ -210,7 +210,9 @@
 
 #define HAPI_UNREAL_ATTRIB_GENERIC_UPROP_PREFIX         "unreal_uproperty_"
 #define HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX     "unreal_material_parameter_"
-#define HAPI_UNREAL_ATTRIB_INSTANCE_COLOR		"unreal_instance_color"
+#define HAPI_UNREAL_ATTRIB_INSTANCE_COLOR               "unreal_instance_color"
+
+#define HAPI_UNREAL_ATTRIB_BAKE_FOLDER                  "unreal_bake_folder"
 
 /** Names of other Houdini Engine attributes and parameters. **/
 #define HAPI_UNREAL_ATTRIB_INSTANCE                     "instance"

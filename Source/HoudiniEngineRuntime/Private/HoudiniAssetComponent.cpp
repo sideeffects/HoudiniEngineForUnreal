@@ -1352,7 +1352,10 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
         FlushRenderingCommands();
         
         // Free meshes and components that are no longer used.
-        ReleaseObjectGeoPartResources(StaticMeshes, true);
+        ReleaseObjectGeoPartResources( StaticMeshes, true );
+
+        // Update the bake folder as it might have been updated by an override
+        BakeFolder = HoudiniCookParams.BakeFolder;
 
         // Set meshes and create new components for those meshes that do not have them.
         if ( NewStaticMeshes.Num() > 0 )

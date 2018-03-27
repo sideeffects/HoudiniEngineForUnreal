@@ -3674,6 +3674,24 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 }
             }
 
+            // See if a custom bake folder override for the mesh was assigned via the "unreal_bake_folder" attribute
+            TArray< FString > BakeFolderOverrides;
+            {
+                HAPI_AttributeInfo AttribBakeFolderOverride;
+                FMemory::Memzero< HAPI_AttributeInfo >( AttribBakeFolderOverride );
+
+                FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+                    AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                    HAPI_UNREAL_ATTRIB_BAKE_FOLDER, AttribBakeFolderOverride, BakeFolderOverrides );
+
+                if ( BakeFolderOverrides.Num() > 0 )
+                {
+                    const FString & BakeFolderOverride = BakeFolderOverrides[ 0 ];
+                    if ( !BakeFolderOverride.IsEmpty() )
+                        HoudiniCookParams.BakeFolder = FText::FromString( BakeFolderOverride );
+                }
+            }
+
             // Extracting Sockets points on the current part and add them to the list
             AddMeshSocketToList( AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, AllSockets, AllSocketsNames, AllSocketsActors, PartInfo.isInstanced );
 
