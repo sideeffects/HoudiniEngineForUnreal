@@ -1878,9 +1878,9 @@ FHoudiniLandscapeUtils::DestroyLandscapeAssetNode( HAPI_NodeId& ConnectedAssetId
     if ( !AssetOpName.ToFString( OpName ) )
         return false;
 
-    if ( !OpName.Contains( TEXT( "volumevisualization") ) )
+    if ( !OpName.Contains(TEXT("xform")))
     {
-        // Not a volvis node, so not a Heightfield
+        // Not a transform node, so not a Heightfield
         // We just need to destroy the landscape asset node
         return FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
     }
@@ -1889,12 +1889,19 @@ FHoudiniLandscapeUtils::DestroyLandscapeAssetNode( HAPI_NodeId& ConnectedAssetId
     // the volvis nodes, all the merge node's input (each merge input is a volume for one 
     // of the layer/mask of the landscape )
 
+    // Query the volvis node id
+    // The volvis node is the fist input of the xform node
+    HAPI_NodeId VolvisNodeId = -1;
+    FHoudiniApi::QueryNodeInput(
+        FHoudiniEngine::Get().GetSession(),
+        ConnectedAssetId, 0, &VolvisNodeId );
+
     // First, destroy the merge node and its inputs
     // The merge node is in the first input of the volvis node
     HAPI_NodeId MergeNodeId = -1;
     FHoudiniApi::QueryNodeInput(
             FHoudiniEngine::Get().GetSession(),
-            ConnectedAssetId, 0, &MergeNodeId );
+            VolvisNodeId, 0, &MergeNodeId );
 
     if ( MergeNodeId != -1 )
     {
@@ -1928,9 +1935,11 @@ FHoudiniLandscapeUtils::DestroyLandscapeAssetNode( HAPI_NodeId& ConnectedAssetId
     }
     CreatedInputAssetIds.Empty();
 
-    // Finally disconnect and destroy the volvis and merge node
+    // Finally disconnect and destroy the xform, volvis and merge nodes, then destroy them
     FHoudiniEngineUtils::HapiDisconnectAsset( ConnectedAssetId, 0 );
+    FHoudiniEngineUtils::HapiDisconnectAsset( VolvisNodeId, 0 );
     FHoudiniEngineUtils::DestroyHoudiniAsset( MergeNodeId );
+    FHoudiniEngineUtils::DestroyHoudiniAsset( VolvisNodeId );
 
     return FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
 }
