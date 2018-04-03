@@ -545,10 +545,12 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_InstancedActors(
             FName NewName = MakeUniqueObjectName( DesiredLevel, OtherSMC->InstancedAsset->StaticClass(), BaseName );
             FString NewNameStr = NewName.ToString();
 
-            if( AActor* NewActor = OtherSMC->SpawnInstancedActor( InstActor->GetTransform() ) )
+            FTransform CurrentTransform = InstActor->GetTransform();
+            if( AActor* NewActor = OtherSMC->SpawnInstancedActor( CurrentTransform ) )
             {
                 NewActor->SetActorLabel( NewNameStr );
                 NewActor->SetFolderPath( BaseName );
+                NewActor->SetActorTransform( CurrentTransform );
             }
         }
     }
