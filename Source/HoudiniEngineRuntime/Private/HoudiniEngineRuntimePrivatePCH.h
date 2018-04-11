@@ -390,7 +390,7 @@
 #define HAPI_UNREAL_SESSION_SERVER_PIPENAME                 TEXT( "hapi" )
 #endif
 
-#define HAPI_UNREAL_SESSION_SERVER_AUTOSTART                false
+#define HAPI_UNREAL_SESSION_SERVER_AUTOSTART                true
 #define HAPI_UNREAL_SESSION_SERVER_TIMEOUT                  3000.0f
 
 /** Default position and transformation scaling options. **/
