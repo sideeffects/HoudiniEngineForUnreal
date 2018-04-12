@@ -5897,6 +5897,20 @@ HAPI_DECL HAPI_GetWorkitemResultInfo( const HAPI_Session * session,
 				      HAPI_PDG_WorkitemResultInfo * resultinfo_array,
 				      int resultinfo_count );
 
+// @brief  Dirties the given node.  Cancels the cook if necessary and then
+///         deletes all workitems on the node.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+HAPI_DECL HAPI_DirtyPDGNode( const HAPI_Session * session, 
+			     HAPI_NodeId node_id);
+
 // @brief  Pause the PDG cooking operation.
 ///
 /// @param[in]      session
