@@ -2739,13 +2739,16 @@ UHoudiniAssetComponent::CheckedUploadTransform()
             if ( !FHoudiniEngineUtils::HapiSetAssetTransform( AssetId, GetComponentTransform() ) )
                 HOUDINI_LOG_MESSAGE( TEXT( "Failed Uploading Transformation change back to HAPI." ) );
         }
+    }
 
-        // If transforms trigger cooks, we need to schedule a cook.
-        if ( bTransformChangeTriggersCooks )
-        {
-            bComponentNeedsCook = true;
-            StartHoudiniTicking();
-        }
+    // If transforms trigger cooks, we need to schedule a cook.
+    if ( bTransformChangeTriggersCooks )
+    {
+        if (bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId(AssetId) && !bAssetIsBeingInstantiated)
+            StartTaskAssetCookingManual();
+
+        bComponentNeedsCook = true;
+        StartHoudiniTicking();
     }
 }
 
