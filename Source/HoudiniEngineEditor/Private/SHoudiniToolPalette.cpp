@@ -53,6 +53,8 @@
 #include "AssetToolsModule.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Toolkits/GlobalEditorCommonCommands.h"
+#include "Landscape.h"
+#include "LandscapeProxy.h"
 
 #define LOCTEXT_NAMESPACE "HoudiniToolPalette"
 
@@ -451,11 +453,27 @@ SHoudiniToolPalette::GetMeanWorldSelectionTransform()
             if ( ClassName == TEXT( "BP_Sky_Sphere_C" ) )
                 continue;
 
+            FTransform CurrentTransform = Actor->GetTransform();
+
+            ALandscape* Landscape = Cast< ALandscape >( Actor );
+            if ( Landscape )
+            {
+                // We need to offset Landscape's transform in X/Y to center them properly
+                FVector Origin, Extent;
+                Actor->GetActorBounds(false, Origin, Extent);
+
+                // Use the origin's XY Position
+                FVector Location = CurrentTransform.GetLocation();
+                Location.X = Origin.X;
+                Location.Y = Origin.Y;
+                CurrentTransform.SetLocation( Location );
+            }
+
             // Accumulate all the actor transforms...
             if ( NumAppliedTransform == 0 )
-                SpawnTransform = Actor->GetActorTransform();
+                SpawnTransform = CurrentTransform;
             else
-                SpawnTransform.Accumulate( Actor->GetActorTransform() );
+                SpawnTransform.Accumulate( CurrentTransform );
 
             NumAppliedTransform++;
         }

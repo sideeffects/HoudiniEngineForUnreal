@@ -1513,6 +1513,10 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
                         // Update properties panel after instantiation.
                         UpdateEditorProperties( true );
+
+                        // We may have toolshelf input presets to apply (may cause a recook)
+                        if ( HoudiniToolInputPreset.Num() > 0 )
+                            ApplyHoudiniToolInputPreset();
 #endif
                     }
                     else
@@ -5740,10 +5744,24 @@ UHoudiniAssetComponent::SetHoudiniToolInputPresets( const TMap<UObject*, int32>&
 void
 UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
 {
+    if ( HoudiniToolInputPreset.Num() <= 0 )
+        return;
+
     // We'll ignore inputs that have been preset to a curve type
     TArray< UHoudiniAssetInput*> InputArray;
     for ( auto CurrentInput : Inputs )
     {
+        if ( CurrentInput->GetChoiceIndex() != EHoudiniAssetInputType::CurveInput )
+            InputArray.Add( CurrentInput );
+    }
+
+    // Also look for ObjectPath parameter inputs
+    for ( auto CurrentParam : Parameters )
+    {
+        UHoudiniAssetInput* CurrentInput = Cast< UHoudiniAssetInput > ( CurrentParam.Value );
+        if ( !CurrentInput )
+            continue;
+
         if ( CurrentInput->GetChoiceIndex() != EHoudiniAssetInputType::CurveInput )
             InputArray.Add( CurrentInput );
     }
