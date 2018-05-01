@@ -39,6 +39,7 @@ UHoudiniAssetParameterFloat::UHoudiniAssetParameterFloat( const FObjectInitializ
     , ValueUIMin( TNumericLimits< float >::Lowest() )
     , ValueUIMax( TNumericLimits< float >::Max() )
     , ValueUnit ( TEXT("") )
+    , NoSwap ( false )
 {
     // Parameter will have at least one value.
     Values.AddZeroed( 1 );
@@ -62,6 +63,9 @@ UHoudiniAssetParameterFloat::Serialize( FArchive & Ar )
 
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_PARAMETERS_UNIT )
         Ar << ValueUnit;
+
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_PARAMETERS_NOSWAP )
+        Ar << NoSwap;
 }
 
 UHoudiniAssetParameterFloat *
@@ -198,6 +202,9 @@ UHoudiniAssetParameterFloat::CreateParameter(
 
     // Get this parameter's unit if it has one
     FHoudiniEngineUtils::HapiGetParameterUnit( InNodeId, ParmId, ValueUnit );
+
+    // Get this parameter's no swap tag if it has one
+    FHoudiniEngineUtils::HapiGetParameterNoSwapTag( InNodeId, ParmId, NoSwap );
 
     return true;
 }

@@ -1236,6 +1236,46 @@ FHoudiniEngineUtils::HapiGetParameterUnit( const HAPI_NodeId& NodeId, const HAPI
 }
 
 bool
+FHoudiniEngineUtils::HapiGetParameterNoSwapTag( const HAPI_NodeId& NodeId, const HAPI_ParmId& ParmId, bool& NoSwapValue )
+{
+    // Default noswap to false
+    NoSwapValue = false;
+
+    // We're looking for the parameter noswap tag
+    FString NoSwapTag = "hengine_noswap";
+
+    // Does the parameter has the "hengine_noswap" tag?
+    bool HasNoSwap = false;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ParmHasTag(
+        FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
+        TCHAR_TO_ANSI( *NoSwapTag ), &HasNoSwap ), false );
+
+    if ( !HasNoSwap )
+        return true;
+
+    // Set NoSwap to true
+    NoSwapValue = true;
+    /*
+    // Get the noswap tag string value
+    HAPI_StringHandle StringHandle;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParmTagValue(
+        FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
+        TCHAR_TO_ANSI( *NoSwapTag ), &StringHandle ), false );
+
+    FString NoSwapString = TEXT("");
+    FHoudiniEngineString HoudiniEngineString( StringHandle );
+    if ( HoudiniEngineString.ToFString( NoSwapString ) )
+    {
+        // Make sure noswap is not set to 0 or false
+        if ( !NoSwapString.Compare( TEXT("false"), ESearchCase::IgnoreCase )
+            || !NoSwapString.Compare( TEXT("0"), ESearchCase::IgnoreCase ) )
+            NoSwapValue = false;
+    }
+    */
+    return true;
+}
+
+bool
 FHoudiniEngineUtils::IsValidAssetId( HAPI_NodeId AssetId )
 {
     return AssetId != -1;
