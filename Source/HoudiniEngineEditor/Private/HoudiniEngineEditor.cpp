@@ -106,7 +106,7 @@ FHoudiniEngineEditor::StartupModule()
     RegisterStyleSet();
 
     // Register thumbnails.
-    RegisterThumbnails();
+    //RegisterThumbnails();
 
     // Extends the file menu.
     ExtendMenu();
@@ -140,7 +140,7 @@ FHoudiniEngineEditor::ShutdownModule()
     UnregisterDetails();
 
     // Unregister thumbnails.
-    UnregisterThumbnails();
+    //UnregisterThumbnails();
 
     // Unregister our component visualizers.
     UnregisterComponentVisualizers();
@@ -599,6 +599,14 @@ FHoudiniEngineEditor::RegisterStyleSet()
         StyleSet->Set(
             "HoudiniEngine.HoudiniEngineLogo40",
             new FSlateImageBrush( IconsDir + TEXT( "icon_houdini_logo_40.png" ), Icon40x40 ) );
+
+        StyleSet->Set(
+            "ClassIcon.HoudiniAsset",
+            new FSlateImageBrush( IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16 ) );
+
+        StyleSet->Set(
+            "ClassThumbnail.HoudiniAsset",
+            new FSlateImageBrush( IconsDir + TEXT( "icon_houdini_logo_128.png" ), Icon64x64) );
 
         FSlateImageBrush* HoudiniLogo16 = new FSlateImageBrush( IconsDir + TEXT( "icon_houdini_logo_16.png" ), Icon16x16 );
         StyleSet->Set( "HoudiniEngine.SaveHIPFile", HoudiniLogo16 );
