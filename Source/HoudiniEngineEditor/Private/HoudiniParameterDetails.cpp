@@ -956,6 +956,13 @@ FHoudiniParameterDetails::CreateWidgetFloat( IDetailCategoryBuilder & LocalDetai
         SwappedAxis3Vector = InParam.GetTupleSize() == 3 && Settings->ImportAxis == HRSAI_Unreal;
     }
 
+    if ( SwappedAxis3Vector )
+    {
+        // Ignore the swapping if that parameter has the noswap tag
+        if ( InParam.NoSwap )
+            SwappedAxis3Vector = false;
+    }
+
     FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
 
     // Create the standard parameter name widget.

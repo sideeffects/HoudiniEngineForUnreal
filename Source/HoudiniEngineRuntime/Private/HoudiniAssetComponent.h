@@ -629,6 +629,9 @@ public:
         /** Replaces references to a landscape actor by the newly generated one **/
         bool ReplaceLandscapeInInputs( ALandscape* Old, ALandscape* New );
 
+        /** From UPrimitiveComponent Interface. **/
+        virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+
     private:
 
         /** This flag is used when Houdini engine is not initialized to display a popup message once. **/

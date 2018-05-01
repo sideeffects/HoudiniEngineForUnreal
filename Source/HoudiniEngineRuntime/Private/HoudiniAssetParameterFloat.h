@@ -100,4 +100,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterFloat : public UHoudiniAsse
 
         /** Unit for this property **/
         FString ValueUnit;
+
+        /** Do we have the noswap tag? **/
+        bool NoSwap;
 };
