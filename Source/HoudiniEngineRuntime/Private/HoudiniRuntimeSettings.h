@@ -39,7 +39,7 @@ UENUM()
 enum EHoudiniRuntimeSettingsSessionType
 {
     // In process session.
-    HRSST_InProcess UMETA( DisplayName = "In process" ),
+    HRSST_InProcess UMETA( Hidden ),
 
     // TCP socket connection to Houdini Engine server.
     HRSST_Socket UMETA( DisplayName = "TCP socket" ),

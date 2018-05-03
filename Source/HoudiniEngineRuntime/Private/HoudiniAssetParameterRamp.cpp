@@ -317,9 +317,9 @@ UHoudiniAssetParameterRamp::NotifyChildParametersCreated()
         GenerateCurvePoints();
 
 #if WITH_EDITOR
-
-        if ( HoudiniAssetParameterRampCurveColor )
-            OnParamStateChanged();
+        // This causes UI flickering when moving/adding points
+        //if ( HoudiniAssetParameterRampCurveColor )
+        //    OnParamStateChanged();
 
 #endif
 

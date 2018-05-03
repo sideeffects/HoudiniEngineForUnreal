@@ -261,11 +261,25 @@ FHoudiniEngine::StartupModule()
         {
             case EHoudiniRuntimeSettingsSessionType::HRSST_InProcess:
             {
-                SessionResult = FHoudiniApi::CreateInProcessSession( &this->Session );
+                /*
+                // As of Unreal 4.19, InProcess sessions are not supported anymore
+                SessionResult = FHoudiniApi::CreateInProcessSession(&this->Session);
 #if PLATFORM_WINDOWS
                 // Workaround for Houdini libtools setting stdout to binary
                 FWindowsPlatformMisc::SetUTF8Output();
 #endif
+                */
+
+                // Create an auto started pipe session instead using default values
+                UpdatePathForServer();
+                FHoudiniApi::StartThriftNamedPipeServer(
+                    &ServerOptions,
+                    TCHAR_TO_UTF8( *HoudiniRuntimeSettings->ServerPipeName ),
+                    nullptr );
+
+                SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
+                    &this->Session, TCHAR_TO_UTF8( *HoudiniRuntimeSettings->ServerPipeName ) );
+
                 break;
             }
 
@@ -452,7 +466,10 @@ FHoudiniEngine::ShutdownModule()
 
     // Perform HAPI finalization.
     if ( FHoudiniApi::IsHAPIInitialized() )
+    {
         FHoudiniApi::Cleanup( GetSession() );
+        FHoudiniApi::CloseSession( GetSession() );
+    }
 
     FHoudiniApi::FinalizeHAPI();
 }
