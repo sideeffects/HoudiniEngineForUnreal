@@ -419,18 +419,10 @@
 /** Names of Substance class properties we are using. **/
 #define HAPI_UNREAL_SUBSTANCE_PROPERTY_FACTORY_PARENT       TEXT( "Parent" )
 
-#define HAPI_UNREAL_ENABLE_LOADER
-
 /** Names of HAPI libraries on different platforms. **/
-#ifdef HAPI_UNREAL_ENABLE_LOADER
 #define HAPI_LIB_OBJECT_WINDOWS         TEXT( "libHAPIL.dll" )
 #define HAPI_LIB_OBJECT_MAC             TEXT( "libHAPIL.dylib" )
 #define HAPI_LIB_OBJECT_LINUX           TEXT( "libHAPIL.so" )
-#else
-#define HAPI_LIB_OBJECT_WINDOWS         TEXT( "libHAPI.dll" )
-#define HAPI_LIB_OBJECT_MAC             TEXT( "libHAPI.dylib" )
-#define HAPI_LIB_OBJECT_LINUX           TEXT( "libHAPI.so" )
-#endif
 
 /** HFS subfolder containing HAPI lib. **/
 #define HAPI_HFS_SUBFOLDER_WINDOWS      TEXT( "bin" )
