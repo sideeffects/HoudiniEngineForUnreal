@@ -162,6 +162,9 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Helper delegate used to determine if BakeAllAssets can be executed. **/
         bool CanBakeAllAssets() const;
 
+        /** Helper function for restqrting the current Houdini Engine session. **/
+        void RestartSession();
+
         const TArray< TSharedPtr<FHoudiniTool> >& GetHoudiniTools() { return HoudiniTools; }
 
         /** Menu action to pause cooking for all Houdini Assets  **/

@@ -5881,4 +5881,29 @@ UHoudiniAssetComponent::CreateSceneProxy()
     return new FHoudiniAssetSceneProxy( this );
 }
 
+void
+UHoudiniAssetComponent::NotifyAssetNeedsToBeReinstantiated()
+{
+    bLoadedComponentRequiresInstantiation = true;
+    bLoadedComponent = true;
+    AssetCookCount = 0;
+    AssetId = -1;
+
+    // Mark all input as changed
+    for ( TArray< UHoudiniAssetInput * >::TIterator IterInputs( Inputs ); IterInputs; ++IterInputs )
+    {
+        UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
+        if ( HoudiniAssetInput )
+            HoudiniAssetInput->MarkChanged( false );
+    }
+
+    // Upload parameters.
+    for (TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams(Parameters); IterParams; ++IterParams)
+    {
+        UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
+        if ( HoudiniAssetParameter )
+            HoudiniAssetParameter->MarkChanged( false );
+    }
+}
+
 #undef LOCTEXT_NAMESPACE
