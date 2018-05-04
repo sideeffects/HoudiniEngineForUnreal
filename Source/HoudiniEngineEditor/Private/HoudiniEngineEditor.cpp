@@ -433,6 +433,11 @@ FHoudiniEngineEditor::RegisterConsoleCommands()
         TEXT("Houdini.Bake"),
         TEXT("Bakes and replaces with blueprints selected Houdini Asset Actors in the current level."),
         FConsoleCommandDelegate::CreateRaw( this, &FHoudiniEngineEditor::BakeSelection ) );
+
+    static FAutoConsoleCommand CCmdRestartSession = FAutoConsoleCommand(
+        TEXT("Houdini.RestartSession"),
+        TEXT("Restart the current Houdini Session."),
+        FConsoleCommandDelegate::CreateRaw(this, &FHoudiniEngineEditor::RestartSession ) );
 }
 
 bool
@@ -1358,6 +1363,37 @@ FHoudiniEngineEditor::GetWorldSelection( TArray< UObject* >& WorldSelection, boo
     }
 
     return WorldSelection.Num();
+}
+
+void
+FHoudiniEngineEditor::RestartSession()
+{
+    // Add a slate notification
+    FString Notification = TEXT("Restarting Current Houdini Session");
+    FHoudiniEngineUtils::CreateSlateNotification( Notification );
+
+    // Restart the current Houdini Engine Session
+    bool bSuccess = FHoudiniEngine::Get().RestartSession();
+
+    // Notify all the HoudiniAssetComponent that they need to reinstantiate themselves in the new session.
+    for ( TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr )
+    {
+        UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
+        if ( !HoudiniAssetComponent )
+            continue;
+
+        HoudiniAssetComponent->NotifyAssetNeedsToBeReinstantiated();
+    }
+
+    // Add a slate notification
+    if ( bSuccess )
+        Notification = TEXT("Houdini Session successfully restarted.");
+    else
+        Notification = TEXT("Failed to restart the current Houdini Session.");
+    FHoudiniEngineUtils::CreateSlateNotification(Notification);
+
+    // ... and a log message
+    //HOUDINI_LOG_MESSAGE( *Notification );
 }
 
 void 

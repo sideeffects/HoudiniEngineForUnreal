@@ -76,6 +76,10 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
         void SetEnableCookingGlobal(const bool& enableCooking);
         bool GetEnableCookingGlobal();
 
+        bool StartSession( HAPI_Session*& SessionPtr );
+        bool StopSession( HAPI_Session*& SessionPtr );
+        bool RestartSession();
+
     public:
 
         /** App identifier string. **/

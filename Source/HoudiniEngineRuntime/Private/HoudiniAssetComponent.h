@@ -266,6 +266,9 @@ public:
         /** Returns true if the asset is valid for cook/bake **/
         bool IsComponentValid() const;
 
+        /** Invalidates the assets, causing it to be reinstantiated upon recook **/
+        void NotifyAssetNeedsToBeReinstantiated();
+
         /** Return current referenced Houdini asset. **/
         UHoudiniAsset * GetHoudiniAsset() const;
 
