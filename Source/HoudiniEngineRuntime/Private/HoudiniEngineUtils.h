@@ -372,9 +372,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** HAPI : Retrieve group membership. **/
         static bool HapiGetGroupMembership(
-            HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
-            HAPI_PartId PartId, HAPI_GroupType GroupType, const FString & GroupName,
-            TArray< int32 > & GroupMembership, const bool& isPackedPrim );
+            HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId, HAPI_PartId PartId,
+            HAPI_GroupType GroupType, const FString & GroupName, TArray< int32 > & GroupMembership );
 
         /** HAPI : Get group count by type. **/
         static int32 HapiGetGroupCountByType( HAPI_GroupType GroupType, HAPI_GeoInfo & GeoInfo );
@@ -544,9 +543,20 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const HAPI_AttributeOwner& AttributeOwner,
             int32 PrimitiveIndex = -1);
 
+        /** Tries to find a Uproperty by name/label on an object
+            FoundPropertyObject will be the object containing the uprop which may or not be ParentObject **/
+        static bool FindUPropertyAttributesOnObject(
+            UObject* ParentObject, const UGenericAttribute& UPropertiesToFind,
+            UProperty*& FoundProperty, UObject*& FoundPropertyObject, void*& StructContainer );
+
+        /** Modifies the value of a UProperty **/
+        static bool ModifyUPropertyValueOnObject(
+            UObject* MeshComponent, UGenericAttribute UPropertiesToFind,
+            UProperty* FoundProperty, void * StructContainer );
+
         /** Tries to update values for all the UProperty attributes to apply on the object. **/
-        static void ApplyUPropertyAttributesOnObject(
-            UObject* MeshComponent, const TArray< UGenericAttribute >& UPropertiesToModify );
+        /*static void ApplyUPropertyAttributesOnObject(
+            UObject* MeshComponent, const TArray< UGenericAttribute >& UPropertiesToModify );*/
 
         //static bool TryToFindInStructProperty( UObject* Object, FString UPropertyNameToFind, UStructProperty* ArrayProperty, UProperty*& FoundProperty, void*& StructContainer );
 
