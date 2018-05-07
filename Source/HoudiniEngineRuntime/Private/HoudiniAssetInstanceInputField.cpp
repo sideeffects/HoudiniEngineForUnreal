@@ -298,6 +298,11 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
 
             InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
             InstancedStaticMeshComponent->GetBodyInstance()->bAutoWeld = false;
+
+            // Copy the CollisionTraceFlag from the SM
+            if ( InstancedStaticMeshComponent->GetBodySetup() && StaticMesh->BodySetup )
+                InstancedStaticMeshComponent->GetBodySetup()->CollisionTraceFlag = StaticMesh->BodySetup->CollisionTraceFlag;
+
             if( InstancerMaterial )
             {
                 InstancedStaticMeshComponent->OverrideMaterials.Empty();
