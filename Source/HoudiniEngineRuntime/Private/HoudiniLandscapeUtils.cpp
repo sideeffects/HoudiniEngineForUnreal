@@ -1135,10 +1135,6 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
     HAPI_VolumeInfo HeightfieldVolumeInfo;
 
     FTransform LandscapeTransform = LandscapeComponent->GetComponentTransform();
-    FVector Position = LandscapeTransform.GetLocation();
-    Swap( Position.X, Position.Y );
-    LandscapeTransform.SetLocation( Position );
-
     if ( !ConvertLandscapeDataToHeightfieldData(
         HeightData, XSize, YSize, Min, Max, LandscapeTransform,
         HeightfieldFloatValues, HeightfieldVolumeInfo ) )
@@ -1211,7 +1207,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
             bMaskCreated = true;
     }
 
-    // We need to have a mask layer as it is required for proper heightfield functionnalities
+    // We need to have a mask layer as it is required for proper heightfield functionalities
     // If we didn't create one, we'll send a fully measured mask now
     if ( !bMaskCreated )
     {
