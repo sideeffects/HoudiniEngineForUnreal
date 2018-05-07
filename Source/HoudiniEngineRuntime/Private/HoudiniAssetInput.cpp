@@ -3073,17 +3073,18 @@ operator<<( FArchive & Ar, FHoudiniAssetInputOutlinerMesh & HoudiniAssetInputOut
 }
 
 FBox
-UHoudiniAssetInput::GetInputBounds()
+UHoudiniAssetInput::GetInputBounds( const FVector& ParentLocation )
 {
     FBox Bounds( ForceInitToZero );
 
     if ( IsCurveAssetConnected() && InputCurve )
     {
+        // Houdini Curves are expressed locally so we need to add the parent component's transform
         TArray<FVector> CurvePositions;
         InputCurve->GetCurvePositions( CurvePositions );
 
         for ( int32 n = 0; n < CurvePositions.Num(); n++ )
-            Bounds += CurvePositions[ n ];
+            Bounds += ( ParentLocation + CurvePositions[ n ] );
     }
 
     if ( IsWorldInputAssetConnected() )
