@@ -646,7 +646,7 @@ FHoudiniEngineUtils::HapiGetGroupNames(
     {
         FString GroupName = TEXT( "" );
         FHoudiniEngineString HoudiniEngineString( GroupNameHandles[ NameIdx ] );
-            
+
         HoudiniEngineString.ToFString( GroupName );
         GroupNames.Add( GroupName );
     }
@@ -657,7 +657,7 @@ FHoudiniEngineUtils::HapiGetGroupNames(
 bool
 FHoudiniEngineUtils::HapiGetGroupMembership(
     HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId, HAPI_PartId PartId,
-    HAPI_GroupType GroupType, const FString & GroupName, TArray< int32 > & GroupMembership, const bool& isPackedPrim )
+    HAPI_GroupType GroupType, const FString & GroupName, TArray< int32 > & GroupMembership )
 {
     HAPI_PartInfo PartInfo;
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetPartInfo(
@@ -670,7 +670,7 @@ FHoudiniEngineUtils::HapiGetGroupMembership(
 
     GroupMembership.SetNumUninitialized( ElementCount );
 
-    if ( !isPackedPrim )
+    if ( !PartInfo.isInstanced )
     {
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGroupMembership(
             FHoudiniEngine::Get().GetSession(), GeoId, PartId, GroupType,
@@ -701,7 +701,7 @@ FHoudiniEngineUtils::HapiCheckGroupMembership(
     HAPI_GroupType GroupType, const FString & GroupName )
 {
     TArray< int32 > GroupMembership;
-    if ( FHoudiniEngineUtils::HapiGetGroupMembership( AssetId, ObjectId, GeoId, PartId, GroupType, GroupName, GroupMembership, false ) )
+    if ( FHoudiniEngineUtils::HapiGetGroupMembership( AssetId, ObjectId, GeoId, PartId, GroupType, GroupName, GroupMembership ) )
     {
         int32 GroupSum = 0;
         for ( int32 Idx = 0; Idx < GroupMembership.Num(); ++Idx )
@@ -6814,7 +6814,7 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(
 
     TArray< int32 > PartGroupMembership;
     FHoudiniEngineUtils::HapiGetGroupMembership(
-        AssetId, ObjectId, GeoId, PartId, HAPI_GROUPTYPE_PRIM, GroupName, PartGroupMembership, isPackedPrim);
+        AssetId, ObjectId, GeoId, PartId, HAPI_GROUPTYPE_PRIM, GroupName, PartGroupMembership );
 
     // Go through all primitives.
     for ( int32 FaceIdx = 0; FaceIdx < PartGroupMembership.Num(); ++FaceIdx )
@@ -7287,7 +7287,7 @@ FHoudiniEngineUtils::AddMeshSocketToList(
         TArray< int32 > PointGroupMembership;
         FHoudiniEngineUtils::HapiGetGroupMembership(
             AssetId, ObjectId, GeoId, PartId, 
-            HAPI_GROUPTYPE_POINT, GroupName, PointGroupMembership, isPackedPrim );
+            HAPI_GROUPTYPE_POINT, GroupName, PointGroupMembership );
 
         // Go through all primitives.
         for ( int32 PointIdx = 0; PointIdx < PointGroupMembership.Num(); ++PointIdx )
@@ -7615,7 +7615,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
             TArray< int32 > PartGroupMembership;
             FHoudiniEngineUtils::HapiGetGroupMembership(
                 GeoPartObject.AssetId, GeoPartObject.GetObjectId(), GeoPartObject.GetGeoId(), GeoPartObject.GetPartId(), 
-                HAPI_GROUPTYPE_PRIM, GeoPartObject.SplitName, PartGroupMembership, false );
+                HAPI_GROUPTYPE_PRIM, GeoPartObject.SplitName, PartGroupMembership );
 
             for ( int32 n = 0; n < PartGroupMembership.Num(); n++ )
             {
@@ -7813,10 +7813,67 @@ FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
 
     // Get the list of uproperties to modify from the geopartobject's attributes
     TArray< UGenericAttribute > UPropertiesAttributesToModify;
-    if ( FHoudiniEngineUtils::GetUPropertyAttributeList( HoudiniGeoPartObject, UPropertiesAttributesToModify ) )
+    if ( !FHoudiniEngineUtils::GetUPropertyAttributeList( HoudiniGeoPartObject, UPropertiesAttributesToModify ) )
+        return;
+    
+    // Iterate over the Found UProperty attributes
+    for ( int32 nAttributeIdx = 0; nAttributeIdx < UPropertiesAttributesToModify.Num(); nAttributeIdx++ )
     {
-        // Try to update uproperty atributes
-        FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject( MeshComponent, UPropertiesAttributesToModify );
+        // Get the current Uproperty Attribute
+        UGenericAttribute CurrentPropAttribute = UPropertiesAttributesToModify[ nAttributeIdx ];
+        FString CurrentUPropertyName = CurrentPropAttribute.AttributeName;
+        if ( CurrentUPropertyName.IsEmpty() )
+            continue;
+
+        // Some UProperties need to be modified manually...
+        if ( CurrentUPropertyName == "CollisionProfileName" )
+        {
+            UPrimitiveComponent* PC = Cast< UPrimitiveComponent >( MeshComponent );
+            if ( PC )
+            {
+                FString StringValue = CurrentPropAttribute.GetStringValue();
+                FName Value = FName( *StringValue );
+                PC->SetCollisionProfileName( Value );
+
+                continue;
+            }
+        }
+
+        // Handle Component Tags manually here
+        if ( CurrentUPropertyName.Contains("Tags") )
+        {
+            UActorComponent* AC = Cast< UActorComponent >( MeshComponent );
+            if ( AC )
+            {
+                for ( int nIdx = 0; nIdx < CurrentPropAttribute.AttributeCount; nIdx++ )
+                {
+                    FName NameAttr = FName( *CurrentPropAttribute.GetStringValue( nIdx ) );
+
+                    if ( !AC->ComponentTags.Contains( NameAttr ) )
+                        AC->ComponentTags.Add( NameAttr );
+                }
+
+                continue;
+            }
+        }
+
+        // Try to find the corresponding UProperty
+        UProperty* FoundProperty = nullptr;
+        void* StructContainer = nullptr;
+        UObject* FoundPropertyObject = nullptr;
+
+        if ( !FindUPropertyAttributesOnObject( MeshComponent, CurrentPropAttribute, FoundProperty, FoundPropertyObject, StructContainer ) )
+            continue;
+
+        if ( !ModifyUPropertyValueOnObject( FoundPropertyObject, CurrentPropAttribute, FoundProperty, StructContainer ) )
+            continue;
+
+        // Sucess!
+        FString ClassName = MeshComponent->GetClass() ? MeshComponent->GetClass()->GetName() : TEXT("Object");
+        FString ObjectName = MeshComponent->GetName();
+
+        // Couldn't find or modify the Uproperty!
+        HOUDINI_LOG_MESSAGE( TEXT( "Modified UProperty %s on %s named %s" ), *CurrentUPropertyName, *ClassName, * ObjectName );	
     }
 }
 /*
@@ -7906,6 +7963,410 @@ FHoudiniEngineUtils::TryToFindInArrayProperty(UObject* Object, FString UProperty
 }
 */
 
+
+bool FHoudiniEngineUtils::FindUPropertyAttributesOnObject(
+    UObject* ParentObject, const UGenericAttribute& UPropertiesToFind,
+    UProperty*& FoundProperty, UObject*& FoundPropertyObject, void*& StructContainer )
+{
+#if WITH_EDITOR
+    if ( !ParentObject)
+        return false;
+
+    // Get the name of the uprop we're looking for
+    FString CurrentUPropertyName = UPropertiesToFind.AttributeName;
+    if ( CurrentUPropertyName.IsEmpty() )
+        return false;
+
+    UClass* MeshClass = ParentObject->GetClass();
+
+    // Set the result pointer to null
+    StructContainer = nullptr;
+    FoundProperty = nullptr;
+
+    FoundPropertyObject = ParentObject;
+
+    bool bPropertyHasBeenFound = false;
+
+    /*
+    // Try to find the uprop using a TPropValueIterator??
+    for ( TPropertyValueIterator<UProperty> It( MeshClass, ParentObject, EPropertyValueIteratorFlags::FullRecursion ); It; ++It )
+    {
+        UProperty* CurrentProperty = It.Key();
+        void* CurrentPropertyValue = (void*)It.Value();
+        UObject* ObjectValue = *((UObject**)CurrentPropertyValue);
+
+        FString DisplayName = CurrentProperty->GetDisplayNameText().ToString().Replace(TEXT(" "), TEXT(""));
+        FString Name = CurrentProperty->GetName();
+
+        // If the property name contains the uprop attribute name, we have a candidate
+        if ( Name.Contains( CurrentUPropertyName ) || DisplayName.Contains( CurrentUPropertyName ) )
+        {
+            FoundProperty = CurrentProperty;
+
+            // If it's an equality, we dont need to keep searching
+            if ( ( Name == CurrentUPropertyName ) || ( DisplayName == CurrentUPropertyName ) )
+            {
+                bPropertyHasBeenFound = true;
+                break;
+            }
+        }
+    }
+
+    if ( bPropertyHasBeenFound )
+        return true;
+    */
+
+    // Iterate manually on the properties, in order to handle structProperties correctly
+    for ( TFieldIterator< UProperty > PropIt( MeshClass, EFieldIteratorFlags::IncludeSuper ); PropIt; ++PropIt )
+    {
+        UProperty* CurrentProperty = *PropIt;
+
+        FString DisplayName = CurrentProperty->GetDisplayNameText().ToString().Replace( TEXT(" "), TEXT("") );
+        FString Name = CurrentProperty->GetName();
+
+        // If the property name contains the uprop attribute name, we have a candidate
+        if ( Name.Contains( CurrentUPropertyName ) || DisplayName.Contains( CurrentUPropertyName ) )
+        {
+            FoundProperty = CurrentProperty;
+
+            // If it's an equality, we dont need to keep searching
+            if ( ( Name == CurrentUPropertyName ) || ( DisplayName == CurrentUPropertyName ) )
+            {
+                bPropertyHasBeenFound = true;
+                break;
+            }
+        }
+
+        /*
+        // StructProperty need to be a nested struct
+        if (UStructProperty* StructProperty = Cast< UStructProperty >(CurrentProperty))
+            bPropertyHasBeenFound = TryToFindInStructProperty(MeshComponent, CurrentUPropertyName, StructProperty, FoundProperty, StructContainer);
+        else if (UArrayProperty* ArrayProperty = Cast< UArrayProperty >(CurrentProperty))
+            bPropertyHasBeenFound = TryToFindInArrayProperty(MeshComponent, CurrentUPropertyName, ArrayProperty, FoundProperty, StructContainer);
+        */
+
+        // StructProperty need to be a nested struct
+        if ( UStructProperty* StructProperty = Cast< UStructProperty >( CurrentProperty ) )
+        {
+            // Walk the structs' properties and try to find the one we're looking for
+            UScriptStruct* Struct = StructProperty->Struct;
+            for ( TFieldIterator< UProperty > It( Struct ); It; ++It )
+            {
+                UProperty* Property = *It;
+
+                DisplayName = It->GetDisplayNameText().ToString().Replace( TEXT(" "), TEXT("") );
+                Name = It->GetName();
+
+                // If the property name contains the uprop attribute name, we have a candidate
+                if ( Name.Contains( CurrentUPropertyName ) || DisplayName.Contains( CurrentUPropertyName ) )
+                {
+                    // We found the property in the struct property, we need to keep the ValuePtr in the object
+                    // of the structProp in order to be able to access the property value afterwards...
+                    FoundProperty = Property;
+                    StructContainer = StructProperty->ContainerPtrToValuePtr< void >( ParentObject, 0 );
+
+                    // If it's an equality, we dont need to keep searching
+                    if ( ( Name == CurrentUPropertyName ) || ( DisplayName == CurrentUPropertyName ) )
+                    {
+                        bPropertyHasBeenFound = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if ( bPropertyHasBeenFound )
+            break;
+    }
+
+    if ( bPropertyHasBeenFound )
+        return true;
+
+    // Try with FindField??
+    if ( !FoundProperty )
+        FoundProperty = FindField<UProperty>( MeshClass, *CurrentUPropertyName );
+
+    // Try with FindPropertyByName ??
+    if ( !FoundProperty )
+        FoundProperty = MeshClass->FindPropertyByName( *CurrentUPropertyName );
+
+    // We found the UProperty we were looking for
+    if ( FoundProperty )
+        return true;
+
+    // Handle common properties nested in classes
+    // Static Meshes
+    UStaticMesh* SM = Cast< UStaticMesh >( ParentObject );
+    if ( SM )
+    {
+        if ( SM->BodySetup && FindUPropertyAttributesOnObject(
+            SM->BodySetup, UPropertiesToFind, FoundProperty, FoundPropertyObject, StructContainer ) )
+        {
+            return true;
+        }
+
+        if ( SM->AssetImportData && FindUPropertyAttributesOnObject(
+            SM->AssetImportData, UPropertiesToFind, FoundProperty, FoundPropertyObject, StructContainer ) )
+        {
+            return true;
+        }
+
+        if ( SM->NavCollision && FindUPropertyAttributesOnObject(
+            SM->NavCollision, UPropertiesToFind, FoundProperty, FoundPropertyObject, StructContainer ) )
+        {
+            return true;
+        }
+    }
+
+    // We found the UProperty we were looking for
+    if ( FoundProperty )
+        return true;
+
+#endif
+    return false;
+}
+
+bool FHoudiniEngineUtils::ModifyUPropertyValueOnObject(
+    UObject* MeshComponent, UGenericAttribute CurrentPropAttribute,
+    UProperty* FoundProperty, void * StructContainer )
+{
+    if ( !MeshComponent || !FoundProperty )
+        return false;
+
+    UProperty* InnerProperty = FoundProperty;
+    int32 NumberOfProperties = 1;
+    if ( UArrayProperty* ArrayProperty = Cast< UArrayProperty >( FoundProperty ) )
+    {
+        InnerProperty = ArrayProperty->Inner;
+        NumberOfProperties = ArrayProperty->ArrayDim;
+
+        // Do we need to add values to the array?
+        FScriptArrayHelper_InContainer ArrayHelper( ArrayProperty, CurrentPropAttribute.GetData() );
+
+        //ArrayHelper.ExpandForIndex( CurrentPropAttribute.AttributeTupleSize - 1 );
+        if ( CurrentPropAttribute.AttributeTupleSize > NumberOfProperties )
+        {
+            ArrayHelper.Resize( CurrentPropAttribute.AttributeTupleSize );
+            NumberOfProperties = CurrentPropAttribute.AttributeTupleSize;
+        }
+    }
+
+    for ( int32 nPropIdx = 0; nPropIdx < NumberOfProperties; nPropIdx++ )
+    {
+        if ( UFloatProperty* FloatProperty = Cast< UFloatProperty >( InnerProperty ) )
+        {
+            // FLOAT PROPERTY
+            if ( CurrentPropAttribute.AttributeType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
+            {
+                FString Value = CurrentPropAttribute.GetStringValue( nPropIdx );
+                void * ValuePtr = StructContainer ?
+                    InnerProperty->ContainerPtrToValuePtr< FString >( (uint8 *)StructContainer, nPropIdx )
+                    : InnerProperty->ContainerPtrToValuePtr< FString >( MeshComponent, nPropIdx );
+
+                if ( ValuePtr )
+                    FloatProperty->SetNumericPropertyValueFromString( ValuePtr, *Value );
+            }
+            else
+            {
+                double Value = CurrentPropAttribute.GetDoubleValue( nPropIdx );
+                void * ValuePtr = StructContainer ?
+                    InnerProperty->ContainerPtrToValuePtr< float >( (uint8 *)StructContainer, nPropIdx )
+                    : InnerProperty->ContainerPtrToValuePtr< float >( MeshComponent, nPropIdx );
+
+                if ( ValuePtr )
+                    FloatProperty->SetFloatingPointPropertyValue( ValuePtr, Value );
+            }
+        }
+        else if ( UIntProperty* IntProperty = Cast< UIntProperty >( InnerProperty ) )
+        {
+            // INT PROPERTY
+            if ( CurrentPropAttribute.AttributeType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
+            {
+                FString Value = CurrentPropAttribute.GetStringValue( nPropIdx );
+                void * ValuePtr = StructContainer ?
+                    InnerProperty->ContainerPtrToValuePtr< FString >( (uint8 *)StructContainer, nPropIdx )
+                    : InnerProperty->ContainerPtrToValuePtr< FString >( MeshComponent, nPropIdx );
+
+                if ( ValuePtr )
+                    IntProperty->SetNumericPropertyValueFromString( ValuePtr, *Value );
+            }
+            else
+            {
+                int64 Value = CurrentPropAttribute.GetIntValue( nPropIdx );
+                void * ValuePtr = StructContainer ?
+                    InnerProperty->ContainerPtrToValuePtr< int64 >( (uint8 *)StructContainer, nPropIdx )
+                    : InnerProperty->ContainerPtrToValuePtr< int64 >( MeshComponent, nPropIdx );
+
+                if ( ValuePtr )
+                    IntProperty->SetIntPropertyValue( ValuePtr, Value );
+            }
+        }
+        else if ( UBoolProperty* BoolProperty = Cast< UBoolProperty >( InnerProperty ) )
+        {
+            // BOOL PROPERTY
+            bool Value = CurrentPropAttribute.GetBoolValue( nPropIdx );
+            void * ValuePtr = StructContainer ?
+                InnerProperty->ContainerPtrToValuePtr< bool >( (uint8*)StructContainer, nPropIdx )
+                : InnerProperty->ContainerPtrToValuePtr< bool >( MeshComponent, nPropIdx );
+
+            if ( ValuePtr )
+                BoolProperty->SetPropertyValue( ValuePtr, Value );
+        }
+        else if ( UStrProperty* StringProperty = Cast< UStrProperty >( InnerProperty ) )
+        {
+            // STRING PROPERTY
+            FString Value = CurrentPropAttribute.GetStringValue( nPropIdx );
+            void * ValuePtr = StructContainer ?
+                InnerProperty->ContainerPtrToValuePtr< FString >( (uint8*)StructContainer, nPropIdx )
+                : InnerProperty->ContainerPtrToValuePtr< FString >( MeshComponent, nPropIdx );
+
+            if ( ValuePtr )
+                StringProperty->SetPropertyValue( ValuePtr, Value );
+        }
+        else if ( UNumericProperty *NumericProperty = Cast< UNumericProperty >( InnerProperty ) )
+        {
+            // NUMERIC PROPERTY
+            if ( CurrentPropAttribute.AttributeType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
+            {
+                FString Value = CurrentPropAttribute.GetStringValue( nPropIdx );
+                void * ValuePtr = StructContainer ?
+                    InnerProperty->ContainerPtrToValuePtr< FString >( (uint8 *)StructContainer, nPropIdx )
+                    : InnerProperty->ContainerPtrToValuePtr< FString >( MeshComponent, nPropIdx );
+
+                if ( ValuePtr )
+                    NumericProperty->SetNumericPropertyValueFromString( ValuePtr, *Value );
+            }
+            else if ( NumericProperty->IsInteger() )
+            {
+                int64 Value = CurrentPropAttribute.GetIntValue( nPropIdx );
+                void * ValuePtr = StructContainer ?
+                    InnerProperty->ContainerPtrToValuePtr< int64 >( (uint8*)StructContainer, nPropIdx )
+                    : InnerProperty->ContainerPtrToValuePtr< int64 >( MeshComponent, nPropIdx );
+
+                if ( ValuePtr )
+                    NumericProperty->SetIntPropertyValue(ValuePtr, (int64)Value );
+            }
+            else if ( NumericProperty->IsFloatingPoint() )
+            {
+                double Value = CurrentPropAttribute.GetDoubleValue( nPropIdx );
+                void * ValuePtr = StructContainer ?
+                    InnerProperty->ContainerPtrToValuePtr< float >( (uint8 *)StructContainer, nPropIdx )
+                    : InnerProperty->ContainerPtrToValuePtr< float >( MeshComponent, nPropIdx );
+
+                if ( ValuePtr )
+                    NumericProperty->SetFloatingPointPropertyValue( ValuePtr, Value );
+            }
+            else
+            {
+                // Numeric Property was found, but is of an unsupported type
+                HOUDINI_LOG_MESSAGE( TEXT("Unsupported Numeric UProperty") );
+            }
+        }
+        else if ( UNameProperty* NameProperty = Cast< UNameProperty >( InnerProperty ) )
+        {
+            // NAME PROPERTY
+            FString StringValue = CurrentPropAttribute.GetStringValue( nPropIdx );
+            FName Value = FName( *StringValue );
+
+            void * ValuePtr = StructContainer ?
+                InnerProperty->ContainerPtrToValuePtr< FName >( (uint8*)StructContainer, nPropIdx )
+                : InnerProperty->ContainerPtrToValuePtr< FName >( MeshComponent, nPropIdx );
+
+            if ( ValuePtr )
+                NameProperty->SetPropertyValue( ValuePtr, Value );
+        }
+        else if ( UStructProperty* StructProperty = Cast< UStructProperty >( InnerProperty ) )
+        {
+            // STRUCT PROPERTY
+            const FName PropertyName = StructProperty->Struct->GetFName();
+            if ( PropertyName == NAME_Vector )
+            {
+                FVector* PropertyValue = StructContainer ?
+                    InnerProperty->ContainerPtrToValuePtr< FVector >( (uint8 *)StructContainer, nPropIdx )
+                    : InnerProperty->ContainerPtrToValuePtr< FVector >( MeshComponent, nPropIdx );
+
+                if ( PropertyValue )
+                {
+                    // Found a vector property, fill it with the 3 tuple values
+                    PropertyValue->X = CurrentPropAttribute.GetDoubleValue( nPropIdx + 0 );
+                    PropertyValue->Y = CurrentPropAttribute.GetDoubleValue( nPropIdx + 1 );
+                    PropertyValue->Z = CurrentPropAttribute.GetDoubleValue( nPropIdx + 2 );
+                }
+            }
+            else if ( PropertyName == NAME_Transform )
+            {
+                FTransform* PropertyValue = StructContainer ?
+                    InnerProperty->ContainerPtrToValuePtr< FTransform >( (uint8 *)StructContainer, nPropIdx )
+                    : InnerProperty->ContainerPtrToValuePtr< FTransform >( MeshComponent, nPropIdx );
+
+                if ( PropertyValue )
+                {
+                    // Found a transform property fill it with the attribute tuple values
+                    FVector Translation;
+                    Translation.X = CurrentPropAttribute.GetDoubleValue( nPropIdx + 0 );
+                    Translation.Y = CurrentPropAttribute.GetDoubleValue( nPropIdx + 1 );
+                    Translation.Z = CurrentPropAttribute.GetDoubleValue( nPropIdx + 2 );
+
+                    FQuat Rotation;
+                    Rotation.W = CurrentPropAttribute.GetDoubleValue( nPropIdx + 3 );
+                    Rotation.X = CurrentPropAttribute.GetDoubleValue( nPropIdx + 4 );
+                    Rotation.Y = CurrentPropAttribute.GetDoubleValue( nPropIdx + 5 );
+                    Rotation.Z = CurrentPropAttribute.GetDoubleValue( nPropIdx + 6 );
+
+                    FVector Scale;
+                    Scale.X = CurrentPropAttribute.GetDoubleValue( nPropIdx + 7 );
+                    Scale.Y = CurrentPropAttribute.GetDoubleValue( nPropIdx + 8 );
+                    Scale.Z = CurrentPropAttribute.GetDoubleValue( nPropIdx + 9 );
+
+                    PropertyValue->SetTranslation( Translation );
+                    PropertyValue->SetRotation( Rotation );
+                    PropertyValue->SetScale3D( Scale );
+                }
+            }
+            else if ( PropertyName == NAME_Color )
+            {
+                FColor* PropertyValue = StructContainer ?
+                    InnerProperty->ContainerPtrToValuePtr< FColor >( (uint8 *)StructContainer, nPropIdx )
+                    : InnerProperty->ContainerPtrToValuePtr< FColor >( MeshComponent, nPropIdx );
+
+                if ( PropertyValue )
+                {
+                    PropertyValue->R = (int8)CurrentPropAttribute.GetIntValue( nPropIdx );
+                    PropertyValue->G = (int8)CurrentPropAttribute.GetIntValue( nPropIdx + 1 );
+                    PropertyValue->B = (int8)CurrentPropAttribute.GetIntValue( nPropIdx + 2 );
+                    if ( CurrentPropAttribute.AttributeTupleSize == 4 )
+                        PropertyValue->A = (int8)CurrentPropAttribute.GetIntValue( nPropIdx + 3 );
+                }
+            }
+            else if ( PropertyName == NAME_LinearColor )
+            {
+                FLinearColor* PropertyValue = StructContainer ?
+                    InnerProperty->ContainerPtrToValuePtr< FLinearColor >( (uint8 *)StructContainer, nPropIdx )
+                    : InnerProperty->ContainerPtrToValuePtr< FLinearColor >( MeshComponent, nPropIdx );
+
+                if ( PropertyValue )
+                {
+                    PropertyValue->R = (float)CurrentPropAttribute.GetDoubleValue( nPropIdx );
+                    PropertyValue->G = (float)CurrentPropAttribute.GetDoubleValue( nPropIdx + 1 );
+                    PropertyValue->B = (float)CurrentPropAttribute.GetDoubleValue( nPropIdx + 2 );
+                    if ( CurrentPropAttribute.AttributeTupleSize == 4 )
+                        PropertyValue->A = (float)CurrentPropAttribute.GetDoubleValue( nPropIdx + 3 );
+                }
+            }
+        }
+        else
+        {
+            // Property was found, but is of an unsupported type	    
+            FString PropertyClass = FoundProperty->GetClass() ? FoundProperty->GetClass()->GetName() : TEXT("Unknown");
+            HOUDINI_LOG_MESSAGE( TEXT("Unsupported UProperty Class: %s found for uproperty %s"), *PropertyClass, *CurrentPropAttribute.AttributeName );
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/*
 void 
 FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
     UObject* MeshComponent, const TArray< UGenericAttribute >& UPropertiesToModify )
@@ -7945,32 +8406,6 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
         if ( CurrentUPropertyName.IsEmpty() )
             continue;
 
-        // Handle Component Tags manually here
-        if ( CurrentUPropertyName.Contains("Tags") )
-        {
-            TArray<FName>* TagsPtr = nullptr;
-            if ( SMC )
-                TagsPtr = &( SMC->ComponentTags );
-            else if ( MSPIC )
-                TagsPtr = &( MSPIC->ComponentTags );
-            else if ( ISMC )
-                TagsPtr = &( ISMC->ComponentTags );
-            else if ( HISMC )
-                TagsPtr = &( HISMC->ComponentTags );
-
-            if ( !TagsPtr )
-                continue;
-
-            TagsPtr->SetNumUninitialized( CurrentPropAttribute.AttributeCount );
-            for ( int nIdx = 0; nIdx < CurrentPropAttribute.AttributeCount; nIdx++ )
-            {
-                 FName NameAttr = FName( *CurrentPropAttribute.GetStringValue( nIdx ) );
-                 (*TagsPtr)[nIdx] = NameAttr;
-            }
-
-            continue;
-        }
-
         // We have to iterate manually on the properties, in order to handle structProperties correctly
         void* StructContainer = nullptr;
         UProperty* FoundProperty = nullptr;
@@ -7994,14 +8429,6 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
                     break;
                 }
             }
-
-            /*
-            // StructProperty need to be a nested struct
-            if (UStructProperty* StructProperty = Cast< UStructProperty >(CurrentProperty))
-                bPropertyHasBeenFound = TryToFindInStructProperty(MeshComponent, CurrentUPropertyName, StructProperty, FoundProperty, StructContainer);
-            else if (UArrayProperty* ArrayProperty = Cast< UArrayProperty >(CurrentProperty))
-                bPropertyHasBeenFound = TryToFindInArrayProperty(MeshComponent, CurrentUPropertyName, ArrayProperty, FoundProperty, StructContainer);
-            */
 
             // StructProperty need to be a nested struct
             if ( UStructProperty* StructProperty = Cast< UStructProperty >( CurrentProperty ) )
@@ -8275,6 +8702,8 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
     }
 #endif
 }
+
+*/
 
 int32
 FHoudiniEngineUtils::HapiGetAttributeOfType(
