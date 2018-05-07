@@ -5687,7 +5687,7 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
         if ( CurrentInput == IgnoreInput )
             continue;
 
-        FBox StaticMeshBounds = CurrentInput->GetInputBounds();
+        FBox StaticMeshBounds = CurrentInput->GetInputBounds( GetComponentLocation() );
         if ( StaticMeshBounds.IsValid )
             BoxBounds += StaticMeshBounds;
     }

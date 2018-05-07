@@ -216,7 +216,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         FText GetCurrentSelectionText() const;
 
         // Return the bounds of this input
-        FBox GetInputBounds();
+        FBox GetInputBounds( const FVector& ParentLocation );
 
         /** Return true if this parameter has been changed. **/
         bool HasChanged() const override;
