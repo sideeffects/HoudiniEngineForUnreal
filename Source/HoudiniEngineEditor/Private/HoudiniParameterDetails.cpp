@@ -2406,12 +2406,12 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
         ];
     }
 
-    // Checkbox Export All LODs
+    // Checkboxes Export LODs and Export Sockets
     if ( InParam.ChoiceIndex == EHoudiniAssetInputType::GeometryInput
         || InParam.ChoiceIndex == EHoudiniAssetInputType::WorldInput )
     {
+        /*
         // Add a checkbox to export all lods
-        // Checkbox : Keep World Transform
         TSharedPtr< SCheckBox > CheckBoxExportAllLODs;
         VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
         [
@@ -2432,6 +2432,74 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
 
         // the checkbox is read only if the input doesnt have LODs
         CheckBoxExportAllLODs->SetEnabled( InParam.HasLODs() );
+
+        // Add a checkbox to export sockets
+        TSharedPtr< SCheckBox > CheckBoxExportSockets;
+        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
+        [
+            SAssignNew( CheckBoxExportSockets, SCheckBox )
+            .Content()
+            [
+                SNew( STextBlock )
+                .Text( LOCTEXT( "ExportSockets", "Export Sockets" ) )
+                .ToolTipText( LOCTEXT( "ExportSocketsTip", "If enabled, all Mesh Sockets in this static mesh will be sent to Houdini." ) )
+                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+            ]
+            .IsChecked( TAttribute< ECheckBoxState >::Create(
+                TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                &InParam, &UHoudiniAssetInput::IsCheckedExportSockets ) ) )
+            .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                &InParam, &UHoudiniAssetInput::CheckStateChangedExportSockets ) )
+        ];
+
+        // the checkbox is read only if the input doesnt have LODs
+        CheckBoxExportSockets->SetEnabled( InParam.HasSockets() );
+        */
+
+        TSharedPtr< SCheckBox > CheckBoxExportAllLODs;
+        TSharedPtr< SCheckBox > CheckBoxExportSockets;
+        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
+        [
+            SNew( SHorizontalBox )
+            + SHorizontalBox::Slot()
+            .Padding( 1.0f )
+            .VAlign( VAlign_Center )
+            .AutoWidth()
+            [
+                SAssignNew( CheckBoxExportAllLODs, SCheckBox )
+                .Content()
+                [
+                    SNew( STextBlock )
+                    .Text( LOCTEXT( "ExportAllLOD", "Export LODs" ) )
+                    .ToolTipText( LOCTEXT( "ExportAllLODCheckboxTip", "If enabled, all LOD Meshes in this static mesh will be sent to Houdini." ) )
+                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+                ]
+                .IsChecked( TAttribute< ECheckBoxState >::Create(
+                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                    &InParam, &UHoudiniAssetInput::IsCheckedExportAllLODs ) ) )
+                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                    &InParam, &UHoudiniAssetInput::CheckStateChangedExportAllLODs ) )
+            ]
+            + SHorizontalBox::Slot()
+            .Padding( 1.0f )
+            .VAlign( VAlign_Center )
+            .AutoWidth()
+            [
+                SAssignNew( CheckBoxExportSockets, SCheckBox )
+                .Content()
+                [
+                    SNew( STextBlock )
+                    .Text( LOCTEXT( "ExportSockets", "Export Sockets" ) )
+                    .ToolTipText( LOCTEXT( "ExportSocketsTip", "If enabled, all Mesh Sockets in this static mesh will be sent to Houdini." ) )
+                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+                ]
+                .IsChecked( TAttribute< ECheckBoxState >::Create(
+                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                    &InParam, &UHoudiniAssetInput::IsCheckedExportSockets ) ) )
+                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                    &InParam, &UHoudiniAssetInput::CheckStateChangedExportSockets ) )
+            ]
+        ];
     }
 
     if ( InParam.ChoiceIndex == EHoudiniAssetInputType::GeometryInput )
