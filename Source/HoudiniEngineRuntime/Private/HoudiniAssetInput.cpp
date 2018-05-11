@@ -226,6 +226,7 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
     bLandscapeAutoSelectComponent = true;
     bPackBeforeMerge = false;
     bExportAllLODs = false;
+    bExportSockets = false;
 
     ChoiceStringValue = TEXT( "" );
 
@@ -650,8 +651,7 @@ UHoudiniAssetInput::UploadParameterValue()
                     // Connect input and create connected asset. Will return by reference.
                     if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData( 
                         HostAssetId, InputObjects, InputTransforms,
-                        ConnectedAssetId, CreatedInputDataAssetIds, bExportAllLODs ) )
-
+                        ConnectedAssetId, CreatedInputDataAssetIds, bExportAllLODs, bExportSockets ) )
                     {
                         bChanged = false;
                         ConnectedAssetId = -1;
@@ -839,7 +839,7 @@ UHoudiniAssetInput::UploadParameterValue()
                     // Connect input and create connected asset. Will return by reference.
                     if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData(
                         HostAssetId, InputOutlinerMeshArray, ConnectedAssetId,
-                        UnrealSplineResolution, bExportAllLODs ) )
+                        UnrealSplineResolution, bExportAllLODs, bExportSockets ) )
                     {
                         bChanged = false;
                         ConnectedAssetId = -1;
@@ -2551,7 +2551,7 @@ UHoudiniAssetInput::CheckStateChangedExportAllLODs( ECheckBoxState NewState )
     // Record undo information.
     FScopedTransaction Transaction(
         TEXT(HOUDINI_MODULE_RUNTIME),
-        LOCTEXT("HoudiniInputChange", "Houdini Input Transform Type change."),
+        LOCTEXT("HoudiniInputChange", "Houdini Input Export all LODs changed."),
         PrimaryObject);
     Modify();
 
@@ -2571,6 +2571,42 @@ ECheckBoxState
 UHoudiniAssetInput::IsCheckedExportAllLODs() const
 {
     if ( bExportAllLODs )
+        return ECheckBoxState::Checked;
+
+    return ECheckBoxState::Unchecked;
+}
+
+void
+UHoudiniAssetInput::CheckStateChangedExportSockets( ECheckBoxState NewState )
+{
+    int32 bState = ( NewState == ECheckBoxState::Checked );
+
+    if ( bExportSockets == bState )
+        return;
+
+    // Record undo information.
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniInputChange", "Houdini Input export sockets changed." ),
+        PrimaryObject );
+    Modify();
+
+    MarkPreChanged();
+
+    bExportSockets = bState;
+
+    // Changing the export of LODs changes the StaticMesh!
+    if ( HasSockets() )
+        bStaticMeshChanged = true;
+
+    // Mark this parameter as changed.
+    MarkChanged();
+}
+
+ECheckBoxState
+UHoudiniAssetInput::IsCheckedExportSockets() const
+{
+    if (bExportSockets)
         return ECheckBoxState::Checked;
 
     return ECheckBoxState::Unchecked;
@@ -3521,6 +3557,49 @@ UHoudiniAssetInput::HasLODs() const
                     continue;
 
                 if ( SM->GetNumLODs() > 1 )
+                    return true;
+            }
+        }
+        break;
+    }
+
+    return false;
+}
+
+bool
+UHoudiniAssetInput::HasSockets() const
+{
+    switch ( ChoiceIndex )
+    {
+        case EHoudiniAssetInputType::GeometryInput:
+        {
+            if ( !InputObjects.Num() )
+                return false;
+
+            for ( int32 Idx = 0; Idx < InputObjects.Num(); Idx++ )
+            {
+                UStaticMesh* SM = Cast<UStaticMesh>( InputObjects[ Idx ] );
+                if ( !SM )
+                    continue;
+
+                if ( SM->Sockets.Num() > 0 )
+                    return true;
+            }
+        }
+        break;
+
+        case EHoudiniAssetInputType::WorldInput:
+        {
+            if ( !InputOutlinerMeshArray.Num() )
+                return false;
+
+            for ( int32 Idx = 0; Idx < InputOutlinerMeshArray.Num(); Idx++ )
+            {
+                UStaticMesh* SM = InputOutlinerMeshArray[ Idx ].StaticMesh;
+                if ( !SM )
+                    continue;
+
+                if ( SM->Sockets.Num() > 1 )
                     return true;
             }
         }
