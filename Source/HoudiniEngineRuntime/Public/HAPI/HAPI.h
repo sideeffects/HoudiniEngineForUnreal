@@ -5579,15 +5579,11 @@ HAPI_DECL HAPI_GetPDGState( const HAPI_Session * session,
 ///                 The index of the workitem.  The semantics of the index
 ///                 are user defined.
 ///
-/// @param[in]      state
-///                 The initial state of the workitem.
-///
 HAPI_DECL HAPI_CreateWorkitem( const HAPI_Session * session,
                                HAPI_NodeId node_id,
                                HAPI_PDG_WorkitemId * workitem_id,
                                const char * name,
-                               int index,
-                               HAPI_PDG_WorkitemState state );
+                               int index );
 
 // @brief  Retrieves the info of a given workitem by id.
 ///
