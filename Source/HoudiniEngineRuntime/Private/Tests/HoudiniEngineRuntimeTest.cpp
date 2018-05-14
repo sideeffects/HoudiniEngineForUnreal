@@ -602,7 +602,7 @@ bool FHoudiniEngineRuntimeUploadStaticMeshTest::RunTest( const FString& Paramete
         InputObjects.Add( GeoInput );
         InputTransforms.Add( FTransform::Identity );
 
-        if( ! FHoudiniEngineUtils::HapiCreateInputNodeForData( AssetId, InputObjects, InputTransforms, ConnectedAssetId, GeometryInputAssetIds, false ) )
+        if( ! FHoudiniEngineUtils::HapiCreateInputNodeForObjects( AssetId, InputObjects, InputTransforms, ConnectedAssetId, GeometryInputAssetIds, false ) )
         {
             AddError( FString::Printf( TEXT( "HapiCreateInputNodeForData failed" )));
         }
