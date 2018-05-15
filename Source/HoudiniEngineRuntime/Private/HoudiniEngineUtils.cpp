@@ -323,18 +323,18 @@ FHoudiniEngineUtils::GetAssetPreset( HAPI_NodeId AssetId, TArray< char > & Prese
 }
 
 bool
-FHoudiniEngineUtils::IsHoudiniAssetValid( HAPI_NodeId AssetId )
+FHoudiniEngineUtils::IsHoudiniNodeValid( const HAPI_NodeId& NodeId )
 {
-    if ( AssetId < 0 )
+    if ( NodeId < 0 )
         return false;
 
     HAPI_NodeInfo NodeInfo;
     bool ValidationAnswer = 0;
 
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
-        FHoudiniEngine::Get().GetSession(), AssetId, &NodeInfo ), false );
+        FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo ), false );
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::IsNodeValid(
-        FHoudiniEngine::Get().GetSession(), AssetId,
+        FHoudiniEngine::Get().GetSession(), NodeId,
         NodeInfo.uniqueHoudiniNodeId, &ValidationAnswer ), false );
 
     return ValidationAnswer;
@@ -1326,7 +1326,7 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
 
     // We also need a valid host asset and 2 points to make a curve
     int32 NumberOfCVs = Positions->Num();
-    if ((NumberOfCVs < 2) || !FHoudiniEngineUtils::IsHoudiniAssetValid(HostAssetId))
+    if ( ( NumberOfCVs < 2 ) || !FHoudiniEngineUtils::IsHoudiniNodeValid( HostAssetId ) )
         return false;
 
     // Check if connected asset id is valid, if it is not, we need to create an input asset.
@@ -1338,7 +1338,7 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
             return false;
 
         // Check if we have a valid id for this new input asset.
-        if (!FHoudiniEngineUtils::IsHoudiniAssetValid(NodeId))
+        if ( !FHoudiniEngineUtils::IsHoudiniNodeValid( NodeId ) )
             return false;
 
         // We now have a valid id.
@@ -2115,7 +2115,7 @@ FHoudiniEngineUtils::HapiGetNodePath( HAPI_NodeId NodeId, HAPI_NodeId RelativeTo
     if ( ( NodeId == -1 ) || ( RelativeToNodeId == -1 ) )
         return false;
 
-    if ( !FHoudiniEngineUtils::IsHoudiniAssetValid( NodeId ) )
+    if ( !FHoudiniEngineUtils::IsHoudiniNodeValid( NodeId ) )
         return false;
 
     HAPI_StringHandle StringHandle;
@@ -2225,7 +2225,7 @@ FHoudiniEngineUtils::HapiGetObjectTransforms( HAPI_NodeId AssetId, TArray< HAPI_
 }
 
 bool
-FHoudiniEngineUtils::HapiCreateInputNodeForData(
+FHoudiniEngineUtils::HapiCreateInputNodeForLandscape(
     const HAPI_NodeId& HostAssetId, ALandscapeProxy * LandscapeProxy,
     HAPI_NodeId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds,
     const bool& bExportOnlySelected, const bool& bExportCurves,
@@ -2237,7 +2237,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 #if WITH_EDITOR
 
     // If we don't have any landscapes or host asset is invalid then there's nothing to do.
-    if ( !LandscapeProxy || !FHoudiniEngineUtils::IsHoudiniAssetValid( HostAssetId ) )
+    if ( !LandscapeProxy || !FHoudiniEngineUtils::IsHoudiniNodeValid( HostAssetId ) )
         return false;
 
     // Get runtime settings.
@@ -2305,26 +2305,21 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         if ( !FHoudiniLandscapeUtils::CreateHeightfieldInputNode( ConnectedAssetId, MergeId, LandscapeName ) )
             return false;
 
+        // Add the Heightfield's parent OBJ node to the created nodes
+        OutCreatedNodeIds.AddUnique( FHoudiniEngineUtils::HapiGetParentNodeId( ConnectedAssetId ) );
+
         bool bSuccess = false;
         int32 NumComponents = LandscapeProxy->LandscapeComponents.Num();
         if ( !bExportOnlySelected || ( SelectedComponents.Num() == NumComponents ) )
         {
             // Export the whole landscape and its layer as a single heightfield
-            bSuccess = FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape( LandscapeProxy, MergeId, OutCreatedNodeIds );
+            bSuccess = FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape( LandscapeProxy, MergeId );
         }
         else
         {
             // Each selected landscape component will be exported as a separate heightfield
-            bSuccess = FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray( LandscapeProxy, SelectedComponents, MergeId, OutCreatedNodeIds );
+            bSuccess = FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray( LandscapeProxy, SelectedComponents, MergeId );
         }
-        /*
-        // Reconnect the merge and volvis?
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, MergeId ), false);
-
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr), false);
-        */
 
         return bSuccess;
     }
@@ -2346,7 +2341,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             FHoudiniEngine::Get().GetSession(), &InputNodeId, nullptr ), false );
 
         // Check if we have a valid id for this new input asset.
-        if ( !FHoudiniEngineUtils::IsHoudiniAssetValid( InputNodeId ) )
+        if ( !FHoudiniEngineUtils::IsHoudiniNodeValid( InputNodeId ) )
             return false;
 
         // We now have a valid id.
@@ -2485,17 +2480,17 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 
 
 bool
-FHoudiniEngineUtils::HapiCreateInputNodeForData(
+FHoudiniEngineUtils::HapiCreateInputNodeForSpline(
     HAPI_NodeId HostAssetId, 
     USplineComponent * SplineComponent,
     HAPI_NodeId & ConnectedAssetId,
     FHoudiniAssetInputOutlinerMesh& OutlinerMesh,
-    const float& SplineResolution)
+    const float& SplineResolution )
 {
 #if WITH_EDITOR
 
     // If we don't have a spline component, or host asset is invalid, there's nothing to do.
-    if (!SplineComponent || !FHoudiniEngineUtils::IsHoudiniAssetValid(HostAssetId))
+    if ( !SplineComponent || !FHoudiniEngineUtils::IsHoudiniNodeValid( HostAssetId ) )
         return false;
         
     float fSplineResolution = SplineResolution;
@@ -2580,18 +2575,18 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     OutlinerMesh.NumberOfSplineControlPoints = nNumberOfControlPoints;
 
     // We also need to extract all the CV's Transform to check for modifications
-    OutlinerMesh.SplineControlPointsTransform.SetNum(nNumberOfControlPoints);
+    OutlinerMesh.SplineControlPointsTransform.SetNum( nNumberOfControlPoints );
     for ( int32 n = 0; n < nNumberOfControlPoints; n++ )
     {
         // Getting the Local Transform for positions and scale
-        OutlinerMesh.SplineControlPointsTransform[n] = SplineComponent->GetTransformAtSplinePoint(n, ESplineCoordinateSpace::Local, true);
+        OutlinerMesh.SplineControlPointsTransform[ n ] = SplineComponent->GetTransformAtSplinePoint( n, ESplineCoordinateSpace::Local, true );
 
         // ... but we used we used the world rotation
-        OutlinerMesh.SplineControlPointsTransform[n].SetRotation(SplineComponent->GetQuaternionAtSplinePoint(n, ESplineCoordinateSpace::World));
+        OutlinerMesh.SplineControlPointsTransform[ n ].SetRotation( SplineComponent->GetQuaternionAtSplinePoint(n, ESplineCoordinateSpace::World ) );
     }
 
     // Cook the spline node.
-    FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr);
+    FHoudiniApi::CookNode( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr );
 
 #endif
 
@@ -2599,18 +2594,18 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 }
 
 bool
-FHoudiniEngineUtils::HapiCreateInputNodeForData(
-    HAPI_NodeId HostAssetId, 
+FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
     UStaticMesh * StaticMesh,
     HAPI_NodeId & ConnectedAssetId,
+    TArray< HAPI_NodeId >& OutCreatedNodeIds,
     UStaticMeshComponent* StaticMeshComponent /* = nullptr */,
     const bool& ExportAllLODs /* = false */,
     const bool& ExportSockets /* = false */)
 {
 #if WITH_EDITOR
 
-    // If we don't have a static mesh, or host asset is invalid, there's nothing to do.
-    if ( !StaticMesh || !FHoudiniEngineUtils::IsHoudiniAssetValid( HostAssetId ) )
+    // If we don't have a static mesh there's nothing to do.
+    if ( !StaticMesh )
         return false;
 
     // Export sockets if there are some
@@ -2628,7 +2623,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         // All the different LOD meshes will be plugged into it
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
             FHoudiniEngine::Get().GetSession(), -1,
-            "SOP/merge", "input", true, &ConnectedAssetId ), false);
+            "SOP/merge", "input", true, &ConnectedAssetId ), false );
     }
     else if ( ConnectedAssetId < 0 )
     {
@@ -2639,7 +2634,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             FHoudiniEngine::Get().GetSession(), &InputNodeId, nullptr ), false );
 
         // Check if we have a valid id for this new input asset.
-        if ( !FHoudiniEngineUtils::IsHoudiniAssetValid( InputNodeId ) )
+        if ( !FHoudiniEngineUtils::IsHoudiniNodeValid( InputNodeId ) )
             return false;
 
         // We now have a valid id.
@@ -2648,6 +2643,10 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CookNode(
             FHoudiniEngine::Get().GetSession(), InputNodeId, nullptr ), false );
     }
+
+    // Get the input's parent OBJ node
+    HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId( ConnectedAssetId );
+    OutCreatedNodeIds.AddUnique( ParentId );
 
     // Get runtime settings.
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
@@ -2675,12 +2674,18 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         if ( UseMergeNode )
         {
             // Create a new input node for the current LOD
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateInputNode(
-                FHoudiniEngine::Get().GetSession(), &CurrentLODNodeId, nullptr ), false );
+            const char * LODName = "";
+            {
+                FString LOD = TEXT( "lod" ) + FString::FromInt( LODIndex );
+                LODName = TCHAR_TO_UTF8( *LOD );
+            }
+
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
+                FHoudiniEngine::Get().GetSession(), ParentId, "null", LODName, false, &CurrentLODNodeId ), false );
         }
         else
         {
-            // No merge, just use the input node we created before
+            // No merge node, just use the input node we created before
             CurrentLODNodeId = ConnectedAssetId;
         }
 
@@ -2702,12 +2707,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         Part.pointCount = RawMesh.VertexPositions.Num();
         Part.type = HAPI_PARTTYPE_MESH;
 
-        HAPI_GeoInfo DisplayGeoInfo;
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetDisplayGeoInfo(
-            FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, &DisplayGeoInfo ), false );
-
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetPartInfo(
-            FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0, &Part ), false );
+            FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, 0, &Part ), false );
 
         // Create point attribute info.
         HAPI_AttributeInfo AttributeInfoPoint;
@@ -2720,7 +2721,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         AttributeInfoPoint.originalOwner = HAPI_ATTROWNER_INVALID;
 
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
-            FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
+            FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, 0,
             HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint ), false );
 
         // Extract vertices from static mesh.
@@ -2752,7 +2753,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 
         // Now that we have raw positions, we can upload them for our attribute.
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
-            FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+            FHoudiniEngine::Get().GetSession(), CurrentLODNodeId,
             0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint,
             StaticMeshVertices.GetData(), 0,
             AttributeInfoPoint.count ), false );
@@ -2806,12 +2807,14 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
                 AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
                 AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
                 AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
                 HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
-                    FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+                    FHoudiniEngine::Get().GetSession(), CurrentLODNodeId,
                     0, TCHAR_TO_ANSI(*UVAttributeName), &AttributeInfoVertex ), false );
+
                 HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
                     FHoudiniEngine::Get().GetSession(),
-                    DisplayGeoInfo.nodeId, 0, TCHAR_TO_ANSI(*UVAttributeName), &AttributeInfoVertex,
+                    CurrentLODNodeId, 0, TCHAR_TO_ANSI(*UVAttributeName), &AttributeInfoVertex,
                     (const float *) StaticMeshUVs.GetData(), 0, AttributeInfoVertex.count ), false );
             }
         }
@@ -2855,12 +2858,14 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
             AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
             AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
-                FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+                FHoudiniEngine::Get().GetSession(), CurrentLODNodeId,
                 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex ), false );
+
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
                 FHoudiniEngine::Get().GetSession(),
-                DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex,
+                CurrentLODNodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex,
                 (const float *) ChangedNormals.GetData(),
                 0, AttributeInfoVertex.count ), false );
         }
@@ -2946,12 +2951,14 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
                 AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
                 AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
                 AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
                 HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
-                    FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+                    FHoudiniEngine::Get().GetSession(), CurrentLODNodeId,
                     0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex ), false );
+
                 HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
                     FHoudiniEngine::Get().GetSession(),
-                    DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex,
+                    CurrentLODNodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex,
                     (const float *)ChangedColors.GetData(), 0, AttributeInfoVertex.count ), false );
             }
         }
@@ -2984,14 +2991,14 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 
             // We can now set vertex list.
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetVertexList(
-                FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+                FHoudiniEngine::Get().GetSession(), CurrentLODNodeId,
                 0, StaticMeshIndices.GetData(), 0, StaticMeshIndices.Num() ), false );
 
             // We need to generate array of face counts.
             TArray< int32 > StaticMeshFaceCounts;
             StaticMeshFaceCounts.Init( 3, Part.faceCount );
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetFaceCounts(
-                FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+                FHoudiniEngine::Get().GetSession(), CurrentLODNodeId,
                 0, StaticMeshFaceCounts.GetData(), 0, StaticMeshFaceCounts.Num() ), false );
         }
 
@@ -3022,7 +3029,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 
             bool bAttributeError = false;
 
-            if ( FHoudiniApi::AddAttribute( FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
+            if ( FHoudiniApi::AddAttribute( FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, 0,
                 MarshallingAttributeName.c_str(), &AttributeInfoMaterial ) != HAPI_RESULT_SUCCESS )
             {
                 bAttributeError = true;
@@ -3030,7 +3037,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 
             if ( FHoudiniApi::SetAttributeStringData(
                 FHoudiniEngine::Get().GetSession(),
-                DisplayGeoInfo.nodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfoMaterial,
+                CurrentLODNodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfoMaterial,
                 (const char **) StaticMeshFaceMaterials.GetData(), 0,
                 StaticMeshFaceMaterials.Num() ) != HAPI_RESULT_SUCCESS )
             {
@@ -3067,12 +3074,14 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             AttributeInfoSmoothingMasks.owner = HAPI_ATTROWNER_PRIM;
             AttributeInfoSmoothingMasks.storage = HAPI_STORAGETYPE_INT;
             AttributeInfoSmoothingMasks.originalOwner = HAPI_ATTROWNER_INVALID;
+
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
-                FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+                FHoudiniEngine::Get().GetSession(), CurrentLODNodeId,
                 0, MarshallingAttributeName.c_str(), &AttributeInfoSmoothingMasks ), false );
+
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeIntData(
                 FHoudiniEngine::Get().GetSession(),
-                DisplayGeoInfo.nodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfoSmoothingMasks,
+                CurrentLODNodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfoSmoothingMasks,
                 (const int32 *) RawMesh.FaceSmoothingMasks.GetData(), 0, RawMesh.FaceSmoothingMasks.Num() ), false );
         }
 
@@ -3098,12 +3107,14 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             AttributeInfoLightMapResolution.owner = HAPI_ATTROWNER_DETAIL;
             AttributeInfoLightMapResolution.storage = HAPI_STORAGETYPE_INT;
             AttributeInfoLightMapResolution.originalOwner = HAPI_ATTROWNER_INVALID;
+
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
-                FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+                FHoudiniEngine::Get().GetSession(), CurrentLODNodeId,
                 0, MarshallingAttributeName.c_str(), &AttributeInfoLightMapResolution ), false );
+
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeIntData(
                 FHoudiniEngine::Get().GetSession(),
-                DisplayGeoInfo.nodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfoLightMapResolution,
+                CurrentLODNodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfoLightMapResolution,
                 (const int32 *) LightMapResolutions.GetData(), 0, LightMapResolutions.Num() ), false );
         }
 
@@ -3135,12 +3146,12 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
-                FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+                FHoudiniEngine::Get().GetSession(), CurrentLODNodeId,
                 0, MarshallingAttributeName.c_str(), &AttributeInfo ), false );
 
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
                 FHoudiniEngine::Get().GetSession(),
-                DisplayGeoInfo.nodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfo,
+                CurrentLODNodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfo,
                 PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num() ), false );
         }
 
@@ -3183,12 +3194,12 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
                 AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
                 HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
-                    FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+                    FHoudiniEngine::Get().GetSession(), CurrentLODNodeId,
                     0, MarshallingAttributeName.c_str(), &AttributeInfo ), false );
 
                 HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
                     FHoudiniEngine::Get().GetSession(),
-                    DisplayGeoInfo.nodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfo,
+                    CurrentLODNodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfo,
                     PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num() ), false );
             }
         }
@@ -3198,7 +3209,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         {
             if ( UHoudiniAttributeDataComponent* DataComponent = StaticMeshComponent->GetOwner()->FindComponentByClass<UHoudiniAttributeDataComponent>() )
             {
-                bool bSuccess = DataComponent->Upload( DisplayGeoInfo.nodeId, StaticMeshComponent );
+                bool bSuccess = DataComponent->Upload( CurrentLODNodeId, StaticMeshComponent );
                 if ( !bSuccess )
                 {
                     HOUDINI_LOG_ERROR( TEXT( "Upload of attribute data for %s failed" ), *StaticMeshComponent->GetOwner()->GetName() );
@@ -3217,14 +3228,14 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 
             // Add a LOD group
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddGroup(
-                FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
+                FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, 0,
                 HAPI_GROUPTYPE_PRIM, LODGroupStr), false);
 
             // Set GroupMembership
             TArray<int> GroupArray;
             GroupArray.Init(1, Part.faceCount);
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetGroupMembership(
-                FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
+                FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, 0,
                 HAPI_GROUPTYPE_PRIM, LODGroupStr, GroupArray.GetData(), 0, Part.faceCount ), false );
 
             if ( !StaticMesh->bAutoComputeLODScreenSize )
@@ -3243,12 +3254,12 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
                 AttributeInfoLODScreenSize.originalOwner = HAPI_ATTROWNER_INVALID;
 
                 HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
-                    FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
+                    FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, 0,
                     TCHAR_TO_UTF8( *LODAttributeName ), &AttributeInfoLODScreenSize), false);
 
                 float lodscreensize = SrcModel.ScreenSize;
                 HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
-                    FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
+                    FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, 0,
                     TCHAR_TO_UTF8( *LODAttributeName ), &AttributeInfoLODScreenSize,
                     &lodscreensize, 0, 1 ), false);
             }
@@ -3256,12 +3267,12 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 
         // Commit the geo.
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
-            FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );
+            FHoudiniEngine::Get().GetSession(), CurrentLODNodeId), false );
 
         if ( UseMergeNode )
         {
             // Now we can connect the LOD node to the input node.
-            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
                 FHoudiniEngine::Get().GetSession(), ConnectedAssetId, LODIndex,
                 CurrentLODNodeId ), false);
         }
@@ -3272,8 +3283,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         int32 NumSockets = StaticMesh->Sockets.Num();
         HAPI_NodeId SocketsNodeId = -1;
         // Create a new input node for the sockets
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputNode(
-            FHoudiniEngine::Get().GetSession(), &SocketsNodeId, nullptr ), false );
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
+            FHoudiniEngine::Get().GetSession(), ParentId, "null", "sockets", false, &SocketsNodeId ), false );
 
         // Create part.
         HAPI_PartInfo Part;
@@ -3289,12 +3300,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         Part.faceCount = 0;	
         Part.type = HAPI_PARTTYPE_MESH;
 
-        HAPI_GeoInfo DisplayGeoInfo;
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetDisplayGeoInfo(
-            FHoudiniEngine::Get().GetSession(), SocketsNodeId, &DisplayGeoInfo), false);
-
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetPartInfo(
-            FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0, &Part), false);
+            FHoudiniEngine::Get().GetSession(), SocketsNodeId, 0, &Part), false);
 
         // Create POS point attribute info.
         HAPI_AttributeInfo AttributeInfoPos;
@@ -3307,7 +3314,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         AttributeInfoPos.originalOwner = HAPI_ATTROWNER_INVALID;
 
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
-            FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
+            FHoudiniEngine::Get().GetSession(), SocketsNodeId, 0,
             HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPos ), false );
 
         // Create Rot point attribute Info
@@ -3321,7 +3328,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         AttributeInfoRot.originalOwner = HAPI_ATTROWNER_INVALID;
 
         HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-            FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
+            FHoudiniEngine::Get().GetSession(), SocketsNodeId, 0,
             HAPI_UNREAL_ATTRIB_ROTATION, &AttributeInfoRot ), false );
 
         // Create scale point attribute Info
@@ -3335,7 +3342,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         AttributeInfoScale.originalOwner = HAPI_ATTROWNER_INVALID;
 
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
-            FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
+            FHoudiniEngine::Get().GetSession(), SocketsNodeId, 0,
             HAPI_UNREAL_ATTRIB_SCALE, &AttributeInfoScale ), false );
 
         //  Create the name attrib info
@@ -3349,7 +3356,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         AttributeInfoName.originalOwner = HAPI_ATTROWNER_INVALID;
 
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
-            FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
+            FHoudiniEngine::Get().GetSession(), SocketsNodeId, 0,
             HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME, &AttributeInfoName ), false );
 
         // Extract the sockets transform values
@@ -3455,10 +3462,11 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 }
 
 bool
-FHoudiniEngineUtils::HapiCreateInputNodeForData(
+FHoudiniEngineUtils::HapiCreateInputNodeForWorldOutliner(
     HAPI_NodeId HostAssetId,
     TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
     HAPI_NodeId & ConnectedAssetId,
+    TArray< HAPI_NodeId >& OutCreatedNodeIds,
     const float& SplineResolution,
     const bool& ExportAllLODs /* = false */,
     const bool& ExportSockets /* = false */)
@@ -3467,36 +3475,46 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     if ( OutlinerMeshArray.Num() <= 0 )
         return false;
 
-    // Create the merge SOP asset. This will be our "ConnectedAssetId".
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
-        FHoudiniEngine::Get().GetSession(), -1,
-        "SOP/merge", nullptr, true, &ConnectedAssetId ), false );
+    bool UseMerge = OutlinerMeshArray.Num() > 0;
+
+    if ( UseMerge )
+    {
+        // If we have more than one input, create the merge SOP asset.
+        // This will be our "ConnectedAssetId".
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
+            FHoudiniEngine::Get().GetSession(), -1,
+            "SOP/merge", nullptr, true, &ConnectedAssetId ), false );
+
+        // Add the merge node's parent OBJ to the created nodes
+        OutCreatedNodeIds.AddUnique( FHoudiniEngineUtils::HapiGetParentNodeId( ConnectedAssetId ) );
+    }
 
     for ( int32 InputIdx = 0; InputIdx < OutlinerMeshArray.Num(); ++InputIdx )
     {
         auto & OutlinerMesh = OutlinerMeshArray[ InputIdx ];
 
         bool bInputCreated = false;
-
         if ( OutlinerMesh.StaticMesh != nullptr )
         {
             // Creating an Input Node for Mesh Data
-            bInputCreated = HapiCreateInputNodeForData(
-                ConnectedAssetId,
+            bInputCreated = HapiCreateInputNodeForStaticMesh(
                 OutlinerMesh.StaticMesh,
                 OutlinerMesh.AssetId,
+                OutCreatedNodeIds,
                 OutlinerMesh.StaticMeshComponent,
                 ExportAllLODs, ExportSockets );
         }
         else if ( OutlinerMesh.SplineComponent != nullptr )
         {
             // Creating an input node for spline data
-            bInputCreated = HapiCreateInputNodeForData(
+            bInputCreated = HapiCreateInputNodeForSpline(
                 ConnectedAssetId,
                 OutlinerMesh.SplineComponent,
                 OutlinerMesh.AssetId,
                 OutlinerMesh,
                 SplineResolution );
+
+            OutCreatedNodeIds.AddUnique( FHoudiniEngineUtils::HapiGetParentNodeId( OutlinerMesh.AssetId ) );
         }
 
         if ( !bInputCreated )
@@ -3505,31 +3523,35 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             continue;
         }
 
-        // Now we can connect the input node to the asset node.
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
-            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
-            OutlinerMesh.AssetId), false);
+        if ( UseMerge )
+        {
+            // Now we can connect the input node to the merge node.
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
+                FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
+                OutlinerMesh.AssetId ), false );
+        }
+        else
+        {
+            // We only have one input, use its Id as our "ConnectedAssetId"
+            ConnectedAssetId = OutlinerMesh.AssetId;
+        }
         
         // Updating the Transform
         HAPI_TransformEuler HapiTransform;
         FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
         FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerMesh.ComponentTransform, HapiTransform );
 
-        HAPI_NodeInfo LocalAssetNodeInfo;
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
-            FHoudiniEngine::Get().GetSession(), OutlinerMesh.AssetId,
-            &LocalAssetNodeInfo ), false );
-
+        // Set it on the input mesh's parent OBJ node
+        HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId( OutlinerMesh.AssetId );
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetObjectTransform(
-            FHoudiniEngine::Get().GetSession(),
-            LocalAssetNodeInfo.parentId, &HapiTransform ), false );
+            FHoudiniEngine::Get().GetSession(), ParentId, &HapiTransform ), false );
     }
 #endif
     return true;
 }
 
 bool 
-FHoudiniEngineUtils::HapiCreateInputNodeForData( 
+FHoudiniEngineUtils::HapiCreateInputNodeForObjects( 
     HAPI_NodeId HostAssetId, TArray<UObject *>& InputObjects, const TArray< FTransform >& InputTransforms,
     HAPI_NodeId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds,
     const bool& bExportAllLODs /* = false */, const bool& bExportSockets /* = false */ )
@@ -3537,70 +3559,62 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 #if WITH_EDITOR
     if ( ensure( InputObjects.Num() ) )
     {
-        // TODO: No need to merge if there is only one input object if ( InputObjects.Num() == 1 )
+        bool UseMergeNode = InputObjects.Num() > 1;
 
-        // Create the merge SOP asset. This will be our "ConnectedAssetId".
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
-            FHoudiniEngine::Get().GetSession(), -1,
-            "SOP/merge", nullptr, true, &ConnectedAssetId ), false );
+        if ( UseMergeNode )
+        {
+            // If we have more thant one input mesh, create a merge SOP asset. This will be our "ConnectedAssetId".
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
+                FHoudiniEngine::Get().GetSession(), -1,
+                "SOP/merge", nullptr, true, &ConnectedAssetId ), false );
+        }
 
         for ( int32 InputIdx = 0; InputIdx < InputObjects.Num(); ++InputIdx )
         {
+            HAPI_NodeId MeshAssetNodeId = -1;
+            FTransform InputTransform = FTransform::Identity;
+            if ( InputTransforms.IsValidIndex( InputIdx ) )
+                InputTransform = InputTransforms[ InputIdx ];
+
             if ( UStaticMesh* InputStaticMesh = Cast< UStaticMesh >( InputObjects[ InputIdx ] ) )
             {
-                FTransform InputTransform = FTransform::Identity;
-                if ( InputTransforms.IsValidIndex( InputIdx ) )
-                    InputTransform = InputTransforms[ InputIdx ];
-
-                HAPI_NodeId MeshAssetNodeId = -1;
-                // Creating an Input Node for Mesh Data
                 // Creating an Input Node for Static Mesh Data
-                if ( !HapiCreateInputNodeForData( ConnectedAssetId, InputStaticMesh, MeshAssetNodeId, nullptr, bExportAllLODs, bExportSockets ) )
+                if ( !HapiCreateInputNodeForStaticMesh( InputStaticMesh, MeshAssetNodeId, OutCreatedNodeIds, nullptr, bExportAllLODs, bExportSockets ) )
                 {
                     HOUDINI_LOG_WARNING( TEXT( "Error creating input index %d on %d" ), InputIdx, ConnectedAssetId );
                 }
+            }
 
-                if ( MeshAssetNodeId >= 0 )
-                {
-                    OutCreatedNodeIds.Add( MeshAssetNodeId );
+            if ( MeshAssetNodeId < 0 )
+                continue;
 
-                    // Now we can connect the input node to the asset node.
-                    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
-                        FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
-                        MeshAssetNodeId ), false );
+            if ( UseMergeNode )
+            {
+                // Now we can connect the input node to the merge node.
+                HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
+                    FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
+                    MeshAssetNodeId ), false );
+            }
+            else
+            {
+                // We only have one input, use the MeshNodeId as our "ConnectedAssetId".
+                ConnectedAssetId = MeshAssetNodeId;
+            }
 
-                    if ( !InputTransform.Equals( FTransform::Identity ) )
-                    {
-                        // Updating the Transform
-                        HAPI_TransformEuler HapiTransform;
-                        FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
-                        FHoudiniEngineUtils::TranslateUnrealTransform( InputTransform, HapiTransform );
+            // If the Geometry Input has a Transform offset
+            if ( !InputTransform.Equals( FTransform::Identity ) )
+            {
+                // Updating the Transform
+                HAPI_TransformEuler HapiTransform;
+                FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
+                FHoudiniEngineUtils::TranslateUnrealTransform( InputTransform, HapiTransform );
 
-                        /*
-                        FVector InputPosition = InputTransform.GetLocation() / 100.0f;
-                        HapiTransform.position[ 0 ] = InputPosition.X;
-                        HapiTransform.position[ 1 ] = InputPosition.Y;
-                        HapiTransform.position[ 2 ] = InputPosition.Z;
+                HAPI_NodeInfo LocalAssetNodeInfo;
+                HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
+                    FHoudiniEngine::Get().GetSession(), MeshAssetNodeId, &LocalAssetNodeInfo ), false );
 
-                        FRotator InputRotator = InputTransform.Rotator();
-                        HapiTransform.rotationEuler[ 0 ] = InputRotator.Pitch;
-                        HapiTransform.rotationEuler[ 1 ] = InputRotator.Yaw;
-                        HapiTransform.rotationEuler[ 2 ] = InputRotator.Roll;
-
-                        FVector InputScale = InputTransform.GetScale3D();
-                        HapiTransform.scale[ 0 ] = InputScale.X;
-                        HapiTransform.scale[ 1 ] = InputScale.Y;
-                        HapiTransform.scale[ 2 ] = InputScale.Z;
-                        */
-
-                        HAPI_NodeInfo LocalAssetNodeInfo;
-                        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
-                            FHoudiniEngine::Get().GetSession(), MeshAssetNodeId, &LocalAssetNodeInfo), false);
-
-                        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetObjectTransform(
-                            FHoudiniEngine::Get().GetSession(), LocalAssetNodeInfo.parentId, &HapiTransform ), false);
-                    }
-                }
+                HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetObjectTransform(
+                    FHoudiniEngine::Get().GetSession(), LocalAssetNodeInfo.parentId, &HapiTransform ), false );
             }
         }
     }
@@ -3667,7 +3681,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 {
 #if WITH_EDITOR
 
-    if ( !FHoudiniEngineUtils::IsHoudiniAssetValid( AssetId ) || !HoudiniCookParams.HoudiniAsset )
+    if ( !FHoudiniEngineUtils::IsHoudiniNodeValid( AssetId ) || !HoudiniCookParams.HoudiniAsset )
         return false;
 
     // Make sure rendering is done - so we are not changing data being used by collision drawing.
@@ -8458,6 +8472,20 @@ FHoudiniEngineUtils::CreateSlateNotification( const FString& NotificationString 
 #endif
 
     return;
+}
+
+HAPI_NodeId
+FHoudiniEngineUtils::HapiGetParentNodeId( const HAPI_NodeId& NodeId )
+{
+    HAPI_NodeId ParentId = -1;
+    if ( NodeId >= 0 )
+    {
+        HAPI_NodeInfo NodeInfo;
+        if ( HAPI_RESULT_SUCCESS == FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo ) )
+            ParentId = NodeInfo.parentId;
+    }
+
+    return ParentId;
 }
 
 FHoudiniCookParams::FHoudiniCookParams( class UHoudiniAsset* InHoudiniAsset )

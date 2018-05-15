@@ -945,7 +945,7 @@ FHoudiniLandscapeUtils::ResizeLayerDataForLandscape(
 #if WITH_EDITOR
 bool
 FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
-    ALandscapeProxy* LandscapeProxy, const HAPI_NodeId& InputMergeNodeId, TArray< HAPI_NodeId >& OutCreatedNodeIds )
+    ALandscapeProxy* LandscapeProxy, const HAPI_NodeId& InputMergeNodeId )
 {
     if ( !LandscapeProxy )
         return false;
@@ -954,6 +954,9 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
     ALandscape* Landscape = LandscapeProxy->GetLandscapeActor();
     if ( !Landscape )
         return false;
+
+    // Get the merge node's parent ID
+    HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId( InputMergeNodeId );
 
     //--------------------------------------------------------------------------------------------------
     // 1. Extracting the height data
@@ -983,18 +986,15 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
     HAPI_NodeId VolumeNodeId = -1;
     HAPI_PartId PartId = 0;
     FString Name = TEXT("height");
-    if ( !CreateVolumeInputNode( VolumeNodeId, Name ) )
+    if ( !CreateVolumeInputNode( VolumeNodeId, Name, ParentId ) )
         return false;
 
-    // Add the node to the array so we can destroy it later
-    OutCreatedNodeIds.Add( VolumeNodeId );
-
-    if ( !SetHeighfieldData( VolumeNodeId, PartId, HeightfieldFloatValues, HeightfieldVolumeInfo, Name ) )
+    if ( !SetHeighfieldData( VolumeNodeId, PartId, HeightfieldFloatValues, HeightfieldVolumeInfo, Name, 0 ) )
         return false;
 
     // Commit the landscape and connect it to the parent merge node
     int32 MergeInputIndex = 0;
-    if ( !CommitVolumeInputNode(VolumeNodeId, InputMergeNodeId, MergeInputIndex++ ) )
+    if ( !CommitVolumeInputNode( VolumeNodeId, InputMergeNodeId, MergeInputIndex++ ) )
         return false;
 
     //--------------------------------------------------------------------------------------------------
@@ -1028,15 +1028,12 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
         CurrentLayerVolumeInfo.transform = HeightfieldVolumeInfo.transform;
 
         HAPI_NodeId LayerVolumeNodeId = -1;
-        if ( !CreateVolumeInputNode( LayerVolumeNodeId, LayerName ) )
+        if ( !CreateVolumeInputNode( LayerVolumeNodeId, LayerName, ParentId ) )
             continue;
-
-        // Add the node to the array so we can destroy it later
-        OutCreatedNodeIds.Add( LayerVolumeNodeId );
 
         // 3. Set the heighfield data in Houdini
         HAPI_PartId CurrentPartId = 0;
-        if ( !SetHeighfieldData( LayerVolumeNodeId, PartId, CurrentLayerFloatData, CurrentLayerVolumeInfo, LayerName ) )
+        if ( !SetHeighfieldData( LayerVolumeNodeId, PartId, CurrentLayerFloatData, CurrentLayerVolumeInfo, LayerName, 0 ) )
             continue;
 
         if ( !CommitVolumeInputNode( LayerVolumeNodeId, InputMergeNodeId, MergeInputIndex ) )
@@ -1054,11 +1051,9 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
     if ( !bMaskCreated )
     {
         HAPI_NodeId MaskNodeId = -1;
-        bMaskCreated = CreateDefaultHeightfieldMask( HeightfieldVolumeInfo, InputMergeNodeId, MergeInputIndex, MaskNodeId );
+        bMaskCreated = CreateDefaultHeightfieldMask( HeightfieldVolumeInfo, InputMergeNodeId, 0, MergeInputIndex, MaskNodeId );
 
         MergeInputIndex++;
-
-        OutCreatedNodeIds.Add( MaskNodeId );
     }
 
     if ( !bMaskCreated )
@@ -1069,8 +1064,9 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
 
 bool
 FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
-    ALandscapeProxy* LandscapeProxy, TSet< ULandscapeComponent * >& LandscapeComponentArray, 
-    const HAPI_NodeId& InputMergeNodeId, TArray< HAPI_NodeId >& OutCreatedNodeIds)
+    ALandscapeProxy* LandscapeProxy,
+    TSet< ULandscapeComponent * >& LandscapeComponentArray, 
+    const HAPI_NodeId& InputMergeNodeId )
 {
     if ( LandscapeComponentArray.Num() <= 0 )
         return false;
@@ -1089,7 +1085,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
         if ( !LandscapeComponentArray.Contains( CurrentComponent ) )
             continue;
 
-        if ( !CreateHeightfieldFromLandscapeComponent( CurrentComponent, InputMergeNodeId, OutCreatedNodeIds, MergeInputIndex ) )
+        if ( !CreateHeightfieldFromLandscapeComponent( CurrentComponent, InputMergeNodeId, ComponentIdx, MergeInputIndex ) )
             bAllComponentCreated = false;
     }
 
@@ -1100,10 +1096,13 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
 bool
 FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
     ULandscapeComponent * LandscapeComponent, const HAPI_NodeId& InputMergeNodeId,
-    TArray< HAPI_NodeId >& OutCreatedNodeIds, int32& MergeInputIndex )
+    const int32& ComponentIndex, int32& MergeInputIndex )
 {
     if ( !LandscapeComponent )
         return false;
+
+    // Get the merge node's parent ID
+    HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId( InputMergeNodeId );
 
     //--------------------------------------------------------------------------------------------------
     // 1. Extracting the height data
@@ -1146,13 +1145,10 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
     HAPI_NodeId VolumeNodeId = -1;
     HAPI_PartId PartId = 0;
     FString Name = TEXT( "height" );
-    if ( !CreateVolumeInputNode( VolumeNodeId, Name ) )
+    if ( !CreateVolumeInputNode( VolumeNodeId, Name, ParentId ) )
         return false;
 
-    // Add the node to the array so we can destroy it later
-    OutCreatedNodeIds.Add( VolumeNodeId );
-
-    if ( !SetHeighfieldData( VolumeNodeId, PartId, HeightfieldFloatValues, HeightfieldVolumeInfo, Name ) )
+    if ( !SetHeighfieldData( VolumeNodeId, PartId, HeightfieldFloatValues, HeightfieldVolumeInfo, Name, ComponentIndex ) )
         return false;
 
     // Commit the landscape and connect it to the parent merge node
@@ -1186,15 +1182,12 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
         CurrentLayerVolumeInfo.transform = HeightfieldVolumeInfo.transform;
 
         HAPI_NodeId LayerVolumeNodeId = -1;
-        if ( !CreateVolumeInputNode( LayerVolumeNodeId, LayerName ) )
+        if ( !CreateVolumeInputNode( LayerVolumeNodeId, LayerName, ParentId ) )
             continue;
-
-        // Add the node to the array so we can destroy it later
-        OutCreatedNodeIds.Add( LayerVolumeNodeId );
 
         // 3. Set the heighfield data in Houdini
         HAPI_PartId CurrentPartId = 0;
-        if ( !SetHeighfieldData( LayerVolumeNodeId, CurrentPartId, CurrentLayerFloatData, CurrentLayerVolumeInfo, LayerName ) )
+        if ( !SetHeighfieldData( LayerVolumeNodeId, CurrentPartId, CurrentLayerFloatData, CurrentLayerVolumeInfo, LayerName, ComponentIndex ) )
             continue;
 
         if ( !CommitVolumeInputNode( LayerVolumeNodeId, InputMergeNodeId, MergeInputIndex ) )
@@ -1212,11 +1205,9 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
     if ( !bMaskCreated )
     {
         HAPI_NodeId MaskNodeId = -1;
-        bMaskCreated = CreateDefaultHeightfieldMask( HeightfieldVolumeInfo, InputMergeNodeId, MergeInputIndex, MaskNodeId );
+        bMaskCreated = CreateDefaultHeightfieldMask( HeightfieldVolumeInfo, InputMergeNodeId, ComponentIndex, MergeInputIndex, MaskNodeId );
 
         MergeInputIndex++;
-
-        OutCreatedNodeIds.Add( MaskNodeId );
     }
 
     if ( !bMaskCreated )
@@ -1610,10 +1601,11 @@ FHoudiniLandscapeUtils::ConvertLandscapeLayerDataToHeightfieldData(
 
 bool
 FHoudiniLandscapeUtils::SetHeighfieldData(
-    const HAPI_NodeId& AssetId, const HAPI_PartId& PartId,
+    const HAPI_NodeId& VolumeNodeId, const HAPI_PartId& PartId,
     TArray<float>& FloatValues,
     const HAPI_VolumeInfo& VolumeInfo,
-    const FString& HeightfieldName )
+    const FString& HeightfieldName,
+    const int32& TileIndex )
 {
     // Creating the part and sending the data through HAPI
     HAPI_PartInfo Part;
@@ -1621,17 +1613,17 @@ FHoudiniLandscapeUtils::SetHeighfieldData(
     Part.id = PartId;
     Part.nameSH = 0;
     Part.attributeCounts[ HAPI_ATTROWNER_POINT ] = 0;
-    Part.attributeCounts[ HAPI_ATTROWNER_PRIM ] = 1;
+    Part.attributeCounts[ HAPI_ATTROWNER_PRIM ] = 1;// 2;
     Part.attributeCounts[ HAPI_ATTROWNER_VERTEX ] = 0;
     Part.attributeCounts[ HAPI_ATTROWNER_DETAIL ] = 0;
     Part.pointCount = 0; 
     Part.vertexCount = 0;
     Part.faceCount = 1;
-    Part.type = HAPI_PARTTYPE_VOLUME;
+    Part.type = HAPI_PARTTYPE_VOLUME;   
 
     HAPI_GeoInfo DisplayGeoInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetDisplayGeoInfo(
-        FHoudiniEngine::Get().GetSession(), AssetId, &DisplayGeoInfo ), false );
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGeoInfo(
+        FHoudiniEngine::Get().GetSession(), VolumeNodeId, &DisplayGeoInfo ), false );
 
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetPartInfo(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, Part.id, &Part ), false );
@@ -1650,6 +1642,10 @@ FHoudiniLandscapeUtils::SetHeighfieldData(
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetHeightFieldData(
         FHoudiniEngine::Get().GetSession(),
         DisplayGeoInfo.nodeId, Part.id, NameStr.c_str() , HeightData, 0, FloatValues.Num() ), false );
+
+    // Add the tile attribute ( 0 since we dont have tiles)
+    //if ( !AddLandscapetTileAttribute( VolumeNodeId, PartId, TileIndex ) )
+        //return false;
 
     return true;
 }
@@ -1770,29 +1766,26 @@ FHoudiniLandscapeUtils::CreateHeightfieldInputNode( HAPI_NodeId& DisplayNodeId, 
 }
 
 bool
-FHoudiniLandscapeUtils::CreateVolumeInputNode( HAPI_NodeId& InAssetId, const FString& NodeName )
+FHoudiniLandscapeUtils::CreateVolumeInputNode( HAPI_NodeId& InNodeId, const FString& NodeName, const HAPI_NodeId& ParentId )
 {
     // The node cannot already exist
-    if ( InAssetId >= 0 )
+    if ( InNodeId >= 0 )
         return false;
 
     // Volume name?
     std::string NameStr;
     FHoudiniEngineUtils::ConvertUnrealString( NodeName, NameStr );
 
-    HAPI_NodeId AssetId = -1;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateInputNode(
-        FHoudiniEngine::Get().GetSession(), &AssetId, NameStr.c_str() ), false);
+    HAPI_NodeId InputNodeId = -1;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
+        FHoudiniEngine::Get().GetSession(), ParentId, "null", NameStr.c_str(), true, &InputNodeId ), false );
 
     // Check if we have a valid id for this new input asset.
-    if ( !FHoudiniEngineUtils::IsHoudiniAssetValid( AssetId ) )
+    if ( !FHoudiniEngineUtils::IsHoudiniNodeValid( InputNodeId ) )
         return false;
 
     // We now have a valid id.
-    InAssetId = AssetId;
-
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-        FHoudiniEngine::Get().GetSession(), AssetId, nullptr ), false );
+    InNodeId = InputNodeId;
 
     return true;
 }
@@ -1802,7 +1795,7 @@ FHoudiniLandscapeUtils::CommitVolumeInputNode(
     const HAPI_NodeId& NodeToCommit, const HAPI_NodeId& NodeToConnectTo, const int32& InputToConnect )
 {
     HAPI_GeoInfo DisplayGeoInfo;
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetDisplayGeoInfo(
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(
         FHoudiniEngine::Get().GetSession(), NodeToCommit, &DisplayGeoInfo ), false );
 
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
@@ -1825,12 +1818,16 @@ FHoudiniLandscapeUtils::CommitVolumeInputNode(
 bool
 FHoudiniLandscapeUtils::CreateDefaultHeightfieldMask(
     const HAPI_VolumeInfo& HeightVolumeInfo,
-    const HAPI_NodeId& AssetId,
+    const HAPI_NodeId& VolumeNodeId,
+    const int32& ComponentIndex,
     int32& MergeInputIndex,
     HAPI_NodeId& OutCreatedNodeId )
 {
     // We need to have a mask layer as it is required for proper heightfield functionalities
     // If we didn't create one, we'll send a fully measured mask now
+
+    // Get the merge node's parent ID
+    HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId( VolumeNodeId );
 
     // Creating an array filled with 1.0
     TArray< float > MaskFloatData;
@@ -1844,17 +1841,17 @@ FHoudiniLandscapeUtils::CreateDefaultHeightfieldMask(
     // Creating the mask node
     FString MaskName = TEXT( "mask" );
     HAPI_NodeId MaskVolumeNodeId = -1;
-    if ( !CreateVolumeInputNode( MaskVolumeNodeId, MaskName ) )
+    if ( !CreateVolumeInputNode( MaskVolumeNodeId, MaskName, ParentId ) )
         return false;
 
     OutCreatedNodeId = MaskVolumeNodeId;
 
     // Set the heighfield data in Houdini
     HAPI_PartId PartId = 0;
-    if ( !SetHeighfieldData( MaskVolumeNodeId, PartId, MaskFloatData, MaskVolumeInfo, MaskName ) )
+    if ( !SetHeighfieldData( MaskVolumeNodeId, PartId, MaskFloatData, MaskVolumeInfo, MaskName, ComponentIndex ) )
         return false;
 
-    if ( !CommitVolumeInputNode(MaskVolumeNodeId, AssetId, MergeInputIndex ) )
+    if ( !CommitVolumeInputNode( MaskVolumeNodeId, VolumeNodeId, MergeInputIndex ) )
         return false;
 
     MergeInputIndex++;
@@ -2534,6 +2531,29 @@ bool FHoudiniLandscapeUtils::AddLandscapeMeshIndicesAndMaterialsAttribute(
                 AttributeInfoPrimitiveMaterialHole.count ), false );
         }
     }
+
+    return true;
+}
+
+bool FHoudiniLandscapeUtils::AddLandscapetTileAttribute( const HAPI_NodeId& NodeId, const HAPI_PartId& PartId, const int32& TileIdx )
+{
+    HAPI_AttributeInfo AttributeInfoTileIndex;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoTileIndex );
+    AttributeInfoTileIndex.count = 1;
+    AttributeInfoTileIndex.tupleSize = 1;
+    AttributeInfoTileIndex.exists = true;
+    AttributeInfoTileIndex.owner = HAPI_ATTROWNER_PRIM;
+    AttributeInfoTileIndex.storage = HAPI_STORAGETYPE_INT;
+    AttributeInfoTileIndex.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), NodeId,
+        0, "tile", &AttributeInfoTileIndex ), false );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeIntData(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, PartId, "tile", &AttributeInfoTileIndex,
+        (const int *)&TileIdx, 0, AttributeInfoTileIndex.count ), false );
 
     return true;
 }

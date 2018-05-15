@@ -391,6 +391,33 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
                 FHoudiniEngineUtils::HapiDisconnectAsset( HostAssetId, InputIndex );
         }
 
+        // Destroy all the geo input assets
+        for ( HAPI_NodeId AssetNodeId : CreatedInputDataAssetIds )
+        {
+            if ( FHoudiniEngineUtils::IsHoudiniNodeValid( AssetNodeId ) )
+                FHoudiniEngineUtils::DestroyHoudiniAsset( AssetNodeId );
+        }
+        CreatedInputDataAssetIds.Empty();
+
+        // Then simply destroy the input's parent OBJ node
+        HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId( ConnectedAssetId );
+        if ( FHoudiniEngineUtils::IsHoudiniNodeValid( ParentId ) )
+            FHoudiniEngineUtils::DestroyHoudiniAsset( ParentId );
+
+        if ( FHoudiniEngineUtils::IsHoudiniNodeValid( ConnectedAssetId ) )
+            FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
+
+        ConnectedAssetId = -1;
+        if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
+        {
+            // World Input Actors' Meshes need to have their corresponding Input Assets destroyed too.
+            for ( int32 n = 0; n < InputOutlinerMeshArray.Num(); n++ )
+            {
+                InputOutlinerMeshArray[ n ].AssetId = -1;
+            }
+        }
+
+        /*
         if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
         {
             // World Input Actors' Meshes need to have their corresponding Input Assets destroyed too.
@@ -425,6 +452,7 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
             FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
             ConnectedAssetId = -1;
         }
+        */
     }
 }
 
@@ -649,7 +677,7 @@ UHoudiniAssetInput::UploadParameterValue()
                     DisconnectAndDestroyInputAsset();
 
                     // Connect input and create connected asset. Will return by reference.
-                    if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData( 
+                    if ( !FHoudiniEngineUtils::HapiCreateInputNodeForObjects( 
                         HostAssetId, InputObjects, InputTransforms,
                         ConnectedAssetId, CreatedInputDataAssetIds, bExportAllLODs, bExportSockets ) )
                     {
@@ -802,7 +830,7 @@ UHoudiniAssetInput::UploadParameterValue()
                     Bounds = AssetComponent->GetAssetBounds( this, true );
 
                 // Connect input and create connected asset. Will return by reference.
-                if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData(
+                if ( !FHoudiniEngineUtils::HapiCreateInputNodeForLandscape(
                         HostAssetId, InputLandscapeProxy,
                         ConnectedAssetId, CreatedInputDataAssetIds,
                         bLandscapeExportSelectionOnly, bLandscapeExportCurves,
@@ -837,8 +865,8 @@ UHoudiniAssetInput::UploadParameterValue()
                     DisconnectAndDestroyInputAsset();
 
                     // Connect input and create connected asset. Will return by reference.
-                    if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData(
-                        HostAssetId, InputOutlinerMeshArray, ConnectedAssetId,
+                    if ( !FHoudiniEngineUtils::HapiCreateInputNodeForWorldOutliner(
+                        HostAssetId, InputOutlinerMeshArray, ConnectedAssetId, CreatedInputDataAssetIds,
                         UnrealSplineResolution, bExportAllLODs, bExportSockets ) )
                     {
                         bChanged = false;
@@ -1511,9 +1539,10 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
 
             // Force recook and reconnect of the input assets.
             HAPI_NodeId HostAssetId = GetAssetId();
-            if (FHoudiniEngineUtils::HapiCreateInputNodeForData(
+            if ( FHoudiniEngineUtils::HapiCreateInputNodeForWorldOutliner(
                 HostAssetId, InputOutlinerMeshArray,
-                ConnectedAssetId, UnrealSplineResolution))
+                ConnectedAssetId, CreatedInputDataAssetIds,
+                UnrealSplineResolution ) )
             {
                 ConnectInputNode();
             }

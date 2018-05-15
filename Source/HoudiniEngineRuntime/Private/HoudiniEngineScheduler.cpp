@@ -355,7 +355,7 @@ FHoudiniEngineScheduler::TaskDeleteAsset( const FHoudiniEngineTask & Task )
         TEXT( "AssetId = %d" ),
         *Task.ActorName, Task.AssetId );
 
-    if ( FHoudiniEngineUtils::IsHoudiniAssetValid( Task.AssetId ) )
+    if ( FHoudiniEngineUtils::IsHoudiniNodeValid( Task.AssetId ) )
         FHoudiniEngineUtils::DestroyHoudiniAsset( Task.AssetId );
 
     // We do not insert task info as this is a fire and forget operation.

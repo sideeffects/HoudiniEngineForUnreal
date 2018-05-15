@@ -147,17 +147,20 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
 #if WITH_EDITOR
         // Creates a heightfield from a Landscape
         static bool CreateHeightfieldFromLandscape(
-            ALandscapeProxy* LandscapeProxy, const HAPI_NodeId& InputMergeNodeId, TArray< HAPI_NodeId >& OutCreatedNodeIds );
+            ALandscapeProxy* LandscapeProxy, const HAPI_NodeId& InputMergeNodeId );
 
         // Creates multiple heightfield from an array of Landscape Components
         static bool CreateHeightfieldFromLandscapeComponentArray(
-            ALandscapeProxy* LandscapeProxy, TSet< ULandscapeComponent * >& LandscapeComponentArray,
-            const HAPI_NodeId& InputMergeNodeId, TArray< HAPI_NodeId >& OutCreatedNodeIds );
+            ALandscapeProxy* LandscapeProxy,
+            TSet< ULandscapeComponent * >& LandscapeComponentArray,
+            const HAPI_NodeId& InputMergeNodeId );
 
         // Creates a Heightfield from a Landscape Component
         static bool CreateHeightfieldFromLandscapeComponent(
-            ULandscapeComponent * LandscapeComponent, const HAPI_NodeId& InputMergeNodeId,
-            TArray< HAPI_NodeId >& OutCreatedNodeIds, int32& MergeInputIndex );
+            ULandscapeComponent * LandscapeComponent,
+            const HAPI_NodeId& InputMergeNodeId,
+            const int32& ComponentIndex,
+            int32& MergeInputIndex );
 
         // Extracts the uint16 values of a given landscape
         static bool GetLandscapeData(
@@ -210,7 +213,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const HAPI_NodeId& AssetId, const HAPI_PartId& PartId,
             TArray< float >& FloatValues,
             const HAPI_VolumeInfo& VolumeInfo,
-            const FString& HeightfieldName );
+            const FString& HeightfieldName,
+            const int32& TileIndex );
 
         // Creates an input node for Heightfields (this will be a SOP/merge node)
         static bool CreateHeightfieldInputNode(
@@ -219,7 +223,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const FString& NodeName );
 
         // Creates an input node for a single heightfield volume (height/mask...) 
-        static bool CreateVolumeInputNode( HAPI_NodeId& InAssetId, const FString& NodeName );
+        static bool CreateVolumeInputNode( HAPI_NodeId& InAssetId, const FString& NodeName, const HAPI_NodeId& ParentId );
 
         // Commits the volume node
         static bool CommitVolumeInputNode(
@@ -228,7 +232,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         // Helper function creating a default "mask" volume for heightfield
         static bool CreateDefaultHeightfieldMask(
             const HAPI_VolumeInfo& HeightVolumeInfo,
-            const HAPI_NodeId& AssetId, 
+            const HAPI_NodeId& AssetId,
+            const int32& ComponentIndex,
             int32& MergeInputIndex,
             HAPI_NodeId& OutCreatedNodeId );
 
@@ -279,6 +284,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const int32& ComponentSizeQuads, const int32& QuadCount,
             ALandscapeProxy * LandscapeProxy,
             const TSet< ULandscapeComponent * >& SelectedComponents );
+
+        // Add the tile index primitive attribute
+        static bool AddLandscapetTileAttribute( const HAPI_NodeId& NodeId, const HAPI_PartId& PartId, const int32& TileIdx );
 
 #if WITH_EDITOR
         // Add the global (detail) material and hole material attribute from a landscape
