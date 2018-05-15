@@ -502,7 +502,7 @@ UHoudiniAssetComponent::SetAssetId( HAPI_NodeId InAssetId )
 bool
 UHoudiniAssetComponent::HasValidAssetId() const
 {
-    return FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId);
+    return FHoudiniEngineUtils::IsHoudiniNodeValid( AssetId );
 }
 
 bool
@@ -849,7 +849,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
         StaticMeshes = StaticMeshMap;
 
 #if WITH_EDITOR
-    if ( FHoudiniEngineUtils::IsHoudiniAssetValid( AssetId ) )
+    if ( FHoudiniEngineUtils::IsHoudiniNodeValid( AssetId ) )
     {
         // Create necessary instance inputs.
         CreateInstanceInputs( FoundInstancers );
@@ -2068,12 +2068,27 @@ UHoudiniAssetComponent::StartTaskAssetDeletion()
 {
     if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) && bIsNativeComponent )
     {
+        // Get the Asset's NodeInfo
+        HAPI_NodeInfo AssetNodeInfo;
+        FMemory::Memset< HAPI_NodeInfo >(AssetNodeInfo, 0);
+
+        FHoudiniApi::GetNodeInfo(
+            FHoudiniEngine::Get().GetSession(), AssetId, &AssetNodeInfo );
+
+        HAPI_NodeId OBJNodeToDelete = AssetId;
+        if ( AssetNodeInfo.type == HAPI_NODETYPE_SOP )
+        {
+            // For SOP Asset, we want to delete their parent's OBJ node
+            HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId( AssetId );
+            OBJNodeToDelete = ParentId != -1 ? ParentId : AssetId;
+        }
+
         // Generate GUID for our new task.
         FGuid HapiDeletionGUID = FGuid::NewGuid();
 
         // Create asset deletion task object and submit it for processing.
         FHoudiniEngineTask Task( EHoudiniEngineTaskType::AssetDeletion, HapiDeletionGUID );
-        Task.AssetId = AssetId;
+        Task.AssetId = OBJNodeToDelete;
         FHoudiniEngine::Get().AddTask( Task );
 
         // Reset asset id
