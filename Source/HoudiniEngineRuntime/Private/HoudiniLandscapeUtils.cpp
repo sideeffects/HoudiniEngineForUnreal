@@ -1831,9 +1831,7 @@ FHoudiniLandscapeUtils::CreateDefaultHeightfieldMask(
 
     // Creating an array filled with 1.0
     TArray< float > MaskFloatData;
-    MaskFloatData.SetNumUninitialized( HeightVolumeInfo.xLength * HeightVolumeInfo.yLength );
-    for ( int32 n = 0; n < ( HeightVolumeInfo.xLength * HeightVolumeInfo.yLength ); n++ )
-        MaskFloatData[ n ] = 1.0;
+    MaskFloatData.Init( 1.0f, HeightVolumeInfo.xLength * HeightVolumeInfo.yLength );
 
     // Creating the volume infos
     HAPI_VolumeInfo MaskVolumeInfo = HeightVolumeInfo;
