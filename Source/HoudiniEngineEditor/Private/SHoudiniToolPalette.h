@@ -29,12 +29,48 @@
 #include "Input/Reply.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Misc/NotifyHook.h"
+#include "SHoudiniToolPalette.generated.h"
 
 class IDetailsView;
 class ITableRow;
 class STableViewBase;
 struct FSlateBrush;
 enum class ECheckBoxState : uint8;
+
+
+// Class describing the various properties for a Houdini Tool
+// adding a UClass was necessary to use the PropertyEditor window
+UCLASS( EditInlineNew )
+class UHoudiniToolProperties : public UObject
+{
+    GENERATED_UCLASS_BODY()
+
+    public:
+
+        /** Name of the tool */
+        UPROPERTY( Category = Tool, EditAnywhere )
+        FString Name;
+
+        /** Type of the tool */
+        UPROPERTY( Category = Tool, EditAnywhere )
+        EHoudiniToolType Type;
+
+        /** Tooltip shown on mouse hover */
+        UPROPERTY( Category = Tool, EditAnywhere )
+        FString ToolTip;
+
+        /** Path to a custom icon */
+        UPROPERTY( Category = Tool, EditAnywhere, meta = (FilePathFilter = "png") )
+        FFilePath IconPath;
+
+        /** Houdini uasset */
+        UPROPERTY( Category = Tool, EditAnywhere )
+        TSoftObjectPtr < class UHoudiniAsset > HoudiniAsset;
+
+        /** Clicking on help icon will bring up this URL */
+        UPROPERTY( Category = Tool, EditAnywhere )
+        FString HelpURL;
+};
 
 class SHoudiniToolPalette : public SCompoundWidget, public FNotifyHook
 {
@@ -50,6 +86,16 @@ public:
     /** Instantiate the selected HoudiniTool and assigns input depending on the current selection and tool type **/
     static void InstantiateHoudiniTool( FHoudiniTool* HoudiniTool );
 
+    /** Handler for Key presses**/
+    virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
+
+    bool IsActiveHoudiniToolEditable();
+
+protected:
+
+    /** Remove the current tool from the tool list **/
+    void RemoveActiveTool();
+
 private:
 
     /** Make a widget for the list view display */
@@ -61,11 +107,27 @@ private:
     /** Begin dragging a list widget */
    FReply OnDraggingListViewWidget( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 
+   virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
+
    /** Handler for double clicking on a Houdini tool **/
    void OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniTool> ListItem );
 
    /** Handler for the right click context menu on a Houdini tool **/
    TSharedPtr< SWidget > ConstructHoudiniToolContextMenu();
+
+   /** Shows a Property Window for editing the properties of new HoudiniTools**/
+   void ShowAddHoudiniToolWindow( const TArray< UHoudiniAsset *>& HoudiniAssets );
+
+   /** Handler for closing the AddHoudiniTools window**/
+   void OnAddHoudiniToolWindowClosed(const TSharedRef<SWindow>& InWindow, TArray<UObject *> InObjects);
+
+   /** Shows a Property Window for editing the properties of new HoudiniTools**/
+   void EditActiveHoudiniTool();
+
+   /** Handler for closing the AddHoudiniTools window**/
+   void OnEditHoudiniToolWindowClosed(const TSharedRef<SWindow>& InWindow, TArray<UObject *> InObjects);
+
+   TSharedRef<SWindow> CreateFloatingDetailsView( const TArray< UObject* >& InObjects );
 
 private:
     TSharedPtr<FHoudiniTool> ActiveTool;

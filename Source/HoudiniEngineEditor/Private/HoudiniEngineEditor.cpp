@@ -111,6 +111,9 @@ FHoudiniEngineEditor::StartupModule()
     // Extends the file menu.
     ExtendMenu();
 
+    // Extend the World Outliner Menu
+    AddLevelViewportMenuExtender();
+
     // Adds the custom console commands
     RegisterConsoleCommands();
 
@@ -726,28 +729,7 @@ FHoudiniEngineEditor::RegisterPlacementModeExtensions()
     //
     // Set up Built-in Houdini Tools
     //
-    auto ToolArray = HoudiniRuntimeSettings->CustomHoudiniTools;
-    AddDefaultHoudiniToolToArray( ToolArray );
-
-    for ( const FHoudiniToolDescription& HoudiniTool : ToolArray )
-    {
-        FText ToolName = FText::FromString( HoudiniTool.Name );
-        FText ToolTip = FText::FromString( HoudiniTool.ToolTip );
-
-        FString IconPath = FPaths::ConvertRelativePathToFull( HoudiniTool.IconPath.FilePath );
-        const FSlateBrush* CustomIconBrush = nullptr;
-        if ( FPaths::FileExists( IconPath ) )
-        {
-            FName BrushName = *IconPath;
-            CustomIconBrush = new FSlateDynamicImageBrush( BrushName, FVector2D( 40.f, 40.f ) );
-        }
-        else
-        {
-            CustomIconBrush = StyleSet->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
-        }
-
-        HoudiniTools.Add( MakeShareable( new FHoudiniTool( HoudiniTool.HoudiniAsset, ToolName, HoudiniTool.Type, ToolTip, CustomIconBrush, HoudiniTool.HelpURL ) ) );
-    }
+    UpdateHoudiniToolList();
 
     FPlacementCategoryInfo Info(
         LOCTEXT( "HoudiniCategoryName", "Houdini Engine" ),
@@ -1394,6 +1376,206 @@ FHoudiniEngineEditor::RestartSession()
 
     // ... and a log message
     //HOUDINI_LOG_MESSAGE( *Notification );
+}
+
+void
+FHoudiniEngineEditor::AddHoudiniTool( const FHoudiniTool& NewTool )
+{
+    HoudiniTools.Add( MakeShareable( new FHoudiniTool( NewTool.HoudiniAsset, NewTool.Name, NewTool.Type, NewTool.ToolTipText, NewTool.Icon, NewTool.HelpURL ) ) );
+}
+
+void
+FHoudiniEngineEditor::AddLevelViewportMenuExtender()
+{
+    FLevelEditorModule& LevelEditorModule = FModuleManager::Get().LoadModuleChecked<FLevelEditorModule>( "LevelEditor" );
+    auto& MenuExtenders = LevelEditorModule.GetAllLevelViewportContextMenuExtenders();
+
+    MenuExtenders.Add( FLevelEditorModule::FLevelViewportMenuExtender_SelectedActors::CreateRaw( this, &FHoudiniEngineEditor::GetLevelViewportContextMenuExtender ) );
+    LevelViewportExtenderHandle = MenuExtenders.Last().GetHandle();
+}
+
+void
+FHoudiniEngineEditor::RemoveLevelViewportMenuExtender()
+{
+    if ( LevelViewportExtenderHandle.IsValid() )
+    {
+        FLevelEditorModule* LevelEditorModule = FModuleManager::Get().GetModulePtr<FLevelEditorModule>("LevelEditor");
+        if ( LevelEditorModule )
+        {
+            typedef FLevelEditorModule::FLevelViewportMenuExtender_SelectedActors DelegateType;
+            LevelEditorModule->GetAllLevelViewportContextMenuExtenders().RemoveAll(
+                [=]( const DelegateType& In ) { return In.GetHandle() == LevelViewportExtenderHandle; } );
+        }
+    }
+}
+
+TSharedRef<FExtender>
+FHoudiniEngineEditor::GetLevelViewportContextMenuExtender( const TSharedRef<FUICommandList> CommandList, const TArray<AActor*> InActors )
+{
+    TSharedRef<FExtender> Extender = MakeShareable(new FExtender);
+
+    // Build an array of the HoudiniAssets corresponding to the selected actors
+    TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets;
+    TArray< TWeakObjectPtr< AHoudiniAssetActor > > HoudiniAssetActors;
+    for ( auto CurrentActor : InActors )
+    {
+        AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>( CurrentActor );
+        if ( !HoudiniAssetActor )
+            continue;
+
+        HoudiniAssetActors.Add( HoudiniAssetActor );
+
+        if ( !HoudiniAssetActor->GetHoudiniAssetComponent() )
+            continue;
+
+        HoudiniAssets.AddUnique( HoudiniAssetActor->GetHoudiniAssetComponent()->GetHoudiniAsset() );
+    }
+
+    if ( HoudiniAssets.Num() > 0 )
+    {
+        // Add the Asset menu extension
+        if ( AssetTypeActions.Num() > 0 )
+        {
+            // Add the menu extensions via our HoudiniAssetTypeActions
+            FHoudiniAssetTypeActions * HATA = static_cast<FHoudiniAssetTypeActions*>( AssetTypeActions[0].Get() );
+            if ( HATA )
+                Extender = HATA->AddLevelEditorMenuExtenders( HoudiniAssets );
+        }
+    }
+
+    if ( HoudiniAssetActors.Num() > 0 )
+    {
+        // Add some actor menu extensions
+        FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
+        TSharedRef<FUICommandList> LevelEditorCommandBindings = LevelEditor.GetGlobalLevelEditorActions();
+        Extender->AddMenuExtension(
+            "ActorControl",
+            EExtensionHook::After,
+            LevelEditorCommandBindings,
+            FMenuExtensionDelegate::CreateLambda( [ this, HoudiniAssetActors ]( FMenuBuilder& MenuBuilder )
+            {
+                MenuBuilder.AddMenuEntry(
+                    NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_Recook", "Recook selection"),
+                    NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_RecookTooltip", "Forces a recook on the selected Houdini Asset Actors."),
+                    FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+                    FUIAction(
+                        FExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::RecookSelection ),
+                        FCanExecuteAction::CreateLambda([=] { return ( HoudiniAssetActors.Num() > 0 ); })
+                    )
+                );
+
+                MenuBuilder.AddMenuEntry(
+                    NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_Rebuild", "Rebuild selection"),
+                    NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_RebuildTooltip", "Rebuilds selected Houdini Asset Actors in the current level."),
+                    FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+                    FUIAction(
+                        FExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::RebuildSelection ),
+                        FCanExecuteAction::CreateLambda([=] { return ( HoudiniAssetActors.Num() > 0 ); })
+                    )
+                );
+            } )
+        );
+    }
+
+    return Extender;
+}
+
+void
+FHoudiniEngineEditor::UpdateHoudiniToolList()
+{
+    HoudiniTools.Empty();
+
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    check(HoudiniRuntimeSettings);
+
+    // Read the custom tools from the settings file
+    auto ToolArray = HoudiniRuntimeSettings->CustomHoudiniTools;
+
+    // Add the default tools
+    int32 NumDefaultTools = ToolArray.Num();
+    AddDefaultHoudiniToolToArray( ToolArray );
+    NumDefaultTools = ToolArray.Num() - NumDefaultTools;
+
+    for ( const FHoudiniToolDescription& HoudiniTool : ToolArray )
+    {
+        FText ToolName = FText::FromString( HoudiniTool.Name );
+        FText ToolTip = FText::FromString( HoudiniTool.ToolTip );
+
+        FString IconPath = FPaths::ConvertRelativePathToFull( HoudiniTool.IconPath.FilePath );
+        const FSlateBrush* CustomIconBrush = nullptr;
+        if ( FPaths::FileExists( IconPath ) )
+        {
+            FName BrushName = *IconPath;
+            CustomIconBrush = new FSlateDynamicImageBrush( BrushName, FVector2D( 40.f, 40.f ) );
+        }
+        else
+        {
+            CustomIconBrush = StyleSet->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
+        }
+
+        HoudiniTools.Add( MakeShareable( new FHoudiniTool( HoudiniTool.HoudiniAsset, ToolName, HoudiniTool.Type, ToolTip, CustomIconBrush, HoudiniTool.HelpURL ) ) );
+    }
+
+    for ( int32 Idx = 0; Idx < NumDefaultTools; Idx++ )
+    {
+        HoudiniTools[ Idx ]->DefaultTool = true;
+    }
+}
+
+bool
+FHoudiniEngineEditor::FindHoudiniTool( const FHoudiniTool& Tool, int32& FoundIndex, bool& IsDefault )
+{
+    // Return -1 if we cant find the Tool
+    FoundIndex = -1;
+
+    for ( int32 Idx = 0; Idx < HoudiniTools.Num(); Idx++ )
+    {
+        TSharedPtr<FHoudiniTool> Current = HoudiniTools[ Idx ];
+        if ( !Current.IsValid() )
+            continue;
+
+        if ( Current->HoudiniAsset != Tool.HoudiniAsset )
+            continue;
+
+        if ( Current->Type != Tool.Type )
+            continue;
+
+        // We found the Houdini Tool
+        IsDefault = Current->DefaultTool;
+        FoundIndex = Idx;
+
+        return true;
+    }
+
+    return false;
+}
+
+bool
+FHoudiniEngineEditor::FindHoudiniToolInHoudiniSettings( const FHoudiniTool& Tool, int32& FoundIndex )
+{
+    // Return -1 if we cant find the Tool
+    FoundIndex = -1;
+
+    // Remove the tool from the runtime settings
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if ( !HoudiniRuntimeSettings )
+        return false;
+
+    for ( int32 Idx = 0; Idx < HoudiniRuntimeSettings->CustomHoudiniTools.Num(); Idx++ )
+    {
+        FHoudiniToolDescription CurrentDesc = HoudiniRuntimeSettings->CustomHoudiniTools[ Idx ];
+
+        if ( CurrentDesc.HoudiniAsset != Tool.HoudiniAsset )
+            continue;
+
+        if ( CurrentDesc.Type != Tool.Type )
+            continue;
+
+        FoundIndex = Idx;
+        return true;
+    }
+
+    return false;
 }
 
 void 
