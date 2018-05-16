@@ -5271,6 +5271,14 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 GroupSplitFaceIndices.Add( RemainingGroupName, AllFaces );
             }
 
+            // Look for LOD Specific attributes, "lod_screensize" by default
+            TArray< float > LODScreenSizes;
+            HAPI_AttributeInfo AttribInfoLODScreenSize;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoLODScreenSize );
+            FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                "lod_screensize", AttribInfoLODScreenSize, LODScreenSizes );
+
             // Keep track of the LOD Index
             int32 LodIndex = 0;
             int32 LodSplitId = -1;
@@ -6220,7 +6228,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 if ( !IsLOD )
                 {
                     // For non LODed mesh, init the default number of LODs
-                    for (int32 ModelLODIndex = 0; ModelLODIndex < DefaultNumLODs; ++ModelLODIndex)
+                    for ( int32 ModelLODIndex = 0; ModelLODIndex < DefaultNumLODs; ++ModelLODIndex )
                         InitLODLevel( ModelLODIndex );
                 }
                 else
@@ -6228,39 +6236,35 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     // Init the current LOD level
                     InitLODLevel( LodIndex );
 
-                    // Look for LOD Specific attributes
-                    TArray< float > LODScreenSizes;
-                    HAPI_AttributeInfo AttribInfoScreenSize;
-                    FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoScreenSize );
+                    bool InvalidateLODAttr = false;
 
-                    // Try to find the "lodX_screensize" detail attribute
-                    FString LODAttributeName = SplitGroupName + TEXT("_screensize");
-                    FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-                        AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
-                        TCHAR_TO_ANSI( *LODAttributeName ), AttribInfoScreenSize, LODScreenSizes);
-
-                    // If the attribute was not found, fallback to the "lod_screensize" attribute
-                    if ( !AttribInfoScreenSize.exists )
+                    // If the "lod_screensize" attribute was not found, fallback to the "lodX_screensize" attribute		    
+                    if ( !AttribInfoLODScreenSize.exists )
                     {
                         LODScreenSizes.Empty();
+                        FString LODAttributeName = SplitGroupName + TEXT("_screensize");
                         FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
                             AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
-                            "lod_screensize", AttribInfoScreenSize, LODScreenSizes);
+                            TCHAR_TO_ANSI(*LODAttributeName), AttribInfoLODScreenSize, LODScreenSizes);
+
+                        InvalidateLODAttr = AttribInfoLODScreenSize.exists;
                     }
 
                     // finally, look for a potential uproperty style attribute
-                    if ( !AttribInfoScreenSize.exists )
+                    if ( !AttribInfoLODScreenSize.exists )
                     {
                         LODScreenSizes.Empty();
                         FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
                             AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
-                            "unreal_uproperty_screensize", AttribInfoScreenSize, LODScreenSizes);
+                            "unreal_uproperty_screensize", AttribInfoLODScreenSize, LODScreenSizes);
+
+                        InvalidateLODAttr = AttribInfoLODScreenSize.exists;
                     }
 
-                    if ( AttribInfoScreenSize.exists )
+                    if ( AttribInfoLODScreenSize.exists )
                     {
                         float screensize = -1.0;
-                        if ( AttribInfoScreenSize.owner == HAPI_ATTROWNER_PRIM )
+                        if ( AttribInfoLODScreenSize.owner == HAPI_ATTROWNER_PRIM )
                         {
                             int32 n = 0;
                             for( ; n <  SplitGroupVertexList.Num(); n++ )
@@ -6272,13 +6276,33 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             screensize = LODScreenSizes[ n / 3 ];
                         }
                         else
-                            screensize = LODScreenSizes[ 0 ];
+                        {
+                            // Handle single screensize attributes
+                            if ( LODScreenSizes.Num() == 1 )
+                                screensize = LODScreenSizes[ 0 ];
+                            else
+                            {
+                                // Handle tuple screensize attributes
+                                if ( LODScreenSizes.IsValidIndex( LodIndex ) )
+                                    screensize = LODScreenSizes[ LodIndex ];
+                                else
+                                    screensize = 0.0f;
+                            }
+                        }
 
+                        // Make sure the LOD Screensize is a percent, so if its above 1, divide by 100
+                        if ( screensize > 1.0f )
+                            screensize /= 100.0f;
+
+                        // Only apply the LOD screensize if it's valid
                         if ( screensize >= 0.0f )
                         {
                             StaticMesh->SourceModels[ LodIndex ].ScreenSize = screensize;
                             StaticMesh->bAutoComputeLODScreenSize = false;
                         }
+
+                        if ( InvalidateLODAttr )
+                            AttribInfoLODScreenSize.exists = false;
                     }
 
                     // Increment the LODIndex

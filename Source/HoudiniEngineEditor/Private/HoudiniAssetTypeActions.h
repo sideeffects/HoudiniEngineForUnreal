@@ -53,6 +53,8 @@ class FHoudiniAssetTypeActions : public FAssetTypeActions_Base
         virtual bool HasActions(const TArray< UObject * > & InObjects) const override;
         virtual void GetActions(const TArray< UObject * > & InObjects, class FMenuBuilder & MenuBuilder ) override;
 
+        TSharedRef<FExtender> AddLevelEditorMenuExtenders( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets );
+
     protected:
 
         /** Handler for reimport option. **/
