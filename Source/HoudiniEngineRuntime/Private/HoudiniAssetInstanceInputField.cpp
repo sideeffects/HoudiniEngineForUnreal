@@ -464,11 +464,14 @@ UHoudiniAssetInstanceInputField::RemoveInstanceVariation( int32 VariationIdx )
     bScaleOffsetsLinearlyArray.RemoveAt( VariationIdx );
 
     // Remove instanced component.
-    if ( USceneComponent* Comp = InstancerComponents[ VariationIdx ] )
+    if ( InstancerComponents.IsValidIndex( VariationIdx ) )
     {
-        Comp->DestroyComponent();
+        if ( USceneComponent* Comp = InstancerComponents[ VariationIdx ] )
+        {
+            Comp->DestroyComponent();
+        }
+        InstancerComponents.RemoveAt( VariationIdx );
     }
-    InstancerComponents.RemoveAt( VariationIdx );
 
     UpdateInstanceTransforms( true );
 }
@@ -532,9 +535,18 @@ UHoudiniAssetInstanceInputField::ReplaceInstanceVariation( UObject * InObject, i
     if ( bComponentNeedToBeCreated )
     {
         // We'll create a new InstanceComponent
-        FTransform SavedXform = InstancerComponents[ Index ]->GetRelativeTransform();
-        InstancerComponents[ Index ]->DestroyComponent();
-        InstancerComponents.RemoveAt( Index );
+        FTransform SavedXform = FTransform::Identity;
+
+        if ( InstancerComponents.IsValidIndex( Index ) )
+        {
+            if ( InstancerComponents[ Index ] )
+            {
+                SavedXform = InstancerComponents[ Index ]->GetRelativeTransform();
+                InstancerComponents[ Index ]->DestroyComponent();
+            }
+            InstancerComponents.RemoveAt( Index );
+        }
+
         AddInstanceComponent( Index );
         InstancerComponents[ Index ]->SetRelativeTransform( SavedXform );
     }
@@ -562,37 +574,49 @@ UHoudiniAssetInstanceInputField::InstanceVariationCount() const
 const FRotator &
 UHoudiniAssetInstanceInputField::GetRotationOffset( int32 VariationIdx ) const
 {
-    return RotationOffsets[ VariationIdx ];
+    if ( RotationOffsets.IsValidIndex( VariationIdx ) )
+        return RotationOffsets[ VariationIdx ];
+    else
+        return FRotator::ZeroRotator;
 }
 
 void
 UHoudiniAssetInstanceInputField::SetRotationOffset( const FRotator & Rotator, int32 VariationIdx )
 {
-    RotationOffsets[ VariationIdx ] = Rotator;
+    if ( RotationOffsets.IsValidIndex( VariationIdx ) )
+        RotationOffsets[ VariationIdx ] = Rotator;
 }
 
 const FVector &
 UHoudiniAssetInstanceInputField::GetScaleOffset( int32 VariationIdx ) const
 {
-    return ScaleOffsets[ VariationIdx ];
+    if ( ScaleOffsets.IsValidIndex( VariationIdx ) )
+        return ScaleOffsets[ VariationIdx ];
+    else
+        return FVector::OneVector;
 }
 
 void
 UHoudiniAssetInstanceInputField::SetScaleOffset( const FVector & InScale, int32 VariationIdx )
 {
-    ScaleOffsets[ VariationIdx ] = InScale;
+    if ( ScaleOffsets.IsValidIndex( VariationIdx ) )
+        ScaleOffsets[ VariationIdx ] = InScale;
 }
 
 bool
 UHoudiniAssetInstanceInputField::AreOffsetsScaledLinearly( int32 VariationIdx ) const
 {
-    return bScaleOffsetsLinearlyArray[ VariationIdx ];
+    if ( bScaleOffsetsLinearlyArray.IsValidIndex( VariationIdx ) )
+        return bScaleOffsetsLinearlyArray[ VariationIdx ];
+    else
+        return false;
 }
 
 void
 UHoudiniAssetInstanceInputField::SetLinearOffsetScale( bool bEnabled, int32 VariationIdx )
 {
-    bScaleOffsetsLinearlyArray[ VariationIdx ] = bEnabled;
+    if ( bScaleOffsetsLinearlyArray.IsValidIndex( VariationIdx ) )
+        bScaleOffsetsLinearlyArray[ VariationIdx ] = bEnabled;
 }
 
 bool
