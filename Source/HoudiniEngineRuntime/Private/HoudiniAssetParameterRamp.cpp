@@ -31,6 +31,9 @@
 #include "HoudiniAssetComponent.h"
 #include "Curves/CurveBase.h"
 #include "SlateApplication.h"
+#if WITH_EDITOR
+    #include "SCurveEditor.h"
+#endif
 
 UHoudiniAssetParameterRampCurveFloat::UHoudiniAssetParameterRampCurveFloat( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
@@ -227,7 +230,24 @@ UHoudiniAssetParameterRamp::UHoudiniAssetParameterRamp( const FObjectInitializer
     , bIsFloatRamp( true )
     , bIsCurveChanged( false )
     , bIsCurveUploadRequired( false )
-{}
+{
+#if WITH_EDITOR
+    CurveEditor = nullptr;
+#endif
+}
+
+UHoudiniAssetParameterRamp::~UHoudiniAssetParameterRamp()
+{
+#if WITH_EDITOR
+    // We need to properly remove CurveOwner on CurveEditor or this could
+    // cause a crash upon changing the level with the details up
+    if ( CurveEditor.IsValid() )
+    {
+        CurveEditor->SetCurveOwner( nullptr );
+        CurveEditor = nullptr;
+    }
+#endif
+}
 
 UHoudiniAssetParameter * 
 UHoudiniAssetParameterRamp::Duplicate( UObject* InOuter )
@@ -378,7 +398,6 @@ UHoudiniAssetParameterRamp::OnCurveColorChanged( UHoudiniAssetParameterRampCurve
 
         case EHoudiniAssetParameterRampCurveColorEvent::ChangeStopTime:
         case EHoudiniAssetParameterRampCurveColorEvent::ChangeStopColor:
-        case EHoudiniAssetParameterRampCurveColorEvent::MoveStop:
         {
             // We have curve point modification.
             bIsCurveChanged = true;
@@ -386,8 +405,23 @@ UHoudiniAssetParameterRamp::OnCurveColorChanged( UHoudiniAssetParameterRampCurve
             break;
         }
 
+        case EHoudiniAssetParameterRampCurveColorEvent::MoveStop:
+        {
+            // We have curve point modification.
+            bIsCurveChanged = true;
+            // WITH UE4 FIX
+            //OnCurveEditingFinished();
+            // WITHOUT UE4 FIX
+            OnCurveEditingFinished();
+            break;
+        }
+
         default:
         {
+            /*// WITH UE4 FIX
+            if ( bIsCurveChanged )
+                OnCurveEditingFinished();
+            */
             break;
         }
     }
