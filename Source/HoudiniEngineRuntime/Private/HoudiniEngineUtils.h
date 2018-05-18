@@ -431,31 +431,31 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static bool HapiGetAttributeDataAsFloat(
             HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, const char * Name, HAPI_AttributeInfo & ResultAttributeInfo, TArray< float > & Data,
-            int32 TupleSize = 0 );
+            int32 TupleSize = 0, HAPI_AttributeOwner Owner = HAPI_ATTROWNER_INVALID );
 
         static bool HapiGetAttributeDataAsFloat(
             const FHoudiniGeoPartObject & HoudiniGeoPartObject, const char * Name,
-            HAPI_AttributeInfo & ResultAttributeInfo, TArray< float > & Data, int32 TupleSize = 0 );
+            HAPI_AttributeInfo & ResultAttributeInfo, TArray< float > & Data, int32 TupleSize = 0, HAPI_AttributeOwner Owner = HAPI_ATTROWNER_INVALID );
 
         /** HAPI : Get attribute data as integer. **/
         static bool HapiGetAttributeDataAsInteger(
             HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, const char* Name, HAPI_AttributeInfo & ResultAttributeInfo, TArray< int32 > & Data,
-            int32 TupleSize = 0 );
+            int32 TupleSize = 0, HAPI_AttributeOwner Owner = HAPI_ATTROWNER_INVALID );
 
         static bool HapiGetAttributeDataAsInteger(
             const FHoudiniGeoPartObject & HoudiniGeoPartObject, const char * Name,
-            HAPI_AttributeInfo & ResultAttributeInfo, TArray< int32 > & Data, int32 TupleSize = 0 );
+            HAPI_AttributeInfo & ResultAttributeInfo, TArray< int32 > & Data, int32 TupleSize = 0, HAPI_AttributeOwner Owner = HAPI_ATTROWNER_INVALID );
 
         /** HAPI : Get attribute data as string. **/
         static bool HapiGetAttributeDataAsString(
             HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, const char * Name, HAPI_AttributeInfo & ResultAttributeInfo, TArray< FString > & Data,
-            int32 TupleSize = 0 );
+            int32 TupleSize = 0, HAPI_AttributeOwner Owner = HAPI_ATTROWNER_INVALID );
 
          static bool HapiGetAttributeDataAsString(
              const FHoudiniGeoPartObject & HoudiniGeoPartObject, const char * Name,
-             HAPI_AttributeInfo & ResultAttributeInfo, TArray< FString > & Data, int32 TupleSize = 0 );
+             HAPI_AttributeInfo & ResultAttributeInfo, TArray< FString > & Data, int32 TupleSize = 0, HAPI_AttributeOwner Owner = HAPI_ATTROWNER_INVALID );
 
         /** HAPI : Get parameter data as float. **/
         static bool HapiGetParameterDataAsFloat(
@@ -517,6 +517,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             TArray< FTransform >& AllSockets,
             TArray< FString >& AllSocketsName,
             TArray< FString >& AllSocketsActors,
+            TArray< FString >& AllSocketsTags,
             const bool& isPackedPrim );
 
         /** Add the mesh sockets in the list to the specified StaticMesh						**/
@@ -525,7 +526,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             FHoudiniGeoPartObject& HoudiniGeoPartObject,
             TArray< FTransform >& AllSockets,
             TArray< FString >& AllSocketsNames,
-            TArray< FString >& AllSocketsActors );
+            TArray< FString >& AllSocketsActors,
+            TArray< FString >& AllSocketsTags );
 
         /** Add the actor stored in the socket tag to the socket for the given static mesh component 			**/
         static bool AddActorsToMeshSocket( UStaticMeshSocket* Socket, class UStaticMeshComponent* StaticMeshComponent );

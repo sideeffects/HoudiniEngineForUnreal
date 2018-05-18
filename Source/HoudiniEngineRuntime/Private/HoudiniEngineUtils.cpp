@@ -807,7 +807,7 @@ bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
     HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
     HAPI_PartId PartId, const char * Name, HAPI_AttributeInfo & ResultAttributeInfo,
-    TArray< float > & Data, int32 TupleSize )
+    TArray< float > & Data, int32 TupleSize, HAPI_AttributeOwner Owner )
 {
     ResultAttributeInfo.exists = false;
 
@@ -818,14 +818,23 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
     HAPI_AttributeInfo AttributeInfo;
     FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
 
-    for ( int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx )
+    if ( Owner == HAPI_ATTROWNER_INVALID )
+    {
+        for ( int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx )
+        {
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
+                FHoudiniEngine::Get().GetSession(), GeoId, PartId, Name,
+                (HAPI_AttributeOwner) AttrIdx, &AttributeInfo ), false );
+
+            if ( AttributeInfo.exists )
+                break;
+        }
+    }
+    else
     {
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
             FHoudiniEngine::Get().GetSession(), GeoId, PartId, Name,
-            (HAPI_AttributeOwner) AttrIdx, &AttributeInfo ), false );
-
-        if ( AttributeInfo.exists )
-            break;
+            Owner, &AttributeInfo ), false );
     }
 
     if ( !AttributeInfo.exists )
@@ -849,19 +858,19 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
     const FHoudiniGeoPartObject & HoudiniGeoPartObject, const char * Name,
-    HAPI_AttributeInfo & ResultAttributeInfo, TArray< float > & Data, int32 TupleSize )
+    HAPI_AttributeInfo & ResultAttributeInfo, TArray< float > & Data, int32 TupleSize, HAPI_AttributeOwner Owner )
 {
     return FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
         HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
         HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Name,
-        ResultAttributeInfo, Data, TupleSize );
+        ResultAttributeInfo, Data, TupleSize, Owner );
 }
 
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
     HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
     HAPI_PartId PartId, const char * Name, HAPI_AttributeInfo & ResultAttributeInfo,
-    TArray< int32 > & Data, int32 TupleSize )
+    TArray< int32 > & Data, int32 TupleSize, HAPI_AttributeOwner Owner )
 {
     ResultAttributeInfo.exists = false;
 
@@ -872,14 +881,23 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
     HAPI_AttributeInfo AttributeInfo;
     FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
 
-    for ( int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx )
+    if ( Owner == HAPI_ATTROWNER_INVALID )
+    {
+        for ( int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx )
+        {
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
+                FHoudiniEngine::Get().GetSession(),
+                GeoId, PartId, Name, (HAPI_AttributeOwner) AttrIdx, &AttributeInfo ), false );
+
+            if ( AttributeInfo.exists )
+                break;
+        }
+    }
+    else
     {
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
             FHoudiniEngine::Get().GetSession(),
-            GeoId, PartId, Name, (HAPI_AttributeOwner) AttrIdx, &AttributeInfo ), false );
-
-        if ( AttributeInfo.exists )
-            break;
+            GeoId, PartId, Name, Owner, &AttributeInfo ), false );
     }
 
     if ( !AttributeInfo.exists )
@@ -904,19 +922,19 @@ bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
     const FHoudiniGeoPartObject & HoudiniGeoPartObject,
     const char * Name, HAPI_AttributeInfo & ResultAttributeInfo,
-    TArray< int32 > & Data, int32 TupleSize )
+    TArray< int32 > & Data, int32 TupleSize, HAPI_AttributeOwner Owner )
 {
     return FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
         HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
         HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Name,
-        ResultAttributeInfo, Data, TupleSize );
+        ResultAttributeInfo, Data, TupleSize, Owner );
 }
 
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsString(
     HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
     HAPI_PartId PartId, const char * Name, HAPI_AttributeInfo & ResultAttributeInfo,
-    TArray< FString > & Data, int32 TupleSize )
+    TArray< FString > & Data, int32 TupleSize, HAPI_AttributeOwner Owner )
 {
     ResultAttributeInfo.exists = false;
 
@@ -927,14 +945,23 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsString(
     HAPI_AttributeInfo AttributeInfo;
     FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
 
-    for ( int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx )
+    if ( Owner == HAPI_ATTROWNER_INVALID )
+    {
+        for ( int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx )
+        {
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
+                FHoudiniEngine::Get().GetSession(),
+                GeoId, PartId, Name, (HAPI_AttributeOwner) AttrIdx, &AttributeInfo ), false );
+
+            if ( AttributeInfo.exists )
+                break;
+        }
+    }
+    else
     {
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
             FHoudiniEngine::Get().GetSession(),
-            GeoId, PartId, Name, (HAPI_AttributeOwner) AttrIdx, &AttributeInfo ), false );
-
-        if ( AttributeInfo.exists )
-            break;
+            GeoId, PartId, Name, Owner, &AttributeInfo ), false );
     }
 
     if ( !AttributeInfo.exists )
@@ -965,14 +992,14 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsString(
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsString(
     const FHoudiniGeoPartObject & HoudiniGeoPartObject, const char * Name,
-    HAPI_AttributeInfo & ResultAttributeInfo, TArray< FString > & Data, int32 TupleSize)
+    HAPI_AttributeInfo & ResultAttributeInfo, TArray< FString > & Data, int32 TupleSize, HAPI_AttributeOwner Owner )
 {
     return FHoudiniEngineUtils::HapiGetAttributeDataAsString(
         HoudiniGeoPartObject.AssetId,
         HoudiniGeoPartObject.ObjectId,
         HoudiniGeoPartObject.GeoId,
         HoudiniGeoPartObject.PartId, Name,
-        ResultAttributeInfo, Data, TupleSize );
+        ResultAttributeInfo, Data, TupleSize, Owner );
 }
 
 bool
@@ -3367,6 +3394,20 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
             FHoudiniEngine::Get().GetSession(), SocketsNodeId, 0,
             HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME, &AttributeInfoName ), false );
 
+        //  Create the tag attrib info
+        HAPI_AttributeInfo AttributeInfoTag;
+        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoTag );
+        AttributeInfoTag.count = NumSockets;
+        AttributeInfoTag.tupleSize = 1;
+        AttributeInfoTag.exists = true;
+        AttributeInfoTag.owner = HAPI_ATTROWNER_POINT;
+        AttributeInfoTag.storage = HAPI_STORAGETYPE_STRING;
+        AttributeInfoTag.originalOwner = HAPI_ATTROWNER_INVALID;
+
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+            FHoudiniEngine::Get().GetSession(), SocketsNodeId, 0,
+            HAPI_UNREAL_ATTRIB_MESH_SOCKET_TAG, &AttributeInfoTag ), false );
+
         // Extract the sockets transform values
         TArray< float > SocketPos;
         SocketPos.SetNumZeroed( NumSockets * 3 );
@@ -3375,14 +3416,13 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
         TArray< float > SocketScale;
         SocketScale.SetNumZeroed( NumSockets * 3 );
         TArray< const char * > SocketNames;
+        TArray< const char * > SocketTags;
 
         for ( int32 Idx = 0; Idx < NumSockets; ++Idx )
         {
             UStaticMeshSocket* CurrentSocket = StaticMesh->Sockets[ Idx ];
             if ( !CurrentSocket )
                 continue;
-
-            //CurrentSocket->SocketName;
 
             // Get the socket's transform and convert it to HapiTransform
             FTransform SocketTransform( CurrentSocket->RelativeRotation, CurrentSocket->RelativeLocation, CurrentSocket->RelativeScale );
@@ -3403,9 +3443,17 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
             SocketScale[ 3 * Idx + 1 ] = HapiSocketTransform.scale[ 1 ];
             SocketScale[ 3 * Idx + 2 ] = HapiSocketTransform.scale[ 2 ];
 
-            //SocketNames[ Idx ] = CurrentSocket->SocketName.ToString();
-            //SocketNames[ Idx ] = 
-            SocketNames.Add( FHoudiniEngineUtils::ExtractRawName( CurrentSocket->SocketName.ToString() ) );
+            FString CurrentSocketName;
+            if ( !CurrentSocket->SocketName.IsNone() )
+                CurrentSocketName = CurrentSocket->SocketName.ToString();
+            else
+                CurrentSocketName = TEXT("Socket") + FString::FromInt( Idx );
+            SocketNames.Add( FHoudiniEngineUtils::ExtractRawName( CurrentSocketName ) );
+
+            if ( !CurrentSocket->Tag.IsEmpty() )
+                SocketTags.Add( FHoudiniEngineUtils::ExtractRawName( CurrentSocket->Tag ) );
+            else
+                SocketTags.Add( "" );
         }
 
         //we can now upload them to our attribute.
@@ -3440,6 +3488,131 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
             &AttributeInfoName,
             SocketNames.GetData(),
             0, AttributeInfoName.count ), false );
+
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
+            FHoudiniEngine::Get().GetSession(),
+            SocketsNodeId, 0,
+            HAPI_UNREAL_ATTRIB_MESH_SOCKET_TAG,
+            &AttributeInfoTag,
+            SocketTags.GetData(),
+            0, AttributeInfoTag.count ), false );
+
+        // We will also create the socket_details attributes
+        for ( int32 Idx = 0; Idx < NumSockets; ++Idx )
+        {
+            // Build the current socket's prefix
+            FString SocketAttrPrefix = TEXT( HAPI_UNREAL_ATTRIB_MESH_SOCKET_PREFIX ) + FString::FromInt( Idx );
+
+            // Create mesh_socketX_pos attribute info.
+            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPos );
+            AttributeInfoPos.count = 1;
+            AttributeInfoPos.tupleSize = 3;
+            AttributeInfoPos.exists = true;
+            AttributeInfoPos.owner = HAPI_ATTROWNER_DETAIL;
+            AttributeInfoPos.storage = HAPI_STORAGETYPE_FLOAT;
+            AttributeInfoPos.originalOwner = HAPI_ATTROWNER_INVALID;
+
+            FString PosAttr = SocketAttrPrefix + TEXT("_pos");
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+                FHoudiniEngine::Get().GetSession(), SocketsNodeId, 0,
+                TCHAR_TO_ANSI( *PosAttr ), &AttributeInfoPos ), false );
+
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
+                FHoudiniEngine::Get().GetSession(),
+                SocketsNodeId, 0,
+                TCHAR_TO_ANSI( *PosAttr ),
+                &AttributeInfoPos,
+                &(SocketPos[ 3 * Idx ]),
+                0, AttributeInfoPos.count ), false );
+
+            // Create mesh_socketX_rot point attribute Info
+            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoRot );
+            AttributeInfoRot.count = 1;
+            AttributeInfoRot.tupleSize = 4;
+            AttributeInfoRot.exists = true;
+            AttributeInfoRot.owner = HAPI_ATTROWNER_DETAIL;
+            AttributeInfoRot.storage = HAPI_STORAGETYPE_FLOAT;
+            AttributeInfoRot.originalOwner = HAPI_ATTROWNER_INVALID;
+
+            FString RotAttr = SocketAttrPrefix + TEXT("_rot");
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+                FHoudiniEngine::Get().GetSession(), SocketsNodeId, 0,
+                TCHAR_TO_ANSI( *RotAttr ), &AttributeInfoRot ), false );
+
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
+                FHoudiniEngine::Get().GetSession(),
+                SocketsNodeId, 0,
+                TCHAR_TO_ANSI( *RotAttr ),
+                &AttributeInfoRot,
+                &(SocketRot[ 4 * Idx ]),
+                0, AttributeInfoRot.count ), false );
+
+            // Create mesh_socketX_scale point attribute Info
+            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoScale );
+            AttributeInfoScale.count = 1;
+            AttributeInfoScale.tupleSize = 3;
+            AttributeInfoScale.exists = true;
+            AttributeInfoScale.owner = HAPI_ATTROWNER_DETAIL;
+            AttributeInfoScale.storage = HAPI_STORAGETYPE_FLOAT;
+            AttributeInfoScale.originalOwner = HAPI_ATTROWNER_INVALID;
+
+            FString ScaleAttr = SocketAttrPrefix + TEXT("_scale");
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+                FHoudiniEngine::Get().GetSession(), SocketsNodeId, 0,
+                TCHAR_TO_ANSI( *ScaleAttr ), &AttributeInfoScale ), false );
+
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
+                FHoudiniEngine::Get().GetSession(),
+                SocketsNodeId, 0,
+                TCHAR_TO_ANSI( *ScaleAttr ),
+                &AttributeInfoScale,
+                &(SocketScale[ 3 * Idx ]),
+                0, AttributeInfoScale.count ), false );
+
+            //  Create the mesh_socketX_name attrib info
+            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoName );
+            AttributeInfoName.count = 1;
+            AttributeInfoName.tupleSize = 1;
+            AttributeInfoName.exists = true;
+            AttributeInfoName.owner = HAPI_ATTROWNER_DETAIL;
+            AttributeInfoName.storage = HAPI_STORAGETYPE_STRING;
+            AttributeInfoName.originalOwner = HAPI_ATTROWNER_INVALID;
+
+            FString NameAttr = SocketAttrPrefix + TEXT("_name");
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+                FHoudiniEngine::Get().GetSession(), SocketsNodeId, 0,
+                TCHAR_TO_ANSI( *NameAttr ), &AttributeInfoName ), false );
+
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
+                FHoudiniEngine::Get().GetSession(),
+                SocketsNodeId, 0,
+                TCHAR_TO_ANSI( *NameAttr ),
+                AttributeInfoName,
+                &(SocketNames[ Idx ]),
+                0, AttributeInfoName.count ), false );
+
+            //  Create the mesh_socketX_tag attrib info
+            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoTag );
+            AttributeInfoTag.count = 1;
+            AttributeInfoTag.tupleSize = 1;
+            AttributeInfoTag.exists = true;
+            AttributeInfoTag.owner = HAPI_ATTROWNER_DETAIL;
+            AttributeInfoTag.storage = HAPI_STORAGETYPE_STRING;
+            AttributeInfoTag.originalOwner = HAPI_ATTROWNER_INVALID;
+
+            FString TagAttr = SocketAttrPrefix + TEXT("_tag");
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+                FHoudiniEngine::Get().GetSession(), SocketsNodeId, 0,
+                TCHAR_TO_ANSI( *TagAttr ), &AttributeInfoTag ), false );
+
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
+                FHoudiniEngine::Get().GetSession(),
+                SocketsNodeId, 0,
+                TCHAR_TO_ANSI( *TagAttr ),
+                &AttributeInfoTag,
+                & ( SocketTags[ Idx ] ),
+                0, AttributeInfoTag.count ), false );
+        }
 
         // Now add the sockets group
         const char * SocketGroupStr = "socket_imported";
@@ -4787,6 +4960,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         TArray< FTransform > AllSockets;
         TArray< FString > AllSocketsNames;
         TArray< FString > AllSocketsActors;
+        TArray< FString > AllSocketsTags;
 
         for ( int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx )
         {
@@ -4869,7 +5043,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             }
 
             // Extracting Sockets points on the current part and add them to the list
-            AddMeshSocketToList( AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, AllSockets, AllSocketsNames, AllSocketsActors, PartInfo.isInstanced );
+            AddMeshSocketToList( AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, AllSockets, AllSocketsNames, AllSocketsActors, AllSocketsTags, PartInfo.isInstanced );
 
             if ( PartInfo.type == HAPI_PARTTYPE_INSTANCER )
             {
@@ -6415,7 +6589,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     continue;
 
                 // This GeoPartObject is from the same object/geo, so we can add the sockets to it
-                AddMeshSocketsToStaticMesh( Iter.Value(), *HoudiniGeoPartObject, AllSockets, AllSocketsNames, AllSocketsActors );
+                AddMeshSocketsToStaticMesh( Iter.Value(), *HoudiniGeoPartObject, AllSockets, AllSocketsNames, AllSocketsActors, AllSocketsTags );
             }
         }
 
@@ -6423,6 +6597,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         AllSockets.Empty();
         AllSocketsNames.Empty();
         AllSocketsActors.Empty();
+        AllSocketsTags.Empty();
 
     } // end for ObjectId
 
@@ -7437,8 +7612,296 @@ FHoudiniEngineUtils::AddMeshSocketToList(
     TArray< FTransform >& AllSockets,
     TArray< FString >& AllSocketsNames,
     TArray< FString >& AllSocketsActors,
+    TArray< FString >& AllSocketsTags,
     const bool& isPackedPrim )
-{
+{    
+    // Attributes we are interested in.
+    // Position
+    TArray< float > Positions;
+    HAPI_AttributeInfo AttribInfoPositions;
+    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoPositions, 0 );
+
+    // Rotation
+    bool bHasRotation = false;
+    TArray< float > Rotations;
+    HAPI_AttributeInfo AttribInfoRotations;
+    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoRotations, 0 );
+
+    // Scale
+    bool bHasScale = false;
+    TArray< float > Scales;
+    HAPI_AttributeInfo AttribInfoScales;
+    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoScales, 0 );
+        
+    // When using socket groups, we can also get the sockets rotation from the normal
+    bool bHasNormals = false;
+    TArray< float > Normals;
+    HAPI_AttributeInfo AttribInfoNormals;
+    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNormals, 0 );
+
+    // Socket Name
+    bool bHasNames = false;
+    TArray< FString > Names;
+    HAPI_AttributeInfo AttribInfoNames;
+    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNames, 0 );
+
+    // Socket Actor
+    bool bHasActors = false;
+    TArray< FString > Actors;
+    HAPI_AttributeInfo AttribInfoActors;
+    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoActors, 0 );
+
+    // Socket Tags
+    bool bHasTags = false;
+    TArray< FString > Tags;
+    HAPI_AttributeInfo AttribInfoTags;
+    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoTags, 0 );
+
+    // Get runtime settings.
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    check( HoudiniRuntimeSettings );
+    float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
+    EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+    if ( HoudiniRuntimeSettings )
+    {
+        GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+        ImportAxis = HoudiniRuntimeSettings->ImportAxis;
+    }
+
+    // Lambda function for creating the socket and adding it to the array
+    // Shared between the by Attribute / by Group methods
+    int32 FoundSocketCount = 0;
+    auto AddSocketToArray = [&]( const int32& PointIdx )
+    {
+        FTransform currentSocketTransform;
+        FVector currentPosition = FVector::ZeroVector;
+        FVector currentScale = FVector( 1.0f, 1.0f, 1.0f );
+        FQuat currentRotation = FQuat::Identity;
+
+        if ( ImportAxis == HRSAI_Unreal )
+        {
+            if ( Positions.IsValidIndex( PointIdx * 3 + 2 ) )
+            {
+                currentPosition.X = Positions[ PointIdx * 3 ] * GeneratedGeometryScaleFactor;
+                currentPosition.Y = Positions[ PointIdx * 3 + 2 ] * GeneratedGeometryScaleFactor;
+                currentPosition.Z = Positions[ PointIdx * 3 + 1 ] * GeneratedGeometryScaleFactor;
+            }
+
+            if ( bHasScale && Scales.IsValidIndex( PointIdx * 3 + 2 ) )
+            {
+                currentScale.X = Scales[ PointIdx * 3 ];
+                currentScale.Y = Scales[ PointIdx * 3 + 2 ];
+                currentScale.Z = Scales[ PointIdx * 3 + 1 ];
+            }
+
+            if ( bHasRotation && Rotations.IsValidIndex( PointIdx * 4 + 3 ) )
+            {
+                currentRotation.X = Rotations[ PointIdx * 4 ];
+                currentRotation.Y = Rotations[ PointIdx * 4 + 2 ];
+                currentRotation.Z = Rotations[ PointIdx * 4 + 1 ];
+                currentRotation.W = -Rotations[ PointIdx * 4 + 3 ];
+            }
+            else if ( bHasNormals && Normals.IsValidIndex( PointIdx * 3 + 2 ) )
+            {
+                FVector vNormal;
+                vNormal.X = Normals[ PointIdx * 3 ];
+                vNormal.Y = Normals[ PointIdx * 3 + 2 ];
+                vNormal.Z = Normals[ PointIdx * 3 + 1 ];
+
+                if ( vNormal != FVector::ZeroVector )
+                    currentRotation = FQuat::FindBetween( FVector::UpVector, vNormal );
+            }
+        }
+        else
+        {
+            if ( Positions.IsValidIndex( PointIdx * 3 + 2 ) )
+            {
+                currentPosition.X = Positions[ PointIdx * 3 ] * GeneratedGeometryScaleFactor;
+                currentPosition.Y = Positions[ PointIdx * 3 + 1 ] * GeneratedGeometryScaleFactor;
+                currentPosition.Z = Positions[ PointIdx * 3 + 2 ] * GeneratedGeometryScaleFactor;
+            }
+
+            if ( bHasScale && Scales.IsValidIndex( PointIdx * 3 + 2 ) )
+            {
+                currentScale.X = Scales[ PointIdx * 3 ];
+                currentScale.Y = Scales[ PointIdx * 3 + 1 ];
+                currentScale.Z = Scales[ PointIdx * 3 + 2 ];
+            }
+
+            if ( bHasRotation && Rotations.IsValidIndex( PointIdx * 4 + 3 ) )
+            {
+                currentRotation.X = Rotations[ PointIdx * 4 ];
+                currentRotation.Y = Rotations[ PointIdx * 4 + 1 ];
+                currentRotation.Z = Rotations[ PointIdx * 4 + 2 ];
+                currentRotation.W = Rotations[ PointIdx * 4 + 3 ];
+            }
+            else if ( bHasNormals && Normals.IsValidIndex( PointIdx * 3 + 2 ) )
+            {
+                FVector vNormal;
+                vNormal.X = Normals[ PointIdx * 3 ];
+                vNormal.Y = Normals[ PointIdx * 3 + 1 ];
+                vNormal.Z = Normals[ PointIdx * 3 + 2 ];
+
+                if ( vNormal != FVector::ZeroVector )
+                    currentRotation = FQuat::FindBetween( FVector::UpVector, vNormal );
+            }
+        }
+
+        FString currentName;
+        if ( bHasNames && Names.IsValidIndex( PointIdx ) )
+            currentName = Names[ PointIdx ];
+
+        FString currentActors;
+        if ( bHasActors && Actors.IsValidIndex( PointIdx ) )
+            currentActors = Actors[ PointIdx ];
+
+        FString currentTag;
+        if ( bHasTags && Tags.IsValidIndex( PointIdx ) )
+            currentTag = Tags[ PointIdx ];
+
+        // If the scale attribute wasn't set on all socket, we might end up
+        // with a zero scale socket, avoid that.
+        if ( currentScale == FVector::ZeroVector )
+            currentScale = FVector( 1.0f, 1.0f, 1.0f );
+
+        currentSocketTransform.SetLocation( currentPosition );
+        currentSocketTransform.SetRotation( currentRotation );
+        currentSocketTransform.SetScale3D( currentScale );
+
+        // We want to make sure we're not adding the same socket multiple times
+        int32 FoundIx = AllSockets.IndexOfByPredicate(
+            [ currentSocketTransform ]( const FTransform InTransform ){ return InTransform.Equals( currentSocketTransform); } );
+
+        if ( FoundIx >= 0 )
+        {
+            // If the transform, names and actors are identical, skip this duplicate
+            if ( ( AllSocketsNames[ FoundIx ] == currentName ) && ( AllSocketsActors[ FoundIx ] == currentActors ) )
+                return false;
+        }
+
+        AllSockets.Add( currentSocketTransform );
+        AllSocketsNames.Add( currentName );
+        AllSocketsActors.Add( currentActors );
+        AllSocketsTags.Add( currentTag );
+
+        FoundSocketCount++;
+
+        return true;
+    };
+
+
+    // Lambda function for reseting the arrays/attributes
+    auto ResetArraysAndAttr = [&]()
+    {
+        // Position
+        Positions.Empty();
+        FMemory::Memset< HAPI_AttributeInfo >( AttribInfoPositions, 0 );
+
+        // Rotation
+        bHasRotation = false;
+        Rotations.Empty();
+        FMemory::Memset< HAPI_AttributeInfo >( AttribInfoRotations, 0 );
+
+        // Scale
+        bHasScale = false;
+        Scales.Empty();
+        FMemory::Memset< HAPI_AttributeInfo >( AttribInfoScales, 0 );
+
+        // When using socket groups, we can also get the sockets rotation from the normal
+        bHasNormals = false;
+        Normals.Empty();
+        FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNormals, 0 );
+
+        // Socket Name
+        bHasNames = false;
+        Names.Empty();
+        FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNames, 0 );
+
+        // Socket Actor
+        bHasActors = false;
+        Actors.Empty();
+        FMemory::Memset< HAPI_AttributeInfo >( AttribInfoActors, 0 );
+
+        // Socket Tags
+        bHasTags = false;
+        Tags.Empty();
+        FMemory::Memset< HAPI_AttributeInfo >( AttribInfoTags, 0 );
+    };
+
+    //-------------------------------------------------------------------------
+    // FIND SOCKETS BY DETAIL ATTRIBUTES
+    //-------------------------------------------------------------------------
+
+    bool HasSocketAttributes = true;
+    int32 SocketIdx = 0;    
+    while ( HasSocketAttributes )
+    {
+        // Build the current socket's prefix
+        FString SocketAttrPrefix = TEXT( HAPI_UNREAL_ATTRIB_MESH_SOCKET_PREFIX ) + FString::FromInt( SocketIdx );
+
+        // Reset the arrays and attributes
+        ResetArraysAndAttr();
+
+        // Retrieve position data.
+        FString SocketPosAttr = SocketAttrPrefix + TEXT("_pos");
+        if ( !FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+            AssetId, ObjectId, GeoId, PartId,
+            TCHAR_TO_ANSI(*SocketPosAttr), AttribInfoPositions, Positions, 0, HAPI_ATTROWNER_DETAIL ) )
+            break;
+
+        if ( !AttribInfoPositions.exists )
+        {
+            // No need to keep looking for socket attributes
+            HasSocketAttributes = false;
+            break;
+        }
+
+        // Retrieve rotation data.
+        FString SocketRotAttr = SocketAttrPrefix + TEXT("_rot");
+        if ( FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+            AssetId, ObjectId, GeoId, PartId,
+            TCHAR_TO_ANSI(*SocketRotAttr), AttribInfoRotations, Rotations, 0, HAPI_ATTROWNER_DETAIL ) )
+            bHasRotation = true;
+
+        // Retrieve scale data.
+        FString SocketScaleAttr = SocketAttrPrefix + TEXT("_scale");
+        if ( FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+            AssetId, ObjectId, GeoId, PartId,
+            TCHAR_TO_ANSI(*SocketScaleAttr), AttribInfoScales, Scales, 0, HAPI_ATTROWNER_DETAIL ) )
+            bHasScale = true;
+
+        // Retrieve mesh socket names.
+        FString SocketNameAttr = SocketAttrPrefix + TEXT("_name");
+        if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+            AssetId, ObjectId, GeoId, PartId,
+            TCHAR_TO_ANSI(*SocketNameAttr), AttribInfoNames, Names ) )
+            bHasNames = true;
+
+        // Retrieve mesh socket actor.
+        FString SocketActorAttr = SocketAttrPrefix + TEXT("_actor");
+        if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+            AssetId, ObjectId, GeoId, PartId,
+            TCHAR_TO_ANSI(*SocketActorAttr), AttribInfoActors, Actors ) )
+            bHasActors = true;
+
+        // Retrieve mesh socket tags.
+        FString SocketTagAttr = SocketAttrPrefix + TEXT("_tag");
+        if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+            AssetId, ObjectId, GeoId, PartId,
+            TCHAR_TO_ANSI(*SocketTagAttr), AttribInfoTags, Tags ) )
+            bHasTags = true;
+
+        // Add the socket to the array
+        AddSocketToArray( 0 );
+
+        // Try to find the next socket
+        SocketIdx++;
+    }
+
+    //-------------------------------------------------------------------------
+    // FIND SOCKETS BY POINT GROUPS
+    //-------------------------------------------------------------------------
+
     // Get object / geo group memberships for primitives.
     TArray< FString > GroupNames;
     if ( !FHoudiniEngineUtils::HapiGetGroupNames(
@@ -7452,7 +7915,8 @@ FHoudiniEngineUtils::AddMeshSocketToList(
     for ( int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < GroupNames.Num(); ++GeoGroupNameIdx )
     {
         const FString & GroupName = GroupNames[ GeoGroupNameIdx ];
-        if ( GroupName.StartsWith( TEXT( HAPI_UNREAL_GROUP_MESH_SOCKETS ), ESearchCase::IgnoreCase ) )
+        if ( GroupName.StartsWith( TEXT( HAPI_UNREAL_GROUP_MESH_SOCKETS ), ESearchCase::IgnoreCase )
+            || GroupName.StartsWith( TEXT( HAPI_UNREAL_GROUP_MESH_SOCKETS_OLD ), ESearchCase::IgnoreCase ))
         {
             bHasSocketGroup = true;
             break;
@@ -7460,46 +7924,10 @@ FHoudiniEngineUtils::AddMeshSocketToList(
     }
 
     if ( !bHasSocketGroup )
-        return 0;
+        return FoundSocketCount;
 
-    //
-    // Get runtime settings.
-    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-    check( HoudiniRuntimeSettings );
-
-    float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
-    EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
-
-    if ( HoudiniRuntimeSettings )
-    {
-        GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
-        ImportAxis = HoudiniRuntimeSettings->ImportAxis;
-    }
-
-    // Attributes we are interested in.
-    TArray< float > Positions;
-    HAPI_AttributeInfo AttribInfoPositions;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoPositions, 0 );
-
-    TArray< float > Rotations;
-    HAPI_AttributeInfo AttribInfoRotations;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoRotations, 0 );
-
-    TArray< float > Normals;
-    HAPI_AttributeInfo AttribInfoNormals;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNormals, 0 );
-
-    TArray< float > Scales;
-    HAPI_AttributeInfo AttribInfoScales;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoScales, 0 );
-
-    TArray< FString > Names;
-    HAPI_AttributeInfo AttribInfoNames;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNames, 0 );
-
-    TArray< FString > Actors;
-    HAPI_AttributeInfo AttribInfoActors;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoActors, 0 );
+    // Reset the data arrays and attributes
+    ResetArraysAndAttr();
 
     // Retrieve position data.
     if ( !FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
@@ -7508,45 +7936,51 @@ FHoudiniEngineUtils::AddMeshSocketToList(
         return false;
 
     // Retrieve rotation data.
-    bool bHasRotation = false;
     if ( FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
         AssetId, ObjectId, GeoId, PartId,
         HAPI_UNREAL_ATTRIB_ROTATION, AttribInfoRotations, Rotations ) )
         bHasRotation = true;
 
     // Retrieve normal data.
-    bool bHasNormals = false;
     if ( FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
         AssetId, ObjectId, GeoId, PartId,
         HAPI_UNREAL_ATTRIB_NORMAL, AttribInfoNormals, Normals ) )
         bHasNormals = true;
 
     // Retrieve scale data.
-    bool bHasScale = false;
     if ( FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
         AssetId, ObjectId, GeoId, PartId,
         HAPI_UNREAL_ATTRIB_SCALE, AttribInfoScales, Scales ) )
         bHasScale = true;
 
     // Retrieve mesh socket names.
-    bool bHasNames = false;
     if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
         AssetId, ObjectId, GeoId, PartId,
         HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME, AttribInfoNames, Names ) )
         bHasNames = true;
+    else if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+        AssetId, ObjectId, GeoId, PartId,
+        HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME_OLD, AttribInfoNames, Names ) )
+        bHasNames = true;
 
     // Retrieve mesh socket actor.
-    bool bHasActors = false;
     if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
         AssetId, ObjectId, GeoId, PartId,
         HAPI_UNREAL_ATTRIB_MESH_SOCKET_ACTOR, AttribInfoActors, Actors ) )
         bHasActors = true;
 
+    // Retrieve mesh socket tags.
+    if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+        AssetId, ObjectId, GeoId, PartId,
+        HAPI_UNREAL_ATTRIB_MESH_SOCKET_TAG, AttribInfoTags, Tags ) )
+        bHasTags = true;
+
     // Extracting Sockets vertices
     for ( int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < GroupNames.Num(); ++GeoGroupNameIdx )
     {
         const FString & GroupName = GroupNames[ GeoGroupNameIdx ];
-        if ( !GroupName.StartsWith ( TEXT ( HAPI_UNREAL_GROUP_MESH_SOCKETS ) , ESearchCase::IgnoreCase ) )
+        if ( !GroupName.StartsWith ( TEXT ( HAPI_UNREAL_GROUP_MESH_SOCKETS ) , ESearchCase::IgnoreCase )
+            && !GroupName.StartsWith ( TEXT ( HAPI_UNREAL_GROUP_MESH_SOCKETS_OLD ) , ESearchCase::IgnoreCase ) )
             continue;
 
         TArray< int32 > PointGroupMembership;
@@ -7560,117 +7994,12 @@ FHoudiniEngineUtils::AddMeshSocketToList(
             if ( PointGroupMembership[ PointIdx ] == 0 )
                 continue;
 
-            FTransform currentSocketTransform;
-            FVector currentPosition = FVector::ZeroVector;
-            FVector currentScale = FVector( 1.0f, 1.0f, 1.0f );
-            FQuat currentRotation = FQuat::Identity;
-
-            if ( ImportAxis == HRSAI_Unreal )
-            {
-                if ( Positions.IsValidIndex( PointIdx * 3 + 2 ) )
-                {
-                    currentPosition.X = Positions[ PointIdx * 3 ] * GeneratedGeometryScaleFactor;
-                    currentPosition.Y = Positions[ PointIdx * 3 + 2 ] * GeneratedGeometryScaleFactor;
-                    currentPosition.Z = Positions[ PointIdx * 3 + 1 ] * GeneratedGeometryScaleFactor;
-                }
-
-                if ( bHasScale && Scales.IsValidIndex( PointIdx * 3 + 2 ) )
-                {
-                    currentScale.X = Scales[ PointIdx * 3 ];
-                    currentScale.Y = Scales[ PointIdx * 3 + 2 ];
-                    currentScale.Z = Scales[ PointIdx * 3 + 1 ];
-                }
-
-                if ( bHasRotation && Rotations.IsValidIndex( PointIdx * 4 + 3 ) )
-                {
-                    currentRotation.X = Rotations[ PointIdx * 4 ];
-                    currentRotation.Y = Rotations[ PointIdx * 4 + 2 ];
-                    currentRotation.Z = Rotations[ PointIdx * 4 + 1 ];
-                    currentRotation.W = -Rotations[ PointIdx * 4 + 3 ];
-                }
-                else if ( bHasNormals && Normals.IsValidIndex( PointIdx * 3 + 2 ) )
-                {
-                    FVector vNormal;
-                    vNormal.X = Normals[ PointIdx * 3 ];
-                    vNormal.Y = Normals[ PointIdx * 3 + 2 ];
-                    vNormal.Z = Normals[ PointIdx * 3 + 1 ];
-
-                    if ( vNormal != FVector::ZeroVector )
-                        currentRotation = FQuat::FindBetween( FVector::UpVector, vNormal );
-                }
-            }
-            else
-            {
-                if ( Positions.IsValidIndex( PointIdx * 3 + 2 ) )
-                {
-                    currentPosition.X = Positions[ PointIdx * 3 ] * GeneratedGeometryScaleFactor;
-                    currentPosition.Y = Positions[ PointIdx * 3 + 1 ] * GeneratedGeometryScaleFactor;
-                    currentPosition.Z = Positions[ PointIdx * 3 + 2 ] * GeneratedGeometryScaleFactor;
-                }
-
-                if ( bHasScale && Scales.IsValidIndex( PointIdx * 3 + 2 ) )
-                {
-                    currentScale.X = Scales[ PointIdx * 3 ];
-                    currentScale.Y = Scales[ PointIdx * 3 + 1 ];
-                    currentScale.Z = Scales[ PointIdx * 3 + 2 ];
-                }
-
-                if ( bHasRotation && Rotations.IsValidIndex( PointIdx * 4 + 3 ) )
-                {
-                    currentRotation.X = Rotations[ PointIdx * 4 ];
-                    currentRotation.Y = Rotations[ PointIdx * 4 + 1 ];
-                    currentRotation.Z = Rotations[ PointIdx * 4 + 2 ];
-                    currentRotation.W = Rotations[ PointIdx * 4 + 3 ];
-                }
-                else if ( bHasNormals && Normals.IsValidIndex( PointIdx * 3 + 2 ) )
-                {
-                    FVector vNormal;
-                    vNormal.X = Normals[ PointIdx * 3 ];
-                    vNormal.Y = Normals[ PointIdx * 3 + 1 ];
-                    vNormal.Z = Normals[ PointIdx * 3 + 2 ];
-
-                    if ( vNormal != FVector::ZeroVector )
-                        currentRotation = FQuat::FindBetween( FVector::UpVector, vNormal );
-                }
-            }
-
-            FString currentName;
-            if ( bHasNames && Names.IsValidIndex( PointIdx ) )
-                currentName = Names[ PointIdx ];
-
-            FString currentActors;
-            if ( bHasActors && Actors.IsValidIndex( PointIdx ) )
-                currentActors = Actors[ PointIdx ];
-
-            // If the scale attribute wasn't set on all socket, we might end up
-            // with a zero scale socket, avoid that.
-            if ( currentScale == FVector::ZeroVector )
-                currentScale = FVector( 1.0f, 1.0f, 1.0f );
-
-            currentSocketTransform.SetLocation( currentPosition );
-            currentSocketTransform.SetRotation( currentRotation );
-            currentSocketTransform.SetScale3D( currentScale );
-
-            // We want to make sure we're not adding the same socket multiple times
-            int32 FoundIx = AllSockets.IndexOfByPredicate(
-                [ currentSocketTransform ]( const FTransform InTransform ){ return InTransform.Equals( currentSocketTransform); } );
-
-            //int32 FoundIx = AllSockets.Find( currentSocketTransform );
-            if ( FoundIx >= 0 )
-            {
-                // If the transform, names and actors are identical, skip this duplicate
-                if ( ( AllSocketsNames[ FoundIx ] == currentName )
-                    && ( AllSocketsActors[ FoundIx ] == currentActors ) )
-                    continue;
-            }
-
-            AllSockets.Add( currentSocketTransform );
-            AllSocketsNames.Add( currentName );
-            AllSocketsActors.Add( currentActors );
+            // Add the corresponding socket to the array
+            AddSocketToArray( PointIdx );
         }
     }
 
-    return AllSockets.Num();
+    return FoundSocketCount;
 }
 
 
@@ -7680,7 +8009,8 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
     FHoudiniGeoPartObject& HoudiniGeoPartObject,
     TArray< FTransform >& AllSockets,
     TArray< FString >& AllSocketsNames,
-    TArray< FString >& AllSocketsActors )
+    TArray< FString >& AllSocketsActors,
+    TArray< FString >& AllSocketsTags )
 {
     if ( !StaticMesh )
         return false;
@@ -7713,10 +8043,16 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
             Socket->SocketName = FName( *SocketName );
         }
 
+        // Socket Tag
+        FString Tag;
+        if ( AllSocketsTags.IsValidIndex( nSocket ) && !AllSocketsTags[ nSocket ].IsEmpty() )
+            Tag = AllSocketsTags[ nSocket ];
 
         // The actor will be store temporarily in the socket's Tag as we need a StaticMeshComponent to add an actor to the socket
         if ( AllSocketsActors.IsValidIndex( nSocket ) && !AllSocketsActors[ nSocket ].IsEmpty() )
-            Socket->Tag = AllSocketsActors[ nSocket ];
+            Tag += TEXT("|") + AllSocketsActors[ nSocket ];
+
+        Socket->Tag = Tag;
 
         StaticMesh->Sockets.Add( Socket );
     }
@@ -7779,9 +8115,23 @@ FHoudiniEngineUtils::AddActorsToMeshSocket( UStaticMeshSocket* Socket, UStaticMe
     if ( ActorString.IsEmpty() )
         return false;
 
+    // The actor to assign are listed after a |
+    TArray<FString> ActorStringArray;
+    ActorString.ParseIntoArray( ActorStringArray, TEXT("|"), false );
+
+    // The "real" Tag is the first
+    if ( ActorStringArray.Num() > 0 )
+        Socket->Tag = ActorStringArray[ 0 ];
+
+    // We just add a Tag, no Actor
+    if ( ActorStringArray.Num() == 1 )
+        return false;
+
+    // Extract the parsed actor string to split it further
+    ActorString = ActorStringArray[ 1 ];
+
     // Converting the string to a string array using delimiters
     const TCHAR* Delims[] = { TEXT(","), TEXT(";") };
-    TArray<FString> ActorStringArray;
     ActorString.ParseIntoArray( ActorStringArray, Delims, 2 );
 
     if ( ActorStringArray.Num() <= 0 )
@@ -7812,8 +8162,6 @@ FHoudiniEngineUtils::AddActorsToMeshSocket( UStaticMeshSocket* Socket, UStaticMe
         }
     }
 #endif
-
-    Socket->Tag = TEXT("");
 
     return true;
 }
