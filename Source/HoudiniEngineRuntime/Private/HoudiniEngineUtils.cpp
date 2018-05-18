@@ -3587,7 +3587,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                 FHoudiniEngine::Get().GetSession(),
                 SocketsNodeId, 0,
                 TCHAR_TO_ANSI( *NameAttr ),
-                AttributeInfoName,
+                &AttributeInfoName,
                 &(SocketNames[ Idx ]),
                 0, AttributeInfoName.count ), false );
 
