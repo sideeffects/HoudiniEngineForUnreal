@@ -205,8 +205,11 @@
 //#define HAPI_UNREAL_ATTRIB_LANDSCAPE_NAME               "unreal_landscape"
 #define HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME              "unreal_input_mesh_name"
 #define HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE            "unreal_input_source_file"
-#define HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME             "unreal_mesh_socket_name"
+#define HAPI_UNREAL_ATTRIB_MESH_SOCKET_PREFIX           "mesh_socket"
+#define HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME             "mesh_socket_name"
+#define HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME_OLD         "unreal_mesh_socket_name"
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_ACTOR            "unreal_mesh_socket_actor"
+#define HAPI_UNREAL_ATTRIB_MESH_SOCKET_TAG              "mesh_socket_tag"
 
 #define HAPI_UNREAL_ATTRIB_GENERIC_UPROP_PREFIX         "unreal_uproperty_"
 #define HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX     "unreal_material_parameter_"
@@ -358,7 +361,8 @@
 #define HAPI_UNREAL_GROUP_GEOMETRY_NOT_COLLISION        "main_geo"
 
 /** Group name prefix used to mark mesh sockets **/
-#define HAPI_UNREAL_GROUP_MESH_SOCKETS                  "socket"
+#define HAPI_UNREAL_GROUP_MESH_SOCKETS                  "mesh_socket"
+#define HAPI_UNREAL_GROUP_MESH_SOCKETS_OLD              "socket"
 
 /** Details panel desired sizes. **/
 #define HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH              270
