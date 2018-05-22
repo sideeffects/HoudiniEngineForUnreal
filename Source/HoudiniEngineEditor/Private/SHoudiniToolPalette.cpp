@@ -648,8 +648,9 @@ SHoudiniToolPalette::ShowAddHoudiniToolWindow(const TArray< UHoudiniAsset *>& Ho
         if ( !CurrentHoudiniAsset )
             continue;
 
-        // Create a new Tool property object
-        UHoudiniToolProperties* NewToolProperty = NewObject< UHoudiniToolProperties >( GetTransientPackage() );
+        // Create a new Tool property object for the property dialog
+        FString ToolName = CurrentHoudiniAsset->GetName() + _T(" (") + CurrentHoudiniAsset->AssetFileName + _T(")");
+        UHoudiniToolProperties* NewToolProperty = NewObject< UHoudiniToolProperties >( GetTransientPackage(), FName( *ToolName ) );
         NewToolProperty->AddToRoot();
 
         // Set the default values for this asset
@@ -773,7 +774,11 @@ SHoudiniToolPalette::EditActiveHoudiniTool()
         return;
 
     // Create a new Tool property object for the property dialog
-    UHoudiniToolProperties* NewToolProperty = NewObject< UHoudiniToolProperties >( GetTransientPackage() );
+    FString ToolName = ActiveTool->Name.ToString();
+    if ( ActiveTool->HoudiniAsset )
+        ToolName += _T(" (") + ActiveTool->HoudiniAsset->AssetFileName + _T(")");
+
+    UHoudiniToolProperties* NewToolProperty = NewObject< UHoudiniToolProperties >( GetTransientPackage(), FName( *ToolName ) );
     NewToolProperty->AddToRoot();
 
     // Set the default values for this asset
@@ -922,6 +927,12 @@ SHoudiniToolPalette::CreateFloatingDetailsView( const TArray< UObject* >& InObje
     Args.bHideSelectionTip = true;
     Args.bLockable = false;
     Args.bAllowMultipleTopLevelObjects = true;
+    Args.ViewIdentifier = TEXT("Houdini Tools Properties");
+    Args.NameAreaSettings = FDetailsViewArgs::HideNameArea;
+    Args.bShowPropertyMatrixButton = false;
+    Args.bShowOptions = false;
+    Args.bShowModifiedPropertiesOption = false;
+    Args.bShowActorLabel = false;
 
     FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
     TSharedRef<IDetailsView> DetailView = PropertyEditorModule.CreateDetailView( Args );
