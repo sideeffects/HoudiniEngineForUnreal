@@ -170,7 +170,7 @@ SHoudiniToolPalette::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool,
                 break;
 
             case EHoudiniToolSelectionType::HTOOL_SELECTION_WORLD_ONLY:
-                oolTip += TEXT("\nOnly World Outliner selection will be considered.\n");
+                ToolTip += TEXT("\nOnly World Outliner selection will be considered.\n");
                 break;
 
             case EHoudiniToolSelectionType::HTOOL_SELECTION_CB_ONLY:
