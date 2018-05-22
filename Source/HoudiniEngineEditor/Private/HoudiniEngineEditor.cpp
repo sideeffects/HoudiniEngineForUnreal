@@ -754,6 +754,7 @@ FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescript
     ToolArray.Insert( FHoudiniToolDescription{
         TEXT( "Rock Generator" ),
         EHoudiniToolType::HTOOLTYPE_GENERATOR,
+        EHoudiniToolSelectionType::HTOOL_SELECTION_ALL,
         TEXT( "Generates procedural rock meshes" ),
         FFilePath{ ToolsDir / TEXT("rock_generator.png") },
         TSoftObjectPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/rock_generator.rock_generator'" ) ) ),
@@ -764,6 +765,7 @@ FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescript
     ToolArray.Insert( FHoudiniToolDescription{
         TEXT( "Boolean" ),
         EHoudiniToolType::HTOOLTYPE_OPERATOR_MULTI,
+        EHoudiniToolSelectionType::HTOOL_SELECTION_WORLD_ONLY,
         TEXT( "Apply boolean operations to two input objects" ),
         FFilePath{ ToolsDir / TEXT("he_sop_boolean.png") },
         TSoftObjectPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_boolean.he_sop_boolean'" ) ) ),
@@ -774,6 +776,7 @@ FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescript
     ToolArray.Insert( FHoudiniToolDescription{
         TEXT( "Polyreducer" ),
         EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH,
+        EHoudiniToolSelectionType::HTOOL_SELECTION_ALL,
         TEXT( "Reduces the number of polygons of the input objects" ),
         FFilePath{ ToolsDir / TEXT("he_sop_polyreduce.png") },
         TSoftObjectPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_polyreduce.he_sop_polyreduce'" ) ) ),
@@ -784,6 +787,7 @@ FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescript
     ToolArray.Insert( FHoudiniToolDescription{
         TEXT( "Curve Instancer" ),
         EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE,
+        EHoudiniToolSelectionType::HTOOL_SELECTION_CB_ONLY,
         TEXT( "Scatters and instances the input objects along a curve or in a zone defined by a closed curve." ),
         FFilePath{ ToolsDir / TEXT("he_sop_curve_instancer.png") },
         TSoftObjectPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_curve_instancer.he_sop_curve_instancer'" ) ) ),
@@ -1381,7 +1385,7 @@ FHoudiniEngineEditor::RestartSession()
 void
 FHoudiniEngineEditor::AddHoudiniTool( const FHoudiniTool& NewTool )
 {
-    HoudiniTools.Add( MakeShareable( new FHoudiniTool( NewTool.HoudiniAsset, NewTool.Name, NewTool.Type, NewTool.ToolTipText, NewTool.Icon, NewTool.HelpURL ) ) );
+    HoudiniTools.Add( MakeShareable( new FHoudiniTool( NewTool.HoudiniAsset, NewTool.Name, NewTool.Type, NewTool.SelectionType, NewTool.ToolTipText, NewTool.Icon, NewTool.HelpURL ) ) );
 }
 
 void
@@ -1513,7 +1517,7 @@ FHoudiniEngineEditor::UpdateHoudiniToolList()
             CustomIconBrush = StyleSet->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
         }
 
-        HoudiniTools.Add( MakeShareable( new FHoudiniTool( HoudiniTool.HoudiniAsset, ToolName, HoudiniTool.Type, ToolTip, CustomIconBrush, HoudiniTool.HelpURL ) ) );
+        HoudiniTools.Add( MakeShareable( new FHoudiniTool( HoudiniTool.HoudiniAsset, ToolName, HoudiniTool.Type, HoudiniTool.SelectionType, ToolTip, CustomIconBrush, HoudiniTool.HelpURL ) ) );
     }
 
     for ( int32 Idx = 0; Idx < NumDefaultTools; Idx++ )
