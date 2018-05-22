@@ -77,6 +77,7 @@ UHoudiniToolProperties::UHoudiniToolProperties(const FObjectInitializer & Object
     :Super( ObjectInitializer )
     , Name()
     , Type( EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE )
+    , SelectionType( EHoudiniToolSelectionType::HTOOL_SELECTION_ALL )
     , ToolTip()
     , IconPath(FFilePath())
     , HoudiniAsset( nullptr )
@@ -145,18 +146,48 @@ SHoudiniToolPalette::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool,
     switch ( HoudiniTool->Type )
     {
         case EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE:
-            ToolTip += TEXT("Operator (Single):\nDouble clicking on this tool will instantiate the asset in the world.\nThe current selection will be automatically assigned to the asset's first input.\nIf objects are selected in the world outliner, the asset's transform will default to the mean Transform of the select objects.\nIf objects are selected in the content browser, the world selection will be ignored.");
+            ToolTip += TEXT("Operator (Single):\nDouble clicking on this tool will instantiate the asset in the world.\nThe current selection will be automatically assigned to the asset's first input.\n" );
             break;
         case EHoudiniToolType::HTOOLTYPE_OPERATOR_MULTI:
-            ToolTip += TEXT("Operator (Multiple):\nDouble clicking on this tool will instantiate the asset in the world.\nEach of the selected object will be assigned to one of the asset's input (object1 to input1, object2 to input2 etc.)\nIf objects are selected in the world outliner, the asset's transform will default to the mean Transform of the select objects.\nIf objects are selected in the content browser, the world selection will be ignored.");
+            ToolTip += TEXT("Operator (Multiple):\nDouble clicking on this tool will instantiate the asset in the world.\nEach of the selected object will be assigned to one of the asset's input (object1 to input1, object2 to input2 etc.)\n" );
             break;
         case EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH:
-            ToolTip += TEXT("Operator (Batch):\nDouble clicking on this tool will instantiate the asset in the world.\nAn instance of the asset will be created for each of the selected object, and the asset's first input will be set to that object.\nIf objects are selected in the world outliner, each created asset will use its object transform.\nIf objects are selected in the content browser, the world selection will be ignored.");
+            ToolTip += TEXT("Operator (Batch):\nDouble clicking on this tool will instantiate the asset in the world.\nAn instance of the asset will be created for each of the selected object, and the asset's first input will be set to that object.\n");
             break;
         case EHoudiniToolType::HTOOLTYPE_GENERATOR:
         default:
-            ToolTip += TEXT("Generator:\nDouble clicking on this tool will instantiate the asset in the world.\nIf objects are selected in the world outliner, the asset's transform will default to the mean Transform of the select objects.");
+            ToolTip += TEXT("Generator:\nDouble clicking on this tool will instantiate the asset in the world.\n");
             break;
+    }
+
+    // Add a description from the tools selection type
+    if ( HoudiniTool->Type != EHoudiniToolType::HTOOLTYPE_GENERATOR )
+    {
+        switch ( HoudiniTool->SelectionType )
+        {
+            case EHoudiniToolSelectionType::HTOOL_SELECTION_ALL:
+                ToolTip += TEXT("\nBoth Content Browser and World Outliner selection will be considered.\nIf objects are selected in the content browser, the world selection will be ignored.\n");
+                break;
+
+            case EHoudiniToolSelectionType::HTOOL_SELECTION_WORLD_ONLY:
+                oolTip += TEXT("\nOnly World Outliner selection will be considered.\n");
+                break;
+
+            case EHoudiniToolSelectionType::HTOOL_SELECTION_CB_ONLY:
+                ToolTip += TEXT("\nOnly Content Browser selection will be considered.\n");
+                break;
+        }
+    }
+
+    if ( HoudiniTool->Type != EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH )
+    {
+        if ( HoudiniTool->SelectionType != EHoudiniToolSelectionType::HTOOL_SELECTION_CB_ONLY )
+            ToolTip += TEXT( "If objects are selected in the world outliner, the asset's transform will default to the mean Transform of the select objects.\n" );
+    }
+    else
+    {
+        if ( HoudiniTool->SelectionType != EHoudiniToolSelectionType::HTOOL_SELECTION_CB_ONLY )
+            ToolTip += TEXT( "If objects are selected in the world outliner, each created asset will use its object transform.\n" );
     }
 
     FText ToolTipText = FText::FromString( ToolTip );
@@ -348,6 +379,13 @@ SHoudiniToolPalette::InstantiateHoudiniTool( FHoudiniTool* HoudiniTool )
     // Get the current Content browser selection
     TArray<UObject *> ContentBrowserSelection;
     int32 ContentBrowserSelectionCount = FHoudiniEngineEditor::GetContentBrowserSelection( ContentBrowserSelection );
+    
+    // By default, Content browser selection has a priority over the world selection
+    bool UseCBSelection = ContentBrowserSelectionCount > 0;
+    if ( HoudiniTool->SelectionType == EHoudiniToolSelectionType::HTOOL_SELECTION_CB_ONLY )
+        UseCBSelection = true;
+    else if ( HoudiniTool->SelectionType == EHoudiniToolSelectionType::HTOOL_SELECTION_WORLD_ONLY )
+        UseCBSelection = false;
 
     // Modify the created actor's position from the current editor world selection
     FTransform SpawnTransform = GetDefaulToolSpawnTransform();
@@ -365,11 +403,16 @@ SHoudiniToolPalette::InstantiateHoudiniTool( FHoudiniTool* HoudiniTool )
             GEditor->SelectNone( true, true, false );
 
         // An instance of the asset will be created for each selected object
-        bool UseCBSelection = ContentBrowserSelectionCount > 0;
         for( int32 SelecIndex = 0; SelecIndex < ( UseCBSelection ? ContentBrowserSelectionCount : WorldSelectionCount ); SelecIndex++ )
         {
             // Get the current object
-            UObject* CurrentSelectedObject = UseCBSelection ? ContentBrowserSelection[ SelecIndex ] : WorldSelection[ SelecIndex ];
+            UObject* CurrentSelectedObject = nullptr;
+            if ( UseCBSelection && ContentBrowserSelection.IsValidIndex( SelecIndex ) )
+                CurrentSelectedObject = ContentBrowserSelection[ SelecIndex ];
+
+            if ( !UseCBSelection && WorldSelection.IsValidIndex( SelecIndex ) )
+                CurrentSelectedObject = WorldSelection[ SelecIndex ];
+
             if ( !CurrentSelectedObject )
                 continue;
 
@@ -419,9 +462,6 @@ SHoudiniToolPalette::InstantiateHoudiniTool( FHoudiniTool* HoudiniTool )
             UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor ? HoudiniAssetActor->GetHoudiniAssetComponent() : nullptr;
             if ( HoudiniAssetComponent )
             {
-                //  Content browser selection has a priority over the world selection
-                bool UseCBSelection = ContentBrowserSelectionCount > 0;
-
                 // Build the preset map
                 int InputIndex = 0;
                 for ( auto CurrentObject : ( UseCBSelection ? ContentBrowserSelection : WorldSelection ) )
@@ -706,6 +746,7 @@ SHoudiniToolPalette::OnAddHoudiniToolWindowClosed( const TSharedRef<SWindow>& In
             ToolProperties->HoudiniAsset,
             FText::FromString( ToolProperties->Name ),
             ToolProperties->Type,
+            ToolProperties->SelectionType,
             FText::FromString (ToolProperties->ToolTip ),
             CustomIconBrush,
             ToolProperties->HelpURL );
@@ -743,7 +784,7 @@ SHoudiniToolPalette::OnAddHoudiniToolWindowClosed( const TSharedRef<SWindow>& In
     {
         if ( EditorTools )
             EditorTools->Add( MakeShareable( new FHoudiniTool(
-                NewTool.HoudiniAsset, NewTool.Name, NewTool.Type, NewTool.ToolTipText, NewTool.Icon, NewTool.HelpURL ) ) );
+                NewTool.HoudiniAsset, NewTool.Name, NewTool.Type, NewTool.SelectionType, NewTool.ToolTipText, NewTool.Icon, NewTool.HelpURL ) ) );
     }
 
     // Get the runtime settings to add the new custom tools there
@@ -834,6 +875,7 @@ SHoudiniToolPalette::OnEditHoudiniToolWindowClosed( const TSharedRef<SWindow>& I
             ToolProperties->HoudiniAsset,
             FText::FromString( ToolProperties->Name ),
             ToolProperties->Type,
+            ToolProperties->SelectionType,
             FText::FromString (ToolProperties->ToolTip ),
             CustomIconBrush,
             ToolProperties->HelpURL );
@@ -881,7 +923,7 @@ SHoudiniToolPalette::OnEditHoudiniToolWindowClosed( const TSharedRef<SWindow>& I
             continue;
 
         (*EditorTools)[ FoundIndex ] = MakeShareable( new FHoudiniTool(
-            EditedTool.HoudiniAsset, EditedTool.Name, EditedTool.Type, EditedTool.ToolTipText, EditedTool.Icon, EditedTool.HelpURL ) );
+            EditedTool.HoudiniAsset, EditedTool.Name, EditedTool.Type, EditedTool.SelectionType, EditedTool.ToolTipText, EditedTool.Icon, EditedTool.HelpURL ) );
 
         // Update in the settings custom tools
         if ( !FHoudiniEngineEditor::Get().FindHoudiniToolInHoudiniSettings( EditedTool, FoundIndex ) )

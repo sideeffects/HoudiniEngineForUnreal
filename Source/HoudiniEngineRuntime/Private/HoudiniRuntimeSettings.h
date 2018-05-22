@@ -93,6 +93,19 @@ enum class EHoudiniToolType : uint8
     HTOOLTYPE_OPERATOR_BATCH UMETA( DisplayName = "Batch Operator" )
 };
 
+UENUM()
+enum class EHoudiniToolSelectionType : uint8
+{
+    // For tools that can be applied both to Content Browser and World selection
+    HTOOL_SELECTION_ALL UMETA( DisplayName = "Content Browser AND World" ),
+
+    // For tools that can be applied only to World selection
+    HTOOL_SELECTION_WORLD_ONLY UMETA( DisplayName = "World selection only" ),
+
+    // For tools that can be applied only to Content Browser selection
+    HTOOL_SELECTION_CB_ONLY UMETA( DisplayName = "Content browser selection only" )
+};
+
 USTRUCT( BlueprintType )
 struct FHoudiniToolDescription
 {
@@ -105,6 +118,10 @@ struct FHoudiniToolDescription
     /** Type of the tool */
     UPROPERTY(Category = Tool, EditAnywhere)
     EHoudiniToolType Type;
+
+    /** Selection Type of the tool */
+    UPROPERTY(Category = Tool, EditAnywhere)
+    EHoudiniToolSelectionType SelectionType;
 
     /** Tooltip shown on mouse hover */
     UPROPERTY( Category = Tool, EditAnywhere )

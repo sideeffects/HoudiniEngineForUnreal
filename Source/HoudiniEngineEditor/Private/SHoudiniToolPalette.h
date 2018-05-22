@@ -55,6 +55,10 @@ class UHoudiniToolProperties : public UObject
         UPROPERTY( Category = Tool, EditAnywhere )
         EHoudiniToolType Type;
 
+        /** Selection Type of the tool */
+        UPROPERTY( Category = Tool, EditAnywhere )
+        EHoudiniToolSelectionType SelectionType;
+
         /** Tooltip shown on mouse hover */
         UPROPERTY( Category = Tool, EditAnywhere )
         FString ToolTip;
