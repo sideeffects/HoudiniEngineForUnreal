@@ -649,7 +649,7 @@ SHoudiniToolPalette::ShowAddHoudiniToolWindow(const TArray< UHoudiniAsset *>& Ho
             continue;
 
         // Create a new Tool property object for the property dialog
-        FString ToolName = CurrentHoudiniAsset->GetName() + _T(" (") + CurrentHoudiniAsset->AssetFileName + _T(")");
+        FString ToolName = CurrentHoudiniAsset->GetName() + TEXT(" (") + CurrentHoudiniAsset->AssetFileName + TEXT(")");
         UHoudiniToolProperties* NewToolProperty = NewObject< UHoudiniToolProperties >( GetTransientPackage(), FName( *ToolName ) );
         NewToolProperty->AddToRoot();
 
@@ -776,7 +776,7 @@ SHoudiniToolPalette::EditActiveHoudiniTool()
     // Create a new Tool property object for the property dialog
     FString ToolName = ActiveTool->Name.ToString();
     if ( ActiveTool->HoudiniAsset )
-        ToolName += _T(" (") + ActiveTool->HoudiniAsset->AssetFileName + _T(")");
+        ToolName += TEXT(" (") + ActiveTool->HoudiniAsset->AssetFileName + TEXT(")");
 
     UHoudiniToolProperties* NewToolProperty = NewObject< UHoudiniToolProperties >( GetTransientPackage(), FName( *ToolName ) );
     NewToolProperty->AddToRoot();
