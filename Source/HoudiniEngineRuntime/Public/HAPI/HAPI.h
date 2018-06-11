@@ -5685,6 +5685,9 @@ HAPI_DECL HAPI_SetWorkitemFloatData( const HAPI_Session * session,
 /// @param[in]      data_name
 ///                 null-terminated name of the data member
 ///
+/// @param[in]      data_index
+///                 index of the string data member
+///
 /// @param[in]      value
 ///                 null-terminated string to copy to the workitem data member
 ///
@@ -5692,6 +5695,7 @@ HAPI_DECL HAPI_SetWorkitemStringData( const HAPI_Session * session,
                                       HAPI_NodeId node_id,
                                       HAPI_PDG_WorkitemId workitem_id,
                                       const char * data_name,
+                                      int data_index,
                                       const char * value );
 
 // @brief  Commits any pending workitems.
@@ -5747,9 +5751,7 @@ HAPI_DECL HAPI_GetWorkitems( const HAPI_Session * session,
                              int * workitem_ids, int length );
 
 // @brief  Gets the length of the workitem data member.
-///        In the case of string data, this is the length of the string
-///        including the null terminator.  In the case of other types, 
-///        it is the length of the array.
+///        It is the length of the array of data.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -5766,7 +5768,7 @@ HAPI_DECL HAPI_GetWorkitems( const HAPI_Session * session,
 ///                 null-terminated name of the data member
 ///
 /// @param[out]     length
-///                 The length of the data member array or string buffer length
+///                 The length of the data member array
 ///
 HAPI_DECL HAPI_GetWorkitemDataLength( const HAPI_Session * session,
                                       HAPI_NodeId node_id,
@@ -5834,7 +5836,7 @@ HAPI_DECL HAPI_GetWorkitemFloatData( const HAPI_Session * session,
                                      float * data_array,
                                      int length );
 
-// @brief  Gets string data from a work item member.
+// @brief  Gets string ids from a work item member.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -5852,8 +5854,10 @@ HAPI_DECL HAPI_GetWorkitemFloatData( const HAPI_Session * session,
 ///
 /// @param[out]     data_array
 ///                 buffer of at least size length to copy the data into.  The required
-///                 length should be determined by HAPI_GetWorkitemDataLength.  This length
-///                 includes the null-terminator.
+///                 length should be determined by HAPI_GetWorkitemDataLength.  The data
+///                 is an array of HAPI_StringHandle which can be used with 
+///                 HAPI_GetString.  The string handles are valid until the next call to 
+///                 this function.
 ///
 /// @param[in]      length
 ///                 The length of the supplied buffer
@@ -5862,7 +5866,7 @@ HAPI_DECL HAPI_GetWorkitemStringData( const HAPI_Session * session,
                                       HAPI_NodeId node_id,
                                       HAPI_PDG_WorkitemId workitem_id,
                                       const char * data_name,
-                                      char * data_array,
+                                      HAPI_StringHandle * data_array,
                                       int length );                               
 
 // @brief  Gets the info for workitem results.
