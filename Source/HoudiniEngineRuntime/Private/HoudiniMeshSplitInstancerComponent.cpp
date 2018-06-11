@@ -30,7 +30,7 @@
 #include "MeshPaintHelpers.h"
 #endif
 
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniMeshSplitInstancerComponent::UHoudiniMeshSplitInstancerComponent( const FObjectInitializer& ObjectInitializer )

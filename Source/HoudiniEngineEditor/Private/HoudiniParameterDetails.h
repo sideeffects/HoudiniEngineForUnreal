@@ -25,7 +25,7 @@
 
 #include "DetailCategoryBuilder.h"
 #include "IDetailCustomization.h"
-#include "MultiBoxBuilder.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 
 struct FHoudiniParameterDetails
 {

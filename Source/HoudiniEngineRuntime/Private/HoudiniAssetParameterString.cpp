@@ -29,7 +29,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineString.h"
 
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniAssetParameterString::UHoudiniAssetParameterString( const FObjectInitializer & ObjectInitializer )

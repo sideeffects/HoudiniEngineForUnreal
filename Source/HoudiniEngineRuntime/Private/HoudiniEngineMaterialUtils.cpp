@@ -33,7 +33,7 @@
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#include "MetaData.h"
+#include "UObject/MetaData.h"
 #if WITH_EDITOR
     #include "Materials/Material.h"
     #include "Materials/MaterialInstance.h"

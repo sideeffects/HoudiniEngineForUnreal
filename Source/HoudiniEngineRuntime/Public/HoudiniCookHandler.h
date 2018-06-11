@@ -24,8 +24,8 @@
 #pragma once
 
 #include "CoreGlobals.h"
-#include "UnrealString.h"
-#include "Guid.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Guid.h"
 
 /** Used to control behavior of package baking helper functions */
 enum class EBakeMode

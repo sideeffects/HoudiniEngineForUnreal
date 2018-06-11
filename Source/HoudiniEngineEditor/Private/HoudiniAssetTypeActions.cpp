@@ -43,7 +43,7 @@
 #include "EditorReimportHandler.h"
 #include "HAL/FileManager.h"
 
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 FText

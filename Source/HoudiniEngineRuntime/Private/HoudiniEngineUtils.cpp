@@ -52,7 +52,7 @@
     #include "Private/ConvexDecompTool.h"
     #include "PackedNormal.h"
     #include "Widgets/Notifications/SNotificationList.h"
-    #include "NotificationManager.h"
+    #include "Framework/Notifications/NotificationManager.h"
 #endif
 
 #include "EngineUtils.h"
@@ -63,10 +63,10 @@
 #include "Engine/SkeletalMesh.h"
 #include "Rendering/SkeletalMeshModel.h"
 #include "SkeletalMeshTypes.h"
-#include "Paths.h"
+#include "Misc/Paths.h"
 
 #if PLATFORM_WINDOWS
-    #include "WindowsHWrapper.h"
+    #include "Windows/WindowsHWrapper.h"
 
     // Of course, Windows defines its own GetGeoInfo,
     // So we need to undefine that before including HoudiniApi.h to avoid collision...
@@ -80,7 +80,7 @@
 #include "HAL/PlatformMisc.h"
 #include "HAL/PlatformApplicationMisc.h"
 
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -6620,8 +6620,12 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // so we need to manually flush and recreate the data to have proper navigation collision
                 if( StaticMesh->NavCollision )
                 {
-                    StaticMesh->NavCollision->CookedFormatData.FlushData();
-                    StaticMesh->NavCollision->GatherCollision();
+                    BodySetup->InvalidatePhysicsData();
+                    BodySetup->CreatePhysicsMeshes();
+
+                    //StaticMesh->NavCollision->InvalidatePhysicsData();
+                    //StaticMesh->NavCollision->CookedFormatData.FlushData();
+                    //StaticMesh->NavCollision->GatherCollision();
                     StaticMesh->NavCollision->Setup( BodySetup );
                 }
             }

@@ -1267,7 +1267,7 @@ FHoudiniApi::CreateThriftSocketSessionEmptyStub(HAPI_Session * session, const ch
 
 
 HAPI_Result
-FHoudiniApi::CreateWorkitemEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id, const char * name, int index, HAPI_PDG_WorkitemState state)
+FHoudiniApi::CreateWorkitemEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id, const char * name, int index)
 {
 	return HAPI_RESULT_FAILURE;
 }

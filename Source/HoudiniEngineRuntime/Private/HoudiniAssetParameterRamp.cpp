@@ -30,7 +30,7 @@
 #include "HoudiniAssetParameterFloat.h"
 #include "HoudiniAssetComponent.h"
 #include "Curves/CurveBase.h"
-#include "SlateApplication.h"
+#include "Framework/Application/SlateApplication.h"
 #if WITH_EDITOR
     #include "SCurveEditor.h"
 #endif

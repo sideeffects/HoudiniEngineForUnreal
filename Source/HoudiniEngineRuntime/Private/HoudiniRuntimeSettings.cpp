@@ -26,7 +26,7 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
 
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & ObjectInitializer )

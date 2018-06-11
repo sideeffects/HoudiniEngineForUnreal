@@ -30,8 +30,8 @@
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
 
-#include "Internationalization.h"
-#include "Paths.h"
+#include "Internationalization/Internationalization.h"
+#include "Misc/Paths.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 

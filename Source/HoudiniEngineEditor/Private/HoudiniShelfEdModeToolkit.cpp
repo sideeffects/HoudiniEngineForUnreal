@@ -30,7 +30,7 @@
 #include "EditorModeManager.h"
 #include "Widgets/Input/SButton.h"
 
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 FHoudiniShelfEdModeToolkit::FHoudiniShelfEdModeToolkit()

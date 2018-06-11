@@ -61,14 +61,14 @@
 #include "HoudiniLandscapeUtils.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Landscape.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
 #include "Materials/MaterialInstance.h"
 #include "Engine/StaticMeshSocket.h"
 #include "HoudiniCookHandler.h"
-#include "MetaData.h"
+#include "UObject/MetaData.h"
 #if WITH_EDITOR
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
@@ -78,10 +78,10 @@
 #include "EditorModes.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "Editor/UnrealEd/Private/GeomFitUtils.h"
-#include "MessageDialog.h"
+#include "Misc/MessageDialog.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Notifications/SNotificationList.h"
-#include "NotificationManager.h"
+#include "Framework/Notifications/NotificationManager.h"
 #include "Editor/UnrealEd/Public/BusyCursor.h"
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
 #include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
@@ -90,7 +90,7 @@
 #include "StaticMeshResources.h"
 #include "SlateApplication.h"
 #endif
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 

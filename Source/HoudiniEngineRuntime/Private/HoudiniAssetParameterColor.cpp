@@ -27,7 +27,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniAssetParameterColor::UHoudiniAssetParameterColor( const FObjectInitializer & ObjectInitializer )

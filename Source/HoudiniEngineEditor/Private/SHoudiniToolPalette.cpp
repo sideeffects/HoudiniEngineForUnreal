@@ -43,7 +43,7 @@
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
 #include "AssetRegistryModule.h"
-#include "AssetDragDropOp.h"
+#include "DragAndDrop/AssetDragDropOp.h"
 #include "ActorFactories/ActorFactory.h"
 #include "Engine/Selection.h"
 #include "ContentBrowserModule.h"

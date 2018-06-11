@@ -8,7 +8,7 @@
 #include "LevelEditorViewport.h"
 #include "AssetRegistryModule.h"
 #include "PropertyEditorModule.h"
-#include "AutomationCommon.h"
+#include "Tests/AutomationCommon.h"
 #include "IDetailsView.h"
 
 #include "HoudiniEngine.h"
