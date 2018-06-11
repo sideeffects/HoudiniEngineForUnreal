@@ -32,7 +32,7 @@
 #include "HoudiniApi.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
-#include "Paths.h"
+#include "Misc/Paths.h"
 #include "HoudiniEngineUtils.h"
 
 const uint32

@@ -32,7 +32,7 @@
 #pragma once
 
 #include "HoudiniSplineComponent.h"
-#include "Commands.h"
+#include "Framework/Commands/Commands.h"
 #include "ComponentVisualizer.h"
 #include "Framework/Commands/UICommandList.h"
 

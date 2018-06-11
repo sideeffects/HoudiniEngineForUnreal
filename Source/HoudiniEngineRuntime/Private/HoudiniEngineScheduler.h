@@ -35,7 +35,7 @@
 #include "HoudiniEngineTaskInfo.h"
 #include "HAL/Runnable.h"
 #include "HAL/RunnableThread.h"
-#include "SingleThreadRunnable.h"
+#include "Misc/SingleThreadRunnable.h"
 
 
 class FHoudiniEngineScheduler : public FRunnable, FSingleThreadRunnable

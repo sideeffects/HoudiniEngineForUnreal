@@ -49,10 +49,10 @@
 #include "Widgets/Layout/SSeparator.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Images/SImage.h"
-#include "SlateApplication.h"
+#include "Framework/Application/SlateApplication.h"
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 #include "DetailLayoutBuilder.h"
 #include "IDetailGroup.h"
 

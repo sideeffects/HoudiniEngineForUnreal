@@ -36,7 +36,7 @@
 #include "EditorFramework/AssetImportData.h"
 #include "Misc/FileHelper.h"
 
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniAssetFactory::UHoudiniAssetFactory( const FObjectInitializer & ObjectInitializer )

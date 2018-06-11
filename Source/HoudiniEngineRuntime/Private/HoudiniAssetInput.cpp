@@ -38,7 +38,7 @@
 #include "Components/SplineComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Selection.h"
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
 #if WITH_EDITOR

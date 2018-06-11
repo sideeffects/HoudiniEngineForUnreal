@@ -37,7 +37,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Sound/SoundBase.h"
 
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 #include "HoudiniEngineBakeUtils.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 

@@ -32,7 +32,7 @@
 
 #pragma once
 #include "HoudiniGeoPartObject.h"
-#include "Object.h"
+#include "UObject/Object.h"
 #include "HoudiniAssetComponentMaterials.generated.h"
 
 

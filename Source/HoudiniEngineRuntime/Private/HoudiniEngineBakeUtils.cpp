@@ -55,12 +55,12 @@
     #include "StaticMeshResources.h"
 #endif
 #include "EngineUtils.h"
-#include "MetaData.h"
+#include "UObject/MetaData.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "Components/InstancedStaticMeshComponent.h"
 
 #if PLATFORM_WINDOWS
-    #include "WindowsHWrapper.h"
+    #include "Windows/WindowsHWrapper.h"
 
     // Of course, Windows defines its own GetGeoInfo,
     // So we need to undefine that before including HoudiniApi.h to avoid collision...

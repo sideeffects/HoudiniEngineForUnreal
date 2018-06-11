@@ -33,10 +33,10 @@
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineEditor.h"
 #include "EditorViewportClient.h"
-#include "Commands.h"
+#include "Framework/Commands/Commands.h"
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 IMPLEMENT_HIT_PROXY( HHoudiniHandleVisProxy, HComponentVisProxy );

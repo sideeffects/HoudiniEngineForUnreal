@@ -28,7 +28,7 @@
 #include "HoudiniEngine.h"
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
 #include "Widgets/Input/SNumericEntryBox.h"
