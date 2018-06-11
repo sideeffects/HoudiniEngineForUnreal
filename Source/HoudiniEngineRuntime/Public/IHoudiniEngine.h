@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "Modules/ModuleInterface.h"
 #include "Brushes/SlateDynamicImageBrush.h"
 #include "HAPI_Common.h"
 #include "HoudiniGeoPartObject.h"
@@ -96,5 +96,8 @@ public:
         TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut,
         TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesIn,
         TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesOut,
+        TMap< FHoudiniGeoPartObject, USceneComponent * >& InstancersIn,
+        TMap< FHoudiniGeoPartObject, USceneComponent * >& InstancersOut,
+        USceneComponent* ParentComponent,
         FTransform & ComponentTransform ) = 0;
 };

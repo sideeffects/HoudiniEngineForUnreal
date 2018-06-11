@@ -71,6 +71,9 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
             TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut,
             TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesIn,
             TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesOut,
+            TMap< FHoudiniGeoPartObject, USceneComponent * >& InstancersIn,
+            TMap< FHoudiniGeoPartObject, USceneComponent * >& InstancersOut,
+            USceneComponent* ParentComponent,
             FTransform & ComponentTransform ) override;
 
         void SetEnableCookingGlobal(const bool& enableCooking);

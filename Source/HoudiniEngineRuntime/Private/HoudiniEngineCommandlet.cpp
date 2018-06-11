@@ -100,7 +100,7 @@ int32 UHoudiniEngineConvertBgeoDirCommandlet::Main(const FString& Params)
 
     // We're expecting at least one param (the bgeo dir in) and a maximum of 3 params (bgeo dir in, uasset dir out, timeout)
     // The first param is the Commandlet name, so ignore that
-    if ( (ArgumentsArray.Num() < 2 ) || ( ArgumentsArray.Num() > 4 ) )
+    if ( (ArgumentsArray.Num() < 1 ) || ( ArgumentsArray.Num() > 3 ) )
     {
 	// Invalid number of arguments, Print usage and error out
 	HOUDINI_LOG_MESSAGE(TEXT("HoudiniEngineTestCommandlet:"));
@@ -120,9 +120,9 @@ int32 UHoudiniEngineConvertBgeoDirCommandlet::Main(const FString& Params)
 	return 1;
     }
 
-    FString BGEODirPath = ArgumentsArray[ 1 ];
-    FString UASSETDirPath = ArgumentsArray.Num() > 2 ? ArgumentsArray[ 2 ] : BGEODirPath;
-    FString InactivityTimeOutStr = ArgumentsArray.Num() > 3 ? ArgumentsArray[ 3 ] : FString();
+    FString BGEODirPath = ArgumentsArray[ 0 ];
+    FString UASSETDirPath = ArgumentsArray.Num() > 1 ? ArgumentsArray[ 1 ] : BGEODirPath;
+    FString InactivityTimeOutStr = ArgumentsArray.Num() > 3 ? ArgumentsArray[ 2 ] : FString();
     float InactivityTimeOut = 1000.0f;
     if ( InactivityTimeOutStr.IsNumeric() )
 	InactivityTimeOut = FCString::Atof( *InactivityTimeOutStr );
@@ -131,7 +131,7 @@ int32 UHoudiniEngineConvertBgeoDirCommandlet::Main(const FString& Params)
     if ( !FPaths::DirectoryExists( BGEODirPath ) )
     {
 	// Cant find input BGEO dir
-	HOUDINI_LOG_ERROR( TEXT( "The source BGEO directory does not exist" ), *BGEODirPath );
+	HOUDINI_LOG_ERROR( TEXT( "The source BGEO directory does not exist: %s" ), *BGEODirPath );
 	return false;
     }
 
@@ -139,7 +139,7 @@ int32 UHoudiniEngineConvertBgeoDirCommandlet::Main(const FString& Params)
     if ( !FPaths::DirectoryExists( UASSETDirPath ) )
     {
 	// Cant find Output dir
-	HOUDINI_LOG_ERROR( TEXT( "The output UASSET directory does not exist" ), *UASSETDirPath );
+	HOUDINI_LOG_ERROR( TEXT( "The output UASSET directory does not exist: %s" ), *UASSETDirPath );
 	return false;
     }
 
@@ -152,6 +152,9 @@ int32 UHoudiniEngineConvertBgeoDirCommandlet::Main(const FString& Params)
     // If true, will literally try to erase all files before overwriting them
     // Will also empty the "local" directory
     const bool CrushFiles = true;
+
+    // If true, source bgeo files will be deleted upon conversion
+    const bool DeleteFileAfterConversion = false;
 
     if ( CrushFiles )
     {
@@ -215,7 +218,7 @@ int32 UHoudiniEngineConvertBgeoDirCommandlet::Main(const FString& Params)
 	    HOUDINI_LOG_MESSAGE(TEXT("Successfully converted BGEO file: %s to %s"), *BGEOFile, *UASSETFile );
 
 	    // Delete the source BGEO
-	    if ( !FFileManagerGeneric::Get().Delete( *BGEOFile, false, true, true ) )
+	    if ( !DeleteFileAfterConversion || !FFileManagerGeneric::Get().Delete( *BGEOFile, false, true, true ) )
 		UndeletedFileMap.Add( CurrentFile );
 	}
 

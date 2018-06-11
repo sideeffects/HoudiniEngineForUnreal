@@ -29,16 +29,17 @@
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniLandscapeUtils.h"
+#include "HoudiniEngineInstancerUtils.h"
 #include "HoudiniAsset.h"
 #include "HoudiniRuntimeSettings.h"
 
-#include "PlatformMisc.h"
-#include "PlatformFilemanager.h"
-#include "ScopeLock.h"
-#include "SlateApplication.h"
+#include "HAL/PlatformMisc.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/ScopeLock.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Materials/Material.h"
 
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -254,8 +255,9 @@ FHoudiniEngine::StartupModule()
         {
             case EHoudiniRuntimeSettingsSessionType::HRSST_InProcess:
             {
+                // As of Unreal 4.19, InProcess sessions are not supported anymore
                 /*
-                // As of Unreal 4.19, InProcess sessions are not supported anymore                SessionResult = FHoudiniApi::CreateInProcessSession(&this->Session);
+                SessionResult = FHoudiniApi::CreateInProcessSession(&this->Session);
 #if PLATFORM_WINDOWS
                 // Workaround for Houdini libtools setting stdout to binary
                 FWindowsPlatformMisc::SetUTF8Output();
@@ -511,7 +513,9 @@ FHoudiniEngine::CookNode(
     TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut,
     TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesIn,
     TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesOut,
-    FTransform & ComponentTransform )
+    TMap< FHoudiniGeoPartObject, USceneComponent * >& InstancersIn,
+    TMap< FHoudiniGeoPartObject, USceneComponent * >& InstancersOut,
+    USceneComponent* ParentComponent, FTransform & ComponentTransform )
 {
     // 
     TMap< FHoudiniGeoPartObject, UStaticMesh * > CookResultArray;
@@ -524,33 +528,48 @@ FHoudiniEngine::CookNode(
 
     // Extract the static mesh and the volumes/heightfields from the CookResultArray
     TArray< FHoudiniGeoPartObject > FoundVolumes;
+    TArray< FHoudiniGeoPartObject > FoundInstancers;
     for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( CookResultArray ); Iter; ++Iter )
     {
         const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
-        UStaticMesh * StaticMesh = Iter.Value();
 
+        UStaticMesh * StaticMesh = Iter.Value();
         if ( HoudiniGeoPartObject.IsInstancer() )
-            continue;
+            FoundInstancers.Add( HoudiniGeoPartObject );
         else if (HoudiniGeoPartObject.IsPackedPrimitiveInstancer())
-            continue;
+            FoundInstancers.Add( HoudiniGeoPartObject );
         else if (HoudiniGeoPartObject.IsCurve())
             continue;
         else if (HoudiniGeoPartObject.IsVolume())
-        {
             FoundVolumes.Add( HoudiniGeoPartObject );
-        }
         else
-        {
-            StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
-        }
+            StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
     }
 #if WITH_EDITOR
     // The meshes are already created but we need to create the landscape too
     if ( FoundVolumes.Num() > 0 )
-        bReturn = FHoudiniLandscapeUtils::CreateAllLandscapes( HoudiniCookParams, FoundVolumes, LandscapesIn, LandscapesOut, -200.0f, 200.0f );
+    {
+        if ( !FHoudiniLandscapeUtils::CreateAllLandscapes( HoudiniCookParams, FoundVolumes, LandscapesIn, LandscapesOut, -200.0f, 200.0f ) )
+            HOUDINI_LOG_WARNING( TEXT("FHoudiniEngine::CookNode : Failed to create landscapes!") );
+    }
 #endif
 
-    return bReturn;
+    // And the instancers
+    if ( FoundInstancers.Num() > 0 )
+    {
+        if ( !FHoudiniEngineInstancerUtils::CreateAllInstancers(
+            HoudiniCookParams, AssetId, FoundInstancers,
+            StaticMeshesOut, ParentComponent,
+            InstancersIn, InstancersOut ) )
+        {
+            HOUDINI_LOG_WARNING( TEXT( "FHoudiniEngine::CookNode : Failed to create instancers!" ) );
+        }
+    }
+
+    if ( StaticMeshesOut.Num() <= 0 && LandscapesOut.Num() <= 0 && InstancersOut.Num() <= 0 )
+        return false;
+
+    return true;
 }
 
 void 

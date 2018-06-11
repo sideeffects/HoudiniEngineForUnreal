@@ -64,7 +64,7 @@ public:
 	typedef HAPI_Result (*CreateNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * operator_name, const char * node_label, HAPI_Bool cook_on_creation, HAPI_NodeId * new_node_id);
 	typedef HAPI_Result (*CreateThriftNamedPipeSessionFuncPtr)(HAPI_Session * session, const char * pipe_name);
 	typedef HAPI_Result (*CreateThriftSocketSessionFuncPtr)(HAPI_Session * session, const char * host_name, int port);
-	typedef HAPI_Result (*CreateWorkitemFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id, const char * name, int index, HAPI_PDG_WorkitemState state);
+	typedef HAPI_Result (*CreateWorkitemFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id, const char * name, int index);
 	typedef HAPI_Result (*DeleteNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id);
 	typedef HAPI_Result (*DirtyPDGNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id);
 	typedef HAPI_Result (*DisconnectNodeInputFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int input_index);
@@ -484,7 +484,7 @@ public:
 	static HAPI_Result CreateNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * operator_name, const char * node_label, HAPI_Bool cook_on_creation, HAPI_NodeId * new_node_id);
 	static HAPI_Result CreateThriftNamedPipeSessionEmptyStub(HAPI_Session * session, const char * pipe_name);
 	static HAPI_Result CreateThriftSocketSessionEmptyStub(HAPI_Session * session, const char * host_name, int port);
-	static HAPI_Result CreateWorkitemEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id, const char * name, int index, HAPI_PDG_WorkitemState state);
+	static HAPI_Result CreateWorkitemEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id, const char * name, int index);
 	static HAPI_Result DeleteNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id);
 	static HAPI_Result DirtyPDGNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id);
 	static HAPI_Result DisconnectNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_index);
