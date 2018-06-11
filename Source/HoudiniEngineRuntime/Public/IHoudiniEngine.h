@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "Modules/ModuleInterface.h"
 #include "Brushes/SlateDynamicImageBrush.h"
 #include "HAPI_Common.h"
 #include "HoudiniGeoPartObject.h"

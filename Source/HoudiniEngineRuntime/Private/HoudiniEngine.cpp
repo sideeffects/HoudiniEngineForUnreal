@@ -29,16 +29,17 @@
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniLandscapeUtils.h"
+#include "HoudiniEngineInstancerUtils.h"
 #include "HoudiniAsset.h"
 #include "HoudiniRuntimeSettings.h"
 
-#include "PlatformMisc.h"
-#include "PlatformFilemanager.h"
-#include "ScopeLock.h"
-#include "SlateApplication.h"
+#include "HAL/PlatformMisc.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/ScopeLock.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Materials/Material.h"
 
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -254,8 +255,9 @@ FHoudiniEngine::StartupModule()
         {
             case EHoudiniRuntimeSettingsSessionType::HRSST_InProcess:
             {
+                // As of Unreal 4.19, InProcess sessions are not supported anymore
                 /*
-                // As of Unreal 4.19, InProcess sessions are not supported anymore                SessionResult = FHoudiniApi::CreateInProcessSession(&this->Session);
+                SessionResult = FHoudiniApi::CreateInProcessSession(&this->Session);
 #if PLATFORM_WINDOWS
                 // Workaround for Houdini libtools setting stdout to binary
                 FWindowsPlatformMisc::SetUTF8Output();
