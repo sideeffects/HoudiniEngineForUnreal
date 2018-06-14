@@ -41,7 +41,7 @@
 #include "HoudiniMeshSplitInstancerComponent.h"
 
 #include "CoreMinimal.h"
-#include "AI/Navigation/NavCollision.h"
+#include "AI/Navigation/NavCollisionBase.h"
 #include "Engine/StaticMeshSocket.h"
 #if WITH_EDITOR
     #include "Editor.h"
@@ -49,7 +49,7 @@
     #include "Interfaces/ITargetPlatform.h"
     #include "Interfaces/ITargetPlatformManagerModule.h"
     #include "Editor/UnrealEd/Private/GeomFitUtils.h"
-    #include "Private/ConvexDecompTool.h"
+	#include "UnrealEd/Private/ConvexDecompTool.h"
     #include "Widgets/Notifications/SNotificationList.h"
     #include "Framework/Notifications/NotificationManager.h"
 #endif
@@ -3284,7 +3284,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                     FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, 0,
                     TCHAR_TO_UTF8( *LODAttributeName ), &AttributeInfoLODScreenSize), false);
 
-                float lodscreensize = SrcModel.ScreenSize;
+				float lodscreensize = SrcModel.ScreenSize.Default;
                 HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
                     FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, 0,
                     TCHAR_TO_UTF8( *LODAttributeName ), &AttributeInfoLODScreenSize,
@@ -5719,11 +5719,12 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // so we need to manually flush and recreate the data to have proper navigation collision
                 if( StaticMesh->NavCollision )
                 {
-                    BodySetup->InvalidatePhysicsData();
-                    BodySetup->CreatePhysicsMeshes();
+					BodySetup->InvalidatePhysicsData();
+					BodySetup->CreatePhysicsMeshes();
 
-                    //StaticMesh->NavCollision->InvalidatePhysicsData();
-                    //StaticMesh->NavCollision->CookedFormatData.FlushData();
+					//StaticMesh->NavCollision->InvalidatePhysicsData();
+					//StaticMesh->NavCollision->InvalidateCollision();
+					//StaticMesh->NavCollision->CookedFormatData.FlushData();
                     //StaticMesh->NavCollision->GatherCollision();
                     StaticMesh->NavCollision->Setup( BodySetup );
                 }

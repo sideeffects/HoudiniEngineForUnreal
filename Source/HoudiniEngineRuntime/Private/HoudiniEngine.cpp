@@ -254,8 +254,8 @@ FHoudiniEngine::StartupModule()
         {
             case EHoudiniRuntimeSettingsSessionType::HRSST_InProcess:
             {
-                // As of Unreal 4.19, InProcess sessions are not supported anymore
                 /*
+                // As of Unreal 4.19, InProcess sessions are not supported anymore
                 SessionResult = FHoudiniApi::CreateInProcessSession(&this->Session);
 #if PLATFORM_WINDOWS
                 // Workaround for Houdini libtools setting stdout to binary
