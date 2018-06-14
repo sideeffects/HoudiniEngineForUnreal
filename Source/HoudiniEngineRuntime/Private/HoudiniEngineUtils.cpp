@@ -41,7 +41,7 @@
 #include "HoudiniMeshSplitInstancerComponent.h"
 
 #include "CoreMinimal.h"
-#include "AI/Navigation/NavCollision.h"
+#include "AI/Navigation/NavCollisionBase.h"
 #include "Engine/StaticMeshSocket.h"
 #if WITH_EDITOR
     #include "Editor.h"
@@ -49,7 +49,7 @@
     #include "Interfaces/ITargetPlatform.h"
     #include "Interfaces/ITargetPlatformManagerModule.h"
     #include "Editor/UnrealEd/Private/GeomFitUtils.h"
-    #include "Private/ConvexDecompTool.h"
+	#include "UnrealEd/Private/ConvexDecompTool.h"
     #include "PackedNormal.h"
     #include "Widgets/Notifications/SNotificationList.h"
     #include "Framework/Notifications/NotificationManager.h"
@@ -3292,7 +3292,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                     FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, 0,
                     TCHAR_TO_UTF8( *LODAttributeName ), &AttributeInfoLODScreenSize), false);
 
-                float lodscreensize = SrcModel.ScreenSize;
+                float lodscreensize = SrcModel.ScreenSize.Default;
                 HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
                     FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, 0,
                     TCHAR_TO_UTF8( *LODAttributeName ), &AttributeInfoLODScreenSize,
@@ -4011,7 +4011,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
     for (int32 NormalIdx = 0; NormalIdx < Indices.Num(); ++NormalIdx)
     {
         FPackedNormal PackedNormal = SoftSkinVertices[Indices[NormalIdx]].TangentZ;
-        MeshNormals[NormalIdx] = PackedNormal;
+        MeshNormals[NormalIdx] = PackedNormal.ToFVector();
 
         // Doesnt work on MacOS ...
         //MeshNormals[ NormalIdx ] = FVector( SoftSkinVertices[ Indices[NormalIdx]  ].TangentZ.Vector. );
@@ -6614,21 +6614,22 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             if ( !StaticMesh )
                 continue;
 
-            if( UBodySetup * BodySetup = StaticMesh->BodySetup )
-            {
-                // Unreal caches the Navigation Collision and never updates it for StaticMeshes,
-                // so we need to manually flush and recreate the data to have proper navigation collision
-                if( StaticMesh->NavCollision )
-                {
-                    BodySetup->InvalidatePhysicsData();
-                    BodySetup->CreatePhysicsMeshes();
+			if (UBodySetup * BodySetup = StaticMesh->BodySetup)
+			{
+				// Unreal caches the Navigation Collision and never updates it for StaticMeshes,
+				// so we need to manually flush and recreate the data to have proper navigation collision
+				if (StaticMesh->NavCollision)
+				{
+					BodySetup->InvalidatePhysicsData();
+					BodySetup->CreatePhysicsMeshes();
 
-                    //StaticMesh->NavCollision->InvalidatePhysicsData();
-                    //StaticMesh->NavCollision->CookedFormatData.FlushData();
-                    //StaticMesh->NavCollision->GatherCollision();
-                    StaticMesh->NavCollision->Setup( BodySetup );
-                }
-            }
+					//StaticMesh->NavCollision->InvalidatePhysicsData();
+					//StaticMesh->NavCollision->InvalidateCollision();
+					//StaticMesh->NavCollision->CookedFormatData.FlushData();
+					//StaticMesh->NavCollision->GatherCollision();
+					StaticMesh->NavCollision->Setup(BodySetup);
+				}
+			}
         }
     }
 

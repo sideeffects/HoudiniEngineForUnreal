@@ -47,7 +47,7 @@
 #include "HoudiniRuntimeSettings.h"
 #include "SNewFilePathPicker.h"
 
-#include "CurveEditorSettings.h"
+#include "Editor/CurveEditor/Public/CurveEditorSettings.h"
 #include "DetailLayoutBuilder.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerPublicTypes.h"
@@ -576,7 +576,7 @@ SHoudiniAssetParameterRampCurveEditor::Construct( const FArguments & InArgs )
     UCurveEditorSettings * CurveEditorSettings = GetSettings();
     if ( CurveEditorSettings )
     {
-        CurveEditorSettings->SetCurveVisibility( ECurveEditorCurveVisibility::AllCurves );
+        //CurveEditorSettings->SetCurveVisibility( ECurveEditorCurveVisibility::AllCurves );
         CurveEditorSettings->SetTangentVisibility( ECurveEditorTangentVisibility::NoTangents );
     }
 }

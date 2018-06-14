@@ -69,6 +69,7 @@
 #include "Engine/StaticMeshSocket.h"
 #include "HoudiniCookHandler.h"
 #include "UObject/MetaData.h"
+#include "NavigationSystem.h"
 #if WITH_EDITOR
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
@@ -88,7 +89,7 @@
 #include "Editor/PropertyEditor/Private/PropertyNode.h"
 #include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
 #include "StaticMeshResources.h"
-#include "SlateApplication.h"
+#include "Framework/Application/SlateApplication.h"
 #endif
 #include "Internationalization/Internationalization.h"
 
@@ -1788,14 +1789,19 @@ UHoudiniAssetComponent::TickHoudiniComponent()
     if ( bNeedToUpdateNavigationSystem )
     {
 #ifdef WITH_EDITOR
-        // We need to update the navigation system manually with the Actor or the NavMesh will not update properly
-        UWorld* World = GEditor->GetEditorWorldContext().World();
-        if (World && World->GetNavigationSystem())
-        {
-            AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
-            if(HoudiniActor)
-                World->GetNavigationSystem()->UpdateActorAndComponentsInNavOctree(*HoudiniActor);
-        }
+		// notify navigation system
+		AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
+		FNavigationSystem::UpdateActorAndComponentData(*HoudiniActor);
+		/*
+		// We need to update the navigation system manually with the Actor or the NavMesh will not update properly
+		UWorld* World = GEditor->GetEditorWorldContext().World();
+		if (World && World->GetNavigationSystem())
+		{
+			AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
+			if(HoudiniActor)
+				World->GetNavigationSystem()->UpdateActorAndComponentData(*HoudiniActor);
+		}
+		*/
 #endif
         bNeedToUpdateNavigationSystem = false;
     }
@@ -2417,10 +2423,12 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bApplyImpulseOnDamage );
             }
+			/*
             else if ( Property->GetName() == TEXT( "bShouldUpdatePhysicsVolume" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( USceneComponent, bShouldUpdatePhysicsVolume );
             }
+			*/
         }
         else if ( CategoryLOD == Category )
         {
