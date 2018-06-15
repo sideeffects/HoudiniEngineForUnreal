@@ -69,7 +69,6 @@
 #include "Engine/StaticMeshSocket.h"
 #include "HoudiniCookHandler.h"
 #include "UObject/MetaData.h"
-#include "NavigationSystem.h"
 #if WITH_EDITOR
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
@@ -90,6 +89,7 @@
 #include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
 #include "StaticMeshResources.h"
 #include "Framework/Application/SlateApplication.h"
+#include "NavigationSystem.h"
 #endif
 #include "Internationalization/Internationalization.h"
 
