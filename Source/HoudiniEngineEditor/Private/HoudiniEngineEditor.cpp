@@ -518,7 +518,7 @@ FHoudiniEngineEditor::OpenInHoudini()
 
     if ( !FPaths::FileExists( UserTempPath ) )
         return;
-    
+
     // Add a slate notification
     FString Notification = TEXT( "Opening scene in Houdini..." );
     FHoudiniEngineUtils::CreateSlateNotification( Notification );
@@ -526,12 +526,14 @@ FHoudiniEngineEditor::OpenInHoudini()
     // ... and a log message
     HOUDINI_LOG_MESSAGE( TEXT("Opened scene in Houdini.") );
 
+    // Add quotes to the path to avoid issues with spaces
+    UserTempPath = TEXT("\"") + UserTempPath + TEXT("\"");
     // Then open the hip file in Houdini
     FString LibHAPILocation = FHoudiniEngine::Get().GetLibHAPILocation();
-    FString houdiniLocation = LibHAPILocation + "//houdini";
+    FString HoudiniLocation = LibHAPILocation + TEXT("//houdini");
     FPlatformProcess::CreateProc( 
-        houdiniLocation.GetCharArray().GetData(), 
-        UserTempPath.GetCharArray().GetData(), 
+        *HoudiniLocation, 
+        *UserTempPath, 
         true, false, false, 
         nullptr, 0,
         FPlatformProcess::UserTempDir(),
