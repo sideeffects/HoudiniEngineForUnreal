@@ -509,7 +509,7 @@ FHoudiniEngineEditor::OpenInHoudini()
     FString UserTempPath = FPaths::CreateTempFilename(
         FPlatformProcess::UserTempDir(), 
         TEXT( "HoudiniEngine" ), TEXT( ".hip" ) );
-
+	
     // Save HIP file through Engine.
     std::string TempPathConverted( TCHAR_TO_UTF8( *UserTempPath ) );
     FHoudiniApi::SaveHIPFile(
@@ -526,12 +526,14 @@ FHoudiniEngineEditor::OpenInHoudini()
     // ... and a log message
     HOUDINI_LOG_MESSAGE( TEXT("Opened scene in Houdini.") );
 
+        // Add quotes to the path to avoid issues with spaces
+        UserTempPath = TEXT("\"") + UserTempPath + TEXT("\"");
     // Then open the hip file in Houdini
     FString LibHAPILocation = FHoudiniEngine::Get().GetLibHAPILocation();
-    FString houdiniLocation = LibHAPILocation + "//houdini";
+    FString HoudiniLocation = LibHAPILocation + TEXT("//houdini");
     FPlatformProcess::CreateProc( 
-        houdiniLocation.GetCharArray().GetData(), 
-        UserTempPath.GetCharArray().GetData(), 
+        *HoudiniLocation, 
+        *UserTempPath, 
         true, false, false, 
         nullptr, 0,
         FPlatformProcess::UserTempDir(),
