@@ -1864,7 +1864,7 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
 }
 
 FReply
-FHoudiniParameterDetails::Helper_OnButtonClickSelectActors( TWeakObjectPtr<class UHoudiniAssetInput> InParam )
+FHoudiniParameterDetails::Helper_OnButtonClickSelectActors( TWeakObjectPtr<class UHoudiniAssetInput> InParam, FName DetailsPanelName )
 {
     if ( !InParam.IsValid() )
         return FReply::Handled();
@@ -1875,7 +1875,6 @@ FHoudiniParameterDetails::Helper_OnButtonClickSelectActors( TWeakObjectPtr<class
         FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >( "PropertyEditor" );
 
     // Locate the details panel.
-    FName DetailsPanelName = "LevelEditorSelectionDetails";
     TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView( DetailsPanelName );
 
     if ( !DetailsView.IsValid() )
@@ -2576,13 +2575,23 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
             FPropertyEditorModule & PropertyModule =
                 FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >( "PropertyEditor" );
 
-            // Locate the details panel.
+            // Get the details view
+            bool bDetailsLocked = false;
             FName DetailsPanelName = "LevelEditorSelectionDetails";
-            TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView( DetailsPanelName );
+
+            const IDetailsView* DetailsView = DetailLayoutBuilder.GetDetailsView();
+            if ( DetailsView )
+            {
+                DetailsPanelName = DetailsView->GetIdentifier();
+                if ( DetailsView->IsLocked() )
+                    bDetailsLocked = true;
+            }
 
             auto ButtonLabel = LOCTEXT( "WorldInputStartSelection", "Start Selection (Lock Details Panel)" );
-            if ( DetailsView->IsLocked() )
+            if ( bDetailsLocked )
                 ButtonLabel = LOCTEXT( "WorldInputUseCurrentSelection", "Use Current Selection (Unlock Details Panel)" );
+
+            FOnClicked OnSelectActors = FOnClicked::CreateStatic( &FHoudiniParameterDetails::Helper_OnButtonClickSelectActors, MyParam, DetailsPanelName );
 
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
@@ -2593,9 +2602,7 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
                     .VAlign( VAlign_Center )
                     .HAlign( HAlign_Center )
                     .Text( ButtonLabel )
-                    .OnClicked( FOnClicked::CreateLambda( [=]() {
-                        return Helper_OnButtonClickSelectActors( MyParam );
-                    }))
+                    .OnClicked( OnSelectActors )
                 ]
             ];
         }
