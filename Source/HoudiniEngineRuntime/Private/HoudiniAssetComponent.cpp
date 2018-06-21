@@ -1815,28 +1815,35 @@ UHoudiniAssetComponent::UpdateEditorProperties( bool bConditionalUpdate )
 {
     AHoudiniAssetActor * HoudiniAssetActor = GetHoudiniAssetActorOwner();
 
-    if( !HoudiniAssetActor )
+    if ( !HoudiniAssetActor )
         return;
 
     FPropertyEditorModule & PropertyModule =
         FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >( "PropertyEditor" );
 
-    // Locate the details panel.
-    FName DetailsPanelName = "LevelEditorSelectionDetails";
-    TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView( DetailsPanelName );
-
-    if ( DetailsView.IsValid() )
+    // We want to iterate on all the details panel
+    static const FName DetailsTabIdentifiers[] = { "LevelEditorSelectionDetails", "LevelEditorSelectionDetails2", "LevelEditorSelectionDetails3", "LevelEditorSelectionDetails4" };
+    for (const FName& DetailsPanelName : DetailsTabIdentifiers )
     {
+        // Locate the details panel.
+        //FName DetailsPanelName = "LevelEditorSelectionDetails";
+        TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView( DetailsPanelName );
+
+        if ( !DetailsView.IsValid() )
+        {
+            // We have no details panel, nothing to update.
+            continue;
+        }
+
         if ( DetailsView->IsLocked() )
         {
             // If details panel is locked, locate selected actors and check if this component belongs to one of them.
-
             const TArray< TWeakObjectPtr< AActor > > & SelectedDetailActors = DetailsView->GetSelectedActors();
             bool bFoundActor = false;
 
-            for ( int32 ActorIdx = 0, ActorNum = SelectedDetailActors.Num(); ActorIdx < ActorNum; ++ActorIdx )
+            for (int32 ActorIdx = 0, ActorNum = SelectedDetailActors.Num(); ActorIdx < ActorNum; ++ActorIdx)
             {
-                TWeakObjectPtr< AActor > SelectedActor = SelectedDetailActors[ ActorIdx ];
+                TWeakObjectPtr< AActor > SelectedActor = SelectedDetailActors[ActorIdx];
                 if ( SelectedActor.IsValid() && SelectedActor.Get() == HoudiniAssetActor )
                 {
                     bFoundActor = true;
@@ -1846,49 +1853,44 @@ UHoudiniAssetComponent::UpdateEditorProperties( bool bConditionalUpdate )
 
             // Details panel is locked, but our actor is not selected.
             if ( !bFoundActor )
-                return;
+                continue;
         }
         else
         {
             // If our actor is not selected (and details panel is not locked) don't do any updates.
             if ( !HoudiniAssetActor->IsSelected() )
-                return;
+                continue;
         }
-    }
-    else
-    {
-        // We have no details panel, nothing to update.
-        return;
-    }
 
-    if ( GEditor && HoudiniAssetActor && bIsNativeComponent )
-    {
-        if ( bConditionalUpdate && FSlateApplication::Get().HasAnyMouseCaptor() )
+        if ( GEditor && HoudiniAssetActor && bIsNativeComponent )
         {
-            // We want to avoid UI update if this is a conditional update and widget has captured the mouse.
-            StartHoudiniUIUpdateTicking();
-            return;
+            if ( bConditionalUpdate && FSlateApplication::Get().HasAnyMouseCaptor() )
+            {
+                // We want to avoid UI update if this is a conditional update and widget has captured the mouse.
+                StartHoudiniUIUpdateTicking();
+                continue;
+            }
+
+            TArray< UObject * > SelectedActors;
+            SelectedActors.Add( HoudiniAssetActor );
+
+            // bEditorPropertiesNeedFullUpdate is false only when small changes (parameters value) have been made
+            // We do not reselect the actor to avoid loosing the current selected parameter
+
+            // Reset selected actor to itself, force refresh and override the lock.
+            DetailsView->SetObjects( SelectedActors, bEditorPropertiesNeedFullUpdate, true );
+
+            if ( !bEditorPropertiesNeedFullUpdate )
+                bEditorPropertiesNeedFullUpdate = true;
+
+            if ( GUnrealEd )
+            {
+                GUnrealEd->UpdateFloatingPropertyWindows();
+            }
         }
 
-        TArray< UObject * > SelectedActors;
-        SelectedActors.Add( HoudiniAssetActor );
-        
-        // bEditorPropertiesNeedFullUpdate is false only when small changes (parameters value) have been made
-        // We do not reselect the actor to avoid loosing the current selected parameter
-
-        // Reset selected actor to itself, force refresh and override the lock.
-        DetailsView->SetObjects( SelectedActors, bEditorPropertiesNeedFullUpdate, true );
-
-        if ( !bEditorPropertiesNeedFullUpdate )
-            bEditorPropertiesNeedFullUpdate = true;
-
-        if ( GUnrealEd )
-        {
-            GUnrealEd->UpdateFloatingPropertyWindows();
-        }
+        StopHoudiniUIUpdateTicking();
     }
-
-    StopHoudiniUIUpdateTicking();
 }
 
 void
