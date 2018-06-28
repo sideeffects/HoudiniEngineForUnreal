@@ -5610,6 +5610,13 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         // Enable collisions for this static mesh.
                         BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
                     }
+                    else if ( !HoudiniGeoPartObject.bIsSimpleCollisionGeo && !HoudiniGeoPartObject.bIsUCXCollisionGeo )
+                    {
+                        // We dont have collider meshes, or simple colliders, if the LODForCollision uproperty attribute is set
+                        // we need to activate complex collision for that lod to be picked up as collider
+                        if ( HapiCheckAttributeExists( HoudiniGeoPartObject, "unreal_uproperty_LODForCollision", HAPI_ATTROWNER_DETAIL ) )
+                            BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
+                    }
                 }
 
                 // Try to update the uproperties of the StaticMesh
