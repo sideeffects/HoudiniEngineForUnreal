@@ -3654,6 +3654,30 @@ HAPI_DECL HAPI_AddAttribute( const HAPI_Session * session,
                              HAPI_PartId part_id,
                              const char * name,
                              const HAPI_AttributeInfo * attr_info );
+/// @brief  Delete an attribute from an input geo
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+ ///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo stores attribute properties.
+///
+HAPI_DECL HAPI_DeleteAttribute( const HAPI_Session * session,
+                             HAPI_NodeId node_id,
+                             HAPI_PartId part_id,
+                             const char * name,
+                             const HAPI_AttributeInfo * attr_info );
 
 /// @brief  Set attribute integer data.
 ///
