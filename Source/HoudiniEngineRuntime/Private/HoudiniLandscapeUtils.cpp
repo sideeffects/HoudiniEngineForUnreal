@@ -2673,11 +2673,21 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
             continue;
 
         // Create the actual Landscape
-        ALandscape * CurrentLandscape = CreateLandscape( 
+        ALandscape * CurrentLandscape = CreateLandscape(
             IntHeightData, ImportLayerInfos,
             LandscapeTransform, XSize, YSize,
             NumSectionPerLandscapeComponent, NumQuadsPerLandscapeSection,
             LandscapeMaterial, LandscapeHoleMaterial );
+
+        for (auto CurrLayerInfo : ImportLayerInfos)
+        {
+            if (CurrLayerInfo.LayerInfo && CurrLayerInfo.LayerName.ToString().Equals(TEXT("Visibility"), ESearchCase::IgnoreCase))
+            {
+                CurrentLandscape->VisibilityLayer = CurrLayerInfo.LayerInfo;
+                CurrentLandscape->VisibilityLayer->bNoWeightBlend = true;
+                CurrentLandscape->VisibilityLayer->AddToRoot();
+            }
+        }
 
         if ( !CurrentLandscape )
             continue;
@@ -2944,7 +2954,9 @@ bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
 
         HoudiniCookParams.CookedTemporaryLandscapeLayers->Add( Package, Heightfield );
 
-        if ( NonWeightBlendedLayerNames.Contains( LayerString ) )
+        // Visibility are by default non weight blended
+        if ( NonWeightBlendedLayerNames.Contains( LayerString )
+            || LayerString.Equals(TEXT("visibility"), ESearchCase::IgnoreCase) )
             currentLayerInfo.LayerInfo->bNoWeightBlend = true;
         else
             currentLayerInfo.LayerInfo->bNoWeightBlend = false;
