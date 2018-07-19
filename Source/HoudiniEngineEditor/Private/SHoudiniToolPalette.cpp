@@ -55,6 +55,7 @@
 #include "Toolkits/GlobalEditorCommonCommands.h"
 #include "Landscape.h"
 #include "LandscapeProxy.h"
+#include "Framework/Application/SlateApplication.h"
 
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
@@ -125,38 +126,36 @@ SHoudiniToolPalette::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool,
 {
     check( HoudiniTool.IsValid() );
  
-    auto Style = FHoudiniEngineEditor::Get().GetSlateStyle();
-
     auto HelpDefault = FEditorStyle::GetBrush( "HelpIcon" );
     auto HelpHovered = FEditorStyle::GetBrush( "HelpIcon.Hovered" );
     auto HelpPressed = FEditorStyle::GetBrush( "HelpIcon.Pressed" );
-    auto DefaultTool = Style->GetBrush( "HoudiniEngine.HoudiniEngineLogo");
+    auto DefaultTool = FHoudiniEngineStyle::Get()->GetBrush( "HoudiniEngine.HoudiniEngineLogo");
     TSharedPtr< SImage > HelpButtonImage;
     TSharedPtr< SButton > HelpButton;
     TSharedPtr< SImage > DefaultToolImage;
 
     // Building the tool's tooltip
-    FString ToolTip = HoudiniTool->Name.ToString() + TEXT( "\n" );
+    FString HoudiniToolTip = HoudiniTool->Name.ToString() + TEXT( "\n" );
     if ( HoudiniTool->HoudiniAsset.IsValid() )
-        ToolTip += HoudiniTool->HoudiniAsset.ToSoftObjectPath().ToString() /*->AssetFileName */+ TEXT( "\n\n" );
+        HoudiniToolTip += HoudiniTool->HoudiniAsset.ToSoftObjectPath().ToString() /*->AssetFileName */+ TEXT( "\n\n" );
     if ( !HoudiniTool->ToolTipText.IsEmpty() )
-        ToolTip += HoudiniTool->ToolTipText.ToString() + TEXT("\n\n");
+        HoudiniToolTip += HoudiniTool->ToolTipText.ToString() + TEXT("\n\n");
 
     // Adding a description of the tools behavior deriving from its type
     switch ( HoudiniTool->Type )
     {
         case EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE:
-            ToolTip += TEXT("Operator (Single):\nDouble clicking on this tool will instantiate the asset in the world.\nThe current selection will be automatically assigned to the asset's first input.\n" );
+            HoudiniToolTip += TEXT("Operator (Single):\nDouble clicking on this tool will instantiate the asset in the world.\nThe current selection will be automatically assigned to the asset's first input.\n" );
             break;
         case EHoudiniToolType::HTOOLTYPE_OPERATOR_MULTI:
-            ToolTip += TEXT("Operator (Multiple):\nDouble clicking on this tool will instantiate the asset in the world.\nEach of the selected object will be assigned to one of the asset's input (object1 to input1, object2 to input2 etc.)\n" );
+            HoudiniToolTip += TEXT("Operator (Multiple):\nDouble clicking on this tool will instantiate the asset in the world.\nEach of the selected object will be assigned to one of the asset's input (object1 to input1, object2 to input2 etc.)\n" );
             break;
         case EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH:
-            ToolTip += TEXT("Operator (Batch):\nDouble clicking on this tool will instantiate the asset in the world.\nAn instance of the asset will be created for each of the selected object, and the asset's first input will be set to that object.\n");
+            HoudiniToolTip += TEXT("Operator (Batch):\nDouble clicking on this tool will instantiate the asset in the world.\nAn instance of the asset will be created for each of the selected object, and the asset's first input will be set to that object.\n");
             break;
         case EHoudiniToolType::HTOOLTYPE_GENERATOR:
         default:
-            ToolTip += TEXT("Generator:\nDouble clicking on this tool will instantiate the asset in the world.\n");
+            HoudiniToolTip += TEXT("Generator:\nDouble clicking on this tool will instantiate the asset in the world.\n");
             break;
     }
 
@@ -166,15 +165,15 @@ SHoudiniToolPalette::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool,
         switch ( HoudiniTool->SelectionType )
         {
             case EHoudiniToolSelectionType::HTOOL_SELECTION_ALL:
-                ToolTip += TEXT("\nBoth Content Browser and World Outliner selection will be considered.\nIf objects are selected in the content browser, the world selection will be ignored.\n");
+                HoudiniToolTip += TEXT("\nBoth Content Browser and World Outliner selection will be considered.\nIf objects are selected in the content browser, the world selection will be ignored.\n");
                 break;
 
             case EHoudiniToolSelectionType::HTOOL_SELECTION_WORLD_ONLY:
-                ToolTip += TEXT("\nOnly World Outliner selection will be considered.\n");
+                HoudiniToolTip += TEXT("\nOnly World Outliner selection will be considered.\n");
                 break;
 
             case EHoudiniToolSelectionType::HTOOL_SELECTION_CB_ONLY:
-                ToolTip += TEXT("\nOnly Content Browser selection will be considered.\n");
+                HoudiniToolTip += TEXT("\nOnly Content Browser selection will be considered.\n");
                 break;
         }
     }
@@ -182,15 +181,15 @@ SHoudiniToolPalette::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool,
     if ( HoudiniTool->Type != EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH )
     {
         if ( HoudiniTool->SelectionType != EHoudiniToolSelectionType::HTOOL_SELECTION_CB_ONLY )
-            ToolTip += TEXT( "If objects are selected in the world outliner, the asset's transform will default to the mean Transform of the select objects.\n" );
+            HoudiniToolTip += TEXT( "If objects are selected in the world outliner, the asset's transform will default to the mean Transform of the select objects.\n" );
     }
     else
     {
         if ( HoudiniTool->SelectionType != EHoudiniToolSelectionType::HTOOL_SELECTION_CB_ONLY )
-            ToolTip += TEXT( "If objects are selected in the world outliner, each created asset will use its object transform.\n" );
+            HoudiniToolTip += TEXT( "If objects are selected in the world outliner, each created asset will use its object transform.\n" );
     }
 
-    FText ToolTipText = FText::FromString( ToolTip );
+    FText ToolTipText = FText::FromString( HoudiniToolTip );
 
     // Build the Help Tooltip
     FString HelpURL = HoudiniTool->HelpURL;
@@ -203,7 +202,7 @@ SHoudiniToolPalette::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool,
 
     TSharedRef< STableRow<TSharedPtr<FHoudiniTool>> > TableRowWidget =
         SNew( STableRow<TSharedPtr<FHoudiniTool>>, OwnerTable )
-        .Style( Style, "HoudiniEngine.TableRow" )
+        .Style( FHoudiniEngineStyle::Get(), "HoudiniEngine.TableRow" )
         .OnDragDetected( this, &SHoudiniToolPalette::OnDraggingListViewWidget );
 
     TSharedPtr< SHorizontalBox > ContentBox;
@@ -221,14 +220,14 @@ SHoudiniToolPalette::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool,
         [
             SNew( SBorder )
             .Padding( 4.0f )
-            .BorderImage( Style->GetBrush( "HoudiniEngine.ThumbnailShadow" ) )
+            .BorderImage( FHoudiniEngineStyle::Get()->GetBrush( "HoudiniEngine.ThumbnailShadow" ) )
             [
                 SNew( SBox )
                 .WidthOverride( 35.0f )
                 .HeightOverride( 35.0f )
                 [
                     SNew( SBorder )
-                    .BorderImage( Style->GetBrush( "HoudiniEngine.ThumbnailBackground" ) )
+                    .BorderImage( FHoudiniEngineStyle::Get()->GetBrush( "HoudiniEngine.ThumbnailBackground" ) )
                     .HAlign( HAlign_Center )
                     .VAlign( VAlign_Center )
                     [
@@ -247,7 +246,7 @@ SHoudiniToolPalette::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool,
         .FillWidth( 1.f )
         [
             SNew( STextBlock )
-            .TextStyle( *Style, "HoudiniEngine.ThumbnailText" )
+            .TextStyle( FHoudiniEngineStyle::Get(), "HoudiniEngine.ThumbnailText" )
             .Text( HoudiniTool->Name )
             .ToolTip( SNew( SToolTip ).Text( ToolTipText ) )
         ];
@@ -610,7 +609,7 @@ SHoudiniToolPalette::ConstructHoudiniToolContextMenu()
     MenuBuilder.AddMenuEntry(
         NSLOCTEXT( "HoudiniToolsTypeActions", "HoudiniTool_Remove", "Remove Tool" ),
         NSLOCTEXT( "HoudiniToolsTypeActions", "HoudiniTool_RemoveTooltip", "Remove the selected tool from the list of Houdini Tools." ),
-        FSlateIcon( FHoudiniEngineEditor::Get().GetSlateStyle()->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
+        FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
         FUIAction(
             FExecuteAction::CreateSP(this, &SHoudiniToolPalette::RemoveActiveTool ),
             FCanExecuteAction::CreateLambda([&] { return IsActiveHoudiniToolEditable(); } )
@@ -621,7 +620,7 @@ SHoudiniToolPalette::ConstructHoudiniToolContextMenu()
     MenuBuilder.AddMenuEntry(
         NSLOCTEXT( "HoudiniToolsTypeActions", "HoudiniTool_Edit", "Edit Tool Properties" ),
         NSLOCTEXT( "HoudiniToolsTypeActions", "HoudiniTool_EditTooltip", "Edit the selected tool properties." ),
-        FSlateIcon( FHoudiniEngineEditor::Get().GetSlateStyle()->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
+        FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
         FUIAction(
             FExecuteAction::CreateSP(this, &SHoudiniToolPalette::EditActiveHoudiniTool ),
             FCanExecuteAction::CreateLambda([&] { return IsActiveHoudiniToolEditable(); } )
@@ -738,7 +737,7 @@ SHoudiniToolPalette::OnAddHoudiniToolWindowClosed( const TSharedRef<SWindow>& In
         }
         else
         {
-            CustomIconBrush = FHoudiniEngineEditor::Get().GetSlateStyle()->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
+            CustomIconBrush = FHoudiniEngineStyle::Get()->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
         }
 
         // Create a new Houdini Tool from the modified properties
@@ -867,7 +866,7 @@ SHoudiniToolPalette::OnEditHoudiniToolWindowClosed( const TSharedRef<SWindow>& I
         }
         else
         {
-            CustomIconBrush = FHoudiniEngineEditor::Get().GetSlateStyle()->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
+            CustomIconBrush = FHoudiniEngineStyle::Get()->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
         }
 
         // Create a new Houdini Tool from the modified properties

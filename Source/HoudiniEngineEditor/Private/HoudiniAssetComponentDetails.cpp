@@ -50,6 +50,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Images/SImage.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Materials/Material.h"
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "Internationalization/Internationalization.h"
@@ -1724,7 +1725,7 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
     {
         // Retrieve material interface which is being replaced.
         UMaterialInterface * MaterialInterface = StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface;
-        UMaterialInterface * MaterialInterfaceReplacement = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+        UMaterialInterface * MaterialInterfaceReplacement = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
 
         UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
         if ( !HoudiniAssetComponent )
@@ -1812,7 +1813,7 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
 
         // Retrieve the material interface which is being replaced.
         UMaterialInterface * MaterialInterface = MaterialIdx == 0 ? Landscape->GetLandscapeMaterial() : Landscape->GetLandscapeHoleMaterial();
-        UMaterialInterface * MaterialInterfaceReplacement = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+        UMaterialInterface * MaterialInterfaceReplacement = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
 
         bool bMaterialRestored = false;
         FString MaterialShopName;

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "HoudiniAssetParameter.h"
+#include "Types/SlateEnums.h"
 #include "HoudiniAssetParameterString.generated.h"
 
 

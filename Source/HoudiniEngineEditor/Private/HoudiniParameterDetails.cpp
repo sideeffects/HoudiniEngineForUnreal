@@ -67,11 +67,14 @@
 #include "SAssetDropTarget.h"
 #include "Sound/SoundBase.h"
 #include "Math/UnitConversion.h"
+#include "Math/NumericLimits.h"
+#include "Misc/Optional.h"
 #include "Widgets/Colors/SColorPicker.h"
 #include "Widgets/Colors/SColorBlock.h"
 #include "Widgets/Input/NumericUnitTypeInterface.inl"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SComboBox.h"
+#include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "Widgets/Input/SRotatorInputBox.h"
@@ -860,8 +863,8 @@ FHoudiniParameterDetails::CreateWidgetColor( IDetailCategoryBuilder & LocalDetai
                 FColorPickerArgs PickerArgs;
                 PickerArgs.ParentWidget = ColorBlock;
                 PickerArgs.bUseAlpha = true;
-                PickerArgs.DisplayGamma = TAttribute< float >::Create( TAttribute< float >::FGetter::CreateUObject(
-                    GEngine, &UEngine::GetDisplayGamma ) );
+                PickerArgs.DisplayGamma = TAttribute< float >::Create(
+                    TAttribute< float >::FGetter::CreateUObject( GEngine, &UEngine::GetDisplayGamma ) );
                 PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateUObject(
                     MyParam.Get(), &UHoudiniAssetParameterColor::OnPaintColorChanged, true, true );
                 PickerArgs.InitialColorOverride = MyParam->GetColor();
@@ -982,7 +985,7 @@ FHoudiniParameterDetails::CreateWidgetFloat( IDetailCategoryBuilder & LocalDetai
     CreateNameWidget( &InParam, Row, true );
 
     // Helper function to find a unit from a string (name or abbreviation) 
-    TOptional<EUnit> ParmUnit = FUnitConversion::UnitFromString( *InParam.ValueUnit );
+    auto ParmUnit = FUnitConversion::UnitFromString( *InParam.ValueUnit );
 
     TSharedPtr<INumericTypeInterface<float>> TypeInterface;
     if ( FUnitConversion::Settings().ShouldDisplayUnits() && ParmUnit.IsSet() )
@@ -1070,7 +1073,7 @@ FHoudiniParameterDetails::CreateWidgetInt( IDetailCategoryBuilder & LocalDetailC
     TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
 
     // Helper function to find a unit from a string (name or abbreviation) 
-    TOptional<EUnit> ParmUnit = FUnitConversion::UnitFromString( *InParam.ValueUnit );
+    auto ParmUnit = FUnitConversion::UnitFromString( *InParam.ValueUnit );
 
     TSharedPtr<INumericTypeInterface<int32>> TypeInterface;
     if ( FUnitConversion::Settings().ShouldDisplayUnits() && ParmUnit.IsSet() )

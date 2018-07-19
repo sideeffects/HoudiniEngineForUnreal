@@ -36,6 +36,8 @@
 #include "HoudiniEngineEditor.h"
 #include "EditorViewportClient.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Framework/Application/SlateApplication.h"
+#include "EditorStyleSet.h"
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "Internationalization/Internationalization.h"
@@ -442,7 +444,7 @@ TSharedPtr< SWidget >
 FHoudiniSplineComponentVisualizer::GenerateContextMenu() const
 {
     FHoudiniEngineEditor& HoudiniEngineEditor = FHoudiniEngineEditor::Get();
-    TSharedPtr< ISlateStyle > StyleSet = HoudiniEngineEditor.GetSlateStyle();
+    FName StyleSetName = FHoudiniEngineStyle::GetStyleSetName();
 
     FMenuBuilder MenuBuilder( true, VisualizerActions );
     {
@@ -454,17 +456,17 @@ FHoudiniSplineComponentVisualizer::GenerateContextMenu() const
                 MenuBuilder.AddMenuEntry(
                     FHoudiniSplineComponentVisualizerCommands::Get().CommandAddControlPoint,
                     NAME_None, TAttribute< FText >(), TAttribute< FText >(),
-                    FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ) );
+                    FSlateIcon( StyleSetName, "HoudiniEngine.HoudiniEngineLogo" ) );
 
                 MenuBuilder.AddMenuEntry(
                     FHoudiniSplineComponentVisualizerCommands::Get().CommandDuplicateControlPoint,
                     NAME_None, TAttribute< FText >(), TAttribute< FText >(),
-                    FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"));
+                    FSlateIcon( StyleSetName, "HoudiniEngine.HoudiniEngineLogo" ) );
 
                 MenuBuilder.AddMenuEntry(
                     FHoudiniSplineComponentVisualizerCommands::Get().CommandDeleteControlPoint,
                     NAME_None, TAttribute< FText >(), TAttribute< FText >(),
-                    FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ) );
+                    FSlateIcon(StyleSetName, "HoudiniEngine.HoudiniEngineLogo" ) );
             }
         }
 

@@ -345,7 +345,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     Mobility = EComponentMobility::Static;
     PrimaryComponentTick.bCanEverTick = true;
     bTickInEditor = true;
-    bGenerateOverlapEvents = false;
+    SetGenerateOverlapEvents(false);
 
     // Similar to UMeshComponent.
     CastShadow = true;
@@ -2378,10 +2378,10 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bAlwaysCreatePhysicsState );
             }
-            else if ( Property->GetName() == TEXT( "bGenerateOverlapEvents" ) )
+            /*else if ( Property->GetName() == TEXT( "bGenerateOverlapEvents" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bGenerateOverlapEvents );
-            }
+            }*/
             else if ( Property->GetName() == TEXT( "bMultiBodyOverlap" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bMultiBodyOverlap );

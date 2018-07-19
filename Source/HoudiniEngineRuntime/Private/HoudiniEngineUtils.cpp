@@ -64,6 +64,8 @@
 #include "Rendering/SkeletalMeshModel.h"
 #include "SkeletalMeshTypes.h"
 #include "Misc/Paths.h"
+#include "Materials/MaterialInterface.h"
+#include "Materials/Material.h"
 
 #if PLATFORM_WINDOWS
     #include "Windows/WindowsHWrapper.h"
@@ -6211,7 +6213,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                 else
                                 {
                                     // If everything fails, we'll use the default material
-                                    MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+                                    MaterialInterface = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
 
                                     // We need to add this material to the map
                                     FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
@@ -6247,7 +6249,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         if ( bSingleFaceMaterial )
                         {
                             // Use default Houdini material if no valid material is assigned to any of the faces.
-                            UMaterialInterface * Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+                            UMaterialInterface * Material = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
 
                             // We have only one material.
                             RawMesh.FaceMaterialIndices.SetNumZeroed( SplitGroupFaceCount );
@@ -6300,7 +6302,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                     continue;
                                 }
 
-                                UMaterialInterface * Material = MaterialDefault;
+                                UMaterialInterface * Material = Cast<UMaterialInterface>(MaterialDefault);
 
                                 FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
                                 FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( AssetId, MaterialId, MaterialShopName );
@@ -6331,7 +6333,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         // No materials were found, we need to use default Houdini material.
                         RawMesh.FaceMaterialIndices.SetNumZeroed( SplitGroupFaceCount );
 
-                        UMaterialInterface * Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+                        UMaterialInterface * Material = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
                         FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
 
                         // If we have replacement material for this geo part object and this shop material name.
@@ -6586,14 +6588,14 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 bool SocketsAdded = false;
                 for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshesOut ); Iter; ++Iter )
                 {
-                    FHoudiniGeoPartObject * HoudiniGeoPartObject = &(Iter.Key());
-                    if ( ( HoudiniGeoPartObject->ObjectId != ObjectInfo.nodeId )
-                        || ( HoudiniGeoPartObject->GeoId != GeoInfo.nodeId )
-                        || ( HoudiniGeoPartObject->PartId != PartIdx  ) )
+                    FHoudiniGeoPartObject * CurrentHoudiniGeoPartObject = &(Iter.Key());
+                    if ( (CurrentHoudiniGeoPartObject->ObjectId != ObjectInfo.nodeId )
+                        || (CurrentHoudiniGeoPartObject->GeoId != GeoInfo.nodeId )
+                        || (CurrentHoudiniGeoPartObject->PartId != PartIdx  ) )
                         continue;
 
                     // This GeoPartObject is from the same object/geo, so we can add the sockets to it
-                    if ( AddMeshSocketsToStaticMesh( Iter.Value(), *HoudiniGeoPartObject, AllSockets, AllSocketsNames, AllSocketsActors, AllSocketsTags ) )
+                    if ( AddMeshSocketsToStaticMesh( Iter.Value(), *CurrentHoudiniGeoPartObject, AllSockets, AllSocketsNames, AllSocketsActors, AllSocketsTags ) )
                         SocketsAdded = true;
                 }
 
@@ -6846,7 +6848,7 @@ FHoudiniEngineUtils::CreateFaceMaterialArray(
             if ( !MaterialInterface )
             {
                 // Null material interface found, add default instead.
-                MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+                MaterialInterface = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
             }
 
             FString FullMaterialName = MaterialInterface->GetPathName();
@@ -6857,7 +6859,7 @@ FHoudiniEngineUtils::CreateFaceMaterialArray(
     else
     {
         // We do not have any materials, add default.
-        MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+        MaterialInterface = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
         FString FullMaterialName = MaterialInterface->GetPathName();
         UniqueName = FHoudiniEngineUtils::ExtractRawName( FullMaterialName );
         UniqueMaterialList.Add( UniqueName );

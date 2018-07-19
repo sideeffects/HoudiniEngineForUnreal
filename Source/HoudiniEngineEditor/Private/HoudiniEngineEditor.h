@@ -35,6 +35,7 @@ class IAssetTools;
 class IAssetTypeActions;
 class IComponentAssetBroker;
 class UHoudiniAssetComponent;
+class FMenuBuilder;
 
 struct FSlateBrush;
 struct FHoudiniToolDescription;
@@ -79,6 +80,20 @@ struct FHoudiniTool
     EHoudiniToolSelectionType SelectionType;
 };
 
+class FHoudiniEngineStyle
+{
+public:
+    static void Initialize();
+    static void Shutdown();
+    static TSharedPtr<class ISlateStyle> Get();
+    static FName GetStyleSetName();
+
+private:
+    //static FString InContent(const FString &RelativePath, const ANSICHAR *Extension);
+
+    static TSharedPtr<class FSlateStyleSet> StyleSet;
+};
+
 class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClient
 {
     public:
@@ -103,9 +118,6 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         virtual void UnregisterAssetBrokers() override;
         virtual void RegisterActorFactories() override;
         virtual void ExtendMenu() override;
-        virtual void RegisterStyleSet() override;
-        virtual void UnregisterStyleSet() override;
-        virtual TSharedPtr< ISlateStyle > GetSlateStyle() const override;
         virtual void RegisterThumbnails() override;
         virtual void UnregisterThumbnails() override;
         virtual void RegisterForUndo() override;
@@ -114,8 +126,6 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         virtual void UnregisterModes() override;
         virtual void RegisterPlacementModeExtensions() override;
         virtual void UnregisterPlacementModeExtensions() override;
-
-        static const FName GetStyleSetName();
 
     /** FEditorUndoClient methods. **/
     public:
@@ -269,9 +279,6 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** The extender to pass to the level editor to extend it's window menu. **/
         TSharedPtr< FExtender > MainMenuExtender;
 
-        /** Slate styleset used by this module. **/
-        TSharedPtr< FSlateStyleSet > StyleSet;
-
         /** Stored last used Houdini component which was involved in undo. **/
         mutable UHoudiniAssetComponent * LastHoudiniAssetComponentUndoObject;
 
@@ -295,7 +302,7 @@ public:
             TEXT("HoudiniEngine"), // Context name for fast lookup
             NSLOCTEXT("Contexts", "HoudiniEngine", "Houdini Engine Plugin"), // Localized context name for displaying
             NAME_None, // Parent context name. 
-            FHoudiniEngineEditor::GetStyleSetName() // Icon Style Set
+            FHoudiniEngineStyle::GetStyleSetName() // Icon Style Set
         )
     {
     }

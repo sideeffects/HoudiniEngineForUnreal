@@ -49,13 +49,162 @@
 #include "Styling/SlateStyleRegistry.h"
 #include "SHoudiniToolPalette.h"
 #include "IPlacementModeModule.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 
 #include "AssetRegistryModule.h"
 #include "Engine/Selection.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
+#include "SlateOptMacros.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
+
+#define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( StyleSet->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
+#define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( StyleSet->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
+#define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush( StyleSet->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
+#define TTF_FONT( RelativePath, ... ) FSlateFontInfo( StyleSet->RootToContentDir( RelativePath, TEXT(".ttf") ), __VA_ARGS__ )
+#define TTF_CORE_FONT( RelativePath, ... ) FSlateFontInfo( StyleSet->RootToCoreContentDir( RelativePath, TEXT(".ttf") ), __VA_ARGS__ )
+#define OTF_FONT( RelativePath, ... ) FSlateFontInfo( StyleSet->RootToContentDir( RelativePath, TEXT(".otf") ), __VA_ARGS__ )
+#define OTF_CORE_FONT( RelativePath, ... ) FSlateFontInfo( StyleSet->RootToCoreContentDir( RelativePath, TEXT(".otf") ), __VA_ARGS__ )
+
+TSharedPtr<FSlateStyleSet> FHoudiniEngineStyle::StyleSet = nullptr;
+
+TSharedPtr<class ISlateStyle>
+FHoudiniEngineStyle::Get()
+{
+    return StyleSet;
+}
+
+FName
+FHoudiniEngineStyle::GetStyleSetName()
+{
+    static FName HoudiniStyleName(TEXT("HoudiniEngineStyle"));
+    return HoudiniStyleName;
+}
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+void
+FHoudiniEngineStyle::Initialize()
+{
+    // Only register the StyleSet once
+    if ( StyleSet.IsValid() )
+	return;
+
+    StyleSet = MakeShareable( new FSlateStyleSet( GetStyleSetName() ) );
+    StyleSet->SetContentRoot(FPaths::EngineContentDir() / TEXT("Editor/Slate"));
+    StyleSet->SetCoreContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));
+    
+    // Note, these sizes are in Slate Units.
+    // Slate Units do NOT have to map to pixels.
+    const FVector2D Icon5x16(5.0f, 16.0f);
+    const FVector2D Icon8x4(8.0f, 4.0f);
+    const FVector2D Icon8x8(8.0f, 8.0f);
+    const FVector2D Icon10x10(10.0f, 10.0f);
+    const FVector2D Icon12x12(12.0f, 12.0f);
+    const FVector2D Icon12x16(12.0f, 16.0f);
+    const FVector2D Icon14x14(14.0f, 14.0f);
+    const FVector2D Icon16x16(16.0f, 16.0f);
+    const FVector2D Icon20x20(20.0f, 20.0f);
+    const FVector2D Icon22x22(22.0f, 22.0f);
+    const FVector2D Icon24x24(24.0f, 24.0f);
+    const FVector2D Icon25x25(25.0f, 25.0f);
+    const FVector2D Icon32x32(32.0f, 32.0f);
+    const FVector2D Icon40x40(40.0f, 40.0f);
+    const FVector2D Icon64x64(64.0f, 64.0f);
+    const FVector2D Icon36x24(36.0f, 24.0f);
+    const FVector2D Icon128x128(128.0f, 128.0f);
+
+    static FString IconsDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine/Content/Icons/");
+    StyleSet->Set(
+	"HoudiniEngine.HoudiniEngineLogo",
+	new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+    StyleSet->Set(
+	"ClassIcon.HoudiniAssetActor",
+	new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+    StyleSet->Set(
+	"HoudiniEngine.HoudiniEngineLogo40",
+	new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_40.png"), Icon40x40));
+
+    StyleSet->Set(
+	"ClassIcon.HoudiniAsset",
+	new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+
+    StyleSet->Set(
+	"ClassThumbnail.HoudiniAsset",
+	new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_128.png"), Icon64x64));
+
+    //FSlateImageBrush* HoudiniLogo16 = new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16);
+    StyleSet->Set("HoudiniEngine.SaveHIPFile", new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+    StyleSet->Set("HoudiniEngine.ReportBug", new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+    StyleSet->Set("HoudiniEngine.OpenInHoudini", new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+    StyleSet->Set("HoudiniEngine.CleanUpTempFolder", new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+    StyleSet->Set("HoudiniEngine.BakeAllAssets", new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+    StyleSet->Set("HoudiniEngine.PauseAssetCooking", new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+
+    // We need some colors from Editor Style & this is the only way to do this at the moment
+    const FSlateColor DefaultForeground = FEditorStyle::GetSlateColor("DefaultForeground");
+    const FSlateColor InvertedForeground = FEditorStyle::GetSlateColor("InvertedForeground");
+    const FSlateColor SelectorColor = FEditorStyle::GetSlateColor("SelectorColor");
+    const FSlateColor SelectionColor = FEditorStyle::GetSlateColor("SelectionColor");
+    const FSlateColor SelectionColor_Inactive = FEditorStyle::GetSlateColor("SelectionColor_Inactive");
+
+    const FTableRowStyle &NormalTableRowStyle = FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.Row");
+    StyleSet->Set(
+	"HoudiniEngine.TableRow", FTableRowStyle( NormalTableRowStyle)
+	.SetEvenRowBackgroundBrush( FSlateNoResource() )
+	.SetEvenRowBackgroundHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, FLinearColor( 1.0f, 1.0f, 1.0f, 0.1f ) ) )
+	.SetOddRowBackgroundBrush( FSlateNoResource() )
+	.SetOddRowBackgroundHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, FLinearColor( 1.0f, 1.0f, 1.0f, 0.1f ) ) )
+	.SetSelectorFocusedBrush( BORDER_BRUSH( "Common/Selector", FMargin( 4.f / 16.f ), SelectorColor ) )
+	.SetActiveBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor ) )
+	.SetActiveHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor ) )
+	.SetInactiveBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor_Inactive ) )
+	.SetInactiveHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor_Inactive ) )
+	.SetTextColor( DefaultForeground )
+	.SetSelectedTextColor( InvertedForeground )
+    );
+
+    // Normal Text
+    const FTextBlockStyle& NormalText = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("NormalText");
+    StyleSet->Set(
+	"HoudiniEngine.ThumbnailText", FTextBlockStyle(NormalText)
+	.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 9))
+	.SetColorAndOpacity(FSlateColor::UseForeground())
+	.SetShadowOffset(FVector2D::ZeroVector)
+	.SetShadowColorAndOpacity(FLinearColor::Black)
+	.SetHighlightColor(FLinearColor(0.02f, 0.3f, 0.0f))
+	.SetHighlightShape(BOX_BRUSH("Common/TextBlockHighlightShape", FMargin(3.f / 8.f)))
+    );
+
+    StyleSet->Set("HoudiniEngine.ThumbnailShadow", new BOX_BRUSH("ContentBrowser/ThumbnailShadow", FMargin(4.0f / 64.0f)));
+    StyleSet->Set("HoudiniEngine.ThumbnailBackground", new IMAGE_BRUSH("Common/ClassBackground_64x", FVector2D(64.f, 64.f), FLinearColor(0.75f, 0.75f, 0.75f, 1.0f)));    
+
+    // Register Slate style.
+    FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());
+};
+
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+#undef IMAGE_BRUSH
+#undef BOX_BRUSH
+#undef BORDER_BRUSH
+#undef TTF_FONT
+#undef TTF_CORE_FONT
+#undef OTF_FONT
+#undef OTF_CORE_FONT
+
+void
+FHoudiniEngineStyle::Shutdown()
+{
+    if (StyleSet.IsValid())
+    {
+        FSlateStyleRegistry::UnRegisterSlateStyle(*StyleSet.Get());
+        ensure(StyleSet.IsUnique());
+        StyleSet.Reset();
+    }
+}
+
 
 const FName
 FHoudiniEngineEditor::HoudiniEngineEditorAppIdentifier = FName( TEXT( "HoudiniEngineEditorApp" ) );
@@ -87,6 +236,9 @@ FHoudiniEngineEditor::StartupModule()
 {
     HOUDINI_LOG_MESSAGE( TEXT( "Starting the Houdini Engine Editor module." ) );
     
+    // Create style set.
+    FHoudiniEngineStyle::Initialize();
+
     // Register asset type actions.
     RegisterAssetTypeActions();
 
@@ -101,9 +253,6 @@ FHoudiniEngineEditor::StartupModule()
 
     // Register actor factories.
     RegisterActorFactories();
-
-    // Create style set.
-    RegisterStyleSet();
 
     // Register thumbnails.
     //RegisterThumbnails();
@@ -136,8 +285,14 @@ FHoudiniEngineEditor::ShutdownModule()
 {
     HOUDINI_LOG_MESSAGE( TEXT( "Shutting down the Houdini Engine Editor module." ) );
 
+    // Remove the level viewport Menu extender
+    RemoveLevelViewportMenuExtender();
+
     // Unregister asset type actions.
     UnregisterAssetTypeActions();
+
+    // Unregister asset brokers.
+    UnregisterAssetBrokers();
 
     // Unregister detail presenters.
     UnregisterDetails();
@@ -156,6 +311,9 @@ FHoudiniEngineEditor::ShutdownModule()
 #endif
 
     UnregisterPlacementModeExtensions();
+
+    // Unregister the styleset
+    FHoudiniEngineStyle::Shutdown();
 }
 
 void
@@ -555,138 +713,6 @@ FHoudiniEngineEditor::CanReportBug() const
     return FHoudiniEngine::IsInitialized();
 }
 
-const FName
-FHoudiniEngineEditor::GetStyleSetName()
-{
-    return FName("HoudiniEngineStyle");
-}
-
-#define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( StyleSet->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
-#define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( StyleSet->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
-#define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush( StyleSet->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
-#define TTF_FONT( RelativePath, ... ) FSlateFontInfo( StyleSet->RootToContentDir( RelativePath, TEXT(".ttf") ), __VA_ARGS__ )
-#define TTF_CORE_FONT( RelativePath, ... ) FSlateFontInfo( StyleSet->RootToCoreContentDir( RelativePath, TEXT(".ttf") ), __VA_ARGS__ )
-#define OTF_FONT( RelativePath, ... ) FSlateFontInfo( StyleSet->RootToContentDir( RelativePath, TEXT(".otf") ), __VA_ARGS__ )
-#define OTF_CORE_FONT( RelativePath, ... ) FSlateFontInfo( StyleSet->RootToCoreContentDir( RelativePath, TEXT(".otf") ), __VA_ARGS__ )
-
-void
-FHoudiniEngineEditor::RegisterStyleSet()
-{
-    // Create Slate style set.
-    if ( !StyleSet.IsValid() )
-    {
-        StyleSet = MakeShareable( new FSlateStyleSet( FHoudiniEngineEditor::GetStyleSetName() ) );
-        StyleSet->SetContentRoot( FPaths::EngineContentDir() / TEXT( "Editor/Slate" ) );
-        StyleSet->SetCoreContentRoot( FPaths::EngineContentDir() / TEXT( "Slate" ) );
-
-        // Note, these sizes are in Slate Units.
-        // Slate Units do NOT have to map to pixels.
-        const FVector2D Icon5x16( 5.0f, 16.0f );
-        const FVector2D Icon8x4( 8.0f, 4.0f );
-        const FVector2D Icon8x8( 8.0f, 8.0f );
-        const FVector2D Icon10x10( 10.0f, 10.0f );
-        const FVector2D Icon12x12( 12.0f, 12.0f );
-        const FVector2D Icon12x16( 12.0f, 16.0f );
-        const FVector2D Icon14x14( 14.0f, 14.0f );
-        const FVector2D Icon16x16( 16.0f, 16.0f );
-        const FVector2D Icon20x20( 20.0f, 20.0f );
-        const FVector2D Icon22x22( 22.0f, 22.0f );
-        const FVector2D Icon24x24( 24.0f, 24.0f );
-        const FVector2D Icon25x25( 25.0f, 25.0f );
-        const FVector2D Icon32x32( 32.0f, 32.0f );
-        const FVector2D Icon40x40( 40.0f, 40.0f );
-        const FVector2D Icon64x64( 64.0f, 64.0f );
-        const FVector2D Icon36x24( 36.0f, 24.0f );
-        const FVector2D Icon128x128( 128.0f, 128.0f );
-
-        static FString IconsDir = FPaths::EnginePluginsDir() / TEXT( "Runtime/HoudiniEngine/Content/Icons/" );
-        StyleSet->Set(
-            "HoudiniEngine.HoudiniEngineLogo",
-            new FSlateImageBrush( IconsDir + TEXT( "icon_houdini_logo_16.png" ), Icon16x16 ) );
-        StyleSet->Set(
-            "ClassIcon.HoudiniAssetActor",
-            new FSlateImageBrush( IconsDir + TEXT( "icon_houdini_logo_16.png" ), Icon16x16 ) );
-        StyleSet->Set(
-            "HoudiniEngine.HoudiniEngineLogo40",
-            new FSlateImageBrush( IconsDir + TEXT( "icon_houdini_logo_40.png" ), Icon40x40 ) );
-
-        StyleSet->Set(
-            "ClassIcon.HoudiniAsset",
-            new FSlateImageBrush( IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16 ) );
-
-        StyleSet->Set(
-            "ClassThumbnail.HoudiniAsset",
-            new FSlateImageBrush( IconsDir + TEXT( "icon_houdini_logo_128.png" ), Icon64x64) );
-
-        FSlateImageBrush* HoudiniLogo16 = new FSlateImageBrush( IconsDir + TEXT( "icon_houdini_logo_16.png" ), Icon16x16 );
-        StyleSet->Set( "HoudiniEngine.SaveHIPFile", HoudiniLogo16 );
-        StyleSet->Set( "HoudiniEngine.ReportBug", HoudiniLogo16 );
-        StyleSet->Set( "HoudiniEngine.OpenInHoudini", HoudiniLogo16 );
-        StyleSet->Set( "HoudiniEngine.CleanUpTempFolder", HoudiniLogo16 );
-        StyleSet->Set( "HoudiniEngine.BakeAllAssets", HoudiniLogo16 );
-        StyleSet->Set( "HoudiniEngine.PauseAssetCooking", HoudiniLogo16 );
-
-        // We need some colors from Editor Style & this is the only way to do this at the moment
-        const FSlateColor DefaultForeground = FEditorStyle::GetSlateColor( "DefaultForeground" );
-        const FSlateColor InvertedForeground = FEditorStyle::GetSlateColor( "InvertedForeground" );
-        const FSlateColor SelectorColor = FEditorStyle::GetSlateColor( "SelectorColor" );
-        const FSlateColor SelectionColor = FEditorStyle::GetSlateColor( "SelectionColor" );
-        const FSlateColor SelectionColor_Inactive = FEditorStyle::GetSlateColor( "SelectionColor_Inactive" );
-
-        // Normal Text
-        FTextBlockStyle NormalText = FTextBlockStyle()
-            .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) )
-            .SetColorAndOpacity( FSlateColor::UseForeground() )
-            .SetShadowOffset( FVector2D::ZeroVector )
-            .SetShadowColorAndOpacity( FLinearColor::Black )
-            .SetHighlightColor( FLinearColor( 0.02f, 0.3f, 0.0f ) )
-            .SetHighlightShape( BOX_BRUSH( "Common/TextBlockHighlightShape", FMargin( 3.f / 8.f ) ) );
-
-        StyleSet->Set( "HoudiniEngine.TableRow", FTableRowStyle()
-                       .SetEvenRowBackgroundBrush( FSlateNoResource() )
-                       .SetEvenRowBackgroundHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, FLinearColor( 1.0f, 1.0f, 1.0f, 0.1f ) ) )
-                       .SetOddRowBackgroundBrush( FSlateNoResource() )
-                       .SetOddRowBackgroundHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, FLinearColor( 1.0f, 1.0f, 1.0f, 0.1f ) ) )
-                       .SetSelectorFocusedBrush( BORDER_BRUSH( "Common/Selector", FMargin( 4.f / 16.f ), SelectorColor ) )
-                       .SetActiveBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor ) )
-                       .SetActiveHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor ) )
-                       .SetInactiveBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor_Inactive ) )
-                       .SetInactiveHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor_Inactive ) )
-                       .SetTextColor( DefaultForeground )
-                       .SetSelectedTextColor( InvertedForeground )
-        );
-
-        StyleSet->Set( "HoudiniEngine.ThumbnailShadow", new BOX_BRUSH( "ContentBrowser/ThumbnailShadow", FMargin( 4.0f / 64.0f ) ) );
-        StyleSet->Set( "HoudiniEngine.ThumbnailBackground", new IMAGE_BRUSH( "Common/ClassBackground_64x", FVector2D( 64.f, 64.f ), FLinearColor( 0.75f, 0.75f, 0.75f, 1.0f ) ) );
-        StyleSet->Set( "HoudiniEngine.ThumbnailText", NormalText );
-
-        // Register Slate style.
-        FSlateStyleRegistry::RegisterSlateStyle( *StyleSet.Get() );
-    }
-}
-
-#undef IMAGE_BRUSH
-#undef BOX_BRUSH
-#undef BORDER_BRUSH
-#undef TTF_FONT
-#undef TTF_CORE_FONT
-#undef OTF_FONT
-#undef OTF_CORE_FONT
-
-void
-FHoudiniEngineEditor::UnregisterStyleSet()
-{
-    // Unregister Slate style set.
-    if ( StyleSet.IsValid() )
-    {
-        // Unregister Slate style.
-        FSlateStyleRegistry::UnRegisterSlateStyle( *StyleSet.Get() );
-
-        ensure( StyleSet.IsUnique() );
-        StyleSet.Reset();
-    }
-}
-
 void
 FHoudiniEngineEditor::RegisterForUndo()
 {
@@ -707,7 +733,7 @@ FHoudiniEngineEditor::RegisterModes()
     FEditorModeRegistry::Get().RegisterMode<FHoudiniShelfEdMode>( 
         FHoudiniShelfEdMode::EM_HoudiniShelfEdModeId, 
         LOCTEXT( "HoudiniMode", "Houdini Tools" ), 
-        FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo40" ),
+        FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo40" ),
         true );
 }
 
@@ -804,12 +830,8 @@ FHoudiniEngineEditor::UnregisterPlacementModeExtensions()
     {
         IPlacementModeModule::Get().UnregisterPlacementCategory( "HoudiniEngine" );
     }
-}
 
-TSharedPtr<ISlateStyle>
-FHoudiniEngineEditor::GetSlateStyle() const
-{
-    return StyleSet;
+    HoudiniTools.Empty();
 }
 
 void
@@ -1463,7 +1485,7 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender( const TSharedRef<FUIC
                 MenuBuilder.AddMenuEntry(
                     NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_Recook", "Recook selection"),
                     NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_RecookTooltip", "Forces a recook on the selected Houdini Asset Actors."),
-                    FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+                    FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
                     FUIAction(
                         FExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::RecookSelection ),
                         FCanExecuteAction::CreateLambda([=] { return ( HoudiniAssetActors.Num() > 0 ); })
@@ -1473,7 +1495,7 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender( const TSharedRef<FUIC
                 MenuBuilder.AddMenuEntry(
                     NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_Rebuild", "Rebuild selection"),
                     NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_RebuildTooltip", "Rebuilds selected Houdini Asset Actors in the current level."),
-                    FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+                    FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
                     FUIAction(
                         FExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::RebuildSelection ),
                         FCanExecuteAction::CreateLambda([=] { return ( HoudiniAssetActors.Num() > 0 ); })
@@ -1516,7 +1538,7 @@ FHoudiniEngineEditor::UpdateHoudiniToolList()
         }
         else
         {
-            CustomIconBrush = StyleSet->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
+            CustomIconBrush = FHoudiniEngineStyle::Get()->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
         }
 
         HoudiniTools.Add( MakeShareable( new FHoudiniTool( HoudiniTool.HoudiniAsset, ToolName, HoudiniTool.Type, HoudiniTool.SelectionType, ToolTip, CustomIconBrush, HoudiniTool.HelpURL ) ) );
