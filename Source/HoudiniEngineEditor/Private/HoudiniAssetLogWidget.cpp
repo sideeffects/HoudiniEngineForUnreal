@@ -34,6 +34,7 @@
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
+#include "EditorStyleSet.h"
 
 void
 SHoudiniAssetLogWidget::Construct( const FArguments & InArgs )

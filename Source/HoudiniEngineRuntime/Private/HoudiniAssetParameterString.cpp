@@ -171,7 +171,7 @@ UHoudiniAssetParameterString::SetParameterVariantValue(
 void
 UHoudiniAssetParameterString::SetValueCommitted( const FText & InValue, ETextCommit::Type CommitType, int32 Idx )
 {
-    FString CommittedValue = InValue.ToString();
+    FString CommittedValue = InValue.ToString();	
 
     if ( Values[ Idx ] != CommittedValue )
     {

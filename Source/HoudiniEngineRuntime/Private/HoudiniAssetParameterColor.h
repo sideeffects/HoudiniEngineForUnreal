@@ -27,6 +27,8 @@
 #include "CoreMinimal.h"
 #include "HoudiniAssetParameterColor.generated.h"
 
+struct FPointerEvent;
+struct FGeometry;
 
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterColor : public UHoudiniAssetParameter
@@ -70,13 +72,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterColor : public UHoudiniAsse
 
         /** Return color for this color parameter. **/
         FLinearColor GetColor() const;
-
-#if WITH_EDITOR
-
-        /** Handle mouse click on color box. **/
-        FReply OnColorBlockMouseButtonDown( const FGeometry & MyGeometry, const FPointerEvent & MouseEvent );
-
-#endif
 
         /** Called when new color is selected. **/
         void OnPaintColorChanged( FLinearColor InNewColor, bool bTriggerModify = true, bool bRecordUndo = true );

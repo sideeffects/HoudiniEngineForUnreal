@@ -34,6 +34,7 @@
 #include "HoudiniEngineEditor.h"
 #include "EditorViewportClient.h"
 #include "Framework/Commands/Commands.h"
+#include "EditorStyleSet.h"
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "Internationalization/Internationalization.h"
