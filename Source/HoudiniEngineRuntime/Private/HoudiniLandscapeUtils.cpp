@@ -1243,15 +1243,35 @@ FHoudiniLandscapeUtils::GetLandscapeData(
         return false;
 
     // Get the landscape Min/Max values
+    // Do not use Landscape->GetActorBounds() here as instanced geo
+    // (due to grass layers for example) can cause it to return incorrect bounds!
     FVector Origin, Extent;
-    Landscape->GetActorBounds(false, Origin, Extent);
+    GetLandscapeActorBounds(Landscape, Origin, Extent);
 
+    // Get the landscape Min/Max values
     Min = Origin - Extent;
     Max = Origin + Extent;
 
     return true;
 }
 
+
+void
+FHoudiniLandscapeUtils::GetLandscapeActorBounds(
+    ALandscape* Landscape, FVector& Origin, FVector& Extents )
+{
+    // Iterate only on the landscape components
+    FBox Bounds(ForceInit);
+    for (const UActorComponent* ActorComponent : Landscape->GetComponents())
+    {
+        const ULandscapeComponent* LandscapeComp = Cast<const ULandscapeComponent>(ActorComponent);
+        if ( LandscapeComp && LandscapeComp->IsRegistered() )
+            Bounds += LandscapeComp->Bounds.GetBox();
+    }
+
+    // Convert the bounds to origin/offset vectors
+    Bounds.GetCenterAndExtents(Origin, Extents);
+}
 bool
 FHoudiniLandscapeUtils::GetLandscapeData(
     ULandscapeInfo* LandscapeInfo,
