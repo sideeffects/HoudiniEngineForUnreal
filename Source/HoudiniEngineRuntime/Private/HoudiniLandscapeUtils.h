@@ -244,6 +244,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         static bool GetNonWeightBlendedLayerNames( 
             const FHoudiniGeoPartObject& HeightfieldGeoPartObject, TArray<FString>& NonWeightBlendedLayerNames );
 
+        static void GetLandscapeActorBounds( ALandscape* Landscape, FVector& Origin, FVector& Extents );
+
         //--------------------------------------------------------------------------------------------------
         // Unreal to Houdini - MESH / POINTS
         //--------------------------------------------------------------------------------------------------
