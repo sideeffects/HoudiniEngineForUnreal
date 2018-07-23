@@ -110,7 +110,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         static bool ConvertHeightfieldDataToLandscapeData(
             const TArray< float >& HeightfieldFloatValues,
             const HAPI_VolumeInfo& HeightfieldVolumeInfo,
-            const float& FloatMin, const float& FloatMax,
+            float FloatMin, float FloatMax,
             TArray< uint16 >& IntHeightData,
             FTransform& LandscapeTransform,
             int32& FinalXSize, int32& FinalYSize,

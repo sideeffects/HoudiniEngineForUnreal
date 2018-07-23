@@ -81,6 +81,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     MarshallingAttributeInputMeshName = TEXT( HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME );
     MarshallingAttributeInputSourceFile = TEXT( HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE );
     MarshallingSplineResolution = HAPI_UNREAL_PARAM_SPLINE_RESOLUTION_DEFAULT;
+    MarshallingLandscapesUseDefaultUnrealScaling = false;
     MarshallingLandscapesUseFullResolution = true;
     MarshallingLandscapesForceMinMaxValues = false;
     MarshallingLandscapesForcedMinValue = -2000.0f;
