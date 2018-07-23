@@ -327,6 +327,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
         UPROPERTY(GlobalConfig, EditAnywhere, Category = GeometryMarshalling)
         float MarshallingSplineResolution;
 
+        // If true, generated Landscapes will be marshalled using default unreal scaling. 
+        // Generated landscape will loose a lot of precision on the Z axis but will use the same transforms
+        // as Unreal's default landscape
+        UPROPERTY(GlobalConfig, EditAnywhere, Category = GeometryMarshalling)
+        bool MarshallingLandscapesUseDefaultUnrealScaling;
+
         // If true, generated Landscapes will be using full precision for their ZAxis, 
         // allowing for more precision but preventing them from being sculpted higher/lower than their min/max.
         UPROPERTY(GlobalConfig, EditAnywhere, Category = GeometryMarshalling)
