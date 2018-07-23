@@ -327,7 +327,7 @@ bool
 FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     const TArray<float>& HeightfieldFloatValues,
     const HAPI_VolumeInfo& HeightfieldVolumeInfo,
-    const float& FloatMin, const float& FloatMax,
+    float FloatMin, float FloatMax,
     TArray<uint16>& IntHeightData,
     FTransform& LandscapeTransform,
     int32& FinalXSize, int32& FinalYSize,
@@ -359,6 +359,24 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     // 1. Convert values to uint16 using doubles to get the maximum precision during the conversion
     //--------------------------------------------------------------------------------------------------
 
+    // Extract the HF's current transform
+    FTransform CurrentVolumeTransform;
+    {
+        HAPI_Transform HapiTransform = HeightfieldVolumeInfo.transform;
+        FQuat ObjectRotation(
+            HapiTransform.rotationQuaternion[0], HapiTransform.rotationQuaternion[1],
+            HapiTransform.rotationQuaternion[2], -HapiTransform.rotationQuaternion[3]);
+        Swap(ObjectRotation.Y, ObjectRotation.Z);
+
+        FVector ObjectTranslation(HapiTransform.position[0], HapiTransform.position[1], HapiTransform.position[2]);
+        ObjectTranslation *= 100.0f;
+        Swap(ObjectTranslation[2], ObjectTranslation[1]);
+
+        FVector ObjectScale3D(HapiTransform.scale[0], HapiTransform.scale[1], HapiTransform.scale[2]);
+
+        CurrentVolumeTransform.SetComponents(ObjectRotation, ObjectTranslation, ObjectScale3D);
+    }
+
     // The ZRange in Houdini (in m)
     double MeterZRange = (double) ( FloatMax - FloatMin );
 
@@ -371,10 +389,30 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
         DigitZRange = dUINT16_MAX;
 
     // If we  are not using the full range, we need to center the digit values so the terrain can be edited up and down
-    double DigitCenterOffset = FMath::FloorToDouble( ( dUINT16_MAX - DigitZRange ) / 2.0 );
+    double DigitCenterOffset = FMath::FloorToDouble( ( dUINT16_MAX - DigitZRange ) / 2.0 );	
 
     // The factor used to convert from Houdini's ZRange to the desired digit range
     double ZSpacing = ( MeterZRange != 0.0 ) ? ( DigitZRange / MeterZRange ) : 0.0;
+
+    // Changes these values if the user wants to loose a lot of precision
+    // just to keep the same transform as the landscape input
+    bool bUseDefaultUE4Scaling = false;
+    if (HoudiniRuntimeSettings && HoudiniRuntimeSettings->MarshallingLandscapesUseDefaultUnrealScaling)
+        bUseDefaultUE4Scaling = HoudiniRuntimeSettings->MarshallingLandscapesUseDefaultUnrealScaling;
+
+    if ( bUseDefaultUE4Scaling )
+    {
+        DigitZRange = dUINT16_MAX;
+        DigitCenterOffset = 0;
+
+        // Default unreal landscape scaling is -256m:256m at Scale = 100
+        // We need to apply the scale back to
+        FloatMin = -256.0f * CurrentVolumeTransform.GetScale3D().Z * 2.0f;
+        FloatMax = 256.0f * CurrentVolumeTransform.GetScale3D().Z * 2.0f;
+        MeterZRange = (double)(FloatMax - FloatMin);
+
+        ZSpacing = ((double)DigitZRange) / MeterZRange;
+    }
 
     // Converting the data from Houdini to Unreal
     // For correct orientation in unreal, the point matrix has to be transposed.
@@ -436,23 +474,6 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     //--------------------------------------------------------------------------------------------------
     // 3. Calculating the proper transform for the landscape to be sized and positionned properly
     //--------------------------------------------------------------------------------------------------
-    FTransform CurrentVolumeTransform;
-    {
-        HAPI_Transform HapiTransform = HeightfieldVolumeInfo.transform;
-
-        FQuat ObjectRotation(
-            HapiTransform.rotationQuaternion[0], HapiTransform.rotationQuaternion[1],
-            HapiTransform.rotationQuaternion[2], -HapiTransform.rotationQuaternion[3] );
-        Swap( ObjectRotation.Y, ObjectRotation.Z );
-
-        FVector ObjectTranslation( HapiTransform.position[0], HapiTransform.position[1], HapiTransform.position[2] );
-        ObjectTranslation *= 100.0f;
-        Swap(ObjectTranslation[2], ObjectTranslation[1]);
-
-        FVector ObjectScale3D( HapiTransform.scale[0], HapiTransform.scale[1], HapiTransform.scale[2] );
-
-        CurrentVolumeTransform.SetComponents( ObjectRotation, ObjectTranslation, ObjectScale3D );
-    }
 
     // Scale:
     // Calculating the equivalent scale to match Houdini's Terrain Size in Unreal
@@ -465,6 +486,8 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     // Calculating the Z Scale so that the Z values in Unreal are the same as in Houdini
     // Unreal has a default Z range is 512m for a scale of a 100%
     LandscapeScale.Z = (float)( (double)( dUINT16_MAX / DigitZRange ) * MeterZRange / 512.0 );
+    if ( bUseDefaultUE4Scaling )
+        LandscapeScale.Z = CurrentVolumeTransform.GetScale3D().Z * 2.0f;
     LandscapeScale *= 100.f;
 
     // If the data was resized and not expanded, we need to modify the landscape's scale
@@ -1413,6 +1436,13 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
     // The factor used to convert from unreal digit range to Houdini's float Range
     double ZSpacing = ( DigitRange != 0.0 ) ? ( FloatRange / DigitRange ) : 0.0;
 
+    // Use default unreal scaling for marshalling landscapes
+    // A lot of precision will be lost in order to keep the same transform as the landscape input
+    bool bUseDefaultUE4Scaling = false;
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if (HoudiniRuntimeSettings && HoudiniRuntimeSettings->MarshallingLandscapesUseDefaultUnrealScaling)
+        bUseDefaultUE4Scaling = HoudiniRuntimeSettings->MarshallingLandscapesUseDefaultUnrealScaling;
+
     // Convert the Int data to Float
     HeightfieldFloatValues.SetNumUninitialized( SizeInPoints );
     
@@ -1479,6 +1509,8 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
         HapiTransform.scale[ 0 ] = Scale.X * 0.5f * HoudiniXSize;
         HapiTransform.scale[ 1 ] = Scale.Y * 0.5f * HoudiniYSize;
         HapiTransform.scale[ 2 ] = 0.5f;
+        if ( bUseDefaultUE4Scaling )
+            HapiTransform.scale[2] *= Scale.Z;
 
         HapiTransform.shear[ 0 ] = 0.0f;
         HapiTransform.shear[ 1 ] = 0.0f;
