@@ -377,6 +377,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
 
     bEditorPropertiesNeedFullUpdate = true;
 
+    bFullyLoaded = false;
+
     Bounds = FBox( ForceInitToZero );
 }
 
@@ -719,7 +721,8 @@ UHoudiniAssetComponent::RemoveDownstreamAsset( UHoudiniAssetComponent * InDownst
 }
 
 void
-UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshMap )
+UHoudiniAssetComponent::CreateObjectGeoPartResources(
+    TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshMap )
 {
     // Reset Houdini logo flag.
     bContainsHoudiniLogoGeometry = false;
@@ -831,7 +834,9 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
                 }
 
                 // Try to update uproperty atributes
-                FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( StaticMeshComponent, HoudiniGeoPartObject );
+                // No need to update uprops if we've not yet been instanced
+                if ( bFullyLoaded )
+                    FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( StaticMeshComponent, HoudiniGeoPartObject );
             }
         }
     }
@@ -2484,6 +2489,7 @@ UHoudiniAssetComponent::OnComponentClipboardCopy( UHoudiniAssetComponent * Houdi
     {
         // This component has been loaded.
         bLoadedComponent = true;
+        bFullyLoaded = false;
     }
 
     // Mark this component as imported.
@@ -2757,16 +2763,17 @@ UHoudiniAssetComponent::OnUpdateTransform( EUpdateTransformFlags UpdateTransform
 void
 UHoudiniAssetComponent::CheckedUploadTransform()
 {
-    // Only if asset has been cooked.
-    if ( AssetCookCount > 0 )
+    // Only if the asset is done loading, else this might cause a cook 
+    // upon loading a map if the asset has TransformChangeTRiggersCook enabled
+    if ( !bFullyLoaded )
+        return;
+
+    // If we have to upload transforms.
+    if ( bUploadTransformsToHoudiniEngine && AssetCookCount > 0 )
     {
-        // If we have to upload transforms.
-        if ( bUploadTransformsToHoudiniEngine )
-        {
-            // Retrieve the current component-to-world transform for this component.
-            if ( !FHoudiniEngineUtils::HapiSetAssetTransform( AssetId, GetComponentTransform() ) )
-                HOUDINI_LOG_MESSAGE( TEXT( "Failed Uploading Transformation change back to HAPI." ) );
-        }
+        // Retrieve the current component-to-world transform for this component.
+        if ( !FHoudiniEngineUtils::HapiSetAssetTransform( AssetId, GetComponentTransform() ) )
+            HOUDINI_LOG_MESSAGE( TEXT( "Failed Uploading Transformation change back to HAPI." ) );
     }
 
     // If transforms trigger cooks, we need to schedule a cook.
@@ -3037,6 +3044,9 @@ UHoudiniAssetComponent::OnRegister()
             InstanceInput->RecreatePhysicsStates();
         }
     }
+
+    // We can now consider the asset as fully loaded
+    bFullyLoaded = true;
 }
 #endif
 
@@ -3447,6 +3457,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
     {
         // This component has been loaded.
         bLoadedComponent = true;
+        bFullyLoaded = false;
     }
 }
 
@@ -5913,6 +5924,7 @@ UHoudiniAssetComponent::NotifyAssetNeedsToBeReinstantiated()
 {
     bLoadedComponentRequiresInstantiation = true;
     bLoadedComponent = true;
+    bFullyLoaded = false;
     AssetCookCount = 0;
     AssetId = -1;
 
