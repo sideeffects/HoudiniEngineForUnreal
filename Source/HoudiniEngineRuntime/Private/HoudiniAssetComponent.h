@@ -585,7 +585,7 @@ public:
         void RemoveDownstreamAsset( UHoudiniAssetComponent * InDownstreamAssetComponent, int32 InInputIndex );
 
         /** Create Static mesh resources. This will create necessary components for each mesh and update maps. **/
-        void CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshMap );
+		void CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshMap );
 
         /** Delete Static mesh resources. This will free static meshes and corresponding components. **/
         void ReleaseObjectGeoPartResources( bool bDeletePackages = false );
@@ -823,6 +823,9 @@ public:
 
                 /** Is set to true when cooking this asset will trigger cooks of downstream connected assets. **/
                 uint32 bCookingTriggersDownstreamCooks : 1;
+
+                /** Is set to true after the asset is fully loaded and registered **/
+                uint32 bFullyLoaded : 1;
             };
 
             uint32 HoudiniAssetComponentFlagsPacked;
