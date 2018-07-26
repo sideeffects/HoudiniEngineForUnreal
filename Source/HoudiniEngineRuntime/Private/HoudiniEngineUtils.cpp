@@ -4371,7 +4371,7 @@ FHoudiniEngineUtils::HapiCreateSkeletonFromData(
     // Create the bone deform
     HAPI_NodeId DeformNodeId = -1;
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
-        FHoudiniEngine::Get().GetSession(), GeoNodeId, "deform", "mesh_deform", true, &DeformNodeId), false);
+        FHoudiniEngine::Get().GetSession(), GeoNodeId, "bonedeform", "mesh_deform", true, &DeformNodeId), false);
 
     // We can delete the default file node created by the geometry node, 
     // This wll set the display flag top the deform node, which is exactly what we want
