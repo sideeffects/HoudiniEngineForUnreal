@@ -656,6 +656,10 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
                             // Copy the BodySetup
                             SMC->GetBodySetup()->CopyBodyPropertiesFrom(OtherSMC_NonConst->GetBodySetup());
 
+                            // We need to recreate the physics mesh for the new body setup
+                            SMC->GetBodySetup()->InvalidatePhysicsData();
+                            SMC->GetBodySetup()->CreatePhysicsMeshes();
+
                             // Only copy the physical material if it's different from the default one,
                             // As this was causing crashes on BakeToActors in some cases
                             if (GEngine != NULL && OtherSMC_NonConst->GetBodySetup()->GetPhysMaterial() != GEngine->DefaultPhysMaterial)
@@ -666,6 +670,8 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
 
                         // Reapply the uproperties modified by attributes on the new component
                         FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( SMC, HoudiniGeoPartObject );
+
+                        SMC->PostEditChange();
                     }
                 }
             };
