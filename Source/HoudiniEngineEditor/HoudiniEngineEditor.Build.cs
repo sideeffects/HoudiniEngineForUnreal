@@ -32,24 +32,98 @@
 
 /*
 
-    Houdini Version: 17.0.295
+    Houdini Version: 17.0.297
     Houdini Engine Version: 3.2.20
     Unreal Version: 4.20.0
 
 */
 
 using UnrealBuildTool;
+using System;
 using System.IO;
 
 public class HoudiniEngineEditor : ModuleRules
 {
+    private string GetHFSPath()
+    {
+        string HoudiniVersion = "17.0.297";
+        bool bIsRelease = true;
+        string HFSPath = "";
+
+        if ( !bIsRelease )
+        {
+            // Only use the preset build folder
+            System.Console.WriteLine("Using HFS:" + HFSPath);
+            return HFSPath;
+        }
+
+        // Look for the Houdini install folder for this platform
+        PlatformID buildPlatformId = Environment.OSVersion.Platform;
+        if (buildPlatformId == PlatformID.Win32NT)
+        {
+            // TODO: Look in the registry!
+            // TODO: Use the registry's active version to use latest
+            
+            // Look for the HEngine registry install path
+            //string HEngineRegistry = string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\Side Effects Software\Houdini Engine {0}", HoudiniVersion);
+            //string HFS = Microsoft.Win32.Registry.GetValue(HEngineRegistry, "InstallPath", null) as string;
+            
+            // Look for the Houdini registry install path
+            //string HoudiniRegistry = string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\Side Effects Software\Houdini {0}", HoudiniVersion);
+            //string HFS = Microsoft.Win32.Registry.GetValue(HoudiniRegistry, "InstallPath", null) as string;
+
+            // We first check if Houdini Engine is installed.
+            string HPath = "C:/Program Files/Side Effects Software/Houdini Engine " + HoudiniVersion;
+            if (Directory.Exists(HPath))
+                return HPath;
+
+            // If Houdini Engine is not installed, we check for Houdini installation.
+            HPath = "C:/Program Files/Side Effects Software/Houdini " + HoudiniVersion;
+            if (Directory.Exists(HPath))
+                return HPath;
+
+            // Finally, see if the preset build HFS exists
+            if (Directory.Exists(HFSPath))
+                return HFSPath;
+
+            string Err = string.Format("Houdini Engine : Please install Houdini or Houdini Engine {0}", HoudiniVersion);
+            System.Console.WriteLine(Err);
+        }
+        else if (buildPlatformId == PlatformID.MacOSX)
+        {
+            // Check for Houdini installation.
+            string HPath = "/Applications/Houdini/Houdini" + HoudiniVersion + "/Frameworks/Houdini.framework/Versions/Current/Resources";
+            if (Directory.Exists(HPath))
+                return HPath;
+
+            if (Directory.Exists(HFSPath))
+                return HFSPath;
+
+            string Err = string.Format("Houdini Engine : Please install Houdini {0}", HoudiniVersion);
+            System.Console.WriteLine(Err);
+        }
+        else if (buildPlatformId == PlatformID.Unix)
+        {
+            HFSPath = System.Environment.GetEnvironmentVariable("HFS");
+
+            if (Directory.Exists(HFSPath))
+            {
+                System.Console.WriteLine("Linux - found HFS:" + HFSPath);
+                return HFSPath;
+            }
+        }
+        else
+        {
+            System.Console.WriteLine(string.Format("Building on an unknown environment!"));
+        }
+
+        return "";
+    }
+    
     public HoudiniEngineEditor( ReadOnlyTargetRules Target ) : base( Target )
     {
         bPrecompile = true;
         PCHUsage = PCHUsageMode.UseSharedPCHs;
-        bool bIsRelease = true;
-        string HFSPath = "";
-        string HoudiniVersion = "17.0.295";
 
         // Check if we are compiling on unsupported platforms.
         if( Target.Platform != UnrealTargetPlatform.Win64 &&
@@ -61,82 +135,43 @@ public class HoudiniEngineEditor : ModuleRules
             throw new BuildException( Err );
         }
 
-        if( bIsRelease )
-        {
-            if( Target.Platform == UnrealTargetPlatform.Win64 )
-            {
-                // We first check if Houdini Engine is installed.
-                string HPath = "C:/Program Files/Side Effects Software/Houdini Engine " + HoudiniVersion;
-                if( !Directory.Exists( HPath ) )
-                {
-                    // If Houdini Engine is not installed, we check for Houdini installation.
-                    HPath = "C:/Program Files/Side Effects Software/Houdini " + HoudiniVersion;
-                    if( !Directory.Exists( HPath ) )
-                    {
-                        if ( !Directory.Exists( HFSPath ) )
-                        {
-                            string Err = string.Format( "Houdini Engine : Please install Houdini or Houdini Engine {0}", HoudiniVersion );
-                            System.Console.WriteLine( Err );
-                        }
-                    }
-                    else
-                    {
-                        HFSPath = HPath;
-                    }
-                }
-                else
-                {
-                    HFSPath = HPath;
-                }
-            }
-            else if( Target.Platform == UnrealTargetPlatform.Mac )
-            {
-                string HPath = "/Applications/Houdini/Houdini" + HoudiniVersion + "/Frameworks/Houdini.framework/Versions/Current/Resources";
-                if( !Directory.Exists( HPath ) )
-                {
-                    if ( !Directory.Exists( HFSPath ) )
-                    {
-                        string Err = string.Format( "Houdini Engine : Please install Houdini {0}", HoudiniVersion );
-                        System.Console.WriteLine( Err );
-                    }
-                }
-                else
-                {
-                    HFSPath = HPath;
-                }
-            }
-            else
-            {
-                HFSPath = System.Environment.GetEnvironmentVariable( "HFS" );
-                System.Console.WriteLine( "Linux - found HFS:" + HFSPath );
-            }
-        }
-
-        string HAPIIncludePath = "";
-
+        // Find HFS
+        string HFSPath = GetHFSPath();
         if( HFSPath != "" )
         {
-            HAPIIncludePath = HFSPath + "/toolkit/include/HAPI";
-
-            if( Target.Platform == UnrealTargetPlatform.Win64 )
+            PlatformID buildPlatformId = Environment.OSVersion.Platform;
+            if ( buildPlatformId == PlatformID.Win32NT )
             {
-                PublicDefinitions.Add( "HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath );
+                PublicDefinitions.Add("HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath);
             }
         }
 
-        if( HAPIIncludePath != "" )
+        // Find the HAPI include directory
+        string HAPIIncludePath = HFSPath + "/toolkit/include/HAPI";
+        if (!Directory.Exists(HAPIIncludePath))
         {
-            PublicIncludePaths.Add( HAPIIncludePath );
+            // Try the custom include path as well in case the toolkit path doesn't exist yet.
+            HAPIIncludePath = HFSPath + "/custom/houdini/include/HAPI";
 
-            // Add the custom include path as well in case the toolkit path doesn't exist yet.
-            PublicIncludePaths.Add( HFSPath + "/custom/houdini/include/HAPI" );
+            if (!Directory.Exists(HAPIIncludePath))
+            {
+                System.Console.WriteLine(string.Format("Couldnt find the HAPI include folder!"));
+                HAPIIncludePath = "";
+            }
         }
+
+        if (HAPIIncludePath != "")
+            PublicIncludePaths.Add(HAPIIncludePath);
+    
+        // Get the plugin path
+        string PluginPath = Path.Combine( ModuleDirectory, "../../" );
+        PluginPath = Utils.MakePathRelativeTo(PluginPath, Target.RelativeEnginePath);
 
         PublicIncludePaths.AddRange(
             new string[] {
-                "HoudiniEngineRuntime/Public/HAPI",
-                "HoudiniEngineRuntime/Public",
-                "HoudiniEngineEditor/Public"
+                Path.Combine(PluginPath, "Source/HoudiniEngineRuntime/Public/HAPI"),
+                Path.Combine(PluginPath, "Source/HoudiniEngineRuntime/Public"),
+                Path.Combine(PluginPath, "Source/HoudiniEngineEditor/Public")
             }
         );
 
