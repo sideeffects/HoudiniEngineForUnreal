@@ -32,7 +32,7 @@
 
 /*
 
-    Houdini Version: 17.0.297
+    Houdini Version: 17.0.298
     Houdini Engine Version: 3.2.20
     Unreal Version: 4.20.0
 
@@ -46,14 +46,13 @@ public class HoudiniEngineEditor : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "17.0.297";
+        string HoudiniVersion = "17.0.298";
         bool bIsRelease = true;
         string HFSPath = "";
 
         if ( !bIsRelease )
         {
             // Only use the preset build folder
-            System.Console.WriteLine("Using HFS:" + HFSPath);
             return HFSPath;
         }
 
@@ -61,61 +60,106 @@ public class HoudiniEngineEditor : ModuleRules
         PlatformID buildPlatformId = Environment.OSVersion.Platform;
         if (buildPlatformId == PlatformID.Win32NT)
         {
-            // TODO: Look in the registry!
-            // TODO: Use the registry's active version to use latest
-            
-            // Look for the HEngine registry install path
-            //string HEngineRegistry = string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\Side Effects Software\Houdini Engine {0}", HoudiniVersion);
-            //string HFS = Microsoft.Win32.Registry.GetValue(HEngineRegistry, "InstallPath", null) as string;
-            
-            // Look for the Houdini registry install path
-            //string HoudiniRegistry = string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\Side Effects Software\Houdini {0}", HoudiniVersion);
-            //string HFS = Microsoft.Win32.Registry.GetValue(HoudiniRegistry, "InstallPath", null) as string;
+            // Look for the HEngine install path in the registry
+            string HEngineRegistry = string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\Side Effects Software\Houdini Engine {0}", HoudiniVersion);
+            string HPath = Microsoft.Win32.Registry.GetValue(HEngineRegistry, "InstallPath", null) as string;
+            if ( HPath != null )
+            {
+                if ( Directory.Exists( HPath ) )
+                    return HPath;
+            }
 
-            // We first check if Houdini Engine is installed.
-            string HPath = "C:/Program Files/Side Effects Software/Houdini Engine " + HoudiniVersion;
-            if (Directory.Exists(HPath))
-                return HPath;
+            // If we couldn't find the Houdini Engine registry path, try the default one
+            string DefaultHPath = "C:/Program Files/Side Effects Software/Houdini Engine " + HoudiniVersion;
+            if ( DefaultHPath != HPath )
+            {
+                if ( Directory.Exists( DefaultHPath ) )
+                    return DefaultHPath;
+            }
 
-            // If Houdini Engine is not installed, we check for Houdini installation.
-            HPath = "C:/Program Files/Side Effects Software/Houdini " + HoudiniVersion;
-            if (Directory.Exists(HPath))
-                return HPath;
+            // Look for the Houdini registry install path for the version the plug-in was compiled for
+            string HoudiniRegistry = string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\Side Effects Software\Houdini {0}", HoudiniVersion);
+            HPath = Microsoft.Win32.Registry.GetValue(HoudiniRegistry, "InstallPath", null) as string;
+            if ( HPath != null )
+            {
+                if ( Directory.Exists( HPath ) )
+                    return HPath;
+            }
 
-            // Finally, see if the preset build HFS exists
-            if (Directory.Exists(HFSPath))
+            // If we couldn't find the Houdini registry path, try the default one
+            DefaultHPath = "C:/Program Files/Side Effects Software/Houdini " + HoudiniVersion;
+            if ( DefaultHPath != HPath )
+            {
+                if ( Directory.Exists( DefaultHPath ) )
+                    return DefaultHPath;
+            }
+
+            // See if the preset build HFS exists
+            if ( Directory.Exists( HFSPath ) )
                 return HFSPath;
 
-            string Err = string.Format("Houdini Engine : Please install Houdini or Houdini Engine {0}", HoudiniVersion);
-            System.Console.WriteLine(Err);
+            // We couldn't find the exact version the plug-in was built for, we can still try with the active version in the registry
+            HEngineRegistry = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Side Effects Software";
+            string ActiveHEngine = Microsoft.Win32.Registry.GetValue( HEngineRegistry, "ActiveEngineVersion", null ) as string;
+            if ( ActiveHEngine != null )
+            {
+                // See if the latest active HEngine version has the proper major/minor version
+                if ( ActiveHEngine.Substring( 0, 4 ) == HoudiniVersion.Substring( 0, 4 ) )
+                {
+                    HEngineRegistry = string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\Side Effects Software\Houdini Engine {0}", ActiveHEngine);
+                    HPath = Microsoft.Win32.Registry.GetValue( HEngineRegistry, "InstallPath", null ) as string;
+                    if ( HPath != null )
+                    {
+                        if ( Directory.Exists( HPath ) )
+                            return HPath;
+                    }
+                }
+            }
+
+            // Active HEngine version didn't match, so try with the active Houdini version
+            HoudiniRegistry = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Side Effects Software";
+            string ActiveHoudini = Microsoft.Win32.Registry.GetValue( HoudiniRegistry, "ActiveVersion", null ) as string;
+            if ( ActiveHoudini != null )
+            {
+                // See if the latest active Houdini version has the proper major/minor version
+                if ( ActiveHoudini.Substring( 0, 4 ) == HoudiniVersion.Substring( 0, 4 ) )
+                {
+                    HoudiniRegistry = string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\Side Effects Software\Houdini {0}", ActiveHoudini);
+                    HPath = Microsoft.Win32.Registry.GetValue( HoudiniRegistry, "InstallPath", null ) as string;
+                    if ( HPath != null )
+                    {
+                        if ( Directory.Exists( HPath ) )
+                            return HPath;
+                    }
+                }
+            }
         }
-        else if (buildPlatformId == PlatformID.MacOSX)
+        else if ( buildPlatformId == PlatformID.MacOSX )
         {
             // Check for Houdini installation.
             string HPath = "/Applications/Houdini/Houdini" + HoudiniVersion + "/Frameworks/Houdini.framework/Versions/Current/Resources";
-            if (Directory.Exists(HPath))
+            if ( Directory.Exists( HPath ) )
                 return HPath;
 
-            if (Directory.Exists(HFSPath))
+            if ( Directory.Exists( HFSPath ) )
                 return HFSPath;
-
-            string Err = string.Format("Houdini Engine : Please install Houdini {0}", HoudiniVersion);
-            System.Console.WriteLine(Err);
         }
-        else if (buildPlatformId == PlatformID.Unix)
+        else if ( buildPlatformId == PlatformID.Unix )
         {
-            HFSPath = System.Environment.GetEnvironmentVariable("HFS");
-
-            if (Directory.Exists(HFSPath))
+            HFSPath = System.Environment.GetEnvironmentVariable( "HFS" );
+            if ( Directory.Exists( HFSPath ) )
             {
-                System.Console.WriteLine("Linux - found HFS:" + HFSPath);
+                System.Console.WriteLine( "Linux - found HFS:" + HFSPath );
                 return HFSPath;
             }
         }
         else
         {
-            System.Console.WriteLine(string.Format("Building on an unknown environment!"));
+            System.Console.WriteLine( string.Format( "Building on an unknown environment!" ) );
         }
+
+        string Err = string.Format("Houdini Engine : Please install Houdini or Houdini Engine {0}", HoudiniVersion);
+        System.Console.WriteLine(Err);
 
         return "";
     }
