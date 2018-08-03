@@ -211,7 +211,7 @@ public class HoudiniEngineRuntime : ModuleRules
             PlatformID buildPlatformId = Environment.OSVersion.Platform;
             if (buildPlatformId == PlatformID.Win32NT)
             {
-                PublicDefinitions.Add("HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath);
+                Definitions.Add("HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath);
             }
         }
 
