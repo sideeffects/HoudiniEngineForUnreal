@@ -7199,7 +7199,7 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
         HoudiniVersionString = FString::Printf( TEXT( "%s.%d" ), *HoudiniVersionString, HAPI_VERSION_HOUDINI_PATCH );
 
     // Otherwise, we will attempt to detect Houdini installation.
-    FString HoudiniLocation = HOUDINI_ENGINE_HFS_PATH;
+    FString HoudiniLocation = TEXT( HOUDINI_ENGINE_HFS_PATH );
     FString LibHAPIPath;
 
 #if PLATFORM_WINDOWS
