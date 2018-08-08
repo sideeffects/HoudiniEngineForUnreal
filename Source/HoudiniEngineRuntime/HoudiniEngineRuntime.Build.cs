@@ -32,9 +32,9 @@
 
 /*
 
-    Houdini Version: 17.0.298
+    Houdini Version: 17.0.304
     Houdini Engine Version: 3.2.20
-    Unreal Version: 4.20.0
+    Unreal Version: 4.20.1
 
 */
 
@@ -46,9 +46,10 @@ public class HoudiniEngineRuntime : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "17.0.298";
+        string HoudiniVersion = "17.0.304";
         bool bIsRelease = true;
         string HFSPath = "";
+        string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Side Effects Software";
         string Log;
 
         if ( !bIsRelease )
@@ -63,7 +64,7 @@ public class HoudiniEngineRuntime : ModuleRules
         if (buildPlatformId == PlatformID.Win32NT)
         {
             // Look for the HEngine install path in the registry
-            string HEngineRegistry = string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\Side Effects Software\Houdini Engine {0}", HoudiniVersion);
+            string HEngineRegistry = RegistryPath + string.Format(@"\Houdini Engine {0}", HoudiniVersion);
             string HPath = Microsoft.Win32.Registry.GetValue(HEngineRegistry, "InstallPath", null) as string;
             if ( HPath != null )
             {
@@ -84,7 +85,7 @@ public class HoudiniEngineRuntime : ModuleRules
             }
 
             // Look for the Houdini registry install path for the version the plug-in was compiled for
-            string HoudiniRegistry = string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\Side Effects Software\Houdini {0}", HoudiniVersion);
+            string HoudiniRegistry = RegistryPath + string.Format(@"\Houdini {0}", HoudiniVersion);
             HPath = Microsoft.Win32.Registry.GetValue(HoudiniRegistry, "InstallPath", null) as string;
             if ( HPath != null )
             {
@@ -112,8 +113,7 @@ public class HoudiniEngineRuntime : ModuleRules
             System.Console.WriteLine( Log );
 
             // We couldn't find the exact version the plug-in was built for, we can still try with the active version in the registry
-            HEngineRegistry = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Side Effects Software";
-            string ActiveHEngine = Microsoft.Win32.Registry.GetValue(HEngineRegistry, "ActiveEngineVersion", null) as string;
+            string ActiveHEngine = Microsoft.Win32.Registry.GetValue(RegistryPath, "ActiveEngineVersion", null) as string;
             if ( ActiveHEngine != null )
             {
                 // See if the latest active HEngine version has the proper major/minor version
@@ -122,7 +122,7 @@ public class HoudiniEngineRuntime : ModuleRules
                     Log = string.Format("Houdini Engine : Found Active Houdini Engine version: {0}", ActiveHEngine );
                     System.Console.WriteLine( Log );
 
-                    HEngineRegistry = string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\Side Effects Software\Houdini Engine {0}", ActiveHEngine);
+                    HEngineRegistry = RegistryPath + string.Format(@"\Houdini Engine {0}", ActiveHEngine);
                     HPath = Microsoft.Win32.Registry.GetValue(HEngineRegistry, "InstallPath", null) as string;
                     if ( HPath != null )
                     {
@@ -135,8 +135,7 @@ public class HoudiniEngineRuntime : ModuleRules
             }
 
             // Active HEngine version didn't match, so try with the active Houdini version
-            HoudiniRegistry = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Side Effects Software";
-            string ActiveHoudini = Microsoft.Win32.Registry.GetValue(HoudiniRegistry, "ActiveVersion", null) as string;
+            string ActiveHoudini = Microsoft.Win32.Registry.GetValue(RegistryPath, "ActiveVersion", null) as string;
             if ( ActiveHoudini != null )
             {
                 // See if the latest active Houdini version has the proper major/minor version
@@ -145,7 +144,7 @@ public class HoudiniEngineRuntime : ModuleRules
                     Log = string.Format("Houdini Engine : Found Active Houdini version: {0}", ActiveHoudini );
                     System.Console.WriteLine( Log );
 
-                    HoudiniRegistry = string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\Side Effects Software\Houdini {0}", ActiveHoudini);
+                    HoudiniRegistry = RegistryPath + string.Format(@"\Houdini {0}", ActiveHoudini);
                     HPath = Microsoft.Win32.Registry.GetValue(HoudiniRegistry, "InstallPath", null) as string;
                     if ( HPath != null )
                     {
