@@ -7051,10 +7051,16 @@ void *
 FHoudiniEngineUtils::LocateLibHAPIInRegistry(
     const FString & HoudiniInstallationType,
     const FString & HoudiniVersionString,
-    FString & StoredLibHAPILocation )
+    FString & StoredLibHAPILocation,
+    const bool& LookIn32bitRegistry )
 {
     FString HoudiniRegistryLocation = FString::Printf(
         TEXT( "Software\\Side Effects Software\\%s %s" ), *HoudiniInstallationType, *HoudiniVersionString );
+    if ( LookIn32bitRegistry )
+    {
+        HoudiniRegistryLocation = FString::Printf(
+            TEXT("Software\\WOW6432Node\\Side Effects Software\\%s %s"), *HoudiniInstallationType, *HoudiniVersionString);
+    }
 
     FString HoudiniInstallationPath;
 
@@ -7226,17 +7232,30 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
 
     // As a second attempt, on Windows, we try to look up location of Houdini Engine in the registry.
     HAPILibraryHandle = FHoudiniEngineUtils::LocateLibHAPIInRegistry(
-        TEXT( "Houdini Engine" ), HoudiniVersionString, StoredLibHAPILocation );
+        TEXT("Houdini Engine"), HoudiniVersionString, StoredLibHAPILocation, false);
     if ( HAPILibraryHandle )
         return HAPILibraryHandle;
 
     // As a third attempt, we try to look up location of Houdini installation (not Houdini Engine) in the registry.
     HAPILibraryHandle = FHoudiniEngineUtils::LocateLibHAPIInRegistry(
-        TEXT( "Houdini" ), HoudiniVersionString, StoredLibHAPILocation );
+        TEXT("Houdini"), HoudiniVersionString, StoredLibHAPILocation, false);
     if ( HAPILibraryHandle )
         return HAPILibraryHandle;
 
-    // As a fourth attempt, we will try to load from hardcoded program files path.
+    // Do similar registry lookups for the 32 bits registry
+    // Look for the Houdini Engine registry install path
+    HAPILibraryHandle = FHoudiniEngineUtils::LocateLibHAPIInRegistry(
+        TEXT("Houdini Engine"), HoudiniVersionString, StoredLibHAPILocation, true);
+    if ( HAPILibraryHandle )
+        return HAPILibraryHandle;
+
+    // ... and for the Houdini registry install path
+    HAPILibraryHandle = FHoudiniEngineUtils::LocateLibHAPIInRegistry(
+        TEXT("Houdini"), HoudiniVersionString, StoredLibHAPILocation, true);
+    if ( HAPILibraryHandle )
+        return HAPILibraryHandle;
+
+    // Finally, try to load from a hardcoded program files path.
     HoudiniLocation = FString::Printf(
         TEXT( "C:\\Program Files\\Side Effects Software\\Houdini %s\\%s" ), *HoudiniVersionString, HAPI_HFS_SUBFOLDER_WINDOWS );
 
