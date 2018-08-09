@@ -108,6 +108,9 @@ FHoudiniApi::CreateThriftSocketSession = &FHoudiniApi::CreateThriftSocketSession
 FHoudiniApi::CreateWorkitemFuncPtr
 FHoudiniApi::CreateWorkitem = &FHoudiniApi::CreateWorkitemEmptyStub;
 
+FHoudiniApi::DeleteAttributeFuncPtr
+FHoudiniApi::DeleteAttribute = &FHoudiniApi::DeleteAttributeEmptyStub;
+
 FHoudiniApi::DeleteNodeFuncPtr
 FHoudiniApi::DeleteNode = &FHoudiniApi::DeleteNodeEmptyStub;
 
@@ -383,6 +386,12 @@ FHoudiniApi::GetStatusStringBufLength = &FHoudiniApi::GetStatusStringBufLengthEm
 
 FHoudiniApi::GetStringFuncPtr
 FHoudiniApi::GetString = &FHoudiniApi::GetStringEmptyStub;
+
+FHoudiniApi::GetStringBatchFuncPtr
+FHoudiniApi::GetStringBatch = &FHoudiniApi::GetStringBatchEmptyStub;
+
+FHoudiniApi::GetStringBatchSizeFuncPtr
+FHoudiniApi::GetStringBatchSize = &FHoudiniApi::GetStringBatchSizeEmptyStub;
 
 FHoudiniApi::GetStringBufLengthFuncPtr
 FHoudiniApi::GetStringBufLength = &FHoudiniApi::GetStringBufLengthEmptyStub;
@@ -681,6 +690,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::CreateThriftNamedPipeSession = (CreateThriftNamedPipeSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateThriftNamedPipeSession"));
 	FHoudiniApi::CreateThriftSocketSession = (CreateThriftSocketSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateThriftSocketSession"));
 	FHoudiniApi::CreateWorkitem = (CreateWorkitemFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateWorkitem"));
+	FHoudiniApi::DeleteAttribute = (DeleteAttributeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DeleteAttribute"));
 	FHoudiniApi::DeleteNode = (DeleteNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DeleteNode"));
 	FHoudiniApi::DirtyPDGNode = (DirtyPDGNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DirtyPDGNode"));
 	FHoudiniApi::DisconnectNodeInput = (DisconnectNodeInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DisconnectNodeInput"));
@@ -773,6 +783,8 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetStatusString = (GetStatusStringFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStatusString"));
 	FHoudiniApi::GetStatusStringBufLength = (GetStatusStringBufLengthFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStatusStringBufLength"));
 	FHoudiniApi::GetString = (GetStringFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetString"));
+	FHoudiniApi::GetStringBatch = (GetStringBatchFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStringBatch"));
+	FHoudiniApi::GetStringBatchSize = (GetStringBatchSizeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStringBatchSize"));
 	FHoudiniApi::GetStringBufLength = (GetStringBufLengthFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStringBufLength"));
 	FHoudiniApi::GetSupportedImageFileFormatCount = (GetSupportedImageFileFormatCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetSupportedImageFileFormatCount"));
 	FHoudiniApi::GetSupportedImageFileFormats = (GetSupportedImageFileFormatsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetSupportedImageFileFormats"));
@@ -894,6 +906,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::CreateThriftNamedPipeSession = &FHoudiniApi::CreateThriftNamedPipeSessionEmptyStub;
 	FHoudiniApi::CreateThriftSocketSession = &FHoudiniApi::CreateThriftSocketSessionEmptyStub;
 	FHoudiniApi::CreateWorkitem = &FHoudiniApi::CreateWorkitemEmptyStub;
+	FHoudiniApi::DeleteAttribute = &FHoudiniApi::DeleteAttributeEmptyStub;
 	FHoudiniApi::DeleteNode = &FHoudiniApi::DeleteNodeEmptyStub;
 	FHoudiniApi::DirtyPDGNode = &FHoudiniApi::DirtyPDGNodeEmptyStub;
 	FHoudiniApi::DisconnectNodeInput = &FHoudiniApi::DisconnectNodeInputEmptyStub;
@@ -986,6 +999,8 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetStatusString = &FHoudiniApi::GetStatusStringEmptyStub;
 	FHoudiniApi::GetStatusStringBufLength = &FHoudiniApi::GetStatusStringBufLengthEmptyStub;
 	FHoudiniApi::GetString = &FHoudiniApi::GetStringEmptyStub;
+	FHoudiniApi::GetStringBatch = &FHoudiniApi::GetStringBatchEmptyStub;
+	FHoudiniApi::GetStringBatchSize = &FHoudiniApi::GetStringBatchSizeEmptyStub;
 	FHoudiniApi::GetStringBufLength = &FHoudiniApi::GetStringBufLengthEmptyStub;
 	FHoudiniApi::GetSupportedImageFileFormatCount = &FHoudiniApi::GetSupportedImageFileFormatCountEmptyStub;
 	FHoudiniApi::GetSupportedImageFileFormats = &FHoudiniApi::GetSupportedImageFileFormatsEmptyStub;
@@ -1268,6 +1283,13 @@ FHoudiniApi::CreateThriftSocketSessionEmptyStub(HAPI_Session * session, const ch
 
 HAPI_Result
 FHoudiniApi::CreateWorkitemEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id, const char * name, int index)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::DeleteAttributeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1918,6 +1940,20 @@ FHoudiniApi::GetStringEmptyStub(const HAPI_Session * session, HAPI_StringHandle 
 
 
 HAPI_Result
+FHoudiniApi::GetStringBatchEmptyStub(const HAPI_Session * session, char * char_array, int char_array_length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetStringBatchSizeEmptyStub(const HAPI_Session * session, const int * string_handle_array, int string_handle_count, int* string_buffer_size)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetStringBufLengthEmptyStub(const HAPI_Session * session, HAPI_StringHandle string_handle, int * buffer_length)
 {
 	return HAPI_RESULT_FAILURE;
@@ -2037,7 +2073,7 @@ FHoudiniApi::GetWorkitemResultInfoEmptyStub(const HAPI_Session * session, HAPI_N
 
 
 HAPI_Result
-FHoudiniApi::GetWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, char * data_array, int length)
+FHoudiniApi::GetWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, HAPI_StringHandle * data_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -2513,7 +2549,7 @@ FHoudiniApi::SetWorkitemIntDataEmptyStub(const HAPI_Session * session, HAPI_Node
 
 
 HAPI_Result
-FHoudiniApi::SetWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, const char * value)
+FHoudiniApi::SetWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, int data_index, const char * value)
 {
 	return HAPI_RESULT_FAILURE;
 }
