@@ -5620,6 +5620,13 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     }
                 }
 
+                // TODO: FIX THIS PROPERLY!!
+                // Ignore the found Static Mesh to force the creation of a new one
+                // UE4.20 seems to be ignoring the fact that the SM get updated, and only displays the original one
+                // This prevents meshes from updating after a cook, only updating them after a rebuild....
+                if ( !IsLOD || LodIndex <= 0 )
+                    FoundStaticMesh = nullptr;
+
                 // If the static mesh was not located, we need to create a new one.
                 bool bStaticMeshCreated = false;
                 UStaticMesh * StaticMesh = nullptr;
@@ -6542,6 +6549,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         TEXT( "- %s." ),
                         ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, SplitId, *( TextError.ToString() ) );
                 }
+
+                StaticMesh->GetOnMeshChanged().Broadcast();
 
                 // Do we need to add simple collisions ?
                 bool bSimpleCollisionAddedToAggregate = false;
