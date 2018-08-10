@@ -1,5 +1,5 @@
 /*
- * Copyright (c) <2017> Side Effects Software Inc. *
+ * Copyright (c) <2018> Side Effects Software Inc. *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -122,6 +122,7 @@ public:
 	typedef HAPI_Result (*GetObjectTransformFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeId relative_to_node_id, HAPI_RSTOrder rst_order, HAPI_Transform * transform);
 	typedef HAPI_Result (*GetParametersFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmInfo * parm_infos_array, int start, int length);
 	typedef HAPI_Result (*GetParmChoiceListsFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmChoiceInfo *parm_choices_array, int start, int length);
+	typedef HAPI_Result (*GetParmExpression FuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, HAPI_StringHandle * value);
 	typedef HAPI_Result (*GetParmFileFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, const char * destination_directory, const char * destination_file_name);
 	typedef HAPI_Result (*GetParmFloatValueFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, float * value);
 	typedef HAPI_Result (*GetParmFloatValuesFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, float * values_array, int start, int length);
@@ -170,15 +171,19 @@ public:
 	typedef HAPI_Result (*LoadGeoFromFileFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
 	typedef HAPI_Result (*LoadGeoFromMemoryFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, const char * buffer, int length);
 	typedef HAPI_Result (*LoadHIPFileFuncPtr)(const HAPI_Session * session, const char * file_name, HAPI_Bool cook_on_load);
+	typedef HAPI_Result (*ParmHasExpressionFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, HAPI_Bool * has_expression);
 	typedef HAPI_Result (*ParmHasTagFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, const char * tag_name, HAPI_Bool * has_tag);
 	typedef HAPI_Result (*PythonThreadInterpreterLockFuncPtr)(const HAPI_Session * session, HAPI_Bool locked);
 	typedef HAPI_Result (*QueryNodeInputFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_to_query, int input_index, HAPI_NodeId * connected_node_id);
 	typedef HAPI_Result (*RemoveMultiparmInstanceFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position);
+	typedef HAPI_Result (*RemoveParmExpressionFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int index);
 	typedef HAPI_Result (*RenameNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * new_name);
 	typedef HAPI_Result (*RenderCOPToImageFuncPtr)(const HAPI_Session * session, HAPI_NodeId cop_node_id);
 	typedef HAPI_Result (*RenderTextureToImageFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ParmId parm_id);
 	typedef HAPI_Result (*ResetSimulationFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id);
 	typedef HAPI_Result (*RevertGeoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id);
+	typedef HAPI_Result (*RevertParmToDefault FuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index);
+	typedef HAPI_Result (*RevertParmToDefaults FuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name);
 	typedef HAPI_Result (*SaveGeoToFileFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
 	typedef HAPI_Result (*SaveGeoToMemoryFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int length);
 	typedef HAPI_Result (*SaveHIPFileFuncPtr)(const HAPI_Session * session, const char * file_path, HAPI_Bool lock_nodes);
@@ -198,6 +203,7 @@ public:
 	typedef HAPI_Result (*SetHeightFieldDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const float * values_array, int start, int length);
 	typedef HAPI_Result (*SetImageInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, const HAPI_ImageInfo * image_info);
 	typedef HAPI_Result (*SetObjectTransformFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_TransformEuler * trans);
+	typedef HAPI_Result (*SetParmExpressionFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * value, HAPI_ParmId parm_id, int index);
 	typedef HAPI_Result (*SetParmFloatValueFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, float value);
 	typedef HAPI_Result (*SetParmFloatValuesFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const float * values_array, int start, int length);
 	typedef HAPI_Result (*SetParmIntValueFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, int value);
@@ -306,6 +312,7 @@ public:
 	static GetObjectTransformFuncPtr GetObjectTransform;
 	static GetParametersFuncPtr GetParameters;
 	static GetParmChoiceListsFuncPtr GetParmChoiceLists;
+	static GetParmExpression FuncPtr GetParmExpression ;
 	static GetParmFileFuncPtr GetParmFile;
 	static GetParmFloatValueFuncPtr GetParmFloatValue;
 	static GetParmFloatValuesFuncPtr GetParmFloatValues;
@@ -354,15 +361,19 @@ public:
 	static LoadGeoFromFileFuncPtr LoadGeoFromFile;
 	static LoadGeoFromMemoryFuncPtr LoadGeoFromMemory;
 	static LoadHIPFileFuncPtr LoadHIPFile;
+	static ParmHasExpressionFuncPtr ParmHasExpression;
 	static ParmHasTagFuncPtr ParmHasTag;
 	static PythonThreadInterpreterLockFuncPtr PythonThreadInterpreterLock;
 	static QueryNodeInputFuncPtr QueryNodeInput;
 	static RemoveMultiparmInstanceFuncPtr RemoveMultiparmInstance;
+	static RemoveParmExpressionFuncPtr RemoveParmExpression;
 	static RenameNodeFuncPtr RenameNode;
 	static RenderCOPToImageFuncPtr RenderCOPToImage;
 	static RenderTextureToImageFuncPtr RenderTextureToImage;
 	static ResetSimulationFuncPtr ResetSimulation;
 	static RevertGeoFuncPtr RevertGeo;
+	static RevertParmToDefault FuncPtr RevertParmToDefault ;
+	static RevertParmToDefaults FuncPtr RevertParmToDefaults ;
 	static SaveGeoToFileFuncPtr SaveGeoToFile;
 	static SaveGeoToMemoryFuncPtr SaveGeoToMemory;
 	static SaveHIPFileFuncPtr SaveHIPFile;
@@ -382,6 +393,7 @@ public:
 	static SetHeightFieldDataFuncPtr SetHeightFieldData;
 	static SetImageInfoFuncPtr SetImageInfo;
 	static SetObjectTransformFuncPtr SetObjectTransform;
+	static SetParmExpressionFuncPtr SetParmExpression;
 	static SetParmFloatValueFuncPtr SetParmFloatValue;
 	static SetParmFloatValuesFuncPtr SetParmFloatValues;
 	static SetParmIntValueFuncPtr SetParmIntValue;
@@ -490,6 +502,7 @@ public:
 	static HAPI_Result GetObjectTransformEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeId relative_to_node_id, HAPI_RSTOrder rst_order, HAPI_Transform * transform);
 	static HAPI_Result GetParametersEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmInfo * parm_infos_array, int start, int length);
 	static HAPI_Result GetParmChoiceListsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmChoiceInfo *parm_choices_array, int start, int length);
+	static HAPI_Result GetParmExpression EmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, HAPI_StringHandle * value);
 	static HAPI_Result GetParmFileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, const char * destination_directory, const char * destination_file_name);
 	static HAPI_Result GetParmFloatValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, float * value);
 	static HAPI_Result GetParmFloatValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, float * values_array, int start, int length);
@@ -538,15 +551,19 @@ public:
 	static HAPI_Result LoadGeoFromFileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
 	static HAPI_Result LoadGeoFromMemoryEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, const char * buffer, int length);
 	static HAPI_Result LoadHIPFileEmptyStub(const HAPI_Session * session, const char * file_name, HAPI_Bool cook_on_load);
+	static HAPI_Result ParmHasExpressionEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, HAPI_Bool * has_expression);
 	static HAPI_Result ParmHasTagEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, const char * tag_name, HAPI_Bool * has_tag);
 	static HAPI_Result PythonThreadInterpreterLockEmptyStub(const HAPI_Session * session, HAPI_Bool locked);
 	static HAPI_Result QueryNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_to_query, int input_index, HAPI_NodeId * connected_node_id);
 	static HAPI_Result RemoveMultiparmInstanceEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position);
+	static HAPI_Result RemoveParmExpressionEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int index);
 	static HAPI_Result RenameNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * new_name);
 	static HAPI_Result RenderCOPToImageEmptyStub(const HAPI_Session * session, HAPI_NodeId cop_node_id);
 	static HAPI_Result RenderTextureToImageEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ParmId parm_id);
 	static HAPI_Result ResetSimulationEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id);
 	static HAPI_Result RevertGeoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id);
+	static HAPI_Result RevertParmToDefault EmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index);
+	static HAPI_Result RevertParmToDefaults EmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name);
 	static HAPI_Result SaveGeoToFileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
 	static HAPI_Result SaveGeoToMemoryEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int length);
 	static HAPI_Result SaveHIPFileEmptyStub(const HAPI_Session * session, const char * file_path, HAPI_Bool lock_nodes);
@@ -566,6 +583,7 @@ public:
 	static HAPI_Result SetHeightFieldDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const float * values_array, int start, int length);
 	static HAPI_Result SetImageInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const HAPI_ImageInfo * image_info);
 	static HAPI_Result SetObjectTransformEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_TransformEuler * trans);
+	static HAPI_Result SetParmExpressionEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * value, HAPI_ParmId parm_id, int index);
 	static HAPI_Result SetParmFloatValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, float value);
 	static HAPI_Result SetParmFloatValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const float * values_array, int start, int length);
 	static HAPI_Result SetParmIntValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, int value);
