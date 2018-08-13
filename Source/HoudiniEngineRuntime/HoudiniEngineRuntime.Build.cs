@@ -204,7 +204,8 @@ public class HoudiniEngineRuntime : ModuleRules
 
         // Find HFS
         string HFSPath = GetHFSPath();
-        if( HFSPath != "" )
+        HFSPath = HFSPath.Replace("\\", "/");
+        if ( HFSPath != "" )
         {
             string Log = string.Format("Houdini Engine : Found Houdini in {0}", HFSPath );
             System.Console.WriteLine( Log ); 
