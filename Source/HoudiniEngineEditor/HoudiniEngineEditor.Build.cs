@@ -181,6 +181,7 @@ public class HoudiniEngineEditor : ModuleRules
 
         // Find HFS
         string HFSPath = GetHFSPath();
+        HFSPath = HFSPath.Replace("\\", "/");
         if( HFSPath != "" )
         {
             PlatformID buildPlatformId = Environment.OSVersion.Platform;
