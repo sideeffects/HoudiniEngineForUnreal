@@ -1785,9 +1785,6 @@ HAPI_DECL HAPI_RevertParmToDefault ( const HAPI_Session * session,
 /// @param[in]      parm_name
 ///                 The parm name.
 ///
-/// @param[in]      index
-///                 Index within the parameter's values tuple.
-///
 HAPI_DECL HAPI_RevertParmToDefaults ( const HAPI_Session * session,
                                 HAPI_NodeId node_id,
                                 const char * parm_name);
