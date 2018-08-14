@@ -2698,7 +2698,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
     int32 NumLODsToExport = DoExportLODs ? StaticMesh->GetNumLODs() : 1;
     for ( int32 LODIndex = 0; LODIndex < NumLODsToExport; LODIndex++ )
     {
-        // Grab base LOD level.
+        // Grab the LOD level.
         FStaticMeshSourceModel & SrcModel = StaticMesh->SourceModels[ LODIndex ];
 
         // If we're using a merge node, we need to create a new input null
@@ -3041,7 +3041,15 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
             TArray< UMaterialInterface * > MaterialInterfaces;
             MaterialInterfaces.SetNum(StaticMesh->StaticMaterials.Num());
             for( int32 MatIdx = 0; MatIdx < StaticMesh->StaticMaterials.Num(); MatIdx++ )
-                MaterialInterfaces[MatIdx] = StaticMesh->StaticMaterials[ MatIdx ].MaterialInterface;
+            {
+                // The actual material index needs to be read from the section info map, as it can sometimes be different
+                // Using MatIdx here could sometimes cause the materials to be incorrectly assigned on the faces.
+                int32 SectionMatIdx = StaticMesh->SectionInfoMap.Get( LODIndex, MatIdx ).MaterialIndex;
+                if ( !MaterialInterfaces.IsValidIndex(SectionMatIdx) )
+                    SectionMatIdx = MatIdx;
+
+                MaterialInterfaces[ SectionMatIdx ] = StaticMesh->StaticMaterials[ MatIdx ].MaterialInterface;
+            }
 
             // Create list of materials, one for each face.
             TArray< char * > StaticMeshFaceMaterials;
@@ -6657,7 +6665,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             UStaticMesh* StaticMesh = Iter.Value();
             if ( !StaticMesh )
                 continue;
-
 			if (UBodySetup * BodySetup = StaticMesh->BodySetup)
 			{
 				// Unreal caches the Navigation Collision and never updates it for StaticMeshes,
