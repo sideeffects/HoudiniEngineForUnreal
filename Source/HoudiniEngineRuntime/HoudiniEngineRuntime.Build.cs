@@ -32,7 +32,7 @@
 
 /*
 
-    Houdini Version: 16.5.561
+    Houdini Version: 16.5.564
     Houdini Engine Version: 3.1.14
     Unreal Version: 4.20.1
 
@@ -46,7 +46,7 @@ public class HoudiniEngineRuntime : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "16.5.561";
+        string HoudiniVersion = "16.5.564";
         bool bIsRelease = true;
         string HFSPath = "";
         string Log;
@@ -204,6 +204,8 @@ public class HoudiniEngineRuntime : ModuleRules
 
         // Find HFS
         string HFSPath = GetHFSPath();
+        HFSPath = HFSPath.Replace("\\", "/");
+
         if( HFSPath != "" )
         {
             string Log = string.Format("Houdini Engine : Found Houdini in {0}", HFSPath );
