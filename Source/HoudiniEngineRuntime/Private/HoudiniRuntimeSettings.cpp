@@ -33,7 +33,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 : Super( ObjectInitializer )
 {
     /** Session options. **/
-    SessionType = HRSST_NamedPipe;
+    SessionType = HRSST_Socket;
     ServerHost = HAPI_UNREAL_SESSION_SERVER_HOST;
     ServerPort = HAPI_UNREAL_SESSION_SERVER_PORT;
     ServerPipeName = HAPI_UNREAL_SESSION_SERVER_PIPENAME;
@@ -43,7 +43,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 #if PLATFORM_LINUX
     // Since 4.17, Linux has library conflict, so we need to create an out-of-process session by default
     // We default to a named pipe, but TCP Sockets should work fine too.
-    SessionType = HRSST_NamedPipe;
+    SessionType = HRSST_Socket;
     bStartAutomaticServer = true;
 #endif
 
