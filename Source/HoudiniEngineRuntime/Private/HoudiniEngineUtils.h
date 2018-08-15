@@ -608,7 +608,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Create helper array of material names, we use it for marshalling. **/
         static void CreateFaceMaterialArray(
-            const TArray< FStaticMaterial > & Materials,
+            const TArray< UMaterialInterface * >& Materials,
             const TArray< int32 > & FaceMaterialIndices,
             TArray< char * > & OutStaticMeshFaceMaterials );
 
