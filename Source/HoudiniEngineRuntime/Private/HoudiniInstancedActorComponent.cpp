@@ -176,14 +176,15 @@ void UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
 
             // Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances.
             // Happens in blueprint as well.
-            if( TransformScale3D.X < HAPI_UNREAL_SCALE_SMALL_VALUE )
-                TransformScale3D.X = HAPI_UNREAL_SCALE_SMALL_VALUE;
+            // We want to make sure the scale is not too small, but keep negative values! (Bug 90876)
+            if( FMath::Abs( TransformScale3D.X ) < HAPI_UNREAL_SCALE_SMALL_VALUE )
+                TransformScale3D.X = ( TransformScale3D.X > 0 ) ? HAPI_UNREAL_SCALE_SMALL_VALUE : -HAPI_UNREAL_SCALE_SMALL_VALUE;
 
-            if( TransformScale3D.Y < HAPI_UNREAL_SCALE_SMALL_VALUE )
-                TransformScale3D.Y = HAPI_UNREAL_SCALE_SMALL_VALUE;
+            if ( FMath::Abs( TransformScale3D.Y ) < HAPI_UNREAL_SCALE_SMALL_VALUE )
+                TransformScale3D.Y = ( TransformScale3D.Y > 0 ) ? HAPI_UNREAL_SCALE_SMALL_VALUE : -HAPI_UNREAL_SCALE_SMALL_VALUE;
 
-            if( TransformScale3D.Z < HAPI_UNREAL_SCALE_SMALL_VALUE )
-                TransformScale3D.Z = HAPI_UNREAL_SCALE_SMALL_VALUE;
+            if ( FMath::Abs( TransformScale3D.Z ) < HAPI_UNREAL_SCALE_SMALL_VALUE )
+                TransformScale3D.Z = ( TransformScale3D.Z > 0 ) ? HAPI_UNREAL_SCALE_SMALL_VALUE : -HAPI_UNREAL_SCALE_SMALL_VALUE;
 
             Transform.SetRotation( TransformRotation );
             Transform.SetScale3D( TransformScale3D );
