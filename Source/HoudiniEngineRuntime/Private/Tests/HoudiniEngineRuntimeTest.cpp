@@ -611,7 +611,7 @@ bool FHoudiniEngineRuntimeUploadStaticMeshTest::RunTest( const FString& Paramete
         int32 InputIndex = 0;
         HAPI_Result Result = FHoudiniApi::ConnectNodeInput(
             FHoudiniEngine::Get().GetSession(), AssetId, InputIndex,
-            ConnectedAssetId );
+            ConnectedAssetId, 0 );
 
         TestEqual( TEXT("ConnectNodeInput"), HAPI_RESULT_SUCCESS, Result );
 

@@ -659,7 +659,7 @@ UHoudiniAssetInput::ConnectInputNode()
         // Now we can connect input node to the asset node.
         HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
             FHoudiniEngine::Get().GetSession(), GetAssetId(), InputIndex,
-            ConnectedAssetId), false);
+            ConnectedAssetId, 0), false);
     }
     else
     {

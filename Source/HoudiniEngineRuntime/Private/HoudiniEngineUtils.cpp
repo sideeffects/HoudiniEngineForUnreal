@@ -3319,7 +3319,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
             // Now we can connect the LOD node to the input node.
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
                 FHoudiniEngine::Get().GetSession(), ConnectedAssetId, LODIndex,
-                CurrentLODNodeId ), false);
+                CurrentLODNodeId, 0), false);
         }
     }
 
@@ -3645,7 +3645,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
         // Now we can connect the socket node to the merge node's last input.
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
             FHoudiniEngine::Get().GetSession(), ConnectedAssetId, NumLODsToExport,
-            SocketsNodeId ), false );
+            SocketsNodeId, 0), false );
     }
 #endif
 
@@ -3719,7 +3719,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForWorldOutliner(
             // Now we can connect the input node to the merge node.
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
                 FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
-                OutlinerMesh.AssetId ), false );
+                OutlinerMesh.AssetId, 0), false );
         }
         else
         {
@@ -3792,7 +3792,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForObjects(
                 // Now we can connect the input node to the merge node.
                 HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
                     FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
-                    MeshAssetNodeId ), false );
+                    MeshAssetNodeId, 0), false );
             }
             else
             {
@@ -4416,16 +4416,16 @@ FHoudiniEngineUtils::HapiCreateSkeletonFromData(
     // We can now wire all those nodes together
     // Oject Merge > Capture > Capture Override > Capture Unpack > Capture Pack > Deform
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-        FHoudiniEngine::Get().GetSession(), CaptureNodeId, 0, ObjMergeNodeId), false);
+        FHoudiniEngine::Get().GetSession(), CaptureNodeId, 0, ObjMergeNodeId, 0), false);
 
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-        FHoudiniEngine::Get().GetSession(), CaptureAttrUnpackNodeId, 0, CaptureNodeId ), false);
+        FHoudiniEngine::Get().GetSession(), CaptureAttrUnpackNodeId, 0, CaptureNodeId, 0 ), false);
 
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-        FHoudiniEngine::Get().GetSession(), CaptureAttrPackNodeId, 0, CaptureAttrUnpackNodeId ), false);
+        FHoudiniEngine::Get().GetSession(), CaptureAttrPackNodeId, 0, CaptureAttrUnpackNodeId, 0 ), false);
 
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-        FHoudiniEngine::Get().GetSession(), DeformNodeId, 0, CaptureAttrPackNodeId ), false);
+        FHoudiniEngine::Get().GetSession(), DeformNodeId, 0, CaptureAttrPackNodeId, 0 ), false);
         
         */
 
@@ -4527,7 +4527,7 @@ FHoudiniEngineUtils::HapiCreateSkeletonFromData(
 
         // Connect the joints
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
-            FHoudiniEngine::Get().GetSession(), NullNodeId, 0, ParentNullNodeId ), false );
+            FHoudiniEngine::Get().GetSession(), NullNodeId, 0, ParentNullNodeId, 0 ), false );
 
         // Now we need to create the bone
         // It has to be named by our parents, and looking at the current null node
@@ -4559,12 +4559,12 @@ FHoudiniEngineUtils::HapiCreateSkeletonFromData(
 
         // Connect the bone to its parent
         HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-            FHoudiniEngine::Get().GetSession(), BoneNodeId, 0, ParentNullNodeId ), false);
+            FHoudiniEngine::Get().GetSession(), BoneNodeId, 0, ParentNullNodeId, 0 ), false);
     }
 
     // Now that the skeleton has been created, we can connect the Geometry node containing the geometry to the skeleton's root
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-        FHoudiniEngine::Get().GetSession(), GeoNodeId, 0, RootNullNodeId), false);
+        FHoudiniEngine::Get().GetSession(), GeoNodeId, 0, RootNullNodeId, 0), false);
 
     /*
     ///////// DPT: Deactivated skinning export for now
