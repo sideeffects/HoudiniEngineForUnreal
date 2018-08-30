@@ -102,6 +102,9 @@ FHoudiniApi::DeleteNode = &FHoudiniApi::DeleteNodeEmptyStub;
 FHoudiniApi::DisconnectNodeInputFuncPtr
 FHoudiniApi::DisconnectNodeInput = &FHoudiniApi::DisconnectNodeInputEmptyStub;
 
+FHoudiniApi::DisconnectNodeOutputsAtFuncPtr
+FHoudiniApi::DisconnectNodeOutputsAt = &FHoudiniApi::DisconnectNodeOutputsAtEmptyStub;
+
 FHoudiniApi::ExtractImageToFileFuncPtr
 FHoudiniApi::ExtractImageToFile = &FHoudiniApi::ExtractImageToFileEmptyStub;
 
@@ -263,6 +266,9 @@ FHoudiniApi::GetNodeInfo = &FHoudiniApi::GetNodeInfoEmptyStub;
 
 FHoudiniApi::GetNodeInputNameFuncPtr
 FHoudiniApi::GetNodeInputName = &FHoudiniApi::GetNodeInputNameEmptyStub;
+
+FHoudiniApi::GetNodeOutputNameFuncPtr
+FHoudiniApi::GetNodeOutputName = &FHoudiniApi::GetNodeOutputNameEmptyStub;
 
 FHoudiniApi::GetNodePathFuncPtr
 FHoudiniApi::GetNodePath = &FHoudiniApi::GetNodePathEmptyStub;
@@ -431,6 +437,12 @@ FHoudiniApi::PythonThreadInterpreterLock = &FHoudiniApi::PythonThreadInterpreter
 
 FHoudiniApi::QueryNodeInputFuncPtr
 FHoudiniApi::QueryNodeInput = &FHoudiniApi::QueryNodeInputEmptyStub;
+
+FHoudiniApi::QueryNodeOutputConnectedCountFuncPtr
+FHoudiniApi::QueryNodeOutputConnectedCount = &FHoudiniApi::QueryNodeOutputConnectedCountEmptyStub;
+
+FHoudiniApi::QueryNodeOutputConnectedNodesFuncPtr
+FHoudiniApi::QueryNodeOutputConnectedNodes = &FHoudiniApi::QueryNodeOutputConnectedNodesEmptyStub;
 
 FHoudiniApi::RemoveMultiparmInstanceFuncPtr
 FHoudiniApi::RemoveMultiparmInstance = &FHoudiniApi::RemoveMultiparmInstanceEmptyStub;
@@ -601,6 +613,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::CreateThriftSocketSession = (CreateThriftSocketSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateThriftSocketSession"));
 	FHoudiniApi::DeleteNode = (DeleteNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DeleteNode"));
 	FHoudiniApi::DisconnectNodeInput = (DisconnectNodeInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DisconnectNodeInput"));
+	FHoudiniApi::DisconnectNodeOutputsAt = (DisconnectNodeOutputsAtFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DisconnectNodeOutputsAt"));
 	FHoudiniApi::ExtractImageToFile = (ExtractImageToFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ExtractImageToFile"));
 	FHoudiniApi::ExtractImageToMemory = (ExtractImageToMemoryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ExtractImageToMemory"));
 	FHoudiniApi::GetActiveCacheCount = (GetActiveCacheCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetActiveCacheCount"));
@@ -655,6 +668,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetNextVolumeTile = (GetNextVolumeTileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNextVolumeTile"));
 	FHoudiniApi::GetNodeInfo = (GetNodeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeInfo"));
 	FHoudiniApi::GetNodeInputName = (GetNodeInputNameFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeInputName"));
+	FHoudiniApi::GetNodeOutputName = (GetNodeOutputNameFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeOutputName"));
 	FHoudiniApi::GetNodePath = (GetNodePathFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodePath"));
 	FHoudiniApi::GetObjectInfo = (GetObjectInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjectInfo"));
 	FHoudiniApi::GetObjectTransform = (GetObjectTransformFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjectTransform"));
@@ -711,6 +725,8 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::ParmHasTag = (ParmHasTagFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ParmHasTag"));
 	FHoudiniApi::PythonThreadInterpreterLock = (PythonThreadInterpreterLockFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_PythonThreadInterpreterLock"));
 	FHoudiniApi::QueryNodeInput = (QueryNodeInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_QueryNodeInput"));
+	FHoudiniApi::QueryNodeOutputConnectedCount = (QueryNodeOutputConnectedCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_QueryNodeOutputConnectedCount"));
+	FHoudiniApi::QueryNodeOutputConnectedNodes = (QueryNodeOutputConnectedNodesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_QueryNodeOutputConnectedNodes"));
 	FHoudiniApi::RemoveMultiparmInstance = (RemoveMultiparmInstanceFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RemoveMultiparmInstance"));
 	FHoudiniApi::RenameNode = (RenameNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenameNode"));
 	FHoudiniApi::RenderCOPToImage = (RenderCOPToImageFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenderCOPToImage"));
@@ -788,6 +804,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::CreateThriftSocketSession = &FHoudiniApi::CreateThriftSocketSessionEmptyStub;
 	FHoudiniApi::DeleteNode = &FHoudiniApi::DeleteNodeEmptyStub;
 	FHoudiniApi::DisconnectNodeInput = &FHoudiniApi::DisconnectNodeInputEmptyStub;
+	FHoudiniApi::DisconnectNodeOutputsAt = &FHoudiniApi::DisconnectNodeOutputsAtEmptyStub;
 	FHoudiniApi::ExtractImageToFile = &FHoudiniApi::ExtractImageToFileEmptyStub;
 	FHoudiniApi::ExtractImageToMemory = &FHoudiniApi::ExtractImageToMemoryEmptyStub;
 	FHoudiniApi::GetActiveCacheCount = &FHoudiniApi::GetActiveCacheCountEmptyStub;
@@ -842,6 +859,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetNextVolumeTile = &FHoudiniApi::GetNextVolumeTileEmptyStub;
 	FHoudiniApi::GetNodeInfo = &FHoudiniApi::GetNodeInfoEmptyStub;
 	FHoudiniApi::GetNodeInputName = &FHoudiniApi::GetNodeInputNameEmptyStub;
+	FHoudiniApi::GetNodeOutputName = &FHoudiniApi::GetNodeOutputNameEmptyStub;
 	FHoudiniApi::GetNodePath = &FHoudiniApi::GetNodePathEmptyStub;
 	FHoudiniApi::GetObjectInfo = &FHoudiniApi::GetObjectInfoEmptyStub;
 	FHoudiniApi::GetObjectTransform = &FHoudiniApi::GetObjectTransformEmptyStub;
@@ -898,6 +916,8 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::ParmHasTag = &FHoudiniApi::ParmHasTagEmptyStub;
 	FHoudiniApi::PythonThreadInterpreterLock = &FHoudiniApi::PythonThreadInterpreterLockEmptyStub;
 	FHoudiniApi::QueryNodeInput = &FHoudiniApi::QueryNodeInputEmptyStub;
+	FHoudiniApi::QueryNodeOutputConnectedCount = &FHoudiniApi::QueryNodeOutputConnectedCountEmptyStub;
+	FHoudiniApi::QueryNodeOutputConnectedNodes = &FHoudiniApi::QueryNodeOutputConnectedNodesEmptyStub;
 	FHoudiniApi::RemoveMultiparmInstance = &FHoudiniApi::RemoveMultiparmInstanceEmptyStub;
 	FHoudiniApi::RenameNode = &FHoudiniApi::RenameNodeEmptyStub;
 	FHoudiniApi::RenderCOPToImage = &FHoudiniApi::RenderCOPToImageEmptyStub;
@@ -1025,7 +1045,7 @@ FHoudiniApi::ComposeObjectListEmptyStub(const HAPI_Session * session, HAPI_NodeI
 
 
 HAPI_Result
-FHoudiniApi::ConnectNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_index, HAPI_NodeId node_id_to_connect)
+FHoudiniApi::ConnectNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_index, HAPI_NodeId node_id_to_connect, int output_index)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1124,6 +1144,13 @@ FHoudiniApi::DeleteNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_
 
 HAPI_Result
 FHoudiniApi::DisconnectNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_index)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::DisconnectNodeOutputsAtEmptyStub(const HAPI_Session *session, HAPI_NodeId node_id, int output_index)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1502,6 +1529,13 @@ FHoudiniApi::GetNodeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node
 
 HAPI_Result
 FHoudiniApi::GetNodeInputNameEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_idx, HAPI_StringHandle * name)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetNodeOutputNameEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int output_idx, HAPI_StringHandle * name)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1894,6 +1928,20 @@ FHoudiniApi::PythonThreadInterpreterLockEmptyStub(const HAPI_Session * session, 
 
 HAPI_Result
 FHoudiniApi::QueryNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_to_query, int input_index, HAPI_NodeId * connected_node_id)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::QueryNodeOutputConnectedCountEmptyStub(const HAPI_Session *session, HAPI_NodeId node_id, int output_idx, HAPI_Bool into_subnets, HAPI_Bool through_dots, int * connected_count)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::QueryNodeOutputConnectedNodesEmptyStub(const HAPI_Session *session, HAPI_NodeId node_id, int output_idx, HAPI_Bool into_subnets, HAPI_Bool through_dots, HAPI_NodeId * connected_node_ids, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
