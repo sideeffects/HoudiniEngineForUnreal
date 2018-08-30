@@ -3316,7 +3316,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
             // Now we can connect the LOD node to the input node.
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
                 FHoudiniEngine::Get().GetSession(), ConnectedAssetId, LODIndex,
-                CurrentLODNodeId ), false);
+                CurrentLODNodeId, 0 ), false);
         }
     }
 
@@ -3642,7 +3642,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
         // Now we can connect the socket node to the merge node's last input.
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
             FHoudiniEngine::Get().GetSession(), ConnectedAssetId, NumLODsToExport,
-            SocketsNodeId ), false );
+            SocketsNodeId, 0 ), false );
     }
 #endif
 
@@ -3716,7 +3716,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForWorldOutliner(
             // Now we can connect the input node to the merge node.
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
                 FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
-                OutlinerMesh.AssetId ), false );
+                OutlinerMesh.AssetId, 0 ), false );
         }
         else
         {
@@ -3781,7 +3781,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForObjects(
                 // Now we can connect the input node to the merge node.
                 HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
                     FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
-                    MeshAssetNodeId ), false );
+                    MeshAssetNodeId, 0 ), false );
             }
             else
             {
