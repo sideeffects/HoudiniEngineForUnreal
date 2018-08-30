@@ -50,7 +50,7 @@ public:
 	typedef HAPI_Result (*ComposeChildNodeListFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeTypeBits node_type_filter, HAPI_NodeFlagsBits node_flags_filter, HAPI_Bool recursive, int * count);
 	typedef HAPI_Result (*ComposeNodeCookResultFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_StatusVerbosity verbosity, int * buffer_length);
 	typedef HAPI_Result (*ComposeObjectListFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * categories, int * object_count);
-	typedef HAPI_Result (*ConnectNodeInputFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int input_index, HAPI_NodeId node_id_to_connect);
+	typedef HAPI_Result (*ConnectNodeInputFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int input_index, HAPI_NodeId node_id_to_connect, int output_index);
 	typedef HAPI_Result (*ConvertMatrixToEulerFuncPtr)(const HAPI_Session * session, const float * matrix, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform_out);
 	typedef HAPI_Result (*ConvertMatrixToQuatFuncPtr)(const HAPI_Session * session, const float * matrix, HAPI_RSTOrder rst_order, HAPI_Transform * transform_out);
 	typedef HAPI_Result (*ConvertTransformFuncPtr)(const HAPI_Session * session, const HAPI_TransformEuler * transform_in, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform_out);
@@ -69,6 +69,7 @@ public:
 	typedef HAPI_Result (*DeleteNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id);
 	typedef HAPI_Result (*DirtyPDGNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id);
 	typedef HAPI_Result (*DisconnectNodeInputFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int input_index);
+	typedef HAPI_Result (*DisconnectNodeOutputsAtFuncPtr)(const HAPI_Session *session, HAPI_NodeId node_id, int output_index);
 	typedef HAPI_Result (*ExtractImageToFileFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, int * destination_file_path);
 	typedef HAPI_Result (*ExtractImageToMemoryFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, int * buffer_size);
 	typedef HAPI_Result (*GetActiveCacheCountFuncPtr)(const HAPI_Session * session, int * active_cache_count);
@@ -123,6 +124,7 @@ public:
 	typedef HAPI_Result (*GetNextVolumeTileFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
 	typedef HAPI_Result (*GetNodeInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeInfo * node_info);
 	typedef HAPI_Result (*GetNodeInputNameFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int input_idx, HAPI_StringHandle * name);
+	typedef HAPI_Result (*GetNodeOutputNameFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int output_idx, HAPI_StringHandle * name);
 	typedef HAPI_Result (*GetNodePathFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeId relative_to_node_id, HAPI_StringHandle * path);
 	typedef HAPI_Result (*GetNumWorkitemsFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int * num);
 	typedef HAPI_Result (*GetObjectInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ObjectInfo * object_info);
@@ -195,6 +197,8 @@ public:
 	typedef HAPI_Result (*PausePDGCookFuncPtr)(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id);
 	typedef HAPI_Result (*PythonThreadInterpreterLockFuncPtr)(const HAPI_Session * session, HAPI_Bool locked);
 	typedef HAPI_Result (*QueryNodeInputFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_to_query, int input_index, HAPI_NodeId * connected_node_id);
+	typedef HAPI_Result (*QueryNodeOutputConnectedCountFuncPtr)(const HAPI_Session *session, HAPI_NodeId node_id, int output_idx, HAPI_Bool into_subnets, HAPI_Bool through_dots, int * connected_count);
+	typedef HAPI_Result (*QueryNodeOutputConnectedNodesFuncPtr)(const HAPI_Session *session, HAPI_NodeId node_id, int output_idx, HAPI_Bool into_subnets, HAPI_Bool through_dots, HAPI_NodeId * connected_node_ids, int start, int length);
 	typedef HAPI_Result (*RemoveMultiparmInstanceFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position);
 	typedef HAPI_Result (*RemoveParmExpressionFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int index);
 	typedef HAPI_Result (*RenameNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * new_name);
@@ -282,6 +286,7 @@ public:
 	static DeleteNodeFuncPtr DeleteNode;
 	static DirtyPDGNodeFuncPtr DirtyPDGNode;
 	static DisconnectNodeInputFuncPtr DisconnectNodeInput;
+	static DisconnectNodeOutputsAtFuncPtr DisconnectNodeOutputsAt;
 	static ExtractImageToFileFuncPtr ExtractImageToFile;
 	static ExtractImageToMemoryFuncPtr ExtractImageToMemory;
 	static GetActiveCacheCountFuncPtr GetActiveCacheCount;
@@ -336,6 +341,7 @@ public:
 	static GetNextVolumeTileFuncPtr GetNextVolumeTile;
 	static GetNodeInfoFuncPtr GetNodeInfo;
 	static GetNodeInputNameFuncPtr GetNodeInputName;
+	static GetNodeOutputNameFuncPtr GetNodeOutputName;
 	static GetNodePathFuncPtr GetNodePath;
 	static GetNumWorkitemsFuncPtr GetNumWorkitems;
 	static GetObjectInfoFuncPtr GetObjectInfo;
@@ -408,6 +414,8 @@ public:
 	static PausePDGCookFuncPtr PausePDGCook;
 	static PythonThreadInterpreterLockFuncPtr PythonThreadInterpreterLock;
 	static QueryNodeInputFuncPtr QueryNodeInput;
+	static QueryNodeOutputConnectedCountFuncPtr QueryNodeOutputConnectedCount;
+	static QueryNodeOutputConnectedNodesFuncPtr QueryNodeOutputConnectedNodes;
 	static RemoveMultiparmInstanceFuncPtr RemoveMultiparmInstance;
 	static RemoveParmExpressionFuncPtr RemoveParmExpression;
 	static RenameNodeFuncPtr RenameNode;
@@ -476,7 +484,7 @@ public:
 	static HAPI_Result ComposeChildNodeListEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeTypeBits node_type_filter, HAPI_NodeFlagsBits node_flags_filter, HAPI_Bool recursive, int * count);
 	static HAPI_Result ComposeNodeCookResultEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_StatusVerbosity verbosity, int * buffer_length);
 	static HAPI_Result ComposeObjectListEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * categories, int * object_count);
-	static HAPI_Result ConnectNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_index, HAPI_NodeId node_id_to_connect);
+	static HAPI_Result ConnectNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_index, HAPI_NodeId node_id_to_connect, int output_index);
 	static HAPI_Result ConvertMatrixToEulerEmptyStub(const HAPI_Session * session, const float * matrix, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform_out);
 	static HAPI_Result ConvertMatrixToQuatEmptyStub(const HAPI_Session * session, const float * matrix, HAPI_RSTOrder rst_order, HAPI_Transform * transform_out);
 	static HAPI_Result ConvertTransformEmptyStub(const HAPI_Session * session, const HAPI_TransformEuler * transform_in, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform_out);
@@ -495,6 +503,7 @@ public:
 	static HAPI_Result DeleteNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id);
 	static HAPI_Result DirtyPDGNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id);
 	static HAPI_Result DisconnectNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_index);
+	static HAPI_Result DisconnectNodeOutputsAtEmptyStub(const HAPI_Session *session, HAPI_NodeId node_id, int output_index);
 	static HAPI_Result ExtractImageToFileEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, int * destination_file_path);
 	static HAPI_Result ExtractImageToMemoryEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, int * buffer_size);
 	static HAPI_Result GetActiveCacheCountEmptyStub(const HAPI_Session * session, int * active_cache_count);
@@ -549,6 +558,7 @@ public:
 	static HAPI_Result GetNextVolumeTileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
 	static HAPI_Result GetNodeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeInfo * node_info);
 	static HAPI_Result GetNodeInputNameEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_idx, HAPI_StringHandle * name);
+	static HAPI_Result GetNodeOutputNameEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int output_idx, HAPI_StringHandle * name);
 	static HAPI_Result GetNodePathEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeId relative_to_node_id, HAPI_StringHandle * path);
 	static HAPI_Result GetNumWorkitemsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int * num);
 	static HAPI_Result GetObjectInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ObjectInfo * object_info);
@@ -621,6 +631,8 @@ public:
 	static HAPI_Result PausePDGCookEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id);
 	static HAPI_Result PythonThreadInterpreterLockEmptyStub(const HAPI_Session * session, HAPI_Bool locked);
 	static HAPI_Result QueryNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_to_query, int input_index, HAPI_NodeId * connected_node_id);
+	static HAPI_Result QueryNodeOutputConnectedCountEmptyStub(const HAPI_Session *session, HAPI_NodeId node_id, int output_idx, HAPI_Bool into_subnets, HAPI_Bool through_dots, int * connected_count);
+	static HAPI_Result QueryNodeOutputConnectedNodesEmptyStub(const HAPI_Session *session, HAPI_NodeId node_id, int output_idx, HAPI_Bool into_subnets, HAPI_Bool through_dots, HAPI_NodeId * connected_node_ids, int start, int length);
 	static HAPI_Result RemoveMultiparmInstanceEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position);
 	static HAPI_Result RemoveParmExpressionEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int index);
 	static HAPI_Result RenameNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * new_name);
