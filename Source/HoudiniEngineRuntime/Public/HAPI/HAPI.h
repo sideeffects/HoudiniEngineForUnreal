@@ -1428,10 +1428,15 @@ HAPI_DECL HAPI_RenameNode( const HAPI_Session * session,
 /// @param[in]      node_id_to_connect
 ///                 The node to connect to node_id's input.
 ///
+/// @param[in]	    output_index
+///                 The output index. Should be between 0 and the
+///                 to_node's ::HAPI_NodeInfo::outputCount.
+///
 HAPI_DECL HAPI_ConnectNodeInput( const HAPI_Session * session,
                                  HAPI_NodeId node_id,
                                  int input_index,
-                                 HAPI_NodeId node_id_to_connect );
+                                 HAPI_NodeId node_id_to_connect,
+                                 int output_index );
 
 /// @brief  Disconnect a node input.
 ///
@@ -1497,6 +1502,131 @@ HAPI_DECL HAPI_GetNodeInputName( const HAPI_Session * session,
                                  HAPI_NodeId node_id,
                                  int input_idx,
                                  HAPI_StringHandle * name );
+
+/// @brief  Disconnect all of the node's output connections at the output index.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node whom's outputs to disconnect.
+///
+/// @param[in]      output_index
+///                 The output index. Should be between 0 and the
+///                 to_node's ::HAPI_NodeInfo::outputCount.
+///
+HAPI_DECL HAPI_DisconnectNodeOutputsAt( const HAPI_Session *session,
+                                        HAPI_NodeId node_id,
+                                        int output_index );
+
+/// @brief  Get the number of nodes currently connected to the given node at 
+///	    the output index.
+///
+///         Use the @c count returned by this function to get the
+///         ::HAPI_NodeIds of connected nodes using
+///         ::HAPI_QueryNodeOutputConnectedNodes().
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      output_idx
+///                 The output index. Should be between 0 and the
+///                 to_node's ::HAPI_NodeInfo::outputCount.
+///
+/// @param[in]      into_subnets
+///                 Whether to search by diving into subnets.
+///
+/// @param[in]      through_dots
+///                 Whether to search through dots.
+///
+/// @param[out]     connected_count
+///                 The number of nodes currently connected to this node at 
+///                 given output index. Use this count with a call to
+///                 ::HAPI_QueryNodeOutputConnectedNodes() to get list of 
+///                 connected nodes.
+///
+HAPI_DECL HAPI_QueryNodeOutputConnectedCount( const HAPI_Session *session,
+                                              HAPI_NodeId node_id, 
+                                              int output_idx,
+                                              HAPI_Bool into_subnets, 
+                                              HAPI_Bool through_dots,
+                                              int * connected_count );
+
+/// @brief  Get the ids of nodes currently connected to the given node
+///	    at the output index.
+///
+///         Use the @c connected_count returned by 
+///	    ::HAPI_QueryNodeOutputConnectedCount().
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      output_idx
+///                 The output index. Should be between 0 and the
+///                 to_node's ::HAPI_NodeInfo::outputCount.
+///
+/// @param[in]      into_subnets
+///                 Whether to search by diving into subnets.
+///
+/// @param[in]      through_dots
+///                 Whether to search through dots.
+///
+/// @param[out]     connected_node_ids
+///		    Array of ::HAPI_NodeId at least the size of @c length.
+///
+/// @param[in]      start
+///                 At least @c 0 and at most @c connected_count returned by
+///                 ::HAPI_QueryNodeOutputConnectedCount().
+///
+/// @param[in]      length
+///                 Given @c connected_count returned by
+///                 ::HAPI_QueryNodeOutputConnectedCount(), @c length should 
+///                 be at least @c 0 and at most <tt>connected_count - start</tt>.
+///
+HAPI_DECL HAPI_QueryNodeOutputConnectedNodes( const HAPI_Session *session,
+                                             HAPI_NodeId node_id, 
+                                             int output_idx, 
+                                             HAPI_Bool into_subnets, 
+                                             HAPI_Bool through_dots,
+                                             HAPI_NodeId * connected_node_ids,
+                                             int start, int length );
+
+/// @brief  Get the name of an node's output. This function will return
+///         a string handle for the name which will be valid (persist)
+///         until the next call to this function.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      output_idx
+///                 The output index. Should be between 0 and the
+///                 to_node's ::HAPI_NodeInfo::outputCount.
+///
+/// @param[out]     name
+///                 Output name string handle return value - valid until
+///                 the next call to this function.
+///
+HAPI_DECL HAPI_GetNodeOutputName( const HAPI_Session * session,
+                                  HAPI_NodeId node_id,
+                                  int output_idx,
+                                  HAPI_StringHandle * name );
 
 // PARAMETERS ---------------------------------------------------------------
 
