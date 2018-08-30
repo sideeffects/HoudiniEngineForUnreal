@@ -794,6 +794,55 @@ HAPI_DECL HAPI_GetString( const HAPI_Session * session,
                           char * string_value,
                           int length );
 
+/// @brief  Gives back the length of the buffer needed to hold
+///         all the values null-separated for the given string 
+///         handles.  Used with HAPI_GetStringBatch.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      string_handle_array
+///                 Array of string handles to be read.
+///
+/// @param[in]      string_handle_count
+///                 Length of string_handle_array
+///
+/// @param[out]     string_buffer_size
+///                 Buffer length required for subsequent call to
+///                 HAPI_GetStringBatch to hold all the given 
+///                 string values null-terminated
+///
+HAPI_DECL HAPI_GetStringBatchSize(const HAPI_Session * session,
+                                  const int * string_handle_array,
+                                  int string_handle_count,
+                                  int* string_buffer_size);
+
+/// @brief  Gives back the values of the given string handles.
+///         The given char array is filled with null-separated 
+///         values, and the final value is null-terminated.
+///         Used with HAPI_GetStringBatchSize.  Using this function
+///         instead of repeated calls to HAPI_GetString can be more
+///         more efficient for a large number of strings.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[out]     char_array
+///                 Array of characters to hold string values.
+///
+/// @param[in]      char_array_length
+///                 Length of char_array.  Must be large enough to hold
+///                 all the string values including null separators.
+///
+HAPI_DECL HAPI_GetStringBatch(const HAPI_Session * session,
+                              char * char_array,
+                              int char_array_length);
+
+
 // TIME ---------------------------------------------------------------------
 
 /// @brief  Gets the global time of the scene. All API calls deal with
@@ -1875,7 +1924,7 @@ HAPI_DECL HAPI_GetParmWithTag( const HAPI_Session * session,
 /// @param[out]     value
 ///                 The returned string value.
 ///
-HAPI_DECL HAPI_GetParmExpression ( const HAPI_Session * session,
+HAPI_DECL HAPI_GetParmExpression( const HAPI_Session * session,
                                 HAPI_NodeId node_id,
                                 const char * parm_name,
                                 int index,
@@ -1897,7 +1946,7 @@ HAPI_DECL HAPI_GetParmExpression ( const HAPI_Session * session,
 /// @param[in]      index
 ///                 Index within the parameter's values tuple.
 ///
-HAPI_DECL HAPI_RevertParmToDefault ( const HAPI_Session * session,
+HAPI_DECL HAPI_RevertParmToDefault( const HAPI_Session * session,
                                 HAPI_NodeId node_id,
                                 const char * parm_name,
                                 int index);
@@ -1915,7 +1964,7 @@ HAPI_DECL HAPI_RevertParmToDefault ( const HAPI_Session * session,
 /// @param[in]      parm_name
 ///                 The parm name.
 ///
-HAPI_DECL HAPI_RevertParmToDefaults ( const HAPI_Session * session,
+HAPI_DECL HAPI_RevertParmToDefaults( const HAPI_Session * session,
                                 HAPI_NodeId node_id,
                                 const char * parm_name);
 
