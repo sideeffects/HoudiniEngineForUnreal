@@ -334,6 +334,60 @@ enum HAPI_ParmType
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_ParmType )
 
+
+enum HAPI_PrmScriptType
+{
+    HAPI_PRM_SCRIPT_TYPE_INT = 0,        // "int", "integer"
+    HAPI_PRM_SCRIPT_TYPE_FLOAT,
+    HAPI_PRM_SCRIPT_TYPE_ANGLE,
+    HAPI_PRM_SCRIPT_TYPE_STRING,
+    HAPI_PRM_SCRIPT_TYPE_FILE,
+    HAPI_PRM_SCRIPT_TYPE_DIRECTORY,
+    HAPI_PRM_SCRIPT_TYPE_IMAGE,
+    HAPI_PRM_SCRIPT_TYPE_GEOMETRY,
+    HAPI_PRM_SCRIPT_TYPE_TOGGLE,         // "toggle", "embed"
+    HAPI_PRM_SCRIPT_TYPE_BUTTON,
+    HAPI_PRM_SCRIPT_TYPE_VECTOR2,
+    HAPI_PRM_SCRIPT_TYPE_VECTOR3,        // "vector", "vector3"
+    HAPI_PRM_SCRIPT_TYPE_VECTOR4,
+    HAPI_PRM_SCRIPT_TYPE_INTVECTOR2,
+    HAPI_PRM_SCRIPT_TYPE_INTVECTOR3,     // "intvector", "intvector3"
+    HAPI_PRM_SCRIPT_TYPE_INTVECTOR4,
+    HAPI_PRM_SCRIPT_TYPE_UV,
+    HAPI_PRM_SCRIPT_TYPE_UVW,
+    HAPI_PRM_SCRIPT_TYPE_DIR,            // "dir", "direction"
+    HAPI_PRM_SCRIPT_TYPE_COLOR,          // "color", "rgb"
+    HAPI_PRM_SCRIPT_TYPE_COLOR4,         // "color4", "rgba"
+    HAPI_PRM_SCRIPT_TYPE_OPPATH,
+    HAPI_PRM_SCRIPT_TYPE_OPLIST,
+    HAPI_PRM_SCRIPT_TYPE_OBJECT,
+    HAPI_PRM_SCRIPT_TYPE_OBJECTLIST,
+    HAPI_PRM_SCRIPT_TYPE_RENDER,
+    HAPI_PRM_SCRIPT_TYPE_SEPARATOR,
+    HAPI_PRM_SCRIPT_TYPE_GEOMETRY_DATA,
+    HAPI_PRM_SCRIPT_TYPE_KEY_VALUE_DICT,
+    HAPI_PRM_SCRIPT_TYPE_LABEL,
+    HAPI_PRM_SCRIPT_TYPE_RGBAMASK,
+    HAPI_PRM_SCRIPT_TYPE_ORDINAL,
+    HAPI_PRM_SCRIPT_TYPE_RAMP_FLT,
+    HAPI_PRM_SCRIPT_TYPE_RAMP_RGB,
+    HAPI_PRM_SCRIPT_TYPE_FLOAT_LOG,
+    HAPI_PRM_SCRIPT_TYPE_INT_LOG,
+    HAPI_PRM_SCRIPT_TYPE_DATA,
+    HAPI_PRM_SCRIPT_TYPE_FLOAT_MINMAX,
+    HAPI_PRM_SCRIPT_TYPE_INT_MINMAX,
+    HAPI_PRM_SCRIPT_TYPE_INT_STARTEND,
+    HAPI_PRM_SCRIPT_TYPE_BUTTONSTRIP,
+    HAPI_PRM_SCRIPT_TYPE_ICONSTRIP,
+
+    // The following apply to HAPI_PARMTYPE_FOLDER parms
+    HAPI_PRM_SCRIPT_TYPE_GROUPRADIO = 1000,
+    HAPI_PRM_SCRIPT_TYPE_GROUPCOLLAPSIBLE,
+    HAPI_PRM_SCRIPT_TYPE_GROUPSIMPLE,
+    HAPI_PRM_SCRIPT_TYPE_GROUP
+};
+HAPI_C_ENUM_TYPEDEF( HAPI_PrmScriptType )
+
 enum HAPI_ChoiceListType
 {
     HAPI_CHOICELISTTYPE_NONE, ///< Parameter is not a menu.
@@ -792,6 +846,12 @@ struct HAPI_API HAPI_AssetInfo
     /// See @ref HAPI_AssetInputs.
     int geoInputCount;
 
+    /// Geometry outputs exposed by the asset. For SOP assets this is
+    /// the number of geometry outputs on the SOP node itself. OBJ assets
+    /// will always have zero geometry outputs.
+    /// See @ref HAPI_AssetInputs.
+    int geoOutputCount;
+
     /// For incremental updates. Indicates whether any of the assets's
     /// objects have changed. Refreshed only during an asset cook.
     HAPI_Bool haveObjectsChanged;
@@ -921,6 +981,9 @@ struct HAPI_API HAPI_NodeInfo
     /// The number of inputs this specific node has.
     int inputCount;
 
+    /// The number of outputs this specific node has.
+    int outputCount;
+
     /// Nodes created via scripts or via ::HAPI_CreateNode() will be have
     /// this set to true. Only such nodes can be deleted using
     /// ::HAPI_DeleteNode().
@@ -946,7 +1009,11 @@ struct HAPI_API HAPI_ParmInfo
     /// Child index within its immediate parent parameter.
     int childIndex;
 
+    /// The HAPI parm type
     HAPI_ParmType type;
+
+    /// The script-type
+    HAPI_PrmScriptType scriptType;
 
     /// Some parameter types require additional type information.
     ///     - File path parameters will indicate what file extensions they
