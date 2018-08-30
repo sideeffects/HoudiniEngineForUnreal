@@ -1795,7 +1795,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldInputNode( HAPI_NodeId& DisplayNodeId, 
     // ---------------------------------------------------------
     // Then connect the volvis to the xform node input
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-        FHoudiniEngine::Get().GetSession(), TransformId, 0, VolVisId), false);
+        FHoudiniEngine::Get().GetSession(), TransformId, 0, VolVisId, 0), false);
 
     // Cook it
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
@@ -1803,7 +1803,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldInputNode( HAPI_NodeId& DisplayNodeId, 
 
     // Then connect the merge to the volvis node input
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-        FHoudiniEngine::Get().GetSession(), VolVisId, 0, MergeId), false);
+        FHoudiniEngine::Get().GetSession(), VolVisId, 0, MergeId, 0), false);
 
     // Cook it
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
@@ -1861,7 +1861,7 @@ FHoudiniLandscapeUtils::CommitVolumeInputNode(
         // Now we can connect the input node to the asset node.
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
             FHoudiniEngine::Get().GetSession(), NodeToConnectTo, InputToConnect,
-            NodeToCommit ), false );
+            NodeToCommit, 0 ), false );
     }
 
     return true;
