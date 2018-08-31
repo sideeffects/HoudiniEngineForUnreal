@@ -599,8 +599,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
 #if PLATFORM_WINDOWS
         /** Attempt to locate libHAPI on Windows in the registry. Return handle if located and return location. **/
-        static void* LocateLibHAPIInRegistry(
-            const FString & HoudiniInstallationType, const FString & HoudiniVersionString, FString & StoredLibHAPILocation, const bool& LookIn32bitRegistry );
+		static void* LocateLibHAPIInRegistry(
+			const FString & HoudiniInstallationType, FString & StoredLibHAPILocation, bool LookIn32bitRegistry);
 #endif
     public:
 
@@ -646,7 +646,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const uint8 * MipBytes, FVector2D & UVCoord, int32 MipWidth, int32 MipHeight );
 
     protected:
-
+		static FString ComputeVersionString(bool ExtraDigit);
 #if WITH_EDITOR
 
         /** Reset streams used by the given RawMesh. **/
