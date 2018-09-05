@@ -7232,6 +7232,9 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
     FString HoudiniLocation = TEXT( HOUDINI_ENGINE_HFS_PATH );
     FString LibHAPIPath;
 
+	// Compute Houdini version string.
+	FString HoudiniVersionString = ComputeVersionString(false);
+
 #if PLATFORM_WINDOWS
 
     // On Windows, we have also hardcoded HFS path in plugin configuration file; attempt to load from it.
@@ -7278,9 +7281,6 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
         TEXT("Houdini"), StoredLibHAPILocation, true);
     if ( HAPILibraryHandle )
         return HAPILibraryHandle;
-
-    // Compute Houdini version string.
-    FString HoudiniVersionString = ComputeVersionString(false);
 
     // Finally, try to load from a hardcoded program files path.
     HoudiniLocation = FString::Printf(
