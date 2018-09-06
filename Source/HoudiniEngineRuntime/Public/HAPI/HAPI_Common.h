@@ -925,6 +925,12 @@ struct HAPI_API HAPI_CookOptions
     HAPI_Bool handleBoxPartTypes;
     HAPI_Bool handleSpherePartTypes;
 
+    /// If enabled, sets the ::HAPI_PartInfo::hasChanged member during the
+    /// cook.  If disabled, the member will always be true.  Checking for
+    /// part changes can be expensive, so there is a potential performance
+    /// gain when disabled.
+    HAPI_Bool checkPartChanges;
+
     /// For internal use only. :)
     int extraFlags;
 };
@@ -1316,6 +1322,11 @@ struct HAPI_API HAPI_PartInfo
     /// Call ::HAPI_GetInstancerPartTransforms() to get the transform of
     /// each instance.
     int instanceCount;
+
+    /// If this is false, the underlying attribute data appear to match that of
+    /// the previous cook.  In this case you may be able to re-used marshaled 
+    /// data from the previous cook.
+    HAPI_Bool hasChanged;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PartInfo )
 
