@@ -5698,14 +5698,14 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 bool SocketsAdded = false;
                 for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshesOut ); Iter; ++Iter )
                 {
-                    FHoudiniGeoPartObject * HoudiniGeoPartObject = &(Iter.Key());
-                    if ( ( HoudiniGeoPartObject->ObjectId != ObjectInfo.nodeId )
-                        || ( HoudiniGeoPartObject->GeoId != GeoInfo.nodeId )
-                        || ( HoudiniGeoPartObject->PartId != PartIdx  ) )
+                    FHoudiniGeoPartObject * SMOutGeoPartObject = &(Iter.Key());
+                    if ( ( SMOutGeoPartObject->ObjectId != ObjectInfo.nodeId )
+                        || ( SMOutGeoPartObject->GeoId != GeoInfo.nodeId )
+                        || ( SMOutGeoPartObject->PartId != PartIdx  ) )
                         continue;
 
                     // This GeoPartObject is from the same object/geo, so we can add the sockets to it
-                    if ( AddMeshSocketsToStaticMesh( Iter.Value(), *HoudiniGeoPartObject, AllSockets, AllSocketsNames, AllSocketsActors, AllSocketsTags ) )
+                    if ( AddMeshSocketsToStaticMesh( Iter.Value(), *SMOutGeoPartObject, AllSockets, AllSocketsNames, AllSocketsActors, AllSocketsTags ) )
                         SocketsAdded = true;
                 }
 
