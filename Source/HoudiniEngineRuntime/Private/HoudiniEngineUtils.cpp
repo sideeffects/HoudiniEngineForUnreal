@@ -3048,7 +3048,17 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                 if ( !MaterialInterfaces.IsValidIndex(SectionMatIdx) )
                     SectionMatIdx = MatIdx;
 
-                MaterialInterfaces[ SectionMatIdx ] = StaticMesh->StaticMaterials[ MatIdx ].MaterialInterface;
+                if ( StaticMeshComponent != nullptr )
+                {
+                    // Get the assigned material from the component instead of the Static Mesh
+                    // As it could have been overriden
+                    MaterialInterfaces[ SectionMatIdx ] = StaticMeshComponent->GetMaterial(MatIdx);
+                }
+                else
+                {
+                    // Get the material assigned to the SM
+                    MaterialInterfaces[ SectionMatIdx ] = StaticMesh->StaticMaterials[ MatIdx ].MaterialInterface;
+                }
             }
 
             // Create list of materials, one for each face.
