@@ -62,7 +62,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
 
     /** return true if the attached component's transform has been modified **/
     bool HasComponentTransformChanged() const;
-    
+
+    /** return true if the attached component's materials have been modified **/
+    bool HasComponentMaterialsChanged() const;
+
     /** rebuilds the SplineTransform array after reloading the asset **/
     void RebuildSplineTransformsArrayIfNeeded();
 
@@ -106,6 +109,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
 
     /** Temporary variable holding serialization version. **/
     uint32 HoudiniAssetParameterVersion;
+
+    /** Path Materials assigned on the SMC **/
+    TArray<FString> MeshComponentsMaterials;
 };
 
 
@@ -297,6 +303,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Update WorldOutliners Transform after they changed **/
         void UpdateWorldOutlinerTransforms(FHoudiniAssetInputOutlinerMesh& OutlinerMesh);
+
+        /** Update WorldOutliners Materials after they changed **/
+        void UpdateWorldOutlinerMaterials(FHoudiniAssetInputOutlinerMesh& OutlinerMesh);
 
         /** Removes invalid inputs or updates inputs with invalid components in InputOutlinerArray. **/
         /** Returns true when a change was made **/

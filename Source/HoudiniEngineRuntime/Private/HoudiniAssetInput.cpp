@@ -85,6 +85,9 @@ FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
 
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_KEEP_TRANSFORM )
         Ar << KeepWorldTransform;
+
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_OUTLINER_INPUT_SAVE_MAT )
+        Ar << MeshComponentsMaterials;
 }
 
 void 
@@ -184,6 +187,23 @@ FHoudiniAssetInputOutlinerMesh::HasComponentTransformChanged() const
 
     return false;
 
+}
+
+bool
+FHoudiniAssetInputOutlinerMesh::HasComponentMaterialsChanged() const
+{
+    if ( !StaticMeshComponent )
+        return false;
+
+    for ( int32 n= 0; n < StaticMeshComponent->GetNumMaterials(); n++ )
+    {
+        UMaterialInterface* MI = StaticMeshComponent->GetMaterial(n);
+        FString mat_interface_path = MI ? MI->GetPathName() : FString();
+        if (mat_interface_path != MeshComponentsMaterials[ n ])
+            return true;
+    }
+
+    return false;
 }
 
 bool
@@ -522,6 +542,7 @@ UHoudiniAssetInput::ForceSetInputObject(UObject * InObject, int32 AtIndex, bool 
             OutlinerMesh.AssetId = -1;
 
             UpdateWorldOutlinerTransforms( OutlinerMesh );
+            UpdateWorldOutlinerMaterials( OutlinerMesh );
 
             InputOutlinerMeshArray.Add( OutlinerMesh );
 
@@ -545,6 +566,7 @@ UHoudiniAssetInput::ForceSetInputObject(UObject * InObject, int32 AtIndex, bool 
             OutlinerMesh.AssetId = -1;
 
             UpdateWorldOutlinerTransforms( OutlinerMesh );
+            UpdateWorldOutlinerMaterials( OutlinerMesh );
 
             InputOutlinerMeshArray.Add( OutlinerMesh );
 
@@ -1817,6 +1839,17 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
             // has changed in order to rebuild the asset properly in UploadParameterValue()
             bStaticMeshChanged = true;
         }
+        else if ( OutlinerInput.HasComponentMaterialsChanged() )
+        {
+            MarkLocalChanged();
+
+            // Update the materials
+            UpdateWorldOutlinerMaterials( OutlinerInput );
+
+            // The materials have been changed so so we need to indicate that the "static mesh" 
+            // has changed in order to rebuild the asset properly in UploadParameterValue()
+            bStaticMeshChanged = true;
+        }
     }
 
     if ( bLocalChanged )
@@ -2850,6 +2883,24 @@ UHoudiniAssetInput::UpdateWorldOutlinerTransforms( FHoudiniAssetInputOutlinerMes
     OutlinerMesh.KeepWorldTransform = bKeepWorldTransform;
 }
 
+void
+UHoudiniAssetInput::UpdateWorldOutlinerMaterials(FHoudiniAssetInputOutlinerMesh& OutlinerMesh)
+{
+    OutlinerMesh.MeshComponentsMaterials.Empty();
+    if ( OutlinerMesh.StaticMeshComponent == nullptr )
+        return;
+
+    // Keep track of the materials used by the SMC
+    for ( int32 n = 0; n < OutlinerMesh.StaticMeshComponent->GetNumMaterials(); n++ )
+    {
+        UMaterialInterface* mi = OutlinerMesh.StaticMeshComponent->GetMaterial( n );
+        if ( !mi )
+            OutlinerMesh.MeshComponentsMaterials.Add( FString() );
+        else
+            OutlinerMesh.MeshComponentsMaterials.Add( mi->GetPathName() );
+    }
+}
+
 void UHoudiniAssetInput::OnAddToInputObjects()
 {
     FScopedTransaction Transaction(
@@ -3170,6 +3221,7 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
         OutlinerMesh.AssetId = -1;
 
         UpdateWorldOutlinerTransforms( OutlinerMesh );
+        UpdateWorldOutlinerMaterials( OutlinerMesh );
 
         InputOutlinerMeshArray.Add( OutlinerMesh );
     }
