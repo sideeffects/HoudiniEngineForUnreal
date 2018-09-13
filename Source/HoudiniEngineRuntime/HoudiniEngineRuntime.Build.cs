@@ -32,9 +32,9 @@
 
 /*
 
-    Houdini Version: 16.5.580
-    Houdini Engine Version: 3.1.18
-    Unreal Version: 4.20.1
+    Houdini Version: 16.5.594
+    Houdini Engine Version: 3.1.19
+    Unreal Version: 4.20.2
 
 */
 
@@ -46,7 +46,7 @@ public class HoudiniEngineRuntime : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "16.5.580";
+        string HoudiniVersion = "16.5.594";
         bool bIsRelease = true;
         string HFSPath = "";
         string Log;
