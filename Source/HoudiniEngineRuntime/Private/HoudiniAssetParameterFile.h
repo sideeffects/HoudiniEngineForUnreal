@@ -93,4 +93,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterFile : public UHoudiniAsset
 
         /** Filters of this property. **/
         FString Filters;
+
+        /** Is the file parameter read-only? **/
+        bool IsReadOnly;
 };
