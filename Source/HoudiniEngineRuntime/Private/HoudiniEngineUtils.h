@@ -473,6 +473,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** HAPI: Get a parameter's unit. **/
         static bool HapiGetParameterUnit( const HAPI_NodeId& NodeId, const HAPI_ParmId& ParmId, FString& OutUnitString );
 
+        /** HAPI: Get a parameter's tag, return false if the tag doesnt exist**/
+        static bool HapiGetParameterTag(const HAPI_NodeId& NodeId, const HAPI_ParmId& ParmId, const FString& Tag, FString& TagValue);
+
         /** HAPI: Get a parameter's noswap tag value. **/
         static bool HapiGetParameterNoSwapTag( const HAPI_NodeId& NodeId, const HAPI_ParmId& ParmId, bool& NoSwapValue );
 
