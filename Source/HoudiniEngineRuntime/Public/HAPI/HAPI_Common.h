@@ -994,6 +994,9 @@ struct HAPI_API HAPI_NodeInfo
     /// this set to true. Only such nodes can be deleted using
     /// ::HAPI_DeleteNode().
     HAPI_Bool createdPostAssetLoad;
+
+    /// Indicates if this node will change over time
+    HAPI_Bool isTimeDependent;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_NodeInfo )
 
