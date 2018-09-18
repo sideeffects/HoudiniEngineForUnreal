@@ -38,6 +38,7 @@
 UHoudiniAssetParameterFile::UHoudiniAssetParameterFile( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
     , Filters( TEXT( "" ) )
+    , IsReadOnly( false)
 {
     Values.Add( TEXT( "" ) );
 }
@@ -76,6 +77,15 @@ UHoudiniAssetParameterFile::CreateParameter(
 {
     if ( !Super::CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo ) )
         return false;
+
+    // Look at the filechooser_mode tag to decide if the file param is read only
+    IsReadOnly = false;
+    FString FileChooserTag;
+    if (FHoudiniEngineUtils::HapiGetParameterTag(InNodeId, ParmId, TEXT("filechooser_mode"), FileChooserTag))
+    {
+        if (FileChooserTag.Equals(TEXT("read"), ESearchCase::IgnoreCase))
+            IsReadOnly = true;
+    }
 
     // We can only handle file types.
     switch ( ParmInfo.type )
@@ -152,6 +162,9 @@ UHoudiniAssetParameterFile::Serialize( FArchive & Ar )
 
     Ar << Values;
     Ar << Filters;
+
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_FILE_PARAM_READ_ONLY )
+        Ar << IsReadOnly;
 }
 
 bool

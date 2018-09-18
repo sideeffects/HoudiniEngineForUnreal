@@ -320,7 +320,7 @@ FHoudiniParameterDetails::CreateWidgetFile( IDetailCategoryBuilder & LocalDetail
             .FileTypeFilter( FileTypeWidgetFilter )
             .OnPathPicked( FOnPathPicked::CreateUObject(
             &InParam, &UHoudiniAssetParameterFile::HandleFilePathPickerPathPicked, Idx ) )
-            .IsNewFile(true)
+            .IsNewFile( !InParam.IsReadOnly )
         ];
 
     }
