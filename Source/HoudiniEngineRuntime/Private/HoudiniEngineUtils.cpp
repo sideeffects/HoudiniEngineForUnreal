@@ -1300,6 +1300,39 @@ FHoudiniEngineUtils::HapiGetParameterNoSwapTag( const HAPI_NodeId& NodeId, const
 }
 
 bool
+FHoudiniEngineUtils::HapiGetParameterTag( const HAPI_NodeId& NodeId, const HAPI_ParmId& ParmId, const FString& Tag, FString& TagValue )
+{
+    // Default
+    TagValue = FString();
+
+    // Does the parameter has the tag?
+    bool HasTag = false;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ParmHasTag(
+        FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
+        TCHAR_TO_ANSI(*Tag), &HasTag ), false );
+
+    HAPI_ParmId FoundId = -1;
+    if (!HasTag)
+    {
+        FoundId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag(NodeId, TCHAR_TO_ANSI(*Tag));
+    }
+
+    // Get the tag string value
+    HAPI_StringHandle StringHandle;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParmTagValue(
+        FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
+        TCHAR_TO_ANSI( *Tag ), &StringHandle ), false );
+
+    FHoudiniEngineString HoudiniEngineString( StringHandle );
+    if ( HoudiniEngineString.ToFString( TagValue ) )
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool
 FHoudiniEngineUtils::IsValidAssetId( HAPI_NodeId AssetId )
 {
     return AssetId != -1;
