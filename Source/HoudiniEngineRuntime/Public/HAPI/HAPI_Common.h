@@ -1229,6 +1229,14 @@ struct HAPI_API HAPI_ParmInfo
 
     HAPI_RampType rampType;
     /// @}
+    
+    /// Provides the raw condition string which is used to evaluate the
+    /// the visibility of a parm
+    HAPI_StringHandle visibilityConditionSH;
+
+    /// Provides the raw condition string which is used to evalute whether
+    /// a parm is enabled or disabled
+    HAPI_StringHandle disabledConditionSH;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_ParmInfo )
 

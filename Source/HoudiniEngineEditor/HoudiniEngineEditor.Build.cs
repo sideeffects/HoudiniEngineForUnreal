@@ -32,8 +32,8 @@
 
 /*
 
-    Houdini Version: 17.4.19
-    Houdini Engine Version: 3.2.26
+    Houdini Version: 17.4.21
+    Houdini Engine Version: 3.2.27
     Unreal Version: 4.20.2
 
 */
@@ -46,7 +46,7 @@ public class HoudiniEngineEditor : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "17.4.19";
+        string HoudiniVersion = "17.4.21";
         bool bIsRelease = true;
         string HFSPath = "";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Side Effects Software";
@@ -213,9 +213,7 @@ public class HoudiniEngineEditor : ModuleRules
 
         PublicIncludePaths.AddRange(
             new string[] {
-                Path.Combine(PluginPath, "Source/HoudiniEngineRuntime/Public/HAPI"),
-                Path.Combine(PluginPath, "Source/HoudiniEngineRuntime/Public"),
-                Path.Combine(PluginPath, "Source/HoudiniEngineEditor/Public")
+                Path.Combine(ModuleDirectory, "Public")
             }
         );
 
@@ -268,6 +266,7 @@ public class HoudiniEngineEditor : ModuleRules
                 "UnrealEd",
                 "ApplicationCore",
                 "CurveEditor",
+                "Json"
             }
         );
 

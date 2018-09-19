@@ -32,8 +32,8 @@
 
 /*
 
-    Houdini Version: 17.4.19
-    Houdini Engine Version: 3.2.26
+    Houdini Version: 17.4.21
+    Houdini Engine Version: 3.2.27
     Unreal Version: 4.20.2
 
 */
@@ -46,7 +46,7 @@ public class HoudiniEngineRuntime : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "17.4.19";
+        string HoudiniVersion = "17.4.21";
         bool bIsRelease = true;
         string HFSPath = "";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Side Effects Software";
@@ -121,6 +121,9 @@ public class HoudiniEngineRuntime : ModuleRules
                 {
                     Log = string.Format("Houdini Engine : Found Active Houdini Engine version: {0}", ActiveHEngine );
                     System.Console.WriteLine( Log );
+                    
+                    // Active version contain the patch version that we need to strip off
+                    //string[] ActiveVersion = ActiveHEngine.Split(".");
 
                     HEngineRegistry = RegistryPath + string.Format(@"\Houdini Engine {0}", ActiveHEngine);
                     HPath = Microsoft.Win32.Registry.GetValue(HEngineRegistry, "InstallPath", null) as string;
@@ -234,14 +237,10 @@ public class HoudiniEngineRuntime : ModuleRules
         if (HAPIIncludePath != "")
             PublicIncludePaths.Add(HAPIIncludePath);
 
-        // Get the plugin path
-        string PluginPath = Path.Combine( ModuleDirectory, "../../" );
-        PluginPath = Utils.MakePathRelativeTo(PluginPath, Target.RelativeEnginePath);
-
         PublicIncludePaths.AddRange(
             new string[] {
-                Path.Combine(PluginPath, "Source/HoudiniEngineRuntime/Public/HAPI"),
-                Path.Combine(PluginPath, "Source/HoudiniEngineRuntime/Public")
+                Path.Combine(ModuleDirectory, "Public/HAPI"),
+                Path.Combine(ModuleDirectory, "Public")
             }
         );
 
