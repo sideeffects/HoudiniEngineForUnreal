@@ -32,8 +32,8 @@
 
 /*
 
-    Houdini Version: 16.5.598
-    Houdini Engine Version: 3.1.20
+    Houdini Version: 16.5.600
+    Houdini Engine Version: 3.1.21
     Unreal Version: 4.20.2
 
 */
@@ -46,7 +46,7 @@ public class HoudiniEngineRuntime : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "16.5.598";
+        string HoudiniVersion = "16.5.600";
         bool bIsRelease = true;
         string HFSPath = "";
         string Log;
@@ -235,14 +235,10 @@ public class HoudiniEngineRuntime : ModuleRules
         if (HAPIIncludePath != "")
             PublicIncludePaths.Add(HAPIIncludePath);
 
-        // Get the plugin path
-        string PluginPath = Path.Combine( ModuleDirectory, "../../" );
-        PluginPath = Utils.MakePathRelativeTo(PluginPath, Target.RelativeEnginePath);
-
         PublicIncludePaths.AddRange(
             new string[] {
-                Path.Combine(PluginPath, "Source/HoudiniEngineRuntime/Public/HAPI"),
-                Path.Combine(PluginPath, "Source/HoudiniEngineRuntime/Public")
+                Path.Combine(ModuleDirectory, "Public/HAPI"),
+                Path.Combine(ModuleDirectory, "Public")
             }
         );
 

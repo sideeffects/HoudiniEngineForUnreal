@@ -32,8 +32,8 @@
 
 /*
 
-    Houdini Version: 16.5.598
-    Houdini Engine Version: 3.1.20
+    Houdini Version: 16.5.600
+    Houdini Engine Version: 3.1.21
     Unreal Version: 4.20.2
 
 */
@@ -46,7 +46,7 @@ public class HoudiniEngineEditor : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "16.5.598";
+        string HoudiniVersion = "16.5.600";
         bool bIsRelease = true;
         string HFSPath = "";
 
@@ -214,9 +214,7 @@ public class HoudiniEngineEditor : ModuleRules
 
         PublicIncludePaths.AddRange(
             new string[] {
-                Path.Combine(PluginPath, "Source/HoudiniEngineRuntime/Public/HAPI"),
-                Path.Combine(PluginPath, "Source/HoudiniEngineRuntime/Public"),
-                Path.Combine(PluginPath, "Source/HoudiniEngineEditor/Public")
+                Path.Combine(ModuleDirectory, "Public")
             }
         );
 
@@ -269,6 +267,7 @@ public class HoudiniEngineEditor : ModuleRules
                 "UnrealEd",
                 "ApplicationCore",
                 "CurveEditor",
+                "Json"
             }
         );
 
