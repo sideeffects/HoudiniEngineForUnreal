@@ -32,7 +32,7 @@
 
 /*
 
-    Houdini Version: 17.4.21
+    Houdini Version: 17.4.23
     Houdini Engine Version: 3.2.27
     Unreal Version: 4.20.2
 
@@ -46,7 +46,7 @@ public class HoudiniEngineRuntime : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "17.4.21";
+        string HoudiniVersion = "17.4.23";
         bool bIsRelease = true;
         string HFSPath = "";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Side Effects Software";
@@ -55,7 +55,7 @@ public class HoudiniEngineRuntime : ModuleRules
         if ( !bIsRelease )
         {
             // Only use the preset build folder
-            System.Console.WriteLine("Using HFS:" + HFSPath);
+            System.Console.WriteLine("Using stamped HFSPath:" + HFSPath);
             return HFSPath;
         }
 
@@ -160,7 +160,8 @@ public class HoudiniEngineRuntime : ModuleRules
                 }
             }
         }
-        else if ( buildPlatformId == PlatformID.MacOSX )
+        else if (buildPlatformId == PlatformID.MacOSX ||
+            (buildPlatformId == PlatformID.Unix && File.Exists("/System/Library/CoreServices/SystemVersion.plist")))
         {
             // Check for Houdini installation.
             string HPath = "/Applications/Houdini/Houdini" + HoudiniVersion + "/Frameworks/Houdini.framework/Versions/Current/Resources";
@@ -175,7 +176,7 @@ public class HoudiniEngineRuntime : ModuleRules
             HFSPath = System.Environment.GetEnvironmentVariable("HFS");
             if ( Directory.Exists( HFSPath ) )
             {
-                System.Console.WriteLine("Linux - found HFS:" + HFSPath);
+                System.Console.WriteLine("Unix using $HFS: " + HFSPath);
                 return HFSPath;
             }
         }
@@ -195,13 +196,13 @@ public class HoudiniEngineRuntime : ModuleRules
         bPrecompile = true;
         PCHUsage = PCHUsageMode.UseSharedPCHs;
 
-        // Check if we are compiling on unsupported platforms.
+        // Check if we are compiling for unsupported platforms.
         if( Target.Platform != UnrealTargetPlatform.Win64 &&
             Target.Platform != UnrealTargetPlatform.Mac &&
             Target.Platform != UnrealTargetPlatform.Linux &&
             Target.Platform != UnrealTargetPlatform.Switch )
         {
-            System.Console.WriteLine( string.Format( "Houdini Engine : Compiling on untested platform.  Please let us know how it goes!" ) );
+            System.Console.WriteLine( string.Format( "Houdini Engine: Compiling for untested target platform.  Please let us know how it goes!" ) );
         }
 
         // Find HFS
@@ -210,7 +211,7 @@ public class HoudiniEngineRuntime : ModuleRules
 
         if( HFSPath != "" )
         {
-            string Log = string.Format("Houdini Engine : Found Houdini in {0}", HFSPath );
+            string Log = string.Format("Houdini Engine: Found Houdini in {0}", HFSPath );
             System.Console.WriteLine( Log ); 
 
             PlatformID buildPlatformId = Environment.OSVersion.Platform;
