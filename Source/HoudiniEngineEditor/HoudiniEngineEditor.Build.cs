@@ -32,8 +32,8 @@
 
 /*
 
-    Houdini Version: 16.5.599
-    Houdini Engine Version: 3.1.20
+    Houdini Version: 16.5.603
+    Houdini Engine Version: 3.1.21
     Unreal Version: 4.19.2
 
 */
@@ -46,13 +46,14 @@ public class HoudiniEngineEditor : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "16.5.599";
+        string HoudiniVersion = "16.5.603";
         bool bIsRelease = true;
         string HFSPath = "";
 
         if ( !bIsRelease )
         {
             // Only use the preset build folder
+            System.Console.WriteLine("Using stamped HFSPath:" + HFSPath);
             return HFSPath;
         }
 
@@ -134,7 +135,8 @@ public class HoudiniEngineEditor : ModuleRules
                 }
             }
         }
-        else if ( buildPlatformId == PlatformID.MacOSX )
+        else if ( buildPlatformId == PlatformID.MacOSX ||
+        (buildPlatformId == PlatformID.Unix && File.Exists("/System/Library/CoreServices/SystemVersion.plist")))
         {
             // Check for Houdini installation.
             string HPath = "/Applications/Houdini/Houdini" + HoudiniVersion + "/Frameworks/Houdini.framework/Versions/Current/Resources";
@@ -149,7 +151,7 @@ public class HoudiniEngineEditor : ModuleRules
             HFSPath = System.Environment.GetEnvironmentVariable( "HFS" );
             if ( Directory.Exists( HFSPath ) )
             {
-                System.Console.WriteLine( "Linux - found HFS:" + HFSPath );
+                System.Console.WriteLine("Unix using $HFS: " + HFSPath);
                 return HFSPath;
             }
         }
@@ -173,7 +175,7 @@ public class HoudiniEngineEditor : ModuleRules
             Target.Platform != UnrealTargetPlatform.Mac &&
             Target.Platform != UnrealTargetPlatform.Linux )
         {
-            string Err = string.Format( "Houdini Engine Runtime: Compiling on unsupported platform." );
+            string Err = string.Format( "Houdini Engine Editor: Compiling for unsupported platform." );
             System.Console.WriteLine( Err );
             throw new BuildException( Err );
         }
