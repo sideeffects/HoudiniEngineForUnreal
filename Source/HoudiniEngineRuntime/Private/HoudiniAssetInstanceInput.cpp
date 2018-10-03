@@ -314,7 +314,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
             }
 
             // Attribute is on points, number of points must match number of transforms.
-            if ( !PointInstanceValues.Num() == AllTransforms.Num() )
+            if ( PointInstanceValues.Num() != AllTransforms.Num() )
             {
                 // This should not happen, we have mismatch between number of instance values and transforms.
                 return false;

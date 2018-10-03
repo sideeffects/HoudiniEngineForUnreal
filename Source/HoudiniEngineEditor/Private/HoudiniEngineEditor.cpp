@@ -1553,6 +1553,7 @@ FHoudiniEngineEditor::UpdateHoudiniToolList(const FHoudiniToolDirectory& Houdini
     // We need to either load or create a new HoudiniAsset from the tool's HDA
     FString ToolPath = TEXT("/Game/HoudiniEngine/Tools/");        
     ToolPath = FPaths::Combine(ToolPath, FPaths::MakeValidFileName( HoudiniToolsDirectory.Name ) );
+    ToolPath = ObjectTools::SanitizeObjectPath( ToolPath );
 
     for (const FHoudiniToolDescription& HoudiniTool : HoudiniToolDescArray)
     {
@@ -1575,7 +1576,20 @@ FHoudiniEngineEditor::UpdateHoudiniToolList(const FHoudiniToolDirectory& Houdini
         FString BaseToolName = FPaths::GetBaseFilename(HoudiniTool.AssetPath.FilePath);
         FString ToolAssetRef = TEXT("HoudiniAsset'") + FPaths::Combine(ToolPath, BaseToolName) + TEXT(".") + BaseToolName + TEXT("'");
         TSoftObjectPtr<UHoudiniAsset> HoudiniAsset(ToolAssetRef);
+
+        // See if the HDA needs to be imported in Unreal
+        bool NeedsImport = false;
         if ( !HoudiniAsset.IsValid() )
+        {
+            NeedsImport = true;
+
+            // Try to load the asset
+            UHoudiniAsset* LoadedAsset = HoudiniAsset.LoadSynchronous();
+            if ( LoadedAsset )
+                NeedsImport = !HoudiniAsset.IsValid();
+        }
+
+        if ( NeedsImport )
         {
             // Automatically import the HDA and create a uasset for it
             FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
