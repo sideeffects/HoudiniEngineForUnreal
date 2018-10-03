@@ -347,6 +347,42 @@ HAPI_DECL HAPI_GetServerEnvString( const HAPI_Session * session,
                                    const char * variable_name,
                                    HAPI_StringHandle * value );
 
+/// @brief  Provides the number of environment variables that are in
+///         the server environment's process
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[out]     env_count
+///                 A pointer to an int to return the value in
+HAPI_DECL HAPI_GetServerEnvVarCount( const HAPI_Session * session,
+                                     int * env_count );
+
+/// @brief  Provides a list of all of the environment variables
+///         in the server's process
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[out]     values_array
+///                 An ::HAPI_StringHandle array at least the size of length
+///
+/// @param[in]      start
+///                 First index of range. Must be at least @c 0 and at most
+///                 @c env_count returned by ::HAPI_GetServerEnvVarCount()
+///
+/// @param[in]      length
+///                 Given @c env_count returned by ::HAPI_GetServerEnvVarCount(),
+///                 length should be at least @c 0 and at most <tt>env_count - start.</tt>
+HAPI_DECL HAPI_GetServerEnvVarList( const HAPI_Session * session,
+                                    HAPI_StringHandle * values_array,
+                                    int start,
+                                    int length );
+
 /// @brief  Set environment variable for the server process as an integer.
 ///
 ///         Note that this may affect other sessions on the same server
