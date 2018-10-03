@@ -38,6 +38,7 @@
 #include "Widgets/Views/STableRow.h"
 #include "Widgets/Views/SListView.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboBox.h"
 #include "EditorStyleSet.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
@@ -63,26 +64,22 @@
 
 #define LOCTEXT_NAMESPACE "HoudiniToolPalette"
 
-/** The list view mode of the asset view */
-class SHoudiniToolListView : public SListView< TSharedPtr<FHoudiniTool> >
-{
-public:
-    virtual bool SupportsKeyboardFocus() const override { return true; }
-    virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override
-    {
-        return FReply::Unhandled();
-    }
-};
 
 UHoudiniToolProperties::UHoudiniToolProperties(const FObjectInitializer & ObjectInitializer)
     :Super( ObjectInitializer )
     , Name()
-    , Type( EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE )
-    , SelectionType( EHoudiniToolSelectionType::HTOOL_SELECTION_ALL )
+    , Type(EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE)
+    , SelectionType(EHoudiniToolSelectionType::HTOOL_SELECTION_ALL)
     , ToolTip()
     , IconPath(FFilePath())
-    , HoudiniAsset( nullptr )
+    , HoudiniAsset(nullptr)
     , HelpURL()
+{
+};
+
+UHoudiniToolDirectoryProperties::UHoudiniToolDirectoryProperties(const FObjectInitializer & ObjectInitializer)
+    :Super(ObjectInitializer)
+    , CustomHoudiniToolsDirectories()
 {
 };
 
@@ -90,13 +87,11 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void
 SHoudiniToolPalette::Construct( const FArguments& InArgs )
 {
-    FHoudiniEngineEditor& HoudiniEngineEditor = FModuleManager::GetModuleChecked<FHoudiniEngineEditor>( "HoudiniEngineEditor" );
+    FHoudiniEngineEditor& HoudiniEngineEditor = FModuleManager::GetModuleChecked<FHoudiniEngineEditor>("HoudiniEngineEditor");
 
-    // Refresh the Editor's Houdini Tool list
-    HoudiniEngineEditor.UpdateHoudiniToolList();
+    UpdateHoudiniToolDirectories();
 
-    TSharedRef<SHoudiniToolListView> ListViewWidget =
-        SNew( SHoudiniToolListView )
+    SAssignNew( HoudiniToolListView, SHoudiniToolListView )
         .SelectionMode( ESelectionMode::Single )
         .ListItemsSource( &HoudiniEngineEditor.GetHoudiniTools() )
         .OnGenerateRow( this, &SHoudiniToolPalette::MakeListViewWidget )
@@ -105,19 +100,87 @@ SHoudiniToolPalette::Construct( const FArguments& InArgs )
         .OnContextMenuOpening( this, &SHoudiniToolPalette::ConstructHoudiniToolContextMenu )
         .ItemHeight( 35 );
 
-    ChildSlot
-        [
-            SNew( SVerticalBox )
+    int32 ToolDirComboSelectedIdx = HoudiniEngineEditor.CurrentHoudiniToolDirIndex + 1;
+    if (!HoudiniToolDirArray.IsValidIndex(ToolDirComboSelectedIdx))
+        ToolDirComboSelectedIdx = 0;
 
-            + SVerticalBox::Slot()
-            .FillHeight( 1.0f )
+    TSharedRef<SComboBox< TSharedPtr< FString > > > HoudiniToolDirComboBox =
+        SNew(SComboBox< TSharedPtr< FString > >)
+        .OptionsSource( &HoudiniToolDirArray)
+        .InitiallySelectedItem(HoudiniToolDirArray[ ToolDirComboSelectedIdx ])
+        .OnGenerateWidget( SComboBox< TSharedPtr< FString > >::FOnGenerateWidget::CreateLambda(
+            []( TSharedPtr< FString > ChoiceEntry ) 
+            {
+                FText ChoiceEntryText = FText::FromString( *ChoiceEntry );
+                return SNew( STextBlock )
+                    .Text( ChoiceEntryText )
+                    .ToolTipText( ChoiceEntryText )
+                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) );
+            } ) )
+        .OnSelectionChanged( SComboBox< TSharedPtr< FString > >::FOnSelectionChanged::CreateLambda(
+            [=]( TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType ) 
+            {
+                if ( !NewChoice.IsValid() )
+                        return;
+                OnDirectoryChange(*(NewChoice.Get()) );
+            } ) )
             [
-                SNew( SScrollBorder, ListViewWidget )
+                SNew(STextBlock)
+                .Text(this, &SHoudiniToolPalette::OnGetSelectedDirText )
+                .ToolTipText( this,  &SHoudiniToolPalette::OnGetSelectedDirText )
+                .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+            ];
+    TSharedPtr< SButton > EditButton;
+    FText EditButtonText = FText::FromString(TEXT("Edit"));
+    FText EditButtonTooltip = FText::FromString(TEXT("Add, Remove or Edit custom Houdini tool directories"));
+
+    FText ActiveShelfText = FText::FromString(TEXT("Active Shelf:"));
+    FText ActiveShelfTooltip = FText::FromString(TEXT("Name of the currently selected Houdini Tool Shelf"));
+
+    ChildSlot
+    [
+        SNew(SVerticalBox)
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        [
+            SNew(SScrollBorder, HoudiniToolListView.ToSharedRef())
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .VAlign(VAlign_Center)
                 [
-                    ListViewWidget
+                    SNew(STextBlock)
+                    .Text(ActiveShelfText)
+                    .ToolTipText(ActiveShelfTooltip)
+                    .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.BoldFont")))
+                ]
+                + SHorizontalBox::Slot()
+                [
+                    HoudiniToolDirComboBox
+                ]
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                [
+                    SAssignNew(EditButton, SButton)
+                    .VAlign(VAlign_Center)
+                    .HAlign(HAlign_Center)
+                    .Text(EditButtonText)
+                    .ToolTipText(EditButtonTooltip)
+                    .OnClicked(FOnClicked::CreateSP(this, &SHoudiniToolPalette::OnEditToolDirectories))
                 ]
             ]
-        ];
+        ]
+
+        + SVerticalBox::Slot()
+        .FillHeight(1.0f)
+        [
+            SNew(SScrollBorder, HoudiniToolListView.ToSharedRef())
+            [
+                HoudiniToolListView.ToSharedRef()
+            ]
+        ]
+    ];
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -602,6 +665,7 @@ SHoudiniToolPalette::ConstructHoudiniToolContextMenu()
     if ( EngineActions.IsValid() )
         EngineActions->GetActions( AssetArray, MenuBuilder );
 
+    /*
     // Add HoudiniTools actions
     MenuBuilder.AddMenuSeparator();
 
@@ -626,6 +690,7 @@ SHoudiniToolPalette::ConstructHoudiniToolContextMenu()
             FCanExecuteAction::CreateLambda([&] { return IsActiveHoudiniToolEditable(); } )
         )
     );
+    */
 
     return MenuBuilder.MakeWidget();
 }
@@ -636,7 +701,7 @@ SHoudiniToolPalette::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& D
     TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
     if ( !Operation.IsValid() )
         return FReply::Unhandled();
-
+    /*
     if ( Operation->IsOfType<FAssetDragDropOp>() )
     {
         // Handle Assets Drag and Drop operations
@@ -664,7 +729,7 @@ SHoudiniToolPalette::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& D
 
         return FReply::Handled();
     }
-
+    */
     /*
     if ( Operation->IsOfType<FExternalDragOperation>() )
     {
@@ -722,6 +787,7 @@ SHoudiniToolPalette::OnAddHoudiniToolWindowClosed( const TSharedRef<SWindow>& In
         ToolProperties->RemoveFromRoot();
 
         // Check the Tool is valid before adding it
+        // TODO : FIX ME
         if ( !ToolProperties->HoudiniAsset )
             continue;
 
@@ -748,7 +814,8 @@ SHoudiniToolPalette::OnAddHoudiniToolWindowClosed( const TSharedRef<SWindow>& In
             ToolProperties->SelectionType,
             FText::FromString (ToolProperties->ToolTip ),
             CustomIconBrush,
-            ToolProperties->HelpURL );
+            ToolProperties->HelpURL,
+            false );
 
         // Make sure we're not adding a duplicate (same asset, same type)
         int32 FoundIndex = -1;
@@ -763,6 +830,7 @@ SHoudiniToolPalette::OnAddHoudiniToolWindowClosed( const TSharedRef<SWindow>& In
         // Create a new Houdini Tool Description from the modified properties
         FHoudiniToolDescription NewToolDescription;
         NewToolDescription.HoudiniAsset = ToolProperties->HoudiniAsset;
+        NewToolDescription.AssetPath = ToolProperties->AssetPath;
         NewToolDescription.Name = ToolProperties->Name;
         NewToolDescription.Type = ToolProperties->Type;
         NewToolDescription.ToolTip = ToolProperties->ToolTip;
@@ -783,7 +851,7 @@ SHoudiniToolPalette::OnAddHoudiniToolWindowClosed( const TSharedRef<SWindow>& In
     {
         if ( EditorTools )
             EditorTools->Add( MakeShareable( new FHoudiniTool(
-                NewTool.HoudiniAsset, NewTool.Name, NewTool.Type, NewTool.SelectionType, NewTool.ToolTipText, NewTool.Icon, NewTool.HelpURL ) ) );
+                NewTool.HoudiniAsset, NewTool.Name, NewTool.Type, NewTool.SelectionType, NewTool.ToolTipText, NewTool.Icon, NewTool.HelpURL, false ) ) );
     }
 
     // Get the runtime settings to add the new custom tools there
@@ -791,6 +859,8 @@ SHoudiniToolPalette::OnAddHoudiniToolWindowClosed( const TSharedRef<SWindow>& In
     if ( !HoudiniRuntimeSettings )
         return;
 
+    // TODO: FIX ME!
+    /*
     for ( auto NewToolDesc : NewToolDescriptionArray )
     {
         HoudiniRuntimeSettings->CustomHoudiniTools.Add( NewToolDesc );
@@ -798,6 +868,7 @@ SHoudiniToolPalette::OnAddHoudiniToolWindowClosed( const TSharedRef<SWindow>& In
 
     // Save the Settings file to keep the new tools upon restart
     HoudiniRuntimeSettings->SaveConfig();
+    */
 
     // Call construct to refresh the shelf
     SHoudiniToolPalette::FArguments Args;
@@ -877,13 +948,15 @@ SHoudiniToolPalette::OnEditHoudiniToolWindowClosed( const TSharedRef<SWindow>& I
             ToolProperties->SelectionType,
             FText::FromString (ToolProperties->ToolTip ),
             CustomIconBrush,
-            ToolProperties->HelpURL );
+            ToolProperties->HelpURL,
+            false );
 
         EditedToolArray.Add( EditedHoudiniTool );
 
         // Create a new Houdini Tool Description from the modified properties
         FHoudiniToolDescription EditedToolDescription;
         EditedToolDescription.HoudiniAsset = ToolProperties->HoudiniAsset;
+        EditedToolDescription.AssetPath = ToolProperties->AssetPath;
         EditedToolDescription.Name = ToolProperties->Name;
         EditedToolDescription.Type = ToolProperties->Type;
         EditedToolDescription.ToolTip = ToolProperties->ToolTip;
@@ -922,13 +995,13 @@ SHoudiniToolPalette::OnEditHoudiniToolWindowClosed( const TSharedRef<SWindow>& I
             continue;
 
         (*EditorTools)[ FoundIndex ] = MakeShareable( new FHoudiniTool(
-            EditedTool.HoudiniAsset, EditedTool.Name, EditedTool.Type, EditedTool.SelectionType, EditedTool.ToolTipText, EditedTool.Icon, EditedTool.HelpURL ) );
+            EditedTool.HoudiniAsset, EditedTool.Name, EditedTool.Type, EditedTool.SelectionType, EditedTool.ToolTipText, EditedTool.Icon, EditedTool.HelpURL, false ) );
 
         // Update in the settings custom tools
         if ( !FHoudiniEngineEditor::Get().FindHoudiniToolInHoudiniSettings( EditedTool, FoundIndex ) )
             continue;
-
-        HoudiniRuntimeSettings->CustomHoudiniTools[ FoundIndex ] = EditedToolDescriptionArray[ Idx ];
+        // TODO: FIX ME!
+        //HoudiniRuntimeSettings->CustomHoudiniTools[ FoundIndex ] = EditedToolDescriptionArray[ Idx ];
     }
 
     // Save the Settings file to keep the new tools upon restart
@@ -993,6 +1066,7 @@ SHoudiniToolPalette::CreateFloatingDetailsView( const TArray< UObject* >& InObje
 FReply
 SHoudiniToolPalette::OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
 {
+    /*
     if ( InKeyEvent.GetKey() == EKeys::Delete )
     {
         RemoveActiveTool();
@@ -1001,6 +1075,13 @@ SHoudiniToolPalette::OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& In
     else if ( InKeyEvent.GetKey() == EKeys::Enter )
     {
         EditActiveHoudiniTool();
+        return FReply::Handled();
+    }
+    else
+    */
+    if (InKeyEvent.GetKey() == EKeys::F5 )
+    {
+        OnDirectoryChange( CurrentHoudiniToolDir );
         return FReply::Handled();
     }
 
@@ -1037,7 +1118,8 @@ SHoudiniToolPalette::RemoveActiveTool()
     if ( !FHoudiniEngineEditor::Get().FindHoudiniToolInHoudiniSettings( *ActiveTool, SettingsIndex ) )
         return;
 
-    HoudiniRuntimeSettings->CustomHoudiniTools.RemoveAt( SettingsIndex );
+    // TODO: FIX ME!
+    //HoudiniRuntimeSettings->CustomHoudiniTools.RemoveAt( SettingsIndex );
 
     // Save the Settings file to keep the new tools upon restart
     HoudiniRuntimeSettings->SaveConfig();
@@ -1050,6 +1132,8 @@ SHoudiniToolPalette::RemoveActiveTool()
 bool
 SHoudiniToolPalette::IsActiveHoudiniToolEditable()
 {
+    return false;
+    /*
     int32 FoundIndex = -1;
     bool IsDefault = false;
 
@@ -1060,6 +1144,142 @@ SHoudiniToolPalette::IsActiveHoudiniToolEditable()
         return false;
 
     return !IsDefault;
+    */
+}
+
+FReply
+SHoudiniToolPalette::OnEditToolDirectories()
+{
+    // Append all the custom tools directory from the runtime settings
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if (!HoudiniRuntimeSettings)
+        return FReply::Handled();
+
+    TArray<UObject *> NewCustomHoudiniToolDirs;
+
+    FString CustomToolDirs = TEXT("CustomToolDir");
+    UHoudiniToolDirectoryProperties* NewToolDirProperty = NewObject< UHoudiniToolDirectoryProperties >(GetTransientPackage(), FName(*CustomToolDirs));
+    NewToolDirProperty->CustomHoudiniToolsDirectories = HoudiniRuntimeSettings->CustomHoudiniToolsLocation;
+    NewCustomHoudiniToolDirs.Add(NewToolDirProperty);
+
+    TSharedRef< SWindow > Window = CreateFloatingDetailsView(NewCustomHoudiniToolDirs);
+    Window->SetOnWindowClosed(FOnWindowClosed::CreateSP(this, &SHoudiniToolPalette::OnEditToolDirectoriesWindowClosed, NewCustomHoudiniToolDirs));
+
+    return FReply::Handled();
+}
+
+
+void
+SHoudiniToolPalette::OnEditToolDirectoriesWindowClosed(const TSharedRef<SWindow>& InWindow, TArray<UObject *> InObjects)
+{
+    TArray<FHoudiniToolDirectory> EditedToolDirectories;
+    for (int32 ObjIdx = 0; ObjIdx < InObjects.Num(); ObjIdx++)
+    {
+        UHoudiniToolDirectoryProperties* ToolDirProperties = Cast< UHoudiniToolDirectoryProperties >(InObjects[ObjIdx]);
+        if (!ToolDirProperties)
+            continue;
+
+        for ( auto CurrentToolDir : ToolDirProperties->CustomHoudiniToolsDirectories )
+        {
+            EditedToolDirectories.Add( CurrentToolDir );
+        }
+
+        // Remove the tool directory from Root
+        ToolDirProperties->RemoveFromRoot();
+    }
+
+    // Get the runtime settings to add the new custom tools there
+    UHoudiniRuntimeSettings * HoudiniRuntimeSettings = const_cast<UHoudiniRuntimeSettings*>(GetDefault< UHoudiniRuntimeSettings >());
+    if (!HoudiniRuntimeSettings)
+        return;
+
+    // Replace the Tool dir in the runtime settings with the edited list
+    HoudiniRuntimeSettings->CustomHoudiniToolsLocation.Empty();
+    HoudiniRuntimeSettings->CustomHoudiniToolsLocation.Append( EditedToolDirectories );
+
+    // Save the Settings file to keep the new tools upon restart
+    HoudiniRuntimeSettings->SaveConfig();
+
+    // Call construct to refresh the shelf
+    SHoudiniToolPalette::FArguments Args;
+    Construct(Args);
+}
+
+void
+SHoudiniToolPalette::OnDirectoryChange(const FString& NewDir)
+{
+    if ( NewDir.IsEmpty() )
+        return;
+
+    if ( CurrentHoudiniToolDir.Equals(NewDir) )
+    {
+        HoudiniToolListView->RequestListRefresh();
+        return;
+    }
+
+    CurrentHoudiniToolDir = NewDir;
+    
+    int32 newIndex = 0;
+    for (int32 n = 0; n < HoudiniToolDirArray.Num(); n++)
+    {
+        if (!HoudiniToolDirArray[n].IsValid())
+            continue;
+
+        if (!HoudiniToolDirArray[n]->Equals(NewDir))
+            continue;
+
+        FHoudiniEngineEditor& HoudiniEngineEditor = FModuleManager::GetModuleChecked<FHoudiniEngineEditor>("HoudiniEngineEditor");
+        HoudiniEngineEditor.UpdateHoudiniToolList(n - 1);
+        HoudiniToolListView->RequestListRefresh();
+    }
+}
+
+void
+SHoudiniToolPalette::UpdateHoudiniToolDirectories()
+{
+    FHoudiniEngineEditor& HoudiniEngineEditor = FModuleManager::GetModuleChecked<FHoudiniEngineEditor>("HoudiniEngineEditor");
+
+    int32 ChoiceIndex = HoudiniEngineEditor.CurrentHoudiniToolDirIndex;
+
+    // Refresh the Editor's Houdini Tool list
+    HoudiniEngineEditor.UpdateHoudiniToolList( ChoiceIndex );
+
+    // Add the directory choice lists
+    HoudiniToolDirArray.Empty();
+
+    TArray<FHoudiniToolDirectory> ToolDirArray;
+    HoudiniEngineEditor.GetHoudiniToolDirectories( ToolDirArray );
+
+    {
+        FString * ChoiceLabel = new FString(TEXT("All"));
+        HoudiniToolDirArray.Add(TSharedPtr< FString >(ChoiceLabel));
+
+        if (ChoiceIndex < 0 )
+            CurrentHoudiniToolDir = *ChoiceLabel;
+    }
+
+    {
+        FString * ChoiceLabel = new FString(TEXT("Default"));
+        HoudiniToolDirArray.Add(TSharedPtr< FString >(ChoiceLabel));
+
+        if ( ChoiceIndex == 0 )
+            CurrentHoudiniToolDir = *ChoiceLabel;
+    }
+
+    for (int32 n = 1; n < ToolDirArray.Num(); n++)
+    {
+        FString * ChoiceLabel = new FString( ToolDirArray[n].Name );
+        HoudiniToolDirArray.Add(TSharedPtr< FString >(ChoiceLabel));
+
+        if ( ChoiceIndex == n )
+            CurrentHoudiniToolDir = *ChoiceLabel;
+    }
+}
+
+FText
+SHoudiniToolPalette::OnGetSelectedDirText() const
+{
+    return FText::FromString(CurrentHoudiniToolDir);
 }
 
 #undef LOCTEXT_NAMESPACE

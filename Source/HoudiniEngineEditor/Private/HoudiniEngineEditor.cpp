@@ -50,12 +50,16 @@
 #include "SHoudiniToolPalette.h"
 #include "IPlacementModeModule.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
-
 #include "AssetRegistryModule.h"
 #include "Engine/Selection.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
 #include "SlateOptMacros.h"
+#include "HAL/FileManager.h"
+#include "Dom/JsonObject.h"
+#include "Misc/FileHelper.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -89,7 +93,7 @@ FHoudiniEngineStyle::Initialize()
 {
     // Only register the StyleSet once
     if ( StyleSet.IsValid() )
-	return;
+        return;
 
     StyleSet = MakeShareable( new FSlateStyleSet( GetStyleSetName() ) );
     StyleSet->SetContentRoot(FPaths::EngineContentDir() / TEXT("Editor/Slate"));
@@ -117,22 +121,22 @@ FHoudiniEngineStyle::Initialize()
 
     static FString IconsDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine/Content/Icons/");
     StyleSet->Set(
-	"HoudiniEngine.HoudiniEngineLogo",
-	new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+        "HoudiniEngine.HoudiniEngineLogo",
+        new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
     StyleSet->Set(
-	"ClassIcon.HoudiniAssetActor",
-	new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+        "ClassIcon.HoudiniAssetActor",
+        new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
     StyleSet->Set(
-	"HoudiniEngine.HoudiniEngineLogo40",
-	new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_40.png"), Icon40x40));
+        "HoudiniEngine.HoudiniEngineLogo40",
+        new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_40.png"), Icon40x40));
 
     StyleSet->Set(
-	"ClassIcon.HoudiniAsset",
-	new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+        "ClassIcon.HoudiniAsset",
+        new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
 
     StyleSet->Set(
-	"ClassThumbnail.HoudiniAsset",
-	new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_128.png"), Icon64x64));
+        "ClassThumbnail.HoudiniAsset",
+        new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_128.png"), Icon64x64));
 
     //FSlateImageBrush* HoudiniLogo16 = new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16);
     StyleSet->Set("HoudiniEngine.SaveHIPFile", new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
@@ -151,30 +155,30 @@ FHoudiniEngineStyle::Initialize()
 
     const FTableRowStyle &NormalTableRowStyle = FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.Row");
     StyleSet->Set(
-	"HoudiniEngine.TableRow", FTableRowStyle( NormalTableRowStyle)
-	.SetEvenRowBackgroundBrush( FSlateNoResource() )
-	.SetEvenRowBackgroundHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, FLinearColor( 1.0f, 1.0f, 1.0f, 0.1f ) ) )
-	.SetOddRowBackgroundBrush( FSlateNoResource() )
-	.SetOddRowBackgroundHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, FLinearColor( 1.0f, 1.0f, 1.0f, 0.1f ) ) )
-	.SetSelectorFocusedBrush( BORDER_BRUSH( "Common/Selector", FMargin( 4.f / 16.f ), SelectorColor ) )
-	.SetActiveBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor ) )
-	.SetActiveHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor ) )
-	.SetInactiveBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor_Inactive ) )
-	.SetInactiveHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor_Inactive ) )
-	.SetTextColor( DefaultForeground )
-	.SetSelectedTextColor( InvertedForeground )
+        "HoudiniEngine.TableRow", FTableRowStyle( NormalTableRowStyle)
+        .SetEvenRowBackgroundBrush( FSlateNoResource() )
+        .SetEvenRowBackgroundHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, FLinearColor( 1.0f, 1.0f, 1.0f, 0.1f ) ) )
+        .SetOddRowBackgroundBrush( FSlateNoResource() )
+        .SetOddRowBackgroundHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, FLinearColor( 1.0f, 1.0f, 1.0f, 0.1f ) ) )
+        .SetSelectorFocusedBrush( BORDER_BRUSH( "Common/Selector", FMargin( 4.f / 16.f ), SelectorColor ) )
+        .SetActiveBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor ) )
+        .SetActiveHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor ) )
+        .SetInactiveBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor_Inactive ) )
+        .SetInactiveHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, SelectionColor_Inactive ) )
+        .SetTextColor( DefaultForeground )
+        .SetSelectedTextColor( InvertedForeground )
     );
 
     // Normal Text
     const FTextBlockStyle& NormalText = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("NormalText");
     StyleSet->Set(
-	"HoudiniEngine.ThumbnailText", FTextBlockStyle(NormalText)
-	.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 9))
-	.SetColorAndOpacity(FSlateColor::UseForeground())
-	.SetShadowOffset(FVector2D::ZeroVector)
-	.SetShadowColorAndOpacity(FLinearColor::Black)
-	.SetHighlightColor(FLinearColor(0.02f, 0.3f, 0.0f))
-	.SetHighlightShape(BOX_BRUSH("Common/TextBlockHighlightShape", FMargin(3.f / 8.f)))
+        "HoudiniEngine.ThumbnailText", FTextBlockStyle(NormalText)
+        .SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 9))
+        .SetColorAndOpacity(FSlateColor::UseForeground())
+        .SetShadowOffset(FVector2D::ZeroVector)
+        .SetShadowColorAndOpacity(FLinearColor::Black)
+        .SetHighlightColor(FLinearColor(0.02f, 0.3f, 0.0f))
+        .SetHighlightShape(BOX_BRUSH("Common/TextBlockHighlightShape", FMargin(3.f / 8.f)))
     );
 
     StyleSet->Set("HoudiniEngine.ThumbnailShadow", new BOX_BRUSH("ContentBrowser/ThumbnailShadow", FMargin(4.0f / 64.0f)));
@@ -229,6 +233,7 @@ FHoudiniEngineEditor::IsInitialized()
 
 FHoudiniEngineEditor::FHoudiniEngineEditor()
     : LastHoudiniAssetComponentUndoObject( nullptr )
+    , CurrentHoudiniToolDirIndex( -1 )
 {}
 
 void
@@ -278,6 +283,8 @@ FHoudiniEngineEditor::StartupModule()
 
     // Store the instance.
     FHoudiniEngineEditor::HoudiniEngineEditorInstance = this;
+
+    HOUDINI_LOG_MESSAGE( TEXT("Houdini Engine Editor module startup complete." ) );
 }
 
 void
@@ -285,7 +292,7 @@ FHoudiniEngineEditor::ShutdownModule()
 {
     HOUDINI_LOG_MESSAGE( TEXT( "Shutting down the Houdini Engine Editor module." ) );
 
-    // Remove the level viewport Menu extender
+    // Remove the level viewport Menu extender%
     RemoveLevelViewportMenuExtender();
 
     // Unregister asset type actions.
@@ -314,6 +321,8 @@ FHoudiniEngineEditor::ShutdownModule()
 
     // Unregister the styleset
     FHoudiniEngineStyle::Shutdown();
+
+    HOUDINI_LOG_MESSAGE( TEXT("Houdini Engine Editor module shutdown complete." ) );
 }
 
 void
@@ -667,7 +676,7 @@ FHoudiniEngineEditor::OpenInHoudini()
     FString UserTempPath = FPaths::CreateTempFilename(
         FPlatformProcess::UserTempDir(), 
         TEXT( "HoudiniEngine" ), TEXT( ".hip" ) );
-	
+        
     // Save HIP file through Engine.
     std::string TempPathConverted( TCHAR_TO_UTF8( *UserTempPath ) );
     FHoudiniApi::SaveHIPFile(
@@ -770,57 +779,10 @@ FHoudiniEngineEditor::RegisterPlacementModeExtensions()
     IPlacementModeModule::Get().RegisterPlacementCategory( Info );
 }
 
-void
-FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescription >& ToolArray )
+FString
+FHoudiniEngineEditor::GetDefaultHoudiniToolIcon() const
 {
-    // Default paths
-    FString ToolsDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine/Content/Tools/");
-    FString DefaultIconPath = FPaths::EnginePluginsDir() / TEXT( "Runtime/HoudiniEngine/Content/Icons/icon_houdini_logo_40.png" );    
-
-    int32 nInsertPos = 0;
-    // 1. Rock Generator
-    ToolArray.Insert( FHoudiniToolDescription{
-        TEXT( "Rock Generator" ),
-        EHoudiniToolType::HTOOLTYPE_GENERATOR,
-        EHoudiniToolSelectionType::HTOOL_SELECTION_ALL,
-        TEXT( "Generates procedural rock meshes" ),
-        FFilePath{ ToolsDir / TEXT("rock_generator.png") },
-        TSoftObjectPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/rock_generator.rock_generator'" ) ) ),
-        TEXT("http://www.sidefx.com/docs/unreal/")
-    }, nInsertPos++ );
-
-    // 2. Boolean
-    ToolArray.Insert( FHoudiniToolDescription{
-        TEXT( "Boolean" ),
-        EHoudiniToolType::HTOOLTYPE_OPERATOR_MULTI,
-        EHoudiniToolSelectionType::HTOOL_SELECTION_WORLD_ONLY,
-        TEXT( "Apply boolean operations to two input objects" ),
-        FFilePath{ ToolsDir / TEXT("he_sop_boolean.png") },
-        TSoftObjectPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_boolean.he_sop_boolean'" ) ) ),
-        TEXT("http://www.sidefx.com/docs/unreal/")
-    }, nInsertPos++ );
-
-    // 3. Polyreducer
-    ToolArray.Insert( FHoudiniToolDescription{
-        TEXT( "Polyreducer" ),
-        EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH,
-        EHoudiniToolSelectionType::HTOOL_SELECTION_ALL,
-        TEXT( "Reduces the number of polygons of the input objects" ),
-        FFilePath{ ToolsDir / TEXT("he_sop_polyreduce.png") },
-        TSoftObjectPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_polyreduce.he_sop_polyreduce'" ) ) ),
-        TEXT("http://www.sidefx.com/docs/unreal/")
-    }, nInsertPos++ );
-
-    // 4. Curve Instancer
-    ToolArray.Insert( FHoudiniToolDescription{
-        TEXT( "Curve Instancer" ),
-        EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE,
-        EHoudiniToolSelectionType::HTOOL_SELECTION_CB_ONLY,
-        TEXT( "Scatters and instances the input objects along a curve or in a zone defined by a closed curve." ),
-        FFilePath{ ToolsDir / TEXT("he_sop_curve_instancer.png") },
-        TSoftObjectPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_curve_instancer.he_sop_curve_instancer'" ) ) ),
-        TEXT("http://www.sidefx.com/docs/unreal/")
-    }, nInsertPos++ );
+        return FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine/Content/Icons/icon_houdini_logo_40.png");
 }
 
 void 
@@ -1409,7 +1371,7 @@ FHoudiniEngineEditor::RestartSession()
 void
 FHoudiniEngineEditor::AddHoudiniTool( const FHoudiniTool& NewTool )
 {
-    HoudiniTools.Add( MakeShareable( new FHoudiniTool( NewTool.HoudiniAsset, NewTool.Name, NewTool.Type, NewTool.SelectionType, NewTool.ToolTipText, NewTool.Icon, NewTool.HelpURL ) ) );
+    HoudiniTools.Add( MakeShareable( new FHoudiniTool( NewTool.HoudiniAsset, NewTool.Name, NewTool.Type, NewTool.SelectionType, NewTool.ToolTipText, NewTool.Icon, NewTool.HelpURL, false ) ) );
 }
 
 void
@@ -1509,45 +1471,340 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender( const TSharedRef<FUIC
 }
 
 void
-FHoudiniEngineEditor::UpdateHoudiniToolList()
+FHoudiniEngineEditor::GetHoudiniToolDirectories( TArray<FHoudiniToolDirectory>& HoudiniToolsDirectoryArray ) const
 {
+    HoudiniToolsDirectoryArray.Empty();
+
+    // Read the default tools from the $HFS/engine/tool folder
+    FDirectoryPath DefaultToolPath;
+    FString HFSPath = FPaths::GetPath(FHoudiniEngine::Get().GetLibHAPILocation());
+    FString DefaultPath = FPaths::Combine(HFSPath, TEXT("engine"));
+    DefaultPath = FPaths::Combine(DefaultPath, TEXT("tools"));
+
+    FHoudiniToolDirectory ToolDir;
+    ToolDir.Name = TEXT("Default");
+    ToolDir.Path.Path = DefaultPath;
+
+    HoudiniToolsDirectoryArray.Add( ToolDir );
+
+    // Append all the custom tools directory from the runtime settings
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if ( !HoudiniRuntimeSettings )
+        return;
+
+    // Add all the custom tool paths
+    HoudiniToolsDirectoryArray.Append( HoudiniRuntimeSettings->CustomHoudiniToolsLocation );
+}
+
+void
+FHoudiniEngineEditor::UpdateHoudiniToolList(const int32 SelectedDir/*=-1*/)
+{
+    CurrentHoudiniToolDirIndex = SelectedDir;
+
+    // Clean up the existing tool list
     HoudiniTools.Empty();
 
-    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-    check(HoudiniRuntimeSettings);
-
-    // Read the custom tools from the settings file
-    auto ToolArray = HoudiniRuntimeSettings->CustomHoudiniTools;
-
-    // Add the default tools
-    int32 NumDefaultTools = ToolArray.Num();
-    AddDefaultHoudiniToolToArray( ToolArray );
-    NumDefaultTools = ToolArray.Num() - NumDefaultTools;
-
-    for ( const FHoudiniToolDescription& HoudiniTool : ToolArray )
+    // Get All the houdini tool directories
+    TArray<FHoudiniToolDirectory> HoudiniToolsDirectoryArray;
+    GetHoudiniToolDirectories( HoudiniToolsDirectoryArray );
+    if ( CurrentHoudiniToolDirIndex >= 0 )
     {
-        FText ToolName = FText::FromString( HoudiniTool.Name );
-        FText ToolTip = FText::FromString( HoudiniTool.ToolTip );
+        // Only keep the selected one
+        for ( int32 n = HoudiniToolsDirectoryArray.Num() - 1; n >= 0; n-- )
+        {
+            if ( n != CurrentHoudiniToolDirIndex )
+                HoudiniToolsDirectoryArray.RemoveAt( n );
+        }
+    }
 
-        FString IconPath = FPaths::ConvertRelativePathToFull( HoudiniTool.IconPath.FilePath );
+    // Add the tools for all the directories
+    for ( int32 n = 0; n < HoudiniToolsDirectoryArray.Num(); n++ )
+    {
+        const FHoudiniToolDirectory& CurrentDir = HoudiniToolsDirectoryArray[n];
+        bool isDefault = ( (n == 0) && (CurrentHoudiniToolDirIndex <= 0) );
+        UpdateHoudiniToolList( CurrentDir, isDefault );
+    }
+}
+
+void
+FHoudiniEngineEditor::UpdateHoudiniToolList(const FHoudiniToolDirectory& HoudiniToolsDirectory, const bool& isDefault)
+{
+    FString ToolDirPath = HoudiniToolsDirectory.Path.Path;
+    if ( ToolDirPath.IsEmpty() )
+        return;
+
+    //
+    TArray<FHoudiniToolDescription> HoudiniToolDescArray;        
+
+    // List all the json files in the current directory
+    TArray<FString> JSONFiles;
+    IFileManager::Get().FindFiles(JSONFiles, *ToolDirPath, TEXT(".json"));
+    for ( const FString& CurrentJsonFile : JSONFiles )
+    {
+        FString CurrentJsonFilePath = ToolDirPath / CurrentJsonFile;
+        // Parse the JSON to a HoudiniTool
+        FHoudiniToolDescription CurrentHoudiniToolDesc;
+        if (!GetHoudiniToolDescriptionFromJSON(CurrentJsonFilePath, CurrentHoudiniToolDesc))
+            continue;
+
+        HoudiniToolDescArray.Add( CurrentHoudiniToolDesc );
+    }
+
+    // We need to either load or create a new HoudiniAsset from the tool's HDA
+    FString ToolPath = TEXT("/Game/HoudiniEngine/Tools/");        
+    ToolPath = FPaths::Combine(ToolPath, FPaths::MakeValidFileName( HoudiniToolsDirectory.Name ) );
+
+    for (const FHoudiniToolDescription& HoudiniTool : HoudiniToolDescArray)
+    {
+        FText ToolName = FText::FromString(HoudiniTool.Name);
+        FText ToolTip = FText::FromString(HoudiniTool.ToolTip);
+
+        FString IconPath = FPaths::ConvertRelativePathToFull(HoudiniTool.IconPath.FilePath);
         const FSlateBrush* CustomIconBrush = nullptr;
-        if ( FPaths::FileExists( IconPath ) )
+        if (FPaths::FileExists(IconPath))
         {
             FName BrushName = *IconPath;
-            CustomIconBrush = new FSlateDynamicImageBrush( BrushName, FVector2D( 40.f, 40.f ) );
+            CustomIconBrush = new FSlateDynamicImageBrush(BrushName, FVector2D(40.f, 40.f));
         }
         else
         {
-            CustomIconBrush = FHoudiniEngineStyle::Get()->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
+            CustomIconBrush = FHoudiniEngineStyle::Get()->GetBrush(TEXT("HoudiniEngine.HoudiniEngineLogo40"));
         }
 
-        HoudiniTools.Add( MakeShareable( new FHoudiniTool( HoudiniTool.HoudiniAsset, ToolName, HoudiniTool.Type, HoudiniTool.SelectionType, ToolTip, CustomIconBrush, HoudiniTool.HelpURL ) ) );
+        // Construct the asset's ref
+        FString BaseToolName = FPaths::GetBaseFilename(HoudiniTool.AssetPath.FilePath);
+        FString ToolAssetRef = TEXT("HoudiniAsset'") + FPaths::Combine(ToolPath, BaseToolName) + TEXT(".") + BaseToolName + TEXT("'");
+        TSoftObjectPtr<UHoudiniAsset> HoudiniAsset(ToolAssetRef);
+        if ( !HoudiniAsset.IsValid() )
+        {
+            // Automatically import the HDA and create a uasset for it
+            FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+            TArray<FString> FileNames;
+            FileNames.Add(HoudiniTool.AssetPath.FilePath);
+
+            UAutomatedAssetImportData* ImportData = NewObject<UAutomatedAssetImportData>();
+            ImportData->bReplaceExisting = true;
+            ImportData->bSkipReadOnly = true;
+            ImportData->Filenames = FileNames;
+            ImportData->DestinationPath = ToolPath;
+            TArray<UObject*> AssetArray = AssetToolsModule.Get().ImportAssetsAutomated(ImportData);
+            if ( AssetArray.Num() <=  0 )
+                continue;
+
+            HoudiniAsset = Cast< UHoudiniAsset >(AssetArray[0]);
+            if (!HoudiniAsset)
+                continue;
+
+            // Try to save the newly created package
+            UPackage* Pckg = Cast<UPackage>( HoudiniAsset->GetOuter() );
+            if (Pckg && Pckg->IsDirty() )
+            {
+                Pckg->FullyLoad();
+                UPackage::SavePackage(
+                    Pckg, nullptr, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone,
+                    *FPackageName::LongPackageNameToFilename( Pckg->GetName(), FPackageName::GetAssetPackageExtension() ) );
+            }
+        }
+
+        HoudiniTools.Add( MakeShareable( new FHoudiniTool(
+            HoudiniAsset, ToolName, HoudiniTool.Type, HoudiniTool.SelectionType, ToolTip, CustomIconBrush, HoudiniTool.HelpURL, isDefault ) ) );
+    }
+}
+
+bool
+FHoudiniEngineEditor::GetHoudiniToolDescriptionFromJSON(const FString& JsonFilePath, FHoudiniToolDescription& HoudiniToolDesc)
+{
+    if ( JsonFilePath.IsEmpty() )
+        return false;
+
+    // Read the file as a string
+    FString FileContents;
+    if ( !FFileHelper::LoadFileToString( FileContents, *JsonFilePath ) )
+    {
+        HOUDINI_LOG_ERROR( TEXT("Failed to import Houdini Tool .json file: %s"), *JsonFilePath);
+        return false;
     }
 
-    for ( int32 Idx = 0; Idx < NumDefaultTools; Idx++ )
+    // Parse it as JSON
+    TSharedPtr<FJsonObject> JSONObject;
+    TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( FileContents );
+    if (!FJsonSerializer::Deserialize(Reader, JSONObject) || !JSONObject.IsValid())
     {
-        HoudiniTools[ Idx ]->DefaultTool = true;
+        HOUDINI_LOG_ERROR( TEXT("Invalid json in Houdini Tool .json file: %s"), *JsonFilePath);
+        return false;
     }
+
+    // First, check that the tool is compatible with UE4
+    bool IsCompatible = true;
+    if (JSONObject->HasField(TEXT("target")))
+    {
+        IsCompatible = false;
+        TArray<TSharedPtr<FJsonValue> >TargetArray = JSONObject->GetArrayField("target");
+        for (TSharedPtr<FJsonValue> TargetValue : TargetArray)
+        {
+            if ( !TargetValue.IsValid() )
+                continue;
+
+            // Check the target array field contains either "all" or "unreal"
+            FString TargetString = TargetValue->AsString();                        
+            if ( TargetString.Equals( TEXT("all"), ESearchCase::IgnoreCase )
+                    || TargetString.Equals(TEXT("unreal"), ESearchCase::IgnoreCase) )
+            {
+                IsCompatible = true;
+                break;
+            }
+        }
+    }
+
+    if ( !IsCompatible )
+    {
+        // The tool is not compatible with unreal, skip it
+        //HOUDINI_LOG_MESSAGE(TEXT("Skipped Houdini Tool: ") + JsonFilePath);
+        return false;
+    }
+
+    // Then, we need to make sure the json file has a correponding hda
+    // Start by looking at the assetPath field
+    FString HDAFilePath = FString();
+    if ( JSONObject->HasField( TEXT("assetPath") ) )
+    {
+        // If the json has the assetPath field, read it from there
+        HDAFilePath = JSONObject->GetStringField(TEXT("assetPath"));
+        if (!FPaths::FileExists(HDAFilePath))
+            HDAFilePath = FString();
+    }
+
+    if (HDAFilePath.IsEmpty())
+    {
+        // Look for an hda file with the same name as the json file
+        HDAFilePath = JsonFilePath.Replace(TEXT(".json"), TEXT(".hda"));
+        if (!FPaths::FileExists(HDAFilePath))
+        {
+            // Try .hdalc
+            HDAFilePath = JsonFilePath.Replace(TEXT(".json"), TEXT(".hdalc"));
+            if (!FPaths::FileExists(HDAFilePath))
+            {
+                // Try .hdanc
+                HDAFilePath = JsonFilePath.Replace(TEXT(".json"), TEXT(".hdanc"));
+                if (!FPaths::FileExists(HDAFilePath))
+                    HDAFilePath = FString();
+            }
+        }
+    }
+
+    if ( HDAFilePath.IsEmpty() )
+    {
+        HOUDINI_LOG_ERROR(TEXT("Could not find the hda for the Houdini Tool .json file: %s"), *JsonFilePath);
+        return false;
+    }
+
+    // TODO: Handle Houdini Tool with just the HDA path, not an Asset!
+    // Create a new asset.
+    HoudiniToolDesc.AssetPath = FFilePath{ HDAFilePath };
+    //HoudiniToolDesc.HoudiniAsset = NewObject< UHoudiniAsset >(nullptr, FPaths::GetBaseFilename(HDAFilePath), RF_Public | RF_Standalone | RF_Transactional);
+    //HoudiniToolDesc.HoudiniAsset->CreateAsset(nullptr, nullptr, HDAFilePath);
+
+    // Read the tool name
+    HoudiniToolDesc.Name = FPaths::GetBaseFilename(JsonFilePath);
+    if ( JSONObject->HasField(TEXT("name") ) )
+        HoudiniToolDesc.Name = JSONObject->GetStringField(TEXT("name"));
+
+    // Read the tool type
+    HoudiniToolDesc.Type = EHoudiniToolType::HTOOLTYPE_GENERATOR;
+    if ( JSONObject->HasField( TEXT("toolType") ) )
+    {
+        FString ToolType = JSONObject->GetStringField(TEXT("toolType"));
+        if ( ToolType.Equals( TEXT("GENERATOR"), ESearchCase::IgnoreCase ) )
+            HoudiniToolDesc.Type = EHoudiniToolType::HTOOLTYPE_GENERATOR;
+        else if (ToolType.Equals( TEXT("OPERATOR_SINGLE"), ESearchCase::IgnoreCase ) )
+            HoudiniToolDesc.Type = EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE;
+        else if (ToolType.Equals(TEXT("OPERATOR_MULTI"), ESearchCase::IgnoreCase))
+            HoudiniToolDesc.Type = EHoudiniToolType::HTOOLTYPE_OPERATOR_MULTI;
+        else if (ToolType.Equals(TEXT("BATCH"), ESearchCase::IgnoreCase))
+            HoudiniToolDesc.Type = EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH;
+    }
+
+    // Read the tooltip
+    HoudiniToolDesc.ToolTip = FString();
+    if ( JSONObject->HasField( TEXT("toolTip") ) )
+    {
+        HoudiniToolDesc.ToolTip = JSONObject->GetStringField(TEXT("toolTip"));
+    }
+
+    // Read the help url
+    HoudiniToolDesc.HelpURL = FString();
+    if (JSONObject->HasField(TEXT("helpURL")))
+    {
+        HoudiniToolDesc.HelpURL = JSONObject->GetStringField(TEXT("helpURL"));
+    }
+
+    // Read the icon path
+    FString IconPath = FString();
+    if (JSONObject->HasField(TEXT("iconPath")))
+    {
+        // If the json has the iconPath field, read it from there
+        IconPath = JSONObject->GetStringField(TEXT("iconPath"));
+        if (!FPaths::FileExists(IconPath))
+            IconPath = FString();
+    }
+
+    if (IconPath.IsEmpty())
+    {
+        // Look for a png file with the same name as the json file
+        IconPath = JsonFilePath.Replace(TEXT(".json"), TEXT(".png"));
+        if (!FPaths::FileExists(IconPath))
+        {
+            IconPath = GetDefaultHoudiniToolIcon();
+        }
+    }
+
+    HoudiniToolDesc.IconPath = FFilePath{ IconPath };
+
+    // TODO: Handle Tags in the JSON?
+
+    return true;
+}
+
+bool
+FHoudiniEngineEditor::WriteJSONFromHoudiniTool(const FHoudiniTool& Tool)
+{
+    // Start by building a JSON object from the tool
+    TSharedPtr<FJsonObject> JSONObject;
+    JSONObject->SetStringField(TEXT("target"), TEXT("unreal"));
+
+    if ( Tool.AssetPath.IsEmpty() )
+        JSONObject->SetStringField(TEXT("assetPath"), Tool.AssetPath);
+
+    if ( Tool.Name.IsEmpty() )
+        JSONObject->SetStringField(TEXT("name"), Tool.Name.ToString());
+
+    // Tooltype
+    FString ToolType = TEXT("GENERATOR");
+    if ( Tool.Type == EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE)
+        ToolType = TEXT("OPERATOR_SINGLE");
+    else if (Tool.Type == EHoudiniToolType::HTOOLTYPE_OPERATOR_MULTI)
+        ToolType = TEXT("OPERATOR_MULTI");
+    else if ( Tool.Type == EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH)
+        ToolType = TEXT("BATCH");
+
+    JSONObject->SetStringField(TEXT("toolType"), ToolType);
+
+    // Tooltip
+    if ( !Tool.ToolTipText.IsEmpty() )
+        JSONObject->SetStringField(TEXT("toolTip"), Tool.ToolTipText.ToString());
+
+    // Help URL
+    if ( !Tool.HelpURL.IsEmpty() )
+        JSONObject->SetStringField(TEXT("helpURL"), Tool.HelpURL);
+
+    // IconPath
+    if ( Tool.Icon )
+    {
+        FString IconPath = Tool.Icon->GetResourceName().ToString();
+        JSONObject->SetStringField(TEXT("iconPath"), IconPath);
+    }
+
+    return true;
 }
 
 bool
@@ -1589,6 +1846,8 @@ FHoudiniEngineEditor::FindHoudiniToolInHoudiniSettings( const FHoudiniTool& Tool
     if ( !HoudiniRuntimeSettings )
         return false;
 
+    // TODO: FIX ME!
+    /*
     for ( int32 Idx = 0; Idx < HoudiniRuntimeSettings->CustomHoudiniTools.Num(); Idx++ )
     {
         FHoudiniToolDescription CurrentDesc = HoudiniRuntimeSettings->CustomHoudiniTools[ Idx ];
@@ -1602,6 +1861,7 @@ FHoudiniEngineEditor::FindHoudiniToolInHoudiniSettings( const FHoudiniTool& Tool
         FoundIndex = Idx;
         return true;
     }
+    */
 
     return false;
 }

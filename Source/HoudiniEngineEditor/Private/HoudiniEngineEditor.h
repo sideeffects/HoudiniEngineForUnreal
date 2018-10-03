@@ -45,14 +45,15 @@ struct FHoudiniTool
     FHoudiniTool(
         TSoftObjectPtr < class UHoudiniAsset > InHoudiniAsset, const FText& InName,
         const EHoudiniToolType& InType, const EHoudiniToolSelectionType& InSelType,
-        const FText& InToolTipText, const FSlateBrush* InIcon, const FString& InHelpURL )
+        const FText& InToolTipText, const FSlateBrush* InIcon, const FString& InHelpURL,
+        const bool& isDefault )
         : HoudiniAsset( InHoudiniAsset )
         , Name( InName )
         , ToolTipText( InToolTipText )
         , Icon( InIcon )
         , HelpURL( InHelpURL )
         , Type( InType )
-        , DefaultTool( false )
+        , DefaultTool( isDefault )
         , SelectionType( InSelType )
     {
     }
@@ -78,6 +79,9 @@ struct FHoudiniTool
 
     /** Indicate what the tool should consider for selection **/
     EHoudiniToolSelectionType SelectionType;
+
+    /** Path to the Asset used **/
+    FString AssetPath;
 };
 
 class FHoudiniEngineStyle
@@ -139,6 +143,9 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** App identifier string. **/
         static const FName HoudiniEngineEditorAppIdentifier;
 
+        /** Selected Houdini Tool Dir **/
+        int32 CurrentHoudiniToolDirIndex;
+
     public:
 
         /** Return singleton instance of Houdini Engine Editor, used internally. **/
@@ -185,8 +192,17 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Helper function for restarting the current Houdini Engine session. **/
         void RestartSession();
 
+        /** Returns the Default Icon to be used by Houdini Tools**/
+        FString GetDefaultHoudiniToolIcon() const;
+
         /** Returns the HoudiniTools currently available for the shelf **/
         const TArray< TSharedPtr<FHoudiniTool> >& GetHoudiniTools() { return HoudiniTools; }
+
+        /** Reads the Houdini Tool Description from a JSON file **/
+        bool GetHoudiniToolDescriptionFromJSON(
+            const FString& JsonFilePath, FHoudiniToolDescription& HoudiniToolDesc );
+
+        bool WriteJSONFromHoudiniTool(const FHoudiniTool& Tool);
 
         /** Returns the HoudiniTools array  **/
         TArray< TSharedPtr<FHoudiniTool> >* GetHoudiniToolsForWrite() { return &HoudiniTools; }
@@ -228,7 +244,13 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         bool FindHoudiniToolInHoudiniSettings( const FHoudiniTool& Tool, int32& FoundIndex );
 
         /** Rebuild the editor's Houdini Tool list **/
-        void UpdateHoudiniToolList();
+        void UpdateHoudiniToolList(int32 SelectedDir = -1);
+
+        /** Rebuild the editor's Houdini Tool list for a directory **/
+        void UpdateHoudiniToolList(const FHoudiniToolDirectory& HoudiniToolsDirectory, const bool& isDefault );
+
+        /** Return the directories where we should look for houdini tools**/
+        void GetHoudiniToolDirectories(TArray<FHoudiniToolDirectory>& HoudiniToolsDirectoryArray) const;
 
     protected:
 
@@ -286,7 +308,7 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
 
         TSharedPtr<class FUICommandList> HEngineCommands;
 
-        FDelegateHandle LevelViewportExtenderHandle;
+        FDelegateHandle LevelViewportExtenderHandle;	
 };
 
 

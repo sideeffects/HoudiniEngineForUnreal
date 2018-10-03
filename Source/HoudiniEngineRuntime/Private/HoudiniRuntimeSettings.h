@@ -132,12 +132,30 @@ struct FHoudiniToolDescription
     FFilePath IconPath;
 
     /** Houdini uasset */
-    UPROPERTY( Category = Tool, EditAnywhere )
+    UPROPERTY(Category = Tool, EditAnywhere)
     TSoftObjectPtr < class UHoudiniAsset > HoudiniAsset;
+
+    /** Houdini hda file path */
+    FFilePath AssetPath;
 
     /** Clicking on help icon will bring up this URL */
     UPROPERTY( Category = Tool, EditAnywhere )
     FString HelpURL;
+};
+
+
+USTRUCT(BlueprintType)
+struct FHoudiniToolDirectory
+{
+    GENERATED_USTRUCT_BODY()
+
+    /** Name of the tool directory */
+    UPROPERTY(Category = Tool, EditAnywhere)
+    FString Name;
+
+    /** Path of the tool directory */
+    UPROPERTY(Category = Tool, EditAnywhere)
+    FDirectoryPath Path;
 };
 
 UCLASS( config = Engine, defaultconfig )
@@ -278,15 +296,15 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
         UPROPERTY( GlobalConfig, EditAnywhere, Category = CollisionGeneration)
         FString UCXRenderedCollisionGroupNamePrefix;
 
-	// Group name prefix used for simple collision geometry generation.
-	// The type can be added after this: _box, _sphere, _capsule, _kdop10X, _kdop10Y, _kdop10Z, _kdop18, _kdop26 ...
-	UPROPERTY( GlobalConfig, EditAnywhere, Category = CollisionGeneration)
-	FString SimpleCollisionGroupNamePrefix;
+        // Group name prefix used for simple collision geometry generation.
+        // The type can be added after this: _box, _sphere, _capsule, _kdop10X, _kdop10Y, _kdop10Z, _kdop18, _kdop26 ...
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = CollisionGeneration)
+        FString SimpleCollisionGroupNamePrefix;
 
-	// Group name prefix used for rendered UBX collision geometry generation.
-	// The type can be added after this: _box, _sphere, _capsule, _kdop10X, _kdop10Y, _kdop10Z, _kdop18, _kdop26 ...
-	UPROPERTY( GlobalConfig, EditAnywhere, Category = CollisionGeneration)
-	FString SimpleRenderedCollisionGroupNamePrefix;
+        // Group name prefix used for rendered UBX collision geometry generation.
+        // The type can be added after this: _box, _sphere, _capsule, _kdop10X, _kdop10Y, _kdop10Z, _kdop18, _kdop26 ...
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = CollisionGeneration)
+        FString SimpleRenderedCollisionGroupNamePrefix;
 
     /** Geometry marshalling. **/
     public:
@@ -375,13 +393,13 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
 
         // Physical material to use for simple collision of new Houdini Assets. Encodes information about density, friction etc.
         UPROPERTY(
-	    EditAnywhere, Category = GeneratedStaticMeshSettings,
+            EditAnywhere, Category = GeneratedStaticMeshSettings,
             Meta = ( DisplayName = "Simple Collision Physical Material" ) )
         UPhysicalMaterial * PhysMaterial;
 
-	//* Default properties of the body instance
-	UPROPERTY(EditAnywhere, Category = GeneratedStaticMeshSettings, meta = ( FullyExpand = "true" ))
-	struct FBodyInstance DefaultBodyInstance;
+        //* Default properties of the body instance
+        UPROPERTY(EditAnywhere, Category = GeneratedStaticMeshSettings, meta = ( FullyExpand = "true" ))
+        struct FBodyInstance DefaultBodyInstance;
 
         //* Collision Trace behavior - by default, it will keep simple(convex)/complex(per-poly) separate for new Houdini Assets.
         UPROPERTY(
@@ -433,13 +451,13 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
 
         // Default settings when using new Houdini Asset mesh for instanced foliage.
         UPROPERTY(
-	    EditAnywhere, AdvancedDisplay, Instanced, Category = GeneratedStaticMeshSettings,
+            EditAnywhere, AdvancedDisplay, Instanced, Category = GeneratedStaticMeshSettings,
             Meta = ( DisplayName = "Foliage Default Settings" ) )
         UFoliageType_InstancedStaticMesh * FoliageDefaultSettings;
 
         // Array of user data stored with the new Houdini Asset.
         UPROPERTY(
-	    EditAnywhere, AdvancedDisplay, Instanced, Category = GeneratedStaticMeshSettings,
+            EditAnywhere, AdvancedDisplay, Instanced, Category = GeneratedStaticMeshSettings,
             Meta = ( DisplayName = "Asset User Data" ) )
         TArray< UAssetUserData * > AssetUserData;
 
@@ -507,8 +525,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
         UPROPERTY( GlobalConfig, EditAnywhere, Category = CustomHoudiniTools )
         bool bHidePlacementModeHoudiniTools;
 
-        UPROPERTY( GlobalConfig, EditAnywhere, Category = CustomHoudiniTools )
-        TArray<FHoudiniToolDescription> CustomHoudiniTools;
+        UPROPERTY(GlobalConfig, EditAnywhere, Category = CustomHoudiniTools)
+        TArray<FHoudiniToolDirectory> CustomHoudiniToolsLocation;
 
     /** Arguments for HAPI_Initialize */
     public:
