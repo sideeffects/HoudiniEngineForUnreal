@@ -32,8 +32,8 @@
 
 /*
 
-    Houdini Version: 17.0.348
-    Houdini Engine Version: 3.2.27
+    Houdini Version: 17.0.360
+    Houdini Engine Version: 3.2.28
     Unreal Version: 4.20.2
 
 */
@@ -46,7 +46,7 @@ public class HoudiniEngineRuntime : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "17.0.348";
+        string HoudiniVersion = "17.0.360";
         bool bIsRelease = true;
         string HFSPath = "";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Side Effects Software";
