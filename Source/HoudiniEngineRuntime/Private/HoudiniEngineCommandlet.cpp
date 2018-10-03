@@ -57,26 +57,26 @@ int32 UHoudiniEngineConvertBgeoCommandlet::Main( const FString& Params )
     // The first param is the Commandlet name, so ignore that
     if ( ( ArgumentsArray.Num() < 2 ) || ( ArgumentsArray.Num() > 3 ) )
     {
-	// Invalid number of arguments, Print usage and error out
-	HOUDINI_LOG_MESSAGE( TEXT( "HoudiniEngineConvertBgeoCommandlet" ) );
-	HOUDINI_LOG_MESSAGE( TEXT( "Converts a .bgeo file to Static Meshes .uasset files." ) );
+        // Invalid number of arguments, Print usage and error out
+        HOUDINI_LOG_MESSAGE( TEXT( "HoudiniEngineConvertBgeoCommandlet" ) );
+        HOUDINI_LOG_MESSAGE( TEXT( "Converts a .bgeo file to Static Meshes .uasset files." ) );
 
-	HOUDINI_LOG_MESSAGE( TEXT( "Usage: -run=HoudiniEngineTest BGEO_IN UASSET_OUT" ) );
+        HOUDINI_LOG_MESSAGE( TEXT( "Usage: -run=HoudiniEngineTest BGEO_IN UASSET_OUT" ) );
 
-	HOUDINI_LOG_MESSAGE( TEXT( "BGEO_IN" ) );
-	HOUDINI_LOG_MESSAGE( TEXT( "\tPath to the the source .bgeo file to convert." ) );
+        HOUDINI_LOG_MESSAGE( TEXT( "BGEO_IN" ) );
+        HOUDINI_LOG_MESSAGE( TEXT( "\tPath to the the source .bgeo file to convert." ) );
 
-	HOUDINI_LOG_MESSAGE( TEXT( "UASSET_OUT (optional)" ) );
-	HOUDINI_LOG_MESSAGE( TEXT( "\tPath for the converted uasset file. If not present, the directory/name of the bgeo file will be used" ) );
+        HOUDINI_LOG_MESSAGE( TEXT( "UASSET_OUT (optional)" ) );
+        HOUDINI_LOG_MESSAGE( TEXT( "\tPath for the converted uasset file. If not present, the directory/name of the bgeo file will be used" ) );
 
-	return 1;
+        return 1;
     }
 
     FString BGEOFilePath = ArgumentsArray[ 1 ];
     FString UASSETFilePath = ArgumentsArray.Num() > 2 ? ArgumentsArray[ 2 ] : FString();
 
     if ( !FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( BGEOFilePath, UASSETFilePath ) )
-	return 1;
+        return 1;
 
     return 0;
 }
@@ -102,22 +102,22 @@ int32 UHoudiniEngineConvertBgeoDirCommandlet::Main(const FString& Params)
     // The first param is the Commandlet name, so ignore that
     if ( (ArgumentsArray.Num() < 1 ) || ( ArgumentsArray.Num() > 3 ) )
     {
-	// Invalid number of arguments, Print usage and error out
-	HOUDINI_LOG_MESSAGE(TEXT("HoudiniEngineTestCommandlet:"));
-	HOUDINI_LOG_MESSAGE(TEXT("Converts .bgeo files in directory to Static Meshes .uasset files in a Out directory."));
+        // Invalid number of arguments, Print usage and error out
+        HOUDINI_LOG_MESSAGE(TEXT("HoudiniEngineTestCommandlet:"));
+        HOUDINI_LOG_MESSAGE(TEXT("Converts .bgeo files in directory to Static Meshes .uasset files in a Out directory."));
 
-	HOUDINI_LOG_MESSAGE(TEXT("Usage: -run=HoudiniEngineTest BGEO_DIR_IN UASSET_DIR_OUT TIMEOUT"));
+        HOUDINI_LOG_MESSAGE(TEXT("Usage: -run=HoudiniEngineTest BGEO_DIR_IN UASSET_DIR_OUT TIMEOUT"));
 
-	HOUDINI_LOG_MESSAGE(TEXT("BGEO_DIR_IN"));
-	HOUDINI_LOG_MESSAGE(TEXT("\tPath to a directory containing the .bgeo files to convert."));
+        HOUDINI_LOG_MESSAGE(TEXT("BGEO_DIR_IN"));
+        HOUDINI_LOG_MESSAGE(TEXT("\tPath to a directory containing the .bgeo files to convert."));
 
-	HOUDINI_LOG_MESSAGE(TEXT("UASSET_DIR_OUT (optional)"));
-	HOUDINI_LOG_MESSAGE(TEXT("\tPath for the converted uasset files."));
+        HOUDINI_LOG_MESSAGE(TEXT("UASSET_DIR_OUT (optional)"));
+        HOUDINI_LOG_MESSAGE(TEXT("\tPath for the converted uasset files."));
 
-	HOUDINI_LOG_MESSAGE(TEXT("TIMEOUT (optional)"));
-	HOUDINI_LOG_MESSAGE(TEXT("\tAfter this amount of time of inactivity, the commandlet will exit."));
+        HOUDINI_LOG_MESSAGE(TEXT("TIMEOUT (optional)"));
+        HOUDINI_LOG_MESSAGE(TEXT("\tAfter this amount of time of inactivity, the commandlet will exit."));
 
-	return 1;
+        return 1;
     }
 
     FString BGEODirPath = ArgumentsArray[ 0 ];
@@ -125,22 +125,22 @@ int32 UHoudiniEngineConvertBgeoDirCommandlet::Main(const FString& Params)
     FString InactivityTimeOutStr = ArgumentsArray.Num() > 3 ? ArgumentsArray[ 2 ] : FString();
     float InactivityTimeOut = 1000.0f;
     if ( InactivityTimeOutStr.IsNumeric() )
-	InactivityTimeOut = FCString::Atof( *InactivityTimeOutStr );
+        InactivityTimeOut = FCString::Atof( *InactivityTimeOutStr );
 
     // First check the source directory is valid
     if ( !FPaths::DirectoryExists( BGEODirPath ) )
     {
-	// Cant find input BGEO dir
-	HOUDINI_LOG_ERROR( TEXT( "The source BGEO directory does not exist: %s" ), *BGEODirPath );
-	return false;
+        // Cant find input BGEO dir
+        HOUDINI_LOG_ERROR( TEXT( "The source BGEO directory does not exist: %s" ), *BGEODirPath );
+        return false;
     }
 
     // Then the output directory
     if ( !FPaths::DirectoryExists( UASSETDirPath ) )
     {
-	// Cant find Output dir
-	HOUDINI_LOG_ERROR( TEXT( "The output UASSET directory does not exist: %s" ), *UASSETDirPath );
-	return false;
+        // Cant find Output dir
+        HOUDINI_LOG_ERROR( TEXT( "The output UASSET directory does not exist: %s" ), *UASSETDirPath );
+        return false;
     }
 
     HOUDINI_LOG_MESSAGE( TEXT( "Looking for .bgeo files in %s ." ), *BGEODirPath );
@@ -158,8 +158,8 @@ int32 UHoudiniEngineConvertBgeoDirCommandlet::Main(const FString& Params)
 
     if ( CrushFiles )
     {
-	// Nuke everything in our temporary bake folder
-	FFileManagerGeneric::Get().DeleteDirectory( *LocalAutoBakeFolder, false, true );
+        // Nuke everything in our temporary bake folder
+        FFileManagerGeneric::Get().DeleteDirectory( *LocalAutoBakeFolder, false, true );
     }
 
     // Map tracking the number of failures for a given file
@@ -172,77 +172,77 @@ int32 UHoudiniEngineConvertBgeoDirCommandlet::Main(const FString& Params)
     float currentInactivity = 0.0f;    
     while ( KeepLookingForFile )
     {
-	// List all the .bgeo files in the directory
-	TArray< FString > CurrentFileList;
-	FFileManagerGeneric::Get().FindFiles( CurrentFileList, *BGEODirPath, TEXT( ".bgeo" ) );
+        // List all the .bgeo files in the directory
+        TArray< FString > CurrentFileList;
+        FFileManagerGeneric::Get().FindFiles( CurrentFileList, *BGEODirPath, TEXT( ".bgeo" ) );
 
-	// Convert the files we found
-	int32 ConversionCount = 0;
-	for ( int32 n = CurrentFileList.Num() - 1; n >= 0; n-- )
-	{
-	    FString CurrentFile = CurrentFileList[ n ];
+        // Convert the files we found
+        int32 ConversionCount = 0;
+        for ( int32 n = CurrentFileList.Num() - 1; n >= 0; n-- )
+        {
+            FString CurrentFile = CurrentFileList[ n ];
 
-	    // Skip undeleted files
-	    if ( UndeletedFileMap.Contains( CurrentFile ) )
-		continue;
+            // Skip undeleted files
+            if ( UndeletedFileMap.Contains( CurrentFile ) )
+                continue;
 
-	    // Skip failing files
-	    if ( FailingFileMap.Contains(CurrentFile) && FailingFileMap[ CurrentFile ] >= NumConvertAttempts )
-		continue;
+            // Skip failing files
+            if ( FailingFileMap.Contains(CurrentFile) && FailingFileMap[ CurrentFile ] >= NumConvertAttempts )
+                continue;
 
-	    // Build the in / out file names
-	    FString BGEOFile = BGEODirPath + TEXT("/") + CurrentFileList[ n ];
-	    FString UASSETFile = UASSETDirPath + TEXT("/") + CurrentFileList[ n ].LeftChop(5) + TEXT(".uasset");
+            // Build the in / out file names
+            FString BGEOFile = BGEODirPath + TEXT("/") + CurrentFileList[ n ];
+            FString UASSETFile = UASSETDirPath + TEXT("/") + CurrentFileList[ n ].LeftChop(5) + TEXT(".uasset");
 
-	    if ( CrushFiles )
-	    {
-		if ( FFileManagerGeneric::Get().FileExists( *UASSETFile ) )
-		{
-		    // Erase the file if it already exists!
-		    FFileManagerGeneric::Get().Delete( *UASSETFile, false, true, true );
-		}
-	    }
+            if ( CrushFiles )
+            {
+                if ( FFileManagerGeneric::Get().FileExists( *UASSETFile ) )
+                {
+                    // Erase the file if it already exists!
+                    FFileManagerGeneric::Get().Delete( *UASSETFile, false, true, true );
+                }
+            }
 
-	    // Attempting to convert the file
-	    ConversionCount++;
-	    if ( !FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( BGEOFile, UASSETFile ) )
-	    {
-		if ( FailingFileMap.Contains( CurrentFile ) )
-		    FailingFileMap[ CurrentFile ]++;
-		else
-		    FailingFileMap.Add( CurrentFile, 1 );
+            // Attempting to convert the file
+            ConversionCount++;
+            if ( !FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( BGEOFile, UASSETFile ) )
+            {
+                if ( FailingFileMap.Contains( CurrentFile ) )
+                    FailingFileMap[ CurrentFile ]++;
+                else
+                    FailingFileMap.Add( CurrentFile, 1 );
 
-		continue;
-	    }
+                continue;
+            }
 
-	    HOUDINI_LOG_MESSAGE(TEXT("Successfully converted BGEO file: %s to %s"), *BGEOFile, *UASSETFile );
+            HOUDINI_LOG_MESSAGE(TEXT("Successfully converted BGEO file: %s to %s"), *BGEOFile, *UASSETFile );
 
-	    // Delete the source BGEO
-	    if ( !DeleteFileAfterConversion || !FFileManagerGeneric::Get().Delete( *BGEOFile, false, true, true ) )
-		UndeletedFileMap.Add( CurrentFile );
-	}
+            // Delete the source BGEO
+            if ( !DeleteFileAfterConversion || !FFileManagerGeneric::Get().Delete( *BGEOFile, false, true, true ) )
+                UndeletedFileMap.Add( CurrentFile );
+        }
 
-	// Update the inactivity counter
-	if ( ConversionCount == 0 )
-	{
-	    currentInactivity += SleepTime;
-	    if ( (InactivityTimeOut > 0.0f ) && ( currentInactivity > InactivityTimeOut ) )
-		KeepLookingForFile = false;
-	}
-	else
-	{
-	    // reset the inactivity counter
-	    currentInactivity = 0.0f;
-	}
+        // Update the inactivity counter
+        if ( ConversionCount == 0 )
+        {
+            currentInactivity += SleepTime;
+            if ( (InactivityTimeOut > 0.0f ) && ( currentInactivity > InactivityTimeOut ) )
+                KeepLookingForFile = false;
+        }
+        else
+        {
+            // reset the inactivity counter
+            currentInactivity = 0.0f;
+        }
 
-	if ( CrushFiles )
-	{
-	    // Nuke everything in our temporary bake folder
-	    FFileManagerGeneric::Get().DeleteDirectory(*LocalAutoBakeFolder, false, true);
-	}
+        if ( CrushFiles )
+        {
+            // Nuke everything in our temporary bake folder
+            FFileManagerGeneric::Get().DeleteDirectory(*LocalAutoBakeFolder, false, true);
+        }
 
-	// Go to bed for a while...
-	FPlatformProcess::Sleep( SleepTime );
+        // Go to bed for a while...
+        FPlatformProcess::Sleep( SleepTime );
     }
 
     return 0;
@@ -259,9 +259,9 @@ bool FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( const FString& InBGEOFile
     FString BGEOFilePath = InBGEOFilePath;
     if ( !FPaths::FileExists( BGEOFilePath ) )
     {
-	// Cant find BGEO file
-	HOUDINI_LOG_ERROR( TEXT( "BGEO file %s could not be found!" ), *BGEOFilePath );
-	return false;
+        // Cant find BGEO file
+        HOUDINI_LOG_ERROR( TEXT( "BGEO file %s could not be found!" ), *BGEOFilePath );
+        return false;
     }
 
     // Make sure we're using absolute path!
@@ -271,13 +271,13 @@ bool FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( const FString& InBGEOFile
     FString BGEOPath, BGEOFileName, BGEOExtension;
     FPaths::Split( BGEOFilePath, BGEOPath, BGEOFileName, BGEOExtension );
     if ( BGEOExtension.IsEmpty() )
-	BGEOExtension = TEXT("bgeo");
+        BGEOExtension = TEXT("bgeo");
 
     if ( BGEOExtension.Compare( TEXT("bgeo"), ESearchCase::IgnoreCase ) != 0 )
     {
-	// Not a bgeo file!
-	HOUDINI_LOG_ERROR( TEXT( "First argument %s is not a .bgeo FILE!"), *BGEOFilePath );
-	return false;
+        // Not a bgeo file!
+        HOUDINI_LOG_ERROR( TEXT( "First argument %s is not a .bgeo FILE!"), *BGEOFilePath );
+        return false;
     }
 
     BGEOFilePath = BGEOPath + TEXT("/") + BGEOFileName + TEXT(".") + BGEOExtension;
@@ -289,17 +289,17 @@ bool FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( const FString& InBGEOFile
     FString UASSETFilePath = OutUAssetFilePath;
     if ( UASSETFilePath.IsEmpty() )
     {
-	// No OUT parameter, build it from the bgeo
-	UASSETFilePath = BGEOPath + TEXT("/") + BGEOFileName + TEXT(".uasset");
-	HOUDINI_LOG_MESSAGE( TEXT( "nUASSET_OUT argument missing! Will use %s.") , *UASSETFilePath);
+        // No OUT parameter, build it from the bgeo
+        UASSETFilePath = BGEOPath + TEXT("/") + BGEOFileName + TEXT(".uasset");
+        HOUDINI_LOG_MESSAGE( TEXT( "UASSET_OUT argument missing! Will use %s.") , *UASSETFilePath);
     }
 
     // Make sure we're using absolute path!
     UASSETFilePath = FPaths::ConvertRelativePathToFull( UASSETFilePath );
     if ( FPaths::FileExists( UASSETFilePath ) )
     {
-	// UAsset already exists, overwrite?
-	HOUDINI_LOG_MESSAGE( TEXT( "UASSET file : %s already exists, overwriting!"), *UASSETFilePath );
+        // UAsset already exists, overwrite?
+        HOUDINI_LOG_MESSAGE( TEXT( "UASSET file : %s already exists, overwriting!"), *UASSETFilePath );
     }
 
     // Split the file path
@@ -314,11 +314,11 @@ bool FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( const FString& InBGEOFile
     // Saves a debug HIP file through HEngine and returns an error (in case of HAPI/HEngine issue).
     auto SaveDebugHipFileAndReturnError = [&]()
     {
-	FString HipFileName = BGEOPath + BGEOFileName + TEXT(".hip");
-	std::string HipFileNameStr = TCHAR_TO_ANSI(*HipFileName);
-	FHoudiniApi::SaveHIPFile(FHoudiniEngine::Get().GetSession(), HipFileNameStr.c_str(), false);
+        FString HipFileName = BGEOPath + BGEOFileName + TEXT(".hip");
+        std::string HipFileNameStr = TCHAR_TO_ANSI(*HipFileName);
+        FHoudiniApi::SaveHIPFile(FHoudiniEngine::Get().GetSession(), HipFileNameStr.c_str(), false);
 
-	return false;
+        return false;
     };
 
     //---------------------------------------------------------------------------------------------
@@ -327,7 +327,7 @@ bool FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( const FString& InBGEOFile
 
     HAPI_NodeId NodeId = -1;
     if ( !FHoudiniCommandletUtils::LoadBGEOFileInHAPI( BGEOFilePath, NodeId) )
-	return SaveDebugHipFileAndReturnError();
+        return SaveDebugHipFileAndReturnError();
 
     //---------------------------------------------------------------------------------------------
     // 4. Create a package for the result
@@ -338,27 +338,27 @@ bool FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( const FString& InBGEOFile
     UPackage * Package = FindPackage( nullptr, *PackageFilePath );
     if ( !Package )    
     {
-	// Create actual package.
-	Package = CreatePackage( nullptr, *PackageFilePath );
-	if ( !Package )
-	{
-	    // Couldn't create the package
-	    HOUDINI_LOG_ERROR( TEXT( "Could not create local Package for the UASSET !!!" ) );
-	    return false;
-	}
+        // Create actual package.
+        Package = CreatePackage( nullptr, *PackageFilePath );
+        if ( !Package )
+        {
+            // Couldn't create the package
+            HOUDINI_LOG_ERROR( TEXT( "Could not create local Package for the UASSET !!!" ) );
+            return false;
+        }
     }
     else
     {
-	// Package already exists, overwrite?
-	HOUDINI_LOG_MESSAGE( TEXT( "Package %s already exists, overwriting!" ), *PackageFilePath );
+        // Package already exists, overwrite?
+        HOUDINI_LOG_MESSAGE( TEXT( "Package %s already exists, overwriting!" ), *PackageFilePath );
     }
 
     // ERROR Lambda
     // Tries to delete the local package and creates an error ( in case of UE4/Package error)
     auto DeleteLocalPackageAndReturnError = [&]()
     {
-	FFileManagerGeneric::Get().Delete( *PackageFilePath, false, true, true );
-	return SaveDebugHipFileAndReturnError();
+        FFileManagerGeneric::Get().Delete( *PackageFilePath, false, true, true );
+        return SaveDebugHipFileAndReturnError();
     };
 
     //---------------------------------------------------------------------------------------------
@@ -367,11 +367,11 @@ bool FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( const FString& InBGEOFile
 
     TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesOut;
     if ( !FHoudiniCommandletUtils::CreateStaticMeshes(
-	BGEOFileName, NodeId, Package, StaticMeshesOut ) )
+        BGEOFileName, NodeId, Package, StaticMeshesOut ) )
     {
-	// There was some cook errors
-	HOUDINI_LOG_ERROR(TEXT("Could not create Static Meshes from the bgeo!!!"));
-	return SaveDebugHipFileAndReturnError();
+        // There was some cook errors
+        HOUDINI_LOG_ERROR(TEXT("Could not create Static Meshes from the bgeo!!!"));
+        return SaveDebugHipFileAndReturnError();
     }
 
     //---------------------------------------------------------------------------------------------
@@ -379,7 +379,7 @@ bool FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( const FString& InBGEOFile
     //---------------------------------------------------------------------------------------------
 
     if ( !FHoudiniCommandletUtils::BakeStaticMeshesToPackage( BGEOFileName, StaticMeshesOut, Package ) )
-	return SaveDebugHipFileAndReturnError();
+        return SaveDebugHipFileAndReturnError();
 
     //---------------------------------------------------------------------------------------------
     // 7. Delete the node in Houdini
@@ -387,8 +387,8 @@ bool FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( const FString& InBGEOFile
 
     if ( HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode( FHoudiniEngine::Get().GetSession(), NodeId ) )
     {
-	// Could not delete the bgeo's file sop !
-	HOUDINI_LOG_WARNING( TEXT( "Could not delete the bgeo file sop for %s"), * BGEOFileName );
+        // Could not delete the bgeo's file sop !
+        HOUDINI_LOG_WARNING( TEXT( "Could not delete the bgeo file sop for %s"), * BGEOFileName );
     }
 
     //---------------------------------------------------------------------------------------------
@@ -401,9 +401,9 @@ bool FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( const FString& InBGEOFile
     FString LocalPackageFileName = FPackageName::LongPackageNameToFilename( PackageFilePath, FPackageName::GetAssetPackageExtension() );
     if (!UPackage::SavePackage(Package, NULL, RF_Standalone, *LocalPackageFileName, GError, nullptr, false, true, SAVE_NoError))
     {
-	// There was some cook errors
-	HOUDINI_LOG_ERROR( TEXT( "Could not save the local package %s"), *PackageFilePath );
-	return DeleteLocalPackageAndReturnError();
+        // There was some cook errors
+        HOUDINI_LOG_ERROR( TEXT( "Could not save the local package %s"), *PackageFilePath );
+        return DeleteLocalPackageAndReturnError();
     }
 
     //---------------------------------------------------------------------------------------------
@@ -413,8 +413,8 @@ bool FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( const FString& InBGEOFile
     LocalPackageFileName = FPaths::ConvertRelativePathToFull( LocalPackageFileName );
     if (!FFileManagerGeneric::Get().Move(*UASSETFilePath, *LocalPackageFileName, true, true, false, false  ) )
     {
-	HOUDINI_LOG_ERROR( TEXT("Could not move local package %s to %s"), *LocalPackageFileName, *UASSETFilePath);
-	return DeleteLocalPackageAndReturnError();
+        HOUDINI_LOG_ERROR( TEXT("Could not move local package %s to %s"), *LocalPackageFileName, *UASSETFilePath);
+        return DeleteLocalPackageAndReturnError();
     }
 #endif
     return true;
@@ -428,24 +428,24 @@ bool FHoudiniCommandletUtils::LoadBGEOFileInHAPI( const FString& InputFilePath, 
     // Check HoudiniEngine / HAPI init?
     if ( !FHoudiniEngine::IsInitialized() )
     {
-	HOUDINI_LOG_ERROR( TEXT( "Couldn't initialize HoudiniEngine!") );
-	return false;
+        HOUDINI_LOG_ERROR( TEXT( "Couldn't initialize HoudiniEngine!") );
+        return false;
     }
 
     // Create a file SOP
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
-	FHoudiniEngine::Get().GetSession(), -1,
-	"SOP/file", "bgeo", true, &NodeId ), false );
+        FHoudiniEngine::Get().GetSession(), -1,
+        "SOP/file", "bgeo", true, &NodeId ), false );
 
     // Set the file path parameter
     HAPI_ParmId ParmId = -1;
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParmIdFromName(
-	FHoudiniEngine::Get().GetSession(),
-	NodeId, "file", &ParmId), false );
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, "file", &ParmId), false );
 
     std::string ConvertedString = TCHAR_TO_UTF8( *InputFilePath );
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmStringValue(
-	FHoudiniEngine::Get().GetSession(), NodeId, ConvertedString.c_str(), ParmId, 0 ), false );
+        FHoudiniEngine::Get().GetSession(), NodeId, ConvertedString.c_str(), ParmId, 0 ), false );
 
     // Cook the node    
     HAPI_CookOptions CookOptions;
@@ -460,30 +460,30 @@ bool FHoudiniCommandletUtils::LoadBGEOFileInHAPI( const FString& InputFilePath, 
     CookOptions.splitPointsByVertexAttributes = false;
     CookOptions.packedPrimInstancingMode = HAPI_PACKEDPRIM_INSTANCING_MODE_FLAT;
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CookNode(
-	FHoudiniEngine::Get().GetSession(), NodeId, &CookOptions ), false );
+        FHoudiniEngine::Get().GetSession(), NodeId, &CookOptions ), false );
 
     // Wait for the cook to finish
     int status = HAPI_STATE_MAX_READY_STATE + 1;
     while ( status > HAPI_STATE_MAX_READY_STATE )
     {
-	// Retrieve the status
-	HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetStatus(
-	    FHoudiniEngine::Get().GetSession(),
-	    HAPI_STATUS_COOK_STATE, &status ), false );
+        // Retrieve the status
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetStatus(
+            FHoudiniEngine::Get().GetSession(),
+            HAPI_STATUS_COOK_STATE, &status ), false );
 
-	FString StatusString = FHoudiniEngineUtils::GetStatusString( HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS );
-	HOUDINI_LOG_MESSAGE( TEXT( "Still Cooking, current status: %s." ), *StatusString );
+        FString StatusString = FHoudiniEngineUtils::GetStatusString( HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS );
+        HOUDINI_LOG_MESSAGE( TEXT( "Still Cooking, current status: %s." ), *StatusString );
 
-	// Go to bed..
-	if ( status > HAPI_STATE_MAX_READY_STATE )
-	    FPlatformProcess::Sleep( 0.5f );
+        // Go to bed..
+        if ( status > HAPI_STATE_MAX_READY_STATE )
+            FPlatformProcess::Sleep( 0.5f );
     }
 
     if ( status != HAPI_STATE_READY )
     {
-	// There was some cook errors
-	HOUDINI_LOG_ERROR( TEXT("Finished Cooking with errors!") );
-	return false;
+        // There was some cook errors
+        HOUDINI_LOG_ERROR( TEXT("Finished Cooking with errors!") );
+        return false;
     }
 
     HOUDINI_LOG_MESSAGE( TEXT( "Finished Cooking!" ) );
@@ -510,14 +510,14 @@ bool FHoudiniCommandletUtils::CreateStaticMeshes(
 
     // Create the Static Meshes from the cook result
     bool ProcessResult = FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
-	NodeId, HoudiniCookParams, true, true,
-	StaticMeshesIn, StaticMeshesOut, ComponentTransform );
+        NodeId, HoudiniCookParams, true, true,
+        StaticMeshesIn, StaticMeshesOut, ComponentTransform );
 
     if ( !ProcessResult || StaticMeshesOut.Num() <= 0 )
     {
-	// There was some cook errors
-	HOUDINI_LOG_ERROR( TEXT( "Could not create Static Meshes from the bgeo!!!" ) );
-	return false;
+        // There was some cook errors
+        HOUDINI_LOG_ERROR( TEXT( "Could not create Static Meshes from the bgeo!!!" ) );
+        return false;
     }
 
     return true;
@@ -529,36 +529,36 @@ bool FHoudiniCommandletUtils::BakeStaticMeshesToPackage(
     bool BakedSomething = false;
     for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshes ); Iter; ++Iter )
     {
-	// Get the Static Mesh
-	const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
-	UStaticMesh* CurrentSM = Iter.Value();
-	if ( !CurrentSM )
-	    continue;
+        // Get the Static Mesh
+        const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
+        UStaticMesh* CurrentSM = Iter.Value();
+        if ( !CurrentSM )
+            continue;
 
-	// Build a name for this Static Mesh	
-	FName StaticMeshName = FName( *( InputName + CurrentSM->GetName() ) );
+        // Build a name for this Static Mesh
+        FName StaticMeshName = FName( *( InputName + CurrentSM->GetName() ) );
 
-	// Duplicate the Static MEsh to copy it to the package.
-	UStaticMesh* DuplicatedStaticMesh = DuplicateObject< UStaticMesh >( CurrentSM, OutPackage, StaticMeshName );
-	if ( !DuplicatedStaticMesh )
-	    continue;
+        // Duplicate the Static MEsh to copy it to the package.
+        UStaticMesh* DuplicatedStaticMesh = DuplicateObject< UStaticMesh >( CurrentSM, OutPackage, StaticMeshName );
+        if ( !DuplicatedStaticMesh )
+            continue;
 
-	// Set the proper flags on the duplicated mesh
-	DuplicatedStaticMesh->SetFlags( RF_Public | RF_Standalone );
+        // Set the proper flags on the duplicated mesh
+        DuplicatedStaticMesh->SetFlags( RF_Public | RF_Standalone );
 
-	// Notify the registry that we have created a new duplicate mesh.
-	FAssetRegistryModule::AssetCreated( DuplicatedStaticMesh );
+        // Notify the registry that we have created a new duplicate mesh.
+        FAssetRegistryModule::AssetCreated( DuplicatedStaticMesh );
 
-	// Dirty the static mesh package.
-	DuplicatedStaticMesh->MarkPackageDirty();
-	BakedSomething = true;
+        // Dirty the static mesh package.
+        DuplicatedStaticMesh->MarkPackageDirty();
+        BakedSomething = true;
     }
 
     if ( !BakedSomething )
     {
-	// There was some cook errors
-	HOUDINI_LOG_ERROR( TEXT( "Could not create Static Meshes from the bgeo!!!" ) );
-	return false;
+        // There was some cook errors
+        HOUDINI_LOG_ERROR( TEXT( "Could not create Static Meshes from the bgeo!!!" ) );
+        return false;
     }
 
     return true;

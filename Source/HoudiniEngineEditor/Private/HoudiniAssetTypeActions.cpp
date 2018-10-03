@@ -354,7 +354,7 @@ FHoudiniAssetTypeActions::ExecuteApplyAssetToSelection( TArray< TWeakObjectPtr< 
 
     // Creating a temporary tool for the selected asset
     TSoftObjectPtr<UHoudiniAsset> HoudiniAssetPtr( HoudiniAsset );
-    FHoudiniTool HoudiniTool( HoudiniAssetPtr, FText::FromString( HoudiniAsset->GetName() ), Type, EHoudiniToolSelectionType::HTOOL_SELECTION_WORLD_ONLY, FText(), NULL, FString() );
+    FHoudiniTool HoudiniTool( HoudiniAssetPtr, FText::FromString( HoudiniAsset->GetName() ), Type, EHoudiniToolSelectionType::HTOOL_SELECTION_WORLD_ONLY, FText(), NULL, FString(), false );
 
     SHoudiniToolPalette::InstantiateHoudiniTool( &HoudiniTool );
 }

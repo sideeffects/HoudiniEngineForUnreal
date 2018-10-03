@@ -37,6 +37,16 @@ class STableViewBase;
 struct FSlateBrush;
 enum class ECheckBoxState : uint8;
 
+/** The list view mode of the asset view */
+class SHoudiniToolListView : public SListView< TSharedPtr<FHoudiniTool> >
+{
+    public:
+        virtual bool SupportsKeyboardFocus() const override { return true; }
+        virtual FReply OnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override
+        {
+            return FReply::Unhandled();
+        }
+};
 
 // Class describing the various properties for a Houdini Tool
 // adding a UClass was necessary to use the PropertyEditor window
@@ -71,9 +81,27 @@ class UHoudiniToolProperties : public UObject
         UPROPERTY( Category = Tool, EditAnywhere )
         TSoftObjectPtr < class UHoudiniAsset > HoudiniAsset;
 
+        /** Houdini Asset path **/
+        UPROPERTY(Category = Tool, EditAnywhere)
+        FFilePath AssetPath;
+
         /** Clicking on help icon will bring up this URL */
         UPROPERTY( Category = Tool, EditAnywhere )
         FString HelpURL;
+};
+
+// Class describing a Houdini Tool directory
+// adding a UClass was necessary to use the PropertyEditor window
+UCLASS(EditInlineNew)
+class UHoudiniToolDirectoryProperties : public UObject
+{
+    GENERATED_UCLASS_BODY()
+
+    public:
+
+        /** Custom Houdini Tool Directories **/
+        UPROPERTY(EditAnywhere, Category = CustomHoudiniTools)
+        TArray<FHoudiniToolDirectory> CustomHoudiniToolsDirectories;
 };
 
 class SHoudiniToolPalette : public SCompoundWidget, public FNotifyHook
@@ -95,10 +123,17 @@ public:
 
     bool IsActiveHoudiniToolEditable();
 
+    FText OnGetSelectedDirText() const;
+
 protected:
 
     /** Remove the current tool from the tool list **/
     void RemoveActiveTool();
+
+    FReply OnEditToolDirectories();
+
+    /** Handler for closing the EditToolDirectory window**/
+    void OnEditToolDirectoriesWindowClosed(const TSharedRef<SWindow>& InWindow, TArray<UObject *> InObjects);
 
 private:
 
@@ -108,32 +143,42 @@ private:
     /** Delegate for when the list view selection changes */
     void OnSelectionChanged( TSharedPtr<FHoudiniTool> BspBuilder, ESelectInfo::Type SelectionType );
 
+    void OnDirectoryChange(const FString& NewChoice);
+
     /** Begin dragging a list widget */
-   FReply OnDraggingListViewWidget( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
+    FReply OnDraggingListViewWidget( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 
-   virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
+    virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
 
-   /** Handler for double clicking on a Houdini tool **/
-   void OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniTool> ListItem );
+    /** Handler for double clicking on a Houdini tool **/
+    void OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniTool> ListItem );
 
-   /** Handler for the right click context menu on a Houdini tool **/
-   TSharedPtr< SWidget > ConstructHoudiniToolContextMenu();
+    /** Handler for the right click context menu on a Houdini tool **/
+    TSharedPtr< SWidget > ConstructHoudiniToolContextMenu();
 
-   /** Shows a Property Window for editing the properties of new HoudiniTools**/
-   void ShowAddHoudiniToolWindow( const TArray< UHoudiniAsset *>& HoudiniAssets );
+    /** Shows a Property Window for editing the properties of new HoudiniTools**/
+    void ShowAddHoudiniToolWindow( const TArray< UHoudiniAsset *>& HoudiniAssets );
 
-   /** Handler for closing the AddHoudiniTools window**/
-   void OnAddHoudiniToolWindowClosed(const TSharedRef<SWindow>& InWindow, TArray<UObject *> InObjects);
+    /** Handler for closing the AddHoudiniTools window**/
+    void OnAddHoudiniToolWindowClosed(const TSharedRef<SWindow>& InWindow, TArray<UObject *> InObjects);
 
-   /** Shows a Property Window for editing the properties of new HoudiniTools**/
-   void EditActiveHoudiniTool();
+    /** Shows a Property Window for editing the properties of new HoudiniTools**/
+    void EditActiveHoudiniTool();
 
-   /** Handler for closing the AddHoudiniTools window**/
-   void OnEditHoudiniToolWindowClosed(const TSharedRef<SWindow>& InWindow, TArray<UObject *> InObjects);
+    /** Handler for closing the AddHoudiniTools window**/
+    void OnEditHoudiniToolWindowClosed(const TSharedRef<SWindow>& InWindow, TArray<UObject *> InObjects);
 
-   TSharedRef<SWindow> CreateFloatingDetailsView( const TArray< UObject* >& InObjects );
+    TSharedRef<SWindow> CreateFloatingDetailsView( const TArray< UObject* >& InObjects );
+
+    void UpdateHoudiniToolDirectories();
 
 private:
     TSharedPtr<FHoudiniTool> ActiveTool;
 
+    TArray< TSharedPtr < FString > > HoudiniToolDirArray;
+
+    FString CurrentHoudiniToolDir;
+
+    /** Holds the tools list view. */
+    TSharedPtr<SHoudiniToolListView> HoudiniToolListView;
 };
