@@ -42,11 +42,27 @@ struct FHoudiniToolDescription;
 
 struct FHoudiniTool
 {
+    FHoudiniTool()
+        : HoudiniAsset( nullptr)
+        , Name()
+        , ToolTipText()
+        , Icon()
+        , HelpURL()
+        , Type(EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE)
+        , DefaultTool(false)
+        , SelectionType(EHoudiniToolSelectionType::HTOOL_SELECTION_ALL)
+        , SourceAssetPath()
+        , ToolDirectory()
+        , JSONFile()
+    {
+    }
+
     FHoudiniTool(
         TSoftObjectPtr < class UHoudiniAsset > InHoudiniAsset, const FText& InName,
         const EHoudiniToolType& InType, const EHoudiniToolSelectionType& InSelType,
         const FText& InToolTipText, const FSlateBrush* InIcon, const FString& InHelpURL,
-        const bool& isDefault )
+        const bool& isDefault, const FFilePath& InAssetPath, const FHoudiniToolDirectory& InToolDirectory,
+        const FString& InJSONFile )
         : HoudiniAsset( InHoudiniAsset )
         , Name( InName )
         , ToolTipText( InToolTipText )
@@ -55,8 +71,13 @@ struct FHoudiniTool
         , Type( InType )
         , DefaultTool( isDefault )
         , SelectionType( InSelType )
+        , SourceAssetPath( InAssetPath )
+        , ToolDirectory( InToolDirectory )
+        , JSONFile( InJSONFile )
     {
     }
+
+    /** The Houdini Asset used by the tool **/ 
     TSoftObjectPtr < class UHoudiniAsset > HoudiniAsset;
 
     /** The name to be displayed */
@@ -81,7 +102,16 @@ struct FHoudiniTool
     EHoudiniToolSelectionType SelectionType;
 
     /** Path to the Asset used **/
-    FString AssetPath;
+    FFilePath SourceAssetPath;
+
+    /** Directory containing the tool **/
+    FHoudiniToolDirectory ToolDirectory;
+
+    /** Name of the JSON containing the tool's description **/
+    FString JSONFile;
+
+    /** Returns the file path to the JSOn file containing the tool's description **/
+    FString GetJSonFilePath() { return ToolDirectory.Path.Path / JSONFile; };
 };
 
 class FHoudiniEngineStyle
@@ -200,15 +230,14 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
 
         /** Reads the Houdini Tool Description from a JSON file **/
         bool GetHoudiniToolDescriptionFromJSON(
-            const FString& JsonFilePath, FHoudiniToolDescription& HoudiniToolDesc );
+            const FString& JsonFilePath,
+            FString& OutName, EHoudiniToolType& OutType, EHoudiniToolSelectionType& OutSelectionType,
+            FString& OutToolTip, FFilePath& OutIconPath, FFilePath& OutAssetPath, FString& OutHelpURL );
 
         bool WriteJSONFromHoudiniTool(const FHoudiniTool& Tool);
 
         /** Returns the HoudiniTools array  **/
         TArray< TSharedPtr<FHoudiniTool> >* GetHoudiniToolsForWrite() { return &HoudiniTools; }
-
-        /** Adds a new Houdini Tools to the array **/
-        void AddHoudiniTool( const FHoudiniTool& NewTool );
 
         /** Menu action to pause cooking for all Houdini Assets  **/
         void PauseAssetCooking();
@@ -249,8 +278,11 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Rebuild the editor's Houdini Tool list for a directory **/
         void UpdateHoudiniToolList(const FHoudiniToolDirectory& HoudiniToolsDirectory, const bool& isDefault );
 
+        /** Return all the directories where we should look for houdini tools**/
+        void GetAllHoudiniToolDirectories(TArray<FHoudiniToolDirectory>& HoudiniToolsDirectoryArray) const;
+
         /** Return the directories where we should look for houdini tools**/
-        void GetHoudiniToolDirectories(TArray<FHoudiniToolDirectory>& HoudiniToolsDirectoryArray) const;
+        void GetHoudiniToolDirectories(const int32& SelectedIndex, TArray<FHoudiniToolDirectory>& HoudiniToolsDirectoryArray) const;
 
     protected:
 
@@ -308,7 +340,7 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
 
         TSharedPtr<class FUICommandList> HEngineCommands;
 
-        FDelegateHandle LevelViewportExtenderHandle;	
+        FDelegateHandle LevelViewportExtenderHandle;
 };
 
 
