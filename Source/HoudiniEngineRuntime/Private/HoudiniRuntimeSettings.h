@@ -106,56 +106,32 @@ enum class EHoudiniToolSelectionType : uint8
     HTOOL_SELECTION_CB_ONLY UMETA( DisplayName = "Content browser selection only" )
 };
 
-USTRUCT( BlueprintType )
-struct FHoudiniToolDescription
-{
-    GENERATED_USTRUCT_BODY()
-
-    /** Name of the tool */
-    UPROPERTY(Category=Tool, EditAnywhere)
-    FString Name;
-
-    /** Type of the tool */
-    UPROPERTY(Category = Tool, EditAnywhere)
-    EHoudiniToolType Type;
-
-    /** Selection Type of the tool */
-    UPROPERTY(Category = Tool, EditAnywhere)
-    EHoudiniToolSelectionType SelectionType;
-
-    /** Tooltip shown on mouse hover */
-    UPROPERTY( Category = Tool, EditAnywhere )
-    FString ToolTip;
-
-    /** Path to a custom icon */
-    UPROPERTY( Category = Tool, EditAnywhere, meta = ( FilePathFilter = "png" ) )
-    FFilePath IconPath;
-
-    /** Houdini uasset */
-    UPROPERTY(Category = Tool, EditAnywhere)
-    TSoftObjectPtr < class UHoudiniAsset > HoudiniAsset;
-
-    /** Houdini hda file path */
-    FFilePath AssetPath;
-
-    /** Clicking on help icon will bring up this URL */
-    UPROPERTY( Category = Tool, EditAnywhere )
-    FString HelpURL;
-};
-
-
 USTRUCT(BlueprintType)
 struct FHoudiniToolDirectory
 {
     GENERATED_USTRUCT_BODY()
 
     /** Name of the tool directory */
-    UPROPERTY(Category = Tool, EditAnywhere)
+    UPROPERTY(GlobalConfig, Category = Tool, EditAnywhere)
     FString Name;
 
     /** Path of the tool directory */
-    UPROPERTY(Category = Tool, EditAnywhere)
+    UPROPERTY(GlobalConfig, Category = Tool, EditAnywhere)
     FDirectoryPath Path;
+
+    /** Unique generated ID used to store the imported uasset for the tools */
+    UPROPERTY(GlobalConfig, Category = Tool, VisibleDefaultsOnly)
+    FString ContentDirID;
+
+    FORCEINLINE bool operator==(const FHoudiniToolDirectory& Other)const
+    {
+        return Name == Other.Name && Path.Path == Other.Path.Path;
+    }
+
+    FORCEINLINE bool operator!=(const FHoudiniToolDirectory& Other)const
+    {
+        return !(*this == Other);
+    }
 };
 
 UCLASS( config = Engine, defaultconfig )

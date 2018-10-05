@@ -77,12 +77,8 @@ class UHoudiniToolProperties : public UObject
         UPROPERTY( Category = Tool, EditAnywhere, meta = (FilePathFilter = "png") )
         FFilePath IconPath;
 
-        /** Houdini uasset */
-        UPROPERTY( Category = Tool, EditAnywhere )
-        TSoftObjectPtr < class UHoudiniAsset > HoudiniAsset;
-
         /** Houdini Asset path **/
-        UPROPERTY(Category = Tool, EditAnywhere)
+        UPROPERTY(Category = Tool, EditAnywhere, meta = (FilePathFilter = "hda"))
         FFilePath AssetPath;
 
         /** Clicking on help icon will bring up this URL */
@@ -130,25 +126,31 @@ protected:
     /** Remove the current tool from the tool list **/
     void RemoveActiveTool();
 
+    /** Shows a property window for editing the current Tool directory **/
     FReply OnEditToolDirectories();
 
-    /** Handler for closing the EditToolDirectory window**/
+    /** Handler for closing the EditToolDirectory window **/
     void OnEditToolDirectoriesWindowClosed(const TSharedRef<SWindow>& InWindow, TArray<UObject *> InObjects);
+
+    /** Generates default JSON files for HDA in the current Tool directory that doesnt have one **/
+    void GenerateMissingJSONFiles();
 
 private:
 
     /** Make a widget for the list view display */
     TSharedRef<ITableRow> MakeListViewWidget( TSharedPtr<struct FHoudiniTool> BspBuilder, const TSharedRef<STableViewBase>& OwnerTable );
 
+    /** Returns the index of the currently selected directory in the Editor ToolDirectoryArray **/
+    bool GetCurrentDirectoryIndex(int32& SelectedIndex) const;
+
     /** Delegate for when the list view selection changes */
     void OnSelectionChanged( TSharedPtr<FHoudiniTool> BspBuilder, ESelectInfo::Type SelectionType );
 
+    /** Delegate for when the direcory combo selection changes **/
     void OnDirectoryChange(const FString& NewChoice);
 
     /** Begin dragging a list widget */
     FReply OnDraggingListViewWidget( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
-
-    virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
 
     /** Handler for double clicking on a Houdini tool **/
     void OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniTool> ListItem );
@@ -157,20 +159,16 @@ private:
     TSharedPtr< SWidget > ConstructHoudiniToolContextMenu();
 
     /** Shows a Property Window for editing the properties of new HoudiniTools**/
-    void ShowAddHoudiniToolWindow( const TArray< UHoudiniAsset *>& HoudiniAssets );
-
-    /** Handler for closing the AddHoudiniTools window**/
-    void OnAddHoudiniToolWindowClosed(const TSharedRef<SWindow>& InWindow, TArray<UObject *> InObjects);
-
-    /** Shows a Property Window for editing the properties of new HoudiniTools**/
     void EditActiveHoudiniTool();
 
     /** Handler for closing the AddHoudiniTools window**/
-    void OnEditHoudiniToolWindowClosed(const TSharedRef<SWindow>& InWindow, TArray<UObject *> InObjects);
+    void OnEditActiveHoudiniToolWindowClosed(const TSharedRef<SWindow>& InWindow, TArray<UObject *> InObjects);
 
     TSharedRef<SWindow> CreateFloatingDetailsView( const TArray< UObject* >& InObjects );
 
     void UpdateHoudiniToolDirectories();
+
+    //void RenameToolFolder(const FString& SourcePath, const FString& NewName);
 
 private:
     TSharedPtr<FHoudiniTool> ActiveTool;
