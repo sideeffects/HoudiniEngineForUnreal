@@ -1755,12 +1755,23 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsString(
         GeoId, PartId, AttributeName, &ResultAttributeInfo,
         &StringHandles[ 0 ], 0, ResultAttributeInfo.count ) == HAPI_RESULT_SUCCESS )
     {
-        for ( int32 Idx = 0, Num = StringHandles.Num(); Idx < Num; ++Idx )
+        // Use a map to minimize the number of HAPI calls for performance!
+        TMap<int32, FString> StringHandleToStringMap;
+        for ( int32 Idx = 0; Idx < StringHandles.Num(); ++Idx )
         {
-            FString HapiString = TEXT( "" );
-            FHoudiniEngineString HoudiniEngineString( StringHandles[ Idx ] );
-            HoudiniEngineString.ToFString( HapiString );
-            AttributeData.Add( HapiString );
+            FString* FoundString = StringHandleToStringMap.Find( StringHandles[ Idx ] );
+            if ( FoundString )
+            {
+                AttributeData.Add( *FoundString );
+            }
+            else
+            {
+                FString HapiString = TEXT("");
+                FHoudiniEngineString HoudiniEngineString( StringHandles[ Idx ] );
+                HoudiniEngineString.ToFString( HapiString );
+                StringHandleToStringMap.Add( StringHandles[ Idx ], HapiString );
+                AttributeData.Add( *HapiString );
+            }
         }
 
         return true;
