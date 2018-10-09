@@ -975,12 +975,23 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsString(
         FHoudiniEngine::Get().GetSession(), GeoId, PartId, Name, &AttributeInfo,
         &StringHandles[ 0 ], 0, AttributeInfo.count ), false );
 
+    // Use a map to minimize the number of HAPI calls for performance!
+    TMap<int32, FString> StringHandleToStringMap;
     for ( int32 Idx = 0; Idx < StringHandles.Num(); ++Idx )
     {
-        FString HapiString = TEXT( "" );
-        FHoudiniEngineString HoudiniEngineString( StringHandles[ Idx ] );
-        HoudiniEngineString.ToFString( HapiString );
-        Data.Add( HapiString );
+        FString* FoundString = StringHandleToStringMap.Find( StringHandles[ Idx ] );
+        if ( FoundString )
+        {
+            Data.Add( *FoundString );
+        }
+        else
+        {
+            FString HapiString = TEXT("");
+            FHoudiniEngineString HoudiniEngineString( StringHandles[ Idx ] );
+            HoudiniEngineString.ToFString( HapiString );
+            StringHandleToStringMap.Add( StringHandles[Idx], HapiString );
+            Data.Add( *HapiString );
+        }
     }
 
     // Store the retrieved attribute information.
