@@ -1696,7 +1696,7 @@ FHoudiniEngineEditor::GetHoudiniToolDescriptionFromJSON(const FString& JsonFileP
     if ( !IsCompatible )
     {
         // The tool is not compatible with unreal, skip it
-        //HOUDINI_LOG_MESSAGE(TEXT("Skipped Houdini Tool: ") + JsonFilePath);
+        HOUDINI_LOG_MESSAGE( TEXT("Skipped Houdini Tool due to invalid target in JSON file: %s"), *JsonFilePath );
         return false;
     }
 
