@@ -30,7 +30,7 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "CoreMinimal.h"
 #include "Engine/StaticMesh.h"
-#include "HAL/PlatformFileManager.h"
+#include "HAL/PlatformFilemanager.h"
 #include "HAL/FileManagerGeneric.h"
 
 
