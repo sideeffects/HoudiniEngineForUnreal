@@ -7346,7 +7346,12 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
 
     // Attempt to load from standard Mac OS X installation.
     HoudiniLocation = FString::Printf(
-        TEXT("/Applications/Houdini/Houdini%s/Frameworks/Houdini.framework/Versions/%s/Libraries"), *HoudiniVersionString, *HoudiniVersionString );
+        TEXT("/Applications/Houdini/Houdini%s/Frameworks/Houdini.framework/Versions/Current/Libraries"), *HoudiniVersionString );
+
+    // Fallback in case the previous one doesnt exist
+    if ( !FPaths::DirectoryExists( HoudiniLocation ) )
+        HoudiniLocation = FString::Printf(
+            TEXT("/Applications/Houdini/Houdini%s/Frameworks/Houdini.framework/Versions/%s/Libraries"), *HoudiniVersionString, *HoudiniVersionString);
 
 #   elif PLATFORM_LINUX
 
