@@ -1793,7 +1793,11 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
     // Refresh the input's component from the actor
     // If the Actor is a blueprint, its component are recreated for every modification
     if ( UpdateInputOulinerArray() )
+    {
         MarkLocalChanged();
+        bStaticMeshChanged = true;
+        MarkChanged();
+    }
 
     //
     if ( bStaticMeshChanged )
