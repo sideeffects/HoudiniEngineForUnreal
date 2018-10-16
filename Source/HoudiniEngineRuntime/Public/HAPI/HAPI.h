@@ -1428,6 +1428,113 @@ HAPI_DECL HAPI_CreateInputNode( const HAPI_Session * session,
                                 HAPI_NodeId * node_id,
                                 const char * name );
 
+/// @brief  Creates the required node hierarchy needed for Heightfield inputs.
+///
+///         Note that when saving the Houdini scene using
+///         ::HAPI_SaveHIPFile() the nodes created with this
+///         method will be green and will start with the name "input".
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      parent_node_id
+///                 The parent node network's node id or -1 if the parent
+///                 network is the manager (top-level) node. In that case,
+///                 the manager must be identified by the table name in the
+///                 operator_name.
+///
+/// @param[in]      name
+///                 Give this input node a name for easy debugging.
+///                 The node's parent OBJ node and the Null SOP node will both
+///                 get this given name with "input_" prepended.
+///                 You can also pass NULL in which case the name will
+///                 be "input#" where # is some number.
+///
+/// @param[in]      xsize
+///                 size of the heightfield in X
+///
+/// @param[in]      ysize
+///                 size of the heightfield in y
+///
+/// @param[in]      voxelsize
+///                 Size of the voxel
+///
+/// @param[out]     heightfield_node_id
+///                 Newly created node id for the Heightfield node.
+///                 Use ::HAPI_GetNodeInfo() to get more information about
+///                 the node.
+///
+/// @param[out]     height_node_id
+///                 Newly created node id for the height volume.
+///                 Use ::HAPI_GetNodeInfo() to get more information about the node.
+///
+/// @param[out]     mask_node_id
+///                 Newly created node id for the mask volume.
+///                 Use ::HAPI_GetNodeInfo() to get more information about the
+///                 node.
+///
+/// @param[out]     merge_node_id
+///                 Newly created merge node id. 
+///                 The merge node can be used to connect additional input masks.
+///                 Use ::HAPI_GetNodeInfo() to get more information about the node.
+///
+HAPI_DECL HAPI_CreateHeightfieldInputNode(  const HAPI_Session * session,
+                                            HAPI_NodeId parent_node_id,
+                                            const char * name,
+                                            int xsize,
+                                            int ysize,
+                                            float voxelsize,
+                                            HAPI_NodeId * heightfield_node_id,
+                                            HAPI_NodeId * height_node_id,
+                                            HAPI_NodeId * mask_node_id,
+                                            HAPI_NodeId * merge_node_id );
+
+/// @brief  Creates a volume input node that can be used with Heightfields
+///
+///         Note that when saving the Houdini scene using
+///         ::HAPI_SaveHIPFile() the nodes created with this
+///         method will be green and will start with the name "input".
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      parent_node_id
+///                 The parent node network's node id or -1 if the parent
+///                 network is the manager (top-level) node. In that case,
+///                 the manager must be identified by the table name in the
+///                 operator_name.
+///
+/// @param[out]     new_node_id
+///                 Newly created node id for the volume.
+///                 Use ::HAPI_GetNodeInfo() to get more information about the
+///                 node.
+///
+/// @param[in]      name
+///                 The name of the volume to create.
+///                 You can also pass NULL in which case the name will
+///                 be "input#" where # is some number.
+///
+/// @param[in]      xsize
+///                 size of the heightfield in X
+///
+/// @param[in]      ysize
+///                 size of the heightfield in y
+///
+/// @param[in]      voxelsize
+///                 Size of the voxel
+///
+HAPI_DECL HAPI_CreateHeightfieldInputVolumeNode(    const HAPI_Session * session,
+                                                    HAPI_NodeId parent_node_id,
+                                                    HAPI_NodeId * new_node_id,
+                                                    const char * name,
+                                                    int xsize,
+                                                    int ysize,
+                                                    float voxelsize );
+
 /// @brief  Initiate a cook on this node. Note that this may trigger
 ///         cooks on other nodes if they are connected.
 ///
