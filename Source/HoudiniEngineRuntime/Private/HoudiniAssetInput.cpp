@@ -392,8 +392,6 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
     {
         if( bIsObjectPathParameter )
         {
-            std::string ParamNameString = TCHAR_TO_UTF8( *GetParameterName() );
-
             FHoudiniApi::SetParmStringValue(
                 FHoudiniEngine::Get().GetSession(), NodeId, "",
                 ParmId, 0 );
@@ -408,8 +406,6 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
     {
         if ( bIsObjectPathParameter )
         {
-            std::string ParamNameString = TCHAR_TO_UTF8( *GetParameterName() );
-
             FHoudiniApi::SetParmStringValue(
                 FHoudiniEngine::Get().GetSession(), NodeId, "", ParmId, 0 );
         }
@@ -429,13 +425,14 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
         CreatedInputDataAssetIds.Empty();
 
         // Then simply destroy the input's parent OBJ node
-        HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId( ConnectedAssetId );
-        if ( FHoudiniEngineUtils::IsHoudiniNodeValid( ParentId ) )
-            FHoudiniEngineUtils::DestroyHoudiniAsset( ParentId );
+        if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
+        {
+            HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId( ConnectedAssetId );
+            if ( FHoudiniEngineUtils::IsHoudiniNodeValid( ParentId ) )
+                FHoudiniEngineUtils::DestroyHoudiniAsset( ParentId );
 
-        if ( FHoudiniEngineUtils::IsHoudiniNodeValid( ConnectedAssetId ) )
-            FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
-
+                FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
+        }
         ConnectedAssetId = -1;
         if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
         {
