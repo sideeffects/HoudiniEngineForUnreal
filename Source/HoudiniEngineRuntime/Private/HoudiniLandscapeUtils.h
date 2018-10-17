@@ -147,7 +147,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
 #if WITH_EDITOR
         // Creates a heightfield from a Landscape
         static bool CreateHeightfieldFromLandscape(
-            ALandscapeProxy* LandscapeProxy, const HAPI_NodeId& InputMergeNodeId );
+            ALandscapeProxy* LandscapeProxy, HAPI_NodeId& CreatedHeightfieldNodeId );
 
         // Creates multiple heightfield from an array of Landscape Components
         static bool CreateHeightfieldFromLandscapeComponentArray(
@@ -158,9 +158,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         // Creates a Heightfield from a Landscape Component
         static bool CreateHeightfieldFromLandscapeComponent(
             ULandscapeComponent * LandscapeComponent,
-            const HAPI_NodeId& InputMergeNodeId,
-            const int32& ComponentIndex,
-            int32& MergeInputIndex );
+            const HAPI_NodeId& ParentNodeId,
+            HAPI_NodeId& CreatedHeightfieldNodeId,
+            const int32& ComponentIndex );
 
         // Extracts the uint16 values of a given landscape
         static bool GetLandscapeData(
@@ -210,32 +210,17 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
 
         // Set the volume float value for a heightfield
         static bool SetHeighfieldData(
-            const HAPI_NodeId& AssetId, const HAPI_PartId& PartId,
+            const HAPI_NodeId& AssetId,
+            const HAPI_PartId& PartId,
             TArray< float >& FloatValues,
             const HAPI_VolumeInfo& VolumeInfo,
             const FString& HeightfieldName,
             const int32& TileIndex );
 
-        // Creates an input node for Heightfields (this will be a SOP/merge node)
+        // Creates an unlocked heightfield input node
         static bool CreateHeightfieldInputNode(
-            HAPI_NodeId& DisplayNodeId,
-            HAPI_NodeId& MergeNodeId,
-            const FString& NodeName );
-
-        // Creates an input node for a single heightfield volume (height/mask...) 
-        static bool CreateVolumeInputNode( HAPI_NodeId& InAssetId, const FString& NodeName, const HAPI_NodeId& ParentId );
-
-        // Commits the volume node
-        static bool CommitVolumeInputNode(
-            const HAPI_NodeId& NodeToCommit, const HAPI_NodeId& NodeToConnectTo, const int32& InputToConnect );
-
-        // Helper function creating a default "mask" volume for heightfield
-        static bool CreateDefaultHeightfieldMask(
-            const HAPI_VolumeInfo& HeightVolumeInfo,
-            const HAPI_NodeId& AssetId,
-            const int32& ComponentIndex,
-            int32& MergeInputIndex,
-            HAPI_NodeId& OutCreatedNodeId );
+            const HAPI_NodeId& ParentNodeId, const FString& NodeName, const int32& XSize, const int32& YSize,
+            HAPI_NodeId& HeightfieldNodeId, HAPI_NodeId& HeightNodeId, HAPI_NodeId& MaskNodeId, HAPI_NodeId& MergeNodeId );
 
         // Landscape nodes clean up
         static bool DestroyLandscapeAssetNode( HAPI_NodeId& ConnectedAssetId, TArray<HAPI_NodeId>& CreatedInputAssetIds );

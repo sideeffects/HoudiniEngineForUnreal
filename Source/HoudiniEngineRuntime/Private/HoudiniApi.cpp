@@ -90,6 +90,12 @@ FHoudiniApi::CookPDG = &FHoudiniApi::CookPDGEmptyStub;
 FHoudiniApi::CreateCustomSessionFuncPtr
 FHoudiniApi::CreateCustomSession = &FHoudiniApi::CreateCustomSessionEmptyStub;
 
+FHoudiniApi::CreateHeightfieldInputNodeFuncPtr
+FHoudiniApi::CreateHeightfieldInputNode = &FHoudiniApi::CreateHeightfieldInputNodeEmptyStub;
+
+FHoudiniApi::CreateHeightfieldInputVolumeNodeFuncPtr
+FHoudiniApi::CreateHeightfieldInputVolumeNode = &FHoudiniApi::CreateHeightfieldInputVolumeNodeEmptyStub;
+
 FHoudiniApi::CreateInProcessSessionFuncPtr
 FHoudiniApi::CreateInProcessSession = &FHoudiniApi::CreateInProcessSessionEmptyStub;
 
@@ -374,6 +380,12 @@ FHoudiniApi::GetServerEnvInt = &FHoudiniApi::GetServerEnvIntEmptyStub;
 
 FHoudiniApi::GetServerEnvStringFuncPtr
 FHoudiniApi::GetServerEnvString = &FHoudiniApi::GetServerEnvStringEmptyStub;
+
+FHoudiniApi::GetServerEnvVarCountFuncPtr
+FHoudiniApi::GetServerEnvVarCount = &FHoudiniApi::GetServerEnvVarCountEmptyStub;
+
+FHoudiniApi::GetServerEnvVarListFuncPtr
+FHoudiniApi::GetServerEnvVarList = &FHoudiniApi::GetServerEnvVarListEmptyStub;
 
 FHoudiniApi::GetSessionEnvIntFuncPtr
 FHoudiniApi::GetSessionEnvInt = &FHoudiniApi::GetSessionEnvIntEmptyStub;
@@ -696,6 +708,8 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::CookNode = (CookNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CookNode"));
 	FHoudiniApi::CookPDG = (CookPDGFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CookPDG"));
 	FHoudiniApi::CreateCustomSession = (CreateCustomSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateCustomSession"));
+	FHoudiniApi::CreateHeightfieldInputNode = (CreateHeightfieldInputNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateHeightfieldInputNode"));
+	FHoudiniApi::CreateHeightfieldInputVolumeNode = (CreateHeightfieldInputVolumeNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateHeightfieldInputVolumeNode"));
 	FHoudiniApi::CreateInProcessSession = (CreateInProcessSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateInProcessSession"));
 	FHoudiniApi::CreateInputNode = (CreateInputNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateInputNode"));
 	FHoudiniApi::CreateNode = (CreateNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateNode"));
@@ -791,6 +805,8 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetPresetBufLength = (GetPresetBufLengthFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPresetBufLength"));
 	FHoudiniApi::GetServerEnvInt = (GetServerEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetServerEnvInt"));
 	FHoudiniApi::GetServerEnvString = (GetServerEnvStringFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetServerEnvString"));
+	FHoudiniApi::GetServerEnvVarCount = (GetServerEnvVarCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetServerEnvVarCount"));
+	FHoudiniApi::GetServerEnvVarList = (GetServerEnvVarListFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetServerEnvVarList"));
 	FHoudiniApi::GetSessionEnvInt = (GetSessionEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetSessionEnvInt"));
 	FHoudiniApi::GetSphereInfo = (GetSphereInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetSphereInfo"));
 	FHoudiniApi::GetStatus = (GetStatusFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStatus"));
@@ -916,6 +932,8 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::CookNode = &FHoudiniApi::CookNodeEmptyStub;
 	FHoudiniApi::CookPDG = &FHoudiniApi::CookPDGEmptyStub;
 	FHoudiniApi::CreateCustomSession = &FHoudiniApi::CreateCustomSessionEmptyStub;
+	FHoudiniApi::CreateHeightfieldInputNode = &FHoudiniApi::CreateHeightfieldInputNodeEmptyStub;
+	FHoudiniApi::CreateHeightfieldInputVolumeNode = &FHoudiniApi::CreateHeightfieldInputVolumeNodeEmptyStub;
 	FHoudiniApi::CreateInProcessSession = &FHoudiniApi::CreateInProcessSessionEmptyStub;
 	FHoudiniApi::CreateInputNode = &FHoudiniApi::CreateInputNodeEmptyStub;
 	FHoudiniApi::CreateNode = &FHoudiniApi::CreateNodeEmptyStub;
@@ -1011,6 +1029,8 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetPresetBufLength = &FHoudiniApi::GetPresetBufLengthEmptyStub;
 	FHoudiniApi::GetServerEnvInt = &FHoudiniApi::GetServerEnvIntEmptyStub;
 	FHoudiniApi::GetServerEnvString = &FHoudiniApi::GetServerEnvStringEmptyStub;
+	FHoudiniApi::GetServerEnvVarCount = &FHoudiniApi::GetServerEnvVarCountEmptyStub;
+	FHoudiniApi::GetServerEnvVarList = &FHoudiniApi::GetServerEnvVarListEmptyStub;
 	FHoudiniApi::GetSessionEnvInt = &FHoudiniApi::GetSessionEnvIntEmptyStub;
 	FHoudiniApi::GetSphereInfo = &FHoudiniApi::GetSphereInfoEmptyStub;
 	FHoudiniApi::GetStatus = &FHoudiniApi::GetStatusEmptyStub;
@@ -1261,6 +1281,20 @@ FHoudiniApi::CookPDGEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContex
 
 HAPI_Result
 FHoudiniApi::CreateCustomSessionEmptyStub(HAPI_SessionType session_type, void * session_info, HAPI_Session * session)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::CreateHeightfieldInputNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * name, int xsize, int ysize, float voxelsize, HAPI_NodeId * heightfield_node_id, HAPI_NodeId * height_node_id, HAPI_NodeId * mask_node_id, HAPI_NodeId * merge_node_id)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::CreateHeightfieldInputVolumeNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeId * new_node_id, const char * name, int xsize, int ysize, float voxelsize)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1926,6 +1960,20 @@ FHoudiniApi::GetServerEnvIntEmptyStub(const HAPI_Session * session, const char *
 
 HAPI_Result
 FHoudiniApi::GetServerEnvStringEmptyStub(const HAPI_Session * session, const char * variable_name, HAPI_StringHandle * value)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetServerEnvVarCountEmptyStub(const HAPI_Session * session, int * env_count)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetServerEnvVarListEmptyStub(const HAPI_Session * session, HAPI_StringHandle * values_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
