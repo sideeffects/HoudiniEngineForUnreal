@@ -387,6 +387,9 @@ public:
         /** Is the asset still waiting for upstream asset to finish instantiating **/
         bool UpdateWaitingForUpstreamAssetsToInstantiate( bool bNotifyUpstreamAsset = false );
 
+        /** Updates the HAC's mobility depending on its children's mobility **/
+        void UpdateMobility();
+
     /** UObject methods. **/
     public:
 
