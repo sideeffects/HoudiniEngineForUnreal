@@ -873,14 +873,9 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
     // Now that all the Meshes/Landscapes are created, see if we need to create material instances from attributes
     CreateOrUpdateMaterialInstances();
 
-    // If one of the children we created is movable, we need to set ourselves to movable as well
-    const auto & LocalAttachChildren = GetAttachChildren();
-    for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter )
-    {
-        USceneComponent * SceneComponent = *Iter;
-        if ( SceneComponent->Mobility == EComponentMobility::Movable )
-            SetMobility( EComponentMobility::Movable );
-    }
+    // Mobility will be set to static if we generated a Landscape,
+    // Or to movable if any of our children is movable
+    UpdateMobility();
 }
 
 
@@ -3140,14 +3135,9 @@ UHoudiniAssetComponent::PostLoad()
     PostLoadReattachComponents();
 
     // Update mobility.
-    // If one of our children is movable, we need to set ourselves to movable as well
-    const auto & LocalAttachChildren = GetAttachChildren();
-    for (TArray< USceneComponent * >::TConstIterator Iter(LocalAttachChildren); Iter; ++Iter)
-    {
-        USceneComponent * SceneComponent = *Iter;
-        if (SceneComponent->Mobility == EComponentMobility::Movable)
-            SetMobility(EComponentMobility::Movable);
-    }
+    // It'll be changed to static if we generated a landscape,
+    // and if not, to movable if any of our children is movable
+    UpdateMobility();
 
     // Need to update rendering information.
     UpdateRenderingInformation();
@@ -5952,6 +5942,27 @@ UHoudiniAssetComponent::NotifyAssetNeedsToBeReinstantiated()
         UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
         if ( HoudiniAssetParameter )
             HoudiniAssetParameter->MarkChanged( false );
+    }
+}
+
+void
+UHoudiniAssetComponent::UpdateMobility()
+{
+    // If we generated a landscape, force ourself to Static!
+    if ( LandscapeComponents.Num() > 0 )
+    {
+        SetMobility(EComponentMobility::Static);
+    }
+    else
+    {
+        // If one of the children we created is movable, we need to set ourselves to movable as well
+        const auto & LocalAttachChildren = GetAttachChildren();
+        for (TArray< USceneComponent * >::TConstIterator Iter(LocalAttachChildren); Iter; ++Iter)
+        {
+            USceneComponent * SceneComponent = *Iter;
+            if (SceneComponent->Mobility == EComponentMobility::Movable)
+                SetMobility(EComponentMobility::Movable);
+        }
     }
 }
 
