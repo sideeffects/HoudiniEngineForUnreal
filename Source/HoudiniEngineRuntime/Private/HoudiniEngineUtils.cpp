@@ -7765,7 +7765,7 @@ FHoudiniEngineUtils::AddMeshSocketToList(
     TArray< FString >& AllSocketsActors,
     TArray< FString >& AllSocketsTags,
     const bool& isPackedPrim )
-{    
+{
     // Attributes we are interested in.
     // Position
     TArray< float > Positions;
@@ -8119,11 +8119,19 @@ FHoudiniEngineUtils::AddMeshSocketToList(
         AssetId, ObjectId, GeoId, PartId,
         HAPI_UNREAL_ATTRIB_MESH_SOCKET_ACTOR, AttribInfoActors, Actors ) )
         bHasActors = true;
+    else if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+        AssetId, ObjectId, GeoId, PartId,
+        HAPI_UNREAL_ATTRIB_MESH_SOCKET_ACTOR_OLD, AttribInfoActors, Actors ) )
+        bHasActors = true;
 
     // Retrieve mesh socket tags.
     if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
         AssetId, ObjectId, GeoId, PartId,
         HAPI_UNREAL_ATTRIB_MESH_SOCKET_TAG, AttribInfoTags, Tags ) )
+        bHasTags = true;
+    else if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+        AssetId, ObjectId, GeoId, PartId,
+        HAPI_UNREAL_ATTRIB_MESH_SOCKET_TAG_OLD, AttribInfoTags, Tags ) )
         bHasTags = true;
 
     // Extracting Sockets vertices
@@ -8199,7 +8207,7 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
         if ( AllSocketsTags.IsValidIndex( nSocket ) && !AllSocketsTags[ nSocket ].IsEmpty() )
             Tag = AllSocketsTags[ nSocket ];
 
-        // The actor will be store temporarily in the socket's Tag as we need a StaticMeshComponent to add an actor to the socket
+        // The actor will be stored temporarily in the socket's Tag as we need a StaticMeshComponent to add an actor to the socket
         if ( AllSocketsActors.IsValidIndex( nSocket ) && !AllSocketsActors[ nSocket ].IsEmpty() )
             Tag += TEXT("|") + AllSocketsActors[ nSocket ];
 

@@ -208,8 +208,10 @@
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_PREFIX           "mesh_socket"
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME             "mesh_socket_name"
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME_OLD         "unreal_mesh_socket_name"
-#define HAPI_UNREAL_ATTRIB_MESH_SOCKET_ACTOR            "unreal_mesh_socket_actor"
+#define HAPI_UNREAL_ATTRIB_MESH_SOCKET_ACTOR            "mesh_socket_actor"
+#define HAPI_UNREAL_ATTRIB_MESH_SOCKET_ACTOR_OLD        "unreal_mesh_socket_actor"
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_TAG              "mesh_socket_tag"
+#define HAPI_UNREAL_ATTRIB_MESH_SOCKET_TAG_OLD          "unreal_mesh_socket_tag"
 
 #define HAPI_UNREAL_ATTRIB_GENERIC_UPROP_PREFIX         "unreal_uproperty_"
 #define HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX     "unreal_material_parameter_"
