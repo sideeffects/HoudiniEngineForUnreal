@@ -1744,7 +1744,7 @@ FHoudiniEngineEditor::GetHoudiniToolDescriptionFromJSON(const FString& JsonFileP
         OutName = JSONObject->GetStringField(TEXT("name"));
 
     // Read the tool type
-    OutType = EHoudiniToolType::HTOOLTYPE_GENERATOR;
+    OutType = EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE;
     if ( JSONObject->HasField( TEXT("toolType") ) )
     {
         FString ToolType = JSONObject->GetStringField(TEXT("toolType"));
@@ -1799,9 +1799,9 @@ FHoudiniEngineEditor::GetHoudiniToolDescriptionFromJSON(const FString& JsonFileP
     if ( JSONObject->HasField(TEXT("UE_SelectionType")) )
         SelectionType = JSONObject->GetStringField( TEXT("UE_SelectionType") );
 
-    if (SelectionType == TEXT("CB"))
+    if ( SelectionType.Equals( TEXT("CB"), ESearchCase::IgnoreCase ) )
         OutSelectionType = EHoudiniToolSelectionType::HTOOL_SELECTION_CB_ONLY;
-    else if (SelectionType == TEXT("World"))
+    else if ( SelectionType.Equals( TEXT("World"), ESearchCase::IgnoreCase ) )
         OutSelectionType = EHoudiniToolSelectionType::HTOOL_SELECTION_WORLD_ONLY;
     else
         OutSelectionType = EHoudiniToolSelectionType::HTOOL_SELECTION_ALL;
