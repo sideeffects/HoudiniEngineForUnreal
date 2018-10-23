@@ -77,6 +77,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const TArray< const FHoudiniGeoPartObject* >& FoundLayers,
             const FHoudiniGeoPartObject& Heightfield,
             const int32& LandscapeXSize, const int32& LandscapeYSize,
+            const TMap<FString, float>& GlobalMinimums,
+            const TMap<FString, float>& GlobalMaximums,
             TArray<FLandscapeImportLayerInfo>& ImportLayerInfos );
 
         /** Updates a reference to a generated landscape by the newly created one **/
@@ -98,6 +100,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         static void CalcHeightfieldsArrayGlobalZMinZMax(
             const TArray< const FHoudiniGeoPartObject* >& InHeightfieldArray,
             float& fGlobalMin, float& fGlobalMax );
+
+        // Returns the global ZMin/ZMax value per volume for all the heightfields contained in the array
+        static void CalcHeightfieldsArrayGlobalZMinZMax(
+            const TArray< FHoudiniGeoPartObject >& InHeightfieldArray,
+            TMap<FString, float>& GlobalMinimums,
+            TMap<FString, float>& GlobalMaximums);
 
         // Extract the float values of a given heightfield
         static bool GetHeightfieldData(
@@ -243,7 +251,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             TArray<FVector>& LandscapeNormalArray,
             TArray<FVector>& LandscapeUVArray, 
             TArray<FIntPoint>& LandscapeComponentVertexIndicesArray, 
-            TArray<const char *>& LandscapeComponentNameArray,	    
+            TArray<const char *>& LandscapeComponentNameArray,
             TArray<FLinearColor>& LandscapeLightmapValues );
 #endif
 

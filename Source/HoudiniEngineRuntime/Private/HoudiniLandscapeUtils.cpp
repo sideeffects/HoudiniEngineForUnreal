@@ -201,6 +201,78 @@ FHoudiniLandscapeUtils::GetHeightfieldsLayersInArray(
 
 void
 FHoudiniLandscapeUtils::CalcHeightfieldsArrayGlobalZMinZMax(
+    const TArray< FHoudiniGeoPartObject > & InHeightfieldArray,
+    TMap<FString, float>& GlobalMinimums,
+    TMap<FString, float>& GlobalMaximums )
+{
+    GlobalMinimums.Empty();
+    GlobalMaximums.Empty();
+
+    for (TArray< FHoudiniGeoPartObject >::TConstIterator CurrentHeightfield(InHeightfieldArray); CurrentHeightfield; ++CurrentHeightfield)
+    {
+        // Get the current Heightfield GeoPartObject
+        if (!CurrentHeightfield)
+            continue;
+
+        if (!CurrentHeightfield->IsVolume())
+            continue;
+
+        // Retrieve node id from geo part.
+        HAPI_NodeId NodeId = CurrentHeightfield->HapiGeoGetNodeId();
+        if (NodeId == -1)
+            continue;
+
+        // Retrieve the VolumeInfo
+        HAPI_VolumeInfo CurrentVolumeInfo;
+        if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetVolumeInfo(
+            FHoudiniEngine::Get().GetSession(),
+            NodeId, CurrentHeightfield->PartId,
+            &CurrentVolumeInfo))
+            continue;
+
+        // Unreal's Z values are Y in Houdini
+        float ymin, ymax;
+        if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetVolumeBounds(FHoudiniEngine::Get().GetSession(),
+            NodeId, CurrentHeightfield->PartId,
+            nullptr, &ymin, nullptr,
+            nullptr, &ymax, nullptr,
+            nullptr, nullptr, nullptr))
+            continue;
+
+        // Retrieve the volume name.
+        FString VolumeName;
+        FHoudiniEngineString HoudiniEngineStringPartName(CurrentVolumeInfo.nameSH);
+        HoudiniEngineStringPartName.ToFString(VolumeName);
+
+        // Read the global min value for this volume
+        if ( !GlobalMinimums.Contains(VolumeName) )
+        {
+            GlobalMinimums.Add(VolumeName, ymin);
+        }
+        else
+        {
+            // Update the min if necessary
+            if ( ymin < GlobalMinimums[VolumeName] )
+                GlobalMinimums[VolumeName] = ymin;
+        }
+
+        // Read the global max value for this volume
+        float fCurrentVolumeGlobalMax = -MAX_FLT;
+        if (!GlobalMaximums.Contains(VolumeName))
+        {
+            GlobalMaximums.Add(VolumeName, ymax);
+        }
+        else
+        {
+            // Update the max if necessary
+            if (ymax > GlobalMaximums[VolumeName])
+                GlobalMaximums[VolumeName] = ymax;
+        }
+    }
+}
+
+void
+FHoudiniLandscapeUtils::CalcHeightfieldsArrayGlobalZMinZMax(
     const TArray< const FHoudiniGeoPartObject* > & InHeightfieldArray,
     float& fGlobalMin, float& fGlobalMax )
 {
@@ -389,7 +461,7 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
         DigitZRange = dUINT16_MAX;
 
     // If we  are not using the full range, we need to center the digit values so the terrain can be edited up and down
-    double DigitCenterOffset = FMath::FloorToDouble( ( dUINT16_MAX - DigitZRange ) / 2.0 );	
+    double DigitCenterOffset = FMath::FloorToDouble( ( dUINT16_MAX - DigitZRange ) / 2.0 );
 
     // The factor used to convert from Houdini's ZRange to the desired digit range
     double ZSpacing = ( MeterZRange != 0.0 ) ? ( DigitZRange / MeterZRange ) : 0.0;
@@ -2517,6 +2589,12 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
     if ( FoundHeightfields.Num() > 1 && ( fGlobalMin == 0.0f && fGlobalMax == 0.0f ) )
         FHoudiniLandscapeUtils::CalcHeightfieldsArrayGlobalZMinZMax( FoundHeightfields, fGlobalMin, fGlobalMax );
 
+    // We want to be doing a similar things for the mask/layer volumes
+    TMap<FString, float> GlobalMinimums;
+    TMap<FString, float> GlobalMaximums;
+    if ( FoundVolumes.Num() > 1 )
+        FHoudiniLandscapeUtils::CalcHeightfieldsArrayGlobalZMinZMax( FoundVolumes, GlobalMinimums, GlobalMaximums );
+
     // Try to create a Landscape for each HeightData found
     //TMap< FHoudiniGeoPartObject, ALandscape * > NewLandscapes;
     NewLandscapes.Empty();
@@ -2603,7 +2681,7 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
         // Extract and convert the Landscape layers
         TArray< FLandscapeImportLayerInfo > ImportLayerInfos;
         if ( !FHoudiniLandscapeUtils::CreateLandscapeLayers( HoudiniCookParams, FoundLayers, *CurrentHeightfield,
-            XSize, YSize, ImportLayerInfos ) )
+            XSize, YSize, GlobalMinimums, GlobalMaximums, ImportLayerInfos ) )
             continue;
 
         // Create the actual Landscape
@@ -2817,6 +2895,8 @@ bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
     const TArray< const FHoudiniGeoPartObject* >& FoundLayers,
     const FHoudiniGeoPartObject& Heightfield,
     const int32& LandscapeXSize, const int32& LandscapeYSize,
+    const TMap<FString, float>& GlobalMinimums,
+    const TMap<FString, float>& GlobalMaximums,
     TArray<FLandscapeImportLayerInfo>& ImportLayerInfos )
 {    
     // Verifying HoudiniCookParams validity
@@ -2849,7 +2929,6 @@ bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
         HAPI_VolumeInfo LayerVolumeInfo;
         float LayerMin = 0;
         float LayerMax = 0;
-
         if ( !FHoudiniLandscapeUtils::GetHeightfieldData( *LayerGeoPartObject, FloatLayerData, LayerVolumeInfo, LayerMin, LayerMax ) )
             continue;
 
@@ -2857,11 +2936,19 @@ bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
         if ( LayerMin == LayerMax )
             continue;
 
-        // Creating the ImportLayerInfo and LayerInfo objects
+        // Get the layer's name
         FString LayerString;
-        FHoudiniEngineString( LayerVolumeInfo.nameSH ).ToFString( LayerString );
-        ObjectTools::SanitizeObjectName( LayerString );
+        FHoudiniEngineString(LayerVolumeInfo.nameSH).ToFString(LayerString);
 
+        // We want to convert the layer using the global Min/Max
+        if (GlobalMaximums.Contains(LayerString) )
+            LayerMax = GlobalMaximums[LayerString];
+
+        if (GlobalMinimums.Contains(LayerString) )
+            LayerMin = GlobalMinimums[LayerString];
+
+        // Creating the ImportLayerInfo and LayerInfo objects
+        ObjectTools::SanitizeObjectName( LayerString );
         FName LayerName( *LayerString );
         FLandscapeImportLayerInfo currentLayerInfo( LayerName );
 
