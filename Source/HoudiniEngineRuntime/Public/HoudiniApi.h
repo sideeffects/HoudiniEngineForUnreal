@@ -59,6 +59,8 @@ public:
 	typedef HAPI_Result (*CookNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_CookOptions * cook_options);
 	typedef HAPI_Result (*CookPDGFuncPtr)(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_NodeId cook_node_id, HAPI_PDG_CookType cook_type, int blocking);
 	typedef HAPI_Result (*CreateCustomSessionFuncPtr)(HAPI_SessionType session_type, void * session_info, HAPI_Session * session);
+	typedef HAPI_Result (*CreateHeightfieldInputNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * name, int xsize, int ysize, float voxelsize, HAPI_NodeId * heightfield_node_id, HAPI_NodeId * height_node_id, HAPI_NodeId * mask_node_id, HAPI_NodeId * merge_node_id);
+	typedef HAPI_Result (*CreateHeightfieldInputVolumeNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeId * new_node_id, const char * name, int xsize, int ysize, float voxelsize);
 	typedef HAPI_Result (*CreateInProcessSessionFuncPtr)(HAPI_Session * session);
 	typedef HAPI_Result (*CreateInputNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId * node_id, const char * name);
 	typedef HAPI_Result (*CreateNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * operator_name, const char * node_label, HAPI_Bool cook_on_creation, HAPI_NodeId * new_node_id);
@@ -154,6 +156,8 @@ public:
 	typedef HAPI_Result (*GetPresetBufLengthFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, int * buffer_length);
 	typedef HAPI_Result (*GetServerEnvIntFuncPtr)(const HAPI_Session * session, const char * variable_name, int * value);
 	typedef HAPI_Result (*GetServerEnvStringFuncPtr)(const HAPI_Session * session, const char * variable_name, HAPI_StringHandle * value);
+	typedef HAPI_Result (*GetServerEnvVarCountFuncPtr)(const HAPI_Session * session, int * env_count);
+	typedef HAPI_Result (*GetServerEnvVarListFuncPtr)(const HAPI_Session * session, HAPI_StringHandle * values_array, int start, int length);
 	typedef HAPI_Result (*GetSessionEnvIntFuncPtr)(const HAPI_Session * session, HAPI_SessionEnvIntType int_type, int * value);
 	typedef HAPI_Result (*GetSphereInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId geo_node_id, HAPI_PartId part_id, HAPI_SphereInfo * sphere_info);
 	typedef HAPI_Result (*GetStatusFuncPtr)(const HAPI_Session * session, HAPI_StatusType status_type, int * status);
@@ -276,6 +280,8 @@ public:
 	static CookNodeFuncPtr CookNode;
 	static CookPDGFuncPtr CookPDG;
 	static CreateCustomSessionFuncPtr CreateCustomSession;
+	static CreateHeightfieldInputNodeFuncPtr CreateHeightfieldInputNode;
+	static CreateHeightfieldInputVolumeNodeFuncPtr CreateHeightfieldInputVolumeNode;
 	static CreateInProcessSessionFuncPtr CreateInProcessSession;
 	static CreateInputNodeFuncPtr CreateInputNode;
 	static CreateNodeFuncPtr CreateNode;
@@ -371,6 +377,8 @@ public:
 	static GetPresetBufLengthFuncPtr GetPresetBufLength;
 	static GetServerEnvIntFuncPtr GetServerEnvInt;
 	static GetServerEnvStringFuncPtr GetServerEnvString;
+	static GetServerEnvVarCountFuncPtr GetServerEnvVarCount;
+	static GetServerEnvVarListFuncPtr GetServerEnvVarList;
 	static GetSessionEnvIntFuncPtr GetSessionEnvInt;
 	static GetSphereInfoFuncPtr GetSphereInfo;
 	static GetStatusFuncPtr GetStatus;
@@ -493,6 +501,8 @@ public:
 	static HAPI_Result CookNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_CookOptions * cook_options);
 	static HAPI_Result CookPDGEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_NodeId cook_node_id, HAPI_PDG_CookType cook_type, int blocking);
 	static HAPI_Result CreateCustomSessionEmptyStub(HAPI_SessionType session_type, void * session_info, HAPI_Session * session);
+	static HAPI_Result CreateHeightfieldInputNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * name, int xsize, int ysize, float voxelsize, HAPI_NodeId * heightfield_node_id, HAPI_NodeId * height_node_id, HAPI_NodeId * mask_node_id, HAPI_NodeId * merge_node_id);
+	static HAPI_Result CreateHeightfieldInputVolumeNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeId * new_node_id, const char * name, int xsize, int ysize, float voxelsize);
 	static HAPI_Result CreateInProcessSessionEmptyStub(HAPI_Session * session);
 	static HAPI_Result CreateInputNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId * node_id, const char * name);
 	static HAPI_Result CreateNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * operator_name, const char * node_label, HAPI_Bool cook_on_creation, HAPI_NodeId * new_node_id);
@@ -588,6 +598,8 @@ public:
 	static HAPI_Result GetPresetBufLengthEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, int * buffer_length);
 	static HAPI_Result GetServerEnvIntEmptyStub(const HAPI_Session * session, const char * variable_name, int * value);
 	static HAPI_Result GetServerEnvStringEmptyStub(const HAPI_Session * session, const char * variable_name, HAPI_StringHandle * value);
+	static HAPI_Result GetServerEnvVarCountEmptyStub(const HAPI_Session * session, int * env_count);
+	static HAPI_Result GetServerEnvVarListEmptyStub(const HAPI_Session * session, HAPI_StringHandle * values_array, int start, int length);
 	static HAPI_Result GetSessionEnvIntEmptyStub(const HAPI_Session * session, HAPI_SessionEnvIntType int_type, int * value);
 	static HAPI_Result GetSphereInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId geo_node_id, HAPI_PartId part_id, HAPI_SphereInfo * sphere_info);
 	static HAPI_Result GetStatusEmptyStub(const HAPI_Session * session, HAPI_StatusType status_type, int * status);
