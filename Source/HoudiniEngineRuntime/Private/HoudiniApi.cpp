@@ -81,6 +81,12 @@ FHoudiniApi::CookNode = &FHoudiniApi::CookNodeEmptyStub;
 FHoudiniApi::CreateCustomSessionFuncPtr
 FHoudiniApi::CreateCustomSession = &FHoudiniApi::CreateCustomSessionEmptyStub;
 
+FHoudiniApi::CreateHeightfieldInputNodeFuncPtr
+FHoudiniApi::CreateHeightfieldInputNode = &FHoudiniApi::CreateHeightfieldInputNodeEmptyStub;
+
+FHoudiniApi::CreateHeightfieldInputVolumeNodeFuncPtr
+FHoudiniApi::CreateHeightfieldInputVolumeNode = &FHoudiniApi::CreateHeightfieldInputVolumeNodeEmptyStub;
+
 FHoudiniApi::CreateInProcessSessionFuncPtr
 FHoudiniApi::CreateInProcessSession = &FHoudiniApi::CreateInProcessSessionEmptyStub;
 
@@ -630,6 +636,8 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::ConvertTransformQuatToMatrix = (ConvertTransformQuatToMatrixFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ConvertTransformQuatToMatrix"));
 	FHoudiniApi::CookNode = (CookNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CookNode"));
 	FHoudiniApi::CreateCustomSession = (CreateCustomSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateCustomSession"));
+	FHoudiniApi::CreateHeightfieldInputNode = (CreateHeightfieldInputNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateHeightfieldInputNode"));
+	FHoudiniApi::CreateHeightfieldInputVolumeNode = (CreateHeightfieldInputVolumeNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateHeightfieldInputVolumeNode"));
 	FHoudiniApi::CreateInProcessSession = (CreateInProcessSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateInProcessSession"));
 	FHoudiniApi::CreateInputNode = (CreateInputNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateInputNode"));
 	FHoudiniApi::CreateNode = (CreateNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateNode"));
@@ -829,6 +837,8 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::ConvertTransformQuatToMatrix = &FHoudiniApi::ConvertTransformQuatToMatrixEmptyStub;
 	FHoudiniApi::CookNode = &FHoudiniApi::CookNodeEmptyStub;
 	FHoudiniApi::CreateCustomSession = &FHoudiniApi::CreateCustomSessionEmptyStub;
+	FHoudiniApi::CreateHeightfieldInputNode = &FHoudiniApi::CreateHeightfieldInputNodeEmptyStub;
+	FHoudiniApi::CreateHeightfieldInputVolumeNode = &FHoudiniApi::CreateHeightfieldInputVolumeNodeEmptyStub;
 	FHoudiniApi::CreateInProcessSession = &FHoudiniApi::CreateInProcessSessionEmptyStub;
 	FHoudiniApi::CreateInputNode = &FHoudiniApi::CreateInputNodeEmptyStub;
 	FHoudiniApi::CreateNode = &FHoudiniApi::CreateNodeEmptyStub;
@@ -1135,6 +1145,20 @@ FHoudiniApi::CookNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id
 
 HAPI_Result
 FHoudiniApi::CreateCustomSessionEmptyStub(HAPI_SessionType session_type, void * session_info, HAPI_Session * session)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::CreateHeightfieldInputNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * name, int xsize, int ysize, float voxelsize, HAPI_NodeId * heightfield_node_id, HAPI_NodeId * height_node_id, HAPI_NodeId * mask_node_id, HAPI_NodeId * merge_node_id)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::CreateHeightfieldInputVolumeNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeId * new_node_id, const char * name, int xsize, int ysize, float voxelsize)
 {
 	return HAPI_RESULT_FAILURE;
 }

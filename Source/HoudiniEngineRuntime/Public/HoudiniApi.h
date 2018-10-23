@@ -56,6 +56,8 @@ public:
 	typedef HAPI_Result (*ConvertTransformQuatToMatrixFuncPtr)(const HAPI_Session * session, const HAPI_Transform * transform, float * matrix);
 	typedef HAPI_Result (*CookNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_CookOptions * cook_options);
 	typedef HAPI_Result (*CreateCustomSessionFuncPtr)(HAPI_SessionType session_type, void * session_info, HAPI_Session * session);
+	typedef HAPI_Result (*CreateHeightfieldInputNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * name, int xsize, int ysize, float voxelsize, HAPI_NodeId * heightfield_node_id, HAPI_NodeId * height_node_id, HAPI_NodeId * mask_node_id, HAPI_NodeId * merge_node_id);
+	typedef HAPI_Result (*CreateHeightfieldInputVolumeNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeId * new_node_id, const char * name, int xsize, int ysize, float voxelsize);
 	typedef HAPI_Result (*CreateInProcessSessionFuncPtr)(HAPI_Session * session);
 	typedef HAPI_Result (*CreateInputNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId * node_id, const char * name);
 	typedef HAPI_Result (*CreateNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * operator_name, const char * node_label, HAPI_Bool cook_on_creation, HAPI_NodeId * new_node_id);
@@ -252,6 +254,8 @@ public:
 	static ConvertTransformQuatToMatrixFuncPtr ConvertTransformQuatToMatrix;
 	static CookNodeFuncPtr CookNode;
 	static CreateCustomSessionFuncPtr CreateCustomSession;
+	static CreateHeightfieldInputNodeFuncPtr CreateHeightfieldInputNode;
+	static CreateHeightfieldInputVolumeNodeFuncPtr CreateHeightfieldInputVolumeNode;
 	static CreateInProcessSessionFuncPtr CreateInProcessSession;
 	static CreateInputNodeFuncPtr CreateInputNode;
 	static CreateNodeFuncPtr CreateNode;
@@ -448,6 +452,8 @@ public:
 	static HAPI_Result ConvertTransformQuatToMatrixEmptyStub(const HAPI_Session * session, const HAPI_Transform * transform, float * matrix);
 	static HAPI_Result CookNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_CookOptions * cook_options);
 	static HAPI_Result CreateCustomSessionEmptyStub(HAPI_SessionType session_type, void * session_info, HAPI_Session * session);
+	static HAPI_Result CreateHeightfieldInputNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * name, int xsize, int ysize, float voxelsize, HAPI_NodeId * heightfield_node_id, HAPI_NodeId * height_node_id, HAPI_NodeId * mask_node_id, HAPI_NodeId * merge_node_id);
+	static HAPI_Result CreateHeightfieldInputVolumeNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeId * new_node_id, const char * name, int xsize, int ysize, float voxelsize);
 	static HAPI_Result CreateInProcessSessionEmptyStub(HAPI_Session * session);
 	static HAPI_Result CreateInputNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId * node_id, const char * name);
 	static HAPI_Result CreateNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * operator_name, const char * node_label, HAPI_Bool cook_on_creation, HAPI_NodeId * new_node_id);
