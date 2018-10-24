@@ -784,7 +784,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
             {
                 // Create necessary component.
                 StaticMeshComponent = NewObject< UStaticMeshComponent >(
-                    GetOwner(), UStaticMeshComponent::StaticClass(),
+                    GetOwner() ? GetOwner() : GetOuter(), UStaticMeshComponent::StaticClass(),
                     NAME_None, RF_Transactional );
 
                 // Attach created static mesh component to our Houdini component.
@@ -1794,13 +1794,14 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		FNavigationSystem::UpdateActorAndComponentData(*HoudiniActor);
 		/*
 		// We need to update the navigation system manually with the Actor or the NavMesh will not update properly
-        UWorld* World = GEditor->GetEditorWorldContext().World();
-        if (World && World->GetNavigationSystem())
-        {
-            AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
-            if(HoudiniActor)
-                World->GetNavigationSystem()->UpdateActorAndComponentData(*HoudiniActor);
-        }*/
+		UWorld* World = GEditor->GetEditorWorldContext().World();
+		if (World && World->GetNavigationSystem())
+		{
+			AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
+			if(HoudiniActor)
+				World->GetNavigationSystem()->UpdateActorAndComponentData(*HoudiniActor);
+		}
+		*/
 #endif
         bNeedToUpdateNavigationSystem = false;
     }
@@ -2424,10 +2425,12 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bApplyImpulseOnDamage );
             }
-            /*else if ( Property->GetName() == TEXT( "bShouldUpdatePhysicsVolume" ) )
+			/*
+            else if ( Property->GetName() == TEXT( "bShouldUpdatePhysicsVolume" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( USceneComponent, bShouldUpdatePhysicsVolume );
-            }*/
+            }
+			*/
         }
         else if ( CategoryLOD == Category )
         {
@@ -2853,8 +2856,15 @@ FString UHoudiniAssetComponent::GetBakingBaseName( const FHoudiniGeoPartObject& 
         return GeoPartObject.PartName;
     }
 
-    return FString::Printf( TEXT( "%s_%d_%d_%d_%d" ), *GetOwner()->GetName(),
-        GeoPartObject.ObjectId, GeoPartObject.GeoId, GeoPartObject.PartId, GeoPartObject.SplitId );
+    if ( GetOwner() )
+        return FString::Printf( TEXT( "%s_%d_%d_%d_%d" ),
+            *GetOwner()->GetName(),
+            GeoPartObject.ObjectId, GeoPartObject.GeoId,
+            GeoPartObject.PartId, GeoPartObject.SplitId );
+    else
+        return FString::Printf(TEXT("%d_%d_%d_%d"),
+            GeoPartObject.ObjectId, GeoPartObject.GeoId,
+            GeoPartObject.PartId, GeoPartObject.SplitId );
 
     return FString();
 }
@@ -3330,11 +3340,14 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         {
             for ( TMap<FString, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryPackages); IterPackage; ++IterPackage )
             {
-                UPackage * Package = IterPackage.Value().Get();
+                if (!IterPackage.Value().IsValid())
+                    continue;
 
-                FString sValue;
-                if ( Package )
-                    sValue = Package->GetFName().ToString();
+                UPackage * Package = IterPackage.Value().Get();
+                if ( !Package || UPackage::IsEmptyPackage( Package ) )
+                    continue;
+
+                FString sValue = Package->GetFName().ToString();
 
                 FString sKey = IterPackage.Key();
                 SavedPackages.Add( sKey, sValue );
@@ -3343,12 +3356,14 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
 
         Ar << SavedPackages;
 
-        if (Ar.IsLoading())
+        if ( Ar.IsLoading() )
         {
             for ( TMap<FString, FString > ::TIterator IterPackage( SavedPackages ); IterPackage; ++IterPackage )
             {
                 FString sKey = IterPackage.Key();
                 FString PackageFile = IterPackage.Value();
+                if (!FPackageName::DoesPackageExist(PackageFile))
+                    continue;
 
                 UPackage * Package = nullptr;
                 if ( !PackageFile.IsEmpty() )
@@ -3370,13 +3385,14 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         {
             for ( TMap<FHoudiniGeoPartObject, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryStaticMeshPackages); IterPackage; ++IterPackage )
             {
-                UPackage * Package = IterPackage.Value().Get();
+                if ( !IterPackage.Value().IsValid() )
+                    continue;
 
-                FString sValue;
+                UPackage * Package = IterPackage.Value().Get();                
                 if ( !Package || UPackage::IsEmptyPackage( Package ) )
                     continue;
 
-                sValue = Package->GetFName().ToString();
+                FString sValue = Package->GetFName().ToString();
 
                 FHoudiniGeoPartObject Key = IterPackage.Key();
                 MeshPackages.Add( Key, sValue );
@@ -3391,10 +3407,12 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
             {
                 FHoudiniGeoPartObject Key = IterPackage.Key();
                 FString PackageFile = IterPackage.Value();
+                if (!FPackageName::DoesPackageExist(PackageFile))
+                    continue;
 
                 UPackage * Package = nullptr;
                 if ( !PackageFile.IsEmpty() )
-                    Package = LoadPackage(nullptr, *PackageFile, LOAD_None);
+                    Package = LoadPackage( nullptr, *PackageFile, LOAD_None );
 
                 if ( !Package )
                     continue;
@@ -3409,13 +3427,14 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         {
             for ( TMap<TWeakObjectPtr< UPackage >, FHoudiniGeoPartObject > ::TIterator IterPackage( CookedTemporaryLandscapeLayers ); IterPackage; ++IterPackage )
             {
-                UPackage * Package = IterPackage.Key().Get();
+                if (!IterPackage.Key().IsValid())
+                    continue;
 
-                FString sKey;
+                UPackage * Package = IterPackage.Key().Get();                
                 if ( !Package || UPackage::IsEmptyPackage( Package ) )
                     continue;
 
-                sKey = Package->GetFName().ToString();
+                FString sKey = Package->GetFName().ToString();
 
                 FHoudiniGeoPartObject Value = IterPackage.Value();
                 LayerPackages.Add( sKey, Value );
@@ -3430,6 +3449,8 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
             {
                 FHoudiniGeoPartObject Value = IterPackage.Value();
                 FString PackageFile = IterPackage.Key();
+                if ( !FPackageName::DoesPackageExist(PackageFile) )
+                    continue;
 
                 UPackage * Package = nullptr;
                 if ( !PackageFile.IsEmpty() )
@@ -3522,7 +3543,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
     // Display busy cursor.
     FScopedBusyCursor ScopedBusyCursor;
 
-    ULevel * Level = GetHoudiniAssetActorOwner()->GetLevel();
+    ULevel * Level = GetHoudiniAssetActorOwner() ? GetHoudiniAssetActorOwner()->GetLevel() : nullptr;
     if ( !Level )
         Level = GWorld->GetCurrentLevel();
 
@@ -3751,7 +3772,7 @@ UHoudiniAssetComponent::PostInitProperties()
         // Copy static mesh generation parameters from settings.
         bGeneratedDoubleSidedGeometry = HoudiniRuntimeSettings->bDoubleSidedGeometry;
         GeneratedPhysMaterial = HoudiniRuntimeSettings->PhysMaterial;
-	DefaultBodyInstance = HoudiniRuntimeSettings->DefaultBodyInstance;
+        DefaultBodyInstance = HoudiniRuntimeSettings->DefaultBodyInstance;
         GeneratedCollisionTraceFlag = HoudiniRuntimeSettings->CollisionTraceFlag;
         GeneratedLpvBiasMultiplier = HoudiniRuntimeSettings->LpvBiasMultiplier;
         GeneratedLightMapResolution = HoudiniRuntimeSettings->LightMapResolution;
