@@ -3325,11 +3325,14 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         {
             for ( TMap<FString, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryPackages); IterPackage; ++IterPackage )
             {
-                UPackage * Package = IterPackage.Value().Get();
+                if (!IterPackage.Value().IsValid())
+                    continue;
 
-                FString sValue;
-                if ( Package )
-                    sValue = Package->GetFName().ToString();
+                UPackage * Package = IterPackage.Value().Get();
+                if ( !Package || UPackage::IsEmptyPackage( Package ) )
+                    continue;
+
+                FString sValue = Package->GetFName().ToString();
 
                 FString sKey = IterPackage.Key();
                 SavedPackages.Add( sKey, sValue );
@@ -3338,12 +3341,14 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
 
         Ar << SavedPackages;
 
-        if (Ar.IsLoading())
+        if ( Ar.IsLoading() )
         {
             for ( TMap<FString, FString > ::TIterator IterPackage( SavedPackages ); IterPackage; ++IterPackage )
             {
                 FString sKey = IterPackage.Key();
                 FString PackageFile = IterPackage.Value();
+                if (!FPackageName::DoesPackageExist(PackageFile))
+                    continue;
 
                 UPackage * Package = nullptr;
                 if ( !PackageFile.IsEmpty() )
@@ -3365,13 +3370,14 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         {
             for ( TMap<FHoudiniGeoPartObject, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryStaticMeshPackages); IterPackage; ++IterPackage )
             {
-                UPackage * Package = IterPackage.Value().Get();
+                if ( !IterPackage.Value().IsValid() )
+                    continue;
 
-                FString sValue;
+                UPackage * Package = IterPackage.Value().Get();                
                 if ( !Package || UPackage::IsEmptyPackage( Package ) )
                     continue;
 
-                sValue = Package->GetFName().ToString();
+                FString sValue = Package->GetFName().ToString();
 
                 FHoudiniGeoPartObject Key = IterPackage.Key();
                 MeshPackages.Add( Key, sValue );
@@ -3386,10 +3392,12 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
             {
                 FHoudiniGeoPartObject Key = IterPackage.Key();
                 FString PackageFile = IterPackage.Value();
+                if (!FPackageName::DoesPackageExist(PackageFile))
+                    continue;
 
                 UPackage * Package = nullptr;
                 if ( !PackageFile.IsEmpty() )
-                    Package = LoadPackage(nullptr, *PackageFile, LOAD_None);
+                    Package = LoadPackage( nullptr, *PackageFile, LOAD_None );
 
                 if ( !Package )
                     continue;
@@ -3404,13 +3412,14 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         {
             for ( TMap<TWeakObjectPtr< UPackage >, FHoudiniGeoPartObject > ::TIterator IterPackage( CookedTemporaryLandscapeLayers ); IterPackage; ++IterPackage )
             {
-                UPackage * Package = IterPackage.Key().Get();
+                if (!IterPackage.Key().IsValid())
+                    continue;
 
-                FString sKey;
+                UPackage * Package = IterPackage.Key().Get();                
                 if ( !Package || UPackage::IsEmptyPackage( Package ) )
                     continue;
 
-                sKey = Package->GetFName().ToString();
+                FString sKey = Package->GetFName().ToString();
 
                 FHoudiniGeoPartObject Value = IterPackage.Value();
                 LayerPackages.Add( sKey, Value );
@@ -3425,6 +3434,8 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
             {
                 FHoudiniGeoPartObject Value = IterPackage.Value();
                 FString PackageFile = IterPackage.Key();
+                if ( !FPackageName::DoesPackageExist(PackageFile) )
+                    continue;
 
                 UPackage * Package = nullptr;
                 if ( !PackageFile.IsEmpty() )
@@ -3746,7 +3757,7 @@ UHoudiniAssetComponent::PostInitProperties()
         // Copy static mesh generation parameters from settings.
         bGeneratedDoubleSidedGeometry = HoudiniRuntimeSettings->bDoubleSidedGeometry;
         GeneratedPhysMaterial = HoudiniRuntimeSettings->PhysMaterial;
-	DefaultBodyInstance = HoudiniRuntimeSettings->DefaultBodyInstance;
+        DefaultBodyInstance = HoudiniRuntimeSettings->DefaultBodyInstance;
         GeneratedCollisionTraceFlag = HoudiniRuntimeSettings->CollisionTraceFlag;
         GeneratedLpvBiasMultiplier = HoudiniRuntimeSettings->LpvBiasMultiplier;
         GeneratedLightMapResolution = HoudiniRuntimeSettings->LightMapResolution;
