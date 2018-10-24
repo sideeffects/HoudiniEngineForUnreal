@@ -98,6 +98,18 @@ const FString kResultStringInvalidArgument( TEXT( "Invalid Argument" ) );
 const FString kResultStringCannotLoadGeo( TEXT( "Uneable to Load Geometry" ) );
 const FString kResultStringCannotGeneratePreset( TEXT( "Uneable to Generate Preset" ) );
 const FString kResultStringCannotLoadPreset( TEXT( "Uneable to Load Preset" ) );
+const FString kResultStringAssetDefAlrealdyLoaded(TEXT("Asset definition already loaded"));
+const FString kResultStringNoLicenseFound(TEXT("No License Found"));
+const FString kResultStringDisallowedNCLicenseFound(TEXT("Disallowed Non Commercial License found"));
+const FString kResultStringDisallowedNCAssetWithCLicense(TEXT("Disallowed Non Commercial Asset With Commercial License"));
+const FString kResultStringDisallowedNCAssetWithLCLicense(TEXT("Disallowed Non Commercial Asset With Limited Commercial License"));
+const FString kResultStringDisallowedLCAssetWithCLicense(TEXT("Disallowed Limited Commercial Asset With Commercial License"));
+const FString kResultStringDisallowedHengineIndieWith3PartyPlugin(TEXT("Disallowed Houdini Engine Indie With 3rd Party Plugin"));
+const FString kResultStringAssetInvalid(TEXT("Invalid Asset"));
+const FString kResultStringNodeInvalid(TEXT("Invalid Node"));
+const FString kResultStringUserInterrupted(TEXT("User Interrupt"));
+const FString kResultStringInvalidSession(TEXT("Invalid Session"));
+const FString kResultStringUnknowFailure(TEXT("Unknown Failure"));
 
 const int32
 FHoudiniEngineUtils::PackageGUIDComponentNameLength = 12;
@@ -118,7 +130,7 @@ FHoudiniEngineUtils::GetErrorDescription( HAPI_Result Result )
         {
             case HAPI_RESULT_FAILURE:
             {
-                return kResultStringAlreadyInitialized;
+                return kResultStringFailure;
             }
 
             case HAPI_RESULT_ALREADY_INITIALIZED:
@@ -161,9 +173,64 @@ FHoudiniEngineUtils::GetErrorDescription( HAPI_Result Result )
                 return kResultStringCannotLoadPreset;
             }
 
+            case HAPI_RESULT_ASSET_DEF_ALREADY_LOADED:
+            {
+                return kResultStringAssetDefAlrealdyLoaded;
+            }
+
+            case HAPI_RESULT_NO_LICENSE_FOUND:
+            {
+                return kResultStringNoLicenseFound;
+            }
+
+            case HAPI_RESULT_DISALLOWED_NC_LICENSE_FOUND:
+            {
+                return kResultStringDisallowedNCLicenseFound;
+            }
+
+            case HAPI_RESULT_DISALLOWED_NC_ASSET_WITH_C_LICENSE:
+            {
+                return kResultStringDisallowedNCAssetWithCLicense;
+            }
+
+            case HAPI_RESULT_DISALLOWED_NC_ASSET_WITH_LC_LICENSE:
+            {
+                return kResultStringDisallowedNCAssetWithLCLicense;
+            }
+
+            case HAPI_RESULT_DISALLOWED_LC_ASSET_WITH_C_LICENSE:
+            {
+                return kResultStringDisallowedLCAssetWithCLicense;
+            }
+
+            case HAPI_RESULT_DISALLOWED_HENGINEINDIE_W_3PARTY_PLUGIN:
+            {
+                return kResultStringDisallowedHengineIndieWith3PartyPlugin;
+            }
+
+            case HAPI_RESULT_ASSET_INVALID:
+            {
+                return kResultStringAssetInvalid;
+            }
+
+            case HAPI_RESULT_NODE_INVALID:
+            {
+                return kResultStringNodeInvalid;
+            }
+
+            case HAPI_RESULT_USER_INTERRUPTED:
+            {
+                return kResultStringUserInterrupted;
+            }
+
+            case HAPI_RESULT_INVALID_SESSION:
+            {
+                return kResultStringInvalidSession;
+            }
+
             default:
             {
-                return kResultStringFailure;
+                return kResultStringUnknowFailure;
             }
         };
     }
@@ -3402,7 +3469,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
         Part.attributeCounts[ HAPI_ATTROWNER_DETAIL ] = 0;
         Part.pointCount = NumSockets;
         Part.vertexCount = 0;
-        Part.faceCount = 0;	
+        Part.faceCount = 0;
         Part.type = HAPI_PARTTYPE_MESH;
 
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetPartInfo(

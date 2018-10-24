@@ -1203,6 +1203,14 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentNormal(
                 Material->Normal.Expression = ExpressionNormal;
 
                 bExpressionCreated = true;
+
+                // Propagate and trigger normal texture updates.
+                if (bCreatedNewTextureNormal)
+                    FAssetRegistryModule::AssetCreated(TextureNormal);
+
+                TextureNormal->PreEditChange(nullptr);
+                TextureNormal->PostEditChange();
+                TextureNormal->MarkPackageDirty();
             }
         }
     }
@@ -1475,6 +1483,14 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentSpecular(
                 Material->Specular.Expression = ExpressionSpecular;
 
                 bExpressionCreated = true;
+
+                // Propagate and trigger specular texture updates.
+                if (bCreatedNewTextureSpecular)
+                    FAssetRegistryModule::AssetCreated(TextureSpecular);
+
+                TextureSpecular->PreEditChange(nullptr);
+                TextureSpecular->PostEditChange();
+                TextureSpecular->MarkPackageDirty();
             }
         }
     }
@@ -1681,6 +1697,14 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentRoughness(
                 Material->Roughness.Expression = ExpressionRoughness;
 
                 bExpressionCreated = true;
+
+                // Propagate and trigger roughness texture updates.
+                if (bCreatedNewTextureRoughness)
+                    FAssetRegistryModule::AssetCreated(TextureRoughness);
+
+                TextureRoughness->PreEditChange(nullptr);
+                TextureRoughness->PostEditChange();
+                TextureRoughness->MarkPackageDirty();
             }
         }
     }
@@ -1881,6 +1905,14 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentMetallic(
                 Material->Metallic.Expression = ExpressionMetallic;
 
                 bExpressionCreated = true;
+
+                // Propagate and trigger metallic texture updates.
+                if (bCreatedNewTextureMetallic)
+                    FAssetRegistryModule::AssetCreated(TextureMetallic);
+
+                TextureMetallic->PreEditChange(nullptr);
+                TextureMetallic->PostEditChange();
+                TextureMetallic->MarkPackageDirty();
             }
         }
     }
@@ -2072,6 +2104,14 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentEmissive(
                 Material->EmissiveColor.Expression = ExpressionEmissive;
 
                 bExpressionCreated = true;
+
+                // Propagate and trigger metallic texture updates.
+                if (bCreatedNewTextureEmissive)
+                    FAssetRegistryModule::AssetCreated(TextureEmissive);
+
+                TextureEmissive->PreEditChange(nullptr);
+                TextureEmissive->PostEditChange();
+                TextureEmissive->MarkPackageDirty();
             }
         }
     }
@@ -2527,10 +2567,10 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
             MaterialInstancePackage, NewMaterialInstance, HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MaterialInstanceName );
 
         // Notify registry that we have created a new duplicate material.
-        FAssetRegistryModule::AssetCreated( NewMaterialInstance );        
+        FAssetRegistryModule::AssetCreated( NewMaterialInstance );
     }
 
-    if ( bNewMaterialCreated || bModifiedMaterialParameters )    
+    if ( bNewMaterialCreated || bModifiedMaterialParameters )
     {
         // Dirty the material
         NewMaterialInstance->MarkPackageDirty();
@@ -2538,7 +2578,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
         // Update the material instance
         NewMaterialInstance->InitStaticPermutation();
         NewMaterialInstance->PreEditChange(nullptr);
-        NewMaterialInstance->PostEditChange();	
+        NewMaterialInstance->PostEditChange();
 
         // Automatically save the package to avoid further issue
         MaterialInstancePackage->SetDirtyFlag( true );
