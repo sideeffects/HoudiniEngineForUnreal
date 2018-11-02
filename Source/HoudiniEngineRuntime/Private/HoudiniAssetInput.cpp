@@ -37,6 +37,7 @@
 #include "HoudiniLandscapeUtils.h"
 #include "Components/SplineComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/Selection.h"
 #include "Internationalization/Internationalization.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
@@ -85,6 +86,9 @@ FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
 
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_KEEP_TRANSFORM )
         Ar << KeepWorldTransform;
+
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_OUTLINER_INSTANCE_INDEX )
+        Ar << InstanceIndex;
 }
 
 void 
@@ -176,14 +180,24 @@ FHoudiniAssetInputOutlinerMesh::HasComponentTransformChanged() const
     if ( !SplineComponent && !StaticMeshComponent )
         return false;
 
+    if ( StaticMeshComponent )
+    {
+        // Handle instances here
+        UInstancedStaticMeshComponent * InstancedStaticMeshComponent = Cast< UInstancedStaticMeshComponent >( StaticMeshComponent );
+        if (InstancedStaticMeshComponent)
+        {
+            FTransform InstanceTransform;
+            if ( InstancedStaticMeshComponent->GetInstanceTransform( InstanceIndex, InstanceTransform, true ) )
+                return !ComponentTransform.Equals( InstanceTransform );
+        }
+        else
+            return !ComponentTransform.Equals( StaticMeshComponent->GetComponentTransform() );
+    }
+
     if ( SplineComponent )
         return !ComponentTransform.Equals( SplineComponent->GetComponentTransform() );
 
-    if ( StaticMeshComponent )
-        return !ComponentTransform.Equals( StaticMeshComponent->GetComponentTransform() );
-
     return false;
-
 }
 
 bool
@@ -502,81 +516,18 @@ UHoudiniAssetInput::ForceSetInputObject(UObject * InObject, int32 AtIndex, bool 
     EHoudiniAssetInputType::Enum NewInputType = EHoudiniAssetInputType::GeometryInput;
     if ( AActor* Actor = Cast<AActor>( InObject ) )
     {
-        for ( UActorComponent * Component : Actor->GetComponentsByClass( UStaticMeshComponent::StaticClass() ) )
-        {
-            UStaticMeshComponent * StaticMeshComponent = CastChecked< UStaticMeshComponent >( Component );
-            if ( !StaticMeshComponent )
-                continue;
-
-            UStaticMesh * StaticMesh = StaticMeshComponent->GetStaticMesh();
-            if ( !StaticMesh )
-                continue;
-
-            // Add the mesh to the array
-            FHoudiniAssetInputOutlinerMesh OutlinerMesh;
-
-            OutlinerMesh.ActorPtr = Actor;
-            OutlinerMesh.StaticMeshComponent = StaticMeshComponent;
-            OutlinerMesh.StaticMesh = StaticMesh;
-            OutlinerMesh.SplineComponent = nullptr;
-            OutlinerMesh.AssetId = -1;
-
-            UpdateWorldOutlinerTransforms( OutlinerMesh );
-
-            InputOutlinerMeshArray.Add( OutlinerMesh );
-
+        // Update the OutlinerInputArray from the actor
+        UpdateInputOulinerArrayFromActor(Actor, true);
+        if ( InputOutlinerMeshArray.Num() > 0 )
             NewInputType = EHoudiniAssetInputType::WorldInput;
-        }
-
-        // Looking for Splines
-        for ( UActorComponent * Component : Actor->GetComponentsByClass( USplineComponent::StaticClass() ) )
-        {
-            USplineComponent * SplineComponent = CastChecked< USplineComponent >( Component );
-            if ( !SplineComponent )
-                continue;
-
-            // Add the spline to the array
-            FHoudiniAssetInputOutlinerMesh OutlinerMesh;
-
-            OutlinerMesh.ActorPtr = Actor;
-            OutlinerMesh.StaticMeshComponent = nullptr;
-            OutlinerMesh.StaticMesh = nullptr;
-            OutlinerMesh.SplineComponent = SplineComponent;
-            OutlinerMesh.AssetId = -1;
-
-            UpdateWorldOutlinerTransforms( OutlinerMesh );
-
-            InputOutlinerMeshArray.Add( OutlinerMesh );
-
-            NewInputType = EHoudiniAssetInputType::WorldInput;
-        }
 
         // Looking for houdini assets
         if ( AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>( Actor ) )
         {
-            UHoudiniAssetComponent * ConnectedHoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
-
-            // Ignore the existing asset component or ourselves
-            if ( ConnectedHoudiniAssetComponent
-                && ConnectedHoudiniAssetComponent != InputAssetComponent
-                && ConnectedHoudiniAssetComponent != PrimaryObject )
-            {
-                // Tell the old input asset we are no longer connected.
-                if ( InputAssetComponent )
-                    InputAssetComponent->RemoveDownstreamAsset( GetHoudiniAssetComponent(), InputIndex );
-
-                InputAssetComponent = ConnectedHoudiniAssetComponent;
-                ConnectedAssetId = InputAssetComponent->GetAssetId();
-
-                // Do we have to wait for the input asset to cook?
-                if ( GetHoudiniAssetComponent() )
-                    GetHoudiniAssetComponent()->UpdateWaitingForUpstreamAssetsToInstantiate( true );
-
-                // Mark as disconnected since we need to reconnect to the new asset.
-                bInputAssetConnectedInHoudini = false;
-
+            OnInputActorSelected( Actor );
+            if ( InputAssetComponent )
                 NewInputType = EHoudiniAssetInputType::AssetInput;
-            }
+
         }
 
         // Looking for Landscapes
@@ -613,7 +564,6 @@ UHoudiniAssetInput::ForceSetInputObject(UObject * InObject, int32 AtIndex, bool 
     if( CommitChange )
     {
         ChangeInputType( NewInputType );
-
         MarkChanged();
     }
 }
@@ -706,10 +656,12 @@ UHoudiniAssetInput::UploadParameterValue()
         case EHoudiniAssetInputType::AssetInput:
         {
             // Process connected asset.
-            if ( InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId( InputAssetComponent->GetAssetId() )
-                && !bInputAssetConnectedInHoudini )
+            if ( InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId( InputAssetComponent->GetAssetId() ) )
             {
-                ConnectInputAssetActor();
+                if (!bInputAssetConnectedInHoudini)
+                    ConnectInputAssetActor();
+                else
+                    bChanged = false;
             }
             else if ( bInputAssetConnectedInHoudini && !InputAssetComponent )
             {
@@ -721,7 +673,6 @@ UHoudiniAssetInput::UploadParameterValue()
                 if ( InputAssetComponent )
                     return false;
             }
-
             break;
         }
 
@@ -908,16 +859,16 @@ UHoudiniAssetInput::GetDefaultTranformTypeValue() const
 {
     switch (ChoiceIndex)
     {
-	// NONE
-	case EHoudiniAssetInputType::CurveInput:
-	case EHoudiniAssetInputType::GeometryInput:	
-	    return 0;	
-	
-	// INTO THIS OBJECT
-	case EHoudiniAssetInputType::AssetInput:
-	case EHoudiniAssetInputType::LandscapeInput:
-	case EHoudiniAssetInputType::WorldInput:
-	    return 1;
+    // NONE
+    case EHoudiniAssetInputType::CurveInput:
+    case EHoudiniAssetInputType::GeometryInput:
+        return 0;
+    
+    // INTO THIS OBJECT
+    case EHoudiniAssetInputType::AssetInput:
+    case EHoudiniAssetInputType::LandscapeInput:
+    case EHoudiniAssetInputType::WorldInput:
+        return 1;
     }
 
     return 0;
@@ -1846,9 +1797,8 @@ UHoudiniAssetInput::ConnectInputAssetActor()
     // Connect if needed
     if ( !bInputAssetConnectedInHoudini )
     {
-        ConnectInputNode();
         InputAssetComponent->AddDownstreamAsset( GetHoudiniAssetComponent(), InputIndex );
-        bInputAssetConnectedInHoudini = true;
+        bInputAssetConnectedInHoudini = ConnectInputNode();
     }
 }
 
@@ -1967,8 +1917,8 @@ UHoudiniAssetInput::ExternalDisconnectInputAssetActor()
 bool
 UHoudiniAssetInput::DoesInputAssetNeedInstantiation()
 {
-    if ( ChoiceIndex != EHoudiniAssetInputType::AssetInput )
-        return false;
+    //if ( ChoiceIndex != EHoudiniAssetInputType::AssetInput )
+    //    return false;
 
     if ( InputAssetComponent == nullptr )
         return false;
@@ -2845,11 +2795,23 @@ UHoudiniAssetInput::UpdateWorldOutlinerTransforms( FHoudiniAssetInputOutlinerMes
     // Update to the new Transforms
     OutlinerMesh.ActorTransform = OutlinerMesh.ActorPtr->GetTransform();
 
-    if (OutlinerMesh.StaticMeshComponent)
+    if ( OutlinerMesh.StaticMeshComponent )
+    {
         OutlinerMesh.ComponentTransform = OutlinerMesh.StaticMeshComponent->GetComponentTransform();
 
-    if (OutlinerMesh.SplineComponent)
+        // Handle instances here
+        UInstancedStaticMeshComponent * InstancedStaticMeshComponent = Cast< UInstancedStaticMeshComponent >(OutlinerMesh.StaticMeshComponent);
+        if (InstancedStaticMeshComponent)
+        {
+            FTransform InstanceTransform;
+            if (InstancedStaticMeshComponent->GetInstanceTransform(OutlinerMesh.InstanceIndex, InstanceTransform, true))
+                OutlinerMesh.ComponentTransform = InstanceTransform;
+        }
+    }
+    else if (OutlinerMesh.SplineComponent)
+    {
         OutlinerMesh.ComponentTransform = OutlinerMesh.SplineComponent->GetComponentTransform();
+    }
 
     OutlinerMesh.KeepWorldTransform = bKeepWorldTransform;
 }
@@ -3157,7 +3119,7 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
     // Looking for StaticMeshes
     for ( UActorComponent * Component : Actor->GetComponentsByClass( UStaticMeshComponent::StaticClass() ) )
     {
-        UStaticMeshComponent * StaticMeshComponent = CastChecked< UStaticMeshComponent >( Component );
+        UStaticMeshComponent * StaticMeshComponent = Cast< UStaticMeshComponent >( Component );
         if ( !StaticMeshComponent || StaticMeshComponent->ComponentHasTag( NAME_HoudiniNoUpload ) )
             continue;
 
@@ -3165,23 +3127,56 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
         if ( !StaticMesh )
             continue;
 
-        // Add the mesh to the array
-        FHoudiniAssetInputOutlinerMesh OutlinerMesh;
-        OutlinerMesh.ActorPtr = Actor;
-        OutlinerMesh.StaticMeshComponent = StaticMeshComponent;
-        OutlinerMesh.StaticMesh = StaticMesh;
-        OutlinerMesh.SplineComponent = nullptr;
-        OutlinerMesh.AssetId = -1;
+        UInstancedStaticMeshComponent * InstancedStaticMeshComponent = Cast< UInstancedStaticMeshComponent >(Component);
+        if (InstancedStaticMeshComponent)
+        {
+            // Handle ISM separately
+            // We'll create an Outliner Mesh for each of the instances..
+            for (int32 n = 0; n < InstancedStaticMeshComponent->GetInstanceCount(); n++)
+            {
+                // Add the mesh to the array
+                FHoudiniAssetInputOutlinerMesh OutlinerMesh;
+                OutlinerMesh.ActorPtr = Actor;
+                OutlinerMesh.StaticMeshComponent = InstancedStaticMeshComponent;
+                OutlinerMesh.StaticMesh = StaticMesh;
+                OutlinerMesh.SplineComponent = nullptr;
+                OutlinerMesh.AssetId = -1;
+                OutlinerMesh.InstanceIndex = n;
 
+<<<<<<< .working
         UpdateWorldOutlinerTransforms( OutlinerMesh );
+||||||| .merge-left.r315552
+        UpdateWorldOutlinerTransforms( OutlinerMesh );
+        UpdateWorldOutlinerMaterials( OutlinerMesh );
+=======
+                UpdateWorldOutlinerTransforms(OutlinerMesh);
+                UpdateWorldOutlinerMaterials(OutlinerMesh);
+>>>>>>> .merge-right.r315553
 
-        InputOutlinerMeshArray.Add( OutlinerMesh );
+                InputOutlinerMeshArray.Add(OutlinerMesh);
+            }
+        }
+        else
+        {
+            // Add the mesh to the array
+            FHoudiniAssetInputOutlinerMesh OutlinerMesh;
+            OutlinerMesh.ActorPtr = Actor;
+            OutlinerMesh.StaticMeshComponent = StaticMeshComponent;
+            OutlinerMesh.StaticMesh = StaticMesh;
+            OutlinerMesh.SplineComponent = nullptr;
+            OutlinerMesh.AssetId = -1;
+
+            UpdateWorldOutlinerTransforms(OutlinerMesh);
+            UpdateWorldOutlinerMaterials(OutlinerMesh);
+
+            InputOutlinerMeshArray.Add(OutlinerMesh);
+        }
     }
 
     // Looking for Splines
     for ( UActorComponent * Component : Actor->GetComponentsByClass( USplineComponent::StaticClass() ) )
     {
-        USplineComponent * SplineComponent = CastChecked< USplineComponent >( Component );
+        USplineComponent * SplineComponent = Cast< USplineComponent >( Component );
         if ( !SplineComponent || SplineComponent->ComponentHasTag( NAME_HoudiniNoUpload ) )
             continue;
 

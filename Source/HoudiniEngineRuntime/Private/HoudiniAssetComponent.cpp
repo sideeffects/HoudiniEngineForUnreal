@@ -1219,7 +1219,7 @@ UHoudiniAssetComponent::IsInstantiatingOrCooking() const
 bool
 UHoudiniAssetComponent::HasBeenInstantiatedButNotCooked() const
 {
-    return ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) && ( 0 == AssetCookCount ) );
+    return ( FHoudiniEngineUtils::IsHoudiniNodeValid( AssetId ) && ( 0 == AssetCookCount ) );
 }
 
 void
@@ -2029,39 +2029,25 @@ UHoudiniAssetComponent::StartTaskAssetRebuildManual()
 {
     if ( !IsInstantiatingOrCooking() )
     {
-        bool bInstantiate = false;
-
-        if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+        if ( FHoudiniEngineUtils::IsHoudiniNodeValid( AssetId ) )
         {
-            if ( FHoudiniEngineUtils::GetAssetPreset( AssetId, PresetBuffer ) )
+            if ( !FHoudiniEngineUtils::GetAssetPreset( AssetId, PresetBuffer ) )
             {
-                // We need to delete the asset and request a new one.
-                StartTaskAssetDeletion();
-
-                // We need to instantiate.
-                bInstantiate = true;
+                HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's preset, rebuilt asset may have lost its parameters."));
             }
-        }
-        else
-        {
-            if ( bLoadedComponent )
-            {
-                // We need to instantiate.
-                bInstantiate = true;
-            }
+
+            // We need to delete the asset and request a new one.
+            StartTaskAssetDeletion();
         }
 
-        if ( bInstantiate )
-        {
-            HapiGUID = FGuid::NewGuid();
+        HapiGUID = FGuid::NewGuid();
 
-            // If this is a loaded component, then we just need to instantiate.
-            bLoadedComponentRequiresInstantiation = true;
-            bParametersChanged = true;
-            bManualRecookRequested = true;
+        // If this is a loaded component, then we just need to instantiate.
+        bLoadedComponentRequiresInstantiation = true;
+        bParametersChanged = true;
+        bManualRecookRequested = true;
 
-            StartHoudiniTicking();
-        }
+        StartHoudiniTicking();
     }
 }
 
@@ -2105,6 +2091,9 @@ UHoudiniAssetComponent::StartTaskAssetCooking( bool bStartTicking )
 {
     if ( !IsInstantiatingOrCooking() )
     {
+        if (!FHoudiniEngineUtils::IsValidAssetId(AssetId))
+            return;
+
         // Generate GUID for our new task.
         HapiGUID = FGuid::NewGuid();
 
@@ -4124,7 +4113,8 @@ UHoudiniAssetComponent::UploadChangedParameters()
 void
 UHoudiniAssetComponent::UpdateLoadedParameters()
 {
-    check( AssetId >= 0 );
+    if (!FHoudiniEngineUtils::IsValidAssetId(AssetId))
+        return;
 
     for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams( Parameters ); IterParams; ++IterParams )
     {
@@ -4290,7 +4280,9 @@ UHoudiniAssetComponent::CreateInputs()
 void
 UHoudiniAssetComponent::UpdateLoadedInputs()
 {
-    check( AssetId >= 0 );
+    if ( !FHoudiniEngineUtils::IsValidAssetId(AssetId) )
+        return;
+
     bool Success = true;
     for ( TArray< UHoudiniAssetInput * >::TIterator IterInputs( Inputs ); IterInputs; ++IterInputs )
     {

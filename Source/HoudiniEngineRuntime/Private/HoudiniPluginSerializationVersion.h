@@ -69,6 +69,7 @@ enum EHoudiniPluginSerializationVersion
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INSTANCE_COLORS = 22,
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_PARAMETERS_NOSWAP = 23,
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_FILE_PARAM_READ_ONLY = 25,
+    VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_OUTLINER_INSTANCE_INDEX = 26,
 
     // -----<new versions can be added before this line>-------------------------------------------------
     // - this needs to be the last line (see note below)

@@ -1046,9 +1046,6 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
         return false;
 
     // Export the whole landscape and its layer as a single heightfield
-    ALandscape* Landscape = LandscapeProxy->GetLandscapeActor();
-    if ( !Landscape )
-        return false;
 
     //--------------------------------------------------------------------------------------------------
     // 1. Extracting the height data
@@ -1056,7 +1053,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
     TArray<uint16> HeightData;
     int32 XSize, YSize;
     FVector Min, Max;
-    if ( !GetLandscapeData( Landscape, HeightData, XSize, YSize, Min, Max ) )
+    if ( !GetLandscapeData( LandscapeProxy, HeightData, XSize, YSize, Min, Max ) )
         return false;
 
     //--------------------------------------------------------------------------------------------------
@@ -1064,7 +1061,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
     //--------------------------------------------------------------------------------------------------
     TArray<float> HeightfieldFloatValues;
     HAPI_VolumeInfo HeightfieldVolumeInfo;
-    FTransform LandscapeTransform = Landscape->LandscapeActorToWorld();
+    FTransform LandscapeTransform = LandscapeProxy->LandscapeActorToWorld();
 
     if ( !ConvertLandscapeDataToHeightfieldData(
         HeightData, XSize, YSize, Min, Max, LandscapeTransform,
@@ -1096,12 +1093,12 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
     //--------------------------------------------------------------------------------------------------
     // 5. Extract and convert all the layers
     //--------------------------------------------------------------------------------------------------
-    ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
+    ULandscapeInfo* LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
     if ( !LandscapeInfo )
         return false;
 
     int32 MergeInputIndex = 2;
-    int32 NumLayers = LandscapeInfo->Layers.Num();    
+    int32 NumLayers = LandscapeInfo->Layers.Num();
     for ( int32 n = 0; n < NumLayers; n++ )
     {
         // 1. Extract the uint8 values from the layer
@@ -1415,6 +1412,45 @@ FHoudiniLandscapeUtils::GetLandscapeData(
     return true;
 }
 
+bool
+FHoudiniLandscapeUtils::GetLandscapeData(
+    ALandscapeProxy* LandscapeProxy,
+    TArray<uint16>& HeightData,
+    int32& XSize, int32& YSize,
+    FVector& Min, FVector& Max)
+{
+    if (!LandscapeProxy)
+        return false;
+
+    ULandscapeInfo* LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
+    if (!LandscapeInfo)
+        return false;
+
+    // Get the landscape extents to get its size
+    int32 MinX = MAX_int32;
+    int32 MinY = MAX_int32;
+    int32 MaxX = -MAX_int32;
+    int32 MaxY = -MAX_int32;
+
+    if (!LandscapeInfo->GetLandscapeExtent(MinX, MinY, MaxX, MaxY))
+        return false;
+
+    if (!GetLandscapeData(LandscapeInfo, MinX, MinY, MaxX, MaxY, HeightData, XSize, YSize))
+        return false;
+
+    // Get the landscape Min/Max values
+    // Do not use Landscape->GetActorBounds() here as instanced geo
+    // (due to grass layers for example) can cause it to return incorrect bounds!
+    FVector Origin, Extent;
+    GetLandscapeProxyBounds(LandscapeProxy, Origin, Extent);
+
+    // Get the landscape Min/Max values
+    Min = Origin - Extent;
+    Max = Origin + Extent;
+
+    return true;
+}
+
 
 void
 FHoudiniLandscapeUtils::GetLandscapeActorBounds(
@@ -1432,6 +1468,24 @@ FHoudiniLandscapeUtils::GetLandscapeActorBounds(
     // Convert the bounds to origin/offset vectors
     Bounds.GetCenterAndExtents(Origin, Extents);
 }
+
+void
+FHoudiniLandscapeUtils::GetLandscapeProxyBounds(
+    ALandscapeProxy* LandscapeProxy, FVector& Origin, FVector& Extents)
+{
+    // Iterate only on the landscape components
+    FBox Bounds(ForceInit);
+    for (const UActorComponent* ActorComponent : LandscapeProxy->GetComponents())
+    {
+        const ULandscapeComponent* LandscapeComp = Cast<const ULandscapeComponent>(ActorComponent);
+        if (LandscapeComp && LandscapeComp->IsRegistered())
+            Bounds += LandscapeComp->Bounds.GetBox();
+    }
+
+    // Convert the bounds to origin/offset vectors
+    Bounds.GetCenterAndExtents(Origin, Extents);
+}
+
 bool
 FHoudiniLandscapeUtils::GetLandscapeData(
     ULandscapeInfo* LandscapeInfo,
@@ -2952,7 +3006,7 @@ bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
         FName LayerName( *LayerString );
         FLandscapeImportLayerInfo currentLayerInfo( LayerName );
 
-        UPackage * Package;
+        UPackage * Package = nullptr;
         currentLayerInfo.LayerInfo = FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( HoudiniCookParams, LayerString.GetCharArray().GetData(), Package );
         if ( !currentLayerInfo.LayerInfo || !Package )
             continue;
@@ -3018,12 +3072,13 @@ FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( FHoudiniCookParams& Houd
     PackageName = PackageTools::SanitizePackageName( PackageName );
 
     // See if package exists, if it does, reuse it
-    //UPackage * Package = FindPackage( nullptr , *PackageName );
+    bool bCreatedPackage = false;
     Package = FindPackage( nullptr, *PackageName );
     if ( !Package )
     {
         // Package does not exists, create it
         Package = CreatePackage( nullptr, *PackageName );
+        bCreatedPackage = true;
     }
 
     if ( !Package )
@@ -3034,6 +3089,11 @@ FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( FHoudiniCookParams& Houd
 
     // Notify the asset registry
     FAssetRegistryModule::AssetCreated( LayerInfo );
+
+    // Trigger update of the Layer Info
+    LayerInfo->PreEditChange(nullptr);
+    LayerInfo->PostEditChange();
+    LayerInfo->MarkPackageDirty();
 
     // Mark the package dirty...
     Package->MarkPackageDirty();
@@ -3138,7 +3198,7 @@ FHoudiniLandscapeUtils::UpdateOldLandscapeReference(ALandscape* OldLandscape, AL
     for ( TActorIterator<AHoudiniAssetActor> ActorItr( editorWorld ); ActorItr; ++ActorItr )
     {
         AHoudiniAssetActor* Actor = *ActorItr;
-        UHoudiniAssetComponent * HoudiniAssetComponent = Actor->GetHoudiniAssetComponent();	
+        UHoudiniAssetComponent * HoudiniAssetComponent = Actor->GetHoudiniAssetComponent();
         if ( !HoudiniAssetComponent || !HoudiniAssetComponent->IsValidLowLevel() )
         {
             HOUDINI_LOG_ERROR(TEXT("Failed to export a Houdini Asset in the scene!"));

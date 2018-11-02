@@ -51,6 +51,24 @@ namespace EHoudiniAssetInputType
 
 struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
 {
+    FHoudiniAssetInputOutlinerMesh()
+        : ActorPtr(nullptr),
+        StaticMeshComponent(nullptr),
+        StaticMesh(nullptr),
+        SplineComponent(nullptr),
+        NumberOfSplineControlPoints(-1),
+        SplineControlPointsTransform(),
+        SplineLength(-1.0f),
+        SplineResolution(-1.0f),
+        ActorTransform(),
+        ComponentTransform(),
+        AssetId(-1),
+        KeepWorldTransform(2),
+        MeshComponentsMaterials(),
+        InstanceIndex(-1)
+    {
+    }
+
     /** Serialization. **/
     void Serialize( FArchive & Ar );
 
@@ -106,6 +124,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
 
     /** Temporary variable holding serialization version. **/
     uint32 HoudiniAssetParameterVersion;
+
+    /** If the world In is a ISM, index of this instance **/
+    uint32 InstanceIndex = -1;
 };
 
 
@@ -140,10 +161,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 #if WITH_EDITOR
         virtual void PostEditUndo() override;
 
-	// Note: This method is to be only used for testing or for presetting Houdini tools input!!
+        // Note: This method is to be only used for testing or for presetting Houdini tools input!!
         void ForceSetInputObject( UObject * InObject, int32 AtIndex, bool CommitChange );
 
-	// Clears all selected objects for all input types and revert back to the default geo input
+        // Clears all selected objects for all input types and revert back to the default geo input
         void ClearInputs();
 
         bool AddInputObject( UObject* ObjectToAdd );
