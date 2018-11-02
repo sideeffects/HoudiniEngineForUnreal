@@ -3143,15 +3143,7 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
                 OutlinerMesh.AssetId = -1;
                 OutlinerMesh.InstanceIndex = n;
 
-<<<<<<< .working
-        UpdateWorldOutlinerTransforms( OutlinerMesh );
-||||||| .merge-left.r315552
-        UpdateWorldOutlinerTransforms( OutlinerMesh );
-        UpdateWorldOutlinerMaterials( OutlinerMesh );
-=======
-                UpdateWorldOutlinerTransforms(OutlinerMesh);
-                UpdateWorldOutlinerMaterials(OutlinerMesh);
->>>>>>> .merge-right.r315553
+                UpdateWorldOutlinerTransforms( OutlinerMesh );
 
                 InputOutlinerMeshArray.Add(OutlinerMesh);
             }
@@ -3167,7 +3159,6 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
             OutlinerMesh.AssetId = -1;
 
             UpdateWorldOutlinerTransforms(OutlinerMesh);
-            UpdateWorldOutlinerMaterials(OutlinerMesh);
 
             InputOutlinerMeshArray.Add(OutlinerMesh);
         }

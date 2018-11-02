@@ -64,7 +64,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
         ComponentTransform(),
         AssetId(-1),
         KeepWorldTransform(2),
-        MeshComponentsMaterials(),
         InstanceIndex(-1)
     {
     }
