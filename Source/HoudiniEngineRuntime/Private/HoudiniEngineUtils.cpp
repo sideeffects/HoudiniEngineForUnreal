@@ -377,18 +377,24 @@ FHoudiniEngineUtils::GetAssetPreset( HAPI_NodeId AssetId, TArray< char > & Prese
 {
     PresetBuffer.Empty();
 
+    HAPI_NodeId NodeId;
     HAPI_AssetInfo AssetInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
-        FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
+    if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(
+        FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo))
+    {
+        NodeId = AssetInfo.nodeId;
+    }
+    else
+        NodeId = AssetId;
 
     int32 BufferLength = 0;
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetPresetBufLength(
-        FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId,
+        FHoudiniEngine::Get().GetSession(), NodeId,
         HAPI_PRESETTYPE_BINARY, NULL, &BufferLength ), false );
 
     PresetBuffer.SetNumZeroed( BufferLength );
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetPreset(
-        FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId,
+        FHoudiniEngine::Get().GetSession(), NodeId,
         &PresetBuffer[ 0 ], PresetBuffer.Num() ), false );
 
     return true;
@@ -1394,11 +1400,15 @@ FHoudiniEngineUtils::HapiGetParameterTag( const HAPI_NodeId& NodeId, const HAPI_
         FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
         TCHAR_TO_ANSI(*Tag), &HasTag ), false );
 
+    if ( !HasTag )
+        return false;
+    /*
     HAPI_ParmId FoundId = -1;
     if (!HasTag)
     {
         FoundId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag(NodeId, TCHAR_TO_ANSI(*Tag));
     }
+    */
 
     // Get the tag string value
     HAPI_StringHandle StringHandle;

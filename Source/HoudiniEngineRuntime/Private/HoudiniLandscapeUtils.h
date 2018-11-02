@@ -178,6 +178,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             FVector& Min, FVector& Max );
 
         static bool GetLandscapeData(
+            ALandscapeProxy* LandscapeProxy,
+            TArray<uint16>& HeightData,
+            int32& XSize, int32& YSize,
+            FVector& Min, FVector& Max );
+
+        static bool GetLandscapeData(
             ULandscapeInfo* LandscapeInfo,
             const int32& MinX, const int32& MinY,
             const int32& MaxX, const int32& MaxY,
@@ -238,6 +244,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const FHoudiniGeoPartObject& HeightfieldGeoPartObject, TArray<FString>& NonWeightBlendedLayerNames );
 
         static void GetLandscapeActorBounds( ALandscape* Landscape, FVector& Origin, FVector& Extents );
+
+        static void GetLandscapeProxyBounds( ALandscapeProxy* LandscapeProxy, FVector& Origin, FVector& Extents );
 
         //--------------------------------------------------------------------------------------------------
         // Unreal to Houdini - MESH / POINTS
