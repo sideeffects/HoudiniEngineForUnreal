@@ -233,8 +233,8 @@ FHoudiniEngineEditor::IsInitialized()
 }
 
 FHoudiniEngineEditor::FHoudiniEngineEditor()
-    : LastHoudiniAssetComponentUndoObject( nullptr )
-    , CurrentHoudiniToolDirIndex( -1 )
+    : CurrentHoudiniToolDirIndex(-1),
+    LastHoudiniAssetComponentUndoObject( nullptr )
 {}
 
 void

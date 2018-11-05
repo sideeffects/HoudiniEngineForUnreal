@@ -264,6 +264,9 @@ FHoudiniApi::GetImagePlanes = &FHoudiniApi::GetImagePlanesEmptyStub;
 FHoudiniApi::GetInstanceTransformsFuncPtr
 FHoudiniApi::GetInstanceTransforms = &FHoudiniApi::GetInstanceTransformsEmptyStub;
 
+FHoudiniApi::GetInstanceTransformsOnPartFuncPtr
+FHoudiniApi::GetInstanceTransformsOnPart = &FHoudiniApi::GetInstanceTransformsOnPartEmptyStub;
+
 FHoudiniApi::GetInstancedObjectIdsFuncPtr
 FHoudiniApi::GetInstancedObjectIds = &FHoudiniApi::GetInstancedObjectIdsEmptyStub;
 
@@ -766,6 +769,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetImagePlaneCount = (GetImagePlaneCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImagePlaneCount"));
 	FHoudiniApi::GetImagePlanes = (GetImagePlanesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImagePlanes"));
 	FHoudiniApi::GetInstanceTransforms = (GetInstanceTransformsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstanceTransforms"));
+	FHoudiniApi::GetInstanceTransformsOnPart = (GetInstanceTransformsOnPartFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstanceTransformsOnPart"));
 	FHoudiniApi::GetInstancedObjectIds = (GetInstancedObjectIdsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstancedObjectIds"));
 	FHoudiniApi::GetInstancedPartIds = (GetInstancedPartIdsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstancedPartIds"));
 	FHoudiniApi::GetInstancerPartTransforms = (GetInstancerPartTransformsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstancerPartTransforms"));
@@ -990,6 +994,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetImagePlaneCount = &FHoudiniApi::GetImagePlaneCountEmptyStub;
 	FHoudiniApi::GetImagePlanes = &FHoudiniApi::GetImagePlanesEmptyStub;
 	FHoudiniApi::GetInstanceTransforms = &FHoudiniApi::GetInstanceTransformsEmptyStub;
+	FHoudiniApi::GetInstanceTransformsOnPart = &FHoudiniApi::GetInstanceTransformsOnPartEmptyStub;
 	FHoudiniApi::GetInstancedObjectIds = &FHoudiniApi::GetInstancedObjectIdsEmptyStub;
 	FHoudiniApi::GetInstancedPartIds = &FHoudiniApi::GetInstancedPartIdsEmptyStub;
 	FHoudiniApi::GetInstancerPartTransforms = &FHoudiniApi::GetInstancerPartTransformsEmptyStub;
@@ -1687,6 +1692,13 @@ FHoudiniApi::GetImagePlanesEmptyStub(const HAPI_Session * session, HAPI_NodeId m
 
 HAPI_Result
 FHoudiniApi::GetInstanceTransformsEmptyStub(const HAPI_Session * session, HAPI_NodeId object_node_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetInstanceTransformsOnPartEmptyStub(const HAPI_Session *session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_RSTOrder rst_order, HAPI_Transform *transforms_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
