@@ -5867,23 +5867,20 @@ HAPI_DECL HAPI_GetPDGGraphContexts( const HAPI_Session * session,
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
 ///
-/// @param[in]      graph_context_id
-///                 The id of the graph context 
-///
 /// @param[in]      cook_node_id
-///                 The node id of the TOP node for the cook operation.
+///                 The node id of a TOP node for the cook operation.
 ///
-/// @param[in]      cook_type
-///                 The ::HAPI_PDG_CookType cooking mode to perform.
+/// @param[in]      generate_only
+///                 1 means only root generation will done.  0 means start
+///                 a full graph cook.
 ///
 /// @param[in]      blocking
 ///                 0 means return immediately and cooking will be done 
 ///                 asynchronously.   1 means return when cooking completes.
 ///
 HAPI_DECL HAPI_CookPDG( const HAPI_Session * session,
-                        HAPI_PDG_GraphContextId graph_context_id,
                         HAPI_NodeId cook_node_id,
-                        HAPI_PDG_CookType cook_type,
+                        int generate_only,
                         int blocking );
 
 // @brief  Returns PDG events that have been collected.  Calling this function
