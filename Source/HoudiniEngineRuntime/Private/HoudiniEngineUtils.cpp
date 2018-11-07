@@ -2880,6 +2880,9 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
             FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, 0,
             HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint ), false );
 
+        // Grab the build scale
+        FVector BuildScaleVector = SrcModel.BuildSettings.BuildScale3D;
+
         // Extract vertices from static mesh.
         TArray< float > StaticMeshVertices;
         StaticMeshVertices.SetNumZeroed( RawMesh.VertexPositions.Num() * 3 );
@@ -2890,15 +2893,15 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
             if ( ImportAxis == HRSAI_Unreal )
             {
-                StaticMeshVertices[ VertexIdx * 3 + 0 ] = PositionVector.X / GeneratedGeometryScaleFactor;
-                StaticMeshVertices[ VertexIdx * 3 + 1 ] = PositionVector.Z / GeneratedGeometryScaleFactor;
-                StaticMeshVertices[ VertexIdx * 3 + 2 ] = PositionVector.Y / GeneratedGeometryScaleFactor;
+                StaticMeshVertices[ VertexIdx * 3 + 0 ] = PositionVector.X / GeneratedGeometryScaleFactor * BuildScaleVector.X;
+                StaticMeshVertices[ VertexIdx * 3 + 1 ] = PositionVector.Z / GeneratedGeometryScaleFactor * BuildScaleVector.Z;
+                StaticMeshVertices[ VertexIdx * 3 + 2 ] = PositionVector.Y / GeneratedGeometryScaleFactor * BuildScaleVector.Y;
             }
             else if ( ImportAxis == HRSAI_Houdini )
             {
-                StaticMeshVertices[ VertexIdx * 3 + 0 ] = PositionVector.X / GeneratedGeometryScaleFactor;
-                StaticMeshVertices[ VertexIdx * 3 + 1 ] = PositionVector.Y / GeneratedGeometryScaleFactor;
-                StaticMeshVertices[ VertexIdx * 3 + 2 ] = PositionVector.Z / GeneratedGeometryScaleFactor;
+                StaticMeshVertices[ VertexIdx * 3 + 0 ] = PositionVector.X / GeneratedGeometryScaleFactor * BuildScaleVector.X;
+                StaticMeshVertices[ VertexIdx * 3 + 1 ] = PositionVector.Y / GeneratedGeometryScaleFactor * BuildScaleVector.Y;
+                StaticMeshVertices[ VertexIdx * 3 + 2 ] = PositionVector.Z / GeneratedGeometryScaleFactor * BuildScaleVector.Z;
             }
             else
             {
