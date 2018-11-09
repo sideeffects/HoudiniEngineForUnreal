@@ -380,6 +380,13 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     bFullyLoaded = false;
 
     Bounds = FBox( ForceInitToZero );
+
+    DefaultPresetBuffer.Empty();
+    PresetBuffer.Empty();
+    Parameters.Empty();
+    ParameterByName.Empty();
+    BakeNameOverrides.Empty();
+    DownstreamAssetConnections.Empty();
 }
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()
@@ -443,18 +450,18 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
         }
 
         // Add references to all spline components.
-        for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator
+        for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TIterator
             Iter( HoudiniAssetComponent->SplineComponents ); Iter; ++Iter )
         {
-            UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
+            UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value().Get();
             Collector.AddReferencedObject( HoudiniSplineComponent, InThis );
         }
 
         // Add references to all Landscape
-        for ( TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator
+        for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr <ALandscape> >::TIterator
             Iter( HoudiniAssetComponent->LandscapeComponents ); Iter; ++Iter)
         {
-            ALandscape * HoudiniLandscape = Iter.Value();
+            ALandscape * HoudiniLandscape = Iter.Value().Get();
             Collector.AddReferencedObject( HoudiniLandscape, InThis );
         }
 
@@ -2039,11 +2046,11 @@ UHoudiniAssetComponent::StartTaskAssetRebuildManual()
         {
             if ( !FHoudiniEngineUtils::GetAssetPreset( AssetId, PresetBuffer ) )
             {
-                HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's preset, rebuilt asset may have lost its parameters."));
+				HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's preset, rebuilt asset may have lost its parameters."));
             }
 
-            // We need to delete the asset and request a new one.
-            StartTaskAssetDeletion();
+			// We need to delete the asset and request a new one.
+			StartTaskAssetDeletion();
         }
 
         HapiGUID = FGuid::NewGuid();
@@ -2097,8 +2104,8 @@ UHoudiniAssetComponent::StartTaskAssetCooking( bool bStartTicking )
 {
     if ( !IsInstantiatingOrCooking() )
     {
-        if (!FHoudiniEngineUtils::IsValidAssetId(AssetId))
-            return;
+		if (!FHoudiniEngineUtils::IsValidAssetId(AssetId))
+			return;
 
         // Generate GUID for our new task.
         HapiGUID = FGuid::NewGuid();
@@ -2563,11 +2570,11 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
     }
 
     // We need to reconstruct splines.
-    for( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator
+    for( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TIterator
         Iter( CopiedHoudiniComponent->SplineComponents ); Iter; ++Iter )
     {
         FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
-        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
+        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value().Get();
             
         // Duplicate spline component.
         UHoudiniSplineComponent * DuplicatedSplineComponent = 
@@ -2913,9 +2920,9 @@ UHoudiniAssetComponent::PostLoadReattachComponents()
             StaticMeshComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
     }
 
-    for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator Iter( SplineComponents ); Iter; ++Iter )
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TIterator Iter( SplineComponents ); Iter; ++Iter )
     {
-        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
+        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value().Get();
         if( HoudiniSplineComponent )
             HoudiniSplineComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
     }
@@ -2927,9 +2934,9 @@ UHoudiniAssetComponent::PostLoadReattachComponents()
             HoudiniHandleComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
     }
 
-    for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
+    for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
     {
-        ALandscape * HoudiniLandscape = Iter.Value();
+        ALandscape * HoudiniLandscape = Iter.Value().Get();
         if ( HoudiniLandscape )
             HoudiniLandscape->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
     }
@@ -3885,7 +3892,7 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
 {
     bool bCurveCreated = false;
 
-    TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * > NewSplineComponents;
+    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> > NewSplineComponents;
     for ( TArray< FHoudiniGeoPartObject >::TConstIterator Iter( FoundCurves ); Iter; ++Iter )
     {
         const FHoudiniGeoPartObject & HoudiniGeoPartObject = *Iter;
@@ -4128,8 +4135,8 @@ UHoudiniAssetComponent::UploadChangedParameters()
 void
 UHoudiniAssetComponent::UpdateLoadedParameters()
 {
-    if (!FHoudiniEngineUtils::IsValidAssetId(AssetId))
-        return;
+	if (!FHoudiniEngineUtils::IsValidAssetId(AssetId))
+		return;
 
     for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams( Parameters ); IterParams; ++IterParams )
     {
@@ -4296,7 +4303,7 @@ void
 UHoudiniAssetComponent::UpdateLoadedInputs()
 {
     if ( !FHoudiniEngineUtils::IsValidAssetId(AssetId) )
-        return;
+		return;
 
     bool Success = true;
     for ( TArray< UHoudiniAssetInput * >::TIterator IterInputs( Inputs ); IterInputs; ++IterInputs )
@@ -4412,7 +4419,7 @@ UHoudiniAssetComponent::RefreshEditableNodesAfterLoad()
                 continue;
 
             // We need to refresh the spline corresponding to that node
-            for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator Iter( SplineComponents ); Iter; ++Iter )
+            for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TIterator Iter( SplineComponents ); Iter; ++Iter )
             {
                 FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
 
@@ -4423,7 +4430,7 @@ UHoudiniAssetComponent::RefreshEditableNodesAfterLoad()
                     HoudiniGeoPartObject.GeoId = CurrentEditableGeoInfo.nodeId;
 
                     // Update the attached spline component too
-                    UHoudiniSplineComponent * SplineComponent = Iter.Value();
+                    UHoudiniSplineComponent * SplineComponent = Iter.Value().Get();
                     if ( SplineComponent )
                         SplineComponent->SetHoudiniGeoPartObject( HoudiniGeoPartObject );
                 }
@@ -4438,9 +4445,9 @@ UHoudiniAssetComponent::RefreshEditableNodesAfterLoad()
 void
 UHoudiniAssetComponent::UploadLoadedCurves()
 {
-    for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator Iter( SplineComponents ); Iter; ++Iter )
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TIterator Iter( SplineComponents ); Iter; ++Iter )
     {
-        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
+        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value().Get();
         if ( !HoudiniSplineComponent )
             continue;
 
@@ -4631,7 +4638,7 @@ bool
 UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject > & FoundVolumes )
 {
     // Try to create a Landscape for each HeightData found
-    TMap< FHoudiniGeoPartObject, ALandscape * > NewLandscapes;
+    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> > NewLandscapes;
 
     FHoudiniCookParams HoudiniCookParams( this );
     HoudiniCookParams.StaticMeshBakeMode = FHoudiniCookParams::GetDefaultStaticMeshesCookMode();
@@ -4643,9 +4650,9 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
     // The asset needs to be static in order to attach the landscapes to it
     SetMobility( EComponentMobility::Static );
 
-    for ( TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator IterLandscape( NewLandscapes ); IterLandscape; ++IterLandscape )
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator IterLandscape( NewLandscapes ); IterLandscape; ++IterLandscape )
     {
-        ALandscape* Landscape = IterLandscape.Value();
+        ALandscape* Landscape = IterLandscape.Value().Get();
         if ( !Landscape )
             continue;
 
@@ -4658,9 +4665,9 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
         UpdateLandscapeMaterialsAssignementsAndReplacements( Landscape, Heightfield );
 
         // Replace any reference we might still have to the old landscape with the new one
-        ALandscape** OldLandscape = LandscapeComponents.Find( Heightfield );
+        TWeakObjectPtr<ALandscape>* OldLandscape = LandscapeComponents.Find( Heightfield );
         if ( OldLandscape )
-            FHoudiniLandscapeUtils::UpdateOldLandscapeReference(*OldLandscape, Landscape);
+            FHoudiniLandscapeUtils::UpdateOldLandscapeReference(OldLandscape->Get(), Landscape);
     }
 
     // Replace the old landscapes with the new ones
@@ -4706,7 +4713,7 @@ void UHoudiniAssetComponent::UpdateLandscapeMaterialsAssignementsAndReplacements
     // ( the user might have replaced the landscape materials manually without us knowing it ) 
     if ( LandscapeComponents.Contains( Heightfield ) )
     {
-        ALandscape* PreviousLandscape = LandscapeComponents[ Heightfield ];
+        ALandscape* PreviousLandscape = LandscapeComponents[ Heightfield ].Get();
         if ( PreviousLandscape )
         {
             // Get the previously used materials, but ignore the default ones
@@ -4801,9 +4808,9 @@ UHoudiniAssetComponent::ClearInstanceInputs()
 void
 UHoudiniAssetComponent::ClearCurves()
 {
-    for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator Iter( SplineComponents ); Iter; ++Iter )
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr <UHoudiniSplineComponent>>::TIterator Iter( SplineComponents ); Iter; ++Iter )
     {
-        UHoudiniSplineComponent * SplineComponent = Iter.Value();
+        UHoudiniSplineComponent * SplineComponent = Iter.Value().Get();
 
         SplineComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
         SplineComponent->UnregisterComponent();
@@ -4816,9 +4823,9 @@ UHoudiniAssetComponent::ClearCurves()
 void
 UHoudiniAssetComponent::ClearLandscapes()
 {
-    for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
+    for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
     {
-        ALandscape * HoudiniLandscape = Iter.Value();
+        ALandscape * HoudiniLandscape = Iter.Value().Get();
         if ( !HoudiniLandscape )
             continue;
 
@@ -5032,11 +5039,11 @@ UHoudiniAssetComponent::LocateInstancedStaticMeshComponents(
 UHoudiniSplineComponent*
 UHoudiniAssetComponent::LocateSplineComponent(const FHoudiniGeoPartObject & HoudiniGeoPartObject) const
 {
-    UHoudiniSplineComponent * const * FoundHoudiniSplineComponent = SplineComponents.Find(HoudiniGeoPartObject);
+    const TWeakObjectPtr<UHoudiniSplineComponent> * FoundHoudiniSplineComponent = SplineComponents.Find(HoudiniGeoPartObject);
     UHoudiniSplineComponent * SplineComponent = nullptr;
 
     if ( FoundHoudiniSplineComponent )
-        SplineComponent = *FoundHoudiniSplineComponent;
+        SplineComponent = FoundHoudiniSplineComponent->Get();
 
     if ( SplineComponent && SplineComponent->IsPendingKill() )
         return nullptr;
@@ -5502,10 +5509,10 @@ UHoudiniAssetComponent::CreateOrUpdateMaterialInstances()
 
     // 2. FOR LANDSCAPES
     // Handling the creation of material instances from attributes
-    for ( TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator Iter( LandscapeComponents ); Iter; ++Iter )
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter( LandscapeComponents ); Iter; ++Iter )
     {
         FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
-        ALandscape* Landscape = Iter.Value();
+        ALandscape* Landscape = Iter.Value().Get();
 
         // The "source" landscape material we want to create an instance of should have already been assigned to the landscape
         UMaterialInstance* NewMaterialInstance = nullptr;
@@ -5698,9 +5705,9 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
     }
 
     // ... all our curves
-    for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TConstIterator Iter( SplineComponents ); Iter; ++Iter )
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TConstIterator Iter( SplineComponents ); Iter; ++Iter )
     {
-        UHoudiniSplineComponent * SplineComponent = Iter.Value();
+        UHoudiniSplineComponent * SplineComponent = Iter.Value().Get();
         if ( !SplineComponent )
             continue;
 
@@ -5731,9 +5738,9 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
     // ... all our landscapes
     if ( !bIgnoreGeneratedLandscape )
     {
-        for (TMap< FHoudiniGeoPartObject, ALandscape * >::TConstIterator Iter( LandscapeComponents ); Iter; ++Iter )
+        for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TConstIterator Iter( LandscapeComponents ); Iter; ++Iter )
         {
-            ALandscape * Landscape = Iter.Value();
+            ALandscape * Landscape = Iter.Value().Get();
             if ( !Landscape )
                 continue;
 
@@ -5755,9 +5762,9 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
 bool UHoudiniAssetComponent::HasLandscapeActor( ALandscape* LandscapeActor ) const
 {
     // Check if we created the landscape
-    for (TMap< FHoudiniGeoPartObject, ALandscape * >::TConstIterator Iter(LandscapeComponents); Iter; ++Iter)
+    for (TMap<FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape>>::TConstIterator Iter(LandscapeComponents); Iter; ++Iter)
     {
-        ALandscape * HoudiniLandscape = Iter.Value();
+        ALandscape * HoudiniLandscape = Iter.Value().Get();
 
         if ( HoudiniLandscape == LandscapeActor )
             return true;
@@ -5766,7 +5773,7 @@ bool UHoudiniAssetComponent::HasLandscapeActor( ALandscape* LandscapeActor ) con
     return false;
 }
 
-TMap< FHoudiniGeoPartObject, ALandscape * > *
+TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> > *
 UHoudiniAssetComponent::GetLandscapeComponents()
 {
     return &LandscapeComponents;

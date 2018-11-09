@@ -528,10 +528,10 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
         }
 
         // Do the same for the Landscape components
-        for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator
+        for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator
             IterLandscapes(HoudiniAssetComponent->LandscapeComponents); IterLandscapes; ++IterLandscapes)
         {
-            ALandscape * Landscape = IterLandscapes.Value();
+            ALandscape * Landscape = IterLandscapes.Value().Get();
             FHoudiniGeoPartObject & HoudiniGeoPartObject = IterLandscapes.Key();
 
             if (!Landscape)
@@ -1236,10 +1236,10 @@ FHoudiniAssetComponentDetails::OnBakeAllGeneratedMeshes()
             (void) OnBakeStaticMesh( StaticMesh, HoudiniAssetComponent );
         }
 
-        for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator
+        for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator
             IterLandscapes(HoudiniAssetComponent->LandscapeComponents); IterLandscapes; ++IterLandscapes)
         {
-            ALandscape * Landscape = IterLandscapes.Value();
+            ALandscape * Landscape = IterLandscapes.Value().Get();
             if ( !Landscape )
                 continue;
             (void) OnBakeLandscape(Landscape, HoudiniAssetComponent);
@@ -1568,11 +1568,11 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
         if (!HoudiniAssetComponent)
             continue;
 
-        ALandscape ** FoundLandscape = HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject );
+        TWeakObjectPtr<ALandscape>* FoundLandscape = HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject );
         if ( !FoundLandscape )
             continue;
 
-        if ( *FoundLandscape != Landscape )
+        if ( FoundLandscape->Get() != Landscape )
             continue;
 
         // Retrieve the material interface which is being replaced.
@@ -1804,11 +1804,11 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
         if ( !HoudiniAssetComponent )
             continue;
 
-        ALandscape ** FoundLandscape = HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject );
+        TWeakObjectPtr<ALandscape>* FoundLandscape = HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject );
         if ( !FoundLandscape )
             continue;
 
-        if ( *FoundLandscape != Landscape )
+        if ( FoundLandscape->Get() != Landscape )
             continue;
 
         // Retrieve the material interface which is being replaced.

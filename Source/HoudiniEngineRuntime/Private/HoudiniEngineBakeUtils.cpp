@@ -1125,15 +1125,15 @@ FHoudiniEngineBakeUtils::BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComp
     if ( !HoudiniAssetComponent->HasLandscape() )
         return false;
 
-    TMap< FHoudiniGeoPartObject, ALandscape * > * LandscapeComponentsPtr = HoudiniAssetComponent->GetLandscapeComponents();
+    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape>> * LandscapeComponentsPtr = HoudiniAssetComponent->GetLandscapeComponents();
     if ( !LandscapeComponentsPtr )
         return false;
 
     TArray<UPackage *> LayerPackages;
     bool bNeedToUpdateProperties = false;
-    for ( TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator Iter(* LandscapeComponentsPtr ); Iter; ++Iter)
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter(* LandscapeComponentsPtr ); Iter; ++Iter)
     {
-        ALandscape * CurrentLandscape = Iter.Value();
+        ALandscape * CurrentLandscape = Iter.Value().Get();
         if ( !CurrentLandscape )
             continue;
 

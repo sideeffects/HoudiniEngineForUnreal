@@ -511,8 +511,8 @@ FHoudiniEngine::CookNode(
     bool ForceRebuildStaticMesh, bool ForceRecookAll,
     const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
     TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut,
-    TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesIn,
-    TMap< FHoudiniGeoPartObject, ALandscape * >& LandscapesOut,
+    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& LandscapesIn,
+    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& LandscapesOut,
     TMap< FHoudiniGeoPartObject, USceneComponent * >& InstancersIn,
     TMap< FHoudiniGeoPartObject, USceneComponent * >& InstancersOut,
     USceneComponent* ParentComponent, FTransform & ComponentTransform )

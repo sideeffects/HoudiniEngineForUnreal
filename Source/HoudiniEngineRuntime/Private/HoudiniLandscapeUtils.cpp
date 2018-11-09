@@ -2621,8 +2621,8 @@ bool
 FHoudiniLandscapeUtils::CreateAllLandscapes( 
     FHoudiniCookParams& HoudiniCookParams,
     const TArray< FHoudiniGeoPartObject > & FoundVolumes, 
-    TMap< FHoudiniGeoPartObject, ALandscape * >& Landscapes,
-    TMap< FHoudiniGeoPartObject, ALandscape * >& NewLandscapes,
+    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& Landscapes,
+    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& NewLandscapes,
     float ForcedZMin , float ForcedZMax )
 {
     // Get runtime settings.
@@ -2663,7 +2663,7 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
         if ( !CurrentHeightfield->bHasGeoChanged )
         {
             // The Geo has not changed, do we need to recreate the landscape?
-            ALandscape * FoundLandscape = Landscapes.FindChecked( *CurrentHeightfield );
+            ALandscape * FoundLandscape = Landscapes.FindChecked( *CurrentHeightfield ).Get();
             if ( FoundLandscape )
             {
                 // Check that all layers/mask have not changed too
