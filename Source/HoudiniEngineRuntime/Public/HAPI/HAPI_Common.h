@@ -775,24 +775,27 @@ HAPI_C_ENUM_TYPEDEF( HAPI_PDG_CookType )
 /// Used with PDG functions
 enum HAPI_PDG_EventType
 {
-    HAPI_PDG_EVENT_NULL = 0x0000,
+    HAPI_PDG_EVENT_NULL			    = 0x0000,
 
-    HAPI_PDG_EVENT_WORKITEM_ADD = 0x0001,
-    HAPI_PDG_EVENT_WORKITEM_REMOVE = 0x0002,
-    HAPI_PDG_EVENT_WORKITEM_STATE_CHANGE = 0x0004,
+    HAPI_PDG_EVENT_WORKITEM_ADD		    = 0x0001,
+    HAPI_PDG_EVENT_WORKITEM_REMOVE	    = 0x0002,
+    HAPI_PDG_EVENT_WORKITEM_STATE_CHANGE    = 0x0004,
 
-    HAPI_PDG_EVENT_WORKITEM_ADD_DEP = 0x0008,
-    HAPI_PDG_EVENT_WORKITEM_REMOVE_DEP = 0x0010,
+    HAPI_PDG_EVENT_WORKITEM_ADD_DEP	    = 0x0008,
+    HAPI_PDG_EVENT_WORKITEM_REMOVE_DEP	    = 0x0010,
 
-    HAPI_PDG_EVENT_WORKITEM_ADD_PARENT = 0x0020,
-    HAPI_PDG_EVENT_WORKITEM_REMOVE_PARENT = 0x0040,
+    HAPI_PDG_EVENT_WORKITEM_ADD_PARENT	    = 0x0020,
+    HAPI_PDG_EVENT_WORKITEM_REMOVE_PARENT   = 0x0040,
 
-    HAPI_PDG_EVENT_NODE_CLEAR = 0x0080,
+    HAPI_PDG_EVENT_NODE_CLEAR		    = 0x0080,
 
-    HAPI_PDG_EVENT_COOK_ERROR = 0x0100,
-    HAPI_PDG_EVENT_COOK_WARNING = 0x0200,
+    HAPI_PDG_EVENT_DIRTY_START		    = 0x0800,
+    HAPI_PDG_EVENT_DIRTY_STOP		    = 0x1000,
 
-    HAPI_PDG_EVENT_COOK_COMPLETE = 0x0400
+    HAPI_PDG_EVENT_COOK_ERROR		    = 0x0100,
+    HAPI_PDG_EVENT_COOK_WARNING		    = 0x0200,
+
+    HAPI_PDG_EVENT_COOK_COMPLETE	    = 0x0400
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_PDG_EventType )
 
@@ -1272,14 +1275,16 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_HandleInfo )
 /// @struct HAPI_HandleBindingInfo
 ///
 /// Contains binding information that maps the handle parameter to
-/// the asset parameter
+/// the asset parameter. The index is only used for int and float vector
+/// and colour parms.
 ///
 struct HAPI_API HAPI_HandleBindingInfo
 {
     HAPI_StringHandle handleParmNameSH;
-    HAPI_StringHandle assetParmNameSH;
+    HAPI_StringHandle  assetParmNameSH;
 
     HAPI_ParmId assetParmId;
+    int assetParmIndex;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_HandleBindingInfo )
 
