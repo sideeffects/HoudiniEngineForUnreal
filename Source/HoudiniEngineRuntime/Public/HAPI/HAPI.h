@@ -1615,14 +1615,14 @@ HAPI_DECL HAPI_RenameNode( const HAPI_Session * session,
 ///
 /// @param[in]      input_index
 ///                 The input index. Should be between 0 and the
-///                 to_node's ::HAPI_NodeInfo::inputCount.
+///                 to_node's ::HAPI_NodeInfo::inputCount - 1.
 ///
 /// @param[in]      node_id_to_connect
 ///                 The node to connect to node_id's input.
 ///
 /// @param[in]	    output_index
 ///                 The output index. Should be between 0 and the
-///                 to_node's ::HAPI_NodeInfo::outputCount.
+///                 to_node's ::HAPI_NodeInfo::outputCount - 1.
 ///
 HAPI_DECL HAPI_ConnectNodeInput( const HAPI_Session * session,
                                  HAPI_NodeId node_id,
@@ -1642,7 +1642,7 @@ HAPI_DECL HAPI_ConnectNodeInput( const HAPI_Session * session,
 ///
 /// @param[in]      input_index
 ///                 The input index. Should be between 0 and the
-///                 to_node's ::HAPI_NodeInfo::inputCount.
+///                 to_node's ::HAPI_NodeInfo::inputCount - 1.
 ///
 HAPI_DECL HAPI_DisconnectNodeInput( const HAPI_Session * session,
                                     HAPI_NodeId node_id,
@@ -1660,7 +1660,7 @@ HAPI_DECL HAPI_DisconnectNodeInput( const HAPI_Session * session,
 ///
 /// @param[in]      input_index
 ///                 The input index. Should be between 0 and the
-///                 to_node's ::HAPI_NodeInfo::inputCount.
+///                 to_node's ::HAPI_NodeInfo::inputCount - 1.
 ///
 /// @param[out]     connected_node_id
 ///                 The node id of the connected node to this input. If

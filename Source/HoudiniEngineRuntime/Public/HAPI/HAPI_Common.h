@@ -1262,14 +1262,16 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_HandleInfo )
 /// @struct HAPI_HandleBindingInfo
 ///
 /// Contains binding information that maps the handle parameter to
-/// the asset parameter
+/// the asset parameter. The index is only used for int and float vector
+/// and colour parms.
 ///
 struct HAPI_API HAPI_HandleBindingInfo
 {
     HAPI_StringHandle handleParmNameSH;
-    HAPI_StringHandle assetParmNameSH;
+    HAPI_StringHandle  assetParmNameSH;
 
     HAPI_ParmId assetParmId;
+    int assetParmIndex;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_HandleBindingInfo )
 
