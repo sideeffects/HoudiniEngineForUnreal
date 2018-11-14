@@ -533,6 +533,9 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_InstancedActors(
     TMap< const UHoudiniInstancedActorComponent*, FHoudiniGeoPartObject >& ComponentToPart )
 {
     TArray< AActor* > NewActors;
+    if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+        return NewActors;
+
 #if WITH_EDITOR
     ULevel* DesiredLevel = GWorld->GetCurrentLevel();
     FName BaseName( *( HoudiniAssetComponent->GetOwner()->GetName() + TEXT( "_Baked" ) ) );
@@ -540,13 +543,20 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_InstancedActors(
     for( const auto& Iter : ComponentToPart )
     {
         const UHoudiniInstancedActorComponent * OtherSMC = Iter.Key;
+        if ( !OtherSMC || OtherSMC->IsPendingKill() )
+            continue;
+
         for( AActor* InstActor : OtherSMC->Instances )
         {
+            if ( !InstActor || InstActor->IsPendingKill() )
+                continue;
+
             FName NewName = MakeUniqueObjectName( DesiredLevel, OtherSMC->InstancedAsset->StaticClass(), BaseName );
             FString NewNameStr = NewName.ToString();
 
             FTransform CurrentTransform = InstActor->GetTransform();
-            if( AActor* NewActor = OtherSMC->SpawnInstancedActor( CurrentTransform ) )
+            AActor* NewActor = OtherSMC->SpawnInstancedActor(CurrentTransform);
+            if( NewActor && !NewActor->IsPendingKill() )
             {
                 NewActor->SetActorLabel( NewNameStr );
                 NewActor->SetFolderPath( BaseName );
@@ -692,7 +702,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
                     NewActor->SetActorHiddenInGame( OtherISMC->bHiddenInGame );
 
                     // Do we need to create a HISMC?
-                    const UHierarchicalInstancedStaticMeshComponent* OtherHISMC = Cast< const UHierarchicalInstancedStaticMeshComponent>( OtherSMC );		    
+                    const UHierarchicalInstancedStaticMeshComponent* OtherHISMC = Cast< const UHierarchicalInstancedStaticMeshComponent>( OtherSMC );
                     UInstancedStaticMeshComponent* NewISMC = nullptr;
                     if ( OtherHISMC )
                         NewISMC = DuplicateObject< UHierarchicalInstancedStaticMeshComponent >(OtherHISMC, NewActor, *OtherHISMC->GetName() ) );
@@ -1125,15 +1135,15 @@ FHoudiniEngineBakeUtils::BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComp
     if ( !HoudiniAssetComponent->HasLandscape() )
         return false;
 
-    TMap< FHoudiniGeoPartObject, ALandscape * > * LandscapeComponentsPtr = HoudiniAssetComponent->GetLandscapeComponents();
+    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape>> * LandscapeComponentsPtr = HoudiniAssetComponent->GetLandscapeComponents();
     if ( !LandscapeComponentsPtr )
         return false;
 
     TArray<UPackage *> LayerPackages;
     bool bNeedToUpdateProperties = false;
-    for ( TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator Iter(* LandscapeComponentsPtr ); Iter; ++Iter)
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter(* LandscapeComponentsPtr ); Iter; ++Iter)
     {
-        ALandscape * CurrentLandscape = Iter.Value();
+        ALandscape * CurrentLandscape = Iter.Value().Get();
         if ( !CurrentLandscape )
             continue;
 

@@ -140,14 +140,14 @@ UHoudiniAssetInstanceInputField::Serialize( FArchive & Ar )
 void
 UHoudiniAssetInstanceInputField::AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector )
 {
-    UHoudiniAssetInstanceInputField * This = Cast< UHoudiniAssetInstanceInputField >( InThis );
-    if ( This )
+    UHoudiniAssetInstanceInputField * ThisHAIF = Cast< UHoudiniAssetInstanceInputField >( InThis );
+    if ( ThisHAIF && !ThisHAIF->IsPendingKill() )
     {
-        if ( This->OriginalObject )
-            Collector.AddReferencedObject( This->OriginalObject, This );
+        if ( ThisHAIF->OriginalObject && !ThisHAIF->OriginalObject->IsPendingKill() )
+            Collector.AddReferencedObject(ThisHAIF->OriginalObject, ThisHAIF);
 
-        Collector.AddReferencedObjects( This->InstancedObjects, This );
-        Collector.AddReferencedObjects( This->InstancerComponents, This );
+        Collector.AddReferencedObjects(ThisHAIF->InstancedObjects, ThisHAIF);
+        Collector.AddReferencedObjects(ThisHAIF->InstancerComponents, ThisHAIF);
     }
 
     // Call base implementation.
@@ -182,22 +182,27 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
     {
         if ( ensure( InstancedObjects.IsValidIndex( Idx ) ) && ensure( InstancerComponents.IsValidIndex( Idx ) ) )
         {
-            if ( UStaticMesh* StaticMesh = Cast<UStaticMesh>( InstancedObjects[ Idx ] ) )
+            UStaticMesh* StaticMesh = Cast<UStaticMesh>(InstancedObjects[Idx]);
+            if ( StaticMesh && !StaticMesh->IsPendingKill())
             {
-                if ( UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( InstancerComponents[ Idx ]) )
+                UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>(InstancerComponents[Idx]);
+                if ( ISMC && !ISMC->IsPendingKill() )
                 {
-		    ISMC->SetStaticMesh( StaticMesh );
+                    ISMC->SetStaticMesh( StaticMesh );
                 }
-                else if( UHoudiniMeshSplitInstancerComponent* MSIC = Cast<UHoudiniMeshSplitInstancerComponent>(InstancerComponents[Idx]) )
+                else
                 {
-		    MSIC->SetStaticMesh( StaticMesh );
+                    UHoudiniMeshSplitInstancerComponent* MSIC = Cast<UHoudiniMeshSplitInstancerComponent>(InstancerComponents[Idx]);
+                    if ( MSIC && !MSIC->IsPendingKill() )
+                        MSIC->SetStaticMesh( StaticMesh );
                 }
             }
             else
             {
-                if ( UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( InstancerComponents[ Idx ] ) )
+                UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>(InstancerComponents[Idx]);
+                if ( IAC && !IAC->IsPendingKill() )
                 {
-		    IAC->InstancedAsset = InstancedObjects[ Idx ];
+                    IAC->InstancedAsset = InstancedObjects[ Idx ];
                 }
             }
         }
@@ -205,8 +210,9 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
 
     UpdateInstanceTransforms( true );
 
-    if ( UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(HoudiniAssetComponent) )
-	HAC->UpdateEditorProperties( false );
+    UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(HoudiniAssetComponent);
+    if (  HAC && !HAC->IsPendingKill() )
+        HAC->UpdateEditorProperties( false );
 
     UpdateInstanceUPropertyAttributes();
 }
@@ -216,17 +222,20 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
 void
 UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
 {
-    check( InstancedObjects.Num() > 0 && ( VariationIdx < InstancedObjects.Num() ) );
-    check( HoudiniAssetComponent );
-    UHoudiniAssetComponent* Comp = Cast<UHoudiniAssetComponent>( HoudiniAssetComponent );
-    if( !Comp )
+    if ( !InstancedObjects.IsValidIndex( VariationIdx ) )
         return;
+
+    UHoudiniAssetComponent* Comp = Cast<UHoudiniAssetComponent>( HoudiniAssetComponent );
+    if( !Comp || Comp->IsPendingKill() )
+        return;
+
     USceneComponent* RootComp = Comp;
 
     // Check if instancer material is available.
     const FHoudiniGeoPartObject & InstancerHoudiniGeoPartObject = HoudiniAssetInstanceInput->HoudiniGeoPartObject;
 
-    if ( UStaticMesh * StaticMesh = Cast<UStaticMesh>( InstancedObjects[ VariationIdx ] ) )
+    UStaticMesh * StaticMesh = Cast<UStaticMesh>(InstancedObjects[VariationIdx]);
+    if ( StaticMesh && !StaticMesh->IsPendingKill() )
     {
         UMaterialInterface * InstancerMaterial = nullptr;
 
@@ -249,36 +258,39 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
                 RootComp->GetOwner(), UHoudiniMeshSplitInstancerComponent::StaticClass(),
                 NAME_None, RF_Transactional);
 
-            MSIC->SetStaticMesh(StaticMesh);
-            MSIC->SetOverrideMaterial(InstancerMaterial);
-
-            // Check for instance colors
-            HAPI_AttributeInfo AttributeInfo = {};
-            if( HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeInfo(
-                FHoudiniEngine::Get().GetSession(), InstancerHoudiniGeoPartObject.GeoId, InstancerHoudiniGeoPartObject.PartId,
-                HAPI_UNREAL_ATTRIB_INSTANCE_COLOR, HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM, &AttributeInfo) )
+            if ( MSIC && !MSIC->IsPendingKill() )
             {
-                if( AttributeInfo.exists )
-                {
-                    if( AttributeInfo.tupleSize == 4 )
-                    {
-                        // Allocate sufficient buffer for data.
-                        InstanceColorOverride.SetNumUninitialized(AttributeInfo.count);
+                MSIC->SetStaticMesh(StaticMesh);
+                MSIC->SetOverrideMaterial(InstancerMaterial);
 
-                        if( HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeFloatData(
-                            FHoudiniEngine::Get().GetSession(), InstancerHoudiniGeoPartObject.GeoId, InstancerHoudiniGeoPartObject.PartId,
-                            HAPI_UNREAL_ATTRIB_INSTANCE_COLOR, &AttributeInfo, -1, (float*)InstanceColorOverride.GetData(), 0, AttributeInfo.count) )
+                // Check for instance colors
+                HAPI_AttributeInfo AttributeInfo = {};
+                if ( HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeInfo(
+                    FHoudiniEngine::Get().GetSession(), InstancerHoudiniGeoPartObject.GeoId, InstancerHoudiniGeoPartObject.PartId,
+                    HAPI_UNREAL_ATTRIB_INSTANCE_COLOR, HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM, &AttributeInfo))
+                {
+                    if ( AttributeInfo.exists )
+                    {
+                        if ( AttributeInfo.tupleSize == 4 )
                         {
-                            // got some override colors
+                            // Allocate sufficient buffer for data.
+                            InstanceColorOverride.SetNumUninitialized(AttributeInfo.count);
+
+                            if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeFloatData(
+                                FHoudiniEngine::Get().GetSession(), InstancerHoudiniGeoPartObject.GeoId, InstancerHoudiniGeoPartObject.PartId,
+                                HAPI_UNREAL_ATTRIB_INSTANCE_COLOR, &AttributeInfo, -1, (float*)InstanceColorOverride.GetData(), 0, AttributeInfo.count))
+                            {
+                                // got some override colors
+                            }
+                        }
+                        else
+                        {
+                            HOUDINI_LOG_WARNING(TEXT(HAPI_UNREAL_ATTRIB_INSTANCE_COLOR " must be a float[4] prim attribute"));
                         }
                     }
-                    else
-                    {
-                        HOUDINI_LOG_WARNING(TEXT(HAPI_UNREAL_ATTRIB_INSTANCE_COLOR " must be a float[4] prim attribute"));
-                    }
                 }
+                NewComp = MSIC;
             }
-            NewComp = MSIC;
         }
         else
         {
@@ -296,31 +308,38 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
                     RootComp->GetOwner(),UInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Transactional );
             }
 
-            InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
-            InstancedStaticMeshComponent->GetBodyInstance()->bAutoWeld = false;
-
-            // Copy the CollisionTraceFlag from the SM
-            if ( InstancedStaticMeshComponent->GetBodySetup() && StaticMesh->BodySetup )
-                InstancedStaticMeshComponent->GetBodySetup()->CollisionTraceFlag = StaticMesh->BodySetup->CollisionTraceFlag;
-
-            if( InstancerMaterial )
+            if ( InstancedStaticMeshComponent && !InstancedStaticMeshComponent->IsPendingKill() )
             {
-                InstancedStaticMeshComponent->OverrideMaterials.Empty();
+                InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
+                InstancedStaticMeshComponent->GetBodyInstance()->bAutoWeld = false;
 
-                int32 MeshMaterialCount = StaticMesh->StaticMaterials.Num();
-                for( int32 Idx = 0; Idx < MeshMaterialCount; ++Idx )
-                    InstancedStaticMeshComponent->SetMaterial(Idx, InstancerMaterial);
+                // Copy the CollisionTraceFlag from the SM
+                if ( InstancedStaticMeshComponent->GetBodySetup() && StaticMesh->BodySetup )
+                    InstancedStaticMeshComponent->GetBodySetup()->CollisionTraceFlag = StaticMesh->BodySetup->CollisionTraceFlag;
+
+                if ( InstancerMaterial && !InstancerMaterial->IsPendingKill() )
+                {
+                    InstancedStaticMeshComponent->OverrideMaterials.Empty();
+
+                    int32 MeshMaterialCount = StaticMesh->StaticMaterials.Num();
+                    for (int32 Idx = 0; Idx < MeshMaterialCount; ++Idx)
+                        InstancedStaticMeshComponent->SetMaterial(Idx, InstancerMaterial);
+                }
+                NewComp = InstancedStaticMeshComponent;
             }
-            NewComp = InstancedStaticMeshComponent;
         }
-        NewComp->SetMobility( RootComp->Mobility );
-        NewComp->AttachToComponent( RootComp, FAttachmentTransformRules::KeepRelativeTransform );
-        NewComp->RegisterComponent();
-        // We want to make this invisible if it's a collision instancer.
-        NewComp->SetVisibility( !HoudiniGeoPartObject.bIsCollidable );
 
-        InstancerComponents.Insert( NewComp, VariationIdx );
-        FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( NewComp, InstancerHoudiniGeoPartObject );
+        if ( NewComp && !NewComp->IsPendingKill() )
+        {
+            NewComp->SetMobility(RootComp->Mobility);
+            NewComp->AttachToComponent(RootComp, FAttachmentTransformRules::KeepRelativeTransform);
+            NewComp->RegisterComponent();
+            // We want to make this invisible if it's a collision instancer.
+            NewComp->SetVisibility(!HoudiniGeoPartObject.bIsCollidable);
+
+            InstancerComponents.Insert(NewComp, VariationIdx);
+            FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(NewComp, InstancerHoudiniGeoPartObject);
+        }
     }
     else
     {
@@ -328,13 +347,16 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
         UHoudiniInstancedActorComponent * InstancedObjectComponent = NewObject< UHoudiniInstancedActorComponent >(
             RootComp->GetOwner(), UHoudiniInstancedActorComponent::StaticClass(), NAME_None, RF_Transactional );
 
-        InstancerComponents.Insert( InstancedObjectComponent, VariationIdx );
-        InstancedObjectComponent->InstancedAsset = InstancedObjects[ VariationIdx ];
-        InstancedObjectComponent->SetMobility( RootComp->Mobility );
-        InstancedObjectComponent->AttachToComponent( RootComp, FAttachmentTransformRules::KeepRelativeTransform );
-        InstancedObjectComponent->RegisterComponent();
+        if  ( InstancedObjectComponent && !InstancedObjectComponent->IsPendingKill() )
+        {
+            InstancerComponents.Insert(InstancedObjectComponent, VariationIdx);
+            InstancedObjectComponent->InstancedAsset = InstancedObjects[VariationIdx];
+            InstancedObjectComponent->SetMobility(RootComp->Mobility);
+            InstancedObjectComponent->AttachToComponent(RootComp, FAttachmentTransformRules::KeepRelativeTransform);
+            InstancedObjectComponent->RegisterComponent();
 
-        FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( InstancedObjectComponent, HoudiniGeoPartObject );
+            FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(InstancedObjectComponent, HoudiniGeoPartObject);
+        }
     }
 
     UpdateRelativeTransform();
@@ -350,26 +372,29 @@ UHoudiniAssetInstanceInputField::SetInstanceTransforms( const TArray< FTransform
 void
 UHoudiniAssetInstanceInputField::UpdateInstanceTransforms( bool RecomputeVariationAssignments )
 {
-    int32 NumInstanceTransforms = InstancedTransforms.Num();
-    int32 NumInstanceColors = InstanceColorOverride.Num();
     int32 VariationCount = InstanceVariationCount();
 
     int nSeed = 1234;
     if ( RecomputeVariationAssignments )
     {
-	VariationTransformsArray.Empty();
-	VariationTransformsArray.SetNum(VariationCount);
-	VariationInstanceColorOverrideArray.Empty();
-	VariationInstanceColorOverrideArray.SetNum(VariationCount);
+        VariationTransformsArray.Empty();
+        VariationTransformsArray.SetNum(VariationCount);
 
-        for ( int32 Idx = 0; Idx < NumInstanceTransforms; Idx++ )
+        VariationInstanceColorOverrideArray.Empty();
+        VariationInstanceColorOverrideArray.SetNum(VariationCount);
+
+        for ( int32 Idx = 0; Idx < InstancedTransforms.Num(); Idx++ )
         {
             int32 VariationIndex = fastrand(nSeed) % VariationCount;
-            VariationTransformsArray[ VariationIndex ].Add(InstancedTransforms[Idx]);
-	    if( NumInstanceColors > Idx )
-	    {
-		VariationInstanceColorOverrideArray[VariationIndex].Add(InstanceColorOverride[Idx]);
-	    }
+            if ( VariationTransformsArray.IsValidIndex(VariationIndex) )
+                VariationTransformsArray[ VariationIndex ].Add(InstancedTransforms[Idx]);
+
+            if( InstanceColorOverride.Num() > Idx )
+            {
+                if ( VariationInstanceColorOverrideArray.IsValidIndex( VariationIndex )
+                    && InstanceColorOverride.IsValidIndex(Idx) )
+                    VariationInstanceColorOverrideArray[VariationIndex].Add(InstanceColorOverride[Idx]);
+            }
         }
     }
 
@@ -387,7 +412,8 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms( bool RecomputeVariati
 
         UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
             InstancerComponents[ Idx ],
-            VariationTransformsArray[ Idx ], VariationInstanceColorOverrideArray[ Idx ],
+            VariationTransformsArray[ Idx ],
+            VariationInstanceColorOverrideArray[ Idx ],
             RotationOffsets[ Idx ] ,
             ScaleOffsets[ Idx ] );
     }
@@ -404,14 +430,13 @@ UHoudiniAssetInstanceInputField::UpdateRelativeTransform()
 void
 UHoudiniAssetInstanceInputField::UpdateInstanceUPropertyAttributes()
 {
-    if ( !HoudiniAssetInstanceInput )
+    if ( !HoudiniAssetInstanceInput || HoudiniAssetInstanceInput->IsPendingKill() )
         return;
 
     // Check if instancer material is available.
     const FHoudiniGeoPartObject & InstancerHoudiniGeoPartObject = HoudiniAssetInstanceInput->HoudiniGeoPartObject;
 
-    int32 VariationCount = InstanceVariationCount();
-    for ( int32 Idx = 0; Idx < VariationCount; Idx++ )
+    for ( int32 Idx = 0; Idx < InstancerComponents.Num(); Idx++ )
         FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(InstancerComponents[ Idx ], InstancerHoudiniGeoPartObject );
 }
 
@@ -489,9 +514,29 @@ UHoudiniAssetInstanceInputField::RemoveInstanceVariation( int32 VariationIdx )
 void
 UHoudiniAssetInstanceInputField::ReplaceInstanceVariation( UObject * InObject, int Index )
 {
-    check( InObject );
-    check( Index >= 0 && Index < InstancedObjects.Num() );
-    check( InstancerComponents.Num() == InstancedObjects.Num() );
+    if ( !InObject || InObject->IsPendingKill() )
+    {
+        HOUDINI_LOG_WARNING( TEXT("ReplaceInstanceVariation: Invalid input object") );
+        return;
+    }
+
+    if ( !InstancedObjects.IsValidIndex(Index) )
+    {
+        HOUDINI_LOG_WARNING(TEXT("ReplaceInstanceVariation: Input index doesnt match valid Instanced Object"));
+        return;
+    }
+
+    if ( !InstancerComponents.IsValidIndex( Index ) )
+    {
+        HOUDINI_LOG_WARNING(TEXT("ReplaceInstanceVariation: Input index doesnt match valid Instanced Component"));
+        return;
+    }
+
+    if (InstancerComponents.Num() != InstancedObjects.Num())
+    {
+        HOUDINI_LOG_WARNING(TEXT("ReplaceInstanceVariation: Invalid instanced component and objects"));
+        return;
+    }
 
     // Check if the replacing object and the current object are different types (StaticMesh vs. Non)
     // if so we need to swap out the component 
@@ -505,7 +550,7 @@ UHoudiniAssetInstanceInputField::ReplaceInstanceVariation( UObject * InObject, i
         // If the in mesh has LODs, we need a Hierarchical ISMC
         UStaticMesh* StaticMesh = Cast< UStaticMesh >( InObject );
         bool bInHasLODs = false;
-        if ( StaticMesh && ( StaticMesh->GetNumLODs() > 1 ) )
+        if ( StaticMesh && !StaticMesh->IsPendingKill() && ( StaticMesh->GetNumLODs() > 1 ) )
             bInHasLODs = true;
 
         // We'll try to reuse the InstanceComponent
@@ -632,22 +677,26 @@ UHoudiniAssetInstanceInputField::SetLinearOffsetScale( bool bEnabled, int32 Vari
 bool
 UHoudiniAssetInstanceInputField::IsOriginalObjectUsed( int32 VariationIdx ) const
 {
-    check( VariationIdx >= 0 && VariationIdx < InstancedObjects.Num() );
+    if ( !InstancedObjects.IsValidIndex(VariationIdx) )
+        return false;
+
     return OriginalObject == InstancedObjects[ VariationIdx ];
 }
 
 USceneComponent *
 UHoudiniAssetInstanceInputField::GetInstancedComponent( int32 VariationIdx ) const
 {
-    check( VariationIdx >= 0 && VariationIdx < InstancerComponents.Num() );
+    if ( !InstancerComponents.IsValidIndex(VariationIdx) )
+        return nullptr;
+
     return InstancerComponents[ VariationIdx ];
 }
 
 const TArray< FTransform > &
 UHoudiniAssetInstanceInputField::GetInstancedTransforms( int32 VariationIdx ) const
 {
-    check( VariationIdx >= 0 && VariationIdx < VariationTransformsArray.Num() );
-    return VariationTransformsArray[ VariationIdx ];
+    check(VariationIdx >= 0 && VariationIdx < VariationTransformsArray.Num());
+    return VariationTransformsArray[VariationIdx];
 }
 
 void
@@ -656,10 +705,9 @@ UHoudiniAssetInstanceInputField::RecreateRenderState()
     check( InstancerComponents.Num() == InstancedObjects.Num() );
     for ( auto Comp : InstancerComponents )
     {
-        if ( UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( Comp ) )
-        {
+        UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>(Comp);
+        if ( ISMC && !ISMC->IsPendingKill() )
             ISMC->RecreateRenderState_Concurrent();
-        }
     }
 }
 
@@ -669,10 +717,9 @@ UHoudiniAssetInstanceInputField::RecreatePhysicsState()
     check( InstancerComponents.Num() == InstancedObjects.Num() );
     for ( auto Comp : InstancerComponents )
     {
-        if ( UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( Comp ) )
-        {
+        UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>(Comp);
+        if ( ISMC && !ISMC->IsPendingKill() )
             ISMC->RecreatePhysicsState();
-        }
     }
 }
 
@@ -686,24 +733,28 @@ UHoudiniAssetInstanceInputField::GetMaterialReplacementMeshes(
     for ( int32 Idx = 0; Idx < InstancedObjects.Num(); ++Idx )
     {
         UStaticMesh * StaticMesh = Cast<UStaticMesh>(InstancedObjects[ Idx ]);
-        if ( StaticMesh && StaticMesh == OriginalObject )
+        if ( !StaticMesh || StaticMesh->IsPendingKill() || StaticMesh != OriginalObject )
+            continue;
+
+        if (!InstancerComponents.IsValidIndex(Idx))
+            continue;
+
+        UInstancedStaticMeshComponent * InstancedStaticMeshComponent = Cast<UInstancedStaticMeshComponent>(InstancerComponents[Idx]);
+        if ( !InstancedStaticMeshComponent || InstancedStaticMeshComponent->IsPendingKill() )
+            continue;
+
+        const TArray< class UMaterialInterface * > & OverrideMaterials = InstancedStaticMeshComponent->OverrideMaterials;
+        for ( int32 MaterialIdx = 0; MaterialIdx < OverrideMaterials.Num(); ++MaterialIdx )
         {
-            if ( UInstancedStaticMeshComponent * InstancedStaticMeshComponent = Cast<UInstancedStaticMeshComponent>( InstancerComponents[ Idx ] ) )
-            {
-                const TArray< class UMaterialInterface * > & OverrideMaterials = InstancedStaticMeshComponent->OverrideMaterials;
-                for ( int32 MaterialIdx = 0; MaterialIdx < OverrideMaterials.Num(); ++MaterialIdx )
-                {
-                    UMaterialInterface * OverridenMaterial = OverrideMaterials[ MaterialIdx ];
-                    if ( OverridenMaterial && OverridenMaterial == Material )
-                    {
-                        if ( MaterialIdx < StaticMesh->StaticMaterials.Num() )
-                        {
-                            MaterialReplacementsMap.Add( StaticMesh, MaterialIdx );
-                            bResult = true;
-                        }
-                    }
-                }
-            }
+            UMaterialInterface * OverridenMaterial = OverrideMaterials[ MaterialIdx ];
+            if ( !OverridenMaterial || OverridenMaterial->IsPendingKill() || OverridenMaterial != Material )
+                continue;
+
+            if ( !StaticMesh->StaticMaterials.IsValidIndex( MaterialIdx ) )
+                continue;
+
+            MaterialReplacementsMap.Add( StaticMesh, MaterialIdx );
+            bResult = true;
         }
     }
 
@@ -726,20 +777,23 @@ UHoudiniAssetInstanceInputField::FixInstancedObjects( const TMap<UObject*, UObje
     for( int32 Idx = 0; Idx < VariationCount; Idx++ )
     {
         UObject *const *ReplacementObj = ReplacementMap.Find( InstancedObjects[ Idx ] );
-        if( ReplacementObj && *ReplacementObj )
+        if( ReplacementObj && *ReplacementObj && !(*ReplacementObj)->IsPendingKill() )
         {
             InstancedObjects[ Idx ] = *ReplacementObj;
             if( UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( InstancerComponents[ Idx ] ) )
             {
-                ISMC->SetStaticMesh( CastChecked<UStaticMesh>( *ReplacementObj ) );
+                if ( !ISMC->IsPendingKill() )
+                    ISMC->SetStaticMesh( CastChecked<UStaticMesh>( *ReplacementObj ) );
             }
             else if( UHoudiniMeshSplitInstancerComponent* MSIC = Cast<UHoudiniMeshSplitInstancerComponent>(InstancerComponents[Idx]) )
             {
-                MSIC->SetStaticMesh( CastChecked<UStaticMesh>( *ReplacementObj ) );
+                if ( !MSIC->IsPendingKill() )
+                    MSIC->SetStaticMesh( CastChecked<UStaticMesh>( *ReplacementObj ) );
             }
             else if( UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( InstancerComponents[ Idx ] ) )
             {
-                IAC->InstancedAsset = *ReplacementObj;
+                if ( !IAC->IsPendingKill() )
+                    IAC->InstancedAsset = *ReplacementObj;
             }
         }
     }

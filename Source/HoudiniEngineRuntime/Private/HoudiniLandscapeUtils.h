@@ -48,8 +48,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         static bool CreateAllLandscapes(
             FHoudiniCookParams& HoudiniCookParams,
             const TArray< FHoudiniGeoPartObject > & FoundVolumes,
-            TMap< FHoudiniGeoPartObject, ALandscape * >& Landscapes,
-            TMap< FHoudiniGeoPartObject, ALandscape * >& NewLandscapes,
+            TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& Landscapes,
+            TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& NewLandscapes,
             float ForcedZMin = 0.0f, float ForcedZMax = 0.0f );
 
         // Creates a single landscape object from the converted data

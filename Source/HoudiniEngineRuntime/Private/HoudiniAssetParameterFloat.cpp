@@ -227,7 +227,7 @@ UHoudiniAssetParameterFloat::SetParameterVariantValue( const FVariant & Variant,
     EVariantTypes VariantType = Variant.GetType();
     float VariantValue = 0.0f;
 
-    if ( Idx >= 0 && Idx < Values.Num() )
+    if ( !Values.IsValidIndex(Idx) )
         return false;
 
     if ( VariantType == EVariantTypes::Float )

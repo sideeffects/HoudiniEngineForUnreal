@@ -627,7 +627,7 @@ public:
         bool HasLandscapeActor(ALandscape* LandscapeActor) const;
 
         /** Returns a pointer to the landscape component map **/
-        TMap< FHoudiniGeoPartObject, ALandscape * > * GetLandscapeComponents();
+        TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> > * GetLandscapeComponents();
 
         /** Set the preset Input for HoudiniTools **/
         void SetHoudiniToolInputPresets( const TMap< UObject*, int32 >& InPresets );
@@ -700,10 +700,10 @@ public:
         FHandleComponentMap HandleComponents;
 
         /** Map of curve / spline components. **/
-        TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * > SplineComponents;
+        TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> > SplineComponents;
 
         /** Map of Landscape / Heightfield components. **/
-        TMap< FHoudiniGeoPartObject, ALandscape * > LandscapeComponents;
+        TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> > LandscapeComponents;
 
         /** Material assignments. **/
         UHoudiniAssetComponentMaterials * HoudiniAssetComponentMaterials;
@@ -734,7 +734,7 @@ public:
         TWeakPtr< class SNotificationItem > NotificationPtr;
 
         /** Component from which this component has been copied. **/
-        UHoudiniAssetComponent * CopiedHoudiniComponent;
+        TWeakObjectPtr<UHoudiniAssetComponent> CopiedHoudiniComponent;
 
 #endif
 

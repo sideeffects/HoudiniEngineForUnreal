@@ -509,7 +509,7 @@ bool FHoudiniGeoPartObject::IsPackedPrimitiveInstancer() const
 
 bool FHoudiniGeoPartObject::IsAttributeInstancer() const
 {
-    return HapiCheckAttributeExistance(	HAPI_UNREAL_ATTRIB_INSTANCE, HAPI_ATTROWNER_POINT );
+    return HapiCheckAttributeExistance(    HAPI_UNREAL_ATTRIB_INSTANCE, HAPI_ATTROWNER_POINT );
 }
 
 bool FHoudiniGeoPartObject::IsAttributeOverrideInstancer() const
@@ -530,6 +530,24 @@ FHoudiniGeoPartObject::SetCustomName( const FString & CustomName )
 {
     PartName = CustomName;
     bHasCustomName = true;
+}
+
+bool
+FHoudiniGeoPartObject::UpdateCustomName()
+{
+    TArray< FString > GeneratedMeshNames;
+    HAPI_AttributeInfo AttribGeneratedMeshName;
+    FMemory::Memzero< HAPI_AttributeInfo >(AttribGeneratedMeshName);
+
+    bHasCustomName = false;
+    if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+        AssetId, ObjectId, GeoId, PartId, HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME, AttribGeneratedMeshName, GeneratedMeshNames ) )
+    {
+        if ( GeneratedMeshNames.Num() > 0 )
+            SetCustomName( GeneratedMeshNames[0] );
+    }
+
+    return HasCustomName();
 }
 
 bool

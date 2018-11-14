@@ -30,6 +30,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
+#include "HoudiniAssetComponentMaterials.h"
 #include "HoudiniAssetInstanceInput.h"
 #include "HoudiniAssetInput.h"
 #include "HoudiniAssetParameter.h"
@@ -380,6 +381,13 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     bFullyLoaded = false;
 
     Bounds = FBox( ForceInitToZero );
+
+    DefaultPresetBuffer.Empty();
+    PresetBuffer.Empty();
+    Parameters.Empty();
+    ParameterByName.Empty();
+    BakeNameOverrides.Empty();
+    DownstreamAssetConnections.Empty();
 }
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()
@@ -397,7 +405,8 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
             IterParams( HoudiniAssetComponent->Parameters ); IterParams; ++IterParams )
         {
             UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
-            Collector.AddReferencedObject( HoudiniAssetParameter, InThis );
+            if ( HoudiniAssetParameter && !HoudiniAssetParameter->IsPendingKill() )
+                Collector.AddReferencedObject( HoudiniAssetParameter, InThis );
         }
 
         // Add references to all inputs.
@@ -405,12 +414,16 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
             IterInputs( HoudiniAssetComponent->Inputs ); IterInputs; ++IterInputs )
         {
             UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
-            Collector.AddReferencedObject( HoudiniAssetInput, InThis );
+            if ( HoudiniAssetInput && !HoudiniAssetInput->IsPendingKill() )
+                Collector.AddReferencedObject( HoudiniAssetInput, InThis );
         }
 
         // Add references to all instance inputs.
         for ( auto& InstanceInput : HoudiniAssetComponent->InstanceInputs)
         {
+            if ( !InstanceInput || InstanceInput->IsPendingKill() )
+                continue;
+
             Collector.AddReferencedObject( InstanceInput, InThis );
         }
 
@@ -419,7 +432,8 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
             IterHandles( HoudiniAssetComponent->HandleComponents ); IterHandles; ++IterHandles )
         {
             UHoudiniHandleComponent * HandleComponent = IterHandles.Value();
-            Collector.AddReferencedObject( HandleComponent, InThis );
+            if ( HandleComponent && !HandleComponent->IsPendingKill() )
+                Collector.AddReferencedObject( HandleComponent, InThis );
         }
 
         // Add references to all static meshes and corresponding geo parts.
@@ -427,7 +441,7 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
             Iter( HoudiniAssetComponent->StaticMeshes ); Iter; ++Iter )
         {
             UStaticMesh * StaticMesh = Iter.Value();
-            if ( StaticMesh )
+            if ( StaticMesh && !StaticMesh->IsPendingKill() )
                 Collector.AddReferencedObject( StaticMesh, InThis );
         }
 
@@ -438,23 +452,35 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
             UStaticMesh * StaticMesh = Iter.Key();
             UStaticMeshComponent * StaticMeshComponent = Iter.Value();
 
+            if (!StaticMeshComponent || StaticMeshComponent->IsPendingKill())
+                continue;
+
+            if (!StaticMesh || StaticMesh->IsPendingKill())
+                continue;
+
             Collector.AddReferencedObject( StaticMesh, InThis );
             Collector.AddReferencedObject( StaticMeshComponent, InThis );
         }
 
         // Add references to all spline components.
-        for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator
+        for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TIterator
             Iter( HoudiniAssetComponent->SplineComponents ); Iter; ++Iter )
         {
-            UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
+            UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value().Get();
+            if ( !HoudiniSplineComponent )
+                continue;
+
             Collector.AddReferencedObject( HoudiniSplineComponent, InThis );
         }
 
         // Add references to all Landscape
-        for ( TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator
+        for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr <ALandscape> >::TIterator
             Iter( HoudiniAssetComponent->LandscapeComponents ); Iter; ++Iter)
         {
-            ALandscape * HoudiniLandscape = Iter.Value();
+            ALandscape * HoudiniLandscape = Iter.Value().Get();
+            if ( !HoudiniLandscape )
+                continue;
+
             Collector.AddReferencedObject( HoudiniLandscape, InThis );
         }
 
@@ -463,20 +489,22 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
             Iter( HoudiniAssetComponent->CookedTemporaryLandscapeLayers ); Iter; ++Iter )
         {
             UPackage * LayerPackage = Iter.Key().Get();
-            Collector.AddReferencedObject( LayerPackage, InThis );
+            if ( LayerPackage )
+                Collector.AddReferencedObject( LayerPackage, InThis );
         }
 
         // Retrieve asset associated with this component and add reference to it.
         // Also do not add reference if it is being referenced by preview component.
         UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
-        if ( HoudiniAsset && !HoudiniAssetComponent->bIsPreviewComponent )
+        if ( HoudiniAsset && !HoudiniAsset->IsPendingKill() && !HoudiniAssetComponent->bIsPreviewComponent )
         {
             // Manually add a reference to Houdini asset from this component.
             Collector.AddReferencedObject( HoudiniAsset, InThis );
         }
 
         // Add reference to material replacements.
-        if ( HoudiniAssetComponent->HoudiniAssetComponentMaterials )
+        UHoudiniAssetComponentMaterials* HoudiniAssetComponentMaterials = HoudiniAssetComponent->HoudiniAssetComponentMaterials;
+        if ( HoudiniAssetComponentMaterials && !HoudiniAssetComponentMaterials->IsPendingKill() )
             Collector.AddReferencedObject( HoudiniAssetComponent->HoudiniAssetComponentMaterials, InThis );
     }
 
@@ -552,7 +580,7 @@ UHoudiniAssetComponent::SetHoudiniAsset( UHoudiniAsset * InHoudiniAsset )
     HoudiniAsset = InHoudiniAsset;
 
     // Reset material tracking.
-    if ( HoudiniAssetComponentMaterials )
+    if ( HoudiniAssetComponentMaterials && !HoudiniAssetComponentMaterials->IsPendingKill() )
         HoudiniAssetComponentMaterials->ResetMaterialInfo();
 
     if ( !bIsNativeComponent )
@@ -693,7 +721,7 @@ UHoudiniAssetComponent::SetHoudiniAsset( UHoudiniAsset * InHoudiniAsset )
 void
 UHoudiniAssetComponent::AddDownstreamAsset( UHoudiniAssetComponent * InDownstreamAssetComponent, int32 InInputIndex )
 {
-    if ( InDownstreamAssetComponent )
+    if ( InDownstreamAssetComponent && !InDownstreamAssetComponent->IsPendingKill() )
     {
         if ( DownstreamAssetConnections.Contains( InDownstreamAssetComponent ) )
         {
@@ -712,7 +740,10 @@ UHoudiniAssetComponent::AddDownstreamAsset( UHoudiniAssetComponent * InDownstrea
 void
 UHoudiniAssetComponent::RemoveDownstreamAsset( UHoudiniAssetComponent * InDownstreamAssetComponent, int32 InInputIndex )
 {
-    if ( InDownstreamAssetComponent && DownstreamAssetConnections.Contains( InDownstreamAssetComponent ) )
+    if ( !InDownstreamAssetComponent || InDownstreamAssetComponent->IsPendingKill() )
+        return;
+
+    if ( DownstreamAssetConnections.Contains( InDownstreamAssetComponent ) )
     {
         TSet< int32 > & InputIndicesSet = DownstreamAssetConnections[ InDownstreamAssetComponent ];
         if ( InputIndicesSet.Contains( InInputIndex ) )
@@ -760,7 +791,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
         else
         {
             // This geo part is visible and not an instancer and must have static mesh assigned.
-            if ( HoudiniGeoPartObject.IsVisible() && !StaticMesh )
+            if ( HoudiniGeoPartObject.IsVisible() && ( !StaticMesh || StaticMesh->IsPendingKill() ) )
             {
                 HOUDINI_LOG_WARNING( TEXT( "No static mesh generated for visible part %d,%d,%d" ), HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.PartId );
                 continue;
@@ -769,7 +800,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
             UStaticMeshComponent * StaticMeshComponent = nullptr;
             UStaticMeshComponent * FoundStaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
 
-            if ( FoundStaticMeshComponent )
+            if ( FoundStaticMeshComponent && !FoundStaticMeshComponent->IsPendingKill() )
             {
                 StaticMeshComponent = FoundStaticMeshComponent;
                 if ( ! HoudiniGeoPartObject.IsVisible() )
@@ -787,25 +818,28 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
                     GetOwner() ? GetOwner() : GetOuter(), UStaticMeshComponent::StaticClass(),
                     NAME_None, RF_Transactional );
 
-                // Attach created static mesh component to our Houdini component.
-                StaticMeshComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
+                if ( StaticMeshComponent && !StaticMeshComponent->IsPendingKill() )
+                {
+                    // Attach created static mesh component to our Houdini component.
+                    StaticMeshComponent->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 
-                StaticMeshComponent->SetStaticMesh( StaticMesh );
-                StaticMeshComponent->SetVisibility( true );
-                StaticMeshComponent->SetMobility( Mobility );
-                StaticMeshComponent->RegisterComponent();
+                    StaticMeshComponent->SetStaticMesh(StaticMesh);
+                    StaticMeshComponent->SetVisibility(true);
+                    StaticMeshComponent->SetMobility(Mobility);
+                    StaticMeshComponent->RegisterComponent();
 
-                // Add to the map of components.
-                StaticMeshComponents.Add( StaticMesh, StaticMeshComponent );
+                    // Add to the map of components.
+                    StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
+                }
             }
 
-            if ( StaticMeshComponent )
+            if ( StaticMeshComponent && !StaticMeshComponent->IsPendingKill())
             {
                 // If this is a collision geo, we need to make it invisible.
                 if (HoudiniGeoPartObject.IsCollidable())
                 {
                     StaticMeshComponent->SetVisibility( false );
-                    StaticMeshComponent->SetHiddenInGame( true );                                                                     
+                    StaticMeshComponent->SetHiddenInGame( true );
                     StaticMeshComponent->SetCollisionProfileName( FName( TEXT( "InvisibleWall" ) ) );
                 }
                 else
@@ -827,7 +861,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
                 for( int32 nSocket = 0; nSocket < NumberOfSockets; nSocket++ )
                 {
                     UStaticMeshSocket* MeshSocket = StaticMesh->Sockets[ nSocket ];
-                    if ( MeshSocket && ( MeshSocket->Tag.IsEmpty() ) )
+                    if ( MeshSocket && !MeshSocket->IsPendingKill() && ( MeshSocket->Tag.IsEmpty() ) )
                         continue;
 
                     FHoudiniEngineUtils::AddActorsToMeshSocket( StaticMesh->Sockets[ nSocket ], StaticMeshComponent );
@@ -899,7 +933,7 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(
     for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshMap ); Iter; ++Iter )
     {
         UStaticMesh * StaticMesh = Iter.Value();
-        if ( !StaticMesh )
+        if ( !StaticMesh || StaticMesh->IsPendingKill() )
             continue;
 
         // Removes the static mesh component from the map, detaches and destroys it.
@@ -942,6 +976,7 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(
 
             // Free any RHI resources.
             StaticMesh->PreEditChange( nullptr );
+            StaticMesh->MarkPendingKill();
 
             ObjectTools::DeleteSingleObject( StaticMesh, false );
         }
@@ -964,7 +999,7 @@ UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
     for (TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter)
     {
         UStaticMeshComponent * StaticMeshComponent = Cast< UStaticMeshComponent >(*Iter);
-        if ( !StaticMeshComponent )
+        if ( !StaticMeshComponent || StaticMeshComponent->IsPendingKill() )
             continue;
 
         bool bNeedToCleanMeshComponent = false;
@@ -996,6 +1031,8 @@ UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
     for (int32 MeshIdx = 0; MeshIdx < StaticMeshesToDelete.Num(); ++MeshIdx)
     {
         UStaticMesh * StaticMesh = StaticMeshesToDelete[MeshIdx];
+        if ( !StaticMesh || StaticMesh->IsPendingKill() )
+            continue;
                 
         UObject * ObjectMesh = (UObject *)StaticMesh;
         if ( ObjectMesh->IsUnreachable() )
@@ -1047,7 +1084,10 @@ UHoudiniAssetComponent::CollectSubstanceParameters( TMap< FString, UHoudiniAsset
     for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TConstIterator IterParams( Parameters ); IterParams; ++IterParams )
     {
         UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
-        if ( HoudiniAssetParameter && HoudiniAssetParameter->IsSubstanceParameter() )
+        if  (!HoudiniAssetParameter || HoudiniAssetParameter->IsPendingKill() )
+            continue;
+
+        if ( HoudiniAssetParameter->IsSubstanceParameter() )
             SubstanceParameters.Add( HoudiniAssetParameter->GetParameterName(), HoudiniAssetParameter );
     }
 }
@@ -1062,7 +1102,10 @@ UHoudiniAssetComponent::CollectAllParametersOfType(
     for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TConstIterator IterParams( Parameters ); IterParams; ++IterParams )
     {
         UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
-        if ( HoudiniAssetParameter && HoudiniAssetParameter->IsA( ParameterClass ) )
+        if (!HoudiniAssetParameter || HoudiniAssetParameter->IsPendingKill())
+            continue;
+
+        if ( HoudiniAssetParameter->IsA( ParameterClass ) )
             ClassParameters.Add( HoudiniAssetParameter->GetParameterName(), HoudiniAssetParameter );
     }
 }
@@ -1076,6 +1119,9 @@ UHoudiniAssetComponent::FindParameter( const FString & ParameterName ) const
     if ( FoundHoudiniAssetParameter )
         HoudiniAssetParameter = *FoundHoudiniAssetParameter;
 
+    if ( !HoudiniAssetParameter || HoudiniAssetParameter->IsPendingKill() )
+        return nullptr;
+
     return HoudiniAssetParameter;
 }
 
@@ -1087,7 +1133,7 @@ UHoudiniAssetComponent::GetInputs( TArray< UHoudiniAssetInput* >& AllInputs, boo
     for ( TArray< UHoudiniAssetInput * >::TIterator IterInputs( Inputs ); IterInputs; ++IterInputs )
     {
         UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
-        if ( !HoudiniAssetInput )
+        if ( !HoudiniAssetInput || HoudiniAssetInput->IsPendingKill() )
             continue;
 
         AllInputs.Add( HoudiniAssetInput );
@@ -1099,7 +1145,7 @@ UHoudiniAssetComponent::GetInputs( TArray< UHoudiniAssetInput* >& AllInputs, boo
     for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TConstIterator IterParams( Parameters ); IterParams; ++IterParams )
     {
         UHoudiniAssetInput* ObjectPathInput = Cast< UHoudiniAssetInput >( IterParams.Value() );
-        if ( !ObjectPathInput )
+        if ( !ObjectPathInput || ObjectPathInput->IsPendingKill() )
             continue;
 
         AllInputs.Add ( ObjectPathInput );
@@ -1115,7 +1161,7 @@ UHoudiniAssetComponent::GetAllUsedStaticMeshes( TArray< UStaticMesh * > & UsedSt
     for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshes ); Iter; ++Iter )
     {
         UStaticMesh * StaticMesh = Iter.Value();
-        if ( StaticMesh )
+        if ( StaticMesh && !StaticMesh->IsPendingKill() )
             UsedStaticMeshes.Add( StaticMesh );
     }
 }
@@ -1128,8 +1174,14 @@ UHoudiniAssetComponent::CollectAllStaticMeshComponents() const
     // Add all the instance meshes, including the variations
     for ( const UHoudiniAssetInstanceInput* InstanceInput : InstanceInputs )
     {
+        if ( !InstanceInput || InstanceInput->IsPendingKill() )
+            continue;
+
         for ( const UHoudiniAssetInstanceInputField* InputField : InstanceInput->GetInstanceInputFields() )
         {
+            if ( !InputField || InputField->IsPendingKill() )
+                continue;
+
             for ( int32 VarIndex = 0; VarIndex < InputField->InstanceVariationCount(); ++VarIndex )
             {
                 UObject* Comp = InputField->GetInstancedComponent( VarIndex );
@@ -1159,11 +1211,20 @@ UHoudiniAssetComponent::CollectAllInstancedActorComponents() const
     TMap<const UHoudiniInstancedActorComponent *, FHoudiniGeoPartObject> OutSMComponentToPart;
     for ( const UHoudiniAssetInstanceInput* InstanceInput : InstanceInputs )
     {
+        if ( !InstanceInput || InstanceInput->IsPendingKill() )
+            continue;
+
         for ( const UHoudiniAssetInstanceInputField* InputField : InstanceInput->GetInstanceInputFields() )
         {
+            if ( !InputField || InputField->IsPendingKill() )
+                continue;
+
             for ( int32 VarIndex = 0; VarIndex < InputField->InstanceVariationCount(); ++VarIndex )
             {
                 UObject* Comp = InputField->GetInstancedComponent( VarIndex );
+                if (!Comp || Comp->IsPendingKill())
+                    continue;
+
                 if ( InputField->GetInstanceVariation( VarIndex ) && Comp->IsA<UHoudiniInstancedActorComponent>() )
                 {
                     OutSMComponentToPart.Add( Cast<UHoudiniInstancedActorComponent>( Comp ), InputField->GetHoudiniGeoPartObject() );
@@ -1180,11 +1241,20 @@ UHoudiniAssetComponent::CollectAllMeshSplitInstancerComponents() const
     TMap<const UHoudiniMeshSplitInstancerComponent *, FHoudiniGeoPartObject> OutSMComponentToPart;
     for( const UHoudiniAssetInstanceInput* InstanceInput : InstanceInputs )
     {
+        if (!InstanceInput || InstanceInput->IsPendingKill())
+            continue;
+
         for( const UHoudiniAssetInstanceInputField* InputField : InstanceInput->GetInstanceInputFields() )
         {
+            if ( !InputField || InputField->IsPendingKill() )
+                continue;
+
             for( int32 VarIndex = 0; VarIndex < InputField->InstanceVariationCount(); ++VarIndex )
             {
                 UObject* Comp = InputField->GetInstancedComponent(VarIndex);
+                if (!Comp || Comp->IsPendingKill())
+                    continue;
+
                 if( InputField->GetInstanceVariation(VarIndex) && Comp->IsA<UHoudiniMeshSplitInstancerComponent>() )
                 {
                     OutSMComponentToPart.Add(Cast<UHoudiniMeshSplitInstancerComponent>(Comp), InputField->GetHoudiniGeoPartObject());
@@ -1378,7 +1448,7 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
             ++IterAssets )
         {
             UHoudiniAssetComponent * DownstreamAsset = IterAssets.Key();
-            if ( !DownstreamAsset )
+            if ( !DownstreamAsset || DownstreamAsset->IsPendingKill() )
                 continue;
 
             DownstreamAsset->bManualRecookRequested = true;
@@ -1789,19 +1859,19 @@ UHoudiniAssetComponent::TickHoudiniComponent()
     if ( bNeedToUpdateNavigationSystem )
     {
 #ifdef WITH_EDITOR
-		// notify navigation system
-		AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
-		FNavigationSystem::UpdateActorAndComponentData(*HoudiniActor);
-		/*
-		// We need to update the navigation system manually with the Actor or the NavMesh will not update properly
-		UWorld* World = GEditor->GetEditorWorldContext().World();
-		if (World && World->GetNavigationSystem())
-		{
-			AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
-			if(HoudiniActor)
-				World->GetNavigationSystem()->UpdateActorAndComponentData(*HoudiniActor);
-		}
-		*/
+        // notify navigation system
+        AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
+        FNavigationSystem::UpdateActorAndComponentData(*HoudiniActor);
+        /*
+        // We need to update the navigation system manually with the Actor or the NavMesh will not update properly
+        UWorld* World = GEditor->GetEditorWorldContext().World();
+        if (World && World->GetNavigationSystem())
+        {
+            AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
+            if(HoudiniActor)
+                World->GetNavigationSystem()->UpdateActorAndComponentData(*HoudiniActor);
+        }
+        */
 #endif
         bNeedToUpdateNavigationSystem = false;
     }
@@ -2244,7 +2314,7 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TIterator Iter( StaticMeshComponents ); Iter; ++Iter )
             {
                 UStaticMesh * StaticMesh = Iter.Key();
-                if ( !StaticMesh )
+                if ( !StaticMesh || StaticMesh->IsPendingKill() )
                     continue;
 
                 SetStaticMeshGenerationParameters( StaticMesh );
@@ -2414,12 +2484,12 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bApplyImpulseOnDamage );
             }
-			/*
+            /*
             else if ( Property->GetName() == TEXT( "bShouldUpdatePhysicsVolume" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( USceneComponent, bShouldUpdatePhysicsVolume );
             }
-			*/
+            */
         }
         else if ( CategoryLOD == Category )
         {
@@ -2486,7 +2556,7 @@ UHoudiniAssetComponent::OnComponentClipboardCopy( UHoudiniAssetComponent * Houdi
 void
 UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object )
 {
-    if (!bComponentCopyImported || (CopiedHoudiniComponent == nullptr))
+    if (!bComponentCopyImported || !CopiedHoudiniComponent.IsValid() )
         return;
 
     // Show busy cursor.
@@ -2528,12 +2598,14 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
     {
         FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
         UStaticMesh * StaticMesh = Iter.Value();
+        if ( !StaticMesh || StaticMesh->IsPendingKill() )
+            continue;
 
         // Duplicate static mesh and all related generated Houdini materials and textures.
         UStaticMesh * DuplicatedStaticMesh =
             FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage( StaticMesh, this, HoudiniGeoPartObject, FHoudiniCookParams::GetDefaultStaticMeshesCookMode() );
 
-        if( DuplicatedStaticMesh )
+        if( DuplicatedStaticMesh && !DuplicatedStaticMesh->IsPendingKill() )
         {
             // Store this duplicated mesh.
             StaticMeshes.Add( FHoudiniGeoPartObject( HoudiniGeoPartObject, true ), DuplicatedStaticMesh );
@@ -2563,11 +2635,13 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
     }
 
     // We need to reconstruct splines.
-    for( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator
+    for( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TIterator
         Iter( CopiedHoudiniComponent->SplineComponents ); Iter; ++Iter )
     {
         FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
-        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
+        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value().Get();
+        if ( !HoudiniSplineComponent )
+            continue;
             
         // Duplicate spline component.
         UHoudiniSplineComponent * DuplicatedSplineComponent = 
@@ -2609,7 +2683,7 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
     // Perform any necessary post loading.
     PostLoad();
 
-    DuplicateHandles( CopiedHoudiniComponent );
+    DuplicateHandles( CopiedHoudiniComponent.Get() );
 
     // Mark this component as no longer copy imported and reset copied component.
     bComponentCopyImported = false;
@@ -2641,7 +2715,7 @@ UHoudiniAssetComponent::OnApplyObjectToActor( UObject* ObjectToApply, AActor * A
         UStaticMesh * StaticMesh = Iter.Key();
         UStaticMeshComponent * StaticMeshComponent = Iter.Value();
 
-        if ( !StaticMeshComponent || !StaticMesh )
+        if ( !StaticMeshComponent || !StaticMesh || StaticMeshComponent->IsPendingKill() || StaticMesh->IsPendingKill() )
             continue;
 
         const TArray< class UMaterialInterface * > & OverrideMaterials = StaticMeshComponent->OverrideMaterials;
@@ -2658,7 +2732,7 @@ UHoudiniAssetComponent::OnApplyObjectToActor( UObject* ObjectToApply, AActor * A
 
     for ( auto& InstanceInput : InstanceInputs )
     {
-        if ( InstanceInput )
+        if ( InstanceInput && !InstanceInput->IsPendingKill() )
             InstanceInput->GetMaterialReplacementMeshes( Material, MaterialReplacementsMap );
     }
 
@@ -2909,13 +2983,13 @@ UHoudiniAssetComponent::PostLoadReattachComponents()
     for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TIterator Iter( StaticMeshComponents ); Iter; ++Iter )
     {
         UStaticMeshComponent * StaticMeshComponent = Iter.Value();
-        if ( StaticMeshComponent )
+        if ( StaticMeshComponent && !StaticMeshComponent->IsPendingKill() )
             StaticMeshComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
     }
 
-    for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator Iter( SplineComponents ); Iter; ++Iter )
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TIterator Iter( SplineComponents ); Iter; ++Iter )
     {
-        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
+        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value().Get();
         if( HoudiniSplineComponent )
             HoudiniSplineComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
     }
@@ -2923,13 +2997,13 @@ UHoudiniAssetComponent::PostLoadReattachComponents()
     for ( TMap< FString, UHoudiniHandleComponent * >::TIterator Iter( HandleComponents ); Iter; ++Iter )
     {
         UHoudiniHandleComponent * HoudiniHandleComponent = Iter.Value();
-        if ( HoudiniHandleComponent )
+        if ( HoudiniHandleComponent && !HoudiniHandleComponent->IsPendingKill() )
             HoudiniHandleComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
     }
 
-    for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
+    for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
     {
-        ALandscape * HoudiniLandscape = Iter.Value();
+        ALandscape * HoudiniLandscape = Iter.Value().Get();
         if ( HoudiniLandscape )
             HoudiniLandscape->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
     }
@@ -3018,7 +3092,7 @@ UHoudiniAssetComponent::OnRegister()
         for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TIterator Iter( StaticMeshComponents ); Iter; ++Iter )
         {
             UStaticMeshComponent * StaticMeshComponent = Iter.Value();
-            if ( StaticMeshComponent )
+            if ( StaticMeshComponent && !StaticMeshComponent->IsPendingKill() )
             {
                 // Recreate render state.
                 StaticMeshComponent->RecreateRenderState_Concurrent();
@@ -3031,6 +3105,9 @@ UHoudiniAssetComponent::OnRegister()
         // Instanced static meshes.
         for ( auto& InstanceInput : InstanceInputs )
         {
+            if (!InstanceInput || InstanceInput->IsPendingKill())
+                continue;
+
              // Recreate render state.
             InstanceInput->RecreateRenderStates();
 
@@ -3283,7 +3360,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
             for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams( Parameters ); IterParams; ++IterParams )
             {
                 UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
-                if ( HoudiniAssetParameter )
+                if ( HoudiniAssetParameter && !HoudiniAssetParameter->IsPendingKill() )
                     ParameterByName.Add( HoudiniAssetParameter->GetParameterName(), HoudiniAssetParameter );
             }
         }
@@ -3561,23 +3638,29 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
         {
             FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
             UStaticMesh * StaticMesh = Iter.Value();
+            if ( !StaticMesh || StaticMesh->IsPendingKill() )
+                continue;
 
             // Retrieve referenced static mesh component.
             UStaticMeshComponent * StaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
-
-            if ( !StaticMeshComponent )
+            if ( !StaticMeshComponent || StaticMeshComponent->IsPendingKill() )
                 continue;
 
             // Bake the referenced static mesh.
             UStaticMesh * OutStaticMesh = FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
                 StaticMesh, this, HoudiniGeoPartObject, EBakeMode::CreateNewAssets );
 
-            if ( OutStaticMesh )
-                FAssetRegistryModule::AssetCreated( OutStaticMesh );
+            if ( !OutStaticMesh || OutStaticMesh->IsPendingKill() )
+                continue;
+
+            FAssetRegistryModule::AssetCreated( OutStaticMesh );
 
             // Create static mesh component for baked mesh.
             UStaticMeshComponent * DuplicatedComponent =
                 NewObject< UStaticMeshComponent >( Actor, UStaticMeshComponent::StaticClass(), NAME_None );//, RF_Transactional );
+
+            if ( !DuplicatedComponent || DuplicatedComponent->IsPendingKill() )
+                continue;
 
             Actor->AddInstanceComponent( DuplicatedComponent );
 
@@ -3605,7 +3688,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
     {
         for( auto& InstanceInput : InstanceInputs )
         {
-            if ( InstanceInput )
+            if ( InstanceInput && !InstanceInput->IsPendingKill() )
                 InstanceInput->CloneComponentsAndAttachToActor( Actor );
         }
     }
@@ -3700,7 +3783,8 @@ void UHoudiniAssetComponent::SanitizePostLoad()
 
     for(auto Iter : Parameters)
     {
-        if(nullptr == Iter.Value)
+        UHoudiniAssetParameter* Param = Iter.Value;
+        if( !Param || Param->IsPendingKill() )
         {
             // we have at least one bad parameter, clear them all
             FMessageLog("LoadErrors").Error(LOCTEXT("NullParameterFound", "Houdini Engine: Null parameter found, clearing parameters"))
@@ -3713,7 +3797,7 @@ void UHoudiniAssetComponent::SanitizePostLoad()
 
     for(auto Input : Inputs)
     {
-        if(nullptr == Input)
+        if( !Input || Input->IsPendingKill() )
         {
             // we have at least one bad input, clear them all
             FMessageLog("LoadErrors").Error(LOCTEXT("NullInputFound", "Houdini Engine: Null input found, clearing inputs"))
@@ -3728,17 +3812,20 @@ void UHoudiniAssetComponent::SanitizePostLoad()
     {
         UStaticMesh* SM = SMCElem.Key;
         UMeshComponent* SMC = SMCElem.Value;
-        if( SM && SMC )
+        if ( !SM || SM->IsPendingKill() )
+            continue;
+
+        if ( !SMC || SMC->IsPendingKill() )
+            continue;
+
+        auto& StaticMeshMaterials = SM->StaticMaterials;
+        for( int32 MaterialIdx = 0; MaterialIdx < StaticMeshMaterials.Num(); ++MaterialIdx )
         {
-            auto& StaticMeshMaterials = SM->StaticMaterials;
-            for( int32 MaterialIdx = 0; MaterialIdx < StaticMeshMaterials.Num(); ++MaterialIdx )
+            if( nullptr == StaticMeshMaterials[ MaterialIdx ].MaterialInterface )
             {
-                if( nullptr == StaticMeshMaterials[ MaterialIdx ].MaterialInterface )
-                {
-                    auto DefaultMI = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
-                    StaticMeshMaterials[ MaterialIdx ].MaterialInterface = DefaultMI;
-                    SMC->SetMaterial( MaterialIdx, DefaultMI );
-                }
+                auto DefaultMI = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+                StaticMeshMaterials[ MaterialIdx ].MaterialInterface = DefaultMI;
+                SMC->SetMaterial( MaterialIdx, DefaultMI );
             }
         }
     }
@@ -3796,7 +3883,10 @@ UHoudiniAssetComponent::LocateStaticMeshes(
             const FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
             UStaticMesh * StaticMesh = Iter.Value();
 
-            if ( StaticMesh && ObjectName.Len() > 0 )
+            if ( !StaticMesh || StaticMesh->IsPendingKill() )
+                continue;
+
+            if ( ObjectName.Len() > 0 )
             {
                 if ( bSubstring && ObjectName.Len() >= HoudiniGeoPartObject.ObjectName.Len() )
                 {
@@ -3834,8 +3924,6 @@ UHoudiniAssetComponent::LocateStaticMeshes(
     for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator Iter( StaticMeshes ); Iter; ++Iter )
     {
         const FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
-        UStaticMesh * StaticMesh = Iter.Value();
-
         if ( HoudiniGeoPartObject.ObjectId == ObjectToInstanceId )
         {
             // Check that this part isn't being instanced at the part level
@@ -3855,6 +3943,8 @@ FHoudiniGeoPartObject
 UHoudiniAssetComponent::LocateGeoPartObject( UStaticMesh * StaticMesh ) const
 {
     FHoudiniGeoPartObject GeoPartObject;
+    if ( !StaticMesh || StaticMesh->IsPendingKill() )
+        return GeoPartObject;
 
     const FHoudiniGeoPartObject * FoundGeoPartObject = StaticMeshes.FindKey( StaticMesh );
     if ( FoundGeoPartObject )
@@ -3885,7 +3975,7 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
 {
     bool bCurveCreated = false;
 
-    TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * > NewSplineComponents;
+    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> > NewSplineComponents;
     for ( TArray< FHoudiniGeoPartObject >::TConstIterator Iter( FoundCurves ); Iter; ++Iter )
     {
         const FHoudiniGeoPartObject & HoudiniGeoPartObject = *Iter;
@@ -4017,8 +4107,7 @@ UHoudiniAssetComponent::CreateParameters()
 {
     TMap< HAPI_ParmId, class UHoudiniAssetParameter * > NewParameters;
 
-    bool Ok = FHoudiniParamUtils::Build( AssetId, this, Parameters, NewParameters );
-    if( Ok )
+    if( FHoudiniParamUtils::Build(AssetId, this, Parameters, NewParameters) )
     {
         bEditorPropertiesNeedFullUpdate = true;
 
@@ -4029,7 +4118,9 @@ UHoudiniAssetComponent::CreateParameters()
         Parameters = NewParameters;
         for ( auto& ParmPair : NewParameters )
         {
-            ParameterByName.Add( ParmPair.Value->GetParameterName(), ParmPair.Value );
+            UHoudiniAssetParameter* Param = ParmPair.Value;
+            if( Param && !Param->IsPendingKill() )
+                ParameterByName.Add( Param->GetParameterName(), Param );
         }
     }
 }
@@ -4076,6 +4167,8 @@ UHoudiniAssetComponent::UnmarkChangedParameters()
         for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams( Parameters ); IterParams; ++IterParams )
         {
             UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
+            if ( !HoudiniAssetParameter || HoudiniAssetParameter->IsPendingKill() )
+                continue;
 
             // If parameter has changed, unmark it.
             if ( HoudiniAssetParameter->HasChanged() )
@@ -4095,6 +4188,8 @@ UHoudiniAssetComponent::UploadChangedParameters()
         for ( TArray< UHoudiniAssetInput * >::TIterator IterInputs( Inputs ); IterInputs; ++IterInputs )
         {
             UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
+            if ( !HoudiniAssetInput || HoudiniAssetInput->IsPendingKill() )
+                continue;
 
             // If input has changed, upload it to HAPI.
             if ( HoudiniAssetInput->HasChanged() )
@@ -4107,6 +4202,8 @@ UHoudiniAssetComponent::UploadChangedParameters()
         for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams( Parameters ); IterParams; ++IterParams )
         {
             UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
+            if (!HoudiniAssetParameter || HoudiniAssetParameter->IsPendingKill())
+                continue;
 
             // If parameter has changed, upload it to HAPI.
             if ( HoudiniAssetParameter->HasChanged() )
@@ -4134,6 +4231,9 @@ UHoudiniAssetComponent::UpdateLoadedParameters()
     for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams( Parameters ); IterParams; ++IterParams )
     {
         UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
+        if (!HoudiniAssetParameter || HoudiniAssetParameter->IsPendingKill())
+            continue;
+
         HoudiniAssetParameter->SetNodeId( AssetId );
     }
 }
@@ -4302,7 +4402,7 @@ UHoudiniAssetComponent::UpdateLoadedInputs()
     for ( TArray< UHoudiniAssetInput * >::TIterator IterInputs( Inputs ); IterInputs; ++IterInputs )
     {
         UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
-        if (!HoudiniAssetInput)
+        if (!HoudiniAssetInput || HoudiniAssetInput->IsPendingKill() )
             continue;
 
         HoudiniAssetInput->SetNodeId( AssetId );
@@ -4324,6 +4424,9 @@ UHoudiniAssetComponent::UpdateWaitingForUpstreamAssetsToInstantiate( bool bNotif
     // We first need to make sure all our asset inputs have been instantiated and reconnected.
     for ( auto LocalInput : Inputs )
     {
+        if ( !LocalInput || LocalInput->IsPendingKill() )
+            continue;
+
         bool bInputAssetNeedsInstantiation = LocalInput->DoesInputAssetNeedInstantiation();
         if ( !bInputAssetNeedsInstantiation )
             continue;
@@ -4333,14 +4436,15 @@ UHoudiniAssetComponent::UpdateWaitingForUpstreamAssetsToInstantiate( bool bNotif
         if ( bNotifyUpstreamAsset )
         {
             UHoudiniAssetComponent * LocalInputAssetComponent = LocalInput->GetConnectedInputAssetComponent();
-            LocalInputAssetComponent->NotifyParameterChanged( nullptr );
+            if ( LocalInputAssetComponent && !LocalInputAssetComponent->IsPendingKill() )
+                LocalInputAssetComponent->NotifyParameterChanged( nullptr );
         }
     }
 
     for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams( Parameters ); IterParams; ++IterParams )
     {
         UHoudiniAssetInput* Input = Cast< UHoudiniAssetInput >( IterParams.Value() );
-        if ( !Input )
+        if ( !Input || Input->IsPendingKill() )
             continue;
 
         bool bInputAssetNeedsInstantiation = Input->DoesInputAssetNeedInstantiation();
@@ -4352,7 +4456,8 @@ UHoudiniAssetComponent::UpdateWaitingForUpstreamAssetsToInstantiate( bool bNotif
         if ( bNotifyUpstreamAsset )
         {
             UHoudiniAssetComponent * LocalInputAssetComponent = Input->GetConnectedInputAssetComponent();
-            LocalInputAssetComponent->NotifyParameterChanged( nullptr );
+            if ( LocalInputAssetComponent && !LocalInputAssetComponent->IsPendingKill() )
+                LocalInputAssetComponent->NotifyParameterChanged( nullptr );
         }
     }
 
@@ -4412,7 +4517,7 @@ UHoudiniAssetComponent::RefreshEditableNodesAfterLoad()
                 continue;
 
             // We need to refresh the spline corresponding to that node
-            for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator Iter( SplineComponents ); Iter; ++Iter )
+            for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TIterator Iter( SplineComponents ); Iter; ++Iter )
             {
                 FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
 
@@ -4423,7 +4528,7 @@ UHoudiniAssetComponent::RefreshEditableNodesAfterLoad()
                     HoudiniGeoPartObject.GeoId = CurrentEditableGeoInfo.nodeId;
 
                     // Update the attached spline component too
-                    UHoudiniSplineComponent * SplineComponent = Iter.Value();
+                    UHoudiniSplineComponent * SplineComponent = Iter.Value().Get();
                     if ( SplineComponent )
                         SplineComponent->SetHoudiniGeoPartObject( HoudiniGeoPartObject );
                 }
@@ -4438,9 +4543,9 @@ UHoudiniAssetComponent::RefreshEditableNodesAfterLoad()
 void
 UHoudiniAssetComponent::UploadLoadedCurves()
 {
-    for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator Iter( SplineComponents ); Iter; ++Iter )
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TIterator Iter( SplineComponents ); Iter; ++Iter )
     {
-        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
+        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value().Get();
         if ( !HoudiniSplineComponent )
             continue;
 
@@ -4453,11 +4558,14 @@ UHoudiniAssetComponent::LocateInstanceInput( const FHoudiniGeoPartObject& GeoPar
 {
     for ( UHoudiniAssetInstanceInput* InstanceInput : InstanceInputs )
     {
-	// Verify path to instancer + various configuration flags
+        if ( !InstanceInput || InstanceInput->IsPendingKill() )
+            continue;
+
+        // Verify path to instancer + various configuration flags
         if ( InstanceInput->GetGeoPartObject().GetNodePath() == GeoPart.GetNodePath() &&
-	    UHoudiniAssetInstanceInput::GetInstancerFlags(GeoPart).HoudiniAssetInstanceInputFlagsPacked ==
-		InstanceInput->Flags.HoudiniAssetInstanceInputFlagsPacked )
-	{
+            UHoudiniAssetInstanceInput::GetInstancerFlags(GeoPart).HoudiniAssetInstanceInputFlagsPacked ==
+            InstanceInput->Flags.HoudiniAssetInstanceInputFlagsPacked )
+        {
             return InstanceInput;
         }
     }
@@ -4476,7 +4584,8 @@ UHoudiniAssetComponent::CreateInstanceInputs( const TArray< FHoudiniGeoPartObjec
             // Check if this instance input already exists.
             UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = nullptr;
 
-            if ( UHoudiniAssetInstanceInput * FoundHoudiniAssetInstanceInput = LocateInstanceInput( GeoPart ) )
+            UHoudiniAssetInstanceInput * FoundHoudiniAssetInstanceInput = LocateInstanceInput(GeoPart);
+            if ( FoundHoudiniAssetInstanceInput && !FoundHoudiniAssetInstanceInput->IsPendingKill() )
             {
                 // Input already exists, we can reuse it.
                 HoudiniAssetInstanceInput = FoundHoudiniAssetInstanceInput;
@@ -4493,7 +4602,7 @@ UHoudiniAssetComponent::CreateInstanceInputs( const TArray< FHoudiniGeoPartObjec
                 HoudiniAssetInstanceInput = UHoudiniAssetInstanceInput::Create( this, GeoPart );
             }
 
-            if ( !HoudiniAssetInstanceInput )
+            if ( !HoudiniAssetInstanceInput || HoudiniAssetInstanceInput->IsPendingKill() )
             {
                 // Invalid instance input.
                 HOUDINI_LOG_WARNING( TEXT( "%s: Failed to create Instancer from part %s" ), *GetOwner()->GetName(), *GeoPart.GetNodePath() );
@@ -4516,6 +4625,9 @@ UHoudiniAssetComponent::CreateInstanceInputs( const TArray< FHoudiniGeoPartObjec
 void
 UHoudiniAssetComponent::DuplicateParameters( UHoudiniAssetComponent * DuplicatedHoudiniComponent )
 {
+    if ( !DuplicatedHoudiniComponent || DuplicatedHoudiniComponent->IsPendingKill() )
+        return;
+
     TMap< HAPI_ParmId, UHoudiniAssetParameter * > & InParameters = DuplicatedHoudiniComponent->Parameters;
     TMap< FString, UHoudiniAssetParameter * > & InParametersByName = DuplicatedHoudiniComponent->ParameterByName;
 
@@ -4523,16 +4635,19 @@ UHoudiniAssetComponent::DuplicateParameters( UHoudiniAssetComponent * Duplicated
     {
         HAPI_ParmId HoudiniAssetParameterKey = IterParams.Key();
         UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
+        if ( !HoudiniAssetParameter || HoudiniAssetParameter->IsPendingKill() )
+            continue;
 
         if (HoudiniAssetParameterKey == -1)
             continue;
 
         // Duplicate parameter.
         UHoudiniAssetParameter * DuplicatedHoudiniAssetParameter = HoudiniAssetParameter->Duplicate( DuplicatedHoudiniComponent );
+        if (!DuplicatedHoudiniAssetParameter || DuplicatedHoudiniAssetParameter->IsPendingKill())
+            continue;
 
         // PIE does not like standalone flags.
         DuplicatedHoudiniAssetParameter->ClearFlags( RF_Standalone );
-
         DuplicatedHoudiniAssetParameter->SetHoudiniAssetComponent( DuplicatedHoudiniComponent );
 
         // For Input Parameters
@@ -4557,13 +4672,19 @@ UHoudiniAssetComponent::DuplicateParameters( UHoudiniAssetComponent * Duplicated
 void
 UHoudiniAssetComponent::DuplicateHandles( UHoudiniAssetComponent * SrcAssetComponent )
 {
+    if (!SrcAssetComponent || SrcAssetComponent->IsPendingKill())
+        return;
+
     for ( auto const & SrcNameToHandle : SrcAssetComponent->HandleComponents )
     {
+        if (!SrcNameToHandle.Value || SrcNameToHandle.Value->IsPendingKill())
+            continue;
+
         // Duplicate spline component.
         UHoudiniHandleComponent * NewHandleComponent =
             DuplicateObject< UHoudiniHandleComponent >( SrcNameToHandle.Value, this );
 
-        if ( NewHandleComponent )
+        if ( NewHandleComponent && !NewHandleComponent->IsPendingKill() )
         {
             NewHandleComponent->SetFlags( RF_Transactional | RF_Public );
             NewHandleComponent->ResolveDuplicatedParameters( Parameters );
@@ -4575,18 +4696,20 @@ UHoudiniAssetComponent::DuplicateHandles( UHoudiniAssetComponent * SrcAssetCompo
 void
 UHoudiniAssetComponent::DuplicateInputs( UHoudiniAssetComponent * DuplicatedHoudiniComponent )
 {
-    TArray< UHoudiniAssetInput * > & InInputs = DuplicatedHoudiniComponent->Inputs;
+    if (!DuplicatedHoudiniComponent || DuplicatedHoudiniComponent->IsPendingKill())
+        return;
 
+    TArray< UHoudiniAssetInput * > & InInputs = DuplicatedHoudiniComponent->Inputs;
     for ( int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx )
     {
         // Retrieve input at this index.
         UHoudiniAssetInput * AssetInput = Inputs[ InputIdx ];
-        if (AssetInput == nullptr)
+        if (!AssetInput || AssetInput->IsPendingKill() )
             continue;
 
         // Duplicate input.
         UHoudiniAssetInput * DuplicateAssetInput = DuplicateObject( AssetInput, DuplicatedHoudiniComponent );
-        if (DuplicateAssetInput == nullptr)
+        if (!DuplicateAssetInput || DuplicateAssetInput->IsPendingKill() )
             continue;
 
         DuplicateAssetInput->SetHoudiniAssetComponent( DuplicatedHoudiniComponent );
@@ -4607,12 +4730,21 @@ UHoudiniAssetComponent::DuplicateInputs( UHoudiniAssetComponent * DuplicatedHoud
 void
 UHoudiniAssetComponent::DuplicateInstanceInputs( UHoudiniAssetComponent * DuplicatedHoudiniComponent, const TMap<UObject*, UObject*>& ReplacementMap )
 {
+    if ( !DuplicatedHoudiniComponent || DuplicatedHoudiniComponent->IsPendingKill() )
+        return;
+
     auto& InInstanceInputs = DuplicatedHoudiniComponent->InstanceInputs;
 
     for ( auto& HoudiniAssetInstanceInput : InstanceInputs )
     {
+        if ( !HoudiniAssetInstanceInput && HoudiniAssetInstanceInput->IsPendingKill() )
+            continue;
+
         UHoudiniAssetInstanceInput * DuplicatedHoudiniAssetInstanceInput =
             UHoudiniAssetInstanceInput::Create( DuplicatedHoudiniComponent, HoudiniAssetInstanceInput );
+
+        if ( !DuplicatedHoudiniAssetInstanceInput || DuplicatedHoudiniAssetInstanceInput->IsPendingKill() )
+            continue;
 
         // PIE does not like standalone flags.
         DuplicatedHoudiniAssetInstanceInput->ClearFlags( RF_Standalone );
@@ -4622,6 +4754,9 @@ UHoudiniAssetComponent::DuplicateInstanceInputs( UHoudiniAssetComponent * Duplic
         // remap our instanced objects (only necessary for unbaked assets)
         for( UHoudiniAssetInstanceInputField* InputField : DuplicatedHoudiniAssetInstanceInput->GetInstanceInputFields() )
         {
+            if ( !InputField || InputField->IsPendingKill() )
+                continue;
+
             InputField->FixInstancedObjects( ReplacementMap );
         }
     }
@@ -4631,7 +4766,7 @@ bool
 UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject > & FoundVolumes )
 {
     // Try to create a Landscape for each HeightData found
-    TMap< FHoudiniGeoPartObject, ALandscape * > NewLandscapes;
+    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> > NewLandscapes;
 
     FHoudiniCookParams HoudiniCookParams( this );
     HoudiniCookParams.StaticMeshBakeMode = FHoudiniCookParams::GetDefaultStaticMeshesCookMode();
@@ -4643,9 +4778,9 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
     // The asset needs to be static in order to attach the landscapes to it
     SetMobility( EComponentMobility::Static );
 
-    for ( TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator IterLandscape( NewLandscapes ); IterLandscape; ++IterLandscape )
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator IterLandscape( NewLandscapes ); IterLandscape; ++IterLandscape )
     {
-        ALandscape* Landscape = IterLandscape.Value();
+        ALandscape* Landscape = IterLandscape.Value().Get();
         if ( !Landscape )
             continue;
 
@@ -4658,9 +4793,9 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
         UpdateLandscapeMaterialsAssignementsAndReplacements( Landscape, Heightfield );
 
         // Replace any reference we might still have to the old landscape with the new one
-        ALandscape** OldLandscape = LandscapeComponents.Find( Heightfield );
+        TWeakObjectPtr<ALandscape>* OldLandscape = LandscapeComponents.Find( Heightfield );
         if ( OldLandscape )
-            FHoudiniLandscapeUtils::UpdateOldLandscapeReference(*OldLandscape, Landscape);
+            FHoudiniLandscapeUtils::UpdateOldLandscapeReference(OldLandscape->Get(), Landscape);
     }
 
     // Replace the old landscapes with the new ones
@@ -4680,7 +4815,7 @@ void UHoudiniAssetComponent::UpdateLandscapeMaterialsAssignementsAndReplacements
     if ( LandscapeMaterial )
     {
         // Make sure this material is in the assignemets before trying to replacing it.
-        if ( !GetAssignmentMaterial( LandscapeMaterial->GetName() ) && HoudiniAssetComponentMaterials )
+        if ( !GetAssignmentMaterial( LandscapeMaterial->GetName() ) && HoudiniAssetComponentMaterials && !HoudiniAssetComponentMaterials->IsPendingKill() )
             HoudiniAssetComponentMaterials->Assignments.Add( LandscapeMaterial->GetName(), LandscapeMaterial );
 
         // See if we have a replacement material for this.
@@ -4693,7 +4828,7 @@ void UHoudiniAssetComponent::UpdateLandscapeMaterialsAssignementsAndReplacements
     if ( LandscapeHoleMaterial )
     {
         // Make sure this material is in the assignemets before trying to replacing it.
-        if ( !GetAssignmentMaterial( LandscapeHoleMaterial->GetName() ) && HoudiniAssetComponentMaterials )
+        if ( !GetAssignmentMaterial( LandscapeHoleMaterial->GetName() ) && HoudiniAssetComponentMaterials && !HoudiniAssetComponentMaterials->IsPendingKill() )
             HoudiniAssetComponentMaterials->Assignments.Add( LandscapeHoleMaterial->GetName(), LandscapeHoleMaterial );
 
         // See if we have a replacement material for this.
@@ -4706,7 +4841,7 @@ void UHoudiniAssetComponent::UpdateLandscapeMaterialsAssignementsAndReplacements
     // ( the user might have replaced the landscape materials manually without us knowing it ) 
     if ( LandscapeComponents.Contains( Heightfield ) )
     {
-        ALandscape* PreviousLandscape = LandscapeComponents[ Heightfield ];
+        ALandscape* PreviousLandscape = LandscapeComponents[ Heightfield ].Get();
         if ( PreviousLandscape )
         {
             // Get the previously used materials, but ignore the default ones
@@ -4767,7 +4902,7 @@ UHoudiniAssetComponent::ReplaceLandscapeInInputs( ALandscape* Old, ALandscape* N
     for ( TArray< UHoudiniAssetInput * >::TIterator IterInputs( AllInputs ); IterInputs; ++IterInputs )
     {
         UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
-        if ( !HoudiniAssetInput )
+        if ( !HoudiniAssetInput || HoudiniAssetInput->IsPendingKill() )
             continue;
 
         if ( HoudiniAssetInput->GetChoiceIndex() != EHoudiniAssetInputType::LandscapeInput )
@@ -4792,7 +4927,8 @@ UHoudiniAssetComponent::ClearInstanceInputs()
 {
     for ( auto& InstanceInput : InstanceInputs )
     {
-        InstanceInput->ConditionalBeginDestroy();
+        if ( InstanceInput && !InstanceInput->IsPendingKill() )
+            InstanceInput->ConditionalBeginDestroy();
     }
 
     InstanceInputs.Empty();
@@ -4801,13 +4937,15 @@ UHoudiniAssetComponent::ClearInstanceInputs()
 void
 UHoudiniAssetComponent::ClearCurves()
 {
-    for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator Iter( SplineComponents ); Iter; ++Iter )
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr <UHoudiniSplineComponent>>::TIterator Iter( SplineComponents ); Iter; ++Iter )
     {
-        UHoudiniSplineComponent * SplineComponent = Iter.Value();
-
-        SplineComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
-        SplineComponent->UnregisterComponent();
-        SplineComponent->DestroyComponent();
+        UHoudiniSplineComponent * SplineComponent = Iter.Value().Get();
+        if (SplineComponent)
+        {
+            SplineComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+            SplineComponent->UnregisterComponent();
+            SplineComponent->DestroyComponent();
+        }        
     }
 
     SplineComponents.Empty();
@@ -4816,9 +4954,9 @@ UHoudiniAssetComponent::ClearCurves()
 void
 UHoudiniAssetComponent::ClearLandscapes()
 {
-    for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
+    for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
     {
-        ALandscape * HoudiniLandscape = Iter.Value();
+        ALandscape * HoudiniLandscape = Iter.Value().Get();
         if ( !HoudiniLandscape )
             continue;
 
@@ -4838,7 +4976,7 @@ UHoudiniAssetComponent::ClearParameters()
 {
     for ( auto Iter : Parameters )
     {
-        if ( Iter.Value )
+        if ( Iter.Value && !Iter.Value->IsPendingKill() )
         {
             Iter.Value->ConditionalBeginDestroy();
         }
@@ -4873,6 +5011,8 @@ UHoudiniAssetComponent::ClearInputs()
     for ( TArray< UHoudiniAssetInput * >::TIterator IterInputs( Inputs ); IterInputs; ++IterInputs )
     {
         UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
+        if ( !HoudiniAssetInput || HoudiniAssetInput->IsPendingKill() )
+            continue;
 
         // Destroy connected Houdini asset.
         HoudiniAssetInput->ConditionalBeginDestroy();
@@ -4888,10 +5028,15 @@ UHoudiniAssetComponent::ClearDownstreamAssets()
         IterAssets; ++IterAssets )
     {
         UHoudiniAssetComponent * DownstreamAsset = IterAssets.Key();
+        if (!DownstreamAsset || DownstreamAsset->IsPendingKill())
+            continue;
+
         TSet< int32 > & LocalInputIndicies = IterAssets.Value();
         for ( auto LocalInputIndex : LocalInputIndicies )
         {
-            if( DownstreamAsset->Inputs.IsValidIndex( LocalInputIndex ) && DownstreamAsset->Inputs[ LocalInputIndex ] != nullptr )
+            if( DownstreamAsset->Inputs.IsValidIndex( LocalInputIndex )
+                && DownstreamAsset->Inputs[ LocalInputIndex ] != nullptr
+                && !DownstreamAsset->Inputs[LocalInputIndex]->IsPendingKill() )
             {
                 DownstreamAsset->Inputs[ LocalInputIndex ]->ExternalDisconnectInputAssetActor();
             }
@@ -4901,15 +5046,17 @@ UHoudiniAssetComponent::ClearDownstreamAssets()
                 bool DidADisconnect = false;
                 for( auto& OtherParmElem : DownstreamAsset->Parameters )
                 {
-                    if( UHoudiniAssetInput* OtherParm = Cast<UHoudiniAssetInput>( OtherParmElem.Value ) )
+                    UHoudiniAssetInput* OtherParm = Cast<UHoudiniAssetInput>(OtherParmElem.Value);
+                    if (!OtherParm || OtherParm->IsPendingKill())
+                        continue;
+
+                    if( OtherParm->GetConnectedInputAssetComponent() == this && OtherParm->IsInputAssetConnected() )
                     {
-                        if( OtherParm->GetConnectedInputAssetComponent() == this && OtherParm->IsInputAssetConnected() )
-                        {
-                            OtherParm->ExternalDisconnectInputAssetActor();
-                            DidADisconnect = true;
-                        }
+                        OtherParm->ExternalDisconnectInputAssetActor();
+                        DidADisconnect = true;
                     }
                 }
+
                 if ( !DidADisconnect )
                     HOUDINI_LOG_ERROR( TEXT( "%s: Invalid downstream asset connection" ), *GetOwner()->GetName() );
             }
@@ -4923,7 +5070,7 @@ void
 UHoudiniAssetComponent::ClearCookTempFile()
 {
     // First, Clean up the assignement/replacement map
-    if ( HoudiniAssetComponentMaterials )
+    if ( HoudiniAssetComponentMaterials && !HoudiniAssetComponentMaterials->IsPendingKill() )
         HoudiniAssetComponentMaterials->ResetMaterialInfo();
 
     // Then delete all the materials
@@ -4982,17 +5129,20 @@ UHoudiniAssetComponent::LocateStaticMesh( const FHoudiniGeoPartObject & HoudiniG
         for (TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator IterSM( StaticMeshes ); IterSM; ++IterSM )
         {
             const FHoudiniGeoPartObject& HGPO = IterSM.Key();
-            if ( HGPO.AssetId == HoudiniGeoPartObject.AssetId && HGPO.ObjectId == HoudiniGeoPartObject.ObjectId
-                && HGPO.GeoId == HoudiniGeoPartObject.GeoId && HGPO.PartId == HoudiniGeoPartObject.PartId )
+            if (HGPO.AssetId == HoudiniGeoPartObject.AssetId && HGPO.ObjectId == HoudiniGeoPartObject.ObjectId
+                && HGPO.GeoId == HoudiniGeoPartObject.GeoId && HGPO.PartId == HoudiniGeoPartObject.PartId)
+            {
                 FoundStaticMesh = &IterSM.Value();
+                break;
+            }
         }
     }
 
     if ( FoundStaticMesh )
         StaticMesh = *FoundStaticMesh;
 
-    if ( StaticMesh && StaticMesh->IsPendingKill() )
-        return nullptr;        
+    if ( !StaticMesh || StaticMesh->IsPendingKill() )
+        return nullptr;
 
     return StaticMesh;
 }
@@ -5022,7 +5172,7 @@ UHoudiniAssetComponent::LocateInstancedStaticMeshComponents(
 
     for ( auto& InstanceInput : InstanceInputs )
     {
-        if ( InstanceInput )
+        if ( InstanceInput && !InstanceInput->IsPendingKill() )
             bResult |= InstanceInput->CollectAllInstancedStaticMeshComponents( Components, StaticMesh );
     }
 
@@ -5032,11 +5182,11 @@ UHoudiniAssetComponent::LocateInstancedStaticMeshComponents(
 UHoudiniSplineComponent*
 UHoudiniAssetComponent::LocateSplineComponent(const FHoudiniGeoPartObject & HoudiniGeoPartObject) const
 {
-    UHoudiniSplineComponent * const * FoundHoudiniSplineComponent = SplineComponents.Find(HoudiniGeoPartObject);
+    const TWeakObjectPtr<UHoudiniSplineComponent> * FoundHoudiniSplineComponent = SplineComponents.Find(HoudiniGeoPartObject);
     UHoudiniSplineComponent * SplineComponent = nullptr;
 
     if ( FoundHoudiniSplineComponent )
-        SplineComponent = *FoundHoudiniSplineComponent;
+        SplineComponent = FoundHoudiniSplineComponent->Get();
 
     if ( SplineComponent && SplineComponent->IsPendingKill() )
         return nullptr;
@@ -5057,7 +5207,7 @@ UHoudiniAssetComponent::SerializeInputs( FArchive & Ar )
     for (TArray< UHoudiniAssetInput * >::TIterator IterInputs(Inputs); IterInputs; ++IterInputs)
     {
         UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
-        if (!HoudiniAssetInput)
+        if (!HoudiniAssetInput || HoudiniAssetInput->IsPendingKill() )
             continue;
 
         if (HoudiniAssetInput->GetFName() != NAME_None)
@@ -5071,17 +5221,20 @@ UHoudiniAssetComponent::SerializeInputs( FArchive & Ar )
 
     if ( Ar.IsTransacting() )
     {
-        for ( int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx )
-            Inputs[ InputIdx ]->Serialize( Ar );
+        for (int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx)
+        {
+            UHoudiniAssetInput * HoudiniAssetInput = Inputs[InputIdx];
+            if ( HoudiniAssetInput && !HoudiniAssetInput->IsPendingKill() )
+                HoudiniAssetInput->Serialize(Ar);
+        }
     }
     else if ( Ar.IsLoading() )
     {
         for ( int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx )
         {
-            if ( !Inputs[ InputIdx ] )
-                continue;
-
-            Inputs[ InputIdx ]->SetHoudiniAssetComponent( this );
+            UHoudiniAssetInput * HoudiniAssetInput = Inputs[ InputIdx ];
+            if (HoudiniAssetInput && !HoudiniAssetInput->IsPendingKill())
+                Inputs[ InputIdx ]->SetHoudiniAssetComponent( this );
         }
     }
 }
@@ -5122,7 +5275,7 @@ UHoudiniAssetComponent::SerializeInstanceInputs( FArchive & Ar )
         for ( TArray< UHoudiniAssetInstanceInput * >::TIterator IterInstance(InstanceInputs ); IterInstance; ++IterInstance )
         {
             UHoudiniAssetInstanceInput * HoudiniInstanceInput = *IterInstance;
-            if ( !HoudiniInstanceInput )
+            if ( !HoudiniInstanceInput || HoudiniInstanceInput->IsPendingKill() )
                 continue;
 
             if ( HoudiniInstanceInput->GetFName() != NAME_None )
@@ -5139,7 +5292,8 @@ UHoudiniAssetComponent::SerializeInstanceInputs( FArchive & Ar )
     {
         for ( UHoudiniAssetInstanceInput* InstanceInput : InstanceInputs )
         {
-            InstanceInput->Serialize( Ar );
+            if ( InstanceInput && !InstanceInput->IsPendingKill() )
+                InstanceInput->Serialize( Ar );
         }
     }
 }
@@ -5151,7 +5305,7 @@ UHoudiniAssetComponent::SerializeParameters( FArchive & Ar )
     for (TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams(Parameters); IterParams; ++IterParams)
     {
         UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
-        if (!HoudiniAssetParameter)
+        if (!HoudiniAssetParameter || HoudiniAssetParameter->IsPendingKill() )
             continue;
 
         if (HoudiniAssetParameter->GetFName() != NAME_None)
@@ -5169,7 +5323,8 @@ UHoudiniAssetComponent::PostLoadInitializeInstanceInputs()
 {
     for ( auto& InstanceInput : InstanceInputs )
     {
-        InstanceInput->SetHoudiniAssetComponent( this );
+        if  (InstanceInput && !InstanceInput->IsPendingKill() )
+            InstanceInput->SetHoudiniAssetComponent( this );
     }
 }
 
@@ -5180,6 +5335,8 @@ UHoudiniAssetComponent::PostLoadInitializeParameters()
     for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams( Parameters ); IterParams; ++IterParams )
     {
         UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
+        if (!HoudiniAssetParameter || HoudiniAssetParameter->IsPendingKill())
+            continue;
 
         HoudiniAssetParameter->SetHoudiniAssetComponent( this );
 
@@ -5187,8 +5344,11 @@ UHoudiniAssetComponent::PostLoadInitializeParameters()
         if ( ParentParameterId != -1 )
         {
             UHoudiniAssetParameter * const * FoundParentParameter = Parameters.Find( ParentParameterId );
-            if ( FoundParentParameter )
-                HoudiniAssetParameter->SetParentParameter( *FoundParentParameter );
+            if (FoundParentParameter)
+            {
+                if ( *FoundParentParameter && !(*FoundParentParameter)->IsPendingKill() )
+                    HoudiniAssetParameter->SetParentParameter(*FoundParentParameter);
+            }
         }
     }
 }
@@ -5202,7 +5362,7 @@ UHoudiniAssetComponent::RemoveStaticMeshComponent( UStaticMesh * StaticMesh )
         StaticMeshComponents.Remove( StaticMesh );
 
         UStaticMeshComponent * StaticMeshComponent = *FoundStaticMeshComponent;
-        if ( StaticMeshComponent )
+        if ( StaticMeshComponent && !StaticMeshComponent->IsPendingKill() )
         {
             StaticMeshComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
             StaticMeshComponent->UnregisterComponent();
@@ -5224,7 +5384,7 @@ UHoudiniAssetComponent::GetReplacementMaterial(
 {
     UMaterialInterface * ReplacementMaterial = nullptr;
 
-    if ( HoudiniAssetComponentMaterials )
+    if ( HoudiniAssetComponentMaterials && !HoudiniAssetComponentMaterials->IsPendingKill() )
     {
         TMap< FHoudiniGeoPartObject, TMap< FString, UMaterialInterface * > > & MaterialReplacements =
             HoudiniAssetComponentMaterials->Replacements;
@@ -5247,7 +5407,7 @@ UHoudiniAssetComponent::GetReplacementMaterialShopName(
     const FHoudiniGeoPartObject & HoudiniGeoPartObject,
     UMaterialInterface * MaterialInterface, FString & MaterialName)
 {
-    if ( HoudiniAssetComponentMaterials )
+    if ( HoudiniAssetComponentMaterials && !HoudiniAssetComponentMaterials->IsPendingKill() )
     {
         TMap< FHoudiniGeoPartObject, TMap< FString, UMaterialInterface * > > & MaterialReplacements =
             HoudiniAssetComponentMaterials->Replacements;
@@ -5273,7 +5433,7 @@ UHoudiniAssetComponent::GetAssignmentMaterial( const FString & MaterialName )
 {
     UMaterialInterface * Material = nullptr;
 
-    if ( HoudiniAssetComponentMaterials )
+    if ( HoudiniAssetComponentMaterials && !HoudiniAssetComponentMaterials->IsPendingKill() )
     {
         TMap< FString, UMaterialInterface * > & MaterialAssignments = HoudiniAssetComponentMaterials->Assignments;
 
@@ -5287,7 +5447,7 @@ UHoudiniAssetComponent::GetAssignmentMaterial( const FString & MaterialName )
 
 void UHoudiniAssetComponent::ClearAssignmentMaterials()
 {
-    if( HoudiniAssetComponentMaterials )
+    if( HoudiniAssetComponentMaterials && !HoudiniAssetComponentMaterials->IsPendingKill() )
     {
         HoudiniAssetComponentMaterials->Assignments.Empty();
     }
@@ -5296,7 +5456,7 @@ void UHoudiniAssetComponent::ClearAssignmentMaterials()
 void 
 UHoudiniAssetComponent::AddAssignmentMaterial( const FString& MaterialName, UMaterialInterface* MaterialInterface )
 {
-    if( HoudiniAssetComponentMaterials )
+    if( HoudiniAssetComponentMaterials && !HoudiniAssetComponentMaterials->IsPendingKill() )
     {
         HoudiniAssetComponentMaterials->Assignments.Add( MaterialName, MaterialInterface );
     }
@@ -5309,7 +5469,7 @@ UHoudiniAssetComponent::ReplaceMaterial(
     UMaterialInterface * OldMaterialInterface,
     int32 MaterialIndex )
 {
-    if ( !HoudiniAssetComponentMaterials )
+    if ( !HoudiniAssetComponentMaterials || HoudiniAssetComponentMaterials->IsPendingKill() )
         return false;
 
     // Check that we do own this GeoPartObject, either via StaticMeshes or Landscapes
@@ -5402,7 +5562,7 @@ UHoudiniAssetComponent::RemoveReplacementMaterial(
     const FHoudiniGeoPartObject & HoudiniGeoPartObject,
     const FString & MaterialName )
 {
-    if ( HoudiniAssetComponentMaterials )
+    if ( HoudiniAssetComponentMaterials && !HoudiniAssetComponentMaterials->IsPendingKill() )
     {
         TMap< FHoudiniGeoPartObject, TMap<FString, UMaterialInterface * > > & MaterialReplacements =
             HoudiniAssetComponentMaterials->Replacements;
@@ -5439,7 +5599,7 @@ UHoudiniAssetComponent::CreateOrUpdateMaterialInstances()
         //if ( !HoudiniGeoPartObject.IsVisible() )
         //    continue;
 
-        if ( !StaticMesh )
+        if ( !StaticMesh || StaticMesh->IsPendingKill() )
             continue;
 
         // Replace the source material with the newly created/updated instance
@@ -5502,10 +5662,12 @@ UHoudiniAssetComponent::CreateOrUpdateMaterialInstances()
 
     // 2. FOR LANDSCAPES
     // Handling the creation of material instances from attributes
-    for ( TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator Iter( LandscapeComponents ); Iter; ++Iter )
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter( LandscapeComponents ); Iter; ++Iter )
     {
         FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
-        ALandscape* Landscape = Iter.Value();
+        ALandscape* Landscape = Iter.Value().Get();
+        if ( !Landscape )
+            continue;
 
         // The "source" landscape material we want to create an instance of should have already been assigned to the landscape
         UMaterialInstance* NewMaterialInstance = nullptr;
@@ -5600,7 +5762,7 @@ UHoudiniAssetComponent::HasAnySockets() const
     for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TConstIterator Iter( StaticMeshComponents ); Iter; ++Iter )
     {
         UStaticMeshComponent * StaticMeshComponent = Iter.Value();
-        if ( !StaticMeshComponent )
+        if ( !StaticMeshComponent || StaticMeshComponent->IsPendingKill() )
             continue;
 
         if ( StaticMeshComponent->HasAnySockets() )
@@ -5619,7 +5781,7 @@ UHoudiniAssetComponent::QuerySupportedSockets( TArray<FComponentSocketDescriptio
     for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TConstIterator Iter(StaticMeshComponents); Iter; ++Iter )
     {
         UStaticMeshComponent * StaticMeshComponent = Iter.Value();
-        if ( !StaticMeshComponent )
+        if ( !StaticMeshComponent || StaticMeshComponent->IsPendingKill() )
             continue;
 
         if ( !StaticMeshComponent->HasAnySockets() )
@@ -5640,7 +5802,7 @@ UHoudiniAssetComponent::DoesSocketExist( FName SocketName ) const
     for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TConstIterator Iter( StaticMeshComponents ); Iter; ++Iter )
     {
         UStaticMeshComponent * StaticMeshComponent = Iter.Value();
-        if ( !StaticMeshComponent )
+        if ( !StaticMeshComponent || StaticMeshComponent->IsPendingKill() )
             continue;
 
         if ( StaticMeshComponent->DoesSocketExist( SocketName ) )
@@ -5679,7 +5841,7 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
     for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TConstIterator Iter( StaticMeshComponents ); Iter; ++Iter )
     {
         UStaticMeshComponent * StaticMeshComponent = Iter.Value();
-        if ( !StaticMeshComponent )
+        if ( !StaticMeshComponent || StaticMeshComponent->IsPendingKill() )
             continue;
 
         FBox StaticMeshBounds = StaticMeshComponent->Bounds.GetBox();
@@ -5698,9 +5860,9 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
     }
 
     // ... all our curves
-    for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TConstIterator Iter( SplineComponents ); Iter; ++Iter )
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TConstIterator Iter( SplineComponents ); Iter; ++Iter )
     {
-        UHoudiniSplineComponent * SplineComponent = Iter.Value();
+        UHoudiniSplineComponent * SplineComponent = Iter.Value().Get();
         if ( !SplineComponent )
             continue;
 
@@ -5717,7 +5879,7 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
     for ( int32 n = 0; n < Inputs.Num(); n++ )
     {
         UHoudiniAssetInput* CurrentInput = Inputs[ n ];
-        if ( !CurrentInput )
+        if ( !CurrentInput || CurrentInput->IsPendingKill() )
             continue;
 
         if ( CurrentInput == IgnoreInput )
@@ -5731,9 +5893,9 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
     // ... all our landscapes
     if ( !bIgnoreGeneratedLandscape )
     {
-        for (TMap< FHoudiniGeoPartObject, ALandscape * >::TConstIterator Iter( LandscapeComponents ); Iter; ++Iter )
+        for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TConstIterator Iter( LandscapeComponents ); Iter; ++Iter )
         {
-            ALandscape * Landscape = Iter.Value();
+            ALandscape * Landscape = Iter.Value().Get();
             if ( !Landscape )
                 continue;
 
@@ -5755,18 +5917,17 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
 bool UHoudiniAssetComponent::HasLandscapeActor( ALandscape* LandscapeActor ) const
 {
     // Check if we created the landscape
-    for (TMap< FHoudiniGeoPartObject, ALandscape * >::TConstIterator Iter(LandscapeComponents); Iter; ++Iter)
+    for (TMap<FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape>>::TConstIterator Iter(LandscapeComponents); Iter; ++Iter)
     {
-        ALandscape * HoudiniLandscape = Iter.Value();
-
-        if ( HoudiniLandscape == LandscapeActor )
+        ALandscape * HoudiniLandscape = Iter.Value().Get();
+        if ( HoudiniLandscape && HoudiniLandscape == LandscapeActor )
             return true;
     }
 
     return false;
 }
 
-TMap< FHoudiniGeoPartObject, ALandscape * > *
+TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> > *
 UHoudiniAssetComponent::GetLandscapeComponents()
 {
     return &LandscapeComponents;
@@ -5793,6 +5954,9 @@ UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
     TArray< UHoudiniAssetInput*> InputArray;
     for ( auto CurrentInput : Inputs )
     {
+        if (!CurrentInput || CurrentInput->IsPendingKill())
+            continue;
+
         if ( CurrentInput->GetChoiceIndex() != EHoudiniAssetInputType::CurveInput )
             InputArray.Add( CurrentInput );
     }
@@ -5801,7 +5965,7 @@ UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
     for ( auto CurrentParam : Parameters )
     {
         UHoudiniAssetInput* CurrentInput = Cast< UHoudiniAssetInput > ( CurrentParam.Value );
-        if ( !CurrentInput )
+        if ( !CurrentInput || CurrentInput->IsPendingKill() )
             continue;
 
         if ( CurrentInput->GetChoiceIndex() != EHoudiniAssetInputType::CurveInput )
@@ -5816,11 +5980,11 @@ UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
     {
         UObject * Object = IterToolPreset.Key();
         AHoudiniAssetActor* HAsset = Cast<AHoudiniAssetActor>( Object );
-        if ( !HAsset )
+        if ( !HAsset || HAsset->IsPendingKill() )
             OnlyHoudiniAssets = false;
 
         ALandscape* Landscape = Cast<ALandscape>( Object );
-        if ( !Landscape )
+        if ( !Landscape || Landscape->IsPendingKill() )
             OnlyLandscapes = false;
 
         if ( IterToolPreset.Value() != 0 )
@@ -5869,6 +6033,9 @@ UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
         for (TMap< UObject*, int32 >::TIterator IterToolPreset( HoudiniToolInputPreset ); IterToolPreset; ++IterToolPreset)
         {
             UObject * Object = IterToolPreset.Key();
+            if (!Object || Object->IsPendingKill())
+                continue;
+
             int32 InputNumber = IterToolPreset.Value();
 
             if ( !InputArray.IsValidIndex( InputNumber ) )
@@ -5935,7 +6102,7 @@ UHoudiniAssetComponent::NotifyAssetNeedsToBeReinstantiated()
     for ( TArray< UHoudiniAssetInput * >::TIterator IterInputs( Inputs ); IterInputs; ++IterInputs )
     {
         UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
-        if ( HoudiniAssetInput )
+        if ( HoudiniAssetInput && !HoudiniAssetInput->IsPendingKill() )
             HoudiniAssetInput->MarkChanged( false );
     }
 
@@ -5943,7 +6110,7 @@ UHoudiniAssetComponent::NotifyAssetNeedsToBeReinstantiated()
     for (TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams(Parameters); IterParams; ++IterParams)
     {
         UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
-        if ( HoudiniAssetParameter )
+        if ( HoudiniAssetParameter && !HoudiniAssetParameter->IsPendingKill() )
             HoudiniAssetParameter->MarkChanged( false );
     }
 }

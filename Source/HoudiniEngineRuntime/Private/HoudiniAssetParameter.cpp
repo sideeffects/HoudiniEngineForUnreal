@@ -180,8 +180,7 @@ UHoudiniAssetParameter::SetParentParameter( UHoudiniAssetParameter * InParentPar
     if ( ParentParameter != InParentParameter )
     {
         ParentParameter = InParentParameter;
-
-        if ( ParentParameter )
+        if ( ParentParameter && !ParentParameter->IsPendingKill() )
         {
             // Retrieve parent parameter id. We ignore folder lists, they are artificial parents created by us.
             ParmParentId = ParentParameter->GetParmId();
@@ -235,7 +234,7 @@ UHoudiniAssetParameter::AddReferencedObjects( UObject * InThis, FReferenceCollec
     UHoudiniAssetParameter * HoudiniAssetParameter = Cast< UHoudiniAssetParameter >( InThis );
     if ( HoudiniAssetParameter )
     {
-        if ( HoudiniAssetParameter->PrimaryObject )
+        if ( HoudiniAssetParameter->PrimaryObject && !HoudiniAssetParameter->PrimaryObject->IsPendingKill() )
             Collector.AddReferencedObject( HoudiniAssetParameter->PrimaryObject, InThis );
     }
 
@@ -395,10 +394,11 @@ UHoudiniAssetParameter::MarkChanged( bool bMarkAndTriggerUpdate )
     if( bMarkAndTriggerUpdate )
     {
         if( UHoudiniAssetComponent* Component = Cast<UHoudiniAssetComponent>(PrimaryObject) )
-            Component->NotifyParameterChanged( this );
+            if ( !Component->IsPendingKill() )
+                Component->NotifyParameterChanged( this );
 
         // Notify parent parameter about change.
-        if( ParentParameter )
+        if( ParentParameter && !ParentParameter->IsPendingKill() )
             ParentParameter->NotifyChildParameterChanged( this );
     }
 
@@ -446,7 +446,8 @@ void UHoudiniAssetParameter::OnParamStateChanged()
 #if WITH_EDITOR
     if( UHoudiniAssetComponent* Comp = Cast<UHoudiniAssetComponent>( PrimaryObject ) )
     {
-        Comp->UpdateEditorProperties( false );
+        if ( !Comp->IsPendingKill() )
+            Comp->UpdateEditorProperties( false );
     }
 #endif
 }
@@ -466,10 +467,13 @@ UHoudiniAssetParameter::IsSubstanceParameter() const
 bool
 UHoudiniAssetParameter::IsActiveChildParameter( UHoudiniAssetParameter * ChildParam ) const
 {
-    if ( ChildParam && ( ActiveChildParameter < ChildParameters.Num() ) )
-        return ChildParameters[ ActiveChildParameter ] == ChildParam;
+    if (!ChildParam || ChildParam->IsPendingKill())
+        return false;
 
-    return false;
+    if (!ChildParameters.IsValidIndex(ActiveChildParameter))
+        return false;
+
+    return ChildParameters[ ActiveChildParameter ] == ChildParam;
 }
 
 UHoudiniAssetParameter *

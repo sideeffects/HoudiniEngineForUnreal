@@ -327,7 +327,7 @@ UHoudiniSplineComponent::UpdateHoudiniComponents()
 {
     if ( IsInputCurve() )
     {
-        if ( HoudiniAssetInput )
+        if ( HoudiniAssetInput && !HoudiniAssetInput->IsPendingKill() )
             HoudiniAssetInput->OnInputCurveChanged();
     }
     else
@@ -337,7 +337,7 @@ UHoudiniSplineComponent::UpdateHoudiniComponents()
 
 #if WITH_EDITOR
         UHoudiniAssetComponent * HoudiniAssetComponent = Cast< UHoudiniAssetComponent >( GetAttachParent() );
-        if ( HoudiniAssetComponent )
+        if ( HoudiniAssetComponent && !HoudiniAssetComponent->IsPendingKill() )
             HoudiniAssetComponent->NotifyHoudiniSplineChanged( this );
 #endif
     }
@@ -365,13 +365,16 @@ UHoudiniSplineComponent::AddPoint( int32 PointIndex, const FTransform & Point )
 bool
 UHoudiniSplineComponent::IsInputCurve() const
 {
-    return HoudiniAssetInput != nullptr;
+    return ( HoudiniAssetInput && !HoudiniAssetInput->IsPendingKill() );
 }
 
 void
 UHoudiniSplineComponent::SetHoudiniAssetInput( UHoudiniAssetInput * InHoudiniAssetInput )
 {
-    HoudiniAssetInput = InHoudiniAssetInput;
+    if ( !InHoudiniAssetInput || InHoudiniAssetInput->IsPendingKill() )
+        HoudiniAssetInput = nullptr;
+    else
+        HoudiniAssetInput = InHoudiniAssetInput;
 }
 
 
@@ -416,11 +419,11 @@ UHoudiniSplineComponent::GetCurveScales(TArray<FVector>& Scales) const
 bool
 UHoudiniSplineComponent::IsActive() const
 {
-    if ( HoudiniAssetInput )
+    if ( HoudiniAssetInput && !HoudiniAssetInput->IsPendingKill() )
     {
-        if ( !HoudiniAssetInput->IsCurveAssetConnected() )
-            return false;
+        if ( HoudiniAssetInput->IsCurveAssetConnected() )
+            return true;
     }
 
-    return true;
+    return false;
 }

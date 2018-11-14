@@ -101,7 +101,7 @@ FHoudiniAssetInputOutlinerMesh::RebuildSplineTransformsArrayIfNeeded()
     // This is required to properly detect Transform changes after loading the asset.
 
     // We need an Unreal spline
-    if ( !SplineComponent )
+    if ( !SplineComponent || SplineComponent->IsPendingKill() )
         return;
 
     // If those are different, the input component has changed
@@ -120,7 +120,7 @@ FHoudiniAssetInputOutlinerMesh::RebuildSplineTransformsArrayIfNeeded()
 bool
 FHoudiniAssetInputOutlinerMesh::HasSplineComponentChanged(float fCurrentSplineResolution) const
 {
-    if ( !SplineComponent )
+    if ( !SplineComponent || SplineComponent->IsPendingKill() )
         return false;
 
     // Total length of the spline has changed ?
@@ -180,14 +180,11 @@ FHoudiniAssetInputOutlinerMesh::HasActorTransformChanged() const
 bool
 FHoudiniAssetInputOutlinerMesh::HasComponentTransformChanged() const
 {
-    if ( !SplineComponent && !StaticMeshComponent )
-        return false;
-
-    if ( StaticMeshComponent )
+    if ( StaticMeshComponent && !StaticMeshComponent->IsPendingKill() )
     {
         // Handle instances here
         UInstancedStaticMeshComponent * InstancedStaticMeshComponent = Cast< UInstancedStaticMeshComponent >( StaticMeshComponent );
-        if (InstancedStaticMeshComponent)
+        if (InstancedStaticMeshComponent )
         {
             FTransform InstanceTransform;
             if ( InstancedStaticMeshComponent->GetInstanceTransform( InstanceIndex, InstanceTransform, true ) )
@@ -197,7 +194,7 @@ FHoudiniAssetInputOutlinerMesh::HasComponentTransformChanged() const
             return !ComponentTransform.Equals( StaticMeshComponent->GetComponentTransform() );
     }
 
-    if ( SplineComponent )
+    if ( SplineComponent && !SplineComponent->IsPendingKill() )
         return !ComponentTransform.Equals( SplineComponent->GetComponentTransform() );
 
     return false;
@@ -206,13 +203,19 @@ FHoudiniAssetInputOutlinerMesh::HasComponentTransformChanged() const
 bool
 FHoudiniAssetInputOutlinerMesh::HasComponentMaterialsChanged() const
 {
-    if ( !StaticMeshComponent )
+    if ( !StaticMeshComponent || StaticMeshComponent->IsPendingKill() )
         return false;
 
-    for ( int32 n= 0; n < StaticMeshComponent->GetNumMaterials(); n++ )
+    if ( StaticMeshComponent->GetNumMaterials() != MeshComponentsMaterials.Num() )
+        return true;
+
+    for ( int32 n = 0; n < MeshComponentsMaterials.Num(); n++ )
     {
         UMaterialInterface* MI = StaticMeshComponent->GetMaterial(n);
-        FString mat_interface_path = MI ? MI->GetPathName() : FString();
+        FString mat_interface_path = MI->GetPathName();
+        if (!MI || MI->IsPendingKill())
+            mat_interface_path = FString();
+
         if (mat_interface_path != MeshComponentsMaterials[ n ])
             return true;
     }
@@ -531,12 +534,16 @@ UHoudiniAssetInput::PostEditUndo()
 {
     Super::PostEditUndo();
 
-    if ( InputCurve && ChoiceIndex == EHoudiniAssetInputType::CurveInput )
+    if ( InputCurve
+        && !InputCurve->IsPendingKill()
+        && ChoiceIndex == EHoudiniAssetInputType::CurveInput )
     {
-        if ( USceneComponent* RootComp = GetHoudiniAssetComponent() )
+        USceneComponent* RootComp = GetHoudiniAssetComponent();
+        if ( RootComp && !RootComp->IsPendingKill() )
         {
             AActor* Owner = RootComp->GetOwner();
-            Owner->AddOwnedComponent( InputCurve );
+            if ( Owner && !Owner->IsPendingKill() )
+                Owner->AddOwnedComponent( InputCurve );
 
             InputCurve->AttachToComponent( RootComp, FAttachmentTransformRules::KeepRelativeTransform );
             InputCurve->RegisterComponent();
@@ -644,7 +651,7 @@ UHoudiniAssetInput::UploadParameterValue()
 {
     bool Success = true;
 
-    if ( PrimaryObject == nullptr )
+    if ( !PrimaryObject || PrimaryObject->IsPendingKill() )
         return false;
     
     HAPI_NodeId HostAssetId = GetAssetId();
@@ -653,7 +660,7 @@ UHoudiniAssetInput::UploadParameterValue()
     {
         case EHoudiniAssetInputType::GeometryInput:
         {
-            if ( ! InputObjects.Num() )
+            if ( !InputObjects.Num() )
             {
                 // Either mesh was reset or null mesh has been assigned.
                 DisconnectAndDestroyInputAsset();
@@ -692,14 +699,16 @@ UHoudiniAssetInput::UploadParameterValue()
         case EHoudiniAssetInputType::AssetInput:
         {
             // Process connected asset.
-            if ( InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId( InputAssetComponent->GetAssetId() ) )
+            if ( InputAssetComponent
+                && !InputAssetComponent->IsPendingKill()
+                && FHoudiniEngineUtils::IsValidAssetId( InputAssetComponent->GetAssetId() ) )
             {
                 if (!bInputAssetConnectedInHoudini)
                     ConnectInputAssetActor();
                 else
                     bChanged = false;
             }
-            else if ( bInputAssetConnectedInHoudini && !InputAssetComponent )
+            else if ( bInputAssetConnectedInHoudini && ( !InputAssetComponent || InputAssetComponent->IsPendingKill() ) )
             {
                 DisconnectInputAssetActor();
             }
@@ -735,10 +744,10 @@ UHoudiniAssetInput::UploadParameterValue()
             {
                 // If we just loaded or created our curve, we need to set parameters.
                 for (TMap< FString, UHoudiniAssetParameter * >::TIterator
-                IterParams(InputCurveParameters); IterParams; ++IterParams)
+                    IterParams(InputCurveParameters); IterParams; ++IterParams)
                 {
                     UHoudiniAssetParameter * Parameter = IterParams.Value();
-                    if (Parameter == nullptr)
+                    if ( !Parameter || Parameter->IsPendingKill() )
                         continue;
 
                     // We need to update the node id for the parameters.
@@ -749,7 +758,7 @@ UHoudiniAssetInput::UploadParameterValue()
                 }
             }
 
-            if ( ConnectedAssetId != -1 && InputCurve )
+            if ( ConnectedAssetId != -1 && InputCurve && !InputCurve->IsPendingKill() )
             {
                 // The curve node has now been created and set up, we can upload points and rotation/scale attributes
                 const TArray< FTransform > & CurvePoints = InputCurve->GetCurvePoints();
@@ -776,11 +785,11 @@ UHoudiniAssetInput::UploadParameterValue()
                 }
             }
             
-            if (bCreated && InputCurve)
+            if (bCreated && InputCurve && !InputCurve->IsPendingKill() )
             {
                 // We need to check that the SplineComponent has no offset.
                 // if the input was set to WorldOutliner before, it might have one
-                FTransform CurveTransform = InputCurve->GetRelativeTransform();	
+                FTransform CurveTransform = InputCurve->GetRelativeTransform();
                 if (!CurveTransform.GetLocation().IsZero())
                     InputCurve->SetRelativeLocation(FVector::ZeroVector);
             }
@@ -798,10 +807,10 @@ UHoudiniAssetInput::UploadParameterValue()
 
             break;
         }
-    
+
         case EHoudiniAssetInputType::LandscapeInput:
         {
-            if ( InputLandscapeProxy == nullptr)
+            if ( !InputLandscapeProxy || InputLandscapeProxy->IsPendingKill() )
             {
                 // Either landscape was reset or null landscape has been assigned.
                 DisconnectAndDestroyInputAsset();
@@ -812,12 +821,12 @@ UHoudiniAssetInput::UploadParameterValue()
                 DisconnectAndDestroyInputAsset();
 
                 UHoudiniAssetComponent* AssetComponent = ( UHoudiniAssetComponent* )PrimaryObject;
-                if ( !AssetComponent )
+                if ( !AssetComponent || AssetComponent->IsPendingKill() )
                     AssetComponent = InputAssetComponent;
 
                 // We need to get the asset bounds, without this input
                 FBox Bounds( ForceInitToZero );
-                if ( AssetComponent )
+                if ( AssetComponent && !AssetComponent->IsPendingKill() )
                     Bounds = AssetComponent->GetAssetBounds( this, true );
 
                 // Connect input and create connected asset. Will return by reference.
@@ -987,7 +996,7 @@ UHoudiniAssetInput::GetAssetId() const
 bool
 UHoudiniAssetInput::UpdateObjectMergeTransformType()
 {
-    if ( PrimaryObject == nullptr )
+    if ( !PrimaryObject || PrimaryObject->IsPendingKill() )
         return false;
 
     uint32 nTransformType = -1;
@@ -1063,7 +1072,7 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
 bool
 UHoudiniAssetInput::UpdateObjectMergePackBeforeMerge()
 {
-    if ( PrimaryObject == nullptr )
+    if ( !PrimaryObject || PrimaryObject->IsPendingKill() )
         return false;
 
     uint32 nPackValue = bPackBeforeMerge ? 1 : 0;
@@ -1139,13 +1148,14 @@ UHoudiniAssetInput::PostLoad()
         }
     }
   
-    if ( InputCurve )
+    if ( InputCurve && !InputCurve->IsPendingKill() )
     {
         if (ChoiceIndex == EHoudiniAssetInputType::CurveInput)
         {
             // Set input callback object for this curve.
             InputCurve->SetHoudiniAssetInput(this);
-            if( USceneComponent* RootComp = GetHoudiniAssetComponent() )
+            USceneComponent* RootComp = GetHoudiniAssetComponent();
+            if( RootComp && !RootComp->IsPendingKill() )
             {
                 InputCurve->AttachToComponent( RootComp, FAttachmentTransformRules::KeepRelativeTransform );
             }
@@ -1271,22 +1281,22 @@ void
 UHoudiniAssetInput::AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector )
 {
     UHoudiniAssetInput * HoudiniAssetInput = Cast< UHoudiniAssetInput >( InThis );
-    if ( HoudiniAssetInput )
+    if ( HoudiniAssetInput && !HoudiniAssetInput->IsPendingKill() )
     {
         // Add reference to held geometry object.
         if ( HoudiniAssetInput->InputObjects.Num() )
             Collector.AddReferencedObjects( HoudiniAssetInput->InputObjects, InThis );
 
         // Add reference to held input asset component, if we have one.
-        if ( HoudiniAssetInput->InputAssetComponent )
+        if ( HoudiniAssetInput->InputAssetComponent && !HoudiniAssetInput->InputAssetComponent->IsPendingKill() )
             Collector.AddReferencedObject( HoudiniAssetInput->InputAssetComponent, InThis );
 
         // Add reference to held curve object.
-        if ( HoudiniAssetInput->InputCurve )
+        if ( HoudiniAssetInput->InputCurve && !HoudiniAssetInput->InputCurve->IsPendingKill() )
             Collector.AddReferencedObject( HoudiniAssetInput->InputCurve, InThis );
 
         // Add reference to held landscape.
-        if ( HoudiniAssetInput->InputLandscapeProxy )
+        if ( HoudiniAssetInput->InputLandscapeProxy && !HoudiniAssetInput->InputLandscapeProxy->IsPendingKill() )
             Collector.AddReferencedObject( HoudiniAssetInput->InputLandscapeProxy, InThis );
 
         // Add reference for the WorldInputs' Actors
@@ -1294,7 +1304,7 @@ UHoudiniAssetInput::AddReferencedObjects( UObject * InThis, FReferenceCollector 
         {
             // Add the outliner input's actor
             AActor * OutlinerInputActor = OutlinerInput.ActorPtr.IsValid() ? OutlinerInput.ActorPtr.Get() : nullptr;
-            if ( !OutlinerInputActor )
+            if ( !OutlinerInputActor || OutlinerInputActor->IsPendingKill() )
                 continue;
 
             Collector.AddReferencedObject( OutlinerInputActor, InThis );
@@ -1305,7 +1315,7 @@ UHoudiniAssetInput::AddReferencedObjects( UObject * InThis, FReferenceCollector 
             IterParams; ++IterParams )
         {
             UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
-            if ( HoudiniAssetParameter )
+            if ( HoudiniAssetParameter && !HoudiniAssetParameter->IsPendingKill() )
                 Collector.AddReferencedObject( HoudiniAssetParameter, InThis );
         }
     }
@@ -1331,7 +1341,7 @@ void
 UHoudiniAssetInput::DisconnectInputCurve()
 {
     // If we have spline, delete it.
-    if ( InputCurve )
+    if ( InputCurve && !InputCurve->IsPendingKill() )
     {
         InputCurve->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
         InputCurve->UnregisterComponent();
@@ -1342,7 +1352,7 @@ void
 UHoudiniAssetInput::DestroyInputCurve()
 {
     // If we have spline, delete it.
-    if ( InputCurve )
+    if ( InputCurve && !InputCurve->IsPendingKill() )
     {
         InputCurve->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
         InputCurve->UnregisterComponent();
@@ -1601,9 +1611,10 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
             // We are switching to curve input.
 
             // Create new spline component if necessary.
-            if( USceneComponent* RootComp = GetHoudiniAssetComponent() )
+            USceneComponent* RootComp = GetHoudiniAssetComponent();
+            if( RootComp && !RootComp->IsPendingKill() )
             {
-                if( !InputCurve )
+                if( !InputCurve || InputCurve->IsPendingKill() )
                 {
                     InputCurve = NewObject< UHoudiniSplineComponent >(
                         RootComp->GetOwner(), UHoudiniSplineComponent::StaticClass(),
@@ -1734,7 +1745,8 @@ UHoudiniAssetInput::OnActorSelected( AActor * Actor )
 void
 UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
 {
-    if ( !Actor && InputAssetComponent )
+    if ( ( !Actor || Actor->IsPendingKill() )
+        && ( InputAssetComponent && !InputAssetComponent->IsPendingKill() ) )
     {
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
@@ -1751,11 +1763,13 @@ UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
     }
     else
     {
-        AHoudiniAssetActor * HoudiniAssetActor = (AHoudiniAssetActor *) Actor;
-        if (HoudiniAssetActor == nullptr)
+        AHoudiniAssetActor * HoudiniAssetActor = (AHoudiniAssetActor *)Actor;
+        if ( !HoudiniAssetActor || HoudiniAssetActor->IsPendingKill() )
             return;
 
         UHoudiniAssetComponent * ConnectedHoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
+        if ( !ConnectedHoudiniAssetComponent || ConnectedHoudiniAssetComponent->IsPendingKill() )
+            return;
 
         // If we just selected the already selected Actor do nothing.
         if ( ConnectedHoudiniAssetComponent == InputAssetComponent )
@@ -1772,14 +1786,15 @@ UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
         Modify();
 
         // Tell the old input asset we are no longer connected.
-        if ( InputAssetComponent)
+        if ( InputAssetComponent && !InputAssetComponent->IsPendingKill() )
             InputAssetComponent->RemoveDownstreamAsset( GetHoudiniAssetComponent(), InputIndex );
 
         InputAssetComponent = ConnectedHoudiniAssetComponent;
         ConnectedAssetId = InputAssetComponent->GetAssetId();
 
         // Do we have to wait for the input asset to cook?
-        if ( GetHoudiniAssetComponent() )
+        const UHoudiniAssetComponent* HAC = GetHoudiniAssetComponent();
+        if ( HAC && !HAC->IsPendingKill() )
             GetHoudiniAssetComponent()->UpdateWaitingForUpstreamAssetsToInstantiate( true );
 
         // Mark as disconnected since we need to reconnect to the new asset.
@@ -1794,7 +1809,7 @@ void
 UHoudiniAssetInput::OnLandscapeActorSelected( AActor * Actor )
 {
     ALandscapeProxy * LandscapeProxy = Cast< ALandscapeProxy >( Actor );
-    if ( LandscapeProxy )
+    if ( LandscapeProxy && !LandscapeProxy->IsPendingKill() )
     {
         // If we just selected the already selected landscape, do nothing.
         if ( LandscapeProxy == InputLandscapeProxy )
@@ -1833,6 +1848,10 @@ UHoudiniAssetInput::OnWorldOutlinerActorSelected( AActor * )
 void
 UHoudiniAssetInput::TickWorldOutlinerInputs()
 {
+    // Do not tick non world inputs
+    if ( ChoiceIndex != EHoudiniAssetInputType::WorldInput )
+        return;
+
     // PostLoad initialization must be done on the first tick
     // as some components might now have been fully initialized at PostLoad()
     if ( OutlinerInputsNeedPostLoadInit )
@@ -2004,7 +2023,7 @@ UHoudiniAssetInput::IsGeometryAssetConnected() const
     {
         for ( auto InputObject : InputObjects )
         {
-            if ( InputObject )
+            if ( InputObject && !InputObject->IsPendingKill() )
                 return true;
         }
     }
@@ -2015,7 +2034,10 @@ UHoudiniAssetInput::IsGeometryAssetConnected() const
 bool
 UHoudiniAssetInput::IsInputAssetConnected() const
 {
-    if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) && InputAssetComponent && bInputAssetConnectedInHoudini )
+    if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId )
+        && InputAssetComponent
+        && !InputAssetComponent->IsPendingKill()
+        && bInputAssetConnectedInHoudini )
     {
         if ( ChoiceIndex == EHoudiniAssetInputType::AssetInput )
             return true;
@@ -2027,7 +2049,7 @@ UHoudiniAssetInput::IsInputAssetConnected() const
 bool
 UHoudiniAssetInput::IsCurveAssetConnected() const
 {
-    if (InputCurve && ( ChoiceIndex == EHoudiniAssetInputType::CurveInput ) )
+    if (InputCurve && !InputCurve->IsPendingKill() && ( ChoiceIndex == EHoudiniAssetInputType::CurveInput ) )
         return true;
 
     return false;
@@ -2164,7 +2186,7 @@ UHoudiniAssetInput::UpdateInputCurve()
     TArray< FVector > CurveDisplayPoints;
     FHoudiniEngineUtils::ConvertScaleAndFlipVectorData( RefinedCurvePositions, CurveDisplayPoints );
 
-    if (InputCurve != nullptr)
+    if (InputCurve && !InputCurve->IsPendingKill() )
     {
         InputCurve->Construct(
             HoudiniGeoPartObject, CurveDisplayPoints, CurveTypeValue, CurveMethodValue,
@@ -2243,13 +2265,11 @@ UHoudiniAssetInput::UpdateInputCurve()
 
         // See if this parameter has already been created.
         UHoudiniAssetParameter * const * FoundHoudiniAssetParameter = InputCurveParameters.Find( LocalParameterName );
-        UHoudiniAssetParameter * HoudiniAssetParameter = nullptr;
+        UHoudiniAssetParameter * HoudiniAssetParameter = FoundHoudiniAssetParameter ? *FoundHoudiniAssetParameter : nullptr;
 
         // If parameter exists, we can reuse it.
-        if ( FoundHoudiniAssetParameter )
+        if ( HoudiniAssetParameter && !HoudiniAssetParameter->IsPendingKill() )
         {
-            HoudiniAssetParameter = *FoundHoudiniAssetParameter;
-
             // Remove parameter from current map.
             InputCurveParameters.Remove( LocalParameterName );
 
@@ -2277,7 +2297,8 @@ UHoudiniAssetInput::UpdateInputCurve()
                 check( false );
             }
 
-            NewInputCurveParameters.Add( LocalParameterName, HoudiniAssetParameter );
+            if ( HoudiniAssetParameter && !HoudiniAssetParameter->IsPendingKill() )
+                NewInputCurveParameters.Add( LocalParameterName, HoudiniAssetParameter );
         }
     }
 
@@ -2896,11 +2917,14 @@ void UHoudiniAssetInput::InvalidateNodeIds()
 
 void UHoudiniAssetInput::DuplicateCurves(UHoudiniAssetInput * OriginalInput)
 {
-    if (!InputCurve || !OriginalInput)
+    if (!InputCurve || InputCurve->IsPendingKill() )
+        return;
+
+    if (!OriginalInput || OriginalInput->IsPendingKill())
         return;
 
     USceneComponent* RootComp = GetHoudiniAssetComponent();
-    if( !RootComp )
+    if( !RootComp || RootComp->IsPendingKill() )
         return;
 
     // The previous call to DuplicateObject did not duplicate the curves properly
@@ -2908,7 +2932,7 @@ void UHoudiniAssetInput::DuplicateCurves(UHoudiniAssetInput * OriginalInput)
     // need to create a proper copy of that curve
 
     // Keep the original pointer to the curve, as we need to duplicate its data
-    UHoudiniSplineComponent* pOriginalCurve = InputCurve;
+    UHoudiniSplineComponent* OriginalCurve = InputCurve;
 
     // Creates a new Curve
     InputCurve = NewObject< UHoudiniSplineComponent >(
@@ -2925,10 +2949,10 @@ void UHoudiniAssetInput::DuplicateCurves(UHoudiniAssetInput * OriginalInput)
     
     // The call to DuplicateObject has actually modified the original object's Input
     // so we need to fix that as well.
-    pOriginalCurve->SetHoudiniAssetInput(OriginalInput);
+    OriginalCurve->SetHoudiniAssetInput(OriginalInput);
 
     // "Copy" the old curves parameters to the new one
-    InputCurve->CopyFrom(pOriginalCurve);
+    InputCurve->CopyFrom(OriginalCurve);
 
     // to force rebuild...
     bSwitchedToCurve = true;
@@ -2955,7 +2979,7 @@ UHoudiniAssetInput::UpdateWorldOutlinerTransforms( FHoudiniAssetInputOutlinerMes
     // Update to the new Transforms
     OutlinerMesh.ActorTransform = OutlinerMesh.ActorPtr->GetTransform();
 
-    if ( OutlinerMesh.StaticMeshComponent )
+    if ( OutlinerMesh.StaticMeshComponent && !OutlinerMesh.StaticMeshComponent->IsPendingKill() )
     {
         OutlinerMesh.ComponentTransform = OutlinerMesh.StaticMeshComponent->GetComponentTransform();
 
@@ -2968,7 +2992,7 @@ UHoudiniAssetInput::UpdateWorldOutlinerTransforms( FHoudiniAssetInputOutlinerMes
                 OutlinerMesh.ComponentTransform = InstanceTransform;
         }
     }
-    else if (OutlinerMesh.SplineComponent)
+    else if (OutlinerMesh.SplineComponent && !OutlinerMesh.SplineComponent->IsPendingKill() )
     {
         OutlinerMesh.ComponentTransform = OutlinerMesh.SplineComponent->GetComponentTransform();
     }
@@ -2980,14 +3004,14 @@ void
 UHoudiniAssetInput::UpdateWorldOutlinerMaterials(FHoudiniAssetInputOutlinerMesh& OutlinerMesh)
 {
     OutlinerMesh.MeshComponentsMaterials.Empty();
-    if ( OutlinerMesh.StaticMeshComponent == nullptr )
+    if ( !OutlinerMesh.StaticMeshComponent || OutlinerMesh.StaticMeshComponent->IsPendingKill() )
         return;
 
     // Keep track of the materials used by the SMC
     for ( int32 n = 0; n < OutlinerMesh.StaticMeshComponent->GetNumMaterials(); n++ )
     {
         UMaterialInterface* mi = OutlinerMesh.StaticMeshComponent->GetMaterial( n );
-        if ( !mi )
+        if ( !mi || mi->IsPendingKill() )
             OutlinerMesh.MeshComponentsMaterials.Add( FString() );
         else
             OutlinerMesh.MeshComponentsMaterials.Add( mi->GetPathName() );
@@ -3104,7 +3128,7 @@ UHoudiniAssetInput::IsSplineResolutionEnabled() const
 
     for (int32 n = 0; n < InputOutlinerMeshArray.Num(); n++)
     {
-        if (InputOutlinerMeshArray[n].SplineComponent)
+        if (InputOutlinerMeshArray[n].SplineComponent && !InputOutlinerMeshArray[n].SplineComponent->IsPendingKill() )
             return true;
     }
 
@@ -3130,14 +3154,14 @@ UHoudiniAssetInput::GetCurrentSelectionText() const
     FText CurrentSelectionText;
     if ( ChoiceIndex == EHoudiniAssetInputType::AssetInput )
     {
-        if ( InputAssetComponent && InputAssetComponent->GetHoudiniAssetActorOwner() )
+        if ( InputAssetComponent && !InputAssetComponent->IsPendingKill() && InputAssetComponent->GetHoudiniAssetActorOwner() )
         {
             CurrentSelectionText = FText::FromString( InputAssetComponent->GetHoudiniAssetActorOwner()->GetName() );
         }
     }
     else if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
     {
-        if ( InputLandscapeProxy )
+        if ( InputLandscapeProxy && !InputLandscapeProxy->IsPendingKill() )
         {
             CurrentSelectionText = FText::FromString( InputLandscapeProxy->GetName() );
         }
@@ -3160,7 +3184,7 @@ UHoudiniAssetInput::GetInputBounds( const FVector& ParentLocation )
 {
     FBox Bounds( ForceInitToZero );
 
-    if ( IsCurveAssetConnected() && InputCurve )
+    if ( IsCurveAssetConnected() && InputCurve && !InputCurve->IsPendingKill() )
     {
         // Houdini Curves are expressed locally so we need to add the parent component's transform
         TArray<FVector> CurvePositions;
@@ -3184,12 +3208,12 @@ UHoudiniAssetInput::GetInputBounds( const FVector& ParentLocation )
         }
     }
 
-    if ( IsInputAssetConnected() && InputAssetComponent )
+    if ( IsInputAssetConnected() && InputAssetComponent && !InputAssetComponent->IsPendingKill() )
     {
         Bounds += InputAssetComponent->GetAssetBounds();
     }
 
-    if ( IsLandscapeAssetConnected() && InputLandscapeProxy )
+    if ( IsLandscapeAssetConnected() && InputLandscapeProxy && !InputLandscapeProxy->IsPendingKill() )
     {
         FVector Origin, Extent;
         InputLandscapeProxy->GetActorBounds( false, Origin, Extent );
@@ -3208,14 +3232,14 @@ void UHoudiniAssetInput::SetDefaultInputTypeFromLabel()
 
     // We'll try to find these magic words to try to detect the default input type
     //FString geoPrefix = TEXT("geo");
-    FString curvePrefix		= TEXT( "curve" );
-    FString landscapePrefix	= TEXT( "landscape" );
-    FString landscapePrefix2	= TEXT( "terrain" );
-    FString landscapePrefix3	= TEXT( "heightfield" );
-    FString worldPrefix		= TEXT( "world" );
-    FString worldPrefix2	= TEXT( "outliner" );
-    FString assetPrefix		= TEXT( "asset" );
-    FString assetPrefix2	= TEXT( "hda" );
+    FString curvePrefix        = TEXT( "curve" );
+    FString landscapePrefix    = TEXT( "landscape" );
+    FString landscapePrefix2    = TEXT( "terrain" );
+    FString landscapePrefix3    = TEXT( "heightfield" );
+    FString worldPrefix        = TEXT( "world" );
+    FString worldPrefix2    = TEXT( "outliner" );
+    FString assetPrefix        = TEXT( "asset" );
+    FString assetPrefix2    = TEXT( "hda" );
 
     if ( inputName.Contains( curvePrefix, ESearchCase::IgnoreCase ) )
         ChangeInputType( EHoudiniAssetInputType::CurveInput );
@@ -3731,7 +3755,7 @@ UHoudiniAssetInput::SetScaleZ( float Value, int32 AtIndex )
 bool
 UHoudiniAssetInput::AddInputObject( UObject* ObjectToAdd )
 {
-    if ( !ObjectToAdd )
+    if ( !ObjectToAdd || ObjectToAdd->IsPendingKill() )
         return false;
 
     // Fix for the bug due to the first (but null) geometry input mesh
@@ -3761,7 +3785,10 @@ UHoudiniAssetInput::AddInputObject( UObject* ObjectToAdd )
 const ALandscape*
 UHoudiniAssetInput::GetLandscapeInput() const
 {
-    return InputLandscapeProxy ? InputLandscapeProxy->GetLandscapeActor() : nullptr;
+    if (!InputLandscapeProxy || InputLandscapeProxy->IsPendingKill())
+        return nullptr;
+
+    return InputLandscapeProxy->GetLandscapeActor();
 }
 
 bool
@@ -3777,7 +3804,7 @@ UHoudiniAssetInput::HasLODs() const
             for ( int32 Idx = 0; Idx < InputObjects.Num(); Idx++ )
             {
                 UStaticMesh* SM = Cast<UStaticMesh>( InputObjects[ Idx ] );
-                if ( !SM )
+                if ( !SM || SM->IsPendingKill() )
                     continue;
 
                 if ( SM->GetNumLODs() > 1 )
@@ -3794,7 +3821,7 @@ UHoudiniAssetInput::HasLODs() const
             for ( int32 Idx = 0; Idx < InputOutlinerMeshArray.Num(); Idx++ )
             {
                 UStaticMesh* SM = InputOutlinerMeshArray[ Idx ].StaticMesh;
-                if ( !SM )
+                if ( !SM || SM->IsPendingKill() )
                     continue;
 
                 if ( SM->GetNumLODs() > 1 )
