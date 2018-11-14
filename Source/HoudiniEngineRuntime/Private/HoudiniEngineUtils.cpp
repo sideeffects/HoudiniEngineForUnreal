@@ -49,7 +49,7 @@
     #include "Interfaces/ITargetPlatform.h"
     #include "Interfaces/ITargetPlatformManagerModule.h"
     #include "Editor/UnrealEd/Private/GeomFitUtils.h"
-	#include "UnrealEd/Private/ConvexDecompTool.h"
+    #include "UnrealEd/Private/ConvexDecompTool.h"
     #include "PackedNormal.h"
     #include "Widgets/Notifications/SNotificationList.h"
     #include "Framework/Notifications/NotificationManager.h"
@@ -1368,23 +1368,7 @@ FHoudiniEngineUtils::HapiGetParameterNoSwapTag( const HAPI_NodeId& NodeId, const
 
     // Set NoSwap to true
     NoSwapValue = true;
-    /*
-    // Get the noswap tag string value
-    HAPI_StringHandle StringHandle;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParmTagValue(
-        FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
-        TCHAR_TO_ANSI( *NoSwapTag ), &StringHandle ), false );
 
-    FString NoSwapString = TEXT("");
-    FHoudiniEngineString HoudiniEngineString( StringHandle );
-    if ( HoudiniEngineString.ToFString( NoSwapString ) )
-    {
-        // Make sure noswap is not set to 0 or false
-        if ( !NoSwapString.Compare( TEXT("false"), ESearchCase::IgnoreCase )
-            || !NoSwapString.Compare( TEXT("0"), ESearchCase::IgnoreCase ) )
-            NoSwapValue = false;
-    }
-    */
     return true;
 }
 
@@ -1402,13 +1386,6 @@ FHoudiniEngineUtils::HapiGetParameterTag( const HAPI_NodeId& NodeId, const HAPI_
 
     if ( !HasTag )
         return false;
-    /*
-    HAPI_ParmId FoundId = -1;
-    if (!HasTag)
-    {
-        FoundId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag(NodeId, TCHAR_TO_ANSI(*Tag));
-    }
-    */
 
     // Get the tag string value
     HAPI_StringHandle StringHandle;
@@ -2390,7 +2367,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForLandscape(
 #if WITH_EDITOR
 
     // If we don't have any landscapes or host asset is invalid then there's nothing to do.
-    if ( !LandscapeProxy || !FHoudiniEngineUtils::IsHoudiniNodeValid( HostAssetId ) )
+    if ( !LandscapeProxy || LandscapeProxy->IsPendingKill() || !FHoudiniEngineUtils::IsHoudiniNodeValid( HostAssetId ) )
         return false;
 
     // Get runtime settings.
@@ -2407,7 +2384,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForLandscape(
     if ( bExportOnlySelected )
     {
         const ULandscapeInfo * LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
-        if ( LandscapeInfo )
+        if ( LandscapeInfo && !LandscapeInfo->IsPendingKill() )
         {
             // Get the currently selected components
             SelectedComponents = LandscapeInfo->GetSelectedComponents();
@@ -2419,7 +2396,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForLandscape(
             for ( int32 ComponentIdx = 0; ComponentIdx < LandscapeProxy->LandscapeComponents.Num(); ComponentIdx++ )
             {
                 ULandscapeComponent * LandscapeComponent = LandscapeProxy->LandscapeComponents[ ComponentIdx ];
-                if ( !LandscapeComponent )
+                if ( !LandscapeComponent || LandscapeComponent->IsPendingKill() )
                     continue;
 
                 FBoxSphereBounds WorldBounds = LandscapeComponent->CalcBounds( LandscapeComponent->GetComponentTransform());
@@ -2438,7 +2415,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForLandscape(
         for ( int32 ComponentIdx = 0; ComponentIdx < LandscapeProxy->LandscapeComponents.Num(); ComponentIdx++ )
         {
             ULandscapeComponent * LandscapeComponent = LandscapeProxy->LandscapeComponents[ ComponentIdx ];
-            if ( !LandscapeComponent )
+            if ( !LandscapeComponent || LandscapeComponent->IsPendingKill() )
                 continue;
 
             SelectedComponents.Add( LandscapeComponent );
@@ -2649,7 +2626,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSpline(
 #if WITH_EDITOR
 
     // If we don't have a spline component, or host asset is invalid, there's nothing to do.
-    if ( !SplineComponent || !FHoudiniEngineUtils::IsHoudiniNodeValid( HostAssetId ) )
+    if ( !SplineComponent || SplineComponent->IsPendingKill() || !FHoudiniEngineUtils::IsHoudiniNodeValid( HostAssetId ) )
         return false;
         
     float fSplineResolution = SplineResolution;
@@ -2764,7 +2741,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 #if WITH_EDITOR
 
     // If we don't have a static mesh there's nothing to do.
-    if ( !StaticMesh )
+    if ( !StaticMesh || StaticMesh->IsPendingKill() )
         return false;
 
     // Export sockets if there are some
@@ -2992,7 +2969,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                 for ( int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3 )
                 {
                     FVector TangentZ1 = ChangedNormals[ WedgeIdx + 1 ];
-                FVector TangentZ2 = ChangedNormals[ WedgeIdx + 2 ];
+                    FVector TangentZ2 = ChangedNormals[ WedgeIdx + 2 ];
 
                     ChangedNormals[ WedgeIdx + 1 ] = TangentZ2;
                     ChangedNormals[ WedgeIdx + 2 ] = TangentZ1;
@@ -3571,7 +3548,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
         for ( int32 Idx = 0; Idx < NumSockets; ++Idx )
         {
             UStaticMeshSocket* CurrentSocket = StaticMesh->Sockets[ Idx ];
-            if ( !CurrentSocket )
+            if ( !CurrentSocket || CurrentSocket->IsPendingKill() )
                 continue;
 
             // Get the socket's transform and convert it to HapiTransform
@@ -3825,7 +3802,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForWorldOutliner(
         auto & OutlinerMesh = OutlinerMeshArray[ InputIdx ];
 
         bool bInputCreated = false;
-        if ( OutlinerMesh.StaticMesh != nullptr )
+        if ( OutlinerMesh.StaticMesh && !OutlinerMesh.StaticMesh->IsPendingKill() )
         {
             // Creating an Input Node for Mesh Data
             bInputCreated = HapiCreateInputNodeForStaticMesh(
@@ -3835,7 +3812,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForWorldOutliner(
                 OutlinerMesh.StaticMeshComponent,
                 ExportAllLODs, ExportSockets );
         }
-        else if ( OutlinerMesh.SplineComponent != nullptr )
+        else if ( OutlinerMesh.SplineComponent && !OutlinerMesh.SplineComponent->IsPendingKill() )
         {
             // Creating an input node for spline data
             bInputCreated = HapiCreateInputNodeForSpline(
@@ -3888,73 +3865,74 @@ FHoudiniEngineUtils::HapiCreateInputNodeForObjects(
     const bool& bExportSkeleton, const bool& bExportAllLODs /* = false */, const bool& bExportSockets /* = false */)
 {
 #if WITH_EDITOR
-    if ( ensure( InputObjects.Num() ) )
+    if ( InputObjects.Num() <= 0 )
+        return true;
+
+    bool UseMergeNode = InputObjects.Num() > 1;
+    if ( UseMergeNode )
     {
-        bool UseMergeNode = InputObjects.Num() > 1;
+        // If we have more than one input mesh, create a merge SOP asset. This will be our "ConnectedAssetId".
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
+            FHoudiniEngine::Get().GetSession(), -1,
+            "SOP/merge", nullptr, true, &ConnectedAssetId ), false );
+    }
+
+    for ( int32 InputIdx = 0; InputIdx < InputObjects.Num(); ++InputIdx )
+    {
+        HAPI_NodeId MeshAssetNodeId = -1;
+        FTransform InputTransform = FTransform::Identity;
+        if ( InputTransforms.IsValidIndex( InputIdx ) )
+            InputTransform = InputTransforms[ InputIdx ];
+
+        UStaticMesh* InputStaticMesh = Cast< UStaticMesh >( InputObjects[InputIdx] );
+        USkeletalMesh* InputSkeletalMesh = Cast< USkeletalMesh >( InputObjects[InputIdx] );
+        if ( InputStaticMesh && !InputStaticMesh->IsPendingKill() )
+        {
+            // Creating an Input Node for Static Mesh Data
+            if ( !HapiCreateInputNodeForStaticMesh( InputStaticMesh, MeshAssetNodeId, OutCreatedNodeIds, nullptr, bExportAllLODs, bExportSockets ) )
+            {
+                HOUDINI_LOG_WARNING( TEXT( "Error creating input index %d on %d" ), InputIdx, ConnectedAssetId );
+            }
+        }
+        else if ( InputSkeletalMesh && !InputSkeletalMesh->IsPendingKill() )
+        {
+            // Creating an Input Node for Skeletal Mesh Data
+            if ( !HapiCreateInputNodeForSkeletalMesh( ConnectedAssetId, InputSkeletalMesh, MeshAssetNodeId, OutCreatedNodeIds, bExportSkeleton ) )
+            {
+                HOUDINI_LOG_WARNING( TEXT( "Error creating input index %d on %d" ), InputIdx, ConnectedAssetId );
+            }
+        }
+
+        if ( MeshAssetNodeId < 0 )
+            continue;
 
         if ( UseMergeNode )
         {
-            // If we have more thant one input mesh, create a merge SOP asset. This will be our "ConnectedAssetId".
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
-                FHoudiniEngine::Get().GetSession(), -1,
-                "SOP/merge", nullptr, true, &ConnectedAssetId ), false );
+            // Now we can connect the input node to the merge node.
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
+                FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
+                MeshAssetNodeId, 0), false );
+        }
+        else
+        {
+            // We only have one input, use the MeshNodeId as our "ConnectedAssetId".
+            ConnectedAssetId = MeshAssetNodeId;
         }
 
-        for ( int32 InputIdx = 0; InputIdx < InputObjects.Num(); ++InputIdx )
+        // If the Geometry Input has a Transform offset
+        if ( !InputTransform.Equals( FTransform::Identity ) )
         {
-            HAPI_NodeId MeshAssetNodeId = -1;
-            FTransform InputTransform = FTransform::Identity;
-            if ( InputTransforms.IsValidIndex( InputIdx ) )
-                InputTransform = InputTransforms[ InputIdx ];
+            // Updating the Transform
+            HAPI_TransformEuler HapiTransform;
+            FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
+            FHoudiniEngineUtils::TranslateUnrealTransform( InputTransform, HapiTransform );
 
-            if ( UStaticMesh* InputStaticMesh = Cast< UStaticMesh >( InputObjects[ InputIdx ] ) )
-            {
-                // Creating an Input Node for Static Mesh Data
-                if ( !HapiCreateInputNodeForStaticMesh( InputStaticMesh, MeshAssetNodeId, OutCreatedNodeIds, nullptr, bExportAllLODs, bExportSockets ) )
-                {
-                    HOUDINI_LOG_WARNING( TEXT( "Error creating input index %d on %d" ), InputIdx, ConnectedAssetId );
-                }
-            }
-            else if ( USkeletalMesh* InputSkeletalMesh = Cast< USkeletalMesh >( InputObjects[ InputIdx ] ) )
-            {
-                // Creating an Input Node for Skeletal Mesh Data
-                if ( !HapiCreateInputNodeForSkeletalMesh( ConnectedAssetId, InputSkeletalMesh, MeshAssetNodeId, OutCreatedNodeIds, bExportSkeleton ) )
-                {
-                    HOUDINI_LOG_WARNING( TEXT( "Error creating input index %d on %d" ), InputIdx, ConnectedAssetId );
-                }
-            }
+            HAPI_NodeInfo LocalAssetNodeInfo;
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
+                FHoudiniEngine::Get().GetSession(), MeshAssetNodeId, &LocalAssetNodeInfo ), false );
 
-            if ( MeshAssetNodeId < 0 )
-                continue;
-
-            if ( UseMergeNode )
-            {
-                // Now we can connect the input node to the merge node.
-                HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
-                    FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
-                    MeshAssetNodeId, 0), false );
-            }
-            else
-            {
-                // We only have one input, use the MeshNodeId as our "ConnectedAssetId".
-                ConnectedAssetId = MeshAssetNodeId;
-            }
-
-            // If the Geometry Input has a Transform offset
-            if ( !InputTransform.Equals( FTransform::Identity ) )
-            {
-                // Updating the Transform
-                HAPI_TransformEuler HapiTransform;
-                FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
-                FHoudiniEngineUtils::TranslateUnrealTransform( InputTransform, HapiTransform );
-
-                HAPI_NodeInfo LocalAssetNodeInfo;
-                HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
-                    FHoudiniEngine::Get().GetSession(), MeshAssetNodeId, &LocalAssetNodeInfo ), false );
-
-                HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetObjectTransform(
-                    FHoudiniEngine::Get().GetSession(), LocalAssetNodeInfo.parentId, &HapiTransform ), false );
-            }
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetObjectTransform(
+                FHoudiniEngine::Get().GetSession(), LocalAssetNodeInfo.parentId, &HapiTransform ), false );
         }
     }
 #endif
@@ -3969,7 +3947,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
 {
 #if WITH_EDITOR
     // If we don't have a skeletal mesh there's nothing to do.
-    if ( !SkeletalMesh )
+    if ( !SkeletalMesh || SkeletalMesh->IsPendingKill() )
         return false;
 
     // Check if connected asset id is valid, if it is not, we need to create an input asset.
@@ -3986,9 +3964,9 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
         // We now have a valid id.
         ConnectedAssetId = AssetId;
 
-	// Get the input's parent OBJ node
-	HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId( ConnectedAssetId );
-	OutCreatedNodeIds.AddUnique( ParentId );
+        // Get the input's parent OBJ node
+        HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId( ConnectedAssetId );
+        OutCreatedNodeIds.AddUnique( ParentId );
 
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CookNode(
             FHoudiniEngine::Get().GetSession(), AssetId, nullptr ), false );
@@ -4011,6 +3989,9 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
 
     // Grab base LOD level.
     const FSkeletalMeshModel* SkelMeshResource = SkeletalMesh->GetImportedModel();
+    if ( !SkelMeshResource )
+        return false;
+
     const FSkeletalMeshLODModel& SourceModel = SkelMeshResource->LODModels[0];
     const int32 VertexCount = SourceModel.GetNumNonClothingVertices();
 
@@ -4075,7 +4056,6 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
     {
         // Grab vertex at this index.
         const FVector & PositionVector = SoftSkinVertices[ VertexIdx ].Position;
-
         if ( ImportAxis == HRSAI_Unreal )
         {
             SkelMeshVertices[ VertexIdx * 3 + 0 ] = PositionVector.X / GeneratedGeometryScaleFactor;
@@ -4469,7 +4449,7 @@ FHoudiniEngineUtils::HapiCreateSkeletonFromData(
     TArray< HAPI_NodeId >& OutCreatedNodeIds )
 {
 #if WITH_EDITOR
-    if ( !SkeletalMesh )
+    if ( !SkeletalMesh || SkeletalMesh->IsPendingKill() )
         return false;
 
     // We need to have an input asset already!
@@ -5150,29 +5130,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             HoudiniGeoPartObject.bIsVolume = ( PartInfo.type == HAPI_PARTTYPE_VOLUME );
 
             // See if a custom name for the mesh was assigned via the GeneratedMeshName attribute        
-            TArray< FString > GeneratedMeshNames;
-            {
-                HAPI_AttributeInfo AttribGeneratedMeshName;
-                FMemory::Memzero< HAPI_AttributeInfo >( AttribGeneratedMeshName );
-                std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME;
-                if ( HoudiniRuntimeSettings )
-                {
-                    FHoudiniEngineUtils::ConvertUnrealString(
-                        HoudiniRuntimeSettings->MarshallingAttributeGeneratedMeshName,
-                        MarshallingAttributeName );
-                }
-
-                FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-                    AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
-                    MarshallingAttributeName.c_str(), AttribGeneratedMeshName, GeneratedMeshNames );
-
-                if ( GeneratedMeshNames.Num() > 0 )
-                {
-                    const FString & CustomPartName = GeneratedMeshNames[ 0 ];
-                    if ( !CustomPartName.IsEmpty() )
-                        HoudiniGeoPartObject.SetCustomName( CustomPartName );
-                }
-            }
+            HoudiniGeoPartObject.UpdateCustomName();
 
             // See if a custom bake folder override for the mesh was assigned via the "unreal_bake_folder" attribute
             TArray< FString > BakeFolderOverrides;
@@ -5216,7 +5174,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // We need to set the GeoChanged flag to true if we want to force the landscape reimport
                 HoudiniGeoPartObject.bHasGeoChanged = ( GeoInfo.hasGeoChanged || ForceRebuildStaticMesh || ForceRecookAll );
 
-                StaticMeshesOut.Add(HoudiniGeoPartObject, nullptr);
+                StaticMeshesOut.Add( HoudiniGeoPartObject, nullptr );
 
                 continue;
             }
@@ -5626,6 +5584,18 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // Get valid count of vertex indices for this split.
                 int32 SplitGroupVertexListCount = GroupSplitFaceCounts[ SplitGroupName ];
 
+                // Make sure we have a  valid vertex count for this split
+                if (SplitGroupVertexListCount % 3 != 0 || SplitGroupVertexList.Num() % 3 != 0 )
+                {
+                    // Invalid vertex count, skip this split or we'd crash trying to create a mesh for it.
+                    HOUDINI_LOG_WARNING(
+                        TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] invalid vertex count.")
+                        TEXT("- skipping."),
+                        ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, SplitId, *SplitGroupName);
+
+                    continue;
+                }
+
                 // Get face indices for this split.
                 TArray< int32 > & SplitGroupFaceIndices = GroupSplitFaceIndices[ SplitGroupName ];
 
@@ -5702,10 +5672,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             PartInfo.id, HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, PartPositions ) )
                         {
                             // Error retrieving positions.
-                            HOUDINI_LOG_MESSAGE(
-                                TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data ")
+                            HOUDINI_LOG_WARNING(
+                                TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d, %s] unable to retrieve position data ")
                                 TEXT("- skipping."),
-                                ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName );
+                                ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, SplitId, *SplitGroupName );
 
                             break;
                         }
@@ -5753,9 +5723,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     if ( !FoundStaticMesh && ( !HoudiniGeoPartObject.bIsSimpleCollisionGeo && !HoudiniGeoPartObject.bIsUCXCollisionGeo ) )
                     {
                         HOUDINI_LOG_ERROR(
-                            TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] geometry has not changed ")
+                            TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d, %s] geometry has not changed ")
                             TEXT("but static mesh does not exist - skipping."),
-                            ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName);
+                            ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, SplitId, *SplitGroupName);
                         continue;
                     }
 
@@ -5801,7 +5771,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         MeshPackage, MeshPackage, HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MeshName );
 
                     // Notify system that new asset has been created.
-                    FAssetRegistryModule::AssetCreated( StaticMesh );
+                    //FAssetRegistryModule::AssetCreated( StaticMesh );
 
                     bStaticMeshCreated = true;
                 }
@@ -5828,8 +5798,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 if ( !SrcModel )
                 {
                     HOUDINI_LOG_ERROR(
-                        TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] Could not access SourceModel for the LOD %d - skipping."),
-                        ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, IsLOD ? LodIndex : 0 );
+                        TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d, %s] Could not access SourceModel for the LOD %d - skipping."),
+                        ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, SplitId, *SplitGroupName, IsLOD ? LodIndex : 0 );
                     continue;
                 }
 
@@ -5873,6 +5843,16 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                     // Transfer normals.
                     int32 WedgeNormalCount = SplitGroupNormals.Num() / 3;
+
+                    // Ensure the number of Normal values is correct
+                    if ( SplitGroupNormals.Num() > 0
+                        && !SplitGroupNormals.IsValidIndex( (WedgeNormalCount - 1) * 3 + 2 ) )
+                    {
+                        // Ignore normals
+                        WedgeNormalCount = 0;
+                        HOUDINI_LOG_WARNING(TEXT("Invalid normal count detected - Skipping normals."));
+                    }
+
                     RawMesh.WedgeTangentZ.SetNumZeroed( WedgeNormalCount );
                     for ( int32 WedgeTangentZIdx = 0; WedgeTangentZIdx < WedgeNormalCount; ++WedgeTangentZIdx )
                     {
@@ -5936,6 +5916,15 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     if ( AttribInfoColors.exists && ( AttribInfoColors.tupleSize > 0 ) )
                     {
                         int32 WedgeColorsCount = SplitGroupColors.Num() / AttribInfoColors.tupleSize;
+
+                        // Ensure the number of color values is correct
+                        if (!SplitGroupColors.IsValidIndex( (WedgeColorsCount - 1) * 3 + 2) )
+                        {
+                            // Ignore colors
+                            WedgeColorsCount = 0;
+                            HOUDINI_LOG_WARNING(TEXT("Invalid vertex color count detected - Skipping colors."));
+                        }
+
                         RawMesh.WedgeColors.SetNumZeroed( WedgeColorsCount );
                         for ( int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx )
                         {
@@ -6033,9 +6022,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     for ( int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx )
                     {
                         TArray< float > & TextureCoordinate = SplitGroupUVs[ TexCoordIdx ];
-                        if ( TextureCoordinate.Num() > 0 )
+                        int32 WedgeUVCount = TextureCoordinate.Num() / 2;
+
+                        if ( TextureCoordinate.Num() > 0 && TextureCoordinate.IsValidIndex((WedgeUVCount - 1) * 2 + 1) )
                         {
-                            int32 WedgeUVCount = TextureCoordinate.Num() / 2;
                             RawMesh.WedgeTexCoords[ TexCoordIdx ].SetNumZeroed( WedgeUVCount );
                             for ( int32 WedgeUVIdx = 0; WedgeUVIdx < WedgeUVCount; ++WedgeUVIdx )
                             {
@@ -6083,7 +6073,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     //--------------------------------------------------------------------------------------------------------------------- 
                     //  INDICES
                     //--------------------------------------------------------------------------------------------------------------------- 
-                    
+
                     //
                     // Because of the splits, we don't need to declare all the vertices in the Part, 
                     // but only the one that are currently used by the split's faces.
@@ -6104,8 +6094,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     // Contains the old index of the needed vertices for the current split
                     // NeededVertices[ newIndex ] => oldIndex
                     TArray< int32 > NeededVertices;
-
                     RawMesh.WedgeIndices.SetNumZeroed( SplitGroupVertexListCount );
+
                     int32 ValidVertexId = 0;
                     for ( int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3 )
                     {
@@ -6119,6 +6109,19 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             SplitGroupVertexList[ VertexIdx + 1 ],
                             SplitGroupVertexList[ VertexIdx + 2 ]
                         };
+
+                        // Ensure the indices are valid
+                        if ( !IndicesMapper.IsValidIndex( WedgeIndices[0] )
+                            || !IndicesMapper.IsValidIndex( WedgeIndices[1] )
+                            || !IndicesMapper.IsValidIndex( WedgeIndices[2] ) )
+                        {
+                            // Invalid face index.
+                            HOUDINI_LOG_MESSAGE(
+                                TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] has some invalid face index "),
+                                ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, SplitId, *SplitGroupName );
+
+                            continue;
+                        }
 
                         // Converting Old (Part) Indices to New (Split) Indices:
                         for ( int32 i = 0; i < 3; i++ )
@@ -6136,8 +6139,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             WedgeIndices[ i ] = IndicesMapper[ WedgeIndices[ i ] ];
                         }
 
-                        if ( ValidVertexId >= SplitGroupVertexListCount )
-                            continue;
+                        if ( !RawMesh.WedgeIndices.IsValidIndex(ValidVertexId + 2) )
+                            break;
 
                         if ( ImportAxis == HRSAI_Unreal )
                         {
@@ -6149,8 +6152,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             // Check if we need to patch UVs.
                             for ( int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx )
                             {
-                                if ( RawMesh.WedgeTexCoords[ TexCoordIdx ].Num() > 0
-                                    && ( (ValidVertexId + 2) < RawMesh.WedgeTexCoords[ TexCoordIdx ].Num() ) )
+                                if ( RawMesh.WedgeTexCoords[ TexCoordIdx ].IsValidIndex( ValidVertexId + 2) )
                                 {
                                     Swap( RawMesh.WedgeTexCoords[ TexCoordIdx ][ ValidVertexId + 1 ],
                                         RawMesh.WedgeTexCoords[ TexCoordIdx ][ ValidVertexId + 2 ] );
@@ -6158,17 +6160,17 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             }
 
                             // Check if we need to patch colors.
-                            if ( RawMesh.WedgeColors.Num() > 0 )
+                            if ( RawMesh.WedgeColors.IsValidIndex(ValidVertexId + 2) )
                                 Swap( RawMesh.WedgeColors[ ValidVertexId + 1 ], RawMesh.WedgeColors[ ValidVertexId + 2 ] );
 
                             // Check if we need to patch Normals and tangents.
-                            if ( RawMesh.WedgeTangentZ.Num() > 0 )
+                            if ( RawMesh.WedgeTangentZ.IsValidIndex(ValidVertexId + 2) )
                                 Swap( RawMesh.WedgeTangentZ[ ValidVertexId + 1 ], RawMesh.WedgeTangentZ[ ValidVertexId + 2 ] );
 
-                            if ( RawMesh.WedgeTangentX.Num() > 0 )
+                            if ( RawMesh.WedgeTangentX.IsValidIndex(ValidVertexId + 2) )
                                 Swap( RawMesh.WedgeTangentX[ ValidVertexId + 1 ], RawMesh.WedgeTangentX[ ValidVertexId + 2 ] );
 
-                            if ( RawMesh.WedgeTangentY.Num() > 0 )
+                            if ( RawMesh.WedgeTangentY.IsValidIndex(ValidVertexId + 2) )
                                 Swap ( RawMesh.WedgeTangentY[ ValidVertexId + 1 ], RawMesh.WedgeTangentY[ ValidVertexId + 2 ] );
                         }
                         else if ( ImportAxis == HRSAI_Houdini )
@@ -6195,10 +6197,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             PartInfo.id, HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, PartPositions ) )
                         {
                             // Error retrieving positions.
-                            HOUDINI_LOG_MESSAGE(
-                                TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data ")
+                            HOUDINI_LOG_WARNING(
+                                TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] unable to retrieve position data ")
                                 TEXT("- skipping."),
-                                ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName);
+                                ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, SplitId, *SplitGroupName );
 
                             if ( bStaticMeshCreated )
                                 StaticMesh->MarkPendingKill();
@@ -6219,6 +6221,14 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     for ( int32 VertexPositionIdx = 0; VertexPositionIdx < VertexPositionsCount; ++VertexPositionIdx )
                     {
                         int32 NeededVertexIndex = NeededVertices[ VertexPositionIdx ];
+                        if (!PartPositions.IsValidIndex(NeededVertexIndex * 3 + 2))
+                        {
+                            // Error retrieving positions.
+                            HOUDINI_LOG_WARNING(
+                                TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] invalid position/index data ")
+                                TEXT("- skipping."),
+                                ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, SplitId, *SplitGroupName);
+                        }
 
                         FVector VertexPosition;
                         VertexPosition.X = PartPositions[ NeededVertexIndex * 3 + 0 ] * GeneratedGeometryScaleFactor;
@@ -6441,7 +6451,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             RawMesh.FaceMaterialIndices.SetNumZeroed( SplitGroupFaceCount );
                             for ( int32 FaceIdx = 0; FaceIdx < SplitGroupFaceIndices.Num(); ++FaceIdx )
                             {
-                                int32 SplitFaceIndex = SplitGroupFaceIndices[ FaceIdx ];				                                
+                                int32 SplitFaceIndex = SplitGroupFaceIndices[ FaceIdx ];                                                
                                 if ( !PartFaceMaterialIds.IsValidIndex( SplitFaceIndex ) )
                                     continue;
 
@@ -6520,9 +6530,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         SrcModel->BuildSettings.bGenerateLightmapUVs = false;
 
                         HOUDINI_LOG_MESSAGE(
-                            TEXT( "Skipping Lightmap Generation: Object [%d %s], Geo [%d], Part [%d %s] invalid face detected " )
+                            TEXT( "Skipping Lightmap Generation: Object [%d %s], Geo [%d], Part [%d %s], Split [%d, %s] invalid face detected " )
                             TEXT( "- skipping." ),
-                            ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName );
+                            ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, SplitId, *SplitGroupName );
                     }
 
                     if( PartLightMapResolutions.Num() > 0 )
@@ -6531,6 +6541,19 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     // Apply lightmap resolution override if it has been specified
                     if ( LightMapResolutionOverride > 0 )
                         StaticMesh->LightMapResolution = LightMapResolutionOverride;
+                }
+
+                if ( !RawMesh.IsValidOrFixable() )
+                {
+                    HOUDINI_LOG_WARNING(
+                        TEXT("Static Mesh Generated from Object [%d %s], Geo [%d], Part [%d %s], Split [%d, %s] is invalid!")
+                        TEXT("- skipping."),
+                        ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, SplitId, *SplitGroupName);
+
+                    if ( bStaticMeshCreated )
+                        StaticMesh->MarkPendingKill();
+
+                    continue;
                 }
 
                 // Store the new raw mesh.
@@ -6569,7 +6592,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                     bool InvalidateLODAttr = false;
 
-                    // If the "lod_screensize" attribute was not found, fallback to the "lodX_screensize" attribute		    
+                    // If the "lod_screensize" attribute was not found, fallback to the "lodX_screensize" attribute
                     if ( !AttribInfoLODScreenSize.exists )
                     {
                         LODScreenSizes.Empty();
@@ -6683,19 +6706,32 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // Free any RHI resources.
                 StaticMesh->PreEditChange( nullptr );
 
+                // BUILD the Static Mesh
                 FHoudiniScopedGlobalSilence ScopedGlobalSilence;
                 TArray< FText > BuildErrors;
                 {
                     SCOPE_CYCLE_COUNTER( STAT_BuildStaticMesh );
                     StaticMesh->Build( true, &BuildErrors );
                 }
+
                 for ( int32 BuildErrorIdx = 0; BuildErrorIdx < BuildErrors.Num(); ++BuildErrorIdx )
                 {
                     const FText & TextError = BuildErrors[ BuildErrorIdx ];
                     HOUDINI_LOG_MESSAGE(
-                        TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d] build error " )
+                        TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] build error " )
                         TEXT( "- %s." ),
-                        ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, SplitId, *( TextError.ToString() ) );
+                        ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, SplitId, *SplitGroupName, *( TextError.ToString() ) );
+                }
+
+                // Skip Invalid static meshes
+                if ( !StaticMesh || StaticMesh->IsPendingKill() )
+                {
+                    HOUDINI_LOG_MESSAGE(
+                        TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] invalid Static Mesh created! ")
+                        TEXT("- skipping."),
+                        ObjectInfo.nodeId, *ObjectName, GeoInfo.nodeId, PartIdx, *PartName, SplitId, *SplitGroupName );
+
+                    continue;
                 }
 
                 StaticMesh->GetOnMeshChanged().Broadcast();
@@ -6733,13 +6769,17 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 if ( !HoudiniGeoPartObject.bHasSocketBeenAdded )
                     StaticMesh->Sockets.Empty();
 
+                // Notify that we created a new Static Mesh
+                if ( bStaticMeshCreated )
+                    FAssetRegistryModule::AssetCreated( StaticMesh );
+                
                 StaticMesh->MarkPackageDirty();
 
                 StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
 
             } // end for SplitId
 
-            // Add the sockets we found to that part's meshes	    
+            // Add the sockets we found to that part's meshes
             if ( AllSockets.Num() > 0 )
             {
                 bool SocketsAdded = false;
@@ -6803,24 +6843,26 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         if ( HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable() )
         {
             UStaticMesh* StaticMesh = Iter.Value();
-            if ( !StaticMesh )
+            if ( !StaticMesh || StaticMesh->IsPendingKill() )
                 continue;
-			if (UBodySetup * BodySetup = StaticMesh->BodySetup)
-			{
-				// Unreal caches the Navigation Collision and never updates it for StaticMeshes,
-				// so we need to manually flush and recreate the data to have proper navigation collision
-				if (StaticMesh->NavCollision)
-				{
-					BodySetup->InvalidatePhysicsData();
-					BodySetup->CreatePhysicsMeshes();
 
-					//StaticMesh->NavCollision->InvalidatePhysicsData();
-					//StaticMesh->NavCollision->InvalidateCollision();
-					//StaticMesh->NavCollision->CookedFormatData.FlushData();
-					//StaticMesh->NavCollision->GatherCollision();
-					StaticMesh->NavCollision->Setup(BodySetup);
-				}
-			}
+            UBodySetup * BodySetup = StaticMesh->BodySetup;
+            if ( BodySetup && !BodySetup->IsPendingKill() )
+            {
+                // Unreal caches the Navigation Collision and never updates it for StaticMeshes,
+                // so we need to manually flush and recreate the data to have proper navigation collision
+                if ( StaticMesh->NavCollision )
+                {
+                    BodySetup->InvalidatePhysicsData();
+                    BodySetup->CreatePhysicsMeshes();
+
+                    //StaticMesh->NavCollision->InvalidatePhysicsData();
+                    //StaticMesh->NavCollision->InvalidateCollision();
+                    //StaticMesh->NavCollision->CookedFormatData.FlushData();
+                    //StaticMesh->NavCollision->GatherCollision();
+                    StaticMesh->NavCollision->Setup(BodySetup);
+                }
+            }
         }
     }
 
@@ -7205,49 +7247,49 @@ FHoudiniEngineUtils::HoudiniGetLibHAPIName()
 
 void *
 FHoudiniEngineUtils::LocateLibHAPIInRegistry(
-	const FString & HoudiniInstallationType,
-	FString & StoredLibHAPILocation,
-	bool LookIn32bitRegistry)
+    const FString & HoudiniInstallationType,
+    FString & StoredLibHAPILocation,
+    bool LookIn32bitRegistry)
 {
-	auto FindDll = [&](const FString& InHoudiniInstallationPath)
-	{
-		FString HFSPath = FString::Printf(TEXT("%s/%s"), *InHoudiniInstallationPath, HAPI_HFS_SUBFOLDER_WINDOWS);
+    auto FindDll = [&](const FString& InHoudiniInstallationPath)
+    {
+        FString HFSPath = FString::Printf(TEXT("%s/%s"), *InHoudiniInstallationPath, HAPI_HFS_SUBFOLDER_WINDOWS);
 
-		// Create full path to libHAPI binary.
-		FString LibHAPIPath = FString::Printf(TEXT("%s/%s"), *HFSPath, HAPI_LIB_OBJECT_WINDOWS);
+        // Create full path to libHAPI binary.
+        FString LibHAPIPath = FString::Printf(TEXT("%s/%s"), *HFSPath, HAPI_LIB_OBJECT_WINDOWS);
 
-		if (FPaths::FileExists(LibHAPIPath))
-		{
-			FPlatformProcess::PushDllDirectory(*HFSPath);
-			void* HAPILibraryHandle = FPlatformProcess::GetDllHandle(HAPI_LIB_OBJECT_WINDOWS);
-			FPlatformProcess::PopDllDirectory(*HFSPath);
+        if (FPaths::FileExists(LibHAPIPath))
+        {
+            FPlatformProcess::PushDllDirectory(*HFSPath);
+            void* HAPILibraryHandle = FPlatformProcess::GetDllHandle(HAPI_LIB_OBJECT_WINDOWS);
+            FPlatformProcess::PopDllDirectory(*HFSPath);
 
-			if (HAPILibraryHandle)
-			{
-				HOUDINI_LOG_MESSAGE(
-					TEXT("Loaded %s from Registry path %s"), HAPI_LIB_OBJECT_WINDOWS,
-					*HFSPath);
+            if (HAPILibraryHandle)
+            {
+                HOUDINI_LOG_MESSAGE(
+                    TEXT("Loaded %s from Registry path %s"), HAPI_LIB_OBJECT_WINDOWS,
+                    *HFSPath);
 
-				StoredLibHAPILocation = HFSPath;
-				return HAPILibraryHandle;
-			}
-		}
-		return (void*)0;
-	};
-	FString HoudiniInstallationPath;
-	FString HoudiniVersionString = ComputeVersionString(true);
-	FString RegistryKey = FString::Printf(
-		TEXT("Software\\%sSide Effects Software\\%s"),
-		(LookIn32bitRegistry ? TEXT("WOW6432Node\\") : TEXT("")), *HoudiniInstallationType);
+                StoredLibHAPILocation = HFSPath;
+                return HAPILibraryHandle;
+            }
+        }
+        return (void*)0;
+    };
+    FString HoudiniInstallationPath;
+    FString HoudiniVersionString = ComputeVersionString(true);
+    FString RegistryKey = FString::Printf(
+        TEXT("Software\\%sSide Effects Software\\%s"),
+        (LookIn32bitRegistry ? TEXT("WOW6432Node\\") : TEXT("")), *HoudiniInstallationType);
 
-	if (FWindowsPlatformMisc::QueryRegKey(
-		HKEY_LOCAL_MACHINE, *RegistryKey, *HoudiniVersionString, HoudiniInstallationPath))
-	{
-		FPaths::NormalizeDirectoryName(HoudiniInstallationPath);
-		return FindDll(HoudiniInstallationPath);
-	}
+    if (FWindowsPlatformMisc::QueryRegKey(
+        HKEY_LOCAL_MACHINE, *RegistryKey, *HoudiniVersionString, HoudiniInstallationPath))
+    {
+        FPaths::NormalizeDirectoryName(HoudiniInstallationPath);
+        return FindDll(HoudiniInstallationPath);
+    }
 
-	return nullptr;
+    return nullptr;
 }
 
 #endif
@@ -7255,17 +7297,17 @@ FHoudiniEngineUtils::LocateLibHAPIInRegistry(
 FString
 FHoudiniEngineUtils::ComputeVersionString(bool ExtraDigit)
 {
-	// Compute Houdini version string.
-	FString HoudiniVersionString = FString::Printf(
-		TEXT("%d.%d.%s%d"), HAPI_VERSION_HOUDINI_MAJOR,
-		HAPI_VERSION_HOUDINI_MINOR,
-		(ExtraDigit ? (TEXT("0.")) : TEXT("")),
-		HAPI_VERSION_HOUDINI_BUILD);
+    // Compute Houdini version string.
+    FString HoudiniVersionString = FString::Printf(
+        TEXT("%d.%d.%s%d"), HAPI_VERSION_HOUDINI_MAJOR,
+        HAPI_VERSION_HOUDINI_MINOR,
+        (ExtraDigit ? (TEXT("0.")) : TEXT("")),
+        HAPI_VERSION_HOUDINI_BUILD);
 
-	// If we have a patch version, we need to append it.
-	if (HAPI_VERSION_HOUDINI_PATCH > 0)
-		HoudiniVersionString = FString::Printf(TEXT("%s.%d"), *HoudiniVersionString, HAPI_VERSION_HOUDINI_PATCH);
-	return HoudiniVersionString;
+    // If we have a patch version, we need to append it.
+    if (HAPI_VERSION_HOUDINI_PATCH > 0)
+        HoudiniVersionString = FString::Printf(TEXT("%s.%d"), *HoudiniVersionString, HAPI_VERSION_HOUDINI_PATCH);
+    return HoudiniVersionString;
 }
 
 void *
@@ -7372,8 +7414,8 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
     FString HoudiniLocation = TEXT( HOUDINI_ENGINE_HFS_PATH );
     FString LibHAPIPath;
 
-	// Compute Houdini version string.
-	FString HoudiniVersionString = ComputeVersionString(false);
+    // Compute Houdini version string.
+    FString HoudiniVersionString = ComputeVersionString(false);
 
 #if PLATFORM_WINDOWS
 
@@ -7496,17 +7538,24 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(
             AllFaceList.Add( FaceIdx );
 
             // This face is a member of specified group.
-            NewVertexList[ FaceIdx * 3 + 0 ] = FullVertexList[ FaceIdx * 3 + 0 ];
-            NewVertexList[ FaceIdx * 3 + 1 ] = FullVertexList[ FaceIdx * 3 + 1 ];
-            NewVertexList[ FaceIdx * 3 + 2 ] = FullVertexList[ FaceIdx * 3 + 2 ];
+            if (FullVertexList.IsValidIndex(FaceIdx * 3 + 2 ) )
+            {
+                NewVertexList[ FaceIdx * 3 + 0 ] = FullVertexList[ FaceIdx * 3 + 0 ];
+                NewVertexList[ FaceIdx * 3 + 1 ] = FullVertexList[ FaceIdx * 3 + 1 ];
+                NewVertexList[ FaceIdx * 3 + 2 ] = FullVertexList[ FaceIdx * 3 + 2 ];
+            }
 
             // Mark these vertex indices as used.
-            AllVertexList[ FaceIdx * 3 + 0 ] = 1;
-            AllVertexList[ FaceIdx * 3 + 1 ] = 1;
-            AllVertexList[ FaceIdx * 3 + 2 ] = 1;
+            if ( AllVertexList.IsValidIndex( FaceIdx * 3 + 2 ) )
+            {
+                AllVertexList[ FaceIdx * 3 + 0 ] = 1;
+                AllVertexList[ FaceIdx * 3 + 1 ] = 1;
+                AllVertexList[ FaceIdx * 3 + 2 ] = 1;
+            }
 
             // Mark this face as used.
-            AllCollisionFaceIndices[ FaceIdx ] = 1;
+            if ( AllCollisionFaceIndices.IsValidIndex( FaceIdx ) )
+                AllCollisionFaceIndices[ FaceIdx ] = 1;
 
             ProcessedWedges += 3;
         }
@@ -7740,7 +7789,7 @@ FHoudiniEngineUtils::GetAssetNames(
     OutAssetLibraryId = -1;
     OutAssetNames.Empty();
 
-    if ( FHoudiniEngineUtils::IsInitialized() && HoudiniAsset )
+    if ( FHoudiniEngineUtils::IsInitialized() && HoudiniAsset && !HoudiniAsset->IsPendingKill() )
     {
         FString AssetFileName = HoudiniAsset->GetAssetFileName();
         HAPI_Result Result = HAPI_RESULT_FAILURE;
@@ -8251,7 +8300,7 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
     TArray< FString >& AllSocketsActors,
     TArray< FString >& AllSocketsTags )
 {
-    if ( !StaticMesh )
+    if ( !StaticMesh || StaticMesh->IsPendingKill() )
         return false;
 
     if ( AllSockets.Num() <= 0 )
@@ -8265,7 +8314,8 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
     {
         // Create a new Socket
         UStaticMeshSocket* Socket = NewObject<UStaticMeshSocket>( StaticMesh );
-        check( Socket );
+        if ( !Socket || Socket->IsPendingKill() )
+            continue;
 
         Socket->RelativeLocation = AllSockets[ nSocket ].GetLocation();
         Socket->RelativeRotation = FRotator(AllSockets[ nSocket ].GetRotation());
@@ -8309,11 +8359,11 @@ FHoudiniEngineUtils::AddAggregateCollisionGeometryToStaticMesh(
     FHoudiniGeoPartObject& HoudiniGeoPartObject,
     FKAggregateGeom& AggregateCollisionGeo )
 {
-    if ( !StaticMesh )
+    if ( !StaticMesh || StaticMesh->IsPendingKill() )
         return false;
     
     UBodySetup * BodySetup = StaticMesh->BodySetup;
-    if ( !BodySetup )
+    if ( !BodySetup || BodySetup->IsPendingKill() )
         return false;
 
     // Do we need to remove the old collisions from the previous cook
@@ -8346,7 +8396,8 @@ FHoudiniEngineUtils::AddAggregateCollisionGeometryToStaticMesh(
 bool
 FHoudiniEngineUtils::AddActorsToMeshSocket( UStaticMeshSocket* Socket, UStaticMeshComponent* StaticMeshComponent )
 {
-    if ( !Socket || !StaticMeshComponent )
+    if ( !Socket || Socket->IsPendingKill()
+        || !StaticMeshComponent || StaticMeshComponent->IsPendingKill() )
         return false;
 
     // The actor to assign is stored is the socket's tag
@@ -8380,21 +8431,21 @@ FHoudiniEngineUtils::AddActorsToMeshSocket( UStaticMeshSocket* Socket, UStaticMe
     // And try to find the corresponding HoudiniAssetActor in the editor world
     // to avoid finding "deleted" assets with the same name
     //UWorld* editorWorld = GEditor->GetEditorWorldContext().World();
-    UWorld* editorWorld = StaticMeshComponent->GetOwner()->GetWorld();
+    UWorld* editorWorld = StaticMeshComponent->GetOwner() ? StaticMeshComponent->GetOwner()->GetWorld() : nullptr;
+    if ( !editorWorld || editorWorld->IsPendingKill() )
+        return false;
+
     for ( TActorIterator<AActor> ActorItr( editorWorld ); ActorItr; ++ActorItr )
     {
         // Same as with the Object Iterator, access the subclass instance with the * or -> operators.
         AActor *Actor = *ActorItr;
-        if ( !Actor )
+        if ( !Actor || Actor->IsPendingKillOrUnreachable() )
             continue;
 
         for ( int32 StringIdx = 0; StringIdx < ActorStringArray.Num(); StringIdx++ )
         {
             if ( Actor->GetName() != ActorStringArray[ StringIdx ]
                  && Actor->GetActorLabel() != ActorStringArray[ StringIdx ] )
-                continue;
-
-            if ( Actor->IsPendingKillOrUnreachable() )
                 continue;
 
             Socket->AttachActor( Actor, StaticMeshComponent );
@@ -8660,7 +8711,7 @@ void
 FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
     UObject* MeshComponent, const FHoudiniGeoPartObject& HoudiniGeoPartObject )
 {
-    if ( !MeshComponent )
+    if ( !MeshComponent || MeshComponent->IsPendingKill() )
         return;
 
     // Get the list of uproperties to modify from the geopartobject's attributes
@@ -8681,7 +8732,7 @@ FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
         if ( CurrentUPropertyName == "CollisionProfileName" )
         {
             UPrimitiveComponent* PC = Cast< UPrimitiveComponent >( MeshComponent );
-            if ( PC )
+            if ( PC && !PC->IsPendingKill() )
             {
                 FString StringValue = CurrentPropAttribute.GetStringValue();
                 FName Value = FName( *StringValue );
@@ -8695,7 +8746,7 @@ FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
         if ( CurrentUPropertyName.Contains("Tags") )
         {
             UActorComponent* AC = Cast< UActorComponent >( MeshComponent );
-            if ( AC )
+            if ( AC && !AC->IsPendingKill() )
             {
                 for ( int nIdx = 0; nIdx < CurrentPropAttribute.AttributeCount; nIdx++ )
                 {
@@ -8725,7 +8776,7 @@ FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
         FString ObjectName = MeshComponent->GetName();
 
         // Couldn't find or modify the Uproperty!
-        HOUDINI_LOG_MESSAGE( TEXT( "Modified UProperty %s on %s named %s" ), *CurrentUPropertyName, *ClassName, * ObjectName );	
+        HOUDINI_LOG_MESSAGE( TEXT( "Modified UProperty %s on %s named %s" ), *CurrentUPropertyName, *ClassName, * ObjectName );    
     }
 }
 /*
@@ -8821,7 +8872,7 @@ bool FHoudiniEngineUtils::FindUPropertyAttributesOnObject(
     UProperty*& FoundProperty, UObject*& FoundPropertyObject, void*& StructContainer )
 {
 #if WITH_EDITOR
-    if ( !ParentObject)
+    if ( !ParentObject || ParentObject->IsPendingKill() )
         return false;
 
     // Get the name of the uprop we're looking for
@@ -8830,6 +8881,8 @@ bool FHoudiniEngineUtils::FindUPropertyAttributesOnObject(
         return false;
 
     UClass* MeshClass = ParentObject->GetClass();
+    if ( !MeshClass || MeshClass->IsPendingKill() )
+        return false;
 
     // Set the result pointer to null
     StructContainer = nullptr;
@@ -8872,6 +8925,8 @@ bool FHoudiniEngineUtils::FindUPropertyAttributesOnObject(
     for ( TFieldIterator< UProperty > PropIt( MeshClass, EFieldIteratorFlags::IncludeSuper ); PropIt; ++PropIt )
     {
         UProperty* CurrentProperty = *PropIt;
+        if ( !CurrentProperty || CurrentProperty->IsPendingKill() )
+            continue;
 
         FString DisplayName = CurrentProperty->GetDisplayNameText().ToString().Replace( TEXT(" "), TEXT("") );
         FString Name = CurrentProperty->GetName();
@@ -8898,16 +8953,22 @@ bool FHoudiniEngineUtils::FindUPropertyAttributesOnObject(
         */
 
         // StructProperty need to be a nested struct
-        if ( UStructProperty* StructProperty = Cast< UStructProperty >( CurrentProperty ) )
+        UStructProperty* StructProperty = Cast< UStructProperty >(CurrentProperty);
+        if ( StructProperty && !StructProperty->IsPendingKill() )
         {
             // Walk the structs' properties and try to find the one we're looking for
             UScriptStruct* Struct = StructProperty->Struct;
+            if (!Struct || Struct->IsPendingKill())
+                continue;
+
             for ( TFieldIterator< UProperty > It( Struct ); It; ++It )
             {
                 UProperty* Property = *It;
+                if (!Property || Property->IsPendingKill())
+                    continue;
 
-                DisplayName = It->GetDisplayNameText().ToString().Replace( TEXT(" "), TEXT("") );
-                Name = It->GetName();
+                DisplayName = Property->GetDisplayNameText().ToString().Replace( TEXT(" "), TEXT("") );
+                Name = Property->GetName();
 
                 // If the property name contains the uprop attribute name, we have a candidate
                 if ( Name.Contains( CurrentUPropertyName ) || DisplayName.Contains( CurrentUPropertyName ) )
@@ -8935,21 +8996,21 @@ bool FHoudiniEngineUtils::FindUPropertyAttributesOnObject(
         return true;
 
     // Try with FindField??
-    if ( !FoundProperty )
+    if ( !FoundProperty || FoundProperty->IsPendingKill() )
         FoundProperty = FindField<UProperty>( MeshClass, *CurrentUPropertyName );
 
     // Try with FindPropertyByName ??
-    if ( !FoundProperty )
+    if ( !FoundProperty || FoundProperty->IsPendingKill() )
         FoundProperty = MeshClass->FindPropertyByName( *CurrentUPropertyName );
 
     // We found the UProperty we were looking for
-    if ( FoundProperty )
+    if ( FoundProperty && !FoundProperty->IsPendingKill())
         return true;
 
     // Handle common properties nested in classes
     // Static Meshes
     UStaticMesh* SM = Cast< UStaticMesh >( ParentObject );
-    if ( SM )
+    if ( SM && !SM->IsPendingKill() )
     {
         if ( SM->BodySetup && FindUPropertyAttributesOnObject(
             SM->BodySetup, UPropertiesToFind, FoundProperty, FoundPropertyObject, StructContainer ) )
@@ -8971,7 +9032,7 @@ bool FHoudiniEngineUtils::FindUPropertyAttributesOnObject(
     }
 
     // We found the UProperty we were looking for
-    if ( FoundProperty )
+    if ( FoundProperty && !FoundProperty->IsPendingKill() )
         return true;
 
 #endif
@@ -8982,12 +9043,15 @@ bool FHoudiniEngineUtils::ModifyUPropertyValueOnObject(
     UObject* MeshComponent, UGenericAttribute CurrentPropAttribute,
     UProperty* FoundProperty, void * StructContainer )
 {
-    if ( !MeshComponent || !FoundProperty )
+    if ( !MeshComponent || MeshComponent->IsPendingKill()
+        || !FoundProperty || FoundProperty->IsPendingKill() )
         return false;
 
     UProperty* InnerProperty = FoundProperty;
     int32 NumberOfProperties = 1;
-    if ( UArrayProperty* ArrayProperty = Cast< UArrayProperty >( FoundProperty ) )
+
+    UArrayProperty* ArrayProperty = Cast< UArrayProperty >(FoundProperty);
+    if ( ArrayProperty && !ArrayProperty->IsPendingKill() )
     {
         InnerProperty = ArrayProperty->Inner;
         NumberOfProperties = ArrayProperty->ArrayDim;
@@ -9208,7 +9272,7 @@ bool FHoudiniEngineUtils::ModifyUPropertyValueOnObject(
         }
         else
         {
-            // Property was found, but is of an unsupported type	    
+            // Property was found, but is of an unsupported type
             FString PropertyClass = FoundProperty->GetClass() ? FoundProperty->GetClass()->GetName() : TEXT("Unknown");
             HOUDINI_LOG_MESSAGE( TEXT("Unsupported UProperty Class: %s found for uproperty %s"), *PropertyClass, *CurrentPropAttribute.AttributeName );
             return false;
@@ -9765,6 +9829,8 @@ FHoudiniEngineUtils::AddConvexCollisionToAggregate(
     for ( int32 Idx = 0; Idx < UniqueVertexIndexes.Num(); Idx++ )
     {
         int32 VertexIndex = UniqueVertexIndexes[ Idx ];
+        if ( !Positions.IsValidIndex( VertexIndex * 3 + 2 ) )
+            continue;
 
         VertexArray[ Idx ].X = Positions[ VertexIndex * 3 + 0 ] * GeneratedGeometryScaleFactor;
         if ( ImportAxis == HRSAI_Unreal )
@@ -9783,8 +9849,6 @@ FHoudiniEngineUtils::AddConvexCollisionToAggregate(
     {
         // creating multiple convex hull collision
         // ... this might take a while
-        // We'll be using Unreal's DecomposeMeshToHulls() so we have to create a fake BodySetup
-        UBodySetup* bs = NewObject<UBodySetup>();
 
         // We're only interested in the valid indices!
         TArray<uint32> Indices;
@@ -9815,16 +9879,19 @@ FHoudiniEngineUtils::AddConvexCollisionToAggregate(
             }
         }
 
+        // We are using Unreal's DecomposeMeshToHulls() so we have to create a fake BodySetup
+        UBodySetup* BodySetup = NewObject<UBodySetup>();
+
         // Run actual util to do the work (if we have some valid input)
-        DecomposeMeshToHulls( bs, Vertices, Indices, 8, 16 );
+        DecomposeMeshToHulls( BodySetup, Vertices, Indices, 8, 16 );
 
         // If we succeed, return here
         // If not, keep going and we'll try to do a single hull decomposition
-        if ( bs->AggGeom.ConvexElems.Num() > 0 )
+        if ( BodySetup->AggGeom.ConvexElems.Num() > 0 )
         {
             // Copy the convex elem to our aggregate
-            for ( int32 n = 0; n < bs->AggGeom.ConvexElems.Num(); n++ )
-                AggregateCollisionGeo.ConvexElems.Add( bs->AggGeom.ConvexElems[ n ] );
+            for ( int32 n = 0; n < BodySetup->AggGeom.ConvexElems.Num(); n++ )
+                AggregateCollisionGeo.ConvexElems.Add( BodySetup->AggGeom.ConvexElems[ n ] );
 
             return true;
         }
@@ -9846,6 +9913,9 @@ FHoudiniEngineUtils::AddSimpleCollision(
     FHoudiniGeoPartObject& HoudiniGeoPartObject, FKAggregateGeom& AggregateCollisionGeo, bool& bSimpleCollisionAddedToAggregate )
 
 {
+    if ( !StaticMesh || StaticMesh->IsPendingKill() )
+        return false;
+
 #if WITH_EDITOR
     int32 PrimIndex = INDEX_NONE;
     if ( SplitGroupName.Contains( "Box" ) )
@@ -9856,9 +9926,9 @@ FHoudiniEngineUtils::AddSimpleCollision(
             // If this part is not renderCollidable, we want to extract the Box collider
             // and add it to the AggregateCollisionGeo to avoid creating extra meshes
             UBodySetup* bs = StaticMesh->BodySetup;
-            if (bs && bs->AggGeom.BoxElems.IsValidIndex( PrimIndex ) )
+            if (bs && !bs->IsPendingKill() && bs->AggGeom.BoxElems.IsValidIndex( PrimIndex ) )
             {
-                AggregateCollisionGeo.BoxElems.Add( bs->AggGeom.BoxElems[PrimIndex] );
+                AggregateCollisionGeo.BoxElems.Add( bs->AggGeom.BoxElems[ PrimIndex ] );
                 bSimpleCollisionAddedToAggregate = true;
             }
         }
@@ -9871,7 +9941,7 @@ FHoudiniEngineUtils::AddSimpleCollision(
             // If this part is not renderCollidable, we want to extract the Sphere collider
             // and add it to the AggregateCollisionGeo to avoid creating extra meshes
             UBodySetup* bs = StaticMesh->BodySetup;
-            if ( bs && bs->AggGeom.SphereElems.IsValidIndex( PrimIndex ) )
+            if ( bs && !bs->IsPendingKill() && bs->AggGeom.SphereElems.IsValidIndex( PrimIndex ) )
             {
                 AggregateCollisionGeo.SphereElems.Add(bs->AggGeom.SphereElems[PrimIndex]);
                 bSimpleCollisionAddedToAggregate = true;
@@ -9886,7 +9956,7 @@ FHoudiniEngineUtils::AddSimpleCollision(
             // If this part is not renderCollidable, we want to extract the Capsule collider
             // and add it to the AggregateCollisionGeo to avoid creating extra meshes
             UBodySetup* bs = StaticMesh->BodySetup;
-            if ( bs && bs->AggGeom.SphylElems.IsValidIndex( PrimIndex ) )
+            if ( bs && !bs->IsPendingKill() && bs->AggGeom.SphylElems.IsValidIndex( PrimIndex ) )
             {
                 AggregateCollisionGeo.SphylElems.Add(bs->AggGeom.SphylElems[PrimIndex]);
                 bSimpleCollisionAddedToAggregate = true;
@@ -9929,13 +9999,12 @@ FHoudiniEngineUtils::AddSimpleCollision(
         }
 
         PrimIndex = GenerateKDopAsSimpleCollision( StaticMesh, DirArray );
-
         if (!HoudiniGeoPartObject.bIsRenderCollidable)
         {
             // If this part is not renderCollidable, we want to extract the KDOP collider
             // and add it to the AggregateCollisionGeo to avoid creating extra meshes
             UBodySetup* bs = StaticMesh->BodySetup;
-            if (bs && bs->AggGeom.ConvexElems.IsValidIndex( PrimIndex ) )
+            if (bs && !bs->IsPendingKill() && bs->AggGeom.ConvexElems.IsValidIndex( PrimIndex ) )
             {
                 AggregateCollisionGeo.ConvexElems.Add(bs->AggGeom.ConvexElems[PrimIndex]);
                 bSimpleCollisionAddedToAggregate = true;

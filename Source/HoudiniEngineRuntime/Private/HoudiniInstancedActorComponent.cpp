@@ -59,10 +59,13 @@ UHoudiniInstancedActorComponent::Serialize( FArchive & Ar )
 void 
 UHoudiniInstancedActorComponent::AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector )
 {
-    if ( UHoudiniInstancedActorComponent * This = Cast< UHoudiniInstancedActorComponent >( InThis ) )
+    UHoudiniInstancedActorComponent * ThisHIAC = Cast< UHoudiniInstancedActorComponent >(InThis);
+    if ( ThisHIAC && !ThisHIAC->IsPendingKill() )
     {
-        Collector.AddReferencedObject( This->InstancedAsset, This );
-        Collector.AddReferencedObjects( This->Instances, This );
+        if ( ThisHIAC->InstancedAsset && !ThisHIAC->InstancedAsset->IsPendingKill() )
+            Collector.AddReferencedObject( ThisHIAC->InstancedAsset, ThisHIAC );
+
+        Collector.AddReferencedObjects(ThisHIAC->Instances, ThisHIAC );
     }
 }
 
@@ -76,7 +79,7 @@ UHoudiniInstancedActorComponent::SetInstances( const TArray<FTransform>& Instanc
         GetOwner()->Modify();
         ClearInstances();
 
-        if( InstancedAsset )
+        if( InstancedAsset && !InstancedAsset->IsPendingKill() )
         {
             for( const FTransform& InstanceTransform : InstanceTransforms )
             {
@@ -94,7 +97,8 @@ UHoudiniInstancedActorComponent::SetInstances( const TArray<FTransform>& Instanc
 int32 
 UHoudiniInstancedActorComponent::AddInstance( const FTransform& InstanceTransform )
 {
-    if ( AActor * NewActor = SpawnInstancedActor( InstanceTransform ) )
+    AActor * NewActor = SpawnInstancedActor(InstanceTransform);
+    if ( NewActor && !NewActor->IsPendingKill() )
     {
         NewActor->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
         NewActor->SetActorRelativeTransform( InstanceTransform );
@@ -107,11 +111,17 @@ AActor*
 UHoudiniInstancedActorComponent::SpawnInstancedActor( const FTransform& InstancedTransform ) const
 {
 #if WITH_EDITOR
-    GEditor->ClickLocation = InstancedTransform.GetTranslation();
-    GEditor->ClickPlane = FPlane( GEditor->ClickLocation, FVector::UpVector );
-    TArray<AActor*> NewActors = FLevelEditorViewportClient::TryPlacingActorFromObject( GetOwner()->GetLevel(), InstancedAsset, false, RF_Transactional, nullptr );
-    if ( NewActors.Num() > 0 )
-        return NewActors[ 0 ];
+    if (InstancedAsset && !InstancedAsset->IsPendingKill())
+    {
+        GEditor->ClickLocation = InstancedTransform.GetTranslation();
+        GEditor->ClickPlane = FPlane(GEditor->ClickLocation, FVector::UpVector);
+        TArray<AActor*> NewActors = FLevelEditorViewportClient::TryPlacingActorFromObject(GetOwner()->GetLevel(), InstancedAsset, false, RF_Transactional, nullptr);
+        if (NewActors.Num() > 0)
+        {
+            if ( NewActors[0] && !NewActors[0]->IsPendingKill() )
+                return NewActors[0];
+        }
+    }
 #endif
     return nullptr;
 }
@@ -121,10 +131,8 @@ UHoudiniInstancedActorComponent::ClearInstances()
 {
     for ( AActor* Instance : Instances )
     {
-        if ( Instance )
-        {
+        if ( Instance && !Instance->IsPendingKill() )
             Instance->Destroy();
-        }
     }
     Instances.Empty();
 }
@@ -135,18 +143,33 @@ UHoudiniInstancedActorComponent::OnComponentCreated()
 {
     Super::OnComponentCreated();
 
-    // If our instances are parented to another actor we should duplicate them 
-    if ( Instances.Num() > 0 && Instances[ 0 ] && Instances[ 0 ]->GetAttachParentActor() != GetOwner() )
+    // If our instances are parented to another actor we should duplicate them
+    bool bNeedDuplicate = false;
+    for (auto CurrentInstance : Instances)
     {
-        TArray< AActor* > SourceInstances = Instances;
-        Instances.Empty();
-        for ( AActor* Instance : SourceInstances )
-        {
-            if ( Instance )
-            {
-                AddInstance( Instance->GetRootComponent()->GetRelativeTransform() );
-            }
-        }
+        if ( !CurrentInstance || CurrentInstance->IsPendingKill() )
+            continue;
+
+        if ( CurrentInstance->GetAttachParentActor() != GetOwner() )
+            bNeedDuplicate = true;
+    }
+
+    if ( !bNeedDuplicate )
+        return;
+
+    // We need to duplicate our instances
+    TArray< AActor* > SourceInstances = Instances;
+    Instances.Empty();
+    for ( AActor* CurrentInstance : SourceInstances )
+    {
+        if ( !CurrentInstance || CurrentInstance->IsPendingKill() )
+            continue;
+
+        FTransform InstanceTransform;
+        if ( CurrentInstance->GetRootComponent() )
+            InstanceTransform = CurrentInstance->GetRootComponent()->GetRelativeTransform();
+
+        AddInstance( InstanceTransform );
     }
 }
 
@@ -159,7 +182,8 @@ void UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
     UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( Component );
     UHoudiniMeshSplitInstancerComponent* MSIC = Cast<UHoudiniMeshSplitInstancerComponent>( Component );
 
-    check(ISMC || IAC || MSIC);
+    if(!ISMC && !IAC && !MSIC)
+        return;
 
     auto ProcessOffsets = [&]()
     {
@@ -194,7 +218,7 @@ void UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
         return ProcessedTransforms;
     };
 
-    if( ISMC )
+    if( ISMC && !ISMC->IsPendingKill() )
     {
         ISMC->ClearInstances();
         for( const auto& Transform : ProcessOffsets() )
@@ -202,11 +226,11 @@ void UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
             ISMC->AddInstance( Transform );
         }
     }
-    else if( IAC )
+    else if( IAC && !IAC->IsPendingKill() )
     {
         IAC->SetInstances( ProcessOffsets() );
     }
-    else if( MSIC )
+    else if( MSIC && !MSIC->IsPendingKill() )
     {
         MSIC->SetInstances( ProcessOffsets(), InstancedColors );
     }

@@ -138,7 +138,7 @@ FHoudiniLandscapeUtils::GetHeightfieldsLayersInArray(
         if ( !HoudiniGeoPartObject.IsVolume() )
             continue;
 
-        // Retrieve node id from geo part.	
+        // Retrieve node id from geo part.
         HAPI_NodeId NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId();
         if ( NodeId == -1 )
             continue;
@@ -724,7 +724,7 @@ FHoudiniLandscapeUtils::GetNonWeightBlendedLayerNames( const FHoudiniGeoPartObje
 //-------------------------------------------------------------------------------------------------------------------
 // From LandscapeEditorUtils.h
 //
-//	Helpers function for FHoudiniEngineUtils::ResizeHeightDataForLandscape
+//    Helpers function for FHoudiniEngineUtils::ResizeHeightDataForLandscape
 //-------------------------------------------------------------------------------------------------------------------
 template<typename T>
 void ExpandData( T* OutData, const T* InData,
@@ -1555,7 +1555,7 @@ FHoudiniLandscapeUtils::GetLandscapeLayerData(
         return false;
 
     FLandscapeInfoLayerSettings LayersSetting = LandscapeInfo->Layers[ LayerIndex ];
-	ULandscapeLayerInfoObject* LayerInfo = LayersSetting.LayerInfoObj;
+    ULandscapeLayerInfoObject* LayerInfo = LayersSetting.LayerInfoObj;
     if (!LayerInfo)
         return false;
 
@@ -1573,7 +1573,7 @@ FHoudiniLandscapeUtils::GetLandscapeLayerData(
     LayerUsageDebugColor = LayerInfo->LayerUsageDebugColor;
 
     LayerName = LayersSetting.GetLayerName().ToString();
-	
+
     return true;
 }
 #endif
@@ -1894,7 +1894,7 @@ FHoudiniLandscapeUtils::SetHeighfieldData(
 bool
 FHoudiniLandscapeUtils::CreateHeightfieldInputNode(
     const HAPI_NodeId& ParentNodeId, const FString& NodeName, const int32& XSize, const int32& YSize,
-    HAPI_NodeId& HeightfieldNodeId,	HAPI_NodeId& HeightNodeId, HAPI_NodeId& MaskNodeId, HAPI_NodeId& MergeNodeId )
+    HAPI_NodeId& HeightfieldNodeId, HAPI_NodeId& HeightNodeId, HAPI_NodeId& MaskNodeId, HAPI_NodeId& MergeNodeId )
 {
     // Make sure the Heightfield node doesnt already exists
     if (HeightfieldNodeId != -1)
@@ -2028,7 +2028,7 @@ FHoudiniLandscapeUtils::ExtractLandscapeData(
     TArray<FVector>& LandscapeNormalArray,
     TArray<FVector>& LandscapeUVArray, 
     TArray<FIntPoint>& LandscapeComponentVertexIndicesArray, 
-    TArray<const char *>& LandscapeComponentNameArray,	    
+    TArray<const char *>& LandscapeComponentNameArray,
     TArray<FLinearColor>& LandscapeLightmapValues )
 {
     if ( !LandscapeProxy )
@@ -3055,7 +3055,7 @@ ULandscapeLayerInfoObject *
 FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( FHoudiniCookParams& HoudiniCookParams, const TCHAR* LayerName, UPackage*& Package )
 {
     // Verifying HoudiniCookParams validity
-    if ( !HoudiniCookParams.HoudiniAsset )
+    if ( !HoudiniCookParams.HoudiniAsset || HoudiniCookParams.HoudiniAsset->IsPendingKill() )
         return nullptr;
 
     FString ComponentGUIDString = HoudiniCookParams.PackageGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDComponentNameLength );
@@ -3084,19 +3084,25 @@ FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( FHoudiniCookParams& Houd
     if ( !Package )
         return nullptr;
 
+    if ( !Package->IsFullyLoaded() )
+        Package->FullyLoad();
+
     ULandscapeLayerInfoObject* LayerInfo = NewObject<ULandscapeLayerInfoObject>( Package, LayerObjectName, RF_Public | RF_Standalone /*| RF_Transactional*/ );
-    LayerInfo->LayerName = LayerName;
+    if ( LayerInfo && !LayerInfo->IsPendingKill() )
+    {
+        LayerInfo->LayerName = LayerName;
 
-    // Notify the asset registry
-    FAssetRegistryModule::AssetCreated( LayerInfo );
+        // Notify the asset registry
+        FAssetRegistryModule::AssetCreated(LayerInfo);
 
-    // Trigger update of the Layer Info
-    LayerInfo->PreEditChange(nullptr);
-    LayerInfo->PostEditChange();
-    LayerInfo->MarkPackageDirty();
+        // Trigger update of the Layer Info
+        LayerInfo->PreEditChange(nullptr);
+        LayerInfo->PostEditChange();
+        LayerInfo->MarkPackageDirty();
 
-    // Mark the package dirty...
-    Package->MarkPackageDirty();
+        // Mark the package dirty...
+        Package->MarkPackageDirty();
+    }
 
     return LayerInfo;
 }

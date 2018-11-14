@@ -734,7 +734,7 @@ public:
         TWeakPtr< class SNotificationItem > NotificationPtr;
 
         /** Component from which this component has been copied. **/
-        UHoudiniAssetComponent * CopiedHoudiniComponent;
+        TWeakObjectPtr<UHoudiniAssetComponent> CopiedHoudiniComponent;
 
 #endif
 

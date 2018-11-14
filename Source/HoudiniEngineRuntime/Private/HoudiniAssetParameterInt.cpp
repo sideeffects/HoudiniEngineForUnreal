@@ -214,6 +214,9 @@ UHoudiniAssetParameterInt::GetValue( int32 Idx ) const
 void
 UHoudiniAssetParameterInt::SetValue( int32 InValue, int32 Idx, bool bTriggerModify, bool bRecordUndo )
 {
+    if (!Values.IsValidIndex(Idx))
+        return;
+
     if ( Values[ Idx ] != InValue )
     {
 

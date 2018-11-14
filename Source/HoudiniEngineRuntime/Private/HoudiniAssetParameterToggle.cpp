@@ -110,7 +110,7 @@ UHoudiniAssetParameterToggle::SetParameterVariantValue(
     EVariantTypes VariantType = Variant.GetType();
     int32 VariantValue = 0;
 
-    if ( Idx >= 0 && Idx < Values.Num() )
+    if ( !Values.IsValidIndex(Idx) )
         return false;
 
     switch ( VariantType )
@@ -177,8 +177,10 @@ UHoudiniAssetParameterToggle::Serialize( FArchive & Ar )
 void
 UHoudiniAssetParameterToggle::CheckStateChanged( ECheckBoxState NewState, int32 Idx )
 {
-    int32 bState = ( NewState == ECheckBoxState::Checked );
+    if (!Values.IsValidIndex(Idx))
+        return;
 
+    int32 bState = ( NewState == ECheckBoxState::Checked );
     if ( Values[ Idx ] != bState )
     {
         // Record undo information.

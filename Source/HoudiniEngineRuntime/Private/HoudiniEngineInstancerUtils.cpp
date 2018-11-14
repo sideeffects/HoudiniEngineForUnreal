@@ -502,7 +502,7 @@ FHoudiniEngineInstancerUtils::CreateInstancedStaticMeshComponent(
 }
 
 bool
-FHoudiniEngineInstancerUtils::CreateInstancedActorComponent(    
+FHoudiniEngineInstancerUtils::CreateInstancedActorComponent(
     UObject* InstancedObject,
     const TArray< FTransform >& InstancedObjectTransforms,
     const FHoudiniGeoPartObject& InstancerGeoPartObject,
@@ -511,7 +511,10 @@ FHoudiniEngineInstancerUtils::CreateInstancedActorComponent(
 {
     // Create the actor instancer component
     UHoudiniInstancedActorComponent * InstancedObjectComponent = NewObject< UHoudiniInstancedActorComponent >(
-	ParentComponent->GetOwner(), UHoudiniInstancedActorComponent::StaticClass(), NAME_None, RF_Transactional);
+        ParentComponent->GetOwner(), UHoudiniInstancedActorComponent::StaticClass(), NAME_None, RF_Transactional);
+
+    if ( !InstancedObjectComponent || InstancedObjectComponent->IsPendingKill() )
+        return false;
 
     InstancedObjectComponent->InstancedAsset = InstancedObject;
 

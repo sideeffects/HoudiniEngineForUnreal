@@ -102,7 +102,6 @@ FHoudiniAssetComponentDetails::CustomizeDetails( IDetailLayoutBuilder & DetailBu
         if ( ObjectsCustomized[ i ].IsValid() )
         {
             UObject * Object = ObjectsCustomized[ i ].Get();
-
             if( Object )
             {
                 UHoudiniAssetComponent * HoudiniAssetComponent = Cast< UHoudiniAssetComponent >( Object );
@@ -153,6 +152,9 @@ FHoudiniAssetComponentDetails::CustomizeDetails( IDetailLayoutBuilder & DetailBu
             IterComponents( HoudiniAssetComponents ); IterComponents; ++IterComponents )
         {
             UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
+            if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
+                continue;
+
             for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator
                 IterParams( HoudiniAssetComponent->Parameters ); IterParams; ++IterParams )
             {
@@ -176,11 +178,14 @@ FHoudiniAssetComponentDetails::CustomizeDetails( IDetailLayoutBuilder & DetailBu
             IterComponents( HoudiniAssetComponents ); IterComponents; ++IterComponents )
         {
             UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
+            if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
+                continue;
+
             for ( TArray< UHoudiniAssetInput * >::TIterator
                 IterInputs( HoudiniAssetComponent->Inputs ); IterInputs; ++IterInputs )
             {
                 UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
-                if( HoudiniAssetInput )
+                if( HoudiniAssetInput && !HoudiniAssetInput->IsPendingKill() )
                 {
                     FHoudiniParameterDetails::CreateWidget( DetailCategoryBuilder, HoudiniAssetInput );
                 }
@@ -196,9 +201,12 @@ FHoudiniAssetComponentDetails::CustomizeDetails( IDetailLayoutBuilder & DetailBu
             IterComponents( HoudiniAssetComponents ); IterComponents; ++IterComponents )
         {
             UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
+            if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
+                continue;
+
             for ( auto& InstanceInput : HoudiniAssetComponent->InstanceInputs )
             {
-                if ( InstanceInput )
+                if ( InstanceInput && !InstanceInput->IsPendingKill() )
                 {
                     FHoudiniParameterDetails::CreateWidget( DetailCategoryBuilder, InstanceInput );
                 }
@@ -242,6 +250,8 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
     {
         int32 MeshIdx = 0;
         UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
+        if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
+            continue;
 
         for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator
             IterMeshes( HoudiniAssetComponent->StaticMeshes ); IterMeshes; ++IterMeshes )
@@ -249,7 +259,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
             UStaticMesh * StaticMesh = IterMeshes.Value();
             FHoudiniGeoPartObject & HoudiniGeoPartObject = IterMeshes.Key();
 
-            if ( !StaticMesh )
+            if ( !StaticMesh || StaticMesh->IsPendingKill() )
                 continue;
 
             NumberOfGeneratedMeshes++;
@@ -1167,7 +1177,7 @@ FHoudiniAssetComponentDetails::OnThumbnailDoubleClick(
 FReply
 FHoudiniAssetComponentDetails::OnBakeStaticMesh( UStaticMesh * StaticMesh, UHoudiniAssetComponent * HoudiniAssetComponent )
 {
-    if ( HoudiniAssetComponent && StaticMesh )
+    if ( HoudiniAssetComponent && StaticMesh && !HoudiniAssetComponent->IsPendingKill() && !StaticMesh->IsPendingKill() )
     {
         // We need to locate corresponding geo part object in component.
         const FHoudiniGeoPartObject& HoudiniGeoPartObject = HoudiniAssetComponent->LocateGeoPartObject( StaticMesh );
@@ -1196,7 +1206,7 @@ FHoudiniAssetComponentDetails::OnBakeNameCommited( const FText& NewText, ETextCo
 FReply 
 FHoudiniAssetComponentDetails::OnRemoveBakingBaseNameOverride( UHoudiniAssetComponent * HoudiniAssetComponent, FHoudiniGeoPartObject GeoPartObject )
 {
-    if( HoudiniAssetComponent )
+    if( HoudiniAssetComponent && !HoudiniAssetComponent->IsPendingKill() )
     {
         if ( HoudiniAssetComponent->RemoveBakingBaseNameOverride( GeoPartObject ) )
             HoudiniAssetComponent->UpdateEditorProperties( false );
@@ -1207,9 +1217,11 @@ FHoudiniAssetComponentDetails::OnRemoveBakingBaseNameOverride( UHoudiniAssetComp
 FReply
 FHoudiniAssetComponentDetails::OnBakeLandscape(ALandscape * Landscape, UHoudiniAssetComponent * HoudiniAssetComponent)
 {
-    bool bNeedToUpdateProperties = false;
-    if ( HoudiniAssetComponent && Landscape )
-        bNeedToUpdateProperties = FHoudiniEngineBakeUtils::BakeLandscape( HoudiniAssetComponent, Landscape );
+    if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill()
+        || !Landscape || Landscape->IsPendingKill() )
+        return FReply::Handled();
+
+    bool bNeedToUpdateProperties = FHoudiniEngineBakeUtils::BakeLandscape( HoudiniAssetComponent, Landscape );
     
     // Modify the component GUID to avoid overwriting the layers
     if ( bNeedToUpdateProperties )
@@ -1227,6 +1239,8 @@ FHoudiniAssetComponentDetails::OnBakeAllGeneratedMeshes()
     if ( HoudiniAssetComponents.Num() > 0 )
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetComponents[ 0 ];
+        if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
+            return FReply::Handled();
 
         for( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator
             Iter(HoudiniAssetComponent->StaticMeshes); Iter; ++Iter )
@@ -1255,7 +1269,8 @@ FHoudiniAssetComponentDetails::OnRecookAsset()
     if ( HoudiniAssetComponents.Num() > 0 )
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetComponents[ 0 ];
-        HoudiniAssetComponent->StartTaskAssetCookingManual();
+        if ( HoudiniAssetComponent && !HoudiniAssetComponent->IsPendingKill() )
+            HoudiniAssetComponent->StartTaskAssetCookingManual();
     }
 
     return FReply::Handled();
@@ -1267,7 +1282,8 @@ FHoudiniAssetComponentDetails::OnRebuildAsset()
     if ( HoudiniAssetComponents.Num() > 0 )
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetComponents[ 0 ];
-        HoudiniAssetComponent->StartTaskAssetRebuildManual();
+        if ( HoudiniAssetComponent && !HoudiniAssetComponent->IsPendingKill() )
+            HoudiniAssetComponent->StartTaskAssetRebuildManual();
     }
 
     return FReply::Handled();
@@ -1279,7 +1295,8 @@ FHoudiniAssetComponentDetails::OnResetAsset()
     if ( HoudiniAssetComponents.Num() > 0 )
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetComponents[ 0 ];
-        HoudiniAssetComponent->StartTaskAssetResetManual();
+        if ( HoudiniAssetComponent && !HoudiniAssetComponent->IsPendingKill() )
+            HoudiniAssetComponent->StartTaskAssetResetManual();
     }
 
     return FReply::Handled();
@@ -1291,6 +1308,8 @@ FHoudiniAssetComponentDetails::OnBakeBlueprint()
     if ( HoudiniAssetComponents.Num() > 0 )
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetComponents[ 0 ];
+        if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
+            return FReply::Handled();
 
         // If component is not cooking or instancing, we can bake blueprint.
         if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
@@ -1306,6 +1325,8 @@ FHoudiniAssetComponentDetails::OnBakeBlueprintReplace()
     if ( HoudiniAssetComponents.Num() > 0 )
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetComponents[ 0 ];
+        if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
+            return FReply::Handled();
 
         // If component is not cooking or instancing, we can bake blueprint.
         if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
@@ -1321,6 +1342,8 @@ FHoudiniAssetComponentDetails::OnBakeToActors()
     if ( HoudiniAssetComponents.Num() > 0 )
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetComponents[ 0 ];
+        if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
+            return FReply::Handled();
 
         // If component is not cooking or instancing, we can bake.
         if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
@@ -1338,6 +1361,8 @@ FHoudiniAssetComponentDetails::OnBakeToInput()
     if ( HoudiniAssetComponents.Num() > 0 )
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetComponents[ 0 ];
+        if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
+            return FReply::Handled();
 
         // If component is not cooking or instancing, we can bake.
         if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
@@ -1352,7 +1377,7 @@ FHoudiniAssetComponentDetails::OnBakeToInput()
 void 
 FHoudiniAssetComponentDetails::OnBakeFolderSelected( const FString& Folder )
 {
-    if( HoudiniAssetComponents.Num() && HoudiniAssetComponents[ 0 ] )
+    if( HoudiniAssetComponents.Num() && HoudiniAssetComponents[ 0 ] && !HoudiniAssetComponents[0]->IsPendingKill() )
     {
         HoudiniAssetComponents[ 0 ]->SetBakeFolder( Folder );
     }
@@ -1362,7 +1387,7 @@ FText
 FHoudiniAssetComponentDetails::GetBakeFolderText() const
 {
     FText BakeFolderText;
-    if( HoudiniAssetComponents.Num() && HoudiniAssetComponents[ 0 ] )
+    if( HoudiniAssetComponents.Num() && HoudiniAssetComponents[ 0 ] && !HoudiniAssetComponents[0]->IsPendingKill() )
     {
         BakeFolderText = HoudiniAssetComponents[ 0 ]->GetBakeFolder();
     }
@@ -1373,7 +1398,7 @@ FText
 FHoudiniAssetComponentDetails::GetTempCookFolderText() const
 {
     FText TempCookFolderText;
-    if (HoudiniAssetComponents.Num() && HoudiniAssetComponents[0])
+    if (HoudiniAssetComponents.Num() && HoudiniAssetComponents[0] && !HoudiniAssetComponents[0]->IsPendingKill() )
     {
         TempCookFolderText = HoudiniAssetComponents[0]->GetTempCookFolder();
     }
@@ -1478,7 +1503,13 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
     FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx )
 {
     UMaterialInterface * MaterialInterface = Cast< UMaterialInterface >( InObject );
-    if ( !MaterialInterface )
+    if ( !MaterialInterface || MaterialInterface->IsPendingKill() )
+        return;
+
+    if ( !StaticMesh || StaticMesh->IsPendingKill() )
+        return;
+
+    if ( !StaticMesh->StaticMaterials.IsValidIndex(MaterialIdx) )
         return;
 
     bool bViewportNeedsUpdate = false;
@@ -1488,11 +1519,12 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
         IterComponents( HoudiniAssetComponents ); IterComponents; ++IterComponents )
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
-        if ( !HoudiniAssetComponent )
+        if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
             continue;
 
         // Retrieve material interface which is being replaced.
         UMaterialInterface * OldMaterialInterface = StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface;
+
         if ( OldMaterialInterface == MaterialInterface )
             continue;
 
@@ -1513,7 +1545,7 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
 
             UStaticMeshComponent * StaticMeshComponent =
                 HoudiniAssetComponent->LocateStaticMeshComponent( StaticMesh );
-            if ( StaticMeshComponent )
+            if ( StaticMeshComponent && !StaticMeshComponent->IsPendingKill() )
             {
                 StaticMeshComponent->Modify();
                 StaticMeshComponent->SetMaterial( MaterialIdx, MaterialInterface );
@@ -1527,7 +1559,7 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
                 for ( int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx )
                 {
                     UInstancedStaticMeshComponent * InstancedStaticMeshComponent = InstancedStaticMeshComponents[ Idx ];
-                    if ( InstancedStaticMeshComponent )
+                    if ( InstancedStaticMeshComponent && !InstancedStaticMeshComponent->IsPendingKill() )
                     {
                         InstancedStaticMeshComponent->Modify();
                         InstancedStaticMeshComponent->SetMaterial( MaterialIdx, MaterialInterface );
@@ -1555,7 +1587,7 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
     FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx)
 {
     UMaterialInterface * MaterialInterface = Cast< UMaterialInterface >( InObject );
-    if (!MaterialInterface)
+    if (!MaterialInterface || MaterialInterface->IsPendingKill() )
         return;
 
     bool bViewportNeedsUpdate = false;
@@ -1565,11 +1597,11 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
         IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
-        if (!HoudiniAssetComponent)
+        if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
             continue;
 
         TWeakObjectPtr<ALandscape>* FoundLandscape = HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject );
-        if ( !FoundLandscape )
+        if ( !FoundLandscape || !FoundLandscape->IsValid() )
             continue;
 
         if ( FoundLandscape->Get() != Landscape )

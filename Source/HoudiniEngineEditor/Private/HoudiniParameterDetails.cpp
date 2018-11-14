@@ -88,25 +88,25 @@
 void
 FHoudiniParameterDetails::CreateNameWidget( UHoudiniAssetParameter* InParam, FDetailWidgetRow & Row, bool WithLabel )
 {
-    if ( !InParam )
+    if ( !InParam || InParam->IsPendingKill() )
         return;
 
     FText ParameterLabelText = FText::FromString( InParam->GetParameterLabel() );
     const FText & FinalParameterLabelText = WithLabel ? ParameterLabelText : FText::GetEmpty();
 
     FText ParameterTooltip = GetParameterTooltip( InParam );
-    if ( InParam->bIsChildOfMultiparm && InParam->ParentParameter )
+    if ( InParam->bIsChildOfMultiparm && InParam->ParentParameter && !InParam->ParentParameter->IsPendingKill() )
     {
         TSharedRef< SHorizontalBox > HorizontalBox = SNew( SHorizontalBox );
 
         // We have to make sure the ParentParameter is a multiparm, as folders will cause issues here
         // ( we want to call RemoveMultiParmInstance or AddMultiParmInstance on the parent multiparm, not just the parent)
         UHoudiniAssetParameter * ParentMultiparm = InParam->ParentParameter;
-        while ( ParentMultiparm && !ParentMultiparm->bIsMultiparm )
+        while ( ParentMultiparm && !ParentMultiparm->IsPendingKill() && !ParentMultiparm->bIsMultiparm )
             ParentMultiparm = ParentMultiparm->ParentParameter;
 
         // Failed to find the multiparm parent, better have the original parent than nullptr
-        if ( !ParentMultiparm )
+        if ( !ParentMultiparm || ParentMultiparm->IsPendingKill() )
             ParentMultiparm = InParam->ParentParameter;
 
         TSharedRef< SWidget > ClearButton = PropertyCustomizationHelpers::MakeClearButton(
@@ -191,7 +191,8 @@ FHoudiniParameterDetails::GetParameterTooltip( UHoudiniAssetParameter* InParam )
 void 
 FHoudiniParameterDetails::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder, UHoudiniAssetParameter* InParam )
 {
-    check( InParam );
+    if( !InParam || InParam->IsPendingKill() )
+        return;
 
     if ( auto ParamFloat = Cast<UHoudiniAssetParameterFloat>( InParam ) )
     {
@@ -337,11 +338,15 @@ FHoudiniParameterDetails::CreateWidgetFile( IDetailCategoryBuilder & LocalDetail
 void
 FHoudiniParameterDetails::CreateWidgetFolder( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterFolder& InParam )
 {
-    if ( InParam.ParentParameter && InParam.ParentParameter->IsActiveChildParameter( &InParam ) )
+    if ( InParam.ParentParameter && !InParam.ParentParameter->IsPendingKill() && InParam.ParentParameter->IsActiveChildParameter( &InParam ) )
     {
         // Recursively create all child parameters.
         for ( UHoudiniAssetParameter * ChildParam : InParam.ChildParameters )
-            FHoudiniParameterDetails::CreateWidget( LocalDetailCategoryBuilder, ChildParam );
+        {
+            if ( ChildParam && !ChildParam->IsPendingKill() )
+                FHoudiniParameterDetails::CreateWidget(LocalDetailCategoryBuilder, ChildParam);
+        }
+        
     }
 }
 
@@ -359,6 +364,9 @@ FHoudiniParameterDetails::CreateWidgetFolderList( IDetailCategoryBuilder & Local
     for ( int32 ParameterIdx = 0; ParameterIdx < InParam.ChildParameters.Num(); ++ParameterIdx )
     {
         UHoudiniAssetParameter * HoudiniAssetParameterChild = InParam.ChildParameters[ ParameterIdx ];
+        if ( !HoudiniAssetParameterChild || HoudiniAssetParameterChild->IsPendingKill() )
+            continue;
+
         if ( HoudiniAssetParameterChild->IsA( UHoudiniAssetParameterFolder::StaticClass() ) )
         {
             FText ParameterLabelText = FText::FromString( HoudiniAssetParameterChild->GetParameterLabel() );
@@ -384,8 +392,11 @@ FHoudiniParameterDetails::CreateWidgetFolderList( IDetailCategoryBuilder & Local
     }
 
     // Recursively create all child parameters.
-    for ( UHoudiniAssetParameter * ChildParam : InParam.ChildParameters )
-        FHoudiniParameterDetails::CreateWidget( LocalDetailCategoryBuilder, ChildParam );
+    for (UHoudiniAssetParameter * ChildParam : InParam.ChildParameters)
+    {
+        if ( ChildParam && !ChildParam->IsPendingKill() )
+            FHoudiniParameterDetails::CreateWidget(LocalDetailCategoryBuilder, ChildParam);
+    }
 
     if ( InParam.ChildParameters.Num() > 1 )
     {
@@ -459,7 +470,8 @@ FHoudiniParameterDetails::CreateWidgetMultiparm( IDetailCategoryBuilder & LocalD
 
     // Recursively create all child parameters.
     for ( UHoudiniAssetParameter * ChildParam : InParam.ChildParameters )
-        FHoudiniParameterDetails::CreateWidget( LocalDetailCategoryBuilder, ChildParam );
+        if ( ChildParam && !ChildParam->IsPendingKill() )
+            FHoudiniParameterDetails::CreateWidget( LocalDetailCategoryBuilder, ChildParam );
 }
 
 /** We need to inherit from curve editor in order to get subscription to mouse events. **/
@@ -699,7 +711,8 @@ FHoudiniParameterDetails::CreateWidgetRamp( IDetailCategoryBuilder & LocalDetail
 
     // Recursively create all child parameters.
     for ( UHoudiniAssetParameter * ChildParam : InParam.ChildParameters )
-        FHoudiniParameterDetails::CreateWidget( LocalDetailCategoryBuilder, ChildParam );
+        if ( ChildParam && !ChildParam->IsPendingKill() )
+            FHoudiniParameterDetails::CreateWidget( LocalDetailCategoryBuilder, ChildParam );
 }
 
 void 
@@ -1130,6 +1143,8 @@ void
 FHoudiniParameterDetails::CreateWidgetInstanceInput( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetInstanceInput& InParam )
 {
     TWeakObjectPtr<UHoudiniAssetInstanceInput> MyParam(&InParam);
+    if (!MyParam.IsValid())
+        return;
 
     // Get thumbnail pool for this builder.
     IDetailLayoutBuilder & DetailLayoutBuilder = LocalDetailCategoryBuilder.GetParentLayout();
@@ -1144,12 +1159,14 @@ FHoudiniParameterDetails::CreateWidgetInstanceInput( IDetailCategoryBuilder & Lo
     for ( int32 FieldIdx = 0; FieldIdx < FieldCount; ++FieldIdx )
     {
         UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = InParam.InstanceInputFields[ FieldIdx ];
-        const int32 VariationCount = HoudiniAssetInstanceInputField->InstanceVariationCount();
+        if ( !HoudiniAssetInstanceInputField || HoudiniAssetInstanceInputField->IsPendingKill() )
+            continue;
 
+        const int32 VariationCount = HoudiniAssetInstanceInputField->InstanceVariationCount();
         for( int32 VariationIdx = 0; VariationIdx < VariationCount; VariationIdx++ )
         {
             UObject * InstancedObject = HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx );
-            if ( !InstancedObject )
+            if ( !InstancedObject || InstancedObject->IsPendingKill() )
             {
                 HOUDINI_LOG_WARNING( TEXT("Null Object found for instance variation %d"), VariationIdx );
                 continue;
@@ -1809,7 +1826,7 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
         ];
 
         // Scale
-	VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
+        VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
         [
             SNew( SHorizontalBox )
             +SHorizontalBox::Slot()
@@ -2585,7 +2602,7 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
         ];
 
         // Checkboxes : Export Landscape As
-        //		Heightfield Mesh Points
+        //              Heightfield Mesh Points
         {
             // Label
             VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()

@@ -254,9 +254,10 @@ UHoudiniAssetParameterFile::UpdateCheckRelativePath( const FString & PickedPath 
 {
     if ( PrimaryObject && !PickedPath.IsEmpty() && FPaths::IsRelative( PickedPath ) )
     {
-        if ( UHoudiniAssetComponent* Comp = Cast<UHoudiniAssetComponent>(PrimaryObject) )
+        UHoudiniAssetComponent* Comp = Cast<UHoudiniAssetComponent>(PrimaryObject);
+        if ( Comp && !Comp->IsPendingKill() )
         {
-            if( Comp->HoudiniAsset )
+            if( Comp->HoudiniAsset && !Comp->HoudiniAsset->IsPendingKill() )
             {
                 FString AssetFilePath = FPaths::GetPath( Comp->HoudiniAsset->AssetFileName );
                 if( FPaths::FileExists( AssetFilePath ) )
@@ -277,7 +278,7 @@ UHoudiniAssetParameterFile::UpdateCheckRelativePath( const FString & PickedPath 
 const FString &
 UHoudiniAssetParameterFile::GetParameterValue( int32 Idx, const FString & DefaultValue ) const
 {
-    if ( Idx < Values.Num() )
+    if ( Values.IsValidIndex(Idx) )
         return Values[ Idx ];
 
     return DefaultValue;
@@ -286,7 +287,7 @@ UHoudiniAssetParameterFile::GetParameterValue( int32 Idx, const FString & Defaul
 void
 UHoudiniAssetParameterFile::SetParameterValue( const FString& InValue, int32 Idx, bool bTriggerModify, bool bRecordUndo )
 {
-    if ( Idx >= Values.Num() )
+    if ( !Values.IsValidIndex(Idx) )
         return;
 
     if ( Values[ Idx ] != InValue )

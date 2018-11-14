@@ -72,6 +72,9 @@ UHoudiniAssetInstanceInput::Create(
         UHoudiniAssetInstanceInput::StaticClass(),
         NAME_None, RF_Public | RF_Transactional );
 
+    if ( !NewInstanceInput || NewInstanceInput->IsPendingKill() )
+        return nullptr;
+
     NewInstanceInput->PrimaryObject = InPrimaryObject;
     NewInstanceInput->HoudiniGeoPartObject = InHoudiniGeoPartObject;
     NewInstanceInput->SetNameAndLabel( InHoudiniGeoPartObject.ObjectName );
@@ -97,7 +100,7 @@ UHoudiniAssetInstanceInput::GetInstancerFlags(const FHoudiniGeoPartObject & InHo
     Flags.bIsAttributeInstancer = InHoudiniGeoPartObject.IsAttributeInstancer();
 
     // Check if this is an attribute override instancer (on detail or point).
-    Flags.bAttributeInstancerOverride =	InHoudiniGeoPartObject.IsAttributeOverrideInstancer();
+    Flags.bAttributeInstancerOverride = InHoudiniGeoPartObject.IsAttributeOverrideInstancer();
 
     // Check if this is a No-Instancers ( unreal_split_instances )
     Flags.bIsSplitMeshInstancer =
@@ -111,8 +114,14 @@ UHoudiniAssetInstanceInput::Create(
     UHoudiniAssetComponent * InPrimaryObject,
     const UHoudiniAssetInstanceInput * OtherInstanceInput )
 {
+    if (!InPrimaryObject || InPrimaryObject->IsPendingKill() )
+        return nullptr;
+
     UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = 
         DuplicateObject( OtherInstanceInput, InPrimaryObject );
+
+    if (!HoudiniAssetInstanceInput || HoudiniAssetInstanceInput->IsPendingKill())
+        return nullptr;
 
     // We need to duplicate field objects manually
     HoudiniAssetInstanceInput->InstanceInputFields.Empty();
@@ -120,6 +129,9 @@ UHoudiniAssetInstanceInput::Create(
     {
         UHoudiniAssetInstanceInputField * NewField =
             UHoudiniAssetInstanceInputField::Create( InPrimaryObject, OtherField );
+
+        if (!NewField || NewField->IsPendingKill())
+            continue;
 
         HoudiniAssetInstanceInput->InstanceInputFields.Add( NewField );
     }
@@ -131,7 +143,7 @@ UHoudiniAssetInstanceInput::Create(
 bool
 UHoudiniAssetInstanceInput::CreateInstanceInput()
 {
-    if ( !PrimaryObject )
+    if ( !PrimaryObject || PrimaryObject->IsPendingKill() )
         return false;
 
     HAPI_NodeId AssetId = GetAssetId();
@@ -153,9 +165,9 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
             &PartInfo ), false );
 
         // Retrieve part name.
-        FString PartName;
-        FHoudiniEngineString HoudiniEngineStringPartName( PartInfo.nameSH );
-        HoudiniEngineStringPartName.ToFString( PartName );
+        //FString PartName;
+        //FHoudiniEngineString HoudiniEngineStringPartName( PartInfo.nameSH );
+        //HoudiniEngineStringPartName.ToFString( PartName );
 
         //HOUDINI_LOG_MESSAGE( TEXT( "Part Instancer (%s): IPC=%d, IC=%d" ), *PartName, PartInfo.instancedPartCount, PartInfo.instanceCount );
 
@@ -194,6 +206,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
             //
             FHoudiniGeoPartObject InstancedPart( HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, InstancedPartId );
             InstancedPart.TransformMatrix = HoudiniGeoPartObject.TransformMatrix;
+            InstancedPart.UpdateCustomName();
             CreateInstanceInputField( InstancedPart, ObjectTransforms, InstanceInputFields, NewInstanceInputFields );
         }
     }
@@ -212,7 +225,8 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
         TArray< FTransform > InstanceTransforms;
         for ( int32 InstancedObjectId : UniqueInstancedObjectIds )
         {
-            if( UHoudiniAssetComponent* Comp = GetHoudiniAssetComponent() )
+            UHoudiniAssetComponent* Comp = GetHoudiniAssetComponent();
+            if( Comp && !Comp->IsPendingKill() )
             {
                 TArray< FHoudiniGeoPartObject > PartsToInstance;
                 if( Comp->LocateStaticMeshes( InstancedObjectId, PartsToInstance ) )
@@ -232,6 +246,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
                     {
                         // Change the transform of the part being instanced to match the instancer
                         Part.TransformMatrix = HoudiniGeoPartObject.TransformMatrix;
+                        Part.UpdateCustomName();
                         CreateInstanceInputField( Part, InstanceTransforms, InstanceInputFields, NewInstanceInputFields );
                     }
                 }
@@ -241,7 +256,6 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
     else if ( Flags.bAttributeInstancerOverride )
     {
         // This is an attribute override. Unreal mesh is specified through an attribute and we use points.
-
         std::string MarshallingAttributeInstanceOverride = HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE;
         UHoudiniRuntimeSettings::GetSettingsValue(
             TEXT( "MarshallingAttributeInstanceOverride" ),
@@ -251,8 +265,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
         FMemory::Memzero< HAPI_AttributeInfo >( ResultAttributeInfo );
 
         if ( !HoudiniGeoPartObject.HapiGetAttributeInfo(
-            AssetId, MarshallingAttributeInstanceOverride,
-            ResultAttributeInfo ) )
+            AssetId, MarshallingAttributeInstanceOverride, ResultAttributeInfo ) )
         {
             // We had an error while retrieving the attribute info.
             return false;
@@ -267,9 +280,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
         if ( ResultAttributeInfo.owner == HAPI_ATTROWNER_DETAIL )
         {
             // Attribute is on detail, this means it gets applied to all points.
-
             TArray< FString > DetailInstanceValues;
-
             if ( !HoudiniGeoPartObject.HapiGetAttributeDataAsString(
                 AssetId, MarshallingAttributeInstanceOverride,
                 HAPI_ATTROWNER_DETAIL, ResultAttributeInfo, DetailInstanceValues ) )
@@ -278,7 +289,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
                 return false;
             }
 
-            if ( DetailInstanceValues.Num() == 0 )
+            if ( DetailInstanceValues.Num() <= 0 )
             {
                 // No values specified.
                 return false;
@@ -290,11 +301,10 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
                 StaticLoadObject( 
                     UObject::StaticClass(), nullptr, *AssetName, nullptr, LOAD_None, nullptr );
 
-            if ( AttributeObject )
+            if ( AttributeObject && !AttributeObject->IsPendingKill() )
             {
                 CreateInstanceInputField(
-                    AttributeObject, AllTransforms, InstanceInputFields,
-                    NewInstanceInputFields );
+                    AttributeObject, AllTransforms, InstanceInputFields, NewInstanceInputFields );
             }
             else
             {
@@ -304,7 +314,6 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
         else if ( ResultAttributeInfo.owner == HAPI_ATTROWNER_POINT )
         {
             TArray< FString > PointInstanceValues;
-
             if ( !HoudiniGeoPartObject.HapiGetAttributeDataAsString(
                 AssetId, MarshallingAttributeInstanceOverride,
                 HAPI_ATTROWNER_POINT, ResultAttributeInfo, PointInstanceValues ) )
@@ -332,7 +341,8 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
                     UObject * AttributeObject = StaticLoadObject( 
                         UObject::StaticClass(), nullptr, *UniqueName, nullptr, LOAD_None, nullptr );
 
-                    ObjectsToInstance.Add( UniqueName, AttributeObject );
+                    if ( AttributeObject && !AttributeObject->IsPendingKill() )
+                        ObjectsToInstance.Add( UniqueName, AttributeObject );
                 }
             }
 
@@ -343,7 +353,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
                 const FString & InstancePath = Iter.Key;
                 UObject * AttributeObject = Iter.Value;
 
-                if ( AttributeObject )
+                if ( AttributeObject && !AttributeObject->IsPendingKill() )
                 {
                     TArray< FTransform > ObjectTransforms;
                     GetPathInstaceTransforms( InstancePath, PointInstanceValues, AllTransforms, ObjectTransforms );
@@ -368,7 +378,8 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
         TArray< FHoudiniGeoPartObject > ObjectsToInstance;
         if( UHoudiniAssetComponent* Comp = GetHoudiniAssetComponent() )
         {
-            Comp->LocateStaticMeshes( ObjectToInstanceId, ObjectsToInstance );
+            if ( !Comp->IsPendingKill() )
+                Comp->LocateStaticMeshes( ObjectToInstanceId, ObjectsToInstance );
         }
 
         // Process each existing detected object that needs to be instanced.
@@ -378,6 +389,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 
             // Change the transform of the part being instanced to match the instancer
             ItemHoudiniGeoPartObject.TransformMatrix = HoudiniGeoPartObject.TransformMatrix;
+            ItemHoudiniGeoPartObject.UpdateCustomName();
 
             // Locate or create an input field.
             CreateInstanceInputField(
@@ -401,6 +413,8 @@ UHoudiniAssetInstanceInput::LocateInputField(
     for ( int32 FieldIdx = 0; FieldIdx < InstanceInputFields.Num(); ++FieldIdx )
     {
         UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = InstanceInputFields[ FieldIdx ];
+        if (!HoudiniAssetInstanceInputField || HoudiniAssetInstanceInputField->IsPendingKill())
+            continue;
 
         if ( HoudiniAssetInstanceInputField->GetHoudiniGeoPartObject().GetNodePath() == GeoPartObject.GetNodePath() )
         {
@@ -419,7 +433,7 @@ UHoudiniAssetInstanceInput::CleanInstanceInputFields( TArray< UHoudiniAssetInsta
     for ( int32 FieldIdx = 0; FieldIdx < InstanceInputFields.Num(); ++FieldIdx )
     {
         UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = InstanceInputFields[ FieldIdx ];
-        if ( HoudiniAssetInstanceInputField)
+        if ( HoudiniAssetInstanceInputField && !HoudiniAssetInstanceInputField->IsPendingKill() )
             HoudiniAssetInstanceInputField->ConditionalBeginDestroy();
     }
 
@@ -454,24 +468,29 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
     TArray<UHoudiniAssetInstanceInputField * > & NewInstanceInputFields)
 {
     UHoudiniAssetComponent* Comp = GetHoudiniAssetComponent();
-    UStaticMesh * StaticMesh = Comp ? Comp->LocateStaticMesh( InHoudiniGeoPartObject, false ) : nullptr;
+    UStaticMesh * StaticMesh = nullptr;
+    if ( Comp && !Comp->IsPendingKill() )
+        StaticMesh = Comp->LocateStaticMesh(InHoudiniGeoPartObject, false);
 
     // Locate static mesh for this geo part.  
-    if ( StaticMesh )
+    if ( StaticMesh && !StaticMesh->IsPendingKill() )
     {
         // Locate corresponding input field.
         UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField =
             LocateInputField( InHoudiniGeoPartObject );
 
-        if ( !HoudiniAssetInstanceInputField )
+        if ( !HoudiniAssetInstanceInputField || HoudiniAssetInstanceInputField->IsPendingKill() )
         {
             // Input field does not exist, we need to create it.
             HoudiniAssetInstanceInputField = UHoudiniAssetInstanceInputField::Create(
                 PrimaryObject, this, InHoudiniGeoPartObject );
 
-            // Assign original and static mesh.
-            HoudiniAssetInstanceInputField->OriginalObject = StaticMesh;
-            HoudiniAssetInstanceInputField->AddInstanceVariation( StaticMesh, 0 );
+            if (HoudiniAssetInstanceInputField && !HoudiniAssetInstanceInputField->IsPendingKill())
+            {
+                // Assign original and static mesh.
+                HoudiniAssetInstanceInputField->OriginalObject = StaticMesh;
+                HoudiniAssetInstanceInputField->AddInstanceVariation(StaticMesh, 0);
+            }
         }
         else
         {
@@ -482,7 +501,6 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
             InstanceInputFields.RemoveSingleSwap( HoudiniAssetInstanceInputField, false );
 
             TArray< int > MatchingIndices;
-
             HoudiniAssetInstanceInputField->FindObjectIndices(
                 HoudiniAssetInstanceInputField->GetOriginalObject(),
                 MatchingIndices );
@@ -496,12 +514,15 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
             HoudiniAssetInstanceInputField->OriginalObject = StaticMesh;
         }
 
-        // Set transforms for this input.
-        HoudiniAssetInstanceInputField->SetInstanceTransforms( ObjectTransforms );
-        HoudiniAssetInstanceInputField->UpdateInstanceUPropertyAttributes();
+        if ( HoudiniAssetInstanceInputField && !HoudiniAssetInstanceInputField->IsPendingKill() )
+        {
+            // Set transforms for this input.
+            HoudiniAssetInstanceInputField->SetInstanceTransforms(ObjectTransforms);
+            HoudiniAssetInstanceInputField->UpdateInstanceUPropertyAttributes();
 
-        // Add field to list of fields.
-        NewInstanceInputFields.Add( HoudiniAssetInstanceInputField );
+            // Add field to list of fields.
+            NewInstanceInputFields.Add(HoudiniAssetInstanceInputField);
+        }
     }
     else if ( InHoudiniGeoPartObject.IsPackedPrimitiveInstancer() )
     {
@@ -547,7 +568,8 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
             
             // find static mesh for this instancer
             FHoudiniGeoPartObject TempInstancedPart( InHoudiniGeoPartObject.AssetId, InHoudiniGeoPartObject.ObjectId, InHoudiniGeoPartObject.GeoId, InstancedPartId );
-            if ( UStaticMesh* FoundStaticMesh = Comp->LocateStaticMesh( TempInstancedPart, false ) )
+            UStaticMesh* FoundStaticMesh = Comp->LocateStaticMesh(TempInstancedPart, false);
+            if ( FoundStaticMesh && !FoundStaticMesh->IsPendingKill() )
             {
                 // Build the list of transforms for this instancer
                 TArray< FTransform > AllTransforms;
@@ -597,7 +619,6 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
         InstanceInputFields.RemoveSingleSwap( HoudiniAssetInstanceInputField, false );
 
         TArray< int32 > MatchingIndices;
-
         HoudiniAssetInstanceInputField->FindObjectIndices(
             HoudiniAssetInstanceInputField->GetOriginalObject(),
             MatchingIndices );
@@ -697,20 +718,35 @@ UHoudiniAssetInstanceInput::OnRemoveInstanceVariation( UHoudiniAssetInstanceInpu
 
 FString UHoudiniAssetInstanceInput::GetFieldLabel( int32 FieldIdx, int32 VariationIdx ) const
 {
-    FString FieldNameText;
+    FString FieldNameText = FString();
+    if (!InstanceInputFields.IsValidIndex(FieldIdx))
+        return FieldNameText;
+
     UHoudiniAssetInstanceInputField * Field = InstanceInputFields[ FieldIdx ];
+    if ( !Field || Field->IsPendingKill() )
+        return FieldNameText;
+
     if ( Flags.bIsPackedPrimitiveInstancer )
     {
-        FieldNameText = Field->GetHoudiniGeoPartObject().GetNodePath();
+        if ( Field->GetHoudiniGeoPartObject().HasCustomName() )
+            FieldNameText = Field->GetHoudiniGeoPartObject().PartName;
+        else
+            FieldNameText = Field->GetHoudiniGeoPartObject().GetNodePath();
     }
     else if ( Flags.bAttributeInstancerOverride )
     {
-        FieldNameText = HoudiniGeoPartObject.GetNodePath() + TEXT( "/Override_" ) + FString::FromInt( FieldIdx );
+        if ( HoudiniGeoPartObject.HasCustomName() )
+            FieldNameText =  HoudiniGeoPartObject.PartName;
+        else
+            FieldNameText = HoudiniGeoPartObject.GetNodePath() + TEXT( "/Override_" ) + FString::FromInt( FieldIdx );
     }
     else
     {
         // For object-instancers we use the instancer's name as well
-        FieldNameText = HoudiniGeoPartObject.GetNodePath() + TEXT( "/" ) + Field->GetHoudiniGeoPartObject().ObjectName;
+        if (HoudiniGeoPartObject.HasCustomName())
+            FieldNameText = HoudiniGeoPartObject.PartName;
+        else
+            FieldNameText = HoudiniGeoPartObject.GetNodePath() + TEXT( "/" ) + Field->GetHoudiniGeoPartObject().ObjectName;
     }
 
     if ( Field->InstanceVariationCount() > 1 )
@@ -768,7 +804,7 @@ void
 UHoudiniAssetInstanceInput::AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector )
 {
     UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = Cast< UHoudiniAssetInstanceInput >( InThis );
-    if ( HoudiniAssetInstanceInput )
+    if ( HoudiniAssetInstanceInput && !HoudiniAssetInstanceInput->IsPendingKill() )
     {
         // Add references to all used fields.
         for ( int32 Idx = 0; Idx < HoudiniAssetInstanceInput->InstanceInputFields.Num(); ++Idx )
@@ -776,7 +812,8 @@ UHoudiniAssetInstanceInput::AddReferencedObjects( UObject * InThis, FReferenceCo
             UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField =
                 HoudiniAssetInstanceInput->InstanceInputFields[ Idx ];
 
-            Collector.AddReferencedObject( HoudiniAssetInstanceInputField, InThis );
+            if ( HoudiniAssetInstanceInputField && !HoudiniAssetInstanceInputField->IsPendingKill() )
+                Collector.AddReferencedObject( HoudiniAssetInstanceInputField, InThis );
         }
     }
 
@@ -789,13 +826,17 @@ UHoudiniAssetInstanceInput::AddReferencedObjects( UObject * InThis, FReferenceCo
 void
 UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
 {
-    USceneComponent * RootComponent = Actor->GetRootComponent();
+    if (!Actor || Actor->IsPendingKill())
+        return;
 
+    USceneComponent * RootComponent = Actor->GetRootComponent();
     TMap< const UStaticMesh*, UStaticMesh* > OriginalToBakedMesh;
 
     for ( int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx )
     {
         UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = InstanceInputFields[ Idx ];
+        if ( !HoudiniAssetInstanceInputField || HoudiniAssetInstanceInputField->IsPendingKill() )
+            continue;
 
         for ( int32 VariationIdx = 0;
             VariationIdx < HoudiniAssetInstanceInputField->InstanceVariationCount(); VariationIdx++ )
@@ -805,140 +846,169 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
             UHoudiniMeshSplitInstancerComponent * MSIC =
                 Cast<UHoudiniMeshSplitInstancerComponent>( HoudiniAssetInstanceInputField->GetInstancedComponent( VariationIdx ) );
 
-            if ( !ISMC && !MSIC )
+            if ( ( !ISMC || ISMC->IsPendingKill() ) && ( !MSIC || MSIC->IsPendingKill() ) )
             {
-                if( UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( HoudiniAssetInstanceInputField->GetInstancedComponent( VariationIdx )) )
-                {
-                    if( !IAC->InstancedAsset )
-                        continue;
+                UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>(HoudiniAssetInstanceInputField->GetInstancedComponent(VariationIdx));
+                if ( !IAC || IAC->IsPendingKill() || !IAC->InstancedAsset )
+                    continue;
 
-                    UClass* ObjectClass = IAC->InstancedAsset->GetClass();
+                UClass* ObjectClass = IAC->InstancedAsset->GetClass();
+                if ( !ObjectClass || ObjectClass->IsPendingKill() )
+                    continue;
                     
-                    TSubclassOf<AActor> ActorClass;
-
-                    if( ObjectClass->IsChildOf<AActor>() )
-                    {
-                        ActorClass = ObjectClass;
-                    }
-                    else if( ObjectClass->IsChildOf<UBlueprint>() )
-                    {
-                        UBlueprint* BlueprintObj = StaticCast<UBlueprint*>( IAC->InstancedAsset );
+                TSubclassOf<AActor> ActorClass;
+                if( ObjectClass->IsChildOf<AActor>() )
+                {
+                    ActorClass = ObjectClass;
+                }
+                else if( ObjectClass->IsChildOf<UBlueprint>() )
+                {
+                    UBlueprint* BlueprintObj = StaticCast<UBlueprint*>( IAC->InstancedAsset );
+                    if ( BlueprintObj && !BlueprintObj->IsPendingKill() )
                         ActorClass = *BlueprintObj->GeneratedClass;
-                    }
+                }
 
-                    if( *ActorClass )
+                if( *ActorClass )
+                {
+                    for( AActor* InstancedActor : IAC->Instances )
                     {
-                        for( AActor* InstancedActor : IAC->Instances )
-                        {
-                            if( InstancedActor )
-                            {
-                                UChildActorComponent* CAC = NewObject< UChildActorComponent >( Actor, UChildActorComponent::StaticClass(), NAME_None, RF_Public );
-                                Actor->AddInstanceComponent( CAC );
-                                CAC->SetChildActorClass( ActorClass );
-                                CAC->RegisterComponent();
-                                CAC->SetWorldTransform( InstancedActor->GetTransform() );
-                                CAC->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepWorldTransform );
-                            }
-                        }
-                    }
-                    else if( ObjectClass->IsChildOf<UParticleSystem>() )
-                    {
-                        for( AActor* InstancedActor : IAC->Instances )
-                        {
-                            if( InstancedActor )
-                            {
-                                UParticleSystemComponent* PSC = NewObject< UParticleSystemComponent >( Actor, UParticleSystemComponent::StaticClass(), NAME_None, RF_Public );
-                                Actor->AddInstanceComponent( PSC );
-                                PSC->SetTemplate( StaticCast<UParticleSystem*>( IAC->InstancedAsset ) );
-                                PSC->RegisterComponent();
-                                PSC->SetWorldTransform( InstancedActor->GetTransform() );
-                                PSC->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepWorldTransform );
-                            }
-                        }
-                    }
-                    else if( ObjectClass->IsChildOf<USoundBase>() )
-                    {
-                        for( AActor* InstancedActor : IAC->Instances )
-                        {
-                            if( InstancedActor )
-                            {
-                                UAudioComponent* AC = NewObject< UAudioComponent >( Actor, UAudioComponent::StaticClass(), NAME_None, RF_Public );
-                                Actor->AddInstanceComponent( AC );
-                                AC->SetSound( StaticCast<USoundBase*>( IAC->InstancedAsset ) );
-                                AC->RegisterComponent();
-                                AC->SetWorldTransform( InstancedActor->GetTransform() );
-                                AC->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepWorldTransform );
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // Oh no, the asset is not something we know.  We will need to handle each asset type case by case.
-                        // for example we could create a bunch of ParticleSystemComponent if given an emitter asset
-                        HOUDINI_LOG_ERROR( TEXT( "Can not bake instanced actor component for asset type %s" ), *ObjectClass->GetName() );
+                        if( !InstancedActor || InstancedActor->IsPendingKill() )
+                            continue;
+
+                        UChildActorComponent* CAC = NewObject< UChildActorComponent >( Actor, UChildActorComponent::StaticClass(), NAME_None, RF_Public );
+                        if ( !CAC || CAC->IsPendingKill() )
+                            continue;
+
+                        Actor->AddInstanceComponent( CAC );
+
+                        CAC->SetChildActorClass( ActorClass );
+                        CAC->RegisterComponent();
+                        CAC->SetWorldTransform( InstancedActor->GetTransform() );
+                        if ( RootComponent && !RootComponent->IsPendingKill() )
+                            CAC->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepWorldTransform );
                     }
                 }
-                continue;
+                else if( ObjectClass->IsChildOf<UParticleSystem>() )
+                {
+                    for( AActor* InstancedActor : IAC->Instances )
+                    {
+                        if( InstancedActor && !InstancedActor->IsPendingKill() )
+                        {
+                            UParticleSystemComponent* PSC = NewObject< UParticleSystemComponent >( Actor, UParticleSystemComponent::StaticClass(), NAME_None, RF_Public );
+                            if ( !PSC || PSC->IsPendingKill() )
+                                continue;
+
+                            Actor->AddInstanceComponent( PSC );
+                            PSC->SetTemplate( StaticCast<UParticleSystem*>( IAC->InstancedAsset ) );
+                            PSC->RegisterComponent();
+                            PSC->SetWorldTransform( InstancedActor->GetTransform() );
+
+                            if ( RootComponent && !RootComponent->IsPendingKill() )
+                                PSC->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepWorldTransform );
+                        }
+                    }
+                }
+                else if( ObjectClass->IsChildOf<USoundBase>() )
+                {
+                    for( AActor* InstancedActor : IAC->Instances )
+                    {
+                        if( InstancedActor && !InstancedActor->IsPendingKill() )
+                        {
+                            UAudioComponent* AC = NewObject< UAudioComponent >( Actor, UAudioComponent::StaticClass(), NAME_None, RF_Public );
+                            if ( !AC || AC->IsPendingKill() )
+                                continue;
+
+                            Actor->AddInstanceComponent( AC );
+                            AC->SetSound( StaticCast<USoundBase*>( IAC->InstancedAsset ) );
+                            AC->RegisterComponent();
+                            AC->SetWorldTransform( InstancedActor->GetTransform() );
+
+                            if ( RootComponent && !RootComponent->IsPendingKill() )
+                                AC->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepWorldTransform );
+                        }
+                    }
+                }
+                else
+                {
+                    // Oh no, the asset is not something we know.  We will need to handle each asset type case by case.
+                    // for example we could create a bunch of ParticleSystemComponent if given an emitter asset
+                    HOUDINI_LOG_ERROR( TEXT( "Can not bake instanced actor component for asset type %s" ), *ObjectClass->GetName() );
+                }                
             }
 
             // If original static mesh is used, then we need to bake it (once) and use that one instead.
             UStaticMesh* OutStaticMesh = Cast<UStaticMesh>( HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx ) );
             if ( HoudiniAssetInstanceInputField->IsOriginalObjectUsed( VariationIdx ) )
             {
-                if( UStaticMesh* OriginalSM = Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetOriginalObject() ) )
+                UStaticMesh* OriginalSM = Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetOriginalObject());
+                if( OriginalSM && !OriginalSM->IsPendingKill() )
                 {
                     auto Comp = GetHoudiniAssetComponent();
-                    check( Comp );
-                    auto&& ItemGeoPartObject = Comp->LocateGeoPartObject( OutStaticMesh );
-                    FHoudiniEngineBakeUtils::CheckedBakeStaticMesh( Comp, OriginalToBakedMesh, ItemGeoPartObject, OriginalSM );
-                    OutStaticMesh = OriginalToBakedMesh[ OutStaticMesh ];
+                    if ( Comp && !Comp->IsPendingKill() )
+                    {
+                        auto&& ItemGeoPartObject = Comp->LocateGeoPartObject(OutStaticMesh);
+                        FHoudiniEngineBakeUtils::CheckedBakeStaticMesh(Comp, OriginalToBakedMesh, ItemGeoPartObject, OriginalSM);
+                        OutStaticMesh = OriginalToBakedMesh[OutStaticMesh];
+                    }
                 }
             }
 
-            if( ISMC )
+            if( ISMC && !ISMC->IsPendingKill() )
             {
                 // Do we need a Hierarchical ISMC ?
                 UHierarchicalInstancedStaticMeshComponent * HISMC =
                     Cast<UHierarchicalInstancedStaticMeshComponent>( HoudiniAssetInstanceInputField->GetInstancedComponent( VariationIdx ) );
 
                 UInstancedStaticMeshComponent* DuplicatedComponent = nullptr;
-                if ( HISMC )
+                if ( HISMC && !HISMC->IsPendingKill() )
                     DuplicatedComponent = NewObject< UHierarchicalInstancedStaticMeshComponent >(
                         Actor, UHierarchicalInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Public );
                 else
                     DuplicatedComponent = NewObject< UInstancedStaticMeshComponent >(
                         Actor, UInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Public );
 
-                Actor->AddInstanceComponent( DuplicatedComponent );
-                DuplicatedComponent->SetStaticMesh( OutStaticMesh );
+                if (DuplicatedComponent && !DuplicatedComponent->IsPendingKill())
+                {
+                    Actor->AddInstanceComponent(DuplicatedComponent);
+                    DuplicatedComponent->SetStaticMesh(OutStaticMesh);
 
-                // Reapply the uproperties modified by attributes on the duplicated component
-                FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( DuplicatedComponent, HoudiniGeoPartObject );
+                    // Reapply the uproperties modified by attributes on the duplicated component
+                    FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(DuplicatedComponent, HoudiniGeoPartObject);
 
-                // Set component instances.
-                UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
-                    DuplicatedComponent,
-                    HoudiniAssetInstanceInputField->GetInstancedTransforms( VariationIdx ),
-                    HoudiniAssetInstanceInputField->GetInstancedColors( VariationIdx ),
-                    HoudiniAssetInstanceInputField->GetRotationOffset( VariationIdx ),
-                    HoudiniAssetInstanceInputField->GetScaleOffset( VariationIdx ) );
+                    // Set component instances.
+                    UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
+                        DuplicatedComponent,
+                        HoudiniAssetInstanceInputField->GetInstancedTransforms(VariationIdx),
+                        HoudiniAssetInstanceInputField->GetInstancedColors(VariationIdx),
+                        HoudiniAssetInstanceInputField->GetRotationOffset(VariationIdx),
+                        HoudiniAssetInstanceInputField->GetScaleOffset(VariationIdx));
 
-                // Copy visibility.
-                DuplicatedComponent->SetVisibility( ISMC->IsVisible() );
+                    // Copy visibility.
+                    DuplicatedComponent->SetVisibility(ISMC->IsVisible());
 
-                DuplicatedComponent->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepRelativeTransform );
-                DuplicatedComponent->RegisterComponent();
-                DuplicatedComponent->GetBodyInstance()->bAutoWeld = false;
+                    if ( RootComponent && !RootComponent->IsPendingKill() )
+                        DuplicatedComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+
+                    DuplicatedComponent->RegisterComponent();
+                    DuplicatedComponent->GetBodyInstance()->bAutoWeld = false;
+                }
             }
-            else if ( MSIC )
+            else if ( MSIC && !MSIC->IsPendingKill() )
             {
                 for( UStaticMeshComponent* OtherSMC : MSIC->GetInstances() )
                 {
+                    if ( !OtherSMC || OtherSMC->IsPendingKill() )
+                        continue;
+
                     FString CompName = OtherSMC->GetName();
                     CompName.ReplaceInline( TEXT("StaticMeshComponent"), TEXT("StaticMesh") );
-                    if( UStaticMeshComponent* NewSMC = DuplicateObject< UStaticMeshComponent >( OtherSMC, Actor, *CompName ) )
+
+                    UStaticMeshComponent* NewSMC = DuplicateObject< UStaticMeshComponent >(OtherSMC, Actor, *CompName);
+                    if( NewSMC && !NewSMC->IsPendingKill() )
                     {
-                        NewSMC->SetupAttachment( RootComponent );
+                        if ( RootComponent && !RootComponent->IsPendingKill() )
+                            NewSMC->SetupAttachment( RootComponent );
+
                         NewSMC->SetStaticMesh( OutStaticMesh );
                         Actor->AddInstanceComponent( NewSMC );
                         NewSMC->SetWorldTransform( OtherSMC->GetComponentTransform() );
@@ -975,6 +1045,9 @@ UHoudiniAssetInstanceInput::OnStaticMeshDropped(
     UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField,
     int32 Idx, int32 VariationIdx )
 {
+    if ( !InObject || InObject->IsPendingKill() )
+        return;
+
     ULevel* CurrentLevel = GWorld->GetCurrentLevel();
     ULevel* MyLevel = GetHoudiniAssetComponent()->GetOwner()->GetLevel();
 
@@ -987,7 +1060,7 @@ UHoudiniAssetInstanceInput::OnStaticMeshDropped(
     }
 
     UObject * UsedObj = HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx );
-    if ( InObject && UsedObj != InObject )
+    if ( UsedObj != InObject )
     {
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
@@ -1079,6 +1152,9 @@ void
 UHoudiniAssetInstanceInput::SetRotationRoll(
     float Value, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx )
 {
+    if ( !HoudiniAssetInstanceInputField || HoudiniAssetInstanceInputField->IsPendingKill() )
+        return;
+
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInstanceInputChange", "Houdini Instance Input Change" ),
@@ -1095,6 +1171,9 @@ void
 UHoudiniAssetInstanceInput::SetRotationPitch(
     float Value, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx )
 {
+    if ( !HoudiniAssetInstanceInputField || HoudiniAssetInstanceInputField->IsPendingKill() )
+        return;
+
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInstanceInputChange", "Houdini Instance Input Change" ),
@@ -1111,6 +1190,9 @@ void
 UHoudiniAssetInstanceInput::SetRotationYaw(
     float Value, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx )
 {
+    if ( !HoudiniAssetInstanceInputField || HoudiniAssetInstanceInputField->IsPendingKill() )
+        return;
+
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInstanceInputChange", "Houdini Instance Input Change" ),
@@ -1127,6 +1209,9 @@ TOptional< float >
 UHoudiniAssetInstanceInput::GetScaleX(
     UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx ) const
 {
+    if ( !HoudiniAssetInstanceInputField || HoudiniAssetInstanceInputField->IsPendingKill() )
+        return 1.0f;
+
     const FVector & Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset( VariationIdx );
     return Scale3D.X;
 }
@@ -1135,6 +1220,9 @@ TOptional< float >
 UHoudiniAssetInstanceInput::GetScaleY(
     UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx ) const
 {
+    if ( !HoudiniAssetInstanceInputField || HoudiniAssetInstanceInputField->IsPendingKill() )
+        return 1.0f;
+
     const FVector & Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset( VariationIdx );
     return Scale3D.Y;
 }
@@ -1143,6 +1231,9 @@ TOptional< float >
 UHoudiniAssetInstanceInput::GetScaleZ(
     UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx ) const
 {
+    if ( !HoudiniAssetInstanceInputField || HoudiniAssetInstanceInputField->IsPendingKill() )
+        return 1.0f;
+
     const FVector & Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset( VariationIdx );
     return Scale3D.Z;
 }
@@ -1151,6 +1242,9 @@ void
 UHoudiniAssetInstanceInput::SetScaleX(
     float Value, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx )
 {
+    if ( !HoudiniAssetInstanceInputField || HoudiniAssetInstanceInputField->IsPendingKill() )
+        return;
+
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInstanceInputChange", "Houdini Instance Input Change" ),
@@ -1174,6 +1268,9 @@ void
 UHoudiniAssetInstanceInput::SetScaleY(
     float Value, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx)
 {
+    if ( !HoudiniAssetInstanceInputField || HoudiniAssetInstanceInputField->IsPendingKill() )
+        return;
+
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInstanceInputChange", "Houdini Instance Input Change" ),
@@ -1197,6 +1294,9 @@ void
 UHoudiniAssetInstanceInput::SetScaleZ(
     float Value, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx)
 {
+    if ( !HoudiniAssetInstanceInputField || HoudiniAssetInstanceInputField->IsPendingKill() )
+        return;
+
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInstanceInputChange", "Houdini Instance Input Change" ),
@@ -1220,6 +1320,9 @@ void
 UHoudiniAssetInstanceInput::CheckStateChanged(
     bool IsChecked, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx )
 {
+    if ( !HoudiniAssetInstanceInputField || HoudiniAssetInstanceInputField->IsPendingKill() )
+        return;
+
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInstanceInputChange", "Houdini Instance Input Change" ),
@@ -1239,7 +1342,7 @@ UHoudiniAssetInstanceInput::CollectAllInstancedStaticMeshComponents(
     for ( int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx )
     {
         UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = InstanceInputFields[ Idx ];
-        if ( HoudiniAssetInstanceInputField )
+        if ( HoudiniAssetInstanceInputField && !HoudiniAssetInstanceInputField->IsPendingKill() )
         {
             UStaticMesh * OriginalStaticMesh = Cast< UStaticMesh >( HoudiniAssetInstanceInputField->GetOriginalObject() );
             if ( OriginalStaticMesh == StaticMesh )
@@ -1249,7 +1352,13 @@ UHoudiniAssetInstanceInput::CollectAllInstancedStaticMeshComponents(
                     UStaticMesh * UsedStaticMesh = Cast< UStaticMesh >( HoudiniAssetInstanceInputField->InstancedObjects[ IdxMesh ] );
                     if ( UsedStaticMesh == StaticMesh )
                     {
+                        if ( !HoudiniAssetInstanceInputField->InstancerComponents.IsValidIndex(IdxMesh) )
+                            continue;
+
                         UInstancedStaticMeshComponent* ISMC = Cast< UInstancedStaticMeshComponent >( HoudiniAssetInstanceInputField->InstancerComponents[ IdxMesh ] );
+                        if ( !ISMC || ISMC->IsPendingKill() )
+                            continue;
+
                         Components.Add( ISMC );
                         bCollected = true;
                     }
@@ -1271,7 +1380,7 @@ UHoudiniAssetInstanceInput::GetMaterialReplacementMeshes(
     for ( int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx )
     {
         UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = InstanceInputFields[ Idx ];
-        if ( HoudiniAssetInstanceInputField )
+        if ( HoudiniAssetInstanceInputField && !HoudiniAssetInstanceInputField->IsPendingKill() )
             bResult |= HoudiniAssetInstanceInputField->GetMaterialReplacementMeshes( Material, MaterialReplacementsMap );
     }
 

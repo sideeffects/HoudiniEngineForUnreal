@@ -439,7 +439,7 @@ UHoudiniAssetParameterRamp::OnCurveEditingFinished()
 
         bIsCurveChanged = false;
 
-        if ( HoudiniAssetParameterRampCurveFloat )
+        if ( HoudiniAssetParameterRampCurveFloat && !HoudiniAssetParameterRampCurveFloat->IsPendingKill() )
         {
             FRichCurve & RichCurve = HoudiniAssetParameterRampCurveFloat->FloatCurve;
 
@@ -457,13 +457,17 @@ UHoudiniAssetParameterRamp::OnCurveEditingFinished()
 
                 const FRichCurveKey & RichCurveKey = RichCurve.Keys[ KeyIdx ];
 
-                ChildParamPosition->SetValue( RichCurveKey.Time, 0, false, false );
-                ChildParamValue->SetValue( RichCurveKey.Value, 0, false, false );
+                if ( !ChildParamPosition->IsPendingKill() )
+                    ChildParamPosition->SetValue( RichCurveKey.Time, 0, false, false );
+
+                if ( !ChildParamValue->IsPendingKill() )
+                    ChildParamValue->SetValue( RichCurveKey.Value, 0, false, false );
 
                 EHoudiniAssetParameterRampKeyInterpolation::Type RichCurveKeyInterpolation =
                     TranslateUnrealRampKeyInterpolation( RichCurveKey.InterpMode );
 
-                ChildParamInterpolation->SetValueInt( (int32) RichCurveKeyInterpolation, false, false );
+                if ( !ChildParamInterpolation->IsPendingKill() )
+                    ChildParamInterpolation->SetValueInt( (int32) RichCurveKeyInterpolation, false, false );
             }
 
             MarkChanged();
@@ -492,15 +496,18 @@ UHoudiniAssetParameterRamp::OnCurveEditingFinished()
                 const FRichCurveKey & RichCurveKeyB = RichCurveB.Keys[ KeyIdx ];
                 //const FRichCurveKey & RichCurveKeyA = RichCurveA.Keys[ KeyIdx ];
 
-                ChildParamPosition->SetValue( RichCurveKeyR.Time, 0, false, false );
+                if ( !ChildParamPosition->IsPendingKill() )
+                    ChildParamPosition->SetValue( RichCurveKeyR.Time, 0, false, false );
 
                 FLinearColor KeyColor( RichCurveKeyR.Value, RichCurveKeyG.Value, RichCurveKeyB.Value, 1.0f );
-                ChildParamColor->OnPaintColorChanged( KeyColor, false, false );
+                if ( !ChildParamColor->IsPendingKill() )
+                    ChildParamColor->OnPaintColorChanged( KeyColor, false, false );
 
                 EHoudiniAssetParameterRampKeyInterpolation::Type RichCurveKeyInterpolation =
                     TranslateUnrealRampKeyInterpolation( RichCurveKeyR.InterpMode );
 
-                ChildParamInterpolation->SetValueInt( (int32) RichCurveKeyInterpolation, false, false );
+                if ( !ChildParamInterpolation->IsPendingKill() )
+                    ChildParamInterpolation->SetValueInt( (int32) RichCurveKeyInterpolation, false, false );
             }
 
             MarkChanged();
@@ -643,13 +650,13 @@ UHoudiniAssetParameterRamp::GetRampKeysCurveFloat(
 
     int32 NumChildren = ChildParameters.Num();
 
-    if ( 3 * Idx + 0 < NumChildren )
+    if ( ChildParameters.IsValidIndex( 3 * Idx + 0 ) )
         Position = Cast< UHoudiniAssetParameterFloat >(ChildParameters[ 3 * Idx + 0 ] );
 
-    if ( 3 * Idx + 1 < NumChildren )
+    if ( ChildParameters.IsValidIndex( 3 * Idx + 1 ) )
         Value = Cast< UHoudiniAssetParameterFloat >( ChildParameters[ 3 * Idx + 1 ] );
 
-    if ( 3 * Idx + 2 < NumChildren )
+    if ( ChildParameters.IsValidIndex( 3 * Idx + 2 ) )
         Interp = Cast< UHoudiniAssetParameterChoice >( ChildParameters[ 3 * Idx + 2 ] );
 
     return Position != nullptr && Value != nullptr && Interp != nullptr;

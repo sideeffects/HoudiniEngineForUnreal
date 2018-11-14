@@ -171,8 +171,10 @@ UHoudiniAssetParameterString::SetParameterVariantValue(
 void
 UHoudiniAssetParameterString::SetValueCommitted( const FText & InValue, ETextCommit::Type CommitType, int32 Idx )
 {
-    FString CommittedValue = InValue.ToString();	
+    if (!Values.IsValidIndex(Idx))
+        return;
 
+    FString CommittedValue = InValue.ToString();
     if ( Values[ Idx ] != CommittedValue )
     {
         // Record undo information.
