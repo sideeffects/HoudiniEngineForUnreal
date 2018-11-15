@@ -7316,22 +7316,15 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
     FString HFSPath = TEXT( "" );
     void * HAPILibraryHandle = nullptr;
 
-    // Before doing anything platform specific, check if HFS environment variable is defined.
-    const int32 MAX_PATH_LENGTH = FPlatformMisc::GetMaxPathLength();
-    //TCHAR HFS_ENV_VARIABLE[MAX_PATH] = { 0 };
-    TCHAR* HFS_ENV_VARIABLE = new TCHAR[MAX_PATH_LENGTH];
-
     // Look up HAPI_PATH environment variable; if it is not defined, 0 will stored in HFS_ENV_VARIABLE .
-    FPlatformMisc::GetEnvironmentVariable( TEXT( "HAPI_PATH" ), HFS_ENV_VARIABLE, MAX_PATH_LENGTH);
-    if ( *HFS_ENV_VARIABLE )
-        HFSPath = &HFS_ENV_VARIABLE[ 0 ];
+    FString HFS_ENV_VAR = FPlatformMisc::GetEnvironmentVariable( TEXT( "HAPI_PATH" ) );
+    if (!HFS_ENV_VAR.IsEmpty())
+        HFSPath = HFS_ENV_VAR;
 
     // Look up environment variable; if it is not defined, 0 will stored in HFS_ENV_VARIABLE .
-    FPlatformMisc::GetEnvironmentVariable( TEXT( "HFS" ), HFS_ENV_VARIABLE, MAX_PATH_LENGTH);
-    if ( *HFS_ENV_VARIABLE )
-        HFSPath = &HFS_ENV_VARIABLE[ 0 ];
-
-    delete HFS_ENV_VARIABLE;
+    HFS_ENV_VAR = FPlatformMisc::GetEnvironmentVariable( TEXT( "HFS" ));
+    if (!HFS_ENV_VAR.IsEmpty())
+        HFSPath = HFS_ENV_VAR;
 
     // Get platform specific name of libHAPI.
     FString LibHAPIName = FHoudiniEngineUtils::HoudiniGetLibHAPIName();
