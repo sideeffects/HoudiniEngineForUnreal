@@ -29,6 +29,7 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineString.h"
 
+#include "Misc/Variant.h"
 #include "Internationalization/Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
