@@ -761,18 +761,6 @@ enum HAPI_PDG_State
 HAPI_C_ENUM_TYPEDEF( HAPI_PDG_State )
 
 /// Used with PDG functions
-enum HAPI_PDG_CookType
-{
-    HAPI_PDG_COOK_FULL,
-    HAPI_PDG_COOK_NODE,
-    HAPI_PDG_COOK_ROOTGEN,
-    HAPI_PDG_COOK_NODEGEN,
-    HAPI_PDG_COOK_STATICDEP_FULL,
-    HAPI_PDG_COOK_STATICDEP_NODE
-};
-HAPI_C_ENUM_TYPEDEF( HAPI_PDG_CookType )
-
-/// Used with PDG functions
 enum HAPI_PDG_EventType
 {
     HAPI_PDG_EVENT_NULL			    = 0x0000,
