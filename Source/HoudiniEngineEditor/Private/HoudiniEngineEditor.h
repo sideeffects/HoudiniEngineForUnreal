@@ -29,6 +29,7 @@
 #include "Framework/MultiBox/MultiBoxExtender.h"
 #include "HoudiniRuntimeSettings.h"
 #include "Framework/Commands/Commands.h"
+#include "HAPI.h"
 
 
 class IAssetTools;
@@ -164,7 +165,7 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
     /** FEditorUndoClient methods. **/
     public:
 
-        virtual bool MatchesContext( const FString & InContext, UObject * PrimaryObject ) const override;
+        virtual bool MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const override;
         virtual void PostUndo( bool bSuccess ) override;
         virtual void PostRedo( bool bSuccess ) override;
 

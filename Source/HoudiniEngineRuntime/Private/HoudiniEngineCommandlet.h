@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "HAPI.h"
 #include "Commandlets/Commandlet.h"
 #include "Logging/LogMacros.h"
 #include "HoudiniEngineCommandlet.generated.h"

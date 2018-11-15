@@ -22,7 +22,9 @@
 */
 
 #pragma once
+#include "HAPI.h"
 #include "HoudiniAssetParameter.generated.h"
+
 
 class FArchive;
 class FVariant;

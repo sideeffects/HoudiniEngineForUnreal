@@ -805,13 +805,18 @@ FHoudiniEngineEditor::UnregisterThumbnails()
         UThumbnailManager::Get().UnregisterCustomRenderer( UHoudiniAsset::StaticClass() );
 }
 
-bool
-FHoudiniEngineEditor::MatchesContext( const FString & InContext, UObject * PrimaryObject ) const
+bool 
+FHoudiniEngineEditor::MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const
 {
-    if ( InContext == TEXT( HOUDINI_MODULE_EDITOR ) || InContext == TEXT( HOUDINI_MODULE_RUNTIME ) )
+    if (InContext.Context == TEXT(HOUDINI_MODULE_EDITOR) || InContext.Context == TEXT(HOUDINI_MODULE_RUNTIME))
     {
-        LastHoudiniAssetComponentUndoObject = Cast< UHoudiniAssetComponent >( PrimaryObject );
-        return true;
+        // Check if we care about the undo/redo
+        for (const TPair<UObject*, FTransactionObjectEvent>& TransactionObjectPair : TransactionObjects)
+        {
+            LastHoudiniAssetComponentUndoObject = Cast< UHoudiniAssetComponent >(TransactionObjectPair.Key);
+            if ( LastHoudiniAssetComponentUndoObject )
+                return true;
+        }
     }
 
     LastHoudiniAssetComponentUndoObject = nullptr;
