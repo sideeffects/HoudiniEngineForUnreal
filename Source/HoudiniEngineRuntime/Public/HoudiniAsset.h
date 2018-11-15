@@ -23,6 +23,7 @@
 
 #pragma once
 #include "UObject/Object.h"
+#include "HAPI.h"
 #include "HoudiniAsset.generated.h"
 
 

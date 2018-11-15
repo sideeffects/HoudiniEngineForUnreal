@@ -26,6 +26,7 @@
 #include "Components/ActorComponent.h"
 #include "Components/StaticMeshComponent.h"
 
+#include "HAPI.h"
 #include "HoudiniAttributeDataComponent.generated.h"
 
 UENUM()
