@@ -143,7 +143,6 @@ FHoudiniEngineScheduler::TaskInstantiateAsset( const FHoudiniEngineTask & Task )
     }
 
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
-    UHoudiniAsset* HoudiniAsset = Task.Asset.Get();
     int32 AssetCount = 0;
     HAPI_NodeId AssetId = -1;
     std::string AssetNameString;

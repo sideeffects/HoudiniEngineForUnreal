@@ -146,6 +146,7 @@ FHoudiniEngineStyle::Initialize()
     StyleSet->Set("HoudiniEngine.CleanUpTempFolder", new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
     StyleSet->Set("HoudiniEngine.BakeAllAssets", new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
     StyleSet->Set("HoudiniEngine.PauseAssetCooking", new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+    StyleSet->Set("HoudiniEngine.RestartSession", new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
 
     // We need some colors from Editor Style & this is the only way to do this at the moment
     const FSlateColor DefaultForeground = FEditorStyle::GetSlateColor("DefaultForeground");
@@ -486,6 +487,7 @@ FHoudiniEngineEditor::AddHoudiniMenuExtension( FMenuBuilder & MenuBuilder )
     MenuBuilder.AddMenuEntry( FHoudiniEngineCommands::Get().CleanUpTempFolder );
     MenuBuilder.AddMenuEntry( FHoudiniEngineCommands::Get().BakeAllAssets );
     MenuBuilder.AddMenuEntry( FHoudiniEngineCommands::Get().PauseAssetCooking );
+    MenuBuilder.AddMenuEntry( FHoudiniEngineCommands::Get().RestartSession);
 
     MenuBuilder.EndSection();
 }
@@ -528,6 +530,11 @@ FHoudiniEngineEditor::BindMenuCommands()
         FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::PauseAssetCooking ),
         FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanPauseAssetCooking ),
         FIsActionChecked::CreateRaw( this, &FHoudiniEngineEditor::IsAssetCookingPaused ) );
+
+    HEngineCommands->MapAction(
+        Commands.RestartSession,
+        FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::RestartSession),
+        FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanRestartSession ) );
 
     // Non menu command (used for shortcuts only)
     HEngineCommands->MapAction(
@@ -883,7 +890,7 @@ FHoudiniEngineEditor::CleanUpTempFolder()
         for ( FAssetData Data : AssetDataList )
         {
             UPackage* CurrentPackage = Data.GetPackage();
-            if ( !CurrentPackage )
+            if ( !CurrentPackage || CurrentPackage->IsPendingKill() )
                 continue;
 
             TArray<FAssetData> AssetsInPackage;
@@ -898,6 +905,9 @@ FHoudiniEngineEditor::CleanUpTempFolder()
                 // Check and see whether we are referenced by any objects that won't be garbage collected (*including* the undo buffer)
                 FReferencerInformationList ReferencesIncludingUndo;
                 UObject* AssetInPackage = AssetInfo.GetAsset();
+                if (!AssetInPackage || AssetInPackage->IsPendingKill())
+                    continue;
+
                 bool bReferencedInMemoryOrUndoStack = IsReferenced( AssetInPackage, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags, true, &ReferencesIncludingUndo );
                 if ( !bReferencedInMemoryOrUndoStack )
                     continue;
@@ -907,6 +917,8 @@ FHoudiniEngineEditor::CleanUpTempFolder()
                 for ( auto ExtRef : ReferencesIncludingUndo.ExternalReferences )
                 {
                     UObject* Outer = ExtRef.Referencer->GetOuter();
+                    if (!Outer || Outer->IsPendingKill())
+                        continue;
 
                     bool bOuterFound = false;
                     for ( auto DataToDelete : AssetDataToDelete )
@@ -950,7 +962,7 @@ FHoudiniEngineEditor::CleanUpTempFolder()
                 const FAssetData& AssetData = AssetDataToDelete[i];
                 UObject *ObjectToDelete = AssetData.GetAsset();
                 // Assets can be loaded even when their underlying type/class no longer exists...
-                if (ObjectToDelete != nullptr)
+                if ( ObjectToDelete && !ObjectToDelete->IsPendingKill() )
                 {
                     ObjectsToDelete.Add(ObjectToDelete);
                 }
@@ -992,7 +1004,7 @@ FHoudiniEngineEditor::BakeAllAssets()
     for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
-        if ( !HoudiniAssetComponent )
+        if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
         {
             HOUDINI_LOG_ERROR( TEXT( "Failed to export a Houdini Asset in the scene!" ) );
             continue;
@@ -1057,7 +1069,7 @@ FHoudiniEngineEditor::PauseAssetCooking()
     for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
-        if (!HoudiniAssetComponent || !HoudiniAssetComponent->IsValidLowLevel())
+        if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() || !HoudiniAssetComponent->IsValidLowLevel())
         {
             HOUDINI_LOG_ERROR( TEXT("Failed to cook a Houdini Asset in the scene!") );
             continue;
@@ -1103,11 +1115,11 @@ FHoudiniEngineEditor::RecookSelection()
     for ( int32 Idx = 0; Idx < SelectedHoudiniAssets; Idx++ )
     {
         AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>( WorldSelection[ Idx ] );
-        if ( !HoudiniAssetActor )
+        if ( !HoudiniAssetActor || HoudiniAssetActor->IsPendingKill() )
             continue;
 
         UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
-        if ( !HoudiniAssetComponent || !HoudiniAssetComponent->IsComponentValid() )
+        if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() || !HoudiniAssetComponent->IsComponentValid() )
             continue;
 
         HoudiniAssetComponent->StartTaskAssetCookingManual();
@@ -1134,7 +1146,7 @@ FHoudiniEngineEditor::RecookAllAssets()
     for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
-        if (!HoudiniAssetComponent || !HoudiniAssetComponent->IsComponentValid())
+        if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() ||  !HoudiniAssetComponent->IsComponentValid())
             continue;
 
         HoudiniAssetComponent->StartTaskAssetCookingManual();
@@ -1161,7 +1173,7 @@ FHoudiniEngineEditor::RebuildAllAssets()
     for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
-        if ( !HoudiniAssetComponent || !HoudiniAssetComponent->IsComponentValid() )
+        if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() || !HoudiniAssetComponent->IsComponentValid() )
             continue;
 
         HoudiniAssetComponent->StartTaskAssetRebuildManual();
@@ -1197,11 +1209,11 @@ FHoudiniEngineEditor::RebuildSelection()
     for ( int32 Idx = 0; Idx < SelectedHoudiniAssets; Idx++ )
     {
         AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>( WorldSelection[ Idx ] );
-        if ( !HoudiniAssetActor )
+        if ( !HoudiniAssetActor || HoudiniAssetActor->IsPendingKill() )
             continue;
 
         UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
-        if ( !HoudiniAssetComponent || !HoudiniAssetComponent->IsComponentValid() )
+        if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() || !HoudiniAssetComponent->IsComponentValid() )
             continue;
 
         HoudiniAssetComponent->StartTaskAssetRebuildManual();
@@ -1237,11 +1249,11 @@ FHoudiniEngineEditor::BakeSelection()
     for ( int32 Idx = 0; Idx < SelectedHoudiniAssets; Idx++ )
     {
         AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>( WorldSelection[ Idx ] );
-        if ( !HoudiniAssetActor )
+        if ( !HoudiniAssetActor || HoudiniAssetActor->IsPendingKill() )
             continue;
 
         UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
-        if ( !HoudiniAssetComponent )
+        if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
         {
             HOUDINI_LOG_ERROR( TEXT("Failed to export a Houdini Asset in the scene!") );
             continue;
@@ -1284,7 +1296,7 @@ FHoudiniEngineEditor::GetContentBrowserSelection( TArray< UObject* >& ContentBro
     {
         // Get the current object
         UObject * Object = SelectedAssets[ n ].GetAsset();
-        if ( !Object )
+        if ( !Object || Object->IsPendingKill() )
             continue;
 
         // Only static meshes are supported
@@ -1306,21 +1318,25 @@ FHoudiniEngineEditor::GetWorldSelection( TArray< UObject* >& WorldSelection, boo
     if ( GEditor )
     {
         USelection* SelectedActors = GEditor->GetSelectedActors();
-        for ( FSelectionIterator It( *SelectedActors ); It; ++It )
+        if ( SelectedActors && !SelectedActors->IsPendingKill() )
         {
-            AActor * Actor = Cast< AActor >( *It );
-            if ( !Actor )
-                continue;
+            for ( FSelectionIterator It( *SelectedActors ); It; ++It )
+            {
+                AActor * Actor = Cast< AActor >( *It );
+                if ( !Actor && Actor->IsPendingKill() )
+                    continue;
 
-            // Ignore the SkySphere?
-            FString ClassName = Actor->GetClass() ? Actor->GetClass()->GetName() : FString();
-            if ( ClassName == TEXT( "BP_Sky_Sphere_C" ) )
-                continue;
+                // Ignore the SkySphere?
+                FString ClassName = Actor->GetClass() ? Actor->GetClass()->GetName() : FString();
+                if ( ClassName == TEXT( "BP_Sky_Sphere_C" ) )
+                    continue;
 
-            // We're normally only selecting actors with StaticMeshComponents and SplineComponents
-            // Heightfields? Filter here or later? also allow HoudiniAssets?
-            WorldSelection.Add( Actor );
+                // We're normally only selecting actors with StaticMeshComponents and SplineComponents
+                // Heightfields? Filter here or later? also allow HoudiniAssets?
+                WorldSelection.Add( Actor );
+            }
         }
+
     }
 
     // If we only want Houdini Actors...
@@ -1330,12 +1346,18 @@ FHoudiniEngineEditor::GetWorldSelection( TArray< UObject* >& WorldSelection, boo
         for ( int32 Idx = WorldSelection.Num() - 1; Idx >= 0; Idx-- )
         {
             AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>( WorldSelection[ Idx ] );
-            if ( !HoudiniAssetActor)
+            if ( !HoudiniAssetActor || HoudiniAssetActor->IsPendingKill() )
                 WorldSelection.RemoveAt( Idx );
         }
     }
 
     return WorldSelection.Num();
+}
+
+bool
+FHoudiniEngineEditor::CanRestartSession() const
+{
+    return true;
 }
 
 void
@@ -1352,7 +1374,7 @@ FHoudiniEngineEditor::RestartSession()
     for ( TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr )
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
-        if ( !HoudiniAssetComponent )
+        if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
             continue;
 
         HoudiniAssetComponent->NotifyAssetNeedsToBeReinstantiated();
@@ -1405,15 +1427,16 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender( const TSharedRef<FUIC
     for ( auto CurrentActor : InActors )
     {
         AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>( CurrentActor );
-        if ( !HoudiniAssetActor )
+        if ( !HoudiniAssetActor || HoudiniAssetActor->IsPendingKill() )
             continue;
 
         HoudiniAssetActors.Add( HoudiniAssetActor );
 
-        if ( !HoudiniAssetActor->GetHoudiniAssetComponent() )
+        UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
+        if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
             continue;
 
-        HoudiniAssets.AddUnique( HoudiniAssetActor->GetHoudiniAssetComponent()->GetHoudiniAsset() );
+        HoudiniAssets.AddUnique( HoudiniAssetComponent->GetHoudiniAsset() );
     }
 
     if ( HoudiniAssets.Num() > 0 )
@@ -1610,7 +1633,7 @@ FHoudiniEngineEditor::UpdateHoudiniToolList(const FHoudiniToolDirectory& Houdini
 
             // Try to load the asset
             UHoudiniAsset* LoadedAsset = HoudiniAsset.LoadSynchronous();
-            if ( LoadedAsset )
+            if ( LoadedAsset && !LoadedAsset->IsPendingKill() )
                 NeedsImport = !HoudiniAsset.IsValid();
         }
 
@@ -1631,12 +1654,12 @@ FHoudiniEngineEditor::UpdateHoudiniToolList(const FHoudiniToolDirectory& Houdini
                 continue;
 
             HoudiniAsset = Cast< UHoudiniAsset >(AssetArray[0]);
-            if (!HoudiniAsset)
+            if (!HoudiniAsset || HoudiniAsset->IsPendingKill() )
                 continue;
 
             // Try to save the newly created package
             UPackage* Pckg = Cast<UPackage>( HoudiniAsset->GetOuter() );
-            if (Pckg && Pckg->IsDirty() )
+            if (Pckg && !Pckg->IsPendingKill() && Pckg->IsDirty() )
             {
                 Pckg->FullyLoad();
                 UPackage::SavePackage(
@@ -1978,6 +2001,8 @@ FHoudiniEngineCommands::RegisterCommands()
     UI_COMMAND( CookSelec, "Recook Selection", "Recooks selected Houdini Asset Actors in the current level.", EUserInterfaceActionType::Button, FInputChord( EKeys::C, EModifierKey::Control | EModifierKey::Alt ) );
     UI_COMMAND( RebuildSelec, "Rebuild Selection", "Rebuilds selected Houdini Asset Actors in the current level.", EUserInterfaceActionType::Button, FInputChord( EKeys::R, EModifierKey::Control | EModifierKey::Alt ) );
     UI_COMMAND( BakeSelec, "Bake Selection", "Bakes and replaces with blueprints selected Houdini Asset Actors in the current level.", EUserInterfaceActionType::Button, FInputChord( EKeys::B, EModifierKey::Control | EModifierKey::Alt ) );
+
+    UI_COMMAND( RestartSession, "Restart the Houdini Engine Session", "Restarts the current Houdini Engine session.", EUserInterfaceActionType::Button, FInputChord());
 }
 
 #undef LOCTEXT_NAMESPACE
