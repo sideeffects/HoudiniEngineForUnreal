@@ -69,7 +69,7 @@ public:
 	typedef HAPI_Result (*CreateWorkitemFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id, const char * name, int index);
 	typedef HAPI_Result (*DeleteAttributeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info);
 	typedef HAPI_Result (*DeleteNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id);
-	typedef HAPI_Result (*DirtyPDGNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id);
+	typedef HAPI_Result (*DirtyPDGNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_Bool clean_results);
 	typedef HAPI_Result (*DisconnectNodeInputFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int input_index);
 	typedef HAPI_Result (*DisconnectNodeOutputsAtFuncPtr)(const HAPI_Session *session, HAPI_NodeId node_id, int output_index);
 	typedef HAPI_Result (*ExtractImageToFileFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, int * destination_file_path);
@@ -513,7 +513,7 @@ public:
 	static HAPI_Result CreateWorkitemEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id, const char * name, int index);
 	static HAPI_Result DeleteAttributeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info);
 	static HAPI_Result DeleteNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id);
-	static HAPI_Result DirtyPDGNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id);
+	static HAPI_Result DirtyPDGNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_Bool clean_results);
 	static HAPI_Result DisconnectNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_index);
 	static HAPI_Result DisconnectNodeOutputsAtEmptyStub(const HAPI_Session *session, HAPI_NodeId node_id, int output_index);
 	static HAPI_Result ExtractImageToFileEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, int * destination_file_path);
