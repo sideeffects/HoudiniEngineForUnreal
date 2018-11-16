@@ -222,6 +222,9 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Helper function for restarting the current Houdini Engine session. **/
         void RestartSession();
 
+        /** Helper delegate used to determine if RestartSession can be executed. **/
+        bool CanRestartSession() const;
+
         /** Returns the Default Icon to be used by Houdini Tools**/
         FString GetDefaultHoudiniToolIcon() const;
 
@@ -390,6 +393,9 @@ public:
 
     /** UI Action to bake and replace the current world selection  **/
     TSharedPtr<FUICommandInfo> BakeSelec;
+
+    /** UI Action to restart the current Houdini Engine Session  **/
+    TSharedPtr<FUICommandInfo> RestartSession;
 
 };
 

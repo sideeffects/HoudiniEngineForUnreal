@@ -1644,6 +1644,21 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                                 HOUDINI_LOG_MESSAGE( TEXT( "Failed Uploading Initial Transformation back to HAPI." ) );
                         }
                     }
+                    else
+                    {
+                        // Make sure to reset the manual cook flag here to avoid endless cooking/error spam
+                        bManualRecookRequested = false;
+                    }
+
+                    // Try to detect possible crash/failures of HARS
+                    if ( TaskInfo.Result == HAPI_RESULT_NOT_INITIALIZED
+                        || TaskInfo.Result == HAPI_RESULT_INVALID_SESSION )
+                    {
+                        HOUDINI_LOG_ERROR( TEXT("Failed to cook due to an invalid session.\n\
+                            This could be due to a crash in the Houdini Engine session / HARS.\n\
+                            Try restarting it via \"File > Restart Houdini Engine session\"\n\
+                            then rebuild your assets." ) );
+                    }
 
                     if ( NotificationPtr.IsValid() && bDisplaySlateCookingNotifications )
                     {

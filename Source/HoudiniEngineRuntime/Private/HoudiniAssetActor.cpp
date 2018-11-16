@@ -82,7 +82,7 @@ AHoudiniAssetActor::GetHoudiniCurrentPlaytime() const
 bool
 AHoudiniAssetActor::ShouldImport( FString * ActorPropString, bool IsMovingLevel )
 {
-    if (ActorPropString == nullptr)
+    if (!ActorPropString)
         return false;
 
     // Locate actor which is being copied in clipboard string.
@@ -92,7 +92,7 @@ AHoudiniAssetActor::ShouldImport( FString * ActorPropString, bool IsMovingLevel 
     // happens on copy / paste.
     ActorPropString->Empty();
 
-    if( CopiedActor == nullptr )
+    if( !CopiedActor || CopiedActor->IsPendingKill() )
     {
         HOUDINI_LOG_WARNING( TEXT("Failed to import from copy: Duplicated actor not found") );
         return false;
@@ -100,7 +100,7 @@ AHoudiniAssetActor::ShouldImport( FString * ActorPropString, bool IsMovingLevel 
 
     // Get Houdini component of an actor which is being copied.
     UHoudiniAssetComponent * CopiedActorHoudiniAssetComponent = CopiedActor->HoudiniAssetComponent;
-    if (CopiedActorHoudiniAssetComponent == nullptr)
+    if (!CopiedActorHoudiniAssetComponent || CopiedActorHoudiniAssetComponent->IsPendingKill() )
         return false;
 
     HoudiniAssetComponent->OnComponentClipboardCopy( CopiedActorHoudiniAssetComponent );
@@ -123,10 +123,10 @@ AHoudiniAssetActor::GetReferencedContentObjects( TArray< UObject * >& Objects ) 
 {
     Super::GetReferencedContentObjects( Objects );
 
-    if ( HoudiniAssetComponent )
+    if ( HoudiniAssetComponent && !HoudiniAssetComponent->IsPendingKill() )
     {
         UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
-        if ( HoudiniAsset )
+        if ( HoudiniAsset && !HoudiniAsset->IsPendingKill() )
             Objects.AddUnique( HoudiniAsset );
     }
 
@@ -146,11 +146,11 @@ AHoudiniAssetActor::PostEditChangeProperty(FPropertyChangedEvent & PropertyChang
     Super::PostEditChangeProperty(PropertyChangedEvent);
 
     // Some property changes need to be forwarded to the component (ie Transform)
-    if ( !HoudiniAssetComponent )
+    if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
         return;
 
     UProperty * Property = PropertyChangedEvent.MemberProperty;
-    if ( !Property )
+    if ( !Property || Property->IsPendingKill() )
         return;
 
     if ( ( Property->GetName() == TEXT( "RelativeLocation" ) )

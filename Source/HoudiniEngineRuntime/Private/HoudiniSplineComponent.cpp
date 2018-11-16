@@ -158,7 +158,7 @@ UHoudiniSplineComponent::SetHoudiniGeoPartObject( const FHoudiniGeoPartObject& I
 bool
 UHoudiniSplineComponent::CopyFrom( UHoudiniSplineComponent* InSplineComponent )
 {
-    if (!InSplineComponent)
+    if (!InSplineComponent || InSplineComponent->IsPendingKill() )
         return false;
 
     HoudiniGeoPartObject = FHoudiniGeoPartObject(InSplineComponent->HoudiniGeoPartObject);
@@ -263,7 +263,7 @@ UHoudiniSplineComponent::UploadControlPoints()
         {
             // Grab component we are attached to.
             UHoudiniAssetComponent * AttachedComponent = Cast< UHoudiniAssetComponent >( GetAttachParent() );
-            if ( AttachedComponent )
+            if ( AttachedComponent && !AttachedComponent->IsPendingKill() )
                 HostAssetId = AttachedComponent->GetAssetId();
 
             NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId( HostAssetId );

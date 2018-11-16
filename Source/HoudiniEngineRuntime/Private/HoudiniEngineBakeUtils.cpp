@@ -80,6 +80,9 @@ FHoudiniEngineBakeUtils::BakeCreateBlueprintPackageForComponent(
 
 #if WITH_EDITOR
 
+    if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+        return nullptr;
+
     FString HoudiniAssetName;
     if ( HoudiniAssetComponent->HoudiniAsset )
         HoudiniAssetName = HoudiniAssetComponent->HoudiniAsset->GetName();
@@ -107,7 +110,7 @@ FHoudiniEngineBakeUtils::BakeCreateBlueprintPackageForComponent(
     // See if package exists, if it does, we need to regenerate the name.
     Package = FindPackage( nullptr, *PackageName );
 
-    if( Package )
+    if( Package && !Package->IsPendingKill() )
     {
         // Package does exist, there's a collision, we need to generate a new name.
         BakeGUID.Invalidate();
@@ -132,8 +135,12 @@ FHoudiniEngineBakeUtils::BakeStaticMesh(
 
 #if WITH_EDITOR
 
+    if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+        return nullptr;
+
     UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
-    check( HoudiniAsset );
+    if (!HoudiniAsset || HoudiniAsset->IsPendingKill())
+        return nullptr;
 
     // We cannot bake curves.
     if( HoudiniGeoPartObject.IsCurve() )
@@ -162,13 +169,13 @@ FHoudiniEngineBakeUtils::BakeStaticMesh(
     UPackage * Package = FHoudiniEngineBakeUtils::BakeCreateStaticMeshPackageForComponent(
         HoudiniCookParams, HoudiniGeoPartObject, MeshName, BakeGUID );
 
-    if( !Package )
-    {
+    if( !Package || Package->IsPendingKill() )
         return nullptr;
-    }
 
     // Create static mesh.
     StaticMesh = NewObject< UStaticMesh >( Package, FName( *MeshName ), RF_Public | RF_Transactional );
+    if ( !StaticMesh || StaticMesh->IsPendingKill() )
+        return nullptr;
 
     // Add meta information to this package.
     FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
@@ -247,10 +254,11 @@ FHoudiniEngineBakeUtils::BakeStaticMesh(
     if( HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable() )
     {
         UBodySetup * BodySetup = StaticMesh->BodySetup;
-        check( BodySetup );
-
-        // Enable collisions for this static mesh.
-        BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
+        if (BodySetup && !BodySetup->IsPendingKill())
+        {
+            // Enable collisions for this static mesh.
+            BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
+        }
     }
 
     FHoudiniScopedGlobalSilence ScopedGlobalSilence;
@@ -267,6 +275,9 @@ FHoudiniEngineBakeUtils::BakeBlueprint( UHoudiniAssetComponent * HoudiniAssetCom
 {
     UBlueprint * Blueprint = nullptr;
 
+    if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+        return nullptr;
+
 #if WITH_EDITOR
 
     // Create package for our Blueprint.
@@ -274,10 +285,10 @@ FHoudiniEngineBakeUtils::BakeBlueprint( UHoudiniAssetComponent * HoudiniAssetCom
     UPackage * Package = FHoudiniEngineBakeUtils::BakeCreateBlueprintPackageForComponent(
         HoudiniAssetComponent, BlueprintName );
 
-    if( Package )
+    if( Package && !Package->IsPendingKill() )
     {
         AActor * Actor = HoudiniAssetComponent->CloneComponentsAndCreateActor();
-        if( Actor )
+        if( Actor && !Actor->IsPendingKill() )
         {
             Blueprint = FKismetEditorUtilities::CreateBlueprintFromActor( *BlueprintName, Package, Actor, false );
 
@@ -285,7 +296,7 @@ FHoudiniEngineBakeUtils::BakeBlueprint( UHoudiniAssetComponent * HoudiniAssetCom
             Actor->RemoveFromRoot();
             Actor->ConditionalBeginDestroy();
 
-            if( Blueprint )
+            if( Blueprint && !Blueprint->IsPendingKill() )
                 FAssetRegistryModule::AssetCreated( Blueprint );
         }
     }
@@ -300,105 +311,110 @@ FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithBlueprint( UHoudiniAssetComponen
 {
     AActor * Actor = nullptr;
 
+    if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+        return nullptr;
+
 #if WITH_EDITOR
 
     // Create package for our Blueprint.
     FString BlueprintName = TEXT( "" );
     UPackage * Package = FHoudiniEngineBakeUtils::BakeCreateBlueprintPackageForComponent( HoudiniAssetComponent, BlueprintName );
+    if (!Package || Package->IsPendingKill())
+        return nullptr;
 
-    if( Package )
+    //Bake the asset's landscape
+    BakeLandscape( HoudiniAssetComponent );
+
+    AActor * ClonedActor = HoudiniAssetComponent->CloneComponentsAndCreateActor();
+    if (!ClonedActor || ClonedActor->IsPendingKill())
+        return nullptr;
+
+    UBlueprint * Blueprint = FKismetEditorUtilities::CreateBlueprint(
+        ClonedActor->GetClass(), Package, *BlueprintName,
+        EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(),
+        UBlueprintGeneratedClass::StaticClass(), FName( "CreateFromActor" ) );
+
+    if( Blueprint && !Blueprint->IsPendingKill() )
     {
-        //Bake the asset's landscape
-        BakeLandscape( HoudiniAssetComponent );
+        Package->MarkPackageDirty();
 
-        AActor * ClonedActor = HoudiniAssetComponent->CloneComponentsAndCreateActor();
-        if( ClonedActor )
+        if( ClonedActor->GetInstanceComponents().Num() > 0 )
+            FKismetEditorUtilities::AddComponentsToBlueprint( Blueprint, ClonedActor->GetInstanceComponents() );
+
+        if( Blueprint->GeneratedClass )
         {
-            UBlueprint * Blueprint = FKismetEditorUtilities::CreateBlueprint(
-                ClonedActor->GetClass(), Package, *BlueprintName,
-                EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(),
-                UBlueprintGeneratedClass::StaticClass(), FName( "CreateFromActor" ) );
+            AActor * CDO = Cast< AActor >( Blueprint->GeneratedClass->GetDefaultObject() );
+            if (!CDO || CDO->IsPendingKill())
+                return nullptr;
 
-            if( Blueprint )
+            const auto CopyOptions = ( EditorUtilities::ECopyOptions::Type )
+                ( EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties |
+                    EditorUtilities::ECopyOptions::PropagateChangesToArchetypeInstances );
+
+            EditorUtilities::CopyActorProperties( ClonedActor, CDO, CopyOptions );
+
+            USceneComponent * Scene = CDO->GetRootComponent();
+            if (!Scene || Scene->IsPendingKill())
+                return nullptr;
+
+            Scene->RelativeLocation = FVector::ZeroVector;
+            Scene->RelativeRotation = FRotator::ZeroRotator;
+
+            // Clear out the attachment info after having copied the properties from the source actor
+            Scene->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
+            while( true )
             {
-                Package->MarkPackageDirty();
+                const int32 ChildCount = Scene->GetAttachChildren().Num();
+                if( ChildCount < 1 )
+                    break;
 
-                if( ClonedActor->GetInstanceComponents().Num() > 0 )
-                    FKismetEditorUtilities::AddComponentsToBlueprint( Blueprint, ClonedActor->GetInstanceComponents() );
-
-                if( Blueprint->GeneratedClass )
-                {
-                    AActor * CDO = CastChecked< AActor >( Blueprint->GeneratedClass->GetDefaultObject() );
-
-                    const auto CopyOptions = ( EditorUtilities::ECopyOptions::Type )
-                        ( EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties |
-                            EditorUtilities::ECopyOptions::PropagateChangesToArchetypeInstances );
-
-                    EditorUtilities::CopyActorProperties( ClonedActor, CDO, CopyOptions );
-
-                    USceneComponent * Scene = CDO->GetRootComponent();
-                    if( Scene )
-                    {
-                        Scene->RelativeLocation = FVector::ZeroVector;
-                        Scene->RelativeRotation = FRotator::ZeroRotator;
-
-                        // Clear out the attachment info after having copied the properties from the source actor
-                        Scene->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
-                        while( true )
-                        {
-                            const int32 ChildCount = Scene->GetAttachChildren().Num();
-                            if( ChildCount <= 0 )
-                                break;
-
-                            USceneComponent * Component = Scene->GetAttachChildren()[ChildCount - 1];
-                            Component->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
-                        }
-                        check( Scene->GetAttachChildren().Num() == 0 );
-
-                        // Ensure the light mass information is cleaned up
-                        Scene->InvalidateLightingCache();
-                    }
-                }
-
-                // Compile our blueprint and notify asset system about blueprint.
-                FKismetEditorUtilities::CompileBlueprint( Blueprint );
-                FAssetRegistryModule::AssetCreated( Blueprint );
-
-                // Retrieve actor transform.
-                FVector Location = ClonedActor->GetActorLocation();
-                FRotator Rotator = ClonedActor->GetActorRotation();
-
-                // Replace cloned actor with Blueprint instance.
-                {
-                    TArray< AActor * > Actors;
-                    Actors.Add( ClonedActor );
-
-                    ClonedActor->RemoveFromRoot();
-                    Actor = FKismetEditorUtilities::CreateBlueprintInstanceFromSelection( Blueprint, Actors, Location, Rotator );
-                }
-
-                // We can initiate Houdini actor deletion.
-                AHoudiniAssetActor * HoudiniAssetActor = HoudiniAssetComponent->GetHoudiniAssetActorOwner();
-
-                // Remove Houdini actor from active selection in editor and delete it.
-                if( GEditor )
-                {
-                    GEditor->SelectActor( HoudiniAssetActor, false, false );
-                    GEditor->Layers->DisassociateActorFromLayers( HoudiniAssetActor );
-                }
-
-                UWorld * World = HoudiniAssetActor->GetWorld();
-                if ( !World )
-                    World = GWorld;
-
-                World->EditorDestroyActor( HoudiniAssetActor, false );
+                USceneComponent * Component = Scene->GetAttachChildren()[ChildCount - 1];
+                if ( Component && !Component->IsPendingKill() )
+                    Component->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
             }
-            else
-            {
-                ClonedActor->RemoveFromRoot();
-                ClonedActor->ConditionalBeginDestroy();
-            }
+            check( Scene->GetAttachChildren().Num() == 0 );
+
+            // Ensure the light mass information is cleaned up
+            Scene->InvalidateLightingCache();
         }
+
+        // Compile our blueprint and notify asset system about blueprint.
+        FKismetEditorUtilities::CompileBlueprint( Blueprint );
+        FAssetRegistryModule::AssetCreated( Blueprint );
+
+        // Retrieve actor transform.
+        FVector Location = ClonedActor->GetActorLocation();
+        FRotator Rotator = ClonedActor->GetActorRotation();
+
+        // Replace cloned actor with Blueprint instance.
+        {
+            TArray< AActor * > Actors;
+            Actors.Add( ClonedActor );
+
+            ClonedActor->RemoveFromRoot();
+            Actor = FKismetEditorUtilities::CreateBlueprintInstanceFromSelection( Blueprint, Actors, Location, Rotator );
+        }
+
+        // We can initiate Houdini actor deletion.
+        AHoudiniAssetActor * HoudiniAssetActor = HoudiniAssetComponent->GetHoudiniAssetActorOwner();
+
+        // Remove Houdini actor from active selection in editor and delete it.
+        if( GEditor )
+        {
+            GEditor->SelectActor( HoudiniAssetActor, false, false );
+            GEditor->Layers->DisassociateActorFromLayers( HoudiniAssetActor );
+        }
+
+        UWorld * World = HoudiniAssetActor->GetWorld();
+        if ( !World )
+            World = GWorld;
+
+        World->EditorDestroyActor( HoudiniAssetActor, false );
+    }
+    else
+    {
+        ClonedActor->RemoveFromRoot();
+        ClonedActor->ConditionalBeginDestroy();
     }
 
 #endif
@@ -430,11 +446,13 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
 
         UPackage * MeshPackage = FHoudiniEngineBakeUtils::BakeCreateStaticMeshPackageForComponent(
             HoudiniCookParams, HoudiniGeoPartObject, MeshName, MeshGuid );
-        if( !MeshPackage )
+        if( !MeshPackage || MeshPackage->IsPendingKill() )
             return nullptr;
 
         // Duplicate mesh for this new copied component.
         DuplicatedStaticMesh = DuplicateObject< UStaticMesh >( StaticMesh, MeshPackage, *MeshName );
+        if ( !DuplicatedStaticMesh || DuplicatedStaticMesh->IsPendingKill() )
+            return nullptr;
 
         if( BakeMode != EBakeMode::Intermediate )
             DuplicatedStaticMesh->SetFlags( RF_Public | RF_Standalone );
@@ -457,7 +475,7 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
             if( MaterialInterface )
             {
                 UPackage * MaterialPackage = Cast< UPackage >( MaterialInterface->GetOuter() );
-                if( MaterialPackage )
+                if( MaterialPackage && !MaterialPackage->IsPendingKill() )
                 {
                     FString MaterialName;
                     if( FHoudiniEngineBakeUtils::GetHoudiniGeneratedNameFromMetaInformation(
@@ -465,13 +483,13 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
                     {
                         // We only deal with materials.
                         UMaterial * Material = Cast< UMaterial >( MaterialInterface );
-                        if( Material )
+                        if( Material && !Material->IsPendingKill() )
                         {
                             // Duplicate material resource.
                             UMaterial * DuplicatedMaterial = FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
                                 Material, HoudiniCookParams, MaterialName );
 
-                            if( !DuplicatedMaterial )
+                            if( !DuplicatedMaterial || DuplicatedMaterial->IsPendingKill() )
                                 continue;
 
                             // Store duplicated material.
@@ -504,6 +522,9 @@ void
 FHoudiniEngineBakeUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * HoudiniAssetComponent, bool SelectNewActors )
 {
 #if WITH_EDITOR
+    if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+        return;
+
     const FScopedTransaction Transaction( LOCTEXT( "BakeToActors", "Bake To Actors" ) );
 
     auto SMComponentToPart = HoudiniAssetComponent->CollectAllStaticMeshComponents();
@@ -520,7 +541,8 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Houd
         GEditor->SelectNone( false, true );
         for( AActor* NewActor : NewActors )
         {
-            GEditor->SelectActor( NewActor, true, false );
+            if ( NewActor && !NewActor->IsPendingKill() )
+                GEditor->SelectActor( NewActor, true, false );
         }
         GEditor->NoteSelectionChange();
     }
@@ -609,17 +631,21 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
 {
     TMap< const UStaticMesh*, UStaticMesh* > OriginalToBakedMesh;
 
-    // Loop over all comps, bake static mesh if not already baked, and create an actor for every one of them
     TArray< AActor* > NewActors;
+    if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+        return NewActors;
+
 #if WITH_EDITOR
+    // Loop over all comps, bake static mesh if not already baked, and create an actor for every one of them    
     for( const auto& Iter : SMComponentToPart )
     {
         const FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Value;
         const UStaticMeshComponent * OtherSMC = Iter.Key;
+        if ( !OtherSMC || OtherSMC->IsPendingKill() )
+            continue;
 
         UStaticMesh * OtherSM = OtherSMC->GetStaticMesh();
-
-        if( !ensure( OtherSM ) )
+        if( !OtherSM || OtherSM->IsPendingKill() )
             continue;
 
         CheckedBakeStaticMesh(HoudiniAssetComponent, OriginalToBakedMesh, HoudiniGeoPartObject, OtherSM);
@@ -630,136 +656,145 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
     for( const auto& Iter : SMComponentToPart )
     {
         const UStaticMeshComponent * OtherSMC = Iter.Key;
+        if ( !OtherSMC || OtherSMC->IsPendingKill() )
+            continue;
+
         const FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Value;
         UStaticMesh* BakedSM = OriginalToBakedMesh[OtherSMC->GetStaticMesh()];
 
-        if( ensure( BakedSM ) )
+        if( !BakedSM || BakedSM->IsPendingKill() )
+            continue;
+
+        ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+        FName BaseName( *( HoudiniAssetComponent->GetOwner()->GetName() + TEXT( "_Baked" ) ) );
+        UActorFactory* Factory = GEditor->FindActorFactoryByClass( UActorFactoryStaticMesh::StaticClass() );
+
+        auto PrepNewStaticMeshActor = [&]( AActor* NewActor )
         {
-            ULevel* DesiredLevel = GWorld->GetCurrentLevel();
-            FName BaseName( *( HoudiniAssetComponent->GetOwner()->GetName() + TEXT( "_Baked" ) ) );
-            UActorFactory* Factory = GEditor->FindActorFactoryByClass( UActorFactoryStaticMesh::StaticClass() );
+            if ( !NewActor || NewActor->IsPendingKill() )
+                return;
 
-            auto PrepNewStaticMeshActor = [&]( AActor* NewActor )
+            // The default name will be based on the static mesh package, we would prefer it to be based on the Houdini asset
+            FName NewName = MakeUniqueObjectName( DesiredLevel, Factory->NewActorClass, BaseName );
+            FString NewNameStr = NewName.ToString();
+            NewActor->Rename( *NewNameStr );
+            NewActor->SetActorLabel( NewNameStr );
+            NewActor->SetFolderPath( BaseName );
+
+            // Copy properties to new actor
+            AStaticMeshActor* SMActor = Cast< AStaticMeshActor>(NewActor);
+            if ( !SMActor || SMActor->IsPendingKill() )
+                return;
+            UStaticMeshComponent* SMC = SMActor->GetStaticMeshComponent();
+            if (!SMC || SMC->IsPendingKill())
+                return;
+
+            UStaticMeshComponent* OtherSMC_NonConst = const_cast<UStaticMeshComponent*>( OtherSMC );
+
+            SMC->SetCollisionProfileName( OtherSMC_NonConst->GetCollisionProfileName() );
+            SMC->SetCollisionEnabled( OtherSMC->GetCollisionEnabled() );
+            SMC->LightmassSettings = OtherSMC->LightmassSettings;
+            SMC->CastShadow = OtherSMC->CastShadow;
+            SMC->SetMobility( OtherSMC->Mobility );
+
+            if (OtherSMC_NonConst->GetBodySetup() && SMC->GetBodySetup())
             {
-                // The default name will be based on the static mesh package, we would prefer it to be based on the Houdini asset
-                FName NewName = MakeUniqueObjectName( DesiredLevel, Factory->NewActorClass, BaseName );
-                FString NewNameStr = NewName.ToString();
-                NewActor->Rename( *NewNameStr );
-                NewActor->SetActorLabel( NewNameStr );
-                NewActor->SetFolderPath( BaseName );
+                // Copy the BodySetup
+                SMC->GetBodySetup()->CopyBodyPropertiesFrom(OtherSMC_NonConst->GetBodySetup());
 
-                // Copy properties to new actor
-                if( AStaticMeshActor* SMActor = Cast< AStaticMeshActor>( NewActor ) )
-                {
-                    if( UStaticMeshComponent* SMC = SMActor->GetStaticMeshComponent() )
-                    {
-                        UStaticMeshComponent* OtherSMC_NonConst = const_cast<UStaticMeshComponent*>( OtherSMC );
+                // We need to recreate the physics mesh for the new body setup
+                SMC->GetBodySetup()->InvalidatePhysicsData();
+                SMC->GetBodySetup()->CreatePhysicsMeshes();
 
-                        SMC->SetCollisionProfileName( OtherSMC_NonConst->GetCollisionProfileName() );
-                        SMC->SetCollisionEnabled( OtherSMC->GetCollisionEnabled() );
-                        SMC->LightmassSettings = OtherSMC->LightmassSettings;
-                        SMC->CastShadow = OtherSMC->CastShadow;
-                        SMC->SetMobility( OtherSMC->Mobility );
+                // Only copy the physical material if it's different from the default one,
+                // As this was causing crashes on BakeToActors in some cases
+                if (GEngine != NULL && OtherSMC_NonConst->GetBodySetup()->GetPhysMaterial() != GEngine->DefaultPhysMaterial)
+                    SMC->SetPhysMaterialOverride(OtherSMC_NonConst->GetBodySetup()->GetPhysMaterial());
+            }
+            SMActor->SetActorHiddenInGame( OtherSMC->bHiddenInGame );
+            SMC->SetVisibility( OtherSMC->IsVisible() );
 
-                        if (OtherSMC_NonConst->GetBodySetup() && SMC->GetBodySetup())
-                        {
-                            // Copy the BodySetup
-                            SMC->GetBodySetup()->CopyBodyPropertiesFrom(OtherSMC_NonConst->GetBodySetup());
+            // Reapply the uproperties modified by attributes on the new component
+            FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( SMC, HoudiniGeoPartObject );
 
-                            // We need to recreate the physics mesh for the new body setup
-                            SMC->GetBodySetup()->InvalidatePhysicsData();
-                            SMC->GetBodySetup()->CreatePhysicsMeshes();
+            SMC->PostEditChange();
+        };
 
-                            // Only copy the physical material if it's different from the default one,
-                            // As this was causing crashes on BakeToActors in some cases
-                            if (GEngine != NULL && OtherSMC_NonConst->GetBodySetup()->GetPhysMaterial() != GEngine->DefaultPhysMaterial)
-                                SMC->SetPhysMaterialOverride(OtherSMC_NonConst->GetBodySetup()->GetPhysMaterial());
-                        }
-                        SMActor->SetActorHiddenInGame( OtherSMC->bHiddenInGame );
-                        SMC->SetVisibility( OtherSMC->IsVisible() );
-
-                        // Reapply the uproperties modified by attributes on the new component
-                        FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( SMC, HoudiniGeoPartObject );
-
-                        SMC->PostEditChange();
-                    }
-                }
-            };
-
-            if( const UInstancedStaticMeshComponent* OtherISMC = Cast< const UInstancedStaticMeshComponent>( OtherSMC ) )
-            {
+        const UInstancedStaticMeshComponent* OtherISMC = Cast< const UInstancedStaticMeshComponent>(OtherSMC);
+        if( OtherISMC && !OtherISMC->IsPendingKill() )
+        {
 #ifdef BAKE_TO_INSTANCEDSTATICMESHCOMPONENT_ACTORS
-                // This is an instanced static mesh component - we will create a generic AActor with a UInstancedStaticMeshComponent root
-                FActorSpawnParameters SpawnInfo;
-                SpawnInfo.OverrideLevel = DesiredLevel;
-                SpawnInfo.ObjectFlags = RF_Transactional;
-                SpawnInfo.Name = MakeUniqueObjectName( DesiredLevel, AActor::StaticClass(), BaseName );
-                SpawnInfo.bDeferConstruction = true;
+            // This is an instanced static mesh component - we will create a generic AActor with a UInstancedStaticMeshComponent root
+            FActorSpawnParameters SpawnInfo;
+            SpawnInfo.OverrideLevel = DesiredLevel;
+            SpawnInfo.ObjectFlags = RF_Transactional;
+            SpawnInfo.Name = MakeUniqueObjectName( DesiredLevel, AActor::StaticClass(), BaseName );
+            SpawnInfo.bDeferConstruction = true;
 
-                if( AActor* NewActor = DesiredLevel->OwningWorld->SpawnActor<AActor>( SpawnInfo ) )
-                {
-                    NewActor->SetActorLabel( NewActor->GetName() );
-                    NewActor->SetActorHiddenInGame( OtherISMC->bHiddenInGame );
-
-                    // Do we need to create a HISMC?
-                    const UHierarchicalInstancedStaticMeshComponent* OtherHISMC = Cast< const UHierarchicalInstancedStaticMeshComponent>( OtherSMC );
-                    UInstancedStaticMeshComponent* NewISMC = nullptr;
-                    if ( OtherHISMC )
-                        NewISMC = DuplicateObject< UHierarchicalInstancedStaticMeshComponent >(OtherHISMC, NewActor, *OtherHISMC->GetName() ) );
-                    else
-                        NewISMC = DuplicateObject< UInstancedStaticMeshComponent >( OtherISMC, NewActor, *OtherISMC->GetName() ) );
-
-                    if( NewISMC )
-                    {
-                        NewISMC->SetupAttachment( nullptr );
-                        NewISMC->SetStaticMesh( BakedSM );
-                        NewActor->AddInstanceComponent( NewISMC );
-                        NewActor->SetRootComponent( NewISMC );
-                        NewISMC->SetWorldTransform( OtherISMC->GetComponentTransform() );
-                        NewISMC->RegisterComponent();
-
-                        NewActor->SetFolderPath( BaseName );
-                        NewActor->FinishSpawning( OtherISMC->GetComponentTransform() );
-
-                        NewActors.Add( NewActor );
-                        NewActor->InvalidateLightingCache();
-                        NewActor->PostEditMove( true );
-                        NewActor->MarkPackageDirty();
-                    }
-                }
-#else
-                // This is an instanced static mesh component - we will split it up into StaticMeshActors
-                for( int32 InstanceIx = 0; InstanceIx < OtherISMC->GetInstanceCount(); ++InstanceIx )
-                {
-                    FTransform InstanceTransform;
-                    OtherISMC->GetInstanceTransform( InstanceIx, InstanceTransform, true );
-                    if( AActor* NewActor = Factory->CreateActor( BakedSM, DesiredLevel, InstanceTransform, RF_Transactional ) )
-                    {
-                        PrepNewStaticMeshActor( NewActor );
-
-                        // We need to set the modified uproperty on the created actor
-                        if ( AStaticMeshActor* SMActor = Cast< AStaticMeshActor>(NewActor) )
-                        {
-                            if ( UStaticMeshComponent* SMC = SMActor->GetStaticMeshComponent() )
-                            {
-                                FHoudiniGeoPartObject GeoPartObject = HoudiniAssetComponent->LocateGeoPartObject( OtherSMC->GetStaticMesh() );
-
-                                // Set the part id to 0 so we can access the instancer
-                                GeoPartObject.PartId = 0;
-                                FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( SMC, GeoPartObject );
-                            }
-                        }
-                    }
-                }
-#endif
-            }
-            else
+            if( AActor* NewActor = DesiredLevel->OwningWorld->SpawnActor<AActor>( SpawnInfo ) )
             {
-                if( AActor* NewActor = Factory->CreateActor( BakedSM, DesiredLevel, OtherSMC->GetComponentTransform(), RF_Transactional ) )
+                NewActor->SetActorLabel( NewActor->GetName() );
+                NewActor->SetActorHiddenInGame( OtherISMC->bHiddenInGame );
+
+                // Do we need to create a HISMC?
+                const UHierarchicalInstancedStaticMeshComponent* OtherHISMC = Cast< const UHierarchicalInstancedStaticMeshComponent>( OtherSMC );
+                UInstancedStaticMeshComponent* NewISMC = nullptr;
+                if ( OtherHISMC )
+                    NewISMC = DuplicateObject< UHierarchicalInstancedStaticMeshComponent >(OtherHISMC, NewActor, *OtherHISMC->GetName() ) );
+                else
+                    NewISMC = DuplicateObject< UInstancedStaticMeshComponent >( OtherISMC, NewActor, *OtherISMC->GetName() ) );
+
+                if( NewISMC )
                 {
-                    PrepNewStaticMeshActor( NewActor );
+                    NewISMC->SetupAttachment( nullptr );
+                    NewISMC->SetStaticMesh( BakedSM );
+                    NewActor->AddInstanceComponent( NewISMC );
+                    NewActor->SetRootComponent( NewISMC );
+                    NewISMC->SetWorldTransform( OtherISMC->GetComponentTransform() );
+                    NewISMC->RegisterComponent();
+
+                    NewActor->SetFolderPath( BaseName );
+                    NewActor->FinishSpawning( OtherISMC->GetComponentTransform() );
+
+                    NewActors.Add( NewActor );
+                    NewActor->InvalidateLightingCache();
+                    NewActor->PostEditMove( true );
+                    NewActor->MarkPackageDirty();
                 }
             }
+#else
+            // This is an instanced static mesh component - we will split it up into StaticMeshActors
+            for( int32 InstanceIx = 0; InstanceIx < OtherISMC->GetInstanceCount(); ++InstanceIx )
+            {
+                FTransform InstanceTransform;
+                OtherISMC->GetInstanceTransform( InstanceIx, InstanceTransform, true );
+                AActor* NewActor = Factory->CreateActor(BakedSM, DesiredLevel, InstanceTransform, RF_Transactional);
+                if (!NewActor || NewActor->IsPendingKill())
+                    continue;
+
+                PrepNewStaticMeshActor( NewActor );
+
+                // We need to set the modified uproperty on the created actor
+                AStaticMeshActor* SMActor = Cast< AStaticMeshActor>(NewActor);
+                if ( !SMActor || SMActor->IsPendingKill() )
+                    continue;
+
+                UStaticMeshComponent* SMC = SMActor->GetStaticMeshComponent();
+                if ( !SMC || SMC->IsPendingKill() )
+                    continue;
+                FHoudiniGeoPartObject GeoPartObject = HoudiniAssetComponent->LocateGeoPartObject( OtherSMC->GetStaticMesh() );
+
+                // Set the part id to 0 so we can access the instancer
+                GeoPartObject.PartId = 0;
+                FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( SMC, GeoPartObject );
+            }
+#endif
+        }
+        else
+        {
+            AActor* NewActor = Factory->CreateActor(BakedSM, DesiredLevel, OtherSMC->GetComponentTransform(), RF_Transactional);
+            if( NewActor && !NewActor->IsPendingKill() )
+                PrepNewStaticMeshActor( NewActor );
         }
     }
 #endif
@@ -771,6 +806,9 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_SplitMeshInstancers(UHoudiniAs
     TMap<const UHoudiniMeshSplitInstancerComponent *, FHoudiniGeoPartObject> SplitMeshInstancerComponentToPart)
 {
     TArray< AActor* > NewActors;
+    if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+        return NewActors;
+
 #if WITH_EDITOR
     TMap< const UStaticMesh*, UStaticMesh* > OriginalToBakedMesh;
 
@@ -779,9 +817,12 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_SplitMeshInstancers(UHoudiniAs
         auto&& HoudiniGeoPartObject = Iter.Value;
         auto&& OtherMSIC = Iter.Key;
 
+        if ( !OtherMSIC || OtherMSIC->IsPendingKill() )
+            continue;
+
         UStaticMesh * OtherSM = OtherMSIC->GetStaticMesh();
 
-        if( !ensure(OtherSM) )
+        if( !OtherSM || OtherSM->IsPendingKill() )
             continue;
 
         CheckedBakeStaticMesh(HoudiniAssetComponent, OriginalToBakedMesh, HoudiniGeoPartObject, OtherSM);
@@ -790,45 +831,51 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_SplitMeshInstancers(UHoudiniAs
     for( auto&& Iter : SplitMeshInstancerComponentToPart )
     {
         auto&& OtherMSIC = Iter.Key;
+
         UStaticMesh* BakedSM = OriginalToBakedMesh[OtherMSIC->GetStaticMesh()];
+        if( !BakedSM || BakedSM->IsPendingKill() )
+            continue;
 
-        if( ensure(BakedSM) )
+        ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+        FName BaseName(*( HoudiniAssetComponent->GetOwner()->GetName() + TEXT("_Baked") ));
+
+        // This is a split mesh instancer component - we will create a generic AActor with a bunch of SMC
+        FActorSpawnParameters SpawnInfo;
+        SpawnInfo.OverrideLevel = DesiredLevel;
+        SpawnInfo.ObjectFlags = RF_Transactional;
+        SpawnInfo.Name = MakeUniqueObjectName(DesiredLevel, AActor::StaticClass(), BaseName);
+        SpawnInfo.bDeferConstruction = true;
+
+        AActor* NewActor = DesiredLevel->OwningWorld->SpawnActor<AActor>(SpawnInfo);
+        if (!NewActor || NewActor->IsPendingKill())
+            continue;
+
+        NewActor->SetActorLabel(NewActor->GetName());
+        NewActor->SetActorHiddenInGame(OtherMSIC->bHiddenInGame);
+
+        for( UStaticMeshComponent* OtherSMC : OtherMSIC->GetInstances() )
         {
-            ULevel* DesiredLevel = GWorld->GetCurrentLevel();
-            FName BaseName(*( HoudiniAssetComponent->GetOwner()->GetName() + TEXT("_Baked") ));
+            if ( !OtherSMC || OtherSMC->IsPendingKill() )
+                continue;
 
-            // This is a split mesh instancer component - we will create a generic AActor with a bunch of SMC
-            FActorSpawnParameters SpawnInfo;
-            SpawnInfo.OverrideLevel = DesiredLevel;
-            SpawnInfo.ObjectFlags = RF_Transactional;
-            SpawnInfo.Name = MakeUniqueObjectName(DesiredLevel, AActor::StaticClass(), BaseName);
-            SpawnInfo.bDeferConstruction = true;
+            UStaticMeshComponent* NewSMC = DuplicateObject< UStaticMeshComponent >(OtherSMC, NewActor, *OtherSMC->GetName());
+            if (!NewSMC || NewSMC->IsPendingKill())
+                continue;
 
-            if( AActor* NewActor = DesiredLevel->OwningWorld->SpawnActor<AActor>(SpawnInfo) )
-            {
-                NewActor->SetActorLabel(NewActor->GetName());
-                NewActor->SetActorHiddenInGame(OtherMSIC->bHiddenInGame);
-
-                for( UStaticMeshComponent* OtherSMC : OtherMSIC->GetInstances() )
-                {
-                    if( UStaticMeshComponent* NewSMC = DuplicateObject< UStaticMeshComponent >(OtherSMC, NewActor, *OtherSMC->GetName()) )
-                    {
-                        NewSMC->SetupAttachment(nullptr);
-                        NewSMC->SetStaticMesh(BakedSM);
-                        NewActor->AddInstanceComponent(NewSMC);
-                        NewSMC->SetWorldTransform(OtherSMC->GetComponentTransform());
-                        NewSMC->RegisterComponent();
-                    }
-                }
-                NewActor->SetFolderPath(BaseName);
-                NewActor->FinishSpawning(OtherMSIC->GetComponentTransform());
-
-                NewActors.Add(NewActor);
-                NewActor->InvalidateLightingCache();
-                NewActor->PostEditMove(true);
-                NewActor->MarkPackageDirty();
-            }
+            NewSMC->SetupAttachment(nullptr);
+            NewSMC->SetStaticMesh(BakedSM);
+            NewActor->AddInstanceComponent(NewSMC);
+            NewSMC->SetWorldTransform(OtherSMC->GetComponentTransform());
+            NewSMC->RegisterComponent();
         }
+
+        NewActor->SetFolderPath(BaseName);
+        NewActor->FinishSpawning(OtherMSIC->GetComponentTransform());
+
+        NewActors.Add(NewActor);
+        NewActor->InvalidateLightingCache();
+        NewActor->PostEditMove(true);
+        NewActor->MarkPackageDirty();
     }
 #endif
     return NewActors;
@@ -837,6 +884,9 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_SplitMeshInstancers(UHoudiniAs
 UHoudiniAssetInput*
 FHoudiniEngineBakeUtils::GetInputForBakeHoudiniActorToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent )
 {
+    if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+        return nullptr;
+
     UHoudiniAssetInput *FirstInput = nullptr, *Result = nullptr;
 #if WITH_EDITOR
     if( HoudiniAssetComponent->GetInputs().Num() && HoudiniAssetComponent->GetInputs()[0] )
@@ -855,7 +905,7 @@ FHoudiniEngineBakeUtils::GetInputForBakeHoudiniActorToOutlinerInput( const UHoud
         }
     }
 
-    if( FirstInput )
+    if( FirstInput && !FirstInput->IsPendingKill() )
     {
         if( FirstInput->GetChoiceIndex() == EHoudiniAssetInputType::WorldInput && FirstInput->GetWorldOutlinerInputs().Num() == 1 )
         {
@@ -873,6 +923,9 @@ FHoudiniEngineBakeUtils::GetInputForBakeHoudiniActorToOutlinerInput( const UHoud
 bool
 FHoudiniEngineBakeUtils::GetCanComponentBakeToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent )
 {
+    if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+        return false;
+
 #if WITH_EDITOR
     // TODO: Cache this
     auto SMComponentToPart = HoudiniAssetComponent->CollectAllStaticMeshComponents();
@@ -887,6 +940,9 @@ FHoudiniEngineBakeUtils::GetCanComponentBakeToOutlinerInput( const UHoudiniAsset
 void
 FHoudiniEngineBakeUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * HoudiniAssetComponent )
 {
+    if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
+        return;
+
 #if WITH_EDITOR
     TMap< const UStaticMesh*, UStaticMesh* > OriginalToBakedMesh;
     TMap< const UStaticMeshComponent*, FHoudiniGeoPartObject > SMComponentToPart = HoudiniAssetComponent->CollectAllStaticMeshComponents();
@@ -895,12 +951,15 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent
     {
         const FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Value;
         const UStaticMeshComponent * OtherSMC = Iter.Key;
+        if ( !OtherSMC || OtherSMC->IsPendingKill() )
+            continue;
 
-        if( !ensure( OtherSMC->GetStaticMesh() ) )
+        UStaticMesh* OtherSM = OtherSMC->GetStaticMesh();
+        if( !OtherSM || OtherSM->IsPendingKill() )
             continue;
 
         UStaticMesh* BakedSM = nullptr;
-        if( UStaticMesh ** FoundMeshPtr = OriginalToBakedMesh.Find( OtherSMC->GetStaticMesh() ) )
+        if( UStaticMesh ** FoundMeshPtr = OriginalToBakedMesh.Find( OtherSM ) )
         {
             // We've already baked this mesh, use it
             BakedSM = *FoundMeshPtr;
@@ -909,11 +968,11 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent
         {
             // Bake the found mesh into the project
             BakedSM = FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
-                OtherSMC->GetStaticMesh(), HoudiniAssetComponent, HoudiniGeoPartObject, EBakeMode::CreateNewAssets );
+                OtherSM, HoudiniAssetComponent, HoudiniGeoPartObject, EBakeMode::CreateNewAssets );
 
             if( BakedSM )
             {
-                OriginalToBakedMesh.Add( OtherSMC->GetStaticMesh(), BakedSM );
+                OriginalToBakedMesh.Add(OtherSM, BakedSM );
                 FAssetRegistryModule::AssetCreated( BakedSM );
             }
         }
@@ -925,21 +984,26 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent
         for( auto Iter : OriginalToBakedMesh )
         {
             // Get the first outliner input
-            if( UHoudiniAssetInput* FirstInput = GetInputForBakeHoudiniActorToOutlinerInput( HoudiniAssetComponent ) )
+            UHoudiniAssetInput* FirstInput = GetInputForBakeHoudiniActorToOutlinerInput(HoudiniAssetComponent);
+            if ( !FirstInput || FirstInput->IsPendingKill() )
+                continue;
+
+            const FHoudiniAssetInputOutlinerMesh& InputOutlinerMesh = FirstInput->GetWorldOutlinerInputs()[0];
+            if( InputOutlinerMesh.ActorPtr.IsValid() && InputOutlinerMesh.StaticMeshComponent )
             {
-                const FHoudiniAssetInputOutlinerMesh& InputOutlinerMesh = FirstInput->GetWorldOutlinerInputs()[0];
-                if( InputOutlinerMesh.ActorPtr.IsValid() && InputOutlinerMesh.StaticMeshComponent )
+                UStaticMeshComponent* InOutSMC = InputOutlinerMesh.StaticMeshComponent;
+                if ( InOutSMC && !InOutSMC->IsPendingKill() )
                 {
-                    UStaticMeshComponent* InOutSMC = InputOutlinerMesh.StaticMeshComponent;
                     InputOutlinerMesh.ActorPtr->Modify();
-                    InOutSMC->SetStaticMesh( Iter.Value );
+                    InOutSMC->SetStaticMesh(Iter.Value);
                     InOutSMC->InvalidateLightingCache();
                     InOutSMC->MarkPackageDirty();
-
-                    // Disconnect the input from the asset - InputOutlinerMesh now garbage
-                    FirstInput->RemoveWorldOutlinerInput( 0 );
                 }
+
+                // Disconnect the input from the asset - InputOutlinerMesh now garbage
+                FirstInput->RemoveWorldOutlinerInput( 0 );
             }
+
             // Only handle the first Baked Mesh
             break;
         }
@@ -951,7 +1015,9 @@ bool
 FHoudiniEngineBakeUtils::StaticMeshRequiresBake( const UStaticMesh * StaticMesh )
 {
 #if WITH_EDITOR
-    check( StaticMesh );
+    if( !StaticMesh || StaticMesh->IsPendingKill() )
+        return false;
+
     FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>( "AssetRegistry" );
 
     FAssetData BackingAssetData = AssetRegistryModule.Get().GetAssetByObjectPath( *StaticMesh->GetPathName() );
@@ -960,12 +1026,12 @@ FHoudiniEngineBakeUtils::StaticMeshRequiresBake( const UStaticMesh * StaticMesh 
 
     for( const auto& StaticMaterial : StaticMesh->StaticMaterials )
     {
-        if( StaticMaterial.MaterialInterface )
-        {
-            BackingAssetData = AssetRegistryModule.Get().GetAssetByObjectPath( *StaticMaterial.MaterialInterface->GetPathName() );
-            if( !BackingAssetData.IsUAsset() )
-                return true;
-        }
+        if( !StaticMaterial.MaterialInterface || StaticMaterial.MaterialInterface->IsPendingKill() )
+            continue;
+
+        BackingAssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*StaticMaterial.MaterialInterface->GetPathName());
+        if (!BackingAssetData.IsUAsset())
+            return true;
     }
 #endif
     return false;
@@ -982,11 +1048,13 @@ FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
     UPackage * MaterialPackage = FHoudiniEngineBakeUtils::BakeCreateTextureOrMaterialPackageForComponent(
         HoudiniCookParams, SubMaterialName, MaterialName );
 
-    if( !MaterialPackage )
+    if( !MaterialPackage || MaterialPackage->IsPendingKill() )
         return nullptr;
 
     // Clone material.
     DuplicatedMaterial = DuplicateObject< UMaterial >( Material, MaterialPackage, *MaterialName );
+    if (!DuplicatedMaterial || DuplicatedMaterial->IsPendingKill())
+        return nullptr;
 
     if( HoudiniCookParams.MaterialAndTextureBakeMode != EBakeMode::Intermediate )
         DuplicatedMaterial->SetFlags( RF_Public | RF_Standalone );
@@ -1025,27 +1093,27 @@ FHoudiniEngineBakeUtils::ReplaceDuplicatedMaterialTextureSample(
 {
 #if WITH_EDITOR
     UMaterialExpressionTextureSample * TextureSample = Cast< UMaterialExpressionTextureSample >( MaterialExpression );
-    if( TextureSample )
-    {
-        UTexture2D * Texture = Cast< UTexture2D >( TextureSample->Texture );
-        if( Texture )
-        {
-            UPackage * TexturePackage = Cast< UPackage >( Texture->GetOuter() );
-            if( TexturePackage )
-            {
-                FString GeneratedTextureName;
-                if( FHoudiniEngineBakeUtils::GetHoudiniGeneratedNameFromMetaInformation(
-                    TexturePackage, Texture, GeneratedTextureName ) )
-                {
-                    // Duplicate texture.
-                    UTexture2D * DuplicatedTexture = FHoudiniEngineBakeUtils::DuplicateTextureAndCreatePackage(
-                        Texture, HoudiniCookParams, GeneratedTextureName );
+    if( !TextureSample || TextureSample->IsPendingKill() )
+        return;
 
-                    // Re-assign generated texture.
-                    TextureSample->Texture = DuplicatedTexture;
-                }
-            }
-        }
+    UTexture2D * Texture = Cast< UTexture2D >( TextureSample->Texture );
+    if ( !Texture || Texture->IsPendingKill() )
+        return;
+
+    UPackage * TexturePackage = Cast< UPackage >( Texture->GetOuter() );
+    if( !TexturePackage || TexturePackage->IsPendingKill() )
+        return;
+
+    FString GeneratedTextureName;
+    if( FHoudiniEngineBakeUtils::GetHoudiniGeneratedNameFromMetaInformation(
+        TexturePackage, Texture, GeneratedTextureName ) )
+    {
+        // Duplicate texture.
+        UTexture2D * DuplicatedTexture = FHoudiniEngineBakeUtils::DuplicateTextureAndCreatePackage(
+            Texture, HoudiniCookParams, GeneratedTextureName );
+
+        // Re-assign generated texture.
+        TextureSample->Texture = DuplicatedTexture;
     }
 #endif
 }
@@ -1058,50 +1126,52 @@ FHoudiniEngineBakeUtils::DuplicateTextureAndCreatePackage(
 #if WITH_EDITOR
     // Retrieve original package of this texture.
     UPackage * TexturePackage = Cast< UPackage >( Texture->GetOuter() );
-    if( TexturePackage )
+    if( !TexturePackage || TexturePackage->IsPendingKill() )
+        return nullptr;
+
+    FString GeneratedTextureName;
+    if( FHoudiniEngineBakeUtils::GetHoudiniGeneratedNameFromMetaInformation( TexturePackage, Texture, GeneratedTextureName ) )
     {
-        FString GeneratedTextureName;
-        if( FHoudiniEngineBakeUtils::GetHoudiniGeneratedNameFromMetaInformation( TexturePackage, Texture, GeneratedTextureName ) )
-        {
-            UMetaData * MetaData = TexturePackage->GetMetaData();
-            if( MetaData )
-            {
-                // Retrieve texture type.
-                const FString & TextureType =
-                    MetaData->GetValue( Texture, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE );
+        UMetaData * MetaData = TexturePackage->GetMetaData();
+        if ( !MetaData || MetaData->IsPendingKill() )
+            return nullptr;
 
-                // Create texture package.
-                FString TextureName;
-                UPackage * NewTexturePackage = FHoudiniEngineBakeUtils::BakeCreateTextureOrMaterialPackageForComponent(
-                    HoudiniCookParams, SubTextureName, TextureName );
+        // Retrieve texture type.
+        const FString & TextureType =
+            MetaData->GetValue( Texture, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE );
 
-                if( !NewTexturePackage )
-                    return nullptr;
+        // Create texture package.
+        FString TextureName;
+        UPackage * NewTexturePackage = FHoudiniEngineBakeUtils::BakeCreateTextureOrMaterialPackageForComponent(
+            HoudiniCookParams, SubTextureName, TextureName );
 
-                // Clone texture.
-                DuplicatedTexture = DuplicateObject< UTexture2D >( Texture, NewTexturePackage, *TextureName );
+        if( !NewTexturePackage || NewTexturePackage->IsPendingKill() )
+            return nullptr;
 
-                if( HoudiniCookParams.MaterialAndTextureBakeMode != EBakeMode::Intermediate )
-                    DuplicatedTexture->SetFlags( RF_Public | RF_Standalone );
+        // Clone texture.
+        DuplicatedTexture = DuplicateObject< UTexture2D >( Texture, NewTexturePackage, *TextureName );
+        if ( !DuplicatedTexture || DuplicatedTexture->IsPendingKill() )
+            return nullptr;
 
-                // Add meta information.
-                FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
-                    NewTexturePackage, DuplicatedTexture,
-                    HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT( "true" ) );
-                FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
-                    NewTexturePackage, DuplicatedTexture,
-                    HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *TextureName );
-                FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
-                    NewTexturePackage, DuplicatedTexture,
-                    HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE, *TextureType );
+        if( HoudiniCookParams.MaterialAndTextureBakeMode != EBakeMode::Intermediate )
+            DuplicatedTexture->SetFlags( RF_Public | RF_Standalone );
 
-                // Notify registry that we have created a new duplicate texture.
-                FAssetRegistryModule::AssetCreated( DuplicatedTexture );
+        // Add meta information.
+        FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
+            NewTexturePackage, DuplicatedTexture,
+            HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT( "true" ) );
+        FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
+            NewTexturePackage, DuplicatedTexture,
+            HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *TextureName );
+        FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
+            NewTexturePackage, DuplicatedTexture,
+            HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE, *TextureType );
 
-                // Dirty the texture package.
-                DuplicatedTexture->MarkPackageDirty();
-            }
-        }
+        // Notify registry that we have created a new duplicate texture.
+        FAssetRegistryModule::AssetCreated( DuplicatedTexture );
+
+        // Dirty the texture package.
+        DuplicatedTexture->MarkPackageDirty();
     }
 #endif
     return DuplicatedTexture;
@@ -1129,7 +1199,7 @@ bool
 FHoudiniEngineBakeUtils::BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, ALandscape * OnlyBakeThisLandscape )
 {
 #if WITH_EDITOR
-    if ( !HoudiniAssetComponent )
+    if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
         return false;
 
     if ( !HoudiniAssetComponent->HasLandscape() )
@@ -1144,7 +1214,7 @@ FHoudiniEngineBakeUtils::BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComp
     for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter(* LandscapeComponentsPtr ); Iter; ++Iter)
     {
         ALandscape * CurrentLandscape = Iter.Value().Get();
-        if ( !CurrentLandscape )
+        if ( !CurrentLandscape || CurrentLandscape->IsPendingKill() )
             continue;
 
         // If we only want to bake a single landscape
@@ -1164,7 +1234,7 @@ FHoudiniEngineBakeUtils::BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComp
                 continue;
 
             UPackage * Package = IterPackage.Key().Get();
-            if ( Package )
+            if ( Package && !Package->IsPendingKill() )
                 LayerPackages.Add( Package );
         }
 
@@ -1198,16 +1268,17 @@ FHoudiniEngineBakeUtils::BakeCreateMaterialPackageForComponent(
     const HAPI_MaterialInfo & MaterialInfo, FString & MaterialName )
 {
     UHoudiniAsset * HoudiniAsset = HoudiniCookParams.HoudiniAsset;
-    FString MaterialDescriptor;
+    if ( !HoudiniAsset || HoudiniAsset->IsPendingKill() )
+        return nullptr;
 
+    FString MaterialDescriptor;
     if( HoudiniCookParams.MaterialAndTextureBakeMode != EBakeMode::Intermediate )
         MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_material_" ) + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" );
     else
         MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_" ) + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" );
 
     return FHoudiniEngineBakeUtils::BakeCreateTextureOrMaterialPackageForComponent(
-        HoudiniCookParams, MaterialDescriptor,
-        MaterialName );
+        HoudiniCookParams, MaterialDescriptor, MaterialName );
 }
 
 UPackage *
@@ -1217,8 +1288,10 @@ FHoudiniEngineBakeUtils::BakeCreateTexturePackageForComponent(
     FString & TextureName )
 {
     UHoudiniAsset * HoudiniAsset = HoudiniCookParams.HoudiniAsset;
-    FString TextureInfoDescriptor;
+    if (!HoudiniAsset || HoudiniAsset->IsPendingKill())
+        return nullptr;
 
+    FString TextureInfoDescriptor;
     if ( HoudiniCookParams.MaterialAndTextureBakeMode != EBakeMode::Intermediate )
     {
         TextureInfoDescriptor = HoudiniAsset->GetName() + TEXT( "_texture_" ) + FString::FromInt( MaterialInfo.nodeId ) +
@@ -1284,7 +1357,7 @@ FHoudiniEngineBakeUtils::BakeCreateTextureOrMaterialPackageForComponent(
         }
 
         // Find a previously baked / cooked asset
-        if ( FoundPackage )
+        if ( FoundPackage && !FoundPackage->IsPendingKill() )
         {
             if ( UPackage::IsEmptyPackage( FoundPackage ) )
             {
@@ -1379,8 +1452,7 @@ FHoudiniEngineBakeUtils::BakeCreateTextureOrMaterialPackageForComponent(
 
         // See if package exists, if it does, we need to regenerate the name.
         UPackage * Package = FindPackage( OuterPackage, *PackageName );
-
-        if ( Package )
+        if ( Package && !Package->IsPendingKill() )
         {
             // Package does exist, there's a collision, we need to generate a new name.
             BakeGUID.Invalidate();
@@ -1393,7 +1465,8 @@ FHoudiniEngineBakeUtils::BakeCreateTextureOrMaterialPackageForComponent(
         }
     }
 
-    if( PackageNew && ( ( BakeMode == EBakeMode::ReplaceExisitingAssets ) || ( BakeMode == EBakeMode::CookToTemp ) ) )
+    if( PackageNew && !PackageNew->IsPendingKill() 
+        && ( ( BakeMode == EBakeMode::ReplaceExisitingAssets ) || ( BakeMode == EBakeMode::CookToTemp ) ) )
     {
         // Add the new package to the cache
         if ( BakeMode == EBakeMode::ReplaceExisitingAssets )
@@ -1408,33 +1481,30 @@ FHoudiniEngineBakeUtils::BakeCreateTextureOrMaterialPackageForComponent(
 bool 
 FHoudiniEngineBakeUtils::CheckPackageSafeForBake( UPackage* Package, FString& FoundAssetName )
 {
-    if( Package )
-    {
-        FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>( "AssetRegistry" );
-        TArray<FAssetData> AssetsInPackage;
-        AssetRegistryModule.Get().GetAssetsByPackageName( Package->GetFName(), AssetsInPackage );
-        for( const auto& AssetInfo : AssetsInPackage )
-        {
-            if( AssetInfo.GetAsset() )
-            {
-                // Check and see whether we are referenced by any objects that won't be garbage collected (*including* the undo buffer)
-                FReferencerInformationList ReferencesIncludingUndo;
-                UObject* AssetInPackage = AssetInfo.GetAsset();
-                bool bReferencedInMemoryOrUndoStack = IsReferenced( AssetInPackage, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags, true, &ReferencesIncludingUndo );
-                if( bReferencedInMemoryOrUndoStack )
-                {
-                    // warn
-                    HOUDINI_LOG_ERROR( TEXT( "Could not bake to %s because it is being referenced" ), *Package->GetPathName() );
-                    return false;
-                }
-                FoundAssetName = AssetInfo.AssetName.ToString();
-            }
-        }
-    }
-    else
-    {
+    if (!Package || Package->IsPendingKill())
         return false;
+
+    FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>( "AssetRegistry" );
+    TArray<FAssetData> AssetsInPackage;
+    AssetRegistryModule.Get().GetAssetsByPackageName( Package->GetFName(), AssetsInPackage );
+    for( const auto& AssetInfo : AssetsInPackage )
+    {
+        UObject* AssetInPackage = AssetInfo.GetAsset();
+        if (!AssetInPackage || AssetInPackage->IsPendingKill())
+            continue;
+
+        // Check and see whether we are referenced by any objects that won't be garbage collected (*including* the undo buffer)
+        FReferencerInformationList ReferencesIncludingUndo;
+        bool bReferencedInMemoryOrUndoStack = IsReferenced( AssetInPackage, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags, true, &ReferencesIncludingUndo );
+        if( bReferencedInMemoryOrUndoStack )
+        {
+            // warn
+            HOUDINI_LOG_ERROR( TEXT( "Could not bake to %s because it is being referenced" ), *Package->GetPathName() );
+            return false;
+        }
+        FoundAssetName = AssetInfo.AssetName.ToString();
     }
+
     return true;
 }
 
@@ -1489,7 +1559,7 @@ FHoudiniEngineBakeUtils::BakeCreateStaticMeshPackageForComponent(
             }
 
             // Find a previously baked / cooked asset
-            if ( FoundPackage )
+            if ( FoundPackage && !FoundPackage->IsPendingKill() )
             {
                 if ( UPackage::IsEmptyPackage( FoundPackage ) )
                 {
@@ -1593,7 +1663,7 @@ FHoudiniEngineBakeUtils::BakeCreateStaticMeshPackageForComponent(
         // See if package exists, if it does, we need to regenerate the name.
         UPackage * Package = FindPackage( OuterPackage, *PackageName );
 
-        if ( Package )
+        if ( Package && !Package->IsPendingKill() )
         {
             if ( BakeMode != EBakeMode::Intermediate )
             {
@@ -1614,7 +1684,8 @@ FHoudiniEngineBakeUtils::BakeCreateStaticMeshPackageForComponent(
         }
     }
 
-    if ( PackageNew && ( ( BakeMode == EBakeMode::ReplaceExisitingAssets ) || ( BakeMode == EBakeMode::CookToTemp ) ) )
+    if ( PackageNew && !PackageNew->IsPendingKill()
+        && ( ( BakeMode == EBakeMode::ReplaceExisitingAssets ) || ( BakeMode == EBakeMode::CookToTemp ) ) )
     {
         // Add the new package to the cache
         if ( BakeMode == EBakeMode::ReplaceExisitingAssets )
@@ -1632,16 +1703,26 @@ FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
     UPackage * Package, UObject * Object, const TCHAR * Key,
     const TCHAR * Value)
 {
+    if ( !Package || Package->IsPendingKill() )
+        return;
+
     UMetaData * MetaData = Package->GetMetaData();
-    MetaData->SetValue( Object, Key, Value );
+    if ( MetaData && !MetaData->IsPendingKill() )
+        MetaData->SetValue( Object, Key, Value );
 }
 
 bool
 FHoudiniEngineBakeUtils::GetHoudiniGeneratedNameFromMetaInformation(
     UPackage * Package, UObject * Object, FString & HoudiniName )
 {
+    if (!Package || Package->IsPendingKill())
+        return false;
+
     UMetaData * MetaData = Package->GetMetaData();
-    if ( MetaData && MetaData->HasValue( Object, HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT ) )
+    if ( !MetaData || MetaData->IsPendingKill() )
+        return false;
+
+    if ( MetaData->HasValue( Object, HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT ) )
     {
         // Retrieve name used for package generation.
         const FString NameFull = MetaData->GetValue( Object, HAPI_UNREAL_PACKAGE_META_GENERATED_NAME );
