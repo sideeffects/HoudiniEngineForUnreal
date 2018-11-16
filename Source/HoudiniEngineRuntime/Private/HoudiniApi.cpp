@@ -1362,7 +1362,7 @@ FHoudiniApi::DeleteNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_
 
 
 HAPI_Result
-FHoudiniApi::DirtyPDGNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id)
+FHoudiniApi::DirtyPDGNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_Bool clean_results)
 {
 	return HAPI_RESULT_FAILURE;
 }
