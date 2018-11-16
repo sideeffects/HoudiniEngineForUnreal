@@ -90,7 +90,8 @@ FHoudiniParamUtils::Build( HAPI_NodeId AssetId, class UObject* PrimaryObject,
         CurrentParametersByName.Reserve( CurrentParameters.Num() );
         for( auto& ParmPair : CurrentParameters )
         {
-            CurrentParametersByName.Add( ParmPair.Value->GetParameterName(), ParmPair.Value );
+            if ( ParmPair.Value && !ParmPair.Value->IsPendingKill() )
+                CurrentParametersByName.Add( ParmPair.Value->GetParameterName(), ParmPair.Value );
         }
 
         // Create properties for parameters.
@@ -143,7 +144,7 @@ FHoudiniParamUtils::Build( HAPI_NodeId AssetId, class UObject* PrimaryObject,
             UHoudiniAssetParameter ** FoundHoudiniAssetParameter = CurrentParametersByName.Find( NewParmName );
 
             // If parameter exists, we can reuse it.
-            if( FoundHoudiniAssetParameter && *FoundHoudiniAssetParameter )
+            if( FoundHoudiniAssetParameter && *FoundHoudiniAssetParameter && !(*FoundHoudiniAssetParameter)->IsPendingKill() )
             {
                 // sanity check that type and tuple size hasn't changed
                 if( (*FoundHoudiniAssetParameter)->GetTupleSize() == ParmInfo.size )
@@ -366,10 +367,12 @@ FHoudiniParamUtils::Build( HAPI_NodeId AssetId, class UObject* PrimaryObject,
                     continue;
                 }
             }
-            check ( HoudiniAssetParameter );
             
-            // Add this parameter to the map.
-            NewParameters.Add( ParmInfo.id, HoudiniAssetParameter );
+            if ( HoudiniAssetParameter && !HoudiniAssetParameter->IsPendingKill() )
+            {
+                // Add this parameter to the map.
+                NewParameters.Add( ParmInfo.id, HoudiniAssetParameter );
+            }
         }
 
         // We a pass over the new params to patch parent links.
@@ -379,44 +382,46 @@ FHoudiniParamUtils::Build( HAPI_NodeId AssetId, class UObject* PrimaryObject,
             const HAPI_ParmInfo & ParmInfo = ParmInfos[ ParamIdx ];
 
             // Locate corresponding parameter.
-            UHoudiniAssetParameter * const * FoundHoudiniAssetParameter = NewParameters.Find( ParmInfo.id );
+            UHoudiniAssetParameter * const * FoundHoudiniAssetParameter = NewParameters.Find( ParmInfo.id );            
+            if (!FoundHoudiniAssetParameter)
+                continue;
+
+            UHoudiniAssetParameter * HoudiniAssetParameter = *FoundHoudiniAssetParameter;
+            if ( !HoudiniAssetParameter || HoudiniAssetParameter->IsPendingKill() )
+                continue;
+
+            // Get parent parm id.
             UHoudiniAssetParameter * HoudiniAssetParentParameter = nullptr;
-
-            if( FoundHoudiniAssetParameter )
+            HAPI_ParmId ParentParmId = HoudiniAssetParameter->GetParmParentId();
+            if( ParentParmId != -1 )
             {
-                UHoudiniAssetParameter * HoudiniAssetParameter = *FoundHoudiniAssetParameter;
+                // Locate corresponding parent parameter.
+                UHoudiniAssetParameter * const * FoundHoudiniAssetParentParameter = NewParameters.Find( ParentParmId );
+                if( FoundHoudiniAssetParentParameter )
+                    HoudiniAssetParentParameter = *FoundHoudiniAssetParentParameter;
+            }
 
-                // Get parent parm id.
-                HAPI_ParmId ParentParmId = HoudiniAssetParameter->GetParmParentId();
-                if( ParentParmId != -1 )
+            // Set parent for this parameter.
+            HoudiniAssetParameter->SetParentParameter( HoudiniAssetParentParameter );
+
+            if( ParmInfo.type == HAPI_PARMTYPE_FOLDERLIST )
+            {
+                // For folder lists we need to add children manually.
+                HoudiniAssetParameter->ResetChildParameters();
+
+                for( int32 ChildIdx = 0; ChildIdx < ParmInfo.size; ++ChildIdx )
                 {
-                    // Locate corresponding parent parameter.
-                    UHoudiniAssetParameter * const * FoundHoudiniAssetParentParameter = NewParameters.Find( ParentParmId );
-                    if( FoundHoudiniAssetParentParameter )
-                        HoudiniAssetParentParameter = *FoundHoudiniAssetParentParameter;
-                }
+                    // Children folder parm infos come after folder list parm info.
+                    const HAPI_ParmInfo & ChildParmInfo = ParmInfos[ ParamIdx + ChildIdx + 1 ];
 
-                // Set parent for this parameter.
-                HoudiniAssetParameter->SetParentParameter( HoudiniAssetParentParameter );
+                    UHoudiniAssetParameter * const * FoundHoudiniAssetParameterChild =
+                        NewParameters.Find( ChildParmInfo.id );
 
-                if( ParmInfo.type == HAPI_PARMTYPE_FOLDERLIST )
-                {
-                    // For folder lists we need to add children manually.
-                    HoudiniAssetParameter->ResetChildParameters();
-
-                    for( int32 ChildIdx = 0; ChildIdx < ParmInfo.size; ++ChildIdx )
+                    if( FoundHoudiniAssetParameterChild )
                     {
-                        // Children folder parm infos come after folder list parm info.
-                        const HAPI_ParmInfo & ChildParmInfo = ParmInfos[ ParamIdx + ChildIdx + 1 ];
-
-                        UHoudiniAssetParameter * const * FoundHoudiniAssetParameterChild =
-                            NewParameters.Find( ChildParmInfo.id );
-
-                        if( FoundHoudiniAssetParameterChild )
-                        {
-                            UHoudiniAssetParameter * HoudiniAssetParameterChild = *FoundHoudiniAssetParameterChild;
+                        UHoudiniAssetParameter * HoudiniAssetParameterChild = *FoundHoudiniAssetParameterChild;
+                        if ( HoudiniAssetParameterChild && !HoudiniAssetParameterChild->IsPendingKill() )
                             HoudiniAssetParameterChild->SetParentParameter( HoudiniAssetParameter );
-                        }
                     }
                 }
             }
@@ -425,6 +430,9 @@ FHoudiniParamUtils::Build( HAPI_NodeId AssetId, class UObject* PrimaryObject,
         // Another pass to notify parameters that all children parameters have been assigned
         for( auto& NewParamPair : NewParameters )
         {
+            if (NewParamPair.Value && !NewParamPair.Value->IsPendingKill() )
+                continue;
+
             if( NewParamPair.Value->HasChildParameters() )
                 NewParamPair.Value->NotifyChildParametersCreated();
         }
