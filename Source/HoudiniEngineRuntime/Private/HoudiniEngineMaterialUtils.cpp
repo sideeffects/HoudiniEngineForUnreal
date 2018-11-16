@@ -118,10 +118,9 @@ FHoudiniEngineMaterialUtils::HapiCreateMaterials(
             if ( !FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( AssetId, MaterialId, MaterialShopName ) )
                 continue;
             
-            UMaterial * Material = Cast< UMaterial >( HoudiniCookParams.HoudiniCookManager->GetAssignmentMaterial( MaterialShopName ) );
             bool bCreatedNewMaterial = false;
-
-            if ( Material )
+            UMaterial * Material = HoudiniCookParams.HoudiniCookManager ? Cast< UMaterial >( HoudiniCookParams.HoudiniCookManager->GetAssignmentMaterial( MaterialShopName ) ) : nullptr;
+            if ( Material && !Material->IsPendingKill() )
             {
                 // If cached material exists and has not changed, we can reuse it.
                 if ( !MaterialInfo.hasChanged && !bForceRecookAll )
@@ -154,6 +153,9 @@ FHoudiniEngineMaterialUtils::HapiCreateMaterials(
 
                 bCreatedNewMaterial = true;
             }
+
+            if ( !Material || Material->IsPendingKill() )
+                continue;
 
             // If this is an instancer material, enable the instancing flag.
             if ( UniqueInstancerMaterialIds.Contains( MaterialId ) )
@@ -248,7 +250,6 @@ FHoudiniEngineMaterialUtils::HapiExtractImage(
     }
 
     HAPI_ImageInfo ImageInfo;
-
     if ( FHoudiniApi::GetImageInfo(
         FHoudiniEngine::Get().GetSession(),
         MaterialInfo.nodeId, &ImageInfo ) != HAPI_RESULT_SUCCESS )
@@ -268,7 +269,6 @@ FHoudiniEngineMaterialUtils::HapiExtractImage(
     }
 
     int32 ImageBufferSize = 0;
-
     if ( FHoudiniApi::ExtractImageToMemory(
         FHoudiniEngine::Get().GetSession(),
         MaterialInfo.nodeId, HAPI_RAW_FORMAT_NAME,
@@ -375,7 +375,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentDiffuse(
 
     // If texture sampling expression does exist, attempt to look up corresponding texture.
     UTexture2D * TextureDiffuse = nullptr;
-    if ( ExpressionTextureSample )
+    if ( ExpressionTextureSample && !ExpressionTextureSample->IsPendingKill() )
         TextureDiffuse = Cast< UTexture2D >( ExpressionTextureSample->Texture );
 
     // Locate uniform color expression.
@@ -384,7 +384,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentDiffuse(
             MaterialExpression, UMaterialExpressionVectorParameter::StaticClass() ) );
 
     // If uniform color expression does not exist, create it.
-    if ( !ExpressionConstant4Vector )
+    if ( !ExpressionConstant4Vector || ExpressionConstant4Vector->IsPendingKill() )
     {
         ExpressionConstant4Vector = NewObject< UMaterialExpressionVectorParameter >(
             Material, UMaterialExpressionVectorParameter::StaticClass(), NAME_None, ObjectFlag );
@@ -400,7 +400,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentDiffuse(
             MaterialExpression, UMaterialExpressionVertexColor::StaticClass() ) );
 
     // If vertex color expression does not exist, create it.
-    if ( !ExpressionVertexColor )
+    if ( !ExpressionVertexColor || ExpressionVertexColor->IsPendingKill() )
     {
         ExpressionVertexColor = NewObject< UMaterialExpressionVertexColor >(
             Material, UMaterialExpressionVertexColor::StaticClass(), NAME_None, ObjectFlag );
@@ -412,7 +412,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentDiffuse(
 
     // Material should have at least one multiply expression.
     UMaterialExpressionMultiply * MaterialExpressionMultiply = Cast< UMaterialExpressionMultiply >( MaterialExpression );
-    if ( !MaterialExpressionMultiply )
+    if ( !MaterialExpressionMultiply || MaterialExpressionMultiply->IsPendingKill() )
         MaterialExpressionMultiply = NewObject< UMaterialExpressionMultiply >(
             Material, UMaterialExpressionMultiply::StaticClass(), NAME_None, ObjectFlag );
 
@@ -503,7 +503,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentDiffuse(
             HAPI_IMAGE_DATA_INT8, ImagePacking, false ) )
         {
             UPackage * TextureDiffusePackage = nullptr;
-            if ( TextureDiffuse )
+            if ( TextureDiffuse && !TextureDiffuse->IsPendingKill() )
                 TextureDiffusePackage = Cast< UPackage >( TextureDiffuse->GetOuter() );
 
             HAPI_ImageInfo ImageInfo;
@@ -528,7 +528,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentDiffuse(
                 }
 
                 // Create diffuse texture, if we need to create one.
-                if ( !TextureDiffuse )
+                if ( !TextureDiffuse || TextureDiffuse->IsPendingKill() )
                     bCreatedNewTextureDiffuse = true;
 
                 // Get the node path to add it to the meta data
