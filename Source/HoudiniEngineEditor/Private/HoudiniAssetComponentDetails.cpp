@@ -1447,7 +1447,7 @@ FHoudiniAssetComponentDetails::OnFetchAssetHelp( UHoudiniAssetComponent * Houdin
         HAPI_AssetInfo AssetInfo;
         HAPI_NodeId AssetId = HoudiniAssetComponent->GetAssetId();
 
-        if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+        if ( FHoudiniEngineUtils::IsValidNodeId( AssetId ) )
         {
             auto result = FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo );
             if ( result == HAPI_RESULT_SUCCESS )

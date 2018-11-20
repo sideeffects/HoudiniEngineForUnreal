@@ -1296,7 +1296,7 @@ UHoudiniAssetComponent::HasBeenInstantiatedButNotCooked() const
 void
 UHoudiniAssetComponent::AssignUniqueActorLabel()
 {
-    if ( GEditor && FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+    if ( GEditor && FHoudiniEngineUtils::IsValidNodeId( AssetId ) )
     {
         AHoudiniAssetActor * HoudiniAssetActor = GetHoudiniAssetActorOwner();
         if ( HoudiniAssetActor )
@@ -1509,7 +1509,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                 {
                     HOUDINI_LOG_MESSAGE( TEXT("    %s FinishedInstantiation." ), *GetOwner()->GetName() );
 
-                    if ( FHoudiniEngineUtils::IsValidAssetId( TaskInfo.AssetId ) )
+                    if ( FHoudiniEngineUtils::IsValidNodeId( TaskInfo.AssetId ) )
                     {
                         // Set new asset id.
                         SetAssetId( TaskInfo.AssetId );
@@ -1568,7 +1568,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                 {
                     HOUDINI_LOG_MESSAGE( TEXT( "   %s FinishedCooking." ), *GetOwner()->GetName() );
 
-                    if ( FHoudiniEngineUtils::IsValidAssetId( TaskInfo.AssetId ) )
+                    if ( FHoudiniEngineUtils::IsValidNodeId( TaskInfo.AssetId ) )
                     {
                         // Set new asset id.
                         SetAssetId( TaskInfo.AssetId );
@@ -1622,7 +1622,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                 {
                     HOUDINI_LOG_MESSAGE( TEXT( "    %s FinishedCookingWithErrors." ), *GetOwner()->GetName() );
 
-                    if ( FHoudiniEngineUtils::IsValidAssetId( TaskInfo.AssetId ) )
+                    if ( FHoudiniEngineUtils::IsValidNodeId( TaskInfo.AssetId ) )
                     {
                         // Call post cook event with error parameter. This will create parameters, inputs and handles.
                         PostCook( true );
@@ -2070,7 +2070,7 @@ UHoudiniAssetComponent::StartTaskAssetCookingManual()
     if ( !IsInstantiatingOrCooking() )
     {
         bManualRecookRequested = true;
-        if ( FHoudiniEngineUtils::IsValidAssetId( GetAssetId() ) )
+        if ( FHoudiniEngineUtils::IsValidNodeId( GetAssetId() ) )
         {
             StartHoudiniTicking();
         }
@@ -2091,7 +2091,7 @@ UHoudiniAssetComponent::StartTaskAssetResetManual()
 {
     if ( !IsInstantiatingOrCooking() )
     {
-        if ( FHoudiniEngineUtils::IsValidAssetId( GetAssetId() ) )
+        if ( FHoudiniEngineUtils::IsValidNodeId( GetAssetId() ) )
         {
             if ( FHoudiniEngineUtils::SetAssetPreset( GetAssetId(), DefaultPresetBuffer ) )
             {
@@ -2145,7 +2145,7 @@ UHoudiniAssetComponent::StartTaskAssetRebuildManual()
 void
 UHoudiniAssetComponent::StartTaskAssetDeletion()
 {
-    if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) && bIsNativeComponent )
+    if ( FHoudiniEngineUtils::IsValidNodeId( AssetId ) && bIsNativeComponent )
     {
         // Get the Asset's NodeInfo
         HAPI_NodeInfo AssetNodeInfo;
@@ -2182,7 +2182,7 @@ UHoudiniAssetComponent::StartTaskAssetCooking( bool bStartTicking )
 {
     if ( !IsInstantiatingOrCooking() )
     {
-        if (!FHoudiniEngineUtils::IsValidAssetId(AssetId))
+        if (!FHoudiniEngineUtils::IsValidNodeId(AssetId))
             return;
 
         // Generate GUID for our new task.
@@ -2590,7 +2590,7 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
     HoudiniAsset = CopiedHoudiniComponent->HoudiniAsset;
 
     // Copy preset buffer.
-    if ( FHoudiniEngineUtils::IsValidAssetId( CopiedHoudiniComponentAssetId ) )
+    if ( FHoudiniEngineUtils::IsValidNodeId( CopiedHoudiniComponentAssetId ) )
         FHoudiniEngineUtils::GetAssetPreset( CopiedHoudiniComponentAssetId, PresetBuffer );
     else
         PresetBuffer = CopiedHoudiniComponent->PresetBuffer;
@@ -2855,7 +2855,7 @@ UHoudiniAssetComponent::CheckedUploadTransform()
     // If transforms trigger cooks, we need to schedule a cook.
     if ( bTransformChangeTriggersCooks )
     {
-        if (bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId(AssetId) && !bAssetIsBeingInstantiated)
+        if (bLoadedComponent && !FHoudiniEngineUtils::IsValidNodeId(AssetId) && !bAssetIsBeingInstantiated)
             StartTaskAssetCookingManual();
 
         bComponentNeedsCook = true;
@@ -3250,7 +3250,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
 
     if ( Ar.IsSaving() )
     {
-        if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+        if ( FHoudiniEngineUtils::IsValidNodeId( AssetId ) )
         {
             // Asset has been previously instantiated.
 
@@ -3343,7 +3343,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         if ( Ar.IsSaving() )
         {
             bPresetSaved = true;
-            if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+            if ( FHoudiniEngineUtils::IsValidNodeId( AssetId ) )
             {
                 FHoudiniEngineUtils::GetAssetPreset( AssetId, PresetBuffer );
             }
@@ -4143,7 +4143,7 @@ UHoudiniAssetComponent::CreateParameters()
 void
 UHoudiniAssetComponent::NotifyParameterChanged( UHoudiniAssetParameter * HoudiniAssetParameter )
 {
-    if ( bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId( AssetId ) && !bAssetIsBeingInstantiated )
+    if ( bLoadedComponent && !FHoudiniEngineUtils::IsValidNodeId( AssetId ) && !bAssetIsBeingInstantiated )
         bLoadedComponentRequiresInstantiation = true;
 
     if ( HoudiniAssetParameter )
@@ -4167,7 +4167,7 @@ UHoudiniAssetComponent::NotifyParameterChanged( UHoudiniAssetParameter * Houdini
 void
 UHoudiniAssetComponent::NotifyHoudiniSplineChanged( UHoudiniSplineComponent * HoudiniSplineComponent )
 {
-    if ( bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId( AssetId ) && !bAssetIsBeingInstantiated )
+    if ( bLoadedComponent && !FHoudiniEngineUtils::IsValidNodeId( AssetId ) && !bAssetIsBeingInstantiated )
         bLoadedComponentRequiresInstantiation = true;
 
     bParametersChanged = true;
@@ -4240,7 +4240,7 @@ UHoudiniAssetComponent::UploadChangedParameters()
 void
 UHoudiniAssetComponent::UpdateLoadedParameters()
 {
-    if (!FHoudiniEngineUtils::IsValidAssetId(AssetId))
+    if (!FHoudiniEngineUtils::IsValidNodeId(AssetId))
         return;
 
     for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams( Parameters ); IterParams; ++IterParams )
@@ -4256,7 +4256,7 @@ UHoudiniAssetComponent::UpdateLoadedParameters()
 bool
 UHoudiniAssetComponent::CreateHandles()
 {
-    if ( !FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+    if ( !FHoudiniEngineUtils::IsValidNodeId( AssetId ) )
     {
         // There's no Houdini asset, we can return.
         return false;
@@ -4363,7 +4363,7 @@ UHoudiniAssetComponent::CreateHandles()
 void
 UHoudiniAssetComponent::CreateInputs()
 {
-    if ( !FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+    if ( !FHoudiniEngineUtils::IsValidNodeId( AssetId ) )
     {
         // There's no Houdini asset, we can return.
         return;
@@ -4410,7 +4410,7 @@ UHoudiniAssetComponent::CreateInputs()
 void
 UHoudiniAssetComponent::UpdateLoadedInputs()
 {
-    if ( !FHoudiniEngineUtils::IsValidAssetId(AssetId) )
+    if ( !FHoudiniEngineUtils::IsValidNodeId(AssetId) )
         return;
 
     bool Success = true;

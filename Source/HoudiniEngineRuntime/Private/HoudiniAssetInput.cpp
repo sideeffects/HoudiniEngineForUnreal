@@ -429,7 +429,7 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
         else
         {
             HAPI_NodeId HostAssetId = GetAssetId();
-            if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) && FHoudiniEngineUtils::IsValidAssetId( HostAssetId ) )
+            if ( FHoudiniEngineUtils::IsValidNodeId( ConnectedAssetId ) && FHoudiniEngineUtils::IsValidNodeId( HostAssetId ) )
                 FHoudiniEngineUtils::HapiDisconnectAsset( HostAssetId, InputIndex );
         }
 
@@ -442,7 +442,7 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
         CreatedInputDataAssetIds.Empty();
 
         // Then simply destroy the input's parent OBJ node
-        if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
+        if ( FHoudiniEngineUtils::IsValidNodeId( ConnectedAssetId ) )
         {
             HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId( ConnectedAssetId );
             if ( FHoudiniEngineUtils::IsHoudiniNodeValid( ParentId ) )
@@ -627,6 +627,9 @@ UHoudiniAssetInput::ClearInputs()
 bool
 UHoudiniAssetInput::ConnectInputNode()
 {
+    if (!FHoudiniEngineUtils::IsValidNodeId(ConnectedAssetId))
+        return false;
+
     // Helper for connecting our input or setting the object path parameter
     if (!bIsObjectPathParameter)
     {
@@ -637,6 +640,9 @@ UHoudiniAssetInput::ConnectInputNode()
     }
     else
     {
+        if (!FHoudiniEngineUtils::IsValidNodeId(NodeId))
+            return false;
+
         // Now we can assign the input node path to the parameter
         std::string ParamNameString = TCHAR_TO_UTF8(*GetParameterName());
         HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmNodeValue(
@@ -701,7 +707,7 @@ UHoudiniAssetInput::UploadParameterValue()
             // Process connected asset.
             if ( InputAssetComponent
                 && !InputAssetComponent->IsPendingKill()
-                && FHoudiniEngineUtils::IsValidAssetId( InputAssetComponent->GetAssetId() ) )
+                && FHoudiniEngineUtils::IsValidNodeId( InputAssetComponent->GetAssetId() ) )
             {
                 if (!bInputAssetConnectedInHoudini)
                     ConnectInputAssetActor();
@@ -725,7 +731,7 @@ UHoudiniAssetInput::UploadParameterValue()
         {
             // If we have no curve node, create it.
             bool bCreated = false;
-            if ( !FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
+            if ( !FHoudiniEngineUtils::IsValidNodeId( ConnectedAssetId ) )
             {
                 if ( !FHoudiniEngineUtils::HapiCreateCurveNode( ConnectedAssetId ) )
                 {
@@ -1966,7 +1972,7 @@ UHoudiniAssetInput::ConnectInputAssetActor()
     if ( !InputAssetComponent )
         return;
 
-    if ( !FHoudiniEngineUtils::IsValidAssetId( InputAssetComponent->GetAssetId() ) )
+    if ( !FHoudiniEngineUtils::IsValidNodeId( InputAssetComponent->GetAssetId() ) )
         return;
 
     // Check we have the correct Id
@@ -2019,7 +2025,7 @@ UHoudiniAssetInput::GetConnectedAssetId() const
 bool
 UHoudiniAssetInput::IsGeometryAssetConnected() const
 {
-    if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) && ( ChoiceIndex == EHoudiniAssetInputType::GeometryInput ) )
+    if ( FHoudiniEngineUtils::IsValidNodeId( ConnectedAssetId ) && ( ChoiceIndex == EHoudiniAssetInputType::GeometryInput ) )
     {
         for ( auto InputObject : InputObjects )
         {
@@ -2034,7 +2040,7 @@ UHoudiniAssetInput::IsGeometryAssetConnected() const
 bool
 UHoudiniAssetInput::IsInputAssetConnected() const
 {
-    if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId )
+    if ( FHoudiniEngineUtils::IsValidNodeId( ConnectedAssetId )
         && InputAssetComponent
         && !InputAssetComponent->IsPendingKill()
         && bInputAssetConnectedInHoudini )
@@ -2058,7 +2064,7 @@ UHoudiniAssetInput::IsCurveAssetConnected() const
 bool
 UHoudiniAssetInput::IsLandscapeAssetConnected() const
 {
-    if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
+    if ( FHoudiniEngineUtils::IsValidNodeId( ConnectedAssetId ) )
     {
         if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
             return true;
@@ -2070,7 +2076,7 @@ UHoudiniAssetInput::IsLandscapeAssetConnected() const
 bool
 UHoudiniAssetInput::IsWorldInputAssetConnected() const
 {
-    if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
+    if ( FHoudiniEngineUtils::IsValidNodeId( ConnectedAssetId ) )
     {
         if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
             return true;
@@ -2105,7 +2111,7 @@ UHoudiniAssetInput::DoesInputAssetNeedInstantiation()
     if ( InputAssetComponent == nullptr )
         return false;
 
-    if ( !FHoudiniEngineUtils::IsValidAssetId(InputAssetComponent->GetAssetId() ) )
+    if ( !FHoudiniEngineUtils::IsValidNodeId(InputAssetComponent->GetAssetId() ) )
         return true;
 
     return false;
@@ -2124,7 +2130,7 @@ UHoudiniAssetInput::NotifyChildParameterChanged( UHoudiniAssetParameter * Houdin
     {
         MarkPreChanged();
         
-        if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
+        if ( FHoudiniEngineUtils::IsValidNodeId( ConnectedAssetId ) )
         {
             // We need to upload changed param back to HAPI.
             if (! HoudiniAssetParameter->UploadParameterValue() )
@@ -3295,7 +3301,7 @@ UHoudiniAssetInput::UpdateInputOulinerArray()
             NeedsUpdate = true;
 
             // Destroy Houdini asset
-            if ( FHoudiniEngineUtils::IsValidAssetId( OutlinerInput.AssetId ) )
+            if ( FHoudiniEngineUtils::IsValidNodeId( OutlinerInput.AssetId ) )
             {
                 FHoudiniEngineUtils::DestroyHoudiniAsset( OutlinerInput.AssetId );
                 OutlinerInput.AssetId = -1;
@@ -3345,7 +3351,7 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
                 continue;
 
             // Destroy/Disconnect the input properly before re;oving it from the array
-            if ( FHoudiniEngineUtils::IsValidAssetId( InputOutlinerMeshArray[n].AssetId ) )
+            if ( FHoudiniEngineUtils::IsValidNodeId( InputOutlinerMeshArray[n].AssetId ) )
             {
                 FHoudiniEngineUtils::HapiDisconnectAsset( ConnectedAssetId, n );
                 FHoudiniEngineUtils::DestroyHoudiniAsset( InputOutlinerMeshArray[n].AssetId );
