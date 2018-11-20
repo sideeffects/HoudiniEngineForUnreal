@@ -5762,7 +5762,7 @@ HAPI_DECL HAPI_LoadGeoFromFile( const HAPI_Session * session,
 ///                 The node id.
 ///
 /// @param[in]      format
-///                 The file format, ie. "obj", "bgeo" etc.
+///                 The file format, ie. ".obj", ".bgeo.sc" etc.
 ///
 /// @param[out]     size
 ///                 The size of the buffer required to hold the output.
