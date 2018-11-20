@@ -421,9 +421,9 @@ UHoudiniSplineComponent::IsActive() const
 {
     if ( HoudiniAssetInput && !HoudiniAssetInput->IsPendingKill() )
     {
-        if ( HoudiniAssetInput->IsCurveAssetConnected() )
-            return true;
+        if ( !HoudiniAssetInput->IsCurveAssetConnected() )
+            return false;
     }
 
-    return false;
+    return true;
 }

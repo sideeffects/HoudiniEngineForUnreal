@@ -290,7 +290,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             TArray< HAPI_StringHandle > & AssetNames );
 
         /** HAPI : Return true if given asset id is valid. **/
-        static bool IsValidAssetId( HAPI_NodeId AssetId );
+        static bool IsValidNodeId( HAPI_NodeId AssetId );
 
         /** HAPI : Create curve for input. **/
         static bool HapiCreateCurveNode( HAPI_NodeId & CurveNodeId );
