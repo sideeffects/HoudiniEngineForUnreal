@@ -1403,9 +1403,9 @@ FHoudiniEngineUtils::HapiGetParameterTag( const HAPI_NodeId& NodeId, const HAPI_
 }
 
 bool
-FHoudiniEngineUtils::IsValidAssetId( HAPI_NodeId AssetId )
+FHoudiniEngineUtils::IsValidNodeId( HAPI_NodeId NodeId )
 {
-    return AssetId != -1;
+    return NodeId != -1;
 }
 
 bool
@@ -2224,7 +2224,7 @@ FHoudiniEngineUtils::HapiGetAssetTransform( HAPI_NodeId AssetId, FTransform & In
 bool
 FHoudiniEngineUtils::HapiGetNodeId( HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId, HAPI_NodeId & NodeId )
 {
-    if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+    if ( FHoudiniEngineUtils::IsValidNodeId( AssetId ) )
     {
         HAPI_GeoInfo GeoInfo;
         if ( FHoudiniApi::GetGeoInfo(
@@ -4842,7 +4842,7 @@ FHoudiniEngineUtils::HapiDisconnectAsset( HAPI_NodeId HostAssetId, int32 InputIn
 bool
 FHoudiniEngineUtils::HapiSetAssetTransform( HAPI_NodeId AssetId, const FTransform & Transform )
 {
-    if (!FHoudiniEngineUtils::IsValidAssetId(AssetId))
+    if (!FHoudiniEngineUtils::IsValidNodeId(AssetId))
         return false;
 
     // Translate Unreal transform to HAPI Euler one.
