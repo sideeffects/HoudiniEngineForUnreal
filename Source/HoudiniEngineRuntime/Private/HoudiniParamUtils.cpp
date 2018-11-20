@@ -54,7 +54,7 @@ FHoudiniParamUtils::Build( HAPI_NodeId AssetId, class UObject* PrimaryObject,
     TMap< HAPI_ParmId, class UHoudiniAssetParameter * >& CurrentParameters,
     TMap< HAPI_ParmId, class UHoudiniAssetParameter * >& NewParameters )
 {
-    if( !FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+    if( !FHoudiniEngineUtils::IsValidNodeId( AssetId ) )
     {
         // There's no Houdini asset, we can return.
         return false;
