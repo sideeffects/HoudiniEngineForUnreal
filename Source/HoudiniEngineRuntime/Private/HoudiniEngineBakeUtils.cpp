@@ -354,28 +354,28 @@ FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithBlueprint( UHoudiniAssetComponen
             EditorUtilities::CopyActorProperties( ClonedActor, CDO, CopyOptions );
 
             USceneComponent * Scene = CDO->GetRootComponent();
-            if (!Scene || Scene->IsPendingKill())
-                return nullptr;
-
-            Scene->RelativeLocation = FVector::ZeroVector;
-            Scene->RelativeRotation = FRotator::ZeroRotator;
-
-            // Clear out the attachment info after having copied the properties from the source actor
-            Scene->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
-            while( true )
+            if (Scene && !Scene->IsPendingKill())
             {
-                const int32 ChildCount = Scene->GetAttachChildren().Num();
-                if( ChildCount < 1 )
-                    break;
+                Scene->RelativeLocation = FVector::ZeroVector;
+                Scene->RelativeRotation = FRotator::ZeroRotator;
 
-                USceneComponent * Component = Scene->GetAttachChildren()[ChildCount - 1];
-                if ( Component && !Component->IsPendingKill() )
-                    Component->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
+                // Clear out the attachment info after having copied the properties from the source actor
+                Scene->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+                while ( true )
+                {
+                    const int32 ChildCount = Scene->GetAttachChildren().Num();
+                    if (ChildCount < 1)
+                        break;
+
+                    USceneComponent * Component = Scene->GetAttachChildren()[ChildCount - 1];
+                    if ( Component && !Component->IsPendingKill() )
+                        Component->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+                }
+                check(Scene->GetAttachChildren().Num() == 0);
+
+                // Ensure the light mass information is cleaned up
+                Scene->InvalidateLightingCache();
             }
-            check( Scene->GetAttachChildren().Num() == 0 );
-
-            // Ensure the light mass information is cleaned up
-            Scene->InvalidateLightingCache();
         }
 
         // Compile our blueprint and notify asset system about blueprint.
@@ -1461,6 +1461,7 @@ FHoudiniEngineBakeUtils::BakeCreateTextureOrMaterialPackageForComponent(
         {
             // Create actual package.
             PackageNew = CreatePackage( OuterPackage, *PackageName );
+            PackageNew->SetPackageFlags(RF_Standalone);
             break;
         }
     }

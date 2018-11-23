@@ -2462,11 +2462,11 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
         StaticLoadObject( UMaterialInterface::StaticClass(), nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr ) );
 
     // The source material wasn't found
-    if ( !OriginalMaterialInterface )
+    if ( !OriginalMaterialInterface || OriginalMaterialInterface->IsPendingKill() )
         return false;
 
     UMaterial* ParentMaterial = OriginalMaterialInterface->GetMaterial();
-    if ( !ParentMaterial )
+    if ( !ParentMaterial ||ParentMaterial->IsPendingKill() )
         return false;
 
     // Create/Retrieve the package for the MI
