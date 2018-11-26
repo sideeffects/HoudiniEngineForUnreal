@@ -443,8 +443,6 @@ UHoudiniAssetParameterRamp::OnCurveEditingFinished()
         {
             FRichCurve & RichCurve = HoudiniAssetParameterRampCurveFloat->FloatCurve;
 
-            MarkPreChanged();
-
             // We need to update ramp key positions.
             for ( int32 KeyIdx = 0, KeyNum = RichCurve.GetNumKeys(); KeyIdx < KeyNum; ++KeyIdx )
             {
@@ -478,8 +476,6 @@ UHoudiniAssetParameterRamp::OnCurveEditingFinished()
             FRichCurve & RichCurveG = HoudiniAssetParameterRampCurveColor->FloatCurves[ 1 ];
             FRichCurve & RichCurveB = HoudiniAssetParameterRampCurveColor->FloatCurves[ 2 ];
             FRichCurve & RichCurveA = HoudiniAssetParameterRampCurveColor->FloatCurves[ 3 ];
-
-            MarkPreChanged();
 
             // We need to update ramp key positions.
             for ( int32 KeyIdx = 0, KeyNum = RichCurveR.GetNumKeys(); KeyIdx < KeyNum; ++KeyIdx )

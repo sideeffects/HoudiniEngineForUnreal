@@ -741,7 +741,6 @@ FHoudiniParameterDetails::CreateWidgetButton( IDetailCategoryBuilder & LocalDeta
             if ( MyParam.IsValid() )
             {
                 // There's no undo operation for button.
-                MyParam->MarkPreChanged();
                 MyParam->MarkChanged();
             }
             return FReply::Handled();
@@ -2274,7 +2273,6 @@ FHoudiniParameterDetails::Helper_OnButtonClickSelectActors( TWeakObjectPtr<class
         InParam->PrimaryObject );
     InParam->Modify();
 
-    InParam->MarkPreChanged();
     InParam->bStaticMeshChanged = true;
 
     // Delete all assets and reset the array.

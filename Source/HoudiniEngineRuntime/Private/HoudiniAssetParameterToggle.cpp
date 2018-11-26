@@ -154,7 +154,6 @@ UHoudiniAssetParameterToggle::SetParameterVariantValue(
 
 #endif
 
-    MarkPreChanged();
     Values[ Idx ] = VariantValue;
     MarkChanged();
 
@@ -189,8 +188,6 @@ UHoudiniAssetParameterToggle::CheckStateChanged( ECheckBoxState NewState, int32 
             LOCTEXT( "HoudiniAssetParameterToggleChange", "Houdini Parameter Toggle: Changing a value" ),
             PrimaryObject );
         Modify();
-
-        MarkPreChanged();
 
         Values[ Idx ] = bState;
 

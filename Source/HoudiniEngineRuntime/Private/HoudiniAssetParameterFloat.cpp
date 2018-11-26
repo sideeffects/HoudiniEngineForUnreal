@@ -251,8 +251,7 @@ UHoudiniAssetParameterFloat::SetParameterVariantValue( const FVariant & Variant,
 
 #endif // WITH_EDITOR
 
-    MarkPreChanged( bTriggerModify );
-    Values[ Idx ] = VariantValue;
+	Values[ Idx ] = VariantValue;
     MarkChanged( bTriggerModify );
 
     return true;
@@ -283,8 +282,6 @@ UHoudiniAssetParameterFloat::SetValue( float InValue, int32 Idx, bool bTriggerMo
             Transaction.Cancel();
 
 #endif // WITH_EDITOR
-
-        MarkPreChanged( bTriggerModify );
 
         Values[ Idx ] = FMath::Clamp< float >( InValue, ValueMin, ValueMax );
 

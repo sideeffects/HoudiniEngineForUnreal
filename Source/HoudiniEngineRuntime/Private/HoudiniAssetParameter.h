@@ -158,9 +158,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
         /** Check if parameter is visible. **/
         bool IsVisible( const HAPI_ParmInfo & ParmInfo ) const;
 
-        /** Mark this parameter as pre-changed. This occurs when user modifies the value of this parameter through UI, but before it is saved. **/
-        void MarkPreChanged( bool bMarkAndTriggerUpdate = true );
-
         /** Mark this parameter as changed. This occurs when user modifies the value of this parameter through UI. **/
         void MarkChanged( bool bMarkAndTriggerUpdate = true );
 
