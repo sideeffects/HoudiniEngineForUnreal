@@ -2462,11 +2462,11 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
         StaticLoadObject( UMaterialInterface::StaticClass(), nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr ) );
 
     // The source material wasn't found
-    if ( !OriginalMaterialInterface || OriginalMaterialInterface->IsPendingKill() )
+    if ( !OriginalMaterialInterface )
         return false;
 
     UMaterial* ParentMaterial = OriginalMaterialInterface->GetMaterial();
-    if ( !ParentMaterial ||ParentMaterial->IsPendingKill() )
+    if ( !ParentMaterial )
         return false;
 
     // Create/Retrieve the package for the MI
@@ -2579,13 +2579,14 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
         NewMaterialInstance->InitStaticPermutation();
         NewMaterialInstance->PreEditChange(nullptr);
         NewMaterialInstance->PostEditChange();
-
+        /*
         // Automatically save the package to avoid further issue
         MaterialInstancePackage->SetDirtyFlag( true );
         MaterialInstancePackage->FullyLoad();
         UPackage::SavePackage(
             MaterialInstancePackage, nullptr, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone,
             *FPackageName::LongPackageNameToFilename( MaterialInstancePackage->GetName(), FPackageName::GetAssetPackageExtension() ) );
+            */
     }
 
     // Update the return pointers

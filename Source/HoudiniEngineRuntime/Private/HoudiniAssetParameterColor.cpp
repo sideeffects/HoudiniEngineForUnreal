@@ -153,7 +153,6 @@ UHoudiniAssetParameterColor::SetParameterVariantValue( const FVariant& Variant, 
 
 #endif // WITH_EDITOR
 
-    MarkPreChanged( bTriggerModify );
     Color = VariantLinearColor;
     MarkChanged( bTriggerModify );
 
@@ -185,8 +184,6 @@ UHoudiniAssetParameterColor::OnPaintColorChanged( FLinearColor InNewColor, bool 
             Transaction.Cancel();
 
 #endif // WITH_EDITOR
-
-        MarkPreChanged( bTriggerModify );
 
         Color = InNewColor;
 

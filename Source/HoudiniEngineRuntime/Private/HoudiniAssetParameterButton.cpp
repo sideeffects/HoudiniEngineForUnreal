@@ -95,7 +95,6 @@ UHoudiniAssetParameterButton::SetParameterVariantValue(
     const FVariant & Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo )
 {
     // We don't care about variant values for button. Just trigger the click.
-    MarkPreChanged( bTriggerModify );
     MarkChanged( bTriggerModify );
 
     return true;

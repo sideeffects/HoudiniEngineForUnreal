@@ -319,7 +319,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
             if( HoudiniGeoPartObject.bHasCollisionBeenAdded )
             {
                 int32 NumColliders = 1;
-                if ( StaticMesh->BodySetup )
+                if ( StaticMesh->BodySetup && !StaticMesh->BodySetup->IsPendingKill() )
                     NumColliders = StaticMesh->BodySetup->AggGeom.GetElementCount();
 
                 MeshLabel += TEXT( "\n(") + FString::FromInt( NumColliders ) + TEXT(" Simple Collider" );
@@ -411,10 +411,17 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
                 TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
 
                 FString MaterialName, MaterialPathName;
-                if (MaterialInterface)
+                if ( MaterialInterface && !MaterialInterface->IsPendingKill()
+                    && MaterialInterface->GetOuter() && !MaterialInterface->GetOuter()->IsPendingKill() )
                 {
                     MaterialName = MaterialInterface->GetName();
                     MaterialPathName = MaterialInterface->GetPathName();
+                }
+                else
+                {
+                    MaterialInterface = nullptr;
+                    MaterialName = TEXT("Material (invalid)") + FString::FromInt( MaterialIdx ) ;
+                    MaterialPathName = TEXT("Material (invalid)") + FString::FromInt(MaterialIdx);
                 }
 
                 // Create thumbnail for this material.
