@@ -260,7 +260,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             HAPI_NodeId AssetId, FHoudiniCookParams& HoudiniCookParams,
             bool ForceRebuildStaticMesh, bool ForceRecookAll,
             const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
-            TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut, FTransform & ComponentTransform );
+            TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut, 
+			FTransform & ComponentTransform,
+			const TMap< FHoudiniGeoPartObject, TArray< UGenericAttribute > >& AllUPropertiesAttributes );
 
         /** Extract position information from coords string. **/
         static void ExtractStringPositions( const FString & Positions, TArray< FVector > & OutPositions );
@@ -554,7 +556,11 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Updates all Uproperty attributes found on the given object **/
         static void UpdateUPropertyAttributesOnObject(
-                UObject* MeshComponent, const FHoudiniGeoPartObject& HoudiniGeoPartObject );
+                UObject* Object, const FHoudiniGeoPartObject& HoudiniGeoPartObject );
+
+		/** Updates the given uproperty attributes on an oject **/
+		static void UpdateUPropertyAttributesOnObject(
+			UObject* Object, const TArray< UGenericAttribute >& UPropertiesAttributes);
 
         /** Return a list with all the UProperty attributes found **/
         static int32 GetUPropertyAttributeList( 
@@ -579,6 +585,11 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static bool ModifyUPropertyValueOnObject(
             UObject* MeshComponent, UGenericAttribute UPropertiesToFind,
             UProperty* FoundProperty, void * StructContainer );
+
+		/** Extracts the uproperties for an asset **/
+		static bool ExtractAllUPropertiesAttributes(
+			const HAPI_NodeId & AssetNodeId,
+			TMap< FHoudiniGeoPartObject, TArray< UGenericAttribute > >& UPropertyAttributesMap);
 
         /** Tries to update values for all the UProperty attributes to apply on the object. **/
         /*static void ApplyUPropertyAttributesOnObject(

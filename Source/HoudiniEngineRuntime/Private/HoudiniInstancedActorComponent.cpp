@@ -185,50 +185,54 @@ void UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
     if(!ISMC && !IAC && !MSIC)
         return;
 
-    TArray<FTransform> ProcessedTransforms;
-    ProcessedTransforms.Reserve( InstancedTransforms.Num() );
-    for( int32 InstanceIdx = 0; InstanceIdx < InstancedTransforms.Num(); ++InstanceIdx )
+    auto ProcessOffsets = [&]()
     {
-        FTransform Transform = InstancedTransforms[ InstanceIdx ];
+        TArray<FTransform> ProcessedTransforms;
+        ProcessedTransforms.Reserve( InstancedTransforms.Num() );
 
-        // Compute new rotation and scale.
-        FQuat TransformRotation = Transform.GetRotation() * RotationOffset.Quaternion();
-        FVector TransformScale3D = Transform.GetScale3D() * ScaleOffset;
+        for( int32 InstanceIdx = 0; InstanceIdx < InstancedTransforms.Num(); ++InstanceIdx )
+        {
+            FTransform Transform = InstancedTransforms[ InstanceIdx ];
 
-        // Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances.
-        // Happens in blueprint as well.
-        // We want to make sure the scale is not too small, but keep negative values! (Bug 90876)
-        if( FMath::Abs( TransformScale3D.X ) < HAPI_UNREAL_SCALE_SMALL_VALUE )
-            TransformScale3D.X = ( TransformScale3D.X > 0 ) ? HAPI_UNREAL_SCALE_SMALL_VALUE : -HAPI_UNREAL_SCALE_SMALL_VALUE;
+            // Compute new rotation and scale.
+            FQuat TransformRotation = Transform.GetRotation() * RotationOffset.Quaternion();
+            FVector TransformScale3D = Transform.GetScale3D() * ScaleOffset;
 
-        if ( FMath::Abs( TransformScale3D.Y ) < HAPI_UNREAL_SCALE_SMALL_VALUE )
-            TransformScale3D.Y = ( TransformScale3D.Y > 0 ) ? HAPI_UNREAL_SCALE_SMALL_VALUE : -HAPI_UNREAL_SCALE_SMALL_VALUE;
+            // Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances.
+            // Happens in blueprint as well.
+            // We want to make sure the scale is not too small, but keep negative values! (Bug 90876)
+            if( FMath::Abs( TransformScale3D.X ) < HAPI_UNREAL_SCALE_SMALL_VALUE )
+                TransformScale3D.X = ( TransformScale3D.X > 0 ) ? HAPI_UNREAL_SCALE_SMALL_VALUE : -HAPI_UNREAL_SCALE_SMALL_VALUE;
 
-        if ( FMath::Abs( TransformScale3D.Z ) < HAPI_UNREAL_SCALE_SMALL_VALUE )
-            TransformScale3D.Z = ( TransformScale3D.Z > 0 ) ? HAPI_UNREAL_SCALE_SMALL_VALUE : -HAPI_UNREAL_SCALE_SMALL_VALUE;
+            if ( FMath::Abs( TransformScale3D.Y ) < HAPI_UNREAL_SCALE_SMALL_VALUE )
+                TransformScale3D.Y = ( TransformScale3D.Y > 0 ) ? HAPI_UNREAL_SCALE_SMALL_VALUE : -HAPI_UNREAL_SCALE_SMALL_VALUE;
 
-        Transform.SetRotation( TransformRotation );
-        Transform.SetScale3D( TransformScale3D );
+            if ( FMath::Abs( TransformScale3D.Z ) < HAPI_UNREAL_SCALE_SMALL_VALUE )
+                TransformScale3D.Z = ( TransformScale3D.Z > 0 ) ? HAPI_UNREAL_SCALE_SMALL_VALUE : -HAPI_UNREAL_SCALE_SMALL_VALUE;
 
-        if ( Transform.IsValid() )
+            Transform.SetRotation( TransformRotation );
+            Transform.SetScale3D( TransformScale3D );
+
             ProcessedTransforms.Add( Transform );
-    }
+        }
+        return ProcessedTransforms;
+    };
 
     if( ISMC && !ISMC->IsPendingKill() )
     {
         ISMC->ClearInstances();
-        for(int32 InstanceIdx = 0; InstanceIdx < ProcessedTransforms.Num(); ++InstanceIdx)
+        for( const auto& Transform : ProcessOffsets() )
         {
-            ISMC->AddInstance(ProcessedTransforms[InstanceIdx]);
+            ISMC->AddInstance( Transform );
         }
     }
     else if( IAC && !IAC->IsPendingKill() )
     {
-        IAC->SetInstances(ProcessedTransforms);
+        IAC->SetInstances( ProcessOffsets() );
     }
     else if( MSIC && !MSIC->IsPendingKill() )
     {
-        MSIC->SetInstances(ProcessedTransforms, InstancedColors );
+        MSIC->SetInstances( ProcessOffsets(), InstancedColors );
     }
 }
 

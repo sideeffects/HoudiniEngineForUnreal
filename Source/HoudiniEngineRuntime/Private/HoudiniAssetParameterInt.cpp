@@ -199,7 +199,6 @@ UHoudiniAssetParameterInt::SetParameterVariantValue( const FVariant & Variant, i
 
 #endif
 
-    MarkPreChanged( bTriggerModify );
     Values[ Idx ] = VariantValue;
     MarkChanged( bTriggerModify );
 
@@ -233,8 +232,6 @@ UHoudiniAssetParameterInt::SetValue( int32 InValue, int32 Idx, bool bTriggerModi
         if ( !bRecordUndo )
             Transaction.Cancel();
 #endif
-
-        MarkPreChanged( bTriggerModify );
 
         Values[ Idx ] = FMath::Clamp< int32 >( InValue, ValueMin, ValueMax );
 

@@ -741,7 +741,6 @@ FHoudiniParameterDetails::CreateWidgetButton( IDetailCategoryBuilder & LocalDeta
             if ( MyParam.IsValid() )
             {
                 // There's no undo operation for button.
-                MyParam->MarkPreChanged();
                 MyParam->MarkChanged();
             }
             return FReply::Handled();
@@ -1153,7 +1152,7 @@ FHoudiniParameterDetails::CreateWidgetInstanceInput( IDetailCategoryBuilder & Lo
     // Classes allowed by instanced inputs.
     const TArray< const UClass * > AllowedClasses = { 
         UStaticMesh::StaticClass(), AActor::StaticClass(), UBlueprint::StaticClass(), 
-        USoundBase::StaticClass(), UParticleSystem::StaticClass(),  USkeletalMesh::StaticClass() };
+        USoundBase::StaticClass(), UParticleSystem::StaticClass(),  USkeletalMesh::StaticClass(), USceneComponent::StaticClass() };
 
     const int32 FieldCount = InParam.InstanceInputFields.Num();
     for ( int32 FieldIdx = 0; FieldIdx < FieldCount; ++FieldIdx )
@@ -2274,7 +2273,6 @@ FHoudiniParameterDetails::Helper_OnButtonClickSelectActors( TWeakObjectPtr<class
         InParam->PrimaryObject );
     InParam->Modify();
 
-    InParam->MarkPreChanged();
     InParam->bStaticMeshChanged = true;
 
     // Delete all assets and reset the array.

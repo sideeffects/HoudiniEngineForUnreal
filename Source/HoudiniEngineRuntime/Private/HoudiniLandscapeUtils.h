@@ -167,16 +167,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         static bool CreateHeightfieldFromLandscapeComponent(
             ULandscapeComponent * LandscapeComponent,
             const HAPI_NodeId& ParentNodeId,
-            const int32& ComponentIndex,
-            HAPI_NodeId& HeightFieldId,
-            HAPI_NodeId& MergeId,
-            int32& MergeInputIndex );
-
-        // Initialise the Heightfield Mask with default values
-        static bool InitDefaultHeightfieldMask(
-            const HAPI_VolumeInfo& HeightVolumeInfo,
-            const HAPI_NodeId& MaskVolumeNodeId,
-            const int32& ComponentIndex);
+            HAPI_NodeId& CreatedHeightfieldNodeId,
+            const int32& ComponentIndex );
 
         // Extracts the uint16 values of a given landscape
         static bool GetLandscapeData(
@@ -220,8 +212,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             FVector Min, FVector Max,
             const FTransform& LandscapeTransform,
             TArray<float>& HeightfieldFloatValues,
-            HAPI_VolumeInfo& HeightfieldVolumeInfo,
-            FVector& CenterOffset);
+            HAPI_VolumeInfo& HeightfieldVolumeInfo );
 
         // Converts Unreal uint8 values to Houdini Float
         static bool ConvertLandscapeLayerDataToHeightfieldData(

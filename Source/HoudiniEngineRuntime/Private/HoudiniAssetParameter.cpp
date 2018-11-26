@@ -306,8 +306,6 @@ void
 UHoudiniAssetParameter::PostEditUndo()
 {
     Super::PostEditUndo();
-
-    MarkPreChanged();
     MarkChanged();
 }
 
@@ -377,11 +375,6 @@ UHoudiniAssetParameter::SetHelp( const HAPI_ParmInfo & ParmInfo )
     bresult = HoudiniEngineStringHelp.ToFString( ParameterHelp );
 
     return bresult;
-}
-
-void
-UHoudiniAssetParameter::MarkPreChanged( bool bMarkAndTriggerUpdate )
-{
 }
 
 void

@@ -103,8 +103,6 @@ UHoudiniAssetParameterMultiparm::AddMultiparmInstance( int32 ChildMultiparmInsta
         PrimaryObject );
     Modify();
 
-    MarkPreChanged();
-
     FHoudiniApi::InsertMultiparmInstance(
         FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
         ChildMultiparmInstanceIndex );
@@ -133,8 +131,6 @@ UHoudiniAssetParameterMultiparm::RemoveMultiparmInstance( int32 ChildMultiparmIn
         LOCTEXT( "HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Removing instance" ),
         PrimaryObject );
     Modify();
-
-    MarkPreChanged();
 
     FHoudiniApi::RemoveMultiparmInstance(
         FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
@@ -190,8 +186,6 @@ UHoudiniAssetParameterMultiparm::SetValue( int32 InValue )
 
 #endif
 
-        MarkPreChanged();
-
         MultiparmValue = InValue;
 
         // Mark this parameter as changed.
@@ -226,8 +220,6 @@ UHoudiniAssetParameterMultiparm::AddElements( int32 NumElements, bool bTriggerMo
             Transaction.Cancel();
 
 #endif
-
-        MarkPreChanged( bTriggerModify );
 
         MultiparmValue += NumElements;
 
@@ -265,8 +257,6 @@ UHoudiniAssetParameterMultiparm::RemoveElements( int32 NumElements, bool bTrigge
             Transaction.Cancel();
 
 #endif
-
-        MarkPreChanged( bTriggerModify );
 
         MultiparmValue -= NumElements;
 
