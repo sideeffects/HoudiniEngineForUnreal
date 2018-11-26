@@ -2579,13 +2579,14 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
         NewMaterialInstance->InitStaticPermutation();
         NewMaterialInstance->PreEditChange(nullptr);
         NewMaterialInstance->PostEditChange();
-
+        /*
         // Automatically save the package to avoid further issue
         MaterialInstancePackage->SetDirtyFlag( true );
         MaterialInstancePackage->FullyLoad();
         UPackage::SavePackage(
             MaterialInstancePackage, nullptr, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone,
             *FPackageName::LongPackageNameToFilename( MaterialInstancePackage->GetName(), FPackageName::GetAssetPackageExtension() ) );
+            */
     }
 
     // Update the return pointers

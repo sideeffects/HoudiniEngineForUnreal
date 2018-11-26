@@ -1047,7 +1047,7 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
         }
     }
 
-   if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
+    if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
     {
         // For World Inputs, we need to go through each asset selected
         // and change the transform type on the merge node's input
@@ -1384,7 +1384,6 @@ UHoudiniAssetInput::OnStaticMeshDropped( UObject * InObject, int32 AtIndex )
             PrimaryObject );
         Modify();
 
-        MarkPreChanged();
         if ( InputObjects.IsValidIndex( AtIndex ) )
         {
             InputObjects[ AtIndex ] = InObject;
@@ -1420,7 +1419,6 @@ UHoudiniAssetInput::OnSkeletalMeshDropped( UObject * InObject, int32 AtIndex )
             PrimaryObject );
         Modify();
 
-        MarkPreChanged();
         if ( SkeletonInputObjects.IsValidIndex( AtIndex ) )
         {
             SkeletonInputObjects[ AtIndex ] = InObject;
@@ -1529,11 +1527,15 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice )
     // Switch mode.
     EHoudiniAssetInputType::Enum newChoice = static_cast<EHoudiniAssetInputType::Enum>(ActiveLabel);
     ChangeInputType(newChoice);
+    MarkChanged();
 }
 
 bool
 UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
 {
+    if (ChoiceIndex == newType)
+        return true;
+
     switch ( ChoiceIndex )
     {
         case EHoudiniAssetInputType::GeometryInput:
@@ -1688,8 +1690,7 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
     }
 
     // If we have input object and geometry asset, we need to connect it back.
-    MarkPreChanged();
-    MarkChanged();
+    //MarkChanged();
 
     return true;
 }
@@ -1807,7 +1808,6 @@ UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
         bInputAssetConnectedInHoudini = false;
     }
 
-    MarkPreChanged();
     MarkChanged();
 }
 
@@ -1841,7 +1841,6 @@ UHoudiniAssetInput::OnLandscapeActorSelected( AActor * Actor )
         InputLandscapeProxy = nullptr;
     }
 
-    MarkPreChanged();
     MarkChanged();
 }
 
@@ -1888,7 +1887,6 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
         if ( !bLocalChanged )
         {
             Modify();
-            MarkPreChanged();
             bLocalChanged = true;
         }
     };
@@ -2088,7 +2086,6 @@ UHoudiniAssetInput::IsWorldInputAssetConnected() const
 void
 UHoudiniAssetInput::OnInputCurveChanged()
 {
-    MarkPreChanged();
     MarkChanged();
 }
 
@@ -2098,7 +2095,6 @@ UHoudiniAssetInput::ExternalDisconnectInputAssetActor()
     InputAssetComponent = nullptr;
     ConnectedAssetId = -1;
 
-    MarkPreChanged();
     MarkChanged();
 }
 
@@ -2128,8 +2124,6 @@ UHoudiniAssetInput::NotifyChildParameterChanged( UHoudiniAssetParameter * Houdin
 {
     if ( HoudiniAssetParameter && ChoiceIndex == EHoudiniAssetInputType::CurveInput )
     {
-        MarkPreChanged();
-        
         if ( FHoudiniEngineUtils::IsValidNodeId( ConnectedAssetId ) )
         {
             // We need to upload changed param back to HAPI.
@@ -2351,8 +2345,6 @@ UHoudiniAssetInput::CheckStateChangedExportOnlySelected( ECheckBoxState NewState
             PrimaryObject );
         Modify();
 
-        MarkPreChanged();
-
         bLandscapeExportSelectionOnly = bState;
 
         // Mark this parameter as changed.
@@ -2382,8 +2374,6 @@ UHoudiniAssetInput::CheckStateChangedAutoSelectLandscape( ECheckBoxState NewStat
             LOCTEXT("HoudiniInputChange", "Houdini Export Auto-Select Landscape Components mode change."),
             PrimaryObject);
         Modify();
-
-        MarkPreChanged();
 
         bLandscapeAutoSelectComponent = bState;
 
@@ -2415,8 +2405,6 @@ UHoudiniAssetInput::CheckStateChangedExportCurves( ECheckBoxState NewState )
             PrimaryObject );
         Modify();
 
-        MarkPreChanged();
-
         bLandscapeExportCurves = bState;
 
         // Mark this parameter as changed.
@@ -2446,8 +2434,6 @@ UHoudiniAssetInput::CheckStateChangedExportAsMesh( ECheckBoxState NewState )
             LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape As Mesh mode change." ),
             PrimaryObject );
         Modify();
-
-        MarkPreChanged();
 
         bLandscapeExportAsMesh = bState;
 
@@ -2481,8 +2467,6 @@ UHoudiniAssetInput::CheckStateChangedExportAsHeightfield( ECheckBoxState NewStat
             LOCTEXT("HoudiniInputChange", "Houdini Export Landscape As Heightfield mode change."),
             PrimaryObject);
         Modify();
-
-        MarkPreChanged();
 
         bLandscapeExportAsHeightfield = bState;
         if ( bState )
@@ -2518,8 +2502,6 @@ UHoudiniAssetInput::CheckStateChangedExportAsPoints( ECheckBoxState NewState )
             LOCTEXT("HoudiniInputChange", "Houdini Export Landscape As Points mode change."),
             PrimaryObject);
         Modify();
-
-        MarkPreChanged();
 
         if ( bState )
         {
@@ -2560,8 +2542,6 @@ UHoudiniAssetInput::CheckStateChangedExportMaterials( ECheckBoxState NewState )
             PrimaryObject );
         Modify();
 
-        MarkPreChanged();
-
         bLandscapeExportMaterials = bState;
 
         // Mark this parameter as changed.
@@ -2591,8 +2571,6 @@ UHoudiniAssetInput::CheckStateChangedExportLighting( ECheckBoxState NewState )
             LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Lighting mode change." ),
             PrimaryObject );
         Modify();
-
-        MarkPreChanged();
 
         bLandscapeExportLighting = bState;
 
@@ -2624,8 +2602,6 @@ UHoudiniAssetInput::CheckStateChangedExportNormalizedUVs( ECheckBoxState NewStat
             PrimaryObject );
         Modify();
 
-        MarkPreChanged();
-
         bLandscapeExportNormalizedUVs = bState;
 
         // Mark this parameter as changed.
@@ -2655,8 +2631,6 @@ UHoudiniAssetInput::CheckStateChangedExportTileUVs( ECheckBoxState NewState )
             LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Tile UVs mode change." ),
             PrimaryObject );
         Modify();
-
-        MarkPreChanged();
 
         bLandscapeExportTileUVs = bState;
 
@@ -2689,8 +2663,6 @@ UHoudiniAssetInput::CheckStateChangedKeepWorldTransform(ECheckBoxState NewState)
         LOCTEXT("HoudiniInputChange", "Houdini Input Transform Type change."),
         PrimaryObject);
     Modify();
-
-    MarkPreChanged();
 
     bKeepWorldTransform = bState;
 
@@ -2729,8 +2701,6 @@ UHoudiniAssetInput::CheckStateChangedExportAllLODs( ECheckBoxState NewState )
         PrimaryObject);
     Modify();
 
-    MarkPreChanged();
-
     bExportAllLODs = bState;
 
     // Changing the export of LODs changes the StaticMesh!
@@ -2764,8 +2734,6 @@ UHoudiniAssetInput::CheckStateChangedExportSockets( ECheckBoxState NewState )
         LOCTEXT( "HoudiniInputChange", "Houdini Input export sockets changed." ),
         PrimaryObject );
     Modify();
-
-    MarkPreChanged();
 
     bExportSockets = bState;
 
@@ -2801,8 +2769,6 @@ UHoudiniAssetInput::CheckStateChangedPackBeforeMerge( ECheckBoxState NewState )
         PrimaryObject );
     Modify();
 
-    MarkPreChanged();
-
     bPackBeforeMerge = bState;
 
     // Mark this parameter as changed.
@@ -2827,7 +2793,6 @@ UHoudiniAssetInput::OnInsertGeo( int32 AtIndex )
         LOCTEXT( "HoudiniInputChange", "Houdini Input Geometry Change" ),
         PrimaryObject );
     Modify();
-    MarkPreChanged();
     InputObjects.Insert( nullptr, AtIndex );
     InputTransforms.Insert( FTransform::Identity, AtIndex );
     TransformUIExpanded.Insert( false, AtIndex );
@@ -2846,7 +2811,6 @@ UHoudiniAssetInput::OnDeleteGeo( int32 AtIndex )
             LOCTEXT( "HoudiniInputChange", "Houdini Input Geometry Change" ),
             PrimaryObject );
         Modify();
-        MarkPreChanged();
         InputObjects.RemoveAt( AtIndex );
         InputTransforms.RemoveAt( AtIndex );
         TransformUIExpanded.RemoveAt( AtIndex );
@@ -2866,7 +2830,6 @@ UHoudiniAssetInput::OnDuplicateGeo( int32 AtIndex )
             LOCTEXT( "HoudiniInputChange", "Houdini Input Geometry Change" ),
             PrimaryObject );
         Modify();
-        MarkPreChanged();
         UObject* Dupe = InputObjects[AtIndex];
         InputObjects.Insert( Dupe, AtIndex );
         FTransform DupeTransform = InputTransforms[AtIndex];
@@ -2883,7 +2846,6 @@ FReply
 UHoudiniAssetInput::OnButtonClickRecommit()
 {
     // There's no undo operation for button.
-    MarkPreChanged();
     MarkChanged();
 
     return FReply::Handled();
@@ -2973,7 +2935,6 @@ UHoudiniAssetInput::RemoveWorldOutlinerInput( int32 AtIndex )
         PrimaryObject );
     Modify();
 
-    MarkPreChanged();
     bStaticMeshChanged = true;
     InputOutlinerMeshArray.RemoveAt( AtIndex );
     MarkChanged();
@@ -3031,7 +2992,6 @@ void UHoudiniAssetInput::OnAddToInputObjects()
         LOCTEXT( "HoudiniInputChange", "Houdini Input Geometry Change" ),
         PrimaryObject );
     Modify();
-    MarkPreChanged();
     InputObjects.Add( nullptr );
     InputTransforms.Add( FTransform::Identity );
     TransformUIExpanded.Add( false );
@@ -3047,7 +3007,6 @@ void UHoudiniAssetInput::OnEmptyInputObjects()
         LOCTEXT( "HoudiniInputChange", "Houdini Input Geometry Change" ),
         PrimaryObject );
     Modify();
-    MarkPreChanged();
 
     // Empty the arrays
     InputObjects.Empty();
@@ -3070,7 +3029,6 @@ void UHoudiniAssetInput::OnAddToSkeletonInputObjects()
         LOCTEXT("HoudiniInputChange", "Houdini Input Geometry Change"),
         PrimaryObject);
     Modify();
-    MarkPreChanged();
     SkeletonInputObjects.Add(nullptr);
     //InputTransforms.Add(FTransform::Identity);
     //TransformUIExpanded.Add(false);
@@ -3086,7 +3044,6 @@ void UHoudiniAssetInput::OnEmptySkeletonInputObjects()
         LOCTEXT("HoudiniInputChange", "Houdini Input Geometry Change"),
         PrimaryObject);
     Modify();
-    MarkPreChanged();
 
     // Empty the arrays
     SkeletonInputObjects.Empty();
@@ -3247,27 +3204,28 @@ void UHoudiniAssetInput::SetDefaultInputTypeFromLabel()
     FString assetPrefix        = TEXT( "asset" );
     FString assetPrefix2    = TEXT( "hda" );
 
+    // By default, geometry input is chosen.
+    EHoudiniAssetInputType::Enum newInputType = EHoudiniAssetInputType::GeometryInput;
+
     if ( inputName.Contains( curvePrefix, ESearchCase::IgnoreCase ) )
-        ChangeInputType( EHoudiniAssetInputType::CurveInput );
+        newInputType = EHoudiniAssetInputType::CurveInput;
 
     else if ( ( inputName.Contains( landscapePrefix, ESearchCase::IgnoreCase ) ) 
             || ( inputName.Contains( landscapePrefix2, ESearchCase::IgnoreCase ) )
             || ( inputName.Contains( landscapePrefix3, ESearchCase::IgnoreCase ) ) )
-        ChangeInputType(EHoudiniAssetInputType::LandscapeInput);
+        newInputType = EHoudiniAssetInputType::LandscapeInput;
 
     else if ( ( inputName.Contains( worldPrefix, ESearchCase::IgnoreCase ) )
             || ( inputName.Contains( worldPrefix2, ESearchCase::IgnoreCase ) ) )
-        ChangeInputType(EHoudiniAssetInputType::WorldInput);
+        newInputType = EHoudiniAssetInputType::WorldInput;
 
     else if ( ( inputName.Contains( assetPrefix, ESearchCase::IgnoreCase ) )
             || ( inputName.Contains( assetPrefix, ESearchCase::IgnoreCase ) ) )
-        ChangeInputType(EHoudiniAssetInputType::AssetInput);
+        newInputType = EHoudiniAssetInputType::AssetInput;
 
-    else
-    {
-        // By default, geometry input is chosen.
-        ChoiceIndex = EHoudiniAssetInputType::GeometryInput;
-    }
+    if ( ChoiceIndex != newInputType )
+        ChangeInputType( newInputType );
+
 #else
     ChoiceIndex = EHoudiniAssetInputType::GeometryInput;
 #endif

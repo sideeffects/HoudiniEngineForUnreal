@@ -213,8 +213,7 @@ UHoudiniAssetParameterFile::SetParameterVariantValue(
             // Detect and fix relative paths.
             VariantStringValue = UpdateCheckRelativePath( VariantStringValue );
 
-            MarkPreChanged( bTriggerModify );
-            Values[ Idx ] = VariantStringValue;
+			Values[ Idx ] = VariantStringValue;
             MarkChanged( bTriggerModify );
 
             return true;
@@ -237,8 +236,6 @@ UHoudiniAssetParameterFile::HandleFilePathPickerPathPicked( const FString & Pick
             LOCTEXT( "HoudiniAssetParameterFileChange", "Houdini Parameter File: Changing a value" ),
             PrimaryObject );
         Modify();
-
-        MarkPreChanged();
 
         Values[ Idx ] = UpdateCheckRelativePath( PickedPath );
 
@@ -307,7 +304,6 @@ UHoudiniAssetParameterFile::SetParameterValue( const FString& InValue, int32 Idx
 
 #endif // WITH_EDITOR
 
-        MarkPreChanged( bTriggerModify );
         Values[ Idx ] = InValue;
         MarkChanged( bTriggerModify );
     }

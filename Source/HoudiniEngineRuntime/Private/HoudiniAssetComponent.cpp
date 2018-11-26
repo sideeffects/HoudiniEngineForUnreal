@@ -1423,18 +1423,28 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
 
         // Make sure rendering is done
         FlushRenderingCommands();
-        
-        // Free meshes and components that are no longer used.
-        ReleaseObjectGeoPartResources( StaticMeshes, true );
 
         // Update the bake folder as it might have been updated by an override
         BakeFolder = HoudiniCookParams.BakeFolder;
 
-        // Set meshes and create new components for those meshes that do not have them.
-        if ( NewStaticMeshes.Num() > 0 )
-            CreateObjectGeoPartResources( NewStaticMeshes );
+        if ( NewStaticMeshes.Num() == 0 && bContainsHoudiniLogoGeometry )
+        {
+            // We're not creating anything new and are already using the houdini logo
+            // No need to destroy then recreate the Houdini Logo
+            if ( StaticMeshes.Num() !=  1)
+                CreateStaticMeshHoudiniLogoResource( StaticMeshes );
+        }
         else
-            CreateStaticMeshHoudiniLogoResource( NewStaticMeshes );
+        {
+            // Free meshes and components that are no longer used.
+            ReleaseObjectGeoPartResources(StaticMeshes, true);
+
+            // Set meshes and create new components for those meshes that do not have them.
+            if (NewStaticMeshes.Num() > 0)
+                CreateObjectGeoPartResources(NewStaticMeshes);
+            else
+                CreateStaticMeshHoudiniLogoResource(NewStaticMeshes);
+        }
     }
 
     // We can reset the manual recook flag now that the static meshes have been created

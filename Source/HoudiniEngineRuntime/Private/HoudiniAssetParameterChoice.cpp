@@ -219,8 +219,6 @@ UHoudiniAssetParameterChoice::SetValueInt( int32 Value, bool bTriggerModify, boo
 
 #endif // WITH_EDITOR
 
-    MarkPreChanged( bTriggerModify );
-
     CurrentValue = Value;
 
     MarkChanged( bTriggerModify );
@@ -326,7 +324,6 @@ UHoudiniAssetParameterChoice::SetParameterVariantValue( const FVariant & Variant
 
 #endif // WITH_EDITOR
 
-    MarkPreChanged( bTriggerModify );
     CurrentValue = VariantValue;
     MarkChanged( bTriggerModify );
 
@@ -415,8 +412,6 @@ UHoudiniAssetParameterChoice::OnChoiceChange( TSharedPtr< FString > NewChoice )
             LOCTEXT( "HoudiniAssetParameterChoiceChange", "Houdini Parameter Choice: Changing a value" ),
             PrimaryObject );
         Modify();
-
-        MarkPreChanged();
 
         CurrentValue = LabelIdx;
 

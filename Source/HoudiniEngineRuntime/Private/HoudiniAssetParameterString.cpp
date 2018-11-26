@@ -156,7 +156,6 @@ UHoudiniAssetParameterString::SetParameterVariantValue(
 
 #endif
 
-        MarkPreChanged();
         Values[ Idx ] = VariantStringValue;
         MarkChanged();
 
@@ -183,8 +182,6 @@ UHoudiniAssetParameterString::SetValueCommitted( const FText & InValue, ETextCom
             LOCTEXT( "HoudiniAssetParameterStringChange", "Houdini Parameter String: Changing a value" ),
             PrimaryObject );
         Modify();
-
-        MarkPreChanged();
 
         Values[ Idx ] = CommittedValue;
 
