@@ -2427,30 +2427,37 @@ FHoudiniEngineUtils::HapiCreateInputNodeForLandscape(
     //--------------------------------------------------------------------------------------------------
     if ( bExportAsHeighfield )
     {
+        // Convert the Landscape Name
+        std::string NameStr;
+        FString LandscapeName = TEXT("heightfield_input_") + LandscapeProxy->GetName();
+        FHoudiniEngineUtils::ConvertUnrealString(LandscapeProxy->GetName(), NameStr);
+
+        // Create a merge SOP asset. This will be our "ConnectedAssetId".
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
+            FHoudiniEngine::Get().GetSession(), -1,
+            "SOP/merge", NameStr.c_str(), true, &ConnectedAssetId), false);
+
+        // Add the Merge node's parent OBJ node to the created nodes
+        OutCreatedNodeIds.AddUnique(FHoudiniEngineUtils::HapiGetParentNodeId(ConnectedAssetId));
+
         bool bSuccess = false;
         int32 NumComponents = LandscapeProxy->LandscapeComponents.Num();
         if ( !bExportOnlySelected || ( SelectedComponents.Num() == NumComponents ) )
         {
             // Export the whole landscape and its layer as a single heightfield node
-            bSuccess = FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape( LandscapeProxy, ConnectedAssetId );
+            HAPI_NodeId CreatedHeightfieldNodeId = -1;
+            bSuccess = FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape( LandscapeProxy, CreatedHeightfieldNodeId );
 
-            // Add the Heightfield's parent OBJ node to the created nodes
-            OutCreatedNodeIds.AddUnique( FHoudiniEngineUtils::HapiGetParentNodeId( ConnectedAssetId ) );
+            OutCreatedNodeIds.AddUnique(FHoudiniEngineUtils::HapiGetParentNodeId( CreatedHeightfieldNodeId ) );
+
+            // Connect the newly create HF Node to the merge
+            if (HAPI_RESULT_SUCCESS != FHoudiniApi::ConnectNodeInput(
+                FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, CreatedHeightfieldNodeId, 0))
+                return false;
         }
         else
         {
-            // Convert the Landscape Name
-            std::string NameStr;
-            FString LandscapeName = TEXT("heightfield_input_") + LandscapeProxy->GetName();
-            FHoudiniEngineUtils::ConvertUnrealString( LandscapeProxy->GetName(), NameStr );
-
-            // Create a merge SOP asset. This will be our "ConnectedAssetId".
-            // Each Landscape component will be created as a separate heightfield node, merged on this node
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
-                FHoudiniEngine::Get().GetSession(), -1,
-                "SOP/merge", NameStr.c_str(), true, &ConnectedAssetId), false);
-
-            // Each selected landscape component will be exported as a separate heightfield
+            // Each selected landscape component will be exported as separate volumes in a single heightfield
             bSuccess = FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray( LandscapeProxy, SelectedComponents, ConnectedAssetId );
 
             // Add the Heightfield's parent OBJ node to the created nodes
@@ -4881,8 +4888,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     bool ForceRebuildStaticMesh, bool ForceRecookAll,
     const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
     TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut,
-    FTransform & ComponentTransform,
-    const TMap< FHoudiniGeoPartObject, TArray< UGenericAttribute > >& AllUPropertiesAttributes )
+    FTransform & ComponentTransform )
 {
 #if WITH_EDITOR
     /*
@@ -4983,7 +4989,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     TArray< HAPI_Transform > ObjectTransforms;
     if ( !FHoudiniEngineUtils::HapiGetObjectTransforms( AssetId, ObjectTransforms ) )
         return false;
-
     // Retrieve all used unique material ids.
     TSet< HAPI_NodeId > UniqueMaterialIds;
     TSet< HAPI_NodeId > UniqueInstancerMaterialIds;
@@ -5003,7 +5008,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     {
         HoudiniCookParams.HoudiniCookManager->AddAssignmentMaterial( AssPair.Key, AssPair.Value );
     }
-	
+
     // Iterate through all objects.
     for ( int32 ObjectIdx = 0; ObjectIdx < ObjectInfos.Num(); ++ObjectIdx )
     {
@@ -5571,9 +5576,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             TMap< HAPI_NodeId, int32 > MapHoudiniMatIdToUnrealIndex;
             // Map of Houdini Material Attributes to Unreal Material Indices
             TMap< FString, int32 > MapHoudiniMatAttributesToUnrealIndex;
-
-			// Get the Upropery attributes for this geo part object
-			const TArray<UGenericAttribute>& UProperAttributes = AllUPropertiesAttributes[HoudiniGeoPartObject];
 
             // Iterate through all detected split groups we care about and split geometry.
             // The split are ordered in the following way:
@@ -6521,9 +6523,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // Some mesh generation settings.
                 HoudiniRuntimeSettings->SetMeshBuildSettings( SrcModel->BuildSettings, RawMesh );
 
-				// Update the build settings from uproperty attribute if necessary
-				//UpdateUPropertyAttributesOnObject( SrcModel, UProperAttributes);
-
                 // By default the distance field resolution should be set to 2.0
                 SrcModel->BuildSettings.DistanceFieldResolutionScale = HoudiniCookParams.GeneratedDistanceFieldResolutionScale;
 
@@ -6709,7 +6708,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 }
 
                 // Try to update the uproperties of the StaticMesh
-                UpdateUPropertyAttributesOnObject( StaticMesh, UProperAttributes );
+                UpdateUPropertyAttributesOnObject( StaticMesh, HoudiniGeoPartObject);
 
                 // Free any RHI resources.
                 StaticMesh->PreEditChange( nullptr );
@@ -8712,36 +8711,23 @@ FHoudiniEngineUtils::GetGenericAttributeList(
     return nUPropCount;
 }
 
-
 void
 FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
-	UObject* Object, const FHoudiniGeoPartObject& HoudiniGeoPartObject )
+    UObject* MeshComponent, const FHoudiniGeoPartObject& HoudiniGeoPartObject )
 {
-	if (!Object || Object->IsPendingKill())
-		return;
+    if ( !MeshComponent || MeshComponent->IsPendingKill() )
+        return;
 
-	// Get the list of uproperties to modify from the geopartobject's attributes
-	TArray< UGenericAttribute > UPropertiesAttributes;
-	if (!FHoudiniEngineUtils::GetUPropertyAttributeList(HoudiniGeoPartObject, UPropertiesAttributes))
-		return;
-
-	return UpdateUPropertyAttributesOnObject( Object, UPropertiesAttributes );
-
-}
-
-
-void
-FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
-    UObject* Object, const TArray< UGenericAttribute >& UPropertiesAttributes )
-{
-    if ( !Object || Object->IsPendingKill() )
+    // Get the list of uproperties to modify from the geopartobject's attributes
+    TArray< UGenericAttribute > UPropertiesAttributesToModify;
+    if ( !FHoudiniEngineUtils::GetUPropertyAttributeList( HoudiniGeoPartObject, UPropertiesAttributesToModify ) )
         return;
     
     // Iterate over the Found UProperty attributes
-    for ( int32 nAttributeIdx = 0; nAttributeIdx < UPropertiesAttributes.Num(); nAttributeIdx++ )
+    for ( int32 nAttributeIdx = 0; nAttributeIdx < UPropertiesAttributesToModify.Num(); nAttributeIdx++ )
     {
         // Get the current Uproperty Attribute
-        UGenericAttribute CurrentPropAttribute = UPropertiesAttributes[ nAttributeIdx ];
+        UGenericAttribute CurrentPropAttribute = UPropertiesAttributesToModify[ nAttributeIdx ];
         FString CurrentUPropertyName = CurrentPropAttribute.AttributeName;
         if ( CurrentUPropertyName.IsEmpty() )
             continue;
@@ -8749,7 +8735,7 @@ FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
         // Some UProperties need to be modified manually...
         if ( CurrentUPropertyName == "CollisionProfileName" )
         {
-            UPrimitiveComponent* PC = Cast< UPrimitiveComponent >( Object );
+            UPrimitiveComponent* PC = Cast< UPrimitiveComponent >( MeshComponent );
             if ( PC && !PC->IsPendingKill() )
             {
                 FString StringValue = CurrentPropAttribute.GetStringValue();
@@ -8763,7 +8749,7 @@ FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
         // Handle Component Tags manually here
         if ( CurrentUPropertyName.Contains("Tags") )
         {
-            UActorComponent* AC = Cast< UActorComponent >( Object );
+            UActorComponent* AC = Cast< UActorComponent >( MeshComponent );
             if ( AC && !AC->IsPendingKill() )
             {
                 for ( int nIdx = 0; nIdx < CurrentPropAttribute.AttributeCount; nIdx++ )
@@ -8783,15 +8769,15 @@ FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
         void* StructContainer = nullptr;
         UObject* FoundPropertyObject = nullptr;
 
-        if ( !FindUPropertyAttributesOnObject( Object, CurrentPropAttribute, FoundProperty, FoundPropertyObject, StructContainer ) )
+        if ( !FindUPropertyAttributesOnObject( MeshComponent, CurrentPropAttribute, FoundProperty, FoundPropertyObject, StructContainer ) )
             continue;
 
         if ( !ModifyUPropertyValueOnObject( FoundPropertyObject, CurrentPropAttribute, FoundProperty, StructContainer ) )
             continue;
 
         // Sucess!
-        FString ClassName = Object->GetClass() ? Object->GetClass()->GetName() : TEXT("Object");
-        FString ObjectName = Object->GetName();
+        FString ClassName = MeshComponent->GetClass() ? MeshComponent->GetClass()->GetName() : TEXT("Object");
+        FString ObjectName = MeshComponent->GetName();
 
         // Couldn't find or modify the Uproperty!
         HOUDINI_LOG_MESSAGE( TEXT( "Modified UProperty %s on %s named %s" ), *CurrentUPropertyName, *ClassName, * ObjectName );    
@@ -10076,55 +10062,6 @@ FHoudiniEngineUtils::CreateSlateNotification( const FString& NotificationString 
 
     return;
 }
-
-
-
-bool
-FHoudiniEngineUtils::ExtractAllUPropertiesAttributes(
-	const HAPI_NodeId& AssetNodeId,
-	TMap< FHoudiniGeoPartObject, TArray< UGenericAttribute > >& UPropertyAttributesMap )
-{
-	// Empty passed incontainers.
-	UPropertyAttributesMap.Empty();
-
-	TArray< HAPI_ObjectInfo > ObjectInfos;
-	if (!HapiGetObjectInfos(AssetNodeId, ObjectInfos))
-		return false;
-
-	// Iterate through all objects.
-	for (int32 ObjectIdx = 0; ObjectIdx < ObjectInfos.Num(); ++ObjectIdx)
-	{
-		// Retrieve object at this index.
-		const HAPI_ObjectInfo & ObjectInfo = ObjectInfos[ObjectIdx];
-
-		// Get Geo information.
-		HAPI_GeoInfo GeoInfo;
-		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetDisplayGeoInfo(FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, &GeoInfo))
-			continue;
-
-		// Iterate through all parts.
-		for (int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx)
-		{
-			// Get part information.
-			HAPI_PartInfo PartInfo;
-			FString PartName = TEXT("");
-
-			if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, PartIdx, &PartInfo))
-				continue;
-
-			// Extract the attributes for that GeoPartObject
-			FHoudiniGeoPartObject CurrentHGPO(AssetInfo.nodeId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id);
-			TArray< UGenericAttribute > CurrentAttributes;
-			GetUPropertyAttributeList( CurrentHGPO, CurrentAttributes);
-
-			// Add them to the map
-			UPropertyAttributesMap.Add( CurrentHGPO, CurrentAttributes );
-		}
-	}
-
-	return true;
-}
-
 
 HAPI_NodeId
 FHoudiniEngineUtils::HapiGetParentNodeId( const HAPI_NodeId& NodeId )

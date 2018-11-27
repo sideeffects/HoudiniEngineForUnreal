@@ -59,7 +59,6 @@ class UFoliageType_InstancedStaticMesh;
 struct FTransform;
 struct FPropertyChangedEvent;
 struct FWalkableSlopeOverride;
-struct UGenericAttribute;
 
 
 namespace EHoudiniAssetComponentState
@@ -667,10 +666,6 @@ public:
         /** Cache of the temp cook content packages created by the asset for its Landscape layers                   **/
         /** As packages are unique their are used as the key (we can have multiple package for the same geopartobj  **/
         TMap< TWeakObjectPtr<class UPackage> , FHoudiniGeoPartObject > CookedTemporaryLandscapeLayers;
-
-		/** Cache containing the differents Uproperty found on the asset **/
-		TMap< FHoudiniGeoPartObject, TArray< UGenericAttribute > > UPropertyAttributesMap;
-
 
         /** Indicates that the details panels doesn't need a "full" update to avoid breaking parameter selection    **/
         /** (default behavior is true)                                                                              **/

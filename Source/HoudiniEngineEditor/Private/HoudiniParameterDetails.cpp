@@ -1152,7 +1152,7 @@ FHoudiniParameterDetails::CreateWidgetInstanceInput( IDetailCategoryBuilder & Lo
     // Classes allowed by instanced inputs.
     const TArray< const UClass * > AllowedClasses = { 
         UStaticMesh::StaticClass(), AActor::StaticClass(), UBlueprint::StaticClass(), 
-        USoundBase::StaticClass(), UParticleSystem::StaticClass(),  USkeletalMesh::StaticClass(), USceneComponent::StaticClass() };
+        USoundBase::StaticClass(), UParticleSystem::StaticClass(),  USkeletalMesh::StaticClass() };
 
     const int32 FieldCount = InParam.InstanceInputFields.Num();
     for ( int32 FieldIdx = 0; FieldIdx < FieldCount; ++FieldIdx )

@@ -1386,9 +1386,6 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
         return;
     }
 
-	// Update the UProperty attrbiutes once
-	FHoudiniEngineUtils::ExtractAllUPropertiesAttributes( GetAssetId(), UPropertyAttributesMap );
-
     FTransform ComponentTransform;
     TMap< FHoudiniGeoPartObject, UStaticMesh * > NewStaticMeshes;
     
@@ -1403,8 +1400,7 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
         bManualRecookRequested,
         StaticMeshes, 
         NewStaticMeshes, 
-        ComponentTransform,
-		UPropertyAttributesMap ) )
+        ComponentTransform ) )
     {
         // Remove all duplicates. After this operation, old map will have meshes which we need to deallocate.
         for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator
