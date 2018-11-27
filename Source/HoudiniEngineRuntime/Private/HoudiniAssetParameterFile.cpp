@@ -213,7 +213,7 @@ UHoudiniAssetParameterFile::SetParameterVariantValue(
             // Detect and fix relative paths.
             VariantStringValue = UpdateCheckRelativePath( VariantStringValue );
 
-			Values[ Idx ] = VariantStringValue;
+            Values[ Idx ] = VariantStringValue;
             MarkChanged( bTriggerModify );
 
             return true;
@@ -251,6 +251,14 @@ UHoudiniAssetParameterFile::UpdateCheckRelativePath( const FString & PickedPath 
 {
     if ( PrimaryObject && !PickedPath.IsEmpty() && FPaths::IsRelative( PickedPath ) )
     {
+        // Check if the path is relative to the UE4 project
+        FString AbsolutePath = FPaths::ConvertRelativePathToFull( PickedPath );
+        if (FPaths::FileExists( AbsolutePath ))
+        {
+            return AbsolutePath;
+        }
+
+        // Check if the path is relative to the asset
         UHoudiniAssetComponent* Comp = Cast<UHoudiniAssetComponent>(PrimaryObject);
         if ( Comp && !Comp->IsPendingKill() )
         {
