@@ -605,7 +605,7 @@ UHoudiniAssetInput::ForceSetInputObject(UObject * InObject, int32 AtIndex, bool 
 
     if( CommitChange )
     {
-        ChangeInputType( NewInputType );
+        ChangeInputType( NewInputType, true );
         MarkChanged();
     }
 }
@@ -614,7 +614,7 @@ UHoudiniAssetInput::ForceSetInputObject(UObject * InObject, int32 AtIndex, bool 
 void 
 UHoudiniAssetInput::ClearInputs()
 {
-    ChangeInputType( EHoudiniAssetInputType::GeometryInput );
+    ChangeInputType( EHoudiniAssetInputType::GeometryInput, true );
     InputOutlinerMeshArray.Empty();
     InputObjects.Empty();
     InputTransforms.Empty();
@@ -1526,14 +1526,14 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice )
 
     // Switch mode.
     EHoudiniAssetInputType::Enum newChoice = static_cast<EHoudiniAssetInputType::Enum>(ActiveLabel);
-    ChangeInputType(newChoice);
+    ChangeInputType( newChoice, false );
     MarkChanged();
 }
 
 bool
-UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
+UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType, const bool& ForceRefresh )
 {
-    if (ChoiceIndex == newType)
+    if ( ChoiceIndex == newType && !ForceRefresh )
         return true;
 
     switch ( ChoiceIndex )
@@ -3224,7 +3224,7 @@ void UHoudiniAssetInput::SetDefaultInputTypeFromLabel()
         newInputType = EHoudiniAssetInputType::AssetInput;
 
     if ( ChoiceIndex != newInputType )
-        ChangeInputType( newInputType );
+        ChangeInputType( newInputType, false );
 
 #else
     ChoiceIndex = EHoudiniAssetInputType::GeometryInput;
