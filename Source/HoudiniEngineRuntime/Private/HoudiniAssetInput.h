@@ -214,7 +214,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void OnInputCurveChanged();
 
         /** Changes the input type to the new one **/
-        bool ChangeInputType(const EHoudiniAssetInputType::Enum& newType);
+        bool ChangeInputType(const EHoudiniAssetInputType::Enum& newType, const bool& ForceRefresh );
 
         /** Forces a disconnect of the input asset actor. This is used by external actors, usually when they die. **/
         void ExternalDisconnectInputAssetActor();
