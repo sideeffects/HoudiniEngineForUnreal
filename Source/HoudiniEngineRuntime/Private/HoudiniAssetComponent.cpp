@@ -4431,7 +4431,7 @@ UHoudiniAssetComponent::UpdateLoadedInputs()
             continue;
 
         HoudiniAssetInput->SetNodeId( AssetId );
-        Success &= HoudiniAssetInput->ChangeInputType( HoudiniAssetInput->GetChoiceIndex() );
+        Success &= HoudiniAssetInput->ChangeInputType( HoudiniAssetInput->GetChoiceIndex(), false );
         Success &= HoudiniAssetInput->UploadParameterValue();
     }
 
@@ -6069,7 +6069,7 @@ UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
             InputArray[ InputNumber ]->AddInputObject( Object );
 
             if ( OnlyLandscapes && ( InputArray[ InputNumber ]->GetChoiceIndex() != EHoudiniAssetInputType::LandscapeInput ) )
-                InputArray[ InputNumber ]->ChangeInputType( EHoudiniAssetInputType::LandscapeInput );
+                InputArray[ InputNumber ]->ChangeInputType( EHoudiniAssetInputType::LandscapeInput, true );
 
             // Dont auto select asset inputs because they dont have the unreal transform, which can cause issue, prefer WorldInput instead
             //if ( OnlyHoudiniAssets && ( InputArray[ InputNumber ]->GetChoiceIndex() != EHoudiniAssetInputType::AssetInput ) )
