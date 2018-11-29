@@ -3153,25 +3153,26 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
         {
             // Create an array of Material Interfaces
             TArray< UMaterialInterface * > MaterialInterfaces;
-            MaterialInterfaces.SetNum(StaticMesh->StaticMaterials.Num());
-            for( int32 MatIdx = 0; MatIdx < StaticMesh->StaticMaterials.Num(); MatIdx++ )
+            for (const FStaticMaterial &StaticMaterial : StaticMesh->StaticMaterials)
             {
-                // The actual material index needs to be read from the section info map, as it can sometimes be different
-                // Using MatIdx here could sometimes cause the materials to be incorrectly assigned on the faces.
-                int32 SectionMatIdx = StaticMesh->SectionInfoMap.Get( LODIndex, MatIdx ).MaterialIndex;
-                if ( !MaterialInterfaces.IsValidIndex(SectionMatIdx) )
-                    SectionMatIdx = MatIdx;
+                MaterialInterfaces.Add( StaticMaterial.MaterialInterface );
+            }
 
-                if ( StaticMeshComponent != nullptr )
+            // Try to fix up inconsistencies between the RawMesh / StaticMesh material indexes
+            // by using the meshes sections...
+            // TODO: Fix me properly!
+            // Proper fix would be to export the meshes via the FStaticMeshLODResources obtained
+            // by GetLODForExport(), and then export the mesh by sections.
+            FStaticMeshLODResources& LOD = StaticMesh->RenderData->LODResources[LODIndex];
+            int32 NumSections = LOD.Sections.Num();
+            for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+            {
+                FStaticMeshSection Info = LOD.Sections[SectionIndex];
+                if ( StaticMesh->StaticMaterials.IsValidIndex(Info.MaterialIndex) )
                 {
-                    // Get the assigned material from the component instead of the Static Mesh
-                    // As it could have been overriden
-                    MaterialInterfaces[ SectionMatIdx ] = StaticMeshComponent->GetMaterial(MatIdx);
-                }
-                else
-                {
-                    // Get the material assigned to the SM
-                    MaterialInterfaces[ SectionMatIdx ] = StaticMesh->StaticMaterials[ MatIdx ].MaterialInterface;
+                    UMaterialInterface* currentMI = StaticMesh->StaticMaterials[Info.MaterialIndex].MaterialInterface;
+                    if (MaterialInterfaces[SectionIndex] != currentMI)
+                        MaterialInterfaces[SectionIndex] = currentMI;
                 }
             }
 
@@ -7073,7 +7074,7 @@ FHoudiniEngineUtils::CreateFaceMaterialArray(
     for ( int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx )
     {
         int32 FaceMaterialIdx = FaceMaterialIndices[ FaceIdx ];
-        check( FaceMaterialIdx < UniqueMaterialList.Num() );
+        check( UniqueMaterialList.IsValidIndex(FaceMaterialIdx) );
 
         OutStaticMeshFaceMaterials.Add( UniqueMaterialList[ FaceMaterialIdx ] );
     }
