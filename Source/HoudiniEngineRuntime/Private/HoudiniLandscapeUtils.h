@@ -118,12 +118,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         static bool ConvertHeightfieldDataToLandscapeData(
             const TArray< float >& HeightfieldFloatValues,
             const HAPI_VolumeInfo& HeightfieldVolumeInfo,
+            const int32& FinalXSize, const int32& FinalYSize,
             float FloatMin, float FloatMax,
             TArray< uint16 >& IntHeightData,
-            FTransform& LandscapeTransform,
-            int32& FinalXSize, int32& FinalYSize,
-            int32& NumSectionPerLandscapeComponent,
-            int32& NumQuadsPerLandscapeSection );
+            FTransform& LandscapeTransform );
 
         // Converts the Houdini float layer values to Unreal uint8
         static bool ConvertHeightfieldLayerToLandscapeLayer(
@@ -133,12 +131,20 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const int32& LandscapeXSize, const int32& LandscapeYSize,
             TArray< uint8 >& LayerData );
 
+
+        // Calculates the closest "unreal friendly" size given a heighfield volume's size
+        static bool CalcLandscapeSizeFromHeightfieldSize(
+            const int32& SizeX, const int32& SizeY,
+            int32& NewSizeX,
+            int32& NewSizeY,
+            int32& NumberOfSectionsPerComponent,
+            int32& NumberOfQuadsPerSection );
+
         // Resizes the HeightData so that it fits to UE4's size requirements.
         static bool ResizeHeightDataForLandscape(
-            TArray< uint16 >& HeightData,
-            int32& SizeX, int32& SizeY,
-            int32& NumberOfSectionsPerComponent,
-            int32& NumberOfQuadsPerSection,
+            TArray<uint16>& HeightData,
+            const int32& SizeX, const int32& SizeY,
+            const int32& NewSizeX, const int32& NewSizeY,
             FVector& LandscapeResizeFactor,
             FVector& LandscapePositionOffset );
 
