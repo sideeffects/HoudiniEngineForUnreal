@@ -2988,12 +2988,15 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                 currentLayerInfo.LayerInfo->LayerUsageDebugColor.B = (LayerMax - LayerMin) / 255.0f;
                 currentLayerInfo.LayerInfo->LayerUsageDebugColor.A = PI;
 
-                if (CurrLayerInfo.LayerInfo && CurrLayerInfo.LayerName.ToString().Equals(TEXT("Visibility"), ESearchCase::IgnoreCase))
+                /*
+                // TODO: FIX ME!
+                if (currentLayerInfo.LayerInfo && currentLayerInfo.LayerName.ToString().Equals(TEXT("Visibility"), ESearchCase::IgnoreCase))
                 {
-                    CurrentLandscape->VisibilityLayer = CurrLayerInfo.LayerInfo;
+                    CurrentLandscape->VisibilityLayer = currentLayerInfo.LayerInfo;
                     CurrentLandscape->VisibilityLayer->bNoWeightBlend = true;
                     CurrentLandscape->VisibilityLayer->AddToRoot();
                 }
+                */
 
                 // Update the layer on the heightfield
                 LandscapeEdit.SetAlphaData( currentLayerInfo.LayerInfo, 0, 0, UnrealXSize - 1, UnrealYSize - 1, currentLayerInfo.LayerData.GetData(), 0 );
