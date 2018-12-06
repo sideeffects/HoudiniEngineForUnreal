@@ -1073,8 +1073,13 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
     //--------------------------------------------------------------------------------------------------    
     // Set the Height volume's data
     HAPI_PartId PartId = 0;
-    if ( !SetHeighfieldData( HeightId, PartId, HeightfieldFloatValues, HeightfieldVolumeInfo, TEXT("height"), -1 ) )
+    if ( !SetHeighfieldData( HeightId, PartId, HeightfieldFloatValues, HeightfieldVolumeInfo, TEXT("height") ) )
         return false;
+
+    // Add the materials used
+    UMaterialInterface* LandscapeMat = LandscapeProxy->GetLandscapeMaterial();
+    UMaterialInterface* LandscapeHoleMat = LandscapeProxy->GetLandscapeHoleMaterial();
+    AddLandscapeMaterialAttributesToVolume( HeightId, PartId, LandscapeMat, LandscapeHoleMat );
 
     // Commit the height volume
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
@@ -1139,8 +1144,11 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
 
         // 4. Set the layer/mask heighfield data in Houdini
         HAPI_PartId CurrentPartId = 0;
-        if ( !SetHeighfieldData( LayerVolumeNodeId, PartId, CurrentLayerFloatData, CurrentLayerVolumeInfo, LayerName, -1 ) )
+        if ( !SetHeighfieldData( LayerVolumeNodeId, PartId, CurrentLayerFloatData, CurrentLayerVolumeInfo, LayerName ) )
             continue;
+
+        // Also add the material attributes to the layer volumes
+        AddLandscapeMaterialAttributesToVolume(LayerVolumeNodeId, PartId, LandscapeMat, LandscapeHoleMat);
 
         // Commit the volume's geo
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
@@ -1163,9 +1171,18 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
 
     // We need to have a mask layer as it is required for proper heightfield functionalities
     // Setting the volume info on the mask is needed for the HF to have proper transform in H!
-    // If we didn't init one, we'll send a fully measured mask now
+    // If we didn't create a mask volume before, send a default one now
     if (!MaskInitialized)
-        MaskInitialized = InitDefaultHeightfieldMask( HeightfieldVolumeInfo, MaskId, 0 );
+    {
+        MaskInitialized = InitDefaultHeightfieldMask( HeightfieldVolumeInfo, MaskId );
+
+        // Add the materials used
+        AddLandscapeMaterialAttributesToVolume( MaskId, PartId, LandscapeMat, LandscapeHoleMat );
+
+        // Commit the mask volume's geo
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
+            FHoudiniEngine::Get().GetSession(), MaskId ), false );
+    }
 
     HAPI_TransformEuler HAPIObjectTransform;
     FMemory::Memzero< HAPI_TransformEuler >( HAPIObjectTransform );
@@ -1348,8 +1365,16 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
     //--------------------------------------------------------------------------------------------------    
     // Set the Height volume's data
     HAPI_PartId PartId = 0;
-    if (!SetHeighfieldData( HeightId, PartId, HeightfieldFloatValues, HeightfieldVolumeInfo, TEXT("height"), ComponentIndex ) )
+    if (!SetHeighfieldData( HeightId, PartId, HeightfieldFloatValues, HeightfieldVolumeInfo, TEXT("height") ) )
         return false;
+
+    // Add the materials used
+    UMaterialInterface* LandscapeMat = LandscapeComponent->GetLandscapeMaterial();
+    UMaterialInterface* LandscapeHoleMat = LandscapeComponent->GetLandscapeHoleMaterial();
+    AddLandscapeMaterialAttributesToVolume(HeightId, PartId, LandscapeMat, LandscapeHoleMat);
+
+    // Add the tile attribute
+    AddLandscapetTileAttribute(HeightId, PartId, ComponentIndex);
 
     // Commit the height volume
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
@@ -1409,8 +1434,14 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
 
         // 4. Set the layer/mask heighfield data in Houdini
         HAPI_PartId CurrentPartId = 0;
-        if ( !SetHeighfieldData( LayerVolumeNodeId, PartId, CurrentLayerFloatData, CurrentLayerVolumeInfo, LayerName, 0 ) )
+        if ( !SetHeighfieldData( LayerVolumeNodeId, PartId, CurrentLayerFloatData, CurrentLayerVolumeInfo, LayerName ) )
             continue;
+
+        // Add the materials used
+        AddLandscapeMaterialAttributesToVolume(LayerVolumeNodeId, PartId, LandscapeMat, LandscapeHoleMat);
+
+        // Add the tile attribute
+        AddLandscapetTileAttribute(LayerVolumeNodeId, PartId, ComponentIndex);
 
         // Commit the volume's geo
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
@@ -1433,9 +1464,21 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
 
     // We need to have a mask layer as it is required for proper heightfield functionalities
     // Setting the volume info on the mask is needed for the HF to have proper transform in H!
-    // If we didn't init one, we'll send a fully measured mask now
-    if ( !MaskInitialized )
-        MaskInitialized = InitDefaultHeightfieldMask( HeightfieldVolumeInfo, MaskId, ComponentIndex );
+    // If we didn't create a mask volume before, send a default one now
+    if (!MaskInitialized)
+    {
+        MaskInitialized = InitDefaultHeightfieldMask( HeightfieldVolumeInfo, MaskId );
+
+        // Add the materials used
+        AddLandscapeMaterialAttributesToVolume( MaskId, PartId, LandscapeMat, LandscapeHoleMat );
+
+        // Add the tile attribute
+        AddLandscapetTileAttribute(MaskId, PartId, ComponentIndex);
+
+        // Commit the mask volume's geo
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+            FHoudiniEngine::Get().GetSession(), MaskId), false);
+    }
 
     if ( CreatedHeightfieldNode )
     {
@@ -1928,8 +1971,7 @@ FHoudiniLandscapeUtils::SetHeighfieldData(
     const HAPI_PartId& PartId,
     TArray<float>& FloatValues,
     const HAPI_VolumeInfo& VolumeInfo,
-    const FString& HeightfieldName,
-    const int32& TileIndex )
+    const FString& HeightfieldName )
 {
     // Cook the node to get proper infos on it
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CookNode(
@@ -2687,7 +2729,7 @@ bool FHoudiniLandscapeUtils::AddLandscapetTileAttribute( const HAPI_NodeId& Node
 
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
         FHoudiniEngine::Get().GetSession(), NodeId,
-        0, "tile", &AttributeInfoTileIndex ), false );
+        PartId, "tile", &AttributeInfoTileIndex ), false );
 
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeIntData(
         FHoudiniEngine::Get().GetSession(),
@@ -2837,6 +2879,13 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                 {
                     // We can reuse the existing actor
                     bLandscapeNeedsRecreate = false;
+
+                    // Update the materials if they have changed
+                    if (FoundLandscape->GetLandscapeMaterial() != LandscapeMaterial)
+                        FoundLandscape->LandscapeMaterial = LandscapeMaterial;
+
+                    if (FoundLandscape->GetLandscapeHoleMaterial() != LandscapeHoleMaterial)
+                        FoundLandscape->LandscapeHoleMaterial = LandscapeHoleMaterial;
                 }
             }
         }
@@ -2973,7 +3022,7 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                     continue;
 
                 // Convert the float data to uint8
-                if (!FHoudiniLandscapeUtils::ConvertHeightfieldLayerToLandscapeLayer(
+                if ( !FHoudiniLandscapeUtils::ConvertHeightfieldLayerToLandscapeLayer(
                     FloatLayerData, LayerVolumeInfo.yLength, LayerVolumeInfo.xLength,
                     LayerMin, LayerMax,
                     UnrealXSize, UnrealYSize,
@@ -2988,19 +3037,23 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                 currentLayerInfo.LayerInfo->LayerUsageDebugColor.B = (LayerMax - LayerMin) / 255.0f;
                 currentLayerInfo.LayerInfo->LayerUsageDebugColor.A = PI;
 
-                /*
-                // TODO: FIX ME!
-                if (currentLayerInfo.LayerInfo && currentLayerInfo.LayerName.ToString().Equals(TEXT("Visibility"), ESearchCase::IgnoreCase))
-                {
-                    CurrentLandscape->VisibilityLayer = currentLayerInfo.LayerInfo;
-                    CurrentLandscape->VisibilityLayer->bNoWeightBlend = true;
-                    CurrentLandscape->VisibilityLayer->AddToRoot();
-                }
-                */
-
                 // Update the layer on the heightfield
                 LandscapeEdit.SetAlphaData( currentLayerInfo.LayerInfo, 0, 0, UnrealXSize - 1, UnrealYSize - 1, currentLayerInfo.LayerData.GetData(), 0 );
+
+                if ( currentLayerInfo.LayerInfo && currentLayerInfo.LayerName.ToString().Equals( TEXT("Visibility"), ESearchCase::IgnoreCase ) )
+                {
+                    FoundLandscape->VisibilityLayer = currentLayerInfo.LayerInfo;
+                    FoundLandscape->VisibilityLayer->bNoWeightBlend = true;
+                    FoundLandscape->VisibilityLayer->AddToRoot();
+                }
             }
+
+            // Update the materials if they have changed
+            if (FoundLandscape->GetLandscapeMaterial() != LandscapeMaterial)
+                FoundLandscape->LandscapeMaterial = LandscapeMaterial;
+
+            if (FoundLandscape->GetLandscapeHoleMaterial() != LandscapeHoleMaterial)
+                FoundLandscape->LandscapeHoleMaterial = LandscapeHoleMaterial;
 
             // We can add the landscape to the new map and remove it from the old one to avoid its destruction
             NewLandscapes.Add(*CurrentHeightfield, FoundLandscape);
@@ -3366,6 +3419,110 @@ FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( FHoudiniCookParams& Houd
     return LayerInfo;
 }
 
+bool FHoudiniLandscapeUtils::AddLandscapeMaterialAttributesToVolume(
+    const HAPI_NodeId& VolumeNodeId, const HAPI_PartId& PartId,
+    UMaterialInterface* LandscapeMaterial, UMaterialInterface* LandscapeHoleMaterial )
+{
+    if ( !FHoudiniEngineUtils::IsValidNodeId(VolumeNodeId) )
+        return false;
+
+    // LANDSCAPE MATERIAL
+    if ( LandscapeMaterial && !LandscapeMaterial->IsPendingKill() )
+    {
+        // Extract the path name from the material interface
+        FString LandscapeMaterialString = LandscapeMaterial->GetPathName();
+
+        // Get name of attribute used for marshalling materials.
+        std::string MarshallingAttributeMaterialName = HAPI_UNREAL_ATTRIB_MATERIAL;
+
+        // Marshall in material names.
+        HAPI_AttributeInfo AttributeInfoMaterial;
+        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoMaterial);
+        AttributeInfoMaterial.count = 1;
+        AttributeInfoMaterial.tupleSize = 1;
+        AttributeInfoMaterial.exists = true;
+        AttributeInfoMaterial.owner = HAPI_ATTROWNER_PRIM;
+        AttributeInfoMaterial.storage = HAPI_STORAGETYPE_STRING;
+        AttributeInfoMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
+
+        HAPI_Result Result = FHoudiniApi::AddAttribute(
+            FHoudiniEngine::Get().GetSession(), VolumeNodeId, PartId,
+            MarshallingAttributeMaterialName.c_str(), &AttributeInfoMaterial);
+
+        if ( HAPI_RESULT_SUCCESS == Result )
+        {
+            // Convert the FString to cont char *
+            std::string LandscapeMatCStr = TCHAR_TO_ANSI(*LandscapeMaterialString);
+            const char* LandscapeMatCStrRaw = LandscapeMatCStr.c_str();
+            TArray<const char *> LandscapeMatArr;
+            LandscapeMatArr.Add( LandscapeMatCStrRaw );
+
+            // Set the attribute's string data
+            Result = FHoudiniApi::SetAttributeStringData(
+                FHoudiniEngine::Get().GetSession(), VolumeNodeId, PartId,
+                MarshallingAttributeMaterialName.c_str(), &AttributeInfoMaterial,
+                LandscapeMatArr.GetData(), 0, AttributeInfoMaterial.count);
+        }
+
+        if( Result != HAPI_RESULT_SUCCESS )
+        {
+            // Failed to create the attribute
+            HOUDINI_LOG_WARNING(
+                TEXT("Failed to upload unreal_material attribute for landscape: %s"),
+                *FHoudiniEngineUtils::GetErrorDescription());
+        }
+    }
+
+    // HOLE MATERIAL
+    if ( LandscapeHoleMaterial && !LandscapeHoleMaterial->IsPendingKill() )
+    {
+        // Extract the path name from the material interface
+        FString LandscapeMaterialString = LandscapeHoleMaterial->GetPathName();
+
+        // Get name of attribute used for marshalling materials.
+        std::string MarshallingAttributeMaterialName = HAPI_UNREAL_ATTRIB_MATERIAL_HOLE;
+
+        // Marshall in material names.
+        HAPI_AttributeInfo AttributeInfoMaterial;
+        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoMaterial);
+        AttributeInfoMaterial.count = 1;
+        AttributeInfoMaterial.tupleSize = 1;
+        AttributeInfoMaterial.exists = true;
+        AttributeInfoMaterial.owner = HAPI_ATTROWNER_PRIM;
+        AttributeInfoMaterial.storage = HAPI_STORAGETYPE_STRING;
+        AttributeInfoMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
+
+        HAPI_Result Result = FHoudiniApi::AddAttribute(
+            FHoudiniEngine::Get().GetSession(), VolumeNodeId, PartId,
+            MarshallingAttributeMaterialName.c_str(), &AttributeInfoMaterial);
+
+        if ( Result == HAPI_RESULT_SUCCESS )
+        {
+            // Convert the FString to cont char *
+            std::string LandscapeMatCStr = TCHAR_TO_ANSI(*LandscapeMaterialString);
+            const char* LandscapeMatCStrRaw = LandscapeMatCStr.c_str();
+            TArray<const char *> LandscapeMatArr;
+            LandscapeMatArr.Add(LandscapeMatCStrRaw);
+
+            // Set the attribute's string data
+            Result = FHoudiniApi::SetAttributeStringData(
+                FHoudiniEngine::Get().GetSession(), VolumeNodeId, PartId,
+                MarshallingAttributeMaterialName.c_str(), &AttributeInfoMaterial,
+                LandscapeMatArr.GetData(), 0, AttributeInfoMaterial.count);
+        }
+
+        if ( Result != HAPI_RESULT_SUCCESS )
+        {
+            // Failed to create the attribute
+            HOUDINI_LOG_WARNING(
+                TEXT("Failed to upload unreal_material attribute for landscape: %s"),
+                *FHoudiniEngineUtils::GetErrorDescription());
+        }
+    }
+
+    return true;
+}
+
 bool FHoudiniLandscapeUtils::AddLandscapeGlobalMaterialAttribute( const HAPI_NodeId& NodeId, ALandscapeProxy * LandscapeProxy )
 {
     if ( !LandscapeProxy )
@@ -3488,8 +3645,7 @@ FHoudiniLandscapeUtils::UpdateOldLandscapeReference(ALandscape* OldLandscape, AL
 bool
 FHoudiniLandscapeUtils::InitDefaultHeightfieldMask(
     const HAPI_VolumeInfo& HeightVolumeInfo,
-    const HAPI_NodeId& MaskVolumeNodeId,
-    const int32& ComponentIndex )
+    const HAPI_NodeId& MaskVolumeNodeId )
 {
     // We need to have a mask layer as it is required for proper heightfield functionalities
 
@@ -3503,12 +3659,8 @@ FHoudiniLandscapeUtils::InitDefaultHeightfieldMask(
     // Set the heighfield data in Houdini
     FString MaskName = TEXT("mask");
     HAPI_PartId PartId = 0;
-    if ( !SetHeighfieldData( MaskVolumeNodeId, PartId, MaskFloatData, MaskVolumeInfo, MaskName, ComponentIndex ) )
+    if ( !SetHeighfieldData( MaskVolumeNodeId, PartId, MaskFloatData, MaskVolumeInfo, MaskName ) )
         return false;
-
-    // Commit the volume's geo
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-        FHoudiniEngine::Get().GetSession(), MaskVolumeNodeId), false);
 
     return true;
 }
