@@ -181,8 +181,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         // Initialise the Heightfield Mask with default values
         static bool InitDefaultHeightfieldMask(
             const HAPI_VolumeInfo& HeightVolumeInfo,
-            const HAPI_NodeId& MaskVolumeNodeId,
-            const int32& ComponentIndex);
+            const HAPI_NodeId& MaskVolumeNodeId );
 
         // Extracts the uint16 values of a given landscape
         static bool GetLandscapeData(
@@ -243,8 +242,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const HAPI_PartId& PartId,
             TArray< float >& FloatValues,
             const HAPI_VolumeInfo& VolumeInfo,
-            const FString& HeightfieldName,
-            const int32& TileIndex );
+            const FString& HeightfieldName );
 
         // Creates an unlocked heightfield input node
         static bool CreateHeightfieldInputNode(
@@ -261,6 +259,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         static void GetLandscapeActorBounds( ALandscape* Landscape, FVector& Origin, FVector& Extents );
 
         static void GetLandscapeProxyBounds( ALandscapeProxy* LandscapeProxy, FVector& Origin, FVector& Extents );
+
+        static bool AddLandscapeMaterialAttributesToVolume(
+            const HAPI_NodeId& VolumeNodeId, const HAPI_PartId& PartId,
+            UMaterialInterface* LandscapeMaterial, UMaterialInterface* LandscapeHoleMaterial );
 
         //--------------------------------------------------------------------------------------------------
         // Unreal to Houdini - MESH / POINTS
