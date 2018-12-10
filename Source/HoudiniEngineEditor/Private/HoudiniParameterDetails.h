@@ -70,4 +70,9 @@ private:
 
     static FReply Helper_OnButtonClickSelectActors(
         TWeakObjectPtr<class UHoudiniAssetInput> InParam, FName DetailsPanelName );
+    static FReply Helper_OnButtonClickUseSelectionAsBoundSelector(
+        TWeakObjectPtr<class UHoudiniAssetInput> InParam, FName DetailsPanelName );
+    static FReply Helper_OnButtonClickSelectActors(
+        TWeakObjectPtr<class UHoudiniAssetInput> InParam, FName DetailsPanelName, const bool& bUseWorldInAsWorldSelector );
+
 };
