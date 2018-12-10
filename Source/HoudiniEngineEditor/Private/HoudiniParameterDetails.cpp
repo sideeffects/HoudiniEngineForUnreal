@@ -81,6 +81,7 @@
 #include "Widgets/Input/SVectorInputBox.h"
 #include "Widgets/Layout/SSeparator.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
+#include "EngineUtils.h"
 
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
@@ -1492,6 +1493,12 @@ FHoudiniParameterDetails::Helper_CreateCustomActorPickerWidget( UHoudiniAssetInp
         InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
         InitOptions.Filters->AddFilterPredicate( ActorFilter );
         InitOptions.bFocusSearchBoxWhenOpened = true;
+        InitOptions.bShowCreateNewFolder = false;
+
+        // Add the gutter so we can change the selection's visibility
+        InitOptions.ColumnMap.Add(SceneOutliner::FBuiltInColumnTypes::Gutter(), SceneOutliner::FColumnInfo(SceneOutliner::EColumnVisibility::Visible, 0));
+        InitOptions.ColumnMap.Add(SceneOutliner::FBuiltInColumnTypes::Label(), SceneOutliner::FColumnInfo(SceneOutliner::EColumnVisibility::Visible, 10));
+        InitOptions.ColumnMap.Add(SceneOutliner::FBuiltInColumnTypes::ActorInfo(), SceneOutliner::FColumnInfo(SceneOutliner::EColumnVisibility::Visible, 20));
 
         static const FVector2D SceneOutlinerWindowSize( 350.0f, 200.0f );
         MenuContent =
@@ -1501,11 +1508,11 @@ FHoudiniParameterDetails::Helper_CreateCustomActorPickerWidget( UHoudiniAssetInp
             [
                 SNew( SBorder )
                 .BorderImage( FEditorStyle::GetBrush( "Menu.Background" ) )
-            [
-                SceneOutlinerModule.CreateSceneOutliner(
-                    InitOptions, FOnActorPicked::CreateUObject(
-                        &InParam, &UHoudiniAssetInput::OnActorSelected ) )
-            ]
+                [
+                    SceneOutlinerModule.CreateSceneOutliner(
+                        InitOptions, FOnActorPicked::CreateUObject(
+                            &InParam, &UHoudiniAssetInput::OnActorSelected ) )
+                ]
             ];
 
         MenuBuilder.AddWidget( MenuContent.ToSharedRef(), FText::GetEmpty(), true );
@@ -2219,27 +2226,44 @@ void FHoudiniParameterDetails::Helper_CreateSkeletonWidget(
 }
 
 FReply
-FHoudiniParameterDetails::Helper_OnButtonClickSelectActors( TWeakObjectPtr<class UHoudiniAssetInput> InParam, FName DetailsPanelName )
+FHoudiniParameterDetails::Helper_OnButtonClickSelectActors(
+    TWeakObjectPtr<class UHoudiniAssetInput> InParam,
+    FName DetailsPanelName)
+{
+    return Helper_OnButtonClickSelectActors( InParam, DetailsPanelName, false );
+}
+
+FReply
+FHoudiniParameterDetails::Helper_OnButtonClickUseSelectionAsBoundSelector(
+    TWeakObjectPtr<class UHoudiniAssetInput> InParam,
+    FName DetailsPanelName )
+{
+    return Helper_OnButtonClickSelectActors(InParam, DetailsPanelName, true);
+}
+
+FReply
+FHoudiniParameterDetails::Helper_OnButtonClickSelectActors(
+    TWeakObjectPtr<class UHoudiniAssetInput> InParam,
+    FName DetailsPanelName,
+    const bool& bUseWorldInAsWorldSelector )
 {
     if ( !InParam.IsValid() )
         return FReply::Handled();
 
     // There's no undo operation for button.
-
     FPropertyEditorModule & PropertyModule =
         FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >( "PropertyEditor" );
 
     // Locate the details panel.
     TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView( DetailsPanelName );
-
     if ( !DetailsView.IsValid() )
         return FReply::Handled();
 
     class SLocalDetailsView : public SDetailsViewBase
     {
-    public:
-        void LockDetailsView() { SDetailsViewBase::bIsLocked = true; }
-        void UnlockDetailsView() { SDetailsViewBase::bIsLocked = false; }
+        public:
+            void LockDetailsView() { SDetailsViewBase::bIsLocked = true; }
+            void UnlockDetailsView() { SDetailsViewBase::bIsLocked = false; }
     };
     auto * LocalDetailsView = static_cast< SLocalDetailsView * >( DetailsView.Get() );
 
@@ -2266,7 +2290,6 @@ FHoudiniParameterDetails::Helper_OnButtonClickSelectActors( TWeakObjectPtr<class
         return FReply::Handled();
 
     // If details panel is locked, locate selected actors and check if this component belongs to one of them.
-
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInputChange", "Houdini World Outliner Input Change" ),
@@ -2281,19 +2304,70 @@ FHoudiniParameterDetails::Helper_OnButtonClickSelectActors( TWeakObjectPtr<class
     InParam->InputOutlinerMeshArray.Empty();
 
     USelection * SelectedActors = GEditor->GetSelectedActors();
+    if ( !SelectedActors )
+        return FReply::Handled();
 
-    // If the builder brush is selected, first deselect it.
-    for ( FSelectionIterator It( *SelectedActors ); It; ++It )
+    if ( bUseWorldInAsWorldSelector )
     {
-        AActor * Actor = Cast< AActor >( *It );
-        if ( !Actor )
-            continue;
+        // Build an array of the current selection's bounds
+        TArray<FBox> AllBBox;
+        for (FSelectionIterator It(*SelectedActors); It; ++It)
+        {
+            AActor * CurrentActor = Cast< AActor >(*It);
+            if (!CurrentActor || CurrentActor->IsPendingKill())
+                continue;
 
-        // Don't allow selection of ourselves. Bad things happen if we do.
-        if ( InParam->GetHoudiniAssetComponent() && ( Actor == InParam->GetHoudiniAssetComponent()->GetOwner() ) )
-            continue;
+            AllBBox.Add(CurrentActor->GetComponentsBoundingBox(true));
+        }
 
-        InParam->UpdateInputOulinerArrayFromActor( Actor, false );
+        UWorld* editorWorld = GEditor->GetEditorWorldContext().World();
+        for (TActorIterator<AActor> ActorItr(editorWorld); ActorItr; ++ActorItr)
+        {
+            AActor *CurrentActor = *ActorItr;
+            if (!CurrentActor || CurrentActor->IsPendingKill())
+                continue;
+
+            // Check that actor is currently not selected
+            if (CurrentActor->IsSelected())
+                continue;
+
+            // Ignore the SkySpheres?
+            FString ClassName = CurrentActor->GetClass() ? CurrentActor->GetClass()->GetName() : FString();
+            if (ClassName.Contains("BP_Sky_Sphere"))
+                continue;
+
+            // Don't allow selection of ourselves. Bad things happen if we do.
+            if ( InParam->GetHoudiniAssetComponent() && (CurrentActor == InParam->GetHoudiniAssetComponent()->GetOwner()) )
+                continue;
+
+            FBox ActorBounds = CurrentActor->GetComponentsBoundingBox(true);
+            for (auto InBounds : AllBBox)
+            {
+                // Check if both actor's bounds intersects
+                if (!ActorBounds.Intersect(InBounds))
+                    continue;
+
+                // Current actors intersect with our selection's bounds, update the input with it
+                InParam->UpdateInputOulinerArrayFromActor(CurrentActor, false);
+                break;
+            }
+        }
+    }
+    else
+    {
+        // If the builder brush is selected, first deselect it.
+        for ( FSelectionIterator It(*SelectedActors); It; ++It )
+        {
+            AActor * Actor = Cast< AActor >(*It);
+            if (!Actor)
+                continue;
+
+            // Don't allow selection of ourselves. Bad things happen if we do.
+            if (InParam->GetHoudiniAssetComponent() && (Actor == InParam->GetHoudiniAssetComponent()->GetOwner()))
+                continue;
+
+            InParam->UpdateInputOulinerArrayFromActor(Actor, false);
+        }
     }
 
     InParam->MarkChanged();
@@ -2440,52 +2514,6 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
     if ( InParam.ChoiceIndex == EHoudiniAssetInputType::GeometryInput
         || InParam.ChoiceIndex == EHoudiniAssetInputType::WorldInput )
     {
-        /*
-        // Add a checkbox to export all lods
-        TSharedPtr< SCheckBox > CheckBoxExportAllLODs;
-        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
-        [
-            SAssignNew( CheckBoxExportAllLODs, SCheckBox )
-            .Content()
-            [
-                SNew( STextBlock )
-                .Text( LOCTEXT( "ExportAllLOD", "Export all LODs" ) )
-                .ToolTipText( LOCTEXT( "ExportAllLODCheckboxTip", "If enabled, all LOD Meshes in this static mesh will be sent to Houdini." ) )
-                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-            ]
-            .IsChecked( TAttribute< ECheckBoxState >::Create(
-                TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-                &InParam, &UHoudiniAssetInput::IsCheckedExportAllLODs ) ) )
-            .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
-                &InParam, &UHoudiniAssetInput::CheckStateChangedExportAllLODs ) )
-        ];
-
-        // the checkbox is read only if the input doesnt have LODs
-        CheckBoxExportAllLODs->SetEnabled( InParam.HasLODs() );
-
-        // Add a checkbox to export sockets
-        TSharedPtr< SCheckBox > CheckBoxExportSockets;
-        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
-        [
-            SAssignNew( CheckBoxExportSockets, SCheckBox )
-            .Content()
-            [
-                SNew( STextBlock )
-                .Text( LOCTEXT( "ExportSockets", "Export Sockets" ) )
-                .ToolTipText( LOCTEXT( "ExportSocketsTip", "If enabled, all Mesh Sockets in this static mesh will be sent to Houdini." ) )
-                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-            ]
-            .IsChecked( TAttribute< ECheckBoxState >::Create(
-                TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-                &InParam, &UHoudiniAssetInput::IsCheckedExportSockets ) ) )
-            .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
-                &InParam, &UHoudiniAssetInput::CheckStateChangedExportSockets ) )
-        ];
-
-        // the checkbox is read only if the input doesnt have LODs
-        CheckBoxExportSockets->SetEnabled( InParam.HasSockets() );
-        */
-
         TSharedPtr< SCheckBox > CheckBoxExportAllLODs;
         TSharedPtr< SCheckBox > CheckBoxExportSockets;
         VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
@@ -2923,7 +2951,7 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
     }
     else if ( InParam.ChoiceIndex == EHoudiniAssetInputType::WorldInput )
     {
-        // Button : Start Selection / Use current selection + refresh
+        // Button : Start Selection / Use current selection + refresh        
         {
             TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
             FPropertyEditorModule & PropertyModule =
@@ -2941,9 +2969,13 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
                     bDetailsLocked = true;
             }
 
-            auto ButtonLabel = LOCTEXT( "WorldInputStartSelection", "Start Selection (Lock Details Panel)" );
+            auto ButtonLabel = LOCTEXT( "WorldInputStartSelection", "Start Selection (Locks Details Panel)" );
             if ( bDetailsLocked )
-                ButtonLabel = LOCTEXT( "WorldInputUseCurrentSelection", "Use Current Selection (Unlock Details Panel)" );
+                ButtonLabel = LOCTEXT( "WorldInputUseCurrentSelection", "Use Current Selection (Unlocks Details Panel)" );
+
+            auto ButtonTooltip = LOCTEXT("WorldInputStartSelectionTooltip", "Locks the Details Panel, and allow you to select object in the world that you can commit to the input afterwards.");
+            if (bDetailsLocked)
+                ButtonTooltip = LOCTEXT("WorldInputUseCurrentSelectionTooltip", "Fill the asset's input with the current selection  and unlocks the Details Panel.");
 
             FOnClicked OnSelectActors = FOnClicked::CreateStatic( &FHoudiniParameterDetails::Helper_OnButtonClickSelectActors, MyParam, DetailsPanelName );
 
@@ -2956,10 +2988,33 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
                     .VAlign( VAlign_Center )
                     .HAlign( HAlign_Center )
                     .Text( ButtonLabel )
+                    .ToolTipText( ButtonTooltip )
                     .OnClicked( OnSelectActors )
                 ]
             ];
+
+            // Button :  Use current selection as Bound selector
+            FOnClicked OnSelectBounds = FOnClicked::CreateStatic(&FHoudiniParameterDetails::Helper_OnButtonClickUseSelectionAsBoundSelector, MyParam, DetailsPanelName );
+            if ( bDetailsLocked )
+            {
+                ButtonLabel = LOCTEXT("WorldInputUseSelectionAsBoundSelector", "Use Selection as Bound Selector (Unlocks Details Panel)");
+                ButtonTooltip = LOCTEXT("WorldInputUseSelectionAsBoundSelectorTooltip", "Fill the asset's input with all the actors contains in the current's selection bound, and unlocks the Details Panel.");
+                VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
+                [
+                    SAssignNew( HorizontalBox, SHorizontalBox )
+                    + SHorizontalBox::Slot()
+                    [
+                        SNew( SButton )
+                        .VAlign( VAlign_Center )
+                        .HAlign( HAlign_Center )
+                        .Text( ButtonLabel )
+                        .ToolTipText( ButtonTooltip )
+                        .OnClicked( OnSelectBounds )
+                    ]
+                ];
+            }
         }
+    
 
         // ActorPicker : World Outliner
         {
