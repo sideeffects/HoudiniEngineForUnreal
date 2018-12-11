@@ -1823,7 +1823,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                 UpdateLoadedParameters();
 
                 // Additionally, we need to update and create assets for all input parameters that have geos assigned.
-                UpdateLoadedInputs();
+                UpdateLoadedInputs( bManualRecookRequested );
 
                 // We also need to upload loaded curve points.
                 UploadLoadedCurves();
@@ -4418,7 +4418,7 @@ UHoudiniAssetComponent::CreateInputs()
 }
 
 void
-UHoudiniAssetComponent::UpdateLoadedInputs()
+UHoudiniAssetComponent::UpdateLoadedInputs( const bool& ForceRefresh )
 {
     if ( !FHoudiniEngineUtils::IsValidNodeId(AssetId) )
         return;
@@ -4431,7 +4431,7 @@ UHoudiniAssetComponent::UpdateLoadedInputs()
             continue;
 
         HoudiniAssetInput->SetNodeId( AssetId );
-        Success &= HoudiniAssetInput->ChangeInputType( HoudiniAssetInput->GetChoiceIndex(), false );
+        Success &= HoudiniAssetInput->ChangeInputType( HoudiniAssetInput->GetChoiceIndex(), ForceRefresh );
         Success &= HoudiniAssetInput->UploadParameterValue();
     }
 

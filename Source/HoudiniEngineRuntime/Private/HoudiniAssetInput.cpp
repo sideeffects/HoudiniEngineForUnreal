@@ -1690,7 +1690,7 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType,
     }
 
     // If we have input object and geometry asset, we need to connect it back.
-    //MarkChanged();
+    MarkChanged();
 
     return true;
 }
