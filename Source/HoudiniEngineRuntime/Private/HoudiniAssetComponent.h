@@ -510,7 +510,7 @@ public:
         void CreateInputs();
 
         /** If inputs were loaded, they need to be updated and assigned geos need to be connected. **/
-        void UpdateLoadedInputs();
+        void UpdateLoadedInputs( const bool& ForceRefresh );
 
         /** If curves were loaded, their points need to be uploaded. **/
         void UploadLoadedCurves();
