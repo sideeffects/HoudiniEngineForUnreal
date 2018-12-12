@@ -505,15 +505,15 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const FHoudiniGeoPartObject & HoudiniGeoPartObject,
             TArray< FTransform > & Transforms );
 
-        /** HAPI : Given vertex list, retrieve new vertex list for a specified group.                                   **/
-        /** Return number of processed valid index vertices for this split.                                             **/
+        /** HAPI : Given vertex list, retrieve new vertex list for a specified group. **/
+        /** Return number of processed valid index vertices for this split. **/
         static int32 HapiGetVertexListForGroup(
             HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, const FString & GroupName, const TArray< int32 > & FullVertexList,
             TArray< int32 > & NewVertexList, TArray< int32 > & AllVertexList, TArray< int32 > & AllFaceList,
             TArray< int32 > & AllCollisionFaceIndices, const bool& isPackedPrim );
 
-        /** HAPI : Retrieves the mesh sockets list for the current part							**/
+        /** HAPI : Retrieves the mesh sockets list for the current part **/
         static int32 AddMeshSocketToList(
             HAPI_NodeId AssetId, HAPI_NodeId ObjectId,
             HAPI_NodeId GeoId, HAPI_PartId PartId,
@@ -523,7 +523,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             TArray< FString >& AllSocketsTags,
             const bool& isPackedPrim );
 
-        /** Add the mesh sockets in the list to the specified StaticMesh						**/
+        /** Add the mesh sockets in the list to the specified StaticMesh **/
         static bool AddMeshSocketsToStaticMesh(
             UStaticMesh* StaticMesh,
             FHoudiniGeoPartObject& HoudiniGeoPartObject,
@@ -532,21 +532,21 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             TArray< FString >& AllSocketsActors,
             TArray< FString >& AllSocketsTags );
 
-        /** Add the actor stored in the socket tag to the socket for the given static mesh component 			**/
+        /** Add the actor stored in the socket tag to the socket for the given static mesh component **/
         static bool AddActorsToMeshSocket( UStaticMeshSocket* Socket, class UStaticMeshComponent* StaticMeshComponent );
 
-        /** Add the mesh aggregate collision geo to the specified StaticMesh						**/
+        /** Add the mesh aggregate collision geo to the specified StaticMesh **/
         static bool AddAggregateCollisionGeometryToStaticMesh(
             UStaticMesh* StaticMesh,
             FHoudiniGeoPartObject& HoudiniGeoPartObject,
             FKAggregateGeom& AggregateCollisionGeo );
 
-        /** Add convex hull to the mesh's aggregate collision geometry							**/
+        /** Add convex hull to the mesh's aggregate collision geometry **/
         static bool AddConvexCollisionToAggregate(
             const TArray<float>& Positions, const TArray<int32>& SplitGroupVertexList,
             const bool& MultiHullDecomp, FKAggregateGeom& AggregateCollisionGeo );
 
-        /** Add convex hull to the mesh's aggregate collision geometry							**/
+        /** Add convex hull to the mesh's aggregate collision geometry **/
         static bool AddSimpleCollision(
             const FString& SplitGroupName, UStaticMesh* StaticMesh,
             FHoudiniGeoPartObject& HoudiniGeoPartObject, FKAggregateGeom& AggregateCollisionGeo,
@@ -598,12 +598,17 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             TArray< HAPI_AttributeInfo >& AttribInfoUVs,
             TArray< TArray< float > >& TextureCoordinates );
 
+        /** Helper function that will create groups or attribute for the given tag array **/
+        static bool CreateGroupOrAttributeFromTags(
+            const HAPI_NodeId& NodeId, const HAPI_PartId& PartId,
+            const TArray<FName>& Tags, const bool& bCreateAttributes = false );
+
     protected:
 
 #if PLATFORM_WINDOWS
         /** Attempt to locate libHAPI on Windows in the registry. Return handle if located and return location. **/
-		static void* LocateLibHAPIInRegistry(
-			const FString & HoudiniInstallationType, FString & StoredLibHAPILocation, bool LookIn32bitRegistry);
+        static void* LocateLibHAPIInRegistry(
+            const FString & HoudiniInstallationType, FString & StoredLibHAPILocation, bool LookIn32bitRegistry);
 #endif
     public:
 
@@ -649,7 +654,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const uint8 * MipBytes, FVector2D & UVCoord, int32 MipWidth, int32 MipHeight );
 
     protected:
-		static FString ComputeVersionString(bool ExtraDigit);
+        static FString ComputeVersionString(bool ExtraDigit);
 #if WITH_EDITOR
 
         /** Reset streams used by the given RawMesh. **/
