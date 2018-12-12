@@ -2728,6 +2728,25 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSpline(
         OutlinerMesh.SplineControlPointsTransform[ n ].SetRotation( SplineComponent->GetQuaternionAtSplinePoint(n, ESplineCoordinateSpace::World ) );
     }
 
+    // Add the spline component's tag if it has some
+    bool NeedToCommit = FHoudiniEngineUtils::CreateGroupOrAttributeFromTags( ConnectedAssetId, 0, SplineComponent->ComponentTags, false);
+
+    // Add the parent actor's tag if it has some
+    AActor* ParentActor = SplineComponent->GetOwner();
+    if (ParentActor && !ParentActor->IsPendingKill())
+    {
+        // Try to create groups for the parent Actor's tags
+        if ( FHoudiniEngineUtils::CreateGroupOrAttributeFromTags( ConnectedAssetId, 0, ParentActor->Tags, false ) )
+            NeedToCommit = true;
+    }
+
+    if ( NeedToCommit )
+    {
+        // We successfully added tags to the geo, so we need to commit the changes
+        if ( HAPI_RESULT_SUCCESS != FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId) )
+            HOUDINI_LOG_WARNING( TEXT("Could not create groups for the spline input's tags!") );
+    }
+
     // Cook the spline node.
     FHoudiniApi::CookNode( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr );
 
@@ -3432,6 +3451,23 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                     FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, 0,
                     TCHAR_TO_UTF8( *LODAttributeName ), &AttributeInfoLODScreenSize,
                     &lodscreensize, 0, 1 ), false);
+            }
+        }
+
+        if ( StaticMeshComponent && !StaticMeshComponent->IsPendingKill() )
+        {
+            // Try to create groups for the static mesh component's tags
+            if ( StaticMeshComponent->ComponentTags.Num() > 0
+                && !FHoudiniEngineUtils::CreateGroupOrAttributeFromTags( CurrentLODNodeId, 0, StaticMeshComponent->ComponentTags, false ) )
+                HOUDINI_LOG_WARNING( TEXT("Could not create groups from the Static Mesh Component's tags!") );
+
+            AActor* ParentActor = StaticMeshComponent->GetOwner();
+            if ( ParentActor && !ParentActor->IsPendingKill() )
+            {
+                // Try to create groups for the parent Actor's tags
+                if ( ParentActor->Tags.Num() > 0
+                    && !FHoudiniEngineUtils::CreateGroupOrAttributeFromTags( CurrentLODNodeId, 0, ParentActor->Tags, false ) )
+                    HOUDINI_LOG_WARNING( TEXT("Could not create groups from the Static Mesh Component's parent actor tags!") );
             }
         }
 
@@ -10076,6 +10112,84 @@ FHoudiniEngineUtils::HapiGetParentNodeId( const HAPI_NodeId& NodeId )
     }
 
     return ParentId;
+}
+
+bool
+FHoudiniEngineUtils::CreateGroupOrAttributeFromTags( const HAPI_NodeId& NodeId, const HAPI_PartId& PartId, const TArray<FName>& Tags, const bool& bCreateAttributes )
+{
+    if ( Tags.Num() <= 0 )
+        return false;
+
+    HAPI_Result Result = HAPI_RESULT_FAILURE;
+    HAPI_PartInfo PartInfo;
+    HOUDINI_CHECK_ERROR_RETURN(
+        FHoudiniApi::GetPartInfo( FHoudiniEngine::Get().GetSession(),
+            NodeId, PartId, &PartInfo), false);
+
+    bool NeedToCommitGeo = false;
+    for ( FName TagName : Tags )
+    {
+        FString TagString;
+        TagName.ToString(TagString);
+        if ( bCreateAttributes )
+        {
+            // Create a primitive attribute for the tag
+            HAPI_AttributeInfo AttributeInfo;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+            AttributeInfo.count = PartInfo.faceCount;
+            AttributeInfo.tupleSize = 1;
+            AttributeInfo.exists = true;
+            AttributeInfo.owner = HAPI_ATTROWNER_PRIM;
+            AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
+            AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+            AttributeInfo.typeInfo = HAPI_ATTRIBUTE_TYPE_NONE;
+
+            FString AttributeName = TEXT("unreal_tag_") + TagString;
+            AttributeName.RemoveSpacesInline();
+
+            Result = FHoudiniApi::AddAttribute( FHoudiniEngine::Get().GetSession(),
+                NodeId, PartId, TCHAR_TO_ANSI(*AttributeName), &AttributeInfo );
+
+            if ( Result != HAPI_RESULT_SUCCESS )
+                continue;
+
+            TArray<HAPI_StringHandle> TagSHArray;
+            TArray<const char*> TagStr;
+            TagStr.Add( FHoudiniEngineUtils::ExtractRawName(TagString) );
+            Result = FHoudiniApi::SetAttributeStringData( FHoudiniEngine::Get().GetSession(), 
+                NodeId, PartId, TCHAR_TO_ANSI(*AttributeName), &AttributeInfo,
+                TagStr.GetData(), 0, AttributeInfo.count );
+            
+            if ( HAPI_RESULT_SUCCESS == Result )
+                NeedToCommitGeo = true;
+        }
+        else
+        {
+            // Create a primitive group for this tag
+            Result = FHoudiniApi::AddGroup( FHoudiniEngine::Get().GetSession(),
+                NodeId, 0, HAPI_GROUPTYPE_PRIM,
+                FHoudiniEngineUtils::ExtractRawName( TagString ) );
+
+            if ( Result != HAPI_RESULT_SUCCESS )
+                continue;
+
+            // Set GroupMembership
+            TArray<int> GroupArray;
+            GroupArray.Init( 1, PartInfo.faceCount );
+            Result = FHoudiniApi::SetGroupMembership( FHoudiniEngine::Get().GetSession(),
+                NodeId, PartId, HAPI_GROUPTYPE_PRIM,
+                FHoudiniEngineUtils::ExtractRawName( TagString ),
+                GroupArray.GetData(), 0, PartInfo.faceCount );
+
+            if ( HAPI_RESULT_SUCCESS == Result )
+                NeedToCommitGeo = true;
+        }
+    }
+
+    //if (NeedToCommitGeo)
+    //    Result = FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), NodeId);
+
+    return NeedToCommitGeo;
 }
 
 FHoudiniCookParams::FHoudiniCookParams( class UHoudiniAsset* InHoudiniAsset )
