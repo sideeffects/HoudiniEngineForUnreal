@@ -458,7 +458,11 @@ enum HAPI_NodeFlags
 
     /// SOP Node Specific Flags
     HAPI_NODEFLAGS_SOP_CURVE    = 1 << 11, ///< Looks for "curve".
-    HAPI_NODEFLAGS_SOP_GUIDE    = 1 << 12  ///< Looks for Guide Geometry
+    HAPI_NODEFLAGS_SOP_GUIDE    = 1 << 12,  ///< Looks for Guide Geometry
+
+    /// TOP Node Specific Flags
+    HAPI_NODEFLAGS_TOP_NONSCHEDULER = 1 << 13	/// All TOP nodes except schedulers
+
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_NodeFlags )
 typedef int HAPI_NodeFlagsBits;
