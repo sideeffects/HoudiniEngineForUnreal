@@ -2903,8 +2903,13 @@ FHoudiniEngineMaterialUtils::FindGeneratedTexture( const FString& TextureString,
         // Convert the texture type to a "friendly" version
         // C_A to diffuse, N to Normal, S to Specular etc...
         FString TextureTypeFriendlyString = TextureTypeString;
-        if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE, ESearchCase::IgnoreCase ) == 0 )
-            TextureTypeFriendlyString = TEXT( "diffuse" );
+        FString TextureTypeFriendlyAlternateString = TEXT("");
+        if (TextureTypeString.Compare(HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE, ESearchCase::IgnoreCase) == 0)
+        {
+            TextureTypeFriendlyString = TEXT("diffuse");
+            TextureTypeFriendlyAlternateString = TEXT("basecolor");
+
+        }
         else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL, ESearchCase::IgnoreCase) == 0 )
             TextureTypeFriendlyString = TEXT( "normal" );
         else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_EMISSIVE, ESearchCase::IgnoreCase) == 0 )
@@ -2916,10 +2921,11 @@ FHoudiniEngineMaterialUtils::FindGeneratedTexture( const FString& TextureString,
         else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC, ESearchCase::IgnoreCase) == 0 )
             TextureTypeFriendlyString = TEXT( "metallic" );
         else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OPACITY_MASK, ESearchCase::IgnoreCase) == 0 )
-            TextureTypeFriendlyString = TEXT( "opacity" );
+            TextureTypeFriendlyString = TEXT( "opacity" );        
 
         // See if we have a match between the texture string and the friendly name
-        if ( TextureTypeFriendlyString.Compare( TextureString, ESearchCase::IgnoreCase ) == 0 )
+        if ( ( TextureTypeFriendlyString.Compare( TextureString, ESearchCase::IgnoreCase ) == 0 )
+            || ( !TextureTypeFriendlyAlternateString.IsEmpty() && TextureTypeFriendlyAlternateString.Compare( TextureString, ESearchCase::IgnoreCase ) == 0 ) )
         {
             FoundTexture = PackageTexture;
             break;
@@ -2944,6 +2950,17 @@ FHoudiniEngineMaterialUtils::FindGeneratedTexture( const FString& TextureString,
         {
             FoundTexture = PackageTexture;
             break;
+        }
+
+        // Try the alternate friendly string
+        if ( !TextureTypeFriendlyAlternateString.IsEmpty() )
+        {
+            PathAndFriendlyType = NodePath + TEXT("/") + TextureTypeFriendlyAlternateString;
+            if ( PathAndFriendlyType.Compare( TextureString, ESearchCase::IgnoreCase ) == 0 )
+            {
+                FoundTexture = PackageTexture;
+                break;
+            }
         }
     }
 
