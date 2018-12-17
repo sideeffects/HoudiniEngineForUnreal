@@ -47,9 +47,12 @@
 #include "LandscapeLayerInfoObject.h"
 #include "LightMap.h"
 #include "Engine/MapBuildDataRegistry.h"
+
 #if WITH_EDITOR
     #include "FileHelpers.h"
     #include "EngineUtils.h"
+    #include "Editor/LandscapeEditor/Public/LandscapeEditorModule.h"
+    #include "Editor/LandscapeEditor/Public/LandscapeFileFormatInterface.h"
 #endif
 
 void
@@ -2746,6 +2749,7 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
     const TArray< FHoudiniGeoPartObject > & FoundVolumes, 
     TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& Landscapes,
     TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& NewLandscapes,
+    TArray<ALandscape *>& InputLandscapeToUpdate,
     float ForcedZMin , float ForcedZMax )
 {
     // Get runtime settings.
@@ -2773,55 +2777,54 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
         FHoudiniLandscapeUtils::CalcHeightfieldsArrayGlobalZMinZMax( FoundVolumes, GlobalMinimums, GlobalMaximums );
 
     // Try to create a Landscape for each HeightData found
-    //TMap< FHoudiniGeoPartObject, ALandscape * > NewLandscapes;
     NewLandscapes.Empty();
-    for ( TArray< const FHoudiniGeoPartObject* >::TConstIterator IterHeighfields( FoundHeightfields ); IterHeighfields; ++IterHeighfields )
+    for (TArray< const FHoudiniGeoPartObject* >::TConstIterator IterHeighfields(FoundHeightfields); IterHeighfields; ++IterHeighfields)
     {
         // Get the current Heightfield GeoPartObject
         const FHoudiniGeoPartObject* CurrentHeightfield = *IterHeighfields;
-        if ( !CurrentHeightfield )
-            continue;        
+        if (!CurrentHeightfield)
+            continue;
 
         // Try to find the landscape previously created from that HGPO
         ALandscape * FoundLandscape = nullptr;
-        if ( Landscapes.Find(*CurrentHeightfield) )
+        if (Landscapes.Find(*CurrentHeightfield))
             FoundLandscape = Landscapes.Find(*CurrentHeightfield)->Get();
 
-        bool bLandscapeNeedsUpdate = true;
-        if ( !CurrentHeightfield->bHasGeoChanged )
+        bool bLandscapeNeedsToBeUpdated = true;
+        if (!CurrentHeightfield->bHasGeoChanged)
         {
             // The Geo has not changed, do we need to recreate the landscape?
-            if ( FoundLandscape )
+            if (FoundLandscape)
             {
                 // Check that all layers/mask have not changed too
                 TArray< const FHoudiniGeoPartObject* > FoundLayers;
-                FHoudiniLandscapeUtils::GetHeightfieldsLayersInArray( FoundVolumes, *CurrentHeightfield, FoundLayers );
+                FHoudiniLandscapeUtils::GetHeightfieldsLayersInArray(FoundVolumes, *CurrentHeightfield, FoundLayers);
 
                 bool bLayersHaveChanged = false;
-                for ( int32 n = 0; n < FoundLayers.Num(); n++ )
+                for (int32 n = 0; n < FoundLayers.Num(); n++)
                 {
-                    if ( FoundLayers[ n ] && FoundLayers[ n ]->bHasGeoChanged )
+                    if (FoundLayers[n] && FoundLayers[n]->bHasGeoChanged)
                     {
                         bLayersHaveChanged = true;
                         break;
                     }
                 }
 
-                if ( !bLayersHaveChanged )
+                if (!bLayersHaveChanged)
                 {
                     // Height and layers/masks have not changed, there is no need to reimport the landscape
-                    bLandscapeNeedsUpdate = false;
+                    bLandscapeNeedsToBeUpdated = false;
 
                     // We can add the landscape to the map and remove it from the old one to avoid its destruction
-                    NewLandscapes.Add( *CurrentHeightfield, FoundLandscape );
-                    Landscapes.Remove( *CurrentHeightfield );
+                    NewLandscapes.Add(*CurrentHeightfield, FoundLandscape);
+                    Landscapes.Remove(*CurrentHeightfield);
                 }
             }
         }
 
         // Height and mask volumes have not changed
         // No need to update the Landscape
-        if ( !bLandscapeNeedsUpdate )
+        if (!bLandscapeNeedsToBeUpdated)
             continue;
 
         HAPI_NodeId HeightFieldNodeId = CurrentHeightfield->HapiGeoGetNodeId();
@@ -2829,17 +2832,17 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
         // We need to see if the current heightfield has an unreal_material or unreal_hole_material assigned to it
         UMaterialInterface* LandscapeMaterial = nullptr;
         UMaterialInterface* LandscapeHoleMaterial = nullptr;
-        FHoudiniLandscapeUtils::GetHeightFieldLandscapeMaterials( *CurrentHeightfield, LandscapeMaterial, LandscapeHoleMaterial );
+        FHoudiniLandscapeUtils::GetHeightFieldLandscapeMaterials(*CurrentHeightfield, LandscapeMaterial, LandscapeHoleMaterial);
 
         // Extract the Float Data from the Heightfield
         TArray< float > FloatValues;
         HAPI_VolumeInfo VolumeInfo;
         float FloatMin, FloatMax;
-        if ( !FHoudiniLandscapeUtils::GetHeightfieldData( *CurrentHeightfield, FloatValues, VolumeInfo, FloatMin, FloatMax ) )
+        if (!FHoudiniLandscapeUtils::GetHeightfieldData(*CurrentHeightfield, FloatValues, VolumeInfo, FloatMin, FloatMax))
             continue;
 
         // Do we need to convert the heightfields using the same global Min/Max
-        if ( fGlobalMin != fGlobalMax )
+        if (fGlobalMin != fGlobalMax)
         {
             FloatMin = fGlobalMin;
             FloatMax = fGlobalMax;
@@ -2853,18 +2856,55 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
         int32 UnrealYSize = -1;
         int32 NumSectionPerLandscapeComponent = -1;
         int32 NumQuadsPerLandscapeSection = -1;
-        if ( !FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightfieldSize(
+        if (!FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightfieldSize(
             HoudiniXSize, HoudiniYSize,
             UnrealXSize, UnrealYSize,
             NumSectionPerLandscapeComponent,
-            NumQuadsPerLandscapeSection ) )
+            NumQuadsPerLandscapeSection))
             continue;
+
+        // Try to see if we have an input landscape that matches the size of tyhe current HGPO
+        bool UpdatingInputLandscape = false;
+        for (int nIdx = 0; nIdx < InputLandscapeToUpdate.Num(); nIdx++)
+        {
+            ALandscape* CurrentInputLandscape = InputLandscapeToUpdate[nIdx];
+            if (!CurrentInputLandscape)
+                continue;
+
+            ULandscapeInfo* CurrentInfo = CurrentInputLandscape->GetLandscapeInfo();
+            if (!CurrentInfo)
+                continue;
+
+            int32 InputMinX = 0;
+            int32 InputMinY = 0;
+            int32 InputMaxX = 0;
+            int32 InputMaxY = 0;
+            CurrentInfo->GetLandscapeExtent(InputMinX, InputMinY, InputMaxX, InputMaxY);
+
+            // If the size matches, we'll try to update that input landscape
+            if ((InputMaxX - InputMinX + 1) != UnrealXSize || (InputMaxY - InputMinY + 1) != UnrealYSize)
+                continue;
+
+            // Replace FoundLandscape by that input landscape
+            FoundLandscape = CurrentInputLandscape;
+
+            // Remove that landscape from the input array so we dont try to update it twice
+            InputLandscapeToUpdate.RemoveAt(nIdx);
+
+            UpdatingInputLandscape = true;
+        }
 
         // See if we need to create a new Landscape Actor for this heightfield
         // Either we haven't created one yet, or it's size has changed
         bool bLandscapeNeedsRecreate = true;
-        if ( FoundLandscape && !FoundLandscape->IsPendingKill() )
+        if ( UpdatingInputLandscape )
         {
+            // No need to create a new landscape as we're modifying the input one
+            bLandscapeNeedsRecreate = false;
+        }
+        else if ( FoundLandscape && !FoundLandscape->IsPendingKill() )
+        {
+            // See if we can reuse the previous landscape
             ULandscapeInfo* PreviousInfo = FoundLandscape->GetLandscapeInfo();
             if ( PreviousInfo )
             {
@@ -2872,20 +2912,13 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                 int32 PrevMinY = 0;
                 int32 PrevMaxX = 0;
                 int32 PrevMaxY = 0;
-                FoundLandscape->GetLandscapeInfo()->GetLandscapeExtent(PrevMinX, PrevMinY, PrevMaxX, PrevMaxY);
+                PreviousInfo->GetLandscapeExtent(PrevMinX, PrevMinY, PrevMaxX, PrevMaxY);
 
                 if ( ( PrevMaxX - PrevMinX + 1 ) == UnrealXSize
                     && ( PrevMaxY - PrevMinY + 1 ) == UnrealYSize )
                 {
                     // We can reuse the existing actor
                     bLandscapeNeedsRecreate = false;
-
-                    // Update the materials if they have changed
-                    if (FoundLandscape->GetLandscapeMaterial() != LandscapeMaterial)
-                        FoundLandscape->LandscapeMaterial = LandscapeMaterial;
-
-                    if (FoundLandscape->GetLandscapeHoleMaterial() != LandscapeHoleMaterial)
-                        FoundLandscape->LandscapeHoleMaterial = LandscapeHoleMaterial;
                 }
             }
         }
@@ -2940,13 +2973,20 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
         }
         else
         {
-            // Reuse the existing landscape Actor
-            // Only updating the height / layer data that has changed
+            // We're reusing an existing landscape Actor
+            // Only update the height / layer data that has changed
+
+            // Update the materials if they have changed
+            if ( FoundLandscape->GetLandscapeMaterial() != LandscapeMaterial )
+                FoundLandscape->LandscapeMaterial = LandscapeMaterial;
+
+            if ( FoundLandscape->GetLandscapeHoleMaterial() != LandscapeHoleMaterial )
+                FoundLandscape->LandscapeHoleMaterial = LandscapeHoleMaterial;
 
             // Update the previous landscape's height data
             // Decide if we need to create a new Landscape or if we can reuse the previous one
             ULandscapeInfo* PreviousInfo = FoundLandscape->GetLandscapeInfo();
-            if (!PreviousInfo)
+            if ( !PreviousInfo )
                 continue;
 
             FLandscapeEditDataInterface LandscapeEdit(PreviousInfo);
@@ -3055,9 +3095,8 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
             if (FoundLandscape->GetLandscapeHoleMaterial() != LandscapeHoleMaterial)
                 FoundLandscape->LandscapeHoleMaterial = LandscapeHoleMaterial;
 
-            // We can add the landscape to the new map and remove it from the old one to avoid its destruction
-            NewLandscapes.Add(*CurrentHeightfield, FoundLandscape);
-            Landscapes.Remove(*CurrentHeightfield);
+            // We can add the landscape to the new map
+            NewLandscapes.Add(*CurrentHeightfield, FoundLandscape);        
         }
     }
 
@@ -3661,6 +3700,279 @@ FHoudiniLandscapeUtils::InitDefaultHeightfieldMask(
     HAPI_PartId PartId = 0;
     if ( !SetHeighfieldData( MaskVolumeNodeId, PartId, MaskFloatData, MaskVolumeInfo, MaskName ) )
         return false;
+
+    return true;
+}
+
+
+bool
+FHoudiniLandscapeUtils::BackupLandscapeToFile(const FString& BaseName, ALandscapeProxy* Landscape)
+{
+    // We need to cache the input landscape to a file    
+    if ( !Landscape )
+        return false;
+
+    ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
+    if (!LandscapeInfo)
+        return false;
+
+    // Save Height data to file
+    //FString HeightSave = TEXT("/Game/HoudiniEngine/Temp/HeightCache.png");    
+    FString HeightSave = BaseName + TEXT("_height.png");
+    LandscapeInfo->ExportHeightmap(HeightSave);
+    Landscape->ReimportHeightmapFilePath = HeightSave;
+
+    // Save each layer to a file
+    for ( int LayerIndex = 0; LayerIndex < LandscapeInfo->Layers.Num(); LayerIndex++ )
+    {
+        FName CurrentLayerName = LandscapeInfo->Layers[LayerIndex].GetLayerName();
+        //ULandscapeLayerInfoObject* CurrentLayerInfo = LandscapeInfo->GetLayerInfoByName(CurrentLayerName, Landscape);
+        ULandscapeLayerInfoObject* CurrentLayerInfo = LandscapeInfo->Layers[LayerIndex].LayerInfoObj;
+        if ( !CurrentLayerInfo || CurrentLayerInfo->IsPendingKill() )
+            continue;
+
+        FString LayerSave = BaseName + CurrentLayerName.ToString() + TEXT(".png");
+        LandscapeInfo->ExportLayer(CurrentLayerInfo, LayerSave);
+
+        // Update the file reimport path on the input landscape for this layer
+        LandscapeInfo->GetLayerEditorSettings(CurrentLayerInfo).ReimportLayerFilePath = LayerSave;
+    }
+
+    return true;
+}
+
+bool
+FHoudiniLandscapeUtils::RestoreLandscapeFromFile( ALandscapeProxy* LandscapeProxy )
+{
+    if ( !LandscapeProxy )
+        return false;
+
+    ULandscapeInfo* LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
+    if (!LandscapeInfo)
+        return false;
+
+    // Restore Height data from the backup file
+    FString ReimportFile = LandscapeProxy->ReimportHeightmapFilePath;
+    if ( !ImportLandscapeData(LandscapeInfo, ReimportFile, TEXT("height") ) )
+        HOUDINI_LOG_ERROR(TEXT("Could not restore the landscape actor's source height data."));
+
+    
+    // Restore each layer from the backup file
+    TArray< ULandscapeLayerInfoObject* > SourceLayers;
+    for ( int LayerIndex = 0; LayerIndex < LandscapeProxy->EditorLayerSettings.Num(); LayerIndex++ )
+    {
+        ULandscapeLayerInfoObject* CurrentLayerInfo = LandscapeProxy->EditorLayerSettings[LayerIndex].LayerInfoObj;
+        if (!CurrentLayerInfo || CurrentLayerInfo->IsPendingKill())
+            continue;
+
+        FString CurrentLayerName = CurrentLayerInfo->LayerName.ToString();
+        FString ReimportFile = LandscapeProxy->EditorLayerSettings[LayerIndex].ReimportLayerFilePath;
+
+        if (!ImportLandscapeData(LandscapeInfo, ReimportFile, CurrentLayerName, CurrentLayerInfo))
+            HOUDINI_LOG_ERROR( TEXT("Could not restore the landscape actor's source height data.") );
+
+        SourceLayers.Add( CurrentLayerInfo );
+    }
+
+    // Iterate on the landscape info's layer to remove any layer that could have been added by Houdini
+    for (int LayerIndex = 0; LayerIndex < LandscapeInfo->Layers.Num(); LayerIndex++)
+    {
+        ULandscapeLayerInfoObject* CurrentLayerInfo = LandscapeInfo->Layers[LayerIndex].LayerInfoObj;
+        if ( SourceLayers.Contains( CurrentLayerInfo ) )
+            continue;
+
+        // Delete the added layer
+        FName LayerName = LandscapeInfo->Layers[LayerIndex].LayerName;
+        LandscapeInfo->DeleteLayer(CurrentLayerInfo, LayerName);
+    }
+
+    return true;
+}
+
+bool
+FHoudiniLandscapeUtils::ImportLandscapeData(
+    ULandscapeInfo* LandscapeInfo, const FString& Filename, const FString& LayerName, ULandscapeLayerInfoObject* LayerInfoObject )
+{
+    //
+    // Code copied/edited from FEdModeLandscape::ImportData as we cannot access that function
+    //
+    if ( !LandscapeInfo )
+        return false;
+
+    bool IsHeight = LayerName.Equals(TEXT("height"), ESearchCase::IgnoreCase);
+
+    int32 MinX, MinY, MaxX, MaxY;
+    if (LandscapeInfo && LandscapeInfo->GetLandscapeExtent(MinX, MinY, MaxX, MaxY))
+    {
+        const FLandscapeFileResolution LandscapeResolution = { (uint32)(1 + MaxX - MinX), (uint32)(1 + MaxY - MinY) };
+
+        ILandscapeEditorModule& LandscapeEditorModule = FModuleManager::GetModuleChecked<ILandscapeEditorModule>("LandscapeEditor");
+
+        if ( IsHeight )
+        {
+            const ILandscapeHeightmapFileFormat* HeightmapFormat = LandscapeEditorModule.GetHeightmapFormatByExtension(*FPaths::GetExtension(Filename, true));
+
+            if (!HeightmapFormat)
+            {
+                HOUDINI_LOG_ERROR( TEXT("Could not reimport the input heightfield's source data for %s, File type not recognised"), *LayerName );
+                return false;
+            }
+
+            FLandscapeFileResolution ImportResolution = { 0, 0 };
+
+            const FLandscapeHeightmapInfo HeightmapInfo = HeightmapFormat->Validate(*Filename);
+
+            // display error message if there is one, and abort the import
+            if (HeightmapInfo.ResultCode == ELandscapeImportResult::Error)
+            {
+                HOUDINI_LOG_ERROR(TEXT("Could not reimport the input heightfield's source data for %s, %s"), *LayerName, *(HeightmapInfo.ErrorMessage.ToString()) );
+                return false;
+            }
+
+            // if the file is a raw format with multiple possibly resolutions, only attempt import if one matches the current landscape
+            if (HeightmapInfo.PossibleResolutions.Num() > 1)
+            {
+                if (!HeightmapInfo.PossibleResolutions.Contains(LandscapeResolution))
+                {
+                    HOUDINI_LOG_ERROR(TEXT("Could not reimport the input heightfield's source data for %s. The heightmap file does not match the Landscape extent and its exact resolution could not be determined"));
+                    return false;
+                }
+                else
+                {
+                    ImportResolution = LandscapeResolution;
+                }
+            }
+
+            // display warning message if there is one and allow user to cancel
+            if (HeightmapInfo.ResultCode == ELandscapeImportResult::Warning)
+                HOUDINI_LOG_WARNING(TEXT("When reimporting the input heightfield's source data for %s. %s"), *LayerName, *(HeightmapInfo.ErrorMessage.ToString()));
+
+            // if the file is a format with resolution information, warn the user if the resolution doesn't match the current landscape
+            // unlike for raw this is only a warning as we can pad/clip the data if we know what resolution it is
+            if (HeightmapInfo.PossibleResolutions.Num() == 1)
+            {
+                ImportResolution = HeightmapInfo.PossibleResolutions[0];
+                if (ImportResolution != LandscapeResolution)
+                    HOUDINI_LOG_WARNING(TEXT("When reimporting the input heightfield's source data for %s. The heightmap file's size does not match the current Landscape extent, data will be padded/clipped"), *LayerName);
+            }
+
+            FLandscapeHeightmapImportData ImportData = HeightmapFormat->Import(*Filename, ImportResolution);
+            if (ImportData.ResultCode == ELandscapeImportResult::Error)
+            {
+                HOUDINI_LOG_ERROR(TEXT("Could not reimport the input heightfield's source data for %s. %s"), *LayerName, *(ImportData.ErrorMessage.ToString()));
+                return false;
+            }
+
+            TArray<uint16> Data;
+            if (ImportResolution != LandscapeResolution)
+            {
+                // Cloned from FLandscapeEditorDetailCustomization_NewLandscape.OnCreateButtonClicked
+                // so that reimports behave the same as the initial import :)
+
+                const int32 OffsetX = (int32)(LandscapeResolution.Width - ImportResolution.Width) / 2;
+                const int32 OffsetY = (int32)(LandscapeResolution.Height - ImportResolution.Height) / 2;
+
+                Data.SetNumUninitialized(LandscapeResolution.Width * LandscapeResolution.Height * sizeof(uint16));
+
+                ExpandData<uint16>(Data.GetData(), ImportData.Data.GetData(),
+                    0, 0, ImportResolution.Width - 1, ImportResolution.Height - 1,
+                    -OffsetX, -OffsetY, LandscapeResolution.Width - OffsetX - 1, LandscapeResolution.Height - OffsetY - 1);
+            }
+            else
+            {
+                Data = MoveTemp(ImportData.Data);
+            }
+
+            //FScopedTransaction Transaction(TEXT("Undo_ImportHeightmap", "Importing Landscape Heightmap"));
+
+            FHeightmapAccessor<false> HeightmapAccessor(LandscapeInfo);
+            HeightmapAccessor.SetData(MinX, MinY, MaxX, MaxY, Data.GetData());
+        }
+        else
+        {
+            // We're importing a Landscape layer
+            if ( !LayerInfoObject || LayerInfoObject->IsPendingKill() )
+                return false;
+
+            const ILandscapeWeightmapFileFormat* WeightmapFormat = LandscapeEditorModule.GetWeightmapFormatByExtension(*FPaths::GetExtension(Filename, true));
+
+            if (!WeightmapFormat)
+            {
+                HOUDINI_LOG_ERROR(TEXT("Could not reimport the input heightfield's source data for %s, File type not recognised"), *LayerName);
+                return false;
+            }
+
+            FLandscapeFileResolution ImportResolution = { 0, 0 };
+
+            const FLandscapeWeightmapInfo WeightmapInfo = WeightmapFormat->Validate(*Filename, FName(*LayerName));
+
+            // display error message if there is one, and abort the import
+            if (WeightmapInfo.ResultCode == ELandscapeImportResult::Error)
+            {
+                HOUDINI_LOG_ERROR(TEXT("Could not reimport the input heightfield's source data for %s, %s"), *LayerName, *(WeightmapInfo.ErrorMessage.ToString()));
+                return false;
+            }
+
+            // if the file is a raw format with multiple possibly resolutions, only attempt import if one matches the current landscape
+            if (WeightmapInfo.PossibleResolutions.Num() > 1)
+            {
+                if (!WeightmapInfo.PossibleResolutions.Contains(LandscapeResolution))
+                {
+                    HOUDINI_LOG_ERROR(TEXT("Could not reimport the input heightfield's source data for %s. The weightmap file does not match the Landscape extent and its exact resolution could not be determined"));
+                    return false;
+                }
+                else
+                {
+                    ImportResolution = LandscapeResolution;
+                }
+            }
+
+            // display warning message if there is one and allow user to cancel
+            if (WeightmapInfo.ResultCode == ELandscapeImportResult::Warning)
+                HOUDINI_LOG_WARNING(TEXT("When reimporting the input heightfield's source data for %s. %s"), *LayerName, *(WeightmapInfo.ErrorMessage.ToString()));
+
+            // if the file is a format with resolution information, warn the user if the resolution doesn't match the current landscape
+            // unlike for raw this is only a warning as we can pad/clip the data if we know what resolution it is
+            if (WeightmapInfo.PossibleResolutions.Num() == 1)
+            {
+                ImportResolution = WeightmapInfo.PossibleResolutions[0];
+                if (ImportResolution != LandscapeResolution)
+                    HOUDINI_LOG_WARNING(TEXT("When reimporting the input heightfield's source data for %s. The heightmap file's size does not match the current Landscape extent, data will be padded/clipped"), *LayerName);
+            }
+
+            FLandscapeWeightmapImportData ImportData = WeightmapFormat->Import(*Filename, FName(*LayerName), ImportResolution);
+
+            if (ImportData.ResultCode == ELandscapeImportResult::Error)
+            {
+                HOUDINI_LOG_ERROR(TEXT("Could not reimport the input heightfield's source data for %s. %s"), *LayerName, *(ImportData.ErrorMessage.ToString()));
+                return false;
+            }
+
+            TArray<uint8> Data;
+            if (ImportResolution != LandscapeResolution)
+            {
+                // Cloned from FLandscapeEditorDetailCustomization_NewLandscape.OnCreateButtonClicked
+                // so that reimports behave the same as the initial import :)
+                const int32 OffsetX = (int32)(LandscapeResolution.Width - ImportResolution.Width) / 2;
+                const int32 OffsetY = (int32)(LandscapeResolution.Height - ImportResolution.Height) / 2;
+
+                Data.SetNumUninitialized(LandscapeResolution.Width * LandscapeResolution.Height * sizeof(uint8));
+
+                ExpandData<uint8>(Data.GetData(), ImportData.Data.GetData(),
+                    0, 0, ImportResolution.Width - 1, ImportResolution.Height - 1,
+                    -OffsetX, -OffsetY, LandscapeResolution.Width - OffsetX - 1, LandscapeResolution.Height - OffsetY - 1);
+            }
+            else
+            {
+                Data = MoveTemp(ImportData.Data);
+            }
+
+            //FScopedTransaction Transaction(LOCTEXT("Undo_ImportWeightmap", "Importing Landscape Layer"));
+
+            FAlphamapAccessor<false, false> AlphamapAccessor(LandscapeInfo, LayerInfoObject);
+            AlphamapAccessor.SetData(MinX, MinY, MaxX, MaxY, Data.GetData(), ELandscapeLayerPaintingRestriction::None);
+        }
+    }
 
     return true;
 }

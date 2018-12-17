@@ -549,7 +549,8 @@ FHoudiniEngine::CookNode(
     // The meshes are already created but we need to create the landscape too
     if ( FoundVolumes.Num() > 0 )
     {
-        if ( !FHoudiniLandscapeUtils::CreateAllLandscapes( HoudiniCookParams, FoundVolumes, LandscapesIn, LandscapesOut, -200.0f, 200.0f ) )
+        TArray< ALandscape* > NullLandscapes;
+        if ( !FHoudiniLandscapeUtils::CreateAllLandscapes( HoudiniCookParams, FoundVolumes, LandscapesIn, LandscapesOut, NullLandscapes , -200.0f, 200.0f ) )
             HOUDINI_LOG_WARNING( TEXT("FHoudiniEngine::CookNode : Failed to create landscapes!") );
     }
 #endif
