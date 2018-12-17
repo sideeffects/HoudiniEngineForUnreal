@@ -234,7 +234,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         FORCEINLINE const TArray< FHoudiniAssetInputOutlinerMesh >& GetWorldOutlinerInputs() const { return InputOutlinerMeshArray; }
 
         /** Returns the selected landscape Actor **/
-        const ALandscape* GetLandscapeInput() const;
+        ALandscape* GetLandscapeInput();
 
         /** Remove a specific element of the world outliner input selection */
         void RemoveWorldOutlinerInput( int32 AtIndex );
@@ -501,6 +501,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Return checked state of export sockets checkbox. **/
         ECheckBoxState IsCheckedExportSockets() const;
 
+        /** Check if state of the UpdateInputLandscape checkbox has changed. **/
+        void CheckStateChangedUpdateInputLandscape(ECheckBoxState NewState);
+
+        /** Return checked state of the UpdateInputLandscape checkbox. **/
+        ECheckBoxState IsCheckedUpdateInputLandscape() const;
+
         /** Handler for landscape recommit button. **/
         FReply OnButtonClickRecommit();
 
@@ -644,6 +650,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
                 /** Indicates that all sockets in the input should be marshalled to Houdini **/
                 uint32 bExportSockets : 1;
+
+                /** Indicates that the landscape input's source landscape should be updated instead of creating a new component **/
+                uint32 bUpdateInputLandscape : 1;
             };
 
             uint32 HoudiniAssetInputFlagsPacked;

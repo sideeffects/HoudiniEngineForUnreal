@@ -264,6 +264,7 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
     bPackBeforeMerge = false;
     bExportAllLODs = false;
     bExportSockets = false;
+    bUpdateInputLandscape = false;
 
     ChoiceStringValue = TEXT( "" );
 
@@ -2755,6 +2756,65 @@ UHoudiniAssetInput::IsCheckedExportSockets() const
 }
 
 void
+UHoudiniAssetInput::CheckStateChangedUpdateInputLandscape( ECheckBoxState NewState )
+{
+    int32 bState = ( NewState == ECheckBoxState::Checked );
+
+    if ( bUpdateInputLandscape == bState )
+        return;
+
+    // Record undo information.
+    FScopedTransaction Transaction(
+        TEXT(HOUDINI_MODULE_RUNTIME),
+        LOCTEXT("HoudiniInputChange", "Houdini Input Update Input Landscape changed."),
+        PrimaryObject);
+    Modify();
+
+    UHoudiniAssetComponent* ParentComponent = GetHoudiniAssetComponent();
+    if ( InputLandscapeProxy && ParentComponent )
+    {        
+        if ( bState )
+        {
+            // Build the backup file name
+            FString BackupBaseName = ParentComponent->GetTempCookFolder().ToString()
+                + TEXT("/")
+                + InputLandscapeProxy->GetName()
+                + TEXT("_")
+                + ParentComponent->GetComponentGuid().ToString().Left(FHoudiniEngineUtils::PackageGUIDComponentNameLength);
+
+            // We need to cache the input landscape to a file
+            //FString BaseName = TEXT("/Game/HoudiniEngine/Temp/LandscapeBak");
+            FHoudiniLandscapeUtils::BackupLandscapeToFile( BackupBaseName, InputLandscapeProxy );
+        }
+        else
+        {
+            // Detach the input landscape from the HDA            
+            InputLandscapeProxy->DetachFromActor( FDetachmentTransformRules::KeepWorldTransform );
+
+            // Clear the landscape map to avoid reusing the input landscape
+            ParentComponent->ClearLandscapes();
+
+            // Restore the input landscape's backup data
+            FHoudiniLandscapeUtils::RestoreLandscapeFromFile( InputLandscapeProxy );
+        }
+    }
+
+    bUpdateInputLandscape = bState;
+
+    // Mark this parameter as changed.
+    MarkChanged();
+}
+
+ECheckBoxState
+UHoudiniAssetInput::IsCheckedUpdateInputLandscape() const
+{
+    if ( bUpdateInputLandscape )
+        return ECheckBoxState::Checked;
+
+    return ECheckBoxState::Unchecked;
+}
+
+void
 UHoudiniAssetInput::CheckStateChangedPackBeforeMerge( ECheckBoxState NewState )
 {
     int32 bState = ( NewState == ECheckBoxState::Checked );
@@ -3235,7 +3295,7 @@ bool
 UHoudiniAssetInput::HasChanged() const
 {
     // Inputs should be considered changed after being loaded
-    return bChanged || bLoadedParameter || !bInputAssetConnectedInHoudini;
+    return bChanged || bLoadedParameter || ( !bInputAssetConnectedInHoudini && ChoiceIndex == EHoudiniAssetInputType::AssetInput );
 }
 
 #if WITH_EDITOR
@@ -3746,8 +3806,8 @@ UHoudiniAssetInput::AddInputObject( UObject* ObjectToAdd )
 
 #endif
 
-const ALandscape*
-UHoudiniAssetInput::GetLandscapeInput() const
+ALandscape*
+UHoudiniAssetInput::GetLandscapeInput()
 {
     if (!InputLandscapeProxy || InputLandscapeProxy->IsPendingKill())
         return nullptr;
