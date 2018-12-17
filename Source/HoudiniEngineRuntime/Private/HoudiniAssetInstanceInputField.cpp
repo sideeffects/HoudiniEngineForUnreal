@@ -541,7 +541,10 @@ UHoudiniAssetInstanceInputField::ReplaceInstanceVariation( UObject * InObject, i
     // Check if the replacing object and the current object are different types (StaticMesh vs. Non)
     // if so we need to swap out the component 
     bool bInIsStaticMesh = InObject->IsA<UStaticMesh>();
-    bool bCurrentIsStaticMesh = InstancedObjects[ Index ]->IsA<UStaticMesh>();
+    bool bCurrentIsStaticMesh = false;
+    if ( InstancedObjects[ Index ] && !InstancedObjects[ Index ]->IsPendingKill() )
+        bCurrentIsStaticMesh = InstancedObjects[ Index ]->IsA<UStaticMesh>();
+
     InstancedObjects[ Index ] = InObject;
 
     bool bComponentNeedToBeCreated = true;

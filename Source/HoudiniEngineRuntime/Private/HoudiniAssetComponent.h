@@ -123,9 +123,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
             meta = ( DisplayName = "Simple Collision Physical Material" ) )
         UPhysicalMaterial * GeneratedPhysMaterial;
 
-	/** Default properties of the body instance, copied into objects on instantiation, was URB_BodyInstance */
-	UPROPERTY(EditAnywhere, Category = HoudiniGeneratedStaticMeshSettings, meta = ( FullyExpand = "true" ))
-	struct FBodyInstance DefaultBodyInstance;
+    /** Default properties of the body instance, copied into objects on instantiation, was URB_BodyInstance */
+    UPROPERTY(EditAnywhere, Category = HoudiniGeneratedStaticMeshSettings, meta = ( FullyExpand = "true" ))
+    struct FBodyInstance DefaultBodyInstance;
 
         /** Collision Trace behavior - by default, it will keep simple(convex)/complex(per-poly) separate. */
         UPROPERTY( EditAnywhere,
@@ -565,9 +565,6 @@ public:
         /** Inform downstream assets that we are dieing. **/
         void ClearDownstreamAssets();
 
-        /** Clear all landscapes **/
-        void ClearLandscapes();
-
         /** Clear cooked content temp files **/
         void ClearCookTempFile();
 
@@ -581,6 +578,9 @@ public:
 
     public:
 
+        /** Clear all landscapes **/
+        void ClearLandscapes();
+
         /** Add to the list of dependent downstream assets that have this asset as an asset input. **/
         void AddDownstreamAsset( UHoudiniAssetComponent * InDownstreamAssetComponent, int32 InInputIndex );
 
@@ -588,7 +588,7 @@ public:
         void RemoveDownstreamAsset( UHoudiniAssetComponent * InDownstreamAssetComponent, int32 InInputIndex );
 
         /** Create Static mesh resources. This will create necessary components for each mesh and update maps. **/
-		void CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshMap );
+        void CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshMap );
 
         /** Delete Static mesh resources. This will free static meshes and corresponding components. **/
         void ReleaseObjectGeoPartResources( bool bDeletePackages = false );
