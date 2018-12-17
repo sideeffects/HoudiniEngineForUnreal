@@ -2620,6 +2620,27 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
     }
     else if ( InParam.ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
     {
+        // CheckBox : Update Input Landscape Data
+        {
+            TSharedPtr< SCheckBox > CheckBoxUpdateInput;
+            VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+            [
+                SAssignNew( CheckBoxUpdateInput, SCheckBox )
+                .Content()
+                [
+                    SNew(STextBlock)
+                    .Text(LOCTEXT("LandscapeUpdateInputCheckbox", "Update Input Landscape Data"))
+                    .ToolTipText(LOCTEXT("LandscapeSelectedTooltip", "If enabled, the input landscape's data will be updated instead of creating a new Landscape Actor."))
+                    .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+                ]
+                .IsChecked(TAttribute< ECheckBoxState >::Create(
+                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                    &InParam, &UHoudiniAssetInput::IsCheckedUpdateInputLandscape ) ) )
+                .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(
+                    &InParam, &UHoudiniAssetInput::CheckStateChangedUpdateInputLandscape ) )
+            ];
+        }
+
         // ActorPicker : Landscape
         FMenuBuilder MenuBuilder = Helper_CreateCustomActorPickerWidget( InParam, LOCTEXT( "LandscapeInputSelectableActors", "Landscapes" ), true );
         VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
@@ -2808,129 +2829,136 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
                 CheckBoxAutoSelectComponents->SetEnabled( false );
         }
 
-        // Checkbox : Export materials
+        // The following checkbox are only added when not in heightfield mode
+        if ( !InParam.bLandscapeExportAsHeightfield )
         {
-            TSharedPtr< SCheckBox > CheckBoxExportMaterials;
-            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
-            [
-                SAssignNew( CheckBoxExportMaterials, SCheckBox )
-                .Content()
+            // Checkbox : Export materials
+            {
+                TSharedPtr< SCheckBox > CheckBoxExportMaterials;
+                VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
                 [
-                    SNew( STextBlock )
-                    .Text( LOCTEXT( "LandscapeMaterialsCheckbox", "Export Landscape Materials" ) )
-                    .ToolTipText( LOCTEXT( "LandscapeMaterialsTooltip", "If enabled, the landscape materials will be exported with it." ) )
-                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-                ]
-                .IsChecked( TAttribute< ECheckBoxState >::Create(
-                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-                    &InParam, &UHoudiniAssetInput::IsCheckedExportMaterials ) ) )
-                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
-                    &InParam, &UHoudiniAssetInput::CheckStateChangedExportMaterials ) )
-            ];
+                    SAssignNew( CheckBoxExportMaterials, SCheckBox )
+                    .Content()
+                    [
+                        SNew( STextBlock )
+                        .Text( LOCTEXT( "LandscapeMaterialsCheckbox", "Export Landscape Materials" ) )
+                        .ToolTipText( LOCTEXT( "LandscapeMaterialsTooltip", "If enabled, the landscape materials will be exported with it." ) )
+                        .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+                    ]
+                    .IsChecked( TAttribute< ECheckBoxState >::Create(
+                        TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                        &InParam, &UHoudiniAssetInput::IsCheckedExportMaterials ) ) )
+                    .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                        &InParam, &UHoudiniAssetInput::CheckStateChangedExportMaterials ) )
+                ];
 
-            // Disable when exporting heightfields
-            if ( InParam.bLandscapeExportAsHeightfield )
-                CheckBoxExportMaterials->SetEnabled( false );
-        }
+                // Disable when exporting heightfields
+                if ( InParam.bLandscapeExportAsHeightfield )
+                    CheckBoxExportMaterials->SetEnabled( false );
+            }
 
-        // Checkbox : Export Tile UVs
-        {
-            TSharedPtr< SCheckBox > CheckBoxExportTileUVs;
-            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
-            [
-                SAssignNew( CheckBoxExportTileUVs, SCheckBox )
-                .Content()
+            // Checkbox : Export Tile UVs
+            {
+                TSharedPtr< SCheckBox > CheckBoxExportTileUVs;
+                VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
                 [
-                    SNew( STextBlock )
-                    .Text( LOCTEXT( "LandscapeTileUVsCheckbox", "Export Landscape Tile UVs" ) )
-                    .ToolTipText( LOCTEXT( "LandscapeTileUVsTooltip", "If enabled, UVs will be exported separately for each Landscape tile." ) )
-                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-                ]
-                .IsChecked(TAttribute< ECheckBoxState >::Create(
-                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-                    &InParam, &UHoudiniAssetInput::IsCheckedExportTileUVs ) ) )
-                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
-                    &InParam, &UHoudiniAssetInput::CheckStateChangedExportTileUVs ) )
-            ];
+                    SAssignNew( CheckBoxExportTileUVs, SCheckBox )
+                    .Content()
+                    [
+                        SNew( STextBlock )
+                        .Text( LOCTEXT( "LandscapeTileUVsCheckbox", "Export Landscape Tile UVs" ) )
+                        .ToolTipText( LOCTEXT( "LandscapeTileUVsTooltip", "If enabled, UVs will be exported separately for each Landscape tile." ) )
+                        .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+                    ]
+                    .IsChecked(TAttribute< ECheckBoxState >::Create(
+                        TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                        &InParam, &UHoudiniAssetInput::IsCheckedExportTileUVs ) ) )
+                    .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                        &InParam, &UHoudiniAssetInput::CheckStateChangedExportTileUVs ) )
+                ];
 
-            // Disable when exporting heightfields
-            if ( InParam.bLandscapeExportAsHeightfield )
-                CheckBoxExportTileUVs->SetEnabled( false );
-        }
+                // Disable when exporting heightfields
+                if ( InParam.bLandscapeExportAsHeightfield )
+                    CheckBoxExportTileUVs->SetEnabled( false );
+            }
 
-        // Checkbox : Export normalized UVs
-        {
-            TSharedPtr< SCheckBox > CheckBoxExportNormalizedUVs;
-            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
-            [
-                SAssignNew( CheckBoxExportNormalizedUVs, SCheckBox )
-                .Content()
+            // Checkbox : Export normalized UVs
+            {
+                TSharedPtr< SCheckBox > CheckBoxExportNormalizedUVs;
+                VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
                 [
-                    SNew( STextBlock )
-                    .Text( LOCTEXT( "LandscapeNormalizedUVsCheckbox", "Export Landscape Normalized UVs" ) )
-                    .ToolTipText( LOCTEXT( "LandscapeNormalizedUVsTooltip", "If enabled, landscape UVs will be exported in [0, 1]." ) )
-                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-                ]
-                .IsChecked( TAttribute< ECheckBoxState >::Create(
-                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-                        &InParam, &UHoudiniAssetInput::IsCheckedExportNormalizedUVs ) ) )
-                .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(
-                    &InParam, &UHoudiniAssetInput::CheckStateChangedExportNormalizedUVs ) )
-            ];
+                    SAssignNew( CheckBoxExportNormalizedUVs, SCheckBox )
+                    .Content()
+                    [
+                        SNew( STextBlock )
+                        .Text( LOCTEXT( "LandscapeNormalizedUVsCheckbox", "Export Landscape Normalized UVs" ) )
+                        .ToolTipText( LOCTEXT( "LandscapeNormalizedUVsTooltip", "If enabled, landscape UVs will be exported in [0, 1]." ) )
+                        .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+                    ]
+                    .IsChecked( TAttribute< ECheckBoxState >::Create(
+                        TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                            &InParam, &UHoudiniAssetInput::IsCheckedExportNormalizedUVs ) ) )
+                    .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(
+                        &InParam, &UHoudiniAssetInput::CheckStateChangedExportNormalizedUVs ) )
+                ];
 
-            // Disable when exporting heightfields
-            if ( InParam.bLandscapeExportAsHeightfield )
-                CheckBoxExportNormalizedUVs->SetEnabled( false );
-        }
+                // Disable when exporting heightfields
+                if ( InParam.bLandscapeExportAsHeightfield )
+                    CheckBoxExportNormalizedUVs->SetEnabled( false );
+            }
 
-        // Checkbox : Export lighting
-        {
-            TSharedPtr< SCheckBox > CheckBoxExportLighting;
-            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
-            [
-                SAssignNew( CheckBoxExportLighting, SCheckBox )
-                .Content()
+            // Checkbox : Export lighting
+            {
+                TSharedPtr< SCheckBox > CheckBoxExportLighting;
+                VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
                 [
-                    SNew( STextBlock )
-                    .Text( LOCTEXT( "LandscapeLightingCheckbox", "Export Landscape Lighting" ) )
-                    .ToolTipText( LOCTEXT( "LandscapeLightingTooltip", "If enabled, lightmap information will be exported with the landscape." ) )
-                    .Font(FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-                ]
-                .IsChecked( TAttribute< ECheckBoxState >::Create(
-                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-                    &InParam, &UHoudiniAssetInput::IsCheckedExportLighting ) ) )
-                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
-                    &InParam, &UHoudiniAssetInput::CheckStateChangedExportLighting ) )
-            ];
+                    SAssignNew( CheckBoxExportLighting, SCheckBox )
+                    .Content()
+                    [
+                        SNew( STextBlock )
+                        .Text( LOCTEXT( "LandscapeLightingCheckbox", "Export Landscape Lighting" ) )
+                        .ToolTipText( LOCTEXT( "LandscapeLightingTooltip", "If enabled, lightmap information will be exported with the landscape." ) )
+                        .Font(FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+                    ]
+                    .IsChecked( TAttribute< ECheckBoxState >::Create(
+                        TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                        &InParam, &UHoudiniAssetInput::IsCheckedExportLighting ) ) )
+                    .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                        &InParam, &UHoudiniAssetInput::CheckStateChangedExportLighting ) )
+                ];
 
-            // Disable when exporting heightfields
-            if ( InParam.bLandscapeExportAsHeightfield )
-                CheckBoxExportLighting->SetEnabled( false );
-        }
+                // Disable when exporting heightfields
+                if ( InParam.bLandscapeExportAsHeightfield )
+                    CheckBoxExportLighting->SetEnabled( false );
+            }
 
-        // Checkbox : Export landscape curves
-        {
-            TSharedPtr< SCheckBox > CheckBoxExportCurves;
-            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
-            [
-                SAssignNew( CheckBoxExportCurves, SCheckBox )
-                .Content()
+            /*
+            // UNUSED
+            // Checkbox : Export landscape curves
+            {
+                TSharedPtr< SCheckBox > CheckBoxExportCurves;
+                VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
                 [
-                    SNew( STextBlock )
-                    .Text( LOCTEXT( "LandscapeCurvesCheckbox", "Export Landscape Curves" ) )
-                    .ToolTipText( LOCTEXT( "LandscapeCurvesTooltip", "If enabled, Landscape curves will be exported." ) )
-                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-                ]
-                .IsChecked( TAttribute< ECheckBoxState >::Create(
-                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-                    &InParam, &UHoudiniAssetInput::IsCheckedExportCurves ) ) )
-                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
-                    &InParam, &UHoudiniAssetInput::CheckStateChangedExportCurves ) )
-            ];
+                    SAssignNew( CheckBoxExportCurves, SCheckBox )
+                    .Content()
+                    [
+                        SNew( STextBlock )
+                        .Text( LOCTEXT( "LandscapeCurvesCheckbox", "Export Landscape Curves" ) )
+                        .ToolTipText( LOCTEXT( "LandscapeCurvesTooltip", "If enabled, Landscape curves will be exported." ) )
+                        .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+                    ]
+                    .IsChecked( TAttribute< ECheckBoxState >::Create(
+                        TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                        &InParam, &UHoudiniAssetInput::IsCheckedExportCurves ) ) )
+                    .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                        &InParam, &UHoudiniAssetInput::CheckStateChangedExportCurves ) )
+                ];
 
-            // Disable curves until we have them implemented.
-            if ( CheckBoxExportCurves.IsValid() )
-                CheckBoxExportCurves->SetEnabled( false );
+                // Disable curves until we have them implemented.
+                if ( CheckBoxExportCurves.IsValid() )
+                    CheckBoxExportCurves->SetEnabled( false );
+            }
+            */
         }
 
         // Button : Recommit

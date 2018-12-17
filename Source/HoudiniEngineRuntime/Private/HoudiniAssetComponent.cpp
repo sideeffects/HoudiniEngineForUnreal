@@ -4790,6 +4790,9 @@ UHoudiniAssetComponent::DuplicateInstanceInputs( UHoudiniAssetComponent * Duplic
 bool
 UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject > & FoundVolumes )
 {
+    if ( FoundVolumes.Num() <= 0 )
+        return false;
+
     // Try to create a Landscape for each HeightData found
     TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> > NewLandscapes;
 
@@ -4797,7 +4800,29 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
     HoudiniCookParams.StaticMeshBakeMode = FHoudiniCookParams::GetDefaultStaticMeshesCookMode();
     HoudiniCookParams.MaterialAndTextureBakeMode = FHoudiniCookParams::GetDefaultMaterialAndTextureCookMode();
 
-    if ( !FHoudiniLandscapeUtils::CreateAllLandscapes( HoudiniCookParams, FoundVolumes, LandscapeComponents, NewLandscapes ) )
+    // Keep a map of the valid landscape, this is to ensure that none of the new/input landscapes will be destroyed when cleaning up the old map
+    TArray<ALandscape *> ValidLandscapes;
+    // See if we have any landscape input that is marked as needing an update
+    TArray<ALandscape *> InputLandscapesToUpdate;
+    for ( auto CurrentInput : Inputs )
+    {
+        if ( !CurrentInput )
+            continue;
+
+        if ( CurrentInput->GetChoiceIndex() != EHoudiniAssetInputType::Enum::LandscapeInput )
+            continue;
+
+        ALandscape* InputLandscape = CurrentInput->GetLandscapeInput();
+        if ( !InputLandscape || InputLandscape->IsPendingKill() )
+            continue;
+
+        ValidLandscapes.Add( InputLandscape );
+
+        if ( CurrentInput->bUpdateInputLandscape )
+            InputLandscapesToUpdate.Add( CurrentInput->GetLandscapeInput() );
+    }
+
+    if ( !FHoudiniLandscapeUtils::CreateAllLandscapes( HoudiniCookParams, FoundVolumes, LandscapeComponents, NewLandscapes, InputLandscapesToUpdate ) )
         return false;
 
     // The asset needs to be static in order to attach the landscapes to it
@@ -4805,26 +4830,50 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
 
     for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator IterLandscape( NewLandscapes ); IterLandscape; ++IterLandscape )
     {
-        ALandscape* Landscape = IterLandscape.Value().Get();
-        if ( !Landscape )
+        ALandscape* NewLandscape = IterLandscape.Value().Get();
+        if ( !NewLandscape )
             continue;
+
+        // Add the new landscape to the valid list to avoid its destruction if we updated it
+        ValidLandscapes.Add( NewLandscape );
+
+        // Attach the new landscapes to ourselves if we dont already own it        
+        if ( NewLandscape->GetRootComponent() != this )
+            NewLandscape->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 
         FHoudiniGeoPartObject Heightfield = IterLandscape.Key();
 
-        // Attach the new landscapes to ourselves
-        Landscape->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
-
         // Update the materials from our assignement/replacement and the materials assigned on the previous version of this landscape
-        UpdateLandscapeMaterialsAssignementsAndReplacements( Landscape, Heightfield );
+        UpdateLandscapeMaterialsAssignementsAndReplacements( NewLandscape, Heightfield );
 
         // Replace any reference we might still have to the old landscape with the new one
-        TWeakObjectPtr<ALandscape>* OldLandscape = LandscapeComponents.Find( Heightfield );
-        if ( OldLandscape )
-            FHoudiniLandscapeUtils::UpdateOldLandscapeReference(OldLandscape->Get(), Landscape);
+        TWeakObjectPtr<ALandscape>* OldLandscapePtr = LandscapeComponents.Find( Heightfield );
+        if ( !OldLandscapePtr)
+            continue;
+
+        ALandscape* OldLandscape = OldLandscapePtr->Get();
+        if ( !OldLandscape )
+            continue;
+
+        if ( OldLandscape != NewLandscape )
+            FHoudiniLandscapeUtils::UpdateOldLandscapeReference( OldLandscape, NewLandscape );        
     }
 
-    // Replace the old landscapes with the new ones
-    ClearLandscapes();
+    // Replace the old landscapes map with the new ones
+    for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter( LandscapeComponents ); Iter; ++Iter)
+    {
+        ALandscape * HoudiniLandscape = Iter.Value().Get();
+        if ( !HoudiniLandscape || HoudiniLandscape->IsPendingKill() )
+            continue;
+
+        if ( ValidLandscapes.Contains( HoudiniLandscape ) )
+            continue;
+
+        HoudiniLandscape->UnregisterAllComponents();
+        HoudiniLandscape->Destroy();
+    }
+
+    LandscapeComponents.Empty();
     LandscapeComponents = NewLandscapes;
 
     return true;
@@ -4839,7 +4888,7 @@ void UHoudiniAssetComponent::UpdateLandscapeMaterialsAssignementsAndReplacements
     UMaterialInterface* LandscapeMaterial = Landscape->GetLandscapeMaterial();
     if ( LandscapeMaterial )
     {
-        // Make sure this material is in the assignemets before trying to replacing it.
+        // Make sure this material is in the assignements before trying to replacing it.
         if ( !GetAssignmentMaterial( LandscapeMaterial->GetName() ) && HoudiniAssetComponentMaterials && !HoudiniAssetComponentMaterials->IsPendingKill() )
             HoudiniAssetComponentMaterials->Assignments.Add( LandscapeMaterial->GetName(), LandscapeMaterial );
 
@@ -4982,13 +5031,30 @@ UHoudiniAssetComponent::ClearLandscapes()
     for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
     {
         ALandscape * HoudiniLandscape = Iter.Value().Get();
-        if ( !HoudiniLandscape )
-            continue;
-
         if ( !IsValid( HoudiniLandscape ) )
             continue;
 
-        //HoudiniLandscape->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
+        // Make sure we never destroy an input landscape
+        bool IsCurrentLandscapeAnInput = false;
+        for (auto CurrentInput : Inputs)
+        {
+            if (!CurrentInput)
+                continue;
+
+            if (CurrentInput->GetChoiceIndex() != EHoudiniAssetInputType::Enum::LandscapeInput)
+                continue;
+
+            ALandscape* InputLandscape = CurrentInput->GetLandscapeInput();
+            if (!InputLandscape || InputLandscape->IsPendingKill())
+                continue;
+
+            IsCurrentLandscapeAnInput = true;
+            break;
+        }
+
+        if ( IsCurrentLandscapeAnInput )
+            continue;
+
         HoudiniLandscape->UnregisterAllComponents();
         HoudiniLandscape->Destroy();
     }

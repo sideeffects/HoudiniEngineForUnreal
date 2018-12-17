@@ -50,6 +50,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const TArray< FHoudiniGeoPartObject > & FoundVolumes,
             TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& Landscapes,
             TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& NewLandscapes,
+            TArray<ALandscape *>& InputLandscapeToUpdate,
             float ForcedZMin = 0.0f, float ForcedZMax = 0.0f );
 
         // Creates a single landscape object from the converted data
@@ -263,6 +264,16 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         static bool AddLandscapeMaterialAttributesToVolume(
             const HAPI_NodeId& VolumeNodeId, const HAPI_PartId& PartId,
             UMaterialInterface* LandscapeMaterial, UMaterialInterface* LandscapeHoleMaterial );
+
+        //--------------------------------------------------------------------------------------------------
+        // Input Landscape caching
+        //--------------------------------------------------------------------------------------------------
+        static bool BackupLandscapeToFile( const FString& BaseName, ALandscapeProxy* Landscape );
+
+        static bool RestoreLandscapeFromFile( ALandscapeProxy* LandscapeProxy );
+
+        static bool ImportLandscapeData(
+            ULandscapeInfo* LandscapeInfo, const FString& Filename, const FString& LayerName, ULandscapeLayerInfoObject* LayerInfoObject = nullptr);
 
         //--------------------------------------------------------------------------------------------------
         // Unreal to Houdini - MESH / POINTS
