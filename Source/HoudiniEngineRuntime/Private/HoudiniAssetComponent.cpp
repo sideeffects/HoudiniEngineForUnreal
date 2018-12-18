@@ -4818,7 +4818,7 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
 
         ValidLandscapes.Add( InputLandscape );
 
-        if ( CurrentInput->bUpdateInputLandscape )
+        if ( CurrentInput->IsUpdatingInputLandscape() )
             InputLandscapesToUpdate.Add( CurrentInput->GetLandscapeInput() );
     }
 
