@@ -225,8 +225,11 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Helper delegate used to determine if RestartSession can be executed. **/
         bool CanRestartSession() const;
 
+        /** Returns the plugin's directory **/
+        static FString GetHoudiniEnginePluginDir();
+
         /** Returns the Default Icon to be used by Houdini Tools**/
-        FString GetDefaultHoudiniToolIcon() const;
+        static FString GetDefaultHoudiniToolIcon();
 
         /** Returns the HoudiniTools currently available for the shelf **/
         const TArray< TSharedPtr<FHoudiniTool> >& GetHoudiniTools() { return HoudiniTools; }
