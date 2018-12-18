@@ -207,6 +207,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Return true if connected asset is a merge of a world outliner set of inputs. **/
         bool IsWorldInputAssetConnected() const;
 
+        /** Return true if we are updating the input landscape's data. **/
+        bool IsUpdatingInputLandscape() const { return bUpdateInputLandscape; };
+
         /** Disconnect connected input asset. **/
         void DisconnectAndDestroyInputAsset();
 
