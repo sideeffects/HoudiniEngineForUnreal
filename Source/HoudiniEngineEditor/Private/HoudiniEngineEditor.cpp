@@ -120,7 +120,7 @@ FHoudiniEngineStyle::Initialize()
     const FVector2D Icon36x24(36.0f, 24.0f);
     const FVector2D Icon128x128(128.0f, 128.0f);
 
-    static FString IconsDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine/Content/Icons/");
+    static FString IconsDir = FHoudiniEngineEditor::GetHoudiniEnginePluginDir() / TEXT("Content/Icons/");
     StyleSet->Set(
         "HoudiniEngine.HoudiniEngineLogo",
         new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
@@ -783,9 +783,25 @@ FHoudiniEngineEditor::RegisterPlacementModeExtensions()
 }
 
 FString
-FHoudiniEngineEditor::GetDefaultHoudiniToolIcon() const
+FHoudiniEngineEditor::GetDefaultHoudiniToolIcon()
 {
-        return FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine/Content/Icons/icon_houdini_logo_40.png");
+    return FHoudiniEngineEditor::GetHoudiniEnginePluginDir() / TEXT("Content/Icons/icon_houdini_logo_40.png");
+}
+
+FString
+FHoudiniEngineEditor::GetHoudiniEnginePluginDir()
+{
+    FString EnginePluginDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine");    
+    if ( FPaths::DirectoryExists(EnginePluginDir) )
+        return EnginePluginDir;
+
+    FString ProjectPluginDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine");
+    if ( FPaths::DirectoryExists(ProjectPluginDir) )
+        return ProjectPluginDir;
+
+    HOUDINI_LOG_WARNING(TEXT("Could not find the Houdini Engine plugin's directory"));
+
+    return EnginePluginDir;
 }
 
 void 

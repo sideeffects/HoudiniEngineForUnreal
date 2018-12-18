@@ -4431,6 +4431,15 @@ UHoudiniAssetComponent::UpdateLoadedInputs( const bool& ForceRefresh )
             continue;
 
         HoudiniAssetInput->SetNodeId( AssetId );
+
+        // If we're updating the input landscape data, we need to restore the original input geometry
+        // to submit it as the source mesh
+        EHoudiniAssetInputType::Enum InputType = HoudiniAssetInput->GetChoiceIndex();
+        if (InputType == EHoudiniAssetInputType::LandscapeInput
+            && HoudiniAssetInput->IsUpdatingInputLandscape() )
+            //&& !HoudiniAssetInput->IsLandscapeAssetConnected() )
+            FHoudiniLandscapeUtils::RestoreLandscapeFromFile( HoudiniAssetInput->GetLandscapeInput() );
+
         Success &= HoudiniAssetInput->ChangeInputType( HoudiniAssetInput->GetChoiceIndex(), ForceRefresh );
         Success &= HoudiniAssetInput->UploadParameterValue();
     }
