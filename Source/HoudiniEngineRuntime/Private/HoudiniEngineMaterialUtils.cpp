@@ -2471,7 +2471,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
 
     // Create/Retrieve the package for the MI
     FString MaterialInstanceName;
-    FString MaterialInstanceNamePrefix = PackageTools::SanitizePackageName( ParentMaterial->GetName() + TEXT("_instance_") + FString::FromInt(MaterialIndex) );
+    FString MaterialInstanceNamePrefix = UPackageTools::SanitizePackageName( ParentMaterial->GetName() + TEXT("_instance_") + FString::FromInt(MaterialIndex) );
     
     // See if we can find the package in the cooked temp package cache
     UPackage * MaterialInstancePackage = nullptr;
