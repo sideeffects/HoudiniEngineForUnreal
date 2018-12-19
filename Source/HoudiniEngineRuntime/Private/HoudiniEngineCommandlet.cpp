@@ -334,7 +334,7 @@ bool FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( const FString& InBGEOFile
     //---------------------------------------------------------------------------------------------
 
     FString PackagePath = LocalAutoBakeFolder + UASSETFileName;
-    FString PackageFilePath = PackageTools::SanitizePackageName( PackagePath );
+    FString PackageFilePath = UPackageTools::SanitizePackageName( PackagePath );
     UPackage * Package = FindPackage( nullptr, *PackageFilePath );
     if ( !Package )    
     {

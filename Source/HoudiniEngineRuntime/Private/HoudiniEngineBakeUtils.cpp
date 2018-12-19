@@ -108,7 +108,7 @@ FHoudiniEngineBakeUtils::BakeCreateBlueprintPackageForComponent(
     // Generate unique package name.
     FString PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT( "/" ) + BlueprintName;
 
-    PackageName = PackageTools::SanitizePackageName( PackageName );
+    PackageName = UPackageTools::SanitizePackageName( PackageName );
 
     // See if package exists, if it does, we need to regenerate the name.
     Package = FindPackage( nullptr, *PackageName );
@@ -1588,7 +1588,7 @@ FHoudiniEngineBakeUtils::BakeCreateTextureOrMaterialPackageForComponent(
         }
 
         // Sanitize package name.
-        PackageName = PackageTools::SanitizePackageName( PackageName );
+        PackageName = UPackageTools::SanitizePackageName( PackageName );
 
         UObject * OuterPackage = nullptr;
         if ( BakeMode == EBakeMode::Intermediate )
@@ -1798,7 +1798,7 @@ FHoudiniEngineBakeUtils::BakeCreateStaticMeshPackageForComponent(
         }
 
         // Santize package name.
-        PackageName = PackageTools::SanitizePackageName( PackageName );
+        PackageName = UPackageTools::SanitizePackageName( PackageName );
 
         UObject * OuterPackage = nullptr;
 
