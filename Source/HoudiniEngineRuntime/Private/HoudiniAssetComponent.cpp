@@ -3626,6 +3626,25 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters( UStaticMesh * StaticM
 #endif
 }
 
+const TArray< UHoudiniAssetInstanceInputField * >
+UHoudiniAssetComponent::GetAllInstanceInputFields() const
+{
+    TArray< UHoudiniAssetInstanceInputField * > AllInstanceInputFields;
+
+    // Duplicate instanced static mesh components.
+    for (auto& InstanceInput : InstanceInputs)
+    {
+        if (!InstanceInput || InstanceInput->IsPendingKill())
+            continue;
+
+        const TArray< UHoudiniAssetInstanceInputField * > CurrentInstanceInputFields = InstanceInput->GetInstanceInputFields();
+        for (auto currentInputField : CurrentInstanceInputFields)
+            AllInstanceInputFields.Add(currentInputField);
+    }
+
+    return AllInstanceInputFields;
+}
+
 #if WITH_EDITOR
 
 AActor *
@@ -3717,25 +3736,6 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
     }
 
     return Actor;
-}
-
-const TArray< UHoudiniAssetInstanceInputField * >
-UHoudiniAssetComponent::GetAllInstanceInputFields() const
-{
-    TArray< UHoudiniAssetInstanceInputField * > AllInstanceInputFields;
-
-    // Duplicate instanced static mesh components.
-    for (auto& InstanceInput : InstanceInputs)
-    {
-        if (!InstanceInput || InstanceInput->IsPendingKill())
-            continue;
-
-        const TArray< UHoudiniAssetInstanceInputField * > CurrentInstanceInputFields = InstanceInput->GetInstanceInputFields();
-        for ( auto currentInputField : CurrentInstanceInputFields )
-            AllInstanceInputFields.Add(currentInputField);
-    }
-
-    return AllInstanceInputFields;
 }
 
 bool
