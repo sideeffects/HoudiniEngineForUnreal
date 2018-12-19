@@ -363,7 +363,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             TArray<FVector>* Positions,
             TArray<FQuat>* Rotations = nullptr,
             TArray<FVector>* Scales3d = nullptr,
-            TArray<float>* UniformScales = nullptr);
+            TArray<float>* UniformScales = nullptr,
+            bool ForceClose = false );
 
         /** HAPI : Marshaling, extract geometry and skeleton and create input asset for it - return true on success **/
         static bool HapiCreateInputNodeForSkeletalMesh(
