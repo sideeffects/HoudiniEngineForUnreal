@@ -402,20 +402,19 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms( bool RecomputeVariati
     {
         if ( !InstancerComponents.IsValidIndex( Idx )
             || !VariationTransformsArray.IsValidIndex( Idx )
-            || !VariationInstanceColorOverrideArray.IsValidIndex( Idx )
-            || !RotationOffsets.IsValidIndex( Idx )
-            || !ScaleOffsets.IsValidIndex( Idx ) )
+            || !VariationInstanceColorOverrideArray.IsValidIndex( Idx ) )
         {
             // TODO: fix this properly
             continue;
         }
 
+        TArray<FTransform> ProcessedTransform;
+        this->GetProcessedTransforms( ProcessedTransform, Idx );
+
         UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
             InstancerComponents[ Idx ],
-            VariationTransformsArray[ Idx ],
-            VariationInstanceColorOverrideArray[ Idx ],
-            RotationOffsets[ Idx ] ,
-            ScaleOffsets[ Idx ] );
+            ProcessedTransform,
+            VariationInstanceColorOverrideArray[ Idx ] );
     }
 }
 
@@ -801,3 +800,42 @@ UHoudiniAssetInstanceInputField::FixInstancedObjects( const TMap<UObject*, UObje
         }
     }
 }
+
+
+/** Return the array of processed transforms **/
+void
+UHoudiniAssetInstanceInputField::GetProcessedTransforms( TArray<FTransform>& ProcessedTransforms, const int32& VariationIdx ) const
+{
+    //TArray<FTransform> ProcessedTransforms;
+    ProcessedTransforms.Empty();
+    ProcessedTransforms.Reserve(InstancedTransforms.Num());
+
+    FTransform CurrentTransform = FTransform::Identity;
+    for (int32 InstanceIdx = 0; InstanceIdx < InstancedTransforms.Num(); ++InstanceIdx)
+    {
+        CurrentTransform = InstancedTransforms[ InstanceIdx ];
+
+        // Compute new rotation and scale.
+        FQuat TransformRotation = CurrentTransform.GetRotation() * GetRotationOffset( VariationIdx ).Quaternion();
+        FVector TransformScale3D = CurrentTransform.GetScale3D() * GetScaleOffset( VariationIdx );
+
+        // Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances.
+        // Happens in blueprint as well.
+        // We want to make sure the scale is not too small, but keep negative values! (Bug 90876)
+        if (FMath::Abs(TransformScale3D.X) < HAPI_UNREAL_SCALE_SMALL_VALUE)
+            TransformScale3D.X = (TransformScale3D.X > 0) ? HAPI_UNREAL_SCALE_SMALL_VALUE : -HAPI_UNREAL_SCALE_SMALL_VALUE;
+
+        if (FMath::Abs(TransformScale3D.Y) < HAPI_UNREAL_SCALE_SMALL_VALUE)
+            TransformScale3D.Y = (TransformScale3D.Y > 0) ? HAPI_UNREAL_SCALE_SMALL_VALUE : -HAPI_UNREAL_SCALE_SMALL_VALUE;
+
+        if (FMath::Abs(TransformScale3D.Z) < HAPI_UNREAL_SCALE_SMALL_VALUE)
+            TransformScale3D.Z = (TransformScale3D.Z > 0) ? HAPI_UNREAL_SCALE_SMALL_VALUE : -HAPI_UNREAL_SCALE_SMALL_VALUE;
+
+        CurrentTransform.SetRotation(TransformRotation);
+        CurrentTransform.SetScale3D(TransformScale3D);
+
+        if (CurrentTransform.IsValid())
+            ProcessedTransforms.Add(CurrentTransform);
+    }
+}
+

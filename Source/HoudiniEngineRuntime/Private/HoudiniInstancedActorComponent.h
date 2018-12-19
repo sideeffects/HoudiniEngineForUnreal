@@ -62,10 +62,8 @@ public:
     /** Update instances of a given instancer component. (could be ISMC, IAC or MSIC) **/
     static void UpdateInstancerComponentInstances(
         USceneComponent * Component,
-        const TArray< FTransform > & InstancedTransforms,
-        const TArray<FLinearColor> & InstancedColors ,
-        const FRotator & RotationOffset,
-        const FVector & ScaleOffset );
+        const TArray< FTransform > & ProcessedTransforms,
+        const TArray<FLinearColor> & InstancedColors );
 
     UPROPERTY( SkipSerialization, VisibleAnywhere, Category = Instances )
     UObject* InstancedAsset;

@@ -1446,7 +1446,8 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
     TArray<FVector>* Positions,
     TArray<FQuat>* Rotations /*= nullptr*/,
     TArray<FVector>* Scales3d /*= nullptr*/,
-    TArray<float>* UniformScales /*= nullptr*/)
+    TArray<float>* UniformScales /*= nullptr*/,
+    bool ForceClose /*=false*/)
 {
 #if WITH_EDITOR
 
@@ -1503,6 +1504,16 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
     FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
         ConnectedAssetId, HAPI_UNREAL_PARAM_CURVE_CLOSED,
         1, CurveClosed);
+
+    if ( ForceClose )
+    {
+        // We need to update the closed parameter
+        FHoudiniApi::SetParmIntValue(
+            FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+            HAPI_UNREAL_PARAM_CURVE_CLOSED, 0, 1);
+
+        CurveClosed = 1;
+    }
 
     // For closed NURBS (CVs and Breakpoints), we have to close the curve manually, by duplicating its last point
     // in order to be able to set the rotations and scales attributes properly.
@@ -1653,7 +1664,7 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
         // We need to duplicate the info of the first point to the last
         DuplicateRotScaleUScale(0, NumberOfCVs++);
 
-        // We need to upddate the closed parameter
+        // We need to update the closed parameter
         FHoudiniApi::SetParmIntValue(
             FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
             HAPI_UNREAL_PARAM_CURVE_CLOSED, 0, 1);
@@ -2658,7 +2669,6 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSpline(
     TArray<FQuat> tRefinedSplineRotations;    
     // Scale on Unreal's spline will require some tweaking, as the XScale is always 1
     TArray<FVector> tRefinedSplineScales;
-    //TArray<float> tRefinedSplinePScales;
 
     if ( (nNumberOfRefinedSplinePoints < nNumberOfControlPoints) || (fSplineResolution <= 0.0f) )
     {
@@ -2666,7 +2676,6 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSpline(
         tRefinedSplinePositions.SetNumZeroed(nNumberOfControlPoints);
         tRefinedSplineRotations.SetNumZeroed(nNumberOfControlPoints);
         tRefinedSplineScales.SetNumZeroed(nNumberOfControlPoints);
-        //tRefinedSplinePScales.SetNumZeroed(nNumberOfControlPoints);
 
         FVector Scale;
         for (int32 n = 0; n < nNumberOfControlPoints; n++)
@@ -2676,8 +2685,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSpline(
 
             Scale = SplineComponent->GetScaleAtSplinePoint(n);
             tRefinedSplineScales[n] = Scale;
-            // tRefinedSplinePScales[n] = (Scale.Y + Scale.Z) / 2.0f; //FMath::Max(Scale.Y, Scale.Z);
-        }           
+        }
     }
     else
     {
@@ -2685,19 +2693,17 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSpline(
         tRefinedSplinePositions.SetNumZeroed(nNumberOfRefinedSplinePoints);
         tRefinedSplineRotations.SetNumZeroed(nNumberOfRefinedSplinePoints);
         tRefinedSplineScales.SetNumZeroed(nNumberOfRefinedSplinePoints);
-        // tRefinedSplinePScales.SetNumZeroed(nNumberOfRefinedSplinePoints);
-        
+
         FVector Scale;
         float fCurrentDistance = 0.0f;
         for (int32 n = 0; n < nNumberOfRefinedSplinePoints; n++)
-        {    
+        {
             tRefinedSplinePositions[n] = SplineComponent->GetLocationAtDistanceAlongSpline(fCurrentDistance, ESplineCoordinateSpace::Local);
             tRefinedSplineRotations[n] = SplineComponent->GetQuaternionAtDistanceAlongSpline(fCurrentDistance, ESplineCoordinateSpace::World);
             
             Scale = SplineComponent->GetScaleAtDistanceAlongSpline(fCurrentDistance);
 
             tRefinedSplineScales[n] = Scale;
-            // tRefinedSplinePScales[n] = (Scale.Y + Scale.Z) / 2.0f; //FMath::Max(Scale.Y, Scale.Z);
 
             fCurrentDistance += fSplineResolution;
         }
@@ -2709,7 +2715,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSpline(
             &tRefinedSplinePositions,
             &tRefinedSplineRotations,
             &tRefinedSplineScales,
-            nullptr) )//&tRefinedSplinePScales) )
+            nullptr,
+            SplineComponent->IsClosedLoop() ) )
         return false;
 
     // Updating the OutlinerMesh's struct infos

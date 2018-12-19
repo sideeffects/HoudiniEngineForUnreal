@@ -975,13 +975,12 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
                     // Reapply the uproperties modified by attributes on the duplicated component
                     FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(DuplicatedComponent, HoudiniGeoPartObject);
 
+                    TArray<FTransform> ProcessedTransforms;
+                    HoudiniAssetInstanceInputField->GetProcessedTransforms(ProcessedTransforms, VariationIdx);
+
                     // Set component instances.
                     UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
-                        DuplicatedComponent,
-                        HoudiniAssetInstanceInputField->GetInstancedTransforms(VariationIdx),
-                        HoudiniAssetInstanceInputField->GetInstancedColors(VariationIdx),
-                        HoudiniAssetInstanceInputField->GetRotationOffset(VariationIdx),
-                        HoudiniAssetInstanceInputField->GetScaleOffset(VariationIdx));
+                        DuplicatedComponent, ProcessedTransforms, HoudiniAssetInstanceInputField->GetInstancedColors( VariationIdx ) );
 
                     // Copy visibility.
                     DuplicatedComponent->SetVisibility(ISMC->IsVisible());
