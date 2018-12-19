@@ -53,6 +53,7 @@ class UHoudiniAssetParameter;
 class UHoudiniHandleComponent;
 class UHoudiniSplineComponent;
 class UHoudiniAssetInstanceInput;
+class UHoudiniAssetInstanceInputField;
 class UHoudiniAssetComponentMaterials;
 class UFoliageType_InstancedStaticMesh;
 
@@ -236,6 +237,9 @@ public:
 
         /** Used by Blueprint baking; create temporary actor and necessary components to bake a blueprint. **/
         AActor * CloneComponentsAndCreateActor();
+
+        /** Returns all the instance input field for this asset **/
+        const TArray< UHoudiniAssetInstanceInputField * > GetAllInstanceInputFields() const;
 
         /** Return true if cooking is enabled for this component. **/
         bool IsCookingEnabled() const;

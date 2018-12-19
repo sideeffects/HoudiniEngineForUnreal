@@ -33,6 +33,7 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniInstancedActorComponent.h"
 #include "HoudiniMeshSplitInstancerComponent.h"
+#include "HoudiniAssetInstanceInputField.h"
 
 #include "CoreMinimal.h"
 #include "Engine/StaticMesh.h"
@@ -53,6 +54,8 @@
     #include "Materials/MaterialExpressionTextureSample.h"
     #include "Materials/MaterialExpressionTextureCoordinate.h"
     #include "StaticMeshResources.h"
+    #include "InstancedFoliage.h"
+    #include "InstancedFoliageActor.h"
 #endif
 #include "EngineUtils.h"
 #include "UObject/MetaData.h"
@@ -921,7 +924,7 @@ FHoudiniEngineBakeUtils::GetInputForBakeHoudiniActorToOutlinerInput( const UHoud
 }
 
 bool
-FHoudiniEngineBakeUtils::GetCanComponentBakeToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent )
+FHoudiniEngineBakeUtils::CanComponentBakeToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent )
 {
     if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
         return false;
@@ -935,6 +938,17 @@ FHoudiniEngineBakeUtils::GetCanComponentBakeToOutlinerInput( const UHoudiniAsset
     }
 #endif
     return false;
+}
+
+bool
+FHoudiniEngineBakeUtils::CanComponentBakeToFoliage(const UHoudiniAssetComponent * HoudiniAssetComponent)
+{
+    if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+        return false;
+
+    const TArray< UHoudiniAssetInstanceInputField * > InstanceInputFields = HoudiniAssetComponent->GetAllInstanceInputFields();
+
+    return InstanceInputFields.Num() > 0;
 }
 
 void
@@ -1008,6 +1022,140 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent
             break;
         }
     }
+#endif
+}
+
+void
+FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(UHoudiniAssetComponent * HoudiniAssetComponent )
+{
+#if WITH_EDITOR
+    if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+        return;
+
+    const FScopedTransaction Transaction(LOCTEXT("BakeToFoliage", "Bake To Foliage"));
+
+    ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+    AInstancedFoliageActor* InstancedFoliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(DesiredLevel, true);
+    if (!InstancedFoliageActor || InstancedFoliageActor->IsPendingKill())
+        return;
+
+    // Map storing original and baked Static Meshes
+    TMap< const UStaticMesh*, UStaticMesh* > OriginalToBakedMesh;
+
+    const TArray< UHoudiniAssetInstanceInputField * > InstanceInputFields = HoudiniAssetComponent->GetAllInstanceInputFields();
+    for ( int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx )
+    {
+        const UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = InstanceInputFields[ Idx ];
+        if ( !HoudiniAssetInstanceInputField || HoudiniAssetInstanceInputField->IsPendingKill() )
+            continue;
+
+        for ( int32 VariationIdx = 0; VariationIdx < HoudiniAssetInstanceInputField->InstanceVariationCount(); VariationIdx++ )
+        {
+            UInstancedStaticMeshComponent * ISMC =
+                Cast<UInstancedStaticMeshComponent>( HoudiniAssetInstanceInputField->GetInstancedComponent( VariationIdx ) );
+
+            if (!ISMC || ISMC->IsPendingKill())
+                continue;
+
+            // If the original static mesh is used, then we need to bake it (once) and use that one instead.
+            // If not, we're using an unreal asset that doesnt need to be baked again
+            UStaticMesh* OutStaticMesh = Cast<UStaticMesh>( HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx ) );
+            if ( HoudiniAssetInstanceInputField->IsOriginalObjectUsed( VariationIdx ) )
+            {
+                UStaticMesh* OriginalSM = Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetOriginalObject());
+                if (!OriginalSM || OriginalSM->IsPendingKill())
+                    continue;
+
+                // We're instancing a mesh created by the plugin, bake it if we haven't already
+                auto&& ItemGeoPartObject = HoudiniAssetComponent->LocateGeoPartObject(OutStaticMesh);
+                FHoudiniEngineBakeUtils::CheckedBakeStaticMesh(HoudiniAssetComponent, OriginalToBakedMesh, ItemGeoPartObject, OriginalSM);
+                OutStaticMesh = OriginalToBakedMesh[ OutStaticMesh ];
+                /*
+                // If previously created a foliage type for that mesh, then we dont need to bake it now
+                if ( !InstancedFoliageActor->GetLocalFoliageTypeForMesh(OriginalSM) )
+                {
+                    auto&& ItemGeoPartObject = HoudiniAssetComponent->LocateGeoPartObject( OutStaticMesh );
+                    FHoudiniEngineBakeUtils::CheckedBakeStaticMesh(HoudiniAssetComponent, OriginalToBakedMesh, ItemGeoPartObject, OriginalSM);
+                    OutStaticMesh = OriginalToBakedMesh[OutStaticMesh];
+                }
+                else
+                {
+                    OriginalToBakedMesh.Add(OutStaticMesh, OriginalSM);
+                }
+                */
+            }
+
+            // Now duplicate the Instanced Static Mesh Component
+            // Do we need a Hierarchical ISMC ?
+            UHierarchicalInstancedStaticMeshComponent * HISMC =
+                Cast<UHierarchicalInstancedStaticMeshComponent>( HoudiniAssetInstanceInputField->GetInstancedComponent( VariationIdx ) );
+
+            UInstancedStaticMeshComponent* DuplicatedComponent = nullptr;
+            if ( HISMC && !HISMC->IsPendingKill() )
+                DuplicatedComponent = NewObject< UHierarchicalInstancedStaticMeshComponent >(
+                    InstancedFoliageActor, UHierarchicalInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Public );
+            else
+                DuplicatedComponent = NewObject< UInstancedStaticMeshComponent >(
+                    InstancedFoliageActor, UInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Public );
+
+            if (!DuplicatedComponent || DuplicatedComponent->IsPendingKill())
+                continue;
+
+            // Add the Duplicated Instancer Component to the foliage Actor
+            InstancedFoliageActor->AddInstanceComponent(DuplicatedComponent);
+            DuplicatedComponent->SetStaticMesh(OutStaticMesh);
+
+            // Reapply the uproperties modified by attributes on the duplicated component
+            FHoudiniGeoPartObject HoudiniGeoPartObject = HoudiniAssetComponent->LocateGeoPartObject(OutStaticMesh);
+            FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( DuplicatedComponent, HoudiniGeoPartObject );
+
+            // Set the instances on the duplicated instancer component.
+            TArray< FTransform > ProcessedTransforms;
+            HoudiniAssetInstanceInputField->GetProcessedTransforms(ProcessedTransforms, VariationIdx);
+            UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
+                DuplicatedComponent,
+                ProcessedTransforms,
+                HoudiniAssetInstanceInputField->GetInstancedColors(VariationIdx) );
+
+            // Copy visibility.
+            DuplicatedComponent->SetVisibility(ISMC->IsVisible());
+
+            // Attache the Instancer to the foliage actor
+            DuplicatedComponent->AttachToComponent( InstancedFoliageActor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform );
+            DuplicatedComponent->RegisterComponent();
+            DuplicatedComponent->GetBodyInstance()->bAutoWeld = false;
+
+            // Create the Foliage type for the mesh and set the instances on the foliage mesh info
+            UFoliageType* FoliageType = InstancedFoliageActor->GetLocalFoliageTypeForMesh(OutStaticMesh);
+            if ( !FoliageType )
+            {
+                // Could not find an existing foliage type for that mesh, so create a new one now
+                InstancedFoliageActor->AddMesh( OutStaticMesh, &FoliageType, HoudiniAssetComponent->GeneratedFoliageDefaultSettings );
+            }
+
+            // Get the FoliageMeshInfo for this Foliage type so we can add the instance to it
+            FFoliageMeshInfo* FoliageMeshInfo = InstancedFoliageActor->FindMesh(FoliageType);
+            if ( !FoliageMeshInfo )
+                continue;
+
+            for (auto CurrentTransform : ProcessedTransforms)
+            {
+                FFoliageInstance FoliageInstance;
+                FoliageInstance.Location = CurrentTransform.GetLocation();
+                FoliageInstance.Rotation = CurrentTransform.GetRotation().Rotator();
+                FoliageInstance.DrawScale3D = CurrentTransform.GetScale3D();
+
+                FoliageMeshInfo->AddInstance(InstancedFoliageActor, FoliageType, FoliageInstance, DuplicatedComponent, false);
+            }
+
+            FoliageMeshInfo->Component->BuildTreeIfOutdated(true, true);
+
+            // Notify the user that we succesfully bake the instances to foliage
+            FString Notification = TEXT("Successfully baked ") + FString::FromInt(ProcessedTransforms.Num()) + TEXT(" instances of ") + OutStaticMesh->GetName() + TEXT(" to Foliage");
+            FHoudiniEngineUtils::CreateSlateNotification(Notification);
+        }
+    }
+
 #endif
 }
 

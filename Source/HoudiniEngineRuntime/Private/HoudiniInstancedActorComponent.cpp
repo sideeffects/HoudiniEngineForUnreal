@@ -116,6 +116,7 @@ UHoudiniInstancedActorComponent::SpawnInstancedActor( const FTransform& Instance
         GEditor->ClickLocation = InstancedTransform.GetTranslation();
         GEditor->ClickPlane = FPlane(GEditor->ClickLocation, FVector::UpVector);
         TArray<AActor*> NewActors = FLevelEditorViewportClient::TryPlacingActorFromObject(GetOwner()->GetLevel(), InstancedAsset, false, RF_Transactional, nullptr);
+
         if (NewActors.Num() > 0)
         {
             if ( NewActors[0] && !NewActors[0]->IsPendingKill() )
@@ -175,8 +176,7 @@ UHoudiniInstancedActorComponent::OnComponentCreated()
 
 void UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
     USceneComponent * Component,
-    const TArray< FTransform > & InstancedTransforms, const TArray<FLinearColor> & InstancedColors,
-    const FRotator & RotationOffset, const FVector & ScaleOffset)
+    const TArray< FTransform > & ProcessedTransforms, const TArray<FLinearColor> & InstancedColors )
 {
     UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( Component );
     UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( Component );
@@ -184,35 +184,6 @@ void UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
 
     if(!ISMC && !IAC && !MSIC)
         return;
-
-    TArray<FTransform> ProcessedTransforms;
-    ProcessedTransforms.Reserve( InstancedTransforms.Num() );
-    for( int32 InstanceIdx = 0; InstanceIdx < InstancedTransforms.Num(); ++InstanceIdx )
-    {
-        FTransform Transform = InstancedTransforms[ InstanceIdx ];
-
-        // Compute new rotation and scale.
-        FQuat TransformRotation = Transform.GetRotation() * RotationOffset.Quaternion();
-        FVector TransformScale3D = Transform.GetScale3D() * ScaleOffset;
-
-        // Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances.
-        // Happens in blueprint as well.
-        // We want to make sure the scale is not too small, but keep negative values! (Bug 90876)
-        if( FMath::Abs( TransformScale3D.X ) < HAPI_UNREAL_SCALE_SMALL_VALUE )
-            TransformScale3D.X = ( TransformScale3D.X > 0 ) ? HAPI_UNREAL_SCALE_SMALL_VALUE : -HAPI_UNREAL_SCALE_SMALL_VALUE;
-
-        if ( FMath::Abs( TransformScale3D.Y ) < HAPI_UNREAL_SCALE_SMALL_VALUE )
-            TransformScale3D.Y = ( TransformScale3D.Y > 0 ) ? HAPI_UNREAL_SCALE_SMALL_VALUE : -HAPI_UNREAL_SCALE_SMALL_VALUE;
-
-        if ( FMath::Abs( TransformScale3D.Z ) < HAPI_UNREAL_SCALE_SMALL_VALUE )
-            TransformScale3D.Z = ( TransformScale3D.Z > 0 ) ? HAPI_UNREAL_SCALE_SMALL_VALUE : -HAPI_UNREAL_SCALE_SMALL_VALUE;
-
-        Transform.SetRotation( TransformRotation );
-        Transform.SetScale3D( TransformScale3D );
-
-        if ( Transform.IsValid() )
-            ProcessedTransforms.Add( Transform );
-    }
 
     if( ISMC && !ISMC->IsPendingKill() )
     {
