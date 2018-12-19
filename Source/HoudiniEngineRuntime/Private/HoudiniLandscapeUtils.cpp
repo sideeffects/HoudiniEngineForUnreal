@@ -3766,7 +3766,7 @@ FHoudiniLandscapeUtils::RestoreLandscapeFromFile( ALandscapeProxy* LandscapeProx
             continue;
 
         FString CurrentLayerName = CurrentLayerInfo->LayerName.ToString();
-        FString ReimportFile = LandscapeProxy->EditorLayerSettings[LayerIndex].ReimportLayerFilePath;
+        ReimportFile = LandscapeProxy->EditorLayerSettings[LayerIndex].ReimportLayerFilePath;
 
         if (!ImportLandscapeData(LandscapeInfo, ReimportFile, CurrentLayerName, CurrentLayerInfo))
             HOUDINI_LOG_ERROR( TEXT("Could not restore the landscape actor's source height data.") );
