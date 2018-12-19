@@ -1021,7 +1021,7 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
     ];
 
     IDetailGroup& BakeGroup = DetailCategoryBuilder.AddGroup(TEXT("Baking"), LOCTEXT("Baking", "Baking"));
-    TSharedPtr< SButton > BakeToInputButton;
+    TSharedPtr< SButton > BakeToInputButton, BakeToFoliageButton;
     BakeGroup.AddWidgetRow()
     .WholeRowContent()
     [
@@ -1050,6 +1050,19 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
             .OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeToInput)
             .Text(LOCTEXT("BakeToInput", "Bake to Outliner Input"))
             .ToolTipText(LOCTEXT("BakeToInputTooltip", "Bakes single static mesh and sets it on the first outliner input actor and then disconnects it.\nNote: There must be one static mesh outliner input and one generated mesh."))
+        ]
+        +SHorizontalBox::Slot()
+        .AutoWidth()
+        .Padding( 2.0f, 0.0f )
+        .VAlign( VAlign_Center )
+        .HAlign( HAlign_Center )
+        [
+            SAssignNew(BakeToFoliageButton, SButton)
+            .VAlign( VAlign_Center )
+            .HAlign( HAlign_Center )
+            .OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeToFoliage)
+            .Text(LOCTEXT("BakeToFoliage", "Bake to Foliage"))
+            .ToolTipText(LOCTEXT("BakeToFoliageTooltip", "Bakes instanced static meshes to the foliage actor."))
         ]
     ];
 
@@ -1101,7 +1114,11 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
     ];
 
     BakeToInputButton->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([=] {
-        return FHoudiniEngineBakeUtils::GetCanComponentBakeToOutlinerInput(HoudiniAssetComponent);
+        return FHoudiniEngineBakeUtils::CanComponentBakeToOutlinerInput(HoudiniAssetComponent);
+    })));
+
+    BakeToFoliageButton->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([=] {
+        return FHoudiniEngineBakeUtils::CanComponentBakeToFoliage( HoudiniAssetComponent );
     })));
 
     IDetailGroup& HelpGroup = DetailCategoryBuilder.AddGroup(TEXT("Help"), LOCTEXT("Help", "Help and Debugging"));
@@ -1375,6 +1392,25 @@ FHoudiniAssetComponentDetails::OnBakeToInput()
         if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
         {
             FHoudiniEngineBakeUtils::BakeHoudiniActorToOutlinerInput( HoudiniAssetComponent );
+        }
+    }
+
+    return FReply::Handled();
+}
+
+FReply
+FHoudiniAssetComponentDetails::OnBakeToFoliage()
+{
+    if ( HoudiniAssetComponents.Num() > 0 )
+    {
+        UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetComponents[0];
+        if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+            return FReply::Handled();
+
+        // If component is not cooking or instancing, we can bake.
+        if (!HoudiniAssetComponent->IsInstantiatingOrCooking())
+        {
+            FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(HoudiniAssetComponent);
         }
     }
 

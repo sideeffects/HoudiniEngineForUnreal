@@ -94,10 +94,16 @@ public:
     static class UHoudiniAssetInput* GetInputForBakeHoudiniActorToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent );
 
     /** Returns true if the conditions are met for Bake to Input action ( 1 static mesh output and first input is world outliner with a static mesh) */
-    static bool GetCanComponentBakeToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent );
+    static bool CanComponentBakeToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent );
+
+    /** Return true if we can bake to foliage (we need at least 1 instancer component) **/
+    static bool CanComponentBakeToFoliage( const UHoudiniAssetComponent * HoudiniAssetComponent );
 
     /** Bakes output meshes and materials to packages and sets them on an input */
     static void BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * HoudiniAssetComponent );
+
+    /** Bakes output instanced meshes to the level's foliage actor */
+    static void BakeHoudiniActorToFoliage( UHoudiniAssetComponent * HoudiniAssetComponent );
 
     /** Bakes landscape (detach them from the asset), if OnlyBakeThisLandscape is null, all landscapes will be baked **/
     static bool BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, class ALandscape * OnlyBakeThisLandscape = nullptr );

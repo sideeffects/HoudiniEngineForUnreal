@@ -132,6 +132,9 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
         /** Handler for bake to outliner input action **/
         FReply OnBakeToInput();
 
+        /** Handler for bake to foliage action **/
+        FReply OnBakeToFoliage();
+
         /** Handler for change the bake folder button */
         void OnBakeFolderSelected( const FString& Folder );
 
