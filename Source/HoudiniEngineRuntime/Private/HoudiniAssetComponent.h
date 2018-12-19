@@ -238,9 +238,6 @@ public:
         /** Used by Blueprint baking; create temporary actor and necessary components to bake a blueprint. **/
         AActor * CloneComponentsAndCreateActor();
 
-        /** Returns all the instance input field for this asset **/
-        const TArray< UHoudiniAssetInstanceInputField * > GetAllInstanceInputFields() const;
-
         /** Return true if cooking is enabled for this component. **/
         bool IsCookingEnabled() const;
 
@@ -290,8 +287,12 @@ public:
 
         /** Return all the UHoudiniInstancedActorComponents that have content */
         TMap<const class UHoudiniInstancedActorComponent *, FHoudiniGeoPartObject> CollectAllInstancedActorComponents() const;
+
         /** Return all the UHoudiniMeshSplitInstancerComponent that have content */
         TMap<const class UHoudiniMeshSplitInstancerComponent *, FHoudiniGeoPartObject> CollectAllMeshSplitInstancerComponents() const;
+
+        /** Returns all the instance input field for this asset **/
+        const TArray< UHoudiniAssetInstanceInputField * > GetAllInstanceInputFields() const;
 
         /** Return true if global setting scale factors are different from the ones used for this component. **/
         bool CheckGlobalSettingScaleFactors() const;
