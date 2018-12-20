@@ -658,8 +658,7 @@ FHoudiniEngineEditor::SaveHIPFile()
             HOUDINI_LOG_MESSAGE(TEXT("Saved Houdini scene to %s"), *SaveFilenames[ 0 ] );
 
             // Get first path.
-            std::wstring HIPPath( *SaveFilenames[ 0 ] );
-            std::string HIPPathConverted( HIPPath.begin(), HIPPath.end() );
+			std::string HIPPathConverted( TCHAR_TO_UTF8(*SaveFilenames[0]) );
 
             // Save HIP file through Engine.
             FHoudiniApi::SaveHIPFile( FHoudiniEngine::Get().GetSession(), HIPPathConverted.c_str(), false );
