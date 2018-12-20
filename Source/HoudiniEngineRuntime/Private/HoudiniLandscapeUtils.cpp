@@ -1258,15 +1258,14 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
     }
 
     // Set the HF's parent OBJ's tranform to the Landscape's transform
-    LandscapeTransform.SetScale3D( FVector::OneVector );
-
     HAPI_TransformEuler HAPIObjectTransform;
-    FMemory::Memzero< HAPI_TransformEuler >( HAPIObjectTransform );
+    FMemory::Memzero< HAPI_TransformEuler >(HAPIObjectTransform);
+    LandscapeTransform.SetScale3D(FVector::OneVector);
     FHoudiniEngineUtils::TranslateUnrealTransform(LandscapeTransform, HAPIObjectTransform);
+    HAPIObjectTransform.position[1] = 0.0f;
 
     HAPI_NodeId ParentObjNodeId = FHoudiniEngineUtils::HapiGetParentNodeId( HeightfieldNodeId );
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetObjectTransform(
-        FHoudiniEngine::Get().GetSession(), ParentObjNodeId, &HAPIObjectTransform ), false );
+    FHoudiniApi::SetObjectTransform(FHoudiniEngine::Get().GetSession(), ParentObjNodeId, &HAPIObjectTransform);
 
     return bAllComponentCreated;
 }
@@ -1313,6 +1312,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
     TArray<float> HeightfieldFloatValues;
     HAPI_VolumeInfo HeightfieldVolumeInfo;
     FTransform LandscapeComponentTransform = LandscapeComponent->GetComponentTransform();
+
     FVector CenterOffset = FVector::ZeroVector;
     if ( !ConvertLandscapeDataToHeightfieldData(
         HeightData, XSize, YSize, Min, Max, LandscapeComponentTransform,
@@ -1725,35 +1725,6 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
     if ( IntHeightData.Num() != SizeInPoints )
         return false;
 
-    //--------------------------------------------------------------------------------------------------
-    // 1. Convert values to float
-    //--------------------------------------------------------------------------------------------------
-
-    // We need the ZMin / ZMax int16 value
-    uint16 IntMin = IntHeightData[ 0 ];
-    uint16 IntMax = IntMin;
-    for ( int32 n = 0; n < IntHeightData.Num(); n++ )
-    {
-        if ( IntHeightData[ n ] < IntMin )
-            IntMin = IntHeightData[ n ];
-        if ( IntHeightData[ n ] > IntMax )
-            IntMax = IntHeightData[ n ];
-    }
-
-    // The range in Digits
-    double DigitRange = (double)IntMax - (double)IntMin;
-
-    // Convert the min/max values from cm to meters
-    Min /= 100.0;
-    Max /= 100.0;
-
-    // The desired range in meter
-    double ZMin = (double)Min.Z; 
-    double FloatRange = (double)Max.Z - ZMin;
-
-    // The factor used to convert from unreal digit range to Houdini's float Range
-    double ZSpacing = ( DigitRange != 0.0 ) ? ( FloatRange / DigitRange ) : 0.0;
-
     // Use default unreal scaling for marshalling landscapes
     // A lot of precision will be lost in order to keep the same transform as the landscape input
     bool bUseDefaultUE4Scaling = false;
@@ -1761,12 +1732,32 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
     if (HoudiniRuntimeSettings && HoudiniRuntimeSettings->MarshallingLandscapesUseDefaultUnrealScaling)
         bUseDefaultUE4Scaling = HoudiniRuntimeSettings->MarshallingLandscapesUseDefaultUnrealScaling;
 
-    // Convert the Int data to Float
-    HeightfieldFloatValues.SetNumUninitialized( SizeInPoints );
+    //--------------------------------------------------------------------------------------------------
+    // 1. Convert values to float
+    //--------------------------------------------------------------------------------------------------
 
-    for ( int32 nY = 0; nY < HoudiniYSize; nY++ )
+
+    // Convert the min/max values from cm to meters
+    Min /= 100.0;
+    Max /= 100.0;
+
+    // Unreal's landscape uses 16bits precision and range from -256m to 256m with the default scale of 100.0
+    // To convert the uint16 values to float "metric" values, offset the int by 32768 to center it,
+    // then scale it
+
+    // Spacing used to convert from uint16 to meters
+    double ZSpacing = 512.0 / ((double)UINT16_MAX);
+    ZSpacing *= ((double)LandscapeTransform.GetScale3D().Z / 100.0);
+
+    // Center value in meters (Landscape ranges from [-255:257] meters at default scale
+    double ZCenterOffset = 32767;
+    double ZPositionOffset = LandscapeTransform.GetLocation().Z / 100.0f;
+    // Convert the Int data to Float
+    HeightfieldFloatValues.SetNumUninitialized(SizeInPoints);
+
+    for (int32 nY = 0; nY < HoudiniYSize; nY++)
     {
-        for ( int32 nX = 0; nX < HoudiniXSize; nX++ )
+        for (int32 nX = 0; nX < HoudiniXSize; nX++)
         {
             // We need to invert X/Y when reading the value from Unreal
             int32 nHoudini = nX + nY * HoudiniXSize;
@@ -1774,21 +1765,9 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
 
             // Convert the int values to meter
             // Unreal's digit value have a zero value of 32768
-            double DoubleValue = ( (double)IntHeightData[ nUnreal ] - (double)IntMin ) * ZSpacing + ZMin;
-            HeightfieldFloatValues[ nHoudini ] = (float)DoubleValue;
+            double DoubleValue = ((double)IntHeightData[nUnreal] - ZCenterOffset) * ZSpacing + ZPositionOffset;
+            HeightfieldFloatValues[nHoudini] = (float)DoubleValue;
         }
-    }
-    
-    // Verifying the converted ZMin / ZMax
-    float FloatMin = HeightfieldFloatValues[ 0 ];
-    float FloatMax = FloatMin;
-
-    for ( int32 n = 0; n < HeightfieldFloatValues.Num(); n++ )
-    {
-        if (HeightfieldFloatValues[n] < FloatMin)
-            FloatMin = HeightfieldFloatValues[n];
-        if (HeightfieldFloatValues[n] > FloatMax)
-            FloatMax = HeightfieldFloatValues[n];
     }
 
     //--------------------------------------------------------------------------------------------------
