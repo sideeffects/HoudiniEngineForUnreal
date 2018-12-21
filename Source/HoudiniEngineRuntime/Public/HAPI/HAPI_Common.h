@@ -948,6 +948,16 @@ struct HAPI_API HAPI_CookOptions
     /// set to false, geos will only be split by primitive type.
     HAPI_Bool splitGeosByGroup;
 
+    /// This toggle lets you enable the splitting by unique values
+    /// of a specified attribute. By default, this is false and
+    /// the geo be split as described above.
+    /// as described above. If this is set to true, and  splitGeosByGroup
+    /// set to false, mesh geos will be split on attribute values
+    /// The attribute name to split on must be created with HAPI_SetCustomString
+    /// and then the splitAttrSH handle set on the struct.
+    HAPI_Bool splitGeosByAttribute;
+    HAPI_StringHandle splitAttrSH;
+
     /// For meshes only, this is enforced by convexing the mesh. Use -1
     /// to avoid convexing at all and get some performance boost.
     int maxVerticesPerPrimitive;
