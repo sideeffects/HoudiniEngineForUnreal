@@ -353,6 +353,8 @@ FHoudiniEngine::StartupModule()
             CookOptions.clearErrorsAndWarnings = false;
             CookOptions.maxVerticesPerPrimitive = 3;
             CookOptions.splitGeosByGroup = false;
+            CookOptions.splitGeosByAttribute = false;
+            CookOptions.splitAttrSH = 0;
             CookOptions.refineCurveToLinear = true;
             CookOptions.handleBoxPartTypes = false;
             CookOptions.handleSpherePartTypes = false;
@@ -721,6 +723,8 @@ FHoudiniEngine::StartSession( HAPI_Session*& SessionPtr )
     CookOptions.clearErrorsAndWarnings = false;
     CookOptions.maxVerticesPerPrimitive = 3;
     CookOptions.splitGeosByGroup = false;
+    CookOptions.splitGeosByAttribute = false;
+    CookOptions.splitAttrSH = 0;
     CookOptions.refineCurveToLinear = true;
     CookOptions.handleBoxPartTypes = false;
     CookOptions.handleSpherePartTypes = false;
