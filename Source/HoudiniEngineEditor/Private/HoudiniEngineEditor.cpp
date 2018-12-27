@@ -61,6 +61,7 @@
 #include "Misc/FileHelper.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
+#include "Interfaces/IPluginManager.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -794,9 +795,14 @@ FHoudiniEngineEditor::GetHoudiniEnginePluginDir()
     if ( FPaths::DirectoryExists(EnginePluginDir) )
         return EnginePluginDir;
 
-    FString ProjectPluginDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine");
+	FString ProjectPluginDir = FPaths::ProjectPluginsDir() / TEXT("Runtime/HoudiniEngine");
     if ( FPaths::DirectoryExists(ProjectPluginDir) )
         return ProjectPluginDir;
+
+	TSharedPtr<IPlugin> HoudiniPlugin = IPluginManager::Get().FindPlugin(TEXT("HoudiniEngine"));
+	FString PluginBaseDir = HoudiniPlugin.IsValid() ? HoudiniPlugin->GetBaseDir() : EnginePluginDir;
+	if ( FPaths::DirectoryExists(PluginBaseDir) )
+		return PluginBaseDir;
 
     HOUDINI_LOG_WARNING(TEXT("Could not find the Houdini Engine plugin's directory"));
 
