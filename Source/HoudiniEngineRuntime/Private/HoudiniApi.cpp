@@ -525,6 +525,9 @@ FHoudiniApi::QueryNodeOutputConnectedCount = &FHoudiniApi::QueryNodeOutputConnec
 FHoudiniApi::QueryNodeOutputConnectedNodesFuncPtr
 FHoudiniApi::QueryNodeOutputConnectedNodes = &FHoudiniApi::QueryNodeOutputConnectedNodesEmptyStub;
 
+FHoudiniApi::RemoveCustomStringFuncPtr
+FHoudiniApi::RemoveCustomString = &FHoudiniApi::RemoveCustomStringEmptyStub;
+
 FHoudiniApi::RemoveMultiparmInstanceFuncPtr
 FHoudiniApi::RemoveMultiparmInstance = &FHoudiniApi::RemoveMultiparmInstanceEmptyStub;
 
@@ -593,6 +596,9 @@ FHoudiniApi::SetCurveKnots = &FHoudiniApi::SetCurveKnotsEmptyStub;
 
 FHoudiniApi::SetCurveOrdersFuncPtr
 FHoudiniApi::SetCurveOrders = &FHoudiniApi::SetCurveOrdersEmptyStub;
+
+FHoudiniApi::SetCustomStringFuncPtr
+FHoudiniApi::SetCustomString = &FHoudiniApi::SetCustomStringEmptyStub;
 
 FHoudiniApi::SetFaceCountsFuncPtr
 FHoudiniApi::SetFaceCounts = &FHoudiniApi::SetFaceCountsEmptyStub;
@@ -856,6 +862,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::QueryNodeInput = (QueryNodeInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_QueryNodeInput"));
 	FHoudiniApi::QueryNodeOutputConnectedCount = (QueryNodeOutputConnectedCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_QueryNodeOutputConnectedCount"));
 	FHoudiniApi::QueryNodeOutputConnectedNodes = (QueryNodeOutputConnectedNodesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_QueryNodeOutputConnectedNodes"));
+	FHoudiniApi::RemoveCustomString = (RemoveCustomStringFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RemoveCustomString"));
 	FHoudiniApi::RemoveMultiparmInstance = (RemoveMultiparmInstanceFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RemoveMultiparmInstance"));
 	FHoudiniApi::RemoveParmExpression = (RemoveParmExpressionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RemoveParmExpression"));
 	FHoudiniApi::RenameNode = (RenameNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenameNode"));
@@ -879,6 +886,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::SetCurveInfo = (SetCurveInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveInfo"));
 	FHoudiniApi::SetCurveKnots = (SetCurveKnotsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveKnots"));
 	FHoudiniApi::SetCurveOrders = (SetCurveOrdersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveOrders"));
+	FHoudiniApi::SetCustomString = (SetCustomStringFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCustomString"));
 	FHoudiniApi::SetFaceCounts = (SetFaceCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetFaceCounts"));
 	FHoudiniApi::SetGroupMembership = (SetGroupMembershipFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetGroupMembership"));
 	FHoudiniApi::SetHeightFieldData = (SetHeightFieldDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetHeightFieldData"));
@@ -1081,6 +1089,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::QueryNodeInput = &FHoudiniApi::QueryNodeInputEmptyStub;
 	FHoudiniApi::QueryNodeOutputConnectedCount = &FHoudiniApi::QueryNodeOutputConnectedCountEmptyStub;
 	FHoudiniApi::QueryNodeOutputConnectedNodes = &FHoudiniApi::QueryNodeOutputConnectedNodesEmptyStub;
+	FHoudiniApi::RemoveCustomString = &FHoudiniApi::RemoveCustomStringEmptyStub;
 	FHoudiniApi::RemoveMultiparmInstance = &FHoudiniApi::RemoveMultiparmInstanceEmptyStub;
 	FHoudiniApi::RemoveParmExpression = &FHoudiniApi::RemoveParmExpressionEmptyStub;
 	FHoudiniApi::RenameNode = &FHoudiniApi::RenameNodeEmptyStub;
@@ -1104,6 +1113,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::SetCurveInfo = &FHoudiniApi::SetCurveInfoEmptyStub;
 	FHoudiniApi::SetCurveKnots = &FHoudiniApi::SetCurveKnotsEmptyStub;
 	FHoudiniApi::SetCurveOrders = &FHoudiniApi::SetCurveOrdersEmptyStub;
+	FHoudiniApi::SetCustomString = &FHoudiniApi::SetCustomStringEmptyStub;
 	FHoudiniApi::SetFaceCounts = &FHoudiniApi::SetFaceCountsEmptyStub;
 	FHoudiniApi::SetGroupMembership = &FHoudiniApi::SetGroupMembershipEmptyStub;
 	FHoudiniApi::SetHeightFieldData = &FHoudiniApi::SetHeightFieldDataEmptyStub;
@@ -2307,6 +2317,13 @@ FHoudiniApi::QueryNodeOutputConnectedNodesEmptyStub(const HAPI_Session *session,
 
 
 HAPI_Result
+FHoudiniApi::RemoveCustomStringEmptyStub(const HAPI_Session * session, const int string_handle)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::RemoveMultiparmInstanceEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position)
 {
 	return HAPI_RESULT_FAILURE;
@@ -2462,6 +2479,13 @@ FHoudiniApi::SetCurveKnotsEmptyStub(const HAPI_Session * session, HAPI_NodeId no
 
 HAPI_Result
 FHoudiniApi::SetCurveOrdersEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * orders_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::SetCustomStringEmptyStub(const HAPI_Session * session, const char * string_value, int *handle_value)
 {
 	return HAPI_RESULT_FAILURE;
 }

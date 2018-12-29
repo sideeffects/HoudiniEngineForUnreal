@@ -204,6 +204,7 @@ public:
 	typedef HAPI_Result (*QueryNodeInputFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_to_query, int input_index, HAPI_NodeId * connected_node_id);
 	typedef HAPI_Result (*QueryNodeOutputConnectedCountFuncPtr)(const HAPI_Session *session, HAPI_NodeId node_id, int output_idx, HAPI_Bool into_subnets, HAPI_Bool through_dots, int * connected_count);
 	typedef HAPI_Result (*QueryNodeOutputConnectedNodesFuncPtr)(const HAPI_Session *session, HAPI_NodeId node_id, int output_idx, HAPI_Bool into_subnets, HAPI_Bool through_dots, HAPI_NodeId * connected_node_ids, int start, int length);
+	typedef HAPI_Result (*RemoveCustomStringFuncPtr)(const HAPI_Session * session, const int string_handle);
 	typedef HAPI_Result (*RemoveMultiparmInstanceFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position);
 	typedef HAPI_Result (*RemoveParmExpressionFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int index);
 	typedef HAPI_Result (*RenameNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * new_name);
@@ -227,6 +228,7 @@ public:
 	typedef HAPI_Result (*SetCurveInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_CurveInfo * info);
 	typedef HAPI_Result (*SetCurveKnotsFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const float * knots_array, int start, int length);
 	typedef HAPI_Result (*SetCurveOrdersFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * orders_array, int start, int length);
+	typedef HAPI_Result (*SetCustomStringFuncPtr)(const HAPI_Session * session, const char * string_value, int *handle_value);
 	typedef HAPI_Result (*SetFaceCountsFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * face_counts_array, int start, int length);
 	typedef HAPI_Result (*SetGroupMembershipFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, const int * membership_array, int start, int length);
 	typedef HAPI_Result (*SetHeightFieldDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const float * values_array, int start, int length);
@@ -426,6 +428,7 @@ public:
 	static QueryNodeInputFuncPtr QueryNodeInput;
 	static QueryNodeOutputConnectedCountFuncPtr QueryNodeOutputConnectedCount;
 	static QueryNodeOutputConnectedNodesFuncPtr QueryNodeOutputConnectedNodes;
+	static RemoveCustomStringFuncPtr RemoveCustomString;
 	static RemoveMultiparmInstanceFuncPtr RemoveMultiparmInstance;
 	static RemoveParmExpressionFuncPtr RemoveParmExpression;
 	static RenameNodeFuncPtr RenameNode;
@@ -449,6 +452,7 @@ public:
 	static SetCurveInfoFuncPtr SetCurveInfo;
 	static SetCurveKnotsFuncPtr SetCurveKnots;
 	static SetCurveOrdersFuncPtr SetCurveOrders;
+	static SetCustomStringFuncPtr SetCustomString;
 	static SetFaceCountsFuncPtr SetFaceCounts;
 	static SetGroupMembershipFuncPtr SetGroupMembership;
 	static SetHeightFieldDataFuncPtr SetHeightFieldData;
@@ -648,6 +652,7 @@ public:
 	static HAPI_Result QueryNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_to_query, int input_index, HAPI_NodeId * connected_node_id);
 	static HAPI_Result QueryNodeOutputConnectedCountEmptyStub(const HAPI_Session *session, HAPI_NodeId node_id, int output_idx, HAPI_Bool into_subnets, HAPI_Bool through_dots, int * connected_count);
 	static HAPI_Result QueryNodeOutputConnectedNodesEmptyStub(const HAPI_Session *session, HAPI_NodeId node_id, int output_idx, HAPI_Bool into_subnets, HAPI_Bool through_dots, HAPI_NodeId * connected_node_ids, int start, int length);
+	static HAPI_Result RemoveCustomStringEmptyStub(const HAPI_Session * session, const int string_handle);
 	static HAPI_Result RemoveMultiparmInstanceEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position);
 	static HAPI_Result RemoveParmExpressionEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int index);
 	static HAPI_Result RenameNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * new_name);
@@ -671,6 +676,7 @@ public:
 	static HAPI_Result SetCurveInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_CurveInfo * info);
 	static HAPI_Result SetCurveKnotsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const float * knots_array, int start, int length);
 	static HAPI_Result SetCurveOrdersEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * orders_array, int start, int length);
+	static HAPI_Result SetCustomStringEmptyStub(const HAPI_Session * session, const char * string_value, int *handle_value);
 	static HAPI_Result SetFaceCountsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * face_counts_array, int start, int length);
 	static HAPI_Result SetGroupMembershipEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, const int * membership_array, int start, int length);
 	static HAPI_Result SetHeightFieldDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const float * values_array, int start, int length);
