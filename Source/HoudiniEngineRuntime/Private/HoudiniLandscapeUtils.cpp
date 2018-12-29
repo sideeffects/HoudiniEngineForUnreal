@@ -405,7 +405,8 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     const int32& FinalXSize, const int32& FinalYSize,
     float FloatMin, float FloatMax,
     TArray< uint16 >& IntHeightData,
-    FTransform& LandscapeTransform )
+    FTransform& LandscapeTransform,
+    const bool& NoResize )
 {
     IntHeightData.Empty();
     LandscapeTransform.SetIdentity();
@@ -512,11 +513,15 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     // so we might need to pad/resample the heightfield data
     FVector LandscapeResizeFactor = FVector::OneVector;
     FVector LandscapePositionOffsetInPixels = FVector::ZeroVector;
-    if ( !FHoudiniLandscapeUtils::ResizeHeightDataForLandscape(
-        IntHeightData,
-        HoudiniXSize, HoudiniYSize, FinalXSize, FinalYSize,
-        LandscapeResizeFactor, LandscapePositionOffsetInPixels ) )
-        return false;
+    if (!NoResize)
+    {
+        // Try to resize the data
+        if ( !FHoudiniLandscapeUtils::ResizeHeightDataForLandscape(
+            IntHeightData,
+            HoudiniXSize, HoudiniYSize, FinalXSize, FinalYSize,
+            LandscapeResizeFactor, LandscapePositionOffsetInPixels))
+            return false;
+    }
 
     //--------------------------------------------------------------------------------------------------
     // 3. Calculating the proper transform for the landscape to be sized and positionned properly
@@ -543,7 +548,7 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     // We'll use the position from Houdini, but we will need to offset the Z Position to center the 
     // values properly as the data has been offset by the conversion to uint16
     FVector LandscapePosition = CurrentVolumeTransform.GetLocation();
-    LandscapePosition.Z = 0.0f;
+    //LandscapePosition.Z = 0.0f;
 
     // We need to calculate the position offset so that Houdini and Unreal have the same Zero position
     // In Unreal, zero has a height value of 32768.
@@ -584,7 +589,7 @@ bool FHoudiniLandscapeUtils::ConvertHeightfieldLayerToLandscapeLayer(
     const int32& HoudiniXSize, const int32& HoudiniYSize,
     const float& LayerMin, const float& LayerMax,
     const int32& LandscapeXSize, const int32& LandscapeYSize,
-    TArray<uint8>& LayerData )
+    TArray<uint8>& LayerData, const bool& NoResize )
 {
     // Convert the float data to uint8
     LayerData.SetNumUninitialized( HoudiniXSize * HoudiniYSize );
@@ -611,7 +616,10 @@ bool FHoudiniLandscapeUtils::ConvertHeightfieldLayerToLandscapeLayer(
         }
     }
 
-    // Finally, we need to resize the data to fit with the new landscape size
+    // Finally, resize the data to fit with the new landscape size if needed
+    if ( NoResize )
+        return true;
+
     return FHoudiniLandscapeUtils::ResizeLayerDataForLandscape(
         LayerData, HoudiniXSize, HoudiniYSize,
         LandscapeXSize, LandscapeYSize );
@@ -1214,19 +1222,14 @@ bool
 FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
     ALandscapeProxy* LandscapeProxy,
     TSet< ULandscapeComponent * >& LandscapeComponentArray, 
-    const HAPI_NodeId& InputMergeNodeId )
+    HAPI_NodeId& CreatedHeightfieldNodeId )
 {
     if ( LandscapeComponentArray.Num() <= 0 )
         return false;
 
     //--------------------------------------------------------------------------------------------------
-    //  Each selected component will be exported as a heightfield
+    //  Each selected component will be exported as tiled volumes in a single heightfield
     //--------------------------------------------------------------------------------------------------
-
-    // All the different Heightfield nodes will be created in the merge node's parent OBJ
-    HAPI_NodeId ParentNodeId = FHoudiniEngineUtils::HapiGetParentNodeId( InputMergeNodeId );
-    ParentNodeId = -1;
-
     FTransform LandscapeTransform = LandscapeProxy->GetTransform();
 
     //
@@ -1244,29 +1247,23 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
         if ( !LandscapeComponentArray.Contains( CurrentComponent ) )
             continue;
 
-        if ( !CreateHeightfieldFromLandscapeComponent( CurrentComponent, ParentNodeId, ComponentIdx, HeightfieldNodeId, HeightfieldeMergeId, MergeInputIndex ) )
+        if ( !CreateHeightfieldFromLandscapeComponent( CurrentComponent, ComponentIdx, HeightfieldNodeId, HeightfieldeMergeId, MergeInputIndex ) )
             bAllComponentCreated = false;
     }
 
     // Check that we have a valid id for the input Heightfield.
     if ( FHoudiniEngineUtils::IsHoudiniNodeValid( HeightfieldNodeId ) )
-    {
-        // Connect the newly create HF Node to the merge
-        if ( HAPI_RESULT_SUCCESS != FHoudiniApi::ConnectNodeInput(
-            FHoudiniEngine::Get().GetSession(), InputMergeNodeId, 0, HeightfieldNodeId, 0 ) )
-            return false;
-    }
+        CreatedHeightfieldNodeId = HeightfieldNodeId;
 
     // Set the HF's parent OBJ's tranform to the Landscape's transform
-    LandscapeTransform.SetScale3D( FVector::OneVector );
-
     HAPI_TransformEuler HAPIObjectTransform;
     FMemory::Memzero< HAPI_TransformEuler >( HAPIObjectTransform );
-    FHoudiniEngineUtils::TranslateUnrealTransform(LandscapeTransform, HAPIObjectTransform);
+    LandscapeTransform.SetScale3D( FVector::OneVector );
+    FHoudiniEngineUtils::TranslateUnrealTransform( LandscapeTransform, HAPIObjectTransform );
+    HAPIObjectTransform.position[ 1 ] = 0.0f;
 
     HAPI_NodeId ParentObjNodeId = FHoudiniEngineUtils::HapiGetParentNodeId( HeightfieldNodeId );
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetObjectTransform(
-        FHoudiniEngine::Get().GetSession(), ParentObjNodeId, &HAPIObjectTransform ), false );
+    FHoudiniApi::SetObjectTransform( FHoudiniEngine::Get().GetSession(), ParentObjNodeId, &HAPIObjectTransform );
 
     return bAllComponentCreated;
 }
@@ -1275,7 +1272,6 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
 bool
 FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
     ULandscapeComponent * LandscapeComponent,
-    const HAPI_NodeId& ParentNodeId,
     const int32& ComponentIndex,
     HAPI_NodeId& HeightFieldId,
     HAPI_NodeId& MergeId,
@@ -1313,6 +1309,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
     TArray<float> HeightfieldFloatValues;
     HAPI_VolumeInfo HeightfieldVolumeInfo;
     FTransform LandscapeComponentTransform = LandscapeComponent->GetComponentTransform();
+
     FVector CenterOffset = FVector::ZeroVector;
     if ( !ConvertLandscapeDataToHeightfieldData(
         HeightData, XSize, YSize, Min, Max, LandscapeComponentTransform,
@@ -1377,7 +1374,10 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
     AddLandscapeMaterialAttributesToVolume(HeightId, PartId, LandscapeMat, LandscapeHoleMat);
 
     // Add the tile attribute
-    AddLandscapetTileAttribute(HeightId, PartId, ComponentIndex);
+    AddLandscapeTileAttribute(HeightId, PartId, ComponentIndex);
+
+    // Add the landscape component extent attribute
+    AddLandscapeComponentExtentAttributes( HeightId, PartId, MinX, MaxX, MinY, MaxY );
 
     // Commit the height volume
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
@@ -1441,10 +1441,13 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
             continue;
 
         // Add the materials used
-        AddLandscapeMaterialAttributesToVolume(LayerVolumeNodeId, PartId, LandscapeMat, LandscapeHoleMat);
+        AddLandscapeMaterialAttributesToVolume( LayerVolumeNodeId, PartId, LandscapeMat, LandscapeHoleMat );
 
         // Add the tile attribute
-        AddLandscapetTileAttribute(LayerVolumeNodeId, PartId, ComponentIndex);
+        AddLandscapeTileAttribute( LayerVolumeNodeId, PartId, ComponentIndex );
+
+        // Add the landscape component extent attribute
+        AddLandscapeComponentExtentAttributes( LayerVolumeNodeId, PartId, MinX, MaxX, MinY, MaxY );
 
         // Commit the volume's geo
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
@@ -1476,7 +1479,10 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
         AddLandscapeMaterialAttributesToVolume( MaskId, PartId, LandscapeMat, LandscapeHoleMat );
 
         // Add the tile attribute
-        AddLandscapetTileAttribute(MaskId, PartId, ComponentIndex);
+        AddLandscapeTileAttribute( MaskId, PartId, ComponentIndex );
+
+        // Add the landscape component extent attribute
+        AddLandscapeComponentExtentAttributes( MaskId, PartId, MinX, MaxX, MinY, MaxY );
 
         // Commit the mask volume's geo
         HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
@@ -1725,35 +1731,6 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
     if ( IntHeightData.Num() != SizeInPoints )
         return false;
 
-    //--------------------------------------------------------------------------------------------------
-    // 1. Convert values to float
-    //--------------------------------------------------------------------------------------------------
-
-    // We need the ZMin / ZMax int16 value
-    uint16 IntMin = IntHeightData[ 0 ];
-    uint16 IntMax = IntMin;
-    for ( int32 n = 0; n < IntHeightData.Num(); n++ )
-    {
-        if ( IntHeightData[ n ] < IntMin )
-            IntMin = IntHeightData[ n ];
-        if ( IntHeightData[ n ] > IntMax )
-            IntMax = IntHeightData[ n ];
-    }
-
-    // The range in Digits
-    double DigitRange = (double)IntMax - (double)IntMin;
-
-    // Convert the min/max values from cm to meters
-    Min /= 100.0;
-    Max /= 100.0;
-
-    // The desired range in meter
-    double ZMin = (double)Min.Z; 
-    double FloatRange = (double)Max.Z - ZMin;
-
-    // The factor used to convert from unreal digit range to Houdini's float Range
-    double ZSpacing = ( DigitRange != 0.0 ) ? ( FloatRange / DigitRange ) : 0.0;
-
     // Use default unreal scaling for marshalling landscapes
     // A lot of precision will be lost in order to keep the same transform as the landscape input
     bool bUseDefaultUE4Scaling = false;
@@ -1761,6 +1738,26 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
     if (HoudiniRuntimeSettings && HoudiniRuntimeSettings->MarshallingLandscapesUseDefaultUnrealScaling)
         bUseDefaultUE4Scaling = HoudiniRuntimeSettings->MarshallingLandscapesUseDefaultUnrealScaling;
 
+    //--------------------------------------------------------------------------------------------------
+    // 1. Convert values to float
+    //--------------------------------------------------------------------------------------------------
+
+
+    // Convert the min/max values from cm to meters
+    Min /= 100.0;
+    Max /= 100.0;
+
+    // Unreal's landscape uses 16bits precision and range from -256m to 256m with the default scale of 100.0
+    // To convert the uint16 values to float "metric" values, offset the int by 32768 to center it,
+    // then scale it
+
+    // Spacing used to convert from uint16 to meters
+    double ZSpacing = 512.0 / ((double)UINT16_MAX);
+    ZSpacing *= ( (double)LandscapeTransform.GetScale3D().Z / 100.0 );
+
+    // Center value in meters (Landscape ranges from [-255:257] meters at default scale
+    double ZCenterOffset = 32767;
+    double ZPositionOffset = LandscapeTransform.GetLocation().Z / 100.0f;
     // Convert the Int data to Float
     HeightfieldFloatValues.SetNumUninitialized( SizeInPoints );
 
@@ -1774,21 +1771,9 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
 
             // Convert the int values to meter
             // Unreal's digit value have a zero value of 32768
-            double DoubleValue = ( (double)IntHeightData[ nUnreal ] - (double)IntMin ) * ZSpacing + ZMin;
-            HeightfieldFloatValues[ nHoudini ] = (float)DoubleValue;
+            double DoubleValue = ((double)IntHeightData[nUnreal] - ZCenterOffset) * ZSpacing + ZPositionOffset;
+            HeightfieldFloatValues[nHoudini] = (float)DoubleValue;
         }
-    }
-    
-    // Verifying the converted ZMin / ZMax
-    float FloatMin = HeightfieldFloatValues[ 0 ];
-    float FloatMax = FloatMin;
-
-    for ( int32 n = 0; n < HeightfieldFloatValues.Num(); n++ )
-    {
-        if (HeightfieldFloatValues[n] < FloatMin)
-            FloatMin = HeightfieldFloatValues[n];
-        if (HeightfieldFloatValues[n] > FloatMax)
-            FloatMax = HeightfieldFloatValues[n];
     }
 
     //--------------------------------------------------------------------------------------------------
@@ -2719,7 +2704,8 @@ bool FHoudiniLandscapeUtils::AddLandscapeMeshIndicesAndMaterialsAttribute(
     return true;
 }
 
-bool FHoudiniLandscapeUtils::AddLandscapetTileAttribute( const HAPI_NodeId& NodeId, const HAPI_PartId& PartId, const int32& TileIdx )
+bool FHoudiniLandscapeUtils::AddLandscapeTileAttribute(
+    const HAPI_NodeId& NodeId, const HAPI_PartId& PartId, const int32& TileIdx )
 {
     HAPI_AttributeInfo AttributeInfoTileIndex;
     FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoTileIndex );
@@ -2738,6 +2724,116 @@ bool FHoudiniLandscapeUtils::AddLandscapetTileAttribute( const HAPI_NodeId& Node
         FHoudiniEngine::Get().GetSession(),
         NodeId, PartId, "tile", &AttributeInfoTileIndex,
         (const int *)&TileIdx, 0, AttributeInfoTileIndex.count ), false );
+
+    return true;
+}
+
+// Add the landscape component extent attribute
+bool FHoudiniLandscapeUtils::AddLandscapeComponentExtentAttributes(
+    const HAPI_NodeId& NodeId, const HAPI_PartId& PartId,
+    const int32& MinX, const int32& MaxX,
+    const int32& MinY, const int32& MaxY )
+{
+    // Create an AttributeInfo
+    HAPI_AttributeInfo AttributeInfo;
+    FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfo);
+    AttributeInfo.count = 1;
+    AttributeInfo.tupleSize = 1;
+    AttributeInfo.exists = true;
+    AttributeInfo.owner = HAPI_ATTROWNER_PRIM;
+    AttributeInfo.storage = HAPI_STORAGETYPE_INT;
+    AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    // Add the landscape_component_min_X primitive attribute
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId,    PartId,    "landscape_component_min_X", &AttributeInfo ), false);
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, PartId, "landscape_component_min_X", &AttributeInfo,
+        (const int *)&MinX, 0, AttributeInfo.count), false);
+
+    // Add the landscape_component_max_X primitive attribute
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, PartId, "landscape_component_max_X", &AttributeInfo), false);
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, PartId, "landscape_component_max_X", &AttributeInfo,
+        (const int *)&MaxX, 0, AttributeInfo.count), false);
+
+    // Add the landscape_component_min_Y primitive attribute
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, PartId, "landscape_component_min_Y", &AttributeInfo), false);
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, PartId, "landscape_component_min_Y", &AttributeInfo,
+        (const int *)&MinY, 0, AttributeInfo.count), false);
+
+    // Add the landscape_component_max_Y primitive attribute
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, PartId, "landscape_component_max_Y", &AttributeInfo), false);
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, PartId, "landscape_component_max_Y", &AttributeInfo,
+        (const int *)&MaxY, 0, AttributeInfo.count), false);
+
+    return true;
+}
+
+// Read the landscape component extent attribute from a heightfield
+bool FHoudiniLandscapeUtils::GetLandscapeComponentExtentAttributes(
+    const FHoudiniGeoPartObject& HoudiniGeoPartObject,
+    int32& MinX, int32& MaxX,
+    int32& MinY, int32& MaxY )
+{
+    // If we dont have minX, we likely dont have the others too
+    if ( !FHoudiniEngineUtils::HapiCheckAttributeExists(
+        HoudiniGeoPartObject, "landscape_component_min_X", HAPI_ATTROWNER_PRIM) )
+        return false;
+
+    // Create an AttributeInfo
+    HAPI_AttributeInfo AttributeInfo;
+    FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfo);
+
+    // Get MinX
+    TArray<int32> IntData;
+    if ( !FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+        HoudiniGeoPartObject, "landscape_component_min_X", AttributeInfo, IntData, 1, HAPI_ATTROWNER_PRIM ) )
+        return false;
+
+    if ( IntData.Num() > 0 )
+        MinX = IntData[0];
+
+    // Get MaxX
+    if (!FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+        HoudiniGeoPartObject, "landscape_component_max_X", AttributeInfo, IntData, 1, HAPI_ATTROWNER_PRIM))
+        return false;
+
+    if (IntData.Num() > 0)
+        MaxX = IntData[0];
+
+    // Get MinY
+    if (!FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+        HoudiniGeoPartObject, "landscape_component_min_Y", AttributeInfo, IntData, 1, HAPI_ATTROWNER_PRIM))
+        return false;
+
+    if (IntData.Num() > 0)
+        MinY = IntData[0];
+
+    // Get MaxX
+    if (!FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+        HoudiniGeoPartObject, "landscape_component_max_Y", AttributeInfo, IntData, 1, HAPI_ATTROWNER_PRIM))
+        return false;
+
+    if (IntData.Num() > 0)
+        MaxY = IntData[0];
 
     return true;
 }
@@ -2863,7 +2959,14 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
             NumQuadsPerLandscapeSection))
             continue;
 
-        // Try to see if we have an input landscape that matches the size of tyhe current HGPO
+        // See if the Heightfield has component extent attributes
+        // This would mean that we'd need to update parts of the landscape only 
+        bool UpdateLandscapeComponent = false;
+        int32 MinX, MaxX, MinY, MaxY;
+        bool HasComponentExtent = GetLandscapeComponentExtentAttributes(
+            *CurrentHeightfield, MinX, MaxX, MinY, MaxY);
+
+        // Try to see if we have an input landscape that matches the size of the current HGPO
         bool UpdatingInputLandscape = false;
         for (int nIdx = 0; nIdx < InputLandscapeToUpdate.Num(); nIdx++)
         {
@@ -2881,15 +2984,38 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
             int32 InputMaxY = 0;
             CurrentInfo->GetLandscapeExtent(InputMinX, InputMinY, InputMaxX, InputMaxY);
 
-            // If the size matches, we'll try to update that input landscape
-            if ((InputMaxX - InputMinX + 1) != UnrealXSize || (InputMaxY - InputMinY + 1) != UnrealYSize)
+            // If the full size matches, we'll update that input landscape
+            bool SizeMatch = false;
+            if ((InputMaxX - InputMinX + 1) == UnrealXSize && (InputMaxY - InputMinY + 1) == UnrealYSize)
+                SizeMatch = true;
+
+            /*
+            // If not, see if we could update that landscape's components instead of the full landscape
+            if ( !SizeMatch && HasComponentExtent )
+            {
+                if ( (MinX >= InputMinX) && (MinX <= InputMaxX)
+                    && (MinY >= InputMinY) && (MinY <= InputMaxY)
+                    && (MaxX >= InputMinX) && (MaxX <= InputMaxX)
+                    && (MaxY >= InputMinY) && (MaxY <= InputMaxY) )
+                {
+                    // Try to update this landscape component data
+                    SizeMatch = true;
+                    UpdateLandscapeComponent = true;
+                }
+            }
+            */
+
+            // HF and landscape don't match, try another one
+            if ( !SizeMatch )
                 continue;
 
             // Replace FoundLandscape by that input landscape
             FoundLandscape = CurrentInputLandscape;
 
+            // If we're not updating part of that landscape via components, 
             // Remove that landscape from the input array so we dont try to update it twice
-            InputLandscapeToUpdate.RemoveAt(nIdx);
+            if ( !UpdateLandscapeComponent )
+                InputLandscapeToUpdate.RemoveAt(nIdx);
 
             UpdatingInputLandscape = true;
         }
@@ -2914,8 +3040,27 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                 int32 PrevMaxY = 0;
                 PreviousInfo->GetLandscapeExtent(PrevMinX, PrevMinY, PrevMaxX, PrevMaxY);
 
-                if ( ( PrevMaxX - PrevMinX + 1 ) == UnrealXSize
-                    && ( PrevMaxY - PrevMinY + 1 ) == UnrealYSize )
+                bool SizeMatch = false;
+                if ( (PrevMaxX - PrevMinX + 1) == UnrealXSize
+                    && (PrevMaxY - PrevMinY + 1) == UnrealYSize )
+                    SizeMatch = true;
+
+                /*
+                // If not, see if we could update that landscape's component
+                if (!SizeMatch && HasComponentExtent)
+                {
+                    if ((MinX >= PrevMinX) && (MinX <= PrevMaxX)
+                        && (MinY >= PrevMinY) && (MinY <= PrevMaxY)
+                        && (MaxX >= PrevMinX) && (MaxX <= PrevMaxX)
+                        && (MaxY >= PrevMinY) && (MaxY <= PrevMaxY))
+                    {
+                        // Try to update this landscape component data
+                        SizeMatch = true;
+                        UpdateLandscapeComponent = true;
+                    }
+                }
+                */
+                if ( SizeMatch )
                 {
                     // We can reuse the existing actor
                     bLandscapeNeedsRecreate = false;
@@ -3001,13 +3146,18 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                     FloatValues, VolumeInfo,
                     UnrealXSize, UnrealYSize,
                     FloatMin, FloatMax,
-                    IntHeightData, LandscapeTransform ) )
+                    IntHeightData, LandscapeTransform,
+                    UpdateLandscapeComponent ) )
                     continue;
 
-                LandscapeEdit.SetHeightData(0, 0, UnrealXSize - 1, UnrealYSize - 1, IntHeightData.GetData(), 0, true);
+                if ( !UpdateLandscapeComponent )
+                    LandscapeEdit.SetHeightData(0, 0, UnrealXSize - 1, UnrealYSize - 1, IntHeightData.GetData(), 0, true);
+                else
+                    LandscapeEdit.SetHeightData(MinX, MinY, MaxX, MaxY, IntHeightData.GetData(), 0, true);
 
                 // Set the landscape Transform
-                FoundLandscape->SetActorTransform(LandscapeTransform);
+                if ( !UpdateLandscapeComponent )
+                    FoundLandscape->SetActorRelativeTransform(LandscapeTransform);
             }
 
             // Look for all the layers/masks corresponding to the current heightfield
@@ -3066,7 +3216,8 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                     FloatLayerData, LayerVolumeInfo.yLength, LayerVolumeInfo.xLength,
                     LayerMin, LayerMax,
                     UnrealXSize, UnrealYSize,
-                    currentLayerInfo.LayerData ) )
+                    currentLayerInfo.LayerData,
+                    UpdateLandscapeComponent ) )
                     continue;
 
                 // Store the data used to convert the Houdini float values to int in the DebugColor
@@ -3078,7 +3229,10 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                 currentLayerInfo.LayerInfo->LayerUsageDebugColor.A = PI;
 
                 // Update the layer on the heightfield
-                LandscapeEdit.SetAlphaData( currentLayerInfo.LayerInfo, 0, 0, UnrealXSize - 1, UnrealYSize - 1, currentLayerInfo.LayerData.GetData(), 0 );
+                if ( !UpdateLandscapeComponent )
+                    LandscapeEdit.SetAlphaData( currentLayerInfo.LayerInfo, 0, 0, UnrealXSize - 1, UnrealYSize - 1, currentLayerInfo.LayerData.GetData(), 0 );
+                else
+                    LandscapeEdit.SetAlphaData( currentLayerInfo.LayerInfo, MinX, MinY, MaxX, MaxY, currentLayerInfo.LayerData.GetData(), 0 );
 
                 if ( currentLayerInfo.LayerInfo && currentLayerInfo.LayerName.ToString().Equals( TEXT("Visibility"), ESearchCase::IgnoreCase ) )
                 {

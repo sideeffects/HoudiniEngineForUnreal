@@ -288,6 +288,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void SetScaleY(float Value, int32 AtIndex);
         void SetScaleZ(float Value, int32 AtIndex);
 
+        bool IsLandscapeUpdateNeededOnTransformChange() const;
+
 #if WITH_EDITOR
 
         /** Called when change of input actor selection. **/
@@ -594,6 +596,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Is the transform UI expanded ? **/
         TArray< bool > TransformUIExpanded;
+
+        /** Transform used by the input landscape **/
+        FTransform InputLandscapeTransform;
 
         /** Flags used by this input. **/
         union
