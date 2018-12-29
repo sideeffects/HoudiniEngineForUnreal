@@ -59,8 +59,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const TArray< FLandscapeImportLayerInfo >& ImportLayerInfos,
             const FTransform& LandscapeTransform,
             const int32& XSize, const int32& YSize,
-            const int32& NumSectionPerLandscapeComponent, const int32& NumQuadsPerLandscapeSection,
-            UMaterialInterface* LandscapeMaterial, UMaterialInterface* LandscapeHoleMaterial );
+            const int32& NumSectionPerLandscapeComponent,
+            const int32& NumQuadsPerLandscapeSection,
+            UMaterialInterface* LandscapeMaterial,
+            UMaterialInterface* LandscapeHoleMaterial );
 
         // Returns the materials assigned to the heightfield
         static void GetHeightFieldLandscapeMaterials(
@@ -122,7 +124,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const int32& FinalXSize, const int32& FinalYSize,
             float FloatMin, float FloatMax,
             TArray< uint16 >& IntHeightData,
-            FTransform& LandscapeTransform );
+            FTransform& LandscapeTransform,
+            const bool& NoResize = false);
 
         // Converts the Houdini float layer values to Unreal uint8
         static bool ConvertHeightfieldLayerToLandscapeLayer(
@@ -130,7 +133,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const int32& LayerXSize, const int32& LayerYSize,
             const float& LayerMin, const float& LayerMax,
             const int32& LandscapeXSize, const int32& LandscapeYSize,
-            TArray< uint8 >& LayerData );
+            TArray< uint8 >& LayerData, const bool& NoResize = false );
 
 
         // Calculates the closest "unreal friendly" size given a heighfield volume's size
@@ -168,12 +171,11 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         static bool CreateHeightfieldFromLandscapeComponentArray(
             ALandscapeProxy* LandscapeProxy,
             TSet< ULandscapeComponent * >& LandscapeComponentArray,
-            const HAPI_NodeId& InputMergeNodeId );
+            HAPI_NodeId& CreatedHeightfieldNodeId );
 
         // Creates a Heightfield from a Landscape Component
         static bool CreateHeightfieldFromLandscapeComponent(
             ULandscapeComponent * LandscapeComponent,
-            const HAPI_NodeId& ParentNodeId,
             const int32& ComponentIndex,
             HAPI_NodeId& HeightFieldId,
             HAPI_NodeId& MergeId,
@@ -247,19 +249,24 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
 
         // Creates an unlocked heightfield input node
         static bool CreateHeightfieldInputNode(
-            const HAPI_NodeId& ParentNodeId, const FString& NodeName, const int32& XSize, const int32& YSize,
-            HAPI_NodeId& HeightfieldNodeId, HAPI_NodeId& HeightNodeId, HAPI_NodeId& MaskNodeId, HAPI_NodeId& MergeNodeId );
+            const HAPI_NodeId& ParentNodeId, const FString& NodeName,
+            const int32& XSize, const int32& YSize,
+            HAPI_NodeId& HeightfieldNodeId, HAPI_NodeId& HeightNodeId,
+            HAPI_NodeId& MaskNodeId, HAPI_NodeId& MergeNodeId );
 
         // Landscape nodes clean up
-        static bool DestroyLandscapeAssetNode( HAPI_NodeId& ConnectedAssetId, TArray<HAPI_NodeId>& CreatedInputAssetIds );
+        static bool DestroyLandscapeAssetNode(
+            HAPI_NodeId& ConnectedAssetId, TArray<HAPI_NodeId>& CreatedInputAssetIds );
 
         // Returns an array containing the names of the non weightblended layers
         static bool GetNonWeightBlendedLayerNames( 
             const FHoudiniGeoPartObject& HeightfieldGeoPartObject, TArray<FString>& NonWeightBlendedLayerNames );
 
-        static void GetLandscapeActorBounds( ALandscape* Landscape, FVector& Origin, FVector& Extents );
+        static void GetLandscapeActorBounds(
+            ALandscape* Landscape, FVector& Origin, FVector& Extents );
 
-        static void GetLandscapeProxyBounds( ALandscapeProxy* LandscapeProxy, FVector& Origin, FVector& Extents );
+        static void GetLandscapeProxyBounds(
+            ALandscapeProxy* LandscapeProxy, FVector& Origin, FVector& Extents );
 
         static bool AddLandscapeMaterialAttributesToVolume(
             const HAPI_NodeId& VolumeNodeId, const HAPI_PartId& PartId,
@@ -268,9 +275,11 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         //--------------------------------------------------------------------------------------------------
         // Input Landscape caching
         //--------------------------------------------------------------------------------------------------
-        static bool BackupLandscapeToFile( const FString& BaseName, ALandscapeProxy* Landscape );
+        static bool BackupLandscapeToFile(
+            const FString& BaseName, ALandscapeProxy* Landscape );
 
-        static bool RestoreLandscapeFromFile( ALandscapeProxy* LandscapeProxy );
+        static bool RestoreLandscapeFromFile(
+            ALandscapeProxy* LandscapeProxy );
 
         static bool ImportLandscapeData(
             ULandscapeInfo* LandscapeInfo, const FString& Filename, const FString& LayerName, ULandscapeLayerInfoObject* LayerInfoObject = nullptr);
@@ -292,22 +301,28 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
 #endif
 
         // Add the Position attribute extracted from a landscape
-        static bool AddLandscapePositionAttribute( const HAPI_NodeId& NodeId, const TArray< FVector >& LandscapePositionArray );
+        static bool AddLandscapePositionAttribute(
+            const HAPI_NodeId& NodeId, const TArray< FVector >& LandscapePositionArray );
 
         // Add the Normal attribute extracted from a landscape
-        static bool AddLandscapeNormalAttribute( const HAPI_NodeId& NodeId, const TArray< FVector >& LandscapeNormalArray );
+        static bool AddLandscapeNormalAttribute(
+            const HAPI_NodeId& NodeId, const TArray< FVector >& LandscapeNormalArray );
 
         // Add the UV attribute extracted from a landscape
-        static bool AddLandscapeUVAttribute( const HAPI_NodeId& NodeId, const TArray< FVector >& LandscapeUVArray );
+        static bool AddLandscapeUVAttribute(
+            const HAPI_NodeId& NodeId, const TArray< FVector >& LandscapeUVArray );
 
         // Add the Component Vertex Index attribute extracted from a landscape
-        static bool AddLandscapeComponentVertexIndicesAttribute( const HAPI_NodeId& NodeId, const TArray<FIntPoint>& LandscapeComponentVertexIndicesArray );
+        static bool AddLandscapeComponentVertexIndicesAttribute(
+            const HAPI_NodeId& NodeId, const TArray<FIntPoint>& LandscapeComponentVertexIndicesArray );
 
         // Add the Component Name attribute extracted from a landscape
-        static bool AddLandscapeComponentNameAttribute(const HAPI_NodeId& NodeId, const TArray<const char *>& LandscapeComponentNameArray );
+        static bool AddLandscapeComponentNameAttribute(
+            const HAPI_NodeId& NodeId, const TArray<const char *>& LandscapeComponentNameArray );
 
         // Add the lightmap color attribute extracted from a landscape
-        static bool AddLandscapeLightmapColorAttribute( const HAPI_NodeId& NodeId, const TArray<FLinearColor>& LandscapeLightmapValues );
+        static bool AddLandscapeLightmapColorAttribute(
+            const HAPI_NodeId& NodeId, const TArray<FLinearColor>& LandscapeLightmapValues );
 
         // Creates and add the vertex indices and face materials attribute from a landscape
         static bool AddLandscapeMeshIndicesAndMaterialsAttribute(
@@ -317,11 +332,25 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const TSet< ULandscapeComponent * >& SelectedComponents );
 
         // Add the tile index primitive attribute
-        static bool AddLandscapetTileAttribute( const HAPI_NodeId& NodeId, const HAPI_PartId& PartId, const int32& TileIdx );
+        static bool AddLandscapeTileAttribute(
+            const HAPI_NodeId& NodeId, const HAPI_PartId& PartId, const int32& TileIdx );
+
+        // Add the landscape component extent attribute
+        static bool AddLandscapeComponentExtentAttributes(
+            const HAPI_NodeId& NodeId, const HAPI_PartId& PartId,
+            const int32& MinX, const int32& MaxX,
+            const int32& MinY, const int32& MaxY );
+
+        // Add the landscape component extent attribute
+        static bool GetLandscapeComponentExtentAttributes(
+            const FHoudiniGeoPartObject& HoudiniGeoPartObject,
+            int32& MinX, int32& MaxX,
+            int32& MinY, int32& MaxY );
 
 #if WITH_EDITOR
         // Add the global (detail) material and hole material attribute from a landscape
-        static bool AddLandscapeGlobalMaterialAttribute( const HAPI_NodeId& NodeId, ALandscapeProxy * LandscapeProxy );
+        static bool AddLandscapeGlobalMaterialAttribute(
+            const HAPI_NodeId& NodeId, ALandscapeProxy * LandscapeProxy );
 #endif
 
         // Helper functions to extract color from a texture

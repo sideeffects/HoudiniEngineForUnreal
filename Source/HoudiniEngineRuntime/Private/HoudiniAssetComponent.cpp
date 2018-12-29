@@ -2865,6 +2865,23 @@ UHoudiniAssetComponent::CheckedUploadTransform()
     // If transforms trigger cooks, we need to schedule a cook.
     if ( bTransformChangeTriggersCooks )
     {
+        // If we have landscape inputs in auto select components mode, we need to mark them
+        // as changed so to recommit the landscape properly with updated transforms
+        bool NeedLandscapeUpdate = false;
+        for (int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx)
+        {
+            // Retrieve input at this index.
+            UHoudiniAssetInput * AssetInput = Inputs[InputIdx];
+            if (!AssetInput || AssetInput->IsPendingKill())
+                continue;
+
+            if (!AssetInput->IsLandscapeUpdateNeededOnTransformChange())
+                continue;
+
+            NeedLandscapeUpdate = true;
+            AssetInput->MarkChanged();
+        }
+
         if (bLoadedComponent && !FHoudiniEngineUtils::IsValidNodeId(AssetId) && !bAssetIsBeingInstantiated)
             StartTaskAssetCookingManual();
 
@@ -4863,8 +4880,8 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
         // Add the new landscape to the valid list to avoid its destruction if we updated it
         ValidLandscapes.Add( NewLandscape );
 
-        // Attach the new landscapes to ourselves if we dont already own it        
-        if ( NewLandscape->GetRootComponent() != this )
+        // Attach the new landscapes to ourselves if we dont already own it
+        if ( GetAttachChildren().Find( NewLandscape->GetRootComponent() ) == INDEX_NONE )
             NewLandscape->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 
         FHoudiniGeoPartObject Heightfield = IterLandscape.Key();
