@@ -277,6 +277,7 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
     TransformUIExpanded[ 0 ] = false;
     SkeletonInputObjects.SetNumUninitialized(1);
     SkeletonInputObjects[0] = nullptr;
+    InputLandscapeTransform = FTransform::Identity;
 }
 
 UHoudiniAssetInput *
@@ -1282,6 +1283,9 @@ UHoudiniAssetInput::Serialize( FArchive & Ar )
         for( int32 n = 0; n < InputTransforms.Num(); n++ )
             InputTransforms[ n ] = FTransform::Identity;
     }
+
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INPUT_LANDSCAPE_TRANSFORM )
+        Ar << InputLandscapeTransform;
 }
 
 void
@@ -1830,6 +1834,7 @@ UHoudiniAssetInput::OnLandscapeActorSelected( AActor * Actor )
 
         // Store new landscape.
         InputLandscapeProxy = LandscapeProxy;
+        InputLandscapeTransform = LandscapeProxy->ActorToWorld();
     }
     else
     {
@@ -1840,6 +1845,7 @@ UHoudiniAssetInput::OnLandscapeActorSelected( AActor * Actor )
         Modify();
 
         InputLandscapeProxy = nullptr;
+        InputLandscapeTransform = FTransform::Identity;
     }
 
     MarkChanged();
@@ -2785,6 +2791,7 @@ UHoudiniAssetInput::CheckStateChangedUpdateInputLandscape( ECheckBoxState NewSta
             // We need to cache the input landscape to a file
             //FString BaseName = TEXT("/Game/HoudiniEngine/Temp/LandscapeBak");
             FHoudiniLandscapeUtils::BackupLandscapeToFile( BackupBaseName, InputLandscapeProxy );
+            InputLandscapeTransform = InputLandscapeProxy->ActorToWorld();
         }
         else
         {
@@ -2796,6 +2803,9 @@ UHoudiniAssetInput::CheckStateChangedUpdateInputLandscape( ECheckBoxState NewSta
 
             // Restore the input landscape's backup data
             FHoudiniLandscapeUtils::RestoreLandscapeFromFile( InputLandscapeProxy );
+
+            // Reapply the source Landscape's transform
+            InputLandscapeProxy->SetActorTransform(InputLandscapeTransform);
         }
     }
 
@@ -3899,6 +3909,18 @@ UHoudiniAssetInput::HasSockets() const
     }
 
     return false;
+}
+
+bool
+UHoudiniAssetInput::IsLandscapeUpdateNeededOnTransformChange() const
+{
+    if ( GetChoiceIndex() != EHoudiniAssetInputType::LandscapeInput )
+        return false;
+
+    if ( !bLandscapeAutoSelectComponent || !bLandscapeExportSelectionOnly )
+        return false;
+
+    return true;
 }
 
 #undef LOCTEXT_NAMESPACE

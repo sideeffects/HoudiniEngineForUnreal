@@ -2440,42 +2440,23 @@ FHoudiniEngineUtils::HapiCreateInputNodeForLandscape(
     //--------------------------------------------------------------------------------------------------
     if ( bExportAsHeighfield )
     {
-        // Convert the Landscape Name
-        std::string NameStr;
-        FString LandscapeName = TEXT("heightfield_input_") + LandscapeProxy->GetName();
-        FHoudiniEngineUtils::ConvertUnrealString(LandscapeProxy->GetName(), NameStr);
-
-        // Create a merge SOP asset. This will be our "ConnectedAssetId".
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
-            FHoudiniEngine::Get().GetSession(), -1,
-            "SOP/merge", NameStr.c_str(), true, &ConnectedAssetId), false);
-
-        // Add the Merge node's parent OBJ node to the created nodes
-        OutCreatedNodeIds.AddUnique(FHoudiniEngineUtils::HapiGetParentNodeId(ConnectedAssetId));
-
         bool bSuccess = false;
+        HAPI_NodeId CreatedHeightfieldNodeId = -1;
         int32 NumComponents = LandscapeProxy->LandscapeComponents.Num();
         if ( !bExportOnlySelected || ( SelectedComponents.Num() == NumComponents ) )
         {
             // Export the whole landscape and its layer as a single heightfield node
-            HAPI_NodeId CreatedHeightfieldNodeId = -1;
             bSuccess = FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape( LandscapeProxy, CreatedHeightfieldNodeId );
-
-            OutCreatedNodeIds.AddUnique(FHoudiniEngineUtils::HapiGetParentNodeId( CreatedHeightfieldNodeId ) );
-
-            // Connect the newly create HF Node to the merge
-            if (HAPI_RESULT_SUCCESS != FHoudiniApi::ConnectNodeInput(
-                FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, CreatedHeightfieldNodeId, 0))
-                return false;
         }
         else
         {
             // Each selected landscape component will be exported as separate volumes in a single heightfield
-            bSuccess = FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray( LandscapeProxy, SelectedComponents, ConnectedAssetId );
-
-            // Add the Heightfield's parent OBJ node to the created nodes
-            OutCreatedNodeIds.AddUnique( FHoudiniEngineUtils::HapiGetParentNodeId( ConnectedAssetId ) );
+            bSuccess = FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray( LandscapeProxy, SelectedComponents, CreatedHeightfieldNodeId );
         }
+
+        // Add the Heightfield's parent OBJ node to the created nodes
+        OutCreatedNodeIds.AddUnique( FHoudiniEngineUtils::HapiGetParentNodeId( CreatedHeightfieldNodeId ) );
+        ConnectedAssetId = CreatedHeightfieldNodeId;
 
         return bSuccess;
     }
