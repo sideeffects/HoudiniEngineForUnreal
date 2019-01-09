@@ -806,14 +806,16 @@ UHoudiniAssetInstanceInputField::FixInstancedObjects( const TMap<UObject*, UObje
 void
 UHoudiniAssetInstanceInputField::GetProcessedTransforms( TArray<FTransform>& ProcessedTransforms, const int32& VariationIdx ) const
 {
-    //TArray<FTransform> ProcessedTransforms;
     ProcessedTransforms.Empty();
-    ProcessedTransforms.Reserve(InstancedTransforms.Num());
+    if (!VariationTransformsArray.IsValidIndex(VariationIdx))
+        return;
+
+    ProcessedTransforms.Reserve(VariationTransformsArray[ VariationIdx ].Num());
 
     FTransform CurrentTransform = FTransform::Identity;
-    for (int32 InstanceIdx = 0; InstanceIdx < InstancedTransforms.Num(); ++InstanceIdx)
+    for (int32 InstanceIdx = 0; InstanceIdx < VariationTransformsArray[ VariationIdx ].Num(); ++InstanceIdx)
     {
-        CurrentTransform = InstancedTransforms[ InstanceIdx ];
+        CurrentTransform = VariationTransformsArray[VariationIdx][ InstanceIdx ];
 
         // Compute new rotation and scale.
         FQuat TransformRotation = CurrentTransform.GetRotation() * GetRotationOffset( VariationIdx ).Quaternion();
@@ -834,8 +836,8 @@ UHoudiniAssetInstanceInputField::GetProcessedTransforms( TArray<FTransform>& Pro
         CurrentTransform.SetRotation(TransformRotation);
         CurrentTransform.SetScale3D(TransformScale3D);
 
-        if (CurrentTransform.IsValid())
-            ProcessedTransforms.Add(CurrentTransform);
+        if ( CurrentTransform.IsValid() )
+            ProcessedTransforms.Add( CurrentTransform );
     }
 }
 
