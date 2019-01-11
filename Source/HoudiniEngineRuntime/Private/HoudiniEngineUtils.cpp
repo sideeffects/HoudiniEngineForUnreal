@@ -872,9 +872,18 @@ FHoudiniEngineUtils::HapiCheckAttributeExists(
     const FHoudiniGeoPartObject & HoudiniGeoPartObject, const char * Name,
     HAPI_AttributeOwner Owner )
 {
-    return FHoudiniEngineUtils::HapiCheckAttributeExists(
-        HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
-        HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Name, Owner );
+    if ( Owner == HAPI_ATTROWNER_INVALID )
+    {
+        return FHoudiniEngineUtils::HapiCheckAttributeExists(
+            HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
+            HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Name );
+    }
+    else
+    {
+        return FHoudiniEngineUtils::HapiCheckAttributeExists(
+            HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
+            HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Name, Owner);
+    }
 }
 
 
@@ -5531,7 +5540,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                         SplitGroupNames.RemoveAt( Index );
 
-                        if (Index <= nLODInsertPos)
+                        if (Index <= nLODInsertPos && ( nLODInsertPos > 0 ) )
                             nLODInsertPos--;
                     }
                 }
