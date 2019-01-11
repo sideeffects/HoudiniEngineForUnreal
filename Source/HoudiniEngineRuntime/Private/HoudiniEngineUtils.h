@@ -414,7 +414,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, const char * Name, HAPI_AttributeOwner Owner );
         static bool HapiCheckAttributeExists(
-            const FHoudiniGeoPartObject & HoudiniGeoPartObject, const char * Name, HAPI_AttributeOwner Owner );
+            const FHoudiniGeoPartObject & HoudiniGeoPartObject,
+            const char * Name, HAPI_AttributeOwner Owner = HAPI_ATTROWNER_INVALID );
         static bool HapiCheckAttributeExists(
             HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, const char * Name );
