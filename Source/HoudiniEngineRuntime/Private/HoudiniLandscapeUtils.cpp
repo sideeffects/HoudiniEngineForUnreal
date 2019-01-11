@@ -607,7 +607,7 @@ bool FHoudiniLandscapeUtils::ConvertHeightfieldLayerToLandscapeLayer(
             int32 nHoudini = nY + nX * HoudiniYSize;
 
             // Get the double values in [0 - ZRange]
-            double DoubleValue = (double)FloatLayerData[ nHoudini ] - (double)LayerMin;
+            double DoubleValue = (double)FMath::Clamp(FloatLayerData[ nHoudini ], LayerMin, LayerMax) - (double)LayerMin;
 
             // Then convert it to [0 - 255]
             DoubleValue *= LayerZSpacing;
@@ -3194,12 +3194,21 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                 FString LayerString;
                 FHoudiniEngineString(LayerVolumeInfo.nameSH).ToFString(LayerString);
 
-                // Do we want to convert the layer's value using the global Min/Max
-                if (GlobalMaximums.Contains(LayerString))
-                    LayerMax = GlobalMaximums[LayerString];
+                // Check if that landscape layer has been marked as unit (range in [0-1]
+                if ( IsUnitLandscapeLayer( *LayerGeoPartObject ) )
+                {
+                    LayerMin = 0.0f;
+                    LayerMax = 1.0f;
+                }
+                else
+                {
+                    // Do we want to convert the layer's value using the global Min/Max
+                    if (GlobalMaximums.Contains(LayerString))
+                        LayerMax = GlobalMaximums[LayerString];
 
-                if (GlobalMinimums.Contains(LayerString))
-                    LayerMin = GlobalMinimums[LayerString];
+                    if (GlobalMinimums.Contains(LayerString))
+                        LayerMin = GlobalMinimums[LayerString];
+                }
 
                 // Find the ImportLayerInfo and LayerInfo objects
                 ObjectTools::SanitizeObjectName(LayerString);
@@ -3486,12 +3495,21 @@ bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
         FString LayerString;
         FHoudiniEngineString(LayerVolumeInfo.nameSH).ToFString(LayerString);
 
-        // We want to convert the layer using the global Min/Max
-        if (GlobalMaximums.Contains(LayerString) )
-            LayerMax = GlobalMaximums[LayerString];
+        // Check if that landscape layer has been marked as unit (range in [0-1]
+        if ( IsUnitLandscapeLayer( *LayerGeoPartObject ) )
+        {
+            LayerMin = 0.0f;
+            LayerMax = 1.0f;
+        }
+        else
+        {
+            // We want to convert the layer using the global Min/Max
+            if ( GlobalMaximums.Contains( LayerString ) )
+                LayerMax = GlobalMaximums[ LayerString ];
 
-        if (GlobalMinimums.Contains(LayerString) )
-            LayerMin = GlobalMinimums[LayerString];
+            if ( GlobalMinimums.Contains( LayerString ) )
+                LayerMin = GlobalMinimums[ LayerString ];
+        }        
 
         // Creating the ImportLayerInfo and LayerInfo objects
         ObjectTools::SanitizeObjectName( LayerString );
@@ -4132,3 +4150,31 @@ FHoudiniLandscapeUtils::ImportLandscapeData(
 }
 
 #endif
+
+bool
+FHoudiniLandscapeUtils::IsUnitLandscapeLayer(const FHoudiniGeoPartObject& LayerGeoPartObject)
+{
+    // Check the attribute exists on primitive or detail
+    HAPI_AttributeOwner Owner = HAPI_ATTROWNER_INVALID;
+    if (FHoudiniEngineUtils::HapiCheckAttributeExists(LayerGeoPartObject, "unreal_unit_landscape_layer", HAPI_ATTROWNER_PRIM))
+        Owner = HAPI_ATTROWNER_PRIM;
+    else if (FHoudiniEngineUtils::HapiCheckAttributeExists(LayerGeoPartObject, "unreal_unit_landscape_layer", HAPI_ATTROWNER_DETAIL))
+        Owner = HAPI_ATTROWNER_DETAIL;
+    else
+        return false;
+
+    // Check the value
+    HAPI_AttributeInfo AttribInfoUnitLayer{};
+    TArray< int32 > AttribValues;
+
+    FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+        LayerGeoPartObject, "unreal_unit_landscape_layer", AttribInfoUnitLayer, AttribValues, 1, Owner);
+
+    if (AttribValues.Num() > 0)
+    {
+        if (AttribValues[0] == 1)
+            return true;
+    }
+
+    return false;
+}

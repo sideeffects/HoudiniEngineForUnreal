@@ -158,6 +158,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const int32& SizeX, const int32& SizeY,
             const int32& NewSizeX, const int32& NewSizeY );
 
+        // Checks if a layer's value should be converted in the [0 1] range
+        static bool IsUnitLandscapeLayer(
+            const FHoudiniGeoPartObject& LayerGeoPartObject );
+
         //--------------------------------------------------------------------------------------------------
         // Unreal to Houdini - HEIGHTFIELDS
         //--------------------------------------------------------------------------------------------------
