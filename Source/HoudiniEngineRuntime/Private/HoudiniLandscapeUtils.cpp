@@ -443,6 +443,8 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
         Swap(ObjectTranslation[2], ObjectTranslation[1]);
 
         FVector ObjectScale3D(HapiTransform.scale[0], HapiTransform.scale[1], HapiTransform.scale[2]);
+        ObjectScale3D.X *= ((float)HoudiniXSize - 1.0f) / (float)HoudiniXSize;
+        ObjectScale3D.Y *= ((float)HoudiniYSize - 1.0f) / (float)HoudiniYSize;
 
         CurrentVolumeTransform.SetComponents(ObjectRotation, ObjectTranslation, ObjectScale3D);
     }
