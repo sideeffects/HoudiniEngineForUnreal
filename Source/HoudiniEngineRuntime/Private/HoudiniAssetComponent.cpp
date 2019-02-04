@@ -4847,7 +4847,10 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
     TArray<ALandscape *> ValidLandscapes;
     // See if we have any landscape input that is marked as needing an update
     TArray<ALandscape *> InputLandscapesToUpdate;
-    for ( auto CurrentInput : Inputs )
+    // Get all the inputs, including the object merge inputs
+    TArray< UHoudiniAssetInput * > AllInputs;
+    GetInputs(AllInputs, true);
+    for ( auto CurrentInput : AllInputs)
     {
         if ( !CurrentInput )
             continue;
