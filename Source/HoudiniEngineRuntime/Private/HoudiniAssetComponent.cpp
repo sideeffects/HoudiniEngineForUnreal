@@ -5120,9 +5120,9 @@ UHoudiniAssetComponent::ClearParameters()
         else
         {
             if (GetWorld() != NULL && GetWorld()->WorldType != EWorldType::PIE)
-			         {
-				            HOUDINI_LOG_WARNING(TEXT("%s: null parameter when clearing"), *GetOwner()->GetName());
-			         }
+	    {
+	        HOUDINI_LOG_WARNING(TEXT("%s: null parameter when clearing"), *GetOwner()->GetName());
+	    }
         }
     }
 
