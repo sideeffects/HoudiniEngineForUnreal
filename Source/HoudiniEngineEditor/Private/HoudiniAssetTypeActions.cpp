@@ -73,6 +73,9 @@ FHoudiniAssetTypeActions::GetCategories()
 UThumbnailInfo *
 FHoudiniAssetTypeActions::GetThumbnailInfo( UObject * Asset ) const
 {
+    if (!Asset || Asset->IsPendingKill())
+        return nullptr;
+
     UHoudiniAsset * HoudiniAsset = CastChecked< UHoudiniAsset >( Asset );
     UThumbnailInfo * ThumbnailInfo = HoudiniAsset->ThumbnailInfo;
     if ( !ThumbnailInfo )
