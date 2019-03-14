@@ -285,6 +285,9 @@ UHoudiniAssetInput::Create( UObject * InPrimaryObject, int32 InInputIndex, HAPI_
 {
     UHoudiniAssetInput * HoudiniAssetInput = nullptr;
 
+	if (!InPrimaryObject || InPrimaryObject->IsPendingKill())
+		return HoudiniAssetInput;
+
     // Get name of this input.
     HAPI_StringHandle InputStringHandle;
     if ( FHoudiniApi::GetNodeInputName(
@@ -1625,7 +1628,8 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType,
 
             // Create new spline component if necessary.
             USceneComponent* RootComp = GetHoudiniAssetComponent();
-            if( RootComp && !RootComp->IsPendingKill() )
+            if( RootComp && !RootComp->IsPendingKill()
+				&& RootComp->GetOwner() && !RootComp->GetOwner()->IsPendingKill() )
             {
                 if( !InputCurve || InputCurve->IsPendingKill() )
                 {
@@ -2964,6 +2968,9 @@ void UHoudiniAssetInput::DuplicateCurves(UHoudiniAssetInput * OriginalInput)
     USceneComponent* RootComp = GetHoudiniAssetComponent();
     if( !RootComp || RootComp->IsPendingKill() )
         return;
+
+	if ( !RootComp->GetOwner() || RootComp->GetOwner()->IsPendingKill() )
+		return;
 
     // The previous call to DuplicateObject did not duplicate the curves properly
     // Both the original and duplicated Inputs now share the same InputCurve, so we 
