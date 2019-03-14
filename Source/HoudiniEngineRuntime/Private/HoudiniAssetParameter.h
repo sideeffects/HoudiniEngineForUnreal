@@ -75,6 +75,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 
     public:
 
+        /** returns the owner houdini asset component **/
+        const UHoudiniAssetComponent * GetHoudiniAssetComponent() const;
+
         /** Return true if this parameter has been changed. **/
         virtual bool HasChanged() const;
 
@@ -177,7 +180,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
         bool IsSpare() const;
 
         /** Return true if parameter is disabled. **/
-        bool IsDisabled() const;
+        bool IsDisabled() const;		
 
     protected:
 
