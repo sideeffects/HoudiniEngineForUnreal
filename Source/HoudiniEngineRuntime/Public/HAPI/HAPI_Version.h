@@ -27,7 +27,7 @@
 // expecting to compile against.
 #define HAPI_VERSION_HOUDINI_MAJOR 18
 #define HAPI_VERSION_HOUDINI_MINOR 0
-#define HAPI_VERSION_HOUDINI_BUILD 7
+#define HAPI_VERSION_HOUDINI_BUILD 45
 #define HAPI_VERSION_HOUDINI_PATCH 0
 
 // The two components of the Houdini Engine (marketed) version.
@@ -40,6 +40,6 @@
 // might no longer compile. Semantic changes to the methods will also
 // cause this version to increase. This number will be reset to 0
 // every time the Houdini Engine version is bumped.
-#define HAPI_VERSION_HOUDINI_ENGINE_API 39
+#define HAPI_VERSION_HOUDINI_ENGINE_API 40
 
 #endif // __HAPI_VERSION_h__
