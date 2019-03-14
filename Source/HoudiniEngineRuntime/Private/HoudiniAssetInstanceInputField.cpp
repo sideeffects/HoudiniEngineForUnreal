@@ -65,6 +65,9 @@ UHoudiniAssetInstanceInputField::Create(
     UHoudiniAssetInstanceInput * InHoudiniAssetInstanceInput,
     const FHoudiniGeoPartObject & HoudiniGeoPartObject )
 {
+	if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+		return nullptr;
+
     UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField =
         NewObject< UHoudiniAssetInstanceInputField >(
             HoudiniAssetComponent,
@@ -230,6 +233,8 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
         return;
 
     USceneComponent* RootComp = Comp;
+	if (!RootComp->GetOwner() || RootComp->GetOwner()->IsPendingKill())
+		return;
 
     // Check if instancer material is available.
     const FHoudiniGeoPartObject & InstancerHoudiniGeoPartObject = HoudiniAssetInstanceInput->HoudiniGeoPartObject;
@@ -472,6 +477,12 @@ UHoudiniAssetInstanceInputField::AddInstanceVariation( UObject * InObject, int32
 {
     check( InObject );
     check( HoudiniAssetComponent );
+
+	if (!InObject || InObject->IsPendingKill())
+		return;
+
+	if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+		return;
 
     InstancedObjects.Insert( InObject, VariationIdx );
     RotationOffsets.Insert( FRotator( 0, 0, 0 ), VariationIdx );

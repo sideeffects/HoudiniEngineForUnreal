@@ -3260,8 +3260,14 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
             if (FoundLandscape->GetLandscapeHoleMaterial() != LandscapeHoleMaterial)
                 FoundLandscape->LandscapeHoleMaterial = LandscapeHoleMaterial;
 
+			//FoundLandscape->RecreateCollisionComponents();
+
+			//PreviousInfo->UpdateLayerInfoMap();
+			//PreviousInfo->RecreateCollisionComponents();
+			//PreviousInfo->UpdateAllAddCollisions();
+
             // We can add the landscape to the new map
-            NewLandscapes.Add(*CurrentHeightfield, FoundLandscape);        
+            NewLandscapes.Add(*CurrentHeightfield, FoundLandscape);
         }
     }
 
@@ -3594,7 +3600,7 @@ FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( FHoudiniCookParams& Houd
         bCreatedPackage = true;
     }
 
-    if ( !Package )
+    if ( !Package || Package->IsPendingKill() )
         return nullptr;
 
     if ( !Package->IsFullyLoaded() )

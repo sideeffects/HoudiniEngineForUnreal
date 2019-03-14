@@ -672,7 +672,8 @@ FHoudiniParameterDetails::CreateWidgetRamp( IDetailCategoryBuilder & LocalDetail
 
     if ( InParam.bIsFloatRamp )
     {
-        if ( !InParam.HoudiniAssetParameterRampCurveFloat )
+        if ( !InParam.HoudiniAssetParameterRampCurveFloat
+            && (InParam.PrimaryObject && !InParam.PrimaryObject->IsPendingKill() ) )
         {
             InParam.HoudiniAssetParameterRampCurveFloat = Cast< UHoudiniAssetParameterRampCurveFloat >(
                 NewObject< UHoudiniAssetParameterRampCurveFloat >(
@@ -690,7 +691,8 @@ FHoudiniParameterDetails::CreateWidgetRamp( IDetailCategoryBuilder & LocalDetail
     }
     else
     {
-        if ( !InParam.HoudiniAssetParameterRampCurveColor )
+        if ( !InParam.HoudiniAssetParameterRampCurveColor
+            && ( InParam.PrimaryObject && !InParam.PrimaryObject->IsPendingKill() ) )
         {
             InParam.HoudiniAssetParameterRampCurveColor = Cast< UHoudiniAssetParameterRampCurveColor >(
                 NewObject< UHoudiniAssetParameterRampCurveColor >(
