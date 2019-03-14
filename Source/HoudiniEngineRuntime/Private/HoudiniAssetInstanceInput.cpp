@@ -56,6 +56,9 @@ UHoudiniAssetInstanceInput::Create(
     UHoudiniAssetComponent * InPrimaryObject,
     const FHoudiniGeoPartObject & InHoudiniGeoPartObject )
 {
+	if (!InPrimaryObject || InPrimaryObject->IsPendingKill())
+		return nullptr;
+
     UHoudiniAssetInstanceInput * NewInstanceInput = nullptr;
 
     // Get object to be instanced.

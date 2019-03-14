@@ -347,6 +347,9 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentDiffuse(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
+	if (!Material || Material->IsPendingKill())
+		return false;
+
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
     EBakeMode BakeMode = HoudiniCookParams.MaterialAndTextureBakeMode;
@@ -677,6 +680,9 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentOpacityMask(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
+	if (!Material || Material->IsPendingKill())
+		return false;
+
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
@@ -857,6 +863,9 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentOpacity(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
+	if (!Material || Material->IsPendingKill())
+		return false;
+
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
     float OpacityValue = 1.0f;
@@ -1039,6 +1048,9 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentNormal(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
+	if (!Material || Material->IsPendingKill())
+		return false;
+
     bool bExpressionCreated = false;
     bool bTangentSpaceNormal = true;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -1354,6 +1366,9 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentSpecular(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
+	if (!Material || Material->IsPendingKill())
+		return false;
+
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
@@ -1570,6 +1585,9 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentRoughness(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
+	if (!Material || Material->IsPendingKill())
+		return false;
+
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
@@ -1786,6 +1804,9 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentMetallic(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
+	if (!Material || Material->IsPendingKill())
+		return false;
+
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
@@ -1985,6 +2006,9 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentEmissive(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
+	if (!Material || Material->IsPendingKill())
+		return false;
+
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
@@ -2191,6 +2215,9 @@ FHoudiniEngineMaterialUtils::CreateUnrealTexture(
     const TArray< char > & ImageBuffer, const FString & TextureType,
     const FCreateTexture2DParameters & TextureParameters, TextureGroup LODGroup, const FString& NodePath )
 {
+	if (!Package || Package->IsPendingKill())
+		return nullptr;
+
     UTexture2D * Texture = nullptr;
     if ( ExistingTexture )
     {

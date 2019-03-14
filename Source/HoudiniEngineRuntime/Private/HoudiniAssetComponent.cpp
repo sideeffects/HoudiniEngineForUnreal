@@ -5117,8 +5117,9 @@ UHoudiniAssetComponent::ClearParameters()
         {
             Iter.Value->ConditionalBeginDestroy();
         }
-        else
+        else if(GetWorld() != NULL && GetWorld()->WorldType != EWorldType::PIE)
         {
+            // Avoid spamming that error when leaving PIE mode
             HOUDINI_LOG_WARNING(TEXT("%s: null parameter when clearing"), *GetOwner()->GetName());
         }
     }
