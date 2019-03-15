@@ -514,4 +514,10 @@ UHoudiniAssetParameter::IsDisabled() const
     return bIsDisabled;
 }
 
+const UHoudiniAssetComponent *
+UHoudiniAssetParameter::GetHoudiniAssetComponent() const
+{
+    return Cast<UHoudiniAssetComponent>(PrimaryObject);
+}
+
 #undef LOCTEXT_NAMESPACE

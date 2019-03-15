@@ -445,20 +445,26 @@ FHoudiniEngineInstancerUtils::CreateInstancedStaticMeshComponent(
     UMaterialInterface * InstancerMaterial /*=nullptr*/ )
 {
     if ( !StaticMesh )
-	return false;
+		return false;
+
+	if (!ParentComponent || ParentComponent->IsPendingKill())
+		return false;
+
+	if (!ParentComponent->GetOwner() || ParentComponent->GetOwner()->IsPendingKill())
+		return false;
 
     UInstancedStaticMeshComponent * InstancedStaticMeshComponent = nullptr;
     if ( StaticMesh->GetNumLODs() > 1 )
     {
-	// If the mesh has LODs, use Hierarchical ISMC
-	InstancedStaticMeshComponent = NewObject< UHierarchicalInstancedStaticMeshComponent >(
-	    ParentComponent->GetOwner(), UHierarchicalInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Transactional);
+		// If the mesh has LODs, use Hierarchical ISMC
+		InstancedStaticMeshComponent = NewObject< UHierarchicalInstancedStaticMeshComponent >(
+			ParentComponent->GetOwner(), UHierarchicalInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Transactional);
     }
     else
     {
-	// If the mesh doesnt have LOD, we can use a regular ISMC
-	InstancedStaticMeshComponent = NewObject< UInstancedStaticMeshComponent >(
-	    ParentComponent->GetOwner(), UInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Transactional);
+		// If the mesh doesnt have LOD, we can use a regular ISMC
+		InstancedStaticMeshComponent = NewObject< UInstancedStaticMeshComponent >(
+			ParentComponent->GetOwner(), UInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Transactional);
     }
 
     if ( !InstancedStaticMeshComponent )
@@ -468,11 +474,11 @@ FHoudiniEngineInstancerUtils::CreateInstancedStaticMeshComponent(
     InstancedStaticMeshComponent->GetBodyInstance()->bAutoWeld = false;
     if (InstancerMaterial)
     {
-	InstancedStaticMeshComponent->OverrideMaterials.Empty();
+		InstancedStaticMeshComponent->OverrideMaterials.Empty();
 
-	int32 MeshMaterialCount = StaticMesh->StaticMaterials.Num();
-	for (int32 Idx = 0; Idx < MeshMaterialCount; ++Idx)
-	    InstancedStaticMeshComponent->SetMaterial(Idx, InstancerMaterial);
+		int32 MeshMaterialCount = StaticMesh->StaticMaterials.Num();
+		for (int32 Idx = 0; Idx < MeshMaterialCount; ++Idx)
+			InstancedStaticMeshComponent->SetMaterial(Idx, InstancerMaterial);
     }
 
     // Now add the instances themselves
@@ -480,7 +486,7 @@ FHoudiniEngineInstancerUtils::CreateInstancedStaticMeshComponent(
     InstancedStaticMeshComponent->ClearInstances();
     for (const auto& Transform : InstancedObjectTransforms )
     {
-	InstancedStaticMeshComponent->AddInstance( Transform );
+		InstancedStaticMeshComponent->AddInstance( Transform );
     }
 
     // Assign the ISMC / HISMC to the SceneCOmponent we return
