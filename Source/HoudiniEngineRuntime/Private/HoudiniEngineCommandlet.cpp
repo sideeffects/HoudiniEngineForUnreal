@@ -495,6 +495,9 @@ bool FHoudiniCommandletUtils::CreateStaticMeshes(
     const FString& InputName, HAPI_NodeId& NodeId, UPackage* OuterPackage,
     TMap<FHoudiniGeoPartObject, UStaticMesh *>& StaticMeshesOut )
 {
+	if (!OuterPackage || OuterPackage->IsPendingKill())
+		return false;
+
     // Create a "fake" HoudiniAssetComponent
     FName HACName( *InputName );
     UHoudiniAssetComponent* HoudiniAssetComponent = NewObject< UHoudiniAssetComponent >( OuterPackage, HACName );

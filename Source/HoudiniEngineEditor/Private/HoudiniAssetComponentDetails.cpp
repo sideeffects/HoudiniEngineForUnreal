@@ -158,14 +158,17 @@ FHoudiniAssetComponentDetails::CustomizeDetails( IDetailLayoutBuilder & DetailBu
             for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator
                 IterParams( HoudiniAssetComponent->Parameters ); IterParams; ++IterParams )
             {
+                // We only want to create root parameters here, they will recursively create child parameters.
                 UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
+                if (!HoudiniAssetParameter || HoudiniAssetParameter->IsPendingKill() || HoudiniAssetParameter->IsChildParameter())
+                    continue;
 
-                // We want to create root parameters here; they will recursively create child parameters.
-                if ( HoudiniAssetParameter && !HoudiniAssetParameter->IsChildParameter() &&
-                    !HoudiniAssetParameter->IsPendingKill() )
-                {
-                    FHoudiniParameterDetails::CreateWidget( DetailCategoryBuilder, HoudiniAssetParameter );
-                }
+                // ensure the parameter is properly owned by a HAC
+                const UHoudiniAssetComponent* Owner = HoudiniAssetParameter->GetHoudiniAssetComponent();
+                if (!Owner || Owner->IsPendingKill())
+                    continue;
+
+                FHoudiniParameterDetails::CreateWidget( DetailCategoryBuilder, HoudiniAssetParameter );
             }
         }
     }

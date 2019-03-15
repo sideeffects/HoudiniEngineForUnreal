@@ -5798,7 +5798,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     UPackage * MeshPackage = FHoudiniEngineBakeUtils::BakeCreateStaticMeshPackageForComponent(
                         HoudiniCookParams, HoudiniGeoPartObject, MeshName, MeshGuid );
 
-                    if( !MeshPackage )
+                    if( !MeshPackage || MeshPackage->IsPendingKill() )
                         continue;
 
                     StaticMesh = NewObject< UStaticMesh >(
