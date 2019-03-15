@@ -4271,6 +4271,31 @@ HAPI_DECL HAPI_AddGroup( const HAPI_Session * session,
                          HAPI_GroupType group_type,
                          const char * group_name );
 
+/// @brief  Remove a group from the input geo with the given type and name.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      group_type
+///                 The group type.
+///
+/// @param[in]      group_name
+///                 Name of the group to be removed
+///
+HAPI_DECL HAPI_DeleteGroup( const HAPI_Session * session,
+                         HAPI_NodeId node_id,
+                         HAPI_PartId part_id,
+                         HAPI_GroupType group_type,
+                         const char * group_name );
+
 /// @brief  Set group membership.
 ///
 /// @param[in]      session
