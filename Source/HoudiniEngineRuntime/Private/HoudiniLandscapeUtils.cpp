@@ -3453,6 +3453,22 @@ void FHoudiniLandscapeUtils::GetHeightFieldLandscapeMaterials(
     }
 }
 
+UPhysicalMaterial* FHoudiniLandscapeUtils::GetPhysicalMaterialForLayer( const FHoudiniGeoPartObject& LayerGeo )
+{
+	HAPI_AttributeInfo AttribInfoLayer{};
+	TArray< FString > AttribValues;
+	
+	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsString(LayerGeo, "unreal_landscape_layer_physical_material", AttribInfoLayer, AttribValues, 1, HAPI_ATTROWNER_PRIM))
+		return nullptr;
+
+	if (AttribValues.Num() > 0)
+	{
+		return LoadObject<UPhysicalMaterial>(nullptr, *AttribValues[0], nullptr, LOAD_NoWarn, nullptr);
+	}
+
+	return nullptr;
+}
+
 bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
     FHoudiniCookParams& HoudiniCookParams,
     const TArray< const FHoudiniGeoPartObject* >& FoundLayers,
@@ -3554,6 +3570,12 @@ bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
             currentLayerInfo.LayerInfo->bNoWeightBlend = true;
         else
             currentLayerInfo.LayerInfo->bNoWeightBlend = false;
+
+		UPhysicalMaterial* PhysMaterial = FHoudiniLandscapeUtils::GetPhysicalMaterialForLayer(*LayerGeoPartObject);
+		if (PhysMaterial)
+		{
+			currentLayerInfo.LayerInfo->PhysMaterial = PhysMaterial;
+		}
 
         // Mark the package dirty...
         //Package->MarkPackageDirty();

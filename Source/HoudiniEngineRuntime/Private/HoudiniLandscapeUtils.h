@@ -70,6 +70,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             UMaterialInterface*& LandscapeMaterial,
             UMaterialInterface*& LandscapeHoleMaterial );
 
+		// Returns the physical material assigned to the layer.
+		static UPhysicalMaterial* GetPhysicalMaterialForLayer(const FHoudiniGeoPartObject& LayerGeo);
+
         // Creates the package needed to store landscape layer infos
         static ULandscapeLayerInfoObject* CreateLandscapeLayerInfoObject( 
             FHoudiniCookParams& HoudiniCookParams, const TCHAR* LayerName, UPackage*& Package );
