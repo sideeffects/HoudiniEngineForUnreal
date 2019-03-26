@@ -237,7 +237,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         FORCEINLINE const TArray< FHoudiniAssetInputOutlinerMesh >& GetWorldOutlinerInputs() const { return InputOutlinerMeshArray; }
 
         /** Returns the selected landscape Actor **/
-        ALandscape* GetLandscapeInput();
+		ALandscapeProxy* GetLandscapeInput();
 
         /** Remove a specific element of the world outliner input selection */
         void RemoveWorldOutlinerInput( int32 AtIndex );

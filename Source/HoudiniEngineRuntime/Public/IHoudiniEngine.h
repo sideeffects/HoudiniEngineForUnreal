@@ -39,7 +39,7 @@ struct FHoudiniEngineTaskInfo;
 struct HAPI_Session;
 struct FHoudiniCookParams;
 class ALandscape;
-
+class ALandscapeProxy;
 
 class IHoudiniEngine : public IModuleInterface
 {
@@ -94,8 +94,8 @@ public:
         bool ForceRebuildStaticMesh, bool ForceRecookAll,
         const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
         TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut,
-        TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& LandscapesIn,
-        TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& LandscapesOut,
+        TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >& LandscapesIn,
+        TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >& LandscapesOut,
         TMap< FHoudiniGeoPartObject, USceneComponent * >& InstancersIn,
         TMap< FHoudiniGeoPartObject, USceneComponent * >& InstancersOut,
         USceneComponent* ParentComponent,
