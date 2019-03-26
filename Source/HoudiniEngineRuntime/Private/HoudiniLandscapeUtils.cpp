@@ -45,6 +45,7 @@
 #include "LandscapeComponent.h"
 #include "LandscapeEdit.h"
 #include "LandscapeLayerInfoObject.h"
+#include "LandscapeStreamingProxy.h"
 #include "LightMap.h"
 #include "Engine/MapBuildDataRegistry.h"
 
@@ -2845,9 +2846,9 @@ bool
 FHoudiniLandscapeUtils::CreateAllLandscapes( 
     FHoudiniCookParams& HoudiniCookParams,
     const TArray< FHoudiniGeoPartObject > & FoundVolumes, 
-    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& Landscapes,
-    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& NewLandscapes,
-    TArray<ALandscape *>& InputLandscapeToUpdate,
+    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >& Landscapes,
+    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >& NewLandscapes,
+    TArray<ALandscapeProxy *>& InputLandscapeToUpdate,
     float ForcedZMin , float ForcedZMax )
 {
     // Get runtime settings.
@@ -2883,8 +2884,22 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
         if (!CurrentHeightfield)
             continue;
 
+        // Look for the unreal_landscape_streaming_proxy attribute on the height volume
+        bool bCreateLandscapeStreamingProxy = false;
+        TArray<int32> IntData;
+        HAPI_AttributeInfo AttributeInfo;
+        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfo);
+        if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+            CurrentHeightfield->AssetId, CurrentHeightfield->ObjectId,
+            CurrentHeightfield->GeoId, CurrentHeightfield->PartId,
+            "unreal_landscape_streaming_proxy", AttributeInfo, IntData, 1))
+        {
+            if (IntData.Num() > 0 && IntData[0] != 0)
+                bCreateLandscapeStreamingProxy = true;
+        }
+
         // Try to find the landscape previously created from that HGPO
-        ALandscape * FoundLandscape = nullptr;
+        ALandscapeProxy * FoundLandscape = nullptr;
         if (Landscapes.Find(*CurrentHeightfield))
             FoundLandscape = Landscapes.Find(*CurrentHeightfield)->Get();
 
@@ -2912,19 +2927,25 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                 {
                     // Height and layers/masks have not changed, there is no need to reimport the landscape
                     bLandscapeNeedsToBeUpdated = false;
-
-                    // We can add the landscape to the map and remove it from the old one to avoid its destruction
-                    NewLandscapes.Add(*CurrentHeightfield, FoundLandscape);
-                    Landscapes.Remove(*CurrentHeightfield);
                 }
+
+                // Force update/recreation if the actor is not of the desired type
+                if ( (!FoundLandscape->IsA(ALandscapeStreamingProxy::StaticClass()) && bCreateLandscapeStreamingProxy)
+                    || (FoundLandscape->IsA(ALandscapeStreamingProxy::StaticClass()) && !bCreateLandscapeStreamingProxy) )
+                    bLandscapeNeedsToBeUpdated = true;
             }
         }
 
         // Height and mask volumes have not changed
         // No need to update the Landscape
         if (!bLandscapeNeedsToBeUpdated)
+        {
+            // We can add the landscape to the map and remove it from the old one to avoid its destruction
+            NewLandscapes.Add(*CurrentHeightfield, FoundLandscape);
+            Landscapes.Remove(*CurrentHeightfield);
             continue;
-
+        }
+            
         HAPI_NodeId HeightFieldNodeId = CurrentHeightfield->HapiGeoGetNodeId();
 
         // We need to see if the current heightfield has an unreal_material or unreal_hole_material assigned to it
@@ -2972,7 +2993,7 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
         bool UpdatingInputLandscape = false;
         for (int nIdx = 0; nIdx < InputLandscapeToUpdate.Num(); nIdx++)
         {
-            ALandscape* CurrentInputLandscape = InputLandscapeToUpdate[nIdx];
+            ALandscapeProxy* CurrentInputLandscape = InputLandscapeToUpdate[nIdx];
             if (!CurrentInputLandscape)
                 continue;
 
@@ -3070,6 +3091,14 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
             }
         }
 
+        if (!bLandscapeNeedsRecreate)
+        {
+            // Force update/recreation if the actor is not of the desired type
+            if ((!FoundLandscape->IsA(ALandscapeStreamingProxy::StaticClass()) && bCreateLandscapeStreamingProxy)
+                || (FoundLandscape->IsA(ALandscapeStreamingProxy::StaticClass()) && !bCreateLandscapeStreamingProxy))
+                bLandscapeNeedsRecreate = true;
+        }
+
         if ( bLandscapeNeedsRecreate )
         {
             // We need to create a new Landscape Actor
@@ -3096,11 +3125,11 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                 continue;
 
             // Create the actual Landscape
-            ALandscape * CurrentLandscape = CreateLandscape(
+            ALandscapeProxy * CurrentLandscape = CreateLandscape(
                 IntHeightData, ImportLayerInfos,
                 LandscapeTransform, UnrealXSize, UnrealYSize,
                 NumSectionPerLandscapeComponent, NumQuadsPerLandscapeSection,
-                LandscapeMaterial, LandscapeHoleMaterial );
+                LandscapeMaterial, LandscapeHoleMaterial, bCreateLandscapeStreamingProxy );
 
             for (auto CurrLayerInfo : ImportLayerInfos)
             {
@@ -3260,11 +3289,11 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
             if (FoundLandscape->GetLandscapeHoleMaterial() != LandscapeHoleMaterial)
                 FoundLandscape->LandscapeHoleMaterial = LandscapeHoleMaterial;
 
-			//FoundLandscape->RecreateCollisionComponents();
+            //FoundLandscape->RecreateCollisionComponents();
 
-			//PreviousInfo->UpdateLayerInfoMap();
-			//PreviousInfo->RecreateCollisionComponents();
-			//PreviousInfo->UpdateAllAddCollisions();
+            //PreviousInfo->UpdateLayerInfoMap();
+            //PreviousInfo->RecreateCollisionComponents();
+            //PreviousInfo->UpdateAllAddCollisions();
 
             // We can add the landscape to the new map
             NewLandscapes.Add(*CurrentHeightfield, FoundLandscape);
@@ -3274,14 +3303,15 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
     return true;
 }
 
-ALandscape *
+ALandscapeProxy *
 FHoudiniLandscapeUtils::CreateLandscape(
     const TArray< uint16 >& IntHeightData,
     const TArray< FLandscapeImportLayerInfo >& ImportLayerInfos,
     const FTransform& LandscapeTransform,
     const int32& XSize, const int32& YSize, 
     const int32& NumSectionPerLandscapeComponent, const int32& NumQuadsPerLandscapeSection,
-    UMaterialInterface* LandscapeMaterial, UMaterialInterface* LandscapeHoleMaterial )
+    UMaterialInterface* LandscapeMaterial, UMaterialInterface* LandscapeHoleMaterial,
+    const bool& CreateLandscapeStreamingProxy )
 {
     if ( ( XSize < 2 ) || ( YSize < 2 ) )
         return nullptr;
@@ -3304,16 +3334,21 @@ FHoudiniLandscapeUtils::CreateLandscape(
         return nullptr;
 
     // We need to create the landscape now and assign it a new GUID so we can create the LayerInfos
-    ALandscape* Landscape = MyWorld->SpawnActor< ALandscape >();
-    if ( !Landscape )
+    ALandscapeProxy* LandscapeProxy = nullptr;
+    if ( CreateLandscapeStreamingProxy )
+        LandscapeProxy = MyWorld->SpawnActor<ALandscapeStreamingProxy>();
+    else
+        LandscapeProxy = MyWorld->SpawnActor<ALandscape>();
+
+    if (!LandscapeProxy)
         return nullptr;
 
     // Create a new GUID
     FGuid currentGUID = FGuid::NewGuid();
-    Landscape->SetLandscapeGuid( currentGUID );
+    LandscapeProxy->SetLandscapeGuid( currentGUID );
 
     // Set the landscape Transform
-    Landscape->SetActorTransform( LandscapeTransform );
+    LandscapeProxy->SetActorTransform( LandscapeTransform );
 
     // Autosaving the layers prevents them for being deleted with the Asset
     // Save the packages created for the LayerInfos
@@ -3323,19 +3358,19 @@ FHoudiniLandscapeUtils::CreateLandscape(
     // Import the landscape data
 
     // Deactivate CastStaticShadow on the landscape to avoid "grid shadow" issue
-    Landscape->bCastStaticShadow = false;
+    LandscapeProxy->bCastStaticShadow = false;
 
     if ( LandscapeMaterial )
-        Landscape->LandscapeMaterial = LandscapeMaterial;
+        LandscapeProxy->LandscapeMaterial = LandscapeMaterial;
 
     if ( LandscapeHoleMaterial )
-        Landscape->LandscapeHoleMaterial = LandscapeHoleMaterial;
+        LandscapeProxy->LandscapeHoleMaterial = LandscapeHoleMaterial;
 
     // Setting the layer type here.
     ELandscapeImportAlphamapType ImportLayerType = ELandscapeImportAlphamapType::Additive;
 
     // Import the data
-    Landscape->Import(
+    LandscapeProxy->Import(
         currentGUID,
         0, 0, XSize - 1, YSize - 1,
         NumSectionPerLandscapeComponent, NumQuadsPerLandscapeSection,
@@ -3345,12 +3380,16 @@ FHoudiniLandscapeUtils::CreateLandscape(
     // Copied straight from UE source code to avoid crash after importing the landscape:
     // automatically calculate a lighting LOD that won't crash lightmass (hopefully)
     // < 2048x2048 -> LOD0,  >=2048x2048 -> LOD1,  >= 4096x4096 -> LOD2,  >= 8192x8192 -> LOD3
-    Landscape->StaticLightingLOD = FMath::DivideAndRoundUp( FMath::CeilLogTwo( ( XSize * YSize ) / ( 2048 * 2048 ) + 1 ), ( uint32 )2 );
+    LandscapeProxy->StaticLightingLOD = FMath::DivideAndRoundUp( FMath::CeilLogTwo( ( XSize * YSize ) / ( 2048 * 2048 ) + 1 ), ( uint32 )2 );
 
     // Register all the landscape components
-    Landscape->RegisterAllComponents();
+    LandscapeProxy->RegisterAllComponents();
 
-    return Landscape;
+    /*ALandscape* Landscape = LandscapeProxy->GetLandscapeActor();
+    if (!Landscape)
+        return nullptr;*/
+
+    return LandscapeProxy;
 }
 
 void FHoudiniLandscapeUtils::GetHeightFieldLandscapeMaterials(
@@ -3827,7 +3866,7 @@ bool FHoudiniLandscapeUtils::AddLandscapeGlobalMaterialAttribute( const HAPI_Nod
 }
 
 bool
-FHoudiniLandscapeUtils::UpdateOldLandscapeReference(ALandscape* OldLandscape, ALandscape*  NewLandscape)
+FHoudiniLandscapeUtils::UpdateOldLandscapeReference(ALandscapeProxy* OldLandscape, ALandscapeProxy*  NewLandscape)
 {
     if ( !OldLandscape || !NewLandscape )
         return false;
