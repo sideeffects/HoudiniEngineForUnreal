@@ -72,6 +72,12 @@ GetTypeHash( TPair< ALandscape *, int32 > Pair )
     return PointerHash(Pair.Key, Pair.Value);
 }
 
+uint32
+GetTypeHash(TPair< ALandscapeProxy *, int32 > Pair)
+{
+    return PointerHash(Pair.Key, Pair.Value);
+}
+
 TSharedRef< IDetailCustomization >
 FHoudiniAssetComponentDetails::MakeInstance()
 {
@@ -548,10 +554,10 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
         }
 
         // Do the same for the Landscape components
-        for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator
+        for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >::TIterator
             IterLandscapes(HoudiniAssetComponent->LandscapeComponents); IterLandscapes; ++IterLandscapes)
         {
-            ALandscape * Landscape = IterLandscapes.Value().Get();
+            ALandscapeProxy * Landscape = IterLandscapes.Value().Get();
             FHoudiniGeoPartObject & HoudiniGeoPartObject = IterLandscapes.Key();
 
             if (!Landscape)
@@ -690,7 +696,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
 
                 // Store thumbnail for this mesh and material index.
                 {
-                    TPairInitializer< ALandscape *, int32 > Pair(Landscape, MaterialIdx);
+                    TPairInitializer< ALandscapeProxy *, int32 > Pair(Landscape, MaterialIdx);
                     LandscapeMaterialInterfaceThumbnailBorders.Add(Pair, MaterialThumbnailBorder);
                 }
 
@@ -765,7 +771,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
 
                 // Store combo button for this mesh and index.
                 {
-                    TPairInitializer< ALandscape *, int32 > Pair(Landscape, MaterialIdx);
+                    TPairInitializer< ALandscapeProxy *, int32 > Pair(Landscape, MaterialIdx);
                     LandscapeMaterialInterfaceComboButtons.Add(Pair, AssetComboButton);
                 }
             }
@@ -1151,7 +1157,7 @@ FHoudiniAssetComponentDetails::GetStaticMeshThumbnailBorder( UStaticMesh * Stati
 }
 
 const FSlateBrush *
-FHoudiniAssetComponentDetails::GetLandscapeThumbnailBorder( ALandscape * Landscape ) const
+FHoudiniAssetComponentDetails::GetLandscapeThumbnailBorder(ALandscapeProxy * Landscape ) const
 {
     TSharedPtr< SBorder > ThumbnailBorder = LandscapeThumbnailBorders[ Landscape ];
     if (ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
@@ -1176,12 +1182,12 @@ FHoudiniAssetComponentDetails::GetMaterialInterfaceThumbnailBorder( UStaticMesh 
 }
 
 const FSlateBrush *
-FHoudiniAssetComponentDetails::GetMaterialInterfaceThumbnailBorder( ALandscape * Landscape, int32 MaterialIdx ) const
+FHoudiniAssetComponentDetails::GetMaterialInterfaceThumbnailBorder(ALandscapeProxy * Landscape, int32 MaterialIdx ) const
 {
     if ( !Landscape )
         return nullptr;
 
-    TPairInitializer< ALandscape *, int32 > Pair( Landscape, MaterialIdx );
+    TPairInitializer< ALandscapeProxy *, int32 > Pair( Landscape, MaterialIdx );
     TSharedPtr< SBorder > ThumbnailBorder = LandscapeMaterialInterfaceThumbnailBorders[ Pair ];
     
     if (ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
@@ -1242,7 +1248,7 @@ FHoudiniAssetComponentDetails::OnRemoveBakingBaseNameOverride( UHoudiniAssetComp
 }
 
 FReply
-FHoudiniAssetComponentDetails::OnBakeLandscape(ALandscape * Landscape, UHoudiniAssetComponent * HoudiniAssetComponent)
+FHoudiniAssetComponentDetails::OnBakeLandscape(ALandscapeProxy * Landscape, UHoudiniAssetComponent * HoudiniAssetComponent)
 {
     if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill()
         || !Landscape || Landscape->IsPendingKill() )
@@ -1277,10 +1283,10 @@ FHoudiniAssetComponentDetails::OnBakeAllGeneratedMeshes()
             (void) OnBakeStaticMesh( StaticMesh, HoudiniAssetComponent );
         }
 
-        for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator
+        for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >::TIterator
             IterLandscapes(HoudiniAssetComponent->LandscapeComponents); IterLandscapes; ++IterLandscapes)
         {
-            ALandscape * Landscape = IterLandscapes.Value().Get();
+            ALandscapeProxy * Landscape = IterLandscapes.Value().Get();
             if ( !Landscape )
                 continue;
             (void) OnBakeLandscape(Landscape, HoudiniAssetComponent);
@@ -1629,7 +1635,7 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
 
 void
 FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
-    UObject * InObject, ALandscape * Landscape,
+    UObject * InObject, ALandscapeProxy * Landscape,
     FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx)
 {
     UMaterialInterface * MaterialInterface = Cast< UMaterialInterface >( InObject );
@@ -1646,7 +1652,7 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
         if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
             continue;
 
-        TWeakObjectPtr<ALandscape>* FoundLandscape = HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject );
+        TWeakObjectPtr<ALandscapeProxy>* FoundLandscape = HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject );
         if ( !FoundLandscape || !FoundLandscape->IsValid() )
             continue;
 
@@ -1725,7 +1731,7 @@ FHoudiniAssetComponentDetails::OnGetMaterialInterfaceMenuContent(
 TSharedRef< SWidget >
 FHoudiniAssetComponentDetails::OnGetMaterialInterfaceMenuContent(
     UMaterialInterface * MaterialInterface,
-    ALandscape * Landscape, FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx)
+    ALandscapeProxy * Landscape, FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx)
 {
     TArray< const UClass * > AllowedClasses;
     AllowedClasses.Add( UMaterialInterface::StaticClass() );
@@ -1759,10 +1765,10 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceSelected(
 
 void
 FHoudiniAssetComponentDetails::OnMaterialInterfaceSelected(
-    const FAssetData & AssetData, ALandscape* Landscape,
+    const FAssetData & AssetData, ALandscapeProxy* Landscape,
     FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx )
 {
-    TPairInitializer< ALandscape *, int32 > Pair( Landscape, MaterialIdx );
+    TPairInitializer< ALandscapeProxy *, int32 > Pair( Landscape, MaterialIdx );
     TSharedPtr< SComboButton > AssetComboButton = LandscapeMaterialInterfaceComboButtons[ Pair ];
     if ( AssetComboButton.IsValid() )
     {
@@ -1871,7 +1877,7 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
 
 FReply
 FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
-    ALandscape * Landscape, FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx)
+    ALandscapeProxy * Landscape, FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx)
 {
     bool bViewportNeedsUpdate = false;
 
@@ -1882,7 +1888,7 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
         if ( !HoudiniAssetComponent )
             continue;
 
-        TWeakObjectPtr<ALandscape>* FoundLandscape = HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject );
+        TWeakObjectPtr<ALandscapeProxy>* FoundLandscape = HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject );
         if ( !FoundLandscape )
             continue;
 

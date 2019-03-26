@@ -1344,7 +1344,7 @@ FHoudiniCookParams::FHoudiniCookParams( UHoudiniAssetComponent* HoudiniAssetComp
 }
 
 bool
-FHoudiniEngineBakeUtils::BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, ALandscape * OnlyBakeThisLandscape )
+FHoudiniEngineBakeUtils::BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, ALandscapeProxy * OnlyBakeThisLandscape )
 {
 #if WITH_EDITOR
     if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
@@ -1353,15 +1353,15 @@ FHoudiniEngineBakeUtils::BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComp
     if ( !HoudiniAssetComponent->HasLandscape() )
         return false;
 
-    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape>> * LandscapeComponentsPtr = HoudiniAssetComponent->GetLandscapeComponents();
+    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy>> * LandscapeComponentsPtr = HoudiniAssetComponent->GetLandscapeComponents();
     if ( !LandscapeComponentsPtr )
         return false;
 
     TArray<UPackage *> LayerPackages;
     bool bNeedToUpdateProperties = false;
-    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter(* LandscapeComponentsPtr ); Iter; ++Iter)
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >::TIterator Iter(* LandscapeComponentsPtr ); Iter; ++Iter)
     {
-        ALandscape * CurrentLandscape = Iter.Value().Get();
+        ALandscapeProxy * CurrentLandscape = Iter.Value().Get();
         if ( !CurrentLandscape || CurrentLandscape->IsPendingKill() )
             continue;
 

@@ -604,7 +604,7 @@ SHoudiniToolPalette::GetMeanWorldSelectionTransform()
 
             FTransform CurrentTransform = Actor->GetTransform();
 
-            ALandscape* Landscape = Cast< ALandscape >( Actor );
+            ALandscapeProxy* Landscape = Cast< ALandscapeProxy >( Actor );
             if ( Landscape )
             {
                 // We need to offset Landscape's transform in X/Y to center them properly

@@ -106,7 +106,7 @@ public:
     static void BakeHoudiniActorToFoliage( UHoudiniAssetComponent * HoudiniAssetComponent );
 
     /** Bakes landscape (detach them from the asset), if OnlyBakeThisLandscape is null, all landscapes will be baked **/
-    static bool BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, class ALandscape * OnlyBakeThisLandscape = nullptr );
+    static bool BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, class ALandscapeProxy * OnlyBakeThisLandscape = nullptr );
 
     /** Create a package for a given component for material. **/
     static UPackage * BakeCreateMaterialPackageForComponent(

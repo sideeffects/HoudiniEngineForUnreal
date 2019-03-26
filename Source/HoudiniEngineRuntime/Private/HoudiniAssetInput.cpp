@@ -578,7 +578,7 @@ UHoudiniAssetInput::ForceSetInputObject(UObject * InObject, int32 AtIndex, bool 
         }
 
         // Looking for Landscapes
-        if ( ALandscapeProxy * Landscape = Cast< ALandscapeProxy >( Actor ) )
+        if (ALandscapeProxy * Landscape = Cast< ALandscapeProxy >( Actor ) )
         {
             // Store new landscape.
             OnLandscapeActorSelected( Actor );
@@ -3823,7 +3823,7 @@ UHoudiniAssetInput::AddInputObject( UObject* ObjectToAdd )
 
 #endif
 
-ALandscape*
+ALandscapeProxy*
 UHoudiniAssetInput::GetLandscapeInput()
 {
     if (!InputLandscapeProxy || InputLandscapeProxy->IsPendingKill())
