@@ -48,13 +48,13 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         static bool CreateAllLandscapes(
             FHoudiniCookParams& HoudiniCookParams,
             const TArray< FHoudiniGeoPartObject > & FoundVolumes,
-            TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& Landscapes,
-            TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >& NewLandscapes,
-            TArray<ALandscape *>& InputLandscapeToUpdate,
+            TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >& Landscapes,
+            TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >& NewLandscapes,
+            TArray<ALandscapeProxy *>& InputLandscapeToUpdate,
             float ForcedZMin = 0.0f, float ForcedZMax = 0.0f );
 
         // Creates a single landscape object from the converted data
-        static ALandscape * CreateLandscape(
+        static ALandscapeProxy * CreateLandscape(
             const TArray< uint16 >& IntHeightData,
             const TArray< FLandscapeImportLayerInfo >& ImportLayerInfos,
             const FTransform& LandscapeTransform,
@@ -62,7 +62,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const int32& NumSectionPerLandscapeComponent,
             const int32& NumQuadsPerLandscapeSection,
             UMaterialInterface* LandscapeMaterial,
-            UMaterialInterface* LandscapeHoleMaterial );
+            UMaterialInterface* LandscapeHoleMaterial,
+			const bool& CreateLandscapeStreamingProxy );
 
         // Returns the materials assigned to the heightfield
         static void GetHeightFieldLandscapeMaterials(
@@ -86,7 +87,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
 
         /** Updates a reference to a generated landscape by the newly created one **/
         static bool UpdateOldLandscapeReference(
-            ALandscape* OldLandscape, ALandscape*  NewLandscape );
+			ALandscapeProxy* OldLandscape, ALandscapeProxy*  NewLandscape );
 #endif
         // Returns Heightfield contained in the GeoPartObject array
         static void GetHeightfieldsInArray(
@@ -169,7 +170,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
 #if WITH_EDITOR
         // Creates a heightfield from a Landscape
         static bool CreateHeightfieldFromLandscape(
-            ALandscapeProxy* LandscapeProxy, HAPI_NodeId& CreatedHeightfieldNodeId );
+			ALandscapeProxy* LandscapeProxy, HAPI_NodeId& CreatedHeightfieldNodeId );
 
         // Creates multiple heightfield from an array of Landscape Components
         static bool CreateHeightfieldFromLandscapeComponentArray(
@@ -192,7 +193,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
 
         // Extracts the uint16 values of a given landscape
         static bool GetLandscapeData(
-            ALandscape* Landscape,
+			ALandscape* Landscape,
             TArray<uint16>& HeightData,
             int32& XSize, int32& YSize,
             FVector& Min, FVector& Max );
