@@ -474,10 +474,10 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
         }
 
         // Add references to all Landscape
-        for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr <ALandscape> >::TIterator
+        for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr <ALandscapeProxy> >::TIterator
             Iter( HoudiniAssetComponent->LandscapeComponents ); Iter; ++Iter)
         {
-            ALandscape * HoudiniLandscape = Iter.Value().Get();
+            ALandscapeProxy * HoudiniLandscape = Iter.Value().Get();
             if ( !HoudiniLandscape )
                 continue;
 
@@ -2681,15 +2681,15 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
     
     /*
     // We need to duplicate landscapes.
-    for ( TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator
+    for ( TMap< FHoudiniGeoPartObject, ALandscapeProxy * >::TIterator
         Iter(CopiedHoudiniComponent->LandscapeComponents); Iter; ++Iter)
     {
         FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
-        ALandscape * HoudiniLandscape = Iter.Value();
+        ALandscapeProxy * HoudiniLandscape = Iter.Value();
 
         // Duplicate landscape component.
-        ALandscape * DuplicatedLandscape =
-            DuplicateObject< ALandscape >( HoudiniLandscape, this );
+        ALandscapeProxy * DuplicatedLandscape =
+            DuplicateObject< ALandscapeProxy >( HoudiniLandscape, this );
 
         if ( DuplicatedLandscape )
         {
@@ -3043,9 +3043,9 @@ UHoudiniAssetComponent::PostLoadReattachComponents()
             HoudiniHandleComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
     }
 
-    for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
+    for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
     {
-        ALandscape * HoudiniLandscape = Iter.Value().Get();
+        ALandscapeProxy * HoudiniLandscape = Iter.Value().Get();
         if ( HoudiniLandscape )
             HoudiniLandscape->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
     }
@@ -4837,16 +4837,16 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
         return false;
 
     // Try to create a Landscape for each HeightData found
-    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> > NewLandscapes;
+    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> > NewLandscapes;
 
     FHoudiniCookParams HoudiniCookParams( this );
     HoudiniCookParams.StaticMeshBakeMode = FHoudiniCookParams::GetDefaultStaticMeshesCookMode();
     HoudiniCookParams.MaterialAndTextureBakeMode = FHoudiniCookParams::GetDefaultMaterialAndTextureCookMode();
 
     // Keep a map of the valid landscape, this is to ensure that none of the new/input landscapes will be destroyed when cleaning up the old map
-    TArray<ALandscape *> ValidLandscapes;
+    TArray<ALandscapeProxy *> ValidLandscapes;
     // See if we have any landscape input that is marked as needing an update
-    TArray<ALandscape *> InputLandscapesToUpdate;
+    TArray<ALandscapeProxy *> InputLandscapesToUpdate;
     // Get all the inputs, including the object merge inputs
     TArray< UHoudiniAssetInput * > AllInputs;
     GetInputs(AllInputs, true);
@@ -4858,7 +4858,7 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
         if ( CurrentInput->GetChoiceIndex() != EHoudiniAssetInputType::Enum::LandscapeInput )
             continue;
 
-        ALandscape* InputLandscape = CurrentInput->GetLandscapeInput();
+        ALandscapeProxy* InputLandscape = CurrentInput->GetLandscapeInput();
         if ( !InputLandscape || InputLandscape->IsPendingKill() )
             continue;
 
@@ -4874,9 +4874,9 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
     // The asset needs to be static in order to attach the landscapes to it
     SetMobility( EComponentMobility::Static );
 
-    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator IterLandscape( NewLandscapes ); IterLandscape; ++IterLandscape )
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >::TIterator IterLandscape( NewLandscapes ); IterLandscape; ++IterLandscape )
     {
-        ALandscape* NewLandscape = IterLandscape.Value().Get();
+        ALandscapeProxy* NewLandscape = IterLandscape.Value().Get();
         if ( !NewLandscape )
             continue;
 
@@ -4893,11 +4893,11 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
         UpdateLandscapeMaterialsAssignementsAndReplacements( NewLandscape, Heightfield );
 
         // Replace any reference we might still have to the old landscape with the new one
-        TWeakObjectPtr<ALandscape>* OldLandscapePtr = LandscapeComponents.Find( Heightfield );
+        TWeakObjectPtr<ALandscapeProxy>* OldLandscapePtr = LandscapeComponents.Find( Heightfield );
         if ( !OldLandscapePtr)
             continue;
 
-        ALandscape* OldLandscape = OldLandscapePtr->Get();
+        ALandscapeProxy* OldLandscape = OldLandscapePtr->Get();
         if ( !OldLandscape )
             continue;
 
@@ -4906,9 +4906,9 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
     }
 
     // Replace the old landscapes map with the new ones
-    for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter( LandscapeComponents ); Iter; ++Iter)
+    for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >::TIterator Iter( LandscapeComponents ); Iter; ++Iter)
     {
-        ALandscape * HoudiniLandscape = Iter.Value().Get();
+        ALandscapeProxy * HoudiniLandscape = Iter.Value().Get();
         if ( !HoudiniLandscape || HoudiniLandscape->IsPendingKill() )
             continue;
 
@@ -4925,7 +4925,7 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
     return true;
 }
 
-void UHoudiniAssetComponent::UpdateLandscapeMaterialsAssignementsAndReplacements( ALandscape* Landscape, FHoudiniGeoPartObject Heightfield )
+void UHoudiniAssetComponent::UpdateLandscapeMaterialsAssignementsAndReplacements(ALandscapeProxy* Landscape, FHoudiniGeoPartObject Heightfield )
 {
     if ( !Landscape )
         return;
@@ -4961,7 +4961,7 @@ void UHoudiniAssetComponent::UpdateLandscapeMaterialsAssignementsAndReplacements
     // ( the user might have replaced the landscape materials manually without us knowing it ) 
     if ( LandscapeComponents.Contains( Heightfield ) )
     {
-        ALandscape* PreviousLandscape = LandscapeComponents[ Heightfield ].Get();
+        ALandscapeProxy* PreviousLandscape = LandscapeComponents[ Heightfield ].Get();
         if ( PreviousLandscape )
         {
             // Get the previously used materials, but ignore the default ones
@@ -5010,7 +5010,7 @@ void UHoudiniAssetComponent::UpdateLandscapeMaterialsAssignementsAndReplacements
 }
 
 bool
-UHoudiniAssetComponent::ReplaceLandscapeInInputs( ALandscape* Old, ALandscape* New )
+UHoudiniAssetComponent::ReplaceLandscapeInInputs(ALandscapeProxy* Old, ALandscapeProxy* New )
 {
     bool bReturn = false;
 
@@ -5074,9 +5074,9 @@ UHoudiniAssetComponent::ClearCurves()
 void
 UHoudiniAssetComponent::ClearLandscapes()
 {
-    for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
+    for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
     {
-        ALandscape * HoudiniLandscape = Iter.Value().Get();
+        ALandscapeProxy * HoudiniLandscape = Iter.Value().Get();
         if ( !IsValid( HoudiniLandscape ) )
             continue;
 
@@ -5090,7 +5090,7 @@ UHoudiniAssetComponent::ClearLandscapes()
             if (CurrentInput->GetChoiceIndex() != EHoudiniAssetInputType::Enum::LandscapeInput)
                 continue;
 
-            ALandscape* InputLandscape = CurrentInput->GetLandscapeInput();
+            ALandscapeProxy* InputLandscape = CurrentInput->GetLandscapeInput();
             if (!InputLandscape || InputLandscape->IsPendingKill())
                 continue;
 
@@ -5800,10 +5800,10 @@ UHoudiniAssetComponent::CreateOrUpdateMaterialInstances()
 
     // 2. FOR LANDSCAPES
     // Handling the creation of material instances from attributes
-    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TIterator Iter( LandscapeComponents ); Iter; ++Iter )
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >::TIterator Iter( LandscapeComponents ); Iter; ++Iter )
     {
         FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
-        ALandscape* Landscape = Iter.Value().Get();
+        ALandscapeProxy* Landscape = Iter.Value().Get();
         if ( !Landscape )
             continue;
 
@@ -6031,9 +6031,9 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
     // ... all our landscapes
     if ( !bIgnoreGeneratedLandscape )
     {
-        for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> >::TConstIterator Iter( LandscapeComponents ); Iter; ++Iter )
+        for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >::TConstIterator Iter( LandscapeComponents ); Iter; ++Iter )
         {
-            ALandscape * Landscape = Iter.Value().Get();
+            ALandscapeProxy * Landscape = Iter.Value().Get();
             if ( !Landscape )
                 continue;
 
@@ -6052,12 +6052,12 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
     return BoxBounds;
 }
 
-bool UHoudiniAssetComponent::HasLandscapeActor( ALandscape* LandscapeActor ) const
+bool UHoudiniAssetComponent::HasLandscapeActor(ALandscapeProxy* LandscapeActor ) const
 {
     // Check if we created the landscape
-    for (TMap<FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape>>::TConstIterator Iter(LandscapeComponents); Iter; ++Iter)
+    for (TMap<FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy>>::TConstIterator Iter(LandscapeComponents); Iter; ++Iter)
     {
-        ALandscape * HoudiniLandscape = Iter.Value().Get();
+        ALandscapeProxy * HoudiniLandscape = Iter.Value().Get();
         if ( HoudiniLandscape && HoudiniLandscape == LandscapeActor )
             return true;
     }
@@ -6065,7 +6065,7 @@ bool UHoudiniAssetComponent::HasLandscapeActor( ALandscape* LandscapeActor ) con
     return false;
 }
 
-TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> > *
+TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> > *
 UHoudiniAssetComponent::GetLandscapeComponents()
 {
     return &LandscapeComponents;
@@ -6121,7 +6121,7 @@ UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
         if ( !HAsset || HAsset->IsPendingKill() )
             OnlyHoudiniAssets = false;
 
-        ALandscape* Landscape = Cast<ALandscape>( Object );
+        ALandscapeProxy* Landscape = Cast<ALandscapeProxy>( Object );
         if ( !Landscape || Landscape->IsPendingKill() )
             OnlyLandscapes = false;
 
@@ -6152,7 +6152,7 @@ UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
         // Try to apply the supplied Object to the Input
         for (TMap< UObject*, int32 >::TIterator IterToolPreset( HoudiniToolInputPreset ); IterToolPreset; ++IterToolPreset)
         {
-            ALandscape* Landscape = Cast< ALandscape >( IterToolPreset.Key() );
+            ALandscapeProxy* Landscape = Cast< ALandscape >( IterToolPreset.Key() );
             if ( !Landscape )
                 continue;
 

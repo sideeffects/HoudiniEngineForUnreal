@@ -50,11 +50,13 @@ class UStaticMesh;
 class IDetailLayoutBuilder;
 class UHoudiniAssetComponent;
 class ALandscape;
+class ALandscapeProxy;
 
 
 /** Hashing function for our pair. **/
 uint32 GetTypeHash( TPair< UStaticMesh *, int32 > Pair );
 uint32 GetTypeHash( TPair< ALandscape *, int32 > Pair );
+uint32 GetTypeHash(TPair< ALandscapeProxy *, int32 > Pair);
 
 class FHoudiniAssetComponentDetails : public IDetailCustomization
 {
@@ -86,9 +88,9 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
 
         /** Gets the border brush to show around thumbnails, changes when the user hovers on it. **/
         const FSlateBrush * GetStaticMeshThumbnailBorder( UStaticMesh * StaticMesh ) const;
-        const FSlateBrush * GetLandscapeThumbnailBorder( ALandscape * Landscape ) const; 
+        const FSlateBrush * GetLandscapeThumbnailBorder(ALandscapeProxy * Landscape ) const;
         const FSlateBrush * GetMaterialInterfaceThumbnailBorder( UStaticMesh * StaticMesh, int32 MaterialIdx ) const;
-        const FSlateBrush * GetMaterialInterfaceThumbnailBorder( ALandscape * Landscape, int32 MaterialIdx ) const;
+        const FSlateBrush * GetMaterialInterfaceThumbnailBorder(ALandscapeProxy * Landscape, int32 MaterialIdx ) const;
 
         /** Handler for when static mesh thumbnail is double clicked. We open editor in this case. **/
         FReply OnThumbnailDoubleClick(
@@ -103,7 +105,7 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
         FReply OnRemoveBakingBaseNameOverride( UHoudiniAssetComponent * HoudiniAssetComponent, FHoudiniGeoPartObject );
 
         /** Handler for baking an individual Landscape. **/
-        FReply OnBakeLandscape( ALandscape * Landscape, UHoudiniAssetComponent * HoudiniAssetComponent );
+        FReply OnBakeLandscape(ALandscapeProxy * Landscape, UHoudiniAssetComponent * HoudiniAssetComponent );
 
         /** Handler for bake all static meshes action. **/
         FReply OnBakeAllGeneratedMeshes();
@@ -155,7 +157,7 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
             UObject * InObject, UStaticMesh * StaticMesh,
             FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
         void OnMaterialInterfaceDropped(
-            UObject * InObject, ALandscape * Landscape,
+            UObject * InObject, ALandscapeProxy * Landscape,
             FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
 
         /** Construct drop down menu content for material. **/
@@ -163,7 +165,7 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
             UMaterialInterface * MaterialInterface, UStaticMesh * StaticMesh,
             FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
         TSharedRef< SWidget > OnGetMaterialInterfaceMenuContent(
-            UMaterialInterface * MaterialInterface, ALandscape * Landscape,
+            UMaterialInterface * MaterialInterface, ALandscapeProxy * Landscape,
             FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
 
         /** Delegate for handling selection in content browser. **/
@@ -171,7 +173,7 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
             const FAssetData & AssetData, UStaticMesh * StaticMesh,
             FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
         void OnMaterialInterfaceSelected(
-            const FAssetData & AssetData, ALandscape * Landscape,
+            const FAssetData & AssetData, ALandscapeProxy * Landscape,
             FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
 
         /** Closes the combo button. **/
@@ -184,7 +186,7 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
         FReply OnResetMaterialInterfaceClicked(
             UStaticMesh * StaticMesh, FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
         FReply OnResetMaterialInterfaceClicked(
-            ALandscape * Landscape, FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
+            ALandscapeProxy * Landscape, FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
 
         /** Delegate used when Houdini asset has been drag and dropped. **/
         void OnHoudiniAssetDropped( UObject * InObject );
@@ -261,13 +263,13 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
         TMap< TPair< UStaticMesh *, int32 >, TSharedPtr< SBorder > > MaterialInterfaceThumbnailBorders;
 
         /** Map of Landscapes and corresponding thumbnail borders. **/
-        TMap< ALandscape *, TSharedPtr< SBorder > > LandscapeThumbnailBorders;
+        TMap< ALandscapeProxy *, TSharedPtr< SBorder > > LandscapeThumbnailBorders;
 
         /** Map of Landscapes / material indices to combo elements. **/
-        TMap< TPair< ALandscape *, int32 >, TSharedPtr<SComboButton > > LandscapeMaterialInterfaceComboButtons;
+        TMap< TPair< ALandscapeProxy *, int32 >, TSharedPtr<SComboButton > > LandscapeMaterialInterfaceComboButtons;
 
         /** Map of Landscapes / material indices to thumbnail borders. **/
-        TMap< TPair< ALandscape *, int32 >, TSharedPtr< SBorder > > LandscapeMaterialInterfaceThumbnailBorders;
+        TMap< TPair< ALandscapeProxy *, int32 >, TSharedPtr< SBorder > > LandscapeMaterialInterfaceThumbnailBorders;
 
         /** Delegate for filtering material interfaces. **/
         FOnShouldFilterAsset OnShouldFilterMaterialInterface;

@@ -500,7 +500,7 @@ public:
         bool CreateAllLandscapes( const TArray< FHoudiniGeoPartObject > & FoundVolumes );
 
         /** Updates the materials for a newly created landscape **/
-        void UpdateLandscapeMaterialsAssignementsAndReplacements( ALandscape* Landscape, FHoudiniGeoPartObject Heightfield );
+        void UpdateLandscapeMaterialsAssignementsAndReplacements(ALandscapeProxy* Landscape, FHoudiniGeoPartObject Heightfield );
 
         /** Unmark all changed parameters. **/
         void UnmarkChangedParameters();
@@ -629,16 +629,16 @@ public:
         bool HasLandscape() const { return ( LandscapeComponents.Num() > 0 ); }
 
         /** Returns true if the landscape actor has been created by this asset **/
-        bool HasLandscapeActor(ALandscape* LandscapeActor) const;
+        bool HasLandscapeActor(ALandscapeProxy* LandscapeActor) const;
 
         /** Returns a pointer to the landscape component map **/
-        TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> > * GetLandscapeComponents();
+        TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> > * GetLandscapeComponents();
 
         /** Set the preset Input for HoudiniTools **/
         void SetHoudiniToolInputPresets( const TMap< UObject*, int32 >& InPresets );
 
         /** Replaces references to a landscape actor by the newly generated one **/
-        bool ReplaceLandscapeInInputs( ALandscape* Old, ALandscape* New );
+        bool ReplaceLandscapeInInputs(ALandscapeProxy* Old, ALandscapeProxy* New );
 
         /** From UPrimitiveComponent Interface. **/
         virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
@@ -708,7 +708,7 @@ public:
         TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> > SplineComponents;
 
         /** Map of Landscape / Heightfield components. **/
-        TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscape> > LandscapeComponents;
+        TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> > LandscapeComponents;
 
         /** Material assignments. **/
         UHoudiniAssetComponentMaterials * HoudiniAssetComponentMaterials;
