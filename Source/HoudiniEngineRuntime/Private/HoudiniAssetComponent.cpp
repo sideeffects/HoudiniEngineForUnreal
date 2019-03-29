@@ -105,11 +105,11 @@ class SAssetSelectionWidget : public SCompoundWidget
     public:
         SLATE_BEGIN_ARGS( SAssetSelectionWidget )
             : _WidgetWindow(), _AvailableAssetNames()
-        {}
+            {}
 
-        SLATE_ARGUMENT( TSharedPtr<SWindow>, WidgetWindow )
+            SLATE_ARGUMENT(TSharedPtr<SWindow>, WidgetWindow )
             SLATE_ARGUMENT( TArray< HAPI_StringHandle >, AvailableAssetNames )
-            SLATE_END_ARGS()
+        SLATE_END_ARGS()
 
     public:
 
@@ -143,7 +143,7 @@ class SAssetSelectionWidget : public SCompoundWidget
     protected:
 
         /** Parent widget window. **/
-        TSharedPtr< SWindow > WidgetWindow;
+        TWeakPtr< SWindow > WidgetWindow;
 
         /** List of available Houdini Engine asset names. **/
         TArray< HAPI_StringHandle > AvailableAssetNames;
@@ -244,8 +244,11 @@ SAssetSelectionWidget::OnButtonAssetPick( int32 AssetName )
 {
     SelectedAssetName = AssetName;
 
-    WidgetWindow->HideWindow();
-    WidgetWindow->RequestDestroyWindow();
+    if (TSharedPtr<SWindow> WindowPtr = WidgetWindow.Pin())
+    {
+        WindowPtr->HideWindow();
+        WindowPtr->RequestDestroyWindow();
+    }
 
     return FReply::Handled();
 }
@@ -253,8 +256,11 @@ SAssetSelectionWidget::OnButtonAssetPick( int32 AssetName )
 FReply
 SAssetSelectionWidget::OnButtonOk()
 {
-    WidgetWindow->HideWindow();
-    WidgetWindow->RequestDestroyWindow();
+    if (TSharedPtr<SWindow> WindowPtr = WidgetWindow.Pin())
+    {
+        WindowPtr->HideWindow();
+        WindowPtr->RequestDestroyWindow();
+    }
 
     return FReply::Handled();
 }
@@ -264,8 +270,11 @@ SAssetSelectionWidget::OnButtonCancel()
 {
     bIsCancelled = true;
 
-    WidgetWindow->HideWindow();
-    WidgetWindow->RequestDestroyWindow();
+    if (TSharedPtr<SWindow> WindowPtr = WidgetWindow.Pin())
+    {
+        WindowPtr->HideWindow();
+        WindowPtr->RequestDestroyWindow();
+    }
 
     return FReply::Handled();
 }
@@ -2403,10 +2412,12 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bRenderInMainPass );
             }
+            /*
             else if ( Property->GetName() == TEXT( "bRenderInMono" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bRenderInMono );
             }
+            */
             else if ( Property->GetName() == TEXT( "bOwnerNoSee" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bOwnerNoSee );
@@ -2470,10 +2481,12 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bMultiBodyOverlap );
             }
+            /*
             else if ( Property->GetName() == TEXT( "bCheckAsyncSceneOnMove" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bCheckAsyncSceneOnMove );
             }
+            */
             else if ( Property->GetName() == TEXT( "bTraceComplexOnMove" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bTraceComplexOnMove );
