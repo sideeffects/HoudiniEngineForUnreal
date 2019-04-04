@@ -5783,10 +5783,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                 // TODO: FIX THIS PROPERLY!!
                 // Ignore the found Static Mesh to force the creation of a new one
-                // UE4.20 seems to be ignoring the fact that the SM get updated, and only displays the original one
-                // This prevents meshes from updating after a cook, only updating them after a rebuild....
-                if ( !IsLOD || LodIndex <= 0 )
-                    FoundStaticMesh = nullptr;
+                // UE4.20 seems to be ignoring the fact that the SM is updated, and only displays the original one
+                // This prevents meshes from being updated after a cook, but only after a rebuild....
+                //if ( bRebuildStaticMesh && (!IsLOD || LodIndex <= 0) )
+                //    FoundStaticMesh = nullptr;
 
                 // If the static mesh was not located, we need to create a new one.
                 bool bStaticMeshCreated = false;
@@ -6604,7 +6604,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                 // Store the new raw mesh.
                 SrcModel->RawMeshBulkData->SaveRawMesh( RawMesh );
-                // This is required due to the impeding depreacation of FRawMesh
+                // This is required due to the impeding deprecation of FRawMesh
                 // If we dont update this UE4 will crash upon deleting an asset.
                 SrcModel->StaticMeshOwner = StaticMesh;
 
