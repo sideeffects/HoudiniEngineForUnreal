@@ -2852,7 +2852,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
         // Load the existing raw mesh.
         FRawMesh RawMesh;
-        SrcModel.RawMeshBulkData->LoadRawMesh( RawMesh );
+        SrcModel.LoadRawMesh(RawMesh);
 
         // Create part.
         HAPI_PartInfo Part;
@@ -5857,8 +5857,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 {
                     // We dont need to rebuild the mesh (because the geometry hasn't changed, but the materials have)
                     // So we can just load the old data into the Raw mesh and reuse it.
-                    FRawMeshBulkData * InRawMeshBulkData = SrcModel->RawMeshBulkData;
-                    InRawMeshBulkData->LoadRawMesh(RawMesh);
+                    SrcModel->LoadRawMesh(RawMesh);
                 }
                 else
                 {
@@ -6602,11 +6601,11 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     continue;
                 }
 
-                // Store the new raw mesh.
-                SrcModel->RawMeshBulkData->SaveRawMesh( RawMesh );
                 // This is required due to the impeding deprecation of FRawMesh
                 // If we dont update this UE4 will crash upon deleting an asset.
                 SrcModel->StaticMeshOwner = StaticMesh;
+                // Store the new raw mesh.
+                SrcModel->SaveRawMesh(RawMesh);
 
                 // Lambda for initializing a LOD level
                 auto InitLODLevel = [ & ]( const int32& LODLevelIndex )
