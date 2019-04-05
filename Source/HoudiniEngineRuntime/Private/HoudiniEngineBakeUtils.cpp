@@ -197,13 +197,11 @@ FHoudiniEngineBakeUtils::BakeStaticMesh(
         new ( StaticMesh->SourceModels ) FStaticMeshSourceModel();
 
     FStaticMeshSourceModel * SrcModel = &StaticMesh->SourceModels[0];
-    FRawMeshBulkData * RawMeshBulkData = SrcModel->RawMeshBulkData;
 
     // Load raw data bytes.
     FRawMesh RawMesh;
     FStaticMeshSourceModel * InSrcModel = &InStaticMesh->SourceModels[0];
-    FRawMeshBulkData * InRawMeshBulkData = InSrcModel->RawMeshBulkData;
-    InRawMeshBulkData->LoadRawMesh( RawMesh );
+    InSrcModel->LoadRawMesh( RawMesh );
 
     // Some mesh generation settings.
     HoudiniRuntimeSettings->SetMeshBuildSettings( SrcModel->BuildSettings, RawMesh );
@@ -228,7 +226,8 @@ FHoudiniEngineBakeUtils::BakeStaticMesh(
     }
 
     // Store the new raw mesh.
-    RawMeshBulkData->SaveRawMesh( RawMesh );
+    SrcModel->StaticMeshOwner = StaticMesh;
+    SrcModel->SaveRawMesh( RawMesh );
 
     while( StaticMesh->SourceModels.Num() < NumLODs )
         new ( StaticMesh->SourceModels ) FStaticMeshSourceModel();

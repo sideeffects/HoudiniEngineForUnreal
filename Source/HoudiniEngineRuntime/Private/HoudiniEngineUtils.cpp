@@ -2852,7 +2852,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
         // Load the existing raw mesh.
         FRawMesh RawMesh;
-        SrcModel.RawMeshBulkData->LoadRawMesh( RawMesh );
+        SrcModel.LoadRawMesh(RawMesh);
 
         // Create part.
         HAPI_PartInfo Part;
@@ -5763,7 +5763,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 if ( !bRebuildStaticMesh )
                 {
                     // No mesh located, unless this split is a simple/convex collider, this is an error.
-                    if ( !FoundStaticMesh && ( !HoudiniGeoPartObject.bIsSimpleCollisionGeo && !HoudiniGeoPartObject.bIsUCXCollisionGeo ) )
+                    if ( !FoundStaticMesh && ( !HoudiniGeoPartObject.bIsSimpleCollisionGeo && !HoudiniGeoPartObject.bIsUCXCollisionGeo ) )                                                                       
                     {
                         HOUDINI_LOG_ERROR(
                             TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d, %s] geometry has not changed ")
@@ -5783,10 +5783,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                 // TODO: FIX THIS PROPERLY!!
                 // Ignore the found Static Mesh to force the creation of a new one
-                // UE4.20 seems to be ignoring the fact that the SM get updated, and only displays the original one
-                // This prevents meshes from updating after a cook, only updating them after a rebuild....
-                if ( !IsLOD || LodIndex <= 0 )
-                    FoundStaticMesh = nullptr;
+                // UE4.20 seems to be ignoring the fact that the SM is updated, and only displays the original one
+                // This prevents meshes from being updated after a cook, but only after a rebuild....
+                //if ( bRebuildStaticMesh && (!IsLOD || LodIndex <= 0) )
+                //    FoundStaticMesh = nullptr;
 
                 // If the static mesh was not located, we need to create a new one.
                 bool bStaticMeshCreated = false;
@@ -5824,6 +5824,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     StaticMesh = *FoundStaticMesh;
                 }
 
+                // Free any RHI resources for existing mesh before we re-create in place.
+                StaticMesh->PreEditChange(NULL);
+
                 if ( !IsLOD || LodIndex == 0 )
                 {
                     // We need to initialize the LODs used by this mesh
@@ -5849,16 +5852,19 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // Load existing raw model. This will be empty as we are constructing a new mesh.
                 FRawMesh RawMesh;
 
-                // Compute number of faces.
                 int32 SplitGroupFaceCount = SplitGroupFaceIndices.Num();
-
-                if ( bRebuildStaticMesh )
+                if (!bRebuildStaticMesh)
+                {
+                    // We dont need to rebuild the mesh (because the geometry hasn't changed, but the materials have)
+                    // So we can just load the old data into the Raw mesh and reuse it.
+                    SrcModel->LoadRawMesh(RawMesh);
+                }
+                else
                 {
                     //--------------------------------------------------------------------------------------------------------------------- 
                     // NORMALS
                     //--------------------------------------------------------------------------------------------------------------------- 
                     TArray< float > SplitGroupNormals;
-
                     // No need to read the normals if we'll recompute them after
                     bool bReadNormals = HoudiniRuntimeSettings->RecomputeNormalsFlag != EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Always;                
                     if ( bReadNormals )
@@ -6092,7 +6098,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     }
 
                     // We have to have at least one UV channel. If there's none, create one with zero data.
-                    if ( UVChannelCount == 0 )
+                    if (UVChannelCount == 0)
                         RawMesh.WedgeTexCoords[ 0 ].SetNumZeroed( SplitGroupVertexListCount );
 
                     // Set the lightmap Coordinate Index
@@ -6112,6 +6118,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             PartInfo.id, MarshallingAttributeNameLightmapResolution.c_str(),
                             AttribLightmapResolution, PartLightMapResolutions );
                     }
+
+                    // make sure the mesh has a new lighting guid
+                    StaticMesh->LightingGuid = FGuid::NewGuid();
 
                     //--------------------------------------------------------------------------------------------------------------------- 
                     //  INDICES
@@ -6300,13 +6309,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                         continue;
                     }
-                }
-                else
-                {
-                    // We dont need to rebuild the mesh (because the geometry hasn't changed, but the materials have)
-                    // So we can just load the old data into the Raw mesh and reuse it.
-                    FRawMeshBulkData * InRawMeshBulkData = SrcModel->RawMeshBulkData;
-                    InRawMeshBulkData->LoadRawMesh( RawMesh );
                 }
 
                 //--------------------------------------------------------------------------------------------------------------------- 
@@ -6599,8 +6601,11 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     continue;
                 }
 
+                // This is required due to the impeding deprecation of FRawMesh
+                // If we dont update this UE4 will crash upon deleting an asset.
+                SrcModel->StaticMeshOwner = StaticMesh;
                 // Store the new raw mesh.
-                SrcModel->RawMeshBulkData->SaveRawMesh( RawMesh );
+                SrcModel->SaveRawMesh(RawMesh);
 
                 // Lambda for initializing a LOD level
                 auto InitLODLevel = [ & ]( const int32& LODLevelIndex )
@@ -6746,9 +6751,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // Try to update the uproperties of the StaticMesh
                 UpdateUPropertyAttributesOnObject( StaticMesh, HoudiniGeoPartObject);
 
-                // Free any RHI resources.
-                StaticMesh->PreEditChange( nullptr );
-
                 // BUILD the Static Mesh
                 FHoudiniScopedGlobalSilence ScopedGlobalSilence;
                 TArray< FText > BuildErrors;
@@ -6816,7 +6818,15 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 if ( bStaticMeshCreated )
                     FAssetRegistryModule::AssetCreated( StaticMesh );
                 
-                StaticMesh->MarkPackageDirty();
+                // Try to find the outer package so we can dirty it up
+                if (StaticMesh->GetOuter())
+                {
+                    StaticMesh->GetOuter()->MarkPackageDirty();
+                }
+                else
+                {
+                    StaticMesh->MarkPackageDirty();
+                }
 
                 StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
 
@@ -7360,14 +7370,14 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
     void * HAPILibraryHandle = nullptr;
 
     // Look up HAPI_PATH environment variable; if it is not defined, 0 will stored in HFS_ENV_VARIABLE .
-	FString HFS_ENV_VAR = FPlatformMisc::GetEnvironmentVariable( TEXT( "HAPI_PATH" ) );
-	if (!HFS_ENV_VAR.IsEmpty())
-		HFSPath = HFS_ENV_VAR;
+    FString HFS_ENV_VAR = FPlatformMisc::GetEnvironmentVariable( TEXT( "HAPI_PATH" ) );
+    if (!HFS_ENV_VAR.IsEmpty())
+        HFSPath = HFS_ENV_VAR;
 
     // Look up environment variable; if it is not defined, 0 will stored in HFS_ENV_VARIABLE .
-	HFS_ENV_VAR = FPlatformMisc::GetEnvironmentVariable( TEXT( "HFS" ));
-	if (!HFS_ENV_VAR.IsEmpty())
-		HFSPath = HFS_ENV_VAR;
+    HFS_ENV_VAR = FPlatformMisc::GetEnvironmentVariable( TEXT( "HFS" ));
+    if (!HFS_ENV_VAR.IsEmpty())
+        HFSPath = HFS_ENV_VAR;
 
     // Get platform specific name of libHAPI.
     FString LibHAPIName = FHoudiniEngineUtils::HoudiniGetLibHAPIName();
