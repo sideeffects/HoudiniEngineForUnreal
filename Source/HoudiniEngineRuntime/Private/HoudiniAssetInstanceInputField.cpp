@@ -65,8 +65,8 @@ UHoudiniAssetInstanceInputField::Create(
     UHoudiniAssetInstanceInput * InHoudiniAssetInstanceInput,
     const FHoudiniGeoPartObject & HoudiniGeoPartObject )
 {
-	if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
-		return nullptr;
+    if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+        return nullptr;
 
     UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField =
         NewObject< UHoudiniAssetInstanceInputField >(
@@ -233,8 +233,8 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
         return;
 
     USceneComponent* RootComp = Comp;
-	if (!RootComp->GetOwner() || RootComp->GetOwner()->IsPendingKill())
-		return;
+    if (!RootComp->GetOwner() || RootComp->GetOwner()->IsPendingKill())
+        return;
 
     // Check if instancer material is available.
     const FHoudiniGeoPartObject & InstancerHoudiniGeoPartObject = HoudiniAssetInstanceInput->HoudiniGeoPartObject;
@@ -478,11 +478,11 @@ UHoudiniAssetInstanceInputField::AddInstanceVariation( UObject * InObject, int32
     check( InObject );
     check( HoudiniAssetComponent );
 
-	if (!InObject || InObject->IsPendingKill())
-		return;
+    if (!InObject || InObject->IsPendingKill())
+        return;
 
-	if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
-		return;
+    if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+        return;
 
     InstancedObjects.Insert( InObject, VariationIdx );
     RotationOffsets.Insert( FRotator( 0, 0, 0 ), VariationIdx );
@@ -605,16 +605,21 @@ UHoudiniAssetInstanceInputField::ReplaceInstanceVariation( UObject * InObject, i
         // We'll create a new InstanceComponent
         FTransform SavedXform = FTransform::Identity;
 
+        // Delete the old instancer
         if ( InstancerComponents.IsValidIndex( Index ) )
         {
-            if ( InstancerComponents[ Index ] )
+            USceneComponent* InstancerComponentToRemove = InstancerComponents[Index];
+            InstancerComponents.RemoveAt(Index);
+            if ( InstancerComponentToRemove && !InstancerComponentToRemove->IsPendingKill() )
             {
-                SavedXform = InstancerComponents[ Index ]->GetRelativeTransform();
-                InstancerComponents[ Index ]->DestroyComponent();
+                SavedXform = InstancerComponentToRemove->GetRelativeTransform();
+                InstancerComponentToRemove->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+                InstancerComponentToRemove->UnregisterComponent();
+                InstancerComponentToRemove->DestroyComponent();
             }
-            InstancerComponents.RemoveAt( Index );
         }
 
+        // Create a new one and restore the transform
         AddInstanceComponent( Index );
         InstancerComponents[ Index ]->SetRelativeTransform( SavedXform );
     }
