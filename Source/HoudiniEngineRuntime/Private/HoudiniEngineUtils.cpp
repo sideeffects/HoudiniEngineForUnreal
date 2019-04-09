@@ -3171,9 +3171,18 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
         {
             // Create an array of Material Interfaces
             TArray< UMaterialInterface * > MaterialInterfaces;
-            for (const FStaticMaterial &StaticMaterial : StaticMesh->StaticMaterials)
+            for (int32 MatIdx = 0; MatIdx < StaticMesh->StaticMaterials.Num(); MatIdx++)
             {
-                MaterialInterfaces.Add( StaticMaterial.MaterialInterface );
+                if (StaticMeshComponent != nullptr)
+                {
+                    // Get the assigned material from the component instead of the Static Mesh
+                    // As it could have been overriden
+                    MaterialInterfaces.Add(StaticMeshComponent->GetMaterial(MatIdx));
+                }
+                else
+                {
+                    MaterialInterfaces.Add(StaticMesh->GetMaterial(MatIdx));
+                }
             }
 
             // Try to fix up inconsistencies between the RawMesh / StaticMesh material indexes
@@ -3185,6 +3194,12 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
             int32 NumSections = LOD.Sections.Num();
             for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
             {
+                // TODO: Fix me properly!
+                // This at least avoid crashes when the number of material slots is different 
+                // than the number of LOD sections.
+                if (!MaterialInterfaces.IsValidIndex(SectionIndex))
+                    continue;
+
                 FStaticMeshSection Info = LOD.Sections[SectionIndex];
                 if ( StaticMesh->StaticMaterials.IsValidIndex(Info.MaterialIndex) )
                 {
