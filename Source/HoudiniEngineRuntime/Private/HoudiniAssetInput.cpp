@@ -41,7 +41,7 @@
 #include "Engine/Selection.h"
 #include "Internationalization/Internationalization.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
-
+#include "EngineUtils.h" // for TActorIterator<>
 #if WITH_EDITOR
     #include "UnrealEdGlobals.h"
     #include "Editor/UnrealEdEngine.h"
@@ -61,6 +61,10 @@ FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
     Ar << HoudiniAssetParameterVersion;
 
     Ar << ActorPtr;
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_OUTLINER_INPUT_SAVE_ACTOR_PATHNAME )
+    {
+        Ar << ActorPathName;
+    }
 
     if ( HoudiniAssetParameterVersion < VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_OUTLINER_INPUT_SAVE_ACTOR_ONLY )
     {
@@ -1190,7 +1194,7 @@ UHoudiniAssetInput::PostLoad()
     if (InputOutlinerMeshArray.Num() > 0)
     {
         // Proper initialization of the outliner inputs is delayed to the first WorldTick,
-        // As some of the Actors' components might not be preoperly initalized yet
+        // As some of the Actors' components might not be properly initialized yet
         OutlinerInputsNeedPostLoadInit = true;
 
 #if WITH_EDITOR
@@ -1875,9 +1879,31 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
         return;
 
     // PostLoad initialization must be done on the first tick
-    // as some components might now have been fully initialized at PostLoad()
+    // as some components might now have been fully initialized during PostLoad()
     if ( OutlinerInputsNeedPostLoadInit )
     {
+        UWorld* editorWorld = GEditor->GetEditorWorldContext().World();
+        for (auto & OutlinerInput : InputOutlinerMeshArray)
+        {
+            if (OutlinerInput.ActorPtr.IsValid())
+                continue;
+
+            if (OutlinerInput.ActorPathName.Equals(TEXT("None"), ESearchCase::IgnoreCase))
+                continue;
+
+            // The actor pointer is invalid, 
+            // See if we can use the saved pathname to find the actor back
+            // Invalid ActorPtr could be caused by the actor being in a different level
+            for ( TActorIterator<AActor> ActorIt(editorWorld); ActorIt; ++ActorIt )
+            {
+                if (ActorIt->GetPathName() == OutlinerInput.ActorPathName)
+                {
+                    OutlinerInput.ActorPtr = *ActorIt;
+                    break;
+                }
+            }
+        }
+
         UpdateInputOulinerArray();
 
         // The spline Transform array might need to be rebuilt after loading
@@ -3424,6 +3450,7 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
                 // Add the mesh to the array
                 FHoudiniAssetInputOutlinerMesh OutlinerMesh;
                 OutlinerMesh.ActorPtr = Actor;
+                OutlinerMesh.ActorPathName = Actor->GetPathName();
                 OutlinerMesh.StaticMeshComponent = InstancedStaticMeshComponent;
                 OutlinerMesh.StaticMesh = StaticMesh;
                 OutlinerMesh.SplineComponent = nullptr;
@@ -3441,6 +3468,7 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
             // Add the mesh to the array
             FHoudiniAssetInputOutlinerMesh OutlinerMesh;
             OutlinerMesh.ActorPtr = Actor;
+            OutlinerMesh.ActorPathName = Actor->GetPathName();
             OutlinerMesh.StaticMeshComponent = StaticMeshComponent;
             OutlinerMesh.StaticMesh = StaticMesh;
             OutlinerMesh.SplineComponent = nullptr;
@@ -3464,6 +3492,7 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
         FHoudiniAssetInputOutlinerMesh OutlinerMesh;
 
         OutlinerMesh.ActorPtr = Actor;
+        OutlinerMesh.ActorPathName = Actor->GetPathName();
         OutlinerMesh.StaticMeshComponent = nullptr;
         OutlinerMesh.StaticMesh = nullptr;
         OutlinerMesh.SplineComponent = SplineComponent;
