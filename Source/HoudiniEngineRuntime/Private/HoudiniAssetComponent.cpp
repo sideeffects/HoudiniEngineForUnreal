@@ -2259,8 +2259,7 @@ void
 UHoudiniAssetComponent::SubscribeEditorDelegates()
 {
     // Add delegate for asset post import.
-    DelegateHandleAssetPostImport =
-        FEditorDelegates::OnAssetPostImport.AddUObject( this, &UHoudiniAssetComponent::OnAssetPostImport );
+    GEditor->GetEditorSubsystem<UImportSubsystem>()->OnAssetPostImport.AddUObject(this, &UHoudiniAssetComponent::OnAssetPostImport);
 
     // Add delegate for viewport drag and drop events.
     DelegateHandleApplyObjectToActor =
@@ -2276,7 +2275,7 @@ void
 UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 {
     // Remove delegate for asset post import.
-    FEditorDelegates::OnAssetPostImport.Remove( DelegateHandleAssetPostImport );
+    GEditor->GetEditorSubsystem<UImportSubsystem>()->OnAssetPostImport.Remove(DelegateHandleAssetPostImport);
 
     // Remove delegate for viewport drag and drop events.
     FEditorDelegates::OnApplyObjectToActor.Remove( DelegateHandleApplyObjectToActor );
