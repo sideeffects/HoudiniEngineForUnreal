@@ -91,8 +91,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
     /** Indicates that the components used are no longer valid and should be updated from the actor **/
     bool NeedsComponentUpdate() const;
 
-    /** Selected mesh's Actor, for reference. **/
+    /** Selected Actor. **/
     TWeakObjectPtr<AActor> ActorPtr = nullptr;
+
+    /** Selected Actor's path, used to find the actor back after loading. **/
+    FString ActorPathName = TEXT("NONE");
+
     /** Selected mesh's component, for reference. **/
     class UStaticMeshComponent * StaticMeshComponent = nullptr;
 
