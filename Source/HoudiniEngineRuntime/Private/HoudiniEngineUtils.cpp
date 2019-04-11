@@ -409,11 +409,14 @@ FHoudiniEngineUtils::IsHoudiniNodeValid( const HAPI_NodeId& NodeId )
     HAPI_NodeInfo NodeInfo;
     bool ValidationAnswer = 0;
 
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
-        FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo ), false );
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::IsNodeValid(
+    if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetNodeInfo(
+        FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo ) )
+        return false;
+
+    if ( HAPI_RESULT_SUCCESS != FHoudiniApi::IsNodeValid(
         FHoudiniEngine::Get().GetSession(), NodeId,
-        NodeInfo.uniqueHoudiniNodeId, &ValidationAnswer ), false );
+        NodeInfo.uniqueHoudiniNodeId, &ValidationAnswer ) )
+        return false;
 
     return ValidationAnswer;
 }

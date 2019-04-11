@@ -242,7 +242,7 @@ FHoudiniAssetInputOutlinerMesh::NeedsComponentUpdate() const
     if ( SplineComponent && ( !SplineComponent->IsValidLowLevel() || SplineComponent->IsPendingKill() ) )
         return true;
 
-    if ( !StaticMeshComponent && !StaticMeshComponent && !SplineComponent )
+    if ( !StaticMesh && !StaticMeshComponent && !SplineComponent )
         return true;
 
     return false;
@@ -3329,7 +3329,7 @@ void UHoudiniAssetInput::SetDefaultInputTypeFromLabel()
         newInputType = EHoudiniAssetInputType::WorldInput;
 
     else if ( ( inputName.Contains( assetPrefix, ESearchCase::IgnoreCase ) )
-            || ( inputName.Contains( assetPrefix, ESearchCase::IgnoreCase ) ) )
+            || ( inputName.Contains( assetPrefix2, ESearchCase::IgnoreCase ) ) )
         newInputType = EHoudiniAssetInputType::AssetInput;
 
     if ( ChoiceIndex != newInputType )
@@ -3409,23 +3409,18 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
     if ( GetHoudiniAssetComponent() && ( Actor == GetHoudiniAssetComponent()->GetOwner() ) )
         return;
 
-    // Destroy previous outliner inputs from this actor if needed
-    if ( NeedCleanUp )
+    // Destroy previous outliner inputs linked to this actor if needed
+    if (NeedCleanUp)
     {
-        for ( int32 n = InputOutlinerMeshArray.Num() - 1; n >= 0; n-- )
+        for (int32 n = InputOutlinerMeshArray.Num() - 1; n >= 0; n--)
         {
-            if ( InputOutlinerMeshArray[ n ].ActorPtr.Get() != Actor )
+            if (InputOutlinerMeshArray[n].ActorPtr.Get() != Actor)
                 continue;
 
-            // Destroy/Disconnect the input properly before re;oving it from the array
-            if ( FHoudiniEngineUtils::IsValidNodeId( InputOutlinerMeshArray[n].AssetId ) )
-            {
-                FHoudiniEngineUtils::HapiDisconnectAsset( ConnectedAssetId, n );
-                FHoudiniEngineUtils::DestroyHoudiniAsset( InputOutlinerMeshArray[n].AssetId );
-                InputOutlinerMeshArray[n].AssetId = -1;
-            }
-
-            InputOutlinerMeshArray.RemoveAt( n );
+            // Remove from the input array.
+            // No need to destroy the houdini nodes since this will be taken care of
+            // when we update the input. (see bug 95415)
+            InputOutlinerMeshArray.RemoveAt(n);
         }
     }
 
@@ -3465,7 +3460,7 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
         }
         else
         {
-            // Add the mesh to the array
+            // Add the Static Mesh to the array
             FHoudiniAssetInputOutlinerMesh OutlinerMesh;
             OutlinerMesh.ActorPtr = Actor;
             OutlinerMesh.ActorPathName = Actor->GetPathName();
