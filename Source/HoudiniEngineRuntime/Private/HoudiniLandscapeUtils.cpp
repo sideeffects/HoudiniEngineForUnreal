@@ -52,8 +52,8 @@
 #if WITH_EDITOR
     #include "FileHelpers.h"
     #include "EngineUtils.h"
-    #include "Editor/LandscapeEditor/Public/LandscapeEditorModule.h"
-    #include "Editor/LandscapeEditor/Public/LandscapeFileFormatInterface.h"
+    #include "LandscapeEditorModule.h"
+    #include "LandscapeFileFormatInterface.h"
 #endif
 
 void
