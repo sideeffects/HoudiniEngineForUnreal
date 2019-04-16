@@ -32,7 +32,6 @@
 
 #include "Internationalization/Internationalization.h"
 #include "Misc/Paths.h"
-#include "Misc/Variant.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 

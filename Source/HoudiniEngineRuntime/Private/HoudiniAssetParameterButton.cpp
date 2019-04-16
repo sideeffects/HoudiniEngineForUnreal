@@ -27,8 +27,6 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 
-#include "Misc/Variant.h"
-
 UHoudiniAssetParameterButton::UHoudiniAssetParameterButton( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
 {}

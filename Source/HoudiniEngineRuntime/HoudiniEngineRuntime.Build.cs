@@ -32,9 +32,9 @@
 
 /*
 
-    Houdini Version: 17.5.228
+    Houdini Version: 17.5.227
     Houdini Engine Version: 3.2.40
-    Unreal Version: 4.22.0
+    Unreal Version: 4.19.2
 
 */
 
@@ -46,9 +46,9 @@ public class HoudiniEngineRuntime : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "17.5.228";
-        bool bIsRelease = true;
-        string HFSPath = "";
+        string HoudiniVersion = "17.5.227";
+        bool bIsRelease = false;
+        string HFSPath = "D:/Work/DEV17.5/hfs";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Side Effects Software";
         string Log;
 
@@ -193,12 +193,10 @@ public class HoudiniEngineRuntime : ModuleRules
 
     public HoudiniEngineRuntime( ReadOnlyTargetRules Target ) : base( Target )
     {
-        bPrecompile = true;
         PCHUsage = PCHUsageMode.UseSharedPCHs;
-        PrivatePCHHeaderFile = "Private/HoudiniEngineRuntimePrivatePCH.h";
 
         // Check if we are compiling for unsupported platforms.
-        if ( Target.Platform != UnrealTargetPlatform.Win64 &&
+        if( Target.Platform != UnrealTargetPlatform.Win64 &&
             Target.Platform != UnrealTargetPlatform.Mac &&
             Target.Platform != UnrealTargetPlatform.Linux &&
             Target.Platform != UnrealTargetPlatform.Switch )
@@ -260,6 +258,7 @@ public class HoudiniEngineRuntime : ModuleRules
                 "CoreUObject",
                 "Engine",
                 "RenderCore",
+                "ShaderCore",
                 "InputCore",
                 "RHI",
                 "Foliage",
@@ -296,7 +295,8 @@ public class HoudiniEngineRuntime : ModuleRules
                     "UnrealEd",
                     "ApplicationCore",
                     "Landscape",
-                    "LandscapeEditor"
+                    "LandscapeEditor",
+                    "VREditor"
                 }
             );
         }

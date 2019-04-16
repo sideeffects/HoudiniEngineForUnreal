@@ -90,7 +90,7 @@
 #include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
 #include "StaticMeshResources.h"
 #include "Framework/Application/SlateApplication.h"
-#include "NavigationSystem.h"
+
 #endif
 #include "Internationalization/Internationalization.h"
 
@@ -105,11 +105,11 @@ class SAssetSelectionWidget : public SCompoundWidget
     public:
         SLATE_BEGIN_ARGS( SAssetSelectionWidget )
             : _WidgetWindow(), _AvailableAssetNames()
-            {}
+        {}
 
-            SLATE_ARGUMENT(TSharedPtr<SWindow>, WidgetWindow )
+        SLATE_ARGUMENT( TSharedPtr<SWindow>, WidgetWindow )
             SLATE_ARGUMENT( TArray< HAPI_StringHandle >, AvailableAssetNames )
-        SLATE_END_ARGS()
+            SLATE_END_ARGS()
 
     public:
 
@@ -143,7 +143,7 @@ class SAssetSelectionWidget : public SCompoundWidget
     protected:
 
         /** Parent widget window. **/
-        TWeakPtr< SWindow > WidgetWindow;
+        TSharedPtr< SWindow > WidgetWindow;
 
         /** List of available Houdini Engine asset names. **/
         TArray< HAPI_StringHandle > AvailableAssetNames;
@@ -244,11 +244,8 @@ SAssetSelectionWidget::OnButtonAssetPick( int32 AssetName )
 {
     SelectedAssetName = AssetName;
 
-    if (TSharedPtr<SWindow> WindowPtr = WidgetWindow.Pin())
-    {
-        WindowPtr->HideWindow();
-        WindowPtr->RequestDestroyWindow();
-    }
+    WidgetWindow->HideWindow();
+    WidgetWindow->RequestDestroyWindow();
 
     return FReply::Handled();
 }
@@ -256,11 +253,8 @@ SAssetSelectionWidget::OnButtonAssetPick( int32 AssetName )
 FReply
 SAssetSelectionWidget::OnButtonOk()
 {
-    if (TSharedPtr<SWindow> WindowPtr = WidgetWindow.Pin())
-    {
-        WindowPtr->HideWindow();
-        WindowPtr->RequestDestroyWindow();
-    }
+    WidgetWindow->HideWindow();
+    WidgetWindow->RequestDestroyWindow();
 
     return FReply::Handled();
 }
@@ -270,11 +264,8 @@ SAssetSelectionWidget::OnButtonCancel()
 {
     bIsCancelled = true;
 
-    if (TSharedPtr<SWindow> WindowPtr = WidgetWindow.Pin())
-    {
-        WindowPtr->HideWindow();
-        WindowPtr->RequestDestroyWindow();
-    }
+    WidgetWindow->HideWindow();
+    WidgetWindow->RequestDestroyWindow();
 
     return FReply::Handled();
 }
@@ -355,7 +346,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     Mobility = EComponentMobility::Static;
     PrimaryComponentTick.bCanEverTick = true;
     bTickInEditor = true;
-    SetGenerateOverlapEvents(false);
+    bGenerateOverlapEvents = false;
 
     // Similar to UMeshComponent.
     CastShadow = true;
@@ -1893,19 +1884,14 @@ UHoudiniAssetComponent::TickHoudiniComponent()
     if ( bNeedToUpdateNavigationSystem )
     {
 #ifdef WITH_EDITOR
-        // notify navigation system
-        AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
-        FNavigationSystem::UpdateActorAndComponentData(*HoudiniActor);
-        /*
         // We need to update the navigation system manually with the Actor or the NavMesh will not update properly
         UWorld* World = GEditor->GetEditorWorldContext().World();
         if (World && World->GetNavigationSystem())
         {
             AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
-            if(HoudiniActor)
-                World->GetNavigationSystem()->UpdateActorAndComponentData(*HoudiniActor);
+            if(HoudiniActor && !HoudiniActor->IsPendingKill() )
+                World->GetNavigationSystem()->UpdateActorAndComponentsInNavOctree(*HoudiniActor);
         }
-        */
 #endif
         bNeedToUpdateNavigationSystem = false;
     }
@@ -2259,7 +2245,8 @@ void
 UHoudiniAssetComponent::SubscribeEditorDelegates()
 {
     // Add delegate for asset post import.
-    GEditor->GetEditorSubsystem<UImportSubsystem>()->OnAssetPostImport.AddUObject(this, &UHoudiniAssetComponent::OnAssetPostImport);
+    DelegateHandleAssetPostImport =
+        FEditorDelegates::OnAssetPostImport.AddUObject( this, &UHoudiniAssetComponent::OnAssetPostImport );
 
     // Add delegate for viewport drag and drop events.
     DelegateHandleApplyObjectToActor =
@@ -2275,7 +2262,7 @@ void
 UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 {
     // Remove delegate for asset post import.
-    GEditor->GetEditorSubsystem<UImportSubsystem>()->OnAssetPostImport.Remove(DelegateHandleAssetPostImport);
+    FEditorDelegates::OnAssetPostImport.Remove( DelegateHandleAssetPostImport );
 
     // Remove delegate for viewport drag and drop events.
     FEditorDelegates::OnApplyObjectToActor.Remove( DelegateHandleApplyObjectToActor );
@@ -2411,12 +2398,10 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bRenderInMainPass );
             }
-            /*
             else if ( Property->GetName() == TEXT( "bRenderInMono" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bRenderInMono );
             }
-            */
             else if ( Property->GetName() == TEXT( "bOwnerNoSee" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bOwnerNoSee );
@@ -2472,20 +2457,18 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bAlwaysCreatePhysicsState );
             }
-            /*else if ( Property->GetName() == TEXT( "bGenerateOverlapEvents" ) )
+            else if ( Property->GetName() == TEXT( "bGenerateOverlapEvents" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bGenerateOverlapEvents );
-            }*/
+            }
             else if ( Property->GetName() == TEXT( "bMultiBodyOverlap" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bMultiBodyOverlap );
             }
-            /*
             else if ( Property->GetName() == TEXT( "bCheckAsyncSceneOnMove" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bCheckAsyncSceneOnMove );
             }
-            */
             else if ( Property->GetName() == TEXT( "bTraceComplexOnMove" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bTraceComplexOnMove );
@@ -2521,12 +2504,10 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bApplyImpulseOnDamage );
             }
-            /*
             else if ( Property->GetName() == TEXT( "bShouldUpdatePhysicsVolume" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( USceneComponent, bShouldUpdatePhysicsVolume );
             }
-            */
         }
         else if ( CategoryLOD == Category )
         {

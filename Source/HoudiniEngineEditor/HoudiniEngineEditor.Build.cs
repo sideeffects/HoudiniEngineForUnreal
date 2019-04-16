@@ -32,9 +32,9 @@
 
 /*
 
-    Houdini Version: 17.5.228
+    Houdini Version: 17.5.227
     Houdini Engine Version: 3.2.40
-    Unreal Version: 4.22.0
+    Unreal Version: 4.19.2
 
 */
 
@@ -46,9 +46,9 @@ public class HoudiniEngineEditor : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "17.5.228";
-        bool bIsRelease = true;
-        string HFSPath = "";
+        string HoudiniVersion = "17.5.227";
+        bool bIsRelease = false;
+        string HFSPath = "D:/Work/DEV17.5/hfs";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Side Effects Software";
 
         if ( !bIsRelease )
@@ -167,12 +167,10 @@ public class HoudiniEngineEditor : ModuleRules
     
     public HoudiniEngineEditor( ReadOnlyTargetRules Target ) : base( Target )
     {
-        bPrecompile = true;
         PCHUsage = PCHUsageMode.UseSharedPCHs;
-        PrivatePCHHeaderFile = "Private/HoudiniEngineEditorPrivatePCH.h";
 
         // Check if we are compiling on unsupported platforms.
-        if ( Target.Platform != UnrealTargetPlatform.Win64 &&
+        if( Target.Platform != UnrealTargetPlatform.Win64 &&
             Target.Platform != UnrealTargetPlatform.Mac &&
             Target.Platform != UnrealTargetPlatform.Linux )
         {
@@ -264,12 +262,11 @@ public class HoudiniEngineEditor : ModuleRules
                 "RHI",
                 "RawMesh",
                 "RenderCore",
+                "ShaderCore",
                 "TargetPlatform",
                 "UnrealEd",
                 "ApplicationCore",
-                "CurveEditor",
-                "Json",
-                "SceneOutliner"
+                "Json"
             }
         );
 

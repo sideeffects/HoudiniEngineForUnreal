@@ -5,7 +5,6 @@
 #include "UObject/Object.h"
 #include "UObject/Class.h"
 
-#include "HAPI.h"
 #include "HoudiniEngineRuntimeTest.generated.h"
 
 UCLASS()

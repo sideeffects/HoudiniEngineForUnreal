@@ -23,7 +23,6 @@
 
 #include "HoudiniApi.h"
 #include "Components/InstancedStaticMeshComponent.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "HoudiniInstancedActorComponent.h"
 #include "HoudiniMeshSplitInstancerComponent.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
@@ -180,7 +179,6 @@ void UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
     const TArray< FTransform > & ProcessedTransforms, const TArray<FLinearColor> & InstancedColors )
 {
     UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( Component );
-    UHierarchicalInstancedStaticMeshComponent* HISMC = Cast<UHierarchicalInstancedStaticMeshComponent>(Component);
     UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( Component );
     UHoudiniMeshSplitInstancerComponent* MSIC = Cast<UHoudiniMeshSplitInstancerComponent>( Component );
 
@@ -190,29 +188,9 @@ void UHoudiniInstancedActorComponent::UpdateInstancerComponentInstances(
     if( ISMC && !ISMC->IsPendingKill() )
     {
         ISMC->ClearInstances();
-        if( HISMC )
+        for(int32 InstanceIdx = 0; InstanceIdx < ProcessedTransforms.Num(); ++InstanceIdx)
         {
-            // HISM need a special treatment as calling AddInstance multiple times on them can cause crashes:
-            // see UE4 bug UE-68582
-            // Calling UHierarchicalInstancedStaticMeshComponent::AddInstance multiple times causes 
-            // multiple BuildTrees to be created and run asynchronously at the same time.
-            bool bAautoRebuildState = HISMC->bAutoRebuildTreeOnInstanceChanges;
-            HISMC->bAutoRebuildTreeOnInstanceChanges = false;
-
-            for( int32 InstanceIdx = 0; InstanceIdx < ProcessedTransforms.Num(); ++InstanceIdx )
-            {
-                HISMC->AddInstance(ProcessedTransforms[InstanceIdx]);
-            }
-            
-            HISMC->bAutoRebuildTreeOnInstanceChanges = bAautoRebuildState;
-            HISMC->BuildTreeIfOutdated(true, true);
-        }
-        else
-        {
-            for( int32 InstanceIdx = 0; InstanceIdx < ProcessedTransforms.Num(); ++InstanceIdx )
-            {
-                ISMC->AddInstance(ProcessedTransforms[InstanceIdx]);
-            }
+            ISMC->AddInstance(ProcessedTransforms[InstanceIdx]);
         }
     }
     else if( IAC && !IAC->IsPendingKill() )
