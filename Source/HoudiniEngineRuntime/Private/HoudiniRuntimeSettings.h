@@ -24,7 +24,7 @@
 #pragma once
 #include <string>
 #include "Engine/EngineTypes.h"
-#include "UObject/SoftObjectPtr.h"
+#include "AssetPtr.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "HoudiniRuntimeSettings.generated.h"
 

@@ -27,7 +27,6 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 
-#include "Misc/Variant.h"
 #include "Internationalization/Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -122,7 +121,7 @@ UHoudiniAssetParameterColor::UploadParameterValue()
 bool
 UHoudiniAssetParameterColor::SetParameterVariantValue( const FVariant& Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo )
 {
-    EVariantTypes VariantType = Variant.GetType();
+    int32 VariantType = Variant.GetType();
     FLinearColor VariantLinearColor = FLinearColor::White;
 
     if ( EVariantTypes::Color == VariantType )

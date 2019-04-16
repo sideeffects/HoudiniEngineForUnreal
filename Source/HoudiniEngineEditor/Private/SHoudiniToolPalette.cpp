@@ -200,7 +200,7 @@ SHoudiniToolPalette::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool,
     // Building the tool's tooltip
     FString HoudiniToolTip = HoudiniTool->Name.ToString() + TEXT( "\n" );
     if ( HoudiniTool->HoudiniAsset.IsValid() )
-        HoudiniToolTip += HoudiniTool->HoudiniAsset.ToSoftObjectPath().ToString() /*->AssetFileName */+ TEXT( "\n\n" );
+        HoudiniToolTip += HoudiniTool->HoudiniAsset.ToStringReference().ToString() /*->AssetFileName */+ TEXT( "\n\n" );
     if ( !HoudiniTool->ToolTipText.IsEmpty() )
         HoudiniToolTip += HoudiniTool->ToolTipText.ToString() + TEXT("\n\n");
 
@@ -960,7 +960,7 @@ SHoudiniToolPalette::CreateFloatingDetailsView( const TArray< UObject* >& InObje
     Args.bAllowMultipleTopLevelObjects = true;
     Args.ViewIdentifier = TEXT("Houdini Tools Properties");
     Args.NameAreaSettings = FDetailsViewArgs::HideNameArea;
-    Args.bShowPropertyMatrixButton = false;
+    //Args.bShowPropertyMatrixButton = false;
     Args.bShowOptions = false;
     Args.bShowModifiedPropertiesOption = false;
     Args.bShowActorLabel = false;

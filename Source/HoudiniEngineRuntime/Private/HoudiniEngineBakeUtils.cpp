@@ -108,7 +108,7 @@ FHoudiniEngineBakeUtils::BakeCreateBlueprintPackageForComponent(
     // Generate unique package name.
     FString PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT( "/" ) + BlueprintName;
 
-    PackageName = UPackageTools::SanitizePackageName( PackageName );
+    PackageName = PackageTools::SanitizePackageName( PackageName );
 
     // See if package exists, if it does, we need to regenerate the name.
     Package = FindPackage( nullptr, *PackageName );
@@ -201,7 +201,8 @@ FHoudiniEngineBakeUtils::BakeStaticMesh(
     // Load raw data bytes.
     FRawMesh RawMesh;
     FStaticMeshSourceModel * InSrcModel = &InStaticMesh->SourceModels[0];
-    InSrcModel->LoadRawMesh( RawMesh );
+    FRawMeshBulkData * InRawMeshBulkData = InSrcModel->RawMeshBulkData;
+    InRawMeshBulkData->LoadRawMesh( RawMesh );
 
     // Some mesh generation settings.
     HoudiniRuntimeSettings->SetMeshBuildSettings( SrcModel->BuildSettings, RawMesh );
@@ -226,8 +227,8 @@ FHoudiniEngineBakeUtils::BakeStaticMesh(
     }
 
     // Store the new raw mesh.
-    SrcModel->StaticMeshOwner = StaticMesh;
-    SrcModel->SaveRawMesh( RawMesh );
+    FRawMeshBulkData * RawMeshBulkData = SrcModel->RawMeshBulkData;
+    RawMeshBulkData->SaveRawMesh( RawMesh );
 
     while( StaticMesh->SourceModels.Num() < NumLODs )
         new ( StaticMesh->SourceModels ) FStaticMeshSourceModel();
@@ -1587,7 +1588,7 @@ FHoudiniEngineBakeUtils::BakeCreateTextureOrMaterialPackageForComponent(
         }
 
         // Sanitize package name.
-        PackageName = UPackageTools::SanitizePackageName( PackageName );
+        PackageName = PackageTools::SanitizePackageName( PackageName );
 
         UObject * OuterPackage = nullptr;
         if ( BakeMode == EBakeMode::Intermediate )
@@ -1797,7 +1798,7 @@ FHoudiniEngineBakeUtils::BakeCreateStaticMeshPackageForComponent(
         }
 
         // Santize package name.
-        PackageName = UPackageTools::SanitizePackageName( PackageName );
+        PackageName = PackageTools::SanitizePackageName( PackageName );
 
         UObject * OuterPackage = nullptr;
 

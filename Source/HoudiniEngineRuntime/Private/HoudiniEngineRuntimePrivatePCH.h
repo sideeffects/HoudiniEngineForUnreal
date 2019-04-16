@@ -45,6 +45,7 @@
 
 /** Other Unreal headers. **/
 //#include "CoreUObject.h"
+#include "Misc/Variant.h"
 #include "Modules/ModuleManager.h"
 #include "EngineModule.h"
 #include "Engine/TextureDefines.h"

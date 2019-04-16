@@ -29,7 +29,6 @@
 #include "Framework/MultiBox/MultiBoxExtender.h"
 #include "HoudiniRuntimeSettings.h"
 #include "Framework/Commands/Commands.h"
-#include "HAPI.h"
 
 
 class IAssetTools;
@@ -59,7 +58,7 @@ struct FHoudiniTool
     }
 
     FHoudiniTool(
-        TSoftObjectPtr < class UHoudiniAsset > InHoudiniAsset, const FText& InName,
+        TAssetPtr < class UHoudiniAsset > InHoudiniAsset, const FText& InName,
         const EHoudiniToolType& InType, const EHoudiniToolSelectionType& InSelType,
         const FText& InToolTipText, const FSlateBrush* InIcon, const FString& InHelpURL,
         const bool& isDefault, const FFilePath& InAssetPath, const FHoudiniToolDirectory& InToolDirectory,
@@ -79,7 +78,7 @@ struct FHoudiniTool
     }
 
     /** The Houdini Asset used by the tool **/ 
-    TSoftObjectPtr < class UHoudiniAsset > HoudiniAsset;
+    TAssetPtr < class UHoudiniAsset > HoudiniAsset;
 
     /** The name to be displayed */
     FText Name;
@@ -165,7 +164,7 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
     /** FEditorUndoClient methods. **/
     public:
 
-        virtual bool MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const override;
+        virtual bool MatchesContext( const FString & InContext, UObject * PrimaryObject ) const override;
         virtual void PostUndo( bool bSuccess ) override;
         virtual void PostRedo( bool bSuccess ) override;
 
