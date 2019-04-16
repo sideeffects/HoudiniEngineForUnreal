@@ -47,7 +47,7 @@
 #include "HoudiniRuntimeSettings.h"
 #include "SNewFilePathPicker.h"
 
-#include "Editor/CurveEditor/Public/CurveEditorSettings.h"
+#include "CurveEditorSettings.h"
 #include "DetailLayoutBuilder.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerPublicTypes.h"

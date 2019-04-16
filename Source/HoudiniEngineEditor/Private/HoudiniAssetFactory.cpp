@@ -86,7 +86,7 @@ UHoudiniAssetFactory::FactoryCreateBinary(
     const uint8 * BufferEnd, FFeedbackContext * Warn )
 {
     // Broadcast notification that a new asset is being imported.
-    GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPreImport(this, InClass, InParent, InName, Type);
+    FEditorDelegates::OnAssetPreImport.Broadcast( this, InClass, InParent, InName, Type );
 
     // Create a new asset.
     UHoudiniAsset * HoudiniAsset = NewObject< UHoudiniAsset >( InParent, InName, Flags );
@@ -103,7 +103,7 @@ UHoudiniAssetFactory::FactoryCreateBinary(
     AssetImportData->Update( UFactory::GetCurrentFilename() );
 
     // Broadcast notification that the new asset has been imported.
-    GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, HoudiniAsset);
+    FEditorDelegates::OnAssetPostImport.Broadcast( this, HoudiniAsset );
 
     return HoudiniAsset;
 }

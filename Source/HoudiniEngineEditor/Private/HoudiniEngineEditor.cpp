@@ -833,18 +833,13 @@ FHoudiniEngineEditor::UnregisterThumbnails()
         UThumbnailManager::Get().UnregisterCustomRenderer( UHoudiniAsset::StaticClass() );
 }
 
-bool 
-FHoudiniEngineEditor::MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const
+bool
+FHoudiniEngineEditor::MatchesContext( const FString & InContext, UObject * PrimaryObject ) const
 {
-    if (InContext.Context == TEXT(HOUDINI_MODULE_EDITOR) || InContext.Context == TEXT(HOUDINI_MODULE_RUNTIME))
+    if ( InContext == TEXT( HOUDINI_MODULE_EDITOR ) || InContext == TEXT( HOUDINI_MODULE_RUNTIME ) )
     {
-        // Check if we care about the undo/redo
-        for (const TPair<UObject*, FTransactionObjectEvent>& TransactionObjectPair : TransactionObjects)
-        {
-            LastHoudiniAssetComponentUndoObject = Cast< UHoudiniAssetComponent >(TransactionObjectPair.Key);
-            if ( LastHoudiniAssetComponentUndoObject )
-                return true;
-        }
+        LastHoudiniAssetComponentUndoObject = Cast< UHoudiniAssetComponent >( PrimaryObject );
+        return true;
     }
 
     LastHoudiniAssetComponentUndoObject = nullptr;
@@ -1604,7 +1599,30 @@ FHoudiniEngineEditor::UpdateHoudiniToolList(const FHoudiniToolDirectory& Houdini
     // We need to either load or create a new HoudiniAsset from the tool's HDA
     FString ToolPath = TEXT("/Game/HoudiniEngine/Tools/");
     ToolPath = FPaths::Combine(ToolPath, HoudiniToolsDirectory.ContentDirID );
-    ToolPath = ObjectTools::SanitizeObjectPath(ToolPath);
+
+    // Equivalent to FOBjectTools::SanitizeObjectPath()
+    // That doesn't exist in 4.18
+    {
+	FString SanitizedName;
+	FString InvalidChars = TEXT("\"' ,|&!~\n\r\t@#(){}[]=;^%$`");
+	// See if the name contains invalid characters.
+	FString Char;
+	for (int32 CharIdx = 0; CharIdx < ToolPath.Len(); ++CharIdx)
+	{
+	    Char = ToolPath.Mid(CharIdx, 1);
+
+	    if (InvalidChars.Contains(*Char))
+	    {
+		SanitizedName += TEXT("_");
+	    }
+	    else
+	    {
+		SanitizedName += Char;
+	    }
+	}
+
+	ToolPath = SanitizedName;
+    }
 
     // List all the json files in the current directory
     TArray<FString> JSONFiles;

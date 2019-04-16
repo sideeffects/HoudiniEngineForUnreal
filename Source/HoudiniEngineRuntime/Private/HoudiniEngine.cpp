@@ -236,8 +236,10 @@ FHoudiniEngine::StartupModule()
         auto UpdatePathForServer = [&] {
             // Modify our PATH so that HARC will find HARS.exe
             const TCHAR* PathDelimiter = FPlatformMisc::GetPathVarDelimiter();
-           
-            FString OrigPathVar = FPlatformMisc::GetEnvironmentVariable(TEXT("PATH"));
+            const int32 MaxPathVarLen = 32768;
+            TCHAR OrigPathVarMem[ MaxPathVarLen ];
+            FPlatformMisc::GetEnvironmentVariable( TEXT( "PATH" ), OrigPathVarMem, MaxPathVarLen );
+            FString OrigPathVar( OrigPathVarMem );
 
             FString ModifiedPath =
 #if PLATFORM_MAC
@@ -610,8 +612,10 @@ FHoudiniEngine::StartSession( HAPI_Session*& SessionPtr )
     {
         // Modify our PATH so that HARC will find HARS.exe
         const TCHAR* PathDelimiter = FPlatformMisc::GetPathVarDelimiter();
-
-		FString OrigPathVar = FPlatformMisc::GetEnvironmentVariable(TEXT("PATH"));
+        const int32 MaxPathVarLen = 32768;
+        TCHAR OrigPathVarMem[ MaxPathVarLen ];
+        FPlatformMisc::GetEnvironmentVariable( TEXT( "PATH" ), OrigPathVarMem, MaxPathVarLen );
+        FString OrigPathVar( OrigPathVarMem );
 
         FString ModifiedPath =
 #if PLATFORM_MAC

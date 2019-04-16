@@ -2498,7 +2498,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
 
     // Create/Retrieve the package for the MI
     FString MaterialInstanceName;
-    FString MaterialInstanceNamePrefix = UPackageTools::SanitizePackageName( ParentMaterial->GetName() + TEXT("_instance_") + FString::FromInt(MaterialIndex) );
+    FString MaterialInstanceNamePrefix = PackageTools::SanitizePackageName( ParentMaterial->GetName() + TEXT("_instance_") + FString::FromInt(MaterialIndex) );
     
     // See if we can find the package in the cooked temp package cache
     UPackage * MaterialInstancePackage = nullptr;
@@ -2935,6 +2935,7 @@ FHoudiniEngineMaterialUtils::FindGeneratedTexture( const FString& TextureString,
         {
             TextureTypeFriendlyString = TEXT("diffuse");
             TextureTypeFriendlyAlternateString = TEXT("basecolor");
+
         }
         else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL, ESearchCase::IgnoreCase) == 0 )
             TextureTypeFriendlyString = TEXT( "normal" );

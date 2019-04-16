@@ -29,7 +29,6 @@
 #include "RendererInterface.h"
 #include "SceneInterface.h"
 #include "SceneView.h"
-#include "LegacyScreenPercentageDriver.h"
 
 UHoudiniAssetThumbnailRenderer::UHoudiniAssetThumbnailRenderer( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
@@ -62,14 +61,10 @@ UHoudiniAssetThumbnailRenderer::Draw(
         ViewFamily.EngineShowFlags.MotionBlur = 0;
         ViewFamily.EngineShowFlags.LOD = 0;
 
-        if ( !ViewFamily.GetScreenPercentageInterface() )
-            ViewFamily.SetScreenPercentageInterface( new FLegacyScreenPercentageDriver( ViewFamily, 1.0, false ) );
-
         if ( ThumbnailScene )
             ThumbnailScene->GetView( &ViewFamily, X, Y, Width, Height );
 
-        if ( ViewFamily.Scene && ViewFamily.GetScreenPercentageInterface() )
-            GetRendererModule().BeginRenderingViewFamily( Canvas, &ViewFamily );
+        GetRendererModule().BeginRenderingViewFamily( Canvas, &ViewFamily );
     }
 }
 

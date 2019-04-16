@@ -32,7 +32,6 @@
 
 #include "Internationalization/Internationalization.h"
 #include "Misc/Paths.h"
-#include "Misc/Variant.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -190,7 +189,7 @@ UHoudiniAssetParameterFile::SetParameterVariantValue(
     const FVariant & Variant, int32 Idx, bool bTriggerModify,
     bool bRecordUndo )
 {
-    EVariantTypes VariantType = Variant.GetType();
+    int32 VariantType = Variant.GetType();
     if ( EVariantTypes::String == VariantType )
     {
         if ( Idx >= 0 && Idx < Values.Num() )
