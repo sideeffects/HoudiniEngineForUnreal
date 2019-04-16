@@ -69,15 +69,15 @@ FHoudiniSplineComponentVisualizerCommands::RegisterCommands()
 {
     UI_COMMAND(
         CommandAddControlPoint, "Add Control Point", "Add Control Point.",
-        EUserInterfaceActionType::Button, FInputChord() );
+        EUserInterfaceActionType::Button, FInputGesture() );
 
     UI_COMMAND(
         CommandDuplicateControlPoint, "Duplicate Control Point", "Duplicate Control Point.",
-        EUserInterfaceActionType::Button, FInputChord());
+        EUserInterfaceActionType::Button, FInputGesture());
 
     UI_COMMAND(
         CommandDeleteControlPoint, "Delete Control Point", "Delete Control Point.",
-        EUserInterfaceActionType::Button, FInputChord(EKeys::Delete) );
+        EUserInterfaceActionType::Button, FInputGesture(EKeys::Delete) );
 }
 
 FHoudiniSplineComponentVisualizer::FHoudiniSplineComponentVisualizer()

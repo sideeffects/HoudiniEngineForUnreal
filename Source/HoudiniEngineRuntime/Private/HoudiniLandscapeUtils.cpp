@@ -54,6 +54,7 @@
     #include "EngineUtils.h"
     #include "LandscapeEditorModule.h"
     #include "LandscapeFileFormatInterface.h"
+    #include "Editor/LandscapeEditor/Private/LandscapeEdModeTools.h"
 #endif
 
 void
@@ -3619,7 +3620,7 @@ FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( FHoudiniCookParams& Houd
     FString ComponentGUIDString = HoudiniCookParams.PackageGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDComponentNameLength );
 
     FString LayerNameString = FString::Printf( TEXT( "%s" ), LayerName );
-    LayerNameString = UPackageTools::SanitizePackageName( LayerNameString );
+    LayerNameString = PackageTools::SanitizePackageName( LayerNameString );
 
     // Create the LandscapeInfoObjectName from the Asset name and the mask name
     FName LayerObjectName = FName( * (HoudiniCookParams.HoudiniAsset->GetName() + ComponentGUIDString + TEXT( "_LayerInfoObject_" ) + LayerNameString ) );
@@ -3627,7 +3628,7 @@ FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( FHoudiniCookParams& Houd
     // Save the package in the temp folder
     FString Path = HoudiniCookParams.TempCookFolder.ToString() + TEXT( "/" );
     FString PackageName = Path + LayerObjectName.ToString();
-    PackageName = UPackageTools::SanitizePackageName( PackageName );
+    PackageName = PackageTools::SanitizePackageName( PackageName );
 
     // See if package exists, if it does, reuse it
     bool bCreatedPackage = false;
@@ -3960,6 +3961,7 @@ FHoudiniLandscapeUtils::BackupLandscapeToFile(const FString& BaseName, ALandscap
     return true;
 }
 
+
 bool
 FHoudiniLandscapeUtils::RestoreLandscapeFromFile( ALandscapeProxy* LandscapeProxy )
 {
@@ -4001,8 +4003,7 @@ FHoudiniLandscapeUtils::RestoreLandscapeFromFile( ALandscapeProxy* LandscapeProx
             continue;
 
         // Delete the added layer
-        FName LayerName = LandscapeInfo->Layers[LayerIndex].LayerName;
-        LandscapeInfo->DeleteLayer(CurrentLayerInfo, LayerName);
+        LandscapeInfo->DeleteLayer(CurrentLayerInfo);
     }
 
     return true;

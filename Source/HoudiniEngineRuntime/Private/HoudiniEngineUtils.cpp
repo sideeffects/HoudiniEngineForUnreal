@@ -41,7 +41,7 @@
 #include "HoudiniMeshSplitInstancerComponent.h"
 
 #include "CoreMinimal.h"
-#include "AI/Navigation/NavCollisionBase.h"
+#include "AI/Navigation/NavCollision.h"
 #include "Engine/StaticMeshSocket.h"
 #if WITH_EDITOR
     #include "Editor.h"
@@ -49,7 +49,7 @@
     #include "Interfaces/ITargetPlatform.h"
     #include "Interfaces/ITargetPlatformManagerModule.h"
     #include "Editor/UnrealEd/Private/GeomFitUtils.h"
-    #include "UnrealEd/Private/ConvexDecompTool.h"
+    #include "Private/ConvexDecompTool.h"
     #include "PackedNormal.h"
     #include "Widgets/Notifications/SNotificationList.h"
     #include "Framework/Notifications/NotificationManager.h"
@@ -61,7 +61,6 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
-#include "Rendering/SkeletalMeshModel.h"
 #include "SkeletalMeshTypes.h"
 #include "Misc/Paths.h"
 #include "Materials/MaterialInterface.h"
@@ -79,8 +78,8 @@
 
 #include <string>
 
-#include "HAL/PlatformMisc.h"
-#include "HAL/PlatformApplicationMisc.h"
+/*#include "HAL/PlatformMisc.h"
+#include "HAL/PlatformApplicationMisc.h"*/
 
 #include "Internationalization/Internationalization.h"
 
@@ -2855,7 +2854,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
         // Load the existing raw mesh.
         FRawMesh RawMesh;
-        SrcModel.LoadRawMesh(RawMesh);
+        SrcModel.RawMeshBulkData->LoadRawMesh( RawMesh );
 
         // Create part.
         HAPI_PartInfo Part;
@@ -3463,7 +3462,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                     FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, 0,
                     TCHAR_TO_UTF8( *LODAttributeName ), &AttributeInfoLODScreenSize), false);
 
-                float lodscreensize = SrcModel.ScreenSize.Default;
+                float lodscreensize = SrcModel.ScreenSize;
                 HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
                     FHoudiniEngine::Get().GetSession(), CurrentLODNodeId, 0,
                     TCHAR_TO_UTF8( *LODAttributeName ), &AttributeInfoLODScreenSize,
@@ -4049,12 +4048,12 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
     }
 
     // Grab base LOD level.
-    const FSkeletalMeshModel* SkelMeshResource = SkeletalMesh->GetImportedModel();
+    const FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetImportedResource();
     if ( !SkelMeshResource )
         return false;
 
-    const FSkeletalMeshLODModel& SourceModel = SkelMeshResource->LODModels[0];
-    const int32 VertexCount = SourceModel.GetNumNonClothingVertices();
+    const FStaticLODModel& SourceModel = SkelMeshResource->LODModels[0];
+    const int32 VertexCount = SourceModel.NumVertices;
 
     // Verify the integrity of the mesh.
     if ( VertexCount <= 0 ) 
@@ -4062,12 +4061,13 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
 
     // Extract the vertices buffer (this also contains normals, uvs, colors...)
     TArray<FSoftSkinVertex> SoftSkinVertices;
-    SourceModel.GetNonClothVertices( SoftSkinVertices );
+    SourceModel.GetVertices( SoftSkinVertices );
     if ( SoftSkinVertices.Num() != VertexCount )
         return false;
 
     // Extract the indices
-    TArray<uint32> Indices = SourceModel.IndexBuffer;
+    TArray<uint32> Indices;
+    SourceModel.MultiSizeIndexContainer.GetIndexBuffer(Indices);
     int32 FaceCount = Indices.Num() / 3;
 
     // Create part.
@@ -4202,7 +4202,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
     for (int32 NormalIdx = 0; NormalIdx < Indices.Num(); ++NormalIdx)
     {
         FPackedNormal PackedNormal = SoftSkinVertices[Indices[NormalIdx]].TangentZ;
-        MeshNormals[NormalIdx] = PackedNormal.ToFVector();
+        MeshNormals[NormalIdx] = PackedNormal;
 
         // Doesnt work on MacOS ...
         //MeshNormals[ NormalIdx ] = FVector( SoftSkinVertices[ Indices[NormalIdx]  ].TangentZ.Vector. );
@@ -5875,7 +5875,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 {
                     // We dont need to rebuild the mesh (because the geometry hasn't changed, but the materials have)
                     // So we can just load the old data into the Raw mesh and reuse it.
-                    SrcModel->LoadRawMesh(RawMesh);
+                    FRawMeshBulkData * InRawMeshBulkData = SrcModel->RawMeshBulkData;
+                    InRawMeshBulkData->LoadRawMesh( RawMesh );
                 }
                 else
                 {
@@ -6619,11 +6620,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     continue;
                 }
 
-                // This is required due to the impeding deprecation of FRawMesh
-                // If we dont update this UE4 will crash upon deleting an asset.
-                SrcModel->StaticMeshOwner = StaticMesh;
                 // Store the new raw mesh.
-                SrcModel->SaveRawMesh(RawMesh);
+                SrcModel->RawMeshBulkData->SaveRawMesh( RawMesh );
 
                 // Lambda for initializing a LOD level
                 auto InitLODLevel = [ & ]( const int32& LODLevelIndex )
@@ -6796,8 +6794,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                     continue;
                 }
-
-                StaticMesh->GetOnMeshChanged().Broadcast();
 
                 // Do we need to add simple collisions ?
                 bool bSimpleCollisionAddedToAggregate = false;
@@ -7387,15 +7383,18 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
     FString HFSPath = TEXT( "" );
     void * HAPILibraryHandle = nullptr;
 
+    // Before doing anything platform specific, check if HFS environment variable is defined.
+    TCHAR HFS_ENV_VARIABLE[PLATFORM_MAX_FILEPATH_LENGTH] = { 0 };
+
     // Look up HAPI_PATH environment variable; if it is not defined, 0 will stored in HFS_ENV_VARIABLE .
-    FString HFS_ENV_VAR = FPlatformMisc::GetEnvironmentVariable( TEXT( "HAPI_PATH" ) );
-    if (!HFS_ENV_VAR.IsEmpty())
-        HFSPath = HFS_ENV_VAR;
+    FPlatformMisc::GetEnvironmentVariable( TEXT( "HAPI_PATH" ), HFS_ENV_VARIABLE, PLATFORM_MAX_FILEPATH_LENGTH );
+    if ( *HFS_ENV_VARIABLE )
+        HFSPath = &HFS_ENV_VARIABLE[ 0 ];
 
     // Look up environment variable; if it is not defined, 0 will stored in HFS_ENV_VARIABLE .
-    HFS_ENV_VAR = FPlatformMisc::GetEnvironmentVariable( TEXT( "HFS" ));
-    if (!HFS_ENV_VAR.IsEmpty())
-        HFSPath = HFS_ENV_VAR;
+    FPlatformMisc::GetEnvironmentVariable( TEXT( "HFS" ), HFS_ENV_VARIABLE, PLATFORM_MAX_FILEPATH_LENGTH );
+    if ( *HFS_ENV_VARIABLE )
+        HFSPath = &HFS_ENV_VARIABLE[ 0 ];
 
     // Get platform specific name of libHAPI.
     FString LibHAPIName = FHoudiniEngineUtils::HoudiniGetLibHAPIName();
@@ -7799,9 +7798,7 @@ FHoudiniEngineUtils::LocateClipboardActor( const AActor* IgnoreActor, const FStr
     if ( ClipboardText.IsEmpty() )
     {
         FString PasteString;
-#if WITH_EDITOR
-        FPlatformApplicationMisc::ClipboardPaste( PasteString );
-#endif
+        FPlatformMisc::ClipboardPaste( PasteString );
         Paste = *PasteString;
     }
     else
@@ -7816,7 +7813,7 @@ FHoudiniEngineUtils::LocateClipboardActor( const AActor* IgnoreActor, const FStr
     FString StrLine;
     while ( FParse::Line( &Paste, StrLine ) )
     {
-        StrLine = StrLine.TrimStart();
+        StrLine = StrLine.Trim();
 
         const TCHAR * Str = *StrLine;
         FString ClassName;
@@ -10172,7 +10169,7 @@ FHoudiniEngineUtils::CreateGroupOrAttributeFromTags( const HAPI_NodeId& NodeId, 
             AttributeInfo.typeInfo = HAPI_ATTRIBUTE_TYPE_NONE;
 
             FString AttributeName = TEXT("unreal_tag_") + TagString;
-            AttributeName.RemoveSpacesInline();
+            AttributeName.ReplaceInline(TEXT(" "), TEXT(""));
 
             Result = FHoudiniApi::AddAttribute( FHoudiniEngine::Get().GetSession(),
                 NodeId, PartId, TCHAR_TO_ANSI(*AttributeName), &AttributeInfo );

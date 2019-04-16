@@ -29,7 +29,6 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineString.h"
 
-#include "Misc/Variant.h"
 #include "Internationalization/Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -225,7 +224,7 @@ UHoudiniAssetParameterFloat::UploadParameterValue()
 bool
 UHoudiniAssetParameterFloat::SetParameterVariantValue( const FVariant & Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo )
 {
-    EVariantTypes VariantType = Variant.GetType();
+    int32 VariantType = Variant.GetType();
     float VariantValue = 0.0f;
 
     if ( !Values.IsValidIndex(Idx) )

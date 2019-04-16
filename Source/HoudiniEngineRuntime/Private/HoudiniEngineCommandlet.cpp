@@ -126,7 +126,7 @@ int32 UHoudiniEngineConvertBgeoDirCommandlet::Main(const FString& Params)
     float InactivityTimeOut = 1000.0f;
     if ( InactivityTimeOutStr.IsNumeric() )
         InactivityTimeOut = FCString::Atof( *InactivityTimeOutStr );
-
+#if WITH_EDITOR
     // First check the source directory is valid
     if ( !FPaths::DirectoryExists( BGEODirPath ) )
     {
@@ -142,6 +142,7 @@ int32 UHoudiniEngineConvertBgeoDirCommandlet::Main(const FString& Params)
         HOUDINI_LOG_ERROR( TEXT( "The output UASSET directory does not exist: %s" ), *UASSETDirPath );
         return false;
     }
+#endif // endif
 
     HOUDINI_LOG_MESSAGE( TEXT( "Looking for .bgeo files in %s ." ), *BGEODirPath );
 
@@ -334,7 +335,7 @@ bool FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( const FString& InBGEOFile
     //---------------------------------------------------------------------------------------------
 
     FString PackagePath = LocalAutoBakeFolder + UASSETFileName;
-    FString PackageFilePath = UPackageTools::SanitizePackageName( PackagePath );
+    FString PackageFilePath = PackageTools::SanitizePackageName( PackagePath );
     UPackage * Package = FindPackage( nullptr, *PackageFilePath );
     if ( !Package )    
     {

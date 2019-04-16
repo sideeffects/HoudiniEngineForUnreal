@@ -47,7 +47,7 @@
 #include "HoudiniRuntimeSettings.h"
 #include "SNewFilePathPicker.h"
 
-#include "Editor/CurveEditor/Public/CurveEditorSettings.h"
+#include "CurveEditorSettings.h"
 #include "DetailLayoutBuilder.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerPublicTypes.h"
@@ -506,7 +506,6 @@ public:
         , _ShowCurveSelector( true )
         , _GridColor( FLinearColor( 0.0f, 0.0f, 0.0f, 0.3f ) )
         {
-            _Clipping = EWidgetClipping::ClipToBounds;
         }
 
     SLATE_ATTRIBUTE(float, ViewMinInput)
@@ -538,7 +537,7 @@ public:
         SLATE_ARGUMENT(FLinearColor, GridColor)
         SLATE_EVENT( FOnSetInputViewRange, OnSetInputViewRange )
         SLATE_EVENT( FOnSetOutputViewRange, OnSetOutputViewRange )
-        SLATE_EVENT( FOnSetAreCurvesVisible, OnSetAreCurvesVisible )
+        //SLATE_EVENT( FOnSetAreCurvesVisible, OnSetAreCurvesVisible )
         SLATE_EVENT( FSimpleDelegate, OnCreateAsset )
         SLATE_END_ARGS()
 
@@ -2991,7 +2990,7 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
             bool bDetailsLocked = false;
             FName DetailsPanelName = "LevelEditorSelectionDetails";
 
-            const IDetailsView* DetailsView = DetailLayoutBuilder.GetDetailsView();
+            const IDetailsView* DetailsView = &(DetailLayoutBuilder.GetDetailsView());
             if ( DetailsView )
             {
                 DetailsPanelName = DetailsView->GetIdentifier();

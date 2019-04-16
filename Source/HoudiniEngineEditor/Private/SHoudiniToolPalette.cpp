@@ -52,6 +52,7 @@
 #include "EditorViewportClient.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "AssetToolsModule.h"
+#include "IAssetTools.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Toolkits/GlobalEditorCommonCommands.h"
 #include "Landscape.h"
@@ -61,6 +62,8 @@
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
 #include "Interfaces/IMainFrameModule.h"
+
+
 
 #define LOCTEXT_NAMESPACE "HoudiniToolPalette"
 
@@ -200,7 +203,7 @@ SHoudiniToolPalette::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool,
     // Building the tool's tooltip
     FString HoudiniToolTip = HoudiniTool->Name.ToString() + TEXT( "\n" );
     if ( HoudiniTool->HoudiniAsset.IsValid() )
-        HoudiniToolTip += HoudiniTool->HoudiniAsset.ToSoftObjectPath().ToString() /*->AssetFileName */+ TEXT( "\n\n" );
+        HoudiniToolTip += HoudiniTool->HoudiniAsset.ToStringReference().ToString() /*->AssetFileName */+ TEXT( "\n\n" );
     if ( !HoudiniTool->ToolTipText.IsEmpty() )
         HoudiniToolTip += HoudiniTool->ToolTipText.ToString() + TEXT("\n\n");
 
@@ -658,12 +661,19 @@ SHoudiniToolPalette::ConstructHoudiniToolContextMenu()
             AssetArray.Add( AssetObj );
     }
 
-    //MenuBuilder.AddMenuEntry(FGlobalEditorCommonCommands::Get().FindInContentBrowser );
-
-    FAssetToolsModule & AssetToolsModule = FModuleManager::GetModuleChecked< FAssetToolsModule >( "AssetTools" );
-    TSharedPtr< IAssetTypeActions > EngineActions = AssetToolsModule.Get().GetAssetTypeActionsForClass( UHoudiniAsset::StaticClass() ).Pin();
+    //MenuBuilder.AddMenuEntry(FGlobalEditorCommonCommands::Get().FindInContentBrowser );   
+    /*
+    FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+    TSharedPtr<IAssetTypeActions> EngineActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(UHoudiniAsset::StaticClass()).Pin();
     if ( EngineActions.IsValid() )
         EngineActions->GetActions( AssetArray, MenuBuilder );
+    */
+    FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+    TWeakPtr<IAssetTypeActions> EngineActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(UHoudiniAsset::StaticClass());
+    if (EngineActions.IsValid())
+    {
+	EngineActions.Pin()->GetActions(AssetArray, MenuBuilder);
+    }
 
     // Add HoudiniTools actions
     MenuBuilder.AddMenuSeparator();
@@ -960,7 +970,7 @@ SHoudiniToolPalette::CreateFloatingDetailsView( const TArray< UObject* >& InObje
     Args.bAllowMultipleTopLevelObjects = true;
     Args.ViewIdentifier = TEXT("Houdini Tools Properties");
     Args.NameAreaSettings = FDetailsViewArgs::HideNameArea;
-    Args.bShowPropertyMatrixButton = false;
+    //Args.bShowPropertyMatrixButton = false;
     Args.bShowOptions = false;
     Args.bShowModifiedPropertiesOption = false;
     Args.bShowActorLabel = false;

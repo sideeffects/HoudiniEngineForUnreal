@@ -316,7 +316,7 @@ void HelperTestMeshEqual( FAutomationTestBase* Test, UStaticMesh* MeshA, UStatic
 
     if( MeshA->RenderData->LODResources.Num() > 0 )
     {
-        FPositionVertexBuffer& VB = MeshA->RenderData->LODResources[ 0 ].VertexBuffers.PositionVertexBuffer;
+        FPositionVertexBuffer& VB = MeshA->RenderData->LODResources[ 0 ].PositionVertexBuffer;
         InputNumVerts = VB.GetNumVertices();
         InputNumTris = MeshA->RenderData->LODResources[ 0 ].GetNumTriangles();
     }
@@ -325,7 +325,7 @@ void HelperTestMeshEqual( FAutomationTestBase* Test, UStaticMesh* MeshA, UStatic
     if( MeshB->RenderData->LODResources.Num() > 0 )
     {
         Test->TestEqual( TEXT( "Num Triangles" ), InputNumTris, MeshB->RenderData->LODResources[ 0 ].GetNumTriangles() );
-        FPositionVertexBuffer& VB = MeshB->RenderData->LODResources[ 0 ].VertexBuffers.PositionVertexBuffer;
+        FPositionVertexBuffer& VB = MeshB->RenderData->LODResources[ 0 ].PositionVertexBuffer;
         Test->TestEqual( TEXT( "Num Verts" ), VB.GetNumVertices(), InputNumVerts );
     }
 }
@@ -725,7 +725,7 @@ bool FHoudiniEngineRuntimeMeshMarshalTest::RunTest( const FString& Parameters )
                     if( NewSM->RenderData->LODResources.Num() > 0 )
                     {
                         TestEqual( TEXT( "Num Triangles" ), ExpectedNumTris, NewSM->RenderData->LODResources[ 0 ].GetNumTriangles() );
-                        FPositionVertexBuffer& VB = NewSM->RenderData->LODResources[ 0 ].VertexBuffers.PositionVertexBuffer;
+                        FPositionVertexBuffer& VB = NewSM->RenderData->LODResources[ 0 ].PositionVertexBuffer;
                         const int32 VertexCount = VB.GetNumVertices();
                         if( VertexCount !=  ExpectedNumVerts )
                         {

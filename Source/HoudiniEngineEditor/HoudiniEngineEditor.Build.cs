@@ -34,7 +34,7 @@
 
     Houdini Version: 17.5.228
     Houdini Engine Version: 3.2.40
-    Unreal Version: 4.22.0
+    Unreal Version: 4.16.3
 
 */
 
@@ -167,12 +167,10 @@ public class HoudiniEngineEditor : ModuleRules
     
     public HoudiniEngineEditor( ReadOnlyTargetRules Target ) : base( Target )
     {
-        bPrecompile = true;
         PCHUsage = PCHUsageMode.UseSharedPCHs;
-        PrivatePCHHeaderFile = "Private/HoudiniEngineEditorPrivatePCH.h";
 
         // Check if we are compiling on unsupported platforms.
-        if ( Target.Platform != UnrealTargetPlatform.Win64 &&
+        if( Target.Platform != UnrealTargetPlatform.Win64 &&
             Target.Platform != UnrealTargetPlatform.Mac &&
             Target.Platform != UnrealTargetPlatform.Linux )
         {
@@ -189,7 +187,7 @@ public class HoudiniEngineEditor : ModuleRules
             PlatformID buildPlatformId = Environment.OSVersion.Platform;
             if ( buildPlatformId == PlatformID.Win32NT )
             {
-                PublicDefinitions.Add("HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath);
+                Definitions.Add("HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath);
             }
         }
 
@@ -264,12 +262,10 @@ public class HoudiniEngineEditor : ModuleRules
                 "RHI",
                 "RawMesh",
                 "RenderCore",
+                "ShaderCore",
                 "TargetPlatform",
                 "UnrealEd",
-                "ApplicationCore",
-                "CurveEditor",
-                "Json",
-                "SceneOutliner"
+                "Json"
             }
         );
 
