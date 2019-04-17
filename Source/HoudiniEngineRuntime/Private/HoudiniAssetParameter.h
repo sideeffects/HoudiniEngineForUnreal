@@ -22,12 +22,16 @@
 */
 
 #pragma once
-#include "HoudiniAssetParameter.generated.h"
 
+#if WITH_EDITOR
+    #include "DetailWidgetRow.h"
+#endif
+#include "Widgets/SBoxPanel.h"
+#include "HoudiniAssetParameter.generated.h"
 class FArchive;
 class FVariant;
 class FReferenceCollector;
-
+class IDetailCategoryBuilder;
 UCLASS( config = Editor )
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 {

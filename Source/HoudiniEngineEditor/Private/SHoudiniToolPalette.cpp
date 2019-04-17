@@ -62,7 +62,9 @@
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
 #include "Interfaces/IMainFrameModule.h"
-
+#include "IDetailsView.h"
+#include "Materials/MaterialInterface.h"
+#include "HAL/FileManager.h"
 
 
 #define LOCTEXT_NAMESPACE "HoudiniToolPalette"
@@ -633,7 +635,7 @@ SHoudiniToolPalette::GetMeanWorldSelectionTransform()
         if ( NumAppliedTransform > 0 )
         {
             // "Mean" all the accumulated Transform
-            SpawnTransform.SetScale3D( FVector::OneVector );
+            SpawnTransform.SetScale3D( FVector(1.0f, 1.0f, 1.0f) );
             SpawnTransform.NormalizeRotation();
 
             if ( NumAppliedTransform > 1 )

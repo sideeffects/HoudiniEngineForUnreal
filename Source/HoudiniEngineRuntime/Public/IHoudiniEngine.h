@@ -40,6 +40,7 @@ struct HAPI_Session;
 struct FHoudiniCookParams;
 class ALandscape;
 class ALandscapeProxy;
+class USceneComponent;
 
 class IHoudiniEngine : public IModuleInterface
 {

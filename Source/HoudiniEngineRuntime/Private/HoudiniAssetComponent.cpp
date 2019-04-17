@@ -70,6 +70,7 @@
 #include "Engine/StaticMeshSocket.h"
 #include "HoudiniCookHandler.h"
 #include "UObject/MetaData.h"
+#include "PrimitiveSceneProxy.h"
 #if WITH_EDITOR
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
@@ -90,7 +91,6 @@
 #include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
 #include "StaticMeshResources.h"
 #include "Framework/Application/SlateApplication.h"
-
 #endif
 #include "Internationalization/Internationalization.h"
 
@@ -2426,10 +2426,10 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, CustomDepthStencilValue );
             }
-            else if ( Property->GetName() == TEXT( "CustomDepthStencilWriteMask" ) )
+            /*else if ( Property->GetName() == TEXT( "CustomDepthStencilWriteMask" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, CustomDepthStencilWriteMask );
-            }
+            }*/
             else if ( Property->GetName() == TEXT( "TranslucencySortPriority" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, TranslucencySortPriority );
@@ -2500,10 +2500,10 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bIgnoreRadialForce );
             }
-            else if ( Property->GetName() == TEXT( "bApplyImpulseOnDamage" ) )
+            /*else if ( Property->GetName() == TEXT( "bApplyImpulseOnDamage" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bApplyImpulseOnDamage );
-            }
+            }*/
             else if ( Property->GetName() == TEXT( "bShouldUpdatePhysicsVolume" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( USceneComponent, bShouldUpdatePhysicsVolume );

@@ -226,7 +226,7 @@ bool FileDialogShared( bool bSave, const void* ParentWindowHandle, const FString
                             // Apply the extension if the file name doesn't already have one
                             if ( FPaths::GetExtension( SaveFileName ).IsEmpty() && !CleanExtension.IsEmpty() )
                             {
-                                SaveFileName = FPaths::SetExtension( SaveFileName, CleanExtension );
+				SaveFileName += CleanExtension;
                             }
 
                             SaveFilePath /= SaveFileName;
@@ -239,28 +239,32 @@ bool FileDialogShared( bool bSave, const void* ParentWindowHandle, const FString
             }
             else
             {
-                IFileOpenDialog* FileOpenDialog = static_cast<IFileOpenDialog*>( FileDialog.Get() );
 
-                TComPtr<IShellItemArray> Results;
-                if ( SUCCEEDED( FileOpenDialog->GetResults( &Results ) ) )
-                {
-                    DWORD NumResults = 0;
-                    Results->GetCount( &NumResults );
-                    for ( DWORD ResultIndex = 0; ResultIndex < NumResults; ++ResultIndex )
-                    {
-                        TComPtr<IShellItem> Result;
-                        if ( SUCCEEDED( Results->GetItemAt( ResultIndex, &Result ) ) )
-                        {
-                            PWSTR pFilePath = nullptr;
-                            if ( SUCCEEDED( Result->GetDisplayName( SIGDN_FILESYSPATH, &pFilePath ) ) )
-                            {
-                                bSuccess = true;
-                                AddOutFilename( pFilePath );
-                                ::CoTaskMemFree( pFilePath );
-                            }
-                        }
-                    }
-                }
+                // IFileOpenDialog* FileOpenDialog = &static_cast<IFileOpenDialog>( FileDialog );
+		TComPtr<IFileOpenDialog> FileOpenDialog;
+		if (SUCCEEDED(FileOpenDialog.FromQueryInterface(IID_IFileOpenDialog, FileDialog)))
+		{
+		    TComPtr<IShellItemArray> Results;
+		    if (SUCCEEDED(FileOpenDialog->GetResults(&Results)))
+		    {
+			DWORD NumResults = 0;
+			Results->GetCount(&NumResults);
+			for (DWORD ResultIndex = 0; ResultIndex < NumResults; ++ResultIndex)
+			{
+			    TComPtr<IShellItem> Result;
+			    if (SUCCEEDED(Results->GetItemAt(ResultIndex, &Result)))
+			    {
+				PWSTR pFilePath = nullptr;
+				if (SUCCEEDED(Result->GetDisplayName(SIGDN_FILESYSPATH, &pFilePath)))
+				{
+				    bSuccess = true;
+				    AddOutFilename(pFilePath);
+				    ::CoTaskMemFree(pFilePath);
+				}
+			    }
+			}
+		    }
+		}
             }
         }
     }

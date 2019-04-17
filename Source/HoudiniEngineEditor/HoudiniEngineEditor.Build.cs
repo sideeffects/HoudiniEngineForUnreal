@@ -32,9 +32,9 @@
 
 /*
 
-    Houdini Version: 17.5.228
+    Houdini Version: 17.5.229
     Houdini Engine Version: 3.2.40
-    Unreal Version: 4.16.3
+    Unreal Version: 4.15.3
 
 */
 
@@ -46,7 +46,7 @@ public class HoudiniEngineEditor : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "17.5.228";
+        string HoudiniVersion = "17.5.229";
         bool bIsRelease = true;
         string HFSPath = "";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Side Effects Software";
@@ -165,7 +165,7 @@ public class HoudiniEngineEditor : ModuleRules
         return "";
     }
     
-    public HoudiniEngineEditor( ReadOnlyTargetRules Target ) : base( Target )
+    public HoudiniEngineEditor( TargetInfo Target )
     {
         PCHUsage = PCHUsageMode.UseSharedPCHs;
 
@@ -207,10 +207,10 @@ public class HoudiniEngineEditor : ModuleRules
 
         if (HAPIIncludePath != "")
             PublicIncludePaths.Add(HAPIIncludePath);
-    
+
         // Get the plugin path
         string PluginPath = Path.Combine( ModuleDirectory, "../../" );
-        PluginPath = Utils.MakePathRelativeTo(PluginPath, Target.RelativeEnginePath);
+        PluginPath = Utils.MakePathRelativeTo(PluginPath, BuildConfiguration.RelativeEnginePath);
 
         PublicIncludePaths.AddRange(
             new string[] {
@@ -238,8 +238,6 @@ public class HoudiniEngineEditor : ModuleRules
                 "Core",
                 "CoreUObject",
                 "HoudiniEngineRuntime",
-                "Slate",
-                "SlateCore",
                 "Landscape"
             }
         );
@@ -263,6 +261,8 @@ public class HoudiniEngineEditor : ModuleRules
                 "RawMesh",
                 "RenderCore",
                 "ShaderCore",
+                "Slate",
+                "SlateCore",
                 "TargetPlatform",
                 "UnrealEd",
                 "Json"

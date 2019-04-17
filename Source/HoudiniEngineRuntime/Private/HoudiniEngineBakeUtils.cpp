@@ -1145,10 +1145,8 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(UHoudiniAssetComponent * Houd
                 FoliageInstance.Rotation = CurrentTransform.GetRotation().Rotator();
                 FoliageInstance.DrawScale3D = CurrentTransform.GetScale3D();
 
-                FoliageMeshInfo->AddInstance(InstancedFoliageActor, FoliageType, FoliageInstance, DuplicatedComponent, false);
+                FoliageMeshInfo->AddInstance(InstancedFoliageActor, FoliageType, FoliageInstance, DuplicatedComponent);
             }
-
-            FoliageMeshInfo->Component->BuildTreeIfOutdated(true, true);
 
             // Notify the user that we succesfully bake the instances to foliage
             FString Notification = TEXT("Successfully baked ") + FString::FromInt(ProcessedTransforms.Num()) + TEXT(" instances of ") + OutStaticMesh->GetName() + TEXT(" to Foliage");

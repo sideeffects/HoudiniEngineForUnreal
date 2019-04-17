@@ -29,6 +29,7 @@
 #include "Framework/MultiBox/MultiBoxExtender.h"
 #include "HoudiniRuntimeSettings.h"
 #include "Framework/Commands/Commands.h"
+#include "HoudiniAsset.h"
 
 
 class IAssetTools;

@@ -63,6 +63,7 @@
 #include "Serialization/JsonSerializer.h"
 #include "Interfaces/IPluginManager.h"
 #include "AutomatedAssetImportData.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 

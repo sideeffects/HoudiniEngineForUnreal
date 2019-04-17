@@ -658,10 +658,10 @@ UHoudiniAssetInstanceInputField::SetRotationOffset( const FRotator & Rotator, in
 const FVector &
 UHoudiniAssetInstanceInputField::GetScaleOffset( int32 VariationIdx ) const
 {
-    if ( ScaleOffsets.IsValidIndex( VariationIdx ) )
-        return ScaleOffsets[ VariationIdx ];
+    if (ScaleOffsets.IsValidIndex(VariationIdx))
+	return ScaleOffsets[VariationIdx];
     else
-        return FVector::OneVector;
+	return FVector::ZeroVector;
 }
 
 void

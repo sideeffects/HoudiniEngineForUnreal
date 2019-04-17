@@ -29,6 +29,7 @@
 #include "Input/Reply.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Misc/NotifyHook.h"
+#include "Widgets/Views/SListView.h"
 #include "SHoudiniToolPalette.generated.h"
 
 class IDetailsView;

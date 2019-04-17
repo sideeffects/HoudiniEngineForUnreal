@@ -515,7 +515,7 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
 
     // UE has specific size requirements for landscape,
     // so we might need to pad/resample the heightfield data
-    FVector LandscapeResizeFactor = FVector::OneVector;
+    FVector LandscapeResizeFactor = FVector(1.0f, 1.0f, 1.0f);
     FVector LandscapePositionOffsetInPixels = FVector::ZeroVector;
     if (!NoResize)
     {
@@ -936,7 +936,7 @@ FHoudiniLandscapeUtils::ResizeHeightDataForLandscape(
     FVector& LandscapeResizeFactor,
     FVector& LandscapePositionOffset )
 {
-    LandscapeResizeFactor = FVector::OneVector;
+    LandscapeResizeFactor = FVector(1.0f, 1.0f, 1.0f);
     LandscapePositionOffset = FVector::ZeroVector;
 
     if ( HeightData.Num() <= 4 )
@@ -1201,7 +1201,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
 
     HAPI_TransformEuler HAPIObjectTransform;
     FMemory::Memzero< HAPI_TransformEuler >( HAPIObjectTransform );
-    LandscapeTransform.SetScale3D(FVector::OneVector);    
+    LandscapeTransform.SetScale3D(FVector(1.0f, 1.0f, 1.0f));
     FHoudiniEngineUtils::TranslateUnrealTransform( LandscapeTransform, HAPIObjectTransform );
     HAPIObjectTransform.position[1] = 0.0f;
 
@@ -1262,7 +1262,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
     // Set the HF's parent OBJ's tranform to the Landscape's transform
     HAPI_TransformEuler HAPIObjectTransform;
     FMemory::Memzero< HAPI_TransformEuler >( HAPIObjectTransform );
-    LandscapeTransform.SetScale3D( FVector::OneVector );
+    LandscapeTransform.SetScale3D(FVector(1.0f, 1.0f, 1.0f));
     FHoudiniEngineUtils::TranslateUnrealTransform( LandscapeTransform, HAPIObjectTransform );
     HAPIObjectTransform.position[ 1 ] = 0.0f;
 

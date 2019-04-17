@@ -32,9 +32,9 @@
 
 /*
 
-    Houdini Version: 17.5.228
+    Houdini Version: 17.5.229
     Houdini Engine Version: 3.2.40
-    Unreal Version: 4.16.3
+    Unreal Version: 4.15.3
 
 */
 
@@ -46,7 +46,7 @@ public class HoudiniEngineRuntime : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "17.5.228";
+        string HoudiniVersion = "17.5.229";
         bool bIsRelease = true;
         string HFSPath = "";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Side Effects Software";
@@ -191,7 +191,7 @@ public class HoudiniEngineRuntime : ModuleRules
         return "";
     }
 
-    public HoudiniEngineRuntime( ReadOnlyTargetRules Target ) : base( Target )
+    public HoudiniEngineRuntime( TargetInfo Target )
     {
         PCHUsage = PCHUsageMode.UseSharedPCHs;
 
@@ -273,13 +273,14 @@ public class HoudiniEngineRuntime : ModuleRules
             }
        );
 
-       if (Target.bBuildEditor == true)
+       if (UEBuildConfiguration.bBuildEditor == true)
        {
             PrivateDependencyModuleNames.AddRange(
             new string[]
             {
                     "AppFramework",
                     "AssetTools",
+					"ContentBrowser",
                     "EditorStyle",
                     "EditorWidgets",
                     "LevelEditor",
@@ -295,7 +296,8 @@ public class HoudiniEngineRuntime : ModuleRules
                     "UnrealEd",
                     "Landscape",
                     "LandscapeEditor",
-                    "VREditor"
+                    "ViewportInteraction",
+                    "VREditor",
                 }
             );
         }
