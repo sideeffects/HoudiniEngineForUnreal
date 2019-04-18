@@ -1047,6 +1047,12 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
             LOCTEXT("BakeToActors", "Bake to Actors"),
             LOCTEXT("BakeToActorsTooltip", "Bakes each output and creates new individual Actors"),
             FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnBakeToActors))
+    ];
+
+    BakeGroup.AddWidgetRow()
+    .WholeRowContent()
+    [
+        SNew(SHorizontalBox)
         +SHorizontalBox::Slot()
         .AutoWidth()
         .Padding( 2.0f, 0.0f )
