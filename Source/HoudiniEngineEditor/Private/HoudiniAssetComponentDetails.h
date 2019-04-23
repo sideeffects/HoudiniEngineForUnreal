@@ -60,6 +60,8 @@ uint32 GetTypeHash(TPair< ALandscapeProxy *, int32 > Pair);
 
 class FHoudiniAssetComponentDetails : public IDetailCustomization
 {
+    friend class FHoudiniParameterDetails;
+
     public:
 
         /** Constructor. **/

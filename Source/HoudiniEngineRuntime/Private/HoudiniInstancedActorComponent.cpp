@@ -21,6 +21,8 @@
 *
 */
 
+#include "HoudiniInstancedActorComponent.h"
+
 #include "HoudiniApi.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "HoudiniInstancedActorComponent.h"

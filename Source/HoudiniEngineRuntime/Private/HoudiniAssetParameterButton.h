@@ -31,7 +31,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterButton : public UHoudiniAss
 {
     GENERATED_UCLASS_BODY()
 
-    friend struct FHoudiniParameterDetails;
+    friend class FHoudiniParameterDetails;
 
     public:
 

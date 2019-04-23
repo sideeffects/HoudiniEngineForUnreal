@@ -33,7 +33,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterString : public UHoudiniAss
 {
     GENERATED_UCLASS_BODY()
 
-    friend struct FHoudiniParameterDetails;
+    friend class FHoudiniParameterDetails;
 
     public:
 
