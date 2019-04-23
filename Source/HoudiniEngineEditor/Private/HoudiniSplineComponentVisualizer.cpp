@@ -29,8 +29,9 @@
 *
 */
 
-#include "HoudiniApi.h"
 #include "HoudiniSplineComponentVisualizer.h"
+
+#include "HoudiniApi.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngineEditor.h"
