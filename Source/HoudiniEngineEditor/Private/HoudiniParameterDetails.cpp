@@ -21,8 +21,9 @@
 *
 */
 
-#include "HoudiniApi.h"
 #include "HoudiniParameterDetails.h"
+
+#include "HoudiniApi.h"
 #include "HoudiniAssetComponentDetails.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
 
@@ -1002,11 +1003,12 @@ FHoudiniParameterDetails::CreateWidgetFloat( IDetailCategoryBuilder & LocalDetai
     // Helper function to find a unit from a string (name or abbreviation) 
     auto ParmUnit = FUnitConversion::UnitFromString( *InParam.ValueUnit );
 
-    TSharedPtr<INumericTypeInterface<float>> TypeInterface;
-    if ( FUnitConversion::Settings().ShouldDisplayUnits() && ParmUnit.IsSet() )
-    {
-        TypeInterface = MakeShareable( new TNumericUnitTypeInterface<float>( ParmUnit.GetValue() ) );
-    }
+    EUnit Unit = EUnit::Unspecified;
+    if (FUnitConversion::Settings().ShouldDisplayUnits() && ParmUnit.IsSet())
+        Unit = ParmUnit.GetValue();
+
+    TSharedPtr<INumericTypeInterface<float>> paramTypeInterface; 
+    paramTypeInterface = MakeShareable(new TNumericUnitTypeInterface<float>(Unit));
 
     if ( InParam.GetTupleSize() == 3 )
     {
@@ -1027,7 +1029,7 @@ FHoudiniParameterDetails::CreateWidgetFloat( IDetailCategoryBuilder & LocalDetai
                 [=]( float Val, ETextCommit::Type TextCommitType ) {
                 MyParam->SetValue( Val, SwappedAxis3Vector ? 1 : 2, true, true );
             } ) )
-            .TypeInterface( TypeInterface );
+            .TypeInterface(paramTypeInterface);
     }
     else
     {
@@ -1066,7 +1068,7 @@ FHoudiniParameterDetails::CreateWidgetFloat( IDetailCategoryBuilder & LocalDetai
                     &InParam, &UHoudiniAssetParameterFloat::OnSliderMovingFinish, Idx ) )
 
                 .SliderExponent( 1.0f )
-                .TypeInterface( TypeInterface )
+                .TypeInterface( paramTypeInterface )
             ];
         }
 
@@ -1090,11 +1092,12 @@ FHoudiniParameterDetails::CreateWidgetInt( IDetailCategoryBuilder & LocalDetailC
     // Helper function to find a unit from a string (name or abbreviation) 
     auto ParmUnit = FUnitConversion::UnitFromString( *InParam.ValueUnit );
 
-    TSharedPtr<INumericTypeInterface<int32>> TypeInterface;
-    if ( FUnitConversion::Settings().ShouldDisplayUnits() && ParmUnit.IsSet() )
-    {
-        TypeInterface = MakeShareable( new TNumericUnitTypeInterface<int32>( ParmUnit.GetValue() ) );
-    }
+    EUnit Unit = EUnit::Unspecified;
+    if (FUnitConversion::Settings().ShouldDisplayUnits() && ParmUnit.IsSet())
+        Unit = ParmUnit.GetValue();
+
+    TSharedPtr<INumericTypeInterface<int32>> paramTypeInterface;
+    paramTypeInterface = MakeShareable(new TNumericUnitTypeInterface<int32>(Unit));
 
     for ( int32 Idx = 0; Idx < InParam.GetTupleSize(); ++Idx )
     {
@@ -1130,7 +1133,7 @@ FHoudiniParameterDetails::CreateWidgetInt( IDetailCategoryBuilder & LocalDetailC
                 &InParam, &UHoudiniAssetParameterInt::OnSliderMovingFinish, Idx ) )
 
             .SliderExponent( 1.0f )
-            .TypeInterface( TypeInterface )
+            .TypeInterface(paramTypeInterface)
             ];
 
         if ( NumericEntryBox.IsValid() )
