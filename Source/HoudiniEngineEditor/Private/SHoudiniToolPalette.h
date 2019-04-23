@@ -28,6 +28,7 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Input/Reply.h"
 #include "Widgets/SCompoundWidget.h"
+#include "Widgets/Views/SListView.h"
 #include "Misc/NotifyHook.h"
 #include "SHoudiniToolPalette.generated.h"
 

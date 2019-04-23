@@ -28,8 +28,9 @@
 *
 */
 
-#include "HoudiniApi.h"
 #include "HoudiniHandleComponentVisualizer.h"
+
+#include "HoudiniApi.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineEditor.h"
 #include "EditorViewportClient.h"

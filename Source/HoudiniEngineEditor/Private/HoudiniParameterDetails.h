@@ -26,9 +26,13 @@
 #include "DetailCategoryBuilder.h"
 #include "IDetailCustomization.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/NumericTypeInterface.h"
 
-struct FHoudiniParameterDetails
+class FHoudiniParameterDetails : public TSharedFromThis<FHoudiniParameterDetails>, public TNumericUnitTypeInterface<float>, public TNumericUnitTypeInterface<int32>
 {
+
+public:
+
     static void CreateNameWidget( class UHoudiniAssetParameter* InParam, FDetailWidgetRow & Row, bool bLabel );
 
     static void CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameter* InParam );
