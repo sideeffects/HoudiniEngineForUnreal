@@ -35,7 +35,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 {
     GENERATED_UCLASS_BODY()
 
-    friend struct FHoudiniParameterDetails;
+    friend class FHoudiniParameterDetails;
     friend class UHoudiniAssetComponent;
 
     public:

@@ -29,8 +29,9 @@
 *
 */
 
-#include "HoudiniApi.h"
 #include "HoudiniAssetLogWidget.h"
+
+#include "HoudiniApi.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
