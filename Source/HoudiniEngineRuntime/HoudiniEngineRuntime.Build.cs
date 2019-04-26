@@ -32,7 +32,7 @@
 
 /*
 
-    Houdini Version: 17.0.556
+    Houdini Version: 17.0.564
     Houdini Engine Version: 3.2.37
     Unreal Version: 4.21.2
 
@@ -46,7 +46,7 @@ public class HoudiniEngineRuntime : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "17.0.556";
+        string HoudiniVersion = "17.0.564";
         bool bIsRelease = true;
         string HFSPath = "";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Side Effects Software";
@@ -191,7 +191,7 @@ public class HoudiniEngineRuntime : ModuleRules
     public HoudiniEngineRuntime( ReadOnlyTargetRules Target ) : base( Target )
     {
         bPrecompile = true;
-        PCHUsage = PCHUsageMode.UseSharedPCHs;
+        PCHUsage = PCHUsageMode.NoSharedPCHs;
         PrivatePCHHeaderFile = "Private/HoudiniEngineRuntimePrivatePCH.h";
 
         // Check if we are compiling for unsupported platforms.
@@ -268,7 +268,7 @@ public class HoudiniEngineRuntime : ModuleRules
        PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-                // ... add private dependencies that you statically link with here ...
+                "Landscape"
             }
        );
 
@@ -293,7 +293,6 @@ public class HoudiniEngineRuntime : ModuleRules
                     "TargetPlatform",
                     "UnrealEd",
                     "ApplicationCore",
-                    "Landscape",
                     "LandscapeEditor"
                 }
             );
