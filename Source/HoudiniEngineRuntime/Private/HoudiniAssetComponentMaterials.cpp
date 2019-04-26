@@ -29,9 +29,10 @@
 *
 */
 
+#include "HoudiniAssetComponentMaterials.h"
+
 #include "HoudiniApi.h"
 #include "HoudiniAssetComponent.h"
-#include "HoudiniAssetComponentMaterials.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
 

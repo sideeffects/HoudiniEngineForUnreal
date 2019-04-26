@@ -21,9 +21,10 @@
 *
 */
 
+#include "HoudiniEngineInstancerUtils.h"
+
 #include "HoudiniApi.h"
 #include "HoudiniEngine.h"
-#include "HoudiniEngineInstancerUtils.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniEngineString.h"

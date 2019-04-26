@@ -29,8 +29,9 @@
 *
 */
 
-#include "HoudiniApi.h"
 #include "HoudiniPluginSerializationVersion.h"
+
+#include "HoudiniApi.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
 const FGuid FHoudiniCustomSerializationVersion::GUID( 0x1AB9CECC, 0x6913, 0x4875, 0x203d51fb );

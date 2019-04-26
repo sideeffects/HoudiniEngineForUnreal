@@ -21,9 +21,10 @@
 *
 */
 
+#include "SHoudiniToolPalette.h"
+
 #include "HoudiniApi.h"
 #include "Editor.h"
-#include "SHoudiniToolPalette.h"
 #include "Modules/ModuleManager.h"
 #include "Widgets/SBoxPanel.h"
 #include "SlateOptMacros.h"
@@ -58,6 +59,7 @@
 #include "LandscapeProxy.h"
 #include "Framework/Application/SlateApplication.h"
 #include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
 #include "Interfaces/IMainFrameModule.h"
