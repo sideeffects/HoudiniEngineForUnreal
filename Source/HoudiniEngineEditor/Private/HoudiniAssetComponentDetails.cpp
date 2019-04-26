@@ -21,8 +21,9 @@
  *
  */
 
-#include "HoudiniApi.h"
 #include "HoudiniAssetComponentDetails.h"
+
+#include "HoudiniApi.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"

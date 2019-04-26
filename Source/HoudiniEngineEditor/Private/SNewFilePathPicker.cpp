@@ -21,8 +21,9 @@
 *
 */
 
-#include "HoudiniApi.h"
 #include "SNewFilePathPicker.h"
+
+#include "HoudiniApi.h"
 #include "DesktopPlatformModule.h"
 #include "Widgets/SBoxPanel.h"
 #include "Framework/Application/SlateApplication.h"

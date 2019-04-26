@@ -35,7 +35,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterColor : public UHoudiniAsse
 {
     GENERATED_UCLASS_BODY()
 
-    friend struct FHoudiniParameterDetails;
+    friend class FHoudiniParameterDetails;
 
     public:
 

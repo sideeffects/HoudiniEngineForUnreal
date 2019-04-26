@@ -21,8 +21,9 @@
 *
 */
 
-#include "HoudiniApi.h"
 #include "HoudiniShelfEdMode.h"
+
+#include "HoudiniApi.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniShelfEdModeToolkit.h"
 #include "Toolkits/ToolkitManager.h"
