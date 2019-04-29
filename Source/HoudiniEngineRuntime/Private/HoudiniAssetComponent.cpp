@@ -2274,14 +2274,17 @@ UHoudiniAssetComponent::SubscribeEditorDelegates()
 void
 UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 {
-    // Remove delegate for asset post import.
-    GEditor->GetEditorSubsystem<UImportSubsystem>()->OnAssetPostImport.Remove(DelegateHandleAssetPostImport);
-
     // Remove delegate for viewport drag and drop events.
     FEditorDelegates::OnApplyObjectToActor.Remove( DelegateHandleApplyObjectToActor );
 
     if ( GEditor )
     {
+        // Remove delegate for asset post import.
+        if (UImportSubsystem* ImportSys = GEditor->GetEditorSubsystem<UImportSubsystem>())
+        {
+            ImportSys->OnAssetPostImport.Remove(DelegateHandleAssetPostImport);
+        }
+
         GEditor->OnActorMoved().RemoveAll( this );
     }
 }
