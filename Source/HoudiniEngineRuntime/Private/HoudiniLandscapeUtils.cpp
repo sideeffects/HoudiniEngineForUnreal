@@ -48,6 +48,7 @@
 #include "LandscapeStreamingProxy.h"
 #include "LightMap.h"
 #include "Engine/MapBuildDataRegistry.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 #if WITH_EDITOR
     #include "FileHelpers.h"
