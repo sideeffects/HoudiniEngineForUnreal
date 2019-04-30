@@ -106,7 +106,7 @@ FHoudiniHandleComponentVisualizer::DrawVisualization(
     // Draw point and set hit box for it.
     PDI->SetHitProxy( new HHoudiniHandleVisProxy( HandleComponent ) );
     {
-        static const float GrabHandleSize = 12.0f;
+        static const float GrabHandleSize = 24.0f;
         PDI->DrawPoint( HandleComponent->GetComponentTransform().GetLocation(), IsActive ? ActiveColor : InactiveColor, GrabHandleSize, SDPG_Foreground );
     }
 
