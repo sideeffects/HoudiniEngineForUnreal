@@ -123,21 +123,31 @@ class HOUDINIENGINERUNTIME_API UHoudiniHandleComponent : public USceneComponent
                     HAPI_ParmId AssetParamId,
                     const TMap< HAPI_ParmId, UHoudiniAssetParameter * > & Parameters )
                 {
-                    if ( HandleParmName == CmpName )
+                    if (HandleParmName != CmpName)
                     {
-                        if ( UHoudiniAssetParameter * const * FoundAbstractParm = Parameters.Find( AssetParamId ) )
+                        return false;
+                    }
+
+                    UHoudiniAssetParameter * const * FoundAbstractParm = Parameters.Find(AssetParamId);
+                    if (!FoundAbstractParm)
+                    {
+                        return false;
+                    }
+
+                    AssetParameter = Cast< ASSET_PARM >( *FoundAbstractParm );
+                    if ( AssetParameter )
+                    {
+                        // It is possible that the handle param is bound to a single tuple param.
+                        // Ignore the preset tuple index if that's the case or we'll crash.
+                        if ((*FoundAbstractParm)->GetTupleSize() <= InTupleIdx)
+                            InTupleIdx = 0;
+
+                        auto Optional = AssetParameter->GetValue( InTupleIdx );
+                        if ( Optional.IsSet() )
                         {
-                            AssetParameter = Cast< ASSET_PARM >( *FoundAbstractParm );
-                            if ( AssetParameter )
-                            {
-                                auto Optional = AssetParameter->GetValue( InTupleIdx );
-                                if ( Optional.IsSet() )
-                                {
-                                    TupleIdx = InTupleIdx;
-                                    OutValue = static_cast< VALUE >( Optional.GetValue() );
-                                    return true;
-                                }
-                            }
+                            TupleIdx = InTupleIdx;
+                            OutValue = static_cast< VALUE >( Optional.GetValue() );
+                            return true;
                         }
                     }
 
