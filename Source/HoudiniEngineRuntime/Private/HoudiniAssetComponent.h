@@ -387,6 +387,9 @@ public:
         /** Returns the path to the temporary cooking folder */
         FText GetTempCookFolder() const;
 
+        /** changes the temporary cooking folder path */
+        void SetTempCookFolder(const FString& Folder);
+
         FString GetBakingBaseName( const FHoudiniGeoPartObject& GeoPartObject ) const override;
 
         /** Is the asset still waiting for upstream asset to finish instantiating **/

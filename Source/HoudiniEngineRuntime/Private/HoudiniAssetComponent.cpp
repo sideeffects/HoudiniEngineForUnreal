@@ -91,6 +91,7 @@
 #include "StaticMeshResources.h"
 #include "Framework/Application/SlateApplication.h"
 #include "NavigationSystem.h"
+#include "FileHelpers.h"
 #endif
 #include "Internationalization/Internationalization.h"
 
@@ -441,7 +442,7 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
             Iter( HoudiniAssetComponent->StaticMeshes ); Iter; ++Iter )
         {
             UStaticMesh * StaticMesh = Iter.Value();
-            if ( StaticMesh && !StaticMesh->IsPendingKill() )
+            if ( StaticMesh && StaticMesh->IsValidLowLevel() && !StaticMesh->IsPendingKill() )
                 Collector.AddReferencedObject( StaticMesh, InThis );
         }
 
@@ -452,14 +453,24 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
             UStaticMesh * StaticMesh = Iter.Key();
             UStaticMeshComponent * StaticMeshComponent = Iter.Value();
 
-            if (!StaticMeshComponent || StaticMeshComponent->IsPendingKill())
-                continue;
-
-            if (!StaticMesh || StaticMesh->IsPendingKill())
+            if (!StaticMesh || !StaticMeshComponent->IsValidLowLevel() || StaticMesh->IsPendingKill())
                 continue;
 
             Collector.AddReferencedObject( StaticMesh, InThis );
+
+            if (!StaticMeshComponent || !StaticMeshComponent->IsValidLowLevel() || StaticMeshComponent->IsPendingKill())
+                continue;
+
             Collector.AddReferencedObject( StaticMeshComponent, InThis );
+        }
+
+        // Add references to all temporary cooked mesh packages
+        for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<class UPackage> > ::TIterator
+            Iter(HoudiniAssetComponent->CookedTemporaryStaticMeshPackages); Iter; ++Iter)
+        {
+            UPackage * MeshPackage = Iter.Value().Get();
+            if (MeshPackage && !MeshPackage->IsPendingKill())
+                Collector.AddReferencedObject(MeshPackage, InThis);
         }
 
         // Add references to all spline components.
@@ -467,7 +478,7 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
             Iter( HoudiniAssetComponent->SplineComponents ); Iter; ++Iter )
         {
             UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value().Get();
-            if ( !HoudiniSplineComponent )
+            if ( !HoudiniSplineComponent || !HoudiniSplineComponent->IsValidLowLevel() || HoudiniSplineComponent->IsPendingKill() )
                 continue;
 
             Collector.AddReferencedObject( HoudiniSplineComponent, InThis );
@@ -478,7 +489,7 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
             Iter( HoudiniAssetComponent->LandscapeComponents ); Iter; ++Iter)
         {
             ALandscapeProxy * HoudiniLandscape = Iter.Value().Get();
-            if ( !HoudiniLandscape )
+            if ( !HoudiniLandscape || HoudiniLandscape->IsPendingKill() )
                 continue;
 
             Collector.AddReferencedObject( HoudiniLandscape, InThis );
@@ -489,7 +500,7 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
             Iter( HoudiniAssetComponent->CookedTemporaryLandscapeLayers ); Iter; ++Iter )
         {
             UPackage * LayerPackage = Iter.Key().Get();
-            if ( LayerPackage )
+            if ( LayerPackage && !LayerPackage->IsPendingKill() )
                 Collector.AddReferencedObject( LayerPackage, InThis );
         }
 
@@ -506,6 +517,16 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
         UHoudiniAssetComponentMaterials* HoudiniAssetComponentMaterials = HoudiniAssetComponent->HoudiniAssetComponentMaterials;
         if ( HoudiniAssetComponentMaterials && !HoudiniAssetComponentMaterials->IsPendingKill() )
             Collector.AddReferencedObject( HoudiniAssetComponent->HoudiniAssetComponentMaterials, InThis );
+
+        // Add references to all temporary cooked material packages
+        for (TMap< FString, TWeakObjectPtr<class UPackage> > ::TIterator
+            Iter(HoudiniAssetComponent->CookedTemporaryPackages); Iter; ++Iter)
+        {
+            UPackage * MaterialPackage = Iter.Value().Get();
+            if (MaterialPackage && !MaterialPackage->IsPendingKill())
+                Collector.AddReferencedObject(MaterialPackage, InThis);
+        }
+
     }
 
     // Call base implementation.
@@ -2947,7 +2968,18 @@ UHoudiniAssetComponent::GetTempCookFolder() const
 
         return HoudiniRuntimeSettings->TemporaryCookFolder;
     }
+
     return TempCookFolder;
+}
+
+void
+UHoudiniAssetComponent::SetTempCookFolder(const FString& Folder)
+{
+    FText NewTempCookFolder = FText::FromString(Folder);
+    if (!NewTempCookFolder.EqualTo(TempCookFolder))
+    {
+        TempCookFolder = NewTempCookFolder;
+    }
 }
 
 FString UHoudiniAssetComponent::GetBakingBaseName( const FHoudiniGeoPartObject& GeoPartObject ) const
@@ -3441,6 +3473,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         Ar << BakeNameOverrides;
     }
 
+    TArray<UPackage *> DirtyPackages;
     if (HoudiniAssetComponentVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_COOK_TEMP_PACKAGES)
     {
         TMap<FString, FString> SavedPackages;
@@ -3454,6 +3487,9 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
                 UPackage * Package = IterPackage.Value().Get();
                 if ( !Package || UPackage::IsEmptyPackage( Package ) )
                     continue;
+
+                if (Package->IsDirty())
+                    DirtyPackages.Add(Package);
 
                 FString sValue = Package->GetFName().ToString();
 
@@ -3480,6 +3516,9 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
                 if ( !Package )
                     continue;
 
+                if ( Package->IsDirty() )
+                    DirtyPackages.Add(Package);
+
                 CookedTemporaryPackages.Add( sKey, Package );
             }
         }
@@ -3496,9 +3535,12 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
                 if ( !IterPackage.Value().IsValid() )
                     continue;
 
-                UPackage * Package = IterPackage.Value().Get();                
+                UPackage * Package = IterPackage.Value().Get();
                 if ( !Package || UPackage::IsEmptyPackage( Package ) )
                     continue;
+
+                if (Package->IsDirty())
+                    DirtyPackages.Add(Package);
 
                 FString sValue = Package->GetFName().ToString();
 
@@ -3525,6 +3567,9 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
                 if ( !Package )
                     continue;
 
+                if (Package->IsDirty())
+                    DirtyPackages.Add(Package);
+
                 CookedTemporaryStaticMeshPackages.Add( Key, Package );
             }
         }
@@ -3538,9 +3583,12 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
                 if (!IterPackage.Key().IsValid())
                     continue;
 
-                UPackage * Package = IterPackage.Key().Get();                
+                UPackage * Package = IterPackage.Key().Get();
                 if ( !Package || UPackage::IsEmptyPackage( Package ) )
                     continue;
+
+                if ( Package->IsDirty() )
+                    DirtyPackages.Add(Package);
 
                 FString sKey = Package->GetFName().ToString();
 
@@ -3567,10 +3615,26 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
                 if ( !Package )
                     continue;
 
+                if ( Package->IsDirty() )
+                    DirtyPackages.Add(Package);
+
                 CookedTemporaryLandscapeLayers.Add( Package, Value );
             }
         }
     }
+
+#if WITH_EDITOR
+    if (DirtyPackages.Num() > 0)
+    {
+        if (Ar.IsSaving() && !Ar.IsTransacting())
+        {
+            // Save the dirty packages that we're still using
+            const bool bCheckDirty = false;
+            const bool bPromptToSave = false;
+            FEditorFileUtils::PromptForCheckoutAndSave(DirtyPackages, bCheckDirty, bPromptToSave);
+        }
+    }
+#endif
 
     if ( Ar.IsLoading() && bIsNativeComponent )
     {
@@ -3888,6 +3952,57 @@ void UHoudiniAssetComponent::SanitizePostLoad()
             }
         }
     }
+
+    /*
+    // Fetch the dirty package that need to be reloaded
+    TArray<UPackage *> DirtyPackages;
+    for (TMap<FString, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryPackages); IterPackage; ++IterPackage)
+    {
+        if (!IterPackage.Value().IsValid())
+            continue;
+
+        UPackage * Package = IterPackage.Value().Get();
+        if (!Package || UPackage::IsEmptyPackage(Package))
+            continue;
+
+        if (Package->IsDirty())
+            DirtyPackages.Add(Package);
+    }
+
+    for (TMap<FHoudiniGeoPartObject, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryStaticMeshPackages); IterPackage; ++IterPackage)
+    {
+        if (!IterPackage.Value().IsValid())
+            continue;
+
+        UPackage * Package = IterPackage.Value().Get();
+        if (!Package || UPackage::IsEmptyPackage(Package))
+            continue;
+
+        if (Package->IsDirty())
+            DirtyPackages.Add(Package);
+    }
+
+    for (TMap<TWeakObjectPtr< UPackage >, FHoudiniGeoPartObject > ::TIterator IterPackage(CookedTemporaryLandscapeLayers); IterPackage; ++IterPackage)
+    {
+        if (!IterPackage.Key().IsValid())
+            continue;
+
+        UPackage * Package = IterPackage.Key().Get();
+        if (!Package || UPackage::IsEmptyPackage(Package))
+            continue;
+
+        if (Package->IsDirty())
+            DirtyPackages.Add(Package);
+    }
+
+    if (DirtyPackages.Num() > 0)
+    {
+        FlushAsyncLoading();
+
+        FText ErrorMessage;
+        UPackageTools::ReloadPackages(DirtyPackages, ErrorMessage, UPackageTools::EReloadPackagesInteractionMode::AssumePositive);
+    }
+    */
 }
 
 void
@@ -5220,7 +5335,7 @@ UHoudiniAssetComponent::ClearCookTempFile()
             continue;
 
         Package->ClearFlags( RF_Standalone );
-        Package->ConditionalBeginDestroy();
+        //Package->ConditionalBeginDestroy();
     }
 
     CookedTemporaryPackages.Empty();
@@ -5234,7 +5349,7 @@ UHoudiniAssetComponent::ClearCookTempFile()
             continue;
 
         Package->ClearFlags( RF_Standalone );
-        Package->ConditionalBeginDestroy();
+        //Package->ConditionalBeginDestroy();
     }
 
     CookedTemporaryStaticMeshPackages.Empty();
@@ -5248,7 +5363,7 @@ UHoudiniAssetComponent::ClearCookTempFile()
             continue;
 
         Package->ClearFlags( RF_Standalone );
-        Package->ConditionalBeginDestroy();
+        //Package->ConditionalBeginDestroy();
     }
 
     CookedTemporaryLandscapeLayers.Empty();
