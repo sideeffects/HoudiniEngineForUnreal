@@ -2279,33 +2279,39 @@ UHoudiniAssetComponent::ResetHoudiniResources()
 void
 UHoudiniAssetComponent::SubscribeEditorDelegates()
 {
-    // Add delegate for asset post import.
-    if ( GEditor )
-        GEditor->GetEditorSubsystem<UImportSubsystem>()->OnAssetPostImport.AddUObject(this, &UHoudiniAssetComponent::OnAssetPostImport);
-
     // Add delegate for viewport drag and drop events.
     DelegateHandleApplyObjectToActor =
         FEditorDelegates::OnApplyObjectToActor.AddUObject( this, &UHoudiniAssetComponent::OnApplyObjectToActor );
 
-    if ( GEngine )
+    if ( GEditor )
     {
-        GEngine->OnActorMoved().AddUObject( this, &UHoudiniAssetComponent::OnActorMoved );
+        // Add delegate for asset post import.
+        if (UImportSubsystem* ImportSys = GEditor->GetEditorSubsystem<UImportSubsystem>())
+        {
+            ImportSys->OnAssetPostImport.AddUObject(this, &UHoudiniAssetComponent::OnAssetPostImport);
+        }
+            
+        // Add delegate for actor moved.
+        GEditor->OnActorMoved().AddUObject( this, &UHoudiniAssetComponent::OnActorMoved );
     }
 }
 
 void
 UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 {
-    // Remove delegate for asset post import.
-    if ( GEditor )
-        GEditor->GetEditorSubsystem<UImportSubsystem>()->OnAssetPostImport.Remove(DelegateHandleAssetPostImport);
-
     // Remove delegate for viewport drag and drop events.
     FEditorDelegates::OnApplyObjectToActor.Remove( DelegateHandleApplyObjectToActor );
 
-    if (GEngine)
+    if ( GEditor )
     {
-        GEngine->OnActorMoved().RemoveAll( this );
+        // Remove delegate for asset post import.
+        if (UImportSubsystem* ImportSys = GEditor->GetEditorSubsystem<UImportSubsystem>())
+        {
+            ImportSys->OnAssetPostImport.Remove(DelegateHandleAssetPostImport);
+        }
+
+        // Remove delegate for actor moved.
+        GEditor->OnActorMoved().RemoveAll( this );
     }
 }
 
