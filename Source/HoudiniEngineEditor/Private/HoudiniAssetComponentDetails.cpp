@@ -1009,6 +1009,12 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
     ];
 
     // Cook folder widget
+    FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+    FPathPickerConfig CookPathPickerConfig;
+    CookPathPickerConfig.OnPathSelected = FOnPathSelected::CreateSP(this, &FHoudiniAssetComponentDetails::OnCookFolderSelected);
+    CookPathPickerConfig.bAllowContextMenu = false;
+    CookPathPickerConfig.bAllowClassesFolder = true;
+
     CookGroup.AddWidgetRow()
     .NameContent()
     [
@@ -1027,6 +1033,24 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
             .Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &FHoudiniAssetComponentDetails::GetTempCookFolderText)))
             .Font(IDetailLayoutBuilder::GetDetailFont())
             .ToolTipText(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &FHoudiniAssetComponentDetails::GetTempCookFolderText)))
+        ]
+        + SHorizontalBox::Slot()
+        [
+            SNew(SComboButton)
+            .ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+            .ToolTipText(LOCTEXT("ChooseACookFolder", "Choose a temporary cook folder for this asset."))
+            .ContentPadding(2.0f)
+            .ForegroundColor(FSlateColor::UseForeground())
+            .IsFocusable(false)
+            .MenuContent()
+            [
+                SNew(SBox)
+                .WidthOverride(300.0f)
+                .HeightOverride(300.0f)
+                [
+                    ContentBrowserModule.Get().CreatePathPicker(CookPathPickerConfig)
+                ]
+            ]
         ]
     ];
 
@@ -1084,11 +1108,10 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
 
     // Bake folder widget
     //
-    FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>( "ContentBrowser" );
-    FPathPickerConfig PathPickerConfig;
-    PathPickerConfig.OnPathSelected = FOnPathSelected::CreateSP( this, &FHoudiniAssetComponentDetails::OnBakeFolderSelected );
-    PathPickerConfig.bAllowContextMenu = false;
-    PathPickerConfig.bAllowClassesFolder = true;
+    FPathPickerConfig BakePathPickerConfig;
+    BakePathPickerConfig.OnPathSelected = FOnPathSelected::CreateSP( this, &FHoudiniAssetComponentDetails::OnBakeFolderSelected );
+    BakePathPickerConfig.bAllowContextMenu = false;
+    BakePathPickerConfig.bAllowClassesFolder = true;
 
     BakeGroup.AddWidgetRow()
     .NameContent()
@@ -1123,7 +1146,7 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
                 .WidthOverride(300.0f)
                 .HeightOverride(300.0f)
                 [
-                    ContentBrowserModule.Get().CreatePathPicker(PathPickerConfig)
+                    ContentBrowserModule.Get().CreatePathPicker(BakePathPickerConfig)
                 ]
             ]
         ]
@@ -1451,6 +1474,15 @@ FHoudiniAssetComponentDetails::GetBakeFolderText() const
         BakeFolderText = HoudiniAssetComponents[ 0 ]->GetBakeFolder();
     }
     return BakeFolderText;
+}
+
+void
+FHoudiniAssetComponentDetails::OnCookFolderSelected(const FString& Folder)
+{
+    if (HoudiniAssetComponents.Num() && HoudiniAssetComponents[0] && !HoudiniAssetComponents[0]->IsPendingKill())
+    {
+        HoudiniAssetComponents[0]->SetTempCookFolder(Folder);
+    }
 }
 
 FText
