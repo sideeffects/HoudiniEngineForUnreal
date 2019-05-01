@@ -3875,7 +3875,10 @@ FHoudiniLandscapeUtils::UpdateOldLandscapeReference(ALandscapeProxy* OldLandscap
     bool bReturn = false;
 
     // Iterates through all the Houdini Assets in the scene
-    UWorld* editorWorld = GEditor->GetEditorWorldContext().World();
+    UWorld* editorWorld = GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
+    if ( !editorWorld )
+        return false;
+
     for ( TActorIterator<AHoudiniAssetActor> ActorItr( editorWorld ); ActorItr; ++ActorItr )
     {
         AHoudiniAssetActor* Actor = *ActorItr;

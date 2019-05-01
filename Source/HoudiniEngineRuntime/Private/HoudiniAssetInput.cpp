@@ -1883,24 +1883,27 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
     // as some components might now have been fully initialized during PostLoad()
     if ( OutlinerInputsNeedPostLoadInit )
     {
-        UWorld* editorWorld = GEditor->GetEditorWorldContext().World();
-        for (auto & OutlinerInput : InputOutlinerMeshArray)
+        UWorld* editorWorld = GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
+        if ( editorWorld )
         {
-            if (OutlinerInput.ActorPtr.IsValid())
-                continue;
-
-            if (OutlinerInput.ActorPathName.Equals(TEXT("None"), ESearchCase::IgnoreCase))
-                continue;
-
-            // The actor pointer is invalid, 
-            // See if we can use the saved pathname to find the actor back
-            // Invalid ActorPtr could be caused by the actor being in a different level
-            for ( TActorIterator<AActor> ActorIt(editorWorld); ActorIt; ++ActorIt )
+            for (auto & OutlinerInput : InputOutlinerMeshArray)
             {
-                if (ActorIt->GetPathName() == OutlinerInput.ActorPathName)
+                if (OutlinerInput.ActorPtr.IsValid())
+                    continue;
+
+                if (OutlinerInput.ActorPathName.Equals(TEXT("None"), ESearchCase::IgnoreCase))
+                    continue;
+
+                // The actor pointer is invalid, 
+                // See if we can use the saved pathname to find the actor back
+                // Invalid ActorPtr could be caused by the actor being in a different level
+                for (TActorIterator<AActor> ActorIt(editorWorld); ActorIt; ++ActorIt)
                 {
-                    OutlinerInput.ActorPtr = *ActorIt;
-                    break;
+                    if (ActorIt->GetPathName() == OutlinerInput.ActorPathName)
+                    {
+                        OutlinerInput.ActorPtr = *ActorIt;
+                        break;
+                    }
                 }
             }
         }

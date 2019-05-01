@@ -477,14 +477,16 @@ struct FHoudiniScopedGlobalTransactionDisable
     FHoudiniScopedGlobalTransactionDisable()
     {
 #if WITH_EDITOR
-        GEditor->Trans->DisableObjectSerialization();
+        if ( GEditor && GEditor->Trans )
+            GEditor->Trans->DisableObjectSerialization();
 #endif
     }
 
     ~FHoudiniScopedGlobalTransactionDisable()
     {
 #if WITH_EDITOR
-        GEditor->Trans->EnableObjectSerialization();
+        if (GEditor && GEditor->Trans)
+            GEditor->Trans->EnableObjectSerialization();
 #endif
     }
 };
