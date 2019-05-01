@@ -7838,13 +7838,16 @@ FHoudiniEngineUtils::LocateClipboardActor( const AActor* IgnoreActor, const FStr
     }
 
 #if WITH_EDITOR
-    // And try to find the corresponding HoudiniAssetActor in the editor world
-    // to avoid finding "deleted" assets with the same name
-    UWorld* editorWorld = GEditor->GetEditorWorldContext().World();
-    for (TActorIterator<AHoudiniAssetActor> ActorItr(editorWorld); ActorItr; ++ActorItr)
+    if (GEditor)
     {
-        if ( *ActorItr != IgnoreActor && (ActorItr->GetActorLabel() == ActorName || ActorItr->GetName() == ActorName))
-            HoudiniAssetActor = *ActorItr;
+        // Try to find the corresponding HoudiniAssetActor in the editor world
+        // to avoid finding "deleted" assets with the same name
+        UWorld* editorWorld = GEditor->GetEditorWorldContext().World();
+        for (TActorIterator<AHoudiniAssetActor> ActorItr(editorWorld); ActorItr; ++ActorItr)
+        {
+            if (*ActorItr != IgnoreActor && (ActorItr->GetActorLabel() == ActorName || ActorItr->GetName() == ActorName))
+                HoudiniAssetActor = *ActorItr;
+        }
     }
 #endif
 

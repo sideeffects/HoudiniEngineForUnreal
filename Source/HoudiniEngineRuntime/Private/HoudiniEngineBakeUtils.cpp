@@ -539,7 +539,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Houd
     auto SplitMeshInstancerComponentToPart = HoudiniAssetComponent->CollectAllMeshSplitInstancerComponents();
     NewActors.Append( BakeHoudiniActorToActors_SplitMeshInstancers( HoudiniAssetComponent, SplitMeshInstancerComponentToPart ) );
 
-    if( SelectNewActors && NewActors.Num() )
+    if( GEditor && SelectNewActors && NewActors.Num() )
     {
         GEditor->SelectNone( false, true );
         for( AActor* NewActor : NewActors )
@@ -670,7 +670,9 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
 
         ULevel* DesiredLevel = GWorld->GetCurrentLevel();
         FName BaseName( *( HoudiniAssetComponent->GetOwner()->GetName() + TEXT( "_Baked" ) ) );
-        UActorFactory* Factory = GEditor->FindActorFactoryByClass( UActorFactoryStaticMesh::StaticClass() );
+        UActorFactory* Factory = GEditor ? GEditor->FindActorFactoryByClass( UActorFactoryStaticMesh::StaticClass() ) : nullptr;
+        if (!Factory)
+            continue;
 
         auto PrepNewStaticMeshActor = [&]( AActor* NewActor )
         {
