@@ -280,7 +280,8 @@ SAssetSelectionWidget::OnButtonCancel()
     do \
     { \
         TArray< UActorComponent * > ReregisterComponents; \
-        const auto & LocalAttachChildren = GetAttachChildren(); \
+        TArray< USceneComponent * > LocalAttachChildren;\
+        GetChildrenComponents(true, LocalAttachChildren); \
         for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter ) \
         { \
             COMPONENT_CLASS * Component = Cast< COMPONENT_CLASS >( *Iter ); \
