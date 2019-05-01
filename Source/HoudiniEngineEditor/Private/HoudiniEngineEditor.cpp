@@ -660,7 +660,7 @@ FHoudiniEngineEditor::SaveHIPFile()
             HOUDINI_LOG_MESSAGE(TEXT("Saved Houdini scene to %s"), *SaveFilenames[ 0 ] );
 
             // Get first path.
-			std::string HIPPathConverted( TCHAR_TO_UTF8(*SaveFilenames[0]) );
+            std::string HIPPathConverted( TCHAR_TO_UTF8(*SaveFilenames[0]) );
 
             // Save HIP file through Engine.
             FHoudiniApi::SaveHIPFile( FHoudiniEngine::Get().GetSession(), HIPPathConverted.c_str(), false );
@@ -796,14 +796,14 @@ FHoudiniEngineEditor::GetHoudiniEnginePluginDir()
     if ( FPaths::DirectoryExists(EnginePluginDir) )
         return EnginePluginDir;
 
-	FString ProjectPluginDir = FPaths::ProjectPluginsDir() / TEXT("Runtime/HoudiniEngine");
+    FString ProjectPluginDir = FPaths::ProjectPluginsDir() / TEXT("Runtime/HoudiniEngine");
     if ( FPaths::DirectoryExists(ProjectPluginDir) )
         return ProjectPluginDir;
 
-	TSharedPtr<IPlugin> HoudiniPlugin = IPluginManager::Get().FindPlugin(TEXT("HoudiniEngine"));
-	FString PluginBaseDir = HoudiniPlugin.IsValid() ? HoudiniPlugin->GetBaseDir() : EnginePluginDir;
-	if ( FPaths::DirectoryExists(PluginBaseDir) )
-		return PluginBaseDir;
+    TSharedPtr<IPlugin> HoudiniPlugin = IPluginManager::Get().FindPlugin(TEXT("HoudiniEngine"));
+    FString PluginBaseDir = HoudiniPlugin.IsValid() ? HoudiniPlugin->GetBaseDir() : EnginePluginDir;
+    if ( FPaths::DirectoryExists(PluginBaseDir) )
+        return PluginBaseDir;
 
     HOUDINI_LOG_WARNING(TEXT("Could not find the Houdini Engine plugin's directory"));
 
@@ -910,27 +910,29 @@ FHoudiniEngineEditor::CleanUpTempFolder()
             if ( !CurrentPackage || CurrentPackage->IsPendingKill() )
                 continue;
 
-            TArray<FAssetData> AssetsInPackage;
-            bool bAssetDataSafeToDelete = true;
-            AssetRegistryModule.Get().GetAssetsByPackageName( CurrentPackage->GetFName(), AssetsInPackage );
+            // Do not  try to delete the package if it's referenced anywhere
+            TArray<FName> ReferenceNames;
+            AssetRegistryModule.Get().GetReferencers(CurrentPackage->GetFName(), ReferenceNames, EAssetRegistryDependencyType::All );
+            if (ReferenceNames.Num() > 0)
+                continue;
 
+            bool bAssetDataSafeToDelete = true;
+            TArray<FAssetData> AssetsInPackage;
+            AssetRegistryModule.Get().GetAssetsByPackageName( CurrentPackage->GetFName(), AssetsInPackage );
             for ( const auto& AssetInfo : AssetsInPackage )
             {
-                if ( !AssetInfo.GetAsset() )
-                    continue;
-
-                // Check and see whether we are referenced by any objects that won't be garbage collected (*including* the undo buffer)
-                FReferencerInformationList ReferencesIncludingUndo;
+                // Check if the objects contained in the package are referenced by something that won't be garbage collected (*including* the undo buffer)                    
                 UObject* AssetInPackage = AssetInfo.GetAsset();
                 if (!AssetInPackage || AssetInPackage->IsPendingKill())
                     continue;
 
+                FReferencerInformationList ReferencesIncludingUndo;
                 bool bReferencedInMemoryOrUndoStack = IsReferenced( AssetInPackage, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags, true, &ReferencesIncludingUndo );
                 if ( !bReferencedInMemoryOrUndoStack )
                     continue;
 
                 // We do have external references, check if the external references are in our ObjectToDelete list
-                // If they are, we can delete the asset cause its references are going to be deleted too.
+                // If they are, we can delete the asset because its references are going to be deleted as well.
                 for ( auto ExtRef : ReferencesIncludingUndo.ExternalReferences )
                 {
                     UObject* Outer = ExtRef.Referencer->GetOuter();
@@ -970,6 +972,9 @@ FHoudiniEngineEditor::CleanUpTempFolder()
             break;
 
         int32 CurrentDeleted = ObjectTools::DeleteAssets( AssetDataToDelete, false );
+        /*
+        // DO NOT FORCE DELETE!!
+        // This will actually cause more problems than it solves
         if ( CurrentDeleted <= 0 )
         {
             // Normal deletion failed...  Try to force delete the objects?
@@ -987,6 +992,7 @@ FHoudiniEngineEditor::CleanUpTempFolder()
 
             CurrentDeleted = ObjectTools::ForceDeleteObjects(ObjectsToDelete, false);
         }
+        */
 
         if ( CurrentDeleted > 0 )
         {

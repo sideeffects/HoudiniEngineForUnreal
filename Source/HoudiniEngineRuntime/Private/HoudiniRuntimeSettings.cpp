@@ -208,11 +208,13 @@ UHoudiniRuntimeSettings::PostInitProperties()
             Property->SetPropertyFlags(CPF_EditConst);
     }
 
+/*
     // Set Cook Folder as read-only
     {
         if ( UProperty* Property = LocateProperty( TEXT( "TemporaryCookFolder" ) ) )
             Property->SetPropertyFlags( CPF_EditConst );
     }
+*/
 
     // Set Landscape forced min/max as read only when not overriden
     if ( !MarshallingLandscapesForceMinMaxValues )
