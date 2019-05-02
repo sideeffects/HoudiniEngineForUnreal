@@ -136,34 +136,32 @@ UHoudiniAssetParameterString::SetParameterVariantValue(
 {
     EVariantTypes VariantType = Variant.GetType();
 
-    if ( Idx >= 0 && Idx < Values.Num() )
+    if ( !Values.IsValidIndex(Idx) )
         return false;
 
-    if ( EVariantTypes::String == VariantType )
-    {
-        const FString & VariantStringValue = Variant.GetValue< FString >();
+    if (EVariantTypes::String != VariantType)
+        return false;
+
+    const FString & VariantStringValue = Variant.GetValue< FString >();
 
 #if WITH_EDITOR
 
-        FScopedTransaction Transaction(
-            TEXT( HOUDINI_MODULE_RUNTIME ),
-            LOCTEXT( "HoudiniAssetParameterStringChange", "Houdini Parameter String: Changing a value" ),
-            PrimaryObject );
+    FScopedTransaction Transaction(
+        TEXT(HOUDINI_MODULE_RUNTIME),
+        LOCTEXT("HoudiniAssetParameterStringChange", "Houdini Parameter String: Changing a value"),
+        PrimaryObject);
 
-        Modify();
+    Modify();
 
-        if ( !bRecordUndo )
-            Transaction.Cancel();
+    if (!bRecordUndo)
+        Transaction.Cancel();
 
 #endif
 
-        Values[ Idx ] = VariantStringValue;
-        MarkChanged();
+    Values[Idx] = VariantStringValue;
+    MarkChanged();
 
-        return true;
-    }
-
-    return false;
+    return true;
 }
 
 #if WITH_EDITOR
@@ -175,20 +173,20 @@ UHoudiniAssetParameterString::SetValueCommitted( const FText & InValue, ETextCom
         return;
 
     FString CommittedValue = InValue.ToString();
-    if ( Values[ Idx ] != CommittedValue )
-    {
-        // Record undo information.
-        FScopedTransaction Transaction(
-            TEXT( HOUDINI_MODULE_RUNTIME ),
-            LOCTEXT( "HoudiniAssetParameterStringChange", "Houdini Parameter String: Changing a value" ),
-            PrimaryObject );
-        Modify();
+    if (Values[Idx] == CommittedValue)
+        return;
 
-        Values[ Idx ] = CommittedValue;
+    // Record undo information.
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniAssetParameterStringChange", "Houdini Parameter String: Changing a value" ),
+        PrimaryObject );
+    Modify();
 
-        // Mark this parameter as changed.
-        MarkChanged();
-    }
+    Values[ Idx ] = CommittedValue;
+
+    // Mark this parameter as changed.
+    MarkChanged();
 }
 
 #endif
