@@ -83,6 +83,9 @@ UHoudiniAssetParameterInt::CreateParameter(
     // Assign internal Hapi values index.
     SetValuesIndex( ParmInfo.intValuesIndex );
 
+    if ( TupleSize <=  0 )
+        return false;
+
     // Get the actual value for this property.
     Values.SetNumZeroed( TupleSize );
     if ( FHoudiniApi::GetParmIntValues(
@@ -145,6 +148,9 @@ UHoudiniAssetParameterInt::CreateParameter(
 bool
 UHoudiniAssetParameterInt::UploadParameterValue()
 {
+    if ( Values.Num() <= 0 )
+        return false;
+
     if ( FHoudiniApi::SetParmIntValues(
         FHoudiniEngine::Get().GetSession(), NodeId, &Values[ 0 ],
         ValuesIndex, TupleSize) != HAPI_RESULT_SUCCESS )
@@ -161,7 +167,7 @@ UHoudiniAssetParameterInt::SetParameterVariantValue( const FVariant & Variant, i
     EVariantTypes VariantType = Variant.GetType();
     int32 VariantValue = 0;
 
-    if ( Idx >= 0 && Idx < Values.Num() )
+    if ( !Values.IsValidIndex(Idx) )
         return false;
 
     switch ( VariantType )
@@ -208,7 +214,10 @@ UHoudiniAssetParameterInt::SetParameterVariantValue( const FVariant & Variant, i
 TOptional< int32 >
 UHoudiniAssetParameterInt::GetValue( int32 Idx ) const
 {
-    return TOptional< int32 >( Values[ Idx ] );
+    if ( Values.IsValidIndex(Idx) )
+        return TOptional< int32 >( Values[Idx] );
+    else
+        return TOptional< int32 >();
 }
 
 void
@@ -217,33 +226,32 @@ UHoudiniAssetParameterInt::SetValue( int32 InValue, int32 Idx, bool bTriggerModi
     if (!Values.IsValidIndex(Idx))
         return;
 
-    if ( Values[ Idx ] != InValue )
-    {
+    if ( Values[Idx] == InValue )
+        return;
 
 #if WITH_EDITOR
 
-        // If this is not a slider change (user typed in values manually), record undo information.
-        FScopedTransaction Transaction(
-            TEXT( HOUDINI_MODULE_RUNTIME ),
-            LOCTEXT( "HoudiniAssetParameterIntChange", "Houdini Parameter Integer: Changing a value" ),
-            PrimaryObject );
-        Modify();
+    // If this is not a slider change (user typed in values manually), record undo information.
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniAssetParameterIntChange", "Houdini Parameter Integer: Changing a value" ),
+        PrimaryObject );
+    Modify();
 
-        if ( !bRecordUndo )
-            Transaction.Cancel();
+    if ( !bRecordUndo )
+        Transaction.Cancel();
 #endif
 
-        Values[ Idx ] = FMath::Clamp< int32 >( InValue, ValueMin, ValueMax );
+    Values[ Idx ] = FMath::Clamp< int32 >( InValue, ValueMin, ValueMax );
 
-        // Mark this parameter as changed.
-        MarkChanged( bTriggerModify );
-    }
+    // Mark this parameter as changed.
+    MarkChanged( bTriggerModify );
 }
 
 int32
 UHoudiniAssetParameterInt::GetParameterValue( int32 Idx, int32 DefaultValue ) const
 {
-    if ( Values.Num() <= Idx )
+    if ( !Values.IsValidIndex(Idx) )
         return DefaultValue;
 
     return Values[ Idx ];

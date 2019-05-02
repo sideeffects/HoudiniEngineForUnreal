@@ -259,7 +259,7 @@ FHoudiniEngineInstancerUtils::GetUnrealAttributeInstancerObjectsAndTransforms(
     TArray< TArray< FTransform > >& InstancedTransforms )
 {
     if ( !HoudiniGeoPartObject.IsAttributeOverrideInstancer() )
-	return false;
+		return false;
 
     // This is an attribute override. Unreal mesh is specified through an attribute and we use points.
     std::string MarshallingAttributeInstanceOverride = HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE;
@@ -269,18 +269,18 @@ FHoudiniEngineInstancerUtils::GetUnrealAttributeInstancerObjectsAndTransforms(
     FMemory::Memzero< HAPI_AttributeInfo >( ResultAttributeInfo );
     if ( !HoudiniGeoPartObject.HapiGetAttributeInfo( AssetId, MarshallingAttributeInstanceOverride, ResultAttributeInfo ) )
     {
-	// We had an error while retrieving the attribute info.
-	return false;
+		// We had an error while retrieving the attribute info.
+		return false;
     }
 
     // Attribute does not exist.
     if ( !ResultAttributeInfo.exists )
-	return false;
+		return false;
 
     // The Attribute can only be on points or details
     if ( ( ResultAttributeInfo.owner != HAPI_ATTROWNER_DETAIL )
-	&& ( ResultAttributeInfo.owner != HAPI_ATTROWNER_POINT ) )
-	return false;
+		&& ( ResultAttributeInfo.owner != HAPI_ATTROWNER_POINT ) )
+		return false;
 
     // Retrieve instance transforms (for each point).
     TArray< FTransform > AllTransforms;
@@ -288,95 +288,95 @@ FHoudiniEngineInstancerUtils::GetUnrealAttributeInstancerObjectsAndTransforms(
 
     if ( ResultAttributeInfo.owner == HAPI_ATTROWNER_DETAIL )
     {
-	// Attribute is on detail, this means it gets applied to all points.
-	TArray< FString > DetailInstanceValues;
+		// Attribute is on detail, this means it gets applied to all points.
+		TArray< FString > DetailInstanceValues;
 
-	if ( !HoudiniGeoPartObject.HapiGetAttributeDataAsString(
-	    AssetId, MarshallingAttributeInstanceOverride,
-	    HAPI_ATTROWNER_DETAIL, ResultAttributeInfo, DetailInstanceValues ) )
-	{
-	    // This should not happen - attribute exists, but there was an error retrieving it.
-	    return false;
-	}
+		if ( !HoudiniGeoPartObject.HapiGetAttributeDataAsString(
+			AssetId, MarshallingAttributeInstanceOverride,
+			HAPI_ATTROWNER_DETAIL, ResultAttributeInfo, DetailInstanceValues ) )
+		{
+			// This should not happen - attribute exists, but there was an error retrieving it.
+			return false;
+		}
 
-	if ( DetailInstanceValues.Num() <= 0 )
-	{
-	    // No values specified.
-	    return false;
-	}
+		if ( DetailInstanceValues.Num() <= 0 )
+		{
+			// No values specified.
+			return false;
+		}
 
-	// Attempt to load specified asset.
-	const FString & AssetName = DetailInstanceValues[ 0 ];
-	UObject * AttributeObject = StaticLoadObject( UObject::StaticClass(), nullptr, *AssetName, nullptr, LOAD_None, nullptr );
+		// Attempt to load specified asset.
+		const FString & AssetName = DetailInstanceValues[ 0 ];
+		UObject * AttributeObject = StaticLoadObject( UObject::StaticClass(), nullptr, *AssetName, nullptr, LOAD_None, nullptr );
 
-	// Couldnt load the referenced object
-	if ( !AttributeObject )
-	    return false;
+		// Couldnt load the referenced object
+		if ( !AttributeObject )
+			return false;
 
-	InstancedObjects.Add( AttributeObject );
-	InstancedTransforms.Add( AllTransforms );
+		InstancedObjects.Add( AttributeObject );
+		InstancedTransforms.Add( AllTransforms );
     }
     else
     {
-	// Attribute is on points, so we may have different values for each of them
-	TArray< FString > PointInstanceValues;
-	if ( !HoudiniGeoPartObject.HapiGetAttributeDataAsString(
-	    AssetId, MarshallingAttributeInstanceOverride,
-	    HAPI_ATTROWNER_POINT, ResultAttributeInfo, PointInstanceValues ) )
-	{
-	    // This should not happen - attribute exists, but there was an error retrieving it.
-	    return false;
-	}
+		// Attribute is on points, so we may have different values for each of them
+		TArray< FString > PointInstanceValues;
+		if ( !HoudiniGeoPartObject.HapiGetAttributeDataAsString(
+			AssetId, MarshallingAttributeInstanceOverride,
+			HAPI_ATTROWNER_POINT, ResultAttributeInfo, PointInstanceValues ) )
+		{
+			// This should not happen - attribute exists, but there was an error retrieving it.
+			return false;
+		}
 
-	// Attribute is on points, number of points must match number of transforms.
-	if ( !ensure( PointInstanceValues.Num() == AllTransforms.Num() ) )
-	{
-	    // This should not happen, we have mismatch between number of instance values and transforms.
-	    return false;
-	}
+		// Attribute is on points, number of points must match number of transforms.
+		if ( !ensure( PointInstanceValues.Num() == AllTransforms.Num() ) )
+		{
+			// This should not happen, we have mismatch between number of instance values and transforms.
+			return false;
+		}
 
-	// If instance attribute exists on points, we need to get all unique values.
-	// This will give us all the unique object we want to instance
-	TMap< FString, UObject * > ObjectsToInstance;
-	for ( auto Iter : PointInstanceValues )
-	{
-	    const FString & UniqueName = *Iter;
+		// If instance attribute exists on points, we need to get all unique values.
+		// This will give us all the unique object we want to instance
+		TMap< FString, UObject * > ObjectsToInstance;
+		for ( auto Iter : PointInstanceValues )
+		{
+			const FString & UniqueName = *Iter;
 
-	    if ( !ObjectsToInstance.Contains( UniqueName ) )
-	    {
-		// To avoid trying to load an object that fails multiple times, still add it to the array so we skip further attempts
-		UObject * AttributeObject = StaticLoadObject( 
-		    UObject::StaticClass(), nullptr, *UniqueName, nullptr, LOAD_None, nullptr );
+			if ( !ObjectsToInstance.Contains( UniqueName ) )
+			{
+				// To avoid trying to load an object that fails multiple times, still add it to the array so we skip further attempts
+				UObject * AttributeObject = StaticLoadObject( 
+					UObject::StaticClass(), nullptr, *UniqueName, nullptr, LOAD_None, nullptr );
 
-		ObjectsToInstance.Add( UniqueName, AttributeObject );
-	    }
-	}
+				ObjectsToInstance.Add( UniqueName, AttributeObject );
+			}
+		}
 
-	// Iterates through all the unique objects and get their corresponding transforms
-	bool Success = false;
-	for( auto Iter : ObjectsToInstance )
-	{
-	    // Check we managed to load this object
-	    UObject * AttributeObject = Iter.Value;
-	    if ( !AttributeObject )
-		continue;
+		// Iterates through all the unique objects and get their corresponding transforms
+		bool Success = false;
+		for( auto Iter : ObjectsToInstance )
+		{
+			// Check we managed to load this object
+			UObject * AttributeObject = Iter.Value;
+			if ( !AttributeObject )
+			continue;
 
-	    // Extract the transform values that correspond to this object
-	    const FString & InstancePath = Iter.Key;
-	    TArray< FTransform > ObjectTransforms;
-	    for (int32 Idx = 0; Idx < PointInstanceValues.Num(); ++Idx)
-	    {
-		if ( InstancePath.Equals( PointInstanceValues[ Idx ] ) )
-		    ObjectTransforms.Add( AllTransforms[ Idx ] );
-	    }
+			// Extract the transform values that correspond to this object
+			const FString & InstancePath = Iter.Key;
+			TArray< FTransform > ObjectTransforms;
+			for (int32 Idx = 0; Idx < PointInstanceValues.Num(); ++Idx)
+			{
+				if ( InstancePath.Equals( PointInstanceValues[ Idx ] ) )
+					ObjectTransforms.Add( AllTransforms[ Idx ] );
+			}
 
-	    InstancedObjects.Add( AttributeObject );
-	    InstancedTransforms.Add( ObjectTransforms );
-	    Success = true;
-	}
+			InstancedObjects.Add( AttributeObject );
+			InstancedTransforms.Add( ObjectTransforms );
+			Success = true;
+		}
 
-	if ( !Success )
-	    return false;
+		if ( !Success )
+			return false;
     }
 
     return true;
