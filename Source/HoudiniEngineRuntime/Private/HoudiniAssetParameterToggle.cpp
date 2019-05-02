@@ -94,6 +94,9 @@ UHoudiniAssetParameterToggle::CreateParameter(
 bool
 UHoudiniAssetParameterToggle::UploadParameterValue()
 {
+    if (Values.Num() <= 0)
+        return false;
+
     if ( FHoudiniApi::SetParmIntValues(
         FHoudiniEngine::Get().GetSession(), NodeId, &Values[ 0 ],
         ValuesIndex, TupleSize ) != HAPI_RESULT_SUCCESS )
@@ -181,25 +184,28 @@ UHoudiniAssetParameterToggle::CheckStateChanged( ECheckBoxState NewState, int32 
         return;
 
     int32 bState = ( NewState == ECheckBoxState::Checked );
-    if ( Values[ Idx ] != bState )
-    {
-        // Record undo information.
-        FScopedTransaction Transaction(
-            TEXT( HOUDINI_MODULE_RUNTIME ),
-            LOCTEXT( "HoudiniAssetParameterToggleChange", "Houdini Parameter Toggle: Changing a value" ),
-            PrimaryObject );
-        Modify();
+    if (Values[Idx] == bState)
+        return;
 
-        Values[ Idx ] = bState;
+    // Record undo information.
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniAssetParameterToggleChange", "Houdini Parameter Toggle: Changing a value" ),
+        PrimaryObject );
+    Modify();
 
-        // Mark this parameter as changed.
-        MarkChanged();
-    }
+    Values[ Idx ] = bState;
+
+    // Mark this parameter as changed.
+    MarkChanged();
 }
 
 ECheckBoxState
 UHoudiniAssetParameterToggle::IsChecked( int32 Idx ) const
 {
+    if (!Values.IsValidIndex(Idx))
+        return ECheckBoxState::Undetermined;
+
     if ( Values[ Idx ] )
         return ECheckBoxState::Checked;
 
