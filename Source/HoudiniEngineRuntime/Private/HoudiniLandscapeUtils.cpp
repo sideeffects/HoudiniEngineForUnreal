@@ -128,7 +128,7 @@ FHoudiniLandscapeUtils::GetHeightfieldsLayersInArray(
             Heightfield, "tile",
             AttribInfoTile, TileValues );
 
-        if ( AttribInfoTile.exists && AttribInfoTile.owner == HAPI_ATTROWNER_PRIM )
+        if ( AttribInfoTile.exists && AttribInfoTile.owner == HAPI_ATTROWNER_PRIM && TileValues.Num() > 0 )
         {
             HeightFieldTile = TileValues[ 0 ];
             bParentHeightfieldHasTile = true;
@@ -158,12 +158,11 @@ FHoudiniLandscapeUtils::GetHeightfieldsLayersInArray(
 
             HAPI_AttributeInfo AttribInfoTile{};
             TArray<int32> TileValues;
-
             FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
                 HoudiniGeoPartObject, "tile",
                 AttribInfoTile, TileValues );
 
-            if ( AttribInfoTile.exists && AttribInfoTile.owner == HAPI_ATTROWNER_PRIM )
+            if ( AttribInfoTile.exists && AttribInfoTile.owner == HAPI_ATTROWNER_PRIM && TileValues.Num() > 0 )
             {
                 CurrentTile = TileValues[ 0 ];
             }
@@ -388,7 +387,7 @@ bool FHoudiniLandscapeUtils::GetHeightfieldData(
     // We will need the min and max value for the conversion to uint16
     FloatMin = FloatValues[0];
     FloatMax = FloatMin;
-    for ( int32 n = 0; n < SizeInPoints; n++ )
+    for ( int32 n = 0; n < FloatValues.Num(); n++ )
     {
         if ( FloatValues[ n ] > FloatMax )
             FloatMax = FloatValues[ n ];
@@ -4216,15 +4215,11 @@ FHoudiniLandscapeUtils::IsUnitLandscapeLayer(const FHoudiniGeoPartObject& LayerG
     // Check the value
     HAPI_AttributeInfo AttribInfoUnitLayer{};
     TArray< int32 > AttribValues;
-
     FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
         LayerGeoPartObject, "unreal_unit_landscape_layer", AttribInfoUnitLayer, AttribValues, 1, Owner);
 
-    if (AttribValues.Num() > 0)
-    {
-        if (AttribValues[0] == 1)
-            return true;
-    }
+    if (AttribValues.Num() > 0 && AttribValues[0] == 1 )
+        return true;
 
     return false;
 }

@@ -191,34 +191,31 @@ UHoudiniAssetParameterFile::SetParameterVariantValue(
     bool bRecordUndo )
 {
     EVariantTypes VariantType = Variant.GetType();
-    if ( EVariantTypes::String == VariantType )
+    if ( EVariantTypes::String == VariantType && Values.IsValidIndex(Idx))
     {
-        if ( Idx >= 0 && Idx < Values.Num() )
-        {
-            FString VariantStringValue = Variant.GetValue< FString >();
+        FString VariantStringValue = Variant.GetValue< FString >();
 
 #if WITH_EDITOR
 
-            FScopedTransaction Transaction(
-                TEXT( HOUDINI_MODULE_RUNTIME ),
-                LOCTEXT( "HoudiniAssetParameterFileChange", "Houdini Parameter File: Changing a value" ),
-                PrimaryObject );
+        FScopedTransaction Transaction(
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniAssetParameterFileChange", "Houdini Parameter File: Changing a value" ),
+            PrimaryObject );
 
-            if ( !bRecordUndo )
-                Transaction.Cancel();
+        if ( !bRecordUndo )
+            Transaction.Cancel();
 
-            Modify();
+        Modify();
 
 #endif // WITH_EDITOR
 
-            // Detect and fix relative paths.
-            VariantStringValue = UpdateCheckRelativePath( VariantStringValue );
+        // Detect and fix relative paths.
+        VariantStringValue = UpdateCheckRelativePath( VariantStringValue );
 
-            Values[ Idx ] = VariantStringValue;
-            MarkChanged( bTriggerModify );
+        Values[ Idx ] = VariantStringValue;
+        MarkChanged( bTriggerModify );
 
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -229,20 +226,23 @@ UHoudiniAssetParameterFile::SetParameterVariantValue(
 void
 UHoudiniAssetParameterFile::HandleFilePathPickerPathPicked( const FString & PickedPath, int32 Idx )
 {
-    if ( Values[ Idx ] != PickedPath )
-    {
-        // Record undo information.
-        FScopedTransaction Transaction(
-            TEXT( HOUDINI_MODULE_RUNTIME ),
-            LOCTEXT( "HoudiniAssetParameterFileChange", "Houdini Parameter File: Changing a value" ),
-            PrimaryObject );
-        Modify();
+    if ( !Values.IsValidIndex(Idx) )
+        return;
 
-        Values[ Idx ] = UpdateCheckRelativePath( PickedPath );
+    if ( Values[Idx] == PickedPath )
+        return;
 
-        // Mark this parameter as changed.
-        MarkChanged();
-    }
+    // Record undo information.
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniAssetParameterFileChange", "Houdini Parameter File: Changing a value" ),
+        PrimaryObject );
+    Modify();
+
+    Values[ Idx ] = UpdateCheckRelativePath( PickedPath );
+
+    // Mark this parameter as changed.
+    MarkChanged();
 }
 
 #endif
@@ -296,26 +296,23 @@ UHoudiniAssetParameterFile::SetParameterValue( const FString& InValue, int32 Idx
     if ( !Values.IsValidIndex(Idx) )
         return;
 
-    if ( Values[ Idx ] != InValue )
-    {
+    if (Values[Idx] == InValue)
+        return;
 
 #if WITH_EDITOR
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniAssetParameterFileChange", "Houdini Parameter File: Changing a value" ),
+        PrimaryObject );
 
-        FScopedTransaction Transaction(
-            TEXT( HOUDINI_MODULE_RUNTIME ),
-            LOCTEXT( "HoudiniAssetParameterFileChange", "Houdini Parameter File: Changing a value" ),
-            PrimaryObject );
+    Modify();
 
-        Modify();
+    if ( !bRecordUndo )
+        Transaction.Cancel();
+#endif
 
-        if ( !bRecordUndo )
-            Transaction.Cancel();
-
-#endif // WITH_EDITOR
-
-        Values[ Idx ] = InValue;
-        MarkChanged( bTriggerModify );
-    }
+    Values[ Idx ] = InValue;
+    MarkChanged( bTriggerModify );
 }
 
 #undef LOCTEXT_NAMESPACE
