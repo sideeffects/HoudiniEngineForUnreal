@@ -21,10 +21,12 @@
 *
 */
 
-#include "HoudiniApi.h"
-#include "Components/StaticMeshComponent.h"
 #include "HoudiniMeshSplitInstancerComponent.h"
+
+#include "HoudiniApi.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
+
+#include "Components/StaticMeshComponent.h"
 #if WITH_EDITOR
 #include "LevelEditorViewport.h"
 #include "MeshPaintHelpers.h"

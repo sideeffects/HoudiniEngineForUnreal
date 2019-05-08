@@ -29,8 +29,9 @@
 *
 */
 
-#include "HoudiniApi.h"
 #include "HoudiniEngineTask.h"
+
+#include "HoudiniApi.h"
 
 FHoudiniEngineTask::FHoudiniEngineTask()
     : TaskType( EHoudiniEngineTaskType::None )
