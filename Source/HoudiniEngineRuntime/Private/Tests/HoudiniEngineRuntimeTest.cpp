@@ -1,3 +1,5 @@
+#include "HoudiniEngineRuntimeTest.h"
+
 #include "HoudiniApi.h"
 #if WITH_EDITOR
 #include "CoreMinimal.h"
@@ -19,7 +21,6 @@
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
-#include "HoudiniEngineRuntimeTest.h"
 #include "HoudiniAssetParameterInt.h"
 
 

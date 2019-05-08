@@ -29,8 +29,9 @@
 *
 */
 
-#include "HoudiniApi.h"
 #include "HoudiniGeoPartObject.h"
+
+#include "HoudiniApi.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngine.h"

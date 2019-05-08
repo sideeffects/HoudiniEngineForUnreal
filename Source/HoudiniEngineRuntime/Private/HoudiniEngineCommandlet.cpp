@@ -21,8 +21,9 @@
 *
 */
 
-#include "HoudiniApi.h"
 #include "HoudiniEngineCommandlet.h"
+
+#include "HoudiniApi.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineBakeUtils.h"

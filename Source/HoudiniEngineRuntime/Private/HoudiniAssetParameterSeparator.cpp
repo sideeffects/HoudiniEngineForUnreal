@@ -21,8 +21,9 @@
 *
 */
 
-#include "HoudiniApi.h"
 #include "HoudiniAssetParameterSeparator.h"
+
+#include "HoudiniApi.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
 UHoudiniAssetParameterSeparator::UHoudiniAssetParameterSeparator( const FObjectInitializer & ObjectInitializer ) :
