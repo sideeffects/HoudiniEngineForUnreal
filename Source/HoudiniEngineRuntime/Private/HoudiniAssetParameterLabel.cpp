@@ -21,8 +21,9 @@
 *
 */
 
-#include "HoudiniApi.h"
 #include "HoudiniAssetParameterLabel.h"
+
+#include "HoudiniApi.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
 UHoudiniAssetParameterLabel::UHoudiniAssetParameterLabel( const FObjectInitializer& ObjectInitializer )

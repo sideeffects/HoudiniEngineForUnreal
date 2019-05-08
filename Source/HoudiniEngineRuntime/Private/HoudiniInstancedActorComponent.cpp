@@ -21,17 +21,19 @@
 *
 */
 
-#include "HoudiniApi.h"
-#include "Components/InstancedStaticMeshComponent.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "HoudiniInstancedActorComponent.h"
+
+#include "HoudiniApi.h"
 #include "HoudiniMeshSplitInstancerComponent.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
+
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #if WITH_EDITOR
 #include "LevelEditorViewport.h"
 #endif
-
 #include "Internationalization/Internationalization.h"
+
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniInstancedActorComponent::UHoudiniInstancedActorComponent( const FObjectInitializer& ObjectInitializer )
