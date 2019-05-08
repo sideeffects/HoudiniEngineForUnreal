@@ -29,8 +29,9 @@
 *
 */
 
-#include "HoudiniApi.h"
 #include "HoudiniEngineTaskInfo.h"
+
+#include "HoudiniApi.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
 FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo()

@@ -29,9 +29,10 @@
 *
 */
 
+#include "HoudiniEngineSubstance.h"
+
 #include "HoudiniApi.h"
 #include "HoudiniEngine.h"
-#include "HoudiniEngineSubstance.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineString.h"

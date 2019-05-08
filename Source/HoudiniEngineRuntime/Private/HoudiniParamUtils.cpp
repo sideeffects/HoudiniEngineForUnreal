@@ -21,6 +21,8 @@
 *
 */
 
+#include "HoudiniParamUtils.h"
+
 #include "HoudiniApi.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
@@ -41,11 +43,9 @@
 #include "HoudiniAssetParameterSeparator.h"
 #include "HoudiniAssetParameterString.h"
 #include "HoudiniAssetParameterToggle.h"
-
 #include "HoudiniEngine.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniEngineUtils.h"
-#include "HoudiniParamUtils.h"
 #include "HoudiniRuntimeSettings.h"
 
 

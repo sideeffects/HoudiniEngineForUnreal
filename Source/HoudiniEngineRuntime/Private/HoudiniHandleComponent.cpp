@@ -28,8 +28,9 @@
 *
 */
 
-#include "HoudiniApi.h"
 #include "HoudiniHandleComponent.h"
+
+#include "HoudiniApi.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
