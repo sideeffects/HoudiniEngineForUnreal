@@ -1065,7 +1065,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
     //--------------------------------------------------------------------------------------------------
     TArray<float> HeightfieldFloatValues;
     HAPI_VolumeInfo HeightfieldVolumeInfo;
-    FTransform LandscapeTransform = LandscapeProxy->LandscapeActorToWorld();
+    FTransform LandscapeTransform = LandscapeProxy->ActorToWorld();
     FVector CenterOffset = FVector::ZeroVector;
     if ( !ConvertLandscapeDataToHeightfieldData(
         HeightData, XSize, YSize, Min, Max, LandscapeTransform,
@@ -1567,8 +1567,12 @@ FHoudiniLandscapeUtils::GetLandscapeData(
     int32 MaxX = -MAX_int32;
     int32 MaxY = -MAX_int32;
 
-    if (!LandscapeInfo->GetLandscapeExtent(MinX, MinY, MaxX, MaxY))
-        return false;
+    // To handle streaming proxies correctly, get the extents via all the components,
+    // not by calling GetLandscapeExtent or we'll end up sending ALL the streaming proxies.
+    for (const ULandscapeComponent* Comp : LandscapeProxy->LandscapeComponents)
+    {
+        Comp->GetComponentExtent(MinX, MinY, MaxX, MaxY);
+    }
 
     if (!GetLandscapeData(LandscapeInfo, MinX, MinY, MaxX, MaxY, HeightData, XSize, YSize))
         return false;
