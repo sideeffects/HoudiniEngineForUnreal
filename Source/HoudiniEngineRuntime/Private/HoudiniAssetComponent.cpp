@@ -3363,7 +3363,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
     }
 
     // Serialize format version.
-    uint32 HoudiniAssetComponentVersion = GetLinkerCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+    uint32 HoudiniAssetComponentVersion = Ar.CustomVer( FHoudiniCustomSerializationVersion::GUID );
     Ar << HoudiniAssetComponentVersion;
 
     // Serialize component state.
@@ -5523,7 +5523,7 @@ UHoudiniAssetComponent::SerializeInstanceInputs( FArchive & Ar )
         if ( !Ar.IsTransacting() )
             ClearInstanceInputs();
         
-        int32 HoudiniAssetComponentVersion = GetLinkerCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+        int32 HoudiniAssetComponentVersion = Ar.CustomVer( FHoudiniCustomSerializationVersion::GUID );
         if ( HoudiniAssetComponentVersion > VER_HOUDINI_ENGINE_COMPONENT_PARAMETER_NAME_MAP )
         {
             Ar << InstanceInputs;
