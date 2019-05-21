@@ -3108,11 +3108,21 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
             if ( ChangedColors.Num() > 0 )
             {
+                // Extract the RGB colors
+                TArray<float> ColorValues;
+                ColorValues.SetNum(ChangedColors.Num() * 3);
+                for (int32 colorIndex = 0; colorIndex < ChangedColors.Num(); colorIndex++)
+                {
+                    ColorValues[colorIndex * 3] = ChangedColors[colorIndex].R;
+                    ColorValues[colorIndex * 3 + 1] = ChangedColors[colorIndex].G;
+                    ColorValues[colorIndex * 3 + 2] = ChangedColors[colorIndex].B;
+                }
+
                 // Create attribute for colors.
                 HAPI_AttributeInfo AttributeInfoVertex;
                 FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoVertex );
                 AttributeInfoVertex.count = ChangedColors.Num();
-                AttributeInfoVertex.tupleSize = 4;
+                AttributeInfoVertex.tupleSize = 3;
                 AttributeInfoVertex.exists = true;
                 AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
                 AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
@@ -3125,7 +3135,31 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                 HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
                     FHoudiniEngine::Get().GetSession(),
                     CurrentLODNodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex,
-                    (const float *)ChangedColors.GetData(), 0, AttributeInfoVertex.count ), false );
+                    ColorValues.GetData(), 0, AttributeInfoVertex.count ), false );
+
+                // Create the attribute for Alpha
+                TArray<float> AlphaValues;
+                AlphaValues.SetNum(ChangedColors.Num());
+                for (int32 alphaIndex = 0; alphaIndex < ChangedColors.Num(); alphaIndex++)
+                    AlphaValues[alphaIndex] = ChangedColors[alphaIndex].A;
+
+                FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoVertex);
+                AttributeInfoVertex.count = AlphaValues.Num();
+                AttributeInfoVertex.tupleSize = 1;
+                AttributeInfoVertex.exists = true;
+                AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+                AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+                AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
+                HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                    FHoudiniEngine::Get().GetSession(), CurrentLODNodeId,
+                    0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex), false);
+
+                HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                    FHoudiniEngine::Get().GetSession(),
+                    CurrentLODNodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex,
+                    AlphaValues.GetData(), 0, AttributeInfoVertex.count), false);
+
             }
         }
 
