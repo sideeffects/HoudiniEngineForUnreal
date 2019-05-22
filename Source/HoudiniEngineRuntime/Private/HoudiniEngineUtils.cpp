@@ -3209,41 +3209,51 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
         {
             // Create an array of Material Interfaces
             TArray< UMaterialInterface * > MaterialInterfaces;
-            for (int32 MatIdx = 0; MatIdx < StaticMesh->StaticMaterials.Num(); MatIdx++)
+            if (StaticMeshComponent && !StaticMeshComponent->IsPendingKill())
             {
-                if (StaticMeshComponent != nullptr)
-                {
-                    // Get the assigned material from the component instead of the Static Mesh
-                    // As it could have been overriden
-                    MaterialInterfaces.Add(StaticMeshComponent->GetMaterial(MatIdx));
-                }
-                else
-                {
-                    MaterialInterfaces.Add(StaticMesh->GetMaterial(MatIdx));
-                }
+                // We have a SMC, query its materials directly so we can be sure we get the proper override materials
+                StaticMeshComponent->GetUsedMaterials(MaterialInterfaces, false);
             }
-
-            // Try to fix up inconsistencies between the RawMesh / StaticMesh material indexes
-            // by using the meshes sections...
-            // TODO: Fix me properly!
-            // Proper fix would be to export the meshes via the FStaticMeshLODResources obtained
-            // by GetLODForExport(), and then export the mesh by sections.
-            FStaticMeshLODResources& LOD = StaticMesh->RenderData->LODResources[LODIndex];
-            int32 NumSections = LOD.Sections.Num();
-            for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+            else
             {
-                // TODO: Fix me properly!
-                // This at least avoid crashes when the number of material slots is different 
-                // than the number of LOD sections.
-                if (!MaterialInterfaces.IsValidIndex(SectionIndex))
-                    continue;
-
-                FStaticMeshSection Info = LOD.Sections[SectionIndex];
-                if ( StaticMesh->StaticMaterials.IsValidIndex(Info.MaterialIndex) )
+                // Query the Static mesh's materials
+                for (int32 MatIdx = 0; MatIdx < StaticMesh->StaticMaterials.Num(); MatIdx++)
                 {
-                    UMaterialInterface* currentMI = StaticMesh->StaticMaterials[Info.MaterialIndex].MaterialInterface;
-                    if (MaterialInterfaces[SectionIndex] != currentMI)
-                        MaterialInterfaces[SectionIndex] = currentMI;
+                    MaterialInterfaces.Add( StaticMesh->GetMaterial(MatIdx) );
+                }
+
+                // Try to fix up inconsistencies between the RawMesh / StaticMesh material indexes
+                // by using the meshes sections...
+                // TODO: Fix me properly!
+                // Proper fix would be to export the meshes via the FStaticMeshLODResources obtained
+                // by GetLODForExport(), and then export the mesh by sections.
+                if ( StaticMesh->RenderData && StaticMesh->RenderData->LODResources.IsValidIndex(LODIndex) )
+                {
+                    TMap<int32, UMaterialInterface*> MapOfMaterials;
+                    FStaticMeshLODResources& LODResources = StaticMesh->RenderData->LODResources[LODIndex];
+                    for (int32 SectionIndex = 0; SectionIndex < LODResources.Sections.Num(); SectionIndex++)
+                    {
+                        // Get the material for each element at the current lod index
+                        int32 MaterialIndex = LODResources.Sections[SectionIndex].MaterialIndex;
+                        if (!MapOfMaterials.Contains(MaterialIndex))
+                        {
+                            MapOfMaterials.Add(MaterialIndex, StaticMesh->GetMaterial(MaterialIndex));
+                        }
+                    }
+
+                    if ( MapOfMaterials.Num() > 0 )
+                    {
+                        // Sort the output material in the correct order (by material index)
+                        MapOfMaterials.KeySort( [](int32 A, int32 B) { return A < B; });
+
+                        //Set the value in the correct order
+                        MaterialInterfaces.SetNumZeroed(MapOfMaterials.Num());
+                        int32 MaterialIndex = 0;
+                        for (auto Kvp : MapOfMaterials)
+                        {
+                            MaterialInterfaces[MaterialIndex++] = Kvp.Value;
+                        }
+                    }
                 }
             }
 
