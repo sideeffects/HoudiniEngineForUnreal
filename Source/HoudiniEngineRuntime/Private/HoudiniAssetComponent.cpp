@@ -1536,11 +1536,17 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                 }
             }
 
+            FString DisplayName;
+            if (GetOwner())
+                DisplayName = (GetOwner()->GetName());
+            else
+                DisplayName = GetName();
+
             switch( TaskInfo.TaskState )
             {
                 case EHoudiniEngineTaskState::FinishedInstantiation:
                 {
-                    HOUDINI_LOG_MESSAGE( TEXT("    %s FinishedInstantiation." ), *GetOwner()->GetName() );
+                    HOUDINI_LOG_MESSAGE( TEXT("    %s FinishedInstantiation." ), *DisplayName );
 
                     if ( FHoudiniEngineUtils::IsValidNodeId( TaskInfo.AssetId ) )
                     {
@@ -1591,7 +1597,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                     else
                     {
                         bStopTicking = true;
-                        HOUDINI_LOG_MESSAGE( TEXT( "    %s Received invalid asset id." ), *GetOwner()->GetName() );
+                        HOUDINI_LOG_MESSAGE( TEXT( "    %s Received invalid asset id." ), *DisplayName );
                     }
 
                     break;
@@ -1599,7 +1605,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
                 case EHoudiniEngineTaskState::FinishedCooking:
                 {
-                    HOUDINI_LOG_MESSAGE( TEXT( "   %s FinishedCooking." ), *GetOwner()->GetName() );
+                    HOUDINI_LOG_MESSAGE( TEXT( "   %s FinishedCooking." ), *DisplayName );
 
                     if ( FHoudiniEngineUtils::IsValidNodeId( TaskInfo.AssetId ) )
                     {
@@ -1627,7 +1633,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                     }
                     else
                     {
-                        HOUDINI_LOG_MESSAGE( TEXT( "    %s Received invalid asset id." ), *GetOwner()->GetName() );
+                        HOUDINI_LOG_MESSAGE( TEXT( "    %s Received invalid asset id." ), *DisplayName );
                     }
 
                     if ( NotificationPtr.IsValid() && bDisplaySlateCookingNotifications )
@@ -1653,7 +1659,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
                 case EHoudiniEngineTaskState::FinishedCookingWithErrors:
                 {
-                    HOUDINI_LOG_MESSAGE( TEXT( "    %s FinishedCookingWithErrors." ), *GetOwner()->GetName() );
+                    HOUDINI_LOG_MESSAGE( TEXT( "    %s FinishedCookingWithErrors." ), *DisplayName );
 
                     if ( FHoudiniEngineUtils::IsValidNodeId( TaskInfo.AssetId ) )
                     {
@@ -1717,7 +1723,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                 case EHoudiniEngineTaskState::Aborted:
                 case EHoudiniEngineTaskState::FinishedInstantiationWithErrors:
                 {
-                    HOUDINI_LOG_ERROR( TEXT( "    %s FinishedInstantiationWithErrors." ), *GetOwner()->GetName() );
+                    HOUDINI_LOG_ERROR( TEXT( "    %s FinishedInstantiationWithErrors." ), *DisplayName );
 
                     bool bLicensingIssue = false;
                     switch( TaskInfo.Result )
@@ -1909,17 +1915,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 #ifdef WITH_EDITOR
         // notify navigation system
         AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
-        FNavigationSystem::UpdateActorAndComponentData(*HoudiniActor);
-        /*
-        // We need to update the navigation system manually with the Actor or the NavMesh will not update properly
-        UWorld* World = GEditor->GetEditorWorldContext().World();
-        if (World && World->GetNavigationSystem())
-        {
-            AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
-            if(HoudiniActor)
-                World->GetNavigationSystem()->UpdateActorAndComponentData(*HoudiniActor);
-        }
-        */
+        if ( HoudiniActor && !HoudiniActor->IsPendingKill() )
+            FNavigationSystem::UpdateActorAndComponentData(*HoudiniActor);
 #endif
         bNeedToUpdateNavigationSystem = false;
     }
@@ -1932,7 +1929,6 @@ void
 UHoudiniAssetComponent::UpdateEditorProperties( bool bConditionalUpdate )
 {
     AHoudiniAssetActor * HoudiniAssetActor = GetHoudiniAssetActorOwner();
-
     if ( !HoudiniAssetActor )
         return;
 
@@ -2304,13 +2300,11 @@ UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 void
 UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & PropertyChangedEvent )
 {
-    Super::PostEditChangeProperty( PropertyChangedEvent );
+    Super::PostEditChangeProperty( PropertyChangedEvent );	
 
     if ( !bIsNativeComponent )
         return;
-
     UProperty * Property = PropertyChangedEvent.MemberProperty;
-
     if ( !Property )
         return;
 
@@ -2995,17 +2989,16 @@ FString UHoudiniAssetComponent::GetBakingBaseName( const FHoudiniGeoPartObject& 
         return GeoPartObject.PartName;
     }
 
+    FString DisplayName;
     if ( GetOwner() )
-        return FString::Printf( TEXT( "%s_%d_%d_%d_%d" ),
-            *GetOwner()->GetName(),
-            GeoPartObject.ObjectId, GeoPartObject.GeoId,
-            GeoPartObject.PartId, GeoPartObject.SplitId );
+        DisplayName = GetOwner()->GetName();
     else
-        return FString::Printf(TEXT("%d_%d_%d_%d"),
-            GeoPartObject.ObjectId, GeoPartObject.GeoId,
-            GeoPartObject.PartId, GeoPartObject.SplitId );
+        DisplayName = GetName();
 
-    return FString();
+    return FString::Printf( TEXT( "%s_%d_%d_%d_%d" ),
+        *DisplayName,
+        GeoPartObject.ObjectId, GeoPartObject.GeoId,
+        GeoPartObject.PartId, GeoPartObject.SplitId );
 }
 
 FBoxSphereBounds
@@ -3343,7 +3336,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
     }
 
     // Serialize format version.
-    uint32 HoudiniAssetComponentVersion = GetLinkerCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+    uint32 HoudiniAssetComponentVersion = Ar.CustomVer( FHoudiniCustomSerializationVersion::GUID );
     Ar << HoudiniAssetComponentVersion;
 
     // Serialize component state.
@@ -4391,7 +4384,7 @@ UHoudiniAssetComponent::UploadChangedParameters()
 
     if( !Success )
     {
-        HOUDINI_LOG_ERROR(TEXT("%s UploadChangedParameters failed"), *GetOwner()->GetName());
+        HOUDINI_LOG_ERROR(TEXT("%s UploadChangedParameters failed"), GetOwner() ? *GetOwner()->GetName() : *GetName());
     }
 
     // We no longer have changed parameters.
@@ -4476,7 +4469,7 @@ UHoudiniAssetComponent::CreateHandles()
 
             if( HandleType == EHoudiniHandleType::Unsupported )
             {
-                HOUDINI_LOG_DISPLAY( TEXT( "%s: Unsupported Handle Type %s for handle %s" ), *GetOwner()->GetName(), *TypeName, *HandleName );
+                HOUDINI_LOG_DISPLAY( TEXT( "%s: Unsupported Handle Type %s for handle %s" ), GetOwner() ? *(GetOwner()->GetName()) : *GetName(), *TypeName, *HandleName );
                 continue;
             }
 
@@ -4597,7 +4590,7 @@ UHoudiniAssetComponent::UpdateLoadedInputs( const bool& ForceRefresh )
 
     if( !Success )
     {
-        HOUDINI_LOG_ERROR(TEXT("%s UpdateLoadedInputs failed"), *GetOwner()->GetName());
+        HOUDINI_LOG_ERROR(TEXT("%s UpdateLoadedInputs failed"), GetOwner() ? *(GetOwner()->GetName()) : *GetName());
     }
 }
 
@@ -4790,7 +4783,7 @@ UHoudiniAssetComponent::CreateInstanceInputs( const TArray< FHoudiniGeoPartObjec
             if ( !HoudiniAssetInstanceInput || HoudiniAssetInstanceInput->IsPendingKill() )
             {
                 // Invalid instance input.
-                HOUDINI_LOG_WARNING( TEXT( "%s: Failed to create Instancer from part %s" ), *GetOwner()->GetName(), *GeoPart.GetNodePath() );
+                HOUDINI_LOG_WARNING( TEXT( "%s: Failed to create Instancer from part %s" ), GetOwner() ? *(GetOwner()->GetName()) : *GetName(), *GeoPart.GetNodePath() );
             }
             else
             {
@@ -5237,7 +5230,7 @@ UHoudiniAssetComponent::ClearParameters()
         else if(GetWorld() != NULL && GetWorld()->WorldType != EWorldType::PIE)
         {
             // Avoid spamming that error when leaving PIE mode
-            HOUDINI_LOG_WARNING(TEXT("%s: null parameter when clearing"), *GetOwner()->GetName());
+            HOUDINI_LOG_WARNING(TEXT("%s: null parameter when clearing"), GetOwner() ? *(GetOwner()->GetName()) : *GetName());
         }
     }
 
@@ -5313,7 +5306,7 @@ UHoudiniAssetComponent::ClearDownstreamAssets()
                 }
 
                 if ( !DidADisconnect )
-                    HOUDINI_LOG_ERROR( TEXT( "%s: Invalid downstream asset connection" ), *GetOwner()->GetName() );
+                    HOUDINI_LOG_ERROR( TEXT( "%s: Invalid downstream asset connection" ), GetOwner() ? *(GetOwner()->GetName()) : *GetName());
             }
         }
     }
@@ -5503,7 +5496,7 @@ UHoudiniAssetComponent::SerializeInstanceInputs( FArchive & Ar )
         if ( !Ar.IsTransacting() )
             ClearInstanceInputs();
         
-        int32 HoudiniAssetComponentVersion = GetLinkerCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+        int32 HoudiniAssetComponentVersion = Ar.CustomVer( FHoudiniCustomSerializationVersion::GUID );
         if ( HoudiniAssetComponentVersion > VER_HOUDINI_ENGINE_COMPONENT_PARAMETER_NAME_MAP )
         {
             Ar << InstanceInputs;
