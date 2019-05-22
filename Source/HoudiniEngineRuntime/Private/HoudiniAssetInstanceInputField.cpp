@@ -116,7 +116,7 @@ UHoudiniAssetInstanceInputField::Serialize( FArchive & Ar )
     Super::Serialize( Ar );
 
     Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
-    const int32 LinkerVersion = GetLinkerCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+    const int32 InstanceInputFieldVersion = Ar.CustomVer( FHoudiniCustomSerializationVersion::GUID );
 
     Ar << HoudiniAssetInstanceInputFieldFlagsPacked;
     Ar << HoudiniGeoPartObject;
@@ -130,7 +130,7 @@ UHoudiniAssetInstanceInputField::Serialize( FArchive & Ar )
     Ar << InstancedTransforms;
     Ar << VariationTransformsArray;
 
-    if ( Ar.IsSaving() || ( Ar.IsLoading() && LinkerVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INSTANCE_COLORS ) )
+    if ( Ar.IsSaving() || ( Ar.IsLoading() && InstanceInputFieldVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INSTANCE_COLORS ) )
     {
         Ar << InstanceColorOverride;
         Ar << VariationInstanceColorOverrideArray;
