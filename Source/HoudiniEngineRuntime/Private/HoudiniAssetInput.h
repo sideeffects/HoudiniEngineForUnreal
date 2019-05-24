@@ -91,6 +91,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
     /** Indicates that the components used are no longer valid and should be updated from the actor **/
     bool NeedsComponentUpdate() const;
 
+    /** Update the Actor pointer from the store Actor path/name **/
+    bool TryToUpdateActorPtrFromActorPathName();
+
     /** Selected Actor. **/
     TWeakObjectPtr<AActor> ActorPtr = nullptr;
 
@@ -241,7 +244,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         FORCEINLINE const TArray< FHoudiniAssetInputOutlinerMesh >& GetWorldOutlinerInputs() const { return InputOutlinerMeshArray; }
 
         /** Returns the selected landscape Actor **/
-		ALandscapeProxy* GetLandscapeInput();
+        ALandscapeProxy* GetLandscapeInput();
 
         /** Remove a specific element of the world outliner input selection */
         void RemoveWorldOutlinerInput( int32 AtIndex );
@@ -365,6 +368,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void OnEmptySkeletonInputObjects();
 
 #endif
+        /** Finds an actor in the world by using a path name string **/
+        //static AActor* TryToFindActorByPathName(const FString& ActorPathName);
 
         /** Called to retrieve the name of selected item. **/
         FText HandleChoiceContentText() const;
