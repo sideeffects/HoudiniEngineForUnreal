@@ -249,6 +249,49 @@ FHoudiniAssetInputOutlinerMesh::NeedsComponentUpdate() const
     return false;
 }
 
+
+bool
+FHoudiniAssetInputOutlinerMesh::TryToUpdateActorPtrFromActorPathName()
+{
+    // Ensure our current ActorPathName looks valid
+    if (ActorPathName.IsEmpty() || ActorPathName.Equals(TEXT("None"), ESearchCase::IgnoreCase))
+        return false;
+
+    // We'll try to find the corresponding actor by browsing through all the actors in the world..
+    // Get the editor world
+    UWorld* World = nullptr;
+#if WITH_EDITOR
+    World = GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
+#endif
+    if (!World)
+        return nullptr;
+
+    // Then try to find the actor corresponding to our pathname
+    bool FoundActor = false;
+    for (TActorIterator<AActor> ActorIt(World); ActorIt; ++ActorIt)
+    {
+        if (ActorIt->GetPathName() != ActorPathName)
+            continue;
+
+        // We found the actor
+        ActorPtr = *ActorIt;
+        FoundActor = true;
+
+        break;
+    }
+
+    if ( FoundActor )
+    {
+        // We need to invalid our components so they can be updated later
+        // from the new actor
+        StaticMesh = NULL;
+        StaticMeshComponent = NULL;
+        SplineComponent = NULL;
+    }
+
+    return FoundActor;
+}
+
 UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
     , InputCurve( nullptr )
@@ -1883,29 +1926,13 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
     // as some components might now have been fully initialized during PostLoad()
     if ( OutlinerInputsNeedPostLoadInit )
     {
-        UWorld* editorWorld = GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
-        if ( editorWorld )
+        for (auto & OutlinerInput : InputOutlinerMeshArray)
         {
-            for (auto & OutlinerInput : InputOutlinerMeshArray)
-            {
-                if (OutlinerInput.ActorPtr.IsValid())
-                    continue;
+            if (OutlinerInput.ActorPtr.IsValid())
+                continue;
 
-                if (OutlinerInput.ActorPathName.Equals(TEXT("None"), ESearchCase::IgnoreCase))
-                    continue;
-
-                // The actor pointer is invalid, 
-                // See if we can use the saved pathname to find the actor back
-                // Invalid ActorPtr could be caused by the actor being in a different level
-                for (TActorIterator<AActor> ActorIt(editorWorld); ActorIt; ++ActorIt)
-                {
-                    if (ActorIt->GetPathName() == OutlinerInput.ActorPathName)
-                    {
-                        OutlinerInput.ActorPtr = *ActorIt;
-                        break;
-                    }
-                }
-            }
+            // Try to update the actor ptr via the pathname
+            OutlinerInput.TryToUpdateActorPtrFromActorPathName();
         }
 
         UpdateInputOulinerArray();
@@ -3365,7 +3392,14 @@ UHoudiniAssetInput::UpdateInputOulinerArray()
     TArray<AActor *> ActorToUpdateArray;
     for ( int32 n = InputOutlinerMeshArray.Num() - 1; n >= 0; n-- )
     {
-        FHoudiniAssetInputOutlinerMesh OutlinerInput = InputOutlinerMeshArray[ n ];
+        FHoudiniAssetInputOutlinerMesh& OutlinerInput = InputOutlinerMeshArray[ n ];
+        if (OutlinerInput.ActorPtr.IsStale()) // || !OutlinerInput.ActorPtr.IsValid());
+        {
+            // If our ActorPtr is stale, try to find an updated version of it by pathname
+            // This can happen when a blueprint is updated or recompiled...
+            OutlinerInput.TryToUpdateActorPtrFromActorPathName();
+        }
+
         if ( !OutlinerInput.ActorPtr.IsValid() )
         {
             // This input has an invalid actor: destroy it and its asset
