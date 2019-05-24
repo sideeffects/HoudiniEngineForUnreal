@@ -264,9 +264,9 @@ FHoudiniAssetInputOutlinerMesh::TryToUpdateActorPtrFromActorPathName()
     World = GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
 #endif
     if (!World)
-        return nullptr;
+        return false;
 
-    // Then try to find the actor corresponding to our pathname
+    // Then try to find the actor corresponding to our path/name
     bool FoundActor = false;
     for (TActorIterator<AActor> ActorIt(World); ActorIt; ++ActorIt)
     {
