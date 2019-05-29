@@ -2316,7 +2316,7 @@ UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 void
 UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & PropertyChangedEvent )
 {
-    Super::PostEditChangeProperty( PropertyChangedEvent );	
+    Super::PostEditChangeProperty( PropertyChangedEvent );
 
     if ( !bIsNativeComponent )
         return;
@@ -3526,7 +3526,9 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
 
                 UPackage * Package = nullptr;
                 if ( !PackageFile.IsEmpty() )
-                    Package = LoadPackage( nullptr, *PackageFile, LOAD_None );
+                {
+                    Package = FindPackage(nullptr, *PackageFile);
+                }
 
                 if ( !Package )
                     continue;
@@ -3577,7 +3579,9 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
 
                 UPackage * Package = nullptr;
                 if ( !PackageFile.IsEmpty() )
-                    Package = LoadPackage( nullptr, *PackageFile, LOAD_None );
+                {
+                    Package = FindPackage(nullptr, *PackageFile);
+                }
 
                 if ( !Package )
                     continue;
@@ -3625,7 +3629,9 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
 
                 UPackage * Package = nullptr;
                 if ( !PackageFile.IsEmpty() )
-                    Package = LoadPackage( nullptr, *PackageFile, LOAD_None );
+                {
+                    Package = FindPackage(nullptr, *PackageFile);
+                }
 
                 if ( !Package )
                     continue;
