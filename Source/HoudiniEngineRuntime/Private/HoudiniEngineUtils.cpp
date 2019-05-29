@@ -2989,7 +2989,6 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
         if ( RawMesh.WedgeTangentZ.Num() > 0 )
         {
             TArray< FVector > ChangedNormals( RawMesh.WedgeTangentZ );
-
             if ( ImportAxis == HRSAI_Unreal )
             {
                 // We need to re-index normals for wedges we swapped (due to winding differences).
@@ -3002,17 +3001,9 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                     ChangedNormals[ WedgeIdx + 2 ] = TangentZ1;
                 }
 
+                // We also need to swap the vector's Y and Z components
                 for ( int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); ++WedgeIdx )
                     Swap( ChangedNormals[ WedgeIdx ].Y, ChangedNormals[ WedgeIdx ].Z );
-            }
-            else if ( ImportAxis == HRSAI_Houdini )
-            {
-                // Do nothing, data is in proper format.
-            }
-            else
-            {
-                // Not valid enum value.
-                check( 0 );
             }
 
             // Create attribute for normals.
@@ -3034,6 +3025,89 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                 CurrentLODNodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex,
                 (const float *) ChangedNormals.GetData(),
                 0, AttributeInfoVertex.count ), false );
+        }
+
+        // See if we have tangentu to upload.
+        if (RawMesh.WedgeTangentX.Num() > 0)
+        {
+            TArray< FVector > ChangedTangentU(RawMesh.WedgeTangentX);
+            if (ImportAxis == HRSAI_Unreal)
+            {
+                // We need to re-index tangents for wedges we swapped (due to winding differences).
+                for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
+                {
+                    FVector TangentU1 = ChangedTangentU[WedgeIdx + 1];
+                    FVector TangentU2 = ChangedTangentU[WedgeIdx + 2];
+
+                    ChangedTangentU[WedgeIdx + 1] = TangentU2;
+                    ChangedTangentU[WedgeIdx + 2] = TangentU1;
+                }
+
+                // We also need to swap the vector's Y and Z components
+                for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); ++WedgeIdx)
+                    Swap(ChangedTangentU[WedgeIdx].Y, ChangedTangentU[WedgeIdx].Z);
+            }
+
+            // Create attribute for tangentu.
+            HAPI_AttributeInfo AttributeInfoVertex;
+            FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoVertex);
+            AttributeInfoVertex.count = ChangedTangentU.Num();
+            AttributeInfoVertex.tupleSize = 3;
+            AttributeInfoVertex.exists = true;
+            AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+            AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+            AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                FHoudiniEngine::Get().GetSession(), CurrentLODNodeId,
+                0, HAPI_UNREAL_ATTRIB_TANGENTU, &AttributeInfoVertex), false);
+
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                FHoudiniEngine::Get().GetSession(),
+                CurrentLODNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, &AttributeInfoVertex,
+                (const float *)ChangedTangentU.GetData(),
+                0, AttributeInfoVertex.count), false);
+        }
+
+        // See if we have tangentv to upload.
+        if (RawMesh.WedgeTangentY.Num() > 0)
+        {
+            TArray< FVector > ChangedTangentV(RawMesh.WedgeTangentY);
+            if (ImportAxis == HRSAI_Unreal)
+            {
+                // We need to re-index normals for wedges we swapped (due to winding differences).
+                for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
+                {
+                    FVector TangentV1 = ChangedTangentV[WedgeIdx + 1];
+                    FVector TangentV2 = ChangedTangentV[WedgeIdx + 2];
+
+                    ChangedTangentV[WedgeIdx + 1] = TangentV2;
+                    ChangedTangentV[WedgeIdx + 2] = TangentV1;
+                }
+
+                for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); ++WedgeIdx)
+                    Swap(ChangedTangentV[WedgeIdx].Y, ChangedTangentV[WedgeIdx].Z);
+            }
+
+            // Create attribute for normals.
+            HAPI_AttributeInfo AttributeInfoVertex;
+            FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoVertex);
+            AttributeInfoVertex.count = ChangedTangentV.Num();
+            AttributeInfoVertex.tupleSize = 3;
+            AttributeInfoVertex.exists = true;
+            AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+            AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+            AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                FHoudiniEngine::Get().GetSession(), CurrentLODNodeId,
+                0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex), false);
+
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                FHoudiniEngine::Get().GetSession(),
+                CurrentLODNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex,
+                (const float *)ChangedTangentV.GetData(),
+                0, AttributeInfoVertex.count), false);
         }
 
         {
@@ -3207,7 +3281,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
         {
             // Create an array of Material Interfaces
             TArray< UMaterialInterface * > MaterialInterfaces;
-            if (StaticMeshComponent && !StaticMeshComponent->IsPendingKill())
+            if (StaticMeshComponent && !StaticMeshComponent->IsPendingKill() && StaticMeshComponent->IsValidLowLevel() )
             {
                 // We have a SMC, query its materials directly so we can be sure we get the proper override materials
                 StaticMeshComponent->GetUsedMaterials(MaterialInterfaces, false);
@@ -5424,6 +5498,16 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             HAPI_AttributeInfo AttribInfoNormals;
             FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoNormals );
 
+            // Vertex TangentU
+            TArray< float > PartTangentU;
+            HAPI_AttributeInfo AttribInfoTangentU;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoTangentU );
+
+            // Vertex TangentV
+            TArray< float > PartTangentV;
+            HAPI_AttributeInfo AttribInfoTangentV;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoTangentV );
+
             // Vertex Colors
             TArray< float > PartColors;
             HAPI_AttributeInfo AttribInfoColors;
@@ -5923,7 +6007,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 else
                 {
                     //--------------------------------------------------------------------------------------------------------------------- 
-                    // NORMALS
+                    // NORMALS AND TANGENTS
                     //--------------------------------------------------------------------------------------------------------------------- 
                     TArray< float > SplitGroupNormals;
                     // No need to read the normals if we'll recompute them after
@@ -5943,11 +6027,42 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             SplitGroupVertexList, AttribInfoNormals, PartNormals, SplitGroupNormals );
                     }
 
-                    // See if we need to generate tangents, we do this only if normals are present, and if we do not recompute them after
-                    bool bGenerateTangents = ( SplitGroupNormals.Num() > 0 );
+                    TArray< float > SplitGroupTangentU;
+                    TArray< float > SplitGroupTangentV;
+                    // No need to read the tangents if we always want to recompute them
+                    bool bReadTangents = HoudiniRuntimeSettings->RecomputeTangentsFlag != EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Always;
+                    if (bReadTangents)
+                    {
+                        if (PartTangentU.Num() <= 0)
+                        {
+                            // Retrieve TangentU data for this part
+                            FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                                HAPI_UNREAL_ATTRIB_TANGENTU, AttribInfoTangentU, PartTangentU );
+                        }
+
+                        // Transfer tangentu point attributes to the vertices if needed.
+                        FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+                            SplitGroupVertexList, AttribInfoTangentU, PartTangentU, SplitGroupTangentU);
+
+                        if (PartTangentV.Num() <= 0)
+                        {
+                            // Retrieve TangentV data for this part
+                            FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                                HAPI_UNREAL_ATTRIB_TANGENTV, AttribInfoTangentV, PartTangentV);
+                        }
+
+                        // Transfer tangentv point attributes to the vertices if needed.
+                        FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+                            SplitGroupVertexList, AttribInfoTangentV, PartTangentV, SplitGroupTangentV);
+                    }
+
+                    // We need to generate tangents if we have normals but we dont have tangentu or tangentv attributes
+                    bool bGenerateTangents = ( SplitGroupNormals.Num() > 0 ) && ( SplitGroupTangentU.Num() <= 0 || SplitGroupTangentV.Num() <= 0 );
                     if ( bGenerateTangents && ( HoudiniRuntimeSettings->RecomputeTangentsFlag == EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Always ) )
                     {
-                        // No need to generate tangents if we'll recompute them after
+                        // No need to generate tangents if unreal will recompute them after
                         bGenerateTangents = false;
                     }
 
@@ -5963,6 +6078,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         HOUDINI_LOG_WARNING(TEXT("Invalid normal count detected - Skipping normals."));
                     }
 
+                    // Transfer the normals and generate the tangents if needed
                     RawMesh.WedgeTangentZ.SetNumZeroed( WedgeNormalCount );
                     for ( int32 WedgeTangentZIdx = 0; WedgeTangentZIdx < WedgeNormalCount; ++WedgeTangentZIdx )
                     {
@@ -5990,6 +6106,58 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                             RawMesh.WedgeTangentX.Add( TangentX );
                             RawMesh.WedgeTangentY.Add( TangentY );
+                        }
+                    }
+
+                    // Only add tangents if we have some and do not plan on generating them.
+                    // We also need to make sure that the number of tangents matches the number of normals
+                    bool bAddTangents = !bGenerateTangents && bReadTangents;
+                    int32 WedgeTangentUCount = SplitGroupTangentU.Num() / 3;
+                    int32 WedgeTangentVCount = SplitGroupTangentV.Num() / 3;
+                    if ( WedgeTangentUCount != WedgeNormalCount || WedgeTangentVCount != WedgeNormalCount )
+                        bAddTangents = false;
+
+                    if ( bAddTangents )
+                    {
+                        // Transfer tangents if we have them and they're valid
+                        RawMesh.WedgeTangentX.SetNumZeroed(WedgeTangentUCount);
+                        for (int32 WedgeTangentUIdx = 0; WedgeTangentUIdx < WedgeTangentUCount; ++WedgeTangentUIdx)
+                        {
+                            FVector WedgeTangentX;
+                            WedgeTangentX.X = SplitGroupTangentU[WedgeTangentUIdx * 3 + 0];
+                            if (ImportAxis == HRSAI_Unreal)
+                            {
+                                // We need to flip Z and Y coordinate
+                                WedgeTangentX.Y = SplitGroupTangentU[WedgeTangentUIdx * 3 + 2];
+                                WedgeTangentX.Z = SplitGroupTangentU[WedgeTangentUIdx * 3 + 1];
+                            }
+                            else
+                            {
+                                WedgeTangentX.Y = SplitGroupTangentU[WedgeTangentUIdx * 3 + 1];
+                                WedgeTangentX.Z = SplitGroupTangentU[WedgeTangentUIdx * 3 + 2];
+                            }
+
+                            RawMesh.WedgeTangentX[WedgeTangentUIdx] = WedgeTangentX;
+                        }
+
+                        RawMesh.WedgeTangentY.SetNumZeroed(WedgeTangentVCount);
+                        for (int32 WedgeTangentVIdx = 0; WedgeTangentVIdx < WedgeTangentVCount; ++WedgeTangentVIdx)
+                        {
+                            FVector WedgeTangentY;
+                            WedgeTangentY.X = SplitGroupTangentV[WedgeTangentVIdx * 3 + 0];
+                            if (ImportAxis == HRSAI_Unreal)
+                            {
+                                // We need to flip Z and Y coordinate
+                                WedgeTangentY.Y = SplitGroupTangentV[WedgeTangentVIdx * 3 + 2];
+                                WedgeTangentY.Z = SplitGroupTangentV[WedgeTangentVIdx * 3 + 1];
+                            }
+                            else
+                            {
+                                WedgeTangentY.Y = SplitGroupTangentV[WedgeTangentVIdx * 3 + 1];
+                                WedgeTangentY.Z = SplitGroupTangentV[WedgeTangentVIdx * 3 + 2];
+                            }
+
+                            RawMesh.WedgeTangentY[WedgeTangentVIdx] = WedgeTangentY;
                         }
                     }
 

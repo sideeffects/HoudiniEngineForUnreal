@@ -232,6 +232,8 @@
 #define HAPI_UNREAL_ATTRIB_ALPHA                        "Alpha"
 #define HAPI_UNREAL_ATTRIB_LIGHTMAP_COLOR               "unreal_lightmap_color"
 #define HAPI_UNREAL_ATTRIB_NORMAL                       HAPI_ATTRIB_NORMAL
+#define HAPI_UNREAL_ATTRIB_TANGENTU                     HAPI_ATTRIB_TANGENT
+#define HAPI_UNREAL_ATTRIB_TANGENTV                     HAPI_ATTRIB_TANGENT2
 
 #define HAPI_UNREAL_ATTRIB_UV                           HAPI_ATTRIB_UV
 #define HAPI_UNREAL_ATTRIB_UV2                          HAPI_ATTRIB_UV2
