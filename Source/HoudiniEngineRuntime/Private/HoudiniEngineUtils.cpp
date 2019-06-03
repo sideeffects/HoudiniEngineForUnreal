@@ -7762,6 +7762,11 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
         HoudiniLocation = FString::Printf(
             TEXT("/Applications/Houdini/Houdini%s/Frameworks/Houdini.framework/Versions/%s/Libraries"), *HoudiniVersionString, *HoudiniVersionString);
 
+    // Fallback in case we're using the steam version
+    if ( !FPaths::DirectoryExists( HoudiniLocation ) )
+        HoudiniLocation = FString::Printf(
+            TEXT("/Applications/Houdini/HoudiniIndieSteam/Frameworks/Houdini.framework/Versions/Current/Libraries"));
+
 #   elif PLATFORM_LINUX
 
     // Attempt to load from standard Linux installation.
