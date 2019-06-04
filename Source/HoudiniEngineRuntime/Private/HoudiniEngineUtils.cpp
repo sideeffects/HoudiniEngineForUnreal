@@ -7765,7 +7765,7 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
     // Fallback in case we're using the steam version
     if ( !FPaths::DirectoryExists( HoudiniLocation ) )
         HoudiniLocation = FString::Printf(
-            TEXT("/Applications/Houdini/HoudiniIndieSteam/Frameworks/Houdini.framework/Versions/Current/Libraries"));
+            TEXT("/Users/Shared/Houdini/HoudiniIndieSteam/Frameworks/Houdini.framework/Versions/Current/Libraries"));
 
 #   elif PLATFORM_LINUX
 
