@@ -87,7 +87,6 @@ namespace EHoudiniAssetComponentState
     };
 }
 
-
 UCLASS( ClassGroup = (Rendering, Common), hidecategories = (Object,Activation,"Components|Activation"),
     ShowCategories = (Mobility), editinlinenew )
 class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveComponent, public IHoudiniCookHandler
@@ -708,7 +707,7 @@ public:
         FHandleComponentMap HandleComponents;
 
         /** Map of curve / spline components. **/
-        TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> > SplineComponents;
+        TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent* > SplineComponents;
 
         /** Map of Landscape / Heightfield components. **/
         TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> > LandscapeComponents;

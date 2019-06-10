@@ -485,10 +485,10 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
         }
 
         // Add references to all spline components.
-        for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TIterator
+        for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent* >::TIterator
             Iter( HoudiniAssetComponent->SplineComponents ); Iter; ++Iter )
         {
-            UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value().Get();
+            UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
             if ( !HoudiniSplineComponent || !HoudiniSplineComponent->IsValidLowLevel() || HoudiniSplineComponent->IsPendingKill() )
                 continue;
 
@@ -2697,12 +2697,12 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
     }
 
     // We need to reconstruct splines.
-    for( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TIterator
+    for( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent* >::TIterator
         Iter( CopiedHoudiniComponent->SplineComponents ); Iter; ++Iter )
     {
         FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
-        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value().Get();
-        if ( !HoudiniSplineComponent )
+        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
+        if ( !HoudiniSplineComponent || !HoudiniSplineComponent->IsValidLowLevel() )
             continue;
             
         // Duplicate spline component.
@@ -3076,10 +3076,10 @@ UHoudiniAssetComponent::PostLoadReattachComponents()
             StaticMeshComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
     }
 
-    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TIterator Iter( SplineComponents ); Iter; ++Iter )
+    for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent* >::TIterator Iter( SplineComponents ); Iter; ++Iter )
     {
-        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value().Get();
-        if( HoudiniSplineComponent )
+        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
+        if( HoudiniSplineComponent && HoudiniSplineComponent->IsValidLowLevel() )
             HoudiniSplineComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
     }
 
@@ -4170,7 +4170,7 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
 {
     bool bCurveCreated = false;
 
-    TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> > NewSplineComponents;
+    TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent* > NewSplineComponents;
     for ( TArray< FHoudiniGeoPartObject >::TConstIterator Iter( FoundCurves ); Iter; ++Iter )
     {
         const FHoudiniGeoPartObject & HoudiniGeoPartObject = *Iter;
@@ -4721,7 +4721,7 @@ UHoudiniAssetComponent::RefreshEditableNodesAfterLoad()
                 continue;
 
             // We need to refresh the spline corresponding to that node
-            for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TIterator Iter( SplineComponents ); Iter; ++Iter )
+            for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent* >::TIterator Iter( SplineComponents ); Iter; ++Iter )
             {
                 FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
 
@@ -4732,7 +4732,7 @@ UHoudiniAssetComponent::RefreshEditableNodesAfterLoad()
                     HoudiniGeoPartObject.GeoId = CurrentEditableGeoInfo.nodeId;
 
                     // Update the attached spline component too
-                    UHoudiniSplineComponent * SplineComponent = Iter.Value().Get();
+                    UHoudiniSplineComponent * SplineComponent = Iter.Value();
                     if ( SplineComponent )
                         SplineComponent->SetHoudiniGeoPartObject( HoudiniGeoPartObject );
                 }
@@ -4747,9 +4747,9 @@ UHoudiniAssetComponent::RefreshEditableNodesAfterLoad()
 void
 UHoudiniAssetComponent::UploadLoadedCurves()
 {
-    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TIterator Iter( SplineComponents ); Iter; ++Iter )
+    for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent* >::TIterator Iter( SplineComponents ); Iter; ++Iter )
     {
-        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value().Get();
+        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
         if ( !HoudiniSplineComponent )
             continue;
 
@@ -5193,9 +5193,9 @@ UHoudiniAssetComponent::ClearInstanceInputs()
 void
 UHoudiniAssetComponent::ClearCurves()
 {
-    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr <UHoudiniSplineComponent>>::TIterator Iter( SplineComponents ); Iter; ++Iter )
+    for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent*>::TIterator Iter( SplineComponents ); Iter; ++Iter )
     {
-        UHoudiniSplineComponent * SplineComponent = Iter.Value().Get();
+        UHoudiniSplineComponent * SplineComponent = Iter.Value();
         if (SplineComponent)
         {
             SplineComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
@@ -5286,6 +5286,9 @@ UHoudiniAssetComponent::ClearInputs()
     {
         UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
         if ( !HoudiniAssetInput || HoudiniAssetInput->IsPendingKill() )
+            continue;
+
+        if (HoudiniAssetInput->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad))
             continue;
 
         // Destroy connected Houdini asset.
@@ -5456,13 +5459,13 @@ UHoudiniAssetComponent::LocateInstancedStaticMeshComponents(
 UHoudiniSplineComponent*
 UHoudiniAssetComponent::LocateSplineComponent(const FHoudiniGeoPartObject & HoudiniGeoPartObject) const
 {
-    const TWeakObjectPtr<UHoudiniSplineComponent> * FoundHoudiniSplineComponent = SplineComponents.Find(HoudiniGeoPartObject);
+    UHoudiniSplineComponent * const * FoundHoudiniSplineComponent = SplineComponents.Find(HoudiniGeoPartObject);
     UHoudiniSplineComponent * SplineComponent = nullptr;
 
     if ( FoundHoudiniSplineComponent )
-        SplineComponent = FoundHoudiniSplineComponent->Get();
+        SplineComponent = *FoundHoudiniSplineComponent;
 
-    if ( SplineComponent && SplineComponent->IsPendingKill() )
+    if ( !SplineComponent || SplineComponent->IsPendingKill() || !SplineComponent->IsValidLowLevel() )
         return nullptr;
 
     return SplineComponent;
@@ -6134,10 +6137,10 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
     }
 
     // ... all our curves
-    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<UHoudiniSplineComponent> >::TConstIterator Iter( SplineComponents ); Iter; ++Iter )
+    for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent* >::TConstIterator Iter( SplineComponents ); Iter; ++Iter )
     {
-        UHoudiniSplineComponent * SplineComponent = Iter.Value().Get();
-        if ( !SplineComponent )
+        UHoudiniSplineComponent * SplineComponent = Iter.Value();
+        if ( !SplineComponent || !SplineComponent->IsValidLowLevel() )
             continue;
 
         TArray<FVector> SplinePositions;
