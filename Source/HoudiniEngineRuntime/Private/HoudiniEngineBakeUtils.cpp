@@ -452,6 +452,10 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
         if( !MeshPackage || MeshPackage->IsPendingKill() )
             return nullptr;
 
+        // We need to be sure the package has been fully loaded before calling DuplicateObject
+        if ( !MeshPackage->bHasBeenFullyLoaded )
+            MeshPackage->FullyLoad();
+
         // Duplicate mesh for this new copied component.
         DuplicatedStaticMesh = DuplicateObject< UStaticMesh >( StaticMesh, MeshPackage, *MeshName );
         if ( !DuplicatedStaticMesh || DuplicatedStaticMesh->IsPendingKill() )
