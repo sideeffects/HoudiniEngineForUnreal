@@ -3199,6 +3199,10 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
             TArray< const FHoudiniGeoPartObject* > FoundLayers;
             FHoudiniLandscapeUtils::GetHeightfieldsLayersInArray(FoundVolumes, *CurrentHeightfield, FoundLayers);
 
+            // Get the names of all the non weight blended layers
+            TArray< FString > NonWeightBlendedLayerNames;
+            FHoudiniLandscapeUtils::GetNonWeightBlendedLayerNames(*CurrentHeightfield, NonWeightBlendedLayerNames);
+
             for ( auto LayerGeoPartObject : FoundLayers )
             {
                 if (!LayerGeoPartObject)
@@ -3271,6 +3275,12 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                 currentLayerInfo.LayerInfo->LayerUsageDebugColor.G = LayerMax;
                 currentLayerInfo.LayerInfo->LayerUsageDebugColor.B = (LayerMax - LayerMin) / 255.0f;
                 currentLayerInfo.LayerInfo->LayerUsageDebugColor.A = PI;
+
+                // Updated non weight blended layers (visibility is by default non weight blended)
+                if (NonWeightBlendedLayerNames.Contains(LayerString) || LayerString.Equals(TEXT("visibility"), ESearchCase::IgnoreCase))
+                    currentLayerInfo.LayerInfo->bNoWeightBlend = true;
+                else
+                    currentLayerInfo.LayerInfo->bNoWeightBlend = false;
 
                 // Update the layer on the heightfield
                 if ( !UpdateLandscapeComponent )
