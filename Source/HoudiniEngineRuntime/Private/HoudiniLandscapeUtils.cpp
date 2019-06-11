@@ -444,8 +444,6 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
         Swap(ObjectTranslation[2], ObjectTranslation[1]);
 
         FVector ObjectScale3D(HapiTransform.scale[0], HapiTransform.scale[1], HapiTransform.scale[2]);
-        ObjectScale3D.X *= ((float)HoudiniXSize - 1.0f) / (float)HoudiniXSize;
-        ObjectScale3D.Y *= ((float)HoudiniYSize - 1.0f) / (float)HoudiniYSize;
 
         CurrentVolumeTransform.SetComponents(ObjectRotation, ObjectTranslation, ObjectScale3D);
     }
@@ -1985,12 +1983,6 @@ FHoudiniLandscapeUtils::SetHeighfieldData(
         FHoudiniEngine::Get().GetSession(),
         GeoInfo.nodeId, PartId, &PartInfo), false);
 
-    HAPI_VolumeInfo HapiVolumeInfo;
-    FMemory::Memset< HAPI_VolumeInfo >(HapiVolumeInfo, 0);
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetVolumeInfo(
-        FHoudiniEngine::Get().GetSession(),
-        VolumeNodeId, PartInfo.id, &HapiVolumeInfo), false);
-
     // Update the volume infos
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetVolumeInfo(
         FHoudiniEngine::Get().GetSession(),
@@ -2904,8 +2896,12 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
 
         // Try to find the landscape previously created from that HGPO
         ALandscapeProxy * FoundLandscape = nullptr;
-        if (Landscapes.Find(*CurrentHeightfield))
-            FoundLandscape = Landscapes.Find(*CurrentHeightfield)->Get();
+        if (TWeakObjectPtr<ALandscapeProxy>* FoundLandscapePtr = Landscapes.Find(*CurrentHeightfield))
+        {
+            FoundLandscape = FoundLandscapePtr->Get();
+            if (!FoundLandscape || !FoundLandscape->IsValidLowLevel())
+                FoundLandscape = nullptr;
+        }
 
         bool bLandscapeNeedsToBeUpdated = true;
         if (!CurrentHeightfield->bHasGeoChanged)
