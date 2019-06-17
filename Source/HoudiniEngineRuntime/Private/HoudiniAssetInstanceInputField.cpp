@@ -270,7 +270,8 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
                 MSIC->SetOverrideMaterial(InstancerMaterial);
 
                 // Check for instance colors
-                HAPI_AttributeInfo AttributeInfo = {};
+                HAPI_AttributeInfo AttributeInfo;
+                FHoudiniApi:: AttributeInfo_Init(&AttributeInfo);
                 if ( HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeInfo(
                     FHoudiniEngine::Get().GetSession(), InstancerHoudiniGeoPartObject.GeoId, InstancerHoudiniGeoPartObject.PartId,
                     HAPI_UNREAL_ATTRIB_INSTANCE_COLOR, HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM, &AttributeInfo))
