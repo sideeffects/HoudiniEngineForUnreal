@@ -153,12 +153,8 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         virtual void UnregisterAssetBrokers() override;
         virtual void RegisterActorFactories() override;
         virtual void ExtendMenu() override;
-        virtual void RegisterThumbnails() override;
-        virtual void UnregisterThumbnails() override;
         virtual void RegisterForUndo() override;
         virtual void UnregisterForUndo() override;
-        virtual void RegisterModes() override;
-        virtual void UnregisterModes() override;
         virtual void RegisterPlacementModeExtensions() override;
         virtual void UnregisterPlacementModeExtensions() override;
 

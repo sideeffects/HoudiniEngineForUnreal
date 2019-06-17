@@ -561,7 +561,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
             ALandscapeProxy * Landscape = IterLandscapes.Value().Get();
             FHoudiniGeoPartObject & HoudiniGeoPartObject = IterLandscapes.Key();
 
-            if (!Landscape)
+            if (!Landscape || !Landscape->IsValidLowLevel() )
                 continue;
 
             NumberOfGeneratedMeshes++;
@@ -1317,8 +1317,9 @@ FHoudiniAssetComponentDetails::OnBakeAllGeneratedMeshes()
             IterLandscapes(HoudiniAssetComponent->LandscapeComponents); IterLandscapes; ++IterLandscapes)
         {
             ALandscapeProxy * Landscape = IterLandscapes.Value().Get();
-            if ( !Landscape )
+            if ( !Landscape || !Landscape->IsValidLowLevel() )
                 continue;
+
             (void) OnBakeLandscape(Landscape, HoudiniAssetComponent);
         }
     }
@@ -1536,6 +1537,7 @@ FHoudiniAssetComponentDetails::OnFetchAssetHelp( UHoudiniAssetComponent * Houdin
     if ( HoudiniAssetComponent )
     {
         HAPI_AssetInfo AssetInfo;
+        FHoudiniApi::AssetInfo_Init(&AssetInfo);
         HAPI_NodeId AssetId = HoudiniAssetComponent->GetAssetId();
 
         if ( FHoudiniEngineUtils::IsValidNodeId( AssetId ) )
@@ -1691,11 +1693,15 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
         if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
             continue;
 
-        TWeakObjectPtr<ALandscapeProxy>* FoundLandscape = HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject );
-        if ( !FoundLandscape || !FoundLandscape->IsValid() )
+        TWeakObjectPtr<ALandscapeProxy>* FoundLandscapePtr = HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject );
+        if ( !FoundLandscapePtr || !FoundLandscapePtr->IsValid() )
             continue;
 
-        if ( FoundLandscape->Get() != Landscape )
+        ALandscapeProxy* FoundLandscape = FoundLandscapePtr->Get();
+        if (!FoundLandscape || !FoundLandscape->IsValidLowLevel())
+            continue;
+
+        if ( FoundLandscape != Landscape )
             continue;
 
         // Retrieve the material interface which is being replaced.
@@ -1927,11 +1933,15 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
         if ( !HoudiniAssetComponent )
             continue;
 
-        TWeakObjectPtr<ALandscapeProxy>* FoundLandscape = HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject );
-        if ( !FoundLandscape )
+        TWeakObjectPtr<ALandscapeProxy>* FoundLandscapePtr = HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject );
+        if ( !FoundLandscapePtr )
             continue;
 
-        if ( FoundLandscape->Get() != Landscape )
+        ALandscapeProxy* FoundLandscape = FoundLandscapePtr->Get();
+        if ( !FoundLandscape || !FoundLandscape->IsValidLowLevel() )
+            continue;
+
+        if ( FoundLandscape != Landscape )
             continue;
 
         // Retrieve the material interface which is being replaced.

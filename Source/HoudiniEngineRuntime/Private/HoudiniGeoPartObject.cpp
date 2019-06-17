@@ -355,10 +355,12 @@ FHoudiniGeoPartObject::GetNodePath() const
         {
             // This is a SOP asset, just return the asset name in this case
             HAPI_AssetInfo AssetInfo;
+            FHoudiniApi::AssetInfo_Init(&AssetInfo);
             if ( FHoudiniApi::GetAssetInfo(
                 FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) == HAPI_RESULT_SUCCESS )
             {
                 HAPI_NodeInfo AssetNodeInfo;
+                FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
                 if ( FHoudiniApi::GetNodeInfo(
                     FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &AssetNodeInfo ) == HAPI_RESULT_SUCCESS )
                 {
@@ -498,6 +500,7 @@ FHoudiniGeoPartObject::HasParameters( HAPI_NodeId InAssetId ) const
         return false;
 
     HAPI_NodeInfo NodeInfo;
+    FHoudiniApi::NodeInfo_Init(&NodeInfo);
     FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo );
 
     return NodeInfo.parmCount > 0;
@@ -538,7 +541,8 @@ FHoudiniGeoPartObject::UpdateCustomName()
 {
     TArray< FString > GeneratedMeshNames;
     HAPI_AttributeInfo AttribGeneratedMeshName;
-    FMemory::Memzero< HAPI_AttributeInfo >(AttribGeneratedMeshName);
+    FHoudiniApi::AttributeInfo_Init(&AttribGeneratedMeshName);
+    //FMemory::Memzero< HAPI_AttributeInfo >(AttribGeneratedMeshName);
 
     bHasCustomName = false;
     if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
@@ -590,7 +594,8 @@ FHoudiniGeoPartObject::HapiCheckAttributeExistance(
     HAPI_AttributeOwner AttributeOwner ) const
 {
     HAPI_AttributeInfo AttributeInfo;
-    FMemory::Memset< HAPI_AttributeInfo >( AttributeInfo, 0 );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+    //FMemory::Memset< HAPI_AttributeInfo >( AttributeInfo, 0 );
 
     if ( FHoudiniApi::GetAttributeInfo(
         FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttributeName,
@@ -618,7 +623,9 @@ FHoudiniGeoPartObject::HapiGetInstanceTransforms( HAPI_NodeId OtherAssetId, TArr
     if ( PointCount > 0 )
     {
         TArray< HAPI_Transform > InstanceTransforms;
-        InstanceTransforms.SetNumZeroed( PointCount );
+        InstanceTransforms.SetNumUninitialized( PointCount );
+        for (int32 Idx = 0; Idx < InstanceTransforms.Num(); Idx++)
+            FHoudiniApi::Transform_Init(&(InstanceTransforms[Idx]));
 
         if ( FHoudiniApi::GetInstanceTransformsOnPart(
             FHoudiniEngine::Get().GetSession(), GeoId, PartId, HAPI_SRT, &InstanceTransforms[ 0 ],
@@ -676,7 +683,8 @@ FHoudiniGeoPartObject::HapiObjectGetInfo( HAPI_ObjectInfo & ObjectInfo ) const
 bool
 FHoudiniGeoPartObject::HapiObjectGetInfo( HAPI_NodeId OtherAssetId, HAPI_ObjectInfo & ObjectInfo ) const
 {
-    FMemory::Memset< HAPI_ObjectInfo >( ObjectInfo, 0 );
+    //FMemory::Memset< HAPI_ObjectInfo >( ObjectInfo, 0 );
+    FHoudiniApi::ObjectInfo_Init(&ObjectInfo);
 
     HAPI_Result Result = FHoudiniApi::GetObjectInfo(
         FHoudiniEngine::Get().GetSession(), ObjectId, &ObjectInfo );
@@ -691,7 +699,6 @@ FHoudiniGeoPartObject::HapiObjectGetName( HAPI_NodeId OtherAssetId ) const
 {
     HAPI_StringHandle StringHandle = -1;
     HAPI_ObjectInfo ObjectInfo;
-
     if ( HapiObjectGetInfo( OtherAssetId, ObjectInfo ) )
         StringHandle = ObjectInfo.nameSH;
 
@@ -709,7 +716,6 @@ FHoudiniGeoPartObject::HapiObjectGetInstancePath( HAPI_NodeId OtherAssetId ) con
 {
     HAPI_StringHandle StringHandle = -1;
     HAPI_ObjectInfo ObjectInfo;
-
     if ( HapiObjectGetInfo( OtherAssetId, ObjectInfo ) )
         StringHandle = ObjectInfo.objectInstancePathSH;
 
@@ -727,7 +733,6 @@ FHoudiniGeoPartObject::HapiObjectIsVisible( HAPI_NodeId OtherAssetId ) const
 {
     bool bIsObjectVisible = false;
     HAPI_ObjectInfo ObjectInfo;
-
     if ( HapiObjectGetInfo( OtherAssetId, ObjectInfo ) )
         bIsObjectVisible = ObjectInfo.isVisible;
 
