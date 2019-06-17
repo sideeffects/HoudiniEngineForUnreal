@@ -32,7 +32,7 @@ class UAssetImportData;
 class UHoudiniAssetComponent;
 
 
-UCLASS( EditInlineNew, config = Engine )
+UCLASS(EditInlineNew, config = Engine, meta = (BlueprintSpawnableComponent), Blueprintable )
 class HOUDINIENGINERUNTIME_API UHoudiniAsset : public UObject
 {
     GENERATED_UCLASS_BODY()

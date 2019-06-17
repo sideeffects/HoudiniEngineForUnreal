@@ -46,53 +46,53 @@ FHoudiniEngineSubstance::GetSubstanceMaterialName(
 
     // Get the node info
     HAPI_NodeInfo NodeInfo;
+    FHoudiniApi::NodeInfo_Init(&NodeInfo);
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
-	FHoudiniEngine::Get().GetSession(), MaterialInfo.nodeId, &NodeInfo ), false );
+        FHoudiniEngine::Get().GetSession(), MaterialInfo.nodeId, &NodeInfo ), false );
 
     // Get the parm infos
     TArray< HAPI_ParmInfo > ParmInfos;
     if ( NodeInfo.parmCount > 0 )
     {
-	ParmInfos.SetNumUninitialized(NodeInfo.parmCount);
-	if (FHoudiniApi::GetParameters( FHoudiniEngine::Get().GetSession(),
-	    MaterialInfo.nodeId, &ParmInfos[0], 0, NodeInfo.parmCount ) != HAPI_RESULT_SUCCESS )
-	{
-	    return false;
-	}
+        ParmInfos.SetNumZeroed(NodeInfo.parmCount);
+        if (FHoudiniApi::GetParameters( FHoudiniEngine::Get().GetSession(),
+            MaterialInfo.nodeId, &ParmInfos[0], 0, NodeInfo.parmCount ) != HAPI_RESULT_SUCCESS )
+        {
+            return false;
+        }
     }
 
     // Look for the substance filename parameter on the material node
     for (int32 Idx = 0, Num = ParmInfos.Num(); Idx < Num; ++Idx)
     {
-	// Get the param name
-	FHoudiniEngineString HoudiniEngineString( ParmInfos[ Idx ].nameSH );
-	FString ParamName;
-	HoudiniEngineString.ToFString( ParamName );
+        // Get the param name
+        FHoudiniEngineString HoudiniEngineString( ParmInfos[ Idx ].nameSH );
+        FString ParamName;
+        HoudiniEngineString.ToFString( ParamName );
 
-	// Check the param name
-	if ( !ParamName.Equals( HAPI_UNREAL_PARAM_SUBSTANCE_FILENAME ) )
-	    continue;
+        // Check the param name
+        if ( !ParamName.Equals( HAPI_UNREAL_PARAM_SUBSTANCE_FILENAME ) )
+            continue;
 
-	// Check the param is a path parameter
-	if ( ParmInfos[ Idx ].type < HAPI_PARMTYPE_PATH_START || ParmInfos[ Idx ].type > HAPI_PARMTYPE_PATH_END )
-	    continue;
+        // Check the param is a path parameter
+        if ( ParmInfos[ Idx ].type < HAPI_PARMTYPE_PATH_START || ParmInfos[ Idx ].type > HAPI_PARMTYPE_PATH_END )
+            continue;
 
-	// Get the substance filename parameter string value
-	HAPI_StringHandle StringHandle = -1;
-	if ( FHoudiniApi::GetParmStringValues( FHoudiniEngine::Get().GetSession(),
-	    MaterialInfo.nodeId, false, &StringHandle, ParmInfos[ Idx ].stringValuesIndex, 1 ) != HAPI_RESULT_SUCCESS )
-	{
-	    continue;
-	}
+        // Get the substance filename parameter string value
+        HAPI_StringHandle StringHandle = -1;
+        if ( FHoudiniApi::GetParmStringValues( FHoudiniEngine::Get().GetSession(),
+            MaterialInfo.nodeId, false, &StringHandle, ParmInfos[ Idx ].stringValuesIndex, 1 ) != HAPI_RESULT_SUCCESS )
+        {
+            continue;
+        }
 
-	FHoudiniEngineString StringValue = FHoudiniEngineString( StringHandle );
-	if ( !StringValue.ToFString( SubstanceMaterialName ) )
-	    continue;
+        FHoudiniEngineString StringValue = FHoudiniEngineString( StringHandle );
+        if ( !StringValue.ToFString( SubstanceMaterialName ) )
+            continue;
 
-	// We found the substance material name
-	return true;
+        // We found the substance material name
+        return true;
     }
-
 
     return false;
 }
