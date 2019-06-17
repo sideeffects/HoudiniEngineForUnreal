@@ -1969,6 +1969,9 @@ HAPI_DECL HAPI_GetParmInfoFromName( const HAPI_Session * session,
 /// @param[in]      tag_index
 ///                 The tag index, which should be between 0 and
 ///                 ::HAPI_ParmInfo::tagCount - 1.
+///                 @note These indices are invalidated whenever tags are added
+///                 to parameters. Do not store these or expect them to be the
+///                 same if the scene is modified.
 ///
 /// @param[out]     tag_name
 ///                 The returned tag name. This string handle will be valid
