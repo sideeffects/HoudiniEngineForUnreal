@@ -25,12 +25,11 @@
 
 #include "IHoudiniEngine.h"
 #include "HoudiniEngineTaskInfo.h"
-
+#include "HoudiniRuntimeSettings.h"
 
 class UStaticMesh;
 class FRunnableThread;
 class FHoudiniEngineScheduler;
-enum EHoudiniRuntimeSettingsSessionType;
 
 class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
 {
