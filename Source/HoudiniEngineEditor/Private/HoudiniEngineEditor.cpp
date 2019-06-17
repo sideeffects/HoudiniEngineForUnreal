@@ -26,7 +26,6 @@
 #include "HoudiniApi.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineUtils.h"
-#include "HoudiniAssetThumbnailRenderer.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngine.h"
 #include "HoudiniAssetActor.h"
@@ -40,7 +39,6 @@
 #include "HoudiniAssetTypeActions.h"
 #include "HoudiniAssetBroker.h"
 #include "HoudiniAssetActorFactory.h"
-#include "HoudiniShelfEdMode.h"
 #include "HoudiniEngineBakeUtils.h"
 
 #include "UnrealEdGlobals.h"
@@ -263,9 +261,6 @@ FHoudiniEngineEditor::StartupModule()
     // Register actor factories.
     RegisterActorFactories();
 
-    // Register thumbnails.
-    //RegisterThumbnails();
-
     // Extends the file menu.
     ExtendMenu();
 
@@ -307,9 +302,6 @@ FHoudiniEngineEditor::ShutdownModule()
 
     // Unregister detail presenters.
     UnregisterDetails();
-
-    // Unregister thumbnails.
-    //UnregisterThumbnails();
 
     // Unregister our component visualizers.
     UnregisterComponentVisualizers();
@@ -745,22 +737,6 @@ FHoudiniEngineEditor::UnregisterForUndo()
         GUnrealEd->UnregisterForUndo( this );
 }
 
-void 
-FHoudiniEngineEditor::RegisterModes()
-{
-    FEditorModeRegistry::Get().RegisterMode<FHoudiniShelfEdMode>( 
-        FHoudiniShelfEdMode::EM_HoudiniShelfEdModeId, 
-        LOCTEXT( "HoudiniMode", "Houdini Tools" ), 
-        FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo40" ),
-        true );
-}
-
-void 
-FHoudiniEngineEditor::UnregisterModes()
-{
-    FEditorModeRegistry::Get().UnregisterMode( FHoudiniShelfEdMode::EM_HoudiniShelfEdModeId );
-}
-
 /** Registers placement mode extensions. */
 void 
 FHoudiniEngineEditor::RegisterPlacementModeExtensions()
@@ -821,18 +797,7 @@ FHoudiniEngineEditor::UnregisterPlacementModeExtensions()
     HoudiniTools.Empty();
 }
 
-void
-FHoudiniEngineEditor::RegisterThumbnails()
-{
-    UThumbnailManager::Get().RegisterCustomRenderer( UHoudiniAsset::StaticClass(), UHoudiniAssetThumbnailRenderer::StaticClass() );
-}
 
-void
-FHoudiniEngineEditor::UnregisterThumbnails()
-{
-    if ( UObjectInitialized() )
-        UThumbnailManager::Get().UnregisterCustomRenderer( UHoudiniAsset::StaticClass() );
-}
 
 bool
 FHoudiniEngineEditor::MatchesContext( const FString & InContext, UObject * PrimaryObject ) const

@@ -127,7 +127,10 @@ UHoudiniAssetParameterChoice::CreateParameter(
 
     // Get choice descriptors.
     TArray< HAPI_ParmChoiceInfo > ParmChoices;
-    ParmChoices.SetNumZeroed( ParmInfo.choiceCount );
+    ParmChoices.SetNumUninitialized( ParmInfo.choiceCount );
+    for (int32 Idx = 0; Idx < ParmChoices.Num(); Idx++)
+        FHoudiniApi::ParmChoiceInfo_Init(&(ParmChoices[Idx]));
+
     if ( FHoudiniApi::GetParmChoiceLists(
         FHoudiniEngine::Get().GetSession(), NodeId, &ParmChoices[ 0 ],
         ParmInfo.choiceIndex, ParmInfo.choiceCount ) != HAPI_RESULT_SUCCESS )

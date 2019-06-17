@@ -81,7 +81,7 @@ UHoudiniAssetParameterString::CreateParameter(
 
     // Get the actual value for this property.
     TArray< HAPI_StringHandle > StringHandles;
-    StringHandles.SetNum( TupleSize );
+    StringHandles.SetNumZeroed( TupleSize );
     if ( FHoudiniApi::GetParmStringValues(
         FHoudiniEngine::Get().GetSession(), InNodeId, false,
         &StringHandles[ 0 ], ValuesIndex, TupleSize) != HAPI_RESULT_SUCCESS )
