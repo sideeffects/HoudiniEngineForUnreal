@@ -79,6 +79,7 @@ FHoudiniLandscapeUtils::GetHeightfieldsInArray(
 
         // Retrieve the VolumeInfo
         HAPI_VolumeInfo CurrentVolumeInfo;
+        FHoudiniApi::VolumeInfo_Init(&CurrentVolumeInfo);
         if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetVolumeInfo(
             FHoudiniEngine::Get().GetSession(),
             NodeId, HoudiniGeoPartObject.PartId,
@@ -122,7 +123,8 @@ FHoudiniLandscapeUtils::GetHeightfieldsLayersInArray(
     bool bParentHeightfieldHasTile = false;
     int32 HeightFieldTile = -1;
     {
-        HAPI_AttributeInfo AttribInfoTile{};
+        HAPI_AttributeInfo AttribInfoTile;
+        FHoudiniApi::AttributeInfo_Init(&AttribInfoTile);
         TArray< int32 > TileValues;
 
         FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
@@ -157,7 +159,8 @@ FHoudiniLandscapeUtils::GetHeightfieldsLayersInArray(
         {
             int32 CurrentTile = -1;
 
-            HAPI_AttributeInfo AttribInfoTile{};
+            HAPI_AttributeInfo AttribInfoTile;
+            FHoudiniApi::AttributeInfo_Init(&AttribInfoTile);
             TArray<int32> TileValues;
             FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
                 HoudiniGeoPartObject, "tile",
@@ -175,6 +178,7 @@ FHoudiniLandscapeUtils::GetHeightfieldsLayersInArray(
 
         // Retrieve the VolumeInfo
         HAPI_VolumeInfo CurrentVolumeInfo;
+        FHoudiniApi::VolumeInfo_Init(&CurrentVolumeInfo);
         if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetVolumeInfo(
             FHoudiniEngine::Get().GetSession(),
             NodeId, HoudiniGeoPartObject.PartId,
@@ -228,6 +232,7 @@ FHoudiniLandscapeUtils::CalcHeightfieldsArrayGlobalZMinZMax(
 
         // Retrieve the VolumeInfo
         HAPI_VolumeInfo CurrentVolumeInfo;
+        FHoudiniApi::VolumeInfo_Init(&CurrentVolumeInfo);
         if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetVolumeInfo(
             FHoudiniEngine::Get().GetSession(),
             NodeId, CurrentHeightfield->PartId,
@@ -301,6 +306,7 @@ FHoudiniLandscapeUtils::CalcHeightfieldsArrayGlobalZMinZMax(
 
         // Retrieve the VolumeInfo
         HAPI_VolumeInfo CurrentVolumeInfo;
+        FHoudiniApi::VolumeInfo_Init(&CurrentVolumeInfo);
         if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetVolumeInfo(
             FHoudiniEngine::Get().GetSession(),
             NodeId, CurrentHeightfield->PartId,
@@ -633,6 +639,7 @@ FHoudiniLandscapeUtils::GetNonWeightBlendedLayerNames( const FHoudiniGeoPartObje
     HAPI_NodeId HeightfieldNodeId = HeightfieldGeoPartObject.HapiGeoGetNodeId();
 
     HAPI_PartInfo PartInfo;
+    FHoudiniApi::PartInfo_Init(&PartInfo);
     if ( !HeightfieldGeoPartObject.HapiPartGetInfo( PartInfo ) )
         return false;
 
@@ -662,6 +669,7 @@ FHoudiniLandscapeUtils::GetNonWeightBlendedLayerNames( const FHoudiniGeoPartObje
 
         // Get the Attribute Info
         HAPI_AttributeInfo AttribInfo;
+        FHoudiniApi::AttributeInfo_Init(&AttribInfo);
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
             FHoudiniEngine::Get().GetSession(),
             HeightfieldNodeId, PartId, TCHAR_TO_UTF8( *HapiString ),
@@ -1063,6 +1071,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
     //--------------------------------------------------------------------------------------------------
     TArray<float> HeightfieldFloatValues;
     HAPI_VolumeInfo HeightfieldVolumeInfo;
+    FHoudiniApi::VolumeInfo_Init(&HeightfieldVolumeInfo);
     FTransform LandscapeTransform = LandscapeProxy->ActorToWorld();
     FVector CenterOffset = FVector::ZeroVector;
     if ( !ConvertLandscapeDataToHeightfieldData(
@@ -1119,6 +1128,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
         // 2. Convert unreal uint8 values to floats
         // If the layer came from Houdini, additional info might have been stored in the DebugColor to convert the data back to float
         HAPI_VolumeInfo CurrentLayerVolumeInfo;
+        FHoudiniApi::VolumeInfo_Init(&CurrentLayerVolumeInfo);
         TArray < float > CurrentLayerFloatData;
         if ( !ConvertLandscapeLayerDataToHeightfieldData(
             CurrentLayerIntData, XSize, YSize, LayerUsageDebugColor,
@@ -1197,7 +1207,8 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
     }
 
     HAPI_TransformEuler HAPIObjectTransform;
-    FMemory::Memzero< HAPI_TransformEuler >( HAPIObjectTransform );
+    FHoudiniApi::TransformEuler_Init(&HAPIObjectTransform);
+    //FMemory::Memzero< HAPI_TransformEuler >( HAPIObjectTransform );
     LandscapeTransform.SetScale3D(FVector::OneVector);    
     FHoudiniEngineUtils::TranslateUnrealTransform( LandscapeTransform, HAPIObjectTransform );
     HAPIObjectTransform.position[1] = 0.0f;
@@ -1258,7 +1269,8 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
 
     // Set the HF's parent OBJ's tranform to the Landscape's transform
     HAPI_TransformEuler HAPIObjectTransform;
-    FMemory::Memzero< HAPI_TransformEuler >( HAPIObjectTransform );
+    FHoudiniApi::TransformEuler_Init(&HAPIObjectTransform);
+    //FMemory::Memzero< HAPI_TransformEuler >( HAPIObjectTransform );
     LandscapeTransform.SetScale3D( FVector::OneVector );
     FHoudiniEngineUtils::TranslateUnrealTransform( LandscapeTransform, HAPIObjectTransform );
     HAPIObjectTransform.position[ 1 ] = 0.0f;
@@ -1309,6 +1321,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
     //--------------------------------------------------------------------------------------------------
     TArray<float> HeightfieldFloatValues;
     HAPI_VolumeInfo HeightfieldVolumeInfo;
+    FHoudiniApi::VolumeInfo_Init(&HeightfieldVolumeInfo);
     FTransform LandscapeComponentTransform = LandscapeComponent->GetComponentTransform();
 
     FVector CenterOffset = FVector::ZeroVector;
@@ -1401,6 +1414,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
         // 2. Convert unreal uint8 to float
         // If the layer came from Houdini, additional info might have been stored in the DebugColor
         HAPI_VolumeInfo CurrentLayerVolumeInfo;
+        FHoudiniApi::VolumeInfo_Init(&CurrentLayerVolumeInfo);
         TArray < float > CurrentLayerFloatData;
         if ( !ConvertLandscapeLayerDataToHeightfieldData(
             CurrentLayerIntData, XSize, YSize, LayerUsageDebugColor,
@@ -1785,7 +1799,8 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
     // 2. Convert the Unreal Transform to a HAPI_transform
     //--------------------------------------------------------------------------------------------------
     HAPI_Transform HapiTransform;
-    FMemory::Memzero< HAPI_Transform >( HapiTransform );
+    FHoudiniApi::Transform_Init(&HapiTransform);
+    //FMemory::Memzero< HAPI_Transform >( HapiTransform );
     {
         FQuat Rotation = LandscapeTransform.GetRotation();
         if ( Rotation != FQuat::Identity )
@@ -1972,13 +1987,15 @@ FHoudiniLandscapeUtils::SetHeighfieldData(
 
     // Read the geo/part/volume info from the volume node
     HAPI_GeoInfo GeoInfo;
-    FMemory::Memset< HAPI_GeoInfo >(GeoInfo, 0);
+    FHoudiniApi::GeoInfo_Init(&GeoInfo);
+    //FMemory::Memset< HAPI_GeoInfo >(GeoInfo, 0);
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(
         FHoudiniEngine::Get().GetSession(),
         VolumeNodeId, &GeoInfo), false);
 
     HAPI_PartInfo PartInfo;
-    FMemory::Memset< HAPI_PartInfo >(PartInfo, 0);
+    FHoudiniApi::PartInfo_Init(&PartInfo);
+    //FMemory::Memset< HAPI_PartInfo >(PartInfo, 0);
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPartInfo(
         FHoudiniEngine::Get().GetSession(),
         GeoInfo.nodeId, PartId, &PartInfo), false);
@@ -2031,6 +2048,7 @@ bool
 FHoudiniLandscapeUtils::DestroyLandscapeAssetNode( HAPI_NodeId& ConnectedAssetId, TArray<HAPI_NodeId>& CreatedInputAssetIds )
 {
     HAPI_AssetInfo NodeAssetInfo;
+    FHoudiniApi::AssetInfo_Init(&NodeAssetInfo);
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
         FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &NodeAssetInfo ), false );
 
@@ -2068,6 +2086,7 @@ FHoudiniLandscapeUtils::DestroyLandscapeAssetNode( HAPI_NodeId& ConnectedAssetId
     {
         // Get the merge node info
         HAPI_NodeInfo NodeInfo;
+        FHoudiniApi::NodeInfo_Init(&NodeInfo);
         HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
             FHoudiniEngine::Get().GetSession(), MergeNodeId, &NodeInfo ), false );
 
@@ -2359,7 +2378,8 @@ bool FHoudiniLandscapeUtils::AddLandscapePositionAttribute( const HAPI_NodeId& N
 
     // Create point attribute info containing positions.    
     HAPI_AttributeInfo AttributeInfoPointPosition;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointPosition );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoPointPosition);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointPosition );
     AttributeInfoPointPosition.count = VertexCount;
     AttributeInfoPointPosition.tupleSize = 3;
     AttributeInfoPointPosition.exists = true;
@@ -2387,7 +2407,8 @@ bool FHoudiniLandscapeUtils::AddLandscapeNormalAttribute( const HAPI_NodeId& Nod
         return false;
 
     HAPI_AttributeInfo AttributeInfoPointNormal;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointNormal );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoPointNormal);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointNormal );
     AttributeInfoPointNormal.count = VertexCount;
     AttributeInfoPointNormal.tupleSize = 3;
     AttributeInfoPointNormal.exists = true;
@@ -2414,7 +2435,8 @@ bool FHoudiniLandscapeUtils::AddLandscapeUVAttribute( const HAPI_NodeId& NodeId,
         return false;
 
     HAPI_AttributeInfo AttributeInfoPointUV;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointUV );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoPointUV);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointUV );
     AttributeInfoPointUV.count = VertexCount;
     AttributeInfoPointUV.tupleSize = 3;
     AttributeInfoPointUV.exists = true;
@@ -2441,7 +2463,8 @@ bool FHoudiniLandscapeUtils::AddLandscapeComponentVertexIndicesAttribute( const 
         return false;
 
     HAPI_AttributeInfo AttributeInfoPointLandscapeComponentVertexIndices;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointLandscapeComponentVertexIndices );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoPointLandscapeComponentVertexIndices);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointLandscapeComponentVertexIndices );
     AttributeInfoPointLandscapeComponentVertexIndices.count = VertexCount;
     AttributeInfoPointLandscapeComponentVertexIndices.tupleSize = 2;
     AttributeInfoPointLandscapeComponentVertexIndices.exists = true;
@@ -2472,7 +2495,8 @@ bool FHoudiniLandscapeUtils::AddLandscapeComponentNameAttribute( const HAPI_Node
 
     // Create point attribute containing landscape component name.
     HAPI_AttributeInfo AttributeInfoPointLandscapeComponentNames;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointLandscapeComponentNames );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoPointLandscapeComponentNames);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointLandscapeComponentNames );
     AttributeInfoPointLandscapeComponentNames.count = VertexCount;
     AttributeInfoPointLandscapeComponentNames.tupleSize = 1;
     AttributeInfoPointLandscapeComponentNames.exists = true;
@@ -2500,7 +2524,8 @@ bool FHoudiniLandscapeUtils::AddLandscapeLightmapColorAttribute( const HAPI_Node
     int32 VertexCount = LandscapeLightmapValues.Num();
 
     HAPI_AttributeInfo AttributeInfoPointLightmapColor;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointLightmapColor );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoPointLightmapColor);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointLightmapColor );
     AttributeInfoPointLightmapColor.count = VertexCount;
     AttributeInfoPointLightmapColor.tupleSize = 4;
     AttributeInfoPointLightmapColor.exists = true;
@@ -2648,7 +2673,8 @@ bool FHoudiniLandscapeUtils::AddLandscapeMeshIndicesAndMaterialsAttribute(
 
             // Marshall in override primitive material names.
             HAPI_AttributeInfo AttributeInfoPrimitiveMaterial;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPrimitiveMaterial );
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfoPrimitiveMaterial);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPrimitiveMaterial );
             AttributeInfoPrimitiveMaterial.count = FaceMaterials.Num();
             AttributeInfoPrimitiveMaterial.tupleSize = 1;
             AttributeInfoPrimitiveMaterial.exists = true;
@@ -2679,7 +2705,8 @@ bool FHoudiniLandscapeUtils::AddLandscapeMeshIndicesAndMaterialsAttribute(
 
             // Marshall in override primitive material hole names.
             HAPI_AttributeInfo AttributeInfoPrimitiveMaterialHole;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPrimitiveMaterialHole );
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfoPrimitiveMaterialHole);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPrimitiveMaterialHole );
             AttributeInfoPrimitiveMaterialHole.count = FaceHoleMaterials.Num();
             AttributeInfoPrimitiveMaterialHole.tupleSize = 1;
             AttributeInfoPrimitiveMaterialHole.exists = true;
@@ -2707,7 +2734,8 @@ bool FHoudiniLandscapeUtils::AddLandscapeTileAttribute(
     const HAPI_NodeId& NodeId, const HAPI_PartId& PartId, const int32& TileIdx )
 {
     HAPI_AttributeInfo AttributeInfoTileIndex;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoTileIndex );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoTileIndex);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoTileIndex );
     AttributeInfoTileIndex.count = 1;
     AttributeInfoTileIndex.tupleSize = 1;
     AttributeInfoTileIndex.exists = true;
@@ -2735,7 +2763,8 @@ bool FHoudiniLandscapeUtils::AddLandscapeComponentExtentAttributes(
 {
     // Create an AttributeInfo
     HAPI_AttributeInfo AttributeInfo;
-    FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfo);
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+    //FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfo);
     AttributeInfo.count = 1;
     AttributeInfo.tupleSize = 1;
     AttributeInfo.exists = true;
@@ -2799,7 +2828,8 @@ bool FHoudiniLandscapeUtils::GetLandscapeComponentExtentAttributes(
 
     // Create an AttributeInfo
     HAPI_AttributeInfo AttributeInfo;
-    FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfo);
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+    //FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfo);
 
     // Get MinX
     TArray<int32> IntData;
@@ -2884,7 +2914,8 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
         bool bCreateLandscapeStreamingProxy = false;
         TArray<int32> IntData;
         HAPI_AttributeInfo AttributeInfo;
-        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfo);
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+        //FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfo);
         if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
             CurrentHeightfield->AssetId, CurrentHeightfield->ObjectId,
             CurrentHeightfield->GeoId, CurrentHeightfield->PartId,
@@ -3216,6 +3247,8 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                 // Extract the layer's float data from the HF
                 TArray< float > FloatLayerData;
                 HAPI_VolumeInfo LayerVolumeInfo;
+                FHoudiniApi::VolumeInfo_Init(&LayerVolumeInfo);
+
                 float LayerMin = 0;
                 float LayerMax = 0;
                 if (!FHoudiniLandscapeUtils::GetHeightfieldData(*LayerGeoPartObject, FloatLayerData, LayerVolumeInfo, LayerMin, LayerMax))
@@ -3435,7 +3468,9 @@ void FHoudiniLandscapeUtils::GetHeightFieldLandscapeMaterials(
 
     TArray< FString > Materials;
     HAPI_AttributeInfo AttribMaterials;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribMaterials, 0 );
+    FHoudiniApi::AttributeInfo_Init(&AttribMaterials);
+    //FMemory::Memset< HAPI_AttributeInfo >( AttribMaterials, 0 );
+
     // First, look for landscape material
     {
         FHoudiniEngineUtils::HapiGetAttributeDataAsString(
@@ -3468,7 +3503,8 @@ void FHoudiniLandscapeUtils::GetHeightFieldLandscapeMaterials(
     }
 
     Materials.Empty();
-    FMemory::Memset< HAPI_AttributeInfo >( AttribMaterials, 0 );
+    FHoudiniApi::AttributeInfo_Init(&AttribMaterials);
+    //FMemory::Memset< HAPI_AttributeInfo >( AttribMaterials, 0 );
     
     // Then, for the hole_material
     {
@@ -3705,7 +3741,8 @@ bool FHoudiniLandscapeUtils::AddLandscapeMaterialAttributesToVolume(
 
         // Marshall in material names.
         HAPI_AttributeInfo AttributeInfoMaterial;
-        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoMaterial);
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfoMaterial);
+        //FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoMaterial);
         AttributeInfoMaterial.count = 1;
         AttributeInfoMaterial.tupleSize = 1;
         AttributeInfoMaterial.exists = true;
@@ -3752,7 +3789,8 @@ bool FHoudiniLandscapeUtils::AddLandscapeMaterialAttributesToVolume(
 
         // Marshall in material names.
         HAPI_AttributeInfo AttributeInfoMaterial;
-        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoMaterial);
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfoMaterial);
+        //FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoMaterial);
         AttributeInfoMaterial.count = 1;
         AttributeInfoMaterial.tupleSize = 1;
         AttributeInfoMaterial.exists = true;
@@ -3817,7 +3855,8 @@ bool FHoudiniLandscapeUtils::AddLandscapeGlobalMaterialAttribute( const HAPI_Nod
     }
 
     HAPI_AttributeInfo AttributeInfoDetailMaterial;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoDetailMaterial );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoDetailMaterial);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoDetailMaterial );
     AttributeInfoDetailMaterial.count = 1;
     AttributeInfoDetailMaterial.tupleSize = 1;
     AttributeInfoDetailMaterial.exists = true;
@@ -3853,7 +3892,8 @@ bool FHoudiniLandscapeUtils::AddLandscapeGlobalMaterialAttribute( const HAPI_Nod
     }
 
     HAPI_AttributeInfo AttributeInfoDetailMaterialHole;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoDetailMaterialHole );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoDetailMaterialHole);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoDetailMaterialHole );
     AttributeInfoDetailMaterialHole.count = 1;
     AttributeInfoDetailMaterialHole.tupleSize = 1;
     AttributeInfoDetailMaterialHole.exists = true;
@@ -4224,7 +4264,8 @@ FHoudiniLandscapeUtils::IsUnitLandscapeLayer(const FHoudiniGeoPartObject& LayerG
         return false;
 
     // Check the value
-    HAPI_AttributeInfo AttribInfoUnitLayer{};
+    HAPI_AttributeInfo AttribInfoUnitLayer;
+    FHoudiniApi::AttributeInfo_Init(&AttribInfoUnitLayer);
     TArray< int32 > AttribValues;
     FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
         LayerGeoPartObject, "unreal_unit_landscape_layer", AttribInfoUnitLayer, AttribValues, 1, Owner);

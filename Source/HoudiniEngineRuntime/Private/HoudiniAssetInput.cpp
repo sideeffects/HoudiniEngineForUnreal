@@ -43,6 +43,7 @@
 #include "Internationalization/Internationalization.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "EngineUtils.h" // for TActorIterator<>
+
 #if WITH_EDITOR
     #include "UnrealEdGlobals.h"
     #include "Editor/UnrealEdEngine.h"
@@ -338,10 +339,9 @@ UHoudiniAssetInput::Create( UObject * InPrimaryObject, int32 InInputIndex, HAPI_
 
     // Get name of this input.
     HAPI_StringHandle InputStringHandle;
-    if ( FHoudiniApi::GetNodeInputName(
-        FHoudiniEngine::Get().GetSession(),
-        InNodeId,
-        InInputIndex, &InputStringHandle ) != HAPI_RESULT_SUCCESS )
+    if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetNodeInputName(
+            FHoudiniEngine::Get().GetSession(),
+            InNodeId, InInputIndex, &InputStringHandle ) )
     {
         return HoudiniAssetInput;
     }
@@ -1992,10 +1992,12 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
             UpdateWorldOutlinerTransforms( OutlinerInput );
 
             HAPI_TransformEuler HapiTransform;
-            FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
+            FHoudiniApi::TransformEuler_Init(&HapiTransform);
+            //FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
             FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerInput.ComponentTransform, HapiTransform );
 
             HAPI_NodeInfo LocalAssetNodeInfo;
+            FHoudiniApi::NodeInfo_Init(&LocalAssetNodeInfo);
             const HAPI_Result LocalResult = FHoudiniApi::GetNodeInfo(
                 FHoudiniEngine::Get().GetSession(), OutlinerInput.AssetId,
                 &LocalAssetNodeInfo);
@@ -2237,6 +2239,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 
     // We need to get the NodeInfo to get the parent id
     HAPI_NodeInfo NodeInfo;
+    FHoudiniApi::NodeInfo_Init(&NodeInfo);
     HOUDINI_CHECK_ERROR_RETURN(
         FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &NodeInfo),
         false);
@@ -2246,7 +2249,8 @@ UHoudiniAssetInput::UpdateInputCurve()
     HoudiniGeoPartObject.bIsCurve = true;
 
     HAPI_AttributeInfo AttributeRefinedCurvePositions;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeRefinedCurvePositions );
+    FHoudiniApi::AttributeInfo_Init(&AttributeRefinedCurvePositions);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeRefinedCurvePositions );
 
     TArray< float > RefinedCurvePositions;
     FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
@@ -2272,10 +2276,13 @@ UHoudiniAssetInput::UpdateInputCurve()
 
     TArray< HAPI_ParmInfo > ParmInfos;
     ParmInfos.SetNumUninitialized( NodeInfo.parmCount );
+    for (int32 Idx = 0; Idx < ParmInfos.Num(); Idx++)
+        FHoudiniApi::ParmInfo_Init(&(ParmInfos[Idx]));
+
     HOUDINI_CHECK_ERROR_RETURN(
         FHoudiniApi::GetParameters(
-            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &ParmInfos[ 0 ], 0, NodeInfo.parmCount ),
-        false);
+            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 
+            &ParmInfos[ 0 ], 0, NodeInfo.parmCount ), false);
 
     // Retrieve integer values for this asset.
     TArray< int32 > ParmValueInts;
@@ -3399,7 +3406,7 @@ UHoudiniAssetInput::UpdateInputOulinerArray()
             // This can happen when a blueprint is updated or recompiled...
             OutlinerInput.TryToUpdateActorPtrFromActorPathName();
         }
-
+        
         if ( !OutlinerInput.ActorPtr.IsValid() )
         {
             // This input has an invalid actor: destroy it and its asset
