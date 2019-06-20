@@ -53,7 +53,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniCookParams
     FHoudiniCookParams(class UHoudiniAssetComponent* HoudiniAssetComponent);
 
     // Helper functions returning the default behavior expected when cooking mesh
-    static EBakeMode GetDefaultStaticMeshesCookMode() { return EBakeMode::CookToTemp; };
+    static EBakeMode GetDefaultStaticMeshesCookMode() { return EBakeMode::Intermediate; };
     // Helper functions returning the default behavior expected when cooking materials or textures
     static EBakeMode GetDefaultMaterialAndTextureCookMode() { return EBakeMode::CookToTemp; };
 
