@@ -75,7 +75,10 @@ enum EHoudiniPluginSerializationVersion
     // -----<new versions can be added before this line>-------------------------------------------------
     // - this needs to be the last line (see note below)
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE_PLUS_ONE,
-    VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION = VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE_PLUS_ONE - 1
+    VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION = VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE_PLUS_ONE - 1,
+
+    // Version 29 is a fix for a serialization issue with UE4.19 / H17.0/16.5, Version 29 is actually version 26 minus the version 24 changes...
+    VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_419_SERIALIZATION_FIX = 29, 
 };
 
 struct FHoudiniCustomSerializationVersion
