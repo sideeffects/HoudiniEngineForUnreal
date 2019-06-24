@@ -63,7 +63,8 @@ FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
     Ar << HoudiniAssetParameterVersion;
 
     Ar << ActorPtr;
-    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_OUTLINER_INPUT_SAVE_ACTOR_PATHNAME )
+    if ( ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_OUTLINER_INPUT_SAVE_ACTOR_PATHNAME )
+        && ( HoudiniAssetParameterVersion != VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_419_SERIALIZATION_FIX ) )
     {
         Ar << ActorPathName;
     }
@@ -1347,7 +1348,8 @@ UHoudiniAssetInput::Serialize( FArchive & Ar )
             InputTransforms[ n ] = FTransform::Identity;
     }
 
-    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INPUT_LANDSCAPE_TRANSFORM )
+    if ( ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INPUT_LANDSCAPE_TRANSFORM )
+        && ( HoudiniAssetParameterVersion != VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_419_SERIALIZATION_FIX ) )
         Ar << InputLandscapeTransform;
 }
 
