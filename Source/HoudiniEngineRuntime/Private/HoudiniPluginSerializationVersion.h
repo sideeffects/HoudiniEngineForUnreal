@@ -70,6 +70,11 @@ enum EHoudiniPluginSerializationVersion
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_PARAMETERS_NOSWAP = 23,
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_FILE_PARAM_READ_ONLY = 25,
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_OUTLINER_INSTANCE_INDEX = 26,
+    VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_419_SERIALIZATION_FIX = 29,
+
+    // Due to a mssing serialization version (24)
+    // We should leave this version of the plugin locked to version 29
+    // in order to be able to fix this when upgrading H or UE4 
 
     // -----<new versions can be added before this line>-------------------------------------------------
     // - this needs to be the last line (see note below)
