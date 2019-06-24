@@ -5196,7 +5196,7 @@ UHoudiniAssetComponent::ClearLandscapes()
     for (TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
     {
         ALandscapeProxy * HoudiniLandscape = Iter.Value().Get();
-        if ( !IsValid( HoudiniLandscape ) && !HoudiniLandscape->IsValidLowLevel() )
+        if ( !IsValid( HoudiniLandscape ) || !HoudiniLandscape->IsValidLowLevel() )
             continue;
 
         // Make sure we never destroy an input landscape
