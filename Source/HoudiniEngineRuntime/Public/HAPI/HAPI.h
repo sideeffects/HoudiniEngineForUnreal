@@ -3161,11 +3161,12 @@ HAPI_DECL HAPI_GetInstancedObjectIds( const HAPI_Session * session,
 ///                 ::HAPI_PartInfo::pointCount - @p start. This is the 0th
 ///                 part of the display geo of the instancer object node.
 ///
-HAPI_DECL HAPI_GetInstanceTransforms( const HAPI_Session * session,
-                                      HAPI_NodeId object_node_id,
-                                      HAPI_RSTOrder rst_order,
-                                      HAPI_Transform * transforms_array,
-                                      int start, int length );
+HAPI_DECL_DEPRECATED( 3.2.42, 18.0.150 )
+HAPI_GetInstanceTransforms( const HAPI_Session * session,
+                            HAPI_NodeId object_node_id,
+                            HAPI_RSTOrder rst_order,
+                            HAPI_Transform * transforms_array,
+                            int start, int length );
 
 /// @brief  Fill an array of ::HAPI_Transform structs with the transforms
 ///         of each instance of this instancer object for a given part.
