@@ -1012,24 +1012,49 @@ FHoudiniParameterDetails::CreateWidgetFloat( IDetailCategoryBuilder & LocalDetai
 
     if ( InParam.GetTupleSize() == 3 )
     {
-        Row.ValueWidget.Widget = SNew( SVectorInputBox )
-            .bColorAxisLabels( true )
-            .X( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject( &InParam, &UHoudiniAssetParameterFloat::GetValue, 0 ) ) )
-            .Y( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject( &InParam, &UHoudiniAssetParameterFloat::GetValue, SwappedAxis3Vector ? 2 : 1 ) ) )
-            .Z( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject( &InParam, &UHoudiniAssetParameterFloat::GetValue, SwappedAxis3Vector ? 1 : 2 ) ) )
-            .OnXCommitted( FOnFloatValueCommitted::CreateLambda(
-                [=]( float Val, ETextCommit::Type TextCommitType ) {
-                MyParam->SetValue( Val, 0, true, true );
-            } ) )
-            .OnYCommitted( FOnFloatValueCommitted::CreateLambda(
-                [=]( float Val, ETextCommit::Type TextCommitType ) {
-                MyParam->SetValue( Val, SwappedAxis3Vector ? 2 : 1, true, true );
-            } ) )
-            .OnZCommitted( FOnFloatValueCommitted::CreateLambda(
-                [=]( float Val, ETextCommit::Type TextCommitType ) {
-                MyParam->SetValue( Val, SwappedAxis3Vector ? 1 : 2, true, true );
-            } ) )
-            .TypeInterface(paramTypeInterface);
+        TSharedRef< SVerticalBox > VerticalBox = SNew(SVerticalBox);
+
+        VerticalBox->AddSlot().Padding(2, 2, 5, 2)
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().FillWidth(1.0f)
+            [    
+                SNew(SVectorInputBox)
+                .bColorAxisLabels(true)
+                .X(TAttribute< TOptional< float > >::Create(TAttribute< TOptional< float > >::FGetter::CreateUObject(&InParam, &UHoudiniAssetParameterFloat::GetValue, 0)))
+                .Y(TAttribute< TOptional< float > >::Create(TAttribute< TOptional< float > >::FGetter::CreateUObject(&InParam, &UHoudiniAssetParameterFloat::GetValue, SwappedAxis3Vector ? 2 : 1)))
+                .Z(TAttribute< TOptional< float > >::Create(TAttribute< TOptional< float > >::FGetter::CreateUObject(&InParam, &UHoudiniAssetParameterFloat::GetValue, SwappedAxis3Vector ? 1 : 2)))
+                .OnXCommitted(FOnFloatValueCommitted::CreateLambda(
+                    [=](float Val, ETextCommit::Type TextCommitType) {
+                    MyParam->SetValue(Val, 0, true, true);
+                }))
+                .OnYCommitted(FOnFloatValueCommitted::CreateLambda(
+                    [=](float Val, ETextCommit::Type TextCommitType) {
+                    MyParam->SetValue(Val, SwappedAxis3Vector ? 2 : 1, true, true);
+                }))
+                .OnZCommitted(FOnFloatValueCommitted::CreateLambda(
+                    [=](float Val, ETextCommit::Type TextCommitType) {
+                    MyParam->SetValue(Val, SwappedAxis3Vector ? 1 : 2, true, true);
+                }))
+                .TypeInterface(paramTypeInterface)
+            ]
+            + SHorizontalBox::Slot().AutoWidth().Padding(2.0f, 0.0f).VAlign(VAlign_Center)
+            [
+                SNew(SButton)
+                .ToolTipText(LOCTEXT("ResetToBase", "Reset to default"))
+                .ButtonStyle(FEditorStyle::Get(), "NoBorder")
+                .ContentPadding(0)
+                .Visibility(EVisibility::Visible)
+                .OnClicked(FOnClicked::CreateUObject(
+                    &InParam, &UHoudiniAssetParameter::OnRevertParmToDefault, -1))
+                [
+                    SNew(SImage)
+                    .Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+                ]
+            ]
+        ];
+
+        Row.ValueWidget.Widget = VerticalBox;
     }
     else
     {
@@ -1041,34 +1066,52 @@ FHoudiniParameterDetails::CreateWidgetFloat( IDetailCategoryBuilder & LocalDetai
 
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
             [
-                SAssignNew( NumericEntryBox, SNumericEntryBox< float > )
-                .AllowSpin( true )
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().FillWidth(1.0f)
+                [
+                    SAssignNew( NumericEntryBox, SNumericEntryBox< float > )
+                    .AllowSpin( true )
 
-                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 
-                .MinValue( InParam.ValueMin )
-                .MaxValue( InParam.ValueMax )
+                    .MinValue( InParam.ValueMin )
+                    .MaxValue( InParam.ValueMax )
 
-                .MinSliderValue( InParam.ValueUIMin )
-                .MaxSliderValue( InParam.ValueUIMax )
+                    .MinSliderValue( InParam.ValueUIMin )
+                    .MaxSliderValue( InParam.ValueUIMax )
 
-                .Value( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject(
-                    &InParam, &UHoudiniAssetParameterFloat::GetValue, Idx ) ) )
-                .OnValueChanged( SNumericEntryBox< float >::FOnValueChanged::CreateLambda(
-                    [=]( float Val ) {
-                    MyParam->SetValue( Val, Idx, false, false );
-                } ) )
-                .OnValueCommitted( SNumericEntryBox< float >::FOnValueCommitted::CreateLambda(
-                    [=]( float Val, ETextCommit::Type TextCommitType ) {
-                    MyParam->SetValue( Val, Idx, true, true );
-                } ) )
-                .OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
-                    &InParam, &UHoudiniAssetParameterFloat::OnSliderMovingBegin, Idx ) )
-                .OnEndSliderMovement( SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
-                    &InParam, &UHoudiniAssetParameterFloat::OnSliderMovingFinish, Idx ) )
+                    .Value( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                        &InParam, &UHoudiniAssetParameterFloat::GetValue, Idx ) ) )
+                    .OnValueChanged( SNumericEntryBox< float >::FOnValueChanged::CreateLambda(
+                        [=]( float Val ) {
+                        MyParam->SetValue( Val, Idx, false, false );
+                    } ) )
+                    .OnValueCommitted( SNumericEntryBox< float >::FOnValueCommitted::CreateLambda(
+                        [=]( float Val, ETextCommit::Type TextCommitType ) {
+                        MyParam->SetValue( Val, Idx, true, true );
+                    } ) )
+                    .OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
+                        &InParam, &UHoudiniAssetParameterFloat::OnSliderMovingBegin, Idx ) )
+                    .OnEndSliderMovement( SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
+                        &InParam, &UHoudiniAssetParameterFloat::OnSliderMovingFinish, Idx ) )
 
-                .SliderExponent( 1.0f )
-                .TypeInterface( paramTypeInterface )
+                    .SliderExponent( 1.0f )
+                    .TypeInterface( paramTypeInterface )
+                ]
+                + SHorizontalBox::Slot().AutoWidth().Padding(2.0f, 0.0f).VAlign(VAlign_Center)
+                [
+                    SNew(SButton)
+                    .ToolTipText(LOCTEXT("ResetToBase", "Reset to default"))
+                    .ButtonStyle(FEditorStyle::Get(), "NoBorder")
+                    .ContentPadding(0)
+                    .Visibility(EVisibility::Visible)
+                    .OnClicked(FOnClicked::CreateUObject(
+                    &InParam, &UHoudiniAssetParameter::OnRevertParmToDefault, Idx))
+                    [
+                        SNew(SImage)
+                        .Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+                    ]
+                ]
             ];
         }
 
@@ -1104,37 +1147,55 @@ FHoudiniParameterDetails::CreateWidgetInt( IDetailCategoryBuilder & LocalDetailC
         TSharedPtr< SNumericEntryBox< int32 > > NumericEntryBox;
 
         VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().FillWidth(1.0f)
             [
                 SAssignNew( NumericEntryBox, SNumericEntryBox< int32 > )
                 .AllowSpin( true )
 
-            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 
-            .MinValue( InParam.ValueMin )
-            .MaxValue( InParam.ValueMax )
+                .MinValue( InParam.ValueMin )
+                .MaxValue( InParam.ValueMax )
 
-            .MinSliderValue( InParam.ValueUIMin )
-            .MaxSliderValue( InParam.ValueUIMax )
+                .MinSliderValue( InParam.ValueUIMin )
+                .MaxSliderValue( InParam.ValueUIMax )
 
-            .Value( TAttribute< TOptional< int32 > >::Create(
-                TAttribute< TOptional< int32 > >::FGetter::CreateUObject(
-                    &InParam, &UHoudiniAssetParameterInt::GetValue, Idx ) ) )
-            .OnValueChanged( SNumericEntryBox< int32 >::FOnValueChanged::CreateLambda(
-                [=]( int32 Val ) {
-                MyParam->SetValue( Val, Idx, false, false );
-            } ) )
-            .OnValueCommitted( SNumericEntryBox< int32 >::FOnValueCommitted::CreateLambda(
-                [=]( float Val, ETextCommit::Type TextCommitType ) {
-                MyParam->SetValue( Val, Idx, true, true );
-            } ) )
-            .OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
-                &InParam, &UHoudiniAssetParameterInt::OnSliderMovingBegin, Idx ) )
-            .OnEndSliderMovement( SNumericEntryBox< int32 >::FOnValueChanged::CreateUObject(
-                &InParam, &UHoudiniAssetParameterInt::OnSliderMovingFinish, Idx ) )
+                .Value( TAttribute< TOptional< int32 > >::Create(
+                    TAttribute< TOptional< int32 > >::FGetter::CreateUObject(
+                        &InParam, &UHoudiniAssetParameterInt::GetValue, Idx ) ) )
+                .OnValueChanged( SNumericEntryBox< int32 >::FOnValueChanged::CreateLambda(
+                    [=]( int32 Val ) {
+                    MyParam->SetValue( Val, Idx, false, false );
+                } ) )
+                .OnValueCommitted( SNumericEntryBox< int32 >::FOnValueCommitted::CreateLambda(
+                    [=]( float Val, ETextCommit::Type TextCommitType ) {
+                    MyParam->SetValue( Val, Idx, true, true );
+                } ) )
+                .OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
+                    &InParam, &UHoudiniAssetParameterInt::OnSliderMovingBegin, Idx ) )
+                .OnEndSliderMovement( SNumericEntryBox< int32 >::FOnValueChanged::CreateUObject(
+                    &InParam, &UHoudiniAssetParameterInt::OnSliderMovingFinish, Idx ) )
 
-            .SliderExponent( 1.0f )
-            .TypeInterface(paramTypeInterface)
-            ];
+                .SliderExponent( 1.0f )
+                .TypeInterface(paramTypeInterface)
+            ]
+            + SHorizontalBox::Slot().AutoWidth().Padding(2.0f, 0.0f).VAlign(VAlign_Center)
+            [
+                SNew(SButton)
+                .ToolTipText(LOCTEXT("ResetToBase", "Reset to default"))
+                .ButtonStyle(FEditorStyle::Get(), "NoBorder")
+                .ContentPadding(0)
+                .Visibility(EVisibility::Visible)
+                .OnClicked(FOnClicked::CreateUObject(
+                    &InParam, &UHoudiniAssetParameter::OnRevertParmToDefault, Idx))
+                [
+                    SNew(SImage)
+                    .Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+                ]
+            ]
+        ];
 
         if ( NumericEntryBox.IsValid() )
             NumericEntryBox->SetEnabled( !InParam.bIsDisabled );
@@ -1489,24 +1550,26 @@ FHoudiniParameterDetails::Helper_CreateCustomActorPickerWidget( UHoudiniAssetInp
 
     MenuBuilder.BeginSection( NAME_None, HeadingText );
     {
-        TSharedPtr< SWidget > MenuContent;
+        
 
         FSceneOutlinerModule & SceneOutlinerModule =
-            FModuleManager::Get().LoadModuleChecked< FSceneOutlinerModule >( TEXT( "SceneOutliner" ) );
+            FModuleManager::Get().LoadModuleChecked< FSceneOutlinerModule >(TEXT("SceneOutliner"));
 
         SceneOutliner::FInitializationOptions InitOptions;
-        InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
-        InitOptions.Filters->AddFilterPredicate( ActorFilter );
-        InitOptions.bFocusSearchBoxWhenOpened = true;
-        InitOptions.bShowCreateNewFolder = false;
+        {
+            InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
+            InitOptions.Filters->AddFilterPredicate(ActorFilter);
+            InitOptions.bFocusSearchBoxWhenOpened = true;
+            InitOptions.bShowCreateNewFolder = false;
 
-        // Add the gutter so we can change the selection's visibility
-        InitOptions.ColumnMap.Add(SceneOutliner::FBuiltInColumnTypes::Gutter(), SceneOutliner::FColumnInfo(SceneOutliner::EColumnVisibility::Visible, 0));
-        InitOptions.ColumnMap.Add(SceneOutliner::FBuiltInColumnTypes::Label(), SceneOutliner::FColumnInfo(SceneOutliner::EColumnVisibility::Visible, 10));
-        InitOptions.ColumnMap.Add(SceneOutliner::FBuiltInColumnTypes::ActorInfo(), SceneOutliner::FColumnInfo(SceneOutliner::EColumnVisibility::Visible, 20));
+            // Add the gutter so we can change the selection's visibility
+            InitOptions.ColumnMap.Add(SceneOutliner::FBuiltInColumnTypes::Gutter(), SceneOutliner::FColumnInfo(SceneOutliner::EColumnVisibility::Visible, 0));
+            InitOptions.ColumnMap.Add(SceneOutliner::FBuiltInColumnTypes::Label(), SceneOutliner::FColumnInfo(SceneOutliner::EColumnVisibility::Visible, 10));
+            InitOptions.ColumnMap.Add(SceneOutliner::FBuiltInColumnTypes::ActorInfo(), SceneOutliner::FColumnInfo(SceneOutliner::EColumnVisibility::Visible, 20));
+        }
 
         static const FVector2D SceneOutlinerWindowSize( 350.0f, 200.0f );
-        MenuContent =
+        TSharedRef< SWidget > MenuWidget =
             SNew( SBox )
             .WidthOverride( SceneOutlinerWindowSize.X )
             .HeightOverride( SceneOutlinerWindowSize.Y )
@@ -1515,12 +1578,13 @@ FHoudiniParameterDetails::Helper_CreateCustomActorPickerWidget( UHoudiniAssetInp
                 .BorderImage( FEditorStyle::GetBrush( "Menu.Background" ) )
                 [
                     SceneOutlinerModule.CreateSceneOutliner(
-                        InitOptions, FOnActorPicked::CreateUObject(
+                        InitOptions,
+                        FOnActorPicked::CreateUObject(
                             &InParam, &UHoudiniAssetInput::OnActorSelected ) )
                 ]
             ];
 
-        MenuBuilder.AddWidget( MenuContent.ToSharedRef(), FText::GetEmpty(), true );
+        MenuBuilder.AddWidget(MenuWidget, FText::GetEmpty(), true );
     }
     MenuBuilder.EndSection();
 

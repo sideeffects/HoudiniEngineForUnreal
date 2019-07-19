@@ -296,6 +296,13 @@ public:
         /** Return true if global setting scale factors are different from the ones used for this component. **/
         bool CheckGlobalSettingScaleFactors() const;
 
+        // override to prevent automatic reset to default of LightmapType in UPrimitiveComponent::PostEditChangeProperty ( @ line 917 )
+        virtual ELightMapInteractionType GetStaticLightingType() const override;
+
+        // copy all of the properties that normally gets propagated to a given component. 
+        // See UHoudiniAssetComponent::PostEditChangeProperty and UHoudiniMeshSplitInstancerComponent::SetInstances
+        void CopyComponentPropertiesTo(UPrimitiveComponent * pPrimComp);
+
     public:
 
         /** Locate static mesh by geo part object name. By default will use substring matching. **/
@@ -305,7 +312,8 @@ public:
             bool bSubstring = true ) const;
 
         /** Locate static mesh by geo part object id. **/
-        bool LocateStaticMeshes( int32 ObjectToInstanceId, TArray< FHoudiniGeoPartObject > & InOutObjectsToInstance ) const;
+        bool LocateStaticMeshes( int32 ObjectToInstanceId,
+            TArray< FHoudiniGeoPartObject > & InOutObjectsToInstance ) const;
 
         /** Locate static mesh for a given geo part. **/
         UStaticMesh * LocateStaticMesh( const FHoudiniGeoPartObject & HoudiniGeoPartObject, const bool& ExactSearch = true ) const;
@@ -316,13 +324,21 @@ public:
         UStaticMeshComponent * LocateStaticMeshComponent( const UStaticMesh * StaticMesh ) const;
 
         /** Locate instanced static mesh components for given static mesh. **/
-        bool LocateInstancedStaticMeshComponents( const UStaticMesh * StaticMesh, TArray< UInstancedStaticMeshComponent * > & Components ) const;
+        bool LocateInstancedStaticMeshComponents( 
+            const UStaticMesh * StaticMesh,
+            TArray< UInstancedStaticMeshComponent * > & Components ) const;
 
         /** Locate geo part object for given static mesh. Reverse map search. **/
         FHoudiniGeoPartObject LocateGeoPartObject( UStaticMesh * StaticMesh ) const;
 
         /** Locate spline component for a given geo part. **/
-        UHoudiniSplineComponent * LocateSplineComponent(const FHoudiniGeoPartObject & HoudiniGeoPartObject) const;
+        UHoudiniSplineComponent * LocateSplineComponent(
+            const FHoudiniGeoPartObject & HoudiniGeoPartObject ) const;
+
+        // Allow searching of geopart in array by names and not guid
+        UStaticMesh * LocateStaticMeshByNames(
+            const FHoudiniGeoPartObject & HoudiniGeoPartObject,
+            const TMap< FHoudiniGeoPartObject, UStaticMesh * >& FindInMap) const;
 
         /** Return true if this component is in playmode. **/
         bool IsPIEActive() const;
@@ -577,8 +593,9 @@ public:
 
         /** Delete Static mesh resources. This will free static meshes and corresponding components. **/
         void ReleaseObjectGeoPartResources(
-            TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshMap, 
-            bool bDeletePackages = false );
+            TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshMap,
+            bool bDeletePackages = false,
+            TMap< FHoudiniGeoPartObject, UStaticMesh * > * pKeepIfContainedIn = nullptr);
 
         /** Return true if given object is referenced locally only, by objects generated and owned by this component. **/
         bool IsObjectReferencedLocally( UStaticMesh * StaticMesh, FReferencerInformationList & Referencers ) const;
