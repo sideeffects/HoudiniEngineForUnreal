@@ -60,6 +60,7 @@ FHoudiniEngine::FHoudiniEngine()
     , HoudiniEngineSchedulerThread( nullptr )
     , HoudiniEngineScheduler( nullptr )
     , EnableCookingGlobal( true )
+    , FirstSessionCreated( false )
 {
     Session.type = HAPI_SESSION_MAX;
     Session.id = -1;
@@ -225,30 +226,8 @@ FHoudiniEngine::StartupModule()
     // Build and running versions match, we can perform HAPI initialization.
     if ( FHoudiniApi::IsHAPIInitialized() )
     {
-        const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-
-        HAPI_Session* SessionPtr = &Session;
-        if ( !StartSession(
-                SessionPtr,
-                HoudiniRuntimeSettings->bStartAutomaticServer,
-                HoudiniRuntimeSettings->AutomaticServerTimeout,
-                HoudiniRuntimeSettings->SessionType,
-                HoudiniRuntimeSettings->ServerPipeName,
-                HoudiniRuntimeSettings->ServerPort,
-                HoudiniRuntimeSettings->ServerHost ) )
-        {
-            if ( !HoudiniRuntimeSettings->bStartAutomaticServer )
-            {
-                HOUDINI_LOG_ERROR( TEXT( "Failed to connect to an existing Houdini Engine session. Please check that a Houdini Engine Debugger session or HARS server is running" ) );
-            }
-            else
-            {
-                HOUDINI_LOG_ERROR( TEXT( "Failed to create a Houdini Engine session" ) );
-            }
-        }
-
-        // Now Initialize HAPI with the new session
-        InitializeHAPISession();
+        // We do not automatically try to start a session when starting up the module now.
+        FirstSessionCreated = false;
 
         // Create HAPI scheduler and processing thread.
         HoudiniEngineScheduler = new FHoudiniEngineScheduler();
@@ -256,6 +235,7 @@ FHoudiniEngine::StartupModule()
             HoudiniEngineScheduler, TEXT( "HoudiniTaskCookAsset" ), 0, TPri_Normal );
 
         // Set the default value for pausing houdini engine cooking
+        const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
         EnableCookingGlobal = !HoudiniRuntimeSettings->bPauseCookingOnStart;
     }
 
@@ -456,6 +436,10 @@ FHoudiniEngine::StartSession( HAPI_Session*& SessionPtr,
     const int32& ServerPort,
     const FString& ServerHost )
 {
+    // Indicates that we've tried to start the session once
+    // whether it failed or succeed 
+    FirstSessionCreated = true;
+
     // HAPI needs to be initialized
     if ( !FHoudiniApi::IsHAPIInitialized() )
         return false;
@@ -670,32 +654,6 @@ FHoudiniEngine::RestartSession()
     // Stop the current session if it is still valid
     if ( !StopSession( SessionPtr ) )
         return false;
-    /*
-    // First, try to connect to an existing session
-    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-    if ( !StartSession(
-            SessionPtr, false,
-            HoudiniRuntimeSettings->AutomaticServerTimeout,
-            HoudiniRuntimeSettings->SessionType,
-            HoudiniRuntimeSettings->ServerPipeName,
-            HoudiniRuntimeSettings->ServerPort,
-            HoudiniRuntimeSettings->ServerHost ) )
-    {
-        // We couldnt connect to an existing session
-        // Try to start a new server and connect to it
-        if (!StartSession(
-                SessionPtr, true,
-                HoudiniRuntimeSettings->AutomaticServerTimeout,
-                HoudiniRuntimeSettings->SessionType,
-                HoudiniRuntimeSettings->ServerPipeName,
-                HoudiniRuntimeSettings->ServerPort,
-                HoudiniRuntimeSettings->ServerHost ) )
-        {
-            HOUDINI_LOG_ERROR(TEXT("Failed to restart the Houdini Engine session"));
-            return false;
-        }
-    }
-    */
 
     // Try to reconnect/start a new session
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
@@ -716,6 +674,12 @@ FHoudiniEngine::RestartSession()
         return false;
 
     return true;
+}
+
+bool 
+FHoudiniEngine::GetFirstSessionCreated() const
+{
+    return FirstSessionCreated;
 }
 
 #undef LOCTEXT_NAMESPACE

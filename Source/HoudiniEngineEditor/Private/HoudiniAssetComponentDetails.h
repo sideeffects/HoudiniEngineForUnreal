@@ -127,17 +127,23 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
         /** Handler for bake blueprint action. **/
         FReply OnBakeBlueprint();
 
-        /** Handler for bake blueprint replace action. **/
+        /** Handler for the bake and replace with blueprint action. **/
         FReply OnBakeBlueprintReplace();
 
         /** Handler for bake to actors action **/
         FReply OnBakeToActors();
+
+        /** Handler for the bake and replace with actors action **/
+        FReply OnBakeToActorsReplace();
 
         /** Handler for bake to outliner input action **/
         FReply OnBakeToInput();
 
         /** Handler for bake to foliage action **/
         FReply OnBakeToFoliage();
+        
+        /** Handler for bake and replace with foliage action **/
+        FReply OnBakeToFoliageReplace();
 
         /** Handler for change the bake folder button */
         void OnBakeFolderSelected( const FString& Folder );

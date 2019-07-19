@@ -671,6 +671,12 @@ UHoudiniAssetComponent::SetHoudiniAsset( UHoudiniAsset * InHoudiniAsset )
 
     if ( !bIsPreviewComponent )
     {
+        // If the fist session on the engine was never initialized, do it now
+        if (!FHoudiniEngine::Get().GetFirstSessionCreated())
+        {
+            FHoudiniEngine::Get().RestartSession();
+        }
+
         if ( HoudiniEngine.IsInitialized() )
         {
             if ( !bLoadedComponent )
@@ -857,8 +863,11 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
                     StaticMeshComponent->SetMobility(Mobility);
                     StaticMeshComponent->RegisterComponent();
 
-					// Attach created static mesh component to our Houdini component.
-					StaticMeshComponent->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
+                    // Property propagation: set the new SMC's properties to the HAC's current settings
+                    CopyComponentPropertiesTo(StaticMeshComponent);
+
+                    // Attach created static mesh component to our Houdini component.
+                    StaticMeshComponent->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 
                     // Add to the map of components.
                     StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
@@ -873,6 +882,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
                     StaticMeshComponent->SetVisibility( false );
                     StaticMeshComponent->SetHiddenInGame( true );
                     StaticMeshComponent->SetCollisionProfileName( FName( TEXT( "InvisibleWall" ) ) );
+                    StaticMeshComponent->SetCastShadow(false);
                 }
                 else
                 {
@@ -954,7 +964,8 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources( bool bDeletePackages )
 void
 UHoudiniAssetComponent::ReleaseObjectGeoPartResources(
     TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshMap,
-    bool bDeletePackages )
+    bool bDeletePackages,
+    TMap< FHoudiniGeoPartObject, UStaticMesh * > * pKeepIfContainedIn )
 {
     // Record generated static meshes which we need to delete.
     TArray< UStaticMesh * > StaticMeshesToDelete;
@@ -964,6 +975,17 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(
 
     for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshMap ); Iter; ++Iter )
     {
+        // If we find the new mesh in the existing list, don't destroy the existing static mesh slot
+        if ( pKeepIfContainedIn )
+        {
+            const FHoudiniGeoPartObject& GeoPart = Iter.Key();
+            if (LocateStaticMeshByNames(GeoPart, *pKeepIfContainedIn))
+            {
+                // The old static mesh was found in the new list, no need to destroy it
+                continue; 
+            }
+        }
+
         UStaticMesh * StaticMesh = Iter.Value();
         if ( !StaticMesh || StaticMesh->IsPendingKill() )
             continue;
@@ -1385,6 +1407,12 @@ UHoudiniAssetComponent::StartHoudiniTicking()
         // Grab current time for delayed notification.
         HapiNotificationStarted = FPlatformTime::Seconds();
     }
+
+    // If the fist session of houdini engine hasnt been initialized yet, do it now
+    if (!FHoudiniEngine::Get().GetFirstSessionCreated())
+    {
+        FHoudiniEngine::Get().RestartSession();
+    }
 }
 
 void
@@ -1443,6 +1471,9 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
 
             // Removes the mesh from previous map of meshes
             UStaticMesh * FoundOldStaticMesh = LocateStaticMesh( HoudiniGeoPartObject );
+            if (!FoundOldStaticMesh)
+                FoundOldStaticMesh = LocateStaticMeshByNames(HoudiniGeoPartObject, StaticMeshes);
+
             if ( ( FoundOldStaticMesh ) && ( FoundOldStaticMesh == StaticMesh ) )
             {
                 // Mesh has not changed, we need to remove it from the old map to avoid deallocation.
@@ -1469,7 +1500,8 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
         else
         {
             // Free meshes and components that are no longer used.
-            ReleaseObjectGeoPartResources(StaticMeshes, true);
+            // compare with first array, keep if contained in NewMeshes
+            ReleaseObjectGeoPartResources(StaticMeshes, true, &NewStaticMeshes);
 
             // Set meshes and create new components for those meshes that do not have them.
             if (NewStaticMeshes.Num() > 0)
@@ -1502,6 +1534,13 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
 void
 UHoudiniAssetComponent::TickHoudiniComponent()
 {
+    // Only tick/cook when in Editor
+    // This prevents PIE cooks or runtime cooks due to inputs moving
+    if (!GetWorld() || (GetWorld()->WorldType != EWorldType::Editor))
+    {
+        return;
+    }
+
     // Get settings.
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
 
@@ -1829,7 +1868,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
     if ( !IsInstantiatingOrCooking() )
     {
-        if ( HasBeenInstantiatedButNotCooked() || bParametersChanged || bComponentNeedsCook || bManualRecookRequested )
+        if (( HasBeenInstantiatedButNotCooked() || bParametersChanged || bComponentNeedsCook || bManualRecookRequested )
+            && (FHoudiniEngine::Get().GetEnableCookingGlobal() || bManualRecookRequested) ) 
         {
             // Grab current time for delayed notification.
             HapiNotificationStarted = FPlatformTime::Seconds();
@@ -2319,14 +2359,19 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
 
     if (!bIsNativeComponent)
         return;
+
     UProperty * Property = PropertyChangedEvent.MemberProperty;
     if ( !Property )
         return;
 
     if ( Property->GetName() == TEXT( "Mobility" ) )
     {
+        // Changed GetAttachChildren to 'GetAllDescendants' due to HoudiniMeshSplitInstanceComponent 
+        // not propagating property changes to their own child StaticMeshComponents.
+        TArray< USceneComponent * > LocalAttachChildren;
+        GetChildrenComponents(true, LocalAttachChildren);
+
         // Mobility was changed, we need to update it for all attached components as well.
-        const auto & LocalAttachChildren = GetAttachChildren();
         for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter)
         {
             USceneComponent * SceneComponent = *Iter;
@@ -2368,9 +2413,10 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
         if ( CategoryHoudiniGeneratedStaticMeshSettings == Category )
         {
             // We are changing one of the mesh generation properties, we need to update all static meshes.
-            for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TIterator Iter( StaticMeshComponents ); Iter; ++Iter )
+            // As the StaticMeshComponents map contains only top-level static mesh components only, use the StaticMeshes map instead
+            for (TMap< FHoudiniGeoPartObject, UStaticMesh * > ::TIterator Iter(StaticMeshes); Iter; ++Iter)
             {
-                UStaticMesh * StaticMesh = Iter.Key();
+                UStaticMesh * StaticMesh = Iter.Value();
                 if ( !StaticMesh || StaticMesh->IsPendingKill() )
                     continue;
 
@@ -2386,7 +2432,39 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
         {
             if ( Property->GetName() == TEXT( "CastShadow" ) )
             {
-                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, CastShadow );
+                // Stop cast-shadow being applied to invisible colliders children
+                // This prevent colliders only meshes from casting shadows
+                TArray< UActorComponent * > ReregisterComponents;
+                {
+                    TArray< USceneComponent * > LocalAttachChildren;
+                    GetChildrenComponents(true, LocalAttachChildren);
+                    for (TArray< USceneComponent * >::TConstIterator Iter(LocalAttachChildren); Iter; ++Iter)
+                    {
+                        UStaticMeshComponent * Component = Cast< UStaticMeshComponent >(*Iter);
+                        if (!Component || Component->IsPendingKill())
+                            continue;
+
+                        const FHoudiniGeoPartObject * pGeoPart = StaticMeshes.FindKey(Component->GetStaticMesh());
+                        if (pGeoPart && pGeoPart->IsCollidable())
+                        {
+                            // This is an invisible collision mesh:
+                            // Do not interfere with lightmap builds - disable shadow casting
+                            Component->SetCastShadow(false);
+                        }
+                        else
+                        {
+                            // Set normally
+                            Component->SetCastShadow(CastShadow);
+                        }
+
+                        ReregisterComponents.Add(Component);
+                    }
+                }
+
+                if (ReregisterComponents.Num() > 0)
+                {
+                    FMultiComponentReregisterContext MultiComponentReregisterContext(ReregisterComponents);
+                }
             }
             else if ( Property->GetName() == TEXT( "bCastDynamicShadow" ) )
             {
@@ -2661,6 +2739,14 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
         UStaticMesh * StaticMesh = Iter.Value();
         if ( !StaticMesh || StaticMesh->IsPendingKill() )
             continue;
+
+        // Prevents the default Houdini logo mesh from being duplicated and saved into sub-levels
+        const UStaticMesh * HoudiniLogoMesh = FHoudiniEngine::Get().GetHoudiniLogoStaticMesh().Get();
+        if (StaticMesh == HoudiniLogoMesh)
+        {
+            HOUDINI_LOG_WARNING(TEXT("Ignoring HoudiniAsset duplication of default logo static mesh."));
+            continue;
+        }
 
         // Duplicate static mesh and all related generated Houdini materials and textures.
         UStaticMesh * DuplicatedStaticMesh =
@@ -3029,7 +3115,8 @@ UHoudiniAssetComponent::CalcBounds( const FTransform & LocalToWorld ) const
         BoundingBox.ExpandBy( 1.0f );
 
     LocalBounds = FBoxSphereBounds( BoundingBox );
-    LocalBounds.Origin = LocalToWorld.GetLocation();
+    // fix for offset bounds - maintain local bounds origin
+    LocalBounds.TransformBy(LocalToWorld);
 
     const auto & LocalAttachedChildren = GetAttachChildren();
     for (int32 Idx = 0; Idx < LocalAttachedChildren.Num(); ++Idx)
@@ -3053,7 +3140,11 @@ UHoudiniAssetComponent::UpdateRenderingInformation()
 
     // Update physics representation right away.
     RecreatePhysicsState();
-    const auto & LocalAttachChildren = GetAttachChildren();
+
+    // Changed GetAttachChildren to 'GetAllDescendants' due to HoudiniMeshSplitInstanceComponent
+    // not propagating property changes to their own child StaticMeshComponents.
+    TArray< USceneComponent * > LocalAttachChildren;
+    GetChildrenComponents(true, LocalAttachChildren);
     for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter )
     {
         USceneComponent * SceneComponent = *Iter;
@@ -5474,6 +5565,29 @@ UHoudiniAssetComponent::LocateSplineComponent(const FHoudiniGeoPartObject & Houd
     return SplineComponent;
 }
 
+// Allow searching of geopart in array by names and not guid
+UStaticMesh *
+UHoudiniAssetComponent::LocateStaticMeshByNames(const FHoudiniGeoPartObject & HoudiniGeoPartObject, const TMap< FHoudiniGeoPartObject, UStaticMesh * >& FindInMap) const
+{
+    UStaticMesh * StaticMesh = nullptr;
+
+    // Find via the object and Part names.
+    for (TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator IterSM(FindInMap); IterSM; ++IterSM)
+    {
+        const FHoudiniGeoPartObject& HGPO = IterSM.Key();
+        if (HGPO.CompareNames(HoudiniGeoPartObject))
+        {
+            StaticMesh = IterSM.Value();
+            break;
+        }
+    }
+
+    if (!StaticMesh || StaticMesh->IsPendingKill())
+        return nullptr;
+
+    return StaticMesh;
+}
+
 void
 UHoudiniAssetComponent::SerializeInputs( FArchive & Ar )
 {
@@ -6129,6 +6243,28 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
             BoxBounds += StaticMeshBounds;
     }
 
+    // Also scan all our decendants for SMC bounds not just top-level children
+    // ( split mesh instances' mesh bounds were not gathered proiperly )
+    TArray<USceneComponent*> LocalAttachedChildren;
+    LocalAttachedChildren.Reserve(16);
+    GetChildrenComponents(true, LocalAttachedChildren);
+    for (int32 Idx = 0; Idx < LocalAttachedChildren.Num(); ++Idx)
+    {
+        if (!LocalAttachedChildren[Idx])
+            continue;
+
+        USceneComponent * pChild = LocalAttachedChildren[Idx];
+        if (UStaticMeshComponent * StaticMeshComponent = Cast<UStaticMeshComponent>(pChild))
+        {
+            if (!StaticMeshComponent || StaticMeshComponent->IsPendingKill())
+                continue;
+
+            FBox StaticMeshBounds = StaticMeshComponent->Bounds.GetBox();
+            if (StaticMeshBounds.IsValid)
+                BoxBounds += StaticMeshBounds;
+        }
+    }
+
     //... all our Handles
     for ( TMap< FString, UHoudiniHandleComponent * >::TConstIterator Iter( HandleComponents ); Iter; ++Iter )
     {
@@ -6405,8 +6541,12 @@ UHoudiniAssetComponent::UpdateMobility()
     }
     else
     {
+        // Changed GetAttachChildren to 'GetAllDescendants' due to HoudiniMeshSplitInstanceComponent 
+        // not propagating property changes to their own child StaticMeshComponents.
+        TArray< USceneComponent * > LocalAttachChildren;
+        GetChildrenComponents(true, LocalAttachChildren);
+
         // If one of the children we created is movable, we need to set ourselves to movable as well
-        const auto & LocalAttachChildren = GetAttachChildren();
         for (TArray< USceneComponent * >::TConstIterator Iter(LocalAttachChildren); Iter; ++Iter)
         {
             USceneComponent * SceneComponent = *Iter;
@@ -6414,6 +6554,75 @@ UHoudiniAssetComponent::UpdateMobility()
                 SetMobility(EComponentMobility::Movable);
         }
     }
+}
+
+
+ELightMapInteractionType UHoudiniAssetComponent::GetStaticLightingType() const
+{
+    // Override preventing the automatic reset to default of LightmapType in UPrimitiveComponent::PostEditChangeProperty
+    // see UStaticMeshComponent::GetStaticLightingType and UStaticMeshComponent::GetStaticLightingInfo
+    switch (LightmapType)
+    {    
+        //default and ForceSurface are Texture mode.
+        case ELightmapType::Default:
+        case ELightmapType::ForceSurface:
+            return LMIT_Texture;
+
+        case ELightmapType::ForceVolumetric:
+            return LMIT_GlobalVolume;
+    }
+
+    return LMIT_None;
+}
+
+void
+UHoudiniAssetComponent::CopyComponentPropertiesTo(UPrimitiveComponent * pPrimComp)
+{
+    // Fixes UProperties not being propagated to newly created UStaticMeshComponents
+    // Copies all of the properties that would normally get propagated.
+    if (!pPrimComp || pPrimComp->IsPendingKill())
+        return;
+
+    pPrimComp->CastShadow = this->CastShadow;
+    pPrimComp->bCastDynamicShadow = this->bCastDynamicShadow;
+    pPrimComp->bCastStaticShadow = this->bCastStaticShadow;
+    pPrimComp->bCastVolumetricTranslucentShadow = this->bCastVolumetricTranslucentShadow;
+    pPrimComp->bCastInsetShadow = this->bCastInsetShadow;
+    pPrimComp->bCastHiddenShadow = this->bCastHiddenShadow;
+    pPrimComp->bCastShadowAsTwoSided = this->bCastShadowAsTwoSided;
+    pPrimComp->LightmapType = this->LightmapType;
+    pPrimComp->bLightAttachmentsAsGroup = this->bLightAttachmentsAsGroup;
+    pPrimComp->IndirectLightingCacheQuality = this->IndirectLightingCacheQuality;
+    pPrimComp->bVisibleInReflectionCaptures = this->bVisibleInReflectionCaptures;
+    pPrimComp->bRenderInMainPass = this->bRenderInMainPass;
+    //pPrimComp->bRenderInMono = this->bRenderInMono;
+    pPrimComp->bOwnerNoSee = this->bOwnerNoSee;
+    pPrimComp->bOnlyOwnerSee = this->bOnlyOwnerSee;
+    pPrimComp->bTreatAsBackgroundForOcclusion = this->bTreatAsBackgroundForOcclusion;
+    pPrimComp->bUseAsOccluder = this->bUseAsOccluder;
+    pPrimComp->bRenderCustomDepth = this->bRenderCustomDepth;
+    pPrimComp->CustomDepthStencilValue = this->CustomDepthStencilValue;
+    pPrimComp->CustomDepthStencilWriteMask = this->CustomDepthStencilWriteMask;
+    pPrimComp->TranslucencySortPriority = this->TranslucencySortPriority;
+    pPrimComp->LpvBiasMultiplier = this->LpvBiasMultiplier;
+    pPrimComp->bReceivesDecals = this->bReceivesDecals;
+    pPrimComp->BoundsScale = this->BoundsScale;
+    pPrimComp->bUseAttachParentBound = this->bUseAttachParentBound;
+    pPrimComp->bAlwaysCreatePhysicsState = this->bAlwaysCreatePhysicsState;
+    pPrimComp->bMultiBodyOverlap = this->bMultiBodyOverlap;
+    //pPrimComp->bCheckAsyncSceneOnMove = this->bCheckAsyncSceneOnMove;
+    pPrimComp->bTraceComplexOnMove = this->bTraceComplexOnMove;
+    pPrimComp->bReturnMaterialOnMove = this->bReturnMaterialOnMove;
+    pPrimComp->BodyInstance = this->BodyInstance;
+    pPrimComp->CanCharacterStepUpOn = this->CanCharacterStepUpOn;
+    pPrimComp->bIgnoreRadialImpulse = this->bIgnoreRadialImpulse;
+    pPrimComp->bIgnoreRadialForce = this->bIgnoreRadialForce;
+    pPrimComp->bApplyImpulseOnDamage = this->bApplyImpulseOnDamage;
+    pPrimComp->MinDrawDistance = this->MinDrawDistance;
+    pPrimComp->LDMaxDrawDistance = this->LDMaxDrawDistance;
+    pPrimComp->CachedMaxDrawDistance = this->CachedMaxDrawDistance;
+    pPrimComp->bAllowCullDistanceVolume = this->bAllowCullDistanceVolume;
+    pPrimComp->DetailMode = this->DetailMode;
 }
 
 #undef LOCTEXT_NAMESPACE

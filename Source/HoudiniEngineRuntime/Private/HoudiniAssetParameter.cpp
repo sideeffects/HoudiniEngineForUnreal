@@ -521,4 +521,50 @@ UHoudiniAssetParameter::GetHoudiniAssetComponent() const
     return Cast<UHoudiniAssetComponent>(PrimaryObject);
 }
 
+
+FReply
+UHoudiniAssetParameter::OnRevertParmToDefault(int32 AtIndex)
+{
+#if WITH_EDITOR
+    bool bReverted = true;
+    if (AtIndex < 0 || AtIndex >= TupleSize)
+    {
+        // Revert the whole parameter to its default value
+        if (HAPI_RESULT_SUCCESS != FHoudiniApi::RevertParmToDefaults(
+            FHoudiniEngine::Get().GetSession(), NodeId, TCHAR_TO_UTF8(*ParameterName)))
+        {
+            HOUDINI_LOG_WARNING(TEXT("Failed to revert parameter %s to its default value."), *ParameterName);
+            bReverted = false;
+        }
+    }
+    else
+    {
+        // Revert the parameter to its default value
+        if (HAPI_RESULT_SUCCESS != FHoudiniApi::RevertParmToDefault(
+            FHoudiniEngine::Get().GetSession(), NodeId, TCHAR_TO_UTF8(*ParameterName), AtIndex))
+        {
+            HOUDINI_LOG_WARNING(TEXT("Failed to revert parameter %s to its default value."), *ParameterName);
+            bReverted = false;
+        }
+    }
+
+    if (bReverted)
+    {
+        // We need to manually notify of the value change to trigger an update,
+        // As calling MarkChanged() would also cause the value to be reuploaded to the non default value
+
+        // Notify component about change.
+        UHoudiniAssetComponent* Component = Cast<UHoudiniAssetComponent>(PrimaryObject);
+        if (Component && !Component->IsPendingKill())
+            Component->NotifyParameterChanged(this);
+
+        // Notify parent parameter about change.
+        if (ParentParameter && !ParentParameter->IsPendingKill())
+            ParentParameter->NotifyChildParameterChanged(this);
+    }
+#endif // WITH_EDITOR
+
+    return FReply::Handled();
+}
+
 #undef LOCTEXT_NAMESPACE
