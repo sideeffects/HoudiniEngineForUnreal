@@ -1053,59 +1053,99 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
             ]
         ]
     ];
-
+        
     IDetailGroup& BakeGroup = DetailCategoryBuilder.AddGroup(TEXT("Baking"), LOCTEXT("Baking", "Baking"));
-    TSharedPtr< SButton > BakeToInputButton, BakeToFoliageButton;
+    TSharedPtr< SButton > BakeToInputButton, BakeToFoliageButton, ReplaceWithFoliageButton;
+
     BakeGroup.AddWidgetRow()
     .WholeRowContent()
     [
         SNew(SHorizontalBox)
-        +ActionButtonSlot(
+        + ActionButtonSlot(
             LOCTEXT("BakeBlueprintHoudiniActor", "Bake Blueprint"),
             LOCTEXT("BakeBlueprintHoudiniActorToolTip", "Bakes to a new Blueprint"),
             FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnBakeBlueprint))
-        +ActionButtonSlot(
-            LOCTEXT("BakeReplaceBlueprintHoudiniActor", "Replace With Blueprint"),
-            LOCTEXT("BakeReplaceBlueprintHoudiniActorToolTip", "Bakes to a new Blueprint and replaces this Actor"),
-            FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnBakeBlueprintReplace))
-        +ActionButtonSlot(
+
+        + ActionButtonSlot(
             LOCTEXT("BakeToActors", "Bake to Actors"),
             LOCTEXT("BakeToActorsTooltip", "Bakes each output and creates new individual Actors"),
             FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnBakeToActors))
-    ];
 
-    BakeGroup.AddWidgetRow()
-    .WholeRowContent()
-    [
-        SNew(SHorizontalBox)
-        +SHorizontalBox::Slot()
+        + SHorizontalBox::Slot()
         .AutoWidth()
-        .Padding( 2.0f, 0.0f )
-        .VAlign( VAlign_Center )
-        .HAlign( HAlign_Center )
+        .Padding(2.0f, 0.0f)
+        .VAlign(VAlign_Center)
+        .HAlign(HAlign_Center)
+        [
+            SAssignNew(BakeToFoliageButton, SButton)
+            .VAlign(VAlign_Center)
+            .HAlign(HAlign_Center)
+            .OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeToFoliage)
+            .Text(LOCTEXT("BakeToFoliage", "Bake to Foliage"))
+            .ToolTipText(LOCTEXT("BakeToFoliageTooltip", "Bakes instanced static meshes to foliage actor.\nNote: The asset must be outputing at least one instancer. Only instanced static meshes will be baked to foliage."))
+        ]
+
+        + SHorizontalBox::Slot()
+        .AutoWidth()
+        .Padding(2.0f, 0.0f)
+        .VAlign(VAlign_Center)
+        .HAlign(HAlign_Center)
         [
             SAssignNew(BakeToInputButton, SButton)
-            .VAlign( VAlign_Center )
-            .HAlign( HAlign_Center )
+            .VAlign(VAlign_Center)
+            .HAlign(HAlign_Center)
             .OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeToInput)
             .Text(LOCTEXT("BakeToInput", "Bake to Outliner Input"))
             .ToolTipText(LOCTEXT("BakeToInputTooltip", "Bakes single static mesh and sets it on the first outliner input actor and then disconnects it.\nNote: There must be one static mesh outliner input and one generated mesh."))
         ]
-        +SHorizontalBox::Slot()
+    ];
+
+    BakeGroup.AddWidgetRow()
+    .WholeRowContent()
+    [
+        SNew(SHorizontalBox)
+        + ActionButtonSlot(
+            LOCTEXT("BakeReplaceBlueprintHoudiniActor", "Replace With Blueprint"),
+            LOCTEXT("BakeReplaceBlueprintHoudiniActorToolTip", "Bakes to a new Blueprint and replaces this Actor"),
+            FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnBakeBlueprintReplace))
+
+        + ActionButtonSlot(
+            LOCTEXT("BakeReplaceActors", "Replace with Actors"),
+            LOCTEXT("BakeReplaceActorsTooltip", "Replace this Actors with individual actors baked from each output."),
+            FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnBakeToActorsReplace))
+
+        + SHorizontalBox::Slot()
         .AutoWidth()
-        .Padding( 2.0f, 0.0f )
-        .VAlign( VAlign_Center )
-        .HAlign( HAlign_Center )
+        .Padding(2.0f, 0.0f)
+        .VAlign(VAlign_Center)
+        .HAlign(HAlign_Center)
         [
-            SAssignNew(BakeToFoliageButton, SButton)
-            .VAlign( VAlign_Center )
-            .HAlign( HAlign_Center )
-            .OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeToFoliage)
-            .Text(LOCTEXT("BakeToFoliage", "Bake to Foliage"))
-            .ToolTipText(LOCTEXT("BakeToFoliageTooltip", "Bakes instanced static meshes to the foliage actor."))
+            SAssignNew(ReplaceWithFoliageButton, SButton)
+            .VAlign(VAlign_Center)
+            .HAlign(HAlign_Center)
+            .OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeToFoliageReplace)
+            .Text(LOCTEXT("BakeReplaceFoliage", "Replace with Foliage"))
+            .ToolTipText(LOCTEXT("BakeReplaceFoliageTooltip", "Bakes instanced static meshes to the foliage actor and deletes this Actor.\nNote: The asset must be outputing at least one instancer. Only instanced static meshes will be baked to foliage."))
         ]
     ];
 
+    
+
+    // Enable disable the bake to input/foliage buttons
+    BakeToInputButton->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([=] {
+        return FHoudiniEngineBakeUtils::CanComponentBakeToOutlinerInput(HoudiniAssetComponent);
+    })));
+
+    BakeToFoliageButton->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([=] {
+        return FHoudiniEngineBakeUtils::CanComponentBakeToFoliage(HoudiniAssetComponent);
+    })));
+
+    ReplaceWithFoliageButton->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([=] {
+        return FHoudiniEngineBakeUtils::CanComponentBakeToFoliage(HoudiniAssetComponent);
+    })));
+
+
+    //
     // Bake folder widget
     //
     FPathPickerConfig BakePathPickerConfig;
@@ -1124,6 +1164,7 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
     [
         SNew(SHorizontalBox)
         + SHorizontalBox::Slot()
+        .AutoWidth()
         [
             SNew(SEditableText)
             .IsReadOnly(true)
@@ -1152,14 +1193,9 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
         ]
     ];
 
-    BakeToInputButton->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([=] {
-        return FHoudiniEngineBakeUtils::CanComponentBakeToOutlinerInput(HoudiniAssetComponent);
-    })));
-
-    BakeToFoliageButton->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([=] {
-        return FHoudiniEngineBakeUtils::CanComponentBakeToFoliage( HoudiniAssetComponent );
-    })));
-
+    //
+    // Help widget
+    //
     IDetailGroup& HelpGroup = DetailCategoryBuilder.AddGroup(TEXT("Help"), LOCTEXT("Help", "Help and Debugging"));
     HelpGroup.AddWidgetRow()
     .WholeRowContent()
@@ -1419,6 +1455,25 @@ FHoudiniAssetComponentDetails::OnBakeToActors()
     return FReply::Handled();
 }
 
+FReply
+FHoudiniAssetComponentDetails::OnBakeToActorsReplace()
+{
+    if (HoudiniAssetComponents.Num() > 0)
+    {
+        UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetComponents[0];
+        if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+            return FReply::Handled();
+
+        // If component is not cooking or instancing, we can bake.
+        if (!HoudiniAssetComponent->IsInstantiatingOrCooking())
+        {
+            FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithActors(HoudiniAssetComponent, false);
+        }
+    }
+
+    return FReply::Handled();
+}
+
 FReply 
 FHoudiniAssetComponentDetails::OnBakeToInput()
 {
@@ -1451,6 +1506,25 @@ FHoudiniAssetComponentDetails::OnBakeToFoliage()
         if (!HoudiniAssetComponent->IsInstantiatingOrCooking())
         {
             FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(HoudiniAssetComponent);
+        }
+    }
+
+    return FReply::Handled();
+}
+
+FReply
+FHoudiniAssetComponentDetails::OnBakeToFoliageReplace()
+{
+    if (HoudiniAssetComponents.Num() > 0)
+    {
+        UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetComponents[0];
+        if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+            return FReply::Handled();
+
+        // If component is not cooking or instancing, we can bake.
+        if (!HoudiniAssetComponent->IsInstantiatingOrCooking())
+        {
+            FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithFoliage(HoudiniAssetComponent);
         }
     }
 

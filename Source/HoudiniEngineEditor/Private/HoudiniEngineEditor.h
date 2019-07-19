@@ -263,6 +263,9 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Helper function for rebuilding selected assets **/
         void RebuildSelection();
 
+        /** Helper function for rebuilding selected assets **/
+        void RecentreSelection();
+
         /** Helper function for accessing the current CB selection **/
         static int32 GetContentBrowserSelection( TArray< UObject* >& ContentBrowserSelection );
 
@@ -396,6 +399,9 @@ public:
 
     /** UI Action to restart the current Houdini Engine Session  **/
     TSharedPtr<FUICommandInfo> RestartSession;
+
+    /** UI Action to recentre the current selection  **/
+    TSharedPtr<FUICommandInfo> RecentreSelec;
 
 };
 

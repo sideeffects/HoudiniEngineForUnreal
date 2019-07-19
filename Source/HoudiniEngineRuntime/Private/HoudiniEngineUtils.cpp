@@ -1217,7 +1217,6 @@ FHoudiniEngineUtils::ResetRawMesh( FRawMesh & RawMesh )
 
 HAPI_ParmId FHoudiniEngineUtils::HapiFindParameterByNameOrTag( const HAPI_NodeId& NodeId, const std::string ParmName, HAPI_ParmInfo& FoundParmInfo )
 {
-    //FMemory::Memset< HAPI_ParmInfo >( FoundParmInfo, 0 );
     FHoudiniApi::ParmInfo_Init(&FoundParmInfo);
 
     HAPI_NodeInfo NodeInfo;
@@ -5413,7 +5412,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             {
                 HAPI_AttributeInfo AttribBakeFolderOverride;
                 FHoudiniApi::AttributeInfo_Init(&AttribBakeFolderOverride);
-                //FMemory::Memzero< HAPI_AttributeInfo >( AttribBakeFolderOverride );
 
                 FHoudiniEngineUtils::HapiGetAttributeDataAsString(
                     AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
@@ -6004,6 +6002,20 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                 // Attempt to locate static mesh from previous instantiation.
                 UStaticMesh * const * FoundStaticMesh = StaticMeshesIn.Find( HoudiniGeoPartObject );
+                if (!FoundStaticMesh)
+                {
+                    // If we failed, try to find the previous mesh via names to help reuse of components
+                    // the GUID doesnt always match even though its the same part on same HDA
+                    for (TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator tIt(StaticMeshesIn); tIt; ++tIt)
+                    {
+                        const FHoudiniGeoPartObject& key = tIt.Key();
+                        if (key.CompareNames(HoudiniGeoPartObject))
+                        {
+                            FoundStaticMesh = &tIt.Value();
+                            break;
+                        }
+                    }
+                }
 
                 // LODs levels other than the first one need to reuse StaticMesh from the output!
                 if ( IsLOD && LodIndex > 0 )
