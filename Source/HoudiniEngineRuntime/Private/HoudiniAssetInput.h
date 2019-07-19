@@ -172,6 +172,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Sets the default input type from the input/parameter label **/
         void SetDefaultInputTypeFromLabel();
 
+        // Add the ability to set default object paths in the parameter setting of the Houdini HDA that are picked up by the plugin
+        bool SetDefaultAssetFromHDA();
+
 #if WITH_EDITOR
         virtual void PostEditUndo() override;
 
@@ -254,7 +257,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         FText GetCurrentSelectionText() const;
 
         // Return the bounds of this input
-        FBox GetInputBounds( const FVector& ParentLocation );
+        FBox GetInputBounds( const FVector& ParentLocation ) const;
 
         /** Return true if this parameter has been changed. **/
         bool HasChanged() const override;
@@ -568,7 +571,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         class UHoudiniAssetComponent * InputAssetComponent;
 
         /** Landscape actor used for input. **/
-        class ALandscapeProxy * InputLandscapeProxy;
+        TSoftObjectPtr<ALandscapeProxy> InputLandscapeProxy;
 
         /** List of selected meshes and actors from the World Outliner. **/
         TArray< FHoudiniAssetInputOutlinerMesh > InputOutlinerMeshArray;

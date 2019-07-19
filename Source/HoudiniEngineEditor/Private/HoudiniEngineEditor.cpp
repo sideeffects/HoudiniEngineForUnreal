@@ -999,7 +999,7 @@ FHoudiniEngineEditor::BakeAllAssets()
         UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
         if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
         {
-            HOUDINI_LOG_ERROR( TEXT( "Failed to export a Houdini Asset in the scene!" ) );
+            HOUDINI_LOG_ERROR( TEXT( "Failed to bake a Houdini Asset in the scene! - Invalid Houdini Asset Component" ) );
             continue;
         }
 
@@ -1007,16 +1007,33 @@ FHoudiniEngineEditor::BakeAllAssets()
         {
             FString AssetName = HoudiniAssetComponent->GetOuter() ? HoudiniAssetComponent->GetOuter()->GetName() : HoudiniAssetComponent->GetName();
             if ( AssetName != "Default__HoudiniAssetActor" )
-                HOUDINI_LOG_ERROR( TEXT( "Failed to export Houdini Asset: %s in the scene!" ), *AssetName );
+                HOUDINI_LOG_ERROR( TEXT( "Failed to bake a Houdini Asset in the scene! -  %s is invalid" ), *AssetName );
             continue;
         }
 
         // If component is not cooking or instancing, we can bake blueprint.
-        if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
+        if ( HoudiniAssetComponent->IsInstantiatingOrCooking() )
         {
-            if ( FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithBlueprint( HoudiniAssetComponent ) )
-                BakedCount++;
+            FString AssetName = HoudiniAssetComponent->GetOuter() ? HoudiniAssetComponent->GetOuter()->GetName() : HoudiniAssetComponent->GetName();
+            HOUDINI_LOG_ERROR(TEXT("Failed to bake a Houdini Asset in the scene! -  %s is actively instantiating or cooking"), *AssetName);
+            continue;
         }
+
+        bool bSuccess = false;
+        bool BakeToBlueprints = true;
+        if (BakeToBlueprints)
+        {
+            if (FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithBlueprint(HoudiniAssetComponent))
+                bSuccess = true;
+        }
+        else
+        {
+            if (FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithActors(HoudiniAssetComponent, false))
+                bSuccess = true;
+        }
+
+        if ( bSuccess )
+            BakedCount++;
     }
 
     // Add a slate notification
@@ -1275,6 +1292,112 @@ FHoudiniEngineEditor::BakeSelection()
     HOUDINI_LOG_MESSAGE(TEXT("Baked all %d Houdini assets in the current level."), BakedCount);
 }
 
+// Recentre HoudiniAsset actors' pivots to their input / cooked static-mesh average centre.
+void FHoudiniEngineEditor::RecentreSelection()
+{
+#if WITH_EDITOR
+    //Get current world selection
+    TArray<UObject*> WorldSelection;
+    int32 SelectedHoudiniAssets = FHoudiniEngineEditor::GetWorldSelection(WorldSelection, true);
+    if (SelectedHoudiniAssets <= 0)
+    {
+        HOUDINI_LOG_MESSAGE(TEXT("No Houdini Assets selected in the world outliner"));
+        return;
+    }
+
+    // Add a slate notification
+    FString Notification = TEXT("Recentering selected Houdini Assets...");
+    FHoudiniEngineUtils::CreateSlateNotification(Notification);
+
+    // Iterates over the selection and cook the assets if they're in a valid state
+    int32 RecentreCount = 0;
+    for (int32 Idx = 0; Idx < SelectedHoudiniAssets; Idx++)
+    {
+        AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>(WorldSelection[Idx]);
+        if (!HoudiniAssetActor || HoudiniAssetActor->IsPendingKill())
+            continue;
+
+        UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
+        if (!HoudiniAssetComponent || !HoudiniAssetComponent->IsComponentValid())
+            continue;
+
+        // Get the average centre of all the created Static Meshes
+        FVector AverageBoundsCentre = FVector::ZeroVector;
+        int32 NumBounds = 0;
+        const FVector CurrentLocation = HoudiniAssetComponent->GetComponentLocation();        
+        {
+            //Check Static Meshes
+            TArray<UStaticMesh*> StaticMeshes;
+            StaticMeshes.Reserve(16);
+            HoudiniAssetComponent->GetAllUsedStaticMeshes(StaticMeshes);
+
+            //Get average centre of all  the static meshes.
+            for (const UStaticMesh* pMesh : StaticMeshes)
+            {
+                if (!pMesh)
+                    continue;
+
+                //to world space
+                AverageBoundsCentre += (pMesh->GetBounds().Origin + CurrentLocation); 
+                NumBounds++;
+            }
+        }
+
+        //Check Inputs
+        if (0 == NumBounds)
+        {
+            const TArray< UHoudiniAssetInput* >& AssetInputs = HoudiniAssetComponent->GetInputs();
+            for (const UHoudiniAssetInput* pInput : AssetInputs)
+            {
+                if (!pInput || pInput->IsPendingKill())
+                    continue;
+
+                // to world space
+                FBox Bounds = pInput->GetInputBounds(CurrentLocation); 
+                if (Bounds.IsValid)
+                {
+                    AverageBoundsCentre += Bounds.GetCenter();
+                    NumBounds++;
+                }
+            }
+        }
+
+        //if we have more than one, get the average centre
+        if (NumBounds > 1)
+        {
+            AverageBoundsCentre /= (float)NumBounds;
+        }
+
+        //if we need to move...
+        float fDist = FVector::DistSquared(CurrentLocation, AverageBoundsCentre);
+        if (NumBounds && fDist > 1.0f)
+        {
+            // Move actor to average centre and recook
+            // This will refresh the static mesh under the HoudiniAssestComponent ( undoing the translation ).
+            HoudiniAssetActor->SetActorLocation(AverageBoundsCentre, false, nullptr, ETeleportType::TeleportPhysics);
+            
+            // Recook now the houdini-static-mesh has a new origin
+            HoudiniAssetComponent->StartTaskAssetCookingManual();
+            RecentreCount++;
+        }
+    }
+
+    if (RecentreCount)
+    {
+        // UE4 Editor doesn't refresh the translation-handles until they are re-selected, confusing the user, deselect the objects.
+        GEditor->SelectNone(true, false);
+    }
+
+    // Add a slate notification
+    Notification = TEXT("Re-centred ") + FString::FromInt(RecentreCount) + TEXT(" Houdini assets.");
+    FHoudiniEngineUtils::CreateSlateNotification(Notification);
+
+    // ... and a log message
+    HOUDINI_LOG_MESSAGE(TEXT("Re-centred %d selected Houdini assets."), RecentreCount);
+
+#endif //WITH_EDITOR
+}
+
 int32
 FHoudiniEngineEditor::GetContentBrowserSelection( TArray< UObject* >& ContentBrowserSelection )
 {
@@ -1455,8 +1578,18 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender( const TSharedRef<FUIC
             LevelEditorCommandBindings,
             FMenuExtensionDelegate::CreateLambda( [ this, HoudiniAssetActors ]( FMenuBuilder& MenuBuilder )
             {
+				MenuBuilder.AddMenuEntry(
+					NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_Recentre", "Recentre selected"),
+					NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_RecentreTooltip", "Recentres the selected Houdini Asset Actors pivots to their input/cooked static mesh average centre."),
+					FSlateIcon(FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+					FUIAction(
+						FExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::RecentreSelection),
+						FCanExecuteAction::CreateLambda([=] { return (HoudiniAssetActors.Num() > 0); })
+					)
+				);
+
                 MenuBuilder.AddMenuEntry(
-                    NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_Recook", "Recook selection"),
+                    NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_Recook", "Recook selected"),
                     NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_RecookTooltip", "Forces a recook on the selected Houdini Asset Actors."),
                     FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
                     FUIAction(
@@ -1466,7 +1599,7 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender( const TSharedRef<FUIC
                 );
 
                 MenuBuilder.AddMenuEntry(
-                    NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_Rebuild", "Rebuild selection"),
+                    NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_Rebuild", "Rebuild selected"),
                     NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_RebuildTooltip", "Rebuilds selected Houdini Asset Actors in the current level."),
                     FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
                     FUIAction(

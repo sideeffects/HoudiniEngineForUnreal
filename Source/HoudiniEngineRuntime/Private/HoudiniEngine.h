@@ -79,6 +79,8 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
         void SetEnableCookingGlobal(const bool& enableCooking);
         bool GetEnableCookingGlobal();
 
+        bool GetFirstSessionCreated() const;
+
         bool StartSession(
             HAPI_Session*& SessionPtr,
             const bool& StartAutomaticServer,
@@ -153,4 +155,9 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
 
         /** Global cooking flag, used to pause HEngine while using the editor **/
         bool EnableCookingGlobal;
+
+        // Indicates that the first attempt to create a session has been done
+        // This is to delay the first "automatic" session creation for the first cook 
+        // or instantiation rather than when the module started.
+        bool FirstSessionCreated;
 };

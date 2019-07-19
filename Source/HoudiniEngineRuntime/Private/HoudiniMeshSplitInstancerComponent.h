@@ -47,11 +47,11 @@ public:
 
     void SetOverrideMaterial(class UMaterialInterface* MI) { OverrideMaterial = MI; }
     
-    /** Set the instances. Transforms are given in local space of this component. */
+    // Set the instances. Transforms are given in local space of this component.
     void SetInstances( const TArray<FTransform>& InstanceTransforms, const TArray<FLinearColor> & InstancedColors );
     
-    /** Destroy all extant instances */
-    void ClearInstances();
+    // Destroy existing instances, keeping agiven number of them to be reused
+    void ClearInstances(int32 NumToKeep);
 
     const TArray< class UStaticMeshComponent* >& GetInstances() const { return Instances; }
 

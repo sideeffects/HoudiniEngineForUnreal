@@ -62,7 +62,7 @@ int32 UHoudiniEngineConvertBgeoCommandlet::Main( const FString& Params )
         HOUDINI_LOG_MESSAGE( TEXT( "HoudiniEngineConvertBgeoCommandlet" ) );
         HOUDINI_LOG_MESSAGE( TEXT( "Converts a .bgeo file to Static Meshes .uasset files." ) );
 
-        HOUDINI_LOG_MESSAGE( TEXT( "Usage: -run=HoudiniEngineTest BGEO_IN UASSET_OUT" ) );
+        HOUDINI_LOG_MESSAGE( TEXT( "Usage: -run=HoudiniEngineConvertBgeo BGEO_IN UASSET_OUT" ) );
 
         HOUDINI_LOG_MESSAGE( TEXT( "BGEO_IN" ) );
         HOUDINI_LOG_MESSAGE( TEXT( "\tPath to the the source .bgeo file to convert." ) );
@@ -107,7 +107,7 @@ int32 UHoudiniEngineConvertBgeoDirCommandlet::Main(const FString& Params)
         HOUDINI_LOG_MESSAGE(TEXT("HoudiniEngineTestCommandlet:"));
         HOUDINI_LOG_MESSAGE(TEXT("Converts .bgeo files in directory to Static Meshes .uasset files in a Out directory."));
 
-        HOUDINI_LOG_MESSAGE(TEXT("Usage: -run=HoudiniEngineTest BGEO_DIR_IN UASSET_DIR_OUT TIMEOUT"));
+        HOUDINI_LOG_MESSAGE(TEXT("Usage: -run=HoudiniEngineConvertBgeoDir BGEO_DIR_IN UASSET_DIR_OUT TIMEOUT"));
 
         HOUDINI_LOG_MESSAGE(TEXT("BGEO_DIR_IN"));
         HOUDINI_LOG_MESSAGE(TEXT("\tPath to a directory containing the .bgeo files to convert."));

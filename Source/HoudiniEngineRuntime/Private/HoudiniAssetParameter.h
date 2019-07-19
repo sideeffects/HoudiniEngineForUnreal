@@ -128,6 +128,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
         /** Return tuple size. **/
         int32 GetTupleSize() const;
 
+        // Revert the parameter to its default value
+        FReply OnRevertParmToDefault(int32 AtIndex);
+
     /** UObject methods. **/
     public:
 
@@ -182,7 +185,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
         bool IsSpare() const;
 
         /** Return true if parameter is disabled. **/
-        bool IsDisabled() const;		
+        bool IsDisabled() const;
 
     protected:
 
