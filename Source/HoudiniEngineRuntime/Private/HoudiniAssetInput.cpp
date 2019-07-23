@@ -914,14 +914,19 @@ UHoudiniAssetInput::UploadParameterValue()
                 // Disconnect and destroy currently connected asset, if there's one.
                 DisconnectAndDestroyInputAsset();
 
-                UHoudiniAssetComponent* AssetComponent = ( UHoudiniAssetComponent* )PrimaryObject;
-                if ( !AssetComponent || AssetComponent->IsPendingKill() )
-                    AssetComponent = InputAssetComponent;
+                // If we're auto-selecting the components, we need to get the asset's bound 
+                FBox Bounds(ForceInitToZero);
+                if ( bLandscapeAutoSelectComponent )
+                {
+                    // Get our asset's or our connected input asset's bounds
+                    UHoudiniAssetComponent* AssetComponent = (UHoudiniAssetComponent*)PrimaryObject;
+                    if (!AssetComponent || AssetComponent->IsPendingKill())
+                        AssetComponent = InputAssetComponent;
 
-                // We need to get the asset bounds, without this input
-                FBox Bounds( ForceInitToZero );
-                if ( AssetComponent && !AssetComponent->IsPendingKill() )
-                    Bounds = AssetComponent->GetAssetBounds( this, true );
+                    // Get the bounds, without this input
+                    if (AssetComponent && !AssetComponent->IsPendingKill())
+                        Bounds = AssetComponent->GetAssetBounds(this, true);
+                }
 
                 // Connect input and create connected asset. Will return by reference.
                 if ( !FHoudiniEngineUtils::HapiCreateInputNodeForLandscape(
@@ -1395,38 +1400,23 @@ UHoudiniAssetInput::AddReferencedObjects( UObject * InThis, FReferenceCollector 
     if ( HoudiniAssetInput && !HoudiniAssetInput->IsPendingKill() )
     {
         // Add reference to held geometry object.
-        if ( HoudiniAssetInput->InputObjects.Num() )
+        if ( HoudiniAssetInput->InputObjects.Num() 
+            && ( HoudiniAssetInput->GetChoiceIndex() == EHoudiniAssetInputType::GeometryInput ) )
             Collector.AddReferencedObjects( HoudiniAssetInput->InputObjects, InThis );
 
+        /*
         // Add reference to held input asset component, if we have one.
-        if ( HoudiniAssetInput->InputAssetComponent && !HoudiniAssetInput->InputAssetComponent->IsPendingKill() )
+        if ( HoudiniAssetInput->InputAssetComponent && !HoudiniAssetInput->InputAssetComponent->IsPendingKill() 
+            && ( HoudiniAssetInput->GetChoiceIndex() == EHoudiniAssetInputType::AssetInput ) )
             Collector.AddReferencedObject( HoudiniAssetInput->InputAssetComponent, InThis );
+        */
 
         // Add reference to held curve object.
         if ( HoudiniAssetInput->InputCurve && !HoudiniAssetInput->InputCurve->IsPendingKill() )
             Collector.AddReferencedObject( HoudiniAssetInput->InputCurve, InThis );
 
-        /*
-        // Adding reference to Actors/Landscape in another level prevents 
-        // saving the level due to external references..
-
-        // 
-        // Add reference to held landscape.
-        if ( HoudiniAssetInput->InputLandscapeProxy && !HoudiniAssetInput->InputLandscapeProxy->IsPendingKill() )
-            Collector.AddReferencedObject( HoudiniAssetInput->InputLandscapeProxy, InThis );
-
-        // Add reference for the WorldInputs' Actors
-        for ( auto & OutlinerInput : HoudiniAssetInput->InputOutlinerMeshArray )
-        {
-            // Add the outliner input's actor
-            AActor * OutlinerInputActor = OutlinerInput.ActorPtr.IsValid() ? OutlinerInput.ActorPtr.Get() : nullptr;
-            if ( !OutlinerInputActor || OutlinerInputActor->IsPendingKill() )
-                continue;
-
-            Collector.AddReferencedObject( OutlinerInputActor, InThis );
-        }
-        */
-
+        // Do not add references to Actors/Landscapes in our world outliner as if they are in 
+        // an other level it will prevent saving due to the external references...
         // Add references for all curve input parameters.
         for ( TMap< FString, UHoudiniAssetParameter * >::TIterator IterParams( HoudiniAssetInput->InputCurveParameters );
             IterParams; ++IterParams )
@@ -1889,8 +1879,8 @@ UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
         if ( !ConnectedHoudiniAssetComponent || ConnectedHoudiniAssetComponent->IsPendingKill() )
             return;
 
-        // If we just selected the already selected Actor do nothing.
-        if ( ConnectedHoudiniAssetComponent == InputAssetComponent )
+        // If we just selected the already selected Actor do nothing if we are properly connected.
+        if ( ConnectedHoudiniAssetComponent == InputAssetComponent && bInputAssetConnectedInHoudini)
             return;
 
         // Do not allow the input asset to be ourself!
