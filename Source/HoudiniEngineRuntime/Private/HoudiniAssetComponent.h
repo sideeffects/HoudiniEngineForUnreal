@@ -611,6 +611,9 @@ public:
         /** Remove from the list of dependent downstream assets that have this asset as an asset input. **/
         void RemoveDownstreamAsset( UHoudiniAssetComponent * InDownstreamAssetComponent, int32 InInputIndex );
 
+        // Makes sure that our downstream assets are valid and we are actually set as their asset input
+        void ValidateDownstreamAssets();
+
         /** Create Static mesh resources. This will create necessary components for each mesh and update maps. **/
         void CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshMap );
 

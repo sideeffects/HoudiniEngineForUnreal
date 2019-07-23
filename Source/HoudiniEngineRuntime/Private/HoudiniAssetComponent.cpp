@@ -786,6 +786,10 @@ UHoudiniAssetComponent::RemoveDownstreamAsset( UHoudiniAssetComponent * InDownst
         TSet< int32 > & InputIndicesSet = DownstreamAssetConnections[ InDownstreamAssetComponent ];
         if ( InputIndicesSet.Contains( InInputIndex ) )
             InputIndicesSet.Remove( InInputIndex );
+
+        // Remove the downstream asset if we're not link to at least one of its input
+        if (InputIndicesSet.Num() <= 0)
+            DownstreamAssetConnections.Remove(InDownstreamAssetComponent);
     }
 }
 
@@ -1515,8 +1519,11 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
     bManualRecookRequested = false;
 
     // Invoke cooks of downstream assets.
-    if ( bCookingTriggersDownstreamCooks )
+    if ( bCookingTriggersDownstreamCooks && DownstreamAssetConnections.Num() > 0)
     {
+        // First, make sure our downstream assets are valid
+        ValidateDownstreamAssets();
+
         for ( TMap<UHoudiniAssetComponent *, TSet< int32 > >::TIterator IterAssets( DownstreamAssetConnections );
             IterAssets;
             ++IterAssets )
@@ -1531,6 +1538,60 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
     }
 }
 
+void
+UHoudiniAssetComponent::ValidateDownstreamAssets()
+{
+    TArray<UHoudiniAssetComponent*> InvalidDowmnstreamAssets;
+    for (TMap<UHoudiniAssetComponent *, TSet< int32 > >::TIterator IterAssets(DownstreamAssetConnections); IterAssets; ++IterAssets)
+    {
+        UHoudiniAssetComponent * DownstreamAsset = IterAssets.Key();
+        if (!DownstreamAsset || DownstreamAsset->IsPendingKill())
+        {
+            InvalidDowmnstreamAssets.Add(DownstreamAsset);
+            continue;
+        }
+
+        // Check that the downstream asset is valid (that we are indeed set as asset input)
+        bool bInvalidDownstreamAsset = false;
+        TSet<int32> InputIndexes = IterAssets.Value();
+        if (InputIndexes.Num() <= 0)
+        {
+            InvalidDowmnstreamAssets.Add(DownstreamAsset);
+            continue;
+        }
+
+        // Check that asset component's input
+        for (auto DownstreamInputIdx : InputIndexes)
+        {
+            if (!DownstreamAsset->Inputs.IsValidIndex(DownstreamInputIdx))
+            {
+                RemoveDownstreamAsset(DownstreamAsset, DownstreamInputIdx);
+                continue;
+            }
+
+            UHoudiniAssetInput* DownInput = DownstreamAsset->Inputs[DownstreamInputIdx];
+            if (!DownInput || DownInput->IsPendingKill())
+            {
+                RemoveDownstreamAsset(DownstreamAsset, DownstreamInputIdx);
+                continue;
+            }
+
+            if (DownInput->GetChoiceIndex() != EHoudiniAssetInputType::AssetInput
+                || DownInput->GetConnectedInputAssetComponent() != this)
+            {
+                RemoveDownstreamAsset(DownstreamAsset, DownstreamInputIdx);
+                continue;
+            }
+        }
+    }
+
+    // Remove the fully invalid HAC
+    for (auto InvalidHAC : InvalidDowmnstreamAssets)
+    {
+        DownstreamAssetConnections.Remove(InvalidHAC);
+    }
+    
+}
 void
 UHoudiniAssetComponent::TickHoudiniComponent()
 {
