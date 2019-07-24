@@ -687,6 +687,11 @@ UHoudiniAssetInput::ForceSetInputObject(UObject * InObject, int32 AtIndex, bool 
 
     if( CommitChange )
     {
+        // We must change ChoiceIndex's value manually before calling ChangeInputType: 
+        // If we are forcing the input to an asset input, not doing so would actually destroy the 
+        // parent HDA node on the houdini side, making the input HDA to need a reinstantiation on first cook...
+        ChoiceIndex = NewInputType;
+
         ChangeInputType( NewInputType, true );
         MarkChanged();
     }
