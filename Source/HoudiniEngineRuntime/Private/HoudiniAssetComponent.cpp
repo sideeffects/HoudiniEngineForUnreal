@@ -1515,13 +1515,11 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
         }
     }
 
-    // We can reset the manual recook flag now that the static meshes have been created
-    bManualRecookRequested = false;
-
     // Invoke cooks of downstream assets.
     if ( bCookingTriggersDownstreamCooks && DownstreamAssetConnections.Num() > 0)
     {
         // First, make sure our downstream assets are valid
+        // (check that the component is valid and we are properly set as one of its asset input)
         ValidateDownstreamAssets();
 
         for ( TMap<UHoudiniAssetComponent *, TSet< int32 > >::TIterator IterAssets( DownstreamAssetConnections );
@@ -1532,10 +1530,13 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
             if ( !DownstreamAsset || DownstreamAsset->IsPendingKill() )
                 continue;
 
-            DownstreamAsset->bManualRecookRequested = true;
+            DownstreamAsset->bManualRecookRequested = bManualRecookRequested;
             DownstreamAsset->NotifyParameterChanged( nullptr );
         }
     }
+
+    // We can reset the manual recook flag now that the static meshes have been created
+    bManualRecookRequested = false;
 }
 
 void
