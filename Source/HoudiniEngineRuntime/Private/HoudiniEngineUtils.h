@@ -605,6 +605,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const HAPI_NodeId& NodeId, const HAPI_PartId& PartId,
             const TArray<FName>& Tags, const bool& bCreateAttributes = false );
 
+        // Helper function that extracts the unreal_tag_XX primitive attributes
+        static bool GetUnrealTagAttributes(
+            const FHoudiniGeoPartObject& HoudiniGeoPartObject, TArray<FName>& OutTags);
+
     protected:
 
 #if PLATFORM_WINDOWS
