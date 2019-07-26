@@ -10515,10 +10515,10 @@ FHoudiniEngineUtils::CreateGroupOrAttributeFromTags( const HAPI_NodeId& NodeId, 
             NodeId, PartId, &PartInfo), false);
 
     bool NeedToCommitGeo = false;
-    for ( FName TagName : Tags )
+    for ( int32 TagIdx = 0; TagIdx < Tags.Num(); TagIdx++)
     {
         FString TagString;
-        TagName.ToString(TagString);
+        Tags[TagIdx].ToString(TagString);
         if ( bCreateAttributes )
         {
             // Create a primitive attribute for the tag
@@ -10533,7 +10533,7 @@ FHoudiniEngineUtils::CreateGroupOrAttributeFromTags( const HAPI_NodeId& NodeId, 
             AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
             AttributeInfo.typeInfo = HAPI_ATTRIBUTE_TYPE_NONE;
 
-            FString AttributeName = TEXT("unreal_tag_") + TagString;
+            FString AttributeName = TEXT("unreal_tag_") + FString::FromInt(TagIdx);
             AttributeName.RemoveSpacesInline();
 
             Result = FHoudiniApi::AddAttribute( FHoudiniEngine::Get().GetSession(),
@@ -10579,6 +10579,41 @@ FHoudiniEngineUtils::CreateGroupOrAttributeFromTags( const HAPI_NodeId& NodeId, 
     //    Result = FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), NodeId);
 
     return NeedToCommitGeo;
+}
+
+bool
+FHoudiniEngineUtils::GetUnrealTagAttributes(const FHoudiniGeoPartObject& HoudiniGeoPartObject, TArray<FName>& OutTags)
+{
+    FString TagAttribBase = TEXT("unreal_tag_");
+    bool bAttributeFound = true;
+    int32 TagIdx = 0;
+    while (bAttributeFound)
+    {
+        FString CurrentTagAttr = TagAttribBase + FString::FromInt(TagIdx++);
+        bAttributeFound = HapiCheckAttributeExists(HoudiniGeoPartObject, TCHAR_TO_UTF8(*CurrentTagAttr), HAPI_ATTROWNER_PRIM);
+        if (!bAttributeFound)
+            break;
+
+        // found the unreal_tag_X attribute, get its value and add it to the array
+        FString TagValue = FString();
+
+        // Create an AttributeInfo
+        {
+            HAPI_AttributeInfo AttributeInfo;
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+            TArray<FString> StringData;
+            if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+                HoudiniGeoPartObject, TCHAR_TO_UTF8(*CurrentTagAttr), AttributeInfo, StringData, 1, HAPI_ATTROWNER_PRIM) )
+            {
+                TagValue = StringData[0];
+            }
+        }
+
+        FName NameTag = *TagValue;
+        OutTags.Add(NameTag);
+    }
+
+    return true;
 }
 
 FHoudiniCookParams::FHoudiniCookParams( class UHoudiniAsset* InHoudiniAsset )
