@@ -346,9 +346,6 @@ FHoudiniAssetTypeActions::ExecuteApplyBatch( TArray< TWeakObjectPtr< UHoudiniAss
 void
 FHoudiniAssetTypeActions::ExecuteApplyAssetToSelection( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets, EHoudiniToolType Type )
 {
-    if ( !FHoudiniEngine::IsInitialized() )
-        return;
-
     if ( HoudiniAssets.Num() != 1 )
         return;
 
