@@ -463,7 +463,7 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     double DigitZRange = 49152.0;
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
     if ( HoudiniRuntimeSettings && HoudiniRuntimeSettings->MarshallingLandscapesUseFullResolution )
-        DigitZRange = dUINT16_MAX;
+        DigitZRange = dUINT16_MAX - 1.0;
 
     // If we  are not using the full range, we need to center the digit values so the terrain can be edited up and down
     double DigitCenterOffset = FMath::FloorToDouble( ( dUINT16_MAX - DigitZRange ) / 2.0 );
@@ -479,7 +479,17 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
 
     if ( bUseDefaultUE4Scaling )
     {
-        DigitZRange = dUINT16_MAX;
+        //Check that our values are compatible with UE4's default scale values
+        if (FloatMin < -256.0f || FloatMin > 256.0f || FloatMax < -256.0f || FloatMax > 256.0f)
+        {
+            // Warn the user that the landscape conversion will have issues 
+            // invite him to change that setting
+            HOUDINI_LOG_WARNING(
+                TEXT("The heightfield's min and max height values are too large for being used with the \"Use Default UE4 scaling\" option.\n \
+                      The generated Heightfield will likely be incorrectly converted to landscape unless you disable that option in the project settings and recook the asset."));
+        }
+
+        DigitZRange = dUINT16_MAX - 1.0;
         DigitCenterOffset = 0;
 
         // Default unreal landscape scaling is -256m:256m at Scale = 100
@@ -1102,6 +1112,9 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
     UMaterialInterface* LandscapeHoleMat = LandscapeProxy->GetLandscapeHoleMaterial();
     AddLandscapeMaterialAttributesToVolume( HeightId, PartId, LandscapeMat, LandscapeHoleMat );
 
+    // Add the landscape's actor tags as prim attributes if we have any    
+    FHoudiniEngineUtils::CreateGroupOrAttributeFromTags(HeightId, PartId, LandscapeProxy->Tags, true);
+
     // Commit the height volume
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
         FHoudiniEngine::Get().GetSession(), HeightId ), false );
@@ -1172,6 +1185,9 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
         // Also add the material attributes to the layer volumes
         AddLandscapeMaterialAttributesToVolume(LayerVolumeNodeId, PartId, LandscapeMat, LandscapeHoleMat);
 
+        // Add the landscape's actor tags as prim attributes if we have any    
+        FHoudiniEngineUtils::CreateGroupOrAttributeFromTags(LayerVolumeNodeId, PartId, LandscapeProxy->Tags, true);
+
         // Commit the volume's geo
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
             FHoudiniEngine::Get().GetSession(), LayerVolumeNodeId ), false);
@@ -1200,6 +1216,9 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
 
         // Add the materials used
         AddLandscapeMaterialAttributesToVolume( MaskId, PartId, LandscapeMat, LandscapeHoleMat );
+
+        // Add the landscape's actor tags as prim attributes if we have any    
+        FHoudiniEngineUtils::CreateGroupOrAttributeFromTags(MaskId, PartId, LandscapeProxy->Tags, true);
 
         // Commit the mask volume's geo
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
@@ -1393,6 +1412,9 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
     // Add the landscape component extent attribute
     AddLandscapeComponentExtentAttributes( HeightId, PartId, MinX, MaxX, MinY, MaxY );
 
+    // Add the component's tag as prim attributes if we have any
+    FHoudiniEngineUtils::CreateGroupOrAttributeFromTags(HeightId, PartId, LandscapeComponent->ComponentTags, true);
+
     // Commit the height volume
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
         FHoudiniEngine::Get().GetSession(), HeightId), false);
@@ -1464,6 +1486,9 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
         // Add the landscape component extent attribute
         AddLandscapeComponentExtentAttributes( LayerVolumeNodeId, PartId, MinX, MaxX, MinY, MaxY );
 
+        // Add the component's tag as prim attributes if we have any
+        FHoudiniEngineUtils::CreateGroupOrAttributeFromTags(LayerVolumeNodeId, PartId, LandscapeComponent->ComponentTags, true);
+
         // Commit the volume's geo
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
             FHoudiniEngine::Get().GetSession(), LayerVolumeNodeId ), false);
@@ -1498,6 +1523,9 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
 
         // Add the landscape component extent attribute
         AddLandscapeComponentExtentAttributes( MaskId, PartId, MinX, MaxX, MinY, MaxY );
+
+        // Add the component's tag as prim attributes if we have any
+        FHoudiniEngineUtils::CreateGroupOrAttributeFromTags(MaskId, PartId, LandscapeComponent->ComponentTags, true);
 
         // Commit the mask volume's geo
         HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
@@ -3162,6 +3190,10 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                 NumSectionPerLandscapeComponent, NumQuadsPerLandscapeSection,
                 LandscapeMaterial, LandscapeHoleMaterial, bCreateLandscapeStreamingProxy );
 
+            if (!CurrentLandscape)
+                continue;
+
+            // Update the visibility mask / layer if we have any
             for (auto CurrLayerInfo : ImportLayerInfos)
             {
                 if (CurrLayerInfo.LayerInfo && CurrLayerInfo.LayerName.ToString().Equals(TEXT("Visibility"), ESearchCase::IgnoreCase))
@@ -3171,9 +3203,6 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                     CurrentLandscape->VisibilityLayer->AddToRoot();
                 }
             }
-
-            if (!CurrentLandscape)
-                continue;
 
             // Add the new landscape to the map
             NewLandscapes.Add(*CurrentHeightfield, CurrentLandscape);
@@ -3284,7 +3313,7 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                 FLandscapeImportLayerInfo currentLayerInfo(LayerName);
 
                 UPackage * Package = nullptr;
-                currentLayerInfo.LayerInfo = FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject(HoudiniCookParams, LayerString.GetCharArray().GetData(), Package);
+                currentLayerInfo.LayerInfo = FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject(HoudiniCookParams, LayerString.GetCharArray().GetData(), Package, LayerGeoPartObject->GetPartId());
                 if (!currentLayerInfo.LayerInfo || !Package)
                     continue;
 
@@ -3341,6 +3370,23 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
             // We can add the landscape to the new map
             NewLandscapes.Add(*CurrentHeightfield, FoundLandscape);
         }
+    }
+
+    // Handle the HF's tags
+    for (auto Iter : NewLandscapes)
+    {
+        FHoudiniGeoPartObject HGPO = Iter.Key;
+
+        // See if we have unreal_tag_ attribute
+        TArray<FName> Tags;
+        if (!FHoudiniEngineUtils::GetUnrealTagAttributes(HGPO, Tags))
+            continue;
+
+        TWeakObjectPtr<ALandscapeProxy> Landscape = Iter.Value;
+        if (!Landscape.IsValid())
+            continue;
+
+        Landscape->Tags = Tags;
     }
 
     return true;
@@ -3610,7 +3656,7 @@ bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
         FLandscapeImportLayerInfo currentLayerInfo( LayerName );
 
         UPackage * Package = nullptr;
-        currentLayerInfo.LayerInfo = FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( HoudiniCookParams, LayerString.GetCharArray().GetData(), Package );
+        currentLayerInfo.LayerInfo = FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( HoudiniCookParams, LayerString.GetCharArray().GetData(), Package, LayerGeoPartObject->PartId);
         if ( !currentLayerInfo.LayerInfo || !Package )
             continue;
 
@@ -3641,7 +3687,7 @@ bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
             currentLayerInfo.LayerInfo->bNoWeightBlend = false;
 
         // Mark the package dirty...
-        //Package->MarkPackageDirty();
+        Package->MarkPackageDirty();
 
         CreatedLandscapeLayerPackage.Add( Package );
 
@@ -3656,7 +3702,7 @@ bool FHoudiniLandscapeUtils::CreateLandscapeLayers(
 }
 
 ULandscapeLayerInfoObject *
-FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( FHoudiniCookParams& HoudiniCookParams, const TCHAR* LayerName, UPackage*& Package )
+FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( FHoudiniCookParams& HoudiniCookParams, const TCHAR* LayerName, UPackage*& Package , HAPI_PartId PartId)
 {
     // Verifying HoudiniCookParams validity
     if ( !HoudiniCookParams.HoudiniAsset || HoudiniCookParams.HoudiniAsset->IsPendingKill() )
@@ -3664,7 +3710,7 @@ FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( FHoudiniCookParams& Houd
 
     FString ComponentGUIDString = HoudiniCookParams.PackageGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDComponentNameLength );
 
-    FString LayerNameString = FString::Printf( TEXT( "%s" ), LayerName );
+    FString LayerNameString = FString::Printf( TEXT( "%s_%d" ), LayerName, (int32)PartId );
     LayerNameString = UPackageTools::SanitizePackageName( LayerNameString );
 
     // Create the LandscapeInfoObjectName from the Asset name and the mask name

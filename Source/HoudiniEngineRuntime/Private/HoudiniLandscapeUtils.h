@@ -73,7 +73,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
 
         // Creates the package needed to store landscape layer infos
         static ULandscapeLayerInfoObject* CreateLandscapeLayerInfoObject( 
-            FHoudiniCookParams& HoudiniCookParams, const TCHAR* LayerName, UPackage*& Package );
+            FHoudiniCookParams& HoudiniCookParams, const TCHAR* LayerName, UPackage*& Package, HAPI_PartId PartId );
 
         // Creates all the landscape layers for a given heightfield
         static bool CreateLandscapeLayers(
