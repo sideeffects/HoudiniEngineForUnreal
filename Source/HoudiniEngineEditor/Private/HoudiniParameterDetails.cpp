@@ -3294,3 +3294,5 @@ FHoudiniParameterDetails::CreateWidgetSeparator( IDetailCategoryBuilder & LocalD
     if ( Separator.IsValid() )
         Separator->SetEnabled( !InParam.bIsDisabled );
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -2515,14 +2515,10 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
     if ( !OriginalMaterialInterface || OriginalMaterialInterface->IsPendingKill() )
         return false;
 
-    UMaterial* ParentMaterial = OriginalMaterialInterface->GetMaterial();
-    if ( !ParentMaterial ||ParentMaterial->IsPendingKill() )
-        return false;
-
     // Create/Retrieve the package for the MI
     FString MaterialInstanceName;
-    FString MaterialInstanceNamePrefix = PackageTools::SanitizePackageName( ParentMaterial->GetName() + TEXT("_instance_") + FString::FromInt(MaterialIndex) );
-    
+    FString MaterialInstanceNamePrefix = PackageTools::SanitizePackageName(OriginalMaterialInterface->GetName() + TEXT("_instance_") + FString::FromInt(MaterialIndex) );
+
     // See if we can find the package in the cooked temp package cache
     UPackage * MaterialInstancePackage = nullptr;
     TWeakObjectPtr< UPackage > * FoundPointer = CookParams.CookedTemporaryPackages->Find( MaterialInstanceNamePrefix );
@@ -2557,7 +2553,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
 
         // Create the new material instance
         MaterialInstanceFactory->AddToRoot();
-        MaterialInstanceFactory->InitialParent = ParentMaterial;
+        MaterialInstanceFactory->InitialParent = OriginalMaterialInterface;
         NewMaterialInstance = ( UMaterialInstanceConstant* )MaterialInstanceFactory->FactoryCreateNew(
             UMaterialInstanceConstant::StaticClass(), MaterialInstancePackage, FName( *MaterialInstanceName ),
             RF_Public | RF_Standalone, NULL, GWarn );
