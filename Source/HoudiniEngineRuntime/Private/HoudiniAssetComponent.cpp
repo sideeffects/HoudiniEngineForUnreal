@@ -665,6 +665,7 @@ UHoudiniAssetComponent::SetHoudiniAsset( UHoudiniAsset * InHoudiniAsset )
         // If the fist session on the engine was never initialized, do it now
         if (!FHoudiniEngine::Get().GetFirstSessionCreated())
         {
+            HOUDINI_LOG_MESSAGE(TEXT("First initialization of the Houdini Engine session"));
             FHoudiniEngine::Get().RestartSession();
         }
 
@@ -1406,6 +1407,7 @@ UHoudiniAssetComponent::StartHoudiniTicking()
     // If the fist session of houdini engine hasnt been initialized yet, do it now
     if (!FHoudiniEngine::Get().GetFirstSessionCreated())
     {
+        HOUDINI_LOG_MESSAGE(TEXT("First initialization of the Houdini Engine session"));
         FHoudiniEngine::Get().RestartSession();
     }
 }
@@ -1552,16 +1554,20 @@ UHoudiniAssetComponent::ValidateDownstreamAssets()
             continue;
         }
 
+        // Get the downstream assets inputs (including object path parameters!)
+        TArray<UHoudiniAssetInput*> DownstreamInputs;
+        DownstreamAsset->GetInputs(DownstreamInputs, true);
+
         // Check that asset component's input
         for (auto DownstreamInputIdx : InputIndexes)
         {
-            if (!DownstreamAsset->Inputs.IsValidIndex(DownstreamInputIdx))
+            if (!DownstreamInputs.IsValidIndex(DownstreamInputIdx))
             {
                 RemoveDownstreamAsset(DownstreamAsset, DownstreamInputIdx);
                 continue;
             }
 
-            UHoudiniAssetInput* DownInput = DownstreamAsset->Inputs[DownstreamInputIdx];
+            UHoudiniAssetInput* DownInput = DownstreamInputs[DownstreamInputIdx];
             if (!DownInput || DownInput->IsPendingKill())
             {
                 RemoveDownstreamAsset(DownstreamAsset, DownstreamInputIdx);
