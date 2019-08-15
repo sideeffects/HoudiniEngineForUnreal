@@ -284,10 +284,7 @@ FHoudiniAssetTypeActions::ExecuteFindInExplorer( TArray< TWeakObjectPtr< UHoudin
 
 void
 FHoudiniAssetTypeActions::ExecuteOpenInHoudini( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets )
-{
-    if ( !FHoudiniEngine::IsInitialized() )
-        return;
-    
+{   
     if ( HoudiniAssets.Num() != 1 )
         return;
    
