@@ -396,14 +396,16 @@ FHoudiniGeoPartObject::operator==( const FHoudiniGeoPartObject & GeoPartObject )
         ObjectId == GeoPartObject.ObjectId &&
         GeoId == GeoPartObject.GeoId &&
         PartId == GeoPartObject.PartId &&
-        SplitId == GeoPartObject.SplitId );
+        SplitId == GeoPartObject.SplitId &&
+        SplitName == GeoPartObject.SplitName );
 }
 
 uint32
 FHoudiniGeoPartObject::GetTypeHash() const
 {
     int32 HashBuffer[ 4 ] = { ObjectId, GeoId, PartId, SplitId };
-    return FCrc::MemCrc_DEPRECATED( (void *) &HashBuffer[ 0 ], sizeof( HashBuffer ) );
+    int32 Hash = FCrc::MemCrc32( (void *) &HashBuffer[ 0 ], sizeof( HashBuffer ) );
+    return FCrc::StrCrc32(*SplitName, Hash);
 }
 
 void
@@ -483,7 +485,9 @@ FHoudiniGeoPartObject::IsValid() const
 bool
 FHoudiniGeoPartObject::CompareNames( const FHoudiniGeoPartObject & HoudiniGeoPartObject ) const
 {
-    return ( ObjectName == HoudiniGeoPartObject.ObjectName && PartName == HoudiniGeoPartObject.PartName );
+    return ( ObjectName == HoudiniGeoPartObject.ObjectName 
+        && PartName == HoudiniGeoPartObject.PartName 
+        && SplitName == HoudiniGeoPartObject.SplitName );
 }
 
 bool
