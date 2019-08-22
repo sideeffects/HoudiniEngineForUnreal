@@ -846,7 +846,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
             if ( FoundStaticMeshComponent && !FoundStaticMeshComponent->IsPendingKill() )
             {
                 StaticMeshComponent = FoundStaticMeshComponent;
-                if ( ! HoudiniGeoPartObject.IsVisible() )
+                if ( !HoudiniGeoPartObject.IsVisible() )
                 {
                     // We have a mesh and component for a part which is invisible.
                     // Visibility may have changed since last cook

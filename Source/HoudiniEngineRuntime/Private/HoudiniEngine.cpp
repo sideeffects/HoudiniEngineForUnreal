@@ -201,25 +201,22 @@ FHoudiniEngine::StartupModule()
         for ( auto PluginIt( Plugins.CreateConstIterator() ); PluginIt; ++PluginIt )
         {
             const TSharedRef< IPlugin > & Plugin = *PluginIt;
-            if ( Plugin->GetName() == TEXT( "HoudiniEngine" ) )
+            if (Plugin->GetName() != TEXT("HoudiniEngine"))
+                continue;
+
+            FString Icon128FilePath = Plugin->GetBaseDir() / TEXT("Resources/Icon128.png");
+            if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*Icon128FilePath))
             {
-                FString Icon128FilePath = Plugin->GetBaseDir() / TEXT( "Resources/Icon128.png" );
-
-                if ( FPlatformFileManager::Get().GetPlatformFile().FileExists( *Icon128FilePath ) )
+                const FName BrushName(*Icon128FilePath);
+                const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(BrushName);
+                if (Size.X > 0 && Size.Y > 0)
                 {
-                    const FName BrushName( *Icon128FilePath );
-                    const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource( BrushName );
-
-                    if ( Size.X > 0 && Size.Y > 0 )
-                    {
-                        static const int32 ProgressIconSize = 32;
-                        HoudiniLogoBrush = MakeShareable( new FSlateDynamicImageBrush(
-                            BrushName, FVector2D( ProgressIconSize, ProgressIconSize ) ) );
-                    }
+                    static const int32 ProgressIconSize = 32;
+                        HoudiniLogoBrush = MakeShareable(new FSlateDynamicImageBrush(
+                        BrushName, FVector2D(ProgressIconSize, ProgressIconSize)));
                 }
-
-                break;
             }
+            break;
         }
     }
 
