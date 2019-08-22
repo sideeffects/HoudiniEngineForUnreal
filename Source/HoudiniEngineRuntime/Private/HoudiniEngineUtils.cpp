@@ -5229,7 +5229,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     // Get platform manager LOD specific information.
     ITargetPlatform * CurrentPlatform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
     check( CurrentPlatform );
-    const FStaticMeshLODGroup & LODGroup = CurrentPlatform->GetStaticMeshLODSettings().GetLODGroup( NAME_None );
+    FStaticMeshLODGroup LODGroup = CurrentPlatform->GetStaticMeshLODSettings().GetLODGroup( NAME_None );
     int32 DefaultNumLODs = LODGroup.GetDefaultNumLODs();
 
     // Get the AssetInfo
@@ -6092,6 +6092,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 {
                     // Found the corresponding Static Mesh, just reuse it.
                     StaticMesh = *FoundStaticMesh;
+                    // Try to reuse the SM's LOD groupd instead of the default one
+                    LODGroup = CurrentPlatform->GetStaticMeshLODSettings().GetLODGroup(StaticMesh->LODGroup);
                 }
 
                 // Free any RHI resources for existing mesh before we re-create in place.
@@ -7890,8 +7892,7 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
         HoudiniLocation = FString::Printf(
             TEXT("/Applications/Houdini/HoudiniIndieSteam/Frameworks/Houdini.framework/Versions/Current/Libraries"));
 
-    // Backup Fallback in case we're using the steam version
-    // (this could probably be removed as paths have changed)
+    // Fallback in case we're using the steam version
     if ( !FPaths::DirectoryExists( HoudiniLocation ) )
         HoudiniLocation = FString::Printf(
             TEXT("/Users/Shared/Houdini/HoudiniIndieSteam/Frameworks/Houdini.framework/Versions/Current/Libraries"));
