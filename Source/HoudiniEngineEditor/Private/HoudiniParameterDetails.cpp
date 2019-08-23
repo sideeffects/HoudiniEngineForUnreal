@@ -2708,6 +2708,9 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
                 .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(
                     &InParam, &UHoudiniAssetInput::CheckStateChangedUpdateInputLandscape ) )
             ];
+
+            // Only enable if we're exporting as HF
+            CheckBoxUpdateInput->SetEnabled(InParam.bLandscapeExportAsHeightfield);
         }
 
         // ActorPicker : Landscape
