@@ -75,6 +75,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniCookParams
     TMap<FHoudiniGeoPartObject, TWeakObjectPtr<class UPackage> >* BakedStaticMeshPackagesForParts = nullptr;
     // Transient cache of last baked materials and textures
     TMap<FString, TWeakObjectPtr<class UPackage> >* BakedMaterialPackagesForIds = nullptr;
+
     // Cache of the temp cook content packages created by the asset for its materials/textures
     TMap<FHoudiniGeoPartObject, TWeakObjectPtr<class UPackage> >* CookedTemporaryStaticMeshPackages = nullptr;
     // Cache of the temp cook content packages created by the asset for its materials/textures
@@ -87,6 +88,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniCookParams
     FText TempCookFolder;
     // When cooking in bake mode - folder to create assets in
     FText BakeFolder;
+    /** overrides for baking names per part */
+    TMap< FHoudiniGeoPartObject, FString >* BakeNameOverrides = nullptr;
+
     // When cooking in intermediate mode - uobject to use as outer
     class UObject* IntermediateOuter = nullptr;
 

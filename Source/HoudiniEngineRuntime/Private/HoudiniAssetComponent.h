@@ -698,6 +698,9 @@ public:
         /** (default behavior is true)                                                                              **/
         bool bEditorPropertiesNeedFullUpdate;
 
+        /** Overrides for baking names per part */
+        TMap< FHoudiniGeoPartObject, FString > BakeNameOverrides;
+
     protected:
 
         /** Previous asset, if it has been changed through transaction. **/
@@ -748,9 +751,6 @@ public:
         /** The temporary output folder for cooking actions */
         UPROPERTY()
         FText TempCookFolder;
-
-        /** overrides for baking names per part */
-        TMap< FHoudiniGeoPartObject, FString > BakeNameOverrides;
 
         /** list of the modified uproperties per geopartobject **/
         //TMap< FHoudiniGeoPartObject, TArray< UPropertyAttribute > > ModifedUProperties;
