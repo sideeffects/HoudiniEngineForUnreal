@@ -218,6 +218,7 @@
 #define HAPI_UNREAL_ATTRIB_INSTANCE_COLOR               "unreal_instance_color"
 
 #define HAPI_UNREAL_ATTRIB_BAKE_FOLDER                  "unreal_bake_folder"
+#define HAPI_UNREAL_ATTRIB_BAKE_NAME                    "unreal_bake_name"
 
 /** Names of other Houdini Engine attributes and parameters. **/
 #define HAPI_UNREAL_ATTRIB_INSTANCE                     "instance"

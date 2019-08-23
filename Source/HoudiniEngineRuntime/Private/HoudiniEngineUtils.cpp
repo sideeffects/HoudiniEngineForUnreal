@@ -6051,13 +6051,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     }
                 }
 
-                // TODO: FIX THIS PROPERLY!!
-                // Ignore the found Static Mesh to force the creation of a new one
-                // UE4.20 seems to be ignoring the fact that the SM is updated, and only displays the original one
-                // This prevents meshes from being updated after a cook, but only after a rebuild....
-                //if ( bRebuildStaticMesh && (!IsLOD || LodIndex <= 0) )
-                //    FoundStaticMesh = nullptr;
-
                 // If the static mesh was not located, we need to create a new one.
                 bool bStaticMeshCreated = false;
                 UStaticMesh * StaticMesh = nullptr;
@@ -7101,6 +7094,54 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         // we need to activate complex collision for that lod to be picked up as collider
                         if ( HapiCheckAttributeExists( HoudiniGeoPartObject, "unreal_uproperty_LODForCollision", HAPI_ATTROWNER_DETAIL ) )
                             BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
+                    }
+                }
+
+                // See if a custom bake name override for this mesh was assigned via the "unreal_bake_name" attribute
+                TArray< FString > BakeNameOverrides;
+                {
+                    HAPI_AttributeInfo AttribBakeNameOverride;
+                    FHoudiniApi::AttributeInfo_Init(&AttribBakeNameOverride);
+
+                    FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+                        AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                        HAPI_UNREAL_ATTRIB_BAKE_NAME, AttribBakeNameOverride, BakeNameOverrides);
+
+                    if (BakeNameOverrides.Num() > 0)
+                    {
+                        int32 AttrIdx = 0;
+                        if (AttribBakeNameOverride.owner == HAPI_ATTROWNER_PRIM)
+                        {
+                            // If the attribute is on primitives, we need to find
+                            // the index of the prim that correspond to our split
+                            for (int32 n = 0; n < SplitGroupVertexList.Num(); n++)
+                            {
+                                if (SplitGroupVertexList[n] <= 0)
+                                    continue;
+
+                                AttrIdx = n / 3;
+                                break;
+                            }
+                            
+                            if (!BakeNameOverrides.IsValidIndex(AttrIdx))
+                                AttrIdx = 0;
+                        }
+
+                        FString BakeNameOverride = BakeNameOverrides[AttrIdx];
+                        if (!BakeNameOverride.IsEmpty())
+                        {
+                            // If the name override was set on the details and we have multiple split
+                            // append the split name to the override to avoid collisions on bake
+                            if (AttribBakeNameOverride.owner == HAPI_ATTROWNER_DETAIL
+                                && SplitGroupNames.Num() > 1)
+                            {
+                                if (!SplitGroupName.Equals("main_geo", ESearchCase::IgnoreCase))
+                                    BakeNameOverride += "_" + SplitGroupName;
+                            }
+
+                            FString& OverrideStrRef = HoudiniCookParams.BakeNameOverrides->FindOrAdd(HoudiniGeoPartObject);
+                            OverrideStrRef = BakeNameOverride;
+                        }
                     }
                 }
 

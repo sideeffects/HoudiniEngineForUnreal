@@ -1354,6 +1354,7 @@ FHoudiniCookParams::FHoudiniCookParams( UHoudiniAssetComponent* HoudiniAssetComp
     CookedTemporaryLandscapeLayers = &HoudiniAssetComponent->CookedTemporaryLandscapeLayers;
     TempCookFolder = HoudiniAssetComponent->GetTempCookFolder();
     BakeFolder = HoudiniAssetComponent->GetBakeFolder();
+    BakeNameOverrides = &HoudiniAssetComponent->BakeNameOverrides;
     IntermediateOuter = HoudiniAssetComponent->GetComponentLevel();
     GeneratedDistanceFieldResolutionScale = HoudiniAssetComponent->GeneratedDistanceFieldResolutionScale;
 #endif
@@ -1435,7 +1436,7 @@ FHoudiniEngineBakeUtils::BakeCreateMaterialPackageForComponent(
     if ( !HoudiniAsset || HoudiniAsset->IsPendingKill() )
         return nullptr;
 
-    FString MaterialDescriptor;
+	FString MaterialDescriptor;
     if( HoudiniCookParams.MaterialAndTextureBakeMode != EBakeMode::Intermediate )
         MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_material_" ) + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" );
     else
