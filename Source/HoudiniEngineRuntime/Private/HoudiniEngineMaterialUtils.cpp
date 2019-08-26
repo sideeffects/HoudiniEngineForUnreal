@@ -2647,14 +2647,14 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
 bool
 FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute MaterialParameter, UMaterialInstanceConstant* MaterialInstance, FHoudiniCookParams& CookParams )
 {
+    bool bParameterUpdated = false;
+
 #if WITH_EDITOR
     if ( !MaterialInstance )
         return false;
 
     if ( MaterialParameter.AttributeName.IsEmpty() )
-        return false;
-
-    bool bParameterUpdated = false;
+        return false;    
 
     // The default material instance parameters needs to be handled manually as they cant be changed via generic SetParameters functions
     if ( MaterialParameter.AttributeName.Compare( "CastShadowAsMasked", ESearchCase::IgnoreCase ) == 0 )
