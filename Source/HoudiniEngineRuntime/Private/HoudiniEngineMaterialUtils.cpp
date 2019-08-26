@@ -2654,6 +2654,8 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
     if ( MaterialParameter.AttributeName.IsEmpty() )
         return false;
 
+    bool bParameterUpdated = false;
+
     // The default material instance parameters needs to be handled manually as they cant be changed via generic SetParameters functions
     if ( MaterialParameter.AttributeName.Compare( "CastShadowAsMasked", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2665,7 +2667,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->SetOverrideCastShadowAsMasked( true );
         MaterialInstance->SetCastShadowAsMasked( Value );
-        return true;
+        bParameterUpdated = true;
     }
     else  if ( MaterialParameter.AttributeName.Compare( "EmissiveBoost", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2677,7 +2679,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->SetOverrideEmissiveBoost( true );
         MaterialInstance->SetEmissiveBoost( Value );
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "DiffuseBoost", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2689,7 +2691,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->SetOverrideDiffuseBoost( true );
         MaterialInstance->SetDiffuseBoost( Value );
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "ExportResolutionScale", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2701,7 +2703,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->SetOverrideExportResolutionScale( true );
         MaterialInstance->SetExportResolutionScale( Value );
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "OpacityMaskClipValue", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2713,7 +2715,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->BasePropertyOverrides.bOverride_OpacityMaskClipValue = true;
         MaterialInstance->BasePropertyOverrides.OpacityMaskClipValue = Value;
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "BlendMode", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2741,7 +2743,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->BasePropertyOverrides.bOverride_BlendMode = true;
         MaterialInstance->BasePropertyOverrides.BlendMode = EnumValue;
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "ShadingModel", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2777,7 +2779,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->BasePropertyOverrides.bOverride_ShadingModel = true;
         MaterialInstance->BasePropertyOverrides.ShadingModel = EnumValue;
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "TwoSided", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2789,7 +2791,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->BasePropertyOverrides.bOverride_TwoSided = true;
         MaterialInstance->BasePropertyOverrides.TwoSided = Value;
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "DitheredLODTransition", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2801,7 +2803,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->BasePropertyOverrides.bOverride_DitheredLODTransition = true;
         MaterialInstance->BasePropertyOverrides.DitheredLODTransition = Value;
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "PhysMaterial", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2811,14 +2813,15 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
             StaticLoadObject( UPhysicalMaterial::StaticClass(), nullptr, *ParamValue, nullptr, LOAD_NoWarn, nullptr ) );
 
         // Update the parameter value if necessary
-        if ( FoundPhysMaterial && ( MaterialInstance->PhysMaterial != FoundPhysMaterial ) )
-        {
-            MaterialInstance->PhysMaterial = FoundPhysMaterial;
-            return true;
-        }
+        if (!FoundPhysMaterial || (MaterialInstance->PhysMaterial == FoundPhysMaterial))
+            return false;
 
-        return false;
+        MaterialInstance->PhysMaterial = FoundPhysMaterial;
+        bParameterUpdated = true;
     }
+
+    if (bParameterUpdated)
+        return true;
 
     // Handling custom parameters
     FName CurrentMatParamName = FName( *MaterialParameter.AttributeName );
@@ -2852,22 +2855,52 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
                 return false;
 
             MaterialInstance->SetTextureParameterValueEditorOnly( CurrentMatParamName, FoundTexture );
-            return true;
+            bParameterUpdated = true;
         }
     }
     else if ( MaterialParameter.AttributeTupleSize == 1 )
     {
-        // Single attributes are for scalar parameters
-        float NewValue = (float)MaterialParameter.GetDoubleValue();
-
-        // Do not update if unnecessary
+        // Single attributes are either for scalar parameters or static switches
         float OldValue;
-        bool FoundOldParam = MaterialInstance->GetScalarParameterValue( CurrentMatParamName, OldValue );
-        if ( FoundOldParam && ( OldValue == NewValue ) )
-            return false;
+        bool FoundOldScalarParam = MaterialInstance->GetScalarParameterValue( CurrentMatParamName, OldValue );
+        if (FoundOldScalarParam)
+        {
+            // The material parameter is a scalar
+            float NewValue = (float)MaterialParameter.GetDoubleValue();
 
-        MaterialInstance->SetScalarParameterValueEditorOnly( CurrentMatParamName, NewValue );
-        return true;
+            // Do not update if unnecessary
+            if (OldValue == NewValue)
+                return false;
+
+            MaterialInstance->SetScalarParameterValueEditorOnly(CurrentMatParamName, NewValue);
+            bParameterUpdated = true;
+        }
+        else
+        {
+            // See if the underlying parameter is a static switch
+            bool NewBoolValue = MaterialParameter.GetBoolValue();
+            
+            // We need to iterate over the material's static parameter set
+            FStaticParameterSet StaticParameters;
+            MaterialInstance->GetStaticParameterValues(StaticParameters);
+            
+            for (int32 SwitchParameterIdx = 0; SwitchParameterIdx < StaticParameters.StaticSwitchParameters.Num(); ++SwitchParameterIdx)
+            {
+                FStaticSwitchParameter& SwitchParameter = StaticParameters.StaticSwitchParameters[SwitchParameterIdx];
+                if (SwitchParameter.ParameterInfo.Name != CurrentMatParamName)
+                    continue;
+
+                if (SwitchParameter.Value == NewBoolValue)
+                    return false;
+
+                SwitchParameter.Value = NewBoolValue;
+                SwitchParameter.bOverride = true;
+
+                MaterialInstance->UpdateStaticPermutation(StaticParameters);
+                bParameterUpdated = true;
+                break;
+            }
+        }
     }
     else
     {
@@ -2903,11 +2936,11 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
             return false;
 
         MaterialInstance->SetVectorParameterValueEditorOnly( CurrentMatParamName, NewLinearColor );
-        return true;
+        bParameterUpdated = true;
     }
 #endif
 
-    return false;
+    return bParameterUpdated;
 }
 
 UTexture*
