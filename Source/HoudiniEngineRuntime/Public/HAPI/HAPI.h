@@ -3,13 +3,6 @@
  * Side Effects Software Inc., and is not to be reproduced,
  * transmitted, or disclosed in any way without written permission.
  *
- * Produced by:
- *      Side Effects Software Inc
- *      123 Front Street West, Suite 1401
- *      Toronto, Ontario
- *      Canada   M5J 2M2
- *      416-504-9876
- *
  * COMMENTS:
  * For parsing help, there is a variable naming convention we maintain:
  *      strings:            char * and does not end in "buffer"
@@ -4673,6 +4666,54 @@ HAPI_DECL HAPI_ExtractImageToFile( const HAPI_Session * session,
                                    const char * image_planes,
                                    const char * destination_folder_path,
                                    const char * destination_file_name,
+                                   int * destination_file_path );
+/// @brief  Get the file name that this image would be saved to
+///
+///         Check to see what file path HAPI_ExtractImageToFile would have
+///         saved to given the same parms. Perhaps you might wish to see
+///         if it already exists before extracting.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      material_node_id
+///                 The material node id.
+///
+/// @param[in]      image_file_format_name
+///                 The image file format name you wish the image to be
+///                 extracted as. See HAPI_ExtractImageToFile for more information.
+///
+/// @param[in]      image_planes
+///                 The image planes you wish to extract into the file.
+///                 Multiple image planes should be separated by spaces.
+///
+/// @param[in]      destination_folder_path
+///                 The folder where the image file sould be created.
+///
+/// @param[in]      destination_file_name
+///                 Optional parameter to overwrite the name of the
+///                 extracted texture file. See HAPI_ExtractImageToFile for more information.
+///
+/// @param[in]      texture_parm_id
+///                 The index in the parameter list of the material node.
+///                 of the parameter containing the texture map file path
+///
+/// @param[out]     destination_file_path
+///                 The full path string handle, including the
+///                 destination_folder_path and the texture file name,
+///                 to the extracted file. Note that this string handle
+///                 will only be valid until the next call to
+///                 this function.
+///
+HAPI_DECL HAPI_GetImageFilePath( const HAPI_Session * session,
+                                   HAPI_NodeId material_node_id,
+                                   const char * image_file_format_name,
+                                   const char * image_planes,
+                                   const char * destination_folder_path,
+                                   const char * destination_file_name,
+				   HAPI_ParmId texture_parm_id,
                                    int * destination_file_path );
 
 /// @brief  Extract a rendered image to memory.
