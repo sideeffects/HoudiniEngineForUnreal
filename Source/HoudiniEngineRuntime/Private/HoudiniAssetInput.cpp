@@ -36,16 +36,34 @@
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniLandscapeUtils.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
+
 #include "Components/SplineComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/Selection.h"
 #include "Internationalization/Internationalization.h"
-#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "EngineUtils.h" // for TActorIterator<>
+
 #if WITH_EDITOR
-    #include "UnrealEdGlobals.h"
-    #include "Editor/UnrealEdEngine.h"
+#include "Editor.h"
+#include "Editor/UnrealEdEngine.h"
+#include "UnrealEdGlobals.h"
+#endif
+
+#if WITH_EDITOR
+// Allows checking of objects currently being dragged around
+struct FHoudiniMoveTracker
+{
+    FHoudiniMoveTracker() : IsObjectMoving(false)
+    {
+        GEditor->OnBeginObjectMovement().AddLambda([this](UObject&) { IsObjectMoving = true; });
+        GEditor->OnEndObjectMovement().AddLambda([this](UObject&) { IsObjectMoving = false; });
+    }
+    static FHoudiniMoveTracker& Get() { static FHoudiniMoveTracker Instance; return Instance; }
+
+    bool IsObjectMoving;
+};
 #endif
 
 static FName NAME_HoudiniNoUpload( TEXT( "HoudiniNoUpload" ) );
@@ -62,7 +80,8 @@ FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
     Ar << HoudiniAssetParameterVersion;
 
     Ar << ActorPtr;
-    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_OUTLINER_INPUT_SAVE_ACTOR_PATHNAME )
+    if ( ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_OUTLINER_INPUT_SAVE_ACTOR_PATHNAME )
+        && ( HoudiniAssetParameterVersion != VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_419_SERIALIZATION_FIX ) )
     {
         Ar << ActorPathName;
     }
@@ -92,7 +111,13 @@ FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_KEEP_TRANSFORM )
         Ar << KeepWorldTransform;
 
-    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_OUTLINER_INPUT_SAVE_MAT )
+    // UE4.19 SERIALIZATION FIX:
+    // The component materials serialization (24) was actually missing in the UE4.19 H17.0 / H16.5 plugin.
+    // However subsequent serialized changes (25+) were present in those version. This caused crashes when loading
+    // a level that was saved with 4.19+16.5/17.0 on a newer version of Unreal or Houdini...
+    // If the serialized version is exactly that of the fix, we can ignore the materials paths as well
+    if ( ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_OUTLINER_INPUT_SAVE_MAT )
+        && (HoudiniAssetParameterVersion != VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_419_SERIALIZATION_FIX ) )
         Ar << MeshComponentsMaterials;
 
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_OUTLINER_INSTANCE_INDEX )
@@ -249,6 +274,49 @@ FHoudiniAssetInputOutlinerMesh::NeedsComponentUpdate() const
     return false;
 }
 
+
+bool
+FHoudiniAssetInputOutlinerMesh::TryToUpdateActorPtrFromActorPathName()
+{
+    // Ensure our current ActorPathName looks valid
+    if (ActorPathName.IsEmpty() || ActorPathName.Equals(TEXT("None"), ESearchCase::IgnoreCase))
+        return false;
+
+    // We'll try to find the corresponding actor by browsing through all the actors in the world..
+    // Get the editor world
+    UWorld* World = nullptr;
+#if WITH_EDITOR
+    World = GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
+#endif
+    if (!World)
+        return false;
+
+    // Then try to find the actor corresponding to our path/name
+    bool FoundActor = false;
+    for (TActorIterator<AActor> ActorIt(World); ActorIt; ++ActorIt)
+    {
+        if (ActorIt->GetPathName() != ActorPathName)
+            continue;
+
+        // We found the actor
+        ActorPtr = *ActorIt;
+        FoundActor = true;
+
+        break;
+    }
+
+    if ( FoundActor )
+    {
+        // We need to invalid our components so they can be updated later
+        // from the new actor
+        StaticMesh = NULL;
+        StaticMeshComponent = NULL;
+        SplineComponent = NULL;
+    }
+
+    return FoundActor;
+}
+
 UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
     , InputCurve( nullptr )
@@ -295,10 +363,9 @@ UHoudiniAssetInput::Create( UObject * InPrimaryObject, int32 InInputIndex, HAPI_
 
     // Get name of this input.
     HAPI_StringHandle InputStringHandle;
-    if ( FHoudiniApi::GetNodeInputName(
-        FHoudiniEngine::Get().GetSession(),
-        InNodeId,
-        InInputIndex, &InputStringHandle ) != HAPI_RESULT_SUCCESS )
+    if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetNodeInputName(
+            FHoudiniEngine::Get().GetSession(),
+            InNodeId, InInputIndex, &InputStringHandle ) )
     {
         return HoudiniAssetInput;
     }
@@ -330,7 +397,8 @@ UHoudiniAssetInput *
 UHoudiniAssetInput::Create(
     UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
-    HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo)
+    HAPI_NodeId InNodeId, 
+    const HAPI_ParmInfo & ParmInfo)
 {
     UObject * Outer = InPrimaryObject;
     if (!Outer)
@@ -358,6 +426,10 @@ UHoudiniAssetInput::Create(
 
     // Create necessary widget resources.
     HoudiniAssetInput->CreateWidgetResources();
+
+    // Use the value of the object path param to preset the 
+    // default object for Geometry inputs 
+    HoudiniAssetInput->SetDefaultAssetFromHDA();
 
     return HoudiniAssetInput;
 }
@@ -615,6 +687,11 @@ UHoudiniAssetInput::ForceSetInputObject(UObject * InObject, int32 AtIndex, bool 
 
     if( CommitChange )
     {
+        // We must change ChoiceIndex's value manually before calling ChangeInputType: 
+        // If we are forcing the input to an asset input, not doing so would actually destroy the 
+        // parent HDA node on the houdini side, making the input HDA to need a reinstantiation on first cook...
+        ChoiceIndex = NewInputType;
+
         ChangeInputType( NewInputType, true );
         MarkChanged();
     }
@@ -842,18 +919,23 @@ UHoudiniAssetInput::UploadParameterValue()
                 // Disconnect and destroy currently connected asset, if there's one.
                 DisconnectAndDestroyInputAsset();
 
-                UHoudiniAssetComponent* AssetComponent = ( UHoudiniAssetComponent* )PrimaryObject;
-                if ( !AssetComponent || AssetComponent->IsPendingKill() )
-                    AssetComponent = InputAssetComponent;
+                // If we're auto-selecting the components, we need to get the asset's bound 
+                FBox Bounds(ForceInitToZero);
+                if ( bLandscapeAutoSelectComponent )
+                {
+                    // Get our asset's or our connected input asset's bounds
+                    UHoudiniAssetComponent* AssetComponent = (UHoudiniAssetComponent*)PrimaryObject;
+                    if (!AssetComponent || AssetComponent->IsPendingKill())
+                        AssetComponent = InputAssetComponent;
 
-                // We need to get the asset bounds, without this input
-                FBox Bounds( ForceInitToZero );
-                if ( AssetComponent && !AssetComponent->IsPendingKill() )
-                    Bounds = AssetComponent->GetAssetBounds( this, true );
+                    // Get the bounds, without this input
+                    if (AssetComponent && !AssetComponent->IsPendingKill())
+                        Bounds = AssetComponent->GetAssetBounds(this, true);
+                }
 
                 // Connect input and create connected asset. Will return by reference.
                 if ( !FHoudiniEngineUtils::HapiCreateInputNodeForLandscape(
-                        HostAssetId, InputLandscapeProxy,
+                        HostAssetId, InputLandscapeProxy.Get(),
                         ConnectedAssetId, CreatedInputDataAssetIds,
                         bLandscapeExportSelectionOnly, bLandscapeExportCurves,
                         bLandscapeExportMaterials, bLandscapeExportAsMesh, bLandscapeExportLighting,
@@ -1249,8 +1331,21 @@ UHoudiniAssetInput::Serialize( FArchive & Ar )
     Ar << InputCurveParameters;
 
     // Serialize landscape used for input.
-    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_LANDSCAPE_INPUT )
-        Ar << InputLandscapeProxy;
+    if (HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_LANDSCAPE_INPUT)
+    {
+        if (HoudiniAssetParameterVersion < VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INPUT_SOFT_REF)
+        {
+            ALandscapeProxy* InputLandscapePtr = nullptr;
+            Ar << InputLandscapePtr;
+
+            InputLandscapeProxy = InputLandscapePtr;
+        }
+        else
+        {
+            Ar << InputLandscapeProxy;
+        }
+
+    }
 
     // Serialize world outliner inputs.
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_WORLD_OUTLINER_INPUT )
@@ -1298,7 +1393,8 @@ UHoudiniAssetInput::Serialize( FArchive & Ar )
             InputTransforms[ n ] = FTransform::Identity;
     }
 
-    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INPUT_LANDSCAPE_TRANSFORM )
+    if ( ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INPUT_LANDSCAPE_TRANSFORM )
+        && ( HoudiniAssetParameterVersion != VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_419_SERIALIZATION_FIX ) )
         Ar << InputLandscapeTransform;
 }
 
@@ -1309,32 +1405,23 @@ UHoudiniAssetInput::AddReferencedObjects( UObject * InThis, FReferenceCollector 
     if ( HoudiniAssetInput && !HoudiniAssetInput->IsPendingKill() )
     {
         // Add reference to held geometry object.
-        if ( HoudiniAssetInput->InputObjects.Num() )
+        if ( HoudiniAssetInput->InputObjects.Num() 
+            && ( HoudiniAssetInput->GetChoiceIndex() == EHoudiniAssetInputType::GeometryInput ) )
             Collector.AddReferencedObjects( HoudiniAssetInput->InputObjects, InThis );
 
+        /*
         // Add reference to held input asset component, if we have one.
-        if ( HoudiniAssetInput->InputAssetComponent && !HoudiniAssetInput->InputAssetComponent->IsPendingKill() )
+        if ( HoudiniAssetInput->InputAssetComponent && !HoudiniAssetInput->InputAssetComponent->IsPendingKill() 
+            && ( HoudiniAssetInput->GetChoiceIndex() == EHoudiniAssetInputType::AssetInput ) )
             Collector.AddReferencedObject( HoudiniAssetInput->InputAssetComponent, InThis );
+        */
 
         // Add reference to held curve object.
         if ( HoudiniAssetInput->InputCurve && !HoudiniAssetInput->InputCurve->IsPendingKill() )
             Collector.AddReferencedObject( HoudiniAssetInput->InputCurve, InThis );
 
-        // Add reference to held landscape.
-        if ( HoudiniAssetInput->InputLandscapeProxy && !HoudiniAssetInput->InputLandscapeProxy->IsPendingKill() )
-            Collector.AddReferencedObject( HoudiniAssetInput->InputLandscapeProxy, InThis );
-
-        // Add reference for the WorldInputs' Actors
-        for ( auto & OutlinerInput : HoudiniAssetInput->InputOutlinerMeshArray )
-        {
-            // Add the outliner input's actor
-            AActor * OutlinerInputActor = OutlinerInput.ActorPtr.IsValid() ? OutlinerInput.ActorPtr.Get() : nullptr;
-            if ( !OutlinerInputActor || OutlinerInputActor->IsPendingKill() )
-                continue;
-
-            Collector.AddReferencedObject( OutlinerInputActor, InThis );
-        }
-
+        // Do not add references to Actors/Landscapes in our world outliner as if they are in 
+        // an other level it will prevent saving due to the external references...
         // Add references for all curve input parameters.
         for ( TMap< FString, UHoudiniAssetParameter * >::TIterator IterParams( HoudiniAssetInput->InputCurveParameters );
             IterParams; ++IterParams )
@@ -1584,7 +1671,6 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType,
         case EHoudiniAssetInputType::WorldInput:
         {
             // We are switching away from World Outliner input.
-
             // Stop monitoring the Actors for transform changes.
             StopWorldOutlinerTicking();
 
@@ -1798,8 +1884,8 @@ UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
         if ( !ConnectedHoudiniAssetComponent || ConnectedHoudiniAssetComponent->IsPendingKill() )
             return;
 
-        // If we just selected the already selected Actor do nothing.
-        if ( ConnectedHoudiniAssetComponent == InputAssetComponent )
+        // If we just selected the already selected Actor do nothing if we are properly connected.
+        if ( ConnectedHoudiniAssetComponent == InputAssetComponent && bInputAssetConnectedInHoudini)
             return;
 
         // Do not allow the input asset to be ourself!
@@ -1876,36 +1962,37 @@ void
 UHoudiniAssetInput::TickWorldOutlinerInputs()
 {
     // Do not tick non world inputs
-    if ( ChoiceIndex != EHoudiniAssetInputType::WorldInput )
+    if (ChoiceIndex != EHoudiniAssetInputType::WorldInput)
+    {
         return;
+    }
+
+    // Only tick/cook when in Editor
+    // This prevents PIE cooks or runtime cooks due to inputs moving
+    if (!GetWorld() || (GetWorld()->WorldType != EWorldType::Editor))
+    {
+        return;
+    }
+
+#if WITH_EDITOR
+    // Stop outliner objects from causing recooks while input objects are dragged around
+    if (FHoudiniMoveTracker::Get().IsObjectMoving)
+    {
+        return;
+    }
+#endif
 
     // PostLoad initialization must be done on the first tick
     // as some components might now have been fully initialized during PostLoad()
     if ( OutlinerInputsNeedPostLoadInit )
     {
-        UWorld* editorWorld = GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
-        if ( editorWorld )
+        for (auto & OutlinerInput : InputOutlinerMeshArray)
         {
-            for (auto & OutlinerInput : InputOutlinerMeshArray)
-            {
-                if (OutlinerInput.ActorPtr.IsValid())
-                    continue;
+            if (OutlinerInput.ActorPtr.IsValid())
+                continue;
 
-                if (OutlinerInput.ActorPathName.Equals(TEXT("None"), ESearchCase::IgnoreCase))
-                    continue;
-
-                // The actor pointer is invalid, 
-                // See if we can use the saved pathname to find the actor back
-                // Invalid ActorPtr could be caused by the actor being in a different level
-                for (TActorIterator<AActor> ActorIt(editorWorld); ActorIt; ++ActorIt)
-                {
-                    if (ActorIt->GetPathName() == OutlinerInput.ActorPathName)
-                    {
-                        OutlinerInput.ActorPtr = *ActorIt;
-                        break;
-                    }
-                }
-            }
+            // Try to update the actor ptr via the pathname
+            OutlinerInput.TryToUpdateActorPtrFromActorPathName();
         }
 
         UpdateInputOulinerArray();
@@ -1965,10 +2052,12 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
             UpdateWorldOutlinerTransforms( OutlinerInput );
 
             HAPI_TransformEuler HapiTransform;
-            FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
+            FHoudiniApi::TransformEuler_Init(&HapiTransform);
+            //FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
             FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerInput.ComponentTransform, HapiTransform );
 
             HAPI_NodeInfo LocalAssetNodeInfo;
+            FHoudiniApi::NodeInfo_Init(&LocalAssetNodeInfo);
             const HAPI_Result LocalResult = FHoudiniApi::GetNodeInfo(
                 FHoudiniEngine::Get().GetSession(), OutlinerInput.AssetId,
                 &LocalAssetNodeInfo);
@@ -2210,6 +2299,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 
     // We need to get the NodeInfo to get the parent id
     HAPI_NodeInfo NodeInfo;
+    FHoudiniApi::NodeInfo_Init(&NodeInfo);
     HOUDINI_CHECK_ERROR_RETURN(
         FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &NodeInfo),
         false);
@@ -2219,7 +2309,8 @@ UHoudiniAssetInput::UpdateInputCurve()
     HoudiniGeoPartObject.bIsCurve = true;
 
     HAPI_AttributeInfo AttributeRefinedCurvePositions;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeRefinedCurvePositions );
+    FHoudiniApi::AttributeInfo_Init(&AttributeRefinedCurvePositions);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeRefinedCurvePositions );
 
     TArray< float > RefinedCurvePositions;
     FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
@@ -2245,10 +2336,13 @@ UHoudiniAssetInput::UpdateInputCurve()
 
     TArray< HAPI_ParmInfo > ParmInfos;
     ParmInfos.SetNumUninitialized( NodeInfo.parmCount );
+    for (int32 Idx = 0; Idx < ParmInfos.Num(); Idx++)
+        FHoudiniApi::ParmInfo_Init(&(ParmInfos[Idx]));
+
     HOUDINI_CHECK_ERROR_RETURN(
         FHoudiniApi::GetParameters(
-            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &ParmInfos[ 0 ], 0, NodeInfo.parmCount ),
-        false);
+            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 
+            &ParmInfos[ 0 ], 0, NodeInfo.parmCount ), false);
 
     // Retrieve integer values for this asset.
     TArray< int32 > ParmValueInts;
@@ -2830,7 +2924,7 @@ UHoudiniAssetInput::CheckStateChangedUpdateInputLandscape( ECheckBoxState NewSta
 
             // We need to cache the input landscape to a file
             //FString BaseName = TEXT("/Game/HoudiniEngine/Temp/LandscapeBak");
-            FHoudiniLandscapeUtils::BackupLandscapeToFile( BackupBaseName, InputLandscapeProxy );
+            FHoudiniLandscapeUtils::BackupLandscapeToFile( BackupBaseName, InputLandscapeProxy.Get());
             InputLandscapeTransform = InputLandscapeProxy->ActorToWorld();
         }
         else
@@ -2842,7 +2936,7 @@ UHoudiniAssetInput::CheckStateChangedUpdateInputLandscape( ECheckBoxState NewSta
             ParentComponent->ClearLandscapes();
 
             // Restore the input landscape's backup data
-            FHoudiniLandscapeUtils::RestoreLandscapeFromFile( InputLandscapeProxy );
+            FHoudiniLandscapeUtils::RestoreLandscapeFromFile( InputLandscapeProxy.Get());
 
             // Reapply the source Landscape's transform
             InputLandscapeProxy->SetActorTransform(InputLandscapeTransform);
@@ -3057,7 +3151,8 @@ void
 UHoudiniAssetInput::UpdateWorldOutlinerTransforms( FHoudiniAssetInputOutlinerMesh& OutlinerMesh )
 {
     // Update to the new Transforms
-    OutlinerMesh.ActorTransform = OutlinerMesh.ActorPtr->GetTransform();
+    if ( OutlinerMesh.ActorPtr.IsValid() )
+        OutlinerMesh.ActorTransform = OutlinerMesh.ActorPtr->GetTransform();
 
     if ( OutlinerMesh.StaticMeshComponent && !OutlinerMesh.StaticMeshComponent->IsPendingKill() )
     {
@@ -3256,7 +3351,7 @@ operator<<( FArchive & Ar, FHoudiniAssetInputOutlinerMesh & HoudiniAssetInputOut
 }
 
 FBox
-UHoudiniAssetInput::GetInputBounds( const FVector& ParentLocation )
+UHoudiniAssetInput::GetInputBounds( const FVector& ParentLocation ) const
 {
     FBox Bounds( ForceInitToZero );
 
@@ -3365,7 +3460,14 @@ UHoudiniAssetInput::UpdateInputOulinerArray()
     TArray<AActor *> ActorToUpdateArray;
     for ( int32 n = InputOutlinerMeshArray.Num() - 1; n >= 0; n-- )
     {
-        FHoudiniAssetInputOutlinerMesh OutlinerInput = InputOutlinerMeshArray[ n ];
+        FHoudiniAssetInputOutlinerMesh& OutlinerInput = InputOutlinerMeshArray[ n ];
+        if (OutlinerInput.ActorPtr.IsStale()) // || !OutlinerInput.ActorPtr.IsValid());
+        {
+            // If our ActorPtr is stale, try to find an updated version of it by pathname
+            // This can happen when a blueprint is updated or recompiled...
+            OutlinerInput.TryToUpdateActorPtrFromActorPathName();
+        }
+        
         if ( !OutlinerInput.ActorPtr.IsValid() )
         {
             // This input has an invalid actor: destroy it and its asset
@@ -3962,6 +4064,59 @@ UHoudiniAssetInput::IsLandscapeUpdateNeededOnTransformChange() const
         return false;
 
     return true;
+}
+
+bool
+UHoudiniAssetInput::SetDefaultAssetFromHDA()
+{
+#if WITH_EDITOR
+    // We just handle geo inputs
+    if (EHoudiniAssetInputType::GeometryInput != ChoiceIndex)
+        return false;
+
+    // There is a default slot, don't add if slot is already filled 
+    if (InputObjects.Num() > 1)
+        return false;
+
+    // Make sure we're linked to a valid parameter
+    if (ParmId < 0)
+        return false;
+
+    // Get our ParmInfo
+    HAPI_ParmInfo FoundParamInfo;
+    FHoudiniApi::ParmInfo_Init(&FoundParamInfo);
+    if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmInfo(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, ParmId, &FoundParamInfo) )
+    {
+        return false;
+    }
+    
+    // Get our string value
+    HAPI_StringHandle StringHandle;
+    if (FHoudiniApi::GetParmStringValues(
+        FHoudiniEngine::Get().GetSession(), NodeId, false,
+        &StringHandle, FoundParamInfo.stringValuesIndex, 1) == HAPI_RESULT_SUCCESS)
+    {
+        FString OutValue;
+        FHoudiniEngineString HoudiniEngineString(StringHandle);
+        if (HoudiniEngineString.ToFString(OutValue))
+        {
+            // Set default object on the HDA instance - will override the parameter string
+            // and apply the object input local-path thing for the HDA cook.
+            if (OutValue.Len() > 0)
+            {
+                UObject * pObject = LoadObject<UObject>(nullptr, *OutValue);
+                if (pObject)
+                {
+                    return AddInputObject(pObject);
+                }
+            }
+        }
+    }
+    
+#endif //WITH EDITOR
+    return false;
 }
 
 #undef LOCTEXT_NAMESPACE

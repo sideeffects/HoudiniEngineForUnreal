@@ -163,7 +163,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
     {
         // This is using packed primitives
         HAPI_PartInfo PartInfo;
-
+        FHoudiniApi::PartInfo_Init(&PartInfo);
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetPartInfo(
             FHoudiniEngine::Get().GetSession(), HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId,
             &PartInfo ), false );
@@ -177,7 +177,10 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 
         // Get transforms for each instance
         TArray<HAPI_Transform> InstancerPartTransforms;
-        InstancerPartTransforms.SetNumZeroed( PartInfo.instanceCount );
+        InstancerPartTransforms.SetNumUninitialized( PartInfo.instanceCount );
+        for (int32 Idx = 0; Idx < InstancerPartTransforms.Num(); Idx++)
+            FHoudiniApi::Transform_Init(&(InstancerPartTransforms[Idx]));
+
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetInstancerPartTransforms(
             FHoudiniEngine::Get().GetSession(), HoudiniGeoPartObject.GeoId, PartInfo.id,
             HAPI_RSTORDER_DEFAULT, InstancerPartTransforms.GetData(), 0, PartInfo.instanceCount ), false );
@@ -266,7 +269,8 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
             MarshallingAttributeInstanceOverride );
 
         HAPI_AttributeInfo ResultAttributeInfo;
-        FMemory::Memzero< HAPI_AttributeInfo >( ResultAttributeInfo );
+        FHoudiniApi::AttributeInfo_Init(&ResultAttributeInfo);
+        //FMemory::Memzero< HAPI_AttributeInfo >( ResultAttributeInfo );
 
         if ( !HoudiniGeoPartObject.HapiGetAttributeInfo(
             AssetId, MarshallingAttributeInstanceOverride, ResultAttributeInfo ) )
@@ -534,13 +538,17 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
         // We seem to be instancing a PP instancer, we need to get the transforms 
 
         HAPI_PartInfo PartInfo;
+        FHoudiniApi::PartInfo_Init(&PartInfo);
         HOUDINI_CHECK_ERROR( &Result, FHoudiniApi::GetPartInfo(
             FHoudiniEngine::Get().GetSession(), InHoudiniGeoPartObject.GeoId, InHoudiniGeoPartObject.PartId,
             &PartInfo ) );
 
         // Get transforms for each instance
         TArray<HAPI_Transform> InstancerPartTransforms;
-        InstancerPartTransforms.SetNumZeroed( PartInfo.instanceCount );
+        InstancerPartTransforms.SetNumUninitialized( PartInfo.instanceCount );
+        for (int32 Idx = 0; Idx < InstancerPartTransforms.Num(); Idx++)
+            FHoudiniApi::Transform_Init(&(InstancerPartTransforms[Idx]));
+
         HOUDINI_CHECK_ERROR( &Result, FHoudiniApi::GetInstancerPartTransforms(
             FHoudiniEngine::Get().GetSession(), InHoudiniGeoPartObject.GeoId, PartInfo.id,
             HAPI_RSTORDER_DEFAULT, InstancerPartTransforms.GetData(), 0, PartInfo.instanceCount ) );
@@ -555,6 +563,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
         for ( auto InstancedPartId : InstancedPartIds )
         {
             HAPI_PartInfo InstancedPartInfo;
+            FHoudiniApi::PartInfo_Init(&InstancedPartInfo);
             HOUDINI_CHECK_ERROR( &Result,
                 FHoudiniApi::GetPartInfo(
                     FHoudiniEngine::Get().GetSession(), InHoudiniGeoPartObject.GeoId, InstancedPartId,

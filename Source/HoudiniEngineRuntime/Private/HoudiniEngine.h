@@ -25,7 +25,7 @@
 
 #include "IHoudiniEngine.h"
 #include "HoudiniEngineTaskInfo.h"
-
+#include "HoudiniRuntimeSettings.h"
 
 class UStaticMesh;
 class FRunnableThread;
@@ -79,9 +79,19 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
         void SetEnableCookingGlobal(const bool& enableCooking);
         bool GetEnableCookingGlobal();
 
-        bool StartSession( HAPI_Session*& SessionPtr );
+        bool GetFirstSessionCreated() const;
+
+        bool StartSession(
+            HAPI_Session*& SessionPtr,
+            const bool& StartAutomaticServer,
+            const float& AutomaticServerTimeout,
+            const EHoudiniRuntimeSettingsSessionType& SessionType,
+            const FString& ServerPipeName,
+            const int32& ServerPort,
+            const FString& ServerHost);
         bool StopSession( HAPI_Session*& SessionPtr );
         bool RestartSession();
+        bool InitializeHAPISession();
 
     public:
 
@@ -145,4 +155,9 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
 
         /** Global cooking flag, used to pause HEngine while using the editor **/
         bool EnableCookingGlobal;
+
+        // Indicates that the first attempt to create a session has been done
+        // This is to delay the first "automatic" session creation for the first cook 
+        // or instantiation rather than when the module started.
+        bool FirstSessionCreated;
 };

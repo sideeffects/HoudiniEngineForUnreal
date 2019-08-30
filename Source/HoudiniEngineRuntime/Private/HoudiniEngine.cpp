@@ -60,6 +60,7 @@ FHoudiniEngine::FHoudiniEngine()
     , HoudiniEngineSchedulerThread( nullptr )
     , HoudiniEngineScheduler( nullptr )
     , EnableCookingGlobal( true )
+    , FirstSessionCreated( false )
 {
     Session.type = HAPI_SESSION_MAX;
     Session.id = -1;
@@ -200,195 +201,30 @@ FHoudiniEngine::StartupModule()
         for ( auto PluginIt( Plugins.CreateConstIterator() ); PluginIt; ++PluginIt )
         {
             const TSharedRef< IPlugin > & Plugin = *PluginIt;
-            if ( Plugin->GetName() == TEXT( "HoudiniEngine" ) )
+            if (Plugin->GetName() != TEXT("HoudiniEngine"))
+                continue;
+
+            FString Icon128FilePath = Plugin->GetBaseDir() / TEXT("Resources/Icon128.png");
+            if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*Icon128FilePath))
             {
-                FString Icon128FilePath = Plugin->GetBaseDir() / TEXT( "Resources/Icon128.png" );
-
-                if ( FPlatformFileManager::Get().GetPlatformFile().FileExists( *Icon128FilePath ) )
+                const FName BrushName(*Icon128FilePath);
+                const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(BrushName);
+                if (Size.X > 0 && Size.Y > 0)
                 {
-                    const FName BrushName( *Icon128FilePath );
-                    const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource( BrushName );
-
-                    if ( Size.X > 0 && Size.Y > 0 )
-                    {
-                        static const int32 ProgressIconSize = 32;
-                        HoudiniLogoBrush = MakeShareable( new FSlateDynamicImageBrush(
-                            BrushName, FVector2D( ProgressIconSize, ProgressIconSize ) ) );
-                    }
+                    static const int32 ProgressIconSize = 32;
+                        HoudiniLogoBrush = MakeShareable(new FSlateDynamicImageBrush(
+                        BrushName, FVector2D(ProgressIconSize, ProgressIconSize)));
                 }
-
-                break;
             }
+            break;
         }
     }
 
     // Build and running versions match, we can perform HAPI initialization.
     if ( FHoudiniApi::IsHAPIInitialized() )
     {
-        const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-
-        HAPI_Result SessionResult = HAPI_RESULT_FAILURE;
-
-        HAPI_ThriftServerOptions ServerOptions;
-        FMemory::Memzero< HAPI_ThriftServerOptions >( ServerOptions );
-        ServerOptions.autoClose = true;
-        ServerOptions.timeoutMs = HoudiniRuntimeSettings->AutomaticServerTimeout;
-
-        auto UpdatePathForServer = [&] {
-            // Modify our PATH so that HARC will find HARS.exe
-            const TCHAR* PathDelimiter = FPlatformMisc::GetPathVarDelimiter();
-           
-            FString OrigPathVar = FPlatformMisc::GetEnvironmentVariable(TEXT("PATH"));
-
-            FString ModifiedPath =
-#if PLATFORM_MAC
-            // On Mac our binaries are split between two folders
-            LibHAPILocation + TEXT( "/../Resources/bin" ) + PathDelimiter +
-#endif
-            LibHAPILocation + PathDelimiter + OrigPathVar;
-
-            FPlatformMisc::SetEnvironmentVar( TEXT( "PATH" ), *ModifiedPath );
-        };
-
-        switch ( HoudiniRuntimeSettings->SessionType.GetValue() )
-        {
-            case EHoudiniRuntimeSettingsSessionType::HRSST_InProcess:
-            {
-                // As of Unreal 4.19, InProcess sessions are not supported anymore
-                /*
-                SessionResult = FHoudiniApi::CreateInProcessSession(&this->Session);
-#if PLATFORM_WINDOWS
-                // Workaround for Houdini libtools setting stdout to binary
-                FWindowsPlatformMisc::SetUTF8Output();
-#endif
-                */
-
-                // Create an auto started pipe session instead using default values
-                UpdatePathForServer();
-                FHoudiniApi::StartThriftNamedPipeServer(
-                    &ServerOptions,
-                    TCHAR_TO_UTF8( *HoudiniRuntimeSettings->ServerPipeName ),
-                    nullptr );
-
-                SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
-                    &this->Session, TCHAR_TO_UTF8( *HoudiniRuntimeSettings->ServerPipeName ) );
-
-                break;
-            }
-
-            case EHoudiniRuntimeSettingsSessionType::HRSST_Socket:
-            {
-                if ( HoudiniRuntimeSettings->bStartAutomaticServer )
-                {
-                    UpdatePathForServer();
-
-                    FHoudiniApi::StartThriftSocketServer( &ServerOptions, HoudiniRuntimeSettings->ServerPort, nullptr );
-                }
-
-                SessionResult = FHoudiniApi::CreateThriftSocketSession(
-                    &this->Session,
-                    TCHAR_TO_UTF8( *HoudiniRuntimeSettings->ServerHost ),
-                    HoudiniRuntimeSettings->ServerPort );
-
-                break;
-            }
-
-            case EHoudiniRuntimeSettingsSessionType::HRSST_NamedPipe:
-            {
-                if ( HoudiniRuntimeSettings->bStartAutomaticServer )
-                {
-                    UpdatePathForServer();
-
-                    FHoudiniApi::StartThriftNamedPipeServer(
-                        &ServerOptions,
-                        TCHAR_TO_UTF8( *HoudiniRuntimeSettings->ServerPipeName ),
-                        nullptr );
-                }
-
-                SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
-                    &this->Session, TCHAR_TO_UTF8( *HoudiniRuntimeSettings->ServerPipeName ) );
-
-                break;
-            }
-
-            default:
-
-                HOUDINI_LOG_ERROR( TEXT( "Unsupported Houdini Engine session type" ) );
-        }
-
-        const HAPI_Session * SessionPtr = GetSession();
-        if ( SessionResult != HAPI_RESULT_SUCCESS || !SessionPtr )
-        {
-            if ( ( HoudiniRuntimeSettings->SessionType.GetValue() == EHoudiniRuntimeSettingsSessionType::HRSST_Socket ||
-                HoudiniRuntimeSettings->SessionType.GetValue() == EHoudiniRuntimeSettingsSessionType::HRSST_NamedPipe ) &&
-                ! HoudiniRuntimeSettings->bStartAutomaticServer )
-            {
-                HOUDINI_LOG_ERROR( TEXT( "Failed to create a Houdini Engine session.  Check that a Houdini Engine Debugger session or HARS server is running" ) );
-            }
-            else
-            {
-                HOUDINI_LOG_ERROR( TEXT( "Failed to create a Houdini Engine session" ) );
-            }
-        }
-
-        // We need to make sure HAPI version is correct.
-        int32 RunningEngineMajor = 0;
-        int32 RunningEngineMinor = 0;
-        int32 RunningEngineApi = 0;
-
-        // Retrieve version numbers for running Houdini Engine.
-        FHoudiniApi::GetEnvInt( HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor );
-        FHoudiniApi::GetEnvInt( HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor );
-        FHoudiniApi::GetEnvInt( HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi );
-
-        // Compare defined and running versions.
-        if ( RunningEngineMajor == HAPI_VERSION_HOUDINI_ENGINE_MAJOR &&
-           RunningEngineMinor == HAPI_VERSION_HOUDINI_ENGINE_MINOR &&
-           RunningEngineApi == HAPI_VERSION_HOUDINI_ENGINE_API )
-        {
-            HAPI_CookOptions CookOptions;
-            FMemory::Memzero< HAPI_CookOptions >( CookOptions );
-            CookOptions.curveRefineLOD = 8.0f;
-            CookOptions.clearErrorsAndWarnings = false;
-            CookOptions.maxVerticesPerPrimitive = 3;
-            CookOptions.splitGeosByGroup = false;
-            CookOptions.splitGeosByAttribute = false;
-            CookOptions.splitAttrSH = 0;
-            CookOptions.refineCurveToLinear = true;
-            CookOptions.handleBoxPartTypes = false;
-            CookOptions.handleSpherePartTypes = false;
-            CookOptions.splitPointsByVertexAttributes = false;
-            CookOptions.packedPrimInstancingMode = HAPI_PACKEDPRIM_INSTANCING_MODE_FLAT;
-
-            HAPI_Result Result = FHoudiniApi::Initialize( SessionPtr, &CookOptions, true,
-                HoudiniRuntimeSettings->CookingThreadStackSize, 
-                TCHAR_TO_UTF8( *HoudiniRuntimeSettings->HoudiniEnvironmentFiles),
-                TCHAR_TO_UTF8( *HoudiniRuntimeSettings->OtlSearchPath), 
-                TCHAR_TO_UTF8( *HoudiniRuntimeSettings->DsoSearchPath),
-                TCHAR_TO_UTF8( *HoudiniRuntimeSettings->ImageDsoSearchPath), 
-                TCHAR_TO_UTF8( *HoudiniRuntimeSettings->AudioDsoSearchPath) );
-            if ( Result == HAPI_RESULT_SUCCESS )
-            {
-                HOUDINI_LOG_MESSAGE( TEXT( "Successfully intialized the Houdini Engine API module." ) );
-                FHoudiniApi::SetServerEnvString( SessionPtr, HAPI_ENV_CLIENT_NAME, HAPI_UNREAL_CLIENT_NAME );
-            }
-            else
-            {
-                HOUDINI_LOG_MESSAGE(
-                    TEXT( "Starting up the Houdini Engine API module failed: %s" ),
-                    *FHoudiniEngineUtils::GetErrorDescription( Result ) );
-            }
-        }
-        else
-        {
-            bHAPIVersionMismatch = true;
-
-            HOUDINI_LOG_MESSAGE( TEXT( "Starting up the Houdini Engine API module failed: build and running versions do not match." ) );
-            HOUDINI_LOG_MESSAGE(
-                TEXT( "Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d" ),
-                HAPI_VERSION_HOUDINI_ENGINE_MAJOR, HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API,
-                RunningEngineMajor, RunningEngineMinor, RunningEngineApi );
-        }
+        // We do not automatically try to start a session when starting up the module now.
+        FirstSessionCreated = false;
 
         // Create HAPI scheduler and processing thread.
         HoudiniEngineScheduler = new FHoudiniEngineScheduler();
@@ -396,6 +232,7 @@ FHoudiniEngine::StartupModule()
             HoudiniEngineScheduler, TEXT( "HoudiniTaskCookAsset" ), 0, TPri_Normal );
 
         // Set the default value for pausing houdini engine cooking
+        const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
         EnableCookingGlobal = !HoudiniRuntimeSettings->bPauseCookingOnStart;
     }
 
@@ -588,8 +425,18 @@ FHoudiniEngine::GetEnableCookingGlobal()
 
 
 bool
-FHoudiniEngine::StartSession( HAPI_Session*& SessionPtr )
+FHoudiniEngine::StartSession( HAPI_Session*& SessionPtr, 
+    const bool& StartAutomaticServer, 
+    const float& AutomaticServerTimeout,
+    const EHoudiniRuntimeSettingsSessionType& SessionType,
+    const FString& ServerPipeName,
+    const int32& ServerPort,
+    const FString& ServerHost )
 {
+    // Indicates that we've tried to start the session once
+    // whether it failed or succeed 
+    FirstSessionCreated = true;
+
     // HAPI needs to be initialized
     if ( !FHoudiniApi::IsHAPIInitialized() )
         return false;
@@ -598,21 +445,19 @@ FHoudiniEngine::StartSession( HAPI_Session*& SessionPtr )
     if ( HAPI_RESULT_SUCCESS == FHoudiniApi::IsSessionValid( SessionPtr ) )
         return true;
 
-    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-
     HAPI_Result SessionResult = HAPI_RESULT_FAILURE;
 
     HAPI_ThriftServerOptions ServerOptions;
     FMemory::Memzero< HAPI_ThriftServerOptions >( ServerOptions );
     ServerOptions.autoClose = true;
-    ServerOptions.timeoutMs = HoudiniRuntimeSettings->AutomaticServerTimeout;
+    ServerOptions.timeoutMs = AutomaticServerTimeout;
 
     auto UpdatePathForServer = [&]
     {
         // Modify our PATH so that HARC will find HARS.exe
         const TCHAR* PathDelimiter = FPlatformMisc::GetPathVarDelimiter();
 
-		FString OrigPathVar = FPlatformMisc::GetEnvironmentVariable(TEXT("PATH"));
+        FString OrigPathVar = FPlatformMisc::GetEnvironmentVariable(TEXT("PATH"));
 
         FString ModifiedPath =
 #if PLATFORM_MAC
@@ -624,46 +469,64 @@ FHoudiniEngine::StartSession( HAPI_Session*& SessionPtr )
         FPlatformMisc::SetEnvironmentVar( TEXT( "PATH" ), *ModifiedPath );
     };
 
-    switch ( HoudiniRuntimeSettings->SessionType.GetValue() )
+    switch ( SessionType )
     {
         case EHoudiniRuntimeSettingsSessionType::HRSST_InProcess:
         {
             // As of Unreal 4.19, InProcess sessions are not supported anymore
-            // Create an auto started pipe session instead using default values
+            // We create an auto started pipe session instead using default values
+            /*
+            SessionResult = FHoudiniApi::CreateInProcessSession(&this->Session);
+            #if PLATFORM_WINDOWS
+                // Workaround for Houdini libtools setting stdout to binary
+                FWindowsPlatformMisc::SetUTF8Output();
+            #endif
+            */
+
             UpdatePathForServer();
             FHoudiniApi::StartThriftNamedPipeServer(
-                &ServerOptions, TCHAR_TO_UTF8( *HoudiniRuntimeSettings->ServerPipeName ), nullptr );
+                &ServerOptions, TCHAR_TO_UTF8( *ServerPipeName ), nullptr );
 
             SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
-                SessionPtr, TCHAR_TO_UTF8( *HoudiniRuntimeSettings->ServerPipeName ) );
+                SessionPtr, TCHAR_TO_UTF8( *ServerPipeName ) );
         }
         break;
 
         case EHoudiniRuntimeSettingsSessionType::HRSST_Socket:
         {
-            if ( HoudiniRuntimeSettings->bStartAutomaticServer )
+            // Try to connect to an existing socket session first
+            SessionResult = FHoudiniApi::CreateThriftSocketSession(
+                SessionPtr, TCHAR_TO_UTF8(*ServerHost), ServerPort);
+
+            // Start a session and try to connect to it if we failed
+            if (StartAutomaticServer && SessionResult != HAPI_RESULT_SUCCESS)
             {
                 UpdatePathForServer();
                 FHoudiniApi::StartThriftSocketServer(
-                    &ServerOptions, HoudiniRuntimeSettings->ServerPort, nullptr );
-            }
+                    &ServerOptions, ServerPort, nullptr );
 
-            SessionResult = FHoudiniApi::CreateThriftSocketSession(
-                SessionPtr, TCHAR_TO_UTF8( *HoudiniRuntimeSettings->ServerHost ), HoudiniRuntimeSettings->ServerPort );
+                SessionResult = FHoudiniApi::CreateThriftSocketSession(
+                    SessionPtr, TCHAR_TO_UTF8(*ServerHost), ServerPort );
+            }
         }
         break;
 
         case EHoudiniRuntimeSettingsSessionType::HRSST_NamedPipe:
         {
-            if ( HoudiniRuntimeSettings->bStartAutomaticServer )
+            // Try to connect to an existing pipe session first
+            SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
+                SessionPtr, TCHAR_TO_UTF8(*ServerPipeName));
+
+            // Start a session and try to connect to it if we failed
+            if (StartAutomaticServer && SessionResult != HAPI_RESULT_SUCCESS)
             {
                 UpdatePathForServer();
                 FHoudiniApi::StartThriftNamedPipeServer(
-                    &ServerOptions, TCHAR_TO_UTF8( *HoudiniRuntimeSettings->ServerPipeName ), nullptr );
-            }
+                    &ServerOptions, TCHAR_TO_UTF8( *ServerPipeName ), nullptr );
 
-            SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
-                SessionPtr, TCHAR_TO_UTF8( *HoudiniRuntimeSettings->ServerPipeName ) );
+                SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
+                    SessionPtr, TCHAR_TO_UTF8(*ServerPipeName) );
+            }
         }
         break;
 
@@ -672,17 +535,26 @@ FHoudiniEngine::StartSession( HAPI_Session*& SessionPtr )
             break;
     }
 
-    if ( SessionResult != HAPI_RESULT_SUCCESS || !SessionPtr )
-    {
-        if ( !HoudiniRuntimeSettings->bStartAutomaticServer )
-        {
-            HOUDINI_LOG_ERROR( TEXT( "Failed to create a Houdini Engine session.  Check that a Houdini Engine Debugger session or HARS server is running" ) );
-        }
-        else
-        {
-            HOUDINI_LOG_ERROR( TEXT( "Failed to create a Houdini Engine session" ) );
-        }
+    if (SessionResult != HAPI_RESULT_SUCCESS || !SessionPtr)
+        return false;
 
+    return true;
+}
+
+bool
+FHoudiniEngine::InitializeHAPISession()
+{
+    // The HAPI stubs needs to be initialized
+    if (!FHoudiniApi::IsHAPIInitialized())
+    {
+        HOUDINI_LOG_ERROR(TEXT("Failed to initialize HAPI: The Houdini API stubs have not been properly initialized."));
+        return false;
+    }
+
+    // We need a Valid Session
+    if (HAPI_RESULT_SUCCESS != FHoudiniApi::IsSessionValid(&Session))
+    {
+        HOUDINI_LOG_ERROR(TEXT("Failed to initialize HAPI: The session is invalid."));
         return false;
     }
 
@@ -713,9 +585,12 @@ FHoudiniEngine::StartSession( HAPI_Session*& SessionPtr )
         return false;
     }
 
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+
     // Default CookOptions
     HAPI_CookOptions CookOptions;
-    FMemory::Memzero< HAPI_CookOptions >( CookOptions );
+    FHoudiniApi::CookOptions_Init(&CookOptions);
+    //FMemory::Memzero< HAPI_CookOptions >( CookOptions );
     CookOptions.curveRefineLOD = 8.0f;
     CookOptions.clearErrorsAndWarnings = false;
     CookOptions.maxVerticesPerPrimitive = 3;
@@ -727,8 +602,8 @@ FHoudiniEngine::StartSession( HAPI_Session*& SessionPtr )
     CookOptions.handleSpherePartTypes = false;
     CookOptions.splitPointsByVertexAttributes = false;
     CookOptions.packedPrimInstancingMode = HAPI_PACKEDPRIM_INSTANCING_MODE_FLAT;
-
-    HAPI_Result Result = FHoudiniApi::Initialize( SessionPtr, &CookOptions, true,
+    
+    HAPI_Result Result = FHoudiniApi::Initialize( &Session, &CookOptions, true,
         HoudiniRuntimeSettings->CookingThreadStackSize, 
         TCHAR_TO_UTF8( *HoudiniRuntimeSettings->HoudiniEnvironmentFiles),
         TCHAR_TO_UTF8( *HoudiniRuntimeSettings->OtlSearchPath), 
@@ -746,7 +621,7 @@ FHoudiniEngine::StartSession( HAPI_Session*& SessionPtr )
     }
 
     HOUDINI_LOG_MESSAGE( TEXT( "Successfully intialized the Houdini Engine API module." ) );
-    FHoudiniApi::SetServerEnvString( SessionPtr, HAPI_ENV_CLIENT_NAME, HAPI_UNREAL_CLIENT_NAME );
+    FHoudiniApi::SetServerEnvString(&Session, HAPI_ENV_CLIENT_NAME, HAPI_UNREAL_CLIENT_NAME );
 
     return true;
 }
@@ -772,13 +647,36 @@ bool
 FHoudiniEngine::RestartSession()
 {
     HAPI_Session* SessionPtr = &Session;
+
+    // Stop the current session if it is still valid
     if ( !StopSession( SessionPtr ) )
         return false;
 
-    if ( !StartSession( SessionPtr ) )
+    // Try to reconnect/start a new session
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if (!StartSession(
+        SessionPtr, true,
+        HoudiniRuntimeSettings->AutomaticServerTimeout,
+        HoudiniRuntimeSettings->SessionType,
+        HoudiniRuntimeSettings->ServerPipeName,
+        HoudiniRuntimeSettings->ServerPort,
+        HoudiniRuntimeSettings->ServerHost))
+    {
+        HOUDINI_LOG_ERROR(TEXT("Failed to restart the Houdini Engine session"));
+        return false;
+    }
+
+    // Now initialize HAPI for this session
+    if (!InitializeHAPISession())
         return false;
 
     return true;
+}
+
+bool 
+FHoudiniEngine::GetFirstSessionCreated() const
+{
+    return FirstSessionCreated;
 }
 
 #undef LOCTEXT_NAMESPACE

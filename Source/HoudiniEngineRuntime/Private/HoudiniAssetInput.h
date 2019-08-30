@@ -91,6 +91,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
     /** Indicates that the components used are no longer valid and should be updated from the actor **/
     bool NeedsComponentUpdate() const;
 
+    /** Update the Actor pointer from the store Actor path/name **/
+    bool TryToUpdateActorPtrFromActorPathName();
+
     /** Selected Actor. **/
     TWeakObjectPtr<AActor> ActorPtr = nullptr;
 
@@ -169,6 +172,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Sets the default input type from the input/parameter label **/
         void SetDefaultInputTypeFromLabel();
 
+        // Add the ability to set default object paths in the parameter setting of the Houdini HDA that are picked up by the plugin
+        bool SetDefaultAssetFromHDA();
+
 #if WITH_EDITOR
         virtual void PostEditUndo() override;
 
@@ -241,7 +247,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         FORCEINLINE const TArray< FHoudiniAssetInputOutlinerMesh >& GetWorldOutlinerInputs() const { return InputOutlinerMeshArray; }
 
         /** Returns the selected landscape Actor **/
-		ALandscapeProxy* GetLandscapeInput();
+        ALandscapeProxy* GetLandscapeInput();
 
         /** Remove a specific element of the world outliner input selection */
         void RemoveWorldOutlinerInput( int32 AtIndex );
@@ -251,7 +257,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         FText GetCurrentSelectionText() const;
 
         // Return the bounds of this input
-        FBox GetInputBounds( const FVector& ParentLocation );
+        FBox GetInputBounds( const FVector& ParentLocation ) const;
 
         /** Return true if this parameter has been changed. **/
         bool HasChanged() const override;
@@ -365,6 +371,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void OnEmptySkeletonInputObjects();
 
 #endif
+        /** Finds an actor in the world by using a path name string **/
+        //static AActor* TryToFindActorByPathName(const FString& ActorPathName);
 
         /** Called to retrieve the name of selected item. **/
         FText HandleChoiceContentText() const;
@@ -563,7 +571,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         class UHoudiniAssetComponent * InputAssetComponent;
 
         /** Landscape actor used for input. **/
-        class ALandscapeProxy * InputLandscapeProxy;
+        TSoftObjectPtr<ALandscapeProxy> InputLandscapeProxy;
 
         /** List of selected meshes and actors from the World Outliner. **/
         TArray< FHoudiniAssetInputOutlinerMesh > InputOutlinerMeshArray;

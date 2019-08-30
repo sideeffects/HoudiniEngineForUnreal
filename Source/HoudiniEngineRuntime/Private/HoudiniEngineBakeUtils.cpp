@@ -288,6 +288,9 @@ FHoudiniEngineBakeUtils::BakeBlueprint( UHoudiniAssetComponent * HoudiniAssetCom
     UPackage * Package = FHoudiniEngineBakeUtils::BakeCreateBlueprintPackageForComponent(
         HoudiniAssetComponent, BlueprintName );
 
+    //Bake the asset's landscape
+    BakeLandscape(HoudiniAssetComponent);
+
     if( Package && !Package->IsPendingKill() )
     {
         AActor * Actor = HoudiniAssetComponent->CloneComponentsAndCreateActor();
@@ -399,20 +402,7 @@ FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithBlueprint( UHoudiniAssetComponen
         }
 
         // We can initiate Houdini actor deletion.
-        AHoudiniAssetActor * HoudiniAssetActor = HoudiniAssetComponent->GetHoudiniAssetActorOwner();
-
-        // Remove Houdini actor from active selection in editor and delete it.
-        if( GEditor )
-        {
-            GEditor->SelectActor( HoudiniAssetActor, false, false );
-            GEditor->Layers->DisassociateActorFromLayers( HoudiniAssetActor );
-        }
-
-        UWorld * World = HoudiniAssetActor->GetWorld();
-        if ( !World )
-            World = GWorld;
-
-        World->EditorDestroyActor( HoudiniAssetActor, false );
+        DeleteBakedHoudiniAssetActor(HoudiniAssetComponent);
     }
     else
     {
@@ -451,6 +441,20 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
             HoudiniCookParams, HoudiniGeoPartObject, MeshName, MeshGuid );
         if( !MeshPackage || MeshPackage->IsPendingKill() )
             return nullptr;
+
+        // We need to be sure the package has been fully loaded before calling DuplicateObject
+        if (!MeshPackage->IsFullyLoaded())
+        {
+            FlushAsyncLoading();
+            if (!MeshPackage->GetOuter())
+            {
+                MeshPackage->FullyLoad();
+            }
+            else
+            {
+                MeshPackage->GetOutermost()->FullyLoad();
+            }
+        }
 
         // Duplicate mesh for this new copied component.
         DuplicatedStaticMesh = DuplicateObject< UStaticMesh >( StaticMesh, MeshPackage, *MeshName );
@@ -508,6 +512,22 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
             DuplicatedMaterials.Add( Materials[MaterialIdx] );
         }
 
+        /*
+        // We need to be sure the package has been fully loaded before calling DuplicateObject
+        if (!MeshPackage->IsFullyLoaded())
+        {
+            FlushAsyncLoading();
+            if (!MeshPackage->GetOuter())
+            {
+                MeshPackage->FullyLoad();
+            }
+            else
+            {
+                MeshPackage->GetOutermost()->FullyLoad();
+            }
+        }
+        */
+
         // Assign duplicated materials.
         DuplicatedStaticMesh->StaticMaterials = DuplicatedMaterials;
 
@@ -521,12 +541,27 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
     return DuplicatedStaticMesh;
 }
 
-void
+bool
+FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithActors(UHoudiniAssetComponent * HoudiniAssetComponent, bool SelectNewActors)
+{
+    bool bSuccess = false;
+#if WITH_EDITOR
+    if (FHoudiniEngineBakeUtils::BakeHoudiniActorToActors(HoudiniAssetComponent, SelectNewActors))
+    {
+        bSuccess = FHoudiniEngineBakeUtils::DeleteBakedHoudiniAssetActor(HoudiniAssetComponent);
+    }
+#endif
+    return bSuccess;
+}
+
+
+bool
 FHoudiniEngineBakeUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * HoudiniAssetComponent, bool SelectNewActors )
 {
+    bool bSuccess = false;
 #if WITH_EDITOR
     if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
-        return;
+        return bSuccess;
 
     const FScopedTransaction Transaction( LOCTEXT( "BakeToActors", "Bake To Actors" ) );
 
@@ -539,7 +574,9 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Houd
     auto SplitMeshInstancerComponentToPart = HoudiniAssetComponent->CollectAllMeshSplitInstancerComponents();
     NewActors.Append( BakeHoudiniActorToActors_SplitMeshInstancers( HoudiniAssetComponent, SplitMeshInstancerComponentToPart ) );
 
-    if( GEditor && SelectNewActors && NewActors.Num() )
+    bSuccess = NewActors.Num() > 0;
+
+    if( GEditor && SelectNewActors && bSuccess )
     {
         GEditor->SelectNone( false, true );
         for( AActor* NewActor : NewActors )
@@ -550,6 +587,8 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Houd
         GEditor->NoteSelectionChange();
     }
 #endif
+
+    return bSuccess;
 }
 
 TArray< AActor* >
@@ -1027,23 +1066,40 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent
 #endif
 }
 
-void
+// Bakes output instanced meshes to the level's foliage actor and removes the Houdini actor
+bool
+FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithFoliage( UHoudiniAssetComponent * HoudiniAssetComponent )
+{
+    bool bSuccess = false;
+
+#if WITH_EDITOR
+    if ( FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(HoudiniAssetComponent) )
+    {
+        bSuccess = FHoudiniEngineBakeUtils::DeleteBakedHoudiniAssetActor(HoudiniAssetComponent);
+    }
+#endif
+
+    return bSuccess;
+}
+
+bool
 FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(UHoudiniAssetComponent * HoudiniAssetComponent )
 {
 #if WITH_EDITOR
     if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
-        return;
+        return false;
 
     const FScopedTransaction Transaction(LOCTEXT("BakeToFoliage", "Bake To Foliage"));
 
     ULevel* DesiredLevel = GWorld->GetCurrentLevel();
     AInstancedFoliageActor* InstancedFoliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(DesiredLevel, true);
     if (!InstancedFoliageActor || InstancedFoliageActor->IsPendingKill())
-        return;
+        return false;
 
     // Map storing original and baked Static Meshes
     TMap< const UStaticMesh*, UStaticMesh* > OriginalToBakedMesh;
 
+    int32 BakedCount = 0;
     const TArray< UHoudiniAssetInstanceInputField * > InstanceInputFields = HoudiniAssetComponent->GetAllInstanceInputFields();
     for ( int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx )
     {
@@ -1102,16 +1158,22 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(UHoudiniAssetComponent * Houd
                 FoliageInfo->AddInstance(InstancedFoliageActor, FoliageType, FoliageInstance, false);
             }
 
-            if ( FoliageInfo->GetComponent() )
-                FoliageInfo->GetComponent()->BuildTreeIfOutdated(true, true);
+			if ( FoliageInfo->GetComponent() )
+				FoliageInfo->GetComponent()->BuildTreeIfOutdated(true, true);
 
             // Notify the user that we succesfully bake the instances to foliage
             FString Notification = TEXT("Successfully baked ") + FString::FromInt(ProcessedTransforms.Num()) + TEXT(" instances of ") + OutStaticMesh->GetName() + TEXT(" to Foliage");
             FHoudiniEngineUtils::CreateSlateNotification(Notification);
+
+            BakedCount += ProcessedTransforms.Num();
         }
     }
 
+    if (BakedCount > 0)
+        return true;
 #endif
+
+    return false;
 }
 
 bool
@@ -1293,6 +1355,7 @@ FHoudiniCookParams::FHoudiniCookParams( UHoudiniAssetComponent* HoudiniAssetComp
     CookedTemporaryLandscapeLayers = &HoudiniAssetComponent->CookedTemporaryLandscapeLayers;
     TempCookFolder = HoudiniAssetComponent->GetTempCookFolder();
     BakeFolder = HoudiniAssetComponent->GetBakeFolder();
+    BakeNameOverrides = &HoudiniAssetComponent->BakeNameOverrides;
     IntermediateOuter = HoudiniAssetComponent->GetComponentLevel();
     GeneratedDistanceFieldResolutionScale = HoudiniAssetComponent->GeneratedDistanceFieldResolutionScale;
 #endif
@@ -1317,7 +1380,7 @@ FHoudiniEngineBakeUtils::BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComp
     for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr<ALandscapeProxy> >::TIterator Iter(* LandscapeComponentsPtr ); Iter; ++Iter)
     {
         ALandscapeProxy * CurrentLandscape = Iter.Value().Get();
-        if ( !CurrentLandscape || CurrentLandscape->IsPendingKill() )
+        if ( !CurrentLandscape || CurrentLandscape->IsPendingKill() || !CurrentLandscape->IsValidLowLevel() )
             continue;
 
         // If we only want to bake a single landscape
@@ -1374,7 +1437,7 @@ FHoudiniEngineBakeUtils::BakeCreateMaterialPackageForComponent(
     if ( !HoudiniAsset || HoudiniAsset->IsPendingKill() )
         return nullptr;
 
-    FString MaterialDescriptor;
+	FString MaterialDescriptor;
     if( HoudiniCookParams.MaterialAndTextureBakeMode != EBakeMode::Intermediate )
         MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_material_" ) + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" );
     else
@@ -1836,4 +1899,35 @@ FHoudiniEngineBakeUtils::GetHoudiniGeneratedNameFromMetaInformation(
     }
 
     return false;
+}
+
+bool
+FHoudiniEngineBakeUtils::DeleteBakedHoudiniAssetActor(UHoudiniAssetComponent * HoudiniAssetComponent)
+{
+    // Helper function used by the replace function to delete the Houdini Asset Actor after it's been baked
+    if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+        return false;
+
+    bool bSuccess = false;
+#if WITH_EDITOR
+    // We can initiate Houdini actor deletion.
+    AActor * ActorOwner = HoudiniAssetComponent->GetOwner();
+    if (!ActorOwner || ActorOwner->IsPendingKill())
+        return bSuccess;
+
+    // Remove Houdini actor from active selection in editor and delete it.
+    if (GEditor)
+    {
+        GEditor->SelectActor(ActorOwner, false, false);
+        GEditor->Layers->DisassociateActorFromLayers(ActorOwner);
+    }
+
+    UWorld * World = ActorOwner->GetWorld();
+    if (!World)
+        World = GWorld;
+
+    bSuccess = World->EditorDestroyActor(ActorOwner, false);
+#endif
+
+    return bSuccess;
 }

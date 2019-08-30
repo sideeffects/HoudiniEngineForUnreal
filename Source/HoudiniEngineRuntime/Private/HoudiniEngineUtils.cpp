@@ -258,8 +258,14 @@ FHoudiniEngineUtils::GetCookResult()
 bool
 FHoudiniEngineUtils::IsInitialized()
 {
-    return ( FHoudiniApi::IsHAPIInitialized() &&
-        FHoudiniApi::IsInitialized( FHoudiniEngine::Get().GetSession() ) == HAPI_RESULT_SUCCESS );
+    if (!FHoudiniApi::IsHAPIInitialized())
+        return false;
+
+    const HAPI_Session * SessionPtr = FHoudiniEngine::Get().GetSession();
+    if ( HAPI_RESULT_SUCCESS != FHoudiniApi::IsSessionValid( SessionPtr ) )
+        return false;
+
+    return ( FHoudiniApi::IsInitialized( SessionPtr ) == HAPI_RESULT_SUCCESS );
 }
 
 bool
@@ -338,6 +344,7 @@ bool
 FHoudiniEngineUtils::ComputeAssetPresetBufferLength( HAPI_NodeId AssetId, int32 & OutBufferLength )
 {
     HAPI_AssetInfo AssetInfo;
+    FHoudiniApi::AssetInfo_Init(&AssetInfo);
     OutBufferLength = 0;
 
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
@@ -358,6 +365,7 @@ FHoudiniEngineUtils::SetAssetPreset( HAPI_NodeId AssetId, const TArray< char > &
     if ( PresetBuffer.Num() > 0 )
     {
         HAPI_AssetInfo AssetInfo;
+        FHoudiniApi::AssetInfo_Init(&AssetInfo);
 
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
             FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
@@ -380,6 +388,7 @@ FHoudiniEngineUtils::GetAssetPreset( HAPI_NodeId AssetId, TArray< char > & Prese
 
     HAPI_NodeId NodeId;
     HAPI_AssetInfo AssetInfo;
+    FHoudiniApi::AssetInfo_Init(&AssetInfo);
     if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(
         FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo))
     {
@@ -408,6 +417,7 @@ FHoudiniEngineUtils::IsHoudiniNodeValid( const HAPI_NodeId& NodeId )
         return false;
 
     HAPI_NodeInfo NodeInfo;
+    FHoudiniApi::NodeInfo_Init(&NodeInfo);
     bool ValidationAnswer = 0;
 
     if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetNodeInfo(
@@ -492,7 +502,8 @@ FHoudiniEngineUtils::TranslateHapiTransform( const HAPI_TransformEuler & HapiTra
     FHoudiniApi::ConvertTransformEulerToMatrix( FHoudiniEngine::Get().GetSession(), &HapiTransformEuler, HapiMatrix );
 
     HAPI_Transform HapiTransformQuat;
-    FMemory::Memzero< HAPI_Transform >( HapiTransformQuat );
+    FHoudiniApi::Transform_Init(&HapiTransformQuat);
+    //FMemory::Memzero< HAPI_Transform >( HapiTransformQuat );
     FHoudiniApi::ConvertMatrixToQuat( FHoudiniEngine::Get().GetSession(), HapiMatrix, HAPI_SRT, &HapiTransformQuat );
 
     FHoudiniEngineUtils::TranslateHapiTransform( HapiTransformQuat, UnrealTransform );
@@ -512,7 +523,8 @@ FHoudiniEngineUtils::TranslateUnrealTransform( const FTransform & UnrealTransfor
         ImportAxis = HoudiniRuntimeSettings->ImportAxis;
     }
 
-    FMemory::Memzero< HAPI_Transform >( HapiTransform );
+    //FMemory::Memzero< HAPI_Transform >( HapiTransform );
+    FHoudiniApi::Transform_Init(&HapiTransform);
 
     HapiTransform.rstOrder = HAPI_SRT;
 
@@ -577,7 +589,8 @@ FHoudiniEngineUtils::TranslateUnrealTransform(
         ImportAxis = HoudiniRuntimeSettings->ImportAxis;
     }
 
-    FMemory::Memzero< HAPI_TransformEuler >( HapiTransformEuler );
+    //FMemory::Memzero< HAPI_TransformEuler >( HapiTransformEuler );
+    FHoudiniApi::TransformEuler_Init(&HapiTransformEuler);
 
     HapiTransformEuler.rstOrder = HAPI_SRT;
     HapiTransformEuler.rotationOrder = HAPI_XYZ;
@@ -643,7 +656,7 @@ bool
 FHoudiniEngineUtils::GetHoudiniAssetName( HAPI_NodeId AssetId, FString & NameString )
 {
     HAPI_AssetInfo AssetInfo;
-
+    FHoudiniApi::AssetInfo_Init(&AssetInfo);
     if ( FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) == HAPI_RESULT_SUCCESS )
     {
         FHoudiniEngineString HoudiniEngineString( AssetInfo.nameSH );
@@ -689,7 +702,10 @@ FHoudiniEngineUtils::HapiGetGroupNames(
     {
         // Get group count on the geo
         HAPI_GeoInfo GeoInfo;
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo( FHoudiniEngine::Get().GetSession(), GeoId, &GeoInfo), false);
+        FHoudiniApi::GeoInfo_Init(&GeoInfo);
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGeoInfo( 
+            FHoudiniEngine::Get().GetSession(), GeoId, &GeoInfo), false);
+
         GroupCount = FHoudiniEngineUtils::HapiGetGroupCountByType(GroupType, GeoInfo);
     }
     else
@@ -739,6 +755,7 @@ FHoudiniEngineUtils::HapiGetGroupMembership(
     HAPI_GroupType GroupType, const FString & GroupName, TArray< int32 > & GroupMembership )
 {
     HAPI_PartInfo PartInfo;
+    FHoudiniApi::PartInfo_Init(&PartInfo);
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetPartInfo(
         FHoudiniEngine::Get().GetSession(), GeoId, PartId, &PartInfo ), false );
 
@@ -859,8 +876,8 @@ FHoudiniEngineUtils::HapiCheckAttributeExists(
     HAPI_PartId PartId, const char * Name, HAPI_AttributeOwner Owner )
 {
     HAPI_AttributeInfo AttribInfo;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttribInfo );
-
+    FHoudiniApi::AttributeInfo_Init(&AttribInfo);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttribInfo );
     if ( FHoudiniApi::GetAttributeInfo(
         FHoudiniEngine::Get().GetSession(),
         GeoId, PartId, Name, Owner, &AttribInfo ) != HAPI_RESULT_SUCCESS )
@@ -904,7 +921,8 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
 
     int32 OriginalTupleSize = TupleSize;
     HAPI_AttributeInfo AttributeInfo;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
 
     if ( Owner == HAPI_ATTROWNER_INVALID )
     {
@@ -967,7 +985,8 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
 
     int32 OriginalTupleSize = TupleSize;
     HAPI_AttributeInfo AttributeInfo;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
 
     if ( Owner == HAPI_ATTROWNER_INVALID )
     {
@@ -1031,7 +1050,8 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsString(
 
     int32 OriginalTupleSize = TupleSize;
     HAPI_AttributeInfo AttributeInfo;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
 
     if ( Owner == HAPI_ATTROWNER_INVALID )
     {
@@ -1110,6 +1130,7 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(
 
     // Number of instances is number of points.
     HAPI_PartInfo PartInfo;
+    FHoudiniApi::PartInfo_Init(&PartInfo);
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetPartInfo(
         FHoudiniEngine::Get().GetSession(), GeoId,
         PartId, &PartInfo ), false );
@@ -1118,7 +1139,10 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(
         return false;
 
     TArray< HAPI_Transform > InstanceTransforms;
-    InstanceTransforms.SetNumZeroed( PartInfo.pointCount );
+    InstanceTransforms.SetNumUninitialized( PartInfo.pointCount );
+    for (int32 Idx = 0; Idx < InstanceTransforms.Num(); Idx++)
+        FHoudiniApi::Transform_Init(&(InstanceTransforms[Idx]));
+
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetInstanceTransforms(
         FHoudiniEngine::Get().GetSession(),
         GeoId, HAPI_SRT, &InstanceTransforms[ 0 ],
@@ -1193,9 +1217,10 @@ FHoudiniEngineUtils::ResetRawMesh( FRawMesh & RawMesh )
 
 HAPI_ParmId FHoudiniEngineUtils::HapiFindParameterByNameOrTag( const HAPI_NodeId& NodeId, const std::string ParmName, HAPI_ParmInfo& FoundParmInfo )
 {
-    FMemory::Memset< HAPI_ParmInfo >( FoundParmInfo, 0 );
+    FHoudiniApi::ParmInfo_Init(&FoundParmInfo);
 
     HAPI_NodeInfo NodeInfo;
+    FHoudiniApi::NodeInfo_Init(&NodeInfo);
     FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo );
     if ( NodeInfo.parmCount <= 0 )
         return -1;
@@ -1242,10 +1267,11 @@ FHoudiniEngineUtils::HapiGetParameterDataAsFloat(
     bool bComputed = false;
 
     HAPI_ParmInfo FoundParamInfo;
+    FHoudiniApi::ParmInfo_Init(&FoundParamInfo);
     HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo );
     if ( ParmId > -1 )
     {
-        if (FHoudiniApi::GetParmFloatValues(
+        if ( FHoudiniApi::GetParmFloatValues(
             FHoudiniEngine::Get().GetSession(), NodeId, &Value,
             FoundParamInfo.floatValuesIndex, 1 ) == HAPI_RESULT_SUCCESS )
         {
@@ -1265,6 +1291,7 @@ FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
     bool bComputed = false;
 
     HAPI_ParmInfo FoundParamInfo;
+    FHoudiniApi::ParmInfo_Init(&FoundParamInfo);
     HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo );
     if ( ParmId > -1 )
     {
@@ -1289,6 +1316,7 @@ FHoudiniEngineUtils::HapiGetParameterDataAsString(
     bool bComputed = false;
 
     HAPI_ParmInfo FoundParamInfo;
+    FHoudiniApi::ParmInfo_Init(&FoundParamInfo);
     HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo );
     if ( ParmId > -1 )
     {
@@ -1583,7 +1611,8 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
 
     // Setting up the first cook, without the curve refinement
     HAPI_CookOptions CookOptions;
-    FMemory::Memzero< HAPI_CookOptions >(CookOptions);
+    FHoudiniApi::CookOptions_Init(&CookOptions);
+    //FMemory::Memzero< HAPI_CookOptions >(CookOptions);
     CookOptions.curveRefineLOD = 8.0f;
     CookOptions.clearErrorsAndWarnings = false;
     CookOptions.maxVerticesPerPrimitive = -1;
@@ -1600,7 +1629,8 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
 
     //  We can now read back the Part infos from the cooked curve.
     HAPI_PartInfo PartInfos;
-    FMemory::Memzero< HAPI_PartInfo >(PartInfos);
+    FHoudiniApi::PartInfo_Init(&PartInfos);
+    //FMemory::Memzero< HAPI_PartInfo >(PartInfos);
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPartInfo(
         FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, &PartInfos), false);
 
@@ -1816,7 +1846,8 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
 
             // and the attribute infos
             HAPI_AttributeInfo attr_info;
-            FMemory::Memzero< HAPI_AttributeInfo >( attr_info );
+            FHoudiniApi::AttributeInfo_Init(&attr_info);
+            //FMemory::Memzero< HAPI_AttributeInfo >( attr_info );
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
                 FHoudiniEngine::Get().GetSession(),
                 ConnectedAssetId, 0,
@@ -1942,6 +1973,7 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
     {
         // We need to read the curve infos ...
         HAPI_CurveInfo CurveInfo;
+        FHoudiniApi::CurveInfo_Init(&CurveInfo);
         HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetCurveInfo(
             FHoudiniEngine::Get().GetSession(),
             ConnectedAssetId, 0,
@@ -2064,7 +2096,8 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
     {
         // Create ROTATION attribute info
         HAPI_AttributeInfo AttributeInfoRotation;
-        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoRotation );
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfoRotation);
+        //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoRotation );
         AttributeInfoRotation.count = NumberOfCVs;
         AttributeInfoRotation.tupleSize = 4;
         AttributeInfoRotation.exists = true;
@@ -2121,7 +2154,8 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
     if (bAddScales3d)
     {
         HAPI_AttributeInfo AttributeInfoScale;
-        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoScale);
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfoScale);
+        //FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoScale);
         AttributeInfoScale.count = NumberOfCVs;
         AttributeInfoScale.tupleSize = 3;
         AttributeInfoScale.exists = true;
@@ -2175,7 +2209,8 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
     if (bAddUniformScales)
     {
         HAPI_AttributeInfo AttributeInfoPScale;
-        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoPScale);
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfoPScale);
+        //FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoPScale);
         AttributeInfoPScale.count = NumberOfCVs;
         AttributeInfoPScale.tupleSize = 1;
         AttributeInfoPScale.exists = true;
@@ -2219,12 +2254,14 @@ bool
 FHoudiniEngineUtils::HapiGetAssetTransform( HAPI_NodeId AssetId, FTransform & InTransform )
 {
     HAPI_NodeInfo LocalAssetNodeInfo;
+    FHoudiniApi::NodeInfo_Init(&LocalAssetNodeInfo);
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
         FHoudiniEngine::Get().GetSession(), AssetId,
         &LocalAssetNodeInfo ), false );
 
     HAPI_Transform LocalHapiTransform;
-    FMemory::Memzero< HAPI_Transform >( LocalHapiTransform );
+    FHoudiniApi::Transform_Init(&LocalHapiTransform);
+    //FMemory::Memzero< HAPI_Transform >( LocalHapiTransform );
 
     if ( LocalAssetNodeInfo.type == HAPI_NODETYPE_SOP )
     {
@@ -2253,6 +2290,7 @@ FHoudiniEngineUtils::HapiGetNodeId( HAPI_NodeId AssetId, HAPI_NodeId ObjectId, H
     if ( FHoudiniEngineUtils::IsValidNodeId( AssetId ) )
     {
         HAPI_GeoInfo GeoInfo;
+        FHoudiniApi::GeoInfo_Init(&GeoInfo);
         if ( FHoudiniApi::GetGeoInfo(
             FHoudiniEngine::Get().GetSession(), GeoId, &GeoInfo ) == HAPI_RESULT_SUCCESS )
         {
@@ -2292,6 +2330,7 @@ bool
 FHoudiniEngineUtils::HapiGetObjectInfos( HAPI_NodeId AssetId, TArray< HAPI_ObjectInfo > & ObjectInfos )
 {
     HAPI_NodeInfo LocalAssetNodeInfo;
+    FHoudiniApi::NodeInfo_Init(&LocalAssetNodeInfo);
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
         FHoudiniEngine::Get().GetSession(), AssetId,
         &LocalAssetNodeInfo), false);
@@ -2301,6 +2340,7 @@ FHoudiniEngineUtils::HapiGetObjectInfos( HAPI_NodeId AssetId, TArray< HAPI_Objec
     {
         ObjectCount = 1;
         ObjectInfos.SetNumUninitialized(1);
+        FHoudiniApi::ObjectInfo_Init(&(ObjectInfos[0]));
 
         HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetObjectInfo(
             FHoudiniEngine::Get().GetSession(), LocalAssetNodeInfo.parentId,
@@ -2315,6 +2355,7 @@ FHoudiniEngineUtils::HapiGetObjectInfos( HAPI_NodeId AssetId, TArray< HAPI_Objec
         {
             ObjectCount = 1;
             ObjectInfos.SetNumUninitialized(1);
+            FHoudiniApi::ObjectInfo_Init(&(ObjectInfos[0]));
 
             HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetObjectInfo(
                 FHoudiniEngine::Get().GetSession(), AssetId,
@@ -2323,6 +2364,9 @@ FHoudiniEngineUtils::HapiGetObjectInfos( HAPI_NodeId AssetId, TArray< HAPI_Objec
         else
         {
             ObjectInfos.SetNumUninitialized(ObjectCount);
+            for (int32 Idx = 0; Idx < ObjectInfos.Num(); Idx++ )
+                FHoudiniApi::ObjectInfo_Init(&(ObjectInfos[0]));
+
             HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetComposedObjectList(
                 FHoudiniEngine::Get().GetSession(), AssetId,
                 &ObjectInfos[0], 0, ObjectCount), false);
@@ -2338,15 +2382,16 @@ bool
 FHoudiniEngineUtils::HapiGetObjectTransforms( HAPI_NodeId AssetId, TArray< HAPI_Transform > & ObjectTransforms )
 {
     HAPI_NodeInfo LocalAssetNodeInfo;
+    FHoudiniApi::NodeInfo_Init(&LocalAssetNodeInfo);
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
         FHoudiniEngine::Get().GetSession(), AssetId,
         &LocalAssetNodeInfo ), false );
 
     int32 ObjectCount = 1;
     ObjectTransforms.SetNumUninitialized( 1 );
+    FHoudiniApi::Transform_Init(&(ObjectTransforms[0]));
 
-    FMemory::Memzero< HAPI_Transform >( ObjectTransforms[ 0 ] );
-
+    //FMemory::Memzero< HAPI_Transform >( ObjectTransforms[ 0 ] );
     ObjectTransforms[ 0 ].rotationQuaternion[ 3 ] = 1.0f;
     ObjectTransforms[ 0 ].scale[ 0 ] = 1.0f;
     ObjectTransforms[ 0 ].scale[ 1 ] = 1.0f;
@@ -2519,7 +2564,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForLandscape(
 
     // Create part info
     HAPI_PartInfo Part;
-    FMemory::Memzero< HAPI_PartInfo >(Part);
+    FHoudiniApi::PartInfo_Init(&Part);
+    //FMemory::Memzero< HAPI_PartInfo >(Part);
     Part.id = 0;
     Part.nameSH = 0;
     Part.attributeCounts[ HAPI_ATTROWNER_POINT ] = 0;
@@ -2540,6 +2586,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForLandscape(
 
     // Set the part infos
     HAPI_GeoInfo DisplayGeoInfo;
+    FHoudiniApi::GeoInfo_Init(&DisplayGeoInfo);
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetDisplayGeoInfo(
         FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &DisplayGeoInfo ), false );
 
@@ -2860,7 +2907,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
         // Create part.
         HAPI_PartInfo Part;
-        FMemory::Memzero< HAPI_PartInfo >( Part );
+        FHoudiniApi::PartInfo_Init(&Part);
+        //FMemory::Memzero< HAPI_PartInfo >( Part );
         Part.id = 0;
         Part.nameSH = 0;
         Part.attributeCounts[ HAPI_ATTROWNER_POINT ] = 0;
@@ -2877,7 +2925,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
         // Create point attribute info.
         HAPI_AttributeInfo AttributeInfoPoint;
-        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPoint );
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfoPoint);
+        //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPoint );
         AttributeInfoPoint.count = RawMesh.VertexPositions.Num();
         AttributeInfoPoint.tupleSize = 3;
         AttributeInfoPoint.exists = true;
@@ -2968,7 +3017,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
                 // Create attribute for UVs
                 HAPI_AttributeInfo AttributeInfoVertex;
-                FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoVertex );
+                FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+                //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoVertex );
                 AttributeInfoVertex.count = StaticMeshUVCount;
                 AttributeInfoVertex.tupleSize = 3;
                 AttributeInfoVertex.exists = true;
@@ -2991,7 +3041,6 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
         if ( RawMesh.WedgeTangentZ.Num() > 0 )
         {
             TArray< FVector > ChangedNormals( RawMesh.WedgeTangentZ );
-
             if ( ImportAxis == HRSAI_Unreal )
             {
                 // We need to re-index normals for wedges we swapped (due to winding differences).
@@ -3004,22 +3053,15 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                     ChangedNormals[ WedgeIdx + 2 ] = TangentZ1;
                 }
 
+                // We also need to swap the vector's Y and Z components
                 for ( int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); ++WedgeIdx )
                     Swap( ChangedNormals[ WedgeIdx ].Y, ChangedNormals[ WedgeIdx ].Z );
-            }
-            else if ( ImportAxis == HRSAI_Houdini )
-            {
-                // Do nothing, data is in proper format.
-            }
-            else
-            {
-                // Not valid enum value.
-                check( 0 );
             }
 
             // Create attribute for normals.
             HAPI_AttributeInfo AttributeInfoVertex;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoVertex );
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoVertex );
             AttributeInfoVertex.count = ChangedNormals.Num();
             AttributeInfoVertex.tupleSize = 3;
             AttributeInfoVertex.exists = true;
@@ -3036,6 +3078,91 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                 CurrentLODNodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex,
                 (const float *) ChangedNormals.GetData(),
                 0, AttributeInfoVertex.count ), false );
+        }
+
+        // See if we have tangentu to upload.
+        if (RawMesh.WedgeTangentX.Num() > 0)
+        {
+            TArray< FVector > ChangedTangentU(RawMesh.WedgeTangentX);
+            if (ImportAxis == HRSAI_Unreal)
+            {
+                // We need to re-index tangents for wedges we swapped (due to winding differences).
+                for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
+                {
+                    FVector TangentU1 = ChangedTangentU[WedgeIdx + 1];
+                    FVector TangentU2 = ChangedTangentU[WedgeIdx + 2];
+
+                    ChangedTangentU[WedgeIdx + 1] = TangentU2;
+                    ChangedTangentU[WedgeIdx + 2] = TangentU1;
+                }
+
+                // We also need to swap the vector's Y and Z components
+                for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); ++WedgeIdx)
+                    Swap(ChangedTangentU[WedgeIdx].Y, ChangedTangentU[WedgeIdx].Z);
+            }
+
+            // Create attribute for tangentu.
+            HAPI_AttributeInfo AttributeInfoVertex;
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+            //FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoVertex);
+            AttributeInfoVertex.count = ChangedTangentU.Num();
+            AttributeInfoVertex.tupleSize = 3;
+            AttributeInfoVertex.exists = true;
+            AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+            AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+            AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                FHoudiniEngine::Get().GetSession(), CurrentLODNodeId,
+                0, HAPI_UNREAL_ATTRIB_TANGENTU, &AttributeInfoVertex), false);
+
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                FHoudiniEngine::Get().GetSession(),
+                CurrentLODNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, &AttributeInfoVertex,
+                (const float *)ChangedTangentU.GetData(),
+                0, AttributeInfoVertex.count), false);
+        }
+
+        // See if we have tangentv to upload.
+        if (RawMesh.WedgeTangentY.Num() > 0)
+        {
+            TArray< FVector > ChangedTangentV(RawMesh.WedgeTangentY);
+            if (ImportAxis == HRSAI_Unreal)
+            {
+                // We need to re-index normals for wedges we swapped (due to winding differences).
+                for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
+                {
+                    FVector TangentV1 = ChangedTangentV[WedgeIdx + 1];
+                    FVector TangentV2 = ChangedTangentV[WedgeIdx + 2];
+
+                    ChangedTangentV[WedgeIdx + 1] = TangentV2;
+                    ChangedTangentV[WedgeIdx + 2] = TangentV1;
+                }
+
+                for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); ++WedgeIdx)
+                    Swap(ChangedTangentV[WedgeIdx].Y, ChangedTangentV[WedgeIdx].Z);
+            }
+
+            // Create attribute for normals.
+            HAPI_AttributeInfo AttributeInfoVertex;
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+            //FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoVertex);
+            AttributeInfoVertex.count = ChangedTangentV.Num();
+            AttributeInfoVertex.tupleSize = 3;
+            AttributeInfoVertex.exists = true;
+            AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+            AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+            AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                FHoudiniEngine::Get().GetSession(), CurrentLODNodeId,
+                0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex), false);
+
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                FHoudiniEngine::Get().GetSession(),
+                CurrentLODNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex,
+                (const float *)ChangedTangentV.GetData(),
+                0, AttributeInfoVertex.count), false);
         }
 
         {
@@ -3122,7 +3249,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
                 // Create attribute for colors.
                 HAPI_AttributeInfo AttributeInfoVertex;
-                FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoVertex );
+                FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+                //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoVertex );
                 AttributeInfoVertex.count = ChangedColors.Num();
                 AttributeInfoVertex.tupleSize = 3;
                 AttributeInfoVertex.exists = true;
@@ -3145,7 +3273,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                 for (int32 alphaIndex = 0; alphaIndex < ChangedColors.Num(); alphaIndex++)
                     AlphaValues[alphaIndex] = ChangedColors[alphaIndex].A;
 
-                FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoVertex);
+                FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex); 
+                //FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoVertex);
                 AttributeInfoVertex.count = AlphaValues.Num();
                 AttributeInfoVertex.tupleSize = 1;
                 AttributeInfoVertex.exists = true;
@@ -3209,7 +3338,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
         {
             // Create an array of Material Interfaces
             TArray< UMaterialInterface * > MaterialInterfaces;
-            if (StaticMeshComponent && !StaticMeshComponent->IsPendingKill())
+            if (StaticMeshComponent && !StaticMeshComponent->IsPendingKill() && StaticMeshComponent->IsValidLowLevel() )
             {
                 // We have a SMC, query its materials directly so we can be sure we get the proper override materials
                 StaticMeshComponent->GetUsedMaterials(MaterialInterfaces, false);
@@ -3270,7 +3399,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
             // Create attribute for materials.
             HAPI_AttributeInfo AttributeInfoMaterial;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoMaterial );
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfoMaterial);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoMaterial );
             AttributeInfoMaterial.count = RawMesh.FaceMaterialIndices.Num();
             AttributeInfoMaterial.tupleSize = 1;
             AttributeInfoMaterial.exists = true;
@@ -3318,7 +3448,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
             }
 
             HAPI_AttributeInfo AttributeInfoSmoothingMasks;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoSmoothingMasks );
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfoSmoothingMasks);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoSmoothingMasks );
             AttributeInfoSmoothingMasks.count = RawMesh.FaceSmoothingMasks.Num();
             AttributeInfoSmoothingMasks.tupleSize = 1;
             AttributeInfoSmoothingMasks.exists = true;
@@ -3351,7 +3482,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
             LightMapResolutions.Add( StaticMesh->LightMapResolution );
 
             HAPI_AttributeInfo AttributeInfoLightMapResolution;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoLightMapResolution );
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfoLightMapResolution);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoLightMapResolution );
             AttributeInfoLightMapResolution.count = LightMapResolutions.Num();
             AttributeInfoLightMapResolution.tupleSize = 1;
             AttributeInfoLightMapResolution.exists = true;
@@ -3388,7 +3520,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                 MarshallingAttributeName );
 
             HAPI_AttributeInfo AttributeInfo;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
             AttributeInfo.count = Part.faceCount;
             AttributeInfo.tupleSize = 1;
             AttributeInfo.exists = true;
@@ -3436,7 +3569,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                     MarshallingAttributeName );
 
                 HAPI_AttributeInfo AttributeInfo;
-                FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+                FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+                //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
                 AttributeInfo.count = Part.faceCount;
                 AttributeInfo.tupleSize = 1;
                 AttributeInfo.exists = true;
@@ -3496,7 +3630,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
                 // Create screensize detail attribute info.
                 HAPI_AttributeInfo AttributeInfoLODScreenSize;
-                FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoLODScreenSize );
+                FHoudiniApi::AttributeInfo_Init(&AttributeInfoLODScreenSize);
+                //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoLODScreenSize );
                 AttributeInfoLODScreenSize.count = 1;
                 AttributeInfoLODScreenSize.tupleSize = 1;
                 AttributeInfoLODScreenSize.exists = true;
@@ -3556,7 +3691,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
         // Create part.
         HAPI_PartInfo Part;
-        FMemory::Memzero< HAPI_PartInfo >( Part );
+        FHoudiniApi::PartInfo_Init(&Part);
+        //FMemory::Memzero< HAPI_PartInfo >( Part );
         Part.id = 0;
         Part.nameSH = 0;
         Part.attributeCounts[ HAPI_ATTROWNER_POINT ] = 0;
@@ -3573,7 +3709,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
         // Create POS point attribute info.
         HAPI_AttributeInfo AttributeInfoPos;
-        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPos );
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfoPos);
+        //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPos );
         AttributeInfoPos.count = NumSockets;
         AttributeInfoPos.tupleSize = 3;
         AttributeInfoPos.exists = true;
@@ -3587,7 +3724,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
         // Create Rot point attribute Info
         HAPI_AttributeInfo AttributeInfoRot;
-        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoRot );
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfoRot);
+        //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoRot );
         AttributeInfoRot.count = NumSockets;
         AttributeInfoRot.tupleSize = 4;
         AttributeInfoRot.exists = true;
@@ -3601,7 +3739,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
         // Create scale point attribute Info
         HAPI_AttributeInfo AttributeInfoScale;
-        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoScale );
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfoScale);
+        //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoScale );
         AttributeInfoScale.count = NumSockets;
         AttributeInfoScale.tupleSize = 3;
         AttributeInfoScale.exists = true;
@@ -3615,7 +3754,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
         //  Create the name attrib info
         HAPI_AttributeInfo AttributeInfoName;
-        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoName );
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfoName);
+        //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoName );
         AttributeInfoName.count = NumSockets;
         AttributeInfoName.tupleSize = 1;
         AttributeInfoName.exists = true;
@@ -3629,7 +3769,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
 
         //  Create the tag attrib info
         HAPI_AttributeInfo AttributeInfoTag;
-        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoTag );
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfoTag);
+        //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoTag );
         AttributeInfoTag.count = NumSockets;
         AttributeInfoTag.tupleSize = 1;
         AttributeInfoTag.exists = true;
@@ -3660,6 +3801,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
             // Get the socket's transform and convert it to HapiTransform
             FTransform SocketTransform( CurrentSocket->RelativeRotation, CurrentSocket->RelativeLocation, CurrentSocket->RelativeScale );
             HAPI_Transform HapiSocketTransform;
+            FHoudiniApi::Transform_Init(&HapiSocketTransform);
             TranslateUnrealTransform( SocketTransform, HapiSocketTransform );
 
             // Fill the attribute values
@@ -3737,7 +3879,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
             FString SocketAttrPrefix = TEXT( HAPI_UNREAL_ATTRIB_MESH_SOCKET_PREFIX ) + FString::FromInt( Idx );
 
             // Create mesh_socketX_pos attribute info.
-            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPos );
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPos );
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfoPos);
             AttributeInfoPos.count = 1;
             AttributeInfoPos.tupleSize = 3;
             AttributeInfoPos.exists = true;
@@ -3759,7 +3902,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                 0, AttributeInfoPos.count ), false );
 
             // Create mesh_socketX_rot point attribute Info
-            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoRot );
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoRot );
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfoRot);
             AttributeInfoRot.count = 1;
             AttributeInfoRot.tupleSize = 4;
             AttributeInfoRot.exists = true;
@@ -3781,7 +3925,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                 0, AttributeInfoRot.count ), false );
 
             // Create mesh_socketX_scale point attribute Info
-            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoScale );
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoScale );
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfoScale);
             AttributeInfoScale.count = 1;
             AttributeInfoScale.tupleSize = 3;
             AttributeInfoScale.exists = true;
@@ -3803,7 +3948,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                 0, AttributeInfoScale.count ), false );
 
             //  Create the mesh_socketX_name attrib info
-            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoName );
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoName );
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfoName);
             AttributeInfoName.count = 1;
             AttributeInfoName.tupleSize = 1;
             AttributeInfoName.exists = true;
@@ -3825,7 +3971,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                 0, AttributeInfoName.count ), false );
 
             //  Create the mesh_socketX_tag attrib info
-            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoTag );
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoTag );
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfoTag);
             AttributeInfoTag.count = 1;
             AttributeInfoTag.tupleSize = 1;
             AttributeInfoTag.exists = true;
@@ -3952,7 +4099,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForWorldOutliner(
         
         // Updating the Transform
         HAPI_TransformEuler HapiTransform;
-        FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
+        FHoudiniApi::TransformEuler_Init(&HapiTransform);
+        //FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
         FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerMesh.ComponentTransform, HapiTransform );
 
         // Set it on the input mesh's parent OBJ node
@@ -4030,10 +4178,12 @@ FHoudiniEngineUtils::HapiCreateInputNodeForObjects(
         {
             // Updating the Transform
             HAPI_TransformEuler HapiTransform;
-            FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
+            FHoudiniApi::TransformEuler_Init(&HapiTransform);
+            //FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
             FHoudiniEngineUtils::TranslateUnrealTransform( InputTransform, HapiTransform );
 
             HAPI_NodeInfo LocalAssetNodeInfo;
+            FHoudiniApi::NodeInfo_Init(&LocalAssetNodeInfo);
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
                 FHoudiniEngine::Get().GetSession(), MeshAssetNodeId, &LocalAssetNodeInfo ), false );
 
@@ -4117,7 +4267,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
 
     // Create part.
     HAPI_PartInfo Part;
-    FMemory::Memzero< HAPI_PartInfo >(Part);
+    FHoudiniApi::PartInfo_Init(&Part);
+    //FMemory::Memzero< HAPI_PartInfo >(Part);
     Part.id = 0;
     Part.nameSH = 0;
     Part.attributeCounts[ HAPI_ATTROWNER_POINT ] = 0;
@@ -4130,6 +4281,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
     Part.type = HAPI_PARTTYPE_MESH;
 
     HAPI_GeoInfo DisplayGeoInfo;
+    FHoudiniApi::GeoInfo_Init(&DisplayGeoInfo);
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetDisplayGeoInfo(
         FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &DisplayGeoInfo ), false );
 
@@ -4143,7 +4295,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
     
     // Create point attribute info.
     HAPI_AttributeInfo AttributeInfoPoint;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPoint );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoPoint);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPoint );
     AttributeInfoPoint.count = SoftSkinVertices.Num();
     AttributeInfoPoint.tupleSize = 3;
     AttributeInfoPoint.exists = true;
@@ -4218,7 +4371,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
 
         // Create attribute for UVs
         HAPI_AttributeInfo AttributeInfoUVS;
-        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoUVS );
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfoUVS);
+        //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoUVS );
         AttributeInfoUVS.count = MeshUVs.Num();
         AttributeInfoUVS.tupleSize = 3;
         AttributeInfoUVS.exists = true;
@@ -4269,7 +4423,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
 
     // Create attribute for normals.
     HAPI_AttributeInfo AttributeInfoNormals;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoNormals );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoNormals);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoNormals );
     AttributeInfoNormals.count = MeshNormals.Num();
     AttributeInfoNormals.tupleSize = 3;
     AttributeInfoNormals.exists = true;
@@ -4312,7 +4467,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
 
     // Create attribute for colors.
     HAPI_AttributeInfo AttributeInfoColors;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoColors );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoColors);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoColors );
     AttributeInfoColors.count = MeshColors.Num();
     AttributeInfoColors.tupleSize = 4;
     AttributeInfoColors.exists = true;
@@ -4402,7 +4558,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
 
     // Create attribute for materials.
     HAPI_AttributeInfo AttributeInfoMaterial;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoMaterial );
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoMaterial);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoMaterial );
     AttributeInfoMaterial.count = FaceMaterialIds.Num();
     AttributeInfoMaterial.tupleSize = 1;
     AttributeInfoMaterial.exists = true;
@@ -4456,7 +4613,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
             HoudiniRuntimeSettings->MarshallingAttributeInputMeshName, MarshallingAttributeName );
         
         HAPI_AttributeInfo AttributeInfo;
-        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+        //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
         AttributeInfo.count = Part.faceCount;
         AttributeInfo.tupleSize = 1;
         AttributeInfo.exists = true;
@@ -4506,7 +4664,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
                 HoudiniRuntimeSettings->MarshallingAttributeInputSourceFile, MarshallingAttributeName );
 
             HAPI_AttributeInfo AttributeInfo;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
             AttributeInfo.count = Part.faceCount;
             AttributeInfo.tupleSize = 1;
             AttributeInfo.exists = true;
@@ -4533,6 +4692,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForSkeletalMesh(
     {
         // Export the Skeleton!
         HAPI_NodeInfo NodeInfo;
+        FHoudiniApi::NodeInfo_Init(&NodeInfo);
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, &NodeInfo), false );
 
@@ -4667,6 +4827,7 @@ FHoudiniEngineUtils::HapiCreateSkeletonFromData(
     // We can delete the default file node created by the geometry node, 
     // This will set the display flag to the object merge node
     HAPI_GeoInfo GeoInfo;
+    FHoudiniApi::GeoInfo_Init(&GeoInfo);
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetDisplayGeoInfo(
         FHoudiniEngine::Get().GetSession(), GeoNodeId, &GeoInfo ), false );
 
@@ -4710,6 +4871,7 @@ FHoudiniEngineUtils::HapiCreateSkeletonFromData(
 
             // Convert the joint's transform
             HAPI_TransformEuler HapiTransform;
+            FHoudiniApi::TransformEuler_Init(&HapiTransform);
             FHoudiniEngineUtils::TranslateUnrealTransform( BoneTransform, HapiTransform );
 
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetObjectTransform(
@@ -4911,7 +5073,8 @@ FHoudiniEngineUtils::HapiCreateSkeletonFromData(
         const char * NodePathStr = TCHAR_TO_UTF8(*RootNodePath);
 
         HAPI_AttributeInfo AttributeInfo;
-        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+        //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
         AttributeInfo.count = 1;
         AttributeInfo.tupleSize = 1;
         AttributeInfo.exists = true;
@@ -4953,11 +5116,13 @@ FHoudiniEngineUtils::HapiSetAssetTransform( HAPI_NodeId AssetId, const FTransfor
 
     // Translate Unreal transform to HAPI Euler one.
     HAPI_TransformEuler TransformEuler;
-    FMemory::Memzero< HAPI_TransformEuler >( TransformEuler );
+    FHoudiniApi::TransformEuler_Init(&TransformEuler);
+    //FMemory::Memzero< HAPI_TransformEuler >( TransformEuler );
     FHoudiniEngineUtils::TranslateUnrealTransform( Transform, TransformEuler );
     
     // Get the NodeInfo
     HAPI_NodeInfo LocalAssetNodeInfo;
+    FHoudiniApi::NodeInfo_Init(&LocalAssetNodeInfo);
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
         FHoudiniEngine::Get().GetSession(), AssetId,
         &LocalAssetNodeInfo), false);
@@ -5064,11 +5229,12 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     // Get platform manager LOD specific information.
     ITargetPlatform * CurrentPlatform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
     check( CurrentPlatform );
-    const FStaticMeshLODGroup & LODGroup = CurrentPlatform->GetStaticMeshLODSettings().GetLODGroup( NAME_None );
+    FStaticMeshLODGroup LODGroup = CurrentPlatform->GetStaticMeshLODSettings().GetLODGroup( NAME_None );
     int32 DefaultNumLODs = LODGroup.GetDefaultNumLODs();
 
     // Get the AssetInfo
     HAPI_AssetInfo AssetInfo;
+    FHoudiniApi::AssetInfo_Init(&AssetInfo);
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
         FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
 
@@ -5142,6 +5308,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             for ( int nEditable = 0; nEditable < EditableNodeCount; nEditable++ )
             {
                 HAPI_GeoInfo CurrentEditableGeoInfo;
+                FHoudiniApi::GeoInfo_Init(&CurrentEditableGeoInfo);
                 HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGeoInfo(
                     FHoudiniEngine::Get().GetSession(), EditableNodeIds[ nEditable ], &CurrentEditableGeoInfo ), false );
 
@@ -5170,6 +5337,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
         // Get the Display Geo's info
         HAPI_GeoInfo GeoInfo;
+        FHoudiniApi::GeoInfo_Init(&GeoInfo);
         if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetDisplayGeoInfo(
             FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, &GeoInfo ) )
         {
@@ -5202,6 +5370,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         {
             // Get part information.
             HAPI_PartInfo PartInfo;
+            FHoudiniApi::PartInfo_Init(&PartInfo);
             if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(
                 FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, PartIdx, &PartInfo ) )
             {
@@ -5242,7 +5411,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             TArray< FString > BakeFolderOverrides;
             {
                 HAPI_AttributeInfo AttribBakeFolderOverride;
-                FMemory::Memzero< HAPI_AttributeInfo >( AttribBakeFolderOverride );
+                FHoudiniApi::AttributeInfo_Init(&AttribBakeFolderOverride);
 
                 FHoudiniEngineUtils::HapiGetAttributeDataAsString(
                     AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
@@ -5356,6 +5525,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     for ( int32 MaterialIdx = 0; MaterialIdx < PartUniqueMaterialIds.Num(); ++MaterialIdx )
                     {
                         HAPI_MaterialInfo MaterialInfo;
+                        FHoudiniApi::MaterialInfo_Init(&MaterialInfo);
                         if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialInfo(
                             FHoudiniEngine::Get().GetSession(), PartUniqueMaterialIds[ MaterialIdx ], &MaterialInfo ) )
                             continue;
@@ -5389,7 +5559,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // See if we have instancer attribute material present.
                 {
                     HAPI_AttributeInfo AttribInstancerAttribMaterials;
-                    FMemory::Memset< HAPI_AttributeInfo >( AttribInstancerAttribMaterials, 0 );
+                    FHoudiniApi::AttributeInfo_Init(&AttribInstancerAttribMaterials);
+                    //FMemory::Memset< HAPI_AttributeInfo >( AttribInstancerAttribMaterials, 0 );
 
                     TArray< FString > InstancerAttribMaterials;
 
@@ -5419,43 +5590,64 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             // Vertex Positions
             TArray< float > PartPositions;
             HAPI_AttributeInfo AttribInfoPositions;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoPositions );
+            FHoudiniApi::AttributeInfo_Init(&AttribInfoPositions);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoPositions );
 
             // Vertex Normals
             TArray< float > PartNormals;
             HAPI_AttributeInfo AttribInfoNormals;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoNormals );
+            FHoudiniApi::AttributeInfo_Init(&AttribInfoNormals);
+            // FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoNormals );
+
+            // Vertex TangentU
+            TArray< float > PartTangentU;
+            HAPI_AttributeInfo AttribInfoTangentU;
+            FHoudiniApi::AttributeInfo_Init(&AttribInfoTangentU);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoTangentU );
+
+            // Vertex TangentV
+            TArray< float > PartTangentV;
+            HAPI_AttributeInfo AttribInfoTangentV;
+            FHoudiniApi::AttributeInfo_Init(&AttribInfoTangentV);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoTangentV );
 
             // Vertex Colors
             TArray< float > PartColors;
             HAPI_AttributeInfo AttribInfoColors;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoColors );
+            FHoudiniApi::AttributeInfo_Init(&AttribInfoColors);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoColors );
 
             // Vertex Alpha values
             TArray< float > PartAlphas;
             HAPI_AttributeInfo AttribInfoAlpha;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoAlpha );
+            FHoudiniApi::AttributeInfo_Init(&AttribInfoAlpha);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoAlpha );
 
             // UVs
             TArray< TArray< float > > PartUVs;
             PartUVs.SetNumZeroed( MAX_STATIC_TEXCOORDS );
             TArray< HAPI_AttributeInfo > AttribInfoUVs;
-            AttribInfoUVs.SetNumZeroed( MAX_STATIC_TEXCOORDS );
+            AttribInfoUVs.SetNumUninitialized( MAX_STATIC_TEXCOORDS );
+            for ( int32 Idx = 0; Idx < AttribInfoUVs.Num(); Idx++ )
+                FHoudiniApi::AttributeInfo_Init(&(AttribInfoUVs[Idx]));
 
             // Material Overrides per face
             TArray< FString > PartFaceMaterialAttributeOverrides;
             HAPI_AttributeInfo AttribFaceMaterials;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttribFaceMaterials );
+            FHoudiniApi::AttributeInfo_Init(&AttribFaceMaterials);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttribFaceMaterials );
 
             // Face Smoothing masks
             TArray< int32 > PartFaceSmoothingMasks;
             HAPI_AttributeInfo AttribInfoFaceSmoothingMasks;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoFaceSmoothingMasks );
+            FHoudiniApi::AttributeInfo_Init(&AttribInfoFaceSmoothingMasks);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoFaceSmoothingMasks );
 
             // Lightmap resolution
             TArray< int32 > PartLightMapResolutions;
             HAPI_AttributeInfo AttribLightmapResolution;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttribLightmapResolution );
+            FHoudiniApi::AttributeInfo_Init(&AttribLightmapResolution);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttribLightmapResolution );
 
             // Vertex Indices
             TArray< int32 > PartVertexList;
@@ -5662,7 +5854,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             // Look for LOD Specific attributes, "lod_screensize" by default
             TArray< float > LODScreenSizes;
             HAPI_AttributeInfo AttribInfoLODScreenSize;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoLODScreenSize );
+            FHoudiniApi::AttributeInfo_Init(&AttribInfoLODScreenSize);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttribInfoLODScreenSize );
             FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
                 AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
                 "lod_screensize", AttribInfoLODScreenSize, LODScreenSizes );
@@ -5807,12 +6000,46 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // Record split group name.
                 HoudiniGeoPartObject.SplitName = SplitGroupName;
 
-                // Attempt to locate static mesh from previous instantiation.
-                UStaticMesh * const * FoundStaticMesh = StaticMeshesIn.Find( HoudiniGeoPartObject );
-
-                // LODs levels other than the first one need to reuse StaticMesh from the output!
-                if ( IsLOD && LodIndex > 0 )
-                    FoundStaticMesh = StaticMeshesOut.Find( HoudiniGeoPartObject );
+                // Attempt to locate a static mesh from previous instantiation to reuse it
+                UStaticMesh * const * FoundStaticMesh = nullptr;
+                if (IsLOD && LodIndex > 0)
+                {
+                    // LODs levels other than the first one need to reuse StaticMesh from the output!
+                    // as we want the additional LODs to be added to the newly created Static Mesh
+                    FoundStaticMesh = StaticMeshesOut.Find(HoudiniGeoPartObject);
+                    if (!FoundStaticMesh)
+                    {
+                        // If we failed, try to find the mesh via names
+                        for (TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator tIt(StaticMeshesOut); tIt; ++tIt)
+                        {
+                            const FHoudiniGeoPartObject& key = tIt.Key();
+                            if (key.CompareNames(HoudiniGeoPartObject))
+                            {
+                                FoundStaticMesh = &tIt.Value();
+                                break;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // We're not an LOD, try to locate a corresponding SM in the previously cooked objects
+                    FoundStaticMesh = StaticMeshesIn.Find(HoudiniGeoPartObject);
+                    if (!FoundStaticMesh)
+                    {
+                        // If we failed, try to find the previous mesh via names to help reuse of components
+                        // the GUID doesnt always match even though its the same part on same HDA
+                        for (TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator tIt(StaticMeshesIn); tIt; ++tIt)
+                        {
+                            const FHoudiniGeoPartObject& key = tIt.Key();
+                            if (key.CompareNames(HoudiniGeoPartObject))
+                            {
+                                FoundStaticMesh = &tIt.Value();
+                                break;
+                            }
+                        }
+                    }
+                }
 
                 // Flag whether we need to rebuild the mesh.
                 bool bRebuildStaticMesh = false;
@@ -5843,13 +6070,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         continue;
                     }
                 }
-
-                // TODO: FIX THIS PROPERLY!!
-                // Ignore the found Static Mesh to force the creation of a new one
-                // UE4.20 seems to be ignoring the fact that the SM is updated, and only displays the original one
-                // This prevents meshes from being updated after a cook, but only after a rebuild....
-                //if ( bRebuildStaticMesh && (!IsLOD || LodIndex <= 0) )
-                //    FoundStaticMesh = nullptr;
 
                 // If the static mesh was not located, we need to create a new one.
                 bool bStaticMeshCreated = false;
@@ -5885,6 +6105,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 {
                     // Found the corresponding Static Mesh, just reuse it.
                     StaticMesh = *FoundStaticMesh;
+                    // Try to reuse the SM's LOD groupd instead of the default one
+                    LODGroup = CurrentPlatform->GetStaticMeshLODSettings().GetLODGroup(StaticMesh->LODGroup);
                 }
 
                 // Free any RHI resources for existing mesh before we re-create in place.
@@ -5903,7 +6125,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 }
 
                 // Grab the corresponding SourceModel
-                FStaticMeshSourceModel* SrcModel = &StaticMesh->SourceModels[ IsLOD ? LodIndex : 0 ];
+                int32 SrcModelIdx = IsLOD ? LodIndex : 0;
+                FStaticMeshSourceModel* SrcModel = (StaticMesh->SourceModels.IsValidIndex(SrcModelIdx)) ?
+                    &(StaticMesh->SourceModels[SrcModelIdx]) : nullptr;
+
                 if ( !SrcModel )
                 {
                     HOUDINI_LOG_ERROR(
@@ -5925,7 +6150,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 else
                 {
                     //--------------------------------------------------------------------------------------------------------------------- 
-                    // NORMALS
+                    // NORMALS AND TANGENTS
                     //--------------------------------------------------------------------------------------------------------------------- 
                     TArray< float > SplitGroupNormals;
                     // No need to read the normals if we'll recompute them after
@@ -5945,11 +6170,42 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             SplitGroupVertexList, AttribInfoNormals, PartNormals, SplitGroupNormals );
                     }
 
-                    // See if we need to generate tangents, we do this only if normals are present, and if we do not recompute them after
-                    bool bGenerateTangents = ( SplitGroupNormals.Num() > 0 );
+                    TArray< float > SplitGroupTangentU;
+                    TArray< float > SplitGroupTangentV;
+                    // No need to read the tangents if we always want to recompute them
+                    bool bReadTangents = HoudiniRuntimeSettings->RecomputeTangentsFlag != EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Always;
+                    if (bReadTangents)
+                    {
+                        if (PartTangentU.Num() <= 0)
+                        {
+                            // Retrieve TangentU data for this part
+                            FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                                HAPI_UNREAL_ATTRIB_TANGENTU, AttribInfoTangentU, PartTangentU );
+                        }
+
+                        // Transfer tangentu point attributes to the vertices if needed.
+                        FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+                            SplitGroupVertexList, AttribInfoTangentU, PartTangentU, SplitGroupTangentU);
+
+                        if (PartTangentV.Num() <= 0)
+                        {
+                            // Retrieve TangentV data for this part
+                            FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                                HAPI_UNREAL_ATTRIB_TANGENTV, AttribInfoTangentV, PartTangentV);
+                        }
+
+                        // Transfer tangentv point attributes to the vertices if needed.
+                        FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+                            SplitGroupVertexList, AttribInfoTangentV, PartTangentV, SplitGroupTangentV);
+                    }
+
+                    // We need to generate tangents if we have normals but we dont have tangentu or tangentv attributes
+                    bool bGenerateTangents = ( SplitGroupNormals.Num() > 0 ) && ( SplitGroupTangentU.Num() <= 0 || SplitGroupTangentV.Num() <= 0 );
                     if ( bGenerateTangents && ( HoudiniRuntimeSettings->RecomputeTangentsFlag == EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Always ) )
                     {
-                        // No need to generate tangents if we'll recompute them after
+                        // No need to generate tangents if unreal will recompute them after
                         bGenerateTangents = false;
                     }
 
@@ -5965,6 +6221,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         HOUDINI_LOG_WARNING(TEXT("Invalid normal count detected - Skipping normals."));
                     }
 
+                    // Transfer the normals and generate the tangents if needed
                     RawMesh.WedgeTangentZ.SetNumZeroed( WedgeNormalCount );
                     for ( int32 WedgeTangentZIdx = 0; WedgeTangentZIdx < WedgeNormalCount; ++WedgeTangentZIdx )
                     {
@@ -5992,6 +6249,58 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                             RawMesh.WedgeTangentX.Add( TangentX );
                             RawMesh.WedgeTangentY.Add( TangentY );
+                        }
+                    }
+
+                    // Only add tangents if we have some and do not plan on generating them.
+                    // We also need to make sure that the number of tangents matches the number of normals
+                    bool bAddTangents = !bGenerateTangents && bReadTangents;
+                    int32 WedgeTangentUCount = SplitGroupTangentU.Num() / 3;
+                    int32 WedgeTangentVCount = SplitGroupTangentV.Num() / 3;
+                    if ( WedgeTangentUCount != WedgeNormalCount || WedgeTangentVCount != WedgeNormalCount )
+                        bAddTangents = false;
+
+                    if ( bAddTangents )
+                    {
+                        // Transfer tangents if we have them and they're valid
+                        RawMesh.WedgeTangentX.SetNumZeroed(WedgeTangentUCount);
+                        for (int32 WedgeTangentUIdx = 0; WedgeTangentUIdx < WedgeTangentUCount; ++WedgeTangentUIdx)
+                        {
+                            FVector WedgeTangentX;
+                            WedgeTangentX.X = SplitGroupTangentU[WedgeTangentUIdx * 3 + 0];
+                            if (ImportAxis == HRSAI_Unreal)
+                            {
+                                // We need to flip Z and Y coordinate
+                                WedgeTangentX.Y = SplitGroupTangentU[WedgeTangentUIdx * 3 + 2];
+                                WedgeTangentX.Z = SplitGroupTangentU[WedgeTangentUIdx * 3 + 1];
+                            }
+                            else
+                            {
+                                WedgeTangentX.Y = SplitGroupTangentU[WedgeTangentUIdx * 3 + 1];
+                                WedgeTangentX.Z = SplitGroupTangentU[WedgeTangentUIdx * 3 + 2];
+                            }
+
+                            RawMesh.WedgeTangentX[WedgeTangentUIdx] = WedgeTangentX;
+                        }
+
+                        RawMesh.WedgeTangentY.SetNumZeroed(WedgeTangentVCount);
+                        for (int32 WedgeTangentVIdx = 0; WedgeTangentVIdx < WedgeTangentVCount; ++WedgeTangentVIdx)
+                        {
+                            FVector WedgeTangentY;
+                            WedgeTangentY.X = SplitGroupTangentV[WedgeTangentVIdx * 3 + 0];
+                            if (ImportAxis == HRSAI_Unreal)
+                            {
+                                // We need to flip Z and Y coordinate
+                                WedgeTangentY.Y = SplitGroupTangentV[WedgeTangentVIdx * 3 + 2];
+                                WedgeTangentY.Z = SplitGroupTangentV[WedgeTangentVIdx * 3 + 1];
+                            }
+                            else
+                            {
+                                WedgeTangentY.Y = SplitGroupTangentV[WedgeTangentVIdx * 3 + 1];
+                                WedgeTangentY.Z = SplitGroupTangentV[WedgeTangentVIdx * 3 + 2];
+                            }
+
+                            RawMesh.WedgeTangentY[WedgeTangentVIdx] = WedgeTangentY;
                         }
                     }
 
@@ -6811,6 +7120,54 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     }
                 }
 
+                // See if a custom bake name override for this mesh was assigned via the "unreal_bake_name" attribute
+                TArray< FString > BakeNameOverrides;
+                {
+                    HAPI_AttributeInfo AttribBakeNameOverride;
+                    FHoudiniApi::AttributeInfo_Init(&AttribBakeNameOverride);
+
+                    FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+                        AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
+                        HAPI_UNREAL_ATTRIB_BAKE_NAME, AttribBakeNameOverride, BakeNameOverrides);
+
+                    if (BakeNameOverrides.Num() > 0)
+                    {
+                        int32 AttrIdx = 0;
+                        if (AttribBakeNameOverride.owner == HAPI_ATTROWNER_PRIM)
+                        {
+                            // If the attribute is on primitives, we need to find
+                            // the index of the prim that correspond to our split
+                            for (int32 n = 0; n < SplitGroupVertexList.Num(); n++)
+                            {
+                                if (SplitGroupVertexList[n] <= 0)
+                                    continue;
+
+                                AttrIdx = n / 3;
+                                break;
+                            }
+                            
+                            if (!BakeNameOverrides.IsValidIndex(AttrIdx))
+                                AttrIdx = 0;
+                        }
+
+                        FString BakeNameOverride = BakeNameOverrides[AttrIdx];
+                        if (!BakeNameOverride.IsEmpty())
+                        {
+                            // If the name override was set on the details and we have multiple split
+                            // append the split name to the override to avoid collisions on bake
+                            if (AttribBakeNameOverride.owner == HAPI_ATTROWNER_DETAIL
+                                && SplitGroupNames.Num() > 1)
+                            {
+                                if (!SplitGroupName.Equals("main_geo", ESearchCase::IgnoreCase))
+                                    BakeNameOverride += "_" + SplitGroupName;
+                            }
+
+                            FString& OverrideStrRef = HoudiniCookParams.BakeNameOverrides->FindOrAdd(HoudiniGeoPartObject);
+                            OverrideStrRef = BakeNameOverride;
+                        }
+                    }
+                }
+
                 // Try to update the uproperties of the StaticMesh
                 UpdateUPropertyAttributesOnObject( StaticMesh, HoudiniGeoPartObject);
 
@@ -7594,6 +7951,16 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
         HoudiniLocation = FString::Printf(
             TEXT("/Applications/Houdini/Houdini%s/Frameworks/Houdini.framework/Versions/%s/Libraries"), *HoudiniVersionString, *HoudiniVersionString);
 
+    // Fallback in case we're using the steam version
+    if (!FPaths::DirectoryExists(HoudiniLocation))
+        HoudiniLocation = FString::Printf(
+            TEXT("/Applications/Houdini/HoudiniIndieSteam/Frameworks/Houdini.framework/Versions/Current/Libraries"));
+
+    // Fallback in case we're using the steam version
+    if ( !FPaths::DirectoryExists( HoudiniLocation ) )
+        HoudiniLocation = FString::Printf(
+            TEXT("/Applications/Houdini/HoudiniIndieSteam/Frameworks/Houdini.framework/Versions/Current/Libraries"));
+
 #   elif PLATFORM_LINUX
 
     // Attempt to load from standard Linux installation.
@@ -7772,6 +8139,7 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
 
         // Get Geo information.
         HAPI_GeoInfo GeoInfo;
+        FHoudiniApi::GeoInfo_Init(&GeoInfo);
         if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetDisplayGeoInfo( FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, &GeoInfo ) )
             continue;
 
@@ -7780,6 +8148,7 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
         {
             // Get part information.
             HAPI_PartInfo PartInfo;
+            FHoudiniApi::PartInfo_Init(&PartInfo);
             FString PartName = TEXT( "" );
 
             if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo( FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, PartIdx, &PartInfo ) )
@@ -8015,43 +8384,50 @@ FHoudiniEngineUtils::AddMeshSocketToList(
     // Position
     TArray< float > Positions;
     HAPI_AttributeInfo AttribInfoPositions;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoPositions, 0 );
+    FHoudiniApi::AttributeInfo_Init(&AttribInfoPositions);
+    //FMemory::Memset< HAPI_AttributeInfo >( AttribInfoPositions, 0 );
 
     // Rotation
     bool bHasRotation = false;
     TArray< float > Rotations;
     HAPI_AttributeInfo AttribInfoRotations;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoRotations, 0 );
+    FHoudiniApi::AttributeInfo_Init(&AttribInfoRotations);
+    // FMemory::Memset< HAPI_AttributeInfo >( AttribInfoRotations, 0 );
 
     // Scale
     bool bHasScale = false;
     TArray< float > Scales;
     HAPI_AttributeInfo AttribInfoScales;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoScales, 0 );
+    FHoudiniApi::AttributeInfo_Init(&AttribInfoScales);
+    // FMemory::Memset< HAPI_AttributeInfo >( AttribInfoScales, 0 );
         
     // When using socket groups, we can also get the sockets rotation from the normal
     bool bHasNormals = false;
     TArray< float > Normals;
     HAPI_AttributeInfo AttribInfoNormals;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNormals, 0 );
+    FHoudiniApi::AttributeInfo_Init(&AttribInfoNormals);
+    // FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNormals, 0 );
 
     // Socket Name
     bool bHasNames = false;
     TArray< FString > Names;
     HAPI_AttributeInfo AttribInfoNames;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNames, 0 );
+    FHoudiniApi::AttributeInfo_Init(&AttribInfoNames);
+    // FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNames, 0 );
 
     // Socket Actor
     bool bHasActors = false;
     TArray< FString > Actors;
     HAPI_AttributeInfo AttribInfoActors;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoActors, 0 );
+    FHoudiniApi::AttributeInfo_Init(&AttribInfoActors);
+    // FMemory::Memset< HAPI_AttributeInfo >( AttribInfoActors, 0 );
 
     // Socket Tags
     bool bHasTags = false;
     TArray< FString > Tags;
     HAPI_AttributeInfo AttribInfoTags;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoTags, 0 );
+    FHoudiniApi::AttributeInfo_Init(&AttribInfoTags);
+    // FMemory::Memset< HAPI_AttributeInfo >( AttribInfoTags, 0 );
 
     // Get runtime settings.
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
@@ -8191,37 +8567,44 @@ FHoudiniEngineUtils::AddMeshSocketToList(
     {
         // Position
         Positions.Empty();
-        FMemory::Memset< HAPI_AttributeInfo >( AttribInfoPositions, 0 );
+        FHoudiniApi::AttributeInfo_Init(&AttribInfoPositions);
+        //FMemory::Memset< HAPI_AttributeInfo >( AttribInfoPositions, 0 );
 
         // Rotation
         bHasRotation = false;
         Rotations.Empty();
-        FMemory::Memset< HAPI_AttributeInfo >( AttribInfoRotations, 0 );
+        FHoudiniApi::AttributeInfo_Init(&AttribInfoRotations);
+        //FMemory::Memset< HAPI_AttributeInfo >( AttribInfoRotations, 0 );
 
         // Scale
         bHasScale = false;
         Scales.Empty();
-        FMemory::Memset< HAPI_AttributeInfo >( AttribInfoScales, 0 );
+        FHoudiniApi::AttributeInfo_Init(&AttribInfoScales);
+        //FMemory::Memset< HAPI_AttributeInfo >( AttribInfoScales, 0 );
 
         // When using socket groups, we can also get the sockets rotation from the normal
         bHasNormals = false;
         Normals.Empty();
-        FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNormals, 0 );
+        FHoudiniApi::AttributeInfo_Init(&AttribInfoNormals);
+        //FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNormals, 0 );
 
         // Socket Name
         bHasNames = false;
         Names.Empty();
-        FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNames, 0 );
+        FHoudiniApi::AttributeInfo_Init(&AttribInfoNames);
+        //FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNames, 0 );
 
         // Socket Actor
         bHasActors = false;
         Actors.Empty();
-        FMemory::Memset< HAPI_AttributeInfo >( AttribInfoActors, 0 );
+        FHoudiniApi::AttributeInfo_Init(&AttribInfoActors);
+        //FMemory::Memset< HAPI_AttributeInfo >( AttribInfoActors, 0 );
 
         // Socket Tags
         bHasTags = false;
         Tags.Empty();
-        FMemory::Memset< HAPI_AttributeInfo >( AttribInfoTags, 0 );
+        FHoudiniApi::AttributeInfo_Init(&AttribInfoTags);
+        //FMemory::Memset< HAPI_AttributeInfo >( AttribInfoTags, 0 );
     };
 
     //-------------------------------------------------------------------------
@@ -8594,6 +8977,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
 {
     HAPI_NodeId NodeId = GeoPartObject.HapiGeoGetNodeId();
     HAPI_PartInfo PartInfo;
+    FHoudiniApi::PartInfo_Init(&PartInfo);
     if ( !GeoPartObject.HapiPartGetInfo( PartInfo ) )
         return 0;
 
@@ -8665,7 +9049,8 @@ FHoudiniEngineUtils::GetGenericAttributeList(
 
             // Get the Attribute Info
             HAPI_AttributeInfo AttribInfo;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttribInfo );
+            FHoudiniApi::AttributeInfo_Init(&AttribInfo);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttribInfo );
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
                 FHoudiniEngine::Get().GetSession(),
                 NodeId, PartId, TCHAR_TO_UTF8( *HapiString ),
@@ -9752,6 +10137,7 @@ FHoudiniEngineUtils::HapiGetAttributeOfType(
 
     // Get the part infos
     HAPI_PartInfo PartInfo;
+    FHoudiniApi::PartInfo_Init(&PartInfo);
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetPartInfo(
         FHoudiniEngine::Get().GetSession(), 
         GeoId, PartId, &PartInfo ), NumberOfAttributeFound );
@@ -9777,7 +10163,8 @@ FHoudiniEngineUtils::HapiGetAttributeOfType(
 
         // ... then the attribute info
         HAPI_AttributeInfo AttrInfo;
-        FMemory::Memzero< HAPI_AttributeInfo >( AttrInfo );
+        FHoudiniApi::AttributeInfo_Init(&AttrInfo);
+        //FMemory::Memzero< HAPI_AttributeInfo >( AttrInfo );
 
         if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeInfo( 
             FHoudiniEngine::Get().GetSession(),
@@ -10182,6 +10569,7 @@ FHoudiniEngineUtils::HapiGetParentNodeId( const HAPI_NodeId& NodeId )
     if ( NodeId >= 0 )
     {
         HAPI_NodeInfo NodeInfo;
+        FHoudiniApi::NodeInfo_Init(&NodeInfo);
         if ( HAPI_RESULT_SUCCESS == FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo ) )
             ParentId = NodeInfo.parentId;
     }
@@ -10197,20 +10585,22 @@ FHoudiniEngineUtils::CreateGroupOrAttributeFromTags( const HAPI_NodeId& NodeId, 
 
     HAPI_Result Result = HAPI_RESULT_FAILURE;
     HAPI_PartInfo PartInfo;
+    FHoudiniApi::PartInfo_Init(&PartInfo);
     HOUDINI_CHECK_ERROR_RETURN(
         FHoudiniApi::GetPartInfo( FHoudiniEngine::Get().GetSession(),
             NodeId, PartId, &PartInfo), false);
 
     bool NeedToCommitGeo = false;
-    for ( FName TagName : Tags )
+    for ( int32 TagIdx = 0; TagIdx < Tags.Num(); TagIdx++)
     {
         FString TagString;
-        TagName.ToString(TagString);
+        Tags[TagIdx].ToString(TagString);
         if ( bCreateAttributes )
         {
             // Create a primitive attribute for the tag
             HAPI_AttributeInfo AttributeInfo;
-            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+            //FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfo );
             AttributeInfo.count = PartInfo.faceCount;
             AttributeInfo.tupleSize = 1;
             AttributeInfo.exists = true;
@@ -10219,7 +10609,7 @@ FHoudiniEngineUtils::CreateGroupOrAttributeFromTags( const HAPI_NodeId& NodeId, 
             AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
             AttributeInfo.typeInfo = HAPI_ATTRIBUTE_TYPE_NONE;
 
-            FString AttributeName = TEXT("unreal_tag_") + TagString;
+            FString AttributeName = TEXT("unreal_tag_") + FString::FromInt(TagIdx);
             AttributeName.RemoveSpacesInline();
 
             Result = FHoudiniApi::AddAttribute( FHoudiniEngine::Get().GetSession(),
@@ -10265,6 +10655,41 @@ FHoudiniEngineUtils::CreateGroupOrAttributeFromTags( const HAPI_NodeId& NodeId, 
     //    Result = FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), NodeId);
 
     return NeedToCommitGeo;
+}
+
+bool
+FHoudiniEngineUtils::GetUnrealTagAttributes(const FHoudiniGeoPartObject& HoudiniGeoPartObject, TArray<FName>& OutTags)
+{
+    FString TagAttribBase = TEXT("unreal_tag_");
+    bool bAttributeFound = true;
+    int32 TagIdx = 0;
+    while (bAttributeFound)
+    {
+        FString CurrentTagAttr = TagAttribBase + FString::FromInt(TagIdx++);
+        bAttributeFound = HapiCheckAttributeExists(HoudiniGeoPartObject, TCHAR_TO_UTF8(*CurrentTagAttr), HAPI_ATTROWNER_PRIM);
+        if (!bAttributeFound)
+            break;
+
+        // found the unreal_tag_X attribute, get its value and add it to the array
+        FString TagValue = FString();
+
+        // Create an AttributeInfo
+        {
+            HAPI_AttributeInfo AttributeInfo;
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+            TArray<FString> StringData;
+            if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+                HoudiniGeoPartObject, TCHAR_TO_UTF8(*CurrentTagAttr), AttributeInfo, StringData, 1, HAPI_ATTROWNER_PRIM) )
+            {
+                TagValue = StringData[0];
+            }
+        }
+
+        FName NameTag = *TagValue;
+        OutTags.Add(NameTag);
+    }
+
+    return true;
 }
 
 FHoudiniCookParams::FHoudiniCookParams( class UHoudiniAsset* InHoudiniAsset )

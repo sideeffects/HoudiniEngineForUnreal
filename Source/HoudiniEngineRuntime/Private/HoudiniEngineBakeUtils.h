@@ -43,101 +43,158 @@ public:
         const FHoudiniGeoPartObject & HoudiniGeoPartObject,
         UStaticMesh * StaticMesh );
 
+
     /** Bake blueprint. **/
-    static class UBlueprint * BakeBlueprint( UHoudiniAssetComponent * HoudiniAssetComponent );
+    static class UBlueprint * BakeBlueprint( 
+        UHoudiniAssetComponent * HoudiniAssetComponent );
 
     /** Bake blueprint, instantiate and replace Houdini actor. **/
-    static AActor * ReplaceHoudiniActorWithBlueprint( UHoudiniAssetComponent * HoudiniAssetComponent );
+    static AActor * ReplaceHoudiniActorWithBlueprint( 
+        UHoudiniAssetComponent * HoudiniAssetComponent );
 
     /** Create a package for given component for blueprint baking. **/
     static UPackage * BakeCreateBlueprintPackageForComponent(
-        UHoudiniAssetComponent * HoudiniAssetComponent, FString & BlueprintName );
+        UHoudiniAssetComponent * HoudiniAssetComponent, 
+        FString & BlueprintName );
 
-    /** Helper for baking to actors */
-    static TArray< AActor* > BakeHoudiniActorToActors_StaticMeshes( UHoudiniAssetComponent * HoudiniAssetComponent,
+
+    /** Bake output meshes and materials to packages and create corresponding actors in the scene */
+    static bool BakeHoudiniActorToActors(
+        UHoudiniAssetComponent * HoudiniAssetComponent, 
+        bool SelectNewActors);
+
+    /** Bake to actor, and replace Houdini actor. **/
+    static bool ReplaceHoudiniActorWithActors(
+        UHoudiniAssetComponent * HoudiniAssetComponent,
+        bool SelectNewActors);
+
+    /** Helper for baking static meshes to actors */
+    static TArray< AActor* > BakeHoudiniActorToActors_StaticMeshes(
+        UHoudiniAssetComponent * HoudiniAssetComponent,
         TMap< const UStaticMeshComponent*, FHoudiniGeoPartObject >& SMComponentToPart );
-    /** Helper for baking to actors */
-    static TArray< AActor* > BakeHoudiniActorToActors_InstancedActors( UHoudiniAssetComponent * HoudiniAssetComponent,
-        TMap< const class UHoudiniInstancedActorComponent*, FHoudiniGeoPartObject >& ComponentToPart );
-    static TArray< AActor* > BakeHoudiniActorToActors_SplitMeshInstancers(UHoudiniAssetComponent * HoudiniAssetComponent,
+
+    /** Helper for baking Instanced Actors to actors */
+    static TArray< AActor* > BakeHoudiniActorToActors_InstancedActors(
+        UHoudiniAssetComponent * HoudiniAssetComponent,
+        TMap< const class UHoudiniInstancedActorComponent*,
+        FHoudiniGeoPartObject >& ComponentToPart );
+    
+    /** Helper for baking MeshSplitInstancers to actors */
+    static TArray< AActor* > BakeHoudiniActorToActors_SplitMeshInstancers(
+        UHoudiniAssetComponent * HoudiniAssetComponent,
         TMap<const class UHoudiniMeshSplitInstancerComponent *, FHoudiniGeoPartObject> SplitMeshInstancerComponentToPart);
+
+
     /** Helper for baking an SM only if necessary */
     static void CheckedBakeStaticMesh(
-        class UHoudiniAssetComponent* HoudiniAssetComponent, TMap< const UStaticMesh*, UStaticMesh* >& OriginalToBakedMesh,
-        const FHoudiniGeoPartObject & HoudiniGeoPartObject, UStaticMesh* OriginalSM);
+        class UHoudiniAssetComponent* HoudiniAssetComponent, 
+        TMap< const UStaticMesh*, UStaticMesh* >& OriginalToBakedMesh,
+        const FHoudiniGeoPartObject & HoudiniGeoPartObject, 
+        UStaticMesh* OriginalSM);
+
     /** Duplicate a given material. This will create a new package for it. This will also create necessary textures **/
     /** and their corresponding packages. **/
     static class UMaterial * DuplicateMaterialAndCreatePackage(
-        class UMaterial * Material, FHoudiniCookParams& HoudiniCookParams, const FString & SubMaterialName );
+        class UMaterial * Material, 
+        FHoudiniCookParams& HoudiniCookParams, 
+        const FString & SubMaterialName );
 
     /** Duplicate a given texture. This will create a new package for it. **/
     static UTexture2D * DuplicateTextureAndCreatePackage(
-        UTexture2D * Texture, FHoudiniCookParams& HoudiniCookParams, const FString & SubTextureName );
+        UTexture2D * Texture,
+        FHoudiniCookParams& HoudiniCookParams,
+        const FString & SubTextureName );
 
     /** Replace duplicated texture with a new copy within a given sampling expression. **/
     static void ReplaceDuplicatedMaterialTextureSample(
-        class UMaterialExpression * MaterialExpression, FHoudiniCookParams& HoudiniCookParams );
+        class UMaterialExpression * MaterialExpression,
+        FHoudiniCookParams& HoudiniCookParams );
 
     /** Returns true if the supplied static mesh has unbaked (not backed by a .uasset) mesh or material */
-    static bool StaticMeshRequiresBake( const UStaticMesh * StaticMesh );
+    static bool StaticMeshRequiresBake( 
+        const UStaticMesh * StaticMesh );
 
     /** Duplicate a given static mesh. This will create a new package for it. This will also create necessary       **/
     /** materials and textures and their corresponding packages. **/
     static UStaticMesh * DuplicateStaticMeshAndCreatePackage(
-        const UStaticMesh * StaticMesh, UHoudiniAssetComponent * Component,
-        const FHoudiniGeoPartObject & HoudiniGeoPartObject, EBakeMode BakeMode );
-
-    /** Bake output meshes and materials to packages and create corresponding actors in the scene */
-    static void BakeHoudiniActorToActors( UHoudiniAssetComponent * HoudiniAssetComponent, bool SelectNewActors );
+        const UStaticMesh * StaticMesh,
+        UHoudiniAssetComponent * Component,
+        const FHoudiniGeoPartObject & HoudiniGeoPartObject, 
+        EBakeMode BakeMode );
 
     /** Get a candidate for baking to outliner input workflow */
-    static class UHoudiniAssetInput* GetInputForBakeHoudiniActorToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent );
+    static class UHoudiniAssetInput* GetInputForBakeHoudiniActorToOutlinerInput( 
+        const UHoudiniAssetComponent * HoudiniAssetComponent );
 
     /** Returns true if the conditions are met for Bake to Input action ( 1 static mesh output and first input is world outliner with a static mesh) */
-    static bool CanComponentBakeToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent );
+    static bool CanComponentBakeToOutlinerInput(
+        const UHoudiniAssetComponent * HoudiniAssetComponent );
 
     /** Return true if we can bake to foliage (we need at least 1 instancer component) **/
-    static bool CanComponentBakeToFoliage( const UHoudiniAssetComponent * HoudiniAssetComponent );
+    static bool CanComponentBakeToFoliage( 
+        const UHoudiniAssetComponent * HoudiniAssetComponent );
 
     /** Bakes output meshes and materials to packages and sets them on an input */
-    static void BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * HoudiniAssetComponent );
+    static void BakeHoudiniActorToOutlinerInput( 
+        UHoudiniAssetComponent * HoudiniAssetComponent );
 
     /** Bakes output instanced meshes to the level's foliage actor */
-    static void BakeHoudiniActorToFoliage( UHoudiniAssetComponent * HoudiniAssetComponent );
+    static bool BakeHoudiniActorToFoliage( 
+        UHoudiniAssetComponent * HoudiniAssetComponent );
+
+    /** Bakes output instanced meshes to the level's foliage actor and removes the Houdini actor */
+    static bool ReplaceHoudiniActorWithFoliage(
+        UHoudiniAssetComponent * HoudiniAssetComponent);
 
     /** Bakes landscape (detach them from the asset), if OnlyBakeThisLandscape is null, all landscapes will be baked **/
-    static bool BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, class ALandscapeProxy * OnlyBakeThisLandscape = nullptr );
+    static bool BakeLandscape( 
+        UHoudiniAssetComponent* HoudiniAssetComponent, 
+        class ALandscapeProxy * OnlyBakeThisLandscape = nullptr );
 
     /** Create a package for a given component for material. **/
     static UPackage * BakeCreateMaterialPackageForComponent(
         FHoudiniCookParams& HoudiniCookParams,
-        const HAPI_MaterialInfo & MaterialInfo, FString & MaterialName );
+        const HAPI_MaterialInfo & MaterialInfo, 
+        FString & MaterialName );
 
     /** Create a package for a given component for texture. **/
     static UPackage * BakeCreateTexturePackageForComponent(
         FHoudiniCookParams& HoudiniCookParams,
-        const HAPI_MaterialInfo & MaterialInfo, const FString & TextureType,
+        const HAPI_MaterialInfo & MaterialInfo,
+        const FString & TextureType,
         FString & TextureName );
 
     /** Create a package for a given component for either a texture or material **/
     static UPackage * BakeCreateTextureOrMaterialPackageForComponent(
         FHoudiniCookParams& HoudiniCookParams,
-        const FString & MaterialInfoDescriptor, FString & MaterialName );
+        const FString & MaterialInfoDescriptor, 
+        FString & MaterialName );
 
     /** Create a package for given component for static mesh baking. **/
     static UPackage * BakeCreateStaticMeshPackageForComponent(
         FHoudiniCookParams& HoudiniCookParams,
         const FHoudiniGeoPartObject & HoudiniGeoPartObject,
-        FString & MeshName, FGuid & BakeGUID );
+        FString & MeshName,
+        FGuid & BakeGUID );
 
     /** Checks the package is not referenced or marked for garbage collection **/
-    static bool CheckPackageSafeForBake( UPackage* Package, FString& FoundAssetName );
+    static bool CheckPackageSafeForBake( 
+        UPackage* Package, FString& FoundAssetName );
     
     /** Add Houdini meta information to package for a given object. **/
     static void AddHoudiniMetaInformationToPackage(
-        UPackage * Package, UObject * Object, const TCHAR * Key, const TCHAR * Value );
+        UPackage * Package,
+        UObject * Object, 
+        const TCHAR * Key, 
+        const TCHAR * Value );
 
     /** Retrieve item name from Houdini meta information. **/
     static bool GetHoudiniGeneratedNameFromMetaInformation(
-        UPackage * Package, UObject * Object, FString & HoudiniName );
+        UPackage * Package,
+        UObject * Object,
+        FString & HoudiniName );
+
+    /** Used by the replace function to delete the Houdini Asset Actor after it's been baked */
+    static bool DeleteBakedHoudiniAssetActor(
+        UHoudiniAssetComponent * HoudiniAssetComponent);
 };

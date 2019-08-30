@@ -98,6 +98,7 @@ FHoudiniEngineMaterialUtils::HapiCreateMaterials(
 
         // Get material information.
         HAPI_MaterialInfo MaterialInfo;
+        FHoudiniApi::MaterialInfo_Init(&MaterialInfo);
         if ( FHoudiniApi::GetMaterialInfo(
             FHoudiniEngine::Get().GetSession(),
             MaterialId, &MaterialInfo ) != HAPI_RESULT_SUCCESS )
@@ -107,6 +108,7 @@ FHoudiniEngineMaterialUtils::HapiCreateMaterials(
 
         // Get node information.
         HAPI_NodeInfo NodeInfo;
+        FHoudiniApi::NodeInfo_Init(&NodeInfo);
         if ( FHoudiniApi::GetNodeInfo(
             FHoudiniEngine::Get().GetSession(), MaterialInfo.nodeId, &NodeInfo ) != HAPI_RESULT_SUCCESS )
         {
@@ -251,6 +253,7 @@ FHoudiniEngineMaterialUtils::HapiExtractImage(
     }
 
     HAPI_ImageInfo ImageInfo;
+    FHoudiniApi::ImageInfo_Init(&ImageInfo);
     if ( FHoudiniApi::GetImageInfo(
         FHoudiniEngine::Get().GetSession(),
         MaterialInfo.nodeId, &ImageInfo ) != HAPI_RESULT_SUCCESS )
@@ -320,7 +323,7 @@ FHoudiniEngineMaterialUtils::HapiGetImagePlanes(
         return true;
 
     TArray< HAPI_StringHandle > ImagePlaneStringHandles;
-    ImagePlaneStringHandles.SetNumUninitialized( ImagePlaneCount );
+    ImagePlaneStringHandles.SetNumZeroed( ImagePlaneCount );
 
     if ( FHoudiniApi::GetImagePlanes(
         FHoudiniEngine::Get().GetSession(),
@@ -348,8 +351,8 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentDiffuse(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
-	if (!Material || Material->IsPendingKill())
-		return false;
+    if (!Material || Material->IsPendingKill())
+        return false;
 
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
@@ -448,6 +451,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentDiffuse(
 
     // See if uniform color is available.
     HAPI_ParmInfo ParmInfoDiffuseColor;
+    FHoudiniApi::ParmInfo_Init(&ParmInfoDiffuseColor);
     HAPI_ParmId ParmDiffuseColorId =
         FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeInfo.id, HAPI_UNREAL_PARAM_COLOR_DIFFUSE_0, ParmInfoDiffuseColor );
 
@@ -511,6 +515,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentDiffuse(
                 TextureDiffusePackage = Cast< UPackage >( TextureDiffuse->GetOuter() );
 
             HAPI_ImageInfo ImageInfo;
+            FHoudiniApi::ImageInfo_Init(&ImageInfo);
             Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
                 MaterialInfo.nodeId, &ImageInfo );
@@ -681,8 +686,8 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentOpacityMask(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
-	if (!Material || Material->IsPendingKill())
-		return false;
+    if (!Material || Material->IsPendingKill())
+        return false;
 
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -864,8 +869,8 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentOpacity(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
-	if (!Material || Material->IsPendingKill())
-		return false;
+    if (!Material || Material->IsPendingKill())
+        return false;
 
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -923,6 +928,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentOpacity(
 
     // Retrieve opacity uniform parameter.
     HAPI_ParmInfo ParmInfoOpacityValue;
+    FHoudiniApi::ParmInfo_Init(&ParmInfoOpacityValue);
     HAPI_ParmId ParmOpacityValueId =
         FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeInfo.id, HAPI_UNREAL_PARAM_ALPHA_0, ParmInfoOpacityValue );
 
@@ -1049,8 +1055,8 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentNormal(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
-	if (!Material || Material->IsPendingKill())
-		return false;
+    if (!Material || Material->IsPendingKill())
+        return false;
 
     bool bExpressionCreated = false;
     bool bTangentSpaceNormal = true;
@@ -1091,6 +1097,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentNormal(
     {
         // Retrieve space for this normal texture.
         HAPI_ParmInfo ParmInfoNormalType;
+        FHoudiniApi::ParmInfo_Init(&ParmInfoNormalType);
         int32 ParmNormalTypeId =
             FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeInfo.id, HAPI_UNREAL_PARAM_MAP_NORMAL_TYPE, ParmInfoNormalType );
 
@@ -1150,6 +1157,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentNormal(
                 TextureNormalPackage = Cast< UPackage >( TextureNormal->GetOuter() );
 
             HAPI_ImageInfo ImageInfo;
+            FHoudiniApi::ImageInfo_Init(&ImageInfo);
             Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
                 MaterialInfo.nodeId, &ImageInfo );
@@ -1282,6 +1290,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentNormal(
                     TextureNormalPackage = Cast< UPackage >( TextureNormal->GetOuter() );
 
                 HAPI_ImageInfo ImageInfo;
+                FHoudiniApi::ImageInfo_Init(&ImageInfo);
                 Result = FHoudiniApi::GetImageInfo(
                     FHoudiniEngine::Get().GetSession(),
                     MaterialInfo.nodeId, &ImageInfo );
@@ -1367,8 +1376,8 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentSpecular(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
-	if (!Material || Material->IsPendingKill())
-		return false;
+    if (!Material || Material->IsPendingKill())
+        return false;
 
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -1436,6 +1445,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentSpecular(
                 TextureSpecularPackage = Cast< UPackage >( TextureSpecular->GetOuter() );
 
             HAPI_ImageInfo ImageInfo;
+            FHoudiniApi::ImageInfo_Init(&ImageInfo);
             Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
                 MaterialInfo.nodeId, &ImageInfo );
@@ -1512,6 +1522,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentSpecular(
     }
 
     HAPI_ParmInfo ParmInfoSpecularColor;
+    FHoudiniApi::ParmInfo_Init(&ParmInfoSpecularColor);
     HAPI_ParmId ParmNameSpecularColorId =
         FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeInfo.id, HAPI_UNREAL_PARAM_COLOR_SPECULAR_0, ParmInfoSpecularColor );
 
@@ -1586,8 +1597,8 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentRoughness(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
-	if (!Material || Material->IsPendingKill())
-		return false;
+    if (!Material || Material->IsPendingKill())
+        return false;
 
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -1655,6 +1666,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentRoughness(
                 TextureRoughnessPackage = Cast< UPackage >( TextureRoughness->GetOuter() );
 
             HAPI_ImageInfo ImageInfo;
+            FHoudiniApi::ImageInfo_Init(&ImageInfo);
             Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
                 MaterialInfo.nodeId, &ImageInfo );
@@ -1729,6 +1741,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentRoughness(
     }
 
     HAPI_ParmInfo ParmInfoRoughnessValue;
+    FHoudiniApi::ParmInfo_Init(&ParmInfoRoughnessValue);
     HAPI_ParmId ParmNameRoughnessValueId =
         FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeInfo.id, HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_0, ParmInfoRoughnessValue );
 
@@ -1805,8 +1818,8 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentMetallic(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
-	if (!Material || Material->IsPendingKill())
-		return false;
+    if (!Material || Material->IsPendingKill())
+        return false;
 
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -1866,6 +1879,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentMetallic(
                 TextureMetallicPackage = Cast< UPackage >( TextureMetallic->GetOuter() );
 
             HAPI_ImageInfo ImageInfo;
+            FHoudiniApi::ImageInfo_Init(&ImageInfo);
             Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
                 MaterialInfo.nodeId, &ImageInfo );
@@ -1940,6 +1954,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentMetallic(
     }
 
     HAPI_ParmInfo ParmInfoMetallic;
+    FHoudiniApi::ParmInfo_Init(&ParmInfoMetallic);
     HAPI_ParmId ParmNameMetallicValueIdx =
         FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeInfo.id, HAPI_UNREAL_PARAM_VALUE_METALLIC, ParmInfoMetallic );
 
@@ -2007,8 +2022,8 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentEmissive(
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo,
     const HAPI_NodeInfo & NodeInfo, int32 & MaterialNodeY )
 {
-	if (!Material || Material->IsPendingKill())
-		return false;
+    if (!Material || Material->IsPendingKill())
+        return false;
 
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -2068,6 +2083,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentEmissive(
                 TextureEmissivePackage = Cast< UPackage >( TextureEmissive->GetOuter() );
 
             HAPI_ImageInfo ImageInfo;
+            FHoudiniApi::ImageInfo_Init(&ImageInfo);
             Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
                 MaterialInfo.nodeId, &ImageInfo );
@@ -2142,6 +2158,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialComponentEmissive(
     }
 
     HAPI_ParmInfo ParmInfoEmissive;
+    FHoudiniApi::ParmInfo_Init(&ParmInfoEmissive);
     HAPI_ParmId ParmNameEmissiveValueId =
         FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeInfo.id, HAPI_UNREAL_PARAM_VALUE_EMISSIVE_0, ParmInfoEmissive );
 
@@ -2216,8 +2233,8 @@ FHoudiniEngineMaterialUtils::CreateUnrealTexture(
     const TArray< char > & ImageBuffer, const FString & TextureType,
     const FCreateTexture2DParameters & TextureParameters, TextureGroup LODGroup, const FString& NodePath )
 {
-	if (!Package || Package->IsPendingKill())
-		return nullptr;
+    if (!Package || Package->IsPendingKill())
+        return nullptr;
 
     UTexture2D * Texture = nullptr;
     if ( ExistingTexture )
@@ -2328,20 +2345,24 @@ FHoudiniEngineMaterialUtils::GetUniqueMaterialShopName( HAPI_NodeId AssetId, HAP
         return false;
 
     HAPI_AssetInfo AssetInfo;
+    FHoudiniApi::AssetInfo_Init(&AssetInfo);
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
         FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
 
     HAPI_MaterialInfo MaterialInfo;
+    FHoudiniApi::MaterialInfo_Init(&MaterialInfo);
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetMaterialInfo(
         FHoudiniEngine::Get().GetSession(), MaterialId,
         &MaterialInfo ), false );
 
     HAPI_NodeInfo AssetNodeInfo;
+    FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
         FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId,
         &AssetNodeInfo ), false );
 
     HAPI_NodeInfo MaterialNodeInfo;
+    FHoudiniApi::NodeInfo_Init(&MaterialNodeInfo);
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
         FHoudiniEngine::Get().GetSession(), MaterialInfo.nodeId,
         &MaterialNodeInfo ), false );
@@ -2440,7 +2461,8 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
 
     // Get the material instance attribute info
     HAPI_AttributeInfo AttribMaterialInstances;
-    FMemory::Memzero< HAPI_AttributeInfo >( AttribMaterialInstances );
+    FHoudiniApi::AttributeInfo_Init(&AttribMaterialInstances);
+    //FMemory::Memzero< HAPI_AttributeInfo >( AttribMaterialInstances );
 
     TArray< FString > MaterialInstances;
     FHoudiniEngineUtils::HapiGetAttributeDataAsString(
@@ -2493,13 +2515,9 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
     if ( !OriginalMaterialInterface || OriginalMaterialInterface->IsPendingKill() )
         return false;
 
-    UMaterial* ParentMaterial = OriginalMaterialInterface->GetMaterial();
-    if ( !ParentMaterial ||ParentMaterial->IsPendingKill() )
-        return false;
-
     // Create/Retrieve the package for the MI
     FString MaterialInstanceName;
-    FString MaterialInstanceNamePrefix = UPackageTools::SanitizePackageName( ParentMaterial->GetName() + TEXT("_instance_") + FString::FromInt(MaterialIndex) );
+    FString MaterialInstanceNamePrefix = UPackageTools::SanitizePackageName(OriginalMaterialInterface->GetName() + TEXT("_instance_") + FString::FromInt(MaterialIndex) );
     
     // See if we can find the package in the cooked temp package cache
     UPackage * MaterialInstancePackage = nullptr;
@@ -2535,7 +2553,7 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
 
         // Create the new material instance
         MaterialInstanceFactory->AddToRoot();
-        MaterialInstanceFactory->InitialParent = ParentMaterial;
+        MaterialInstanceFactory->InitialParent = OriginalMaterialInterface;
         NewMaterialInstance = ( UMaterialInstanceConstant* )MaterialInstanceFactory->FactoryCreateNew(
             UMaterialInstanceConstant::StaticClass(), MaterialInstancePackage, FName( *MaterialInstanceName ),
             RF_Public | RF_Standalone, NULL, GWarn );
@@ -2629,6 +2647,8 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
 bool
 FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute MaterialParameter, UMaterialInstanceConstant* MaterialInstance, FHoudiniCookParams& CookParams )
 {
+    bool bParameterUpdated = false;
+
 #if WITH_EDITOR
     if ( !MaterialInstance )
         return false;
@@ -2647,7 +2667,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->SetOverrideCastShadowAsMasked( true );
         MaterialInstance->SetCastShadowAsMasked( Value );
-        return true;
+        bParameterUpdated = true;
     }
     else  if ( MaterialParameter.AttributeName.Compare( "EmissiveBoost", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2659,7 +2679,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->SetOverrideEmissiveBoost( true );
         MaterialInstance->SetEmissiveBoost( Value );
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "DiffuseBoost", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2671,7 +2691,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->SetOverrideDiffuseBoost( true );
         MaterialInstance->SetDiffuseBoost( Value );
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "ExportResolutionScale", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2683,7 +2703,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->SetOverrideExportResolutionScale( true );
         MaterialInstance->SetExportResolutionScale( Value );
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "OpacityMaskClipValue", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2695,7 +2715,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->BasePropertyOverrides.bOverride_OpacityMaskClipValue = true;
         MaterialInstance->BasePropertyOverrides.OpacityMaskClipValue = Value;
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "BlendMode", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2723,7 +2743,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->BasePropertyOverrides.bOverride_BlendMode = true;
         MaterialInstance->BasePropertyOverrides.BlendMode = EnumValue;
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "ShadingModel", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2759,7 +2779,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->BasePropertyOverrides.bOverride_ShadingModel = true;
         MaterialInstance->BasePropertyOverrides.ShadingModel = EnumValue;
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "TwoSided", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2771,7 +2791,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->BasePropertyOverrides.bOverride_TwoSided = true;
         MaterialInstance->BasePropertyOverrides.TwoSided = Value;
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "DitheredLODTransition", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2783,7 +2803,7 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
 
         MaterialInstance->BasePropertyOverrides.bOverride_DitheredLODTransition = true;
         MaterialInstance->BasePropertyOverrides.DitheredLODTransition = Value;
-        return true;
+        bParameterUpdated = true;
     }
     else if ( MaterialParameter.AttributeName.Compare( "PhysMaterial", ESearchCase::IgnoreCase ) == 0 )
     {
@@ -2793,14 +2813,15 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
             StaticLoadObject( UPhysicalMaterial::StaticClass(), nullptr, *ParamValue, nullptr, LOAD_NoWarn, nullptr ) );
 
         // Update the parameter value if necessary
-        if ( FoundPhysMaterial && ( MaterialInstance->PhysMaterial != FoundPhysMaterial ) )
-        {
-            MaterialInstance->PhysMaterial = FoundPhysMaterial;
-            return true;
-        }
+        if (!FoundPhysMaterial || (MaterialInstance->PhysMaterial == FoundPhysMaterial))
+            return false;
 
-        return false;
+        MaterialInstance->PhysMaterial = FoundPhysMaterial;
+        bParameterUpdated = true;
     }
+
+    if (bParameterUpdated)
+        return true;
 
     // Handling custom parameters
     FName CurrentMatParamName = FName( *MaterialParameter.AttributeName );
@@ -2834,22 +2855,52 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
                 return false;
 
             MaterialInstance->SetTextureParameterValueEditorOnly( CurrentMatParamName, FoundTexture );
-            return true;
+            bParameterUpdated = true;
         }
     }
     else if ( MaterialParameter.AttributeTupleSize == 1 )
     {
-        // Single attributes are for scalar parameters
-        float NewValue = (float)MaterialParameter.GetDoubleValue();
-
-        // Do not update if unnecessary
+        // Single attributes are either for scalar parameters or static switches
         float OldValue;
-        bool FoundOldParam = MaterialInstance->GetScalarParameterValue( CurrentMatParamName, OldValue );
-        if ( FoundOldParam && ( OldValue == NewValue ) )
-            return false;
+        bool FoundOldScalarParam = MaterialInstance->GetScalarParameterValue( CurrentMatParamName, OldValue );
+        if (FoundOldScalarParam)
+        {
+            // The material parameter is a scalar
+            float NewValue = (float)MaterialParameter.GetDoubleValue();
 
-        MaterialInstance->SetScalarParameterValueEditorOnly( CurrentMatParamName, NewValue );
-        return true;
+            // Do not update if unnecessary
+            if (OldValue == NewValue)
+                return false;
+
+            MaterialInstance->SetScalarParameterValueEditorOnly(CurrentMatParamName, NewValue);
+            bParameterUpdated = true;
+        }
+        else
+        {
+            // See if the underlying parameter is a static switch
+            bool NewBoolValue = MaterialParameter.GetBoolValue();
+            
+            // We need to iterate over the material's static parameter set
+            FStaticParameterSet StaticParameters;
+            MaterialInstance->GetStaticParameterValues(StaticParameters);
+            
+            for (int32 SwitchParameterIdx = 0; SwitchParameterIdx < StaticParameters.StaticSwitchParameters.Num(); ++SwitchParameterIdx)
+            {
+                FStaticSwitchParameter& SwitchParameter = StaticParameters.StaticSwitchParameters[SwitchParameterIdx];
+                if (SwitchParameter.ParameterInfo.Name != CurrentMatParamName)
+                    continue;
+
+                if (SwitchParameter.Value == NewBoolValue)
+                    return false;
+
+                SwitchParameter.Value = NewBoolValue;
+                SwitchParameter.bOverride = true;
+
+                MaterialInstance->UpdateStaticPermutation(StaticParameters);
+                bParameterUpdated = true;
+                break;
+            }
+        }
     }
     else
     {
@@ -2885,11 +2936,11 @@ FHoudiniEngineMaterialUtils::UpdateMaterialInstanceParameter( UGenericAttribute 
             return false;
 
         MaterialInstance->SetVectorParameterValueEditorOnly( CurrentMatParamName, NewLinearColor );
-        return true;
+        bParameterUpdated = true;
     }
 #endif
 
-    return false;
+    return bParameterUpdated;
 }
 
 UTexture*
