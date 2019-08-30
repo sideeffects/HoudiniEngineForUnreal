@@ -6000,26 +6000,46 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // Record split group name.
                 HoudiniGeoPartObject.SplitName = SplitGroupName;
 
-                // Attempt to locate static mesh from previous instantiation.
-                UStaticMesh * const * FoundStaticMesh = StaticMeshesIn.Find( HoudiniGeoPartObject );
-                if (!FoundStaticMesh)
+                // Attempt to locate a static mesh from previous instantiation to reuse it
+                UStaticMesh * const * FoundStaticMesh = nullptr;
+                if (IsLOD && LodIndex > 0)
                 {
-                    // If we failed, try to find the previous mesh via names to help reuse of components
-                    // the GUID doesnt always match even though its the same part on same HDA
-                    for (TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator tIt(StaticMeshesIn); tIt; ++tIt)
+                    // LODs levels other than the first one need to reuse StaticMesh from the output!
+                    // as we want the additional LODs to be added to the newly created Static Mesh
+                    FoundStaticMesh = StaticMeshesOut.Find(HoudiniGeoPartObject);
+                    if (!FoundStaticMesh)
                     {
-                        const FHoudiniGeoPartObject& key = tIt.Key();
-                        if (key.CompareNames(HoudiniGeoPartObject))
+                        // If we failed, try to find the mesh via names
+                        for (TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator tIt(StaticMeshesOut); tIt; ++tIt)
                         {
-                            FoundStaticMesh = &tIt.Value();
-                            break;
+                            const FHoudiniGeoPartObject& key = tIt.Key();
+                            if (key.CompareNames(HoudiniGeoPartObject))
+                            {
+                                FoundStaticMesh = &tIt.Value();
+                                break;
+                            }
                         }
                     }
                 }
-
-                // LODs levels other than the first one need to reuse StaticMesh from the output!
-                if ( IsLOD && LodIndex > 0 )
-                    FoundStaticMesh = StaticMeshesOut.Find( HoudiniGeoPartObject );
+                else
+                {
+                    // We're not an LOD, try to locate a corresponding SM in the previously cooked objects
+                    FoundStaticMesh = StaticMeshesIn.Find(HoudiniGeoPartObject);
+                    if (!FoundStaticMesh)
+                    {
+                        // If we failed, try to find the previous mesh via names to help reuse of components
+                        // the GUID doesnt always match even though its the same part on same HDA
+                        for (TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator tIt(StaticMeshesIn); tIt; ++tIt)
+                        {
+                            const FHoudiniGeoPartObject& key = tIt.Key();
+                            if (key.CompareNames(HoudiniGeoPartObject))
+                            {
+                                FoundStaticMesh = &tIt.Value();
+                                break;
+                            }
+                        }
+                    }
+                }
 
                 // Flag whether we need to rebuild the mesh.
                 bool bRebuildStaticMesh = false;
@@ -6105,7 +6125,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 }
 
                 // Grab the corresponding SourceModel
-                FStaticMeshSourceModel* SrcModel = &StaticMesh->SourceModels[ IsLOD ? LodIndex : 0 ];
+                int32 SrcModelIdx = IsLOD ? LodIndex : 0;
+                FStaticMeshSourceModel* SrcModel = (StaticMesh->SourceModels.IsValidIndex(SrcModelIdx)) ?
+                    &(StaticMesh->SourceModels[SrcModelIdx]) : nullptr;
+
                 if ( !SrcModel )
                 {
                     HOUDINI_LOG_ERROR(
