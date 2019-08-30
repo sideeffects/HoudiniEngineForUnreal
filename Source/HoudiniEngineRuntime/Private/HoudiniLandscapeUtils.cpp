@@ -2239,7 +2239,7 @@ FHoudiniLandscapeUtils::ExtractLandscapeData(
         if ( bExportOnlySelected && !SelectedComponents.Contains( LandscapeComponent ) )
             continue;
 
-        TArray< uint8 > LightmapMipData;
+        TArray64< uint8 > LightmapMipData;
         int32 LightmapMipSizeX = 0;
         int32 LightmapMipSizeY = 0;
 

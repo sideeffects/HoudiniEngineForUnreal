@@ -146,7 +146,7 @@ UHoudiniMeshSplitInstancerComponent::SetInstances(
                 int32 InstIndex = Instances.Num();
                 if (InstanceColorOverride.IsValidIndex(InstIndex))
                 {
-                    MeshPaintHelpers::FillVertexColors(SMC, InstanceColorOverride[InstIndex], FColor::White, true);
+                    MeshPaintHelpers::FillStaticMeshVertexColors(SMC, -1, InstanceColorOverride[InstIndex], FColor::White);
                     //FIXME: How to get rid of the warning about fixup vertex colors on load?
                     //SMC->FixupOverrideColorsIfNecessary();
                 }
