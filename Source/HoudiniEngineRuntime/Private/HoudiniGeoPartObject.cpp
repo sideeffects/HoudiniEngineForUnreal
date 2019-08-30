@@ -392,12 +392,16 @@ FHoudiniGeoPartObject::GetNodePath() const
 bool
 FHoudiniGeoPartObject::operator==( const FHoudiniGeoPartObject & GeoPartObject ) const
 {
-    return (
-        ObjectId == GeoPartObject.ObjectId &&
-        GeoId == GeoPartObject.GeoId &&
-        PartId == GeoPartObject.PartId &&
-        SplitId == GeoPartObject.SplitId &&
-        SplitName == GeoPartObject.SplitName );
+    // Object/Geo/Part IDs must match
+    if (ObjectId != GeoPartObject.ObjectId || GeoId != GeoPartObject.GeoId || PartId != GeoPartObject.PartId)
+        return false;
+
+    // If split ID and name match, we're equal...
+    if (SplitId == GeoPartObject.SplitId && SplitName == GeoPartObject.SplitName )
+        return true;
+
+    // ... if not we should compare our names
+    return CompareNames(GeoPartObject);
 }
 
 uint32
@@ -485,9 +489,20 @@ FHoudiniGeoPartObject::IsValid() const
 bool
 FHoudiniGeoPartObject::CompareNames( const FHoudiniGeoPartObject & HoudiniGeoPartObject ) const
 {
-    return ( ObjectName == HoudiniGeoPartObject.ObjectName 
-        && PartName == HoudiniGeoPartObject.PartName 
-        && SplitName == HoudiniGeoPartObject.SplitName );
+    // Object and part names must match
+    if (ObjectName != HoudiniGeoPartObject.ObjectName || PartName != HoudiniGeoPartObject.PartName)
+        return false;
+
+    // Split names must match...
+    if (SplitName == HoudiniGeoPartObject.SplitName)
+        return true;
+
+    //... or we can tolerate them to be different if they both start with LOD
+    // and just the lod number is different
+    if (SplitName.StartsWith("LOD") && HoudiniGeoPartObject.SplitName.StartsWith("LOD"))
+        return true;
+
+    return false;
 }
 
 bool
