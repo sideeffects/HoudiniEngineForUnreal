@@ -2239,7 +2239,7 @@ FHoudiniLandscapeUtils::ExtractLandscapeData(
         if ( bExportOnlySelected && !SelectedComponents.Contains( LandscapeComponent ) )
             continue;
 
-        TArray< uint8 > LightmapMipData;
+        TArray64< uint8 > LightmapMipData;
         int32 LightmapMipSizeX = 0;
         int32 LightmapMipSizeY = 0;
 
@@ -3458,13 +3458,18 @@ FHoudiniLandscapeUtils::CreateLandscape(
     // Setting the layer type here.
     ELandscapeImportAlphamapType ImportLayerType = ELandscapeImportAlphamapType::Additive;
 
+    TMap<FGuid, TArray<uint16>> HeightmapDataPerLayers;
+    TMap<FGuid, TArray<FLandscapeImportLayerInfo>> MaterialLayerDataPerLayer;
+    HeightmapDataPerLayers.Add(FGuid(), IntHeightData);
+    MaterialLayerDataPerLayer.Add(FGuid(), ImportLayerInfos);
+
     // Import the data
     LandscapeProxy->Import(
         currentGUID,
         0, 0, XSize - 1, YSize - 1,
         NumSectionPerLandscapeComponent, NumQuadsPerLandscapeSection,
-        &( IntHeightData[ 0 ] ), NULL,
-        ImportLayerInfos, ImportLayerType );
+        HeightmapDataPerLayers, NULL,
+        MaterialLayerDataPerLayer, ImportLayerType );
 
     // Copied straight from UE source code to avoid crash after importing the landscape:
     // automatically calculate a lighting LOD that won't crash lightmass (hopefully)
