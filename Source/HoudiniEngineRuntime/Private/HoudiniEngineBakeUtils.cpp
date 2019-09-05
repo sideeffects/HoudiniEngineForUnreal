@@ -194,14 +194,14 @@ FHoudiniEngineBakeUtils::BakeStaticMesh(
     StaticMesh->StaticMaterials = InStaticMesh->StaticMaterials;
 
     // Create new source model for current static mesh.
-    if( !StaticMesh->SourceModels.Num() )
-        new ( StaticMesh->SourceModels ) FStaticMeshSourceModel();
+    if (!StaticMesh->GetNumSourceModels())
+        StaticMesh->AddSourceModel();
 
-    FStaticMeshSourceModel * SrcModel = &StaticMesh->SourceModels[0];
+    FStaticMeshSourceModel * SrcModel = &StaticMesh->GetSourceModel(0);
 
     // Load raw data bytes.
     FRawMesh RawMesh;
-    FStaticMeshSourceModel * InSrcModel = &InStaticMesh->SourceModels[0];
+    FStaticMeshSourceModel * InSrcModel = &InStaticMesh->GetSourceModel(0);
     InSrcModel->LoadRawMesh( RawMesh );
 
     // Some mesh generation settings.
@@ -230,20 +230,20 @@ FHoudiniEngineBakeUtils::BakeStaticMesh(
     SrcModel->StaticMeshOwner = StaticMesh;
     SrcModel->SaveRawMesh( RawMesh );
 
-    while( StaticMesh->SourceModels.Num() < NumLODs )
-        new ( StaticMesh->SourceModels ) FStaticMeshSourceModel();
+    while (StaticMesh->GetNumSourceModels() < NumLODs)
+        StaticMesh->AddSourceModel();
 
     for( int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex )
     {
-        StaticMesh->SourceModels[ModelLODIndex].ReductionSettings = LODGroup.GetDefaultSettings( ModelLODIndex );
+        StaticMesh->GetSourceModel(ModelLODIndex).ReductionSettings = LODGroup.GetDefaultSettings(ModelLODIndex);
 
         for( int32 MaterialIndex = 0; MaterialIndex < StaticMesh->StaticMaterials.Num(); ++MaterialIndex )
         {
-            FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get( ModelLODIndex, MaterialIndex );
+            FMeshSectionInfo Info = StaticMesh->GetSectionInfoMap().Get( ModelLODIndex, MaterialIndex );
             Info.MaterialIndex = MaterialIndex;
             Info.bEnableCollision = true;
             Info.bCastShadow = true;
-            StaticMesh->SectionInfoMap.Set( ModelLODIndex, MaterialIndex, Info );
+            StaticMesh->GetSectionInfoMap().Set( ModelLODIndex, MaterialIndex, Info );
         }
     }
 
