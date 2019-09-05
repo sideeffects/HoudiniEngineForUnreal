@@ -1131,7 +1131,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(UHoudiniAssetComponent * Houd
             }
 
             // See if we already have a FoliageType for that mesh
-            UFoliageType* FoliageType = InstancedFoliageActor->GetLocalFoliageTypeForMesh(OutStaticMesh);            
+            UFoliageType* FoliageType = InstancedFoliageActor->GetLocalFoliageTypeForSource(OutStaticMesh);            
             if ( !FoliageType || FoliageType->IsPendingKill() )
             {
                 // We need to create a new FoliageType for this Static Mesh
@@ -1139,8 +1139,8 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(UHoudiniAssetComponent * Houd
             }
 
             // Get the FoliageMeshInfo for this Foliage type so we can add the instance to it
-            FFoliageMeshInfo* FoliageMeshInfo = InstancedFoliageActor->FindMesh(FoliageType);
-            if ( !FoliageMeshInfo )
+            FFoliageInfo* FoliageInfo = InstancedFoliageActor->FindOrAddMesh(FoliageType);
+            if ( !FoliageInfo )
                 continue;
 
             // Get the transforms for this instance
@@ -1155,10 +1155,11 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(UHoudiniAssetComponent * Houd
                 FoliageInstance.Rotation = HoudiniAssetTransform.TransformRotation(CurrentTransform.GetRotation()).Rotator();
                 FoliageInstance.DrawScale3D = CurrentTransform.GetScale3D() * HoudiniAssetTransform.GetScale3D();
 
-                FoliageMeshInfo->AddInstance(InstancedFoliageActor, FoliageType, FoliageInstance, false);
+                FoliageInfo->AddInstance(InstancedFoliageActor, FoliageType, FoliageInstance, false);
             }
 
-            FoliageMeshInfo->Component->BuildTreeIfOutdated(true, true);
+            if ( FoliageInfo->GetComponent() )
+                FoliageInfo->GetComponent()->BuildTreeIfOutdated(true, true);
 
             // Notify the user that we succesfully bake the instances to foliage
             FString Notification = TEXT("Successfully baked ") + FString::FromInt(ProcessedTransforms.Num()) + TEXT(" instances of ") + OutStaticMesh->GetName() + TEXT(" to Foliage");
@@ -1436,7 +1437,7 @@ FHoudiniEngineBakeUtils::BakeCreateMaterialPackageForComponent(
     if ( !HoudiniAsset || HoudiniAsset->IsPendingKill() )
         return nullptr;
 
-	FString MaterialDescriptor;
+    FString MaterialDescriptor;
     if( HoudiniCookParams.MaterialAndTextureBakeMode != EBakeMode::Intermediate )
         MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_material_" ) + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" );
     else

@@ -46,8 +46,6 @@ AHoudiniAssetActor::AHoudiniAssetActor( const FObjectInitializer & ObjectInitial
     PrimaryActorTick.bCanEverTick = true;
     PrimaryActorTick.bStartWithTickEnabled = true;
 
-    //bRunConstructionScriptOnDrag = false;
-
     // Create Houdini component and attach it to a root component.
     HoudiniAssetComponent =
         ObjectInitializer.CreateDefaultSubobject< UHoudiniAssetComponent >( this, TEXT("HoudiniAssetComponent" ) );
