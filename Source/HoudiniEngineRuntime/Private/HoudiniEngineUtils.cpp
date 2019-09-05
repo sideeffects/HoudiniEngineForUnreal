@@ -2879,7 +2879,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
     for ( int32 LODIndex = 0; LODIndex < NumLODsToExport; LODIndex++ )
     {
         // Grab the LOD level.
-        FStaticMeshSourceModel & SrcModel = StaticMesh->SourceModels[ LODIndex ];
+        FStaticMeshSourceModel & SrcModel = StaticMesh->GetSourceModel(LODIndex);
 
         // If we're using a merge node, we need to create a new input null
         HAPI_NodeId CurrentLODNodeId = -1;
@@ -6116,18 +6116,17 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 {
                     // We need to initialize the LODs used by this mesh
                     int32 NeededLODs = IsLOD ? NumberOfLODs : 1;
-                    while ( StaticMesh->SourceModels.Num() < NeededLODs )
-                        new (StaticMesh->SourceModels) FStaticMeshSourceModel();
+                    while (StaticMesh->GetNumSourceModels() < NeededLODs)
+                        StaticMesh->AddSourceModel();
 
                     // We may have to remove excessive LOD levels
-                    if ( StaticMesh->SourceModels.Num() > NeededLODs )
-                        StaticMesh->SourceModels.SetNum( NeededLODs );
+                    if ( StaticMesh->GetNumSourceModels() > NeededLODs )
+                        StaticMesh->SetNumSourceModels(NeededLODs);
                 }
 
                 // Grab the corresponding SourceModel
                 int32 SrcModelIdx = IsLOD ? LodIndex : 0;
-                FStaticMeshSourceModel* SrcModel = (StaticMesh->SourceModels.IsValidIndex(SrcModelIdx)) ?
-                    &(StaticMesh->SourceModels[SrcModelIdx]) : nullptr;
+                FStaticMeshSourceModel* SrcModel = (StaticMesh->IsSourceModelValid(SrcModelIdx)) ? &(StaticMesh->GetSourceModel(SrcModelIdx)) : nullptr;
 
                 if ( !SrcModel )
                 {
@@ -6983,19 +6982,19 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 auto InitLODLevel = [ & ]( const int32& LODLevelIndex )
                 {
                     // Ensure that this LOD level exisits
-                    while ( StaticMesh->SourceModels.Num() < ( LODLevelIndex + 1 ) )
-                        new ( StaticMesh->SourceModels ) FStaticMeshSourceModel();
+                    while (StaticMesh->GetNumSourceModels() < (LODLevelIndex + 1))
+                        StaticMesh->AddSourceModel();
 
                     // Set its reduction settings to the default
-                    StaticMesh->SourceModels[ LODLevelIndex ].ReductionSettings = LODGroup.GetDefaultSettings( LODLevelIndex );
+                    StaticMesh->GetSourceModel(LODLevelIndex).ReductionSettings = LODGroup.GetDefaultSettings( LODLevelIndex );
 
                     for ( int32 MaterialIndex = 0; MaterialIndex < StaticMesh->StaticMaterials.Num(); ++MaterialIndex )
                     {
-                        FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get( LODLevelIndex, MaterialIndex );
+                        FMeshSectionInfo Info = StaticMesh->GetSectionInfoMap().Get( LODLevelIndex, MaterialIndex );
                         Info.MaterialIndex = MaterialIndex;
                         Info.bEnableCollision = true;
                         Info.bCastShadow = true;
-                        StaticMesh->SectionInfoMap.Set( LODLevelIndex, MaterialIndex, Info );
+                        StaticMesh->GetSectionInfoMap().Set( LODLevelIndex, MaterialIndex, Info );
                     }
                 };
 
@@ -7071,7 +7070,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         // Only apply the LOD screensize if it's valid
                         if ( screensize >= 0.0f )
                         {
-                            StaticMesh->SourceModels[ LodIndex ].ScreenSize = screensize;
+                            StaticMesh->GetSourceModel(LodIndex).ScreenSize = screensize;
                             StaticMesh->bAutoComputeLODScreenSize = false;
                         }
 
