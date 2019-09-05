@@ -1155,9 +1155,10 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(UHoudiniAssetComponent * Houd
                 FoliageInstance.Rotation = HoudiniAssetTransform.TransformRotation(CurrentTransform.GetRotation()).Rotator();
                 FoliageInstance.DrawScale3D = CurrentTransform.GetScale3D() * HoudiniAssetTransform.GetScale3D();
 
-                FoliageInfo->AddInstance(InstancedFoliageActor, FoliageType, FoliageInstance, false);
+                FoliageInfo->AddInstance(InstancedFoliageActor, FoliageType, FoliageInstance);
             }
 
+			// TODO: This was due to a bug in UE4.22-20, check if still needed! 
             if ( FoliageInfo->GetComponent() )
                 FoliageInfo->GetComponent()->BuildTreeIfOutdated(true, true);
 
