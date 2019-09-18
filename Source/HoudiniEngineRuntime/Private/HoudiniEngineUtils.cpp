@@ -3341,7 +3341,22 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
             if (StaticMeshComponent && !StaticMeshComponent->IsPendingKill() && StaticMeshComponent->IsValidLowLevel() )
             {
                 // We have a SMC, query its materials directly so we can be sure we get the proper override materials
-                StaticMeshComponent->GetUsedMaterials(MaterialInterfaces, false);
+                // StaticMeshComponent->GetUsedMaterials(MaterialInterfaces, false);
+
+				int NumMeshBasedMtrls = StaticMeshComponent->GetNumMaterials();
+				TArray< UMaterialInterface * > MeshBasedMaterialInterfaces;
+				MeshBasedMaterialInterfaces.SetNumUninitialized(NumMeshBasedMtrls);
+				for (int i = 0; i < NumMeshBasedMtrls; i++)
+					MeshBasedMaterialInterfaces[i] = StaticMeshComponent->GetMaterial(i);
+
+				int32 NumSections = StaticMesh->GetNumSections(LODIndex);
+				MaterialInterfaces.SetNumUninitialized(NumSections);
+				for (int SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
+				{
+					FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(LODIndex, SectionIndex);
+					check(Info.MaterialIndex < NumMeshBasedMtrls);
+					MaterialInterfaces[SectionIndex] = MeshBasedMaterialInterfaces[Info.MaterialIndex];
+				}
             }
             else
             {
