@@ -594,7 +594,7 @@ FHoudiniEngine::InitializeHAPISession()
     FHoudiniApi::CookOptions_Init(&CookOptions);
     //FMemory::Memzero< HAPI_CookOptions >( CookOptions );
     CookOptions.curveRefineLOD = 8.0f;
-    CookOptions.clearErrorsAndWarnings = false;
+    CookOptions.clearErrorsAndWarnings = true;
     CookOptions.maxVerticesPerPrimitive = 3;
     CookOptions.splitGeosByGroup = false;
     CookOptions.splitGeosByAttribute = false;
