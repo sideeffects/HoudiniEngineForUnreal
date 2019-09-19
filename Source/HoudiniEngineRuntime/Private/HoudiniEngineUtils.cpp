@@ -255,6 +255,29 @@ FHoudiniEngineUtils::GetCookResult()
     return FHoudiniEngineUtils::GetStatusString( HAPI_STATUS_COOK_RESULT, HAPI_STATUSVERBOSITY_MESSAGES );
 }
 
+const FString
+FHoudiniEngineUtils::GetNodeErrorsWarningsAndMessages(const HAPI_NodeId& InNodeId)
+{
+    int32 NodeErrorLength = 0;
+    if (HAPI_RESULT_SUCCESS != FHoudiniApi::ComposeNodeCookResult(
+        FHoudiniEngine::Get().GetSession(), InNodeId, HAPI_StatusVerbosity::HAPI_STATUSVERBOSITY_ALL, &NodeErrorLength))
+    {
+        NodeErrorLength = 0;
+    }
+
+    FString NodeError;
+    if (NodeErrorLength > 0)
+    {
+        TArray< char > NodeErrorBuffer;
+        NodeErrorBuffer.SetNumZeroed(NodeErrorLength);
+        FHoudiniApi::GetComposedNodeCookResult(FHoudiniEngine::Get().GetSession(), &NodeErrorBuffer[0], NodeErrorLength);
+
+        NodeError = FString(UTF8_TO_TCHAR(&NodeErrorBuffer[0]));
+    }
+
+    return NodeError;
+}
+
 bool
 FHoudiniEngineUtils::IsInitialized()
 {
