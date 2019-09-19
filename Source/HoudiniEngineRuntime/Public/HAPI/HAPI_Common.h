@@ -1649,6 +1649,7 @@ struct HAPI_API HAPI_PDG_EventInfo
     int currentState;                       /// (HAPI_PDG_WorkItemState) value of current state for state change
     int lastState;                          /// (HAPI_PDG_WorkItemState) value of last state for state change
     int eventType;                          /// (HAPI_PDG_EventType) event type
+	HAPI_StringHandle msgSH;				/// String handle of the event message (> 0 if there is a message)
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_EventInfo )
 
