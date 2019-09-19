@@ -207,6 +207,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Return a string representing cooking result. **/
         static const FString GetCookResult();
 
+        /** Return the errors, warning and message on a specified node **/
+        static const FString GetNodeErrorsWarningsAndMessages(const HAPI_NodeId& InNodeId);
+
         /** Helper function for creating a temporary Slate notification. **/
         static void CreateSlateNotification( const FString& NotificationString );
 
