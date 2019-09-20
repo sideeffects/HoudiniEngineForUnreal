@@ -24,6 +24,7 @@
 #pragma once
 
 #include "HAPI_Common.h"
+#include "Containers/Map.h"
 
 struct HOUDINIENGINERUNTIME_API FHoudiniParamUtils
 {
