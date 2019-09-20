@@ -27,8 +27,8 @@ class FText;
 class FString;
 class FName;
 
+#include "CoreTypes.h"
 #include <string>
-
 
 class HOUDINIENGINERUNTIME_API FHoudiniEngineString
 {
