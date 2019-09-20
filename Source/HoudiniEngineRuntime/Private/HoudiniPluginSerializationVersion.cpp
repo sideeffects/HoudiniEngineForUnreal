@@ -34,6 +34,8 @@
 #include "HoudiniApi.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
+#include "Misc/Guid.h"
+
 const FGuid FHoudiniCustomSerializationVersion::GUID( 0x1AB9CECC, 0x6913, 0x4875, 0x203d51fb );
 
 // Register the custom version with core

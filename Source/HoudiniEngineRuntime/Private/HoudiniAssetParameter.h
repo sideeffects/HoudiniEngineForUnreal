@@ -27,6 +27,7 @@
 class FArchive;
 class FVariant;
 class FReferenceCollector;
+class FReply;
 
 UCLASS( config = Editor )
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
