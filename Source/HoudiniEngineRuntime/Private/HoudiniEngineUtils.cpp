@@ -3398,8 +3398,11 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                         // Sort the output material in the correct order (by material index)
                         MapOfMaterials.KeySort( [](int32 A, int32 B) { return A < B; });
 
-                        //Set the value in the correct order
-                        MaterialInterfaces.SetNumZeroed(MapOfMaterials.Num());
+                        // Set the value in the correct order
+                        // Do not reduce the array of materials, this could cause crahses in some weird cases..
+                        if (MapOfMaterials.Num() > MaterialInterfaces.Num())
+                            MaterialInterfaces.SetNumZeroed(MapOfMaterials.Num());
+
                         int32 MaterialIndex = 0;
                         for (auto Kvp : MapOfMaterials)
                         {
