@@ -562,6 +562,10 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     // If the data was resized and not expanded, we need to modify the landscape's scale
     LandscapeScale *= LandscapeResizeFactor;
 
+	// Don't allow a zero scale, as this results in divide by 0 operations in FMatrix::InverseFast in the landscape component.
+	if (FMath::IsNearlyZero(LandscapeScale.Z))
+	    LandscapeScale.Z = 1.0f;
+
     // We'll use the position from Houdini, but we will need to offset the Z Position to center the 
     // values properly as the data has been offset by the conversion to uint16
     FVector LandscapePosition = CurrentVolumeTransform.GetLocation();
