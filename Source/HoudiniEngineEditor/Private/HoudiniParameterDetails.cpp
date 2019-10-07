@@ -83,6 +83,7 @@
 #include "Widgets/Layout/SSeparator.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "EngineUtils.h"
+//#include "Misc/Attribute.h"
 
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
@@ -334,7 +335,8 @@ FHoudiniParameterDetails::CreateWidgetFile( IDetailCategoryBuilder & LocalDetail
     Row.ValueWidget.Widget = VerticalBox;
     Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
 
-    Row.ValueWidget.Widget->SetEnabled( !InParam.bIsDisabled );
+    //Row.ValueWidget.Widget->SetEnabled(TAttribute<bool>::Create([InParam]() -> bool { return !InParam.bIsDisabled; }));
+    Row.ValueWidget.Widget->SetEnabled(static_cast<bool>(!InParam.bIsDisabled));
 }
 
 void
@@ -2710,7 +2712,7 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
             ];
 
             // Only enable if we're exporting as HF
-            CheckBoxUpdateInput->SetEnabled(InParam.bLandscapeExportAsHeightfield);
+            CheckBoxUpdateInput->SetEnabled(static_cast<bool>(InParam.bLandscapeExportAsHeightfield));
         }
 
         // ActorPicker : Landscape
