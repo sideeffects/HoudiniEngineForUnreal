@@ -2710,7 +2710,7 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
             ];
 
             // Only enable if we're exporting as HF
-            CheckBoxUpdateInput->SetEnabled(InParam.bLandscapeExportAsHeightfield);
+            CheckBoxUpdateInput->SetEnabled(static_cast<bool>(InParam.bLandscapeExportAsHeightfield));
         }
 
         // ActorPicker : Landscape
