@@ -1107,22 +1107,27 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsString(
         FHoudiniEngine::Get().GetSession(), GeoId, PartId, Name, &AttributeInfo,
         &StringHandles[ 0 ], 0, AttributeInfo.count ), false );
 
+    // Set the output data size
+    Data.SetNum(AttributeInfo.count);
+
     // Use a map to minimize the number of HAPI calls for performance!
     TMap<int32, FString> StringHandleToStringMap;
     for ( int32 Idx = 0; Idx < StringHandles.Num(); ++Idx )
     {
-        FString* FoundString = StringHandleToStringMap.Find( StringHandles[ Idx ] );
+        const HAPI_StringHandle& CurrentSH = StringHandles[Idx];
+        FString* FoundString = StringHandleToStringMap.Find(CurrentSH);
         if ( FoundString )
         {
-            Data.Add( *FoundString );
+            Data[Idx] = *FoundString;
         }
         else
         {
             FString HapiString = TEXT("");
-            FHoudiniEngineString HoudiniEngineString( StringHandles[ Idx ] );
-            HoudiniEngineString.ToFString( HapiString );
-            StringHandleToStringMap.Add( StringHandles[Idx], HapiString );
-            Data.Add( *HapiString );
+            FHoudiniEngineString HoudiniEngineString(CurrentSH);
+            HoudiniEngineString.ToFString(HapiString);
+
+            StringHandleToStringMap.Add(CurrentSH, HapiString);
+            Data[Idx] = HapiString;
         }
     }
 
@@ -3363,8 +3368,22 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
             TArray< UMaterialInterface * > MaterialInterfaces;
             if (StaticMeshComponent && !StaticMeshComponent->IsPendingKill() && StaticMeshComponent->IsValidLowLevel() )
             {
-                // We have a SMC, query its materials directly so we can be sure we get the proper override materials
-                StaticMeshComponent->GetUsedMaterials(MaterialInterfaces, false);
+                // StaticMeshComponent->GetUsedMaterials(MaterialInterfaces, false);
+
+                int NumMeshBasedMtrls = StaticMeshComponent->GetNumMaterials();
+                TArray< UMaterialInterface * > MeshBasedMaterialInterfaces;
+                MeshBasedMaterialInterfaces.SetNumUninitialized(NumMeshBasedMtrls);
+                for (int i = 0; i < NumMeshBasedMtrls; i++)
+                    MeshBasedMaterialInterfaces[i] = StaticMeshComponent->GetMaterial(i);
+
+                int32 NumSections = StaticMesh->GetNumSections(LODIndex);
+                MaterialInterfaces.SetNumUninitialized(NumSections);
+                for (int SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
+                {
+                    FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(LODIndex, SectionIndex);
+                    check(Info.MaterialIndex < NumMeshBasedMtrls);
+                    MaterialInterfaces[SectionIndex] = MeshBasedMaterialInterfaces[Info.MaterialIndex];
+                }
             }
             else
             {
@@ -7425,84 +7444,125 @@ FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
 
 int32
 FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
-    const TArray< int32 > & VertexList, const HAPI_AttributeInfo & AttribInfo, const TArray< float > & Data, TArray< float >& VertexData )
+    const TArray<int32>& InVertexList,
+    const HAPI_AttributeInfo& InAttribInfo,
+    const TArray<float>& InData,
+    TArray<float>& OutVertexData)
 {
-    if ( !AttribInfo.exists || AttribInfo.tupleSize <= 0 )
+    if (!InAttribInfo.exists || InAttribInfo.tupleSize <= 0)
         return 0;
 
     int32 ValidWedgeCount = 0;
 
     // Future optimization - see if we can do direct vertex transfer.
-    int32 WedgeCount = VertexList.Num();
-    VertexData.SetNumZeroed( WedgeCount * AttribInfo.tupleSize );
+    int32 WedgeCount = InVertexList.Num();
+    OutVertexData.SetNumZeroed(WedgeCount * InAttribInfo.tupleSize);
 
     int32 LastValidWedgeIdx = 0;
-    for ( int32 WedgeIdx = 0; WedgeIdx < WedgeCount; ++WedgeIdx )
+    if (InAttribInfo.owner == HAPI_ATTROWNER_POINT)
     {
-        int32 VertexId = VertexList[ WedgeIdx ];
-
-        if ( VertexId == -1 )
+        // Point attribute transfer
+        for (int32 WedgeIdx = 0; WedgeIdx < WedgeCount; ++WedgeIdx)
         {
-            // This is an index/wedge we are skipping due to split.
-            continue;
-        }
-
-        // Increment wedge count, since this is a valid wedge.
-        ValidWedgeCount++;
-
-        int32 PrimIdx = WedgeIdx / 3;
-        int32 SaveIdx = 0;
-        float Value = 0.0f;
-
-        for ( int32 AttributeIndexIdx = 0; AttributeIndexIdx < AttribInfo.tupleSize; ++AttributeIndexIdx )
-        {
-            switch ( AttribInfo.owner )
+            int32 VertexIdx = InVertexList[WedgeIdx];
+            if (VertexIdx < 0)
             {
-                case HAPI_ATTROWNER_POINT:
-                {
-                    Value = Data[ VertexId * AttribInfo.tupleSize + AttributeIndexIdx ];
-                    break;
-                }
-
-                case HAPI_ATTROWNER_PRIM:
-                {
-                    Value = Data[ PrimIdx * AttribInfo.tupleSize + AttributeIndexIdx ];
-                    break;
-                }
-
-                case HAPI_ATTROWNER_DETAIL:
-                {
-                    Value = Data[ AttributeIndexIdx ];
-                    break;
-                }
-
-                case HAPI_ATTROWNER_VERTEX:
-                {
-                    Value = Data[ WedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx ];
-                    break;
-                }
-
-                default:
-                {
-                    check( false );
-                    continue;
-                }
+                // This is an index/wedge we are skipping due to split.
+                continue;
             }
 
-            SaveIdx = LastValidWedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx;
-            VertexData[ SaveIdx ] = Value;
-        }
+            int32 OutIdx = LastValidWedgeIdx * InAttribInfo.tupleSize;
+            for (int32 TupleIdx = 0; TupleIdx < InAttribInfo.tupleSize; TupleIdx++)
+            {
+                OutVertexData[OutIdx + TupleIdx] = InData[VertexIdx * InAttribInfo.tupleSize + TupleIdx];
+            }
 
-        // We are re-indexing wedges.
-        LastValidWedgeIdx++;
+            // We are re-indexing wedges.
+            LastValidWedgeIdx++;
+            // Increment wedge count, since this is a valid wedge.
+            ValidWedgeCount++;
+        }
+    }
+    else if (InAttribInfo.owner == HAPI_ATTROWNER_PRIM)
+    {
+        // Primitive attribute transfer
+        for (int32 WedgeIdx = 0; WedgeIdx < WedgeCount; ++WedgeIdx)
+        {
+            if (InVertexList[WedgeIdx] < 0)
+            {
+                // This is an index/wedge we are skipping due to split.
+                continue;
+            }
+
+            int32 PrimIdx = WedgeIdx / 3;
+            int32 OutIdx = LastValidWedgeIdx * InAttribInfo.tupleSize;
+            for (int32 TupleIdx = 0; TupleIdx < InAttribInfo.tupleSize; TupleIdx++)
+            {
+                OutVertexData[OutIdx + TupleIdx] = InData[PrimIdx * InAttribInfo.tupleSize + TupleIdx];
+            }
+
+            // We are re-indexing wedges.
+            LastValidWedgeIdx++;
+            // Increment wedge count, since this is a valid wedge.
+            ValidWedgeCount++;
+        }
+    }
+    else if (InAttribInfo.owner == HAPI_ATTROWNER_DETAIL)
+    {
+        // Detail attribute transfer
+        for (int32 WedgeIdx = 0; WedgeIdx < WedgeCount; ++WedgeIdx)
+        {
+            if (InVertexList[WedgeIdx] < 0)
+            {
+                // This is an index/wedge we are skipping due to split.
+                continue;
+            }
+
+            int32 OutIdx = LastValidWedgeIdx * InAttribInfo.tupleSize;
+            for (int32 TupleIdx = 0; TupleIdx < InAttribInfo.tupleSize; TupleIdx++)
+            {
+                OutVertexData[OutIdx + TupleIdx] = InData[TupleIdx];
+            }
+
+            // We are re-indexing wedges.
+            LastValidWedgeIdx++;
+            // Increment wedge count, since this is a valid wedge.
+            ValidWedgeCount++;
+        }
+    }
+    else if (InAttribInfo.owner == HAPI_ATTROWNER_VERTEX)
+    {
+        // Vertex attribute transfer
+        for (int32 WedgeIdx = 0; WedgeIdx < WedgeCount; ++WedgeIdx)
+        {
+            if (InVertexList[WedgeIdx] < 0)
+            {
+                // This is an index/wedge we are skipping due to split.
+                continue;
+            }
+
+            int32 OutIdx = LastValidWedgeIdx * InAttribInfo.tupleSize;
+            for (int32 TupleIdx = 0; TupleIdx < InAttribInfo.tupleSize; TupleIdx++)
+            {
+                OutVertexData[OutIdx + TupleIdx] = InData[WedgeIdx * InAttribInfo.tupleSize + TupleIdx];
+            }
+
+            // We are re-indexing wedges.
+            LastValidWedgeIdx++;
+            // Increment wedge count, since this is a valid wedge.
+            ValidWedgeCount++;
+        }
+    }
+    else
+    {
+        // Invalid attribute owner, shouldn't happen
+        check(false);
     }
 
-    VertexData.SetNumZeroed( ValidWedgeCount * AttribInfo.tupleSize );
+    OutVertexData.SetNumZeroed(ValidWedgeCount * InAttribInfo.tupleSize);
 
     return ValidWedgeCount;
 }
-
-
 
 char *
 FHoudiniEngineUtils::ExtractRawName( const FString & Name )
