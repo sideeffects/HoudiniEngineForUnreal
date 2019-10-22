@@ -1809,8 +1809,8 @@ HAPI_DECL HAPI_QueryNodeOutputConnectedCount( const HAPI_Session *session,
 /// @param[in]      through_dots
 ///                 Whether to search through dots.
 ///
-/// @param[out]     connected_node_ids
-///		    Array of ::HAPI_NodeId at least the size of @c length.
+/// @param[out]     connected_node_ids_array
+///		            Array of ::HAPI_NodeId at least the size of @c length.
 ///
 /// @param[in]      start
 ///                 At least @c 0 and at most @c connected_count returned by
@@ -1826,7 +1826,7 @@ HAPI_DECL HAPI_QueryNodeOutputConnectedNodes( const HAPI_Session *session,
                                              int output_idx, 
                                              HAPI_Bool into_subnets, 
                                              HAPI_Bool through_dots,
-                                             HAPI_NodeId * connected_node_ids,
+                                             HAPI_NodeId * connected_node_ids_array,
                                              int start, int length );
 
 /// @brief  Get the name of an node's output. This function will return
@@ -5938,6 +5938,23 @@ HAPI_DECL HAPI_LoadGeoFromMemory( const HAPI_Session * session,
                                   const char * buffer,
                                   int length );
 
+/// @brief  Set the specified node's display flag.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      onOff
+///                 Display flag.
+///
+HAPI_DECL HAPI_SetNodeDisplay( const HAPI_Session * session,
+                               HAPI_NodeId node_id,
+                               int onOff );
+
 // @brief  Return an array of PDG graph context names and ids, the first 
 ///        count names will be returned.  These ids can be used 
 ///        with ::HAPI_GetPDGEvents and ::HAPI_GetPDGState.  The values
@@ -5967,6 +5984,23 @@ HAPI_DECL HAPI_GetPDGGraphContexts( const HAPI_Session * session,
                                     HAPI_StringHandle * context_names_array,
                                     HAPI_PDG_GraphContextId * context_id_array,
                                     int count );
+
+// @brief  Get the PDG graph context for the specified TOP node. 
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      top_node_id
+///                 The id of the TOP node to query its graph context.
+///
+/// @param[out]     context_id
+///                 The PDG graph context id.
+///
+HAPI_DECL HAPI_GetPDGGraphContextId( const HAPI_Session * session,
+                                     HAPI_NodeId top_node_id,
+                                     HAPI_PDG_GraphContextId * context_id );
 
 // @brief  Starts a PDG cooking operation.  This can be asynchronous.  
 ///        Progress can be checked with ::HAPI_GetPDGState and ::HAPI_GetPDGState.
@@ -6237,7 +6271,8 @@ HAPI_DECL HAPI_GetNumWorkitems( const HAPI_Session * session,
 ///
 HAPI_DECL HAPI_GetWorkitems( const HAPI_Session * session,
                              HAPI_NodeId node_id,
-                             int * workitem_ids, int length );
+                             int * workitem_ids_array, 
+                             int length );
 
 // @brief  Gets the length of the workitem data member.
 ///        It is the length of the array of data.
