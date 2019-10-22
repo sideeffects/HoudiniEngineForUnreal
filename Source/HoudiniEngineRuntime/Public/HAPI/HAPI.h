@@ -1809,8 +1809,8 @@ HAPI_DECL HAPI_QueryNodeOutputConnectedCount( const HAPI_Session *session,
 /// @param[in]      through_dots
 ///                 Whether to search through dots.
 ///
-/// @param[out]     connected_node_ids
-///		    Array of ::HAPI_NodeId at least the size of @c length.
+/// @param[out]     connected_node_ids_array
+///		            Array of ::HAPI_NodeId at least the size of @c length.
 ///
 /// @param[in]      start
 ///                 At least @c 0 and at most @c connected_count returned by
@@ -1826,7 +1826,7 @@ HAPI_DECL HAPI_QueryNodeOutputConnectedNodes( const HAPI_Session *session,
                                              int output_idx, 
                                              HAPI_Bool into_subnets, 
                                              HAPI_Bool through_dots,
-                                             HAPI_NodeId * connected_node_ids,
+                                             HAPI_NodeId * connected_node_ids_array,
                                              int start, int length );
 
 /// @brief  Get the name of an node's output. This function will return
@@ -6233,7 +6233,8 @@ HAPI_DECL HAPI_GetNumWorkitems( const HAPI_Session * session,
 ///
 HAPI_DECL HAPI_GetWorkitems( const HAPI_Session * session,
                              HAPI_NodeId node_id,
-                             int * workitem_ids, int length );
+                             int * workitem_ids_array, 
+                             int length );
 
 // @brief  Gets the length of the workitem data member.
 ///        It is the length of the array of data.
