@@ -32,9 +32,9 @@
 
 /*
 
-    Houdini Version: 17.5.360
-    Houdini Engine Version: 3.2.43
-    Unreal Version: 4.22.3
+    Houdini Version: 17.5.425
+    Houdini Engine Version: 3.2.44
+    Unreal Version: 4.23.1
 
 */
 
@@ -46,7 +46,7 @@ public class HoudiniEngineEditor : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "17.5.360";
+        string HoudiniVersion = "17.5.425";
         bool bIsRelease = true;
         string HFSPath = "";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Side Effects Software";
@@ -140,6 +140,10 @@ public class HoudiniEngineEditor : ModuleRules
             // Check for Houdini installation.
             string HPath = "/Applications/Houdini/Houdini" + HoudiniVersion + "/Frameworks/Houdini.framework/Versions/Current/Resources";
             if ( Directory.Exists( HPath ) )
+                return HPath;
+
+            HPath = "/Users/Shared/houdini/HoudiniIndieSteam/Frameworks/Houdini.framework/Versions/Current/Resources";
+            if (Directory.Exists(HPath))
                 return HPath;
 
             if ( Directory.Exists( HFSPath ) )

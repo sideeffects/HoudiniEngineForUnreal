@@ -28,6 +28,7 @@
 
 class UStaticMesh;
 class AActor;
+class USceneComponent;
 
 struct HOUDINIENGINERUNTIME_API FHoudiniEngineInstancerUtils
 {

@@ -31,6 +31,7 @@
 
 #pragma once
 
+struct FGuid;
 
 // Deprecated per-class versions used to load old files
 //

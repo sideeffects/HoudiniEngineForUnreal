@@ -3531,9 +3531,10 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
     }
 
     // Looking for StaticMeshes
-    for ( UActorComponent * Component : Actor->GetComponentsByClass( UStaticMeshComponent::StaticClass() ) )
+    TArray< UStaticMeshComponent* > AllSMComponents;
+    Actor->GetComponents<UStaticMeshComponent>(AllSMComponents);
+    for (UStaticMeshComponent * StaticMeshComponent : AllSMComponents)
     {
-        UStaticMeshComponent * StaticMeshComponent = Cast< UStaticMeshComponent >( Component );
         if ( !StaticMeshComponent || StaticMeshComponent->ComponentHasTag( NAME_HoudiniNoUpload ) )
             continue;
 
@@ -3541,7 +3542,7 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
         if ( !StaticMesh )
             continue;
 
-        UInstancedStaticMeshComponent * InstancedStaticMeshComponent = Cast< UInstancedStaticMeshComponent >(Component);
+        UInstancedStaticMeshComponent * InstancedStaticMeshComponent = Cast< UInstancedStaticMeshComponent >(StaticMeshComponent);
         if (InstancedStaticMeshComponent)
         {
             // Handle ISM separately
@@ -3583,9 +3584,10 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
     }
 
     // Looking for Splines
-    for ( UActorComponent * Component : Actor->GetComponentsByClass( USplineComponent::StaticClass() ) )
+    TArray< USplineComponent* > AllSplineComponents;
+    Actor->GetComponents<USplineComponent>(AllSplineComponents);
+    for (USplineComponent * SplineComponent : AllSplineComponents)
     {
-        USplineComponent * SplineComponent = Cast< USplineComponent >( Component );
         if ( !SplineComponent || SplineComponent->ComponentHasTag( NAME_HoudiniNoUpload ) )
             continue;
 

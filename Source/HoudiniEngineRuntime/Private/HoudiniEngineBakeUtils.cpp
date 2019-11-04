@@ -57,6 +57,7 @@
     #include "StaticMeshResources.h"
     #include "InstancedFoliage.h"
     #include "InstancedFoliageActor.h"
+    #include "Layers/LayersSubsystem.h"
 #endif
 #include "EngineUtils.h"
 #include "UObject/MetaData.h"
@@ -194,14 +195,14 @@ FHoudiniEngineBakeUtils::BakeStaticMesh(
     StaticMesh->StaticMaterials = InStaticMesh->StaticMaterials;
 
     // Create new source model for current static mesh.
-    if( !StaticMesh->SourceModels.Num() )
-        new ( StaticMesh->SourceModels ) FStaticMeshSourceModel();
+    if (!StaticMesh->GetNumSourceModels())
+        StaticMesh->AddSourceModel();
 
-    FStaticMeshSourceModel * SrcModel = &StaticMesh->SourceModels[0];
+    FStaticMeshSourceModel * SrcModel = &StaticMesh->GetSourceModel(0);
 
     // Load raw data bytes.
     FRawMesh RawMesh;
-    FStaticMeshSourceModel * InSrcModel = &InStaticMesh->SourceModels[0];
+    FStaticMeshSourceModel * InSrcModel = &InStaticMesh->GetSourceModel(0);
     InSrcModel->LoadRawMesh( RawMesh );
 
     // Some mesh generation settings.
@@ -230,20 +231,20 @@ FHoudiniEngineBakeUtils::BakeStaticMesh(
     SrcModel->StaticMeshOwner = StaticMesh;
     SrcModel->SaveRawMesh( RawMesh );
 
-    while( StaticMesh->SourceModels.Num() < NumLODs )
-        new ( StaticMesh->SourceModels ) FStaticMeshSourceModel();
+    while (StaticMesh->GetNumSourceModels() < NumLODs)
+        StaticMesh->AddSourceModel();
 
     for( int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex )
     {
-        StaticMesh->SourceModels[ModelLODIndex].ReductionSettings = LODGroup.GetDefaultSettings( ModelLODIndex );
+        StaticMesh->GetSourceModel(ModelLODIndex).ReductionSettings = LODGroup.GetDefaultSettings(ModelLODIndex);
 
         for( int32 MaterialIndex = 0; MaterialIndex < StaticMesh->StaticMaterials.Num(); ++MaterialIndex )
         {
-            FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get( ModelLODIndex, MaterialIndex );
+            FMeshSectionInfo Info = StaticMesh->GetSectionInfoMap().Get( ModelLODIndex, MaterialIndex );
             Info.MaterialIndex = MaterialIndex;
             Info.bEnableCollision = true;
             Info.bCastShadow = true;
-            StaticMesh->SectionInfoMap.Set( ModelLODIndex, MaterialIndex, Info );
+            StaticMesh->GetSectionInfoMap().Set( ModelLODIndex, MaterialIndex, Info );
         }
     }
 
@@ -1155,11 +1156,12 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(UHoudiniAssetComponent * Houd
                 FoliageInstance.Rotation = HoudiniAssetTransform.TransformRotation(CurrentTransform.GetRotation()).Rotator();
                 FoliageInstance.DrawScale3D = CurrentTransform.GetScale3D() * HoudiniAssetTransform.GetScale3D();
 
-                FoliageInfo->AddInstance(InstancedFoliageActor, FoliageType, FoliageInstance, false);
+                FoliageInfo->AddInstance(InstancedFoliageActor, FoliageType, FoliageInstance);
             }
 
-			if ( FoliageInfo->GetComponent() )
-				FoliageInfo->GetComponent()->BuildTreeIfOutdated(true, true);
+            // TODO: This was due to a bug in UE4.22-20, check if still needed! 
+            if ( FoliageInfo->GetComponent() )
+                FoliageInfo->GetComponent()->BuildTreeIfOutdated(true, true);
 
             // Notify the user that we succesfully bake the instances to foliage
             FString Notification = TEXT("Successfully baked ") + FString::FromInt(ProcessedTransforms.Num()) + TEXT(" instances of ") + OutStaticMesh->GetName() + TEXT(" to Foliage");
@@ -1437,7 +1439,7 @@ FHoudiniEngineBakeUtils::BakeCreateMaterialPackageForComponent(
     if ( !HoudiniAsset || HoudiniAsset->IsPendingKill() )
         return nullptr;
 
-	FString MaterialDescriptor;
+    FString MaterialDescriptor;
     if( HoudiniCookParams.MaterialAndTextureBakeMode != EBakeMode::Intermediate )
         MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_material_" ) + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" );
     else
@@ -1919,7 +1921,9 @@ FHoudiniEngineBakeUtils::DeleteBakedHoudiniAssetActor(UHoudiniAssetComponent * H
     if (GEditor)
     {
         GEditor->SelectActor(ActorOwner, false, false);
-        GEditor->Layers->DisassociateActorFromLayers(ActorOwner);
+        ULayersSubsystem* LayerSubSystem = GEditor->GetEditorSubsystem<ULayersSubsystem>();
+        if (LayerSubSystem)
+            LayerSubSystem->DisassociateActorFromLayers(ActorOwner);
     }
 
     UWorld * World = ActorOwner->GetWorld();

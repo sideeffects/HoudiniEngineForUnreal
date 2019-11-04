@@ -562,6 +562,10 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     // If the data was resized and not expanded, we need to modify the landscape's scale
     LandscapeScale *= LandscapeResizeFactor;
 
+    // Don't allow a zero scale, as this results in divide by 0 operations in FMatrix::InverseFast in the landscape component.
+    if (FMath::IsNearlyZero(LandscapeScale.Z))
+        LandscapeScale.Z = 1.0f;
+
     // We'll use the position from Houdini, but we will need to offset the Z Position to center the 
     // values properly as the data has been offset by the conversion to uint16
     FVector LandscapePosition = CurrentVolumeTransform.GetLocation();
@@ -853,9 +857,9 @@ FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightfieldSize(
 
     // Try to find a section size and number of sections that exactly matches the dimensions of the heightfield
     bool bFoundMatch = false;
-    for (int32 SectionSizesIdx = ARRAY_COUNT(SectionSizes) - 1; SectionSizesIdx >= 0; SectionSizesIdx--)
+    for (int32 SectionSizesIdx = UE_ARRAY_COUNT(SectionSizes) - 1; SectionSizesIdx >= 0; SectionSizesIdx--)
     {
-        for (int32 NumSectionsIdx = ARRAY_COUNT(NumSections) - 1; NumSectionsIdx >= 0; NumSectionsIdx--)
+        for (int32 NumSectionsIdx = UE_ARRAY_COUNT(NumSections) - 1; NumSectionsIdx >= 0; NumSectionsIdx--)
         {
             int32 ss = SectionSizes[SectionSizesIdx];
             int32 ns = NumSections[NumSectionsIdx];
@@ -883,7 +887,7 @@ FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightfieldSize(
         // if there was no exact match, try increasing the section size until we encompass the whole heightmap
         const int32 CurrentSectionSize = NumberOfQuadsPerSection;
         const int32 CurrentNumSections = NumberOfSectionsPerComponent;
-        for (int32 SectionSizesIdx = 0; SectionSizesIdx < ARRAY_COUNT(SectionSizes); SectionSizesIdx++)
+        for (int32 SectionSizesIdx = 0; SectionSizesIdx < UE_ARRAY_COUNT(SectionSizes); SectionSizesIdx++)
         {
             if (SectionSizes[SectionSizesIdx] < CurrentSectionSize)
             {
@@ -907,8 +911,8 @@ FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightfieldSize(
     if (!bFoundMatch)
     {
         // if the heightmap is very large, fall back to using the largest values we support
-        const int32 MaxSectionSize = SectionSizes[ARRAY_COUNT(SectionSizes) - 1];
-        const int32 MaxNumSubSections = NumSections[ARRAY_COUNT(NumSections) - 1];
+        const int32 MaxSectionSize = SectionSizes[UE_ARRAY_COUNT(SectionSizes) - 1];
+        const int32 MaxNumSubSections = NumSections[UE_ARRAY_COUNT(NumSections) - 1];
         const int32 ComponentsX = FMath::DivideAndRoundUp((SizeX - 1), MaxSectionSize * MaxNumSubSections);
         const int32 ComponentsY = FMath::DivideAndRoundUp((SizeY - 1), MaxSectionSize * MaxNumSubSections);
 

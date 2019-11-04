@@ -1576,8 +1576,34 @@ FHoudiniAssetComponentDetails::OnFetchCookLog()
 {
     TSharedPtr< SWindow > ParentWindow;
 
+    FString CookLog;
+
     // Get fetch cook status.
-    const FString CookLogString = FHoudiniEngineUtils::GetCookResult();
+    FString CookResult = FHoudiniEngineUtils::GetCookResult();
+    if (!CookResult.IsEmpty())
+        CookLog += TEXT("Cook Results:\n") + CookResult + TEXT("\n\n");
+
+    // Add the cook state
+    FString CookState = FHoudiniEngineUtils::GetCookState();
+    if ( !CookState.IsEmpty())
+        CookLog += TEXT("Cook State:\n") + CookState + TEXT("\n\n");
+
+    // Error Description
+    FString Error = FHoudiniEngineUtils::GetErrorDescription();
+    if (!Error.IsEmpty())
+        CookLog += TEXT("Error Description:\n") + Error + TEXT("\n\n");
+
+    // Iterates on all the selected HAC and get their node errors
+    for (auto& HAC : HoudiniAssetComponents)
+    {
+        if (!HAC || HAC->IsPendingKill())
+            continue;
+
+        // Get the node errors, warnings and messages
+        FString NodeErrors = FHoudiniEngineUtils::GetNodeErrorsWarningsAndMessages(HAC->GetAssetId());
+        if (!NodeErrors.IsEmpty())
+            CookLog += NodeErrors;
+    }
 
     // Check if the main frame is loaded. When using the old main frame it may not be.
     if ( FModuleManager::Get().IsModuleLoaded( "MainFrame" ) )
@@ -1586,18 +1612,48 @@ FHoudiniAssetComponentDetails::OnFetchCookLog()
         ParentWindow = MainFrame.GetParentWindow();
     }
 
+    if (CookLog.IsEmpty())
+    {
+        // See if a failed HAPI initialization / invalid session is preventing us from getting the cook log
+        if (!FHoudiniApi::IsHAPIInitialized())
+        {
+            CookLog += TEXT("\n\nThe Houdini Engine API Library (HAPI) has not been initialized properly.\n\n");
+        }
+        else
+        {
+            const HAPI_Session * SessionPtr = FHoudiniEngine::Get().GetSession();
+            if (HAPI_RESULT_SUCCESS != FHoudiniApi::IsSessionValid(SessionPtr))
+            {
+                CookLog += TEXT("\n\nThe current Houdini Engine Session is not valid.\n\n");
+            }
+            else if (HAPI_RESULT_SUCCESS != FHoudiniApi::IsInitialized(SessionPtr))
+            {
+                CookLog += TEXT("\n\nThe current Houdini Engine Session has not been initialized properly.\n\n");
+            }
+        }
+
+        if (!CookLog.IsEmpty())
+        {
+            CookLog += TEXT("Please try to restart the current Houdini Engine session via File > Restart Houdini Engine Session.\n\n");
+        }
+        else
+        {
+            CookLog = TEXT("\n\nThe cook log is empty...\n\n");
+        }
+    }        
+
     if ( ParentWindow.IsValid() )
     {
         TSharedPtr< SHoudiniAssetLogWidget > HoudiniAssetCookLog;
 
         TSharedRef< SWindow > Window =
             SNew( SWindow )
-                .Title( LOCTEXT( "WindowTitle", "Houdini Cook Log" ) )
-                .ClientSize( FVector2D( 640, 480 ) );
+            .Title( LOCTEXT( "WindowTitle", "Houdini Cook Log" ) )
+            .ClientSize( FVector2D( 640, 480 ) );
 
         Window->SetContent( 
             SAssignNew( HoudiniAssetCookLog, SHoudiniAssetLogWidget )
-            .LogText( CookLogString ) );
+            .LogText(CookLog) );
 
         FSlateApplication::Get().AddModalWindow( Window, ParentWindow, false );
     }
