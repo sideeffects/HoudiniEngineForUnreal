@@ -51,6 +51,9 @@ UHoudiniSplineComponent::UHoudiniSplineComponent( const FObjectInitializer & Obj
     CurvePoints.Add( transf );
     transf.SetTranslation( FVector(200.0f, 0.0f, 0.0f) );
     CurvePoints.Add( transf );
+
+    // Change the default mobility to static to avoid modifying the parent HAC's mobility to Moveable
+    Mobility = EComponentMobility::Static;
 }
 
 UHoudiniSplineComponent::~UHoudiniSplineComponent()
