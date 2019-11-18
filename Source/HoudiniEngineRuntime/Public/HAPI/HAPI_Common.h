@@ -900,6 +900,7 @@ struct HAPI_API HAPI_AssetInfo
     HAPI_StringHandle versionSH; ///< User-defined asset version.
     HAPI_StringHandle fullOpNameSH; ///< Full asset name and namespace.
     HAPI_StringHandle helpTextSH; ///< Asset help marked-up text.
+    HAPI_StringHandle helpURLSH; ///< Asset help URL.
 
     int objectCount; ///< See @ref HAPI_Objects.
     int handleCount; ///< See @ref HAPI_Handles.
