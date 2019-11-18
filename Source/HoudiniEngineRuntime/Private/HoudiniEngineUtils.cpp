@@ -1171,10 +1171,9 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(
     for (int32 Idx = 0; Idx < InstanceTransforms.Num(); Idx++)
         FHoudiniApi::Transform_Init(&(InstanceTransforms[Idx]));
 
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetInstanceTransforms(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetInstanceTransformsOnPart(
         FHoudiniEngine::Get().GetSession(),
-        GeoId, HAPI_SRT, &InstanceTransforms[ 0 ],
-        0, PartInfo.pointCount ), false );
+        GeoId, PartId, HAPI_SRT, &InstanceTransforms[ 0 ], 0, PartInfo.pointCount ), false );
 
     for ( int32 Idx = 0; Idx < PartInfo.pointCount; ++Idx )
     {
@@ -6803,9 +6802,15 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         }
                         else
                         {
-                            UMaterialInterface * MaterialInterface = Cast< UMaterialInterface >(
-                                StaticLoadObject( UMaterialInterface::StaticClass(),
-                                    nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr ) );
+                            // Try to locate the corresponding material interface
+                            UMaterialInterface * MaterialInterface = nullptr;
+                            if (!MaterialName.IsEmpty())
+                            {
+                                // Only try to load a material if has a chance to be valid!
+                                MaterialInterface = Cast< UMaterialInterface >(
+                                    StaticLoadObject(UMaterialInterface::StaticClass(),
+                                        nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr));
+                            }
 
                             if ( MaterialInterface )
                             {
