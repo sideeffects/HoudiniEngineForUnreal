@@ -2257,7 +2257,7 @@ FHoudiniLandscapeUtils::ExtractLandscapeData(
                 UTexture2D * TextureLightmap = LightMap2D->GetTexture( 0 );
                 if ( TextureLightmap )
                 {
-                    if ( TextureLightmap->Source.GetMipData( LightmapMipData, 0 ) )
+                    if ( TextureLightmap->Source.GetMipData(LightmapMipData, 0, 0, 0, nullptr))
                     {
                         LightmapMipSizeX = TextureLightmap->Source.GetSizeX();
                         LightmapMipSizeY = TextureLightmap->Source.GetSizeY();
