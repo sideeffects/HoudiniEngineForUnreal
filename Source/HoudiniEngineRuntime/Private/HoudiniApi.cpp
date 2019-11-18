@@ -288,6 +288,9 @@ FHoudiniApi::GetHandleInfo = &FHoudiniApi::GetHandleInfoEmptyStub;
 FHoudiniApi::GetHeightFieldDataFuncPtr
 FHoudiniApi::GetHeightFieldData = &FHoudiniApi::GetHeightFieldDataEmptyStub;
 
+FHoudiniApi::GetImageFilePathFuncPtr
+FHoudiniApi::GetImageFilePath = &FHoudiniApi::GetImageFilePathEmptyStub;
+
 FHoudiniApi::GetImageInfoFuncPtr
 FHoudiniApi::GetImageInfo = &FHoudiniApi::GetImageInfoEmptyStub;
 
@@ -954,6 +957,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetHandleBindingInfo = (GetHandleBindingInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHandleBindingInfo"));
 	FHoudiniApi::GetHandleInfo = (GetHandleInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHandleInfo"));
 	FHoudiniApi::GetHeightFieldData = (GetHeightFieldDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHeightFieldData"));
+	FHoudiniApi::GetImageFilePath = (GetImageFilePathFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImageFilePath"));
 	FHoudiniApi::GetImageInfo = (GetImageInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImageInfo"));
 	FHoudiniApi::GetImageMemoryBuffer = (GetImageMemoryBufferFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImageMemoryBuffer"));
 	FHoudiniApi::GetImagePlaneCount = (GetImagePlaneCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImagePlaneCount"));
@@ -1238,6 +1242,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetHandleBindingInfo = &FHoudiniApi::GetHandleBindingInfoEmptyStub;
 	FHoudiniApi::GetHandleInfo = &FHoudiniApi::GetHandleInfoEmptyStub;
 	FHoudiniApi::GetHeightFieldData = &FHoudiniApi::GetHeightFieldDataEmptyStub;
+	FHoudiniApi::GetImageFilePath = &FHoudiniApi::GetImageFilePathEmptyStub;
 	FHoudiniApi::GetImageInfo = &FHoudiniApi::GetImageInfoEmptyStub;
 	FHoudiniApi::GetImageMemoryBuffer = &FHoudiniApi::GetImageMemoryBufferEmptyStub;
 	FHoudiniApi::GetImagePlaneCount = &FHoudiniApi::GetImagePlaneCountEmptyStub;
@@ -2049,6 +2054,13 @@ FHoudiniApi::GetHeightFieldDataEmptyStub(const HAPI_Session * session, HAPI_Node
 
 
 HAPI_Result
+FHoudiniApi::GetImageFilePathEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, HAPI_ParmId texture_parm_id, int * destination_file_path)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetImageInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ImageInfo * image_info)
 {
 	return HAPI_RESULT_FAILURE;
@@ -2560,7 +2572,7 @@ FHoudiniApi::GetWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_N
 
 
 HAPI_Result
-FHoudiniApi::GetWorkitemsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int * workitem_ids, int length)
+FHoudiniApi::GetWorkitemsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int * workitem_ids_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -2924,7 +2936,7 @@ FHoudiniApi::QueryNodeOutputConnectedCountEmptyStub(const HAPI_Session *session,
 
 
 HAPI_Result
-FHoudiniApi::QueryNodeOutputConnectedNodesEmptyStub(const HAPI_Session *session, HAPI_NodeId node_id, int output_idx, HAPI_Bool into_subnets, HAPI_Bool through_dots, HAPI_NodeId * connected_node_ids, int start, int length)
+FHoudiniApi::QueryNodeOutputConnectedNodesEmptyStub(const HAPI_Session *session, HAPI_NodeId node_id, int output_idx, HAPI_Bool into_subnets, HAPI_Bool through_dots, HAPI_NodeId * connected_node_ids_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
