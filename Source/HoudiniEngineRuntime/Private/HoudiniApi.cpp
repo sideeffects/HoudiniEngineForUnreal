@@ -288,6 +288,9 @@ FHoudiniApi::GetHandleInfo = &FHoudiniApi::GetHandleInfoEmptyStub;
 FHoudiniApi::GetHeightFieldDataFuncPtr
 FHoudiniApi::GetHeightFieldData = &FHoudiniApi::GetHeightFieldDataEmptyStub;
 
+FHoudiniApi::GetImageFilePathFuncPtr
+FHoudiniApi::GetImageFilePath = &FHoudiniApi::GetImageFilePathEmptyStub;
+
 FHoudiniApi::GetImageInfoFuncPtr
 FHoudiniApi::GetImageInfo = &FHoudiniApi::GetImageInfoEmptyStub;
 
@@ -299,9 +302,6 @@ FHoudiniApi::GetImagePlaneCount = &FHoudiniApi::GetImagePlaneCountEmptyStub;
 
 FHoudiniApi::GetImagePlanesFuncPtr
 FHoudiniApi::GetImagePlanes = &FHoudiniApi::GetImagePlanesEmptyStub;
-
-FHoudiniApi::GetInstanceTransformsFuncPtr
-FHoudiniApi::GetInstanceTransforms = &FHoudiniApi::GetInstanceTransformsEmptyStub;
 
 FHoudiniApi::GetInstanceTransformsOnPartFuncPtr
 FHoudiniApi::GetInstanceTransformsOnPart = &FHoudiniApi::GetInstanceTransformsOnPartEmptyStub;
@@ -350,6 +350,9 @@ FHoudiniApi::GetObjectTransform = &FHoudiniApi::GetObjectTransformEmptyStub;
 
 FHoudiniApi::GetPDGEventsFuncPtr
 FHoudiniApi::GetPDGEvents = &FHoudiniApi::GetPDGEventsEmptyStub;
+
+FHoudiniApi::GetPDGGraphContextIdFuncPtr
+FHoudiniApi::GetPDGGraphContextId = &FHoudiniApi::GetPDGGraphContextIdEmptyStub;
 
 FHoudiniApi::GetPDGGraphContextsFuncPtr
 FHoudiniApi::GetPDGGraphContexts = &FHoudiniApi::GetPDGGraphContextsEmptyStub;
@@ -753,6 +756,9 @@ FHoudiniApi::SetHeightFieldData = &FHoudiniApi::SetHeightFieldDataEmptyStub;
 FHoudiniApi::SetImageInfoFuncPtr
 FHoudiniApi::SetImageInfo = &FHoudiniApi::SetImageInfoEmptyStub;
 
+FHoudiniApi::SetNodeDisplayFuncPtr
+FHoudiniApi::SetNodeDisplay = &FHoudiniApi::SetNodeDisplayEmptyStub;
+
 FHoudiniApi::SetObjectTransformFuncPtr
 FHoudiniApi::SetObjectTransform = &FHoudiniApi::SetObjectTransformEmptyStub;
 
@@ -954,11 +960,11 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetHandleBindingInfo = (GetHandleBindingInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHandleBindingInfo"));
 	FHoudiniApi::GetHandleInfo = (GetHandleInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHandleInfo"));
 	FHoudiniApi::GetHeightFieldData = (GetHeightFieldDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHeightFieldData"));
+	FHoudiniApi::GetImageFilePath = (GetImageFilePathFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImageFilePath"));
 	FHoudiniApi::GetImageInfo = (GetImageInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImageInfo"));
 	FHoudiniApi::GetImageMemoryBuffer = (GetImageMemoryBufferFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImageMemoryBuffer"));
 	FHoudiniApi::GetImagePlaneCount = (GetImagePlaneCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImagePlaneCount"));
 	FHoudiniApi::GetImagePlanes = (GetImagePlanesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImagePlanes"));
-	FHoudiniApi::GetInstanceTransforms = (GetInstanceTransformsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstanceTransforms"));
 	FHoudiniApi::GetInstanceTransformsOnPart = (GetInstanceTransformsOnPartFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstanceTransformsOnPart"));
 	FHoudiniApi::GetInstancedObjectIds = (GetInstancedObjectIdsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstancedObjectIds"));
 	FHoudiniApi::GetInstancedPartIds = (GetInstancedPartIdsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstancedPartIds"));
@@ -975,6 +981,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetObjectInfo = (GetObjectInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjectInfo"));
 	FHoudiniApi::GetObjectTransform = (GetObjectTransformFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjectTransform"));
 	FHoudiniApi::GetPDGEvents = (GetPDGEventsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPDGEvents"));
+	FHoudiniApi::GetPDGGraphContextId = (GetPDGGraphContextIdFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPDGGraphContextId"));
 	FHoudiniApi::GetPDGGraphContexts = (GetPDGGraphContextsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPDGGraphContexts"));
 	FHoudiniApi::GetPDGState = (GetPDGStateFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPDGState"));
 	FHoudiniApi::GetParameters = (GetParametersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParameters"));
@@ -1109,6 +1116,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::SetGroupMembership = (SetGroupMembershipFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetGroupMembership"));
 	FHoudiniApi::SetHeightFieldData = (SetHeightFieldDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetHeightFieldData"));
 	FHoudiniApi::SetImageInfo = (SetImageInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetImageInfo"));
+	FHoudiniApi::SetNodeDisplay = (SetNodeDisplayFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetNodeDisplay"));
 	FHoudiniApi::SetObjectTransform = (SetObjectTransformFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetObjectTransform"));
 	FHoudiniApi::SetParmExpression = (SetParmExpressionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetParmExpression"));
 	FHoudiniApi::SetParmFloatValue = (SetParmFloatValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetParmFloatValue"));
@@ -1238,11 +1246,11 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetHandleBindingInfo = &FHoudiniApi::GetHandleBindingInfoEmptyStub;
 	FHoudiniApi::GetHandleInfo = &FHoudiniApi::GetHandleInfoEmptyStub;
 	FHoudiniApi::GetHeightFieldData = &FHoudiniApi::GetHeightFieldDataEmptyStub;
+	FHoudiniApi::GetImageFilePath = &FHoudiniApi::GetImageFilePathEmptyStub;
 	FHoudiniApi::GetImageInfo = &FHoudiniApi::GetImageInfoEmptyStub;
 	FHoudiniApi::GetImageMemoryBuffer = &FHoudiniApi::GetImageMemoryBufferEmptyStub;
 	FHoudiniApi::GetImagePlaneCount = &FHoudiniApi::GetImagePlaneCountEmptyStub;
 	FHoudiniApi::GetImagePlanes = &FHoudiniApi::GetImagePlanesEmptyStub;
-	FHoudiniApi::GetInstanceTransforms = &FHoudiniApi::GetInstanceTransformsEmptyStub;
 	FHoudiniApi::GetInstanceTransformsOnPart = &FHoudiniApi::GetInstanceTransformsOnPartEmptyStub;
 	FHoudiniApi::GetInstancedObjectIds = &FHoudiniApi::GetInstancedObjectIdsEmptyStub;
 	FHoudiniApi::GetInstancedPartIds = &FHoudiniApi::GetInstancedPartIdsEmptyStub;
@@ -1259,6 +1267,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetObjectInfo = &FHoudiniApi::GetObjectInfoEmptyStub;
 	FHoudiniApi::GetObjectTransform = &FHoudiniApi::GetObjectTransformEmptyStub;
 	FHoudiniApi::GetPDGEvents = &FHoudiniApi::GetPDGEventsEmptyStub;
+	FHoudiniApi::GetPDGGraphContextId = &FHoudiniApi::GetPDGGraphContextIdEmptyStub;
 	FHoudiniApi::GetPDGGraphContexts = &FHoudiniApi::GetPDGGraphContextsEmptyStub;
 	FHoudiniApi::GetPDGState = &FHoudiniApi::GetPDGStateEmptyStub;
 	FHoudiniApi::GetParameters = &FHoudiniApi::GetParametersEmptyStub;
@@ -1393,6 +1402,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::SetGroupMembership = &FHoudiniApi::SetGroupMembershipEmptyStub;
 	FHoudiniApi::SetHeightFieldData = &FHoudiniApi::SetHeightFieldDataEmptyStub;
 	FHoudiniApi::SetImageInfo = &FHoudiniApi::SetImageInfoEmptyStub;
+	FHoudiniApi::SetNodeDisplay = &FHoudiniApi::SetNodeDisplayEmptyStub;
 	FHoudiniApi::SetObjectTransform = &FHoudiniApi::SetObjectTransformEmptyStub;
 	FHoudiniApi::SetParmExpression = &FHoudiniApi::SetParmExpressionEmptyStub;
 	FHoudiniApi::SetParmFloatValue = &FHoudiniApi::SetParmFloatValueEmptyStub;
@@ -2049,6 +2059,13 @@ FHoudiniApi::GetHeightFieldDataEmptyStub(const HAPI_Session * session, HAPI_Node
 
 
 HAPI_Result
+FHoudiniApi::GetImageFilePathEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, HAPI_ParmId texture_parm_id, int * destination_file_path)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetImageInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ImageInfo * image_info)
 {
 	return HAPI_RESULT_FAILURE;
@@ -2071,13 +2088,6 @@ FHoudiniApi::GetImagePlaneCountEmptyStub(const HAPI_Session * session, HAPI_Node
 
 HAPI_Result
 FHoudiniApi::GetImagePlanesEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_StringHandle * image_planes_array, int image_plane_count)
-{
-	return HAPI_RESULT_FAILURE;
-}
-
-
-HAPI_Result
-FHoudiniApi::GetInstanceTransformsEmptyStub(const HAPI_Session * session, HAPI_NodeId object_node_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -2190,6 +2200,13 @@ FHoudiniApi::GetObjectTransformEmptyStub(const HAPI_Session * session, HAPI_Node
 
 HAPI_Result
 FHoudiniApi::GetPDGEventsEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_PDG_EventInfo * event_array, int length, int * event_count, int * remaining_events)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetPDGGraphContextIdEmptyStub(const HAPI_Session * session, HAPI_NodeId top_node_id, HAPI_PDG_GraphContextId * context_id)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -2560,7 +2577,7 @@ FHoudiniApi::GetWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_N
 
 
 HAPI_Result
-FHoudiniApi::GetWorkitemsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int * workitem_ids, int length)
+FHoudiniApi::GetWorkitemsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int * workitem_ids_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -2924,7 +2941,7 @@ FHoudiniApi::QueryNodeOutputConnectedCountEmptyStub(const HAPI_Session *session,
 
 
 HAPI_Result
-FHoudiniApi::QueryNodeOutputConnectedNodesEmptyStub(const HAPI_Session *session, HAPI_NodeId node_id, int output_idx, HAPI_Bool into_subnets, HAPI_Bool through_dots, HAPI_NodeId * connected_node_ids, int start, int length)
+FHoudiniApi::QueryNodeOutputConnectedNodesEmptyStub(const HAPI_Session *session, HAPI_NodeId node_id, int output_idx, HAPI_Bool into_subnets, HAPI_Bool through_dots, HAPI_NodeId * connected_node_ids_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -3128,6 +3145,13 @@ FHoudiniApi::SetHeightFieldDataEmptyStub(const HAPI_Session * session, HAPI_Node
 
 HAPI_Result
 FHoudiniApi::SetImageInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const HAPI_ImageInfo * image_info)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::SetNodeDisplayEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int onOff)
 {
 	return HAPI_RESULT_FAILURE;
 }
