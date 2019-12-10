@@ -2483,22 +2483,22 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances(
     // This is pretty hacky and we should probably require an extra material_instance_index attribute instead.
     // but still a better solution than ignore all the material slots but the first
     int32 MaterialIndexToAttributeIndex = 0;
-    if ( MaterialIndex > 0 && AttribMaterialInstances.owner == HAPI_ATTROWNER_PRIM )
+
+    // Suppose the MaterialInstances has element ["pbr_0", "pbr_1", "pbr_0", "pbr_2"], when MaterialIndex comes
+    // to 2, the previous code will get pbr_0, thus get the wrong MaterialIndexToAttributeIndex.
+    TMap<FString, uint8> MaterialIndexMap;
+    if (MaterialIndex > 0 && AttribMaterialInstances.owner == HAPI_ATTROWNER_PRIM)
     {
-        int32 CurrentMaterialIndex = 0;
-        FString CurrentMatName = MaterialInstances[ 0 ];
-        for ( int32 n = 0; n < MaterialInstances.Num(); n++ )
+        for (int32 n = 0; n < MaterialInstances.Num(); n++)
         {
-            if ( MaterialInstances[ n ].Equals( CurrentMatName ) )
-                continue;
-
-            CurrentMatName = MaterialInstances[ n ];
-            CurrentMaterialIndex++;
-
-            if ( CurrentMaterialIndex == MaterialIndex )
+            if (nullptr == MaterialIndexMap.Find(MaterialInstances[n]))
             {
-                MaterialIndexToAttributeIndex = n;
-                break;
+                MaterialIndexMap.Add(MaterialInstances[n], 1);
+                if (MaterialIndexMap.Num() - 1 == MaterialIndex)
+                {
+                    MaterialIndexToAttributeIndex = n;
+                    break;
+                }
             }
         }
     }
