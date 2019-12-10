@@ -42,7 +42,7 @@ AHoudiniAssetActor::AHoudiniAssetActor( const FObjectInitializer & ObjectInitial
     : Super( ObjectInitializer )
     , CurrentPlayTime( 0.0f )
 {
-    bCanBeDamaged = false;
+    SetCanBeDamaged(false);
     PrimaryActorTick.bCanEverTick = true;
     PrimaryActorTick.bStartWithTickEnabled = true;
 
