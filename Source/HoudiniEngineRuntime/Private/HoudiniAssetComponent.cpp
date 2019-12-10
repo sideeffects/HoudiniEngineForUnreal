@@ -2451,7 +2451,7 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
     else if ( Property->GetName() == TEXT( "bVisible" ) )
     {
         // Visibility has changed, propagate it to children.
-        SetVisibility( bVisible, true );
+        SetVisibility( IsVisible(), true );
         return;
     }
     else if ( ( Property->GetName() == TEXT( "RelativeLocation" ) )
@@ -3430,9 +3430,12 @@ UHoudiniAssetComponent::PostLoad()
     }
     else
     {
-        // Iff the only component our owner has is us, then we should show the logo mesh
-        auto SceneComponents = GetOwner()->GetComponentsByClass( USceneComponent::StaticClass() );
-        if ( SceneComponents.Num() == 1 )
+        // If the only component our owner has is us, then we should show the logo mesh
+		TArray< USceneComponent* > AllSceneComponents;
+		if(GetOwner())
+			GetOwner()->GetComponents<USceneComponent>(AllSceneComponents);
+
+		if (AllSceneComponents.Num() == 1 )
         {
             CreateStaticMeshHoudiniLogoResource( StaticMeshes );
         }
