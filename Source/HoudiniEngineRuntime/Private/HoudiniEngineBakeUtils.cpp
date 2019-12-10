@@ -57,6 +57,7 @@
     #include "StaticMeshResources.h"
     #include "InstancedFoliage.h"
     #include "InstancedFoliageActor.h"
+    #include "Layers/LayersSubsystem.h"
 #endif
 #include "EngineUtils.h"
 #include "UObject/MetaData.h"
@@ -362,8 +363,8 @@ FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithBlueprint( UHoudiniAssetComponen
             USceneComponent * Scene = CDO->GetRootComponent();
             if (Scene && !Scene->IsPendingKill())
             {
-                Scene->RelativeLocation = FVector::ZeroVector;
-                Scene->RelativeRotation = FRotator::ZeroRotator;
+                Scene->SetRelativeLocation(FVector::ZeroVector);
+                Scene->SetRelativeRotation(FRotator::ZeroRotator);
 
                 // Clear out the attachment info after having copied the properties from the source actor
                 Scene->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
@@ -1158,7 +1159,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(UHoudiniAssetComponent * Houd
                 FoliageInfo->AddInstance(InstancedFoliageActor, FoliageType, FoliageInstance);
             }
 
-			// TODO: This was due to a bug in UE4.22-20, check if still needed! 
+            // TODO: This was due to a bug in UE4.22-20, check if still needed! 
             if ( FoliageInfo->GetComponent() )
                 FoliageInfo->GetComponent()->BuildTreeIfOutdated(true, true);
 
@@ -1438,7 +1439,7 @@ FHoudiniEngineBakeUtils::BakeCreateMaterialPackageForComponent(
     if ( !HoudiniAsset || HoudiniAsset->IsPendingKill() )
         return nullptr;
 
-    FString MaterialDescriptor;
+	FString MaterialDescriptor;
     if( HoudiniCookParams.MaterialAndTextureBakeMode != EBakeMode::Intermediate )
         MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_material_" ) + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" );
     else
@@ -1920,7 +1921,9 @@ FHoudiniEngineBakeUtils::DeleteBakedHoudiniAssetActor(UHoudiniAssetComponent * H
     if (GEditor)
     {
         GEditor->SelectActor(ActorOwner, false, false);
-        GEditor->Layers->DisassociateActorFromLayers(ActorOwner);
+        ULayersSubsystem* LayerSubSystem = GEditor->GetEditorSubsystem<ULayersSubsystem>();
+        if (LayerSubSystem)
+            LayerSubSystem->DisassociateActorFromLayers(ActorOwner);
     }
 
     UWorld * World = ActorOwner->GetWorld();
