@@ -3363,12 +3363,46 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
         // Marshall face material indices.
         if ( RawMesh.FaceMaterialIndices.Num() > 0 )
         {
-            // Create an array of Material Interfaces
+            // TODO: FIX ME PROPERLY
+            // In some cases, deleted/unused materials could cause crashes in FHoudiniEngineUtils::CreateFaceMaterialArray() later
+            // To avoid this, we need to make sure that the MaterialInterfaces array size matches the face material indexes..
+            // Proper fix would be to export the mesh via section...
+            int32 MaxMatIndex = 0;
             TArray< UMaterialInterface * > MaterialInterfaces;
             if (StaticMeshComponent && !StaticMeshComponent->IsPendingKill() && StaticMeshComponent->IsValidLowLevel() )
             {
-                // StaticMeshComponent->GetUsedMaterials(MaterialInterfaces, false);
+                //StaticMeshComponent->GetUsedMaterials(MaterialInterfaces, false);
+                {
+                    // Get the map of material used for the static mesh component
+                    TMap<int32, UMaterialInterface*> MapOfMaterials;
+                    for (int32 LODIdx = 0; LODIdx < StaticMeshComponent->GetStaticMesh()->RenderData->LODResources.Num(); LODIdx++)
+                    {
+                        FStaticMeshLODResources& LODResources = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[LODIdx];
+                        for (int32 SectionIndex = 0; SectionIndex < LODResources.Sections.Num(); SectionIndex++)
+                        {
+                            // Get the material for each element at the current lod index
+                            int32 MaterialIndex = LODResources.Sections[SectionIndex].MaterialIndex;
+                            if (!MapOfMaterials.Contains(MaterialIndex))
+                            {
+                                MapOfMaterials.Add(MaterialIndex, StaticMeshComponent->GetMaterial(MaterialIndex));
 
+                                // Keep track of the max material index
+                                if (MaxMatIndex < MaterialIndex)
+                                    MaxMatIndex = MaterialIndex;
+                            }
+                        }
+                    }
+
+                    // We need to assign enough materials for our index
+                    MaterialInterfaces.SetNum(MaxMatIndex + 1);
+                    for (const auto& Kvp : MapOfMaterials)
+                    {
+                        MaterialInterfaces[Kvp.Key] = Kvp.Value;
+                    }
+                }
+
+                // TODO: FIX ME PROPERLY
+                // Trying to fix up inconsistencies between the RawMesh / StaticMesh material indexes by using the meshes sections...
                 int NumMeshBasedMtrls = StaticMeshComponent->GetNumMaterials();
                 TArray< UMaterialInterface * > MeshBasedMaterialInterfaces;
                 MeshBasedMaterialInterfaces.SetNumUninitialized(NumMeshBasedMtrls);
@@ -3376,7 +3410,9 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                     MeshBasedMaterialInterfaces[i] = StaticMeshComponent->GetMaterial(i);
 
                 int32 NumSections = StaticMesh->GetNumSections(LODIndex);
-                MaterialInterfaces.SetNumUninitialized(NumSections);
+                if ( NumSections > NumMeshBasedMtrls )
+                    MaterialInterfaces.SetNumUninitialized(NumSections);
+
                 for (int SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
                 {
                     FMeshSectionInfo Info = StaticMesh->GetSectionInfoMap().Get(LODIndex, SectionIndex);
