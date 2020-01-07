@@ -866,13 +866,22 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
                     StaticMeshComponent->SetStaticMesh(StaticMesh);
                     StaticMeshComponent->SetVisibility(true);
                     StaticMeshComponent->SetMobility(Mobility);
-                    StaticMeshComponent->RegisterComponent();
 
                     // Property propagation: set the new SMC's properties to the HAC's current settings
                     CopyComponentPropertiesTo(StaticMeshComponent);
 
+                    // Register the component AFTER copying the properties!
+                    StaticMeshComponent->RegisterComponent();
+
                     // Attach created static mesh component to our Houdini component.
                     StaticMeshComponent->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
+
+					// Add to SerializedComponents array so it gets saved
+					if (GetOwner())
+						GetOwner()->AddInstanceComponent(StaticMeshComponent);
+
+					StaticMeshComponent->OnComponentCreated();
+					StaticMeshComponent->RegisterComponent();
 
                     // Add to the map of components.
                     StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
@@ -4412,8 +4421,14 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
         HoudiniSplineComponent->SetHoudiniGeoPartObject( HoudiniGeoPartObject );
 
         // If we have no parent, we need to re-attach.
-        if ( !HoudiniSplineComponent->GetAttachParent() )
-            HoudiniSplineComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
+		if (!HoudiniSplineComponent->GetAttachParent())
+		{
+			HoudiniSplineComponent->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
+
+			// Add to SerializedComponents array so it gets saved
+			if (GetOwner())
+				GetOwner()->AddInstanceComponent(HoudiniSplineComponent);
+		}
 
         HoudiniSplineComponent->SetVisibility( true );
 
@@ -4680,8 +4695,14 @@ UHoudiniAssetComponent::CreateHandles()
                 continue;
 
             // If we have no parent, we need to re-attach.
-            if ( !HandleComponent->GetAttachParent() )
-                HandleComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
+			if (!HandleComponent->GetAttachParent())
+			{
+				HandleComponent->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
+
+				// Add to SerializedComponents array so it gets saved
+				if (GetOwner())
+					GetOwner()->AddInstanceComponent(HandleComponent);
+			}
 
             HandleComponent->SetVisibility( true );
 
@@ -5182,8 +5203,10 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
         ValidLandscapes.Add( NewLandscape );
 
         // Attach the new landscapes to ourselves if we dont already own it
-        if ( GetAttachChildren().Find( NewLandscape->GetRootComponent() ) == INDEX_NONE )
-            NewLandscape->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
+		if (GetAttachChildren().Find(NewLandscape->GetRootComponent()) == INDEX_NONE)
+		{
+			NewLandscape->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
+		}
 
         FHoudiniGeoPartObject Heightfield = IterLandscape.Key();
 

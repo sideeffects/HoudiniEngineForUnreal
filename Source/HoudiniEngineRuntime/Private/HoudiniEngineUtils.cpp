@@ -3363,12 +3363,46 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
         // Marshall face material indices.
         if ( RawMesh.FaceMaterialIndices.Num() > 0 )
         {
-            // Create an array of Material Interfaces
+            // TODO: FIX ME PROPERLY
+            // In some cases, deleted/unused materials could cause crashes in FHoudiniEngineUtils::CreateFaceMaterialArray() later
+            // To avoid this, we need to make sure that the MaterialInterfaces array size matches the face material indexes..
+            // Proper fix would be to export the mesh via section...
+            int32 MaxMatIndex = 0;
             TArray< UMaterialInterface * > MaterialInterfaces;
             if (StaticMeshComponent && !StaticMeshComponent->IsPendingKill() && StaticMeshComponent->IsValidLowLevel() )
             {
-                // StaticMeshComponent->GetUsedMaterials(MaterialInterfaces, false);
+                //StaticMeshComponent->GetUsedMaterials(MaterialInterfaces, false);
+                {
+                    // Get the map of material used for the static mesh component
+                    TMap<int32, UMaterialInterface*> MapOfMaterials;
+                    for (int32 LODIdx = 0; LODIdx < StaticMeshComponent->GetStaticMesh()->RenderData->LODResources.Num(); LODIdx++)
+                    {
+                        FStaticMeshLODResources& LODResources = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[LODIdx];
+                        for (int32 SectionIndex = 0; SectionIndex < LODResources.Sections.Num(); SectionIndex++)
+                        {
+                            // Get the material for each element at the current lod index
+                            int32 MaterialIndex = LODResources.Sections[SectionIndex].MaterialIndex;
+                            if (!MapOfMaterials.Contains(MaterialIndex))
+                            {
+                                MapOfMaterials.Add(MaterialIndex, StaticMeshComponent->GetMaterial(MaterialIndex));
 
+                                // Keep track of the max material index
+                                if (MaxMatIndex < MaterialIndex)
+                                    MaxMatIndex = MaterialIndex;
+                            }
+                        }
+                    }
+
+                    // We need to assign enough materials for our index
+                    MaterialInterfaces.SetNum(MaxMatIndex + 1);
+                    for (const auto& Kvp : MapOfMaterials)
+                    {
+                        MaterialInterfaces[Kvp.Key] = Kvp.Value;
+                    }
+                }
+
+                // TODO: FIX ME PROPERLY
+                // Trying to fix up inconsistencies between the RawMesh / StaticMesh material indexes by using the meshes sections...
                 int NumMeshBasedMtrls = StaticMeshComponent->GetNumMaterials();
                 TArray< UMaterialInterface * > MeshBasedMaterialInterfaces;
                 MeshBasedMaterialInterfaces.SetNumUninitialized(NumMeshBasedMtrls);
@@ -3376,7 +3410,9 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                     MeshBasedMaterialInterfaces[i] = StaticMeshComponent->GetMaterial(i);
 
                 int32 NumSections = StaticMesh->GetNumSections(LODIndex);
-                MaterialInterfaces.SetNumUninitialized(NumSections);
+                if ( NumSections > NumMeshBasedMtrls )
+                    MaterialInterfaces.SetNumUninitialized(NumSections);
+
                 for (int SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
                 {
                     FMeshSectionInfo Info = StaticMesh->GetSectionInfoMap().Get(LODIndex, SectionIndex);
@@ -5198,6 +5234,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut,
     FTransform & ComponentTransform )
 {
+    double time_start = FPlatformTime::Seconds();
+
 #if WITH_EDITOR
     /*
     // When called via commandlet, this might be perfectly valid
@@ -5361,6 +5399,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     continue;
 
                 // We only handle editable curves
+
                 if (CurrentEditableGeoInfo.type != HAPI_GEOTYPE_CURVE )
                     continue;
 
@@ -5433,6 +5472,15 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             // Unsupported/Invalid part
             if( PartInfo.type == HAPI_PARTTYPE_INVALID )
                 continue;
+
+            int32 nAttribCount = PartInfo.attributeCounts[HAPI_ATTROWNER_VERTEX];
+            TArray<HAPI_StringHandle> AttribNameSHArray;
+            AttribNameSHArray.SetNum(nAttribCount);
+
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeNames(
+                FHoudiniEngine::Get().GetSession(),
+                GeoInfo.nodeId, PartIdx, HAPI_ATTROWNER_VERTEX,
+                AttribNameSHArray.GetData(), nAttribCount), false);
 
             // Create geo part object identifier.
             FHoudiniGeoPartObject HoudiniGeoPartObject(
@@ -7009,6 +7057,13 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         StaticMesh->LightMapResolution = LightMapResolutionOverride;
                 }
 
+                if (true)
+                {
+                    SrcModel->BuildSettings.bBuildReversedIndexBuffer = false;
+                    SrcModel->BuildSettings.bGenerateDistanceFieldAsIfTwoSided = false;
+                    SrcModel->BuildSettings.bUseHighPrecisionTangentBasis = false;
+                }
+
                 if ( !RawMesh.IsValidOrFixable() )
                 {
                     HOUDINI_LOG_WARNING(
@@ -7224,8 +7279,11 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 FHoudiniScopedGlobalSilence ScopedGlobalSilence;
                 TArray< FText > BuildErrors;
                 {
+                    double build_start = FPlatformTime::Seconds();
                     SCOPE_CYCLE_COUNTER( STAT_BuildStaticMesh );
                     StaticMesh->Build( true, &BuildErrors );
+                    double build_end = FPlatformTime::Seconds();
+                    HOUDINI_LOG_MESSAGE(TEXT("StaticMesh->Build() executed in %f seconds."), build_end - build_start);
                 }
 
                 for ( int32 BuildErrorIdx = 0; BuildErrorIdx < BuildErrors.Num(); ++BuildErrorIdx )
@@ -7389,6 +7447,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     }
 
 #endif
+
+    double time_end = FPlatformTime::Seconds();
+    HOUDINI_LOG_MESSAGE(TEXT("CreateStaticMeshesFromHoudiniAsset() executed in %f seconds."), time_end - time_start);
 
     return true;
 }
@@ -10717,6 +10778,9 @@ FHoudiniEngineUtils::CreateGroupOrAttributeFromTags( const HAPI_NodeId& NodeId, 
             
             if ( HAPI_RESULT_SUCCESS == Result )
                 NeedToCommitGeo = true;
+
+			// TODO: Free memory for ExtractRawName()
+
         }
         else
         {
@@ -10738,6 +10802,8 @@ FHoudiniEngineUtils::CreateGroupOrAttributeFromTags( const HAPI_NodeId& NodeId, 
 
             if ( HAPI_RESULT_SUCCESS == Result )
                 NeedToCommitGeo = true;
+
+			// TODO: Free memory for ExtractRawName()
         }
     }
 
