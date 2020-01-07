@@ -857,10 +857,12 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
                     StaticMeshComponent->SetStaticMesh(StaticMesh);
                     StaticMeshComponent->SetVisibility(true);
                     StaticMeshComponent->SetMobility(Mobility);
-                    StaticMeshComponent->RegisterComponent();
 
                     // Property propagation: set the new SMC's properties to the HAC's current settings
                     CopyComponentPropertiesTo(StaticMeshComponent);
+
+                    // Register the component AFTER copying the properties!
+                    StaticMeshComponent->RegisterComponent();
 
                     // Attach created static mesh component to our Houdini component.
                     StaticMeshComponent->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
