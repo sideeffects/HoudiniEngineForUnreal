@@ -1156,6 +1156,209 @@ HAPI_DECL HAPI_GetAssetInfo( const HAPI_Session * session,
                              HAPI_NodeId node_id,
                              HAPI_AssetInfo * asset_info );
 
+/// @brief  Get the number of asset parameters contained in an asset 
+///         library, as well as the number of parameter int, float,
+///         string, and choice values. 
+///
+///         This does not create the asset in the session.
+///         Use this for faster querying of asset parameters compared to
+///         creating the asset node and querying the node's parameters.
+///
+///         This does require ::HAPI_LoadAssetLibraryFromFile() to be
+///         called prior, in order to load the asset library and
+///         acquire library_id. Then ::HAPI_GetAvailableAssetCount and
+///         ::HAPI_GetAvailableAssets should be called to get the
+///         asset_name.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      library_id
+///                 Returned by ::HAPI_LoadAssetLibraryFromFile().
+///
+/// @param[in]      asset_name
+///                 Name of the asset to get the parm counts for.
+///
+/// @param[out]     parm_count
+///                 The number of parameters in the asset library.
+///
+/// @param[out]     int_value_count
+///                 The number of int values for parameters in the asset 
+///                 library.
+///
+/// @param[out]     float_value_count
+///                 The number of float values for parameters in the asset 
+///                 library.
+///
+/// @param[out]     string_value_count
+///                 The number of string values for parameters in the asset 
+///                 library.
+///
+/// @param[out]     choice_value_count
+///                 The number of choice values for parameters in the asset 
+///                 library.
+///
+HAPI_DECL HAPI_GetAssetDefinitionParmCounts( const HAPI_Session * session,
+                                             HAPI_AssetLibraryId library_id,
+                                             const char * asset_name,
+                                             int * parm_count,
+                                             int * int_value_count,
+                                             int * float_value_count,
+                                             int * string_value_count,
+                                             int * choice_value_count );
+
+/// @brief  Fill an array of ::HAPI_ParmInfo structs with parameter
+///         information for the specified asset in the specified asset
+///         library.
+///
+///         This does not create the asset in the session.
+///         Use this for faster querying of asset parameters compared to
+///         creating the asset node and querying the node's parameters.
+///
+///         This does require ::HAPI_LoadAssetLibraryFromFile() to be
+///         called prior, in order to load the asset library and
+///         acquire library_id. ::HAPI_GetAssetDefinitionParmCounts should
+///         be called prior to acquire the count for the size of
+///         parm_infos_array.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      library_id
+///                 Returned by ::HAPI_LoadAssetLibraryFromFile().
+///
+/// @param[in]      asset_name
+///                 Name of the asset to get the parm counts for.
+///
+/// @param[out]     parm_infos_array
+///                 Array of ::HAPI_ParmInfo at least the size of
+///                 length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most parm_count - 1 acquired from 
+///                 ::HAPI_GetAssetDefinitionParmCounts.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most parm_count - start acquired
+///                 from ::HAPI_GetAssetDefinitionParmCounts.
+///
+HAPI_DECL HAPI_GetAssetDefinitionParmInfos( const HAPI_Session * session,
+                                            HAPI_AssetLibraryId library_id,
+                                            const char * asset_name,
+                                            HAPI_ParmInfo * parm_infos_array,
+                                            int start,
+                                            int length );
+
+/// @brief  Fill arrays of parameter int values, float values, string values,
+///         and choice values for parameters in the specified asset in the
+///         specified asset library.
+///
+///         This does not create the asset in the session.
+///         Use this for faster querying of asset parameters compared to
+///         creating the asset node and querying the node's parameters.
+///         Note that only default values are retrieved.
+///
+///         This does require ::HAPI_LoadAssetLibraryFromFile() to be
+///         called prior, in order to load the asset library and
+///         acquire library_id. ::HAPI_GetAssetDefinitionParmCounts should
+///         be called prior to acquire the counts for the sizes of
+///         the values arrays.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      library_id
+///                 Returned by ::HAPI_LoadAssetLibraryFromFile().
+///
+/// @param[in]      asset_name
+///                 Name of the asset to get the parm counts for.
+///
+/// @param[out]     int_values_array
+///                 Array of ints at least the size of int_length.
+///
+/// @param[in]      int_start
+///                 First index of range for int_values_array. Must be at
+///                 least 0 and at most int_value_count - 1 acquired from 
+///                 ::HAPI_GetAssetDefinitionParmCounts.
+///
+/// @param[in]      int_length
+///                 Must be at least 0 and at most int_value_count - int_start
+///                 acquired from ::HAPI_GetAssetDefinitionParmCounts.
+///
+/// @param[out]     float_values_array
+///                 Array of floats at least the size of float_length.
+///
+/// @param[in]      float_start
+///                 First index of range for float_values_array. Must be at
+///                 least 0 and at most float_value_count - 1 acquired from
+///                 ::HAPI_GetAssetDefinitionParmCounts.
+///
+/// @param[in]      float_length
+///                 Must be at least 0 and at most float_value_count -
+///                 float_start acquired from
+///                 ::HAPI_GetAssetDefinitionParmCounts.
+///
+/// @param[in]      string_evaluate
+///                 Whether or not to evaluate the string expressions.
+///                 For example, the string "$F" would evaluate to the
+///                 current frame number. So, passing in evaluate = false
+///                 would give you back the string "$F" and passing
+///                 in evaluate = true would give you back "1" (assuming
+///                 the current frame is 1).
+///
+/// @param[out]     string_values_array
+///                 Array of HAPI_StringHandle at least the size of 
+///                 string_length.
+///
+/// @param[in]      string_start
+///                 First index of range for string_values_array. Must be at
+///                 least 0 and at most string_value_count - 1 acquired from
+///                 ::HAPI_GetAssetDefinitionParmCounts.
+///
+/// @param[in]      string_length
+///                 Must be at least 0 and at most string_value_count -
+///                 string_start acquired from
+///                 ::HAPI_GetAssetDefinitionParmCounts.
+///
+/// @param[out]     choice_values_array
+///                 Array of ::HAPI_ParmChoiceInfo at least the size of
+///                 choice_length.
+///
+/// @param[in]      choice_start
+///                 First index of range for choice_values_array. Must be at
+///                 least 0 and at most choice_value_count - 1 acquired from 
+///                 ::HAPI_GetAssetDefinitionParmCounts.
+///
+/// @param[in]      choice_length
+///                 Must be at least 0 and at most choice_value_count -
+///                 choice_start acquired from
+///                 ::HAPI_GetAssetDefinitionParmCounts.
+///
+HAPI_DECL HAPI_GetAssetDefinitionParmValues(
+    const HAPI_Session * session,
+    HAPI_AssetLibraryId library_id,
+    const char * asset_name,
+    int * int_values_array,
+    int int_start,
+    int int_length,
+    float * float_values_array,
+    int float_start,
+    int float_length,
+    HAPI_Bool string_evaluate,
+    HAPI_StringHandle * string_values_array,
+    int string_start,
+    int string_length,
+    HAPI_ParmChoiceInfo * choice_values_array,
+    int choice_start,
+    int choice_length );
+
 /// @brief  Interrupt a cook or load operation.
 ///
 /// @param[in]      session
