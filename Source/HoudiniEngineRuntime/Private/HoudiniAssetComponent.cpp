@@ -837,7 +837,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
             if ( FoundStaticMeshComponent && !FoundStaticMeshComponent->IsPendingKill() )
             {
                 StaticMeshComponent = FoundStaticMeshComponent;
-                if ( !HoudiniGeoPartObject.IsVisible() )
+                if ( !HoudiniGeoPartObject.IsVisible() && !HoudiniGeoPartObject.IsCollidable())
                 {
                     // We have a mesh and component for a part which is invisible.
                     // Visibility may have changed since last cook
@@ -845,7 +845,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
                     continue;
                 }
             }
-            else if ( HoudiniGeoPartObject.IsVisible() )
+            else if ( HoudiniGeoPartObject.IsVisible() || HoudiniGeoPartObject.IsCollidable())
             {
                 // Create necessary component.
                 StaticMeshComponent = NewObject< UStaticMeshComponent >(
@@ -855,7 +855,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
                 if ( StaticMeshComponent && !StaticMeshComponent->IsPendingKill() )
                 {
                     StaticMeshComponent->SetStaticMesh(StaticMesh);
-                    StaticMeshComponent->SetVisibility(true);
+                    StaticMeshComponent->SetVisibility(HoudiniGeoPartObject.IsVisible());
                     StaticMeshComponent->SetMobility(Mobility);
 
                     // Property propagation: set the new SMC's properties to the HAC's current settings
