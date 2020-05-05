@@ -5194,7 +5194,7 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
 
         // Update the materials from our assignement/replacement and the materials assigned on the previous version of this landscape
         UpdateLandscapeMaterialsAssignementsAndReplacements( NewLandscape, Heightfield );
-
+	
         // Replace any reference we might still have to the old landscape with the new one
         TWeakObjectPtr<ALandscapeProxy>* OldLandscapePtr = LandscapeComponents.Find( Heightfield );
         if ( !OldLandscapePtr)

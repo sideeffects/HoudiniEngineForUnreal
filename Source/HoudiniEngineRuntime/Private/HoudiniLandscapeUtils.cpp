@@ -3376,19 +3376,22 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
         }
     }
 
-    // Handle the HF's tags
     for (auto Iter : NewLandscapes)
     {
         FHoudiniGeoPartObject HGPO = Iter.Key;
 
-        // See if we have unreal_tag_ attribute
-        TArray<FName> Tags;
-        if (!FHoudiniEngineUtils::GetUnrealTagAttributes(HGPO, Tags))
-            continue;
-
         TWeakObjectPtr<ALandscapeProxy> Landscape = Iter.Value;
         if (!Landscape.IsValid())
             continue;
+
+		// Update the landscape's collisions
+		Landscape->RecreateCollisionComponents();
+
+		// Handle the HF's tags
+		// See if we have unreal_tag_ attribute
+		TArray<FName> Tags;
+		if (!FHoudiniEngineUtils::GetUnrealTagAttributes(HGPO, Tags))
+			continue;
 
         Landscape->Tags = Tags;
     }

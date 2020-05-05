@@ -51,121 +51,121 @@ FHoudiniEngineInstancerUtils::CreateAllInstancers(
     for ( const FHoudiniGeoPartObject& HoudiniGeoPartObject : FoundInstancers )
     {
         if ( !HoudiniGeoPartObject.IsVisible() )
-        continue;
+			continue;
 
-    // Get object to be instanced.
-    HAPI_NodeId ObjectToInstance = HoudiniGeoPartObject.HapiObjectGetToInstanceId();
+		// Get object to be instanced.
+		HAPI_NodeId ObjectToInstance = HoudiniGeoPartObject.HapiObjectGetToInstanceId();
 
-    // We only handle packed prim and attribute overrides instancers for now.
-    bool bIsPackedPrimitiveInstancer = HoudiniGeoPartObject.IsPackedPrimitiveInstancer();
-    bool bAttributeInstancerOverride = HoudiniGeoPartObject.IsAttributeOverrideInstancer();
+		// We only handle packed prim and attribute overrides instancers for now.
+		bool bIsPackedPrimitiveInstancer = HoudiniGeoPartObject.IsPackedPrimitiveInstancer();
+		bool bAttributeInstancerOverride = HoudiniGeoPartObject.IsAttributeOverrideInstancer();
 
-    // This is invalid combination, no object to instance and input is not an attribute instancer.
-    if ( !bIsPackedPrimitiveInstancer && !bAttributeInstancerOverride && ObjectToInstance == -1 )
-        continue;
+		// This is invalid combination, no object to instance and input is not an attribute instancer.
+		if ( !bIsPackedPrimitiveInstancer && !bAttributeInstancerOverride && ObjectToInstance == -1 )
+			continue;
 
-    // Extract the objects to instance and their transforms
-    TArray< FHoudiniGeoPartObject > InstancedGeoParts;
-    TArray< TArray< FTransform > > InstancedGeoPartsTransforms;
-    TArray< UObject *> InstancedObjects;
-    TArray< TArray< FTransform > > InstancedObjectsTransforms;
-    if ( !FHoudiniEngineInstancerUtils::GetInstancedObjectsAndTransforms(
-        HoudiniGeoPartObject, AssetId,
-        InstancedGeoParts, InstancedGeoPartsTransforms,
-        InstancedObjects, InstancedObjectsTransforms ) )
-        continue;
+		// Extract the objects to instance and their transforms
+		TArray< FHoudiniGeoPartObject > InstancedGeoParts;
+		TArray< TArray< FTransform > > InstancedGeoPartsTransforms;
+		TArray< UObject *> InstancedObjects;
+		TArray< TArray< FTransform > > InstancedObjectsTransforms;
+		if ( !FHoudiniEngineInstancerUtils::GetInstancedObjectsAndTransforms(
+			HoudiniGeoPartObject, AssetId,
+			InstancedGeoParts, InstancedGeoPartsTransforms,
+			InstancedObjects, InstancedObjectsTransforms ) )
+			continue;
 
-    // We are instantiating HoudiniGeoPartObjects
-    // We need to find their corresponding meshes, and add them and their transform to the instanced Object arrays
-    if ( InstancedGeoParts.Num() > 0 && InstancedGeoPartsTransforms.Num() > 0 )
-    {
-        // Handle Instanced GeoPartObjects here
-        for ( int32 InstancedGeoIndex = 0; InstancedGeoIndex < InstancedGeoParts.Num(); InstancedGeoIndex++ )
-        {
-        const FHoudiniGeoPartObject& InstancedGeoPartObject = InstancedGeoParts[ InstancedGeoIndex ];
+		// We are instantiating HoudiniGeoPartObjects
+		// We need to find their corresponding meshes, and add them and their transform to the instanced Object arrays
+		if ( InstancedGeoParts.Num() > 0 && InstancedGeoPartsTransforms.Num() > 0 )
+		{
+			// Handle Instanced GeoPartObjects here
+			for ( int32 InstancedGeoIndex = 0; InstancedGeoIndex < InstancedGeoParts.Num(); InstancedGeoIndex++ )
+			{
+				const FHoudiniGeoPartObject& InstancedGeoPartObject = InstancedGeoParts[ InstancedGeoIndex ];
 
-        if ( !InstancedGeoPartsTransforms.IsValidIndex( InstancedGeoIndex ) )
-            continue;
+				if ( !InstancedGeoPartsTransforms.IsValidIndex( InstancedGeoIndex ) )
+					continue;
 
-        const TArray< FTransform >& InstancedGeoPartTransforms = InstancedGeoPartsTransforms[ InstancedGeoIndex ];
+				const TArray< FTransform >& InstancedGeoPartTransforms = InstancedGeoPartsTransforms[ InstancedGeoIndex ];
 
-        // We need to find the mesh that corresponds to the GeoPartObject
-        UStaticMesh** FoundStaticMesh = StaticMeshes.Find( InstancedGeoPartObject );
-        if ( FoundStaticMesh && *FoundStaticMesh )
-        {
-            // We can add the static mesh and its transform
-            InstancedObjects.Add( *FoundStaticMesh );
-            InstancedObjectsTransforms.Add( InstancedGeoPartTransforms );
-        }
-        else if ( InstancedGeoPartObject.IsPackedPrimitiveInstancer() )
-        {
-            // We are instantiating a packed primitive
-            TArray< FHoudiniGeoPartObject > AllInstancedPPGeoParts;
-            TArray< TArray< FTransform > > AllInstancedPPTransforms;
-            if ( FHoudiniEngineInstancerUtils::GetPackedPrimInstancerObjectsAndTransforms(
-                InstancedGeoPartObject, AllInstancedPPGeoParts, AllInstancedPPTransforms ) )
-            {
-            for ( int32 InstancedPPIndex = 0; InstancedPPIndex < AllInstancedPPGeoParts.Num(); InstancedPPIndex++ )
-            {
-                if ( !AllInstancedPPTransforms.IsValidIndex( InstancedPPIndex ) )
-                continue;
+				// We need to find the mesh that corresponds to the GeoPartObject
+				UStaticMesh** FoundStaticMesh = StaticMeshes.Find( InstancedGeoPartObject );
+				if ( FoundStaticMesh && *FoundStaticMesh )
+				{
+					// We can add the static mesh and its transform
+					InstancedObjects.Add( *FoundStaticMesh );
+					InstancedObjectsTransforms.Add( InstancedGeoPartTransforms );
+				}
+				else if ( InstancedGeoPartObject.IsPackedPrimitiveInstancer() )
+				{
+					// We are instantiating a packed primitive
+					TArray< FHoudiniGeoPartObject > AllInstancedPPGeoParts;
+					TArray< TArray< FTransform > > AllInstancedPPTransforms;
+					if ( FHoudiniEngineInstancerUtils::GetPackedPrimInstancerObjectsAndTransforms(
+						InstancedGeoPartObject, AllInstancedPPGeoParts, AllInstancedPPTransforms ) )
+					{
+						for ( int32 InstancedPPIndex = 0; InstancedPPIndex < AllInstancedPPGeoParts.Num(); InstancedPPIndex++ )
+						{
+							if ( !AllInstancedPPTransforms.IsValidIndex( InstancedPPIndex ) )
+							continue;
 
-                FHoudiniGeoPartObject InstancedPPGeoPart = AllInstancedPPGeoParts[ InstancedPPIndex ];
-                TArray< FTransform > InstancedPPTransforms = AllInstancedPPTransforms[ InstancedPPIndex ];
+							FHoudiniGeoPartObject InstancedPPGeoPart = AllInstancedPPGeoParts[ InstancedPPIndex ];
+							TArray< FTransform > InstancedPPTransforms = AllInstancedPPTransforms[ InstancedPPIndex ];
 
-                // Try to find the static mesh corresponding to that PP GeoPart                
-                UStaticMesh** FoundPPStaticMesh = StaticMeshes.Find( InstancedPPGeoPart );
-                if ( !FoundPPStaticMesh || ( *FoundPPStaticMesh == nullptr ) )
-                continue;
+							// Try to find the static mesh corresponding to that PP GeoPart                
+							UStaticMesh** FoundPPStaticMesh = StaticMeshes.Find( InstancedPPGeoPart );
+							if ( !FoundPPStaticMesh || ( *FoundPPStaticMesh == nullptr ) )
+								continue;
 
-                // Build a combined list of all the transforms of the instancer and the packed prim's transform
-                TArray< FTransform > CombinedTransforms;
-                CombinedTransforms.Empty( InstancedPPTransforms.Num() * InstancedGeoPartTransforms.Num() );
-                for ( const FTransform& InstancedTransform : InstancedGeoPartTransforms )                
-                {
-                for ( const FTransform& PPTransform : InstancedPPTransforms )
-                {
-                    CombinedTransforms.Add( PPTransform * InstancedTransform );
-                }
-                }
+							// Build a combined list of all the transforms of the instancer and the packed prim's transform
+							TArray< FTransform > CombinedTransforms;
+							CombinedTransforms.Empty( InstancedPPTransforms.Num() * InstancedGeoPartTransforms.Num() );
+							for ( const FTransform& InstancedTransform : InstancedGeoPartTransforms )                
+							{
+								for ( const FTransform& PPTransform : InstancedPPTransforms )
+								{
+									CombinedTransforms.Add(PPTransform * InstancedTransform);
+								}
+							}
 
-                // We can add the static mesh and its transform
-                InstancedObjects.Add( *FoundPPStaticMesh );
-                InstancedObjectsTransforms.Add( CombinedTransforms );
-            }
-            }
-            else
-            {
-            HOUDINI_LOG_WARNING(
-                TEXT( "CreateAllInstancers for Packed Primitive: Could not find static mesh for object [%d %s], geo %d, part %d]" ),
-                InstancedGeoPartObject.ObjectId, *InstancedGeoPartObject.ObjectName, InstancedGeoPartObject.GeoId, InstancedGeoPartObject.PartId );
-            }
-        }
-        }
-    }
+							// We can add the static mesh and its transform
+							InstancedObjects.Add( *FoundPPStaticMesh );
+							InstancedObjectsTransforms.Add( CombinedTransforms );
+						}
+					}
+					else
+					{
+						HOUDINI_LOG_WARNING(
+							TEXT("CreateAllInstancers for Packed Primitive: Could not find static mesh for object [%d %s], geo %d, part %d]"),
+							InstancedGeoPartObject.ObjectId, *InstancedGeoPartObject.ObjectName, InstancedGeoPartObject.GeoId, InstancedGeoPartObject.PartId);
+					}
+				}
+			}
+		}
 
-    if ( InstancedObjects.Num() > 0 && InstancedObjectsTransforms.Num() > 0 )
-    {
-        // Handle Instanced Unreal Objects here
-        for ( int32 InstancedObjectIndex = 0; InstancedObjectIndex < InstancedObjects.Num(); InstancedObjectIndex++ )
-        {
-        UObject* InstancedObject = InstancedObjects[ InstancedObjectIndex ];
+		if ( InstancedObjects.Num() > 0 && InstancedObjectsTransforms.Num() > 0 )
+		{
+			// Handle Instanced Unreal Objects here
+			for ( int32 InstancedObjectIndex = 0; InstancedObjectIndex < InstancedObjects.Num(); InstancedObjectIndex++ )
+			{
+				UObject* InstancedObject = InstancedObjects[InstancedObjectIndex];
 
-        if ( !InstancedObjectsTransforms.IsValidIndex( InstancedObjectIndex ) )
-            continue;
+				if (!InstancedObjectsTransforms.IsValidIndex(InstancedObjectIndex))
+					continue;
 
-        const TArray< FTransform >& InstancedObjectTransforms = InstancedObjectsTransforms[ InstancedObjectIndex ];
+				const TArray< FTransform >& InstancedObjectTransforms = InstancedObjectsTransforms[InstancedObjectIndex];
 
-        USceneComponent* CreatedSceneComponent = nullptr;
-        if ( !CreateInstancerComponent( InstancedObject, InstancedObjectTransforms, HoudiniGeoPartObject, ParentComponent, CreatedSceneComponent ) )
-            continue;
+				USceneComponent* CreatedSceneComponent = nullptr;
+				if (!CreateInstancerComponent(InstancedObject, InstancedObjectTransforms, HoudiniGeoPartObject, ParentComponent, CreatedSceneComponent))
+					continue;
 
-        if ( !CreatedSceneComponent )
-            continue;
+				if (!CreatedSceneComponent)
+					continue;
 
-        NewInstancers.Add( HoudiniGeoPartObject, CreatedSceneComponent );
-        }
-    }
+				NewInstancers.Add(HoudiniGeoPartObject, CreatedSceneComponent);
+			}
+		}
     }
 
     return true;
@@ -398,7 +398,7 @@ FHoudiniEngineInstancerUtils::CreateInstancerComponent(
     if ( UStaticMesh * StaticMesh = Cast<UStaticMesh>( InstancedObject) )
     {
         UMaterialInterface * InstancerMaterial = nullptr;
-    /*
+		/*
         // We check attribute material first.
         if(InstancerGeoPartObject.bInstancerAttributeMaterialAvailable )
         {
@@ -410,19 +410,19 @@ FHoudiniEngineInstancerUtils::CreateInstancerComponent(
         if( !InstancerMaterial && InstancerHoudiniGeoPartObject.bInstancerMaterialAvailable )
             InstancerMaterial = Comp->GetAssignmentMaterial(
                 InstancerHoudiniGeoPartObject.InstancerMaterialName);
-    */
+		*/
 
-    if ( !FHoudiniEngineInstancerUtils::CreateInstancedStaticMeshComponent(
-        StaticMesh, InstancedObjectTransforms, InstancerGeoPartObject, ParentComponent, CreatedInstancedComponent, InstancerMaterial ) )
-        return false;
+		if ( !FHoudiniEngineInstancerUtils::CreateInstancedStaticMeshComponent(
+			StaticMesh, InstancedObjectTransforms, InstancerGeoPartObject, ParentComponent, CreatedInstancedComponent, InstancerMaterial ) )
+			return false;
        
     }
     else
     {
         // Create the actor instancer component
-    if (!FHoudiniEngineInstancerUtils::CreateInstancedActorComponent(
-        InstancedObject, InstancedObjectTransforms, InstancerGeoPartObject, ParentComponent, CreatedInstancedComponent ) )
-        return false;
+		if (!FHoudiniEngineInstancerUtils::CreateInstancedActorComponent(
+			InstancedObject, InstancedObjectTransforms, InstancerGeoPartObject, ParentComponent, CreatedInstancedComponent ) )
+			return false;
     }
 
     // Update the component's UProperties
