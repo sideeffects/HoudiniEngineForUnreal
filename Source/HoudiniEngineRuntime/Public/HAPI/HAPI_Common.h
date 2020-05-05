@@ -752,6 +752,14 @@ enum HAPI_CacheProperty
 
 HAPI_C_ENUM_TYPEDEF( HAPI_CacheProperty )
 
+/// Type of sampling for heightfield
+enum HAPI_HeightFieldSampling
+{
+    HAPI_HEIGHTFIELD_SAMPLING_CENTER,
+    HAPI_HEIGHTFIELD_SAMPLING_CORNER
+};
+HAPI_C_ENUM_TYPEDEF( HAPI_HeightFieldSampling )
+
 /// Used with PDG functions
 enum HAPI_PDG_State
 {
