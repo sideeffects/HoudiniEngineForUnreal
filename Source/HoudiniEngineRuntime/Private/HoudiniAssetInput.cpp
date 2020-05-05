@@ -1196,6 +1196,29 @@ UHoudiniAssetInput::UpdateObjectMergePackBeforeMerge()
     else if (ChoiceIndex == EHoudiniAssetInputType::WorldInput)
         NumberOfInputObjects = InputOutlinerMeshArray.Num();
 
+	if (bIsObjectPathParameter)
+	{
+		// Directly change the Parameter xformtype
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::SetParmIntValue(
+			FHoudiniEngine::Get().GetSession(),
+			NodeId, sPack.c_str(), 0, nPackValue))
+			bSuccess = true;
+	}
+	else
+	{
+		// Query the object merge's node ID via the input
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::QueryNodeInput(
+			FHoudiniEngine::Get().GetSession(),
+			HostAssetId, InputIndex, &InputNodeId))
+		{
+			// Change Parameter xformtype
+			if (HAPI_RESULT_SUCCESS == FHoudiniApi::SetParmIntValue(
+				FHoudiniEngine::Get().GetSession(),
+				InputNodeId, sPack.c_str(), 0, nPackValue))
+				bSuccess = true;
+		}
+	}
+
     // We also need to modify the transform types of the merge node's inputs
     for ( int n = 0; n < NumberOfInputObjects; n++ )
     {
