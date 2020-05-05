@@ -941,6 +941,42 @@ HAPI_DECL HAPI_GetTime( const HAPI_Session * session, float * time );
 ///
 HAPI_DECL HAPI_SetTime( const HAPI_Session * session, float time );
 
+/// @brief  Returns whether the Houdini session will use the current time in
+///         Houdini when cooking and retrieving data. By default this is
+///         disabled and the Houdini session uses time 0 (i.e. frame 1).
+///         In SessionSync, it is enabled by default, but can be overridden.
+///         Note that this function will ALWAYS return
+///         ::HAPI_RESULT_SUCCESS.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[out]     enabled
+///                 Whether use Houdini time is enabled or not.
+///
+HAPI_DECL HAPI_GetUseHoudiniTime( const HAPI_Session * session, 
+                                  HAPI_Bool * enabled );
+
+/// @brief  Sets whether the Houdini session should use the current time in
+///         Houdini when cooking and retrieving data. By default this is
+///         disabled and the Houdini session uses time 0 (i.e. frame 1).
+///         In SessionSync, it is enabled by default, but can be overridden.
+///         Note that this function will ALWAYS return
+///         ::HAPI_RESULT_SUCCESS.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      enabled
+///                 Set to true to use Houdini time.
+///
+HAPI_DECL HAPI_SetUseHoudiniTime( const HAPI_Session * session, 
+                                  HAPI_Bool enabled );
+
 /// @brief  Gets the current global timeline options.
 ///
 /// @param[in]      session
@@ -1671,6 +1707,9 @@ HAPI_DECL HAPI_CreateInputNode( const HAPI_Session * session,
 ///         ::HAPI_SaveHIPFile() the nodes created with this
 ///         method will be green and will start with the name "input".
 ///
+///         Note also that this uses center sampling. Use 
+///         ::HAPI_CreateHeightfieldInput to specify corner sampling.
+///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
@@ -1717,16 +1756,84 @@ HAPI_DECL HAPI_CreateInputNode( const HAPI_Session * session,
 ///                 The merge node can be used to connect additional input masks.
 ///                 Use ::HAPI_GetNodeInfo() to get more information about the node.
 ///
-HAPI_DECL HAPI_CreateHeightfieldInputNode(  const HAPI_Session * session,
-                                            HAPI_NodeId parent_node_id,
-                                            const char * name,
-                                            int xsize,
-                                            int ysize,
-                                            float voxelsize,
-                                            HAPI_NodeId * heightfield_node_id,
-                                            HAPI_NodeId * height_node_id,
-                                            HAPI_NodeId * mask_node_id,
-                                            HAPI_NodeId * merge_node_id );
+HAPI_DECL_DEPRECATED( 3.3.5, 18.0.162 )
+HAPI_CreateHeightfieldInputNode( const HAPI_Session * session,
+                                 HAPI_NodeId parent_node_id,
+                                 const char * name,
+                                 int xsize,
+                                 int ysize,
+                                 float voxelsize,
+                                 HAPI_NodeId * heightfield_node_id,
+                                 HAPI_NodeId * height_node_id,
+                                 HAPI_NodeId * mask_node_id,
+                                 HAPI_NodeId * merge_node_id );
+
+/// @brief  Creates the required node hierarchy needed for heightfield inputs.
+///
+///         Note that when saving the Houdini scene using
+///         ::HAPI_SaveHIPFile() the nodes created with this
+///         method will be green and will start with the name "input".
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      parent_node_id
+///                 The parent node network's node id or -1 if the parent
+///                 network is the manager (top-level) node. In that case,
+///                 the manager must be identified by the table name in the
+///                 operator_name.
+///
+/// @param[in]      name
+///                 Give this input node a name for easy debugging.
+///                 The node's parent OBJ node and the Null SOP node will both
+///                 get this given name with "input_" prepended.
+///                 You can also pass NULL in which case the name will
+///                 be "input#" where # is some number.
+///
+/// @param[in]      xsize
+///                 size of the heightfield in X
+///
+/// @param[in]      ysize
+///                 size of the heightfield in y
+///
+/// @param[in]      voxelsize
+///                 Size of the voxel
+///
+/// @param[in]      sampling
+///                 Type of sampling which should be either center or corner.
+///
+/// @param[out]     heightfield_node_id
+///                 Newly created node id for the heightfield node.
+///                 Use ::HAPI_GetNodeInfo() to get more information about
+///                 the node.
+///
+/// @param[out]     height_node_id
+///                 Newly created node id for the height volume.
+///                 Use ::HAPI_GetNodeInfo() to get more information about the node.
+///
+/// @param[out]     mask_node_id
+///                 Newly created node id for the mask volume.
+///                 Use ::HAPI_GetNodeInfo() to get more information about the
+///                 node.
+///
+/// @param[out]     merge_node_id
+///                 Newly created merge node id. 
+///                 The merge node can be used to connect additional input masks.
+///                 Use ::HAPI_GetNodeInfo() to get more information about the node.
+///
+HAPI_DECL HAPI_CreateHeightFieldInput( const HAPI_Session * session,
+                                       HAPI_NodeId parent_node_id,
+                                       const char * name,
+                                       int xsize,
+                                       int ysize,
+                                       float voxelsize,
+                                       HAPI_HeightFieldSampling sampling,
+                                       HAPI_NodeId * heightfield_node_id,
+                                       HAPI_NodeId * height_node_id,
+                                       HAPI_NodeId * mask_node_id,
+                                       HAPI_NodeId * merge_node_id );
 
 /// @brief  Creates a volume input node that can be used with Heightfields
 ///
@@ -1823,7 +1930,7 @@ HAPI_DECL HAPI_DeleteNode( const HAPI_Session * session,
 
 /// @brief  Rename a node that you created. Only nodes with their
 ///         ::HAPI_NodeInfo::createdPostAssetLoad set to true can be
-///         deleted this way.
+///         renamed this way.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -1831,7 +1938,7 @@ HAPI_DECL HAPI_DeleteNode( const HAPI_Session * session,
 ///                 Pass NULL to just use the default in-process session.
 ///
 /// @param[in]      node_id
-///                 The node to delete.
+///                 The node to rename.
 ///
 /// @param[in]      new_name
 ///                 The new node name.
@@ -5664,6 +5771,29 @@ HAPI_DECL HAPI_SetHeightFieldData(  const HAPI_Session * session,
                                     const float * values_array,
                                     int start, int length );
 
+/// @brief  Retrieve the visualization meta-data of the volume.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     visual_info
+///                 The meta-data associated with the visualization
+///                 settings of the part specified by the previous 
+///                 parameters.
+///
+HAPI_DECL HAPI_GetVolumeVisualInfo( const HAPI_Session * session,
+                                    HAPI_NodeId node_id,
+                                    HAPI_PartId part_id,
+                                    HAPI_VolumeVisualInfo * visual_info );
+
 // CURVES -------------------------------------------------------------------
 
 /// @brief  Retrieve any meta-data about the curves, including the
@@ -6158,7 +6288,51 @@ HAPI_DECL HAPI_SetNodeDisplay( const HAPI_Session * session,
                                HAPI_NodeId node_id,
                                int onOff );
 
-// @brief  Return an array of PDG graph context names and ids, the first 
+/// @brief  Get the specified node's total cook count, including
+///	    its children, if specified.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      node_type_filter
+///                 The node type by which to filter the children.
+///
+/// @param[in]      node_flags_filter
+///                 The node flags by which to filter the children.
+///
+/// @param[in]      recursive
+///                 Whether or not to include the specified node's
+///                 children cook count in the tally.
+///
+/// @param[out]     count
+///                 The number of cooks in total for this session.
+///
+HAPI_DECL HAPI_GetTotalCookCount( const HAPI_Session * session,
+                                  HAPI_NodeId node_id,
+                                  HAPI_NodeTypeBits node_type_filter,
+                                  HAPI_NodeFlagsBits node_flags_filter,
+                                  HAPI_Bool recursive,
+                                  int * count );
+
+/// @brief  Enable or disable SessionSync mode.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      enable
+///                 Enable or disable SessionSync mode.
+///
+HAPI_DECL HAPI_SetSessionSync( const HAPI_Session * session,
+                               HAPI_Bool enable );
+
+/// @brief Return an array of PDG graph context names and ids, the first 
 ///        count names will be returned.  These ids can be used 
 ///        with ::HAPI_GetPDGEvents and ::HAPI_GetPDGState.  The values
 ///        of the names can be retrieved with ::HAPI_GetString.

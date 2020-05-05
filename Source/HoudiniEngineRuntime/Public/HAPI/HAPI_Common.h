@@ -506,6 +506,18 @@ enum HAPI_VolumeType
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_VolumeType )
 
+enum HAPI_VolumeVisualType
+{
+    HAPI_VOLUMEVISTYPE_INVALID = -1,
+    HAPI_VOLUMEVISTYPE_SMOKE,
+    HAPI_VOLUMEVISTYPE_RAINBOW,
+    HAPI_VOLUMEVISTYPE_ISO,
+    HAPI_VOLUMEVISTYPE_INVISIBLE,
+    HAPI_VOLUMEVISTYPE_HEIGHTFIELD,
+    HAPI_VOLUMEVISTYPE_MAX
+};
+HAPI_C_ENUM_TYPEDEF( HAPI_VolumeVisualType )
+
 enum HAPI_StorageType
 {
     HAPI_STORAGETYPE_INVALID = -1,
@@ -751,6 +763,14 @@ enum HAPI_CacheProperty
 };
 
 HAPI_C_ENUM_TYPEDEF( HAPI_CacheProperty )
+
+/// Type of sampling for heightfield
+enum HAPI_HeightFieldSampling
+{
+    HAPI_HEIGHTFIELD_SAMPLING_CENTER,
+    HAPI_HEIGHTFIELD_SAMPLING_CORNER
+};
+HAPI_C_ENUM_TYPEDEF( HAPI_HeightFieldSampling )
 
 /// Used with PDG functions
 enum HAPI_PDG_State
@@ -1632,6 +1652,18 @@ struct HAPI_API HAPI_VolumeTileInfo
     HAPI_Bool isValid;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_VolumeTileInfo )
+
+/// @struct HAPI_VolumeVisualInfo
+///
+/// Describes the visual settings of a volume.
+///
+struct HAPI_API HAPI_VolumeVisualInfo
+{
+    HAPI_VolumeVisualType type;
+    float iso;
+    float density;
+};
+HAPI_C_STRUCT_TYPEDEF( HAPI_VolumeVisualInfo )
 
 // CURVES -------------------------------------------------------------------
 
