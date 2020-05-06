@@ -53,7 +53,6 @@
 #include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerPublicTypes.h"
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
-#include "Editor/UnrealEd/Public/Layers/ILayers.h"
 #include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
 #include "Editor/PropertyEditor/Private/PropertyNode.h"
 #include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
