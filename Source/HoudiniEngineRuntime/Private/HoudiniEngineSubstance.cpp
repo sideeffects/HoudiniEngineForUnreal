@@ -136,8 +136,8 @@ FHoudiniEngineSubstance::LoadSubstanceGraphInstance( UClass * GraphInstanceClass
     TArray< FAssetData > SubstanceGraphInstances;
 
     // Get Substance instance factory pointer property.
-    UObjectProperty * FactoryParentProperty =
-        Cast< UObjectProperty >( GraphInstanceClass->FindPropertyByName( HAPI_UNREAL_SUBSTANCE_PROPERTY_FACTORY_PARENT ) );
+    FObjectProperty * FactoryParentProperty =
+        Cast< FObjectProperty >( GraphInstanceClass->FindPropertyByName( HAPI_UNREAL_SUBSTANCE_PROPERTY_FACTORY_PARENT ) );
     if ( !FactoryParentProperty )
         return nullptr;
 
