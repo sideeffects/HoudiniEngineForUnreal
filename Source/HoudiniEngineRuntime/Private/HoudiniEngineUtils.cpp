@@ -9388,7 +9388,7 @@ FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
         }
 
         // Try to find the corresponding UProperty
-        UProperty* FoundProperty = nullptr;
+        FProperty* FoundProperty = nullptr;
         void* StructContainer = nullptr;
         UObject* FoundPropertyObject = nullptr;
 
@@ -9403,7 +9403,7 @@ FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
         FString ObjectName = MeshComponent->GetName();
 
         // Couldn't find or modify the Uproperty!
-        HOUDINI_LOG_MESSAGE( TEXT( "Modified UProperty %s on %s named %s" ), *CurrentUPropertyName, *ClassName, * ObjectName );    
+        HOUDINI_LOG_MESSAGE( TEXT( "Modified FProperty %s on %s named %s" ), *CurrentUPropertyName, *ClassName, * ObjectName );    
     }
 }
 /*
@@ -9496,7 +9496,7 @@ FHoudiniEngineUtils::TryToFindInArrayProperty(UObject* Object, FString UProperty
 
 bool FHoudiniEngineUtils::FindUPropertyAttributesOnObject(
     UObject* ParentObject, const UGenericAttribute& UPropertiesToFind,
-    UProperty*& FoundProperty, UObject*& FoundPropertyObject, void*& StructContainer )
+	FProperty*& FoundProperty, UObject*& FoundPropertyObject, void*& StructContainer )
 {
 #if WITH_EDITOR
     if ( !ParentObject || ParentObject->IsPendingKill() )
@@ -9549,10 +9549,10 @@ bool FHoudiniEngineUtils::FindUPropertyAttributesOnObject(
     */
 
     // Iterate manually on the properties, in order to handle structProperties correctly
-    for ( TFieldIterator< UProperty > PropIt( MeshClass, EFieldIteratorFlags::IncludeSuper ); PropIt; ++PropIt )
+    for ( TFieldIterator< FProperty > PropIt( MeshClass, EFieldIteratorFlags::IncludeSuper ); PropIt; ++PropIt )
     {
-        UProperty* CurrentProperty = *PropIt;
-        if ( !CurrentProperty || CurrentProperty->IsPendingKill() )
+		FProperty* CurrentProperty = *PropIt;
+        if ( !CurrentProperty )
             continue;
 
         FString DisplayName = CurrentProperty->GetDisplayNameText().ToString().Replace( TEXT(" "), TEXT("") );
@@ -9573,25 +9573,25 @@ bool FHoudiniEngineUtils::FindUPropertyAttributesOnObject(
 
         /*
         // StructProperty need to be a nested struct
-        if (UStructProperty* StructProperty = Cast< UStructProperty >(CurrentProperty))
+        if (FStructProperty* StructProperty = CastFiled< FStructProperty >(CurrentProperty))
             bPropertyHasBeenFound = TryToFindInStructProperty(MeshComponent, CurrentUPropertyName, StructProperty, FoundProperty, StructContainer);
-        else if (UArrayProperty* ArrayProperty = Cast< UArrayProperty >(CurrentProperty))
+        else if (FArrayProperty* ArrayProperty = CastField< FArrayProperty >(CurrentProperty))
             bPropertyHasBeenFound = TryToFindInArrayProperty(MeshComponent, CurrentUPropertyName, ArrayProperty, FoundProperty, StructContainer);
         */
 
         // StructProperty need to be a nested struct
-        UStructProperty* StructProperty = Cast< UStructProperty >(CurrentProperty);
-        if ( StructProperty && !StructProperty->IsPendingKill() )
+        FStructProperty* StructProperty = CastField< FStructProperty >(CurrentProperty);
+        if ( StructProperty )
         {
             // Walk the structs' properties and try to find the one we're looking for
             UScriptStruct* Struct = StructProperty->Struct;
             if (!Struct || Struct->IsPendingKill())
                 continue;
 
-            for ( TFieldIterator< UProperty > It( Struct ); It; ++It )
+            for ( TFieldIterator< FProperty > It( Struct ); It; ++It )
             {
-                UProperty* Property = *It;
-                if (!Property || Property->IsPendingKill())
+				FProperty* Property = *It;
+                if (!Property )
                     continue;
 
                 DisplayName = Property->GetDisplayNameText().ToString().Replace( TEXT(" "), TEXT("") );
@@ -9623,15 +9623,15 @@ bool FHoudiniEngineUtils::FindUPropertyAttributesOnObject(
         return true;
 
     // Try with FindField??
-    if ( !FoundProperty || FoundProperty->IsPendingKill() )
-        FoundProperty = FindField<UProperty>( MeshClass, *CurrentUPropertyName );
+    if ( !FoundProperty )
+        FoundProperty = FindField<FProperty>( MeshClass, *CurrentUPropertyName );
 
     // Try with FindPropertyByName ??
-    if ( !FoundProperty || FoundProperty->IsPendingKill() )
+    if ( !FoundProperty )
         FoundProperty = MeshClass->FindPropertyByName( *CurrentUPropertyName );
 
     // We found the UProperty we were looking for
-    if ( FoundProperty && !FoundProperty->IsPendingKill())
+    if ( FoundProperty )
         return true;
 
     // Handle common properties nested in classes
@@ -9659,7 +9659,7 @@ bool FHoudiniEngineUtils::FindUPropertyAttributesOnObject(
     }
 
     // We found the UProperty we were looking for
-    if ( FoundProperty && !FoundProperty->IsPendingKill() )
+    if ( FoundProperty )
         return true;
 
 #endif
@@ -9668,17 +9668,16 @@ bool FHoudiniEngineUtils::FindUPropertyAttributesOnObject(
 
 bool FHoudiniEngineUtils::ModifyUPropertyValueOnObject(
     UObject* MeshComponent, UGenericAttribute CurrentPropAttribute,
-    UProperty* FoundProperty, void * StructContainer )
+	FProperty* FoundProperty, void * StructContainer )
 {
-    if ( !MeshComponent || MeshComponent->IsPendingKill()
-        || !FoundProperty || FoundProperty->IsPendingKill() )
+    if ( !MeshComponent || MeshComponent->IsPendingKill() || !FoundProperty )
         return false;
 
-    UProperty* InnerProperty = FoundProperty;
+	FProperty* InnerProperty = FoundProperty;
     int32 NumberOfProperties = 1;
 
-    UArrayProperty* ArrayProperty = Cast< UArrayProperty >(FoundProperty);
-    if ( ArrayProperty && !ArrayProperty->IsPendingKill() )
+	FArrayProperty* ArrayProperty = CastField< FArrayProperty >(FoundProperty);
+    if ( ArrayProperty )
     {
         InnerProperty = ArrayProperty->Inner;
         NumberOfProperties = ArrayProperty->ArrayDim;
@@ -9696,7 +9695,7 @@ bool FHoudiniEngineUtils::ModifyUPropertyValueOnObject(
 
     for ( int32 nPropIdx = 0; nPropIdx < NumberOfProperties; nPropIdx++ )
     {
-        if ( UFloatProperty* FloatProperty = Cast< UFloatProperty >( InnerProperty ) )
+        if ( FFloatProperty* FloatProperty = CastField< FFloatProperty >( InnerProperty ) )
         {
             // FLOAT PROPERTY
             if ( CurrentPropAttribute.AttributeType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
@@ -9720,7 +9719,7 @@ bool FHoudiniEngineUtils::ModifyUPropertyValueOnObject(
                     FloatProperty->SetFloatingPointPropertyValue( ValuePtr, Value );
             }
         }
-        else if ( UIntProperty* IntProperty = Cast< UIntProperty >( InnerProperty ) )
+        else if ( FIntProperty* IntProperty = CastField< FIntProperty >( InnerProperty ) )
         {
             // INT PROPERTY
             if ( CurrentPropAttribute.AttributeType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
@@ -9744,7 +9743,7 @@ bool FHoudiniEngineUtils::ModifyUPropertyValueOnObject(
                     IntProperty->SetIntPropertyValue( ValuePtr, Value );
             }
         }
-        else if ( UBoolProperty* BoolProperty = Cast< UBoolProperty >( InnerProperty ) )
+        else if ( FBoolProperty* BoolProperty = CastField< FBoolProperty >( InnerProperty ) )
         {
             // BOOL PROPERTY
             bool Value = CurrentPropAttribute.GetBoolValue( nPropIdx );
@@ -9755,7 +9754,7 @@ bool FHoudiniEngineUtils::ModifyUPropertyValueOnObject(
             if ( ValuePtr )
                 BoolProperty->SetPropertyValue( ValuePtr, Value );
         }
-        else if ( UStrProperty* StringProperty = Cast< UStrProperty >( InnerProperty ) )
+        else if ( FStrProperty* StringProperty = CastField< FStrProperty >( InnerProperty ) )
         {
             // STRING PROPERTY
             FString Value = CurrentPropAttribute.GetStringValue( nPropIdx );
@@ -9766,7 +9765,7 @@ bool FHoudiniEngineUtils::ModifyUPropertyValueOnObject(
             if ( ValuePtr )
                 StringProperty->SetPropertyValue( ValuePtr, Value );
         }
-        else if ( UNumericProperty *NumericProperty = Cast< UNumericProperty >( InnerProperty ) )
+        else if ( FNumericProperty *NumericProperty = CastField< FNumericProperty >( InnerProperty ) )
         {
             // NUMERIC PROPERTY
             if ( CurrentPropAttribute.AttributeType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
@@ -9805,7 +9804,7 @@ bool FHoudiniEngineUtils::ModifyUPropertyValueOnObject(
                 HOUDINI_LOG_MESSAGE( TEXT("Unsupported Numeric UProperty") );
             }
         }
-        else if ( UNameProperty* NameProperty = Cast< UNameProperty >( InnerProperty ) )
+        else if ( FNameProperty* NameProperty = CastField< FNameProperty >( InnerProperty ) )
         {
             // NAME PROPERTY
             FString StringValue = CurrentPropAttribute.GetStringValue( nPropIdx );
@@ -9818,7 +9817,7 @@ bool FHoudiniEngineUtils::ModifyUPropertyValueOnObject(
             if ( ValuePtr )
                 NameProperty->SetPropertyValue( ValuePtr, Value );
         }
-        else if ( UStructProperty* StructProperty = Cast< UStructProperty >( InnerProperty ) )
+        else if ( FStructProperty* StructProperty = CastField< FStructProperty >( InnerProperty ) )
         {
             // STRUCT PROPERTY
             const FName PropertyName = StructProperty->Struct->GetFName();
@@ -9974,7 +9973,7 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
             }
 
             // StructProperty need to be a nested struct
-            if ( UStructProperty* StructProperty = Cast< UStructProperty >( CurrentProperty ) )
+            if ( FStructProperty* StructProperty = CastField< UStructProperty >( CurrentProperty ) )
             {
                 // Walk the structs' properties and try to find the one we're looking for
                 UScriptStruct* Struct = StructProperty->Struct;
@@ -10020,7 +10019,7 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
         UProperty* InnerProperty = FoundProperty;
         int32 NumberOfProperties = 1;
 
-        if ( UArrayProperty* ArrayProperty = Cast< UArrayProperty >( FoundProperty ) )
+        if ( FArrayProperty* ArrayProperty = CastField< FArrayProperty >( FoundProperty ) )
         {
             InnerProperty = ArrayProperty->Inner;
             NumberOfProperties = ArrayProperty->ArrayDim;
@@ -10039,7 +10038,7 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
 
         for( int32 nPropIdx = 0; nPropIdx < NumberOfProperties; nPropIdx++ )
         {
-            if ( UFloatProperty* FloatProperty = Cast< UFloatProperty >( InnerProperty ) )
+            if ( FFloatProperty* FloatProperty = CastField< FFloatProperty >( InnerProperty ) )
             {
                 // FLOAT PROPERTY
                 if ( CurrentPropAttribute.AttributeType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
@@ -10061,7 +10060,7 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
                         Value );
                 }
             }
-            else if ( UIntProperty* IntProperty = Cast< UIntProperty >( InnerProperty ) )
+            else if ( FIntProperty* IntProperty = CastField< FIntProperty >( InnerProperty ) )
             {
                 // INT PROPERTY
                 if ( CurrentPropAttribute.AttributeType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
@@ -10083,7 +10082,7 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
                         Value );
                 }
             }
-            else if ( UBoolProperty* BoolProperty = Cast< UBoolProperty >( InnerProperty ) )
+            else if ( FBoolProperty* BoolProperty = CastField< FBoolProperty >( InnerProperty ) )
             {
                 // BOOL PROPERTY
                 bool Value = CurrentPropAttribute.GetBoolValue( nPropIdx );
@@ -10094,7 +10093,7 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
                     : InnerProperty->ContainerPtrToValuePtr< bool >( MeshComponent, nPropIdx ),
                     Value );
             }
-            else if ( UStrProperty* StringProperty = Cast< UStrProperty >( InnerProperty ) )
+            else if ( FStrProperty* StringProperty = CastField< FStrProperty >( InnerProperty ) )
             {
                 // STRING PROPERTY
                 FString Value = CurrentPropAttribute.GetStringValue( nPropIdx );
@@ -10105,7 +10104,7 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
                     : InnerProperty->ContainerPtrToValuePtr< FString >( MeshComponent, nPropIdx ),
                     Value );
             }
-            else if ( UNumericProperty *NumericProperty = Cast< UNumericProperty >( InnerProperty ) )
+            else if ( FNumericProperty *NumericProperty = CastField< FNumericProperty >( InnerProperty ) )
             {
                 // NUMERIC PROPERTY
                 if ( CurrentPropAttribute.AttributeType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
@@ -10143,7 +10142,7 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
                     HOUDINI_LOG_MESSAGE( TEXT( "Unsupported Numeric UProperty" ) );
                 }
             }
-            else if ( UNameProperty* NameProperty = Cast< UNameProperty >( InnerProperty ) )
+            else if ( FNameProperty* NameProperty = CastField< FNameProperty >( InnerProperty ) )
             {
                 // NAME PROPERTY
                 FString StringValue = CurrentPropAttribute.GetStringValue( nPropIdx );
@@ -10156,7 +10155,7 @@ FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
                     : InnerProperty->ContainerPtrToValuePtr< FName >( MeshComponent, nPropIdx ),
                     Value );
             }
-            else if ( UStructProperty* StructProperty = Cast< UStructProperty >( InnerProperty ) )
+            else if ( FStructProperty* StructProperty = CastField< FStructProperty >( InnerProperty ) )
             {
                 // STRUCT PROPERTY
                 const FName PropertyName = StructProperty->Struct->GetFName();

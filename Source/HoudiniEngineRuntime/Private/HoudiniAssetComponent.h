@@ -41,7 +41,7 @@
 class UBlueprint;
 class UStaticMesh;
 class UHoudiniAsset;
-class UObjectProperty;
+class FObjectProperty;
 class USplineComponent;
 class UInstancedStaticMeshComponent;
 class UPhysicalMaterial;
