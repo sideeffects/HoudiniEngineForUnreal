@@ -3206,11 +3206,11 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                 FStaticMeshRenderData& RenderData = *StaticMesh->RenderData;
                 FStaticMeshLODResources& RenderModel = RenderData.LODResources[LODIndex];
                 FColorVertexBuffer& ColorVertexBuffer = *ComponentLODInfo.OverrideVertexColors;
-                if ( RenderData.WedgeMap.Num() > 0 && ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices() )
+                if (RenderModel.WedgeMap.Num() > 0 && ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices() )
                 {
                     // Use the wedge map if it is available as it is lossless.
                     int32 NumWedges = RawMesh.WedgeIndices.Num();
-                    if ( RenderData.WedgeMap.Num() == NumWedges )
+                    if ( RenderModel.WedgeMap.Num() == NumWedges )
                     {
                         int32 NumExistingColors = RawMesh.WedgeColors.Num();
                         if ( NumExistingColors < NumWedges )
@@ -3222,7 +3222,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForStaticMesh(
                         for ( int32 i = 0; i < NumWedges; ++i )
                         {
                             FColor WedgeColor = FColor::White;
-                            int32 Index = RenderData.WedgeMap[i];
+                            int32 Index = RenderModel.WedgeMap[i];
                             if ( Index != INDEX_NONE )
                             {
                                 WedgeColor = ColorVertexBuffer.VertexColor( Index );
@@ -9624,7 +9624,7 @@ bool FHoudiniEngineUtils::FindUPropertyAttributesOnObject(
 
     // Try with FindField??
     if ( !FoundProperty )
-        FoundProperty = FindField<FProperty>( MeshClass, *CurrentUPropertyName );
+        FoundProperty = FindFProperty<FProperty>( MeshClass, *CurrentUPropertyName );
 
     // Try with FindPropertyByName ??
     if ( !FoundProperty )
