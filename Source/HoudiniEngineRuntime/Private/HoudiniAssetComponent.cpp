@@ -2430,7 +2430,7 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
     if (!bIsNativeComponent)
         return;
 
-    UProperty * Property = PropertyChangedEvent.MemberProperty;
+    FProperty * Property = PropertyChangedEvent.MemberProperty;
     if ( !Property )
         return;
 
@@ -6194,7 +6194,7 @@ UHoudiniAssetComponent::CreateOrUpdateMaterialInstances()
         // to trigger a fake Property change event that will call the Update function...
         if ( bLandscapeMaterialReplaced )
         {
-            UProperty* FoundProperty = FindField< UProperty >( Landscape->GetClass(), TEXT( "LandscapeMaterial" ) );
+            FProperty* FoundProperty = FindFProperty< FProperty >( Landscape->GetClass(), TEXT( "LandscapeMaterial" ) );
             if ( FoundProperty )
             {
                 FPropertyChangedEvent PropChanged( FoundProperty, EPropertyChangeType::ValueSet );
@@ -6204,7 +6204,7 @@ UHoudiniAssetComponent::CreateOrUpdateMaterialInstances()
 
         if ( bLandscapeHoleMaterialReplaced )
         {
-            UProperty* FoundProperty = FindField< UProperty >( Landscape->GetClass(), TEXT( "LandscapeHoleMaterial" ) );
+			FProperty* FoundProperty = FindFProperty< FProperty >( Landscape->GetClass(), TEXT( "LandscapeHoleMaterial" ) );
             if ( FoundProperty )
             {
                 FPropertyChangedEvent PropChanged( FoundProperty, EPropertyChangeType::ValueSet );

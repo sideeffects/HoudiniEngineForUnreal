@@ -151,7 +151,7 @@ AHoudiniAssetActor::PostEditChangeProperty(FPropertyChangedEvent & PropertyChang
         return;
 
     UProperty * Property = PropertyChangedEvent.MemberProperty;
-    if ( !Property || Property->IsPendingKill() )
+    if ( !Property )
         return;
 
     if ( ( Property->GetName() == TEXT( "RelativeLocation" ) )
