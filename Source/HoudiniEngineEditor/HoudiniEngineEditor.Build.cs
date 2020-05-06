@@ -34,7 +34,7 @@
 
     Houdini Version: 17.5.609
     Houdini Engine Version: 3.2.45
-    Unreal Version: 4.24.0
+    Unreal Version: 4.25.0
 
 */
 
