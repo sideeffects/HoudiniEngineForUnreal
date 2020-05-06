@@ -1863,7 +1863,7 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
 
             // As UpdateAllComponentMaterialInstances() is not accessible to us, we'll try to access the Material's UProperty 
             // to trigger a fake Property change event that will call the Update function...
-            UProperty* FoundProperty = FindField< UProperty >( Landscape->GetClass(), ( MaterialIdx == 0 ) ? TEXT( "LandscapeMaterial" ) : TEXT( "LandscapeHoleMaterial" ) );
+            FProperty* FoundProperty = FindFProperty< FProperty >( Landscape->GetClass(), ( MaterialIdx == 0 ) ? TEXT( "LandscapeMaterial" ) : TEXT( "LandscapeHoleMaterial" ) );
             if ( FoundProperty )
             {
                 FPropertyChangedEvent PropChanged( FoundProperty, EPropertyChangeType::ValueSet );
@@ -2106,7 +2106,7 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
 
         // As UpdateAllComponentMaterialInstances() is not accessible to us, we'll try to access the Material's UProperty 
         // to trigger a fake Property change event that will call the Update function...
-        UProperty* FoundProperty = FindField< UProperty >( Landscape->GetClass(), ( MaterialIdx == 0 ) ? TEXT( "LandscapeMaterial" ) : TEXT( "LandscapeHoleMaterial" ) );
+        FProperty* FoundProperty = FindFProperty< FProperty >( Landscape->GetClass(), ( MaterialIdx == 0 ) ? TEXT( "LandscapeMaterial" ) : TEXT( "LandscapeHoleMaterial" ) );
         if ( FoundProperty )
         {
             FPropertyChangedEvent PropChanged( FoundProperty, EPropertyChangeType::ValueSet );

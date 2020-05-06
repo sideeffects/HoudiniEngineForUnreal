@@ -242,8 +242,8 @@ UHoudiniRuntimeSettings::PostEditChangeProperty( struct FPropertyChangedEvent & 
 {
     Super::PostEditChangeProperty( PropertyChangedEvent );
 
-    UProperty * Property = PropertyChangedEvent.MemberProperty;
-    UProperty * LookupProperty = nullptr;
+	FProperty * Property = PropertyChangedEvent.MemberProperty;
+	FProperty * LookupProperty = nullptr;
 
     if ( !Property )
         return;
@@ -283,16 +283,16 @@ UHoudiniRuntimeSettings::PostEditChangeProperty( struct FPropertyChangedEvent & 
         // Set Landscape forced min/max as read only when not overriden
         if ( !MarshallingLandscapesForceMinMaxValues )
         {
-            if ( UProperty* MinProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMinValue") ) )
+            if ( FProperty* MinProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMinValue") ) )
                 MinProperty->SetPropertyFlags( CPF_EditConst );
-            if ( UProperty* MaxProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMaxValue" ) ) )
+            if ( FProperty* MaxProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMaxValue" ) ) )
                 MaxProperty->SetPropertyFlags( CPF_EditConst );
         }
         else
         {
-            if ( UProperty* MinProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMinValue") ) )
+            if ( FProperty* MinProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMinValue") ) )
                 MinProperty->ClearPropertyFlags( CPF_EditConst );
-            if ( UProperty* MaxProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMaxValue" ) ) )
+            if ( FProperty* MaxProperty = LocateProperty( TEXT( "MarshallingLandscapesForcedMaxValue" ) ) )
                 MaxProperty->ClearPropertyFlags( CPF_EditConst );
         }
     }
@@ -484,7 +484,7 @@ UHoudiniRuntimeSettings::GetSettingsValue( const FString & PropertyName, FString
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
     if ( HoudiniRuntimeSettings )
     {
-        UStrProperty * Property = Cast< UStrProperty >( HoudiniRuntimeSettings->LocateProperty( PropertyName ) );
+        FStrProperty * Property = CastField< FStrProperty >( HoudiniRuntimeSettings->LocateProperty( PropertyName ) );
         if ( Property )
         {
             const void * ValueRaw = Property->ContainerPtrToValuePtr< void >( HoudiniRuntimeSettings );

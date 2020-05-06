@@ -578,20 +578,20 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             FoundPropertyObject will be the object containing the uprop which may or not be ParentObject **/
         static bool FindUPropertyAttributesOnObject(
             UObject* ParentObject, const UGenericAttribute& UPropertiesToFind,
-            UProperty*& FoundProperty, UObject*& FoundPropertyObject, void*& StructContainer );
+            FProperty*& FoundProperty, UObject*& FoundPropertyObject, void*& StructContainer );
 
         /** Modifies the value of a UProperty **/
         static bool ModifyUPropertyValueOnObject(
             UObject* MeshComponent, UGenericAttribute UPropertiesToFind,
-            UProperty* FoundProperty, void * StructContainer );
+			FProperty* FoundProperty, void * StructContainer );
 
         /** Tries to update values for all the UProperty attributes to apply on the object. **/
         /*static void ApplyUPropertyAttributesOnObject(
             UObject* MeshComponent, const TArray< UGenericAttribute >& UPropertiesToModify );*/
 
-        //static bool TryToFindInStructProperty( UObject* Object, FString UPropertyNameToFind, UStructProperty* ArrayProperty, UProperty*& FoundProperty, void*& StructContainer );
+        //static bool TryToFindInStructProperty( UObject* Object, FString UPropertyNameToFind, FStructProperty* ArrayProperty, FProperty*& FoundProperty, void*& StructContainer );
 
-        //static bool TryToFindInArrayProperty( UObject* Object, FString UPropertyNameToFind, UArrayProperty* ArrayProperty, UProperty*& FoundProperty, void*& StructContainer );
+        //static bool TryToFindInArrayProperty( UObject* Object, FString UPropertyNameToFind, FArrayProperty* ArrayProperty, FProperty*& FoundProperty, void*& StructContainer );
 
         /** Helper function to extract a raw name from a given Fstring. Caller is responsible for clean up. **/
         static char * ExtractRawName(const FString & Name);
