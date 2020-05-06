@@ -150,7 +150,7 @@ AHoudiniAssetActor::PostEditChangeProperty(FPropertyChangedEvent & PropertyChang
     if ( !HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill() )
         return;
 
-    UProperty * Property = PropertyChangedEvent.MemberProperty;
+    FProperty * Property = PropertyChangedEvent.MemberProperty;
     if ( !Property )
         return;
 

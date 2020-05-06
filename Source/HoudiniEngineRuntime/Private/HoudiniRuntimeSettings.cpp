@@ -131,12 +131,12 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 UHoudiniRuntimeSettings::~UHoudiniRuntimeSettings()
 {}
 
-UProperty *
+FProperty *
 UHoudiniRuntimeSettings::LocateProperty( const FString & PropertyName ) const
 {
-    for ( TFieldIterator< UProperty > PropIt( GetClass() ); PropIt; ++PropIt )
+    for ( TFieldIterator< FProperty > PropIt( GetClass() ); PropIt; ++PropIt )
     {
-        UProperty * Property = *PropIt;
+        FProperty * Property = *PropIt;
 
         if ( Property->GetNameCPP() == PropertyName )
             return Property;
@@ -148,7 +148,7 @@ UHoudiniRuntimeSettings::LocateProperty( const FString & PropertyName ) const
 void
 UHoudiniRuntimeSettings::SetPropertyReadOnly( const FString & PropertyName, bool bReadOnly )
 {
-    UProperty * Property = LocateProperty( PropertyName );
+    FProperty * Property = LocateProperty( PropertyName );
     if ( Property )
     {
         if ( bReadOnly )
@@ -165,53 +165,53 @@ UHoudiniRuntimeSettings::PostInitProperties()
 
     // Set Collision generation options as read only
     {
-        if ( UProperty* Property = LocateProperty( TEXT( "CollisionGroupNamePrefix" ) ) )
+        if ( FProperty* Property = LocateProperty( TEXT( "CollisionGroupNamePrefix" ) ) )
             Property->SetPropertyFlags( CPF_EditConst );
 
-        if ( UProperty* Property = LocateProperty( TEXT( "RenderedCollisionGroupNamePrefix" ) ) )
+        if ( FProperty* Property = LocateProperty( TEXT( "RenderedCollisionGroupNamePrefix" ) ) )
             Property->SetPropertyFlags( CPF_EditConst );
 
-        if ( UProperty* Property = LocateProperty(TEXT("UCXCollisionGroupNamePrefix" ) ) )
+        if ( FProperty* Property = LocateProperty(TEXT("UCXCollisionGroupNamePrefix" ) ) )
             Property->SetPropertyFlags(CPF_EditConst);
 
-        if ( UProperty* Property = LocateProperty(TEXT("UCXRenderedCollisionGroupNamePrefix" ) ) )
+        if ( FProperty* Property = LocateProperty(TEXT("UCXRenderedCollisionGroupNamePrefix" ) ) )
             Property->SetPropertyFlags(CPF_EditConst);
 
-        if ( UProperty* Property = LocateProperty(TEXT("SimpleCollisionGroupNamePrefix" ) ) )
+        if ( FProperty* Property = LocateProperty(TEXT("SimpleCollisionGroupNamePrefix" ) ) )
             Property->SetPropertyFlags(CPF_EditConst);
 
-        if ( UProperty* Property = LocateProperty(TEXT("SimpleRenderedCollisionGroupNamePrefix" ) ) )
+        if ( FProperty* Property = LocateProperty(TEXT("SimpleRenderedCollisionGroupNamePrefix" ) ) )
             Property->SetPropertyFlags(CPF_EditConst);
     }
 
     // Set marshalling attributes options as read only
     {
-        if (UProperty* Property = LocateProperty(TEXT("MarshallingAttributeMaterial")))
+        if (FProperty* Property = LocateProperty(TEXT("MarshallingAttributeMaterial")))
             Property->SetPropertyFlags(CPF_EditConst);
 
-        if (UProperty* Property = LocateProperty(TEXT("MarshallingAttributeMaterialHole")))
+        if (FProperty* Property = LocateProperty(TEXT("MarshallingAttributeMaterialHole")))
             Property->SetPropertyFlags(CPF_EditConst);
 
-        if (UProperty* Property = LocateProperty(TEXT("MarshallingAttributeInstanceOverride")))
+        if (FProperty* Property = LocateProperty(TEXT("MarshallingAttributeInstanceOverride")))
             Property->SetPropertyFlags(CPF_EditConst);
 
-        if (UProperty* Property = LocateProperty(TEXT("MarshallingAttributeFaceSmoothingMask")))
+        if (FProperty* Property = LocateProperty(TEXT("MarshallingAttributeFaceSmoothingMask")))
             Property->SetPropertyFlags(CPF_EditConst);
 
-        if (UProperty* Property = LocateProperty(TEXT("MarshallingAttributeLightmapResolution")))
+        if (FProperty* Property = LocateProperty(TEXT("MarshallingAttributeLightmapResolution")))
             Property->SetPropertyFlags(CPF_EditConst);
 
-        if (UProperty* Property = LocateProperty(TEXT("MarshallingAttributeGeneratedMeshName")))
+        if (FProperty* Property = LocateProperty(TEXT("MarshallingAttributeGeneratedMeshName")))
             Property->SetPropertyFlags(CPF_EditConst);
 
-        if (UProperty* Property = LocateProperty(TEXT("MarshallingAttributeInputMeshName")))
+        if (FProperty* Property = LocateProperty(TEXT("MarshallingAttributeInputMeshName")))
             Property->SetPropertyFlags(CPF_EditConst);
     }
 
 /*
     // Set Cook Folder as read-only
     {
-        if ( UProperty* Property = LocateProperty( TEXT( "TemporaryCookFolder" ) ) )
+        if ( FProperty* Property = LocateProperty( TEXT( "TemporaryCookFolder" ) ) )
             Property->SetPropertyFlags( CPF_EditConst );
     }
 */
@@ -219,9 +219,9 @@ UHoudiniRuntimeSettings::PostInitProperties()
     // Set Landscape forced min/max as read only when not overriden
     if ( !MarshallingLandscapesForceMinMaxValues )
     {
-        if ( UProperty* Property = LocateProperty( TEXT( "MarshallingLandscapesForcedMinValue" ) ) )
+        if ( FProperty* Property = LocateProperty( TEXT( "MarshallingLandscapesForcedMinValue" ) ) )
             Property->SetPropertyFlags( CPF_EditConst );
-        if ( UProperty* Property = LocateProperty( TEXT( "MarshallingLandscapesForcedMaxValue" ) ) )
+        if ( FProperty* Property = LocateProperty( TEXT( "MarshallingLandscapesForcedMaxValue" ) ) )
             Property->SetPropertyFlags( CPF_EditConst );
     }
 
