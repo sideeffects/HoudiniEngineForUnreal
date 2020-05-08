@@ -19,7 +19,7 @@ For support and reporting bugs:
 You can see the latest updates and bug fixes made to the plugin in the [Daily Changelog](https://www.sidefx.com/changelog/?journal=16.5&categories=52&body=&version=&build_0=&build_1=&show_versions=on&show_compatibility=on&items_per_page=100).
 
 # Installing from Source
-01. Get the UE4 source code from: https://github.com/EpicGames/UnrealEngine/releases
+01. Get the UE4 source code from: https://github.com/EpicGames/UnrealEngine/releases. This requires signing up for an Epic account: https://github.com/EpicGames/Signup
 01. Within the UE4 source, navigate to `Engine/Plugins/Runtime`, and clone this repo into a folder named `HoudiniEngine`.
 01. Download and install the correct build of 64-bit Houdini. To get the build number, look at the header of `Source/HoudiniEngineRuntime/HoudiniEngineRuntime.Build.cs`, under `Houdini Version`.
 01. Generate the UE4 Project Files (by running `GenerateProjectFiles`) and build Unreal, either in x64 `Debug Editor` or x64 `Development Editor`.
