@@ -179,6 +179,7 @@ HAPI_DECL HAPI_CloseSession( const HAPI_Session * session );
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 HAPI_DECL HAPI_IsInitialized( const HAPI_Session * session );
 
@@ -191,6 +192,7 @@ HAPI_DECL HAPI_IsInitialized( const HAPI_Session * session );
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      cook_options
 ///                 Global cook options used by subsequent default cooks.
@@ -201,11 +203,13 @@ HAPI_DECL HAPI_IsInitialized( const HAPI_Session * session );
 /// @param[in]      use_cooking_thread
 ///                 Use a separate thread for cooking of assets. This
 ///                 allows for asynchronous cooking and larger stack size.
+///                 <!-- default true -->
 ///
 /// @param[in]      cooking_thread_stack_size
 ///                 Set the stack size of the cooking thread. Use -1 to
 ///                 set the stack size to the Houdini default. This
 ///                 value is in bytes.
+///                 <!-- default -1 -->
 ///
 /// @param[in]      houdini_environment_files
 ///                 A list of paths, separated by a ";" on Windows and a ":"
@@ -217,6 +221,7 @@ HAPI_DECL HAPI_IsInitialized( const HAPI_Session * session );
 ///                 a stricter environment when running engine.
 ///                 For more info, see:
 ///                 http://www.sidefx.com/docs/houdini/basics/config_env
+///                 <!-- default NULL -->
 ///
 /// @param[in]      otl_search_path
 ///                 The directory where OTLs are searched for. You can
@@ -226,6 +231,7 @@ HAPI_DECL HAPI_IsInitialized( const HAPI_Session * session );
 ///                 on Linux and Mac. If something other than NULL is
 ///                 passed the default Houdini search paths will be
 ///                 appended to the end of the path string.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      dso_search_path
 ///                 The directory where generic DSOs (custom plugins) are
@@ -235,6 +241,7 @@ HAPI_DECL HAPI_IsInitialized( const HAPI_Session * session );
 ///                 on Windows and a ":" on Linux and Mac. If something
 ///                 other than NULL is passed the default Houdini search
 ///                 paths will be appended to the end of the path string.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      image_dso_search_path
 ///                 The directory where image DSOs (custom plugins) are
@@ -244,6 +251,7 @@ HAPI_DECL HAPI_IsInitialized( const HAPI_Session * session );
 ///                 on Windows and a ":" on Linux and Mac. If something
 ///                 other than NULL is passed the default Houdini search
 ///                 paths will be appended to the end of the path string.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      audio_dso_search_path
 ///                 The directory where audio DSOs (custom plugins) are
@@ -253,6 +261,7 @@ HAPI_DECL HAPI_IsInitialized( const HAPI_Session * session );
 ///                 on Windows and a ":" on Linux and Mac. If something
 ///                 other than NULL is passed the default Houdini search
 ///                 paths will be appended to the end of the path string.
+///                 <!-- default NULL -->
 ///
 /// [HAPI_Initialize]
 HAPI_DECL HAPI_Initialize( const HAPI_Session * session,
@@ -276,6 +285,7 @@ HAPI_DECL HAPI_Initialize( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 HAPI_DECL HAPI_Cleanup( const HAPI_Session * session );
 
@@ -302,6 +312,7 @@ HAPI_DECL HAPI_GetEnvInt( HAPI_EnvIntType int_type, int * value );
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      int_type
 ///                 One of ::HAPI_SessionEnvIntType.
@@ -319,6 +330,7 @@ HAPI_DECL HAPI_GetSessionEnvInt( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      variable_name
 ///                 Name of the environmnet variable.
@@ -336,6 +348,7 @@ HAPI_DECL HAPI_GetServerEnvInt( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      variable_name
 ///                 Name of the environmnet variable.
@@ -354,6 +367,7 @@ HAPI_DECL HAPI_GetServerEnvString( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[out]     env_count
 ///                 A pointer to an int to return the value in
@@ -367,6 +381,7 @@ HAPI_DECL HAPI_GetServerEnvVarCount( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[out]     values_array
 ///                 An ::HAPI_StringHandle array at least the size of length
@@ -374,6 +389,9 @@ HAPI_DECL HAPI_GetServerEnvVarCount( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least @c 0 and at most
 ///                 @c env_count returned by ::HAPI_GetServerEnvVarCount()
+///                 <!-- min=0 -->
+///                 <!-- max ::HAPI_GetServerEnvVarCount() -->
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Given @c env_count returned by ::HAPI_GetServerEnvVarCount(),
@@ -396,9 +414,10 @@ HAPI_DECL HAPI_GetServerEnvVarList( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      variable_name
-///                 Name of the environmnet variable.
+///                 Name of the environment variable.
 ///
 /// @param[in]      value
 ///                 The integer value.
@@ -420,6 +439,7 @@ HAPI_DECL HAPI_SetServerEnvInt( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      variable_name
 ///                 Name of the environmnet variable.
@@ -437,6 +457,7 @@ HAPI_DECL HAPI_SetServerEnvString( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      status_type
 ///                 One of ::HAPI_StatusType.
@@ -476,6 +497,7 @@ HAPI_DECL HAPI_GetStatus( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      status_type
 ///                 One of ::HAPI_StatusType.
@@ -506,16 +528,19 @@ HAPI_DECL HAPI_GetStatusStringBufLength( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      status_type
 ///                 One of ::HAPI_StatusType.
 ///
 /// @param[out]     string_value
 ///                 Buffer char array ready to be filled.
+///                 <!-- min length -->
 ///
 /// @param[in]      length
 ///                 Length of the string buffer (must match size of
-///                 string_value - so including NULL terminator).
+///                 @p string_value - so including NULL terminator).
+///                 <!-- default HAPI_GetStatusStringBufLength() -->
 ///
 HAPI_DECL HAPI_GetStatusString( const HAPI_Session * session,
                                 HAPI_StatusType status_type,
@@ -544,6 +569,7 @@ HAPI_DECL HAPI_GetStatusString( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -575,13 +601,16 @@ HAPI_DECL HAPI_ComposeNodeCookResult( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[out]     string_value
 ///                 Buffer char array ready to be filled.
+///                 <!-- min length -->
 ///
 /// @param[in]      length
 ///                 Length of the string buffer (must match size of
-///                 string_value - so including NULL terminator).
+///                 @p string_value - so including NULL terminator).
+///                 <!-- default HAPI_ComposeNodeCookResult -->
 ///
 HAPI_DECL HAPI_GetComposedNodeCookResult( const HAPI_Session * session,
                                           char * string_value,
@@ -599,6 +628,7 @@ HAPI_DECL HAPI_GetComposedNodeCookResult( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -615,6 +645,46 @@ HAPI_DECL HAPI_CheckForSpecificErrors( const HAPI_Session * session,
                                        HAPI_ErrorCodeBits errors_to_look_for,
                                        HAPI_ErrorCodeBits * errors_found );
 
+/// @brief  Clears the connection error. Should be used before starting
+///         or creating Thrift server.
+///
+///         Only available when using Thrift connections.
+///
+HAPI_DECL HAPI_ClearConnectionError( );
+
+/// @brief  Return the length of string buffer storing connection error
+///         message.
+///
+///         Only available when using Thrift connections.
+///
+/// @param[out]     buffer_length
+///                 Length of buffer char array ready to be filled.
+///
+HAPI_DECL HAPI_GetConnectionErrorLength( int * buffer_length );
+
+/// @brief  Return the connection error message.
+///
+///         You MUST call ::HAPI_GetConnectionErrorLength() before calling
+///         this to get the correct string length.
+///
+///         Only available when using Thrift connections.
+///
+/// @param[out]     string_value
+///                 Buffer char array ready to be filled.
+///
+/// @param[in]      length
+///                 Length of the string buffer (must match size of
+///                 string_value - so including NULL terminator).
+///                 Use ::HAPI_GetConnectionErrorLength to get this length.
+///
+/// @param[in]      clear
+///                 If true, will clear the error when HAPI_RESULT_SUCCESS
+///                 is returned.
+///
+HAPI_DECL HAPI_GetConnectionError( char * string_value, 
+                                   int length,
+                                   HAPI_Bool clear );
+
 /// @brief  Get total number of nodes that need to cook in the current
 ///         session.
 ///
@@ -622,6 +692,7 @@ HAPI_DECL HAPI_CheckForSpecificErrors( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[out]     count
 ///                 Total cook count.
@@ -639,6 +710,7 @@ HAPI_DECL HAPI_GetCookingTotalCount( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[out]     count
 ///                 Current cook count.
@@ -655,6 +727,7 @@ HAPI_DECL HAPI_GetCookingCurrentCount( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      transform_in
 ///                 The transform to be converted.
@@ -680,6 +753,7 @@ HAPI_DECL HAPI_ConvertTransform( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      matrix
 ///                 A 4x4 matrix expressed in a 16 element float array.
@@ -701,6 +775,7 @@ HAPI_DECL HAPI_ConvertMatrixToQuat( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      matrix
 ///                 A 4x4 matrix expressed in a 16 element float array.
@@ -726,6 +801,7 @@ HAPI_DECL HAPI_ConvertMatrixToEuler( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      transform
 ///                 The ::HAPI_Transform you wish to convert.
@@ -743,6 +819,7 @@ HAPI_DECL HAPI_ConvertTransformQuatToMatrix( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      transform
 ///                 The ::HAPI_TransformEuler you wish to convert.
@@ -777,6 +854,7 @@ HAPI_DECL HAPI_ConvertTransformEulerToMatrix(
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      locked
 ///                 True will acquire the interpreter lock to use it for
@@ -795,6 +873,7 @@ HAPI_DECL HAPI_PythonThreadInterpreterLock( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      string_handle
 ///                 Handle of the string to query.
@@ -814,6 +893,7 @@ HAPI_DECL HAPI_GetStringBufLength( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      string_handle
 ///                 Handle of the string to query.
@@ -823,7 +903,7 @@ HAPI_DECL HAPI_GetStringBufLength( const HAPI_Session * session,
 ///
 /// @param[in]      length
 ///                 Length of the string buffer (must match size of
-///                 string_value - so including NULL terminator).
+///                 @p string_value - so including NULL terminator).
 ///
 HAPI_DECL HAPI_GetString( const HAPI_Session * session,
                           HAPI_StringHandle string_handle,
@@ -839,6 +919,7 @@ HAPI_DECL HAPI_GetString( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      string_value
 ///                 Actual string value (character array).
@@ -857,6 +938,7 @@ HAPI_DECL HAPI_SetCustomString( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]     string_handle
 ///                 Handle of the string that was added
@@ -872,12 +954,13 @@ HAPI_DECL HAPI_RemoveCustomString( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      string_handle_array
 ///                 Array of string handles to be read.
 ///
 /// @param[in]      string_handle_count
-///                 Length of string_handle_array
+///                 Length of @p string_handle_array
 ///
 /// @param[out]     string_buffer_size
 ///                 Buffer length required for subsequent call to
@@ -900,16 +983,19 @@ HAPI_DECL HAPI_GetStringBatchSize( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
-/// @param[out]     char_array
+/// @param[out]     char_buffer
 ///                 Array of characters to hold string values.
 ///
 /// @param[in]      char_array_length
-///                 Length of char_array.  Must be large enough to hold
+///                 Length of @p char_array.  Must be large enough to hold
 ///                 all the string values including null separators.
+///                 <!-- min len(char_buffer)+1 -->
+///                 <!-- default len(char_buffer)+1 -->
 ///
 HAPI_DECL HAPI_GetStringBatch( const HAPI_Session * session,
-                               char * char_array,
+                               char * char_buffer,
                                int char_array_length );
 
 
@@ -922,6 +1008,7 @@ HAPI_DECL HAPI_GetStringBatch( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[out]     time
 ///                 Time as a float in seconds.
@@ -935,6 +1022,7 @@ HAPI_DECL HAPI_GetTime( const HAPI_Session * session, float * time );
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      time
 ///                 Time as a float in seconds.
@@ -952,6 +1040,7 @@ HAPI_DECL HAPI_SetTime( const HAPI_Session * session, float time );
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[out]     enabled
 ///                 Whether use Houdini time is enabled or not.
@@ -970,6 +1059,7 @@ HAPI_DECL HAPI_GetUseHoudiniTime( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      enabled
 ///                 Set to true to use Houdini time.
@@ -983,8 +1073,9 @@ HAPI_DECL HAPI_SetUseHoudiniTime( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
-/// @param[in]      timeline_options
+/// @param[out]     timeline_options
 ///                 The global timeline options struct.
 ///
 HAPI_DECL HAPI_GetTimelineOptions( const HAPI_Session * session,
@@ -996,6 +1087,7 @@ HAPI_DECL HAPI_GetTimelineOptions( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      timeline_options
 ///                 The global timeline options struct.
@@ -1031,6 +1123,7 @@ HAPI_DECL HAPI_SetTimelineOptions(
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      file_path
 ///                 Absolute path to the .otl file.
@@ -1088,6 +1181,7 @@ HAPI_DECL HAPI_LoadAssetLibraryFromFile( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      library_buffer
 ///                 The memory buffer containing the asset definitions
@@ -1124,9 +1218,11 @@ HAPI_DECL HAPI_LoadAssetLibraryFromMemory( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      library_id
 ///                 Returned by ::HAPI_LoadAssetLibraryFromFile().
+///                 <!-- default ::HAPI_LoadAssetLibraryFromFile -->
 ///
 /// @param[out]     asset_count
 ///                 The number of assets contained in this asset library.
@@ -1158,17 +1254,22 @@ HAPI_DECL HAPI_GetAvailableAssetCount( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      library_id
 ///                 Returned by ::HAPI_LoadAssetLibraryFromFile().
+///                 <!-- default ::HAPI_LoadAssetLibraryFromFile -->
 ///
 /// @param[out]     asset_names_array
 ///                 Array of string handles (integers) that should be
 ///                 at least the size of asset_count.
+///                 <!-- min asset_count -->
 ///
 /// @param[in]     asset_count
 ///                 Should be the same or less than the value returned by
 ///                 ::HAPI_GetAvailableAssetCount().
+///                 <!-- max ::HAPI_GetAvailableAssetCount -->
+///                 <!-- default ::HAPI_GetAvailableAssetCount -->
 ///
 HAPI_DECL HAPI_GetAvailableAssets( const HAPI_Session * session,
                                    HAPI_AssetLibraryId library_id,
@@ -1181,6 +1282,7 @@ HAPI_DECL HAPI_GetAvailableAssets( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -1210,9 +1312,11 @@ HAPI_DECL HAPI_GetAssetInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      library_id
 ///                 Returned by ::HAPI_LoadAssetLibraryFromFile().
+///                 <!-- default ::HAPI_LoadAssetLibraryFromFile -->
 ///
 /// @param[in]      asset_name
 ///                 Name of the asset to get the parm counts for.
@@ -1263,9 +1367,11 @@ HAPI_DECL HAPI_GetAssetDefinitionParmCounts( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      library_id
 ///                 Returned by ::HAPI_LoadAssetLibraryFromFile().
+///                 <!-- default ::HAPI_LoadAssetLibraryFromFile -->
 ///
 /// @param[in]      asset_name
 ///                 Name of the asset to get the parm counts for.
@@ -1273,15 +1379,22 @@ HAPI_DECL HAPI_GetAssetDefinitionParmCounts( const HAPI_Session * session,
 /// @param[out]     parm_infos_array
 ///                 Array of ::HAPI_ParmInfo at least the size of
 ///                 length.
+///                 <!-- min length -->
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most parm_count - 1 acquired from 
-///                 ::HAPI_GetAssetDefinitionParmCounts.
+///                 ::HAPI_GetAssetInfo.
+///                 <!-- min 0 -->
+///                 <!-- max ::HAPI_GetAssetInfo:parm_count-1 -->
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
-///                 Must be at least 0 and at most parm_count - start acquired
-///                 from ::HAPI_GetAssetDefinitionParmCounts.
+///                 Must be at least 1 and at most parm_count - start acquired
+///                 from ::HAPI_GetAssetInfo
+///                 <!-- min 1 -->
+///                 <!-- max ::HAPI_GetAssetInfo:parm_count - start -->
+///                 <!-- default ::HAPI_GetAssetInfo:parm_count -->
 ///
 HAPI_DECL HAPI_GetAssetDefinitionParmInfos( const HAPI_Session * session,
                                             HAPI_AssetLibraryId library_id,
@@ -1309,37 +1422,55 @@ HAPI_DECL HAPI_GetAssetDefinitionParmInfos( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      library_id
 ///                 Returned by ::HAPI_LoadAssetLibraryFromFile().
+///                 <!-- default ::HAPI_LoadAssetLibraryFromFile -->
 ///
 /// @param[in]      asset_name
 ///                 Name of the asset to get the parm counts for.
 ///
 /// @param[out]     int_values_array
 ///                 Array of ints at least the size of int_length.
+///                 <!-- min int_length -->
+///                 <!-- default int_length -->
 ///
 /// @param[in]      int_start
 ///                 First index of range for int_values_array. Must be at
 ///                 least 0 and at most int_value_count - 1 acquired from 
 ///                 ::HAPI_GetAssetDefinitionParmCounts.
+///                 <!-- min 0 -->
+///                 <!-- max HAPI_GetAssetDefinitionParmCounts::int_value_count-1 -->
+///                 <!-- default 0 -->
 ///
 /// @param[in]      int_length
 ///                 Must be at least 0 and at most int_value_count - int_start
 ///                 acquired from ::HAPI_GetAssetDefinitionParmCounts.
+///                 <!-- min 0 -->
+///                 <!-- max HAPI_GetAssetDefinitionParmCounts::int_value_count - int_start -->
+///                 <!-- default HAPI_GetAssetDefinitionParmCounts::int_value_count - int_start -->
 ///
 /// @param[out]     float_values_array
 ///                 Array of floats at least the size of float_length.
+///                 <!-- min float_length -->
+///                 <!-- default float_length -->
 ///
 /// @param[in]      float_start
 ///                 First index of range for float_values_array. Must be at
 ///                 least 0 and at most float_value_count - 1 acquired from
 ///                 ::HAPI_GetAssetDefinitionParmCounts.
+///                 <!-- min 0 -->
+///                 <!-- max HAPI_GetAssetDefinitionParmCounts::float_value_count - 1 -->
+///                 <!-- default 0 -->
 ///
 /// @param[in]      float_length
 ///                 Must be at least 0 and at most float_value_count -
 ///                 float_start acquired from
 ///                 ::HAPI_GetAssetDefinitionParmCounts.
+///                 <!-- min 0 -->
+///                 <!-- max HAPI_GetAssetDefinitionParmCounts::float_value_count - float_start -->
+///                 <!-- default HAPI_GetAssetDefinitionParmCounts::float_value_count - float_start -->
 ///
 /// @param[in]      string_evaluate
 ///                 Whether or not to evaluate the string expressions.
@@ -1348,34 +1479,51 @@ HAPI_DECL HAPI_GetAssetDefinitionParmInfos( const HAPI_Session * session,
 ///                 would give you back the string "$F" and passing
 ///                 in evaluate = true would give you back "1" (assuming
 ///                 the current frame is 1).
+///                 <!-- default True -->
 ///
 /// @param[out]     string_values_array
 ///                 Array of HAPI_StringHandle at least the size of 
 ///                 string_length.
+///                 <!-- min string_length -->
+///                 <!-- default string_length -->
 ///
 /// @param[in]      string_start
 ///                 First index of range for string_values_array. Must be at
 ///                 least 0 and at most string_value_count - 1 acquired from
 ///                 ::HAPI_GetAssetDefinitionParmCounts.
+///                 <!-- min 0 -->
+///                 <!-- max HAPI_GetAssetDefinitionParmCounts::string_value_count - 1 -->
+///                 <!-- default 0 -->
 ///
 /// @param[in]      string_length
 ///                 Must be at least 0 and at most string_value_count -
 ///                 string_start acquired from
 ///                 ::HAPI_GetAssetDefinitionParmCounts.
+///                 <!-- min 0 -->
+///                 <!-- max HAPI_GetAssetDefinitionParmCounts::string_value_count - string_start -->
+///                 <!-- default HAPI_GetAssetDefinitionParmCounts::string_value_count - string_start -->
 ///
 /// @param[out]     choice_values_array
 ///                 Array of ::HAPI_ParmChoiceInfo at least the size of
 ///                 choice_length.
+///                 <!-- min choice_length -->
+///                 <!-- default choice_length -->
 ///
 /// @param[in]      choice_start
 ///                 First index of range for choice_values_array. Must be at
 ///                 least 0 and at most choice_value_count - 1 acquired from 
 ///                 ::HAPI_GetAssetDefinitionParmCounts.
+///                 <!-- min 0 -->
+///                 <!-- max HAPI_GetAssetDefinitionParmCounts::choice_value_count - 1 -->
+///                 <!-- default 0 -->
 ///
 /// @param[in]      choice_length
 ///                 Must be at least 0 and at most choice_value_count -
 ///                 choice_start acquired from
 ///                 ::HAPI_GetAssetDefinitionParmCounts.
+///                 <!-- min 0 -->
+///                 <!-- max HAPI_GetAssetDefinitionParmCounts::choice_value_count - choice_start -->
+///                 <!-- default HAPI_GetAssetDefinitionParmCounts::choice_value_count - choice_start -->
 ///
 HAPI_DECL HAPI_GetAssetDefinitionParmValues(
     const HAPI_Session * session,
@@ -1401,6 +1549,7 @@ HAPI_DECL HAPI_GetAssetDefinitionParmValues(
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 HAPI_DECL HAPI_Interrupt( const HAPI_Session * session );
 
@@ -1409,6 +1558,40 @@ HAPI_DECL HAPI_Interrupt( const HAPI_Session * session );
 /// @brief  Loads a .hip file into the main Houdini scene.
 ///
 ///         @note In threaded mode, this is an _async call_!
+///
+///         @note This method will merge the HIP file into the scene. This means
+///         that any registered `hou.hipFile` event callbacks will be triggered
+///         with the `hou.hipFileEventType.BeforeMerge` and
+///         `hou.hipFileEventType.AfterMerge` events.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      file_name
+///                 Absolute path to the .hip file to load.
+///
+/// @param[in]      cook_on_load
+///                 Set to true if you wish the nodes to cook as soon
+///                 as they are created. Otherwise, you will have to
+///                 call ::HAPI_CookNode() explicitly for each after you
+///                 call this function.
+///                 <!-- default False -->
+///
+HAPI_DECL HAPI_LoadHIPFile( const HAPI_Session * session,
+                            const char * file_name,
+                            HAPI_Bool cook_on_load );
+
+/// @brief  Loads a .hip file into the main Houdini scene.
+///
+///         @note In threaded mode, this is an _async call_!
+///
+///         @note This method will merge the HIP file into the scene. This means
+///         that any registered `hou.hipFile` event callbacks will be triggered
+///         with the `hou.hipFileEventType.BeforeMerge` and
+///         `hou.hipFileEventType.AfterMerge` events.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -1424,9 +1607,15 @@ HAPI_DECL HAPI_Interrupt( const HAPI_Session * session );
 ///                 call ::HAPI_CookNode() explicitly for each after you
 ///                 call this function.
 ///
-HAPI_DECL HAPI_LoadHIPFile( const HAPI_Session * session,
+/// @param[out]     file_id
+///                 This parameter will be set to the HAPI_HIPFileId of the
+///                 loaded HIP file. This can be used to lookup nodes that were
+///                 created as a result of loading this HIP file.
+///
+HAPI_DECL HAPI_MergeHIPFile(const HAPI_Session * session,
                             const char * file_name,
-                            HAPI_Bool cook_on_load );
+                            HAPI_Bool cook_on_load,
+                            HAPI_HIPFileId * file_id);
 
 /// @brief  Saves a .hip file of the current Houdini scene.
 ///
@@ -1434,6 +1623,7 @@ HAPI_DECL HAPI_LoadHIPFile( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      file_path
 ///                 Absolute path to the .hip file to save to.
@@ -1446,10 +1636,52 @@ HAPI_DECL HAPI_LoadHIPFile( const HAPI_Session * session,
 ///                 re-cook to accurately reproduce the state. It does,
 ///                 however, take a lot more space and time locking all
 ///                 nodes like this.
+///                 <!-- default False -->
 ///
 HAPI_DECL HAPI_SaveHIPFile( const HAPI_Session * session,
                             const char * file_path,
                             HAPI_Bool lock_nodes );
+
+/// @brief  Gets the number of nodes that were created as a result of loading a
+///         .hip file
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      id
+///                 The HIP file id.
+///
+/// @param[out]     count
+///                 Pointer to an int where the HIP file node count will be
+///                 stored.
+HAPI_DECL HAPI_GetHIPFileNodeCount(const HAPI_Session *session,
+                                   HAPI_HIPFileId id,
+                                   int * count);
+
+/// @brief  Fills an array of ::HAPI_NodeIds of nodes that were created as a
+///         result of loading the HIP file specified by the ::HAPI_HIPFileId
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      id
+///                 The HIP file id.
+///
+/// @param[out]     node_ids
+///                 Array of ::HAPI_NodeId at least the size of length.
+///
+/// @param[in]      length
+///                 The number of ::HAPI_NodeId to be stored. This should be at
+///                 least 0 and at most the count provided by
+///                 HAPI_GetHIPFileNodeCount
+HAPI_DECL HAPI_GetHIPFileNodeIds(const HAPI_Session *session,
+                                 HAPI_HIPFileId id,
+                                 HAPI_NodeId * node_ids,
+                                 int length);
 
 // NODES --------------------------------------------------------------------
 
@@ -1464,6 +1696,7 @@ HAPI_DECL HAPI_SaveHIPFile( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -1471,6 +1704,7 @@ HAPI_DECL HAPI_SaveHIPFile( const HAPI_Session * session,
 /// @param[in]      unique_node_id
 ///                 The unique node id from
 ///                 ::HAPI_NodeInfo::uniqueHoudiniNodeId.
+///                 <!-- default ::HAPI_NodeInfo::uniqueHoudiniNodeId -->
 ///
 /// @param[out]     answer
 ///                 Answer to the question.
@@ -1486,6 +1720,7 @@ HAPI_DECL HAPI_IsNodeValid( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -1504,6 +1739,7 @@ HAPI_DECL HAPI_GetNodeInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -1527,6 +1763,7 @@ HAPI_DECL HAPI_GetNodePath( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_type
 ///                 The node network type.
@@ -1556,6 +1793,7 @@ HAPI_DECL HAPI_GetManagerNodeId( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      parent_node_id
 ///                 The node id of the parent node.
@@ -1587,6 +1825,7 @@ HAPI_DECL HAPI_ComposeChildNodeList( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      parent_node_id
 ///                 The node id of the parent node.
@@ -1597,6 +1836,9 @@ HAPI_DECL HAPI_ComposeChildNodeList( const HAPI_Session * session,
 /// @param[in]      count
 ///                 The number of children in the composed list. MUST match
 ///                 the count returned by HAPI_ComposeChildNodeList().
+///                 <!-- default HAPI_ComposeChildNodeList -->
+///                 <!-- min HAPI_ComposeChildNodeList -->
+///                 <!-- max HAPI_ComposeChildNodeList -->
 ///
 HAPI_DECL HAPI_GetComposedChildNodeList( const HAPI_Session * session,
                                          HAPI_NodeId parent_node_id,
@@ -1629,12 +1871,15 @@ HAPI_DECL HAPI_GetComposedChildNodeList( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      parent_node_id
 ///                 The parent node network's node id or -1 if the parent
 ///                 network is the manager (top-level) node. In that case,
 ///                 the manager must be identified by the table name in the
 ///                 operator_name.
+///                 <!-- min -1 -->
+///                 <!-- default -1 -->
 ///
 /// @param[in]      operator_name
 ///                 The name of the node operator type.
@@ -1657,9 +1902,11 @@ HAPI_DECL HAPI_GetComposedChildNodeList( const HAPI_Session * session,
 ///
 /// @param[in]      node_label
 ///                 (Optional) The label of the newly created node.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      cook_on_creation
 ///                 Set whether the node should cook once created or not.
+///                 <!-- default False -->
 ///
 /// @param[out]     new_node_id
 ///                 The returned node id of the just-created node.
@@ -1685,6 +1932,7 @@ HAPI_DECL HAPI_CreateNode( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[out]     node_id
 ///                 Newly created node's id. Use ::HAPI_GetNodeInfo()
@@ -1696,6 +1944,7 @@ HAPI_DECL HAPI_CreateNode( const HAPI_Session * session,
 ///                 get this given name with "input_" prepended.
 ///                 You can also pass NULL in which case the name will
 ///                 be "input#" where # is some number.
+///                 <!-- default NULL -->
 ///
 HAPI_DECL HAPI_CreateInputNode( const HAPI_Session * session,
                                 HAPI_NodeId * node_id,
@@ -1714,12 +1963,15 @@ HAPI_DECL HAPI_CreateInputNode( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      parent_node_id
 ///                 The parent node network's node id or -1 if the parent
 ///                 network is the manager (top-level) node. In that case,
 ///                 the manager must be identified by the table name in the
 ///                 operator_name.
+///                 <!-- min -1 -->
+///                 <!-- default -1 -->
 ///
 /// @param[in]      name
 ///                 Give this input node a name for easy debugging.
@@ -1727,6 +1979,7 @@ HAPI_DECL HAPI_CreateInputNode( const HAPI_Session * session,
 ///                 get this given name with "input_" prepended.
 ///                 You can also pass NULL in which case the name will
 ///                 be "input#" where # is some number.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      xsize
 ///                 size of the heightfield in X
@@ -1778,12 +2031,15 @@ HAPI_CreateHeightfieldInputNode( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      parent_node_id
 ///                 The parent node network's node id or -1 if the parent
 ///                 network is the manager (top-level) node. In that case,
 ///                 the manager must be identified by the table name in the
 ///                 operator_name.
+///                 <!-- min -1 -->
+///                 <!-- default -1 -->
 ///
 /// @param[in]      name
 ///                 Give this input node a name for easy debugging.
@@ -1791,6 +2047,7 @@ HAPI_CreateHeightfieldInputNode( const HAPI_Session * session,
 ///                 get this given name with "input_" prepended.
 ///                 You can also pass NULL in which case the name will
 ///                 be "input#" where # is some number.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      xsize
 ///                 size of the heightfield in X
@@ -1845,12 +2102,15 @@ HAPI_DECL HAPI_CreateHeightFieldInput( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      parent_node_id
 ///                 The parent node network's node id or -1 if the parent
 ///                 network is the manager (top-level) node. In that case,
 ///                 the manager must be identified by the table name in the
 ///                 operator_name.
+///                 <!-- min -1 -->
+///                 <!-- default -1 -->
 ///
 /// @param[out]     new_node_id
 ///                 Newly created node id for the volume.
@@ -1861,6 +2121,7 @@ HAPI_DECL HAPI_CreateHeightFieldInput( const HAPI_Session * session,
 ///                 The name of the volume to create.
 ///                 You can also pass NULL in which case the name will
 ///                 be "input#" where # is some number.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      xsize
 ///                 size of the heightfield in X
@@ -1900,6 +2161,7 @@ HAPI_DECL HAPI_CreateHeightfieldInputVolumeNode(    const HAPI_Session * session
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -1921,6 +2183,7 @@ HAPI_DECL HAPI_CookNode( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node to delete.
@@ -1936,6 +2199,7 @@ HAPI_DECL HAPI_DeleteNode( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node to rename.
@@ -1953,6 +2217,7 @@ HAPI_DECL HAPI_RenameNode( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node whom's input to connect to.
@@ -1960,6 +2225,7 @@ HAPI_DECL HAPI_RenameNode( const HAPI_Session * session,
 /// @param[in]      input_index
 ///                 The input index. Should be between 0 and the
 ///                 to_node's ::HAPI_NodeInfo::inputCount - 1.
+///                 <!-- min 0 -->
 ///
 /// @param[in]      node_id_to_connect
 ///                 The node to connect to node_id's input.
@@ -1967,6 +2233,7 @@ HAPI_DECL HAPI_RenameNode( const HAPI_Session * session,
 /// @param[in]	    output_index
 ///                 The output index. Should be between 0 and the
 ///                 to_node's ::HAPI_NodeInfo::outputCount - 1.
+///                 <!-- min 0 -->
 ///
 HAPI_DECL HAPI_ConnectNodeInput( const HAPI_Session * session,
                                  HAPI_NodeId node_id,
@@ -1980,6 +2247,7 @@ HAPI_DECL HAPI_ConnectNodeInput( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node whom's input to disconnect.
@@ -1987,6 +2255,7 @@ HAPI_DECL HAPI_ConnectNodeInput( const HAPI_Session * session,
 /// @param[in]      input_index
 ///                 The input index. Should be between 0 and the
 ///                 to_node's ::HAPI_NodeInfo::inputCount - 1.
+///                 <!-- min 0 -->
 ///
 HAPI_DECL HAPI_DisconnectNodeInput( const HAPI_Session * session,
                                     HAPI_NodeId node_id,
@@ -1998,6 +2267,7 @@ HAPI_DECL HAPI_DisconnectNodeInput( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_to_query
 ///                 The node to query.
@@ -2005,6 +2275,7 @@ HAPI_DECL HAPI_DisconnectNodeInput( const HAPI_Session * session,
 /// @param[in]      input_index
 ///                 The input index. Should be between 0 and the
 ///                 to_node's ::HAPI_NodeInfo::inputCount - 1.
+///                 <!-- min 0 -->
 ///
 /// @param[out]     connected_node_id
 ///                 The node id of the connected node to this input. If
@@ -2023,12 +2294,15 @@ HAPI_DECL HAPI_QueryNodeInput( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
 ///
 /// @param[in]      input_idx
-///                 Input index of the asset.
+///                 The input index. Should be between 0 and the
+///                 node_to_query's ::HAPI_NodeInfo::inputCount - 1.
+///                 <!-- min 0 -->
 ///
 /// @param[out]     name
 ///                 Input name string handle return value - valid until
@@ -2045,6 +2319,7 @@ HAPI_DECL HAPI_GetNodeInputName( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node whom's outputs to disconnect.
@@ -2052,6 +2327,7 @@ HAPI_DECL HAPI_GetNodeInputName( const HAPI_Session * session,
 /// @param[in]      output_index
 ///                 The output index. Should be between 0 and the
 ///                 to_node's ::HAPI_NodeInfo::outputCount.
+///                 <!-- min 0 -->
 ///
 HAPI_DECL HAPI_DisconnectNodeOutputsAt( const HAPI_Session * session,
                                         HAPI_NodeId node_id,
@@ -2068,19 +2344,24 @@ HAPI_DECL HAPI_DisconnectNodeOutputsAt( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
 ///
 /// @param[in]      output_idx
 ///                 The output index. Should be between 0 and the
-///                 to_node's ::HAPI_NodeInfo::outputCount.
+///                 to_node's ::HAPI_NodeInfo::outputCount - 1.
+///                 <!-- min 0 -->
+///                 <!-- max ::HAPI_NodeInfo:outputCount - 1 -->
 ///
 /// @param[in]      into_subnets
 ///                 Whether to search by diving into subnets.
+///                 <!-- default True -->
 ///
 /// @param[in]      through_dots
 ///                 Whether to search through dots.
+///                 <!-- default True -->
 ///
 /// @param[out]     connected_count
 ///                 The number of nodes currently connected to this node at 
@@ -2105,19 +2386,24 @@ HAPI_DECL HAPI_QueryNodeOutputConnectedCount( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
 ///
 /// @param[in]      output_idx
 ///                 The output index. Should be between 0 and the
-///                 to_node's ::HAPI_NodeInfo::outputCount.
+///                 to_node's ::HAPI_NodeInfo::outputCount - 1.
+///                 <!-- min 0 -->
+///                 <!-- max ::HAPI_NodeInfo:outputCount - 1 -->
 ///
 /// @param[in]      into_subnets
 ///                 Whether to search by diving into subnets.
+///                 <!-- default True -->
 ///
 /// @param[in]      through_dots
 ///                 Whether to search through dots.
+///                 <!-- default True -->
 ///
 /// @param[out]     connected_node_ids_array
 ///		            Array of ::HAPI_NodeId at least the size of @c length.
@@ -2125,11 +2411,17 @@ HAPI_DECL HAPI_QueryNodeOutputConnectedCount( const HAPI_Session * session,
 /// @param[in]      start
 ///                 At least @c 0 and at most @c connected_count returned by
 ///                 ::HAPI_QueryNodeOutputConnectedCount().
+///                 <!-- min 0 -->
+///                 <!-- max ::HAPI_QueryNodeOutputConnectedCount -->
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Given @c connected_count returned by
 ///                 ::HAPI_QueryNodeOutputConnectedCount(), @c length should 
-///                 be at least @c 0 and at most <tt>connected_count - start</tt>.
+///                 be at least @c 1 and at most <tt>connected_count - start</tt>.
+///                 <!-- min 1 -->
+///                 <!-- max ::HAPI_QueryNodeOutputConnectedCount - start -->
+///                 <!-- default ::HAPI_QueryNodeOutputConnectedCount - start -->
 ///
 HAPI_DECL HAPI_QueryNodeOutputConnectedNodes( const HAPI_Session * session,
                                              HAPI_NodeId node_id, 
@@ -2147,13 +2439,16 @@ HAPI_DECL HAPI_QueryNodeOutputConnectedNodes( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
 ///
 /// @param[in]      output_idx
 ///                 The output index. Should be between 0 and the
-///                 to_node's ::HAPI_NodeInfo::outputCount.
+///                 to_node's ::HAPI_NodeInfo::outputCount - 1.
+///                 <!-- min 0 -->
+///                 <!-- max ::HAPI_NodeInfo:outputCount - 1 -->
 ///
 /// @param[out]     name
 ///                 Output name string handle return value - valid until
@@ -2173,6 +2468,7 @@ HAPI_DECL HAPI_GetNodeOutputName( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2180,14 +2476,22 @@ HAPI_DECL HAPI_GetNodeOutputName( const HAPI_Session * session,
 /// @param[out]     parm_infos_array
 ///                 Array of ::HAPI_ParmInfo at least the size of
 ///                 length.
+///                 <!-- min length -->
+///                 <!-- default length -->
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_NodeInfo::parmCount - 1.
+///                 <!-- min 0 -->
+///                 <!-- max ::HAPI_NodeInfo:parmCount - 1 -->
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
-///                 Must be at least 0 and at most
+///                 Must be at least 1 and at most
 ///                 ::HAPI_NodeInfo::parmCount - start.
+///                 <!-- min 1 -->
+///                 <!-- max ::HAPI_NodeInfo:parmCount - start -->
+///                 <!-- default ::HAPI_NodeInfo:parmCount - start -->
 ///
 HAPI_DECL HAPI_GetParameters( const HAPI_Session * session,
                               HAPI_NodeId node_id,
@@ -2200,6 +2504,7 @@ HAPI_DECL HAPI_GetParameters( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2225,6 +2530,7 @@ HAPI_DECL HAPI_GetParmInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2248,6 +2554,7 @@ HAPI_DECL HAPI_GetParmIdFromName( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2269,6 +2576,7 @@ HAPI_DECL HAPI_GetParmInfoFromName( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2282,6 +2590,8 @@ HAPI_DECL HAPI_GetParmInfoFromName( const HAPI_Session * session,
 ///                 @note These indices are invalidated whenever tags are added
 ///                 to parameters. Do not store these or expect them to be the
 ///                 same if the scene is modified.
+///                 <!-- min 0 -->
+///                 <!-- max ::HAPI_ParmInfo:tagCount - 1 -->
 ///
 /// @param[out]     tag_name
 ///                 The returned tag name. This string handle will be valid
@@ -2299,6 +2609,7 @@ HAPI_DECL HAPI_GetParmTagName( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2326,6 +2637,7 @@ HAPI_DECL HAPI_GetParmTagValue( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2351,6 +2663,7 @@ HAPI_DECL HAPI_ParmHasTag( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2378,6 +2691,7 @@ HAPI_DECL HAPI_ParmHasExpression( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2401,6 +2715,7 @@ HAPI_DECL HAPI_GetParmWithTag( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2426,6 +2741,7 @@ HAPI_DECL HAPI_GetParmExpression( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2447,6 +2763,7 @@ HAPI_DECL HAPI_RevertParmToDefault( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2485,6 +2802,7 @@ HAPI_DECL HAPI_RevertParmToDefaults( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2530,6 +2848,7 @@ HAPI_DECL HAPI_SetParmExpression( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2540,7 +2859,6 @@ HAPI_DECL HAPI_SetParmExpression( const HAPI_Session * session,
 /// @param[in]      index
 ///                 Index within the parameter's values tuple.
 ///
-
 HAPI_DECL HAPI_RemoveParmExpression( const HAPI_Session * session,
                                    HAPI_NodeId node_id,
                                    HAPI_ParmId parm_id, int index );
@@ -2551,6 +2869,7 @@ HAPI_DECL HAPI_RemoveParmExpression( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2564,8 +2883,6 @@ HAPI_DECL HAPI_RemoveParmExpression( const HAPI_Session * session,
 /// @param[out]     value
 ///                 The returned int value.
 ///
-
-
 HAPI_DECL HAPI_GetParmIntValue( const HAPI_Session * session,
                                 HAPI_NodeId node_id,
                                 const char * parm_name,
@@ -2580,20 +2897,28 @@ HAPI_DECL HAPI_GetParmIntValue( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
 ///
 /// @param[out]     values_array
 ///                 Array of ints at least the size of length.
+///                 <!-- min length -->
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_NodeInfo::parmIntValueCount - 1.
+///                 <!-- min 0 -->
+///                 <!-- max ::HAPI_NodeInfo::parmIntValueCount - 1 -->
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
-///                 Must be at least 0 and at most
+///                 Must be at least 1 and at most
 ///                 ::HAPI_NodeInfo::parmIntValueCount - start.
+///                 <!-- min 1 -->
+///                 <!-- max ::HAPI_NodeInfo::parmIntValueCount - start -->
+///                 <!-- default ::HAPI_NodeInfo::parmIntValueCount - start -->
 ///
 HAPI_DECL HAPI_GetParmIntValues( const HAPI_Session * session,
                                  HAPI_NodeId node_id,
@@ -2606,6 +2931,7 @@ HAPI_DECL HAPI_GetParmIntValues( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2633,20 +2959,28 @@ HAPI_DECL HAPI_GetParmFloatValue( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
 ///
 /// @param[out]     values_array
 ///                 Array of floats at least the size of length.
+///                 <!-- min length -->
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_NodeInfo::parmFloatValueCount - 1.
+///                 <!-- min 0 -->
+///                 <!-- max ::HAPI_NodeInfo::parmFloatValueCount - 1 -->
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 1 and at most
 ///                 ::HAPI_NodeInfo::parmFloatValueCount - start.
+///                 <!-- min 1 -->
+///                 <!-- max ::HAPI_NodeInfo::parmFloatValueCount - start -->
+///                 <!-- default ::HAPI_NodeInfo::parmFloatValueCount - start -->
 ///
 HAPI_DECL HAPI_GetParmFloatValues( const HAPI_Session * session,
                                    HAPI_NodeId node_id,
@@ -2659,6 +2993,7 @@ HAPI_DECL HAPI_GetParmFloatValues( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2676,6 +3011,7 @@ HAPI_DECL HAPI_GetParmFloatValues( const HAPI_Session * session,
 ///                 would give you back the string "$F" and passing
 ///                 in evaluate = true would give you back "1" (assuming
 ///                 the current frame is 1).
+///                 <!-- default True -->
 ///
 /// @param[out]     value
 ///                 The returned string value.
@@ -2697,6 +3033,7 @@ HAPI_DECL HAPI_GetParmStringValue( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2711,14 +3048,21 @@ HAPI_DECL HAPI_GetParmStringValue( const HAPI_Session * session,
 ///
 /// @param[out]     values_array
 ///                 Array of integers at least the size of length.
+///                 <!-- min length -->
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_NodeInfo::parmStringValueCount - 1.
+///                 <!-- min 0 -->
+///                 <!-- max ::HAPI_NodeInfo::parmStringValueCount - 1 -->
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 1 and at most
 ///                 ::HAPI_NodeInfo::parmStringValueCount - start.
+///                 <!-- min 1 -->
+///                 <!-- max ::HAPI_NodeInfo::parmStringValueCount - start -->
+///                 <!-- default ::HAPI_NodeInfo::parmStringValueCount - start -->
 ///
 HAPI_DECL HAPI_GetParmStringValues( const HAPI_Session * session,
                                     HAPI_NodeId node_id,
@@ -2734,6 +3078,7 @@ HAPI_DECL HAPI_GetParmStringValues( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2758,6 +3103,7 @@ HAPI_DECL HAPI_GetParmNodeValue( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2784,6 +3130,7 @@ HAPI_DECL HAPI_GetParmFile( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2791,14 +3138,21 @@ HAPI_DECL HAPI_GetParmFile( const HAPI_Session * session,
 /// @param[out]     parm_choices_array
 ///                 Array of ::HAPI_ParmChoiceInfo exactly the size of
 ///                 length.
+///                 <!-- min length -->
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_NodeInfo::parmChoiceCount - 1.
+///                 <!-- min 0 -->
+///                 <!-- max ::HAPI_NodeInfo::parmChoiceCount - 1 -->
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 1 and at most
 ///                 ::HAPI_NodeInfo::parmChoiceCount - start.
+///                 <!-- min 1 -->
+///                 <!-- max ::HAPI_NodeInfo::parmChoiceCount - start -->
+///                 <!-- default ::HAPI_NodeInfo::parmChoiceCount - start -->
 ///
 HAPI_DECL HAPI_GetParmChoiceLists( const HAPI_Session * session,
                                    HAPI_NodeId node_id,
@@ -2831,6 +3185,7 @@ HAPI_DECL HAPI_GetParmChoiceLists( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2876,20 +3231,28 @@ HAPI_DECL HAPI_SetParmIntValue( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
 ///
 /// @param[in]      values_array
 ///                 Array of integers at least the size of length.
+///                 <!-- min length -->
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_NodeInfo::parmIntValueCount - 1.
+///                 <!-- min 0 -->
+///                 <!-- max ::HAPI_NodeInfo::parmIntValueCount - 1 -->
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 1 and at most
 ///                 ::HAPI_NodeInfo::parmIntValueCount - start.
+///                 <!-- min 1 -->
+///                 <!-- max ::HAPI_NodeInfo::parmIntValueCount - start -->
+///                 <!-- default ::HAPI_NodeInfo::parmIntValueCount - start -->
 ///
 HAPI_DECL HAPI_SetParmIntValues( const HAPI_Session * session,
                                  HAPI_NodeId node_id,
@@ -2922,6 +3285,7 @@ HAPI_DECL HAPI_SetParmIntValues( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -2967,6 +3331,7 @@ HAPI_DECL HAPI_SetParmFloatValue( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3014,6 +3379,7 @@ HAPI_DECL HAPI_SetParmFloatValues( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3042,6 +3408,7 @@ HAPI_DECL HAPI_SetParmStringValue( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3064,6 +3431,7 @@ HAPI_DECL HAPI_SetParmNodeValue( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3089,6 +3457,7 @@ HAPI_DECL HAPI_InsertMultiparmInstance( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3114,6 +3483,7 @@ HAPI_DECL HAPI_RemoveMultiparmInstance( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3124,23 +3494,26 @@ HAPI_DECL HAPI_RemoveMultiparmInstance( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AssetInfo::handleCount - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 1 and at most
 ///                 ::HAPI_AssetInfo::handleCount - start.
+///                 <!-- default ::HAPI_AssetInfo::handleCount - start -->
 ///
 HAPI_DECL HAPI_GetHandleInfo( const HAPI_Session * session,
                               HAPI_NodeId node_id,
                               HAPI_HandleInfo * handle_infos_array,
                               int start, int length );
 
-/// @brief  Fill an array of ::HAPI_HandleInfo structs with information
-///         about every exposed user manipulation handle on the node.
+/// @brief  Fill an array of ::HAPI_HandleBindingInfo structs with information
+///         about the binding of a particular handle on the given node.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3156,10 +3529,12 @@ HAPI_DECL HAPI_GetHandleInfo( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_HandleInfo::bindingsCount - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
-///                 Must be at least 0 and at most
+///                 Must be at least 1 and at most
 ///                 ::HAPI_HandleInfo::bindingsCount - start.
+///                 <!-- default ::HAPI_AssetInfo::bindingsCount - start -->
 ///
 HAPI_DECL HAPI_GetHandleBindingInfo(
                         const HAPI_Session * session,
@@ -3177,6 +3552,7 @@ HAPI_DECL HAPI_GetHandleBindingInfo(
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The exposed node id.
@@ -3205,6 +3581,7 @@ HAPI_DECL HAPI_GetPresetBufLength( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The exposed node id.
@@ -3227,6 +3604,7 @@ HAPI_DECL HAPI_GetPreset( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The exposed node id.
@@ -3238,6 +3616,7 @@ HAPI_DECL HAPI_GetPreset( const HAPI_Session * session,
 ///                 Optional. This is only used if the @p preset_type is
 ///                 ::HAPI_PRESETTYPE_IDX. If NULL is give, the first
 ///                 preset in the IDX file will be chosen.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      buffer
 ///                 Buffer to hold the preset data.
@@ -3260,6 +3639,7 @@ HAPI_DECL HAPI_SetPreset( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3277,6 +3657,7 @@ HAPI_DECL HAPI_GetObjectInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The object node id.
@@ -3318,6 +3699,7 @@ HAPI_DECL HAPI_GetObjectTransform( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      parent_node_id
 ///                 The parent node id.
@@ -3331,6 +3713,7 @@ HAPI_DECL HAPI_GetObjectTransform( const HAPI_Session * session,
 ///                 The value of this string argument should be NULL if not
 ///                 used or a space-separated list of category names.
 ///                 Multiple category names will be treated as an AND op.
+///                 <!-- default NULL -->
 ///
 /// @param[out]     object_count
 ///                 The number of object nodes currently under the parent.
@@ -3350,6 +3733,7 @@ HAPI_DECL HAPI_ComposeObjectList( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      parent_node_id
 ///                 The parent node id.
@@ -3361,11 +3745,13 @@ HAPI_DECL HAPI_ComposeObjectList( const HAPI_Session * session,
 /// @param[in]      start
 ///                 At least @c 0 and at most @c object_count returned by
 ///                 ::HAPI_ComposeObjectList().
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Given @c object_count returned by
 ///                 ::HAPI_ComposeObjectList(), @c length should be at least
 ///                 @c 0 and at most <tt>object_count - start</tt>.
+///                 <!-- default ::HAPI_ComposeObjectList() - start -->
 ///
 HAPI_DECL HAPI_GetComposedObjectList( const HAPI_Session * session,
                                       HAPI_NodeId parent_node_id,
@@ -3386,6 +3772,7 @@ HAPI_DECL HAPI_GetComposedObjectList( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      parent_node_id
 ///                 The parent node id. The object transforms will be
@@ -3402,11 +3789,13 @@ HAPI_DECL HAPI_GetComposedObjectList( const HAPI_Session * session,
 /// @param[in]      start
 ///                 At least @c 0 and at most @c object_count returned by
 ///                 ::HAPI_ComposeObjectList().
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Given @c object_count returned by
 ///                 ::HAPI_ComposeObjectList(), @c length should be at least
 ///                 @c 0 and at most <tt>object_count - start</tt>.
+///                 <!-- default ::HAPI_ComposeObjectList() - start -->
 ///
 HAPI_DECL HAPI_GetComposedObjectTransforms( const HAPI_Session * session,
                                             HAPI_NodeId parent_node_id,
@@ -3421,6 +3810,7 @@ HAPI_DECL HAPI_GetComposedObjectTransforms( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      object_node_id
 ///                 The object node id.
@@ -3429,14 +3819,15 @@ HAPI_DECL HAPI_GetComposedObjectTransforms( const HAPI_Session * session,
 ///                 Array of ::HAPI_NodeId at least the size of length.
 ///
 /// @param[in]      start
-///                 First index of range. Must be at least 0 and at
-///                 most ::HAPI_PartInfo::pointCount - 1. This is the 0th
-///                 part of the display geo of the instancer object node.
+///                 At least @c 0 and at most @c object_count returned by
+///                 ::HAPI_ComposeObjectList().
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
-///                 Must be at least 0 and at most
-///                 ::HAPI_PartInfo::pointCount - @p start. This is the 0th
-///                 part of the display geo of the instancer object node.
+///                 Given @c object_count returned by
+///                 ::HAPI_ComposeObjectList(), @c length should be at least
+///                 @c 0 and at most <tt>object_count - start</tt>.
+///                 <!-- default ::HAPI_ComposeObjectList() - start -->
 ///
 HAPI_DECL HAPI_GetInstancedObjectIds( const HAPI_Session * session,
                                       HAPI_NodeId object_node_id,
@@ -3450,6 +3841,7 @@ HAPI_DECL HAPI_GetInstancedObjectIds( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      object_node_id
 ///                 The object node id.
@@ -3465,11 +3857,13 @@ HAPI_DECL HAPI_GetInstancedObjectIds( const HAPI_Session * session,
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_PartInfo::pointCount - 1. This is the 0th
 ///                 part of the display geo of the instancer object node.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_PartInfo::pointCount - @p start. This is the 0th
 ///                 part of the display geo of the instancer object node.
+///                 <!-- default ::HAPI_PartInfo::pointCount - start -->
 ///
 HAPI_DECL_DEPRECATED( 3.2.42, 18.0.150 )
 HAPI_GetInstanceTransforms( const HAPI_Session * session,
@@ -3485,6 +3879,7 @@ HAPI_GetInstanceTransforms( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The object node id.
@@ -3503,11 +3898,13 @@ HAPI_GetInstanceTransforms( const HAPI_Session * session,
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_PartInfo::pointCount - 1. This is the 0th
 ///                 part of the display geo of the instancer object node.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_PartInfo::pointCount - @p start. This is the 0th
 ///                 part of the display geo of the instancer object node.
+///                 <!-- default ::HAPI_PartInfo::pointCount - start -->
 ///
 HAPI_DECL HAPI_GetInstanceTransformsOnPart( const HAPI_Session * session,
                                             HAPI_NodeId node_id,
@@ -3524,6 +3921,7 @@ HAPI_DECL HAPI_GetInstanceTransformsOnPart( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The object node id.
@@ -3551,6 +3949,7 @@ HAPI_DECL HAPI_SetObjectTransform( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      object_node_id
 ///                 The object node id.
@@ -3568,6 +3967,7 @@ HAPI_DECL HAPI_GetDisplayGeoInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3585,6 +3985,7 @@ HAPI_DECL HAPI_GetGeoInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
@@ -3607,6 +4008,7 @@ HAPI_DECL HAPI_GetPartInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3620,10 +4022,12 @@ HAPI_DECL HAPI_GetPartInfo( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_PartInfo::faceCount - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_PartInfo::faceCount - @p start.
+///                 <!-- default ::HAPI_PartInfo::faceCount - start -->
 ///
 HAPI_DECL HAPI_GetFaceCounts( const HAPI_Session * session,
                               HAPI_NodeId node_id,
@@ -3639,6 +4043,7 @@ HAPI_DECL HAPI_GetFaceCounts( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3652,10 +4057,12 @@ HAPI_DECL HAPI_GetFaceCounts( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_PartInfo::vertexCount - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_PartInfo::vertexCount - @p start.
+///                 <!-- default ::HAPI_PartInfo::vertexCount - start -->
 ///
 HAPI_DECL HAPI_GetVertexList( const HAPI_Session * session,
                               HAPI_NodeId node_id,
@@ -3669,6 +4076,7 @@ HAPI_DECL HAPI_GetVertexList( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3702,6 +4110,7 @@ HAPI_DECL HAPI_GetAttributeInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3736,6 +4145,7 @@ HAPI_DECL HAPI_GetAttributeNames( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3766,12 +4176,14 @@ HAPI_DECL HAPI_GetAttributeNames( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
 ///                 Note, if 0 is passed for length, the function will just
 ///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- default ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_GetAttributeIntData( const HAPI_Session * session,
                                     HAPI_NodeId node_id,
@@ -3788,6 +4200,7 @@ HAPI_DECL HAPI_GetAttributeIntData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3818,12 +4231,14 @@ HAPI_DECL HAPI_GetAttributeIntData( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
 ///                 Note, if 0 is passed for length, the function will just
 ///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- default ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_GetAttributeInt64Data( const HAPI_Session * session,
                                       HAPI_NodeId node_id,
@@ -3840,6 +4255,7 @@ HAPI_DECL HAPI_GetAttributeInt64Data( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3870,12 +4286,14 @@ HAPI_DECL HAPI_GetAttributeInt64Data( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
 ///                 Note, if 0 is passed for length, the function will just
 ///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- default ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_GetAttributeFloatData( const HAPI_Session * session,
                                       HAPI_NodeId node_id,
@@ -3892,6 +4310,7 @@ HAPI_DECL HAPI_GetAttributeFloatData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3922,12 +4341,14 @@ HAPI_DECL HAPI_GetAttributeFloatData( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
 ///                 Note, if 0 is passed for length, the function will just
 ///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- default ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_GetAttributeFloat64Data( const HAPI_Session * session,
                                         HAPI_NodeId node_id,
@@ -3946,6 +4367,7 @@ HAPI_DECL HAPI_GetAttributeFloat64Data( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -3969,12 +4391,14 @@ HAPI_DECL HAPI_GetAttributeFloat64Data( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
 ///                 Note, if 0 is passed for length, the function will just
 ///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- default ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_GetAttributeStringData( const HAPI_Session * session,
                                        HAPI_NodeId node_id,
@@ -3994,6 +4418,7 @@ HAPI_DECL HAPI_GetAttributeStringData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -4024,6 +4449,7 @@ HAPI_DECL HAPI_GetGroupNames( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -4051,10 +4477,12 @@ HAPI_DECL HAPI_GetGroupNames( const HAPI_Session * session,
 /// @param[in]      start
 ///                 Start offset into the membership array. Must be
 ///                 less than ::HAPI_PartInfo_GetElementCountByGroupType().
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Should be less than or equal to the size
-///                 of @p membership.
+///                 of @p membership_array.
+///                 <!-- default len(membership_array)+1 -->
 ///
 HAPI_DECL HAPI_GetGroupMembership( const HAPI_Session * session,
                                    HAPI_NodeId node_id,
@@ -4071,6 +4499,7 @@ HAPI_DECL HAPI_GetGroupMembership( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -4102,6 +4531,7 @@ HAPI_DECL HAPI_GetGroupCountOnPackedInstancePart( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -4138,6 +4568,7 @@ HAPI_DECL HAPI_GetGroupNamesOnPackedInstancePart( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -4165,10 +4596,12 @@ HAPI_DECL HAPI_GetGroupNamesOnPackedInstancePart( const HAPI_Session * session,
 /// @param[in]      start
 ///                 Start offset into the membership array. Must be
 ///                 less than ::HAPI_PartInfo_GetElementCountByGroupType().
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Should be less than or equal to the size
-///                 of @p membership.
+///                 of @p membership_array.
+///                 <!-- default len(membership_array)+1 -->
 ///
 HAPI_DECL HAPI_GetGroupMembershipOnPackedInstancePart( const HAPI_Session * session,
                                                        HAPI_NodeId node_id,
@@ -4185,6 +4618,7 @@ HAPI_DECL HAPI_GetGroupMembershipOnPackedInstancePart( const HAPI_Session * sess
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -4199,10 +4633,12 @@ HAPI_DECL HAPI_GetGroupMembershipOnPackedInstancePart( const HAPI_Session * sess
 ///                 Should be less than @p part_id's
 ///                 ::HAPI_PartInfo::instancedPartCount but more than or
 ///                 equal to 0.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Should be less than @p part_id's
 ///                 ::HAPI_PartInfo::instancedPartCount - @p start.
+///                 <!-- default ::HAPI_PartInfo::instancedPartCount - start -->
 ///
 HAPI_DECL HAPI_GetInstancedPartIds( const HAPI_Session * session,
                                     HAPI_NodeId node_id,
@@ -4218,6 +4654,7 @@ HAPI_DECL HAPI_GetInstancedPartIds( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -4236,10 +4673,12 @@ HAPI_DECL HAPI_GetInstancedPartIds( const HAPI_Session * session,
 ///                 Should be less than @p part_id's
 ///                 ::HAPI_PartInfo::instanceCount but more than or
 ///                 equal to 0.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Should be less than @p part_id's
 ///                 ::HAPI_PartInfo::instanceCount - @p start.
+///                 <!-- default ::HAPI_PartInfo::instanceCount - start -->
 ///
 HAPI_DECL HAPI_GetInstancerPartTransforms( const HAPI_Session * session,
                                            HAPI_NodeId node_id,
@@ -4256,12 +4695,14 @@ HAPI_DECL HAPI_GetInstancerPartTransforms( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
 ///
 /// @param[in]      part_id
 ///                 Currently not used. Just pass 0.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      part_info
 ///                 ::HAPI_PartInfo value that describes the input
@@ -4279,12 +4720,14 @@ HAPI_DECL HAPI_SetPartInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
 ///
 /// @param[in]      part_id
 ///                 Currently not used. Just pass 0.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      face_counts_array
 ///                 An integer array at least the size of @p length.
@@ -4292,10 +4735,12 @@ HAPI_DECL HAPI_SetPartInfo( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_PartInfo::faceCount - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_PartInfo::faceCount - @p start.
+///                 <!-- default ::HAPI_PartInfo::faceCount - start -->
 ///
 HAPI_DECL HAPI_SetFaceCounts( const HAPI_Session * session,
                               HAPI_NodeId node_id,
@@ -4311,6 +4756,7 @@ HAPI_DECL HAPI_SetFaceCounts( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
@@ -4324,10 +4770,12 @@ HAPI_DECL HAPI_SetFaceCounts( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_PartInfo::vertexCount - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_PartInfo::vertexCount - @p start.
+///                 <!-- default ::HAPI_PartInfo::vertexCount - start -->
 ///
 HAPI_DECL HAPI_SetVertexList( const HAPI_Session * session,
                               HAPI_NodeId node_id,
@@ -4341,6 +4789,7 @@ HAPI_DECL HAPI_SetVertexList( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
@@ -4365,6 +4814,7 @@ HAPI_DECL HAPI_AddAttribute( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
  ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
@@ -4390,6 +4840,7 @@ HAPI_DECL HAPI_DeleteAttribute( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
@@ -4413,10 +4864,12 @@ HAPI_DECL HAPI_DeleteAttribute( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
+///                 <!-- default ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_SetAttributeIntData( const HAPI_Session * session,
                                     HAPI_NodeId node_id,
@@ -4432,6 +4885,7 @@ HAPI_DECL HAPI_SetAttributeIntData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
@@ -4455,10 +4909,12 @@ HAPI_DECL HAPI_SetAttributeIntData( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
+///                 <!-- default ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_SetAttributeInt64Data( const HAPI_Session * session,
                                       HAPI_NodeId node_id,
@@ -4474,6 +4930,7 @@ HAPI_DECL HAPI_SetAttributeInt64Data( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
@@ -4497,10 +4954,12 @@ HAPI_DECL HAPI_SetAttributeInt64Data( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
+///                 <!-- default ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_SetAttributeFloatData( const HAPI_Session * session,
                                       HAPI_NodeId node_id,
@@ -4516,6 +4975,7 @@ HAPI_DECL HAPI_SetAttributeFloatData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
@@ -4539,10 +4999,12 @@ HAPI_DECL HAPI_SetAttributeFloatData( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
+///                 <!-- default ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_SetAttributeFloat64Data( const HAPI_Session * session,
                                         HAPI_NodeId node_id,
@@ -4558,6 +5020,7 @@ HAPI_DECL HAPI_SetAttributeFloat64Data( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
@@ -4581,10 +5044,12 @@ HAPI_DECL HAPI_SetAttributeFloat64Data( const HAPI_Session * session,
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
+///                 <!-- default ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_SetAttributeStringData( const HAPI_Session * session,
                                        HAPI_NodeId node_id,
@@ -4600,6 +5065,7 @@ HAPI_DECL HAPI_SetAttributeStringData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
@@ -4625,6 +5091,7 @@ HAPI_DECL HAPI_AddGroup( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
@@ -4650,12 +5117,14 @@ HAPI_DECL HAPI_DeleteGroup( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
 ///
 /// @param[in]      part_id
 ///                 Currently not used. Just pass 0.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      group_type
 ///                 The group type.
@@ -4672,10 +5141,12 @@ HAPI_DECL HAPI_DeleteGroup( const HAPI_Session * session,
 /// @param[in]      start
 ///                 Start offset into the membership array. Must be
 ///                 less than ::HAPI_PartInfo_GetElementCountByGroupType().
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Should be less than or equal to the size
-///                 of @p membership.
+///                 of @p membership_array.
+///                 <!-- default len(membership_array)+1 -->
 ///
 HAPI_DECL HAPI_SetGroupMembership( const HAPI_Session * session,
                                    HAPI_NodeId node_id,
@@ -4693,6 +5164,7 @@ HAPI_DECL HAPI_SetGroupMembership( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
@@ -4709,6 +5181,7 @@ HAPI_DECL HAPI_CommitGeo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The SOP node id.
@@ -4729,6 +5202,7 @@ HAPI_DECL HAPI_RevertGeo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      geometry_node_id
 ///                 The geometry node id.
@@ -4749,11 +5223,13 @@ HAPI_DECL HAPI_RevertGeo( const HAPI_Session * session,
 ///                 The starting index into the list of faces from which
 ///                 you wish to get the material ids from. Note that
 ///                 this should be less than ::HAPI_PartInfo::faceCount.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 The number of material ids you wish to get. Note that
 ///                 this should be at most:
 ///                 ::HAPI_PartInfo::faceCount - @p start.
+///                 <!-- default ::HAPI_PartInfo::faceCount - start -->
 ///
 HAPI_DECL HAPI_GetMaterialNodeIdsOnFaces( const HAPI_Session * session,
                                           HAPI_NodeId geometry_node_id,
@@ -4768,6 +5244,7 @@ HAPI_DECL HAPI_GetMaterialNodeIdsOnFaces( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      material_node_id
 ///                 The material node id.
@@ -4789,6 +5266,7 @@ HAPI_DECL HAPI_GetMaterialInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      cop_node_id
 ///                 The COP node id.
@@ -4808,6 +5286,7 @@ HAPI_DECL HAPI_RenderCOPToImage( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      material_node_id
 ///                 The material node id.
@@ -4832,6 +5311,7 @@ HAPI_DECL HAPI_RenderTextureToImage( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      material_node_id
 ///                 The material node id.
@@ -4858,6 +5338,7 @@ HAPI_DECL HAPI_GetImageInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      material_node_id
 ///                 The material node id.
@@ -4878,6 +5359,7 @@ HAPI_DECL HAPI_SetImageInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      material_node_id
 ///                 The material node id.
@@ -4902,6 +5384,7 @@ HAPI_DECL HAPI_GetImagePlaneCount( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      material_node_id
 ///                 The material node id.
@@ -4913,6 +5396,7 @@ HAPI_DECL HAPI_GetImagePlaneCount( const HAPI_Session * session,
 ///                 The number of image planes to get names for. This
 ///                 must be less than or equal to the count returned
 ///                 by ::HAPI_GetImagePlaneCount().
+///                 <!-- default ::HAPI_GetImagePlaneCount() -->
 ///
 HAPI_DECL HAPI_GetImagePlanes( const HAPI_Session * session,
                                HAPI_NodeId material_node_id,
@@ -4928,6 +5412,7 @@ HAPI_DECL HAPI_GetImagePlanes( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      material_node_id
 ///                 The material node id.
@@ -4998,6 +5483,7 @@ HAPI_DECL HAPI_ExtractImageToFile( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      material_node_id
 ///                 The material node id.
@@ -5053,6 +5539,7 @@ HAPI_DECL HAPI_GetImageFilePath( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      material_node_id
 ///                 The material node id.
@@ -5110,6 +5597,7 @@ HAPI_DECL HAPI_ExtractImageToMemory( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      material_node_id
 ///                 The material node id.
@@ -5124,6 +5612,7 @@ HAPI_DECL HAPI_ExtractImageToMemory( const HAPI_Session * session,
 ///                 size allocated for the buffer passed in and should
 ///                 be at least as large as the buffer_size returned by
 ///                 the call to ::HAPI_ExtractImageToMemory().
+///                 <!-- default ::HAPI_ExtractImageToMemory() -->
 ///
 HAPI_DECL HAPI_GetImageMemoryBuffer( const HAPI_Session * session,
                                      HAPI_NodeId material_node_id,
@@ -5135,6 +5624,7 @@ HAPI_DECL HAPI_GetImageMemoryBuffer( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[out]     file_format_count
 ///                 The number of supported texture file formats.
@@ -5153,6 +5643,7 @@ HAPI_DECL HAPI_GetSupportedImageFileFormatCount( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[out]     formats_array
 ///                 The list of ::HAPI_ImageFileFormat structs to
@@ -5162,6 +5653,7 @@ HAPI_DECL HAPI_GetSupportedImageFileFormatCount( const HAPI_Session * session,
 ///                 The number of supported texture file formats. This
 ///                 should be at least as large as the count returned
 ///                 by ::HAPI_GetSupportedImageFileFormatCount().
+///                 <!-- default ::HAPI_GetSupportedImageFileFormatCount() -->
 ///
 HAPI_DECL HAPI_GetSupportedImageFileFormats(
                                         const HAPI_Session * session,
@@ -5176,6 +5668,7 @@ HAPI_DECL HAPI_GetSupportedImageFileFormats(
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The exposed node id.
@@ -5206,6 +5699,7 @@ HAPI_DECL HAPI_SetAnimCurve( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The exposed node id.
@@ -5238,6 +5732,7 @@ HAPI_DECL HAPI_SetTransformAnimCurve(
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The asset node id.
@@ -5254,6 +5749,7 @@ HAPI_DECL HAPI_ResetSimulation( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5277,6 +5773,7 @@ HAPI_DECL HAPI_GetVolumeInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5300,6 +5797,7 @@ HAPI_DECL HAPI_GetFirstVolumeTile( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5324,6 +5822,7 @@ HAPI_DECL HAPI_GetNextVolumeTile( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5346,6 +5845,7 @@ HAPI_DECL HAPI_GetNextVolumeTile( const HAPI_Session * session,
 /// @param[in]      value_count
 ///                 Should be equal to the volume's
 ///                 ::HAPI_VolumeInfo::tupleSize.
+///                 <!-- default ::HAPI_VolumeInfo::tupleSize -->
 ///
 HAPI_DECL HAPI_GetVolumeVoxelFloatData( const HAPI_Session * session,
                                         HAPI_NodeId node_id,
@@ -5366,6 +5866,7 @@ HAPI_DECL HAPI_GetVolumeVoxelFloatData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5403,6 +5904,7 @@ HAPI_DECL HAPI_GetVolumeTileFloatData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5425,6 +5927,7 @@ HAPI_DECL HAPI_GetVolumeTileFloatData( const HAPI_Session * session,
 /// @param[in]      value_count
 ///                 Should be equal to the volume's
 ///                 ::HAPI_VolumeInfo::tupleSize.
+///                 <!-- default ::HAPI_VolumeInfo::tupleSize -->
 ///
 HAPI_DECL HAPI_GetVolumeVoxelIntData( const HAPI_Session * session,
                                       HAPI_NodeId node_id,
@@ -5445,6 +5948,7 @@ HAPI_DECL HAPI_GetVolumeVoxelIntData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5482,6 +5986,7 @@ HAPI_DECL HAPI_GetVolumeTileIntData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5495,12 +6000,12 @@ HAPI_DECL HAPI_GetVolumeTileIntData( const HAPI_Session * session,
 ///
 /// @param[in]      start
 ///                 The start at least 0 and at most
-///                 ( ::HAPI_VolumeInfo.xLength * ::HAPI_VolumeInfo::yLength )
+///                 ( ::HAPI_VolumeInfo::xLength * ::HAPI_VolumeInfo::yLength )
 ///                 - @p length.
 ///
 /// @param[in]      length
 ///                 The length should be at least 1 or at most
-///                 ( ::HAPI_VolumeInfo.xLength * ::HAPI_VolumeInfo::yLength )
+///                 ( ::HAPI_VolumeInfo::xLength * ::HAPI_VolumeInfo::yLength )
 ///                 - @p start.
 ///
 HAPI_DECL HAPI_GetHeightFieldData( const HAPI_Session * session,
@@ -5515,6 +6020,7 @@ HAPI_DECL HAPI_GetHeightFieldData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5540,6 +6046,7 @@ HAPI_DECL HAPI_SetVolumeInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5572,6 +6079,7 @@ HAPI_DECL HAPI_SetVolumeTileFloatData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5603,6 +6111,7 @@ HAPI_DECL HAPI_SetVolumeTileIntData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5625,6 +6134,7 @@ HAPI_DECL HAPI_SetVolumeTileIntData( const HAPI_Session * session,
 /// @param[in]      value_count
 ///                 Should be equal to the volume's
 ///                 ::HAPI_VolumeInfo::tupleSize.
+///                 <!-- default ::HAPI_VolumeInfo::tupleSize -->
 ///
 HAPI_DECL HAPI_SetVolumeVoxelFloatData( const HAPI_Session * session,
                                         HAPI_NodeId node_id,
@@ -5641,6 +6151,7 @@ HAPI_DECL HAPI_SetVolumeVoxelFloatData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5663,6 +6174,7 @@ HAPI_DECL HAPI_SetVolumeVoxelFloatData( const HAPI_Session * session,
 /// @param[in]      value_count
 ///                 Should be equal to the volume's
 ///                 ::HAPI_VolumeInfo::tupleSize.
+///                 <!-- default ::HAPI_VolumeInfo::tupleSize -->
 ///
 HAPI_DECL HAPI_SetVolumeVoxelIntData(   const HAPI_Session * session,
                                         HAPI_NodeId node_id,
@@ -5679,6 +6191,7 @@ HAPI_DECL HAPI_SetVolumeVoxelIntData(   const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5738,6 +6251,7 @@ HAPI_DECL HAPI_GetVolumeBounds( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5751,12 +6265,12 @@ HAPI_DECL HAPI_GetVolumeBounds( const HAPI_Session * session,
 ///
 /// @param[in]      start
 ///                 The start at least 0 and at most
-///                 ( ::HAPI_VolumeInfo.xLength * ::HAPI_VolumeInfo::yLength )
+///                 ( ::HAPI_VolumeInfo::xLength * ::HAPI_VolumeInfo::yLength )
 ///                 - @p length.
 ///
 /// @param[in]      length
 ///                 The length should be at least 1 or at most
-///                 ( ::HAPI_VolumeInfo.xLength * ::HAPI_VolumeInfo::yLength )
+///                 ( ::HAPI_VolumeInfo::xLength * ::HAPI_VolumeInfo::yLength )
 ///                 - @p start.
 ///
 /// @param[in]      name
@@ -5777,6 +6291,7 @@ HAPI_DECL HAPI_SetHeightFieldData(  const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5803,6 +6318,7 @@ HAPI_DECL HAPI_GetVolumeVisualInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5826,6 +6342,7 @@ HAPI_DECL HAPI_GetCurveInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5838,6 +6355,7 @@ HAPI_DECL HAPI_GetCurveInfo( const HAPI_Session * session,
 ///
 /// @param[in]      start
 ///                 The index of the first curve.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 The number of curves' counts to retrieve.
@@ -5855,6 +6373,7 @@ HAPI_DECL HAPI_GetCurveCounts( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5868,6 +6387,7 @@ HAPI_DECL HAPI_GetCurveCounts( const HAPI_Session * session,
 ///
 /// @param[in]      start
 ///                 The index of the first curve.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 The number of curves' orders to retrieve.
@@ -5884,6 +6404,7 @@ HAPI_DECL HAPI_GetCurveOrders( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5897,6 +6418,7 @@ HAPI_DECL HAPI_GetCurveOrders( const HAPI_Session * session,
 ///
 /// @param[in]      start
 ///                 The index of the first curve.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 The number of curves' knots to retrieve. The
@@ -5918,6 +6440,7 @@ HAPI_DECL HAPI_GetCurveKnots( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5942,6 +6465,7 @@ HAPI_DECL HAPI_SetCurveInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5955,9 +6479,11 @@ HAPI_DECL HAPI_SetCurveInfo( const HAPI_Session * session,
 ///
 /// @param[in]      start
 ///                 The index of the first curve.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 The number of curves' counts to set.
+///                 <!-- default len(counts_array) -->
 ///
 HAPI_DECL HAPI_SetCurveCounts( const HAPI_Session * session,
                                HAPI_NodeId node_id,
@@ -5972,6 +6498,7 @@ HAPI_DECL HAPI_SetCurveCounts( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -5985,9 +6512,11 @@ HAPI_DECL HAPI_SetCurveCounts( const HAPI_Session * session,
 ///
 /// @param[in]      start
 ///                 The index of the first curve.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 The number of curves' orders to retrieve.
+///                 <!-- default len(orders_array) -->
 ///
 HAPI_DECL HAPI_SetCurveOrders( const HAPI_Session * session,
                                HAPI_NodeId node_id,
@@ -6001,6 +6530,7 @@ HAPI_DECL HAPI_SetCurveOrders( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6014,6 +6544,7 @@ HAPI_DECL HAPI_SetCurveOrders( const HAPI_Session * session,
 ///
 /// @param[in]      start
 ///                 The index of the first curve.
+///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 The number of curves' knots to set. The
@@ -6036,6 +6567,7 @@ HAPI_DECL HAPI_SetCurveKnots( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      geo_node_id
 ///                 The geo node id.
@@ -6057,6 +6589,7 @@ HAPI_DECL HAPI_GetBoxInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      geo_node_id
 ///                 The geo node id.
@@ -6080,6 +6613,7 @@ HAPI_DECL HAPI_GetSphereInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[out]     active_cache_count
 ///                 The number of currently active caches.
@@ -6096,6 +6630,7 @@ HAPI_DECL HAPI_GetActiveCacheCount( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[out]     cache_names_array
 ///                 String array with the returned cache names. Must be
@@ -6103,6 +6638,7 @@ HAPI_DECL HAPI_GetActiveCacheCount( const HAPI_Session * session,
 ///
 /// @param[in]      active_cache_count
 ///                 The count returned by ::HAPI_GetActiveCacheCount().
+///                 <!-- default ::HAPI_GetActiveCacheCount() -->
 ///
 HAPI_DECL HAPI_GetActiveCacheNames( const HAPI_Session * session,
                                     HAPI_StringHandle * cache_names_array,
@@ -6115,6 +6651,7 @@ HAPI_DECL HAPI_GetActiveCacheNames( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      cache_name
 ///                 Cache name from ::HAPI_GetActiveCacheNames().
@@ -6139,6 +6676,7 @@ HAPI_DECL HAPI_GetCacheProperty( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      cache_name
 ///                 Cache name from ::HAPI_GetActiveCacheNames().
@@ -6161,6 +6699,7 @@ HAPI_DECL HAPI_SetCacheProperty( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6180,6 +6719,7 @@ HAPI_DECL HAPI_SaveGeoToFile( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6191,6 +6731,62 @@ HAPI_DECL HAPI_LoadGeoFromFile( const HAPI_Session * session,
                                 HAPI_NodeId node_id,
                                 const char * file_name );
 
+/// @brief  Saves the node and all its contents to file.
+///         The saved file can be loaded by calling ::HAPI_LoadNodeFromFile.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      file_name
+///                 The name of the file to be saved.  The extension
+///                 of the file determines its type.
+///
+HAPI_DECL HAPI_SaveNodeToFile( const HAPI_Session * session,
+                               HAPI_NodeId node_id,
+                               const char * file_name );
+
+/// @brief  Loads and creates a previously saved node and all 
+///         its contents from given file.
+///         The saved file must have been created by calling
+///         ::HAPI_SaveNodeToFile.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      file_name
+///                 The name of the file to be loaded
+///
+/// @param[in]      parent_node_id
+///                 The parent node id of the Geometry object.
+///
+/// @param[in]      node_label
+///                 The name of the new Geometry object.
+///
+/// @param[in]      cook_on_load
+///                 Set to true if you wish the nodes to cook as soon
+///                 as they are created. Otherwise, you will have to
+///                 call ::HAPI_CookNode() explicitly for each after you
+///                 call this function.
+///
+/// @param[out]     new_node_id
+///                 The newly created node id.
+///
+HAPI_DECL HAPI_LoadNodeFromFile( const HAPI_Session * session,
+                                 const char * file_name,
+                                 HAPI_NodeId parent_node_id,
+                                 const char * node_label,
+                                 HAPI_Bool cook_on_load,
+                                 HAPI_NodeId * new_node_id );
+
 /// @brief  Cache the current state of the geo to memory, given the
 ///         format, and return the size. Use this size with your call
 ///         to ::HAPI_SaveGeoToMemory() to copy the cached geo to your
@@ -6201,6 +6797,7 @@ HAPI_DECL HAPI_LoadGeoFromFile( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6230,6 +6827,7 @@ HAPI_DECL HAPI_GetGeoSize( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6239,6 +6837,7 @@ HAPI_DECL HAPI_GetGeoSize( const HAPI_Session * session,
 ///
 /// @param[in]      length
 ///                 The size of the buffer passed in.
+///                 <!-- default len(buffer) -->
 ///
 HAPI_DECL HAPI_SaveGeoToMemory( const HAPI_Session * session,
                                 HAPI_NodeId node_id,
@@ -6252,6 +6851,7 @@ HAPI_DECL HAPI_SaveGeoToMemory( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6264,6 +6864,7 @@ HAPI_DECL HAPI_SaveGeoToMemory( const HAPI_Session * session,
 ///
 /// @param[in]      length
 ///                 The size of the buffer passed in.
+///                 <!-- default len(buffer) -->
 ///
 HAPI_DECL HAPI_LoadGeoFromMemory( const HAPI_Session * session,
                                   HAPI_NodeId node_id,
@@ -6277,6 +6878,7 @@ HAPI_DECL HAPI_LoadGeoFromMemory( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6288,6 +6890,8 @@ HAPI_DECL HAPI_SetNodeDisplay( const HAPI_Session * session,
                                HAPI_NodeId node_id,
                                int onOff );
 
+// SESSIONSYNC --------------------------------------------------------------
+
 /// @brief  Get the specified node's total cook count, including
 ///	    its children, if specified.
 ///
@@ -6295,6 +6899,7 @@ HAPI_DECL HAPI_SetNodeDisplay( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6325,12 +6930,76 @@ HAPI_DECL HAPI_GetTotalCookCount( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      enable
 ///                 Enable or disable SessionSync mode.
 ///
 HAPI_DECL HAPI_SetSessionSync( const HAPI_Session * session,
                                HAPI_Bool enable );
+
+/// @brief  Get the ::HAPI_Viewport info for synchronizing viewport in
+///	    SessionSync. When SessionSync is running this will
+///	    return Houdini's current viewport information.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[out]     viewport
+///                 The output ::HAPI_Viewport.
+///
+HAPI_DECL HAPI_GetViewport( const HAPI_Session * session,
+                            HAPI_Viewport * viewport );
+
+/// @brief  Set the ::HAPI_Viewport info for synchronizing viewport in
+///	    SessionSync. When SessionSync is running, this can be
+///	    used to set the viewport information which Houdini
+///	    will then synchronizse with for its viewport.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      viewport
+///                 A ::HAPI_Viewport that stores the viewport.
+///
+HAPI_DECL HAPI_SetViewport( const HAPI_Session * session,
+                            const HAPI_Viewport * viewport );
+
+/// @brief  Get the ::HAPI_SessionSyncInfo for synchronizing SessionSync
+///	    state between Houdini and Houdini Engine integrations.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[out]     session_sync_info
+///                 The output ::HAPI_SessionSyncInfo.
+///
+HAPI_DECL HAPI_GetSessionSyncInfo(
+    const HAPI_Session * session,
+    HAPI_SessionSyncInfo * session_sync_info );
+
+/// @brief  Set the ::HAPI_SessionSyncInfo for synchronizing SessionSync
+///	    state between Houdini and Houdini Engine integrations.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      session_sync_info
+///                 A ::HAPI_SessionSyncInfo that stores the state.
+///
+HAPI_DECL HAPI_SetSessionSyncInfo(
+    const HAPI_Session * session,
+    const HAPI_SessionSyncInfo * session_sync_info );
+
+// PDG ----------------------------------------------------------------------
 
 /// @brief Return an array of PDG graph context names and ids, the first 
 ///        count names will be returned.  These ids can be used 
@@ -6341,6 +7010,7 @@ HAPI_DECL HAPI_SetSessionSync( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[out]     num_contexts
 ///                 Total number of PDG graph contexts found.
@@ -6354,7 +7024,8 @@ HAPI_DECL HAPI_SetSessionSync( const HAPI_Session * session,
 ///                 Array of graph context ids.
 ///
 /// @param[in]      count
-///                 Length of context_names_array and context_id_array
+///                 Length of @p context_names_array and @p context_id_array
+///                 <!-- default len(context_names_array) -->
 ///
 HAPI_DECL HAPI_GetPDGGraphContexts( const HAPI_Session * session,
                                     int * num_contexts,
@@ -6368,6 +7039,7 @@ HAPI_DECL HAPI_GetPDGGraphContexts( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      top_node_id
 ///                 The id of the TOP node to query its graph context.
@@ -6380,9 +7052,15 @@ HAPI_DECL HAPI_GetPDGGraphContextId( const HAPI_Session * session,
                                      HAPI_PDG_GraphContextId * context_id );
 
 // @brief  Starts a PDG cooking operation.  This can be asynchronous.  
-///        Progress can be checked with ::HAPI_GetPDGState and ::HAPI_GetPDGState.
-///        Events generated during this cook can be collected with ::HAPI_GetPDGEvents.
-///        Any uncollected events will be discarded at the start of the cook.
+///        Progress can be checked with ::HAPI_GetPDGState() and
+///        ::HAPI_GetPDGState(). Events generated during this cook can be 
+///        collected with ::HAPI_GetPDGEvents(). Any uncollected events will be 
+///         discarded at the start of the cook.
+///
+///        If there are any $HIPFILE file dependencies on nodes involved in the cook
+///        a hip file will be automatically saved to $HOUDINI_TEMP_DIR directory so
+///        that it can be copied to the working directory by the scheduler.  This means
+///        $HIP will be equal to $HOUDINI_TEMP_DIR.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -6393,8 +7071,8 @@ HAPI_DECL HAPI_GetPDGGraphContextId( const HAPI_Session * session,
 ///                 The node id of a TOP node for the cook operation.
 ///
 /// @param[in]      generate_only
-///                 1 means only root generation will done.  0 means start
-///                 a full graph cook.
+///                 1 means only static graph generation will done.  0 means
+///                 a full graph cook.  Generation is always blocking.
 ///
 /// @param[in]      blocking
 ///                 0 means return immediately and cooking will be done 
@@ -6407,13 +7085,14 @@ HAPI_DECL HAPI_CookPDG( const HAPI_Session * session,
 
 // @brief  Returns PDG events that have been collected.  Calling this function
 ///        will remove those events from the queue.  Events collection is restarted
-///        by calls to ::HAPI_CookPDG.
+///        by calls to ::HAPI_CookPDG().
 ///
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      graph_context_id
 ///                 The id of the graph context 
@@ -6444,6 +7123,7 @@ HAPI_DECL HAPI_GetPDGEvents( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      graph_context_id
 ///                 The graph context id
@@ -6458,12 +7138,13 @@ HAPI_DECL HAPI_GetPDGState( const HAPI_Session * session,
 
 // @brief  Creates a new pending workitem for the given node.  The workitem
 ///        will not be submitted to the graph until it is committed with 
-///        ::HAPI_CommitWorkitems.  The node is expected to be a generator type.
+///        ::HAPI_CommitWorkitems().  The node is expected to be a generator type.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6491,6 +7172,7 @@ HAPI_DECL HAPI_CreateWorkitem( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      graph_context_id
 ///                 The graph context that the workitem is in.
@@ -6515,12 +7197,13 @@ HAPI_DECL HAPI_GetWorkitemInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
 ///
 /// @param[in]      workitem_id
-///                 The id of the pending workitem returned by ::HAPI_CreateWorkitem
+///                 The id of the pending workitem returned by ::HAPI_CreateWorkitem()
 ///
 /// @param[in]      data_name
 ///                 null-terminated name of the data member
@@ -6545,12 +7228,13 @@ HAPI_DECL HAPI_SetWorkitemIntData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
 ///
 /// @param[in]      workitem_id
-///                 The id of the pending workitem returned by ::HAPI_CreateWorkitem
+///                 The id of the pending workitem returned by ::HAPI_CreateWorkitem()
 ///
 /// @param[in]      data_name
 ///                 null-terminated name of the workitem data member
@@ -6575,12 +7259,13 @@ HAPI_DECL HAPI_SetWorkitemFloatData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
 ///
 /// @param[in]      workitem_id
-///                 The id of the created workitem returned by HAPI_CreateWorkitem
+///                 The id of the created workitem returned by HAPI_CreateWorkitem()
 ///
 /// @param[in]      data_name
 ///                 null-terminated name of the data member
@@ -6604,6 +7289,7 @@ HAPI_DECL HAPI_SetWorkitemStringData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id for which the pending workitems have been
@@ -6619,6 +7305,7 @@ HAPI_DECL HAPI_CommitWorkitems( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6636,6 +7323,7 @@ HAPI_DECL HAPI_GetNumWorkitems( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6644,7 +7332,7 @@ HAPI_DECL HAPI_GetNumWorkitems( const HAPI_Session * session,
 ///                 buffer for resulting array of ::HAPI_PDG_WorkitemId
 ///
 /// @param[in]      length
-///                 The length of the workitem_ids buffer
+///                 The length of the @p workitem_ids buffer
 ///
 HAPI_DECL HAPI_GetWorkitems( const HAPI_Session * session,
                              HAPI_NodeId node_id,
@@ -6658,6 +7346,7 @@ HAPI_DECL HAPI_GetWorkitems( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6683,6 +7372,7 @@ HAPI_DECL HAPI_GetWorkitemDataLength( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6695,10 +7385,10 @@ HAPI_DECL HAPI_GetWorkitemDataLength( const HAPI_Session * session,
 ///
 /// @param[out]     data_array
 ///                 buffer of at least size length to copy the data into.  The required
-///                 length should be determined by HAPI_GetWorkitemDataLength.
+///                 length should be determined by ::HAPI_GetWorkitemDataLength().
 ///
 /// @param[in]      length
-///                 The length of the supplied buffer
+///                 The length of @p data_array
 ///
 HAPI_DECL HAPI_GetWorkitemIntData( const HAPI_Session * session,
                                    HAPI_NodeId node_id,
@@ -6713,6 +7403,7 @@ HAPI_DECL HAPI_GetWorkitemIntData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6725,10 +7416,10 @@ HAPI_DECL HAPI_GetWorkitemIntData( const HAPI_Session * session,
 ///
 /// @param[out]     data_array
 ///                 buffer of at least size length to copy the data into.  The required
-///                 length should be determined by HAPI_GetWorkitemDataLength.
+///                 length should be determined by ::HAPI_GetWorkitemDataLength().
 ///
 /// @param[in]      length
-///                 The length of the supplied buffer
+///                 The length of the @p data_array
 ///
 HAPI_DECL HAPI_GetWorkitemFloatData( const HAPI_Session * session,
                                      HAPI_NodeId node_id,
@@ -6743,6 +7434,7 @@ HAPI_DECL HAPI_GetWorkitemFloatData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6755,13 +7447,13 @@ HAPI_DECL HAPI_GetWorkitemFloatData( const HAPI_Session * session,
 ///
 /// @param[out]     data_array
 ///                 buffer of at least size length to copy the data into.  The required
-///                 length should be determined by HAPI_GetWorkitemDataLength.  The data
-///                 is an array of HAPI_StringHandle which can be used with 
-///                 HAPI_GetString.  The string handles are valid until the next call to 
-///                 this function.
+///                 length should be determined by ::HAPI_GetWorkitemDataLength().
+///                 The data is an array of ::HAPI_StringHandle which can be used with 
+///                 ::HAPI_GetString().  The string handles are valid until the 
+///                 next call to this function.
 ///
 /// @param[in]      length
-///                 The length of the supplied buffer
+///                 The length of @p data_array
 ///
 HAPI_DECL HAPI_GetWorkitemStringData( const HAPI_Session * session,
                                       HAPI_NodeId node_id,
@@ -6778,6 +7470,7 @@ HAPI_DECL HAPI_GetWorkitemStringData( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
@@ -6786,11 +7479,11 @@ HAPI_DECL HAPI_GetWorkitemStringData( const HAPI_Session * session,
 ///                 The id of the workitem
 ///
 /// @param[out]     resultinfo_array
-///                 buffer to fill with info structs.  String handles are valid
+///                 Buffer to fill with info structs.  String handles are valid
 ///                 until the next call of this function.
 ///
 /// @param[in]      resultinfo_count
-///                 The length of resultinfo_array
+///                 The length of @p resultinfo_array
 ///
 HAPI_DECL HAPI_GetWorkitemResultInfo( const HAPI_Session * session,
 				      HAPI_NodeId node_id,
@@ -6805,12 +7498,14 @@ HAPI_DECL HAPI_GetWorkitemResultInfo( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      node_id
 ///                 The node id.
 ///
 /// @param[in]      clean_results
 ///                 Remove the results generated by the node.
+///                 <!-- default 0 -->
 ///
 HAPI_DECL HAPI_DirtyPDGNode( const HAPI_Session * session, 
 			     HAPI_NodeId node_id,
@@ -6822,6 +7517,7 @@ HAPI_DECL HAPI_DirtyPDGNode( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      graph_context_id
 ///                 The id of the graph context
@@ -6835,6 +7531,7 @@ HAPI_DECL HAPI_PausePDGCook( const HAPI_Session * session,
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
 ///
 /// @param[in]      graph_context_id
 ///                 The id of the graph context

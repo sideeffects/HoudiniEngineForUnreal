@@ -147,6 +147,10 @@ typedef int HAPI_PDG_WorkitemId;
 /// Use this with PDG functions
 typedef int HAPI_PDG_GraphContextId;
 
+/// When we load a HIP file, we associate a HIP file ID with the created nodes
+/// so that they can be looked up later
+typedef int HAPI_HIPFileId;
+
 /////////////////////////////////////////////////////////////////////////////
 // Enums
 
@@ -800,46 +804,54 @@ enum HAPI_PDG_EventType
 
     HAPI_PDG_EVENT_NODE_CLEAR,
 
-	HAPI_PDG_EVENT_COOK_ERROR,
-	HAPI_PDG_EVENT_COOK_WARNING,
+    HAPI_PDG_EVENT_COOK_ERROR,
+    HAPI_PDG_EVENT_COOK_WARNING,
 
-	HAPI_PDG_EVENT_COOK_COMPLETE,
+    HAPI_PDG_EVENT_COOK_COMPLETE,
 
     HAPI_PDG_EVENT_DIRTY_START,
     HAPI_PDG_EVENT_DIRTY_STOP,
 
-	HAPI_PDG_EVENT_DIRTY_ALL,
+    HAPI_PDG_EVENT_DIRTY_ALL,
 
-	HAPI_PDG_EVENT_UI_SELECT,
+    HAPI_PDG_EVENT_UI_SELECT,
 
-	HAPI_PDG_EVENT_NODE_CREATE,
-	HAPI_PDG_EVENT_NODE_REMOVE,
-	HAPI_PDG_EVENT_NODE_RENAME,
-	HAPI_PDG_EVENT_NODE_CONNECT,
-	HAPI_PDG_EVENT_NODE_DISCONNECT,
+    HAPI_PDG_EVENT_NODE_CREATE,
+    HAPI_PDG_EVENT_NODE_REMOVE,
+    HAPI_PDG_EVENT_NODE_RENAME,
+    HAPI_PDG_EVENT_NODE_CONNECT,
+    HAPI_PDG_EVENT_NODE_DISCONNECT,
 
-	HAPI_PDG_EVENT_WORKITEM_SET_INT,
-	HAPI_PDG_EVENT_WORKITEM_SET_FLOAT,
-	HAPI_PDG_EVENT_WORKITEM_SET_STRING,
-	HAPI_PDG_EVENT_WORKITEM_SET_FILE,
-	HAPI_PDG_EVENT_WORKITEM_SET_PYOBJECT,
-	HAPI_PDG_EVENT_WORKITEM_SET_GEOMETRY,
-	HAPI_PDG_EVENT_WORKITEM_RESULT,
+    HAPI_PDG_EVENT_WORKITEM_SET_INT,
+    HAPI_PDG_EVENT_WORKITEM_SET_FLOAT,
+    HAPI_PDG_EVENT_WORKITEM_SET_STRING,
+    HAPI_PDG_EVENT_WORKITEM_SET_FILE,
+    HAPI_PDG_EVENT_WORKITEM_SET_PYOBJECT,
+    HAPI_PDG_EVENT_WORKITEM_SET_GEOMETRY,
+    HAPI_PDG_EVENT_WORKITEM_MERGE,
+    HAPI_PDG_EVENT_WORKITEM_RESULT,
 
-	HAPI_PDG_EVENT_WORKITEM_PRIORITY,
+    HAPI_PDG_EVENT_WORKITEM_PRIORITY,
 
-	HAPI_PDG_EVENT_COOK_START,
+    HAPI_PDG_EVENT_COOK_START,
 
-	HAPI_PDG_EVENT_WORKITEM_ADD_STATIC_ANCESTOR,
-	HAPI_PDG_EVENT_WORKITEM_REMOVE_STATIC_ANCESTOR,
+    HAPI_PDG_EVENT_WORKITEM_ADD_STATIC_ANCESTOR,
+    HAPI_PDG_EVENT_WORKITEM_REMOVE_STATIC_ANCESTOR,
 
-	HAPI_PDG_EVENT_NODE_PROGRESS_UPDATE,
+    HAPI_PDG_EVENT_NODE_PROGRESS_UPDATE,
 
-	HAPI_PDG_EVENT_ALL,
+    HAPI_PDG_EVENT_BATCH_ITEM_INITIALIZED,
 
-	HAPI_PDG_EVENT_LOG,
+    HAPI_PDG_EVENT_ALL,
+    HAPI_PDG_EVENT_LOG,
 
-	HAPI_PDG_CONTEXT_EVENTS
+    HAPI_PDG_EVENT_SCHEDULER_ADDED,
+    HAPI_PDG_EVENT_SCHEDULER_REMOVED,
+    HAPI_PDG_EVENT_SET_SCHEDULER,
+
+    HAPI_PDG_EVENT_SERVICE_MANAGER_ALL,
+
+    HAPI_PDG_CONTEXT_EVENTS
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_PDG_EventType )
 
@@ -1705,7 +1717,7 @@ struct HAPI_API HAPI_SphereInfo
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_SphereInfo )
 
-// PDG Structs ---------------------------------------------------------------
+// PDG Structs --------------------------------------------------------------
 
 struct HAPI_API HAPI_PDG_EventInfo
 {
@@ -1734,5 +1746,53 @@ struct HAPI_API HAPI_PDG_WorkitemResultInfo
     HAPI_Int64 resultHash;	  /// hash value of result
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkitemResultInfo )
+
+// SESSIONSYNC --------------------------------------------------------------
+
+/// @struct HAPI_Viewport
+///
+/// Contains the information for synchronizing viewport between Houdini
+/// and other applications. When SessionSync is enabled, Houdini will
+/// update this struct with its viewport state. It will also update
+/// its own viewport if this struct has changed.
+/// The data stored is in Houdini's right-handed Y-up coordinate system.
+///
+struct HAPI_API HAPI_Viewport
+{
+    /// The world position of the viewport camera's pivot.
+    float position[ HAPI_POSITION_VECTOR_SIZE ];
+
+    /// The direction of the viewport camera stored as a quaternion.
+    float rotationQuaternion[ HAPI_QUATERNION_VECTOR_SIZE ];
+
+    /// The offset from the pivot to the viewport camera's
+    /// actual world position.
+    float offset;
+};
+HAPI_C_STRUCT_TYPEDEF( HAPI_Viewport )
+
+/// @struct HAPI_SessionSyncInfo
+///
+/// Contains the information for synchronizing general SessionSync
+/// state between Houdini and other applications. When SessionSync
+/// is enabled, Houdini will update this struct with its state.
+/// It will also update its internal state if this struct has
+/// changed.
+///
+struct HAPI_API HAPI_SessionSyncInfo
+{
+    /// Specifies whether Houdini's current time is used for Houdini Engine
+    /// cooks. This is automatically enabled in SessionSync where
+    /// Houdini's viewport forces cooks to use Houdini's current time.
+    /// This is disabled in non-SessionSync mode, but can be toggled to
+    /// override default behaviour.
+    HAPI_Bool cookUsingHoudiniTime;
+
+    /// Specifies whether viewport synchronization is enabled. If enabled,
+    /// in SessionSync, Houdini will update its own viewport using
+    /// ::HAPI_Viewport.
+    HAPI_Bool syncViewport;
+};
+HAPI_C_STRUCT_TYPEDEF( HAPI_SessionSyncInfo )
 
 #endif // __HAPI_COMMON_h__
