@@ -620,15 +620,15 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
 {
     UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = nullptr;
 
-    // Locate all fields which have this static mesh set as original mesh.
-    TArray< UHoudiniAssetInstanceInputField * > CandidateFields = InstanceInputFields;
-    CandidateFields.FilterByPredicate( [&]( const UHoudiniAssetInstanceInputField* Field ) {
-        return Field->GetOriginalObject() == InstancedObject;
-    } );
+    // Locate field which have this static mesh set as original mesh.
+	UHoudiniAssetInstanceInputField** FoundField = InstanceInputFields.FindByPredicate([&](const UHoudiniAssetInstanceInputField* Field)
+	{
+		return Field->GetOriginalObject() == InstancedObject;
+	});
 
-    if ( CandidateFields.Num() > 0 )
-    {
-        HoudiniAssetInstanceInputField = CandidateFields[ 0 ];
+	if (FoundField)
+	{
+		HoudiniAssetInstanceInputField = *FoundField;
         InstanceInputFields.RemoveSingleSwap( HoudiniAssetInstanceInputField, false );
 
         TArray< int32 > MatchingIndices;
