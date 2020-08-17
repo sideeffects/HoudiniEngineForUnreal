@@ -114,4 +114,7 @@ class FHoudiniEngineScheduler : public FRunnable, FSingleThreadRunnable
 
         /** Stopping flag. **/
         bool bStopping;
+		
+		// Frequency update (sleep time between each update)
+		static const float UpdateFrequency;
 };
