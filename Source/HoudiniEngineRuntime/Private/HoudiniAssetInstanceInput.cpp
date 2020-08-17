@@ -620,15 +620,17 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
 {
     UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = nullptr;
 
-    // Locate all fields which have this static mesh set as original mesh.
-    TArray< UHoudiniAssetInstanceInputField * > CandidateFields = InstanceInputFields;
-    CandidateFields.FilterByPredicate( [&]( const UHoudiniAssetInstanceInputField* Field ) {
-        return Field->GetOriginalObject() == InstancedObject;
-    } );
+    // Locate field which have this static mesh set as original mesh.
+	// Use FindByPredicate instead of FilterByPredicate, 
+	// this fixes the order of the Houdini Instanced Inputs array's randomly changing after a param update.
+    UHoudiniAssetInstanceInputField** FoundField = InstanceInputFields.FindByPredicate([&](const UHoudiniAssetInstanceInputField* Field)
+	{
+		return Field->GetOriginalObject() == InstancedObject;
+    });
 
-    if ( CandidateFields.Num() > 0 )
+    if ( FoundField )
     {
-        HoudiniAssetInstanceInputField = CandidateFields[ 0 ];
+        HoudiniAssetInstanceInputField = *FoundField;
         InstanceInputFields.RemoveSingleSwap( HoudiniAssetInstanceInputField, false );
 
         TArray< int32 > MatchingIndices;
