@@ -1527,6 +1527,16 @@ struct HAPI_API HAPI_AttributeInfo
     /// size per attribute.
     int tupleSize;
 
+    /// Total number of elements for an array attribute.
+    /// An array attribute can be thought of as a 2 dimensional array where
+    /// the 2nd dimension can vary in size for each element in the 1st
+    /// dimension. Therefore this returns the total number of values in
+    /// the entire array.
+    /// This should be used to determine the total storage
+    /// size needed by multiplying with ::HAPI_AttributeInfo::storage.
+    /// Note that this will be 0 for a non-array attribute.
+    HAPI_Int64 totalArrayElements;
+
     /// Attribute type info
     /// This is used to help identify the type of data stored in an attribute.
     /// Using the type is recommended over using just an attribute's name to identify
@@ -1727,7 +1737,7 @@ struct HAPI_API HAPI_PDG_EventInfo
     int currentState;                       /// (HAPI_PDG_WorkItemState) value of current state for state change
     int lastState;                          /// (HAPI_PDG_WorkItemState) value of last state for state change
     int eventType;                          /// (HAPI_PDG_EventType) event type
-	HAPI_StringHandle msgSH;				/// String handle of the event message (> 0 if there is a message)
+    HAPI_StringHandle msgSH;                /// String handle of the event message (> 0 if there is a message)
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_EventInfo )
 
