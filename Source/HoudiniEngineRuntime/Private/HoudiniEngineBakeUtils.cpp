@@ -625,6 +625,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_InstancedActors(
                 NewActor->SetActorLabel( NewNameStr );
                 NewActor->SetFolderPath( BaseName );
                 NewActor->SetActorTransform( CurrentTransform );
+				NewActors.Add(NewActor);
             }
         }
     }
@@ -831,6 +832,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
                 // Set the part id to 0 so we can access the instancer
                 GeoPartObject.PartId = 0;
                 FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( SMC, GeoPartObject );
+				NewActors.Add(NewActor);
             }
 #endif
         }
@@ -838,7 +840,10 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
         {
             AActor* NewActor = Factory->CreateActor(BakedSM, DesiredLevel, OtherSMC->GetComponentTransform(), RF_Transactional);
             if( NewActor && !NewActor->IsPendingKill() )
+			{
                 PrepNewStaticMeshActor( NewActor );
+				NewActors.Add(NewActor);
+			}
         }
     }
 #endif
