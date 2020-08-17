@@ -42,6 +42,9 @@
 const uint32
 FHoudiniEngineScheduler::InitialTaskSize = 256u;
 
+const float
+FHoudiniEngineScheduler::UpdateFrequency = 0.1f;
+
 FHoudiniEngineScheduler::FHoudiniEngineScheduler()
     : Tasks( nullptr )
     , PositionWrite( 0u )
@@ -227,7 +230,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset( const FHoudiniEngineTask & Task )
             }
 
             // We want to yield.
-            FPlatformProcess::Sleep( 0.0f );
+            FPlatformProcess::Sleep( UpdateFrequency );
         }
     }
     else
@@ -343,7 +346,7 @@ FHoudiniEngineScheduler::TaskCookAsset( const FHoudiniEngineTask & Task )
         }
 
         // We want to yield.
-        FPlatformProcess::Sleep( 0.0f );
+        FPlatformProcess::Sleep( UpdateFrequency );
     }
 }
 
@@ -447,7 +450,7 @@ FHoudiniEngineScheduler::ProcessQueuedTasks()
         if ( FPlatformProcess::SupportsMultithreading() )
         {
             // We want to yield for a bit.
-            FPlatformProcess::Sleep( 0.0f );
+            FPlatformProcess::Sleep( UpdateFrequency );
         }
         else
         {
