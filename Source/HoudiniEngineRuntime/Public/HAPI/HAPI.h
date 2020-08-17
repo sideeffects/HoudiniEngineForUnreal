@@ -17,9 +17,11 @@
  *                          with "_buffer"
  *      single values:      don't end with "_array" or "_buffer"
  *      arrays:             <type> * and is either "array" or ends
- *                          with "_array"
+ *                          with "_array". Use "_fixed_array" to skip resize using
+ *                          tupleSize for the thrift generator.
  *      array length:       is either "length", "count", or ends with
- *                          "_length" or "_count"
+ *                          "_length" or "_count". Use "_fixed_array" to skip resize
+ *                          using tupleSize for the thrift generator.
  */
 
 #ifndef __HAPI_h__
@@ -615,6 +617,46 @@ HAPI_DECL HAPI_CheckForSpecificErrors( const HAPI_Session * session,
                                        HAPI_ErrorCodeBits errors_to_look_for,
                                        HAPI_ErrorCodeBits * errors_found );
 
+/// @brief  Clears the connection error. Should be used before starting
+///         or creating Thrift server.
+///
+///         Only available when using Thrift connections.
+///
+HAPI_DECL HAPI_ClearConnectionError( );
+
+/// @brief  Return the length of string buffer storing connection error
+///         message.
+///
+///         Only available when using Thrift connections.
+///
+/// @param[out]     buffer_length
+///                 Length of buffer char array ready to be filled.
+///
+HAPI_DECL HAPI_GetConnectionErrorLength( int * buffer_length );
+
+/// @brief  Return the connection error message.
+///
+///         You MUST call ::HAPI_GetConnectionErrorLength() before calling
+///         this to get the correct string length.
+///
+///         Only available when using Thrift connections.
+///
+/// @param[out]     string_value
+///                 Buffer char array ready to be filled.
+///
+/// @param[in]      length
+///                 Length of the string buffer (must match size of
+///                 string_value - so including NULL terminator).
+///                 Use ::HAPI_GetConnectionErrorLength to get this length.
+///
+/// @param[in]      clear
+///                 If true, will clear the error when HAPI_RESULT_SUCCESS
+///                 is returned.
+///
+HAPI_DECL HAPI_GetConnectionError( char * string_value, 
+                                   int length,
+                                   HAPI_Bool clear );
+
 /// @brief  Get total number of nodes that need to cook in the current
 ///         session.
 ///
@@ -901,16 +943,16 @@ HAPI_DECL HAPI_GetStringBatchSize(const HAPI_Session * session,
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
 ///
-/// @param[out]     char_array
+/// @param[out]     char_buffer
 ///                 Array of characters to hold string values.
 ///
 /// @param[in]      char_array_length
 ///                 Length of char_array.  Must be large enough to hold
 ///                 all the string values including null separators.
 ///
-HAPI_DECL HAPI_GetStringBatch(const HAPI_Session * session,
-                              char * char_array,
-                              int char_array_length);
+HAPI_DECL HAPI_GetStringBatch( const HAPI_Session * session,
+                               char * char_buffer,
+                               int char_array_length );
 
 
 // TIME ---------------------------------------------------------------------
@@ -941,6 +983,42 @@ HAPI_DECL HAPI_GetTime( const HAPI_Session * session, float * time );
 ///
 HAPI_DECL HAPI_SetTime( const HAPI_Session * session, float time );
 
+/// @brief  Returns whether the Houdini session will use the current time in
+///         Houdini when cooking and retrieving data. By default this is
+///         disabled and the Houdini session uses time 0 (i.e. frame 1).
+///         In SessionSync, it is enabled by default, but can be overridden.
+///         Note that this function will ALWAYS return
+///         ::HAPI_RESULT_SUCCESS.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[out]     enabled
+///                 Whether use Houdini time is enabled or not.
+///
+HAPI_DECL HAPI_GetUseHoudiniTime( const HAPI_Session * session, 
+                                  HAPI_Bool * enabled );
+
+/// @brief  Sets whether the Houdini session should use the current time in
+///         Houdini when cooking and retrieving data. By default this is
+///         disabled and the Houdini session uses time 0 (i.e. frame 1).
+///         In SessionSync, it is enabled by default, but can be overridden.
+///         Note that this function will ALWAYS return
+///         ::HAPI_RESULT_SUCCESS.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      enabled
+///                 Set to true to use Houdini time.
+///
+HAPI_DECL HAPI_SetUseHoudiniTime( const HAPI_Session * session, 
+                                  HAPI_Bool enabled );
+
 /// @brief  Gets the current global timeline options.
 ///
 /// @param[in]      session
@@ -948,7 +1026,7 @@ HAPI_DECL HAPI_SetTime( const HAPI_Session * session, float time );
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
 ///
-/// @param[in]      timeline_options
+/// @param[out]     timeline_options
 ///                 The global timeline options struct.
 ///
 HAPI_DECL HAPI_GetTimelineOptions( const HAPI_Session * session,
@@ -1374,6 +1452,11 @@ HAPI_DECL HAPI_Interrupt( const HAPI_Session * session );
 ///
 ///         @note In threaded mode, this is an _async call_!
 ///
+///         @note This method will merge the HIP file into the scene. This means
+///         that any registered `hou.hipFile` event callbacks will be triggered
+///         with the `hou.hipFileEventType.BeforeMerge` and
+///         `hou.hipFileEventType.AfterMerge` events.
+///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
@@ -1391,6 +1474,39 @@ HAPI_DECL HAPI_Interrupt( const HAPI_Session * session );
 HAPI_DECL HAPI_LoadHIPFile( const HAPI_Session * session,
                             const char * file_name,
                             HAPI_Bool cook_on_load );
+
+/// @brief  Loads a .hip file into the main Houdini scene.
+///
+///         @note In threaded mode, this is an _async call_!
+///
+///         @note This method will merge the HIP file into the scene. This means
+///         that any registered `hou.hipFile` event callbacks will be triggered
+///         with the `hou.hipFileEventType.BeforeMerge` and
+///         `hou.hipFileEventType.AfterMerge` events.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      file_name
+///                 Absolute path to the .hip file to load.
+///
+/// @param[in]      cook_on_load
+///                 Set to true if you wish the nodes to cook as soon
+///                 as they are created. Otherwise, you will have to
+///                 call ::HAPI_CookNode() explicitly for each after you
+///                 call this function.
+///
+/// @param[out]     file_id
+///                 This parameter will be set to the HAPI_HIPFileId of the
+///                 loaded HIP file. This can be used to lookup nodes that were
+///                 created as a result of loading this HIP file.
+///
+HAPI_DECL HAPI_MergeHIPFile(const HAPI_Session * session,
+                            const char * file_name,
+                            HAPI_Bool cook_on_load,
+                            HAPI_HIPFileId * file_id);
 
 /// @brief  Saves a .hip file of the current Houdini scene.
 ///
@@ -1414,6 +1530,47 @@ HAPI_DECL HAPI_LoadHIPFile( const HAPI_Session * session,
 HAPI_DECL HAPI_SaveHIPFile( const HAPI_Session * session,
                             const char * file_path,
                             HAPI_Bool lock_nodes );
+
+/// @brief  Gets the number of nodes that were created as a result of loading a
+///         .hip file
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      id
+///                 The HIP file id.
+///
+/// @param[out]     count
+///                 Pointer to an int where the HIP file node count will be
+///                 stored.
+HAPI_DECL HAPI_GetHIPFileNodeCount(const HAPI_Session *session,
+                                   HAPI_HIPFileId id,
+                                   int * count);
+
+/// @brief  Fills an array of ::HAPI_NodeIds of nodes that were created as a
+///         result of loading the HIP file specified by the ::HAPI_HIPFileId
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      id
+///                 The HIP file id.
+///
+/// @param[out]     node_ids
+///                 Array of ::HAPI_NodeId at least the size of length.
+///
+/// @param[in]      length
+///                 The number of ::HAPI_NodeId to be stored. This should be at
+///                 least 0 and at most the count provided by
+///                 HAPI_GetHIPFileNodeCount
+HAPI_DECL HAPI_GetHIPFileNodeIds(const HAPI_Session *session,
+                                 HAPI_HIPFileId id,
+                                 HAPI_NodeId * node_ids,
+                                 int length);
 
 // NODES --------------------------------------------------------------------
 
@@ -2127,6 +2284,33 @@ HAPI_DECL HAPI_GetNodeOutputName( const HAPI_Session * session,
                                   HAPI_NodeId node_id,
                                   int output_idx,
                                   HAPI_StringHandle * name );
+
+/// @brief Gets the node id of an output node in a SOP network.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id of a SOP node with at least one output node. The
+///                 total number of node outputs can be found from the node's
+///                 ::HAPI_NodeInfo::outputCount
+///
+/// @param[in]      output
+///                 The output index. Should be between 0 and the node's
+///                 ::HAPI_NodeInfo::outputCount - 1.
+///                 <!-- min 0 -->
+///                 <!-- max ::HAPI_NodeInfo::outputCount - 1 --> 
+///
+/// @param[out]     output_node_id
+///                 Pointer to a HAPI_NodeId where the node id of the output
+///                 node will be stored.
+HAPI_DECL HAPI_GetOutputNodeId( const HAPI_Session * session,
+                                HAPI_NodeId node_id,
+                                int output,
+                                HAPI_NodeId * output_node_id );
 
 // PARAMETERS ---------------------------------------------------------------
 
@@ -3526,6 +3710,7 @@ HAPI_DECL HAPI_GetDisplayGeoInfo( const HAPI_Session * session,
                                   HAPI_NodeId object_node_id,
                                   HAPI_GeoInfo * geo_info );
 
+
 /// @brief  Get the geometry info struct (::HAPI_GeoInfo) on a SOP node.
 ///
 /// @param[in]      session
@@ -3746,6 +3931,67 @@ HAPI_DECL HAPI_GetAttributeIntData( const HAPI_Session * session,
                                     int * data_array,
                                     int start, int length );
 
+/// @brief  Get array attribute integer data.
+///         Each entry in an array attribute can have varying array lengths. 
+///         Therefore the array values are returned as a flat array, with 
+///         another sizes array containing the lengths of each array entry.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[out]     data_fixed_array
+///                 An integer array at least the size of
+///                 <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///
+/// @param[in]      data_fixed_length
+///                 Must be <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///                 <!-- source ::HAPI_AttributeInfo::totalArrayElements -->
+///
+/// @param[out]     sizes_fixed_array
+///                 An integer array at least the size of
+///                 <tt>sizes_fixed_length</tt> to hold the size of each entry.
+///                 <!-- source ::HAPI_AttributeInfo::count -->
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
+///
+/// @param[in]      sizes_fixed_length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+HAPI_DECL HAPI_GetAttributeIntArrayData( const HAPI_Session * session,
+                                         HAPI_NodeId node_id,
+                                         HAPI_PartId part_id,
+                                         const char * name,
+                                         HAPI_AttributeInfo * attr_info,
+                                         int * data_fixed_array,
+                                         int data_fixed_length,
+                                         int * sizes_fixed_array,
+                                         int start, int sizes_fixed_length );
+
 /// @brief  Get attribute 64-bit integer data.
 ///
 /// @param[in]      session
@@ -3797,6 +4043,66 @@ HAPI_DECL HAPI_GetAttributeInt64Data( const HAPI_Session * session,
                                       int stride,
                                       HAPI_Int64 * data_array,
                                       int start, int length );
+
+/// @brief  Get array attribute 64-bit integer data.
+///         Each entry in an array attribute can have varying array lengths. 
+///         Therefore the array values are returned as a flat array, with 
+///         another sizes array containing the lengths of each array entry.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[out]     data_fixed_array
+///                 An 64-bit integer array at least the size of
+///                 <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///
+/// @param[in]      data_fixed_length
+///                 Must be <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///                 <!-- source ::HAPI_AttributeInfo::totalArrayElements -->
+///
+/// @param[out]     sizes_fixed_array
+///                 An integer array at least the size of
+///                 <tt>sizes_fixed_length</tt> to hold the size of each entry.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
+///
+/// @param[in]      sizes_fixed_length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+HAPI_DECL HAPI_GetAttributeInt64ArrayData( const HAPI_Session * session,
+                                           HAPI_NodeId node_id,
+                                           HAPI_PartId part_id,
+                                           const char * name,
+                                           HAPI_AttributeInfo * attr_info,
+                                           HAPI_Int64 * data_fixed_array,
+                                           int data_fixed_length,
+                                           int * sizes_fixed_array,
+                                           int start, int sizes_fixed_length );
 
 /// @brief  Get attribute float data.
 ///
@@ -3850,6 +4156,66 @@ HAPI_DECL HAPI_GetAttributeFloatData( const HAPI_Session * session,
                                       float * data_array,
                                       int start, int length );
 
+/// @brief  Get array attribute float data.
+///         Each entry in an array attribute can have varying array lengths. 
+///         Therefore the array values are returned as a flat array, with 
+///         another sizes array containing the lengths of each array entry.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[out]     data_fixed_array
+///                 An float array at least the size of
+///                 <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///
+/// @param[in]      data_fixed_length
+///                 Must be <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///                 <!-- source ::HAPI_AttributeInfo::totalArrayElements -->
+///
+/// @param[out]     sizes_fixed_array
+///                 An integer array at least the size of
+///                <tt>sizes_fixed_length</tt> to hold the size of each entry.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
+///
+/// @param[in]      sizes_fixed_length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+HAPI_DECL HAPI_GetAttributeFloatArrayData( const HAPI_Session * session,
+                                           HAPI_NodeId node_id,
+                                           HAPI_PartId part_id,
+                                           const char * name,
+                                           HAPI_AttributeInfo * attr_info,
+                                           float * data_fixed_array,
+                                           int data_fixed_length,
+                                           int * sizes_fixed_array,
+                                           int start, int sizes_fixed_length );
+
 /// @brief  Get 64-bit attribute float data.
 ///
 /// @param[in]      session
@@ -3902,6 +4268,66 @@ HAPI_DECL HAPI_GetAttributeFloat64Data( const HAPI_Session * session,
                                         double * data_array,
                                         int start, int length );
 
+/// @brief  Get array attribute 64-bit float data.
+///         Each entry in an array attribute can have varying array lengths. 
+///         Therefore the array values are returned as a flat array, with 
+///         another sizes array containing the lengths of each array entry.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for the.
+///                 totalArrayElements. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[out]     data_fixed_array
+///                 An 64-bit float array at least the size of
+///                 <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///
+/// @param[in]      data_fixed_length
+///                 Must be <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///                 <!-- source ::HAPI_AttributeInfo::totalArrayElements -->
+///
+/// @param[out]     sizes_fixed_array
+///                 An integer array at least the size of
+///                 <tt>sizes_fixed_length</tt> to hold the size of each entry.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
+///
+/// @param[in]      sizes_fixed_length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+HAPI_DECL HAPI_GetAttributeFloat64ArrayData( const HAPI_Session * session,
+                                             HAPI_NodeId node_id,
+                                             HAPI_PartId part_id,
+                                             const char * name,
+                                             HAPI_AttributeInfo * attr_info,
+                                             double * data_fixed_array,
+                                             int data_fixed_length,
+                                             int * sizes_fixed_array,
+                                             int start, int sizes_fixed_length );
+
 /// @brief  Get attribute string data. Note that the string handles
 ///         returned are only valid until the next time this function
 ///         is called.
@@ -3947,6 +4373,68 @@ HAPI_DECL HAPI_GetAttributeStringData( const HAPI_Session * session,
                                        HAPI_AttributeInfo * attr_info,
                                        HAPI_StringHandle * data_array,
                                        int start, int length );
+
+/// @brief  Get array attribute string data. 
+///         Each entry in an array attribute can have varying array lengths. 
+///         Therefore the array values are returned as a flat array, with 
+///         another sizes array containing the lengths of each array entry. 
+///         Note that the string handles returned are only valid until 
+///         the next time this function is called.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for the.
+///                 totalArrayElements. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[out]     data_fixed_array
+///                 An ::HAPI_StringHandle array at least the size of
+///                 <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///
+/// @param[in]      data_fixed_length
+///                 Must be <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///                 <!-- source ::HAPI_AttributeInfo::totalArrayElements -->
+///
+/// @param[out]     sizes_fixed_array
+///                 An integer array at least the size of
+///                 <tt>sizes_fixed_length</tt> to hold the size of each entry.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
+///
+/// @param[in]      sizes_fixed_length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+HAPI_DECL HAPI_GetAttributeStringArrayData( const HAPI_Session * session,
+                                            HAPI_NodeId node_id,
+                                            HAPI_PartId part_id,
+                                            const char * name,
+                                            HAPI_AttributeInfo * attr_info,
+                                            HAPI_StringHandle * data_fixed_array,
+                                            int data_fixed_length,
+                                            int * sizes_fixed_array,
+                                            int start, int sizes_fixed_length );
 
 /// @brief  Get group names for an entire geo. Please note that this
 ///         function is NOT per-part, but it is per-geo. The companion
@@ -6132,6 +6620,60 @@ HAPI_DECL HAPI_LoadGeoFromFile( const HAPI_Session * session,
                                 HAPI_NodeId node_id,
                                 const char * file_name );
 
+/// @brief  Saves the node and all its contents to file.
+///         The saved file can be loaded by calling ::HAPI_LoadNodeFromFile.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      file_name
+///                 The name of the file to be saved.  The extension
+///                 of the file determines its type.
+///
+HAPI_DECL HAPI_SaveNodeToFile( const HAPI_Session * session,
+                               HAPI_NodeId node_id,
+                               const char * file_name );
+
+/// @brief  Loads and creates a previously saved node and all 
+///         its contents from given file.
+///         The saved file must have been created by calling
+///         ::HAPI_SaveNodeToFile.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      file_name
+///                 The name of the file to be loaded
+///
+/// @param[in]      parent_node_id
+///                 The parent node id of the Geometry object.
+///
+/// @param[in]      node_label
+///                 The name of the new Geometry object.
+///
+/// @param[in]      cook_on_load
+///                 Set to true if you wish the nodes to cook as soon
+///                 as they are created. Otherwise, you will have to
+///                 call ::HAPI_CookNode() explicitly for each after you
+///                 call this function.
+///
+/// @param[out]     new_node_id
+///                 The newly created node id.
+///
+HAPI_DECL HAPI_LoadNodeFromFile( const HAPI_Session * session,
+                                 const char * file_name,
+                                 HAPI_NodeId parent_node_id,
+                                 const char * node_label,
+                                 HAPI_Bool cook_on_load,
+                                 HAPI_NodeId * new_node_id );
+
 /// @brief  Cache the current state of the geo to memory, given the
 ///         format, and return the size. Use this size with your call
 ///         to ::HAPI_SaveGeoToMemory() to copy the cached geo to your
@@ -6229,7 +6771,116 @@ HAPI_DECL HAPI_SetNodeDisplay( const HAPI_Session * session,
                                HAPI_NodeId node_id,
                                int onOff );
 
-// @brief  Return an array of PDG graph context names and ids, the first 
+// SESSIONSYNC --------------------------------------------------------------
+
+/// @brief  Get the specified node's total cook count, including
+///	    its children, if specified.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      node_type_filter
+///                 The node type by which to filter the children.
+///
+/// @param[in]      node_flags_filter
+///                 The node flags by which to filter the children.
+///
+/// @param[in]      recursive
+///                 Whether or not to include the specified node's
+///                 children cook count in the tally.
+///
+/// @param[out]     count
+///                 The number of cooks in total for this session.
+///
+HAPI_DECL HAPI_GetTotalCookCount( const HAPI_Session * session,
+                                  HAPI_NodeId node_id,
+                                  HAPI_NodeTypeBits node_type_filter,
+                                  HAPI_NodeFlagsBits node_flags_filter,
+                                  HAPI_Bool recursive,
+                                  int * count );
+
+/// @brief  Enable or disable SessionSync mode.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      enable
+///                 Enable or disable SessionSync mode.
+///
+HAPI_DECL HAPI_SetSessionSync( const HAPI_Session * session,
+                               HAPI_Bool enable );
+
+/// @brief  Get the ::HAPI_Viewport info for synchronizing viewport in
+///	    SessionSync. When SessionSync is running this will
+///	    return Houdini's current viewport information.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[out]     viewport
+///                 The output ::HAPI_Viewport.
+///
+HAPI_DECL HAPI_GetViewport( const HAPI_Session * session,
+                            HAPI_Viewport * viewport );
+
+/// @brief  Set the ::HAPI_Viewport info for synchronizing viewport in
+///	    SessionSync. When SessionSync is running, this can be
+///	    used to set the viewport information which Houdini
+///	    will then synchronizse with for its viewport.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      viewport
+///                 A ::HAPI_Viewport that stores the viewport.
+///
+HAPI_DECL HAPI_SetViewport( const HAPI_Session * session,
+                            const HAPI_Viewport * viewport );
+
+/// @brief  Get the ::HAPI_SessionSyncInfo for synchronizing SessionSync
+///	    state between Houdini and Houdini Engine integrations.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[out]     session_sync_info
+///                 The output ::HAPI_SessionSyncInfo.
+///
+HAPI_DECL HAPI_GetSessionSyncInfo(
+    const HAPI_Session * session,
+    HAPI_SessionSyncInfo * session_sync_info );
+
+/// @brief  Set the ::HAPI_SessionSyncInfo for synchronizing SessionSync
+///	    state between Houdini and Houdini Engine integrations.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      session_sync_info
+///                 A ::HAPI_SessionSyncInfo that stores the state.
+///
+HAPI_DECL HAPI_SetSessionSyncInfo(
+    const HAPI_Session * session,
+    const HAPI_SessionSyncInfo * session_sync_info );
+
+// PDG ----------------------------------------------------------------------
+
+/// @brief Return an array of PDG graph context names and ids, the first 
 ///        count names will be returned.  These ids can be used 
 ///        with ::HAPI_GetPDGEvents and ::HAPI_GetPDGState.  The values
 ///        of the names can be retrieved with ::HAPI_GetString.
@@ -6281,6 +6932,11 @@ HAPI_DECL HAPI_GetPDGGraphContextId( const HAPI_Session * session,
 ///        Events generated during this cook can be collected with ::HAPI_GetPDGEvents.
 ///        Any uncollected events will be discarded at the start of the cook.
 ///
+///        If there are any $HIPFILE file dependencies on nodes involved in the cook
+///        a hip file will be automatically saved to $HOUDINI_TEMP_DIR directory so
+///        that it can be copied to the working directory by the scheduler.  This means
+///        $HIP will be equal to $HOUDINI_TEMP_DIR.
+///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
@@ -6290,8 +6946,8 @@ HAPI_DECL HAPI_GetPDGGraphContextId( const HAPI_Session * session,
 ///                 The node id of a TOP node for the cook operation.
 ///
 /// @param[in]      generate_only
-///                 1 means only root generation will done.  0 means start
-///                 a full graph cook.
+///                 1 means only static graph generation will done.  0 means
+///                 a full graph cook.  Generation is always blocking.
 ///
 /// @param[in]      blocking
 ///                 0 means return immediately and cooking will be done 
