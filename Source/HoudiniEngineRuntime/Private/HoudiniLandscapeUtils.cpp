@@ -823,6 +823,78 @@ TArray<T> ResampleData( const TArray<T>& Data, int32 OldWidth, int32 OldHeight, 
     return Result;
 }
 
+bool
+FHoudiniLandscapeUtils::GetLandscapeSizeAttributes(
+    const FHoudiniGeoPartObject* CurrentHeightfield,
+    const int32& SizeX, const int32& SizeY,
+    int32& NewSizeX, int32& NewSizeY,
+    int32& NumberOfSectionsPerComponent,
+    int32& NumberOfQuadsPerSection)
+{
+    NumberOfSectionsPerComponent = -1;
+    NumberOfQuadsPerSection = -1;
+
+    {
+        TArray<int32> IntData;
+        HAPI_AttributeInfo AttributeInfo;
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+
+        if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+            CurrentHeightfield->AssetId, CurrentHeightfield->ObjectId,
+            CurrentHeightfield->GeoId, CurrentHeightfield->PartId,
+            "unreal_landscape_sections_per_component", AttributeInfo, IntData, 1))
+
+        {
+            if (IntData.Num() > 0 && (IntData[0] == 1 || IntData[0] == 2))
+            {
+                NumberOfSectionsPerComponent = IntData[0];
+            }
+        }
+    }
+
+    if (NumberOfSectionsPerComponent < 0)
+    {
+        return false;
+    }
+
+    {
+        TArray<int32> IntData;
+        HAPI_AttributeInfo AttributeInfo;
+        FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+
+        if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+            CurrentHeightfield->AssetId, CurrentHeightfield->ObjectId,
+            CurrentHeightfield->GeoId, CurrentHeightfield->PartId,
+            "unreal_landscape_quads_per_section", AttributeInfo, IntData, 1))
+
+        {
+            int32 SectionSizes[] = { 7, 15, 31, 63, 127, 255 };
+            if (IntData.Num() > 0)
+            {
+                for (int32 SectionSizesIdx = UE_ARRAY_COUNT(SectionSizes) - 1; SectionSizesIdx >= 0; SectionSizesIdx--)
+                {
+                    const int32 SectionSize = SectionSizes[SectionSizesIdx];
+                    if (IntData[0] == SectionSize)
+                    {
+                        NumberOfQuadsPerSection = IntData[0];
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if (NumberOfQuadsPerSection < 0)
+    {
+        return false;
+    }
+
+    NewSizeX = SizeX;
+    NewSizeY = SizeY;
+
+    return true;
+}
+
 //-------------------------------------------------------------------------------------------------------------------
 bool
 FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightfieldSize(
@@ -3038,12 +3110,22 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
         int32 UnrealYSize = -1;
         int32 NumSectionPerLandscapeComponent = -1;
         int32 NumQuadsPerLandscapeSection = -1;
-        if (!FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightfieldSize(
+
+        // Try to get attributes from houdini before trying to guess
+        if (!FHoudiniLandscapeUtils::GetLandscapeSizeAttributes(
+            CurrentHeightfield,
             HoudiniXSize, HoudiniYSize,
             UnrealXSize, UnrealYSize,
             NumSectionPerLandscapeComponent,
             NumQuadsPerLandscapeSection))
-            continue;
+        {
+            if (!FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightfieldSize(
+                HoudiniXSize, HoudiniYSize,
+                UnrealXSize, UnrealYSize,
+                NumSectionPerLandscapeComponent,
+                NumQuadsPerLandscapeSection))
+                continue;
+        }
 
         // See if the Heightfield has component extent attributes
         // This would mean that we'd need to update parts of the landscape only 
@@ -3150,6 +3232,13 @@ FHoudiniLandscapeUtils::CreateAllLandscapes(
                 {
                     // We can reuse the existing actor
                     bLandscapeNeedsRecreate = false;
+                }
+
+                // if quads size of sections count changes then recreate
+                if (PreviousInfo->ComponentSizeQuads != NumQuadsPerLandscapeSection ||
+                    PreviousInfo->ComponentNumSubsections != NumSectionPerLandscapeComponent)
+                {
+                    bLandscapeNeedsRecreate = true;
                 }
             }
         }
