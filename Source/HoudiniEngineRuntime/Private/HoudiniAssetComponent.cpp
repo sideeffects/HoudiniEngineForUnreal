@@ -888,7 +888,9 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
                 }
             }
 
-            if ( StaticMeshComponent && !StaticMeshComponent->IsPendingKill())
+            // No need to change visible/collision/uproperties if we're not fully loaded,
+            // as this likely means that we're in the process of being deserialized...
+            if (bFullyLoaded && StaticMeshComponent && !StaticMeshComponent->IsPendingKill())
             {
                 // If this is a collision geo, we need to make it invisible.
                 if (HoudiniGeoPartObject.IsCollidable())
@@ -924,9 +926,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(
                 }
 
                 // Try to update uproperty atributes
-                // No need to update uprops if we've not yet been instanced
-                if ( bFullyLoaded )
-                    FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( StaticMeshComponent, HoudiniGeoPartObject );
+                FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( StaticMeshComponent, HoudiniGeoPartObject );
             }
         }
     }
