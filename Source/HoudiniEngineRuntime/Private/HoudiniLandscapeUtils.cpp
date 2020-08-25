@@ -2064,9 +2064,9 @@ FHoudiniLandscapeUtils::CreateHeightfieldInputNode(
     FHoudiniEngineUtils::ConvertUnrealString(NodeName, NameStr);
 
     // Create the heigthfield node via HAPI
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateHeightfieldInputNode(
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateHeightFieldInput(
         FHoudiniEngine::Get().GetSession(),
-        ParentNodeId, NameStr.c_str(), XSize, YSize, 1.0f,
+        ParentNodeId, NameStr.c_str(), XSize, YSize, 1.0f, HAPI_HEIGHTFIELD_SAMPLING_CENTER,
         &HeightfieldNodeId, &HeightNodeId, &MaskNodeId, &MergeNodeId ), false);
 
     // Cook it

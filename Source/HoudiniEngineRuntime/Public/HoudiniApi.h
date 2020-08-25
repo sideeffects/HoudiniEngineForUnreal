@@ -1,5 +1,5 @@
 /*
- * Copyright (c) <2019> Side Effects Software Inc. *
+ * Copyright (c) <2020> Side Effects Software Inc. *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -48,6 +48,7 @@ public:
 	typedef HAPI_Result (*CancelPDGCookFuncPtr)(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id);
 	typedef HAPI_Result (*CheckForSpecificErrorsFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ErrorCodeBits errors_to_look_for, HAPI_ErrorCodeBits * errors_found);
 	typedef HAPI_Result (*CleanupFuncPtr)(const HAPI_Session * session);
+	typedef HAPI_Result (*ClearConnectionErrorFuncPtr)();
 	typedef HAPI_Result (*CloseSessionFuncPtr)(const HAPI_Session * session);
 	typedef HAPI_Result (*CommitGeoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id);
 	typedef HAPI_Result (*CommitWorkitemsFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id);
@@ -66,7 +67,7 @@ public:
 	typedef void (*CookOptions_InitFuncPtr)(HAPI_CookOptions * in);
 	typedef HAPI_Result (*CookPDGFuncPtr)(const HAPI_Session * session, HAPI_NodeId cook_node_id, int generate_only, int blocking);
 	typedef HAPI_Result (*CreateCustomSessionFuncPtr)(HAPI_SessionType session_type, void * session_info, HAPI_Session * session);
-	typedef HAPI_Result (*CreateHeightfieldInputNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * name, int xsize, int ysize, float voxelsize, HAPI_NodeId * heightfield_node_id, HAPI_NodeId * height_node_id, HAPI_NodeId * mask_node_id, HAPI_NodeId * merge_node_id);
+	typedef HAPI_Result (*CreateHeightFieldInputFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * name, int xsize, int ysize, float voxelsize, HAPI_HeightFieldSampling sampling, HAPI_NodeId * heightfield_node_id, HAPI_NodeId * height_node_id, HAPI_NodeId * mask_node_id, HAPI_NodeId * merge_node_id);
 	typedef HAPI_Result (*CreateHeightfieldInputVolumeNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeId * new_node_id, const char * name, int xsize, int ysize, float voxelsize);
 	typedef HAPI_Result (*CreateInProcessSessionFuncPtr)(HAPI_Session * session);
 	typedef HAPI_Result (*CreateInputNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId * node_id, const char * name);
@@ -89,13 +90,21 @@ public:
 	typedef void (*GeoInfo_InitFuncPtr)(HAPI_GeoInfo * in);
 	typedef HAPI_Result (*GetActiveCacheCountFuncPtr)(const HAPI_Session * session, int * active_cache_count);
 	typedef HAPI_Result (*GetActiveCacheNamesFuncPtr)(const HAPI_Session * session, HAPI_StringHandle * cache_names_array, int active_cache_count);
+	typedef HAPI_Result (*GetAssetDefinitionParmCountsFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, int * parm_count, int * int_value_count, int * float_value_count, int * string_value_count, int * choice_value_count);
+	typedef HAPI_Result (*GetAssetDefinitionParmInfosFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, HAPI_ParmInfo * parm_infos_array, int start, int length);
+	typedef HAPI_Result (*GetAssetDefinitionParmValuesFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, int * int_values_array, int int_start, int int_length, float * float_values_array, int float_start, int float_length, HAPI_Bool string_evaluate, HAPI_StringHandle * string_values_array, int string_start, int string_length, HAPI_ParmChoiceInfo * choice_values_array, int choice_start, int choice_length);
 	typedef HAPI_Result (*GetAssetInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_AssetInfo * asset_info);
+	typedef HAPI_Result (*GetAttributeFloat64ArrayDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, double * data_fixed_array, int data_fixed_length, int * sizes_fixed_array, int start, int sizes_fixed_length);
 	typedef HAPI_Result (*GetAttributeFloat64DataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, double * data_array, int start, int length);
+	typedef HAPI_Result (*GetAttributeFloatArrayDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, float * data_fixed_array, int data_fixed_length, int * sizes_fixed_array, int start, int sizes_fixed_length);
 	typedef HAPI_Result (*GetAttributeFloatDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, float * data_array, int start, int length);
 	typedef HAPI_Result (*GetAttributeInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeOwner owner, HAPI_AttributeInfo * attr_info);
+	typedef HAPI_Result (*GetAttributeInt64ArrayDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, HAPI_Int64 * data_fixed_array, int data_fixed_length, int * sizes_fixed_array, int start, int sizes_fixed_length);
 	typedef HAPI_Result (*GetAttributeInt64DataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, HAPI_Int64 * data_array, int start, int length);
+	typedef HAPI_Result (*GetAttributeIntArrayDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int * data_fixed_array, int data_fixed_length, int * sizes_fixed_array, int start, int sizes_fixed_length);
 	typedef HAPI_Result (*GetAttributeIntDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, int * data_array, int start, int length);
 	typedef HAPI_Result (*GetAttributeNamesFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_AttributeOwner owner, HAPI_StringHandle * attribute_names_array, int count);
+	typedef HAPI_Result (*GetAttributeStringArrayDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, HAPI_StringHandle * data_fixed_array, int data_fixed_length, int * sizes_fixed_array, int start, int sizes_fixed_length);
 	typedef HAPI_Result (*GetAttributeStringDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, HAPI_StringHandle * data_array, int start, int length);
 	typedef HAPI_Result (*GetAvailableAssetCountFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId library_id, int * asset_count);
 	typedef HAPI_Result (*GetAvailableAssetsFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId library_id, HAPI_StringHandle * asset_names_array, int asset_count);
@@ -105,6 +114,8 @@ public:
 	typedef HAPI_Result (*GetComposedNodeCookResultFuncPtr)(const HAPI_Session * session, char * string_value, int length);
 	typedef HAPI_Result (*GetComposedObjectListFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_ObjectInfo * object_infos_array, int start, int length);
 	typedef HAPI_Result (*GetComposedObjectTransformsFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_RSTOrder rst_order, HAPI_Transform * transform_array, int start, int length);
+	typedef HAPI_Result (*GetConnectionErrorFuncPtr)(char * string_value, int length, HAPI_Bool clear);
+	typedef HAPI_Result (*GetConnectionErrorLengthFuncPtr)(int * buffer_length);
 	typedef HAPI_Result (*GetCookingCurrentCountFuncPtr)(const HAPI_Session * session, int * count);
 	typedef HAPI_Result (*GetCookingTotalCountFuncPtr)(const HAPI_Session * session, int * count);
 	typedef HAPI_Result (*GetCurveCountsFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * counts_array, int start, int length);
@@ -122,6 +133,8 @@ public:
 	typedef HAPI_Result (*GetGroupMembershipOnPackedInstancePartFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length);
 	typedef HAPI_Result (*GetGroupNamesFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
 	typedef HAPI_Result (*GetGroupNamesOnPackedInstancePartFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
+	typedef HAPI_Result (*GetHIPFileNodeCountFuncPtr)(const HAPI_Session *session, HAPI_HIPFileId id, int * count);
+	typedef HAPI_Result (*GetHIPFileNodeIdsFuncPtr)(const HAPI_Session *session, HAPI_HIPFileId id, HAPI_NodeId * node_ids, int length);
 	typedef HAPI_Result (*GetHandleBindingInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length);
 	typedef HAPI_Result (*GetHandleInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_HandleInfo * handle_infos_array, int start, int length);
 	typedef HAPI_Result (*GetHeightFieldDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float * values_array, int start, int length);
@@ -145,6 +158,7 @@ public:
 	typedef HAPI_Result (*GetNumWorkitemsFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int * num);
 	typedef HAPI_Result (*GetObjectInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ObjectInfo * object_info);
 	typedef HAPI_Result (*GetObjectTransformFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeId relative_to_node_id, HAPI_RSTOrder rst_order, HAPI_Transform * transform);
+	typedef HAPI_Result (*GetOutputNodeIdFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int output, HAPI_NodeId * output_node_id);
 	typedef HAPI_Result (*GetPDGEventsFuncPtr)(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_PDG_EventInfo * event_array, int length, int * event_count, int * remaining_events);
 	typedef HAPI_Result (*GetPDGGraphContextIdFuncPtr)(const HAPI_Session * session, HAPI_NodeId top_node_id, HAPI_PDG_GraphContextId * context_id);
 	typedef HAPI_Result (*GetPDGGraphContextsFuncPtr)(const HAPI_Session * session, int * num_contexts, HAPI_StringHandle * context_names_array, HAPI_PDG_GraphContextId * context_id_array, int count);
@@ -174,19 +188,23 @@ public:
 	typedef HAPI_Result (*GetServerEnvVarCountFuncPtr)(const HAPI_Session * session, int * env_count);
 	typedef HAPI_Result (*GetServerEnvVarListFuncPtr)(const HAPI_Session * session, HAPI_StringHandle * values_array, int start, int length);
 	typedef HAPI_Result (*GetSessionEnvIntFuncPtr)(const HAPI_Session * session, HAPI_SessionEnvIntType int_type, int * value);
+	typedef HAPI_Result (*GetSessionSyncInfoFuncPtr)(const HAPI_Session * session, HAPI_SessionSyncInfo * session_sync_info);
 	typedef HAPI_Result (*GetSphereInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId geo_node_id, HAPI_PartId part_id, HAPI_SphereInfo * sphere_info);
 	typedef HAPI_Result (*GetStatusFuncPtr)(const HAPI_Session * session, HAPI_StatusType status_type, int * status);
 	typedef HAPI_Result (*GetStatusStringFuncPtr)(const HAPI_Session * session, HAPI_StatusType status_type, char * string_value, int length);
 	typedef HAPI_Result (*GetStatusStringBufLengthFuncPtr)(const HAPI_Session * session, HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity, int * buffer_length);
 	typedef HAPI_Result (*GetStringFuncPtr)(const HAPI_Session * session, HAPI_StringHandle string_handle, char * string_value, int length);
-	typedef HAPI_Result (*GetStringBatchFuncPtr)(const HAPI_Session * session, char * char_array, int char_array_length);
+	typedef HAPI_Result (*GetStringBatchFuncPtr)(const HAPI_Session * session, char * char_buffer, int char_array_length);
 	typedef HAPI_Result (*GetStringBatchSizeFuncPtr)(const HAPI_Session * session, const int * string_handle_array, int string_handle_count, int* string_buffer_size);
 	typedef HAPI_Result (*GetStringBufLengthFuncPtr)(const HAPI_Session * session, HAPI_StringHandle string_handle, int * buffer_length);
 	typedef HAPI_Result (*GetSupportedImageFileFormatCountFuncPtr)(const HAPI_Session * session, int * file_format_count);
 	typedef HAPI_Result (*GetSupportedImageFileFormatsFuncPtr)(const HAPI_Session * session, HAPI_ImageFileFormat * formats_array, int file_format_count);
 	typedef HAPI_Result (*GetTimeFuncPtr)(const HAPI_Session * session, float * time);
 	typedef HAPI_Result (*GetTimelineOptionsFuncPtr)(const HAPI_Session * session, HAPI_TimelineOptions * timeline_options);
+	typedef HAPI_Result (*GetTotalCookCountFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeTypeBits node_type_filter, HAPI_NodeFlagsBits node_flags_filter, HAPI_Bool recursive, int * count);
+	typedef HAPI_Result (*GetUseHoudiniTimeFuncPtr)(const HAPI_Session * session, HAPI_Bool * enabled);
 	typedef HAPI_Result (*GetVertexListFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * vertex_list_array, int start, int length);
+	typedef HAPI_Result (*GetViewportFuncPtr)(const HAPI_Session * session, HAPI_Viewport * viewport);
 	typedef HAPI_Result (*GetVolumeBoundsFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float * x_min, float * y_min, float * z_min, float * x_max, float * y_max, float * z_max, float * x_center, float * y_center, float * z_center);
 	typedef HAPI_Result (*GetVolumeInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeInfo * volume_info);
 	typedef HAPI_Result (*GetVolumeTileFloatDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float fill_value, const HAPI_VolumeTileInfo * tile, float * values_array, int length);
@@ -221,8 +239,10 @@ public:
 	typedef HAPI_Result (*LoadGeoFromFileFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
 	typedef HAPI_Result (*LoadGeoFromMemoryFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, const char * buffer, int length);
 	typedef HAPI_Result (*LoadHIPFileFuncPtr)(const HAPI_Session * session, const char * file_name, HAPI_Bool cook_on_load);
+	typedef HAPI_Result (*LoadNodeFromFileFuncPtr)(const HAPI_Session * session, const char * file_name, HAPI_NodeId parent_node_id, const char * node_label, HAPI_Bool cook_on_load, HAPI_NodeId * new_node_id);
 	typedef HAPI_MaterialInfo (*MaterialInfo_CreateFuncPtr)();
 	typedef void (*MaterialInfo_InitFuncPtr)(HAPI_MaterialInfo * in);
+	typedef HAPI_Result (*MergeHIPFileFuncPtr)(const HAPI_Session * session, const char * file_name, HAPI_Bool cook_on_load, HAPI_HIPFileId * file_id);
 	typedef HAPI_NodeInfo (*NodeInfo_CreateFuncPtr)();
 	typedef void (*NodeInfo_InitFuncPtr)(HAPI_NodeInfo * in);
 	typedef HAPI_ObjectInfo (*ObjectInfo_CreateFuncPtr)();
@@ -265,6 +285,8 @@ public:
 	typedef HAPI_Result (*SaveGeoToFileFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
 	typedef HAPI_Result (*SaveGeoToMemoryFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int length);
 	typedef HAPI_Result (*SaveHIPFileFuncPtr)(const HAPI_Session * session, const char * file_path, HAPI_Bool lock_nodes);
+	typedef HAPI_Result (*SaveNodeToFileFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
+	typedef HAPI_SessionSyncInfo (*SessionSyncInfo_CreateFuncPtr)();
 	typedef HAPI_Result (*SetAnimCurveFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int parm_index, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);
 	typedef HAPI_Result (*SetAttributeFloat64DataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const double * data_array, int start, int length);
 	typedef HAPI_Result (*SetAttributeFloatDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const float * data_array, int start, int length);
@@ -294,10 +316,14 @@ public:
 	typedef HAPI_Result (*SetPresetFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, const char * buffer, int buffer_length);
 	typedef HAPI_Result (*SetServerEnvIntFuncPtr)(const HAPI_Session * session, const char * variable_name, int value);
 	typedef HAPI_Result (*SetServerEnvStringFuncPtr)(const HAPI_Session * session, const char * variable_name, const char * value);
+	typedef HAPI_Result (*SetSessionSyncFuncPtr)(const HAPI_Session * session, HAPI_Bool enable);
+	typedef HAPI_Result (*SetSessionSyncInfoFuncPtr)(const HAPI_Session * session, const HAPI_SessionSyncInfo * session_sync_info);
 	typedef HAPI_Result (*SetTimeFuncPtr)(const HAPI_Session * session, float time);
 	typedef HAPI_Result (*SetTimelineOptionsFuncPtr)(const HAPI_Session * session, const HAPI_TimelineOptions * timeline_options);
 	typedef HAPI_Result (*SetTransformAnimCurveFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_TransformComponent trans_comp, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);
+	typedef HAPI_Result (*SetUseHoudiniTimeFuncPtr)(const HAPI_Session * session, HAPI_Bool enabled);
 	typedef HAPI_Result (*SetVertexListFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * vertex_list_array, int start, int length);
+	typedef HAPI_Result (*SetViewportFuncPtr)(const HAPI_Session * session, const HAPI_Viewport * viewport);
 	typedef HAPI_Result (*SetVolumeInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_VolumeInfo * volume_info);
 	typedef HAPI_Result (*SetVolumeTileFloatDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_VolumeTileInfo * tile, const float * values_array, int length);
 	typedef HAPI_Result (*SetVolumeTileIntDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_VolumeTileInfo * tile, const int * values_array, int length);
@@ -314,6 +340,7 @@ public:
 	typedef void (*TransformEuler_InitFuncPtr)(HAPI_TransformEuler * in);
 	typedef HAPI_Transform (*Transform_CreateFuncPtr)();
 	typedef void (*Transform_InitFuncPtr)(HAPI_Transform * in);
+	typedef HAPI_Viewport (*Viewport_CreateFuncPtr)();
 	typedef HAPI_VolumeInfo (*VolumeInfo_CreateFuncPtr)();
 	typedef void (*VolumeInfo_InitFuncPtr)(HAPI_VolumeInfo * in);
 	typedef HAPI_VolumeTileInfo (*VolumeTileInfo_CreateFuncPtr)();
@@ -331,6 +358,7 @@ public:
 	static CancelPDGCookFuncPtr CancelPDGCook;
 	static CheckForSpecificErrorsFuncPtr CheckForSpecificErrors;
 	static CleanupFuncPtr Cleanup;
+	static ClearConnectionErrorFuncPtr ClearConnectionError;
 	static CloseSessionFuncPtr CloseSession;
 	static CommitGeoFuncPtr CommitGeo;
 	static CommitWorkitemsFuncPtr CommitWorkitems;
@@ -349,7 +377,7 @@ public:
 	static CookOptions_InitFuncPtr CookOptions_Init;
 	static CookPDGFuncPtr CookPDG;
 	static CreateCustomSessionFuncPtr CreateCustomSession;
-	static CreateHeightfieldInputNodeFuncPtr CreateHeightfieldInputNode;
+	static CreateHeightFieldInputFuncPtr CreateHeightFieldInput;
 	static CreateHeightfieldInputVolumeNodeFuncPtr CreateHeightfieldInputVolumeNode;
 	static CreateInProcessSessionFuncPtr CreateInProcessSession;
 	static CreateInputNodeFuncPtr CreateInputNode;
@@ -372,13 +400,21 @@ public:
 	static GeoInfo_InitFuncPtr GeoInfo_Init;
 	static GetActiveCacheCountFuncPtr GetActiveCacheCount;
 	static GetActiveCacheNamesFuncPtr GetActiveCacheNames;
+	static GetAssetDefinitionParmCountsFuncPtr GetAssetDefinitionParmCounts;
+	static GetAssetDefinitionParmInfosFuncPtr GetAssetDefinitionParmInfos;
+	static GetAssetDefinitionParmValuesFuncPtr GetAssetDefinitionParmValues;
 	static GetAssetInfoFuncPtr GetAssetInfo;
+	static GetAttributeFloat64ArrayDataFuncPtr GetAttributeFloat64ArrayData;
 	static GetAttributeFloat64DataFuncPtr GetAttributeFloat64Data;
+	static GetAttributeFloatArrayDataFuncPtr GetAttributeFloatArrayData;
 	static GetAttributeFloatDataFuncPtr GetAttributeFloatData;
 	static GetAttributeInfoFuncPtr GetAttributeInfo;
+	static GetAttributeInt64ArrayDataFuncPtr GetAttributeInt64ArrayData;
 	static GetAttributeInt64DataFuncPtr GetAttributeInt64Data;
+	static GetAttributeIntArrayDataFuncPtr GetAttributeIntArrayData;
 	static GetAttributeIntDataFuncPtr GetAttributeIntData;
 	static GetAttributeNamesFuncPtr GetAttributeNames;
+	static GetAttributeStringArrayDataFuncPtr GetAttributeStringArrayData;
 	static GetAttributeStringDataFuncPtr GetAttributeStringData;
 	static GetAvailableAssetCountFuncPtr GetAvailableAssetCount;
 	static GetAvailableAssetsFuncPtr GetAvailableAssets;
@@ -388,6 +424,8 @@ public:
 	static GetComposedNodeCookResultFuncPtr GetComposedNodeCookResult;
 	static GetComposedObjectListFuncPtr GetComposedObjectList;
 	static GetComposedObjectTransformsFuncPtr GetComposedObjectTransforms;
+	static GetConnectionErrorFuncPtr GetConnectionError;
+	static GetConnectionErrorLengthFuncPtr GetConnectionErrorLength;
 	static GetCookingCurrentCountFuncPtr GetCookingCurrentCount;
 	static GetCookingTotalCountFuncPtr GetCookingTotalCount;
 	static GetCurveCountsFuncPtr GetCurveCounts;
@@ -405,6 +443,8 @@ public:
 	static GetGroupMembershipOnPackedInstancePartFuncPtr GetGroupMembershipOnPackedInstancePart;
 	static GetGroupNamesFuncPtr GetGroupNames;
 	static GetGroupNamesOnPackedInstancePartFuncPtr GetGroupNamesOnPackedInstancePart;
+	static GetHIPFileNodeCountFuncPtr GetHIPFileNodeCount;
+	static GetHIPFileNodeIdsFuncPtr GetHIPFileNodeIds;
 	static GetHandleBindingInfoFuncPtr GetHandleBindingInfo;
 	static GetHandleInfoFuncPtr GetHandleInfo;
 	static GetHeightFieldDataFuncPtr GetHeightFieldData;
@@ -428,6 +468,7 @@ public:
 	static GetNumWorkitemsFuncPtr GetNumWorkitems;
 	static GetObjectInfoFuncPtr GetObjectInfo;
 	static GetObjectTransformFuncPtr GetObjectTransform;
+	static GetOutputNodeIdFuncPtr GetOutputNodeId;
 	static GetPDGEventsFuncPtr GetPDGEvents;
 	static GetPDGGraphContextIdFuncPtr GetPDGGraphContextId;
 	static GetPDGGraphContextsFuncPtr GetPDGGraphContexts;
@@ -457,6 +498,7 @@ public:
 	static GetServerEnvVarCountFuncPtr GetServerEnvVarCount;
 	static GetServerEnvVarListFuncPtr GetServerEnvVarList;
 	static GetSessionEnvIntFuncPtr GetSessionEnvInt;
+	static GetSessionSyncInfoFuncPtr GetSessionSyncInfo;
 	static GetSphereInfoFuncPtr GetSphereInfo;
 	static GetStatusFuncPtr GetStatus;
 	static GetStatusStringFuncPtr GetStatusString;
@@ -469,7 +511,10 @@ public:
 	static GetSupportedImageFileFormatsFuncPtr GetSupportedImageFileFormats;
 	static GetTimeFuncPtr GetTime;
 	static GetTimelineOptionsFuncPtr GetTimelineOptions;
+	static GetTotalCookCountFuncPtr GetTotalCookCount;
+	static GetUseHoudiniTimeFuncPtr GetUseHoudiniTime;
 	static GetVertexListFuncPtr GetVertexList;
+	static GetViewportFuncPtr GetViewport;
 	static GetVolumeBoundsFuncPtr GetVolumeBounds;
 	static GetVolumeInfoFuncPtr GetVolumeInfo;
 	static GetVolumeTileFloatDataFuncPtr GetVolumeTileFloatData;
@@ -504,8 +549,10 @@ public:
 	static LoadGeoFromFileFuncPtr LoadGeoFromFile;
 	static LoadGeoFromMemoryFuncPtr LoadGeoFromMemory;
 	static LoadHIPFileFuncPtr LoadHIPFile;
+	static LoadNodeFromFileFuncPtr LoadNodeFromFile;
 	static MaterialInfo_CreateFuncPtr MaterialInfo_Create;
 	static MaterialInfo_InitFuncPtr MaterialInfo_Init;
+	static MergeHIPFileFuncPtr MergeHIPFile;
 	static NodeInfo_CreateFuncPtr NodeInfo_Create;
 	static NodeInfo_InitFuncPtr NodeInfo_Init;
 	static ObjectInfo_CreateFuncPtr ObjectInfo_Create;
@@ -548,6 +595,8 @@ public:
 	static SaveGeoToFileFuncPtr SaveGeoToFile;
 	static SaveGeoToMemoryFuncPtr SaveGeoToMemory;
 	static SaveHIPFileFuncPtr SaveHIPFile;
+	static SaveNodeToFileFuncPtr SaveNodeToFile;
+	static SessionSyncInfo_CreateFuncPtr SessionSyncInfo_Create;
 	static SetAnimCurveFuncPtr SetAnimCurve;
 	static SetAttributeFloat64DataFuncPtr SetAttributeFloat64Data;
 	static SetAttributeFloatDataFuncPtr SetAttributeFloatData;
@@ -577,10 +626,14 @@ public:
 	static SetPresetFuncPtr SetPreset;
 	static SetServerEnvIntFuncPtr SetServerEnvInt;
 	static SetServerEnvStringFuncPtr SetServerEnvString;
+	static SetSessionSyncFuncPtr SetSessionSync;
+	static SetSessionSyncInfoFuncPtr SetSessionSyncInfo;
 	static SetTimeFuncPtr SetTime;
 	static SetTimelineOptionsFuncPtr SetTimelineOptions;
 	static SetTransformAnimCurveFuncPtr SetTransformAnimCurve;
+	static SetUseHoudiniTimeFuncPtr SetUseHoudiniTime;
 	static SetVertexListFuncPtr SetVertexList;
+	static SetViewportFuncPtr SetViewport;
 	static SetVolumeInfoFuncPtr SetVolumeInfo;
 	static SetVolumeTileFloatDataFuncPtr SetVolumeTileFloatData;
 	static SetVolumeTileIntDataFuncPtr SetVolumeTileIntData;
@@ -597,6 +650,7 @@ public:
 	static TransformEuler_InitFuncPtr TransformEuler_Init;
 	static Transform_CreateFuncPtr Transform_Create;
 	static Transform_InitFuncPtr Transform_Init;
+	static Viewport_CreateFuncPtr Viewport_Create;
 	static VolumeInfo_CreateFuncPtr VolumeInfo_Create;
 	static VolumeInfo_InitFuncPtr VolumeInfo_Init;
 	static VolumeTileInfo_CreateFuncPtr VolumeTileInfo_Create;
@@ -614,6 +668,7 @@ public:
 	static HAPI_Result CancelPDGCookEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id);
 	static HAPI_Result CheckForSpecificErrorsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ErrorCodeBits errors_to_look_for, HAPI_ErrorCodeBits * errors_found);
 	static HAPI_Result CleanupEmptyStub(const HAPI_Session * session);
+	static HAPI_Result ClearConnectionErrorEmptyStub();
 	static HAPI_Result CloseSessionEmptyStub(const HAPI_Session * session);
 	static HAPI_Result CommitGeoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id);
 	static HAPI_Result CommitWorkitemsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id);
@@ -632,7 +687,7 @@ public:
 	static void CookOptions_InitEmptyStub(HAPI_CookOptions * in);
 	static HAPI_Result CookPDGEmptyStub(const HAPI_Session * session, HAPI_NodeId cook_node_id, int generate_only, int blocking);
 	static HAPI_Result CreateCustomSessionEmptyStub(HAPI_SessionType session_type, void * session_info, HAPI_Session * session);
-	static HAPI_Result CreateHeightfieldInputNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * name, int xsize, int ysize, float voxelsize, HAPI_NodeId * heightfield_node_id, HAPI_NodeId * height_node_id, HAPI_NodeId * mask_node_id, HAPI_NodeId * merge_node_id);
+	static HAPI_Result CreateHeightFieldInputEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * name, int xsize, int ysize, float voxelsize, HAPI_HeightFieldSampling sampling, HAPI_NodeId * heightfield_node_id, HAPI_NodeId * height_node_id, HAPI_NodeId * mask_node_id, HAPI_NodeId * merge_node_id);
 	static HAPI_Result CreateHeightfieldInputVolumeNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeId * new_node_id, const char * name, int xsize, int ysize, float voxelsize);
 	static HAPI_Result CreateInProcessSessionEmptyStub(HAPI_Session * session);
 	static HAPI_Result CreateInputNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId * node_id, const char * name);
@@ -655,13 +710,21 @@ public:
 	static void GeoInfo_InitEmptyStub(HAPI_GeoInfo * in);
 	static HAPI_Result GetActiveCacheCountEmptyStub(const HAPI_Session * session, int * active_cache_count);
 	static HAPI_Result GetActiveCacheNamesEmptyStub(const HAPI_Session * session, HAPI_StringHandle * cache_names_array, int active_cache_count);
+	static HAPI_Result GetAssetDefinitionParmCountsEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, int * parm_count, int * int_value_count, int * float_value_count, int * string_value_count, int * choice_value_count);
+	static HAPI_Result GetAssetDefinitionParmInfosEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, HAPI_ParmInfo * parm_infos_array, int start, int length);
+	static HAPI_Result GetAssetDefinitionParmValuesEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, int * int_values_array, int int_start, int int_length, float * float_values_array, int float_start, int float_length, HAPI_Bool string_evaluate, HAPI_StringHandle * string_values_array, int string_start, int string_length, HAPI_ParmChoiceInfo * choice_values_array, int choice_start, int choice_length);
 	static HAPI_Result GetAssetInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_AssetInfo * asset_info);
+	static HAPI_Result GetAttributeFloat64ArrayDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, double * data_fixed_array, int data_fixed_length, int * sizes_fixed_array, int start, int sizes_fixed_length);
 	static HAPI_Result GetAttributeFloat64DataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, double * data_array, int start, int length);
+	static HAPI_Result GetAttributeFloatArrayDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, float * data_fixed_array, int data_fixed_length, int * sizes_fixed_array, int start, int sizes_fixed_length);
 	static HAPI_Result GetAttributeFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, float * data_array, int start, int length);
 	static HAPI_Result GetAttributeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeOwner owner, HAPI_AttributeInfo * attr_info);
+	static HAPI_Result GetAttributeInt64ArrayDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, HAPI_Int64 * data_fixed_array, int data_fixed_length, int * sizes_fixed_array, int start, int sizes_fixed_length);
 	static HAPI_Result GetAttributeInt64DataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, HAPI_Int64 * data_array, int start, int length);
+	static HAPI_Result GetAttributeIntArrayDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int * data_fixed_array, int data_fixed_length, int * sizes_fixed_array, int start, int sizes_fixed_length);
 	static HAPI_Result GetAttributeIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, int * data_array, int start, int length);
 	static HAPI_Result GetAttributeNamesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_AttributeOwner owner, HAPI_StringHandle * attribute_names_array, int count);
+	static HAPI_Result GetAttributeStringArrayDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, HAPI_StringHandle * data_fixed_array, int data_fixed_length, int * sizes_fixed_array, int start, int sizes_fixed_length);
 	static HAPI_Result GetAttributeStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, HAPI_StringHandle * data_array, int start, int length);
 	static HAPI_Result GetAvailableAssetCountEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, int * asset_count);
 	static HAPI_Result GetAvailableAssetsEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, HAPI_StringHandle * asset_names_array, int asset_count);
@@ -671,6 +734,8 @@ public:
 	static HAPI_Result GetComposedNodeCookResultEmptyStub(const HAPI_Session * session, char * string_value, int length);
 	static HAPI_Result GetComposedObjectListEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_ObjectInfo * object_infos_array, int start, int length);
 	static HAPI_Result GetComposedObjectTransformsEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_RSTOrder rst_order, HAPI_Transform * transform_array, int start, int length);
+	static HAPI_Result GetConnectionErrorEmptyStub(char * string_value, int length, HAPI_Bool clear);
+	static HAPI_Result GetConnectionErrorLengthEmptyStub(int * buffer_length);
 	static HAPI_Result GetCookingCurrentCountEmptyStub(const HAPI_Session * session, int * count);
 	static HAPI_Result GetCookingTotalCountEmptyStub(const HAPI_Session * session, int * count);
 	static HAPI_Result GetCurveCountsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * counts_array, int start, int length);
@@ -688,6 +753,8 @@ public:
 	static HAPI_Result GetGroupMembershipOnPackedInstancePartEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length);
 	static HAPI_Result GetGroupNamesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
 	static HAPI_Result GetGroupNamesOnPackedInstancePartEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
+	static HAPI_Result GetHIPFileNodeCountEmptyStub(const HAPI_Session *session, HAPI_HIPFileId id, int * count);
+	static HAPI_Result GetHIPFileNodeIdsEmptyStub(const HAPI_Session *session, HAPI_HIPFileId id, HAPI_NodeId * node_ids, int length);
 	static HAPI_Result GetHandleBindingInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length);
 	static HAPI_Result GetHandleInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_HandleInfo * handle_infos_array, int start, int length);
 	static HAPI_Result GetHeightFieldDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float * values_array, int start, int length);
@@ -711,6 +778,7 @@ public:
 	static HAPI_Result GetNumWorkitemsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int * num);
 	static HAPI_Result GetObjectInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ObjectInfo * object_info);
 	static HAPI_Result GetObjectTransformEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeId relative_to_node_id, HAPI_RSTOrder rst_order, HAPI_Transform * transform);
+	static HAPI_Result GetOutputNodeIdEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int output, HAPI_NodeId * output_node_id);
 	static HAPI_Result GetPDGEventsEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_PDG_EventInfo * event_array, int length, int * event_count, int * remaining_events);
 	static HAPI_Result GetPDGGraphContextIdEmptyStub(const HAPI_Session * session, HAPI_NodeId top_node_id, HAPI_PDG_GraphContextId * context_id);
 	static HAPI_Result GetPDGGraphContextsEmptyStub(const HAPI_Session * session, int * num_contexts, HAPI_StringHandle * context_names_array, HAPI_PDG_GraphContextId * context_id_array, int count);
@@ -740,19 +808,23 @@ public:
 	static HAPI_Result GetServerEnvVarCountEmptyStub(const HAPI_Session * session, int * env_count);
 	static HAPI_Result GetServerEnvVarListEmptyStub(const HAPI_Session * session, HAPI_StringHandle * values_array, int start, int length);
 	static HAPI_Result GetSessionEnvIntEmptyStub(const HAPI_Session * session, HAPI_SessionEnvIntType int_type, int * value);
+	static HAPI_Result GetSessionSyncInfoEmptyStub(const HAPI_Session * session, HAPI_SessionSyncInfo * session_sync_info);
 	static HAPI_Result GetSphereInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId geo_node_id, HAPI_PartId part_id, HAPI_SphereInfo * sphere_info);
 	static HAPI_Result GetStatusEmptyStub(const HAPI_Session * session, HAPI_StatusType status_type, int * status);
 	static HAPI_Result GetStatusStringEmptyStub(const HAPI_Session * session, HAPI_StatusType status_type, char * string_value, int length);
 	static HAPI_Result GetStatusStringBufLengthEmptyStub(const HAPI_Session * session, HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity, int * buffer_length);
 	static HAPI_Result GetStringEmptyStub(const HAPI_Session * session, HAPI_StringHandle string_handle, char * string_value, int length);
-	static HAPI_Result GetStringBatchEmptyStub(const HAPI_Session * session, char * char_array, int char_array_length);
+	static HAPI_Result GetStringBatchEmptyStub(const HAPI_Session * session, char * char_buffer, int char_array_length);
 	static HAPI_Result GetStringBatchSizeEmptyStub(const HAPI_Session * session, const int * string_handle_array, int string_handle_count, int* string_buffer_size);
 	static HAPI_Result GetStringBufLengthEmptyStub(const HAPI_Session * session, HAPI_StringHandle string_handle, int * buffer_length);
 	static HAPI_Result GetSupportedImageFileFormatCountEmptyStub(const HAPI_Session * session, int * file_format_count);
 	static HAPI_Result GetSupportedImageFileFormatsEmptyStub(const HAPI_Session * session, HAPI_ImageFileFormat * formats_array, int file_format_count);
 	static HAPI_Result GetTimeEmptyStub(const HAPI_Session * session, float * time);
 	static HAPI_Result GetTimelineOptionsEmptyStub(const HAPI_Session * session, HAPI_TimelineOptions * timeline_options);
+	static HAPI_Result GetTotalCookCountEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeTypeBits node_type_filter, HAPI_NodeFlagsBits node_flags_filter, HAPI_Bool recursive, int * count);
+	static HAPI_Result GetUseHoudiniTimeEmptyStub(const HAPI_Session * session, HAPI_Bool * enabled);
 	static HAPI_Result GetVertexListEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * vertex_list_array, int start, int length);
+	static HAPI_Result GetViewportEmptyStub(const HAPI_Session * session, HAPI_Viewport * viewport);
 	static HAPI_Result GetVolumeBoundsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float * x_min, float * y_min, float * z_min, float * x_max, float * y_max, float * z_max, float * x_center, float * y_center, float * z_center);
 	static HAPI_Result GetVolumeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeInfo * volume_info);
 	static HAPI_Result GetVolumeTileFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float fill_value, const HAPI_VolumeTileInfo * tile, float * values_array, int length);
@@ -787,8 +859,10 @@ public:
 	static HAPI_Result LoadGeoFromFileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
 	static HAPI_Result LoadGeoFromMemoryEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, const char * buffer, int length);
 	static HAPI_Result LoadHIPFileEmptyStub(const HAPI_Session * session, const char * file_name, HAPI_Bool cook_on_load);
+	static HAPI_Result LoadNodeFromFileEmptyStub(const HAPI_Session * session, const char * file_name, HAPI_NodeId parent_node_id, const char * node_label, HAPI_Bool cook_on_load, HAPI_NodeId * new_node_id);
 	static HAPI_MaterialInfo MaterialInfo_CreateEmptyStub();
 	static void MaterialInfo_InitEmptyStub(HAPI_MaterialInfo * in);
+	static HAPI_Result MergeHIPFileEmptyStub(const HAPI_Session * session, const char * file_name, HAPI_Bool cook_on_load, HAPI_HIPFileId * file_id);
 	static HAPI_NodeInfo NodeInfo_CreateEmptyStub();
 	static void NodeInfo_InitEmptyStub(HAPI_NodeInfo * in);
 	static HAPI_ObjectInfo ObjectInfo_CreateEmptyStub();
@@ -831,6 +905,8 @@ public:
 	static HAPI_Result SaveGeoToFileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
 	static HAPI_Result SaveGeoToMemoryEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int length);
 	static HAPI_Result SaveHIPFileEmptyStub(const HAPI_Session * session, const char * file_path, HAPI_Bool lock_nodes);
+	static HAPI_Result SaveNodeToFileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
+	static HAPI_SessionSyncInfo SessionSyncInfo_CreateEmptyStub();
 	static HAPI_Result SetAnimCurveEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int parm_index, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);
 	static HAPI_Result SetAttributeFloat64DataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const double * data_array, int start, int length);
 	static HAPI_Result SetAttributeFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const float * data_array, int start, int length);
@@ -860,10 +936,14 @@ public:
 	static HAPI_Result SetPresetEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, const char * buffer, int buffer_length);
 	static HAPI_Result SetServerEnvIntEmptyStub(const HAPI_Session * session, const char * variable_name, int value);
 	static HAPI_Result SetServerEnvStringEmptyStub(const HAPI_Session * session, const char * variable_name, const char * value);
+	static HAPI_Result SetSessionSyncEmptyStub(const HAPI_Session * session, HAPI_Bool enable);
+	static HAPI_Result SetSessionSyncInfoEmptyStub(const HAPI_Session * session, const HAPI_SessionSyncInfo * session_sync_info);
 	static HAPI_Result SetTimeEmptyStub(const HAPI_Session * session, float time);
 	static HAPI_Result SetTimelineOptionsEmptyStub(const HAPI_Session * session, const HAPI_TimelineOptions * timeline_options);
 	static HAPI_Result SetTransformAnimCurveEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_TransformComponent trans_comp, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);
+	static HAPI_Result SetUseHoudiniTimeEmptyStub(const HAPI_Session * session, HAPI_Bool enabled);
 	static HAPI_Result SetVertexListEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * vertex_list_array, int start, int length);
+	static HAPI_Result SetViewportEmptyStub(const HAPI_Session * session, const HAPI_Viewport * viewport);
 	static HAPI_Result SetVolumeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_VolumeInfo * volume_info);
 	static HAPI_Result SetVolumeTileFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_VolumeTileInfo * tile, const float * values_array, int length);
 	static HAPI_Result SetVolumeTileIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_VolumeTileInfo * tile, const int * values_array, int length);
@@ -880,6 +960,7 @@ public:
 	static void TransformEuler_InitEmptyStub(HAPI_TransformEuler * in);
 	static HAPI_Transform Transform_CreateEmptyStub();
 	static void Transform_InitEmptyStub(HAPI_Transform * in);
+	static HAPI_Viewport Viewport_CreateEmptyStub();
 	static HAPI_VolumeInfo VolumeInfo_CreateEmptyStub();
 	static void VolumeInfo_InitEmptyStub(HAPI_VolumeInfo * in);
 	static HAPI_VolumeTileInfo VolumeTileInfo_CreateEmptyStub();
