@@ -570,19 +570,32 @@ FHoudiniEngine::InitializeHAPISession()
     FHoudiniApi::GetEnvInt( HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi );
 
     // Compare defined and running versions.
-    if ( RunningEngineMajor != HAPI_VERSION_HOUDINI_ENGINE_MAJOR
-        || RunningEngineMinor != HAPI_VERSION_HOUDINI_ENGINE_MINOR
-        || RunningEngineApi != HAPI_VERSION_HOUDINI_ENGINE_API )
+    if (RunningEngineMajor != HAPI_VERSION_HOUDINI_ENGINE_MAJOR
+        || RunningEngineMinor != HAPI_VERSION_HOUDINI_ENGINE_MINOR)
     {
-        bHAPIVersionMismatch = true;
-
-        HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: build and running versions do not match."));
-        HOUDINI_LOG_MESSAGE(
+        // Major or minor HAPI version differs, stop here
+        HOUDINI_LOG_ERROR(
+            TEXT("Starting up the Houdini Engine module failed: built and running versions do not match."));
+        HOUDINI_LOG_ERROR(
             TEXT("Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d"),
             HAPI_VERSION_HOUDINI_ENGINE_MAJOR, HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API,
-            RunningEngineMajor, RunningEngineMinor, RunningEngineApi );
+            RunningEngineMajor, RunningEngineMinor, RunningEngineApi);
 
         return false;
+
+    }
+    else if (RunningEngineApi != HAPI_VERSION_HOUDINI_ENGINE_API)
+    {
+        // Major/minor HAPIversions match, but only the API version differs,
+        // Allow the user to continue but warn him of possible instabilities
+        HOUDINI_LOG_WARNING(
+            TEXT("Starting up the Houdini Engine module: built and running API versions do not match."));
+        HOUDINI_LOG_WARNING(
+            TEXT("Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d"),
+            HAPI_VERSION_HOUDINI_ENGINE_MAJOR, HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API,
+            RunningEngineMajor, RunningEngineMinor, RunningEngineApi);
+        HOUDINI_LOG_WARNING(
+            TEXT("This could cause instabilities and crashes when using the Houdini Engine plugin"));
     }
 
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
