@@ -9368,6 +9368,16 @@ FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
                 continue;
             }
         }
+        else if ( CurrentUPropertyName == "Visible" )
+        {
+            USceneComponent* SC = Cast< USceneComponent >(MeshComponent);
+            if (SC && !SC->IsPendingKill())
+            {
+                bool bVal = CurrentPropAttribute.GetBoolValue();
+                SC->SetVisibility(bVal);
+                continue;
+            }
+        }
 
         // Handle Component Tags manually here
         if ( CurrentUPropertyName.Contains("Tags") )
