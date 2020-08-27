@@ -136,6 +136,14 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const int32& LandscapeXSize, const int32& LandscapeYSize,
             TArray< uint8 >& LayerData, const bool& NoResize = false );
 
+        // Retrieves size, number of sections, and quads per section from houdin attributes
+        static bool GetLandscapeSizeAttributes(
+            const FHoudiniGeoPartObject* CurrentHeightfield,
+            const int32& SizeX, const int32& SizeY,
+            int32& NewSizeX,
+            int32& NewSizeY,
+            int32& NumberOfSectionsPerComponent,
+            int32& NumberOfQuadsPerSection);
 
         // Calculates the closest "unreal friendly" size given a heighfield volume's size
         static bool CalcLandscapeSizeFromHeightfieldSize(
