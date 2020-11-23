@@ -3544,9 +3544,11 @@ void FHoudiniLandscapeUtils::GetHeightFieldLandscapeMaterials(
                 AttribMaterials, Materials);
         }
 
-        if ( AttribMaterials.exists && AttribMaterials.owner != HAPI_ATTROWNER_PRIM && AttribMaterials.owner != HAPI_ATTROWNER_DETAIL )
+        // For some reason, HF attributes come as Vertex attrib, we should check the original owner instead.. 
+        //if ( AttribMaterials.exists && AttribMaterials.owner != HAPI_ATTROWNER_PRIM && AttribMaterials.owner != HAPI_ATTROWNER_DETAIL )
+        if (AttribMaterials.exists && AttribMaterials.originalOwner == HAPI_ATTROWNER_VERTEX)
         {
-            HOUDINI_LOG_WARNING( TEXT( "Landscape:  unreal_material must be a primitive or detail attribute, ignoring attribute." ) );
+            HOUDINI_LOG_WARNING( TEXT( "Landscape: unreal_material must be a point, primitive or detail attribute, ignoring attribute." ) );
             AttribMaterials.exists = false;
             Materials.Empty();
         }
@@ -3579,9 +3581,11 @@ void FHoudiniLandscapeUtils::GetHeightFieldLandscapeMaterials(
                 AttribMaterials, Materials);
         }
 
-        if ( AttribMaterials.exists && AttribMaterials.owner != HAPI_ATTROWNER_PRIM && AttribMaterials.owner != HAPI_ATTROWNER_DETAIL )
+        // For some reason, HF attributes come as Vertex attrib, we should check the original owner instead.. 
+        //if ( AttribMaterials.exists && AttribMaterials.owner != HAPI_ATTROWNER_PRIM && AttribMaterials.owner != HAPI_ATTROWNER_DETAIL )
+        if (AttribMaterials.exists && AttribMaterials.originalOwner == HAPI_ATTROWNER_VERTEX)
         {
-            HOUDINI_LOG_WARNING( TEXT( "Landscape:  unreal_material must be a primitive or detail attribute, ignoring attribute." ) );
+            HOUDINI_LOG_WARNING( TEXT( "Landscape:  unreal_material must be a point, primitive or detail attribute, ignoring attribute." ) );
             AttribMaterials.exists = false;
             Materials.Empty();
         }
