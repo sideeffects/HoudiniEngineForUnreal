@@ -918,6 +918,12 @@ FHoudiniApi::StartThriftNamedPipeServer = &FHoudiniApi::StartThriftNamedPipeServ
 FHoudiniApi::StartThriftSocketServerFuncPtr
 FHoudiniApi::StartThriftSocketServer = &FHoudiniApi::StartThriftSocketServerEmptyStub;
 
+FHoudiniApi::ThriftServerOptions_CreateFuncPtr
+FHoudiniApi::ThriftServerOptions_Create = &FHoudiniApi::ThriftServerOptions_CreateEmptyStub;
+
+FHoudiniApi::ThriftServerOptions_InitFuncPtr
+FHoudiniApi::ThriftServerOptions_Init = &FHoudiniApi::ThriftServerOptions_InitEmptyStub;
+
 FHoudiniApi::TimelineOptions_CreateFuncPtr
 FHoudiniApi::TimelineOptions_Create = &FHoudiniApi::TimelineOptions_CreateEmptyStub;
 
@@ -1254,6 +1260,8 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::SetWorkitemStringData = (SetWorkitemStringDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetWorkitemStringData"));
 	FHoudiniApi::StartThriftNamedPipeServer = (StartThriftNamedPipeServerFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_StartThriftNamedPipeServer"));
 	FHoudiniApi::StartThriftSocketServer = (StartThriftSocketServerFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_StartThriftSocketServer"));
+	FHoudiniApi::ThriftServerOptions_Create = (ThriftServerOptions_CreateFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ThriftServerOptions_Create"));
+	FHoudiniApi::ThriftServerOptions_Init = (ThriftServerOptions_InitFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ThriftServerOptions_Init"));
 	FHoudiniApi::TimelineOptions_Create = (TimelineOptions_CreateFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_TimelineOptions_Create"));
 	FHoudiniApi::TimelineOptions_Init = (TimelineOptions_InitFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_TimelineOptions_Init"));
 	FHoudiniApi::TransformEuler_Create = (TransformEuler_CreateFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_TransformEuler_Create"));
@@ -1568,6 +1576,8 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::SetWorkitemStringData = &FHoudiniApi::SetWorkitemStringDataEmptyStub;
 	FHoudiniApi::StartThriftNamedPipeServer = &FHoudiniApi::StartThriftNamedPipeServerEmptyStub;
 	FHoudiniApi::StartThriftSocketServer = &FHoudiniApi::StartThriftSocketServerEmptyStub;
+	FHoudiniApi::ThriftServerOptions_Create = &FHoudiniApi::ThriftServerOptions_CreateEmptyStub;
+	FHoudiniApi::ThriftServerOptions_Init = &FHoudiniApi::ThriftServerOptions_InitEmptyStub;
 	FHoudiniApi::TimelineOptions_Create = &FHoudiniApi::TimelineOptions_CreateEmptyStub;
 	FHoudiniApi::TimelineOptions_Init = &FHoudiniApi::TimelineOptions_InitEmptyStub;
 	FHoudiniApi::TransformEuler_Create = &FHoudiniApi::TransformEuler_CreateEmptyStub;
@@ -3665,6 +3675,20 @@ HAPI_Result
 FHoudiniApi::StartThriftSocketServerEmptyStub(const HAPI_ThriftServerOptions * options, int port, HAPI_ProcessId * process_id)
 {
 	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_ThriftServerOptions
+FHoudiniApi::ThriftServerOptions_CreateEmptyStub()
+{
+	return HAPI_ThriftServerOptions();
+}
+
+
+void
+FHoudiniApi::ThriftServerOptions_InitEmptyStub(HAPI_ThriftServerOptions * in)
+{
+	return;
 }
 
 

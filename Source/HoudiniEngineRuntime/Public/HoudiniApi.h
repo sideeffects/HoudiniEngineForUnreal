@@ -335,6 +335,8 @@ public:
 	typedef HAPI_Result (*SetWorkitemStringDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, int data_index, const char * value);
 	typedef HAPI_Result (*StartThriftNamedPipeServerFuncPtr)(const HAPI_ThriftServerOptions * options, const char * pipe_name, HAPI_ProcessId * process_id);
 	typedef HAPI_Result (*StartThriftSocketServerFuncPtr)(const HAPI_ThriftServerOptions * options, int port, HAPI_ProcessId * process_id);
+	typedef HAPI_ThriftServerOptions (*ThriftServerOptions_CreateFuncPtr)();
+	typedef void (*ThriftServerOptions_InitFuncPtr)(HAPI_ThriftServerOptions * in);
 	typedef HAPI_TimelineOptions (*TimelineOptions_CreateFuncPtr)();
 	typedef void (*TimelineOptions_InitFuncPtr)(HAPI_TimelineOptions * in);
 	typedef HAPI_TransformEuler (*TransformEuler_CreateFuncPtr)();
@@ -646,6 +648,8 @@ public:
 	static SetWorkitemStringDataFuncPtr SetWorkitemStringData;
 	static StartThriftNamedPipeServerFuncPtr StartThriftNamedPipeServer;
 	static StartThriftSocketServerFuncPtr StartThriftSocketServer;
+	static ThriftServerOptions_CreateFuncPtr ThriftServerOptions_Create;
+	static ThriftServerOptions_InitFuncPtr ThriftServerOptions_Init;
 	static TimelineOptions_CreateFuncPtr TimelineOptions_Create;
 	static TimelineOptions_InitFuncPtr TimelineOptions_Init;
 	static TransformEuler_CreateFuncPtr TransformEuler_Create;
@@ -957,6 +961,8 @@ public:
 	static HAPI_Result SetWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, int data_index, const char * value);
 	static HAPI_Result StartThriftNamedPipeServerEmptyStub(const HAPI_ThriftServerOptions * options, const char * pipe_name, HAPI_ProcessId * process_id);
 	static HAPI_Result StartThriftSocketServerEmptyStub(const HAPI_ThriftServerOptions * options, int port, HAPI_ProcessId * process_id);
+	static HAPI_ThriftServerOptions ThriftServerOptions_CreateEmptyStub();
+	static void ThriftServerOptions_InitEmptyStub(HAPI_ThriftServerOptions * in);
 	static HAPI_TimelineOptions TimelineOptions_CreateEmptyStub();
 	static void TimelineOptions_InitEmptyStub(HAPI_TimelineOptions * in);
 	static HAPI_TransformEuler TransformEuler_CreateEmptyStub();
