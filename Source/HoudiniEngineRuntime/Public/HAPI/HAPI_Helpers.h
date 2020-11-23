@@ -19,6 +19,13 @@
 #include "HAPI_API.h"
 #include "HAPI_Common.h"
 
+// Server -------------------------------------------------------------------
+
+HAPI_DECL_RETURN( void )
+    HAPI_ThriftServerOptions_Init( HAPI_ThriftServerOptions * in );
+HAPI_DECL_RETURN( HAPI_ThriftServerOptions )
+    HAPI_ThriftServerOptions_Create();
+
 // TIME ---------------------------------------------------------------------
 
 HAPI_DECL_RETURN( void )

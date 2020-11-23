@@ -181,16 +181,14 @@ enum HAPI_StatusVerbosity
     HAPI_STATUSVERBOSITY_1,
     HAPI_STATUSVERBOSITY_2,
 
+    /// Used for Results.  Equivalent to ::HAPI_STATUSVERBOSITY_2
     HAPI_STATUSVERBOSITY_ALL = HAPI_STATUSVERBOSITY_2,
-                                ///< Equivalent to ::HAPI_STATUSVERBOSITY_2.
-
-    // Used for Results.
+    /// Used for Results.  Equivalent to ::HAPI_STATUSVERBOSITY_0
     HAPI_STATUSVERBOSITY_ERRORS = HAPI_STATUSVERBOSITY_0,
-                                ///< Equivalent to ::HAPI_STATUSVERBOSITY_0.
+    /// Used for Results.  Equivalent to ::HAPI_STATUSVERBOSITY_1
     HAPI_STATUSVERBOSITY_WARNINGS = HAPI_STATUSVERBOSITY_1,
-                                ///< Equivalent to ::HAPI_STATUSVERBOSITY_1.
+    /// Used for Results.  Equivalent to ::HAPI_STATUSVERBOSITY_2
     HAPI_STATUSVERBOSITY_MESSAGES = HAPI_STATUSVERBOSITY_2,
-                                ///< Equivalent to ::HAPI_STATUSVERBOSITY_2.
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_StatusVerbosity )
 
@@ -245,9 +243,12 @@ HAPI_C_ENUM_TYPEDEF( HAPI_SessionType )
 
 enum HAPI_State
 {
-    HAPI_STATE_READY, ///< Everything cook successfully without errors.
-    HAPI_STATE_READY_WITH_FATAL_ERRORS, ///< You should abort the cook.
-    HAPI_STATE_READY_WITH_COOK_ERRORS, ///< Only some objects failed.
+    /// Everything cook successfully without errors
+    HAPI_STATE_READY,
+    /// You should abort the cook.
+    HAPI_STATE_READY_WITH_FATAL_ERRORS,
+    /// Only some objects failed.
+    HAPI_STATE_READY_WITH_COOK_ERRORS,
     HAPI_STATE_STARTING_COOK,
     HAPI_STATE_COOKING,
     HAPI_STATE_STARTING_LOAD,
@@ -287,6 +288,7 @@ enum HAPI_RampType
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_RampType )
 
+/// Represents the data type of a parm.
 /// As you can see, some of these high level types share the same underlying
 /// raw data type. For instance, both string and file parameter types can be
 /// represented with strings, yet semantically they are different. We will
@@ -295,33 +297,43 @@ HAPI_C_ENUM_TYPEDEF( HAPI_RampType )
 /// on its high level data type by checking a range of values.
 enum HAPI_ParmType
 {
+    /// @{
     HAPI_PARMTYPE_INT = 0,
     HAPI_PARMTYPE_MULTIPARMLIST,
     HAPI_PARMTYPE_TOGGLE,
     HAPI_PARMTYPE_BUTTON,
-
+    /// }@
+    
+    /// @{
     HAPI_PARMTYPE_FLOAT,
     HAPI_PARMTYPE_COLOR,
+    /// @}
 
+    /// @{
     HAPI_PARMTYPE_STRING,
     HAPI_PARMTYPE_PATH_FILE,
     HAPI_PARMTYPE_PATH_FILE_GEO,
     HAPI_PARMTYPE_PATH_FILE_IMAGE,
+    /// @}
 
     HAPI_PARMTYPE_NODE,
 
+    /// @{
     HAPI_PARMTYPE_FOLDERLIST,
     HAPI_PARMTYPE_FOLDERLIST_RADIO,
+    /// @}
 
+    /// @{
     HAPI_PARMTYPE_FOLDER,
     HAPI_PARMTYPE_LABEL,
     HAPI_PARMTYPE_SEPARATOR,
     HAPI_PARMTYPE_PATH_FILE_DIR,
-
+    /// @}
 
     // Helpers
 
-    HAPI_PARMTYPE_MAX, ///< Total number of supported parameter types.
+    /// Total number of supported parameter types.
+    HAPI_PARMTYPE_MAX,
 
     HAPI_PARMTYPE_INT_START         = HAPI_PARMTYPE_INT,
     HAPI_PARMTYPE_INT_END           = HAPI_PARMTYPE_BUTTON,
@@ -352,7 +364,8 @@ HAPI_C_ENUM_TYPEDEF( HAPI_ParmType )
 ///
 enum HAPI_PrmScriptType
 {
-    HAPI_PRM_SCRIPT_TYPE_INT = 0,        ///<  "int", "integer"
+    ///  "int", "integer"
+    HAPI_PRM_SCRIPT_TYPE_INT = 0,
     HAPI_PRM_SCRIPT_TYPE_FLOAT,
     HAPI_PRM_SCRIPT_TYPE_ANGLE,
     HAPI_PRM_SCRIPT_TYPE_STRING,
@@ -360,19 +373,25 @@ enum HAPI_PrmScriptType
     HAPI_PRM_SCRIPT_TYPE_DIRECTORY,
     HAPI_PRM_SCRIPT_TYPE_IMAGE,
     HAPI_PRM_SCRIPT_TYPE_GEOMETRY,
-    HAPI_PRM_SCRIPT_TYPE_TOGGLE,         ///<  "toggle", "embed"
+    ///  "toggle", "embed"
+    HAPI_PRM_SCRIPT_TYPE_TOGGLE,
     HAPI_PRM_SCRIPT_TYPE_BUTTON,
     HAPI_PRM_SCRIPT_TYPE_VECTOR2,
-    HAPI_PRM_SCRIPT_TYPE_VECTOR3,        ///<  "vector", "vector3"
+    ///  "vector", "vector3"
+    HAPI_PRM_SCRIPT_TYPE_VECTOR3,
     HAPI_PRM_SCRIPT_TYPE_VECTOR4,
     HAPI_PRM_SCRIPT_TYPE_INTVECTOR2,
-    HAPI_PRM_SCRIPT_TYPE_INTVECTOR3,     ///<  "intvector", "intvector3"
+    ///  "intvector", "intvector3"
+    HAPI_PRM_SCRIPT_TYPE_INTVECTOR3,
     HAPI_PRM_SCRIPT_TYPE_INTVECTOR4,
     HAPI_PRM_SCRIPT_TYPE_UV,
     HAPI_PRM_SCRIPT_TYPE_UVW,
-    HAPI_PRM_SCRIPT_TYPE_DIR,            ///<  "dir", "direction"
-    HAPI_PRM_SCRIPT_TYPE_COLOR,          ///<  "color", "rgb"
-    HAPI_PRM_SCRIPT_TYPE_COLOR4,         ///<  "color4", "rgba"
+    ///  "dir", "direction"
+    HAPI_PRM_SCRIPT_TYPE_DIR,
+    ///  "color", "rgb"
+    HAPI_PRM_SCRIPT_TYPE_COLOR,
+    ///  "color4", "rgba"
+    HAPI_PRM_SCRIPT_TYPE_COLOR4,
     HAPI_PRM_SCRIPT_TYPE_OPPATH,
     HAPI_PRM_SCRIPT_TYPE_OPLIST,
     HAPI_PRM_SCRIPT_TYPE_OBJECT,
@@ -395,29 +414,40 @@ enum HAPI_PrmScriptType
     HAPI_PRM_SCRIPT_TYPE_BUTTONSTRIP,
     HAPI_PRM_SCRIPT_TYPE_ICONSTRIP,
 
-    // The following apply to HAPI_PARMTYPE_FOLDER type parms
-    HAPI_PRM_SCRIPT_TYPE_GROUPRADIO = 1000, ///< Radio buttons Folder
-    HAPI_PRM_SCRIPT_TYPE_GROUPCOLLAPSIBLE,  ///< Collapsible Folder
-    HAPI_PRM_SCRIPT_TYPE_GROUPSIMPLE,	    ///< Simple Folder
-    HAPI_PRM_SCRIPT_TYPE_GROUP		    ///< Tabs Folder
+    /// The following apply to HAPI_PARMTYPE_FOLDER type parms.
+    /// Radio buttons Folder
+    HAPI_PRM_SCRIPT_TYPE_GROUPRADIO = 1000,
+    /// Collapsible Folder
+    HAPI_PRM_SCRIPT_TYPE_GROUPCOLLAPSIBLE,
+    /// Simple Folder
+    HAPI_PRM_SCRIPT_TYPE_GROUPSIMPLE,
+    /// Tabs Folder
+    HAPI_PRM_SCRIPT_TYPE_GROUP
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_PrmScriptType )
 
 enum HAPI_ChoiceListType
 {
-    HAPI_CHOICELISTTYPE_NONE, ///< Parameter is not a menu.
-    HAPI_CHOICELISTTYPE_NORMAL, ///< Menu Only, Single Selection
-    HAPI_CHOICELISTTYPE_MINI, ///< Mini Menu Only, Single Selection
-    HAPI_CHOICELISTTYPE_REPLACE, ///< Field + Single Selection Menu
-    HAPI_CHOICELISTTYPE_TOGGLE ///< Field + Multiple Selection Menu
+     /// Parameter is not a menu
+    HAPI_CHOICELISTTYPE_NONE,
+    /// Menu Only, Single Selection
+    HAPI_CHOICELISTTYPE_NORMAL,
+    /// Mini Menu Only, Single Selection
+    HAPI_CHOICELISTTYPE_MINI,
+    /// Field + Single Selection Menu
+    HAPI_CHOICELISTTYPE_REPLACE,
+    /// Field + Multiple Selection Menu
+    HAPI_CHOICELISTTYPE_TOGGLE
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_ChoiceListType )
 
 enum HAPI_PresetType
 {
     HAPI_PRESETTYPE_INVALID = -1,
-    HAPI_PRESETTYPE_BINARY = 0, ///< Just the presets binary blob.
-    HAPI_PRESETTYPE_IDX, ///< Presets blob within an .idx file format.
+    /// Just the presets binary blob
+    HAPI_PRESETTYPE_BINARY = 0,
+    /// Presets blob within an .idx file format
+    HAPI_PRESETTYPE_IDX,
     HAPI_PRESETTYPE_MAX
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_PresetType )
@@ -439,15 +469,17 @@ enum HAPI_NodeType
 HAPI_C_ENUM_TYPEDEF( HAPI_NodeType )
 typedef int HAPI_NodeTypeBits;
 
-/// Flags used to filter compositions of node lists. Flags marked
-/// 'Recursive Flag' will exclude children whos parent does not
+/// Flags used to filter compositions of node lists.
+/// Flags marked 'Recursive Flag' will exclude children whos parent does not
 /// satisfy the flag, even if the children themselves satisfy the flag.
 enum HAPI_NodeFlags
 {
     HAPI_NODEFLAGS_ANY          = -1,
     HAPI_NODEFLAGS_NONE         = 0,
-    HAPI_NODEFLAGS_DISPLAY      = 1 << 0, ///< Recursive Flag
-    HAPI_NODEFLAGS_RENDER       = 1 << 1, ///< Recursive Flag
+    /// Recursive Flag
+    HAPI_NODEFLAGS_DISPLAY      = 1 << 0,
+    /// Recursive Flag
+    HAPI_NODEFLAGS_RENDER       = 1 << 1,
     HAPI_NODEFLAGS_TEMPLATED    = 1 << 2,
     HAPI_NODEFLAGS_LOCKED       = 1 << 3,
     HAPI_NODEFLAGS_EDITABLE     = 1 << 4,
@@ -461,11 +493,14 @@ enum HAPI_NodeFlags
     HAPI_NODEFLAGS_OBJ_SUBNET   = 1 << 10,
 
     /// SOP Node Specific Flags
-    HAPI_NODEFLAGS_SOP_CURVE    = 1 << 11, ///< Looks for "curve".
-    HAPI_NODEFLAGS_SOP_GUIDE    = 1 << 12,  ///< Looks for Guide Geometry
+    /// Looks for "curve"
+    HAPI_NODEFLAGS_SOP_CURVE    = 1 << 11,
+    /// Looks for Guide Geometry
+    HAPI_NODEFLAGS_SOP_GUIDE    = 1 << 12,
 
     /// TOP Node Specific Flags
-    HAPI_NODEFLAGS_TOP_NONSCHEDULER = 1 << 13	/// All TOP nodes except schedulers
+    /// All TOP nodes except schedulers
+    HAPI_NODEFLAGS_TOP_NONSCHEDULER = 1 << 13
 
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_NodeFlags )
@@ -537,20 +572,34 @@ HAPI_C_ENUM_TYPEDEF( HAPI_StorageType )
 enum HAPI_AttributeTypeInfo
 {
     HAPI_ATTRIBUTE_TYPE_INVALID = -1,
-    HAPI_ATTRIBUTE_TYPE_NONE,	    // Implicit type based on data
-    HAPI_ATTRIBUTE_TYPE_POINT,	    // Position
-    HAPI_ATTRIBUTE_TYPE_HPOINT,	    // Homogeneous position
-    HAPI_ATTRIBUTE_TYPE_VECTOR,	    // Direction vector
-    HAPI_ATTRIBUTE_TYPE_NORMAL,	    // Normal
-    HAPI_ATTRIBUTE_TYPE_COLOR,	    // Color
-    HAPI_ATTRIBUTE_TYPE_QUATERNION, // Quaternion
-    HAPI_ATTRIBUTE_TYPE_MATRIX3,    // 3x3 Matrix
-    HAPI_ATTRIBUTE_TYPE_MATRIX,	    // Matrix
-    HAPI_ATTRIBUTE_TYPE_ST,	    // Parametric interval
-    HAPI_ATTRIBUTE_TYPE_HIDDEN,	    // "Private" (hidden)
-    HAPI_ATTRIBUTE_TYPE_BOX2,       // 2x2 Bounding box
-    HAPI_ATTRIBUTE_TYPE_BOX,        // 3x3 Bounding box
-    HAPI_ATTRIBUTE_TYPE_TEXTURE,     // Texture coordinate
+    /// Implicit type based on data
+    HAPI_ATTRIBUTE_TYPE_NONE,
+    /// Position
+    HAPI_ATTRIBUTE_TYPE_POINT,
+    /// Homogeneous position
+    HAPI_ATTRIBUTE_TYPE_HPOINT,
+    /// Direction vector
+    HAPI_ATTRIBUTE_TYPE_VECTOR,
+    /// Normal
+    HAPI_ATTRIBUTE_TYPE_NORMAL,
+    /// Color
+    HAPI_ATTRIBUTE_TYPE_COLOR,
+    /// Quaternion
+    HAPI_ATTRIBUTE_TYPE_QUATERNION,
+    /// 3x3 Matrix
+    HAPI_ATTRIBUTE_TYPE_MATRIX3,
+    /// Matrix
+    HAPI_ATTRIBUTE_TYPE_MATRIX,
+    /// Parametric interval
+    HAPI_ATTRIBUTE_TYPE_ST,
+    /// "Private" (hidden)
+    HAPI_ATTRIBUTE_TYPE_HIDDEN,
+    /// 2x2 Bounding box
+    HAPI_ATTRIBUTE_TYPE_BOX2,
+    /// 3x3 Bounding box
+    HAPI_ATTRIBUTE_TYPE_BOX,
+    /// Texture coordinate
+    HAPI_ATTRIBUTE_TYPE_TEXTURE,
     HAPI_ATTRIBUTE_TYPE_MAX
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_AttributeTypeInfo )
@@ -672,12 +721,12 @@ HAPI_C_ENUM_TYPEDEF( HAPI_ImageDataFormat )
 enum HAPI_ImagePacking
 {
     HAPI_IMAGE_PACKING_UNKNOWN = -1,
-    HAPI_IMAGE_PACKING_SINGLE,  ///< Single Channel
-    HAPI_IMAGE_PACKING_DUAL,    ///< Dual Channel
-    HAPI_IMAGE_PACKING_RGB,     ///< RGB
-    HAPI_IMAGE_PACKING_BGR,     ///< RGB Reversed
-    HAPI_IMAGE_PACKING_RGBA,    ///< RGBA
-    HAPI_IMAGE_PACKING_ABGR,    ///< RGBA Reversed
+    HAPI_IMAGE_PACKING_SINGLE,  /// Single Channel
+    HAPI_IMAGE_PACKING_DUAL,    /// Dual Channel
+    HAPI_IMAGE_PACKING_RGB,     /// RGB
+    HAPI_IMAGE_PACKING_BGR,     /// RGB Reversed
+    HAPI_IMAGE_PACKING_RGBA,    /// RGBA
+    HAPI_IMAGE_PACKING_ABGR,    /// RGBA Reversed
     HAPI_IMAGE_PACKING_MAX,
 
     HAPI_IMAGE_PACKING_DEFAULT3 = HAPI_IMAGE_PACKING_RGB,
@@ -685,8 +734,8 @@ enum HAPI_ImagePacking
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_ImagePacking )
 
-/// This enum is to be used with ::HAPI_GetEnvInt() to retrieve basic
-/// information about the HAPI implementation currently being linked
+/// Used with ::HAPI_GetEnvInt() to retrieve basic information
+/// about the HAPI implementation currently being linked
 /// against. Note that as of HAPI version 2.0, these enum values are
 /// guaranteed never to change so you can reliably get this information from
 /// any post-2.0 version of HAPI. The same goes for the actual
@@ -735,17 +784,17 @@ enum HAPI_SessionEnvIntType
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_SessionEnvIntType )
 
-/// [HAPI_CacheProperty]
+/// Identifies a memory cache 
 enum HAPI_CacheProperty
 {
     /// Current memory usage in MB. Setting this to 0 invokes
     /// a cache clear.
     HAPI_CACHEPROP_CURRENT,
 
-    HAPI_CACHEPROP_HAS_MIN, ///< True if it actually has a minimum size.
-    HAPI_CACHEPROP_MIN, ///< Min cache memory limit in MB.
-    HAPI_CACHEPROP_HAS_MAX, ///< True if it actually has a maximum size.
-    HAPI_CACHEPROP_MAX, ///< Max cache memory limit in MB.
+    HAPI_CACHEPROP_HAS_MIN, /// True if it actually has a minimum size.
+    HAPI_CACHEPROP_MIN, /// Min cache memory limit in MB.
+    HAPI_CACHEPROP_HAS_MAX, /// True if it actually has a maximum size.
+    HAPI_CACHEPROP_MAX, /// Max cache memory limit in MB.
 
     /// How aggressive to cull memory. This only works for:
     ///     - ::HAPI_CACHE_COP_COOK where:
@@ -876,6 +925,7 @@ HAPI_C_ENUM_TYPEDEF( HAPI_PDG_WorkitemState )
 
 // GENERICS -----------------------------------------------------------------
 
+/// A Transform with Quaternion rotation
 struct HAPI_API HAPI_Transform
 {
     float position[ HAPI_POSITION_VECTOR_SIZE ];
@@ -887,6 +937,7 @@ struct HAPI_API HAPI_Transform
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_Transform )
 
+/// A Transform with Euler rotation
 struct HAPI_API HAPI_TransformEuler
 {
     float position[ HAPI_POSITION_VECTOR_SIZE ];
@@ -901,6 +952,7 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_TransformEuler )
 
 // SESSIONS -----------------------------------------------------------------
 
+/// Identifies a session
 struct HAPI_API HAPI_Session
 {
     /// The type of session determines the which implementation will be
@@ -929,6 +981,7 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_ThriftServerOptions )
 
 // TIME ---------------------------------------------------------------------
 
+/// Data for global timeline, used with ::HAPI_SetTimelineOptions()
 struct HAPI_API HAPI_TimelineOptions
 {
     float fps;
@@ -940,6 +993,7 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_TimelineOptions )
 
 // ASSETS -------------------------------------------------------------------
 
+/// Meta-data about an HDA, returned by ::HAPI_GetAssetInfo()
 struct HAPI_API HAPI_AssetInfo
 {
     /// Use the node id to get the asset's parameters.
@@ -959,16 +1013,16 @@ struct HAPI_API HAPI_AssetInfo
     /// See @ref HAPI_Assets_Cooking.
     HAPI_Bool hasEverCooked;
 
-    HAPI_StringHandle nameSH; ///< Instance name (the label + a number).
-    HAPI_StringHandle labelSH; ///< This is what any end user should be shown.
-    HAPI_StringHandle filePathSH; ///< Path to the .otl library file.
-    HAPI_StringHandle versionSH; ///< User-defined asset version.
-    HAPI_StringHandle fullOpNameSH; ///< Full asset name and namespace.
-    HAPI_StringHandle helpTextSH; ///< Asset help marked-up text.
-    HAPI_StringHandle helpURLSH; ///< Asset help URL.
+    HAPI_StringHandle nameSH; /// Instance name (the label + a number).
+    HAPI_StringHandle labelSH; /// This is what any end user should be shown.
+    HAPI_StringHandle filePathSH; /// Path to the .otl library file.
+    HAPI_StringHandle versionSH; /// User-defined asset version.
+    HAPI_StringHandle fullOpNameSH; /// Full asset name and namespace.
+    HAPI_StringHandle helpTextSH; /// Asset help marked-up text.
+    HAPI_StringHandle helpURLSH; /// Asset help URL.
 
-    int objectCount; ///< See @ref HAPI_Objects.
-    int handleCount; ///< See @ref HAPI_Handles.
+    int objectCount; /// See @ref HAPI_Objects.
+    int handleCount; /// See @ref HAPI_Handles.
 
     /// Transform inputs exposed by the asset. For OBJ assets this is the
     /// number of transform inputs on the OBJ node. For SOP assets, this is
@@ -998,6 +1052,7 @@ struct HAPI_API HAPI_AssetInfo
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_AssetInfo )
 
+/// Options which affect how nodes are cooked.
 struct HAPI_API HAPI_CookOptions
 {
     /// Normally, geos are split into parts in two different ways. First it
@@ -1077,6 +1132,13 @@ struct HAPI_API HAPI_CookOptions
     /// gain when disabled.
     HAPI_Bool checkPartChanges;
 
+
+    /// This toggle lets you enable the caching of the mesh topology.
+    /// By default, this is false.  If this is set to true, cooking a mesh 
+    /// geometry will update only the topology if the number of points changed.
+    /// Use this to get better performance on deforming meshes.
+    HAPI_Bool cacheMeshTopology;
+
     /// For internal use only. :)
     int extraFlags;
 };
@@ -1084,6 +1146,7 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_CookOptions )
 
 // NODES --------------------------------------------------------------------
 
+/// Meta-data for a Houdini Node
 struct HAPI_API HAPI_NodeInfo
 {
     HAPI_NodeId id;
@@ -1148,7 +1211,6 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_NodeInfo )
 
 // PARAMETERS ---------------------------------------------------------------
 
-/// @struct HAPI_ParmInfo
 ///
 /// Contains parameter information like name, label, type, and size.
 ///
@@ -1264,9 +1326,9 @@ struct HAPI_API HAPI_ParmInfo
     /// is not any different than a non-spare parameter.
     HAPI_Bool spare;
 
-    HAPI_Bool joinNext;  ///< Whether this parm should be on the same line as
-                    ///< the next parm.
-    HAPI_Bool labelNone; ///< Whether the label should be displayed.
+    HAPI_Bool joinNext;  /// Whether this parm should be on the same line as
+                    /// the next parm.
+    HAPI_Bool labelNone; /// Whether the label should be displayed.
 
     /// The index to use to look into the values array in order to retrieve
     /// the actual value(s) of this parameter.
@@ -1292,9 +1354,9 @@ struct HAPI_API HAPI_ParmInfo
     /// @{
     HAPI_Bool isChildOfMultiParm;
 
-    int instanceNum; ///< The index of the instance in the multiparm.
-    int instanceLength; ///< The number of parms in a multiparm instance.
-    int instanceCount; ///< The number of instances in a multiparm.
+    int instanceNum; /// The index of the instance in the multiparm.
+    int instanceLength; /// The number of parms in a multiparm instance.
+    int instanceCount; /// The number of instances in a multiparm.
 
     /// First instance's ::HAPI_ParmInfo::instanceNum. Either 0 or 1.
     int instanceStartOffset;
@@ -1312,6 +1374,7 @@ struct HAPI_API HAPI_ParmInfo
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_ParmInfo )
 
+/// Meta-data for a combo-box / choice parm
 struct HAPI_API HAPI_ParmChoiceInfo
 {
     HAPI_ParmId parentParmId;
@@ -1325,7 +1388,6 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_ParmChoiceInfo )
 
 // HANDLES ------------------------------------------------------------------
 
-/// @struct HAPI_HandleInfo
 ///
 /// Contains handle information such as the type of handle
 /// (translate, rotate, scale, softxform ...etc) and the number of
@@ -1340,7 +1402,6 @@ struct HAPI_API HAPI_HandleInfo
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_HandleInfo )
 
-/// @struct HAPI_HandleBindingInfo
 ///
 /// Contains binding information that maps the handle parameter to
 /// the asset parameter. The index is only used for int and float vector
@@ -1358,11 +1419,12 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_HandleBindingInfo )
 
 // OBJECTS ------------------------------------------------------------------
 
+/// Meta-data for an OBJ Node
 struct HAPI_API HAPI_ObjectInfo
 {
     HAPI_StringHandle nameSH;
 
-    /// (deprecated) 
+    /// @deprecated This member is no longer used
     HAPI_StringHandle objectInstancePathSH;
 
     /// For incremental updates. Indicates whether the object's transform
@@ -1388,10 +1450,7 @@ struct HAPI_API HAPI_ObjectInfo
     /// See @ref HAPI_Instancing.
     HAPI_Bool isInstanced;
 
-    /// (deprecated) The number of geometries under this object. For those familiar
-    /// with Houdini, this number will always include the one visible SOP and any
-    /// SOPs that were exposed as "editable" or "templated".
-    /// See @ref HAPI_Geos.
+    /// @deprecated No longer used.  See @ref HAPI_Geos
     int geoCount;
 
     /// Use the node id to get the node's parameters.
@@ -1409,6 +1468,7 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_ObjectInfo )
 
 // GEOMETRY -----------------------------------------------------------------
 
+/// Meta-data for a SOP Node
 struct HAPI_API HAPI_GeoInfo
 {
     HAPI_GeoType type;
@@ -1432,7 +1492,7 @@ struct HAPI_API HAPI_GeoInfo
     /// For incremental updates.
     HAPI_Bool hasGeoChanged;
 
-    /// (deprecated) This variable is deprecated and should no longer be used.
+    /// @deprecated This variable is deprecated and should no longer be used.
     /// Materials are now separate from parts. They are maintained at the
     /// asset level so you only need to check if the material itself has
     /// changed via ::HAPI_MaterialInfo::hasChanged instead of the material
@@ -1451,17 +1511,21 @@ struct HAPI_API HAPI_GeoInfo
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_GeoInfo )
 
+/// Meta-data describing a Geo Part
 struct HAPI_API HAPI_PartInfo
 {
+    /// Id to identify this part relative to it's Geo
     HAPI_PartId id;
+    /// String handle for the name of the part
     HAPI_StringHandle nameSH;
     HAPI_PartType type;
 
     int faceCount;
     int vertexCount;
-    int pointCount; ///< Number of points. Note that this is NOT the number
-                    ///< of "positions" as "points" may imply. If your
-                    ///< geometry has 3 points then set this to 3 and not 3*3.
+    /// Number of points. Note that this is NOT the number
+    /// of "positions" as "points" may imply. If your
+    /// geometry has 3 points then set this to 3 and not 3*3.
+    int pointCount;
 
     int attributeCounts[ HAPI_ATTROWNER_MAX ];
 
@@ -1492,6 +1556,7 @@ struct HAPI_API HAPI_PartInfo
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PartInfo )
 
+/// Meta-data describing an attribute
 /// See @ref HAPI_Attributes.
 struct HAPI_API HAPI_AttributeInfo
 {
@@ -1563,6 +1628,7 @@ struct HAPI_API HAPI_MaterialInfo
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_MaterialInfo )
 
+/// Describes an image format, used with ::HAPI_GetSupportedImageFileFormats()
 struct HAPI_API HAPI_ImageFileFormat
 {
     HAPI_StringHandle nameSH;
@@ -1571,6 +1637,7 @@ struct HAPI_API HAPI_ImageFileFormat
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_ImageFileFormat )
 
+/// Data for an image, used with ::HAPI_GetImageInfo() and ::HAPI_SetImageInfo()
 struct HAPI_API HAPI_ImageInfo
 {
     /// Unlike the other members of this struct changing imageFileFormatNameSH
@@ -1579,14 +1646,15 @@ struct HAPI_API HAPI_ImageInfo
     /// by the HAPI_ExtractImageTo...() functions if called with
     /// image_file_format_name set to NULL. This way, you can decide whether
     /// to ask for a file format conversion (slower) or not (faster).
-    HAPI_StringHandle imageFileFormatNameSH; // Read-only
+    /// (Read-only)
+    HAPI_StringHandle imageFileFormatNameSH; 
 
     int xRes;
     int yRes;
 
     HAPI_ImageDataFormat dataFormat;
 
-    HAPI_Bool interleaved; ///< ex: true = RGBRGBRGB, false = RRRGGGBBB
+    HAPI_Bool interleaved; /// ex: true = RGBRGBRGB, false = RRRGGGBBB
     HAPI_ImagePacking packing;
 
     /// Adjust the gamma of the image. For anything less than
@@ -1597,6 +1665,7 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_ImageInfo )
 
 // ANIMATION ----------------------------------------------------------------
 
+/// Data for a single Key Frame
 struct HAPI_API HAPI_Keyframe
 {
     float time;
@@ -1608,7 +1677,6 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_Keyframe )
 
 // VOLUMES ------------------------------------------------------------------
 
-/// @struct HAPI_VolumeInfo
 ///
 /// This represents a volume primitive but does not contain the actual voxel
 /// values, which can be retrieved on a per-tile basis.
@@ -1660,10 +1728,9 @@ struct HAPI_API HAPI_VolumeInfo
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_VolumeInfo )
 
-/// @struct HAPI_VolumeTileInfo
 ///
 /// A HAPI_VolumeTileInfo represents an cube subarray of the volume.
-/// The size of each dimension is HAPI_VoluemInfo::tileSize
+/// The size of each dimension is ::HAPI_VolumeInfo::tileSize
 /// bbox [(minX, minY, minZ), (minX+tileSize, minY+tileSize, minZ+tileSize))
 ///
 struct HAPI_API HAPI_VolumeTileInfo
@@ -1675,7 +1742,6 @@ struct HAPI_API HAPI_VolumeTileInfo
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_VolumeTileInfo )
 
-/// @struct HAPI_VolumeVisualInfo
 ///
 /// Describes the visual settings of a volume.
 ///
@@ -1689,29 +1755,29 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_VolumeVisualInfo )
 
 // CURVES -------------------------------------------------------------------
 
-/// @struct HAPI_CurveInfo
 ///
-/// This represents the meta-data associated with a curve mesh (a number
+/// Represents the meta-data associated with a curve mesh (a number
 /// of curves of the same type).
 struct HAPI_API HAPI_CurveInfo
 {
     HAPI_CurveType curveType;
-    int curveCount; ///< The number of curves contained in this curve mesh.
-    int vertexCount; ///< The number of control vertices (CVs) for all curves.
-    int knotCount; ///< The number of knots for all curves.
+    int curveCount; /// The number of curves contained in this curve mesh.
+    int vertexCount; /// The number of control vertices (CVs) for all curves.
+    int knotCount; /// The number of knots for all curves.
 
     HAPI_Bool isPeriodic;
-        ///< Whether the curves in this curve mesh are periodic.
+        /// Whether the curves in this curve mesh are periodic.
     HAPI_Bool isRational;
-        ///< Whether the curves in this curve mesh are rational.
-    int order; ///< Order of 1 is invalid. 0 means there is a varying order.
+        /// Whether the curves in this curve mesh are rational.
+    int order; /// Order of 1 is invalid. 0 means there is a varying order.
 
-    HAPI_Bool hasKnots; ///< Whether the curve has knots.
+    HAPI_Bool hasKnots; /// Whether the curve has knots.
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_CurveInfo )
 
 // BASIC PRIMITIVES ---------------------------------------------------------
 
+/// Data for a Box Part
 struct HAPI_API HAPI_BoxInfo
 {
     float center[ HAPI_POSITION_VECTOR_SIZE ];
@@ -1720,6 +1786,7 @@ struct HAPI_API HAPI_BoxInfo
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_BoxInfo )
 
+/// Data for a Sphere Part
 struct HAPI_API HAPI_SphereInfo
 {
     float center[ HAPI_POSITION_VECTOR_SIZE ];
@@ -1729,6 +1796,7 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_SphereInfo )
 
 // PDG Structs --------------------------------------------------------------
 
+/// Data associated with a PDG Event
 struct HAPI_API HAPI_PDG_EventInfo
 {
     HAPI_NodeId nodeId;                     /// id of related node
@@ -1741,17 +1809,19 @@ struct HAPI_API HAPI_PDG_EventInfo
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_EventInfo )
 
+/// Info for a PDG Workitem
 struct HAPI_API HAPI_PDG_WorkitemInfo
 {
     int index;                    /// index of the workitem
-    int numResults;		  /// number of results reported
+    int numResults;		          /// number of results reported
     HAPI_StringHandle nameSH;     /// name of the workitem
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkitemInfo )
 
+/// Data for a PDG file result
 struct HAPI_API HAPI_PDG_WorkitemResultInfo
 {
-    int resultSH;		  /// result string data
+    int resultSH;		      /// result string data
     int resultTagSH;		  /// result tag
     HAPI_Int64 resultHash;	  /// hash value of result
 };
@@ -1759,7 +1829,6 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkitemResultInfo )
 
 // SESSIONSYNC --------------------------------------------------------------
 
-/// @struct HAPI_Viewport
 ///
 /// Contains the information for synchronizing viewport between Houdini
 /// and other applications. When SessionSync is enabled, Houdini will
@@ -1781,7 +1850,6 @@ struct HAPI_API HAPI_Viewport
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_Viewport )
 
-/// @struct HAPI_SessionSyncInfo
 ///
 /// Contains the information for synchronizing general SessionSync
 /// state between Houdini and other applications. When SessionSync
