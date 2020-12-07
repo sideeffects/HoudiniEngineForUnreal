@@ -4379,7 +4379,7 @@ HAPI_DECL HAPI_GetVertexList( const HAPI_Session * session,
 
 /// @brief  Get the attribute info struct for the attribute specified by name.
 ///
-/// @ingroup GeometryGetters
+/// @ingroup Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -4415,7 +4415,7 @@ HAPI_DECL HAPI_GetAttributeInfo( const HAPI_Session * session,
 ///         name string handles are only valid until the next time this
 ///         function is called.
 ///
-/// @ingroup GeometryGetters
+/// @ingroup Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -4452,7 +4452,7 @@ HAPI_DECL HAPI_GetAttributeNames( const HAPI_Session * session,
 
 /// @brief  Get attribute integer data.
 ///
-/// @ingroup GeometryGetters
+/// @ingroup GeometryGetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -4512,7 +4512,7 @@ HAPI_DECL HAPI_GetAttributeIntData( const HAPI_Session * session,
 ///         Therefore the array values are returned as a flat array, with 
 ///         another sizes array containing the lengths of each array entry.
 ///
-/// @ingroup GeometryGetters
+/// @ingroup GeometryGetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -4572,7 +4572,7 @@ HAPI_DECL HAPI_GetAttributeIntArrayData( const HAPI_Session * session,
 
 /// @brief  Get attribute 64-bit integer data.
 ///
-/// @ingroup GeometryGetters
+/// @ingroup GeometryGetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -4632,7 +4632,7 @@ HAPI_DECL HAPI_GetAttributeInt64Data( const HAPI_Session * session,
 ///         Therefore the array values are returned as a flat array, with 
 ///         another sizes array containing the lengths of each array entry.
 ///
-/// @ingroup GeometryGetters
+/// @ingroup GeometryGetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -4691,7 +4691,7 @@ HAPI_DECL HAPI_GetAttributeInt64ArrayData( const HAPI_Session * session,
 
 /// @brief  Get attribute float data.
 ///
-/// @ingroup GeometryGetters
+/// @ingroup GeometryGetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -4751,7 +4751,7 @@ HAPI_DECL HAPI_GetAttributeFloatData( const HAPI_Session * session,
 ///         Therefore the array values are returned as a flat array, with 
 ///         another sizes array containing the lengths of each array entry.
 ///
-/// @ingroup GeometryGetters
+/// @ingroup GeometryGetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -4810,7 +4810,7 @@ HAPI_DECL HAPI_GetAttributeFloatArrayData( const HAPI_Session * session,
 
 /// @brief  Get 64-bit attribute float data.
 ///
-/// @ingroup GeometryGetters
+/// @ingroup GeometryGetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -4870,7 +4870,7 @@ HAPI_DECL HAPI_GetAttributeFloat64Data( const HAPI_Session * session,
 ///         Therefore the array values are returned as a flat array, with 
 ///         another sizes array containing the lengths of each array entry.
 ///
-/// @ingroup GeometryGetters
+/// @ingroup GeometryGetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -4931,7 +4931,7 @@ HAPI_DECL HAPI_GetAttributeFloat64ArrayData( const HAPI_Session * session,
 ///         returned are only valid until the next time this function
 ///         is called.
 ///
-/// @ingroup GeometryGetters
+/// @ingroup GeometryGetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -4985,7 +4985,7 @@ HAPI_DECL HAPI_GetAttributeStringData( const HAPI_Session * session,
 ///         Note that the string handles returned are only valid until 
 ///         the next time this function is called.
 ///
-/// @ingroup GeometryGetters
+/// @ingroup GeometryGetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -5440,7 +5440,7 @@ HAPI_DECL HAPI_SetVertexList( const HAPI_Session * session,
 
 /// @brief  Add an attribute.
 ///
-/// @ingroup GeometrySetters
+/// @ingroup GeometrySetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -5465,9 +5465,10 @@ HAPI_DECL HAPI_AddAttribute( const HAPI_Session * session,
                              HAPI_PartId part_id,
                              const char * name,
                              const HAPI_AttributeInfo * attr_info );
+
 /// @brief  Delete an attribute from an input geo
 ///
-/// @ingroup GeometrySetters
+/// @ingroup GeometrySetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -5495,7 +5496,7 @@ HAPI_DECL HAPI_DeleteAttribute( const HAPI_Session * session,
 
 /// @brief  Set attribute integer data.
 ///
-/// @ingroup GeometrySetters
+/// @ingroup GeometrySetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -5542,7 +5543,7 @@ HAPI_DECL HAPI_SetAttributeIntData( const HAPI_Session * session,
 
 /// @brief  Set 64-bit attribute integer data.
 ///
-/// @ingroup GeometrySetters
+/// @ingroup GeometrySetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -5589,7 +5590,7 @@ HAPI_DECL HAPI_SetAttributeInt64Data( const HAPI_Session * session,
 
 /// @brief  Set attribute float data.
 ///
-/// @ingroup GeometrySetters
+/// @ingroup GeometrySetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -5636,7 +5637,7 @@ HAPI_DECL HAPI_SetAttributeFloatData( const HAPI_Session * session,
 
 /// @brief  Set 64-bit attribute float data.
 ///
-/// @ingroup GeometrySetters
+/// @ingroup GeometrySetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -5683,7 +5684,7 @@ HAPI_DECL HAPI_SetAttributeFloat64Data( const HAPI_Session * session,
 
 /// @brief  Set attribute string data.
 ///
-/// @ingroup GeometrySetters
+/// @ingroup GeometrySetters Attributes
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
