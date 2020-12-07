@@ -882,7 +882,7 @@ FHoudiniEngineEditor::CleanUpTempFolder()
 
             // Do not  try to delete the package if it's referenced anywhere
             TArray<FName> ReferenceNames;
-            AssetRegistryModule.Get().GetReferencers(CurrentPackage->GetFName(), ReferenceNames, EAssetRegistryDependencyType::All );
+            AssetRegistryModule.Get().GetReferencers(CurrentPackage->GetFName(), ReferenceNames, UE::AssetRegistry::EDependencyCategory::All );
             if (ReferenceNames.Num() > 0)
                 continue;
 
