@@ -3739,7 +3739,7 @@ FHoudiniLandscapeUtils::CreateLandscapeLayerInfoObject( FHoudiniCookParams& Houd
     if ( !Package || Package->IsPendingKill() )
     {
         // We need to create a new package
-        Package = CreatePackage( nullptr, *PackageName );
+        Package = CreatePackage( *PackageName );
         bCreatedPackage = true;
     }
 

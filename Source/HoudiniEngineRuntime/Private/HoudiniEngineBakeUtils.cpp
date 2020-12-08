@@ -57,6 +57,7 @@
     #include "InstancedFoliage.h"
     #include "InstancedFoliageActor.h"
     #include "Layers/LayersSubsystem.h"
+    #include "Kismet2/KismetEditorUtilities.h"
 #endif
 #include "EngineUtils.h"
 #include "UObject/MetaData.h"
@@ -122,7 +123,7 @@ FHoudiniEngineBakeUtils::BakeCreateBlueprintPackageForComponent(
     else
     {
         // Create actual package.
-        Package = CreatePackage( nullptr, *PackageName );
+        Package = CreatePackage( *PackageName );
     }
 #endif
 
@@ -296,7 +297,9 @@ FHoudiniEngineBakeUtils::BakeBlueprint( UHoudiniAssetComponent * HoudiniAssetCom
         AActor * Actor = HoudiniAssetComponent->CloneComponentsAndCreateActor();
         if( Actor && !Actor->IsPendingKill() )
         {
-            Blueprint = FKismetEditorUtilities::CreateBlueprintFromActor( *BlueprintName, Package, Actor, false );
+			FKismetEditorUtilities::FCreateBlueprintFromActorParams Parms;
+			Parms.bKeepMobility = false;
+            Blueprint = FKismetEditorUtilities::CreateBlueprintFromActor(*BlueprintName, Package, Actor, Parms);
 
             // If actor is rooted, unroot it. We can also delete intermediate actor.
             Actor->RemoveFromRoot();
@@ -1631,8 +1634,13 @@ FHoudiniEngineBakeUtils::BakeCreateTextureOrMaterialPackageForComponent(
         }
         else
         {
-            // Create actual package.
-            PackageNew = CreatePackage( OuterPackage, *PackageName );
+            // For v1, no other choice than to ignore the warning...
+#pragma warning(push)
+#pragma warning(disable: 4996)
+			// Create actual package.
+			PackageNew = CreatePackage(OuterPackage, *PackageName);
+#pragma warning(pop)
+            
             PackageNew->SetPackageFlags(RF_Standalone);
             break;
         }
@@ -1850,9 +1858,13 @@ FHoudiniEngineBakeUtils::BakeCreateStaticMeshPackageForComponent(
             }
         }
         else
-        {
-            // Create actual package.
-            PackageNew = CreatePackage( OuterPackage, *PackageName );
+        {            
+			// For v1, no other choice than to ignore the warning...
+#pragma warning(push)
+#pragma warning(disable: 4996)
+			// Create actual package.
+			PackageNew = CreatePackage(OuterPackage, *PackageName);
+#pragma warning(pop)
             break;
         }
     }

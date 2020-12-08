@@ -340,7 +340,7 @@ bool FHoudiniCommandletUtils::ConvertBGEOFileToUAsset( const FString& InBGEOFile
     if ( !Package )    
     {
         // Create actual package.
-        Package = CreatePackage( nullptr, *PackageFilePath );
+        Package = CreatePackage( *PackageFilePath );
         if ( !Package )
         {
             // Couldn't create the package
