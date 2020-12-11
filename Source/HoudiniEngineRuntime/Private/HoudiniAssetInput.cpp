@@ -530,7 +530,7 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
             if ( FHoudiniEngineUtils::IsHoudiniNodeValid( ParentId ) )
                 FHoudiniEngineUtils::DestroyHoudiniAsset( ParentId );
 
-                FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
+            FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
         }
         ConnectedAssetId = -1;
         if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
@@ -1196,7 +1196,7 @@ UHoudiniAssetInput::UpdateObjectMergePackBeforeMerge()
     else if (ChoiceIndex == EHoudiniAssetInputType::WorldInput)
         NumberOfInputObjects = InputOutlinerMeshArray.Num();
 
-	if (bIsObjectPathParameter)
+    if (bIsObjectPathParameter)
 	{
 		// Directly change the Parameter xformtype
 		if (HAPI_RESULT_SUCCESS == FHoudiniApi::SetParmIntValue(

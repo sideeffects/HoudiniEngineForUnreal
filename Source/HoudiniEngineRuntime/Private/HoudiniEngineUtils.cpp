@@ -9683,7 +9683,7 @@ bool FHoudiniEngineUtils::ModifyUPropertyValueOnObject(
     if ( !MeshComponent || MeshComponent->IsPendingKill() || !FoundProperty )
         return false;
 
-	FProperty* InnerProperty = FoundProperty;
+    FProperty* InnerProperty = FoundProperty;
     int32 NumberOfProperties = 1;
 
 	FArrayProperty* ArrayProperty = CastField< FArrayProperty >(FoundProperty);
