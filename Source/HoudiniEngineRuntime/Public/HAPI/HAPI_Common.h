@@ -147,6 +147,10 @@ typedef int HAPI_PDG_WorkitemId;
 /// Use this with PDG functions
 typedef int HAPI_PDG_GraphContextId;
 
+/// When we load a HIP file, we associate a HIP file ID with the created nodes
+/// so that they can be looked up later
+typedef int HAPI_HIPFileId;
+
 /////////////////////////////////////////////////////////////////////////////
 // Enums
 
@@ -751,6 +755,14 @@ enum HAPI_CacheProperty
 };
 
 HAPI_C_ENUM_TYPEDEF( HAPI_CacheProperty )
+
+/// Type of sampling for heightfield
+enum HAPI_HeightFieldSampling
+{
+    HAPI_HEIGHTFIELD_SAMPLING_CENTER,
+    HAPI_HEIGHTFIELD_SAMPLING_CORNER
+};
+HAPI_C_ENUM_TYPEDEF( HAPI_HeightFieldSampling )
 
 /// Used with PDG functions
 enum HAPI_PDG_State
@@ -1495,6 +1507,16 @@ struct HAPI_API HAPI_AttributeInfo
     /// size per attribute.
     int tupleSize;
 
+    /// Total number of elements for an array attribute.
+    /// An array attribute can be thought of as a 2 dimensional array where
+    /// the 2nd dimension can vary in size for each element in the 1st
+    /// dimension. Therefore this returns the total number of values in
+    /// the entire array.
+    /// This should be used to determine the total storage
+    /// size needed by multiplying with ::HAPI_AttributeInfo::storage.
+    /// Note that this will be 0 for a non-array attribute.
+    HAPI_Int64 totalArrayElements;
+
     /// Attribute type info
     /// This is used to help identify the type of data stored in an attribute.
     /// Using the type is recommended over using just an attribute's name to identify
@@ -1673,7 +1695,7 @@ struct HAPI_API HAPI_SphereInfo
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_SphereInfo )
 
-// PDG Structs ---------------------------------------------------------------
+// PDG Structs --------------------------------------------------------------
 
 struct HAPI_API HAPI_PDG_EventInfo
 {
@@ -1702,5 +1724,53 @@ struct HAPI_API HAPI_PDG_WorkitemResultInfo
     HAPI_Int64 resultHash;	  /// hash value of result
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkitemResultInfo )
+
+// SESSIONSYNC --------------------------------------------------------------
+
+/// @struct HAPI_Viewport
+///
+/// Contains the information for synchronizing viewport between Houdini
+/// and other applications. When SessionSync is enabled, Houdini will
+/// update this struct with its viewport state. It will also update
+/// its own viewport if this struct has changed.
+/// The data stored is in Houdini's right-handed Y-up coordinate system.
+///
+struct HAPI_API HAPI_Viewport
+{
+    /// The world position of the viewport camera's pivot.
+    float position[ HAPI_POSITION_VECTOR_SIZE ];
+
+    /// The direction of the viewport camera stored as a quaternion.
+    float rotationQuaternion[ HAPI_QUATERNION_VECTOR_SIZE ];
+
+    /// The offset from the pivot to the viewport camera's
+    /// actual world position.
+    float offset;
+};
+HAPI_C_STRUCT_TYPEDEF( HAPI_Viewport )
+
+/// @struct HAPI_SessionSyncInfo
+///
+/// Contains the information for synchronizing general SessionSync
+/// state between Houdini and other applications. When SessionSync
+/// is enabled, Houdini will update this struct with its state.
+/// It will also update its internal state if this struct has
+/// changed.
+///
+struct HAPI_API HAPI_SessionSyncInfo
+{
+    /// Specifies whether Houdini's current time is used for Houdini Engine
+    /// cooks. This is automatically enabled in SessionSync where
+    /// Houdini's viewport forces cooks to use Houdini's current time.
+    /// This is disabled in non-SessionSync mode, but can be toggled to
+    /// override default behaviour.
+    HAPI_Bool cookUsingHoudiniTime;
+
+    /// Specifies whether viewport synchronization is enabled. If enabled,
+    /// in SessionSync, Houdini will update its own viewport using
+    /// ::HAPI_Viewport.
+    HAPI_Bool syncViewport;
+};
+HAPI_C_STRUCT_TYPEDEF( HAPI_SessionSyncInfo )
 
 #endif // __HAPI_COMMON_h__
