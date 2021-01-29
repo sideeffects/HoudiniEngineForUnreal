@@ -297,8 +297,8 @@ FHoudiniEngineBakeUtils::BakeBlueprint( UHoudiniAssetComponent * HoudiniAssetCom
         AActor * Actor = HoudiniAssetComponent->CloneComponentsAndCreateActor();
         if( Actor && !Actor->IsPendingKill() )
         {
-			FKismetEditorUtilities::FCreateBlueprintFromActorParams Parms;
-			Parms.bKeepMobility = false;
+	    FKismetEditorUtilities::FCreateBlueprintFromActorParams Parms;
+	    Parms.bKeepMobility = false;	    
             Blueprint = FKismetEditorUtilities::CreateBlueprintFromActor(*BlueprintName, Package, Actor, Parms);
 
             // If actor is rooted, unroot it. We can also delete intermediate actor.
@@ -650,7 +650,7 @@ FHoudiniEngineBakeUtils::CheckedBakeStaticMesh(
     }
     else
     {
-        if( FHoudiniEngineBakeUtils::StaticMeshRequiresBake(OriginalSM) )
+        if( FHoudiniEngineBakeUtils::StaticMeshRequiresBake(OriginalSM, HoudiniAssetComponent) )
         {
             // Bake the found mesh into the project
             BakedSM = FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
@@ -1186,7 +1186,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(UHoudiniAssetComponent * Houd
 }
 
 bool
-FHoudiniEngineBakeUtils::StaticMeshRequiresBake( const UStaticMesh * StaticMesh )
+FHoudiniEngineBakeUtils::StaticMeshRequiresBake( const UStaticMesh * StaticMesh, const UHoudiniAssetComponent* InHAC)
 {
 #if WITH_EDITOR
     if( !StaticMesh || StaticMesh->IsPendingKill() )
@@ -1198,6 +1198,9 @@ FHoudiniEngineBakeUtils::StaticMeshRequiresBake( const UStaticMesh * StaticMesh 
     if( !BackingAssetData.IsUAsset() )
         return true;
 
+    if (BackingAssetData.PackagePath.ToString() == InHAC->GetTempCookFolder().ToString())
+        return true;
+
     for( const auto& StaticMaterial : StaticMesh->StaticMaterials )
     {
         if( !StaticMaterial.MaterialInterface || StaticMaterial.MaterialInterface->IsPendingKill() )
@@ -1205,6 +1208,9 @@ FHoudiniEngineBakeUtils::StaticMeshRequiresBake( const UStaticMesh * StaticMesh 
 
         BackingAssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*StaticMaterial.MaterialInterface->GetPathName());
         if (!BackingAssetData.IsUAsset())
+            return true;
+
+        if (BackingAssetData.PackagePath.ToString() == InHAC->GetTempCookFolder().ToString())
             return true;
     }
 #endif
@@ -1634,12 +1640,20 @@ FHoudiniEngineBakeUtils::BakeCreateTextureOrMaterialPackageForComponent(
         }
         else
         {
-            // For v1, no other choice than to ignore the warning...
+            if (OuterPackage != nullptr)
+            {
 #pragma warning(push)
 #pragma warning(disable: 4996)
-			// Create actual package.
-			PackageNew = CreatePackage(OuterPackage, *PackageName);
+                // For v1, no other choice than to ignore the warning...
+                // Create actual package.
+                PackageNew = CreatePackage(OuterPackage, *PackageName);
 #pragma warning(pop)
+            }
+            else
+            {
+                // Create actual package.
+                PackageNew = CreatePackage(*PackageName);
+            }
             
             PackageNew->SetPackageFlags(RF_Standalone);
             break;
@@ -1833,7 +1847,6 @@ FHoudiniEngineBakeUtils::BakeCreateStaticMeshPackageForComponent(
         PackageName = UPackageTools::SanitizePackageName( PackageName );
 
         UObject * OuterPackage = nullptr;
-
         if ( BakeMode == EBakeMode::Intermediate )
         {
             // If we are not baking, then use outermost package, since objects within our package need to be visible
@@ -1843,7 +1856,6 @@ FHoudiniEngineBakeUtils::BakeCreateStaticMeshPackageForComponent(
 
         // See if package exists, if it does, we need to regenerate the name.
         UPackage * Package = FindPackage( OuterPackage, *PackageName );
-
         if ( Package && !Package->IsPendingKill() )
         {
             if ( BakeMode != EBakeMode::Intermediate )
@@ -1858,13 +1870,21 @@ FHoudiniEngineBakeUtils::BakeCreateStaticMeshPackageForComponent(
             }
         }
         else
-        {            
-			// For v1, no other choice than to ignore the warning...
+        {
+            if (OuterPackage != nullptr)
+            {
 #pragma warning(push)
 #pragma warning(disable: 4996)
-			// Create actual package.
-			PackageNew = CreatePackage(OuterPackage, *PackageName);
+                // For v1, no other choice than to ignore the warning...
+                // Create actual package.
+                PackageNew = CreatePackage(OuterPackage, *PackageName);
 #pragma warning(pop)
+            }
+            else
+            {
+                // Create actual package.
+                PackageNew = CreatePackage(*PackageName);
+            }
             break;
         }
     }

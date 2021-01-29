@@ -112,7 +112,7 @@ public:
 
     /** Returns true if the supplied static mesh has unbaked (not backed by a .uasset) mesh or material */
     static bool StaticMeshRequiresBake( 
-        const UStaticMesh * StaticMesh );
+        const UStaticMesh * StaticMesh, const UHoudiniAssetComponent* InHAC );
 
     /** Duplicate a given static mesh. This will create a new package for it. This will also create necessary       **/
     /** materials and textures and their corresponding packages. **/
