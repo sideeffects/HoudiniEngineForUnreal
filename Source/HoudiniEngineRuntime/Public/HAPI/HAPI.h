@@ -1026,7 +1026,7 @@ HAPI_DECL HAPI_GetString( const HAPI_Session * session,
 ///
 HAPI_DECL HAPI_SetCustomString( const HAPI_Session * session,
                                 const char * string_value,
-                                int * handle_value );
+                                HAPI_StringHandle * handle_value );
 
 /// @brief  Removes the specified string from the server
 ///         and invalidates the handle
@@ -1043,7 +1043,7 @@ HAPI_DECL HAPI_SetCustomString( const HAPI_Session * session,
 ///                 Handle of the string that was added
 ///
 HAPI_DECL HAPI_RemoveCustomString( const HAPI_Session * session,
-                                   const int string_handle );
+                                   const HAPI_StringHandle string_handle );
 
 /// @brief  Gives back the length of the buffer needed to hold
 ///         all the values null-separated for the given string 
@@ -4570,6 +4570,363 @@ HAPI_DECL HAPI_GetAttributeIntArrayData( const HAPI_Session * session,
                                          int * sizes_fixed_array,
                                          int start, int sizes_fixed_length );
 
+/// @brief  Get attribute unsigned 8-bit integer data.
+///
+/// @ingroup GeometryGetters Attributes
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[in]      stride
+///                 Specifies how many items to skip over for each element.
+///                 With a stride of -1, the stride will be set to
+///                 @c attr_info->tuple_size. Otherwise, the stride will be
+///                 set to the maximum of @c attr_info->tuple_size and
+///                 @c stride.
+///
+/// @param[out]     data_array
+///                 An unsigned 8-bit integer array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+HAPI_DECL HAPI_GetAttributeUInt8Data( const HAPI_Session * session,
+                                      HAPI_NodeId node_id,
+                                      HAPI_PartId part_id,
+                                      const char * name,
+                                      HAPI_AttributeInfo * attr_info,
+                                      int stride,
+                                      HAPI_UInt8 * data_array,
+                                      int start, int length );
+
+/// @brief  Get array attribute unsigned 8-bit integer data.
+///         Each entry in an array attribute can have varying array lengths. 
+///         Therefore the array values are returned as a flat array, with 
+///         another sizes array containing the lengths of each array entry.
+///
+/// @ingroup GeometryGetters Attributes
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[out]     data_fixed_array
+///                 An unsigned 8-bit integer array at least the size of
+///                 <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///
+/// @param[in]      data_fixed_length
+///                 Must be <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///                 <!-- source ::HAPI_AttributeInfo::totalArrayElements -->
+///
+/// @param[out]     sizes_fixed_array
+///                 An integer array at least the size of
+///                 <tt>sizes_fixed_length</tt> to hold the size of each entry.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
+///
+/// @param[in]      sizes_fixed_length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+HAPI_DECL HAPI_GetAttributeUInt8ArrayData( const HAPI_Session * session,
+                                           HAPI_NodeId node_id,
+                                           HAPI_PartId part_id,
+                                           const char * name,
+                                           HAPI_AttributeInfo * attr_info,
+                                           HAPI_UInt8 * data_fixed_array,
+                                           int data_fixed_length,
+                                           int * sizes_fixed_array,
+                                           int start, int sizes_fixed_length );
+
+/// @brief  Get attribute 8-bit integer data.
+///
+/// @ingroup GeometryGetters Attributes
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[in]      stride
+///                 Specifies how many items to skip over for each element.
+///                 With a stride of -1, the stride will be set to
+///                 @c attr_info->tuple_size. Otherwise, the stride will be
+///                 set to the maximum of @c attr_info->tuple_size and
+///                 @c stride.
+///
+/// @param[out]     data_array
+///                 An 8-bit integer array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+HAPI_DECL HAPI_GetAttributeInt8Data( const HAPI_Session * session,
+                                      HAPI_NodeId node_id,
+                                      HAPI_PartId part_id,
+                                      const char * name,
+                                      HAPI_AttributeInfo * attr_info,
+                                      int stride,
+                                      HAPI_Int8 * data_array,
+                                      int start, int length );
+
+/// @brief  Get array attribute 8-bit integer data.
+///         Each entry in an array attribute can have varying array lengths. 
+///         Therefore the array values are returned as a flat array, with 
+///         another sizes array containing the lengths of each array entry.
+///
+/// @ingroup GeometryGetters Attributes
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[out]     data_fixed_array
+///                 An 8-bit integer array at least the size of
+///                 <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///
+/// @param[in]      data_fixed_length
+///                 Must be <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///                 <!-- source ::HAPI_AttributeInfo::totalArrayElements -->
+///
+/// @param[out]     sizes_fixed_array
+///                 An integer array at least the size of
+///                 <tt>sizes_fixed_length</tt> to hold the size of each entry.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
+///
+/// @param[in]      sizes_fixed_length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+HAPI_DECL HAPI_GetAttributeInt8ArrayData( const HAPI_Session * session,
+                                           HAPI_NodeId node_id,
+                                           HAPI_PartId part_id,
+                                           const char * name,
+                                           HAPI_AttributeInfo * attr_info,
+                                           HAPI_Int8 * data_fixed_array,
+                                           int data_fixed_length,
+                                           int * sizes_fixed_array,
+                                           int start, int sizes_fixed_length );
+
+/// @brief  Get attribute 16-bit integer data.
+///
+/// @ingroup GeometryGetters Attributes
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[in]      stride
+///                 Specifies how many items to skip over for each element.
+///                 With a stride of -1, the stride will be set to
+///                 @c attr_info->tuple_size. Otherwise, the stride will be
+///                 set to the maximum of @c attr_info->tuple_size and
+///                 @c stride.
+///
+/// @param[out]     data_array
+///                 An 16-bit integer array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+HAPI_DECL HAPI_GetAttributeInt16Data( const HAPI_Session * session,
+                                      HAPI_NodeId node_id,
+                                      HAPI_PartId part_id,
+                                      const char * name,
+                                      HAPI_AttributeInfo * attr_info,
+                                      int stride,
+                                      HAPI_Int16 * data_array,
+                                      int start, int length );
+
+/// @brief  Get array attribute 16-bit integer data. 
+///         Each entry in an array attribute can have varying array lengths. 
+///         Therefore the array values are returned as a flat array, with 
+///         another sizes array containing the lengths of each array entry.
+///
+/// @ingroup GeometryGetters Attributes
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[out]     data_fixed_array
+///                 An 16-bit integer array at least the size of
+///                 <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///
+/// @param[in]      data_fixed_length
+///                 Must be <tt>::HAPI_AttributeInfo::totalArrayElements</tt>.
+///                 <!-- source ::HAPI_AttributeInfo::totalArrayElements -->
+///
+/// @param[out]     sizes_fixed_array
+///                 An integer array at least the size of
+///                 <tt>sizes_fixed_length</tt> to hold the size of each entry.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
+///
+/// @param[in]      sizes_fixed_length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+HAPI_DECL HAPI_GetAttributeInt16ArrayData( const HAPI_Session * session,
+                                           HAPI_NodeId node_id,
+                                           HAPI_PartId part_id,
+                                           const char * name,
+                                           HAPI_AttributeInfo * attr_info,
+                                           HAPI_Int16 * data_fixed_array,
+                                           int data_fixed_length,
+                                           int * sizes_fixed_array,
+                                           int start, int sizes_fixed_length );
+
 /// @brief  Get attribute 64-bit integer data.
 ///
 /// @ingroup GeometryGetters Attributes
@@ -5540,6 +5897,147 @@ HAPI_DECL HAPI_SetAttributeIntData( const HAPI_Session * session,
                                     const HAPI_AttributeInfo * attr_info,
                                     const int * data_array,
                                     int start, int length );
+
+/// @brief  Set unsigned 8-bit attribute integer data.
+///
+/// @ingroup GeometrySetters Attributes
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[in]      data_array
+///                 An unsigned 8-bit integer array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+HAPI_DECL HAPI_SetAttributeUInt8Data( const HAPI_Session * session,
+                                      HAPI_NodeId node_id,
+                                      HAPI_PartId part_id,
+                                      const char * name,
+                                      const HAPI_AttributeInfo * attr_info,
+                                      const HAPI_UInt8 * data_array,
+                                      int start, int length );
+
+/// @brief  Set 8-bit attribute integer data.
+///
+/// @ingroup GeometrySetters Attributes
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[in]      data_array
+///                 An 8-bit integer array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+HAPI_DECL HAPI_SetAttributeInt8Data( const HAPI_Session * session,
+                                      HAPI_NodeId node_id,
+                                      HAPI_PartId part_id,
+                                      const char * name,
+                                      const HAPI_AttributeInfo * attr_info,
+                                      const HAPI_Int8 * data_array,
+                                      int start, int length );
+
+/// @brief  Set 16-bit attribute integer data.
+///
+/// @ingroup GeometrySetters Attributes
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[in]      data_array
+///                 An 16-bit integer array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+HAPI_DECL HAPI_SetAttributeInt16Data( const HAPI_Session * session,
+                                      HAPI_NodeId node_id,
+                                      HAPI_PartId part_id,
+                                      const char * name,
+                                      const HAPI_AttributeInfo * attr_info,
+                                      const HAPI_Int16 * data_array,
+                                      int start, int length );
 
 /// @brief  Set 64-bit attribute integer data.
 ///
