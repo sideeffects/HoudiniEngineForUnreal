@@ -1470,7 +1470,9 @@ FHoudiniEngineBakeUtils::BakeCreateTexturePackageForComponent(
 {
     UHoudiniAsset * HoudiniAsset = HoudiniCookParams.HoudiniAsset;
     if (!HoudiniAsset || HoudiniAsset->IsPendingKill())
+    {
         return nullptr;
+    }
 
     FString TextureInfoDescriptor;
     if ( HoudiniCookParams.MaterialAndTextureBakeMode != EBakeMode::Intermediate )

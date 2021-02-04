@@ -528,9 +528,11 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
         {
             HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId( ConnectedAssetId );
             if ( FHoudiniEngineUtils::IsHoudiniNodeValid( ParentId ) )
+            {
                 FHoudiniEngineUtils::DestroyHoudiniAsset( ParentId );
+            }
 
-                FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
+            FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
         }
         ConnectedAssetId = -1;
         if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
@@ -1192,9 +1194,13 @@ UHoudiniAssetInput::UpdateObjectMergePackBeforeMerge()
     // or through each input asset select in a world input.    
     int32 NumberOfInputObjects = 0;
     if (ChoiceIndex == EHoudiniAssetInputType::GeometryInput)
+    {
         NumberOfInputObjects = InputObjects.Num();
+    }
     else if (ChoiceIndex == EHoudiniAssetInputType::WorldInput)
+    {
         NumberOfInputObjects = InputOutlinerMeshArray.Num();
+    }
 
 	if (bIsObjectPathParameter)
 	{
