@@ -339,6 +339,12 @@ FHoudiniEngineUtils::GetLicenseType( FString & LicenseType )
             break;
         }
 
+        case HAPI_LICENSE_HOUDINI_ENGINE_UNITY_UNREAL:
+        {
+            LicenseType = TEXT( "Houdini Engine for Unity/Unreal" );
+            break;
+        }
+
         case HAPI_LICENSE_MAX:
         default:
         {
