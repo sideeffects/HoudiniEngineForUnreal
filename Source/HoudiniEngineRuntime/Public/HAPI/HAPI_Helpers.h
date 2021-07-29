@@ -33,6 +33,13 @@ HAPI_DECL_RETURN( void )
 HAPI_DECL_RETURN( HAPI_TimelineOptions )
     HAPI_TimelineOptions_Create();
 
+// COMPOSITOR SETTINGS ------------------------------------------------------
+
+HAPI_DECL_RETURN( void)
+    HAPI_CompositorOptions_Init( HAPI_CompositorOptions * in );
+HAPI_DECL_RETURN( HAPI_CompositorOptions )
+    HAPI_CompositorOptions_Create();
+
 // ASSETS -------------------------------------------------------------------
 
 HAPI_DECL_RETURN( void )

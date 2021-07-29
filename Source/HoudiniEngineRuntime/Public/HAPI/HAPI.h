@@ -1212,6 +1212,36 @@ HAPI_DECL HAPI_SetTimelineOptions(
                             const HAPI_Session * session,
                             const HAPI_TimelineOptions * timeline_options );
 
+/// @brief  Gets the global compositor options.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[out]     compositor_options
+///                 The compositor options struct.
+///
+HAPI_DECL HAPI_GetCompositorOptions(
+                            const HAPI_Session * session,
+                            HAPI_CompositorOptions * compositor_options);
+
+/// @brief  Sets the global compositor options.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      compositor_options
+///                 The compositor options.
+///
+HAPI_DECL HAPI_SetCompositorOptions(
+                        const HAPI_Session * session,
+                        const HAPI_CompositorOptions * compositor_options);
+
 /// @defgroup Assets
 /// Functions for managing asset libraries
 
@@ -4257,6 +4287,63 @@ HAPI_DECL HAPI_GetDisplayGeoInfo( const HAPI_Session * session,
                                   HAPI_NodeId object_node_id,
                                   HAPI_GeoInfo * geo_info );
 
+/// @brief  A helper method that gets the number of main geometry outputs inside
+///         an Object node or SOP node. If the node is an Object node, this
+///         method will return the cumulative number of geometry outputs for all
+///         geometry nodes that it contains. When searching for output geometry,
+///         this method will only consider subnetworks that have their display
+///         flag enabled.
+///
+///         This method must be called before HAPI_GetOutputGeoInfos() is
+///         called.
+///
+/// @ingroup GeometryGetters
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id of the Object or SOP node to get the geometry
+///                 output count of.
+///
+/// @param[out]     count
+///                 The number of geometry (SOP) outputs.
+HAPI_DECL HAPI_GetOutputGeoCount( const HAPI_Session* session,
+                                  HAPI_NodeId node_id,
+                                  int* count);
+
+/// @brief  Gets the geometry info structs (::HAPI_GeoInfo) for a node's
+///         main geometry outputs. This method can only be called after
+///         HAPI_GetOutputGeoCount() has been called with the same node id.
+///
+/// @ingroup GeometryGetters
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id of the Object or SOP node to get the output
+///                 geometry info structs (::HAPI_GeoInfo) for.
+///
+/// @param[out]     geo_infos_array
+///                 Output array where the output geometry info structs will be
+///                 stored. The size of the array must match the count argument
+///                 returned by the HAPI_GetOutputGeoCount() method.
+///
+/// @param[in]      count
+///                 Sanity check count. The count must be equal to the count
+///                 returned by the HAPI_GetOutputGeoCount() method. 
+HAPI_DECL HAPI_GetOutputGeoInfos( const HAPI_Session* session,
+                                  HAPI_NodeId node_id,
+                                  HAPI_GeoInfo* geo_infos_array,
+                                  int count );
+
 /// @brief  Get the geometry info struct (::HAPI_GeoInfo) on a SOP node.
 ///
 /// @ingroup GeometryGetters
@@ -4300,6 +4387,36 @@ HAPI_DECL HAPI_GetPartInfo( const HAPI_Session * session,
                             HAPI_NodeId node_id,
                             HAPI_PartId part_id,
                             HAPI_PartInfo * part_info );
+
+
+/// @brief  Gets the number of edges that belong to an edge group on a geometry
+///         part.
+///
+/// @ingroup GeometryGetters
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      group_name
+///                 The name of the edge group.
+///
+/// @param[out]     edge_count
+///                 The number of edges that belong to the group.
+///
+HAPI_DECL HAPI_GetEdgeCountOfEdgeGroup( const HAPI_Session * session,
+                                        HAPI_NodeId node_id,
+                                        HAPI_PartId part_id,
+                                        const char * group_name,
+                                        int * edge_count );
 
 /// @brief  Get the array of faces where the nth integer in the array is
 ///         the number of vertices the nth face has.
@@ -5461,23 +5578,33 @@ HAPI_DECL HAPI_GetGroupNames( const HAPI_Session * session,
 /// @param[out]     membership_array_all_equal
 ///                 (optional) Quick way to determine if all items are in
 ///                 the given group or all items our not in the group.
-///                 You can just pass NULL here if not interested.
+///                 If you do not need this information or you are getting edge
+///                 group information, you can just pass NULL for this argument.
 ///
 /// @param[out]     membership_array
 ///                 Array of ints that represent the membership of this
-///                 group. Should be the size given by
-///                 ::HAPI_PartInfo_GetElementCountByGroupType() with
-///                 @p group_type and the ::HAPI_PartInfo of @p part_id.
+///                 group. When getting membership information for a point or
+///                 primitive group, the size of the array should be the size
+///                 given by ::HAPI_PartInfo_GetElementCountByGroupType() with
+///                 @p group_type and the ::HAPI_PartInfo of @p part_id. When
+///                 retrieving the edges belonging to an edge group, the
+///                 membership array will be filled with point numbers that
+///                 comprise the edges of the edge group. Each edge is specified
+///                 by two points, which means that the size of the array should
+///                 be the size given by ::HAPI_GetEdgeCountOfEdgeGroup() * 2.
 ///
 /// @param[in]      start
 ///                 Start offset into the membership array. Must be
-///                 less than ::HAPI_PartInfo_GetElementCountByGroupType().
+///                 less than ::HAPI_PartInfo_GetElementCountByGroupType() when
+///                 it is a point or primitive group. When getting the
+///                 membership information for an edge group, this argument must
+///                 be less than the size returned by
+///                 ::HAPI_GetEdgeCountOfEdgeGroup() * 2 - 1.
 ///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 Should be less than or equal to the size
 ///                 of @p membership_array.
-///		    <!-- source ::HAPI_PartInfo_GetElementCountByGroupType -->
 ///
 HAPI_DECL HAPI_GetGroupMembership( const HAPI_Session * session,
                                    HAPI_NodeId node_id,
@@ -6319,7 +6446,10 @@ HAPI_DECL HAPI_DeleteGroup( const HAPI_Session * session,
 ///
 /// @param[in]      length
 ///                 Should be less than or equal to the size
-///                 of @p membership_array.
+///                 of @p membership_array. When setting edge group membership,
+///                 this parameter should be set to the number of points (which
+///                 are used to implictly define the edges), not to the number
+///                 edges in the group.
 ///		    <!-- source ::HAPI_PartInfo_GetElementCountByGroupType -->
 ///
 HAPI_DECL HAPI_SetGroupMembership( const HAPI_Session * session,

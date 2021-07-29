@@ -1,4 +1,4 @@
-/*
+﻿/*
  * PROPRIETARY INFORMATION.  This software is proprietary to
  * Side Effects Software Inc., and is not to be reproduced,
  * transmitted, or disclosed in any way without written permission.
@@ -184,6 +184,7 @@ enum HAPI_License
     HAPI_LICENSE_HOUDINI_FX,
     HAPI_LICENSE_HOUDINI_ENGINE_INDIE,
     HAPI_LICENSE_HOUDINI_INDIE,
+    HAPI_LICENSE_HOUDINI_ENGINE_UNITY_UNREAL,
     HAPI_LICENSE_MAX
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_License )
@@ -522,8 +523,9 @@ enum HAPI_NodeFlags
 
     /// TOP Node Specific Flags
     /// All TOP nodes except schedulers
-    HAPI_NODEFLAGS_TOP_NONSCHEDULER = 1 << 13
+    HAPI_NODEFLAGS_TOP_NONSCHEDULER = 1 << 13,
 
+    HAPI_NODEFLAGS_NON_BYPASS   = 1 << 14 /// Nodes that are not bypassed
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_NodeFlags )
 typedef int HAPI_NodeFlagsBits;
@@ -533,6 +535,7 @@ enum HAPI_GroupType
     HAPI_GROUPTYPE_INVALID = -1,
     HAPI_GROUPTYPE_POINT,
     HAPI_GROUPTYPE_PRIM,
+    HAPI_GROUPTYPE_EDGE,
     HAPI_GROUPTYPE_MAX
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_GroupType )
@@ -1432,6 +1435,9 @@ struct HAPI_API HAPI_ParmInfo
     /// Provides the raw condition string which is used to evalute whether
     /// a parm is enabled or disabled
     HAPI_StringHandle disabledConditionSH;
+
+    /// Whether or not the "Use Menu Item Token As Value" checkbox was checked in a integer menu item.
+    HAPI_Bool useMenuItemTokenAsValue;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_ParmInfo )
 
@@ -1564,6 +1570,7 @@ struct HAPI_API HAPI_GeoInfo
     /// @{
     int pointGroupCount;
     int primitiveGroupCount;
+    int edgeGroupCount;
     /// @}
 
     /// Total number of parts this geometry contains.
@@ -1933,5 +1940,16 @@ struct HAPI_API HAPI_SessionSyncInfo
     HAPI_Bool syncViewport;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_SessionSyncInfo )
+
+/// Configuration options for Houdini's compositing context
+struct HAPI_API HAPI_CompositorOptions
+{
+    /// Specifies the maximum allowed width of an image in the compositor
+    int maximumResolutionX;
+
+    /// Specifies the maximum allowed height of an image in the compositor
+    int maximumResolutionY;
+};
+HAPI_C_STRUCT_TYPEDEF( HAPI_CompositorOptions )
 
 #endif // __HAPI_COMMON_h__
