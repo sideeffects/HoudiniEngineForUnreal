@@ -1,4 +1,4 @@
-/*
+﻿/*
  * PROPRIETARY INFORMATION.  This software is proprietary to
  * Side Effects Software Inc., and is not to be reproduced,
  * transmitted, or disclosed in any way without written permission.
@@ -110,9 +110,31 @@
     typedef char HAPI_Bool;
 #endif // __cplusplus
 
-// 64-bit Integers
-typedef long long HAPI_Int64;
-HAPI_STATIC_ASSERT( sizeof( HAPI_Int64 ) == 8, unsupported_size_of_long );
+// x-bit Integers
+// Thrift doesn't support unsigned integers, so we cast it as a 16-bit int, but only
+// for automated code generation
+#ifdef HAPI_AUTOGEN
+    typedef signed char int8_t;
+    typedef short int16_t;
+    typedef long long int64_t;
+    typedef short HAPI_UInt8; // 16-bit type for thrift
+#else
+    #include <stdint.h>
+    #ifdef HAPI_THRIFT_ABI
+        typedef int16_t HAPI_UInt8; 
+    #else
+        typedef uint8_t HAPI_UInt8;
+        HAPI_STATIC_ASSERT(sizeof(HAPI_UInt8) == 1, unsupported_size_of_uint8);
+    #endif
+#endif
+
+typedef int8_t HAPI_Int8;
+HAPI_STATIC_ASSERT(sizeof(HAPI_Int8) == 1, unsupported_size_of_int8);
+typedef int16_t HAPI_Int16;
+HAPI_STATIC_ASSERT(sizeof(HAPI_Int16) == 2, unsupported_size_of_int16);
+typedef int64_t HAPI_Int64;
+HAPI_STATIC_ASSERT(sizeof(HAPI_Int64) == 8, unsupported_size_of_long);
+
 
 // The process id has to be uint on Windows and int on any other platform.
 #if ( defined _WIN32 || defined WIN32 )
@@ -162,6 +184,7 @@ enum HAPI_License
     HAPI_LICENSE_HOUDINI_FX,
     HAPI_LICENSE_HOUDINI_ENGINE_INDIE,
     HAPI_LICENSE_HOUDINI_INDIE,
+    HAPI_LICENSE_HOUDINI_ENGINE_UNITY_UNREAL,
     HAPI_LICENSE_MAX
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_License )
@@ -500,8 +523,9 @@ enum HAPI_NodeFlags
 
     /// TOP Node Specific Flags
     /// All TOP nodes except schedulers
-    HAPI_NODEFLAGS_TOP_NONSCHEDULER = 1 << 13
+    HAPI_NODEFLAGS_TOP_NONSCHEDULER = 1 << 13,
 
+    HAPI_NODEFLAGS_NON_BYPASS   = 1 << 14 /// Nodes that are not bypassed
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_NodeFlags )
 typedef int HAPI_NodeFlagsBits;
@@ -511,6 +535,7 @@ enum HAPI_GroupType
     HAPI_GROUPTYPE_INVALID = -1,
     HAPI_GROUPTYPE_POINT,
     HAPI_GROUPTYPE_PRIM,
+    HAPI_GROUPTYPE_EDGE,
     HAPI_GROUPTYPE_MAX
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_GroupType )
@@ -565,6 +590,9 @@ enum HAPI_StorageType
     HAPI_STORAGETYPE_FLOAT,
     HAPI_STORAGETYPE_FLOAT64,
     HAPI_STORAGETYPE_STRING,
+    HAPI_STORAGETYPE_UINT8,
+    HAPI_STORAGETYPE_INT8,
+    HAPI_STORAGETYPE_INT16,
     HAPI_STORAGETYPE_MAX
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_StorageType )
@@ -1407,6 +1435,9 @@ struct HAPI_API HAPI_ParmInfo
     /// Provides the raw condition string which is used to evalute whether
     /// a parm is enabled or disabled
     HAPI_StringHandle disabledConditionSH;
+
+    /// Whether or not the "Use Menu Item Token As Value" checkbox was checked in a integer menu item.
+    HAPI_Bool useMenuItemTokenAsValue;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_ParmInfo )
 
@@ -1539,6 +1570,7 @@ struct HAPI_API HAPI_GeoInfo
     /// @{
     int pointGroupCount;
     int primitiveGroupCount;
+    int edgeGroupCount;
     /// @}
 
     /// Total number of parts this geometry contains.
@@ -1908,5 +1940,16 @@ struct HAPI_API HAPI_SessionSyncInfo
     HAPI_Bool syncViewport;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_SessionSyncInfo )
+
+/// Configuration options for Houdini's compositing context
+struct HAPI_API HAPI_CompositorOptions
+{
+    /// Specifies the maximum allowed width of an image in the compositor
+    int maximumResolutionX;
+
+    /// Specifies the maximum allowed height of an image in the compositor
+    int maximumResolutionY;
+};
+HAPI_C_STRUCT_TYPEDEF( HAPI_CompositorOptions )
 
 #endif // __HAPI_COMMON_h__
