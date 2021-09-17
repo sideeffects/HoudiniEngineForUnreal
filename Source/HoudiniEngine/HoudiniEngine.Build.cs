@@ -32,22 +32,22 @@
 
 /*
 
-    Houdini Version: 19.0.310
-    Houdini Engine Version: 4.1.12
-    Unreal Version: 5.00.0
+    Houdini Version: 19.0.381
+    Houdini Engine Version: 4.2.4
+    Unreal Version: 5.0.0
 
 */
 
 using UnrealBuildTool;
 using System;
 using System.IO;
-using EpicGames.Core;
+using Tools.DotNETCommon;
 
 public class HoudiniEngine : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "19.0.310";
+        string HoudiniVersion = "19.0.381";
         bool bIsRelease = true;
         string HFSPath = "";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Side Effects Software";
@@ -336,8 +336,7 @@ public class HoudiniEngine : ModuleRules
                     "MeshDescriptionOperations",
                     "WorldBrowser",
                     "Messaging",
-                    "SlateNullRenderer",
-                    "EditorFramework"
+                    "SlateNullRenderer"
                 }
             );
         }
