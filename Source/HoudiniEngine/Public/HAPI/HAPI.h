@@ -3,6 +3,13 @@
  * Side Effects Software Inc., and is not to be reproduced,
  * transmitted, or disclosed in any way without written permission.
  *
+ * Produced by:
+ *      Side Effects Software Inc
+ *      123 Front Street West, Suite 1401
+ *      Toronto, Ontario
+ *      Canada   M5J 2M2
+ *      416-504-9876
+ *
  * COMMENTS:
  * For parsing help, there is a variable naming convention we maintain:
  *      strings:            char * and does not end in "buffer"
@@ -2114,6 +2121,42 @@ HAPI_DECL HAPI_CreateInputNode( const HAPI_Session * session,
                                 HAPI_NodeId * node_id,
                                 const char * name );
 
+/// @brief  Helper for creating specifically creating a curve input geometry SOP.
+///         This will create a dummy OBJ node with a Null SOP inside that
+///         contains the the HAPI_ATTRIB_INPUT_CURVE_COORDS attribute.
+///         It will setup the node as a curve part with no points.
+///         In addition to creating the input node, it will also commit and cook
+///         the geometry.
+///
+///         Note that when saving the Houdini scene using
+///         ::HAPI_SaveHIPFile() the nodes created with this
+///         method will be green and will start with the name "input".
+///
+/// @ingroup InputCurves
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[out]     node_id
+///                 Newly created node's id. Use ::HAPI_GetNodeInfo()
+///                 to get more information about the node.
+///
+/// @param[in]      name
+///                 Give this input node a name for easy debugging.
+///                 The node's parent OBJ node and the Null SOP node will both
+///                 get this given name with "input_" prepended.
+///                 You can also pass NULL in which case the name will
+///                 be "input#" where # is some number.
+///                 <!-- default NULL -->
+///
+HAPI_DECL HAPI_CreateInputCurveNode( const HAPI_Session * session,
+                                HAPI_NodeId * node_id,
+                                const char * name );
+
+
 /// @defgroup HeightFields Height Fields
 /// Functions for creating and inspecting HAPI session state.
 
@@ -2655,6 +2698,34 @@ HAPI_DECL HAPI_GetNodeOutputName( const HAPI_Session * session,
                                   HAPI_NodeId node_id,
                                   int output_idx,
                                   HAPI_StringHandle * name );
+
+/// @brief  Get the id of the node with the specified path.
+///
+/// @ingroup Nodes
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      parent_node_id
+///                 If @c path does not start with "/", search for the path
+///                 relative to this node. Provide -1 if @c path is an absolute
+///                 path.
+///
+/// @param[in]      path
+///                 The path of the node. If the path does not start with "/",
+///                 it is treated as a relative path from the node specified in
+///                 @c parent_node_id.
+///
+/// @param[out]     node_id
+///                 The id of the found node.
+///
+HAPI_DECL HAPI_GetNodeFromPath( const HAPI_Session * session,
+                                const HAPI_NodeId parent_node_id,
+                                const char * path,
+                                HAPI_NodeId * node_id );
 
 /// @brief Gets the node id of an output node in a SOP network.
 ///
@@ -8400,6 +8471,186 @@ HAPI_DECL HAPI_SetCurveKnots( const HAPI_Session * session,
                               const float * knots_array,
                               int start, int length );
 
+// INPUT CURVE INFO ---------------------------------------------------------
+
+/// @defgroup InputCurves
+/// Functions for working with curves
+
+/// @brief  Retrieve meta-data about the input curves, including the
+///         curve's type, order, and whether or not the curve is closed and reversed.
+///
+/// @ingroup InputCurves
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     info
+///                 The curve info represents the meta-data about
+///                 the curves, including the type, order,
+///                 and closed and reversed values.
+///
+HAPI_DECL HAPI_GetInputCurveInfo( const HAPI_Session * session,
+                             HAPI_NodeId node_id,
+                             HAPI_PartId part_id,
+                             HAPI_InputCurveInfo * info );
+
+/// @brief  Set meta-data for the input curves, including the
+///         curve type, order, reverse and closed properties.
+///
+/// @ingroup InputCurves
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 Currently unused. Input asset geos are assumed
+///                 to have only one part.
+///
+/// @param[in]      info
+///                 The curve info represents the meta-data about
+///                 the curves, including the type, order,
+///                 and closed and reverse properties.
+///
+HAPI_DECL HAPI_SetInputCurveInfo( const HAPI_Session * session,
+                             HAPI_NodeId node_id,
+                             HAPI_PartId part_id,
+                             const HAPI_InputCurveInfo * info );
+
+/// @brief  Sets the positions for input curves, doing checks for
+/// curve validity, and adjusting the curve settings accordingly.
+/// Will also cook the node.
+///
+/// @ingroup InputCurves
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 Currently unused. Input asset geos are assumed
+///                 to have only one part.
+///
+/// @param[in]      positions_array
+///                 A float array representing the positions attribute.
+///                 It will read the array assuming a tuple size of 3.
+///                 Note that this function does not do any coordinate axes 
+///                 conversion.
+/// 
+/// @param[in]      start
+///                 The index of the first position in positions_array.
+///                 <!-- default 0 -->
+/// 
+/// @param[in]      length
+///                 The size of the positions array.
+///                 <!-- source arglength(positions_array) -->
+///
+HAPI_DECL HAPI_SetInputCurvePositions(
+                             const HAPI_Session* session,
+                             HAPI_NodeId node_id,
+                             HAPI_PartId part_id,
+                             const float* positions_array,
+                             int start,
+                             int length);
+
+/// @brief  Sets the positions for input curves, doing checks for
+/// curve validity, and adjusting the curve settings accordingly.
+/// Will also cook the node. Additionally, adds rotation and scale
+/// attributes to the curve. 
+///
+/// @ingroup InputCurves
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 Currently unused. Input asset geos are assumed
+///                 to have only one part.
+///
+/// @param[in]      positions_array
+///                 A float array representing the positions attribute.
+///                 It will read the array assuming a tuple size of 3.
+///                 Note that this function does not do any coordinate axes 
+///                 conversion.
+/// 
+/// @param[in]      positions_array
+///                 A float array representing the positions attribute.
+///                 It will read the array assuming a tuple size of 3.
+///                 Note that this function does not do any coordinate axes 
+///                 conversion.
+/// 
+/// @param[in]      positions_start
+///                 The index of the first position in positions_array.
+///                 <!-- default 0 -->
+/// 
+/// @param[in]      positions_length
+///                 The size of the positions array.
+///                 <!-- source arglength(positions_array) -->
+///
+/// @param[in]      rotations_array
+///                 A float array representing the rotation (rot) attribute.
+///                 It will read the array assuming a tuple size of 4
+///                 representing quaternion values
+/// 
+/// @param[in]      rotations_start
+///                 The index of the first rotation in rotations_array.
+///                 <!-- default 0 -->
+/// 
+/// @param[in]      rotations_length
+///                 The size of the rotations array.
+///                 <!-- source arglength(rotations_array) -->
+/// 
+/// @param[in]      scales_array
+///                 A float array representing the scale attribute.
+///                 It will read the array assuming a tuple size of 3
+/// 
+/// @param[in]      scales_start
+///                 The index of the first scale in scales_array.
+///                 <!-- default 0 -->
+/// 
+/// @param[in]      scales_length
+///                 The size of the scales array.
+///                 <!-- source arglength(scales_array) -->
+///
+HAPI_DECL HAPI_SetInputCurvePositionsRotationsScales(
+                             const HAPI_Session* session,
+                             HAPI_NodeId node_id,
+                             HAPI_PartId part_id,
+                             const float* positions_array,
+                             int positions_start,
+                             int positions_length,
+                             const float* rotations_array,
+                             int rotations_start,
+                             int rotations_length,
+                             const float * scales_array,
+                             int scales_start,
+                             int scales_length);
+
 // BASIC PRIMITIVES ---------------------------------------------------------
 
 /// @brief  Get the box info on a geo part (if the part is a box).
@@ -9378,7 +9629,7 @@ HAPI_DECL HAPI_GetWorkitemStringData( const HAPI_Session * session,
 
 /// @brief  Gets the info for workitem results.
 ///         The number of workitem results is found on the ::HAPI_PDG_WorkitemInfo
-///         returned by HAPI_GetWorkitemInfo.
+///         returned by ::HAPI_GetWorkitemInfo()
 ///
 /// @ingroup PDG
 ///
