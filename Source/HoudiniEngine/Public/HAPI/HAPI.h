@@ -2121,6 +2121,42 @@ HAPI_DECL HAPI_CreateInputNode( const HAPI_Session * session,
                                 HAPI_NodeId * node_id,
                                 const char * name );
 
+/// @brief  Helper for creating specifically creating a curve input geometry SOP.
+///         This will create a dummy OBJ node with a Null SOP inside that
+///         contains the the HAPI_ATTRIB_INPUT_CURVE_COORDS attribute.
+///         It will setup the node as a curve part with no points.
+///         In addition to creating the input node, it will also commit and cook
+///         the geometry.
+///
+///         Note that when saving the Houdini scene using
+///         ::HAPI_SaveHIPFile() the nodes created with this
+///         method will be green and will start with the name "input".
+///
+/// @ingroup InputCurves
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[out]     node_id
+///                 Newly created node's id. Use ::HAPI_GetNodeInfo()
+///                 to get more information about the node.
+///
+/// @param[in]      name
+///                 Give this input node a name for easy debugging.
+///                 The node's parent OBJ node and the Null SOP node will both
+///                 get this given name with "input_" prepended.
+///                 You can also pass NULL in which case the name will
+///                 be "input#" where # is some number.
+///                 <!-- default NULL -->
+///
+HAPI_DECL HAPI_CreateInputCurveNode( const HAPI_Session * session,
+                                HAPI_NodeId * node_id,
+                                const char * name );
+
+
 /// @defgroup HeightFields Height Fields
 /// Functions for creating and inspecting HAPI session state.
 
@@ -5248,71 +5284,6 @@ HAPI_DECL HAPI_GetAttributeFloatData( const HAPI_Session * session,
                                       float * data_array,
                                       int start, int length );
 
-/// @brief  Get attribute float data and convert it to the specified format.
-///
-/// @ingroup GeometryGetters Attributes
-///
-/// @param[in]      session
-///                 The session of Houdini you are interacting with.
-///                 See @ref HAPI_Sessions for more on sessions.
-///                 Pass NULL to just use the default in-process session.
-///                 <!-- default NULL -->
-///
-/// @param[in]      node_id
-///                 The node id.
-///
-/// @param[in]      part_id
-///                 The part id.
-///
-/// @param[in]      name
-///                 Attribute name.
-///
-/// @param[in]      attr_info
-///                 ::HAPI_AttributeInfo used as input for what tuple size.
-///                 you want. Also contains some sanity checks like
-///                 data type. Generally should be the same struct
-///                 returned by ::HAPI_GetAttributeInfo().
-///
-/// @param[in]      stride
-///                 Specifies how many items to skip over for each element.
-///                 With a stride of -1, the stride will be set to
-///                 @c attr_info->tuple_size. Otherwise, the stride will be
-///                 set to the maximum of @c attr_info->tuple_size and
-///                 @c stride.
-///
-/// @param[out]     data_array
-///                 An float array at least the size of
-///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
-///
-/// @param[in]      start
-///                 First index of range. Must be at least 0 and at
-///                 most ::HAPI_AttributeInfo::count - 1.
-///                 <!-- default 0 -->
-///
-/// @param[in]      length
-///                 Must be at least 0 and at most
-///                 ::HAPI_AttributeInfo::count - @p start.
-///                 Note, if 0 is passed for length, the function will just
-///                 do nothing and return ::HAPI_RESULT_SUCCESS.
-///                 <!-- source ::HAPI_AttributeInfo::count - start -->
-///
-/// @param[in]      coord_system
-///                 The coordinate system to convert to.
-///
-/// @param[in]      scale
-///                 The scale factor.
-///
-HAPI_DECL HAPI_GetAttributeFloatDataConv( const HAPI_Session * session,
-                                          HAPI_NodeId node_id,
-                                          HAPI_PartId part_id,
-                                          const char * name,
-                                          HAPI_AttributeInfo * attr_info,
-                                          int stride,
-                                          float * data_array,
-                                          int start, int length,
-                                          HAPI_CoordinateSystem coord_system,
-                                          float scale );
-
 /// @brief  Get array attribute float data.
 ///         Each entry in an array attribute can have varying array lengths. 
 ///         Therefore the array values are returned as a flat array, with 
@@ -5431,72 +5402,6 @@ HAPI_DECL HAPI_GetAttributeFloat64Data( const HAPI_Session * session,
                                         int stride,
                                         double * data_array,
                                         int start, int length );
-
-/// @brief  Get 64-bit attribute float data and convert it to the specified
-///         format.
-///
-/// @ingroup GeometryGetters Attributes
-///
-/// @param[in]      session
-///                 The session of Houdini you are interacting with.
-///                 See @ref HAPI_Sessions for more on sessions.
-///                 Pass NULL to just use the default in-process session.
-///                 <!-- default NULL -->
-///
-/// @param[in]      node_id
-///                 The node id.
-///
-/// @param[in]      part_id
-///                 The part id.
-///
-/// @param[in]      name
-///                 Attribute name.
-///
-/// @param[in]      attr_info
-///                 ::HAPI_AttributeInfo used as input for what tuple size.
-///                 you want. Also contains some sanity checks like
-///                 data type. Generally should be the same struct
-///                 returned by ::HAPI_GetAttributeInfo().
-///
-/// @param[in]      stride
-///                 Specifies how many items to skip over for each element.
-///                 With a stride of -1, the stride will be set to
-///                 @c attr_info->tuple_size. Otherwise, the stride will be
-///                 set to the maximum of @c attr_info->tuple_size and
-///                 @c stride.
-///
-/// @param[out]     data_array
-///                 An 64-bit float array at least the size of
-///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
-///
-/// @param[in]      start
-///                 First index of range. Must be at least 0 and at
-///                 most ::HAPI_AttributeInfo::count - 1.
-///                 <!-- default 0 -->
-///
-/// @param[in]      length
-///                 Must be at least 0 and at most
-///                 ::HAPI_AttributeInfo::count - @p start.
-///                 Note, if 0 is passed for length, the function will just
-///                 do nothing and return ::HAPI_RESULT_SUCCESS.
-///                 <!-- source ::HAPI_AttributeInfo::count - start -->
-///
-/// @param[in]      coord_system
-///                 The coordinate system to convert to.
-///
-/// @param[in]      scale
-///                 The scale factor.
-///
-HAPI_DECL HAPI_GetAttributeFloat64DataConv( const HAPI_Session * session,
-                                            HAPI_NodeId node_id,
-                                            HAPI_PartId part_id,
-                                            const char * name,
-                                            HAPI_AttributeInfo * attr_info,
-                                            int stride,
-                                            double * data_array,
-                                            int start, int length,
-                                            HAPI_CoordinateSystem coord_system,
-                                            double scale );
 
 /// @brief  Get array attribute 64-bit float data.
 ///         Each entry in an array attribute can have varying array lengths. 
@@ -6419,61 +6324,6 @@ HAPI_DECL HAPI_SetAttributeFloatData( const HAPI_Session * session,
                                       const float * data_array,
                                       int start, int length );
 
-/// @brief  Set attribute float data and convert it from the specified format.
-///
-/// @ingroup GeometrySetters Attributes
-///
-/// @param[in]      session
-///                 The session of Houdini you are interacting with.
-///                 See @ref HAPI_Sessions for more on sessions.
-///                 Pass NULL to just use the default in-process session.
-///                 <!-- default NULL -->
-///
-/// @param[in]      node_id
-///                 The SOP node id.
-///
-/// @param[in]      part_id
-///                 Currently not used. Just pass 0.
-///
-/// @param[in]      name
-///                 Attribute name.
-///
-/// @param[in]      attr_info
-///                 ::HAPI_AttributeInfo used as input for what tuple size.
-///                 you want. Also contains some sanity checks like
-///                 data type. Generally should be the same struct
-///                 returned by ::HAPI_GetAttributeInfo().
-///
-/// @param[in]      data_array
-///                 An float array at least the size of
-///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
-///
-/// @param[in]      start
-///                 First index of range. Must be at least 0 and at
-///                 most ::HAPI_AttributeInfo::count - 1.
-///                 <!-- default 0 -->
-///
-/// @param[in]      length
-///                 Must be at least 0 and at most
-///                 ::HAPI_AttributeInfo::count - @p start.
-///                 <!-- source ::HAPI_AttributeInfo::count - start -->
-///
-/// @param[in]      coord_system
-///                 The coordinate system to convert from.
-///
-/// @param[in]      scale
-///                 The scale factor.
-///
-HAPI_DECL HAPI_SetAttributeFloatDataConv( const HAPI_Session * session,
-                                          HAPI_NodeId node_id,
-                                          HAPI_PartId part_id,
-                                          const char * name,
-                                          const HAPI_AttributeInfo * attr_info,
-                                          const float * data_array,
-                                          int start, int length,
-                                          HAPI_CoordinateSystem coord_system,
-                                          float scale );
-
 /// @brief  Set 64-bit attribute float data.
 ///
 /// @ingroup GeometrySetters Attributes
@@ -6520,62 +6370,6 @@ HAPI_DECL HAPI_SetAttributeFloat64Data( const HAPI_Session * session,
                                         const HAPI_AttributeInfo * attr_info,
                                         const double * data_array,
                                         int start, int length );
-
-/// @brief  Set 64-bit attribute float data and convert it from the specified
-///         format.
-///
-/// @ingroup GeometrySetters Attributes
-///
-/// @param[in]      session
-///                 The session of Houdini you are interacting with.
-///                 See @ref HAPI_Sessions for more on sessions.
-///                 Pass NULL to just use the default in-process session.
-///                 <!-- default NULL -->
-///
-/// @param[in]      node_id
-///                 The SOP node id.
-///
-/// @param[in]      part_id
-///                 Currently not used. Just pass 0.
-///
-/// @param[in]      name
-///                 Attribute name.
-///
-/// @param[in]      attr_info
-///                 ::HAPI_AttributeInfo used as input for what tuple size.
-///                 you want. Also contains some sanity checks like
-///                 data type. Generally should be the same struct
-///                 returned by ::HAPI_GetAttributeInfo().
-///
-/// @param[in]      data_array
-///                 An 64-bit float array at least the size of
-///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
-///
-/// @param[in]      start
-///                 First index of range. Must be at least 0 and at
-///                 most ::HAPI_AttributeInfo::count - 1.
-///                 <!-- default 0 -->
-///
-/// @param[in]      length
-///                 Must be at least 0 and at most
-///                 ::HAPI_AttributeInfo::count - @p start.
-///                 <!-- source ::HAPI_AttributeInfo::count - start -->
-///
-/// @param[in]      coord_system
-///                 The coordinate system to convert to.
-///
-/// @param[in]      scale
-///                 The scale factor.
-///
-HAPI_DECL HAPI_SetAttributeFloat64DataConv( const HAPI_Session * session,
-                                            HAPI_NodeId node_id,
-                                            HAPI_PartId part_id,
-                                            const char * name,
-                                            const HAPI_AttributeInfo * attr_info,
-                                            const double * data_array,
-                                            int start, int length,
-                                            HAPI_CoordinateSystem coord_system,
-                                            double scale );
 
 /// @brief  Set attribute string data.
 ///
@@ -8676,6 +8470,186 @@ HAPI_DECL HAPI_SetCurveKnots( const HAPI_Session * session,
                               HAPI_PartId part_id,
                               const float * knots_array,
                               int start, int length );
+
+// INPUT CURVE INFO ---------------------------------------------------------
+
+/// @defgroup InputCurves
+/// Functions for working with curves
+
+/// @brief  Retrieve meta-data about the input curves, including the
+///         curve's type, order, and whether or not the curve is closed and reversed.
+///
+/// @ingroup InputCurves
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     info
+///                 The curve info represents the meta-data about
+///                 the curves, including the type, order,
+///                 and closed and reversed values.
+///
+HAPI_DECL HAPI_GetInputCurveInfo( const HAPI_Session * session,
+                             HAPI_NodeId node_id,
+                             HAPI_PartId part_id,
+                             HAPI_InputCurveInfo * info );
+
+/// @brief  Set meta-data for the input curves, including the
+///         curve type, order, reverse and closed properties.
+///
+/// @ingroup InputCurves
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 Currently unused. Input asset geos are assumed
+///                 to have only one part.
+///
+/// @param[in]      info
+///                 The curve info represents the meta-data about
+///                 the curves, including the type, order,
+///                 and closed and reverse properties.
+///
+HAPI_DECL HAPI_SetInputCurveInfo( const HAPI_Session * session,
+                             HAPI_NodeId node_id,
+                             HAPI_PartId part_id,
+                             const HAPI_InputCurveInfo * info );
+
+/// @brief  Sets the positions for input curves, doing checks for
+/// curve validity, and adjusting the curve settings accordingly.
+/// Will also cook the node.
+///
+/// @ingroup InputCurves
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 Currently unused. Input asset geos are assumed
+///                 to have only one part.
+///
+/// @param[in]      positions_array
+///                 A float array representing the positions attribute.
+///                 It will read the array assuming a tuple size of 3.
+///                 Note that this function does not do any coordinate axes 
+///                 conversion.
+/// 
+/// @param[in]      start
+///                 The index of the first position in positions_array.
+///                 <!-- default 0 -->
+/// 
+/// @param[in]      length
+///                 The size of the positions array.
+///                 <!-- source arglength(positions_array) -->
+///
+HAPI_DECL HAPI_SetInputCurvePositions(
+                             const HAPI_Session* session,
+                             HAPI_NodeId node_id,
+                             HAPI_PartId part_id,
+                             const float* positions_array,
+                             int start,
+                             int length);
+
+/// @brief  Sets the positions for input curves, doing checks for
+/// curve validity, and adjusting the curve settings accordingly.
+/// Will also cook the node. Additionally, adds rotation and scale
+/// attributes to the curve. 
+///
+/// @ingroup InputCurves
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 Currently unused. Input asset geos are assumed
+///                 to have only one part.
+///
+/// @param[in]      positions_array
+///                 A float array representing the positions attribute.
+///                 It will read the array assuming a tuple size of 3.
+///                 Note that this function does not do any coordinate axes 
+///                 conversion.
+/// 
+/// @param[in]      positions_array
+///                 A float array representing the positions attribute.
+///                 It will read the array assuming a tuple size of 3.
+///                 Note that this function does not do any coordinate axes 
+///                 conversion.
+/// 
+/// @param[in]      positions_start
+///                 The index of the first position in positions_array.
+///                 <!-- default 0 -->
+/// 
+/// @param[in]      positions_length
+///                 The size of the positions array.
+///                 <!-- source arglength(positions_array) -->
+///
+/// @param[in]      rotations_array
+///                 A float array representing the rotation (rot) attribute.
+///                 It will read the array assuming a tuple size of 4
+///                 representing quaternion values
+/// 
+/// @param[in]      rotations_start
+///                 The index of the first rotation in rotations_array.
+///                 <!-- default 0 -->
+/// 
+/// @param[in]      rotations_length
+///                 The size of the rotations array.
+///                 <!-- source arglength(rotations_array) -->
+/// 
+/// @param[in]      scales_array
+///                 A float array representing the scale attribute.
+///                 It will read the array assuming a tuple size of 3
+/// 
+/// @param[in]      scales_start
+///                 The index of the first scale in scales_array.
+///                 <!-- default 0 -->
+/// 
+/// @param[in]      scales_length
+///                 The size of the scales array.
+///                 <!-- source arglength(scales_array) -->
+///
+HAPI_DECL HAPI_SetInputCurvePositionsRotationsScales(
+                             const HAPI_Session* session,
+                             HAPI_NodeId node_id,
+                             HAPI_PartId part_id,
+                             const float* positions_array,
+                             int positions_start,
+                             int positions_length,
+                             const float* rotations_array,
+                             int rotations_start,
+                             int rotations_length,
+                             const float * scales_array,
+                             int scales_start,
+                             int scales_length);
 
 // BASIC PRIMITIVES ---------------------------------------------------------
 

@@ -39,6 +39,8 @@
 #define HAPI_ATTRIB_COLOR                   "Cd"
 #define HAPI_ATTRIB_NAME                    "name"
 #define HAPI_ATTRIB_INSTANCE                "instance"
+#define HAPI_ATTRIB_ROT                     "rot"
+#define HAPI_ATTRIB_SCALE                   "scale"
 /// @}
 
 /// This is the name of the primitive group created from all the primitives
@@ -87,6 +89,11 @@
 #define HAPI_CACHE_SOP                      "SOP Cache"
 #define HAPI_CACHE_VEX                      "VEX File Cache"
 /// [HAPI_CACHE]
+
+/// [HAPI_InputCurve]
+/// HAPI input curve attribute
+#define HAPI_ATTRIB_INPUT_CURVE_COORDS                "hapi_input_curve_coords"
+/// [HAPI_InputCurve]
 
 // Make sure our enums and structs are usable without those keywords, as-is,
 // in C.
@@ -561,6 +568,25 @@ enum HAPI_CurveType
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_CurveType )
 
+enum HAPI_InputCurveMethod
+{
+    HAPI_CURVEMETHOD_INVALID = -1,
+    HAPI_CURVEMETHOD_CVS,
+    HAPI_CURVEMETHOD_BREAKPOINTS,
+    HAPI_CURVEMETHOD_MAX
+};
+HAPI_C_ENUM_TYPEDEF( HAPI_InputCurveMethod )
+
+enum HAPI_InputCurveParameterization
+{
+    HAPI_CURVEPARAMETERIZATION_INVALID = -1,
+    HAPI_CURVEPARAMETERIZATION_UNIFORM,
+    HAPI_CURVEPARAMETERIZATION_CHORD,
+    HAPI_CURVEPARAMETERIZATION_CENTRIPETAL,
+    HAPI_CURVEPARAMETERIZATION_MAX
+};
+HAPI_C_ENUM_TYPEDEF( HAPI_InputCurveParameterization )
+
 enum HAPI_VolumeType
 {
     HAPI_VOLUMETYPE_INVALID = -1,
@@ -742,18 +768,6 @@ enum HAPI_XYZOrder
     HAPI_XYZORDER_DEFAULT = HAPI_XYZ
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_XYZOrder )
-
-enum HAPI_CoordinateSystem
-{
-    HAPI_YUP_RHANDED = 0,
-    HAPI_YUP_LHANDED,
-    HAPI_ZUP_RHANDED,
-    HAPI_ZUP_LHANDED,
-    HAPI_COORDINATESYSTEM_MAX,
-
-    HAPI_COORDINATESYSTEM_DEFAULT = HAPI_YUP_RHANDED
-};
-HAPI_C_ENUM_TYPEDEF( HAPI_CoordinateSystem )
 
 enum HAPI_ImageDataFormat
 {
@@ -1854,19 +1868,59 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_VolumeVisualInfo )
 struct HAPI_API HAPI_CurveInfo
 {
     HAPI_CurveType curveType;
-    int curveCount; /// The number of curves contained in this curve mesh.
-    int vertexCount; /// The number of control vertices (CVs) for all curves.
-    int knotCount; /// The number of knots for all curves.
 
+    /// The number of curves contained in this curve mesh.
+    int curveCount;
+
+    /// The number of control vertices (CVs) for all curves.
+    int vertexCount;
+
+    /// The number of knots for all curves.
+    int knotCount;
+
+    /// Whether the curves in this curve mesh are periodic.
     HAPI_Bool isPeriodic;
-        /// Whether the curves in this curve mesh are periodic.
-    HAPI_Bool isRational;
-        /// Whether the curves in this curve mesh are rational.
-    int order; /// Order of 1 is invalid. 0 means there is a varying order.
 
-    HAPI_Bool hasKnots; /// Whether the curve has knots.
+    /// Whether the curves in this curve mesh are rational.
+    HAPI_Bool isRational;
+
+    /// Order of 1 is invalid. 0 means there is a varying order.
+    int order;
+
+    /// Whether the curve has knots.
+    HAPI_Bool hasKnots;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_CurveInfo )
+HAPI_C_STRUCT_TYPEDEF(HAPI_CurveInfo)
+
+// Curve info dealing specifically with input curves
+struct HAPI_API HAPI_InputCurveInfo
+{
+    /// The desired curve type of the curve
+    /// Note that this is NOT necessarily equal to the value in HAPI_CurveInfo
+    /// in the case of curve refinement
+    HAPI_CurveType curveType;
+
+    /// The desired order for your input curve
+    /// This is your desired order, which may differ from HAPI_CurveInfo
+    /// as it will do range checks and adjust the actual order accordingly
+    int order;
+
+    /// Whether or not the curve is closed
+    /// May differ from HAPI_CurveInfo::isPeriodic depending on the curveType
+    /// (e.g. A NURBs curve is never technically closed according to HAPI_CurveInfo)
+    HAPI_Bool closed;
+
+    /// Whether or not to reverse the curve input
+    HAPI_Bool reverse;
+
+    // Input method type (CVs or Brekapoints)
+    HAPI_InputCurveMethod inputMethod;
+
+    // Parameterization - Only used when inputMethod is BREAKPOINTS
+    HAPI_InputCurveParameterization breakpointParameterization;
+
+};
+HAPI_C_STRUCT_TYPEDEF(HAPI_InputCurveInfo)
 
 // BASIC PRIMITIVES ---------------------------------------------------------
 
