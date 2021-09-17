@@ -1,0 +1,1241 @@
+/*
+* Copyright (c) <2021> Side Effects Software Inc.
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions are met:
+*
+* 1. Redistributions of source code must retain the above copyright notice,
+*    this list of conditions and the following disclaimer.
+*
+* 2. The name of Side Effects Software may not be used to endorse or
+*    promote products derived from this software without specific prior
+*    written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY SIDE EFFECTS SOFTWARE "AS IS" AND ANY EXPRESS
+* OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+* OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN
+* NO EVENT SHALL SIDE EFFECTS SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+* LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
+* OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+* LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+* NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+* EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#include "UnrealGeometryCollectionTranslator.h"
+#include "UnrealMeshTranslator.h"
+
+#include "HoudiniEngine.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniEnginePrivatePCH.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Engine/SkeletalMesh.h"
+#include "GeometryCollection/GeometryCollectionClusteringUtility.h"
+
+#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
+#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionDebugDrawComponent.h"
+#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
+#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
+#include "Materials/Material.h"
+
+bool FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
+        UGeometryCollection* GeometryCollection, HAPI_NodeId& InputNodeId, const FString& InputNodeName,
+        UGeometryCollectionComponent* GeometryCollectionComponent)
+{
+	// If we don't have a static mesh there's nothing to do.
+	if (!GeometryCollection || GeometryCollection->IsPendingKill())
+		return false;
+
+	// Node ID for the newly created node
+	HAPI_NodeId PackNodeId = -1;
+	FString PackName = FString::Printf(TEXT("%s_pack"), *InputNodeName);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
+                -1, TEXT("SOP/pack"), InputNodeName, true, &PackNodeId), false);
+
+	// Check if we have a valid id for this new input asset.
+	if (!FHoudiniEngineUtils::IsHoudiniNodeValid(PackNodeId))
+		return false;
+
+	HAPI_NodeId PreviousInputNodeId = InputNodeId;
+
+	// Update our input NodeId
+	// Get our parent OBJ NodeID
+	HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(PackNodeId);
+
+	// We have now created a valid new input node, delete the previous one
+	if (PreviousInputNodeId >= 0)
+	{
+		// Get the parent OBJ node ID before deleting!
+		HAPI_NodeId PreviousInputOBJNode = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
+
+		if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
+			FHoudiniEngine::Get().GetSession(), PreviousInputNodeId))
+		{
+			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *InputNodeName);
+		}
+
+		if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
+			FHoudiniEngine::Get().GetSession(), PreviousInputOBJNode))
+		{
+			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input OBJ node for %s."), *InputNodeName);
+		}		
+	}
+
+
+	HAPI_NodeId MergeNodeId = -1;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
+                InputObjectNodeId, TEXT("merge"), InputNodeName, true, &MergeNodeId), false);
+
+	// Check if we have a valid id for this new input asset.
+	if (!FHoudiniEngineUtils::IsHoudiniNodeValid(MergeNodeId))
+		return false;
+	
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+                FHoudiniEngine::Get().GetSession(),
+                PackNodeId, 0, MergeNodeId, 0), false);
+
+	UploadGeometryCollection(GeometryCollection, InputObjectNodeId, InputNodeName, MergeNodeId, GeometryCollectionComponent);
+
+	// Setup the pack node to create packed primitives.
+	{
+		const char * PackByNameOption = HAPI_UNREAL_PARAM_PACK_BY_NAME;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(
+                        FHoudiniEngine::Get().GetSession(), PackNodeId,
+                        PackByNameOption, 0, 1), false);
+	}
+
+	{
+		const char * PackedFragmentsOption = HAPI_UNREAL_PARAM_PACKED_FRAGMENTS;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(
+                        FHoudiniEngine::Get().GetSession(), PackNodeId,
+                        PackedFragmentsOption, 0, 0), false);
+	}
+	
+	if (!FHoudiniEngineUtils::HapiCookNode(PackNodeId, nullptr, true))
+		return false;
+	
+	InputNodeId = PackNodeId;
+	
+	return true;
+}
+
+bool FUnrealGeometryCollectionTranslator::SetGeometryCollectionAttributesForPart(
+	UGeometryCollection* InGeometryCollection, int32 InGeometryIndex, HAPI_NodeId InNodeId, FString InName)
+{
+	const HAPI_PartId PartId = 0;
+	
+	HAPI_PartInfo PartInfo;
+	FHoudiniApi::PartInfo_Init(&PartInfo);
+	HOUDINI_CHECK_ERROR_RETURN(	FHoudiniApi::GetPartInfo(
+                FHoudiniEngine::Get().GetSession(), InNodeId, PartId, &PartInfo), false);
+
+	// Name attribute
+	{
+		TArray<const char*> PrimitiveAttrs;
+		PrimitiveAttrs.AddUninitialized(PartInfo.faceCount);
+		for (int32 Ix = 0; Ix < PartInfo.faceCount; ++Ix)
+		{
+			PrimitiveAttrs[Ix] = TCHAR_TO_ANSI(*InName);
+		}
+	
+		// Create point attribute info.
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = PartInfo.faceCount;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_PRIM;
+		AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                        FHoudiniEngine::Get().GetSession(), InNodeId, PartId,
+                        HAPI_ATTRIB_NAME, &AttributeInfo), false);
+
+		// Now that we have raw positions, we can upload them for our attribute.
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
+                        FHoudiniEngine::Get().GetSession(),
+                        InNodeId, 0, HAPI_ATTRIB_NAME, &AttributeInfo,
+                        PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num()), false);
+	}
+
+	// Commit the geo.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+                FHoudiniEngine::Get().GetSession(), InNodeId), false);
+	
+	return true;
+}
+
+bool FUnrealGeometryCollectionTranslator::UploadGeometryCollection(UGeometryCollection* GeometryCollectionObject,
+	HAPI_NodeId InParentNodeId, FString InName, HAPI_NodeId InMergeNodeId, UGeometryCollectionComponent * GeometryCollectionComponent)
+{
+	if (GeometryCollectionObject == nullptr || GeometryCollectionObject->IsPendingKill())
+	{
+		return false;
+	}
+	TSharedPtr<FGeometryCollection, ESPMode::ThreadSafe> GeometryCollectionPtr = GeometryCollectionObject->GetGeometryCollection();
+	FGeometryCollection* GeometryCollection = GeometryCollectionPtr.Get();
+	check(GeometryCollection);
+
+
+	// vertex information
+	TManagedArray<FVector>& Vertex = GeometryCollection->Vertex;
+	TManagedArray<FVector>& TangentU = GeometryCollection->TangentU;
+	TManagedArray<FVector>& TangentV = GeometryCollection->TangentV;
+	TManagedArray<FVector>& Normal = GeometryCollection->Normal;
+	TManagedArray<FVector2D>& UV = GeometryCollection->UV;
+	TManagedArray<FLinearColor>& Color = GeometryCollection->Color;
+	TManagedArray<int32>& BoneMap = GeometryCollection->BoneMap;
+	TManagedArray<FLinearColor>& BoneColor = GeometryCollection->BoneColor;
+	TManagedArray<FString>& BoneName = GeometryCollection->BoneName;
+
+	TManagedArray<FIntVector>& Indices = GeometryCollection->Indices;
+	TManagedArray<bool>& Visible = GeometryCollection->Visible;
+	TManagedArray<int32>& MaterialID = GeometryCollection->MaterialID;
+	TManagedArray<int32>& MaterialIndex = GeometryCollection->MaterialIndex;
+
+	TManagedArray<FTransform>& Transform = GeometryCollection->Transform;
+	TManagedArray<int32>& Parent = GeometryCollection->Parent;
+	TManagedArray<int32>& SimulationType = GeometryCollection->SimulationType;
+	
+	TManagedArray<int32>& TransformIndex = GeometryCollection->TransformIndex;
+	TManagedArray<FBox>& BoundingBox = GeometryCollection->BoundingBox;
+	TManagedArray<float>& InnerRadius = GeometryCollection->InnerRadius;
+	TManagedArray<float>& OuterRadius = GeometryCollection->OuterRadius;
+	TManagedArray<int32>& VertexStartArray = GeometryCollection->VertexStart;
+	TManagedArray<int32>& VertexCountArray = GeometryCollection->VertexCount;
+	TManagedArray<int32>& FaceStartArray = GeometryCollection->FaceStart;
+	TManagedArray<int32>& FaceCountArray = GeometryCollection->FaceCount;
+
+	TManagedArray<int32>& TransformToGeometryIndexArray = GeometryCollection->TransformToGeometryIndex;
+
+	TManagedArray<FGeometryCollectionSection>& Sections = GeometryCollection->Sections;
+
+	// Need to update hierarchy level otherwise sometimes level would be out of date!
+	FGeometryCollectionClusteringUtility::UpdateHierarchyLevelOfChildren(GeometryCollection, -1);
+	
+	if (Sections.Num() == 0)
+	{
+		HOUDINI_LOG_ERROR(TEXT("No triangles in mesh"));
+		return false;
+	}
+
+	// See: FUnrealMeshTranslator::CreateInputNodeForRawMesh for reference.
+	for (int32 ObjectIndex = 0; ObjectIndex < GeometryCollection->TransformToGeometryIndex.Num(); ObjectIndex++)
+	{
+		int32& GeometryIndex = TransformToGeometryIndexArray[ObjectIndex];
+		if (GeometryIndex == -1)
+		{
+			continue;
+		}
+		
+		int32& VertexStart = VertexStartArray[GeometryIndex];
+		int32& VertexCount = VertexCountArray[GeometryIndex];
+		int32& FaceStart = FaceStartArray[GeometryIndex];
+		int32& FaceCount = FaceCountArray[GeometryIndex];
+
+
+		HAPI_NodeId GeometryNodeId = -1;
+		FString OutputName = FString::Printf( TEXT("gc_piece_%d"), ObjectIndex);
+		// Create the node in this input object's OBJ node
+		HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
+                        InParentNodeId, TEXT("null"), OutputName, false, &GeometryNodeId), false);
+		
+		HAPI_PartInfo Part;
+		FHoudiniApi::PartInfo_Init(&Part);
+
+		Part.id = 0;
+		Part.nameSH = 0;
+		Part.attributeCounts[HAPI_ATTROWNER_POINT] = 0;
+		Part.attributeCounts[HAPI_ATTROWNER_PRIM] = 0;
+		Part.attributeCounts[HAPI_ATTROWNER_VERTEX] = 0;
+		Part.attributeCounts[HAPI_ATTROWNER_DETAIL] = 0;
+
+		Part.vertexCount = FaceCount * 3; // In GC, "FaceCount" == number of indices.
+		Part.faceCount = FaceCount; //1; ///FaceCountArray // FaceCount; //FaceCount / 3; // TODO GC: In GC indices count == faces count. This is not the same in Regular meshes. Double check this.
+		Part.pointCount = VertexCount;
+		Part.type = HAPI_PARTTYPE_MESH;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(
+                        FHoudiniEngine::Get().GetSession(), GeometryNodeId, 0, &Part), false);
+
+		//--------------------------------------------------------------------------------------------------------------------- 
+		// POSITION (P)
+		//--------------------------------------------------------------------------------------------------------------------- 
+		if (VertexCount > 3)
+		{
+
+			HAPI_AttributeInfo AttributeInfoPoint;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfoPoint);
+			AttributeInfoPoint.count = VertexCount;
+			AttributeInfoPoint.tupleSize = 3;
+			AttributeInfoPoint.exists = true;
+			AttributeInfoPoint.owner = HAPI_ATTROWNER_POINT;
+			AttributeInfoPoint.storage = HAPI_STORAGETYPE_FLOAT;
+			AttributeInfoPoint.originalOwner = HAPI_ATTROWNER_INVALID;
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                                FHoudiniEngine::Get().GetSession(), GeometryNodeId, 0,
+                                HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
+			
+			TArray<float> StaticMeshVertices;
+			StaticMeshVertices.SetNumZeroed(VertexCount * 3);
+			for (int32 VertexIdx = 0; VertexIdx < VertexCount; ++VertexIdx)
+			{
+				int32 IndexInArray = VertexStart + VertexIdx;
+				const FVector & PositionVector = Vertex[IndexInArray];
+
+				// Convert Unreal to Houdini
+				StaticMeshVertices[VertexIdx * 3 + 0] = PositionVector.X / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+				StaticMeshVertices[VertexIdx * 3 + 1] = PositionVector.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+				StaticMeshVertices[VertexIdx * 3 + 2] = PositionVector.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			}
+
+			// Now that we have raw positions, we can upload them for our attribute.
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint,
+                                StaticMeshVertices.GetData(), 0, AttributeInfoPoint.count), false);
+		}
+
+		TArray<UMaterialInterface*> MaterialInterfaces;
+		TArray<int32> TriangleMaterialIndices;
+
+		int32 UEDefaultMaterialIndex = INDEX_NONE;
+		
+		const int32 NumMaterials = GeometryCollectionObject->Materials.Num();
+
+		if (NumMaterials > 0)
+		{
+			for (int32 Index = 0; Index < NumMaterials; ++Index)
+			{
+				UMaterialInterface* CurrMaterial = GeometryCollectionObject->Materials[Index];
+
+				// Possible we have a null entry - replace with default
+				if (CurrMaterial == nullptr || CurrMaterial->IsPendingKill())
+				{
+					CurrMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+					UEDefaultMaterialIndex = Index;
+				}
+
+				MaterialInterfaces.Add(CurrMaterial);
+			}
+
+			TriangleMaterialIndices.Reserve(Part.faceCount);
+		}
+ 
+		
+		// Setup for vertex instance attributes
+		int32 HoudiniVertexIdx = 0;
+
+		const bool HasUVs = UV.Num() == Vertex.Num();
+		TArray<float> UVs;
+
+		if (HasUVs)
+			UVs.SetNumZeroed(Part.vertexCount * 3);
+
+		
+		const bool HasNormals = Normal.Num() == Vertex.Num();
+		TArray<float> Normals;
+
+		if (HasNormals)
+			Normals.SetNumZeroed(Part.vertexCount * 3);
+
+
+		const bool HasTangentU = TangentU.Num() == Vertex.Num();
+		TArray<float> Tangents;
+
+		if (HasTangentU)
+			Tangents.SetNumZeroed(Part.vertexCount * 3);
+
+
+		const bool HasTangentV = TangentV.Num() == Vertex.Num();
+		TArray<float> Binormals;
+
+		if (HasTangentV)
+			Binormals.SetNumZeroed(Part.vertexCount * 3);
+
+		TArray<float> RGBColors;
+		TArray<float> Alphas;
+		const bool HasColor = Color.Num() == Vertex.Num();
+		if (HasColor)
+		{
+			RGBColors.SetNumZeroed(Part.vertexCount * 3);
+			Alphas.SetNumZeroed(Part.vertexCount);
+		}
+
+		TArray<int32> MeshTriangleVertexIndices;
+		MeshTriangleVertexIndices.SetNumUninitialized(Part.vertexCount);
+		
+		// For each face:
+		for (int32 i = 0; i < FaceCount; i++)
+		{
+			const FIntVector FaceIndices = Indices[FaceStart + i];
+
+			for (int32 TriangleVertexIndex = 0; TriangleVertexIndex < 3; TriangleVertexIndex++)
+			{
+				// Swap second and third vertices due to winding
+				const int32 WindingIdx = (3 - TriangleVertexIndex) % 3;
+				int32 VertexIndex = FaceIndices[WindingIdx];
+
+				// Calculate the index of the first component of a vertex instance's value in an inline float array 
+				// representing vectors (3 float) per vertex instance
+				const int32 Float3Index = HoudiniVertexIdx * 3;
+
+				//--------------------------------------------------------------------------------------------------------------------- 
+				// UVS (uvX)
+				//--------------------------------------------------------------------------------------------------------------------- 
+				if (HasUVs)
+				{
+					UVs[Float3Index + 0] = UV[VertexIndex].X;
+					UVs[Float3Index + 1] = 1 - UV[VertexIndex].Y;
+					UVs[Float3Index + 2] = 0;
+				}
+				
+				//--------------------------------------------------------------------------------------------------------------------- 
+				// NORMALS (N)
+				//---------------------------------------------------------------------------------------------------------------------
+
+				// Swapped in Z and Y due to axis conversion
+				if (HasNormals)
+				{
+					Normals[Float3Index + 0] = Normal[VertexIndex].X;
+					Normals[Float3Index + 1] = Normal[VertexIndex].Z;
+					Normals[Float3Index + 2] = Normal[VertexIndex].Y;
+				}
+
+				//--------------------------------------------------------------------------------------------------------------------- 
+				// TANGENT (tangentu)
+				//---------------------------------------------------------------------------------------------------------------------
+				if (HasTangentU)
+				{
+					Tangents[Float3Index + 0] = TangentU[VertexIndex].X;
+					Tangents[Float3Index + 1] = TangentU[VertexIndex].Z;
+					Tangents[Float3Index + 2] = TangentU[VertexIndex].Y;
+				}
+
+				//--------------------------------------------------------------------------------------------------------------------- 
+				// BINORMAL (tangentv)
+				//---------------------------------------------------------------------------------------------------------------------
+				if (HasTangentV)
+				{
+					Binormals[Float3Index + 0] = TangentV[VertexIndex].X;
+					Binormals[Float3Index + 1] = TangentV[VertexIndex].Z;
+					Binormals[Float3Index + 2] = TangentV[VertexIndex].Y;
+				}
+
+				//--------------------------------------------------------------------------------------------------------------------- 
+				// COLORS (Cd)
+				//---------------------------------------------------------------------------------------------------------------------
+				if (HasColor)
+				{
+					RGBColors[Float3Index + 0] = Color[VertexIndex].R;
+					RGBColors[Float3Index + 1] = Color[VertexIndex].G;
+					RGBColors[Float3Index + 2] = Color[VertexIndex].B;
+					Alphas[HoudiniVertexIdx] = Color[VertexIndex].A;
+				}
+
+				//--------------------------------------------------------------------------------------------------------------------- 
+				// TRIANGLE/FACE VERTEX INDICES
+				//---------------------------------------------------------------------------------------------------------------------
+				MeshTriangleVertexIndices[HoudiniVertexIdx] = VertexIndex - VertexStart;
+
+				HoudiniVertexIdx++;
+			}
+
+			//--------------------------------------------------------------------------------------------------------------------- 
+			// TRIANGLE MATERIAL ASSIGNMENT
+			//---------------------------------------------------------------------------------------------------------------------
+			const int32 MatIndex = MaterialID[FaceStart + i];
+			if (MaterialInterfaces.IsValidIndex(MatIndex))
+			{
+				TriangleMaterialIndices.Add(MatIndex);
+			}
+			else
+			{
+				TriangleMaterialIndices.Add(UEDefaultMaterialIndex);
+			}
+			
+		}
+
+		//--------------------------------------------------------------------------------------------------------------------- 
+		// UVS (uvX)
+		//---------------------------------------------------------------------------------------------------------------------
+		if (HasUVs)
+		{
+			// Create attribute for uvs.
+			HAPI_AttributeInfo AttributeInfoVertex;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+
+			AttributeInfoVertex.tupleSize = 3;
+			AttributeInfoVertex.count = UVs.Num() / AttributeInfoVertex.tupleSize;
+			AttributeInfoVertex.exists = true;
+			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_UV, &AttributeInfoVertex), false);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_UV,
+                                &AttributeInfoVertex, UVs.GetData(),
+                                0, AttributeInfoVertex.count), false);
+		}
+		
+		//--------------------------------------------------------------------------------------------------------------------- 
+		// NORMALS (N)
+		//---------------------------------------------------------------------------------------------------------------------
+		if (HasNormals)
+		{
+			// Create attribute for normals.
+			HAPI_AttributeInfo AttributeInfoVertex;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+
+			AttributeInfoVertex.tupleSize = 3;
+			AttributeInfoVertex.count = Normals.Num() / AttributeInfoVertex.tupleSize;
+			AttributeInfoVertex.exists = true;
+			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex), false);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL,
+                                &AttributeInfoVertex, Normals.GetData(),
+                                0, AttributeInfoVertex.count), false);
+		}
+
+		//--------------------------------------------------------------------------------------------------------------------- 
+		// TANGENT (tangentu)
+		//---------------------------------------------------------------------------------------------------------------------
+		if (HasTangentU)
+		{
+			// Create attribute for tangentu.
+			HAPI_AttributeInfo AttributeInfoVertex;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+
+			AttributeInfoVertex.tupleSize = 3;
+			AttributeInfoVertex.count = Tangents.Num() / AttributeInfoVertex.tupleSize;
+			AttributeInfoVertex.exists = true;
+			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, &AttributeInfoVertex), false);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, &AttributeInfoVertex,
+                                Tangents.GetData(), 0, AttributeInfoVertex.count), false);
+		}
+
+		//--------------------------------------------------------------------------------------------------------------------- 
+		// BINORMAL (tangentv)
+		//---------------------------------------------------------------------------------------------------------------------
+		if (HasTangentV)
+		{
+			// Create attribute for normals.
+			HAPI_AttributeInfo AttributeInfoVertex;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+
+			AttributeInfoVertex.tupleSize = 3;
+			AttributeInfoVertex.count = Binormals.Num() / AttributeInfoVertex.tupleSize;
+			AttributeInfoVertex.exists = true;
+			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex), false);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex,
+                                Binormals.GetData(), 0, AttributeInfoVertex.count), false);
+		}
+
+		//--------------------------------------------------------------------------------------------------------------------- 
+		// COLORS (Cd)
+		//---------------------------------------------------------------------------------------------------------------------
+		if (HasColor)
+		{
+			// Create attribute for colors.
+			HAPI_AttributeInfo AttributeInfoVertex;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+
+			AttributeInfoVertex.tupleSize = 3;
+			AttributeInfoVertex.count = RGBColors.Num() / AttributeInfoVertex.tupleSize;
+			AttributeInfoVertex.exists = true;
+			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex), false);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex,
+                                RGBColors.GetData(), 0, AttributeInfoVertex.count), false);
+
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+			AttributeInfoVertex.tupleSize = 1;
+			AttributeInfoVertex.count = Alphas.Num();
+			AttributeInfoVertex.exists = true;
+			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex), false);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex,
+                                Alphas.GetData(), 0, AttributeInfoVertex.count), false);
+		}
+			
+		//--------------------------------------------------------------------------------------------------------------------- 
+		// INDICES (VertexList)
+		//---------------------------------------------------------------------------------------------------------------------
+		if (FaceCount > 0)
+		{
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVertexList(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, 0, MeshTriangleVertexIndices.GetData(), 0, MeshTriangleVertexIndices.Num()), false);
+			
+			// We need to generate array of face counts.
+			TArray< int32 > StaticMeshFaceCounts;
+			StaticMeshFaceCounts.Init(3, Part.faceCount);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId,	0, StaticMeshFaceCounts.GetData(), 0, StaticMeshFaceCounts.Num()), false);
+			
+		}
+
+
+		// Materials - Reuse code from FHoudiniMeshTranslator
+		if (NumMaterials > 0)
+		{
+			// List of materials, one for each face.
+			TArray<char *> TriangleMaterials;
+
+			//Lists of material parameters
+			TMap<FString, TArray<float>> ScalarMaterialParameters;
+			TMap<FString, TArray<float>> VectorMaterialParameters;
+			TMap<FString, TArray<char *>> TextureMaterialParameters;
+
+			bool bAttributeSuccess = false;
+			bool bAddMaterialParametersAsAttributes = false;
+
+			if (bAddMaterialParametersAsAttributes)
+			{
+				// Create attributes for the material and all its parameters
+				// Get material attribute data, and all material parameters data
+				FUnrealMeshTranslator::CreateFaceMaterialArray(
+                                        MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials,
+                                        ScalarMaterialParameters, VectorMaterialParameters, TextureMaterialParameters);
+
+				// Create attribute for materials and all attributes for material parameters
+				bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
+                                        GeometryNodeId,
+                                        0,
+                                        TriangleMaterials.Num(),
+                                        TriangleMaterials,
+                                        ScalarMaterialParameters,
+                                        VectorMaterialParameters,
+                                        TextureMaterialParameters);
+			}
+			else
+			{
+				// Create attributes only for the materials
+				// Only get the material attribute data
+				FUnrealMeshTranslator::CreateFaceMaterialArray(
+                                        MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials);
+
+				// Create attribute for materials
+				bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
+                                        GeometryNodeId,
+                                        0,
+                                        TriangleMaterials.Num(),
+                                        TriangleMaterials,
+                                        ScalarMaterialParameters,
+                                        VectorMaterialParameters,
+                                        TextureMaterialParameters);
+			}
+
+			// Delete material names.
+			FUnrealMeshTranslator::DeleteFaceMaterialArray(TriangleMaterials);
+
+			// Delete texture material parameter names
+			for (auto & Pair : TextureMaterialParameters)
+			{
+				FUnrealMeshTranslator::DeleteFaceMaterialArray(Pair.Value);
+			}
+
+			if (!bAttributeSuccess)
+			{
+				check(0);
+				return false;
+			}
+		}
+
+		// Geometry collection input attributes
+		//--------------------------------------------------------------------------------------------------------------------- 
+		// name (required for packing)
+		//---------------------------------------------------------------------------------------------------------------------
+		{
+			TArray<const char*> PrimitiveAttrs;
+			PrimitiveAttrs.AddUninitialized(Part.faceCount);
+			for (int32 Ix = 0; Ix < Part.faceCount; ++Ix)
+			{
+				PrimitiveAttrs[Ix] = TCHAR_TO_ANSI(*OutputName);
+			}
+	
+			// Create point attribute info.
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			AttributeInfo.count = Part.faceCount;
+			AttributeInfo.tupleSize = 1;
+			AttributeInfo.exists = true;
+			AttributeInfo.owner = HAPI_ATTROWNER_PRIM;
+			AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
+			AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                                FHoudiniEngine::Get().GetSession(), GeometryNodeId, Part.id,
+                                HAPI_ATTRIB_NAME, &AttributeInfo), false);
+
+			// Now that we have raw positions, we can upload them for our attribute.
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, Part.id, HAPI_ATTRIB_NAME, &AttributeInfo,
+                                PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num()), false);
+		}
+
+
+		// Geometry collection input attributes
+		//--------------------------------------------------------------------------------------------------------------------- 
+		// unreal_gc_piece (required for packing)
+		//---------------------------------------------------------------------------------------------------------------------
+		int32 Level = 1;
+	
+		if (GeometryCollection->HasAttribute("Level", FGeometryCollection::TransformGroup))
+		{
+			TManagedArray<int32>& Levels = GeometryCollection->GetAttribute<int32>("Level", FGeometryCollection::TransformGroup);
+			Level = Levels[GeometryIndex];
+		}
+
+		// If simulation type is none, then disable it
+		if (SimulationType[GeometryIndex] == FGeometryCollection::ESimulationTypes::FST_None)
+		{
+			Level = 0;
+		}
+
+		{
+			TArray< int32 > GCPieceAttribute;
+			GCPieceAttribute.Init(Level, Part.faceCount);
+			
+			HAPI_AttributeInfo AttributeInfoPrim;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfoPrim);
+
+			AttributeInfoPrim.count = Part.faceCount;
+			AttributeInfoPrim.tupleSize = 1;
+			AttributeInfoPrim.exists = true;
+			AttributeInfoPrim.owner = HAPI_ATTROWNER_PRIM;
+			AttributeInfoPrim.storage = HAPI_STORAGETYPE_INT;
+			AttributeInfoPrim.originalOwner = HAPI_ATTROWNER_INVALID;
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                                FHoudiniEngine::Get().GetSession(), 
+                                GeometryNodeId,	0, HAPI_UNREAL_ATTRIB_GC_PIECE, &AttributeInfoPrim), false);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+                                FHoudiniEngine::Get().GetSession(),
+                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_GC_PIECE, &AttributeInfoPrim,
+                                (const int32 *)GCPieceAttribute.GetData(), 0, GCPieceAttribute.Num()), false);
+		}
+
+
+		AddGeometryCollectionDetailAttributes(GeometryCollectionObject, GeometryNodeId, Part.id, Part, InName, GeometryCollectionComponent);
+
+		// Commit the geo.
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+                        FHoudiniEngine::Get().GetSession(), GeometryNodeId), false);
+
+		// Connect the LOD node to the merge node.
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+                        FHoudiniEngine::Get().GetSession(),
+                        InMergeNodeId, GeometryIndex, GeometryNodeId, 0), false);
+		
+	}
+
+	return true;
+}
+
+bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
+	UGeometryCollection* GeometryCollectionObject, HAPI_NodeId GeoId, HAPI_PartId PartId, HAPI_PartInfo & Part, const FString& InName, UGeometryCollectionComponent * GeometryCollectionComponent)
+{
+
+	// unreal_gc_name
+	//---------------------------------------------------------------------------------------------------------------------
+	{
+		// Create primitive attribute with mesh asset path
+		const FString& Name = InName;
+		std::string NameCStr = TCHAR_TO_ANSI(*Name);
+		const char* NameRaw = NameCStr.c_str();
+		TArray<const char*> PrimitiveAttrs;
+		PrimitiveAttrs.AddUninitialized(Part.faceCount);
+		for (int32 Ix = 0; Ix < Part.faceCount; ++Ix)
+		{
+			PrimitiveAttrs[Ix] = NameRaw;
+		}
+
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = Part.faceCount;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_PRIM;
+		AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, 0, HAPI_UNREAL_ATTRIB_GC_NAME, &AttributeInfo), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, 0, HAPI_UNREAL_ATTRIB_GC_NAME, &AttributeInfo,
+			PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num()), false);
+	}
+	
+	// Clustering - Damage thresholds
+	// Damage thresholds are not yet available in vanilla 4.26. UNCOMMENT THIS IN FUTURE VERSIONS.
+
+	/*
+	if (GeometryCollectionObject->DamageThreshold.Num() > 0)
+	{
+		TArray<float> AttributeData(GeometryCollectionObject->DamageThreshold);
+
+		// We have one array with DamageThreshold.Num() elements.
+		TArray< int32 > AttributeDataSizes;
+		AttributeDataSizes.Init(0, GeometryCollectionObject->DamageThreshold.Num());
+		AttributeDataSizes[0] = GeometryCollectionObject->DamageThreshold.Num();
+
+		
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = 1;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.totalArrayElements = GeometryCollectionObject->DamageThreshold.Num();
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfo.storage = HAPI_STORAGETYPE_FLOAT_ARRAY;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_CLUSTERING_DAMAGE_THRESHOLD;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+
+		FHoudiniApi::SetAttributeFloatArrayData(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo,
+                        (const float *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0,  AttributeInfo.count);
+	}
+	*/
+	
+	// Collisions - Collision Type
+	{
+		TArray< int32 > AttributeData { (int32)GeometryCollectionObject->CollisionType };
+		
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = 1;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfo.storage = HAPI_STORAGETYPE_INT;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_TYPE;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo,
+                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+	}
+
+	// Collisions - Implicit Type
+	{
+		int32 ImplicitTypeValue;
+		if (GeometryCollectionObject->ImplicitType == EImplicitTypeEnum::Chaos_Implicit_None)
+		{
+			ImplicitTypeValue = 0;
+		}
+		else
+		{
+			ImplicitTypeValue = static_cast<int32>(GeometryCollectionObject->ImplicitType) + 1; // + 1 because 0 = None.
+		}
+		
+		TArray< int32 > AttributeData { ImplicitTypeValue};
+		
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = 1;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfo.storage = HAPI_STORAGETYPE_INT;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_IMPLICIT_TYPE;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo,
+                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+	}
+
+	// Collisions - Min Level Set Resolution
+	{
+		TArray< int32 > AttributeData {static_cast<int32>(GeometryCollectionObject->MinLevelSetResolution) };
+		
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = 1;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfo.storage = HAPI_STORAGETYPE_INT;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MIN_LEVEL_SET_RESOLUTION;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo,
+                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+	}
+
+	// Collisions - Max Level Set Resolution
+	{
+		TArray< int32 > AttributeData { static_cast<int32>(GeometryCollectionObject->MaxLevelSetResolution) };
+		
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = 1;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfo.storage = HAPI_STORAGETYPE_INT;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAX_LEVEL_SET_RESOLUTION;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo,
+                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+	}
+	
+	// Collisions - Min cluster level set resolution
+	{
+		TArray< int32 > AttributeData { static_cast<int32>(GeometryCollectionObject->MinClusterLevelSetResolution) };
+		
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = 1;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfo.storage = HAPI_STORAGETYPE_INT;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MIN_CLUSTER_LEVEL_SET_RESOLUTION;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo,
+                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+	}
+
+	// Collisions - Max cluster level set resolution
+	{
+		TArray< int32 > AttributeData { static_cast<int32>(GeometryCollectionObject->MaxClusterLevelSetResolution) };
+		
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = 1;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfo.storage = HAPI_STORAGETYPE_INT;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAX_CLUSTER_LEVEL_SET_RESOLUTION;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo,
+                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+	}
+
+	// Collisions - Object reduction percentage
+	{
+		TArray< float > AttributeData { GeometryCollectionObject->CollisionObjectReductionPercentage };
+		
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = 1;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfo.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_OBJECT_REDUCTION_PERCENTAGE;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo,
+                        (const float *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+	}
+
+	// Collisions - Mass as density
+	{
+		TArray< int32 > AttributeData { GeometryCollectionObject->bMassAsDensity == true ? 1 : 0 };
+		
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = 1;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfo.storage = HAPI_STORAGETYPE_INT;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MASS_AS_DENSITY;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo,
+                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+	}
+
+	// Collisions - Mass
+	{
+		TArray< float > AttributeData { GeometryCollectionObject->Mass };
+		
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = 1;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfo.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MASS;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo,
+                        (const float *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+	}
+
+	// Collisions - Minimum Mass Clamp
+	{
+		TArray< float > AttributeData { GeometryCollectionObject->MinimumMassClamp };
+		
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = 1;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfo.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MINIMUM_MASS_CLAMP;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo,
+                        (const float *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+	}
+
+	// Collisions - Collision particles fraction
+	{
+		TArray< float > AttributeData {GeometryCollectionObject->CollisionParticlesFraction };
+		
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = 1;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfo.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_PARTICLES_FRACTION;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo,
+                        (const float *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+	}
+
+	// Collisions - Maximum collision particles
+	{
+		TArray< int32 > AttributeData { GeometryCollectionObject->MaximumCollisionParticles };
+		
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = 1;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfo.storage = HAPI_STORAGETYPE_INT;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAXIMUM_COLLISION_PARTICLES;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, PartId, AttributeName, &AttributeInfo,
+                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+	}
+	
+	// Non-Essential attributes- Similar to Mesh input: unreal_input_mesh_name, unreal_input_source_file, component and actor tags
+	// INPUT GC NAME
+	//---------------------------------------------------------------------------------------------------------------------
+	{
+		// Create primitive attribute with mesh asset path
+		const FString AssetPath = GeometryCollectionObject->GetPathName();
+		std::string AssetPathCStr = TCHAR_TO_ANSI(*AssetPath);
+		const char* AssetPathRaw = AssetPathCStr.c_str();
+		TArray<const char*> PrimitiveAttrs;
+		PrimitiveAttrs.AddUninitialized(Part.faceCount);
+		for (int32 Ix = 0; Ix < Part.faceCount; ++Ix)
+		{
+			PrimitiveAttrs[Ix] = AssetPathRaw;
+		}
+
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = Part.faceCount;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_PRIM;
+		AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, 0, HAPI_UNREAL_ATTRIB_INPUT_GC_NAME, &AttributeInfo), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
+                        FHoudiniEngine::Get().GetSession(),
+                        GeoId, 0, HAPI_UNREAL_ATTRIB_INPUT_GC_NAME, &AttributeInfo,
+                        PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num()), false);
+	}
+
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// COMPONENT AND ACTOR TAGS
+	//---------------------------------------------------------------------------------------------------------------------
+	if (GeometryCollectionComponent && !GeometryCollectionComponent->IsPendingKill())
+	{
+		// Try to create groups for the static mesh component's tags
+		if (GeometryCollectionComponent->ComponentTags.Num() > 0
+                        && !FHoudiniEngineUtils::CreateGroupsFromTags(GeoId, PartId, GeometryCollectionComponent->ComponentTags))
+                        	HOUDINI_LOG_WARNING(TEXT("Could not create groups from the Static Mesh Component's tags!"));
+
+		AActor* ParentActor = GeometryCollectionComponent->GetOwner();
+		if (ParentActor && !ParentActor->IsPendingKill())
+		{
+			// Try to create groups for the parent Actor's tags
+			if (ParentActor->Tags.Num() > 0
+                                && !FHoudiniEngineUtils::CreateGroupsFromTags(GeoId, PartId, ParentActor->Tags))
+                                	HOUDINI_LOG_WARNING(TEXT("Could not create groups from the Static Mesh Component's parent actor tags!"));
+
+			// Add the unreal_actor_path attribute
+			FHoudiniEngineUtils::AddActorPathAttribute(GeoId, PartId, ParentActor, Part.faceCount);
+
+			// Add the unreal_level_path attribute
+			FHoudiniEngineUtils::AddLevelPathAttribute(GeoId, PartId, ParentActor->GetLevel(), Part.faceCount);
+		}
+	}
+	
+	return true;
+}
+
