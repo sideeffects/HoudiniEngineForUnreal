@@ -1,4 +1,4 @@
-# Houdini Engine for Unreal - Version 2.0
+# Houdini Engine for Unreal - Version 2
 
 Welcome to the repository for Version 2 of the Houdini Engine For Unreal Plugin.
 
