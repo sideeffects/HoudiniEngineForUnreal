@@ -3813,7 +3813,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("LandscapeUpdateInputCheckbox", "Update Input Landscape Data"))
-			.ToolTipText(LOCTEXT("LandscapeSelectedTooltip", "If enabled, the input landscape's data will be updated instead of creating a new landscape Actor"))
+			.ToolTipText(LOCTEXT("LandscapeUpdateInputTooltip", "If enabled, the input landscape's data will be updated instead of creating a new landscape Actor"))
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 		.IsChecked_Lambda([IsCheckedUpdateInputLandscape, MainInput]()
