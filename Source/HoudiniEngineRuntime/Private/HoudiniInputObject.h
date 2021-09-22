@@ -133,6 +133,9 @@ public:
 	void SetImportAsReference(const bool& bInImportAsRef) { bImportAsReference = bInImportAsRef; };
 	bool GetImportAsReference() const { return bImportAsReference; };
 
+	void SetImportAsReferenceRotScaleEnabled(const bool& bInImportAsRefRotScaleEnabled) { bImportAsReferenceRotScaleEnabled = bInImportAsRefRotScaleEnabled; };
+	bool GetImportAsReferenceRotScaleEnabled() const { return bImportAsReferenceRotScaleEnabled; };
+	
 #if WITH_EDITOR
 	void SwitchUniformScaleLock() { bUniformScaleLocked = !bUniformScaleLocked; };
 	bool IsUniformScaleLocked() const { return bUniformScaleLocked; };
@@ -199,6 +202,9 @@ protected:
 	UPROPERTY()
 	bool bImportAsReference;
 
+	UPROPERTY()
+	bool bImportAsReferenceRotScaleEnabled;
+	
 	// Indicates if change the scale of Transfrom Offset of this object uniformly
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
