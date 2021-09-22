@@ -486,7 +486,7 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
 			CurveRotations[i * 4 + 0] = (*Rotations)[i].X;
 			CurveRotations[i * 4 + 1] = (*Rotations)[i].Z;
 			CurveRotations[i * 4 + 2] = (*Rotations)[i].Y;
-			CurveRotations[i * 4 + 3] = (*Rotations)[i].W;
+			CurveRotations[i * 4 + 3] = -(*Rotations)[i].W;
 		}
 	}
 
