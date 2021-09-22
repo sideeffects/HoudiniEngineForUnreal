@@ -1470,6 +1470,12 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				currentHGPO.PartInfo = CurrentPartInfo;
 
 				currentHGPO.AllMeshSockets = PartMeshSockets;
+				
+				// If the mesh is NOT visible and is NOT instanced, skip it.
+				if (!currentHGPO.bIsVisible && !currentHGPO.bIsInstanced)
+				{
+					continue;
+				}
 
 				// We only support meshes for templated geos
 				if (currentHGPO.bIsTemplated && (CurrentPartType != EHoudiniPartType::Mesh))
