@@ -673,6 +673,85 @@ FHoudiniInputDetails::AddImportAsReferenceCheckbox(TSharedRef< SVerticalBox > Ve
 			return CheckStateChangedImportAsReference(InInputs, NewState);
 		})
 	];
+
+	// Add Rot/Scale to input as reference
+	auto IsCheckedImportAsReferenceRotScale= [](UHoudiniInput* InInput)
+	{
+		if (!InInput || InInput->IsPendingKill())
+			return ECheckBoxState::Unchecked;
+
+		return InInput->GetImportAsReferenceRotScaleEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	// Lambda for changing PackBeforeMerge state
+	auto CheckStateChangedImportAsReferenceRotScale= [MainInput](TArray<UHoudiniInput*> InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!MainInput || MainInput->IsPendingKill())
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->GetImportAsReferenceRotScaleEnabled() == bNewState)
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputAsReferenceRotScale", "Houdini Input: Changing InputAsReference Rot/Scale"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!CurInput || CurInput->IsPendingKill())
+				continue;
+
+			if (CurInput->GetImportAsReferenceRotScaleEnabled() == bNewState)
+				continue;
+
+			TArray<UHoudiniInputObject*> * InputObjs = CurInput->GetHoudiniInputObjectArray(CurInput->GetInputType());
+			if (InputObjs) 
+			{
+				// Mark all its input objects as changed to trigger recook.
+				for (auto CurInputObj : *InputObjs) 
+				{
+					if (!CurInputObj || CurInputObj->IsPendingKill())
+						continue;
+
+					if (CurInputObj->GetImportAsReferenceRotScaleEnabled() != bNewState)
+					{
+						CurInputObj->SetImportAsReferenceRotScaleEnabled(bNewState);
+						CurInputObj->MarkChanged(true);
+					}
+				}
+			}
+
+			CurInput->Modify();
+			CurInput->SetImportAsReferenceRotScaleEnabled(bNewState);
+		}
+	};
+
+	TSharedPtr< SCheckBox > CheckBoxImportAsReferenceRotScale;
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+	[
+		SAssignNew(CheckBoxImportAsReferenceRotScale, SCheckBox)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("ImportInputAsRefRotScaleCheckbox", "Add rot/scale to input references"))
+			.ToolTipText(LOCTEXT("ImportInputAsRefRotScaleCheckboxTip", "Add rot/scale attributes to the input references when Import input as references is enabled"))
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		.IsChecked_Lambda([=]()
+		{
+			return IsCheckedImportAsReferenceRotScale(MainInput);
+		})
+		.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+		{
+			return CheckStateChangedImportAsReferenceRotScale(InInputs, NewState);
+		})
+		.IsEnabled(IsCheckedImportAsReference(MainInput))
+			
+	];
 }
 void
 FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox, TArray<UHoudiniInput*>& InInputs)

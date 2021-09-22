@@ -100,14 +100,14 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 	static bool UpdateTransformOffset(UHoudiniInput* InInput);
 
 	// Upload all the input's data to Houdini
-	static bool UploadInputData(UHoudiniInput* InInput);
+	static bool UploadInputData(UHoudiniInput* InInput, const FTransform & InActorTransform = FTransform::Identity);
 
 	// Upload all the input's transforms to Houdini
 	static bool UploadInputTransform(UHoudiniInput* InInput);
 
 	// Upload data for an input's InputObject
 	static bool UploadHoudiniInputObject(
-		UHoudiniInput* InInput, UHoudiniInputObject* InInputObject, TArray<int32>& OutCreatedNodeIds);
+		UHoudiniInput* InInput, UHoudiniInputObject* InInputObject, const FTransform& InActorTransform, TArray<int32>& OutCreatedNodeIds);
 	
 	// Upload transform for an input's InputObject
 	static bool UploadHoudiniInputTransform(
@@ -142,7 +142,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bExportLODs,
 		const bool& bExportSockets,
 		const bool& bExportColliders,
-		const bool& bImportAsReference = false);
+		const bool& bImportAsReference = false,
+		const bool& bImportAsReferenceRotScaleEnabled = false);
 
 	static bool	HapiCreateInputNodeForHoudiniSplineComponent(
 		const FString& InObjNodeName,
@@ -175,7 +176,10 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bExportLODs,
 		const bool& bExportSockets,
 		const bool& bExportColliders,
-		const bool& bImportAsReference);
+		const bool& bKeepWorldTransform,
+		const bool& bImportAsReference,
+		const bool& bImportAsReferenceRotScaleEnabled = false,
+		const FTransform& InActorTransform = FTransform::Identity);
 
 	static bool	HapiCreateInputNodeForInstancedStaticMeshComponent(
 		const FString& InObjNodeName,
@@ -188,10 +192,10 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const FString& InObjNodeName, UHoudiniInputSplineComponent* InObject, const float& SplineResolution);
 
 	static bool	HapiCreateInputNodeForHoudiniAssetComponent(
-		const FString& InObjNodeName, UHoudiniInputHoudiniAsset* InObject, const bool& bImportAsReference);
+		const FString& InObjNodeName, UHoudiniInputHoudiniAsset* InObject, const bool bKeepWorldTransform, const bool& bImportAsReference, const bool& bImportAsReferenceRotScaleEnabled);
 
 	static bool	HapiCreateInputNodeForActor(
-		UHoudiniInput* InInput, UHoudiniInputActor* InObject, TArray<int32>& OutCreatedNodeIds);
+		UHoudiniInput* InInput, UHoudiniInputActor* InObject, const FTransform & InActorTransform, TArray<int32>& OutCreatedNodeIds);
 
 	static bool HapiCreateInputNodeForCamera(
 		const FString& InObjNodeName, UHoudiniInputCameraComponent* InObject);
@@ -214,14 +218,16 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bExportLODs,
 		const bool& bExportSockets,
 		const bool& bExportColliders,
-		const bool& bImportAsReference = false);
+		const bool& bImportAsReference = false,
+		const bool& bImportAsReferenceRotScaleEnabled = false);
 
 	// HAPI: Create an input node for reference
 	static bool CreateInputNodeForReference(
 		HAPI_NodeId& InputNodeId,
 		const FString & InRef,
 		const FString & InputNodeName,
-		const FTransform & InTransform);
+		const FTransform & InTransform,
+		const bool& bImportAsReferenceRotScaleEnabled);
 
 	//static bool HapiUpdateInputNodeTransform(const HAPI_NodeId InputNodeId, const FTransform& Transform);
 
