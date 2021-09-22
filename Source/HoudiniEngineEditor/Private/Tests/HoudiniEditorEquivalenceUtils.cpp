@@ -360,6 +360,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniInput* A, UHoudiniInpu
 	Result &= TestExpressionError(A->KeepWorldTransform == B->KeepWorldTransform, Header, "KeepWorldTransform");
 	Result &= TestExpressionError(A->bPackBeforeMerge == B->bPackBeforeMerge, Header, "bPackBeforeMerge");
 	Result &= TestExpressionError(A->bImportAsReference == B->bImportAsReference, Header, "bImportAsReference");
+	Result &= TestExpressionError(A->bImportAsReferenceRotScaleEnabled == B->bImportAsReferenceRotScaleEnabled, Header, "bImportAsReferenceRotScaleEnabled");
 	Result &= TestExpressionError(A->bExportLODs == B->bExportLODs, Header, "bExportLODs");
 	Result &= TestExpressionError(A->bExportSockets == B->bExportSockets, Header, "bExportSockets");
 	Result &= TestExpressionError(A->bExportColliders == B->bExportColliders, Header, "bExportColliders");
