@@ -128,6 +128,82 @@ UHoudiniParameterMultiParm::EmptyElements()
 	}
 }
 
+int32
+UHoudiniParameterMultiParm::GetNextInstanceCount() const
+{
+	if (MultiParmInstanceCount > 0 && MultiParmInstanceLastModifyArray.Num() == 0)
+	{
+		return MultiParmInstanceCount;
+	}
+	
+	int32 CurrentInstanceCount = 0;
+	// First determine how many instances the multi parm would have based on the current values in
+	// MultiParmInstanceLastModifyArray
+	for (const EHoudiniMultiParmModificationType& ModificationType : MultiParmInstanceLastModifyArray)
+	{
+		switch (ModificationType)
+		{
+		case EHoudiniMultiParmModificationType::Inserted:
+		case EHoudiniMultiParmModificationType::Modified:
+		case EHoudiniMultiParmModificationType::None:
+			CurrentInstanceCount++;
+			break;
+		case EHoudiniMultiParmModificationType::Removed:
+			// Removed indices don't add to CurrentInstanceCount 
+			break;
+		}
+	}
+
+	return CurrentInstanceCount;
+}
+
+bool
+UHoudiniParameterMultiParm::SetNumElements(const int32 InInstanceCount)
+{
+	if (MultiParmInstanceCount > 0 && MultiParmInstanceLastModifyArray.Num() == 0)
+		InitializeModifyArray();
+
+	// // Log the MultiParmInstanceLastModifyArray before the modification
+	// HOUDINI_LOG_WARNING(TEXT("MultiParmInstanceLastModifyArray (before): "));
+	// for (const EHoudiniMultiParmModificationType Modification : MultiParmInstanceLastModifyArray)
+	// {
+	// 	HOUDINI_LOG_WARNING(TEXT("\t%s"), *UEnum::GetValueAsString(Modification));
+	// }
+
+	const int32 TargetInstanceCount = InInstanceCount >= 0 ? InInstanceCount : 0;
+	const int32 CurrentInstanceCount = GetNextInstanceCount();
+	bool bModified = false;
+	if (CurrentInstanceCount > TargetInstanceCount)
+	{
+		// Remove entries from the end of the array
+		for (int32 Count = CurrentInstanceCount; Count > TargetInstanceCount; --Count)
+		{
+			RemoveElement(-1);
+		}
+
+		bModified = true;
+	}
+	else if (CurrentInstanceCount < TargetInstanceCount)
+	{
+		// Insert new instances at the end
+		for (int32 Count = CurrentInstanceCount; Count < TargetInstanceCount; ++Count)
+		{
+			InsertElement();
+		}
+
+		bModified = true;
+	}
+
+	// // Log the MultiParmInstanceLastModifyArray after the modification
+	// HOUDINI_LOG_WARNING(TEXT("MultiParmInstanceLastModifyArray (after): "));
+	// for (const EHoudiniMultiParmModificationType Modification : MultiParmInstanceLastModifyArray)
+	// {
+	// 	HOUDINI_LOG_WARNING(TEXT("\t%s"), *UEnum::GetValueAsString(Modification));
+	// }
+	
+	return bModified;
+}
+
 void
 UHoudiniParameterMultiParm::InitializeModifyArray() 
 {

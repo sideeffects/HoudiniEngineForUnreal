@@ -84,6 +84,20 @@ public:
 	/** Empty the values, used by Slate. **/
 	void EmptyElements();
 
+	/**
+	 * Returns the number of multiparm instances there'll be after the next upload to HAPI, after
+	 * the current state of MultiParmInstanceLastModifyArray is applied.
+	 */
+	int32 GetNextInstanceCount() const;
+
+	/**
+	 * Helper function to modify MultiParmInstanceLastModifyArray with inserts/removes (at the end) as necessary so
+	 * that the multi parm instance count will be equal to InInstanceCount after the next upload to HAPI.
+	 * @param InInstanceCount The number of instances the multiparm should have.
+	 * @returns True if any changes were made to MultiParmInstanceLastModifyArray. 
+	 */
+	bool SetNumElements(const int32 InInstanceCount);
+
 	UPROPERTY()
 	bool bIsShown;
 
