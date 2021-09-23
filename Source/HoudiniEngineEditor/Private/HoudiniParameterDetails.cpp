@@ -6116,22 +6116,8 @@ FHoudiniParameterDetails::CreateWidgetMultiParm(IDetailCategoryBuilder & HouPara
 		if (InValue < 0)
 			return;
 
-		int32 ChangesCount = FMath::Abs(MainParam->MultiParmInstanceLastModifyArray.Num() - InValue);
-
-		if (MainParam->MultiParmInstanceLastModifyArray.Num() > InValue)
-		{
-			for (int32 Idx = 0; Idx < ChangesCount; ++Idx)
-				MainParam->RemoveElement(-1);
-
+		if (MainParam->SetNumElements(InValue))
 			MainParam->MarkChanged(true);
-		}
-		else if (MainParam->MultiParmInstanceLastModifyArray.Num() < InValue)
-		{
-			for (int32 Idx = 0; Idx < ChangesCount; ++Idx)
-				MainParam->InsertElement();
-
-			MainParam->MarkChanged(true);
-		}
 	};
 
 	// Add multiparm UI.
