@@ -894,7 +894,7 @@ UHoudiniPublicAPIAssetWrapper::SetIntParameterValue_Implementation(FName InParam
 			return false;
 		}
 
-		bDidChangeValue = MultiParam->SetValue(InValue);
+		bDidChangeValue = MultiParam->SetNumElements(InValue);
 	}
 	else if (ParamType == EHoudiniParameterType::Toggle)
 	{
@@ -990,7 +990,7 @@ UHoudiniPublicAPIAssetWrapper::GetIntParameterValue_Implementation(FName InParam
 			return false;
 		}
 
-		OutValue = MultiParam->GetValue();
+		OutValue = MultiParam->GetNextInstanceCount();
 		return true;
 	}
 	else if (ParamType == EHoudiniParameterType::Toggle)
