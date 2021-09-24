@@ -140,7 +140,7 @@ AHoudiniAssetActor::PostEditChangeProperty(FPropertyChangedEvent & PropertyChang
 bool
 AHoudiniAssetActor::IsUsedForPreview() const
 {
-	return HasAnyFlags(RF_Transient);
+	return HasAnyFlags(RF_Transient) || bIsEditorPreviewActor;
 }
 
 bool AHoudiniAssetActor::IsEditorOnly() const
