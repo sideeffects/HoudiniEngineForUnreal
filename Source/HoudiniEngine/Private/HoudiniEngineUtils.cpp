@@ -281,6 +281,31 @@ FHoudiniEngineUtils::GetStatusString(HAPI_StatusType status_type, HAPI_StatusVer
 	return FString(TEXT(""));
 }
 
+FString 
+FHoudiniEngineUtils::HapiGetString(int32 StringHandle)
+{
+	int32 StringLength = 0;
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetStringBufLength(
+		FHoudiniEngine::Get().GetSession(), StringHandle, &StringLength))
+	{
+		return FString();
+	}
+		
+	if (StringLength <= 0)
+		return FString();
+		
+	std::vector<char> NameBuffer(StringLength, '\0');
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetString(
+		FHoudiniEngine::Get().GetSession(),
+		StringHandle, &NameBuffer[0], StringLength ) )
+	{
+		return FString();
+	}
+
+	return FString(std::string(NameBuffer.begin(), NameBuffer.end()).c_str());
+}
+
+
 const FString
 FHoudiniEngineUtils::GetCookResult()
 {
@@ -1723,6 +1748,29 @@ FHoudiniEngineUtils::GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray< char
 	return true;
 }
 
+bool
+FHoudiniEngineUtils::HapiGetAbsNodePath(const HAPI_NodeId& InNodeId, FString& OutPath)
+{
+	// Retrieve Path to the given Node, relative to the other given Node
+	if (InNodeId < 0)
+		return false;
+
+	if (!FHoudiniEngineUtils::IsHoudiniNodeValid(InNodeId))
+		return false;
+
+	HAPI_StringHandle StringHandle;
+	if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetNodePath(
+		FHoudiniEngine::Get().GetSession(),
+		InNodeId, -1, &StringHandle))
+	{
+		if(FHoudiniEngineString::ToFString(StringHandle, OutPath))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 
 bool
 FHoudiniEngineUtils::HapiGetNodePath(const HAPI_NodeId& InNodeId, const HAPI_NodeId& InRelativeToNodeId, FString& OutPath)
@@ -1906,6 +1954,269 @@ FHoudiniEngineUtils::HapiGetObjectInfos(const HAPI_NodeId& InNodeId, TArray<HAPI
 
 	return true;
 }
+
+bool 
+FHoudiniEngineUtils::IsObjNodeFullyVisible(const TSet<HAPI_NodeId>& AllObjectIds, const HAPI_NodeId& InRootNodeId, const HAPI_NodeId& InChildNodeId)
+{
+	// Walk up the hierarchy from child to root.
+	// If any node in that hierarchy is not in the "AllObjectIds" set, the OBJ node is considered to
+	// be hidden.
+
+	if (InChildNodeId == InRootNodeId)
+		return true;
+	
+	HAPI_NodeId ChildNodeId = InChildNodeId;
+
+	HAPI_ObjectInfo ChildObjInfo;
+	HAPI_NodeInfo ChildNodeInfo;
+	
+	FHoudiniApi::ObjectInfo_Init(&ChildObjInfo);
+	FHoudiniApi::NodeInfo_Init(&ChildNodeInfo);
+
+	do
+	{
+		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjectInfo(
+			FHoudiniEngine::Get().GetSession(), 
+			ChildNodeId, &ChildObjInfo))
+		{
+			// If can't get info for this object, we can't say whether it's visible (or not).
+			return false;
+		}
+
+		if (!ChildObjInfo.isVisible || ChildObjInfo.nodeId < 0)
+		{
+			// We have an object in the chain that is not visible. Return false immediately!
+			return false;
+		}
+
+		if (ChildNodeId != InChildNodeId)
+		{
+			// Only perform this check for 'parents' of the incoming child node
+			if ( !AllObjectIds.Contains(ChildNodeId))
+			{
+				// There is a non-object node in the hierarchy between the child and asset root, rendering the
+				// child object node invisible.
+				return false;
+			}
+		}
+
+		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetNodeInfo(
+			FHoudiniEngine::Get().GetSession(),
+			ChildNodeId, &ChildNodeInfo))
+		{
+			// Could not retrieve node info.
+			return false;
+		}
+
+		// Go up the hierarchy.
+		ChildNodeId = ChildNodeInfo.parentId;
+	} while (ChildNodeId != InRootNodeId && ChildNodeId >= 0);
+
+	// We have traversed the whole hierarchy up to the root and nothing indicated that
+	// we _shouldn't_ be visible.
+	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::IsSopNode(const HAPI_NodeId& NodeId)
+{
+	HAPI_NodeInfo NodeInfo;
+	FHoudiniApi::NodeInfo_Init(&NodeInfo);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
+		FHoudiniEngine::Get().GetSession(),
+		NodeId,
+		&NodeInfo
+		),
+		false
+	);
+	return NodeInfo.type == HAPI_NODETYPE_SOP;
+}
+
+
+bool FHoudiniEngineUtils::ContainsSopNodes(const HAPI_NodeId& NodeId)
+{
+	int ChildCount = 0;
+	HOUDINI_CHECK_ERROR_RETURN(
+		FHoudiniApi::ComposeChildNodeList(
+			FHoudiniEngine::Get().GetSession(),
+			NodeId,
+			HAPI_NODETYPE_SOP,
+			HAPI_NODEFLAGS_ANY,
+			false,
+			&ChildCount
+		),
+		false
+	);
+	return ChildCount > 0;
+}
+
+
+bool FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(const HAPI_NodeId& InNodeId,
+	const bool bUseOutputNodes,
+	const bool bGatherTemplateNodes,
+	TArray<HAPI_GeoInfo>& OutGeoInfos)
+{
+	TSet<HAPI_NodeId> GatheredNodeIds;
+
+	// NOTE: This function assumes that the incoming node is a Geometry container that contains immediate
+	// outputs / display nodes / template nodes.
+
+	// First we look for (immediate) output nodes (if bUseOutputNodes have been enabled).
+	// If we didn't find an output node, we'll look for a display node.
+
+	bool bHasOutputs = false;
+	if (bUseOutputNodes)
+	{
+		int NumOutputs = -1;
+		FHoudiniApi::GetOutputGeoCount(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId,
+			&NumOutputs
+			);
+
+		if (NumOutputs > 0)
+		{
+			// -------------------------------------------------
+			// Extract GeoInfo from the immediate output nodes.
+			// -------------------------------------------------
+			TArray<HAPI_GeoInfo> OutputGeoInfos;
+			OutputGeoInfos.SetNumUninitialized(NumOutputs);
+			FHoudiniApi::GetOutputGeoInfos(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId,
+				OutputGeoInfos.GetData(),
+				NumOutputs
+				);
+			
+			OutGeoInfos.Add( OutputGeoInfos[0] );
+			bHasOutputs = true;
+
+			HAPI_NodeId OutputNodeId = -1;
+			if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetOutputNodeId(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId,
+				0,
+				&OutputNodeId
+				))
+			{
+				GatheredNodeIds.Add(OutputNodeId);
+				{
+					FString NodePath;
+					FHoudiniEngineUtils::HapiGetAbsNodePath(OutputNodeId, NodePath);
+				}
+			}
+		}
+	}
+	
+	if (!bHasOutputs)
+	{
+		// If we didn't get any output data, pull our output data directly from the Display node.
+
+		// ---------------------------------
+		// Look for display nodes.
+		// ---------------------------------
+		int DisplayNodeCount = 0;
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::ComposeChildNodeList(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId,
+			HAPI_NODETYPE_SOP,
+			HAPI_NODEFLAGS_DISPLAY,
+			false,
+			&DisplayNodeCount
+			))
+		{
+			if (DisplayNodeCount > 0)
+			{
+				// Retrieve all the display node ids
+				TArray<HAPI_NodeId> DisplayNodeIds;
+				DisplayNodeIds.SetNumUninitialized(DisplayNodeCount);
+				if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetComposedChildNodeList(
+						FHoudiniEngine::Get().GetSession(),
+						InNodeId,
+						DisplayNodeIds.GetData(),
+						DisplayNodeCount
+					))
+				{
+					HAPI_GeoInfo GeoInfo;
+					FHoudiniApi::GeoInfo_Init(&GeoInfo);
+					// Retrieve the Geo Infos for each display node
+					for(const HAPI_NodeId& DisplayNodeId : DisplayNodeIds)
+					{
+						if (GatheredNodeIds.Contains(DisplayNodeCount))
+							continue; // This node has already been gathered from this subnet.
+
+						// We need to cook the Display node in order to properly populate GeoInfo.
+						FHoudiniEngineUtils::HapiCookNode(DisplayNodeId, nullptr, true);
+						if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetGeoInfo(
+								FHoudiniEngine::Get().GetSession(),
+								DisplayNodeId,
+								&GeoInfo
+							))
+						{
+							OutGeoInfos.Add(GeoInfo);
+							GatheredNodeIds.Add(DisplayNodeId);
+						}
+					}
+				}
+			} // if (DisplayNodeCount > 0)
+		}
+	} // if (!HasOutputNode)
+
+	// Gather templated nodes.
+	if (bGatherTemplateNodes)
+	{
+		int NumTemplateNodes = 0;
+		// Gather all template nodes
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::ComposeChildNodeList(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId,
+			HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_TEMPLATED,
+			false,
+			&NumTemplateNodes
+			))
+		{
+			TArray<HAPI_NodeId> TemplateNodeIds;
+			TemplateNodeIds.SetNumUninitialized(NumTemplateNodes);
+			if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetComposedChildNodeList(
+					FHoudiniEngine::Get().GetSession(),
+					InNodeId,
+					TemplateNodeIds.GetData(),
+					NumTemplateNodes
+					))
+			{
+				
+				for(const HAPI_NodeId& TemplateNodeId : TemplateNodeIds)
+				{
+					if (GatheredNodeIds.Contains(TemplateNodeId))
+					{
+						continue; // This geometry has already been gathered.
+					}
+
+					// Cook template nodes to get their parts
+					FHoudiniEngineUtils::HapiCookNode(TemplateNodeId, nullptr, true);
+					HAPI_GeoInfo GeoInfo;
+					FHoudiniApi::GeoInfo_Init(&GeoInfo);
+					FHoudiniApi::GetGeoInfo(
+							FHoudiniEngine::Get().GetSession(),
+							TemplateNodeId,
+							&GeoInfo
+						);
+					// For some reason the return type is always "HAPI_RESULT_INVALID_ARGUMENT", so we
+					// just check the GeoInfo.type manually.
+					if (GeoInfo.type != HAPI_GEOTYPE_INVALID)
+					{
+						// Add this template node to the gathered outputs.
+						GatheredNodeIds.Add(TemplateNodeId);
+						OutGeoInfos.Add(GeoInfo);
+					}
+				}
+			}
+		}
+	}
+	return true;
+}
+
 
 bool
 FHoudiniEngineUtils::HapiGetAssetTransform(const HAPI_NodeId& InNodeId, FTransform& OutTransform)

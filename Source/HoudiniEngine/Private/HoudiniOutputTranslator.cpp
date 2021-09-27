@@ -997,6 +997,109 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	// Store all the other volumes (masks etc)  on the side and we will
 	// match them with theit corresponding height volume after
 	TArray<FHoudiniGeoPartObject> UnassignedVolumeParts;
+	
+	// VA: Editable nodes fetching have been moved here to fetch them for the whole asset, only once.
+	//     It seemed unnecessary to have to fetch these for every Object node. Instead,
+	//     we'll collect all the editable nodes for the HDA and process them only on the first loop.
+	//     This also allows us to use more 'strict' Object node retrieval for output processing since
+	//     we don't have to worry that we might miss any editable nodes.
+	
+	// Start by getting the number of editable nodes
+	TArray<HAPI_GeoInfo> EditableGeoInfos;
+	int32 EditableNodeCount = 0;
+	HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
+		FHoudiniEngine::Get().GetSession(),
+		AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
+		true, &EditableNodeCount));
+
+	// All editable nodes will be output, regardless
+	// of whether the subnet is considered visible or not.
+	if (EditableNodeCount > 0)
+	{
+		TArray<HAPI_NodeId> EditableNodeIds;
+		EditableNodeIds.SetNumUninitialized(EditableNodeCount);
+		HOUDINI_CHECK_ERROR(FHoudiniApi::GetComposedChildNodeList(
+			FHoudiniEngine::Get().GetSession(), 
+			AssetId, EditableNodeIds.GetData(), EditableNodeCount));
+
+		for (int32 nEditable = 0; nEditable < EditableNodeCount; nEditable++)
+		{
+			HAPI_GeoInfo CurrentEditableGeoInfo;
+			FHoudiniApi::GeoInfo_Init(&CurrentEditableGeoInfo);
+			HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(
+				FHoudiniEngine::Get().GetSession(), 
+				EditableNodeIds[nEditable], &CurrentEditableGeoInfo));
+
+			// TODO: Check whether this display geo is actually being output
+			//       Just because this is a display node doesn't mean that it will be output (it
+			//       might be in a hidden subnet)
+			
+			// Do not process the main display geo twice!
+			if (CurrentEditableGeoInfo.isDisplayGeo)
+				continue;
+
+			// We only handle editable curves for now
+			if (CurrentEditableGeoInfo.type != HAPI_GEOTYPE_CURVE)
+				continue;
+
+			// Add this geo to the geo info array
+			EditableGeoInfos.Add(CurrentEditableGeoInfo);
+		}
+	}
+
+	const bool bIsSopAsset = AssetInfo.nodeId != AssetInfo.objectNodeId;
+	bool bUseOutputFromSubnets = true;
+	{
+		if (FHoudiniEngineUtils::ContainsSopNodes(AssetInfo.nodeId))
+		{
+			// This HDA contains immediate SOP nodes. Don't look for subnets to output.
+			bUseOutputFromSubnets = false;
+		}
+		else
+		{
+			// Assume we're using a subnet-based HDA
+			bUseOutputFromSubnets = true;
+		}
+	}
+
+	// Before we can perform visibility checks on the Object nodes, we have
+	// to build a set of all the Object node ids. The 'AllObjectIds' act
+	// as a visibility filter. If an Object node is not present in this
+	// list, the content of that node will not be displayed (display / output / templated nodes).
+	// NOTE that if the HDA contains immediate SOP nodes we will ignore
+	// all subnets and only use the data outputs directly from the HDA. 
+
+	TSet<HAPI_NodeId> AllObjectIds;
+	if (bUseOutputFromSubnets)
+	{
+		int NumObjSubnets;
+		TArray<HAPI_NodeId> ObjectIds;
+		HOUDINI_CHECK_ERROR_RETURN(
+			FHoudiniApi::ComposeChildNodeList(
+				FHoudiniEngine::Get().GetSession(),
+				AssetId,
+				HAPI_NODETYPE_OBJ,
+				HAPI_NODEFLAGS_OBJ_SUBNET,
+				true,
+				&NumObjSubnets
+				),
+			false);
+
+		ObjectIds.SetNumUninitialized(NumObjSubnets);
+		HOUDINI_CHECK_ERROR_RETURN(
+			FHoudiniApi::GetComposedChildNodeList(
+				FHoudiniEngine::Get().GetSession(),
+				AssetId,
+				ObjectIds.GetData(),
+				NumObjSubnets
+				),
+			false);
+		AllObjectIds.Append(ObjectIds);
+	}
+	else
+	{
+		AllObjectIds.Add(AssetInfo.objectNodeId);
+	}
 
 	// Iterate through all objects.
 	int32 OutputIdx = 1;
@@ -1004,6 +1107,22 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	{
 		// Retrieve the object info
 		const HAPI_ObjectInfo& CurrentHapiObjectInfo = ObjectInfos[ObjectIdx];
+
+		// Determine whether this object node is fully visible.
+		bool bObjectIsVisible = false;
+		HAPI_NodeId GatherOutputsNodeId = -1; // Outputs will be gathered from this node.
+		if (bIsSopAsset && CurrentHapiObjectInfo.nodeId == AssetInfo.objectNodeId)
+		{
+			// When dealing with a SOP asset, be sure to gather outputs from the SOP node, not the
+			// outer object node.
+			bObjectIsVisible = true;
+			GatherOutputsNodeId = AssetInfo.nodeId;
+		}
+		else
+		{
+			bObjectIsVisible = FHoudiniEngineUtils::IsObjNodeFullyVisible(AllObjectIds, AssetId, CurrentHapiObjectInfo.nodeId);
+			GatherOutputsNodeId = CurrentHapiObjectInfo.nodeId;
+		}
 
 		// Cache/convert them
 		FHoudiniObjectInfo CurrentObjectInfo;
@@ -1031,157 +1150,26 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 		// but we may also want to process editable geos as well
 		TArray<HAPI_GeoInfo> GeoInfos;
 
-		// Get the Display Geo's info
-		HAPI_GeoInfo DisplayHapiGeoInfo;
-		FHoudiniApi::GeoInfo_Init(&DisplayHapiGeoInfo);
-		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetDisplayGeoInfo(
-			FHoudiniEngine::Get().GetSession(), CurrentHapiObjectInfo.nodeId, &DisplayHapiGeoInfo))
+		// Append the initial set of editable geo infos here
+		// then clear the editable geo infos array since we
+		// only want to process them once.
+		GeoInfos.Append(EditableGeoInfos);
+		EditableGeoInfos.Empty();
+
+		if (bObjectIsVisible)
 		{
-			HOUDINI_LOG_MESSAGE(
-				TEXT("Creating Static Meshes: Object [%d %s] unable to retrieve GeoInfo, - skipping."),
-				CurrentHapiObjectInfo.nodeId, *CurrentObjectName);		
-		}
-		else
-		{
-			// Add the display geo info to the array
-			GeoInfos.Add(DisplayHapiGeoInfo);
-		}
+			// NOTE: The HAPI_GetDisplayGeoInfo will not always return the expected Geometry subnet's
+			//     Display flag geometry. If the Geometry subnet contains an Object subnet somewhere, the
+			//     GetDisplayGeoInfo will sometimes fetch the display SOP from within the subnet which is
+			//     not what we want.
 
-		// If desired, also get the output node's info
-		if (InUseOutputNodes)
-		{
-			int32 OutputCount = 0;
-			if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetOutputGeoCount(
-				FHoudiniEngine::Get().GetSession(), CurrentHapiObjectInfo.nodeId, &OutputCount))
-			{
-				OutputCount = 0;
-			}
-
-			if (OutputCount > 0)
-			{
-				// Get all the output node's geo infos
-				TArray<HAPI_GeoInfo> OutputGeoInfos;
-				OutputGeoInfos.SetNum(OutputCount);
-				if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetOutputGeoInfos(
-					FHoudiniEngine::Get().GetSession(), CurrentHapiObjectInfo.nodeId, OutputGeoInfos.GetData(), OutputCount))
-				{
-					OutputGeoInfos.Empty();
-				}
-
-				// Make sure all those output nodes are valid,
-				// ie, not inside the Display Geo
-				for (const auto& CurOutGeoInfo : OutputGeoInfos)
-				{
-					if (CurOutGeoInfo.nodeId == DisplayHapiGeoInfo.nodeId)
-						continue;
-
-					bool bValidOutput = true;
-					int32 ParentId = FHoudiniEngineUtils::HapiGetParentNodeId(CurOutGeoInfo.nodeId);
-					while (ParentId >= 0)
-					{
-						if (ParentId == CurOutGeoInfo.nodeId)
-						{
-							// This output node is inside the Display Geo
-							// Do not use this output to avoid duplicates
-							bValidOutput = false;
-							break;
-						}
-
-						// Recurse
-						ParentId = FHoudiniEngineUtils::HapiGetParentNodeId(ParentId);
-					}
-
-					// If this output node is valid, add to the output Geos
-					if (bValidOutput)
-						GeoInfos.Add(CurOutGeoInfo);
-				}
-			}
-		}
-
-		// Handle the editable nodes for this geo
-		// Start by getting the number of editable nodes
-		int32 EditableNodeCount = 0;
-		HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
-			FHoudiniEngine::Get().GetSession(),
-			CurrentHapiObjectInfo.nodeId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
-			true, &EditableNodeCount));
-
-		if (EditableNodeCount > 0)
-		{
-			TArray<HAPI_NodeId> EditableNodeIds;
-			EditableNodeIds.SetNumUninitialized(EditableNodeCount);
-			HOUDINI_CHECK_ERROR(FHoudiniApi::GetComposedChildNodeList(
-				FHoudiniEngine::Get().GetSession(), 
-				AssetId, EditableNodeIds.GetData(), EditableNodeCount));
-
-			for (int32 nEditable = 0; nEditable < EditableNodeCount; nEditable++)
-			{
-				HAPI_GeoInfo CurrentEditableGeoInfo;
-				FHoudiniApi::GeoInfo_Init(&CurrentEditableGeoInfo);
-				HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(
-					FHoudiniEngine::Get().GetSession(), 
-					EditableNodeIds[nEditable], &CurrentEditableGeoInfo));
-
-				// Do not process the main display geo twice!
-				if (CurrentEditableGeoInfo.isDisplayGeo)
-					continue;
-
-				// We only handle editable curves for now
-				if (CurrentEditableGeoInfo.type != HAPI_GEOTYPE_CURVE)
-					continue;
-
-				// Add this geo to the geo info array
-				GeoInfos.Add(CurrentEditableGeoInfo);
-			}
-		}
-
-		// Handle the templated nodes if desired
-		if (InOutputTemplatedGeos)
-		{
-			// Start by getting the number of templated nodes
-			int32 TemplatedNodeCount = 0;
-			HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
-				FHoudiniEngine::Get().GetSession(),
-				CurrentHapiObjectInfo.nodeId,
-				HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_TEMPLATED,
-				true, &TemplatedNodeCount));
-
-			if (TemplatedNodeCount > 0)
-			{
-				TArray<HAPI_NodeId> TemplatedNodeIds;
-				TemplatedNodeIds.SetNumUninitialized(TemplatedNodeCount);
-				HOUDINI_CHECK_ERROR(FHoudiniApi::GetComposedChildNodeList(
-					FHoudiniEngine::Get().GetSession(),
-					CurrentHapiObjectInfo.nodeId, TemplatedNodeIds.GetData(), TemplatedNodeCount));
-
-				for (int32 nTemplated = 0; nTemplated < TemplatedNodeCount; nTemplated++)
-				{
-					HAPI_GeoInfo CurrentTemplatedGeoInfo;
-					FHoudiniApi::GeoInfo_Init(&CurrentTemplatedGeoInfo);
-					HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(
-						FHoudiniEngine::Get().GetSession(),
-						TemplatedNodeIds[nTemplated], &CurrentTemplatedGeoInfo));
-
-					// Do not process the main display geo twice!
-					if (CurrentTemplatedGeoInfo.isDisplayGeo)
-						continue;
-
-					// We don't want all the nested template node IDs,
-					// as our HDA could potentially be using other HDAs with nested template flags
-					// Make sure the parent of the templated node is either the HDA, the current OBJ or the Display SOP
-					HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId(CurrentTemplatedGeoInfo.nodeId);
-					if (ParentId != CurrentHapiObjectInfo.nodeId
-						&& ParentId != DisplayHapiGeoInfo.nodeId
-						&& ParentId != AssetId)
-					{
-						continue;
-					}
-
-					// Add this geo to the geo info array
-					GeoInfos.Add(CurrentTemplatedGeoInfo);
-				}
-			}
-		}
+			// Resolve and gather outputs (display / output / template nodes) from the GatherOutputsNodeId.
+			FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(GatherOutputsNodeId,
+				InUseOutputNodes,
+				InOutputTemplatedGeos,
+				GeoInfos);
+			
+		} // if (bObjectIsVisible)
 
 		// Iterates through the geos we want to process
 		for (int32 GeoIdx = 0; GeoIdx < GeoInfos.Num(); GeoIdx++)
