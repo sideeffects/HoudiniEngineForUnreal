@@ -24,8 +24,11 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "Examples/CurveInputExample.h"
+#include "CurveInputExample.h"
 
+#include "Engine/StaticMesh.h"
+
+#include "HoudiniAsset.h"
 #include "HoudiniPublicAPI.h"
 #include "HoudiniPublicAPIBlueprintLib.h"
 #include "HoudiniPublicAPIAssetWrapper.h"

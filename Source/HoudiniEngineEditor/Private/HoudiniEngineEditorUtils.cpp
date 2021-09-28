@@ -31,6 +31,7 @@
 #include "HoudiniEngineEditor.h"
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniAssetActor.h"
+#include "HoudiniAssetComponent.h"
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniAsset.h"
 #include "HoudiniOutput.h"
