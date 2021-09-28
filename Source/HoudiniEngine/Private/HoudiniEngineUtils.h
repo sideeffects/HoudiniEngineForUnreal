@@ -455,6 +455,17 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const int32& InStart = 0,
 			const int32& InCount = -1);
 
+		static bool GetEditLayerName(
+			const HAPI_NodeId& InGeoId,
+			const HAPI_PartId& InPartId,
+			FString& EditLayerName,
+			const HAPI_AttributeOwner& InAttribOwner = HAPI_ATTROWNER_INVALID);
+
+		static bool HasEditLayerName(
+			const HAPI_NodeId& InGeoId,
+			const HAPI_PartId& InPartId,
+			const HAPI_AttributeOwner& InAttribOwner = HAPI_ATTROWNER_INVALID);
+
 		// Helper function to access the "unreal_bake_folder" attribute
 		static bool GetBakeFolderAttribute(
 			const HAPI_NodeId& InGeoId,

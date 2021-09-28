@@ -67,7 +67,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			TSet<FString>& ClearedLayers,
 			TArray<UPackage*>& OutCreatedPackages);
 
-		static bool OutputLandscape_Temp(
+		static bool OutputLandscape_Generate(
 			UHoudiniOutput* InOutput,
 			TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedActors,
 			TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
@@ -80,13 +80,37 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			FHoudiniLandscapeExtent& LandscapeExtent,
 			FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
 			FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
+			TSet<FString>& ClearedLayers,
 			FHoudiniPackageParams InPackageParams,
 			TArray<UPackage*>& OutCreatedPackages);
 
+		static bool OutputLandscape_GenerateTile(
+			UHoudiniOutput* InOutput,
+			TArray<FHoudiniOutputObjectIdentifier>& StaleOutputObjects,
+			TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedActors,
+			TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
+			const TArray<ALandscapeProxy*>& InAllInputLandscapes,
+			USceneComponent* SharedLandscapeActorParent,
+			const FString& DefaultLandscapeActorPrefix,
+			UWorld* World,
+			const TMap<FString, float>& LayerMinimums,
+			const TMap<FString, float>& LayerMaximums,
+			FHoudiniLandscapeExtent& LandscapeExtent,
+			FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
+			FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
+			FHoudiniPackageParams InPackageParams,
+			bool bHasEditLayers,
+			const FString& InEditLayerName,
+			const FName& InAfterLayerName,
+			const TArray<FName>& AllLayerNames,
+			TSet<FString>& ClearedLayers,
+			TArray<UPackage*>& OutCreatedPackages,
+			TSet<ALandscapeProxy*>& OutActiveLandscapes);
+
 		// Outputting landscape as "editable layers" differs significantly from
 		// landscape outputs in "temp mode". To avoid a bigger spaghetti mess, we're
-		// dealing with editable layers completely separately.
-		static bool OutputLandscape_EditableLayer(
+		// dealing with modifying existing edit layers completely separately.
+		static bool OutputLandscape_ModifyLayer(
 			UHoudiniOutput* InOutput,
 			TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedActors,
 			TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
@@ -100,6 +124,8 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
 			FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
 			FHoudiniPackageParams InPackageParams,
+			const bool bHasEditLayers,
+			const FName& EditLayerName,
 			TSet<FString>& ClearedLayers,
 			TArray<UPackage*>& OutCreatedPackages);
 
@@ -119,7 +145,13 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			const FString& ActorName,
 			UWorld* World,
 			const TArray<ALandscapeProxy*>& LandscapeInputs
-			); 
+			);
+
+		// Iterate through the HGPO's and collect the (non-empty) edit layer names retrieved by the Houdini Output Translator.
+		// Return false if there are no edit layers (InEditLayers will also be emptied). 
+		static bool GetEditLayersFromOutput(UHoudiniOutput* InOutput, TArray<FString>& InEditLayers);
+
+		static void GetLandscapePaintLayers(ALandscape* Landscape, TMap<FName, int32>& EditLayers);
 
 	protected:
 
@@ -143,6 +175,23 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			FHoudiniLandscapeExtent& Extent,
 			const ULandscapeInfo* LandscapeInfo
 			);
+
+		static bool UpdateLandscapeMaterialLayers(
+			ALandscape* InLandscape,
+			const TArray<FLandscapeImportLayerInfo>& LayerInfos,
+			TMap<FName, int32>& OutPaintLayers,
+			bool bNoWeightBlend,
+			bool bHasEditLayers,
+			const FName& LayerName
+			);
+
+		// static bool ClearLandscapeLayers(
+		// 	ALandscape* InLandscape,
+		// 	const TArray<FLandscapeImportLayerInfo>& LayerInfos,
+		// 	TSet<FString>& ClearedLayers,
+		// 	bool bHasEditLayer,
+		// 	const FString& EditLayerName
+		// 	);
 
 		/**
 	     * Find a ALandscapeProxy actor that can be reused. It is important
@@ -183,9 +232,12 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 	     */
 		static void SetLandscapeActorAsOutput(
 			UHoudiniOutput* InOutput,
+			TArray<FHoudiniOutputObjectIdentifier> &StaleOutputObjects,
+			TSet<ALandscapeProxy*>& OutActiveLandscapes,
 			const TArray<ALandscapeProxy*>& InAllInputLandscapes,
 			const TMap<FString,FString>& OutputAttributes,
 			const TMap<FString,FString>& OutputArguments,
+			const FName& EditLayerName,
 			ALandscape* SharedLandscapeActor,
 			USceneComponent* SharedLandscapeActorParent,
 			bool bCreatedMainLandscape,
@@ -198,6 +250,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			const TArray<ALandscapeProxy*>& InAllInputLandscapes,
 			const TMap<FString, FString>& OutputAttributes,
 			const TMap<FString, FString>& OutputArguments,
+			const FName& EditLayerName,
 			ALandscape* SharedLandscapeActor,
 			USceneComponent* SharedLandscapeActorParent,
 			bool bCreatedMainLandscape,
@@ -206,9 +259,12 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 
 		static void SetLandscapeActorAsOutput_Temp(
 			UHoudiniOutput* InOutput,
+			TArray<FHoudiniOutputObjectIdentifier> &StaleOutputObjects,
+			TSet<ALandscapeProxy*>& OutActiveLandscapes,
 			const TArray<ALandscapeProxy*>& InAllInputLandscapes,
 			const TMap<FString, FString>& OutputAttributes,
 			const TMap<FString, FString>& OutputArguments,
+			const FName& EditLayerName,
 			ALandscape* SharedLandscapeActor,
 			USceneComponent* SharedLandscapeActorParent,
 			bool bCreatedMainLandscape,
@@ -237,12 +293,14 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 
 
 		static const FHoudiniGeoPartObject* GetHoudiniHeightFieldFromOutput(
-			UHoudiniOutput* InOutput);
+			UHoudiniOutput* InOutput,
+			const bool bMatchEditLayer,
+			const FName& EditLayerName);
 
 		static void GetHeightfieldsLayersFromOutput(
-			const UHoudiniOutput* InOutput,
-			const FHoudiniGeoPartObject& Heightfield,
-			TArray< const FHoudiniGeoPartObject* >& FoundLayers);
+			const ::UHoudiniOutput* InOutput,
+			const ::FHoudiniGeoPartObject& Heightfield,
+			const bool bMatchEditLayer, const ::FName& EditLayerName, TArray<const FHoudiniGeoPartObject*>& FoundLayers);
 
 		static bool GetHoudiniHeightfieldVolumeInfo(const FHoudiniGeoPartObject* HGPO, HAPI_VolumeInfo& VolumeInfo);
 
@@ -271,7 +329,8 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			FTransform& LandscapeTransform,
 			const bool NoResize = false,
 			const bool bOverrideZScale = false,
-			const float CustomZScale = 100.f);
+			const float CustomZScale = 100.f,
+			const bool bIsAdditive = false);
 
 		static bool ResizeHeightDataForLandscape(
 			TArray<uint16>& HeightData,
@@ -282,7 +341,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			FVector& LandscapeResizeFactor,
 			FVector& LandscapePositionOffset);
 
-		static bool CreateOrUpdateLandscapeLayers(
+		static bool CreateOrUpdateLandscapeLayerData(
 			const TArray<const FHoudiniGeoPartObject*>& FoundLayers,
 			const FHoudiniGeoPartObject& HeightField,
 			const int32& LandscapeXSize,
@@ -291,6 +350,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			const TMap<FString, float> &GlobalMaximums,
 			TArray<FLandscapeImportLayerInfo>& OutLayerInfos,
 			bool bIsUpdate,
+			bool bDefaultNoWeightBlending,
 			const FHoudiniPackageParams& InTilePackageParams,
 			const FHoudiniPackageParams& InLayerPackageParams,
 			TArray<UPackage*>& OutCreatedPackages);
@@ -373,7 +433,10 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			ALandscape* SharedLandscapeActor, // Landscape containing shared stated for streaming proxies
 			UWorld* InWorld, // World in which to spawn
 			ULevel* InLevel, // Level, contained in World, in which to spawn.
-			FHoudiniPackageParams InPackageParams);
+			FHoudiniPackageParams InPackageParams,
+			bool bHasEditLayers,
+			const FName& EditLayerName,
+			const FName& AfterLayerName);
 
 		// Destroy the given landscape and all its proxies
 		static void DestroyLandscape(ALandscape* Landscape);
@@ -433,6 +496,10 @@ public:
 		static UPhysicalMaterial* GetLandscapePhysicalMaterial(const FHoudiniGeoPartObject& InLayerHGPO);
 
 		static ULandscapeLayerInfoObject* GetLandscapeLayerInfoForLayer(const FHoudiniGeoPartObject& InLayerHGPO, const FName& InLayerName);
+
+		// Find or create the given layer. Optionally position it after the 'AfterLayerName'.
+		static int32 FindOrCreateEditLayer(ALandscape* Landscape, FName LayerName, FName AfterLayerName);
+		static bool SetActiveLandscapeLayer(ALandscape* Landscape, int32 LayerIndex);
 
 	private:
 

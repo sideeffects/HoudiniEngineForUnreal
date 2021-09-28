@@ -214,7 +214,45 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 	// TODO: Get bake base name
 	FString Label = Landscape->GetName();
 
+	if (!LandscapePointer->EditLayerName.IsNone())
+	{
+		Label = FString::Format(TEXT("{0} ({1})"), {Label, (LandscapePointer->EditLayerName.ToString())});
+	}
+
 	EHoudiniLandscapeOutputBakeType & LandscapeOutputBakeType = LandscapePointer->BakeType;
+
+	// Create a group for this output object
+	IDetailGroup& LandscapeGrp = HouOutputCategory.AddGroup(FName(*Label), FText::FromString(Label));
+	
+	// --------------------------------
+	// Modified edit layers, if there are any.
+	// --------------------------------
+
+	if (!LandscapePointer->EditLayerName.IsNone())
+	{
+		// Create label to display the edit layer name.
+
+		LandscapeGrp.AddWidgetRow()
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("LandscapeOutputEditLayers", "Edit Layer"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
+		.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		[
+			SNew(STextBlock)
+				.Text(FText::AsCultureInvariant(FText::AsCultureInvariant(LandscapePointer->EditLayerName.ToString())) )
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+		];
+	}
+
+	
+
+	// --------------------------------
+	// Bake options for landscape tile
+	// --------------------------------
 
 	// Get thumbnail pool for this builder
 	IDetailLayoutBuilder & DetailLayoutBuilder = HouOutputCategory.GetParentLayout();
@@ -223,7 +261,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 	TArray<TSharedPtr<FString>>* BakeOptionString = FHoudiniEngineEditor::Get().GetHoudiniLandscapeOutputBakeOptionsLabels();
 
 	// Create bake mesh name textfield.
-	IDetailGroup& LandscapeGrp = HouOutputCategory.AddGroup(FName(*Label), FText::FromString(Label));
+	
 	LandscapeGrp.AddWidgetRow()
 	.NameContent()
 	[
@@ -608,44 +646,6 @@ void FHoudiniOutputDetails::CreateLandscapeEditLayerOutputWidget_Helper(IDetailC
 		SNew(STextBlock)
 		.Text(FText::AsCultureInvariant(LayerName))
 		.Font(IDetailLayoutBuilder::GetDetailFont())
-
-		// SNew(SHorizontalBox)
-		// + SHorizontalBox::Slot()
-		// .Padding(2.0f, 0.0f)
-		// .VAlign(VAlign_Center)
-		// .FillWidth(1)
-		// [
-		// 	SNew(SEditableTextBox)
-		// 	.Text(FText::FromString(Label))
-		// 	.Font(IDetailLayoutBuilder::GetDetailFont())
-		// 	.ToolTipText(LOCTEXT("BakeNameTip", "The base name of the baked asset"))
-		// 	.HintText(LOCTEXT("BakeNameHintText", "Input bake name to override default"))
-		// 	.OnTextCommitted_Lambda([InOutput, OutputIdentifier](const FText& Val, ETextCommit::Type TextCommitType)
-		// 	{
-		// 		FHoudiniOutputDetails::OnBakeNameCommitted(Val, TextCommitType, InOutput, OutputIdentifier);
-		// 		FHoudiniEngineUtils::UpdateEditorProperties(InOutput, true);
-		// 	})
-		// ]
-		// + SHorizontalBox::Slot()
-		// .Padding(2.0f, 0.0f)
-		// .VAlign(VAlign_Center)
-		// .AutoWidth()
-		// [
-		// 	SNew(SButton)
-		// 	.ToolTipText(LOCTEXT("RevertNameOverride", "Revert bake name override"))
-		// 	.ButtonStyle(FEditorStyle::Get(), "NoBorder")
-		// 	.ContentPadding(0)
-		// 	.Visibility(EVisibility::Visible)
-		// 	.OnClicked_Lambda([InOutput, OutputIdentifier]() 
-		// 	{
-		// 		FHoudiniOutputDetails::OnRevertBakeNameToDefault(InOutput, OutputIdentifier);
-		// 		return FReply::Handled();
-		// 	})
-		// 	[
-		// 		SNew(SImage)
-		// 		.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
-		// 	]
-		// ]
 	];
 
 	// // Create the thumbnail for the landscape output object.

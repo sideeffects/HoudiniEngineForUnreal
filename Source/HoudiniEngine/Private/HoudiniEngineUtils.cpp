@@ -5597,6 +5597,52 @@ FHoudiniEngineUtils::GetTileAttribute(
 }
 
 bool
+FHoudiniEngineUtils::GetEditLayerName(
+	const HAPI_NodeId& InGeoId,
+	const HAPI_PartId& InPartId,
+	FString& EditLayerName,
+	const HAPI_AttributeOwner& InAttribOwner)
+{
+	// ---------------------------------------------
+	// Attribute: tile
+	// ---------------------------------------------
+	HAPI_AttributeInfo AttribInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttribInfo);
+
+	TArray<FString> StrData;
+	if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+		InGeoId, InPartId,
+		HAPI_UNREAL_ATTRIB_LANDSCAPE_EDITLAYER_NAME,
+		AttribInfo,
+		StrData,
+		0,
+		InAttribOwner))
+	{
+		if (StrData.Num() > 0)
+		{
+			EditLayerName = StrData[0];
+			return true;
+		}
+	}
+
+	EditLayerName = FString();
+	return false;
+}
+
+bool FHoudiniEngineUtils::HasEditLayerName(const HAPI_NodeId& InGeoId, const HAPI_PartId& InPartId,
+	const HAPI_AttributeOwner& InAttribOwner)
+{
+	// ---------------------------------------------
+	// Attribute: unreal_landscape_
+	// ---------------------------------------------
+
+	return FHoudiniEngineUtils::HapiCheckAttributeExists(
+		InGeoId, InPartId,
+		HAPI_UNREAL_ATTRIB_LANDSCAPE_EDITLAYER_NAME,
+		InAttribOwner);
+}
+
+bool
 FHoudiniEngineUtils::GetBakeFolderAttribute(
 	const HAPI_NodeId& InGeoId,
 	const HAPI_AttributeOwner& InAttributeOwner,

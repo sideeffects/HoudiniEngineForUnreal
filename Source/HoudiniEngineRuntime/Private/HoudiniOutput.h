@@ -100,6 +100,10 @@ public:
 
 	UPROPERTY()
 	EHoudiniLandscapeOutputBakeType BakeType;
+
+	// Edit layer to which this output corresponds, if applicable. 
+	UPROPERTY()
+	FName EditLayerName;
 };
 
 
