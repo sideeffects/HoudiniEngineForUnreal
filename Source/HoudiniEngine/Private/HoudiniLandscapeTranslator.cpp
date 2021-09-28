@@ -2765,8 +2765,8 @@ FHoudiniLandscapeTranslator::ConvertHeightfieldDataToLandscapeData(
 			{
 				DoubleValue += LandscapeZeroValue;
 			}
-			bValueClippedMin = bValueClippedMin | (DoubleValue < 0);
-			bValueClippedMax = bValueClippedMax | (DoubleValue >= DigitZRange);
+			bValueClippedMin = bValueClippedMin || (DoubleValue < 0);
+			bValueClippedMax = bValueClippedMax || (DoubleValue >= DigitZRange);
 			
 			const int32 IntValue = FMath::RoundToInt(DoubleValue);
 			IntHeightData[nUnreal++] = FMath::Clamp(IntValue, 0, FMath::RoundToInt(DigitZRange)); 
