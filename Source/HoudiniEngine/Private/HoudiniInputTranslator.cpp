@@ -148,6 +148,9 @@ FHoudiniInputTranslator::BuildAllInputs(
 	TArray<TWeakObjectPtr<UHoudiniParameter>> InputParameters;
 	for (auto Param : Parameters)
 	{
+		if (!Param)
+			continue;
+		
 		if (Param->GetParameterType() == EHoudiniParameterType::Input)
 		{
 			int InsertionIndex = InputParameters.Num();

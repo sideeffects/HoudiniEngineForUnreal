@@ -327,6 +327,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 				{
 					bOutHasHoudiniStaticMeshOutput &= CurOutput->HasAnyCurrentProxy();
 				}
+
 				break;
 			}
 
@@ -549,6 +550,17 @@ FHoudiniOutputTranslator::UpdateOutputs(
 					continue;
 
 				if (Landscape->GetLandscapeInfo()->Proxies.Num() == 0)
+				if (!IsValid(Landscape))
+					continue;
+
+				ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
+				if (!LandscapeInfo)
+				{
+					Landscape->Destroy();
+					continue;
+				}
+				
+				if (LandscapeInfo->Proxies.Num() == 0)
 					Landscape->Destroy();
 			}
 		}
@@ -998,6 +1010,10 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	// match them with theit corresponding height volume after
 	TArray<FHoudiniGeoPartObject> UnassignedVolumeParts;
 
+	// When receiving landscape edit layers, we are no longer to split
+	// outputs based on 'height' volumes 
+	TSet<int32> TileIds;
+	
 	// Iterate through all objects.
 	int32 OutputIdx = 1;
 	for (int32 ObjectIdx = 0; ObjectIdx < ObjectInfos.Num(); ObjectIdx++)
@@ -1030,6 +1046,10 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 		// In most case, it will only be the display geo, 
 		// but we may also want to process editable geos as well
 		TArray<HAPI_GeoInfo> GeoInfos;
+
+		// Track (heightfield) tile ids in order to determine
+		// when to create new tiles (used when outputting landscape edit layers).
+		TSet<uint32> FoundTileIndices;
 
 		// Get the Display Geo's info
 		HAPI_GeoInfo DisplayHapiGeoInfo;
@@ -1592,6 +1612,8 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 							else
 								currentHGPO.VolumeTileIndex = -1;
 						}
+
+						currentHGPO.bHasEditLayers = FHoudiniEngineUtils::GetEditLayerName(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, currentHGPO.VolumeLayerName, HAPI_ATTROWNER_PRIM);
 					}
 				}
 				currentHGPO.VolumeInfo = CurrentVolumeInfo;
@@ -1667,14 +1689,32 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				else
 				{
 					// We couldn't find a valid output object, so create a new one
-
-					// If the current part is a volume, only create a new output object
-					// if the volume's name is "height", if not store the HGPO aside
-					if (currentHGPO.Type == EHoudiniPartType::Volume
-						&& !currentHGPO.VolumeName.Equals(HAPI_UNREAL_LANDSCAPE_HEIGHT_VOLUME_NAME, ESearchCase::IgnoreCase))
+					if (currentHGPO.Type == EHoudiniPartType::Volume)
 					{
-						UnassignedVolumeParts.Add(currentHGPO);
-						continue;
+						bool bBatchHGPO = false;
+						if(!currentHGPO.VolumeName.Equals(HAPI_UNREAL_LANDSCAPE_HEIGHT_VOLUME_NAME, ESearchCase::IgnoreCase))
+						{
+							// This volume is not a height volume, so it will be batched into a single HGPO.
+							bBatchHGPO = true;
+						}
+						else if (currentHGPO.bHasEditLayers)
+						{
+							if (FoundTileIndices.Contains(currentHGPO.VolumeTileIndex))
+							{
+								// If this volume name is height, AND we have edit layers enabled, check to see whether
+								// this is a new tile. If this is NOT a new tile, we assume that this is simply content
+								// for a new edit layer on the current tile. Batch it!
+								bBatchHGPO = true;
+							}
+						}
+						// Ensure this tile is tracked
+						FoundTileIndices.Add(currentHGPO.VolumeTileIndex);
+						if (bBatchHGPO)
+						{
+							// We want to batch this HGPO with the output object. Process it later.
+							UnassignedVolumeParts.Add(currentHGPO);
+							continue;
+						}
 					}
 
 					// Create a new output object
