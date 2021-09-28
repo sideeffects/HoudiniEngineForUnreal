@@ -25,6 +25,7 @@
 */
 
 #include "HoudiniAssetActor.h"
+#include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"
 #include "HoudiniPDGAssetLink.h"
 
@@ -141,6 +142,12 @@ bool
 AHoudiniAssetActor::IsUsedForPreview() const
 {
 	return HasAnyFlags(RF_Transient);
+}
+
+UHoudiniPDGAssetLink*
+AHoudiniAssetActor::GetPDGAssetLink() const
+{
+	return IsValid(HoudiniAssetComponent) ? HoudiniAssetComponent->GetPDGAssetLink() : nullptr;
 }
 
 #undef LOCTEXT_NAMESPACE
