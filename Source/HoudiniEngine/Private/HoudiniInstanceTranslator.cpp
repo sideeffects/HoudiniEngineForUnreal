@@ -1464,6 +1464,13 @@ FHoudiniInstanceTranslator::GetAttributeInstancerObjectsAndTransforms(
 		TMap<FString, UObject *> ObjectsToInstance;
 		for (const auto& Iter : PointInstanceValues)
 		{
+			// NOTE: We can't check whether the path is valid using StaticFindObjectSafe
+			//       since it will return false if the package is not currently loaded into memory.
+			// if (!StaticFindObjectSafe( UObject::StaticClass(), nullptr, *Iter))
+			// {
+			// 	HOUDINI_LOG_WARNING(TEXT("Could not find object for instancing: %s"), *Iter);
+			// 	continue;
+			// }
 			if (!ObjectsToInstance.Contains(Iter))
 			{
 				// To avoid trying to load an object that fails multiple times,
