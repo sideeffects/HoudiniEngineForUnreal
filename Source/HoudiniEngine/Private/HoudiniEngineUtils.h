@@ -73,6 +73,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Return a specified HAPI status string.
 		static const FString GetStatusString(HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity);
 
+		// HAPI : Return the string that corresponds to the given string handle.
+		static FString HapiGetString(int32 StringHandle);
+
 		// Return a string representing cooking result.
 		static const FString GetCookResult();
 
@@ -132,6 +135,26 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		// HAPI : Retrieve HAPI_ObjectInfo's from given asset node id.
 		static bool HapiGetObjectInfos(const HAPI_NodeId& InNodeId, TArray<HAPI_ObjectInfo>& OutObjectInfos, TArray<HAPI_Transform>& OutObjectTransforms);
+
+		// Traverse from the Child up to the Root node to determine whether the ChildNode is fully visible
+		// inside the RootNode.
+		// - The Obj node itself is visible
+		// - All parent nodes are visible
+		// - Only has Object subnet parents (if we find a parent with non-Object nodetype then it's not visible).
+		static bool IsObjNodeFullyVisible(const TSet<HAPI_NodeId>& AllObjectIds, const HAPI_NodeId& RootNodeId, const HAPI_NodeId& ChildNodeId);
+
+		static bool IsSopNode(const HAPI_NodeId& NodeId);
+		
+		static bool ContainsSopNodes(const HAPI_NodeId& NodeId);
+
+		// Get the immediate output geo infos for the given Geometry object network.
+		// Find immediate Display and output nodes (if enabled).
+	    // If bIgnoreOutputNodes is false, only Display nodes will be retrieved.
+		// If bIgnoreOutputNodes is true, any output nodes will take precedence over display nodes.
+		static bool GatherImmediateOutputGeoInfos(const int& InNodeId, const bool bUseOutputNodes, const bool bGatherTemplateNodes, TArray<HAPI_GeoInfo>&);
+
+		// HAPI: Retrieve absolute path to the given Node
+		static bool HapiGetAbsNodePath(const HAPI_NodeId& InNodeId, FString& OutPath);
 
 		// HAPI: Retrieve Path to the given Node, relative to the given Node
 		static bool HapiGetNodePath(const HAPI_NodeId& InNodeId, const HAPI_NodeId& InRelativeToNodeId, FString& OutPath);
@@ -431,6 +454,17 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const HAPI_AttributeOwner& InAttribOwner = HAPI_ATTROWNER_INVALID,
 			const int32& InStart = 0,
 			const int32& InCount = -1);
+
+		static bool GetEditLayerName(
+			const HAPI_NodeId& InGeoId,
+			const HAPI_PartId& InPartId,
+			FString& EditLayerName,
+			const HAPI_AttributeOwner& InAttribOwner = HAPI_ATTROWNER_INVALID);
+
+		static bool HasEditLayerName(
+			const HAPI_NodeId& InGeoId,
+			const HAPI_PartId& InPartId,
+			const HAPI_AttributeOwner& InAttribOwner = HAPI_ATTROWNER_INVALID);
 
 		// Helper function to access the "unreal_bake_folder" attribute
 		static bool GetBakeFolderAttribute(

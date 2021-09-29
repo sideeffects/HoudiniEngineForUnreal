@@ -694,9 +694,26 @@ UHoudiniOutput::HeightfieldMatch(const FHoudiniGeoPartObject& InHGPO, const bool
 		// We've specified if we want the name to match/to be different:
 		// when looking in previous outputs, we want the name to match
 		// when looking in newly created outputs, we want to be sure the names are different
-		bool bNameMatch = InHGPO.VolumeName.Equals(currentHGPO.VolumeName, ESearchCase::IgnoreCase);
-		if (bNameMatch != bVolumeNameShouldMatch)
-			continue;
+		if (bVolumeNameShouldMatch)
+		{
+			// HasEditLayers state should match.
+			if (!(InHGPO.bHasEditLayers == currentHGPO.bHasEditLayers))
+			{
+				continue;
+			}
+			
+			// If we have edit layers, ensure the names match
+			if (InHGPO.bHasEditLayers && !InHGPO.VolumeLayerName.Equals(currentHGPO.VolumeLayerName, ESearchCase::IgnoreCase))
+			{
+				continue;
+			}
+
+			// Check whether the volume name match.
+			if (!(InHGPO.VolumeName.Equals(currentHGPO.VolumeName, ESearchCase::IgnoreCase)))
+			{
+				continue;
+			}
+		}
 
 		return true;
 	}

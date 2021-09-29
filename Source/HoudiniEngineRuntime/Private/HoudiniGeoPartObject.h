@@ -343,6 +343,13 @@ public:
 	UPROPERTY()
 	FString VolumeName;
 
+	UPROPERTY()
+	bool bHasEditLayers;
+
+	// Name of edit layer 
+	UPROPERTY()
+	FString VolumeLayerName;
+
 	//
 	UPROPERTY()
 	int32 VolumeTileIndex;
