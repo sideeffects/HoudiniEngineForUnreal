@@ -519,6 +519,9 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			if (HAC->NeedsToWaitForInputHoudiniAssets())
 				break;
 
+			// Make sure we empty the nodes to cook array to avoid cook errors caused by stale nodes 
+			HAC->NodeIdsToCook.Empty();
+
 			FGuid TaskGuid;
 			FString HapiAssetName;
 			UHoudiniAsset* HoudiniAsset = HAC->GetHoudiniAsset();
