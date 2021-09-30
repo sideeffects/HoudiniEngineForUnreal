@@ -262,8 +262,8 @@ public:
 	void InsertInputObjectAt(const int32& AtIndex);
 	void InsertInputObjectAt(const EHoudiniInputType& InType, const int32& AtIndex);
 
-	void DeleteInputObjectAt(const int32& AtIndex);
-	void DeleteInputObjectAt(const EHoudiniInputType& InType, const int32& AtIndex);
+	void DeleteInputObjectAt(const int32& AtIndex, const bool bInRemoveIndexFromArray=true);
+	void DeleteInputObjectAt(const EHoudiniInputType& InType, const int32& AtIndex, const bool bInRemoveIndexFromArray=true);
 
 	void DuplicateInputObjectAt(const int32& AtIndex);
 	void DuplicateInputObjectAt(const EHoudiniInputType& InType, const int32& AtIndex);
