@@ -135,13 +135,32 @@ UHoudiniPublicAPIInput::UpdateHoudiniInput(UHoudiniInput* const InInput) const
 		return false;
 	}
 
-	// Set / change the input type
+	bool bAnyChanges = false;
+
+	// If the input type didn't change, but the new/incoming InputObjects array is now smaller than the current input
+	// objects array on the input, delete the surplus objects
 	const EHoudiniInputType InputType = GetInputType();
-	bool bBlueprintStructureModified = false;
-	InInput->SetInputType(InputType, bBlueprintStructureModified);
+	const int32 NumInputObjects = InputObjects.Num();
+	if (InputType == InInput->GetInputType())
+	{
+		const int32 OldNumInputObjects = InInput->GetNumberOfInputObjects();
+		if (NumInputObjects < OldNumInputObjects)
+		{
+			for (int32 Index = OldNumInputObjects - 1; Index >= NumInputObjects; --Index)
+			{
+				InInput->DeleteInputObjectAt(Index);
+			}
+			bAnyChanges = true;
+		}
+	}
+	else
+	{
+		// Set / change the input type
+		bool bBlueprintStructureModified = false;
+		InInput->SetInputType(InputType, bBlueprintStructureModified);
+	}
 
 	// Set any general settings
-	bool bAnyChanges = false;
 	if (InInput->GetKeepWorldTransform() != bKeepWorldTransform)
 	{
 		InInput->SetKeepWorldTransform(bKeepWorldTransform);
@@ -154,22 +173,34 @@ UHoudiniPublicAPIInput::UpdateHoudiniInput(UHoudiniInput* const InInput) const
 	}
 
 	// Copy / set the input objects on the Houdini Input
-	const int32 NumInputObjects = InputObjects.Num();
 	InInput->SetInputObjectsNumber(InputType, NumInputObjects);
 	for (int32 Index = 0; Index < NumInputObjects; ++Index)
 	{
 		UObject* const InputObject = InputObjects[Index];
+		UObject const* CurrentInputObject = InInput->GetInputObjectAt(Index);
 
 		if (!IsValid(InputObject))
 		{
+			// Delete existing input object, but leave its space in the array, we'll set that to nullptr
+			if (CurrentInputObject)
+			{
+				const bool bRemoveIndexFromArray = false;
+				InInput->DeleteInputObjectAt(Index, bRemoveIndexFromArray);
+			}
 			InInput->SetInputObjectAt(Index, nullptr);
+
+			if (!bAnyChanges && CurrentInputObject)
+				bAnyChanges = true;
 		}
 		else
 		{
-			ConvertAPIInputObjectAndAssignToInput(InputObject, InInput, Index);
-			UHoudiniInputObject *DstInputObject = InInput->GetHoudiniInputObjectAt(Index);
-			if (DstInputObject)
-				CopyPropertiesToHoudiniInputObject(InputObject, DstInputObject);
+			UObject const* const NewInputObject = ConvertAPIInputObjectAndAssignToInput(InputObject, InInput, Index);
+			UHoudiniInputObject *DstHoudiniInputObject = InInput->GetHoudiniInputObjectAt(Index);
+			if (DstHoudiniInputObject)
+				CopyPropertiesToHoudiniInputObject(InputObject, DstHoudiniInputObject);
+
+			if (!bAnyChanges && NewInputObject != CurrentInputObject)
+				bAnyChanges = true;
 		}
 	}
 
@@ -238,7 +269,19 @@ UHoudiniPublicAPIInput::ConvertAPIInputObjectAndAssignToInput(UObject* InAPIInpu
 	if (!IsValid(InHoudiniInput))
 		return nullptr;
 
+	UObject const* const CurrentInputObject = InHoudiniInput->GetInputObjectAt(InInputIndex);
+	
 	UObject* const ObjectToSet = (InAPIInputObject && !InAPIInputObject->IsPendingKill()) ? InAPIInputObject : nullptr;
+
+	// Delete the existing input object if it is invalid or differs from ObjectToSet
+	if (CurrentInputObject && (!IsValid(CurrentInputObject) || CurrentInputObject != ObjectToSet))
+	{
+		// Keep the space/index in the array, we're going to set the new input object at the same index
+		const bool bRemoveIndexFromArray = false;
+		InHoudiniInput->DeleteInputObjectAt(InInputIndex, bRemoveIndexFromArray);
+		InHoudiniInput->MarkChanged(true);
+	}
+
 	InHoudiniInput->SetInputObjectAt(InInputIndex, ObjectToSet);
 
 	return ObjectToSet;
@@ -425,14 +468,69 @@ UHoudiniPublicAPICurveInputObject::CopyToHoudiniSplineComponent(UHoudiniSplineCo
 	if (!IsValid(InSpline))
 		return;
 
-	InSpline->SetClosedCurve(bClosed);
-	InSpline->SetReversed(bReversed);
-	InSpline->SetCurveType(ToHoudiniCurveType(CurveType));
-	InSpline->SetCurveMethod(ToHoudiniCurveMethod(CurveMethod));
-	InSpline->SetCurveBreakpointParameterization(ToHoudiniCurveBreakpointParamterization(CurveBreakpointParameterization));
-	InSpline->ResetCurvePoints();
-	InSpline->ResetDisplayPoints();
-	InSpline->CurvePoints = CurvePoints;
+	bool bAnyChanges = false;
+	if (bClosed != InSpline->IsClosedCurve())
+	{
+		InSpline->SetClosedCurve(bClosed);
+		bAnyChanges = true;
+	}
+	if (bReversed != InSpline->IsReversed())
+	{
+		InSpline->SetReversed(bReversed);
+		bAnyChanges = true;
+	}
+	const EHoudiniCurveType HoudiniCurveType = ToHoudiniCurveType(CurveType);
+	if (HoudiniCurveType != InSpline->GetCurveType())
+	{
+		InSpline->SetCurveType(HoudiniCurveType);
+		bAnyChanges = true;
+	}
+	const EHoudiniCurveMethod HoudiniCurveMethod = ToHoudiniCurveMethod(CurveMethod);
+	if (HoudiniCurveMethod != InSpline->GetCurveMethod())
+	{
+		InSpline->SetCurveMethod(HoudiniCurveMethod);
+		bAnyChanges = true;
+	}
+	const EHoudiniCurveBreakpointParameterization HoudiniCurveBreakpointParameterization = ToHoudiniCurveBreakpointParamterization(CurveBreakpointParameterization);
+	if (HoudiniCurveBreakpointParameterization != InSpline->GetCurveBreakpointParameterization())
+	{
+		InSpline->SetCurveBreakpointParameterization(HoudiniCurveBreakpointParameterization);
+		bAnyChanges = true;
+	}
+
+	// Check if there are curve point differences
+	bool bUpdatePoints = false;
+	if (CurvePoints.Num() == InSpline->CurvePoints.Num())
+	{
+		const int32 NumPoints = CurvePoints.Num();
+		for (int32 Index = 0; Index < NumPoints; ++Index)
+		{
+			const FTransform& A = CurvePoints[Index];
+			const FTransform& B = InSpline->CurvePoints[Index];
+
+			if (!A.Equals(B, 0.0f))
+			{
+				bUpdatePoints = true;
+				break;
+			}
+		}
+	}
+	else
+	{
+		bUpdatePoints = true;
+	}
+
+	// If there are curve point differences, update the points
+	if (bUpdatePoints)
+	{
+		InSpline->ResetCurvePoints();
+		InSpline->ResetDisplayPoints();
+		InSpline->CurvePoints = CurvePoints;
+		bAnyChanges = true;
+	}
+
+	if (bAnyChanges)
+		InSpline->MarkChanged(true);
 }
 
 EHoudiniCurveType
@@ -643,25 +741,76 @@ UHoudiniPublicAPICurveInput::ConvertAPIInputObjectAndAssignToInput(UObject* InAP
 	// If the input is an API curve wrapper, convert it to a UHoudiniSplineComponent
 	if (IsValid(InAPIInputObject) && InAPIInputObject->IsA<UHoudiniPublicAPICurveInputObject>() && IsValid(InHoudiniInput))
 	{
-		UHoudiniInputHoudiniSplineComponent* FromHoudiniSplineInputComponent = nullptr;
-		const bool bAttachToParent = true;
-		const bool bAppendToInputArray = false;
-		bool bBlueprintStructureModified;
-		UHoudiniInputHoudiniSplineComponent* const NewHoudiniInputObject = InHoudiniInput->CreateHoudiniSplineInput(FromHoudiniSplineInputComponent, bAttachToParent, bAppendToInputArray, bBlueprintStructureModified);
-		if (IsValid(NewHoudiniInputObject))
+		UHoudiniPublicAPICurveInputObject* const InAPICurveInputObject = Cast<UHoudiniPublicAPICurveInputObject>(InAPIInputObject);
+		
+		// If there is an existing input object at this index, and it is a HoudiniSplineComponent, then just update it
+		// otherwise, create a new input object wrapper
+		bool bCreateNew = false;
+		UHoudiniInputObject const* const CurrentHoudiniInputObject = InHoudiniInput->GetHoudiniInputObjectAt(InInputIndex); 
+		UObject* const CurrentInputObject = InHoudiniInput->GetInputObjectAt(InInputIndex);
+		if (IsValid(CurrentInputObject) && CurrentInputObject->IsA<UHoudiniSplineComponent>() &&
+			IsValid(CurrentHoudiniInputObject) && CurrentHoudiniInputObject->IsA<UHoudiniInputHoudiniSplineComponent>())
 		{
-			UHoudiniSplineComponent* HoudiniSplineComponent = NewHoudiniInputObject->GetCurveComponent();
-			if (IsValid(HoudiniSplineComponent))
+			UHoudiniSplineComponent* CurrentSpline = Cast<UHoudiniSplineComponent>(CurrentInputObject);
+			if (IsValid(CurrentSpline))
 			{
-				// Populate the HoudiniSplineComponent from the curve wrapper
-				Cast<UHoudiniPublicAPICurveInputObject>(InAPIInputObject)->CopyToHoudiniSplineComponent(HoudiniSplineComponent);
-				Object = HoudiniSplineComponent;
+				if (IsValid(InAPICurveInputObject))
+				{
+					InAPICurveInputObject->CopyToHoudiniSplineComponent(CurrentSpline);
+					// Currently the CopyToHoudiniSplineComponent function does not return an indication of if anything
+					// actually changed, so we have to assume this is a change
+					
+					InHoudiniInput->MarkChanged(true);
+				}
+				Object = CurrentSpline;
+			}
+			else
+			{
+				bCreateNew = true;
 			}
 		}
-		
-		TArray<UHoudiniInputObject*>* HoudiniInputObjectArray = InHoudiniInput->GetHoudiniInputObjectArray(InHoudiniInput->GetInputType());
-		if (HoudiniInputObjectArray && HoudiniInputObjectArray->IsValidIndex(InInputIndex))
-			(*HoudiniInputObjectArray)[InInputIndex] = IsValid(NewHoudiniInputObject) ? NewHoudiniInputObject : nullptr; 
+		else
+		{
+			bCreateNew = true;
+		}
+
+		if (bCreateNew)
+		{
+			// Replace any object that is already at this index: we remove the current input object first, then
+			// we create the new one
+			if (CurrentInputObject)
+			{
+				// Keep the space/index in the array, we're going to set the new input object at the same index
+				const bool bRemoveIndexFromArray = false;
+				InHoudiniInput->DeleteInputObjectAt(InInputIndex, bRemoveIndexFromArray);
+				InHoudiniInput->MarkChanged(true);
+			}
+			
+			UHoudiniInputHoudiniSplineComponent* FromHoudiniSplineInputComponent = nullptr;
+			const bool bAttachToParent = true;
+			const bool bAppendToInputArray = false;
+			bool bBlueprintStructureModified;
+			UHoudiniInputHoudiniSplineComponent* const NewHoudiniInputObject = InHoudiniInput->CreateHoudiniSplineInput(
+				FromHoudiniSplineInputComponent, bAttachToParent, bAppendToInputArray, bBlueprintStructureModified);
+			if (IsValid(NewHoudiniInputObject))
+			{
+				UHoudiniSplineComponent* HoudiniSplineComponent = NewHoudiniInputObject->GetCurveComponent();
+				if (IsValid(HoudiniSplineComponent))
+				{
+					// Populate the HoudiniSplineComponent from the curve wrapper
+					if (IsValid(InAPICurveInputObject))
+						InAPICurveInputObject->CopyToHoudiniSplineComponent(HoudiniSplineComponent);
+					Object = HoudiniSplineComponent;
+				}
+			}
+			
+			TArray<UHoudiniInputObject*>* HoudiniInputObjectArray = InHoudiniInput->GetHoudiniInputObjectArray(InHoudiniInput->GetInputType());
+			if (HoudiniInputObjectArray && HoudiniInputObjectArray->IsValidIndex(InInputIndex))
+			{
+				(*HoudiniInputObjectArray)[InInputIndex] = IsValid(NewHoudiniInputObject) ? NewHoudiniInputObject : nullptr;
+				InHoudiniInput->MarkChanged(true);
+			}
+		}
 	}
 	else
 	{

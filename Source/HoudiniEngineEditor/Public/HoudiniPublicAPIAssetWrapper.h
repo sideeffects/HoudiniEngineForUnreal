@@ -894,7 +894,7 @@ public:
 	bool SetInputAtIndex(const int32 InNodeInputIndex, const UHoudiniPublicAPIInput* InInput);
 
 	/**
-	 * Get the node input at the specific index and sets OutInput. This is a copy of the input structure. Changes
+	 * Get the node input at the specific index and sets OutInput. This is a copy of the input structure. Changes to
 	 * properties in OutInput won't affect the instantiated HDA until a subsequent call to SetInputAtIndex.
 	 * @param InNodeInputIndex The index of the node input to get.
 	 * @param OutInput Copy of the input configuration and data for node input index InNodeInputIndex.
@@ -914,7 +914,7 @@ public:
 	/**
 	 * Get all node inputs.
 	 * @param OutInputs All node inputs as a map, with the node input index as key. The input configuration is copied
-	 * from instantiated asset, and changing an input property from the entry in this map will not affect the
+	 * from the instantiated asset, and changing an input property from the entry in this map will not affect the
 	 * instantiated asset until a subsequent SetInputsAtIndices() call or SetInputAtIndex() call.
 	 * @return false if the wrapper is invalid.
 	 */
@@ -932,7 +932,8 @@ public:
 	bool SetInputParameter(const FName& InParameterName, const UHoudiniPublicAPIInput* InInput);
 
 	/**
-	 * Get a parameter-based input via parameter name.
+	 * Get a parameter-based input via parameter name. This is a copy of the input structure. Changes to properties in
+	 * OutInput won't affect the instantiated HDA until a subsequent call to SetInputParameter.
 	 * @param InParameterName The name of the input parameter.
 	 * @param OutInput A copy of the input configuration for InParameterName.
 	 * @return false if the wrapper is invalid, InParameterName is not a valid input parameter, or the current input
@@ -951,8 +952,8 @@ public:
 
 	/**
 	 * Get a parameter-based inputs as a map
-	 * @param OutInputs All parameter inputs as a map, with the input parameter name as key. The input configuration is copied
-	 * from instantiated asset, and changing an input property from the entry in this map will not affect the
+	 * @param OutInputs All parameter inputs as a map, with the input parameter name as key. The input configuration is
+	 * copied from the instantiated asset, and changing an input property from the entry in this map will not affect the
 	 * instantiated asset until a subsequent SetInputParameters() call or SetInputParameter() call.
 	 * @return false if the wrapper is invalid.
 	 */
