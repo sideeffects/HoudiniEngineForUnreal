@@ -873,9 +873,10 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 		
 		// Ensure the existing landscape actor transform is correct.
 		SharedLandscapeActor->SetActorRelativeTransform(LandscapeTransform);
+
+		bSharedLandscapeMaterialChanged = (SharedLandscapeActor->LandscapeMaterial != LandscapeMaterial);
+		bSharedLandscapeHoleMaterialChanged = SharedLandscapeActor->LandscapeHoleMaterial != LandscapeHoleMaterial;
 		
-		bSharedLandscapeMaterialChanged = LandscapeMaterial != nullptr ? (SharedLandscapeActor->GetLandscapeMaterial() != LandscapeMaterial) : false;
-		bSharedLandscapeHoleMaterialChanged = LandscapeHoleMaterial != nullptr ? (SharedLandscapeActor->GetLandscapeHoleMaterial() != LandscapeHoleMaterial) : false;
 		if (bSharedLandscapeMaterialChanged || bSharedLandscapeHoleMaterialChanged)
 		{
 			DoPreEditChangeProperty(SharedLandscapeActor, "LandscapeMaterial");
@@ -898,6 +899,12 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 			DoPreEditChangeProperty(SharedLandscapeActor, "DefaultPhysMaterial");
 			SharedLandscapeActor->DefaultPhysMaterial = LandscapePhysicalMaterial;
 			SharedLandscapeActor->ChangedPhysMaterial();
+		}
+
+		if (bSharedLandscapeMaterialChanged || bSharedLandscapeHoleMaterialChanged)
+		{
+			check(SharedLandscapeActor);
+			DoPostEditChangeProperty(SharedLandscapeActor, "LandscapeMaterial");
 		}
 	}
 
@@ -1137,6 +1144,37 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_Generate] Tile Num Sections/Component: %d"), NumSectionPerLandscapeComponent);
 #endif
 
+	// ----------------------------------------------------
+	// Update tile materials
+	// ----------------------------------------------------
+	auto UpdateTileMaterialsFn = [&] ()
+	{
+		bTileLandscapeMaterialChanged = (TileActor->LandscapeMaterial != LandscapeMaterial);
+		bTileLandscapeHoleMaterialChanged = (TileActor->LandscapeHoleMaterial != LandscapeHoleMaterial);
+		
+		if (bTileLandscapeMaterialChanged || bTileLandscapeHoleMaterialChanged)
+			DoPreEditChangeProperty(TileActor, "LandscapeMaterial");
+		
+		if (bTileLandscapeMaterialChanged)
+			TileActor->LandscapeMaterial = LandscapeMaterial;
+
+		if (bTileLandscapeHoleMaterialChanged)
+			TileActor->LandscapeHoleMaterial = LandscapeHoleMaterial;
+
+		bTilePhysicalMaterialChanged = LandscapePhysicalMaterial != nullptr ? TileActor->DefaultPhysMaterial != LandscapePhysicalMaterial : false;
+		if (bTilePhysicalMaterialChanged)
+		{
+			DoPreEditChangeProperty(TileActor, "DefaultPhysMaterial");
+			TileActor->DefaultPhysMaterial = LandscapePhysicalMaterial;
+			//TileActor->ChangedPhysMaterial();
+		}
+
+		if (bTileLandscapeMaterialChanged || bTileLandscapeHoleMaterialChanged)
+		{
+			DoPostEditChangeProperty(TileActor, "LandscapeMaterial");
+		}
+	};
+
 	if (!TileActor)
 	{
 		// Create a new Landscape tile
@@ -1163,6 +1201,8 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 		TileActor->GetLandscapeActor()->bCanHaveLayersContent = bHasEditLayers;
 		LandscapeInfo = TileActor->GetLandscapeInfo();
 
+		UpdateTileMaterialsFn();
+
 		TMap<FName, int32> ExistingLayers;
 		UpdateLandscapeMaterialLayers(
 			TileActor->GetLandscapeActor(),
@@ -1173,9 +1213,6 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 			InEditLayerFName);
 
 		bCreatedTileActor = true;
-		bTileLandscapeMaterialChanged = true;
-		bTileLandscapeHoleMaterialChanged = true;
-		bTilePhysicalMaterialChanged = true;
 		bHeightLayerDataChanged = true;
 		bCustomLayerDataChanged = true;
 	}
@@ -1187,10 +1224,6 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 		
 		LandscapeInfo = TileActor->GetLandscapeInfo();
 		TargetLandscape->bCanHaveLayersContent = bHasEditLayers;
-
-		// Update landscape edit layers to match layer infos
-		TMap<FName, int32> ExistingLayers;
-		UpdateLandscapeMaterialLayers(TargetLandscape, LayerInfos, ExistingLayers, bLayerNoWeightBlend, bHasEditLayers, InEditLayerFName);
 
 		// Always update the transform, even if the HGPO transform hasn't changed,
 		// If we change the number of tiles, or switch from outputting single tile to multiple,
@@ -1242,6 +1275,12 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 				TileActor->SetAbsoluteSectionBase(TileLoc);
 			}
 		}
+
+		UpdateTileMaterialsFn();
+
+		// Update landscape edit layers to match layer infos
+		TMap<FName, int32> ExistingLayers;
+		UpdateLandscapeMaterialLayers(TargetLandscape, LayerInfos, ExistingLayers, bLayerNoWeightBlend, bHasEditLayers, InEditLayerFName);
 		
 		CachedLandscapeActor = TileActor->GetLandscapeActor();
 
@@ -1384,29 +1423,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 		bModifiedLandscapeActor = true;
 	}
 
-	// ----------------------------------------------------
-	// Update tile materials
-	// ----------------------------------------------------
-	// TODO: These material updates can possibly be skipped if we have already performed this
-	//       check on a SharedLandscape.
-	bTileLandscapeMaterialChanged = LandscapeMaterial != nullptr ? (TileActor->GetLandscapeMaterial() != LandscapeMaterial) : false;
-	bTileLandscapeHoleMaterialChanged = LandscapeHoleMaterial != nullptr ? (TileActor->GetLandscapeHoleMaterial() != LandscapeHoleMaterial) : false;
-	if (bTileLandscapeMaterialChanged || bTileLandscapeHoleMaterialChanged)
-		DoPreEditChangeProperty(TileActor, "LandscapeMaterial");
 	
-	if (bTileLandscapeMaterialChanged)
-		TileActor->LandscapeMaterial = LandscapeMaterial;
-
-	if (bTileLandscapeHoleMaterialChanged)
-		TileActor->LandscapeHoleMaterial = LandscapeHoleMaterial;
-
-	bTilePhysicalMaterialChanged = LandscapePhysicalMaterial != nullptr ? TileActor->DefaultPhysMaterial != LandscapePhysicalMaterial : false;
-	if (bTilePhysicalMaterialChanged)
-	{
-		DoPreEditChangeProperty(TileActor, "DefaultPhysMaterial");
-		TileActor->DefaultPhysMaterial = LandscapePhysicalMaterial;
-		//TileActor->ChangedPhysMaterial();
-	}
 
 	// ----------------------------------------------------
 	// Apply actor tags
@@ -1426,19 +1443,19 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	// effect appropriate state updates based on the property updates that was performed in
 	// the above code.
 
-	if (bSharedLandscapeMaterialChanged || bSharedLandscapeHoleMaterialChanged)
-	{
-		check(SharedLandscapeActor);
-		DoPostEditChangeProperty(SharedLandscapeActor, "LandscapeMaterial");
-	}
+	// if (bSharedLandscapeMaterialChanged || bSharedLandscapeHoleMaterialChanged)
+	// {
+	// 	check(SharedLandscapeActor);
+	// 	DoPostEditChangeProperty(SharedLandscapeActor, "LandscapeMaterial");
+	// }
 
-	if (bTileLandscapeMaterialChanged || bTileLandscapeHoleMaterialChanged)
-	{
-		check(TileActor);
-		// Tile material changes are only processed if it wasn't already done for a shared
-		// landscape since the shared landscape should have already propagated the changes to associated proxies.
-		DoPostEditChangeProperty(TileActor, "LandscapeMaterial");
-	}
+	// if (bTileLandscapeMaterialChanged || bTileLandscapeHoleMaterialChanged)
+	// {
+	// 	check(TileActor);
+	// 	// Tile material changes are only processed if it wasn't already done for a shared
+	// 	// landscape since the shared landscape should have already propagated the changes to associated proxies.
+	// 	DoPostEditChangeProperty(TileActor, "LandscapeMaterial");
+	// }
 	
 	if (bSharedPhysicalMaterialChanged)
 	{
