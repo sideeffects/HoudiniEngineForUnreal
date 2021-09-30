@@ -629,6 +629,27 @@ FHoudiniEngineEditorUtils::ReselectSelectedActors()
 	}
 }
 
+void
+FHoudiniEngineEditorUtils::ReselectActorIfSelected(AActor* const InActor)
+{
+	if (IsValid(InActor) && InActor->IsSelected())
+	{
+		GEditor->SelectActor(InActor, false, false, false, false);
+		GEditor->SelectActor(InActor, true, true, true, true);
+	}
+}
+
+void
+FHoudiniEngineEditorUtils::ReselectComponentOwnerIfSelected(USceneComponent* const InComponent)
+{
+	if (!IsValid(InComponent))
+		return;
+	AActor* const Actor = InComponent->GetOwner();
+	if (!IsValid(Actor))
+		return;
+	ReselectActorIfSelected(Actor);
+}
+
 FString
 FHoudiniEngineEditorUtils::GetNodeNamePaddedByPathDepth(const FString& InNodeName, const FString& InNodePath, const uint8 Padding, const TCHAR PathSep)
 {
