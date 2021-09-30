@@ -31,6 +31,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngineBakeUtils.h"
 #include "HoudiniEngineCommands.h"
+#include "HoudiniEngineEditorUtils.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniOutputDetails.h"
 #include "HoudiniParameter.h"
@@ -2506,7 +2507,13 @@ UHoudiniPublicAPIAssetWrapper::SetInputAtIndex_Implementation(const int32 InNode
 		return false;
 	}
 
-	return PopulateHoudiniInput(InInput, HoudiniInput);
+	const bool bSuccess = PopulateHoudiniInput(InInput, HoudiniInput);
+
+	// Update the details panel (mostly for when new curves/components are created where visualizers are driven
+	// through the details panel)
+	FHoudiniEngineEditorUtils::ReselectComponentOwnerIfSelected(HAC);
+
+	return bSuccess;
 }
 
 bool
@@ -2598,7 +2605,13 @@ UHoudiniPublicAPIAssetWrapper::SetInputParameter_Implementation(const FName& InP
 		return false;
 	}
 
-	return PopulateHoudiniInput(InInput, HoudiniInput);
+	const bool bSuccess = PopulateHoudiniInput(InInput, HoudiniInput);
+
+	// Update the details panel (mostly for when new curves/components are created where visualizers are driven
+	// through the details panel)
+	FHoudiniEngineEditorUtils::ReselectComponentOwnerIfSelected(HAC);
+
+	return bSuccess;
 }
 
 bool
