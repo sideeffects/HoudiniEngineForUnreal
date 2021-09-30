@@ -1627,13 +1627,13 @@ UHoudiniInput::InsertInputObjectAt(const EHoudiniInputType& InType, const int32&
 }
 
 void
-UHoudiniInput::DeleteInputObjectAt(const int32& AtIndex)
+UHoudiniInput::DeleteInputObjectAt(const int32& AtIndex, const bool bInRemoveIndexFromArray)
 {
-	DeleteInputObjectAt(Type, AtIndex);
+	DeleteInputObjectAt(Type, AtIndex, bInRemoveIndexFromArray);
 }
 
 void
-UHoudiniInput::DeleteInputObjectAt(const EHoudiniInputType& InType, const int32& AtIndex)
+UHoudiniInput::DeleteInputObjectAt(const EHoudiniInputType& InType, const int32& AtIndex, const bool bInRemoveIndexFromArray)
 {
 	TArray<UHoudiniInputObject*>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
 	if (!InputObjectsPtr)
@@ -1693,14 +1693,21 @@ UHoudiniInput::DeleteInputObjectAt(const EHoudiniInputType& InType, const int32&
 		MarkDataUploadNeeded(true);
 	}
 
-	InputObjectsPtr->RemoveAt(AtIndex);
-
-	// Delete the merge node when all the input objects are deleted.
-	if (InputObjectsPtr->Num() == 0 && InputNodeId >= 0)
+	if (bInRemoveIndexFromArray)
 	{
-		if (bCanDeleteHoudiniNodes)
-			FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(InputNodeId);
-		InputNodeId = -1;
+		InputObjectsPtr->RemoveAt(AtIndex);
+
+		// Delete the merge node when all the input objects are deleted.
+		if (InputObjectsPtr->Num() == 0 && InputNodeId >= 0)
+		{
+			if (bCanDeleteHoudiniNodes)
+				FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(InputNodeId);
+			InputNodeId = -1;
+		}
+	}
+	else
+	{
+		(*InputObjectsPtr)[AtIndex] = nullptr;
 	}
 
 #if WITH_EDITOR

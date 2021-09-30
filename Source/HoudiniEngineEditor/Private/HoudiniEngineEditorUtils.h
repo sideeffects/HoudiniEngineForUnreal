@@ -83,6 +83,14 @@ public:
 	// Deselect and reselect all selected actors to get rid of component not showing bug after create.
 	static void ReselectSelectedActors();
 
+	// Deselect and reselect InActor, but only if it is currently selected. Related to ReselectSelectedActors and
+	// the component not showing bug after create.
+	static void ReselectActorIfSelected(AActor* const InActor);
+
+	// Deselect and reselect the owning actor of InComopnent, but only if the actor is currently selected. Related to
+	// ReselectSelectedActors and the component not showing bug after create.
+	static void ReselectComponentOwnerIfSelected(USceneComponent* const InComponent);
+
 	// Gets the node name indent from the left with the specified number of spaces based on the path depth.
 	static FString GetNodeNamePaddedByPathDepth(const FString& InNodeName, const FString& InNodePath, const uint8 Padding=4, const TCHAR PathSep='/');
 
