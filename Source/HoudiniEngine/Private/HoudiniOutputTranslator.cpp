@@ -979,17 +979,21 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
 		FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), false);
 
+	// Get the Asset NodeInfo
+	HAPI_NodeInfo AssetNodeInfo;
+	FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
+		FHoudiniEngine::Get().GetSession(), AssetId, &AssetNodeInfo), false);
+
 	FString CurrentAssetName;
 	{
 		FHoudiniEngineString hapiSTR(AssetInfo.nameSH);
 		hapiSTR.ToFString(CurrentAssetName);
 	}
 
-	// Retrieve the asset's transform.
-	// TODO: Unused?!
-	//FTransform AssetUnrealTransform;
-	//if (!FHoudiniEngineUtils::HapiGetAssetTransform(AssetId, AssetUnrealTransform))
-	//	return false;
+	// In certain cases, such as PDG output processing we might end up with a SOP node instead of a
+	// container. In that case, don't try to run child queries on this node. They will fail.
+	const bool bAssetHasChildren = !(AssetNodeInfo.type == HAPI_NODETYPE_SOP && AssetNodeInfo.childNodeCount == 0);
 
 	// Retrieve information about each object contained within our asset.
 	TArray<HAPI_ObjectInfo> ObjectInfos;
@@ -1023,10 +1027,13 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	// Start by getting the number of editable nodes
 	TArray<HAPI_GeoInfo> EditableGeoInfos;
 	int32 EditableNodeCount = 0;
-	HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
-		FHoudiniEngine::Get().GetSession(),
-		AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
-		true, &EditableNodeCount));
+	if (bAssetHasChildren)
+	{
+		HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
+			FHoudiniEngine::Get().GetSession(),
+			AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
+			true, &EditableNodeCount));
+	}
 
 	// All editable nodes will be output, regardless
 	// of whether the subnet is considered visible or not.
@@ -1063,8 +1070,11 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 		}
 	}
 
+	
+
 	const bool bIsSopAsset = AssetInfo.nodeId != AssetInfo.objectNodeId;
 	bool bUseOutputFromSubnets = true;
+	if (bAssetHasChildren)
 	{
 		if (FHoudiniEngineUtils::ContainsSopNodes(AssetInfo.nodeId))
 		{
@@ -1076,6 +1086,11 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 			// Assume we're using a subnet-based HDA
 			bUseOutputFromSubnets = true;
 		}
+	}
+	else
+	{
+		// This asset doesn't have any children. Don't try to find subnets.
+		bUseOutputFromSubnets = false;
 	}
 
 	// Before we can perform visibility checks on the Object nodes, we have
@@ -1127,7 +1142,14 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 		// Determine whether this object node is fully visible.
 		bool bObjectIsVisible = false;
 		HAPI_NodeId GatherOutputsNodeId = -1; // Outputs will be gathered from this node.
-		if (bIsSopAsset && CurrentHapiObjectInfo.nodeId == AssetInfo.objectNodeId)
+		if (!bAssetHasChildren)
+		{
+			// If the asset doesn't have children, we have to gather outputs from the asset's parent in order to output
+			// this asset node
+			bObjectIsVisible = true;
+			GatherOutputsNodeId = AssetNodeInfo.parentId;
+		}
+		else if (bIsSopAsset && CurrentHapiObjectInfo.nodeId == AssetInfo.objectNodeId)
 		{
 			// When dealing with a SOP asset, be sure to gather outputs from the SOP node, not the
 			// outer object node.
