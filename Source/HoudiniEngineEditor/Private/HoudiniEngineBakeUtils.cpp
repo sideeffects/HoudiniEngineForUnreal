@@ -55,6 +55,7 @@
 #include "PackageTools.h"
 #include "UObject/MetaData.h"
 #include "AssetRegistryModule.h"
+#include "AssetSelection.h"
 #include "Materials/Material.h"
 #include "LandscapeProxy.h"
 #include "LandscapeStreamingProxy.h"
@@ -1249,6 +1250,12 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 		{
 			SMFactory = GEditor ? GEditor->FindActorFactoryByClass(UActorFactoryStaticMesh::StaticClass()) : nullptr;
 			if (!SMFactory)
+			{
+				// In UE5 UActorFactoryStaticMesh is not available and UEditorStaticMeshFactory is private, find it via
+				// FActorFactoryAssetProxy
+				SMFactory = FActorFactoryAssetProxy::GetFactoryForAssetObject(BakedStaticMesh);
+			}
+			if (!SMFactory)
 				return false;
 		}
 
@@ -1593,6 +1600,12 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	{
 		// Get the StaticMesh ActorFactory
 		UActorFactory* SMFactory = GEditor ? GEditor->FindActorFactoryByClass(UActorFactoryStaticMesh::StaticClass()) : nullptr;
+		if (!SMFactory)
+		{
+			// In UE5 UActorFactoryStaticMesh is not available and UEditorStaticMeshFactory is private, find it via
+			// FActorFactoryAssetProxy
+			SMFactory = FActorFactoryAssetProxy::GetFactoryForAssetObject(BakedStaticMesh);
+		}
 		if (!SMFactory)
 			return false;
 
@@ -2243,9 +2256,9 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 	if (!InOutput || InOutput->IsPendingKill())
 		return false;
 
+	// Try to get UActorFactoryStaticMesh (not available in UE5). We check in the OutputObjects loop if Factory is
+	// null, and if it is, find the appropriate factory for the SM via FActorFactoryAssetProxy
 	UActorFactory* Factory = GEditor ? GEditor->FindActorFactoryByClass(UActorFactoryStaticMesh::StaticClass()) : nullptr;
-	if (!Factory)
-		return false;
 
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
 	const TArray<FHoudiniGeoPartObject>& HGPOs = InOutput->GetHoudiniGeoPartObjects();
@@ -2319,6 +2332,18 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 			InOutAlreadyBakedMaterialsMap);
 
 		if (!BakedSM || BakedSM->IsPendingKill())
+			continue;
+
+		// If we don't have a factory yet, try to find one for the BakedSM
+		if (!Factory)
+		{
+			// In UE5 UActorFactoryStaticMesh is not available and UEditorStaticMeshFactory is private, so use
+			// FActorFactoryAssetProxy to find a factory
+			Factory = FActorFactoryAssetProxy::GetFactoryForAssetObject(BakedSM);
+		}
+
+		// If we could not find a factory, we have to skip this output object
+		if (!Factory)
 			continue;
 
 		// Record the baked object
