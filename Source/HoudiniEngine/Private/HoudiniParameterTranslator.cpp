@@ -2434,7 +2434,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 					if (bHasValidNodeId)
 					{
 						HoudiniParameterString->SetIsAssetRef(
-							FHoudiniParameterTranslator::HapiGetParameterHasTag(InNodeId, ParmInfo.id, HAPI_PARAM_TAG_ASSET_REF));
+							FHoudiniParameterTranslator::HapiGetParameterHasTag(InNodeId, ParmInfo.id, HOUDINI_PARAMETER_STRING_REF_TAG));
 					}
 				}
 			}
