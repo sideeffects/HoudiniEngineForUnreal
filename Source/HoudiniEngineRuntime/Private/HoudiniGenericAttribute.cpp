@@ -26,7 +26,6 @@
 
 #include "HoudiniGenericAttribute.h"
 
-#include "AssetViewUtils.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetComponent.h"
 
