@@ -3803,6 +3803,17 @@ void FHoudiniParameterDetails::CreateWidgetFile(IDetailCategoryBuilder & HouPara
 
 	FString BrowseWidgetDirectory = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_OPEN);
 
+	TMap<FString, FString>& Tags = MainParam->GetTags();
+	if (Tags.Contains(HAPI_PARAM_TAG_DEFAULT_DIR)) 
+	{
+		if(!Tags[HAPI_PARAM_TAG_DEFAULT_DIR].IsEmpty())
+		{
+			FString DefaultDir = Tags[HAPI_PARAM_TAG_DEFAULT_DIR];
+			if(FPaths::DirectoryExists(DefaultDir))
+				BrowseWidgetDirectory = DefaultDir;
+		}
+	}
+
 	auto UpdateCheckRelativePath = [MainParam](const FString & PickedPath) 
 	{
 		UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(MainParam->GetOuter());
@@ -5769,7 +5780,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 		// Case 2-1: The folder is in another folder.
 		if (FolderStack.Num() > 1 && CurrentFolderListSize > 0)
 		{
-			TArray <UHoudiniParameterFolder*> & MyFolderQueue = FolderStack.Last();
+			TArray<UHoudiniParameterFolder*> & MyFolderQueue = FolderStack.Last();
 			TArray<UHoudiniParameterFolder*> & ParentFolderQueue = FolderStack[FolderStack.Num() - 2];
 
 			if (ParentFolderQueue.Num() <= 0)	//This should happen
@@ -5836,8 +5847,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 			}
 		}	
 	}
-
-
+	
 	CurrentFolderListSize -= 1;
 
 	// Prune the stack if finished parsing current folderlist

@@ -26,6 +26,7 @@
 
 #include "HoudiniGenericAttribute.h"
 
+#include "AssetViewUtils.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetComponent.h"
 
@@ -1003,12 +1004,16 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 			ValuePtr = ArrayHelper->GetRawPtr(TupleIndex);
 		else
 			ValuePtr = InnerProperty->ContainerPtrToValuePtr<FString>(Container, TupleIndex);
-
+		
 		if (ValuePtr)
 		{
-			TSoftObjectPtr<UObject> ValueObjectPtr;
-			ValueObjectPtr = Value;
-			UObject* ValueObject = ValueObjectPtr.LoadSynchronous();
+			// Using TryLoad() over LoadSynchronous() as the later could crash with invalid path
+			UObject* ValueObject = nullptr;
+			FSoftObjectPath ObjPath(Value);
+			if(ObjPath.IsValid())
+			{
+				ValueObject = ObjPath.TryLoad();
+			}
 
 			// Ensure the ObjectProperty class matches the ValueObject that we just loaded
 			if (!ValueObject || (ValueObject && ValueObject->IsA(ObjectProperty->PropertyClass)))
