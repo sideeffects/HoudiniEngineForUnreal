@@ -269,6 +269,7 @@
 #define HAPI_PARAM_TAG_NOSWAP								"hengine_noswap"
 #define HAPI_PARAM_TAG_FILE_READONLY						"filechooser_mode"
 #define HAPI_PARAM_TAG_UNITS								"units"
+#define HAPI_PARAM_TAG_DEFAULT_DIR							"default_dir"
 
 // TODO: unused, remove!
 #define HAPI_PARAM_TAG_ASSET_REF							"asset_ref"
