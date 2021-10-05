@@ -173,9 +173,9 @@
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_TAG					"mesh_socket_tag"
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_TAG_OLD				"unreal_mesh_socket_tag"
 
-#define HAPI_UNREAL_ATTRIB_NANITE_ENABLED                               "unreal_nanite_enabled"
-#define HAPI_UNREAL_ATTRIB_NANITE_POSITION_PRECISION                    "unreal_nanite_position_precision"
-#define HAPI_UNREAL_ATTRIB_NANITE_PERCENT_TRIANGLES                     "unreal_nanite_percent_triangles"
+#define HAPI_UNREAL_ATTRIB_NANITE_ENABLED                   "unreal_nanite_enabled"
+#define HAPI_UNREAL_ATTRIB_NANITE_POSITION_PRECISION        "unreal_nanite_position_precision"
+#define HAPI_UNREAL_ATTRIB_NANITE_PERCENT_TRIANGLES         "unreal_nanite_percent_triangles"
 
 #define HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME					"unreal_input_mesh_name"
 #define HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE				"unreal_input_source_file"
@@ -273,6 +273,7 @@
 #define HAPI_PARAM_TAG_NOSWAP								"hengine_noswap"
 #define HAPI_PARAM_TAG_FILE_READONLY						"filechooser_mode"
 #define HAPI_PARAM_TAG_UNITS								"units"
+#define HAPI_PARAM_TAG_DEFAULT_DIR							"default_dir"
 
 // TODO: unused, remove!
 #define HAPI_PARAM_TAG_ASSET_REF							"asset_ref"
