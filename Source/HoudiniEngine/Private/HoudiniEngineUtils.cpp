@@ -2084,7 +2084,9 @@ bool FHoudiniEngineUtils::ContainsSopNodes(const HAPI_NodeId& NodeId)
 bool FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(const HAPI_NodeId& InNodeId,
 	const bool bUseOutputNodes,
 	const bool bGatherTemplateNodes,
-	TArray<HAPI_GeoInfo>& OutGeoInfos)
+	TArray<HAPI_GeoInfo>& OutGeoInfos,
+	TSet<HAPI_NodeId>& OutForceNodesCook
+	)
 {
 	TSet<HAPI_NodeId> GatheredNodeIds;
 
@@ -2130,10 +2132,7 @@ bool FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(const HAPI_NodeId& InNod
 				))
 			{
 				GatheredNodeIds.Add(OutputNodeId);
-				{
-					FString NodePath;
-					FHoudiniEngineUtils::HapiGetAbsNodePath(OutputNodeId, NodePath);
-				}
+				OutForceNodesCook.Add(OutputNodeId); // Ensure this output node gets cooked
 			}
 		}
 	}
