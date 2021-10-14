@@ -1188,6 +1188,9 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 		// but we may also want to process editable geos as well
 		TArray<HAPI_GeoInfo> GeoInfos;
 		
+		// These node ids may need to be cooked in order to extract part counts.
+		TSet<HAPI_NodeId> ForceNodesToCook;
+
 		// Track (heightfield) tile ids in order to determine
 		// when to create new tiles (used when outputting landscape edit layers).
 		TSet<uint32> FoundTileIndices;
@@ -1209,7 +1212,8 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 			FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(GatherOutputsNodeId,
 				InUseOutputNodes,
 				InOutputTemplatedGeos,
-				GeoInfos);
+				GeoInfos,
+				ForceNodesToCook);
 			
 		} // if (bObjectIsVisible)
 
@@ -1221,7 +1225,8 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 			OutNodeIdsToCook.Add(CurrentHapiGeoInfo.nodeId);
 
 			// Cook editable/templated nodes to get their parts.
-			if ((CurrentHapiGeoInfo.isEditable && CurrentHapiGeoInfo.partCount <= 0)
+			if ((ForceNodesToCook.Contains(CurrentHapiGeoInfo.nodeId) && CurrentHapiGeoInfo.partCount <= 0)
+				|| (CurrentHapiGeoInfo.isEditable && CurrentHapiGeoInfo.partCount <= 0)
 				|| (CurrentHapiGeoInfo.isTemplated && CurrentHapiGeoInfo.partCount <= 0)
 				|| (!CurrentHapiGeoInfo.isDisplayGeo && CurrentHapiGeoInfo.partCount <= 0))
 			{
