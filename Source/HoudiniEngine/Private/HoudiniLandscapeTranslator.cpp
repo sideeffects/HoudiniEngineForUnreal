@@ -478,6 +478,20 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	OutputAttributes.Add(FString(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2), LandscapeTileActorName);
 
 	// ---------------------------------------------
+	// Attribute: unreal_bake_name
+	// ---------------------------------------------
+	FString LandscapeTileBakeName = bHasTile ? "LandscapeTile{tile}" : "Landscape";
+	TArray<FString> AllBakeNames;
+	if (FHoudiniEngineUtils::GetBakeNameAttribute(GeoId, PartId, AllBakeNames, 0, 1))
+	{
+		if (AllBakeNames.Num() > 0 && !AllBakeNames[0].IsEmpty())
+		{
+			LandscapeTileBakeName = AllBakeNames[0];
+		}
+	}
+	OutputAttributes.Add(FString(HAPI_UNREAL_ATTRIB_BAKE_NAME), LandscapeTileBakeName);
+
+	// ---------------------------------------------
 	// Attribute: unreal_landscape_editlayer_after
 	// ---------------------------------------------
 	StrData.Empty();
