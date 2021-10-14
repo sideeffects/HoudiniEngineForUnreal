@@ -151,7 +151,12 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Find immediate Display and output nodes (if enabled).
 	    // If bIgnoreOutputNodes is false, only Display nodes will be retrieved.
 		// If bIgnoreOutputNodes is true, any output nodes will take precedence over display nodes.
-		static bool GatherImmediateOutputGeoInfos(const int& InNodeId, const bool bUseOutputNodes, const bool bGatherTemplateNodes, TArray<HAPI_GeoInfo>&);
+		static bool GatherImmediateOutputGeoInfos(
+			const int& InNodeId,
+			const bool bUseOutputNodes,
+			const bool bGatherTemplateNodes,
+			TArray<HAPI_GeoInfo>& OutGeoInfos,
+			TSet<HAPI_NodeId>& OutForceNodesCook);
 
 		// HAPI: Retrieve absolute path to the given Node
 		static bool HapiGetAbsNodePath(const HAPI_NodeId& InNodeId, FString& OutPath);
