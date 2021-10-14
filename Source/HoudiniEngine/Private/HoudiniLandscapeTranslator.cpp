@@ -1694,21 +1694,40 @@ bool FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(UHoudiniOutput* In
 	// Attribute: unreal_landscape_actor_name
 	// ---------------------------------------------
 	// Retrieve the name of the main Landscape actor to look for
-	FString TargetLandscapeName = "Input0"; 
+	FString TargetLandscapeName = "Input0";
+	bool bHasEditLayerTarget = false;
 	StrData.Empty();
 	if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-		GeoId, PartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_SHARED_ACTOR_NAME,
+		GeoId, PartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_EDITLAYER_TARGET,
 		AttributeInfo, StrData, 1, HAPI_ATTROWNER_INVALID, 0, 1))
 	{
 		if (StrData.Num() > 0 && !StrData[0].IsEmpty())
+		{
 			TargetLandscapeName = StrData[0];
+			bHasEditLayerTarget = true;
+		}
+	}
+
+	if (!bHasEditLayerTarget)
+	{
+		// The previous implementation of the "Edit Layer" mode used the Shared Landscape Actor name. If the (new)
+		// Edit Layer Target attribute wasn't specified, check whether the old attribute is present.
+		if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+		GeoId, PartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_SHARED_ACTOR_NAME,
+		AttributeInfo, StrData, 1, HAPI_ATTROWNER_INVALID, 0, 1))
+		{
+			if (StrData.Num() > 0 && !StrData[0].IsEmpty())
+			{
+				TargetLandscapeName = StrData[0];
+			}
+		}
 	}
 
 	HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_EditableLayer] Target Landscape Name (Attrib): %s"), *(TargetLandscapeName));
 
-	Resolver.SetAttribute(HAPI_UNREAL_ATTRIB_LANDSCAPE_SHARED_ACTOR_NAME, TargetLandscapeName);
+	Resolver.SetAttribute(HAPI_UNREAL_ATTRIB_LANDSCAPE_EDITLAYER_TARGET, TargetLandscapeName);
 	Resolver.SetTokensFromStringMap(OutputTokens);
-	TargetLandscapeName = Resolver.ResolveAttribute(HAPI_UNREAL_ATTRIB_LANDSCAPE_SHARED_ACTOR_NAME, TargetLandscapeName);
+	TargetLandscapeName = Resolver.ResolveAttribute(HAPI_UNREAL_ATTRIB_LANDSCAPE_EDITLAYER_TARGET, TargetLandscapeName);
 
 	HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_EditableLayer] Target Landscape Name (Resolved): %s"), *(TargetLandscapeName));
 
@@ -1794,7 +1813,7 @@ bool FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(UHoudiniOutput* In
 		IntHeightData, TileTransform,
 		false, true, DestHeightScale,
 		EditLayerType == HAPI_UNREAL_LANDSCAPE_EDITLAYER_TYPE_ADDITIVE))
-		return false;
+			return false;
 
 
 	// ----------------------------------------------------
@@ -1806,12 +1825,23 @@ bool FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(UHoudiniOutput* In
 
 	// ----------------------------------------------------
 	//  Calculate the draw location (in quad space) of
-	//  where the Modify Layer should be drawn.
+	//  where the Modify Layer should be drawn 
 	// ----------------------------------------------------
+	FVector LandscapeBaseLoc = TargetLandscape->GetTransform().InverseTransformPosition(TargetLandscape->GetTransform().GetLocation());
+	FTransform HACTransform = HAC->GetComponentTransform();
 
-	// The layer location will be offset / drawn at the "min" location in quad space
-	// Note that the Landscape transform as well as the HAC transform has been already been taken into account
-	// 
+	// We need to unscale the TileTransform before concatenating it with the HAC transform.
+	FTransform UnscaledTileTransform = TileTransform;
+	UnscaledTileTransform.SetScale3D(FVector::OneVector);
+
+	// Calculate the tile's transform in quad space on the target landscape.
+	const FTransform LocalTileTransform = HACTransform * UnscaledTileTransform * TargetLandscape->GetTransform().Inverse();
+	
+	const FVector LocalPos = LocalTileTransform.GetLocation();
+	TargetMinX += LocalPos.X;
+	TargetMinY += LocalPos.Y;
+	
+	// The layer location will be offset / drawn at the "min" location (on the target landscape) in quad space
 	const FVector LayerLoc = FVector(TargetMinX, TargetMinY, 0.f);
 
 	FIntPoint TargetTileLoc;
@@ -1922,6 +1952,7 @@ bool FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(UHoudiniOutput* In
 		for (FLandscapeImportLayerInfo &InLayerInfo : LayerInfos)
 		{
 			HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_EditableLayer] Trying to draw on layer: %s"), *(InLayerInfo.LayerName.ToString()));
+			HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_EditableLayer] Dest Region: %f, %f, -> %f, %f"), TileMin.X, TileMin.Y, TileMax.X, TileMax.Y);
 			
 			if (InLayerInfo.LayerInfo && InLayerInfo.LayerName.IsEqual(HAPI_UNREAL_VISIBILITY_LAYER_NAME))
 			{
@@ -1935,13 +1966,16 @@ bool FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(UHoudiniOutput* In
 				continue;
 				
 				int32 LayerIndex = ExistingLayers.FindChecked(InLayerInfo.LayerName);
-				FLandscapeEditorLayerSettings& CurLayer = TargetLandscape->EditorLayerSettings[LayerIndex];
-				// Draw on the current layer, if it is valid.
-				if (CurLayer.LayerInfoObj)
+				if (TargetLandscape->EditorLayerSettings.IsValidIndex(LayerIndex))
 				{
-					HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_EditableLayer] Drawing using Alpha accessor. Dest Region: %f, %f, -> %f, %f"), TileMin.X, TileMin.Y, TileMax.X, TileMax.Y);
-					FAlphamapAccessor<false, true> AlphaAccessor(TargetLandscapeInfo, CurLayer.LayerInfoObj);
-					AlphaAccessor.SetData(TileMin.X, TileMin.Y, TileMax.X, TileMax.Y, InLayerInfo.LayerData.GetData(), ELandscapeLayerPaintingRestriction::None);
+					FLandscapeEditorLayerSettings& CurLayer = TargetLandscape->EditorLayerSettings[LayerIndex];
+					// Draw on the current layer, if it is valid.
+					if (CurLayer.LayerInfoObj)
+					{
+						HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_EditableLayer] Drawing using Alpha accessor. Dest Region: %f, %f, -> %f, %f"), TileMin.X, TileMin.Y, TileMax.X, TileMax.Y);
+						FAlphamapAccessor<false, true> AlphaAccessor(TargetLandscapeInfo, CurLayer.LayerInfoObj);
+						AlphaAccessor.SetData(TileMin.X, TileMin.Y, TileMax.X, TileMax.Y, InLayerInfo.LayerData.GetData(), ELandscapeLayerPaintingRestriction::None);
+					}
 				}
 			}
 		}
