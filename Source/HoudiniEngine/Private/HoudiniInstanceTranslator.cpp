@@ -110,6 +110,13 @@ FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(
 		OutInstancedOutputPartData.OutputNames.Empty();
 	}
 
+	// Get the bake name attribute
+	if (!FHoudiniEngineUtils::GetBakeNameAttribute(InHGPO.GeoId, InHGPO.PartId, OutInstancedOutputPartData.BakeNames))
+	{
+		// No attribute specified
+		OutInstancedOutputPartData.BakeNames.Empty();
+	}
+
 	// See if we have a tile attribute
 	if (!FHoudiniEngineUtils::GetTileAttribute(InHGPO.GeoId, InHGPO.PartId,  OutInstancedOutputPartData.TileValues))
 	{
@@ -399,6 +406,9 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 
 			if(InstancedOutputPartData.OutputNames.IsValidIndex(FirstOriginalInstanceIndex) && !InstancedOutputPartData.OutputNames[FirstOriginalInstanceIndex].IsEmpty())
 				NewOutputObject.CachedAttributes.Add(FString(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2), InstancedOutputPartData.OutputNames[FirstOriginalInstanceIndex]);
+
+			if(InstancedOutputPartData.BakeNames.IsValidIndex(FirstOriginalInstanceIndex) && !InstancedOutputPartData.BakeNames[FirstOriginalInstanceIndex].IsEmpty())
+				NewOutputObject.CachedAttributes.Add(FString(HAPI_UNREAL_ATTRIB_BAKE_NAME), InstancedOutputPartData.BakeNames[FirstOriginalInstanceIndex]);
 
 			// TODO: Check! maybe accessed with just VariationOriginalIndex
 			if(InstancedOutputPartData.TileValues.IsValidIndex(FirstOriginalInstanceIndex) && InstancedOutputPartData.TileValues[FirstOriginalInstanceIndex] >= 0)
