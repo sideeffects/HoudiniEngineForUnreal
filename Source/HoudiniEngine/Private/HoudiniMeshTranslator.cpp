@@ -2625,6 +2625,16 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			}
 		}
 
+		TArray<FString> BakeNames;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeNameAttribute(HGPO.GeoId, HGPO.PartId, BakeNames, 0, 1))
+		{
+			if (BakeNames.Num() > 0 && !BakeNames[0].IsEmpty())
+			{
+				// cache the bake name attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_NAME, BakeNames[0]);
+			}
+		}
+
 		TArray<int32> TileValues;
 		if (FoundOutputObject && FHoudiniEngineUtils::GetTileAttribute(HGPO.GeoId, HGPO.PartId, TileValues, HAPI_ATTROWNER_INVALID, 0, 1))
 		{
@@ -3979,6 +3989,16 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			{
 				// cache the output name attribute on the output object
 				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2, OutputNames[0]);
+			}
+		}
+
+		TArray<FString> BakeNames;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeNameAttribute(HGPO.GeoId, HGPO.PartId, BakeNames, 0, 1))
+		{
+			if (BakeNames.Num() > 0 && !BakeNames[0].IsEmpty())
+			{
+				// cache the bake name attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_NAME, BakeNames[0]);
 			}
 		}
 

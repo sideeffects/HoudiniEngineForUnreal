@@ -446,6 +446,14 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const int32& InStart = 0,
 			const int32& InCount = -1);
 
+		// Helper function to access the custom bake name attribute
+		static bool GetBakeNameAttribute(
+			const HAPI_NodeId& InGeoId,
+			const HAPI_PartId& InPartId,
+			TArray<FString>& OutBakeName,
+			const int32& InStart = 0,
+			const int32& InCount = -1);
+
 		// Helper function to access the "tile" attribute
 		static bool GetTileAttribute(
 			const HAPI_NodeId& InGeoId,
@@ -670,6 +678,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const FString &BakeFolder,
 			const FString &ObjectName,
 			const FString &HoudiniAssetName,
+			const FString &HoudiniAssetActorName,
 			EPackageReplaceMode InReplaceMode=EPackageReplaceMode::ReplaceExistingAssets,
 			bool bAutomaticallySetAttemptToLoadMissingPackages=true);
 
@@ -677,17 +686,20 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// resolve the object name and unreal_bake_folder and setting these resolved values on the PackageParams.
 		// If bAutomaticallySetAttemptToLoadMissingPackages is true, then
 		// OutPackageParams.bAttemptToLoadMissingPackages is set to true in EPackageReplaceMode::CreateNewAssets mode.
+		// If InHoudiniAssetName or InHoudiniAssetActorName is blank, then the values are determined via
+		// HoudiniAssetComponent.
 		static void FillInPackageParamsForBakingOutputWithResolver(
 			UWorld* const InWorldContext,
 			const UHoudiniAssetComponent* HoudiniAssetComponent,
 			const FHoudiniOutputObjectIdentifier& InIdentifier,
 			const FHoudiniOutputObject& InOutputObject,
 			const FString &InDefaultObjectName,
-			const FString &InHoudiniAssetName,
 			FHoudiniPackageParams& OutPackageParams,
 			FHoudiniAttributeResolver& OutResolver,
 			const FString &InDefaultBakeFolder=FString(),
 			EPackageReplaceMode InReplaceMode=EPackageReplaceMode::ReplaceExistingAssets,
+			const FString& InHoudiniAssetName=TEXT(""),
+			const FString& InHoudiniAssetActorName=TEXT(""),
 			bool bAutomaticallySetAttemptToLoadMissingPackages=true,
 			bool bInSkipObjectNameResolutionAndUseDefault=false,
 			bool bInSkipBakeFolderResolutionAndUseDefault=false);
