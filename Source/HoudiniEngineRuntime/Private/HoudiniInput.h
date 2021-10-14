@@ -203,7 +203,9 @@ public:
 	void ForAllHoudiniInputObjectArrays(TFunctionRef<void(const TArray<UHoudiniInputObject*>&)> Fn) const;
 	void ForAllHoudiniInputObjectArrays(TFunctionRef<void(TArray<UHoudiniInputObject*>&)> Fn);
 
-	void ForAllHoudiniInputObjects(TFunctionRef<void(UHoudiniInputObject*)> Fn) const;
+	// Return ALL input objects. Optionally, the results can be filtered to only return input objects
+	// relevant to the current *input type*.
+	void ForAllHoudiniInputObjects(TFunctionRef<void(UHoudiniInputObject*)> Fn, const bool bFilterByInputType=false) const;
 	// Collect top-level HoudiniInputObjects from this UHoudiniInput. Does not traverse nested input objects.
 	void GetAllHoudiniInputObjects(TArray<UHoudiniInputObject*>& OutObjects) const;
 	// Collect top-level UHoudiniInputSceneComponent from this UHoudiniInput. Does not traverse nested input objects.
