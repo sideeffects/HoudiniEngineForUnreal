@@ -155,6 +155,9 @@ public:
 	TArray<FString> OutputNames;
 
 	UPROPERTY()
+	TArray<FString> BakeNames;
+
+	UPROPERTY()
 	TArray<int32> TileValues;
 
 	UPROPERTY()

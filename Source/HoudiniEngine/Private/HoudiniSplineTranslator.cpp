@@ -1806,6 +1806,17 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 			}
 		}
 
+		TArray<FString> BakeNames;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeNameAttribute(
+			InHGPO.GeoId, InHGPO.PartId, BakeNames, 0, 1))
+		{
+			if (BakeNames.Num() > 0 && !BakeNames[0].IsEmpty())
+			{
+				// cache the output name attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_NAME, BakeNames[0]);
+			}
+		}
+
 		TArray<FString> BakeOutputActorNames;
 		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeActorAttribute(
 			InHGPO.GeoId, InHGPO.PartId, BakeOutputActorNames, HAPI_ATTROWNER_INVALID, 0, 1))

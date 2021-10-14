@@ -365,7 +365,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 					.HAlign(HAlign_Center)
 					.Text(LOCTEXT("Bake", "Bake"))
 					.IsEnabled(true)
-					.OnClicked_Lambda([InOutput, OutputIdentifier, HAC, OwnerActor, HGPO, Landscape, LandscapeOutputBakeType]()
+					.OnClicked_Lambda([InOutput, OutputIdentifier, HAC, HGPO, Landscape, LandscapeOutputBakeType]()
 					{
 						FHoudiniOutputObject* FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
 						if (FoundOutputObject)
@@ -380,7 +380,6 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 								*FoundOutputObject,
 								HGPO,
 								HAC,
-								OwnerActor->GetName(),
 								HAC->BakeFolder.Path,
 								HAC->TemporaryCookFolder.Path,
 								InOutput->GetType(),
@@ -951,20 +950,6 @@ FHoudiniOutputDetails::CreateMeshOutputWidget(
 	if (!HAC || HAC->IsPendingKill())
 		return;
 
-	FString HoudiniAssetName;
-	if (HAC->GetOwner() && (HAC->GetOwner()->IsPendingKill()))
-	{
-		HoudiniAssetName = HAC->GetOwner()->GetName();
-	}
-	else if (HAC->GetHoudiniAsset())
-	{
-		HoudiniAssetName = HAC->GetHoudiniAsset()->GetName();
-	}
-	else
-	{
-		HoudiniAssetName = HAC->GetName();
-	}
-
 	// Go through this output's object
 	int32 OutputObjIdx = 0;
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
@@ -1000,13 +985,13 @@ FHoudiniOutputDetails::CreateMeshOutputWidget(
 
 			// If we have a static mesh, alway display its widget even if the proxy is more recent
 			CreateStaticMeshAndMaterialWidgets(
-				HouOutputCategory, InOutput, StaticMesh, OutputIdentifier, HoudiniAssetName, HAC->BakeFolder.Path, HoudiniGeoPartObject, bIsProxyMeshCurrent);
+				HouOutputCategory, InOutput, StaticMesh, OutputIdentifier, HAC->BakeFolder.Path, HoudiniGeoPartObject, bIsProxyMeshCurrent);
 		}
 		else
 		{
 			// If we only have a proxy mesh, then show the proxy widget
 			CreateProxyMeshAndMaterialWidgets(
-				HouOutputCategory, InOutput, ProxyMesh, OutputIdentifier, HoudiniAssetName, HAC->BakeFolder.Path, HoudiniGeoPartObject);
+				HouOutputCategory, InOutput, ProxyMesh, OutputIdentifier, HAC->BakeFolder.Path, HoudiniGeoPartObject);
 		}
 	}
 }
@@ -1332,7 +1317,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 		.Text(LOCTEXT("OutputCurveBakeButtonText", "Bake"))
 		.IsEnabled(true)
 		.ToolTipText(LOCTEXT("OutputCurveBakeButtonUnrealSplineTooltipText", "Bake to Unreal spline"))
-		.OnClicked_Lambda([InOutput, SplineComponent, OutputIdentifier, HoudiniGeoPartObject, HAC, OwnerActor, OutputCurveName, OutputObject]()
+		.OnClicked_Lambda([InOutput, SplineComponent, OutputIdentifier, HoudiniGeoPartObject, HAC, OutputCurveName, OutputObject]()
 		{
 			TArray<UHoudiniOutput*> AllOutputs;
 			AllOutputs.Reserve(HAC->GetNumOutputs());
@@ -1344,7 +1329,6 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 				OutputObject,
 				HoudiniGeoPartObject,
 				HAC,
-				OwnerActor->GetName(),
 				HAC->BakeFolder.Path,
 				HAC->TemporaryCookFolder.Path,
 				InOutput->GetType(),
@@ -1446,7 +1430,6 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 	UHoudiniOutput* InOutput,
 	UStaticMesh * StaticMesh,
 	FHoudiniOutputObjectIdentifier& OutputIdentifier,
-	const FString HoudiniAssetName,
 	const FString BakeFolder,
 	FHoudiniGeoPartObject& HoudiniGeoPartObject,
 	const bool& bIsProxyMeshCurrent)
@@ -1640,7 +1623,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 					.HAlign( HAlign_Center )
 					.Text( LOCTEXT( "Bake", "Bake" ) )
 					.IsEnabled(true)
-					.OnClicked_Lambda([BakeName, StaticMesh, OutputIdentifier, HoudiniGeoPartObject, HoudiniAssetName, BakeFolder, InOutput, OwningHAC, FoundOutputObject]()
+					.OnClicked_Lambda([BakeName, StaticMesh, OutputIdentifier, HoudiniGeoPartObject, BakeFolder, InOutput, OwningHAC, FoundOutputObject]()
 					{
 						if (FoundOutputObject)
 						{
@@ -1660,7 +1643,6 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 								*FoundOutputObject,
 								HoudiniGeoPartObject,
 								OwningHAC,
-								HoudiniAssetName,
 								BakeFolder,
 								TempCookFolder,
 								InOutput->GetType(),
@@ -1854,7 +1836,6 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 	UHoudiniOutput* InOutput,
 	UHoudiniStaticMesh * ProxyMesh,
 	FHoudiniOutputObjectIdentifier& OutputIdentifier,
-	const FString HoudiniAssetName,
 	const FString BakeFolder,
 	FHoudiniGeoPartObject& HoudiniGeoPartObject)
 {
@@ -3680,7 +3661,6 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 	const FHoudiniOutputObject& InOutputObject,
 	const FHoudiniGeoPartObject & HGPO,
 	const UObject* OutputOwner,
-	const FString & HoudiniAssetName,
 	const FString & BakeFolder,
 	const FString & TempCookFolder,
 	const EHoudiniOutputType & Type,
@@ -3699,13 +3679,15 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 	UWorld* WorldContext = OutputOwner ? OutputOwner->GetWorld() : GWorld;
 	const UHoudiniAssetComponent* HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(OutputOwner);
 	check(IsValid(HAC));
+	const FString HoudiniAssetName = IsValid(HAC->GetHoudiniAsset()) ? HAC->GetHoudiniAsset()->GetName() : TEXT("");
+	const FString HoudiniAssetActorName = IsValid(HAC->GetOwner()) ? HAC->GetOwner()->GetName() : TEXT("");
 	const bool bAutomaticallySetAttemptToLoadMissingPackages = true;
 	const bool bSkipObjectNameResolutionAndUseDefault = !InBakeName.IsEmpty();  // If InBakeName is set use it as is for the object name
 	const bool bSkipBakeFolderResolutionAndUseDefault = false;
 	FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 		WorldContext, HAC, OutputIdentifier, InOutputObject, BakedOutputObject->GetName(),
-		HoudiniAssetName, PackageParams, Resolver,
-		BakeFolder, EPackageReplaceMode::ReplaceExistingAssets,
+		PackageParams, Resolver, BakeFolder, EPackageReplaceMode::ReplaceExistingAssets,
+		HoudiniAssetName, HoudiniAssetActorName,
 		bAutomaticallySetAttemptToLoadMissingPackages, bSkipObjectNameResolutionAndUseDefault,
 		bSkipBakeFolderResolutionAndUseDefault);
 
