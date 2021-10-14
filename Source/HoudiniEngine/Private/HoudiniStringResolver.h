@@ -99,7 +99,7 @@ public:
 	FString ResolveFullLevelPath() const;
 
 	// Helper for resolver custom output name attributes.
-	FString ResolveOutputName() const;
+	FString ResolveOutputName(bool bInForBake=false) const;
 
 	// Helper for resolving the unreal_bake_folder attribute. Converts to an absolute path.
 	FString ResolveBakeFolder() const;

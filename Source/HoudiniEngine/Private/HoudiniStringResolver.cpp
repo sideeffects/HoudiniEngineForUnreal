@@ -150,14 +150,22 @@ FString FHoudiniAttributeResolver::ResolveFullLevelPath() const
 	return FHoudiniEngineRuntimeUtils::JoinPaths(OutputFolder, LevelPathAttr);
 }
 
-FString FHoudiniAttributeResolver::ResolveOutputName() const
+FString FHoudiniAttributeResolver::ResolveOutputName(const bool bInForBake) const
 {
 	FString OutputAttribName;
 
 	if (CachedAttributes.Contains(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2))
+	{
 		OutputAttribName = HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2;
+	}
+	else if (bInForBake && CachedAttributes.Contains(HAPI_UNREAL_ATTRIB_BAKE_NAME))
+	{
+		OutputAttribName = HAPI_UNREAL_ATTRIB_BAKE_NAME;
+	}
 	else
+	{
 		OutputAttribName = HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V1;
+	}
 
 	return ResolveAttribute(OutputAttribName, TEXT("{object_name}"));
 }
