@@ -2870,25 +2870,6 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(const int32 InI
 		return false;
 	}
 
-	// Determine the HoudiniAssetName
-	FString HoudiniAssetName;
-	if (HAC->GetOwner() && (HAC->GetOwner()->IsPendingKill()))
-	{
-		// If the HAC has a valid owner, use the owner's name
-		// TODO: Should this be more specific, such as checking for a HoudiniAssetActor?
-		HoudiniAssetName = HAC->GetOwner()->GetName();
-	}
-	else if (HAC->GetHoudiniAsset())
-	{
-		// Otherwise, if the HAC has a valid HoudiniAsset, use its name
-		HoudiniAssetName = HAC->GetHoudiniAsset()->GetName();
-	}
-	else
-	{
-		// Fallback to the HAC's name
-		HoudiniAssetName = HAC->GetName();
-	}
-	
 	TArray<UHoudiniOutput*> AllOutputs;
 	HAC->GetOutputs(AllOutputs);
 
@@ -2899,7 +2880,6 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(const int32 InI
 		*OutputObject,
 		HoudiniGeoPartObject,
 		HAC,
-		HoudiniAssetName,
 		HAC->BakeFolder.Path,
 		HAC->TemporaryCookFolder.Path,
 		OutputType,

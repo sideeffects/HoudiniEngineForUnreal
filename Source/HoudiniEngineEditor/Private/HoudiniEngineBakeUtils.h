@@ -209,8 +209,7 @@ public:
 		TArray<FHoudiniBakedOutput>& InBakedOutputs,
 		bool bInReplaceActors,
 		bool bInReplaceAssets,
-		FString BakePath,
-		FString HoudiniAssetName,
+		const FString& BakePath,
 		FHoudiniEngineOutputStats& BakeStats);
 
 	static bool BakeLandscapeObject(
@@ -225,12 +224,11 @@ public:
 		FHoudiniEngineOutputStats& BakeStats);
 
 	static bool BakeInstancerOutputToActors(
-		const UHoudiniAssetComponent* HoudiniAssetcomponent,
+		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		TArray<FHoudiniBakedOutput>& InBakedOutputs,
 		const FTransform& InTransform,
-		const FString& InHoudiniAssetName,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
 		bool bInReplaceActors,
@@ -240,10 +238,10 @@ public:
 		TMap<UMaterialInterface *, UMaterialInterface *>& InOutAlreadyBakedMaterialsMap,
 		TArray<EHoudiniInstancerComponentType> const* InInstancerComponentTypesToBake=nullptr,
 		AActor* InFallbackActor=nullptr,
-		const FString& InFallbackWorldOutlinerFolder="");
+		const FString& InFallbackWorldOutlinerFolder=TEXT(""));
 
 	static bool BakeInstancerOutputToActors_ISMC(
-		const UHoudiniAssetComponent* HoudiniAssetcomponent,
+		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		// const TArray<FHoudiniBakedOutput>& InAllBakedOutputs,
@@ -259,7 +257,7 @@ public:
 		TArray<UPackage*>& OutPackagesToSave,
 		TMap<UMaterialInterface *, UMaterialInterface *>& InOutAlreadyBakedMaterialsMap,
 		AActor* InFallbackActor=nullptr,
-		const FString& InFallbackWorldOutlinerFolder="");
+		const FString& InFallbackWorldOutlinerFolder=TEXT(""));
 
 	static bool BakeInstancerOutputToActors_IAC(
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
@@ -380,7 +378,6 @@ public:
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		const TArray<UHoudiniOutput*>& InOutputs,
 		TArray<FHoudiniBakedOutput>& InBakedOutputs,
-		const FString& InHoudiniAssetName,
 		const FTransform& InParentTransform,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
@@ -392,7 +389,7 @@ public:
 		TArray<EHoudiniOutputType> const* InOutputTypesToBake=nullptr,
 		TArray<EHoudiniInstancerComponentType> const* InInstancerComponentTypesToBake=nullptr,
 		AActor* InFallbackActor=nullptr,
-		const FString& InFallbackWorldOutlinerFolder="");
+		const FString& InFallbackWorldOutlinerFolder=TEXT(""));
 
 	static bool BakeInstancerOutputToFoliage(
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
@@ -402,7 +399,6 @@ public:
 		const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 		const FHoudiniOutputObject& InOutputObject,
 		FHoudiniBakedOutputObject& InBakedOutputObject,
-		const FString& InHoudiniAssetName,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
 		bool bInReplaceActors,
@@ -420,7 +416,6 @@ public:
 		int32 InOutputIndex, 
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		TArray<FHoudiniBakedOutput>& InBakedOutputs,
-		const FString& InHoudiniAssetName,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
 		bool bInReplaceActors,
@@ -436,19 +431,19 @@ public:
 		UHoudiniOutput* InOutput, 
 		const FHoudiniOutputObjectIdentifier& Identifier,
 		const FHoudiniOutputObject& InOutputObject,
-		const FString& InHoudiniAssetName,
 		const FString& DefaultObjectName, 
 		const FDirectoryPath& InBakeFolder,
 		const bool bInReplaceAssets,
 		FHoudiniPackageParams& OutPackageParams,
-		TArray<UPackage*>& OutPackagesToSave);
+		TArray<UPackage*>& OutPackagesToSave,
+		const FString& InHoudiniAssetName=TEXT(""),
+		const FString& InHoudiniAssetActorName=TEXT(""));
 	
 	static bool BakeGeometryCollectionOutputToActors(
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex, 
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		TArray<FHoudiniBakedOutput>& InBakedOutputs,
-		const FString& InHoudiniAssetName,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
 		bool bInReplaceActors,
@@ -457,26 +452,26 @@ public:
 		TArray<UPackage*>& OutPackagesToSave,
 		TMap<UMaterialInterface *, UMaterialInterface *>& InOutAlreadyBakedMaterialsMap,
 		AActor* InFallbackActor=nullptr,
-		const FString& InFallbackWorldOutlinerFolder="");
+		const FString& InFallbackWorldOutlinerFolder=TEXT(""));
 	
 	static bool BakeHoudiniCurveOutputToActors(
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		TArray<FHoudiniBakedOutput>& InBakedOutputs,
-		const FString& InHoudiniAssetName,
 		const FDirectoryPath& InBakeFolder,
 		bool bInReplaceActors,
 		bool bInReplaceAssets,
 		TArray<FHoudiniEngineBakedActor>& OutActors,
 		AActor* InFallbackActor=nullptr,
-		const FString& InFallbackWorldOutlinerFolder="");
+		const FString& InFallbackWorldOutlinerFolder=TEXT(""));
 
 	static bool BakeBlueprintsFromBakedActors(
 		const TArray<FHoudiniEngineBakedActor>& InBakedActors, 
 		bool bInRecenterBakedActors,
 		bool bInReplaceAssets,
-		const FString& InAssetName,
+		const FString& InHoudiniAssetName,
+		const FString& InHoudiniAssetActorName,
 		const FDirectoryPath& InBakeFolder,
 		TArray<FHoudiniBakedOutput>* const InNonPDGBakedOutputs,
 		TMap<FString, FHoudiniPDGWorkResultObjectBakedOutput>* const InPDGBakedOutputs,

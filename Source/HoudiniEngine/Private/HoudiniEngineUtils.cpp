@@ -898,6 +898,7 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutput(
 	const FString &BakeFolder,
 	const FString &ObjectName,
 	const FString &HoudiniAssetName,
+	const FString &HoudiniAssetActorName,
 	EPackageReplaceMode InReplaceMode,
 	bool bAutomaticallySetAttemptToLoadMissingPackages)
 {
@@ -908,7 +909,7 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutput(
 	OutPackageParams.PackageMode = EPackageMode::Bake;
 	OutPackageParams.ReplaceMode = InReplaceMode;
 	OutPackageParams.HoudiniAssetName = HoudiniAssetName;
-	OutPackageParams.HoudiniAssetActorName = HoudiniAssetName;
+	OutPackageParams.HoudiniAssetActorName = HoudiniAssetActorName;
 	OutPackageParams.ObjectName = ObjectName;
 }
 
@@ -919,11 +920,12 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	const FHoudiniOutputObjectIdentifier& InIdentifier,
 	const FHoudiniOutputObject& InOutputObject,
 	const FString &InDefaultObjectName,
-	const FString &InHoudiniAssetName,
 	FHoudiniPackageParams& OutPackageParams,
 	FHoudiniAttributeResolver& OutResolver,
 	const FString &InDefaultBakeFolder,
 	EPackageReplaceMode InReplaceMode,
+	const FString &InHoudiniAssetName,
+	const FString &InHoudiniAssetActorName,
 	bool bAutomaticallySetAttemptToLoadMissingPackages,
 	bool bInSkipObjectNameResolutionAndUseDefault,
 	bool bInSkipBakeFolderResolutionAndUseDefault)
@@ -939,14 +941,38 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	//
 	const FString DefaultBakeFolder = !InDefaultBakeFolder.IsEmpty() ? InDefaultBakeFolder :
 		FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
+
+	// If InHoudiniAssetName was specified, use that, otherwise use the name of the UHoudiniAsset used by the
+	// HoudiniAssetComponent
+	FString HoudiniAssetName(TEXT(""));
+	if (!InHoudiniAssetName.IsEmpty())
+	{
+		HoudiniAssetName = InHoudiniAssetName;
+	}
+	else if (IsValid(HoudiniAssetComponent) && IsValid(HoudiniAssetComponent->GetHoudiniAsset()))
+	{
+		HoudiniAssetName = HoudiniAssetComponent->GetHoudiniAsset()->GetName();
+	}
 	
+	// If InHoudiniAssetActorName was specified, use that, otherwise use the name of the owner of HoudiniAssetComponent
+	FString HoudiniAssetActorName(TEXT(""));
+	if (!InHoudiniAssetActorName.IsEmpty())
+	{
+		HoudiniAssetActorName = InHoudiniAssetActorName;
+	}
+	else if (IsValid(HoudiniAssetComponent) && IsValid(HoudiniAssetComponent->GetOwner()))
+	{
+		HoudiniAssetActorName = HoudiniAssetComponent->GetOwner()->GetName();
+	}
+
 	const bool bHasBakeNameUIOverride = !InOutputObject.BakeName.IsEmpty(); 
 	FillInPackageParamsForBakingOutput(
 		OutPackageParams,
 		InIdentifier,
 		DefaultBakeFolder,
 		bHasBakeNameUIOverride ? InOutputObject.BakeName : InDefaultObjectName,
-		InHoudiniAssetName,
+		HoudiniAssetName,
+		HoudiniAssetActorName,
 		InReplaceMode,
 		bAutomaticallySetAttemptToLoadMissingPackages);
 
@@ -972,7 +998,8 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 		}
 		else
 		{
-			ObjectName = OutResolver.ResolveOutputName();
+			constexpr bool bForBake = true;
+			ObjectName = OutResolver.ResolveOutputName(bForBake);
 			if (ObjectName.IsEmpty())
 				ObjectName = InDefaultObjectName;
 		}
@@ -5576,6 +5603,32 @@ FHoudiniEngineUtils::GetOutputNameAttribute(
 	}
 
 	OutOutputNames.Empty();
+	return false;
+}
+
+bool
+FHoudiniEngineUtils::GetBakeNameAttribute(
+	const HAPI_NodeId& InGeoId,
+	const HAPI_PartId& InPartId, 
+	TArray<FString>& OutBakeNames,
+	const int32& InStartIndex,
+	const int32& InCount)
+{
+	// ---------------------------------------------
+	// Attribute: unreal_bake_name
+	// ---------------------------------------------
+	HAPI_AttributeInfo AttributeInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+
+	if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+		InGeoId, InPartId, HAPI_UNREAL_ATTRIB_BAKE_NAME, 
+		AttributeInfo, OutBakeNames, 1, HAPI_ATTROWNER_INVALID, InStartIndex, InCount))
+	{
+		if (OutBakeNames.Num() > 0)
+			return true;
+	}
+
+	OutBakeNames.Empty();
 	return false;
 }
 
