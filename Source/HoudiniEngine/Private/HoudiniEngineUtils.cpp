@@ -1079,7 +1079,7 @@ FHoudiniEngineUtils::GatherLandscapeInputs(
 						AllInputLandscapes.Add(LandscapeProxy);
 					}
 				}
-			});
+			}, true);
 		}
 		
 		if (CurrentInput->GetInputType() != EHoudiniInputType::Landscape)
@@ -1093,7 +1093,9 @@ FHoudiniEngineUtils::GatherLandscapeInputs(
 		AllInputLandscapes.Add(InputLandscape);
 
 		if (CurrentInput->GetUpdateInputLandscape())
+		{
 			InputLandscapesToUpdate.Add(InputLandscape);
+		}
 	}
 }
 

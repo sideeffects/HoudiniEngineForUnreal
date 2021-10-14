@@ -2572,41 +2572,67 @@ UHoudiniInput::ContainsInputObject(const UObject* InObject, const EHoudiniInputT
 	return false;
 }
 
-void UHoudiniInput::ForAllHoudiniInputObjects(TFunctionRef<void(UHoudiniInputObject*)> Fn) const
+void UHoudiniInput::ForAllHoudiniInputObjects(TFunctionRef<void(UHoudiniInputObject*)> Fn, const bool bFilterByInputType) const
 {
-	for(UHoudiniInputObject* InputObject : GeometryInputObjects)
+	auto ShouldIncludeFn = [&](const EHoudiniInputType InInputType) -> bool
 	{
-		Fn(InputObject);
-	}
-
-	for(UHoudiniInputObject* InputObject : AssetInputObjects)
-	{
-		Fn(InputObject);
-	}
-
-	for(UHoudiniInputObject* InputObject : CurveInputObjects)
-	{
-		Fn(InputObject);
-	}
-
-	for(UHoudiniInputObject* InputObject : LandscapeInputObjects)
-	{
-		Fn(InputObject);
-	}
+		return !bFilterByInputType || (bFilterByInputType && GetInputType() == InInputType);
+	};
 	
-	for(UHoudiniInputObject* InputObject : WorldInputObjects)
+	if (ShouldIncludeFn(EHoudiniInputType::Geometry))
 	{
-		Fn(InputObject);
+		for(UHoudiniInputObject* InputObject : GeometryInputObjects)
+		{
+			Fn(InputObject);
+		}
 	}
 
-	for(UHoudiniInputObject* InputObject : SkeletalInputObjects)
+	if (ShouldIncludeFn(EHoudiniInputType::Asset))
 	{
-		Fn(InputObject);
+		for(UHoudiniInputObject* InputObject : AssetInputObjects)
+		{
+			Fn(InputObject);
+		}
 	}
 
-	for(UHoudiniInputObject* InputObject : GeometryCollectionInputObjects)
+	if (ShouldIncludeFn(EHoudiniInputType::Curve))
 	{
-		Fn(InputObject);
+		for(UHoudiniInputObject* InputObject : CurveInputObjects)
+		{
+			Fn(InputObject);
+		}
+	}
+
+	if (ShouldIncludeFn(EHoudiniInputType::Landscape))
+	{
+		for(UHoudiniInputObject* InputObject : LandscapeInputObjects)
+		{
+			Fn(InputObject);
+		}
+	}
+
+	if (ShouldIncludeFn(EHoudiniInputType::World))
+	{
+		for(UHoudiniInputObject* InputObject : WorldInputObjects)
+		{
+			Fn(InputObject);
+		}
+	}
+
+	if (ShouldIncludeFn(EHoudiniInputType::Skeletal))
+	{
+		for(UHoudiniInputObject* InputObject : SkeletalInputObjects)
+		{
+			Fn(InputObject);
+		}
+	}
+
+	if (ShouldIncludeFn(EHoudiniInputType::GeometryCollection))
+	{
+		for(UHoudiniInputObject* InputObject : GeometryCollectionInputObjects)
+		{
+			Fn(InputObject);
+		}
 	}
 }
 
