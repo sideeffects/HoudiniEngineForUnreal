@@ -4343,7 +4343,7 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 
 		// If we are dealing with edit layers we need Lock the landscape edit layer, i.e., if the Guid is valid.
 		FScopedSetLandscapeEditingLayer Scope(LandscapeActor, LayerGuid, [=] { CachedLandscapeActor->RequestLayersContentUpdate(ELandscapeLayerUpdateMode::Update_All); });
-		FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
+		FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);		
 		
 		for (auto CurLayerInfo : ImportLayerInfos)
 		{
@@ -4354,11 +4354,13 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 			}
 			else
 			{
-				ULandscapeLayerInfoObject* LayerInfo = LandscapeInfo->GetLayerInfoByName(CurLayerInfo.LayerName);
-				check(LayerInfo)
-				HOUDINI_LANDSCAPE_MESSAGE(TEXT("Drawing layer with normalization: %s"), *(CurLayerInfo.LayerName.ToString()));
-				FAlphamapAccessor<false, false> AlphaAccessor(LandscapeInfo, LayerInfo);
-				AlphaAccessor.SetData(DestMinX, DestMinY, DestMaxX, DestMaxY, CurLayerInfo.LayerData.GetData(), ELandscapeLayerPaintingRestriction::None);
+				ULandscapeLayerInfoObject* LayerInfo = LandscapeInfo->GetLayerInfoByName(CurLayerInfo.LayerName);				
+				if(LayerInfo)
+				{
+					HOUDINI_LANDSCAPE_MESSAGE(TEXT("Drawing layer with normalization: %s"), *(CurLayerInfo.LayerName.ToString()));
+					FAlphamapAccessor<false, false> AlphaAccessor(LandscapeInfo, LayerInfo);
+					AlphaAccessor.SetData(DestMinX, DestMinY, DestMaxX, DestMaxY, CurLayerInfo.LayerData.GetData(), ELandscapeLayerPaintingRestriction::None);	
+				}
 			}
 		}
 	}
