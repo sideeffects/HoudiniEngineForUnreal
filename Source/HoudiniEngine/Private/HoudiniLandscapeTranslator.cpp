@@ -4355,10 +4355,16 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 			else
 			{
 				ULandscapeLayerInfoObject* LayerInfo = LandscapeInfo->GetLayerInfoByName(CurLayerInfo.LayerName);
-				check(LayerInfo)
-				HOUDINI_LANDSCAPE_MESSAGE(TEXT("Drawing layer with normalization: %s"), *(CurLayerInfo.LayerName.ToString()));
-				FAlphamapAccessor<false, false> AlphaAccessor(LandscapeInfo, LayerInfo);
-				AlphaAccessor.SetData(DestMinX, DestMinY, DestMaxX, DestMaxY, CurLayerInfo.LayerData.GetData(), ELandscapeLayerPaintingRestriction::None);
+				if (!IsValid(LayerInfo))
+				{
+					HOUDINI_LANDSCAPE_MESSAGE(TEXT("Missing layer with: %s"), *(CurLayerInfo.LayerName.ToString()));
+				}
+				else
+				{
+					HOUDINI_LANDSCAPE_MESSAGE(TEXT("Drawing layer with normalization: %s"), *(CurLayerInfo.LayerName.ToString()));
+					FAlphamapAccessor<false, false> AlphaAccessor(LandscapeInfo, LayerInfo);
+					AlphaAccessor.SetData(DestMinX, DestMinY, DestMaxX, DestMaxY, CurLayerInfo.LayerData.GetData(), ELandscapeLayerPaintingRestriction::None);
+				}
 			}
 		}
 	}
