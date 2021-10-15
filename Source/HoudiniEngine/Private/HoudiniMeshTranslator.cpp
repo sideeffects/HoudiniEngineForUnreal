@@ -2078,6 +2078,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			TArray< int32 > NeededVertices;
 			RawMesh.WedgeIndices.SetNumZeroed(SplitVertexCount);
 
+			bool bHasInvalidFaceIndices = false;
 			int32 ValidVertexId = 0;
 			for (int32 VertexIdx = 0; VertexIdx < SplitVertexList.Num(); VertexIdx += 3)
 			{
@@ -2098,9 +2099,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 					|| !IndicesMapper.IsValidIndex(WedgeIndices[2]))
 				{
 					// Invalid face index.
-					HOUDINI_LOG_MESSAGE(
-						TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] has some invalid face indices"),
-						HGPO.ObjectId, *HGPO.ObjectName, HGPO.GeoId, HGPO.PartId, *HGPO.PartName, SplitId, *SplitGroupName);
+					bHasInvalidFaceIndices = true;
 					continue;
 				}
 
@@ -2154,6 +2153,13 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 				ValidVertexId += 3;
 			}
 
+			if (bHasInvalidFaceIndices)
+			{
+				HOUDINI_LOG_MESSAGE(
+					TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] has some invalid face indices"),
+					HGPO.ObjectId, *HGPO.ObjectName, HGPO.GeoId, HGPO.PartId, *HGPO.PartName, SplitId, *SplitGroupName);
+			}
+
 			if (bDoTiming)
 			{
 				HOUDINI_LOG_MESSAGE(TEXT("CreateStaticMesh_RawMesh() - Indices in %f seconds."), FPlatformTime::Seconds() - tick);
@@ -2174,17 +2180,14 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			//
 			int32 VertexPositionsCount = NeededVertices.Num();
 			RawMesh.VertexPositions.SetNumZeroed(VertexPositionsCount);
-
+			bool bHasInvalidPositionIndexData = false;
 			for (int32 VertexPositionIdx = 0; VertexPositionIdx < VertexPositionsCount; ++VertexPositionIdx)
 			{
 				int32 NeededVertexIndex = NeededVertices[VertexPositionIdx];
 				if (!PartPositions.IsValidIndex(NeededVertexIndex * 3 + 2))
 				{
 					// Error retrieving positions.
-					HOUDINI_LOG_WARNING(
-						TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] invalid position/index data ")
-						TEXT("- skipping."),
-						HGPO.ObjectId, *HGPO.ObjectName, HGPO.GeoId, HGPO.PartId, *HGPO.PartName, SplitId, *SplitGroupName);
+					bHasInvalidPositionIndexData = true;
 
 					continue;
 				}
@@ -2195,6 +2198,13 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 				RawMesh.VertexPositions[VertexPositionIdx].Z = PartPositions[NeededVertexIndex * 3 + 1] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
 			}
 
+			if (bHasInvalidPositionIndexData)
+			{
+				HOUDINI_LOG_WARNING(
+					TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] invalid position/index data ")
+					TEXT("- skipping."),
+					HGPO.ObjectId, *HGPO.ObjectName, HGPO.GeoId, HGPO.PartId, *HGPO.PartName, SplitId, *SplitGroupName);
+			}
 			/*
 			// TODO:
 			// Check if this mesh contains only degenerate triangles.
@@ -3221,6 +3231,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 
 			int32 CurrentSplitIndex = 0;
 			int32 ValidVertexId = 0;
+			bool bHasInvalidFaceIndices = false;
 			for (int32 VertexIdx = 0; VertexIdx < SplitVertexList.Num(); VertexIdx += 3)
 			{
 				int32 WedgeCheck = SplitVertexList[VertexIdx + 0];
@@ -3240,9 +3251,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 					|| !PartToSplitIndicesMapper.IsValidIndex(WedgeIndices[2]))
 				{
 					// Invalid face index.
-					HOUDINI_LOG_MESSAGE(
-						TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] has some invalid face indices"),
-						HGPO.ObjectId, *HGPO.ObjectName, HGPO.GeoId, HGPO.PartId, *HGPO.PartName, SplitId, *SplitGroupName);
+					bHasInvalidFaceIndices = true;
 					continue;
 				}
 
@@ -3272,6 +3281,13 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 
 				ValidVertexId += 3;
 			}
+
+			if (bHasInvalidFaceIndices)
+			{
+				HOUDINI_LOG_MESSAGE(
+					TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] has some invalid face indices"),
+					HGPO.ObjectId, *HGPO.ObjectName, HGPO.GeoId, HGPO.PartId, *HGPO.PartName, SplitId, *SplitGroupName);
+			}
 			
 			if (bDoTiming)
 			{
@@ -3294,7 +3310,8 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			//
 			TVertexAttributesRef<FVector> VertexPositions =
 				MeshDescription->VertexAttributes().GetAttributesRef<FVector>(MeshAttribute::Vertex::Position);
-				
+
+			bool bHasInvalidPositionIndexData = false;
 			MeshDescription->ReserveNewVertices(SplitNeededVertices.Num());
 			for ( const int32& NeededVertexIndex : SplitNeededVertices)
 			{
@@ -3310,15 +3327,20 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 				else
 				{
 					// Error when retrieving positions.
-					HOUDINI_LOG_WARNING(
-						TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] invalid position/index data ")
-						TEXT("- skipping."),
-						HGPO.ObjectId, *HGPO.ObjectName, HGPO.GeoId, HGPO.PartId, *HGPO.PartName, SplitId, *SplitGroupName);
+					bHasInvalidPositionIndexData = true;
 
 					continue;
 				}
 			}
 
+			if (bHasInvalidPositionIndexData)
+			{
+				HOUDINI_LOG_WARNING(
+					TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] invalid position/index data ")
+					TEXT("- skipping."),
+					HGPO.ObjectId, *HGPO.ObjectName, HGPO.GeoId, HGPO.PartId, *HGPO.PartName, SplitId, *SplitGroupName);
+			}
+			
 			if (bDoTiming)
 			{
 				HOUDINI_LOG_MESSAGE(TEXT("CreateStaticMesh_MeshDescription() - Positions in %f seconds."), FPlatformTime::Seconds() - tick);
@@ -4457,6 +4479,7 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 			{
 				TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("FHoudiniMeshTranslator::CreateHoudiniStaticMesh -- Build IndicesMapper and NeededVertices"));
 
+				bool bHasInvalidFaceIndices = false;
 				int32 ValidVertexId = 0;
 				for (int32 VertexIdx = 0; VertexIdx < SplitVertexList.Num(); VertexIdx += 3)
 				{
@@ -4476,10 +4499,8 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 						|| !IndicesMapper.IsValidIndex(WedgeIndices[1])
 						|| !IndicesMapper.IsValidIndex(WedgeIndices[2]))
 					{
-						// Invalid face index.
-						HOUDINI_LOG_MESSAGE(
-							TEXT("Creating Dynamic Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] has some invalid face indices"),
-							HGPO.ObjectId, *HGPO.ObjectName, HGPO.GeoId, HGPO.PartId, *HGPO.PartName, SplitId, *SplitGroupName);
+						// Invalid face index. Don't log in the loop.
+						bHasInvalidFaceIndices = true;
 						continue;
 					}
 
@@ -4504,6 +4525,13 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 					TriangleIndices.Add(WedgeIndices[1]);
 
 					ValidVertexId += 3;
+				}
+
+				if (bHasInvalidFaceIndices)
+				{
+					HOUDINI_LOG_MESSAGE(
+						TEXT("Creating Dynamic Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] has some invalid face indices"),
+						HGPO.ObjectId, *HGPO.ObjectName, HGPO.GeoId, HGPO.PartId, *HGPO.PartName, SplitId, *SplitGroupName);
 				}
 			}
 
@@ -4670,6 +4698,7 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 			{
 				TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("FHoudiniMeshTranslator::CreateHoudiniStaticMesh -- Set Vertex Positions"));
 
+				bool bHasInvalidPositionIndexData = false;
 				for (int32 VertexPositionIdx = 0; VertexPositionIdx < NumVertexPositions; ++VertexPositionIdx)
 				//ParallelFor(NumVertexPositions, [&](uint32 VertexPositionIdx)
 				{
@@ -4677,10 +4706,7 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 					if (!PartPositions.IsValidIndex(NeededVertexIndex * 3 + 2))
 					{
 						// Error retrieving positions.
-						HOUDINI_LOG_WARNING(
-							TEXT("Creating Dynamic Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] invalid position/index data ")
-							TEXT("- skipping."),
-							HGPO.ObjectId, *HGPO.ObjectName, HGPO.GeoId, HGPO.PartId, *HGPO.PartName, SplitId, *SplitGroupName);
+						bHasInvalidPositionIndexData = true;
 						continue;
 					}
 
@@ -4691,6 +4717,14 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 						PartPositions[NeededVertexIndex * 3 + 1] * HAPI_UNREAL_SCALE_FACTOR_POSITION
 					));
 				}//);
+
+				if (bHasInvalidPositionIndexData)
+				{
+					HOUDINI_LOG_WARNING(
+						TEXT("Creating Dynamic Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d %s] invalid position/index data ")
+						TEXT("- skipping."),
+						HGPO.ObjectId, *HGPO.ObjectName, HGPO.GeoId, HGPO.PartId, *HGPO.PartName, SplitId, *SplitGroupName);
+				}
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------- 
