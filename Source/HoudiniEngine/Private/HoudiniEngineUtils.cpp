@@ -2901,10 +2901,10 @@ FHoudiniEngineUtils::SetAttributeStringData(
 char *
 FHoudiniEngineUtils::ExtractRawString(const FString& InString)
 {
-	if (InString.IsEmpty())
-		return nullptr;
-
-	std::string ConvertedString = TCHAR_TO_UTF8(*InString);
+	// Return an empty string instead of returning null to avoid potential crashes
+	std::string ConvertedString("");
+	if (!InString.IsEmpty())
+		ConvertedString = TCHAR_TO_UTF8(*InString);
 
 	// Allocate space for unique string.
 	int32 UniqueStringBytes = ConvertedString.size() + 1;
