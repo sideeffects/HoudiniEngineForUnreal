@@ -723,7 +723,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 		UnrealTileSizeX, UnrealTileSizeY,
 		FloatMin, FloatMax,
 		IntHeightData, TileTransform,
-		true,
+		false,
 		false,
 		100.f,
 		EditLayerType == HAPI_UNREAL_LANDSCAPE_EDITLAYER_TYPE_ADDITIVE))
@@ -1388,7 +1388,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 					}
 					else
 					{
-						HOUDINI_LOG_WARNING(TEXT("Cannot to draw on NULL visibility layer"));
+						HOUDINI_LOG_WARNING(TEXT("Cannot draw on NULL visibility layer"));
 					}
 						
 				}
@@ -1403,7 +1403,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 					}
 					else
 					{
-						HOUDINI_LOG_WARNING(TEXT("Cannot to draw on NULL landscape layer: %s"), *(LayerInfo.LayerName.ToString()));
+						HOUDINI_LOG_WARNING(TEXT("Cannot draw on NULL landscape layer: %s"), *(LayerInfo.LayerName.ToString()));
 					}
 				}
 
