@@ -369,7 +369,8 @@ FHoudiniSplineComponentVisualizer::VisProxyHandleClick(
 			EditedCurveSegmentIndex = -1;
 			bInsertingOnCurveControlPoints = true;
 
-			RefreshViewport();
+			// Refresh viewport, but don't invalidate hit proxies otherwise it will error
+			RefreshViewport(false);
 		}
 		// Insert one on-curve control point.
 		else 
@@ -965,10 +966,10 @@ FHoudiniSplineComponentVisualizer::AddControlPointAfter(
 }
 
 void
-FHoudiniSplineComponentVisualizer::RefreshViewport()
+FHoudiniSplineComponentVisualizer::RefreshViewport(bool bInvalidateHitProxies)
 {
 	if (GEditor)
-		GEditor->RedrawLevelEditingViewports(true);
+		GEditor->RedrawLevelEditingViewports(bInvalidateHitProxies);
 }
 
 // Find the EditorViewportClient of the viewport where the Houdini Spline Component lives in
