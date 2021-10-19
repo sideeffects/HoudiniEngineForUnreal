@@ -1878,7 +1878,7 @@ struct HAPI_API HAPI_CurveInfo
     /// The number of knots for all curves.
     int knotCount;
 
-    /// Whether the curves in this curve mesh are periodic.
+    /// Whether the curves in this curve mesh are periodic (closed by appending a new point)
     HAPI_Bool isPeriodic;
 
     /// Whether the curves in this curve mesh are rational.
@@ -1889,6 +1889,9 @@ struct HAPI_API HAPI_CurveInfo
 
     /// Whether the curve has knots.
     HAPI_Bool hasKnots;
+
+    /// Similar to isPeriodic, but creates a polygon instead of a separate point
+    HAPI_Bool isClosed;
 };
 HAPI_C_STRUCT_TYPEDEF(HAPI_CurveInfo)
 
