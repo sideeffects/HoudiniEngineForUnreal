@@ -3258,6 +3258,14 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 
 			HoudiniSplineComponent->Modify();
 			HoudiniSplineComponent->SetCurveType(NewInputType);
+
+			// Set the curve order to at least 4 if it is nurbs or bezier
+			int32 CurveOrder = HoudiniSplineComponent->GetCurveOrder();
+			if (CurveOrder < 4 && (NewInputType == EHoudiniCurveType::Nurbs || NewInputType == EHoudiniCurveType::Bezier))
+				HoudiniSplineComponent->SetCurveOrder(4);
+			else if (NewInputType == EHoudiniCurveType::Polygon)
+				HoudiniSplineComponent->SetCurveOrder(2);
+			
 			HoudiniSplineComponent->MarkChanged(true);
 		}
 	};
@@ -3347,6 +3355,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 
 			HoudiniSplineComponent->Modify();
 			HoudiniSplineComponent->SetCurveMethod(NewInputMethod);
+
 			HoudiniSplineComponent->MarkChanged(true);
 		}
 	};

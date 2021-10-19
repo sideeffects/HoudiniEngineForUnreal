@@ -96,7 +96,7 @@ class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
 		FHoudiniSplineComponentVisualizer();
 
 	private:
-		void RefreshViewport();
+		void RefreshViewport(bool bInvalidateHitProxies=true);
 
 	public:
 		virtual void OnRegister() override;
