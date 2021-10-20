@@ -7387,7 +7387,7 @@ FHoudiniParameterDetails::RemoveTabDividers(IDetailCategoryBuilder& HouParameter
 					if (!CurrentTabEndingRow)
 						CreateTabEndingRow(HouParameterCategory);
 
-					if (CurrentTabEndingRow)
+					if (CurrentTabEndingRow && CurrentTabEndingRow->DividerLinePositions.Num() > 0)
 					{
 						CurrentTabEndingRow->EndingDividerLinePositions.Add(DividerLinePositions.Top());
 						CurrentTabEndingRow->DividerLinePositions.Pop();
