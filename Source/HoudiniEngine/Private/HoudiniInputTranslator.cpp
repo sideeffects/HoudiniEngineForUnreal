@@ -69,6 +69,7 @@
 #endif
 
 #include "HCsgUtils.h"
+#include "LandscapeInfo.h"
 #include "UnrealGeometryCollectionTranslator.h"
 
 #include "Async/Async.h"
@@ -2690,12 +2691,74 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 
 	EHoudiniLandscapeExportType ExportType = InInput->GetLandscapeExportType();
 
+	// Get selected components if bLandscapeExportSelectionOnly or bLandscapeAutoSelectComponent is true
+	bool bExportSelectionOnly = InInput->bLandscapeExportSelectionOnly;
+	bool bLandscapeAutoSelectComponent = InInput->bLandscapeAutoSelectComponent;
+
+	FBox Bounds(ForceInitToZero);
+	if ( bLandscapeAutoSelectComponent )
+	{
+		// Get our asset's or our connected input asset's bounds
+
+		UHoudiniAssetComponent* AssetComponent = Cast<UHoudiniAssetComponent>(InInput->GetOuter());
+		if (AssetComponent && AssetComponent->IsPendingKill())
+		{
+			Bounds = AssetComponent->GetAssetBounds(InInput, true);
+		}
+	}
+
+	TSet< ULandscapeComponent * > SelectedComponents;
+	if ( bExportSelectionOnly )
+	{
+		const ULandscapeInfo * LandscapeInfo = Landscape->GetLandscapeInfo();
+		if ( LandscapeInfo && !LandscapeInfo->IsPendingKill() )
+		{
+			// Get the currently selected components
+			SelectedComponents = LandscapeInfo->GetSelectedComponents();
+		}
+
+		if ( bLandscapeAutoSelectComponent && SelectedComponents.Num() <= 0 && Bounds.IsValid )
+		{
+			// We'll try to use the asset bounds to automatically "select" the components
+			for ( int32 ComponentIdx = 0; ComponentIdx < Landscape->LandscapeComponents.Num(); ComponentIdx++ )
+			{
+				ULandscapeComponent * LandscapeComponent = Landscape->LandscapeComponents[ ComponentIdx ];
+				if ( !LandscapeComponent || LandscapeComponent->IsPendingKill() )
+					continue;
+
+				FBoxSphereBounds WorldBounds = LandscapeComponent->CalcBounds( LandscapeComponent->GetComponentTransform());
+
+				if ( Bounds.IntersectXY( WorldBounds.GetBox() ) )
+					SelectedComponents.Add( LandscapeComponent );
+			}
+
+			int32 Num = SelectedComponents.Num();
+			HOUDINI_LOG_MESSAGE( TEXT("Landscape input: automatically selected %d components within the asset's bounds."), Num );
+		}
+	}
+	else
+	{
+		// Add all the components to the selected set
+		SelectedComponents.Append(Landscape->LandscapeComponents);
+	}
+	
 	bool bSucess = false;
 	if (ExportType == EHoudiniLandscapeExportType::Heightfield)
 	{
 		// Ensure we destroy any (Houdini) input nodes before clobbering this object with a new heightfield.
 		//DestroyInputNodes(InInput, InInput->GetInputType());
-		bSucess = FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(Landscape, InObject->InputNodeId, InObjNodeName);
+		
+		int32 NumComponents = Landscape->LandscapeComponents.Num();
+		if ( !bExportSelectionOnly || ( SelectedComponents.Num() == NumComponents ) )
+		{
+			// Export the whole landscape and its layer as a single heightfield node
+			bSucess = FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(Landscape, InObject->InputNodeId, InObjNodeName);
+		}
+		else
+		{
+			// Each selected landscape component will be exported as separate volumes in a single heightfield
+			bSucess = FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponentArray( Landscape, SelectedComponents, InObject->InputNodeId, InObjNodeName );
+		}
 	}
 	else
 	{
@@ -2703,7 +2766,6 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 		bool bExportMaterials = InInput->bLandscapeExportMaterials;
 		bool bExportNormalizedUVs = InInput->bLandscapeExportNormalizedUVs;
 		bool bExportTileUVs = InInput->bLandscapeExportTileUVs;
-		bool bExportSelectionOnly = InInput->bLandscapeExportSelectionOnly;
 		bool bExportAsMesh = InInput->LandscapeExportType == EHoudiniLandscapeExportType::Mesh;
 
 		bSucess = FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
