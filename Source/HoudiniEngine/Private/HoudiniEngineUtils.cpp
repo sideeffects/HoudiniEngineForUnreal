@@ -2111,28 +2111,30 @@ bool FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(const HAPI_NodeId& InNod
 			// -------------------------------------------------
 			// Extract GeoInfo from the immediate output nodes.
 			// -------------------------------------------------
-			TArray<HAPI_GeoInfo> OutputGeoInfos;
-			OutputGeoInfos.SetNumUninitialized(NumOutputs);
-			FHoudiniApi::GetOutputGeoInfos(
-				FHoudiniEngine::Get().GetSession(),
-				InNodeId,
-				OutputGeoInfos.GetData(),
-				NumOutputs
-				);
-			
-			OutGeoInfos.Add( OutputGeoInfos[0] );
 			bHasOutputs = true;
 
+			// Get the GeoInfo of Output Node with index 0.
 			HAPI_NodeId OutputNodeId = -1;
 			if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetOutputNodeId(
 				FHoudiniEngine::Get().GetSession(),
 				InNodeId,
-				0,
+				0, // Output Index
 				&OutputNodeId
 				))
 			{
-				GatheredNodeIds.Add(OutputNodeId);
-				OutForceNodesCook.Add(OutputNodeId); // Ensure this output node gets cooked
+				HAPI_GeoInfo GeoInfo;
+				FHoudiniApi::GeoInfo_Init(&GeoInfo);
+				// Get the GeoInfo for this output node and record the node ids.
+				if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetGeoInfo(
+										FHoudiniEngine::Get().GetSession(),
+										OutputNodeId,
+										&GeoInfo))
+				{
+					OutGeoInfos.Add( GeoInfo );
+
+					GatheredNodeIds.Add(OutputNodeId);
+					OutForceNodesCook.Add(OutputNodeId); // Ensure this output node gets cooked
+				}
 			}
 		}
 	}
@@ -2173,30 +2175,17 @@ bool FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(const HAPI_NodeId& InNod
 					{
 						if (GatheredNodeIds.Contains(DisplayNodeId))
 							continue; // This node has already been gathered from this subnet.
-
-						bool bGetGeoInfoSuccess = (
-							HAPI_RESULT_SUCCESS == FHoudiniApi::GetGeoInfo(
+						
+						if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetGeoInfo(
 								FHoudiniEngine::Get().GetSession(),
 								DisplayNodeId,
 								&GeoInfo)
-						);
-						if (!bGetGeoInfoSuccess || GeoInfo.partCount <= 0)
-						{
-							// We need to cook the Display node in order to properly populate GeoInfo.
-							if (FHoudiniEngineUtils::HapiCookNode(DisplayNodeId, nullptr, true))
-							{
-								bGetGeoInfoSuccess = (
-									HAPI_RESULT_SUCCESS == FHoudiniApi::GetGeoInfo(
-										FHoudiniEngine::Get().GetSession(),
-										DisplayNodeId,
-										&GeoInfo)
-								);
-							}
-						}
-						if (bGetGeoInfoSuccess)
+							)
 						{
 							OutGeoInfos.Add(GeoInfo);
 							GatheredNodeIds.Add(DisplayNodeId);
+							// If this node doesn't have a part_id count, ensure it gets cooked.
+							OutForceNodesCook.Add(DisplayNodeId);
 						}
 					}
 				}
