@@ -2171,16 +2171,29 @@ bool FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(const HAPI_NodeId& InNod
 					// Retrieve the Geo Infos for each display node
 					for(const HAPI_NodeId& DisplayNodeId : DisplayNodeIds)
 					{
-						if (GatheredNodeIds.Contains(DisplayNodeCount))
+						if (GatheredNodeIds.Contains(DisplayNodeId))
 							continue; // This node has already been gathered from this subnet.
 
-						// We need to cook the Display node in order to properly populate GeoInfo.
-						FHoudiniEngineUtils::HapiCookNode(DisplayNodeId, nullptr, true);
-						if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetGeoInfo(
+						bool bGetGeoInfoSuccess = (
+							HAPI_RESULT_SUCCESS == FHoudiniApi::GetGeoInfo(
 								FHoudiniEngine::Get().GetSession(),
 								DisplayNodeId,
-								&GeoInfo
-							))
+								&GeoInfo)
+						);
+						if (!bGetGeoInfoSuccess || GeoInfo.partCount <= 0)
+						{
+							// We need to cook the Display node in order to properly populate GeoInfo.
+							if (FHoudiniEngineUtils::HapiCookNode(DisplayNodeId, nullptr, true))
+							{
+								bGetGeoInfoSuccess = (
+									HAPI_RESULT_SUCCESS == FHoudiniApi::GetGeoInfo(
+										FHoudiniEngine::Get().GetSession(),
+										DisplayNodeId,
+										&GeoInfo)
+								);
+							}
+						}
+						if (bGetGeoInfoSuccess)
 						{
 							OutGeoInfos.Add(GeoInfo);
 							GatheredNodeIds.Add(DisplayNodeId);
