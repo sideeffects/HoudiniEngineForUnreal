@@ -147,6 +147,19 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		
 		static bool ContainsSopNodes(const HAPI_NodeId& NodeId);
 
+		// Get the output index of InNodeId (assuming InNodeId is an Output node).
+		// This is done by getting the value of the outputidx parameter on
+		// InNodeId.
+		// Returns false if outputidx could not be found/read. Sets OutOutputIndex to the
+		// value of the outputidx parameter.
+		static bool GetOutputIndex(const HAPI_NodeId& InNodeId, int32& OutOutputIndex);
+
+		static bool GatherAllAssetOutputs(
+			const HAPI_NodeId& InAssetId,
+			const bool bUseOutputNodes,
+			const bool bOutputTemplatedGeos,
+			TArray<HAPI_NodeId>& OutOutputNodes); 
+
 		// Get the immediate output geo infos for the given Geometry object network.
 		// Find immediate Display and output nodes (if enabled).
 	    // If bIgnoreOutputNodes is false, only Display nodes will be retrieved.
