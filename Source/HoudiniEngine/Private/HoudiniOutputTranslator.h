@@ -66,9 +66,10 @@ struct HOUDINIENGINE_API FHoudiniOutputTranslator
 	static bool BuildAllOutputs(
 		const HAPI_NodeId& AssetId,
 		UObject* InOuterObject,
+		const TArray<HAPI_NodeId>& OutputNodes,
+		const TMap<HAPI_NodeId, int32>& OutputNodeCookCounts,
 		TArray<UHoudiniOutput*>& InOldOutputs,
 		TArray<UHoudiniOutput*>& OutNewOutputs,
-		TArray<HAPI_NodeId>& OutNodeIdsToCook,
 		const bool& InOutputTemplatedGeos,
 		const bool& InUseOutputNodes);
 

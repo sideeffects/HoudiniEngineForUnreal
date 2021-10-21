@@ -92,6 +92,11 @@ struct HOUDINIENGINE_API FHoudiniEngineTask
 	// Additional Node Id for the task
 	// Can be used to apply a task to multiple nodes in the same HDA
 	TArray<HAPI_NodeId> OtherNodeIds;
+	// Cook results for each output node.
+	TMap<HAPI_NodeId, bool> CookResults;
+
+	bool bUseOutputNodes;
+	bool bOutputTemplateGeos;
 
 	// Library Id.
 	HAPI_AssetLibraryId AssetLibraryId;

@@ -520,7 +520,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 				break;
 
 			// Make sure we empty the nodes to cook array to avoid cook errors caused by stale nodes 
-			HAC->NodeIdsToCook.Empty();
+			HAC->ClearOutputNodes();
 
 			FGuid TaskGuid;
 			FString HapiAssetName;
@@ -577,8 +577,19 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			bool bCookStarted = false;
 			if (IsCookingEnabledForHoudiniAsset(HAC))
 			{
+				// Gather output nodes for the HAC
+				TArray<int32> OutputNodes;
+				FHoudiniEngineUtils::GatherAllAssetOutputs(HAC->GetAssetId(), HAC->bUseOutputNodes, HAC->bOutputTemplateGeos, OutputNodes);
+				HAC->SetOutputNodeIds(OutputNodes);
+				
 				FGuid TaskGUID = HAC->GetHapiGUID();
-				if ( StartTaskAssetCooking(HAC->GetAssetId(), HAC->NodeIdsToCook, HAC->GetDisplayName(), TaskGUID) )
+				if ( StartTaskAssetCooking(
+					HAC->GetAssetId(),
+					OutputNodes,
+					HAC->GetDisplayName(),
+					HAC->bUseOutputNodes,
+					HAC->bOutputTemplateGeos,
+					TaskGUID) )
 				{
 					// Updates the HAC's state
 					HAC->SetAssetState(EHoudiniAssetState::Cooking);
@@ -870,6 +881,7 @@ FHoudiniEngineManager::UpdateInstantiating(UHoudiniAssetComponent* HAC, EHoudini
 
 		// Reset the cook counter.
 		HAC->SetAssetCookCount(0);
+		HAC->ClearOutputNodes();
 
 		// If necessary, set asset transform.
 		if (HAC->bUploadTransformsToHoudiniEngine)
@@ -966,6 +978,8 @@ FHoudiniEngineManager::StartTaskAssetCooking(
 	const HAPI_NodeId& AssetId,
 	const TArray<HAPI_NodeId>& NodeIdsToCook,
 	const FString& DisplayName,
+	bool bUseOutputNodes,
+	bool bOutputTemplateGeos,
 	FGuid& OutTaskGUID)
 {
 	// Make sure we have a valid session before attempting anything
@@ -990,6 +1004,9 @@ FHoudiniEngineManager::StartTaskAssetCooking(
 
 	if (NodeIdsToCook.Num() > 0)
 		Task.OtherNodeIds = NodeIdsToCook;
+
+	Task.bUseOutputNodes = bUseOutputNodes;
+	Task.bOutputTemplateGeos = bOutputTemplateGeos;
 
 	FHoudiniEngine::Get().AddTask(Task);
 
@@ -1153,14 +1170,8 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 	}
 
 	// Update the asset cook count using the node infos
-	int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HAC->GetAssetId());
+	const int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HAC->GetAssetId());
 	HAC->SetAssetCookCount(CookCount);
-	/*	
-	if(CookCount >= 0 )
-		HAC->SetAssetCookCount(CookCount);
-	else
-		HAC->SetAssetCookCount(HAC->GetAssetCookCount()+1);
-	*/
 
 	bool bNeedsToTriggerViewportUpdate = false;
 	if (bCookSuccess)
@@ -1246,6 +1257,15 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 	if (HAC->InputPresets.Num() > 0)
 	{
 		HAC->ApplyInputPresets();
+	}
+
+	// Cache the current cook counts of the nodes so that we can more reliable determine
+	// whether content has changed next time build outputs.	
+	const TArray<int32> OutputNodes = HAC->GetOutputNodeIds();
+	for (int32 NodeId : OutputNodes)
+	{
+		int32 NodeCookCount = FHoudiniEngineUtils::HapiGetCookCount(HAC->GetAssetId());
+		HAC->SetOutputNodeCookCount(NodeId, NodeCookCount);
 	}
 
 	// If we have downstream HDAs, we need to tell them we're done cooking
