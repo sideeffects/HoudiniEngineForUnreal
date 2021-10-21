@@ -531,15 +531,22 @@ UTOPNode::DeleteWorkResultOutputObjects()
 }
 
 FString
-UTOPNode::GetBakedWorkResultObjectOutputsKey(int32 InWorkItemIndex, int32 InWorkResultObjectArrayIndex)
+UTOPNode::GetBakedWorkResultObjectOutputsKey(int32 InWorkResultArrayIndex, int32 InWorkResultObjectArrayIndex)
 {
-	return FString::Printf(TEXT("%d_%d"), InWorkItemIndex, InWorkResultObjectArrayIndex);
+	return FString::Printf(TEXT("%d_%d"), InWorkResultArrayIndex, InWorkResultObjectArrayIndex);
 }
 
 FString
-UTOPNode::GetBakedWorkResultObjectOutputsKey(const FTOPWorkResult& InWorkResult, int32 InWorkResultObjectArrayIndex)
+UTOPNode::GetBakedWorkResultObjectOutputsKey(const FTOPWorkResult& InWorkResult, int32 InWorkResultObjectArrayIndex) const
 {
-	return GetBakedWorkResultObjectOutputsKey(InWorkResult.WorkItemIndex, InWorkResultObjectArrayIndex);
+	if (InWorkResult.WorkItemID == INDEX_NONE)
+		return FString();
+
+	const int32 WorkResultArrayIndex = ArrayIndexOfWorkResultByID(InWorkResult.WorkItemID);
+	if (WorkResultArrayIndex == INDEX_NONE)
+		return FString();
+	
+	return GetBakedWorkResultObjectOutputsKey(WorkResultArrayIndex, InWorkResultObjectArrayIndex);
 }
 
 bool
@@ -552,7 +559,7 @@ UTOPNode::GetBakedWorkResultObjectOutputsKey(int32 InWorkResultArrayIndex, int32
 	if (!WorkResultEntry.ResultObjects.IsValidIndex(InWorkResultObjectArrayIndex))
 		return false;
 
-	OutKey = GetBakedWorkResultObjectOutputsKey(WorkResultEntry, InWorkResultObjectArrayIndex);
+	OutKey = GetBakedWorkResultObjectOutputsKey(InWorkResultArrayIndex, InWorkResultObjectArrayIndex);
 
 	return true;
 }
@@ -584,7 +591,7 @@ UTOPNode::GetBakedWorkResultObjectOutputs(int32 InWorkResultArrayIndex, int32 In
 }
 
 int32
-UTOPNode::IndexOfWorkResultByID(const int32& InWorkItemID)
+UTOPNode::ArrayIndexOfWorkResultByID(const int32& InWorkItemID) const
 {
 	const int32 NumEntries = WorkResult.Num();
 	for (int32 Index = 0; Index < NumEntries; ++Index)
@@ -602,7 +609,7 @@ UTOPNode::IndexOfWorkResultByID(const int32& InWorkItemID)
 FTOPWorkResult*
 UTOPNode::GetWorkResultByID(const int32& InWorkItemID)
 {
-	const int32 ArrayIndex = IndexOfWorkResultByID(InWorkItemID);
+	const int32 ArrayIndex = ArrayIndexOfWorkResultByID(InWorkItemID);
 	if (!WorkResult.IsValidIndex(ArrayIndex))
 		return nullptr;
 
@@ -610,28 +617,19 @@ UTOPNode::GetWorkResultByID(const int32& InWorkItemID)
 }
 
 int32
-UTOPNode::IndexOfWorkResultByHAPIIndex(const int32& InWorkItemIndex, bool bInWithInvalidWorkItemID)
+UTOPNode::ArrayIndexOfFirstInvalidWorkResult() const
 {
 	const int32 NumEntries = WorkResult.Num();
 	for (int32 Index = 0; Index < NumEntries; ++Index)
 	{
 		const FTOPWorkResult& CurResult = WorkResult[Index];
-		if (CurResult.WorkItemIndex == InWorkItemIndex && (!bInWithInvalidWorkItemID || CurResult.WorkItemID == INDEX_NONE))
+		if (CurResult.WorkItemID == INDEX_NONE)
 		{
 			return Index;
 		}
 	}
 
 	return INDEX_NONE;
-}
-
-FTOPWorkResult*
-UTOPNode::GetWorkResultByHAPIIndex(const int32& InWorkItemIndex, bool bInWithInvalidWorkItemID)
-{
-	const int32 ArrayIndex = IndexOfWorkResultByHAPIIndex(InWorkItemIndex, bInWithInvalidWorkItemID);
-	if (!WorkResult.IsValidIndex(ArrayIndex))
-		return nullptr;
-	return &WorkResult[ArrayIndex];
 }
 
 FTOPWorkResult*
