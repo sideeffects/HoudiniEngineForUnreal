@@ -32,6 +32,8 @@ FHoudiniEngineTask::FHoudiniEngineTask()
 	: TaskType(EHoudiniEngineTaskType::None)
 	, ActorName(TEXT(""))
 	, AssetId(-1)
+	, bUseOutputNodes(false)
+	, bOutputTemplateGeos(false)
 	, AssetLibraryId(-1)
 	, AssetHapiName(-1)
 {
@@ -44,6 +46,8 @@ FHoudiniEngineTask::FHoudiniEngineTask(EHoudiniEngineTaskType InTaskType, FGuid 
 	, TaskType(InTaskType)
 	, ActorName(TEXT(""))
 	, AssetId(-1)
+	, bUseOutputNodes(false)
+	, bOutputTemplateGeos(false)
 	, AssetLibraryId(-1)
 	, AssetHapiName(-1)
 {
