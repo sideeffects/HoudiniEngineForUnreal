@@ -63,6 +63,7 @@ FHoudiniPackageParams::FHoudiniPackageParams()
 	PDGTOPNetworkName.Empty();
 	PDGTOPNodeName.Empty();
 	PDGWorkItemIndex = INDEX_NONE;
+	PDGWorkResultArrayIndex = INDEX_NONE;
 }
 
 
@@ -93,11 +94,11 @@ FHoudiniPackageParams::GetPackageName() const
 		return ObjectName;
 
 	// If we have PDG infos, generate a name including them
-	if (!PDGTOPNetworkName.IsEmpty() && !PDGTOPNodeName.IsEmpty() && PDGWorkItemIndex >= 0)
+	if (!PDGTOPNetworkName.IsEmpty() && !PDGTOPNodeName.IsEmpty() && PDGWorkResultArrayIndex >= 0)
 	{
 		return FString::Printf(
 			TEXT("%s_%s_%s_%d_%d_%s"),
-			*HoudiniAssetName, *PDGTOPNetworkName, *PDGTOPNodeName, PDGWorkItemIndex, PartId, *SplitStr);
+			*HoudiniAssetName, *PDGTOPNetworkName, *PDGTOPNodeName, PDGWorkResultArrayIndex, PartId, *SplitStr);
 	}
 	else
 	{

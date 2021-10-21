@@ -1393,17 +1393,18 @@ FHoudiniPDGManager::CreateOrRelinkWorkItem(
 	}
 
 	// Try to find the existing WorkItem by ID.
-	int32 Index = InTOPNode->IndexOfWorkResultByID(InWorkItemID);
+	int32 Index = InTOPNode->ArrayIndexOfWorkResultByID(InWorkItemID);
 	if (Index == INDEX_NONE)
 	{
-		// Try to find an entry with WorkItemID == INDEX_NONE but where workItemIndex matches. The WorkItemIDs are
+		// Try to find the first entry with WorkItemID == INDEX_NONE. The WorkItemIDs are
 		// transient, so not saved when the map / asset link is saved. So when loading a map containing the asset
-		// link all the IDs are INDEX_NONE and the WorkItemIndex is the best way to find an entry to re-use.
-		const bool bWithInvalidWorkItemID = true;
-		Index = InTOPNode->IndexOfWorkResultByHAPIIndex(WorkItemInfo.index, bWithInvalidWorkItemID);
+		// link all the IDs are INDEX_NONE and so we re-use any stale entries in array index order (should be reliable
+		// if work items generate in the same order. In the future we might have to consider adding support for a
+		// custom ID attribute for more stable re-linking of work items).
+		Index = InTOPNode->ArrayIndexOfFirstInvalidWorkResult();
 		if (Index == INDEX_NONE)
 		{
-			// If we couldn't find an existing entry, or a stale entry to re-use, create a new one
+			// If we couldn't find a stale entry to re-use, create a new one
 			FTOPWorkResult LocalWorkResult;
 			LocalWorkResult.WorkItemID = InWorkItemID;
 			LocalWorkResult.WorkItemIndex = WorkItemInfo.index;
@@ -1411,7 +1412,10 @@ FHoudiniPDGManager::CreateOrRelinkWorkItem(
 		}
 		else
 		{
-			InTOPNode->WorkResult[Index].WorkItemID = InWorkItemID;
+			// We found a stale entry, re-use it
+			FTOPWorkResult& ReUsedWorkResult = InTOPNode->WorkResult[Index];
+			ReUsedWorkResult.WorkItemID = InWorkItemID;
+			ReUsedWorkResult.WorkItemIndex = WorkItemInfo.index;
 		}
 	}
 
@@ -1441,15 +1445,18 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 	}
 
 	// Try to find the existing WorkResult by ID.
-	FTOPWorkResult* WorkResult = UHoudiniPDGAssetLink::GetWorkResultByID(InWorkItemID, InTOPNode);
+	int32 WorkResultArrayIndex = InTOPNode->ArrayIndexOfWorkResultByID(InWorkItemID);
+	FTOPWorkResult* WorkResult = nullptr;
+	if (WorkResultArrayIndex != INDEX_NONE)
+		WorkResult = InTOPNode->GetWorkResultByArrayIndex(WorkResultArrayIndex);
 	if (!WorkResult)
 	{
 		// TODO: This shouldn't really happen, it means a work item finished cooking and generated a result before
 		// we received an event that the work item was added/generated.
-		int32 ArrayIndex = CreateOrRelinkWorkItem(InTOPNode, InContextID, InWorkItemID);
-		if (ArrayIndex != INDEX_NONE)
+		WorkResultArrayIndex = CreateOrRelinkWorkItem(InTOPNode, InContextID, InWorkItemID);
+		if (WorkResultArrayIndex != INDEX_NONE)
 		{
-			WorkResult = InTOPNode->GetWorkResultByArrayIndex(ArrayIndex);
+			WorkResult = InTOPNode->GetWorkResultByArrayIndex(WorkResultArrayIndex);
 		}
 	}
 
@@ -1499,7 +1506,7 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 				TEXT("%s_%s_%d_%d"),
 				*(InTOPNode->ParentName),
 				*WorkItemName,
-				WorkItemInfo.index,
+				WorkResultArrayIndex,
 				Idx);
 
 			// int32 ExistingObjectIndex = WorkResult->ResultObjects.IndexOfByPredicate([WorkResultName](const FTOPWorkResultObject& InResultObject)
@@ -1715,8 +1722,12 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 				// ... All WorkResult
 				CurrentTOPNode->bCachedHaveNotLoadedWorkResults = false;
 				CurrentTOPNode->bCachedHaveLoadedWorkResults = false;
-				for (FTOPWorkResult& CurrentWorkResult : CurrentTOPNode->WorkResult)
+				
+				const int32 NumWorkResults = CurrentTOPNode->WorkResult.Num();
+				for (int32 WorkResultArrayIndex = 0; WorkResultArrayIndex < NumWorkResults; ++WorkResultArrayIndex)
+				// for (FTOPWorkResult& CurrentWorkResult : CurrentTOPNode->WorkResult)
 				{
+					FTOPWorkResult& CurrentWorkResult = CurrentTOPNode->WorkResult[WorkResultArrayIndex];
 					// ... All WorkResultObjects
 					for (FTOPWorkResultObject& CurrentWorkResultObj : CurrentWorkResult.ResultObjects)
 					{
@@ -1728,6 +1739,9 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 							PackageParams.PDGTOPNetworkName = CurrentTOPNet->NodeName;
 							PackageParams.PDGTOPNodeName = CurrentTOPNode->NodeName;
 							PackageParams.PDGWorkItemIndex = CurrentWorkResult.WorkItemIndex;
+							// Use the array index to ensure uniqueness among the work items of the node (
+							// CurrentWorkResult.WorkItemIndex is not necessarily unique)
+							PackageParams.PDGWorkResultArrayIndex = WorkResultArrayIndex;
 
 							if (CommandletStatus == EHoudiniBGEOCommandletStatus::Connected)
 							{
@@ -1753,7 +1767,7 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 									
 									// Broadcast that we have loaded the work result object to those interested
 									AssetLink->OnWorkResultObjectLoaded.Broadcast(
-										AssetLink, CurrentTOPNode, CurrentWorkResult.WorkItemIndex,
+										AssetLink, CurrentTOPNode, WorkResultArrayIndex,
 										CurrentWorkResultObj.WorkItemResultInfoIndex);
 								}
 								else
@@ -1839,7 +1853,10 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 			return;
 		}
 
-		FTOPWorkResult* WorkResult = AssetLink->GetWorkResultByID(InMessage.WorkItemId, TOPNode);
+		FTOPWorkResult* WorkResult = nullptr;
+		const int32 WorkResultArrayIndex = TOPNode->ArrayIndexOfWorkResultByID(InMessage.WorkItemId);
+		if (WorkResultArrayIndex != INDEX_NONE)
+			WorkResult = TOPNode->GetWorkResultByArrayIndex(WorkResultArrayIndex);
 		if (WorkResult == nullptr)
 		{
 			HOUDINI_LOG_WARNING(TEXT("Failed to find TOP work result with id %d, aborting output object creation."), InMessage.WorkItemId);
@@ -2042,7 +2059,7 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 			HOUDINI_LOG_MESSAGE(TEXT("Loaded geo for %s"), *InMessage.Name);
 			// Broadcast that we have loaded the work result object to those interested
 			AssetLink->OnWorkResultObjectLoaded.Broadcast(
-				AssetLink, TOPNode, WorkResult->WorkItemIndex, WorkResultObject->WorkItemResultInfoIndex);
+				AssetLink, TOPNode, WorkResultArrayIndex, WorkResultObject->WorkItemResultInfoIndex);
 		}
 		else
 		{
