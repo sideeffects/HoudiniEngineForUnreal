@@ -98,8 +98,11 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		}
 
 		TArray<UHoudiniOutput*> NewOutputs;
+		TArray<HAPI_NodeId> OutputNodes = HAC->GetOutputNodeIds();
+		TMap<HAPI_NodeId, int32> OutputNodeCookCounts = HAC->GetOutputNodeCookCounts();
 		if (FHoudiniOutputTranslator::BuildAllOutputs(
-			HAC->GetAssetId(), HAC, HAC->Outputs, NewOutputs, HAC->NodeIdsToCook, HAC->bOutputTemplateGeos, HAC->bUseOutputNodes))
+			HAC->GetAssetId(), HAC, OutputNodes, OutputNodeCookCounts,
+			HAC->Outputs, NewOutputs, HAC->bOutputTemplateGeos, HAC->bUseOutputNodes))
 		{
 			// NOTE: For now we are currently forcing all outputs to be cleared here. There is still an issue where, in some
 			// circumstances, landscape tiles disappear when clearing outputs after processing.
@@ -961,12 +964,18 @@ bool
 FHoudiniOutputTranslator::BuildAllOutputs(
 	const HAPI_NodeId& AssetId,
 	UObject* InOuterObject,	
+	const TArray<HAPI_NodeId>& OutputNodes,
+	const TMap<HAPI_NodeId, int32>& OutputNodeCookCounts,
 	TArray<UHoudiniOutput*>& InOldOutputs,
 	TArray<UHoudiniOutput*>& OutNewOutputs,
-	TArray<HAPI_NodeId>& OutNodeIdsToCook,
 	const bool& InOutputTemplatedGeos,
 	const bool& InUseOutputNodes)
 {
+	// NOTE: This function still gathers output nodes from the asset id. This is old behaviour.
+	//       Output nodes are now being gathered before cooking starts and is passed in through
+	//       the OutputNodes array. Clean up this function by only using output nodes from the
+	//       aforementioned array.
+	
 	// Ensure the asset has a valid node ID
 	if (AssetId < 0)
 	{
@@ -1131,6 +1140,8 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	{
 		AllObjectIds.Add(AssetInfo.objectNodeId);
 	}
+
+	TMap<HAPI_NodeId, int32> CurrentCookCounts;
 	
 	// Iterate through all objects.
 	int32 OutputIdx = 1;
@@ -1221,7 +1232,45 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 		{
 			// Cache the geo nodes ids for this asset
 			const HAPI_GeoInfo& CurrentHapiGeoInfo = GeoInfos[GeoIdx];
-			OutNodeIdsToCook.Add(CurrentHapiGeoInfo.nodeId);
+			// We shouldn't add display nodes for cooking since the
+			// if (!CurrentHapiGeoInfo.isDisplayGeo)
+			// {
+			// 	OutNodeIdsToCook.Add(CurrentHapiGeoInfo.nodeId);
+			// }
+			
+			// We cannot rely on the bGeoHasChanged flag when dealing with session sync. Since the
+			// property will be set to false for any node that has cooked twice. Instead, we compare
+			// current cook counts against the last cached count that we have in order to determine
+			// whether geo has changed.
+			bool bHasChanged = false;
+
+			if (!CurrentCookCounts.Contains(CurrentHapiGeoInfo.nodeId))
+			{
+				CurrentCookCounts.Add(CurrentHapiGeoInfo.nodeId, FHoudiniEngineUtils::HapiGetCookCount(CurrentHapiGeoInfo.nodeId));
+			}
+			
+			if (OutputNodeCookCounts.Contains(CurrentHapiGeoInfo.nodeId))
+			{
+				// If the cook counts changed, we assume the geo has changed.
+				bHasChanged =  OutputNodeCookCounts[CurrentHapiGeoInfo.nodeId] != CurrentCookCounts[CurrentHapiGeoInfo.nodeId]; 
+			}
+			else
+			{
+				// Something is new! We don't have a cook count for this node.
+				bHasChanged = true;
+			}
+
+			if (bHasChanged)
+			{
+				FString NodePath;
+				FHoudiniEngineUtils::HapiGetAbsNodePath(CurrentHapiGeoInfo.nodeId, NodePath);
+				HOUDINI_LOG_MESSAGE(TEXT("[TaskCookAsset] We say Geo Has Changed!: %d, %s"), CurrentHapiGeoInfo.nodeId, *NodePath);
+			}
+
+			// HERE BE FUDGING!
+			// Change the hasGeoChanged flag on the GeoInfo to match our expectation
+			// of whether geo has changed.
+			GeoInfos[GeoIdx].hasGeoChanged = CurrentHapiGeoInfo.hasGeoChanged || bHasChanged; 
 
 			// Cook editable/templated nodes to get their parts.
 			if ((ForceNodesToCook.Contains(CurrentHapiGeoInfo.nodeId) && CurrentHapiGeoInfo.partCount <= 0)

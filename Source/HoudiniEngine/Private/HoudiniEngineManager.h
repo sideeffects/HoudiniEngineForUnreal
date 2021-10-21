@@ -110,6 +110,8 @@ protected:
 		const HAPI_NodeId& AssetId,
 		const TArray<HAPI_NodeId>& NodeIdsToCook,
 		const FString& DisplayName,
+		bool bUseOutputNodes,
+		bool bOutputTemplateGeos,
 		FGuid& OutTaskGUID);
 
 	// Updates progress of the cooking task

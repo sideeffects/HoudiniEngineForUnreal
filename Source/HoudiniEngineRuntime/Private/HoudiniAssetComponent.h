@@ -277,6 +277,21 @@ public:
 	//
 	void SetHasComponentTransformChanged(const bool& InHasChanged);
 
+	// Set an array of output nodes being tracked.
+	// This will remove any cook counts for nodes that are not in this list.
+	void SetOutputNodeIds(const TArray<int32>& OutputNodes);
+	TArray<int32> GetOutputNodeIds() const { return NodeIdsToCook; }
+	TMap<int32, int32> GetOutputNodeCookCounts() const { return OutputNodeCookCounts; }
+	
+	// Store the latest cook count that was processed for this output node. 
+	void SetOutputNodeCookCount(const int& NodeId, const int& CookCount);
+	// Compare the current node's cook count against the cached value. If they are different, return true. False otherwise.
+	bool HasOutputNodeChanged(const int& NodeId, const int& NewCookCount);
+	// Clear output nodes. This will also clear the output node cook counts.
+	void ClearOutputNodes();
+	// Clear the cook counts for output nodes. This will trigger rebuild of data.
+	void ClearOutputNodesCookCount();
+
 	// Set to True to force the next cook to not build a proxy mesh (regardless of global or override settings) and
 	// instead build a UStaticMesh directly (if applicable for the output type).
 	void SetNoProxyMeshNextCookRequested(bool bInNoProxyMeshNextCookRequested) { bNoProxyMeshNextCookRequested = bInNoProxyMeshNextCookRequested; }
@@ -592,6 +607,10 @@ protected:
 	// This is for additional output and templated nodes if they are used.
 	UPROPERTY(Transient, DuplicateTransient)
 	TArray<int32> NodeIdsToCook;
+
+	// Cook counts for nodes in the NodeIdsToCook array.
+	UPROPERTY(Transient, DuplicateTransient)
+	TMap<int32, int32> OutputNodeCookCounts;
 
 	// List of dependent downstream HACs that have us as an asset input
 	UPROPERTY(DuplicateTransient)
