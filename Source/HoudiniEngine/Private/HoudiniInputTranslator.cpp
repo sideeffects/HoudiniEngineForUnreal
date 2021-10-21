@@ -2706,8 +2706,15 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 	}
 	else
 	{
-		// Add all the components to the selected set
-		SelectedComponents.Append(Landscape->LandscapeComponents);
+		// Add all the components of the landscape to the selected set
+		ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
+		if (LandscapeInfo)
+		{
+			LandscapeInfo->ForAllLandscapeComponents([&SelectedComponents](ULandscapeComponent* Component)
+			{
+				SelectedComponents.Add(Component);
+			});
+		}
 	}
 	
 	bool bSucess = false;
