@@ -846,7 +846,7 @@ UTOPNetwork::HandleOnPDGEventCookCompleteReceivedByChildNode(UHoudiniPDGAssetLin
 	if (!IsValid(InAssetLink))
 		return;
 
-	// Check if all nodes have recieved the HAPI_PDG_EVENT_COOK_COMPLETE event, if so, broadcast the OnPostCook handler.
+	// Check if all nodes have received the HAPI_PDG_EVENT_COOK_COMPLETE event, if so, broadcast the OnPostCook handler.
 	for (const UTOPNode* const TOPNode : AllTOPNodes)
 	{
 		if (!IsValid(TOPNode))

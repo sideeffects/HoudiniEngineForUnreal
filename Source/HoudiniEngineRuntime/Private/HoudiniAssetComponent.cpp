@@ -655,8 +655,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 	bFullyLoaded = false;
 
 	bOutputless = false;
-	bOutputTemplateGeos = false;	
-	bUseOutputNodes = false;
+	bOutputTemplateGeos = false;
+	bUseOutputNodes = true;
 
 	PDGAssetLink = nullptr;
 
