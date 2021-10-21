@@ -203,7 +203,7 @@ FHoudiniHandleComponentVisualizer::GetCustomInputCoordinateSystem(
 	const FEditorViewportClient * ViewportClient,
 	FMatrix & OutMatrix) const
 {
-	if (EditedComponent && ViewportClient->GetWidgetMode() == UE::Widget::WM_Scale)
+	if (EditedComponent && ViewportClient->GetWidgetMode() == UE::Widget::EWidgetMode::WM_Scale)
 	{
 		OutMatrix = FRotationMatrix::Make(EditedComponent->GetComponentTransform().GetRotation());
 		return true;
