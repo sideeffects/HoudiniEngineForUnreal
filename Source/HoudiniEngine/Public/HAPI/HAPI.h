@@ -1703,10 +1703,15 @@ HAPI_DECL HAPI_GetAssetDefinitionParmValues(
 ///
 ///         @note In threaded mode, this is an _async call_!
 ///
-///         @note This method will merge the HIP file into the scene. This means
+///         @note This method will load the HIP file into the scene. This means
 ///         that any registered `hou.hipFile` event callbacks will be triggered
 ///         with the `hou.hipFileEventType.BeforeMerge` and
 ///         `hou.hipFileEventType.AfterMerge` events.
+///
+///         @note This method loads a HIP file, completely overwriting
+///         everything that already exists in the scene. Therefore, any HAPI ids
+///         (node ids, part ids, etc.) that were obtained before calling this
+///         method will be invalidated.
 ///
 /// @ingroup HipFiles
 ///
