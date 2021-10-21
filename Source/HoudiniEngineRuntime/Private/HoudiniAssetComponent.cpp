@@ -2371,6 +2371,50 @@ UHoudiniAssetComponent::SetHasComponentTransformChanged(const bool& InHasChanged
 		bHasComponentTransformChanged = InHasChanged;
 }
 
+void UHoudiniAssetComponent::SetOutputNodeIds(const TArray<int32>& OutputNodes)
+{
+	NodeIdsToCook = OutputNodes;
+	// Remove stale entries from OutputNodeCookCounts:
+	TArray<int32> CachedNodeIds;
+	OutputNodeCookCounts.GetKeys(CachedNodeIds);
+	for(const int32 NodeId : CachedNodeIds)
+	{
+		if (!NodeIdsToCook.Contains(NodeId))
+		{
+			OutputNodeCookCounts.Remove(NodeId);
+		}
+	}
+}
+
+void UHoudiniAssetComponent::SetOutputNodeCookCount(const int& NodeId, const int& CookCount)
+{
+	OutputNodeCookCounts.Add(NodeId, CookCount);
+}
+
+bool UHoudiniAssetComponent::HasOutputNodeChanged(const int& NodeId, const int& NewCookCount)
+{
+	if (!OutputNodeCookCounts.Contains(NodeId))
+	{
+		return true;
+	}
+	if (OutputNodeCookCounts[NodeId] == NewCookCount)
+	{
+		return false;
+	}
+	return true;
+}
+
+void UHoudiniAssetComponent::ClearOutputNodes()
+{
+	NodeIdsToCook.Empty();
+	ClearOutputNodesCookCount();
+}
+
+void UHoudiniAssetComponent::ClearOutputNodesCookCount()
+{
+	OutputNodeCookCounts.Empty();
+}
+
 void
 UHoudiniAssetComponent::SetPDGAssetLink(UHoudiniPDGAssetLink* InPDGAssetLink)
 {
