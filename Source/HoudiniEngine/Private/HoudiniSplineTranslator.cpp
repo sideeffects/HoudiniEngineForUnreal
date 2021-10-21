@@ -1703,6 +1703,11 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 		}
 		else 
 		{
+			// If this is not a new output object we have to clear the CachedAttributes and CachedTokens before
+			// setting the new values (so that we do not re-use any values from the previous cook)
+			FoundOutputObject->CachedAttributes.Empty();
+			FoundOutputObject->CachedTokens.Empty();
+
 			// 
 			if (FoundOutputObject->CurveOutputProperty.CurveOutputType == EHoudiniCurveOutputType::UnrealSpline)
 			{
@@ -1720,7 +1725,7 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 					if (!FHoudiniSplineTranslator::UpdateOutputUnrealSplineComponent(CurvesDisplayPoints[n], FoundUnrealSpline, FoundOutputObject->CurveOutputProperty.CurveType, FoundOutputObject->CurveOutputProperty.bClosed))
 						continue;
 					
-					OutSplines.Add(CurveIdentifier, *FoundOutputObject);
+					FoundOutputObject = &OutSplines.Add(CurveIdentifier, *FoundOutputObject);
 				}
 				else
 				{
@@ -1738,7 +1743,7 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 
 					FoundOutputObject->OutputComponent = NewUnrealSpline;
 
-					OutSplines.Add(CurveIdentifier, *FoundOutputObject);
+					FoundOutputObject = &OutSplines.Add(CurveIdentifier, *FoundOutputObject);
 				}
 			}
 			// We current support Unreal Spline output only...

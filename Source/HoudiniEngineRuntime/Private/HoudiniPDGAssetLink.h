@@ -456,9 +456,9 @@ public:
 	TMap<FString, FHoudiniPDGWorkResultObjectBakedOutput>& GetBakedWorkResultObjectsOutputs() { return BakedWorkResultObjectOutputs; }
 	const TMap<FString, FHoudiniPDGWorkResultObjectBakedOutput>& GetBakedWorkResultObjectsOutputs() const { return BakedWorkResultObjectOutputs; }
 	// Helper to construct the key used to look up baked work results.
-	static FString GetBakedWorkResultObjectOutputsKey(int32 InWorkItemIndex, int32 InWorkResultObjectArrayIndex);
+	static FString GetBakedWorkResultObjectOutputsKey(int32 InWorkResultArrayIndex, int32 InWorkResultObjectArrayIndex);
 	// Helper to construct the key used to look up baked work results.
-	static FString GetBakedWorkResultObjectOutputsKey(const FTOPWorkResult& InWorkResult, int32 InWorkResultObjectArrayIndex);
+	FString GetBakedWorkResultObjectOutputsKey(const FTOPWorkResult& InWorkResult, int32 InWorkResultObjectArrayIndex) const;
 	// Helper to construct the key used to look up baked work results.
 	bool GetBakedWorkResultObjectOutputsKey(int32 InWorkResultArrayIndex, int32 InWorkResultObjectArrayIndex, FString& OutKey) const;
 	// Get the FHoudiniPDGWorkResultObjectBakedOutput for a work item (FTOPWorkResult) and specific result object.
@@ -466,16 +466,13 @@ public:
 	// Get the FHoudiniPDGWorkResultObjectBakedOutput for a work item (FTOPWorkResult) and specific result object (const version).
 	bool GetBakedWorkResultObjectOutputs(int32 InWorkResultArrayIndex, int32 InWorkResultObjectArrayIndex, FHoudiniPDGWorkResultObjectBakedOutput const*& OutBakedOutput) const;
 
-	// Search for the first FTOPWorkResult entry by WorkItemID and return it, or nullptr if it could not be found.
-	int32 IndexOfWorkResultByID(const int32& InWorkItemID);
+	// Search for the first FTOPWorkResult entry by WorkItemID and return its array index or INDEX_NONE, if it could not be found.
+	int32 ArrayIndexOfWorkResultByID(const int32& InWorkItemID) const;
 	// Search for the first FTOPWorkResult entry by WorkItemID and return it, or nullptr if it could not be found.
 	FTOPWorkResult* GetWorkResultByID(const int32& InWorkItemID);
-	// Search for the first FTOPWorkResult entry by WorkItemIndex and return it, or nullptr if it could not be found.
-	// If bWithInvalidWorkItemID is true, then only return an entry if its WorkItemID is INDEX_NONE.
-	int32 IndexOfWorkResultByHAPIIndex(const int32& InWorkItemIndex, bool bInWithInvalidWorkItemID=false);
-	// Search for the first FTOPWorkResult entry by WorkItemIndex and return it, or nullptr if it could not be found.
-	// If bWithInvalidWorkItemID is true, then only return an entry if its WorkItemID is INDEX_NONE.
-	FTOPWorkResult* GetWorkResultByHAPIIndex(const int32& InWorkItemIndex, bool bInWithInvalidWorkItemID=false);
+	// Search for the first FTOPWorkResult entry with an invalid (INDEX_NONE) work item id and return it, or INDEX_None
+	// if no invalid entry could be found.
+	int32 ArrayIndexOfFirstInvalidWorkResult() const;
 	// Return the FTOPWorkResult at InArrayIndex in the WorkResult array, or nullptr if InArrayIndex is not a valid index.
 	FTOPWorkResult* GetWorkResultByArrayIndex(const int32& InArrayIndex);
 
@@ -655,7 +652,7 @@ public:
 
 
 class UHoudiniPDGAssetLink;
-DECLARE_MULTICAST_DELEGATE_FourParams(FHoudiniPDGAssetLinkWorkResultObjectLoaded, UHoudiniPDGAssetLink*, UTOPNode*, int32 /*WorkItemHAPIIndex*/, int32 /*WorkItemResultInfoIndex*/);
+DECLARE_MULTICAST_DELEGATE_FourParams(FHoudiniPDGAssetLinkWorkResultObjectLoaded, UHoudiniPDGAssetLink*, UTOPNode*, int32 /*WorkItemArrayIndex*/, int32 /*WorkItemResultInfoIndex*/);
 
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniPDGAssetLink : public UObject

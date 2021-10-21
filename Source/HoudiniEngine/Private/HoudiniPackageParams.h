@@ -159,6 +159,9 @@ public:
 	// For PDG temporary outputs: the work item index of the TOP node
 	UPROPERTY()
 	int32 PDGWorkItemIndex;
+	// For PDG temporary outputs: the work item array index in the WorkResult array of the TOP node
+	UPROPERTY()
+	int32 PDGWorkResultArrayIndex;
 
 	////TODO: We don't have access to Houdini attributes in HoudiniEngine/HoudiniEnginePrivatePCH. 
 	//FString GetTempFolderArgument(ERuntimePackageMode PackageMode) const;
@@ -207,6 +210,7 @@ public:
 		OutTokens.Add("pdg_topnet_name", ValueT( PDGTOPNetworkName ));
 		OutTokens.Add("pdg_topnode_name", ValueT( PDGTOPNodeName ));
 		OutTokens.Add("pdg_workitem_index", ValueT( FString::FromInt(PDGWorkItemIndex) ));
+		OutTokens.Add("pdg_workresult_array_index", ValueT( FString::FromInt(PDGWorkResultArrayIndex) ));
 		OutTokens.Add("guid", ValueT( ComponentGUID.ToString() ));
 	}
 
