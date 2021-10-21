@@ -68,6 +68,7 @@
 #include "Engine/SkeletalMesh.h"
 #include "Particles/ParticleSystem.h"
 //#include "Landscape.h"
+#include "HoudiniEngineOutputStats.h"
 #include "LandscapeProxy.h"
 #include "ScopedTransaction.h"
 #include "PhysicsEngine/BodySetup.h"
@@ -3687,6 +3688,8 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 		bAutomaticallySetAttemptToLoadMissingPackages, bSkipObjectNameResolutionAndUseDefault,
 		bSkipBakeFolderResolutionAndUseDefault);
 
+	FHoudiniEngineOutputStats BakeStats;
+	
 	switch (Type) 
 	{
 		case EHoudiniOutputType::Mesh:
@@ -3698,7 +3701,7 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 				TempCookFolderPath.Path = TempCookFolder;
 				TMap<UMaterialInterface *, UMaterialInterface *> AlreadyBakedMaterialsMap;
 				UStaticMesh* DuplicatedMesh = FHoudiniEngineBakeUtils::BakeStaticMesh(
-					StaticMesh, PackageParams, InAllOutputs, TempCookFolderPath, AlreadyBakedMaterialsMap);
+					StaticMesh, PackageParams, InAllOutputs, TempCookFolderPath, AlreadyBakedMaterialsMap, BakeStats);
 			}
 		}
 		break;
@@ -3709,7 +3712,8 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 			{
 				AActor* BakedActor;
 				USplineComponent* BakedSplineComponent;
-				FHoudiniEngineBakeUtils::BakeCurve(SplineComponent, GWorld->GetCurrentLevel(), PackageParams, BakedActor, BakedSplineComponent);
+				FHoudiniEngineBakeUtils::BakeCurve(
+					SplineComponent, GWorld->GetCurrentLevel(), PackageParams, FName(PackageParams.ObjectName), BakedActor, BakedSplineComponent, BakeStats);
 			}
 		}
 		break;
@@ -3718,11 +3722,18 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 			ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(BakedOutputObject);
 			if (Landscape)
 			{
-				FHoudiniEngineBakeUtils::BakeHeightfield(Landscape, PackageParams, LandscapeBakeType);
+				FHoudiniEngineBakeUtils::BakeHeightfield(Landscape, PackageParams, LandscapeBakeType, BakeStats);
 			}
 		}
 		break;
 	}
+
+	{
+		const FString FinishedTemplate = TEXT("Baking finished. Created {0} packages. Updated {1} packages.");
+		FString Msg = FString::Format(*FinishedTemplate, { BakeStats.NumPackagesCreated, BakeStats.NumPackagesUpdated } );
+		FHoudiniEngine::Get().FinishTaskSlateNotification( FText::FromString(Msg) );
+	}
+
 }
 
 FReply
