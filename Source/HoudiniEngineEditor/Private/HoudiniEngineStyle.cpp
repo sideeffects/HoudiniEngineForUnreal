@@ -96,9 +96,15 @@ FHoudiniEngineStyle::Initialize()
 	StyleSet->Set(
 		"HoudiniEngine.HoudiniEngineLogo",
 		new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+	
 	StyleSet->Set(
 		"ClassIcon.HoudiniAssetActor",
 		new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+
+	StyleSet->Set(
+		"ClassThumbnail.HoudiniAssetActor",
+		new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_128.png"), Icon64x64));
+
 	StyleSet->Set(
 		"HoudiniEngine.HoudiniEngineLogo40",
 		new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_40.png"), Icon40x40));
