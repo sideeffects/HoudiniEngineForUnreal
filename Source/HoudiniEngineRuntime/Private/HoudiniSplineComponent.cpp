@@ -476,7 +476,10 @@ UHoudiniSplineComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 	if (IsInputCurve())
 	{
 		// This component can't just come out of nowhere and decide to delete an input object!
-		// We have rules and regulations for this sort of thing. Protocols to follow, forms to fill out, in triplicate! 
+		// We have rules and regulations for this sort of thing. Protocols to follow, forms to fill out, in triplicate!
+		// The reason we can't delete these nodes here is because when we're using this component in a Blueprint,
+		// components will go through multiple reconstructions and destructions and in multiple worlds as well, causing
+		// the nodes in the Houdini session to disappear when we expect them to still be there.
 		
 		// InputObject->MarkPendingKill();
 
@@ -559,6 +562,15 @@ void UHoudiniSplineComponent::MarkChanged(const bool& Changed)
 {
 	bHasChanged = Changed;
 	bNeedsToTriggerUpdate = Changed;
+}
+
+void UHoudiniSplineComponent::MarkInputNodesAsPendingKill()
+{
+	// InputObject->MarkPendingKill();
+	if(NodeId > -1)
+		FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(NodeId);
+
+	SetNodeId(-1); // Set nodeId to invalid for reconstruct on re-do
 }
 
 FHoudiniSplineComponentInstanceData::FHoudiniSplineComponentInstanceData()
