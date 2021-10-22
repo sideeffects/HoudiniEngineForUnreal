@@ -2695,58 +2695,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 	bool bExportSelectionOnly = InInput->bLandscapeExportSelectionOnly;
 	bool bLandscapeAutoSelectComponent = InInput->bLandscapeAutoSelectComponent;
 
-	FBox Bounds(ForceInitToZero);
-	if ( bLandscapeAutoSelectComponent )
+	TSet< ULandscapeComponent * > SelectedComponents = InInput->GetLandscapeSelectedComponents();
+	if (bExportSelectionOnly && SelectedComponents.Num() == 0)
 	{
-		// Get our asset's or our connected input asset's bounds
-
-		UHoudiniAssetComponent* AssetComponent = Cast<UHoudiniAssetComponent>(InInput->GetOuter());
-		if (AssetComponent && AssetComponent->IsPendingKill())
-		{
-			Bounds = AssetComponent->GetAssetBounds(InInput, true);
-		}
-	}
-
-	TSet< ULandscapeComponent * > SelectedComponents;
-	if ( bExportSelectionOnly )
-	{
-		const ULandscapeInfo * LandscapeInfo = Landscape->GetLandscapeInfo();
-		if ( LandscapeInfo && !LandscapeInfo->IsPendingKill() )
-		{
-			// Get the currently selected components
-			SelectedComponents = LandscapeInfo->GetSelectedComponents();
-		}
-
-		if ( bLandscapeAutoSelectComponent && SelectedComponents.Num() <= 0 && Bounds.IsValid )
-		{
-			// We'll try to use the asset bounds to automatically "select" the components
-			for ( int32 ComponentIdx = 0; ComponentIdx < Landscape->LandscapeComponents.Num(); ComponentIdx++ )
-			{
-				ULandscapeComponent * LandscapeComponent = Landscape->LandscapeComponents[ ComponentIdx ];
-				if ( !LandscapeComponent || LandscapeComponent->IsPendingKill() )
-					continue;
-
-				FBoxSphereBounds WorldBounds = LandscapeComponent->CalcBounds( LandscapeComponent->GetComponentTransform());
-
-				if ( Bounds.IntersectXY( WorldBounds.GetBox() ) )
-					SelectedComponents.Add( LandscapeComponent );
-			}
-
-			int32 Num = SelectedComponents.Num();
-			HOUDINI_LOG_MESSAGE( TEXT("Landscape input: automatically selected %d components within the asset's bounds."), Num );
-		}
-	}
-	else
-	{
-		// Add all the components of the landscape to the selected set
-		ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
-		if (LandscapeInfo)
-		{
-			LandscapeInfo->ForAllLandscapeComponents([&SelectedComponents](ULandscapeComponent* Component)
-			{
-				SelectedComponents.Add(Component);
-			});
-		}
+		InInput->UpdateLandscapeInputSelection();
+		SelectedComponents = InInput->GetLandscapeSelectedComponents();
 	}
 	
 	bool bSucess = false;

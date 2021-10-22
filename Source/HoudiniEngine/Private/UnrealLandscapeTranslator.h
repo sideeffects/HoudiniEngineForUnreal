@@ -58,7 +58,8 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			HAPI_NodeId& HeightFieldId,
 			HAPI_NodeId& MergeId,
 			int32& MergeInputIndex,
-			const FString& InputNodeNameStr);
+			const FString& InputNodeNameStr,
+			const FTransform & ParentTransform);
 	
 		static bool CreateInputNodeForLandscape(
 			ALandscapeProxy* LandscapeProxy,

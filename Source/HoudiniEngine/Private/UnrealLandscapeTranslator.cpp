@@ -512,31 +512,41 @@ bool FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponentArray(AL
 {
 	if ( SelectedComponents.Num() <= 0 )
 		return false;
+		
+	ULandscapeInfo* LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
+	if (!IsValid(LandscapeInfo))
+		return false;
 
 	//--------------------------------------------------------------------------------------------------
 	//  Each selected component will be exported as tiled volumes in a single heightfield
 	//--------------------------------------------------------------------------------------------------
-	FTransform LandscapeTransform = LandscapeProxy->GetTransform();
-
-	//
+	//FTransform LandscapeTransform = FTransform::Identity; // The offset will be done in the component side
+	FTransform LandscapeTM = LandscapeProxy->LandscapeActorToWorld();
+	FTransform ProxyRelativeTM(FVector(LandscapeProxy->LandscapeSectionOffset));
+	FTransform LandscapeTransform = ProxyRelativeTM * LandscapeTM;
+	
 	HAPI_NodeId HeightfieldNodeId = -1;
 	HAPI_NodeId HeightfieldeMergeId = -1;
 
 	int32 MergeInputIndex = 0;
 	bool bAllComponentCreated = true;
-	for (int32 ComponentIdx = 0; ComponentIdx < LandscapeProxy->LandscapeComponents.Num(); ComponentIdx++)
-	{
-	ULandscapeComponent * CurrentComponent = LandscapeProxy->LandscapeComponents[ ComponentIdx ];
-	if ( !CurrentComponent )
-		continue;
 
-	if ( !SelectedComponents.Contains( CurrentComponent ) )
-		continue;
+	int32 ComponentIdx = 0;
 
-	if ( !CreateHeightfieldFromLandscapeComponent( LandscapeProxy, CurrentComponent, ComponentIdx, HeightfieldNodeId, HeightfieldeMergeId, MergeInputIndex, InputNodeNameStr ) )
-		bAllComponentCreated = false;
-    }
-
+	LandscapeInfo->ForAllLandscapeComponents([&](ULandscapeComponent* CurrentComponent)
+        {
+		if ( !CurrentComponent )
+			return;
+	
+		if ( !SelectedComponents.Contains( CurrentComponent ) )
+			return;
+		
+		if ( !CreateHeightfieldFromLandscapeComponent( LandscapeProxy, CurrentComponent, ComponentIdx, HeightfieldNodeId, HeightfieldeMergeId, MergeInputIndex, InputNodeNameStr, LandscapeTransform ) )
+			bAllComponentCreated = false;
+		
+		ComponentIdx++;
+	});
+	
 	// Check that we have a valid id for the input Heightfield.
 	if ( FHoudiniEngineUtils::IsHoudiniNodeValid( HeightfieldNodeId ) )
 	    CreatedHeightfieldNodeId = HeightfieldNodeId;
@@ -556,7 +566,7 @@ bool FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponentArray(AL
 }
 
 bool FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponent(ALandscapeProxy* LandscapeProxy, ULandscapeComponent* LandscapeComponent,
-	const int32& ComponentIndex, HAPI_NodeId& HeightFieldId, HAPI_NodeId& MergeId, int32& MergeInputIndex, const FString& InputNodeNameStr)
+	const int32& ComponentIndex, HAPI_NodeId& HeightFieldId, HAPI_NodeId& MergeId, int32& MergeInputIndex, const FString& InputNodeNameStr, const FTransform & ParentTransform)
 {
 	if ( !LandscapeComponent )
 		return false;
@@ -606,6 +616,23 @@ bool FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponent(ALandsc
 	HeightfieldVolumeInfo.transform.position[1] = RelativePosition.X;
 	HeightfieldVolumeInfo.transform.position[0] = RelativePosition.Y;
 	HeightfieldVolumeInfo.transform.position[2] = 0.0f;
+
+	ALandscapeProxy * Proxy = LandscapeComponent->GetLandscapeProxy();
+	if (Proxy)
+	{
+		FTransform LandscapeTM = Proxy->LandscapeActorToWorld();
+		FTransform ProxyRelativeTM(FVector(Proxy->LandscapeSectionOffset));
+
+		// For landscapes that live in streaming proxies, need to account for both the parent transform and
+		// the current transform.
+		// For single actor landscapes, the parent proxy transform is equal to this proxy transform
+		// Either way, we want to multiply by the inverse of the parent transform to get the relative
+		FTransform LandscapeTransform = ParentTransform.Inverse() * ProxyRelativeTM * LandscapeTM;
+		FVector Location = LandscapeTransform.GetLocation();
+		
+		HeightfieldVolumeInfo.transform.position[1] += Location.X / HAPI_UNREAL_SCALE_FACTOR_POSITION; 
+		HeightfieldVolumeInfo.transform.position[0] += Location.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+	}
 
 	//--------------------------------------------------------------------------------------------------
 	// 3. Create the Heightfield Input Node

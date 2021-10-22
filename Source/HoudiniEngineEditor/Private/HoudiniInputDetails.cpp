@@ -4145,9 +4145,11 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 						continue;
 
 					CurrentInput->Modify();
-
 					CurrentInput->bLandscapeExportSelectionOnly = bNewState;
+					CurrentInput->UpdateLandscapeInputSelection();
+
 					CurrentInput->MarkChanged(true);
+
 				}
 			})
 		];
@@ -4196,6 +4198,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 					CurrentInput->Modify();
 
 					CurrentInput->bLandscapeAutoSelectComponent = bNewState;
+					CurrentInput->UpdateLandscapeInputSelection();
 					CurrentInput->MarkChanged(true);
 				}
 			})
@@ -4214,7 +4217,66 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		CheckBoxAutoSelectComponents->SetEnabled(bEnable);
 	}
 
+	// Button : Update landscape component selection
+	{
+		auto OnButtonUpdateComponentSelection = [InInputs, MainInput]()
+		{
+			if (!MainInput || MainInput->IsPendingKill())
+				return FReply::Handled();
 
+			// Record a transaction for undo/redo
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniRecommitSelectedComponents", "Houdini Input: Recommit selected landscapes."),
+				MainInput->GetOuter());
+
+			for (auto CurrentInput : InInputs)
+			{
+				if (!CurrentInput || CurrentInput->IsPendingKill())
+					continue;
+
+				CurrentInput->UpdateLandscapeInputSelection();
+
+				CurrentInput->Modify();
+				CurrentInput->MarkChanged(true);
+			}
+
+			return FReply::Handled();
+		};
+
+		auto IsLandscapeExportEnabled = [MainInput, InInputs]()
+		{
+			bool bEnable = false;
+			for (auto CurrentInput : InInputs)
+			{
+				if (!MainInput->bLandscapeExportSelectionOnly)
+					continue;
+
+				bEnable = true;
+				break;
+			}
+			
+			return bEnable;
+		};
+		
+		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(1, 2, 4, 2)
+			[
+				SNew(SButton)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.Text(LOCTEXT("LandscapeInputUpdateSelectedComponents", "Update Selected Components"))
+				.ToolTipText(LOCTEXT("LandscapeInputUpdateSelectedComponentsTooltip", "Updates the selected components. Only valid if export selected components is true."))
+				.OnClicked_Lambda(OnButtonUpdateComponentSelection)
+				.IsEnabled_Lambda(IsLandscapeExportEnabled)
+			]
+		];
+
+	}
+	
 	// The following checkbox are only added when not in heightfield mode
 	if (MainInput->LandscapeExportType != EHoudiniLandscapeExportType::Heightfield)
 	{
