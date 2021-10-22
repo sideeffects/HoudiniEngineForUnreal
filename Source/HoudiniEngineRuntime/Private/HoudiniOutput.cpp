@@ -568,6 +568,16 @@ UHoudiniOutput::Clear()
 
 	for (auto& CurrentOutputObject : OutputObjects)
 	{
+		UHoudiniSplineComponent* SplineComponent = Cast<UHoudiniSplineComponent>(CurrentOutputObject.Value.OutputComponent);
+		if (IsValid(SplineComponent))
+		{
+			// The spline component is a special case where the output
+			// object as associated Houdini nodes (as input object).
+			// We can only explicitly remove those nodes when the output object gets
+			// removed. 
+			SplineComponent->MarkInputNodesAsPendingKill();
+		}
+		
 		// Clear the output component
 		USceneComponent* SceneComp = Cast<USceneComponent>(CurrentOutputObject.Value.OutputComponent);
 		if (SceneComp && !SceneComp->IsPendingKill())
@@ -576,6 +586,7 @@ UHoudiniOutput::Clear()
 			SceneComp->UnregisterComponent();
 			SceneComp->DestroyComponent();
 		}
+
 
 		// Also destroy proxy components
 		USceneComponent* ProxyComp = Cast<USceneComponent>(CurrentOutputObject.Value.ProxyComponent);
