@@ -69,6 +69,7 @@
 #endif
 
 #include "HCsgUtils.h"
+#include "LandscapeInfo.h"
 #include "UnrealGeometryCollectionTranslator.h"
 
 #include "Async/Async.h"
@@ -2690,12 +2691,34 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 
 	EHoudiniLandscapeExportType ExportType = InInput->GetLandscapeExportType();
 
+	// Get selected components if bLandscapeExportSelectionOnly or bLandscapeAutoSelectComponent is true
+	bool bExportSelectionOnly = InInput->bLandscapeExportSelectionOnly;
+	bool bLandscapeAutoSelectComponent = InInput->bLandscapeAutoSelectComponent;
+
+	TSet< ULandscapeComponent * > SelectedComponents = InInput->GetLandscapeSelectedComponents();
+	if (bExportSelectionOnly && SelectedComponents.Num() == 0)
+	{
+		InInput->UpdateLandscapeInputSelection();
+		SelectedComponents = InInput->GetLandscapeSelectedComponents();
+	}
+	
 	bool bSucess = false;
 	if (ExportType == EHoudiniLandscapeExportType::Heightfield)
 	{
 		// Ensure we destroy any (Houdini) input nodes before clobbering this object with a new heightfield.
 		//DestroyInputNodes(InInput, InInput->GetInputType());
-		bSucess = FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(Landscape, InObject->InputNodeId, InObjNodeName);
+		
+		int32 NumComponents = Landscape->LandscapeComponents.Num();
+		if ( !bExportSelectionOnly || ( SelectedComponents.Num() == NumComponents ) )
+		{
+			// Export the whole landscape and its layer as a single heightfield node
+			bSucess = FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(Landscape, InObject->InputNodeId, InObjNodeName);
+		}
+		else
+		{
+			// Each selected landscape component will be exported as separate volumes in a single heightfield
+			bSucess = FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponentArray( Landscape, SelectedComponents, InObject->InputNodeId, InObjNodeName );
+		}
 	}
 	else
 	{
@@ -2703,7 +2726,6 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 		bool bExportMaterials = InInput->bLandscapeExportMaterials;
 		bool bExportNormalizedUVs = InInput->bLandscapeExportNormalizedUVs;
 		bool bExportTileUVs = InInput->bLandscapeExportTileUVs;
-		bool bExportSelectionOnly = InInput->bLandscapeExportSelectionOnly;
 		bool bExportAsMesh = InInput->LandscapeExportType == EHoudiniLandscapeExportType::Mesh;
 
 		bSucess = FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
