@@ -44,23 +44,6 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			HAPI_NodeId& CreatedHeightfieldNodeId,
 			const FString &InputNodeNameStr);
 
-		static bool CreateHeightfieldFromLandscapeComponentArray(
-			ALandscapeProxy* LandscapeProxy,
-			const TSet< ULandscapeComponent * > & SelectedComponents,
-			HAPI_NodeId& CreatedHeightfieldNodeId,
-			const FString &InputNodeNameStr
-			);
-	
-		static bool CreateHeightfieldFromLandscapeComponent(
-			ALandscapeProxy* LandscapeProxy, 
-			ULandscapeComponent * LandscapeComponent,
-			const int32& ComponentIndex,
-			HAPI_NodeId& HeightFieldId,
-			HAPI_NodeId& MergeId,
-			int32& MergeInputIndex,
-			const FString& InputNodeNameStr,
-			const FTransform & ParentTransform);
-	
 		static bool CreateInputNodeForLandscape(
 			ALandscapeProxy* LandscapeProxy,
 			const FString& InputNodeNameStr,
@@ -247,9 +230,6 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			const HAPI_NodeId& NodeId,
 			const TArray<const char *>& LandscapeComponentNameArray);
 
-		static bool AddLandscapeTileAttribute(
-			const HAPI_NodeId& NodeId, const HAPI_PartId& PartId, const int32& TileIdx );
-	
 		// Add the lightmap color attribute extracted from a landscape
 		static bool AddLandscapeLightmapColorAttribute(
 			const HAPI_NodeId& NodeId,
@@ -274,16 +254,5 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			const HAPI_NodeId& NodeId,
 			const TArray<float>& LandscapeLayerArray,
 			const FString& LayerName);
-
-		static bool ExtractAndConvertAllLandscapeLayers(
-			ALandscapeProxy* LandscapeProxy,
-			const HAPI_NodeId & HeightFieldId,
-			const HAPI_PartId & PartId,
-			const HAPI_NodeId &MergeId,
-			const HAPI_NodeId &MaskId,
-			const HAPI_VolumeInfo& HeightfieldVolumeInfo,
-			const int32 & XSize,
-			const int32 & YSize,
-			int32 & OutMergeInputIndex);
 
 };
