@@ -49,6 +49,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Landscape.h"
+#include "LandscapeInfo.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
@@ -444,6 +445,79 @@ UHoudiniInput::GetBounds() const
 	}
 
 	return BoxBounds;
+}
+
+void UHoudiniInput::UpdateLandscapeInputSelection()
+{
+	LandscapeSelectedComponents.Reset();
+	if (!bLandscapeExportSelectionOnly) return;
+	
+	for (UHoudiniInputObject* NextInputObj : LandscapeInputObjects)
+	{
+		UHoudiniInputLandscape* CurrentInputLandscape = Cast<UHoudiniInputLandscape>(NextInputObj);
+		if (!CurrentInputLandscape)
+			continue;
+
+		ALandscapeProxy* CurrentInputLandscapeProxy = CurrentInputLandscape->GetLandscapeProxy();
+		if (!CurrentInputLandscapeProxy)
+			continue;
+
+		// Get selected components if bLandscapeExportSelectionOnly or bLandscapeAutoSelectComponent is true
+		FBox Bounds(ForceInitToZero);
+		if ( bLandscapeAutoSelectComponent )
+		{
+			// Get our asset's or our connected input asset's bounds
+			UHoudiniAssetComponent* AssetComponent = Cast<UHoudiniAssetComponent>(GetOuter());
+			if (AssetComponent && AssetComponent->IsPendingKill())
+			{
+				Bounds = AssetComponent->GetAssetBounds(this, true);
+			}
+		}
+	
+		if ( bLandscapeExportSelectionOnly )
+		{
+			const ULandscapeInfo * LandscapeInfo = CurrentInputLandscapeProxy->GetLandscapeInfo();
+			if ( LandscapeInfo && !LandscapeInfo->IsPendingKill() )
+			{
+				// Get the currently selected components
+				LandscapeSelectedComponents = LandscapeInfo->GetSelectedComponents();
+			}
+	
+			if ( bLandscapeAutoSelectComponent && LandscapeSelectedComponents.Num() <= 0 && Bounds.IsValid )
+			{
+				// We'll try to use the asset bounds to automatically "select" the components
+				for ( int32 ComponentIdx = 0; ComponentIdx < CurrentInputLandscapeProxy->LandscapeComponents.Num(); ComponentIdx++ )
+				{
+					ULandscapeComponent * LandscapeComponent = CurrentInputLandscapeProxy->LandscapeComponents[ ComponentIdx ];
+					if ( !LandscapeComponent || LandscapeComponent->IsPendingKill() )
+						continue;
+	
+					FBoxSphereBounds WorldBounds = LandscapeComponent->CalcBounds( LandscapeComponent->GetComponentTransform());
+	
+					if ( Bounds.IntersectXY( WorldBounds.GetBox() ) )
+						LandscapeSelectedComponents.Add( LandscapeComponent );
+				}
+	
+				int32 Num = LandscapeSelectedComponents.Num();
+				HOUDINI_LOG_MESSAGE( TEXT("Landscape input: automatically selected %d components within the asset's bounds."), Num );
+			}
+		}
+		else
+		{
+			// Add all the components of the landscape to the selected set
+			ULandscapeInfo* LandscapeInfo = CurrentInputLandscapeProxy->GetLandscapeInfo();
+			if (LandscapeInfo)
+			{
+				LandscapeInfo->ForAllLandscapeComponents([&](ULandscapeComponent* Component)
+				{
+					LandscapeSelectedComponents.Add(Component);
+				});
+			}
+		}
+
+		CurrentInputLandscape->MarkChanged(true);
+	
+	}
 }
 
 FString
