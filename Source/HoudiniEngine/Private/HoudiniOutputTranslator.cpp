@@ -1722,6 +1722,18 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					FoundHoudiniOutput = InOldOutputs.FindByPredicate(
 						[currentHGPO](UHoudiniOutput* Output) { return Output ? Output->HasHoudiniGeoPartObject(currentHGPO) : false; });
 
+					if (FoundHoudiniOutput && *FoundHoudiniOutput && currentHGPO.Type == EHoudiniPartType::Curve)
+					{
+						// Curve hacks!!
+						// If we're dealing with a curve, editable and non-editable curves are interpreted very
+						// differently so we have to apply an IsEditable comparison as well.
+						if ((*FoundHoudiniOutput)->IsEditableNode() != currentHGPO.bIsEditable)
+						{
+							// The IsEditable property is different. We can't reuse this output!
+							FoundHoudiniOutput = nullptr;
+						}
+					}
+
 					if (FoundHoudiniOutput && *FoundHoudiniOutput && !(*FoundHoudiniOutput)->IsPendingKill())
 						IsFoundOutputValid = true;
 
@@ -1802,8 +1814,10 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					}
 
 					// Mark if the HoudiniOutput is editable
-					HoudiniOutput->SetIsEditableNode(currentHGPO.bIsEditable);
 				}
+				// Ensure that we always update the 'Editable' state of the output since this
+				// may very well change between cooks (for example, the User is editina the HDA is session sync).
+				HoudiniOutput->SetIsEditableNode(currentHGPO.bIsEditable);
 
 				// Add the HGPO to the output
 				HoudiniOutput->AddNewHGPO(currentHGPO);
