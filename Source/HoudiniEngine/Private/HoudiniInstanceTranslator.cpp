@@ -73,6 +73,9 @@ FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(
 	// Get if force to use HISM from attribute
 	OutInstancedOutputPartData.bForceHISM = HasHISMAttribute(InHGPO.GeoId, InHGPO.PartId);
 
+	// Should we create an instancer even for single instances?
+	OutInstancedOutputPartData.bForceInstancer = HasForceInstancerAttribute(InHGPO.GeoId, InHGPO.PartId);
+
 	// Extract the object and transforms for this instancer
 	if (!GetInstancerObjectsAndTransforms(
 			InHGPO,
@@ -357,7 +360,8 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 				VariationMaterials,
 				InstancedOutputPartData.OriginalInstancedIndices[VariationOriginalIndex],
 				InstanceObjectIdx,
-				InstancedOutputPartData.bForceHISM))
+				InstancedOutputPartData.bForceHISM,
+				InstancedOutputPartData.bForceInstancer))
 			{
 				// TODO??
 				continue;
@@ -559,7 +563,10 @@ FHoudiniInstanceTranslator::UpdateChangedInstancedOutput(
 	OutputIdentifier.PartName = InOutputIdentifier.PartName;
 
 	// Get if force using HISM from attribute
-	bool bForceHISM = HasHISMAttribute(InOutputIdentifier.GeoId, InOutputIdentifier.PartId);
+	const bool bForceHISM = HasHISMAttribute(InOutputIdentifier.GeoId, InOutputIdentifier.PartId);
+
+	// Should we create an instancer even for single instances?
+	const bool bForceInstancer = HasForceInstancerAttribute(InOutputIdentifier.GeoId, InOutputIdentifier.PartId);
 
 	TArray<UObject*> OriginalInstancedObjects;
 	OriginalInstancedObjects.Add(InInstancedOutput.OriginalObject.LoadSynchronous());
@@ -679,7 +686,8 @@ FHoudiniInstanceTranslator::UpdateChangedInstancedOutput(
 			InstancerMaterials,
 			OriginalInstanceIndices[0],
 			InstanceObjectIdx,
-			bForceHISM))
+			bForceHISM,
+			bForceInstancer))
 		{
 			// TODO??
 			continue;
@@ -1833,7 +1841,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 	const TArray<UMaterialInterface *>& InstancerMaterials,
 	const TArray<int32>& OriginalInstancerObjectIndices,
 	const int32& InstancerObjectIdx,
-	const bool& bForceHISM)
+	const bool& bForceHISM,
+	const bool& bForceInstancer)
 {
 	enum InstancerComponentType
 	{
@@ -1891,19 +1900,20 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 
 	if (StaticMesh)
 	{
-		if (InstancedObjectTransforms.Num() == 1)
-			NewType = StaticMeshComponent;
-		else if (InIsFoliageInstancer)
+		const bool bMustUseInstancerComponent = InstancedObjectTransforms.Num() > 1 || bForceInstancer;
+		if (InIsFoliageInstancer)
 			NewType = Foliage;
 		else if (InIsSplitMeshInstancer)
 			NewType = MeshSplitInstancerComponent;
 		// It is recommended to avoid putting Nanite mesh in HISM since they have their own LOD mechanism.
 		// Will also improve performance by avoiding access to the render data to fetch the LOD count which could
 		// trigger an async mesh wait until it has been computed.
-		else if (!StaticMesh->NaniteSettings.bEnabled && (StaticMesh->GetNumLODs() > 1 || bForceHISM))
+		else if (!StaticMesh->NaniteSettings.bEnabled && (bForceHISM || (bMustUseInstancerComponent && StaticMesh->GetNumLODs() > 1)))
 			NewType = HierarchicalInstancedStaticMeshComponent;
-		else
+		else if (bMustUseInstancerComponent)
 			NewType = InstancedStaticMeshComponent;
+		else
+			NewType = StaticMeshComponent;
 	}
 	else if (HSM)
 	{
@@ -3234,6 +3244,29 @@ FHoudiniInstanceTranslator::HasHISMAttribute(const HAPI_NodeId& GeoId, const HAP
 
 	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
 		GeoId, PartId, HAPI_UNREAL_ATTRIB_HIERARCHICAL_INSTANCED_SM,
+		AttriInfo, IntData, 1, HAPI_ATTROWNER_INVALID, 0, 1))
+	{
+		return false;
+	}
+
+	if (!AttriInfo.exists || IntData.Num() <= 0)
+		return false;
+
+	return IntData[0] != 0;
+}
+
+bool 
+FHoudiniInstanceTranslator::HasForceInstancerAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId) 
+{
+	bool bHISM = false;
+	HAPI_AttributeInfo AttriInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttriInfo);
+
+	TArray<int32> IntData;
+	IntData.Empty();
+
+	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+		GeoId, PartId, HAPI_UNREAL_ATTRIB_FORCE_INSTANCER,
 		AttriInfo, IntData, 1, HAPI_ATTROWNER_INVALID, 0, 1))
 	{
 		return false;

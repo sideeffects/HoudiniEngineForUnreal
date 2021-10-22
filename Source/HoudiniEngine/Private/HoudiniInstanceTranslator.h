@@ -76,6 +76,10 @@ public:
 	UPROPERTY()
 	bool bForceHISM = false;
 
+	// Should we create an instancer even for single instances?
+	UPROPERTY()
+	bool bForceInstancer = false;
+
 	UPROPERTY()
 	TArray<UObject*> OriginalInstancedObjects;
 
@@ -291,7 +295,8 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const TArray<UMaterialInterface *>& InstancerMaterials,
 			const TArray<int32>& OriginalInstancerObjectIndices, 
 			const int32& InstancerObjectIdx = 0,			
-			const bool& bForceHISM = false);
+			const bool& bForceHISM = false,
+			const bool& bForceInstancer = false);
 
 		// Create or update an ISMC / HISMC
 		static bool CreateOrUpdateInstancedStaticMeshComponent(
@@ -444,6 +449,10 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 		// Get if force using HISM from attribute
 		static bool HasHISMAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
 
+		// Return true if HAPI_UNREAL_ATTRIB_FORCE_INSTANCER is set to non-zero (this controls
+		// if an instancer is created even for single instances (static mesh vs instanced static mesh for example)
+		static bool HasForceInstancerAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
+	
 		// Checks for PerInstanceCustomData on the instancer part
 		static bool GetPerInstanceCustomData(
 			const int32& InGeoNodeId,
