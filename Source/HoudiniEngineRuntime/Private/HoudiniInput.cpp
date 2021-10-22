@@ -451,7 +451,8 @@ void UHoudiniInput::UpdateLandscapeInputSelection()
 {
 	LandscapeSelectedComponents.Reset();
 	if (!bLandscapeExportSelectionOnly) return;
-	
+
+#if WITH_EDITOR
 	for (UHoudiniInputObject* NextInputObj : LandscapeInputObjects)
 	{
 		UHoudiniInputLandscape* CurrentInputLandscape = Cast<UHoudiniInputLandscape>(NextInputObj);
@@ -518,6 +519,7 @@ void UHoudiniInput::UpdateLandscapeInputSelection()
 		CurrentInputLandscape->MarkChanged(true);
 	
 	}
+#endif
 }
 
 FString
