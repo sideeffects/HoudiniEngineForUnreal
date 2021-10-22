@@ -220,8 +220,6 @@ public:
 
 	bool IsUseLegacyInputCurvesEnabled() const { return bUseLegacyInputCurves; };
 
-	const TSet< ULandscapeComponent * > GetLandscapeSelectedComponents() const { return LandscapeSelectedComponents; };
-
 	//------------------------------------------------------------------------------------------------
 	// Mutators
 	//------------------------------------------------------------------------------------------------
@@ -358,8 +356,6 @@ public:
 #endif
 
 	FBox GetBounds() const;
-
-	void UpdateLandscapeInputSelection();
 
 protected:
 
@@ -536,10 +532,6 @@ protected:
 	// GeometryCollection inputs
 	UPROPERTY()
 	TArray<UHoudiniInputObject*> GeometryCollectionInputObjects;
-
-	// A cache of the selected landscape components so that it is saved across levels
-	UPROPERTY()
-	TSet< ULandscapeComponent * > LandscapeSelectedComponents;
 
 public:
 
