@@ -74,11 +74,12 @@ bool HoudiniEditorTemplatedGeoTest_HACEnabled::RunTest(const FString& InParamete
 {
 	// Currently there is an issue in HAPI that will add an error about HAPI_CookOptions::cookTemplatedGeos == false,
 	// even though it is not, ignore that for now
+	/*
 	AddExpectedError(
 		TEXT("Hapi failed: Invalid argument given: Tempated non-editable geo did not cook because "
 			"HAPI_CookOptions::cookTemplatedGeos is false. Geo info may be out of date."),
 		EAutomationExpectedErrorFlags::Contains, 0);
-
+	*/
 	FHoudiniEditorTestUtils::InitializeTests(this, [=]
 	{
 		const FString TestName = TEXT("HACEnabled");
