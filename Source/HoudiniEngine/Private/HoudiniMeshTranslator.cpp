@@ -1567,7 +1567,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 
 	UStaticMesh* MainStaticMesh = nullptr;
 	bool bAssignedCustomCollisionMesh = false;
-	ECollisionTraceFlag MainStaticMeshCTF = ECollisionTraceFlag::CTF_UseComplexAsSimple;
+	ECollisionTraceFlag MainStaticMeshCTF = StaticMeshGenerationProperties.GeneratedCollisionTraceFlag;
 
 	// Iterate through all detected split groups we care about and split geometry.
 	// The split are ordered in the following way:
@@ -3022,7 +3022,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 
 	UStaticMesh* MainStaticMesh = nullptr;
 	bool bAssignedCustomCollisionMesh = false;
-	ECollisionTraceFlag MainStaticMeshCTF = ECollisionTraceFlag::CTF_UseComplexAsSimple;
+	ECollisionTraceFlag MainStaticMeshCTF = StaticMeshGenerationProperties.GeneratedCollisionTraceFlag;
 
 	// Iterate through all detected split groups we care about and split geometry.
 	// The split are ordered in the following way:
