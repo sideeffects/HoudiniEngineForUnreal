@@ -3354,7 +3354,14 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 	for (int32 ColIdx = 0; ColIdx < NumAttributes; ColIdx++)
 	{
 		// attribute name is "unreal_data_table_COL_NAME"
-		FString CurAttrName = TEXT(HAPI_UNREAL_ATTRIB_DATA_TABLE_PREFIX) + FString::FromInt(ColIdx) + TEXT("_") + TableData[0][ColIdx];
+
+		FString DataName = TableData[0][ColIdx];
+
+		// Validate struct variable names
+		DataName = DataName.Replace(TEXT(" "), TEXT("_"));
+		DataName = DataName.Replace(TEXT(":"), TEXT("_"));
+		
+		FString CurAttrName = TEXT(HAPI_UNREAL_ATTRIB_DATA_TABLE_PREFIX) + FString::FromInt(ColIdx) + TEXT("_") + DataName;
 
 		// We need to gt all values for that attribute
 		TArray<FString> AttributeValues;
