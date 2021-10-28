@@ -79,9 +79,10 @@ bool FUnrealFoliageTypeTranslator::CreateInputNodeForReference(
 	HAPI_NodeId& InInputNodeId,
 	const FString& InRef,
 	const FString& InInputNodeName,
-	const FTransform& InTransform)
+	const FTransform& InTransform,
+	const bool& bImportAsReferenceRotScaleEnabled)
 {
-	bool bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InInputNodeId, InRef, InInputNodeName, InTransform);
+	bool bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InInputNodeId, InRef, InInputNodeName, InTransform, bImportAsReferenceRotScaleEnabled);
 	if (!bSuccess)
 		return false;
 

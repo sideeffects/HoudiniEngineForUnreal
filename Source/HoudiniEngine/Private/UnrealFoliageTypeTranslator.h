@@ -57,7 +57,8 @@ public:
 		HAPI_NodeId& InInputNodeId,
 		const FString& InRef,
 		const FString& InInputNodeName,
-		const FTransform& InTransform);
+		const FTransform& InTransform,
+		const bool& bImportAsReferenceRotScaleEnabled);
 
 protected:
 	// Creates the unreal_foliage and unreal_uproperty_ attributes for the foliage type.
