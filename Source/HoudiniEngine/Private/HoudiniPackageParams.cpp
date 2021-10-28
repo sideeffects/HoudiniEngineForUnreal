@@ -328,7 +328,7 @@ FHoudiniPackageParams::CreatePackageForObject(FString& OutPackageName, int32 InB
 				FoundPackage = LoadPackage(nullptr, *FinalPackageName, LOAD_Verify | LOAD_NoWarn);
 			}
 			
-			if (FoundPackage && !FoundPackage->IsPendingKill())
+			if (IsValid(FoundPackage))
 			{
 				// we need to generate a new name for it
 				CurrentGuid = FGuid::NewGuid();
@@ -384,7 +384,7 @@ T* FHoudiniPackageParams::CreateObjectAndPackage()
 	// Create the package for the object
 	FString NewObjectName;
 	UPackage* Package = CreatePackageForObject(NewObjectName);
-	if (!Package || Package->IsPendingKill())
+	if (!IsValid(Package))
 		return nullptr;
 
 	const FString SanitizedObjectName = ObjectTools::SanitizeObjectName(NewObjectName);
@@ -392,7 +392,7 @@ T* FHoudiniPackageParams::CreateObjectAndPackage()
 	T* ExistingTypedObject = FindObject<T>(Package, *NewObjectName);
 	UObject* ExistingObject = FindObject<UObject>(Package, *NewObjectName);
 
-	if (ExistingTypedObject != nullptr && !ExistingTypedObject->IsPendingKill())
+	if (IsValid(ExistingTypedObject))
 	{
 		// An object of the appropriate type already exists, update it!
 		ExistingTypedObject->PreEditChange(nullptr);
@@ -408,7 +408,7 @@ T* FHoudiniPackageParams::CreateObjectAndPackage()
 
 			// Create a package for each mesh
 			Package = CreatePackageForObject(NewObjectName);
-			if (!Package || Package->IsPendingKill())
+			if (!IsValid(Package))
 				return nullptr;
 		}
 		else

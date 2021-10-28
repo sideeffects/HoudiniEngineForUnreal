@@ -50,7 +50,7 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 
 	// Get the Static Mesh instanced by the component
 	UStaticMesh* SM = ISMC->GetStaticMesh();
-	if (!SM || SM->IsPendingKill())
+	if (!IsValid(SM))
 		return true;
 
 	// Marshall the Static Mesh to Houdini

@@ -344,7 +344,7 @@ FHoudiniSplineTranslator::HapiUpdateNodeForHoudiniSplineComponent(
 	UHoudiniSplineComponent* HoudiniSplineComponent,
 	bool bInAddRotAndScaleAttributes)
 {
-	if (!HoudiniSplineComponent || HoudiniSplineComponent->IsPendingKill())
+	if (!IsValid(HoudiniSplineComponent))
 		return true;
 
 	TArray<FVector> PositionArray;
@@ -1309,7 +1309,7 @@ FHoudiniSplineTranslator::CreateHoudiniSplineComponentFromHoudiniEditableNode(co
 	if (GeoId < 0)
 		return nullptr;
 
-	if (!OuterComponent || OuterComponent->IsPendingKill())
+	if (!IsValid(OuterComponent))
 		return nullptr;
 
 	USceneComponent* const SceneComponent = Cast<USceneComponent>(OuterComponent);
@@ -1354,11 +1354,11 @@ FHoudiniSplineTranslator::CreateHoudiniSplineComponentFromHoudiniEditableNode(co
 UHoudiniSplineComponent*
 FHoudiniSplineTranslator::CreateOutputHoudiniSplineComponent(TArray<FVector>& CurvePoints, const TArray<FVector>& CurveRotations, const TArray<FVector>& CurveScales, UHoudiniAssetComponent* OuterHAC) 
 {
-	if (!OuterHAC || OuterHAC->IsPendingKill())
+	if (!IsValid(OuterHAC))
 		return nullptr;
 
 	UObject* Outer = nullptr;
-	if (OuterHAC && !OuterHAC->IsPendingKill())
+	if (IsValid(OuterHAC))
 		Outer = OuterHAC->GetOwner() ? OuterHAC->GetOwner() : OuterHAC->GetOuter();
 
 	UHoudiniSplineComponent *NewHoudiniSplineComponent = NewObject<UHoudiniSplineComponent>(Outer, UHoudiniSplineComponent::StaticClass(), NAME_None, RF_Transactional);
@@ -1401,7 +1401,7 @@ USplineComponent*
 FHoudiniSplineTranslator::CreateOutputUnrealSplineComponent(const TArray<FVector>& CurvePoints, const TArray<FVector>& CurveRotations, const TArray<FVector>& CurveScales,
 	UObject* OuterComponent, const bool& bIsLinear, const bool& bIsClosed)
 {
-	if (!OuterComponent || OuterComponent->IsPendingKill())
+	if (!IsValid(OuterComponent))
 		return nullptr;
 
 	USceneComponent* OuterSceneComponent = Cast<USceneComponent>(OuterComponent);
@@ -1480,7 +1480,7 @@ FHoudiniSplineTranslator::CreateOutputUnrealSplineComponent(const TArray<FVector
 bool 
 FHoudiniSplineTranslator::UpdateOutputUnrealSplineComponent(const TArray<FVector>& CurvePoints, USplineComponent* EditedSplineComponent, const EHoudiniCurveType& CurveType, const bool& bClosed)
 {
-	if (!EditedSplineComponent || EditedSplineComponent->IsPendingKill())
+	if (!IsValid(EditedSplineComponent))
 		return false;
 
 	if (CurvePoints.Num() < 2)
@@ -1511,7 +1511,7 @@ FHoudiniSplineTranslator::UpdateOutputUnrealSplineComponent(const TArray<FVector
 bool
 FHoudiniSplineTranslator::UpdateOutputHoudiniSplineComponent(const TArray<FVector>& CurvePoints, UHoudiniSplineComponent* EditedHoudiniSplineComponent)
 {
-	if (!EditedHoudiniSplineComponent || EditedHoudiniSplineComponent->IsPendingKill())
+	if (!IsValid(EditedHoudiniSplineComponent))
 		return false;
 
 	if (CurvePoints.Num() < 2)
@@ -1572,7 +1572,7 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 		return true;
 	}
 
-	if (!InOuterComponent || InOuterComponent->IsPendingKill())
+	if (!IsValid(InOuterComponent))
 		return false;
 
 	int32 CurveNodeId = InHGPO.GeoId;
@@ -1645,7 +1645,7 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 			bNeedToRebuildSpline = true;
 
 		USceneComponent* FoundComponent = Cast<USceneComponent>(FoundOutputObject ? FoundOutputObject->OutputComponent : nullptr);
-		if (FoundComponent && !FoundComponent->IsPendingKill())
+		if (IsValid(FoundComponent))
 		{
 			// Only support output to Unreal Spline for now...
 			//if (FoundComponent->IsA<USplineComponent>() && FoundOutputObject->CurveOutputProperty.CurveOutputType != EHoudiniCurveOutputType::UnrealSpline)
@@ -1880,10 +1880,10 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 bool 
 FHoudiniSplineTranslator::CreateAllSplinesFromHoudiniOutput(UHoudiniOutput* InOutput, UObject* InOuterComponent)
 {
-	if (!InOutput || InOutput->IsPendingKill())
+	if (!IsValid(InOutput))
 		return false;
 
-	if (!InOuterComponent || InOuterComponent->IsPendingKill())
+	if (!IsValid(InOuterComponent))
 		return false;
 
 	// ONLY DO THIS ON CURVES!!!!
@@ -1892,7 +1892,7 @@ FHoudiniSplineTranslator::CreateAllSplinesFromHoudiniOutput(UHoudiniOutput* InOu
 
 	// UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(InOuterComponent);
 	//
-	// if (!OuterHAC || OuterHAC->IsPendingKill())
+	// if (!IsValid(OuterHAC))
 	// 	return false;
 
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> NewOutputObjects;
@@ -1960,7 +1960,7 @@ FHoudiniSplineTranslator::CreateAllSplinesFromHoudiniOutput(UHoudiniOutput* InOu
 	{
 		USceneComponent* OldSplineSceneComponent = Cast<USceneComponent>(OldPair.Value.OutputComponent);
 		
-		if (!OldSplineSceneComponent || OldSplineSceneComponent->IsPendingKill())
+		if (!IsValid(OldSplineSceneComponent))
 			continue;
 
 		// The output object is supposed to be a spline
