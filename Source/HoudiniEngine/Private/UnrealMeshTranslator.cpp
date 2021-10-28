@@ -3746,7 +3746,6 @@ FUnrealMeshTranslator::CreateInputNodeForSphyl(
 	}
 
 	// Get the transform matrix for the rotation
-	FRotationMatrix SphylRotMatrix(SphylRotation);
 
 	// Get the Sphyl's vertices by rotating the arc NumSides+1 times.
 	TArray<float> Vertices;
@@ -3761,8 +3760,10 @@ FUnrealMeshTranslator::CreateInputNodeForSphyl(
 		{
 			int32 VIx = (NumRings + 1)*SideIdx + VertIdx;
 
-			FVector CurPosition = SphylCenter + ArcRot.TransformPosition(ArcVertices[VertIdx]);
-			CurPosition = SphylRotMatrix.TransformPosition(CurPosition);
+			FVector ArcVertex = ArcRot.TransformPosition(ArcVertices[VertIdx]);
+			ArcVertex = SphylRotation.Quaternion() * ArcVertex;
+
+			FVector CurPosition = SphylCenter + ArcVertex;
 
 			// Convert the UE4 position to Houdini
 			Vertices[VIx * 3 + 0] = CurPosition.X / HAPI_UNREAL_SCALE_FACTOR_POSITION;
@@ -3840,6 +3841,12 @@ FUnrealMeshTranslator::CreateInputNodeForConvex(
 	TArray<float> Vertices;
 	TArray<int32> Indices;
 
+	FTransform ConvexTransform = ConvexCollider.GetTransform();
+
+	FVector TransformOffset = ConvexTransform.GetLocation();
+	FVector ScaleOffset = ConvexTransform.GetScale3D();
+	FQuat RotationOffset = ConvexTransform.GetRotation();
+
 #if PHYSICS_INTERFACE_PHYSX
 	if (ConvexCollider.GetConvexMesh() || ConvexCollider.GetMirroredConvexMesh())
 #elif WITH_CHAOS
@@ -3854,6 +3861,11 @@ FUnrealMeshTranslator::CreateInputNodeForConvex(
 		TArray<uint32> IndexBuffer;
 		ConvexCollider.AddCachedSolidConvexGeom(VertexBuffer, IndexBuffer, FColor::White);
 
+		for (int32 i = 0; i < VertexBuffer.Num(); i++)
+		{
+			VertexBuffer[i].Position =  TransformOffset + (RotationOffset * (ScaleOffset * VertexBuffer[i].Position));
+		}
+
 		Vertices.SetNum(VertexBuffer.Num() * 3);
 		int32 CurIndex = 0;
 		for (auto& CurVert : VertexBuffer)
@@ -3863,7 +3875,7 @@ FUnrealMeshTranslator::CreateInputNodeForConvex(
 			Vertices[CurIndex * 3 + 2] = CurVert.Position.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION;
 			CurIndex++;
 		}
-
+		
 		Indices.SetNum(IndexBuffer.Num());
 		for (int Idx = 0; (Idx + 2) < IndexBuffer.Num(); Idx += 3)
 		{
@@ -3875,11 +3887,20 @@ FUnrealMeshTranslator::CreateInputNodeForConvex(
 	}
 	else
 	{
+		// Need to copy vertices because we plan on modifying it by Quaternion/Vector multiplication
+		TArray<FVector> VertexBuffer;
+		VertexBuffer.SetNum(ConvexCollider.VertexData.Num());
+
+		for (int32 Idx = 0; Idx < ConvexCollider.VertexData.Num(); Idx++)
+		{
+			VertexBuffer[Idx] = TransformOffset + (RotationOffset * (ScaleOffset * ConvexCollider.VertexData[Idx]));
+		}
+		
 		int32 NumVert = ConvexCollider.VertexData.Num();
 		Vertices.SetNum(NumVert * 3);
 		//Indices.SetNum(NumVert);
 		int32 CurIndex = 0;
-		for (auto& CurVert : ConvexCollider.VertexData)
+		for (auto& CurVert : VertexBuffer)
 		{
 			Vertices[CurIndex * 3 + 0] = CurVert.X / HAPI_UNREAL_SCALE_FACTOR_POSITION;
 			Vertices[CurIndex * 3 + 1] = CurVert.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION;
