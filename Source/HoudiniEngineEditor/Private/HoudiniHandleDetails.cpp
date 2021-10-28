@@ -51,7 +51,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 
 	UHoudiniHandleComponent* MainHandle = InHandles[0];
 
-	if (!MainHandle || MainHandle->IsPendingKill())
+	if (!IsValid(MainHandle))
 		return;
 
 

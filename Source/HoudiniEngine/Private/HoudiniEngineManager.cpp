@@ -164,8 +164,7 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 				// Invalid component, do not process
 				continue;
 			}
-			else if (CurrentComponent->IsPendingKill()
-				|| CurrentComponent->GetAssetState() == EHoudiniAssetState::Deleting)
+			else if (!IsValid(CurrentComponent) || CurrentComponent->GetAssetState() == EHoudiniAssetState::Deleting)
 			{
 				// Component being deleted, do not process
 				continue;
@@ -443,7 +442,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent);
 
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return;
 
 	// No need to process component not tied to an asset
@@ -740,7 +739,7 @@ FHoudiniEngineManager::StartTaskAssetInstantiation(UHoudiniAsset* HoudiniAsset, 
 	OutTaskGUID.Invalidate();
 	
 	// Load the HDA file
-	if (!HoudiniAsset || HoudiniAsset->IsPendingKill())
+	if (!IsValid(HoudiniAsset))
 	{
 		HOUDINI_LOG_ERROR(TEXT("Cancelling asset instantiation - null or invalid Houdini Asset."));
 		return false;
@@ -1436,7 +1435,7 @@ FHoudiniEngineManager::IsCookingEnabledForHoudiniAsset(UHoudiniAssetComponent* H
 {
 	bool bManualRecook = false;
 	bool bComponentEnable = false;
-	if (HAC && !HAC->IsPendingKill())
+	if (IsValid(HAC))
 	{
 		bManualRecook = HAC->HasRecookBeenRequested();
 		bComponentEnable = HAC->IsCookingEnabled();
@@ -1454,7 +1453,7 @@ FHoudiniEngineManager::IsCookingEnabledForHoudiniAsset(UHoudiniAssetComponent* H
 void 
 FHoudiniEngineManager::BuildStaticMeshesForAllHoudiniStaticMeshes(UHoudiniAssetComponent* HAC)
 {
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 	{
 		HOUDINI_LOG_ERROR(TEXT("FHoudiniEngineManager::BuildStaticMeshesForAllHoudiniStaticMeshes called with HAC=nullptr"));
 		return;
@@ -1695,7 +1694,7 @@ void
 FHoudiniEngineManager::DisableEditorAutoSave(const UHoudiniAssetComponent* HAC)
 {
 #if WITH_EDITOR
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return;
 
 	if (!GUnrealEd)
@@ -1734,7 +1733,7 @@ FHoudiniEngineManager::EnableEditorAutoSave(const UHoudiniAssetComponent* HAC = 
 		TSet<const UHoudiniAssetComponent*> ValidComponents;
 		for (auto& CurHAC : DisableAutoSavingHACs)
 		{
-			if (CurHAC && !CurHAC->IsPendingKill())
+			if (IsValid(CurHAC))
 			{
 				ValidComponents.Add(CurHAC);
 			}

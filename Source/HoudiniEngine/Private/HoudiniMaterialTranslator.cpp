@@ -155,7 +155,7 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 		}
 		
 		bool bCreatedNewMaterial = false;
-		if (Material && !Material->IsPendingKill())
+		if (IsValid(Material))
 		{
 			// If the cached material exists and is up to date, we can reuse it.
 			if (bCanReuseExistingMaterial)
@@ -186,7 +186,7 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 			bCreatedNewMaterial = true;
 		}
 
-		if (!Material || Material->IsPendingKill())
+		if (!IsValid(Material))
 			continue;
 
 		// Get the asset name from the package params
@@ -306,7 +306,7 @@ FHoudiniMaterialTranslator::CreateMaterialInstances(
 		UMaterialInterface* CurrentSourceMaterialInterface = Cast<UMaterialInterface>(
 			StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *CurrentSourceMaterial, nullptr, LOAD_NoWarn, nullptr));
 		
-		if (!CurrentSourceMaterialInterface || CurrentSourceMaterialInterface->IsPendingKill())
+		if (!IsValid(CurrentSourceMaterialInterface))
 		{
 			// Couldn't find the source material
 			HOUDINI_LOG_WARNING(TEXT("Couldn't find the source material %s to create a material instance."), *CurrentSourceMaterial);
@@ -587,7 +587,7 @@ FHoudiniMaterialTranslator::CreateUnrealTexture(
 	const FString& TextureType,
 	const FString& NodePath)
 {
-	if (!Package || Package->IsPendingKill())
+	if (!IsValid(Package))
 		return nullptr;
 
 	UTexture2D * Texture = nullptr;
@@ -832,7 +832,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 	TArray<UPackage*>& OutPackages,
 	int32& MaterialNodeY)
 {
-	if (!Material || Material->IsPendingKill())
+	if (!IsValid(Material))
 		return false;
 
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -871,7 +871,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 			MaterialExpression, UMaterialExpressionVectorParameter::StaticClass()));
 
 	// If uniform color expression does not exist, create it.
-	if (!ExpressionConstant4Vector || ExpressionConstant4Vector->IsPendingKill())
+	if (!IsValid(ExpressionConstant4Vector))
 	{
 		ExpressionConstant4Vector = NewObject< UMaterialExpressionVectorParameter >(
 			Material, UMaterialExpressionVectorParameter::StaticClass(), NAME_None, ObjectFlag);
@@ -887,7 +887,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 			MaterialExpression, UMaterialExpressionVertexColor::StaticClass()));
 
 	// If vertex color expression does not exist, create it.
-	if (!ExpressionVertexColor || ExpressionVertexColor->IsPendingKill())
+	if (!IsValid(ExpressionVertexColor))
 	{
 		ExpressionVertexColor = NewObject< UMaterialExpressionVertexColor >(
 			Material, UMaterialExpressionVertexColor::StaticClass(), NAME_None, ObjectFlag);
@@ -899,7 +899,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 
 	// Material should have at least one multiply expression.
 	UMaterialExpressionMultiply * MaterialExpressionMultiply = Cast<UMaterialExpressionMultiply>(MaterialExpression);
-	if (!MaterialExpressionMultiply || MaterialExpressionMultiply->IsPendingKill())
+	if (!IsValid(MaterialExpressionMultiply))
 		MaterialExpressionMultiply = NewObject<UMaterialExpressionMultiply>(
 			Material, UMaterialExpressionMultiply::StaticClass(), NAME_None, ObjectFlag);
 
@@ -986,7 +986,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 			HAPI_IMAGE_DATA_INT8, ImagePacking, false, ImageBuffer))
 		{
 			UPackage * TextureDiffusePackage = nullptr;
-			if (TextureDiffuse && !TextureDiffuse->IsPendingKill())
+			if (IsValid(TextureDiffuse))
 				TextureDiffusePackage = Cast<UPackage>(TextureDiffuse->GetOuter());
 
 			HAPI_ImageInfo ImageInfo;
@@ -1010,7 +1010,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 						InPackageParams,
 						TextureDiffuseName);
 				}
-				else if (TextureDiffuse && !TextureDiffuse->IsPendingKill())
+				else if (IsValid(TextureDiffuse))
 				{
 					// Get the name of the texture if we are overwriting the exist asset
 					TextureDiffuseName = TextureDiffuse->GetName();
@@ -1021,7 +1021,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 				}
 
 				// Create diffuse texture, if we need to create one.
-				if (!TextureDiffuse || TextureDiffuse->IsPendingKill())
+				if (!IsValid(TextureDiffuse))
 					bCreatedNewTextureDiffuse = true;
 
 				FString NodePath;
@@ -1204,7 +1204,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 	TArray<UPackage*>& OutPackages,
 	int32& MaterialNodeY)
 {
-	if (!Material || Material->IsPendingKill())
+	if (!IsValid(Material))
 		return false;
 
 	bool bExpressionCreated = false;
@@ -1323,7 +1323,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 						InPackageParams,
 						TextureOpacityName);
 				}
-				else if (TextureOpacity && !TextureOpacity->IsPendingKill())
+				else if (IsValid(TextureOpacity))
 				{
 					// Get the name of the texture if we are overwriting the exist asset
 					TextureOpacityName = TextureOpacity->GetName();
@@ -1419,7 +1419,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 	TArray<UPackage*>& OutPackages, 
 	int32& MaterialNodeY)
 {
-	if (!Material || Material->IsPendingKill())
+	if (!IsValid(Material))
 		return false;
 
 	bool bExpressionCreated = false;
@@ -1607,7 +1607,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 	TArray<UPackage*>& OutPackages,
 	int32& MaterialNodeY)
 {
-	if (!Material || Material->IsPendingKill())
+	if (!IsValid(Material))
 		return false;
 
 	bool bExpressionCreated = false;
@@ -1738,7 +1738,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 						InPackageParams,
 						TextureNormalName);
 				}
-				else if (TextureNormal && !TextureNormal->IsPendingKill())
+				else if (IsValid(TextureNormal))
 				{
 					// Get the name of the texture if we are overwriting the exist asset
 					TextureNormalName = TextureNormal->GetName();
@@ -1896,7 +1896,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 							InPackageParams,
 							TextureNormalName);
 					}
-					else if (TextureNormal && !TextureNormal->IsPendingKill())
+					else if (IsValid(TextureNormal))
 					{
 						// Get the name of the texture if we are overwriting the exist asset
 						TextureNormalName = TextureNormal->GetName();
@@ -1982,7 +1982,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 	TArray<UPackage*>& OutPackages, 
 	int32& MaterialNodeY)
 {
-	if (!Material || Material->IsPendingKill())
+	if (!IsValid(Material))
 		return false;
 
 	bool bExpressionCreated = false;
@@ -2084,7 +2084,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 						InPackageParams,
 						TextureSpecularName);
 				}
-				else if (TextureSpecular && !TextureSpecular->IsPendingKill())
+				else if (IsValid(TextureSpecular))
 				{
 					// Get the name of the texture if we are overwriting the exist asset
 					TextureSpecularName = TextureSpecular->GetName();
@@ -2233,7 +2233,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 	TArray<UPackage*>& OutPackages, 
 	int32& MaterialNodeY)
 {
-	if (!Material || Material->IsPendingKill())
+	if (!IsValid(Material))
 		return false;
 
 	bool bExpressionCreated = false;
@@ -2334,7 +2334,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 						InPackageParams,
 						TextureRoughnessName);
 				}
-				else if (TextureRoughness && !TextureRoughness->IsPendingKill())
+				else if (IsValid(TextureRoughness))
 				{
 					// Get the name of the texture if we are overwriting the exist asset
 					TextureRoughnessName = TextureRoughness->GetName();
@@ -2485,7 +2485,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 	TArray<UPackage*>& OutPackages,
 	int32& MaterialNodeY)
 {
-	if (!Material || Material->IsPendingKill())
+	if (!IsValid(Material))
 		return false;
 
 	bool bExpressionCreated = false;
@@ -2587,7 +2587,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 						InPackageParams,
 						TextureMetallicName);
 				}
-				else if (TextureMetallic && !TextureMetallic->IsPendingKill())
+				else if (IsValid(TextureMetallic))
 				{
 					// Get the name of the texture if we are overwriting the exist asset
 					TextureMetallicName = TextureMetallic->GetName();
@@ -2738,7 +2738,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 	TArray<UPackage*>& OutPackages,
 	int32& MaterialNodeY)
 {
-	if (!Material || Material->IsPendingKill())
+	if (!IsValid(Material))
 		return false;
 
 	bool bExpressionCreated = false;
@@ -2840,7 +2840,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 						InPackageParams,
 						TextureEmissiveName);
 				}
-				else if (TextureEmissive && !TextureEmissive->IsPendingKill())
+				else if (IsValid(TextureEmissive))
 				{
 					// Get the name of the texture if we are overwriting the exist asset
 					TextureEmissiveName = TextureEmissive->GetName();
@@ -3291,7 +3291,7 @@ UTexture* FoundTexture = nullptr;
 for (const auto& CurrentPackage : InPackages)
 {
 	// Iterate through the cooked packages
-	if (!CurrentPackage || CurrentPackage->IsPendingKill())
+	if (!IsValid(CurrentPackage))
 		continue;
 
 	// First, check if the package contains a texture

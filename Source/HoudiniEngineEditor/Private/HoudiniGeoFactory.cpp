@@ -266,7 +266,7 @@ UHoudiniGeoFactory::Import(UClass* InClass, UPackage* InParent, const FString & 
 	TArray<UObject*> Results = BGEOImporter->GetOutputObjects();
 	for (UObject* Object : Results)
 	{
-		if (!Object || Object->IsPendingKill())
+		if (!IsValid(Object))
 			continue;
 
 		Object->SetFlags(Flags);
@@ -322,18 +322,18 @@ UHoudiniGeoFactory::Reimport(UObject * Obj)
 		return EReimportResult::Failed;
 	};
 
-	if (!Obj || Obj->IsPendingKill())
+	if (!IsValid(Obj))
 		return FailReimport();
 	
 	UPackage* Package = Cast<UPackage>(Obj->GetOuter());
-	if (!Package || Package->IsPendingKill())
+	if (!IsValid(Package))
 		return FailReimport();
 	
 	UAssetImportData* ImportData = nullptr;	
 	if (Obj->GetClass() == UStaticMesh::StaticClass()) 
 	{
 		UStaticMesh* StaticMesh = Cast<UStaticMesh>(Obj);
-		if (!StaticMesh || StaticMesh->IsPendingKill())
+		if (!IsValid(StaticMesh))
 			return FailReimport();
 
 		ImportData = StaticMesh->AssetImportData;
@@ -342,13 +342,13 @@ UHoudiniGeoFactory::Reimport(UObject * Obj)
 	else if(Obj->GetClass() == USkeletalMesh::StaticClass())
 	{
 		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(Obj);
-		if (!SkeletalMesh || SkeletalMesh->IsPendingKill())
+		if (!IsValid(SkeletalMesh))
 			return FailReimport();
 
 		ImportData = SkeletalMesh->AssetImportData;
 	}
 	*/
-	if (!ImportData || ImportData->IsPendingKill())
+	if (!IsValid(ImportData))
 		return FailReimport();
 
 	if (ImportData->GetSourceFileCount() <= 0)

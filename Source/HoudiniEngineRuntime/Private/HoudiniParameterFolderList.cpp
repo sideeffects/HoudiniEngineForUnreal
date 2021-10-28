@@ -64,7 +64,7 @@ UHoudiniParameterFolderList::IsTabParseFinished() const
 {
 	for (auto & CurTab : TabFolders)
 	{
-		if (!CurTab || CurTab->IsPendingKill())
+		if (!IsValid(CurTab))
 			continue;
 
 		if (!CurTab->IsTab())

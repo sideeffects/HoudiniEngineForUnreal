@@ -121,7 +121,7 @@ void
 UHoudiniMeshSplitInstancerComponent::AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector )
 {
     UHoudiniMeshSplitInstancerComponent * ThisMSIC = Cast< UHoudiniMeshSplitInstancerComponent >(InThis);
-    if ( ThisMSIC && !ThisMSIC->IsPendingKill() )
+    if ( IsValid(ThisMSIC) )
     {
         Collector.AddReferencedObject(ThisMSIC->InstancedMesh, ThisMSIC);
 		for(auto& Mat : ThisMSIC->OverrideMaterials)
@@ -137,14 +137,14 @@ UHoudiniMeshSplitInstancerComponent::SetInstanceTransforms(
 	if (Instances.Num() <= 0 && InstanceTransforms.Num() <= 0)
 		return false;
 
-    if (!GetOwner() || GetOwner()->IsPendingKill())
+    if (!IsValid(GetOwner()))
         return false;
 
     // Destroy previous instances while keeping some of the one that we'll be able to reuse
     ClearInstances(InstanceTransforms.Num());
 
 	//
-    if( !InstancedMesh || InstancedMesh->IsPendingKill() )
+    if( !IsValid(InstancedMesh) )
     {
         HOUDINI_LOG_ERROR(TEXT("%s: Null InstancedMesh for split instanced mesh override"), *GetOwner()->GetName());
         return false;
@@ -172,7 +172,7 @@ UHoudiniMeshSplitInstancerComponent::SetInstanceTransforms(
         UStaticMeshComponent* SMC = Instances[iIns];
         const FTransform& InstanceTransform = InstanceTransforms[iIns];
 
-        if (!SMC || SMC->IsPendingKill())
+        if (!IsValid(SMC))
             continue;
 
         SMC->SetRelativeTransform(InstanceTransform);
@@ -194,7 +194,7 @@ UHoudiniMeshSplitInstancerComponent::SetInstanceTransforms(
 				MI = OverrideMaterials[0];
 		}		
 
-		if (MI && !MI->IsPendingKill())
+		if (IsValid(MI))
         {
             int32 MeshMaterialCount = InstancedMesh->GetStaticMaterials().Num();
             for (int32 Idx = 0; Idx < MeshMaterialCount; ++Idx)

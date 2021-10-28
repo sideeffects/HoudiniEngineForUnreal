@@ -79,7 +79,7 @@ FString
 UHoudiniParameterString::GetAssetReference(UObject* InObject)
 {
 	// Get the asset reference string for a given UObject
-	if (!InObject || InObject->IsPendingKill())
+	if (!IsValid(InObject))
 		return FString();
 
 	// Start by getting the Object's full name

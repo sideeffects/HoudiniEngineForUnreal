@@ -285,7 +285,7 @@ SCustomizedBox::SetHoudiniParameter(TArray<UHoudiniParameter*>& InParams)
 		return;
 
 	UHoudiniParameter* MainParam = InParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 
@@ -323,7 +323,7 @@ SCustomizedBox::SetHoudiniParameter(TArray<UHoudiniParameter*>& InParams)
 	case EHoudiniParameterType::ColorRamp:
 	{
 		UHoudiniParameterRampColor * ColorRampParameter = Cast<UHoudiniParameterRampColor>(MainParam);
-		if (!ColorRampParameter || ColorRampParameter->IsPendingKill())
+		if (!IsValid(ColorRampParameter))
 			return;
 
 		MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_COLORRAMP;
@@ -396,7 +396,7 @@ SCustomizedBox::SetHoudiniParameter(TArray<UHoudiniParameter*>& InParams)
 	case EHoudiniParameterType::FloatRamp:
 	{
 		UHoudiniParameterRampFloat * FloatRampParameter = Cast<UHoudiniParameterRampFloat>(MainParam);
-		if (!FloatRampParameter || FloatRampParameter->IsPendingKill())
+		if (!IsValid(FloatRampParameter))
 			return;
 
 		MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOATRAMP;
@@ -428,12 +428,12 @@ SCustomizedBox::SetHoudiniParameter(TArray<UHoudiniParameter*>& InParams)
 	{
 		UHoudiniParameterOperatorPath* InputParam = Cast<UHoudiniParameterOperatorPath>(MainParam);
 		
-		if (!InputParam || InputParam->IsPendingKill() || !InputParam->HoudiniInput.IsValid())
+		if (!IsValid(InputParam) || !InputParam->HoudiniInput.IsValid())
 			break;
 
 		UHoudiniInput* Input = InputParam->HoudiniInput.Get();
 		
-		if (!Input || Input->IsPendingKill())
+		if (!IsValid(Input))
 			break;
 
 
@@ -673,7 +673,7 @@ float
 SCustomizedBox::AddIndentation(UHoudiniParameter* InParam, 
 	TMap<int32, UHoudiniParameterMultiParm*>& InAllMultiParms, TMap<int32, UHoudiniParameter*>& InAllFoldersAndFolderLists)
 {
-	if (!InParam || InParam->IsPendingKill())
+	if (!IsValid(InParam))
 		return 0.0f;
 
 	bool bIsMainParmSimpleFolder = false;
@@ -1869,7 +1869,7 @@ bool FHoudiniParameterDetails::CastParameters(
 	for (auto CurrentParam : InParams)
 	{
 		T* CastedParam = Cast<T>(CurrentParam);
-		if (CastedParam && !CastedParam->IsPendingKill())
+		if (IsValid(CastedParam))
 			OutCastedParams.Add(CastedParam);
 	}
 
@@ -1884,7 +1884,7 @@ FHoudiniParameterDetails::CreateWidget(IDetailCategoryBuilder & HouParameterCate
 		return;
 
 	UHoudiniParameter* InParam = InParams[0];
-	if (!InParam || InParam->IsPendingKill())
+	if (!IsValid(InParam))
 		return;
 
 	// The directory won't parse if parameter ids are -1
@@ -2068,7 +2068,7 @@ FHoudiniParameterDetails::CreateNameWidget(FDetailWidgetRow* Row, TArray<UHoudin
 		return;
 
 	UHoudiniParameter* MainParam = InParams[0];
-	if (!MainParam|| MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	if (!Row)
@@ -2138,7 +2138,7 @@ FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, 
 		return;
 
 	UHoudiniParameter* MainParam = InParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	FString ParameterLabelStr = MainParam->GetParameterLabel();
@@ -2227,7 +2227,7 @@ FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, 
 
 	auto IsAutoUpdateChecked = [MainParam]()
 	{
-		if (!MainParam || MainParam->IsPendingKill())
+		if (!IsValid(MainParam))
 			return ECheckBoxState::Unchecked;
 
 		return MainParam->IsAutoUpdate() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -2356,7 +2356,7 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 
 	UHoudiniParameter* MainParam = InParams[0];
 
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return nullptr;
 
 	// Created row for the current parameter (if there is not a row created, do not show the parameter).
@@ -2374,7 +2374,7 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 				return nullptr;
 
 			UHoudiniParameterFolderList* ParentFolderList = Cast<UHoudiniParameterFolderList>(AllFoldersAndFolderLists[MainParam->GetParentParmId()]);
-			if (!ParentFolderList || ParentFolderList->IsPendingKill())
+			if (!IsValid(ParentFolderList))
 				return nullptr;			// This should not happen
 
 			ParentMultiParmId = ParentFolderList->GetParentParmId();
@@ -2486,7 +2486,7 @@ FHoudiniParameterDetails::HandleUnsupportedParmType(IDetailCategoryBuilder & Hou
 		return;
 
 	UHoudiniParameter* MainParam = InParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 	
 	CreateNestedRow(HouParameterCategory, (TArray<UHoudiniParameter*>)InParams);
@@ -2505,7 +2505,7 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 		return;
 
 	UHoudiniParameterFloat* MainParam = FloatParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	// Create a new detail row
@@ -2714,12 +2714,12 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 					]
 					.OnClicked_Lambda([FloatParams, MainParam]()
 					{
-						if (!MainParam || MainParam->IsPendingKill())
+						if (!IsValid(MainParam))
 							return FReply::Handled();
 
 						for (auto & CurParam : FloatParams) 
 						{
-							if (!CurParam || CurParam->IsPendingKill())
+							if (!IsValid(CurParam))
 								continue;
 
 							CurParam->SwitchUniformLock();
@@ -2837,7 +2837,7 @@ FHoudiniParameterDetails::CreateWidgetInt(IDetailCategoryBuilder & HouParameterC
 		return;
 
 	UHoudiniParameterInt* MainParam = IntParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	// Create a new detail row
@@ -3012,7 +3012,7 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 		return;
 	
 	UHoudiniParameterString* MainParam = StringParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	// Create a new detail row
@@ -3406,7 +3406,7 @@ FHoudiniParameterDetails::CreateWidgetColor(IDetailCategoryBuilder & HouParamete
 		return;
 
 	UHoudiniParameterColor* MainParam = ColorParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 		// Create a new detail row
 	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
@@ -3484,7 +3484,7 @@ FHoudiniParameterDetails::CreateWidgetButton(IDetailCategoryBuilder & HouParamet
 		return;
 
 	UHoudiniParameterButton* MainParam = ButtonParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	// Create a new detail row
@@ -3541,7 +3541,7 @@ FHoudiniParameterDetails::CreateWidgetButtonStrip(IDetailCategoryBuilder & HouPa
 		return;
 
 	UHoudiniParameterButtonStrip* MainParam = ButtonStripParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	// Create a new detail row
@@ -3567,7 +3567,7 @@ FHoudiniParameterDetails::CreateWidgetButtonStrip(IDetailCategoryBuilder & HouPa
 
 		for (auto & NextParam : ButtonStripParams)
 		{
-			if (!NextParam || NextParam->IsPendingKill())
+			if (!IsValid(NextParam))
 				continue;
 
 			if (!NextParam->Values.IsValidIndex(Idx))
@@ -3640,7 +3640,7 @@ FHoudiniParameterDetails::CreateWidgetLabel(IDetailCategoryBuilder & HouParamete
 		return;
 
 	UHoudiniParameterLabel* MainParam = LabelParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	// Create a new detail row
@@ -3684,7 +3684,7 @@ FHoudiniParameterDetails::CreateWidgetToggle(IDetailCategoryBuilder & HouParamet
 		return;
 
 	UHoudiniParameterToggle* MainParam = ToggleParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	// Create a new detail row
@@ -3783,7 +3783,7 @@ void FHoudiniParameterDetails::CreateWidgetFile(IDetailCategoryBuilder & HouPara
 		return;
 
 	UHoudiniParameterFile* MainParam = FileParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	// Create a new detail row
@@ -3827,9 +3827,9 @@ void FHoudiniParameterDetails::CreateWidgetFile(IDetailCategoryBuilder & HouPara
 			}
 			
 			// Check if the path is relative to the asset
-			if (HoudiniAssetComponent && !HoudiniAssetComponent->IsPendingKill())
+			if (IsValid(HoudiniAssetComponent))
 			{
-				if (HoudiniAssetComponent->HoudiniAsset && !HoudiniAssetComponent->HoudiniAsset->IsPendingKill())
+				if (IsValid(HoudiniAssetComponent->HoudiniAsset))
 				{
 					FString AssetFilePath = FPaths::GetPath(HoudiniAssetComponent->HoudiniAsset->AssetFileName);
 					if (FPaths::FileExists(AssetFilePath))
@@ -3939,7 +3939,7 @@ FHoudiniParameterDetails::CreateWidgetChoice(IDetailCategoryBuilder & HouParamet
 		return;
 
 	UHoudiniParameterChoice* MainParam = ChoiceParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	// Create a new detail row
@@ -4064,7 +4064,7 @@ FHoudiniParameterDetails::CreateWidgetOperatorPath(IDetailCategoryBuilder & HouP
 		return;
 
 	UHoudiniParameterOperatorPath* MainParam = OperatorPathParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	UHoudiniInput* MainInput = MainParam->HoudiniInput.Get();
@@ -4079,7 +4079,7 @@ FHoudiniParameterDetails::CreateWidgetOperatorPath(IDetailCategoryBuilder & HouP
 	for (int LinkedIdx = 1; LinkedIdx < OperatorPathParams.Num(); LinkedIdx++)
 	{
 		UHoudiniInput* LinkedInput = OperatorPathParams[LinkedIdx]->HoudiniInput.Get();
-		if (!LinkedInput || LinkedInput->IsPendingKill())
+		if (!IsValid(LinkedInput))
 			continue;
 
 		// Linked params should match the main param! If not try to find one that matches
@@ -4109,7 +4109,7 @@ FHoudiniParameterDetails::CreateWidgetFloatRamp(IDetailCategoryBuilder & HouPara
 		return;
 
 	UHoudiniParameter* MainParam = InParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	// TODO: remove this once we have verified that updating the Points and CachedPoints arrays in
@@ -4280,7 +4280,7 @@ FHoudiniParameterDetails::CreateWidgetColorRamp(IDetailCategoryBuilder & HouPara
 		return;
 
 	UHoudiniParameter* MainParam = InParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	// TODO: remove this once we have verified that updating the Points and CachedPoints arrays in
@@ -4594,7 +4594,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 		return;
 	
 	UHoudiniParameter* MainParam = InParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	UHoudiniParameterRampFloat * MainFloatRampParameter = nullptr; 
@@ -5627,7 +5627,7 @@ FHoudiniParameterDetails::CreateWidgetFolderList(IDetailCategoryBuilder & HouPar
 		return;
 
 	UHoudiniParameterFolderList* MainParam = FolderListParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	// Add this folder list to the folder map
@@ -5679,10 +5679,10 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 		return;
 
 	UHoudiniParameterFolder* MainParam = FolderParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
-	if (!CurrentFolderList || CurrentFolderList->IsPendingKill())	// This should not happen
+	if (!IsValid(CurrentFolderList))	// This should not happen
 		return;
 
 	// If a folder is invisible, its children won't be listed by HAPI. 
@@ -5697,7 +5697,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 			if (FolderStack.Num() > 1)
 			{
 				TArray<UHoudiniParameterFolder*> &ParentFolderQueue = FolderStack[FolderStack.Num() - 2];
-				if (ParentFolderQueue.Num() > 0 && ParentFolderQueue[0] && !ParentFolderQueue[0]->IsPendingKill())
+				if (ParentFolderQueue.Num() > 0 && IsValid(ParentFolderQueue[0]))
 					ParentFolderQueue[0]->GetChildCounter() -= 1;
 			}
 
@@ -5856,7 +5856,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 		if (FolderStack.Num() > 1 && !MainParam->IsDirectChildOfMultiParm())
 		{
 			TArray<UHoudiniParameterFolder*> & ParentFolderQueue = FolderStack[FolderStack.Num() - 2];
-			if (ParentFolderQueue.Num() > 0 && ParentFolderQueue[0] && !ParentFolderQueue[0]->IsPendingKill())
+			if (ParentFolderQueue.Num() > 0 && IsValid(ParentFolderQueue[0]))
 				ParentFolderQueue[0]->GetChildCounter() -= 1;
 		}
 
@@ -5881,7 +5881,7 @@ FHoudiniParameterDetails::CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, TArr
 
 	UHoudiniParameterFolder* MainParam = FolderParams[0];
 
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	TSharedPtr<SVerticalBox> VerticalBox;
@@ -5969,7 +5969,7 @@ FHoudiniParameterDetails::CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, TArr
 
 void FHoudiniParameterDetails::CreateWidgetTab(IDetailCategoryBuilder & HouParameterCategory, UHoudiniParameterFolder* InFolder, const bool& bIsShown)
 {
-	if (!InFolder || InFolder->IsPendingKill() || !CurrentFolderList)
+	if (!IsValid(InFolder) || !CurrentFolderList)
 		return;
 
 	if (FolderStack.Num() <= 0)	// error state
@@ -6019,7 +6019,7 @@ void FHoudiniParameterDetails::CreateWidgetTab(IDetailCategoryBuilder & HouParam
 
 	for (auto & CurTab : CurrentTabs)
 	{
-		if (!CurTab || CurTab->IsPendingKill())
+		if (!IsValid(CurTab))
 			continue;
 
 		CurTab->SetIsContentShown(CurTab->IsChosen());
@@ -6100,7 +6100,7 @@ FHoudiniParameterDetails::CreateWidgetMultiParm(IDetailCategoryBuilder & HouPara
 		return;
 
 	UHoudiniParameterMultiParm* MainParam = MultiParmParams[0];
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	// Add current multiparm parameter to AllmultiParms map
@@ -6274,7 +6274,7 @@ FHoudiniParameterDetails::CreateWidgetMultiParmObjectButtons(TSharedPtr<SHorizon
 
 	UHoudiniParameter* MainParam = InParams[0];
 
-	if (!MainParam || MainParam->IsPendingKill())
+	if (!IsValid(MainParam))
 		return;
 
 	if (!HorizontalBox || !AllMultiParms.Contains(MainParam->GetParentParmId()) || !MultiParmInstanceIndices.Contains(MainParam->GetParentParmId()))
@@ -6415,7 +6415,7 @@ FHoudiniParameterDetails::PruneStack()
 		for (int32 QueueItr = CurrentQueue.Num() - 1; QueueItr >= 0; --QueueItr)
 		{
 			UHoudiniParameterFolder * CurrentFolder = CurrentQueue[QueueItr];
-			if (!CurrentFolder || CurrentFolder->IsPendingKill())
+			if (!IsValid(CurrentFolder))
 				continue;
 
 			if (CurrentFolder->GetChildCounter() == 0)
@@ -6434,7 +6434,7 @@ FHoudiniParameterDetails::PruneStack()
 FText
 FHoudiniParameterDetails::GetParameterTooltip(UHoudiniParameter* InParam)
 {
-	if (!InParam || InParam->IsPendingKill())
+	if (!IsValid(InParam))
 		return FText();
 
 	// Tooltip starts with Label (name)
@@ -6742,7 +6742,7 @@ FHoudiniParameterDetails::SyncCachedColorRampPoints(UHoudiniParameterRampColor* 
 void 
 FHoudiniParameterDetails::CreateFloatRampParameterDeleteEvent(UHoudiniParameterRampFloat* InParam, const int32 &InDeleteIndex) 
 {
-	if (!InParam || InParam->IsPendingKill())
+	if (!IsValid(InParam))
 		return;
 
 	UHoudiniParameterRampModificationEvent* DeleteEvent = NewObject<UHoudiniParameterRampModificationEvent>(
@@ -6761,7 +6761,7 @@ FHoudiniParameterDetails::CreateFloatRampParameterDeleteEvent(UHoudiniParameterR
 void
 FHoudiniParameterDetails::CreateColorRampParameterDeleteEvent(UHoudiniParameterRampColor* InParam, const int32 &InDeleteIndex)
 {
-	if (!InParam || InParam->IsPendingKill())
+	if (!IsValid(InParam))
 		return;
 
 	UHoudiniParameterRampModificationEvent* DeleteEvent = NewObject<UHoudiniParameterRampModificationEvent>(
@@ -6781,7 +6781,7 @@ void
 FHoudiniParameterDetails::CreateFloatRampParameterInsertEvent(UHoudiniParameterRampFloat* InParam,
 	const float& InPosition, const float& InValue, const EHoudiniRampInterpolationType &InInterp) 
 {
-	if (!InParam || InParam->IsPendingKill())
+	if (!IsValid(InParam))
 		return;
 
 	UHoudiniParameterRampModificationEvent* InsertEvent = NewObject<UHoudiniParameterRampModificationEvent>(
@@ -6803,7 +6803,7 @@ void
 FHoudiniParameterDetails::CreateColorRampParameterInsertEvent(UHoudiniParameterRampColor* InParam,
 	const float& InPosition, const FLinearColor& InColor, const EHoudiniRampInterpolationType &InInterp) 
 {
-	if (!InParam || InParam->IsPendingKill())
+	if (!IsValid(InParam))
 		return;
 
 	UHoudiniParameterRampModificationEvent* InsertEvent = NewObject<UHoudiniParameterRampModificationEvent>(
@@ -7311,7 +7311,7 @@ FHoudiniParameterDetails::ReplaceColorRampParameterPointsWithMainParameter(UHoud
 void
 FHoudiniParameterDetails::RemoveTabDividers(IDetailCategoryBuilder& HouParameterCategory, UHoudiniParameter* InParam)
 {
-	if (!InParam || InParam->IsPendingKill())
+	if (!IsValid(InParam))
 		return;
 
 	// When the paramId is invalid, the directory won't parse.
@@ -7344,7 +7344,7 @@ FHoudiniParameterDetails::RemoveTabDividers(IDetailCategoryBuilder& HouParameter
 		{
 			// The parent is a multiparm
 			UHoudiniParameterMultiParm* ParentMultiParm = AllMultiParms[ParentParamId];
-			if (!ParentMultiParm || ParentMultiParm->IsPendingKill())
+			if (!IsValid(ParentMultiParm))
 				return;
 
 			if (ParentMultiParm->MultiParmInstanceCount * ParentMultiParm->MultiParmInstanceLength - 1 == CurParam->GetChildIndex())
@@ -7366,7 +7366,7 @@ FHoudiniParameterDetails::RemoveTabDividers(IDetailCategoryBuilder& HouParameter
 			UHoudiniParameter* ParentFolderParam = AllFoldersAndFolderLists[ParentParamId];
 			CurParam = ParentFolderParam;
 
-			if (!ParentFolderParam || ParentFolderParam->IsPendingKill())
+			if (!IsValid(ParentFolderParam))
 				return;
 
 			if (ParentFolderParam->GetParameterType() == EHoudiniParameterType::Folder) 
@@ -7379,7 +7379,7 @@ FHoudiniParameterDetails::RemoveTabDividers(IDetailCategoryBuilder& HouParameter
 			{
 				// The parent is a folderlist
 				UHoudiniParameterFolderList* ParentFolderList = Cast<UHoudiniParameterFolderList>(ParentFolderParam);
-				if (!ParentFolderList || ParentFolderList->IsPendingKill())
+				if (!IsValid(ParentFolderList))
 					return;
 
 				if (ParentFolderList->IsTabMenu() && ParentFolderList->IsTabsShown() && ParentFolderList->IsTabParseFinished() && DividerLinePositions.Num() > 0)

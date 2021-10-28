@@ -154,7 +154,7 @@ UHoudiniAssetComponent_V1::Serialize(FArchive & Ar)
 		for (TMap<int, UHoudiniAssetParameter * >::TIterator IterParams(Parameters); IterParams; ++IterParams)
 		{
 			UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
-			if (!HoudiniAssetParameter || HoudiniAssetParameter->IsPendingKill())
+			if (!IsValid(HoudiniAssetParameter))
 				continue;
 
 			if (HoudiniAssetParameter->GetFName() != NAME_None)
@@ -182,7 +182,7 @@ UHoudiniAssetComponent_V1::Serialize(FArchive & Ar)
 			for (TMap<int, UHoudiniAssetParameter *>::TIterator IterParams(Parameters); IterParams; ++IterParams)
 			{
 				UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
-				if (HoudiniAssetParameter && !HoudiniAssetParameter->IsPendingKill())
+				if (IsValid(HoudiniAssetParameter))
 					ParameterByName.Add(HoudiniAssetParameter->ParameterName, HoudiniAssetParameter);
 			}
 		}
@@ -199,7 +199,7 @@ UHoudiniAssetComponent_V1::Serialize(FArchive & Ar)
 			for (int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx)
 			{
 				UHoudiniAssetInput_V1 * HoudiniAssetInput = Inputs[InputIdx];
-				if (HoudiniAssetInput && !HoudiniAssetInput->IsPendingKill())
+				if (IsValid(HoudiniAssetInput))
 					Inputs[InputIdx]->SetHoudiniAssetComponent(this);
 			}
 		}
@@ -639,7 +639,7 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 			{
 				// Create a new InputObject wrapper
 				UObject* CurObject = InputObjects[AtIndex];
-				if (!CurObject || CurObject->IsPendingKill())
+				if (!IsValid(CurObject))
 					continue;
 
 				UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(CurObject, Input, FString::FromInt(AtIndex + 1));
@@ -658,7 +658,7 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 			}
 		}
 	}
-	else if (InputType == EHoudiniInputType::Asset && InputAssetComponent != nullptr && !InputAssetComponent->IsPendingKill())
+	else if (InputType == EHoudiniInputType::Asset && IsValid(InputAssetComponent))
 	{
 		// Get the asset input object array
 		TArray<UHoudiniInputObject*>* AssetInputObjectsPtr = Input->GetHoudiniInputObjectArray(InputType);
@@ -667,7 +667,7 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 			// Find the V2 HAC that matches the V1_HAC pointed by InputAssetComponent
 			// We can simply use the v1's HAC outer for that
 			UHoudiniAssetComponent* InputHAC = Cast<UHoudiniAssetComponent>(InputAssetComponent->GetOuter());
-			if (InputHAC && !InputHAC->IsPendingKill())
+			if (IsValid(InputHAC))
 			{
 				// Create a new InputObject wrapper
 				UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(InputHAC, Input, FString::FromInt(0));
@@ -685,7 +685,7 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 		TArray<UHoudiniInputObject*>* CurveInputObjectsPtr = Input->GetHoudiniInputObjectArray(InputType);
 		if (ensure(CurveInputObjectsPtr))
 		{
-			if (InputCurve && !InputCurve->IsPendingKill())
+			if (IsValid(InputCurve))
 			{
 				// Create a new InputObject wrapper
 				UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(InputCurve, Input, FString::FromInt(0));
@@ -715,7 +715,7 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 			// Find the V2 HAC that matches the V1_HAC pointed by InputAssetComponent
 			// We can simply use the v1's HAC outer for that
 			ALandscapeProxy* InLandscape = InputLandscapeProxy.Get();
-			if (InLandscape && !InLandscape->IsPendingKill())
+			if (IsValid(InLandscape))
 			{
 				// Create a new InputObject wrapper
 				UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(InLandscape, Input, FString::FromInt(0));
@@ -764,7 +764,7 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 					}
 				}
 
-				if(!CurActor || CurActor->IsPendingKill())
+				if(!IsValid(CurActor))
 					continue;
 
 				// Create a new InputObject wrapper for the actor
@@ -1039,7 +1039,7 @@ UHoudiniHandleComponent_V1::ConvertLegacyData(UObject* Outer)
 bool
 UHoudiniHandleComponent_V1::UpdateFromLegacyData(UHoudiniHandleComponent* NewHC)
 {
-	if (!NewHC || NewHC->IsPendingKill())
+	if (!IsValid(NewHC))
 		return false;
 
 	// TODO
@@ -1110,7 +1110,7 @@ UHoudiniSplineComponent_V1::ConvertLegacyData(UObject* Outer)
 bool
 UHoudiniSplineComponent_V1::UpdateFromLegacyData(UHoudiniSplineComponent* NewSpline)
 {
-	if (!NewSpline || NewSpline->IsPendingKill())
+	if (!IsValid(NewSpline))
 		return false;
 
 	NewSpline->SetFlags(RF_Transactional);
@@ -1242,7 +1242,7 @@ UHoudiniAssetParameter::ConvertLegacyData(UObject* Outer)
 void
 UHoudiniAssetParameter::CopyLegacyParameterData(UHoudiniParameter* InNewParm)
 {
-	if (!InNewParm || InNewParm->IsPendingKill())
+	if (!IsValid(InNewParm))
 		return;
 
 	InNewParm->Name = ParameterName;
@@ -1763,7 +1763,7 @@ UHoudiniMeshSplitInstancerComponent_V1::Serialize(FArchive & Ar)
 bool
 UHoudiniMeshSplitInstancerComponent_V1::UpdateFromLegacyData(UHoudiniMeshSplitInstancerComponent* NewMSIC)
 {
-	if (!NewMSIC || NewMSIC->IsPendingKill())
+	if (!IsValid(NewMSIC))
 		return false;
 
 	NewMSIC->Instances = Instances;
@@ -1791,7 +1791,7 @@ UHoudiniInstancedActorComponent_V1::Serialize(FArchive & Ar)
 bool
 UHoudiniInstancedActorComponent_V1::UpdateFromLegacyData(UHoudiniInstancedActorComponent* NewIAC)
 {
-	if (!NewIAC || NewIAC->IsPendingKill())
+	if (!IsValid(NewIAC))
 		return false;
 
 	//NewIAC->SetInstancedObject(InstancedAsset);

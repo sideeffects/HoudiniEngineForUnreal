@@ -84,7 +84,7 @@ FHoudiniAssetComponentDetails::~FHoudiniAssetComponentDetails()
 		}
 		for (auto& CurFloatRampCurve : ParamDetailsPtr->CreatedFloatRampCurves)
 		{
-			if (!CurFloatRampCurve || CurFloatRampCurve->IsPendingKill())
+			if (!IsValid(CurFloatRampCurve))
 				continue;
 
 			CurFloatRampCurve->RemoveFromRoot();
@@ -100,7 +100,7 @@ FHoudiniAssetComponentDetails::~FHoudiniAssetComponentDetails()
 		}
 		for (auto& CurColorRampCurve : ParamDetailsPtr->CreatedColorRampCurves)
 		{
-			if (!CurColorRampCurve || CurColorRampCurve->IsPendingKill())
+			if (!IsValid(CurColorRampCurve))
 				continue;
 
 			CurColorRampCurve->RemoveFromRoot();
@@ -279,7 +279,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			if (Object)
 			{
 				UHoudiniAssetComponent * HAC = Cast< UHoudiniAssetComponent >(Object);
-				if (HAC && !HAC->IsPendingKill())
+				if (IsValid(HAC))
 					HoudiniAssetComponents.Add(HAC);
 			}
 		}
@@ -401,7 +401,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		{	
 			// We only want to create root parameters here, they will recursively create child parameters.
 			UHoudiniParameter* CurrentParam = MainComponent->GetParameterAt(ParamIdx);
-			if (!CurrentParam || CurrentParam->IsPendingKill())
+			if (!IsValid(CurrentParam))
 				continue;
 			
 			// TODO: remove ? unneeded?
@@ -418,14 +418,14 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			for (int LinkedIdx = 1; LinkedIdx < HACs.Num(); LinkedIdx++)
 			{
 				UHoudiniParameter* LinkedParam = HACs[LinkedIdx]->GetParameterAt(ParamIdx);
-				if (!LinkedParam || LinkedParam->IsPendingKill())
+				if (!IsValid(LinkedParam))
 					continue;
 
 				// Linked params should match the main param! If not try to find one that matches
 				if ( !LinkedParam->Matches(*CurrentParam) )
 				{
 					LinkedParam = MainComponent->FindMatchingParameter(CurrentParam);
-					if (!LinkedParam || LinkedParam->IsPendingKill() || LinkedParam->IsChildParameter())
+					if (!IsValid(LinkedParam) || LinkedParam->IsChildParameter())
 						continue;
 				}
 
@@ -455,7 +455,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		{
 			UHoudiniHandleComponent* CurrentHandleComponent = MainComponent->GetHandleComponentAt(HandleIdx);
 
-			if (!CurrentHandleComponent || CurrentHandleComponent->IsPendingKill())
+			if (!IsValid(CurrentHandleComponent))
 				continue;
 
 			TArray<UHoudiniHandleComponent*> EditedHandles;
@@ -465,14 +465,14 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			for (int LinkedIdx = 1; LinkedIdx < HACs.Num(); ++LinkedIdx) 
 			{
 				UHoudiniHandleComponent* LinkedHandle = HACs[LinkedIdx]->GetHandleComponentAt(HandleIdx);
-				if (!LinkedHandle || LinkedHandle->IsPendingKill())
+				if (!IsValid(LinkedHandle))
 					continue;
 
 				// Linked handles should match the main param, if not try to find one that matches
 				if (!LinkedHandle->Matches(*CurrentHandleComponent)) 
 				{
 					LinkedHandle = MainComponent->FindMatchingHandle(CurrentHandleComponent);
-					if (!LinkedHandle || LinkedHandle->IsPendingKill())
+					if (!IsValid(LinkedHandle))
 						continue;
 				}
 
@@ -504,7 +504,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		for (int32 InputIdx = 0; InputIdx < MainComponent->GetNumInputs(); InputIdx++)
 		{
 			UHoudiniInput* CurrentInput = MainComponent->GetInputAt(InputIdx);
-			if (!CurrentInput || CurrentInput->IsPendingKill())
+			if (!IsValid(CurrentInput))
 				continue;
 
 			if (!MainComponent->IsInputTypeSupported(CurrentInput->GetInputType()))
@@ -522,14 +522,14 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			for (int LinkedIdx = 1; LinkedIdx < HACs.Num(); LinkedIdx++)
 			{
 				UHoudiniInput* LinkedInput = HACs[LinkedIdx]->GetInputAt(InputIdx);
-				if (!LinkedInput || LinkedInput->IsPendingKill())
+				if (!IsValid(LinkedInput))
 					continue;
 
 				// Linked params should match the main param! If not try to find one that matches
 				if (!LinkedInput->Matches(*CurrentInput))
 				{
 					LinkedInput = MainComponent->FindMatchingInput(CurrentInput);
-					if (!LinkedInput || LinkedInput->IsPendingKill())
+					if (!IsValid(LinkedInput))
 						continue;
 				}
 
@@ -556,7 +556,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		for (int32 OutputIdx = 0; OutputIdx < MainComponent->GetNumOutputs(); OutputIdx++)
 		{
 			UHoudiniOutput* CurrentOutput = MainComponent->GetOutputAt(OutputIdx);
-			if (!CurrentOutput || CurrentOutput->IsPendingKill())
+			if (!IsValid(CurrentOutput))
 				continue;
 
 			// Build an array of edited inpoutputs for multi edit
@@ -567,7 +567,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			for (int LinkedIdx = 1; LinkedIdx < HACs.Num(); LinkedIdx++)
 			{
 				UHoudiniOutput* LinkedOutput = HACs[LinkedIdx]->GetOutputAt(OutputIdx);
-				if (!LinkedOutput || LinkedOutput->IsPendingKill())
+				if (!IsValid(LinkedOutput))
 					continue;
 
 				/*
@@ -575,7 +575,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				if (!LinkedOutput->Matches(*CurrentOutput))
 				{
 					LinkedOutput = MainComponent->FindMatchingInput(CurrentOutput);
-					if (!LinkedOutput || LinkedOutput->IsPendingKill())
+					if (!IsValid(LinkedOutput))
 						continue;
 				}
 				*/
