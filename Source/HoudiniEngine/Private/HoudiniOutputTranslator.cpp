@@ -71,7 +71,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	const bool& bInForceUpdate,
 	bool& bOutHasHoudiniStaticMeshOutput)
 {
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return false;
 
 	// Get the temp folder override
@@ -275,7 +275,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	for (int32 OutputIdx = 0; OutputIdx < NumOutputs; OutputIdx++)
 	{
 		UHoudiniOutput* CurOutput = HAC->GetOutputAt(OutputIdx);
-		if (!CurOutput || CurOutput->IsPendingKill())
+		if (!IsValid(CurOutput))
 			continue;
 
 		FString Notification = FString::Format(TEXT("Processing output {0} / {1}..."), {FString::FromInt(OutputIdx + 1), FString::FromInt(NumOutputs)});
@@ -634,7 +634,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 bool
 FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAssetComponent* HAC, bool bInDestroyProxies)
 {
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return false;
 
 	UObject* OuterComponent = HAC;
@@ -841,7 +841,7 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 						break;
 
 					UHoudiniSplineComponent * HoudiniSplineComponent = Cast<UHoudiniSplineComponent>(Pair.Value.OutputComponent);
-					if (HoudiniSplineComponent && !HoudiniSplineComponent->IsPendingKill())
+					if (IsValid(HoudiniSplineComponent))
 					{
 						HoudiniSplineComponent->SetNodeId(EditableCurveGeoIds[Idx]);
 
@@ -860,7 +860,7 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 				const TArray<USceneComponent*> &Children = HAC->GetAttachChildren();
 				for (auto & CurAttachedComp : Children) 
 				{
-					if (!CurAttachedComp || CurAttachedComp->IsPendingKill())
+					if (!IsValid(CurAttachedComp))
 						continue;
 
 					if (!CurAttachedComp->IsA<UHoudiniSplineComponent>())
@@ -923,7 +923,7 @@ FHoudiniOutputTranslator::UploadChangedEditableOutput(
 	UHoudiniAssetComponent* HAC,
 	const bool& bInForceUpdate) 
 {
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return false;
 
 	TArray<UHoudiniOutput*> &Outputs = HAC->Outputs;
@@ -941,7 +941,7 @@ FHoudiniOutputTranslator::UploadChangedEditableOutput(
 		for (auto& CurrentOutputObj : CurrentOutput->GetOutputObjects())
 		{
 			UHoudiniSplineComponent* HoudiniSplineComponent = Cast<UHoudiniSplineComponent>(CurrentOutputObj.Value.OutputComponent);
-			if (!HoudiniSplineComponent || HoudiniSplineComponent->IsPendingKill())
+			if (!IsValid(HoudiniSplineComponent))
 				continue;
 
 			if (!HoudiniSplineComponent->HasChanged())
@@ -1735,9 +1735,8 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 						}
 					}
 
-					if (FoundHoudiniOutput && *FoundHoudiniOutput && !(*FoundHoudiniOutput)->IsPendingKill())
+					if (FoundHoudiniOutput && IsValid(*FoundHoudiniOutput))
 						IsFoundOutputValid = true;
-
 				}
 				else
 				{
@@ -1745,7 +1744,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					FoundHoudiniOutput = InOldOutputs.FindByPredicate(
 						[currentHGPO](UHoudiniOutput* Output) { return Output ? Output->HeightfieldMatch(currentHGPO, true) : false; });
 					
-					if (FoundHoudiniOutput && *FoundHoudiniOutput && !(*FoundHoudiniOutput)->IsPendingKill())
+					if (FoundHoudiniOutput && IsValid(*FoundHoudiniOutput))
 						IsFoundOutputValid = true;
 
 					// If we dont have a match in the old maps, also look in the newly created outputs
@@ -1754,7 +1753,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 						FoundHoudiniOutput = OutNewOutputs.FindByPredicate(
 							[currentHGPO](UHoudiniOutput* Output) { return Output ? Output->HeightfieldMatch(currentHGPO, false) : false; });
 
-						if (FoundHoudiniOutput && *FoundHoudiniOutput && !(*FoundHoudiniOutput)->IsPendingKill())
+						if (FoundHoudiniOutput && IsValid(*FoundHoudiniOutput))
 							IsFoundOutputValid = true;
 					}
 				}
@@ -1808,7 +1807,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 						RF_NoFlags);
 
 					// Make sure the created object is valid 
-					if (!HoudiniOutput || HoudiniOutput->IsPendingKill())
+					if (!IsValid(HoudiniOutput))
 					{
 						//HOUDINI_LOG_WARNING("Failed to create asset output");
 						continue;
@@ -1880,7 +1879,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					return Output ? Output->HeightfieldMatch(currentVolumeHGPO, false) : false;
 				});
 
-			if (!FoundHoudiniOutput || !(*FoundHoudiniOutput) || (*FoundHoudiniOutput)->IsPendingKill())
+			if (!FoundHoudiniOutput || !IsValid(*FoundHoudiniOutput))
 			{
 				// Skip - consider this volume as invalid
 				continue;
@@ -1903,13 +1902,13 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 			// If a suitable output is not found in the new outputs, do not reuse the output.
 			for (auto & Pair : OldOutput->GetOutputObjects())
 			{
-				if (Pair.Value.OutputObject && !Pair.Value.OutputObject->IsPendingKill())
+				if (IsValid(Pair.Value.OutputObject))
 				{
 					if (!GCNames.Contains(Pair.Value.OutputObject->GetName()))
 					{
 						ReuseOutput = false;
 						AGeometryCollectionActor * Actor = Cast<AGeometryCollectionActor>(Pair.Value.OutputObject);
-						if (Actor && !Actor->IsPendingKill())
+						if (IsValid(Actor))
 						{
 							Actor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 							Actor->MarkPendingKill();
@@ -1943,7 +1942,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 bool
 FHoudiniOutputTranslator::UpdateChangedOutputs(UHoudiniAssetComponent* HAC)
 {
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return false;
 
 
@@ -2399,7 +2398,7 @@ FHoudiniOutputTranslator::GetCustomPartNameFromAttribute(const HAPI_NodeId & Nod
 void
 FHoudiniOutputTranslator::GetTempFolderFromAttribute(UHoudiniAssetComponent * HAC)
 {
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return;
 	
 	HAPI_GeoInfo DisplayGeoInfo;

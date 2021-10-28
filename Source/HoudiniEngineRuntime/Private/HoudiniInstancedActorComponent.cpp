@@ -123,9 +123,9 @@ void
 UHoudiniInstancedActorComponent::AddReferencedObjects(UObject * InThis, FReferenceCollector & Collector )
 {
     UHoudiniInstancedActorComponent * ThisHIAC = Cast< UHoudiniInstancedActorComponent >(InThis);
-    if ( ThisHIAC && !ThisHIAC->IsPendingKill() )
+    if ( IsValid(ThisHIAC) )
     {
-        if ( ThisHIAC->InstancedObject && !ThisHIAC->InstancedObject->IsPendingKill() )
+        if ( IsValid(ThisHIAC->InstancedObject) )
             Collector.AddReferencedObject( ThisHIAC->InstancedObject, ThisHIAC );
 
         Collector.AddReferencedObjects(ThisHIAC->InstancedActors, ThisHIAC );
@@ -136,7 +136,7 @@ UHoudiniInstancedActorComponent::AddReferencedObjects(UObject * InThis, FReferen
 int32
 UHoudiniInstancedActorComponent::AddInstance(const FTransform& InstanceTransform, AActor * NewActor)
 {
-	if (!NewActor || NewActor->IsPendingKill())
+	if (!IsValid(NewActor))
 		return -1;
 
 	NewActor->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
@@ -148,7 +148,7 @@ UHoudiniInstancedActorComponent::AddInstance(const FTransform& InstanceTransform
 bool
 UHoudiniInstancedActorComponent::SetInstanceAt(const int32& Idx, const FTransform& InstanceTransform, AActor * NewActor)
 {
-	if (!NewActor || NewActor->IsPendingKill())
+	if (!IsValid(NewActor))
 		return false;
 
 	if (!InstancedActors.IsValidIndex(Idx))
@@ -181,7 +181,7 @@ UHoudiniInstancedActorComponent::ClearAllInstances()
 {
     for ( AActor* Instance : InstancedActors )
     {
-        if ( Instance && !Instance->IsPendingKill() )
+        if ( IsValid(Instance) )
             Instance->Destroy();
     }
     InstancedActors.Empty();
@@ -199,7 +199,7 @@ UHoudiniInstancedActorComponent::SetNumberOfInstances(const int32& NewInstanceNu
 		for (int32 Idx = NewInstanceNum - 1; Idx < InstancedActors.Num(); Idx++)
 		{
 			AActor* Instance = InstancedActors.IsValidIndex(Idx) ? InstancedActors[Idx] : nullptr;
-			if (Instance && !Instance->IsPendingKill())
+			if (IsValid(Instance))
 				Instance->Destroy();
 		}
 	}
@@ -218,7 +218,7 @@ UHoudiniInstancedActorComponent::OnComponentCreated()
     bool bNeedDuplicate = false;
     for (auto CurrentInstance : InstancedActors)
     {
-        if ( !CurrentInstance || CurrentInstance->IsPendingKill() )
+        if ( !IsValid(CurrentInstance) )
             continue;
 
         if ( CurrentInstance->GetAttachParentActor() != GetOwner() )
@@ -234,7 +234,7 @@ UHoudiniInstancedActorComponent::OnComponentCreated()
     InstancedActors.Empty();
     for (AActor* CurrentInstance : SourceInstances)
     {
-        if ( !CurrentInstance || CurrentInstance->IsPendingKill() )
+        if ( !IsValid(CurrentInstance) )
             continue;
 
         FTransform InstanceTransform;

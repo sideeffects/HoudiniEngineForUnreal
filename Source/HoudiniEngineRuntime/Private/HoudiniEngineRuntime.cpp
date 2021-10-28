@@ -124,7 +124,7 @@ FHoudiniEngineRuntime::CleanUpRegisteredHoudiniComponents()
 		}
 
 		UHoudiniAssetComponent* CurrentHAC = Ptr.Get();
-		if (!CurrentHAC || CurrentHAC->IsPendingKill())
+		if (!IsValid(CurrentHAC))
 		{
 			UnRegisterHoudiniComponent(Idx);
 			continue;
@@ -150,7 +150,7 @@ FHoudiniEngineRuntime::RegisterHoudiniComponent(UHoudiniAssetComponent* HAC, boo
 	if (!FHoudiniEngineRuntime::IsInitialized())
 		return;
 
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return;
 
 	// RF_Transient indicates a temporary/preview object
@@ -201,7 +201,7 @@ FHoudiniEngineRuntime::UnRegisterHoudiniComponent(UHoudiniAssetComponent* HAC)
 	if (!IsInitialized())
 		return;
 
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return;
 
 	// Calling GetPathName here may lead to some crashes due to invalid outers...

@@ -111,7 +111,7 @@ FHoudiniLandscapeTranslator::CreateLandscape(
 
 	HOUDINI_LANDSCAPE_MESSAGE(TEXT("CreateLandscape!"));
 	
-	if (!InOutput || InOutput->IsPendingKill())
+	if (!IsValid(InOutput))
 		return false;
 
 	//  Get the height map.
@@ -363,7 +363,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	float fGlobalMin = LayerMinimums.FindChecked(TEXT("height"));
 	float fGlobalMax = LayerMaximums.FindChecked(TEXT("height"));
 
-	if (!InOutput || InOutput->IsPendingKill())
+	if (!IsValid(InOutput))
 		return false;
 
 	//  Get the height map.
@@ -1098,8 +1098,6 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 
 	if (IsValid(TileActor))
 	{
-		check(!(TileActor->IsPendingKill()));
-
 		// ----------------------------------------------------
 		// Check landscape compatibility
 		// ----------------------------------------------------
@@ -1589,7 +1587,7 @@ bool FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(UHoudiniOutput* In
 	float fGlobalMin = LayerMinimums.FindChecked(TEXT("height"));
 	float fGlobalMax = LayerMaximums.FindChecked(TEXT("height"));
 
-	if (!InOutput || InOutput->IsPendingKill())
+	if (!IsValid(InOutput))
 		return false;
 
 	UHoudiniAssetComponent* HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(InOutput);
@@ -2477,7 +2475,7 @@ FHoudiniLandscapeTranslator::FindExistingLandscapeActor_Temp(
 		if (!OutActor)
 			continue;
 
-		// If we were updating the input landscape before, but arent anymore,
+		// If we were updating the input landscape before, but aren't anymore,
 		// we could still find it here in the output, ignore them now as we're only looking for previous output
 		if (ValidLandscapes.Contains(OutActor))
 			continue;
@@ -2486,7 +2484,7 @@ FHoudiniLandscapeTranslator::FindExistingLandscapeActor_Temp(
 			// This is not the droid we're looking for
 			continue;
 
-		if (OutActor->IsPendingKill())
+		if (!IsValid(OutActor))
 		{
 			FHoudiniEngineUtils::RenameToUniqueActor(OutActor, ActorName + "_pendingkill");
 			continue;
@@ -3273,7 +3271,7 @@ FHoudiniLandscapeTranslator::GetHoudiniHeightFieldFromOutput(
 	const bool bMatchEditLayer,
 	const FName& EditLayerName)
 {
-	if (!InOutput || InOutput->IsPendingKill())
+	if (!IsValid(InOutput))
 		return nullptr;
 
 	if (InOutput->GetHoudiniGeoPartObjects().Num() < 1)
@@ -3685,14 +3683,14 @@ FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayerData(
 		UPackage * Package = nullptr;
 		ULandscapeLayerInfoObject* LayerInfo = GetLandscapeLayerInfoForLayer(*LayerGeoPartObject, *LayerName);
 		HOUDINI_LANDSCAPE_MESSAGE(TEXT("[CreateOrUpdateLandscapeLayers] GetLandscapeLayerInfoForLayer. LayerName: %s."), *(LayerName));
-		if (!LayerInfo || LayerInfo->IsPendingKill())
+		if (!IsValid(LayerInfo))
 		{
 			// No assignment, try to find or create a landscape layer info object for that layer
 			HOUDINI_LANDSCAPE_MESSAGE(TEXT("[CreateOrUpdateLandscapeLayers] No layer info. FindOrCreate layer info object..."));
 			LayerInfo = FindOrCreateLandscapeLayerInfoObject(LayerName, LayerPackageParams.GetPackagePath(), LayerPackageParams.GetPackageName(), Package);
 		}
 
-		if (!LayerInfo || LayerInfo->IsPendingKill())
+		if (!IsValid(LayerInfo))
 		{
 			continue;
 		}
@@ -3727,7 +3725,7 @@ FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayerData(
 
 		HOUDINI_LANDSCAPE_MESSAGE(TEXT("[HoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayers] Processing layer: %s (bDefaultNoWeightBlend: %d"), *(LayerName), bDefaultNoWeightBlending);
 
-		if (!bIsUpdate && Package && !Package->IsPendingKill())
+		if (!bIsUpdate && IsValid(Package))
 		{
 			// Mark the package dirty...
 			Package->MarkPackageDirty();
@@ -3753,7 +3751,7 @@ FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayerData(
 
 		// See if there is a physical material assigned via attribute for that landscape layer
 		UPhysicalMaterial* PhysMaterial = FHoudiniLandscapeTranslator::GetLandscapePhysicalMaterial(*LayerGeoPartObject);
-		if (PhysMaterial && !PhysMaterial->IsPendingKill())
+		if (IsValid(PhysMaterial))
 		{
 			LayerInfo->PhysMaterial = PhysMaterial;
 		}
@@ -4664,14 +4662,14 @@ FHoudiniLandscapeTranslator::FindOrCreateLandscapeLayerInfoObject(const FString&
 	// See if package exists, if it does, reuse it
 	bool bCreatedPackage = false;
 	OutPackage = FindPackage(nullptr, *PackageFullName);
-	if (!OutPackage || OutPackage->IsPendingKill())
+	if (!IsValid(OutPackage))
 	{
 		// We need to create a new package
 		OutPackage = CreatePackage(*PackageFullName);
 		bCreatedPackage = true;
 	}
 
-	if (!OutPackage || OutPackage->IsPendingKill())
+	if (!IsValid(OutPackage))
 		return nullptr;
 
 	if (!OutPackage->IsFullyLoaded())
@@ -4686,7 +4684,7 @@ FHoudiniLandscapeTranslator::FindOrCreateLandscapeLayerInfoObject(const FString&
 		LayerInfo = (ULandscapeLayerInfoObject*)StaticFindObjectFast(ULandscapeLayerInfoObject::StaticClass(), OutPackage, FName(*InPackageName));
 	}
 
-	if (!LayerInfo || LayerInfo->IsPendingKill())
+	if (!IsValid(LayerInfo))
 	{
 		HOUDINI_LANDSCAPE_MESSAGE(TEXT("[FHoudiniLandscapeTranslator::FindOrCreateLandscapeLayerInfoObject] Could not find layer info. Creating new layer info package: %s"), *(InPackageName));
 		// Create a new LandscapeLayerInfoObject in the package
@@ -4696,7 +4694,7 @@ FHoudiniLandscapeTranslator::FindOrCreateLandscapeLayerInfoObject(const FString&
 		FAssetRegistryModule::AssetCreated(LayerInfo);
 	}
 
-	if (LayerInfo && !LayerInfo->IsPendingKill())
+	if (IsValid(LayerInfo))
 	{
 		LayerInfo->LayerName = FName(*InLayerName);
 
@@ -4822,7 +4820,7 @@ bool
 FHoudiniLandscapeTranslator::UpdateGenericPropertiesAttributes(
 	UObject* InObject, const TArray<FHoudiniGenericAttribute>& InAllPropertyAttributes)
 {
-	if (!InObject || InObject->IsPendingKill())
+	if (!IsValid(InObject))
 		return false;
 
 	// Iterate over the found Property attributes
@@ -4867,7 +4865,7 @@ FHoudiniLandscapeTranslator::BackupLandscapeToImageFiles(const FString& BaseName
 		FName CurrentLayerName = LandscapeInfo->Layers[LayerIndex].GetLayerName();
 		//ULandscapeLayerInfoObject* CurrentLayerInfo = LandscapeInfo->GetLayerInfoByName(CurrentLayerName, Landscape);
 		ULandscapeLayerInfoObject* CurrentLayerInfo = LandscapeInfo->Layers[LayerIndex].LayerInfoObj;
-		if (!CurrentLayerInfo || CurrentLayerInfo->IsPendingKill())
+		if (!IsValid(CurrentLayerInfo))
 			continue;
 
 		FString LayerSave = BaseName + CurrentLayerName.ToString() + TEXT(".png");
@@ -4901,7 +4899,7 @@ FHoudiniLandscapeTranslator::RestoreLandscapeFromImageFiles(ALandscapeProxy* Lan
 	for (int LayerIndex = 0; LayerIndex < LandscapeProxy->EditorLayerSettings.Num(); LayerIndex++)
 	{
 		ULandscapeLayerInfoObject* CurrentLayerInfo = LandscapeProxy->EditorLayerSettings[LayerIndex].LayerInfoObj;
-		if (!CurrentLayerInfo || CurrentLayerInfo->IsPendingKill())
+		if (!IsValid(CurrentLayerInfo))
 			continue;
 
 		FString CurrentLayerName = CurrentLayerInfo->LayerName.ToString();
@@ -5031,7 +5029,7 @@ FHoudiniLandscapeTranslator::ImportLandscapeData(
 		else
 		{
 			// We're importing a Landscape layer
-			if (!LayerInfoObject || LayerInfoObject->IsPendingKill())
+			if (!IsValid(LayerInfoObject))
 				return false;
 
 			const ILandscapeWeightmapFileFormat* WeightmapFormat = LandscapeEditorModule.GetWeightmapFormatByExtension(*FPaths::GetExtension(Filename, true));
@@ -5155,7 +5153,7 @@ FHoudiniLandscapeTranslator::CreateUnrealTexture(
 
 	FString CreatedPackageName;
 	UPackage* Package = MyPackageParams.CreatePackageForObject(CreatedPackageName);
-	if (!Package || Package->IsPendingKill())
+	if (!IsValid(Package))
 		return nullptr;
 
 	// Create new texture object.
@@ -5268,7 +5266,7 @@ FHoudiniLandscapeTranslator::GetLandscapeLayerInfoForLayer(const FHoudiniGeoPart
 	if (AttributeValues.Num() > 0)
 	{
 		ULandscapeLayerInfoObject* FoundLayerInfo = LoadObject<ULandscapeLayerInfoObject>(nullptr, *AttributeValues[0], nullptr, LOAD_NoWarn, nullptr);
-		if (!FoundLayerInfo || FoundLayerInfo->IsPendingKill())
+		if (!IsValid(FoundLayerInfo))
 			return nullptr;
 
 		// The layer info's name must match this layer's name or Unreal will not like this!

@@ -114,7 +114,7 @@ FHoudiniEngineDetails::CreateWidget(
 
 	UHoudiniAssetComponent* MainHAC = InHACs[0];
 
-	if (!MainHAC || MainHAC->IsPendingKill())
+	if (!IsValid(MainHAC))
 		return;
 
 	// 0. Houdini Engine Icon
@@ -147,7 +147,7 @@ FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(
 
 	UHoudiniAssetComponent* MainHAC = InHACs[0];
 
-	if (!MainHAC || MainHAC->IsPendingKill())
+	if (!IsValid(MainHAC))
 		return;
 
 	// Skip drawing the icon if the icon image is not loaded correctly.
@@ -193,14 +193,14 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 
 	UHoudiniAssetComponent* MainHAC = InHACs[0];
 
-	if (!MainHAC || MainHAC->IsPendingKill())
+	if (!IsValid(MainHAC))
 		return;
 
 	auto OnReBuildClickedLambda = [InHACs]()
 	{
 		for (auto& NextHAC : InHACs)
 		{
-			if (!NextHAC || NextHAC->IsPendingKill())
+			if (!IsValid(NextHAC))
 				continue;
 
 			NextHAC->MarkAsNeedRebuild();
@@ -213,7 +213,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 	{
 		for (auto& NextHAC : InHACs)
 		{
-			if (!NextHAC || NextHAC->IsPendingKill())
+			if (!IsValid(NextHAC))
 				continue;
 
 			NextHAC->MarkAsNeedCook();
@@ -226,7 +226,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 	{
 		for (auto& NextHAC : InHACs)
 		{
-			if (!NextHAC || NextHAC->IsPendingKill())
+			if (!IsValid(NextHAC))
 				continue;
 
 			// Reset parameters to default values?
@@ -246,7 +246,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 	{
 		for (auto& NextHAC : InHACs)
 		{
-			if (!NextHAC || NextHAC->IsPendingKill())
+			if (!IsValid(NextHAC))
 				continue;
 
 			// Reset parameters to default values?
@@ -266,7 +266,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 
 	auto OnCookFolderTextCommittedLambda = [InHACs, MainHAC](const FText& Val, ETextCommit::Type TextCommitType)
 	{
-		if (!MainHAC || MainHAC->IsPendingKill())
+		if (!IsValid(MainHAC))
 			return;
 
 		FString NewPathStr = Val.ToString();
@@ -300,7 +300,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 
 		for (auto& NextHAC : InHACs)
 		{
-			if (!NextHAC || NextHAC->IsPendingKill())
+			if (!IsValid(NextHAC))
 				continue;
 
 			if (NextHAC->TemporaryCookFolder.Path.Equals(NewPathStr))
@@ -587,7 +587,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 		return;
 
 	UHoudiniAssetComponent * MainHAC = InHACs[0];
-	if (!MainHAC || MainHAC->IsPendingKill())
+	if (!IsValid(MainHAC))
 		return;
 
 	FHoudiniEngineDetails::AddHeaderRowForHoudiniAssetComponent(HoudiniEngineCategoryBuilder, MainHAC, HOUDINI_ENGINE_UI_SECTION_BAKE);
@@ -599,7 +599,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 	{
 		for (auto & NextHAC : InHACs)
 		{
-			if (!NextHAC || NextHAC->IsPendingKill())
+			if (!IsValid(NextHAC))
 				continue;
 
 			FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
@@ -615,14 +615,14 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 
 	auto OnBakeFolderTextCommittedLambda = [InHACs, MainHAC](const FText& Val, ETextCommit::Type TextCommitType)
 	{
-		if (!MainHAC || MainHAC->IsPendingKill())
+		if (!IsValid(MainHAC))
 			return;
 
 		FString NewPathStr = Val.ToString();
 
 		for (auto& NextHAC : InHACs)
 		{
-			if (!NextHAC || NextHAC->IsPendingKill())
+			if (!IsValid(NextHAC))
 				continue;
 
 			if (NextHAC->BakeFolder.Path.Equals(NewPathStr))
@@ -735,10 +735,10 @@ FHoudiniEngineDetails::CreateBakeWidgets(
                 const EHoudiniEngineBakeOption NewOption = 
                     FHoudiniEngineEditor::Get().StringToHoudiniEngineBakeOption(*NewChoice.Get());
 
-                for (auto & NextHAC : InHACs) 
-                {
-                    if (!NextHAC || NextHAC->IsPendingKill())
-                    	continue;
+				for (auto & NextHAC : InHACs) 
+				{
+					if (!IsValid(NextHAC))
+						continue;
 
                     MainHAC->HoudiniEngineBakeOption = NewOption;
                 }
@@ -817,7 +817,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 
                 for (auto & NextHAC : InHACs) 
                 {
-                    if (!NextHAC || NextHAC->IsPendingKill())
+                    if (!IsValid(NextHAC))
                     	continue;
 
                     NextHAC->bRemoveOutputAfterBake = bNewState;
@@ -852,7 +852,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 
                 for (auto & NextHAC : InHACs) 
                 {
-                    if (!NextHAC || NextHAC->IsPendingKill())
+                    if (!IsValid(NextHAC))
                     	continue;
 
                     NextHAC->bRecenterBakedActors = bNewState;
@@ -870,7 +870,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 	// managing the delegate in this way).
 	for (auto & NextHAC : InHACs) 
 	{
-		if (!NextHAC || NextHAC->IsPendingKill())
+		if (!IsValid(NextHAC))
 			continue;
 
 		const bool bState = NextHAC->IsBakeAfterNextCookEnabled();
@@ -902,7 +902,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 
                 for (auto & NextHAC : InHACs) 
                 {
-                    if (!NextHAC || NextHAC->IsPendingKill())
+                    if (!IsValid(NextHAC))
                     	continue;
 
                     NextHAC->SetBakeAfterNextCookEnabled(bNewState);
@@ -939,7 +939,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 
 				for (auto & NextHAC : InHACs) 
 				{
-					if (!NextHAC || NextHAC->IsPendingKill())
+					if (!IsValid(NextHAC))
 						continue;
 
 					MainHAC->bReplacePreviousBake = bNewState;
@@ -1083,7 +1083,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		return;
 
 	UHoudiniAssetComponent * MainHAC = InHACs[0];
-	if (!MainHAC || MainHAC->IsPendingKill())
+	if (!IsValid(MainHAC))
 		return;
 
 	// Header Row
@@ -1094,7 +1094,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 
 	auto IsCheckedParameterChangedLambda = [MainHAC]()
 	{
-		if (!MainHAC || MainHAC->IsPendingKill())
+		if (!IsValid(MainHAC))
 			return 	ECheckBoxState::Unchecked;
 
 		return MainHAC->bCookOnParameterChange ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -1105,7 +1105,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		bool bChecked = (NewState == ECheckBoxState::Checked);
 		for (auto& NextHAC : InHACs)
 		{
-			if (!NextHAC || NextHAC->IsPendingKill())
+			if (!IsValid(NextHAC))
 				continue;
 
 			NextHAC->bCookOnParameterChange = bChecked;
@@ -1114,7 +1114,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 
 	auto IsCheckedTransformChangeLambda = [MainHAC]()
 	{
-		if (!MainHAC || MainHAC->IsPendingKill())
+		if (!IsValid(MainHAC))
 			return 	ECheckBoxState::Unchecked;
 
 		return MainHAC->bCookOnTransformChange ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -1125,7 +1125,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		bool bChecked = (NewState == ECheckBoxState::Checked);
 		for (auto& NextHAC : InHACs)
 		{
-			if (!NextHAC || NextHAC->IsPendingKill())
+			if (!IsValid(NextHAC))
 				continue;
 
 			NextHAC->bCookOnTransformChange = bChecked;
@@ -1136,7 +1136,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 
 	auto IsCheckedAssetInputCookLambda = [MainHAC]()
 	{
-		if (!MainHAC || MainHAC->IsPendingKill())
+		if (!IsValid(MainHAC))
 			return 	ECheckBoxState::Unchecked;
 
 		return MainHAC->bCookOnAssetInputCook ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -1147,7 +1147,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		bool bChecked = (NewState == ECheckBoxState::Checked);
 		for (auto& NextHAC : InHACs)
 		{
-			if (!NextHAC || NextHAC->IsPendingKill())
+			if (!IsValid(NextHAC))
 				continue;
 
 			NextHAC->bCookOnAssetInputCook = bChecked;
@@ -1156,7 +1156,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 
 	auto IsCheckedPushTransformToHoudiniLambda = [MainHAC]()
 	{
-		if (!MainHAC || MainHAC->IsPendingKill())
+		if (!IsValid(MainHAC))
 			return 	ECheckBoxState::Unchecked;
 
 		return MainHAC->bUploadTransformsToHoudiniEngine ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -1167,7 +1167,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		bool bChecked = (NewState == ECheckBoxState::Checked);
 		for (auto& NextHAC : InHACs)
 		{
-			if (!NextHAC || NextHAC->IsPendingKill())
+			if (!IsValid(NextHAC))
 				continue;
 
 			NextHAC->bUploadTransformsToHoudiniEngine = bChecked;
@@ -1178,7 +1178,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 
 	auto IsCheckedDoNotGenerateOutputsLambda = [MainHAC]()
 	{
-		if (!MainHAC || MainHAC->IsPendingKill())
+		if (!IsValid(MainHAC))
 			return 	ECheckBoxState::Unchecked;
 
 		return MainHAC->bOutputless ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -1189,7 +1189,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		bool bChecked = (NewState == ECheckBoxState::Checked);
 		for (auto& NextHAC : InHACs)
 		{
-			if (!NextHAC || NextHAC->IsPendingKill())
+			if (!IsValid(NextHAC))
 				continue;
 
 			NextHAC->bOutputless = bChecked;
@@ -1200,7 +1200,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 
 	auto IsCheckedOutputTemplatedGeosLambda = [MainHAC]()
 	{
-		if (!MainHAC || MainHAC->IsPendingKill())
+		if (!IsValid(MainHAC))
 			return 	ECheckBoxState::Unchecked;
 
 		return MainHAC->bOutputTemplateGeos ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -1211,7 +1211,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		bool bChecked = (NewState == ECheckBoxState::Checked);
 		for (auto& NextHAC : InHACs)
 		{
-			if (!NextHAC || NextHAC->IsPendingKill())
+			if (!IsValid(NextHAC))
 				continue;
 
 			NextHAC->bOutputTemplateGeos = bChecked;
@@ -1222,7 +1222,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 
 	auto IsCheckedUseOutputNodesLambda = [MainHAC]()
 	{
-		if (!MainHAC || MainHAC->IsPendingKill())
+		if (!IsValid(MainHAC))
 			return 	ECheckBoxState::Unchecked;
 
 		return MainHAC->bUseOutputNodes ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -1233,7 +1233,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		bool bChecked = (NewState == ECheckBoxState::Checked);
 		for (auto& NextHAC : InHACs)
 		{
-			if (!NextHAC || NextHAC->IsPendingKill())
+			if (!IsValid(NextHAC))
 				continue;
 
 			NextHAC->bUseOutputNodes = bChecked;
@@ -1520,7 +1520,7 @@ FHoudiniEngineDetails::CreateHelpAndDebugWidgets(
 		return;
 
 	UHoudiniAssetComponent * MainHAC = InHACs[0];
-	if (!MainHAC || MainHAC->IsPendingKill())
+	if (!IsValid(MainHAC))
 		return;
 
 	// Header Row
@@ -1841,7 +1841,7 @@ FHoudiniEngineDetails::ShowAssetHelp(UHoudiniAssetComponent * InHAC)
 void 
 FHoudiniEngineDetails::AddHeaderRowForHoudiniAssetComponent(IDetailCategoryBuilder& HoudiniEngineCategoryBuilder, UHoudiniAssetComponent * HoudiniAssetComponent, int32 MenuSection)
 {
-	if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+	if (!IsValid(HoudiniAssetComponent))
 		return;
 
 	FOnClicked OnExpanderClick = FOnClicked::CreateLambda([HoudiniAssetComponent, MenuSection]()
@@ -1933,7 +1933,7 @@ FHoudiniEngineDetails::AddHeaderRowForHoudiniAssetComponent(IDetailCategoryBuild
 void
 FHoudiniEngineDetails::AddHeaderRowForHoudiniPDGAssetLink(IDetailCategoryBuilder& PDGCategoryBuilder, UHoudiniPDGAssetLink* InPDGAssetLink, int32 MenuSection)
 {
-	if (!InPDGAssetLink || InPDGAssetLink->IsPendingKill())
+	if (!IsValid(InPDGAssetLink))
 		return;
 
 	FOnClicked OnExpanderClick = FOnClicked::CreateLambda([InPDGAssetLink, MenuSection]()

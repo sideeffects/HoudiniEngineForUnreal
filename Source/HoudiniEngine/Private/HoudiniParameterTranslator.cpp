@@ -75,7 +75,7 @@
 bool 
 FHoudiniParameterTranslator::UpdateParameters(UHoudiniAssetComponent* HAC)
 {
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return false;
 
 	// When recooking/rebuilding the HDA, force a full update of all params
@@ -91,7 +91,7 @@ FHoudiniParameterTranslator::UpdateParameters(UHoudiniAssetComponent* HAC)
 		// Destroy old/dangling parameters
 		for (auto& OldParm : HAC->Parameters)
 		{
-			if (!OldParm || OldParm->IsPendingKill())
+			if (!IsValid(OldParm))
 				continue;
 
 			OldParm->ConditionalBeginDestroy();
@@ -118,7 +118,7 @@ FHoudiniParameterTranslator::OnPreCookParameters(UHoudiniAssetComponent* HAC)
 	// synced before the cook starts (Looking at you, ramp parameters!)
 	for (UHoudiniParameter* Param : HAC->Parameters)
 	{
-		if (!Param || Param->IsPendingKill())
+		if (!IsValid(Param))
 			continue;
 
 		Param->OnPreCook();
@@ -131,7 +131,7 @@ FHoudiniParameterTranslator::OnPreCookParameters(UHoudiniAssetComponent* HAC)
 bool
 FHoudiniParameterTranslator::UpdateLoadedParameters(UHoudiniAssetComponent* HAC)
 {
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return false;
 
 	// Update all the parameters using the loaded parameter object
@@ -147,7 +147,7 @@ FHoudiniParameterTranslator::UpdateLoadedParameters(UHoudiniAssetComponent* HAC)
 	{
 		UHoudiniParameter* Param = HAC->Parameters[Idx];
 
-		if (!Param || Param->IsPendingKill())
+		if (!IsValid(Param))
 			continue;
 
 		switch(Param->GetParameterType())
@@ -199,7 +199,7 @@ FHoudiniParameterTranslator::UpdateLoadedParameters(UHoudiniAssetComponent* HAC)
 		// Destroy old/dangling parameters
 		for (auto& OldParm : HAC->Parameters)
 		{
-			if (!OldParm || OldParm->IsPendingKill())
+			if (!IsValid(OldParm))
 				continue;
 
 			OldParm->ConditionalBeginDestroy();
@@ -626,13 +626,13 @@ FHoudiniParameterTranslator::BuildAllParameters(
 	for (int32 Idx = 0; Idx < NewParameters.Num(); ++Idx) 
 	{
 		UHoudiniParameter * CurParam = NewParameters[Idx];
-		if (!CurParam || CurParam->IsPendingKill())
+		if (!IsValid(CurParam))
 			continue;
 
 		if (CurParam->GetParameterType() == EHoudiniParameterType::FolderList) 
 		{
 			UHoudiniParameterFolderList* CurFolderList = Cast<UHoudiniParameterFolderList>(CurParam);
-			if (!CurFolderList || CurFolderList->IsPendingKill())
+			if (!IsValid(CurFolderList))
 				continue;
 
 			int32 FirstChildIdx = Idx + 1;
@@ -640,7 +640,7 @@ FHoudiniParameterTranslator::BuildAllParameters(
 				continue;
 
 			UHoudiniParameterFolder* FirstChildFolder = Cast<UHoudiniParameterFolder>(NewParameters[FirstChildIdx]);
-			if (!FirstChildFolder || FirstChildFolder->IsPendingKill())
+			if (!IsValid(FirstChildFolder))
 				continue;
 
 			if (FirstChildFolder->GetFolderType() == EHoudiniFolderParameterType::Radio ||
@@ -1097,7 +1097,7 @@ FHoudiniParameterTranslator::CheckParameterTypeAndClassMatch(UHoudiniParameter* 
 bool
 FHoudiniParameterTranslator::CheckParameterClassAndInfoMatch(UHoudiniParameter* Parameter, const HAPI_ParmInfo& ParmInfo)
 {
-	if (!Parameter || Parameter->IsPendingKill())
+	if (!IsValid(Parameter))
 		return false;
 
 	UClass* FoundClass = Parameter->GetClass();
@@ -1297,7 +1297,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 	const TArray<HAPI_StringHandle>* DefaultStringValues,
 	const TArray<HAPI_ParmChoiceInfo>* DefaultChoiceValues)
 {
-	if (!HoudiniParameter || HoudiniParameter->IsPendingKill())
+	if (!IsValid(HoudiniParameter))
 		return false;
 
 	// Copy values from the ParmInfos
@@ -1446,7 +1446,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::Button:
 		{
 			UHoudiniParameterButton* HoudiniParameterButton = Cast<UHoudiniParameterButton>(HoudiniParameter);
-			if (HoudiniParameterButton && !HoudiniParameterButton->IsPendingKill())
+			if (IsValid(HoudiniParameterButton))
 			{
 				HoudiniParameterButton->SetValueIndex(ParmInfo.intValuesIndex);
 			}
@@ -1456,7 +1456,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::ButtonStrip:
 		{
 			UHoudiniParameterButtonStrip* HoudiniParameterButtonStrip = Cast<UHoudiniParameterButtonStrip>(HoudiniParameter);
-			if (HoudiniParameterButtonStrip && !HoudiniParameterButtonStrip->IsPendingKill()) 
+			if (IsValid(HoudiniParameterButtonStrip)) 
 			{
 				HoudiniParameterButtonStrip->SetValueIndex(ParmInfo.intValuesIndex);
 				HoudiniParameterButtonStrip->Count = ParmInfo.choiceCount;
@@ -1534,7 +1534,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::Color:
 		{
 			UHoudiniParameterColor* HoudiniParameterColor = Cast<UHoudiniParameterColor>(HoudiniParameter);
-			if (HoudiniParameterColor && !HoudiniParameterColor->IsPendingKill())
+			if (IsValid(HoudiniParameterColor))
 			{
 				// Set the valueIndex
 				HoudiniParameterColor->SetValueIndex(ParmInfo.floatValuesIndex);
@@ -1581,7 +1581,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::ColorRamp:
 		{
 			UHoudiniParameterRampColor* HoudiniParameterRampColor = Cast<UHoudiniParameterRampColor>(HoudiniParameter);
-			if (HoudiniParameterRampColor && !HoudiniParameterRampColor->IsPendingKill())
+			if (IsValid(HoudiniParameterRampColor))
 			{
 				HoudiniParameterRampColor->SetInstanceCount(ParmInfo.instanceCount);
 				HoudiniParameterRampColor->MultiParmInstanceLength = ParmInfo.instanceLength;
@@ -1591,7 +1591,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::FloatRamp:
 		{
 			UHoudiniParameterRampFloat* HoudiniParameterRampFloat = Cast<UHoudiniParameterRampFloat>(HoudiniParameter);
-			if (HoudiniParameterRampFloat && !HoudiniParameterRampFloat->IsPendingKill())
+			if (IsValid(HoudiniParameterRampFloat))
 			{
 				HoudiniParameterRampFloat->SetInstanceCount(ParmInfo.instanceCount);
 				HoudiniParameterRampFloat->MultiParmInstanceLength = ParmInfo.instanceLength;
@@ -1605,7 +1605,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::FileImage:
 		{
 			UHoudiniParameterFile* HoudiniParameterFile = Cast<UHoudiniParameterFile>(HoudiniParameter);
-			if (HoudiniParameterFile && !HoudiniParameterFile->IsPendingKill())
+			if (IsValid(HoudiniParameterFile))
 			{
 				// Set the valueIndex
 				HoudiniParameterFile->SetValueIndex(ParmInfo.stringValuesIndex);
@@ -1689,7 +1689,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::Float:
 		{
 			UHoudiniParameterFloat* HoudiniParameterFloat = Cast<UHoudiniParameterFloat>(HoudiniParameter);
-			if (HoudiniParameterFloat && !HoudiniParameterFloat->IsPendingKill())
+			if (IsValid(HoudiniParameterFloat))
 			{
 				// Set the valueIndex
 				HoudiniParameterFloat->SetValueIndex(ParmInfo.floatValuesIndex);
@@ -1853,7 +1853,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::Folder:
 		{
 			UHoudiniParameterFolder* HoudiniParameterFolder = Cast<UHoudiniParameterFolder>(HoudiniParameter);
-			if (HoudiniParameterFolder && !HoudiniParameterFolder->IsPendingKill())
+			if (IsValid(HoudiniParameterFolder))
 			{
 				// Set the valueIndex
 				HoudiniParameterFolder->SetValueIndex(ParmInfo.intValuesIndex);
@@ -1865,7 +1865,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::FolderList:
 		{
 			UHoudiniParameterFolderList* HoudiniParameterFolderList = Cast<UHoudiniParameterFolderList>(HoudiniParameter);
-			if (HoudiniParameterFolderList && !HoudiniParameterFolderList->IsPendingKill())
+			if (IsValid(HoudiniParameterFolderList))
 			{
 				// Set the valueIndex
 				HoudiniParameterFolderList->SetValueIndex(ParmInfo.intValuesIndex);
@@ -1877,7 +1877,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		{
 			// Inputs parameters are just stored, and handled separately by UHoudiniInputs
 			UHoudiniParameterOperatorPath* HoudiniParameterOperatorPath = Cast<UHoudiniParameterOperatorPath>(HoudiniParameter);
-			if (HoudiniParameterOperatorPath && !HoudiniParameterOperatorPath->IsPendingKill())
+			if (IsValid(HoudiniParameterOperatorPath))
 			{
 				/*
 				// DO NOT CREATE A DUPLICATE INPUT HERE!
@@ -1891,7 +1891,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 				if (!ParentHAC)
 					return false;
 
-				if (!NewInput || NewInput->IsPendingKill())
+				if (!IsValid(NewInput))
 					return false;
 				
 				// Set the nodeId
@@ -1908,7 +1908,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::Int:
 		{
 			UHoudiniParameterInt* HoudiniParameterInt = Cast<UHoudiniParameterInt>(HoudiniParameter);
-			if (HoudiniParameterInt && !HoudiniParameterInt->IsPendingKill())
+			if (IsValid(HoudiniParameterInt))
 			{
 				// Set the valueIndex
 				HoudiniParameterInt->SetValueIndex(ParmInfo.intValuesIndex);
@@ -2028,7 +2028,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::IntChoice:
 		{
 			UHoudiniParameterChoice* HoudiniParameterIntChoice = Cast<UHoudiniParameterChoice>(HoudiniParameter);
-			if (HoudiniParameterIntChoice && !HoudiniParameterIntChoice->IsPendingKill())
+			if (IsValid(HoudiniParameterIntChoice))
 			{
 				// Set the valueIndex
 				HoudiniParameterIntChoice->SetValueIndex(ParmInfo.intValuesIndex);
@@ -2156,7 +2156,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::StringChoice:
 		{
 			UHoudiniParameterChoice* HoudiniParameterStringChoice = Cast<UHoudiniParameterChoice>(HoudiniParameter);
-			if (HoudiniParameterStringChoice && !HoudiniParameterStringChoice->IsPendingKill())
+			if (IsValid(HoudiniParameterStringChoice))
 			{
 				// Set the valueIndex
 				HoudiniParameterStringChoice->SetValueIndex(ParmInfo.stringValuesIndex);
@@ -2267,7 +2267,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::Label:
 		{
 			UHoudiniParameterLabel* HoudiniParameterLabel = Cast<UHoudiniParameterLabel>(HoudiniParameter);
-			if (HoudiniParameterLabel && !HoudiniParameterLabel->IsPendingKill())
+			if (IsValid(HoudiniParameterLabel))
 			{
 				if (ParmInfo.type != HAPI_PARMTYPE_LABEL)
 					return false;
@@ -2317,7 +2317,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::MultiParm:
 		{
 			UHoudiniParameterMultiParm* HoudiniParameterMulti = Cast<UHoudiniParameterMultiParm>(HoudiniParameter);
-			if (HoudiniParameterMulti && !HoudiniParameterMulti->IsPendingKill())
+			if (IsValid(HoudiniParameterMulti))
 			{
 				if (ParmInfo.type != HAPI_PARMTYPE_MULTIPARMLIST)
 					return false;
@@ -2359,7 +2359,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::Separator:
 		{
 			UHoudiniParameterSeparator* HoudiniParameterSeparator = Cast<UHoudiniParameterSeparator>(HoudiniParameter);
-			if (HoudiniParameterSeparator && !HoudiniParameterSeparator->IsPendingKill())
+			if (IsValid(HoudiniParameterSeparator))
 			{
 				// We can only handle separator type.
 				if (ParmInfo.type != HAPI_PARMTYPE_SEPARATOR)
@@ -2375,7 +2375,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::StringAssetRef:
 		{
 			UHoudiniParameterString* HoudiniParameterString = Cast<UHoudiniParameterString>(HoudiniParameter);
-			if (HoudiniParameterString && !HoudiniParameterString->IsPendingKill())
+			if (IsValid(HoudiniParameterString))
 			{
 				// We can only handle string type.
 				if (ParmInfo.type != HAPI_PARMTYPE_STRING && ParmInfo.type != HAPI_PARMTYPE_NODE)
@@ -2444,7 +2444,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 		case EHoudiniParameterType::Toggle:
 		{
 			UHoudiniParameterToggle* HoudiniParameterToggle = Cast<UHoudiniParameterToggle>(HoudiniParameter);
-			if (HoudiniParameterToggle && !HoudiniParameterToggle->IsPendingKill())
+			if (IsValid(HoudiniParameterToggle))
 			{
 				if (ParmInfo.type != HAPI_PARMTYPE_TOGGLE)
 					return false;
@@ -2582,7 +2582,7 @@ FHoudiniParameterTranslator::UploadChangedParameters( UHoudiniAssetComponent * H
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadChangedParameters);
 
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return false;
 
 	TMap<FString, UHoudiniParameter*> RampsToRevert;
@@ -2596,7 +2596,7 @@ FHoudiniParameterTranslator::UploadChangedParameters( UHoudiniAssetComponent * H
 	for (int32 ParmIdx = 0; ParmIdx < HAC->GetNumParameters(); ParmIdx++)
 	{
 		UHoudiniParameter*& CurrentParm = HAC->Parameters[ParmIdx];
-		if (!CurrentParm || CurrentParm->IsPendingKill() || !CurrentParm->HasChanged())
+		if (!IsValid(CurrentParm) || !CurrentParm->HasChanged())
 			continue;
 
 		bool bSuccess = false;
@@ -2655,7 +2655,7 @@ FHoudiniParameterTranslator::UploadChangedParameters( UHoudiniAssetComponent * H
 bool
 FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 {
-	if (!InParam || InParam->IsPendingKill())
+	if (!IsValid(InParam))
 		return false;
 
 	switch (InParam->GetParameterType())
@@ -2663,7 +2663,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 		case EHoudiniParameterType::Float:
 		{
 			UHoudiniParameterFloat* FloatParam = Cast<UHoudiniParameterFloat>(InParam);
-			if (!FloatParam || FloatParam->IsPendingKill())
+			if (!IsValid(FloatParam))
 			{
 				return false;
 			}
@@ -2683,7 +2683,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 		case EHoudiniParameterType::Int:
 		{
 			UHoudiniParameterInt* IntParam = Cast<UHoudiniParameterInt>(InParam);
-			if (!IntParam || IntParam->IsPendingKill())
+			if (!IsValid(IntParam))
 			{
 				return false;
 			}
@@ -2703,7 +2703,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 		case EHoudiniParameterType::String:
 		{
 			UHoudiniParameterString* StringParam = Cast<UHoudiniParameterString>(InParam);
-			if (!StringParam || StringParam->IsPendingKill())
+			if (!IsValid(StringParam))
 			{
 				return false;
 			}
@@ -2727,7 +2727,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 		case EHoudiniParameterType::IntChoice:
 		{
 			UHoudiniParameterChoice* ChoiceParam = Cast<UHoudiniParameterChoice>(InParam);
-			if (!ChoiceParam || ChoiceParam->IsPendingKill())
+			if (!IsValid(ChoiceParam))
 				return false;
 
 			// Set the parameter's int value.
@@ -2742,7 +2742,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 		case EHoudiniParameterType::StringChoice:
 		{
 			UHoudiniParameterChoice* ChoiceParam = Cast<UHoudiniParameterChoice>(InParam);
-			if (!ChoiceParam || ChoiceParam->IsPendingKill())
+			if (!IsValid(ChoiceParam))
 			{
 				return false;
 			}
@@ -2769,7 +2769,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 		case EHoudiniParameterType::Color:
 		{	
 			UHoudiniParameterColor* ColorParam = Cast<UHoudiniParameterColor>(InParam);
-			if (!ColorParam || ColorParam->IsPendingKill())
+			if (!IsValid(ColorParam))
 				return false;
 
 			bool bHasAlpha = ColorParam->GetTupleSize() == 4 ? true : false;
@@ -2882,7 +2882,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 bool
 FHoudiniParameterTranslator::RevertParameterToDefault(UHoudiniParameter* InParam)
 {
-	if (!InParam || InParam->IsPendingKill())
+	if (!IsValid(InParam))
 		return false;
 
 	if (!InParam->IsPendingRevertToDefault())
@@ -2970,7 +2970,7 @@ FHoudiniParameterTranslator::SyncMultiParmValuesAtLoad(
 	UHoudiniParameter* InParam, TArray<UHoudiniParameter*>& OldParams, const int32& InAssetId, const HAPI_AssetInfo& AssetInfo)
 {
 	UHoudiniParameterMultiParm* MultiParam = Cast<UHoudiniParameterMultiParm>(InParam);
-	if (!MultiParam || MultiParam->IsPendingKill())
+	if (!IsValid(MultiParam))
 		return false;
 
 	UHoudiniParameterRampFloat* FloatRampParameter = nullptr;
@@ -3130,7 +3130,7 @@ FHoudiniParameterTranslator::SyncMultiParmValuesAtLoad(
 bool FHoudiniParameterTranslator::UploadRampParameter(UHoudiniParameter* InParam) 
 {
 	UHoudiniParameterMultiParm* MultiParam = Cast<UHoudiniParameterMultiParm>(InParam);
-	if (!MultiParam || MultiParam->IsPendingKill())
+	if (!IsValid(MultiParam))
 		return false;
 
 	UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InParam->GetOuter());
