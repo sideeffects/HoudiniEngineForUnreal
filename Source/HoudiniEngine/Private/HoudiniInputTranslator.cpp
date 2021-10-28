@@ -2068,7 +2068,7 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(const FSt
 		// Attach another '\'' to the end
 		AssetReference += FString("'");
 
-		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InObject->InputNodeId, AssetReference, GCName, InObject->Transform);
+		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InObject->InputNodeId, AssetReference, GCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled());
 	}
 	else 
 	{
@@ -2132,7 +2132,7 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 		// Attach another '\'' to the end
 		AssetReference += FString("'");
 
-		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InObject->InputNodeId, AssetReference, GCName, InObject->Transform);
+		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InObject->InputNodeId, AssetReference, GCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled());
 	}
 	else 
 	{
@@ -2199,7 +2199,7 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionActor(cons
 		// Attach another '\'' to the end
 		AssetReference += FString("'");
 
-		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InObject->InputNodeId, AssetReference, GCName, InObject->Transform);
+		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InObject->InputNodeId, AssetReference, GCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled());
 	}
 	else 
 	{
