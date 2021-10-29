@@ -456,18 +456,18 @@ UTOPNode::UpdateOutputVisibilityInLevel()
 			// We need to manually handle child landscape's visiblity
 			for (UHoudiniOutput* ResultOutput : WRO.GetResultOutputs())
 			{
-				if (!ResultOutput || ResultOutput->IsPendingKill())
+				if (!IsValid(ResultOutput))
 					continue;
 
 				for (auto& Pair : ResultOutput->GetOutputObjects())
 				{
 					FHoudiniOutputObject& OutputObject = Pair.Value;
 					ALandscapeProxy* LandscapeProxy = Cast<ALandscapeProxy>(OutputObject.OutputObject);
-					if (!LandscapeProxy || LandscapeProxy->IsPendingKill())
+					if (!IsValid(LandscapeProxy))
 						continue;
 
 					ALandscape* Landscape = LandscapeProxy->GetLandscapeActor();
-					if (!Landscape || Landscape->IsPendingKill())
+					if (!IsValid(Landscape))
 						continue;
 
 					Landscape->SetHidden(!bShow);
@@ -1123,7 +1123,7 @@ UHoudiniPDGAssetLink::ClearTOPNodeWorkItemResults(UTOPNode* TOPNode)
 		}
 	}
 
-	if (TOPNode->WorkResultParent && !TOPNode->WorkResultParent->IsPendingKill())
+	if (IsValid(TOPNode->WorkResultParent))
 	{
 
 		// TODO: Destroy the Parent Object
@@ -1716,7 +1716,7 @@ FTOPWorkResultObject::DestroyResultOutputs()
 		{
 			FHoudiniOutputObjectIdentifier& Identifier = Pair.Key;
 			FHoudiniOutputObject& OutputObject = Pair.Value;
-			if (OutputObject.OutputComponent && !OutputObject.OutputComponent->IsPendingKill())
+			if (IsValid(OutputObject.OutputComponent))
 			{
 				// Instancer components require some special handling around foliage
 				// TODO: move/refactor so that we can use the InstanceTranslator's helper functions (RemoveAndDestroyComponent and CleanupFoliageInstances)
@@ -1732,20 +1732,20 @@ FTOPWorkResultObject::DestroyResultOutputs()
 							ParentComponent = Cast<USceneComponent>(OutputActor->GetRootComponent());
 						else
 							ParentComponent = Cast<USceneComponent>(HISMC->GetOuter()); 
-						if (ParentComponent && !ParentComponent->IsPendingKill())
+						if (IsValid(ParentComponent))
 						{
 							UStaticMesh* FoliageSM = HISMC->GetStaticMesh();
-							if (!FoliageSM || FoliageSM->IsPendingKill())
+							if (!IsValid(FoliageSM))
 								return;
 
 							// If we are a foliage HISMC, then our owner is an Instanced Foliage Actor,
 							// if it is not, then we are just a "regular" HISMC
 							AInstancedFoliageActor* InstancedFoliageActor = Cast<AInstancedFoliageActor>(HISMC->GetOwner());
-							if (!InstancedFoliageActor || InstancedFoliageActor->IsPendingKill())
+							if (!IsValid(InstancedFoliageActor))
 								return;
 
 							UFoliageType *FoliageType = InstancedFoliageActor->GetLocalFoliageTypeForSource(FoliageSM);
-							if (!FoliageType || FoliageType->IsPendingKill())
+							if (!IsValid(FoliageType))
 								return;
 #if WITH_EDITOR
 							// Clean up the instances previously generated for that component
@@ -1771,7 +1771,7 @@ FTOPWorkResultObject::DestroyResultOutputs()
 				if (bDestroyComponent)
 				{
 					USceneComponent* SceneComponent = Cast<USceneComponent>(OutputObject.OutputComponent);
-					if (SceneComponent && !SceneComponent->IsPendingKill())
+					if (IsValid(SceneComponent))
 					{
 						// Remove from its actor first
 						if (SceneComponent->GetOwner())
@@ -1788,7 +1788,7 @@ FTOPWorkResultObject::DestroyResultOutputs()
 					}
 				}
 			}
-			if (OutputObject.OutputObject && !OutputObject.OutputObject->IsPendingKill())
+			if (IsValid(OutputObject.OutputObject))
 			{
 				// For actors we detach them first and then destroy
 				AActor* Actor = Cast<AActor>(OutputObject.OutputObject);
@@ -1869,12 +1869,12 @@ bool
 FOutputActorOwner::CreateOutputActor(UWorld* InWorld, UHoudiniPDGAssetLink* InAssetLink, AActor *InParentActor, const FName& InName)
 {
 	// InAssetLink and InWorld must not be null
-	if (!InAssetLink || InAssetLink->IsPendingKill())
+	if (!IsValid(InAssetLink))
 	{
 		HOUDINI_LOG_ERROR(TEXT("[FTOPWorkResultObject::CreateWorkResultActor]: InAssetLink is null!"));
 		return false;
 	}
-	if (!InWorld || InWorld->IsPendingKill())
+	if (!IsValid(InWorld))
 	{
 		HOUDINI_LOG_ERROR(TEXT("[FTOPWorkResultObject::CreateWorkResultActor]: InWorld is null!"));
 		return false;
@@ -1934,7 +1934,7 @@ FOutputActorOwner::CreateOutputActor(UWorld* InWorld, UHoudiniPDGAssetLink* InAs
 	
 	// Set the actor transform: create a root component if it does not have one
 	USceneComponent* RootComponent = Actor->GetRootComponent();
-	if (!RootComponent || RootComponent->IsPendingKill())
+	if (!IsValid(RootComponent))
 	{
 		RootComponent = NewObject<USceneComponent>(Actor, USceneComponent::StaticClass(), NAME_None, RF_Transactional);
 

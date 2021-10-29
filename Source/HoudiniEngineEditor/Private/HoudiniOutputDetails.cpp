@@ -149,7 +149,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget(
 	IDetailCategoryBuilder& HouOutputCategory,
 	UHoudiniOutput* InOutput)
 {
-	if (!InOutput || InOutput->IsPendingKill())
+	if (!IsValid(InOutput))
 		return;
 
 	// Go through this output's objects
@@ -194,22 +194,22 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 	UHoudiniLandscapePtr* LandscapePointer,
 	const FHoudiniOutputObjectIdentifier & OutputIdentifier)
 {
-	if (!LandscapePointer || LandscapePointer->IsPendingKill() || !LandscapePointer->LandscapeSoftPtr.IsValid())
+	if (!IsValid(LandscapePointer) || !LandscapePointer->LandscapeSoftPtr.IsValid())
 		return;
 
-	if (!InOutput || InOutput->IsPendingKill())
+	if (!IsValid(InOutput))
 		return;
 
 	UHoudiniAssetComponent * HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return;
 
 	AActor * OwnerActor = HAC->GetOwner();
-	if (!OwnerActor || OwnerActor->IsPendingKill())
+	if (!IsValid(OwnerActor))
 		return;
 
 	ALandscapeProxy * Landscape = LandscapePointer->LandscapeSoftPtr.Get();
-	if (!Landscape || Landscape->IsPendingKill())
+	if (!IsValid(Landscape))
 		return;
 
 	// TODO: Get bake base name
@@ -606,22 +606,22 @@ void FHoudiniOutputDetails::CreateLandscapeEditLayerOutputWidget_Helper(IDetailC
 	UHoudiniOutput* InOutput, const FHoudiniGeoPartObject& HGPO, UHoudiniLandscapeEditLayer* LandscapeEditLayer,
 	const FHoudiniOutputObjectIdentifier& OutputIdentifier)
 {
-	if (!LandscapeEditLayer || LandscapeEditLayer->IsPendingKill() || !LandscapeEditLayer->LandscapeSoftPtr.IsValid())
+	if (!IsValid(LandscapeEditLayer) || !LandscapeEditLayer->LandscapeSoftPtr.IsValid())
 		return;
 
-	if (!InOutput || InOutput->IsPendingKill())
+	if (!IsValid(InOutput))
 		return;
 
 	UHoudiniAssetComponent * HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return;
 
 	AActor * OwnerActor = HAC->GetOwner();
-	if (!OwnerActor || OwnerActor->IsPendingKill())
+	if (!IsValid(OwnerActor))
 		return;
 
 	ALandscapeProxy * Landscape = LandscapeEditLayer->LandscapeSoftPtr.Get();
-	if (!Landscape || Landscape->IsPendingKill())
+	if (!IsValid(Landscape))
 		return;
 
 	const FString Label = Landscape->GetName();
@@ -944,11 +944,11 @@ FHoudiniOutputDetails::CreateMeshOutputWidget(
 	IDetailCategoryBuilder& HouOutputCategory,
 	UHoudiniOutput* InOutput)
 {
-	if (!InOutput || InOutput->IsPendingKill())
+	if (!IsValid(InOutput))
 		return;
 
 	UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return;
 
 	// Go through this output's object
@@ -959,8 +959,8 @@ FHoudiniOutputDetails::CreateMeshOutputWidget(
 		UStaticMesh* StaticMesh = Cast<UStaticMesh>(IterObject.Value.OutputObject);
 		UHoudiniStaticMesh* ProxyMesh = Cast<UHoudiniStaticMesh>(IterObject.Value.ProxyObject);
 
-		if ((!StaticMesh || StaticMesh->IsPendingKill())
-			&& (!ProxyMesh || ProxyMesh->IsPendingKill()))
+		if ((!IsValid(StaticMesh))
+			&& (!IsValid(ProxyMesh)))
 			continue;
 
 		// Do not display geometry collection static meshes.
@@ -980,7 +980,7 @@ FHoudiniOutputDetails::CreateMeshOutputWidget(
 			break;
 		}
 
-		if (StaticMesh && !StaticMesh->IsPendingKill())
+		if (IsValid(StaticMesh))
 		{
 			bool bIsProxyMeshCurrent = IterObject.Value.bProxyIsCurrent;
 
@@ -1000,7 +1000,7 @@ FHoudiniOutputDetails::CreateMeshOutputWidget(
 void 
 FHoudiniOutputDetails::CreateCurveOutputWidget(IDetailCategoryBuilder& HouOutputCategory, UHoudiniOutput* InOutput) 
 {
-	if (!InOutput || InOutput->IsPendingKill())
+	if (!IsValid(InOutput))
 		return;
 
 	int32 OutputObjIdx = 0;
@@ -1009,7 +1009,7 @@ FHoudiniOutputDetails::CreateCurveOutputWidget(IDetailCategoryBuilder& HouOutput
 	{
 		FHoudiniOutputObject& CurrentOutputObject = IterObject.Value;
 		USceneComponent* SplineComponent = Cast<USceneComponent>(IterObject.Value.OutputComponent);
-		if (!SplineComponent || SplineComponent->IsPendingKill())
+		if (!IsValid(SplineComponent))
 			continue;
 
 		FHoudiniOutputObjectIdentifier& OutputIdentifier = IterObject.Key;
@@ -1030,7 +1030,7 @@ FHoudiniOutputDetails::CreateCurveOutputWidget(IDetailCategoryBuilder& HouOutput
 void FHoudiniOutputDetails::CreateGeometryCollectionOutputWidget(IDetailCategoryBuilder& HouOutputCategory,
 	UHoudiniOutput* InOutput)
 {
-	if (!InOutput || InOutput->IsPendingKill())
+	if (!IsValid(InOutput))
 		return;
 
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
@@ -1042,7 +1042,7 @@ void FHoudiniOutputDetails::CreateGeometryCollectionOutputWidget(IDetailCategory
 
 		AGeometryCollectionActor * GeometryCollectionActor = Cast<AGeometryCollectionActor>(IterObject.Value.OutputObject);
 
-		if (!GeometryCollectionActor || GeometryCollectionActor->IsPendingKill())
+		if (!IsValid(GeometryCollectionActor))
 			continue;
 
 		FHoudiniOutputObjectIdentifier& OutputIdentifier = IterObject.Key;
@@ -1069,20 +1069,20 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 	FHoudiniOutputObjectIdentifier& OutputIdentifier,
 	FHoudiniGeoPartObject& HoudiniGeoPartObject) 
 {
-	if (!InOutput || InOutput->IsPendingKill())
+	if (!IsValid(InOutput))
 		return;
 
 	// We support Unreal Spline out only for now
 	USplineComponent* SplineOutput = Cast<USplineComponent>(SplineComponent);
-	if (!SplineOutput || SplineOutput->IsPendingKill())
+	if (!IsValid(SplineOutput))
 		return;
 
 	UHoudiniAssetComponent * HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return;
 
 	AActor * OwnerActor = HAC->GetOwner();
-	if (!OwnerActor || OwnerActor->IsPendingKill())
+	if (!IsValid(OwnerActor))
 		return;
 
 	FHoudiniCurveOutputProperties* OutputProperty = &(OutputObject.CurveOutputProperty);
@@ -1221,7 +1221,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 		{
 			// Set the curve point type locally
 			USplineComponent* Spline = Cast<USplineComponent>(SplineComponent);
-			if (!Spline || Spline->IsPendingKill())
+			if (!IsValid(Spline))
 				return;
 
 			FString *NewChoiceStr = NewChoice.Get();
@@ -1286,7 +1286,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 			SAssignNew(ClosedCheckBox, SCheckBox)
 			.OnCheckStateChanged_Lambda([UnrealSpline, InOutput](ECheckBoxState NewState)
 			{
-				if (!UnrealSpline || UnrealSpline->IsPendingKill())
+				if (!IsValid(UnrealSpline))
 					return;
 
 				UnrealSpline->SetClosedLoop(NewState == ECheckBoxState::Checked);
@@ -1295,7 +1295,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 			})
 			.IsChecked_Lambda([UnrealSpline]()
 			{
-				if (!UnrealSpline || UnrealSpline->IsPendingKill())
+				if (!IsValid(UnrealSpline))
 					return ECheckBoxState::Unchecked;
 
 				return UnrealSpline->IsClosedLoop() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -1350,7 +1350,7 @@ void FHoudiniOutputDetails::CreateGeometryCollectionWidgets(IDetailCategoryBuild
 	FGeometryCollectionEdit GeometryCollectionEdit = GeometryCollectionActor->GetGeometryCollectionComponent()->EditRestCollection(GeometryCollection::EEditUpdate::RestPhysicsDynamic);
 	UGeometryCollection* GeometryCollection = GeometryCollectionEdit.GetRestCollection();
 	
-	if (!GeometryCollection || GeometryCollection->IsPendingKill())
+	if (!IsValid(GeometryCollection))
 		return;
 
 	UHoudiniAssetComponent* OwningHAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
@@ -1435,7 +1435,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 	FHoudiniGeoPartObject& HoudiniGeoPartObject,
 	const bool& bIsProxyMeshCurrent)
 {
-	if (!StaticMesh || StaticMesh->IsPendingKill())
+	if (!IsValid(StaticMesh))
 		return;
 
 	UHoudiniAssetComponent* OwningHAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
@@ -1533,7 +1533,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 	}
 
 	int32 NumSimpleColliders = 0;
-	if (StaticMesh->GetBodySetup() && !StaticMesh->GetBodySetup()->IsPendingKill())
+	if (IsValid(StaticMesh->GetBodySetup()))
 		NumSimpleColliders = StaticMesh->GetBodySetup()->AggGeom.GetElementCount();
 
 	if(NumSimpleColliders > 0)
@@ -1681,8 +1681,8 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 		TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
 
 		FString MaterialName, MaterialPathName;
-		if ( MaterialInterface && !MaterialInterface->IsPendingKill()
-			&& MaterialInterface->GetOuter() && !MaterialInterface->GetOuter()->IsPendingKill() )
+		if ( IsValid(MaterialInterface)
+			&& IsValid(MaterialInterface->GetOuter()) )
 		{
 			MaterialName = MaterialInterface->GetName();
 			MaterialPathName = MaterialInterface->GetPathName();
@@ -1840,7 +1840,7 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 	const FString BakeFolder,
 	FHoudiniGeoPartObject& HoudiniGeoPartObject)
 {
-	if (!ProxyMesh || ProxyMesh->IsPendingKill())
+	if (!IsValid(ProxyMesh))
 		return;
 
 	FHoudiniOutputObject* FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
@@ -2006,8 +2006,8 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 		TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
 
 		FString MaterialName, MaterialPathName;
-		if (MaterialInterface && !MaterialInterface->IsPendingKill()
-			&& MaterialInterface->GetOuter() && !MaterialInterface->GetOuter()->IsPendingKill())
+		if (IsValid(MaterialInterface)
+			&& IsValid(MaterialInterface->GetOuter()))
 		{
 			MaterialName = MaterialInterface->GetName();
 			MaterialPathName = MaterialInterface->GetPathName();
@@ -2297,21 +2297,18 @@ FHoudiniOutputDetails::OnThumbnailDoubleClick(
 FReply
 FHoudiniOutputDetails::OnBakeStaticMesh(UStaticMesh * StaticMesh, UHoudiniAssetComponent * HoudiniAssetComponent, FHoudiniGeoPartObject& GeoPartObject)
 {
-	if (HoudiniAssetComponent && StaticMesh && !HoudiniAssetComponent->IsPendingKill() && !StaticMesh->IsPendingKill())
+	if (IsValid(HoudiniAssetComponent) && IsValid(StaticMesh))
 	{
 		FHoudiniPackageParams PackageParms;
 
-
 		FHoudiniEngineBakeUtils::BakeStaticMesh(HoudiniAssetComponent, GeoPartObject, StaticMesh, PackageParms);
 		// TODO: Bake the SM
-
 		
 		// We need to locate corresponding geo part object in component.
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject = HoudiniAssetComponent->LocateGeoPartObject(StaticMesh);
 
 		// (void)FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
-		//	StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, EBakeMode::ReplaceExisitingAssets);
-		
+		//	StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, EBakeMode::ReplaceExisitingAssets);		
 	}
 
 	return FReply::Handled();
@@ -2332,7 +2329,7 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 	int32 MaterialIdx)
 {
 	FReply RetValue = FReply::Handled();
-	if (!StaticMesh || StaticMesh->IsPendingKill())
+	if (!IsValid(StaticMesh))
 		return RetValue;
 
 	TArray<FStaticMaterial>& StaticMaterials = StaticMesh->GetStaticMaterials();
@@ -2408,7 +2405,7 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 	int32 InMaterialIdx)
 {
 	FReply RetValue = FReply::Handled();
-	if (!InLandscape || InLandscape->IsPendingKill())
+	if (!IsValid(InLandscape))
 		return RetValue;
 	
 	// Retrieve the material interface which is being replaced.
@@ -2608,10 +2605,10 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 	int32 MaterialIdx)
 {
 	UMaterialInterface * MaterialInterface = Cast<UMaterialInterface>(InObject);
-	if (!MaterialInterface || MaterialInterface->IsPendingKill())
+	if (!IsValid(MaterialInterface))
 		return;
 
-	if (!StaticMesh || StaticMesh->IsPendingKill())
+	if (!IsValid(StaticMesh))
 		return;
 
 	TArray<FStaticMaterial>& StaticMaterials = StaticMesh->GetStaticMaterials();
@@ -2680,7 +2677,7 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 	{
 		// Only look at MeshComponents
 		UStaticMeshComponent * SMC = Cast<UStaticMeshComponent>(OutputObject.Value.OutputComponent);
-		if (SMC && !SMC->IsPendingKill())
+		if (IsValid(SMC))
 		{
 			if (SMC->GetStaticMesh() == StaticMesh)
 			{
@@ -2691,7 +2688,7 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 		else 
 		{
 			UStaticMesh* SM = Cast<UStaticMesh>(OutputObject.Value.OutputObject);
-			if (SM && !SM->IsPendingKill()) 
+			if (IsValid(SM)) 
 			{
 				SM->Modify();
 				SM->SetMaterial(MaterialIdx, MaterialInterface);
@@ -2721,10 +2718,10 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 	int32 MaterialIdx)
 {
 	UMaterialInterface * MaterialInterface = Cast< UMaterialInterface >(InDroppedObject);
-	if (!MaterialInterface || MaterialInterface->IsPendingKill())
+	if (!IsValid(MaterialInterface))
 		return;
 
-	if (!InLandscape || InLandscape->IsPendingKill())
+	if (!IsValid(InLandscape))
 		return;
 
 	bool bViewportNeedsUpdate = false;
@@ -2763,7 +2760,7 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 			else
 			{
 				// External Material?
-				if (OldMaterialInterface && !OldMaterialInterface->IsPendingKill())
+				if (IsValid(OldMaterialInterface))
 					MaterialString = OldMaterialInterface->GetName();
 			}
 		}
@@ -2830,13 +2827,13 @@ FHoudiniOutputDetails::OnMaterialInterfaceSelected(
 		UObject * Object = AssetData.GetAsset();
 
 		UStaticMesh* SM = Cast<UStaticMesh>(OutputObject);
-		if (SM && !SM->IsPendingKill())
+		if (IsValid(SM))
 		{
 			return OnMaterialInterfaceDropped(Object, SM, InOutput, MaterialIdx);
 		}
 
 		ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(OutputObject);
-		if (Landscape && !Landscape->IsPendingKill())
+		if (IsValid(Landscape))
 		{
 			return OnMaterialInterfaceDropped(Object, Landscape, InOutput, MaterialIdx);
 		}		
@@ -2849,10 +2846,10 @@ FHoudiniOutputDetails::OnUseContentBrowserSelectedMaterialInterface(
 	UHoudiniOutput * InOutput,
 	int32 MaterialIdx) 
 {
-	if (!OutputObject || OutputObject->IsPendingKill())
+	if (!IsValid(OutputObject))
 		return;
 
-	if (!InOutput || InOutput->IsPendingKill())
+	if (!IsValid(InOutput))
 		return;
 
 	if (GEditor)
@@ -2873,16 +2870,16 @@ FHoudiniOutputDetails::OnUseContentBrowserSelectedMaterialInterface(
 			break;
 		}
 
-		if (Object && !Object->IsPendingKill())
+		if (IsValid(Object))
 		{
 			UStaticMesh* SM = Cast<UStaticMesh>(OutputObject);
-			if (SM && !SM->IsPendingKill())
+			if (IsValid(SM))
 			{
 				return OnMaterialInterfaceDropped(Object, SM, InOutput, MaterialIdx);
 			}
 
 			ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(OutputObject);
-			if (Landscape && !Landscape->IsPendingKill())
+			if (IsValid(Landscape))
 			{
 				return OnMaterialInterfaceDropped(Object, Landscape, InOutput, MaterialIdx);
 			}
@@ -2895,7 +2892,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 	IDetailCategoryBuilder& HouOutputCategory,
 	UHoudiniOutput* InOutput)
 {
-	if (!InOutput || InOutput->IsPendingKill())
+	if (!IsValid(InOutput))
 		return;
 
 	// Do not display instancer UI for one-instance instancers
@@ -3032,7 +3029,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 			for( int32 VariationIdx = 0; VariationIdx < CurInstanceOutput.VariationObjects.Num(); VariationIdx++ )
 			{
 				UObject * InstancedObject = CurInstanceOutput.VariationObjects[VariationIdx].LoadSynchronous();
-				if ( !InstancedObject || InstancedObject->IsPendingKill() )
+				if ( !IsValid(InstancedObject) )
 				{
 					HOUDINI_LOG_WARNING( TEXT("Null Object found for instance variation %d"), VariationIdx );
 					continue;
@@ -3668,7 +3665,7 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 	const EHoudiniLandscapeOutputBakeType & LandscapeBakeType,
 	const TArray<UHoudiniOutput*>& InAllOutputs)
 {
-	if (!BakedOutputObject || BakedOutputObject->IsPendingKill())
+	if (!IsValid(BakedOutputObject))
 		return;
 
 	// Fill in the package params

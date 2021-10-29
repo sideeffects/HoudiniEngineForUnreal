@@ -74,7 +74,7 @@ FAssetTypeActions_HoudiniAsset::GetCategories()
 UThumbnailInfo *
 FAssetTypeActions_HoudiniAsset::GetThumbnailInfo(UObject * Asset) const
 {
-	if (!Asset || Asset->IsPendingKill())
+	if (!IsValid(Asset))
 		return nullptr;
 
 	UHoudiniAsset * HoudiniAsset = CastChecked< UHoudiniAsset >(Asset);

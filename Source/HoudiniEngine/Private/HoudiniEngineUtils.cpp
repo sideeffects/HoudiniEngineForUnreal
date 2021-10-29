@@ -388,7 +388,7 @@ FHoudiniEngineUtils::GetCookLog(TArray<UHoudiniAssetComponent*>& InHACs)
 	// Iterates on all the selected HAC and get their node errors
 	for (auto& HAC : InHACs)
 	{
-		if (!HAC || HAC->IsPendingKill())
+		if (!IsValid(HAC))
 			continue;
 
 		// Get the node errors, warnings and messages
@@ -478,20 +478,18 @@ FHoudiniEngineUtils::FindWorldInPackage(const FString& PackagePath, bool bCreate
 	UPackage* Package = FindPackage(nullptr, *PackagePath);
 	if (!Package)
 		Package = LoadPackage(nullptr, *PackagePath, LOAD_None);
-	if (Package)
+
+	if (IsValid(Package))
+	{
+		PackageWorld = UWorld::FindWorldInPackage(Package);
+	}
+	else if (Package != nullptr)
 	{
 		// If the package is not valid (pending kill) rename it
-		if (Package->IsPendingKill())
+		if (bCreateMissingPackage)
 		{
-			if (bCreateMissingPackage)
-			{
-				Package->Rename(
-					*MakeUniqueObjectName(Package->GetOuter(), Package->GetClass(), FName(PackagePath + TEXT("_pending_kill"))).ToString());
-			}
-		}
-		else
-		{
-			PackageWorld = UWorld::FindWorldInPackage(Package);
+			Package->Rename(
+				*MakeUniqueObjectName(Package->GetOuter(), Package->GetClass(), FName(PackagePath + TEXT("_pending_kill"))).ToString());
 		}
 	}
 
@@ -522,7 +520,8 @@ FHoudiniEngineUtils::FindWorldInPackage(const FString& PackagePath, bool bCreate
 	return PackageWorld;
 }
 
-bool FHoudiniEngineUtils::FindWorldAndLevelForSpawning(
+bool 
+FHoudiniEngineUtils::FindWorldAndLevelForSpawning(
 			UWorld* CurrentWorld,
 			const FString& PackagePath,
 			bool bCreateMissingPackage,
@@ -560,7 +559,8 @@ bool FHoudiniEngineUtils::FindWorldAndLevelForSpawning(
 	return true;
 }
 
-void FHoudiniEngineUtils::RescanWorldPath(UWorld* InWorld)
+void 
+FHoudiniEngineUtils::RescanWorldPath(UWorld* InWorld)
 {
 	FString WorldPath = FPaths::GetPath(InWorld->GetPathName());
 	IAssetRegistry& AssetRegistry = FAssetRegistryModule::GetRegistry();
@@ -569,34 +569,43 @@ void FHoudiniEngineUtils::RescanWorldPath(UWorld* InWorld)
 	AssetRegistry.ScanPathsSynchronous(Packages, true);
 }
 
-AActor* FHoudiniEngineUtils::FindOrRenameInvalidActorGeneric(UClass* InClass, UWorld* InWorld, const FString& InName, AActor*& OutFoundActor)
+AActor*
+FHoudiniEngineUtils::FindOrRenameInvalidActorGeneric(UClass* InClass, UWorld* InWorld, const FString& InName, AActor*& OutFoundActor)
 {
 	// AActor* NamedActor = FindObject<AActor>(Outer, *InName, false);
 	// Find ANY actor in the world matching the given name.
 	AActor* NamedActor = FindActorInWorld<AActor>(InWorld, FName(InName));
 	OutFoundActor = NamedActor;
-	bool bShouldRename = false;
-	if (NamedActor)
+
+	FString Suffix;
+	if (IsValid(NamedActor))
 	{
-		if (NamedActor->GetClass()->IsChildOf(InClass) && !NamedActor->IsPendingKill())
+		if (NamedActor->GetClass()->IsChildOf(InClass))
 		{
 			return NamedActor;
 		}
 		else
 		{
-			FString Suffix;
-			bool bShouldUpdateLabel = false;
-			if (NamedActor->IsPendingKill())
-				Suffix = "_pendingkill";
-			else
-				Suffix = "_0"; // A previous actor that had the same name.
-			const FName NewName = FHoudiniEngineUtils::RenameToUniqueActor(NamedActor, InName+Suffix);
+			// A previous actor that had the same name.
+			Suffix = "_0"; 
 		}
 	}
+	else
+	{
+		if (!NamedActor)
+			return nullptr;
+		else
+			Suffix = "_pendingkill";
+	}
+
+	// Rename the invalid/previous actor
+	const FName NewName = FHoudiniEngineUtils::RenameToUniqueActor(NamedActor, InName + Suffix);
+
 	return nullptr;
 }
 
-void FHoudiniEngineUtils::LogPackageInfo(const FString& InLongPackageName)
+void
+FHoudiniEngineUtils::LogPackageInfo(const FString& InLongPackageName)
 {
 	LogPackageInfo( LoadPackage(nullptr, *InLongPackageName, 0) );
 }
@@ -636,7 +645,8 @@ void FHoudiniEngineUtils::LogPackageInfo(const UPackage* InPackage)
 	HOUDINI_LOG_MESSAGE(DebugTextLine);
 }
 
-void FHoudiniEngineUtils::LogWorldInfo(const FString& InLongPackageName)
+void 
+FHoudiniEngineUtils::LogWorldInfo(const FString& InLongPackageName)
 {
 	UPackage* Package = LoadPackage(nullptr, *InLongPackageName, 0);
 	UWorld* World = nullptr;
@@ -649,7 +659,8 @@ void FHoudiniEngineUtils::LogWorldInfo(const FString& InLongPackageName)
 	LogWorldInfo(World);
 }
 
-void FHoudiniEngineUtils::LogWorldInfo(const UWorld* InWorld)
+void 
+FHoudiniEngineUtils::LogWorldInfo(const UWorld* InWorld)
 {
 	 
 	HOUDINI_LOG_MESSAGE(DebugTextLine);
@@ -1456,7 +1467,7 @@ FHoudiniEngineUtils::LoadHoudiniAsset(const UHoudiniAsset * HoudiniAsset, HAPI_A
 {
 	OutAssetLibraryId = -1;
 
-	if (!HoudiniAsset || HoudiniAsset->IsPendingKill())
+	if (!IsValid(HoudiniAsset))
 		return false;
 
 	if (!FHoudiniEngineUtils::IsInitialized())
@@ -2737,7 +2748,7 @@ FHoudiniEngineUtils::HapiGetParentNodeId(const HAPI_NodeId& NodeId)
 void
 FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded(UHoudiniAssetComponent* HAC)
 {
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return;
 
 	// TODO: Necessary??
@@ -2935,7 +2946,7 @@ FHoudiniEngineUtils::UpdateEditorProperties_Internal(TArray<UObject*> ObjectsToU
 	TArray<USceneComponent*> AllSceneComponents;
 	for (auto CurrentObject : ObjectsToUpdate)
 	{
-		if (!CurrentObject || CurrentObject->IsPendingKill())
+		if (!IsValid(CurrentObject))
 			continue;
 
 		// In some case, the object itself is the component
@@ -2945,7 +2956,7 @@ FHoudiniEngineUtils::UpdateEditorProperties_Internal(TArray<UObject*> ObjectsToU
 			SceneComp = Cast<USceneComponent>(CurrentObject->GetOuter());
 		}
 
-		if (SceneComp && !SceneComp->IsPendingKill())
+		if (IsValid(SceneComp))
 		{
 			AllSceneComponents.Add(SceneComp);
 			continue;
@@ -2955,11 +2966,11 @@ FHoudiniEngineUtils::UpdateEditorProperties_Internal(TArray<UObject*> ObjectsToU
 	TArray<AActor*> AllActors;
 	for (auto CurrentSceneComp : AllSceneComponents)
 	{
-		if (!CurrentSceneComp || CurrentSceneComp->IsPendingKill())
+		if (!IsValid(CurrentSceneComp))
 			continue;
 
 		AActor* Actor = CurrentSceneComp->GetOwner();
-		if (Actor && !Actor->IsPendingKill())
+		if (IsValid(Actor))
 			AllActors.Add(Actor);
 	}
 
@@ -3177,7 +3188,7 @@ FHoudiniEngineUtils::FreeRawStringMemory(TArray<const char*>& InRawStringArray)
 bool
 FHoudiniEngineUtils::AddHoudiniLogoToComponent(UHoudiniAssetComponent* HAC)
 {
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return false;
 
 	// No need to add another component if we already show the logo
@@ -3207,7 +3218,7 @@ FHoudiniEngineUtils::AddHoudiniLogoToComponent(UHoudiniAssetComponent* HAC)
 bool
 FHoudiniEngineUtils::RemoveHoudiniLogoFromComponent(UHoudiniAssetComponent* HAC)
 {
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return false;
 
 	// Get the Houdini Logo SM
@@ -3218,12 +3229,12 @@ FHoudiniEngineUtils::RemoveHoudiniLogoFromComponent(UHoudiniAssetComponent* HAC)
 	// Iterate on the HAC's component
 	for (USceneComponent* CurrentSceneComp : HAC->GetAttachChildren())
 	{
-		if (!CurrentSceneComp || CurrentSceneComp->IsPendingKill() || !CurrentSceneComp->IsA<UStaticMeshComponent>())
+		if (!IsValid(CurrentSceneComp) || !CurrentSceneComp->IsA<UStaticMeshComponent>())
 			continue;
 
 		// Get the static mesh component
 		UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(CurrentSceneComp);
-		if (!SMC || SMC->IsPendingKill())
+		if (!IsValid(SMC))
 			continue;
 
 		// Check if the SMC is the Houdini Logo
@@ -3243,7 +3254,7 @@ FHoudiniEngineUtils::RemoveHoudiniLogoFromComponent(UHoudiniAssetComponent* HAC)
 bool
 FHoudiniEngineUtils::HasHoudiniLogo(UHoudiniAssetComponent* HAC)
 {
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return false;
 
 	// Get the Houdini Logo SM
@@ -3254,12 +3265,12 @@ FHoudiniEngineUtils::HasHoudiniLogo(UHoudiniAssetComponent* HAC)
 	// Iterate on the HAC's component
 	for (USceneComponent* CurrentSceneComp : HAC->GetAttachChildren())
 	{
-		if (!CurrentSceneComp || CurrentSceneComp->IsPendingKill() || !CurrentSceneComp->IsA<UStaticMeshComponent>())
+		if (!IsValid(CurrentSceneComp) || !CurrentSceneComp->IsA<UStaticMeshComponent>())
 			continue;
 
 		// Get the static mesh component
 		UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(CurrentSceneComp);
-		if (!SMC || SMC->IsPendingKill())
+		if (!IsValid(SMC))
 			continue;
 
 		// Check if the SMC is the Houdini Logo
@@ -4691,7 +4702,7 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
 	TArray<FHoudiniMeshSocket >& AllSockets,
 	const bool& CleanImportSockets)
 {
-	if (!StaticMesh || StaticMesh->IsPendingKill())
+	if (!IsValid(StaticMesh))
 		return false;
 
 	// Remove the sockets from the previous cook!
@@ -4732,7 +4743,7 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
 	{
 		// Create a new Socket
 		UStaticMeshSocket* Socket = NewObject<UStaticMeshSocket>(StaticMesh);
-		if (!Socket || Socket->IsPendingKill())
+		if (!IsValid(Socket))
 			continue;
 
 		Socket->RelativeLocation = AllSockets[nSocket].Transform.GetLocation();
@@ -5237,7 +5248,7 @@ bool
 FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(UObject* InObject,
 	const TArray<FHoudiniGenericAttribute>& InAllPropertyAttributes)
 {
-	if (!InObject || InObject->IsPendingKill())
+	if (!IsValid(InObject))
 		return false;
 
 	// Iterate over the found Property attributes
@@ -5434,11 +5445,11 @@ void
 FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
 	UPackage * Package, UObject * Object, const FString& Key, const FString& Value)
 {
-	if (!Package || Package->IsPendingKill())
+	if (!IsValid(Package))
 		return;
 
 	UMetaData * MetaData = Package->GetMetaData();
-	if (MetaData && !MetaData->IsPendingKill())
+	if (IsValid(MetaData))
 		MetaData->SetValue(Object, *Key, *Value);
 }
 
@@ -5453,7 +5464,7 @@ FHoudiniEngineUtils::AddLevelPathAttribute(
 	if (InNodeId < 0 || InCount <= 0)
 		return false;
 
-	if (!InLevel || InLevel->IsPendingKill())
+	if (!IsValid(InLevel))
 		return false;
 
 	// Extract the level path from the level
@@ -5523,7 +5534,7 @@ FHoudiniEngineUtils::AddActorPathAttribute(
 	if (InNodeId < 0 || InCount <= 0)
 		return false;
 
-	if (!InActor || InActor->IsPendingKill())
+	if (!IsValid(InActor))
 		return false;
 
 	// Extract the actor path

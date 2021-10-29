@@ -322,7 +322,7 @@ bool
 FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 	UObject* InObject, const FHoudiniGenericAttribute& InPropertyAttribute, const int32& AtIndex)
 {
-	if (!InObject || InObject->IsPendingKill())
+	if (!IsValid(InObject))
 		return false;
 
 	// Get the Property name
@@ -355,7 +355,7 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 	if (PropertyName.Equals("CollisionEnabled", ESearchCase::IgnoreCase))
 	{
 		UPrimitiveComponent* PC = Cast<UPrimitiveComponent>(InObject);
-		if (PC && !PC->IsPendingKill())
+		if (IsValid(PC))
 		{
 			FString StringValue = InPropertyAttribute.GetStringValue(AtIndex);
 			if (StringValue.Equals("NoCollision", ESearchCase::IgnoreCase))
@@ -386,7 +386,7 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 	if (PropertyName.Equals("CastShadow", ESearchCase::IgnoreCase))
 	{
 		UPrimitiveComponent* Component = Cast< UPrimitiveComponent >(InObject);
-		if (Component && !Component->IsPendingKill())
+		if (IsValid(Component))
 		{
 			bool Value = InPropertyAttribute.GetBoolValue(AtIndex);
 			Component->SetCastShadow(Value);
@@ -399,7 +399,7 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 	if (PropertyName.Contains("Tags"))
 	{
 		UActorComponent* AC = Cast< UActorComponent >(InObject);
-		if (AC && !AC->IsPendingKill())
+		if (IsValid(AC))
 		{
 			FName NameAttr = FName(*InPropertyAttribute.GetStringValue(AtIndex));
 			if (!AC->ComponentTags.Contains(NameAttr))
@@ -443,7 +443,7 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 	// Try to match to source model properties when possible
 	if (UStaticMesh* SM = Cast<UStaticMesh>(InObject))
 	{
-		if (SM && !SM->IsPendingKill() && SM->GetNumSourceModels() > AtIndex)
+		if (IsValid(SM) && SM->GetNumSourceModels() > AtIndex)
 		{
 			bool bFoundProperty = false;
 			TryToFindProperty(&SM->GetSourceModel(AtIndex), SM->GetSourceModel(AtIndex).StaticStruct(), PropertyName, FoundProperty, bFoundProperty, OutContainer);
@@ -475,14 +475,14 @@ FHoudiniGenericAttribute::FindPropertyOnObject(
 	void*& OutContainer)
 {
 #if WITH_EDITOR
-	if (!InObject || InObject->IsPendingKill())
+	if (!IsValid(InObject))
 		return false;
 
 	if (InPropertyName.IsEmpty())
 		return false;
 
 	UClass* ObjectClass = InObject->GetClass();
-	if (!ObjectClass || ObjectClass->IsPendingKill())
+	if (!IsValid(ObjectClass))
 		return false;
 
 	// Set the result pointer to null
@@ -536,7 +536,7 @@ FHoudiniGenericAttribute::FindPropertyOnObject(
 		{
 			// Walk the structs' properties and try to find the one we're looking for
 			UScriptStruct* Struct = StructProperty->Struct;
-			if (!Struct || Struct->IsPendingKill())
+			if (!IsValid(Struct))
 				continue;
 
 			for (TFieldIterator<FProperty> It(Struct); It; ++It)
@@ -589,7 +589,7 @@ FHoudiniGenericAttribute::FindPropertyOnObject(
 	// Handle common properties nested in classes
 	// Static Meshes
 	UStaticMesh* SM = Cast<UStaticMesh>(InObject);
-	if (SM && !SM->IsPendingKill())
+	if (IsValid(SM))
 	{
 		if (SM->GetBodySetup() && FindPropertyOnObject(
 			SM->GetBodySetup(), InPropertyName, OutFoundProperty, OutFoundPropertyObject, OutContainer))
@@ -612,7 +612,7 @@ FHoudiniGenericAttribute::FindPropertyOnObject(
 
 	// For Actors, parse their components
 	AActor* Actor = Cast<AActor>(InObject);
-	if (Actor && !Actor->IsPendingKill())
+	if (IsValid(Actor))
 	{
 		TArray<USceneComponent*> AllComponents;
 		Actor->GetComponents<USceneComponent>(AllComponents, true);
@@ -620,7 +620,7 @@ FHoudiniGenericAttribute::FindPropertyOnObject(
 		int32 CompIdx = 0;
 		for (USceneComponent * SceneComponent : AllComponents)
 		{
-			if (!SceneComponent || SceneComponent->IsPendingKill())
+			if (!IsValid(SceneComponent))
 				continue;
 
 			if (FindPropertyOnObject(
@@ -653,7 +653,7 @@ FHoudiniGenericAttribute::TryToFindProperty(
 	if (!InContainer)
 		return false;
 	
-	if (!InStruct || InStruct->IsPendingKill())
+	if (!IsValid(InStruct))
 		return false;
 
 	if (InPropertyName.IsEmpty())
@@ -689,7 +689,7 @@ FHoudiniGenericAttribute::TryToFindProperty(
 		{
 			// Walk the structs' properties and try to find the one we're looking for
 			UScriptStruct* Struct = StructProperty->Struct;
-			if (!Struct || Struct->IsPendingKill())
+			if (!IsValid(Struct))
 				continue;
 
 			TryToFindProperty(
@@ -725,7 +725,7 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 	void* InContainer,
 	const int32& InAtIndex)
 {
-	if (!InObject || InObject->IsPendingKill() || !FoundProperty)
+	if (!IsValid(InObject) || !FoundProperty)
 		return false;
 
 	// Determine the container to use (either InContainer if specified, or InObject)
@@ -1064,7 +1064,7 @@ FHoudiniGenericAttribute::GetPropertyValueFromObject(
 	FHoudiniGenericAttribute& InGenericAttribute,
 	const int32& InAtIndex)
 {
-	if (!InObject || InObject->IsPendingKill() || !InFoundProperty)
+	if (!IsValid(InObject) || !InFoundProperty)
 		return false;
 
 	// Determine the container to use (either InContainer if specified, or InObject)
@@ -1326,7 +1326,7 @@ FHoudiniGenericAttribute::GetAttributeTupleSizeAndStorageFromProperty(
 	int32& OutAttributeTupleSize,
 	EAttribStorageType& OutAttributeStorageType)
 {
-	if (!InObject || InObject->IsPendingKill() || !InFoundProperty)
+	if (!IsValid(InObject) || !InFoundProperty)
 		return false;
 
 	// Determine the container to use (either InContainer if specified, or InObject)

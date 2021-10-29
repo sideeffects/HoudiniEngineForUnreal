@@ -383,7 +383,7 @@ FHoudiniEngine::RetrieveTaskInfo(const FGuid& InHapiGUID, FHoudiniEngineTaskInfo
 void
 FHoudiniEngine::AddHoudiniAssetComponent(UHoudiniAssetComponent* HAC)
 {
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return;
 
 	if (HoudiniEngineManager)

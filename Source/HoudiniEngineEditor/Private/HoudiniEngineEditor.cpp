@@ -1086,13 +1086,13 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender(const TSharedRef<FUICo
 	for (auto CurrentActor : InActors)
 	{
 		AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>(CurrentActor);
-		if (!HoudiniAssetActor || HoudiniAssetActor->IsPendingKill())
+		if (!IsValid(HoudiniAssetActor))
 			continue;
 
 		HoudiniAssetActors.Add(HoudiniAssetActor);
 
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
-		if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+		if (!IsValid(HoudiniAssetComponent))
 			continue;
 
 		HoudiniAssets.AddUnique(HoudiniAssetComponent->GetHoudiniAsset());

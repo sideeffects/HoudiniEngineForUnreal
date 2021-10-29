@@ -68,7 +68,7 @@ AHoudiniAssetActor::ShouldImport(FString * ActorPropString, bool IsMovingLevel)
 	// happens on copy / paste.
 	ActorPropString->Empty();
 
-	if (!CopiedActor || CopiedActor->IsPendingKill())
+	if (!IsValid(CopiedActor))
 	{
 		HOUDINI_LOG_WARNING(TEXT("Failed to import from copy: Duplicated actor not found"));
 		return false;
@@ -76,7 +76,7 @@ AHoudiniAssetActor::ShouldImport(FString * ActorPropString, bool IsMovingLevel)
 
 	// Get Houdini component of an actor which is being copied.
 	UHoudiniAssetComponent * CopiedActorHoudiniAssetComponent = CopiedActor->HoudiniAssetComponent;
-	if (!CopiedActorHoudiniAssetComponent || CopiedActorHoudiniAssetComponent->IsPendingKill())
+	if (!IsValid(CopiedActorHoudiniAssetComponent))
 		return false;
 
 	HoudiniAssetComponent->OnComponentClipboardCopy(CopiedActorHoudiniAssetComponent);
@@ -102,10 +102,10 @@ AHoudiniAssetActor::GetReferencedContentObjects(TArray< UObject * >& Objects) co
 {
 	Super::GetReferencedContentObjects(Objects);
 
-	if (HoudiniAssetComponent && !HoudiniAssetComponent->IsPendingKill())
+	if (IsValid(HoudiniAssetComponent))
 	{
 		UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
-		if (HoudiniAsset && !HoudiniAsset->IsPendingKill())
+		if (IsValid(HoudiniAsset))
 			Objects.AddUnique(HoudiniAsset);
 	}
 
@@ -120,7 +120,7 @@ AHoudiniAssetActor::PostEditChangeProperty(FPropertyChangedEvent & PropertyChang
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	// Some property changes need to be forwarded to the component (ie Transform)
-	if (!HoudiniAssetComponent || HoudiniAssetComponent->IsPendingKill())
+	if (!IsValid(HoudiniAssetComponent))
 		return;
 
 	FProperty* Property = PropertyChangedEvent.MemberProperty;
