@@ -53,7 +53,7 @@
 
 #include "Modules/ModuleManager.h"
 #include "Interfaces/IPluginManager.h"
-#include "HAL/PlatformFileManager.h"
+#include "HAL/PlatformFilemanager.h"
 #include "Misc/MessageDialog.h"
 #include "Misc/Paths.h"
 #include "AssetRegistryModule.h"

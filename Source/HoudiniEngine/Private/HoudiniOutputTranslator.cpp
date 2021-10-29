@@ -52,7 +52,7 @@
 #include "EditorSupportDelegates.h"
 #include "FileHelpers.h"
 #include "LandscapeInfo.h"
-#include "HAL/PlatformFileManager.h"
+#include "HAL/PlatformFilemanager.h"
 #include "HAL/FileManager.h"
 #include "Engine/WorldComposition.h"
 #include "Modules/ModuleManager.h"
