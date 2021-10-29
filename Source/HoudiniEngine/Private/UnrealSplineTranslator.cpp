@@ -38,7 +38,7 @@
 bool
 FUnrealSplineTranslator::CreateInputNodeForSplineComponent(USplineComponent* SplineComponent, const float& SplineResolution, HAPI_NodeId& CreatedInputNodeId, const FString& NodeName) 
 {
-	if (!SplineComponent || SplineComponent->IsPendingKill())
+	if (!IsValid(SplineComponent))
 		return false;
 	
 	int32 NumberOfControlPoints = SplineComponent->GetNumberOfSplinePoints();
@@ -94,7 +94,7 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(USplineComponent* Spl
 
 	// Add the parent actor's tag if it has any
 	AActor* ParentActor = SplineComponent->GetOwner();
-	if (ParentActor && !ParentActor->IsPendingKill()) 
+	if (IsValid(ParentActor)) 
 	{
 		if (FHoudiniEngineUtils::CreateGroupsFromTags(CreatedInputNodeId, 0, ParentActor->Tags))
 			NeedToCommit = true;

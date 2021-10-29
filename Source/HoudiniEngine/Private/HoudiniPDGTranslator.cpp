@@ -431,18 +431,20 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	}
 	
 	USceneComponent* ParentComponent = Cast<USceneComponent>(InOuterComponent);
-
-	if (ParentComponent)
+	if (IsValid(ParentComponent))
 	{
 		AActor* ParentActor = ParentComponent->GetOwner();
 		for (UHoudiniOutput* LandscapeOutput : LandscapeOutputs)
 		{
+			if(!IsValid(LandscapeOutput))
+				continue;
+
 			for (auto& Pair  : LandscapeOutput->GetOutputObjects())
 			{
-				FHoudiniOutputObject &OutputObject = Pair.Value;
+				FHoudiniOutputObject& OutputObject = Pair.Value;
 
 				// If the OutputObject has an OutputComponent, try to attach it to ParentComponent
-				if (OutputObject.OutputComponent && !OutputObject.OutputComponent->IsPendingKill())
+				if (IsValid(OutputObject.OutputComponent))
 				{
 					USceneComponent* Component = Cast<USceneComponent>(OutputObject.OutputComponent);
 					if (IsValid(Component) && !Component->IsAttachedTo(ParentComponent))
@@ -476,7 +478,6 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 								LandscapeProxy->RecreateComponentsState();
 							}
 						}
-
 					}
 				}
 			}

@@ -42,7 +42,7 @@
 bool
 FHoudiniHandleTranslator::UpdateHandles(UHoudiniAssetComponent* HAC) 
 {
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return false;
 
 	TArray<UHoudiniHandleComponent*> NewHandles;
@@ -265,7 +265,7 @@ FHoudiniHandleTranslator::BuildAllHandles(
 void
 FHoudiniHandleTranslator::ClearHandles(UHoudiniAssetComponent* HAC) 
 {
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return;
 
 	for (auto& HandleComponent : HAC->HandleComponents) 
@@ -321,7 +321,7 @@ FHoudiniHandleTranslator::GetHapiXYZOrder(const TSharedPtr<FString> & StrPtr)
 void 
 FHoudiniHandleTranslator::UpdateTransformParameters(UHoudiniHandleComponent* HandleComponent) 
 {
-	if (!HandleComponent || HandleComponent->IsPendingKill())
+	if (!IsValid(HandleComponent))
 		return;
 
 	if (!HandleComponent->CheckHandleValid())

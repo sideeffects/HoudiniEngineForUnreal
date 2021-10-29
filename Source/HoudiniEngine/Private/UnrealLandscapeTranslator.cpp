@@ -1243,7 +1243,7 @@ bool FUnrealLandscapeTranslator::AddLandscapeMaterialAttributesToVolume(
 		return false;
 
 	// LANDSCAPE MATERIAL
-	if (InLandscapeMaterial && !InLandscapeMaterial->IsPendingKill())
+	if (IsValid(InLandscapeMaterial))
 	{
 		// Extract the path name from the material interface
 		FString InLandscapeMaterialString = InLandscapeMaterial->GetPathName();
@@ -1291,7 +1291,7 @@ bool FUnrealLandscapeTranslator::AddLandscapeMaterialAttributesToVolume(
 	}
 
 	// HOLE MATERIAL
-	if (InLandscapeHoleMaterial && !InLandscapeHoleMaterial->IsPendingKill())
+	if (IsValid(InLandscapeHoleMaterial))
 	{
 		// Extract the path name from the material interface
 		FString InLandscapeMaterialString = InLandscapeHoleMaterial->GetPathName();
@@ -1339,7 +1339,7 @@ bool FUnrealLandscapeTranslator::AddLandscapeMaterialAttributesToVolume(
 	}
 
 	// PHYSICAL MATERIAL
-	if (InPhysicalMaterial && !InPhysicalMaterial->IsPendingKill())
+	if (IsValid(InPhysicalMaterial))
 	{
 		// Extract the path name from the material interface
 		FString InPhysMatlString = InPhysicalMaterial->GetPathName();

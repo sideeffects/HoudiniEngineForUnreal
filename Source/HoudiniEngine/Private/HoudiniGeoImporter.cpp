@@ -235,7 +235,7 @@ UHoudiniGeoImporter::CreateStaticMeshes(TArray<UHoudiniOutput*>& InOutputs, UObj
 		for (auto CurOutputPair : NewOutputObjects)
 		{
 			UObject* CurObj = CurOutputPair.Value.OutputObject;
-			if (!CurObj || CurObj->IsPendingKill())
+			if (!IsValid(CurObj))
 				continue;
 
 			OutputObjects.Add(CurObj);
@@ -245,7 +245,7 @@ UHoudiniGeoImporter::CreateStaticMeshes(TArray<UHoudiniOutput*>& InOutputs, UObj
 		for (auto CurAssignmentMatPair : AssignementMaterials)
 		{
 			UObject* CurObj = CurAssignmentMatPair.Value;
-			if (!CurObj || CurObj->IsPendingKill())
+			if (!IsValid(CurObj))
 				continue;
 
 			OutputObjects.Add(CurObj);
@@ -352,7 +352,7 @@ UHoudiniGeoImporter::CreateCurves(TArray<UHoudiniOutput*>& InOutputs, UObject* I
 		for (auto CurOutputPair : CurOutput->GetOutputObjects())
 		{
 			UActorComponent* CurObj = Cast<UActorComponent>(CurOutputPair.Value.OutputComponent);
-			if (!CurObj || CurObj->IsPendingKill())
+			if (!IsValid(CurObj))
 				continue;
 
 			OutputComp.Add(CurObj);
@@ -449,7 +449,7 @@ UHoudiniGeoImporter::CreateLandscapes(TArray<UHoudiniOutput*>& InOutputs, UObjec
 		for (auto CurOutputPair : CurOutput->GetOutputObjects())
 		{
 			UObject* CurObj = CurOutputPair.Value.OutputObject;
-			if (!CurObj || CurObj->IsPendingKill())
+			if (!IsValid(CurObj))
 				continue;
 
 			OutputObjects.Add(CurObj);
@@ -561,7 +561,7 @@ UHoudiniGeoImporter::CreateInstancers(TArray<UHoudiniOutput*>& InOutputs, UObjec
 		for (auto CurOutputPair : CurOutput->GetOutputObjects())
 		{
 			UActorComponent* CurObj = Cast<UActorComponent>(CurOutputPair.Value.OutputComponent);
-			if (!CurObj || CurObj->IsPendingKill())
+			if (!IsValid(CurObj))
 				continue;
 
 			OutputComp.Add(CurObj);

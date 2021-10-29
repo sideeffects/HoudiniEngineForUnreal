@@ -62,7 +62,7 @@ FHoudiniEngineEditorUtils::GetContentBrowserSelection(TArray< UObject* >& Conten
 	{
 		// Get the current object
 		UObject * Object = SelectedAssets[n].GetAsset();
-		if (!Object || Object->IsPendingKill())
+		if (!IsValid(Object))
 			continue;
 
 		// Only static meshes are supported
@@ -84,7 +84,7 @@ FHoudiniEngineEditorUtils::GetWorldSelection(TArray<UObject*>& WorldSelection, b
 	if (GEditor)
 	{
 		USelection* SelectedActors = GEditor->GetSelectedActors();
-		if (SelectedActors && !SelectedActors->IsPendingKill())
+		if (IsValid(SelectedActors))
 		{
 			for (FSelectionIterator It(*SelectedActors); It; ++It)
 			{
@@ -111,7 +111,7 @@ FHoudiniEngineEditorUtils::GetWorldSelection(TArray<UObject*>& WorldSelection, b
 		for (int32 Idx = WorldSelection.Num() - 1; Idx >= 0; Idx--)
 		{
 			AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>(WorldSelection[Idx]);
-			if (!HoudiniAssetActor || HoudiniAssetActor->IsPendingKill())
+			if (!IsValid(HoudiniAssetActor))
 				WorldSelection.RemoveAt(Idx);
 		}
 	}
@@ -554,7 +554,7 @@ FHoudiniEngineEditorUtils::SaveAllHoudiniTemporaryCookData(UWorld *InSaveWorld)
 	for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
 	{
 		UHoudiniAssetComponent * HAC = *Itr;
-		if (!HAC || HAC->IsPendingKill())
+		if (!IsValid(HAC))
 			continue;
 
 		if (InSaveWorld && InSaveWorld != HAC->GetWorld())
@@ -564,7 +564,7 @@ FHoudiniEngineEditorUtils::SaveAllHoudiniTemporaryCookData(UWorld *InSaveWorld)
 		for (int32 Index = 0; Index < NumOutputs; ++Index)
 		{
 			UHoudiniOutput *Output = HAC->GetOutputAt(Index);
-			if (!Output || Output->IsPendingKill())
+			if (!IsValid(Output))
 				continue;
 
 			// TODO: Also save landscape layer info objects?
@@ -574,7 +574,7 @@ FHoudiniEngineEditorUtils::SaveAllHoudiniTemporaryCookData(UWorld *InSaveWorld)
 			for (auto &OutputObjectPair : Output->GetOutputObjects())
 			{
 				UObject *Obj = OutputObjectPair.Value.OutputObject;
-				if (!Obj || Obj->IsPendingKill())
+				if (!IsValid(Obj))
 					continue;
 
 				UStaticMesh *SM = Cast<UStaticMesh>(Obj);
@@ -582,7 +582,7 @@ FHoudiniEngineEditorUtils::SaveAllHoudiniTemporaryCookData(UWorld *InSaveWorld)
 					continue;
 
 				UPackage *Package = SM->GetOutermost();
-				if (!Package || Package->IsPendingKill())
+				if (!IsValid(Package))
 					continue;
 
 				if (Package->IsDirty() && Package->IsFullyLoaded() && Package != GetTransientPackage())
@@ -594,11 +594,11 @@ FHoudiniEngineEditorUtils::SaveAllHoudiniTemporaryCookData(UWorld *InSaveWorld)
 			for (auto& MaterialAssignementPair : Output->GetAssignementMaterials())
 			{
 				UMaterialInterface* MatInterface = MaterialAssignementPair.Value;
-				if (!MatInterface || MatInterface->IsPendingKill())
+				if (!IsValid(MatInterface))
 					continue;
 
 				UPackage *Package = MatInterface->GetOutermost();
-				if (!Package || Package->IsPendingKill())
+				if (!IsValid(Package))
 					continue;
 
 				if (Package->IsDirty() && Package->IsFullyLoaded() && Package != GetTransientPackage())

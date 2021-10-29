@@ -40,19 +40,20 @@
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
 #include "Materials/Material.h"
 
-bool FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
-        UGeometryCollection* GeometryCollection, HAPI_NodeId& InputNodeId, const FString& InputNodeName,
-        UGeometryCollectionComponent* GeometryCollectionComponent)
+bool 
+FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
+	UGeometryCollection* GeometryCollection, HAPI_NodeId& InputNodeId, const FString& InputNodeName,
+	UGeometryCollectionComponent* GeometryCollectionComponent)
 {
 	// If we don't have a static mesh there's nothing to do.
-	if (!GeometryCollection || GeometryCollection->IsPendingKill())
+	if (!IsValid(GeometryCollection))
 		return false;
 
 	// Node ID for the newly created node
 	HAPI_NodeId PackNodeId = -1;
 	FString PackName = FString::Printf(TEXT("%s_pack"), *InputNodeName);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
-                -1, TEXT("SOP/pack"), InputNodeName, true, &PackNodeId), false);
+		-1, TEXT("SOP/pack"), InputNodeName, true, &PackNodeId), false);
 
 	// Check if we have a valid id for this new input asset.
 	if (!FHoudiniEngineUtils::IsHoudiniNodeValid(PackNodeId))
@@ -124,7 +125,8 @@ bool FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollecti
 	return true;
 }
 
-bool FUnrealGeometryCollectionTranslator::SetGeometryCollectionAttributesForPart(
+bool 
+FUnrealGeometryCollectionTranslator::SetGeometryCollectionAttributesForPart(
 	UGeometryCollection* InGeometryCollection, int32 InGeometryIndex, HAPI_NodeId InNodeId, FString InName)
 {
 	const HAPI_PartId PartId = 0;
@@ -172,17 +174,18 @@ bool FUnrealGeometryCollectionTranslator::SetGeometryCollectionAttributesForPart
 	return true;
 }
 
-bool FUnrealGeometryCollectionTranslator::UploadGeometryCollection(UGeometryCollection* GeometryCollectionObject,
+bool 
+FUnrealGeometryCollectionTranslator::UploadGeometryCollection(UGeometryCollection* GeometryCollectionObject,
 	HAPI_NodeId InParentNodeId, FString InName, HAPI_NodeId InMergeNodeId, UGeometryCollectionComponent * GeometryCollectionComponent)
 {
-	if (GeometryCollectionObject == nullptr || GeometryCollectionObject->IsPendingKill())
+	if (!IsValid(GeometryCollectionObject))
 	{
 		return false;
 	}
+
 	TSharedPtr<FGeometryCollection, ESPMode::ThreadSafe> GeometryCollectionPtr = GeometryCollectionObject->GetGeometryCollection();
 	FGeometryCollection* GeometryCollection = GeometryCollectionPtr.Get();
 	check(GeometryCollection);
-
 
 	// vertex information
 	TManagedArray<FVector>& Vertex = GeometryCollection->Vertex;
@@ -318,7 +321,7 @@ bool FUnrealGeometryCollectionTranslator::UploadGeometryCollection(UGeometryColl
 				UMaterialInterface* CurrMaterial = GeometryCollectionObject->Materials[Index];
 
 				// Possible we have a null entry - replace with default
-				if (CurrMaterial == nullptr || CurrMaterial->IsPendingKill())
+				if (!IsValid(CurrMaterial))
 				{
 					CurrMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
 					UEDefaultMaterialIndex = Index;
@@ -1213,7 +1216,7 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// COMPONENT AND ACTOR TAGS
 	//---------------------------------------------------------------------------------------------------------------------
-	if (GeometryCollectionComponent && !GeometryCollectionComponent->IsPendingKill())
+	if (IsValid(GeometryCollectionComponent))
 	{
 		// Try to create groups for the static mesh component's tags
 		if (GeometryCollectionComponent->ComponentTags.Num() > 0
@@ -1221,12 +1224,12 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
                         	HOUDINI_LOG_WARNING(TEXT("Could not create groups from the Static Mesh Component's tags!"));
 
 		AActor* ParentActor = GeometryCollectionComponent->GetOwner();
-		if (ParentActor && !ParentActor->IsPendingKill())
+		if (IsValid(ParentActor))
 		{
 			// Try to create groups for the parent Actor's tags
 			if (ParentActor->Tags.Num() > 0
-                                && !FHoudiniEngineUtils::CreateGroupsFromTags(GeoId, PartId, ParentActor->Tags))
-                                	HOUDINI_LOG_WARNING(TEXT("Could not create groups from the Static Mesh Component's parent actor tags!"));
+				&& !FHoudiniEngineUtils::CreateGroupsFromTags(GeoId, PartId, ParentActor->Tags))
+				HOUDINI_LOG_WARNING(TEXT("Could not create groups from the Static Mesh Component's parent actor tags!"));
 
 			// Add the unreal_actor_path attribute
 			FHoudiniEngineUtils::AddActorPathAttribute(GeoId, PartId, ParentActor, Part.faceCount);
