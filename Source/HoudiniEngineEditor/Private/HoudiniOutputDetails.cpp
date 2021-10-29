@@ -1529,7 +1529,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 	}
 
 	int32 NumSimpleColliders = 0;
-	if (IsValid(StaticMesh->GetBodySetup()))
+	if (IsValid(StaticMesh->BodySetup))
 		NumSimpleColliders = StaticMesh->BodySetup->AggGeom.GetElementCount();
 
 	if(NumSimpleColliders > 0)
