@@ -297,7 +297,7 @@ UHoudiniInputGeometryCollectionComponent::GetGeometryCollectionComponent()
 UGeometryCollection* UHoudiniInputGeometryCollectionComponent::GetGeometryCollection()
 {
 	UGeometryCollectionComponent * GeometryCollectionComponent = GetGeometryCollectionComponent();
-	if (!GeometryCollectionComponent || GeometryCollectionComponent->IsPendingKill())
+	if (!IsValid(GeometryCollectionComponent))
 	{
 		return nullptr;
 	}
@@ -315,7 +315,7 @@ UHoudiniInputGeometryCollectionActor::GetGeometryCollectionActor()
 UGeometryCollectionComponent* UHoudiniInputGeometryCollectionActor::GetGeometryCollectionComponent()
 {
 	AGeometryCollectionActor * GeometryCollectionActor = GetGeometryCollectionActor();
-	if (!GeometryCollectionActor || GeometryCollectionActor->IsPendingKill())
+	if (!IsValid(GeometryCollectionActor))
 	{
 		return nullptr;
 	}
@@ -326,7 +326,7 @@ UGeometryCollectionComponent* UHoudiniInputGeometryCollectionActor::GetGeometryC
 UGeometryCollection* UHoudiniInputGeometryCollectionActor::GetGeometryCollection()
 {
 	UGeometryCollectionComponent * GeometryCollectionComponent = GetGeometryCollectionComponent();
-	if (!GeometryCollectionComponent || GeometryCollectionComponent->IsPendingKill())
+	if (!IsValid(GeometryCollectionComponent))
 	{
 		return nullptr;
 	}
@@ -1023,7 +1023,7 @@ UHoudiniInputSceneComponent::HasActorTransformChanged() const
 {
 	// Returns true if the attached actor's (parent) transform has been modified
 	USceneComponent* MyComp = Cast<USceneComponent>(InputObject.LoadSynchronous());
-	if (!MyComp || MyComp->IsPendingKill())
+	if (!IsValid(MyComp))
 		return false;
 
 	AActor* MyActor = MyComp->GetOwner();
@@ -1039,7 +1039,7 @@ UHoudiniInputSceneComponent::HasComponentTransformChanged() const
 {
 	// Returns true if the attached actor's (parent) transform has been modified
 	USceneComponent* MyComp = Cast<USceneComponent>(InputObject.LoadSynchronous());
-	if (!MyComp || MyComp->IsPendingKill())
+	if (!IsValid(MyComp))
 		return false;
 
 	return !Transform.Equals(MyComp->GetComponentTransform());
@@ -1069,7 +1069,7 @@ bool
 UHoudiniInputCameraComponent::HasComponentChanged() const
 {
 	UCameraComponent* Camera = Cast<UCameraComponent>(InputObject.LoadSynchronous());	
-	if (Camera && !Camera->IsPendingKill())
+	if (IsValid(Camera))
 	{
 		bool bOrtho = Camera->ProjectionMode == ECameraProjectionMode::Type::Orthographic;
 		if (bOrtho != bIsOrthographic)
@@ -1105,7 +1105,7 @@ UHoudiniInputCameraComponent::Update(UObject * InObject)
 
 	ensure(Camera);
 	
-	if (Camera && !Camera->IsPendingKill())
+	if (IsValid(Camera))
 	{	
 		bIsOrthographic = Camera->ProjectionMode == ECameraProjectionMode::Type::Orthographic;
 		FOV = Camera->FieldOfView;
@@ -1237,7 +1237,7 @@ UHoudiniInputHoudiniSplineComponent::Update(UObject* InObject)
 	//MyHoudiniSplineComponent = Cast<UHoudiniSplineComponent>(InObject);
 	UHoudiniSplineComponent* HoudiniSplineComponent = GetCurveComponent();
 
-	if (!HoudiniSplineComponent || HoudiniSplineComponent->IsPendingKill())
+	if (!IsValid(HoudiniSplineComponent))
 	{
 		// Use default values
 		CurveType = EHoudiniCurveType::Polygon;
@@ -1360,7 +1360,7 @@ UHoudiniInputActor::Update(UObject * InObject)
 			ActorComponents.SetNum(AllComponents.Num());
 			for (USceneComponent * SceneComponent : AllComponents)
 			{
-				if (!SceneComponent || SceneComponent->IsPendingKill())
+				if (!IsValid(SceneComponent))
 					continue;
 
 				UHoudiniInputObject* InputObj = UHoudiniInputObject::CreateTypedInputObject(
@@ -1403,7 +1403,7 @@ UHoudiniInputActor::Update(UObject * InObject)
 			for (int32 Index = 0; Index < NumActorComponents; ++Index)
 			{
 				UHoudiniInputSceneComponent* CurActorComp = ActorComponents[Index];
-				if (!CurActorComp || CurActorComp->IsPendingKill())
+				if (!IsValid(CurActorComp))
 				{
 					ComponentIndicesToRemove.Add(Index);
 					continue;
@@ -1412,7 +1412,7 @@ UHoudiniInputActor::Update(UObject * InObject)
 				// Does the component still exist on Actor?
 				UObject* const CompObj = CurActorComp->GetObject();
 				// Make sure the actor is still valid
-				if (!CompObj || CompObj->IsPendingKill())
+				if (!IsValid(CompObj))
 				{
 					// If it's not, mark it for deletion
 					if ((CurActorComp->InputNodeId > 0) || (CurActorComp->InputObjectNodeId > 0))
@@ -1448,7 +1448,7 @@ UHoudiniInputActor::Update(UObject * InObject)
 			{
 				for (USceneComponent * SceneComponent : NewComponents)
 				{
-					if (!SceneComponent || SceneComponent->IsPendingKill())
+					if (!IsValid(SceneComponent))
 						continue;
 
 					UHoudiniInputObject* InputObj = UHoudiniInputObject::CreateTypedInputObject(

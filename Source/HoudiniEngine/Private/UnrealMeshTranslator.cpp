@@ -57,7 +57,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	const bool& ExportColliders /* = false */)
 {
 	// If we don't have a static mesh there's nothing to do.
-	if (!StaticMesh || StaticMesh->IsPendingKill())
+	if (!IsValid(StaticMesh))
 		return false;
 
 	// Node ID for the newly created node
@@ -488,7 +488,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshSockets(
 	for (int32 Idx = 0; Idx < NumSockets; ++Idx)
 	{
 		UStaticMeshSocket* CurrentSocket = InMeshSocket[Idx];
-		if (!CurrentSocket || CurrentSocket->IsPendingKill())
+		if (!IsValid(CurrentSocket))
 			continue;
 
 		// Get the socket's transform and convert it to HapiTransform
@@ -1095,7 +1095,7 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 	{
 		// Create an array of Material Interfaces
 		TArray<UMaterialInterface *> MaterialInterfaces;
-		if (StaticMeshComponent && !StaticMeshComponent->IsPendingKill() && StaticMeshComponent->IsValidLowLevel())
+		if (IsValid(StaticMeshComponent) && StaticMeshComponent->IsValidLowLevel())
 		{
 			// StaticMeshComponent->GetUsedMaterials(MaterialInterfaces, false);
 
@@ -1433,14 +1433,14 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// COMPONENT AND ACTOR TAGS
 	//---------------------------------------------------------------------------------------------------------------------
-	if (StaticMeshComponent && !StaticMeshComponent->IsPendingKill())
+	if (IsValid(StaticMeshComponent))
 	{
 		TArray<FName> AllTags;
 		for (auto& ComponentTag : StaticMeshComponent->ComponentTags)
 			AllTags.AddUnique(ComponentTag);
 
 		AActor* ParentActor = StaticMeshComponent->GetOwner();
-		if (ParentActor && !ParentActor->IsPendingKill())
+		if (IsValid(ParentActor))
 		{
 			for (auto& ActorTag : ParentActor->Tags)
 				AllTags.AddUnique(ActorTag);
@@ -1450,7 +1450,7 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 		if (!FHoudiniEngineUtils::CreateGroupsFromTags(NodeId, 0, AllTags))
 			HOUDINI_LOG_WARNING(TEXT("Could not create groups for the Static Mesh Component and Actor tags!"));
 
-		if (ParentActor && !ParentActor->IsPendingKill())
+		if (IsValid(ParentActor))
 		{
 			// Add the unreal_actor_path attribute
 			FHoudiniEngineUtils::AddActorPathAttribute(NodeId, 0, ParentActor, Part.faceCount);
@@ -1625,7 +1625,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	const TArray<FStaticMaterial>& StaticMaterials = StaticMesh->GetStaticMaterials();
 
 	// If the static mesh component is valid, get the materials via the component to account for overrides
-	const bool bIsStaticMeshComponentValid = (StaticMeshComponent && !StaticMeshComponent->IsPendingKill() && StaticMeshComponent->IsValidLowLevel());
+	const bool bIsStaticMeshComponentValid = (IsValid(StaticMeshComponent) && StaticMeshComponent->IsValidLowLevel());
 	const int32 NumStaticMaterials = StaticMaterials.Num();
 	// If we find any invalid Material (null or pending kill), or we find a section below with an out of range MaterialIndex,
 	// then we will set UEDefaultMaterial at the invalid index
@@ -1647,7 +1647,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				Material = MaterialInfo.MaterialInterface;
 			}
 			// If the Material is NULL or invalid, fallback to the default material
-			if (!Material || Material->IsPendingKill())
+			if (!IsValid(Material))
 			{
 				if (!UEDefaultMaterial)
 				{
@@ -2315,7 +2315,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// COMPONENT AND ACTOR TAGS
 	//---------------------------------------------------------------------------------------------------------------------
-	if (StaticMeshComponent && !StaticMeshComponent->IsPendingKill())
+	if (IsValid(StaticMeshComponent))
 	{
 		// Try to create groups for the static mesh component's tags
 		if (StaticMeshComponent->ComponentTags.Num() > 0
@@ -2323,7 +2323,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 			HOUDINI_LOG_WARNING(TEXT("Could not create groups from the Static Mesh Component's tags!"));
 
 		AActor* ParentActor = StaticMeshComponent->GetOwner();
-		if (ParentActor && !ParentActor->IsPendingKill())
+		if (IsValid(ParentActor))
 		{
 			// Try to create groups for the parent Actor's tags
 			if (ParentActor->Tags.Num() > 0
@@ -2526,7 +2526,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	const TArray<FStaticMaterial>& StaticMaterials = StaticMesh->GetStaticMaterials();
 
 	// If the static mesh component is valid, get the materials via the component to account for overrides
-	const bool bIsStaticMeshComponentValid = (StaticMeshComponent && !StaticMeshComponent->IsPendingKill() && StaticMeshComponent->IsValidLowLevel());
+	const bool bIsStaticMeshComponentValid = (IsValid(StaticMeshComponent) && StaticMeshComponent->IsValidLowLevel());
 	const int32 NumStaticMaterials = StaticMaterials.Num();
 	// If we find any invalid Material (null or pending kill), or we find a section below with an out of range MaterialIndex,
 	// then we will set UEDefaultMaterial at the invalid index
@@ -2548,7 +2548,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 				Material = MaterialInfo.MaterialInterface;
 			}
 			// If the Material is NULL or invalid, fallback to the default material
-			if (!Material || Material->IsPendingKill())
+			if (!IsValid(Material))
 			{
 				if (!UEDefaultMaterial)
 				{
@@ -3259,7 +3259,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// COMPONENT AND ACTOR TAGS
 	//---------------------------------------------------------------------------------------------------------------------
-	if (StaticMeshComponent && !StaticMeshComponent->IsPendingKill())
+	if (IsValid(StaticMeshComponent))
 	{
 		// Try to create groups for the static mesh component's tags
 		if (StaticMeshComponent->ComponentTags.Num() > 0
@@ -3267,7 +3267,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			HOUDINI_LOG_WARNING(TEXT("Could not create groups from the Static Mesh Component's tags!"));
 
 		AActor* ParentActor = StaticMeshComponent->GetOwner();
-		if (ParentActor && !ParentActor->IsPendingKill())
+		if (IsValid(ParentActor))
 		{
 			// Try to create groups for the parent Actor's tags
 			if (ParentActor->Tags.Num() > 0
@@ -3282,7 +3282,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 
 			/*
 			FString LevelPath = FString();
-			if (ParentActor && !ParentActor->IsPendingKill())
+			if (IsValid(ParentActor))
 			{
 				if (ULevel* Level = ParentActor->GetLevel())
 				{
@@ -3478,7 +3478,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 					UTexture * CurTexture = nullptr;
 					MaterialInterface->GetTextureParameterValue(CurTextureParam, CurTexture);
 
-					if (!CurTexture || CurTexture->IsPendingKill())
+					if (!IsValid(CurTexture))
 						continue;
 
 					FString TexturePath = CurTexture->GetPathName();

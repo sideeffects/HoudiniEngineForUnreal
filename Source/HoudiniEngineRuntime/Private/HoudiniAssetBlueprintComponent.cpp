@@ -165,7 +165,7 @@ UHoudiniAssetBlueprintComponent::CopyStateToTemplateComponent()
 		InstanceOutput = Outputs[i];
 		
 		//check(InstanceOutput)
-		if (!InstanceOutput || InstanceOutput->IsPendingKill())
+		if (!IsValid(InstanceOutput))
 			continue;
 
 		// Ensure that instance outputs won't delete houdini content. 

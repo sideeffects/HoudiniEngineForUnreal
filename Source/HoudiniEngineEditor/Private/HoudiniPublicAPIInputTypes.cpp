@@ -110,6 +110,8 @@ UHoudiniPublicAPIInput::PopulateFromHoudiniInput(UHoudiniInput const* const InIn
 				continue;
 
 			UObject* NewInputObject = ConvertInternalInputObject(SrcInputObject->GetObject());
+			
+			// TODO: PENDINGKILL replacement ?
 			if (NewInputObject && NewInputObject->IsPendingKill())
 			{
 				SetErrorMessage(FString::Printf(
@@ -271,7 +273,7 @@ UHoudiniPublicAPIInput::ConvertAPIInputObjectAndAssignToInput(UObject* InAPIInpu
 
 	UObject const* const CurrentInputObject = InHoudiniInput->GetInputObjectAt(InInputIndex);
 	
-	UObject* const ObjectToSet = (InAPIInputObject && !InAPIInputObject->IsPendingKill()) ? InAPIInputObject : nullptr;
+	UObject* const ObjectToSet = (IsValid(InAPIInputObject)) ? InAPIInputObject : nullptr;
 
 	// Delete the existing input object if it is invalid or differs from ObjectToSet
 	if (CurrentInputObject && (!IsValid(CurrentInputObject) || CurrentInputObject != ObjectToSet))
@@ -1149,10 +1151,12 @@ bool UHoudiniPublicAPIGeometryCollectionInput::PopulateFromHoudiniInput(UHoudini
 				continue;
 
 			UObject* NewInputObject = ConvertInternalInputObject(SrcInputObject->GetObject());
+			
+			// TODO: PENDINGKILL replacement ?
 			if (NewInputObject && NewInputObject->IsPendingKill())
 			{
 				SetErrorMessage(FString::Printf(
-                                        TEXT("One of the input objects is non-null but pending kill/invalid.")));
+					TEXT("One of the input objects is non-null but pending kill/invalid.")));
 				return false;
 			}
 			

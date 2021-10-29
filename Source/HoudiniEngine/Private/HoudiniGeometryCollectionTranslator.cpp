@@ -61,7 +61,7 @@ void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromO
 			RF_NoFlags);
 	
 			// Make sure the created object is valid 
-			if (!HoudiniOutput || HoudiniOutput->IsPendingKill())
+			if (!IsValid(HoudiniOutput))
 			{
 				HOUDINI_LOG_WARNING(TEXT("Failed to create asset output"));
 				return;
@@ -86,7 +86,7 @@ void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromO
 		FTransform AssetTransform = ParentComponent->GetOwner()->GetTransform();
 	
 		UGeometryCollection* GeometryCollection = GCData.PackParams.CreateObjectAndPackage<UGeometryCollection>();
-		if (!GeometryCollection || GeometryCollection->IsPendingKill())
+		if (!IsValid(GeometryCollection))
 			return;
 		
 		AGeometryCollectionActor * GeometryCollectionActor = Cast<AGeometryCollectionActor>(OutputObject.OutputObject);
@@ -94,11 +94,11 @@ void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromO
 		if (!GeometryCollectionActor)
 			GeometryCollectionActor = CreateNewGeometryActor(InWorld, ActorName, AssetTransform);
 	
-		if (!GeometryCollectionActor || GeometryCollectionActor->IsPendingKill())
+		if (!IsValid(GeometryCollectionActor))
 			return;
 	
 		UGeometryCollectionComponent*  GeometryCollectionComponent = GeometryCollectionActor->GetGeometryCollectionComponent();
-		if (!GeometryCollectionComponent || GeometryCollectionComponent->IsPendingKill())
+		if (!IsValid(GeometryCollectionComponent))
 			return;
 	
 		GeometryCollectionActor->GetGeometryCollectionComponent()->SetRestCollection(GeometryCollection);
@@ -114,7 +114,7 @@ void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromO
 		GeometryCollection->MarkPackageDirty();
 	
 		UPackage *OuterPackage = GeometryCollection->GetOutermost();
-		if (OuterPackage && !OuterPackage->IsPendingKill())
+		if (IsValid(OuterPackage))
 		{
 			OuterPackage->MarkPackageDirty();
 		}
@@ -215,7 +215,7 @@ FHoudiniGeometryCollectionTranslator::CreateGeometryCollectionComponent(UObject 
 	// Create a new SMC as we couldn't find an existing one
 	USceneComponent* OuterSceneComponent = Cast<USceneComponent>(InOuterComponent);
 	UObject * Outer = nullptr;
-	if (OuterSceneComponent && !OuterSceneComponent->IsPendingKill())
+	if (IsValid(OuterSceneComponent))
 		Outer = OuterSceneComponent->GetOwner() ? OuterSceneComponent->GetOwner() : OuterSceneComponent->GetOuter();
 
 	UGeometryCollectionComponent *GeometryCollectionComponent = NewObject<UGeometryCollectionComponent>(Outer, UGeometryCollectionComponent::StaticClass(), NAME_None, RF_Transactional);
@@ -256,11 +256,11 @@ FHoudiniGeometryCollectionTranslator::CreateGeometryCollectionComponent(UObject 
 bool
 FHoudiniGeometryCollectionTranslator::RemoveAndDestroyComponent(UObject* InComponent)
 {
-	if (!InComponent || InComponent->IsPendingKill())
+	if (!IsValid(InComponent))
 		return false;
 
 	USceneComponent* SceneComponent = Cast<USceneComponent>(InComponent);
-	if (SceneComponent && !SceneComponent->IsPendingKill())
+	if (IsValid(SceneComponent))
 	{
 		if (SceneComponent->IsA(UGeometryCollectionComponent::StaticClass()))
 		{

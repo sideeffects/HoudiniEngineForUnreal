@@ -62,7 +62,7 @@ FHoudiniPDGManager::~FHoudiniPDGManager()
 bool
 FHoudiniPDGManager::InitializePDGAssetLink(UHoudiniAssetComponent* InHAC)
 {
-	if (!InHAC || InHAC->IsPendingKill())
+	if (!IsValid(InHAC))
 		return false;
 
 	int32 AssetId = InHAC->GetAssetId();
@@ -75,13 +75,13 @@ FHoudiniPDGManager::InitializePDGAssetLink(UHoudiniAssetComponent* InHAC)
 	// Create a new PDG Asset Link Object
 	bool bRegisterPDGAssetLink = false;
 	UHoudiniPDGAssetLink* PDGAssetLink = InHAC->GetPDGAssetLink();		
-	if (!PDGAssetLink || PDGAssetLink->IsPendingKill())
+	if (!IsValid(PDGAssetLink))
 	{
 		PDGAssetLink = NewObject<UHoudiniPDGAssetLink>(InHAC, UHoudiniPDGAssetLink::StaticClass(), NAME_None, RF_Transactional);
 		bRegisterPDGAssetLink = true;
 	}
 
-	if (!PDGAssetLink || PDGAssetLink->IsPendingKill())
+	if (!IsValid(PDGAssetLink))
 		return false;
 	
 	PDGAssetLink->AssetID = AssetId;
@@ -155,7 +155,7 @@ FHoudiniPDGManager::InitializePDGAssetLink(UHoudiniAssetComponent* InHAC)
 bool
 FHoudiniPDGManager::UpdatePDGAssetLink(UHoudiniPDGAssetLink* PDGAssetLink)
 {
-	if (!PDGAssetLink || PDGAssetLink->IsPendingKill())
+	if (!IsValid(PDGAssetLink))
 		return false;
 
 	// If the PDG Asset link is inactive, indicate that our HDA must be instantiated
@@ -213,7 +213,7 @@ bool
 FHoudiniPDGManager::PopulateTOPNetworks(UHoudiniPDGAssetLink* PDGAssetLink, bool bInZeroWorkItemTallys)
 {
 	// Find all TOP networks from linked HDA, as well as the TOP nodes within, and populate internal state.
-	if (!PDGAssetLink || PDGAssetLink->IsPendingKill())
+	if (!IsValid(PDGAssetLink))
 		return false;
 
 	// Get all the network nodes within the asset, recursively.
@@ -448,7 +448,7 @@ bool
 FHoudiniPDGManager::PopulateTOPNodes(
 	const TArray<HAPI_NodeId>& InTopNodeIDs, UTOPNetwork* InTOPNetwork, UHoudiniPDGAssetLink* InPDGAssetLink, bool bInZeroWorkItemTallys)
 {
-	if (!InPDGAssetLink || InPDGAssetLink->IsPendingKill())
+	if (!IsValid(InPDGAssetLink))
 		return false;
 
 	if (!IsValid(InTOPNetwork))
@@ -745,7 +745,7 @@ FHoudiniPDGManager::Update()
 		}
 
 		UHoudiniPDGAssetLink* CurPDGAssetLink = PDGAssetLinks[Idx].Get();
-		if (!CurPDGAssetLink || CurPDGAssetLink->IsPendingKill())
+		if (!IsValid(CurPDGAssetLink))
 		{
 			PDGAssetLinks.RemoveAt(Idx);
 			continue;
@@ -886,12 +886,8 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 	const FString LastWorkitemStateName = FHoudiniEngineUtils::HapiGetWorkitemStateAsString(LastWorkItemState);
 
 	if(!GetTOPAssetLinkNetworkAndNode(EventInfo.nodeId, PDGAssetLink, TOPNetwork, TOPNode)
-		|| PDGAssetLink == nullptr || PDGAssetLink->IsPendingKill() 
-		|| TOPNetwork == nullptr || TOPNetwork->IsPendingKill()
-		|| TOPNode == nullptr || TOPNode->IsPendingKill()
-		|| TOPNode->NodeId != EventInfo.nodeId)
-	{
-		
+		|| !IsValid(PDGAssetLink) || !IsValid(TOPNetwork) || !IsValid(TOPNode) || !IsValid(TOPNode))
+	{		
 		HOUDINI_LOG_WARNING(TEXT("[ProcessPDGEvent]: Could not find matching TOPNode for event %s, workitem id %d, node id %d"), *EventName, EventInfo.workitemId, EventInfo.nodeId);
 		return;
 	}
@@ -1140,7 +1136,7 @@ FHoudiniPDGManager::GetTOPAssetLinkNetworkAndNode(
 			continue;
 
 		UHoudiniPDGAssetLink* CurAssetLink = CurAssetLinkPtr.Get();
-		if (!CurAssetLink || CurAssetLink->IsPendingKill())
+		if (!IsValid(CurAssetLink))
 			continue;
 
 		if (CurAssetLink->GetTOPNodeAndNetworkByNodeId((int32)InNodeID, OutTOPNetwork, OutTOPNode))
@@ -1302,7 +1298,7 @@ FHoudiniPDGManager::NotifyTOPNodeCookCancelledWorkItem(UHoudiniPDGAssetLink* InP
 void
 FHoudiniPDGManager::ClearWorkItemResult(UHoudiniPDGAssetLink* InAssetLink, const HAPI_PDG_WorkitemId& InWorkItemID, UTOPNode* InTOPNode)
 {
-	if (!InAssetLink || InAssetLink->IsPendingKill())
+	if (!IsValid(InAssetLink))
 		return;
 
 	// TODO!!!
@@ -1316,7 +1312,7 @@ FHoudiniPDGManager::ClearWorkItemResult(UHoudiniPDGAssetLink* InAssetLink, const
 void
 FHoudiniPDGManager::RemoveWorkItem(UHoudiniPDGAssetLink* InAssetLink, const HAPI_PDG_WorkitemId& InWorkItemID, UTOPNode* InTOPNode)
 {
-	if (!InAssetLink || InAssetLink->IsPendingKill())
+	if (!IsValid(InAssetLink))
 		return;
 
 	// Clear all of the work item's results for the specified TOP node and also remove the work item itself from
@@ -1327,7 +1323,7 @@ FHoudiniPDGManager::RemoveWorkItem(UHoudiniPDGAssetLink* InAssetLink, const HAPI
 void
 FHoudiniPDGManager::RefreshPDGAssetLinkUI(UHoudiniPDGAssetLink* InAssetLink)
 {
-	if (!InAssetLink || InAssetLink->IsPendingKill())
+	if (!IsValid(InAssetLink))
 		return;
 
 	// Only update the editor properties if the PDG asset link's Actor is selected
@@ -1335,7 +1331,7 @@ FHoudiniPDGManager::RefreshPDGAssetLinkUI(UHoudiniPDGAssetLink* InAssetLink)
 	InAssetLink->UpdateWorkItemTally();
 
 	UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(InAssetLink->GetOuter());
-	if (!HAC || HAC->IsPendingKill())
+	if (!IsValid(HAC))
 		return;
 	
 	AActor* ActorOwner = HAC->GetOwner();
@@ -1348,7 +1344,7 @@ FHoudiniPDGManager::RefreshPDGAssetLinkUI(UHoudiniPDGAssetLink* InAssetLink)
 void
 FHoudiniPDGManager::NotifyAssetCooked(UHoudiniPDGAssetLink* InAssetLink, const bool& bSuccess)
 {
-	if (!InAssetLink || InAssetLink->IsPendingKill())
+	if (!IsValid(InAssetLink))
 		return;
 
 	if (bSuccess)
