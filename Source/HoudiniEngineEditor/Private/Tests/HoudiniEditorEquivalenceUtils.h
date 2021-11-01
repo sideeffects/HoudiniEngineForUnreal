@@ -94,82 +94,81 @@ enum class EHoudiniOutputType : uint8;
 class FHoudiniEditorEquivalenceUtils
 {
 public:
-	static bool IsEquivalent(UHoudiniAssetComponent* A, UHoudiniAssetComponent* B);
-	static bool IsEquivalent(UHoudiniAsset* A, UHoudiniAsset* B);
-    static bool IsEquivalent(UHoudiniParameter* A, UHoudiniParameter* B);
-	static bool IsEquivalent(UHoudiniInput* A, UHoudiniInput* B);
-	static bool IsEquivalent(UHoudiniInputObject* A, UHoudiniInputObject* B);
-	static bool IsEquivalent(UHoudiniOutput* A, UHoudiniOutput* B);
-	static bool IsEquivalent(UHoudiniHandleComponent* A, UHoudiniHandleComponent* B);
-	static bool IsEquivalent(UHoudiniPDGAssetLink* A, UHoudiniPDGAssetLink* B);
-
+	static bool IsEquivalent(const UHoudiniAssetComponent* A, const UHoudiniAssetComponent* B);
+	static bool IsEquivalent(const UHoudiniAsset* A, const UHoudiniAsset* B);
+	static bool IsEquivalent(const UHoudiniParameter* A, const UHoudiniParameter* B);
+	static bool IsEquivalent(const UHoudiniInput* A, const UHoudiniInput* B);
+	static bool IsEquivalent(const UHoudiniInputObject* A, const UHoudiniInputObject* B);
+	static bool IsEquivalent(const UHoudiniOutput* A, const UHoudiniOutput* B);
+	static bool IsEquivalent(const UHoudiniHandleComponent* A, const UHoudiniHandleComponent* B);
+	static bool IsEquivalent(const UHoudiniPDGAssetLink* A, const UHoudiniPDGAssetLink* B);
 	
-    // Struct equivalence
-	static bool IsEquivalent(FHoudiniStaticMeshGenerationProperties& A, FHoudiniStaticMeshGenerationProperties& B);
-	static bool IsEquivalent(FHoudiniBakedOutput& A, FHoudiniBakedOutput& B);
-	static bool IsEquivalent(FHoudiniGeoPartObject& A, FHoudiniGeoPartObject& B);
-	static bool IsEquivalent(FHoudiniInstancedOutput& A, FHoudiniInstancedOutput& B);
-	static bool IsEquivalent(FHoudiniBakedOutputObject& A, FHoudiniBakedOutputObject& B);
-	static bool IsEquivalent(FHoudiniObjectInfo& A, FHoudiniObjectInfo& B);
-	static bool IsEquivalent(FHoudiniGeoInfo& A, FHoudiniGeoInfo& B);
-	static bool IsEquivalent(FHoudiniPartInfo& A, FHoudiniPartInfo& B);
-	static bool IsEquivalent(FHoudiniVolumeInfo& A, FHoudiniVolumeInfo& B);
-	static bool IsEquivalent(FHoudiniCurveInfo& A, FHoudiniCurveInfo& B);
-	static bool IsEquivalent(FHoudiniMeshSocket& A, FHoudiniMeshSocket& B);
-	static bool IsEquivalent(FHoudiniOutputObject& A, FHoudiniOutputObject& B);
-	static bool IsEquivalent(FHoudiniCurveOutputProperties& A, FHoudiniCurveOutputProperties& B);
+	// Struct equivalence
+	static bool IsEquivalent(const FHoudiniStaticMeshGenerationProperties& A, const FHoudiniStaticMeshGenerationProperties& B);
+	static bool IsEquivalent(const FHoudiniBakedOutput& A, const FHoudiniBakedOutput& B);
+	static bool IsEquivalent(const FHoudiniGeoPartObject& A, const FHoudiniGeoPartObject& B);
+	static bool IsEquivalent(const FHoudiniInstancedOutput& A, const FHoudiniInstancedOutput& B);
+	static bool IsEquivalent(const FHoudiniBakedOutputObject& A, const FHoudiniBakedOutputObject& B);
+	static bool IsEquivalent(const FHoudiniObjectInfo& A, const FHoudiniObjectInfo& B);
+	static bool IsEquivalent(const FHoudiniGeoInfo& A, const FHoudiniGeoInfo& B);
+	static bool IsEquivalent(const FHoudiniPartInfo& A, const FHoudiniPartInfo& B);
+	static bool IsEquivalent(const FHoudiniVolumeInfo& A, const FHoudiniVolumeInfo& B);
+	static bool IsEquivalent(const FHoudiniCurveInfo& A, const FHoudiniCurveInfo& B);
+	static bool IsEquivalent(const FHoudiniMeshSocket& A, const FHoudiniMeshSocket& B);
+	static bool IsEquivalent(const FHoudiniOutputObject& A, const FHoudiniOutputObject& B);
+	static bool IsEquivalent(const FHoudiniCurveOutputProperties& A, const FHoudiniCurveOutputProperties& B);
 	
 	// Unreal equivalence
-	static bool IsEquivalent(FDirectoryPath& A, FDirectoryPath& B);
-	static bool IsEquivalent(FMeshBuildSettings& A, FMeshBuildSettings& B);
-	static bool IsEquivalent(FTransform& A, FTransform& B);
-	static bool IsEquivalent(FBodyInstance& A, FBodyInstance& B);
-	static bool IsEquivalent(FWalkableSlopeOverride& A, FWalkableSlopeOverride& B);
-	static bool IsEquivalent(FColor& A, FColor& B);
-	static bool IsEquivalent(FLinearColor& A, FLinearColor& B);
-	static bool IsEquivalent(FVector& A, FVector& B);
-	static bool IsEquivalent(FIntVector& A, FIntVector& B);
-	static bool IsEquivalent(FVector2D& A, FVector2D& B);
-	static bool IsEquivalent(FStaticMaterial& A, FStaticMaterial& B);
-	static bool IsEquivalent(FBox& A, FBox& B);
+	static bool IsEquivalent(const FDirectoryPath& A, const FDirectoryPath& B);
+	static bool IsEquivalent(const FMeshBuildSettings& A, const FMeshBuildSettings& B);
+	static bool IsEquivalent(const FTransform& A, const FTransform& B);
+	static bool IsEquivalent(const FBodyInstance& A, const FBodyInstance& B);
+	static bool IsEquivalent(const FWalkableSlopeOverride& A, const FWalkableSlopeOverride& B);
+	static bool IsEquivalent(const FColor& A, const FColor& B);
+	static bool IsEquivalent(const FLinearColor& A, const FLinearColor& B);
+	static bool IsEquivalent(const FVector& A, const FVector& B);
+	static bool IsEquivalent(const FQuat& A, const FQuat& B);
+	static bool IsEquivalent(const FIntVector& A, const FIntVector& B);
+	static bool IsEquivalent(const FVector2D& A, const FVector2D& B);
+	static bool IsEquivalent(const FStaticMaterial& A, const FStaticMaterial& B);
+	static bool IsEquivalent(const FBox& A, const FBox& B);
 
 	// Runtime UObjects:
-	static bool IsEquivalent(UObject * A, UObject * B);
-	static bool IsEquivalent(UPhysicalMaterial * A, UPhysicalMaterial * B);
-	static bool IsEquivalent(AActor * A, AActor * B);
-	static bool IsEquivalent(ALandscapeProxy * A, ALandscapeProxy * B);
+	static bool IsEquivalent(const UObject * A, const UObject * B);
+	static bool IsEquivalent(const UPhysicalMaterial * A, const UPhysicalMaterial * B);
+	static bool IsEquivalent(const AActor * A, const AActor * B);
+	static bool IsEquivalent(const ALandscapeProxy * A, const ALandscapeProxy * B);
 
-	static bool IsEquivalent(AHoudiniAssetActor* A, AHoudiniAssetActor* B);
-	static bool IsEquivalent(UHoudiniInstancedActorComponent* A, UHoudiniInstancedActorComponent* B);
-	static bool IsEquivalent(UHoudiniMeshSplitInstancerComponent* A, UHoudiniMeshSplitInstancerComponent* B);
-	static bool IsEquivalent(UHoudiniParameterButton* A, UHoudiniParameterButton* B);
-	static bool IsEquivalent(UHoudiniParameterButtonStrip* A, UHoudiniParameterButtonStrip* B);
-	static bool IsEquivalent(UHoudiniParameterChoice* A, UHoudiniParameterChoice* B);
-	static bool IsEquivalent(UHoudiniParameterColor* A, UHoudiniParameterColor* B);
-	static bool IsEquivalent(UHoudiniParameterFile* A, UHoudiniParameterFile* B);
-	static bool IsEquivalent(UHoudiniParameterFloat* A, UHoudiniParameterFloat* B);
-	static bool IsEquivalent(UHoudiniParameterFolder* A, UHoudiniParameterFolder* B);
-	static bool IsEquivalent(UHoudiniParameterFolderList* A, UHoudiniParameterFolderList* B);
-	static bool IsEquivalent(UHoudiniParameterInt* A, UHoudiniParameterInt* B);
-	static bool IsEquivalent(UHoudiniParameterLabel* A, UHoudiniParameterLabel* B);
-	static bool IsEquivalent(UHoudiniParameterMultiParm* A, UHoudiniParameterMultiParm* B);
-	static bool IsEquivalent(UHoudiniParameterOperatorPath* A, UHoudiniParameterOperatorPath* B);
-	static bool IsEquivalent(UHoudiniParameterRampFloatPoint* A, UHoudiniParameterRampFloatPoint* B);
-	static bool IsEquivalent(UHoudiniParameterRampColorPoint* A, UHoudiniParameterRampColorPoint* B);
-	static bool IsEquivalent(UHoudiniParameterRampFloat* A, UHoudiniParameterRampFloat* B);
-	static bool IsEquivalent(UHoudiniParameterRampColor* A, UHoudiniParameterRampColor* B);
-	static bool IsEquivalent(UHoudiniParameterSeparator* A, UHoudiniParameterSeparator* B);
-	static bool IsEquivalent(UHoudiniParameterString* A, UHoudiniParameterString* B);
-	static bool IsEquivalent(UHoudiniParameterToggle* A, UHoudiniParameterToggle* B);
-	static bool IsEquivalent(UHoudiniSplineComponent* A, UHoudiniSplineComponent* B);
-	static bool IsEquivalent(UHoudiniStaticMesh* A, UHoudiniStaticMesh* B);
-	static bool IsEquivalent(UHoudiniStaticMeshComponent* A, UHoudiniStaticMeshComponent* B);
-	static bool IsEquivalent(UHoudiniLandscapePtr* A, UHoudiniLandscapePtr* B);
-	static bool IsEquivalent(UHoudiniLandscapeEditLayer* A, UHoudiniLandscapeEditLayer* B);
-	static bool IsEquivalent(UStaticMeshComponent* A, UStaticMeshComponent* B);
-	static bool IsEquivalent(UMaterialInterface* A, UMaterialInterface* B);
-	static bool IsEquivalent(UStaticMesh* A, UStaticMesh* B);
-
+	static bool IsEquivalent(const AHoudiniAssetActor* A, const AHoudiniAssetActor* B);
+	static bool IsEquivalent(const UHoudiniInstancedActorComponent* A, const UHoudiniInstancedActorComponent* B);
+	static bool IsEquivalent(const UHoudiniMeshSplitInstancerComponent* A, const UHoudiniMeshSplitInstancerComponent* B);
+	static bool IsEquivalent(const UHoudiniParameterButton* A, const UHoudiniParameterButton* B);
+	static bool IsEquivalent(const UHoudiniParameterButtonStrip* A, const UHoudiniParameterButtonStrip* B);
+	static bool IsEquivalent(const UHoudiniParameterChoice* A, const UHoudiniParameterChoice* B);
+	static bool IsEquivalent(const UHoudiniParameterColor* A, const UHoudiniParameterColor* B);
+	static bool IsEquivalent(const UHoudiniParameterFile* A, const UHoudiniParameterFile* B);
+	static bool IsEquivalent(const UHoudiniParameterFloat* A, const UHoudiniParameterFloat* B);
+	static bool IsEquivalent(const UHoudiniParameterFolder* A, const UHoudiniParameterFolder* B);
+	static bool IsEquivalent(const UHoudiniParameterFolderList* A, const UHoudiniParameterFolderList* B);
+	static bool IsEquivalent(const UHoudiniParameterInt* A, const UHoudiniParameterInt* B);
+	static bool IsEquivalent(const UHoudiniParameterLabel* A, const UHoudiniParameterLabel* B);
+	static bool IsEquivalent(const UHoudiniParameterMultiParm* A, const UHoudiniParameterMultiParm* B);
+	static bool IsEquivalent(const UHoudiniParameterOperatorPath* A, const UHoudiniParameterOperatorPath* B);
+	static bool IsEquivalent(const UHoudiniParameterRampFloatPoint* A, const UHoudiniParameterRampFloatPoint* B);
+	static bool IsEquivalent(const UHoudiniParameterRampColorPoint* A, const UHoudiniParameterRampColorPoint* B);
+	static bool IsEquivalent(const UHoudiniParameterRampFloat* A, const UHoudiniParameterRampFloat* B);
+	static bool IsEquivalent(const UHoudiniParameterRampColor* A, const UHoudiniParameterRampColor* B);
+	static bool IsEquivalent(const UHoudiniParameterSeparator* A, const UHoudiniParameterSeparator* B);
+	static bool IsEquivalent(const UHoudiniParameterString* A, const UHoudiniParameterString* B);
+	static bool IsEquivalent(const UHoudiniParameterToggle* A, const UHoudiniParameterToggle* B);
+	static bool IsEquivalent(const UHoudiniSplineComponent* A, const UHoudiniSplineComponent* B);
+	static bool IsEquivalent(const UHoudiniStaticMesh* A, const UHoudiniStaticMesh* B);
+	static bool IsEquivalent(const UHoudiniStaticMeshComponent* A, const UHoudiniStaticMeshComponent* B);
+	static bool IsEquivalent(const UHoudiniLandscapePtr* A, const UHoudiniLandscapePtr* B);
+	static bool IsEquivalent(const UHoudiniLandscapeEditLayer* A, const UHoudiniLandscapeEditLayer* B);
+	static bool IsEquivalent(const UStaticMeshComponent* A, const UStaticMeshComponent* B);
+	static bool IsEquivalent(const UMaterialInterface* A, const UMaterialInterface* B);
+	static bool IsEquivalent(const UStaticMesh* A, const UStaticMesh* B);
 
 private:
 #if WITH_DEV_AUTOMATION_TESTS
