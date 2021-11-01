@@ -71,7 +71,7 @@ FAutomationTestBase* FHoudiniEditorEquivalenceUtils::TestBase = nullptr;
 
 bool FHoudiniEditorEquivalenceUtils::TestExpressionErrorEnabled = true;
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniAssetComponent * A, UHoudiniAssetComponent * B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniAssetComponent * A, const UHoudiniAssetComponent * B)
 {
 	const FString Header = "UHoudiniAssetComponent";
 
@@ -199,7 +199,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniAssetComponent * A, UH
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniAsset* A, UHoudiniAsset* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniAsset* A, const UHoudiniAsset* B)
 {
 	const FString Header = "UHoudiniAsset";
 
@@ -225,7 +225,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniAsset* A, UHoudiniAsse
 
 
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameter* A, UHoudiniParameter* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameter* A, const UHoudiniParameter* B)
 {
 	const FString Header = "UHoudiniParameter";
 
@@ -330,7 +330,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameter* A, UHoudini
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniInput* A, UHoudiniInput* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInput* A, const UHoudiniInput* B)
 {
 	const FString Header = "UHoudiniInput";
 
@@ -442,7 +442,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniInput* A, UHoudiniInpu
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniInputObject* A, UHoudiniInputObject* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInputObject* A, const UHoudiniInputObject* B)
 {
 	const FString Header = "UHoudiniInputObject";
 
@@ -466,7 +466,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniInputObject* A, UHoudi
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniOutput* A, UHoudiniOutput* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniOutput* A, const UHoudiniOutput* B)
 {
 	const FString Header = "UHoudiniOutput";
 
@@ -574,7 +574,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniOutput* A, UHoudiniOut
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniHandleComponent* A, UHoudiniHandleComponent* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniHandleComponent* A, const UHoudiniHandleComponent* B)
 {
 	const FString Header = "UHoudiniHandleComponent";
 
@@ -600,7 +600,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniHandleComponent* A, UH
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniPDGAssetLink* A, UHoudiniPDGAssetLink* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniPDGAssetLink* A, const UHoudiniPDGAssetLink* B)
 {
 	const FString Header = "UHoudiniPDGAssetLink";
 	bool Result = true;
@@ -636,8 +636,8 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniPDGAssetLink* A, UHoud
 
 // Houdini struct equivalence functions ===
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniStaticMeshGenerationProperties& A,
-	FHoudiniStaticMeshGenerationProperties& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniStaticMeshGenerationProperties& A,
+	const FHoudiniStaticMeshGenerationProperties& B)
 {
 	const FString Header = "FHoudiniStaticMeshGenerationProperties";
 	bool Result = true;
@@ -662,7 +662,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniStaticMeshGenerationPr
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniBakedOutput& A, FHoudiniBakedOutput& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniBakedOutput& A, const FHoudiniBakedOutput& B)
 {
 	const FString Header = "FHoudiniBakedOutput";
 	bool Result = true;
@@ -688,7 +688,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniBakedOutput& A, FHoudi
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniGeoPartObject& A, FHoudiniGeoPartObject& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniGeoPartObject& A, const FHoudiniGeoPartObject& B)
 {
 	const FString Header = "FHoudiniGeoPartObject";
 	bool Result = true;
@@ -731,7 +731,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniGeoPartObject& A, FHou
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniInstancedOutput& A, FHoudiniInstancedOutput& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniInstancedOutput& A, const FHoudiniInstancedOutput& B)
 {
 	const FString Header = "FHoudiniInstancedOutput";
 	bool Result = true;
@@ -765,7 +765,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniInstancedOutput& A, FH
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniBakedOutputObject& A, FHoudiniBakedOutputObject& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniBakedOutputObject& A, const FHoudiniBakedOutputObject& B)
 {
 	const FString Header = "FHoudiniBakedOutputObject";
 	bool Result = true;
@@ -789,7 +789,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniBakedOutputObject& A, 
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniObjectInfo& A, FHoudiniObjectInfo& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniObjectInfo& A, const FHoudiniObjectInfo& B)
 {
 	const FString Header = "FHoudiniObjectInfo";
 	bool Result = true;
@@ -805,7 +805,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniObjectInfo& A, FHoudin
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniGeoInfo& A, FHoudiniGeoInfo& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniGeoInfo& A, const FHoudiniGeoInfo& B)
 {
 	const FString Header = "FHoudiniGeoInfo";
 	bool Result = true;
@@ -824,7 +824,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniGeoInfo& A, FHoudiniGe
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniPartInfo& A, FHoudiniPartInfo& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniPartInfo& A, const FHoudiniPartInfo& B)
 {
 	const FString Header = "FHoudiniPartInfo";
 	bool Result = true;
@@ -847,7 +847,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniPartInfo& A, FHoudiniP
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniVolumeInfo& A, FHoudiniVolumeInfo& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniVolumeInfo& A, const FHoudiniVolumeInfo& B)
 {
 	const FString Header = "FHoudiniVolumeInfo";
 	bool Result = true;
@@ -871,7 +871,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniVolumeInfo& A, FHoudin
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniCurveInfo& A, FHoudiniCurveInfo& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniCurveInfo& A, const FHoudiniCurveInfo& B)
 {
 	const FString Header = "FHoudiniCurveInfo";
 	bool Result = true;
@@ -888,7 +888,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniCurveInfo& A, FHoudini
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniMeshSocket& A, FHoudiniMeshSocket& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniMeshSocket& A, const FHoudiniMeshSocket& B)
 {
 	const FString Header = "FHoudiniMeshSocket";
 	bool Result = true;
@@ -898,7 +898,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniMeshSocket& A, FHoudin
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniOutputObject& A, FHoudiniOutputObject& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniOutputObject& A, const FHoudiniOutputObject& B)
 {
 	const FString Header = "FHoudiniOutputObject";
 	bool Result = true;
@@ -954,7 +954,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniOutputObject& A, FHoud
 
 
 // Unreal Equivalence functions ===
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FDirectoryPath & A, FDirectoryPath & B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FDirectoryPath & A, const FDirectoryPath & B)
 {
 	const FString Header = "FDirectoryPath";
 	bool Result = true;
@@ -964,7 +964,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FDirectoryPath & A, FDirectory
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FMeshBuildSettings& A, FMeshBuildSettings& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FMeshBuildSettings& A, const FMeshBuildSettings& B)
 {
 	const FString Header = "FMeshBuildSettings";
 	bool Result = true;
@@ -975,19 +975,19 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FMeshBuildSettings& A, FMeshBu
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FTransform& A, FTransform& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FTransform& A, const FTransform& B)
 {
 	const FString Header = "FTransform";
 	bool Result = true;
 
-	Result &= TestExpressionError(A.GetTranslation().Equals(B.GetTranslation()), Header, "Translation");
-	Result &= TestExpressionError(A.GetRotation().Equals(B.GetRotation()), Header, "Rotation");
-	Result &= TestExpressionError(A.GetScale3D().Equals(B.GetScale3D()), Header, "Scale3D");
+	Result &= TestExpressionError(IsEquivalent(A.GetTranslation(), B.GetTranslation()), Header, "Translation");
+	Result &= TestExpressionError(IsEquivalent(A.GetRotation(), B.GetRotation()), Header, "Rotation");
+	Result &= TestExpressionError(IsEquivalent(A.GetScale3D(), B.GetScale3D()), Header, "Scale3D");
 
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FBodyInstance& A, FBodyInstance& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FBodyInstance& A, const FBodyInstance& B)
 {
 	const FString Header = "FBodyInstance";
 	bool Result = true;
@@ -997,7 +997,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FBodyInstance& A, FBodyInstanc
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FWalkableSlopeOverride& A, FWalkableSlopeOverride& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FWalkableSlopeOverride& A, const FWalkableSlopeOverride& B)
 {
 	const FString Header = "FWalkableSlopeOverride";
 	bool Result = true;
@@ -1007,7 +1007,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FWalkableSlopeOverride& A, FWa
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniCurveOutputProperties& A, FHoudiniCurveOutputProperties& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniCurveOutputProperties& A, const FHoudiniCurveOutputProperties& B)
 {
 	const FString Header = "FHoudiniCurveOutputProperties";
 	bool Result = true;
@@ -1021,7 +1021,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FHoudiniCurveOutputProperties&
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FColor& A, FColor& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FColor& A, const FColor& B)
 {
 	const FString Header = "FColor";
 	bool Result = true;
@@ -1034,7 +1034,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FColor& A, FColor& B)
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FLinearColor& A, FLinearColor& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FLinearColor& A, const FLinearColor& B)
 {
 	const FString Header = "FLinearColor";
 	bool Result = true;
@@ -1047,7 +1047,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FLinearColor& A, FLinearColor&
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FVector& A, FVector& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FVector& A, const FVector& B)
 {
 	const FString Header = "FVector";
 	bool Result = true;
@@ -1059,7 +1059,20 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FVector& A, FVector& B)
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FIntVector& A, FIntVector& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FQuat& A, const FQuat& B)
+{
+	const FString Header = "FQuat";
+	
+	bool Result = true;
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.X, B.X), Header, "X");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.Y, B.Y), Header, "Y");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.Z, B.Z), Header, "Z");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.W, B.W), Header, "W");
+
+	return Result;
+}
+
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FIntVector& A, const FIntVector& B)
 {
 	const FString Header = "FIntVector";
 	bool Result = true;
@@ -1071,7 +1084,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FIntVector& A, FIntVector& B)
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FVector2D& A, FVector2D& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FVector2D& A, const FVector2D& B)
 {
 	const FString Header = "FVector2D";
 	bool Result = true;
@@ -1082,7 +1095,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FVector2D& A, FVector2D& B)
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FStaticMaterial& A, FStaticMaterial& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FStaticMaterial& A, const FStaticMaterial& B)
 {
 	const FString Header = "FStaticMaterial";
 	bool Result = true;
@@ -1092,7 +1105,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FStaticMaterial& A, FStaticMat
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FBox& A, FBox& B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FBox& A, const FBox& B)
 {
 	const FString Header = "FBox";
 	bool Result = true;
@@ -1104,9 +1117,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(FBox& A, FBox& B)
 	return Result;
 }
 
-
-
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UObject* A, UObject* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UObject* A, const UObject* B)
 {
 	const FString Header = "UObject";
 
@@ -1196,7 +1207,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UObject* A, UObject* B)
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UPhysicalMaterial * A, UPhysicalMaterial * B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UPhysicalMaterial * A, const UPhysicalMaterial * B)
 {
 	const FString Header = "UPhysicalMaterial";
 
@@ -1214,7 +1225,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UPhysicalMaterial * A, UPhysic
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(AActor* A, AActor* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const AActor* A, const AActor* B)
 {
 	const FString Header = "AActor";
 
@@ -1236,7 +1247,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(AActor* A, AActor* B)
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(ALandscapeProxy* A, ALandscapeProxy* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const ALandscapeProxy* A, const ALandscapeProxy* B)
 {
 	const FString Header = "ALandscapeProxy";
 
@@ -1254,7 +1265,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(ALandscapeProxy* A, ALandscape
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(AHoudiniAssetActor* A, AHoudiniAssetActor* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const AHoudiniAssetActor* A, const AHoudiniAssetActor* B)
 {
 	const FString Header = "AHoudiniAssetActor";
 
@@ -1272,8 +1283,8 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(AHoudiniAssetActor* A, AHoudin
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniInstancedActorComponent* A,
-	UHoudiniInstancedActorComponent* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInstancedActorComponent* A,
+	const UHoudiniInstancedActorComponent* B)
 {
 	const FString Header = "UHoudiniInstancedActorComponent";
 
@@ -1297,8 +1308,8 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniInstancedActorComponen
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniMeshSplitInstancerComponent* A,
-	UHoudiniMeshSplitInstancerComponent* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniMeshSplitInstancerComponent* A,
+	const UHoudiniMeshSplitInstancerComponent* B)
 {
 	const FString Header = "UHoudiniMeshSplitInstancerComponent";
 
@@ -1326,7 +1337,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniMeshSplitInstancerComp
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterButton* A, UHoudiniParameterButton* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterButton* A, const UHoudiniParameterButton* B)
 {
 	const FString Header = "UHoudiniParameterButton";
 
@@ -1342,7 +1353,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterButton* A, UH
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterButtonStrip* A, UHoudiniParameterButtonStrip* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterButtonStrip* A, const UHoudiniParameterButtonStrip* B)
 {
 	const FString Header = "UHoudiniParameterButtonStrip";
 
@@ -1370,7 +1381,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterButtonStrip* 
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterChoice* A, UHoudiniParameterChoice* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterChoice* A, const UHoudiniParameterChoice* B)
 {
 	const FString Header = "UHoudiniParameterChoice";
 
@@ -1407,7 +1418,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterChoice* A, UH
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterColor* A, UHoudiniParameterColor* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterColor* A, const UHoudiniParameterColor* B)
 {
 	const FString Header = "UHoudiniParameterColor";
 
@@ -1427,7 +1438,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterColor* A, UHo
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterFile* A, UHoudiniParameterFile* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterFile* A, const UHoudiniParameterFile* B)
 {
 	const FString Header = "UHoudiniParameterColor";
 
@@ -1456,7 +1467,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterFile* A, UHou
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterFloat* A, UHoudiniParameterFloat* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterFloat* A, const UHoudiniParameterFloat* B)
 {
 	const FString Header = "UHoudiniParameterFloat";
 
@@ -1495,7 +1506,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterFloat* A, UHo
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterFolder* A, UHoudiniParameterFolder* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterFolder* A, const UHoudiniParameterFolder* B)
 {
 	const FString Header = "UHoudiniParameterColor";
 
@@ -1517,7 +1528,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterFolder* A, UH
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterFolderList* A, UHoudiniParameterFolderList* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterFolderList* A, const UHoudiniParameterFolderList* B)
 {
 	const FString Header = "UHoudiniParameterFolderList";
 
@@ -1541,7 +1552,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterFolderList* A
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterInt* A, UHoudiniParameterInt* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterInt* A, const UHoudiniParameterInt* B)
 {
 	const FString Header = "UHoudiniParameterInt";
 
@@ -1578,7 +1589,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterInt* A, UHoud
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterLabel* A, UHoudiniParameterLabel* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterLabel* A, const UHoudiniParameterLabel* B)
 {
 	const FString Header = "UHoudiniParameterLabel";
 
@@ -1600,7 +1611,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterLabel* A, UHo
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterMultiParm* A, UHoudiniParameterMultiParm* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterMultiParm* A, const UHoudiniParameterMultiParm* B)
 {
 	const FString Header = "UHoudiniParameterMultiParm";
 
@@ -1631,7 +1642,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterMultiParm* A,
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterOperatorPath* A, UHoudiniParameterOperatorPath* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterOperatorPath* A, const UHoudiniParameterOperatorPath* B)
 {
 	const FString Header = "UHoudiniParameterOperatorPath";
 
@@ -1652,8 +1663,8 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterOperatorPath*
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterRampFloatPoint* A,
-	UHoudiniParameterRampFloatPoint* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterRampFloatPoint* A,
+	const UHoudiniParameterRampFloatPoint* B)
 {
 	const FString Header = "UHoudiniParameterRampFloatPoint";
 
@@ -1677,8 +1688,8 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterRampFloatPoin
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterRampColorPoint* A,
-	UHoudiniParameterRampColorPoint* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterRampColorPoint* A,
+	const UHoudiniParameterRampColorPoint* B)
 {
 	const FString Header = "UHoudiniParameterRampColorPoint";
 
@@ -1702,7 +1713,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterRampColorPoin
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterRampFloat* A, UHoudiniParameterRampFloat* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterRampFloat* A, const UHoudiniParameterRampFloat* B)
 {
 	const FString Header = "UHoudiniParameterRampFloat";
 
@@ -1718,7 +1729,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterRampFloat* A,
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterRampColor* A, UHoudiniParameterRampColor* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterRampColor* A, const UHoudiniParameterRampColor* B)
 {
 	const FString Header = "UHoudiniParameterRampFloat";
 
@@ -1764,7 +1775,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterRampColor* A,
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterSeparator* A, UHoudiniParameterSeparator* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterSeparator* A, const UHoudiniParameterSeparator* B)
 {
 	const FString Header = "UHoudiniParameterSeparator";
 
@@ -1780,7 +1791,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterSeparator* A,
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterString* A, UHoudiniParameterString* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterString* A, const UHoudiniParameterString* B)
 {
 	const FString Header = "UHoudiniParameterSeparator";
 
@@ -1813,7 +1824,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterString* A, UH
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterToggle* A, UHoudiniParameterToggle* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterToggle* A, const UHoudiniParameterToggle* B)
 {
 	const FString Header = "UHoudiniParameterToggle";
 
@@ -1840,7 +1851,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniParameterToggle* A, UH
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniSplineComponent* A, UHoudiniSplineComponent* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniSplineComponent* A, const UHoudiniSplineComponent* B)
 {
 	const FString Header = "UHoudiniSplineComponent";
 
@@ -1880,7 +1891,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniSplineComponent* A, UH
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniStaticMesh* A, UHoudiniStaticMesh* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniStaticMesh* A, const UHoudiniStaticMesh* B)
 {
 	const FString Header = "UHoudiniStaticMesh";
 
@@ -1947,7 +1958,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniStaticMesh* A, UHoudin
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniStaticMeshComponent* A, UHoudiniStaticMeshComponent* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniStaticMeshComponent* A, const UHoudiniStaticMeshComponent* B)
 {
 	const FString Header = "UHoudiniStaticMeshComponent";
 
@@ -1967,7 +1978,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniStaticMeshComponent* A
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniLandscapePtr* A, UHoudiniLandscapePtr* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniLandscapePtr* A, const UHoudiniLandscapePtr* B)
 {
 	const FString Header = "UHoudiniLandscapePtr";
 
@@ -1986,7 +1997,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniLandscapePtr* A, UHoud
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniLandscapeEditLayer* A, UHoudiniLandscapeEditLayer* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniLandscapeEditLayer* A, const UHoudiniLandscapeEditLayer* B)
 {
 	const FString Header = "UHoudiniLandscapeEditLayer";
 
@@ -2004,7 +2015,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniLandscapeEditLayer* A,
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UStaticMeshComponent* A, UStaticMeshComponent* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UStaticMeshComponent* A, const UStaticMeshComponent* B)
 {
 	const FString Header = "UStaticMeshComponent";
 
@@ -2022,7 +2033,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UStaticMeshComponent* A, UStat
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UMaterialInterface* A, UMaterialInterface* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UMaterialInterface* A, const UMaterialInterface* B)
 {
 	const FString Header = "UMaterialInterface";
 
@@ -2042,7 +2053,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UMaterialInterface* A, UMateri
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(UStaticMesh* A, UStaticMesh* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UStaticMesh* A, const UStaticMesh* B)
 {
 	const FString Header = "UStaticMesh";
 
