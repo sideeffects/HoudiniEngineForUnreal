@@ -64,6 +64,8 @@
 
 // #define WITH_DEV_AUTOMATION_TESTS 0
 
+#define FLOAT_TOLERANCE 0.001F // Mac tests need higher float tolerance
+
 #if WITH_DEV_AUTOMATION_TESTS
 
 FAutomationTestBase* FHoudiniEditorEquivalenceUtils::TestBase = nullptr;
@@ -390,7 +392,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInput* A, const 
 		Result &= TestExpressionError(IsEquivalent(A->CurveInputObjects[i], B->CurveInputObjects[i]), Header, "CurveInputObjects");
 	}
 
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A->DefaultCurveOffset, B->DefaultCurveOffset), Header, "DefaultCurveOffset");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A->DefaultCurveOffset, B->DefaultCurveOffset, FLOAT_TOLERANCE), Header, "DefaultCurveOffset");
 	
 	Result &= TestExpressionError(A->bAddRotAndScaleAttributesOnCurves == B->bAddRotAndScaleAttributesOnCurves, Header, "bAddRotAndScaleAttributeOnCurves");
 
@@ -418,7 +420,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInput* A, const 
 
 	Result &= TestExpressionError(A->bIsWorldInputBoundSelector == B->bIsWorldInputBoundSelector, Header, "bIsWorldInputBoundSelector");
 	Result &= TestExpressionError(A->bWorldInputBoundSelectorAutoUpdate == B->bWorldInputBoundSelectorAutoUpdate, Header, "bWorldInputBoundSelectorAutoUpdate");
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A->UnrealSplineResolution, B->UnrealSplineResolution), Header, "UnrealSplineResolution");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A->UnrealSplineResolution, B->UnrealSplineResolution, FLOAT_TOLERANCE), Header, "UnrealSplineResolution");
 
 	Result &= TestExpressionError(A->SkeletalInputObjects.Num() == B->SkeletalInputObjects.Num(), Header, "SkeletalInputObjects.Num");
 	for (int i = 0; i < FMath::Min(A->SkeletalInputObjects.Num(), B->SkeletalInputObjects.Num()); i++)
@@ -865,8 +867,8 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniVolumeInfo& A, c
 	Result &= TestExpressionError(A.MinX == B.MinX, Header, "MinX");
 	Result &= TestExpressionError(A.MinY == B.MinY, Header, "MinY");
 	Result &= TestExpressionError(A.MinZ == B.MinZ, Header, "MinZ");
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A.XTaper, B.XTaper), Header, "XTaper");
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A.YTaper, B.YTaper), Header, "YTaper");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.XTaper, B.XTaper, FLOAT_TOLERANCE), Header, "XTaper");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.YTaper, B.YTaper, FLOAT_TOLERANCE), Header, "YTaper");
 
 	return Result;
 }
@@ -1039,10 +1041,10 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FLinearColor& A, const F
 	const FString Header = "FLinearColor";
 	bool Result = true;
 	
-	Result &= TestExpressionError(A.R == B.R, Header, "R");
-	Result &= TestExpressionError(A.G == B.G, Header, "G");
-	Result &= TestExpressionError(A.B == B.B, Header, "B");
-	Result &= TestExpressionError(A.A == B.A, Header, "A");
+	Result &= TestExpressionError( FMath::IsNearlyEqual(A.R, B.R, FLOAT_TOLERANCE), Header, "R");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.G, B.G, FLOAT_TOLERANCE), Header, "G");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.B, B.B, FLOAT_TOLERANCE), Header, "B");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.A, B.A, FLOAT_TOLERANCE), Header, "A");
 
 	return Result;
 }
@@ -1052,9 +1054,9 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FVector& A, const FVecto
 	const FString Header = "FVector";
 	bool Result = true;
 
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A.X, B.X), Header, "X");
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A.Y, B.Y), Header, "Y");
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A.Z, B.Z), Header, "Z");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.X, B.X, FLOAT_TOLERANCE), Header, "X");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.Y, B.Y, FLOAT_TOLERANCE), Header, "Y");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.Z, B.Z, FLOAT_TOLERANCE), Header, "Z");
 
 	return Result;
 }
@@ -1064,10 +1066,10 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FQuat& A, const FQuat& B
 	const FString Header = "FQuat";
 	
 	bool Result = true;
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A.X, B.X), Header, "X");
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A.Y, B.Y), Header, "Y");
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A.Z, B.Z), Header, "Z");
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A.W, B.W), Header, "W");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.X, B.X, FLOAT_TOLERANCE), Header, "X");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.Y, B.Y, FLOAT_TOLERANCE), Header, "Y");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.Z, B.Z, FLOAT_TOLERANCE), Header, "Z");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.W, B.W, FLOAT_TOLERANCE), Header, "W");
 
 	return Result;
 }
@@ -1089,8 +1091,8 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FVector2D& A, const FVec
 	const FString Header = "FVector2D";
 	bool Result = true;
 
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A.X, B.X), Header, "X");
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A.Y, B.Y), Header, "Y");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.X, B.X, FLOAT_TOLERANCE), Header, "X");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.Y, B.Y, FLOAT_TOLERANCE), Header, "Y");
 
 	return Result;
 }
@@ -1483,7 +1485,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterFloat* 
 	Result &= TestExpressionError(A->Values.Num() == B->Values.Num(), Header, "Values.Num");
 	for (int i = 0; i < FMath::Min(A->Values.Num(), B->Values.Num()); i++)
 	{
-		Result &= TestExpressionError(FMath::IsNearlyEqual(A->Values[i], B->Values[i]), Header, "Values");
+		Result &= TestExpressionError(FMath::IsNearlyEqual(A->Values[i], B->Values[i], FLOAT_TOLERANCE), Header, "Values");
 	}
 	Result &= TestExpressionError(A->DefaultValues.Num() == B->DefaultValues.Num(), Header, "DefaultValues.Num");
 	for (int i = 0; i < FMath::Min(A->DefaultValues.Num(), B->DefaultValues.Num()); i++)
@@ -1497,10 +1499,10 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterFloat* 
 	Result &= TestExpressionError(A->bHasUIMin == B->bHasUIMin, Header, "bHasUIMin");
 	Result &= TestExpressionError(A->bHasUIMax == B->bHasUIMax, Header, "bHasUIMax");
 	Result &= TestExpressionError(A->bIsLogarithmic == B->bIsLogarithmic, Header, "bIsLogarithmic");
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A->Min, B->Min), Header, "Min");
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A->Max, B->Max), Header, "Max");
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A->UIMin, B->UIMin), Header, "UIMin");
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A->UIMax, B->UIMax), Header, "UIMax");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A->Min, B->Min, FLOAT_TOLERANCE), Header, "Min");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A->Max, B->Max, FLOAT_TOLERANCE), Header, "Max");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A->UIMin, B->UIMin, FLOAT_TOLERANCE), Header, "UIMin");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A->UIMax, B->UIMax, FLOAT_TOLERANCE), Header, "UIMax");
 	Result &= TestExpressionError(A->bIsChildOfRamp == B->bIsChildOfRamp, Header, "bIsChildOfRamp");
 
 	return Result;
@@ -1677,8 +1679,8 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterRampFlo
 		return true;
 	}
 
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A->Position, B->Position), Header, "Position");
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A->Value, B->Value), Header, "Value");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A->Position, B->Position, FLOAT_TOLERANCE), Header, "Position");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A->Value, B->Value, FLOAT_TOLERANCE), Header, "Value");
 	Result &= TestExpressionError(A->Interpolation == B->Interpolation, Header, "Interpolation");
 	Result &= TestExpressionError(A->InstanceIndex == B->InstanceIndex, Header, "InstanceIndex");
 	Result &= TestExpressionError(IsEquivalent(A->PositionParentParm, B->PositionParentParm), Header, "PositionParentParm");
@@ -1702,7 +1704,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterRampCol
 		return true;
 	}
 
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A->Position, B->Position), Header, "Position");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A->Position, B->Position, FLOAT_TOLERANCE), Header, "Position");
 	Result &= TestExpressionError(IsEquivalent(A->Value, B->Value), Header, "Value");
 	Result &= TestExpressionError(A->Interpolation == B->Interpolation, Header, "Interpolation");
 	Result &= TestExpressionError(A->InstanceIndex == B->InstanceIndex, Header, "InstanceIndex");
@@ -1755,7 +1757,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterRampCol
 	Result &= TestExpressionError(A->DefaultPositions.Num() == B->DefaultPositions.Num(), Header, "DefaultPositions.Num");
 	for (int i = 0; i < FMath::Min(A->DefaultPositions.Num(), B->DefaultPositions.Num()); i++)
 	{
-		Result &= TestExpressionError(FMath::IsNearlyEqual(A->DefaultPositions[i], B->DefaultPositions[i]), Header, "DefaultPositions");
+		Result &= TestExpressionError(FMath::IsNearlyEqual(A->DefaultPositions[i], B->DefaultPositions[i], FLOAT_TOLERANCE), Header, "DefaultPositions");
 	}
 	Result &= TestExpressionError(A->DefaultValues.Num() == B->DefaultValues.Num(), Header, "DefaultValues.Num");
 	for (int i = 0; i < FMath::Min(A->DefaultValues.Num(), B->DefaultValues.Num()); i++)
