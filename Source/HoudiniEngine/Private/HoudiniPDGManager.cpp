@@ -2190,12 +2190,26 @@ FHoudiniPDGManager::IsPDGAsset(const HAPI_NodeId& InAssetId)
 	if (InAssetId < 0)
 		return false;
 
+	// Get the list of all non bypassed TOP nodes within the current network (ignoring schedulers)
+	int32 TOPNodeCount = 0;
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::ComposeChildNodeList(
+		FHoudiniEngine::Get().GetSession(), InAssetId,
+		HAPI_NodeType::HAPI_NODETYPE_TOP, HAPI_NODEFLAGS_TOP_NONSCHEDULER | HAPI_NODEFLAGS_NON_BYPASS, true, &TOPNodeCount))
+	{
+		return false;
+	}
+
+	// We found valid TOP Nodes, this is a PDG HDA
+	if (TOPNodeCount > 0)
+		return true;
+
+	/*
 	// Get all the network nodes within the asset, recursively.
 	// We're getting all networks because TOP network SOPs aren't considered being of TOP network type, but SOP type
 	int32 NetworkNodeCount = 0;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeChildNodeList(
 		FHoudiniEngine::Get().GetSession(), InAssetId,
-		HAPI_NODETYPE_ANY, HAPI_NODEFLAGS_NETWORK, true, &NetworkNodeCount), false);
+		HAPI_NODETYPE_SOP | HAPI_NODETYPE_TOP, HAPI_NODEFLAGS_NETWORK, true, & NetworkNodeCount), false);
 
 	if (NetworkNodeCount <= 0)
 		return false;
@@ -2234,6 +2248,8 @@ FHoudiniPDGManager::IsPDGAsset(const HAPI_NodeId& InAssetId)
 
 	// For each Network we found earlier, only consider those with TOP child nodes
 	// If we find TOP nodes in a valid network, then consider this HDA a PDG HDA
+	HAPI_NodeInfo CurrentNodeInfo;
+	FHoudiniApi::NodeInfo_Init(&CurrentNodeInfo);
 	for (const HAPI_NodeId& CurrentNodeId : AllNetworkNodeIDs)
 	{
 		if (CurrentNodeId < 0)
@@ -2241,8 +2257,6 @@ FHoudiniPDGManager::IsPDGAsset(const HAPI_NodeId& InAssetId)
 			continue;
 		}
 
-		HAPI_NodeInfo CurrentNodeInfo;
-		FHoudiniApi::NodeInfo_Init(&CurrentNodeInfo);
 		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetNodeInfo(
 			FHoudiniEngine::Get().GetSession(), CurrentNodeId, &CurrentNodeInfo))
 		{
@@ -2269,6 +2283,7 @@ FHoudiniPDGManager::IsPDGAsset(const HAPI_NodeId& InAssetId)
 		if (TOPNodeCount > 0)
 			return true;
 	}
+	*/
 
 	// No valid TOP node found in SOP/TOP Networks, this is not a PDG HDA
 	return false;
