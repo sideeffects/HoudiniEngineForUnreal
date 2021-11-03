@@ -1492,6 +1492,13 @@ FUnrealLandscapeTranslator::GetLandscapeLayerData(
 		LayerData, LayerUsageDebugColor, LayerName))
 		return false;
 
+	if (FName(LayerName).Compare(ALandscape::VisibilityLayer->LayerName) ==0)
+	{
+		// If we encounter the visibility layer, make sure we name
+		// it according to the plugin's expectations instead of using the internal `DataLayer__` name.
+		LayerName = HAPI_UNREAL_VISIBILITY_LAYER_NAME;
+	}
+
 	return true;
 }
 
