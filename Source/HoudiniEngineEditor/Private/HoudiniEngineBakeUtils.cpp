@@ -5529,7 +5529,8 @@ FHoudiniEngineBakeUtils::BakePDGWorkResultObject(
 	if (bInBakeToWorkResultActor)
 	{
 		// if we re-used the temp actor as a bake actor, then remove its temp outputs
-		WorkResultObject.DestroyResultOutputs();
+		constexpr bool bDeleteOutputActor = false;
+		InNode->DeleteWorkResultObjectOutputs(InWorkResultArrayIndex, InWorkResultObjectArrayIndex, bDeleteOutputActor);
 		if (WROActor)
 		{
 			if (BakedWROActorEntry)
