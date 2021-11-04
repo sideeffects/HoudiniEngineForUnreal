@@ -1304,7 +1304,7 @@ FHoudiniPDGDetails::AddTOPNetworkWidget(
 								else
 								{
 									// Delete and unload the result objects and actors now
-									TOPNet->DeleteWorkResultOutputObjects();
+									TOPNet->DeleteAllWorkResultObjectOutputs();
 								}
 							}
 						}
@@ -1957,7 +1957,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 								else
 								{
 									// Delete and unload the result objects and actors now
-									TOPNode->DeleteWorkResultOutputObjects();
+									TOPNode->DeleteAllWorkResultObjectOutputs();
 								}
 							}
 						}

@@ -253,6 +253,7 @@ enum HAPI_UNREAL_NodeFlags
 // Various variable names used to store meta information in generated packages.
 // More in HoudiniEnginePrivatePCH.h
 #define HAPI_UNREAL_PACKAGE_META_TEMP_GUID				TEXT( "HoudiniPackageTempGUID" )
+#define HAPI_UNREAL_PACKAGE_META_COMPONENT_GUID			TEXT( "HoudiniComponentGUID" )
 
 // Default PDG Filters
 #define HAPI_UNREAL_PDG_DEFAULT_TOP_FILTER				"HE_";

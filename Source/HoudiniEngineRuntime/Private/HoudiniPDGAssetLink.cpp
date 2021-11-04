@@ -120,14 +120,14 @@ FTOPWorkResult::operator==(const FTOPWorkResult& OtherWorkResult) const
 }
 
 void
-FTOPWorkResult::ClearAndDestroyResultObjects()
+FTOPWorkResult::ClearAndDestroyResultObjects(const FGuid& InHoudiniComponentGuid)
 {
 	if (ResultObjects.Num() <= 0)
 		return;
 
 	for (FTOPWorkResultObject& ResultObject : ResultObjects)
 	{
-		ResultObject.DestroyResultOutputsAndRemoveOutputActor();
+		ResultObject.DestroyResultOutputsAndRemoveOutputActor(InHoudiniComponentGuid);
 	}
 	
 	ResultObjects.Empty();
@@ -393,6 +393,11 @@ UTOPNode::Reset()
 	AggregatedWorkItemTally.ZeroAll();
 }
 
+UHoudiniPDGAssetLink* UTOPNode::GetOuterAssetLink() const
+{
+	return GetTypedOuter<UHoudiniPDGAssetLink>();
+}
+
 void UTOPNode::OnWorkItemWaiting(int32 InWorkItemID)
 {
 	FTOPWorkResult* const WorkItem = GetWorkResultByID(InWorkItemID);
@@ -510,23 +515,56 @@ UTOPNode::SetLoadedWorkResultsToDelete()
     }	
 }
 
+FGuid
+UTOPNode::GetHoudiniComponentGuid() const
+{
+	UHoudiniPDGAssetLink const* const AssetLink = GetOuterAssetLink();
+	if (!IsValid(AssetLink))
+		return FGuid();
+	
+	return AssetLink->GetOuterHoudiniComponentGuid();
+}
 
 void
-UTOPNode::DeleteWorkResultOutputObjects()
+UTOPNode::DeleteWorkResultObjectOutputs(const int32 InWorkResultArrayIndex, const int32 InWorkResultObjectArrayIndex, const bool bInDeleteOutputActors)
 {
-	for (FTOPWorkResult& WorkItem : WorkResult)
+	if (!WorkResult.IsValidIndex(InWorkResultArrayIndex))
+		return;
+	
+	FTOPWorkResult& WorkItem = WorkResult[InWorkResultArrayIndex];
+	if (!WorkItem.ResultObjects.IsValidIndex(InWorkResultObjectArrayIndex))
+		return;
+	
+	FTOPWorkResultObject& WRO = WorkItem.ResultObjects[InWorkResultObjectArrayIndex];
+	// Delete and clean up that WRObj
+	WRO.DestroyResultOutputs(GetHoudiniComponentGuid());
+	if (bInDeleteOutputActors)
+		WRO.GetOutputActorOwner().DestroyOutputActor();
+	WRO.State = EPDGWorkResultState::Deleted;
+}
+
+void
+UTOPNode::DeleteWorkItemOutputs(const int32 InWorkResultArrayIndex, const bool bInDeleteOutputActors)
+{
+	if (!WorkResult.IsValidIndex(InWorkResultArrayIndex))
+		return;
+	
+	const FTOPWorkResult& WorkItem = WorkResult[InWorkResultArrayIndex];
+	const int32 NumResultObjects = WorkItem.ResultObjects.Num();
+	for (int32 ResultObjectIndex = 0; ResultObjectIndex < NumResultObjects; ++ResultObjectIndex)
 	{
-		for (FTOPWorkResultObject& WRO : WorkItem.ResultObjects)
-		{
-			if (WRO.State == EPDGWorkResultState::Loaded)
-			{
-				// Delete and clean up that WRObj
-				WRO.DestroyResultOutputs();
-				WRO.GetOutputActorOwner().DestroyOutputActor();
-				WRO.State = EPDGWorkResultState::Deleted;
-			}
-		}
-    }
+		DeleteWorkResultObjectOutputs(InWorkResultArrayIndex, ResultObjectIndex, bInDeleteOutputActors);
+	}
+}
+
+void
+UTOPNode::DeleteAllWorkResultObjectOutputs(const bool bInDeleteOutputActors)
+{
+	const int32 NumWorkItems = WorkResult.Num();
+	for (int32 WorkItemIndex = 0; WorkItemIndex < NumWorkItems; ++WorkItemIndex)
+	{
+		DeleteWorkItemOutputs(WorkItemIndex, bInDeleteOutputActors);
+	}
 	bCachedHaveLoadedWorkResults = false;
 }
 
@@ -787,14 +825,14 @@ UTOPNetwork::SetLoadedWorkResultsToDelete()
 }
 
 void
-UTOPNetwork::DeleteWorkResultOutputObjects()
+UTOPNetwork::DeleteAllWorkResultObjectOutputs()
 {
 	for (UTOPNode* Node : AllTOPNodes)
 	{
 		if (!IsValid(Node))
 			continue;
 		
-		Node->DeleteWorkResultOutputObjects();
+		Node->DeleteAllWorkResultObjectOutputs();
 	}
 }
 
@@ -1099,10 +1137,11 @@ UHoudiniPDGAssetLink::ClearTOPNodeWorkItemResults(UTOPNode* TOPNode)
 		return;
 
 	TOPNode->OnDirtyNode();
-	
+
+	const FGuid HoudiniComponentGuid(TOPNode->GetHoudiniComponentGuid());
 	for(FTOPWorkResult& CurrentWorkResult : TOPNode->WorkResult)
 	{
-		DestroyWorkItemResultData(CurrentWorkResult);
+		CurrentWorkResult.ClearAndDestroyResultObjects(HoudiniComponentGuid);
 	}
 	TOPNode->WorkResult.Empty();
 
@@ -1143,7 +1182,7 @@ UHoudiniPDGAssetLink::ClearWorkItemResultByID(const int32& InWorkItemID, UTOPNod
 	FTOPWorkResult* WorkResult = GetWorkResultByID(InWorkItemID, InTOPNode);
 	if (WorkResult)
 	{
-		DestroyWorkItemResultData(*WorkResult);
+		WorkResult->ClearAndDestroyResultObjects(InTOPNode->GetHoudiniComponentGuid());
 		// TODO: Should we destroy the FTOPWorkResult struct entirely here?
 		//TOPNode.WorkResult.RemoveByPredicate 
 	}
@@ -1185,16 +1224,14 @@ UHoudiniPDGAssetLink::GetTemporaryCookFolder() const
 	return TempPath;
 }
 
-void
-UHoudiniPDGAssetLink::DestoryWorkResultObjectData(FTOPWorkResultObject& ResultObject)
+FGuid
+UHoudiniPDGAssetLink::GetOuterHoudiniComponentGuid() const
 {
-	ResultObject.DestroyResultOutputsAndRemoveOutputActor();
-}
+	UHoudiniAssetComponent const* const HAC = GetOuterHoudiniAssetComponent();
+	if (!IsValid(HAC))
+		return FGuid();
 
-void
-UHoudiniPDGAssetLink::DestroyWorkItemResultData(FTOPWorkResult& Result)
-{
-	Result.ClearAndDestroyResultObjects();
+	return HAC->GetComponentGUID();
 }
 
 void
@@ -1702,8 +1739,12 @@ UHoudiniPDGAssetLink::PostTransacted(const FTransactionObjectEvent& TransactionE
 #endif
 
 void
-FTOPWorkResultObject::DestroyResultOutputs()
+FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 {
+	TSet<UObject*> OutputObjectsToDelete;
+
+	const FString ComponentGuidString = InHoudiniComponentGuid.IsValid() ? InHoudiniComponentGuid.ToString() : FString();
+
 	// Delete output components and gather output objects for deletion
 	bool bDidDestroyObjects = false;
 	bool bDidModifyFoliage = false;
@@ -1807,8 +1848,10 @@ FTOPWorkResultObject::DestroyResultOutputs()
 				}
 				else
 				{
-					// ... if not an actor, destroy the object if it is a plugin created temp object
-					if (IsValid(OutputObject.OutputObject) && !OutputObject.OutputObject->HasAnyFlags(RF_Transient))
+					// ... if not an actor, destroy the object if it is a temp object created by the owning
+					// HoudiniAssetComponent. Don't delete anything if we don't have a valid component GUID.
+					if (IsValid(OutputObject.OutputObject) && !OutputObject.OutputObject->HasAnyFlags(RF_Transient) &&
+						!ComponentGuidString.IsEmpty() && !OutputObjectsToDelete.Contains(OutputObject.OutputObject))
 					{
 						// Only delete if the object has metadata indicating it is a plugin created temp object
 						UPackage* const Package = OutputObject.OutputObject->GetOutermost();
@@ -1817,13 +1860,22 @@ FTOPWorkResultObject::DestroyResultOutputs()
 							UMetaData* const MetaData = Package->GetMetaData();
 							if (IsValid(MetaData))
 							{
+								// Check for HAPI_UNREAL_PACKAGE_META_TEMP_GUID in the package metadata to confirm that
+								// this is a temp package, and then ensure that the component GUID in the package metadata
+								// for the object matches the GUID of the owning HAC
 								if (MetaData->RootMetaDataMap.Contains(HAPI_UNREAL_PACKAGE_META_TEMP_GUID))
 								{
 									FString TempGUID;
 									TempGUID = MetaData->RootMetaDataMap.FindChecked(HAPI_UNREAL_PACKAGE_META_TEMP_GUID);
 									TempGUID.TrimStartAndEndInline();
 									if (!TempGUID.IsEmpty())
-										OutputObjectsToDelete.Add(OutputObject.OutputObject);
+									{
+										// PackageComponentGuidString will be the empty string if the object does not
+										// have the HAPI_UNREAL_PACKAGE_META_COMPONENT_GUID metadata key in the package
+										const FString PackageComponentGuidString = MetaData->GetValue(OutputObject.OutputObject, HAPI_UNREAL_PACKAGE_META_COMPONENT_GUID);
+										if (!PackageComponentGuidString.IsEmpty() && PackageComponentGuidString == ComponentGuidString)
+											OutputObjectsToDelete.Add(OutputObject.OutputObject);
+									}
 								}
 							}
 						}
@@ -1841,7 +1893,10 @@ FTOPWorkResultObject::DestroyResultOutputs()
 	
 	// Delete the output objects we found
 	if (OutputObjectsToDelete.Num() > 0)
-		FHoudiniEngineRuntimeUtils::SafeDeleteObjects(OutputObjectsToDelete);
+	{
+		TArray<UObject*> ObjectsToDelete(OutputObjectsToDelete.Array());
+		FHoudiniEngineRuntimeUtils::SafeDeleteObjects(ObjectsToDelete);
+	}
 
 #if WITH_EDITOR
 	if (bDidModifyFoliage)
@@ -1859,9 +1914,9 @@ FTOPWorkResultObject::DestroyResultOutputs()
 #endif
 }
 
-void FTOPWorkResultObject::DestroyResultOutputsAndRemoveOutputActor()
+void FTOPWorkResultObject::DestroyResultOutputsAndRemoveOutputActor(const FGuid& InHoudiniComponentGuid)
 {
-	DestroyResultOutputs();
+	DestroyResultOutputs(InHoudiniComponentGuid);
 	GetOutputActorOwner().DestroyOutputActor();
 }
 
