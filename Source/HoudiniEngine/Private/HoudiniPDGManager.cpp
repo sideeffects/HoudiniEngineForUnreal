@@ -31,6 +31,7 @@
 #include "HAL/FileManager.h"
 
 #include "HoudiniApi.h"
+#include "HoudiniAsset.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineString.h"
@@ -540,7 +541,7 @@ FHoudiniPDGManager::PopulateTOPNodes(
 		if (!IsValid(CurTOPNode))
 			continue;
 		
-		InPDGAssetLink->ClearTOPNodeWorkItemResults(CurTOPNode);
+		UHoudiniPDGAssetLink::ClearTOPNodeWorkItemResults(CurTOPNode);
 	}
 
 	InTOPNetwork->AllTOPNodes = AllTOPNodes;
@@ -1531,7 +1532,10 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 					// are always saved and standalone, so if we want to automatically clean up old results then we
 					// need to destroy the existing outputs
 					if (BGEOCommandletStatus == EHoudiniBGEOCommandletStatus::Connected)
-						ExistingResultObject.DestroyResultOutputs();
+					{
+						constexpr bool bDeleteOutputActors = false;
+						InTOPNode->DeleteWorkResultObjectOutputs(WorkResultArrayIndex, ExistingObjectIndex, bDeleteOutputActors);
+					}
 					
 					if ((ExistingResultObject.State == EPDGWorkResultState::Loaded ||
 						 ExistingResultObject.State ==  EPDGWorkResultState::ToDelete ||
@@ -1567,8 +1571,7 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 	{
 		if (ResultIndicesThatWereReused.Contains(ResultObjectIndex))
 			continue;
-		FTOPWorkResultObject& ResultObject = WorkResult->ResultObjects[ResultObjectIndex];
-		ResultObject.DestroyResultOutputsAndRemoveOutputActor();
+		InTOPNode->DeleteWorkResultObjectOutputs(WorkResultArrayIndex, ResultObjectIndex);
 	}
 	WorkResult->ResultObjects = NewResultObjects;
 
@@ -1623,6 +1626,7 @@ FHoudiniPDGManager::SyncAndPruneWorkItems(UTOPNode* InTOPNode)
 
 	// Remove any work result entries with invalid IDs or where the WorkItemID is not in the set of ids returned by
 	// HAPI (only if we could get the IDs from HAPI).
+	const FGuid HoudiniComponentGuid(InTOPNode->GetHoudiniComponentGuid());
 	int32 NumRemoved = 0;
 	const int32 NumWorkItemsInArray = InTOPNode->WorkResult.Num();
 	for (int32 Index = NumWorkItemsInArray - 1; Index >= 0; --Index)
@@ -1633,7 +1637,7 @@ FHoudiniPDGManager::SyncAndPruneWorkItems(UTOPNode* InTOPNode)
 			HOUDINI_PDG_WARNING(
 				TEXT("Pruning a FTOPWorkResult entry from TOP Node %d, WorkItemID %d, WorkItemIndex %d, Array Index %d"),
 				InTOPNode->NodeId, WorkResult.WorkItemID, WorkResult.WorkItemIndex, Index);
-			WorkResult.ClearAndDestroyResultObjects();
+			WorkResult.ClearAndDestroyResultObjects(HoudiniComponentGuid);
 			InTOPNode->WorkResult.RemoveAt(Index);
 			InTOPNode->OnWorkItemRemoved(WorkResult.WorkItemID);
 			NumRemoved++;
@@ -1725,8 +1729,11 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 				{
 					FTOPWorkResult& CurrentWorkResult = CurrentTOPNode->WorkResult[WorkResultArrayIndex];
 					// ... All WorkResultObjects
-					for (FTOPWorkResultObject& CurrentWorkResultObj : CurrentWorkResult.ResultObjects)
+					const int32 NumWorkResultObjects = CurrentWorkResult.ResultObjects.Num();
+					for (int32 WorkResultObjectArrayIndex = 0; WorkResultObjectArrayIndex < NumWorkResultObjects; ++WorkResultObjectArrayIndex)
+					// for (FTOPWorkResultObject& CurrentWorkResultObj : CurrentWorkResult.ResultObjects)
 					{
+						FTOPWorkResultObject& CurrentWorkResultObj = CurrentWorkResult.ResultObjects[WorkResultObjectArrayIndex];
 						if (CurrentWorkResultObj.State == EPDGWorkResultState::ToLoad)
 						{
 							CurrentWorkResultObj.State = EPDGWorkResultState::Loading;
@@ -1792,9 +1799,7 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 							CurrentWorkResultObj.State = EPDGWorkResultState::Deleting;
 
 							// Delete and clean up that WRObj
-							CurrentWorkResultObj.DestroyResultOutputs();
-							CurrentWorkResultObj.GetOutputActorOwner().DestroyOutputActor();
-							CurrentWorkResultObj.State = EPDGWorkResultState::Deleted;
+							CurrentTOPNode->DeleteWorkResultObjectOutputs(WorkResultArrayIndex, WorkResultObjectArrayIndex);
 							CurrentTOPNode->bCachedHaveNotLoadedWorkResults = true;
 						}
 						else if (CurrentWorkResultObj.State == EPDGWorkResultState::Deleted)
