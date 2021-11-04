@@ -1848,9 +1848,10 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 				}
 				else
 				{
-					// ... if not an actor, destroy the object if it is a plugin created temp object
+					// ... if not an actor, destroy the object if it is a temp object created by the owning
+					// HoudiniAssetComponent. Don't delete anything if we don't have a valid component GUID.
 					if (IsValid(OutputObject.OutputObject) && !OutputObject.OutputObject->HasAnyFlags(RF_Transient) &&
-						!OutputObjectsToDelete.Contains(OutputObject.OutputObject))
+						!ComponentGuidString.IsEmpty() && !OutputObjectsToDelete.Contains(OutputObject.OutputObject))
 					{
 						// Only delete if the object has metadata indicating it is a plugin created temp object
 						UPackage* const Package = OutputObject.OutputObject->GetOutermost();
@@ -1869,13 +1870,11 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 									TempGUID.TrimStartAndEndInline();
 									if (!TempGUID.IsEmpty())
 									{
-										FString const* const PackageComponentGuidPtr = MetaData->FindValue(OutputObject.OutputObject, HAPI_UNREAL_PACKAGE_META_COMPONENT_GUID);
-										if (PackageComponentGuidPtr)
-										{
-											const FString PackageComponentGuidStr = PackageComponentGuidPtr->TrimStartAndEnd();
-											if (!PackageComponentGuidStr.IsEmpty() && PackageComponentGuidStr == ComponentGuidString)
-												OutputObjectsToDelete.Add(OutputObject.OutputObject);
-										}
+										// PackageComponentGuidString will be the empty string if the object does not
+										// have the HAPI_UNREAL_PACKAGE_META_COMPONENT_GUID metadata key in the package
+										const FString PackageComponentGuidString = MetaData->GetValue(OutputObject.OutputObject, HAPI_UNREAL_PACKAGE_META_COMPONENT_GUID);
+										if (!PackageComponentGuidString.IsEmpty() && PackageComponentGuidString == ComponentGuidString)
+											OutputObjectsToDelete.Add(OutputObject.OutputObject);
 									}
 								}
 							}
