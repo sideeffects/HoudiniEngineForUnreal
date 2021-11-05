@@ -1260,12 +1260,13 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				bHasChanged = true;
 			}
 
-			if (bHasChanged)
-			{
-				FString NodePath;
-				FHoudiniEngineUtils::HapiGetAbsNodePath(CurrentHapiGeoInfo.nodeId, NodePath);
-				HOUDINI_LOG_MESSAGE(TEXT("[TaskCookAsset] We say Geo Has Changed!: %d, %s"), CurrentHapiGeoInfo.nodeId, *NodePath);
-			}
+			// Left in here for debugging convenience.
+			// if (bHasChanged)
+			// {
+			// 	FString NodePath;
+			// 	FHoudiniEngineUtils::HapiGetAbsNodePath(CurrentHapiGeoInfo.nodeId, NodePath);
+			// 	HOUDINI_LOG_MESSAGE(TEXT("[TaskCookAsset] We say Geo Has Changed!: %d, %s"), CurrentHapiGeoInfo.nodeId, *NodePath);
+			// }
 
 			// HERE BE FUDGING!
 			// Change the hasGeoChanged flag on the GeoInfo to match our expectation
