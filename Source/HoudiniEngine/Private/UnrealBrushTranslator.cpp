@@ -249,7 +249,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 		for (int32 PosIndex = 0; PosIndex < NumPoints; ++PosIndex)
 		{
 			FVector Point = BrushModel->Points[PosIndex];
-			Point = ActorTransformInverse.TransformPosition(Point);
+			Point = ActorTransform.InverseTransformPosition(Point);
 			FVector Pos(Point.X, Point.Z, Point.Y);
 			OutPosition[PosIndex] = Pos/HAPI_UNREAL_SCALE_FACTOR_POSITION;
 		}
