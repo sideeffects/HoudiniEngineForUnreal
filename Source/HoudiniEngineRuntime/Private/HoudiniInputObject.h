@@ -152,8 +152,23 @@ public:
 
 	FGuid GetInputGuid() const { return Guid; }
 
+	/**
+	 * Populate OutChangedObjects with any output objects (this object and its children if it has any) that has changed
+	 * or have invalid HAPI node ids.
+	 * Any objects that have not changed and have valid HAPI node ids have their node ids added to
+	 * OutNodeIdsOfUnchangedValidObjects.
+	 *
+	 * @return true if this object, or any of its child objects, were added to OutChangedObjects.
+	 */
+	virtual bool GetChangedObjectsAndValidNodes(TArray<UHoudiniInputObject*>& OutChangedObjects, TArray<int32>& OutNodeIdsOfUnchangedValidObjects);
 
 protected:
+
+	/**
+	 * Returns true if this object type uses an input object (OBJ) node. This is not a recursive check, for objects
+	 * with child objects (such as an actor with components), each child input object must be checked as well.
+	 */
+	virtual bool UsesInputObjectNode() const { return true; }
 
 	virtual void BeginDestroy() override;
 
@@ -671,7 +686,19 @@ public:
 	// The number of components remove with the last call to Update	
 	int32 GetLastUpdateNumComponentsRemoved() const { return LastUpdateNumComponentsRemoved; }
 
+	/**
+	 * Populate OutChangedObjects with any output objects (this object and its children if it has any) that has changed
+	 * or have invalid HAPI node ids.
+	 * Any objects that have not changed and have valid HAPI node is have their node ids added to
+	 * OutNodeIdsOfUnchangedValidObjects.
+	 *
+	 * @return true if this object, or any of its child objects, were added to OutChangedObjects.
+	 */
+	virtual bool GetChangedObjectsAndValidNodes(TArray<UHoudiniInputObject*>& OutChangedObjects, TArray<int32>& OutNodeIdsOfUnchangedValidObjects) override;
+
 protected:
+
+	virtual bool UsesInputObjectNode() const override { return false; }
 
 	// The actor's components that can be sent as inputs
 	UPROPERTY()
@@ -718,6 +745,10 @@ public:
 	// Used to restore an input landscape's transform to its original state
 	UPROPERTY()
 	FTransform CachedInputLandscapeTraqnsform;
+
+protected:
+	virtual bool UsesInputObjectNode() const override { return true; }
+
 };
 
 
@@ -872,6 +903,8 @@ public:
 	static bool FindIntersectingSubtractiveBrushes(const UHoudiniInputBrush* InputBrush, TArray<ABrush*>& OutBrushes);
 
 protected:
+	virtual bool UsesInputObjectNode() const override { return true; }
+
 	UPROPERTY()
 	TArray<FHoudiniBrushInfo> BrushesInfo;
 	
