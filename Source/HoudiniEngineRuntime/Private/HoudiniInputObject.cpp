@@ -1510,6 +1510,26 @@ UHoudiniInputActor::HasContentChanged() const
 }
 
 bool
+UHoudiniInputActor::GetChangedObjectsAndValidNodes(TArray<UHoudiniInputObject*>& OutChangedObjects, TArray<int32>& OutNodeIdsOfUnchangedValidObjects)
+{
+	if (Super::GetChangedObjectsAndValidNodes(OutChangedObjects, OutNodeIdsOfUnchangedValidObjects))
+		return true;
+
+	bool bAnyChanges = false;
+	// Check each of its child objects (components)
+	for (auto* const CurrentComp : GetActorComponents())
+	{
+		if (!IsValid(CurrentComp))
+			continue;
+
+		if (CurrentComp->GetChangedObjectsAndValidNodes(OutChangedObjects, OutNodeIdsOfUnchangedValidObjects))
+			bAnyChanges = true;
+	}
+
+	return bAnyChanges;
+}
+
+bool
 UHoudiniInputLandscape::HasActorTransformChanged()
 {
 	return Super::HasActorTransformChanged();
@@ -1953,6 +1973,36 @@ UHoudiniInputObject::SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes)
 	bCanDeleteHoudiniNodes = bInCanDeleteNodes;
 }
 
+bool
+UHoudiniInputObject::GetChangedObjectsAndValidNodes(TArray<UHoudiniInputObject*>& OutChangedObjects, TArray<int32>& OutNodeIdsOfUnchangedValidObjects)
+{
+	if (HasChanged())
+	{
+		// Has changed, needs to be recreated
+		OutChangedObjects.Add(this);
+
+		return true;
+	}
+	
+	if (UsesInputObjectNode())
+	{
+		if (InputObjectNodeId >= 0)
+		{
+			// No changes, keep it
+			OutNodeIdsOfUnchangedValidObjects.Add(InputObjectNodeId);
+		}
+		else
+		{
+			// Needs, but does not have, a current HAPI input node
+			OutChangedObjects.Add(this);
+
+			return true;
+		}
+	}
+
+	// No changes and valid object node exists (or no node is used by this object type)
+	return false;
+}
 
 //
 UHoudiniInputDataTable::UHoudiniInputDataTable(const FObjectInitializer& ObjectInitializer)
