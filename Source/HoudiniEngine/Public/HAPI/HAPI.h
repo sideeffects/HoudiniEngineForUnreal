@@ -396,6 +396,11 @@ HAPI_DECL HAPI_GetServerEnvString( const HAPI_Session * session,
 /// @brief  Provides the number of environment variables that are in
 ///         the server environment's process
 ///
+///         Note that ::HAPI_GetServerEnvVarList() should be called directly after
+///         this method, otherwise there is the possibility that the environment
+///         variable count of the server will have changed by the time that
+///         ::HAPI_GetServerEnvVarList() is called.
+///
 /// @ingroup Environment
 ///
 /// @param[in]      session
@@ -425,7 +430,8 @@ HAPI_DECL HAPI_GetServerEnvVarCount( const HAPI_Session * session,
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least @c 0 and at most
-///                 @c env_count returned by ::HAPI_GetServerEnvVarCount()
+///                 @c env_count - 1 where @c env_count is the count returned by
+///                 ::HAPI_GetServerEnvVarCount()
 ///                 <!-- min 0 -->
 ///                 <!-- max ::HAPI_GetServerEnvVarCount -->
 ///                 <!-- default 0 -->
