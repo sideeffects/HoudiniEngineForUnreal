@@ -41,7 +41,7 @@
 using UnrealBuildTool;
 using System;
 using System.IO;
-using Tools.DotNETCommon;
+using EpicGames.Core;
 
 public class HoudiniEngine : ModuleRules
 {
