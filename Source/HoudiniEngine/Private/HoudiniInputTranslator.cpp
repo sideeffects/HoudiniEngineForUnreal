@@ -1007,54 +1007,30 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 	// Iterate on all the input objects and see if they need to be uploaded
 	bool bSuccess = true;
 	TArray<int32> CreatedNodeIds;
+	TArray<int32> ValidNodeIds;
+	TArray<UHoudiniInputObject*> ChangedInputObjects;
 	for (int32 ObjIdx = 0; ObjIdx < InputObjectsArray->Num(); ObjIdx++)
 	{
 		UHoudiniInputObject* CurrentInputObject = (*InputObjectsArray)[ObjIdx];
 		if (!IsValid(CurrentInputObject))
 			continue;
 
-		int32& CurrentInputObjectNodeId = CurrentInputObject->InputObjectNodeId;
-		if (!CurrentInputObject->HasChanged() && CurrentInputObjectNodeId >= 0)
-		{
-			// If this object hasn't changed, no need to upload it
-			// but we need to keep its created input node
-			if (CurrentInputObject->Type == EHoudiniInputObjectType::Actor)
-			{
-				// If this input object is an actor, it actually contains other input
-				// objects for each of his components, keep them as well
-				UHoudiniInputActor* InputActor = Cast<UHoudiniInputActor>(CurrentInputObject);
-				if (IsValid(InputActor))
-				{
-					for (auto CurrentComp : InputActor->GetActorComponents())
-					{
-						if (!IsValid(CurrentComp))
-							continue;
+		ValidNodeIds.Reset();
+		ChangedInputObjects.Reset();
+		// The input object could have child objects: GetChangedObjectsAndValidNodes finds if the object itself or
+		// any its children has changed, and also returns the NodeIds of those objects that are still valid and
+		// unchanged
+		CurrentInputObject->GetChangedObjectsAndValidNodes(ChangedInputObjects, ValidNodeIds);
 
-						int32& CurrentCompNodeId = CurrentComp->InputObjectNodeId;
-						if (!CurrentComp->HasChanged() && CurrentCompNodeId >= 0)
-						{
-							// If the component hasnt changed and is valid, keep it
-							CreatedNodeIds.Add(CurrentCompNodeId);
-						}
-						else
-						{
-							// Upload the component input object to Houdini	
-							if (!UploadHoudiniInputObject(InInput, CurrentComp, InActorTransform, CreatedNodeIds))
-								bSuccess = false;
-						}
-					}
-				}
-			}
-			else
-			{
-				// No changes, keep it
-				CreatedNodeIds.Add(CurrentInputObjectNodeId);
-			}
-		}
-		else
+		// Keep track of the node ids for unchanged objects that already exist
+		if (ValidNodeIds.Num() > 0)
+			CreatedNodeIds.Append(ValidNodeIds);
+
+		// Upload the changed input objects
+		for (UHoudiniInputObject* ChangedInputObject : ChangedInputObjects)
 		{
 			// Upload the current input object to Houdini
-			if (!UploadHoudiniInputObject(InInput, CurrentInputObject, InActorTransform, CreatedNodeIds))
+			if (!UploadHoudiniInputObject(InInput, ChangedInputObject, InActorTransform, CreatedNodeIds))
 				bSuccess = false;
 		}
 	}
@@ -1652,43 +1628,45 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 				break;
 			}
 
-			// Only apply diff for landscape since the HF's transform is used for value conversion as well
-			FTransform CurrentTransform = InputLandscape->Transform;
-			FTransform NewTransform = Landscape->ActorToWorld();
+			// // Only apply diff for landscape since the HF's transform is used for value conversion as well
+			// FTransform CurrentTransform = InputLandscape->Transform;
+			const FTransform NewTransform = Landscape->ActorToWorld();
 
-			// Only handle position/rotation differences
-			FVector PosDiff = NewTransform.GetLocation() - CurrentTransform.GetLocation();
-			FQuat RotDiff = NewTransform.GetRotation() - CurrentTransform.GetRotation();
-			
-			// Now get the HF's current transform
-			HAPI_Transform HapiTransform;
-			FHoudiniApi::Transform_Init(&HapiTransform);
-
-			if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjectTransform(
-				FHoudiniEngine::Get().GetSession(),
-				InputLandscape->InputObjectNodeId, -1, HAPI_SRT, &HapiTransform))
-			{
-				bSuccess = false;
-				break;
-			}
-
-			// Convert it to unreal
-			FTransform HFTransform;
-			FHoudiniEngineUtils::TranslateHapiTransform(HapiTransform, HFTransform);
-
-			// Apply the position offset if needed
-			if (!PosDiff.IsZero())
-				HFTransform.AddToTranslation(PosDiff);
-
-			// Apply the rotation offset if needed
-			if (!RotDiff.IsIdentity())
-				HFTransform.ConcatenateRotation(RotDiff);
+			// // Only handle position/rotation differences
+			// FVector PosDiff = NewTransform.GetLocation() - CurrentTransform.GetLocation();
+			// FQuat RotDiff = NewTransform.GetRotation() - CurrentTransform.GetRotation();
+			//
+			// // Now get the HF's current transform
+			// HAPI_Transform HapiTransform;
+			// FHoudiniApi::Transform_Init(&HapiTransform);
+			//
+			// if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjectTransform(
+			// 	FHoudiniEngine::Get().GetSession(),
+			// 	InputLandscape->InputObjectNodeId, -1, HAPI_SRT, &HapiTransform))
+			// {
+			// 	bSuccess = false;
+			// 	break;
+			// }
+			//
+			// // Convert it to unreal
+			// FTransform HFTransform;
+			// FHoudiniEngineUtils::TranslateHapiTransform(HapiTransform, HFTransform);
+			//
+			// // Apply the position offset if needed
+			// if (!PosDiff.IsZero())
+			// 	HFTransform.AddToTranslation(PosDiff);
+			//
+			// // Apply the rotation offset if needed
+			// if (!RotDiff.IsIdentity())
+			// 	HFTransform.ConcatenateRotation(RotDiff);
 
 			// Convert back to a HAPI Transform and update the HF's transform
 			HAPI_TransformEuler NewHAPITransform;
 			FHoudiniApi::TransformEuler_Init(&NewHAPITransform);
-			FHoudiniEngineUtils::TranslateUnrealTransform(HFTransform, NewHAPITransform);
-			NewHAPITransform.position[1] = 0.0f;
+			// FHoudiniEngineUtils::TranslateUnrealTransform(HFTransform, NewHAPITransform);
+			FHoudiniEngineUtils::TranslateUnrealTransform(
+				FTransform(NewTransform.GetRotation(), NewTransform.GetTranslation(), FVector::OneVector), NewHAPITransform);
+			// NewHAPITransform.position[1] = 0.0f;
 			if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetObjectTransform(
 				FHoudiniEngine::Get().GetSession(),
 				InputLandscape->InputObjectNodeId, &NewHAPITransform))
@@ -2273,7 +2251,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 		return true;
 
 	// Get the component's Static Mesh
-	UStaticMesh* SM = InObject->GetStaticMesh();
+	UStaticMesh* SM = SMC->GetStaticMesh();
 	if (!IsValid(SM))
 		return true;
 	
