@@ -1734,7 +1734,17 @@ bool FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(UHoudiniOutput* In
 		return false;
 	}
 	ALandscape* TargetLandscape = TargetLandscapeProxy->GetLandscapeActor();
-	check(TargetLandscape);
+	if (!IsValid(TargetLandscape))
+	{
+		HOUDINI_LOG_WARNING(TEXT("Could not retrieve the landscape actor for: %s"), *(TargetLandscapeName));
+		return false;
+	}
+
+	if (!TargetLandscape->bCanHaveLayersContent)
+	{
+		HOUDINI_LOG_WARNING(TEXT("Target landscape does not have edit layers enabled!: %s"), *(TargetLandscapeName));
+		return false;
+	}
 
 	ULandscapeInfo* TargetLandscapeInfo = TargetLandscapeProxy->GetLandscapeInfo();
 	const FTransform TargetLandscapeTransform = TargetLandscape->GetActorTransform();
