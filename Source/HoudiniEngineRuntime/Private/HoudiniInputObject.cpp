@@ -153,20 +153,6 @@ UHoudiniInputCameraComponent::UHoudiniInputCameraComponent(const FObjectInitiali
 
 }
 
-// Returns true if the attached actor's (parent) transform has been modified
-bool 
-UHoudiniInputSplineComponent::HasActorTransformChanged() const
-{
-	return false;
-}
-
-// Returns true if the attached component's transform has been modified
-bool 
-UHoudiniInputSplineComponent::HasComponentTransformChanged() const
-{
-	return false;
-}
-
 // Return true if the component itself has been modified
 bool 
 UHoudiniInputSplineComponent::HasComponentChanged() const 
@@ -198,12 +184,6 @@ UHoudiniInputSplineComponent::HasComponentChanged() const
 			return true;
 	}
 
-	return false;
-}
-
-bool 
-UHoudiniInputSplineComponent::HasSplineComponentChanged(float fCurrentSplineResolution) const
-{
 	return false;
 }
 
@@ -385,7 +365,7 @@ UHoudiniInputHoudiniAsset::GetHoudiniAssetComponent()
 }
 
 AActor*
-UHoudiniInputActor::GetActor()
+UHoudiniInputActor::GetActor() const
 {
 	return Cast<AActor>(InputObject.LoadSynchronous());
 }
@@ -1355,12 +1335,13 @@ UHoudiniInputActor::Update(UObject * InObject)
 
 			TArray<USceneComponent*> AllComponents;
 			Actor->GetComponents<USceneComponent>(AllComponents, true);
-
-			int32 CompIdx = 0;
-			ActorComponents.SetNum(AllComponents.Num());
+			
+			ActorComponents.Reserve(AllComponents.Num());
 			for (USceneComponent * SceneComponent : AllComponents)
 			{
 				if (!IsValid(SceneComponent))
+					continue;
+				if (!ShouldTrackComponent(SceneComponent))
 					continue;
 
 				UHoudiniInputObject* InputObj = UHoudiniInputObject::CreateTypedInputObject(
@@ -1372,11 +1353,10 @@ UHoudiniInputActor::Update(UObject * InObject)
 				if (!SceneInput)
 					continue;
 
-				ActorComponents[CompIdx++] = SceneInput;
+				ActorComponents.Add(SceneInput);
 				ActorSceneComponents.Add(TSoftObjectPtr<UObject>(SceneComponent));
 			}
-			ActorComponents.SetNum(CompIdx);
-			LastUpdateNumComponentsAdded = CompIdx;
+			LastUpdateNumComponentsAdded = ActorComponents.Num();
 		}
 		else
 		{
@@ -1492,13 +1472,38 @@ UHoudiniInputActor::Update(UObject * InObject)
 }
 
 bool 
-UHoudiniInputActor::HasActorTransformChanged()
+UHoudiniInputActor::HasActorTransformChanged() const
 {
 	if (!GetActor())
 		return false;
 
+	if (HasRootComponentTransformChanged())
+		return true;
+
+	if (HasComponentsTransformChanged())
+		return true;
+
+	return false;
+}
+
+bool UHoudiniInputActor::HasRootComponentTransformChanged() const
+{
 	if (!Transform.Equals(GetActor()->GetTransform()))
 		return true;
+	return false;
+}
+
+bool UHoudiniInputActor::HasComponentsTransformChanged() const
+{
+	// Search through all the child components to see if we have changed
+	// transforms in there.
+	for (auto CurActorComp : GetActorComponents())
+	{
+		if (CurActorComp->HasComponentTransformChanged())
+		{
+			return true;
+		}
+	}
 
 	return false;
 }
@@ -1529,11 +1534,13 @@ UHoudiniInputActor::GetChangedObjectsAndValidNodes(TArray<UHoudiniInputObject*>&
 	return bAnyChanges;
 }
 
-bool
-UHoudiniInputLandscape::HasActorTransformChanged()
+bool UHoudiniInputLandscape::ShouldTrackComponent(UActorComponent* InComponent)
 {
-	return Super::HasActorTransformChanged();
-	//return false;
+	// We explicitly disable tracking of any components for landscape inputs since the Landscape tools
+	// have this very interesting and creative way of adding components when the tool is activated
+	// (looking at you Flatten tool) which causes cooking loops.
+	// return false;
+	return true;
 }
 
 void
@@ -1872,7 +1879,7 @@ bool UHoudiniInputBrush::HasContentChanged() const
 }
 
 bool
-UHoudiniInputBrush::HasActorTransformChanged()
+UHoudiniInputBrush::HasActorTransformChanged() const
 {
 	if (bIgnoreInputObject)
 		return false;

@@ -489,17 +489,8 @@ public:
 	// USplineComponent accessor
 	USplineComponent* GetSplineComponent();
 
-	// Returns true if the attached spline component has been modified
-	bool HasSplineComponentChanged(float fCurrentSplineResolution) const;
-
-	// Returns true if the attached actor's (parent) transform has been modified
-	virtual bool HasActorTransformChanged() const;
-
-	// Returns true if the attached component's transform has been modified
-	virtual bool HasComponentTransformChanged() const;
-
 	// Return true if the component itself has been modified
-	virtual bool HasComponentChanged() const;
+	virtual bool HasComponentChanged() const override;
 
 public:
 
@@ -668,8 +659,16 @@ public:
 	//
 	virtual void Update(UObject * InObject) override;
 
-	// 
-	virtual bool HasActorTransformChanged();
+	// Check whether the actor transform, or any of its components have transform changes.
+	virtual bool HasActorTransformChanged() const;
+
+protected:
+	virtual bool HasRootComponentTransformChanged() const;
+	virtual bool HasComponentsTransformChanged() const;
+
+public:
+	//
+	virtual bool ShouldTrackComponent(UActorComponent* InComponent) { return true; }
 
 	// Return true if any content of this actor has possibly changed (for example geometry edits on a 
 	// Brush or changes on procedurally generated content).
@@ -677,7 +676,7 @@ public:
 	virtual bool HasContentChanged() const;
 
 	// AActor accessor
-	AActor* GetActor();
+	AActor* GetActor() const;
 
 	const TArray<UHoudiniInputSceneComponent*>& GetActorComponents() const { return ActorComponents; }
 
@@ -733,9 +732,10 @@ public:
 	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
 
 	//
+	
 	virtual void Update(UObject * InObject) override;
 
-	virtual bool HasActorTransformChanged() override;
+	virtual bool ShouldTrackComponent(UActorComponent* InComponent) override;
 
 	// ALandscapeProxy accessor
 	ALandscapeProxy* GetLandscapeProxy();
@@ -872,8 +872,8 @@ public:
 
 	// Indicates if this input has changed and should be updated
 	virtual bool HasTransformChanged() const override { return (!bIgnoreInputObject) && bTransformChanged; };
-
-	virtual bool HasActorTransformChanged() override;
+	
+	virtual bool HasActorTransformChanged() const override;
 
 	virtual bool NeedsToTriggerUpdate() const override { return (!bIgnoreInputObject) && bNeedsToTriggerUpdate; };
 
