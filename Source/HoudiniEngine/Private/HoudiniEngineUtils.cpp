@@ -2366,18 +2366,12 @@ bool FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(const HAPI_NodeId& InNod
 				OutputGeoInfos.GetData(),
 				NumOutputs))
 			{
-				// We have to check each output node's outputidx parameter to find output 0
+				// Gather all the output nodes
 				for (const HAPI_GeoInfo& OutputGeoInfo : OutputGeoInfos)
 				{
-					int32 OutputIndex = -1;
-					if (GetOutputIndex(OutputGeoInfo.nodeId, OutputIndex) && OutputIndex == 0)
-					{
-						// Found output index 0!
-						OutGeoInfos.Add(OutputGeoInfo);
-						GatheredNodeIds.Add(OutputGeoInfo.nodeId);
-						OutForceNodesCook.Add(OutputGeoInfo.nodeId); // Ensure this output node gets cooked
-						break;
-					}
+					OutGeoInfos.Add(OutputGeoInfo);
+					GatheredNodeIds.Add(OutputGeoInfo.nodeId);
+					OutForceNodesCook.Add(OutputGeoInfo.nodeId); // Ensure this output node gets cooked
 				}
 			}
 		}
