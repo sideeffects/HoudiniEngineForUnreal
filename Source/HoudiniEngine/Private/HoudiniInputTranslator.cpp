@@ -1521,17 +1521,22 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 			break;
 		}
 
+		
 		case EHoudiniInputObjectType::StaticMeshComponent:
+		case EHoudiniInputObjectType::SplineComponent:
 		{
-			// Update using the static mesh component's transform
-			UHoudiniInputMeshComponent* InSMC = Cast<UHoudiniInputMeshComponent>(InInputObject);
-			if (!IsValid(InSMC))
+			// Default behaviour for components derived from SceneComponent.
+
+			// Update using the component's transform
+			UHoudiniInputSceneComponent* InComponent = Cast<UHoudiniInputSceneComponent>(InInputObject);
+			if (!IsValid(InComponent))
 			{
 				bSuccess = false;
 				break;
 			}
 
-			FTransform NewTransform = InSMC->GetStaticMeshComponent() ? InSMC->GetStaticMeshComponent()->GetComponentTransform() : InInputObject->Transform;
+			const USceneComponent* SceneComponent = InComponent->GetSceneComponent();
+			const FTransform NewTransform = IsValid(SceneComponent) ? SceneComponent->GetComponentTransform() : InInputObject->Transform;
 			if(!UpdateTransform(NewTransform, InInputObject->InputObjectNodeId))
 				bSuccess = false;
 
@@ -1593,7 +1598,7 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 			}
 			break;
 		}
-
+	
 		case EHoudiniInputObjectType::SceneComponent:
 		{
 			UHoudiniInputSceneComponent* InputSceneComp = Cast<UHoudiniInputSceneComponent>(InInputObject);
@@ -1697,7 +1702,6 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 		// Unsupported
 		case EHoudiniInputObjectType::Object:
 		case EHoudiniInputObjectType::SkeletalMesh:
-		case EHoudiniInputObjectType::SplineComponent:
 		{
 			break;
 		}
@@ -2579,7 +2583,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 	// Check if this is a world input and if this is a HoudiniAssetActor
 	// If so we need to build static meshes for any proxy meshes
 	if (InInput->GetInputType() == EHoudiniInputType::World && Actor->IsA<AHoudiniAssetActor>())
-	{
+{
 		AHoudiniAssetActor *HAA = Cast<AHoudiniAssetActor>(Actor);
 		UHoudiniAssetComponent *HAC = HAA->GetHoudiniAssetComponent();
 		if (IsValid(HAC))
@@ -2941,10 +2945,15 @@ FHoudiniInputTranslator::UpdateWorldInput(UHoudiniInput* InInput)
 			continue;
 		}
 
+		// We'll keep track of whether the actor transform changed so that
+		// we can mark all the components as having changed transforms -- everything
+		// needs to be updated.
+		bool bActorTransformChanged = false;
 		if (ActorObject->HasActorTransformChanged())
 		{
 			ActorObject->MarkTransformChanged(true);
 			bHasChanged = true;
+			bActorTransformChanged = true;
 		}	
 
 		if (ActorObject->HasContentChanged())
@@ -2959,7 +2968,7 @@ FHoudiniInputTranslator::UpdateWorldInput(UHoudiniInput* InInput)
 		// Check if any components have content or transform changes
 		for (auto CurActorComp : ActorObject->GetActorComponents())
 		{
-			if (CurActorComp->HasComponentTransformChanged())
+			if (bActorTransformChanged || CurActorComp->HasComponentTransformChanged())
 			{
 				CurActorComp->MarkTransformChanged(true);
 				bHasChanged = true;
@@ -2969,6 +2978,12 @@ FHoudiniInputTranslator::UpdateWorldInput(UHoudiniInput* InInput)
 			{
 				CurActorComp->MarkChanged(true);
 				bHasChanged = true;
+			}
+
+			USceneComponent* Component = CurActorComp->GetSceneComponent();
+			if (IsValid(Component))
+			{
+				CurActorComp->Update(Component);
 			}
 		}
 
