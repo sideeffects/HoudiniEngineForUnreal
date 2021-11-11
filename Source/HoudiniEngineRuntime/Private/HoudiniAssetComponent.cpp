@@ -695,6 +695,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 	bRemoveOutputAfterBake = false;
 	bRecenterBakedActors = false;
 	bReplacePreviousBake = false;
+	
+	bAllowPlayInEditorRefinement = false;
 #endif
 
 	//
@@ -719,6 +721,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 
 	// Initialize the default SM Build settings with the plugin's settings default values
 	StaticMeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
+	
+	
 }
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()
