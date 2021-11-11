@@ -92,6 +92,7 @@ UHoudiniInput::UHoudiniInput()
 	, bLandscapeExportLighting(false)
 	, bLandscapeExportNormalizedUVs(false)
 	, bLandscapeExportTileUVs(false)
+	, bCanDeleteHoudiniNodes(true)
 {
 	Name = TEXT("");
 	Label = TEXT("");
@@ -185,7 +186,7 @@ void UHoudiniInput::PostEditUndo()
 				 CreatedDataNodeIds.Empty();
 
 				 if (bCanDeleteHoudiniNodes)
-					FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(InputNodeId, true);
+					MarkInputNodeAsPendingDelete();
 				 InputNodeId = -1;
 			 }
 		 }
@@ -520,6 +521,16 @@ void UHoudiniInput::UpdateLandscapeInputSelection()
 	
 	}
 #endif
+}
+
+void
+UHoudiniInput::MarkInputNodeAsPendingDelete()
+{
+	if (InputNodeId < 0)
+		return;
+
+	InputNodesPendingDelete.Add(InputNodeId);
+	InputNodeId = -1;
 }
 
 FString
@@ -1192,7 +1203,7 @@ void UHoudiniInput::InvalidateData()
 		if (Type != EHoudiniInputType::Asset)
 		{
 			if (bCanDeleteHoudiniNodes)
-				FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(InputNodeId, true);
+				MarkInputNodeAsPendingDelete();
 		}
 		
 		InputNodeId = -1;
@@ -1777,7 +1788,7 @@ UHoudiniInput::DeleteInputObjectAt(const EHoudiniInputType& InType, const int32&
 		if (InputObjectsPtr->Num() == 0 && InputNodeId >= 0)
 		{
 			if (bCanDeleteHoudiniNodes)
-				FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(InputNodeId);
+				MarkInputNodeAsPendingDelete();
 			InputNodeId = -1;
 		}
 	}
@@ -2024,7 +2035,7 @@ UHoudiniInput::SetInputObjectsNumber(const EHoudiniInputType& InType, const int3
 	if (InNewCount == 0 && InputNodeId >= 0)
 	{
 		if (bCanDeleteHoudiniNodes)
-			FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(InputNodeId, true);
+			MarkInputNodeAsPendingDelete();
 		InputNodeId = -1;
 	}
 }

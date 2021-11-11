@@ -361,6 +361,15 @@ public:
 
 	void UpdateLandscapeInputSelection();
 
+	// Add the current InputNodeId to the pending delete set and set it to -1
+	void MarkInputNodeAsPendingDelete();
+
+	// Return the set of previous InputNodeIds that are pending delete
+	const TSet<int32>& GetInputNodesPendingDelete() const { return InputNodesPendingDelete; }
+
+	// Clear the InputNodesPendingDelete set 
+	void ClearInputNodesPendingDelete() { InputNodesPendingDelete.Empty(); }
+
 protected:
 
 	// Name of the input / Object path parameter
@@ -540,6 +549,10 @@ protected:
 	// A cache of the selected landscape components so that it is saved across levels
 	UPROPERTY()
 	TSet< ULandscapeComponent * > LandscapeSelectedComponents;
+
+	// The node ids of InputNodeIds previously used by this input that are pending delete
+	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
+	TSet<int32> InputNodesPendingDelete;
 
 public:
 
