@@ -695,6 +695,8 @@ public:
 	 */
 	virtual bool GetChangedObjectsAndValidNodes(TArray<UHoudiniInputObject*>& OutChangedObjects, TArray<int32>& OutNodeIdsOfUnchangedValidObjects) override;
 
+	virtual void InvalidateData() override;
+
 protected:
 
 	virtual bool UsesInputObjectNode() const override { return false; }
