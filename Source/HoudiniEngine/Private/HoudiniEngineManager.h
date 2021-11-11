@@ -52,6 +52,8 @@ public:
 
 	void StartHoudiniTicking();
 	void StopHoudiniTicking();
+	bool IsTicking() const;
+	
 	bool Tick(float DeltaTime);
 
 	// Updates / Process a component

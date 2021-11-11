@@ -1316,7 +1316,7 @@ FHoudiniEngineEditor::RegisterEditorDelegates()
 		}
 	});
 
-	PreBeginPIEEditorDelegateHandle = FEditorDelegates::PreBeginPIE.AddLambda([](const bool bIsSimulating)
+	PreBeginPIEEditorDelegateHandle = FEditorDelegates::PreBeginPIE.AddLambda([&](const bool bIsSimulating)
 	{
 		const bool bSelectedOnly = false;
 		const bool bSilent = false;
@@ -1324,6 +1324,24 @@ FHoudiniEngineEditor::RegisterEditorDelegates()
 		const bool bOnPreSaveWorld = false;
 		UWorld * const OnPreSaveWorld = nullptr;
 		const bool bOnPreBeginPIE = true;
+
+		// if the HoudiniEngine manager is currently ticking, we'll need to resume once PIE is done.
+		if (FHoudiniEngine::Get().IsTicking())
+		{
+			// If the HoudiniEngine is currently ticking we'll need to restart it  
+			
+			EndPIEEditorDelegateHandle = FEditorDelegates::EndPIE.AddLambda([&](const bool bEndPIEIsSimulating)
+			{
+				FHoudiniEngineCommands::ConnectSession();
+				// if (FHoudiniEngine::Get().ConnectSession())
+				// {
+				// 	// Only start ticking if we were able to reconnect the sesion.
+				// 	FHoudiniEngine::Get().StartTicking();
+				// }
+				FEditorDelegates::EndPIE.Remove(EndPIEEditorDelegateHandle);
+			});
+		}
+		
 		FHoudiniEngineCommands::RefineHoudiniProxyMeshesToStaticMeshes(bSelectedOnly, bSilent, bRefineAll, bOnPreSaveWorld, OnPreSaveWorld, bOnPreBeginPIE);
 	});
 
@@ -1339,6 +1357,9 @@ FHoudiniEngineEditor::UnregisterEditorDelegates()
 
 	if (PreBeginPIEEditorDelegateHandle.IsValid())
 		FEditorDelegates::PreBeginPIE.Remove(PreBeginPIEEditorDelegateHandle);
+
+	if (EndPIEEditorDelegateHandle.IsValid())
+		FEditorDelegates::EndPIE.Remove(EndPIEEditorDelegateHandle);
 
 	if (OnDeleteActorsBegin.IsValid())
 		FEditorDelegates::OnDeleteActorsBegin.Remove(OnDeleteActorsBegin);
