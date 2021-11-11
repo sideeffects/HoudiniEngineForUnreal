@@ -760,6 +760,33 @@ FHoudiniInputTranslator::UploadChangedInputs(UHoudiniAssetComponent * HAC)
 		if (!IsValid(CurrentInput) || !CurrentInput->HasChanged())
 			continue;
 
+		// Delete any previous InputNodeIds of this HoudiniInput that are pending delete
+		for (const HAPI_NodeId InputNodeIdPendingDelete : CurrentInput->GetInputNodesPendingDelete())
+		{
+			if (InputNodeIdPendingDelete < 0)
+				continue;
+
+			HAPI_NodeInfo NodeInfo;
+			FHoudiniApi::NodeInfo_Init(&NodeInfo);
+
+			if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetNodeInfo(
+				FHoudiniEngine::Get().GetSession(), InputNodeIdPendingDelete, &NodeInfo))
+			{
+				continue;
+			}
+
+			HAPI_NodeId NodeToDelete = InputNodeIdPendingDelete;
+			if (NodeInfo.type == HAPI_NODETYPE_SOP)
+			{
+				// Input nodes are Merge SOPs in a geo object, delete the geo object
+				const HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeIdPendingDelete);
+				NodeToDelete = ParentId != -1 ? ParentId : InputNodeIdPendingDelete;
+			}
+
+			HOUDINI_CHECK_ERROR(FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), NodeToDelete));
+		}
+		CurrentInput->ClearInputNodesPendingDelete();
+
 		// First thing, see if we need to change the input type
 		if (CurrentInput->HasInputTypeChanged())
 		{
@@ -1063,7 +1090,7 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 			{
 				if (InputNodeId >= 0)
 				{
-					for (int32 Idx = 0; Idx < PreviousInputObjectNodeIds.Num(); Idx++)
+					for (int32 Idx = PreviousInputObjectNodeIds.Num() - 1; Idx >= 0; --Idx)
 					{
 
 						// Get the object merge connected to the merge node
@@ -1135,7 +1162,7 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 	TArray<int32>& PreviousInputObjectNodeIds = InInput->GetCreatedDataNodeIds();
 	if (!InInput->HasInputTypeChanged())
 	{
-		for (int32 Idx = CreatedNodeIds.Num(); Idx < PreviousInputObjectNodeIds.Num(); Idx++)
+		for (int32 Idx = PreviousInputObjectNodeIds.Num() - 1; Idx >= CreatedNodeIds.Num(); --Idx)
 		{
 			// Get the object merge connected to the merge node
 			HAPI_NodeId InputObjectMergeId = -1;
