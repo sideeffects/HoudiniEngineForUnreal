@@ -1552,6 +1552,23 @@ FHoudiniEngineCommands::RefineTriagedHoudiniProxyMesehesToStaticMeshes(
 	TArray<UHoudiniAssetComponent*> SuccessfulComponents;
 	TArray<UHoudiniAssetComponent*> FailedComponents;
 	TArray<UHoudiniAssetComponent*> SkippedComponents(InSkippedComponents);
+
+	auto AllowPlayInEditorRefinementFn = [&bInOnPrePIEBeginPlay, &InComponentsToCook, &InComponentsToRefine] (bool bEnabled, bool bRefinementDone){
+		if (bInOnPrePIEBeginPlay)
+		{
+			// Flag the components that need cooking / refinement as cookable in PIE mode. No other cooking will be allowed.
+			// Once refinement is done, we'll unset these flags again.
+			SetAllowPlayInEditorRefinement(InComponentsToCook, true);
+			SetAllowPlayInEditorRefinement(InComponentsToRefine, true);
+			if (bRefinementDone)
+			{
+				// Don't tick during PIE. We'll resume ticking when PIE is stopped.
+				FHoudiniEngine::Get().StopTicking();
+			}
+		}
+	};
+
+	AllowPlayInEditorRefinementFn(true, false);
 	
 	if (NumComponentsToProcess > 0)
 	{
@@ -1609,11 +1626,13 @@ FHoudiniEngineCommands::RefineTriagedHoudiniProxyMesehesToStaticMeshes(
 				NumComponentsToProcess, TaskProgress.Get(), bCancelled, bInOnPreSaveWorld, InOnPreSaveWorld, SuccessfulComponents, FailedComponents, SkippedComponents);
 
 			// We didn't have to cook anything, so refinement is complete.
+			AllowPlayInEditorRefinementFn(false, true);
 			return EHoudiniProxyRefineRequestResult::Refined; 
 		}
 	}
 
 	// Nothing to refine
+	AllowPlayInEditorRefinementFn(false, true);
 	return EHoudiniProxyRefineRequestResult::None; 
 }
 
@@ -1764,6 +1783,10 @@ FHoudiniEngineCommands::RefineHoudiniProxyMeshesToStaticMeshesNotifyDone(const u
 		});
 	}
 
+	SetAllowPlayInEditorRefinement(InSuccessfulComponents, false);
+	SetAllowPlayInEditorRefinement(InFailedComponents, false);
+	SetAllowPlayInEditorRefinement(InSkippedComponents, false);
+
 	// Broadcast refinement result per HAC
 	for (UHoudiniAssetComponent* const HAC : InSuccessfulComponents)
 	{
@@ -1825,6 +1848,19 @@ FHoudiniEngineCommands::RefineProxyMeshesHandleOnPostSaveWorld(const TArray<UHou
 	}
 
 	UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, true);
+}
+
+void
+FHoudiniEngineCommands::SetAllowPlayInEditorRefinement(
+	const TArray<UHoudiniAssetComponent*>& InComponents,
+	bool bEnabled)
+{
+#if WITH_EDITORONLY_DATA
+	for (UHoudiniAssetComponent* Component : InComponents)
+	{
+		Component->SetAllowPlayInEditorRefinement(false);
+	}
+#endif
 }
 
 #undef LOCTEXT_NAMESPACE

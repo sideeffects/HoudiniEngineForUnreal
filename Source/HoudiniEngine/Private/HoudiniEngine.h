@@ -123,6 +123,8 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 		// Stops the HoudiniEngineManager ticking and invalidate the session
 		void StopTicking();
 
+		bool IsTicking() const;
+
 		// Initialize HAPI
 		bool InitializeHAPISession();
 

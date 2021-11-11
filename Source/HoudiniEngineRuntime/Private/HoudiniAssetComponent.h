@@ -789,5 +789,19 @@ protected:
 	//
 	// End: IHoudiniAssetStateEvents
 	//
+
+#if WITH_EDITORONLY_DATA
+
+public:
+	// Sets whether this HDA is allowed to be cooked in PIE
+	// for the purposes of refinement.
+	void SetAllowPlayInEditorRefinement(bool bEnabled) { bAllowPlayInEditorRefinement = bEnabled; }
+	bool IsPlayInEditorRefinementAllowed() const { return bAllowPlayInEditorRefinement; }
+
+protected:
+	UPROPERTY(Transient, DuplicateTransient)
+	bool bAllowPlayInEditorRefinement;
+
+#endif
 	
 };
