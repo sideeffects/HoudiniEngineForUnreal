@@ -247,6 +247,8 @@ protected:
 	// if it was called as a result of a PreSaveWorld.
 	static void RefineProxyMeshesHandleOnPostSaveWorld(const TArray<UHoudiniAssetComponent*> &InSuccessfulComponents, uint32 InSaveFlags, UWorld* InWorld, bool bInSuccess);
 
+	static void SetAllowPlayInEditorRefinement(const TArray<UHoudiniAssetComponent*>& InComponents, bool bEnabled);
+
 	// Helper function used to indicate to all HAC that they need to be instantiated in the new HE session
 	// Needs to be call after starting/restarting/connecting/session syncing a HE session..
 	static void MarkAllHACsAsNeedInstantiation();
