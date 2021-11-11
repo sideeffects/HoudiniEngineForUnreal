@@ -1534,6 +1534,21 @@ UHoudiniInputActor::GetChangedObjectsAndValidNodes(TArray<UHoudiniInputObject*>&
 	return bAnyChanges;
 }
 
+void
+UHoudiniInputActor::InvalidateData()
+{
+	// Call invalidate on input component objects
+	for (auto* const CurrentComp : GetActorComponents())
+	{
+		if (!IsValid(CurrentComp))
+			continue;
+		
+		CurrentComp->InvalidateData();
+	}
+	
+	Super::InvalidateData();
+}
+
 bool UHoudiniInputLandscape::ShouldTrackComponent(UActorComponent* InComponent)
 {
 	// We explicitly disable tracking of any components for landscape inputs since the Landscape tools
