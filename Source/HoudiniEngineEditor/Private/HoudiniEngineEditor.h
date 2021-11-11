@@ -339,6 +339,9 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 		// Delegate handle for the PreBeginPIE editor delegate
 		FDelegateHandle PreBeginPIEEditorDelegateHandle;
 
+		// Delegate handle for the EndPIE editor delegate
+		FDelegateHandle EndPIEEditorDelegateHandle;
+
 		// Delegate handle for OnDeleteActorsBegin
 		FDelegateHandle OnDeleteActorsBegin;
 

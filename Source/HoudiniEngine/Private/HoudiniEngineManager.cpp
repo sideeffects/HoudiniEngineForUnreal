@@ -124,6 +124,11 @@ FHoudiniEngineManager::StopHoudiniTicking()
 	}
 }
 
+bool FHoudiniEngineManager::IsTicking() const
+{
+	return TickerHandle.IsValid();
+}
+
 bool
 FHoudiniEngineManager::Tick(float DeltaTime)
 {
@@ -168,6 +173,18 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 			{
 				// Component being deleted, do not process
 				continue;
+			}
+			
+			{
+				UWorld* World = CurrentComponent->GetWorld();
+				if (World && World->IsPlayingReplay() || World->IsPlayInEditor())
+				{
+					if (!CurrentComponent->IsPlayInEditorRefinementAllowed())
+					{
+						// This component's world is current in PIE and this HDA is NOT allowed to cook / refine in PIE.
+						continue;
+					}
+				}
 			}
 
 			if (!CurrentComponent->IsFullyLoaded())

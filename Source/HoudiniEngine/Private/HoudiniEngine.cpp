@@ -1085,6 +1085,13 @@ FHoudiniEngine::StopTicking()
 	StopSession(SessionPtr);	
 }
 
+bool FHoudiniEngine::IsTicking() const
+{
+	if (!HoudiniEngineManager)
+		return false;
+	return HoudiniEngineManager->IsTicking();
+}
+
 bool
 FHoudiniEngine::IsCookingEnabled() const
 {
