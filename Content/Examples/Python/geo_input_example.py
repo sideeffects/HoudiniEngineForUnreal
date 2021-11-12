@@ -79,8 +79,8 @@ def configure_inputs(in_wrapper):
     geo_asset = get_geo_asset()
     geo_input.set_input_objects((geo_asset, ))
     # Set the transform of the input geo
-    geo_input.set_object_transform_offset(
-        geo_asset,
+    geo_input.set_input_object_transform_offset(
+        0,
         unreal.Transform(
             (200, 0, 100),
             (45, 0, 45),
@@ -98,8 +98,8 @@ def configure_inputs(in_wrapper):
     geo_asset = get_cylinder_asset()
     geo_input.set_input_objects((geo_asset, ))
     # Set the transform of the input geo
-    geo_input.set_object_transform_offset(
-        geo_asset,
+    geo_input.set_input_object_transform_offset(
+        0,
         unreal.Transform(
             (-200, 0, 0),
             (0, 0, 0),
@@ -132,8 +132,8 @@ def print_api_input(in_input):
         print('\t\tNumber of objects in input: {0}'.format(len(input_objects)))
         for idx, input_object in enumerate(input_objects):
             print('\t\t\tInput object #{0}: {1}'.format(idx, input_object))
-            if hasattr(in_input, 'get_object_transform_offset'):
-                print('\t\t\tObject Transform Offset: {0}'.format(in_input.get_object_transform_offset(input_object)))
+            if hasattr(in_input, 'get_input_object_transform_offset'):
+                print('\t\t\tObject Transform Offset: {0}'.format(in_input.get_input_object_transform_offset(idx)))
 
 
 def print_inputs(in_wrapper):

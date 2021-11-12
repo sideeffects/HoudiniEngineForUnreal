@@ -120,16 +120,36 @@ protected:
 	 * @param InInputObject The UHoudiniInputObject to copy from.
 	 * @param InObject The input object to copy per-object properties for.
 	 * @return false if the copy failed, for example if InSrc is invalid or of incompatible type.
+	 * @deprecated Use CopyHoudiniInputObjectPropertiesToInputObject instead.
 	 */
+	UE_DEPRECATED("1.1.0", "Use CopyHoudiniInputObjectPropertiesToInputObject instead.")
 	virtual bool CopyHoudiniInputObjectProperties(UHoudiniInputObject const* const InInputObject, UObject* const InObject);
+
+	/**
+	 * Copy any properties we need from the UHoudiniInputObject InInputObject for the the input object it wraps.
+	 * @param InHoudiniInputObject The UHoudiniInputObject to copy from.
+	 * @param InInputObjectIndex The input object to copy per-object properties for.
+	 * @return false if the copy failed, for example if InSrc is invalid or of incompatible type.
+	 */
+	virtual bool CopyHoudiniInputObjectPropertiesToInputObject(UHoudiniInputObject const* const InHoudiniInputObject, const int32 InInputObjectIndex);
 
 	/**
 	 * Copy any properties for InObject from this input wrapper to InInputObject.
 	 * @param InObject The input object to copy per-object properties for.
 	 * @param InInputObject The Houdini input object to copy the properties to.
 	 * @return false if the copy failed, for example if InSrc is invalid or of incompatible type.
+	 * @deprecated Use CopyInputObjectPropertiesToHoudiniInputObject instead.
 	 */
+	UE_DEPRECATED("1.1.0", "Use CopyInputObjectPropertiesToHoudiniInputObject instead.")
 	virtual bool CopyPropertiesToHoudiniInputObject(UObject* const InObject, UHoudiniInputObject* const InInputObject) const;
+
+	/**
+	 * Copy any properties for InInputObjectIndex from this input wrapper to InHoudiniInputObject.
+	 * @param InInputObjectIndex The index of the input object to copy per-object properties for.
+	 * @param InHoudiniInputObject The Houdini input object to copy the properties to.
+	 * @return false if the copy failed, for example if InSrc is invalid or of incompatible type.
+	 */
+	virtual bool CopyInputObjectPropertiesToHoudiniInputObject(const int32 InInputObjectIndex, UHoudiniInputObject* const InHoudiniInputObject) const;
 
 	/**
 	 * Convert an object used as an input in an internal UHoudiniInput to be API compatible.
@@ -196,7 +216,8 @@ public:
 	 * @param InTransform The transform offset to set.
 	 * @return true if the object was found and the transform offset set.
 	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs", Meta=(AutoCreateRefTerm="InTransform"))
+	UE_DEPRECATED("1.1.0", "Use SetInputObjectTransformOffset instead.")
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs", Meta=(AutoCreateRefTerm="InTransform", DeprecatedFunction, DeprecationMessage="Use SetInputObjectTransformOffset instead."))
 	bool SetObjectTransformOffset(UObject* InObject, const FTransform& InTransform);
 
 	/**
@@ -205,23 +226,70 @@ public:
 	 * @param OutTransform The transform offset that was fetched.
 	 * @return true if the object was found and the transform offset fetched.
 	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs", Meta=(AutoCreateRefTerm="InTransform"))
+	UE_DEPRECATED("1.1.0", "Use GetInputObjectTransformOffset instead.")
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs", Meta=(DeprecatedFunction, DeprecationMessage="Use GetInputObjectTransformOffset instead."))
 	bool GetObjectTransformOffset(UObject* InObject, FTransform& OutTransform) const;
+
+	/**
+	 * Set the transform offset of the input object at the specified index in InputObjects (must already have been set via SetInputObjects()).
+	 * @param InInputObjectIndex The input object index to set a transform offset for.
+	 * @param InTransform The transform offset to set.
+	 * @return true if the index is valid and the transform offset set.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs", Meta=(AutoCreateRefTerm="InTransform"))
+	bool SetInputObjectTransformOffset(const int32 InInputObjectIndex, const FTransform& InTransform);
+
+	/**
+	 * Get the transform offset of the input object at the specified index in InputObjects (must already have been set via SetInputObjects()).
+	 * @param InInputObjectIndex The input object index to get a transform offset for.
+	 * @param OutTransform The transform offset that was fetched.
+	 * @return true if the index is valid and the was transform offset fetched.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs")
+	bool GetInputObjectTransformOffset(const int32 InInputObjectIndex, FTransform& OutTransform) const;
+
+	/**
+	 * Get the array of input object transforms.
+	 * @param OutInputObjectTransformOffsetArray The output array.
+	 * @return false if the input type does not support input object transform offsets. See SupportsTransformOffset.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs")
+	bool GetInputObjectTransformOffsetArray(TArray<FTransform>& OutInputObjectTransformOffsetArray) const;
+
+	/**
+	 * Returns true if this input type supports Transform offsets. If false,
+	 * functions that get/set transform offsets will return false and set an error:
+	 *   - SetObjectTransformOffset
+	 *   - GetObjectTransformOffset
+	 *   - SetInputObjectTransformOffset
+	 *   - GetInputObjectTransformOffset
+	 */
+	virtual bool SupportsTransformOffset() const { return true; }
+
+	virtual bool SetInputObjects_Implementation(const TArray<UObject*>& InObjects) override;
 
 	virtual bool PopulateFromHoudiniInput(UHoudiniInput const* const InInput) override;
 
 	virtual bool UpdateHoudiniInput(UHoudiniInput* const InInput) const override;
 
-protected:
-	virtual bool CopyHoudiniInputObjectProperties(UHoudiniInputObject const* const InInputObject, UObject* const InObject) override;
+	virtual void PostLoad() override;
 
-	virtual bool CopyPropertiesToHoudiniInputObject(UObject* const InObject, UHoudiniInputObject* const InInputObject) const override;
+protected:
+	virtual bool CopyHoudiniInputObjectPropertiesToInputObject(UHoudiniInputObject const* const InHoudiniInputObject, const int32 InInputObjectIndex) override;
+
+	virtual bool CopyInputObjectPropertiesToHoudiniInputObject(const int32 InInputObjectIndex, UHoudiniInputObject* const InHoudiniInputObject) const override;
 
 	virtual EHoudiniInputType GetInputType() const override { return EHoudiniInputType::Geometry; }
 
 	/** Per-Input-Object data: the transform offset per input object. */
+	UE_DEPRECATED("1.1.0", "Use InputObjectTransformOffsetArray via SetInputObjectTransformOffset and GetInputObjectTransformOffset instead")
+	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use InputObjectTransformOffsetArray instead"))
+	TMap<UObject*, FTransform> InputObjectTransformOffsets_DEPRECATED;
+
+private:
+	/** Transform offset per input object (by input object array index). */
 	UPROPERTY()
-	TMap<UObject*, FTransform> InputObjectTransformOffsets;
+	TArray<FTransform> InputObjectTransformOffsetArray;
 };
 
 UENUM(BlueprintType)
@@ -531,6 +599,8 @@ public:
 	 */
 	virtual bool SetInputObjects_Implementation(const TArray<UObject*>& InObjects) override;
 
+	virtual bool SupportsTransformOffset() const override { return false; }
+
 	virtual bool PopulateFromHoudiniInput(UHoudiniInput const* const InInput) override;
 
 	virtual bool UpdateHoudiniInput(UHoudiniInput* const InInput) const override;
@@ -611,7 +681,8 @@ public:
 	 * @param InTransform The transform offset to set.
 	 * @return true if the object was found and the transform offset set.
 	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs", Meta=(AutoCreateRefTerm="InTransform"))
+	UE_DEPRECATED("1.1.0", "Use SetInputObjectTransformOffset instead.")
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs", Meta=(AutoCreateRefTerm="InTransform", DeprecatedFunction, DeprecationMessage="Use SetInputObjectTransformOffset instead."))
 	bool SetObjectTransformOffset(UObject* InObject, const FTransform& InTransform);
 
 	/**
@@ -620,21 +691,58 @@ public:
 	 * @param OutTransform The transform offset that was fetched.
 	 * @return true if the object was found and the transform offset fetched.
 	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs", Meta=(AutoCreateRefTerm="InTransform"))
+	UE_DEPRECATED("1.1.0", "Use GetInputObjectTransformOffset instead.")
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs", Meta=(DeprecatedFunction, DeprecationMessage="Use GetInputObjectTransformOffset instead."))
 	bool GetObjectTransformOffset(UObject* InObject, FTransform& OutTransform) const;
+
+	/**
+	 * Set the transform offset of the input object at the specified index in InputObjects (must already have been set via SetInputObjects()).
+	 * @param InInputObjectIndex The input object index to set a transform offset for.
+	 * @param InTransform The transform offset to set.
+	 * @return true if the index is valid and the transform offset set.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs", Meta=(AutoCreateRefTerm="InTransform"))
+	bool SetInputObjectTransformOffset(const int32 InInputObjectIndex, const FTransform& InTransform);
+
+	/**
+	 * Get the transform offset of the input object at the specified index in InputObjects (must already have been set via SetInputObjects()).
+	 * @param InInputObjectIndex The input object index to get a transform offset for.
+	 * @param OutTransform The transform offset that was fetched.
+	 * @return true if the index is valid and the was transform offset fetched.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs")
+	bool GetInputObjectTransformOffset(const int32 InInputObjectIndex, FTransform& OutTransform) const;
+
+	/**
+	 * Get the array of input object transforms.
+	 * @param OutInputObjectTransformOffsetArray The output array.
+	 * @return false if the input type does not support input object transform offsets. See SupportsTransformOffset.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs")
+	bool GetInputObjectTransformOffsetArray(TArray<FTransform>& OutInputObjectTransformOffsetArray) const;
+
+	virtual bool SetInputObjects_Implementation(const TArray<UObject*>& InObjects) override;
 
 	virtual bool PopulateFromHoudiniInput(UHoudiniInput const* const InInput) override;
 
 	virtual bool UpdateHoudiniInput(UHoudiniInput* const InInput) const override;
 
-protected:
-	virtual bool CopyHoudiniInputObjectProperties(UHoudiniInputObject const* const InInputObject, UObject* const InObject) override;
+	virtual void PostLoad() override;
 
-	virtual bool CopyPropertiesToHoudiniInputObject(UObject* const InObject, UHoudiniInputObject* const InInputObject) const override;
+protected:
+	virtual bool CopyHoudiniInputObjectPropertiesToInputObject(UHoudiniInputObject const* const InHoudiniInputObject, const int32 InInputObjectIndex) override;
+
+	virtual bool CopyInputObjectPropertiesToHoudiniInputObject(const int32 InInputObjectIndex, UHoudiniInputObject* const InHoudiniInputObject) const override;
 
 	virtual EHoudiniInputType GetInputType() const override { return EHoudiniInputType::Geometry; }
 
 	/** Per-Input-Object data: the transform offset per input object. */
+	UE_DEPRECATED("1.1.0", "Use InputObjectTransformOffsetArray via SetInputObjectTransformOffset and GetInputObjectTransformOffset instead")
+	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use InputObjectTransformOffsetArray instead"))
+	TMap<UObject*, FTransform> InputObjectTransformOffsets_DEPRECATED;
+	
+private:
+	/** Transform offset per input object (by input object array index). */
 	UPROPERTY()
-	TMap<UObject*, FTransform> InputObjectTransformOffsets;
+	TArray<FTransform> InputObjectTransformOffsetArray;
 };
