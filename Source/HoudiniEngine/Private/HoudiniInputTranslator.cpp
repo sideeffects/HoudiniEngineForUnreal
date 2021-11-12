@@ -3025,7 +3025,10 @@ FHoudiniInputTranslator::UpdateWorldInput(UHoudiniInput* InInput)
 
 	// Delete the actor objects that were marked for deletion
 	for (int32 ToDeleteIdx = ObjectToDeleteIndices.Num() - 1; ToDeleteIdx >= 0; ToDeleteIdx--)
+	{
 		InputObjectsPtr->RemoveAt(ObjectToDeleteIndices[ToDeleteIdx]);
+		bHasChanged = true;
+	}
 
 	// Mark the input as changed if need so it will trigger an upload
 	if (bHasChanged)
