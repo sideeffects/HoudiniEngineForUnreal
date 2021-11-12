@@ -99,8 +99,6 @@ def print_api_input(in_input):
         print('\t\tNumber of objects in input: {0}'.format(len(input_objects)))
         for idx, input_object in enumerate(input_objects):
             print('\t\t\tInput object #{0}: {1}'.format(idx, input_object))
-            if hasattr(in_input, 'get_object_transform_offset'):
-                print('\t\t\tObject Transform Offset: {0}'.format(in_input.get_object_transform_offset(input_object)))
 
 
 def print_inputs(in_wrapper):
