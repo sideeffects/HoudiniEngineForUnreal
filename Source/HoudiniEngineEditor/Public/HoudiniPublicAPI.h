@@ -35,6 +35,14 @@
 
 #include "HoudiniPublicAPI.generated.h"
 
+// Public API version
+// Increased with Houdini compatibility changes
+#define HOUDINI_PUBLIC_API_VERSION_MAJOR 1
+// Increased for major API changes or changes that break backwards compatibility of the API
+#define HOUDINI_PUBLIC_API_VERSION_MINOR 1
+// Increased for patches/revisions that don't change the API in a backwards incompatible manner
+#define HOUDINI_PUBLIC_API_VERSION_PATCH 0
+
 class ULevel;
 
 class UHoudiniAsset;
