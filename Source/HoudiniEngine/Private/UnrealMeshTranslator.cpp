@@ -3580,13 +3580,21 @@ FUnrealMeshTranslator::CreateInputNodeForBox(
 	FHoudiniApi::SetParmFloatValue(
 		FHoudiniEngine::Get().GetSession(), BoxNodeId, "t", 2, BoxCenter.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 
-	FHoudiniApi::SetParmFloatValue(
-		FHoudiniEngine::Get().GetSession(), BoxNodeId, "r", 0, BoxRotation.Roll);
-	FHoudiniApi::SetParmFloatValue(
-		FHoudiniEngine::Get().GetSession(), BoxNodeId, "r", 2, BoxRotation.Pitch);
-	FHoudiniApi::SetParmFloatValue(
-		FHoudiniEngine::Get().GetSession(), BoxNodeId, "r", 1, BoxRotation.Yaw);
+	// Do coordinate system conversion before sending to Houdini
+	FQuat RotationQuat = BoxRotation.Quaternion();
 
+	Swap(RotationQuat.Y, RotationQuat.Z);
+	RotationQuat.W = -RotationQuat.W;
+	const FRotator Rotator = RotationQuat.Rotator();
+
+	// Negate roll and pitch since they are actually RHR
+	FHoudiniApi::SetParmFloatValue(
+		FHoudiniEngine::Get().GetSession(), BoxNodeId, "r", 0, -Rotator.Roll);
+	FHoudiniApi::SetParmFloatValue(
+		FHoudiniEngine::Get().GetSession(), BoxNodeId, "r", 1, -Rotator.Pitch);
+	FHoudiniApi::SetParmFloatValue(
+		FHoudiniEngine::Get().GetSession(), BoxNodeId, "r", 2, Rotator.Yaw);
+	
 	/*
 	HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
 	FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), BoxNodeId, &CookOptions);
