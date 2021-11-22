@@ -33,6 +33,8 @@
 #include "HoudiniPublicAPIInputTypes.h"
 #include "HoudiniEngineCommands.h"
 
+#include "Engine/World.h"
+
 UHoudiniPublicAPI::UHoudiniPublicAPI()
 {
 }
