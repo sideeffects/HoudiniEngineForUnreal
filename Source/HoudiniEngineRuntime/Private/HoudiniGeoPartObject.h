@@ -344,7 +344,7 @@ public:
 	FString VolumeName;
 
 	UPROPERTY()
-	bool bHasEditLayers;
+	bool bHasEditLayers = false;
 
 	// Name of edit layer 
 	UPROPERTY()
