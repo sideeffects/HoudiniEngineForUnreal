@@ -28,6 +28,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
+#include "Templates/SubclassOf.h"
 
 #include "HoudiniPublicAPIInputTypes.h"
 #include "HoudiniPublicAPIObjectBase.h"
