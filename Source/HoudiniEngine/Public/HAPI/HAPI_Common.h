@@ -1077,6 +1077,9 @@ struct HAPI_API HAPI_ThriftServerOptions
     /// to signal within this time interval, the start server call fails
     /// and the server process is terminated.
     float timeoutMs;
+
+    // Specifies the maximum status verbosity that will be logged.
+    HAPI_StatusVerbosity verbosity;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_ThriftServerOptions )
 

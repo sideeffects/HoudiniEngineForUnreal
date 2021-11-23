@@ -60,10 +60,19 @@ HAPI_DECL HAPI_CreateInProcessSession( HAPI_Session * session );
 /// @param[out]     process_id
 ///                 The process id of the server, if started successfully.
 ///
+/// @param[in]      log_file
+///                 When a filepath is provided for this argument, all logs will
+///                 be appended to the specified file. The specfied path must be
+///                 an absolute path. The server will create any intermediate
+///                 directories in the filepath that do not already exist. When
+///                 this argument is NULL/nullptr, logging will be directed to
+///                 the standard streams.
+///
 HAPI_DECL HAPI_StartThriftSocketServer(
                                     const HAPI_ThriftServerOptions * options,
                                     int port,
-                                    HAPI_ProcessId * process_id );
+                                    HAPI_ProcessId * process_id,
+                                    const char * log_file );
 
 /// @brief  Creates a Thrift RPC session using a TCP socket as transport.
 ///
@@ -99,10 +108,19 @@ HAPI_DECL HAPI_CreateThriftSocketSession( HAPI_Session * session,
 /// @param[out]     process_id
 ///                 The process id of the server, if started successfully.
 ///
+/// @param[in]      log_file
+///                 When a filepath is provided for this argument, all logs will
+///                 be appended to the specified file. The specfied path must be
+///                 an absolute path. The server will create any intermediate
+///                 directories in the filepath that do not already exist. When
+///                 this argument is NULL/nullptr, logging will be directed to
+///                 the standard streams.
+///
 HAPI_DECL HAPI_StartThriftNamedPipeServer(
                                     const HAPI_ThriftServerOptions * options,
                                     const char * pipe_name,
-                                    HAPI_ProcessId * process_id );
+                                    HAPI_ProcessId * process_id,
+                                    const char * log_file );
 
 /// @brief  Creates a Thrift RPC session using a Windows named pipe
 ///         or a Unix domain socket as transport.
