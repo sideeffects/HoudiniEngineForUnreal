@@ -580,7 +580,7 @@ FHoudiniEngine::StartSession(HAPI_Session*& SessionPtr,
 			{
 				UpdatePathForServer();
 				FHoudiniApi::StartThriftSocketServer(
-					&ServerOptions, ServerPort, nullptr);
+					&ServerOptions, ServerPort, nullptr, nullptr);
 
 				// We've started the server manually, disable session sync
 				bEnableSessionSync = false;
@@ -602,7 +602,7 @@ FHoudiniEngine::StartSession(HAPI_Session*& SessionPtr,
 			{
 				UpdatePathForServer();
 				FHoudiniApi::StartThriftNamedPipeServer(
-					&ServerOptions, TCHAR_TO_UTF8(*ServerPipeName), nullptr);
+					&ServerOptions, TCHAR_TO_UTF8(*ServerPipeName), nullptr, nullptr);
 
 				// We've started the server manually, disable session sync
 				bEnableSessionSync = false;
