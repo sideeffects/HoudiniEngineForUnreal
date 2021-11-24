@@ -2280,9 +2280,12 @@ FHoudiniOutputTranslator::ClearOutput(UHoudiniOutput* Output)
 				if (!IsValid(Landscape) || !Landscape->IsValidLowLevel())
 					continue;
 
+				Landscape->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+				Landscape->ConditionalBeginDestroy();
 				Landscape->UnregisterAllComponents();
 				Landscape->Destroy();
-
+				LandscapePtr->SetSoftPtr(nullptr);
+				
 				// if (Output->IsLandscapeWorldComposition()) 
 				// {
 				// 	TSoftObjectPtr<ALandscapeProxy> LandscapeSoftPtr = LandscapePtr->GetSoftPtr();
