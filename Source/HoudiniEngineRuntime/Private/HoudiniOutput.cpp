@@ -602,12 +602,13 @@ UHoudiniOutput::Clear()
 			// NOTE: We cannot resolve soft pointers during garbage collection. Any Get() or IsValid() call
 			// will result in a StaticFindObject() call which will raise an exception during GC.
 			UHoudiniLandscapePtr* LandscapePtr = Cast<UHoudiniLandscapePtr>(CurrentOutputObject.Value.OutputObject);
-			ALandscapeProxy* LandscapeProxy = LandscapePtr ? LandscapePtr->GetRawPtr() : nullptr;
-			if (IsValid(LandscapeProxy))
+			TSoftObjectPtr<ALandscapeProxy> LandscapeProxy = LandscapePtr ? LandscapePtr->GetSoftPtr() : nullptr;
+			if (!LandscapeProxy.IsNull())
 			{
 				LandscapeProxy->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 				LandscapeProxy->ConditionalBeginDestroy();
 				LandscapeProxy->Destroy();
+				LandscapePtr->SetSoftPtr(nullptr);
 			}
 		}
 	}
