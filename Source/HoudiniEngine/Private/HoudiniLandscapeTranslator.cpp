@@ -2017,6 +2017,7 @@ bool FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(UHoudiniOutput* In
 				if (!InAllInputLandscapes.Contains(LandscapeProxy))
 				{
 					LandscapeProxy->Destroy();
+					LandscapePtr->SetSoftPtr(nullptr);
 				}
 			}
 		}
