@@ -431,6 +431,7 @@
 
 // Chaos/Geometry collection output attributes
 #define HAPI_UNREAL_ATTRIB_GC_PIECE                                                       "unreal_gc_piece"
+#define HAPI_UNREAL_ATTRIB_GC_CLUSTER_PIECE                                               "unreal_gc_cluster"
 #define HAPI_UNREAL_ATTRIB_GC_NAME                                                       "unreal_gc_name"
 
 #define HAPI_UNREAL_ATTRIB_GC_CLUSTERING_DAMAGE_THRESHOLD                                 "unreal_gc_clustering_damage_threshold"
