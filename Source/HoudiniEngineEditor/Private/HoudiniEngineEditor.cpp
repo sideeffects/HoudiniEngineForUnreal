@@ -1324,19 +1324,18 @@ FHoudiniEngineEditor::RegisterEditorDelegates()
 		UWorld * const OnPreSaveWorld = nullptr;
 		const bool bOnPreBeginPIE = true;
 
-		// if the HoudiniEngine manager is currently ticking, we'll need to resume once PIE is done.
+
+		// We'll need to reconnect the Houdini session after PIE.
 		if (FHoudiniEngine::Get().IsTicking())
 		{
-			// If the HoudiniEngine is currently ticking we'll need to restart it  
-			
-			EndPIEEditorDelegateHandle = FEditorDelegates::EndPIE.AddLambda([&](const bool bEndPIEIsSimulating)
+			const bool bWasConnected = FHoudiniEngine::Get().GetSessionStatus() == EHoudiniSessionStatus::Connected;
+			EndPIEEditorDelegateHandle = FEditorDelegates::EndPIE.AddLambda([&, bWasConnected](const bool bEndPIEIsSimulating)
 			{
-				FHoudiniEngineCommands::ConnectSession();
-				// if (FHoudiniEngine::Get().ConnectSession())
-				// {
-				// 	// Only start ticking if we were able to reconnect the sesion.
-				// 	FHoudiniEngine::Get().StartTicking();
-				// }
+				if (bWasConnected)
+				{
+					// If the Houdini session was previously connected, we need to reestablish the connection after PIE.
+					FHoudiniEngineCommands::ConnectSession();
+				}
 				FEditorDelegates::EndPIE.Remove(EndPIEEditorDelegateHandle);
 			});
 		}
