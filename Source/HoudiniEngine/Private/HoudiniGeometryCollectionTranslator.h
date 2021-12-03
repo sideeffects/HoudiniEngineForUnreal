@@ -52,6 +52,7 @@ struct HOUDINIENGINE_API FHoudiniGeometryCollectionTranslator
 		FHoudiniOutputObject* InstancerOutput = nullptr;
 		int32 InstancedPartId = -1;
 		int32 FractureIndex = -1;
+		int32 ClusterIndex = -1;
 		FString GeometryCollectionName = TEXT("");
 
 		// Set On second pass
@@ -78,6 +79,7 @@ struct HOUDINIENGINE_API FHoudiniGeometryCollectionTranslator
 			UObject* InOuterComponent, const FHoudiniPackageParams& InPackageParams, UWorld * InWorld);
 
 		static bool GetFracturePieceAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, int& OutInt);
+		static bool GetClusterPieceAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, int& OutInt);
 
 		static bool GetGeometryCollectionNameAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, FString& OutName);
 

@@ -28,7 +28,6 @@ void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromO
 		FString& GCName = Pair.Key;
 		FHoudiniGeometryCollectionData& GCData = Pair.Value;
 
-
 		// Find or create new UHoudiniOutput
 		UHoudiniOutput * HoudiniOutput = nullptr;
 		bool bNewOutput = true;
@@ -122,7 +121,8 @@ void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromO
 		const FTransform ActorTransform(ParentComponent->GetOwner()->GetTransform());
 	
 		// Used to get the number of levels
-		TSet<int32> Clusters;
+		// Pair of <FractureIndex, ClusterIndex>
+		TMap<TPair<int32, int32>, TArray<FHoudiniGeometryCollectionPiece *>> Clusters;
 	
 		// Append the static meshes build from instancers to the UGeometryCollection, destroying the StaticMeshComponents as you go
 		// Kind of similar to UFractureToolGenerateAsset::ConvertStaticMeshToGeometryCollection
@@ -133,7 +133,9 @@ void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromO
 				continue;
 			}
 	
-			Clusters.Add(GeometryCollectionPiece.FractureIndex);
+			TPair<int32, int32> ClusterKey = TPair<int32, int32>(GeometryCollectionPiece.FractureIndex, GeometryCollectionPiece.ClusterIndex);
+			TArray<FHoudiniGeometryCollectionPiece *> & Cluster = Clusters.FindOrAdd(ClusterKey);
+			Cluster.Add(&GeometryCollectionPiece);
 			
 			UObject * OldComponent = GeometryCollectionPiece.InstancerOutput->OutputComponent;
 			
@@ -159,38 +161,39 @@ void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromO
 	
 		// Adds a singular root node to all of the meshes. This automatically makes Level 0 = 1, and Level 1 = the rest of your meshs.
 		AddSingleRootNodeIfRequired(GeometryCollection);
-	
-		// For levels 2+, need to iteratively cluster nodes until they reach their desired level. 
-		for (int32 i = 2; i < Clusters.Num() + 1; i++)
+
+		for (auto & Cluster : Clusters)
 		{
-			if (!Clusters.Contains(i))
+			int32 FractureIndex = Cluster.Key.Key;
+			int32 ClusterIndex = Cluster.Key.Value;
+
+			if (FractureIndex <= 1)
 			{
-				UE_LOG(LogTemp, Error, TEXT("Clusters should be sequential"));
-				HOUDINI_LOG_ERROR(TEXT("Clusters should be sequential! (For example, if you have a level 3 geometry collection piece, then you should have a level 2 one"));
-				return;
+				// If level is 1, then no need to bump up the levels
+				continue;
 			}
-	
-			int32 MinInsertionPoint = INT_MAX;
-	
+
+			// Getting the minimum insertion index to figure out the parent/transform of the new bone.
+			int32 MinInsertionPoint = INT_MAX; 
+			
 			TArray<int32> BoneIndices;
 			BoneIndices.Empty();
-			for (auto & GeometryCollectionPiece : GeometryCollectionPieces)
+			for (auto & Piece : Cluster.Value)
 			{
-	
-				if (GeometryCollectionPiece.FractureIndex < i)
-				{
-					continue;
-				}
-	
-				MinInsertionPoint = std::min(MinInsertionPoint, GeometryCollectionPiece.GeometryIndex);
-	
-				BoneIndices.Add(GeometryCollectionPiece.GeometryIndex);
+				if (Piece == nullptr) continue;
+				
+				BoneIndices.Add(Piece->GeometryIndex);
+				MinInsertionPoint = std::min(MinInsertionPoint, Piece->GeometryIndex);
 			}
-	
-			TSharedPtr<FGeometryCollection, ESPMode::ThreadSafe> GeometryCollectionPtr = GeometryCollection->GetGeometryCollection();
-			if (FGeometryCollection* GeometryCollectionObj = GeometryCollectionPtr.Get())
+
+			
+			for (int32 i = 0; i < FractureIndex - 1; i++)
 			{
-				FGeometryCollectionClusteringUtility::ClusterBonesUnderNewNode(GeometryCollectionObj, MinInsertionPoint, BoneIndices, false);
+				TSharedPtr<FGeometryCollection, ESPMode::ThreadSafe> GeometryCollectionPtr = GeometryCollection->GetGeometryCollection();
+				if (FGeometryCollection* GeometryCollectionObj = GeometryCollectionPtr.Get())
+				{
+					FGeometryCollectionClusteringUtility::ClusterBonesUnderNewNode(GeometryCollectionObj, MinInsertionPoint, BoneIndices, false);
+				}
 			}
 		}
 		
@@ -323,6 +326,7 @@ bool FHoudiniGeometryCollectionTranslator::GetGeometryCollectionData(const TArra
 		}
 
 		GetFracturePieceAttribute(NewPiece.InstancerOutputIdentifier->GeoId, NewPiece.InstancedPartId, NewPiece.FractureIndex);
+		GetClusterPieceAttribute(NewPiece.InstancerOutputIdentifier->GeoId, NewPiece.InstancedPartId, NewPiece.ClusterIndex);
 		GetGeometryCollectionNameAttribute(NewPiece.InstancerOutputIdentifier->GeoId, NewPiece.InstancedPartId, NewPiece.GeometryCollectionName);
 
 		FHoudiniGeometryCollectionData * GeometryCollectionData = nullptr;
@@ -430,7 +434,7 @@ bool FHoudiniGeometryCollectionTranslator::GetFracturePieceAttribute(const HAPI_
 	IntData.Empty();
 
 	if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(GeoId, PartId,
-        HAPI_UNREAL_ATTRIB_GC_PIECE, AttriInfo, IntData, 1))
+	HAPI_UNREAL_ATTRIB_GC_PIECE, AttriInfo, IntData, 1))
 	{
 		if (IntData.Num() > 0)
 		{
@@ -441,6 +445,30 @@ bool FHoudiniGeometryCollectionTranslator::GetFracturePieceAttribute(const HAPI_
 	}
 
 	return HasFractureAttribute;
+}
+
+bool FHoudiniGeometryCollectionTranslator::GetClusterPieceAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, int& OutInt)
+{
+	bool HasClusterAttribute = false;
+	HAPI_AttributeInfo AttriInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttriInfo);
+	TArray<int> IntData;
+	IntData.Empty();
+
+	if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(GeoId, PartId,
+	HAPI_UNREAL_ATTRIB_GC_CLUSTER_PIECE, AttriInfo, IntData, 1))
+	{
+		if (IntData.Num() > 0)
+		{
+			HasClusterAttribute = true;
+			OutInt = IntData[0];
+		}
+			
+	}
+
+	if (!HasClusterAttribute) OutInt = -1; // Cluster piece can be null
+	
+	return HasClusterAttribute;
 }
 
 bool FHoudiniGeometryCollectionTranslator::GetGeometryCollectionNameAttribute(const HAPI_NodeId& GeoId,
