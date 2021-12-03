@@ -57,8 +57,7 @@
 #include "AssetRegistryModule.h"
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
-#include "AI/Navigation/NavCollisionBase.h"
-#include "ObjectTools.h"
+#include "GeometryToolsEngine.h"
 
 // #include "Async/ParallelFor.h"
 
@@ -66,6 +65,7 @@
 
 #include "EditorSupportDelegates.h"
 #include "HoudiniGeometryCollectionTranslator.h"
+
 
 #if WITH_EDITOR
 	#include "UnrealEd/Private/ConvexDecompTool.h"
@@ -5555,7 +5555,7 @@ FHoudiniMeshTranslator::AddSimpleCollisionToAggregate(const FString& SplitGroupN
 	int32 NewColliders = 0;
 	if (SplitGroupName.Contains("Box"))
 	{
-		NewColliders = FHoudiniMeshTranslator::GenerateBoxAsSimpleCollision(VertexArray, AggCollisions);
+		NewColliders = FHoudiniMeshTranslator::GenerateOrientedBoxAsSimpleCollision(VertexArray, AggCollisions);
 	}
 	else if (SplitGroupName.Contains("Sphere"))
 	{
@@ -5563,7 +5563,7 @@ FHoudiniMeshTranslator::AddSimpleCollisionToAggregate(const FString& SplitGroupN
 	}
 	else if (SplitGroupName.Contains("Capsule"))
 	{
-		NewColliders = FHoudiniMeshTranslator::GenerateSphylAsSimpleCollision(VertexArray, AggCollisions);
+		NewColliders = FHoudiniMeshTranslator::GenerateOrientedSphylAsSimpleCollision(VertexArray, AggCollisions);
 	}
 	else
 	{
@@ -5976,6 +5976,44 @@ FHoudiniMeshTranslator::GenerateBoxAsSimpleCollision(const TArray<FVector>& InPo
 	return 1;
 }
 
+int32 
+FHoudiniMeshTranslator::GenerateOrientedBoxAsSimpleCollision(const TArray<FVector>& InPositionArray, FKAggregateGeom& OutAggregateCollisions)
+{
+	//
+	// Code adapted from Experimental GeometryProcessing plugin for simple mesh approximation.
+	//
+
+	const int32 NumPoints = InPositionArray.Num();
+	TArray<gte::Vector3<double>> Points;
+	Points.SetNumUninitialized(InPositionArray.Num());
+	for(int32 i = 0; i < NumPoints; ++i)
+	{
+		Points[i] = Convert<double>(InPositionArray[i]);
+	}
+	// Calculate bounding Box.
+	gte::OrientedBox3<double> MinimalBox = gte::OrientedBox3<double>();
+	gte::MinimumVolumeBox3<double, double> BoxCompute;
+	MinimalBox = BoxCompute(NumPoints, Points.GetData(), nullptr);
+	
+	// FVector unitVec = FVector::OneVector;// bs->BuildScale3D;
+	// CalcBoundingBox(InPositionArray, Center, Extents, unitVec);
+	
+	const FVector X = Convert<double>(MinimalBox.axis[0]);
+	const FVector Y = Convert<double>(MinimalBox.axis[1]);
+	const FRotator Rot = FRotationMatrix::MakeFromXY(X,Y).Rotator();
+	
+	const FVector Extents = Convert(MinimalBox.extent);
+	FKBoxElem BoxElem;
+	BoxElem.Center = Convert(MinimalBox.center);
+	BoxElem.X = Extents.X * 2.0f;
+	BoxElem.Y = Extents.Y * 2.0f;
+	BoxElem.Z = Extents.Z * 2.0f;
+	BoxElem.Rotation = Rot;
+	OutAggregateCollisions.BoxElems.Add(BoxElem);
+
+	return 1;
+}
+
 void
 FHoudiniMeshTranslator::CalcBoundingBox(const TArray<FVector>& PositionArray, FVector& Center, FVector& Extents, FVector& LimitVec)
 {
@@ -6197,6 +6235,61 @@ FHoudiniMeshTranslator::GenerateSphylAsSimpleCollision(const TArray<FVector>& In
 	SphylElem.Rotation = rotation;
 	SphylElem.Radius = sphere.W;
 	SphylElem.Length = length;
+	OutAggregateCollisions.SphylElems.Add(SphylElem);
+
+	return 1;
+}
+
+int32 
+FHoudiniMeshTranslator::GenerateOrientedSphylAsSimpleCollision(const TArray<FVector>& InPositionArray, FKAggregateGeom& OutAggregateCollisions)
+{
+	//
+	// Code simplified and adapted to work with a simple vector array from GeomFitUtils.cpp
+	//
+
+	//
+	// Code adapted from Experimental GeometryProcessing plugin for simple mesh approximation.
+	//
+
+	const int32 NumPoints = InPositionArray.Num();
+	TArray<gte::Vector3<double>> Points;
+	Points.SetNumUninitialized(InPositionArray.Num());
+	for(int32 i = 0; i < NumPoints; ++i)
+	{
+		Points[i] = Convert<double>(InPositionArray[i]);
+	}
+
+	gte::Capsule3<double> FitCapsule;
+	const bool bResultValid = GetContainer(NumPoints, Points.GetData(), FitCapsule);
+	if (!bResultValid)
+	{
+		return 0;
+	}
+
+	gte::Vector3<double> GteCenter, GteDirection;
+	double Extent;
+	FitCapsule.segment.GetCenteredForm(GteCenter, GteDirection, Extent);
+	const FVector Direction = Convert<double>(GteDirection);
+	const FRotator Rot = FRotationMatrix::MakeFromZ(Direction).Rotator();
+
+	// Dont use if radius is zero.
+	if (FitCapsule.radius <= 0.f)
+	{
+		HOUDINI_LOG_WARNING(TEXT("Failed to generate a simple Capsule collider."));
+		return 0;
+	}
+
+	// If height is zero, then a sphere would be better (should we just create one instead?)
+	if (Extent <= 0.f)
+	{
+		Extent = SMALL_NUMBER;
+	}
+
+	FKSphylElem SphylElem;
+	SphylElem.Center = Convert<double>(GteCenter);
+	SphylElem.Rotation = Rot;
+	SphylElem.Radius = FitCapsule.radius;
+	SphylElem.Length = Extent*2.f;
 	OutAggregateCollisions.SphylElems.Add(SphylElem);
 
 	return 1;
