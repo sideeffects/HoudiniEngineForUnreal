@@ -52,9 +52,35 @@ enum class EAttribOwner : int8
 };
 
 USTRUCT()
+struct HOUDINIENGINERUNTIME_API FHoudiniGenericAttributeChangedProperty
+{
+	GENERATED_USTRUCT_BODY()
+	
+	FHoudiniGenericAttributeChangedProperty();
+
+	FHoudiniGenericAttributeChangedProperty(const FHoudiniGenericAttributeChangedProperty& InOther);
+	
+	FHoudiniGenericAttributeChangedProperty(UObject* InObject, FEditPropertyChain& InPropertyChain, FProperty* InProperty);
+
+	void operator=(const FHoudiniGenericAttributeChangedProperty& InOther);
+	
+	/** The object from where to follow the PropertyChain to the changed property. */
+	UPROPERTY()
+	UObject* Object;
+
+	/** The property chain, relative to Object, for the changed property. */
+	FEditPropertyChain PropertyChain;
+
+	/** The changed property. */
+	FProperty* Property;
+};
+
+USTRUCT()
 struct HOUDINIENGINERUNTIME_API FHoudiniGenericAttribute
 {
 	GENERATED_USTRUCT_BODY()
+
+	typedef TFunction<bool(UObject* const InObject, const FString& InPropertyName, bool& bOutSkipDefaultIfPropertyNotFound, FEditPropertyChain& InPropertyChain, FProperty*& OutFoundProperty, UObject*& OutFoundPropertyObject, void*& OutContainer)> FFindPropertyFunctionType;
 
 	UPROPERTY()
 	FString AttributeName;
@@ -108,7 +134,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGenericAttribute
 
 	//
 	static bool UpdatePropertyAttributeOnObject(
-		UObject* InObject, const FHoudiniGenericAttribute& InPropertyAttribute, const int32& AtIndex = 0);
+		UObject* InObject, const FHoudiniGenericAttribute& InPropertyAttribute, const int32& AtIndex = 0,
+		const bool bInDeferPostPropertyChangedEvents=false,
+		TArray<FHoudiniGenericAttributeChangedProperty>* OutChangedProperties=nullptr,
+		const FFindPropertyFunctionType& InFindPropertyFunction=nullptr);
 
 	// Tries to find a Uproperty by name/label on an object
 	// FoundPropertyObject will be the object that actually contains the property
@@ -116,6 +145,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGenericAttribute
 	static bool FindPropertyOnObject(
 		UObject* InObject,
 		const FString& InPropertyName,
+		FEditPropertyChain& InPropertyChain,
 		FProperty*& OutFoundProperty,
 		UObject*& OutFoundPropertyObject,
 		void*& OutContainer);
@@ -123,10 +153,13 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGenericAttribute
 	// Modifies the value of a found Property
 	static bool ModifyPropertyValueOnObject(
 		UObject* InObject,
-		FHoudiniGenericAttribute InGenericAttribute,
+		const FHoudiniGenericAttribute& InGenericAttribute,
+		FEditPropertyChain& InPropertyChain, 
 		FProperty* FoundProperty,
 		void* InContainer,
-		const int32& AtIndex = 0 );
+		const int32& AtIndex = 0,
+		const bool bInDeferPostPropertyChangedEvents=false,
+		TArray<FHoudiniGenericAttributeChangedProperty>* OutChangedProperties=nullptr);
 
 	// Gets the value of a found Property and sets it in the appropriate
 	// array and index in InGenericAttribute. 
@@ -150,7 +183,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGenericAttribute
 		void* InContainer,
 		UStruct* InStruct,
 		const FString& InPropertyName,
+		FEditPropertyChain& InPropertyChain,
 		FProperty*& OutFoundProperty,
 		bool& bOutPropertyHasBeenFound,
 		void*& OutContainer);
+
+	// Helper to call PostEditChangePropertyChain on InObject for the InPropertyChain. 
+	static bool HandlePostEditChangeProperty(UObject* InObject, FEditPropertyChain& InPropertyChain, FProperty* InProperty);
+
 };
