@@ -133,6 +133,25 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			const TArray<TYPE>& InData,
 			TArray<TYPE>& OutSplitData);
 
+		// Try to find the named InPropertyName property on the source model at InSourceModelIndex on InStaticMesh.
+		static bool TryToFindPropertyOnSourceModel(
+			UStaticMesh* const InStaticMesh,
+			const int32 InSourceModelIndex,
+			const FString& InPropertyName,
+			FEditPropertyChain& InPropertyChain,
+			bool& bOutSkipDefaultIfPropertyNotFound,
+			FProperty*& OutFoundProperty,
+			UObject*& OutFoundPropertyObject,
+			void*& OutContainer);
+
+		// Try to the find the named InPropertyName property on InSourceModel.
+		static bool TryToFindPropertyOnSourceModel(
+			FStaticMeshSourceModel& InSourceModel,
+			const FString& InPropertyName,
+			FEditPropertyChain& InPropertyChain,
+			FProperty*& OutFoundProperty,
+			void*& OutContainer);
+
 		// Update the MeshBuild Settings using the values from the runtime settings/overrides on the HAC
 		void UpdateMeshBuildSettings(
 			FMeshBuildSettings& OutMeshBuildSettings,
