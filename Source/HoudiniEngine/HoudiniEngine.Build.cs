@@ -297,7 +297,8 @@ public class HoudiniEngine : ModuleRules
                 "StaticMeshDescription",
                 "Chaos",
                 "GeometryCollectionEngine",
-                "FieldSystemEngine"
+                "FieldSystemEngine",
+                "BSPUtils"
             }
         );
 
@@ -305,7 +306,8 @@ public class HoudiniEngine : ModuleRules
             new string[]
             {
                 "Landscape",
-                "PhysicsCore"
+                "PhysicsCore",
+                "PhysicsUtilities"
             }
        );
 
@@ -337,7 +339,8 @@ public class HoudiniEngine : ModuleRules
                     "WorldBrowser",
                     "Messaging",
                     "SlateNullRenderer",
-                    "EditorFramework"
+                    "EditorFramework",
+                    "SubobjectEditor"
                 }
             );
         }
