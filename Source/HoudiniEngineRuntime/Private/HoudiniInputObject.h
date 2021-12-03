@@ -826,8 +826,8 @@ struct FHoudiniBrushInfo
 	template <class T>
 	inline void HashCombine(uint64& s, const T & v) const
 	{
-	  std::hash<T> h;
-	  s^= h(v) + 0x9e3779b9 + (s<< 6) + (s>> 2);
+		//std::hash<T> h;
+		s^= ::GetTypeHash(v) + 0x9e3779b9 + (s<< 6) + (s>> 2);
 	}
 
 	inline void HashCombine(uint64& s, const FVector & V) const

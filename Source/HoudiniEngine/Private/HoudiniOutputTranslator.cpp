@@ -1912,7 +1912,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 						if (IsValid(Actor))
 						{
 							Actor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-							Actor->MarkPendingKill();
+							Actor->MarkAsGarbage();
 						}
 					}
 					else

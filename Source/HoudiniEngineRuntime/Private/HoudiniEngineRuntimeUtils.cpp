@@ -34,6 +34,7 @@
 #if WITH_EDITOR
 	#include "Editor.h"
 	#include "Kismet2/BlueprintEditorUtils.h"	
+	#include "SSubobjectBlueprintEditor.h"
 #endif
 
 FString
@@ -142,7 +143,7 @@ FHoudiniEngineRuntimeUtils::SafeDeleteSingleObject(UObject* const InObjectToDele
 			OutPackage = InObjectToDelete->GetOutermost();
 			
 			FString PackageFilename;
-			if (!IsValid(OutPackage) || !FPackageName::DoesPackageExist(OutPackage->GetName(), nullptr, &PackageFilename))
+			if (!IsValid(OutPackage) || !FPackageName::DoesPackageExist(OutPackage->GetName(), &PackageFilename))
 			{
 				// Package is in memory only, we don't have call CleanUpAfterSuccessfulDelete on it, just do garbage
 				// collection to pick up the stale package
@@ -448,15 +449,13 @@ FHoudiniEngineRuntimeUtils::MarkBlueprintAsStructurallyModified(UActorComponent*
 	check(BlueprintEditor);
 
 	USimpleConstructionScript* SCS = Blueprint->SimpleConstructionScript;
-	TSharedPtr<SSCSEditor> SCSEditor = nullptr;
-
-	SCSEditor = BlueprintEditor->GetSCSEditor();
-	check(SCSEditor);
-	SCSEditor->SaveSCSCurrentState(SCS);
+	if (SCS)
+	{
+		SCS->SaveToTransactionBuffer();
+	}
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
-
-	SCSEditor->UpdateTree(true);
+	BlueprintEditor->GetSubobjectEditor()->UpdateTree(true);
 }
 #endif
 

@@ -101,12 +101,6 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 
 		if (!FHoudiniEngineUtils::HapiCookNode(NewNodeId, nullptr, true))
 			return false;
-
-		/*
-		HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-			FHoudiniEngine::Get().GetSession(), NewNodeId, &CookOptions), false);
-		*/
 	}
 
 	// Check if we have a valid id for this new input asset.
@@ -765,7 +759,7 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 		int32 StaticMeshUVCount = RawMesh.WedgeTexCoords[MeshTexCoordIdx].Num();
 		if (StaticMeshUVCount > 0)
 		{
-			const TArray<FVector2D> & RawMeshUVs = RawMesh.WedgeTexCoords[MeshTexCoordIdx];
+			const TArray<FVector2f> & RawMeshUVs = RawMesh.WedgeTexCoords[MeshTexCoordIdx];
 			TArray<FVector> StaticMeshUVs;
 			StaticMeshUVs.Reserve(StaticMeshUVCount);
 
@@ -1776,7 +1770,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 					//---------------------------------------------------------------------------------------------------------------------
 					if (bIsVertexInstanceNormalsValid)
 					{
-						const FVector &Normal = LODResources.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(UEVertexIndex);
+						const FVector4f &Normal = LODResources.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(UEVertexIndex);
 						Normals[Float3Index + 0] = Normal.X;
 						Normals[Float3Index + 1] = Normal.Z;
 						Normals[Float3Index + 2] = Normal.Y;
@@ -1787,7 +1781,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 					//---------------------------------------------------------------------------------------------------------------------
 					if (bIsVertexInstanceTangentsValid)
 					{
-						const FVector &Tangent = LODResources.VertexBuffers.StaticMeshVertexBuffer.VertexTangentX(UEVertexIndex);
+						const FVector4f &Tangent = LODResources.VertexBuffers.StaticMeshVertexBuffer.VertexTangentX(UEVertexIndex);
 						Tangents[Float3Index + 0] = Tangent.X;
 						Tangents[Float3Index + 1] = Tangent.Z;
 						Tangents[Float3Index + 2] = Tangent.Y;
@@ -2371,12 +2365,12 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	// before sending to Houdini we'll check if each attribute is valid
 	FStaticMeshConstAttributes MeshDescriptionAttributes(MeshDescription);
 
-	TVertexAttributesConstRef<FVector> VertexPositions = MeshDescriptionAttributes.GetVertexPositions();
-	TVertexInstanceAttributesConstRef<FVector> VertexInstanceNormals = MeshDescriptionAttributes.GetVertexInstanceNormals();
-	TVertexInstanceAttributesConstRef<FVector> VertexInstanceTangents = MeshDescriptionAttributes.GetVertexInstanceTangents();
+	TVertexAttributesConstRef<FVector3f> VertexPositions = MeshDescriptionAttributes.GetVertexPositions();
+	TVertexInstanceAttributesConstRef<FVector3f> VertexInstanceNormals = MeshDescriptionAttributes.GetVertexInstanceNormals();
+	TVertexInstanceAttributesConstRef<FVector3f> VertexInstanceTangents = MeshDescriptionAttributes.GetVertexInstanceTangents();
 	TVertexInstanceAttributesConstRef<float> VertexInstanceBinormalSigns = MeshDescriptionAttributes.GetVertexInstanceBinormalSigns();
-	TVertexInstanceAttributesConstRef<FVector4> VertexInstanceColors = MeshDescriptionAttributes.GetVertexInstanceColors();
-	TVertexInstanceAttributesConstRef<FVector2D> VertexInstanceUVs = MeshDescriptionAttributes.GetVertexInstanceUVs();
+	TVertexInstanceAttributesConstRef<FVector4f> VertexInstanceColors = MeshDescriptionAttributes.GetVertexInstanceColors();
+	TVertexInstanceAttributesConstRef<FVector2f> VertexInstanceUVs = MeshDescriptionAttributes.GetVertexInstanceUVs();
 	//TPolygonGroupAttributesConstRef<FName> PolygonGroupMaterialSlotNames = MeshDescriptionAttributes.GetPolygonGroupMaterialSlotNames();
 
 	// Get the vertex and triangle arrays
@@ -3047,6 +3041,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		TArray<uint32> TriangleSmoothingMasks;
 		TriangleSmoothingMasks.SetNumZeroed(NumTriangles);
 		FStaticMeshOperations::ConvertHardEdgesToSmoothGroup(MeshDescription, TriangleSmoothingMasks);
+
 		if (TriangleSmoothingMasks.Num() > 0)
 		{
 			HAPI_AttributeInfo AttributeInfoSmoothingMasks;
@@ -3532,7 +3527,6 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 		}
 	}
 }
-
 
 void
 FUnrealMeshTranslator::DeleteFaceMaterialArray(TArray<char *>& OutStaticMeshFaceMaterials)

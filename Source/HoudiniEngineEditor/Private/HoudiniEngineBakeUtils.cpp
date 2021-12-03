@@ -1893,7 +1893,11 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 		constexpr UObject* AssetToSpawn = nullptr;
 		constexpr EObjectFlags ObjectFlags = RF_Transactional;
 		ParentBakeActorName = *MakeUniqueObjectNameIfNeeded(DesiredLevel, AActor::StaticClass(), DesiredParentBakeActorName.ToString());
-		ParentToActor = ActorFactory->CreateActor(AssetToSpawn, DesiredLevel, InIAC->GetComponentTransform(), ObjectFlags, ParentBakeActorName);
+		
+		FActorSpawnParameters SpawnParam;
+		SpawnParam.ObjectFlags = ObjectFlags;
+		SpawnParam.Name = ParentBakeActorName;
+		ParentToActor = ActorFactory->CreateActor(AssetToSpawn, DesiredLevel, InIAC->GetComponentTransform(), SpawnParam);
 
 		if (!IsValid(ParentToActor))
 		{
@@ -5183,7 +5187,7 @@ void FHoudiniEngineBakeUtils::CopyPropertyToNewGeometryCollectionActorAndCompone
 	NewGCC->ChaosSolverActor = InGCC->ChaosSolverActor;
 	
 	NewGCC->InitializationFields = InGCC->InitializationFields;
-	NewGCC->Simulating = InGCC->Simulating;
+	//NewGCC->Simulating = InGCC->Simulating;
 	NewGCC->InitializationState = InGCC->InitializationState;
 	NewGCC->ObjectType= InGCC->ObjectType;
 	NewGCC->EnableClustering = InGCC->EnableClustering;
@@ -6119,7 +6123,7 @@ FHoudiniEngineBakeUtils::BakeBlueprintsFromBakedActors(
 			}
 		}
 		// TODO: PENDINGKILL replacement ?
-		else if (Asset && Asset->IsPendingKill())
+		else if (Asset && !IsValid(Asset))
 		{
 			// Rename to pending kill so that we can use the desired name
 			const FString AssetPendingKillName(BlueprintName + "_PENDING_KILL");
@@ -6517,7 +6521,7 @@ FHoudiniEngineBakeUtils::FindDesiredBakeActorFromBakeActorName(
 	if (FoundActor)
 	{
 		// TODO: PENDINGKILL replacement ?
-		if (FoundActor->IsPendingKill())
+		if (!IsValid(FoundActor))
 		{
 			if (bRenamePendingKillActor)
 			{

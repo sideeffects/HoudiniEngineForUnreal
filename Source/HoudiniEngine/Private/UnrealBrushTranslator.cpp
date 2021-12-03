@@ -267,11 +267,11 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 	// Vertex buffer processing logic based on UModel::BuildVertexBuffers().
 	{
 		// Calculate the size of the vertex buffer and the base vertex index of each node.
-		TArray<FVector>& Positions = BrushModel->Points;
+		TArray<FVector3f>& Positions = BrushModel->Points;
 		TArray<FBspNode>& Nodes = BrushModel->Nodes;
 		TArray<FBspSurf>& Surfs = BrushModel->Surfs;
 		TArray<FVert>& Verts = BrushModel->Verts;
-		TArray<FVector>& Vectors = BrushModel->Vectors;
+		TArray<FVector3f>& Vectors = BrushModel->Vectors;
 		
 		int32 NumNodes = Nodes.Num();
 		TArray<int32> Indices;
@@ -302,12 +302,12 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 
 				OutNormals[iVertex] = FVector(N.X, N.Z, N.Y);
 				// UVs
-				FVector& vU = Vectors[Surf.vTextureU];
-				FVector& vV = Vectors[Surf.vTextureV];
-				FVector deltaVtx = (Positions[Indices[iVertex]] - Positions[Surf.pBase]);
+				FVector3f& vU = Vectors[Surf.vTextureU];
+				FVector3f& vV = Vectors[Surf.vTextureV];
+				FVector3f deltaVtx = (Positions[Indices[iVertex]] - Positions[Surf.pBase]);
 				float U = FVector::DotProduct(deltaVtx, vU) / UModel::GetGlobalBSPTexelScale();
 				float V = -FVector::DotProduct(deltaVtx, vV) / UModel::GetGlobalBSPTexelScale();
-				OutUV[iVertex] = FVector(U, V, 0.f);
+				OutUV[iVertex] = FVector3f(U, V, 0.f);
 				++iVertex;
 			}
 			// Face Material

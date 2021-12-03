@@ -1007,7 +1007,7 @@ int UHCsgUtils::ComposeBrushCSG
 
 		// Transform it.
 		DestEdPoly.Scale( Scale );
-		DestEdPoly.Rotate( Rotation );
+		DestEdPoly.Rotate(FRotator3f(Rotation));
 		DestEdPoly.Transform( Location );
 
 		// Reverse winding and normal if the parent brush is mirrored
@@ -1136,7 +1136,7 @@ int UHCsgUtils::ComposeBrushCSG
 		{
 			FPoly *DestEdPoly = &Brush->Polys->Element[i];
 			DestEdPoly->Transform(-Location);
-			DestEdPoly->Rotate(Rotation.GetInverse());
+			DestEdPoly->Rotate(FRotator3f(Rotation.GetInverse()));
 			DestEdPoly->Scale(FVector(1.0f) / Scale);
 			DestEdPoly->Fix();
 			DestEdPoly->Actor		= NULL;

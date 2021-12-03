@@ -148,7 +148,7 @@ void FHoudiniEditorTestUtils::InstantiateAsset(FHoudiniAutomationTest* Test,
 	UHoudiniPublicAPI* HoudiniAPI = UHoudiniPublicAPIBlueprintLib::GetAPI();
 
 	// TODO: PENDINGKILL replacement ?
-	if (HoudiniAPI == nullptr || !IsValid(HoudiniAPI) || HoudiniAPI->IsPendingKillOrUnreachable())
+	if (HoudiniAPI == nullptr || !IsValid(HoudiniAPI) || HoudiniAPI->IsUnreachable())//HoudiniAPI->IsPendingKillOrUnreachable())
 	{
 		UE_LOG(LogTemp, Error, TEXT("HoudiniAPI was not instantiated! Call FHoudiniEditorTestUtils::InitializeTest"));
 		OnFinishInstantiate(nullptr, false);
@@ -1151,7 +1151,7 @@ void FHoudiniEditorTestUtils::DeleteHACWithNameInLevelAndSave(const FString Name
 	UHoudiniAssetComponent* SceneHAC = FHoudiniEditorTestUtils::GetAssetComponentWithName(Name);
 	if (SceneHAC != nullptr)
 	{
-		SceneHAC->GetOwner()->MarkPendingKill();
+		SceneHAC->GetOwner()->MarkAsGarbage();
 		GEditor->ForceGarbageCollection(true);
 
 		SaveCurrentLevel();

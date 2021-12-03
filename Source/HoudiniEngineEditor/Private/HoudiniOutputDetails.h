@@ -166,18 +166,32 @@ public:
 	const FSlateBrush * GetMaterialInterfaceThumbnailBorder(UObject* Mesh, int32 MaterialIdx) const;
 
 	// Delegate used to detect if valid object has been dragged and dropped.
-	bool OnMaterialInterfaceDraggedOver(const UObject * InObject) const;
+	bool OnMaterialInterfaceDraggedOver(TArrayView<FAssetData> InAssets) const;
 
 	// Delegate used when a valid material has been drag and dropped on a mesh.
 	void OnMaterialInterfaceDropped(
-		UObject* InDroppedObject, 
+		const FDragDropEvent& InDragDropEvent,
+		TArrayView<FAssetData> InAssets,
+		UStaticMesh* InStaticMesh,
+		UHoudiniOutput* InOutput,
+		int32 MaterialIdx);
+
+	void OnMaterialInterfaceDropped(
+		UObject* InObject,
 		UStaticMesh* InStaticMesh,
 		UHoudiniOutput* InOutput,
 		int32 MaterialIdx);
 
 	// Delegate used when a valid material has been drag and dropped on a landscape.
 	void OnMaterialInterfaceDropped(
-		UObject* InDroppedObject,
+		const FDragDropEvent& InDragDropEvent,
+		TArrayView<FAssetData> InAssets,
+		ALandscapeProxy* InLandscape,
+		UHoudiniOutput* InOutput,
+		int32 MaterialIdx);
+
+	void OnMaterialInterfaceDropped(
+		UObject* InObject,
 		ALandscapeProxy* InLandscape,
 		UHoudiniOutput* InOutput,
 		int32 MaterialIdx);

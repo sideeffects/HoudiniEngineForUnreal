@@ -76,6 +76,7 @@
 #include "Interfaces/IPluginManager.h"
 //#include "Kismet/BlueprintEditor.h"
 #include "SSCSEditor.h"
+#include "SSubobjectEditor.h"
 #include "Engine/WorldComposition.h"
 
 #if WITH_EDITOR
@@ -3080,11 +3081,11 @@ void FHoudiniEngineUtils::UpdateBlueprintEditor_Internal(UHoudiniAssetComponent*
 	if (!BlueprintEditor)
 		return;
 
-	TSharedPtr<SSCSEditor> SCSEditor = BlueprintEditor->GetSCSEditor();
-	if (SCSEditor.IsValid())
+	TSharedPtr<SSubobjectEditor> SSubObjEditor = BlueprintEditor->GetSubobjectEditor();
+	if (SSubObjEditor.IsValid())
 	{
-		SCSEditor->UpdateTree(true);
-		SCSEditor->DumpTree();
+		SSubObjEditor->UpdateTree(true);
+		SSubObjEditor->DumpTree();
 	}
 	BlueprintEditor->RefreshMyBlueprint();
 
@@ -3118,7 +3119,7 @@ FHoudiniEngineUtils::SetAttributeStringData(
 	const HAPI_AttributeInfo& InAttributeInfo )
 {
 	TArray<const char *> StringDataArray;
-	for (auto CurrentString : InStringArray)
+	for (const auto& CurrentString : InStringArray)
 	{
 		// Append the converted string to the string array
 		StringDataArray.Add(FHoudiniEngineUtils::ExtractRawString(CurrentString));
@@ -5652,7 +5653,7 @@ FHoudiniEngineUtils::AddActorPathAttribute(
 bool
 FHoudiniEngineUtils::ContainsInvalidLightmapFaces(const FRawMesh & RawMesh, int32 LightmapSourceIdx)
 {
-	const TArray< FVector2D > & LightmapUVs = RawMesh.WedgeTexCoords[LightmapSourceIdx];
+	const TArray< FVector2f > & LightmapUVs = RawMesh.WedgeTexCoords[LightmapSourceIdx];
 	const TArray< uint32 > & Indices = RawMesh.WedgeIndices;
 
 	if (LightmapUVs.Num() != Indices.Num())

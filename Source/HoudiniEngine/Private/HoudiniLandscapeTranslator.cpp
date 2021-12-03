@@ -3181,8 +3181,8 @@ FHoudiniLandscapeTranslator::CalcLandscapeSizeFromHeightfieldSize(
 	auto ClampLandscapeSize = [&]()
 	{
 		// Max size is either whole components below 8192 verts, or 32 components
-		ComponentsCountX = FMath::Clamp(ComponentsCountX, 1, FMath::Min(32, FMath::FloorToInt(8191 / (NumSectionsPerComponent * NumQuadsPerSection))));
-		ComponentsCountY = FMath::Clamp(ComponentsCountY, 1, FMath::Min(32, FMath::FloorToInt(8191 / (NumSectionsPerComponent * NumQuadsPerSection))));
+		ComponentsCountX = FMath::Clamp(ComponentsCountX, 1, FMath::Min(32, FMath::FloorToInt(8191.0f / (float)(NumSectionsPerComponent * NumQuadsPerSection))));
+		ComponentsCountY = FMath::Clamp(ComponentsCountY, 1, FMath::Min(32, FMath::FloorToInt(8191.0f / (float)(NumSectionsPerComponent * NumQuadsPerSection))));
 	};
 
 	// Try to find a section size and number of sections that exactly matches the dimensions of the heightfield

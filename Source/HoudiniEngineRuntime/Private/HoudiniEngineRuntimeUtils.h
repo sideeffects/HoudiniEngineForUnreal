@@ -30,6 +30,7 @@
 #include "UObject/UObjectGlobals.h"
 #include "UObject/Class.h"
 #include "UObject/Package.h"
+#include "Math/Box.h"
 
 #if WITH_EDITOR
 	#include "SSCSEditor.h"
@@ -45,8 +46,6 @@ struct FMeshBuildSettings;
 
 template<class TClass>
 class TSubclassOf;
-
-struct FBox;
 
 
 struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils

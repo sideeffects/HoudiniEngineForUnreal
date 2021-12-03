@@ -36,12 +36,13 @@ public class HoudiniEngineRuntime : ModuleRules
         bPrecompile = true;
         PCHUsage = PCHUsageMode.NoSharedPCHs;
         PrivatePCHHeaderFile = "Private/HoudiniEngineRuntimePrivatePCH.h";
+		PrecompileForTargets = PrecompileTargetsType.Any;
 
 		// Check if we are compiling for unsupported platforms.
 		if ( Target.Platform != UnrealTargetPlatform.Win64 &&
 			Target.Platform != UnrealTargetPlatform.Mac &&
-			Target.Platform != UnrealTargetPlatform.Linux &&
-			Target.Platform != UnrealTargetPlatform.Switch )
+			Target.Platform != UnrealTargetPlatform.Linux /*&&
+			Target.Platform != UnrealTargetPlatform.Switch */)
 		{
 			System.Console.WriteLine( string.Format( "Houdini Engine Runtime: Compiling for untested target platform. Please let us know how it goes!" ) );
 		}
@@ -88,7 +89,8 @@ public class HoudiniEngineRuntime : ModuleRules
 				{
 					"UnrealEd",
 					"Kismet",
-					"EditorFramework"
+					"EditorFramework",
+					"SubobjectEditor"
 				}
 			);
 		}
