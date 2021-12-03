@@ -118,7 +118,7 @@ FString FHoudiniAttributeResolver::ResolveAttribute(
 //	{
 //	case EPackageMode::Bake:
 //		return GetBakeFolderArgument();
-//	case EPackageMode::CookToLevel:
+//	case EPackageMode::CookToLevel_Invalid:
 //	case EPackageMode::CookToTemp:
 //		return GetTempFolderArgument();
 //	}

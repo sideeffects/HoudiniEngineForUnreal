@@ -426,7 +426,7 @@ UHoudiniGeoImporter::CreateLandscapes(TArray<UHoudiniOutput*>& InOutputs, UObjec
 			case EPackageMode::Bake:
 				RuntimePackageMode = ERuntimePackageMode::Bake;
 				break;
-			case EPackageMode::CookToLevel:
+			case EPackageMode::CookToLevel_Invalid:
 			case EPackageMode::CookToTemp:
 			default:
 				RuntimePackageMode = ERuntimePackageMode::CookToTemp;
