@@ -5240,17 +5240,24 @@ FHoudiniEngineUtils::GetGenericPropertiesAttributes(const HAPI_NodeId& InGeoNode
 
 bool
 FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(UObject* InObject,
-	const TArray<FHoudiniGenericAttribute>& InAllPropertyAttributes)
+	const TArray<FHoudiniGenericAttribute>& InAllPropertyAttributes,
+	const bool bInDeferPostEditChangePropertyCalls,
+	const FHoudiniGenericAttribute::FFindPropertyFunctionType& InProcessFunction)
 {
 	if (!IsValid(InObject))
 		return false;
 
 	// Iterate over the found Property attributes
+	TArray<FHoudiniGenericAttributeChangedProperty> ChangedProperties;
+	if (bInDeferPostEditChangePropertyCalls)
+		ChangedProperties.Reserve(InAllPropertyAttributes.Num());
+	
 	int32 NumSuccess = 0;
 	for (const auto& CurrentPropAttribute : InAllPropertyAttributes)
 	{
 		// Update the current Property Attribute
-		if (!FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(InObject, CurrentPropAttribute))
+		constexpr int32 AtIndex = 0;
+		if (!FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(InObject, CurrentPropAttribute, AtIndex, bInDeferPostEditChangePropertyCalls, &ChangedProperties, InProcessFunction))
 			continue;
 
 		// Success!
@@ -5260,6 +5267,65 @@ FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(UObject* InObject,
 		const FString ObjectName = InObject->GetName();
 		HOUDINI_LOG_MESSAGE(TEXT("Modified UProperty %s on %s named %s"), *CurrentPropAttribute.AttributeName, *ClassName, *ObjectName);
 #endif
+	}
+
+	// Handle call PostEditChangeProperty if we deferred the calls
+	if (bInDeferPostEditChangePropertyCalls && ChangedProperties.Num() > 0)
+	{
+		TMap<UObject*, bool> PostEditChangePropertyCalledPerObject;
+		for (FHoudiniGenericAttributeChangedProperty& ChangeData : ChangedProperties)
+		{
+			if (!ChangeData.Property || !IsValid(ChangeData.Object))
+				continue;
+
+			// Log that we are calling PostEditChangeProperty for the object / property chain
+			if (ChangeData.PropertyChain.Num() == 0)
+			{
+				HOUDINI_LOG_MESSAGE(
+					TEXT("Calling deferred PostEditChangeProperty for %s on %s named %s"),
+					*ChangeData.Property->GetName(),
+					*(ChangeData.Object->GetClass() ? ChangeData.Object->GetClass()->GetName() : TEXT("Object")),
+					*(ChangeData.Object->GetName()));
+			}
+			else if (ChangeData.PropertyChain.Num() > 0)
+			{
+				HOUDINI_LOG_MESSAGE(
+					TEXT("Calling deferred PostEditChangeProperty for %s on %s named %s"),
+					*FString::JoinBy(ChangeData.PropertyChain, TEXT("."), [](FProperty const* const Property)
+					{
+						if (!Property)
+							return FString();
+						return Property->GetName();
+					}),
+					*(ChangeData.Object->GetClass() ? ChangeData.Object->GetClass()->GetName() : TEXT("Object")),
+					*(ChangeData.Object->GetName()));
+			}
+
+			// Record if we successfully called PostEditChangeProperty at least once for each changed object
+			const bool bPostEditChangePropertyCalled = FHoudiniGenericAttribute::HandlePostEditChangeProperty(ChangeData.Object, ChangeData.PropertyChain, ChangeData.Property);
+			if (bPostEditChangePropertyCalled)
+				PostEditChangePropertyCalledPerObject.Add(ChangeData.Object, true);
+			else
+				PostEditChangePropertyCalledPerObject.FindOrAdd(ChangeData.Object, false);
+		}
+
+		// For each changed object where we did not call PostEditChangeProperty, call PostEditChange
+		for (const auto& Entry : PostEditChangePropertyCalledPerObject)
+		{
+			if (Entry.Value)
+				continue;
+			
+			UObject* const ChangedObject = Entry.Key;
+			if (!IsValid(ChangedObject))
+				continue;
+			
+			ChangedObject->PostEditChange();
+			AActor* const OwnerActor = Cast<AActor>(ChangedObject->GetOuter());
+			if (OwnerActor)
+			{
+				OwnerActor->PostEditChange();
+			}
+		}
 	}
 
 	return (NumSuccess > 0);
