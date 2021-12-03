@@ -31,6 +31,7 @@
 #include "EngineUtils.h"
 #include <string>
 
+#include "HoudiniGenericAttribute.h"
 #include "HoudiniOutput.h"
 #include "HoudiniPackageParams.h"
 #include "Containers/UnrealString.h"
@@ -43,7 +44,6 @@ class UHoudiniAssetComponent;
 struct FHoudiniPartInfo;
 struct FHoudiniMeshSocket;
 struct FHoudiniGeoPartObject;
-struct FHoudiniGenericAttribute;
 
 struct FRawMesh;
 
@@ -385,7 +385,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			TArray<FHoudiniGenericAttribute>& OutPropertyAttributes);
 
 		static bool UpdateGenericPropertiesAttributes(
-			UObject* InObject, const TArray<FHoudiniGenericAttribute>& InAllPropertyAttributes);
+			UObject* InObject, const TArray<FHoudiniGenericAttribute>& InAllPropertyAttributes,
+			const bool bInDeferPostEditChangePropertyCalls=false,
+			const FHoudiniGenericAttribute::FFindPropertyFunctionType& InProcessFunction=nullptr);
 
 		// Helper function for setting a generic attribute on geo (UE -> HAPI)
 		static bool SetGenericPropertyAttribute(

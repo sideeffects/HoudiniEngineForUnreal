@@ -39,6 +39,50 @@
 #include "EditorFramework/AssetImportData.h"
 #include "AI/Navigation/NavCollisionBase.h"
 
+FHoudiniGenericAttributeChangedProperty::FHoudiniGenericAttributeChangedProperty()
+	: Object()
+	, Property(nullptr)
+{
+	
+}
+
+FHoudiniGenericAttributeChangedProperty::FHoudiniGenericAttributeChangedProperty(const FHoudiniGenericAttributeChangedProperty& InOther)
+{
+	*this = InOther;
+}
+
+FHoudiniGenericAttributeChangedProperty::FHoudiniGenericAttributeChangedProperty(UObject* InObject, FEditPropertyChain& InPropertyChain, FProperty* InProperty)
+	: Object(InObject)
+	, Property(InProperty)
+{
+	PropertyChain.Empty();
+	for (const auto& Entry : InPropertyChain)
+	{
+		PropertyChain.AddTail(Entry);
+	}
+	if (InPropertyChain.GetActiveNode())
+		PropertyChain.SetActivePropertyNode(InPropertyChain.GetActiveNode()->GetValue());
+	if (InPropertyChain.GetActiveMemberNode())
+		PropertyChain.SetActivePropertyNode(InPropertyChain.GetActiveMemberNode()->GetValue());
+}
+
+void
+FHoudiniGenericAttributeChangedProperty::operator=(const FHoudiniGenericAttributeChangedProperty& InOther)
+{
+	Object = InOther.Object;
+	Property = InOther.Property;
+
+	PropertyChain.Empty();
+	for (const auto& Entry : InOther.PropertyChain)
+	{
+		PropertyChain.AddTail(Entry);
+	}
+	if (InOther.PropertyChain.GetActiveNode())
+		PropertyChain.SetActivePropertyNode(InOther.PropertyChain.GetActiveNode()->GetValue());
+	if (InOther.PropertyChain.GetActiveMemberNode())
+		PropertyChain.SetActivePropertyNode(InOther.PropertyChain.GetActiveMemberNode()->GetValue());
+}
+
 double
 FHoudiniGenericAttribute::GetDoubleValue(int32 index) const
 {
@@ -319,7 +363,9 @@ FHoudiniGenericAttribute::SetBoolTuple(const TArray<bool>& InTupleValues, int32 
 
 bool
 FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
-	UObject* InObject, const FHoudiniGenericAttribute& InPropertyAttribute, const int32& AtIndex)
+	UObject* InObject, const FHoudiniGenericAttribute& InPropertyAttribute, const int32& AtIndex,
+	const bool bInDeferPostPropertyChangedEvents, TArray<FHoudiniGenericAttributeChangedProperty>* OutChangedProperties,
+	const FFindPropertyFunctionType& InFindPropertyFunction)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -437,28 +483,45 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 	void* OutContainer = nullptr; 
 	FProperty* FoundProperty = nullptr;
 	UObject* FoundPropertyObject = nullptr;
+	FEditPropertyChain FoundPropertyChain;
 
-#if WITH_EDITOR
-	// Try to match to source model properties when possible
-	if (UStaticMesh* SM = Cast<UStaticMesh>(InObject))
+	if (InFindPropertyFunction)
 	{
-		if (IsValid(SM) && SM->GetNumSourceModels() > AtIndex)
-		{
-			bool bFoundProperty = false;
-			TryToFindProperty(&SM->GetSourceModel(AtIndex), SM->GetSourceModel(AtIndex).StaticStruct(), PropertyName, FoundProperty, bFoundProperty, OutContainer);
-			if (bFoundProperty)
-			{
-				FoundPropertyObject = InObject;
-			}
-		}
+		bool bOutSkipDefaultIfPropertyNotFound = false;
+		const bool bFoundProperty = InFindPropertyFunction(InObject, PropertyName, bOutSkipDefaultIfPropertyNotFound, FoundPropertyChain, FoundProperty, FoundPropertyObject, OutContainer);
+		if (!bFoundProperty && bOutSkipDefaultIfPropertyNotFound)
+			return false;
 	}
-#endif
+// #if WITH_EDITOR
+// 	// Try to match to source model properties when possible
+// 	if (UStaticMesh* SM = Cast<UStaticMesh>(InObject))
+// 	{
+// 		if (IsValid(SM) && SM->GetNumSourceModels() > AtIndex)
+// 		{
+// 			bool bFoundProperty = false;
+// 			TryToFindProperty(&SM->GetSourceModel(AtIndex), SM->GetSourceModel(AtIndex).StaticStruct(), PropertyName, FoundProperty, bFoundProperty, OutContainer);
+// 			if (bFoundProperty)
+// 			{
+// 				FoundPropertyObject = InObject;
+// 			}
+// 		}
+// 	}
+// #endif
 
-	if (!FoundProperty && !FindPropertyOnObject(InObject, PropertyName, FoundProperty, FoundPropertyObject, OutContainer))
+	if (!FoundProperty && !FindPropertyOnObject(InObject, PropertyName, FoundPropertyChain, FoundProperty, FoundPropertyObject, OutContainer))
 		return false;
 
+	// Set the member and active properties on the chain
+	if (FoundPropertyChain.Num() > 0)
+	{
+		if (FoundPropertyChain.GetTail())
+			FoundPropertyChain.SetActivePropertyNode(FoundPropertyChain.GetTail()->GetValue());
+		if (FoundPropertyChain.GetHead())
+			FoundPropertyChain.SetActiveMemberPropertyNode(FoundPropertyChain.GetHead()->GetValue());
+	}
+	
 	// Modify the Property we found
-	if (!ModifyPropertyValueOnObject(FoundPropertyObject, InPropertyAttribute, FoundProperty, OutContainer, AtIndex))
+	if (!ModifyPropertyValueOnObject(FoundPropertyObject, InPropertyAttribute, FoundPropertyChain, FoundProperty, OutContainer, AtIndex, bInDeferPostPropertyChangedEvents, OutChangedProperties))
 		return false;
 
 	return true;
@@ -469,6 +532,7 @@ bool
 FHoudiniGenericAttribute::FindPropertyOnObject(
 	UObject* InObject,
 	const FString& InPropertyName,
+	FEditPropertyChain& InPropertyChain,
 	FProperty*& OutFoundProperty,
 	UObject*& OutFoundPropertyObject,
 	void*& OutContainer)
@@ -494,6 +558,7 @@ FHoudiniGenericAttribute::FindPropertyOnObject(
 		InObject,
 		ObjectClass,
 		InPropertyName,
+		InPropertyChain,
 		OutFoundProperty,
 		bPropertyHasBeenFound,
 		OutContainer);
@@ -591,19 +656,19 @@ FHoudiniGenericAttribute::FindPropertyOnObject(
 	if (IsValid(SM))
 	{
 		if (SM->BodySetup && FindPropertyOnObject(
-			SM->BodySetup, InPropertyName, OutFoundProperty, OutFoundPropertyObject, OutContainer))
+			SM->BodySetup, InPropertyName, InPropertyChain, OutFoundProperty, OutFoundPropertyObject, OutContainer))
 		{
 			return true;
 		}
 
 		if (SM->AssetImportData && FindPropertyOnObject(
-			SM->AssetImportData, InPropertyName, OutFoundProperty, OutFoundPropertyObject, OutContainer))
+			SM->AssetImportData, InPropertyName, InPropertyChain, OutFoundProperty, OutFoundPropertyObject, OutContainer))
 		{
 			return true;
 		}
 
 		if (SM->NavCollision && FindPropertyOnObject(
-			SM->NavCollision, InPropertyName, OutFoundProperty, OutFoundPropertyObject, OutContainer))
+			SM->NavCollision, InPropertyName, InPropertyChain, OutFoundProperty, OutFoundPropertyObject, OutContainer))
 		{
 			return true;
 		}
@@ -623,7 +688,7 @@ FHoudiniGenericAttribute::FindPropertyOnObject(
 				continue;
 
 			if (FindPropertyOnObject(
-				SceneComponent, InPropertyName, OutFoundProperty, OutFoundPropertyObject, OutContainer))
+				SceneComponent, InPropertyName, InPropertyChain, OutFoundProperty, OutFoundPropertyObject, OutContainer))
 			{
 				return true;
 			}
@@ -644,6 +709,7 @@ FHoudiniGenericAttribute::TryToFindProperty(
 	void* InContainer,
 	UStruct* InStruct,
 	const FString& InPropertyName,
+	FEditPropertyChain& InPropertyChain,
 	FProperty*& OutFoundProperty,
 	bool& bOutPropertyHasBeenFound,
 	void*& OutContainer)
@@ -678,6 +744,7 @@ FHoudiniGenericAttribute::TryToFindProperty(
 			if ((Name == InPropertyName) || (DisplayName == InPropertyName))
 			{
 				bOutPropertyHasBeenFound = true;
+				InPropertyChain.AddTail(OutFoundProperty);
 				break;
 			}
 		}
@@ -691,13 +758,17 @@ FHoudiniGenericAttribute::TryToFindProperty(
 			if (!IsValid(Struct))
 				continue;
 
+			InPropertyChain.AddTail(StructProperty);
 			TryToFindProperty(
 				StructProperty->ContainerPtrToValuePtr<void>(InContainer, 0),
 				Struct,
 				InPropertyName,
+				InPropertyChain,
 				OutFoundProperty,
 				bOutPropertyHasBeenFound,
 				OutContainer);
+			if (!bOutPropertyHasBeenFound)
+				InPropertyChain.RemoveNode(InPropertyChain.GetTail());
 		}
 
 		if (bOutPropertyHasBeenFound)
@@ -717,12 +788,55 @@ FHoudiniGenericAttribute::TryToFindProperty(
 
 
 bool
+FHoudiniGenericAttribute::HandlePostEditChangeProperty(UObject* InObject, FEditPropertyChain& InPropertyChain, FProperty* InProperty)
+{
+#if WITH_EDITOR
+	if (InPropertyChain.Num() == 0)
+	{
+		FPropertyChangedEvent Evt(InProperty);
+		InObject->PostEditChangeProperty(Evt);
+		AActor* InOwner = Cast<AActor>(InObject);
+		if (IsValid(InOwner))
+		{
+			// If we are setting properties on an Actor component, we want to notify the
+			// actor of the changes too since the property change might be handled in the actor's
+			// PostEditChange callbacks (one such an example occurs when changing the material for a decal actor).
+			InOwner->PostEditChangeProperty(Evt);
+		}
+
+		return true;
+	}
+	else if (InPropertyChain.Num() > 0)
+	{
+		FPropertyChangedEvent Evt(InPropertyChain.GetActiveNode() ? InPropertyChain.GetActiveNode()->GetValue() : nullptr);
+		FPropertyChangedChainEvent ChainEvt(InPropertyChain, Evt);
+		InObject->PostEditChangeChainProperty(ChainEvt);
+		AActor* InOwner = Cast<AActor>(InObject);
+		if (IsValid(InOwner))
+		{
+			// If we are setting properties on an Actor component, we want to notify the
+			// actor of the changes too since the property change might be handled in the actor's
+			// PostEditChange callbacks (one such an example occurs when changing the material for a decal actor).
+			InOwner->PostEditChangeChainProperty(ChainEvt);
+		}
+
+		return true;
+	}
+	return false;
+#endif
+	return true;
+}
+
+bool
 FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 	UObject* InObject,
-	FHoudiniGenericAttribute InGenericAttribute,
+	const FHoudiniGenericAttribute& InGenericAttribute,
+	FEditPropertyChain& InPropertyChain, 
 	FProperty* FoundProperty,
 	void* InContainer,
-	const int32& InAtIndex)
+	const int32& InAtIndex,
+	const bool bInDeferPostPropertyChangedEvents,
+	TArray<FHoudiniGenericAttributeChangedProperty>* OutChangedProperties)
 {
 	if (!IsValid(InObject) || !FoundProperty)
 		return false;
@@ -737,23 +851,97 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 	FProperty* InnerProperty = FoundProperty;
 
 	AActor* InOwner = Cast<AActor>(InObject->GetOuter());
-	bool bHasModifiedProperty = false;
-	
+	bool bPropertyValueChanged = false;
+	bool bPostEditChangePropertyCalled = false;
 
-	auto OnPropertyChanged = [InObject, InOwner, &bHasModifiedProperty](FProperty* InProperty)
+	auto OnPrePropertyChanged = [InObject, &InPropertyChain](FProperty* InProperty)
 	{
+		if (!InProperty)
+			return;
+		
 #if WITH_EDITOR
-		FPropertyChangedEvent Evt(InProperty);
-		InObject->PostEditChangeProperty(Evt);
-		if (InOwner)
+		if (InPropertyChain.Num() == 0)
 		{
-			// If we are setting properties on an Actor component, we want to notify the
-			// actor of the changes too since the property change might be handled in the actor's
-			// PostEditChange callbacks (one such an example occurs when changing the material for a decal actor).
-			InOwner->PostEditChangeProperty(Evt);
+			InObject->PreEditChange(InProperty);
+		}
+		else if (InPropertyChain.Num() > 0)
+		{
+			InObject->PreEditChange(InPropertyChain);
 		}
 #endif
-		bHasModifiedProperty = true;
+	};
+
+	auto OnPropertyChanged = [InObject, &InPropertyChain, InOwner, bInDeferPostPropertyChangedEvents, OutChangedProperties, &InGenericAttribute, &bPostEditChangePropertyCalled, &bPropertyValueChanged](FProperty* InProperty)
+	{
+		bPropertyValueChanged = true;
+		
+		if (!InProperty)
+			return;
+		
+#if WITH_EDITOR
+		if (InPropertyChain.Num() == 0)
+		{
+			HOUDINI_LOG_MESSAGE(
+				TEXT("Modified UProperty %s (searched for %s) on %s named %s"),
+				*InProperty->GetName(),
+				*InGenericAttribute.AttributeName,
+				*(InObject->GetClass() ? InObject->GetClass()->GetName() : TEXT("Object")),
+				*(InObject->GetName()));
+
+			if (bInDeferPostPropertyChangedEvents)
+			{
+				if (OutChangedProperties)
+				{
+					FHoudiniGenericAttributeChangedProperty ChangeData;
+					ChangeData.PropertyChain.AddTail(InProperty);
+					ChangeData.Property = InProperty;
+					ChangeData.Object = InObject;
+					OutChangedProperties->Add(ChangeData);
+				}
+			}
+			else
+			{
+				bPostEditChangePropertyCalled = HandlePostEditChangeProperty(InObject, InPropertyChain, InProperty);
+			}
+		}
+		else if (InPropertyChain.Num() > 0)
+		{
+			HOUDINI_LOG_MESSAGE(
+				TEXT("Modified UProperty %s (searched for %s) on %s named %s"),
+				*FString::JoinBy(InPropertyChain, TEXT("."), [](FProperty const* const Property)
+				{
+					if (!Property)
+						return FString();
+					return Property->GetName();
+				}),
+				*InGenericAttribute.AttributeName,
+				*(InObject->GetClass() ? InObject->GetClass()->GetName() : TEXT("Object")),
+				*(InObject->GetName()));
+
+			if (bInDeferPostPropertyChangedEvents)
+			{
+				if (OutChangedProperties)
+				{
+					FHoudiniGenericAttributeChangedProperty ChangeData;
+					for (FProperty* Property : InPropertyChain)
+						ChangeData.PropertyChain.AddTail(Property);
+					
+					if (InPropertyChain.GetActiveNode())
+						ChangeData.PropertyChain.SetActivePropertyNode(InPropertyChain.GetActiveNode()->GetValue());
+					if (InPropertyChain.GetActiveMemberNode())
+						ChangeData.PropertyChain.SetActiveMemberPropertyNode(InPropertyChain.GetActiveMemberNode()->GetValue());
+
+					ChangeData.Property = InProperty;
+					ChangeData.Object = InObject;
+					OutChangedProperties->Add(ChangeData);
+				}
+			}
+			else
+			{
+				bPostEditChangePropertyCalled = HandlePostEditChangeProperty(InObject, InPropertyChain, InProperty);
+			}
+		}
+#endif
 	};
 
 	FArrayProperty* ArrayProperty = CastField<FArrayProperty>(FoundProperty);
@@ -811,15 +999,36 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 					FNumericProperty* const Property = CastField<FNumericProperty>(InnerProperty);
 					if (InGenericAttribute.AttributeType == EAttribStorageType::STRING)
 					{
-						Property->SetNumericPropertyValueFromString(ValuePtr, *InGenericAttribute.GetStringValue(AtIndex + TupleIndex));
+						const FString NewValue = InGenericAttribute.GetStringValue(AtIndex + TupleIndex);
+						const FString CurrentValue = Property->GetNumericPropertyValueToString(ValuePtr);
+						if (NewValue != CurrentValue)
+						{
+							OnPrePropertyChanged(Property);
+							Property->SetNumericPropertyValueFromString(ValuePtr, *NewValue);
+							OnPropertyChanged(Property);
+						}
 					}
 					else if (Property->IsFloatingPoint())
 					{
-						Property->SetFloatingPointPropertyValue(ValuePtr, InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex));
+						const double NewValue = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex);
+						const double CurrentValue = Property->GetFloatingPointPropertyValue(ValuePtr);
+						if (NewValue != CurrentValue)
+						{
+							OnPrePropertyChanged(Property);
+							Property->SetFloatingPointPropertyValue(ValuePtr, NewValue);
+							OnPropertyChanged(Property);
+						}
 					}
 					else if (Property->IsInteger())
 					{
-						Property->SetIntPropertyValue(ValuePtr, InGenericAttribute.GetIntValue(AtIndex + TupleIndex));
+						const int64 NewValue = InGenericAttribute.GetIntValue(AtIndex + TupleIndex);
+						const int64 CurrentValue = Property->GetSignedIntPropertyValue(ValuePtr);
+						if (NewValue != CurrentValue)
+						{
+							OnPrePropertyChanged(Property);
+							Property->SetIntPropertyValue(ValuePtr, NewValue);
+							OnPropertyChanged(Property);
+						}
 					}
 					else
 					{
@@ -830,20 +1039,44 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 				else if (PropertyClass->IsChildOf(FBoolProperty::StaticClass()))
 				{
 					FBoolProperty* const Property = CastField<FBoolProperty>(InnerProperty);
-					Property->SetPropertyValue(ValuePtr, InGenericAttribute.GetBoolValue(AtIndex + TupleIndex));
+					const bool NewValue = InGenericAttribute.GetBoolValue(AtIndex + TupleIndex);
+					const bool CurrentValue = Property->GetPropertyValue(ValuePtr);
+					if (NewValue != CurrentValue)
+					{
+						OnPrePropertyChanged(Property);
+						Property->SetPropertyValue(ValuePtr, NewValue);
+						OnPropertyChanged(Property);
+					}
 				}
 				else if (PropertyClass->IsChildOf(FStrProperty::StaticClass()))
 				{
 					FStrProperty* const Property = CastField<FStrProperty>(InnerProperty);
-					Property->SetPropertyValue(ValuePtr, InGenericAttribute.GetStringValue(AtIndex + TupleIndex));
+					const FString NewValue = InGenericAttribute.GetStringValue(AtIndex + TupleIndex);
+					const FString CurrentValue = Property->GetPropertyValue(ValuePtr);
+					if (NewValue != CurrentValue)
+					{
+						OnPrePropertyChanged(Property);
+						Property->SetPropertyValue(ValuePtr, NewValue);
+						OnPropertyChanged(Property);
+					}
 				}
 				else if (PropertyClass->IsChildOf(FNameProperty::StaticClass()))
 				{
 					FNameProperty* const Property = CastField<FNameProperty>(InnerProperty);
-					Property->SetPropertyValue(ValuePtr, FName(*InGenericAttribute.GetStringValue(AtIndex + TupleIndex)));
+					const FName NewValue = FName(*InGenericAttribute.GetStringValue(AtIndex + TupleIndex));
+					const FName CurrentValue = Property->GetPropertyValue(ValuePtr);
+					if (NewValue != CurrentValue)
+					{
+						OnPrePropertyChanged(Property);
+						Property->SetPropertyValue(ValuePtr, NewValue);
+						OnPropertyChanged(Property);
+					}
 				}
-
-				OnPropertyChanged(InnerProperty);
+				else
+				{
+					HOUDINI_LOG_WARNING(TEXT("Unsupported property for %s (Class %s)"), *InGenericAttribute.AttributeName, *PropertyClassName);
+					return false;
+				}
 			}
 			else
 			{
@@ -882,14 +1115,19 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 			{
 				// Found a vector property, fill it with up to 3 tuple values
 				FVector& Vector = *static_cast<FVector*>(PropertyValue);
-				Vector = FVector::ZeroVector;
-				Vector.X = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 0);
+				FVector NewVector = FVector::ZeroVector;
+				NewVector.X = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 0);
 				if (InGenericAttribute.AttributeTupleSize > 1)
-					Vector.Y = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 1);
+					NewVector.Y = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 1);
 				if (InGenericAttribute.AttributeTupleSize > 2)
-					Vector.Z = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 2);
+					NewVector.Z = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 2);
 
-				OnPropertyChanged(StructProperty);
+				if (NewVector != Vector)
+				{
+					OnPrePropertyChanged(StructProperty);
+					Vector = NewVector;
+					OnPropertyChanged(StructProperty);
+				}
 			}
 			else if (PropertyName == NAME_Transform)
 			{
@@ -920,60 +1158,82 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 					Scale.Z = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 9);
 
 				FTransform& Transform = *static_cast<FTransform*>(PropertyValue);
-				Transform = FTransform::Identity;
-				Transform.SetTranslation(Translation);
-				Transform.SetRotation(Rotation);
-				Transform.SetScale3D(Scale);
+				const FTransform NewTransform(Rotation, Translation, Scale);
 
-				OnPropertyChanged(StructProperty);
+				if (!NewTransform.Equals(Transform))
+				{
+					OnPrePropertyChanged(StructProperty);
+					Transform = NewTransform;
+					OnPropertyChanged(StructProperty);
+				}
 			}
 			else if (PropertyName == NAME_Color)
 			{
 				FColor& Color = *static_cast<FColor*>(PropertyValue);
-				Color = FColor::Black;
-				Color.R = (int8)InGenericAttribute.GetIntValue(AtIndex + TupleIndex);
+				FColor NewColor = FColor::Black;
+				NewColor.R = (int8)InGenericAttribute.GetIntValue(AtIndex + TupleIndex);
 				if (InGenericAttribute.AttributeTupleSize > 1)
-					Color.G = (int8)InGenericAttribute.GetIntValue(AtIndex + TupleIndex + 1);
+					NewColor.G = (int8)InGenericAttribute.GetIntValue(AtIndex + TupleIndex + 1);
 				if (InGenericAttribute.AttributeTupleSize > 2)
-					Color.B = (int8)InGenericAttribute.GetIntValue(AtIndex + TupleIndex + 2);
+					NewColor.B = (int8)InGenericAttribute.GetIntValue(AtIndex + TupleIndex + 2);
 				if (InGenericAttribute.AttributeTupleSize > 3)
-					Color.A = (int8)InGenericAttribute.GetIntValue(AtIndex + TupleIndex + 3);
+					NewColor.A = (int8)InGenericAttribute.GetIntValue(AtIndex + TupleIndex + 3);
 
-				OnPropertyChanged(StructProperty);
+				if (NewColor != Color)
+				{
+					OnPrePropertyChanged(StructProperty);
+					Color = NewColor;
+					OnPropertyChanged(StructProperty);
+				}
 			}
 			else if (PropertyName == NAME_LinearColor)
 			{
 				FLinearColor& LinearColor = *static_cast<FLinearColor*>(PropertyValue);
-				LinearColor = FLinearColor::Black;
-				LinearColor.R = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex);
+				FLinearColor NewLinearColor = FLinearColor::Black;
+				NewLinearColor.R = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex);
 				if (InGenericAttribute.AttributeTupleSize > 1)
-					LinearColor.G = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 1);
+					NewLinearColor.G = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 1);
 				if (InGenericAttribute.AttributeTupleSize > 2)
-					LinearColor.B = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 2);
+					NewLinearColor.B = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 2);
 				if (InGenericAttribute.AttributeTupleSize > 3)
-					LinearColor.A = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 3);
+					NewLinearColor.A = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 3);
 
-				OnPropertyChanged(StructProperty);
+				if (NewLinearColor != LinearColor)
+				{
+					OnPrePropertyChanged(StructProperty);
+					LinearColor = NewLinearColor;
+					OnPropertyChanged(StructProperty);
+				}
 			}
 			else if (PropertyName == "Int32Interval")
 			{
 				FInt32Interval& Interval = *static_cast<FInt32Interval*>(PropertyValue);
-				Interval = FInt32Interval();
-				Interval.Min = (int32)InGenericAttribute.GetIntValue(AtIndex + TupleIndex);
+				FInt32Interval NewInterval;
+				NewInterval.Min = (int32)InGenericAttribute.GetIntValue(AtIndex + TupleIndex);
 				if (InGenericAttribute.AttributeTupleSize > 1)
-					Interval.Max = (int32)InGenericAttribute.GetIntValue(AtIndex + TupleIndex + 1);
+					NewInterval.Max = (int32)InGenericAttribute.GetIntValue(AtIndex + TupleIndex + 1);
 
-				OnPropertyChanged(StructProperty);
+				if (NewInterval.Min != Interval.Min || NewInterval.Max != Interval.Max)
+				{
+					OnPrePropertyChanged(StructProperty);
+					Interval = NewInterval;
+					OnPropertyChanged(StructProperty);
+				}
 			}
 			else if (PropertyName == "FloatInterval")
 			{
 				FFloatInterval& Interval = *static_cast<FFloatInterval*>(PropertyValue);
-				Interval = FFloatInterval();
-				Interval.Min = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex);
+				FFloatInterval NewInterval;
+				NewInterval.Min = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex);
 				if (InGenericAttribute.AttributeTupleSize > 1)
-					Interval.Max = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 1);
+					NewInterval.Max = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 1);
 
-				OnPropertyChanged(StructProperty);
+				if (NewInterval.Min != Interval.Min || NewInterval.Max != Interval.Max)
+				{
+					OnPrePropertyChanged(StructProperty);
+					Interval = NewInterval;
+					OnPropertyChanged(StructProperty);
+				}
 			}
 			else
 			{
@@ -1017,8 +1277,13 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 			// Ensure the ObjectProperty class matches the ValueObject that we just loaded
 			if (!ValueObject || (ValueObject && ValueObject->IsA(ObjectProperty->PropertyClass)))
 			{
-				ObjectProperty->SetObjectPropertyValue(ValuePtr, ValueObject);
-				OnPropertyChanged(ObjectProperty);
+				UObject const* const CurrentValue = ObjectProperty->GetObjectPropertyValue(ValuePtr);
+				if (CurrentValue != ValueObject)
+				{
+					OnPrePropertyChanged(ObjectProperty);
+					ObjectProperty->SetObjectPropertyValue(ValuePtr, ValueObject);
+					OnPropertyChanged(ObjectProperty);
+				}
 			}
 			else
 			{
@@ -1041,7 +1306,7 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 		return false;
 	}
 
-	if (bHasModifiedProperty)
+	if (bPropertyValueChanged && !bPostEditChangePropertyCalled && !bInDeferPostPropertyChangedEvents)
 	{
 #if WITH_EDITOR
 		InObject->PostEditChange();
