@@ -200,7 +200,7 @@ static void FilterBound
 	FBspNode&	Node	= Model->Nodes  [iNode];
 	FBspSurf&	Surf	= Model->Surfs  [Node.iSurf];
 	FVector	Base = Surf.Plane * Surf.Plane.W;
-	FVector&	Normal	= Model->Vectors[Surf.vNormal];
+	FVector3f&	Normal	= Model->Vectors[Surf.vNormal];
 	FBox		Bound(ForceInit);
 
 	Bound.Min.X = Bound.Min.Y = Bound.Min.Z = +WORLD_MAX;
@@ -665,22 +665,22 @@ ABrush*	FHBSPOps::csgAddOperation( ABrush* Actor, uint32 PolyFlags, EBrushType B
 }
 
 /** Add a new point to the model (preventing duplicates) and return its index. */
-static int32 AddThing( TArray<FVector>& Vectors, const FVector& V, float Thresh, int32 Check )
+static int32 AddThing(TArray<FVector3f>& Vectors, const FVector3f& V, float Thresh, int32 Check)
 {
-	if( Check )
+	if (Check)
 	{
 		// See if this is very close to an existing point/vector.
-		for( int32 i=0; i<Vectors.Num(); i++ )
+		for (int32 i = 0; i < Vectors.Num(); i++)
 		{
-			const FVector &TableVect = Vectors[i];
-			float Temp=(V.X - TableVect.X);
-			if( (Temp > -Thresh) && (Temp < Thresh) )
+			const FVector3f& TableVect = Vectors[i];
+			float Temp = (V.X - TableVect.X);
+			if ((Temp > -Thresh) && (Temp < Thresh))
 			{
-				Temp=(V.Y - TableVect.Y);
-				if( (Temp > -Thresh) && (Temp < Thresh) )
+				Temp = (V.Y - TableVect.Y);
+				if ((Temp > -Thresh) && (Temp < Thresh))
 				{
-					Temp=(V.Z - TableVect.Z);
-					if( (Temp > -Thresh) && (Temp < Thresh) )
+					Temp = (V.Z - TableVect.Z);
+					if ((Temp > -Thresh) && (Temp < Thresh))
 					{
 						// Found nearly-matching vector.
 						return i;
@@ -689,8 +689,9 @@ static int32 AddThing( TArray<FVector>& Vectors, const FVector& V, float Thresh,
 			}
 		}
 	}
-	return Vectors.Add( V );
+	return Vectors.Add(V);
 }
+
 
 /** Add a new vector to the model, merging near-duplicates, and return its index. */
 int32 FHBSPOps::bspAddVector( UModel* Model, FVector* V, bool Exact, UHBspPointsGrid* BspVectors )
@@ -740,7 +741,7 @@ int32 FHBSPOps::bspAddPoint( UModel* Model, FVector* V, bool Exact, UHBspPointsG
 
 	// Try to find a match quickly from the Bsp. This finds all potential matches
 	// except for any dissociated from nodes/surfaces during a rebuild.
-	FVector Temp;
+	FVector3f Temp;
 	int32 pVertex;
 	float NearestDist = Model->FindNearestVertex(*V,Temp,Thresh,pVertex);
 	if( (NearestDist >= 0.0) && (NearestDist <= Thresh) )
@@ -1331,8 +1332,8 @@ void FHBSPOps::RotateBrushVerts(ABrush* Brush, const FRotator& Rotation, bool bC
 			Poly->Base = Brush->GetPivotOffset() + RotMatrix.TransformVector(Poly->Base - Brush->GetPivotOffset());
 
 			// Rotate the texture vectors.
-			Poly->TextureU = RotMatrix.TransformVector( Poly->TextureU );
-			Poly->TextureV = RotMatrix.TransformVector( Poly->TextureV );
+			Poly->TextureU = FVector4f(RotMatrix.TransformVector( Poly->TextureU ));
+			Poly->TextureV = FVector4f(RotMatrix.TransformVector( Poly->TextureV ));
 
 			// Recalc the normal for the poly.
 			Poly->Normal = FVector::ZeroVector;

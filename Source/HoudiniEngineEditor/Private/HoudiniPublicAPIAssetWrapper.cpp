@@ -187,7 +187,7 @@ UHoudiniPublicAPIAssetWrapper::CreateWrapper(UObject* InOuter, UObject* InHoudin
 	// If we cannot wrap the specified actor, return nullptr.
 	if (!NewWrapper->WrapHoudiniAssetObject(InHoudiniAssetActorOrComponent))
 	{
-		NewWrapper->MarkPendingKill();
+		NewWrapper->MarkAsGarbage();
 		return nullptr;
 	}
 	

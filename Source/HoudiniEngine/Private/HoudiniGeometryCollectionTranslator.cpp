@@ -635,7 +635,6 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 	int32 GeoId = FirstPiece.InstancerOutputIdentifier->GeoId;
 	int32 PartId = FirstPiece.InstancedPartId;
 
-
 	{
 		// Damage thresholds are not yet available in vanilla 4.26. UNCOMMENT THIS IN FUTURE VERSIONS.
 		// Clustering - Damage thresholds
@@ -668,6 +667,9 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
                 }
 	}
 
+	// Get the default Size Specific data for this GC
+	FGeometryCollectionSizeSpecificData GCSizeSpecData = GeometryCollection->GetDefaultSizeSpecificData();
+
 	{
 		// Collisions - Collision Type
 		HAPI_AttributeInfo AttriInfo;
@@ -689,7 +691,9 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 				if (Result < (int32)ECollisionTypeEnum::Chaos_Max)
 				{
 					ECollisionTypeEnum CollisionType = (ECollisionTypeEnum)Result;
-					GeometryCollection->CollisionType = CollisionType;
+
+					if (GCSizeSpecData.CollisionShapes.Num())
+						GCSizeSpecData.CollisionShapes[0].CollisionType = CollisionType;
 				}
 			}
 		}
@@ -720,7 +724,8 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 					ImplicitType = (EImplicitTypeEnum)(Result - 1);
 				}
 				
-				GeometryCollection->ImplicitType = ImplicitType;
+				if (GCSizeSpecData.CollisionShapes.Num())
+					GCSizeSpecData.CollisionShapes[0].ImplicitType = ImplicitType;
 			}
 		}
 	}
@@ -743,7 +748,8 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 		{
 			if (IntData.Num() > 0)
 			{
-				GeometryCollection->MinLevelSetResolution = IntData[0];
+				if (GCSizeSpecData.CollisionShapes.Num())
+					GCSizeSpecData.CollisionShapes[0].LevelSet.MinLevelSetResolution = IntData[0];
 			}
 		}
 	}
@@ -765,7 +771,8 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 		{
 			if (IntData.Num() > 0)
 			{
-				GeometryCollection->MaxLevelSetResolution = IntData[0];
+				if (GCSizeSpecData.CollisionShapes.Num())
+					GCSizeSpecData.CollisionShapes[0].LevelSet.MaxLevelSetResolution = IntData[0];
 			}
 		}
 	}
@@ -787,7 +794,8 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 		{
 			if (IntData.Num() > 0)
 			{
-				GeometryCollection->MinClusterLevelSetResolution = IntData[0];
+				if (GCSizeSpecData.CollisionShapes.Num())
+					GCSizeSpecData.CollisionShapes[0].LevelSet.MinClusterLevelSetResolution = IntData[0];
 			}
 		}
 	}
@@ -809,7 +817,8 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 		{
 			if (IntData.Num() > 0)
 			{
-				GeometryCollection->MaxClusterLevelSetResolution = IntData[0];
+				if (GCSizeSpecData.CollisionShapes.Num())
+					GCSizeSpecData.CollisionShapes[0].LevelSet.MaxClusterLevelSetResolution = IntData[0];
 			}
 		}
 	}
@@ -831,7 +840,8 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 		{
 			if (FloatData.Num() > 0)
 			{
-				GeometryCollection->CollisionObjectReductionPercentage = FloatData[0];
+				if (GCSizeSpecData.CollisionShapes.Num())
+					GCSizeSpecData.CollisionShapes[0].CollisionObjectReductionPercentage = FloatData[0];
 			}
 		}
 	}
@@ -920,7 +930,8 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 		{
 			if (FloatData.Num() > 0)
 			{
-				GeometryCollection->CollisionParticlesFraction = FloatData[0];
+				if (GCSizeSpecData.CollisionShapes.Num())
+					GCSizeSpecData.CollisionShapes[0].CollisionParticles.CollisionParticlesFraction = FloatData[0];
 			}
 		}
 	}
@@ -942,7 +953,8 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 		{
 			if (IntData.Num() > 0)
 			{
-				GeometryCollection->MaximumCollisionParticles = IntData[0];
+				if (GCSizeSpecData.CollisionShapes.Num())
+					GCSizeSpecData.CollisionShapes[0].CollisionParticles.MaximumCollisionParticles = IntData[0];
 			}
 		}
 	}
@@ -973,11 +985,11 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 		const FStaticMeshVertexBuffers& VertexBuffer = StaticMesh->GetRenderData()->LODResources[0].VertexBuffers;
 
 		// vertex information
-		TManagedArray<FVector>& Vertex = GeometryCollection->Vertex;
-		TManagedArray<FVector>& TangentU = GeometryCollection->TangentU;
-		TManagedArray<FVector>& TangentV = GeometryCollection->TangentV;
-		TManagedArray<FVector>& Normal = GeometryCollection->Normal;
-		TManagedArray<FVector2D>& UV = GeometryCollection->UV;
+		TManagedArray<FVector3f>& Vertex = GeometryCollection->Vertex;
+		TManagedArray<FVector3f>& TangentU = GeometryCollection->TangentU;
+		TManagedArray<FVector3f>& TangentV = GeometryCollection->TangentV;
+		TManagedArray<FVector3f>& Normal = GeometryCollection->Normal;
+		TArray<FVector2f>& UV = GeometryCollection->UVs[0];
 		TManagedArray<FLinearColor>& Color = GeometryCollection->Color;
 		TManagedArray<int32>& BoneMap = GeometryCollection->BoneMap;
 		TManagedArray<FLinearColor>& BoneColor = GeometryCollection->BoneColor;

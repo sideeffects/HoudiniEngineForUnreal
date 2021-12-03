@@ -28,6 +28,7 @@
 
 #include "HAPI/HAPI_Common.h"
 #include "TimerManager.h"
+#include "Containers/Ticker.h"
 
 //#include "HAL/Runnable.h"
 //#include "HAL/RunnableThread.h"
@@ -172,7 +173,7 @@ protected:
 private:
 
 	// Ticker handle, used for processing HAC.
-	FDelegateHandle TickerHandle;
+	FTSTicker::FDelegateHandle TickerHandle;
 
 	// Current position in the array
 	uint32 CurrentIndex;

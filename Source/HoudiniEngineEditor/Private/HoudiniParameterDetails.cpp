@@ -3107,15 +3107,15 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 			VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 			[
 				SNew(SAssetDropTarget)
-				.OnIsAssetAcceptableForDrop_Lambda([UnrealRefClass](const UObject* InObject)
+				.OnAreAssetsAcceptableForDrop_Lambda([UnrealRefClass](TArrayView<FAssetData> InAssets)
 				{
-					return InObject->IsA(UnrealRefClass);
+					return InAssets[0].GetAsset()->IsA(UnrealRefClass);
 				})
-				.OnAssetDropped_Lambda([=](UObject* InObject)
+				.OnAssetsDropped_Lambda([=](const FDragDropEvent&, TArrayView<FAssetData> InAssets)
 				{
 					// Get the asset reference string for this object
+					UObject* InObject = InAssets[0].GetAsset();
 					FString ReferenceStr = UHoudiniParameterString::GetAssetReference(InObject);
-
 					ChangeStringValueAt(ReferenceStr, InObject, Idx, true, StringParams);
 				})
 				[
@@ -3276,12 +3276,12 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 			VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
 			[
 				SNew(SAssetDropTarget)
-				.OnIsAssetAcceptableForDrop_Lambda([](const UObject* InObject)
+				.OnAreAssetsAcceptableForDrop_Lambda([](TArrayView<FAssetData> InAssets)
 					{return true;})
-				.OnAssetDropped_Lambda([=](UObject* InObject) 
+				.OnAssetsDropped_Lambda([=](const FDragDropEvent&, TArrayView<FAssetData> InAssets)
 				{
 					// Get the asset reference string for this object
-					FString ReferenceStr = UHoudiniParameterString::GetAssetReference(InObject);
+					FString ReferenceStr = UHoudiniParameterString::GetAssetReference(InAssets[0].GetAsset());
 
 					FString NewString = ReferenceStr;
 					if (StringParams[0]->GetValueAt(Idx).Len() > 0)
@@ -3335,12 +3335,12 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 			VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 			[
 				SNew(SAssetDropTarget)
-				.OnIsAssetAcceptableForDrop_Lambda([](const UObject* InObject) 
+				.OnAreAssetsAcceptableForDrop_Lambda([](TArrayView<FAssetData> InAssets)
 					{return true;})
-				.OnAssetDropped_Lambda([=](UObject* InObject) 
+				.OnAssetsDropped_Lambda([=](const FDragDropEvent&, TArrayView<FAssetData> InAssets)
 				{
 					// Get the asset reference string for this object
-					FString ReferenceStr = UHoudiniParameterString::GetAssetReference(InObject);
+					FString ReferenceStr = UHoudiniParameterString::GetAssetReference(InAssets[0].GetAsset());
 
 					ChangeStringValueAt(ReferenceStr, nullptr, Idx, true, StringParams);
 				})

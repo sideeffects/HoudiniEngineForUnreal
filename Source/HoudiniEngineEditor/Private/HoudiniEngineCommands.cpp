@@ -1491,7 +1491,7 @@ FHoudiniEngineCommands::TriageHoudiniAssetComponentsForProxyMeshRefinement(UHoud
 						if (!IsValid(ProxyObject))
 							continue;
 
-						ProxyObject->MarkPendingKill();
+						ProxyObject->MarkAsGarbage();
 						ProxyObject->MarkPackageDirty();
 						UPackage* const Package = ProxyObject->GetPackage();
 						if (IsValid(Package))
@@ -1780,7 +1780,7 @@ FHoudiniEngineCommands::RefineHoudiniProxyMeshesToStaticMeshesNotifyDone(const u
 			FDelegateHandle& OnPostSaveWorldHandle = FHoudiniEngineCommands::GetOnPostSaveWorldRefineProxyMeshesHandle();
 			if (OnPostSaveWorldHandle.IsValid())
 			{
-				if (FEditorDelegates::PostSaveWorld.Remove(OnPostSaveWorldHandle))
+				if (FEditorDelegates::PostSaveWorldWithContext.Remove(OnPostSaveWorldHandle))
 					OnPostSaveWorldHandle.Reset();
 			}
 		});

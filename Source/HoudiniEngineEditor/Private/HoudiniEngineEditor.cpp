@@ -1293,7 +1293,7 @@ FHoudiniEngineEditor::RegisterEditorDelegates()
 			FDelegateHandle& OnPostSaveWorldHandle = FHoudiniEngineEditor::Get().GetOnPostSaveWorldOnceHandle();
 			if (OnPostSaveWorldHandle.IsValid())
 			{
-				if (FEditorDelegates::PostSaveWorld.Remove(OnPostSaveWorldHandle))
+				if (FEditorDelegates::PostSaveWorldWithContext.Remove(OnPostSaveWorldHandle))
 					OnPostSaveWorldHandle.Reset();
 			}
 
@@ -1309,7 +1309,7 @@ FHoudiniEngineEditor::RegisterEditorDelegates()
 				FDelegateHandle& OnPostSaveWorldHandle = FHoudiniEngineEditor::Get().GetOnPostSaveWorldOnceHandle();
 				if (OnPostSaveWorldHandle.IsValid())
 				{
-					if (FEditorDelegates::PostSaveWorld.Remove(OnPostSaveWorldHandle))
+					if (FEditorDelegates::PostSaveWorldWithContext.Remove(OnPostSaveWorldHandle))
 						OnPostSaveWorldHandle.Reset();
 				}
 			});
@@ -1352,7 +1352,7 @@ void
 FHoudiniEngineEditor::UnregisterEditorDelegates()
 {
 	if (PreSaveWorldEditorDelegateHandle.IsValid())
-		FEditorDelegates::PreSaveWorld.Remove(PreSaveWorldEditorDelegateHandle);
+		FEditorDelegates::PreSaveWorldWithContext.Remove(PreSaveWorldEditorDelegateHandle);
 
 	if (PreBeginPIEEditorDelegateHandle.IsValid())
 		FEditorDelegates::PreBeginPIE.Remove(PreBeginPIEEditorDelegateHandle);

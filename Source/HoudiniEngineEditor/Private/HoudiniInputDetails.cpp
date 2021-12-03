@@ -1123,13 +1123,13 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 	VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
 	[
 		SNew( SAssetDropTarget )
-		.OnIsAssetAcceptableForDrop_Lambda([]( const UObject* InObject)
+		.OnAreAssetsAcceptableForDrop_Lambda([](TArrayView<FAssetData> InAssets)
 		{
-			return UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::Geometry, InObject);
+			return UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::Geometry, InAssets[0].GetAsset());
 		})
-		.OnAssetDropped_Lambda([InInputs, InGeometryObjectIdx, UpdateGeometryObjectAt](UObject* InObject)
+		.OnAssetsDropped_Lambda([InInputs, InGeometryObjectIdx, UpdateGeometryObjectAt](const FDragDropEvent&, TArrayView<FAssetData> InAssets)
 		{
-			return UpdateGeometryObjectAt(InInputs, InGeometryObjectIdx, InObject);
+			return UpdateGeometryObjectAt(InInputs, InGeometryObjectIdx, InAssets[0].GetAsset());
 		})
 		[
 			SAssignNew(HorizontalBox, SHorizontalBox)
@@ -1894,12 +1894,13 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 	VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
 	[
 		SNew( SAssetDropTarget )
-		.OnIsAssetAcceptableForDrop_Lambda([]( const UObject* InObject)
+		.OnAreAssetsAcceptableForDrop_Lambda([](TArrayView<FAssetData> InAssets)
 		{
-			return UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::GeometryCollection, InObject);
+			return UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::GeometryCollection, InAssets[0].GetAsset());
 		})
-		.OnAssetDropped_Lambda([InInputs, InGeometryCollectionObjectIdx, UpdateGeometryCollectionObjectAt](UObject* InObject)
+		.OnAssetsDropped_Lambda([InInputs, InGeometryCollectionObjectIdx, UpdateGeometryCollectionObjectAt](const FDragDropEvent&, TArrayView<FAssetData> InAssets)
 		{
+			UObject* InObject = InAssets[0].GetAsset();
 			return UpdateGeometryCollectionObjectAt(InInputs, InGeometryCollectionObjectIdx, InObject);
 		})
 		[

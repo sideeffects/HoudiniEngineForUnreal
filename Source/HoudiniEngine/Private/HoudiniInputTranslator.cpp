@@ -1812,7 +1812,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForObject(const FString& InObjNodeNa
 			HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
 
 		// Set the point's position
-		FVector ObjectPosition = InObject->Transform.GetLocation();
+		FVector3f ObjectPosition = InObject->Transform.GetLocation();
 		TArray<float> Position =
 		{
 			ObjectPosition.X * HAPI_UNREAL_SCALE_FACTOR_POSITION,
@@ -3111,7 +3111,7 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 			HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
 
 		// Set the point's position
-		FVector ObjectPosition = InTransform.GetLocation();
+		FVector3f ObjectPosition = InTransform.GetLocation();
 		TArray<float> Position =
 		{
 			ObjectPosition.X / HAPI_UNREAL_SCALE_FACTOR_POSITION,

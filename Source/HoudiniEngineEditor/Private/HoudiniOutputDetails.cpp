@@ -478,8 +478,8 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 		VerticalBox->AddSlot().Padding(0, 2)
 		[
 			SNew(SAssetDropTarget)
-			.OnIsAssetAcceptableForDrop(this, &FHoudiniOutputDetails::OnMaterialInterfaceDraggedOver)
-			.OnAssetDropped(this, &FHoudiniOutputDetails::OnMaterialInterfaceDropped, Landscape, InOutput, MaterialIdx)
+			.OnAreAssetsAcceptableForDrop(this, &FHoudiniOutputDetails::OnMaterialInterfaceDraggedOver)
+			.OnAssetsDropped(this, &FHoudiniOutputDetails::OnMaterialInterfaceDropped, Landscape, InOutput, MaterialIdx)
 			[
 				SAssignNew(HorizontalBox, SHorizontalBox)
 			]
@@ -1701,8 +1701,8 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 		VerticalBox->AddSlot().Padding( 0, 2 )
 		[
 			SNew( SAssetDropTarget )
-			.OnIsAssetAcceptableForDrop( this, &FHoudiniOutputDetails::OnMaterialInterfaceDraggedOver )
-			.OnAssetDropped(
+			.OnAreAssetsAcceptableForDrop( this, &FHoudiniOutputDetails::OnMaterialInterfaceDraggedOver )
+			.OnAssetsDropped(
 				this, &FHoudiniOutputDetails::OnMaterialInterfaceDropped, StaticMesh, InOutput, MaterialIdx )
 			[
 				SAssignNew( HorizontalBox, SHorizontalBox )
@@ -2316,8 +2316,9 @@ FHoudiniOutputDetails::OnBakeStaticMesh(UStaticMesh * StaticMesh, UHoudiniAssetC
 */
 
 bool
-FHoudiniOutputDetails::OnMaterialInterfaceDraggedOver(const UObject * InObject) const
+FHoudiniOutputDetails::OnMaterialInterfaceDraggedOver(TArrayView<FAssetData> InAssets) const
 {
+	UObject* InObject = InAssets[0].GetAsset();
 	return (InObject && InObject->IsA(UMaterialInterface::StaticClass()));
 }
 
@@ -2599,7 +2600,22 @@ FHoudiniOutputDetails::CloseMaterialInterfaceComboButton()
 
 void
 FHoudiniOutputDetails::OnMaterialInterfaceDropped(
-	UObject * InObject,
+	const FDragDropEvent& InDragDropEvent,
+	TArrayView<FAssetData> InAssets,
+	UStaticMesh* StaticMesh,
+	UHoudiniOutput* HoudiniOutput,
+	int32 MaterialIdx)
+{
+	UObject* InObject = InAssets[0].GetAsset();
+	if (!InObject)
+		return;
+
+	return OnMaterialInterfaceDropped(InObject, StaticMesh, HoudiniOutput, MaterialIdx);
+}
+
+void
+FHoudiniOutputDetails::OnMaterialInterfaceDropped(
+	UObject* InObject,
 	UStaticMesh * StaticMesh,
 	UHoudiniOutput * HoudiniOutput,
 	int32 MaterialIdx)
@@ -2712,9 +2728,25 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 // Delegate used when a valid material has been drag and dropped on a landscape.
 void
 FHoudiniOutputDetails::OnMaterialInterfaceDropped(
-	UObject* InDroppedObject,
+	const FDragDropEvent& InDragDropEvent,
+	TArrayView<FAssetData> InAssets,
 	ALandscapeProxy* InLandscape,
 	UHoudiniOutput* InOutput,
+	int32 MaterialIdx)
+{
+	UObject* InDroppedObject = InAssets[0].GetAsset();
+	if (!InDroppedObject)
+		return;
+
+	return OnMaterialInterfaceDropped(InDroppedObject, InLandscape, InOutput, MaterialIdx);
+}
+
+// Delegate used when a valid material has been drag and dropped on a landscape.
+void
+FHoudiniOutputDetails::OnMaterialInterfaceDropped(
+	UObject* InDroppedObject,
+	ALandscapeProxy * InLandscape,
+	UHoudiniOutput * InOutput,
 	int32 MaterialIdx)
 {
 	UMaterialInterface * MaterialInterface = Cast< UMaterialInterface >(InDroppedObject);
@@ -3084,9 +3116,10 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 				.AutoHeight()
 				[
 					SNew(SAssetDropTarget)
-					.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateLambda( 
-						[DisallowedClasses](const UObject* Obj) 
+					.OnAreAssetsAcceptableForDrop(SAssetDropTarget::FAreAssetsAcceptableForDrop::CreateLambda(
+						[DisallowedClasses](TArrayView<FAssetData> InAssets)
 						{
+							UObject* Obj = InAssets[0].GetAsset();
 							for (auto Klass : DisallowedClasses)
 							{
 								if (Obj && Obj->IsA(Klass))
@@ -3095,9 +3128,9 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 							return true;
 						})
 					)
-					.OnAssetDropped_Lambda([&CurInstanceOutput, VariationIdx, SetObjectAt](UObject* InObject)
+					.OnAssetsDropped_Lambda([&CurInstanceOutput, VariationIdx, SetObjectAt](const FDragDropEvent&, TArrayView<FAssetData> InAssets)
 					{
-						return SetObjectAt(CurInstanceOutput, VariationIdx, InObject);
+						return SetObjectAt(CurInstanceOutput, VariationIdx, InAssets[0].GetAsset());
 					})
 					[
 						SAssignNew(PickerHorizontalBox, SHorizontalBox)

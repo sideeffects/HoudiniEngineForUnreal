@@ -192,11 +192,11 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(UGeometryCollectio
 	check(GeometryCollection);
 
 	// vertex information
-	TManagedArray<FVector>& Vertex = GeometryCollection->Vertex;
-	TManagedArray<FVector>& TangentU = GeometryCollection->TangentU;
-	TManagedArray<FVector>& TangentV = GeometryCollection->TangentV;
-	TManagedArray<FVector>& Normal = GeometryCollection->Normal;
-	TManagedArray<FVector2D>& UV = GeometryCollection->UV;
+	TManagedArray<FVector3f>& Vertex = GeometryCollection->Vertex;
+	TManagedArray<FVector3f>& TangentU = GeometryCollection->TangentU;
+	TManagedArray<FVector3f>& TangentV = GeometryCollection->TangentV;
+	TManagedArray<FVector3f>& Normal = GeometryCollection->Normal;
+	TArray<FVector2f>& UV = GeometryCollection->UVs[0];
 	TManagedArray<FLinearColor>& Color = GeometryCollection->Color;
 	TManagedArray<int32>& BoneMap = GeometryCollection->BoneMap;
 	TManagedArray<FLinearColor>& BoneColor = GeometryCollection->BoneColor;
@@ -691,7 +691,6 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(UGeometryCollectio
 
 			// Delete material names.
 			FUnrealMeshTranslator::DeleteFaceMaterialArray(TriangleMaterials);
-
 			// Delete texture material parameter names
 			for (auto & Pair : TextureMaterialParameters)
 			{
@@ -923,9 +922,12 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
                         (const float *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0,  AttributeInfo.count);
 	}
 	
+	FGeometryCollectionSizeSpecificData& GCSizeSpecData = GeometryCollectionObject->GetDefaultSizeSpecificData();
+
 	// Collisions - Collision Type
+	if(GCSizeSpecData.CollisionShapes.Num() > 0)
 	{
-		TArray< int32 > AttributeData { (int32)GeometryCollectionObject->CollisionType };
+		TArray<int32> AttributeData { (int32)GCSizeSpecData.CollisionShapes[0].CollisionType };
 		
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
@@ -949,18 +951,19 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 	}
 
 	// Collisions - Implicit Type
+	if (GCSizeSpecData.CollisionShapes.Num() > 0)
 	{
 		int32 ImplicitTypeValue;
-		if (GeometryCollectionObject->ImplicitType == EImplicitTypeEnum::Chaos_Implicit_None)
+		if (GCSizeSpecData.CollisionShapes[0].ImplicitType == EImplicitTypeEnum::Chaos_Implicit_None)
 		{
 			ImplicitTypeValue = 0;
 		}
 		else
 		{
-			ImplicitTypeValue = static_cast<int32>(GeometryCollectionObject->ImplicitType) + 1; // + 1 because 0 = None.
+			ImplicitTypeValue = static_cast<int32>(GCSizeSpecData.CollisionShapes[0].ImplicitType) + 1; // + 1 because 0 = None.
 		}
 		
-		TArray< int32 > AttributeData { ImplicitTypeValue};
+		TArray<int32> AttributeData {ImplicitTypeValue};
 		
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
@@ -984,8 +987,9 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 	}
 
 	// Collisions - Min Level Set Resolution
+	if (GCSizeSpecData.CollisionShapes.Num() > 0)
 	{
-		TArray< int32 > AttributeData {static_cast<int32>(GeometryCollectionObject->MinLevelSetResolution) };
+		TArray< int32 > AttributeData {static_cast<int32>(GCSizeSpecData.CollisionShapes[0].LevelSet.MinLevelSetResolution) };
 		
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
@@ -1009,8 +1013,9 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 	}
 
 	// Collisions - Max Level Set Resolution
+	if (GCSizeSpecData.CollisionShapes.Num() > 0)
 	{
-		TArray< int32 > AttributeData { static_cast<int32>(GeometryCollectionObject->MaxLevelSetResolution) };
+		TArray< int32 > AttributeData { static_cast<int32>(GCSizeSpecData.CollisionShapes[0].LevelSet.MaxLevelSetResolution) };
 		
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
@@ -1034,8 +1039,9 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 	}
 	
 	// Collisions - Min cluster level set resolution
+	if (GCSizeSpecData.CollisionShapes.Num() > 0)
 	{
-		TArray< int32 > AttributeData { static_cast<int32>(GeometryCollectionObject->MinClusterLevelSetResolution) };
+		TArray< int32 > AttributeData { static_cast<int32>(GCSizeSpecData.CollisionShapes[0].LevelSet.MinClusterLevelSetResolution) };
 		
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
@@ -1059,8 +1065,9 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 	}
 
 	// Collisions - Max cluster level set resolution
+	if (GCSizeSpecData.CollisionShapes.Num() > 0)
 	{
-		TArray< int32 > AttributeData { static_cast<int32>(GeometryCollectionObject->MaxClusterLevelSetResolution) };
+		TArray< int32 > AttributeData { static_cast<int32>(GCSizeSpecData.CollisionShapes[0].LevelSet.MaxClusterLevelSetResolution) };
 		
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
@@ -1084,8 +1091,9 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 	}
 
 	// Collisions - Object reduction percentage
+	if (GCSizeSpecData.CollisionShapes.Num() > 0)
 	{
-		TArray< float > AttributeData { GeometryCollectionObject->CollisionObjectReductionPercentage };
+		TArray< float > AttributeData { GCSizeSpecData.CollisionShapes[0].CollisionObjectReductionPercentage };
 		
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
@@ -1109,6 +1117,7 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 	}
 
 	// Collisions - Mass as density
+	if (GCSizeSpecData.CollisionShapes.Num() > 0)
 	{
 		TArray< int32 > AttributeData { GeometryCollectionObject->bMassAsDensity == true ? 1 : 0 };
 		
@@ -1185,7 +1194,7 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 
 	// Collisions - Collision particles fraction
 	{
-		TArray< float > AttributeData {GeometryCollectionObject->CollisionParticlesFraction };
+		TArray< float > AttributeData { GCSizeSpecData.CollisionShapes[0].CollisionParticles.CollisionParticlesFraction };
 		
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
@@ -1210,7 +1219,7 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 
 	// Collisions - Maximum collision particles
 	{
-		TArray< int32 > AttributeData { GeometryCollectionObject->MaximumCollisionParticles };
+		TArray< int32 > AttributeData { GCSizeSpecData.CollisionShapes[0].CollisionParticles.MaximumCollisionParticles };
 		
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);

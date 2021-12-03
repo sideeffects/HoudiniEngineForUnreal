@@ -248,9 +248,9 @@ int32 UHoudiniGeoImportCommandlet::MainLoop()
 		// update task graph
 		FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
 
-		FTicker::GetCoreTicker().Tick(FApp::GetDeltaTime());
+		FTSTicker::GetCoreTicker().Tick(FApp::GetDeltaTime());
 		FThreadManager::Get().Tick();
-		GEngine->TickDeferredCommands();		
+		GEngine->TickDeferredCommands();
 
 		if (DirectoryWatcherHandle.IsValid() && DirectoryWatcher)
 		{

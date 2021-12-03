@@ -50,6 +50,7 @@
 #include "MeshDescription.h"
 #include "StaticMeshAttributes.h"
 #include "MeshDescriptionOperations.h"
+#include "ConvexDecompTool.h"
 
 #include "BSPOps.h"
 #include "Model.h"
@@ -68,7 +69,6 @@
 
 
 #if WITH_EDITOR
-	#include "UnrealEd/Private/ConvexDecompTool.h"
 	#include "Editor/UnrealEd/Private/GeomFitUtils.h"
 	#include "LevelEditorViewport.h"
 	#include "FileHelpers.h"
@@ -238,12 +238,12 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 
 		if (IsValid(OldOutputObject.OutputObject))
 		{
-			OldOutputObject.OutputObject->MarkPendingKill();
+			OldOutputObject.OutputObject->MarkAsGarbage();
 		}
 
 		if (IsValid(OldOutputObject.ProxyObject))
 		{
-			OldOutputObject.ProxyObject->MarkPendingKill();
+			OldOutputObject.ProxyObject->MarkAsGarbage();
 		}		
 	}
 	OldOutputObjects.Empty();
@@ -1890,7 +1890,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 					RawMesh.WedgeTangentY.SetNumZeroed(WedgeNormalCount);
 					for (int32 WedgeTangentZIdx = 0; WedgeTangentZIdx < WedgeNormalCount; ++WedgeTangentZIdx)
 					{
-						FVector TangentX, TangentY;
+						FVector3f TangentX, TangentY;
 						RawMesh.WedgeTangentZ[WedgeTangentZIdx].FindBestAxisVectors(TangentX, TangentY);
 
 						RawMesh.WedgeTangentX[WedgeTangentZIdx] = TangentX;
@@ -3407,8 +3407,8 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			// Instead of declaring all the Positions, we'll only declare the vertices
 			// needed by the current split.
 			//
-			TVertexAttributesRef<FVector> VertexPositions =
-				MeshDescription->VertexAttributes().GetAttributesRef<FVector>(MeshAttribute::Vertex::Position);
+			TVertexAttributesRef<FVector3f> VertexPositions =
+				MeshDescription->VertexAttributes().GetAttributesRef<FVector3f>(MeshAttribute::Vertex::Position);
 
 			bool bHasInvalidPositionIndexData = false;
 			MeshDescription->ReserveNewVertices(SplitNeededVertices.Num());
@@ -3741,7 +3741,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			FHoudiniMeshTranslator::TransferRegularPointAttributesToVertices(
 				SplitVertexList, AttribInfoNormals, PartNormals, SplitNormals);
 
-			TVertexInstanceAttributesRef<FVector> VertexInstanceNormals = MeshDescription->VertexInstanceAttributes().GetAttributesRef<FVector>(MeshAttribute::VertexInstance::Normal);
+			TVertexInstanceAttributesRef<FVector3f> VertexInstanceNormals = MeshDescription->VertexInstanceAttributes().GetAttributesRef<FVector3f>(MeshAttribute::VertexInstance::Normal);
 
 			// No need to read the tangents if we want unreal to recompute them after
 			const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
@@ -3803,7 +3803,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 					}
 				}
 			}
-			TVertexInstanceAttributesRef<FVector> VertexInstanceTangents = MeshDescription->VertexInstanceAttributes().GetAttributesRef<FVector>(MeshAttribute::VertexInstance::Tangent);
+			TVertexInstanceAttributesRef<FVector3f> VertexInstanceTangents = MeshDescription->VertexInstanceAttributes().GetAttributesRef<FVector3f>(MeshAttribute::VertexInstance::Tangent);
 			TVertexInstanceAttributesRef<float> VertexInstanceBinormalSigns = MeshDescription->VertexInstanceAttributes().GetAttributesRef<float>(MeshAttribute::VertexInstance::BinormalSign);
 
 			// Extract the color values
@@ -3819,7 +3819,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			TArray<float> SplitAlphas;
 			FHoudiniMeshTranslator::TransferRegularPointAttributesToVertices(
 				SplitVertexList, AttribInfoAlpha, PartAlphas, SplitAlphas);
-			TVertexInstanceAttributesRef<FVector4> VertexInstanceColors = MeshDescription->VertexInstanceAttributes().GetAttributesRef<FVector4>(MeshAttribute::VertexInstance::Color);
+			TVertexInstanceAttributesRef<FVector4f> VertexInstanceColors = MeshDescription->VertexInstanceAttributes().GetAttributesRef<FVector4f>(MeshAttribute::VertexInstance::Color);
 
 			// Extract UVs
 			UpdatePartUVSetsIfNeeded(true);
@@ -3832,7 +3832,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 				FHoudiniMeshTranslator::TransferPartAttributesToSplit<float>(
 					SplitVertexList, AttribInfoUVSets[TexCoordIdx], PartUVSets[TexCoordIdx], SplitUVSets[TexCoordIdx]);
 			}
-			TVertexInstanceAttributesRef<FVector2D> VertexInstanceUVs = MeshDescription->VertexInstanceAttributes().GetAttributesRef<FVector2D>(MeshAttribute::VertexInstance::TextureCoordinate);
+			TVertexInstanceAttributesRef<FVector2f> VertexInstanceUVs = MeshDescription->VertexInstanceAttributes().GetAttributesRef<FVector2f>(MeshAttribute::VertexInstance::TextureCoordinate);
 			VertexInstanceUVs.SetNumChannels(UVSetCount);
 
 			if (bDoTiming)
@@ -5433,7 +5433,7 @@ FHoudiniMeshTranslator::FindExistingStaticMesh(const FHoudiniOutputObjectIdentif
 			// The Outermost for this static mesh is a level
 			// This is likely a SM created by V1, and we should not reuse it.
 			// This will force the plugin to recreate a "proper" SM in the temp folder.
-			FoundStaticMesh->MarkPendingKill();
+			FoundStaticMesh->MarkAsGarbage();
 			FoundStaticMesh = nullptr;
 		}
 	}
@@ -5593,7 +5593,7 @@ FHoudiniMeshTranslator::AddConvexCollisionToAggregate(const FString& SplitGroupN
 		}
 
 		// But we need all the positions as vertex
-		TArray< FVector > Vertices;
+		TArray<FVector3f> Vertices;
 		Vertices.SetNum(PartPositions.Num() / 3);
 
 		for (int32 Idx = 0; Idx < Vertices.Num(); Idx++)
@@ -6592,7 +6592,7 @@ FHoudiniMeshTranslator::GenerateKDopAsSimpleCollision(const TArray<FVector>& InP
 	for (int32 i = 0; i < planes.Num(); i++)
 	{
 		FPoly*	Polygon = new(TempModel->Polys->Element) FPoly();
-		FVector Base, AxisX, AxisY;
+		FVector3f Base, AxisX, AxisY;
 
 		Polygon->Init();
 		Polygon->Normal = planes[i];
@@ -6989,7 +6989,8 @@ FHoudiniMeshTranslator::AddActorsToMeshSocket(UStaticMeshSocket * Socket, UStati
 	{
 		// Same as with the Object Iterator, access the subclass instance with the * or -> operators.
 		AActor *Actor = *ActorItr;
-		if (!IsValid(Actor) || Actor->IsPendingKillOrUnreachable())
+		//if (!IsValid(Actor) || Actor->IsPendingKillOrUnreachable())
+		if (!IsValid(Actor) || Actor->IsUnreachable())
 			continue;
 
 		for (int32 StringIdx = 0; StringIdx < ActorStringArray.Num(); StringIdx++)

@@ -92,7 +92,7 @@ FHoudiniEngineManager::StartHoudiniTicking()
 	if (!TickerHandle.IsValid() && GEditor)
 	{
 		// We use the ticker manager so we get ticked once per frame, no more.
-		TickerHandle = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FHoudiniEngineManager::Tick));
+		TickerHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FHoudiniEngineManager::Tick));		
 
 		// Grab current time for delayed notification.
 		FHoudiniEngine::Get().SetHapiNotificationStartedTime(FPlatformTime::Seconds());
@@ -106,7 +106,7 @@ FHoudiniEngineManager::StopHoudiniTicking()
 	{
 		if (IsInGameThread())
 		{
-			FTicker::GetCoreTicker().RemoveTicker(TickerHandle);
+			FTSTicker::GetCoreTicker().RemoveTicker(TickerHandle);			
 			TickerHandle.Reset();
 
 			// Reset time for delayed notification.
