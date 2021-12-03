@@ -1566,8 +1566,8 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 		FHoudiniOutputObjectIdentifier OutputObjectIdentifier(
 			HGPO.ObjectId, HGPO.GeoId, HGPO.PartId, GetMeshIdentifierFromSplit(SplitGroupName, SplitType));
 		OutputObjectIdentifier.PartName = HGPO.PartName;
-		OutputObjectIdentifier.PrimitiveIndex = AllSplitFirstValidVertexIndex[SplitGroupName],
-		OutputObjectIdentifier.PointIndex = AllSplitFirstValidPrimIndex[SplitGroupName];
+		OutputObjectIdentifier.PrimitiveIndex = AllSplitFirstValidPrimIndex[SplitGroupName];
+		OutputObjectIdentifier.PointIndex = AllSplitFirstValidVertexIndex[SplitGroupName];
 
 		// Get/Create the Aggregate Collisions for this mesh identifier
 		FKAggregateGeom& AggregateCollisions = AllAggregateCollisions.FindOrAdd(OutputObjectIdentifier);
@@ -2616,7 +2616,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 		// REMOVE OLD COLLIDERS
 		// CUSTOM BAKE NAME OVERRIDE
 
-		// Update property attributes on the SM
+		// Update property attributes on the source model
 		TArray<FHoudiniGenericAttribute> PropertyAttributes;
 		if (FHoudiniEngineUtils::GetGenericPropertiesAttributes(
 			HGPO.GeoId, HGPO.PartId,
@@ -2626,8 +2626,24 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			AllSplitFirstValidVertexIndex[SplitGroupName],
 			PropertyAttributes))
 		{
+			auto FindPropertyOnSourceModelLamba = [LODIndex](UObject* const InObject, const FString& InPropertyName, bool& bOutSkipDefaultIfPropertyNotFound, FEditPropertyChain& InPropertyChain, FProperty*& OutFoundProperty, UObject*& OutFoundPropertyObject, void*& OutContainer)
+			{
+				if (!IsValid(InObject))
+					return false;
+				
+				UStaticMesh* const SM = Cast<UStaticMesh>(InObject);
+				if (!IsValid(SM))
+					return false;
+
+				return TryToFindPropertyOnSourceModel(
+					SM, LODIndex, InPropertyName, InPropertyChain, bOutSkipDefaultIfPropertyNotFound, OutFoundProperty, OutFoundPropertyObject, OutContainer);
+			};
+
+			// Defer post edit change calls until after all property values have been set, since the static mesh
+			// build function is called from PostEditChangeProperty.
+			constexpr bool bDeferPostEditChangePropertyCalls = true;
 			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(
-				FoundStaticMesh, PropertyAttributes);
+				FoundStaticMesh, PropertyAttributes, bDeferPostEditChangePropertyCalls, FindPropertyOnSourceModelLamba);
 		}
 
 		TArray<FString> LevelPaths;
@@ -2748,13 +2764,30 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 	}
 
 	FHoudiniScopedGlobalSilence ScopedGlobalSilence;
-	for (auto& Current : StaticMeshToBuild)
+	for (const auto& Current : StaticMeshToBuild)
 	{
 		tick = FPlatformTime::Seconds();
 
-		UStaticMesh* SM = Current.Value;
+		UStaticMesh* const SM = Current.Value;
 		if (!IsValid(SM))
 			continue;
+
+		const FHoudiniOutputObjectIdentifier& CurrentObjId = Current.Key;
+		// Update property attributes on the SM
+		TArray<FHoudiniGenericAttribute> PropertyAttributes;
+		if (FHoudiniEngineUtils::GetGenericPropertiesAttributes(
+			CurrentObjId.GeoId, CurrentObjId.PartId,
+			true,
+			CurrentObjId.PrimitiveIndex,
+			INDEX_NONE,
+			CurrentObjId.PointIndex,
+			PropertyAttributes))
+		{
+			// Defer post edit change calls until after all property values have been set, since the static mesh
+			// build function is called from PostEditChangeProperty.
+			constexpr bool bDeferPostEditChangePropertyCalls = true;
+			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(SM, PropertyAttributes, bDeferPostEditChangePropertyCalls);
+		}
 
 		UBodySetup * BodySetup = SM->GetBodySetup();
 		if (!BodySetup)
@@ -2763,7 +2796,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			BodySetup = SM->GetBodySetup();
 		}
 
-		EHoudiniSplitType SplitType = GetSplitTypeFromSplitName(Current.Key.SplitIdentifier);
+		EHoudiniSplitType SplitType = GetSplitTypeFromSplitName(CurrentObjId.SplitIdentifier);
 
 		// Handle the Static Mesh's colliders
 		if (IsValid(BodySetup))
@@ -2775,8 +2808,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			BodySetup->Modify();
 			BodySetup->RemoveSimpleCollision();
 
-			FHoudiniOutputObjectIdentifier CurrentObjId = Current.Key;
-			FKAggregateGeom* CurrentAggColl = AllAggregateCollisions.Find(Current.Key);
+			FKAggregateGeom* CurrentAggColl = AllAggregateCollisions.Find(CurrentObjId);
 			if (CurrentAggColl && CurrentAggColl->GetElementCount() > 0)
 			{
 				BodySetup->AddCollisionFrom(*CurrentAggColl);
@@ -2795,7 +2827,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 					SM,
 					SplitType,
 					bAssignedCustomCollisionMesh,
-					OutputObjects.Find(Current.Key));
+					OutputObjects.Find(CurrentObjId));
 			}
 			else
 			{
@@ -3016,8 +3048,8 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 		FHoudiniOutputObjectIdentifier OutputObjectIdentifier(
 			HGPO.ObjectId, HGPO.GeoId, HGPO.PartId, GetMeshIdentifierFromSplit(SplitGroupName, SplitType));
 		OutputObjectIdentifier.PartName = HGPO.PartName;
-		OutputObjectIdentifier.PrimitiveIndex = AllSplitFirstValidVertexIndex[SplitGroupName],
-		OutputObjectIdentifier.PointIndex = AllSplitFirstValidPrimIndex[SplitGroupName];		
+		OutputObjectIdentifier.PrimitiveIndex = AllSplitFirstValidPrimIndex[SplitGroupName];
+		OutputObjectIdentifier.PointIndex = AllSplitFirstValidVertexIndex[SplitGroupName];
 
 		// Get/Create the Aggregate Collisions for this mesh identifier
 		FKAggregateGeom& AggregateCollisions = AllAggregateCollisions.FindOrAdd(OutputObjectIdentifier);
@@ -3997,7 +4029,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 		// CUSTOM BAKE NAME OVERRIDE
 		
 		// UPDATE UPROPERTY ATTRIBS
-		// Update property attributes on the SM
+		// Update property attributes on the source model
 		TArray<FHoudiniGenericAttribute> PropertyAttributes;
 		if (FHoudiniEngineUtils::GetGenericPropertiesAttributes(
 			HGPO.GeoId, HGPO.PartId,
@@ -4007,8 +4039,24 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			AllSplitFirstValidVertexIndex[SplitGroupName],
 			PropertyAttributes))
 		{
+			auto FindPropertyOnSourceModelLamba = [LODIndex](UObject* const InObject, const FString& InPropertyName, bool& bOutSkipDefaultIfPropertyNotFound, FEditPropertyChain& InPropertyChain, FProperty*& OutFoundProperty, UObject*& OutFoundPropertyObject, void*& OutContainer)
+			{
+				if (!IsValid(InObject))
+					return false;
+				
+				UStaticMesh* const SM = Cast<UStaticMesh>(InObject);
+				if (!IsValid(SM))
+					return false;
+
+				return TryToFindPropertyOnSourceModel(
+					SM, LODIndex, InPropertyName, InPropertyChain, bOutSkipDefaultIfPropertyNotFound, OutFoundProperty, OutFoundPropertyObject, OutContainer);
+			};
+
+			// Defer post edit change calls until after all property values have been set, since the static mesh
+			// build function is called from PostEditChangeProperty.
+			constexpr bool bDeferPostEditChangePropertyCalls = true;
 			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(
-				FoundStaticMesh, PropertyAttributes);
+				FoundStaticMesh, PropertyAttributes, bDeferPostEditChangePropertyCalls, FindPropertyOnSourceModelLamba);
 		}
 
 		TArray<FString> LevelPaths;
@@ -4126,6 +4174,23 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 		if (!IsValid(SM))
 			continue;
 		
+		const FHoudiniOutputObjectIdentifier& CurrentObjId = Current.Key;
+		// Update property attributes on the SM
+		TArray<FHoudiniGenericAttribute> PropertyAttributes;
+		if (FHoudiniEngineUtils::GetGenericPropertiesAttributes(
+			CurrentObjId.GeoId, CurrentObjId.PartId,
+			true,
+			CurrentObjId.PrimitiveIndex,
+			INDEX_NONE,
+			CurrentObjId.PointIndex,
+			PropertyAttributes))
+		{
+			// Defer post edit change calls until after all property values have been set, since the static mesh
+			// build function is called from PostEditChangeProperty.
+			constexpr bool bDeferPostEditChangePropertyCalls = true;
+			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(SM, PropertyAttributes, bDeferPostEditChangePropertyCalls);
+		}
+
 		UBodySetup * BodySetup = SM->GetBodySetup();
 		if (!BodySetup)
 		{
@@ -4133,7 +4198,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			BodySetup = SM->GetBodySetup();
 		}
 
-		EHoudiniSplitType SplitType = GetSplitTypeFromSplitName(Current.Key.SplitIdentifier);
+		EHoudiniSplitType SplitType = GetSplitTypeFromSplitName(CurrentObjId.SplitIdentifier);
 
 		// Handle the Static Mesh's colliders
 		if (IsValid(BodySetup))
@@ -4147,8 +4212,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			// Create new GUID
 			BodySetup->InvalidatePhysicsData();
 
-			FHoudiniOutputObjectIdentifier CurrentObjId = Current.Key;
-			FKAggregateGeom* CurrentAggColl = AllAggregateCollisions.Find(Current.Key);
+			FKAggregateGeom* CurrentAggColl = AllAggregateCollisions.Find(CurrentObjId);
 			if (CurrentAggColl && CurrentAggColl->GetElementCount() > 0)
 			{
 				BodySetup->AddCollisionFrom(*CurrentAggColl);
@@ -4169,7 +4233,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 					SM,
 					SplitType,
 					bAssignedCustomCollisionMesh,
-					OutputObjects.Find(Current.Key));
+					OutputObjects.Find(CurrentObjId));
 			}
 			else
 			{
@@ -4415,8 +4479,8 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 		FHoudiniOutputObjectIdentifier OutputObjectIdentifier(
 			HGPO.ObjectId, HGPO.GeoId, HGPO.PartId, GetMeshIdentifierFromSplit(SplitGroupName, SplitType));
 		OutputObjectIdentifier.PartName = HGPO.PartName;
-		OutputObjectIdentifier.PrimitiveIndex = AllSplitFirstValidVertexIndex[SplitGroupName];
-			OutputObjectIdentifier.PointIndex = AllSplitFirstValidPrimIndex[SplitGroupName];
+		OutputObjectIdentifier.PrimitiveIndex = AllSplitFirstValidPrimIndex[SplitGroupName];
+		OutputObjectIdentifier.PointIndex = AllSplitFirstValidVertexIndex[SplitGroupName];
 
 		// Try to find existing properties for this identifier
 		FHoudiniOutputObject* FoundOutputObject = InputObjects.Find(OutputObjectIdentifier);
@@ -5880,6 +5944,54 @@ int32 FHoudiniMeshTranslator::TransferPartAttributesToSplit(
 	OutVertexData.SetNumZeroed(ValidWedgeCount * InAttribInfo.tupleSize);
 
 	return ValidWedgeCount;
+}
+
+bool
+FHoudiniMeshTranslator::TryToFindPropertyOnSourceModel(
+	UStaticMesh* const InStaticMesh,
+	const int32 InSourceModelIndex,
+	const FString& InPropertyName,
+	FEditPropertyChain& InPropertyChain,
+	bool& bOutSkipDefaultIfPropertyNotFound,
+	FProperty*& OutFoundProperty,
+	UObject*& OutFoundPropertyObject,
+	void*& OutContainer
+	)
+{
+	if (!IsValid(InStaticMesh))
+		return false;
+
+	if (!InStaticMesh->IsSourceModelValid(InSourceModelIndex))
+		return false;
+
+	FStaticMeshSourceModel& SourceModel = InStaticMesh->GetSourceModel(InSourceModelIndex);
+
+	// Restrict to only applying properties to the source model -- if the property is not found on the
+	// source model, don't search via the static mesh
+	bOutSkipDefaultIfPropertyNotFound = true;
+	FProperty* const SourceModelsProperty = InStaticMesh->GetClass()->FindPropertyByName(FName(TEXT("SourceModels")));
+	if (SourceModelsProperty)
+		InPropertyChain.AddTail(SourceModelsProperty);
+
+	if (!TryToFindPropertyOnSourceModel(SourceModel, InPropertyName, InPropertyChain, OutFoundProperty, OutContainer))
+		return false;
+
+	OutFoundPropertyObject = InStaticMesh;
+	return true;
+}
+
+bool
+FHoudiniMeshTranslator::TryToFindPropertyOnSourceModel(
+	FStaticMeshSourceModel& InSourceModel,
+	const FString& InPropertyName,
+	FEditPropertyChain& InPropertyChain,
+	FProperty*& OutFoundProperty,
+	void*& OutContainer)
+{
+	bool bFoundProperty = false;
+	FHoudiniGenericAttribute::TryToFindProperty(
+		&InSourceModel, InSourceModel.StaticStruct(), InPropertyName, InPropertyChain, OutFoundProperty, bFoundProperty, OutContainer);
+	return bFoundProperty;
 }
 
 float
