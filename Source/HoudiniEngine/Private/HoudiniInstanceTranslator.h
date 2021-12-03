@@ -169,7 +169,7 @@ public:
 
 	// Specifies that the materials in MaterialAttributes are to be created as an instance
 	UPROPERTY()
-	bool bMaterialOverrideNeedsCreateInstance;
+	bool bMaterialOverrideNeedsCreateInstance = false;
 	
 	// Custom float array per original instanced object
 	// Size is NumCustomFloat * NumberOfInstances

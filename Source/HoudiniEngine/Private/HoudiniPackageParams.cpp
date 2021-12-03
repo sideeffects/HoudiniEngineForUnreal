@@ -113,29 +113,7 @@ FHoudiniPackageParams::GetPackagePath() const
 	FString PackagePath = FString();
 	switch (PackageMode)
 	{
-		case EPackageMode::CookToLevel:
-		{
-			// Path to the persistent level
-			//PackagePath = FPackageName::GetLongPackagePath(OuterPackage->GetOuter()->GetName());
-
-			// In this mode, we'll use the persistent level as our package's outer
-			// simply use the hda + component guid for the path	
-			//  Add a subdir for the HDA
-			if (!HoudiniAssetName.IsEmpty())
-				PackagePath += TEXT("/") + HoudiniAssetName;
-			// Add a subdir using the owner component GUID if possible
-			if(ComponentGUID.IsValid())
-				PackagePath += TEXT("/") + ComponentGUID.ToString().Left(PACKAGE_GUID_LENGTH);
-
-			// TODO: FIX ME!!!
-			// Old version
-			// Build the package name
-			PackagePath = FPackageName::GetLongPackagePath(OuterPackage->GetOuter()->GetName()) +
-				TEXT("/") +
-				HoudiniAssetName;
-		}
-		break;
-
+		case EPackageMode::CookToLevel_Invalid:
 		case EPackageMode::CookToTemp:
 		{
 			// Temporary Folder
