@@ -40,7 +40,7 @@ class UStaticMesh;
 UENUM()
 enum class EPackageMode : int8
 {
-	CookToLevel,
+	CookToLevel_Invalid,  // V1 Behaviour, saving package to the level, now invalid
 	CookToTemp,
 	Bake
 };
@@ -228,7 +228,7 @@ public:
 		switch (InPackageMode)
 		{
 		case EPackageMode::CookToTemp:
-		case EPackageMode::CookToLevel:
+		case EPackageMode::CookToLevel_Invalid:
 			OutTokens.Add("out_basepath", ValueT(TempCookFolder));
 			break;
 		case EPackageMode::Bake:
