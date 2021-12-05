@@ -96,6 +96,7 @@
 #include "UObject/UnrealType.h"
 #include "Math/Box.h"
 #include "Misc/ScopedSlowTask.h"
+#include "HoudiniMeshTranslator.h"
 
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionDebugDrawComponent.h"
@@ -2411,6 +2412,9 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 
 	TArray<FHoudiniEngineBakedActor> AllBakedActors = InBakedActors;
 	TArray<FHoudiniEngineBakedActor> NewBakedActors;
+
+	//Checks to see if skeletal Mesh data exists and exports it
+	FHoudiniMeshTranslator::ExportSkeletalMeshAssets(InOutput);
 
 	for (auto& Pair : OutputObjects)
 	{

@@ -286,6 +286,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 
 		switch (CurOutput->GetType())
 		{
+		    //EHoudiniOutputType::SkeletalMesh
 			case EHoudiniOutputType::Mesh:
 			{
 				bool bIsProxyStaticMeshEnabled = (
@@ -1583,6 +1584,10 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				TArray<FString> SplitGroupNames;
 				if (CurrentPartType == EHoudiniPartType::Mesh)
 				{
+				    //Get Attribute IsSkeletalMesh  BoneCapture Attributute?
+				    //change mesh to skeletal
+
+
 					if (!CurrentHapiPartInfo.isInstanced && GeoGroupNames.Num() > 0)
 					{
 						// We are not instanced and already have extracted the geo's group names

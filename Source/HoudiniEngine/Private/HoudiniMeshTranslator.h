@@ -110,6 +110,12 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			bool bInDestroyProxies=false,
 			bool bInApplyGenericProperties=true);
 
+		static void ExportSkeletalMeshAssets(UHoudiniOutput* InOutput);
+		static bool HasSkeletalMeshData(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
+		static void LoadImportData(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
+		static void CreateAssetPackage(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, FString PackageName, int MaxInfluences = 1, bool ImportNormals = false);
+		static void DumpInfoForOwner(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, HAPI_AttributeOwner Owner);
+		static void DumpInfo(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
 
 		//-----------------------------------------------------------------------------------------------------------------------------
 		// HELPERS
@@ -187,14 +193,18 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 
 		void SetStaticMeshBuildSettings(const FMeshBuildSettings& InMBS) { StaticMeshBuildSettings = InMBS; };
 
-	protected:
-
 		// Create a StaticMesh using the MeshDescription format
 		bool CreateStaticMesh_MeshDescription();
 
 		// Legacy function using RawMesh for static Mesh creation
 		bool CreateStaticMesh_RawMesh();
 
+		// Indicates the update is forced
+		bool ForceRebuild;
+		int32 DefaultMeshSmoothing;
+
+	protected:
+\
 		// Create a UHoudiniStaticMesh
 		bool CreateHoudiniStaticMesh();
 
@@ -349,9 +359,6 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		// Output mesh properties
 		//TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObjectProperty> OutputObjectProperties;
 
-		// Indicates the update is forced
-		bool ForceRebuild;
-
 		// The generated simple/UCX colliders
 		TMap <FHoudiniOutputObjectIdentifier, FKAggregateGeom> AllAggregateCollisions;
 
@@ -433,8 +440,6 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		// LOD Screensize
 		TArray<float> PartLODScreensize;
 		HAPI_AttributeInfo AttribInfoLODScreensize;
-
-		int32 DefaultMeshSmoothing;
 
 		// When building a mesh, if an associated material already exists, treat
 		// it as up to date, regardless of the MaterialInfo.bHasChanged flag
