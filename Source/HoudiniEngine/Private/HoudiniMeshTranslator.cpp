@@ -389,13 +389,40 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 				{
 					PostCreateStaticMeshComponent(Cast<UStaticMeshComponent>(MeshComponent), Mesh);
 				}
+
 				UpdateMeshComponent(
-					MeshComponent, 
-					OutputIdentifier, 
-					FoundHGPO, 
-					InOutput->HoudiniCreatedSocketActors, 
+					MeshComponent,
+					OutputIdentifier,
+					FoundHGPO,
+					InOutput->HoudiniCreatedSocketActors,
 					InOutput->HoudiniAttachedSocketActors,
 					bInApplyGenericProperties);
+
+				// UE5: Make sure we update/recreate the Component's render state
+				// after the update or the mesh component will not be rendered!
+				if (MeshComponent->IsRenderStateCreated())
+				{
+					// Need to send this to render thread at some point
+					MeshComponent->MarkRenderStateDirty();
+				}
+				else if (MeshComponent->ShouldCreateRenderState())
+				{
+					// If we didn't have a valid StaticMesh assigned before
+					// our render state might not have been created so
+					// do it now.
+					MeshComponent->RecreateRenderState_Concurrent();
+				}
+
+				/*
+				// Update physics representation right away
+				MeshComponent->RecreatePhysicsState();
+
+				// Update this component streaming data.
+				IStreamingManager::Get().NotifyPrimitiveUpdated(MeshComponent);
+
+				// Since we have new mesh, we need to update bounds
+				MeshComponent->UpdateBounds();
+				*/
 			}
 
 			// Now, ensure that proxies replaced by meshes are still kept but hidden
