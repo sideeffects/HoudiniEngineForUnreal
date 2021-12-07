@@ -39,6 +39,9 @@
 
 #include "HoudiniPDGImporterMessages.generated.h"
 
+struct FHoudiniStaticMeshGenerationProperties;
+struct FMeshBuildSettings;
+
 // Message used to find/discover running commandlets
 USTRUCT()
 struct HOUDINIENGINE_API FHoudiniPDGImportBGEODiscoverMessage
@@ -72,6 +75,15 @@ public:
 		HAPI_NodeId InTOPNodeId,
 		HAPI_PDG_WorkitemId InWorkItemId);
 
+	FHoudiniPDGImportBGEOMessage(
+		const FString& InFilePath,
+		const FString& InName,
+		const FHoudiniPackageParams& InPackageParams,
+		HAPI_NodeId InTOPNodeId,
+		HAPI_PDG_WorkitemId InWorkItemId,
+		const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
+		const FMeshBuildSettings& InMeshBuildSettings);
+
 	void SetPackageParams(const FHoudiniPackageParams& InPackageParams);
 
 	void PopulatePackageParams(FHoudiniPackageParams &OutPackageParams) const;
@@ -98,6 +110,14 @@ public:
 	// Package params for the asset 
 	UPROPERTY()
 	FHoudiniPackageParams PackageParams;
+
+	// Settings used during static mesh generation
+	UPROPERTY()
+	FHoudiniStaticMeshGenerationProperties StaticMeshGenerationProperties;
+
+	// Static mesh build settings used during mesh builds
+	UPROPERTY()
+	FMeshBuildSettings MeshBuildSettings;
 };
 
 

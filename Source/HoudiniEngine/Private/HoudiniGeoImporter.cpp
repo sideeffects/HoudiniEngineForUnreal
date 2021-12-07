@@ -39,6 +39,7 @@
 #include "HoudiniInstanceTranslator.h"
 #include "HoudiniSplineTranslator.h"
 #include "HoudiniSplineComponent.h"
+#include "HoudiniEngineRuntimeUtils.h"
 
 #include "CoreMinimal.h"
 #include "Misc/Paths.h"
@@ -159,7 +160,10 @@ UHoudiniGeoImporter::BuildOutputsForNode(const HAPI_NodeId& InNodeId, TArray<UHo
 }
 
 bool
-UHoudiniGeoImporter::CreateStaticMeshes(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams)
+UHoudiniGeoImporter::CreateStaticMeshes(
+	TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams,
+	const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
+	const FMeshBuildSettings& InMeshBuildSettings)
 {
 	TMap<FString, UMaterialInterface*> AllOutputMaterials;
 	for (auto& CurOutput : InOutputs)
@@ -207,8 +211,6 @@ UHoudiniGeoImporter::CreateStaticMeshes(TArray<UHoudiniOutput*>& InOutputs, UObj
 				}
 			}
 
-			FHoudiniStaticMeshGenerationProperties SMGP = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
-			FMeshBuildSettings MBS = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
 			FHoudiniMeshTranslator::CreateStaticMeshFromHoudiniGeoPartObject(
 				CurHGPO,
 				PackageParams,
@@ -219,8 +221,8 @@ UHoudiniGeoImporter::CreateStaticMeshes(TArray<UHoudiniOutput*>& InOutputs, UObj
 				AllOutputMaterials,
 				true,
 				EHoudiniStaticMeshMethod::RawMesh,
-				SMGP,
-				MBS);
+				InStaticMeshGenerationProperties,
+				InMeshBuildSettings);
 
 			for (auto& CurMat : AssignementMaterials)
 			{
@@ -633,7 +635,10 @@ UHoudiniGeoImporter::DeleteCreatedNode(const HAPI_NodeId& InNodeId)
 }
 
 bool 
-UHoudiniGeoImporter::ImportBGEOFile(const FString& InBGEOFile, UObject* InParent, const FHoudiniPackageParams* InPackageParams)
+UHoudiniGeoImporter::ImportBGEOFile(
+	const FString& InBGEOFile, UObject* InParent, const FHoudiniPackageParams* InPackageParams,
+	const FHoudiniStaticMeshGenerationProperties* InStaticMeshGenerationProperties,
+	const FMeshBuildSettings* InMeshBuildSettings)
 {
 	if (InBGEOFile.IsEmpty())
 		return false;
@@ -699,7 +704,15 @@ UHoudiniGeoImporter::ImportBGEOFile(const FString& InBGEOFile, UObject* InParent
 	}
 
 	// 5. Create the static meshes in the outputs
-	if (!CreateStaticMeshes(NewOutputs, InParent, PackageParams))
+	const FHoudiniStaticMeshGenerationProperties& StaticMeshGenerationProperties =
+		InStaticMeshGenerationProperties?
+		*InStaticMeshGenerationProperties :
+		FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
+	
+	const FMeshBuildSettings& MeshBuildSettings =
+		InMeshBuildSettings ? *InMeshBuildSettings : FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
+		
+	if (!CreateStaticMeshes(NewOutputs, InParent, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
 		return CleanUpAndReturn(false);
 
 	// 6. Create the static meshes in the outputs
