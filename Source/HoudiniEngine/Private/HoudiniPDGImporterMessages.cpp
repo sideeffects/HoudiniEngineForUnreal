@@ -25,6 +25,8 @@
 */
 
 #include "HoudiniPDGImporterMessages.h"
+#include "HoudiniEngineRuntimeUtils.h"
+
 
 FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage()
 	: FilePath()
@@ -32,7 +34,8 @@ FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage()
 	, TOPNodeId(-1)
 	, WorkItemId(-1)
 {
-
+	StaticMeshGenerationProperties = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
+	MeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
 }
 
 FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage(
@@ -46,6 +49,8 @@ FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage(
 	, WorkItemId(-1)
 {
 	SetPackageParams(InPackageParams);
+	StaticMeshGenerationProperties = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
+	MeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
 }
 
 FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage(
@@ -59,6 +64,27 @@ FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage(
 	, Name(InName)
 	, TOPNodeId(InTOPNodeId)
 	, WorkItemId(InWorkItemId)
+{
+	SetPackageParams(InPackageParams);
+	StaticMeshGenerationProperties = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
+	MeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
+}
+
+FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage(
+	const FString& InFilePath,
+	const FString& InName,
+	const FHoudiniPackageParams& InPackageParams,
+	HAPI_NodeId InTOPNodeId,
+	HAPI_PDG_WorkitemId InWorkItemId,
+	const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
+	const FMeshBuildSettings& InMeshBuildSettings
+)
+	: FilePath(InFilePath)
+	, Name(InName)
+	, TOPNodeId(InTOPNodeId)
+	, WorkItemId(InWorkItemId)
+	, StaticMeshGenerationProperties(InStaticMeshGenerationProperties)
+	, MeshBuildSettings(InMeshBuildSettings)
 {
 	SetPackageParams(InPackageParams);
 }

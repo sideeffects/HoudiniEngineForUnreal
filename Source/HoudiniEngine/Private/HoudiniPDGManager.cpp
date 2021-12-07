@@ -1704,6 +1704,11 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 		}
 		PackageParams.ObjectName = FString();
 
+		// Static mesh generation / build settings, get it from the HAC if available, otherwise from the plugin
+		// defaults
+		const FHoudiniStaticMeshGenerationProperties& StaticMeshGenerationProperties = HAC ? HAC->StaticMeshGenerationProperties : FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
+		const FMeshBuildSettings& MeshBuildSettings = HAC ? HAC->StaticMeshBuildSettings : FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
+
 		// UWorld *World = ParentActor ? ParentActor->GetWorld() : AssetLink->GetWorld();
 		UWorld *World = AssetLink->GetWorld();
 
@@ -1753,7 +1758,9 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 									CurrentWorkResultObj.Name,
 									PackageParams,
 									CurrentTOPNode->NodeId,
-									CurrentWorkResult.WorkItemID
+									CurrentWorkResult.WorkItemID,
+									StaticMeshGenerationProperties,
+									MeshBuildSettings
 								), BGEOCommandletAddress);
 							}
 							else

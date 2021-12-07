@@ -240,7 +240,9 @@ UHoudiniGeoFactory::Import(UClass* InClass, UPackage* InParent, const FString & 
 		return FailImportAndReturnNull();
 
 	// 5. Create the static meshes in the outputs
-	if (!BGEOImporter->CreateStaticMeshes(NewOutputs, InParent, PackageParams))
+	const FHoudiniStaticMeshGenerationProperties& StaticMeshGenerationProperties = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
+	const FMeshBuildSettings& MeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
+	if (!BGEOImporter->CreateStaticMeshes(NewOutputs, InParent, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
 		return FailImportAndReturnNull();
 
 	// 6. Create the curves in the outputs
