@@ -33,6 +33,8 @@
 class UHoudiniOutput;
 
 struct FHoudiniPackageParams;
+struct FHoudiniStaticMeshGenerationProperties;
+struct FMeshBuildSettings;
 
 UCLASS()
 class HOUDINIENGINE_API UHoudiniGeoImporter : public UObject
@@ -62,7 +64,10 @@ public:
 		// END: Static API
 
 		// Import the BGEO file
-		bool ImportBGEOFile(const FString& InBGEOFile, UObject* InParent, const FHoudiniPackageParams* InPackageParams=nullptr);
+		bool ImportBGEOFile(
+			const FString& InBGEOFile, UObject* InParent, const FHoudiniPackageParams* InPackageParams=nullptr,
+			const FHoudiniStaticMeshGenerationProperties* InStaticMeshGenerationProperties=nullptr,
+			const FMeshBuildSettings* InMeshBuildSettings=nullptr);
 
 		// 1. Start a HE session if needed
 		static bool AutoStartHoudiniEngineSessionIfNeeded();
@@ -73,7 +78,9 @@ public:
 		// 4. Extract the outputs for a given node ID
 		bool BuildOutputsForNode(const HAPI_NodeId& InNodeId, TArray<UHoudiniOutput*>& InOldOutputs, TArray<UHoudiniOutput*>& OutNewOutputs);
 		// 5. Creates the static meshes object found in the output
-		bool CreateStaticMeshes(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams);
+		bool CreateStaticMeshes(
+			TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams,
+			const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties, const FMeshBuildSettings& InMeshBuildSettings);
 		// 6. Create the output curves
 		bool CreateCurves(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams);
 		// 7. Create the output landscapes

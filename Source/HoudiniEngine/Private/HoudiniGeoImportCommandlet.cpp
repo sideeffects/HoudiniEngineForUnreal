@@ -45,6 +45,7 @@
 #include "Interfaces/ISlateNullRendererModule.h"
 #include "Rendering/SlateRenderer.h"
 #include "Framework/Application/SlateApplication.h"
+#include "HAL/ThreadManager.h"
 
 #include "HoudiniPackageParams.h"
 #include "HoudiniGeoImporter.h"
@@ -52,8 +53,7 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniOutput.h"
 #include "HoudiniPDGImporterMessages.h"
-#include "HoudiniMeshTranslator.h"
-#include "HAL/ThreadManager.h"
+#include "HoudiniEngineRuntimeUtils.h"
 
 
 UHoudiniGeoImportCommandlet::UHoudiniGeoImportCommandlet()
@@ -308,7 +308,7 @@ void UHoudiniGeoImportCommandlet::HandleImportBGEOMessage(
 	TArray<UHoudiniOutput*> Outputs;
 	TMap<FHoudiniOutputObjectIdentifier, TArray<FHoudiniGenericAttribute>> OutputObjectAttributes;
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData> InstancedOutputPartData;
-	if (ImportBGEO(InMessage.FilePath, PackageParams, Outputs, &OutputObjectAttributes, &InstancedOutputPartData) == 0)
+	if (ImportBGEO(InMessage.FilePath, PackageParams, Outputs, &InMessage.StaticMeshGenerationProperties, &InMessage.MeshBuildSettings, &OutputObjectAttributes, &InstancedOutputPartData) == 0)
 	{
 		FHoudiniPDGImportBGEOResultMessage* Reply = new FHoudiniPDGImportBGEOResultMessage();
 		(*Reply) = InMessage;
@@ -436,8 +436,10 @@ bool UHoudiniGeoImportCommandlet::StartHoudiniEngineSession()
 
 int32 UHoudiniGeoImportCommandlet::ImportBGEO(
 	const FString &InFilename, 
-	const FHoudiniPackageParams &InPackageParams, 
+	const FHoudiniPackageParams &InPackageParams,
 	TArray<UHoudiniOutput*>& OutOutputs,
+	const FHoudiniStaticMeshGenerationProperties* InStaticMeshGenerationProperties,
+	const FMeshBuildSettings* InMeshBuildSettings,
 	TMap<FHoudiniOutputObjectIdentifier, TArray<FHoudiniGenericAttribute>>* OutGenericAttributes,
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* OutInstancedOutputPartData)
 {
@@ -525,8 +527,16 @@ int32 UHoudiniGeoImportCommandlet::ImportBGEO(
 	UObject* Outer = this;
 	
 	// 5. Create the static meshes in the outputs
+	const FHoudiniStaticMeshGenerationProperties& StaticMeshGenerationProperties =
+		InStaticMeshGenerationProperties?
+		*InStaticMeshGenerationProperties :
+		FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
+	
+	const FMeshBuildSettings& MeshBuildSettings =
+		InMeshBuildSettings ? *InMeshBuildSettings : FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
+	
 	HOUDINI_LOG_DISPLAY(TEXT("Create Static Meshes"));
-	if (!GeoImporter->CreateStaticMeshes(OutOutputs, Outer, PackageParams))
+	if (!GeoImporter->CreateStaticMeshes(OutOutputs, Outer, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
 		return CleanUpAndExit(1);
 
 	//// 6. Create the landscape in the outputs
