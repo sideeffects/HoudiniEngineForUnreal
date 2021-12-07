@@ -29,12 +29,12 @@
 // Port of geometry3cpp ProgressCancel
 
 /**
- * FProgressCancel is an obejct that is intended to be passed to long-running
+ * FHEProgressCancel is an obejct that is intended to be passed to long-running
  * computes to do two things:
  * 1) provide progress info back to caller (not implemented yet)
  * 2) allow caller to cancel the computation
  */
-class FProgressCancel
+class FHEProgressCancel
 {
 private:
 	bool WasCancelled = false;  // will be set to true if CancelF() ever returns true
@@ -7681,7 +7681,7 @@ public:
 	// are necessary for using ConvexHull3.
 	OrientedBox3<InputType> operator()(int numPoints,
 									   Vector3<InputType> const* points,
-									   FProgressCancel* Progress,
+									   FHEProgressCancel* Progress,
 									   bool useRotatingCalipers = !std::is_floating_point<ComputeType>::value);
 
 	// The points form a nondegenerate convex polyhedron.  The indices input
@@ -7690,7 +7690,7 @@ public:
 									   Vector3<InputType> const* points,
 									   int numIndices,
 									   int const* indices,
-									   FProgressCancel* Progress,
+									   FHEProgressCancel* Progress,
 									   bool useRotatingCalipers = !std::is_floating_point<ComputeType>::value);
 
     // Member access.
@@ -7714,7 +7714,7 @@ private:
     };
 
     // Compute the minimum-volume box relative to each hull face.
-    void ProcessFaces(ETManifoldMesh const& mesh, Box& minBox, FProgressCancel* Progress = nullptr);
+    void ProcessFaces(ETManifoldMesh const& mesh, Box& minBox, FHEProgressCancel* Progress = nullptr);
 
     // Compute the minimum-volume box for each triple of orthgonal hull edges.
     void ProcessEdges(ETManifoldMesh const& mesh, Box& minBox);
@@ -7822,7 +7822,7 @@ MinimumVolumeBox3<InputType, ComputeType>::MinimumVolumeBox3(unsigned int numThr
 
 template <typename InputType, typename ComputeType>
 OrientedBox3<InputType> MinimumVolumeBox3<InputType, ComputeType>::operator()(
-    int numPoints, Vector3<InputType> const* points, FProgressCancel* Progress, bool useRotatingCalipers)
+    int numPoints, Vector3<InputType> const* points, FHEProgressCancel* Progress, bool useRotatingCalipers)
 {
     mNumPoints = numPoints;
     mPoints = points;
@@ -7978,7 +7978,7 @@ OrientedBox3<InputType> MinimumVolumeBox3<InputType, ComputeType>::operator()(
 template <typename InputType, typename ComputeType>
 OrientedBox3<InputType> MinimumVolumeBox3<InputType, ComputeType>::operator()(
 	int numPoints, Vector3<InputType> const* points, int numIndices,
-	int const* indices, FProgressCancel* Progress, bool useRotatingCalipers)
+	int const* indices, FHEProgressCancel* Progress, bool useRotatingCalipers)
 {
     mNumPoints = numPoints;
     mPoints = points;
@@ -8085,7 +8085,7 @@ InputType MinimumVolumeBox3<InputType, ComputeType>::GetVolume() const
 }
 
 template <typename InputType, typename ComputeType>
-void MinimumVolumeBox3<InputType, ComputeType>::ProcessFaces(ETManifoldMesh const& mesh, Box& minBox, FProgressCancel* Progress)
+void MinimumVolumeBox3<InputType, ComputeType>::ProcessFaces(ETManifoldMesh const& mesh, Box& minBox, FHEProgressCancel* Progress)
 {
     // Get the mesh data structures.
     auto const& tmap = mesh.GetTriangles();
