@@ -2369,8 +2369,10 @@ bool FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(const HAPI_NodeId& InNod
 				NumOutputs))
 			{
 				// Gather all the output nodes
-				for (const HAPI_GeoInfo& OutputGeoInfo : OutputGeoInfos)
+				for (HAPI_GeoInfo& OutputGeoInfo : OutputGeoInfos)
 				{
+					// This geo should be output. Be sure to ignore any template flags. 
+					OutputGeoInfo.isTemplated = false;
 					OutGeoInfos.Add(OutputGeoInfo);
 					GatheredNodeIds.Add(OutputGeoInfo.nodeId);
 					OutForceNodesCook.Add(OutputGeoInfo.nodeId); // Ensure this output node gets cooked
@@ -2422,6 +2424,8 @@ bool FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(const HAPI_NodeId& InNod
 								&GeoInfo)
 							)
 						{
+							// This geo should be output. Be sure to ignore any templated flags.
+							GeoInfo.isTemplated = false;
 							OutGeoInfos.Add(GeoInfo);
 							GatheredNodeIds.Add(DisplayNodeId);
 							// If this node doesn't have a part_id count, ensure it gets cooked.
