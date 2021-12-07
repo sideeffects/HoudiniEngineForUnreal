@@ -117,6 +117,8 @@ protected:
 		const FString& InFilename, 
 		const FHoudiniPackageParams& InPackageParams, 
 		TArray<UHoudiniOutput*>& OutOutputs,
+		const FHoudiniStaticMeshGenerationProperties* InStaticMeshGenerationProperties=nullptr,
+		const FMeshBuildSettings* InMeshBuildSettings=nullptr,
 		TMap<FHoudiniOutputObjectIdentifier, TArray<FHoudiniGenericAttribute>>* OutGenericAttributes=nullptr,
 		TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* OutInstancedOutputPartData=nullptr);
 

@@ -148,6 +148,7 @@ FHoudiniPDGTranslator::CreateAllResultObjectsForPDGWorkItem(
 			InTOPNode->ClearedLandscapeLayers,
 			AllInputLandscapes,
 			InputLandscapesToUpdate,
+			InAssetLink,
 			InOutputTypesToProcess,
 			bInTreatExistingMaterialsAsUpToDate);
 		
@@ -240,6 +241,7 @@ FHoudiniPDGTranslator::LoadExistingAssetsAsResultObjectsForPDGWorkItem(
 		InTOPNode->ClearedLandscapeLayers,
 		AllInputLandscapes,
 		InputLandscapesToUpdate,
+		InAssetLink,
 		InOutputTypesToProcess,
 		bInTreatExistingMaterialsAsUpToDate,
 		bOnlyUseExistingAssets,
@@ -268,6 +270,7 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	TSet<FString>& ClearedLandscapeLayers,
 	TArray<ALandscapeProxy*> AllInputLandscapes,
 	TArray<ALandscapeProxy*> InputLandscapesToUpdate,
+	UHoudiniPDGAssetLink* const InAssetLink,
 	TArray<EHoudiniOutputType> InOutputTypesToProcess,
 	bool bInTreatExistingMaterialsAsUpToDate,
 	bool bInOnlyUseExistingAssets,
@@ -303,6 +306,10 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	//bool bCreatedNewMaps = false;
 	UWorld* PersistentWorld = InOuterComponent->GetTypedOuter<UWorld>();
 	check(PersistentWorld);
+
+	// Fetch the HAC if the asset link is associated with one
+	UHoudiniAssetComponent const* const HAC = IsValid(InAssetLink) ? InAssetLink->GetOuterHoudiniAssetComponent() : nullptr;
+	const bool bIsHACValid = IsValid(HAC);
 	
 	// Keep track of all generated houdini materials to avoid recreating them over and over
 	TMap<FString, UMaterialInterface*> AllOutputMaterials;
@@ -333,15 +340,13 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 				}
 				else
 				{
-					// TODO: If Outer is an HAC, get SMGP/MBS from it ??
-					FHoudiniStaticMeshGenerationProperties SMGP = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
-					FMeshBuildSettings MBS = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
+					// If we have a valid HAC get SMGP/MBS from it, otherwise use the plugin settings
 					FHoudiniMeshTranslator::CreateAllMeshesAndComponentsFromHoudiniOutput(
 						CurOutput,
 						InPackageParams,
 						EHoudiniStaticMeshMethod::RawMesh,
-						SMGP,
-						MBS,
+						bIsHACValid ? HAC->StaticMeshGenerationProperties : FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties(),
+						bIsHACValid ? HAC->StaticMeshBuildSettings : FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings(),
 						AllOutputMaterials,
 						InOuterComponent,
 						bInTreatExistingMaterialsAsUpToDate,
