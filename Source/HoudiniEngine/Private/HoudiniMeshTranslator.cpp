@@ -1506,7 +1506,7 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 			}
 
 			// If the mesh we just created is templated, hide it in game
-			if (FoundHGPO->bIsTemplated)
+			if (IsValid(MeshComponent) && FoundHGPO->bIsTemplated)
 			{
 				MeshComponent->SetHiddenInGame(true);
 			}
@@ -1540,6 +1540,9 @@ FHoudiniMeshTranslator::UpdateMeshComponent(UMeshComponent *InMeshComponent, con
 		bool bVisible = InHGPO ? InHGPO->bIsVisible : true;
 		InMeshComponent->SetVisibility(bVisible);
 		InMeshComponent->SetHiddenInGame(!bVisible);
+		
+		FPropertyChangedEvent Evt(FindFieldChecked<FProperty>(InMeshComponent->GetClass(), "bVisible"));
+		InMeshComponent->PostEditChangeProperty(Evt);
 	}
 
 	// TODO:
@@ -7804,7 +7807,6 @@ FHoudiniMeshTranslator::PostCreateStaticMeshComponent(UStaticMeshComponent *InCo
 	if (Mesh)
 	{
 		InComponent->SetStaticMesh(Mesh);
-
 		return true;
 	}
 
