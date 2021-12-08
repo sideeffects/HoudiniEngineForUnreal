@@ -30,6 +30,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEnginePrivatePCH.h"
+#include "Animation/AttributesContainer.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Engine/SkeletalMesh.h"
 #include "GeometryCollection/GeometryCollectionClusteringUtility.h"
@@ -913,58 +914,34 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_CLUSTERING_DAMAGE_THRESHOLD;
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo), false);
-
-		FHoudiniApi::SetAttributeFloatArrayData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const float *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0,  AttributeInfo.count);
-	}
-	
-	FGeometryCollectionSizeSpecificData& GCSizeSpecData = GeometryCollectionObject->GetDefaultSizeSpecificData();
-
-	// Collisions - Collision Type
-	if(GCSizeSpecData.CollisionShapes.Num() > 0)
-	{
-		TArray<int32> AttributeData { (int32)GCSizeSpecData.CollisionShapes[0].CollisionType };
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo), false);
 		
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		AttributeInfo.count = 1;
-		AttributeInfo.tupleSize = 1;
-		AttributeInfo.exists = true;
-		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
-		AttributeInfo.storage = HAPI_STORAGETYPE_INT;
-		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
-
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_TYPE;
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo), false);
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo,
+			(const float *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0,  AttributeInfo.count), false);
 	}
 
-	// Collisions - Implicit Type
-	if (GCSizeSpecData.CollisionShapes.Num() > 0)
+	// Clustering - Cluster connection type
 	{
-		int32 ImplicitTypeValue;
-		if (GCSizeSpecData.CollisionShapes[0].ImplicitType == EImplicitTypeEnum::Chaos_Implicit_None)
+		
+		int32 ClusterConnectionTypeValue = 0;
+		EClusterConnectionTypeEnum ClusterConnectionType = GeometryCollectionObject->ClusterConnectionType;
+		if (ClusterConnectionType == EClusterConnectionTypeEnum::Chaos_PointImplicit)
 		{
-			ImplicitTypeValue = 0;
+			ClusterConnectionTypeValue = 0;
+		}
+		else if (ClusterConnectionType == EClusterConnectionTypeEnum::Chaos_DelaunayTriangulation)
+		{
+			ClusterConnectionTypeValue = 0; // Chaos_DelaunayTriangulation not supported
 		}
 		else
 		{
-			ImplicitTypeValue = static_cast<int32>(GCSizeSpecData.CollisionShapes[0].ImplicitType) + 1; // + 1 because 0 = None.
+			ClusterConnectionTypeValue = (int32)ClusterConnectionType - 1;
 		}
-		
-		TArray<int32> AttributeData {ImplicitTypeValue};
-		
+		TArray< int32 > AttributeData { ClusterConnectionTypeValue };
+
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 		AttributeInfo.count = 1;
@@ -974,150 +951,19 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 		AttributeInfo.storage = HAPI_STORAGETYPE_INT;
 		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_IMPLICIT_TYPE;
-
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_CLUSTERING_CLUSTER_CONNECTION_TYPE;
+		
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo), false);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
-	}
-
-	// Collisions - Min Level Set Resolution
-	if (GCSizeSpecData.CollisionShapes.Num() > 0)
-	{
-		TArray< int32 > AttributeData {static_cast<int32>(GCSizeSpecData.CollisionShapes[0].LevelSet.MinLevelSetResolution) };
-		
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		AttributeInfo.count = 1;
-		AttributeInfo.tupleSize = 1;
-		AttributeInfo.exists = true;
-		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
-		AttributeInfo.storage = HAPI_STORAGETYPE_INT;
-		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
-
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MIN_LEVEL_SET_RESOLUTION;
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo), false);
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
-	}
-
-	// Collisions - Max Level Set Resolution
-	if (GCSizeSpecData.CollisionShapes.Num() > 0)
-	{
-		TArray< int32 > AttributeData { static_cast<int32>(GCSizeSpecData.CollisionShapes[0].LevelSet.MaxLevelSetResolution) };
-		
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		AttributeInfo.count = 1;
-		AttributeInfo.tupleSize = 1;
-		AttributeInfo.exists = true;
-		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
-		AttributeInfo.storage = HAPI_STORAGETYPE_INT;
-		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
-
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAX_LEVEL_SET_RESOLUTION;
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo), false);
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
-	}
-	
-	// Collisions - Min cluster level set resolution
-	if (GCSizeSpecData.CollisionShapes.Num() > 0)
-	{
-		TArray< int32 > AttributeData { static_cast<int32>(GCSizeSpecData.CollisionShapes[0].LevelSet.MinClusterLevelSetResolution) };
-		
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		AttributeInfo.count = 1;
-		AttributeInfo.tupleSize = 1;
-		AttributeInfo.exists = true;
-		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
-		AttributeInfo.storage = HAPI_STORAGETYPE_INT;
-		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
-
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MIN_CLUSTER_LEVEL_SET_RESOLUTION;
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo), false);
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
-	}
-
-	// Collisions - Max cluster level set resolution
-	if (GCSizeSpecData.CollisionShapes.Num() > 0)
-	{
-		TArray< int32 > AttributeData { static_cast<int32>(GCSizeSpecData.CollisionShapes[0].LevelSet.MaxClusterLevelSetResolution) };
-		
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		AttributeInfo.count = 1;
-		AttributeInfo.tupleSize = 1;
-		AttributeInfo.exists = true;
-		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
-		AttributeInfo.storage = HAPI_STORAGETYPE_INT;
-		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
-
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAX_CLUSTER_LEVEL_SET_RESOLUTION;
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo), false);
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
-	}
-
-	// Collisions - Object reduction percentage
-	if (GCSizeSpecData.CollisionShapes.Num() > 0)
-	{
-		TArray< float > AttributeData { GCSizeSpecData.CollisionShapes[0].CollisionObjectReductionPercentage };
-		
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		AttributeInfo.count = 1;
-		AttributeInfo.tupleSize = 1;
-		AttributeInfo.exists = true;
-		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
-		AttributeInfo.storage = HAPI_STORAGETYPE_FLOAT;
-		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
-
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_OBJECT_REDUCTION_PERCENTAGE;
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo), false);
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const float *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo,
+			(const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
 	}
 
 	// Collisions - Mass as density
-	if (GCSizeSpecData.CollisionShapes.Num() > 0)
 	{
 		TArray< int32 > AttributeData { GeometryCollectionObject->bMassAsDensity == true ? 1 : 0 };
 		
@@ -1133,13 +979,13 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MASS_AS_DENSITY;
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+			 FHoudiniEngine::Get().GetSession(),
+			 GeoId, PartId, AttributeName, &AttributeInfo), false);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo,
+			(const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
 	}
 
 	// Collisions - Mass
@@ -1158,13 +1004,13 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MASS;
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo), false);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const float *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo,
+			(const float *)AttributeData.GetData(), 0, AttributeData.Num()), false);
 	}
 
 	// Collisions - Minimum Mass Clamp
@@ -1183,63 +1029,477 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MINIMUM_MASS_CLAMP;
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo), false);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const float *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo,
+			(const float *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+	}
+	
+	const TArray<FGeometryCollectionSizeSpecificData> & GCSizeSpecDatas = GeometryCollectionObject->SizeSpecificData;
+
+	// Size specific data input:
+
+	// Collisions - Size specific data - Max size
+	if (GCSizeSpecDatas.Num() > 0)
+	{
+		TArray<float> AttributeData;
+		AttributeData.SetNum(GCSizeSpecDatas.Num());
+		for (int32 i = 0; i < AttributeData.Num(); i++)
+		{
+			AttributeData[i] = GCSizeSpecDatas[i].MaxSize;
+		}
+
+		// We have one array with DamageThreshold.Num() elements.
+		TArray< int32 > AttributeDataSizes;
+		AttributeDataSizes.Init(0, AttributeData.Num());
+		AttributeDataSizes[0] = AttributeData.Num();
+
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		AttributeInfo.count = 1;
+		AttributeInfo.tupleSize = 1;
+		AttributeInfo.totalArrayElements = AttributeData.Num();
+		AttributeInfo.exists = true;
+		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfo.storage = HAPI_STORAGETYPE_FLOAT_ARRAY;
+		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAX_SIZE;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo), false);
+
+		FHoudiniApi::SetAttributeFloatArrayData(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo,
+			(const float *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0,  AttributeInfo.count);
 	}
 
-	// Collisions - Collision particles fraction
+	// Collisions - Size specific data - Damage threshold
+	if (GCSizeSpecDatas.Num() > 0)
 	{
-		TArray< float > AttributeData { GCSizeSpecData.CollisionShapes[0].CollisionParticles.CollisionParticlesFraction };
+		TArray<int32> AttributeData;
+		AttributeData.SetNum(GCSizeSpecDatas.Num());
+		for (int32 i = 0; i < AttributeData.Num(); i++)
+		{
+			AttributeData[i] = GCSizeSpecDatas[i].DamageThreshold;
+		}
+
+		// We have one array with DamageThreshold.Num() elements.
+		TArray< int32 > AttributeDataSizes;
+		AttributeDataSizes.Init(0, AttributeData.Num());
+		AttributeDataSizes[0] = AttributeData.Num();
+
 		
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 		AttributeInfo.count = 1;
 		AttributeInfo.tupleSize = 1;
+		AttributeInfo.totalArrayElements = AttributeData.Num();
 		AttributeInfo.exists = true;
 		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
-		AttributeInfo.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfo.storage = HAPI_STORAGETYPE_INT_ARRAY;
 		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_PARTICLES_FRACTION;
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_DAMAGE_THRESHOLD;
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const float *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+		FHoudiniApi::SetAttributeIntArrayData(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo,
+			(const int *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0,  AttributeInfo.count);
 	}
 
-	// Collisions - Maximum collision particles
+	for (int32 GCSizeSpecIdx = 0; GCSizeSpecIdx < GCSizeSpecDatas.Num(); GCSizeSpecIdx++)
 	{
-		TArray< int32 > AttributeData { GCSizeSpecData.CollisionShapes[0].CollisionParticles.MaximumCollisionParticles };
+		const FGeometryCollectionSizeSpecificData & GCSizeSpecData = GCSizeSpecDatas[GCSizeSpecIdx];
 		
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		AttributeInfo.count = 1;
-		AttributeInfo.tupleSize = 1;
-		AttributeInfo.exists = true;
-		AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
-		AttributeInfo.storage = HAPI_STORAGETYPE_INT;
-		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+		// Collisions - Collision Type
+		if(GCSizeSpecData.CollisionShapes.Num() > 0)
+		{
+			TArray<int32> AttributeData;
+			AttributeData.SetNum(GCSizeSpecData.CollisionShapes.Num());
+			for (int32 i = 0; i < AttributeData.Num(); i++)
+			{
+				AttributeData[i] = static_cast<int32>(GCSizeSpecData.CollisionShapes[i].CollisionType);
+			}
+	
+			TArray< int32 > AttributeDataSizes;
+			AttributeDataSizes.Init(0, AttributeData.Num());
+			AttributeDataSizes[0] = AttributeData.Num();
+			
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			AttributeInfo.count = 1;
+			AttributeInfo.tupleSize = 1;
+			AttributeInfo.totalArrayElements = AttributeData.Num();
+			AttributeInfo.exists = true;
+			AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+			AttributeInfo.storage = HAPI_STORAGETYPE_INT_ARRAY;
+			AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAXIMUM_COLLISION_PARTICLES;
+			const FString AttributeName = FString::Printf(TEXT("%s_%d"), TEXT(HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_TYPE), GCSizeSpecIdx);
+			const char * AttributeNameCStr = TCHAR_TO_UTF8(*AttributeName);
+	
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo), false);
+			
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo,
+				(const int32 *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
+		}
+	
+		// Collisions - Size specific data - Implicit Type
+		if (GCSizeSpecData.CollisionShapes.Num() > 0)
+		{
+			TArray<int32> AttributeData;
+			AttributeData.SetNum(GCSizeSpecData.CollisionShapes.Num());
+			for (int32 i = 0; i < AttributeData.Num(); i++)
+			{
+				AttributeData[i] = (int32)GCSizeSpecData.CollisionShapes[i].CollisionType;
+				if (GCSizeSpecData.CollisionShapes[i].ImplicitType == EImplicitTypeEnum::Chaos_Implicit_None)
+				{
+					AttributeData[i] = 0;
+				}
+				else if (GCSizeSpecData.CollisionShapes[i].ImplicitType > EImplicitTypeEnum::Chaos_Implicit_None)
+				{
+					AttributeData[i] = static_cast<int32>(GCSizeSpecData.CollisionShapes[i].ImplicitType); // If past none, keep same indexing
+				}
+				else
+				{
+					AttributeData[i] = static_cast<int32>(GCSizeSpecData.CollisionShapes[i].ImplicitType) + 1; // + 1 because 0 = None.
+				}
+			}
+	
+			TArray< int32 > AttributeDataSizes;
+			AttributeDataSizes.Init(0, AttributeData.Num());
+			AttributeDataSizes[0] = AttributeData.Num();
+			
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			AttributeInfo.count = 1;
+			AttributeInfo.tupleSize = 1;
+			AttributeInfo.totalArrayElements = AttributeData.Num();
+			AttributeInfo.exists = true;
+			AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+			AttributeInfo.storage = HAPI_STORAGETYPE_INT_ARRAY;
+			AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+			const FString AttributeName = FString::Printf(TEXT("%s_%d"), TEXT(HAPI_UNREAL_ATTRIB_GC_COLLISIONS_IMPLICIT_TYPE), GCSizeSpecIdx);
+			const char * AttributeNameCStr = TCHAR_TO_UTF8(*AttributeName);
+			
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo), false);
+			
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo,
+				(const int32 *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
+		}
+	
+		// Collisions - Size specific data - Min Level Set Resolution
+		if (GCSizeSpecData.CollisionShapes.Num() > 0)
+		{
+			TArray<int32> AttributeData;
+			AttributeData.SetNum(GCSizeSpecData.CollisionShapes.Num());
+			for (int32 i = 0; i < AttributeData.Num(); i++)
+			{
+				AttributeData[i] = GCSizeSpecData.CollisionShapes[i].LevelSet.MinLevelSetResolution;
+			}
+	
+			TArray< int32 > AttributeDataSizes;
+			AttributeDataSizes.Init(0, AttributeData.Num());
+			AttributeDataSizes[0] = AttributeData.Num();
+			
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			AttributeInfo.count = 1;
+			AttributeInfo.tupleSize = 1;
+			AttributeInfo.totalArrayElements = AttributeData.Num();
+			AttributeInfo.exists = true;
+			AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+			AttributeInfo.storage = HAPI_STORAGETYPE_INT_ARRAY;
+			AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+			const FString AttributeName = FString::Printf(TEXT("%s_%d"), TEXT(HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MIN_LEVEL_SET_RESOLUTION), GCSizeSpecIdx);
+			const char * AttributeNameCStr = TCHAR_TO_UTF8(*AttributeName);
+			
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo), false);
+			
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo,
+				(const int32 *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
+		}
+
+		// Collisions - Size specific data - Max Level Set Resolution
+		if (GCSizeSpecData.CollisionShapes.Num() > 0)
+		{
+			TArray<int32> AttributeData;
+			AttributeData.SetNum(GCSizeSpecData.CollisionShapes.Num());
+			for (int32 i = 0; i < AttributeData.Num(); i++)
+			{
+				AttributeData[i] = GCSizeSpecData.CollisionShapes[i].LevelSet.MaxLevelSetResolution;
+			}
+	
+			TArray< int32 > AttributeDataSizes;
+			AttributeDataSizes.Init(0, AttributeData.Num());
+			AttributeDataSizes[0] = AttributeData.Num();
+			
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			AttributeInfo.count = 1;
+			AttributeInfo.tupleSize = 1;
+			AttributeInfo.totalArrayElements = AttributeData.Num();
+			AttributeInfo.exists = true;
+			AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+			AttributeInfo.storage = HAPI_STORAGETYPE_INT_ARRAY;
+			AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+	
+			const FString AttributeName = FString::Printf(TEXT("%s_%d"), TEXT(HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAX_LEVEL_SET_RESOLUTION), GCSizeSpecIdx);
+			const char * AttributeNameCStr = TCHAR_TO_UTF8(*AttributeName);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo), false);
+			
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo,
+				(const int32 *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
+		}
+		
+		// Collisions - Size specific data - Min cluster level set resolution
+		if (GCSizeSpecData.CollisionShapes.Num() > 0)
+		{
+			TArray<int32> AttributeData;
+			AttributeData.SetNum(GCSizeSpecData.CollisionShapes.Num());
+			for (int32 i = 0; i < AttributeData.Num(); i++)
+			{
+				AttributeData[i] = GCSizeSpecData.CollisionShapes[i].LevelSet.MinClusterLevelSetResolution;
+			}
+	
+			TArray< int32 > AttributeDataSizes;
+			AttributeDataSizes.Init(0, AttributeData.Num());
+			AttributeDataSizes[0] = AttributeData.Num();
+			
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			AttributeInfo.count = 1;
+			AttributeInfo.tupleSize = 1;
+			AttributeInfo.totalArrayElements = AttributeData.Num();
+			AttributeInfo.exists = true;
+			AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+			AttributeInfo.storage = HAPI_STORAGETYPE_INT_ARRAY;
+			AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+	
+			const FString AttributeName = FString::Printf(TEXT("%s_%d"), TEXT(HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MIN_CLUSTER_LEVEL_SET_RESOLUTION), GCSizeSpecIdx);
+			const char * AttributeNameCStr = TCHAR_TO_UTF8(*AttributeName);
+	
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo), false);
+			
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo,
+				(const int32 *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
+		}
+		
+		// Collisions - Size specific data - Max cluster level set resolution
+		if (GCSizeSpecData.CollisionShapes.Num() > 0)
+		{
+			TArray<int32> AttributeData;
+			AttributeData.SetNum(GCSizeSpecData.CollisionShapes.Num());
+			for (int32 i = 0; i < AttributeData.Num(); i++)
+			{
+				AttributeData[i] = GCSizeSpecData.CollisionShapes[i].LevelSet.MaxClusterLevelSetResolution;
+			}
+	
+			TArray< int32 > AttributeDataSizes;
+			AttributeDataSizes.Init(0, AttributeData.Num());
+			AttributeDataSizes[0] = AttributeData.Num();
+			
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			AttributeInfo.count = 1;
+			AttributeInfo.tupleSize = 1;
+			AttributeInfo.totalArrayElements = AttributeData.Num();
+			AttributeInfo.exists = true;
+			AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+			AttributeInfo.storage = HAPI_STORAGETYPE_INT_ARRAY;
+			AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+	
+			const FString AttributeName = FString::Printf(TEXT("%s_%d"), TEXT(HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAX_CLUSTER_LEVEL_SET_RESOLUTION), GCSizeSpecIdx);
+			const char * AttributeNameCStr = TCHAR_TO_UTF8(*AttributeName);
+			
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo), false);
+			
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo,
+				(const int32 *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
+		}
+	
+		// Collisions - Size specific data - Object reduction percentage
+		if (GCSizeSpecData.CollisionShapes.Num() > 0)
+		{
+			TArray<float> AttributeData;
+			AttributeData.SetNum(GCSizeSpecData.CollisionShapes.Num());
+			for (int32 i = 0; i < AttributeData.Num(); i++)
+			{
+				AttributeData[i] = GCSizeSpecData.CollisionShapes[i].CollisionObjectReductionPercentage;
+			}
+	
+			TArray< int32 > AttributeDataSizes;
+			AttributeDataSizes.Init(0, AttributeData.Num());
+			AttributeDataSizes[0] = AttributeData.Num();
+			
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			AttributeInfo.count = 1;
+			AttributeInfo.tupleSize = 1;
+			AttributeInfo.totalArrayElements = AttributeData.Num();
+			AttributeInfo.exists = true;
+			AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+			AttributeInfo.storage = HAPI_STORAGETYPE_FLOAT_ARRAY;
+			AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+	
+			const FString AttributeName = FString::Printf(TEXT("%s_%d"), TEXT(HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_OBJECT_REDUCTION_PERCENTAGE), GCSizeSpecIdx);
+			const char * AttributeNameCStr = TCHAR_TO_UTF8(*AttributeName);
+	
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo), false);
+			
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(
+					FHoudiniEngine::Get().GetSession(),
+					GeoId, PartId, AttributeNameCStr, &AttributeInfo,
+					(const float *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
+		}
+
+		// Collisions - Size specific data - Size specific data - Collision margin fraction
+		if (GCSizeSpecData.CollisionShapes.Num() > 0)
+		{
+			TArray<float> AttributeData;
+			AttributeData.SetNum(GCSizeSpecData.CollisionShapes.Num());
+			for (int32 i = 0; i < AttributeData.Num(); i++)
+			{
+				AttributeData[i] = GCSizeSpecData.CollisionShapes[i].CollisionMarginFraction;
+			}
+	
+			TArray< int32 > AttributeDataSizes;
+			AttributeDataSizes.Init(0, AttributeData.Num());
+			AttributeDataSizes[0] = AttributeData.Num();
+			
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			AttributeInfo.count = 1;
+			AttributeInfo.tupleSize = 1;
+			AttributeInfo.totalArrayElements = AttributeData.Num();
+			AttributeInfo.exists = true;
+			AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+			AttributeInfo.storage = HAPI_STORAGETYPE_FLOAT_ARRAY;
+			AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+	
+			const FString AttributeName = FString::Printf(TEXT("%s_%d"), TEXT(HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_MARGIN_FRACTION), GCSizeSpecIdx);
+			const char * AttributeNameCStr = TCHAR_TO_UTF8(*AttributeName);
+	
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo), false);
+			
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo,
+				(const float *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
+		}
+		
+		// Collisions - Size specific data - Collision particles fraction
+		{
+			TArray<float> AttributeData;
+			AttributeData.SetNum(GCSizeSpecData.CollisionShapes.Num());
+			for (int32 i = 0; i < AttributeData.Num(); i++)
+			{
+				AttributeData[i] = GCSizeSpecData.CollisionShapes[i].CollisionParticles.CollisionParticlesFraction;
+			}
+	
+			TArray< int32 > AttributeDataSizes;
+			AttributeDataSizes.Init(0, AttributeData.Num());
+			AttributeDataSizes[0] = AttributeData.Num();
+			
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			AttributeInfo.count = 1;
+			AttributeInfo.tupleSize = 1;
+			AttributeInfo.totalArrayElements = AttributeData.Num();
+			AttributeInfo.exists = true;
+			AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+			AttributeInfo.storage = HAPI_STORAGETYPE_FLOAT_ARRAY;
+			AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+	
+			const FString AttributeName = FString::Printf(TEXT("%s_%d"), TEXT(HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_PARTICLES_FRACTION), GCSizeSpecIdx);
+			const char * AttributeNameCStr = TCHAR_TO_UTF8(*AttributeName);
+			
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo), false);
+			
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo,
+				(const float *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
+		}
+	
+		// Collisions - Size specific data - Maximum collision particles
+		{
+			TArray<int32> AttributeData;
+			AttributeData.SetNum(GCSizeSpecData.CollisionShapes.Num());
+			for (int32 i = 0; i < AttributeData.Num(); i++)
+			{
+				AttributeData[i] = GCSizeSpecData.CollisionShapes[i].CollisionParticles.MaximumCollisionParticles;
+			}
+	
+			TArray< int32 > AttributeDataSizes;
+			AttributeDataSizes.Init(0, AttributeData.Num());
+			AttributeDataSizes[0] = AttributeData.Num();
+			
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			AttributeInfo.count = 1;
+			AttributeInfo.tupleSize = 1;
+			AttributeInfo.totalArrayElements = AttributeData.Num();
+			AttributeInfo.exists = true;
+			AttributeInfo.owner = HAPI_ATTROWNER_DETAIL;
+			AttributeInfo.storage = HAPI_STORAGETYPE_INT_ARRAY;
+			AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+	
+			const FString AttributeName = FString::Printf(TEXT("%s_%d"), TEXT(HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAXIMUM_COLLISION_PARTICLES), GCSizeSpecIdx);
+			const char * AttributeNameCStr = TCHAR_TO_UTF8(*AttributeName);
+	
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo), false);
+			
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
+				FHoudiniEngine::Get().GetSession(),
+				GeoId, PartId, AttributeNameCStr, &AttributeInfo,
+				(const int32 *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
+		}
 	}
 	
 	// Non-Essential attributes- Similar to Mesh input: unreal_input_mesh_name, unreal_input_source_file, component and actor tags
@@ -1267,15 +1527,14 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, 0, HAPI_UNREAL_ATTRIB_INPUT_GC_NAME, &AttributeInfo), false);
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, 0, HAPI_UNREAL_ATTRIB_INPUT_GC_NAME, &AttributeInfo), false);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, 0, HAPI_UNREAL_ATTRIB_INPUT_GC_NAME, &AttributeInfo,
-                        PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num()), false);
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, 0, HAPI_UNREAL_ATTRIB_INPUT_GC_NAME, &AttributeInfo,
+			PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num()), false);
 	}
-
 
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// COMPONENT AND ACTOR TAGS
@@ -1284,8 +1543,8 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 	{
 		// Try to create groups for the static mesh component's tags
 		if (GeometryCollectionComponent->ComponentTags.Num() > 0
-                        && !FHoudiniEngineUtils::CreateGroupsFromTags(GeoId, PartId, GeometryCollectionComponent->ComponentTags))
-                        	HOUDINI_LOG_WARNING(TEXT("Could not create groups from the Static Mesh Component's tags!"));
+			&& !FHoudiniEngineUtils::CreateGroupsFromTags(GeoId, PartId, GeometryCollectionComponent->ComponentTags))
+				HOUDINI_LOG_WARNING(TEXT("Could not create groups from the Static Mesh Component's tags!"));
 
 		AActor* ParentActor = GeometryCollectionComponent->GetOwner();
 		if (IsValid(ParentActor))

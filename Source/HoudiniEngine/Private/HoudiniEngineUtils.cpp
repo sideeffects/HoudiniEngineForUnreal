@@ -4066,6 +4066,100 @@ FHoudiniEngineUtils::HapiGetParameterDataAsFloat(
 	return true;
 }
 
+bool FHoudiniEngineUtils::HapiGetAttributeIntOrIntArray(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId,
+	const FString& AttribName, const HAPI_AttributeOwner& AttributeOwner, HAPI_AttributeInfo& OutAttributeInfo,
+	TArray<int32>& OutData)
+{
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeInfo(
+		FHoudiniEngine::Get().GetSession(),
+		GeoId, PartId,
+		TCHAR_TO_UTF8(*AttribName), AttributeOwner, &OutAttributeInfo), false);
+
+	if (OutAttributeInfo.storage == HAPI_STORAGETYPE_INT)
+	{
+		OutData.SetNumZeroed(1);
+		
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeIntData(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId,
+			TCHAR_TO_UTF8(*AttribName), &OutAttributeInfo, -1, OutData.GetData(), 0, 1), false);
+
+		return true;
+	}
+	else if (OutAttributeInfo.storage == HAPI_STORAGETYPE_INT_ARRAY)
+	{
+		TArray<int32> ArraySizes;
+		
+		OutData.SetNumZeroed(OutAttributeInfo.totalArrayElements);
+		ArraySizes.SetNumZeroed(OutAttributeInfo.totalArrayElements);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeIntArrayData(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId,
+			TCHAR_TO_UTF8(*AttribName),
+			&OutAttributeInfo,
+			OutData.GetData(),
+			OutAttributeInfo.totalArrayElements,
+			ArraySizes.GetData(),
+			0,
+			OutAttributeInfo.count), false);
+		
+		if (OutData.Num() > 0)
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+bool FHoudiniEngineUtils::HapiGetAttributeFloatOrFloatArray(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, const FString & AttribName,
+	const HAPI_AttributeOwner& AttributeOwner, HAPI_AttributeInfo& OutAttributeInfo, TArray<float>& OutData)
+{
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeInfo(
+		FHoudiniEngine::Get().GetSession(),
+		GeoId, PartId,
+		TCHAR_TO_UTF8(*AttribName), AttributeOwner, &OutAttributeInfo), false);
+
+	if (OutAttributeInfo.storage == HAPI_STORAGETYPE_FLOAT)
+	{
+		OutData.SetNumZeroed(1);
+		
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeFloatData(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId,
+			TCHAR_TO_UTF8(*AttribName), &OutAttributeInfo, -1, (float*)OutData.GetData(), 0, 1), false);
+
+		return true;
+	}
+	else if (OutAttributeInfo.storage == HAPI_STORAGETYPE_FLOAT_ARRAY)
+	{
+		TArray<int32> FloatDataSizes;
+		
+		OutData.SetNumZeroed(OutAttributeInfo.totalArrayElements);
+		FloatDataSizes.SetNumZeroed(OutAttributeInfo.totalArrayElements);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeFloatArrayData(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId,
+			TCHAR_TO_UTF8(*AttribName),
+			&OutAttributeInfo,
+			(float*)OutData.GetData(),
+			OutAttributeInfo.totalArrayElements,
+			FloatDataSizes.GetData(),
+			0,
+			OutAttributeInfo.count), false);
+		
+		if (OutData.Num() > 0)
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
 HAPI_ParmId
 FHoudiniEngineUtils::HapiFindParameterByName(const HAPI_NodeId& InNodeId, const std::string& InParmName, HAPI_ParmInfo& OutFoundParmInfo)
 {
