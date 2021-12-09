@@ -6535,7 +6535,7 @@ FHoudiniEngineBakeUtils::FindDesiredBakeActorFromBakeActorName(
 
 	// Look for an actor with the given name in the world
 	const FName BakeActorFName(InBakeActorName);
-	const TSubclassOf<AActor> ActorClass = IsValid(InBakeActorClass.Get()) ? InBakeActorClass : AActor::StaticClass();
+	const TSubclassOf<AActor> ActorClass = IsValid(InBakeActorClass.Get()) ? InBakeActorClass.Get() : AActor::StaticClass();
 	AActor* FoundActor = Cast<AActor>(StaticFindObjectFast(ActorClass.Get(), InLevel, BakeActorFName));
 	// for (TActorIterator<AActor> Iter(World, AActor::StaticClass(), EActorIteratorFlags::AllActors); Iter; ++Iter)
 	// {
