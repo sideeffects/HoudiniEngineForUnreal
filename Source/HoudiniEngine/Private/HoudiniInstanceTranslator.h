@@ -57,6 +57,10 @@ public:
 	UPROPERTY()
 	FString BakeActorName;
 
+	// Bake actor class attribute value
+	UPROPERTY()
+	FString BakeActorClassName;
+
 	// bake outliner folder attribute value
 	UPROPERTY()
 	FString BakeOutlinerFolder;
@@ -141,6 +145,10 @@ public:
 	// All bake actor name attributes from the first attribute owner we could find
 	UPROPERTY()
 	TArray<FString> AllBakeActorNames;
+
+	// All bake actor class name attributes from the first attribute owner we could find
+	UPROPERTY()
+	TArray<FString> AllBakeActorClassNames;
 
 	// All unreal_bake_folder attributes (prim attr is checked first then detail)
 	UPROPERTY()

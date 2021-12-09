@@ -1833,6 +1833,17 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 			}
 		}
 
+		TArray<FString> BakeOutputActorClassNames;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeActorClassAttribute(
+			InHGPO.GeoId, InHGPO.PartId, BakeOutputActorClassNames, HAPI_ATTROWNER_INVALID, 0, 1))
+		{
+			if (BakeOutputActorClassNames.Num() > 0 && !BakeOutputActorClassNames[0].IsEmpty())
+			{
+				// cache the bake actor attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_ACTOR_CLASS, BakeOutputActorClassNames[0]);
+			}
+		}
+
 		TArray<FString> BakeFolders;
 		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeFolderAttribute(
 			InHGPO.GeoId, BakeFolders, InHGPO.PartId, 0, 1))
