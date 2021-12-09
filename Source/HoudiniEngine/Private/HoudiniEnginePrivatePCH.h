@@ -435,6 +435,10 @@
 #define HAPI_UNREAL_ATTRIB_GC_NAME                                                       "unreal_gc_name"
 
 #define HAPI_UNREAL_ATTRIB_GC_CLUSTERING_DAMAGE_THRESHOLD                                 "unreal_gc_clustering_damage_threshold"
+#define HAPI_UNREAL_ATTRIB_GC_CLUSTERING_CLUSTER_CONNECTION_TYPE                          "unreal_gc_clustering_cluster_connection_type"
+
+#define HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAX_SIZE                                         "unreal_gc_collisions_max_size"
+#define HAPI_UNREAL_ATTRIB_GC_COLLISIONS_DAMAGE_THRESHOLD                                 "unreal_gc_collisions_damage_threshold"
 #define HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_TYPE                                   "unreal_gc_collisions_collision_type"
 #define HAPI_UNREAL_ATTRIB_GC_COLLISIONS_IMPLICIT_TYPE                                    "unreal_gc_collisions_implicit_type"
 #define HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MIN_LEVEL_SET_RESOLUTION                         "unreal_gc_collisions_min_level_set_resolution"
@@ -442,6 +446,7 @@
 #define HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MIN_CLUSTER_LEVEL_SET_RESOLUTION                 "unreal_gc_collisions_min_cluster_level_set_resolution"
 #define HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAX_CLUSTER_LEVEL_SET_RESOLUTION                 "unreal_gc_collisions_max_cluster_level_set_resolution"
 #define HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_OBJECT_REDUCTION_PERCENTAGE            "unreal_gc_collisions_collision_object_reduction_percentage"
+#define HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_MARGIN_FRACTION                        "unreal_gc_collisions_collision_margin_fraction"
 #define HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MASS_AS_DENSITY                                  "unreal_gc_collisions_mass_as_density"
 #define HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MASS                                             "unreal_gc_collisions_mass"
 #define HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MINIMUM_MASS_CLAMP                               "unreal_gc_collisions_minimum_mass_clamp"

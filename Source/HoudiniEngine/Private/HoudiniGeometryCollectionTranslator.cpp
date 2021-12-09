@@ -2,8 +2,11 @@
 
 #include "HoudiniApi.h"
 #include "HoudiniEngine.h"
+#include "HoudiniEngineString.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniInstanceTranslator.h"
+#include "StaticMeshAttributes.h"
+#include "StaticMeshOperations.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "GeometryCollection/GeometryCollectionClusteringUtility.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
@@ -647,66 +650,34 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 
-                if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeInfo(
-                	FHoudiniEngine::Get().GetSession(), GeoId, PartId,
-                	AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &AttributeInfo) && AttributeInfo.exists)
-                {
-
-                	FloatData.SetNumZeroed(AttributeInfo.totalArrayElements);
-                	FloatDataSizes.SetNumZeroed(AttributeInfo.totalArrayElements);
-
-                	if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeFloatArrayData(
-                		FHoudiniEngine::Get().GetSession(), GeoId, PartId,
-                		AttributeName, &AttributeInfo, (float*)FloatData.GetData(), AttributeInfo.totalArrayElements, FloatDataSizes.GetData(), 0, AttributeInfo.count))
-                	{
-                		if (FloatData.Num() > 0)
-                		{
-                			GeometryCollection->DamageThreshold = FloatData;
-                		}
-                	}
-                }
-	}
-
-	// Get the default Size Specific data for this GC
-	FGeometryCollectionSizeSpecificData GCSizeSpecData = GeometryCollection->GetDefaultSizeSpecificData();
-
-	{
-		// Collisions - Collision Type
-		HAPI_AttributeInfo AttriInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttriInfo);
-		TArray<int32> IntData;
-		IntData.Empty();
-
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_TYPE;
-
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		
-		if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(GeoId, PartId,
-                AttributeName, AttriInfo, IntData, 1))
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeInfo(
+			FHoudiniEngine::Get().GetSession(), GeoId, PartId,
+			AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &AttributeInfo) && AttributeInfo.exists)
 		{
-			if (IntData.Num() > 0)
-			{
-				int32 Result = IntData[0];
-				if (Result < (int32)ECollisionTypeEnum::Chaos_Max)
-				{
-					ECollisionTypeEnum CollisionType = (ECollisionTypeEnum)Result;
 
-					if (GCSizeSpecData.CollisionShapes.Num())
-						GCSizeSpecData.CollisionShapes[0].CollisionType = CollisionType;
+			FloatData.SetNumZeroed(AttributeInfo.totalArrayElements);
+			FloatDataSizes.SetNumZeroed(AttributeInfo.totalArrayElements);
+
+			if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeFloatArrayData(
+				FHoudiniEngine::Get().GetSession(), GeoId, PartId,
+				AttributeName, &AttributeInfo, (float*)FloatData.GetData(), AttributeInfo.totalArrayElements, FloatDataSizes.GetData(), 0, AttributeInfo.count))
+			{
+				if (FloatData.Num() > 0)
+				{
+					GeometryCollection->DamageThreshold = FloatData;
 				}
 			}
 		}
 	}
 
 	{
-		// Collisions - Implicit Type
+		// Clustering - Cluster connection type
 		HAPI_AttributeInfo AttriInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttriInfo);
 		TArray<int32> IntData;
 		IntData.Empty();
 
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_IMPLICIT_TYPE;
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_CLUSTERING_CLUSTER_CONNECTION_TYPE;
 
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
@@ -717,131 +688,18 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 			if (IntData.Num() > 0)
 			{
 				int32 Result = IntData[0];
-				// 0 = None, 1 = Box, 2 = Sphere, 3 = Capsule, 4 = Level Set
-				EImplicitTypeEnum ImplicitType = EImplicitTypeEnum::Chaos_Implicit_None;
-				if (Result != 0 && Result < (int32)EImplicitTypeEnum::Chaos_Max)
-				{
-					ImplicitType = (EImplicitTypeEnum)(Result - 1);
-				}
+				EClusterConnectionTypeEnum ConnectionType = EClusterConnectionTypeEnum::Chaos_PointImplicit;
 				
-				if (GCSizeSpecData.CollisionShapes.Num())
-					GCSizeSpecData.CollisionShapes[0].ImplicitType = ImplicitType;
-			}
-		}
-	}
+				if (Result == 0)
+				{
+					ConnectionType = EClusterConnectionTypeEnum::Chaos_PointImplicit;
+				}
+				else
+				{
+					ConnectionType = (EClusterConnectionTypeEnum)(Result + 1); // +1 because of the hidden DelaunayTriangulation option
+				}
 
-
-	{
-		// Collisions - Min Level Set Resolution
-		HAPI_AttributeInfo AttriInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttriInfo);
-		TArray<int32> IntData;
-		IntData.Empty();
-
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MIN_LEVEL_SET_RESOLUTION;
-
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		
-		if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(GeoId, PartId,
-                AttributeName, AttriInfo, IntData, 1))
-		{
-			if (IntData.Num() > 0)
-			{
-				if (GCSizeSpecData.CollisionShapes.Num())
-					GCSizeSpecData.CollisionShapes[0].LevelSet.MinLevelSetResolution = IntData[0];
-			}
-		}
-	}
-
-	{
-		// Collisions - Max Level Set Resolution
-		HAPI_AttributeInfo AttriInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttriInfo);
-		TArray<int32> IntData;
-		IntData.Empty();
-
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAX_LEVEL_SET_RESOLUTION;
-
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		
-		if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(GeoId, PartId,
-                AttributeName, AttriInfo, IntData, 1))
-		{
-			if (IntData.Num() > 0)
-			{
-				if (GCSizeSpecData.CollisionShapes.Num())
-					GCSizeSpecData.CollisionShapes[0].LevelSet.MaxLevelSetResolution = IntData[0];
-			}
-		}
-	}
-
-	{
-		// Collisions - Min cluster level set resolution
-		HAPI_AttributeInfo AttriInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttriInfo);
-		TArray<int32> IntData;
-		IntData.Empty();
-
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MIN_CLUSTER_LEVEL_SET_RESOLUTION;
-
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		
-		if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(GeoId, PartId,
-                AttributeName, AttriInfo, IntData, 1))
-		{
-			if (IntData.Num() > 0)
-			{
-				if (GCSizeSpecData.CollisionShapes.Num())
-					GCSizeSpecData.CollisionShapes[0].LevelSet.MinClusterLevelSetResolution = IntData[0];
-			}
-		}
-	}
-	
-	{
-		// Collisions - Max cluster level set resolution
-		HAPI_AttributeInfo AttriInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttriInfo);
-		TArray<int32> IntData;
-		IntData.Empty();
-
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAX_CLUSTER_LEVEL_SET_RESOLUTION;
-
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		
-		if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(GeoId, PartId,
-                AttributeName, AttriInfo, IntData, 1))
-		{
-			if (IntData.Num() > 0)
-			{
-				if (GCSizeSpecData.CollisionShapes.Num())
-					GCSizeSpecData.CollisionShapes[0].LevelSet.MaxClusterLevelSetResolution = IntData[0];
-			}
-		}
-	}
-	
-	{
-		// Collisions - Object reduction percentage
-		HAPI_AttributeInfo AttriInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttriInfo);
-		TArray<float> FloatData;
-		FloatData.Empty();
-
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_OBJECT_REDUCTION_PERCENTAGE;
-
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		
-		if (FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId,
-                AttributeName, AttriInfo, FloatData, 1))
-		{
-			if (FloatData.Num() > 0)
-			{
-				if (GCSizeSpecData.CollisionShapes.Num())
-					GCSizeSpecData.CollisionShapes[0].CollisionObjectReductionPercentage = FloatData[0];
+				GeometryCollection->ClusterConnectionType = ConnectionType;
 			}
 		}
 	}
@@ -852,12 +710,12 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 		FHoudiniApi::AttributeInfo_Init(&AttriInfo);
 		TArray<int32> IntData;
 		IntData.Empty();
-
+	
 		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MASS_AS_DENSITY;
-
+	
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		
+			
 		if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(GeoId, PartId,
                 AttributeName, AttriInfo, IntData, 1))
 		{
@@ -875,12 +733,12 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 		FHoudiniApi::AttributeInfo_Init(&AttriInfo);
 		TArray<float> FloatData;
 		FloatData.Empty();
-
+	
 		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MASS;
-
+	
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		
+			
 		if (FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId,
                 AttributeName, AttriInfo, FloatData, 1))
 		{
@@ -897,14 +755,14 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 		FHoudiniApi::AttributeInfo_Init(&AttriInfo);
 		TArray<float> FloatData;
 		FloatData.Empty();
-
+	
 		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MINIMUM_MASS_CLAMP;
-
+	
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		
+			
 		if (FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId,
-                AttributeName, AttriInfo, FloatData, 1))
+            AttributeName, AttriInfo, FloatData, 1))
 		{
 			if (FloatData.Num() > 0)
 			{
@@ -912,54 +770,374 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 			}
 		}
 	}
+
+	// Size specific data - Precompute valid attribute names as we want to compute 2D array of structs, but want to
+	// keep default equal to index (0,0)
+	// Get the part infos for attribute names
+	HAPI_PartInfo PartInfo;
+	FHoudiniApi::PartInfo_Init(&PartInfo);
+	FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), GeoId, PartId, &PartInfo);
+
+	// Get All attribute names for that part
+	int32 nAttribCount = PartInfo.attributeCounts[HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL];
 	
+	TArray<HAPI_StringHandle> AttribNameSHArray;
+	AttribNameSHArray.SetNum(nAttribCount);
+
+	// Gets attribute names
+	FHoudiniApi::GetAttributeNames(
+		FHoudiniEngine::Get().GetSession(),
+		GeoId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL,
+		AttribNameSHArray.GetData(), nAttribCount);
+
+	TArray<FString> AttribNameArray;
+	FHoudiniEngineString::SHArrayToFStringArray(AttribNameSHArray, AttribNameArray);
+
+	TSet<FString> AttributeNames(AttribNameArray);
 	{
-		// Collisions - Collision particles fraction
-		HAPI_AttributeInfo AttriInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttriInfo);
-		TArray<float> FloatData;
-		FloatData.Empty();
-
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_PARTICLES_FRACTION;
-
+		// Collisions - Size specific data - Max size.
+		// Only add new size specific data if we actually have the sizes
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		
-		if (FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId,
-                AttributeName, AttriInfo, FloatData, 1))
+		TArray<float> Data;
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAX_SIZE;
+		if (FHoudiniEngineUtils::HapiGetAttributeFloatOrFloatArray(GeoId, PartId, AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, AttributeInfo, Data))
 		{
-			if (FloatData.Num() > 0)
+			if (Data.Num() > 0)
 			{
-				if (GCSizeSpecData.CollisionShapes.Num())
-					GCSizeSpecData.CollisionShapes[0].CollisionParticles.CollisionParticlesFraction = FloatData[0];
+				GeometryCollection->SizeSpecificData.SetNum(FMath::Max(GeometryCollection->SizeSpecificData.Num(), Data.Num()));
+				
+				for (int32 i = 0; i < Data.Num(); i++)
+				{
+					GeometryCollection->SizeSpecificData[i].MaxSize = Data[i];
+				}
 			}
 		}
 	}
-	
+
 	{
-		// Collisions - Maximum collision particles
-		HAPI_AttributeInfo AttriInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttriInfo);
-		TArray<int32> IntData;
-		IntData.Empty();
-
-		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAXIMUM_COLLISION_PARTICLES;
-
+		// Collisions - Size specific data - Damage threshold.
+		// Only add new size specific data if we actually have the sizes
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		
-		if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(GeoId, PartId,
-                AttributeName, AttriInfo, IntData, 1))
+		TArray<int32> Data;
+		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_DAMAGE_THRESHOLD;
+		if (FHoudiniEngineUtils::HapiGetAttributeIntOrIntArray(GeoId, PartId, AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, AttributeInfo, Data))
 		{
-			if (IntData.Num() > 0)
+			if (Data.Num() > 0)
 			{
-				if (GCSizeSpecData.CollisionShapes.Num())
-					GCSizeSpecData.CollisionShapes[0].CollisionParticles.MaximumCollisionParticles = IntData[0];
+				for (int32 i = 0; i < Data.Num(); i++)
+				{
+					if (i < Data.Num())
+					{
+						GeometryCollection->SizeSpecificData[i].DamageThreshold = Data[i];
+					}
+				}
 			}
 		}
 	}
+
+	
+	// Get the default Size Specific data for this GC
+	TArray<FGeometryCollectionSizeSpecificData> &GCSizeSpecDatas = GeometryCollection->SizeSpecificData;
+
+	for (int32 GCSizeSpecIdx = 0; GCSizeSpecIdx < GCSizeSpecDatas.Num(); GCSizeSpecIdx++)
+	{
+		FGeometryCollectionSizeSpecificData & GCSizeSpecData = GCSizeSpecDatas[GCSizeSpecIdx];
+		
+		{
+			// Collisions - Size specific data - Collision Type
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			TArray<int32> Data;
+			FString AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_TYPE;
+			const FString AttributeNameWithPostfix = FString::Printf(TEXT("%s_%d"), *AttributeName, GCSizeSpecIdx);
+			bool bUseDefaultName = (GCSizeSpecIdx == 0 && AttributeNames.Contains(AttributeName));
+			if (!bUseDefaultName) AttributeName = AttributeNameWithPostfix;
+			
+			if (AttributeNames.Contains(AttributeName) && FHoudiniEngineUtils::HapiGetAttributeIntOrIntArray(GeoId, PartId, AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, AttributeInfo, Data))
+			{
+				if (Data.Num() > 0)
+				{
+					GCSizeSpecData.CollisionShapes.SetNum(FMath::Max(GCSizeSpecData.CollisionShapes.Num(), Data.Num()));
+					for (int32 i = 0; i < Data.Num(); i++)
+					{
+						int32 Result = Data[i];
+						if (Result < (int32)ECollisionTypeEnum::Chaos_Max)
+						{
+							ECollisionTypeEnum CollisionType = (ECollisionTypeEnum)Result;
+	
+							GCSizeSpecData.CollisionShapes[i].CollisionType = CollisionType;
+						}
+					}
+				}
+			}
+		}
+
+		{
+			// Collisions - Size specific data - Implicit Type
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			TArray<int32> Data;
+			FString AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_IMPLICIT_TYPE;
+			const FString AttributeNameWithPostfix = FString::Printf(TEXT("%s_%d"), *AttributeName, GCSizeSpecIdx);
+			bool bUseDefaultName = (GCSizeSpecIdx == 0 && AttributeNames.Contains(AttributeName));
+			if (!bUseDefaultName) AttributeName = AttributeNameWithPostfix;
+			
+			if (AttributeNames.Contains(AttributeName) && FHoudiniEngineUtils::HapiGetAttributeIntOrIntArray(GeoId, PartId, AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, AttributeInfo, Data))
+			{
+				if (Data.Num() > 0)
+				{
+					GCSizeSpecData.CollisionShapes.SetNum(FMath::Max(GCSizeSpecData.CollisionShapes.Num(), Data.Num()));
+					for (int32 i = 0; i < Data.Num(); i++)
+					{
+						int32 Result = Data[i];
+						// 0 = None, 1 = Box, 2 = Sphere, 3 = Capsule, 4 = Level Set
+						EImplicitTypeEnum ImplicitType = EImplicitTypeEnum::Chaos_Implicit_None;
+						if (Result == 0)
+						{
+							ImplicitType = EImplicitTypeEnum::Chaos_Implicit_None;
+						}
+						else if (Result > (int32)EImplicitTypeEnum::Chaos_Implicit_None)
+						{
+							// Keep indexing if after none
+							ImplicitType = (EImplicitTypeEnum)(Result);
+						}
+						else if (Result < (int32)EImplicitTypeEnum::Chaos_Max)
+						{
+							ImplicitType = (EImplicitTypeEnum)(Result - 1);
+						}
+					
+						GCSizeSpecData.CollisionShapes[i].ImplicitType = ImplicitType;
+					}
+				}
+			}
+		}
+
+		{
+			// Collisions - Size specific data - Min Level Set Resolution
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			TArray<int32> Data;
+			FString AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MIN_LEVEL_SET_RESOLUTION;
+			const FString AttributeNameWithPostfix = FString::Printf(TEXT("%s_%d"), *AttributeName, GCSizeSpecIdx);
+			bool bUseDefaultName = (GCSizeSpecIdx == 0 && AttributeNames.Contains(AttributeName));
+			if (!bUseDefaultName) AttributeName = AttributeNameWithPostfix;
+			
+			if (AttributeNames.Contains(AttributeName) && FHoudiniEngineUtils::HapiGetAttributeIntOrIntArray(GeoId, PartId, AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, AttributeInfo, Data))
+			{
+				if (Data.Num() > 0)
+				{
+					GCSizeSpecData.CollisionShapes.SetNum(FMath::Max(GCSizeSpecData.CollisionShapes.Num(), Data.Num()));
+					for (int32 i = 0; i < Data.Num(); i++)
+					{
+						GCSizeSpecData.CollisionShapes[i].LevelSet.MinLevelSetResolution = Data[i];
+					}
+				}
+			}
+		}
+
+		{
+			// Collisions - Size specific data - Max Level Set Resolution
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			TArray<int32> Data;
+			FString AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAX_LEVEL_SET_RESOLUTION;
+			const FString AttributeNameWithPostfix = FString::Printf(TEXT("%s_%d"), *AttributeName, GCSizeSpecIdx);
+			bool bUseDefaultName = (GCSizeSpecIdx == 0 && AttributeNames.Contains(AttributeName));
+			if (!bUseDefaultName) AttributeName = AttributeNameWithPostfix;
+			
+			if (AttributeNames.Contains(AttributeName) && FHoudiniEngineUtils::HapiGetAttributeIntOrIntArray(GeoId, PartId, AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, AttributeInfo, Data))
+			{
+				if (Data.Num() > 0)
+				{
+					GCSizeSpecData.CollisionShapes.SetNum(FMath::Max(GCSizeSpecData.CollisionShapes.Num(), Data.Num()));
+					for (int32 i = 0; i < Data.Num(); i++)
+					{
+						GCSizeSpecData.CollisionShapes[i].LevelSet.MaxLevelSetResolution = Data[i];
+					}
+				}
+			}
+		}
+
+		{
+			// Collisions - Size specific data - Min cluster level set resolution
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			TArray<int32> Data;
+			FString AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MIN_CLUSTER_LEVEL_SET_RESOLUTION;
+			const FString AttributeNameWithPostfix = FString::Printf(TEXT("%s_%d"), *AttributeName, GCSizeSpecIdx);
+			bool bUseDefaultName = (GCSizeSpecIdx == 0 && AttributeNames.Contains(AttributeName));
+			if (!bUseDefaultName) AttributeName = AttributeNameWithPostfix;
+
+			if (AttributeNames.Contains(AttributeName) && FHoudiniEngineUtils::HapiGetAttributeIntOrIntArray(GeoId, PartId, AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, AttributeInfo, Data))
+			{
+				if (Data.Num() > 0)
+				{
+					GCSizeSpecData.CollisionShapes.SetNum(FMath::Max(GCSizeSpecData.CollisionShapes.Num(), Data.Num()));
+					for (int32 i = 0; i < Data.Num(); i++)
+					{
+						GCSizeSpecData.CollisionShapes[i].LevelSet.MinClusterLevelSetResolution = Data[i];
+					}
+				}
+			}
+		}
+	
+		{
+			// Collisions - Max cluster level set resolution
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			TArray<int32> Data;
+			FString AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAX_CLUSTER_LEVEL_SET_RESOLUTION;
+			const FString AttributeNameWithPostfix = FString::Printf(TEXT("%s_%d"), *AttributeName, GCSizeSpecIdx);
+			bool bUseDefaultName = (GCSizeSpecIdx == 0 && AttributeNames.Contains(AttributeName));
+			if (!bUseDefaultName) AttributeName = AttributeNameWithPostfix;
+			
+			if (AttributeNames.Contains(AttributeName) && FHoudiniEngineUtils::HapiGetAttributeIntOrIntArray(GeoId, PartId, AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, AttributeInfo, Data))
+			{
+				if (Data.Num() > 0)
+				{
+					GCSizeSpecData.CollisionShapes.SetNum(FMath::Max(GCSizeSpecData.CollisionShapes.Num(), Data.Num()));
+					for (int32 i = 0; i < Data.Num(); i++)
+					{
+						GCSizeSpecData.CollisionShapes[i].LevelSet.MaxClusterLevelSetResolution = Data[i];
+					}
+				}
+			}
+		}
+	
+		{
+			// Collisions - Size specific data - Object reduction percentage
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			TArray<float> Data;
+			FString AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_OBJECT_REDUCTION_PERCENTAGE;
+			const FString AttributeNameWithPostfix = FString::Printf(TEXT("%s_%d"), *AttributeName, GCSizeSpecIdx);
+			bool bUseDefaultName = (GCSizeSpecIdx == 0 && AttributeNames.Contains(AttributeName));
+			if (!bUseDefaultName) AttributeName = AttributeNameWithPostfix;
+			if (AttributeNames.Contains(AttributeName) && FHoudiniEngineUtils::HapiGetAttributeFloatOrFloatArray(GeoId, PartId, AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, AttributeInfo, Data))
+			{
+				if (Data.Num() > 0)
+				{
+					GCSizeSpecData.CollisionShapes.SetNum(FMath::Max(GCSizeSpecData.CollisionShapes.Num(), Data.Num()));
+					for (int32 i = 0; i < Data.Num(); i++)
+					{
+						GCSizeSpecData.CollisionShapes[i].CollisionObjectReductionPercentage = Data[i];
+					}
+				}
+			}
+		}
+
+		{
+			// Collisions - Size specific data - Collision margin fraction
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			TArray<float> Data;
+			FString AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_MARGIN_FRACTION;
+			const FString AttributeNameWithPostfix = FString::Printf(TEXT("%s_%d"), *AttributeName, GCSizeSpecIdx);
+			bool bUseDefaultName = (GCSizeSpecIdx == 0 && AttributeNames.Contains(AttributeName));
+			if (!bUseDefaultName) AttributeName = AttributeNameWithPostfix;
+			if (AttributeNames.Contains(AttributeName) && FHoudiniEngineUtils::HapiGetAttributeFloatOrFloatArray(GeoId, PartId, AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, AttributeInfo, Data))
+			{
+				if (Data.Num() > 0)
+				{
+					GCSizeSpecData.CollisionShapes.SetNum(FMath::Max(GCSizeSpecData.CollisionShapes.Num(), Data.Num()));
+					for (int32 i = 0; i < Data.Num(); i++)
+					{
+						GCSizeSpecData.CollisionShapes[i].CollisionMarginFraction = Data[i];
+					}
+				}
+			}
+		}
+		
+		{
+			// Collisions - Collision particles fraction
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			TArray<float> Data;
+			FString AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_PARTICLES_FRACTION;
+			const FString AttributeNameWithPostfix = FString::Printf(TEXT("%s_%d"), *AttributeName, GCSizeSpecIdx);
+			bool bUseDefaultName = (GCSizeSpecIdx == 0 && AttributeNames.Contains(AttributeName));
+			if (!bUseDefaultName) AttributeName = AttributeNameWithPostfix;
+			
+			if (AttributeNames.Contains(AttributeName) && FHoudiniEngineUtils::HapiGetAttributeFloatOrFloatArray(GeoId, PartId, AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, AttributeInfo, Data))
+			{
+				if (Data.Num() > 0)
+				{
+					GCSizeSpecData.CollisionShapes.SetNum(FMath::Max(GCSizeSpecData.CollisionShapes.Num(), Data.Num()));
+					for (int32 i = 0; i < Data.Num(); i++)
+					{
+						GCSizeSpecData.CollisionShapes[i].CollisionParticles.CollisionParticlesFraction = Data[i];
+					}
+				}
+			}
+		}
+	
+		{
+			// Collisions - Maximum collision particles
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+			TArray<int32> Data;
+			FString AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_MAXIMUM_COLLISION_PARTICLES;
+			const FString AttributeNameWithPostfix = FString::Printf(TEXT("%s_%d"), *AttributeName, GCSizeSpecIdx);
+			bool bUseDefaultName = (GCSizeSpecIdx == 0 && AttributeNames.Contains(AttributeName));
+			if (!bUseDefaultName) AttributeName = AttributeNameWithPostfix;
+			
+			if (AttributeNames.Contains(AttributeName) && FHoudiniEngineUtils::HapiGetAttributeIntOrIntArray(GeoId, PartId, AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, AttributeInfo, Data))
+			{
+				if (Data.Num() > 0)
+				{
+					GCSizeSpecData.CollisionShapes.SetNum(FMath::Max(GCSizeSpecData.CollisionShapes.Num(), Data.Num()));
+					for (int32 i = 0; i < Data.Num(); i++)
+					{
+						GCSizeSpecData.CollisionShapes[i].CollisionParticles.MaximumCollisionParticles = Data[i];
+					}
+				}
+			}
+		}
+	}
+
+
 }
 
+// FUniqueVertex struct copied from GeometryCollectionConversion.h
+// Replace this when you can figure out a way to access this code.
+struct FUniqueVertex
+{
+	FVector3f Normal;
+	FVector3f Tangent;
+	TArray<FVector2f> UVs;
+
+	bool operator==(const FUniqueVertex& Other) const
+	{
+		if (this->UVs.Num() != Other.UVs.Num())
+		{
+			return false;
+		}
+		
+		bool bEquality = true;
+		bEquality &= (this->Normal == Other.Normal);
+		bEquality &= (this->Tangent == Other.Tangent);
+		for (int32 UVLayerIdx = 0; UVLayerIdx < UVs.Num(); ++UVLayerIdx)
+		{
+			bEquality &= (this->UVs[UVLayerIdx] == Other.UVs[UVLayerIdx]);
+		}
+		
+		return bEquality;
+	}
+};
+
+FORCEINLINE uint32 GetTypeHash(const FUniqueVertex& UniqueVertex)
+{
+	uint32 VertexHash = GetTypeHash(UniqueVertex.Normal);
+	VertexHash = HashCombine(VertexHash, GetTypeHash(UniqueVertex.Tangent));
+	for (int32 UVLayerIdx = 0; UVLayerIdx < UniqueVertex.UVs.Num(); ++UVLayerIdx)
+	{
+		VertexHash = HashCombine(VertexHash, GetTypeHash(UniqueVertex.UVs[UVLayerIdx]));
+	}
+	
+	return VertexHash;
+}
 
 void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 	const UStaticMesh* StaticMesh,
@@ -969,9 +1147,20 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 	const bool& ReindexMaterials,
 	const int32& Level)
 {
-	if (!IsValid(StaticMesh))
+	if (StaticMesh == nullptr)
 	{
 		return;
+	}
+
+	// Prefer the HiRes description, although this isn't always available.
+	FMeshDescription* MeshDescription = nullptr;
+	if (StaticMesh->IsHiResMeshDescriptionValid())
+	{
+		MeshDescription = StaticMesh->GetHiResMeshDescription();
+	}
+	else
+	{
+		MeshDescription = StaticMesh->GetMeshDescription(0);
 	}
 
 	check(GeometryCollectionObject);
@@ -979,155 +1168,105 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 	FGeometryCollection* GeometryCollection = GeometryCollectionPtr.Get();
 	check(GeometryCollection);
 
-	// @todo : Discuss how to handle multiple LOD's
-	if (StaticMesh->GetRenderData() && StaticMesh->GetRenderData()->LODResources.Num() > 0)
+	if (MeshDescription)
 	{
-		const FStaticMeshVertexBuffers& VertexBuffer = StaticMesh->GetRenderData()->LODResources[0].VertexBuffers;
+		FStaticMeshOperations::ComputeTriangleTangentsAndNormals(*MeshDescription);
+		FStaticMeshOperations::RecomputeNormalsAndTangentsIfNeeded(*MeshDescription, EComputeNTBsFlags::UseMikkTSpace);
 
-		// vertex information
-		TManagedArray<FVector3f>& Vertex = GeometryCollection->Vertex;
-		TManagedArray<FVector3f>& TangentU = GeometryCollection->TangentU;
-		TManagedArray<FVector3f>& TangentV = GeometryCollection->TangentV;
-		TManagedArray<FVector3f>& Normal = GeometryCollection->Normal;
-		TArray<FVector2f>& UV = GeometryCollection->UVs[0];
-		TManagedArray<FLinearColor>& Color = GeometryCollection->Color;
-		TManagedArray<int32>& BoneMap = GeometryCollection->BoneMap;
-		TManagedArray<FLinearColor>& BoneColor = GeometryCollection->BoneColor;
-		TManagedArray<FString>& BoneName = GeometryCollection->BoneName;
+		// source vertex information
+		FStaticMeshAttributes Attributes(*MeshDescription);
+		TArrayView<const FVector3f> SourcePosition = Attributes.GetVertexPositions().GetRawArray();
+		TArrayView<const FVector3f> SourceTangent = Attributes.GetVertexInstanceTangents().GetRawArray();
+		TArrayView<const float> SourceBinormalSign = Attributes.GetVertexInstanceBinormalSigns().GetRawArray();
+		TArrayView<const FVector3f> SourceNormal = Attributes.GetVertexInstanceNormals().GetRawArray();
+		TArrayView<const FVector4f> SourceColor = Attributes.GetVertexInstanceColors().GetRawArray();
 
-		const int32 VertexCount = VertexBuffer.PositionVertexBuffer.GetNumVertices();
-		int InitialNumVertices = GeometryCollection->NumElements(FGeometryCollection::VerticesGroup);
-		int VertexStart = GeometryCollection->AddElements(VertexCount, FGeometryCollection::VerticesGroup);
+		TVertexInstanceAttributesConstRef<FVector2f> InstanceUVs = Attributes.GetVertexInstanceUVs();
+		const int32 NumUVLayers = InstanceUVs.GetNumChannels();
+		TArray<TArrayView<const FVector2f>> SourceUVArrays;
+		SourceUVArrays.SetNum(NumUVLayers);
+		for (int32 UVLayerIdx = 0; UVLayerIdx < NumUVLayers; ++UVLayerIdx)
+		{
+			SourceUVArrays[UVLayerIdx] = InstanceUVs.GetRawArray(UVLayerIdx);
+		}
+		
+		// target vertex information
+		TManagedArray<FVector3f>& TargetVertex = GeometryCollection->Vertex;
+		TManagedArray<FVector3f>& TargetTangentU = GeometryCollection->TangentU;
+		TManagedArray<FVector3f>& TargetTangentV = GeometryCollection->TangentV;
+		TManagedArray<FVector3f>& TargetNormal = GeometryCollection->Normal;
+		TManagedArray<TArray<FVector2f>>& TargetUVs = GeometryCollection->UVs;
+		TManagedArray<FLinearColor>& TargetColor = GeometryCollection->Color;
+		TManagedArray<int32>& TargetBoneMap = GeometryCollection->BoneMap;
+		TManagedArray<FLinearColor>& TargetBoneColor = GeometryCollection->BoneColor;
+		TManagedArray<FString>& TargetBoneName = GeometryCollection->BoneName;
+
+		const int32 VertexStart = GeometryCollection->NumElements(FGeometryCollection::VerticesGroup);
+		int32 VertexCount = 0;
+		
 		FVector Scale = StaticMeshTransform.GetScale3D();
-		for (int32 VertexIndex = 0; VertexIndex < VertexCount; VertexIndex++)
-		{
-			int VertexOffset = VertexStart + VertexIndex;
-			Vertex[VertexOffset] = VertexBuffer.PositionVertexBuffer.VertexPosition(VertexIndex) * Scale;
-			BoneMap[VertexOffset] = GeometryCollection->NumElements(FGeometryCollection::TransformGroup);
+		
+		// We'll need to re-introduce UV seams, etc. by splitting vertices.
+		// A new mapping of MeshDescription vertex instances to the split vertices is maintained.
+		TMap<FVertexInstanceID, int32> VertexInstanceToGeometryCollectionVertex;
+		VertexInstanceToGeometryCollectionVertex.Reserve(Attributes.GetVertexInstanceNormals().GetNumElements());
+		
+		for (const FVertexID VertexIndex : MeshDescription->Vertices().GetElementIDs())
+		{		
+			TArrayView<const FVertexInstanceID> ReferencingVertexInstances = MeshDescription->GetVertexVertexInstanceIDs(VertexIndex);
 
-			TangentU[VertexOffset] = VertexBuffer.StaticMeshVertexBuffer.VertexTangentX(VertexIndex);
-			TangentV[VertexOffset] = VertexBuffer.StaticMeshVertexBuffer.VertexTangentY(VertexIndex);
-			Normal[VertexOffset] = VertexBuffer.StaticMeshVertexBuffer.VertexTangentZ(VertexIndex);
-
-			// @todo : Support multiple UV's per vertex based on MAX_STATIC_TEXCOORDS
-			UV[VertexOffset] = VertexBuffer.StaticMeshVertexBuffer.GetVertexUV(VertexIndex, 0);
-			if (VertexBuffer.ColorVertexBuffer.GetNumVertices() == VertexCount)
-				Color[VertexOffset] = VertexBuffer.ColorVertexBuffer.VertexColor(VertexIndex);
-			// Houdini plugin: Vertex colors seem to not be added properly for Houdini generated materials with textures. 
-			// Hack it by setting it to white for now. TODO: Revisit this.
-			else if (VertexOffset < Color.Num())
-				Color[VertexOffset] = FLinearColor::White;
-		}
-
-		// Triangle Indices
-		TManagedArray<FIntVector>& Indices = GeometryCollection->Indices;
-		TManagedArray<bool>& Visible = GeometryCollection->Visible;
-		TManagedArray<int32>& MaterialID = GeometryCollection->MaterialID;
-		TManagedArray<int32>& MaterialIndex = GeometryCollection->MaterialIndex;
-
-		const FRawStaticIndexBuffer& IndexBuffer = StaticMesh->GetRenderData()->LODResources[0].IndexBuffer;
-		FIndexArrayView IndexBufferView = IndexBuffer.GetArrayView();
-		const int32 IndicesCount = IndexBuffer.GetNumIndices() / 3;
-		int InitialNumIndices = GeometryCollection->NumElements(FGeometryCollection::FacesGroup);
-		int IndicesStart = GeometryCollection->AddElements(IndicesCount, FGeometryCollection::FacesGroup);
-		for (int32 IndicesIndex = 0, StaticIndex = 0; IndicesIndex < IndicesCount; IndicesIndex++, StaticIndex += 3)
-		{
-			int32 IndicesOffset = IndicesStart + IndicesIndex;
-			Indices[IndicesOffset] = FIntVector(
-				IndexBufferView[StaticIndex] + VertexStart,
-				IndexBufferView[StaticIndex + 1] + VertexStart,
-				IndexBufferView[StaticIndex + 2] + VertexStart);
-			Visible[IndicesOffset] = true;
-			MaterialID[IndicesOffset] = 0;
-			MaterialIndex[IndicesOffset] = IndicesOffset;
-		}
-
-		// Geometry transform
-		TManagedArray<FTransform>& Transform = GeometryCollection->Transform;
-
-		int32 TransformIndex1 = GeometryCollection->AddElements(1, FGeometryCollection::TransformGroup);
-		Transform[TransformIndex1] = StaticMeshTransform;
-		Transform[TransformIndex1].SetScale3D(FVector(1.f, 1.f, 1.f));
-
-		// Bone Hierarchy - Added at root with no common parent
-		TManagedArray<int32>& Parent = GeometryCollection->Parent;
-		TManagedArray<int32>& SimulationType = GeometryCollection->SimulationType;
-		Parent[TransformIndex1] = FGeometryCollection::Invalid;
-		SimulationType[TransformIndex1] = FGeometryCollection::ESimulationTypes::FST_Rigid;
-
-		const FColor RandBoneColor(FMath::Rand() % 100 + 5, FMath::Rand() % 100 + 5, FMath::Rand() % 100 + 5, 255);
-		BoneColor[TransformIndex1] = FLinearColor(RandBoneColor);
-		BoneName[TransformIndex1] = StaticMesh->GetName();
-
-		// GeometryGroup
-		int GeometryIndex = GeometryCollection->AddElements(1, FGeometryCollection::GeometryGroup);
-
-		TManagedArray<int32>& TransformIndex = GeometryCollection->TransformIndex;
-		TManagedArray<FBox>& BoundingBox = GeometryCollection->BoundingBox;
-		TManagedArray<float>& InnerRadius = GeometryCollection->InnerRadius;
-		TManagedArray<float>& OuterRadius = GeometryCollection->OuterRadius;
-		TManagedArray<int32>& VertexStartArray = GeometryCollection->VertexStart;
-		TManagedArray<int32>& VertexCountArray = GeometryCollection->VertexCount;
-		TManagedArray<int32>& FaceStartArray = GeometryCollection->FaceStart;
-		TManagedArray<int32>& FaceCountArray = GeometryCollection->FaceCount;
-
-		TransformIndex[GeometryIndex] = BoneMap[VertexStart];
-		VertexStartArray[GeometryIndex] = InitialNumVertices;
-		VertexCountArray[GeometryIndex] = VertexCount;
-		FaceStartArray[GeometryIndex] = InitialNumIndices;
-		FaceCountArray[GeometryIndex] = IndicesCount;
-
-		// TransformGroup
-		TManagedArray<int32>& TransformToGeometryIndexArray = GeometryCollection->TransformToGeometryIndex;
-		TransformToGeometryIndexArray[TransformIndex1] = GeometryIndex;
-
-		FVector Center(0);
-		for (int32 VertexIndex = VertexStart; VertexIndex < VertexStart + VertexCount; VertexIndex++)
-		{
-			Center += Vertex[VertexIndex];
-		}
-		if (VertexCount) Center /= VertexCount;
-
-		// Inner/Outer edges, bounding box
-		BoundingBox[GeometryIndex] = FBox(ForceInitToZero);
-		InnerRadius[GeometryIndex] = FLT_MAX;
-		OuterRadius[GeometryIndex] = -FLT_MAX;
-		for (int32 VertexIndex = VertexStart; VertexIndex < VertexStart + VertexCount; VertexIndex++)
-		{
-			BoundingBox[GeometryIndex] += Vertex[VertexIndex];
-
-			float Delta = (Center - Vertex[VertexIndex]).Size();
-			InnerRadius[GeometryIndex] = FMath::Min(InnerRadius[GeometryIndex], Delta);
-			OuterRadius[GeometryIndex] = FMath::Max(OuterRadius[GeometryIndex], Delta);
-		}
-
-		// Inner/Outer centroid
-		for (int fdx = IndicesStart; fdx < IndicesStart + IndicesCount; fdx++)
-		{
-			FVector Centroid(0);
-			for (int e = 0; e < 3; e++)
+			// Generate per instance hash of splittable attributes.
+			TMap<FUniqueVertex, TArray<FVertexInstanceID>> SplitVertices;
+			for (const FVertexInstanceID& InstanceID : ReferencingVertexInstances)
 			{
-				Centroid += Vertex[Indices[fdx][e]];
+				TArray<FVector2f> SourceUVs;
+				SourceUVs.SetNum(NumUVLayers);
+				for (int32 UVLayerIdx = 0; UVLayerIdx < NumUVLayers; ++UVLayerIdx)
+				{
+					SourceUVs[UVLayerIdx] = SourceUVArrays[UVLayerIdx][InstanceID];
+				}
+				
+				FUniqueVertex UniqueVertex{ SourceNormal[InstanceID], SourceTangent[InstanceID], SourceUVs };
+				TArray<FVertexInstanceID>& SplitVertex = SplitVertices.FindOrAdd(UniqueVertex);
+				SplitVertex.Add(InstanceID);
 			}
-			Centroid /= 3;
 
-			float Delta = (Center - Centroid).Size();
-			InnerRadius[GeometryIndex] = FMath::Min(InnerRadius[GeometryIndex], Delta);
-			OuterRadius[GeometryIndex] = FMath::Max(OuterRadius[GeometryIndex], Delta);
-		}
-
-		// Inner/Outer edges
-		for (int fdx = IndicesStart; fdx < IndicesStart + IndicesCount; fdx++)
-		{
-			for (int e = 0; e < 3; e++)
+			int32 CurrentVertex = GeometryCollection->AddElements(SplitVertices.Num(), FGeometryCollection::VerticesGroup);
+			
+			// Create a new vertex for each split vertex and map the mesh description instance to it.
+			for (const TTuple<FUniqueVertex,TArray<FVertexInstanceID>>& SplitVertex : SplitVertices)
 			{
-				int i = e, j = (e + 1) % 3;
-				FVector Edge = Vertex[Indices[fdx][i]] + 0.5 * (Vertex[Indices[fdx][j]] - Vertex[Indices[fdx][i]]);
-				float Delta = (Center - Edge).Size();
-				InnerRadius[GeometryIndex] = FMath::Min(InnerRadius[GeometryIndex], Delta);
-				OuterRadius[GeometryIndex] = FMath::Max(OuterRadius[GeometryIndex], Delta);
+				const TArray<FVertexInstanceID>& InstanceIDs = SplitVertex.Value;
+				const FVertexInstanceID& ExemplarInstanceID = InstanceIDs[0];
+
+				TargetVertex[CurrentVertex] = SourcePosition[VertexIndex] * Scale;
+				TargetBoneMap[CurrentVertex] = GeometryCollection->NumElements(FGeometryCollection::TransformGroup);
+
+				TargetNormal[CurrentVertex] = SourceNormal[ExemplarInstanceID];
+				TargetTangentU[CurrentVertex] = SourceTangent[ExemplarInstanceID];
+				TargetTangentV[CurrentVertex] = SourceBinormalSign[ExemplarInstanceID] * FVector::CrossProduct(TargetNormal[CurrentVertex], TargetTangentU[CurrentVertex]);
+
+				TargetUVs[CurrentVertex] = SplitVertex.Key.UVs;
+
+				if (SourceColor.Num() > 0)
+				{
+					TargetColor[CurrentVertex] = FLinearColor(SourceColor[ExemplarInstanceID]);
+				}
+				else
+				{
+					TargetColor[CurrentVertex] = FLinearColor::White;
+				}
+
+				for (const FVertexInstanceID& InstanceID : InstanceIDs)
+				{
+					VertexInstanceToGeometryCollectionVertex.Add(InstanceID, CurrentVertex);
+				}
+
+				++CurrentVertex;
+				++VertexCount;
 			}
 		}
+
 
 		// for each material, add a reference in our GeometryCollectionObject
 		const int32 MaterialStart = GeometryCollectionObject->Materials.Num();
@@ -1149,40 +1288,128 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 			GeometryCollectionObject->Materials.Add(CurrMaterial);
 		}
 
-		TManagedArray<FGeometryCollectionSection>& Sections = GeometryCollection->Sections;
+		// target triangle indices
+		TManagedArray<FIntVector>& TargetIndices = GeometryCollection->Indices;
+		TManagedArray<bool>& TargetVisible = GeometryCollection->Visible;
+		TManagedArray<int32>& TargetMaterialID = GeometryCollection->MaterialID;
+		TManagedArray<int32>& TargetMaterialIndex = GeometryCollection->MaterialIndex;
 
-		// We make sections that mirror what is in the static mesh.  Note that this isn't explicitly
-		// necessary since we reindex after all the meshes are added, but it is a good step to have
-		// optimal min/max vertex index right from the static mesh.  All we really need to do is
-		// assign material ids and rely on reindexing, in theory
-		for (const FStaticMeshSection& CurrSection : StaticMesh->GetRenderData()->LODResources[0].Sections)
-		{			
-			// create new section
-			int32 SectionIndex = GeometryCollection->AddElements(1, FGeometryCollection::MaterialGroup);
+		const int32 IndicesCount = MeshDescription->Triangles().Num();
+		const int32 InitialNumIndices = GeometryCollection->NumElements(FGeometryCollection::FacesGroup);
+		const int32 IndicesStart = GeometryCollection->AddElements(IndicesCount, FGeometryCollection::FacesGroup);
+		int32 TargetIndex = IndicesStart;
+		for (const int32 TriangleIndex : MeshDescription->Triangles().GetElementIDs())
+		{
+			TArrayView<const FVertexInstanceID> TriangleVertices = MeshDescription->GetTriangleVertexInstances(TriangleIndex);
 
-			// Materials are doubled on ingestions: we multiply the incoming ID by 2 to skip internal materials.
-			Sections[SectionIndex].MaterialID = MaterialStart + (CurrSection.MaterialIndex * 2);
+			TargetIndices[TargetIndex] = FIntVector(
+				VertexInstanceToGeometryCollectionVertex[TriangleVertices[0]],
+				VertexInstanceToGeometryCollectionVertex[TriangleVertices[1]],
+				VertexInstanceToGeometryCollectionVertex[TriangleVertices[2]]
+			);
 
-			Sections[SectionIndex].FirstIndex = IndicesStart * 3 + CurrSection.FirstIndex;
-			Sections[SectionIndex].MinVertexIndex = VertexStart + CurrSection.MinVertexIndex;
+			TargetVisible[TargetIndex] = true;
 
-			Sections[SectionIndex].NumTriangles = CurrSection.NumTriangles;
-			Sections[SectionIndex].MaxVertexIndex = VertexStart + CurrSection.MaxVertexIndex;
+			// Materials are ganged in pairs and we want the id to associate with the first of each pair.
+			TargetMaterialID[TargetIndex] = MaterialStart + (MeshDescription->GetTrianglePolygonGroup(TriangleIndex) * 2);
 
-			// set the MaterialID for all of the faces
-			// note the divide by 3 - the GeometryCollection stores indices in tuples of 3 rather than in a flat array
-			for (int32 i = Sections[SectionIndex].FirstIndex / 3; i < Sections[SectionIndex].FirstIndex / 3 + Sections[SectionIndex].NumTriangles; ++i)
+			// Is this right?
+			TargetMaterialIndex[TargetIndex] = TargetIndex;
+
+			++TargetIndex;
+		}
+
+		// Geometry transform
+		TManagedArray<FTransform>& Transform = GeometryCollection->Transform;
+
+		int32 TransformIndex1 = GeometryCollection->AddElements(1, FGeometryCollection::TransformGroup);
+		Transform[TransformIndex1] = StaticMeshTransform;
+		Transform[TransformIndex1].SetScale3D(FVector(1.f, 1.f, 1.f));
+
+		// Bone Hierarchy - Added at root with no common parent
+		TManagedArray<int32>& Parent = GeometryCollection->Parent;
+		TManagedArray<int32>& SimulationType = GeometryCollection->SimulationType;
+		Parent[TransformIndex1] = FGeometryCollection::Invalid;
+		SimulationType[TransformIndex1] = FGeometryCollection::ESimulationTypes::FST_Rigid;
+
+		const FColor RandBoneColor(FMath::Rand() % 100 + 5, FMath::Rand() % 100 + 5, FMath::Rand() % 100 + 5, 255);
+		TargetBoneColor[TransformIndex1] = FLinearColor(RandBoneColor);
+		TargetBoneName[TransformIndex1] = StaticMesh->GetName();
+
+		// GeometryGroup
+		int GeometryIndex = GeometryCollection->AddElements(1, FGeometryCollection::GeometryGroup);
+
+		TManagedArray<int32>& TransformIndex = GeometryCollection->TransformIndex;
+		TManagedArray<FBox>& BoundingBox = GeometryCollection->BoundingBox;
+		TManagedArray<float>& InnerRadius = GeometryCollection->InnerRadius;
+		TManagedArray<float>& OuterRadius = GeometryCollection->OuterRadius;
+		TManagedArray<int32>& VertexStartArray = GeometryCollection->VertexStart;
+		TManagedArray<int32>& VertexCountArray = GeometryCollection->VertexCount;
+		TManagedArray<int32>& FaceStartArray = GeometryCollection->FaceStart;
+		TManagedArray<int32>& FaceCountArray = GeometryCollection->FaceCount;
+
+		TransformIndex[GeometryIndex] = TargetBoneMap[VertexStart];
+		VertexStartArray[GeometryIndex] = VertexStart;
+		VertexCountArray[GeometryIndex] = VertexCount;
+		FaceStartArray[GeometryIndex] = InitialNumIndices;
+		FaceCountArray[GeometryIndex] = IndicesCount;
+
+		// TransformGroup
+		TManagedArray<int32>& TransformToGeometryIndexArray = GeometryCollection->TransformToGeometryIndex;
+		TransformToGeometryIndexArray[TransformIndex1] = GeometryIndex;
+
+		FVector Center(0);
+		for (int32 VertexIndex = VertexStart; VertexIndex < VertexStart + VertexCount; VertexIndex++)
+		{
+			Center += TargetVertex[VertexIndex];
+		}
+		if (VertexCount) Center /= VertexCount;
+
+		// Inner/Outer edges, bounding box
+		BoundingBox[GeometryIndex] = FBox(ForceInitToZero);
+		InnerRadius[GeometryIndex] = FLT_MAX;
+		OuterRadius[GeometryIndex] = -FLT_MAX;
+		for (int32 VertexIndex = VertexStart; VertexIndex < VertexStart + VertexCount; VertexIndex++)
+		{
+			BoundingBox[GeometryIndex] += TargetVertex[VertexIndex];
+
+			float Delta = (Center - TargetVertex[VertexIndex]).Size();
+			InnerRadius[GeometryIndex] = FMath::Min(InnerRadius[GeometryIndex], Delta);
+			OuterRadius[GeometryIndex] = FMath::Max(OuterRadius[GeometryIndex], Delta);
+		}
+
+		// Inner/Outer centroid
+		for (int fdx = IndicesStart; fdx < IndicesStart + IndicesCount; fdx++)
+		{
+			FVector Centroid(0);
+			for (int e = 0; e < 3; e++)
 			{
-				MaterialID[i] = Sections[SectionIndex].MaterialID;
+				Centroid += TargetVertex[TargetIndices[fdx][e]];
+			}
+			Centroid /= 3;
+
+			float Delta = (Center - Centroid).Size();
+			InnerRadius[GeometryIndex] = FMath::Min(InnerRadius[GeometryIndex], Delta);
+			OuterRadius[GeometryIndex] = FMath::Max(OuterRadius[GeometryIndex], Delta);
+		}
+
+		// Inner/Outer edges
+		for (int fdx = IndicesStart; fdx < IndicesStart + IndicesCount; fdx++)
+		{
+			for (int e = 0; e < 3; e++)
+			{
+				int i = e, j = (e + 1) % 3;
+				FVector Edge = TargetVertex[TargetIndices[fdx][i]] + 0.5 * (TargetVertex[TargetIndices[fdx][j]] - TargetVertex[TargetIndices[fdx][i]]);
+				float Delta = (Center - Edge).Size();
+				InnerRadius[GeometryIndex] = FMath::Min(InnerRadius[GeometryIndex], Delta);
+				OuterRadius[GeometryIndex] = FMath::Max(OuterRadius[GeometryIndex], Delta);
 			}
 		}
 
-		if (ReindexMaterials)
-		{
+		if (ReindexMaterials) {
 			GeometryCollection->ReindexMaterials();
 		}
 	}
-
 }
 
 // Copied from FractureToolEmbed.h

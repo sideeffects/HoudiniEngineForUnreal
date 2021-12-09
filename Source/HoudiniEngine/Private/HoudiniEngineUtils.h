@@ -269,6 +269,26 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			TArray<HAPI_AttributeInfo>& MatchingAttributesInfo,
 			TArray<FString>& MatchingAttributesName);
 
+		// HAPI: Gets either a int or a int array
+		static bool HapiGetAttributeIntOrIntArray(
+			const HAPI_NodeId& GeoId,
+			const HAPI_NodeId& PartId,
+			const FString & AttribName,
+			const HAPI_AttributeOwner& AttributeOwner,
+			HAPI_AttributeInfo& OutAttributeInfo,
+			TArray<int32>& OutData
+		);
+	
+		// HAPI: Gets either a float or a float array
+		static bool HapiGetAttributeFloatOrFloatArray(
+			const HAPI_NodeId& GeoId,
+			const HAPI_NodeId& PartId,
+			const FString & AttribName,
+			const HAPI_AttributeOwner& AttributeOwner,
+			HAPI_AttributeInfo& OutAttributeInfo,
+			TArray<float>& OutData
+		);
+
 		// HAPI : Look for a parameter by name and returns its index. Returns -1 if not found.
 		static HAPI_ParmId HapiFindParameterByName(
 			const HAPI_NodeId& InNodeId, const std::string& InParmName, HAPI_ParmInfo& OutFoundParmInfo);
