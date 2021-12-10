@@ -6181,6 +6181,33 @@ FHoudiniEngineUtils::GetBakeActorAttribute(
 }
 
 bool
+FHoudiniEngineUtils::GetBakeActorClassAttribute(
+	const HAPI_NodeId& InGeoId,
+	const HAPI_PartId& InPartId,
+	TArray<FString>& OutBakeActorClassNames,
+	const HAPI_AttributeOwner& InAttributeOwner,
+	const int32& InStart,
+	const int32& InCount)
+{
+	// ---------------------------------------------
+	// Attribute: unreal_bake_actor
+	// ---------------------------------------------
+	HAPI_AttributeInfo AttributeInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+
+	if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+		InGeoId, InPartId, HAPI_UNREAL_ATTRIB_BAKE_ACTOR_CLASS,
+		AttributeInfo, OutBakeActorClassNames, 1, InAttributeOwner, InStart, InCount))
+	{
+		if (OutBakeActorClassNames.Num() > 0)
+			return true;
+	}
+
+	OutBakeActorClassNames.Empty();
+	return false;
+}
+
+bool
 FHoudiniEngineUtils::GetBakeOutlinerFolderAttribute(
 	const HAPI_NodeId& InGeoId,
 	const HAPI_PartId& InPartId,

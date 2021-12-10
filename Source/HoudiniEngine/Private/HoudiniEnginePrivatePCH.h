@@ -234,6 +234,7 @@
 #define HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2			"unreal_output_name"
 #define HAPI_UNREAL_ATTRIB_BAKE_NAME						"unreal_bake_name"
 #define HAPI_UNREAL_ATTRIB_BAKE_ACTOR                       "unreal_bake_actor"
+#define HAPI_UNREAL_ATTRIB_BAKE_ACTOR_CLASS                 "unreal_bake_actor_class"
 #define HAPI_UNREAL_ATTRIB_BAKE_OUTLINER_FOLDER             "unreal_bake_outliner_folder"
 
 // data tables

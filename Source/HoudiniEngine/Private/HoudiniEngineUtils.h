@@ -542,6 +542,15 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const int32& InStart = 0,
 			const int32& InCount = -1);
 
+		// Helper function to access the bake output actor attribute (unreal_bake_actor_class)
+		static bool GetBakeActorClassAttribute(
+			const HAPI_NodeId& InGeoId,
+			const HAPI_PartId& InPartId,
+			TArray<FString>& OutBakeActorClassNames,
+			const HAPI_AttributeOwner& InAttributeOwner = HAPI_AttributeOwner::HAPI_ATTROWNER_INVALID,
+			const int32& InStart = 0,
+			const int32& InCount = -1);
+
 		// Helper function to access the bake output actor attribute (unreal_bake_outliner_folder)
 		static bool GetBakeOutlinerFolderAttribute(
 			const HAPI_NodeId& InGeoId,
