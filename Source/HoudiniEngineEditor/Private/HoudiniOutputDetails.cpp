@@ -3707,7 +3707,7 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 				AActor* BakedActor;
 				USplineComponent* BakedSplineComponent;
 				FHoudiniEngineBakeUtils::BakeCurve(
-					SplineComponent, GWorld->GetCurrentLevel(), PackageParams, FName(PackageParams.ObjectName), BakedActor, BakedSplineComponent, BakeStats);
+					HAC, SplineComponent, GWorld->GetCurrentLevel(), PackageParams, FName(PackageParams.ObjectName), BakedActor, BakedSplineComponent, BakeStats);
 			}
 		}
 		break;

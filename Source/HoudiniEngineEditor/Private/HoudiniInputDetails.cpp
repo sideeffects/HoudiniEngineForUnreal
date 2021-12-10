@@ -3720,6 +3720,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 			if (bBakeToBlueprint) 
 			{
 				FHoudiniEngineBakeUtils::BakeInputHoudiniCurveToBlueprint(
+					OuterHAC,
 					HoudiniSplineComponent,
 					PackageParams,
 					OwnerActor->GetWorld(), OwnerActor->GetActorTransform());
@@ -3727,6 +3728,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 			else
 			{
 				FHoudiniEngineBakeUtils::BakeInputHoudiniCurveToActor(
+					OuterHAC,
 					HoudiniSplineComponent,
 					PackageParams,
 					OwnerActor->GetWorld(), OwnerActor->GetActorTransform());
