@@ -1966,6 +1966,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 	// Fetch the first one for the components that can only use one material
 	UMaterialInterface* InstancerMaterial = InstancerMaterials.Num() > 0 ? InstancerMaterials[0] : nullptr;
 
+	bool bCheckRenderState = false;
 	bool bSuccess = false;
 	switch (NewType)
 	{
@@ -1975,6 +1976,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 			// Create an Instanced Static Mesh Component
 			bSuccess = CreateOrUpdateInstancedStaticMeshComponent(
 				StaticMesh, InstancedObjectTransforms, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterial, bForceHISM, FirstOriginalIndex);
+			bCheckRenderState = true;
 		}
 		break;
 
@@ -1997,6 +1999,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 			// Create a Static Mesh Component
 			bSuccess = CreateOrUpdateStaticMeshComponent(
 				StaticMesh, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterial);
+			bCheckRenderState = true;
 		}
 		break;
 
@@ -2017,6 +2020,28 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 
 	if (!NewComponent)
 		return false;
+
+	// UE5: Make sure we update/recreate the Component's render state
+	// after the update or the mesh component will not be rendered!
+	if (bCheckRenderState)
+	{
+		UMeshComponent* const NewMeshComponent = Cast<UMeshComponent>(NewComponent);
+		if (IsValid(NewMeshComponent))
+		{
+			if (NewMeshComponent->IsRenderStateCreated())
+			{
+				// Need to send this to render thread at some point
+				NewMeshComponent->MarkRenderStateDirty();
+			}
+			else if (NewMeshComponent->ShouldCreateRenderState())
+			{
+				// If we didn't have a valid StaticMesh assigned before
+				// our render state might not have been created so
+				// do it now.
+				NewMeshComponent->RecreateRenderState_Concurrent();
+			}
+		}
+	}
 
 	NewComponent->SetMobility(ParentComponent->Mobility);
 	NewComponent->AttachToComponent(ParentComponent, FAttachmentTransformRules::KeepRelativeTransform);
