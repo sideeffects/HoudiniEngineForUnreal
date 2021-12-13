@@ -401,7 +401,10 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 		{
 			FString StringValue = InPropertyAttribute.GetStringValue(AtIndex);
 			FName Value = FName(*StringValue);
-			SM->GetBodySetup()->DefaultInstance.SetCollisionProfileName(Value);
+			if (IsValid(SM->BodySetup))
+			{
+				SM->BodySetup->DefaultInstance.SetCollisionProfileName(Value);
+			}
 
 			return true;
 		}
