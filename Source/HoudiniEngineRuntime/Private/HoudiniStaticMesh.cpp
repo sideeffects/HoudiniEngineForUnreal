@@ -40,13 +40,24 @@ UHoudiniStaticMesh::UHoudiniStaticMesh(const FObjectInitializer& ObjectInitializ
 	bHasPerFaceMaterials = false;
 }
 
-void UHoudiniStaticMesh::Initialize(uint32 InNumVertices, uint32 InNumTriangles, uint32 InNumUVLayers, uint32 InInitialNumStaticMaterials, bool bInHasNormals, bool bInHasTangents, bool bInHasColors, bool bInHasPerFaceMaterials)
+void 
+UHoudiniStaticMesh::Initialize(uint32 InNumVertices, uint32 InNumTriangles, uint32 InNumUVLayers, uint32 InInitialNumStaticMaterials, bool bInHasNormals, bool bInHasTangents, bool bInHasColors, bool bInHasPerFaceMaterials)
 {
 	// Initialize the vertex positions and triangle indices arrays
-	VertexPositions.Init(FVector::ZeroVector, InNumVertices);
-	TriangleIndices.Init(FIntVector(-1, -1, -1), InNumTriangles);
+	VertexPositions.SetNumUninitialized(InNumVertices);
+	for(int32 n = 0; n < VertexPositions.Num(); n++)
+		VertexPositions[n] = FVector::ZeroVector;
+
+	TriangleIndices.SetNumUninitialized(InNumTriangles);
+	for (int32 n = 0; n < TriangleIndices.Num(); n++)
+		TriangleIndices[n] = FIntVector(-1, -1, -1);
+
 	if (InInitialNumStaticMaterials > 0)
-		StaticMaterials.Init(FStaticMaterial(), InInitialNumStaticMaterials);
+	{
+		StaticMaterials.SetNumUninitialized(InNumTriangles);
+		for (int32 n = 0; n < StaticMaterials.Num(); n++)
+			StaticMaterials[n] = FStaticMaterial();
+	}
 	else
 		StaticMaterials.Empty();
 
@@ -57,31 +68,47 @@ void UHoudiniStaticMesh::Initialize(uint32 InNumVertices, uint32 InNumTriangles,
 	SetHasPerFaceMaterials(bInHasPerFaceMaterials);
 }
 
-void UHoudiniStaticMesh::SetHasPerFaceMaterials(bool bInHasPerFaceMaterials)
+void 
+UHoudiniStaticMesh::SetHasPerFaceMaterials(bool bInHasPerFaceMaterials)
 {
 	bHasPerFaceMaterials = bInHasPerFaceMaterials;
 	if (bHasPerFaceMaterials)
-		MaterialIDsPerTriangle.Init(-1, GetNumTriangles());
+	{
+		MaterialIDsPerTriangle.SetNumUninitialized(GetNumTriangles());
+		for (int32 n = 0; n < MaterialIDsPerTriangle.Num(); n++)
+			MaterialIDsPerTriangle[n] = -1;
+	}
 	else
 		MaterialIDsPerTriangle.Empty();
 }
 
-void UHoudiniStaticMesh::SetHasNormals(bool bInHasNormals)
+void 
+UHoudiniStaticMesh::SetHasNormals(bool bInHasNormals)
 {
 	bHasNormals = bInHasNormals;
 	if (bHasNormals)
-		VertexInstanceNormals.Init(FVector(0, 0, 1), GetNumVertexInstances());
+	{
+		VertexInstanceNormals.SetNumUninitialized(GetNumVertexInstances());
+		for (int32 n = 0; n < VertexInstanceNormals.Num(); n++)
+			VertexInstanceNormals[n] = FVector(0, 0, 1);
+	}
 	else
 		VertexInstanceNormals.Empty();
 }
 
-void UHoudiniStaticMesh::SetHasTangents(bool bInHasTangents)
+void 
+UHoudiniStaticMesh::SetHasTangents(bool bInHasTangents)
 {
 	bHasTangents = bInHasTangents;
 	if (bHasTangents)
 	{
-		VertexInstanceUTangents.Init(FVector(1, 0, 0), GetNumVertexInstances());
-		VertexInstanceVTangents.Init(FVector(0, 1, 0), GetNumVertexInstances());
+		VertexInstanceUTangents.SetNumUninitialized(GetNumVertexInstances());
+		for (int32 n = 0; n < VertexInstanceUTangents.Num(); n++)
+			VertexInstanceUTangents[n] = FVector(1, 0, 0);
+
+		VertexInstanceVTangents.SetNumUninitialized(GetNumVertexInstances());
+		for (int32 n = 0; n < VertexInstanceVTangents.Num(); n++)
+			VertexInstanceVTangents[n] = FVector(0, 1, 0);
 	}
 	else
 	{
@@ -90,11 +117,16 @@ void UHoudiniStaticMesh::SetHasTangents(bool bInHasTangents)
 	}
 }
 
-void UHoudiniStaticMesh::SetHasColors(bool bInHasColors)
+void 
+UHoudiniStaticMesh::SetHasColors(bool bInHasColors)
 {
 	bHasColors = bInHasColors;
 	if (bHasColors)
-		VertexInstanceColors.Init(FColor(127, 127, 127), GetNumVertexInstances());
+	{
+		VertexInstanceColors.SetNumUninitialized(GetNumVertexInstances());
+		for (int32 n = 0; n < VertexInstanceColors.Num(); n++)
+			VertexInstanceColors[n] = FColor(127, 127, 127);
+	}
 	else
 		VertexInstanceColors.Empty();
 }
@@ -103,7 +135,11 @@ void UHoudiniStaticMesh::SetNumUVLayers(uint32 InNumUVLayers)
 {
 	NumUVLayers = InNumUVLayers;
 	if (NumUVLayers > 0)
-		VertexInstanceUVs.Init(FVector2D::ZeroVector, GetNumVertexInstances() * NumUVLayers);
+	{
+		VertexInstanceUVs.SetNumUninitialized(GetNumVertexInstances() * NumUVLayers);
+		for (int32 n = 0; n < VertexInstanceUVs.Num(); n++)
+			VertexInstanceUVs[n] = FVector2D::ZeroVector;
+	}
 	else
 		VertexInstanceUVs.Empty();
 }

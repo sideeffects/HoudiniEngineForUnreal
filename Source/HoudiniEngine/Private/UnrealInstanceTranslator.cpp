@@ -149,10 +149,8 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 			InstancesNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
 
 		// Now that we have raw positions, we can upload them for our attribute.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-			FHoudiniEngine::Get().GetSession(),
-			InstancesNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint,
-			Positions.GetData(), 0, AttributeInfoPoint.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			Positions, InstancesNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, AttributeInfoPoint), false);
 
 		// Create Rotation (rot) attribute
 		HAPI_AttributeInfo AttributeInfoRotation;
@@ -168,10 +166,8 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 			FHoudiniEngine::Get().GetSession(),
 			InstancesNodeId, 0, HAPI_UNREAL_ATTRIB_ROTATION, &AttributeInfoRotation), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-			FHoudiniEngine::Get().GetSession(),
-			InstancesNodeId, 0, HAPI_UNREAL_ATTRIB_ROTATION, &AttributeInfoRotation,
-			Rotations.GetData(), 0, AttributeInfoRotation.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			Rotations, InstancesNodeId, 0, HAPI_UNREAL_ATTRIB_ROTATION, AttributeInfoRotation), false);
 
 		// Create scale attribute
 		HAPI_AttributeInfo AttributeInfoScale;
@@ -187,10 +183,8 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 			FHoudiniEngine::Get().GetSession(),
 			InstancesNodeId, 0, HAPI_UNREAL_ATTRIB_SCALE, &AttributeInfoScale), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-			FHoudiniEngine::Get().GetSession(),
-			InstancesNodeId, 0, HAPI_UNREAL_ATTRIB_SCALE, &AttributeInfoScale,
-			Scales.GetData(), 0, AttributeInfoScale.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			Scales, InstancesNodeId, 0, HAPI_UNREAL_ATTRIB_SCALE, AttributeInfoScale), false);
 
 		// Commit the instance point geo.
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(

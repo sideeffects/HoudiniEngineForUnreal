@@ -242,7 +242,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 	// -----------------------------
 
 	{
-		TArray< FVector > OutPosition;
+		TArray<FVector> OutPosition;
 		FVector Scale = FVector(1.f, 1.f, 1.f); // TODO: Extract from actor transform.
 		OutPosition.SetNumUninitialized(NumPoints);
 
@@ -255,10 +255,8 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 		}
 
 		// Upload point positions.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-			FHoudiniEngine::Get().GetSession(),
-			CreatedNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPointVector,
-			(const float *)OutPosition.GetData(), 0, AttributeInfoPointVector.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			(const float*)OutPosition.GetData(), CreatedNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, AttributeInfoPointVector), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -317,14 +315,12 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 		}
 
 		// Set the vertex index buffer
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVertexList(
-			FHoudiniEngine::Get().GetSession(),
-			CreatedNodeId,	0, Indices.GetData(), 0, NumIndices), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetVertexList(
+			Indices, CreatedNodeId, 0), false);
 
 		// Set the face counts as per the BSP nodes.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(
-			FHoudiniEngine::Get().GetSession(),
-			CreatedNodeId,	0, FaceCountBuffer.GetData(), 0, FaceCountBuffer.Num()), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetFaceCounts(
+			FaceCountBuffer, CreatedNodeId,	0), false);
 
 		// -----------------------------
 		// Normal attribute
@@ -333,11 +329,8 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 			FHoudiniEngine::Get().GetSession(), CreatedNodeId, 0,
 			HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertexVector), false);
 		
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				CreatedNodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, 
-				&AttributeInfoVertexVector, (const float *)OutNormals.GetData(),
-				0, AttributeInfoVertexVector.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			(const float*)OutNormals.GetData(), CreatedNodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, AttributeInfoVertexVector), false);
 
 		// -----------------------------
 		// UV attribute
@@ -346,11 +339,8 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 			FHoudiniEngine::Get().GetSession(), CreatedNodeId, 0,
 			HAPI_UNREAL_ATTRIB_UV, &AttributeInfoVertexVector), false);
 		
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				CreatedNodeId, 0, HAPI_UNREAL_ATTRIB_UV, 
-				&AttributeInfoVertexVector, (const float *)OutUV.GetData(),
-				0, AttributeInfoVertexVector.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			(const float*)OutUV.GetData(), CreatedNodeId, 0, HAPI_UNREAL_ATTRIB_UV, AttributeInfoVertexVector), false);
 
 		// -----------------------------
 		// Material attribute
@@ -377,12 +367,12 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 		}
 
 		// List of materials, one for each face.
-		TArray<char *> OutMaterials;
+		TArray<FString> OutMaterials;
 
 		//Lists of material parameters
 		TMap<FString, TArray<float>> ScalarMaterialParameters;
 		TMap<FString, TArray<float>> VectorMaterialParameters;
-		TMap<FString, TArray<char *>> TextureMaterialParameters;
+		TMap<FString, TArray<FString>> TextureMaterialParameters;
 
 		bool bAttributeSuccess = false;
 		bool bAddMaterialParametersAsAttributes = false;
@@ -421,15 +411,6 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 				ScalarMaterialParameters,
 				VectorMaterialParameters,
 				TextureMaterialParameters);
-		}
-
-		// Delete material names.
-		FUnrealMeshTranslator::DeleteFaceMaterialArray(OutMaterials);
-
-		// Delete texture material parameter names.
-		for (auto & Pair : TextureMaterialParameters) 
-		{
-			FUnrealMeshTranslator::DeleteFaceMaterialArray(Pair.Value);
 		}
 
 		if (!bAttributeSuccess)

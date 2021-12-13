@@ -351,8 +351,55 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Check if the Houdini asset component is being cooked
 		static bool IsHoudiniAssetComponentCooking(UObject* InObj);
 
+		// Helper function to set float attribute data
+		// The data will be sent in chunks if too large for thrift
+		static HAPI_Result HapiSetAttributeFloatData(
+			const TArray<float>& InFloatData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		static HAPI_Result HapiSetAttributeFloatData(
+			const float* InFloatData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		// Helper function to set Int attribute data
+		// The data will be sent in chunks if too large for thrift
+		static HAPI_Result HapiSetAttributeIntData(
+			const TArray<int32>& InIntData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		static HAPI_Result HapiSetAttributeIntData(
+			const int32* InIntData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+
+		// Helper function to set Vertex Lists
+		// The data will be sent in chunks if too large for thrift
+		static HAPI_Result HapiSetVertexList(
+			const TArray<int32>& InVertexListData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId);
+
+		// Helper function to set Face Counts
+		// The data will be sent in chunks if too large for thrift
+		static HAPI_Result HapiSetFaceCounts(
+			const TArray<int32>& InFaceCounts,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId);
+
 		// Helper function to set attribute string data for a single FString
-		static HAPI_Result SetAttributeStringData(
+		static HAPI_Result HapiSetAttributeStringData(
 			const FString& InString,
 			const HAPI_NodeId& InNodeId,
 			const HAPI_PartId& InPartId,
@@ -360,7 +407,8 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const HAPI_AttributeInfo& InAttributeInfo);
 
 		// Helper function to set attribute string data for a FString array
-		static HAPI_Result SetAttributeStringData(
+		// The data will be sent in chunks if too large for thrift
+		static HAPI_Result HapiSetAttributeStringData(
 			const TArray<FString>& InStringArray,
 			const HAPI_NodeId& InNodeId,
 			const HAPI_PartId& InPartId,

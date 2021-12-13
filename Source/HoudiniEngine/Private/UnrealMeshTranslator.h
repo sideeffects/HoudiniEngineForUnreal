@@ -133,7 +133,7 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 		static void CreateFaceMaterialArray(
 			const TArray<UMaterialInterface* >& Materials,
 			const TArray<int32>& FaceMaterialIndices,
-			TArray<char *>& OutStaticMeshFaceMaterials);
+			TArray<FString>& OutStaticMeshFaceMaterials);
 
 		// Helper function to extract the array of material names used by a given mesh
 		// Also extracts all scalar/vector/texture parameter in the materials 
@@ -143,24 +143,24 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 		static void CreateFaceMaterialArray(
 			const TArray<UMaterialInterface *>& Materials,
 			const TArray<int32>& FaceMaterialIndices,
-			TArray<char *> & OutStaticMeshFaceMaterials,
-			TMap<FString, TArray<float>> & OutScalarMaterialParameters,
-			TMap<FString, TArray<float>> & OutVectorMaterialParameters,
-			TMap<FString, TArray<char *>> & OutTextureMaterialParameters);
+			TArray<FString> & OutStaticMeshFaceMaterials,
+			TMap<FString, TArray<float>>& OutScalarMaterialParameters,
+			TMap<FString, TArray<float>>& OutVectorMaterialParameters,
+			TMap<FString, TArray<FString>>& OutTextureMaterialParameters);
 
 		// Delete helper array of material names.
 		// Clean up the memory allocated by CreateFaceMaterialArray()
-		static void DeleteFaceMaterialArray(TArray<char *> & OutStaticMeshFaceMaterials);
+		//static void DeleteFaceMaterialArray(TArray<char *> & OutStaticMeshFaceMaterials);
 
 		// Create and set mesh material attribute and material (scalar, vector and texture) parameters attributes
 		static bool CreateHoudiniMeshAttributes(
-			const int32 & NodeId,
-			const int32 & PartId,
-			const int32 & Count,
-			const TArray<char *> & TriangleMaterials,
-			const TMap<FString, TArray<float>> & ScalarMaterialParameters,
-			const TMap<FString, TArray<float>> & VectorMaterialParameters,
-			const TMap<FString, TArray<char *>> & TextureMaterialParameters);
+			const int32& NodeId,
+			const int32& PartId,
+			const int32& Count,
+			const TArray<FString> & TriangleMaterials,
+			const TMap<FString, TArray<float>>& ScalarMaterialParameters,
+			const TMap<FString, TArray<float>>& VectorMaterialParameters,
+			const TMap<FString, TArray<FString>>& TextureMaterialParameters);
 
 		/*
 		// Creates the unreal_level_path attribute on the input mesh
