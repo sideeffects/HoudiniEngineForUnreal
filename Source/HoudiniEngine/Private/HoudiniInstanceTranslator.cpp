@@ -3371,7 +3371,10 @@ FHoudiniInstancedOutputPartData::BuildOriginalInstancedTransformsAndObjectArrays
 {
 	{
 		const int32 NumObjects = NumInstancedTransformsPerObject.Num();
-		OriginalInstancedTransforms.Init(TArray<FTransform>(), NumObjects);
+		OriginalInstancedTransforms.SetNumUninitialized(NumObjects);
+		for (int32 n = 0; n < OriginalInstancedTransforms.Num(); n++)
+			OriginalInstancedTransforms[n] = TArray<FTransform>();
+
 		int32 ObjectIndexOffset = 0;
 		for (int32 ObjIndex = 0; ObjIndex < NumObjects; ++ObjIndex)
 		{
@@ -3416,7 +3419,10 @@ FHoudiniInstancedOutputPartData::BuildOriginalInstancedTransformsAndObjectArrays
 
 	{
 		const int32 NumObjects = NumInstancedIndicesPerObject.Num();
-		OriginalInstancedIndices.Init(TArray<int32>(), NumObjects);
+		OriginalInstancedIndices.SetNumUninitialized(NumObjects);
+		for (int32 n = 0; n < OriginalInstancedIndices.Num(); n++)
+			OriginalInstancedIndices[n] = TArray<int32>();
+
 		int32 ObjectIndexOffset = 0;
 		for (int32 EntryIndex = 0; EntryIndex < NumObjects; ++EntryIndex)
 		{
@@ -3435,7 +3441,10 @@ FHoudiniInstancedOutputPartData::BuildOriginalInstancedTransformsAndObjectArrays
 
 	{
 		const int32 NumObjects = NumPerInstanceCustomDataPerObject.Num();
-		PerInstanceCustomData.Init(TArray<float>(), NumObjects);
+		PerInstanceCustomData.SetNumUninitialized(NumObjects);
+		for (int32 n = 0; n < PerInstanceCustomData.Num(); n++)
+			PerInstanceCustomData[n] = TArray<float>();
+
 		int32 ObjectIndexOffset = 0;
 		for (int32 EntryIndex = 0; EntryIndex < NumObjects; ++EntryIndex)
 		{
