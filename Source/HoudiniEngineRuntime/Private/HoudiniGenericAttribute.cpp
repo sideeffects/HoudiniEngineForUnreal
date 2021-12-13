@@ -394,6 +394,21 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 
 			return true;
 		}
+
+		// If this is a UStaticMesh, set the default collision profile name on the static mesh.
+		UStaticMesh* SM = Cast<UStaticMesh>(InObject);
+		if (IsValid(SM))
+		{
+			FString StringValue = InPropertyAttribute.GetStringValue(AtIndex);
+			FName Value = FName(*StringValue);
+			if (IsValid(SM->BodySetup))
+			{
+				SM->BodySetup->DefaultInstance.SetCollisionProfileName(Value);
+			}
+
+			return true;
+		}
+		
 		return false;
 	}
 
