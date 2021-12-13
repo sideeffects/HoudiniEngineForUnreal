@@ -3089,7 +3089,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			PrimitiveAttrs.SetNum(Part.faceCount);
 			for (int32 Ix = 0; Ix < Part.faceCount; ++Ix)
 			{
-				PrimitiveAttrs[Ix] = TEXT("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");// Filename;
+				//PrimitiveAttrs[Ix] = TEXT("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+				PrimitiveAttrs[Ix] = Filename;
 			}
 
 			HAPI_AttributeInfo AttributeInfo;
