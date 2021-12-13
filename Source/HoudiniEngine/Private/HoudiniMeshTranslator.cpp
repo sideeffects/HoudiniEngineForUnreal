@@ -1895,7 +1895,9 @@ FHoudiniMeshTranslator::UpdateSplitsFacesAndIndices()
 
 		// We also need to figure out / construct the vertex list for everything that's not in a split group
 		TArray<int32> GroupSplitFacesRemaining;
-		GroupSplitFacesRemaining.Init(-1, PartVertexList.Num());
+		GroupSplitFacesRemaining.SetNumUninitialized(PartVertexList.Num());
+		for (int32 n = 0; n < GroupSplitFacesRemaining.Num(); n++)
+			GroupSplitFacesRemaining[n] = -1;
 
 		int32 GroupVertexListCount = 0;
 		bool bHasMainSplitGroup = false;
@@ -3062,7 +3064,11 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 				FColor DefaultWedgeColor = FLinearColor::White.ToFColor(false);
 				WedgeColorsCount = RawMesh.WedgeIndices.Num();
 				if (WedgeColorsCount > 0)
-					RawMesh.WedgeColors.Init(DefaultWedgeColor, WedgeColorsCount);
+				{
+					RawMesh.WedgeColors.SetNumUninitialized(WedgeColorsCount);
+					for (int32 n = 0; n < RawMesh.WedgeColors.Num(); n++)
+						RawMesh.WedgeColors[n] = DefaultWedgeColor;
+				}
 			}
 
 			if (bDoTiming)
@@ -3084,7 +3090,9 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 				SplitVertexList, AttribInfoFaceSmoothingMasks, PartFaceSmoothingMasks, SplitFaceSmoothingMasks);
 
 			// FaceSmoothing masks must be initialized even if we don't have a value from Houdini!
-			RawMesh.FaceSmoothingMasks.Init(DefaultMeshSmoothing, SplitVertexCount / 3);
+			RawMesh.FaceSmoothingMasks.SetNumUninitialized(SplitVertexCount / 3);
+			for (int32 n = 0; n < RawMesh.FaceSmoothingMasks.Num(); n++)
+				RawMesh.FaceSmoothingMasks[n] = DefaultMeshSmoothing;
 
 			// Check that the number of face smoothing values we retrieved is correct
 			int32 WedgeFaceSmoothCount = SplitFaceSmoothingMasks.Num() / 3;
@@ -3199,7 +3207,10 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			// - Used vertices will have their value set to the "NewIndex"
 			// So that IndicesMapper[ oldIndex ] => newIndex
 			TArray<int32> IndicesMapper;
-			IndicesMapper.Init(-1, SplitVertexList.Num());
+			IndicesMapper.SetNumUninitialized(SplitVertexList.Num());
+			for (int32 n = 0; n < IndicesMapper.Num(); n++)
+				IndicesMapper[n] = -1;
+
 			int32 CurrentMapperIndex = 0;
 
 			// NeededVertices:
@@ -3676,7 +3687,11 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			RawMesh.Empty();
 			RawMesh.VertexPositions.Add(FVector::ZeroVector);
 			RawMesh.WedgeIndices.SetNumZeroed(3);
-			RawMesh.WedgeTexCoords[0].Init(FVector2D::ZeroVector, RawMesh.WedgeIndices.Num());
+			//RawMesh.WedgeTexCoords[0].Init(FVector2D::ZeroVector, RawMesh.WedgeIndices.Num());
+			RawMesh.WedgeTexCoords[0].SetNumUninitialized(RawMesh.WedgeIndices.Num());
+			for (int32 n = 0; n < RawMesh.WedgeTexCoords[0].Num(); n++)
+				RawMesh.WedgeTexCoords[0][n] = FVector2D::ZeroVector;
+
 			SrcModel->SaveRawMesh(RawMesh);
 		}
 
@@ -4387,17 +4402,16 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 
 			// SplitNeededVertices
 			// Array containing the (unique) part indices for the vertices that are needed for this split
-			// SplitNeededVertices[splitIndex] = PartIndex
 			TArray<int32> SplitNeededVertices;
-			//SplitNeededVertices.SetNumZeroed(SplitVertexCount);
 
 			// IndicesMapper:
 			// Maps index values for all vertices in the Part:
 			// - Vertices unused by the split will be set to -1
 			// - Used vertices will have their value set to the "NewIndex" so that IndicesMapper[ partIndex ] => splitIndex
 			TArray<int32> PartToSplitIndicesMapper;
-			PartToSplitIndicesMapper.Init(-1, SplitVertexList.Num());
-			//TMap<int32, int32> SplitToPartIndicesMapper;
+			PartToSplitIndicesMapper.SetNumUninitialized(SplitVertexList.Num());
+			for (int32 n = 0; n < PartToSplitIndicesMapper.Num(); n++)
+				PartToSplitIndicesMapper[n] = -1;
 
 			// SplitIndices
 			// Array of SplitIndices used to describe this split's polygons
@@ -4438,7 +4452,6 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 						// This part index has not yet been "converted" to a new split index
 						SplitNeededVertices.Add(WedgeIndices[i]);
 						PartToSplitIndicesMapper[WedgeIndices[i]] = CurrentSplitIndex;
-						//SplitToPartIndicesMapper.Add(CurrentSplitIndex, WedgeIndices[i]);
 						CurrentSplitIndex++;
 					}
 
@@ -5059,7 +5072,9 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			// TODO: Expose the default FaceSmoothing value
 			// 0 will make hard face
 			TArray<uint32> FaceSmoothingMasks;
-			FaceSmoothingMasks.Init(DefaultMeshSmoothing, SplitVertexCount / 3);
+			FaceSmoothingMasks.SetNumUninitialized(SplitVertexCount / 3);
+			for (int32 n = 0; n < FaceSmoothingMasks.Num(); n++)
+				FaceSmoothingMasks[n] = DefaultMeshSmoothing;
 
 			// Check that the number of face smoothing values we retrieved is correct
 			int32 WedgeFaceSmoothCount = SplitFaceSmoothingMasks.Num() / 3;
@@ -5684,7 +5699,10 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 			// - Used vertices will have their value set to the "NewIndex"
 			// So that IndicesMapper[ oldIndex ] => newIndex
 			TArray<int32> IndicesMapper;
-			IndicesMapper.Init(-1, SplitVertexList.Num());
+			IndicesMapper.SetNumUninitialized(SplitVertexList.Num());
+			for (int32 n = 0; n < IndicesMapper.Num(); n++)
+				IndicesMapper[n] = -1;
+
 			int32 CurrentMapperIndex = 0;
 
 			// NeededVertices:
@@ -7047,7 +7065,9 @@ int32 FHoudiniMeshTranslator::TransferPartAttributesToSplit(
 		// then we can simply use the array init function instead of looping
 		if (InAttribInfo.tupleSize == 1)
 		{
-			OutVertexData.Init(InData[0], WedgeCount);
+			OutVertexData.SetNumUninitialized(WedgeCount);
+			for (int32 n = 0; n < OutVertexData.Num(); n++)
+				OutVertexData[n] = InData[0];
 		}
 		else
 		{
@@ -7647,11 +7667,9 @@ FHoudiniMeshTranslator::GenerateKDopAsSimpleCollision(const TArray<FVector>& InP
 	int32 kCount = Dirs.Num();
 
 	TArray<float> maxDist;
-	maxDist.Init(-my_flt_max, kCount);	
-	/*
-	for (int32 i = 0; i < kCount; i++)
-		maxDist.Add(my_flt_max);
-	*/
+	maxDist.SetNumUninitialized(kCount);
+	for (int32 n = 0; n < maxDist.Num(); n++)
+		maxDist[n] = -my_flt_max;
 
 	// Construct temporary UModel for kdop creation. We keep no refs to it, so it can be GC'd.
 	auto TempModel = NewObject<UModel>();

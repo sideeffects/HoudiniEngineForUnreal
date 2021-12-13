@@ -1821,11 +1821,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForObject(const FString& InObjNodeNa
 		};
 
 		// Now that we have raw positions, we can upload them for our attribute.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-			FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
-			HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint,
-			Position.GetData(), 0,
-			AttributeInfoPoint.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			Position, InputNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, AttributeInfoPoint), false);
 	}
 
 	{
@@ -1845,7 +1842,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForObject(const FString& InObjNodeNa
 
 		// Set the point's path attribute
 		FString ObjectPathName = Object->GetPathName();
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::SetAttributeStringData(
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
 			ObjectPathName, InputNodeId, 0, HAPI_UNREAL_ATTRIB_OBJECT_PATH, AttributeInfoPoint), false);
 	}
 
@@ -3127,11 +3124,8 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 		};
 
 		// Now that we have raw positions, we can upload them for our attribute.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-			FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
-			HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint,
-			Position.GetData(), 0,
-			AttributeInfoPoint.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			Position, NewNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, AttributeInfoPoint), false);
 	}
 
 	if (bImportAsReferenceRotScaleEnabled)
@@ -3163,13 +3157,8 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
                 InputRotations[3] = -InputRotation.W;
 
 		//we can now upload them to our attribute.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-			FHoudiniEngine::Get().GetSession(),
-			NewNodeId, 0,
-			HAPI_UNREAL_ATTRIB_ROTATION,
-			&AttributeInfoRotation,
-			InputRotations.GetData(),
-			0, AttributeInfoRotation.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			InputRotations, NewNodeId, 0, HAPI_UNREAL_ATTRIB_ROTATION, AttributeInfoRotation), false);
 
 		// Create SCALE attribute info
 		HAPI_AttributeInfo AttributeInfoScale;
@@ -3196,14 +3185,8 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 		InputScales[2] = InputScale.Y;
 
 		//we can now upload them to our attribute.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-                        FHoudiniEngine::Get().GetSession(),
-                        NewNodeId, 0,
-                        HAPI_UNREAL_ATTRIB_SCALE,
-                        &AttributeInfoScale,
-                        InputScales.GetData(),
-                        0, AttributeInfoScale.count), false);
-		
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			InputScales, NewNodeId, 0, HAPI_UNREAL_ATTRIB_SCALE, AttributeInfoScale), false);
 	}
 
 	// String Attribute
@@ -3211,7 +3194,6 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 		// Create point attribute info.
 		HAPI_AttributeInfo AttributeInfoPoint;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoPoint);
-
 		AttributeInfoPoint.count = 1;
 		AttributeInfoPoint.tupleSize = 1;
 		AttributeInfoPoint.exists = true;
@@ -3223,16 +3205,9 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 			FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
 			HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE, &AttributeInfoPoint), false);
 
-		// Set string attribute
-		std::string AttriString = TCHAR_TO_ANSI(*InRef);
-		const char* AttriStringRaw = AttriString.c_str();
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
-			FHoudiniEngine::Get().GetSession(),
-			NewNodeId, 0, HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE, &AttributeInfoPoint,
-			&AttriStringRaw, 0, 1), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+			InRef, NewNodeId, 0, HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE, AttributeInfoPoint), false);
 	}
-
 
 	// Commit the geo.
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
@@ -3318,11 +3293,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 		}
 
 		// Now that we have raw positions, we can upload them for our attribute.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-			FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
-			HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint,
-			Positions.GetData(), 0,
-			AttributeInfoPoint.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			Positions, InputNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, AttributeInfoPoint), false);
 	}
 
 	{
@@ -3345,10 +3317,12 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 
 		// Create an array
 		TArray<FString> ObjectPaths;
-		ObjectPaths.Init(ObjectPathName, NumRows);
+		ObjectPaths.SetNumUninitialized(NumRows);
+		for (int32 n = 0; n < ObjectPaths.Num(); n++)
+			ObjectPaths[n] = ObjectPathName;
 
 		// Set the point's path attribute
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::SetAttributeStringData(
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
 			ObjectPaths, InputNodeId, 0, HAPI_UNREAL_ATTRIB_OBJECT_PATH, AttributeInfoPoint), false);
 	}
 
@@ -3372,10 +3346,12 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 
 		// Create an array
 		TArray<FString> RowStructNames;
-		RowStructNames.Init(RowStructName, NumRows);
+		RowStructNames.SetNumUninitialized(NumRows);
+		for (int32 n = 0; n < RowStructNames.Num(); n++)
+			RowStructNames[n] = RowStructName;
 
 		// Set the point's path attribute
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::SetAttributeStringData(
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
 			RowStructNames, InputNodeId, 0, 
 			HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT, AttributeInfoPoint), false);
 	}
@@ -3416,7 +3392,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 			FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
 			TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::SetAttributeStringData(
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
 			AttributeValues, InputNodeId, 0,
 			CurAttrName, AttributeInfo), false);
 	}
