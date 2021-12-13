@@ -128,6 +128,11 @@ FHoudiniEngineUtils::PackageGUIDComponentNameLength = 12;
 const int32
 FHoudiniEngineUtils::PackageGUIDItemNameLength = 8;
 
+// Maximum size of the data that can be sent via thrift
+#define THRIFT_MAX_CHUNKSIZE			100 * 1024 * 1024
+//#define THRIFT_MAX_CHUNKSIZE			2048 * 2048
+//#define THRIFT_MAX_CHUNKSIZE_STRING		256 * 256
+
 const FString
 FHoudiniEngineUtils::GetErrorDescription(HAPI_Result Result)
 {
@@ -3098,9 +3103,196 @@ void FHoudiniEngineUtils::UpdateBlueprintEditor_Internal(UHoudiniAssetComponent*
 			
 	// Also somehow reselect ?
 }
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeFloatData(
+	const TArray<float>& InFloatData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	if (InFloatData.Num() != InAttributeInfo.count * InAttributeInfo.tupleSize)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	return FHoudiniEngineUtils::HapiSetAttributeFloatData(InFloatData.GetData(), InNodeId, InPartId, InAttributeName, InAttributeInfo);
+}
 
 HAPI_Result
-FHoudiniEngineUtils::SetAttributeStringData(
+FHoudiniEngineUtils::HapiSetAttributeFloatData(
+	const float* InFloatData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	HAPI_Result Result = HAPI_RESULT_FAILURE;
+	int32 ChunkSize = THRIFT_MAX_CHUNKSIZE / InAttributeInfo.tupleSize;
+	if (InAttributeInfo.count > ChunkSize)
+	{
+		// Send the attribte in chunks
+		for (int32 ChunkStart = 0; ChunkStart < InAttributeInfo.count; ChunkStart += ChunkSize)
+		{
+			int32 CurCount = InAttributeInfo.count - ChunkStart > ChunkSize ? ChunkSize : InAttributeInfo.count - ChunkStart;
+
+			Result = FHoudiniApi::SetAttributeFloatData(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+				&InAttributeInfo, InFloatData,
+				ChunkStart, CurCount);
+
+			if (Result != HAPI_RESULT_SUCCESS)
+				break;
+		}
+	}
+	else
+	{
+		// Send all the attribute values once
+		Result = FHoudiniApi::SetAttributeFloatData(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+			&InAttributeInfo, InFloatData,
+			0, InAttributeInfo.count);
+	}
+
+	return Result;
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeIntData(
+	const TArray<int32>& InIntData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	if (InIntData.Num() != InAttributeInfo.count * InAttributeInfo.tupleSize)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	return FHoudiniEngineUtils::HapiSetAttributeIntData(
+		InIntData.GetData(), InNodeId, InPartId, InAttributeName, InAttributeInfo);
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeIntData(	
+	const int32* InIntData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	HAPI_Result Result = HAPI_RESULT_FAILURE;
+	int32 ChunkSize = THRIFT_MAX_CHUNKSIZE / InAttributeInfo.tupleSize;
+	if (InAttributeInfo.count > ChunkSize)
+	{
+		// Send the attribte in chunks
+		for (int32 ChunkStart = 0; ChunkStart < InAttributeInfo.count; ChunkStart += ChunkSize)
+		{
+			int32 CurCount = InAttributeInfo.count - ChunkStart > ChunkSize ? ChunkSize : InAttributeInfo.count - ChunkStart;
+
+			Result = FHoudiniApi::SetAttributeIntData(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+				&InAttributeInfo, InIntData,
+				ChunkStart, CurCount);
+
+			if (Result != HAPI_RESULT_SUCCESS)
+				break;
+		}
+	}
+	else
+	{
+		// Send all the attribute values once
+		Result = FHoudiniApi::SetAttributeIntData(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+			&InAttributeInfo, InIntData,
+			0, InAttributeInfo.count);
+	}
+
+	return Result;
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetVertexList(
+	const TArray<int32>& InVertexListData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId)
+{
+	int32 ListNum = InVertexListData.Num();
+	if (ListNum < 1)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+		
+	int32 ChunkSize = THRIFT_MAX_CHUNKSIZE;
+	HAPI_Result Result = HAPI_RESULT_FAILURE;
+	if (ListNum > ChunkSize)
+	{
+		// Send the vertex list in chunks
+		for (int32 ChunkStart = 0; ChunkStart < ListNum; ChunkStart += ChunkSize)
+		{
+			int32 CurCount = ListNum - ChunkStart > ChunkSize ? ChunkSize : ListNum - ChunkStart;
+			Result = FHoudiniApi::SetVertexList(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, InVertexListData.GetData(), ChunkStart, CurCount);
+
+			if (Result != HAPI_RESULT_SUCCESS)
+				break;
+		}
+	}
+	else
+	{
+		Result = FHoudiniApi::SetVertexList(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId, InPartId, InVertexListData.GetData(), 0, InVertexListData.Num());
+	}
+
+	return Result;
+}
+
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetFaceCounts(
+	const TArray<int32>& InFaceCounts,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId)
+{
+	int32 FaceCountsNum = InFaceCounts.Num();
+	if (FaceCountsNum < 1)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	int32 ChunkSize = THRIFT_MAX_CHUNKSIZE;
+	HAPI_Result Result = HAPI_RESULT_FAILURE;
+	if (FaceCountsNum > ChunkSize)
+	{
+		// Send the vertex list in chunks
+		for (int32 ChunkStart = 0; ChunkStart < FaceCountsNum; ChunkStart += ChunkSize)
+		{
+			int32 CurCount = FaceCountsNum - ChunkStart > ChunkSize ? ChunkSize : FaceCountsNum - ChunkStart;
+			Result = FHoudiniApi::SetFaceCounts(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, InFaceCounts.GetData(), ChunkStart, CurCount);
+
+			if (Result != HAPI_RESULT_SUCCESS)
+				break;
+		}
+	}
+	else
+	{
+		Result = FHoudiniApi::SetFaceCounts(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId, InPartId, InFaceCounts.GetData(), 0, InFaceCounts.Num());
+	}
+
+	return Result;
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeStringData(
 	const FString& InString,
 	const HAPI_NodeId& InNodeId,
 	const HAPI_PartId& InPartId,
@@ -3110,11 +3302,11 @@ FHoudiniEngineUtils::SetAttributeStringData(
 	TArray<FString> StringArray;
 	StringArray.Add(InString);
 
-	return SetAttributeStringData(StringArray, InNodeId, InPartId, InAttributeName, InAttributeInfo);
+	return HapiSetAttributeStringData(StringArray, InNodeId, InPartId, InAttributeName, InAttributeInfo);
 }
 
 HAPI_Result
-FHoudiniEngineUtils::SetAttributeStringData(
+FHoudiniEngineUtils::HapiSetAttributeStringData(
 	const TArray<FString>& InStringArray, 
 	const HAPI_NodeId& InNodeId,
 	const HAPI_PartId& InPartId,
@@ -3128,16 +3320,41 @@ FHoudiniEngineUtils::SetAttributeStringData(
 		StringDataArray.Add(FHoudiniEngineUtils::ExtractRawString(CurrentString));
 	}
 
-	// Set the attribute's string data
-	HAPI_Result result = FHoudiniApi::SetAttributeStringData(
-		FHoudiniEngine::Get().GetSession(), InNodeId, InPartId,
-		TCHAR_TO_ANSI(*InAttributeName), &InAttributeInfo,
-		StringDataArray.GetData(), 0, InAttributeInfo.count);
+	// Send strings in smaller chunks due to their potential size	
+	int32 ChunkSize = (THRIFT_MAX_CHUNKSIZE / 100) / InAttributeInfo.tupleSize;
+
+	HAPI_Result Result = HAPI_RESULT_FAILURE;
+	if (InAttributeInfo.count > ChunkSize)
+	{
+		// Set the attributes in chunks
+		for (int32 ChunkStart = 0; ChunkStart < InAttributeInfo.count; ChunkStart += ChunkSize)
+		{
+			int32 CurCount = InAttributeInfo.count - ChunkStart > ChunkSize ? ChunkSize : InAttributeInfo.count - ChunkStart;
+
+			Result = FHoudiniApi::SetAttributeStringData(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+				&InAttributeInfo, StringDataArray.GetData(),
+				ChunkStart, CurCount);
+
+			if (Result != HAPI_RESULT_SUCCESS)
+				break;
+		}
+	}
+	else
+	{
+		// Set all the attribute values once
+		Result = FHoudiniApi::SetAttributeStringData(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+			&InAttributeInfo, StringDataArray.GetData(),
+			0, InAttributeInfo.count);
+	}
 
 	// ExtractRawString allocates memory using malloc, free it!
 	FreeRawStringMemory(StringDataArray);
 
-	return result;
+	return Result;
 }
 
 char *
@@ -3297,7 +3514,10 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(
 	AllFaceList.Empty();
 	FirstValidPrim = 0;
 	FirstValidVertex = 0;
-	NewVertexList.Init(-1, FullVertexList.Num());
+
+	NewVertexList.SetNumUninitialized(FullVertexList.Num());
+	for(int32 n = 0; n < NewVertexList.Num(); n++)
+		NewVertexList[n] = -1;
 
 	// Get the faces membership for this group
 	bool bAllEquals = false;
@@ -3882,7 +4102,10 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsStringFromInfo(
 
 	// Extract the StringHandles
 	TArray<HAPI_StringHandle> StringHandles;
-	StringHandles.Init(-1, Count * InAttributeInfo.tupleSize);
+	StringHandles.SetNumUninitialized(Count * InAttributeInfo.tupleSize);
+	for (int32 n = 0; n < StringHandles.Num(); n++)
+		StringHandles[n] = -1;
+
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeStringData(
 		FHoudiniEngine::Get().GetSession(),
 		InGeoId, InPartId, InAttribName, 
@@ -4873,7 +5096,9 @@ FHoudiniEngineUtils::CreateGroupsFromTags(
 		{
 			// Set the group's Memberships
 			TArray<int> GroupArray;
-			GroupArray.Init(1, PartInfo.faceCount);
+			GroupArray.SetNumUninitialized(PartInfo.faceCount);
+			for (int32 n = 0; n < GroupArray.Num(); n++)
+				GroupArray[n] = 1;
 
 			if ( HAPI_RESULT_SUCCESS == FHoudiniApi::SetGroupMembership(
 				FHoudiniEngine::Get().GetSession(),
@@ -5494,7 +5719,7 @@ FHoudiniEngineUtils::SetGenericPropertyAttribute(
 
 		case EAttribStorageType::STRING:
 		{
-			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::SetAttributeStringData(
+			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeStringData(
 				InPropertyAttribute.StringValues,
 				InGeoNodeId,
 				InPartId,

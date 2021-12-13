@@ -483,6 +483,7 @@ void FHoudiniStaticMeshSceneProxy::BuildBufferSetsByMaterial()
 	const uint32 NumMaterials = GetNumMaterials();
 	TArray<FThreadSafeCounter> TriCountPerMaterialSafe;
 	TriCountPerMaterialSafe.Init(FThreadSafeCounter(0), NumMaterials);
+
 	ParallelFor(NumTriangles, [&](uint32 TriangleID)
 	{
 		const int32 MatID = MaterialIDsPerTriangle[TriangleID];
@@ -493,10 +494,10 @@ void FHoudiniStaticMeshSceneProxy::BuildBufferSetsByMaterial()
 	});
 
 	TArray<uint32> TriCountPerMaterial;
+	TriCountPerMaterial.SetNumZeroed(NumMaterials);
 	TArray<uint32> OffsetPerMaterial;
+	OffsetPerMaterial.SetNumZeroed(NumMaterials);
 	TArray<FThreadSafeCounter> WrittenPerMaterial;
-	TriCountPerMaterial.Init(0, NumMaterials);
-	OffsetPerMaterial.Init(0, NumMaterials);
 	WrittenPerMaterial.Init(FThreadSafeCounter(0), NumMaterials);
 	for (int32 MatID = 0; (uint32) MatID < NumMaterials; ++MatID)
 	{
@@ -509,7 +510,7 @@ void FHoudiniStaticMeshSceneProxy::BuildBufferSetsByMaterial()
 	}
 
 	TArray<uint32> GroupTriangleIDs;
-	GroupTriangleIDs.Init(0, NumTriangles);
+	GroupTriangleIDs.SetNumZeroed(NumTriangles);
 	ParallelFor(NumTriangles, [&](uint32 TriangleID) 
 	{
 		const int32 MatID = MaterialIDsPerTriangle[TriangleID];

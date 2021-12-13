@@ -1129,7 +1129,7 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForDataLegacy(
 	if (PartInfos.vertexCount > 0)
 	{
 		// the vertex list
-		TArray< int > VertexList;
+		TArray<int> VertexList;
 		VertexList.SetNumUninitialized(PartInfos.vertexCount);
 
 		if (FHoudiniApi::GetVertexList(
