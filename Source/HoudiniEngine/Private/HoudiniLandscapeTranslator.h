@@ -110,6 +110,24 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 		// Outputting landscape as "editable layers" differs significantly from
 		// landscape outputs in "temp mode". To avoid a bigger spaghetti mess, we're
 		// dealing with modifying existing edit layers completely separately.
+
+		static bool OutputLandscape_ModifyLayers(
+			UHoudiniOutput* InOutput,
+			TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedActors,
+			TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
+			const TArray<ALandscapeProxy*>& InAllInputLandscapes,
+			USceneComponent* SharedLandscapeActorParent,
+			const FString& DefaultLandscapeActorPrefix,
+			UWorld* World,
+			const TMap<FString, float>& LayerMinimums,
+			const TMap<FString, float>& LayerMaximums,
+			FHoudiniLandscapeExtent& LandscapeExtent,
+			FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
+			FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
+			FHoudiniPackageParams InPackageParams,
+			TSet<FString>& ClearedLayers,
+			TArray<UPackage*>& OutCreatedPackages);
+	
 		static bool OutputLandscape_ModifyLayer(
 			UHoudiniOutput* InOutput,
 			TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedActors,
