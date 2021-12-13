@@ -603,7 +603,7 @@ UHoudiniOutput::Clear()
 			// will result in a StaticFindObject() call which will raise an exception during GC.
 			UHoudiniLandscapePtr* LandscapePtr = Cast<UHoudiniLandscapePtr>(CurrentOutputObject.Value.OutputObject);
 			TSoftObjectPtr<ALandscapeProxy> LandscapeProxy = LandscapePtr ? LandscapePtr->GetSoftPtr() : nullptr;
-			if (!LandscapeProxy.IsNull())
+			if (!LandscapeProxy.IsNull() && LandscapeProxy.IsValid())
 			{
 				LandscapeProxy->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 				LandscapeProxy->ConditionalBeginDestroy();
