@@ -168,11 +168,12 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	int32 NextMergeIndex = 0;
 
 	// Should we export the HiRes Nanite Mesh?
-	const bool bNaniteBuildEnabled = StaticMesh->NaniteSettings.bEnabled;
-	const bool bHaveHiResSourceModel = StaticMesh->IsHiResMeshDescriptionValid();
+	const bool bNaniteBuildEnabled = false;
+	const bool bHaveHiResSourceModel = false;
 	bool bHiResMeshSuccess = false;
 	if (bHaveHiResSourceModel && bNaniteBuildEnabled)
 	{
+		/* UE5-ONLY
 		// Get the HiRes Mesh description and SourceModel
 		FMeshDescription HiResMeshDescription = *StaticMesh->GetHiResMeshDescription();
 		FStaticMeshSourceModel& HiResSrcModel = StaticMesh->GetHiResSourceModel();
@@ -213,6 +214,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 		}
 
 		NextMergeIndex++;
+		*/
 	}
 
 	int32 NumLODsToExport = DoExportLODs ? StaticMesh->GetNumLODs() : 1;
