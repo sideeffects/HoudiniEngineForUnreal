@@ -46,6 +46,16 @@
 	#include "EditorFramework/AssetImportData.h"
 #endif
 
+
+static TAutoConsoleVariable<int32> CVarHoudiniEngineStaticMeshExportMethod(
+	TEXT("HoudiniEngine.StaticMeshExportMethod"),
+	1,
+	TEXT("Controls the method used for exporting Static Meshes from Unreal to Houdini.\n")
+	TEXT("0: Raw Mesh (legacy)\n")
+	TEXT("1: Mesh description (default)\n")
+	TEXT("2: Render Mesh / LODResources\n")
+);
+
 bool
 FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	UStaticMesh* StaticMesh,
@@ -145,13 +155,72 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	}
 
 	// TODO:
-	// Setting for lightmap resolution?
-	//const uint8 ExportMethod = 0; // Raw mesh
-	//const uint8 ExportMethod = 1; // Mesh description
-	const uint8 ExportMethod = 2; // LODResources (render mesh)
-	//bool bExportViaRawMesh = false;
+	// Setting for lightmap resolution?	
+	
+	// Select the export method we want to use for Static Meshes:
+	// 	   0 - Raw Mesh - Legacy UE4 method, deprecated
+	// 	   1 - Mesh Description
+	// 	   2 - Render Mesh / LODResources - As issue in UE5
+	uint8 ExportMethod = 1; // Mesh description
+	ExportMethod = (uint8)CVarHoudiniEngineStaticMeshExportMethod.GetValueOnAnyThread();
+
+	// Next Index used to connect nodes to the merge
+	int32 NextMergeIndex = 0;
+
+	// Should we export the HiRes Nanite Mesh?
+	const bool bNaniteBuildEnabled = StaticMesh->NaniteSettings.bEnabled;
+	const bool bHaveHiResSourceModel = StaticMesh->IsHiResMeshDescriptionValid();
+	bool bHiResMeshSuccess = false;
+	if (bHaveHiResSourceModel && bNaniteBuildEnabled)
+	{
+		// Get the HiRes Mesh description and SourceModel
+		FMeshDescription HiResMeshDescription = *StaticMesh->GetHiResMeshDescription();
+		FStaticMeshSourceModel& HiResSrcModel = StaticMesh->GetHiResSourceModel();
+		FMeshBuildSettings& HiResBuildSettings = HiResSrcModel.BuildSettings;		// cannot be const because FMeshDescriptionHelper modifies the LightmapIndex fields ?!?
+
+		// If we're using a merge node, we need to create a new input null
+		HAPI_NodeId CurrentNodeId = -1;
+		if (UseMergeNode)
+		{
+			// Create a new input node for the HiRes Mesh in this input object's OBJ node
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
+				InputObjectNodeId, TEXT("null"), TEXT("HiRes"), false, &CurrentNodeId), false);
+		}
+		else
+		{
+			// No merge node, just use the input node we created before
+			CurrentNodeId = NewNodeId;
+		}
+
+		// Convert the Mesh using FMeshDescription
+		const double StartTime = FPlatformTime::Seconds();
+		bHiResMeshSuccess = FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
+			CurrentNodeId,
+			HiResMeshDescription,
+			-1,
+			false,
+			StaticMesh,
+			StaticMeshComponent);
+
+		HOUDINI_LOG_MESSAGE(TEXT("FUnrealMeshTranslator::CreateInputNodeForMeshDescription HiRes mesh completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
+
+		if (UseMergeNode)
+		{
+			// Connect the HiRes mesh node to the merge node if needed
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+				FHoudiniEngine::Get().GetSession(),
+				NewNodeId, NextMergeIndex, CurrentNodeId, 0), false);
+		}
+
+		NextMergeIndex++;
+	}
 
 	int32 NumLODsToExport = DoExportLODs ? StaticMesh->GetNumLODs() : 1;
+
+	// Do not export LOD0 if we have exported the HiRes mesh and don't need additional LODs
+	if (!DoExportLODs && bHiResMeshSuccess)
+		NumLODsToExport = 0;
+
 	for (int32 LODIndex = 0; LODIndex < NumLODsToExport; LODIndex++)
 	{
 		// Grab the LOD level.
@@ -246,12 +315,12 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 			// Connect the LOD node to the merge node.
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 				FHoudiniEngine::Get().GetSession(),
-				NewNodeId, LODIndex, CurrentLODNodeId, 0), false);
+				NewNodeId, NextMergeIndex, CurrentLODNodeId, 0), false);
 		}
+
+		NextMergeIndex++;
 	}
 
-	// next Index for adding nodes to the merge
-	int32 NextMergeIndex = NumLODsToExport;
 	if (DoExportColliders)
 	{
 		FKAggregateGeom SimpleColliders = StaticMesh->BodySetup->AggGeom;
@@ -471,20 +540,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshSockets(
 	TArray<float > SocketScale;
 	SocketScale.SetNumZeroed(NumSockets * 3);
 	
-	// raw string array for names and tag, will need to be free before returning
-	TArray<const char *> SocketNames;
-	TArray<const char *> SocketTags;
-
-	// Lambda for freeing the const char array's memory and returning
-	auto FreeMemoryReturn = [&SocketNames, &SocketTags](const bool& bReturn)
-	{
-		// Frees the memory allocated by ExtractRawString for the names and tags
-		FHoudiniEngineUtils::FreeRawStringMemory(SocketNames);
-		FHoudiniEngineUtils::FreeRawStringMemory(SocketTags);
-
-		return bReturn;
-	};
-
+	TArray<FString> SocketNames;
+	TArray<FString> SocketTags;
 	for (int32 Idx = 0; Idx < NumSockets; ++Idx)
 	{
 		UStaticMeshSocket* CurrentSocket = InMeshSocket[Idx];
@@ -516,44 +573,29 @@ FUnrealMeshTranslator::CreateInputNodeForMeshSockets(
 			CurrentSocketName = CurrentSocket->SocketName.ToString();
 		else
 			CurrentSocketName = TEXT("Socket") + FString::FromInt(Idx);
-		SocketNames.Add(FHoudiniEngineUtils::ExtractRawString(CurrentSocketName));
+		SocketNames.Add(CurrentSocketName);
 
 		if (!CurrentSocket->Tag.IsEmpty())
-			SocketTags.Add(FHoudiniEngineUtils::ExtractRawString(CurrentSocket->Tag));
+			SocketTags.Add(CurrentSocket->Tag);
 		else
 			SocketTags.Add("");
 	}
 
 	//we can now upload them to our attribute.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-		FHoudiniEngine::Get().GetSession(),
-		OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPos,
-		SocketPos.GetData(), 0, AttributeInfoPos.count),
-		FreeMemoryReturn(false));
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+		SocketPos, OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, AttributeInfoPos),	false);
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-		FHoudiniEngine::Get().GetSession(),
-		OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_ROTATION, &AttributeInfoRot,
-		SocketRot.GetData(), 0, AttributeInfoRot.count),
-		FreeMemoryReturn(false));
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+		SocketRot, OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_ROTATION, AttributeInfoRot), false);
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-		FHoudiniEngine::Get().GetSession(),
-		OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_SCALE, &AttributeInfoScale,
-		SocketScale.GetData(), 0, AttributeInfoScale.count),
-		FreeMemoryReturn(false));
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+		SocketScale, OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_SCALE, AttributeInfoScale), false);
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
-		FHoudiniEngine::Get().GetSession(),
-		OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME, &AttributeInfoName,
-		SocketNames.GetData(), 0, AttributeInfoName.count),
-		FreeMemoryReturn(false));
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+		SocketNames, OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME, AttributeInfoName), false);
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
-		FHoudiniEngine::Get().GetSession(),
-		OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_MESH_SOCKET_TAG, &AttributeInfoTag,
-		SocketTags.GetData(), 0, AttributeInfoTag.count),
-		FreeMemoryReturn(false));
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+		SocketTags, OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_MESH_SOCKET_TAG, AttributeInfoTag), false);
 
 	// We will also create the socket_details attributes
 	for (int32 Idx = 0; Idx < NumSockets; ++Idx)
@@ -573,14 +615,12 @@ FUnrealMeshTranslator::CreateInputNodeForMeshSockets(
 		FString PosAttr = SocketAttrPrefix + TEXT("_pos");
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 			FHoudiniEngine::Get().GetSession(),
-			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*PosAttr), &AttributeInfoPos),
-			FreeMemoryReturn(false));
+			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*PosAttr), &AttributeInfoPos), false);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
 			FHoudiniEngine::Get().GetSession(),
 			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*PosAttr), &AttributeInfoPos,
-			&(SocketPos[3 * Idx]), 0, AttributeInfoPos.count),
-			FreeMemoryReturn(false));
+			&(SocketPos[3 * Idx]), 0, AttributeInfoPos.count), false);
 
 		// Create mesh_socketX_rot point attribute Info
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoRot);
@@ -594,14 +634,12 @@ FUnrealMeshTranslator::CreateInputNodeForMeshSockets(
 		FString RotAttr = SocketAttrPrefix + TEXT("_rot");
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 			FHoudiniEngine::Get().GetSession(),
-			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*RotAttr), &AttributeInfoRot),
-			FreeMemoryReturn(false));
+			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*RotAttr), &AttributeInfoRot), false);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
 			FHoudiniEngine::Get().GetSession(),
 			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*RotAttr), &AttributeInfoRot,
-			&(SocketRot[4 * Idx]), 0, AttributeInfoRot.count),
-			FreeMemoryReturn(false));
+			&(SocketRot[4 * Idx]), 0, AttributeInfoRot.count), false);
 
 		// Create mesh_socketX_scale point attribute Info
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoScale);
@@ -615,14 +653,12 @@ FUnrealMeshTranslator::CreateInputNodeForMeshSockets(
 		FString ScaleAttr = SocketAttrPrefix + TEXT("_scale");
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 			FHoudiniEngine::Get().GetSession(),
-			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*ScaleAttr), &AttributeInfoScale),
-			FreeMemoryReturn(false));
+			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*ScaleAttr), &AttributeInfoScale), false);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
 			FHoudiniEngine::Get().GetSession(),
 			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*ScaleAttr), &AttributeInfoScale,
-			&(SocketScale[3 * Idx]), 0, AttributeInfoScale.count),
-			FreeMemoryReturn(false));
+			&(SocketScale[3 * Idx]), 0, AttributeInfoScale.count), false);
 
 		//  Create the mesh_socketX_name attrib info
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoName);
@@ -636,14 +672,10 @@ FUnrealMeshTranslator::CreateInputNodeForMeshSockets(
 		FString NameAttr = SocketAttrPrefix + TEXT("_name");
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 			FHoudiniEngine::Get().GetSession(),
-			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*NameAttr), &AttributeInfoName),
-			FreeMemoryReturn(false));
+			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*NameAttr), &AttributeInfoName), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
-			FHoudiniEngine::Get().GetSession(),
-			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*NameAttr), &AttributeInfoName,
-			&(SocketNames[Idx]), 0, AttributeInfoName.count),
-			FreeMemoryReturn(false));
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+			SocketNames[Idx], OutSocketsNodeId, 0, NameAttr, AttributeInfoName), false);
 
 		//  Create the mesh_socketX_tag attrib info
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoTag);
@@ -657,37 +689,33 @@ FUnrealMeshTranslator::CreateInputNodeForMeshSockets(
 		FString TagAttr = SocketAttrPrefix + TEXT("_tag");
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 			FHoudiniEngine::Get().GetSession(),
-			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*TagAttr), &AttributeInfoTag),
-			FreeMemoryReturn(false));
+			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*TagAttr), &AttributeInfoTag), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
-			FHoudiniEngine::Get().GetSession(),
-			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*TagAttr), &AttributeInfoTag,
-			&(SocketTags[Idx]), 0, AttributeInfoTag.count),
-			FreeMemoryReturn(false));
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+			SocketTags[Idx], OutSocketsNodeId, 0, TagAttr, AttributeInfoTag), false);
 	}
 
 	// Now add the sockets group
 	const char * SocketGroupStr = "socket_imported";
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddGroup(
 		FHoudiniEngine::Get().GetSession(),
-		OutSocketsNodeId, 0, HAPI_GROUPTYPE_POINT, SocketGroupStr),
-		FreeMemoryReturn(false));
+		OutSocketsNodeId, 0, HAPI_GROUPTYPE_POINT, SocketGroupStr), false);
 
 	// Set GroupMembership
 	TArray<int> GroupArray;
-	GroupArray.Init(1, NumSockets);
+	GroupArray.SetNumUninitialized(NumSockets);
+	for (int32 n = 0; n < GroupArray.Num(); n++)
+		GroupArray[n] = 1;
+
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetGroupMembership(
 		FHoudiniEngine::Get().GetSession(),
-		OutSocketsNodeId, 0, HAPI_GROUPTYPE_POINT, SocketGroupStr, GroupArray.GetData(), 0, NumSockets),
-		FreeMemoryReturn(false));
+		OutSocketsNodeId, 0, HAPI_GROUPTYPE_POINT, SocketGroupStr, GroupArray.GetData(), 0, NumSockets), false);
 
 	// Commit the geo.
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-		FHoudiniEngine::Get().GetSession(), OutSocketsNodeId),
-		FreeMemoryReturn(false));
+		FHoudiniEngine::Get().GetSession(), OutSocketsNodeId), false);
 
-	return FreeMemoryReturn(true);
+	return true;
 }
 
 bool
@@ -756,10 +784,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 		}
 
 		// Now that we have raw positions, we can upload them for our attribute.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint,
-			StaticMeshVertices.GetData(), 0, AttributeInfoPoint.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			StaticMeshVertices, NodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, AttributeInfoPoint), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -806,11 +832,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId,	0, TCHAR_TO_ANSI(*UVAttributeName), &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, TCHAR_TO_ANSI(*UVAttributeName), 
-				&AttributeInfoVertex, (const float *)StaticMeshUVs.GetData(),
-				0, AttributeInfoVertex.count), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				(const float *)StaticMeshUVs.GetData(), NodeId, 0, UVAttributeName, AttributeInfoVertex), false);
 		}
 	}
 
@@ -850,11 +873,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId,	0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL,
-			&AttributeInfoVertex, (const float *)ChangedNormals.GetData(),
-			0, AttributeInfoVertex.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			(const float*)ChangedNormals.GetData(), NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL,AttributeInfoVertex), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -893,10 +913,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId,	0, HAPI_UNREAL_ATTRIB_TANGENTU, &AttributeInfoVertex), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, &AttributeInfoVertex,
-			(const float *)ChangedTangentU.GetData(), 0, AttributeInfoVertex.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			(const float*)ChangedTangentU.GetData(), NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, AttributeInfoVertex), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -933,10 +951,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 			FHoudiniEngine::Get().GetSession(), 
 			NodeId,	0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex,
-			(const float *)ChangedTangentV.GetData(), 0, AttributeInfoVertex.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			(const float*)ChangedTangentV.GetData(), NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, AttributeInfoVertex), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -1026,10 +1042,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId,	0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex,
-				ColorValues.GetData(), 0, AttributeInfoVertex.count), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				ColorValues, NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, AttributeInfoVertex), false);
 
 			// Create the attribute for Alpha
 			TArray<float> AlphaValues;
@@ -1049,10 +1063,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId,	0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex,
-				AlphaValues.GetData(), 0, AttributeInfoVertex.count), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				AlphaValues, NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, AttributeInfoVertex), false);
 		}
 	}
 
@@ -1074,16 +1086,17 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 		}
 
 		// We can now set vertex list.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVertexList(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId,	0, StaticMeshIndices.GetData(), 0, StaticMeshIndices.Num()), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetVertexList(
+			StaticMeshIndices, NodeId, 0), false);
 
 		// We need to generate array of face counts.
-		TArray< int32 > StaticMeshFaceCounts;
-		StaticMeshFaceCounts.Init(3, Part.faceCount);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId,	0, StaticMeshFaceCounts.GetData(), 0, StaticMeshFaceCounts.Num()), false);
+		TArray<int32> StaticMeshFaceCounts;
+		StaticMeshFaceCounts.SetNumUninitialized(Part.faceCount);
+		for (int32 n = 0; n < Part.faceCount; n++)
+			StaticMeshFaceCounts[n] = 3;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetFaceCounts(
+			StaticMeshFaceCounts, NodeId, 0), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -1160,12 +1173,12 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 		}
 
 		// List of materials, one for each face.
-		TArray<char *> StaticMeshFaceMaterials;
+		TArray<FString> StaticMeshFaceMaterials;
 
 		//Lists of material parameters
 		TMap<FString, TArray<float>> ScalarMaterialParameters;
 		TMap<FString, TArray<float>> VectorMaterialParameters;
-		TMap<FString, TArray<char *>> TextureMaterialParameters;
+		TMap<FString, TArray<FString>> TextureMaterialParameters;
 
 		bool bAttributeSuccess = false;
 		bool bAddMaterialParametersAsAttributes = false;
@@ -1207,13 +1220,13 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 		}
 
 		// Delete material names.
-		FUnrealMeshTranslator::DeleteFaceMaterialArray(StaticMeshFaceMaterials);
+		//FUnrealMeshTranslator::DeleteFaceMaterialArray(StaticMeshFaceMaterials);
 
-		// Delete texture material parameter names
+		/*// Delete texture material parameter names
 		for (auto & Pair : TextureMaterialParameters)
 		{
 			FUnrealMeshTranslator::DeleteFaceMaterialArray(Pair.Value);
-		}
+		}*/
 
 		if (!bAttributeSuccess)
 		{
@@ -1241,10 +1254,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 			FHoudiniEngine::Get().GetSession(), 
 			NodeId,	0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, &AttributeInfoSmoothingMasks), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, &AttributeInfoSmoothingMasks,
-			(const int32 *)RawMesh.FaceSmoothingMasks.GetData(), 0, RawMesh.FaceSmoothingMasks.Num()), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
+			(const int32*)RawMesh.FaceSmoothingMasks.GetData(), NodeId, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, AttributeInfoSmoothingMasks), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -1272,10 +1283,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, &AttributeInfoLightMapResolution), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, &AttributeInfoLightMapResolution,
-			(const int32 *)LightMapResolutions.GetData(), 0, LightMapResolutions.Num()), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
+			LightMapResolutions, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -1283,16 +1292,6 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 	//---------------------------------------------------------------------------------------------------------------------
 	{
 		// Create primitive attribute with mesh asset path
-		const FString MeshAssetPath = StaticMesh->GetPathName();
-		std::string MeshAssetPathCStr = TCHAR_TO_ANSI(*MeshAssetPath);
-		const char* MeshAssetPathRaw = MeshAssetPathCStr.c_str();
-		TArray<const char*> PrimitiveAttrs;
-		PrimitiveAttrs.AddUninitialized(Part.faceCount);
-		for (int32 Ix = 0; Ix < Part.faceCount; ++Ix)
-		{
-			PrimitiveAttrs[Ix] = MeshAssetPathRaw;
-		}
-
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 		AttributeInfo.count = Part.faceCount;
@@ -1306,10 +1305,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 			FHoudiniEngine::Get().GetSession(), 
 			NodeId,	0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, &AttributeInfo), false);
 
-		HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, &AttributeInfo,
-			PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num()), false);
+		HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::HapiSetAttributeStringData(
+			StaticMesh->GetPathName(), NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, AttributeInfo), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -1329,15 +1326,6 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 
 		if (!Filename.IsEmpty())
 		{
-			std::string FilenameCStr = TCHAR_TO_ANSI(*Filename);
-			const char* FilenameCStrRaw = FilenameCStr.c_str();
-			TArray<const char*> PrimitiveAttrs;
-			PrimitiveAttrs.AddUninitialized(Part.faceCount);
-			for (int32 Ix = 0; Ix < Part.faceCount; ++Ix)
-			{
-				PrimitiveAttrs[Ix] = FilenameCStrRaw;
-			}
-
 			HAPI_AttributeInfo AttributeInfo;
 			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 			AttributeInfo.count = Part.faceCount;
@@ -1351,10 +1339,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId,	0, HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE, &AttributeInfo), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE, &AttributeInfo,
-				PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num()), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+				Filename, NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE, AttributeInfo), false);
 		}
 	}
 
@@ -1392,7 +1378,10 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 
 		// Set GroupMembership
 		TArray<int> GroupArray;
-		GroupArray.Init(1, Part.faceCount);
+		GroupArray.SetNumUninitialized(Part.faceCount);
+		for (int32 n = 0; n < GroupArray.Num(); n++)
+			GroupArray[n] = 1;
+
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetGroupMembership(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId, 0, HAPI_GROUPTYPE_PRIM, LODGroupStr,
@@ -1586,10 +1575,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 		HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
 
 	// Now that we have raw positions, we can upload them for our attribute.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-		FHoudiniEngine::Get().GetSession(),
-		NodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint,
-		StaticMeshVertices.GetData(), 0, AttributeInfoPoint.count), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+		StaticMeshVertices, NodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, AttributeInfoPoint), false);
 
 	// Determine which attributes we have
 	const bool bIsVertexInstanceNormalsValid = true;
@@ -1885,11 +1872,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 					FHoudiniEngine::Get().GetSession(),
 					NodeId, 0, TCHAR_TO_ANSI(*UVAttributeName), &AttributeInfoVertex), false);
 
-				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-					FHoudiniEngine::Get().GetSession(),
-					NodeId, 0, TCHAR_TO_ANSI(*UVAttributeName),
-					&AttributeInfoVertex, UVs[UVLayerIndex].GetData(),
-					0, AttributeInfoVertex.count), false);
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+					UVs[UVLayerIndex], NodeId, 0, UVAttributeName, AttributeInfoVertex), false);
 			}
 		}
 
@@ -1913,11 +1897,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL,
-				&AttributeInfoVertex, Normals.GetData(),
-				0, AttributeInfoVertex.count), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				Normals, NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, AttributeInfoVertex), false);
 		}
 
 		//--------------------------------------------------------------------------------------------------------------------- 
@@ -1940,10 +1921,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, &AttributeInfoVertex,
-				Tangents.GetData(), 0, AttributeInfoVertex.count), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				Tangents, NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, AttributeInfoVertex), false);
 		}
 
 		//--------------------------------------------------------------------------------------------------------------------- 
@@ -1966,10 +1945,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex,
-				Binormals.GetData(), 0, AttributeInfoVertex.count), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				Binormals, NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, AttributeInfoVertex), false);
 		}
 
 		//--------------------------------------------------------------------------------------------------------------------- 
@@ -1992,10 +1969,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex,
-				RGBColors.GetData(), 0, AttributeInfoVertex.count), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				RGBColors, NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, AttributeInfoVertex), false);
 
 			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
 			AttributeInfoVertex.tupleSize = 1;
@@ -2009,37 +1984,36 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex,
-				Alphas.GetData(), 0, AttributeInfoVertex.count), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				Alphas, NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, AttributeInfoVertex), false);
 		}
 
 		//--------------------------------------------------------------------------------------------------------------------- 
 		// TRIANGLE/FACE VERTEX INDICES
 		//---------------------------------------------------------------------------------------------------------------------
 		// We can now set vertex list.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVertexList(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, MeshTriangleVertexIndices.GetData(), 0, MeshTriangleVertexIndices.Num()), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetVertexList(
+			MeshTriangleVertexIndices, NodeId, 0), false);
 
 		// Send the array of face vertex counts.
-		TArray< int32 > StaticMeshFaceCounts;
-		StaticMeshFaceCounts.Init(3, Part.faceCount);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, MeshTriangleVertexCounts.GetData(), 0, MeshTriangleVertexCounts.Num()), false);
+		TArray<int32> StaticMeshFaceCounts;
+		StaticMeshFaceCounts.SetNumUninitialized(Part.faceCount);
+		for (int32 n = 0; n < Part.faceCount; n++)
+			StaticMeshFaceCounts[n] = 3;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetFaceCounts(
+			StaticMeshFaceCounts, NodeId, 0), false);
 
 		// Send material assignments to Houdini
 		if (NumMaterials > 0)
 		{
 			// List of materials, one for each face.
-			TArray<char *> TriangleMaterials;
+			TArray<FString> TriangleMaterials;
 
 			//Lists of material parameters
 			TMap<FString, TArray<float>> ScalarMaterialParameters;
 			TMap<FString, TArray<float>> VectorMaterialParameters;
-			TMap<FString, TArray<char *>> TextureMaterialParameters;
+			TMap<FString, TArray<FString>> TextureMaterialParameters;
 
 			bool bAttributeSuccess = false;
 			bool bAddMaterialParametersAsAttributes = false;
@@ -2081,13 +2055,13 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 			}
 
 			// Delete material names.
-			FUnrealMeshTranslator::DeleteFaceMaterialArray(TriangleMaterials);
+			//FUnrealMeshTranslator::DeleteFaceMaterialArray(TriangleMaterials);
 
-			// Delete texture material parameter names
+			/*// Delete texture material parameter names
 			for (auto & Pair : TextureMaterialParameters)
 			{
 				FUnrealMeshTranslator::DeleteFaceMaterialArray(Pair.Value);
-			}
+			}*/
 
 			if (!bAttributeSuccess)
 			{
@@ -2152,10 +2126,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, &AttributeInfoLightMapResolution), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, &AttributeInfoLightMapResolution,
-			(const int32 *)LightMapResolutions.GetData(), 0, LightMapResolutions.Num()), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
+			LightMapResolutions, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -2163,16 +2135,6 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	//---------------------------------------------------------------------------------------------------------------------
 	{
 		// Create primitive attribute with mesh asset path
-		const FString MeshAssetPath = StaticMesh->GetPathName();
-		std::string MeshAssetPathCStr = TCHAR_TO_ANSI(*MeshAssetPath);
-		const char* MeshAssetPathRaw = MeshAssetPathCStr.c_str();
-		TArray<const char*> PrimitiveAttrs;
-		PrimitiveAttrs.AddUninitialized(Part.faceCount);
-		for (int32 Ix = 0; Ix < Part.faceCount; ++Ix)
-		{
-			PrimitiveAttrs[Ix] = MeshAssetPathRaw;
-		}
-
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 		AttributeInfo.count = Part.faceCount;
@@ -2186,10 +2148,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, &AttributeInfo), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, &AttributeInfo,
-			PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num()), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+			StaticMesh->GetPathName(), NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, AttributeInfo), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -2209,15 +2169,6 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 		if (!Filename.IsEmpty())
 		{
-			std::string FilenameCStr = TCHAR_TO_ANSI(*Filename);
-			const char* FilenameCStrRaw = FilenameCStr.c_str();
-			TArray<const char*> PrimitiveAttrs;
-			PrimitiveAttrs.AddUninitialized(Part.faceCount);
-			for (int32 Ix = 0; Ix < Part.faceCount; ++Ix)
-			{
-				PrimitiveAttrs[Ix] = FilenameCStrRaw;
-			}
-
 			HAPI_AttributeInfo AttributeInfo;
 			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 			AttributeInfo.count = Part.faceCount;
@@ -2231,10 +2182,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE, &AttributeInfo), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE, &AttributeInfo,
-				PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num()), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+				Filename, NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE, AttributeInfo), false);
 		}
 	}
 
@@ -2272,7 +2221,10 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 		// Set GroupMembership
 		TArray<int> GroupArray;
-		GroupArray.Init(1, Part.faceCount);
+		GroupArray.SetNumUninitialized(Part.faceCount);
+		for (int32 n = 0; n < GroupArray.Num(); n++)
+			GroupArray[n] = 1;
+
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetGroupMembership(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId, 0, HAPI_GROUPTYPE_PRIM, LODGroupStr,
@@ -2454,10 +2406,12 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	{
 		TArray<float> StaticMeshVertices;
 		StaticMeshVertices.SetNumUninitialized(NumVertices * 3);
+				
+		VertexIDToHIndex.SetNumUninitialized(MDVertices.GetArraySize());
+		for (int32 n = 0; n < VertexIDToHIndex.Num(); n++)
+			VertexIDToHIndex[n] = INDEX_NONE;
 
 		int32 VertexIdx = 0;
-		VertexIDToHIndex.Init(INDEX_NONE, MDVertices.GetArraySize());
-
 		for (const FVertexID& VertexID : MDVertices.GetElementIDs())
 		{
 			// Convert Unreal to Houdini
@@ -2472,10 +2426,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		}
 
 		// Now that we have raw positions, we can upload them for our attribute.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint,
-			StaticMeshVertices.GetData(), 0, AttributeInfoPoint.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			StaticMeshVertices, NodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, AttributeInfoPoint), false);
 	}
 
 	bool bUseComponentOverrideColors = false;
@@ -2675,8 +2627,6 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 
 		int32 TriangleIdx = 0;
 		int32 VertexInstanceIdx = 0;
-		// VertexInstanceIDToHIndex.Init(-1, MDVertexInstances.GetArraySize());
-
 		for (const FPolygonID &PolygonID : MDPolygons.GetElementIDs())
 		{
 			for (const FTriangleID &TriangleID : MeshDescription.GetPolygonTriangleIDs(PolygonID))
@@ -2828,11 +2778,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 					FHoudiniEngine::Get().GetSession(),
 					NodeId, 0, TCHAR_TO_ANSI(*UVAttributeName), &AttributeInfoVertex), false);
 
-				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-					FHoudiniEngine::Get().GetSession(),
-					NodeId, 0, TCHAR_TO_ANSI(*UVAttributeName),
-					&AttributeInfoVertex, UVs[UVLayerIndex].GetData(),
-					0, AttributeInfoVertex.count), false);
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+					UVs[UVLayerIndex], NodeId, 0, UVAttributeName, AttributeInfoVertex), false);
 			}
 		}
 
@@ -2856,11 +2803,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL,
-				&AttributeInfoVertex, Normals.GetData(),
-				0, AttributeInfoVertex.count), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				Normals, NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, AttributeInfoVertex), false);
 		}
 
 		//--------------------------------------------------------------------------------------------------------------------- 
@@ -2883,10 +2827,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, &AttributeInfoVertex,
-				Tangents.GetData(), 0, AttributeInfoVertex.count), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				Tangents, NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, AttributeInfoVertex), false);
 		}
 
 		//--------------------------------------------------------------------------------------------------------------------- 
@@ -2909,10 +2851,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex,
-				Binormals.GetData(), 0, AttributeInfoVertex.count), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				Binormals, NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, AttributeInfoVertex), false);
 		}
 
 		//--------------------------------------------------------------------------------------------------------------------- 
@@ -2935,10 +2875,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex,
-				RGBColors.GetData(), 0, AttributeInfoVertex.count), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				RGBColors, NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, AttributeInfoVertex), false);
 
 			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
 			AttributeInfoVertex.tupleSize = 1;
@@ -2952,37 +2890,36 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex,
-				Alphas.GetData(), 0, AttributeInfoVertex.count), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				Alphas, NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, AttributeInfoVertex), false);
 		}
 
 		//--------------------------------------------------------------------------------------------------------------------- 
 		// TRIANGLE/FACE VERTEX INDICES
 		//---------------------------------------------------------------------------------------------------------------------
 		// We can now set vertex list.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVertexList(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, MeshTriangleVertexIndices.GetData(), 0, MeshTriangleVertexIndices.Num()), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetVertexList(
+			MeshTriangleVertexIndices, NodeId, 0), false);
 
 		// Send the array of face vertex counts.
-		TArray< int32 > StaticMeshFaceCounts;
-		StaticMeshFaceCounts.Init(3, Part.faceCount);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, MeshTriangleVertexCounts.GetData(), 0, MeshTriangleVertexCounts.Num()), false);
+		TArray<int32> StaticMeshFaceCounts;
+		StaticMeshFaceCounts.SetNumUninitialized(Part.faceCount);
+		for (int32 n = 0; n < Part.faceCount; n++)
+			StaticMeshFaceCounts[n] = 3;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetFaceCounts(
+			StaticMeshFaceCounts, NodeId, 0), false);
 
 		// Send material assignments to Houdini
 		if (NumMaterials > 0)
 		{
 			// List of materials, one for each face.
-			TArray<char *> TriangleMaterials;
+			TArray<FString> TriangleMaterials;
 
 			//Lists of material parameters
 			TMap<FString, TArray<float>> ScalarMaterialParameters;
 			TMap<FString, TArray<float>> VectorMaterialParameters;
-			TMap<FString, TArray<char *>> TextureMaterialParameters;
+			TMap<FString, TArray<FString>> TextureMaterialParameters;
 
 			bool bAttributeSuccess = false;
 			bool bAddMaterialParametersAsAttributes = false;
@@ -3024,15 +2961,16 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			}
 
 			// Delete material names.
-			FUnrealMeshTranslator::DeleteFaceMaterialArray(TriangleMaterials);
-
+			//FUnrealMeshTranslator::DeleteFaceMaterialArray(TriangleMaterials);
+			/*
 			// Delete texture material parameter names
 			for (auto & Pair : TextureMaterialParameters)
 			{
 				FUnrealMeshTranslator::DeleteFaceMaterialArray(Pair.Value);
 			}
+			*/
 
-			if (bAttributeSuccess)
+			if (!bAttributeSuccess)
 			{
 				check(0);
 				return false;
@@ -3042,9 +2980,17 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		//--------------------------------------------------------------------------------------------------------------------- 
 		// TRIANGLE SMOOTHING MASKS
 		//---------------------------------------------------------------------------------------------------------------------
-		TArray<uint32> TriangleSmoothingMasks;
+		TArray<int32> TriangleSmoothingMasks;
 		TriangleSmoothingMasks.SetNumZeroed(NumTriangles);
-		FStaticMeshOperations::ConvertHardEdgesToSmoothGroup(MeshDescription, TriangleSmoothingMasks);
+		{
+			// Convert uint32 smoothing mask to int
+			TArray<uint32> UnsignedSmoothingMasks;
+			UnsignedSmoothingMasks.SetNumZeroed(NumTriangles);
+			FStaticMeshOperations::ConvertHardEdgesToSmoothGroup(MeshDescription, UnsignedSmoothingMasks);
+			for (int32 n = 0; n < TriangleSmoothingMasks.Num(); n++)
+				TriangleSmoothingMasks[n] = (int32)UnsignedSmoothingMasks[n];
+		}
+
 		if (TriangleSmoothingMasks.Num() > 0)
 		{
 			HAPI_AttributeInfo AttributeInfoSmoothingMasks;
@@ -3061,10 +3007,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, &AttributeInfoSmoothingMasks), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, &AttributeInfoSmoothingMasks,
-				(const int32 *)TriangleSmoothingMasks.GetData(), 0, TriangleSmoothingMasks.Num()), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
+				TriangleSmoothingMasks, NodeId, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, AttributeInfoSmoothingMasks), false);
 		}
 	}
 
@@ -3074,7 +3018,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 
 	// TODO:
 	// Fetch default lightmap res from settings...
-	int32 GeneratedLightMapResolution = 32;
+	int32 GeneratedLightMapResolution = 32;	
 	if (StaticMesh->LightMapResolution != GeneratedLightMapResolution)
 	{
 		TArray< int32 > LightMapResolutions;
@@ -3093,10 +3037,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, &AttributeInfoLightMapResolution), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, &AttributeInfoLightMapResolution,
-			(const int32 *)LightMapResolutions.GetData(), 0, LightMapResolutions.Num()), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
+			LightMapResolutions, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -3105,13 +3047,11 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	{
 		// Create primitive attribute with mesh asset path
 		const FString MeshAssetPath = StaticMesh->GetPathName();
-		std::string MeshAssetPathCStr = TCHAR_TO_ANSI(*MeshAssetPath);
-		const char* MeshAssetPathRaw = MeshAssetPathCStr.c_str();
-		TArray<const char*> PrimitiveAttrs;
-		PrimitiveAttrs.AddUninitialized(Part.faceCount);
+		TArray<FString> PrimitiveAttrs;
+		PrimitiveAttrs.SetNum(Part.faceCount);
 		for (int32 Ix = 0; Ix < Part.faceCount; ++Ix)
 		{
-			PrimitiveAttrs[Ix] = MeshAssetPathRaw;
+			PrimitiveAttrs[Ix] = MeshAssetPath;
 		}
 
 		HAPI_AttributeInfo AttributeInfo;
@@ -3127,10 +3067,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, &AttributeInfo), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, &AttributeInfo,
-			PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num()), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+			PrimitiveAttrs, NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, AttributeInfo), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -3150,13 +3088,12 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 
 		if (!Filename.IsEmpty())
 		{
-			std::string FilenameCStr = TCHAR_TO_ANSI(*Filename);
-			const char* FilenameCStrRaw = FilenameCStr.c_str();
-			TArray<const char*> PrimitiveAttrs;
-			PrimitiveAttrs.AddUninitialized(Part.faceCount);
+			TArray<FString> PrimitiveAttrs;
+			PrimitiveAttrs.SetNum(Part.faceCount);
 			for (int32 Ix = 0; Ix < Part.faceCount; ++Ix)
 			{
-				PrimitiveAttrs[Ix] = FilenameCStrRaw;
+				//PrimitiveAttrs[Ix] = TEXT("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+				PrimitiveAttrs[Ix] = Filename;
 			}
 
 			HAPI_AttributeInfo AttributeInfo;
@@ -3172,10 +3109,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE, &AttributeInfo), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE, &AttributeInfo,
-				PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num()), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+				PrimitiveAttrs, NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE, AttributeInfo), false);
 		}
 	}
 
@@ -3213,7 +3148,10 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 
 		// Set GroupMembership
 		TArray<int> GroupArray;
-		GroupArray.Init(1, Part.faceCount);
+		GroupArray.SetNumUninitialized(Part.faceCount);
+		for (int32 n = 0; n < GroupArray.Num(); n++)
+			GroupArray[n] = 1;
+
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetGroupMembership(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId, 0, HAPI_GROUPTYPE_PRIM, LODGroupStr,
@@ -3305,42 +3243,37 @@ void
 FUnrealMeshTranslator::CreateFaceMaterialArray(
 	const TArray<UMaterialInterface* >& Materials,
 	const TArray<int32>& FaceMaterialIndices,
-	TArray<char *>& OutStaticMeshFaceMaterials)
-{
-	// We need to create list of unique materials.
-	TArray<char *> UniqueMaterialList;
-
-	UMaterialInterface * MaterialInterface = nullptr;
-	char* UniqueName = nullptr;
-
+	TArray<FString>& OutStaticMeshFaceMaterials)
+{	
+	// Get the default material
 	UMaterialInterface * DefaultMaterialInterface = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
-	char* DefaultMaterialName = FHoudiniEngineUtils::ExtractRawString(DefaultMaterialInterface->GetPathName());
+	FString DefaultMaterialName = DefaultMaterialInterface ? DefaultMaterialInterface->GetPathName() : TEXT("default");
 
+	// We need to create list of unique materials.
+	TArray<FString> UniqueMaterialList;
+
+	UMaterialInterface* MaterialInterface = nullptr;
 	if (Materials.Num())
 	{
 		// We have materials.
 		for (int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); MaterialIdx++)
 		{
-			UniqueName = nullptr;
 			MaterialInterface = Materials[MaterialIdx];
 			if (!MaterialInterface)
 			{
 				// Null material interface found, add default instead.
 				UniqueMaterialList.Add(DefaultMaterialName);
-
-				// No need to collect material parameters on the default material
-				continue;
 			}
-
-			// We found a material, get its name and material parameters
-			FString FullMaterialName = MaterialInterface->GetPathName();
-			UniqueName = FHoudiniEngineUtils::ExtractRawString(FullMaterialName);
-			UniqueMaterialList.Add(UniqueName);
+			else
+			{
+				// We found a material, get its name		
+				UniqueMaterialList.Add(MaterialInterface->GetPathName());
+			}
 		}
 	}
 	else
 	{
-		// We do not have any materials, add default.
+		// We do not have any materials, just add default.
 		UniqueMaterialList.Add(DefaultMaterialName);
 	}
 
@@ -3365,31 +3298,29 @@ void
 FUnrealMeshTranslator::CreateFaceMaterialArray(
 	const TArray<UMaterialInterface* >& Materials,
 	const TArray<int32>& FaceMaterialIndices,
-	TArray<char *>& OutStaticMeshFaceMaterials,
+	TArray<FString>& OutStaticMeshFaceMaterials,
 	TMap<FString, TArray<float>> & OutScalarMaterialParameters,
 	TMap<FString, TArray<float>> & OutVectorMaterialParameters,
-	TMap<FString, TArray<char *>> & OutTextureMaterialParameters)
+	TMap<FString, TArray<FString>> & OutTextureMaterialParameters)
 {
-	// We need to create list of unique materials.
-	TArray<char *> UniqueMaterialList;
-	
-	UMaterialInterface * MaterialInterface = nullptr;
-	char* UniqueName = nullptr;
+	// Get the default material
+	UMaterialInterface* DefaultMaterialInterface = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
+	FString DefaultMaterialName = DefaultMaterialInterface ? DefaultMaterialInterface->GetPathName() : TEXT("default");
 
-	UMaterialInterface * DefaultMaterialInterface = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
-	char* DefaultMaterialName = FHoudiniEngineUtils::ExtractRawString(DefaultMaterialInterface->GetPathName());
+	// We need to create list of unique materials.
+	TArray<FString> UniqueMaterialList;
 
 	// Initialize material parameter arrays
 	TMap<FString, TArray<float>> ScalarParams;
 	TMap<FString, TArray<FLinearColor>> VectorParams;
-	TMap<FString, TArray<char*>> TextureParams;
+	TMap<FString, TArray<FString>> TextureParams;
 
-	if (Materials.Num())
+	UMaterialInterface* MaterialInterface = nullptr;
+	if (Materials.Num() > 0)
 	{
 		// We have materials.
 		for (int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); MaterialIdx++)
 		{
-			UniqueName = nullptr;
 			MaterialInterface = Materials[MaterialIdx];
 			if (!MaterialInterface)
 			{
@@ -3401,17 +3332,15 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 			}
 
 			// We found a material, get its name and material parameters
-			FString FullMaterialName = MaterialInterface->GetPathName();
-			UniqueName = FHoudiniEngineUtils::ExtractRawString(FullMaterialName);
-			UniqueMaterialList.Add(UniqueName);
+			UniqueMaterialList.Add(MaterialInterface->GetPathName());
 
-			// Collect all scalar parameters in all materials
+			// Collect all scalar parameters in this material
 			{
 				TArray<FMaterialParameterInfo> MaterialScalarParamInfos;
 				TArray<FGuid> MaterialScalarParamGuids;
 				MaterialInterface->GetAllScalarParameterInfo(MaterialScalarParamInfos, MaterialScalarParamGuids);
 
-				for (auto & CurScalarParam : MaterialScalarParamInfos)
+				for (auto& CurScalarParam : MaterialScalarParamInfos)
 				{
 					FString CurScalarParamName = CurScalarParam.Name.ToString();
 					float CurScalarVal;
@@ -3432,13 +3361,13 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 				}
 			}
 
-			// Collect all vector parameters in all materials 
+			// Collect all vector parameters in this material
 			{
 				TArray<FMaterialParameterInfo> MaterialVectorParamInfos;
 				TArray<FGuid> MaterialVectorParamGuids;
 				MaterialInterface->GetAllVectorParameterInfo(MaterialVectorParamInfos, MaterialVectorParamGuids);
 
-				for (auto & CurVectorParam : MaterialVectorParamInfos) 
+				for (auto& CurVectorParam : MaterialVectorParamInfos) 
 				{
 					FString CurVectorParamName = CurVectorParam.Name.ToString();
 					FLinearColor CurVectorValue;
@@ -3459,7 +3388,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 				}
 			}
 
-			// Collect all texture parameters in all materials
+			// Collect all texture parameters in this material
 			{
 				TArray<FMaterialParameterInfo> MaterialTextureParamInfos;
 				TArray<FGuid> MaterialTextureParamGuids;
@@ -3477,15 +3406,14 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 					FString TexturePath = CurTexture->GetPathName();
 					if (!TextureParams.Contains(CurTextureParamName)) 
 					{
-						TArray<char*> CurArray;
+						TArray<FString> CurArray;
 						CurArray.SetNumZeroed(Materials.Num());
 
 						TextureParams.Add(CurTextureParamName, CurArray);
 						OutTextureMaterialParameters.Add(CurTextureParamName);
 					}
 
-					char * TexturePathRawStr = UniqueName = FHoudiniEngineUtils::ExtractRawString(TexturePath);
-					TextureParams[CurTextureParamName][MaterialIdx] = TexturePathRawStr;
+					TextureParams[CurTextureParamName][MaterialIdx] = TexturePath;
 				}
 			}
 
@@ -3531,20 +3459,6 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 	}
 }
 
-
-void
-FUnrealMeshTranslator::DeleteFaceMaterialArray(TArray<char *>& OutStaticMeshFaceMaterials)
-{
-	// Clean up the memory allocated by CreateFaceMaterialArray()
-	TSet<char *> UniqueMaterials(OutStaticMeshFaceMaterials);
-	for (TSet<char *>::TIterator Iter = UniqueMaterials.CreateIterator(); Iter; ++Iter)
-	{
-		char* MaterialName = *Iter;
-		FMemory::Free(MaterialName);
-	}
-
-	OutStaticMeshFaceMaterials.Empty();
-}
 
 bool
 FUnrealMeshTranslator::CreateInputNodeForBox(
@@ -4049,22 +3963,21 @@ FUnrealMeshTranslator::CreateInputNodeForCollider(
 		ColliderNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
 
 	// Upload the positions
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-		FHoudiniEngine::Get().GetSession(),
-		ColliderNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint,
-		ColliderVertices.GetData(), 0, AttributeInfoPoint.count), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+		ColliderVertices, ColliderNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, AttributeInfoPoint), false);
 
 	// Upload the indices
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVertexList(
-		FHoudiniEngine::Get().GetSession(),
-		ColliderNodeId, 0, ColliderIndices.GetData(), 0, ColliderIndices.Num()), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetVertexList(
+		ColliderIndices, ColliderNodeId, 0), false);
 
 	// Generate the array of face counts.
-	TArray<int32> ColldierFaceCounts;
-	ColldierFaceCounts.Init(3, Part.faceCount);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(
-		FHoudiniEngine::Get().GetSession(),
-		ColliderNodeId, 0, ColldierFaceCounts.GetData(), 0, ColldierFaceCounts.Num()), false);
+	TArray<int32> ColliderFaceCounts;
+	ColliderFaceCounts.SetNumUninitialized(Part.faceCount);
+	for (int32 n = 0; n < Part.faceCount; n++)
+		ColliderFaceCounts[n] = 3;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetFaceCounts(
+		ColliderFaceCounts, ColliderNodeId, 0), false);
 
 	// Commit the geo.
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
@@ -4080,10 +3993,10 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	const int32 & NodeId,
 	const int32 & PartId,
 	const int32 & Count,
-	const TArray<char *> & TriangleMaterials,
-	const TMap<FString, TArray<float>> & ScalarMaterialParameters,
-	const TMap<FString, TArray<float>> & VectorMaterialParameters,
-	const TMap<FString, TArray<char *>> & TextureMaterialParameters) 
+	const TArray<FString> & TriangleMaterials,
+	const TMap<FString, TArray<float>>& ScalarMaterialParameters,
+	const TMap<FString, TArray<float>>& VectorMaterialParameters,
+	const TMap<FString, TArray<FString>>& TextureMaterialParameters)
 {
 	if (NodeId < 0)
 		return false;
@@ -4106,20 +4019,17 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		NodeId, PartId, HAPI_UNREAL_ATTRIB_MATERIAL, &AttributeInfoMaterial))
 	{
 		// The New attribute has been successfully created, set its value
-		if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetAttributeStringData(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, PartId, HAPI_UNREAL_ATTRIB_MATERIAL, &AttributeInfoMaterial,
-			(const char **)TriangleMaterials.GetData(), PartId, TriangleMaterials.Num()))
+		if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeStringData(
+			TriangleMaterials, NodeId, PartId, HAPI_UNREAL_ATTRIB_MATERIAL, AttributeInfoMaterial))
 		{
 			bSuccess = false;
 		}
 	}
 
 	// Add scalar material parameter attributes
-	for (auto & Pair : ScalarMaterialParameters)
+	for (auto& Pair : ScalarMaterialParameters)
 	{
-		FString CurMaterialParamAttriName = FString(HAPI_UNREAL_ATTRIB_MATERIAL) + "_parameter_" + Pair.Key;
-		const char * CurMaterialParamAttriNameRawStr = FHoudiniEngineUtils::ExtractRawString(CurMaterialParamAttriName);
+		FString CurMaterialParamAttribName = FString(HAPI_UNREAL_ATTRIB_MATERIAL) + "_parameter_" + Pair.Key;
 
 		// Create attribute for material parameter.
 		HAPI_AttributeInfo AttributeInfoMaterialParameter;
@@ -4134,13 +4044,11 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		// Create the new attribute
 		if (HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(
 			FHoudiniEngine::Get().GetSession(),
-			NodeId, PartId, CurMaterialParamAttriNameRawStr, &AttributeInfoMaterialParameter))
+			NodeId, PartId, TCHAR_TO_ANSI(*CurMaterialParamAttribName), &AttributeInfoMaterialParameter))
 		{
 			// The New attribute has been successfully created, set its value
-			if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, PartId, CurMaterialParamAttriNameRawStr, &AttributeInfoMaterialParameter,
-				Pair.Value.GetData(), PartId, TriangleMaterials.Num()))
+			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				Pair.Value, NodeId, PartId, CurMaterialParamAttribName, AttributeInfoMaterialParameter))
 			{
 				bSuccess = false;
 			}
@@ -4148,10 +4056,9 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	}
 
 	// Add vector material parameters
-	for (auto & Pair : VectorMaterialParameters)
+	for (auto& Pair : VectorMaterialParameters)
 	{
-		FString CurMaterialParamAttriName = FString(HAPI_UNREAL_ATTRIB_MATERIAL) + "_parameter_" + Pair.Key;
-		const char * CurMaterialParamAttriNameRawStr = FHoudiniEngineUtils::ExtractRawString(CurMaterialParamAttriName);
+		FString CurMaterialParamAttribName = FString(HAPI_UNREAL_ATTRIB_MATERIAL) + "_parameter_" + Pair.Key;
 
 		// Create attribute for material parameter.
 		HAPI_AttributeInfo AttributeInfoMaterialParameter;
@@ -4163,14 +4070,13 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		AttributeInfoMaterialParameter.storage = HAPI_STORAGETYPE_FLOAT;
 		AttributeInfoMaterialParameter.originalOwner = HAPI_ATTROWNER_INVALID;
 
+		// Create the new attribute
 		if (HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
-			NodeId, PartId, CurMaterialParamAttriNameRawStr, &AttributeInfoMaterialParameter))
+			NodeId, PartId, TCHAR_TO_ANSI(*CurMaterialParamAttribName), &AttributeInfoMaterialParameter))
 		{
-			// The New attribute has been successfully created, set its value
-			if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, PartId, CurMaterialParamAttriNameRawStr, &AttributeInfoMaterialParameter,
-				Pair.Value.GetData(), PartId, TriangleMaterials.Num()))
+			// The New attribute has been successfully created, set its value				
+			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				Pair.Value, NodeId, PartId, CurMaterialParamAttribName, AttributeInfoMaterialParameter))
 			{
 				bSuccess = false;
 			}
@@ -4178,10 +4084,9 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	}
 
 	// Add texture material parameter attributes
-	for (auto & Pair : TextureMaterialParameters)
+	for (auto& Pair : TextureMaterialParameters)
 	{
-		FString CurMaterialParamAttriName = FString(HAPI_UNREAL_ATTRIB_MATERIAL) + "_parameter_" + Pair.Key;
-		const char * CurMaterialParamAttriNameRawStr = FHoudiniEngineUtils::ExtractRawString(CurMaterialParamAttriName);
+		FString CurMaterialParamAttribName = FString(HAPI_UNREAL_ATTRIB_MATERIAL) + "_parameter_" + Pair.Key;
 
 		// Create attribute for material parameter.
 		HAPI_AttributeInfo AttributeInfoMaterialParameter;
@@ -4193,9 +4098,11 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		AttributeInfoMaterialParameter.storage = HAPI_STORAGETYPE_STRING;
 		AttributeInfoMaterialParameter.originalOwner = HAPI_ATTROWNER_INVALID;
 
+		// Create the new attribute
 		if (HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
-			NodeId, PartId, CurMaterialParamAttriNameRawStr, &AttributeInfoMaterialParameter))
+			NodeId, PartId, TCHAR_TO_ANSI(*CurMaterialParamAttribName), &AttributeInfoMaterialParameter))
 		{
+			/*
 			// Replace null strings by empty strings to prevent crashes when setting the attribute.
 			char* EmptyString = nullptr;
 			TArray<char*> StringData = Pair.Value;
@@ -4212,12 +4119,11 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 				}
 				CurValue = EmptyString;
 			}
+			*/
 
 			// The New attribute has been successfully created, set its value
-			if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetAttributeStringData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, PartId, CurMaterialParamAttriNameRawStr, &AttributeInfoMaterialParameter,
-				(const char **)StringData.GetData(), PartId, TriangleMaterials.Num()))
+			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeStringData(				
+				Pair.Value, NodeId, PartId, CurMaterialParamAttribName, AttributeInfoMaterialParameter))
 			{
 				bSuccess = false;
 			}

@@ -296,7 +296,8 @@ int32 UHoudiniGeoImportCommandlet::MainLoop()
 	return 0;
 }
 
-void UHoudiniGeoImportCommandlet::HandleImportBGEOMessage(
+void
+UHoudiniGeoImportCommandlet::HandleImportBGEOMessage(
 	const FHoudiniPDGImportBGEOMessage& InMessage, 
 	const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& InContext)
 {
@@ -316,7 +317,10 @@ void UHoudiniGeoImportCommandlet::HandleImportBGEOMessage(
 		Reply->ImportResult = EHoudiniPDGImportBGEOResult::HPIBR_Success;
 
 		const int32 NumOutputs = Outputs.Num();
-		Reply->Outputs.Init(FHoudiniPDGImportNodeOutput(), NumOutputs);
+		Reply->Outputs.SetNumUninitialized(NumOutputs);
+		for (int32 n = 0; n < Reply->Outputs.Num(); n++)
+			Reply->Outputs[n] = FHoudiniPDGImportNodeOutput();
+
 		for (int32 Index = 0; Index < NumOutputs; ++Index)
 		{
 			FHoudiniPDGImportNodeOutput &MessageOutput = Reply->Outputs[Index];

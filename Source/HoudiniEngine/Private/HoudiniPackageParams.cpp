@@ -300,7 +300,7 @@ FHoudiniPackageParams::CreatePackageForObject(FString& OutPackageName, int32 InB
 		/* 
 		// As of UE4.26, it is not possible anymore to create package with a non null outer
 		// CookToLevel is, anyway, no logner supported in v2.
-		if (PackageMode == EPackageMode::CookToLevel)
+		if (PackageMode == EPackageMode::CookToLevel_Invalid)
 		{
 			// If we are not baking, then use outermost package, since objects within our package 
 			// need to be visible to external operations, such as copy paste.
