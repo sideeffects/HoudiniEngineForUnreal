@@ -150,7 +150,7 @@ FHoudiniLandscapeTranslator::CreateLandscape(
 	{
 		case HAPI_UNREAL_LANDSCAPE_OUTPUT_MODE_MODIFY_LAYER:
 		{
-			return OutputLandscape_ModifyLayer(InOutput,
+			return OutputLandscape_ModifyLayers(InOutput,
 				CreatedUntrackedOutputs,
 				InputLandscapesToUpdate,
 				InAllInputLandscapes,
@@ -163,8 +163,6 @@ FHoudiniLandscapeTranslator::CreateLandscape(
 				LandscapeTileSizeInfo,
 				LandscapeReferenceLocation,
 				InPackageParams,
-				false,
-				NAME_None,
 				ClearedLayers,
 				OutCreatedPackages);
 		}
@@ -1566,14 +1564,84 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	return true;
 }
 
-bool FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(UHoudiniOutput* InOutput,
-	TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedActors, TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
-	const TArray<ALandscapeProxy*>& InAllInputLandscapes, USceneComponent* SharedLandscapeActorParent,
-	const FString& DefaultLandscapeActorPrefix, UWorld* World, const TMap<FString, float>& LayerMinimums,
+bool
+FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayers(
+	UHoudiniOutput* InOutput,
+	TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedActors,
+	TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
+	const TArray<ALandscapeProxy*>& InAllInputLandscapes,
+	USceneComponent* SharedLandscapeActorParent,
+	const FString& DefaultLandscapeActorPrefix,
+	UWorld* InWorld,
+	const TMap<FString, float>& LayerMinimums,
 	const TMap<FString, float>& LayerMaximums,
 	FHoudiniLandscapeExtent& LandscapeExtent,
 	FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
-	FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation, FHoudiniPackageParams InPackageParams,
+	FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
+	FHoudiniPackageParams InPackageParams,
+	TSet<FString>& ClearedLayers,
+	TArray<UPackage*>& OutCreatedPackages)
+{
+	TArray<FString> EditLayerNames;
+	const bool bHasEditLayers = GetEditLayersFromOutput(InOutput, EditLayerNames);
+
+	HOUDINI_LANDSCAPE_MESSAGE(TEXT("[FHoudiniLandscapeTranslator::Output_Landscape_Generate] Generating landscape tile. Has edit layers?: %d"), bHasEditLayers);
+
+	TArray<FName> AllLayerNames;
+	for (const FString& LayerName : EditLayerNames)
+	{
+		AllLayerNames.Add(FName(LayerName));
+	}
+
+	if (!bHasEditLayers)
+	{
+		// Add a dummy edit layer to simply get us into the following for-loop.
+		EditLayerNames.Add(FString());
+	}
+
+	bool Result = true;
+	for (const FString& LayerName : EditLayerNames)
+	{
+		HOUDINI_LANDSCAPE_MESSAGE(TEXT("[FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayers] Creating edit layer for heightfield: %s"), *LayerName);
+		// If edit layers are enabled for this volume, create each layer for this landscape tile
+		FName LayerFName(LayerName);
+		
+		Result = Result && OutputLandscape_ModifyLayer(InOutput,
+			CreatedUntrackedActors,
+			InputLandscapesToUpdate,
+			InAllInputLandscapes,
+			SharedLandscapeActorParent,
+			DefaultLandscapeActorPrefix,
+			InWorld,
+			LayerMinimums,
+			LayerMaximums,
+			LandscapeExtent,
+			LandscapeTileSizeInfo,
+			LandscapeReferenceLocation,
+			InPackageParams,
+			bHasEditLayers,
+			LayerFName,
+			ClearedLayers,
+			OutCreatedPackages);
+	}
+	return Result;
+}
+
+bool
+FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
+	UHoudiniOutput* InOutput,
+	TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedActors,
+	TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
+	const TArray<ALandscapeProxy*>& InAllInputLandscapes,
+	USceneComponent* SharedLandscapeActorParent,
+	const FString& DefaultLandscapeActorPrefix,
+	UWorld* World,
+	const TMap<FString, float>& LayerMinimums,
+	const TMap<FString, float>& LayerMaximums,
+	FHoudiniLandscapeExtent& LandscapeExtent,
+	FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
+	FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
+	FHoudiniPackageParams InPackageParams,
 	const bool bHasEditLayers,
 	const FName& EditLayerName,
 	TSet<FString>& ClearedLayers,
@@ -1595,7 +1663,7 @@ bool FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(UHoudiniOutput* In
 		return false;
 
 	//  Get the height map.
-	const FHoudiniGeoPartObject* Heightfield = GetHoudiniHeightFieldFromOutput(InOutput, false, NAME_None);
+	const FHoudiniGeoPartObject* Heightfield = GetHoudiniHeightFieldFromOutput(InOutput, bHasEditLayers, EditLayerName);
 	if (!Heightfield)
 		return false;
 

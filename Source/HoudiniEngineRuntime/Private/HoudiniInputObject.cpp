@@ -1370,7 +1370,7 @@ UHoudiniInputActor::Update(UObject * InObject)
 			{
 				if (IsValid(InComp))
 				{
-					if (!ActorSceneComponents.Contains(InComp))
+					if (!ActorSceneComponents.Contains(InComp) && ShouldTrackComponent(InComp))
 					{
 						NewComponents.Add(InComp);
 					}
@@ -1551,11 +1551,12 @@ UHoudiniInputActor::InvalidateData()
 
 bool UHoudiniInputLandscape::ShouldTrackComponent(UActorComponent* InComponent)
 {
-	// We explicitly disable tracking of any components for landscape inputs since the Landscape tools
+	// We only track LandscapeComponents for landscape inputs since the Landscape tools
 	// have this very interesting and creative way of adding components when the tool is activated
 	// (looking at you Flatten tool) which causes cooking loops.
-	// return false;
-	return true;
+	if (!IsValid(InComponent))
+		return false;
+	return InComponent->IsA(ULandscapeComponent::StaticClass());
 }
 
 void
