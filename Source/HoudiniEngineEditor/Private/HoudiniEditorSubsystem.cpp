@@ -73,18 +73,6 @@ void UHoudiniEditorSubsystem::SendToHoudini(const TArray<FAssetData>& SelectedAs
 	CreateSessionHDA();
     }
 
-    //HAPI_NodeId GeometryNodeId = -1;
-    //FString OutputName = TEXT("OBJMASTER");
-    //// Create the node in this input object's OBJ node
-    //HAPI_Result GEOResult = FHoudiniEngineUtils::CreateNode(-1, TEXT("null"), OutputName, false, &GeometryNodeId);
-
-
-    
-
-    ////// Create the node in this input object's OBJ node
-    //HAPI_NodeId SphereNodeId = -1;
-    //HAPI_Result SphereResult = FHoudiniEngineUtils::CreateNode(MyGeoNode, TEXT("sphere"), TEXT("SPHERE"), false, &SphereNodeId);
-
     USkeletalMesh* SkelMesh = Cast<USkeletalMesh>(SelectedAssets[0].GetAsset());
 
     if (SkelMesh)
@@ -129,13 +117,6 @@ void UHoudiniEditorSubsystem::SendToUnreal(FString PackageName, FString PackageF
     GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Importing To Unreal!"));
 
     HAPI_Result result;
-
-  
-
-
-
-
-
     HAPI_GeoInfo DisplayHapiGeoInfo;
     FHoudiniApi::GeoInfo_Init(&DisplayHapiGeoInfo);
     result = FHoudiniApi::GetDisplayGeoInfo(FHoudiniEngine::Get().GetSession(), object_node_id, &DisplayHapiGeoInfo);
