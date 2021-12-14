@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
+#include "HoudiniEngine.h"
 #include "HoudiniEditorSubsystem.h"
 #include "HoudiniEngineEditor.h"
 #include "Engine/SkeletalMesh.h"
@@ -19,45 +20,12 @@ void UHoudiniEditorSubsystem::CreateSessionHDA()
     }
 
     HAPI_Result result;
-    // Load the library from file.
-    HAPI_AssetLibraryId library_id = -1;
-    FString Path = FHoudiniEngineEditor::GetHoudiniEnginePluginDir();
-    Path = Path + "/Content/GoH/UnrealSession.hda";
-    Path = FPaths::ConvertRelativePathToFull(Path);
-    result = FHoudiniApi::LoadAssetLibraryFromFile(
-	FHoudiniEngine::Get().GetSession(), TCHAR_TO_ANSI(*Path),	
-	false, &library_id);
-    if (result != HAPI_Result::HAPI_RESULT_SUCCESS)
-    {
-	HOUDINI_LOG_MESSAGE(TEXT("Error Loading GoHSession HDA"));
-	return;
-    }
+    HAPI_NodeId  UnrealContentNode = -1;
+    result = FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), -1, "Object/geo", "UnrealContent", true, &UnrealContentNode);
+    HAPI_NodeInfo MyGeoNodeInfo = FHoudiniApi::NodeInfo_Create();
+    result = FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), UnrealContentNode, &MyGeoNodeInfo);
 
-    // Instantiate the asset.
-    object_node_id = -1;
-    result = FHoudiniApi::CreateNode(
-	FHoudiniEngine::Get().GetSession(), -1, "Object/UnrealSession",
-	nullptr, true, &object_node_id);
- 
-    // Get the asset node info.
-    HAPI_NodeInfo node_info = FHoudiniApi::NodeInfo_Create();
-    result = FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), object_node_id, &node_info);
-
-    // Get the editable node network node id.
-    int editable_network_count = 0;
-    result = FHoudiniApi::ComposeChildNodeList(
-	FHoudiniEngine::Get().GetSession(), object_node_id,
-	HAPI_NODETYPE_ANY,
-	HAPI_NODEFLAGS_EDITABLE | HAPI_NODEFLAGS_NETWORK,
-	true, &editable_network_count);
-
-    network_node_id = 0;
-    result = FHoudiniApi::GetComposedChildNodeList(
-	FHoudiniEngine::Get().GetSession(), object_node_id, &network_node_id, 1);
-
-    // Get the editable node network info.
-    HAPI_NodeInfo network_node_info;
-    result = FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), network_node_id, &network_node_info);
+    network_node_id = UnrealContentNode;
 }
 
 void UHoudiniEditorSubsystem::SendStaticMeshToHoudini(UStaticMesh* StaticMesh)
@@ -70,7 +38,10 @@ void UHoudiniEditorSubsystem::SendStaticMeshToHoudini(UStaticMesh* StaticMesh)
 
     int32 LODIndex = 0;
     FStaticMeshSourceModel& SrcModel = StaticMesh->GetSourceModel(LODIndex);
-    FUnrealMeshTranslator::CreateInputNodeForRawMesh(mesh_node_id, SrcModel, LODIndex, false, StaticMesh, nullptr);
+    //FUnrealMeshTranslator::CreateInputNodeForRawMesh(mesh_node_id, SrcModel, LODIndex, false, StaticMesh, nullptr);
+    FMeshDescription* MeshDesc = nullptr;
+    MeshDesc = StaticMesh->GetMeshDescription(LODIndex);
+    FUnrealMeshTranslator::CreateInputNodeForMeshDescription(mesh_node_id, *MeshDesc, LODIndex, false, StaticMesh, nullptr);
     //bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(SM, InObject->InputNodeId, SMCName, SMC, bExportLODs, bExportSockets, bExportColliders);
 
     result = FHoudiniApi::SetNodeDisplay(FHoudiniEngine::Get().GetSession(), mesh_node_id, 1);
@@ -101,6 +72,18 @@ void UHoudiniEditorSubsystem::SendToHoudini(const TArray<FAssetData>& SelectedAs
     {
 	CreateSessionHDA();
     }
+
+    //HAPI_NodeId GeometryNodeId = -1;
+    //FString OutputName = TEXT("OBJMASTER");
+    //// Create the node in this input object's OBJ node
+    //HAPI_Result GEOResult = FHoudiniEngineUtils::CreateNode(-1, TEXT("null"), OutputName, false, &GeometryNodeId);
+
+
+    
+
+    ////// Create the node in this input object's OBJ node
+    //HAPI_NodeId SphereNodeId = -1;
+    //HAPI_Result SphereResult = FHoudiniEngineUtils::CreateNode(MyGeoNode, TEXT("sphere"), TEXT("SPHERE"), false, &SphereNodeId);
 
     USkeletalMesh* SkelMesh = Cast<USkeletalMesh>(SelectedAssets[0].GetAsset());
 
@@ -146,6 +129,12 @@ void UHoudiniEditorSubsystem::SendToUnreal(FString PackageName, FString PackageF
     GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Importing To Unreal!"));
 
     HAPI_Result result;
+
+  
+
+
+
+
 
     HAPI_GeoInfo DisplayHapiGeoInfo;
     FHoudiniApi::GeoInfo_Init(&DisplayHapiGeoInfo);
