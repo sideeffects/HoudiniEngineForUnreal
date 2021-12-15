@@ -68,6 +68,7 @@ public:
 	typedef HAPI_CookOptions (*CookOptions_CreateFuncPtr)();
 	typedef void (*CookOptions_InitFuncPtr)(HAPI_CookOptions * in);
 	typedef HAPI_Result (*CookPDGFuncPtr)(const HAPI_Session * session, HAPI_NodeId cook_node_id, int generate_only, int blocking);
+	typedef HAPI_Result (*CookPDGAllOutputsFuncPtr)(const HAPI_Session* session, HAPI_NodeId cook_node_id, int generate_only, int blocking);
 	typedef HAPI_Result (*CreateCustomSessionFuncPtr)(HAPI_SessionType session_type, void * session_info, HAPI_Session * session);
 	typedef HAPI_Result (*CreateHeightFieldInputFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * name, int xsize, int ysize, float voxelsize, HAPI_HeightFieldSampling sampling, HAPI_NodeId * heightfield_node_id, HAPI_NodeId * height_node_id, HAPI_NodeId * mask_node_id, HAPI_NodeId * merge_node_id);
 	typedef HAPI_Result (*CreateHeightfieldInputVolumeNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeId * new_node_id, const char * name, int xsize, int ysize, float voxelsize);
@@ -413,6 +414,7 @@ public:
 	static CookOptions_CreateFuncPtr CookOptions_Create;
 	static CookOptions_InitFuncPtr CookOptions_Init;
 	static CookPDGFuncPtr CookPDG;
+	static CookPDGAllOutputsFuncPtr CookPDGAllOutputs;
 	static CreateCustomSessionFuncPtr CreateCustomSession;
 	static CreateHeightFieldInputFuncPtr CreateHeightFieldInput;
 	static CreateHeightfieldInputVolumeNodeFuncPtr CreateHeightfieldInputVolumeNode;
@@ -758,6 +760,7 @@ public:
 	static HAPI_CookOptions CookOptions_CreateEmptyStub();
 	static void CookOptions_InitEmptyStub(HAPI_CookOptions * in);
 	static HAPI_Result CookPDGEmptyStub(const HAPI_Session * session, HAPI_NodeId cook_node_id, int generate_only, int blocking);
+	static HAPI_Result CookPDGAllOutputsEmptyStub(const HAPI_Session* session, HAPI_NodeId cook_node_id, int generate_only, int blocking);
 	static HAPI_Result CreateCustomSessionEmptyStub(HAPI_SessionType session_type, void * session_info, HAPI_Session * session);
 	static HAPI_Result CreateHeightFieldInputEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * name, int xsize, int ysize, float voxelsize, HAPI_HeightFieldSampling sampling, HAPI_NodeId * heightfield_node_id, HAPI_NodeId * height_node_id, HAPI_NodeId * mask_node_id, HAPI_NodeId * merge_node_id);
 	static HAPI_Result CreateHeightfieldInputVolumeNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeId * new_node_id, const char * name, int xsize, int ysize, float voxelsize);
