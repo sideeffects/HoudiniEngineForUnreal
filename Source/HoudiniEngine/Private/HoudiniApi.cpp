@@ -117,6 +117,9 @@ FHoudiniApi::CookOptions_Init = &FHoudiniApi::CookOptions_InitEmptyStub;
 FHoudiniApi::CookPDGFuncPtr
 FHoudiniApi::CookPDG = &FHoudiniApi::CookPDGEmptyStub;
 
+FHoudiniApi::CookPDGAllOutputsFuncPtr
+FHoudiniApi::CookPDGAllOutputs = &FHoudiniApi::CookPDGAllOutputsEmptyStub;
+
 FHoudiniApi::CreateCustomSessionFuncPtr
 FHoudiniApi::CreateCustomSession = &FHoudiniApi::CreateCustomSessionEmptyStub;
 
@@ -1089,6 +1092,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::CookOptions_Create = (CookOptions_CreateFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CookOptions_Create"));
 	FHoudiniApi::CookOptions_Init = (CookOptions_InitFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CookOptions_Init"));
 	FHoudiniApi::CookPDG = (CookPDGFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CookPDG"));
+	FHoudiniApi::CookPDGAllOutputs = (CookPDGAllOutputsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CookPDGAllOutputs"));
 	FHoudiniApi::CreateCustomSession = (CreateCustomSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateCustomSession"));
 	FHoudiniApi::CreateHeightFieldInput = (CreateHeightFieldInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateHeightFieldInput"));
 	FHoudiniApi::CreateHeightfieldInputVolumeNode = (CreateHeightfieldInputVolumeNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateHeightfieldInputVolumeNode"));
@@ -1437,6 +1441,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::CookOptions_Create = &FHoudiniApi::CookOptions_CreateEmptyStub;
 	FHoudiniApi::CookOptions_Init = &FHoudiniApi::CookOptions_InitEmptyStub;
 	FHoudiniApi::CookPDG = &FHoudiniApi::CookPDGEmptyStub;
+	FHoudiniApi::CookPDGAllOutputs = &FHoudiniApi::CookPDGAllOutputsEmptyStub;
 	FHoudiniApi::CreateCustomSession = &FHoudiniApi::CreateCustomSessionEmptyStub;
 	FHoudiniApi::CreateHeightFieldInput = &FHoudiniApi::CreateHeightFieldInputEmptyStub;
 	FHoudiniApi::CreateHeightfieldInputVolumeNode = &FHoudiniApi::CreateHeightfieldInputVolumeNodeEmptyStub;
@@ -1964,6 +1969,13 @@ FHoudiniApi::CookOptions_InitEmptyStub(HAPI_CookOptions * in)
 
 HAPI_Result
 FHoudiniApi::CookPDGEmptyStub(const HAPI_Session * session, HAPI_NodeId cook_node_id, int generate_only, int blocking)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::CookPDGAllOutputsEmptyStub(const HAPI_Session* session, HAPI_NodeId cook_node_id, int generate_only, int blocking)
 {
 	return HAPI_RESULT_FAILURE;
 }

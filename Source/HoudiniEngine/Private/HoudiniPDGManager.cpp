@@ -665,7 +665,7 @@ FHoudiniPDGManager::CookOutput(UTOPNetwork* InTOPNet)
 
 	// TODO: ???
 	// Cancel all cooks. This is required as otherwise the graph gets into an infinite cook state (bug?)
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::CookPDG(
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::CookPDGAllOutputs(
 		FHoudiniEngine::Get().GetSession(), InTOPNet->NodeId, 0, 0))
 	{
 		HOUDINI_LOG_ERROR(TEXT("PDG Cook Output - Failed to cook %s's output!"), *(InTOPNet->NodeName));
