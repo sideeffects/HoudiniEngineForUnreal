@@ -9234,6 +9234,45 @@ HAPI_DECL HAPI_CookPDG( const HAPI_Session * session,
                         int generate_only,
                         int blocking );
 
+/// @brief  Starts a PDG cooking operation.  This can be asynchronous.
+///        Progress can be checked with ::HAPI_GetPDGState() and
+///        ::HAPI_GetPDGState(). Events generated during this cook can be
+///        collected with ::HAPI_GetPDGEvents(). Any uncollected events will be
+///         discarded at the start of the cook.
+///
+///        If there are any $HIPFILE file dependencies on nodes involved in the
+///        cook a hip file will be automatically saved to $HOUDINI_TEMP_DIR
+///        directory so that it can be copied to the working directory by the
+///        scheduler.  This means $HIP will be equal to $HOUDINI_TEMP_DIR.
+/// 
+///        If cook_node_id is a network / subnet, then if it has output nodes
+///        it cooks all of its output nodes and not just output 0. If it does
+///        not have output nodes it cooks the node with the output flag.
+///
+/// @ingroup PDG
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      cook_node_id
+///                 The node id of a TOP node for the cook operation.
+///
+/// @param[in]      generate_only
+///                 1 means only static graph generation will done.  0 means
+///                 a full graph cook.  Generation is always blocking.
+///
+/// @param[in]      blocking
+///                 0 means return immediately and cooking will be done
+///                 asynchronously.   1 means return when cooking completes.
+///
+HAPI_DECL HAPI_CookPDGAllOutputs(
+        const HAPI_Session* session,
+        HAPI_NodeId cook_node_id,
+        int generate_only,
+        int blocking);
+
 /// @brief  Returns PDG events that have been collected.  Calling this function
 ///         will remove those events from the queue.  Events collection is restarted
 ///         by calls to ::HAPI_CookPDG().
