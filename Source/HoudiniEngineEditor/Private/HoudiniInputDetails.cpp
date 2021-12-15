@@ -999,7 +999,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 		new FAssetThumbnail(InputObject, 64, 64, AssetThumbnailPool));
 
 	// Lambda for adding new geometry input objects
-	auto UpdateGeometryObjectAt = [MainInput, &CategoryBuilder](TArray<UHoudiniInput*> InInputsToUpdate, const int32& AtIndex, UObject* InObject)
+	auto UpdateGeometryObjectAt = [MainInput, &CategoryBuilder](TArray<UHoudiniInput*> InInputsToUpdate, const int32& AtIndex, UObject* InObject, const bool& bAutoInserMissingObjects)
 	{
 		if (!IsValid(MainInput))
 			return;
@@ -1018,9 +1018,22 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 			if (!IsValid(CurInput))
 				continue;
 
-			UObject* InputObject = CurInput->GetInputObjectAt(EHoudiniInputType::Geometry, AtIndex);
-			if (InObject == InputObject)
+			UObject* InputObject = nullptr;
+			int32 NumInputObjects = CurInput->GetNumberOfInputObjects(EHoudiniInputType::Geometry);
+			if (AtIndex < NumInputObjects)
+			{
+				InputObject = CurInput->GetInputObjectAt(EHoudiniInputType::Geometry, AtIndex);
+				if (InObject == InputObject)
+					continue;
+			}
+			else if (bAutoInserMissingObjects)
+			{
+				CurInput->InsertInputObjectAt(EHoudiniInputType::Geometry, AtIndex);
+			}
+			else
+			{
 				continue;
+			}
 		
 			UHoudiniInputObject* CurrentInputObjectWrapper = CurInput->GetHoudiniInputObjectAt(AtIndex);
 			if (CurrentInputObjectWrapper)
@@ -1048,7 +1061,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 		})
 		.OnAssetDropped_Lambda([InInputs, InGeometryObjectIdx, UpdateGeometryObjectAt](UObject* InObject)
 		{
-			return UpdateGeometryObjectAt(InInputs, InGeometryObjectIdx, InObject);
+			return UpdateGeometryObjectAt(InInputs, InGeometryObjectIdx, InObject, false);
 		})
 		[
 			SAssignNew(HorizontalBox, SHorizontalBox)
@@ -1151,7 +1164,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 						{
 							ComboButton->SetIsOpen(false);
 							UObject * Object = AssetData.GetAsset();
-							UpdateGeometryObjectAt(InInputs, InGeometryObjectIdx, Object);
+							UpdateGeometryObjectAt(InInputs, InGeometryObjectIdx, Object, false);
 						}
 					}
 				),
@@ -1191,20 +1204,19 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 			TArray<FAssetData> CBSelections;
 			GEditor->GetContentBrowserSelections(CBSelections);
 
-			// Get the first selected static mesh object
-			UObject* Object = nullptr;
-			for (auto & CurAssetData : CBSelections) 
+			TArray<const UClass*> AllowedClasses = UHoudiniInput::GetAllowedClasses(EHoudiniInputType::Geometry);
+			int32 CurrentObjectIdx = InGeometryObjectIdx;
+			for (auto& CurAssetData : CBSelections)
 			{
-				if (CurAssetData.AssetClass != UStaticMesh::StaticClass()->GetFName())
+				UObject* Object = CurAssetData.GetAsset();
+				if (!IsValid(Object))
 					continue;
 
-				Object = CurAssetData.GetAsset();
-				break;
-			}
+				if (!UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::Geometry, Object))
+					continue;
 
-			if (IsValid(Object)) 
-			{
-				UpdateGeometryObjectAt(InInputs, InGeometryObjectIdx, Object);
+				// Update the object, inserting new one if necessary
+				UpdateGeometryObjectAt(InInputs, CurrentObjectIdx++, Object, true);
 			}
 		}
 		}), TAttribute< FText >(LOCTEXT("GeometryInputUseSelectedAssetFromCB", "Use Selected Asset from Content Browser")))
@@ -1244,7 +1256,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 		.Visibility( EVisibility::Visible )
 		.OnClicked_Lambda( [UpdateGeometryObjectAt, InInputs, InGeometryObjectIdx]()
 		{
-			UpdateGeometryObjectAt(InInputs, InGeometryObjectIdx, nullptr);
+			UpdateGeometryObjectAt(InInputs, InGeometryObjectIdx, nullptr, false);
 			return FReply::Handled();
 		})
 		[
