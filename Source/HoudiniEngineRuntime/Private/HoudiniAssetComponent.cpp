@@ -52,6 +52,8 @@
 #include "Serialization/CustomVersion.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "UObject/UObjectGlobals.h"
+#include "BodySetupEnums.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Private/GeomFitUtils.h"
