@@ -393,9 +393,13 @@ UHoudiniPublicAPIGeoInput::UpdateHoudiniInput(UHoudiniInput* const InInput) cons
 	return true;
 }
 
-void UHoudiniPublicAPIGeoInput::PostLoad()
+void
+UHoudiniPublicAPIGeoInput::PostLoad()
 {
 	Super::PostLoad();
+
+#pragma warning(push)
+#pragma warning(disable : 4996)	// disable deprecation warning locally
 
 	// Copy deprecated properties to the new ones and clear the deprecated properties.
 	if (HasAnyFlags(RF_WasLoaded))
@@ -428,6 +432,9 @@ void UHoudiniPublicAPIGeoInput::PostLoad()
 			MarkPackageDirty();
 		}
 	}
+
+#pragma warning(pop)
+
 }
 
 bool
@@ -1476,9 +1483,13 @@ bool UHoudiniPublicAPIGeometryCollectionInput::UpdateHoudiniInput(UHoudiniInput*
 	return true;
 }
 
-void UHoudiniPublicAPIGeometryCollectionInput::PostLoad()
+void
+UHoudiniPublicAPIGeometryCollectionInput::PostLoad()
 {
 	Super::PostLoad();
+
+#pragma warning(push)
+#pragma warning(disable : 4996)	// disable deprecation warning locally
 
 	// Copy deprecated properties to the new ones and clear the deprecated properties.
 	if (HasAnyFlags(RF_WasLoaded))
@@ -1511,6 +1522,9 @@ void UHoudiniPublicAPIGeometryCollectionInput::PostLoad()
 			MarkPackageDirty();
 		}
 	}
+
+#pragma warning(pop)
+
 }
 
 bool UHoudiniPublicAPIGeometryCollectionInput::CopyHoudiniInputObjectPropertiesToInputObject(
