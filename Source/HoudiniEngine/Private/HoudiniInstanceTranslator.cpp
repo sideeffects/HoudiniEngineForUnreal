@@ -384,11 +384,26 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 					InstancedOutputPartData.PerInstanceCustomData[VariationOriginalIndex], NewInstancerComponent);
 			}
 
-			// If the instanced object (by ref) wasn't found, hide the component
+			// See if the HiddenInGame property is overriden
+			bool bOverridesHiddenInGame = false;
+			for (auto& CurPropAttr : InstancedOutputPartData.AllPropertyAttributes)
+			{
+				if (CurPropAttr.AttributeName.Equals(TEXT("HiddenInGame"))
+					|| CurPropAttr.AttributeName.Equals(TEXT("bHiddenInGame")))
+				{
+					bOverridesHiddenInGame = true;
+				}
+			}
+
+			// If the instanced object (by ref) wasn't found, hide the component	
 			if(InstancedObject == DefaultReferenceSM)
 				NewInstancerComponent->SetHiddenInGame(true);
 			else
-				NewInstancerComponent->SetHiddenInGame(false);
+			{
+				// Dont force the property if it is overriden by generic attributes
+				if (!bOverridesHiddenInGame)
+					NewInstancerComponent->SetHiddenInGame(false);
+			}
 
 			FHoudiniOutputObject& NewOutputObject = NewOutputObjects.FindOrAdd(OutputIdentifier);
 			if (bIsProxyMesh)
