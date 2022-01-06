@@ -371,11 +371,28 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			bool bDefaultNoWeightBlending,
 			const FHoudiniPackageParams& InTilePackageParams,
 			const FHoudiniPackageParams& InLayerPackageParams,
-			TArray<UPackage*>& OutCreatedPackages);
+			TArray<UPackage*>& OutCreatedPackages,
+			TMap<FName, const FHoudiniGeoPartObject*>& OutLayerObjectMapping
+			);
+
+		static void UpdateLayerProperties(
+			ALandscape* TargetLandscape,
+			const FLandscapeLayer* TargetLayer,
+			const FLandscapeImportLayerInfo& InLayerInfo,
+			const TMap<FName, const FHoudiniGeoPartObject*>& LayerObjectMapping
+			);
 
 		static bool GetNonWeightBlendedLayerNames(
 			const FHoudiniGeoPartObject& HeightfieldGeoPartObject,
 			TArray<FString>& NonWeightBlendedLayerNames);
+
+		static bool GetIsLayerSubtractive(
+			const FHoudiniGeoPartObject& HeightfieldGeoPartObject,
+			int& LayerCompositeMode);
+
+		static bool GetIsLayerWeightBlended(
+			const FHoudiniGeoPartObject& HeightfieldGeoPartObject,
+			bool& bIsLayerNoWeightBlended);
 
 		static bool IsUnitLandscapeLayer(
 			const FHoudiniGeoPartObject& LayerGeoPartObject);
