@@ -211,6 +211,8 @@ UHoudiniGeoImporter::CreateStaticMeshes(
 				}
 			}
 
+			UObject* const OuterComponent = nullptr;
+			constexpr bool bForceRebuild = true;
 			FHoudiniMeshTranslator::CreateStaticMeshFromHoudiniGeoPartObject(
 				CurHGPO,
 				PackageParams,
@@ -219,7 +221,8 @@ UHoudiniGeoImporter::CreateStaticMeshes(
 				AssignementMaterials,
 				ReplacementMaterials,
 				AllOutputMaterials,
-				true,
+				OuterComponent,
+				bForceRebuild,
 				EHoudiniStaticMeshMethod::RawMesh,
 				InStaticMeshGenerationProperties,
 				InMeshBuildSettings);
@@ -285,6 +288,7 @@ UHoudiniGeoImporter::CreateCurves(TArray<UHoudiniOutput*>& InOutputs, UObject* I
 	{
 		bool bFoundOutputName = false;
 		bool bFoundBakeFolder = PackageParams.PackageMode != EPackageMode::Bake;
+		bool bFoundTempFolder = false;
 		for (auto& HGPO : CurOutput->GetHoudiniGeoPartObjects())
 		{
 			if (HGPO.Type != EHoudiniPartType::Curve)
@@ -303,6 +307,19 @@ UHoudiniGeoImporter::CreateCurves(TArray<UHoudiniOutput*>& InOutputs, UObject* I
 				}
 			}
 
+			if (!bFoundTempFolder)
+			{
+				FString TempFolder;
+				if (FHoudiniEngineUtils::GetTempFolderAttribute(HGPO.GeoId, TempFolder, HGPO.PartId))
+				{
+					if (!TempFolder.IsEmpty())
+					{
+						PackageParams.TempCookFolder = TempFolder;
+						bFoundTempFolder = true;
+					}
+				}
+			}
+
 			if (!bFoundBakeFolder)
 			{
 				TArray<FString> Strings;
@@ -316,11 +333,11 @@ UHoudiniGeoImporter::CreateCurves(TArray<UHoudiniOutput*>& InOutputs, UObject* I
 				}
 			}
 			
-			if (bFoundOutputName && bFoundBakeFolder)
+			if (bFoundOutputName && bFoundBakeFolder && bFoundTempFolder)
 				break;
 		}
 
-		if (bFoundOutputName && bFoundBakeFolder)
+		if (bFoundOutputName && bFoundBakeFolder && bFoundTempFolder)
 			break;
 	}
 	
@@ -492,6 +509,7 @@ UHoudiniGeoImporter::CreateInstancers(TArray<UHoudiniOutput*>& InOutputs, UObjec
 
 		bool bFoundOutputName = false;
 		bool bFoundBakeFolder = PackageParams.PackageMode != EPackageMode::Bake;
+		bool bFoundTempFolder = false;
 		for (auto& HGPO : CurOutput->GetHoudiniGeoPartObjects())
 		{
 			if (HGPO.Type != EHoudiniPartType::Instancer)
@@ -511,6 +529,19 @@ UHoudiniGeoImporter::CreateInstancers(TArray<UHoudiniOutput*>& InOutputs, UObjec
 				}
 			}
 			
+			if (!bFoundTempFolder)
+			{
+				FString TempFolder;
+				if (FHoudiniEngineUtils::GetTempFolderAttribute(HGPO.GeoId, TempFolder, HGPO.PartId))
+				{
+					if (!TempFolder.IsEmpty())
+					{
+						PackageParams.TempCookFolder = TempFolder;
+						bFoundTempFolder = true;
+					}
+				}
+			}
+
 			if (!bFoundBakeFolder)
 			{
 				TArray<FString> Strings;
@@ -525,11 +556,11 @@ UHoudiniGeoImporter::CreateInstancers(TArray<UHoudiniOutput*>& InOutputs, UObjec
 				}
 			}
 
-			if (bFoundOutputName && bFoundBakeFolder)
+			if (bFoundOutputName && bFoundBakeFolder && bFoundTempFolder)
 				break;
 		}
 
-		if (bFoundOutputName && bFoundBakeFolder)
+		if (bFoundOutputName && bFoundBakeFolder && bFoundTempFolder)
 			break;
 	}
 	
