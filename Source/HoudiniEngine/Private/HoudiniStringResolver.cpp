@@ -83,19 +83,14 @@ FString FHoudiniStringResolver::ResolveString(
 
 FString FHoudiniAttributeResolver::ResolveAttribute(
 	const FString& InAttrName,
-	const FString& InDefaultValue,
-	const bool bInUseDefaultIfAttrValueEmpty) const
+	const FString& InDefaultValue) const
 {
 	if (!CachedAttributes.Contains(InAttrName))
 	{
 		return ResolveString(InDefaultValue);
 	}
-	const FString AttrStr = CachedAttributes.FindChecked(InAttrName);
-	const FString AttrValue = ResolveString(AttrStr);
-	
-	if (bInUseDefaultIfAttrValueEmpty && AttrValue.IsEmpty())
-		return ResolveString(InDefaultValue);
-	return AttrValue;
+	FString AttrStr = CachedAttributes.FindChecked(InAttrName);
+	return ResolveString(AttrStr);
 }
 
 //FString FHoudiniStringResolver::GetTempFolderArgument() const
@@ -179,9 +174,7 @@ FString FHoudiniAttributeResolver::ResolveBakeFolder() const
 {
 	const FString DefaultBakeFolder = FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
 	
-	constexpr bool bUseDefaultIfAttrValueEmpty = true;
-	FString BakeFolder = ResolveAttribute(
-		HAPI_UNREAL_ATTRIB_BAKE_FOLDER, TEXT("{bake}"), bUseDefaultIfAttrValueEmpty);
+	FString BakeFolder = ResolveAttribute(HAPI_UNREAL_ATTRIB_BAKE_FOLDER, TEXT("{bake}"));
 	if (BakeFolder.IsEmpty())
 		return DefaultBakeFolder;
 
@@ -209,19 +202,6 @@ FString FHoudiniAttributeResolver::ResolveBakeFolder() const
 	//}
 
 	return BakeFolder;
-}
-
-FString FHoudiniAttributeResolver::ResolveTempFolder() const
-{
-	const FString DefaultTempFolder = FHoudiniEngineRuntime::Get().GetDefaultTemporaryCookFolder();
-	
-	constexpr bool bUseDefaultIfAttrValueEmpty = true;
-	const FString TempFolder = ResolveAttribute(
-		HAPI_UNREAL_ATTRIB_TEMP_FOLDER, TEXT("{temp}"), bUseDefaultIfAttrValueEmpty);
-	if (TempFolder.IsEmpty())
-		return DefaultTempFolder;
-
-	return TempFolder;
 }
 
 void FHoudiniAttributeResolver::LogCachedAttributesAndTokens() const

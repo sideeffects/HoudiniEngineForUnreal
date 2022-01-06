@@ -143,7 +143,6 @@ FHoudiniMeshTranslator::CreateAllMeshesAndComponentsFromHoudiniOutput(
 			AssignementMaterials,
 			ReplacementMaterials,
 			InAllOutputMaterials,
-			InOuterComponent,
 			InForceRebuild,
 			InStaticMeshMethod,
 			InSMGenerationProperties,
@@ -590,7 +589,6 @@ FHoudiniMeshTranslator::CreateStaticMeshFromHoudiniGeoPartObject(
 	TMap<FString, UMaterialInterface*>& AssignmentMaterialMap,
 	TMap<FString, UMaterialInterface*>& ReplacementMaterialMap,
 	const TMap<FString, UMaterialInterface*>& InAllOutputMaterials,
-	UObject* const InOuterComponent,
 	const bool& InForceRebuild,
 	const EHoudiniStaticMeshMethod& InStaticMeshMethod,
 	const FHoudiniStaticMeshGenerationProperties& InSMGenerationProperties,
@@ -618,7 +616,6 @@ FHoudiniMeshTranslator::CreateStaticMeshFromHoudiniGeoPartObject(
 	CurrentTranslator.SetTreatExistingMaterialsAsUpToDate(bInTreatExistingMaterialsAsUpToDate);
 	CurrentTranslator.SetStaticMeshGenerationProperties(InSMGenerationProperties);
 	CurrentTranslator.SetStaticMeshBuildSettings(InSMBuildSettings);
-	CurrentTranslator.SetOuterComponent(InOuterComponent);
 
 	// TODO: Fetch from settings/HAC
 	CurrentTranslator.DefaultMeshSmoothing = 1;
@@ -1509,128 +1506,6 @@ FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const
 	StaticMesh->NaniteSettings.bEnabled = bEnableNanite;
 }
 
-void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
-	const int32 InPointIndex, const int32 InPrimIndex, TMap<FString, FString>& OutAttributes, TMap<FString, FString>& OutTokens)
-{
-	// Get all the supported attributes from the HGPO
-	{
-		FString TempFolder;
-		if (FHoudiniEngineUtils::GetTempFolderAttribute(HGPO.GeoId, TempFolder, HGPO.PartId, InPrimIndex))
-		{
-			if (!TempFolder.IsEmpty())
-			{
-				// cache the level path attribute on the output object
-				OutAttributes.Add(HAPI_UNREAL_ATTRIB_TEMP_FOLDER, TempFolder);
-			}
-		}
-	}
-
-	{
-		FString LevelPath;
-		if (FHoudiniEngineUtils::GetLevelPathAttribute(HGPO.GeoId, HGPO.PartId, LevelPath, InPointIndex, InPrimIndex))
-		{
-			if (!LevelPath.IsEmpty())
-			{
-				// cache the level path attribute on the output object
-				OutAttributes.Add(HAPI_UNREAL_ATTRIB_LEVEL_PATH, LevelPath);
-			}
-		}
-	}
-
-	{
-		FString OutputName;
-		if (FHoudiniEngineUtils::GetOutputNameAttribute(HGPO.GeoId, HGPO.PartId, OutputName, InPointIndex, InPrimIndex))
-		{
-			if (!OutputName.IsEmpty())
-			{
-				// cache the output name attribute on the output object
-				OutAttributes.Add(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2, OutputName);
-			}
-		}
-	}
-
-	{
-		FString BakeName;
-		if (FHoudiniEngineUtils::GetBakeNameAttribute(HGPO.GeoId, HGPO.PartId, BakeName, InPointIndex, InPrimIndex))
-		{
-			if (!BakeName.IsEmpty())
-			{
-				// cache the bake name attribute on the output object
-				OutAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_NAME, BakeName);
-			}
-		}
-	}
-
-	{
-		int32 TileValue;
-		if (FHoudiniEngineUtils::GetTileAttribute(HGPO.GeoId, HGPO.PartId, TileValue, InPointIndex, InPrimIndex))
-		{
-			if (TileValue >= 0)
-			{
-				// cache the tile attribute as a token on the output object
-				OutTokens.Add(TEXT("tile"), FString::FromInt(TileValue));
-			}
-		}
-	}
-
-	{
-		FString BakeOutputActorName;
-		if (FHoudiniEngineUtils::GetBakeActorAttribute(HGPO.GeoId, HGPO.PartId, BakeOutputActorName, InPointIndex, InPrimIndex))
-		{
-			if (!BakeOutputActorName.IsEmpty())
-			{
-				// cache the bake actor attribute on the output object
-				OutAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_ACTOR, BakeOutputActorName);
-			}
-		}
-	}
-
-	{
-		FString BakeOutputActorClassName;
-		if (FHoudiniEngineUtils::GetBakeActorClassAttribute(HGPO.GeoId, HGPO.PartId, BakeOutputActorClassName, InPointIndex, InPrimIndex))
-		{
-			if (!BakeOutputActorClassName.IsEmpty())
-			{
-				// cache the bake actor attribute on the output object
-				OutAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_ACTOR_CLASS, BakeOutputActorClassName);
-			}
-		}
-	}
-
-	{
-		FString BakeFolder;
-		if (FHoudiniEngineUtils::GetBakeFolderAttribute(HGPO.GeoId, BakeFolder, HGPO.PartId, InPrimIndex))
-		{
-			if (!BakeFolder.IsEmpty())
-			{
-				// cache the unreal_bake_folder attribute on the output object
-				OutAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_FOLDER, BakeFolder);
-			}
-		}
-	}
-
-	{
-		FString BakeOutlinerFolder;
-		if (FHoudiniEngineUtils::GetBakeOutlinerFolderAttribute(HGPO.GeoId, HGPO.PartId, BakeOutlinerFolder, InPointIndex, InPrimIndex))
-		{
-			if (!BakeOutlinerFolder.IsEmpty())
-			{
-				// cache the bake actor attribute on the output object
-				OutAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_OUTLINER_FOLDER, BakeOutlinerFolder);
-			}
-		}
-	}
-}
-
-void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
-	const FString& InSplitGroupName, TMap<FString, FString>& OutAttributes, TMap<FString, FString>& OutTokens)
-{
-	const int32 PrimIndex = AllSplitFirstValidPrimIndex[InSplitGroupName];
-	const int32 PointIndex = AllSplitFirstValidVertexIndex[InSplitGroupName];
-
-	CopyAttributesFromHGPOForSplit(PointIndex, PrimIndex, OutAttributes, OutTokens);
-}
-
 UHoudiniStaticMesh*
 FHoudiniMeshTranslator::CreateNewHoudiniStaticMesh(const FString& InSplitIdentifier)
 {
@@ -1656,9 +1531,6 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 	bool bDoTiming = CVarHoudiniEngineMeshBuildTimer.GetValueOnAnyThread() != 0.0;
 
 	double time_start = FPlatformTime::Seconds();
-
-	// Keep a copy of the initial package params, since PackageParams is modified in place when resolving attributes
-	FHoudiniPackageParams InitialPackageParams = PackageParams;
 
 	// Start by updating the vertex list
 	if (!UpdatePartVertexList())
@@ -1818,39 +1690,9 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			if (SplitType == EHoudiniSplitType::InvisibleSimpleCollider)
 				continue;
 		}
-		
+
 		// Try to find existing properties for this identifier
 		FHoudiniOutputObject* FoundOutputObject = InputObjects.Find(OutputObjectIdentifier);
-		if (!FoundOutputObject)
-		{
-			FHoudiniOutputObject NewOutputObject;
-			FoundOutputObject = &OutputObjects.Add(OutputObjectIdentifier, NewOutputObject);
-			InputObjects.Remove(OutputObjectIdentifier);
-		}
-		else
-		{
-			// If this is not a new output object we have to clear the CachedAttributes and CachedTokens before
-			// setting the new values (so that we do not re-use any values from the previous cook)
-			FoundOutputObject->CachedAttributes.Empty();
-			FoundOutputObject->CachedTokens.Empty();
-		}
-		FoundOutputObject->bProxyIsCurrent = false;
-
-		// Get all the supported attributes from the HGPO
-		CopyAttributesFromHGPOForSplit(SplitGroupName, FoundOutputObject->CachedAttributes, FoundOutputObject->CachedTokens);
-
-		// Resolve our final package params
-		FHoudiniAttributeResolver Resolver;
-		FHoudiniPackageParams FinalPackageParams;
-		FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
-			InitialPackageParams,
-			IsValid(OuterComponent) ? OuterComponent->GetWorld() : nullptr,
-			OuterComponent,
-			FoundOutputObject->CachedAttributes,
-			FoundOutputObject->CachedTokens,
-			PackageParams,
-			Resolver);
-		
 		// Try to find an existing SM from a previous cook
 		UStaticMesh* FoundStaticMesh = FindExistingStaticMesh(OutputObjectIdentifier);
 
@@ -1897,6 +1739,21 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			MainStaticMesh->bCustomizedCollision = false;
 			// NOTE: The main static mesh collision trace flag will be set after all splits have been processed.
 		}
+
+		if (!FoundOutputObject)
+		{
+			FHoudiniOutputObject NewOutputObject;
+			FoundOutputObject = &OutputObjects.Add(OutputObjectIdentifier, NewOutputObject);
+			InputObjects.Remove(OutputObjectIdentifier);
+		}
+		else
+		{
+			// If this is not a new output object we have to clear the CachedAttributes and CachedTokens before
+			// setting the new values (so that we do not re-use any values from the previous cook)
+			FoundOutputObject->CachedAttributes.Empty();
+			FoundOutputObject->CachedTokens.Empty();
+		}
+		FoundOutputObject->bProxyIsCurrent = false;
 
 		// TODO: Needed?
 		// Free any RHI resources for existing mesh before we re-create in place.
@@ -2887,6 +2744,86 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 				FoundStaticMesh, PropertyAttributes, bDeferPostEditChangePropertyCalls, FindPropertyOnSourceModelLamba);
 		}
 
+		TArray<FString> LevelPaths;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetLevelPathAttribute(HGPO.GeoId, HGPO.PartId, LevelPaths, HAPI_ATTROWNER_INVALID, 0, 1))
+		{
+			if (LevelPaths.Num() > 0 && !LevelPaths[0].IsEmpty())
+			{
+				// cache the level path attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_LEVEL_PATH, LevelPaths[0]);
+			}
+		}
+
+		TArray<FString> OutputNames;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetOutputNameAttribute(HGPO.GeoId, HGPO.PartId, OutputNames, 0, 1))
+		{
+			if (OutputNames.Num() > 0 && !OutputNames[0].IsEmpty())
+			{
+				// cache the output name attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2, OutputNames[0]);
+			}
+		}
+
+		TArray<FString> BakeNames;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeNameAttribute(HGPO.GeoId, HGPO.PartId, BakeNames, 0, 1))
+		{
+			if (BakeNames.Num() > 0 && !BakeNames[0].IsEmpty())
+			{
+				// cache the bake name attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_NAME, BakeNames[0]);
+			}
+		}
+
+		TArray<int32> TileValues;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetTileAttribute(HGPO.GeoId, HGPO.PartId, TileValues, HAPI_ATTROWNER_INVALID, 0, 1))
+		{
+			if (TileValues.Num() > 0 && TileValues[0] >= 0)
+			{
+				// cache the tile attribute as a token on the output object
+				FoundOutputObject->CachedTokens.Add(TEXT("tile"), FString::FromInt(TileValues[0]));
+			}
+		}
+
+		TArray<FString> BakeOutputActorNames;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeActorAttribute(HGPO.GeoId, HGPO.PartId, BakeOutputActorNames, HAPI_ATTROWNER_INVALID, 0, 1))
+		{
+			if (BakeOutputActorNames.Num() > 0 && !BakeOutputActorNames[0].IsEmpty())
+			{
+				// cache the bake actor attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_ACTOR, BakeOutputActorNames[0]);
+			}
+		}
+
+		TArray<FString> BakeOutputActorClassNames;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeActorClassAttribute(HGPO.GeoId, HGPO.PartId, BakeOutputActorClassNames, HAPI_ATTROWNER_INVALID, 0, 1))
+		{
+			if (BakeOutputActorClassNames.Num() > 0 && !BakeOutputActorClassNames[0].IsEmpty())
+			{
+				// cache the bake actor attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_ACTOR_CLASS, BakeOutputActorClassNames[0]);
+			}
+		}
+
+		TArray<FString> BakeFolders;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeFolderAttribute(HGPO.GeoId, BakeFolders, HGPO.PartId, 0, 1))
+		{
+			if (BakeFolders.Num() > 0 && !BakeFolders[0].IsEmpty())
+			{
+				// cache the unreal_bake_folder attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_FOLDER, BakeFolders[0]);
+			}
+		}
+
+		TArray<FString> BakeOutlinerFolders;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeOutlinerFolderAttribute(HGPO.GeoId, HGPO.PartId, BakeOutlinerFolders, HAPI_ATTROWNER_INVALID, 0, 1))
+		{
+			if (BakeOutlinerFolders.Num() > 0 && !BakeOutlinerFolders[0].IsEmpty())
+			{
+				// cache the bake actor attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_OUTLINER_FOLDER, BakeOutlinerFolders[0]);
+			}
+		}
+
 		if (bDoTiming)
 		{
 			HOUDINI_LOG_MESSAGE(TEXT("CreateStaticMesh_RawMesh() - Attributes in %f seconds."), FPlatformTime::Seconds() - tick);
@@ -3106,9 +3043,6 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 
 	double time_start = FPlatformTime::Seconds();
 
-	// Keep a copy of the initial package params, since PackageParams is modified in place when resolving attributes
-	FHoudiniPackageParams InitialPackageParams = PackageParams;
-
 	// Start by updating the vertex list
 	if (!UpdatePartVertexList())
 		return false;
@@ -3269,35 +3203,6 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 
 		// Try to find existing properties for this identifier
 		FHoudiniOutputObject* FoundOutputObject = InputObjects.Find(OutputObjectIdentifier);
-		if (!FoundOutputObject)
-		{
-			FHoudiniOutputObject NewOutputObject;
-			FoundOutputObject = &OutputObjects.Add(OutputObjectIdentifier, NewOutputObject);
-		}
-		else
-		{
-			// If this is not a new output object we have to clear the CachedAttributes and CachedTokens before
-			// setting the new values (so that we do not re-use any values from the previous cook)
-			FoundOutputObject->CachedAttributes.Empty();
-			FoundOutputObject->CachedTokens.Empty();
-		}
-		FoundOutputObject->bProxyIsCurrent = false;
-
-		// Get all the supported attributes from the HGPO
-		CopyAttributesFromHGPOForSplit(SplitGroupName, FoundOutputObject->CachedAttributes, FoundOutputObject->CachedTokens);
-
-		// Resolve our final package params
-		FHoudiniAttributeResolver Resolver;
-		FHoudiniPackageParams FinalPackageParams;
-		FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
-			InitialPackageParams,
-			IsValid(OuterComponent) ? OuterComponent->GetWorld() : nullptr,
-			OuterComponent,
-			FoundOutputObject->CachedAttributes,
-			FoundOutputObject->CachedTokens,
-			PackageParams,
-			Resolver);
-
 		// Try to find an existing SM from a previous cook
 		UStaticMesh* FoundStaticMesh = FindExistingStaticMesh(OutputObjectIdentifier);
 
@@ -3343,6 +3248,20 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			MainStaticMesh->ComplexCollisionMesh = nullptr;
 			MainStaticMesh->bCustomizedCollision = false;
 		}
+
+		if (!FoundOutputObject)
+		{
+			FHoudiniOutputObject NewOutputObject;
+			FoundOutputObject = &OutputObjects.Add(OutputObjectIdentifier, NewOutputObject);
+		}
+		else
+		{
+			// If this is not a new output object we have to clear the CachedAttributes and CachedTokens before
+			// setting the new values (so that we do not re-use any values from the previous cook)
+			FoundOutputObject->CachedAttributes.Empty();
+			FoundOutputObject->CachedTokens.Empty();
+		}
+		FoundOutputObject->bProxyIsCurrent = false;
 
 		// TODO: Needed?
 		// Free any RHI resources for existing mesh before we re-create in place.
@@ -4244,6 +4163,86 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 				FoundStaticMesh, PropertyAttributes, bDeferPostEditChangePropertyCalls, FindPropertyOnSourceModelLamba);
 		}
 
+		TArray<FString> LevelPaths;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetLevelPathAttribute(HGPO.GeoId, HGPO.PartId, LevelPaths, HAPI_ATTROWNER_INVALID, 0, 1))
+		{
+			if (LevelPaths.Num() > 0 && !LevelPaths[0].IsEmpty())
+			{
+				// cache the level path attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_LEVEL_PATH, LevelPaths[0]);
+			}
+		}
+
+		TArray<FString> OutputNames;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetOutputNameAttribute(HGPO.GeoId, HGPO.PartId, OutputNames, 0, 1))
+		{
+			if (OutputNames.Num() > 0 && !OutputNames[0].IsEmpty())
+			{
+				// cache the output name attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2, OutputNames[0]);
+			}
+		}
+
+		TArray<FString> BakeNames;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeNameAttribute(HGPO.GeoId, HGPO.PartId, BakeNames, 0, 1))
+		{
+			if (BakeNames.Num() > 0 && !BakeNames[0].IsEmpty())
+			{
+				// cache the bake name attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_NAME, BakeNames[0]);
+			}
+		}
+
+		TArray<int32> TileValues;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetTileAttribute(HGPO.GeoId, HGPO.PartId, TileValues, HAPI_ATTROWNER_INVALID, 0, 1))
+		{
+			if (TileValues.Num() > 0 && TileValues[0] >= 0)
+			{
+				// cache the tile attribute as a token on the output object
+				FoundOutputObject->CachedTokens.Add(TEXT("tile"), FString::FromInt(TileValues[0]));
+			}
+		}
+
+		TArray<FString> BakeOutputActorNames;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeActorAttribute(HGPO.GeoId, HGPO.PartId, BakeOutputActorNames, HAPI_ATTROWNER_INVALID, 0, 1))
+		{
+			if (BakeOutputActorNames.Num() > 0 && !BakeOutputActorNames[0].IsEmpty())
+			{
+				// cache the bake actor attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_ACTOR, BakeOutputActorNames[0]);
+			}
+		}
+
+		TArray<FString> BakeOutputActorClassNames;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeActorClassAttribute(HGPO.GeoId, HGPO.PartId, BakeOutputActorClassNames, HAPI_ATTROWNER_INVALID, 0, 1))
+		{
+			if (BakeOutputActorClassNames.Num() > 0 && !BakeOutputActorClassNames[0].IsEmpty())
+			{
+				// cache the bake actor attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_ACTOR_CLASS, BakeOutputActorClassNames[0]);
+			}
+		}
+
+		TArray<FString> BakeFolders;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeFolderAttribute(HGPO.GeoId, BakeFolders, HGPO.PartId, 0, 1))
+		{
+			if (BakeFolders.Num() > 0 && !BakeFolders[0].IsEmpty())
+			{
+				// cache the unreal_bake_folder attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_FOLDER, BakeFolders[0]);
+			}
+		}
+
+		TArray<FString> BakeOutlinerFolders;
+		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeOutlinerFolderAttribute(HGPO.GeoId, HGPO.PartId, BakeOutlinerFolders, HAPI_ATTROWNER_INVALID, 0, 1))
+		{
+			if (BakeOutlinerFolders.Num() > 0 && !BakeOutlinerFolders[0].IsEmpty())
+			{
+				// cache the bake actor attribute on the output object
+				FoundOutputObject->CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_OUTLINER_FOLDER, BakeOutlinerFolders[0]);
+			}
+		}
+
 		// Notify that we created a new Static Mesh if needed
 		if(bNewStaticMeshCreated)
 			FAssetRegistryModule::AssetCreated(FoundStaticMesh);
@@ -4461,9 +4460,6 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 
 	const double time_start = FPlatformTime::Seconds();
 
-	// Keep a copy of the initial package params, since PackageParams is modified in place when resolving attributes
-	FHoudiniPackageParams InitialPackageParams = PackageParams;
-
 	// Start by updating the vertex list
 	if (!UpdatePartVertexList())
 		return false;
@@ -4602,36 +4598,6 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 
 		// Try to find existing properties for this identifier
 		FHoudiniOutputObject* FoundOutputObject = InputObjects.Find(OutputObjectIdentifier);
-		if (!FoundOutputObject)
-		{
-			// If we couldnt find a previous output object, create a new one
-			FHoudiniOutputObject NewOutputObject;
-			FoundOutputObject = &OutputObjects.Add(OutputObjectIdentifier, NewOutputObject);
-		}
-		else
-		{
-			// If this is not a new output object we have to clear the CachedAttributes and CachedTokens before
-			// setting the new values (so that we do not re-use any values from the previous cook)
-			FoundOutputObject->CachedAttributes.Empty();
-			FoundOutputObject->CachedTokens.Empty();
-		}
-		FoundOutputObject->bProxyIsCurrent = true;
-
-		// Get all the supported attributes from the HGPO
-		CopyAttributesFromHGPOForSplit(SplitGroupName, FoundOutputObject->CachedAttributes, FoundOutputObject->CachedTokens);
-
-		// Resolve our final package params
-		FHoudiniAttributeResolver Resolver;
-		FHoudiniPackageParams FinalPackageParams;
-		FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
-			InitialPackageParams,
-			IsValid(OuterComponent) ? OuterComponent->GetWorld() : nullptr,
-			OuterComponent,
-			FoundOutputObject->CachedAttributes,
-			FoundOutputObject->CachedTokens,
-			PackageParams,
-			Resolver);
-
 		// Try to find an existing DM from a previous cook
 		UHoudiniStaticMesh* FoundStaticMesh = FindExistingHoudiniStaticMesh(OutputObjectIdentifier);
 
@@ -4658,6 +4624,14 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 
 			bNewStaticMeshCreated = true;
 		}
+
+		if (!FoundOutputObject)
+		{
+			// If we couldnt find a previous output object, create a new one
+			FHoudiniOutputObject NewOutputObject;
+			FoundOutputObject = &OutputObjects.Add(OutputObjectIdentifier, NewOutputObject);
+		}
+		FoundOutputObject->bProxyIsCurrent = true;
 
 		if (bDoTiming)
 		{
@@ -5429,25 +5403,10 @@ FHoudiniMeshTranslator::CreateNeededMaterials()
 
 	UpdatePartNeededMaterials();
 
-	// Update package params with resolved attributes
-	TMap<FString, FString> Attributes;
-	TMap<FString, FString> Tokens;
-	FHoudiniAttributeResolver Resolver;
-	FHoudiniPackageParams FinalPackageParams;
-	CopyAttributesFromHGPOForSplit(0, 0, Attributes, Tokens);
-	FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
-		PackageParams,
-		IsValid(OuterComponent) ? OuterComponent->GetWorld() : nullptr,
-		OuterComponent,
-		Attributes,
-		Tokens,
-		FinalPackageParams,
-		Resolver);
-	
 	TArray<UPackage*> MaterialAndTexturePackages;
 	FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 		HGPO.AssetId,
-		FinalPackageParams,
+		PackageParams,
 		PartUniqueMaterialIds,
 		PartUniqueMaterialInfos,
 		InputAssignmentMaterials,
@@ -5545,13 +5504,6 @@ FHoudiniMeshTranslator::FindExistingStaticMesh(const FHoudiniOutputObjectIdentif
 			FoundStaticMesh->MarkAsGarbage();
 			FoundStaticMesh = nullptr;
 		}
-
-		// Check that the existing mesh is in the expected directory (temp folder could have been changed between
-		// cooks).
-		if (!PackageParams.HasMatchingPackageDirectories(FoundStaticMesh))
-		{
-			FoundStaticMesh = nullptr;
-		}
 	}
 
 	return FoundStaticMesh;
@@ -5582,13 +5534,6 @@ FHoudiniMeshTranslator::FindExistingHoudiniStaticMesh(const FHoudiniOutputObject
 		FoundStaticMesh = Cast<UHoudiniStaticMesh>(FoundOutputObjectPtr->ProxyObject);
 		if (!IsValid(FoundStaticMesh))
 			return nullptr;
-	}
-
-	// Check that the existing mesh is in the expected directory (temp folder could have been changed between
-	// cooks).
-	if (!PackageParams.HasMatchingPackageDirectories(FoundStaticMesh))
-	{
-		FoundStaticMesh = nullptr;
 	}
 
 	return FoundStaticMesh;
@@ -6795,8 +6740,8 @@ FHoudiniMeshTranslator::SetPackageParams(const FHoudiniPackageParams& InPackageP
 	if (bUpdateHGPO)
 	{
 		PackageParams.ObjectId = HGPO.ObjectId;
-		PackageParams.GeoId = HGPO.GeoId;
-		PackageParams.PartId = HGPO.PartId;
+		PackageParams.GeoId = HGPO.ObjectId;
+		PackageParams.PartId = HGPO.ObjectId;
 	}
 }
 

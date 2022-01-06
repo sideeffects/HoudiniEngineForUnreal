@@ -908,23 +908,6 @@ FHoudiniEngineUtils::SafeRenameActor(AActor* InActor, const FString& InName, boo
 	return PrevObj;
 }
 
-bool
-FHoudiniEngineUtils::ValidatePath(const FString& InPath, FText* OutInvalidPathReason)
-{
-	FString AbsolutePath;
-	if (InPath.StartsWith("/Game/")) 
-	{
-		const FString RelativePath = FPaths::ProjectContentDir() + InPath.Mid(6, InPath.Len() - 6);
-		AbsolutePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*RelativePath);
-	}
-	else 
-	{
-		AbsolutePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*InPath);
-	}
-
-	return FPaths::ValidatePath(AbsolutePath, OutInvalidPathReason); 
-}
-
 void
 FHoudiniEngineUtils::FillInPackageParamsForBakingOutput(
 	FHoudiniPackageParams& OutPackageParams,
@@ -1063,45 +1046,6 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	}
 }
 
-void
-FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
-	const FHoudiniPackageParams& InPackageParams,
-	const UWorld* InWorldContext,
-	const UObject* InOuterComponent,
-	const TMap<FString, FString>& InCachedAttributes,
-	const TMap<FString, FString>& InCachedTokens,
-	FHoudiniPackageParams& OutPackageParams,
-	FHoudiniAttributeResolver& OutResolver,
-	bool bInSkipTempFolderResolutionAndUseDefault)
-{
-	// Populate OutPackageParams from InPackageParams and then update it by resolving user attributes using string tokens.
-	//
-	// User specified attributes (eg unreal_temp_folder) are then resolved, with the defaults being those tokens configured
-	// from the initial PackageParams. Once resolved, we updated the relevant fields in PackageParams and update the
-	// resolver tokens with these final values.
-	//
-	OutPackageParams = InPackageParams;
-	
-	TMap<FString, FString> Tokens = InCachedTokens;
-	OutPackageParams.UpdateTokensFromParams(InWorldContext, InOuterComponent, Tokens);
-	OutResolver.SetCachedAttributes(InCachedAttributes);
-	OutResolver.SetTokensFromStringMap(Tokens);
-
-	if (!bInSkipTempFolderResolutionAndUseDefault)
-	{
-		// Now resolve the temp folder
-		const FString TempFolder = OutResolver.ResolveTempFolder();
-		if (!TempFolder.IsEmpty())
-			OutPackageParams.TempCookFolder = TempFolder;
-	}
-
-	if (!bInSkipTempFolderResolutionAndUseDefault)
-	{
-		// Update the tokens from the package params
-		OutPackageParams.UpdateTokensFromParams(InWorldContext, InOuterComponent, Tokens);
-		OutResolver.SetTokensFromStringMap(Tokens);
-	}
-}
 
 bool
 FHoudiniEngineUtils::RepopulateFoliageTypeListInUI()
@@ -6249,48 +6193,6 @@ FHoudiniEngineUtils::GetLevelPathAttribute(
 }
 
 bool
-FHoudiniEngineUtils::GetLevelPathAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
-	FString& OutLevelPath,
-	const int32& InPointIndex,
-	const int32& InPrimIndex)
-{
-	constexpr int32 Count = 1;
-	TArray<FString> StringData;
-
-	if (GetLevelPathAttribute(InGeoId, InPartId, StringData, HAPI_ATTROWNER_POINT, InPointIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutLevelPath = StringData[0];
-			return true;
-		}
-	}
-
-	if (GetLevelPathAttribute(InGeoId, InPartId, StringData, HAPI_ATTROWNER_PRIM, InPrimIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutLevelPath = StringData[0];
-			return true;
-		}
-	}
-
-	if (GetLevelPathAttribute(InGeoId, InPartId, StringData, HAPI_ATTROWNER_DETAIL, 0, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutLevelPath = StringData[0];
-			return true;
-		}
-	}
-	
-	OutLevelPath.Empty();
-	return false;
-}
-
-bool
 FHoudiniEngineUtils::GetOutputNameAttribute(
 	const HAPI_NodeId& InGeoId,
 	const HAPI_PartId& InPartId, 
@@ -6326,97 +6228,10 @@ FHoudiniEngineUtils::GetOutputNameAttribute(
 }
 
 bool
-FHoudiniEngineUtils::GetOutputNameAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
-	FString& OutOutputName,
-	const int32& InPointIndex,
-	const int32& InPrimIndex)
-{
-	constexpr int32 Count = 1;
-	TArray<FString> StringData;
-
-	HAPI_AttributeInfo AttributeInfo;
-	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-
-	// HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2
-	if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-		InGeoId, InPartId, HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2, 
-		AttributeInfo, StringData, 1, HAPI_ATTROWNER_POINT, InPointIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutOutputName = StringData[0];
-			return true;
-		}
-	}
-
-	if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-		InGeoId, InPartId, HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2, 
-		AttributeInfo, StringData, 1, HAPI_ATTROWNER_PRIM, InPrimIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutOutputName = StringData[0];
-			return true;
-		}
-	}
-
-	if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-		InGeoId, InPartId, HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2, 
-		AttributeInfo, StringData, 1, HAPI_ATTROWNER_DETAIL, 0, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutOutputName = StringData[0];
-			return true;
-		}
-	}
-	
-	// HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V1
-	if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-		InGeoId, InPartId, HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V1, 
-		AttributeInfo, StringData, 1, HAPI_ATTROWNER_POINT, InPointIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutOutputName = StringData[0];
-			return true;
-		}
-	}
-
-	if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-		InGeoId, InPartId, HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V1, 
-		AttributeInfo, StringData, 1, HAPI_ATTROWNER_PRIM, InPrimIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutOutputName = StringData[0];
-			return true;
-		}
-	}
-
-	if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-		InGeoId, InPartId, HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V1, 
-		AttributeInfo, StringData, 1, HAPI_ATTROWNER_DETAIL, 0, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutOutputName = StringData[0];
-			return true;
-		}
-	}
-
-	OutOutputName.Empty();
-	return false;
-}
-
-bool
 FHoudiniEngineUtils::GetBakeNameAttribute(
 	const HAPI_NodeId& InGeoId,
 	const HAPI_PartId& InPartId, 
 	TArray<FString>& OutBakeNames,
-	const HAPI_AttributeOwner& InAttribOwner,
 	const int32& InStartIndex,
 	const int32& InCount)
 {
@@ -6428,55 +6243,13 @@ FHoudiniEngineUtils::GetBakeNameAttribute(
 
 	if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
 		InGeoId, InPartId, HAPI_UNREAL_ATTRIB_BAKE_NAME, 
-		AttributeInfo, OutBakeNames, 1, InAttribOwner, InStartIndex, InCount))
+		AttributeInfo, OutBakeNames, 1, HAPI_ATTROWNER_INVALID, InStartIndex, InCount))
 	{
 		if (OutBakeNames.Num() > 0)
 			return true;
 	}
 
 	OutBakeNames.Empty();
-	return false;
-}
-
-bool
-FHoudiniEngineUtils::GetBakeNameAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId, 
-	FString& OutBakeName,
-	const int32& InPointIndex,
-	const int32& InPrimIndex)
-{
-	constexpr int32 Count = 1;
-	TArray<FString> StringData;
-
-	if (GetBakeNameAttribute(InGeoId, InPartId, StringData, HAPI_ATTROWNER_POINT, InPointIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutBakeName = StringData[0];
-			return true;
-		}
-	}
-
-	if (GetBakeNameAttribute(InGeoId, InPartId, StringData, HAPI_ATTROWNER_PRIM, InPrimIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutBakeName = StringData[0];
-			return true;
-		}
-	}
-
-	if (GetBakeNameAttribute(InGeoId, InPartId, StringData, HAPI_ATTROWNER_DETAIL, 0, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutBakeName = StringData[0];
-			return true;
-		}
-	}
-	
-	OutBakeName.Empty();
 	return false;
 }
 
@@ -6504,47 +6277,6 @@ FHoudiniEngineUtils::GetTileAttribute(
 	}
 
 	OutTileValues.Empty();
-	return false;
-}
-
-bool
-FHoudiniEngineUtils::GetTileAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
-	int32& OutTileValue,
-	const int32& InPointIndex,
-	const int32& InPrimIndex)
-{
-	constexpr int32 Count = 1;
-	TArray<int32> IntData;
-
-	if (GetTileAttribute(InGeoId, InPartId, IntData, HAPI_ATTROWNER_POINT, InPointIndex, Count))
-	{
-		if (IntData.Num() > 0)
-		{
-			OutTileValue = IntData[0];
-			return true;
-		}
-	}
-
-	if (GetTileAttribute(InGeoId, InPartId, IntData, HAPI_ATTROWNER_PRIM, InPrimIndex, Count))
-	{
-		if (IntData.Num() > 0)
-		{
-			OutTileValue = IntData[0];
-			return true;
-		}
-	}
-
-	if (GetTileAttribute(InGeoId, InPartId, IntData, HAPI_ATTROWNER_DETAIL, 0, Count))
-	{
-		if (IntData.Num() > 0)
-		{
-			OutTileValue = IntData[0];
-			return true;
-		}
-	}
-	
 	return false;
 }
 
@@ -6592,63 +6324,6 @@ bool FHoudiniEngineUtils::HasEditLayerName(const HAPI_NodeId& InGeoId, const HAP
 		InGeoId, InPartId,
 		HAPI_UNREAL_ATTRIB_LANDSCAPE_EDITLAYER_NAME,
 		InAttribOwner);
-}
-
-bool
-FHoudiniEngineUtils::GetTempFolderAttribute(
-	const HAPI_NodeId& InNodeId,
-	const HAPI_AttributeOwner& InAttributeOwner,
-	TArray<FString>& OutTempFolder,
-	const HAPI_PartId& InPartId,
-	const int32& InStart,
-	const int32& InCount)
-{
-	OutTempFolder.Empty();
-
-	HAPI_AttributeInfo TempFolderAttribInfo;
-	FHoudiniApi::AttributeInfo_Init(&TempFolderAttribInfo);
-	if (HapiGetAttributeDataAsString(
-		InNodeId, InPartId, HAPI_UNREAL_ATTRIB_TEMP_FOLDER,
-		TempFolderAttribInfo, OutTempFolder, 1, InAttributeOwner,
-		InStart, InCount))
-	{
-		if (OutTempFolder.Num() > 0)
-			return true;
-	}
-
-	OutTempFolder.Empty();
-	return false;
-}
-
-bool
-FHoudiniEngineUtils::GetTempFolderAttribute(
-	const HAPI_NodeId& InGeoId,
-	FString& OutTempFolder,
-	const HAPI_PartId& InPartId,
-	const int32& InPrimIndex)
-{
-	constexpr int32 Count = 1;
-	TArray<FString> StringData;
-	if (GetTempFolderAttribute(InGeoId, HAPI_ATTROWNER_PRIM, StringData, InPartId, InPrimIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutTempFolder = StringData[0];
-			return true;
-		}
-	}
-
-	if (GetTempFolderAttribute(InGeoId, HAPI_ATTROWNER_DETAIL, StringData, InPartId, 0, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutTempFolder = StringData[0];
-			return true;
-		}
-	}
-	
-	OutTempFolder.Empty();
-	return false;
 }
 
 bool
@@ -6704,37 +6379,6 @@ FHoudiniEngineUtils::GetBakeFolderAttribute(
 }
 
 bool
-FHoudiniEngineUtils::GetBakeFolderAttribute(
-	const HAPI_NodeId& InGeoId,
-	FString& OutBakeFolder,
-	const HAPI_PartId& InPartId,
-	const int32& InPrimIndex)
-{
-	constexpr int32 Count = 1;
-	TArray<FString> StringData;
-	if (GetBakeFolderAttribute(InGeoId, HAPI_ATTROWNER_PRIM, StringData, InPartId, InPrimIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutBakeFolder = StringData[0];
-			return true;
-		}
-	}
-
-	if (GetBakeFolderAttribute(InGeoId, HAPI_ATTROWNER_DETAIL, StringData, InPartId, 0, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutBakeFolder = StringData[0];
-			return true;
-		}
-	}
-	
-	OutBakeFolder.Empty();
-	return false;
-}
-
-bool
 FHoudiniEngineUtils::GetBakeActorAttribute(
 	const HAPI_NodeId& InGeoId,
 	const HAPI_PartId& InPartId,
@@ -6758,48 +6402,6 @@ FHoudiniEngineUtils::GetBakeActorAttribute(
 	}
 
 	OutBakeActorNames.Empty();
-	return false;
-}
-
-bool
-FHoudiniEngineUtils::GetBakeActorAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
-	FString& OutBakeActorName,
-	const int32& InPointIndex,
-	const int32& InPrimIndex)
-{
-	constexpr int32 Count = 1;
-	TArray<FString> StringData;
-
-	if (GetBakeActorAttribute(InGeoId, InPartId, StringData, HAPI_ATTROWNER_POINT, InPointIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutBakeActorName = StringData[0];
-			return true;
-		}
-	}
-
-	if (GetBakeActorAttribute(InGeoId, InPartId, StringData, HAPI_ATTROWNER_PRIM, InPrimIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutBakeActorName = StringData[0];
-			return true;
-		}
-	}
-
-	if (GetBakeActorAttribute(InGeoId, InPartId, StringData, HAPI_ATTROWNER_DETAIL, 0, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutBakeActorName = StringData[0];
-			return true;
-		}
-	}
-	
-	OutBakeActorName.Empty();
 	return false;
 }
 
@@ -6831,48 +6433,6 @@ FHoudiniEngineUtils::GetBakeActorClassAttribute(
 }
 
 bool
-FHoudiniEngineUtils::GetBakeActorClassAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
-	FString& OutBakeActorClassName,
-	const int32& InPointIndex,
-	const int32& InPrimIndex)
-{
-	constexpr int32 Count = 1;
-	TArray<FString> StringData;
-
-	if (GetBakeActorClassAttribute(InGeoId, InPartId, StringData, HAPI_ATTROWNER_POINT, InPointIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutBakeActorClassName = StringData[0];
-			return true;
-		}
-	}
-
-	if (GetBakeActorClassAttribute(InGeoId, InPartId, StringData, HAPI_ATTROWNER_PRIM, InPrimIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutBakeActorClassName = StringData[0];
-			return true;
-		}
-	}
-
-	if (GetBakeActorClassAttribute(InGeoId, InPartId, StringData, HAPI_ATTROWNER_DETAIL, 0, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutBakeActorClassName = StringData[0];
-			return true;
-		}
-	}
-	
-	OutBakeActorClassName.Empty();
-	return false;
-}
-
-bool
 FHoudiniEngineUtils::GetBakeOutlinerFolderAttribute(
 	const HAPI_NodeId& InGeoId,
 	const HAPI_PartId& InPartId,
@@ -6896,48 +6456,6 @@ FHoudiniEngineUtils::GetBakeOutlinerFolderAttribute(
 	}
 
 	OutBakeOutlinerFolders.Empty();
-	return false;
-}
-
-bool
-FHoudiniEngineUtils::GetBakeOutlinerFolderAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
-	FString& OutBakeOutlinerFolder,
-	const int32& InPointIndex,
-	const int32& InPrimIndex)
-{
-	constexpr int32 Count = 1;
-	TArray<FString> StringData;
-
-	if (GetBakeOutlinerFolderAttribute(InGeoId, InPartId, StringData, HAPI_ATTROWNER_POINT, InPointIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutBakeOutlinerFolder = StringData[0];
-			return true;
-		}
-	}
-
-	if (GetBakeOutlinerFolderAttribute(InGeoId, InPartId, StringData, HAPI_ATTROWNER_PRIM, InPrimIndex, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutBakeOutlinerFolder = StringData[0];
-			return true;
-		}
-	}
-
-	if (GetBakeOutlinerFolderAttribute(InGeoId, InPartId, StringData, HAPI_ATTROWNER_DETAIL, 0, Count))
-	{
-		if (StringData.Num() > 0)
-		{
-			OutBakeOutlinerFolder = StringData[0];
-			return true;
-		}
-	}
-	
-	OutBakeOutlinerFolder.Empty();
 	return false;
 }
 

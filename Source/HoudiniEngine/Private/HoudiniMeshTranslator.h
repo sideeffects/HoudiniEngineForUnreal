@@ -97,7 +97,6 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			TMap<FString, UMaterialInterface*>& InAssignmentMaterialMap,
 			TMap<FString, UMaterialInterface*>& InReplacementMaterialMap,
 			const TMap<FString, UMaterialInterface*>& InAllOutputMaterials,
-			UObject* const InOuterComponent,
 			const bool& InForceRebuild,
 			const EHoudiniStaticMeshMethod& InStaticMeshMethod,
 			const FHoudiniStaticMeshGenerationProperties& InSMGenerationProperties,
@@ -163,17 +162,6 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		// Update the NaniteSettings for a given Static Mesh using attribute values
 		void UpdateStaticMeshNaniteSettings(
 		    const int32& GeoId, const int32& PartId, UStaticMesh* StaticMesh);
-
-		// Copy supported (non-generic) attributes from the split by point/prim index.
-		void CopyAttributesFromHGPOForSplit(
-			const int32 InPointIndex,
-			const int32 InPrimIndex,
-			TMap<FString, FString>& OutAttributes,
-			TMap<FString, FString>& OutTokens);
-	
-		// Copy supported (non-generic) attributes from the split
-		void CopyAttributesFromHGPOForSplit(
-			const FString& InSplitGroupName, TMap<FString, FString>& OutAttributes, TMap<FString, FString>& OutTokens);
 
 
 		//-----------------------------------------------------------------------------------------------------------------------------

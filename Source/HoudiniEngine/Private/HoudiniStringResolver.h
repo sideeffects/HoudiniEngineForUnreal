@@ -89,10 +89,7 @@ public:
 
 	// Try to resolve an attribute with the given name. If the attribute could not be 
 	// found, use DefaultValue as a fallback.
-	FString ResolveAttribute(
-		const FString& InAttrName,
-		const FString& InDefaultValue,
-		const bool bInUseDefaultIfAttrValueEmpty=false) const;
+	FString ResolveAttribute(const FString& InAttrName, const FString& InDefaultValue) const;
 
 	// ----------------------------------
 	// Helpers
@@ -106,9 +103,6 @@ public:
 
 	// Helper for resolving the unreal_bake_folder attribute. Converts to an absolute path.
 	FString ResolveBakeFolder() const;
-
-	// Helper for resolving the unreal_temp_folder attribute.
-	FString ResolveTempFolder() const;
 
 	// ----------------------------------
 	// Debug
