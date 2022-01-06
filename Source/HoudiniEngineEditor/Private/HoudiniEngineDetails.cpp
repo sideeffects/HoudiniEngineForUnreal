@@ -271,20 +271,31 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 
 		FString NewPathStr = Val.ToString();
 		
+		if (NewPathStr.IsEmpty())
+			return;
+
 		if (NewPathStr.StartsWith("Game/")) 
 		{
 			NewPathStr = "/" + NewPathStr;
 		}
 
+		FString AbsolutePath;
+		if (NewPathStr.StartsWith("/Game/")) 
 		{
-			FText InvalidPathReason;
-			if (!FHoudiniEngineUtils::ValidatePath(NewPathStr, &InvalidPathReason)) 
-			{
-				HOUDINI_LOG_WARNING(TEXT("Invalid path: %s"), *InvalidPathReason.ToString());
+			FString RelativePath = FPaths::ProjectContentDir() + NewPathStr.Mid(6, NewPathStr.Len() - 6);
+			AbsolutePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*RelativePath);
+		}
+		else 
+		{
+			AbsolutePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*NewPathStr);
+		}
 
-				FHoudiniEngineUtils::UpdateEditorProperties(MainHAC, true);
-				return;
-			}
+		if (!FPaths::DirectoryExists(AbsolutePath)) 
+		{
+			HOUDINI_LOG_WARNING(TEXT("Invalid path"));
+
+			FHoudiniEngineUtils::UpdateEditorProperties(MainHAC, true);
+			return;
 		}
 
 		for (auto& NextHAC : InHACs)
@@ -616,22 +627,6 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 			return;
 
 		FString NewPathStr = Val.ToString();
-
-		if (NewPathStr.StartsWith("Game/"))
-		{
-			NewPathStr = "/" + NewPathStr;
-		}
-
-		{
-			FText InvalidPathReason;
-			if (!FHoudiniEngineUtils::ValidatePath(NewPathStr, &InvalidPathReason))
-			{
-				HOUDINI_LOG_WARNING(TEXT("Invalid path: %s"), *InvalidPathReason.ToString());
-
-				FHoudiniEngineUtils::UpdateEditorProperties(MainHAC, true);
-				return;
-			}
-		}
 
 		for (auto& NextHAC : InHACs)
 		{

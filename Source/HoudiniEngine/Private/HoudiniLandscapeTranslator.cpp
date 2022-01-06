@@ -394,6 +394,8 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	// At the end of this function, the output attributes and tokens will be copied to the output object.
 	TMap<FString,FString> OutputAttributes;
 	TMap<FString,FString> OutputTokens;
+	FHoudiniAttributeResolver Resolver;
+	InPackageParams.UpdateTokensFromParams(InWorld, HoudiniAssetComponent, OutputTokens);
 
 	bool bHasTile = Heightfield->VolumeTileIndex >= 0;
 
@@ -477,7 +479,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	// ---------------------------------------------
 	FString LandscapeTileBakeName = bHasTile ? "LandscapeTile{tile}" : "Landscape";
 	TArray<FString> AllBakeNames;
-	if (FHoudiniEngineUtils::GetBakeNameAttribute(GeoId, PartId, AllBakeNames, HAPI_ATTROWNER_INVALID, 0, 1))
+	if (FHoudiniEngineUtils::GetBakeNameAttribute(GeoId, PartId, AllBakeNames, 0, 1))
 	{
 		if (AllBakeNames.Num() > 0 && !AllBakeNames[0].IsEmpty())
 		{
@@ -535,17 +537,6 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 		OutputAttributes.Add(FString(HAPI_UNREAL_ATTRIB_BAKE_FOLDER), BakeFolder);
 	}
 
-	// ---------------------------------------------
-	// Attribute: unreal_temp_folder
-	// ---------------------------------------------
-	{
-		FString TempFolder;
-		if (FHoudiniEngineUtils::GetTempFolderAttribute(GeoId, TempFolder, PartId, 0))
-		{
-			OutputAttributes.Add(FString(HAPI_UNREAL_ATTRIB_TEMP_FOLDER), TempFolder);
-		}
-	}
-
 	// Streaming proxy actors/tiles requires a "main" landscape actor
 	// that contains the shared landscape state. 
 	bool bRequiresSharedLandscape = false;
@@ -566,17 +557,9 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	// Expand string arguments for various landscape naming aspects.
 	// ----------------------------------
 
-	// Update package params and resolver attributes and tokens before we start resolving attributes.
-	FHoudiniPackageParams PackageParams;
-	FHoudiniAttributeResolver Resolver;
-	FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
-		InPackageParams,
-		InWorld,
-		HoudiniAssetComponent,
-		OutputAttributes,
-		OutputTokens,
-		PackageParams,
-		Resolver);
+	// Update resolver attributes and tokens before we start resolving attributes.
+	Resolver.SetCachedAttributes(OutputAttributes);
+	Resolver.SetTokensFromStringMap(OutputTokens);
 
 	SharedLandscapeActorName = Resolver.ResolveAttribute(HAPI_UNREAL_ATTRIB_LANDSCAPE_SHARED_ACTOR_NAME, SharedLandscapeActorName);
 	SharedLandscapeActorName += NodeNameSuffix;
@@ -600,7 +583,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	if (!bIsValidLongName)
 	{
 		// Try a more naive approach
-		TilePackagePath = FPaths::Combine(PackageParams.BakeFolder, LevelPath);
+		TilePackagePath = FPaths::Combine(InPackageParams.BakeFolder, LevelPath);
 		bIsValidLongName = FPackageName::IsValidLongPackageName(TilePackagePath, false, &NotValidReason);
 	}
 
@@ -633,10 +616,10 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 
 	// NOTE: we don't manually inject a tile number in the object name. This should
 	// already be encoded in the TileName string.
-	FHoudiniPackageParams TilePackageParams = PackageParams;
+	FHoudiniPackageParams TilePackageParams = InPackageParams;
 	TilePackageParams.ObjectName = TileName;
 
-	FHoudiniPackageParams LayerPackageParams = PackageParams;
+	FHoudiniPackageParams LayerPackageParams = InPackageParams;
 	if (bRequiresSharedLandscape)
 	{
 		// Note that layers are shared amongst all the tiles for a given landscape.
@@ -652,7 +635,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	UMaterialInterface* LandscapeMaterial = nullptr;
 	UMaterialInterface* LandscapeHoleMaterial = nullptr;
 	UPhysicalMaterial* LandscapePhysicalMaterial = nullptr;
-	FHoudiniLandscapeTranslator::GetLandscapeMaterials(*Heightfield, PackageParams, LandscapeMaterial, LandscapeHoleMaterial, LandscapePhysicalMaterial);
+	FHoudiniLandscapeTranslator::GetLandscapeMaterials(*Heightfield, InPackageParams, LandscapeMaterial, LandscapeHoleMaterial, LandscapePhysicalMaterial);
 
 	// Extract the float data from the Heightfield.
 	const FHoudiniVolumeInfo &VolumeInfo = Heightfield->VolumeInfo;
@@ -954,7 +937,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	// exclusively be dealt with during Bake mode so don't bother with searching / creating other packages.
 
 	AActor* FoundActor = nullptr;
-	if (PackageParams.PackageMode == EPackageMode::Bake)
+	if (InPackageParams.PackageMode == EPackageMode::Bake)
 	{
 		// When baking, See if we can find any landscape / proxy actors for this tile in the TileLevel.
 		// If we find any actors that match the name but not the type, or the actors are pending kill, then
@@ -1218,7 +1201,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 			SharedLandscapeActor,
 			TileWorld,
 			TileLevel,
-			PackageParams,
+			InPackageParams,
 			bHasEditLayers,
 			InEditLayerFName,
 			AfterLayerName);
@@ -1571,7 +1554,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 		bCreatedSharedLandscape,
 		HeightfieldIdentifier,
 		TileActor,
-		PackageParams.PackageMode);
+		InPackageParams.PackageMode);
 
 #if defined(HOUDINI_ENGINE_DEBUG_LANDSCAPE)
 	if (LandscapeInfo)
