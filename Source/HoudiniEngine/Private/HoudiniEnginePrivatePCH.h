@@ -197,6 +197,13 @@
 #define HAPI_UNREAL_ATTRIB_NONWEIGHTBLENDED_LAYERS			"unreal_landscape_layer_nonweightblended"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_STREAMING_PROXY		"unreal_landscape_streaming_proxy"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_INFO				"unreal_landscape_layer_info"
+
+// Enable or disable the NoWeightBlend setting for landscape paint layers. 
+// Note this attribute supercedes the unreal_landscape_layer_nonweightblended string attribute.
+#define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_NOWEIGHTBLEND		"unreal_landscape_layer_noweightblend"
+#define HAPI_UNREAL_LANDSCAPE_LAYER_NOWEIGHTBLEND_OFF			0
+#define HAPI_UNREAL_LANDSCAPE_LAYER_NOWEIGHTBLEND_ON			1
+
 // Landscape output mode:
 // 0 - Generate (generate a landscape from scratch)
 // 1 - Modify Layer (modify one or more landscape layers only)
@@ -220,6 +227,11 @@
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_EDITLAYER_TYPE			"unreal_landscape_editlayer_type"
 #define HAPI_UNREAL_LANDSCAPE_EDITLAYER_TYPE_BASE			0
 #define HAPI_UNREAL_LANDSCAPE_EDITLAYER_TYPE_ADDITIVE		1
+
+// Subtractive mode for paint layers on landscape edit layers
+#define HAPI_UNREAL_ATTRIB_LANDSCAPE_EDITLAYER_SUBTRACTIVE	"unreal_landscape_editlayer_subtractive"
+#define HAPI_UNREAL_LANDSCAPE_EDITLAYER_SUBTRACTIVE_ON		0
+#define HAPI_UNREAL_LANDSCAPE_EDITLAYER_SUBTRACTIVE_OFF		1
 
 #define HAPI_UNREAL_ATTRIB_GENERIC_UPROP_PREFIX				"unreal_uproperty_"
 #define HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX			"unreal_material_parameter_"
