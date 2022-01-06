@@ -993,18 +993,6 @@ UHoudiniAssetComponent::HasPreviousBakeOutput() const
 	return false;
 }
 
-FString
-UHoudiniAssetComponent::GetBakeFolderOrDefault() const
-{
-	return !BakeFolder.Path.IsEmpty() ? BakeFolder.Path : FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
-}
-
-FString
-UHoudiniAssetComponent::GetTemporaryCookFolderOrDefault() const
-{
-	return !TemporaryCookFolder.Path.IsEmpty() ? TemporaryCookFolder.Path : FHoudiniEngineRuntime::Get().GetDefaultTemporaryCookFolder();
-}
-
 bool
 UHoudiniAssetComponent::NeedUpdate() const
 {	

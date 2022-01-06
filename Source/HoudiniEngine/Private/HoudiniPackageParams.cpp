@@ -245,21 +245,6 @@ FHoudiniPackageParams::MatchesPackagePathNameExcludingBakeCounter(const UObject*
 	return InAssetPackagePathName.Equals(ThisPackagePathName);
 }
 
-bool
-FHoudiniPackageParams::HasMatchingPackageDirectories(UObject const* const InAsset) const
-{
-	if (!IsValid(InAsset))
-		return false;
-
-	UPackage const* const Package = InAsset->GetPackage();
-	if (!IsValid(Package))
-		return false;
-
-	const FString InAssetPackageDirectory = FPaths::GetPath(Package->GetPathName());
-	const FString ThisPackageDirectory = UPackageTools::SanitizePackageName(GetPackagePath());
-	return InAssetPackageDirectory.Equals(ThisPackageDirectory);
-}
-
 FString
 FHoudiniPackageParams::GetPackageNameExcludingGUID(const UObject* InAsset)
 {
