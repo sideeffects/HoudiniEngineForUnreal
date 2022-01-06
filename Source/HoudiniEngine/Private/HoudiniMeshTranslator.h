@@ -97,6 +97,7 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			TMap<FString, UMaterialInterface*>& InAssignmentMaterialMap,
 			TMap<FString, UMaterialInterface*>& InReplacementMaterialMap,
 			const TMap<FString, UMaterialInterface*>& InAllOutputMaterials,
+			UObject* const InOuterComponent,
 			const bool& InForceRebuild,
 			const EHoudiniStaticMeshMethod& InStaticMeshMethod,
 			const FHoudiniStaticMeshGenerationProperties& InSMGenerationProperties,
@@ -158,6 +159,18 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			const bool& bHasNormals,
 			const bool& bHasTangents,
 			const bool& bHasLightmapUVSet);
+
+
+		// Copy supported (non-generic) attributes from the split by point/prim index.
+		void CopyAttributesFromHGPOForSplit(
+			const int32 InPointIndex,
+			const int32 InPrimIndex,
+			TMap<FString, FString>& OutAttributes,
+			TMap<FString, FString>& OutTokens);
+	
+		// Copy supported (non-generic) attributes from the split
+		void CopyAttributesFromHGPOForSplit(
+			const FString& InSplitGroupName, TMap<FString, FString>& OutAttributes, TMap<FString, FString>& OutTokens);
 
 
 		//-----------------------------------------------------------------------------------------------------------------------------
