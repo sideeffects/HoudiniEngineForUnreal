@@ -707,13 +707,15 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	// If we are operating in EditLayer mode, then any layers we create or manage should
 	// have their bNoWeightBlend set to true otherwise all the paint layers will act as additive
 	// which, most of the time, is not what we expect.
-	const bool bDefaultNoWeightBlend = bHasEditLayers ? true : false;
-	
+	bool bDefaultNoWeightBlend = bHasEditLayers ? true : false;
+
+	TMap<FName, const FHoudiniGeoPartObject*> LayerObjectMapping;
 	if (!CreateOrUpdateLandscapeLayerData(FoundLayers, *Heightfield, UnrealTileSizeX, UnrealTileSizeY, 
 		LayerMinimums, LayerMaximums, LayerInfos, false, bDefaultNoWeightBlend,
 		TilePackageParams,
 		LayerPackageParams,
-		OutCreatedPackages))
+		OutCreatedPackages,
+		LayerObjectMapping))
 		return false;
 
 	// Convert Houdini's heightfield data to Unreal's landscape data
@@ -1375,6 +1377,9 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 					HOUDINI_LANDSCAPE_MESSAGE(TEXT("Removing layer from stale layer set: %s"), *(LayerInfo.LayerName.ToString()));
 					StaleLayers.Remove(LayerInfo.LayerName);
 				}
+
+				// Update layer properties from geo attributes
+				UpdateLayerProperties(TargetLandscape, TargetLayer, LayerInfo, LayerObjectMapping);
 				
 				if (LayerInfo.LayerName.IsEqual(HAPI_UNREAL_VISIBILITY_LAYER_NAME))
 				{
@@ -1588,7 +1593,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayers(
 	TArray<FString> EditLayerNames;
 	const bool bHasEditLayers = GetEditLayersFromOutput(InOutput, EditLayerNames);
 
-	HOUDINI_LANDSCAPE_MESSAGE(TEXT("[FHoudiniLandscapeTranslator::Output_Landscape_Generate] Generating landscape tile. Has edit layers?: %d"), bHasEditLayers);
+	HOUDINI_LANDSCAPE_MESSAGE(TEXT("[FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayers] Generating landscape tile. Has edit layers?: %d"), bHasEditLayers);
 
 	TArray<FName> AllLayerNames;
 	for (const FString& LayerName : EditLayerNames)
@@ -1954,11 +1959,14 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 	
 	// Get the updated layers.
 	TArray<FLandscapeImportLayerInfo> LayerInfos;
+	TMap<FName, const FHoudiniGeoPartObject*> LayerObjectMapping;
 	if (!CreateOrUpdateLandscapeLayerData(FoundLayers, *Heightfield, LandscapeTileSizeInfo.UnrealSizeX, LandscapeTileSizeInfo.UnrealSizeY, 
 		LayerMinimums, LayerMaximums, LayerInfos, false, bDefaultNoWeightBlend,
 		TilePackageParams,
 		LayerPackageParams,
-		OutCreatedPackages))
+		OutCreatedPackages,
+		LayerObjectMapping
+		))
 		return false;
 
 	HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_EditableLayer] Generated %d layer infos."), LayerInfos.Num());
@@ -2013,7 +2021,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 		// Scope the Edit Layer before we start drawing on ANY of the layers
 		FScopedSetLandscapeEditingLayer Scope(TargetLandscape, TargetLayer->Guid, [=] { TargetLandscape->RequestLayersContentUpdate(ELandscapeLayerUpdateMode::Update_All); });
         FLandscapeEditDataInterface LandscapeEdit(TargetLandscapeInfo);
-	
+
 		HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_EditableLayer] Drawing heightmap.."));
 		// Draw Heightmap
 		FHeightmapAccessor<false> HeightmapAccessor(TargetLandscapeInfo);
@@ -2028,6 +2036,9 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 		{
 			HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_EditableLayer] Trying to draw on layer: %s"), *(InLayerInfo.LayerName.ToString()));
 			HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_EditableLayer] Dest Region: %f, %f, -> %f, %f"), TileMin.X, TileMin.Y, TileMax.X, TileMax.Y);
+
+			// Update layer properties from geo attributes
+			UpdateLayerProperties(TargetLandscape, TargetLayer, InLayerInfo, LayerObjectMapping);
 			
 			if (InLayerInfo.LayerInfo && InLayerInfo.LayerName.IsEqual(HAPI_UNREAL_VISIBILITY_LAYER_NAME))
 			{
@@ -2038,7 +2049,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 			else
 			{
 				if (!ExistingLayers.Contains(InLayerInfo.LayerName))
-				continue;
+					continue;
 				
 				int32 LayerIndex = ExistingLayers.FindChecked(InLayerInfo.LayerName);
 				if (TargetLandscape->EditorLayerSettings.IsValidIndex(LayerIndex))
@@ -2239,18 +2250,7 @@ bool FHoudiniLandscapeTranslator::UpdateLandscapeMaterialLayers(ALandscape* InLa
 	{
 		HOUDINI_LANDSCAPE_MESSAGE(TEXT("[HoudiniLandscapeTranslator::UpdateLandscapeEditLayers] Processing Layer Info: %s, bNoWeightBlend: %d"), *(InLayerInfo.LayerName.ToString()), bNoWeightBlend);
 
-		if (InLayerInfo.LayerName.IsEqual(HAPI_UNREAL_VISIBILITY_LAYER_NAME))
-		{
-			// Visibility layers should always have this set to true.
-			InLayerInfo.LayerInfo->bNoWeightBlend = true;
-			continue;
-		}
-		else
-		{
-			// Any other layers use the incoming default.
-			// TODO: Override the bNoWeightBlend value from user attribute on the geo. 
-			InLayerInfo.LayerInfo->bNoWeightBlend = bNoWeightBlend;
-		}
+		// NOTE: Don't update layer blend weight settings here. It should already have been set in CreateOrUpdateLandscapeLayerData.
 
 		// The following layer adding / replacing code have been referenced from:
 		// - ALandscapeProxy::CreateLayerInfo(...)
@@ -3609,6 +3609,86 @@ FHoudiniLandscapeTranslator::GetNonWeightBlendedLayerNames(const FHoudiniGeoPart
 }
 
 bool
+FHoudiniLandscapeTranslator::GetIsLayerSubtractive(
+	const FHoudiniGeoPartObject& InHGPO,
+	int& LayerCompositeMode)
+{
+	if (InHGPO.VolumeName.Equals(HAPI_UNREAL_VISIBILITY_LAYER_NAME, ESearchCase::IgnoreCase))
+	{
+		// Cannot set composite mode for visibility layer.
+		return false;
+	}
+	
+	// Check the attribute exists on primitive or detail
+	HAPI_AttributeOwner Owner = HAPI_ATTROWNER_INVALID;
+	if (FHoudiniEngineUtils::HapiCheckAttributeExists(InHGPO.GeoId, InHGPO.PartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_EDITLAYER_SUBTRACTIVE, HAPI_ATTROWNER_PRIM))
+		Owner = HAPI_ATTROWNER_PRIM;
+	else if (FHoudiniEngineUtils::HapiCheckAttributeExists(InHGPO.GeoId, InHGPO.PartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_EDITLAYER_SUBTRACTIVE, HAPI_ATTROWNER_DETAIL))
+		Owner = HAPI_ATTROWNER_DETAIL;
+	else
+		return false;
+
+	// Check the value
+	HAPI_AttributeInfo AttrInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttrInfo);
+	TArray< int32 > AttribValues;
+	FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+		InHGPO.GeoId, InHGPO.PartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_EDITLAYER_SUBTRACTIVE, 
+		AttrInfo, AttribValues, 1, Owner, 0, 1);
+
+	if (AttribValues.Num() > 0)
+	{
+		LayerCompositeMode = AttribValues[0];
+		return true;
+	}
+
+	return false;
+}
+
+bool
+FHoudiniLandscapeTranslator::GetIsLayerWeightBlended(const FHoudiniGeoPartObject& InHGPO,
+	bool& bIsLayerNoWeightBlended)
+{
+	if (InHGPO.VolumeName.Equals(HAPI_UNREAL_VISIBILITY_LAYER_NAME, ESearchCase::IgnoreCase))
+	{
+		// Cannot set weight blending for visibility layer.
+		return false;
+	}
+	
+	// Check the attribute exists on primitive or detail
+	HAPI_AttributeOwner Owner = HAPI_ATTROWNER_INVALID;
+	if (FHoudiniEngineUtils::HapiCheckAttributeExists(InHGPO.GeoId, InHGPO.PartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_NOWEIGHTBLEND, HAPI_ATTROWNER_PRIM))
+	{
+		Owner = HAPI_ATTROWNER_PRIM;
+	}
+	else if (FHoudiniEngineUtils::HapiCheckAttributeExists(InHGPO.GeoId, InHGPO.PartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_NOWEIGHTBLEND, HAPI_ATTROWNER_DETAIL))
+	{
+		Owner = HAPI_ATTROWNER_DETAIL;
+	}
+	else
+	{
+		// No prim/detail attribute found.  
+		return false;
+	}
+
+	// Check the value
+	HAPI_AttributeInfo AttrInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttrInfo);
+	TArray< int32 > AttribValues;
+	FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+		InHGPO.GeoId, InHGPO.PartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_NOWEIGHTBLEND, 
+		AttrInfo, AttribValues, 1, Owner, 0, 1);
+
+	if (AttribValues.Num() > 0)
+	{
+		bIsLayerNoWeightBlended = AttribValues[0] == HAPI_UNREAL_LANDSCAPE_LAYER_NOWEIGHTBLEND_ON;
+		return true;
+	}
+
+	return false;
+}
+
+bool
 FHoudiniLandscapeTranslator::IsUnitLandscapeLayer(const FHoudiniGeoPartObject& LayerGeoPartObject)
 {
 	if (LayerGeoPartObject.VolumeName.Equals(HAPI_UNREAL_VISIBILITY_LAYER_NAME, ESearchCase::IgnoreCase))
@@ -3652,7 +3732,8 @@ FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayerData(
 	bool bDefaultNoWeightBlending,
 	const FHoudiniPackageParams& InTilePackageParams,
 	const FHoudiniPackageParams& InLayerPackageParams,
-	TArray<UPackage*>& OutCreatedPackages
+	TArray<UPackage*>& OutCreatedPackages,
+	TMap<FName, const FHoudiniGeoPartObject*>& OutLayerObjectMapping
 	)
 {
 	OutLayerInfos.Empty();
@@ -3785,8 +3866,9 @@ FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayerData(
 		}
 		else
 		{
-			HOUDINI_LANDSCAPE_MESSAGE(TEXT("[CreateOrUpdateLandscapeLayers] Setting bNoWeightBlend to %d on layer %s"), bDefaultNoWeightBlending, *(LayerInfo->LayerName.ToString()));
-			LayerInfo->bNoWeightBlend = bDefaultNoWeightBlending;
+			bool bNoWeightBlending = bDefaultNoWeightBlending;
+			GetIsLayerWeightBlended(*LayerGeoPartObject, bNoWeightBlending);
+			LayerInfo->bNoWeightBlend = bNoWeightBlending;
 		}
 
 		// Convert the float data to uint8
@@ -3842,6 +3924,7 @@ FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayerData(
 		// Assign the layer info object to the import layer infos
 		ImportLayerInfo.LayerInfo = LayerInfo;
 		OutLayerInfos.Add(ImportLayerInfo);
+		OutLayerObjectMapping.Add(LayerInfo->LayerName, LayerGeoPartObject);
 	}
 
 	// Autosaving the layers prevents them for being deleted with the Asset
@@ -3853,6 +3936,53 @@ FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayerData(
 	*/
 
 	return true;
+}
+
+void
+FHoudiniLandscapeTranslator::UpdateLayerProperties(
+	ALandscape* TargetLandscape,
+	const FLandscapeLayer* TargetLayer,
+	const FLandscapeImportLayerInfo& InLayerInfo,
+	const TMap<FName, const FHoudiniGeoPartObject*>& LayerObjectMapping
+	)
+{
+	if (!IsValid(TargetLandscape))
+		return;
+
+	if (!TargetLayer)
+		return;
+	
+	int32 TargetLayerIndex = INDEX_NONE;
+	if (TargetLayer->Guid.IsValid())
+	{
+		TargetLayerIndex  = TargetLandscape->GetLayerIndex(TargetLayer->Name);
+	}
+	
+	if (TargetLayerIndex == INDEX_NONE)
+		return;
+	
+	// We have a valid target layer. Check whether we have attributes on the Houdini side that needs
+	// to adjust properties on this layer.
+	
+	const FHoudiniGeoPartObject* LayerObject = nullptr;
+	if (LayerObjectMapping.Contains(InLayerInfo.LayerName))
+	{
+		LayerObject = LayerObjectMapping.FindChecked(InLayerInfo.LayerName);
+	}
+
+	if (LayerObject)
+	{
+		// We found a layer object that we can use for attribute lookups.
+
+		// Check whether we should set the layer compositing mode.
+		int LayerCompositeMode = 0;
+		if (GetIsLayerSubtractive(*LayerObject, LayerCompositeMode))
+		{
+			// TODO: Only set blend status if status has changed.
+			const bool IsSubtractive = (LayerCompositeMode == 1);
+			TargetLandscape->SetLayerSubstractiveBlendStatus(TargetLayerIndex, IsSubtractive, InLayerInfo.LayerInfo);
+		}
+	}
 }
 
 void
