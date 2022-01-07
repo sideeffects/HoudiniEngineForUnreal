@@ -6787,6 +6787,13 @@ FHoudiniMeshTranslator::CreateMeshComponent(UObject *InOuterComponent, const TSu
 	// Property propagation: set the new SMC's properties to the HAC's current settings
 	//CopyComponentPropertiesTo(MeshComponent);
 
+	UPrimitiveComponent* PrimComponent = Cast<UPrimitiveComponent>(OuterSceneComponent);
+	if (PrimComponent)
+	{
+		// The outer component is a primitive, so we can copy the collision profile from the scene component.  
+		MeshComponent->SetCollisionProfileName(PrimComponent->GetCollisionProfileName());
+	}
+
 	// Change the creation method so the component is listed in the details panels
 	MeshComponent->CreationMethod = EComponentCreationMethod::Instance;
 
