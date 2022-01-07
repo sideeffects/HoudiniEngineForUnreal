@@ -97,6 +97,7 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			TMap<FString, UMaterialInterface*>& InAssignmentMaterialMap,
 			TMap<FString, UMaterialInterface*>& InReplacementMaterialMap,
 			const TMap<FString, UMaterialInterface*>& InAllOutputMaterials,
+			UObject* const InOuterComponent,
 			const bool& InForceRebuild,
 			const EHoudiniStaticMeshMethod& InStaticMeshMethod,
 			const FHoudiniStaticMeshGenerationProperties& InSMGenerationProperties,
@@ -164,6 +165,18 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			const bool& bHasNormals,
 			const bool& bHasTangents,
 			const bool& bHasLightmapUVSet);
+
+
+		// Copy supported (non-generic) attributes from the split by point/prim index.
+		void CopyAttributesFromHGPOForSplit(
+			const int32 InPointIndex,
+			const int32 InPrimIndex,
+			TMap<FString, FString>& OutAttributes,
+			TMap<FString, FString>& OutTokens);
+	
+		// Copy supported (non-generic) attributes from the split
+		void CopyAttributesFromHGPOForSplit(
+			const FString& InSplitGroupName, TMap<FString, FString>& OutAttributes, TMap<FString, FString>& OutTokens);
 
 
 		//-----------------------------------------------------------------------------------------------------------------------------
@@ -298,7 +311,7 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		static UMeshComponent* CreateMeshComponent(UObject *InOuterComponent, const TSubclassOf<UMeshComponent>& InComponentType);
 
 		// Helper to update an existing mesh component
-		static void UpdateMeshComponent(UMeshComponent *InMeshComponent, const FHoudiniOutputObjectIdentifier &InOutputIdentifier,
+		static void UpdateMeshComponent(UMeshComponent *InMeshComponent, UObject *InMesh, const FHoudiniOutputObjectIdentifier &InOutputIdentifier,
 			const FHoudiniGeoPartObject *InHGPO, TArray<AActor*> & HoudiniCreatedSocketActors, TArray<AActor*> & HoudiniAttachedSocketActors,
 			bool bInApplyGenericProperties=true);
 
@@ -312,11 +325,11 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			FHoudiniGeoPartObject const *& OutFoundHGPO,
 			bool &bCreated);
 
-		// Helper to initialize a UStaticMeshComponent after it was created.
-		static bool PostCreateStaticMeshComponent(UStaticMeshComponent *InComponent, UObject *InMesh);
+		// Helper to set or update the mesh on UStaticMeshComponent
+		static bool UpdateMeshOnStaticMeshComponent(UStaticMeshComponent *InComponent, UObject *InMesh);
 
-		// Helper to initialize a UHoudiniStaticMeshComponent after it was created.
-		static bool PostCreateHoudiniStaticMeshComponent(UHoudiniStaticMeshComponent *InComponent, UObject *InMesh);
+		// Helper to set or update the mesh on UHoudiniStaticMeshComponent
+		static bool UpdateMeshOnHoudiniStaticMeshComponent(UHoudiniStaticMeshComponent *InComponent, UObject *InMesh);
 
 		static bool AddActorsToMeshSocket(UStaticMeshSocket * Socket, UStaticMeshComponent * StaticMeshComponent, 
 			TArray<AActor*>& HoudiniCreatedSocketActors, TArray<AActor*>& HoudiniAttachedSocketActors);

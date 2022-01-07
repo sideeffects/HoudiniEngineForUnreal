@@ -74,9 +74,6 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	if (!IsValid(HAC))
 		return false;
 
-	// Get the temp folder override
-	FHoudiniOutputTranslator::GetTempFolderFromAttribute(HAC);
-
 	// Outputs that should be cleared, but only AFTER new output processing have taken place.
 	// This is needed for landscape resizing where the new landscape needs to copy data from the original landscape
 	// before the original landscape gets destroyed.
@@ -182,8 +179,8 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	PackageParams.PackageMode = FHoudiniPackageParams::GetDefaultStaticMeshesCookMode();
 	PackageParams.ReplaceMode = FHoudiniPackageParams::GetDefaultReplaceMode();
 
-	PackageParams.BakeFolder = FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
-	PackageParams.TempCookFolder = FHoudiniEngineRuntime::Get().GetDefaultTemporaryCookFolder();
+	PackageParams.BakeFolder = HAC->GetBakeFolderOrDefault();
+	PackageParams.TempCookFolder = HAC->GetTemporaryCookFolderOrDefault();
 
 	PackageParams.OuterPackage = HAC->GetComponentLevel();
 	PackageParams.HoudiniAssetName = HAC->GetHoudiniAsset() ? HAC->GetHoudiniAsset()->GetName() : FString();
@@ -644,8 +641,8 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 	PackageParams.PackageMode = FHoudiniPackageParams::GetDefaultStaticMeshesCookMode();
 	PackageParams.ReplaceMode = FHoudiniPackageParams::GetDefaultReplaceMode();
 
-	PackageParams.BakeFolder = FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
-	PackageParams.TempCookFolder = FHoudiniEngineRuntime::Get().GetDefaultTemporaryCookFolder();
+	PackageParams.BakeFolder = HAC->GetBakeFolderOrDefault();
+	PackageParams.TempCookFolder = HAC->GetTemporaryCookFolderOrDefault();
 
 	PackageParams.OuterPackage = HAC->GetComponentLevel();
 	PackageParams.HoudiniAssetName = HAC->GetHoudiniAsset() ? HAC->GetHoudiniAsset()->GetName() : FString();
@@ -1957,8 +1954,8 @@ FHoudiniOutputTranslator::UpdateChangedOutputs(UHoudiniAssetComponent* HAC)
 	PackageParams.PackageMode = FHoudiniPackageParams::GetDefaultStaticMeshesCookMode();
 	PackageParams.ReplaceMode = FHoudiniPackageParams::GetDefaultReplaceMode();
 
-	PackageParams.BakeFolder = FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
-	PackageParams.TempCookFolder = FHoudiniEngineRuntime::Get().GetDefaultTemporaryCookFolder();
+	PackageParams.BakeFolder = HAC->GetBakeFolderOrDefault();
+	PackageParams.TempCookFolder = HAC->GetTemporaryCookFolderOrDefault();
 
 	PackageParams.OuterPackage = HAC->GetComponentLevel();
 	PackageParams.HoudiniAssetName = HAC->GetHoudiniAsset() ? HAC->GetHoudiniAsset()->GetName() : FString();
@@ -2401,72 +2398,6 @@ FHoudiniOutputTranslator::GetCustomPartNameFromAttribute(const HAPI_NodeId & Nod
 		return false;
 
 	return true;
-}
-
-void
-FHoudiniOutputTranslator::GetTempFolderFromAttribute(UHoudiniAssetComponent * HAC)
-{
-	if (!IsValid(HAC))
-		return;
-	
-	HAPI_GeoInfo DisplayGeoInfo;
-	FHoudiniApi::GeoInfo_Init(&DisplayGeoInfo);
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetDisplayGeoInfo(FHoudiniEngine::Get().GetSession(), HAC->AssetId, &DisplayGeoInfo))
-		return;
-
-	FString TempFolderOverride = FString();
-
-	HAPI_AttributeInfo TempFolderAttriInfo;
-	FHoudiniApi::AttributeInfo_Init(&TempFolderAttriInfo);
-	TArray<FString> StringData;
-	if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-		DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_TEMP_FOLDER, TempFolderAttriInfo, StringData, 1, HAPI_ATTROWNER_DETAIL))
-	{
-		TempFolderOverride = StringData.IsValidIndex(0) ? StringData[0] : FString();
-	}
-	else
-	{
-		if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-			DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_TEMP_FOLDER, TempFolderAttriInfo, StringData, 1, HAPI_ATTROWNER_PRIM))
-		{
-			TempFolderOverride = StringData.IsValidIndex(0) ? StringData[0] : FString();
-		}
-	}
-
-	if (TempFolderOverride.StartsWith("Game/"))
-	{
-		TempFolderOverride = "/" + TempFolderOverride;
-	}
-
-	FString AbsoluteOverridePath;
-	if (TempFolderOverride.StartsWith("/Game/"))
-	{
-		FString RelativePath = FPaths::ProjectContentDir() + TempFolderOverride.Mid(6, TempFolderOverride.Len() - 6);
-		AbsoluteOverridePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*RelativePath);
-	}
-	else
-	{
-		if (!TempFolderOverride.IsEmpty())
-			AbsoluteOverridePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*TempFolderOverride);
-	}
-
-	// Check Validity of the path
-	if (AbsoluteOverridePath.IsEmpty() || !FPaths::DirectoryExists(AbsoluteOverridePath))
-	{
-		// Only display a warning if the path is invalid, empty is fine
-		if(!AbsoluteOverridePath.IsEmpty())
-			HOUDINI_LOG_WARNING(TEXT("Invalid override temporary cook path: %s"), *TempFolderOverride);
-
-		const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-		TempFolderOverride = HoudiniRuntimeSettings->DefaultTemporaryCookFolder;
-	}
-
-	// If the TempCookFolder of the HAC is non-empty and is different from the override path.
-	// do not override it if the current temp cook path is valid. (it was user specified)
-	if (!HAC->TemporaryCookFolder.Path.IsEmpty() && !HAC->TemporaryCookFolder.Path.Equals(TempFolderOverride))
-		return;
-
-	HAC->TemporaryCookFolder.Path = TempFolderOverride;
 }
 
 #undef LOCTEXT_NAMESPACE
