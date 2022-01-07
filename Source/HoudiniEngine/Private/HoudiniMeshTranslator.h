@@ -304,7 +304,7 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		static UMeshComponent* CreateMeshComponent(UObject *InOuterComponent, const TSubclassOf<UMeshComponent>& InComponentType);
 
 		// Helper to update an existing mesh component
-		static void UpdateMeshComponent(UMeshComponent *InMeshComponent, const FHoudiniOutputObjectIdentifier &InOutputIdentifier,
+		static void UpdateMeshComponent(UMeshComponent *InMeshComponent, UObject *InMesh, const FHoudiniOutputObjectIdentifier &InOutputIdentifier,
 			const FHoudiniGeoPartObject *InHGPO, TArray<AActor*> & HoudiniCreatedSocketActors, TArray<AActor*> & HoudiniAttachedSocketActors,
 			bool bInApplyGenericProperties=true);
 
@@ -318,11 +318,11 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			FHoudiniGeoPartObject const *& OutFoundHGPO,
 			bool &bCreated);
 
-		// Helper to initialize a UStaticMeshComponent after it was created.
-		static bool PostCreateStaticMeshComponent(UStaticMeshComponent *InComponent, UObject *InMesh);
+		// Helper to set or update the mesh on UStaticMeshComponent
+		static bool UpdateMeshOnStaticMeshComponent(UStaticMeshComponent *InComponent, UObject *InMesh);
 
-		// Helper to initialize a UHoudiniStaticMeshComponent after it was created.
-		static bool PostCreateHoudiniStaticMeshComponent(UHoudiniStaticMeshComponent *InComponent, UObject *InMesh);
+		// Helper to set or update the mesh on UHoudiniStaticMeshComponent
+		static bool UpdateMeshOnHoudiniStaticMeshComponent(UHoudiniStaticMeshComponent *InComponent, UObject *InMesh);
 
 		static bool AddActorsToMeshSocket(UStaticMeshSocket * Socket, UStaticMeshComponent * StaticMeshComponent, 
 			TArray<AActor*>& HoudiniCreatedSocketActors, TArray<AActor*>& HoudiniAttachedSocketActors);

@@ -329,19 +329,9 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 			{
 				UHoudiniStaticMeshComponent *HSMC = Cast<UHoudiniStaticMeshComponent>(MeshComponent);
 
-				if (bCreated)
-				{
-					PostCreateHoudiniStaticMeshComponent(HSMC, Mesh);
-				}
-				else if (IsValid(HSMC) && HSMC->GetMesh() != Mesh)
-				{
-					// We need to reassign the HSM to the component
-					UHoudiniStaticMesh* HSM = Cast<UHoudiniStaticMesh>(Mesh);
-					HSMC->SetMesh(HSM);
-				}
-
 				UpdateMeshComponent(
-					MeshComponent, 
+					MeshComponent,
+					Mesh,
 					OutputIdentifier, 
 					FoundHGPO, 
 					InOutput->HoudiniCreatedSocketActors, 
@@ -386,13 +376,9 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 			UMeshComponent *MeshComponent = CreateOrUpdateMeshComponent(InOutput, InOuterComponent, OutputIdentifier, ComponentType, OutputObject, FoundHGPO, bCreated);
 			if (MeshComponent)
 			{
-				if (bCreated)
-				{
-					PostCreateStaticMeshComponent(Cast<UStaticMeshComponent>(MeshComponent), Mesh);
-				}
-
 				UpdateMeshComponent(
 					MeshComponent,
+					Mesh,
 					OutputIdentifier,
 					FoundHGPO,
 					InOutput->HoudiniCreatedSocketActors,
@@ -450,10 +436,21 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 }
 
 void
-FHoudiniMeshTranslator::UpdateMeshComponent(UMeshComponent *InMeshComponent, const FHoudiniOutputObjectIdentifier &InOutputIdentifier, 
+FHoudiniMeshTranslator::UpdateMeshComponent(UMeshComponent *InMeshComponent, UObject* InMesh, const FHoudiniOutputObjectIdentifier &InOutputIdentifier, 
 	const FHoudiniGeoPartObject *InHGPO, TArray<AActor*> &HoudiniCreatedSocketActors, TArray<AActor*> &HoudiniAttachedSocketActors,
 	bool bInApplyGenericProperties)
 {
+	UStaticMeshComponent* const SMC = Cast<UStaticMeshComponent>(InMeshComponent);
+	UHoudiniStaticMeshComponent* const HSMC = Cast<UHoudiniStaticMeshComponent>(InMeshComponent);
+	if (IsValid(SMC))
+	{
+		UpdateMeshOnStaticMeshComponent(SMC, InMesh);
+	}
+	else if (IsValid(HSMC))
+	{
+		UpdateMeshOnHoudiniStaticMeshComponent(HSMC, InMesh);
+	}
+	
 	// Update collision/visibility
 	EHoudiniSplitType SplitType = GetSplitTypeFromSplitName(InOutputIdentifier.SplitIdentifier);
 	if (SplitType == EHoudiniSplitType::InvisibleComplexCollider)
@@ -1729,6 +1726,9 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 	bool bAssignedCustomCollisionMesh = false;
 	ECollisionTraceFlag MainStaticMeshCTF = StaticMeshGenerationProperties.GeneratedCollisionTraceFlag;
 
+	// Map of object identifiers to package params
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniPackageParams> ObjectIdentifiersToPackageParams;
+
 	// Iterate through all detected split groups we care about and split geometry.
 	// The split are ordered in the following way:
 	// Invisible Simple/Convex Colliders > LODs > MainGeo > Visible Colliders > Invisible Colliders
@@ -1821,35 +1821,35 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 		
 		// Try to find existing properties for this identifier
 		FHoudiniOutputObject* FoundOutputObject = InputObjects.Find(OutputObjectIdentifier);
-		if (!FoundOutputObject)
+
+		// If we don't yet have package params for this object identifier, fetch and resolve attributes for the split
+		// and update the package params
+		TMap<FString, FString> TempAttributes;
+		TMap<FString, FString> TempTokens;
+		bool bCopyAttributesAndTokens = false;
+		if (!ObjectIdentifiersToPackageParams.Contains(OutputObjectIdentifier))
 		{
-			FHoudiniOutputObject NewOutputObject;
-			FoundOutputObject = &OutputObjects.Add(OutputObjectIdentifier, NewOutputObject);
-			InputObjects.Remove(OutputObjectIdentifier);
+			// Get all the supported attributes from the HGPO
+			CopyAttributesFromHGPOForSplit(SplitGroupName, TempAttributes, TempTokens);
+
+			// Resolve our final package params
+			FHoudiniAttributeResolver Resolver;
+			FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
+				InitialPackageParams,
+				IsValid(OuterComponent) ? OuterComponent->GetWorld() : nullptr,
+				OuterComponent,
+				TempAttributes,
+				TempTokens,
+				PackageParams,
+				Resolver);
+
+			bCopyAttributesAndTokens = true;
+			ObjectIdentifiersToPackageParams.Emplace(OutputObjectIdentifier, PackageParams);
 		}
 		else
 		{
-			// If this is not a new output object we have to clear the CachedAttributes and CachedTokens before
-			// setting the new values (so that we do not re-use any values from the previous cook)
-			FoundOutputObject->CachedAttributes.Empty();
-			FoundOutputObject->CachedTokens.Empty();
+			PackageParams = ObjectIdentifiersToPackageParams.FindChecked(OutputObjectIdentifier);
 		}
-		FoundOutputObject->bProxyIsCurrent = false;
-
-		// Get all the supported attributes from the HGPO
-		CopyAttributesFromHGPOForSplit(SplitGroupName, FoundOutputObject->CachedAttributes, FoundOutputObject->CachedTokens);
-
-		// Resolve our final package params
-		FHoudiniAttributeResolver Resolver;
-		FHoudiniPackageParams FinalPackageParams;
-		FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
-			InitialPackageParams,
-			IsValid(OuterComponent) ? OuterComponent->GetWorld() : nullptr,
-			OuterComponent,
-			FoundOutputObject->CachedAttributes,
-			FoundOutputObject->CachedTokens,
-			PackageParams,
-			Resolver);
 		
 		// Try to find an existing SM from a previous cook
 		UStaticMesh* FoundStaticMesh = FindExistingStaticMesh(OutputObjectIdentifier);
@@ -1896,6 +1896,21 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			MainStaticMesh->ComplexCollisionMesh = nullptr;
 			MainStaticMesh->bCustomizedCollision = false;
 			// NOTE: The main static mesh collision trace flag will be set after all splits have been processed.
+		}
+
+		if (!FoundOutputObject)
+		{
+			FHoudiniOutputObject NewOutputObject;
+			FoundOutputObject = &OutputObjects.Add(OutputObjectIdentifier, NewOutputObject);
+			InputObjects.Remove(OutputObjectIdentifier);
+		}
+		FoundOutputObject->bProxyIsCurrent = false;
+
+		// Update the attributes and tokens if this is the first split for this object identifier
+		if (bCopyAttributesAndTokens)
+		{
+			FoundOutputObject->CachedAttributes = MoveTemp(TempAttributes);
+			FoundOutputObject->CachedTokens = MoveTemp(TempTokens);
 		}
 
 		// TODO: Needed?
@@ -3177,6 +3192,9 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 	bool bAssignedCustomCollisionMesh = false;
 	ECollisionTraceFlag MainStaticMeshCTF = StaticMeshGenerationProperties.GeneratedCollisionTraceFlag;
 
+	// Map of object identifiers to package params
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniPackageParams> ObjectIdentifiersToPackageParams;
+
 	// Iterate through all detected split groups we care about and split geometry.
 	// The split are ordered in the following way:
 	// Invisible Simple/Convex Colliders > LODs > MainGeo > Visible Colliders > Invisible Colliders
@@ -3269,34 +3287,36 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 
 		// Try to find existing properties for this identifier
 		FHoudiniOutputObject* FoundOutputObject = InputObjects.Find(OutputObjectIdentifier);
-		if (!FoundOutputObject)
+
+		// If we don't yet have package params for this object identifier, fetch and resolve attributes for the split
+		// and update the package params
+		TMap<FString, FString> TempAttributes;
+		TMap<FString, FString> TempTokens;
+		bool bCopyAttributesAndTokens = false;
+		if (!ObjectIdentifiersToPackageParams.Contains(OutputObjectIdentifier))
 		{
-			FHoudiniOutputObject NewOutputObject;
-			FoundOutputObject = &OutputObjects.Add(OutputObjectIdentifier, NewOutputObject);
+			// Get all the supported attributes from the HGPO
+			CopyAttributesFromHGPOForSplit(SplitGroupName, TempAttributes, TempTokens);
+
+			// Resolve our final package params
+			FHoudiniAttributeResolver Resolver;
+			FHoudiniPackageParams FinalPackageParams;
+			FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
+				InitialPackageParams,
+				IsValid(OuterComponent) ? OuterComponent->GetWorld() : nullptr,
+				OuterComponent,
+				TempAttributes,
+				TempTokens,
+				PackageParams,
+				Resolver);
+			
+			bCopyAttributesAndTokens = true;
+			ObjectIdentifiersToPackageParams.Emplace(OutputObjectIdentifier, PackageParams);
 		}
 		else
 		{
-			// If this is not a new output object we have to clear the CachedAttributes and CachedTokens before
-			// setting the new values (so that we do not re-use any values from the previous cook)
-			FoundOutputObject->CachedAttributes.Empty();
-			FoundOutputObject->CachedTokens.Empty();
+			PackageParams = ObjectIdentifiersToPackageParams.FindChecked(OutputObjectIdentifier);
 		}
-		FoundOutputObject->bProxyIsCurrent = false;
-
-		// Get all the supported attributes from the HGPO
-		CopyAttributesFromHGPOForSplit(SplitGroupName, FoundOutputObject->CachedAttributes, FoundOutputObject->CachedTokens);
-
-		// Resolve our final package params
-		FHoudiniAttributeResolver Resolver;
-		FHoudiniPackageParams FinalPackageParams;
-		FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
-			InitialPackageParams,
-			IsValid(OuterComponent) ? OuterComponent->GetWorld() : nullptr,
-			OuterComponent,
-			FoundOutputObject->CachedAttributes,
-			FoundOutputObject->CachedTokens,
-			PackageParams,
-			Resolver);
 
 		// Try to find an existing SM from a previous cook
 		UStaticMesh* FoundStaticMesh = FindExistingStaticMesh(OutputObjectIdentifier);
@@ -3342,6 +3362,20 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			MainStaticMesh = FoundStaticMesh;
 			MainStaticMesh->ComplexCollisionMesh = nullptr;
 			MainStaticMesh->bCustomizedCollision = false;
+		}
+
+		if (!FoundOutputObject)
+		{
+			FHoudiniOutputObject NewOutputObject;
+			FoundOutputObject = &OutputObjects.Add(OutputObjectIdentifier, NewOutputObject);
+		}
+		FoundOutputObject->bProxyIsCurrent = false;
+
+		// Update the attributes and tokens if this is the first split for this object identifier
+		if (bCopyAttributesAndTokens)
+		{
+			FoundOutputObject->CachedAttributes = MoveTemp(TempAttributes);
+			FoundOutputObject->CachedTokens = MoveTemp(TempTokens);
 		}
 
 		// TODO: Needed?
@@ -4519,6 +4553,9 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 	if(bDoTiming)
 		HOUDINI_LOG_MESSAGE(TEXT("CreateHoudiniStaticMesh() - Pre Split-Loop in %f seconds."), tick - time_start);
 
+	// Map of object identifiers to package params
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniPackageParams> ObjectIdentifiersToPackageParams;
+
 	// Iterate through all detected split groups we care about and split geometry.
 	bool bMainGeoOrFirstLODFound = false;
 	for (int32 SplitId = 0; SplitId < AllSplitGroups.Num(); SplitId++)
@@ -4602,35 +4639,36 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 
 		// Try to find existing properties for this identifier
 		FHoudiniOutputObject* FoundOutputObject = InputObjects.Find(OutputObjectIdentifier);
-		if (!FoundOutputObject)
+
+		// If we don't yet have package params for this object identifier, fetch and resolve attributes for the split
+		// and update the package params
+		TMap<FString, FString> TempAttributes;
+		TMap<FString, FString> TempTokens;
+		bool bCopyAttributesAndTokens = false;
+		if (!ObjectIdentifiersToPackageParams.Contains(OutputObjectIdentifier))
 		{
-			// If we couldnt find a previous output object, create a new one
-			FHoudiniOutputObject NewOutputObject;
-			FoundOutputObject = &OutputObjects.Add(OutputObjectIdentifier, NewOutputObject);
+			// Get all the supported attributes from the HGPO
+			CopyAttributesFromHGPOForSplit(SplitGroupName, TempAttributes, TempTokens);
+
+			// Resolve our final package params
+			FHoudiniAttributeResolver Resolver;
+			FHoudiniPackageParams FinalPackageParams;
+			FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
+				InitialPackageParams,
+				IsValid(OuterComponent) ? OuterComponent->GetWorld() : nullptr,
+				OuterComponent,
+				TempAttributes,
+				TempTokens,
+				PackageParams,
+				Resolver);
+
+			bCopyAttributesAndTokens = true;
+			ObjectIdentifiersToPackageParams.Emplace(OutputObjectIdentifier, PackageParams);
 		}
 		else
 		{
-			// If this is not a new output object we have to clear the CachedAttributes and CachedTokens before
-			// setting the new values (so that we do not re-use any values from the previous cook)
-			FoundOutputObject->CachedAttributes.Empty();
-			FoundOutputObject->CachedTokens.Empty();
+			PackageParams = ObjectIdentifiersToPackageParams.FindChecked(OutputObjectIdentifier);
 		}
-		FoundOutputObject->bProxyIsCurrent = true;
-
-		// Get all the supported attributes from the HGPO
-		CopyAttributesFromHGPOForSplit(SplitGroupName, FoundOutputObject->CachedAttributes, FoundOutputObject->CachedTokens);
-
-		// Resolve our final package params
-		FHoudiniAttributeResolver Resolver;
-		FHoudiniPackageParams FinalPackageParams;
-		FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
-			InitialPackageParams,
-			IsValid(OuterComponent) ? OuterComponent->GetWorld() : nullptr,
-			OuterComponent,
-			FoundOutputObject->CachedAttributes,
-			FoundOutputObject->CachedTokens,
-			PackageParams,
-			Resolver);
 
 		// Try to find an existing DM from a previous cook
 		UHoudiniStaticMesh* FoundStaticMesh = FindExistingHoudiniStaticMesh(OutputObjectIdentifier);
@@ -4657,6 +4695,21 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 				continue;
 
 			bNewStaticMeshCreated = true;
+		}
+
+		if (!FoundOutputObject)
+		{
+			// If we couldnt find a previous output object, create a new one
+			FHoudiniOutputObject NewOutputObject;
+			FoundOutputObject = &OutputObjects.Add(OutputObjectIdentifier, NewOutputObject);
+		}
+		FoundOutputObject->bProxyIsCurrent = true;
+
+		// Update the attributes and tokens if this is the first split for this object identifier
+		if (bCopyAttributesAndTokens)
+		{
+			FoundOutputObject->CachedAttributes = MoveTemp(TempAttributes);
+			FoundOutputObject->CachedTokens = MoveTemp(TempTokens);
 		}
 
 		if (bDoTiming)
@@ -6861,12 +6914,15 @@ FHoudiniMeshTranslator::CreateMeshComponent(UObject *InOuterComponent, const TSu
 }
 
 bool
-FHoudiniMeshTranslator::PostCreateStaticMeshComponent(UStaticMeshComponent *InComponent, UObject *InMesh)
+FHoudiniMeshTranslator::UpdateMeshOnStaticMeshComponent(UStaticMeshComponent *InComponent, UObject *InMesh)
 {
-	UStaticMesh *Mesh = Cast<UStaticMesh>(InMesh);
-	if (Mesh)
+	if (!IsValid(InComponent))
+		return false;
+
+	if (UStaticMesh* const Mesh = Cast<UStaticMesh>(InMesh))
 	{
-		InComponent->SetStaticMesh(Mesh);
+		if (Mesh != InComponent->GetStaticMesh())
+			InComponent->SetStaticMesh(Mesh);
 		return true;
 	}
 
@@ -6874,13 +6930,15 @@ FHoudiniMeshTranslator::PostCreateStaticMeshComponent(UStaticMeshComponent *InCo
 }
 
 bool
-FHoudiniMeshTranslator::PostCreateHoudiniStaticMeshComponent(UHoudiniStaticMeshComponent *InComponent, UObject *InMesh)
+FHoudiniMeshTranslator::UpdateMeshOnHoudiniStaticMeshComponent(UHoudiniStaticMeshComponent *InComponent, UObject *InMesh)
 {
-	UHoudiniStaticMesh *Mesh = Cast<UHoudiniStaticMesh>(InMesh);
-	if (Mesh)
-	{
-		InComponent->SetMesh(Mesh);
+	if (!IsValid(InComponent))
+		return false;
 
+	if (UHoudiniStaticMesh* const Mesh = Cast<UHoudiniStaticMesh>(InMesh))
+	{
+		if (Mesh != InComponent->GetMesh())
+			InComponent->SetMesh(Mesh);
 		return true;
 	}
 
