@@ -1980,7 +1980,7 @@ UHoudiniInput::SetInputObjectAt(const EHoudiniInputType& InType, const int32& At
 		// For some input type, we may have to copy some of the previous object's property before deleting it
 
 		// Delete the previous object
-		CurrentInputObjectWrapper->MarkPendingKill();
+		CurrentInputObjectWrapper->MarkAsGarbage();
 		(*InputObjectsPtr)[AtIndex] = nullptr;
 	}
 

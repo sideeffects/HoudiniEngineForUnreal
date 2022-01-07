@@ -55,6 +55,7 @@
 #include "HAL/FileManager.h"
 #include "Modules/ModuleManager.h"
 #include "ISettingsModule.h"
+#include "UObject/ObjectSaveContext.h"
 //#include "UObject/ObjectSaveContext.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
@@ -1763,19 +1764,19 @@ FHoudiniEngineCommands::RefineHoudiniProxyMeshesToStaticMeshesNotifyDone(const u
 		FDelegateHandle& OnPostSaveWorldHandle = FHoudiniEngineCommands::GetOnPostSaveWorldRefineProxyMeshesHandle();
 		if (OnPostSaveWorldHandle.IsValid())
 		{
-			if (FEditorDelegates::PostSaveWorld.Remove(OnPostSaveWorldHandle))
+			if (FEditorDelegates::PostSaveWorldWithContext.Remove(OnPostSaveWorldHandle))
 				OnPostSaveWorldHandle.Reset();
 		}
 
 		// Save the dirty static meshes in InSuccessfulComponents OnPostSaveWorld
-		// TODO: Remove? This may not be necessary now as we save all dirty temporary cook data in PostSaveWorld() already (Static Meshes, Materials...)
-		OnPostSaveWorldHandle = FEditorDelegates::PostSaveWorld.AddLambda(
-		[InSuccessfulComponents, bOnPreSaveWorld, InOnPreSaveWorld](uint32 InSaveFlags, UWorld* InWorld, bool bInSuccess)
+		// TODO: Remove? This may not be necessary now as we save all dirty temporary cook data in PostSaveWorldWithContext() already (Static Meshes, Materials...)
+		OnPostSaveWorldHandle = FEditorDelegates::PostSaveWorldWithContext.AddLambda(
+		[InSuccessfulComponents, bOnPreSaveWorld, InOnPreSaveWorld](UWorld* InWorld, FObjectPostSaveContext InContext)
 		{
 			if (bOnPreSaveWorld && InOnPreSaveWorld && InOnPreSaveWorld != InWorld)
 				return;
 
-			RefineProxyMeshesHandleOnPostSaveWorld(InSuccessfulComponents, InSaveFlags,	InWorld, bInSuccess);
+			RefineProxyMeshesHandleOnPostSaveWorld(InSuccessfulComponents, InContext.GetSaveFlags(), InWorld, InContext.SaveSucceeded());
 
 			FDelegateHandle& OnPostSaveWorldHandle = FHoudiniEngineCommands::GetOnPostSaveWorldRefineProxyMeshesHandle();
 			if (OnPostSaveWorldHandle.IsValid())

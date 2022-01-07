@@ -1272,10 +1272,10 @@ FHoudiniEngineEditor::UnregisterConsoleCommands()
 void
 FHoudiniEngineEditor::RegisterEditorDelegates()
 {
-	PreSaveWorldEditorDelegateHandle = FEditorDelegates::PreSaveWorld.AddLambda([](uint32 SaveFlags, UWorld* World)
+	PreSaveWorldEditorDelegateHandle = FEditorDelegates::PreSaveWorldWithContext.AddLambda([](UWorld* World, FObjectPreSaveContext InContext)
 	{
 		// Skip if this is a game world or an autosave, only refine meshes when the user manually saves
-		if (!World->IsGameWorld() && (SaveFlags & ESaveFlags::SAVE_FromAutosave) == 0)
+		if (!World->IsGameWorld() && (InContext.GetSaveFlags() & ESaveFlags::SAVE_FromAutosave) == 0)
 		{
 			const bool bSelectedOnly = false;
 			const bool bSilent = false;
@@ -1298,8 +1298,8 @@ FHoudiniEngineEditor::RegisterEditorDelegates()
 			}
 
 			// Save all dirty temporary cook package OnPostSaveWorld
-			OnPostSaveWorldHandle = FEditorDelegates::PostSaveWorld.AddLambda(
-				[OnPreSaveWorld](uint32 InSaveFlags, UWorld* InWorld, bool bInSuccess)
+			OnPostSaveWorldHandle = FEditorDelegates::PostSaveWorldWithContext.AddLambda(
+				[OnPreSaveWorld](UWorld* InWorld, FObjectPostSaveContext InContext)
 			{
 				if (OnPreSaveWorld && OnPreSaveWorld != InWorld)
 					return;
