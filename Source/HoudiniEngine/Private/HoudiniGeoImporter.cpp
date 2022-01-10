@@ -275,6 +275,9 @@ UHoudiniGeoImporter::CreateCurves(TArray<UHoudiniOutput*>& InOutputs, UObject* I
 		break;
 	}
 
+	if (CurveOutputs.Num() <= 0)
+		return true;
+
 	FString Notification = TEXT("BGEO Importer: Creating Curves...");
 	FHoudiniEngine::Get().UpdateTaskSlateNotification(FText::FromString(Notification));
 
