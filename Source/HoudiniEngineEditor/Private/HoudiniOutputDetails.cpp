@@ -3693,9 +3693,10 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 			{
 				FDirectoryPath TempCookFolderPath;
 				TempCookFolderPath.Path = TempCookFolder;
+				TMap<UStaticMesh*, UStaticMesh*> AlreadyBakedStaticMeshMap;
 				TMap<UMaterialInterface *, UMaterialInterface *> AlreadyBakedMaterialsMap;
 				UStaticMesh* DuplicatedMesh = FHoudiniEngineBakeUtils::BakeStaticMesh(
-					StaticMesh, PackageParams, InAllOutputs, TempCookFolderPath, AlreadyBakedMaterialsMap, BakeStats);
+					StaticMesh, PackageParams, InAllOutputs, TempCookFolderPath, AlreadyBakedStaticMeshMap, AlreadyBakedMaterialsMap, BakeStats);
 			}
 		}
 		break;
