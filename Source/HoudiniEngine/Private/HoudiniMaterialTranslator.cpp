@@ -153,6 +153,14 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 				bCanReuseExistingMaterial = true;
 			}
 		}
+
+		// Check that the existing material is in the expected directory (temp folder could have been changed between
+		// cooks).
+		if (IsValid(Material) && !InPackageParams.HasMatchingPackageDirectories(Material))
+		{
+			bCanReuseExistingMaterial = false;
+			Material = nullptr;
+		}
 		
 		bool bCreatedNewMaterial = false;
 		if (IsValid(Material))
