@@ -28,12 +28,12 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "Misc/Paths.h"
 
 #include "HoudiniEngineRuntimeCommon.h"
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniOutput.h"
-#include "HoudiniInputTypes.h"
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniAssetStateTypes.h"
 #include "IHoudiniAssetStateEvents.h"
@@ -235,6 +235,14 @@ public:
 
 	// Returns true if a parameter definition update (excluding values) is needed.
 	bool IsParameterDefinitionUpdateNeeded() const { return bParameterDefinitionUpdateNeeded; }
+
+	// Returns the BakeFolder, if it is not empty. Otherwise returns the plugin default bake folder. This
+	// function does not take the unreal_bake_folder attribute into account.
+	FString GetBakeFolderOrDefault() const;
+
+	// Returns the TemporaryCookFolder, if it is not empty. Otherwise returns the plugin default temporary
+	// cook folder. This function does not take the unreal_temp_folder attribute into account.
+	FString GetTemporaryCookFolderOrDefault() const;
 
 	//------------------------------------------------------------------------------------------------
 	// Mutators
