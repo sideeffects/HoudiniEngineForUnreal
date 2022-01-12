@@ -1813,7 +1813,7 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 
 		TArray<FString> BakeNames;
 		if (FoundOutputObject && FHoudiniEngineUtils::GetBakeNameAttribute(
-			InHGPO.GeoId, InHGPO.PartId, BakeNames, 0, 1))
+			InHGPO.GeoId, InHGPO.PartId, BakeNames, HAPI_ATTROWNER_INVALID, 0, 1))
 		{
 			if (BakeNames.Num() > 0 && !BakeNames[0].IsEmpty())
 			{
