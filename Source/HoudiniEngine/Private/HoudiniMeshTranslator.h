@@ -178,6 +178,9 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		void CopyAttributesFromHGPOForSplit(
 			const FString& InSplitGroupName, TMap<FString, FString>& OutAttributes, TMap<FString, FString>& OutTokens);
 
+		// Copy supported (non-generic) attributes from the split via outputobjectidentifier
+		void CopyAttributesFromHGPOForSplit(
+			const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier, TMap<FString, FString>& OutAttributes, TMap<FString, FString>& OutTokens);
 
 		//-----------------------------------------------------------------------------------------------------------------------------
 		// ACCESSORS
