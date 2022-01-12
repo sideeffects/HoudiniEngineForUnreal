@@ -1549,8 +1549,23 @@ void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
 void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
 	const FString& InSplitGroupName, TMap<FString, FString>& OutAttributes, TMap<FString, FString>& OutTokens)
 {
+	int32 PointIndex = INDEX_NONE;
 	const int32 PrimIndex = AllSplitFirstValidPrimIndex[InSplitGroupName];
-	const int32 PointIndex = AllSplitFirstValidVertexIndex[InSplitGroupName];
+	
+	const int32 FirstValidVertexIndex = AllSplitFirstValidVertexIndex[InSplitGroupName];
+	if (FirstValidVertexIndex >= 0 && AllSplitVertexLists[InSplitGroupName].IsValidIndex(FirstValidVertexIndex))
+	{
+		PointIndex = AllSplitVertexLists[InSplitGroupName][FirstValidVertexIndex];
+	}
+
+	CopyAttributesFromHGPOForSplit(PointIndex, PrimIndex, OutAttributes, OutTokens);
+}
+
+void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
+	const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier, TMap<FString, FString>& OutAttributes, TMap<FString, FString>& OutTokens)
+{
+	const int32 PrimIndex = InOutputObjectIdentifier.PrimitiveIndex;
+	const int32 PointIndex = InOutputObjectIdentifier.PointIndex;
 
 	CopyAttributesFromHGPOForSplit(PointIndex, PrimIndex, OutAttributes, OutTokens);
 }
@@ -1701,7 +1716,15 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			HGPO.ObjectId, HGPO.GeoId, HGPO.PartId, GetMeshIdentifierFromSplit(SplitGroupName, SplitType));
 		OutputObjectIdentifier.PartName = HGPO.PartName;
 		OutputObjectIdentifier.PrimitiveIndex = AllSplitFirstValidPrimIndex[SplitGroupName];
-		OutputObjectIdentifier.PointIndex = AllSplitFirstValidVertexIndex[SplitGroupName];
+		const int32 FirstValidVertexIndex = AllSplitFirstValidVertexIndex[SplitGroupName];
+		if (FirstValidVertexIndex >= 0 && AllSplitVertexLists[SplitGroupName].IsValidIndex(FirstValidVertexIndex))
+		{
+			OutputObjectIdentifier.PointIndex = AllSplitVertexLists[SplitGroupName][FirstValidVertexIndex];
+		}
+		else
+		{
+			OutputObjectIdentifier.PointIndex = -1;
+		}
 
 		// Get/Create the Aggregate Collisions for this mesh identifier
 		FKAggregateGeom& AggregateCollisions = AllAggregateCollisions.FindOrAdd(OutputObjectIdentifier);
@@ -1757,7 +1780,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 		if (!ObjectIdentifiersToPackageParams.Contains(OutputObjectIdentifier))
 		{
 			// Get all the supported attributes from the HGPO
-			CopyAttributesFromHGPOForSplit(SplitGroupName, TempAttributes, TempTokens);
+			CopyAttributesFromHGPOForSplit(OutputObjectIdentifier, TempAttributes, TempTokens);
 
 			// Resolve our final package params
 			FHoudiniAttributeResolver Resolver;
@@ -2798,9 +2821,9 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 		if (FHoudiniEngineUtils::GetGenericPropertiesAttributes(
 			HGPO.GeoId, HGPO.PartId,
 			true,
-			AllSplitFirstValidPrimIndex[SplitGroupName],
+			OutputObjectIdentifier.PrimitiveIndex,
 			INDEX_NONE,
-			AllSplitFirstValidVertexIndex[SplitGroupName],
+			OutputObjectIdentifier.PointIndex,
 			PropertyAttributes))
 		{
 			auto FindPropertyOnSourceModelLamba = [LODIndex](UObject* const InObject, const FString& InPropertyName, bool& bOutSkipDefaultIfPropertyNotFound, FEditPropertyChain& InPropertyChain, FProperty*& OutFoundProperty, UObject*& OutFoundPropertyObject, void*& OutContainer)
@@ -3162,7 +3185,15 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			HGPO.ObjectId, HGPO.GeoId, HGPO.PartId, GetMeshIdentifierFromSplit(SplitGroupName, SplitType));
 		OutputObjectIdentifier.PartName = HGPO.PartName;
 		OutputObjectIdentifier.PrimitiveIndex = AllSplitFirstValidPrimIndex[SplitGroupName];
-		OutputObjectIdentifier.PointIndex = AllSplitFirstValidVertexIndex[SplitGroupName];
+		const int32 FirstValidVertexIndex = AllSplitFirstValidVertexIndex[SplitGroupName];
+		if (FirstValidVertexIndex >= 0 && AllSplitVertexLists[SplitGroupName].IsValidIndex(FirstValidVertexIndex))
+		{
+			OutputObjectIdentifier.PointIndex = AllSplitVertexLists[SplitGroupName][FirstValidVertexIndex];
+		}
+		else
+		{
+			OutputObjectIdentifier.PointIndex = -1;
+		}
 
 		// Get/Create the Aggregate Collisions for this mesh identifier
 		FKAggregateGeom& AggregateCollisions = AllAggregateCollisions.FindOrAdd(OutputObjectIdentifier);
@@ -3218,7 +3249,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 		if (!ObjectIdentifiersToPackageParams.Contains(OutputObjectIdentifier))
 		{
 			// Get all the supported attributes from the HGPO
-			CopyAttributesFromHGPOForSplit(SplitGroupName, TempAttributes, TempTokens);
+			CopyAttributesFromHGPOForSplit(OutputObjectIdentifier, TempAttributes, TempTokens);
 
 			// Resolve our final package params
 			FHoudiniAttributeResolver Resolver;
@@ -4178,9 +4209,9 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 		if (FHoudiniEngineUtils::GetGenericPropertiesAttributes(
 			HGPO.GeoId, HGPO.PartId,
 			true,
-			AllSplitFirstValidPrimIndex[SplitGroupName],
+			OutputObjectIdentifier.PrimitiveIndex,
 			INDEX_NONE,
-			AllSplitFirstValidVertexIndex[SplitGroupName],
+			OutputObjectIdentifier.PointIndex,
 			PropertyAttributes))
 		{
 			auto FindPropertyOnSourceModelLamba = [LODIndex](UObject* const InObject, const FString& InPropertyName, bool& bOutSkipDefaultIfPropertyNotFound, FEditPropertyChain& InPropertyChain, FProperty*& OutFoundProperty, UObject*& OutFoundPropertyObject, void*& OutContainer)
@@ -4560,7 +4591,15 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 			HGPO.ObjectId, HGPO.GeoId, HGPO.PartId, GetMeshIdentifierFromSplit(SplitGroupName, SplitType));
 		OutputObjectIdentifier.PartName = HGPO.PartName;
 		OutputObjectIdentifier.PrimitiveIndex = AllSplitFirstValidPrimIndex[SplitGroupName];
-		OutputObjectIdentifier.PointIndex = AllSplitFirstValidVertexIndex[SplitGroupName];
+		const int32 FirstValidVertexIndex = AllSplitFirstValidVertexIndex[SplitGroupName];
+		if (FirstValidVertexIndex >= 0 && AllSplitVertexLists[SplitGroupName].IsValidIndex(FirstValidVertexIndex))
+		{
+			OutputObjectIdentifier.PointIndex = AllSplitVertexLists[SplitGroupName][FirstValidVertexIndex];
+		}
+		else
+		{
+			OutputObjectIdentifier.PointIndex = -1;
+		}
 
 		// Try to find existing properties for this identifier
 		FHoudiniOutputObject* FoundOutputObject = InputObjects.Find(OutputObjectIdentifier);
@@ -4573,7 +4612,7 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 		if (!ObjectIdentifiersToPackageParams.Contains(OutputObjectIdentifier))
 		{
 			// Get all the supported attributes from the HGPO
-			CopyAttributesFromHGPOForSplit(SplitGroupName, TempAttributes, TempTokens);
+			CopyAttributesFromHGPOForSplit(OutputObjectIdentifier, TempAttributes, TempTokens);
 
 			// Resolve our final package params
 			FHoudiniAttributeResolver Resolver;
@@ -5413,7 +5452,33 @@ FHoudiniMeshTranslator::CreateNeededMaterials()
 	TMap<FString, FString> Tokens;
 	FHoudiniAttributeResolver Resolver;
 	FHoudiniPackageParams FinalPackageParams;
-	CopyAttributesFromHGPOForSplit(0, 0, Attributes, Tokens);
+
+	// Get the attributes from normal geo, or first LOD if there is no normal geo. Fallback to use index 0.
+	FString SplitToUse;
+	for (const FString& SplitGroupName : AllSplitGroups)
+	{
+		const EHoudiniSplitType SplitType = GetSplitTypeFromSplitName(SplitGroupName);
+		if (SplitType == EHoudiniSplitType::Normal)
+		{
+			SplitToUse = SplitGroupName;
+			break;
+		}
+		else if (SplitType == EHoudiniSplitType::LOD && SplitToUse.IsEmpty())
+		{
+			SplitToUse = SplitGroupName;
+			// don't break here since we might still find normal geo after the LOD splits
+		}
+	}
+
+	if (!SplitToUse.IsEmpty())
+	{
+		CopyAttributesFromHGPOForSplit(SplitToUse, Attributes, Tokens);
+	}
+	else
+	{
+		CopyAttributesFromHGPOForSplit(0, 0, Attributes, Tokens);
+	}
+	
 	FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
 		PackageParams,
 		IsValid(OuterComponent) ? OuterComponent->GetWorld() : nullptr,
