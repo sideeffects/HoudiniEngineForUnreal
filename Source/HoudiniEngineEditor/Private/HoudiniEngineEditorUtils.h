@@ -98,4 +98,14 @@ public:
 	// Call PostEditChangeChainProperty on InRootObject for the property at InPropertyPath relative to
 	// InRootObject.
 	static void NotifyPostEditChangeProperty(FName InPropertyPath, UObject* InRootObject);
+
+	// Copy of UEditorLevelUtils::MoveActorsToLevel with OutActors added. Moves ActorsToMove to DestLevel and
+	// optionally returns the resulting moved actors in DestLevel in OutActors.
+	// Returns the number of actors that were moved.
+	static int32 MoveActorsToLevel(const TArray<AActor*>& InActorsToMove, ULevel* InDestLevel, bool bInWarnAboutReferences = true, bool bInWarnAboutRenaming = true, bool bInMoveAllOrFail = false, TArray<AActor*>* OutActors = nullptr);
+
+	// Copy of UEditorLevelUtils::CopyOrMoveActorsToLevel with OutActors added. Copies or moves ActorsToMove to
+	// DestLevel and optionally returns the resulting copied/moved actors in DestLevel in OutActors.
+	// Returns the number of actors that were copied/moved.
+	static int32 CopyOrMoveActorsToLevel(const TArray<AActor*>& InActorsToMove, ULevel* InDestLevel, bool bInCutActors, bool bInMoveActors, bool bInWarnAboutReferences = true, bool bInWarnAboutRenaming = true, bool bInMoveAllOrFail = false, TArray<AActor*>* OutActors = nullptr);
 };
