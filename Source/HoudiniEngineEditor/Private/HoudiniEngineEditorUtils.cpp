@@ -41,10 +41,14 @@
 #include "IContentBrowserSingleton.h"
 #include "Engine/Selection.h"
 #include "AssetRegistryModule.h"
+#include "AssetToolsModule.h"
+#include "EditorLevelUtils.h"
 #include "EditorViewportClient.h"
 #include "ActorFactories/ActorFactory.h"
 #include "FileHelpers.h"
+#include "LevelUtils.h"
 #include "PropertyPathHelpers.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -714,6 +718,208 @@ FHoudiniEngineEditorUtils::NotifyPostEditChangeProperty(FName InPropertyPath, UO
 	{
 		HOUDINI_LOG_WARNING(TEXT("Could not resolve property path '%s' on %s."), *InPropertyPath.ToString(), *(InRootObject->GetFullName()));
 	}
+}
+
+int32 FHoudiniEngineEditorUtils::MoveActorsToLevel(const TArray<AActor*>& InActorsToMove, ULevel* InDestLevel, bool bInWarnAboutReferences, bool bInWarnAboutRenaming, bool bInMoveAllOrFail, TArray<AActor*>* OutActors)
+{
+	constexpr bool bCutActors = true;
+	constexpr bool bMoveActors = true;
+	return CopyOrMoveActorsToLevel(InActorsToMove, InDestLevel, bCutActors, bMoveActors, bInWarnAboutReferences, bInWarnAboutRenaming, bInMoveAllOrFail, OutActors);
+}
+
+int32 FHoudiniEngineEditorUtils::CopyOrMoveActorsToLevel(const TArray<AActor*>& InActorsToMove, ULevel* InDestLevel, bool bInCutActors, bool bInMoveActors, bool bInWarnAboutReferences /*= true*/, bool bInWarnAboutRenaming /*= true*/, bool bInMoveAllOrFail /*= false*/, TArray<AActor*>* OutActors /*=nullptr*/)
+{
+	int32 NumMovedActors = 0;
+
+	if (InDestLevel)
+	{
+		UWorld* OwningWorld = InDestLevel->OwningWorld;
+
+		// Backup the current contents of the clipboard string as we'll be using cut/paste features to move actors
+		// between levels and this will trample over the clipboard data.
+		FString OriginalClipboardContent;
+		FPlatformApplicationMisc::ClipboardPaste(OriginalClipboardContent);
+
+		// The final list of actors to move after invalid actors were removed
+		TArray<AActor*> FinalMoveList;
+		FinalMoveList.Reserve(InActorsToMove.Num());
+
+		bool bIsDestLevelLocked = FLevelUtils::IsLevelLocked(InDestLevel);
+		int32 ActorCount = 0;
+		if (!bIsDestLevelLocked)
+		{
+			for (AActor* CurActor : InActorsToMove)
+			{
+				if (!CurActor)
+				{
+					continue;
+				}
+				ActorCount++;
+				bool bIsSourceLevelLocked = FLevelUtils::IsLevelLocked(CurActor);
+
+				if (!bIsSourceLevelLocked)
+				{
+					if (CurActor->GetLevel() != InDestLevel)
+					{
+						FinalMoveList.Add(CurActor);
+					}
+					else
+					{
+						HOUDINI_LOG_WARNING(TEXT("%s is already in the destination level so it was ignored"), *CurActor->GetName());
+					}
+				}
+				else
+				{
+					HOUDINI_LOG_ERROR(TEXT("The source level '%s' is locked so actors could not be moved"), *CurActor->GetLevel()->GetName());
+				}
+			}
+		}
+		else
+		{
+			HOUDINI_LOG_ERROR(TEXT("The destination level '%s' is locked so actors could not be moved"), *InDestLevel->GetName());
+		}
+
+
+		if (FinalMoveList.Num() > 0 && (!bInMoveAllOrFail || FinalMoveList.Num() == ActorCount))
+		{
+			TMap<FSoftObjectPath, FSoftObjectPath> ActorPathMapping;
+			GEditor->SelectNone(false, true, false);
+
+			USelection* ActorSelection = GEditor->GetSelectedActors();
+			ActorSelection->BeginBatchSelectOperation();
+			for (AActor* Actor : FinalMoveList)
+			{
+				ActorPathMapping.Add(FSoftObjectPath(Actor), FSoftObjectPath());
+				GEditor->SelectActor(Actor, true, false);
+			}
+			ActorSelection->EndBatchSelectOperation(false);
+
+			if (GEditor->GetSelectedActorCount() > 0)
+			{
+				// Start the transaction
+				FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "MoveSelectedActorsToSelectedLevel", "Move Actors To Level"));
+
+				// Cache the old level
+				ULevel* OldCurrentLevel = OwningWorld->GetCurrentLevel();
+
+				GEditor->CopySelectedActorsToClipboard(OwningWorld, bInCutActors, bInMoveActors, bInWarnAboutReferences);
+
+				const bool bLevelVisible = InDestLevel->bIsVisible;
+				if (!bLevelVisible)
+				{
+					UEditorLevelUtils::SetLevelVisibility(InDestLevel, true, false);
+				}
+
+				// Scope this so that Actors that have been pasted will have their final levels set before doing the actor mapping
+				{
+					// Set the new level and force it visible while we do the paste
+					FLevelPartitionOperationScope LevelPartitionScope(InDestLevel);
+					OwningWorld->SetCurrentLevel(LevelPartitionScope.GetLevel());
+
+					const bool bDuplicate = false;
+					const bool bOffsetLocations = false;
+					const bool bWarnIfHidden = false;
+					GEditor->edactPasteSelected(OwningWorld, bDuplicate, bOffsetLocations, bWarnIfHidden);
+
+					// Restore the original current level
+					OwningWorld->SetCurrentLevel(OldCurrentLevel);
+				}
+
+				// Build a remapping of old to new names so we can do a fixup
+				for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+				{
+					AActor* Actor = static_cast<AActor*>(*It);
+					FSoftObjectPath NewPath = FSoftObjectPath(Actor);
+
+					bool bFoundMatch = false;
+
+					// First try exact match
+					for (TPair<FSoftObjectPath, FSoftObjectPath>& Pair : ActorPathMapping)
+					{
+						if (Pair.Value.IsNull() && NewPath.GetSubPathString() == Pair.Key.GetSubPathString())
+						{
+							bFoundMatch = true;
+							Pair.Value = NewPath;
+							if (OutActors)
+							{
+								OutActors->Add(Actor);
+							}
+							break;
+						}
+					}
+
+					if (!bFoundMatch)
+					{
+						// Remove numbers from end as it may have had to add some to disambiguate
+						FString PartialPath = NewPath.GetSubPathString();
+						int32 IgnoreNumber;
+						FActorLabelUtilities::SplitActorLabel(PartialPath, IgnoreNumber);
+
+						for (TPair<FSoftObjectPath, FSoftObjectPath>& Pair : ActorPathMapping)
+						{
+							if (Pair.Value.IsNull())
+							{
+								FString KeyPartialPath = Pair.Key.GetSubPathString();
+								FActorLabelUtilities::SplitActorLabel(KeyPartialPath, IgnoreNumber);
+								if (PartialPath == KeyPartialPath)
+								{
+									bFoundMatch = true;
+									Pair.Value = NewPath;
+									if (OutActors)
+									{
+										OutActors->Add(Actor);
+									}
+									break;
+								}
+							}
+						}
+					}
+
+					if (!bFoundMatch)
+					{
+						HOUDINI_LOG_ERROR(TEXT("Cannot find remapping for moved actor ID %s, any soft references pointing to it will be broken!"), *Actor->GetPathName());
+					}
+				}
+
+				FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+				TArray<FAssetRenameData> RenameData;
+
+				for (TPair<FSoftObjectPath, FSoftObjectPath>& Pair : ActorPathMapping)
+				{
+					if (Pair.Value.IsValid())
+					{
+						RenameData.Add(FAssetRenameData(Pair.Key, Pair.Value, true));
+					}
+				}
+
+				if (RenameData.Num() > 0)
+				{
+					if (bInWarnAboutRenaming)
+					{
+						AssetToolsModule.Get().RenameAssetsWithDialog(RenameData);
+					}
+					else
+					{
+						AssetToolsModule.Get().RenameAssets(RenameData);
+					}
+				}
+
+				// Restore new level visibility to previous state
+				if (!bLevelVisible)
+				{
+					UEditorLevelUtils::SetLevelVisibility(InDestLevel, false, false);
+				}
+			}
+
+			// The moved (pasted) actors will now be selected
+			NumMovedActors += FinalMoveList.Num();
+		}
+
+		// Restore the original clipboard contents
+		FPlatformApplicationMisc::ClipboardCopy(*OriginalClipboardContent);
+	}
+
+	return NumMovedActors;
 }
 
 #undef LOCTEXT_NAMESPACE
