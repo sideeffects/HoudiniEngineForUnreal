@@ -1524,7 +1524,7 @@ FHoudiniInstanceTranslator::GetAttributeInstancerObjectsAndTransforms(
 				// To avoid trying to load an object that fails multiple times,
 				// still add it to the array if null so we can still skip further attempts
 				UObject* AttributeObject = StaticFindObjectSafe(UObject::StaticClass(), nullptr, *Iter);
-				if (IsValid(AttributeObject))
+				if (!IsValid(AttributeObject))
 					AttributeObject = StaticLoadObject(
 						UObject::StaticClass(), nullptr, *Iter, nullptr, LOAD_None, nullptr);
 
