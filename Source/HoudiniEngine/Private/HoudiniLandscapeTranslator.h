@@ -198,7 +198,6 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			ALandscape* InLandscape,
 			const TArray<FLandscapeImportLayerInfo>& LayerInfos,
 			TMap<FName, int32>& OutPaintLayers,
-			bool bNoWeightBlend,
 			bool bHasEditLayers,
 			const FName& LayerName
 			);
@@ -509,7 +508,8 @@ public:
 			const FString& InLayerName,
 			const FString& InPackagePath,
 			const FString& InPackageName,
-			UPackage*& OutPackage);
+			UPackage*& OutPackage,
+			bool& bCreatedPackaged);
 
 		static bool EnableWorldComposition();
 
