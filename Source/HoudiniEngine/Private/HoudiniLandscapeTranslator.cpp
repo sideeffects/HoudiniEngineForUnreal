@@ -1233,7 +1233,6 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 			TileActor->GetLandscapeActor(),
 			LayerInfos,
 			ExistingLayers,
-			bLayerNoWeightBlend,
 			bHasEditLayers,
 			InEditLayerFName);
 
@@ -1305,7 +1304,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 
 		// Update landscape edit layers to match layer infos
 		TMap<FName, int32> ExistingLayers;
-		UpdateLandscapeMaterialLayers(TargetLandscape, LayerInfos, ExistingLayers, bLayerNoWeightBlend, bHasEditLayers, InEditLayerFName);
+		UpdateLandscapeMaterialLayers(TargetLandscape, LayerInfos, ExistingLayers, bHasEditLayers, InEditLayerFName);
 		
 		CachedLandscapeActor = TileActor->GetLandscapeActor();
 
@@ -1986,7 +1985,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 
 	// Update landscape edit layers to match layer infos
 	TMap<FName, int32> ExistingLayers;
-	UpdateLandscapeMaterialLayers(TargetLandscape, LayerInfos, ExistingLayers, bLayerNoWeightBlend, bHasEditLayers, EditLayerName);
+	UpdateLandscapeMaterialLayers(TargetLandscape, LayerInfos, ExistingLayers, bHasEditLayers, EditLayerName);
 
 	// Clear layers
 	if (!ClearedLayers.Contains(EditableLayerName))
@@ -2231,7 +2230,6 @@ bool FHoudiniLandscapeTranslator::PopulateLandscapeExtents(FHoudiniLandscapeExte
 bool FHoudiniLandscapeTranslator::UpdateLandscapeMaterialLayers(ALandscape* InLandscape,
 	const TArray<FLandscapeImportLayerInfo>& LayerInfos,
 	TMap<FName, int32>& OutPaintLayers,
-	bool bNoWeightBlend,
 	bool bHasEditLayers,
 	const FName& EditLayerName)
 {
@@ -2244,8 +2242,7 @@ bool FHoudiniLandscapeTranslator::UpdateLandscapeMaterialLayers(ALandscape* InLa
 	FGuid LayerGuid;
 	if (bHasEditLayers)
 	{
-		const FLandscapeLayer* Layer = InLandscape->GetLayer(EditLayerName);
-		if (Layer)
+		if (const FLandscapeLayer* Layer = InLandscape->GetLayer(EditLayerName))
 		{
 			LayerGuid = Layer->Guid;
 		}
@@ -2261,8 +2258,6 @@ bool FHoudiniLandscapeTranslator::UpdateLandscapeMaterialLayers(ALandscape* InLa
 	bool bLayerHasChanged = false;
 	for (const FLandscapeImportLayerInfo &InLayerInfo : LayerInfos)
 	{
-		HOUDINI_LANDSCAPE_MESSAGE(TEXT("[HoudiniLandscapeTranslator::UpdateLandscapeEditLayers] Processing Layer Info: %s, bNoWeightBlend: %d"), *(InLayerInfo.LayerName.ToString()), bNoWeightBlend);
-
 		// NOTE: Don't update layer blend weight settings here. It should already have been set in CreateOrUpdateLandscapeLayerData.
 
 		// The following layer adding / replacing code have been referenced from:
@@ -3860,11 +3855,12 @@ FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayerData(
 		UPackage * Package = nullptr;
 		ULandscapeLayerInfoObject* LayerInfo = GetLandscapeLayerInfoForLayer(*LayerGeoPartObject, *LayerName);
 		HOUDINI_LANDSCAPE_MESSAGE(TEXT("[CreateOrUpdateLandscapeLayers] GetLandscapeLayerInfoForLayer. LayerName: %s."), *(LayerName));
+		bool bCreatedLayerInfo = false;
 		if (!IsValid(LayerInfo))
 		{
 			// No assignment, try to find or create a landscape layer info object for that layer
 			HOUDINI_LANDSCAPE_MESSAGE(TEXT("[CreateOrUpdateLandscapeLayers] No layer info. FindOrCreate layer info object..."));
-			LayerInfo = FindOrCreateLandscapeLayerInfoObject(LayerName, LayerPackageParams.GetPackagePath(), LayerPackageParams.GetPackageName(), Package);
+			LayerInfo = FindOrCreateLandscapeLayerInfoObject(LayerName, LayerPackageParams.GetPackagePath(), LayerPackageParams.GetPackageName(), Package, bCreatedLayerInfo);
 		}
 
 		if (!IsValid(LayerInfo))
@@ -3872,16 +3868,21 @@ FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayerData(
 			continue;
 		}
 
-		// Visibility are by default non weight blended
 		if (NonWeightBlendedLayerNames.Contains(LayerName) || SanitizedLayerFName.IsEqual(HAPI_UNREAL_VISIBILITY_LAYER_NAME))
 		{
+			// Visibility layer is, by default, non weight blended
 			LayerInfo->bNoWeightBlend = true;
 		}
 		else
 		{
 			bool bNoWeightBlending = bDefaultNoWeightBlending;
-			GetIsLayerWeightBlended(*LayerGeoPartObject, bNoWeightBlending);
-			LayerInfo->bNoWeightBlend = bNoWeightBlending;
+			const bool bHasWeightblendAttribute = GetIsLayerWeightBlended(*LayerGeoPartObject, bNoWeightBlending);
+			if (bHasWeightblendAttribute || bCreatedLayerInfo)
+			{
+				// Only initialize the NoWeightBlend property if layer was created or the bNoWeightBlending attribute
+				// is present on the heightfield.
+				LayerInfo->bNoWeightBlend = bNoWeightBlending;
+			}
 		}
 
 		// Convert the float data to uint8
@@ -4881,12 +4882,11 @@ FHoudiniLandscapeTranslator::GetLandscapeComponentExtentAttributes(
 }
 
 ULandscapeLayerInfoObject *
-FHoudiniLandscapeTranslator::FindOrCreateLandscapeLayerInfoObject(const FString& InLayerName, const FString& InPackagePath, const FString& InPackageName, UPackage*& OutPackage)
+FHoudiniLandscapeTranslator::FindOrCreateLandscapeLayerInfoObject(const FString& InLayerName, const FString& InPackagePath, const FString& InPackageName, UPackage*& OutPackage, bool& bCreatedPackage)
 {
 	FString PackageFullName = InPackagePath + TEXT("/") + InPackageName;
 
 	// See if package exists, if it does, reuse it
-	bool bCreatedPackage = false;
 	OutPackage = FindPackage(nullptr, *PackageFullName);
 	if (!IsValid(OutPackage))
 	{
