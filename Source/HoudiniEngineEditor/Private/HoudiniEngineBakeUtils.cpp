@@ -76,6 +76,7 @@
 #include "FileHelpers.h"
 #include "HoudiniEngineEditor.h"
 #include "HoudiniEngine.h"
+#include "HoudiniEngineEditorUtils.h"
 #include "HoudiniGeometryCollectionTranslator.h"
 #include "HoudiniLandscapeTranslator.h"
 #include "HoudiniMeshTranslator.h"
@@ -3765,7 +3766,7 @@ FHoudiniEngineBakeUtils::BakeLandscapeObject(
 		check(LandscapeInfo);
 		
 		// We can now move the current landscape to the new world / level
-		// if (TileActor->GetClass()->IsChildOf<ALandscapeStreamingProxy>())
+		if (TileActor->GetClass()->IsChildOf<ALandscapeStreamingProxy>())
 		{
 			// We can only move streaming proxies to sublevels for now.
 			TArray<AActor*> ActorsToMove = {TileActor};
@@ -3778,6 +3779,29 @@ FHoudiniEngineBakeUtils::BakeLandscapeObject(
 			TargetLevel->MarkPackageDirty();
 
 			TileActor = NewLandscapeProxy;
+		}
+		else
+		{
+			// Move the landscape actor to the target level
+			constexpr bool bWarnAboutReferences = false;
+			constexpr bool bWarnAboutRenaming = false;
+			constexpr bool bMoveAllOrFail = true;
+			TArray<AActor*> MovedActors;
+			if (FHoudiniEngineEditorUtils::MoveActorsToLevel({TileActor}, TargetLevel, bWarnAboutReferences, bWarnAboutRenaming, bMoveAllOrFail, &MovedActors) > 0)
+			{
+				// The function returned > 0 but no actors were moved
+				if (MovedActors.Num() <= 0)
+					return false;
+				// The moved actor isn't a landscape?
+				TileActor = Cast<ALandscapeProxy>(MovedActors[0]);
+				if (!IsValid(TileActor))
+					return false;
+			}
+			else
+			{
+				// The move failed
+				return false;
+			}
 		}
 	}
 	else
@@ -4119,7 +4143,7 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 	// Assign duplicated materials.
 	DuplicatedStaticMesh->StaticMaterials = DuplicatedMaterials;
 
-	// Check if the complex collision mesh if the SM is temporary, if so try to get its baked version
+	// Check if the complex collision mesh of the SM is a temporary SM, if so try to get its baked version
 	if (IsValid(DuplicatedStaticMesh->ComplexCollisionMesh) &&
 			IsObjectTemporary(DuplicatedStaticMesh->ComplexCollisionMesh, EHoudiniOutputType::Mesh, InParentOutputs, InTemporaryCookFolder))
 	{
