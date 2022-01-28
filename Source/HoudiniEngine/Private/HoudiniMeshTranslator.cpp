@@ -1448,59 +1448,75 @@ FHoudiniMeshTranslator::CreateNewStaticMesh(const FString& InSplitIdentifier)
 }
 
 void
-FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const int32& PartId, UStaticMesh* StaticMesh)
+FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const int32& PartId, const int32& PrimIndex, UStaticMesh* StaticMesh)
 {
-    if (!StaticMesh)
-    {
-	return;
-    }
+	if (!StaticMesh)
+		return;
 
-    // 
-    HAPI_AttributeInfo AttributeInfo;
-    FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+	// 
+	HAPI_AttributeInfo AttributeInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 
-    // Start by looking for the nanite enabled attribute, disabled by default
-    bool bEnableNanite = false;
-    TArray<int32> IntData;
-    if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
-	GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_ENABLED,
-	AttributeInfo, IntData, 1, HAPI_ATTROWNER_INVALID, 0, 1))
-    {
+	// Start by looking for the nanite enabled attribute, disabled by default
+	bool bEnableNanite = false;
+	TArray<int32> IntData;
+
+	// Look for a specific prim attribute first
+	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+		GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_ENABLED,
+		AttributeInfo, IntData, 1, HAPI_ATTROWNER_PRIM, PrimIndex, 1))
+	{
+		//Global search for the attribute
+		IntData.Empty();
+		FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+			GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_ENABLED,
+			AttributeInfo, IntData, 1, HAPI_ATTROWNER_INVALID, 0, 1);
+	}
+
 	if (IntData.Num() > 0)
 	{
-	    bEnableNanite = true;
+		bEnableNanite = (IntData[0] != 0);
 	}
-    }
 
-    // Then look for the position precision attribute, auto by default (MIN_int32)
-    StaticMesh->NaniteSettings.PositionPrecision = MIN_int32;
-    IntData.Empty();
-    if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
-	GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_POSITION_PRECISION,
-	AttributeInfo, IntData, 1, HAPI_ATTROWNER_INVALID, 0, 1))
-    {
+	// Then look for the position precision attribute, auto by default (MIN_int32)
+	IntData.Empty();
+	StaticMesh->NaniteSettings.PositionPrecision = MIN_int32;
+
+	// Look for a specific prim attribute first
+	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+		GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_POSITION_PRECISION,
+		AttributeInfo, IntData, 1, HAPI_ATTROWNER_PRIM, PrimIndex, 1))
+	{
+		//Global search for the attribute
+		IntData.Empty();
+		FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+			GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_POSITION_PRECISION,
+			AttributeInfo, IntData, 1, HAPI_ATTROWNER_INVALID, 0, 1);
+	}
+
 	if (IntData.Num() > 0)
 	{
-	    // Ensure nanite will be enabled on this mesh
-	    bEnableNanite = true;
-	    StaticMesh->NaniteSettings.PositionPrecision = IntData[0];
+		StaticMesh->NaniteSettings.PositionPrecision = IntData[0];
 	}
-    }
 
-    // Finally look for the percent triangle attributer, zero by default (no triangles)
-    StaticMesh->NaniteSettings.PercentTriangles = 0.0f;
-    TArray<float> FloatData;
-    if (FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-	GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_POSITION_PRECISION,
-	AttributeInfo, FloatData, 1, HAPI_ATTROWNER_INVALID, 0, 1))
+	// Finally look for the percent triangle attributer, zero by default (no triangles)
+	StaticMesh->NaniteSettings.PercentTriangles = 0.0f;
+	TArray<float> FloatData;
+
+	// Look for a specific prim attribute first
+	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+		GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_POSITION_PRECISION,
+		AttributeInfo, FloatData, 1, HAPI_ATTROWNER_PRIM, PrimIndex, 1))
 	{
+		//Global search for the attribute
+		FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+			GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_POSITION_PRECISION,
+			AttributeInfo, FloatData, 1, HAPI_ATTROWNER_INVALID, 0, 1);
+	}
+
 	if (FloatData.Num() > 0)
 	{
-		// Ensure nanite will be enabled on this mesh
-		bEnableNanite = true;
 		StaticMesh->NaniteSettings.PercentTriangles = FMath::Clamp<float>(FloatData[0], 0.0f, 1.0f);
-		
-	}
 	}
 
 	StaticMesh->NaniteSettings.bEnabled = bEnableNanite;
@@ -2887,7 +2903,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			FoundStaticMesh->bAutoComputeLODScreenSize = false;
 		}
 
-		UpdateStaticMeshNaniteSettings(HGPO.GeoId, HGPO.PartId, FoundStaticMesh);
+		UpdateStaticMeshNaniteSettings(HGPO.GeoId, HGPO.PartId, OutputObjectIdentifier.PrimitiveIndex, FoundStaticMesh);
 
 		// TODO:
 		// SET STATIC MESH GENERATION PARAM
@@ -4271,7 +4287,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			FoundStaticMesh->bAutoComputeLODScreenSize = false;
 		}
 
-		UpdateStaticMeshNaniteSettings(HGPO.GeoId, HGPO.PartId, FoundStaticMesh);
+		UpdateStaticMeshNaniteSettings(HGPO.GeoId, HGPO.PartId, OutputObjectIdentifier.PrimitiveIndex, FoundStaticMesh);
 
 		// SET STATIC MESH GENERATION PARAM
 		// HANDLE COLLIDERS

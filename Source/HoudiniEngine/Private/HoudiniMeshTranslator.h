@@ -162,7 +162,7 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 
 		// Update the NaniteSettings for a given Static Mesh using attribute values
 		void UpdateStaticMeshNaniteSettings(
-		    const int32& GeoId, const int32& PartId, UStaticMesh* StaticMesh);
+		    const int32& GeoId, const int32& PartId, const int32& PrimIndex, UStaticMesh* StaticMesh);
 
 		// Copy supported (non-generic) attributes from the split by point/prim index.
 		void CopyAttributesFromHGPOForSplit(
