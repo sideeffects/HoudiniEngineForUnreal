@@ -331,6 +331,24 @@ HAPI_DECL HAPI_Initialize( const HAPI_Session * session,
 ///
 HAPI_DECL HAPI_Cleanup( const HAPI_Session * session );
 
+/// @brief  When using an in-process session, this method **must** be called in
+///         order for the host process to shutdown cleanly. This method should
+///         be called before ::HAPI_CloseSession(). 
+///
+///         @note This method should only be called before exiting the program,
+///         because HAPI can no longer be used by the process once this method
+///         has been called.
+///
+/// @ingroup Sessions
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+HAPI_DECL HAPI_Shutdown( const HAPI_Session * session );
+
 /// @defgroup Environment
 /// Functions for reading and writing to the session environment
 
