@@ -1334,7 +1334,10 @@ FHoudiniEngineEditor::RegisterEditorDelegates()
 				if (bWasConnected)
 				{
 					// If the Houdini session was previously connected, we need to reestablish the connection after PIE.
-					FHoudiniEngineCommands::ConnectSession();
+					// We need to restart the current Houdini Engine Session
+					// This will reuse the previous session if it didnt shutdown, or start a new one if needed.
+					// (HARS shuts down when stopping the session, so we cant just reconnect when not using Session Sync)
+					FHoudiniEngineCommands::RestartSession();
 				}
 				FEditorDelegates::EndPIE.Remove(EndPIEEditorDelegateHandle);
 			});
