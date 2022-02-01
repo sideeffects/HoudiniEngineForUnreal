@@ -398,8 +398,13 @@ UHoudiniPublicAPIGeoInput::PostLoad()
 {
 	Super::PostLoad();
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#else
 #pragma warning(push)
 #pragma warning(disable : 4996)	// disable deprecation warning locally
+#endif
 
 	// Copy deprecated properties to the new ones and clear the deprecated properties.
 	if (HasAnyFlags(RF_WasLoaded))
@@ -433,7 +438,11 @@ UHoudiniPublicAPIGeoInput::PostLoad()
 		}
 	}
 
+#ifdef __clang__
+#pragma clang diagnostic pop
+#else
 #pragma warning(pop)
+#endif
 
 }
 
@@ -1488,8 +1497,13 @@ UHoudiniPublicAPIGeometryCollectionInput::PostLoad()
 {
 	Super::PostLoad();
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#else
 #pragma warning(push)
 #pragma warning(disable : 4996)	// disable deprecation warning locally
+#endif
 
 	// Copy deprecated properties to the new ones and clear the deprecated properties.
 	if (HasAnyFlags(RF_WasLoaded))
@@ -1523,7 +1537,11 @@ UHoudiniPublicAPIGeometryCollectionInput::PostLoad()
 		}
 	}
 
+#ifdef __clang__
+#pragma clang diagnostic pop
+#else
 #pragma warning(pop)
+#endif
 
 }
 
