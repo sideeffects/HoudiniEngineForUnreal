@@ -1053,6 +1053,27 @@ FHoudiniEngineCommands::OpenSessionSync()
 		{
 			// Houdini might not be done loading, sleep for one second 
 			FPlatformProcess::Sleep(1);
+                        
+                        // Check for license error
+                        int32 HESSReturnCode;
+                        FProcHandle HESSHandle = FHoudiniEngine::Get().GetHESSProcHandle();
+                        if (FPlatformProcess::GetProcReturnCode(HESSHandle, &HESSReturnCode))
+                        {
+                            FString Notification = TEXT("Failed to start SessionSync...");
+                            FHoudiniEngineUtils::CreateSlateNotification(Notification);
+
+                            switch (HESSReturnCode)
+                            {
+                                case 3:
+                                    HOUDINI_LOG_ERROR(TEXT("Failed to start SessionSync - No licenses were available"));
+                                    return false;
+                                    break;
+                                default:
+                                    HOUDINI_LOG_ERROR(TEXT("Failed to start SessionSync - Unknown error"));
+                                    return false;
+                                    break;
+                            }
+                        }
 
 			// Check for the timeout
 			if (FPlatformTime::Seconds() - StartTimestamp > Timeout)
