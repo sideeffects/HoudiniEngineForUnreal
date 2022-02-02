@@ -32,6 +32,7 @@
 #include "HoudiniPublicAPIBlueprintLib.h"
 
 #include "EngineUtils.h"
+#include "HoudiniEngineCommands.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 
@@ -42,6 +43,8 @@
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniEngineEditorUtils.h"
+#include "HoudiniEngine.h"
+#include "HoudiniEngineUtils.h"
 
 #include "Tests/AutomationEditorCommon.h"
 #include "IAssetViewport.h"
@@ -62,7 +65,7 @@ const FVector2D FHoudiniEditorTestUtils::GDefaultEditorSize = FVector2D(1280, 72
 const FString FHoudiniEditorTestUtils::SavedPathFolder = "/Game/TestSaved/";
 const FString FHoudiniEditorTestUtils::TempPathFolder = "/Game/TestTemp/";
 const float FHoudiniEditorTestUtils::TimeoutTime = 180; // Timeout, in seconds
-
+const FName FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName = TEXT("hapiunreal");
 
 static TAutoConsoleVariable<int32> CVarHoudiniEngineSetupRegTest(
 	TEXT("HoudiniEngine.SetupRegTests"),
@@ -109,14 +112,11 @@ bool FHoudiniAutomationTest::IsSupressedWarning(const FString& InWarning)
 	return false;
 }
 
-void FHoudiniEditorTestUtils::InitializeTests(FHoudiniAutomationTest* Test, const TFunction<void()>& OnFinish)
+void FHoudiniEditorTestUtils::InitializeTests(FHoudiniAutomationTest* Test, const TFunction<void()>& OnSuccess, const TFunction<void()>& OnFail)
 {
 	LoadMap(Test, TEXT("/Game/TestLevel"), [=]
 	{
-		if (OnFinish != nullptr)
-		{
-			OnFinish();
-		}
+		CreateSessionIfInvalidWithLatentRetries(Test, HoudiniEngineSessionPipeName, OnSuccess, OnFail);
 	});
 }
 
@@ -1248,6 +1248,104 @@ void FHoudiniEditorTestUtils::RecookAndWait(FHoudiniAutomationTest* Test, UHoudi
 		return false;
 	}
 	));
+}
+
+bool FHoudiniEditorTestUtils::CreateSessionIfInvalid(const FName& SessionPipeName)
+{
+	// If the session is valid then we can just return true
+	if (FHoudiniEngineCommands::IsSessionValid())
+		return true;
+
+	// No existing valid HE session: try to create a Houdini Engine Session
+	HOUDINI_LOG_MESSAGE(TEXT("[FHoudiniEditorTestUtils::CreateSessionIfInvalid] No current valid Houdini Engine session, attempting to create one..."));
+	
+	UHoudiniRuntimeSettings const* const HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	const bool bSuccess = FHoudiniEngine::Get().CreateSession(HoudiniRuntimeSettings->SessionType, SessionPipeName);
+	if (bSuccess)
+	{
+		// We've successfully created the Houdini Engine session,
+		// We now need to notify all the HoudiniAssetComponent that they need to re instantiate 
+		// themselves in the new Houdini engine session.
+		FHoudiniEngineUtils::MarkAllHACsAsNeedInstantiation();
+	}
+
+	return bSuccess;
+}
+
+bool FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(
+	FHoudiniAutomationTest* Test, const FName& SessionPipeName, const TFunction<void()>& OnSuccess,
+	const TFunction<void()>& OnFail, const int8 NumRetries, const double TimeBetweenRetriesSeconds)
+{
+	// Check if a valid session already exists, or try to create one
+	if (CreateSessionIfInvalid(SessionPipeName))
+	{
+		// A valid session exists or was created
+		if (OnSuccess != nullptr)
+		{
+			OnSuccess();
+		}
+
+		return true;
+	}
+	
+	// If a session did not exist and could not be created, set up a latent command to try 2 more times
+	struct FSessionCheckState
+	{
+		double CountDown = 0;
+		int8 NumRetriesRemaining = 0;
+	};
+	TSharedPtr<FSessionCheckState> SessionCheckState(new FSessionCheckState());
+	SessionCheckState->CountDown = TimeBetweenRetriesSeconds;
+	SessionCheckState->NumRetriesRemaining = NumRetries;
+
+	HOUDINI_LOG_MESSAGE(TEXT("Houdini Engine session is not valid and a new session could not be created."));
+
+	HOUDINI_LOG_MESSAGE(
+		TEXT("Retrying Houdini Engine session creation in %.2f seconds (%d remaining retries)"),
+		SessionCheckState->CountDown, SessionCheckState->NumRetriesRemaining);
+	
+	Test->AddCommand(new FFunctionLatentCommand([SessionCheckState, TimeBetweenRetriesSeconds, Test, OnSuccess, OnFail]()
+	{
+		if (SessionCheckState->CountDown > 0)
+		{
+			SessionCheckState->CountDown -= GWorld->GetDeltaSeconds();
+			
+			return false;
+		}
+
+		SessionCheckState->NumRetriesRemaining -= 1;
+		if (!CreateSessionIfInvalid(TEXT("hapiunreal")))
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Houdini Engine session is not valid and a new session could not be created."));
+
+			if (SessionCheckState->NumRetriesRemaining > 0)
+			{
+				SessionCheckState->CountDown = TimeBetweenRetriesSeconds;
+				
+				HOUDINI_LOG_MESSAGE(
+					TEXT("Retrying Houdini Engine session creation in %.2f seconds (%d remaining retries)"),
+					SessionCheckState->CountDown, SessionCheckState->NumRetriesRemaining);
+				
+				return false;
+			}
+
+			HOUDINI_LOG_MESSAGE(TEXT("Houdini Engine session creation retries exhausted."));
+			
+			Test->AddError(TEXT("Failed to create the Houdini Engine session!"));
+			if (OnFail != nullptr)
+			{
+				OnFail();
+			}
+		}
+		else if (OnSuccess != nullptr)
+		{
+			OnSuccess();
+		}
+
+		return true;
+	}));
+
+	return false;
 }
 
 #endif

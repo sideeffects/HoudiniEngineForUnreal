@@ -249,10 +249,6 @@ protected:
 
 	static void SetAllowPlayInEditorRefinement(const TArray<UHoudiniAssetComponent*>& InComponents, bool bEnabled);
 
-	// Helper function used to indicate to all HAC that they need to be instantiated in the new HE session
-	// Needs to be call after starting/restarting/connecting/session syncing a HE session..
-	static void MarkAllHACsAsNeedInstantiation();
-
 	// Delegate that is set up to refined proxy meshes post save world (it removes itself afterwards)
 	static FDelegateHandle OnPostSaveWorldRefineProxyMeshesHandle;
 

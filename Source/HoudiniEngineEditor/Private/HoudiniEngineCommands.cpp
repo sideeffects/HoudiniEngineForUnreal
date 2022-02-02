@@ -1071,7 +1071,7 @@ FHoudiniEngineCommands::OpenSessionSync()
 		}
 		
 		// Notify all HACs that they need to instantiate in the new session
-		MarkAllHACsAsNeedInstantiation();
+		FHoudiniEngineUtils::MarkAllHACsAsNeedInstantiation();
 		
 		// Start ticking
 		FHoudiniEngine::Get().StartTicking();
@@ -1169,7 +1169,7 @@ FHoudiniEngineCommands::RestartSession()
 	// We've successfully restarted the Houdini Engine session,
 	// We now need to notify all the HoudiniAssetComponent that they need to re instantiate 
 	// themselves in the new Houdini engine session.
-	MarkAllHACsAsNeedInstantiation();
+	FHoudiniEngineUtils::MarkAllHACsAsNeedInstantiation();
 }
 
 void 
@@ -1184,7 +1184,7 @@ FHoudiniEngineCommands::CreateSession()
 	// We've successfully created the Houdini Engine session,
 	// We now need to notify all the HoudiniAssetComponent that they need to re instantiate 
 	// themselves in the new Houdini engine session.
-	MarkAllHACsAsNeedInstantiation();
+	FHoudiniEngineUtils::MarkAllHACsAsNeedInstantiation();
 }
 
 void 
@@ -1199,21 +1199,7 @@ FHoudiniEngineCommands::ConnectSession()
 	// We've successfully connected to a Houdini Engine session,
 	// We now need to notify all the HoudiniAssetComponent that they need to re instantiate 
 	// themselves in the new Houdini engine session.
-	MarkAllHACsAsNeedInstantiation();
-}
-
-void
-FHoudiniEngineCommands::MarkAllHACsAsNeedInstantiation()
-{	
-	// Notify all the HoudiniAssetComponents that they need to re instantiate themselves in the new Houdini engine session.
-	for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
-	{
-		UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
-		if (!IsValid(HoudiniAssetComponent))
-			continue;
-
-		HoudiniAssetComponent->MarkAsNeedInstantiation();
-	}
+	FHoudiniEngineUtils::MarkAllHACsAsNeedInstantiation();
 }
 
 bool
