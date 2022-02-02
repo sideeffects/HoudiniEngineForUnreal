@@ -346,6 +346,20 @@ FHoudiniEngineUtils::GetConnectionError()
 	return FString(UTF8_TO_TCHAR(&ConnectionStringBuffer[0]));
 }
 
+void
+FHoudiniEngineUtils::MarkAllHACsAsNeedInstantiation()
+{	
+	// Notify all the HoudiniAssetComponents that they need to re instantiate themselves in the new Houdini engine session.
+	for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
+	{
+		UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
+		if (!IsValid(HoudiniAssetComponent))
+			continue;
+
+		HoudiniAssetComponent->MarkAsNeedInstantiation();
+	}
+}
+
 const FString
 FHoudiniEngineUtils::GetNodeErrorsWarningsAndMessages(const HAPI_NodeId& InNodeId)
 {

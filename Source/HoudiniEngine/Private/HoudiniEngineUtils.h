@@ -91,6 +91,10 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Return a string description for a Houdini Engine session connection error.
 		static const FString GetConnectionError();
 
+		// Helper function used to indicate to all HAC that they need to be instantiated in the new HE session
+		// Needs to be call after starting/restarting/connecting/session syncing a HE session..
+		static void MarkAllHACsAsNeedInstantiation();
+
 		// Return the errors, warning and messages on a specified node
 		static const FString GetNodeErrorsWarningsAndMessages(const HAPI_NodeId& InNodeId);
 

@@ -115,7 +115,7 @@ public:
 
 	typedef TFunction<void(UHoudiniPublicAPIAssetWrapper* InAssetWrapper, const bool bIsSuccessful)> FPostTestHDAInstantiationCallback;
 
-	static void InitializeTests(FHoudiniAutomationTest* Test, const TFunction<void()>& OnFinish);
+	static void InitializeTests(FHoudiniAutomationTest* Test, const TFunction<void()>& OnSuccess, const TFunction<void()>& OnFail=nullptr);
 
 	static UObject* FindAssetUObject(FHoudiniAutomationTest* Test, const FName AssetUObjectPath);
 
@@ -307,6 +307,21 @@ public:
 	// Similar to InstantiateAsset, but for an existing object.
 	static void RecookAndWait(FHoudiniAutomationTest* Test, UHoudiniPublicAPIAssetWrapper* InAssetWrapper, const FPostTestHDAInstantiationCallback& OnCookFinished, const FString DefaultCookFolder = TEXT(""));
 
+	// Returns true if the session is valid or a valid session could be created. 
+	static bool CreateSessionIfInvalid(const FName& SessionPipeName=NAME_None);
+
+	// Checks for a valid session or tries to create one. If the first attempt fails, retry up to NumRetries times.
+	// Retrying is done with a latent command with TimeBetweenRetriesSeconds between attempts.
+	//
+	// Returns true if the first check / creation attempt of the session succeeds. Returns false if the first attempt
+	// fails (in which case latent retries will be set up).
+	//
+	// The OnSuccess function is called if a valid existing session is found or if one is created. OnFail is called if
+	// a session could not be found or created after exhausting all retry attempts.
+	static bool CreateSessionIfInvalidWithLatentRetries(
+		FHoudiniAutomationTest* Test, const FName& SessionPipeName, const TFunction<void()>& OnSuccess,
+		const TFunction<void()>& OnFail, const int8 NumRetries=2, const double TimeBetweenRetriesSeconds=10.0);
+
 private:
 	static void WaitForScreenshotAndCopy(FHoudiniAutomationTest* Test, FString BaseName, const TFunction<void(FHoudiniAutomationTest*, FString)>& OnScreenshotGenerated);
 
@@ -331,6 +346,9 @@ private:
 	static const FString SavedPathFolder;
 	static const FString TempPathFolder;
 	static const float TimeoutTime;
+
+	// The pipe name to use when creating the Houdini Engine session during tests
+	static const FName HoudiniEngineSessionPipeName;
 
 	static UHoudiniEditorTestObject* GetTestObject();
 
