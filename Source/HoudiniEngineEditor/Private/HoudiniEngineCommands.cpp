@@ -1066,10 +1066,12 @@ FHoudiniEngineCommands::OpenSessionSync()
                             {
                                 case 3:
                                     HOUDINI_LOG_ERROR(TEXT("Failed to start SessionSync - No licenses were available"));
+                                    FHoudiniEngine::Get().SetSessionStatus(EHoudiniSessionStatus::NoLicense);
                                     return false;
                                     break;
                                 default:
                                     HOUDINI_LOG_ERROR(TEXT("Failed to start SessionSync - Unknown error"));
+                                    FHoudiniEngine::Get().SetSessionStatus(EHoudiniSessionStatus::Failed);
                                     return false;
                                     break;
                             }
