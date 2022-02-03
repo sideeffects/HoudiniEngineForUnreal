@@ -1165,7 +1165,7 @@ int32	FHBSPOps::bspAddNode( UModel* Model, int32 iParent, enum ENodePlace NodePl
 			Surf->bHiddenEdLayer = EdPoly->Actor->bHiddenEdLayer;
 		}
 
-		Surf->Plane			= FPlane(EdPoly->Vertices[0],EdPoly->Normal);
+		Surf->Plane			= FPlane4f(EdPoly->Vertices[0],EdPoly->Normal);
 	}
 	else
 	{
@@ -1218,7 +1218,7 @@ int32	FHBSPOps::bspAddNode( UModel* Model, int32 iParent, enum ENodePlace NodePl
 		Node.iSurf       	 = EdPoly->iLinkSurf;
 		Node.NodeFlags   	 = NodeFlags;
 		Node.iCollisionBound = INDEX_NONE;
-		Node.Plane           = FPlane( EdPoly->Vertices[0], EdPoly->Normal );
+		Node.Plane           = FPlane4f( EdPoly->Vertices[0], EdPoly->Normal );
 		Node.iVertPool       = Model->Verts.AddUninitialized(EdPoly->Vertices.Num());
 		Node.iFront		     = INDEX_NONE;
 		Node.iBack		     = INDEX_NONE;

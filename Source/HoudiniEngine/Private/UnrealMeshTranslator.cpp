@@ -2698,7 +2698,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 					//---------------------------------------------------------------------------------------------------------------------
 					if (bUseComponentOverrideColors || bIsVertexInstanceColorsValid)
 					{
-						FVector4 Color = FLinearColor::White;
+						FVector4f Color = FLinearColor::White;
 						if (bUseComponentOverrideColors && SMRenderData)
 						{
 							FStaticMeshComponentLODInfo& ComponentLODInfo = StaticMeshComponent->LODData[InLODIndex];

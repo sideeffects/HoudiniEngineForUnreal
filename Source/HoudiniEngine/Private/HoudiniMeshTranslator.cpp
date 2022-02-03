@@ -4151,7 +4151,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 					{
 						Color.A = FMath::Clamp(SplitColors[SplitIndex * AttribInfoColors.tupleSize + 3], 0.0f, 1.0f);
 					}
-					VertexInstanceColors[VertexInstanceID] = FVector4(Color);
+					VertexInstanceColors[VertexInstanceID] = FVector4f(Color);
 
 					// UVs
 					for (int32 UVIndex = 0; UVIndex < SplitUVSets.Num(); UVIndex++)
