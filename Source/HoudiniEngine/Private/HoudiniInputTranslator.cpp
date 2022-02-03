@@ -3310,7 +3310,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 
 		// Create an array
 		TArray<FString> ObjectPaths;
-		ObjectPaths.SetNumUninitialized(NumRows);
+		ObjectPaths.SetNum(NumRows);
 		for (int32 n = 0; n < ObjectPaths.Num(); n++)
 			ObjectPaths[n] = ObjectPathName;
 
