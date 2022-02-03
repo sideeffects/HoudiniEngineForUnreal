@@ -1251,7 +1251,7 @@ FHoudiniEngineEditor::RegisterConsoleCommands()
 
 	static FAutoConsoleCommand CCmdOpenSessionSync = FAutoConsoleCommand(
 		TEXT("Houdini.OpenSessionSync"),
-		TEXT("Stops the current session, opens Houdini and automnatically start and connect a Session Sync."),
+		TEXT("Stops the current session, opens Houdini and automatically start and connect a Session Sync."),
 		FConsoleCommandDelegate::CreateStatic(&FHoudiniEngineCommands::OpenSessionSync));
 }
 
