@@ -29,6 +29,7 @@
 #include "HoudiniEngineEditorPrivatePCH.h"
 
 #include "HoudiniInput.h"
+#include "HoudiniInputWidgets.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetBlueprintComponent.h"
 #include "HoudiniEngineEditor.h"
@@ -75,6 +76,7 @@
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 
 #include "ActorTreeItem.h"
+#include "Widgets/Layout/SExpandableArea.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -3948,16 +3950,159 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		})
 	];
 	
-	// Actor picker: Landscape.
+	// ------------------------
+	// Landscape: Actor picker
+	// ------------------------
 	FMenuBuilder MenuBuilder = Helper_CreateLandscapePickerWidget(InInputs);
 	VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
 	[
 		MenuBuilder.MakeWidget()
 	];
 
+	{
+		// -------------------------------------
+		// Button: Recommit
+		// -------------------------------------
+		auto OnButtonRecommitClicked = [InInputs]()
+		{
+			for (auto CurrentInput : InInputs)
+			{
+				TArray<UHoudiniInputObject*>* LandscapeInputObjectsArray = CurrentInput->GetHoudiniInputObjectArray(CurrentInput->GetInputType());
+				if (!LandscapeInputObjectsArray)
+					continue;
+
+				for (UHoudiniInputObject* NextLandscapeInput : *LandscapeInputObjectsArray)
+				{
+					if (!NextLandscapeInput)
+						continue;
+
+					NextLandscapeInput->MarkChanged(true);
+				}
+
+				CurrentInput->MarkChanged(true);
+			}
+		
+			return FReply::Handled();
+		};
+		
+		// -------------------------------------
+		// Button : Clear Selection
+		// -------------------------------------
+		auto IsClearButtonEnabled = [MainInput]()
+		{
+			if (!IsValid(MainInput))
+				return false;
+
+			if (MainInput->GetInputType() != EHoudiniInputType::Landscape)
+				return false;
+
+			TArray<UHoudiniInputObject*>* MainInputObjectsArray = MainInput->GetHoudiniInputObjectArray(MainInput->GetInputType());
+			if (!MainInputObjectsArray)
+				return false;
+
+			if (MainInputObjectsArray->Num() <= 0)
+				return false;
+
+			return true;
+		};
+
+		auto OnButtonClearClicked = [InInputs]()
+		{
+			if (InInputs.Num() <= 0)
+				return FReply::Handled();
+
+			UHoudiniInput * MainInput = InInputs[0];
+			if (!IsValid(MainInput))
+				return FReply::Handled();
+
+			if (MainInput->GetInputType() != EHoudiniInputType::Landscape)
+				return FReply::Handled();
+
+			TArray<UHoudiniInputObject*>* MainInputObjectsArray = MainInput->GetHoudiniInputObjectArray(MainInput->GetInputType());
+			if (!MainInputObjectsArray)
+				return FReply::Handled();
+
+			if (MainInputObjectsArray->Num() <= 0)
+				return FReply::Handled();
+
+			// Record a transaction for undo/redo
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniLandscapeInputChangeExportNormalizedUVs", "Houdini Input: Clearing landscape input."),
+				MainInput->GetOuter());
+
+			for (auto & CurInput : InInputs) 
+			{
+				if (!IsValid(CurInput))
+					continue;
+
+				TArray<UHoudiniInputObject*>* LandscapeInputObjectsArray = CurInput->GetHoudiniInputObjectArray(CurInput->GetInputType());
+				if (!LandscapeInputObjectsArray)
+					continue;
+
+				if (LandscapeInputObjectsArray->Num() <= 0)
+					continue;
+
+				CurInput->MarkChanged(true);
+				CurInput->Modify();
+
+				LandscapeInputObjectsArray->Empty();
+			}
+
+			return FReply::Handled();
+		};
+
+		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().Padding(1, 2, 4, 2)
+			[
+				SNew(SButton)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.Text(LOCTEXT("LandscapeInputRecommit", "Recommit"))
+				.ToolTipText(LOCTEXT("LandscapeInputRecommitTooltip", "Recommits the Landscape to Houdini."))
+				.OnClicked_Lambda(OnButtonRecommitClicked)
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(1, 2, 4, 2)
+			[
+				SNew(SButton)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.Text(LOCTEXT("ClearSelection", "Clear Selection"))
+				.ToolTipText(LOCTEXT("ClearSelectionTooltip", "Clear input selection"))
+				.IsEnabled_Lambda(IsClearButtonEnabled)
+				.OnClicked_Lambda(OnButtonClearClicked)
+			]
+		];
+	}
+
+	// -----------------------------
+	// Landscape: Advanced Settings
+	// -----------------------------
+
+	// Vertical box for 'advanced' options
+	TSharedRef<SVerticalBox> Landscape_VerticalBox = SNew(SVerticalBox);
+
+	TSharedRef<SExpandableArea> Landscape_Expandable = SNew(SExpandableArea)
+		.AreaTitle( LOCTEXT("LandscapeAdvancedSettings", "Advanced") )
+		.InitiallyCollapsed(!MainInput->bLandscapeUIAdvancedIsExpanded)
+		.OnAreaExpansionChanged_Lambda( [MainInput]( const bool& bIsExpanded)
+		{
+			MainInput->bLandscapeUIAdvancedIsExpanded = bIsExpanded;
+		})
+		.BodyContent()
+		[
+			Landscape_VerticalBox
+		];
+
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()[Landscape_Expandable];
+	
+	const FMargin ItemPadding(0.0f, 2.0f, 0.0f, 2.f);
 	// Checkboxes : Export landscape as Heightfield/Mesh/Points
 	{
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		Landscape_VerticalBox->AddSlot().Padding(ItemPadding).AutoHeight()
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("LandscapeExportAs", "Export Landscape As"))
@@ -3966,7 +4111,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		];
 	
 		TSharedPtr <SUniformGridPanel> ButtonOptionsPanel;
-		VerticalBox->AddSlot().Padding(5, 2, 5, 2).AutoHeight()
+		Landscape_VerticalBox->AddSlot().Padding(ItemPadding).AutoHeight()
 		[
 			SAssignNew(ButtonOptionsPanel, SUniformGridPanel)
 		];
@@ -4141,7 +4286,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 	// CheckBox : Export selected components only
 	{
 		TSharedPtr< SCheckBox > CheckBoxExportSelected;
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		Landscape_VerticalBox->AddSlot().Padding(ItemPadding).AutoHeight()
 		[
 			SAssignNew(CheckBoxExportSelected, SCheckBox)
 			.Content()
@@ -4192,7 +4337,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 	// Checkbox:  auto select components
 	{		
 		TSharedPtr< SCheckBox > CheckBoxAutoSelectComponents;
-		VerticalBox->AddSlot().Padding(10, 2, 5, 2).AutoHeight()
+		Landscape_VerticalBox->AddSlot().Padding(ItemPadding).AutoHeight()
 		[
 			SAssignNew(CheckBoxAutoSelectComponents, SCheckBox)
 			.Content()
@@ -4251,7 +4396,9 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		CheckBoxAutoSelectComponents->SetEnabled(bEnable);
 	}
 
-	// Button : Update landscape component selection
+	// -------------------------------------
+	// Landscape: Update component selection
+	// -------------------------------------
 	{
 		auto OnButtonUpdateComponentSelection = [InInputs, MainInput]()
 		{
@@ -4293,7 +4440,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 			return bEnable;
 		};
 		
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		Landscape_VerticalBox->AddSlot().Padding(ItemPadding).AutoHeight()
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -4317,7 +4464,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		// Checkbox : Export materials
 		{
 			TSharedPtr< SCheckBox > CheckBoxExportMaterials;
-			VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+			Landscape_VerticalBox->AddSlot().Padding(ItemPadding).AutoHeight()
 			[
 				SAssignNew(CheckBoxExportMaterials, SCheckBox)
 				.Content()
@@ -4372,7 +4519,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		// Checkbox : Export Tile UVs
 		{
 			TSharedPtr< SCheckBox > CheckBoxExportTileUVs;
-			VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+			Landscape_VerticalBox->AddSlot().Padding(ItemPadding).AutoHeight()
 			[
 				SAssignNew(CheckBoxExportTileUVs, SCheckBox)
 				.Content()
@@ -4427,7 +4574,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		// Checkbox : Export normalized UVs
 		{
 		TSharedPtr< SCheckBox > CheckBoxExportNormalizedUVs;
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		Landscape_VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
 			[
 				SAssignNew(CheckBoxExportNormalizedUVs, SCheckBox)
 				.Content()
@@ -4482,7 +4629,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		// Checkbox : Export lighting
 		{
 			TSharedPtr< SCheckBox > CheckBoxExportLighting;
-			VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+			Landscape_VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
 				[
 					SAssignNew(CheckBoxExportLighting, SCheckBox)
 					.Content()
@@ -4535,129 +4682,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		}
 
 	}
-
-	// Button : Recommit
-	{
-		auto OnButtonRecommitClicked = [InInputs]()
-		{
-			for (auto CurrentInput : InInputs)
-			{
-				TArray<UHoudiniInputObject*>* LandscapeInputObjectsArray = CurrentInput->GetHoudiniInputObjectArray(CurrentInput->GetInputType());
-				if (!LandscapeInputObjectsArray)
-					continue;
-
-				for (UHoudiniInputObject* NextLandscapeInput : *LandscapeInputObjectsArray)
-				{
-					if (!NextLandscapeInput)
-						continue;
-
-					NextLandscapeInput->MarkChanged(true);
-				}
-
-				CurrentInput->MarkChanged(true);
-			}
-		
-			return FReply::Handled();
-		};
-
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.Padding(1, 2, 4, 2)
-			[
-				SNew(SButton)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
-				.Text(LOCTEXT("LandscapeInputRecommit", "Recommit Landscape"))
-				.ToolTipText(LOCTEXT("LandscapeInputRecommitTooltip", "Recommits the Landscape to Houdini."))
-				.OnClicked_Lambda(OnButtonRecommitClicked)
-			]
-		];
-	}
-
-
-	// Button : Clear Selection
-	{
-		auto IsClearButtonEnabled = [MainInput]()
-		{
-			if (!IsValid(MainInput))
-				return false;
-
-			if (MainInput->GetInputType() != EHoudiniInputType::Landscape)
-				return false;
-
-			TArray<UHoudiniInputObject*>* MainInputObjectsArray = MainInput->GetHoudiniInputObjectArray(MainInput->GetInputType());
-			if (!MainInputObjectsArray)
-				return false;
-
-			if (MainInputObjectsArray->Num() <= 0)
-				return false;
-
-			return true;
-		};
-
-		auto OnButtonClearClicked = [InInputs]()
-		{
-			if (InInputs.Num() <= 0)
-				return FReply::Handled();
-
-			UHoudiniInput * MainInput = InInputs[0];
-			if (!IsValid(MainInput))
-				return FReply::Handled();
-
-			if (MainInput->GetInputType() != EHoudiniInputType::Landscape)
-				return FReply::Handled();
-
-			TArray<UHoudiniInputObject*>* MainInputObjectsArray = MainInput->GetHoudiniInputObjectArray(MainInput->GetInputType());
-			if (!MainInputObjectsArray)
-				return FReply::Handled();
-
-			if (MainInputObjectsArray->Num() <= 0)
-				return FReply::Handled();
-
-			// Record a transaction for undo/redo
-			FScopedTransaction Transaction(
-				TEXT(HOUDINI_MODULE_EDITOR),
-				LOCTEXT("HoudiniLandscapeInputChangeExportNormalizedUVs", "Houdini Input: Clearing landscape input."),
-				MainInput->GetOuter());
-
-			for (auto & CurInput : InInputs) 
-			{
-				if (!IsValid(CurInput))
-					continue;
-
-				TArray<UHoudiniInputObject*>* LandscapeInputObjectsArray = CurInput->GetHoudiniInputObjectArray(CurInput->GetInputType());
-				if (!LandscapeInputObjectsArray)
-					continue;
-
-				if (LandscapeInputObjectsArray->Num() <= 0)
-					continue;
-
-				CurInput->MarkChanged(true);
-				CurInput->Modify();
-
-				LandscapeInputObjectsArray->Empty();
-			}
-
-			return FReply::Handled();
-		};
-
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().Padding(1, 2, 4, 2)
-			[
-				SNew(SButton)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
-				.Text(LOCTEXT("ClearSelection", "Clear Selection"))
-				.ToolTipText(LOCTEXT("ClearSelectionTooltip", "Clear input selection"))
-				.IsEnabled_Lambda(IsClearButtonEnabled)
-				.OnClicked_Lambda(OnButtonClearClicked)
-			]
-		];
-	}
+	
 }
 
 /*
@@ -5169,54 +5194,53 @@ FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(TArray<UHoudiniInput*>&
 	};
 
 	FMenuBuilder MenuBuilder(true, nullptr);
-	FOnShouldFilterActor ActorFilter = FActorTreeItem::FFilterPredicate::CreateLambda(OnShouldFilterActor);
-
-	// Show current selection
-	MenuBuilder.BeginSection(NAME_None, LOCTEXT("CurrentActorOperationHeader", "Current Selection"));
+	MenuBuilder.BeginSection(NAME_None, LOCTEXT("CurrentActorOperationHeader", "Landscape Selection"));
 	{
-		MenuBuilder.AddMenuEntry(
-			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(MainInput, &UHoudiniInput::GetCurrentSelectionText)),
-			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(MainInput, &UHoudiniInput::GetCurrentSelectionText)),
-			FSlateIcon(),
-			FUIAction(),
-			NAME_None,
-			EUserInterfaceActionType::Button,
-			NAME_None);
-	}
-	MenuBuilder.EndSection();
+		//--------------------------
+		// Landscape input selector
+		//--------------------------
+		// Populate the Landscape options from landscape actors in the world (subject to filtering).
+		UWorld* LandscapeWorld = MainInput->GetWorld();
+		TMap<FString, AActor*> LandscapeOptions;
+		for (TActorIterator<ALandscapeProxy> It(LandscapeWorld); It; ++It)
+		{ 
+			ALandscapeProxy* Actor = *It;
+			if (!OnShouldFilterActor(*It))
+			{
+				continue;
+			}
 
-	MenuBuilder.BeginSection(NAME_None, LOCTEXT("LandscapeInputSelectableActors", "Landscapes"));
-	{
-		FSceneOutlinerModule & SceneOutlinerModule =
-			FModuleManager::Get().LoadModuleChecked< FSceneOutlinerModule >(TEXT("SceneOutliner"));
-		FSceneOutlinerInitializationOptions InitOptions;
+			LandscapeOptions.Add(It->GetActorLabel(), Actor);
+		}
+		
+		FString CurrentSelection;
+
+		if (MainInput)
 		{
-			InitOptions.Filters->AddFilterPredicate<FActorTreeItem>(ActorFilter);
-			InitOptions.bFocusSearchBoxWhenOpened = true;
-			InitOptions.bShowCreateNewFolder = false;
-
-			// Add the gutter so we can change the selection's visibility
-			InitOptions.ColumnMap.Add(FSceneOutlinerBuiltInColumnTypes::Gutter(), FSceneOutlinerColumnInfo(ESceneOutlinerColumnVisibility::Visible, 0));
-			InitOptions.ColumnMap.Add(FSceneOutlinerBuiltInColumnTypes::Label(), FSceneOutlinerColumnInfo(ESceneOutlinerColumnVisibility::Visible, 10));
-			InitOptions.ColumnMap.Add(FSceneOutlinerBuiltInColumnTypes::ActorInfo(), FSceneOutlinerColumnInfo(ESceneOutlinerColumnVisibility::Visible, 20));
+			CurrentSelection = MainInput->GetCurrentSelectionText().ToString();
 		}
 
-		static const FVector2D SceneOutlinerWindowSize(350.0f, 200.0f);
-		TSharedRef< SWidget > MenuWidget =
-			SNew(SBox)
-			.WidthOverride(SceneOutlinerWindowSize.X)
-			.HeightOverride(SceneOutlinerWindowSize.Y)
-			[
-				SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
-				[
-					SceneOutlinerModule.CreateActorPicker(
-						InitOptions,
-						FOnActorPicked::CreateLambda(OnActorSelected, InInputs))
-				]
-			];
-
-		MenuBuilder.AddWidget(MenuWidget, FText::GetEmpty(), true);
+		TSharedRef< SLandscapeComboBox > LandscapeInputWidget =
+			SNew(SLandscapeComboBox)
+			.LandscapeOptions(LandscapeOptions)
+			.CurrentSelection( CurrentSelection )
+			.OnGenerateWidget_Lambda(
+				[](TSharedPtr< FString > ChoiceEntry)
+			{
+				FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
+				return SNew(STextBlock)
+					.Text(ChoiceEntryText)
+					.ToolTipText(ChoiceEntryText)
+					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+			})
+			.OnLandscapeSelectionChanged_Lambda([OnActorSelected, InInputs](const FString& Name, AActor* LandscapeProxy)
+			{
+				OnActorSelected(LandscapeProxy, InInputs);
+			})
+		;
+		
+		MenuBuilder.AddWidget(LandscapeInputWidget, FText::GetEmpty(), true);
+		
 	}
 	MenuBuilder.EndSection();
 
