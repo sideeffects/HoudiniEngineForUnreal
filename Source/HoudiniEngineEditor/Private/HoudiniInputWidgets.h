@@ -21,7 +21,7 @@ class SLandscapeComboBox : public SComboBox<TSharedPtr<FString>>
 	
 	// SLATE_ARGUMENT( const TArray< TSharedPtr<FString> >&, LandscapeOptions )
 	// Customized slate argument to deal with conversions of landscape options into combobox source options.
-	SLATE_PRIVATE_ARGUMENT_VARIABLE( LandscapeOptionsType, LandscapeOptions );
+	LandscapeOptionsType _LandscapeOptions;
 
 	// SLATE_PRIVATE_ARGUMENT_FUNCTION ( const TArray< TSharedPtr<FString> >&, LandscapeOptions )
 	WidgetArgsType& LandscapeOptions( const LandscapeOptionsType& LandscapeOptions)
