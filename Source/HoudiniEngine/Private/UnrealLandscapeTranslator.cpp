@@ -1209,7 +1209,6 @@ FUnrealLandscapeTranslator::SetHeightfieldData(
 
 	HAPI_PartInfo PartInfo;
 	FHoudiniApi::PartInfo_Init(&PartInfo);
-	//FMemory::Memset< HAPI_PartInfo >(PartInfo, 0);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPartInfo(
 		FHoudiniEngine::Get().GetSession(),
 		GeoInfo.nodeId, PartId, &PartInfo), false);
@@ -1219,15 +1218,8 @@ FUnrealLandscapeTranslator::SetHeightfieldData(
 		FHoudiniEngine::Get().GetSession(),
 		VolumeNodeId, PartInfo.id, &VolumeInfo), false);
 
-	// Volume name
-	std::string NameStr;
-	FHoudiniEngineUtils::ConvertUnrealString(HeightfieldName, NameStr);
-
-	// Set the Heighfield data on the volume
-	float * HeightData = FloatValues.GetData();
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetHeightFieldData(
-		FHoudiniEngine::Get().GetSession(),
-		GeoInfo.nodeId, PartInfo.id, NameStr.c_str(), HeightData, 0, FloatValues.Num()), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetHeightFieldData(
+		GeoInfo.nodeId, PartInfo.id, FloatValues, HeightfieldName), false);
 
 	return true;
 }

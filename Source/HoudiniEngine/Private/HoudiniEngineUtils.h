@@ -399,6 +399,21 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const FString& InAttributeName,
 			const HAPI_AttributeInfo& InAttributeInfo);
 
+		// Helper function to set Heightfield data
+		// The data will be sent in chunks if too large for thrift
+		static HAPI_Result HapiSetHeightFieldData(
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const TArray<float>& InFloatValues,
+			const FString& InHeightfieldName);
+
+		// Helper function to get Heightfield data
+		// The data will be read in chunks if too large for thrift
+		static HAPI_Result HapiGetHeightFieldData(
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			TArray<float>& OutFloatValues);
+
 		static bool HapiGetParameterDataAsString(
 			const HAPI_NodeId& NodeId,
 			const std::string& ParmName,

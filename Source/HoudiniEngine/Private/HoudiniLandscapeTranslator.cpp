@@ -3563,11 +3563,10 @@ FHoudiniLandscapeTranslator::GetHoudiniHeightfieldFloatData(const FHoudiniGeoPar
 	const int32 SizeInPoints = VolumeInfo.xLength *  VolumeInfo.yLength;
 
 	OutFloatArr.SetNum(SizeInPoints);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetHeightFieldData(
-		FHoudiniEngine::Get().GetSession(),
-		HGPO->GeoId, HGPO->PartId,
-		OutFloatArr.GetData(),
-		0, SizeInPoints), false);
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiGetHeightFieldData(
+		HGPO->GeoId, HGPO->PartId, OutFloatArr), false);
+
 	
 	OutFloatMin = OutFloatArr[0];
 	OutFloatMax = OutFloatMin;
