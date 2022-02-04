@@ -109,6 +109,10 @@ UHoudiniInput::UHoudiniInput()
 
 	bAddRotAndScaleAttributesOnCurves = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bAddRotAndScaleAttributesOnCurves : false;
 	bUseLegacyInputCurves = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bUseLegacyInputCurves : false;
+
+#if WITH_EDITORONLY_DATA
+	bLandscapeUIAdvancedIsExpanded = false;
+#endif
 	
 }
 
