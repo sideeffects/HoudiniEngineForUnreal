@@ -370,6 +370,13 @@ public:
 	// Clear the InputNodesPendingDelete set 
 	void ClearInputNodesPendingDelete() { InputNodesPendingDelete.Empty(); }
 
+#if WITH_EDITORONLY_DATA
+	
+	UPROPERTY()
+	bool bLandscapeUIAdvancedIsExpanded;
+	
+#endif
+
 protected:
 
 	// Name of the input / Object path parameter
