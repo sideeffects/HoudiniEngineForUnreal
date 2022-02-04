@@ -130,7 +130,8 @@ const int32
 FHoudiniEngineUtils::PackageGUIDItemNameLength = 8;
 
 // Maximum size of the data that can be sent via thrift
-#define THRIFT_MAX_CHUNKSIZE			100 * 1024 * 1024
+//#define THRIFT_MAX_CHUNKSIZE			100 * 1024 * 1024 // This is supposedly the current limit in thrift, but still seems to be too large
+#define THRIFT_MAX_CHUNKSIZE			10 * 1024 * 1024
 //#define THRIFT_MAX_CHUNKSIZE			2048 * 2048
 //#define THRIFT_MAX_CHUNKSIZE_STRING		256 * 256
 
@@ -3424,6 +3425,94 @@ FHoudiniEngineUtils::HapiSetAttributeStringData(
 
 	// ExtractRawString allocates memory using malloc, free it!
 	FreeRawStringMemory(StringDataArray);
+
+	return Result;
+}
+
+
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetHeightFieldData(
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const TArray<float>& InFloatValues,
+	const FString& InHeightfieldName)
+{
+	int32 NumValues = InFloatValues.Num();
+	if (NumValues < 1)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	// Get the volume name as std::string
+	std::string NameStr;
+	FHoudiniEngineUtils::ConvertUnrealString(InHeightfieldName, NameStr);
+
+	// Get the Heighfield float data
+	const float* HeightData = InFloatValues.GetData();
+
+	int32 ChunkSize = THRIFT_MAX_CHUNKSIZE;
+	HAPI_Result Result = HAPI_RESULT_FAILURE;
+	if (NumValues > ChunkSize)
+	{
+		// Send the heightfield data in chunks
+		for (int32 ChunkStart = 0; ChunkStart < NumValues; ChunkStart += ChunkSize)
+		{
+			int32 CurCount = NumValues - ChunkStart > ChunkSize ? ChunkSize : NumValues - ChunkStart;
+			
+			Result = FHoudiniApi::SetHeightFieldData(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, NameStr.c_str(), &HeightData[ChunkStart], ChunkStart, CurCount);
+
+			if (Result != HAPI_RESULT_SUCCESS)
+				break;
+		}
+	}
+	else
+	{
+		Result = FHoudiniApi::SetHeightFieldData(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId, InPartId, NameStr.c_str(), HeightData, 0, InFloatValues.Num());
+	}
+
+	return Result;
+}
+
+
+HAPI_Result
+FHoudiniEngineUtils::HapiGetHeightFieldData(
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	TArray<float>& OutFloatValues)
+{
+	int32 NumValues = OutFloatValues.Num();
+	if (NumValues < 1)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	// float data
+	float* HeightData = OutFloatValues.GetData();
+
+	int32 ChunkSize = THRIFT_MAX_CHUNKSIZE;
+	HAPI_Result Result = HAPI_RESULT_FAILURE;
+	if (NumValues > ChunkSize)
+	{
+		// Get the heightfield data in chunks
+		for (int32 ChunkStart = 0; ChunkStart < NumValues; ChunkStart += ChunkSize)
+		{
+			int32 CurCount = NumValues - ChunkStart > ChunkSize ? ChunkSize : NumValues - ChunkStart;
+
+			Result = FHoudiniApi::GetHeightFieldData(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, &HeightData[ChunkStart], ChunkStart, CurCount);
+
+			if (Result != HAPI_RESULT_SUCCESS)
+				break;
+		}
+	}
+	else
+	{
+		Result = FHoudiniApi::GetHeightFieldData(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId, InPartId, HeightData, 0, NumValues);
+	}
 
 	return Result;
 }
