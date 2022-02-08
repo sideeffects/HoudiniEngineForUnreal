@@ -40,5 +40,5 @@ private:
 
 
 	HAPI_NodeId object_node_id = 0;
-	HAPI_NodeId network_node_id = 0;
+	HAPI_NodeId network_node_id = -1;
 };

@@ -31,7 +31,8 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniStaticMesh.h"
 #include "HoudiniStringResolver.h"
-
+#include "Engine/SkeletalMesh.h"
+#include "Animation/Skeleton.h"
 #include "PackageTools.h"
 #include "ObjectTools.h"
 #include "Engine/StaticMesh.h"
@@ -383,6 +384,8 @@ void TemplateFixer()
 {
 	FHoudiniPackageParams PP;
 	UStaticMesh* SM = PP.CreateObjectAndPackage<UStaticMesh>();
+	USkeletalMesh* SK = PP.CreateObjectAndPackage<USkeletalMesh>();
+	USkeleton* Skelly = PP.CreateObjectAndPackage<USkeleton>();
 	UHoudiniStaticMesh* HSM = PP.CreateObjectAndPackage<UHoudiniStaticMesh>();
 	UGeometryCollection* GC = PP.CreateObjectAndPackage<UGeometryCollection>();
 	//UMaterial* Mat = PP.CreateObjectAndPackage<UMaterial>();

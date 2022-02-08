@@ -34,11 +34,15 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "ImportUtils/SkeletalMeshImportUtils.h"
+#include "Rendering/SkeletalMeshLODImporterData.h"
 #include "PhysicsEngine/AggregateGeom.h"
 
 //#include "HoudiniMeshTranslator.generated.h"
 
 class UStaticMesh;
+class USkeletalMesh;
+class USkeleton;
 class UStaticMeshSocket;
 class UMaterialInterface;
 class UMeshComponent;
@@ -49,6 +53,20 @@ class UHoudiniStaticMeshComponent;
 struct FKAggregateGeom;
 struct FHoudiniGenericAttribute;
 
+
+struct SKBuildSettings
+{
+    FSkeletalMeshImportData SkeletalMeshImportData;
+    bool bIsNewSkeleton = false;
+    float ImportScale = 1.0f;
+	USkeletalMesh* SKMesh;
+	UPackage* SKPackage = nullptr;
+    USkeleton* Skeleton = nullptr;
+    FString CurrentObjectName;
+    HAPI_NodeId GeoId;
+    HAPI_NodeId PartId;
+	bool ImportNormals;
+};
 
 UENUM()
 enum class EHoudiniSplitType : uint8
@@ -114,7 +132,11 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		static void ExportSkeletalMeshAssets(UHoudiniOutput* InOutput);
 		static bool HasSkeletalMeshData(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
 		static void LoadImportData(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
-		static void CreateAssetPackage(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, FString PackageName, int MaxInfluences = 1, bool ImportNormals = false);
+		static void CreateSKAssetAndPackage(SKBuildSettings& BuildSettings, const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, FString PackageName, int MaxInfluences = 1, bool ImportNormals = false);
+		static void BuildSKFromImportData(SKBuildSettings& BuildSettings, TArray<FSkeletalMaterial>& Materials);
+		static void SKImportData(SKBuildSettings& BuildSettings);
+		static USkeleton* CreateOrUpdateSkeleton(SKBuildSettings& BuildSettings);
+
 		static void DumpInfoForOwner(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, HAPI_AttributeOwner Owner);
 		static void DumpInfo(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
 
@@ -215,6 +237,8 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		// Legacy function using RawMesh for static Mesh creation
 		bool CreateStaticMesh_RawMesh();
 
+		bool CreateSkeletalMesh_SkeletalMeshImportData();
+
 		// Indicates the update is forced
 		bool ForceRebuild;
 		int32 DefaultMeshSmoothing;
@@ -277,6 +301,9 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 
 		// Updates and create the material that are needed for this part
 		bool CreateNeededMaterials();
+
+		USkeletalMesh* CreateNewSkeletalMesh(const FString& InSplitIdentifier);
+		USkeleton* CreateNewSkeleton(const FString& InSplitIdentifier);
 
 		UStaticMesh* CreateNewStaticMesh(const FString& InMeshIdentifierString);
 
@@ -347,7 +374,7 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		FHoudiniGeoPartObject HGPO;
 
 		// Outer object for attaching components to
-		UObject* OuterComponent;
+		UObject* OuterComponent = nullptr;
 
 		// Structure that handles cooking/baking package creation parameters
 		FHoudiniPackageParams PackageParams;

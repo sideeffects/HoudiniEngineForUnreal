@@ -283,7 +283,10 @@ FHoudiniOutputTranslator::UpdateOutputs(
 
 		switch (CurOutput->GetType())
 		{
-		    //EHoudiniOutputType::SkeletalMesh
+			/*case EHoudiniOutputType::Skeletal:
+			{
+
+			}*/
 			case EHoudiniOutputType::Mesh:
 			{
 				bool bIsProxyStaticMeshEnabled = (
