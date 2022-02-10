@@ -1588,6 +1588,26 @@ FHoudiniMeshTranslator::CreateNewHoudiniStaticMesh(const FString& InSplitIdentif
 	return NewStaticMesh;
 }
 
+FHoudiniOutputObjectIdentifier
+FHoudiniMeshTranslator::MakeOutputObjectIdentifier(const FString& InSplitGroupName, const EHoudiniSplitType InSplitType)
+{
+	FHoudiniOutputObjectIdentifier OutputObjectIdentifier(
+		HGPO.ObjectId, HGPO.GeoId, HGPO.PartId, GetMeshIdentifierFromSplit(InSplitGroupName, InSplitType));
+	OutputObjectIdentifier.PartName = HGPO.PartName;
+	OutputObjectIdentifier.PrimitiveIndex = AllSplitFirstValidPrimIndex[InSplitGroupName];
+	const int32 FirstValidVertexIndex = AllSplitFirstValidVertexIndex[InSplitGroupName];
+	if (FirstValidVertexIndex >= 0 && AllSplitVertexLists[InSplitGroupName].IsValidIndex(FirstValidVertexIndex))
+	{
+		OutputObjectIdentifier.PointIndex = AllSplitVertexLists[InSplitGroupName][FirstValidVertexIndex];
+	}
+	else
+	{
+		OutputObjectIdentifier.PointIndex = -1;
+	}
+
+	return OutputObjectIdentifier;
+}
+
 bool
 FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 {
@@ -1617,15 +1637,29 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 	// Prepare the object that will store UCX and simple colliders
 	AllAggregateCollisions.Empty();
 
-	// We need to know the number of LODs that will be needed for this part
+	// We need to know the number of LODs that will be needed for this part, and we also need the identifier for the
+	// main split (Normal or LOD0)
 	int32 NumberOfLODs = 0;
 	bool bHasMainGeo = false;
+	FHoudiniOutputObjectIdentifier MainIdentifier;
+	bool bHasMainIdentifier = false;
 	for (auto& curSplit : AllSplitGroups)
 	{
 		if (GetSplitTypeFromSplitName(curSplit) == EHoudiniSplitType::LOD)
+		{
 			NumberOfLODs++;
+			if (NumberOfLODs == 1 && !bHasMainGeo)
+			{
+				MainIdentifier = MakeOutputObjectIdentifier(curSplit, GetSplitTypeFromSplitName(curSplit));
+				bHasMainIdentifier = true;
+			}
+		}
 		else if (GetSplitTypeFromSplitName(curSplit) == EHoudiniSplitType::Normal)
+		{
 			bHasMainGeo = true;
+			MainIdentifier = MakeOutputObjectIdentifier(curSplit, GetSplitTypeFromSplitName(curSplit));
+			bHasMainIdentifier = true;
+		}
 	}
 
 	// Update the part's material's IDS and info now
@@ -1711,20 +1745,8 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			continue;
 		}
 
-		// Get the output identifer for this split
-		FHoudiniOutputObjectIdentifier OutputObjectIdentifier(
-			HGPO.ObjectId, HGPO.GeoId, HGPO.PartId, GetMeshIdentifierFromSplit(SplitGroupName, SplitType));
-		OutputObjectIdentifier.PartName = HGPO.PartName;
-		OutputObjectIdentifier.PrimitiveIndex = AllSplitFirstValidPrimIndex[SplitGroupName];
-		const int32 FirstValidVertexIndex = AllSplitFirstValidVertexIndex[SplitGroupName];
-		if (FirstValidVertexIndex >= 0 && AllSplitVertexLists[SplitGroupName].IsValidIndex(FirstValidVertexIndex))
-		{
-			OutputObjectIdentifier.PointIndex = AllSplitVertexLists[SplitGroupName][FirstValidVertexIndex];
-		}
-		else
-		{
-			OutputObjectIdentifier.PointIndex = -1;
-		}
+		// Get the output identifier for this split
+		FHoudiniOutputObjectIdentifier OutputObjectIdentifier = MakeOutputObjectIdentifier(SplitGroupName, SplitType);
 
 		// Get/Create the Aggregate Collisions for this mesh identifier
 		FKAggregateGeom& AggregateCollisions = AllAggregateCollisions.FindOrAdd(OutputObjectIdentifier);
@@ -1770,7 +1792,11 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 		}
 		
 		// Try to find existing properties for this identifier
-		FHoudiniOutputObject* FoundOutputObject = InputObjects.Find(OutputObjectIdentifier);
+		// First check the OutputObjects (for LODs and Normal geo the same FHoudiniOutputObject entry is used, so
+		// we check OutputObjects first to see if we have already created/updated it for the main mesh)
+		FHoudiniOutputObject* FoundOutputObject = OutputObjects.Find(OutputObjectIdentifier);
+		if (!FoundOutputObject)
+			FoundOutputObject = InputObjects.Find(OutputObjectIdentifier);
 
 		// If we don't yet have package params for this object identifier, fetch and resolve attributes for the split
 		// and update the package params
@@ -1780,7 +1806,12 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 		if (!ObjectIdentifiersToPackageParams.Contains(OutputObjectIdentifier))
 		{
 			// Get all the supported attributes from the HGPO
-			CopyAttributesFromHGPOForSplit(OutputObjectIdentifier, TempAttributes, TempTokens);
+			// For LOD / Normal mesh we use the MainIdentifier to read attributes (Normal or LOD0) since they all
+			// go into the same mesh/package
+			if ((SplitType == EHoudiniSplitType::Normal || SplitType == EHoudiniSplitType::LOD) && bHasMainIdentifier)
+				CopyAttributesFromHGPOForSplit(MainIdentifier, TempAttributes, TempTokens);
+			else
+				CopyAttributesFromHGPOForSplit(OutputObjectIdentifier, TempAttributes, TempTokens);
 
 			// Resolve our final package params
 			FHoudiniAttributeResolver Resolver;
@@ -3088,15 +3119,29 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 	// Prepare the object that will store UCX and simple colliders
 	AllAggregateCollisions.Empty();
 
-	// We need to know the number of LODs that will be needed for this part
+	// We need to know the number of LODs that will be needed for this part, and we also need the identifier for the
+	// main split (Normal or LOD0)
 	int32 NumberOfLODs = 0;
 	bool bHasMainGeo = false;
+	FHoudiniOutputObjectIdentifier MainIdentifier;
+	bool bHasMainIdentifier = false;
 	for (auto& curSplit : AllSplitGroups)
 	{
 		if (GetSplitTypeFromSplitName(curSplit) == EHoudiniSplitType::LOD)
+		{
 			NumberOfLODs++;
+			if (NumberOfLODs == 1 && !bHasMainGeo)
+			{
+				MainIdentifier = MakeOutputObjectIdentifier(curSplit, GetSplitTypeFromSplitName(curSplit));
+				bHasMainIdentifier = true;
+			}
+		}
 		else if (GetSplitTypeFromSplitName(curSplit) == EHoudiniSplitType::Normal)
+		{
 			bHasMainGeo = true;
+			MainIdentifier = MakeOutputObjectIdentifier(curSplit, GetSplitTypeFromSplitName(curSplit));
+			bHasMainIdentifier = true;
+		}
 	}
 
 	// Update the part's material's IDS and info now
@@ -3181,19 +3226,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 		}
 
 		// Get the output identifer for this split
-		FHoudiniOutputObjectIdentifier OutputObjectIdentifier(
-			HGPO.ObjectId, HGPO.GeoId, HGPO.PartId, GetMeshIdentifierFromSplit(SplitGroupName, SplitType));
-		OutputObjectIdentifier.PartName = HGPO.PartName;
-		OutputObjectIdentifier.PrimitiveIndex = AllSplitFirstValidPrimIndex[SplitGroupName];
-		const int32 FirstValidVertexIndex = AllSplitFirstValidVertexIndex[SplitGroupName];
-		if (FirstValidVertexIndex >= 0 && AllSplitVertexLists[SplitGroupName].IsValidIndex(FirstValidVertexIndex))
-		{
-			OutputObjectIdentifier.PointIndex = AllSplitVertexLists[SplitGroupName][FirstValidVertexIndex];
-		}
-		else
-		{
-			OutputObjectIdentifier.PointIndex = -1;
-		}
+		FHoudiniOutputObjectIdentifier OutputObjectIdentifier = MakeOutputObjectIdentifier(SplitGroupName, SplitType);
 
 		// Get/Create the Aggregate Collisions for this mesh identifier
 		FKAggregateGeom& AggregateCollisions = AllAggregateCollisions.FindOrAdd(OutputObjectIdentifier);
@@ -3239,7 +3272,11 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 		}
 
 		// Try to find existing properties for this identifier
-		FHoudiniOutputObject* FoundOutputObject = InputObjects.Find(OutputObjectIdentifier);
+		// First check the OutputObjects (for LODs and Normal geo the same FHoudiniOutputObject entry is used, so
+		// we check OutputObjects first to see if we have already created/updated it for the main mesh)
+		FHoudiniOutputObject* FoundOutputObject = OutputObjects.Find(OutputObjectIdentifier);
+		if (!FoundOutputObject)
+			FoundOutputObject = InputObjects.Find(OutputObjectIdentifier);
 
 		// If we don't yet have package params for this object identifier, fetch and resolve attributes for the split
 		// and update the package params
@@ -3249,7 +3286,12 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 		if (!ObjectIdentifiersToPackageParams.Contains(OutputObjectIdentifier))
 		{
 			// Get all the supported attributes from the HGPO
-			CopyAttributesFromHGPOForSplit(OutputObjectIdentifier, TempAttributes, TempTokens);
+			// For LOD / Normal mesh we use the MainIdentifier to read attributes (Normal or LOD0) since they all
+			// go into the same mesh/package
+			if ((SplitType == EHoudiniSplitType::Normal || SplitType == EHoudiniSplitType::LOD) && bHasMainIdentifier)
+				CopyAttributesFromHGPOForSplit(MainIdentifier, TempAttributes, TempTokens);
+			else
+				CopyAttributesFromHGPOForSplit(OutputObjectIdentifier, TempAttributes, TempTokens);
 
 			// Resolve our final package params
 			FHoudiniAttributeResolver Resolver;
@@ -4587,19 +4629,7 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 		}
 
 		// Get the output identifer for this split
-		FHoudiniOutputObjectIdentifier OutputObjectIdentifier(
-			HGPO.ObjectId, HGPO.GeoId, HGPO.PartId, GetMeshIdentifierFromSplit(SplitGroupName, SplitType));
-		OutputObjectIdentifier.PartName = HGPO.PartName;
-		OutputObjectIdentifier.PrimitiveIndex = AllSplitFirstValidPrimIndex[SplitGroupName];
-		const int32 FirstValidVertexIndex = AllSplitFirstValidVertexIndex[SplitGroupName];
-		if (FirstValidVertexIndex >= 0 && AllSplitVertexLists[SplitGroupName].IsValidIndex(FirstValidVertexIndex))
-		{
-			OutputObjectIdentifier.PointIndex = AllSplitVertexLists[SplitGroupName][FirstValidVertexIndex];
-		}
-		else
-		{
-			OutputObjectIdentifier.PointIndex = -1;
-		}
+		FHoudiniOutputObjectIdentifier OutputObjectIdentifier = MakeOutputObjectIdentifier(SplitGroupName, SplitType);
 
 		// Try to find existing properties for this identifier
 		FHoudiniOutputObject* FoundOutputObject = InputObjects.Find(OutputObjectIdentifier);
