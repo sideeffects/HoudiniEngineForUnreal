@@ -3084,6 +3084,12 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 					SplitType,
 					bAssignedCustomCollisionMesh,
 					OutputObjects.Find(CurrentObjId));
+				if (bAssignedCustomCollisionMesh)
+				{
+					// We have custom collision geometry which means that the main static mesh Collision Trace Flag
+					// must be set to UseComplexAsSimple in order for the collision geometry to have any effect.
+					MainStaticMeshCTF = CTF_UseComplexAsSimple;
+				}
 			}
 			else
 			{
