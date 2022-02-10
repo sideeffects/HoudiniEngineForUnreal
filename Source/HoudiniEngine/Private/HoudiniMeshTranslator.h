@@ -214,6 +214,10 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		// Create a UHoudiniStaticMesh
 		bool CreateHoudiniStaticMesh();
 
+		// Helper to make and populate a FHoudiniOutputObjectIdentifier from the current HGPO and the given
+		// InSplitGroupName and InSplitType.
+		FHoudiniOutputObjectIdentifier MakeOutputObjectIdentifier(const FString& InSplitGroupName, const EHoudiniSplitType InSplitType);
+
 		static void ApplyComplexColliderHelper(
 			UStaticMesh* TargetStaticMesh,
 			UStaticMesh* ComplexStaticMesh,
