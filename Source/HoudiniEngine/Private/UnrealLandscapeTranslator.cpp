@@ -1072,7 +1072,9 @@ FUnrealLandscapeTranslator::ConvertLandscapeDataToHeightfieldData(
 
 			// Convert the int values to meter
 			// Unreal's digit value have a zero value of 32768
-			double DoubleValue = ((double)IntHeightData[nUnreal] - ZCenterOffset) * ZSpacing + ZPositionOffset;
+			// Don't apply z-position offsets to the data. This offset will be applied to the
+			// heighfield primitive itself in Houdini.
+			double DoubleValue = ((double)IntHeightData[nUnreal] - ZCenterOffset) * ZSpacing;
 			HeightfieldFloatValues[nHoudini] = (float)DoubleValue;
 		}
 	}

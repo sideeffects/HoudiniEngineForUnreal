@@ -3957,6 +3957,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 						continue;
 
 					NextLandscapeInput->MarkChanged(true);
+					NextLandscapeInput->MarkTransformChanged(true);
 				}
 
 				CurrentInput->MarkChanged(true);
