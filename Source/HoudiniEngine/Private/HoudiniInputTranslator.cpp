@@ -945,6 +945,7 @@ FHoudiniInputTranslator::UpdatePackBeforeMerge(UHoudiniInput* InInput)
 
 	bool bSuccess = true;
 	const std::string sPack = "pack";
+	const std::string sPivot = "pivot";
 
 	// We'll be going through each input object plugged in the input's merge node
 	// and change the pack parameter there
@@ -969,6 +970,12 @@ FHoudiniInputTranslator::UpdatePackBeforeMerge(UHoudiniInput* InInput)
 			if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValue(
 				FHoudiniEngine::Get().GetSession(), InputObjectNodeId,
 				sPack.c_str(), 0, nPackValue))
+				bSuccess = false;
+
+			// Change the pivot parameter on the object merge to "origin"
+			if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValue(
+				FHoudiniEngine::Get().GetSession(), InputObjectNodeId,
+				sPivot.c_str(), 0, 0))
 				bSuccess = false;
 		}
 	}
