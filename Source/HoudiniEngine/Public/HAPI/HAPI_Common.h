@@ -171,7 +171,10 @@ typedef int HAPI_ParmId;
 typedef int HAPI_PartId;
 
 /// Use this with PDG functions
-typedef int HAPI_PDG_WorkitemId;
+typedef int HAPI_PDG_WorkItemId;
+
+/// Backwards compatibility for HAPI_PDG_WorkitemId
+typedef HAPI_PDG_WorkItemId HAPI_PDG_WorkitemId;
 
 /// Use this with PDG functions
 typedef int HAPI_PDG_GraphContextId;
@@ -1006,7 +1009,7 @@ enum HAPI_PDG_EventType
 HAPI_C_ENUM_TYPEDEF( HAPI_PDG_EventType )
 
 /// Used with PDG functions
-enum HAPI_PDG_WorkitemState
+enum HAPI_PDG_WorkItemState
 {
     HAPI_PDG_WORKITEM_UNDEFINED,
     HAPI_PDG_WORKITEM_UNCOOKED,
@@ -1019,7 +1022,10 @@ enum HAPI_PDG_WorkitemState
     HAPI_PDG_WORKITEM_COOKED_CANCEL,
     HAPI_PDG_WORKITEM_DIRTY
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_PDG_WorkitemState )
+HAPI_C_ENUM_TYPEDEF( HAPI_PDG_WorkItemState )
+
+/// Backwards compatibility for HAPI_PDG_WorkitemState
+typedef HAPI_PDG_WorkItemState HAPI_PDG_WorkitemState;
 
 /////////////////////////////////////////////////////////////////////////////
 // Main API Structs
@@ -1953,32 +1959,38 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_SphereInfo )
 struct HAPI_API HAPI_PDG_EventInfo
 {
     HAPI_NodeId nodeId;                     /// id of related node
-    HAPI_PDG_WorkitemId workitemId;         /// id of related workitem
-    HAPI_PDG_WorkitemId dependencyId;       /// id of related workitem dependency
-    int currentState;                       /// ::HAPI_PDG_WorkitemState value of current state for state change
-    int lastState;                          /// ::HAPI_PDG_WorkitemState value of last state for state change
+    HAPI_PDG_WorkItemId workitemId;         /// id of related workitem
+    HAPI_PDG_WorkItemId dependencyId;       /// id of related workitem dependency
+    int currentState;                       /// ::HAPI_PDG_WorkItemState value of current state for state change
+    int lastState;                          /// ::HAPI_PDG_WorkItemState value of last state for state change
     int eventType;                          /// ::HAPI_PDG_EventType event type
     HAPI_StringHandle msgSH;                /// String handle of the event message (> 0 if there is a message)
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_EventInfo )
 
-/// Info for a PDG Workitem
-struct HAPI_API HAPI_PDG_WorkitemInfo
+/// Info for a PDG work item
+struct HAPI_API HAPI_PDG_WorkItemInfo
 {
     int index;                    /// index of the workitem
     int numResults;		          /// number of results reported
     HAPI_StringHandle nameSH;     /// name of the workitem
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkitemInfo )
+HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkItemInfo )
+
+/// Backwards compatibility for HAPI_PDG_WorkitemInfo
+typedef HAPI_PDG_WorkItemInfo HAPI_PDG_WorkitemInfo;
 
 /// Data for a PDG file result
-struct HAPI_API HAPI_PDG_WorkitemResultInfo
+struct HAPI_API HAPI_PDG_WorkItemOutputFile
 {
-    int resultSH;		      /// result string data
-    int resultTagSH;		  /// result tag
-    HAPI_Int64 resultHash;	  /// hash value of result
+    int resultSH;		/// result string data
+    int resultTagSH;		/// result tag
+    HAPI_Int64 resultHash;	/// hash value of result
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkitemResultInfo )
+HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkItemOutputFile )
+
+/// Backwards compatibility for HAPI_PDG_WorkitemResultInfo
+typedef HAPI_PDG_WorkItemOutputFile HAPI_PDG_WorkitemResultInfo;
 
 // SESSIONSYNC --------------------------------------------------------------
 
