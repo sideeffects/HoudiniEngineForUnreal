@@ -1,5 +1,5 @@
 /*
- * Copyright (c) <2021> Side Effects Software Inc. *
+ * Copyright (c) <2022> Side Effects Software Inc. *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -65,6 +65,9 @@ FHoudiniApi::CloseSession = &FHoudiniApi::CloseSessionEmptyStub;
 
 FHoudiniApi::CommitGeoFuncPtr
 FHoudiniApi::CommitGeo = &FHoudiniApi::CommitGeoEmptyStub;
+
+FHoudiniApi::CommitWorkItemsFuncPtr
+FHoudiniApi::CommitWorkItems = &FHoudiniApi::CommitWorkItemsEmptyStub;
 
 FHoudiniApi::CommitWorkitemsFuncPtr
 FHoudiniApi::CommitWorkitems = &FHoudiniApi::CommitWorkitemsEmptyStub;
@@ -146,6 +149,9 @@ FHoudiniApi::CreateThriftNamedPipeSession = &FHoudiniApi::CreateThriftNamedPipeS
 
 FHoudiniApi::CreateThriftSocketSessionFuncPtr
 FHoudiniApi::CreateThriftSocketSession = &FHoudiniApi::CreateThriftSocketSessionEmptyStub;
+
+FHoudiniApi::CreateWorkItemFuncPtr
+FHoudiniApi::CreateWorkItem = &FHoudiniApi::CreateWorkItemEmptyStub;
 
 FHoudiniApi::CreateWorkitemFuncPtr
 FHoudiniApi::CreateWorkitem = &FHoudiniApi::CreateWorkitemEmptyStub;
@@ -420,6 +426,9 @@ FHoudiniApi::GetNodeOutputName = &FHoudiniApi::GetNodeOutputNameEmptyStub;
 FHoudiniApi::GetNodePathFuncPtr
 FHoudiniApi::GetNodePath = &FHoudiniApi::GetNodePathEmptyStub;
 
+FHoudiniApi::GetNumWorkItemsFuncPtr
+FHoudiniApi::GetNumWorkItems = &FHoudiniApi::GetNumWorkItemsEmptyStub;
+
 FHoudiniApi::GetNumWorkitemsFuncPtr
 FHoudiniApi::GetNumWorkitems = &FHoudiniApi::GetNumWorkitemsEmptyStub;
 
@@ -596,6 +605,27 @@ FHoudiniApi::GetVolumeVoxelFloatData = &FHoudiniApi::GetVolumeVoxelFloatDataEmpt
 
 FHoudiniApi::GetVolumeVoxelIntDataFuncPtr
 FHoudiniApi::GetVolumeVoxelIntData = &FHoudiniApi::GetVolumeVoxelIntDataEmptyStub;
+
+FHoudiniApi::GetWorkItemAttributeSizeFuncPtr
+FHoudiniApi::GetWorkItemAttributeSize = &FHoudiniApi::GetWorkItemAttributeSizeEmptyStub;
+
+FHoudiniApi::GetWorkItemFloatAttributeFuncPtr
+FHoudiniApi::GetWorkItemFloatAttribute = &FHoudiniApi::GetWorkItemFloatAttributeEmptyStub;
+
+FHoudiniApi::GetWorkItemInfoFuncPtr
+FHoudiniApi::GetWorkItemInfo = &FHoudiniApi::GetWorkItemInfoEmptyStub;
+
+FHoudiniApi::GetWorkItemIntAttributeFuncPtr
+FHoudiniApi::GetWorkItemIntAttribute = &FHoudiniApi::GetWorkItemIntAttributeEmptyStub;
+
+FHoudiniApi::GetWorkItemOutputFilesFuncPtr
+FHoudiniApi::GetWorkItemOutputFiles = &FHoudiniApi::GetWorkItemOutputFilesEmptyStub;
+
+FHoudiniApi::GetWorkItemStringAttributeFuncPtr
+FHoudiniApi::GetWorkItemStringAttribute = &FHoudiniApi::GetWorkItemStringAttributeEmptyStub;
+
+FHoudiniApi::GetWorkItemsFuncPtr
+FHoudiniApi::GetWorkItems = &FHoudiniApi::GetWorkItemsEmptyStub;
 
 FHoudiniApi::GetWorkitemDataLengthFuncPtr
 FHoudiniApi::GetWorkitemDataLength = &FHoudiniApi::GetWorkitemDataLengthEmptyStub;
@@ -1002,6 +1032,15 @@ FHoudiniApi::SetVolumeVoxelFloatData = &FHoudiniApi::SetVolumeVoxelFloatDataEmpt
 FHoudiniApi::SetVolumeVoxelIntDataFuncPtr
 FHoudiniApi::SetVolumeVoxelIntData = &FHoudiniApi::SetVolumeVoxelIntDataEmptyStub;
 
+FHoudiniApi::SetWorkItemFloatAttributeFuncPtr
+FHoudiniApi::SetWorkItemFloatAttribute = &FHoudiniApi::SetWorkItemFloatAttributeEmptyStub;
+
+FHoudiniApi::SetWorkItemIntAttributeFuncPtr
+FHoudiniApi::SetWorkItemIntAttribute = &FHoudiniApi::SetWorkItemIntAttributeEmptyStub;
+
+FHoudiniApi::SetWorkItemStringAttributeFuncPtr
+FHoudiniApi::SetWorkItemStringAttribute = &FHoudiniApi::SetWorkItemStringAttributeEmptyStub;
+
 FHoudiniApi::SetWorkitemFloatDataFuncPtr
 FHoudiniApi::SetWorkitemFloatData = &FHoudiniApi::SetWorkitemFloatDataEmptyStub;
 
@@ -1010,6 +1049,9 @@ FHoudiniApi::SetWorkitemIntData = &FHoudiniApi::SetWorkitemIntDataEmptyStub;
 
 FHoudiniApi::SetWorkitemStringDataFuncPtr
 FHoudiniApi::SetWorkitemStringData = &FHoudiniApi::SetWorkitemStringDataEmptyStub;
+
+FHoudiniApi::ShutdownFuncPtr
+FHoudiniApi::Shutdown = &FHoudiniApi::ShutdownEmptyStub;
 
 FHoudiniApi::StartThriftNamedPipeServerFuncPtr
 FHoudiniApi::StartThriftNamedPipeServer = &FHoudiniApi::StartThriftNamedPipeServerEmptyStub;
@@ -1075,6 +1117,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::ClearConnectionError = (ClearConnectionErrorFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ClearConnectionError"));
 	FHoudiniApi::CloseSession = (CloseSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CloseSession"));
 	FHoudiniApi::CommitGeo = (CommitGeoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CommitGeo"));
+	FHoudiniApi::CommitWorkItems = (CommitWorkItemsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CommitWorkItems"));
 	FHoudiniApi::CommitWorkitems = (CommitWorkitemsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CommitWorkitems"));
 	FHoudiniApi::ComposeChildNodeList = (ComposeChildNodeListFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ComposeChildNodeList"));
 	FHoudiniApi::ComposeNodeCookResult = (ComposeNodeCookResultFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ComposeNodeCookResult"));
@@ -1102,6 +1145,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::CreateNode = (CreateNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateNode"));
 	FHoudiniApi::CreateThriftNamedPipeSession = (CreateThriftNamedPipeSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateThriftNamedPipeSession"));
 	FHoudiniApi::CreateThriftSocketSession = (CreateThriftSocketSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateThriftSocketSession"));
+	FHoudiniApi::CreateWorkItem = (CreateWorkItemFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateWorkItem"));
 	FHoudiniApi::CreateWorkitem = (CreateWorkitemFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateWorkitem"));
 	FHoudiniApi::CurveInfo_Create = (CurveInfo_CreateFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CurveInfo_Create"));
 	FHoudiniApi::CurveInfo_Init = (CurveInfo_InitFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CurveInfo_Init"));
@@ -1193,6 +1237,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetNodeInputName = (GetNodeInputNameFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeInputName"));
 	FHoudiniApi::GetNodeOutputName = (GetNodeOutputNameFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeOutputName"));
 	FHoudiniApi::GetNodePath = (GetNodePathFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodePath"));
+	FHoudiniApi::GetNumWorkItems = (GetNumWorkItemsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNumWorkItems"));
 	FHoudiniApi::GetNumWorkitems = (GetNumWorkitemsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNumWorkitems"));
 	FHoudiniApi::GetObjectInfo = (GetObjectInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjectInfo"));
 	FHoudiniApi::GetObjectTransform = (GetObjectTransformFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjectTransform"));
@@ -1252,6 +1297,13 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetVolumeVisualInfo = (GetVolumeVisualInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeVisualInfo"));
 	FHoudiniApi::GetVolumeVoxelFloatData = (GetVolumeVoxelFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeVoxelFloatData"));
 	FHoudiniApi::GetVolumeVoxelIntData = (GetVolumeVoxelIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeVoxelIntData"));
+	FHoudiniApi::GetWorkItemAttributeSize = (GetWorkItemAttributeSizeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkItemAttributeSize"));
+	FHoudiniApi::GetWorkItemFloatAttribute = (GetWorkItemFloatAttributeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkItemFloatAttribute"));
+	FHoudiniApi::GetWorkItemInfo = (GetWorkItemInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkItemInfo"));
+	FHoudiniApi::GetWorkItemIntAttribute = (GetWorkItemIntAttributeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkItemIntAttribute"));
+	FHoudiniApi::GetWorkItemOutputFiles = (GetWorkItemOutputFilesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkItemOutputFiles"));
+	FHoudiniApi::GetWorkItemStringAttribute = (GetWorkItemStringAttributeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkItemStringAttribute"));
+	FHoudiniApi::GetWorkItems = (GetWorkItemsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkItems"));
 	FHoudiniApi::GetWorkitemDataLength = (GetWorkitemDataLengthFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkitemDataLength"));
 	FHoudiniApi::GetWorkitemFloatData = (GetWorkitemFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkitemFloatData"));
 	FHoudiniApi::GetWorkitemInfo = (GetWorkitemInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetWorkitemInfo"));
@@ -1387,9 +1439,13 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::SetVolumeTileIntData = (SetVolumeTileIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeTileIntData"));
 	FHoudiniApi::SetVolumeVoxelFloatData = (SetVolumeVoxelFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeVoxelFloatData"));
 	FHoudiniApi::SetVolumeVoxelIntData = (SetVolumeVoxelIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeVoxelIntData"));
+	FHoudiniApi::SetWorkItemFloatAttribute = (SetWorkItemFloatAttributeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetWorkItemFloatAttribute"));
+	FHoudiniApi::SetWorkItemIntAttribute = (SetWorkItemIntAttributeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetWorkItemIntAttribute"));
+	FHoudiniApi::SetWorkItemStringAttribute = (SetWorkItemStringAttributeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetWorkItemStringAttribute"));
 	FHoudiniApi::SetWorkitemFloatData = (SetWorkitemFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetWorkitemFloatData"));
 	FHoudiniApi::SetWorkitemIntData = (SetWorkitemIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetWorkitemIntData"));
 	FHoudiniApi::SetWorkitemStringData = (SetWorkitemStringDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetWorkitemStringData"));
+	FHoudiniApi::Shutdown = (ShutdownFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_Shutdown"));
 	FHoudiniApi::StartThriftNamedPipeServer = (StartThriftNamedPipeServerFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_StartThriftNamedPipeServer"));
 	FHoudiniApi::StartThriftSocketServer = (StartThriftSocketServerFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_StartThriftSocketServer"));
 	FHoudiniApi::ThriftServerOptions_Create = (ThriftServerOptions_CreateFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ThriftServerOptions_Create"));
@@ -1424,6 +1480,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::ClearConnectionError = &FHoudiniApi::ClearConnectionErrorEmptyStub;
 	FHoudiniApi::CloseSession = &FHoudiniApi::CloseSessionEmptyStub;
 	FHoudiniApi::CommitGeo = &FHoudiniApi::CommitGeoEmptyStub;
+	FHoudiniApi::CommitWorkItems = &FHoudiniApi::CommitWorkItemsEmptyStub;
 	FHoudiniApi::CommitWorkitems = &FHoudiniApi::CommitWorkitemsEmptyStub;
 	FHoudiniApi::ComposeChildNodeList = &FHoudiniApi::ComposeChildNodeListEmptyStub;
 	FHoudiniApi::ComposeNodeCookResult = &FHoudiniApi::ComposeNodeCookResultEmptyStub;
@@ -1451,6 +1508,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::CreateNode = &FHoudiniApi::CreateNodeEmptyStub;
 	FHoudiniApi::CreateThriftNamedPipeSession = &FHoudiniApi::CreateThriftNamedPipeSessionEmptyStub;
 	FHoudiniApi::CreateThriftSocketSession = &FHoudiniApi::CreateThriftSocketSessionEmptyStub;
+	FHoudiniApi::CreateWorkItem = &FHoudiniApi::CreateWorkItemEmptyStub;
 	FHoudiniApi::CreateWorkitem = &FHoudiniApi::CreateWorkitemEmptyStub;
 	FHoudiniApi::CurveInfo_Create = &FHoudiniApi::CurveInfo_CreateEmptyStub;
 	FHoudiniApi::CurveInfo_Init = &FHoudiniApi::CurveInfo_InitEmptyStub;
@@ -1542,6 +1600,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetNodeInputName = &FHoudiniApi::GetNodeInputNameEmptyStub;
 	FHoudiniApi::GetNodeOutputName = &FHoudiniApi::GetNodeOutputNameEmptyStub;
 	FHoudiniApi::GetNodePath = &FHoudiniApi::GetNodePathEmptyStub;
+	FHoudiniApi::GetNumWorkItems = &FHoudiniApi::GetNumWorkItemsEmptyStub;
 	FHoudiniApi::GetNumWorkitems = &FHoudiniApi::GetNumWorkitemsEmptyStub;
 	FHoudiniApi::GetObjectInfo = &FHoudiniApi::GetObjectInfoEmptyStub;
 	FHoudiniApi::GetObjectTransform = &FHoudiniApi::GetObjectTransformEmptyStub;
@@ -1601,6 +1660,13 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetVolumeVisualInfo = &FHoudiniApi::GetVolumeVisualInfoEmptyStub;
 	FHoudiniApi::GetVolumeVoxelFloatData = &FHoudiniApi::GetVolumeVoxelFloatDataEmptyStub;
 	FHoudiniApi::GetVolumeVoxelIntData = &FHoudiniApi::GetVolumeVoxelIntDataEmptyStub;
+	FHoudiniApi::GetWorkItemAttributeSize = &FHoudiniApi::GetWorkItemAttributeSizeEmptyStub;
+	FHoudiniApi::GetWorkItemFloatAttribute = &FHoudiniApi::GetWorkItemFloatAttributeEmptyStub;
+	FHoudiniApi::GetWorkItemInfo = &FHoudiniApi::GetWorkItemInfoEmptyStub;
+	FHoudiniApi::GetWorkItemIntAttribute = &FHoudiniApi::GetWorkItemIntAttributeEmptyStub;
+	FHoudiniApi::GetWorkItemOutputFiles = &FHoudiniApi::GetWorkItemOutputFilesEmptyStub;
+	FHoudiniApi::GetWorkItemStringAttribute = &FHoudiniApi::GetWorkItemStringAttributeEmptyStub;
+	FHoudiniApi::GetWorkItems = &FHoudiniApi::GetWorkItemsEmptyStub;
 	FHoudiniApi::GetWorkitemDataLength = &FHoudiniApi::GetWorkitemDataLengthEmptyStub;
 	FHoudiniApi::GetWorkitemFloatData = &FHoudiniApi::GetWorkitemFloatDataEmptyStub;
 	FHoudiniApi::GetWorkitemInfo = &FHoudiniApi::GetWorkitemInfoEmptyStub;
@@ -1736,9 +1802,13 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::SetVolumeTileIntData = &FHoudiniApi::SetVolumeTileIntDataEmptyStub;
 	FHoudiniApi::SetVolumeVoxelFloatData = &FHoudiniApi::SetVolumeVoxelFloatDataEmptyStub;
 	FHoudiniApi::SetVolumeVoxelIntData = &FHoudiniApi::SetVolumeVoxelIntDataEmptyStub;
+	FHoudiniApi::SetWorkItemFloatAttribute = &FHoudiniApi::SetWorkItemFloatAttributeEmptyStub;
+	FHoudiniApi::SetWorkItemIntAttribute = &FHoudiniApi::SetWorkItemIntAttributeEmptyStub;
+	FHoudiniApi::SetWorkItemStringAttribute = &FHoudiniApi::SetWorkItemStringAttributeEmptyStub;
 	FHoudiniApi::SetWorkitemFloatData = &FHoudiniApi::SetWorkitemFloatDataEmptyStub;
 	FHoudiniApi::SetWorkitemIntData = &FHoudiniApi::SetWorkitemIntDataEmptyStub;
 	FHoudiniApi::SetWorkitemStringData = &FHoudiniApi::SetWorkitemStringDataEmptyStub;
+	FHoudiniApi::Shutdown = &FHoudiniApi::ShutdownEmptyStub;
 	FHoudiniApi::StartThriftNamedPipeServer = &FHoudiniApi::StartThriftNamedPipeServerEmptyStub;
 	FHoudiniApi::StartThriftSocketServer = &FHoudiniApi::StartThriftSocketServerEmptyStub;
 	FHoudiniApi::ThriftServerOptions_Create = &FHoudiniApi::ThriftServerOptions_CreateEmptyStub;
@@ -1850,6 +1920,13 @@ FHoudiniApi::CloseSessionEmptyStub(const HAPI_Session * session)
 
 HAPI_Result
 FHoudiniApi::CommitGeoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::CommitWorkItemsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -2045,7 +2122,14 @@ FHoudiniApi::CreateThriftSocketSessionEmptyStub(HAPI_Session * session, const ch
 
 
 HAPI_Result
-FHoudiniApi::CreateWorkitemEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id, const char * name, int index)
+FHoudiniApi::CreateWorkItemEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId * work_item_id, const char * name, int index)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::CreateWorkitemEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId * workitem_id, const char * name, int index)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -2682,6 +2766,13 @@ FHoudiniApi::GetNodePathEmptyStub(const HAPI_Session * session, HAPI_NodeId node
 
 
 HAPI_Result
+FHoudiniApi::GetNumWorkItemsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int * num)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetNumWorkitemsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int * num)
 {
 	return HAPI_RESULT_FAILURE;
@@ -3095,42 +3186,91 @@ FHoudiniApi::GetVolumeVoxelIntDataEmptyStub(const HAPI_Session * session, HAPI_N
 
 
 HAPI_Result
-FHoudiniApi::GetWorkitemDataLengthEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, int * length)
+FHoudiniApi::GetWorkItemAttributeSizeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId work_item_id, const char * attribute_name, int * length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetWorkitemFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, float * data_array, int length)
+FHoudiniApi::GetWorkItemFloatAttributeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId work_item_id, const char * attribute_name, float * data_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetWorkitemInfoEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_PDG_WorkitemId workitem_id, HAPI_PDG_WorkitemInfo * workitem_info)
+FHoudiniApi::GetWorkItemInfoEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_PDG_WorkItemId work_item_id, HAPI_PDG_WorkItemInfo * work_item_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetWorkitemIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, int * data_array, int length)
+FHoudiniApi::GetWorkItemIntAttributeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId work_item_id, const char * attribute_name, int * data_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetWorkitemResultInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, HAPI_PDG_WorkitemResultInfo * resultinfo_array, int resultinfo_count)
+FHoudiniApi::GetWorkItemOutputFilesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId work_item_id, HAPI_PDG_WorkItemOutputFile * resultinfo_array, int resultinfo_count)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, HAPI_StringHandle * data_array, int length)
+FHoudiniApi::GetWorkItemStringAttributeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId work_item_id, const char * attribute_name, HAPI_StringHandle * data_array, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetWorkItemsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int * work_item_ids_array, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetWorkitemDataLengthEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId workitem_id, const char * data_name, int * length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetWorkitemFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId workitem_id, const char * data_name, float * data_array, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetWorkitemInfoEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_PDG_WorkItemId workitem_id, HAPI_PDG_WorkItemInfo * workitem_info)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetWorkitemIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId workitem_id, const char * data_name, int * data_array, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetWorkitemResultInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId workitem_id, HAPI_PDG_WorkItemOutputFile * resultinfo_array, int resultinfo_count)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId workitem_id, const char * data_name, HAPI_StringHandle * data_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -4040,21 +4180,49 @@ FHoudiniApi::SetVolumeVoxelIntDataEmptyStub(const HAPI_Session * session, HAPI_N
 
 
 HAPI_Result
-FHoudiniApi::SetWorkitemFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, const float * values_array, int length)
+FHoudiniApi::SetWorkItemFloatAttributeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId work_item_id, const char * attribute_name, const float * values_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetWorkitemIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, const int * values_array, int length)
+FHoudiniApi::SetWorkItemIntAttributeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId work_item_id, const char * attribute_name, const int * values_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, int data_index, const char * value)
+FHoudiniApi::SetWorkItemStringAttributeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId work_item_id, const char * attribute_name, int data_index, const char * value)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::SetWorkitemFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId workitem_id, const char * data_name, const float * values_array, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::SetWorkitemIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId workitem_id, const char * data_name, const int * values_array, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::SetWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkItemId workitem_id, const char * data_name, int data_index, const char * value)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::ShutdownEmptyStub(const HAPI_Session * session)
 {
 	return HAPI_RESULT_FAILURE;
 }
