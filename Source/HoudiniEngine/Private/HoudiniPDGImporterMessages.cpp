@@ -58,7 +58,7 @@ FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage(
 	const FString& InName,
 	const FHoudiniPackageParams& InPackageParams,
 	HAPI_NodeId InTOPNodeId,
-	HAPI_PDG_WorkitemId InWorkItemId
+	HAPI_PDG_WorkItemId InWorkItemId
 )
 	: FilePath(InFilePath)
 	, Name(InName)
@@ -75,7 +75,7 @@ FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage(
 	const FString& InName,
 	const FHoudiniPackageParams& InPackageParams,
 	HAPI_NodeId InTOPNodeId,
-	HAPI_PDG_WorkitemId InWorkItemId,
+	HAPI_PDG_WorkItemId InWorkItemId,
 	const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
 	const FMeshBuildSettings& InMeshBuildSettings
 )

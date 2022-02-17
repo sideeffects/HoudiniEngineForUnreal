@@ -628,7 +628,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniPDGAssetLink* A,
 	Result &= TestExpressionError(A->bUseTOPOutputFilter == B->bUseTOPOutputFilter, Header, "bUseTOPOutputFilter");
 	Result &= TestExpressionError(A->TOPNodeFilter.Equals(B->TOPNodeFilter), Header, "TOPNodeFilter");
 	Result &= TestExpressionError(A->TOPOutputFilter.Equals(B->TOPOutputFilter), Header, "TOPOutputFilter");
-	Result &= TestExpressionError(A->NumWorkitems == B->NumWorkitems, Header, "NumWorkitems");
+	Result &= TestExpressionError(A->NumWorkItems == B->NumWorkItems, Header, "NumWorkItems");
 	Result &= TestExpressionError(A->OutputCachePath.Equals(B->OutputCachePath), Header, "OutputCachePath");
 	Result &= TestExpressionError(IsEquivalent(A->OutputParentActor, B->OutputParentActor), Header, "OutputParentActor");
 	Result &= TestExpressionError(IsEquivalent(A->BakeFolder, B->BakeFolder), Header, "BakeFolder");
