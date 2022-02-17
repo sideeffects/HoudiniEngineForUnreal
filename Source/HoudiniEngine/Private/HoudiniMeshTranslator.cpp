@@ -7293,7 +7293,6 @@ FHoudiniMeshTranslator::AddActorsToMeshSocket(UStaticMeshSocket * Socket, UStati
 	{
 		// Same as with the Object Iterator, access the subclass instance with the * or -> operators.
 		AActor *Actor = *ActorItr;
-		//if (!IsValid(Actor) || Actor->IsPendingKillOrUnreachable())
 		if (!IsValid(Actor) || Actor->IsUnreachable())
 			continue;
 

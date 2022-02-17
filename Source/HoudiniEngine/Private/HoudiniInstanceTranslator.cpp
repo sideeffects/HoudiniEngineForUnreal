@@ -2598,8 +2598,13 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	AActor* OwnerActor = ParentComponent->GetOwner();
 	if (!IsValid(OwnerActor))
 		return false;
-
-	ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+	
+	// We want to spawn the foliage in the same level as the parent HDA
+	// as spawning in the current level may cause reference issue later on.
+	//ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+	ULevel* DesiredLevel = OwnerActor->GetLevel();
+	if (!IsValid(DesiredLevel))
+		return false;
 
 	AInstancedFoliageActor* InstancedFoliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(DesiredLevel, true);
 	if (!IsValid(InstancedFoliageActor))
