@@ -2207,81 +2207,6 @@ HAPI_DECL HAPI_CreateInputCurveNode( const HAPI_Session * session,
 /// @defgroup HeightFields Height Fields
 /// Functions for creating and inspecting HAPI session state.
 
-/// @deprecated Use HAPI_CreateHeightFieldInput() instead.
-///
-/// @brief  Creates the required node hierarchy needed for Heightfield inputs.
-///
-///         Note that when saving the Houdini scene using
-///         ::HAPI_SaveHIPFile() the nodes created with this
-///         method will be green and will start with the name "input".
-///
-///         Note also that this uses center sampling. Use 
-///         ::HAPI_CreateHeightFieldInput to specify corner sampling.
-///
-/// @ingroup HeightFields
-///
-/// @param[in]      session
-///                 The session of Houdini you are interacting with.
-///                 See @ref HAPI_Sessions for more on sessions.
-///                 Pass NULL to just use the default in-process session.
-///                 <!-- default NULL -->
-///
-/// @param[in]      parent_node_id
-///                 The parent node network's node id or -1 if the parent
-///                 network is the manager (top-level) node. In that case,
-///                 the manager must be identified by the table name in the
-///                 operator_name.
-///                 <!-- min -1 -->
-///                 <!-- default -1 -->
-///
-/// @param[in]      name
-///                 Give this input node a name for easy debugging.
-///                 The node's parent OBJ node and the Null SOP node will both
-///                 get this given name with "input_" prepended.
-///                 You can also pass NULL in which case the name will
-///                 be "input#" where # is some number.
-///                 <!-- default NULL -->
-///
-/// @param[in]      xsize
-///                 size of the heightfield in X
-///
-/// @param[in]      ysize
-///                 size of the heightfield in y
-///
-/// @param[in]      voxelsize
-///                 Size of the voxel
-///
-/// @param[out]     heightfield_node_id
-///                 Newly created node id for the Heightfield node.
-///                 Use ::HAPI_GetNodeInfo() to get more information about
-///                 the node.
-///
-/// @param[out]     height_node_id
-///                 Newly created node id for the height volume.
-///                 Use ::HAPI_GetNodeInfo() to get more information about the node.
-///
-/// @param[out]     mask_node_id
-///                 Newly created node id for the mask volume.
-///                 Use ::HAPI_GetNodeInfo() to get more information about the
-///                 node.
-///
-/// @param[out]     merge_node_id
-///                 Newly created merge node id. 
-///                 The merge node can be used to connect additional input masks.
-///                 Use ::HAPI_GetNodeInfo() to get more information about the node.
-///
-HAPI_DECL_DEPRECATED( 3.3.5, 18.0.162 )
-HAPI_CreateHeightfieldInputNode( const HAPI_Session * session,
-                                 HAPI_NodeId parent_node_id,
-                                 const char * name,
-                                 int xsize,
-                                 int ysize,
-                                 float voxelsize,
-                                 HAPI_NodeId * heightfield_node_id,
-                                 HAPI_NodeId * height_node_id,
-                                 HAPI_NodeId * mask_node_id,
-                                 HAPI_NodeId * merge_node_id );
-
 /// @brief  Creates the required node hierarchy needed for heightfield inputs.
 ///
 ///         Note that when saving the Houdini scene using
@@ -4258,49 +4183,6 @@ HAPI_DECL HAPI_GetInstancedObjectIds( const HAPI_Session * session,
                                       HAPI_NodeId object_node_id,
                                       HAPI_NodeId * instanced_node_id_array,
                                       int start, int length );
-
-/// @deprecated Use HAPI_GetInstanceTransformsOnPart() instead (using Part 0 for
-///             previous behaviour).
-///
-/// @brief  Fill an array of ::HAPI_Transform structs with the transforms
-///         of each instance of this instancer object.
-///
-/// @ingroup Objects
-///
-/// @param[in]      session
-///                 The session of Houdini you are interacting with.
-///                 See @ref HAPI_Sessions for more on sessions.
-///                 Pass NULL to just use the default in-process session.
-///                 <!-- default NULL -->
-///
-/// @param[in]      object_node_id
-///                 The object node id.
-///
-/// @param[in]      rst_order
-///                 The order of application of translation, rotation and
-///                 scale.
-///
-/// @param[out]     transforms_array
-///                 Array of ::HAPI_Transform at least the size of length.
-///
-/// @param[in]      start
-///                 First index of range. Must be at least 0 and at
-///                 most ::HAPI_PartInfo::pointCount - 1. This is the 0th
-///                 part of the display geo of the instancer object node.
-///                 <!-- default 0 -->
-///
-/// @param[in]      length
-///                 Must be at least 0 and at most
-///                 ::HAPI_PartInfo::pointCount - @p start. This is the 0th
-///                 part of the display geo of the instancer object node.
-///                 <!-- source ::HAPI_PartInfo::pointCount - start -->
-///
-HAPI_DECL_DEPRECATED( 3.2.42, 18.0.150 )
-HAPI_GetInstanceTransforms( const HAPI_Session * session,
-                            HAPI_NodeId object_node_id,
-                            HAPI_RSTOrder rst_order,
-                            HAPI_Transform * transforms_array,
-                            int start, int length );
 
 /// @brief  Fill an array of ::HAPI_Transform structs with the transforms
 ///         of each instance of this instancer object for a given part.
