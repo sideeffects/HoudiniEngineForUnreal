@@ -2350,7 +2350,6 @@ UHoudiniAssetComponent::PostEditUndo()
 {
 	Super::PostEditUndo();
 
-	// TODO: PENDINGKILL replacement ?
 	if (!IsPendingKill())
 	{
 		// Make sure we are registered with the HER singleton

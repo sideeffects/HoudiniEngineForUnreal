@@ -61,6 +61,8 @@
 #include "Misc/AutomationTest.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Materials/MaterialInterface.h"
+#include "Engine/StaticMesh.h"
+#include "PhysicsEngine/BodyInstance.h"
 
 // #define WITH_DEV_AUTOMATION_TESTS 0
 
