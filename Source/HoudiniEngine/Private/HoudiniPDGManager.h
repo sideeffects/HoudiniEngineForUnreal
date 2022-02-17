@@ -119,23 +119,23 @@ public:
 	// Clear all of the specified work item's results from the specified TOP node. This destroys any loaded results
 	// (geometry etc), but keeps the work item struct.
 	//void ClearWorkItemResult(const HAPI_PDG_GraphContextId& InContextID, const HAPI_PDG_EventInfo& InEventInfo, FTOPNode& TOPNode);
-	void ClearWorkItemResult(UHoudiniPDGAssetLink* InAssetLink, const HAPI_PDG_WorkitemId& InWorkItemID, UTOPNode* InTOPNode);
+	void ClearWorkItemResult(UHoudiniPDGAssetLink* InAssetLink, const HAPI_PDG_WorkItemId& InWorkItemID, UTOPNode* InTOPNode);
 
 	// Clear the specified work item's results from the specified TOP node and remove the work item struct from the TOP
 	// node. This destroys any loaded results (geometry etc), and the work item struct.
-	void RemoveWorkItem(UHoudiniPDGAssetLink* InAssetLink, const HAPI_PDG_WorkitemId& InWorkItemID, UTOPNode* InTOPNode);
+	void RemoveWorkItem(UHoudiniPDGAssetLink* InAssetLink, const HAPI_PDG_WorkItemId& InWorkItemID, UTOPNode* InTOPNode);
 
 	// Create a (or re-use an existing) FTOPWorkResult for a given TOPNode and the specified work item ID, without
 	// creating its FTOPWorkResultObjects.
 	// Returns INDEX_NONE if an entry could not be created or data could not be retrieved from HAPI.
-	int32 CreateOrRelinkWorkItem(UTOPNode* InTOPNode, const HAPI_PDG_GraphContextId& InContextID, HAPI_PDG_WorkitemId InWorkItemID);
+	int32 CreateOrRelinkWorkItem(UTOPNode* InTOPNode, const HAPI_PDG_GraphContextId& InContextID, HAPI_PDG_WorkItemId InWorkItemID);
 
 	// Ensure that FTOPWorkResult exists, and create its FTOPWorkResultObjects for a given TOP node and work item id,
 	// and optionally (via bInLoadResultObjects) create its FTOPWorkResultObjects.
 	// Geometry is not directly loaded by this function, the FTOPWorkResultObjects' states will be set to ToLoad and
 	// the ProcessWorkItemResults function will take care of loading the geo.
 	// Results must be tagged with 'file', and must have a file path, otherwise will not included.
-	bool CreateOrRelinkWorkItemResult(UTOPNode* InTOPNode, const HAPI_PDG_GraphContextId& InContextID, HAPI_PDG_WorkitemId InWorkItemID, bool bInLoadResultObjects=false);
+	bool CreateOrRelinkWorkItemResult(UTOPNode* InTOPNode, const HAPI_PDG_GraphContextId& InContextID, HAPI_PDG_WorkItemId InWorkItemID, bool bInLoadResultObjects=false);
 
 	// First Create or re-link FTOPWorkResults based on the work items that exist on InTOPNode in HAPI. 
 	// Then remove any FTOPWorkResults (and clean up their output) from the WorkResults of InTOPNode if:

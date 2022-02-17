@@ -73,14 +73,14 @@ public:
 		const FString& InName, 
 		const FHoudiniPackageParams& InPackageParams,
 		HAPI_NodeId InTOPNodeId,
-		HAPI_PDG_WorkitemId InWorkItemId);
+		HAPI_PDG_WorkItemId InWorkItemId);
 
 	FHoudiniPDGImportBGEOMessage(
 		const FString& InFilePath,
 		const FString& InName,
 		const FHoudiniPackageParams& InPackageParams,
 		HAPI_NodeId InTOPNodeId,
-		HAPI_PDG_WorkitemId InWorkItemId,
+		HAPI_PDG_WorkItemId InWorkItemId,
 		const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
 		const FMeshBuildSettings& InMeshBuildSettings);
 
@@ -104,7 +104,7 @@ public:
 
 	// Work item id
 	UPROPERTY()
-	// HAPI_PDG_WorkitemId WorkItemId;
+	// HAPI_PDG_WorkItemId WorkItemId;
 	int32 WorkItemId;
 
 	// Package params for the asset 

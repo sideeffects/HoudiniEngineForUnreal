@@ -878,13 +878,13 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 	UTOPNode* TOPNode = nullptr;
 
 	HAPI_PDG_EventType EventType = (HAPI_PDG_EventType)EventInfo.eventType;
-	HAPI_PDG_WorkitemState CurrentWorkItemState = (HAPI_PDG_WorkitemState)EventInfo.currentState;
-	HAPI_PDG_WorkitemState LastWorkItemState = (HAPI_PDG_WorkitemState)EventInfo.lastState;
+	HAPI_PDG_WorkItemState CurrentWorkItemState = (HAPI_PDG_WorkItemState)EventInfo.currentState;
+	HAPI_PDG_WorkItemState LastWorkItemState = (HAPI_PDG_WorkItemState)EventInfo.lastState;
 
 	// Debug: get the HAPI_PDG_EventType as a string
 	const FString EventName = FHoudiniEngineUtils::HapiGetEventTypeAsString(EventType);
-	const FString CurrentWorkitemStateName = FHoudiniEngineUtils::HapiGetWorkitemStateAsString(CurrentWorkItemState);
-	const FString LastWorkitemStateName = FHoudiniEngineUtils::HapiGetWorkitemStateAsString(LastWorkItemState);
+	const FString CurrentWorkItemStateName = FHoudiniEngineUtils::HapiGetWorkItemStateAsString(CurrentWorkItemState);
+	const FString LastWorkItemStateName = FHoudiniEngineUtils::HapiGetWorkItemStateAsString(LastWorkItemState);
 
 	if(!GetTOPAssetLinkNetworkAndNode(EventInfo.nodeId, PDGAssetLink, TOPNetwork, TOPNode)
 		|| !IsValid(PDGAssetLink) || !IsValid(TOPNetwork) || !IsValid(TOPNode) || !IsValid(TOPNode))
@@ -895,7 +895,7 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 
 	HOUDINI_PDG_MESSAGE(
 		TEXT("[ProcessPDGEvent]: TOPNode: %s, WorkItem ID: %d, Event Type: %s, Current State: %s, Last State %s"),
-		*(TOPNode->NodePath), EventInfo.workitemId, *EventName, *CurrentWorkitemStateName, *LastWorkitemStateName);
+		*(TOPNode->NodePath), EventInfo.workitemId, *EventName, *CurrentWorkItemStateName, *LastWorkItemStateName);
 	
 	FLinearColor MsgColor = FLinearColor::White;
 
@@ -948,21 +948,21 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 		{
 			// Last states
 			bUpdatePDGNodeState = true;
-			if (LastWorkItemState == HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_WAITING && CurrentWorkItemState != HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_WAITING)
+			if (LastWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_WAITING && CurrentWorkItemState != HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_WAITING)
 			{
 			}
-			else if (LastWorkItemState == HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_COOKING && CurrentWorkItemState != HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_COOKING)
+			else if (LastWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKING && CurrentWorkItemState != HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKING)
 			{
 			}
-			else if (LastWorkItemState == HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_SCHEDULED && CurrentWorkItemState != HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_SCHEDULED)
+			else if (LastWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_SCHEDULED && CurrentWorkItemState != HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_SCHEDULED)
 			{
 			}
-			else if ( (LastWorkItemState == HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_COOKED_CACHE || LastWorkItemState == HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_COOKED_SUCCESS)
-					&& CurrentWorkItemState != HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_COOKED_CACHE &&  CurrentWorkItemState != HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_COOKED_SUCCESS)
+			else if ( (LastWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_CACHE || LastWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_SUCCESS)
+					&& CurrentWorkItemState != HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_CACHE &&  CurrentWorkItemState != HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_SUCCESS)
 			{
 				// Handled previously cooked WI
 			}
-			else if (LastWorkItemState == HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_COOKED_FAIL && CurrentWorkItemState != HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_COOKED_FAIL)
+			else if (LastWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_FAIL && CurrentWorkItemState != HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_FAIL)
 			{
 			}
 			else
@@ -980,43 +980,43 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 			}
 
 			// New states
-			if (CurrentWorkItemState == HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_WAITING)
+			if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_WAITING)
 			{
 				NotifyTOPNodeWaitingWorkItem(PDGAssetLink, TOPNode, EventInfo.workitemId);
 			}
-			else if (CurrentWorkItemState == HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_UNCOOKED)
+			else if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_UNCOOKED)
 			{
 
 			}
-			else if (CurrentWorkItemState == HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_DIRTY)
+			else if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_DIRTY)
 			{
 				// ClearWorkItemResult(InContextID, EventInfo, *TOPNode);
 				ClearWorkItemResult(PDGAssetLink, EventInfo.workitemId, TOPNode);
 				// RemoveWorkItem(PDGAssetLink, EventInfo.workitemId, *TOPNode);
 			}
-			else if (CurrentWorkItemState == HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_SCHEDULED)
+			else if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_SCHEDULED)
 			{
 				NotifyTOPNodeScheduledWorkItem(PDGAssetLink, TOPNode, EventInfo.workitemId);
 			}
-			else if (CurrentWorkItemState == HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_COOKING)
+			else if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKING)
 			{
 				NotifyTOPNodeCookingWorkItem(PDGAssetLink, TOPNode, EventInfo.workitemId);
 			}
-			else if (CurrentWorkItemState == HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_COOKED_SUCCESS 
-				|| CurrentWorkItemState == HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_COOKED_CACHE)
+			else if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_SUCCESS 
+				|| CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_CACHE)
 			{
 				NotifyTOPNodeCookedWorkItem(PDGAssetLink, TOPNode, EventInfo.workitemId);
 
 				// On cook success, handle results
 				CreateOrRelinkWorkItemResult(TOPNode, InContextID, EventInfo.workitemId, TOPNode->bAutoLoad);
 			}
-			else if (CurrentWorkItemState == HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_COOKED_FAIL)
+			else if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_FAIL)
 			{
 				// TODO: on cook failure, get log path?
 				NotifyTOPNodeErrorWorkItem(PDGAssetLink, TOPNode, EventInfo.workitemId);
 				MsgColor = FLinearColor::Red;
 			}
-			else if (CurrentWorkItemState == HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_COOKED_CANCEL)
+			else if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_CANCEL)
 			{
 				NotifyTOPNodeCookCancelledWorkItem(PDGAssetLink, TOPNode, EventInfo.workitemId);
 			}
@@ -1117,8 +1117,8 @@ FHoudiniPDGManager::ResetPDGEventInfo(HAPI_PDG_EventInfo& InEventInfo)
 	InEventInfo.nodeId = -1;
 	InEventInfo.workitemId = -1;
 	InEventInfo.dependencyId = -1;
-	InEventInfo.currentState = HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_UNDEFINED;
-	InEventInfo.lastState = HAPI_PDG_WorkitemState::HAPI_PDG_WORKITEM_UNDEFINED;
+	InEventInfo.currentState = HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_UNDEFINED;
+	InEventInfo.lastState = HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_UNDEFINED;
 	InEventInfo.eventType = HAPI_PDG_EventType::HAPI_PDG_EVENT_NULL;
 }
 
@@ -1297,7 +1297,7 @@ FHoudiniPDGManager::NotifyTOPNodeCookCancelledWorkItem(UHoudiniPDGAssetLink* InP
 }
 
 void
-FHoudiniPDGManager::ClearWorkItemResult(UHoudiniPDGAssetLink* InAssetLink, const HAPI_PDG_WorkitemId& InWorkItemID, UTOPNode* InTOPNode)
+FHoudiniPDGManager::ClearWorkItemResult(UHoudiniPDGAssetLink* InAssetLink, const HAPI_PDG_WorkItemId& InWorkItemID, UTOPNode* InTOPNode)
 {
 	if (!IsValid(InAssetLink))
 		return;
@@ -1311,7 +1311,7 @@ FHoudiniPDGManager::ClearWorkItemResult(UHoudiniPDGAssetLink* InAssetLink, const
 }
 
 void
-FHoudiniPDGManager::RemoveWorkItem(UHoudiniPDGAssetLink* InAssetLink, const HAPI_PDG_WorkitemId& InWorkItemID, UTOPNode* InTOPNode)
+FHoudiniPDGManager::RemoveWorkItem(UHoudiniPDGAssetLink* InAssetLink, const HAPI_PDG_WorkItemId& InWorkItemID, UTOPNode* InTOPNode)
 {
 	if (!IsValid(InAssetLink))
 		return;
@@ -1372,7 +1372,7 @@ int32
 FHoudiniPDGManager::CreateOrRelinkWorkItem(
 	UTOPNode* InTOPNode,
 	const HAPI_PDG_GraphContextId& InContextID,
-	HAPI_PDG_WorkitemId InWorkItemID)
+	HAPI_PDG_WorkItemId InWorkItemID)
 {
 	if (!IsValid(InTOPNode))
 	{
@@ -1380,8 +1380,8 @@ FHoudiniPDGManager::CreateOrRelinkWorkItem(
 		return INDEX_NONE;
 	}
 	
-	HAPI_PDG_WorkitemInfo WorkItemInfo;
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetWorkitemInfo(
+	HAPI_PDG_WorkItemInfo WorkItemInfo;
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetWorkItemInfo(
 		FHoudiniEngine::Get().GetSession(), InContextID, InWorkItemID, &WorkItemInfo))
 	{
 		HOUDINI_LOG_ERROR(TEXT("Failed to get work item %d info for %s"), InWorkItemID, *(InTOPNode->NodeName));
@@ -1423,7 +1423,7 @@ bool
 FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 	UTOPNode* InTOPNode,
 	const HAPI_PDG_GraphContextId& InContextID,
-	HAPI_PDG_WorkitemId InWorkItemID,
+	HAPI_PDG_WorkItemId InWorkItemID,
 	bool bInLoadResultObjects)
 {
 	if (!IsValid(InTOPNode))
@@ -1432,8 +1432,8 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 		return false;
 	}
 	
-	HAPI_PDG_WorkitemInfo WorkItemInfo;
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetWorkitemInfo(
+	HAPI_PDG_WorkItemInfo WorkItemInfo;
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetWorkItemInfo(
 		FHoudiniEngine::Get().GetSession(), InContextID, InWorkItemID, &WorkItemInfo))
 	{
 		HOUDINI_LOG_ERROR(TEXT("Failed to get work item %d info for %s"), InWorkItemID, *(InTOPNode->NodeName));
@@ -1467,12 +1467,12 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 	TSet<int32> ResultIndicesThatWereReused;
 	if (WorkItemInfo.numResults > 0)
 	{
-		TArray<HAPI_PDG_WorkitemResultInfo> ResultInfos;
-		ResultInfos.SetNum(WorkItemInfo.numResults);
+		TArray<HAPI_PDG_WorkItemOutputFile> OutputFiles;
+		OutputFiles.SetNum(WorkItemInfo.numResults);
 		const int32 resultCount = WorkItemInfo.numResults;
-		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetWorkitemResultInfo(
+		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetWorkItemOutputFiles(
             FHoudiniEngine::Get().GetSession(),
-            InTOPNode->NodeId, InWorkItemID, ResultInfos.GetData(), resultCount))
+            InTOPNode->NodeId, InWorkItemID, OutputFiles.GetData(), resultCount))
 		{
 			HOUDINI_LOG_ERROR(TEXT("Failed to get work item %d result info for %s"), InWorkItemID, *(InTOPNode->NodeName));
 			// TODO? continue?
@@ -1483,20 +1483,20 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 		FHoudiniEngineString::ToFString(WorkItemInfo.nameSH, WorkItemName);
 
 		// Load each result geometry
-		const int32 NumResults = ResultInfos.Num();
+		const int32 NumResults = OutputFiles.Num();
 		for (int32 Idx = 0; Idx < NumResults; Idx++)
 		{
-			const HAPI_PDG_WorkitemResultInfo& ResultInfo = ResultInfos[Idx];
-			if (ResultInfo.resultTagSH <= 0 || ResultInfo.resultSH <= 0)
+			const HAPI_PDG_WorkItemOutputFile& OutputFile = OutputFiles[Idx];
+			if (OutputFile.resultTagSH <= 0 || OutputFile.resultSH <= 0)
 				continue;
 
 			FString CurrentTag;
-			FHoudiniEngineString::ToFString(ResultInfo.resultTagSH, CurrentTag);
+			FHoudiniEngineString::ToFString(OutputFile.resultTagSH, CurrentTag);
 			if(CurrentTag.IsEmpty() || !CurrentTag.StartsWith(TEXT("file")))
 				continue;
 
 			FString CurrentPath = FString();
-			FHoudiniEngineString::ToFString(ResultInfo.resultSH, CurrentPath);
+			FHoudiniEngineString::ToFString(OutputFile.resultSH, CurrentPath);
 
 			// Construct the name and look for an existing work result, re-use it if found, otherwise create a new one
 			const FString WorkResultName = FString::Printf(
@@ -1582,23 +1582,23 @@ int32
 FHoudiniPDGManager::SyncAndPruneWorkItems(UTOPNode* InTOPNode)
 {
 	TSet<int32> WorkItemIDSet;
-	TArray<HAPI_PDG_WorkitemId> WorkItemIDs;
+	TArray<HAPI_PDG_WorkItemId> WorkItemIDs;
 	int NumWorkItems = -1;
 
 	if (!IsValid(InTOPNode))
 		return -1;
 	
 	HAPI_Session const * const HAPISession = FHoudiniEngine::Get().GetSession();
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetNumWorkitems(HAPISession, InTOPNode->NodeId, &NumWorkItems))
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetNumWorkItems(HAPISession, InTOPNode->NodeId, &NumWorkItems))
 	{
-		HOUDINI_LOG_WARNING(TEXT("GetNumWorkitems call failed on TOP Node %s (%d)"), *(InTOPNode->NodeName), InTOPNode->NodeId);
+		HOUDINI_LOG_WARNING(TEXT("GetNumWorkItems call failed on TOP Node %s (%d)"), *(InTOPNode->NodeName), InTOPNode->NodeId);
 		return -1;
 	}
 	
 	WorkItemIDs.SetNum(NumWorkItems);
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetWorkitems(HAPISession, InTOPNode->NodeId, WorkItemIDs.GetData(), NumWorkItems))
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetWorkItems(HAPISession, InTOPNode->NodeId, WorkItemIDs.GetData(), NumWorkItems))
 	{
-		HOUDINI_LOG_WARNING(TEXT("GetWorkitems call failed on TOP Node %s (%d)"), *(InTOPNode->NodeName), InTOPNode->NodeId);
+		HOUDINI_LOG_WARNING(TEXT("GetWorkItems call failed on TOP Node %s (%d)"), *(InTOPNode->NodeName), InTOPNode->NodeId);
 		return -1;
 	}
 
@@ -1609,7 +1609,7 @@ FHoudiniPDGManager::SyncAndPruneWorkItems(UTOPNode* InTOPNode)
 		return -1;
 	}
 	
-	for (const HAPI_PDG_WorkitemId& WorkItemID : WorkItemIDs)
+	for (const HAPI_PDG_WorkItemId& WorkItemID : WorkItemIDs)
 	{
 		WorkItemIDSet.Add(static_cast<int32>(WorkItemID));
 

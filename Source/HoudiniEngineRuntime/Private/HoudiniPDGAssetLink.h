@@ -734,7 +734,7 @@ public:
 	// Load the geometry generated as results of the given work item, of the given TOP node.
 	// The load will be done asynchronously.
 	// Results must be tagged with 'file', and must have a file path, otherwise will not be loaded.
-	//void LoadResults(FTOPNode TOPNode, HAPI_PDG_WorkitemInfo workItemInfo, HAPI_PDG_WorkitemResultInfo[] resultInfos, HAPI_PDG_WorkitemId workItemID)
+	//void LoadResults(FTOPNode TOPNode, HAPI_PDG_WorkItemInfo workItemInfo, HAPI_PDG_WorkitemResultInfo[] resultInfos, HAPI_PDG_WorkItemId workItemID)
 
 	// Return the first UHoudiniAssetComponent in the parent chain. If this asset link is not
 	// owned by a HoudiniAssetComponent, a nullptr will be returned.
@@ -833,7 +833,7 @@ public:
 	FString						TOPOutputFilter;
 
 	UPROPERTY(NonTransactional)
-	int32						NumWorkitems;
+	int32						NumWorkItems;
 	UPROPERTY(Transient, NonTransactional)
 	FAggregatedWorkItemTally		WorkItemTally;
 

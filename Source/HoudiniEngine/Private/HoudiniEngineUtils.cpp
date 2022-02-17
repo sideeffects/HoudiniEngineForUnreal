@@ -834,9 +834,9 @@ FHoudiniEngineUtils::HapiGetEventTypeAsString(const HAPI_PDG_EventType& InEventT
 }
 
 FString
-FHoudiniEngineUtils::HapiGetWorkitemStateAsString(const HAPI_PDG_WorkitemState& InWorkitemState)
+FHoudiniEngineUtils::HapiGetWorkItemStateAsString(const HAPI_PDG_WorkItemState& InWorkItemState)
 {
-	switch (InWorkitemState)
+	switch (InWorkItemState)
 	{
 		case HAPI_PDG_WORKITEM_UNDEFINED:
 			return TEXT("HAPI_PDG_WORKITEM_UNDEFINED");
@@ -862,7 +862,7 @@ FHoudiniEngineUtils::HapiGetWorkitemStateAsString(const HAPI_PDG_WorkitemState& 
 			break;
 	}
 
-	return FString::Printf(TEXT("Unknown HAPI_PDG_WorkitemState %d"), InWorkitemState);
+	return FString::Printf(TEXT("Unknown HAPI_PDG_WorkItemState %d"), InWorkItemState);
 }
 
 
