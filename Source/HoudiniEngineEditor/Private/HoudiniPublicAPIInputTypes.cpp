@@ -110,8 +110,7 @@ UHoudiniPublicAPIInput::PopulateFromHoudiniInput(UHoudiniInput const* const InIn
 				continue;
 
 			UObject* NewInputObject = ConvertInternalInputObject(SrcInputObject->GetObject());
-			
-			// TODO: PENDINGKILL replacement ?
+
 			if (NewInputObject && NewInputObject->IsPendingKill())
 			{
 				SetErrorMessage(FString::Printf(
@@ -1419,9 +1418,7 @@ bool UHoudiniPublicAPIGeometryCollectionInput::PopulateFromHoudiniInput(UHoudini
 			if (!IsValid(SrcInputObject))
 				continue;
 
-			UObject* NewInputObject = ConvertInternalInputObject(SrcInputObject->GetObject());
-			
-			// TODO: PENDINGKILL replacement ?
+			UObject* NewInputObject = ConvertInternalInputObject(SrcInputObject->GetObject());	
 			if (NewInputObject && NewInputObject->IsPendingKill())
 			{
 				SetErrorMessage(FString::Printf(

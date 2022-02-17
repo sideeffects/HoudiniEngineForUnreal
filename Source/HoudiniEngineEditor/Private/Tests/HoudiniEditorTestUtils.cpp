@@ -147,7 +147,6 @@ void FHoudiniEditorTestUtils::InstantiateAsset(FHoudiniAutomationTest* Test,
 
 	UHoudiniPublicAPI* HoudiniAPI = UHoudiniPublicAPIBlueprintLib::GetAPI();
 
-	// TODO: PENDINGKILL replacement ?
 	if (HoudiniAPI == nullptr || !IsValid(HoudiniAPI) || HoudiniAPI->IsPendingKillOrUnreachable())
 	{
 		UE_LOG(LogTemp, Error, TEXT("HoudiniAPI was not instantiated! Call FHoudiniEditorTestUtils::InitializeTest"));

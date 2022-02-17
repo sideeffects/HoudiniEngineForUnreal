@@ -33,6 +33,7 @@ class UObject;
 class UHoudiniAsset;
 class AActor;
 class ULevel;
+class USceneComponent;
 
 enum class EHoudiniCurveType : int8;
 enum class EHoudiniCurveMethod : int8;
