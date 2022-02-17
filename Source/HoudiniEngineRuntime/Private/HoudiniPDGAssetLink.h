@@ -833,7 +833,7 @@ public:
 	FString						TOPOutputFilter;
 
 	UPROPERTY(NonTransactional)
-	int32						NumWorkitems;
+	int32						NumWorkItems;
 	UPROPERTY(Transient, NonTransactional)
 	FAggregatedWorkItemTally		WorkItemTally;
 

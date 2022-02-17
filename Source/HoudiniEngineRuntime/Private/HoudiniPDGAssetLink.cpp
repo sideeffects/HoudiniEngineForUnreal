@@ -56,7 +56,7 @@ UHoudiniPDGAssetLink::UHoudiniPDGAssetLink(const FObjectInitializer& ObjectIniti
 	, bAutoCook(false)
 	, bUseTOPNodeFilter(true)
 	, bUseTOPOutputFilter(true)
-	, NumWorkitems(0)
+	, NumWorkItems(0)
 	, WorkItemTally()
 	, OutputCachePath()
 	, bNeedsUIRefresh(false)
