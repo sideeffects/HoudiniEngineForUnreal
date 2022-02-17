@@ -6366,12 +6366,10 @@ FHoudiniEngineBakeUtils::BakeBlueprintsFromBakedActors(
 				}
 			}
 		}
-		// TODO: PENDINGKILL replacement ?
 		else if (Asset && !IsValid(Asset))
 		{
 			// Rename to pending kill so that we can use the desired name
 			const FString AssetPendingKillName(BlueprintName + "_PENDING_KILL");
-			// Asset->Rename(*MakeUniqueObjectNameIfNeeded(Package, UBlueprint::StaticClass(), AssetPendingKillName).ToString());
 			RenameAsset(Asset, AssetPendingKillName, true);
 			Asset = nullptr;
 		}
@@ -6783,7 +6781,6 @@ FHoudiniEngineBakeUtils::FindDesiredBakeActorFromBakeActorName(
 	// If we found an actor and it is pending kill, rename it and don't use it
 	if (FoundActor)
 	{
-		// TODO: PENDINGKILL replacement ?
 		if (!IsValid(FoundActor))
 		{
 			if (bRenamePendingKillActor)

@@ -2350,8 +2350,7 @@ UHoudiniAssetComponent::PostEditUndo()
 {
 	Super::PostEditUndo();
 
-	// TODO: PENDINGKILL replacement ?
-	//if (!IsPendingKill())
+	if (IsValid(this))
 	{
 		// Make sure we are registered with the HER singleton
 		// We could be undoing a HoudiniActor delete
@@ -2834,7 +2833,6 @@ UHoudiniAssetComponent::IsComponentValid() const
 	if (IsTemplate())
 		return false;
 
-	//if (IsPendingKillOrUnreachable())
 	if (IsUnreachable())
 		return false;
 
