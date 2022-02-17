@@ -73,6 +73,7 @@ class UHoudiniLandscapePtr;
 class UHoudiniLandscapeEditLayer;
 class UHoudiniLandscapeEditLayer;
 class ALandscapeProxy;
+class UMaterialInterface;
 
 // structs
 struct FHoudiniBakedOutput;
@@ -88,6 +89,8 @@ struct FHoudiniCurveInfo;
 struct FHoudiniMeshSocket;
 struct FHoudiniOutputObject;
 struct FHoudiniCurveOutputProperties;
+struct FBodyInstance;
+struct FStaticMaterial;
 
 enum class EHoudiniOutputType : uint8;
 
