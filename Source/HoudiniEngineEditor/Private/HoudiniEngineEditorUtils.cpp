@@ -49,6 +49,7 @@
 #include "LevelUtils.h"
 #include "PropertyPathHelpers.h"
 #include "HAL/PlatformApplicationMisc.h"
+#include "Components/SceneComponent.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
