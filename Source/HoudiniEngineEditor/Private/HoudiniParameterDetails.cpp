@@ -103,7 +103,7 @@ SCustomizedButton::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeom
 
 	// 0. Initialize Line Buffer.
 	TArray<FVector2D> Line;
-	Line.SetNumUninitialized(2);
+	Line.SetNum(2);
 
 	//    Initialize Color buffer.
 	FLinearColor Color = FLinearColor::White;

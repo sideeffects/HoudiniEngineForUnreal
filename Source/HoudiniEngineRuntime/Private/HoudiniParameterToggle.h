@@ -53,7 +53,7 @@ public:
 
 	// Mutators
 	bool SetValueAt(const bool& InValue, const uint32& Index);
-	void SetNumberOfValues(const uint32& InNumValues) { Values.SetNumUninitialized(InNumValues); };
+	void SetNumberOfValues(const uint32& InNumValues) { Values.SetNum(InNumValues); };
 
 	int32 GetNumValues() { return Values.Num(); };
 

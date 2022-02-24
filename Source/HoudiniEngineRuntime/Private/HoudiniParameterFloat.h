@@ -92,7 +92,7 @@ public:
 
 	void SetDefaultValues();
 
-	void SetNumberOfValues(const uint32& InNumValues) { Values.SetNumUninitialized(InNumValues); };
+	void SetNumberOfValues(const uint32& InNumValues) { Values.SetNum(InNumValues); };
 	bool SetValueAt(const float& InValue, const int32& AtIndex);
 
 	void SetIsChildOfRamp() { bIsChildOfRamp = true; };
