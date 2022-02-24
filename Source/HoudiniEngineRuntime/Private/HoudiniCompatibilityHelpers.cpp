@@ -226,7 +226,7 @@ UHoudiniAssetComponent_V1::Serialize(FArchive & Ar)
 			int32 InstanceInputCount = 0;
 			Ar << InstanceInputCount;
 
-			InstanceInputs.SetNumUninitialized(InstanceInputCount);
+			InstanceInputs.SetNum(InstanceInputCount);
 
 			for (int32 InstanceInputIdx = 0; InstanceInputIdx < InstanceInputCount; ++InstanceInputIdx)
 			{
@@ -1075,7 +1075,7 @@ UHoudiniSplineComponent_V1::Serialize(FArchive & Ar)
 		TArray<FVector> OldCurvePoints;
 		Ar << OldCurvePoints;
 
-		CurvePoints.SetNumUninitialized(OldCurvePoints.Num());
+		CurvePoints.SetNum(OldCurvePoints.Num());
 
 		FTransform trans = FTransform::Identity;
 		for (int32 n = 0; n < CurvePoints.Num(); n++)

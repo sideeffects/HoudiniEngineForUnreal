@@ -83,7 +83,7 @@ public:
 
 	void SetUnit(const FString& InUnit) { Unit = InUnit; };
 	
-	void SetNumberOfValues(const uint32& InNumValues) { Values.SetNumUninitialized(InNumValues); };
+	void SetNumberOfValues(const uint32& InNumValues) { Values.SetNum(InNumValues); };
 	bool SetValueAt(const int32& InValue, const int32& AtIndex);
 
 	void SetDefaultValues();

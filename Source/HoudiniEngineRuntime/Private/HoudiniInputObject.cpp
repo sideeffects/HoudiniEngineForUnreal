@@ -1817,7 +1817,7 @@ void UHoudiniInputBrush::UpdateCachedData(UModel* InCombinedModel, const TArray<
 	// Cache the combined model aswell as the brushes used to generate this model.
 	CombinedModel = InCombinedModel;
 
-	BrushesInfo.SetNumUninitialized(InBrushes.Num());
+	BrushesInfo.SetNum(InBrushes.Num());
 	for (int i = 0; i < InBrushes.Num(); ++i)
 	{
 		if (!InBrushes[i])
