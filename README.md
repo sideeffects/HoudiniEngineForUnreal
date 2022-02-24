@@ -1,5 +1,7 @@
 # Houdini Engine for Unreal - Version 2
 
+> The source code in this branch is intended to be used with Unreal Engine 5.0 - Preview1
+
 Welcome to the repository for Version 2 of the Houdini Engine For Unreal Plugin.
 
 This plug-in brings Houdini's powerful and flexible procedural workflow into Unreal Engine through Houdini Digital Assets. Artists can interactively adjust asset parameters inside the editor and use Unreal assets as inputs. Houdini's procedural engine will then "cook" the asset and the results will be available in the editor without the need for baking.
