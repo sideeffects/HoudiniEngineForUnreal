@@ -3353,9 +3353,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 
 		// Create an array
 		TArray<FString> RowStructNames;
-		RowStructNames.SetNumUninitialized(NumRows);
-		for (int32 n = 0; n < RowStructNames.Num(); n++)
-			RowStructNames[n] = RowStructName;
+		RowStructNames.Init(RowStructName, NumRows);
 
 		// Set the point's path attribute
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(

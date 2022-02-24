@@ -1737,7 +1737,7 @@ FHoudiniEngineUtils::GetSubAssetNames(
 		return false;
 	}
 
-	OutAssetNames.SetNumUninitialized(AssetCount);
+	OutAssetNames.SetNum(AssetCount);
 	Result = FHoudiniApi::GetAvailableAssets(FHoudiniEngine::Get().GetSession(), AssetLibraryId, &OutAssetNames[0], AssetCount);
 	if (Result != HAPI_RESULT_SUCCESS)
 	{
