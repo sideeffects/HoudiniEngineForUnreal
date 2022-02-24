@@ -5444,7 +5444,7 @@ void FHoudiniEngineBakeUtils::CopyPropertyToNewGeometryCollectionActorAndCompone
 	NewGCC->InitialVelocityType = InGCC->InitialVelocityType;
 	NewGCC->InitialLinearVelocity = InGCC->InitialLinearVelocity;
 	NewGCC->InitialAngularVelocity = InGCC->InitialAngularVelocity;
-	NewGCC->PhysicalMaterialOverride = InGCC->PhysicalMaterialOverride;
+//	NewGCC->PhysicalMaterialOverride = InGCC->PhysicalMaterialOverride;
 	
 	if (IsValid(NewActor))
 		NewActor->SetActorHiddenInGame(InGCC->bHiddenInGame);

@@ -1500,7 +1500,7 @@ FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const
 	}
 
 	// Finally look for the percent triangle attributer, zero by default (no triangles)
-	StaticMesh->NaniteSettings.PercentTriangles = 0.0f;
+	StaticMesh->NaniteSettings.FallbackPercentTriangles = 0.0f;
 	TArray<float> FloatData;
 
 	// Look for a specific prim attribute first
@@ -1516,7 +1516,7 @@ FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const
 
 	if (FloatData.Num() > 0)
 	{
-		StaticMesh->NaniteSettings.PercentTriangles = FMath::Clamp<float>(FloatData[0], 0.0f, 1.0f);
+		StaticMesh->NaniteSettings.FallbackPercentTriangles = FMath::Clamp<float>(FloatData[0], 0.0f, 1.0f);
 	}
 
 	StaticMesh->NaniteSettings.bEnabled = bEnableNanite;
@@ -2876,7 +2876,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			//RawMesh.WedgeTexCoords[0].Init(FVector2D::ZeroVector, RawMesh.WedgeIndices.Num());
 			RawMesh.WedgeTexCoords[0].SetNumUninitialized(RawMesh.WedgeIndices.Num());
 			for (int32 n = 0; n < RawMesh.WedgeTexCoords[0].Num(); n++)
-				RawMesh.WedgeTexCoords[0][n] = FVector2D::ZeroVector;
+				RawMesh.WedgeTexCoords[0][n] = FVector2f::ZeroVector;
 
 			SrcModel->SaveRawMesh(RawMesh);
 		}
@@ -4207,7 +4207,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 						if (HasUVSets[UVIndex])
 						{
 							// We need to flip V coordinate when it's coming from HAPI.
-							FVector2D CurrentUV;
+							FVector2f CurrentUV;
 							CurrentUV.X = SplitUVSets[UVIndex][SplitIndex * 2 + 0];
 							CurrentUV.Y = 1.0f - SplitUVSets[UVIndex][SplitIndex * 2 + 1];
 
