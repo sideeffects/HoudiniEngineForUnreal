@@ -45,7 +45,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "InstancedFoliageActor.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionDebugDrawComponent.h"
+//#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionDebugDrawComponent.h"
 
 #if WITH_EDITOR
 	//#include "ScopedTransaction.h"
@@ -2827,6 +2827,8 @@ FHoudiniInstanceTranslator::RemoveAndDestroyComponent(UObject* InComponent, UObj
 	USceneComponent* SceneComponent = Cast<USceneComponent>(InComponent);
 	if (IsValid(SceneComponent))
 	{
+		/*
+		UE5: DEPRECATED
 		if (SceneComponent->IsA(UGeometryCollectionComponent::StaticClass()))
 		{
 			UActorComponent * DebugDrawComponent = SceneComponent->GetOwner()->FindComponentByClass(UGeometryCollectionDebugDrawComponent::StaticClass());
@@ -2835,6 +2837,7 @@ FHoudiniInstanceTranslator::RemoveAndDestroyComponent(UObject* InComponent, UObj
 				RemoveAndDestroyComponent(DebugDrawComponent, nullptr);
 			}
 		}
+		*/
 		
 		// Remove from the HoudiniAssetActor
 		if (SceneComponent->GetOwner())

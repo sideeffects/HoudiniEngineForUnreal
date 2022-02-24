@@ -414,7 +414,7 @@ void FHoudiniEditorTestUtils::TakeScreenshotEditor(FHoudiniAutomationTest* Test,
 			FSlateApplication::Get().GeneratePathToWidgetChecked(WidgetToFind, WidgetPath);
 
 			FArrangedWidget ArrangedWidget = WidgetPath.FindArrangedWidget(WidgetToFind).Get(FArrangedWidget::GetNullWidget());
-			FVector2D Position = ArrangedWidget.Geometry.AbsolutePosition;
+			FVector2f Position = ArrangedWidget.Geometry.AbsolutePosition;
 			FVector2D WindowPosition = ScreenshotWindow->GetPositionInScreen();
 
 			FIntRect ScreenshotRect = FIntRect(0, 0, (int32)Size.X, (int32)Size.Y);

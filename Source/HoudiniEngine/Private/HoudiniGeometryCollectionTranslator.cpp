@@ -10,7 +10,6 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "GeometryCollection/GeometryCollectionClusteringUtility.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionDebugDrawComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
 #include "Materials/Material.h"
@@ -236,13 +235,14 @@ FHoudiniGeometryCollectionTranslator::CreateGeometryCollectionComponent(UObject 
 	GeometryCollectionComponent->AttachToComponent(OuterSceneComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	GeometryCollectionComponent->OnComponentCreated();
 	GeometryCollectionComponent->RegisterComponent();
-
+	
+	/* 
+	// UE5 DEPRECATED
 	bool HasDebugDrawComponent = false;
 	if (OuterSceneComponent->GetOwner()->FindComponentByClass(UGeometryCollectionDebugDrawComponent::StaticClass()))
 	{
 		HasDebugDrawComponent = true;
-	}
-		
+	}		
 
 	if (!HasDebugDrawComponent)
 	{
@@ -252,7 +252,8 @@ FHoudiniGeometryCollectionTranslator::CreateGeometryCollectionComponent(UObject 
 		GeometryCollectionDrawComponent->CreationMethod = EComponentCreationMethod::Instance;
 		GeometryCollectionDrawComponent->RegisterComponent();
 		GeometryCollectionDrawComponent->OnComponentCreated();
-	}
+	}	
+	*/
 	
 	return GeometryCollectionComponent;
 }
@@ -268,6 +269,8 @@ FHoudiniGeometryCollectionTranslator::RemoveAndDestroyComponent(UObject* InCompo
 	USceneComponent* SceneComponent = Cast<USceneComponent>(InComponent);
 	if (IsValid(SceneComponent))
 	{
+		/*
+		// UE5: DEPRECATED
 		if (SceneComponent->IsA(UGeometryCollectionComponent::StaticClass()))
 		{
 			UActorComponent * DebugDrawComponent = SceneComponent->GetOwner()->FindComponentByClass(UGeometryCollectionDebugDrawComponent::StaticClass());
@@ -276,6 +279,7 @@ FHoudiniGeometryCollectionTranslator::RemoveAndDestroyComponent(UObject* InCompo
 				RemoveAndDestroyComponent(DebugDrawComponent);
 			}
 		}
+		*/
 		// Remove from the HoudiniAssetActor
 		if (SceneComponent->GetOwner())
 			SceneComponent->GetOwner()->RemoveOwnedComponent(SceneComponent);
