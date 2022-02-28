@@ -889,7 +889,7 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 	if(!GetTOPAssetLinkNetworkAndNode(EventInfo.nodeId, PDGAssetLink, TOPNetwork, TOPNode)
 		|| !IsValid(PDGAssetLink) || !IsValid(TOPNetwork) || !IsValid(TOPNode) || !IsValid(TOPNode))
 	{		
-		HOUDINI_LOG_WARNING(TEXT("[ProcessPDGEvent]: Could not find matching TOPNode for event %s, workitem id %d, node id %d"), *EventName, EventInfo.workitemId, EventInfo.nodeId);
+		HOUDINI_LOG_WARNING(TEXT("[ProcessPDGEvent]: Could not find matching TOPNode for event %s, workitem id %d, node id %d"), *EventName, EventInfo.workItemId, EventInfo.nodeId);
 		return;
 	}
 
@@ -911,15 +911,15 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 			break;
 
 		case HAPI_PDG_EVENT_WORKITEM_ADD:
-			CreateOrRelinkWorkItem(TOPNode, InContextID, EventInfo.workitemId);
+			CreateOrRelinkWorkItem(TOPNode, InContextID, EventInfo.workItemId);
 			bUpdatePDGNodeState = true;
-			NotifyTOPNodeCreatedWorkItem(PDGAssetLink, TOPNode, EventInfo.workitemId);
+			NotifyTOPNodeCreatedWorkItem(PDGAssetLink, TOPNode, EventInfo.workItemId);
 			break;
 
 		case HAPI_PDG_EVENT_WORKITEM_REMOVE:
-			RemoveWorkItem(PDGAssetLink, EventInfo.workitemId, TOPNode);
+			RemoveWorkItem(PDGAssetLink, EventInfo.workItemId, TOPNode);
 			bUpdatePDGNodeState = true;
-			NotifyTOPNodeRemovedWorkItem(PDGAssetLink, TOPNode, EventInfo.workitemId);
+			NotifyTOPNodeRemovedWorkItem(PDGAssetLink, TOPNode, EventInfo.workItemId);
 			break;
 
 		case HAPI_PDG_EVENT_COOK_WARNING:
@@ -982,7 +982,7 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 			// New states
 			if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_WAITING)
 			{
-				NotifyTOPNodeWaitingWorkItem(PDGAssetLink, TOPNode, EventInfo.workitemId);
+				NotifyTOPNodeWaitingWorkItem(PDGAssetLink, TOPNode, EventInfo.workItemId);
 			}
 			else if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_UNCOOKED)
 			{
@@ -991,34 +991,34 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 			else if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_DIRTY)
 			{
 				// ClearWorkItemResult(InContextID, EventInfo, *TOPNode);
-				ClearWorkItemResult(PDGAssetLink, EventInfo.workitemId, TOPNode);
+				ClearWorkItemResult(PDGAssetLink, EventInfo.workItemId, TOPNode);
 				// RemoveWorkItem(PDGAssetLink, EventInfo.workitemId, *TOPNode);
 			}
 			else if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_SCHEDULED)
 			{
-				NotifyTOPNodeScheduledWorkItem(PDGAssetLink, TOPNode, EventInfo.workitemId);
+				NotifyTOPNodeScheduledWorkItem(PDGAssetLink, TOPNode, EventInfo.workItemId);
 			}
 			else if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKING)
 			{
-				NotifyTOPNodeCookingWorkItem(PDGAssetLink, TOPNode, EventInfo.workitemId);
+				NotifyTOPNodeCookingWorkItem(PDGAssetLink, TOPNode, EventInfo.workItemId);
 			}
 			else if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_SUCCESS 
 				|| CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_CACHE)
 			{
-				NotifyTOPNodeCookedWorkItem(PDGAssetLink, TOPNode, EventInfo.workitemId);
+				NotifyTOPNodeCookedWorkItem(PDGAssetLink, TOPNode, EventInfo.workItemId);
 
 				// On cook success, handle results
-				CreateOrRelinkWorkItemResult(TOPNode, InContextID, EventInfo.workitemId, TOPNode->bAutoLoad);
+				CreateOrRelinkWorkItemResult(TOPNode, InContextID, EventInfo.workItemId, TOPNode->bAutoLoad);
 			}
 			else if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_FAIL)
 			{
 				// TODO: on cook failure, get log path?
-				NotifyTOPNodeErrorWorkItem(PDGAssetLink, TOPNode, EventInfo.workitemId);
+				NotifyTOPNodeErrorWorkItem(PDGAssetLink, TOPNode, EventInfo.workItemId);
 				MsgColor = FLinearColor::Red;
 			}
 			else if (CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_CANCEL)
 			{
-				NotifyTOPNodeCookCancelledWorkItem(PDGAssetLink, TOPNode, EventInfo.workitemId);
+				NotifyTOPNodeCookCancelledWorkItem(PDGAssetLink, TOPNode, EventInfo.workItemId);
 			}
 		}
 		break;
@@ -1115,7 +1115,7 @@ void
 FHoudiniPDGManager::ResetPDGEventInfo(HAPI_PDG_EventInfo& InEventInfo)
 {
 	InEventInfo.nodeId = -1;
-	InEventInfo.workitemId = -1;
+	InEventInfo.workItemId = -1;
 	InEventInfo.dependencyId = -1;
 	InEventInfo.currentState = HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_UNDEFINED;
 	InEventInfo.lastState = HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_UNDEFINED;
@@ -1465,10 +1465,10 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 
 	TArray<FTOPWorkResultObject> NewResultObjects;
 	TSet<int32> ResultIndicesThatWereReused;
-	if (WorkItemInfo.numResults > 0)
+	if (WorkItemInfo.outputFileCount > 0)
 	{
 		TArray<HAPI_PDG_WorkItemOutputFile> OutputFiles;
-		OutputFiles.SetNum(WorkItemInfo.numResults);
+		OutputFiles.SetNum(WorkItemInfo.outputFileCount);
 		const int32 resultCount = WorkItemInfo.numResults;
 		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetWorkItemOutputFiles(
             FHoudiniEngine::Get().GetSession(),
@@ -1487,16 +1487,16 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 		for (int32 Idx = 0; Idx < NumResults; Idx++)
 		{
 			const HAPI_PDG_WorkItemOutputFile& OutputFile = OutputFiles[Idx];
-			if (OutputFile.resultTagSH <= 0 || OutputFile.resultSH <= 0)
+			if (OutputFile.tagSH <= 0 || OutputFile.filePathSH <= 0)
 				continue;
 
 			FString CurrentTag;
-			FHoudiniEngineString::ToFString(OutputFile.resultTagSH, CurrentTag);
+			FHoudiniEngineString::ToFString(OutputFile.tagSH, CurrentTag);
 			if(CurrentTag.IsEmpty() || !CurrentTag.StartsWith(TEXT("file")))
 				continue;
 
 			FString CurrentPath = FString();
-			FHoudiniEngineString::ToFString(OutputFile.resultSH, CurrentPath);
+			FHoudiniEngineString::ToFString(OutputFile.filePathSH, CurrentPath);
 
 			// Construct the name and look for an existing work result, re-use it if found, otherwise create a new one
 			const FString WorkResultName = FString::Printf(
