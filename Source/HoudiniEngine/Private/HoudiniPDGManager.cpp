@@ -895,7 +895,7 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 
 	HOUDINI_PDG_MESSAGE(
 		TEXT("[ProcessPDGEvent]: TOPNode: %s, WorkItem ID: %d, Event Type: %s, Current State: %s, Last State %s"),
-		*(TOPNode->NodePath), EventInfo.workitemId, *EventName, *CurrentWorkItemStateName, *LastWorkItemStateName);
+		*(TOPNode->NodePath), EventInfo.workItemId, *EventName, *CurrentWorkItemStateName, *LastWorkItemStateName);
 	
 	FLinearColor MsgColor = FLinearColor::White;
 
@@ -969,14 +969,14 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 			{
 				// TODO: 
 				// unhandled state change
-				HOUDINI_PDG_WARNING(TEXT("Unhandled PDG state change! Node: %s, WorkItemID %d"), IsValid(TOPNode) ? *TOPNode->NodePath : TEXT(""), EventInfo.workitemId);
+				HOUDINI_PDG_WARNING(TEXT("Unhandled PDG state change! Node: %s, WorkItemID %d"), IsValid(TOPNode) ? *TOPNode->NodePath : TEXT(""), EventInfo.workItemId);
 			}
 
 			if (LastWorkItemState == CurrentWorkItemState)
 			{
 				// TODO: 
 				// Not a change!! shouldnt happen!
-				HOUDINI_PDG_WARNING(TEXT("Last state == current state! Node: %s, WorkItemID %d, state %d"), IsValid(TOPNode) ? *TOPNode->NodePath : TEXT(""), EventInfo.workitemId, EventInfo.lastState);
+				HOUDINI_PDG_WARNING(TEXT("Last state == current state! Node: %s, WorkItemID %d, state %d"), IsValid(TOPNode) ? *TOPNode->NodePath : TEXT(""), EventInfo.workItemId, EventInfo.lastState);
 			}
 
 			// New states
@@ -1469,7 +1469,7 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 	{
 		TArray<HAPI_PDG_WorkItemOutputFile> OutputFiles;
 		OutputFiles.SetNum(WorkItemInfo.outputFileCount);
-		const int32 resultCount = WorkItemInfo.numResults;
+		const int32 resultCount = WorkItemInfo.outputFileCount;
 		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetWorkItemOutputFiles(
             FHoudiniEngine::Get().GetSession(),
             InTOPNode->NodeId, InWorkItemID, OutputFiles.GetData(), resultCount))
