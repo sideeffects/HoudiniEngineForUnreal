@@ -47,69 +47,69 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 	public:
 		static void CreateWidget(
 			IDetailCategoryBuilder& HouInputCategoryBuilder,
-			TArray<UHoudiniInput*> InInputs, FDetailWidgetRow* InputRow = nullptr);
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, FDetailWidgetRow* InputRow = nullptr);
 
 		static void CreateNameWidget(
-			UHoudiniInput* InParam,
+			const TWeakObjectPtr<UHoudiniInput>& InParam,
 			FDetailWidgetRow & Row,
 			bool bLabel,
 			int32 InInputCount);
 
-		static FText GetInputTooltip( UHoudiniInput* InInput );
+		static FText GetInputTooltip( const TWeakObjectPtr<UHoudiniInput>& InInput );
 
 		// ComboBox :  Input Type
 		static void AddInputTypeComboBox(
 			IDetailCategoryBuilder& CategoryBuilder,
 			TSharedRef<SVerticalBox> InVerticalBox,
-			TArray<UHoudiniInput*>& InInputs,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 			const IDetailsView* InDetailsView);
 
 		// Checkbox : Keep World Transform
 		static void AddKeepWorldTransformCheckBox(
 			TSharedRef<SVerticalBox> InVerticalBox,
-			TArray<UHoudiniInput*>& InInputs);
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
 		static void AddCurveInputCookOnChangeCheckBox(
 				TSharedRef< SVerticalBox > VerticalBox,
-				TArray<UHoudiniInput*>& InInputs);
+				const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
 		// Checkbox : Pack before merging
 		static void AddPackBeforeMergeCheckbox(
 			TSharedRef<SVerticalBox> InVerticalBox,
-			TArray<UHoudiniInput*>& InInputs);
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
 		static void AddImportAsReferenceCheckbox(
 			TSharedRef< SVerticalBox > VerticalBox,
-			TArray<UHoudiniInput*>& InInputs);
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
 		// Checkboxes : Export LODs / Sockets / Collisions
 		static void AddExportCheckboxes(
 			TSharedRef<SVerticalBox> InVerticalBox,
-			TArray<UHoudiniInput*>& InInputs);
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
 		// Add Geometry Inputs UI Widgets
 		static void AddGeometryInputUI(
 			IDetailCategoryBuilder& CategoryBuilder,
 			TSharedRef<SVerticalBox> InVerticalBox,
-			TArray<UHoudiniInput*>& InInputs, 
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, 
 			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool);
 
 		// Create a single geometry widget for the given input object
 		static void Helper_CreateGeometryWidget(
 			IDetailCategoryBuilder& CategoryBuilder,
-			TArray<UHoudiniInput*>& InInputs,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 			const FPlatformTypes::int32& InGeometryObjectIdx,
 			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool, TSharedRef<SVerticalBox> VerticalBox);
 
 		static void Helper_CreateGeometryCollectionWidget(
 			IDetailCategoryBuilder& CategoryBuilder,
-			TArray<UHoudiniInput*>& InInputs,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 			const FPlatformTypes::int32& InGeometryCollectionObjectIdx,
 			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool, TSharedRef<SVerticalBox> VerticalBox);
 
 		static void Helper_CreateCurveWidget(
 			IDetailCategoryBuilder& CategoryBuilder,
-			TArray<UHoudiniInput*>& InInputs,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 			const int32& InCurveObjectIdx,
 			TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool,
 			TSharedRef< SVerticalBox > VerticalBox,
@@ -118,38 +118,38 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 		// Add Asset Inputs UI Widgets
 		static void AddAssetInputUI(
 			TSharedRef<SVerticalBox> VerticalBox,
-			TArray<UHoudiniInput*>& InInputs);
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
 		// Add Curve Inputs UI Widgets
 		static void AddCurveInputUI(
 			IDetailCategoryBuilder& CategoryBuilder,
 			TSharedRef<SVerticalBox> VerticalBox,
-			TArray<UHoudiniInput*>& InInputs,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool);
 
 		// Add Landscape Inputs UI Widgets
 		static void AddLandscapeInputUI(
 			TSharedRef<SVerticalBox> VerticalBox,
-			TArray<UHoudiniInput*>& InInputs);
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
 		// Add World Inputs UI Widgets
 		static void AddWorldInputUI(
 			IDetailCategoryBuilder& CategoryBuilder,
 			TSharedRef<SVerticalBox> VerticalBox,
-			TArray<UHoudiniInput*>& InInputs,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 			const IDetailsView* InDetailsView);
 
 		// Add Skeletal Inputs UI Widgets
 		static void AddSkeletalInputUI(
 			TSharedRef<SVerticalBox> VerticalBox,
-			TArray<UHoudiniInput*>& InInputs,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool);
 
 		// Add GeometryCollection Inputs UI Widgets
 		static void AddGeometryCollectionInputUI(
 			IDetailCategoryBuilder& CategoryBuilder,
 			TSharedRef<SVerticalBox> VerticalBox,
-			TArray<UHoudiniInput*>& InInputs,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool);
 	
 		/*
@@ -159,24 +159,24 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 			const bool& bShowCurrentSelectionSection)
 			*/
 
-		static FMenuBuilder Helper_CreateHoudiniAssetPickerWidget(TArray<UHoudiniInput*>& InInputs);
+		static FMenuBuilder Helper_CreateHoudiniAssetPickerWidget(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
-		static FMenuBuilder Helper_CreateLandscapePickerWidget(TArray<UHoudiniInput*>& InInputs);
+		static FMenuBuilder Helper_CreateLandscapePickerWidget(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
-		static FMenuBuilder Helper_CreateWorldActorPickerWidget(TArray<UHoudiniInput*>& InInputs);
+		static FMenuBuilder Helper_CreateWorldActorPickerWidget(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
-		static FMenuBuilder Helper_CreateBoundSelectorPickerWidget(TArray<UHoudiniInput*>& InInputs);
+		static FMenuBuilder Helper_CreateBoundSelectorPickerWidget(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
-		static FReply Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& CategoryBuilder, TArray<UHoudiniInput*> InInputs, const FName& DetailsPanelName);
+		static FReply Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& CategoryBuilder, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const FName& DetailsPanelName);
 
-		static FReply Helper_OnButtonClickUseSelectionAsBoundSelector(IDetailCategoryBuilder& CategoryBuilder, TArray<UHoudiniInput*> InInputs, const FName& DetailsPanelName);
+		static FReply Helper_OnButtonClickUseSelectionAsBoundSelector(IDetailCategoryBuilder& CategoryBuilder, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const FName& DetailsPanelName);
 
 		static FReply Helper_OnButtonClickSelectActors(
 			IDetailCategoryBuilder& CategoryBuilder,
-			TArray<UHoudiniInput*> InInputs,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 			const FName& InDetailsPanelName,
 			const bool& bUseWorldInAsWorldSelector);
 
 		static bool Helper_CancelWorldSelection(
-			TArray<UHoudiniInput*>& InInputs, const FName& DetailsPanelName);
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const FName& DetailsPanelName);
 };
