@@ -630,6 +630,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 
 	// Create unique component GUID.
 	ComponentGUID = FGuid::NewGuid();
+	LastComponentTransform = FTransform();
 
 	bUploadTransformsToHoudiniEngine = true;
 
@@ -2009,7 +2010,21 @@ UHoudiniAssetComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformF
 {
 	Super::OnUpdateTransform(UpdateTransformFlags, Teleport);
 
-	SetHasComponentTransformChanged(true);
+#if WITH_EDITOR
+	if (!bUploadTransformsToHoudiniEngine)
+		return;
+	if (!bCookOnTransformChange)
+		return;
+
+	if (GetComponentTransform().Equals(LastComponentTransform))
+	{
+		// Only set transform changed flag if the transform actually changed.
+		// WorldComposition can call ApplyWorldOffset with a zero vector (for example during a map save)
+		// which triggers unexpected recooks.
+		SetHasComponentTransformChanged(true);
+	}
+#endif
+
 }
 
 void UHoudiniAssetComponent::HoudiniEngineTick()
@@ -2386,7 +2401,10 @@ UHoudiniAssetComponent::SetHasComponentTransformChanged(const bool& InHasChanged
 	// Only update the value if we're fully loaded
 	// This avoid triggering a recook when loading a level
 	if(bFullyLoaded)
+	{
 		bHasComponentTransformChanged = InHasChanged;
+		LastComponentTransform = GetComponentTransform();
+	}
 }
 
 void UHoudiniAssetComponent::SetOutputNodeIds(const TArray<int32>& OutputNodes)
