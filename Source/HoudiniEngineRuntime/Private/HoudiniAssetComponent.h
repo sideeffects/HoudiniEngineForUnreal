@@ -648,6 +648,11 @@ protected:
 	UPROPERTY(DuplicateTransient)
 	EHoudiniAssetStateResult AssetStateResult;
 
+	// Used to compare transform changes and whether we need to
+	// send transform updates to Houdini.
+	UPROPERTY(DuplicateTransient)
+	FTransform LastComponentTransform;
+
 	//// Contains the context for keeping track of shared 
 	//// Houdini data.
 	//UPROPERTY(DuplicateTransient)
