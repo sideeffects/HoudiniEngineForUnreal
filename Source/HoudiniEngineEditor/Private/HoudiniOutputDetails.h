@@ -60,24 +60,24 @@ class FHoudiniOutputDetails : public TSharedFromThis<FHoudiniOutputDetails, ESPM
 public:
 	void CreateWidget(
 		IDetailCategoryBuilder& HouInputCategoryBuilder,
-		TArray<UHoudiniOutput*> InOutputs);
+		const TArray<TWeakObjectPtr<UHoudiniOutput>>& InOutputs);
 
 	void CreateMeshOutputWidget(
 		IDetailCategoryBuilder& HouOutputCategory,
-		UHoudiniOutput* InOutput);
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
 
 	void CreateCurveOutputWidget(
 		IDetailCategoryBuilder& HouOutputCategory,
-		UHoudiniOutput* InOutput);
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
 
 	void CreateGeometryCollectionOutputWidget(
         IDetailCategoryBuilder& HouOutputCategory,
-        UHoudiniOutput* InOutput);
+        const TWeakObjectPtr<UHoudiniOutput>& InOutput);
 	
 	void CreateStaticMeshAndMaterialWidgets(
 		IDetailCategoryBuilder& HouOutputCategory,
-		UHoudiniOutput* InOutput,
-		UStaticMesh * StaticMesh,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+		const TWeakObjectPtr<UStaticMesh>& StaticMesh,
 		FHoudiniOutputObjectIdentifier& OutputIdentifier,
 		const FString BakeFolder,
 		FHoudiniGeoPartObject& HoudiniGeoPartObject,
@@ -85,65 +85,65 @@ public:
 
 	void CreateProxyMeshAndMaterialWidgets(
 		IDetailCategoryBuilder& HouOutputCategory,
-		UHoudiniOutput* InOutput,
-		UHoudiniStaticMesh * ProxyMesh,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+		const TWeakObjectPtr<UHoudiniStaticMesh>& ProxyMesh,
 		FHoudiniOutputObjectIdentifier& OutputIdentifier,
 		const FString BakeFolder,
 		FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
 	void CreateCurveWidgets(
 		IDetailCategoryBuilder& HouOutputCategory,
-		UHoudiniOutput* InOutput,
-		USceneComponent* SplineComponent,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+		const TWeakObjectPtr<USceneComponent>& SplineComponent,
 		FHoudiniOutputObject& OutputObject,
 		FHoudiniOutputObjectIdentifier& OutputIdentifier,
 		FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
 	void CreateGeometryCollectionWidgets(
 		IDetailCategoryBuilder& HouOutputCategory,
-		UHoudiniOutput* InOutput,
-		AGeometryCollectionActor* GeometryCollectionActor,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+		const TWeakObjectPtr<AGeometryCollectionActor>& GeometryCollectionActor,
 		FHoudiniOutputObject& OutputObject,
 		FHoudiniOutputObjectIdentifier& OutputIdentifier,
 		FHoudiniGeoPartObject& HoudiniGeoPartObject);
 	
 	void CreateLandscapeOutputWidget(
 		IDetailCategoryBuilder& HouOutputCategory,
-		UHoudiniOutput* InOutput);
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
 
 	void CreateLandscapeOutputWidget_Helper(
 		IDetailCategoryBuilder & HouOutputCategory,
-		UHoudiniOutput * InOutput,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
 		const FHoudiniGeoPartObject & HGPO,
-		UHoudiniLandscapePtr * LandscapePointer,
+		const TWeakObjectPtr<UHoudiniLandscapePtr>& LandscapePointer,
 		const FHoudiniOutputObjectIdentifier & OutputIdentifier);
 
 	void CreateLandscapeEditLayerOutputWidget_Helper(
 		IDetailCategoryBuilder & HouOutputCategory,
-		UHoudiniOutput * InOutput,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
 		const FHoudiniGeoPartObject & HGPO,
-		UHoudiniLandscapeEditLayer * LandscapeEditLayer,
+		const TWeakObjectPtr<UHoudiniLandscapeEditLayer>& LandscapeEditLayer,
 		const FHoudiniOutputObjectIdentifier & OutputIdentifier);
 
 	void CreateInstancerOutputWidget(
 		IDetailCategoryBuilder& HouOutputCategory,
-		UHoudiniOutput * InOutput);
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
 
 	void CreateDefaultOutputWidget(
 		IDetailCategoryBuilder& HouOutputCategory,
-		UHoudiniOutput* InOutput);
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
 
-	static FText GetOutputTooltip(UHoudiniOutput* MainOutput);
-	static FText GetOutputDebugName(UHoudiniOutput* InOutput);
-	static FText GetOutputDebugDescription(UHoudiniOutput* InOutput);
+	static FText GetOutputTooltip(const TWeakObjectPtr<UHoudiniOutput>& MainOutput);
+	static FText GetOutputDebugName(const TWeakObjectPtr<UHoudiniOutput>& InOutput);
+	static FText GetOutputDebugDescription(const TWeakObjectPtr<UHoudiniOutput>& InOutput);
 
 	static void OnBakeNameCommitted(
 		const FText& Val, ETextCommit::Type TextCommitType,
-		UHoudiniOutput * InOutput,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
 		const FHoudiniOutputObjectIdentifier & InIdentifier);
 
 	static void OnRevertBakeNameToDefault(
-		UHoudiniOutput * InOutput, 
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput, 
 		const FHoudiniOutputObjectIdentifier & InIdentifier);
 
 	static void OnBakeOutputObject(
@@ -159,11 +159,11 @@ public:
 		const EHoudiniLandscapeOutputBakeType & LandscapeBakeType,
 		const TArray<UHoudiniOutput*>& InAllOutputs);
 
-	FReply OnRefineClicked(UObject* ObjectToRefine, UHoudiniOutput* InOutput);
+	FReply OnRefineClicked(const TWeakObjectPtr<UObject> ObjectToRefine, const TWeakObjectPtr<UHoudiniOutput> InOutput);
 
 	// Gets the border brush to show around thumbnails, changes when the user hovers on it.
-	const FSlateBrush * GetThumbnailBorder(UObject* Mesh) const;
-	const FSlateBrush * GetMaterialInterfaceThumbnailBorder(UObject* Mesh, int32 MaterialIdx) const;
+	const FSlateBrush * GetThumbnailBorder(const TWeakObjectPtr<UObject> Mesh) const;
+	const FSlateBrush * GetMaterialInterfaceThumbnailBorder(const TWeakObjectPtr<UObject> Mesh, int32 MaterialIdx) const;
 
 	// Delegate used to detect if valid object has been dragged and dropped.
 	bool OnMaterialInterfaceDraggedOver(const UObject * InObject) const;
@@ -171,53 +171,53 @@ public:
 	// Delegate used when a valid material has been drag and dropped on a mesh.
 	void OnMaterialInterfaceDropped(
 		UObject* InDroppedObject, 
-		UStaticMesh* InStaticMesh,
-		UHoudiniOutput* InOutput,
+		const TWeakObjectPtr<UStaticMesh> InStaticMesh,
+		const TWeakObjectPtr<UHoudiniOutput> InOutput,
 		int32 MaterialIdx);
 
 	// Delegate used when a valid material has been drag and dropped on a landscape.
 	void OnMaterialInterfaceDropped(
 		UObject* InDroppedObject,
-		ALandscapeProxy* InLandscape,
-		UHoudiniOutput* InOutput,
+		const TWeakObjectPtr<ALandscapeProxy> InLandscape,
+		const TWeakObjectPtr<UHoudiniOutput> InOutput,
 		int32 MaterialIdx);
 	
 	// Construct drop down menu content for material.
 	TSharedRef<SWidget> OnGetMaterialInterfaceMenuContent(
-		UMaterialInterface* MaterialInterface,
-		UObject* OutputObject,
-		UHoudiniOutput* InOutput,
+		const TWeakObjectPtr<UMaterialInterface> MaterialInterface,
+		const TWeakObjectPtr<UObject> OutputObject,
+		const TWeakObjectPtr<UHoudiniOutput> InOutput,
 		int32 MaterialIdx);
 
 	// Delegate for handling selection in content browser.
 	void OnMaterialInterfaceSelected(
 		const FAssetData & AssetData,
-		UObject* OutputObject,
-		UHoudiniOutput * InOutput, 
+		const TWeakObjectPtr<UObject> OutputObject,
+		const TWeakObjectPtr<UHoudiniOutput> InOutput, 
 		int32 MaterialIdx);
 
 	// Delegate for handling Use CB selection arrow button clicked.
 	void OnUseContentBrowserSelectedMaterialInterface(
-		UObject* OutputObject,
-		UHoudiniOutput * InOutput,
+		const TWeakObjectPtr<UObject> OutputObject,
+		const TWeakObjectPtr<UHoudiniOutput> InOutput,
 		int32 MaterialIdx);
 
 	// Closes the combo button.
 	void CloseMaterialInterfaceComboButton();
 
 	// Browse to material interface.
-	void OnBrowseTo(UObject* InObject);
+	void OnBrowseTo(const TWeakObjectPtr<UObject> InObject);
 
 	// Handler for reset material interface button.
 	FReply OnResetMaterialInterfaceClicked(
-		UStaticMesh * StaticMesh, UHoudiniOutput * InOutput, int32 MaterialIdx);
+		const TWeakObjectPtr<UStaticMesh> StaticMesh, const TWeakObjectPtr<UHoudiniOutput> InOutput, int32 MaterialIdx);
 
 	FReply OnResetMaterialInterfaceClicked(
-		ALandscapeProxy* InLandscape, UHoudiniOutput * InHoudiniOutput, int32 InMaterialIdx);
+		const TWeakObjectPtr<ALandscapeProxy> InLandscape, const TWeakObjectPtr<UHoudiniOutput> InHoudiniOutput, int32 InMaterialIdx);
 
 	// Handler for when static mesh thumbnail is double clicked. We open editor in this case.
 	FReply OnThumbnailDoubleClick(
-		const FGeometry & InMyGeometry, const FPointerEvent & InMouseEvent, UObject * Object);
+		const FGeometry & InMyGeometry, const FPointerEvent & InMouseEvent, const TWeakObjectPtr<UObject> Object);
 
 	// Handler for bake individual static mesh action.
 	// static FReply OnBakeStaticMesh(UStaticMesh * StaticMesh, UHoudiniAssetComponent * HoudiniAssetComponent, FHoudiniGeoPartObject& GeoPartObject);
@@ -225,11 +225,11 @@ public:
 private:
 
 	// Map of meshes and corresponding thumbnail borders.
-	TMap<UObject*, TSharedPtr<SBorder>> OutputObjectThumbnailBorders;	
+	TMap<TWeakObjectPtr<UObject>, TSharedPtr<SBorder>> OutputObjectThumbnailBorders;	
 	// Map of meshes / material indices to thumbnail borders.
-	TMap<TPair<UObject*, int32>, TSharedPtr<SBorder>> MaterialInterfaceThumbnailBorders;
+	TMap<TPair<TWeakObjectPtr<UObject>, int32>, TSharedPtr<SBorder>> MaterialInterfaceThumbnailBorders;
 	// Map of meshes / material indices to combo elements.
-	TMap<TPair<UObject*, int32>, TSharedPtr<SComboButton>> MaterialInterfaceComboButtons;
+	TMap<TPair<TWeakObjectPtr<UObject>, int32>, TSharedPtr<SComboButton>> MaterialInterfaceComboButtons;
 
 	/** Delegate for filtering material interfaces. **/
 	FOnShouldFilterAsset OnShouldFilterMaterialInterface;

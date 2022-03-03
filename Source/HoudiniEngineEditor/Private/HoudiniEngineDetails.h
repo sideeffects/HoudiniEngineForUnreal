@@ -43,6 +43,11 @@ class FMenuBuilder;
 class SBorder;
 class SButton;
 
+
+#define IsValidWeakPointer(InWeakObjectPointer) \
+	FHoudiniEngineDetails::IsValidWeakObjectPointer(InWeakObjectPointer, true, TEXT(__FILE__), __LINE__)
+
+
 class SHoudiniAssetLogWidget : public SCompoundWidget
 {
 public:
@@ -63,19 +68,19 @@ class FHoudiniEngineDetails : public TSharedFromThis<FHoudiniEngineDetails, ESPM
 public:
 	static void CreateWidget(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		TArray<UHoudiniAssetComponent*>& InHACs);
+		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
 	static void CreateHoudiniEngineIconWidget(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		TArray<UHoudiniAssetComponent*>& InHACs);
+		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
 	static void CreateGenerateWidgets(
 			IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-			TArray<UHoudiniAssetComponent*>& InHACs);
+			const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
 	static void CreateBakeWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		TArray<UHoudiniAssetComponent*>& InHACs);
+		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
 	static void CreatePDGBakeWidgets(
 		IDetailCategoryBuilder& InPDGCategory,
@@ -83,15 +88,15 @@ public:
 
 	static void CreateAssetOptionsWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		TArray<UHoudiniAssetComponent*>& InHACs);
+		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
 	static void CreateHelpAndDebugWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		TArray<UHoudiniAssetComponent*>& InHACs);
+		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
-	static FReply ShowCookLog(TArray<UHoudiniAssetComponent *> InHACS);
+	static FReply ShowCookLog(const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACS);
 
-	static FReply ShowAssetHelp(UHoudiniAssetComponent * InHAC);
+	static FReply ShowAssetHelp(const TWeakObjectPtr<UHoudiniAssetComponent>& InHAC);
 
 	static FMenuBuilder Helper_CreateHoudiniAssetPicker();
 
@@ -102,12 +107,12 @@ public:
 
 	static void AddHeaderRowForHoudiniAssetComponent(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		UHoudiniAssetComponent* HoudiniAssetComponent,
+		const TWeakObjectPtr<UHoudiniAssetComponent>& HoudiniAssetComponent,
 		int32 MenuSection);
 
 	static void AddHeaderRowForHoudiniPDGAssetLink(
 		IDetailCategoryBuilder& PDGCategoryBuilder,
-		UHoudiniPDGAssetLink* InPDGAssetLink,
+		const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink,
 		int32 MenuSection);
 
 	static void AddHeaderRow(
@@ -118,5 +123,20 @@ public:
 
 	// Helper for binding/unbinding the post cook bake delegate
 	static void OnBakeAfterCookChangedHelper(bool bInState, UHoudiniAssetComponent* InHAC);
+
+	// Helper to check if InWeakObjectPointer is valid or not. If not valid, the filepath and line number where the check
+	// occurred is logged.
+	template <class T>
+	static bool IsValidWeakObjectPointer(const TWeakObjectPtr<T>& InWeakObjectPointer, const bool bInLogInvalid=false, const FString& InFilePath=FString(), const int32 InLineNumber=INDEX_NONE);
 };
 
+
+template <class T>
+bool
+FHoudiniEngineDetails::IsValidWeakObjectPointer(const TWeakObjectPtr<T>& InWeakObjectPointer, const bool bInLogInvalid, const FString& InFilePath, const int32 InLineNumber)
+{
+	const bool bIsValid = InWeakObjectPointer.IsValid();
+	if (!bIsValid && bInLogInvalid)
+		HOUDINI_LOG_WARNING(TEXT("Invalid TWeakObjectPtr in Details: %s:%d"), *InFilePath, InLineNumber);
+	return bIsValid;
+}

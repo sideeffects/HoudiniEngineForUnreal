@@ -107,14 +107,14 @@ SHoudiniAssetLogWidget::Construct(const FArguments & InArgs)
 void 
 FHoudiniEngineDetails::CreateWidget(
 	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-	TArray<UHoudiniAssetComponent*>& InHACs) 
+	const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs) 
 {
 	if (InHACs.Num() <= 0)
 		return;
 
-	UHoudiniAssetComponent* MainHAC = InHACs[0];
+	const TWeakObjectPtr<UHoudiniAssetComponent>& MainHAC = InHACs[0];
 
-	if (!IsValid(MainHAC))
+	if (!IsValidWeakPointer(MainHAC))
 		return;
 
 	// 0. Houdini Engine Icon
@@ -140,14 +140,14 @@ FHoudiniEngineDetails::CreateWidget(
 void 
 FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(
 	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-	TArray<UHoudiniAssetComponent*>& InHACs) 
+	const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs) 
 {
 	if (InHACs.Num() <= 0)
 		return;
 
-	UHoudiniAssetComponent* MainHAC = InHACs[0];
+	const TWeakObjectPtr<UHoudiniAssetComponent>& MainHAC = InHACs[0];
 
-	if (!IsValid(MainHAC))
+	if (!IsValidWeakPointer(MainHAC))
 		return;
 
 	// Skip drawing the icon if the icon image is not loaded correctly.
@@ -186,21 +186,21 @@ FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(
 void 
 FHoudiniEngineDetails::CreateGenerateWidgets(
 	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-	TArray<UHoudiniAssetComponent*>& InHACs)
+	const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs)
 {
 	if (InHACs.Num() <= 0)
 		return;
 
-	UHoudiniAssetComponent* MainHAC = InHACs[0];
+	const TWeakObjectPtr<UHoudiniAssetComponent>& MainHAC = InHACs[0];
 
-	if (!IsValid(MainHAC))
+	if (!IsValidWeakPointer(MainHAC))
 		return;
 
 	auto OnReBuildClickedLambda = [InHACs]()
 	{
 		for (auto& NextHAC : InHACs)
 		{
-			if (!IsValid(NextHAC))
+			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
 			NextHAC->MarkAsNeedRebuild();
@@ -213,7 +213,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 	{
 		for (auto& NextHAC : InHACs)
 		{
-			if (!IsValid(NextHAC))
+			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
 			NextHAC->MarkAsNeedCook();
@@ -226,7 +226,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 	{
 		for (auto& NextHAC : InHACs)
 		{
-			if (!IsValid(NextHAC))
+			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
 			// Reset parameters to default values?
@@ -234,7 +234,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 			{
 				UHoudiniParameter* NextParm = NextHAC->GetParameterAt(n);
 
-				if (NextParm && !NextParm->IsDefault())
+				if (IsValid(NextParm) && !NextParm->IsDefault())
 					return true;
 			}
 		}
@@ -246,7 +246,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 	{
 		for (auto& NextHAC : InHACs)
 		{
-			if (!IsValid(NextHAC))
+			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
 			// Reset parameters to default values?
@@ -254,7 +254,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 			{
 				UHoudiniParameter* NextParm = NextHAC->GetParameterAt(n);
 
-				if (NextParm && !NextParm->IsDefault())
+				if (IsValid(NextParm) && !NextParm->IsDefault())
 				{
 					NextParm->RevertToDefault();
 				}
@@ -266,7 +266,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 
 	auto OnCookFolderTextCommittedLambda = [InHACs, MainHAC](const FText& Val, ETextCommit::Type TextCommitType)
 	{
-		if (!IsValid(MainHAC))
+		if (!IsValidWeakPointer(MainHAC))
 			return;
 
 		FString NewPathStr = Val.ToString();
@@ -282,14 +282,14 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 			{
 				HOUDINI_LOG_WARNING(TEXT("Invalid path: %s"), *InvalidPathReason.ToString());
 
-				FHoudiniEngineUtils::UpdateEditorProperties(MainHAC, true);
+				FHoudiniEngineUtils::UpdateEditorProperties(MainHAC.Get(), true);
 				return;
 			}
 		}
 
 		for (auto& NextHAC : InHACs)
 		{
-			if (!IsValid(NextHAC))
+			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
 			if (NextHAC->TemporaryCookFolder.Path.Equals(NewPathStr))
@@ -578,13 +578,13 @@ FHoudiniEngineDetails::OnBakeAfterCookChangedHelper(bool bInState, UHoudiniAsset
 void 
 FHoudiniEngineDetails::CreateBakeWidgets(
 	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-	TArray<UHoudiniAssetComponent*>& InHACs)
+	const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs)
 {
 	if (InHACs.Num() <= 0)
 		return;
 
-	UHoudiniAssetComponent * MainHAC = InHACs[0];
-	if (!IsValid(MainHAC))
+	const TWeakObjectPtr<UHoudiniAssetComponent>& MainHAC = InHACs[0];
+	if (!IsValidWeakPointer(MainHAC))
 		return;
 
 	FHoudiniEngineDetails::AddHeaderRowForHoudiniAssetComponent(HoudiniEngineCategoryBuilder, MainHAC, HOUDINI_ENGINE_UI_SECTION_BAKE);
@@ -596,11 +596,11 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 	{
 		for (auto & NextHAC : InHACs)
 		{
-			if (!IsValid(NextHAC))
+			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
 			FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
-				NextHAC,
+				NextHAC.Get(),
 				MainHAC->bReplacePreviousBake,
 				MainHAC->HoudiniEngineBakeOption,
 				MainHAC->bRemoveOutputAfterBake,
@@ -612,7 +612,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 
 	auto OnBakeFolderTextCommittedLambda = [InHACs, MainHAC](const FText& Val, ETextCommit::Type TextCommitType)
 	{
-		if (!IsValid(MainHAC))
+		if (!IsValidWeakPointer(MainHAC))
 			return;
 
 		FString NewPathStr = Val.ToString();
@@ -628,14 +628,14 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 			{
 				HOUDINI_LOG_WARNING(TEXT("Invalid path: %s"), *InvalidPathReason.ToString());
 
-				FHoudiniEngineUtils::UpdateEditorProperties(MainHAC, true);
+				FHoudiniEngineUtils::UpdateEditorProperties(MainHAC.Get(), true);
 				return;
 			}
 		}
 
 		for (auto& NextHAC : InHACs)
 		{
-			if (!IsValid(NextHAC))
+			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
 			if (NextHAC->BakeFolder.Path.Equals(NewPathStr))
@@ -750,25 +750,29 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 
 				for (auto & NextHAC : InHACs) 
 				{
-					if (!IsValid(NextHAC))
+					if (!IsValidWeakPointer(NextHAC))
 						continue;
 
                     MainHAC->HoudiniEngineBakeOption = NewOption;
                 }
 
-                FHoudiniEngineUtils::UpdateEditorProperties(MainHAC, true);
-            })
-            [
-                SNew(STextBlock)
-                .Text_Lambda([MainHAC]() 
-                { 
-                    return FText::FromString(
-                        FHoudiniEngineEditor::Get().GetStringFromHoudiniEngineBakeOption(MainHAC->HoudiniEngineBakeOption));
-                })
-                .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-            ]
-        ]
-    ];
+				if (MainHAC.IsValid())
+					FHoudiniEngineUtils::UpdateEditorProperties(MainHAC.Get(), true);
+			})
+			[
+				SNew(STextBlock)
+				.Text_Lambda([MainHAC]() 
+				{ 
+                	if (!IsValidWeakPointer(MainHAC))
+                		return FText();
+
+					return FText::FromString(
+						FHoudiniEngineEditor::Get().GetStringFromHoudiniEngineBakeOption(MainHAC->HoudiniEngineBakeOption));
+				})
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+		]
+	];
 	
 	ButtonRow.WholeRowWidget.Widget = ButtonRowHorizontalBox;
 
@@ -822,16 +826,19 @@ FHoudiniEngineDetails::CreateBakeWidgets(
             ]
             .IsChecked_Lambda([MainHAC]()
             {
+            	if (!IsValidWeakPointer(MainHAC))
+            		return ECheckBoxState::Unchecked;
+            	
                 return MainHAC->bRemoveOutputAfterBake ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
             })
-            .OnCheckStateChanged_Lambda([MainHAC, InHACs](ECheckBoxState NewState)
+            .OnCheckStateChanged_Lambda([InHACs](ECheckBoxState NewState)
             {
                 const bool bNewState = (NewState == ECheckBoxState::Checked);
 
                 for (auto & NextHAC : InHACs) 
                 {
-                    if (!IsValid(NextHAC))
-                    	continue;
+                    if (!IsValidWeakPointer(NextHAC))
+                        continue;
 
                     NextHAC->bRemoveOutputAfterBake = bNewState;
                 }
@@ -857,16 +864,19 @@ FHoudiniEngineDetails::CreateBakeWidgets(
             ]
             .IsChecked_Lambda([MainHAC]()
             {
+            	if (!IsValidWeakPointer(MainHAC))
+            		return ECheckBoxState::Unchecked;
+            	
                 return MainHAC->bRecenterBakedActors ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
             })
-            .OnCheckStateChanged_Lambda([MainHAC, InHACs](ECheckBoxState NewState)
+            .OnCheckStateChanged_Lambda([InHACs](ECheckBoxState NewState)
             {
                 const bool bNewState = (NewState == ECheckBoxState::Checked);
 
                 for (auto & NextHAC : InHACs) 
                 {
-                    if (!IsValid(NextHAC))
-                    	continue;
+                    if (!IsValidWeakPointer(NextHAC))
+                        continue;
 
                     NextHAC->bRecenterBakedActors = bNewState;
                 }
@@ -883,12 +893,12 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 	// managing the delegate in this way).
 	for (auto & NextHAC : InHACs) 
 	{
-		if (!IsValid(NextHAC))
+		if (!IsValidWeakPointer(NextHAC))
 			continue;
 
 		const bool bState = NextHAC->IsBakeAfterNextCookEnabled();
 		NextHAC->SetBakeAfterNextCookEnabled(bState);
-		OnBakeAfterCookChangedHelper(bState, NextHAC);
+		OnBakeAfterCookChangedHelper(bState, NextHAC.Get());
 	}	
 	
 	RightColumnVerticalBox->AddSlot()
@@ -907,19 +917,22 @@ FHoudiniEngineDetails::CreateBakeWidgets(
             ]
             .IsChecked_Lambda([MainHAC]()
             {
-                return MainHAC->IsBakeAfterNextCookEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+            	if (!IsValidWeakPointer(MainHAC))
+            		return ECheckBoxState::Unchecked;
+
+            	return MainHAC->IsBakeAfterNextCookEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
             })
-            .OnCheckStateChanged_Lambda([MainHAC, InHACs](ECheckBoxState NewState)
+            .OnCheckStateChanged_Lambda([InHACs](ECheckBoxState NewState)
             {
                 const bool bNewState = (NewState == ECheckBoxState::Checked);
 
                 for (auto & NextHAC : InHACs) 
                 {
-                    if (!IsValid(NextHAC))
-                    	continue;
+                    if (!IsValidWeakPointer(NextHAC))
+                        continue;
 
                     NextHAC->SetBakeAfterNextCookEnabled(bNewState);
-                    OnBakeAfterCookChangedHelper(bNewState, NextHAC);
+                    OnBakeAfterCookChangedHelper(bNewState, NextHAC.Get());
                 }
 
                 // FHoudiniEngineUtils::UpdateEditorProperties(MainHAC, true);
@@ -944,6 +957,9 @@ FHoudiniEngineDetails::CreateBakeWidgets(
             ]
 			.IsChecked_Lambda([MainHAC]()
 			{
+            	if (!IsValidWeakPointer(MainHAC))
+            		return ECheckBoxState::Unchecked;
+
 				return MainHAC->bReplacePreviousBake ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 			.OnCheckStateChanged_Lambda([MainHAC, InHACs](ECheckBoxState NewState)
@@ -952,13 +968,14 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 
 				for (auto & NextHAC : InHACs) 
 				{
-					if (!IsValid(NextHAC))
+					if (!IsValidWeakPointer(NextHAC))
 						continue;
 
-					MainHAC->bReplacePreviousBake = bNewState;
+					NextHAC->bReplacePreviousBake = bNewState;
 				}
 
-				FHoudiniEngineUtils::UpdateEditorProperties(MainHAC, true);
+				if (MainHAC.IsValid())
+					FHoudiniEngineUtils::UpdateEditorProperties(MainHAC.Get(), true);
 			})
 		]
 	];
@@ -1006,7 +1023,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			.Text_Lambda([MainHAC]()
 			{
-				if (!IsValid(MainHAC))
+				if (!IsValidWeakPointer(MainHAC))
 					return FText();
 				return FText::FromString(MainHAC->BakeFolder.Path);
 			})
@@ -1042,7 +1059,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 
 		case EHoudiniEngineBakeOption::ToFoliage:
 		{
-			if (!FHoudiniEngineBakeUtils::CanHoudiniAssetComponentBakeToFoliage(MainHAC))
+			if (!FHoudiniEngineBakeUtils::CanHoudiniAssetComponentBakeToFoliage(MainHAC.Get()))
 			{
 				// If the HAC does not have instanced output, disable Bake to Foliage
 				BakeButton->SetEnabled(false);
@@ -1090,13 +1107,13 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 void 
 FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-	TArray<UHoudiniAssetComponent*>& InHACs) 
+	const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs) 
 {
 	if (InHACs.Num() <= 0)
 		return;
 
-	UHoudiniAssetComponent * MainHAC = InHACs[0];
-	if (!IsValid(MainHAC))
+	const TWeakObjectPtr<UHoudiniAssetComponent>& MainHAC = InHACs[0];
+	if (!IsValidWeakPointer(MainHAC))
 		return;
 
 	// Header Row
@@ -1107,8 +1124,8 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 
 	auto IsCheckedParameterChangedLambda = [MainHAC]()
 	{
-		if (!IsValid(MainHAC))
-			return 	ECheckBoxState::Unchecked;
+      	if (!IsValidWeakPointer(MainHAC))
+      		return ECheckBoxState::Unchecked;
 
 		return MainHAC->bCookOnParameterChange ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
@@ -1118,7 +1135,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		bool bChecked = (NewState == ECheckBoxState::Checked);
 		for (auto& NextHAC : InHACs)
 		{
-			if (!IsValid(NextHAC))
+			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
 			NextHAC->bCookOnParameterChange = bChecked;
@@ -1127,18 +1144,18 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 
 	auto IsCheckedTransformChangeLambda = [MainHAC]()
 	{
-		if (!IsValid(MainHAC))
-			return 	ECheckBoxState::Unchecked;
+		if (!IsValidWeakPointer(MainHAC))
+			return ECheckBoxState::Unchecked;
 
 		return MainHAC->bCookOnTransformChange ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto OnCheckStateChangedTransformChangeLambda = [InHACs](ECheckBoxState NewState)
 	{
-		bool bChecked = (NewState == ECheckBoxState::Checked);
+		const bool bChecked = (NewState == ECheckBoxState::Checked);
 		for (auto& NextHAC : InHACs)
 		{
-			if (!IsValid(NextHAC))
+			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
 			NextHAC->bCookOnTransformChange = bChecked;
@@ -1149,18 +1166,18 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 
 	auto IsCheckedAssetInputCookLambda = [MainHAC]()
 	{
-		if (!IsValid(MainHAC))
-			return 	ECheckBoxState::Unchecked;
+		if (!IsValidWeakPointer(MainHAC))
+			return ECheckBoxState::Unchecked;
 
 		return MainHAC->bCookOnAssetInputCook ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto OnCheckStateChangedAssetInputCookLambda = [InHACs](ECheckBoxState NewState)
 	{
-		bool bChecked = (NewState == ECheckBoxState::Checked);
+		const bool bChecked = (NewState == ECheckBoxState::Checked);
 		for (auto& NextHAC : InHACs)
 		{
-			if (!IsValid(NextHAC))
+			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
 			NextHAC->bCookOnAssetInputCook = bChecked;
@@ -1169,18 +1186,18 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 
 	auto IsCheckedPushTransformToHoudiniLambda = [MainHAC]()
 	{
-		if (!IsValid(MainHAC))
-			return 	ECheckBoxState::Unchecked;
+		if (!IsValidWeakPointer(MainHAC))
+			return ECheckBoxState::Unchecked;
 
 		return MainHAC->bUploadTransformsToHoudiniEngine ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto OnCheckStateChangedPushTransformToHoudiniLambda = [InHACs](ECheckBoxState NewState)
 	{
-		bool bChecked = (NewState == ECheckBoxState::Checked);
+		const bool bChecked = (NewState == ECheckBoxState::Checked);
 		for (auto& NextHAC : InHACs)
 		{
-			if (!IsValid(NextHAC))
+			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
 			NextHAC->bUploadTransformsToHoudiniEngine = bChecked;
@@ -1191,18 +1208,18 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 
 	auto IsCheckedDoNotGenerateOutputsLambda = [MainHAC]()
 	{
-		if (!IsValid(MainHAC))
-			return 	ECheckBoxState::Unchecked;
+		if (!IsValidWeakPointer(MainHAC))
+			return ECheckBoxState::Unchecked;
 
 		return MainHAC->bOutputless ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto OnCheckStateChangedDoNotGenerateOutputsLambda = [InHACs](ECheckBoxState NewState)
 	{
-		bool bChecked = (NewState == ECheckBoxState::Checked);
+		const bool bChecked = (NewState == ECheckBoxState::Checked);
 		for (auto& NextHAC : InHACs)
 		{
-			if (!IsValid(NextHAC))
+			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
 			NextHAC->bOutputless = bChecked;
@@ -1213,18 +1230,18 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 
 	auto IsCheckedOutputTemplatedGeosLambda = [MainHAC]()
 	{
-		if (!IsValid(MainHAC))
-			return 	ECheckBoxState::Unchecked;
+		if (!IsValidWeakPointer(MainHAC))
+			return ECheckBoxState::Unchecked;
 
 		return MainHAC->bOutputTemplateGeos ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto OnCheckStateChangedOutputTemplatedGeosLambda = [InHACs](ECheckBoxState NewState)
 	{
-		bool bChecked = (NewState == ECheckBoxState::Checked);
+		const bool bChecked = (NewState == ECheckBoxState::Checked);
 		for (auto& NextHAC : InHACs)
 		{
-			if (!IsValid(NextHAC))
+			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
 			NextHAC->bOutputTemplateGeos = bChecked;
@@ -1235,18 +1252,18 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 
 	auto IsCheckedUseOutputNodesLambda = [MainHAC]()
 	{
-		if (!IsValid(MainHAC))
-			return 	ECheckBoxState::Unchecked;
+		if (!IsValidWeakPointer(MainHAC))
+			return ECheckBoxState::Unchecked;
 
 		return MainHAC->bUseOutputNodes ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto OnCheckStateChangedUseOutputNodesLambda = [InHACs](ECheckBoxState NewState)
 	{
-		bool bChecked = (NewState == ECheckBoxState::Checked);
+		const bool bChecked = (NewState == ECheckBoxState::Checked);
 		for (auto& NextHAC : InHACs)
 		{
-			if (!IsValid(NextHAC))
+			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
 			NextHAC->bUseOutputNodes = bChecked;
@@ -1527,13 +1544,13 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 void 
 FHoudiniEngineDetails::CreateHelpAndDebugWidgets(
 	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-	TArray<UHoudiniAssetComponent*>& InHACs) 
+	const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs) 
 {
 	if (InHACs.Num() <= 0)
 		return;
 
-	UHoudiniAssetComponent * MainHAC = InHACs[0];
-	if (!IsValid(MainHAC))
+	const TWeakObjectPtr<UHoudiniAssetComponent>& MainHAC = InHACs[0];
+	if (!IsValidWeakPointer(MainHAC))
 		return;
 
 	// Header Row
@@ -1783,10 +1800,22 @@ FHoudiniEngineDetails::OnGetHoudiniAssetMenuContent(TArray<UHoudiniAssetComponen
 */
 
 FReply
-FHoudiniEngineDetails::ShowCookLog(TArray<UHoudiniAssetComponent *> InHACS)
+FHoudiniEngineDetails::ShowCookLog(const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACS)
 {
+	// Convert to an array of valid HACs for the GetCookLog call
+	TArray<UHoudiniAssetComponent*> HACs;
+	if (InHACS.Num() > 0)
+	{
+		HACs.Reserve(InHACS.Num());
+		for (const auto& HAC : InHACS)
+		{
+			if (!IsValidWeakPointer(HAC))
+				continue;
+			HACs.Add(HAC.Get());
+		}
+	}
 	TSharedPtr< SWindow > ParentWindow;
-	FString CookLog = FHoudiniEngineUtils::GetCookLog(InHACS);
+	const FString CookLog = FHoudiniEngineUtils::GetCookLog(HACs);
 
 	// Check if the main frame is loaded. When using the old main frame it may not be.
 	if (FModuleManager::Get().IsModuleLoaded("MainFrame"))
@@ -1816,12 +1845,12 @@ FHoudiniEngineDetails::ShowCookLog(TArray<UHoudiniAssetComponent *> InHACS)
 }
 
 FReply
-FHoudiniEngineDetails::ShowAssetHelp(UHoudiniAssetComponent * InHAC)
+FHoudiniEngineDetails::ShowAssetHelp(const TWeakObjectPtr<UHoudiniAssetComponent>& InHAC)
 {
-	if (!InHAC)
+	if (!IsValidWeakPointer(InHAC))
 		return FReply::Handled();
 
-	FString AssetHelp = FHoudiniEngineUtils::GetAssetHelp(InHAC);
+	const FString AssetHelp = FHoudiniEngineUtils::GetAssetHelp(InHAC.Get());
 
 	TSharedPtr< SWindow > ParentWindow;
 
@@ -1852,13 +1881,16 @@ FHoudiniEngineDetails::ShowAssetHelp(UHoudiniAssetComponent * InHAC)
 }
 
 void 
-FHoudiniEngineDetails::AddHeaderRowForHoudiniAssetComponent(IDetailCategoryBuilder& HoudiniEngineCategoryBuilder, UHoudiniAssetComponent * HoudiniAssetComponent, int32 MenuSection)
+FHoudiniEngineDetails::AddHeaderRowForHoudiniAssetComponent(IDetailCategoryBuilder& HoudiniEngineCategoryBuilder, const TWeakObjectPtr<UHoudiniAssetComponent>& HoudiniAssetComponent, int32 MenuSection)
 {
-	if (!IsValid(HoudiniAssetComponent))
+	if (!IsValidWeakPointer(HoudiniAssetComponent))
 		return;
 
 	FOnClicked OnExpanderClick = FOnClicked::CreateLambda([HoudiniAssetComponent, MenuSection]()
 	{
+		if (!IsValidWeakPointer(HoudiniAssetComponent))
+			return FReply::Handled();
+
 		switch (MenuSection) 
 		{
 			case HOUDINI_ENGINE_UI_SECTION_GENERATE:
@@ -1877,7 +1909,7 @@ FHoudiniEngineDetails::AddHeaderRowForHoudiniAssetComponent(IDetailCategoryBuild
 				HoudiniAssetComponent->bHelpAndDebugMenuExpanded = !HoudiniAssetComponent->bHelpAndDebugMenuExpanded;
 		}
 
-		FHoudiniEngineUtils::UpdateEditorProperties(HoudiniAssetComponent, true);
+		FHoudiniEngineUtils::UpdateEditorProperties(HoudiniAssetComponent.Get(), true);
 
 		return FReply::Handled();
 	});
@@ -1910,24 +1942,27 @@ FHoudiniEngineDetails::AddHeaderRowForHoudiniAssetComponent(IDetailCategoryBuild
 		FName ResourceName;
 		bool bMenuExpanded = false;
 
-		switch (MenuSection)
+		if (IsValidWeakPointer(HoudiniAssetComponent))
 		{
-		case HOUDINI_ENGINE_UI_SECTION_GENERATE:
-			bMenuExpanded = HoudiniAssetComponent->bGenerateMenuExpanded;
-			break;
+			switch (MenuSection)
+			{
+			case HOUDINI_ENGINE_UI_SECTION_GENERATE:
+				bMenuExpanded = HoudiniAssetComponent->bGenerateMenuExpanded;
+				break;
 
-		case HOUDINI_ENGINE_UI_SECTION_BAKE:
-			bMenuExpanded = HoudiniAssetComponent->bBakeMenuExpanded;
-			break;
+			case HOUDINI_ENGINE_UI_SECTION_BAKE:
+				bMenuExpanded = HoudiniAssetComponent->bBakeMenuExpanded;
+				break;
 
-		case HOUDINI_ENGINE_UI_SECTION_ASSET_OPTIONS:
-			bMenuExpanded = HoudiniAssetComponent->bAssetOptionMenuExpanded;
-			break;
+			case HOUDINI_ENGINE_UI_SECTION_ASSET_OPTIONS:
+				bMenuExpanded = HoudiniAssetComponent->bAssetOptionMenuExpanded;
+				break;
 
-		case HOUDINI_ENGINE_UI_SECTION_HELP_AND_DEBUG:
-			bMenuExpanded = HoudiniAssetComponent->bHelpAndDebugMenuExpanded;
+			case HOUDINI_ENGINE_UI_SECTION_HELP_AND_DEBUG:
+				bMenuExpanded = HoudiniAssetComponent->bHelpAndDebugMenuExpanded;
+			}
 		}
-
+		
 		if (bMenuExpanded)
 		{
 			ResourceName = InExpanderArrow->IsHovered() ? "TreeArrow_Expanded_Hovered" : "TreeArrow_Expanded";
@@ -1944,18 +1979,21 @@ FHoudiniEngineDetails::AddHeaderRowForHoudiniAssetComponent(IDetailCategoryBuild
 }
 
 void
-FHoudiniEngineDetails::AddHeaderRowForHoudiniPDGAssetLink(IDetailCategoryBuilder& PDGCategoryBuilder, UHoudiniPDGAssetLink* InPDGAssetLink, int32 MenuSection)
+FHoudiniEngineDetails::AddHeaderRowForHoudiniPDGAssetLink(IDetailCategoryBuilder& PDGCategoryBuilder, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, int32 MenuSection)
 {
-	if (!IsValid(InPDGAssetLink))
+	if (!IsValidWeakPointer(InPDGAssetLink))
 		return;
 
 	FOnClicked OnExpanderClick = FOnClicked::CreateLambda([InPDGAssetLink, MenuSection]()
 	{
+		if (!IsValidWeakPointer(InPDGAssetLink))
+			return FReply::Handled();
+		
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_RUNTIME),
 			LOCTEXT("HoudiniPDGAssetLinkParameterChange", "Houdini PDG Asset Link Parameter: Changing a value"),
-			InPDGAssetLink);
+			InPDGAssetLink.Get());
 
 		switch (MenuSection) 
 		{
@@ -1963,7 +2001,7 @@ FHoudiniEngineDetails::AddHeaderRowForHoudiniPDGAssetLink(IDetailCategoryBuilder
 				InPDGAssetLink->Modify();
 				InPDGAssetLink->bBakeMenuExpanded = !InPDGAssetLink->bBakeMenuExpanded;
 				FHoudiniEngineEditorUtils::NotifyPostEditChangeProperty(
-					GET_MEMBER_NAME_STRING_CHECKED(UHoudiniPDGAssetLink, bBakeMenuExpanded), InPDGAssetLink);
+					GET_MEMBER_NAME_STRING_CHECKED(UHoudiniPDGAssetLink, bBakeMenuExpanded), InPDGAssetLink.Get());
 			break;
 		}
 
@@ -1988,11 +2026,14 @@ FHoudiniEngineDetails::AddHeaderRowForHoudiniPDGAssetLink(IDetailCategoryBuilder
 		FName ResourceName;
 		bool bMenuExpanded = false;
 
-		switch (MenuSection)
+		if (IsValidWeakPointer(InPDGAssetLink))
 		{
-		case HOUDINI_ENGINE_UI_SECTION_BAKE:
-			bMenuExpanded = InPDGAssetLink->bBakeMenuExpanded;
-			break;
+			switch (MenuSection)
+			{
+			case HOUDINI_ENGINE_UI_SECTION_BAKE:
+				bMenuExpanded = InPDGAssetLink->bBakeMenuExpanded;
+				break;
+			}
 		}
 
 		if (bMenuExpanded)
