@@ -204,5 +204,5 @@ private:
 	bool bOffsetZeroed;
 
 	// Indicates which HACs disable auto-saving
-	TSet<const UHoudiniAssetComponent*> DisableAutoSavingHACs;
+	TSet<TWeakObjectPtr<const UHoudiniAssetComponent>> DisableAutoSavingHACs;
 };

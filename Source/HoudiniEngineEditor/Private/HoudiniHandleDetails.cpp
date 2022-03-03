@@ -30,6 +30,7 @@
 #include "HoudiniHandleComponent.h"
 #include "HoudiniHandleTranslator.h"
 #include "HoudiniHandleComponentVisualizer.h"
+#include "HoudiniEngineDetails.h"
 
 #include "DetailCategoryBuilder.h"
 #include "DetailWidgetRow.h"
@@ -43,15 +44,15 @@
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
 void
-FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, TArray<UHoudiniHandleComponent*> &InHandles)
+FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, const TArray<TWeakObjectPtr<UHoudiniHandleComponent>> &InHandles)
 {
 
 	if (InHandles.Num() <= 0)
 		return;
 
-	UHoudiniHandleComponent* MainHandle = InHandles[0];
+	const TWeakObjectPtr<UHoudiniHandleComponent>& MainHandle = InHandles[0];
 
-	if (!IsValid(MainHandle))
+	if (!IsValidWeakPointer(MainHandle))
 		return;
 
 
@@ -71,7 +72,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 	// Translate
 	auto OnLocationChangedLambda = [MainHandle](float Val, int32 Axis)
 	{
-		if (!MainHandle)
+		if (!IsValidWeakPointer(MainHandle))
 			return;
 
 		FVector Location = MainHandle->GetRelativeTransform().GetLocation();
@@ -84,17 +85,17 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 			Location.Z = Val;
 
 		MainHandle->SetRelativeLocation(Location);
-		FHoudiniHandleTranslator::UpdateTransformParameters(MainHandle);
+		FHoudiniHandleTranslator::UpdateTransformParameters(MainHandle.Get());
 	};
 
 	auto RevertLocationToDefault = [MainHandle]() 
 	{
-		if (!MainHandle)
+		if (!IsValidWeakPointer(MainHandle))
 			return FReply::Handled();
 
 		FVector DefaultLocation = FVector(0.f, 0.f, 0.f);
 		MainHandle->SetRelativeLocation(DefaultLocation);
-		FHoudiniHandleTranslator::UpdateTransformParameters(MainHandle);
+		FHoudiniHandleTranslator::UpdateTransformParameters(MainHandle.Get());
 
 		return FReply::Handled();
 	};
@@ -131,7 +132,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 			.ContentPadding(0)
 			.Visibility_Lambda([MainHandle]() 
 			{
-				if (!MainHandle)
+				if (!IsValidWeakPointer(MainHandle))
 					return EVisibility::Hidden;
 				
 				if (MainHandle->GetRelativeLocation() == FVector::ZeroVector)
@@ -151,7 +152,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 	// Rotation 
 	auto OnRotationChangedLambda = [MainHandle](float Val, int32 Axis)
 	{
-		if (!MainHandle)
+		if (!IsValidWeakPointer(MainHandle))
 			return;
 
 		FQuat Rotation = MainHandle->GetRelativeTransform().GetRotation();
@@ -164,16 +165,16 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 			Rotation.Z = Val;
 
 		MainHandle->SetRelativeRotation(Rotation);
-		FHoudiniHandleTranslator::UpdateTransformParameters(MainHandle);
+		FHoudiniHandleTranslator::UpdateTransformParameters(MainHandle.Get());
 	};
 
 	auto RevertRotationToDefault = [MainHandle]() 
 	{
-		if (!MainHandle)
+		if (!IsValidWeakPointer(MainHandle))
 			return FReply::Handled();
 
 		MainHandle->SetRelativeRotation(FQuat::Identity);
-		FHoudiniHandleTranslator::UpdateTransformParameters(MainHandle);
+		FHoudiniHandleTranslator::UpdateTransformParameters(MainHandle.Get());
 
 		return FReply::Handled();
 	};
@@ -210,7 +211,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 			.ContentPadding(0)
 			.Visibility_Lambda([MainHandle]() 
 			{
-				if (!MainHandle)
+				if (!IsValidWeakPointer(MainHandle))
 					return EVisibility::Hidden;
 
 				if (MainHandle->GetRelativeTransform().GetRotation() == FQuat::Identity)
@@ -230,7 +231,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 	// Scale 
 	auto OnScaleChangedLambda = [MainHandle](float Val, int32 Axis)
 	{
-		if (!MainHandle)
+		if (!IsValidWeakPointer(MainHandle))
 			return;
 
 		FVector Scale = MainHandle->GetRelativeTransform().GetScale3D();
@@ -243,12 +244,12 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 			Scale.Z = Val;
 
 		MainHandle->SetRelativeScale3D(Scale);
-		FHoudiniHandleTranslator::UpdateTransformParameters(MainHandle);
+		FHoudiniHandleTranslator::UpdateTransformParameters(MainHandle.Get());
 	};
 
 	auto RevertScaleToDefault = [MainHandle]() 
 	{
-		if (!MainHandle)
+		if (!IsValidWeakPointer(MainHandle))
 			return FReply::Handled();
 
 		MainHandle->SetRelativeScale3D(FVector::OneVector);
@@ -288,7 +289,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 			.ContentPadding(0)
 			.Visibility_Lambda([MainHandle]() 
 			{
-				if (!MainHandle)
+				if (!IsValidWeakPointer(MainHandle))
 					return EVisibility::Hidden;
 
 				if (MainHandle->GetRelativeTransform().GetScale3D() == FVector::OneVector)
@@ -311,7 +312,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 
 	auto OnMouseEnterLambda = [MainHandle](const FGeometry& Geometry, const FPointerEvent& Event)
 	{
-		if (!MainHandle)
+		if (!IsValidWeakPointer(MainHandle))
 			return;
 
 		TSharedPtr<FComponentVisualizer> Visualizer = GUnrealEd->FindComponentVisualizer(UHoudiniHandleComponent::StaticClass()->GetFName());
@@ -319,13 +320,13 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 
 		if (HandleVisualizer.IsValid())
 		{
-			HandleVisualizer->SetEditedComponent(MainHandle);
+			HandleVisualizer->SetEditedComponent(MainHandle.Get());
 		}
 	};
 
 	auto OnMouseLeaveLambda = [MainHandle](const FPointerEvent& Event)
 	{
-		if (!MainHandle)
+		if (!IsValidWeakPointer(MainHandle))
 			return;
 
 		TSharedPtr<FComponentVisualizer> Visualizer = GUnrealEd->FindComponentVisualizer(UHoudiniHandleComponent::StaticClass()->GetFName());

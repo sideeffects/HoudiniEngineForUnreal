@@ -52,6 +52,7 @@
 #include "HoudiniEngineEditor.h"
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniEngineDetails.h"
 #include "SNewFilePathPicker.h"
 
 #include "DetailCategoryBuilder.h"
@@ -279,17 +280,17 @@ SCustomizedButton::DrawRadioButton(const FGeometry& AllottedGeometry, FSlateWind
 }
 
 void
-SCustomizedBox::SetHoudiniParameter(TArray<UHoudiniParameter*>& InParams) 
+SCustomizedBox::SetHoudiniParameter(const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams) 
 {
 	if (InParams.Num() <= 0)
 		return;
 
-	UHoudiniParameter* MainParam = InParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 
-	bool bIsMultiparmInstanceHeader = MainParam->IsDirectChildOfMultiParm() && MainParam->GetChildIndex() == 0;
+	const bool bIsMultiparmInstanceHeader = MainParam->IsDirectChildOfMultiParm() && MainParam->GetChildIndex() == 0;
 
 	switch (MainParam->GetParameterType())
 	{
@@ -322,7 +323,7 @@ SCustomizedBox::SetHoudiniParameter(TArray<UHoudiniParameter*>& InParams)
 
 	case EHoudiniParameterType::ColorRamp:
 	{
-		UHoudiniParameterRampColor * ColorRampParameter = Cast<UHoudiniParameterRampColor>(MainParam);
+		UHoudiniParameterRampColor const* const ColorRampParameter = Cast<UHoudiniParameterRampColor>(MainParam.Get());
 		if (!IsValid(ColorRampParameter))
 			return;
 
@@ -670,10 +671,10 @@ SCustomizedBox::SetHoudiniParameter(TArray<UHoudiniParameter*>& InParams)
 }
 
 float
-SCustomizedBox::AddIndentation(UHoudiniParameter* InParam, 
-	TMap<int32, UHoudiniParameterMultiParm*>& InAllMultiParms, TMap<int32, UHoudiniParameter*>& InAllFoldersAndFolderLists)
+SCustomizedBox::AddIndentation(const TWeakObjectPtr<UHoudiniParameter>& InParam, 
+	const TMap<int32, TWeakObjectPtr<UHoudiniParameterMultiParm>>& InAllMultiParms, const TMap<int32, TWeakObjectPtr<UHoudiniParameter>>& InAllFoldersAndFolderLists)
 {
-	if (!IsValid(InParam))
+	if (!InParam.IsValid())
 		return 0.0f;
 
 	bool bIsMainParmSimpleFolder = false;
@@ -686,13 +687,13 @@ SCustomizedBox::AddIndentation(UHoudiniParameter* InParam,
 	}
 
 	int32 ParentId = InParam->GetParentParmId();
-	UHoudiniParameter* CurParm = InParam;
+	TWeakObjectPtr<UHoudiniParameter> CurParm = InParam;
 	float Indentation = 0.0f;
 
 	while (ParentId >= 0)
 	{
-		UHoudiniParameter* ParentFolder = nullptr;
-		UHoudiniParameterMultiParm* ParentMultiParm = nullptr;
+		TWeakObjectPtr<UHoudiniParameter> ParentFolder;
+		TWeakObjectPtr<UHoudiniParameterMultiParm> ParentMultiParm;
 
 		if (InAllFoldersAndFolderLists.Contains(ParentId))
 			ParentFolder = InAllFoldersAndFolderLists[ParentId];
@@ -701,7 +702,7 @@ SCustomizedBox::AddIndentation(UHoudiniParameter* InParam,
 			ParentMultiParm = InAllMultiParms[ParentId];
 
 		// The parent is a folder, add one unit of indentation
-		if (ParentFolder)
+		if (ParentFolder.IsValid())
 		{
 			// Update the parent parm id
 			ParentId = ParentFolder->GetParentParmId();
@@ -709,9 +710,9 @@ SCustomizedBox::AddIndentation(UHoudiniParameter* InParam,
 			if (ParentFolder->GetParameterType() == EHoudiniParameterType::FolderList)
 				continue;
 
-			UHoudiniParameterFolder* Folder = Cast<UHoudiniParameterFolder>(ParentFolder);
+			TWeakObjectPtr<UHoudiniParameterFolder> Folder = Cast<UHoudiniParameterFolder>(ParentFolder);
 			
-			if (!Folder)
+			if (!IsValidWeakPointer(Folder))
 				continue;
 			
 			// update the current parm, find the parent of new cur param in the next round
@@ -719,7 +720,7 @@ SCustomizedBox::AddIndentation(UHoudiniParameter* InParam,
 			Indentation += 1.0f;
 		}
 		// The parent is a multiparm
-		else if (ParentMultiParm)
+		else if (ParentMultiParm.IsValid())
 		{
 			// Update the parent parm id
 			ParentId = ParentMultiParm->GetParentParmId();
@@ -936,7 +937,7 @@ SHoudiniFloatRampCurveEditor::OnMouseButtonUp(const FGeometry& MyGeometry, const
 {
 	FReply Reply = SCurveEditor::OnMouseButtonUp(MyGeometry, MouseEvent);
 	
-	if (!HoudiniFloatRampCurve.IsValid())
+	if (!IsValidWeakPointer(HoudiniFloatRampCurve))
 		return Reply;
 
 	const bool bCookingEnabled = FHoudiniEngine::Get().IsCookingEnabled();
@@ -948,7 +949,7 @@ SHoudiniFloatRampCurveEditor::OnMouseButtonUp(const FGeometry& MyGeometry, const
 	if (FloatRampParameters.Num() < 1)
 		return Reply;
 
-	if (!FloatRampParameters[0].IsValid())
+	if (!IsValidWeakPointer(FloatRampParameters[0]))
 		return Reply;
 	
 	UHoudiniParameterRampFloat* MainParam = FloatRampParameters[0].Get();
@@ -995,7 +996,7 @@ SHoudiniFloatRampCurveEditor::OnMouseButtonUp(const FGeometry& MyGeometry, const
 			// Iterate through the float ramp parameter of all selected HDAs.
 			for (auto & NextRampFloat : FloatRampParameters) 
 			{
-				if (!NextRampFloat.IsValid())
+				if (!IsValidWeakPointer(NextRampFloat))
 					continue;
 
 				UHoudiniParameterRampFloat* SelectedRampFloat = NextRampFloat.Get();
@@ -1125,7 +1126,7 @@ SHoudiniFloatRampCurveEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyE
 	if (FloatRampParameters.Num() < 1)
 		return Reply;
 
-	if (!FloatRampParameters[0].IsValid())
+	if (!IsValidWeakPointer(FloatRampParameters[0]))
 		return Reply;
 
 	UHoudiniParameterRampFloat* MainParam = FloatRampParameters[0].Get();
@@ -1147,7 +1148,7 @@ SHoudiniFloatRampCurveEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyE
 
 	for (auto& NextFloatRamp : FloatRampParameters) 
 	{
-		if (!NextFloatRamp.IsValid())
+		if (!IsValidWeakPointer(NextFloatRamp))
 			continue;
 
 		UHoudiniParameterRampFloat* SelectedFloatRamp = NextFloatRamp.Get();
@@ -1178,7 +1179,7 @@ UHoudiniFloatRampCurve::OnCurveChanged(const TArray<FRichCurveEditInfo>& Changed
 	if (FloatRampParameters.Num() < 1)
 		return;
 
-	if (!FloatRampParameters[0].IsValid())
+	if (!IsValidWeakPointer(FloatRampParameters[0]))
 		return;
 
 	UHoudiniParameterRampFloat* MainParam = FloatRampParameters[0].Get();
@@ -1227,7 +1228,7 @@ UHoudiniFloatRampCurve::OnCurveChanged(const TArray<FRichCurveEditInfo>& Changed
 				// Iterate through all the float ramp parameter in all the selected HDAs
 				for (auto & NextFloatRamp : FloatRampParameters) 
 				{
-					if (!NextFloatRamp.IsValid())
+					if (!IsValidWeakPointer(NextFloatRamp))
 						continue;
 
 					UHoudiniParameterRampFloat* SelectedFloatRamp = NextFloatRamp.Get();
@@ -1317,7 +1318,7 @@ UHoudiniFloatRampCurve::OnCurveChanged(const TArray<FRichCurveEditInfo>& Changed
 				// Iterate through the float ramp parameter of all selected HDAs.
 				for (auto & NextFloatRamp : FloatRampParameters) 
 				{
-					if (!NextFloatRamp.IsValid())
+					if (!IsValidWeakPointer(NextFloatRamp))
 						continue;
 
 					UHoudiniParameterRampFloat* SelectedFloatRamp = NextFloatRamp.Get();
@@ -1448,7 +1449,7 @@ SHoudiniColorRampCurveEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyE
 
 	for (auto& NextColorRamp : ColorRampParameters) 
 	{
-		if (!NextColorRamp.IsValid())
+		if (!IsValidWeakPointer(NextColorRamp))
 			continue;
 
 		UHoudiniParameterRampColor* SelectedColorRamp = NextColorRamp.Get();
@@ -1488,7 +1489,7 @@ UHoudiniColorRampCurve::OnColorRampCurveChanged(bool bModificationOnly)
 	if (ColorRampParameters.Num() < 1)
 		return;
 
-	if (!ColorRampParameters[0].IsValid())
+	if (!IsValidWeakPointer(ColorRampParameters[0]))
 		return;
 
 	UHoudiniParameterRampColor* MainParam = ColorRampParameters[0].Get();
@@ -1539,7 +1540,7 @@ UHoudiniColorRampCurve::OnColorRampCurveChanged(bool bModificationOnly)
 				// Iterate through all the color ramp parameter in all the selected HDAs
 				for (auto & NextColorRamp : ColorRampParameters)
 				{
-					if (!NextColorRamp.IsValid())
+					if (!IsValidWeakPointer(NextColorRamp))
 						continue;
 
 					UHoudiniParameterRampColor* SelectedColorRamp = NextColorRamp.Get();
@@ -1678,7 +1679,7 @@ UHoudiniColorRampCurve::OnColorRampCurveChanged(bool bModificationOnly)
 				// Iterate through the color ramp parameter of all selected HDAs.
 				for (auto & NextColorRamp : ColorRampParameters)
 				{
-					if (!NextColorRamp.IsValid())
+					if (!IsValidWeakPointer(NextColorRamp))
 						continue;
 
 					UHoudiniParameterRampColor* SelectedColorRamp = NextColorRamp.Get();
@@ -1762,7 +1763,7 @@ UHoudiniColorRampCurve::OnColorRampCurveChanged(bool bModificationOnly)
 					// Iterate through the all selected color ramp parameters
 					for (auto & NextColorRamp : ColorRampParameters)
 					{
-						if (!NextColorRamp.IsValid())
+						if (!IsValidWeakPointer(NextColorRamp))
 							continue;
 
 						UHoudiniParameterRampColor* SelectedColorRamp = NextColorRamp.Get();
@@ -1864,7 +1865,7 @@ UHoudiniColorRampCurve::OnColorRampCurveChanged(bool bModificationOnly)
 
 template< class T >
 bool FHoudiniParameterDetails::CastParameters(
-	TArray<UHoudiniParameter*> InParams, TArray<T*>& OutCastedParams )
+	const TArray<UHoudiniParameter*>& InParams, TArray<T*>& OutCastedParams )
 {
 	for (auto CurrentParam : InParams)
 	{
@@ -1876,15 +1877,31 @@ bool FHoudiniParameterDetails::CastParameters(
 	return (OutCastedParams.Num() == InParams.Num());
 }
 
+template< class T >
+bool FHoudiniParameterDetails::CastParameters(
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams, TArray<TWeakObjectPtr<T>>& OutCastedParams )
+{
+	for (const auto& CurrentParam : InParams)
+	{
+		if (!IsValidWeakPointer(CurrentParam))
+			continue;
+		
+		T* CastedParam = Cast<T>(CurrentParam.Get());
+		if (IsValid(CastedParam))
+			OutCastedParams.Add(CastedParam);
+	}
+
+	return (OutCastedParams.Num() == InParams.Num());
+}
 
 void
-FHoudiniParameterDetails::CreateWidget(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams)
+FHoudiniParameterDetails::CreateWidget(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
 {
 	if (InParams.Num() <= 0)
 		return;
 
-	UHoudiniParameter* InParam = InParams[0];
-	if (!IsValid(InParam))
+	const TWeakObjectPtr<UHoudiniParameter>& InParam = InParams[0];
+	if (!IsValidWeakPointer(InParam))
 		return;
 
 	// The directory won't parse if parameter ids are -1
@@ -1944,7 +1961,7 @@ FHoudiniParameterDetails::CreateWidget(IDetailCategoryBuilder & HouParameterCate
 
 		case EHoudiniParameterType::Separator:
 		{
-			TArray<UHoudiniParameterSeparator*> SepParams;
+			TArray<TWeakObjectPtr<UHoudiniParameterSeparator>> SepParams;
 			if (CastParameters<UHoudiniParameterSeparator>(InParams, SepParams))
 			{
 				bool bEnabled = InParams.IsValidIndex(0) ? !SepParams[0]->IsDisabled() : true;
@@ -2062,13 +2079,13 @@ FHoudiniParameterDetails::CreateTabEndingRow(IDetailCategoryBuilder & HouParamet
 }
 
 void
-FHoudiniParameterDetails::CreateNameWidget(FDetailWidgetRow* Row, TArray<UHoudiniParameter*> &InParams, bool WithLabel)
+FHoudiniParameterDetails::CreateNameWidget(FDetailWidgetRow* Row, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams, bool WithLabel)
 {
 	if (InParams.Num() <= 0)
 		return;
 
-	UHoudiniParameter* MainParam = InParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	if (!Row)
@@ -2078,7 +2095,7 @@ FHoudiniParameterDetails::CreateNameWidget(FDetailWidgetRow* Row, TArray<UHoudin
 	
 	HorizontalBox->DividerLinePositions = DividerLinePositions;
 	HorizontalBox->SetHoudiniParameter(InParams);
-	HorizontalBox->AddIndentation(MainParam, AllMultiParms, AllFoldersAndFolderLists);
+	HorizontalBox->AddIndentation(MainParam.Get(), AllMultiParms, AllFoldersAndFolderLists);
 	
 
 	if (MainParam->IsDirectChildOfMultiParm()) 
@@ -2129,7 +2146,7 @@ FHoudiniParameterDetails::CreateNameWidget(FDetailWidgetRow* Row, TArray<UHoudin
 }
 
 void
-FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, TArray<UHoudiniParameter*> &InParams, bool WithLabel)
+FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams, bool WithLabel)
 {
 	if (!Row)
 		return;
@@ -2137,8 +2154,8 @@ FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, 
 	if (InParams.Num() <= 0)
 		return;
 
-	UHoudiniParameter* MainParam = InParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	FString ParameterLabelStr = MainParam->GetParameterLabel();
@@ -2227,7 +2244,7 @@ FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, 
 
 	auto IsAutoUpdateChecked = [MainParam]()
 	{
-		if (!IsValid(MainParam))
+		if (!IsValidWeakPointer(MainParam))
 			return ECheckBoxState::Unchecked;
 
 		return MainParam->IsAutoUpdate() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -2241,14 +2258,14 @@ FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, 
 		{
 			for (auto & NextSelectedParam : InParams)
 			{
-				if (!NextSelectedParam)
+				if (!IsValidWeakPointer(NextSelectedParam))
 					continue;
 
 				if (NextSelectedParam->IsAutoUpdate() && bCookingEnabled)
 					continue;
 
 				// Do not allow mode change when the Houdini asset component is cooking
-				if (FHoudiniEngineUtils::IsHoudiniAssetComponentCooking(NextSelectedParam))
+				if (FHoudiniEngineUtils::IsHoudiniAssetComponentCooking(NextSelectedParam.Get()))
 					continue;
 
 				switch (MainParam->GetParameterType())
@@ -2297,14 +2314,14 @@ FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, 
 		{
 			for (auto & NextSelectedParam : InParams)
 			{
-				if (!NextSelectedParam)
+				if (!IsValidWeakPointer(NextSelectedParam))
 					continue;
 
 				if (!(NextSelectedParam->IsAutoUpdate() && bCookingEnabled))
 					continue;
 
 				// Do not allow mode change when the Houdini asset component is cooking
-				if (FHoudiniEngineUtils::IsHoudiniAssetComponentCooking(NextSelectedParam))
+				if (FHoudiniEngineUtils::IsHoudiniAssetComponentCooking(NextSelectedParam.Get()))
 					continue;
 
 				NextSelectedParam->SetAutoUpdate(false);
@@ -2349,14 +2366,14 @@ FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, 
 }
 
 FDetailWidgetRow*
-FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> InParams, bool bDecreaseChildCount)
+FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams, bool bDecreaseChildCount)
 {
 	if (InParams.Num() <= 0)
 		return nullptr;
 
-	UHoudiniParameter* MainParam = InParams[0];
+	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
 
-	if (!IsValid(MainParam))
+	if (!IsValidWeakPointer(MainParam))
 		return nullptr;
 
 	// Created row for the current parameter (if there is not a row created, do not show the parameter).
@@ -2384,10 +2401,10 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 			return nullptr;
 
 		// Get the parent multiparm
-		UHoudiniParameterMultiParm* ParentMultiParm = AllMultiParms[ParentMultiParmId];
+		const TWeakObjectPtr<UHoudiniParameterMultiParm>& ParentMultiParm = AllMultiParms[ParentMultiParmId];
 
 		// The parent multiparm is visible.
-		if (ParentMultiParm && ParentMultiParm->IsShown() && MainParam->ShouldDisplay())
+		if (ParentMultiParm.IsValid() && ParentMultiParm->IsShown() && MainParam->ShouldDisplay())
 		{
 			if (MainParam->GetParameterType() != EHoudiniParameterType::FolderList)
 				Row = &(HouParameterCategory.AddCustomRow(FText::GetEmpty()));
@@ -2480,32 +2497,32 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 }
 
 void
-FHoudiniParameterDetails::HandleUnsupportedParmType(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams)
+FHoudiniParameterDetails::HandleUnsupportedParmType(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
 {
 	if (InParams.Num() < 1)
 		return;
 
-	UHoudiniParameter* MainParam = InParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 	
-	CreateNestedRow(HouParameterCategory, (TArray<UHoudiniParameter*>)InParams);
+	CreateNestedRow(HouParameterCategory, InParams);
 }
 
 void
 FHoudiniParameterDetails::CreateWidgetFloat(
 	IDetailCategoryBuilder & HouParameterCategory,
-	TArray<UHoudiniParameter*>& InParams )
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams )
 {
-	TArray<UHoudiniParameterFloat*> FloatParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterFloat>> FloatParams;
 	if (!CastParameters<UHoudiniParameterFloat>(InParams, FloatParams))
 		return;
 
 	if (FloatParams.Num() <= 0)
 		return;
 
-	UHoudiniParameterFloat* MainParam = FloatParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameterFloat>& MainParam = FloatParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	// Create a new detail row
@@ -2527,8 +2544,14 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 	paramTypeInterface = MakeShareable(new TNumericUnitTypeInterface<float>(Unit));
 	
 	// Lambdas for slider begin
-	auto SliderBegin = [&](TArray<UHoudiniParameterFloat*> FloatParams)
+	auto SliderBegin = [](const TArray<TWeakObjectPtr<UHoudiniParameterFloat>>& FloatParams)
 	{
+		if (FloatParams.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(FloatParams[0]))
+			return;
+
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_RUNTIME),
@@ -2537,23 +2560,35 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 
 		for (int Idx = 0; Idx < FloatParams.Num(); Idx++)
 		{
+			if (!IsValidWeakPointer(FloatParams[Idx]))
+				continue;
+			
 			FloatParams[Idx]->Modify();
 		}
 	};
 
 	// Lambdas for slider end
-	auto SliderEnd = [&](TArray<UHoudiniParameterFloat*> FloatParams)
+	auto SliderEnd = [](const TArray<TWeakObjectPtr<UHoudiniParameterFloat>>& FloatParams)
 	{
 		// Mark the value as changed to trigger an update
 		for (int Idx = 0; Idx < FloatParams.Num(); Idx++)
 		{
+			if (!IsValidWeakPointer(FloatParams[Idx]))
+				continue;
+
 			FloatParams[Idx]->MarkChanged(true);
 		}
 	};
 
 	// Lambdas for changing the parameter value
-	auto ChangeFloatValueAt = [&](const float& Value, const int32& Index, const bool& DoChange, TArray<UHoudiniParameterFloat*> FloatParams)
+	auto ChangeFloatValueAt = [](const float& Value, const int32& Index, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniParameterFloat>>& FloatParams)
 	{
+		if (FloatParams.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(FloatParams[0]))
+			return;
+		
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_RUNTIME),
@@ -2563,7 +2598,7 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 		bool bChanged = false;
 		for (int Idx = 0; Idx < FloatParams.Num(); Idx++)
 		{
-			if (!FloatParams[Idx])
+			if (!IsValidWeakPointer(FloatParams[Idx]))
 				continue;
 
 			FloatParams[Idx]->Modify();
@@ -2583,8 +2618,14 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 		}		
 	};
 
-	auto RevertToDefault = [&](const int32& TupleIndex, TArray<UHoudiniParameterFloat*> FloatParams)
+	auto RevertToDefault = [](const int32& TupleIndex, const TArray<TWeakObjectPtr<UHoudiniParameterFloat>>& FloatParams)
 	{
+		if (FloatParams.Num() == 0)
+			return FReply::Handled();
+
+		if (!IsValidWeakPointer(FloatParams[0]))
+			return FReply::Handled();
+		
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_RUNTIME),
@@ -2595,7 +2636,7 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 		{
 			for (int32 Idx = 0; Idx < FloatParams.Num(); Idx++) 
 			{
-				if (!FloatParams[Idx])
+				if (!IsValidWeakPointer(FloatParams[Idx]))
 					continue;
 
 				if (FloatParams[Idx]->IsDefault())
@@ -2608,7 +2649,7 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 		{
 			for (int32 Idx = 0; Idx < FloatParams.Num(); Idx++)
 			{
-				if (!FloatParams[Idx])
+				if (!IsValidWeakPointer(FloatParams[Idx]))
 					continue;
 
 				if (FloatParams[Idx]->IsDefaultValueAtIndex(TupleIndex))
@@ -2646,9 +2687,9 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 				SNew(SVectorInputBox)
 				.bColorAxisLabels(true)
 				.AllowSpin(true)
-				.X(TAttribute<TOptional<float>>::Create(TAttribute<TOptional<float>>::FGetter::CreateUObject(MainParam, &UHoudiniParameterFloat::GetValue, 0)))
-				.Y(TAttribute<TOptional<float>>::Create(TAttribute<TOptional<float>>::FGetter::CreateUObject(MainParam, &UHoudiniParameterFloat::GetValue, SwapVector3 ? 2 : 1)))
-				.Z(TAttribute<TOptional<float>>::Create(TAttribute<TOptional<float>>::FGetter::CreateUObject(MainParam, &UHoudiniParameterFloat::GetValue, SwapVector3 ? 1 : 2)))
+				.X(TAttribute<TOptional<float>>::Create(TAttribute<TOptional<float>>::FGetter::CreateUObject(MainParam.Get(), &UHoudiniParameterFloat::GetValue, 0)))
+				.Y(TAttribute<TOptional<float>>::Create(TAttribute<TOptional<float>>::FGetter::CreateUObject(MainParam.Get(), &UHoudiniParameterFloat::GetValue, SwapVector3 ? 2 : 1)))
+				.Z(TAttribute<TOptional<float>>::Create(TAttribute<TOptional<float>>::FGetter::CreateUObject(MainParam.Get(), &UHoudiniParameterFloat::GetValue, SwapVector3 ? 1 : 2)))
 				.OnXCommitted_Lambda( [ChangeFloatValueAt, ChangeFloatValueUniformly, FloatParams, MainParam, SwapVector3](float Val, ETextCommit::Type TextCommitType)
 				{ 
 					if (MainParam->IsUniformLocked())
@@ -2714,18 +2755,18 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 					]
 					.OnClicked_Lambda([FloatParams, MainParam]()
 					{
-						if (!IsValid(MainParam))
+						if (!IsValidWeakPointer(MainParam))
 							return FReply::Handled();
 
 						for (auto & CurParam : FloatParams) 
 						{
-							if (!IsValid(CurParam))
+							if (!IsValidWeakPointer(CurParam))
 								continue;
 
 							CurParam->SwitchUniformLock();
 						}
 
-						FHoudiniEngineUtils::UpdateEditorProperties(MainParam, true);
+						FHoudiniEngineUtils::UpdateEditorProperties(MainParam.Get(), true);
 
 						return FReply::Handled();
 					})
@@ -2741,7 +2782,7 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 					{
 						for (auto & SelectedParam : FloatParams)
 						{
-							if (!SelectedParam)
+							if (!IsValidWeakPointer(SelectedParam))
 								continue;
 
 							if (!SelectedParam->IsDefault())
@@ -2781,7 +2822,7 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 					.MinSliderValue(MainParam->GetUIMin())
 					.MaxSliderValue(MainParam->GetUIMax())
 
-					.Value(TAttribute<TOptional<float>>::Create(TAttribute<TOptional<float>>::FGetter::CreateUObject(MainParam, &UHoudiniParameterFloat::GetValue, Idx)))
+					.Value(TAttribute<TOptional<float>>::Create(TAttribute<TOptional<float>>::FGetter::CreateUObject(MainParam.Get(), &UHoudiniParameterFloat::GetValue, Idx)))
 					.OnValueChanged_Lambda([ChangeFloatValueAt, Idx, FloatParams](float Val) { ChangeFloatValueAt(Val, Idx, false, FloatParams); })
 					.OnValueCommitted_Lambda([ChangeFloatValueAt, Idx, FloatParams](float Val, ETextCommit::Type TextCommitType) {	ChangeFloatValueAt(Val, Idx, true, FloatParams); })
 					.OnBeginSliderMovement_Lambda([SliderBegin, FloatParams]() { SliderBegin(FloatParams); })
@@ -2803,7 +2844,7 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 					{
 						for (auto & SelectedParam :FloatParams)
 						{
-							if (!SelectedParam)
+							if (!IsValidWeakPointer(SelectedParam))
 								continue;
 
 							if (!SelectedParam->IsDefaultValueAtIndex(Idx))
@@ -2828,16 +2869,16 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetInt(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*>& InParams)
+FHoudiniParameterDetails::CreateWidgetInt(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
-	TArray<UHoudiniParameterInt*> IntParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterInt>> IntParams;
 	if (!CastParameters<UHoudiniParameterInt>(InParams, IntParams))
 
 	if (IntParams.Num() <= 0)
 		return;
 
-	UHoudiniParameterInt* MainParam = IntParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameterInt>& MainParam = IntParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	// Create a new detail row
@@ -2861,8 +2902,14 @@ FHoudiniParameterDetails::CreateWidgetInt(IDetailCategoryBuilder & HouParameterC
 	paramTypeInterface = MakeShareable(new TNumericUnitTypeInterface<int32>(Unit));
 
 	// Lambda for slider begin
-	auto SliderBegin = [&](TArray<UHoudiniParameterInt*> IntParams)
+	auto SliderBegin = [](const TArray<TWeakObjectPtr<UHoudiniParameterInt>>& IntParams)
 	{
+		if (IntParams.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(IntParams[0]))
+			return;
+		
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_RUNTIME),
@@ -2871,23 +2918,35 @@ FHoudiniParameterDetails::CreateWidgetInt(IDetailCategoryBuilder & HouParameterC
 
 		for (int Idx = 0; Idx < IntParams.Num(); Idx++)
 		{
+			if (!IsValidWeakPointer(IntParams[Idx]))
+				continue;
+			
 			IntParams[Idx]->Modify();
 		}
 	};
 	
 	// Lambda for slider end
-	auto SliderEnd = [&](TArray<UHoudiniParameterInt*> IntParams)
+	auto SliderEnd = [](const TArray<TWeakObjectPtr<UHoudiniParameterInt>>& IntParams)
 	{
 		// Mark the value as changed to trigger an update
 		for (int Idx = 0; Idx < IntParams.Num(); Idx++)
 		{
+			if (!IsValidWeakPointer(IntParams[Idx]))
+				continue;
+			
 			IntParams[Idx]->MarkChanged(true);
 		}
 	};
 	
 	// Lambda for changing the parameter value
-	auto ChangeIntValueAt = [&](const int32& Value, const int32& Index, const bool& DoChange, TArray<UHoudiniParameterInt*> IntParams)
+	auto ChangeIntValueAt = [](const int32& Value, const int32& Index, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniParameterInt>>& IntParams)
 	{
+		if (IntParams.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(IntParams[0]))
+			return;
+		
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_RUNTIME),
 			LOCTEXT("HoudiniParameterIntChange", "Houdini Parameter Int: Changing a value"),
@@ -2896,7 +2955,7 @@ FHoudiniParameterDetails::CreateWidgetInt(IDetailCategoryBuilder & HouParameterC
 		bool bChanged = false;
 		for (int Idx = 0; Idx < IntParams.Num(); Idx++)
 		{
-			if (!IntParams[Idx])
+			if (!IsValidWeakPointer(IntParams[Idx]))
 				continue;
 
 			IntParams[Idx]->Modify();
@@ -2916,11 +2975,11 @@ FHoudiniParameterDetails::CreateWidgetInt(IDetailCategoryBuilder & HouParameterC
 		}
 	};
 
-	auto RevertToDefault = [&](const int32& TupleIndex, TArray<UHoudiniParameterInt*> IntParams)
+	auto RevertToDefault = [](const int32& TupleIndex, const TArray<TWeakObjectPtr<UHoudiniParameterInt>>& IntParams)
 	{
 		for (int32 Idx = 0; Idx < IntParams.Num(); Idx++) 
 		{
-			if (!IntParams[Idx])
+			if (!IsValidWeakPointer(IntParams[Idx]))
 				continue;
 
 			if (IntParams[Idx]->IsDefaultValueAtIndex(TupleIndex))
@@ -2952,7 +3011,7 @@ FHoudiniParameterDetails::CreateWidgetInt(IDetailCategoryBuilder & HouParameterC
 				.MinSliderValue(MainParam->GetUIMin())
 				.MaxSliderValue(MainParam->GetUIMax())
 
-				.Value( TAttribute<TOptional<int32>>::Create(TAttribute<TOptional<int32>>::FGetter::CreateUObject(MainParam, &UHoudiniParameterInt::GetValue, Idx)))
+				.Value( TAttribute<TOptional<int32>>::Create(TAttribute<TOptional<int32>>::FGetter::CreateUObject(MainParam.Get(), &UHoudiniParameterInt::GetValue, Idx)))
 				.OnValueChanged_Lambda( [=](int32 Val) { ChangeIntValueAt(Val, Idx, false, IntParams); } )
 				.OnValueCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType) { ChangeIntValueAt(Val, Idx, true, IntParams); })
 				.OnBeginSliderMovement_Lambda( [=]() { SliderBegin(IntParams); })
@@ -2973,7 +3032,7 @@ FHoudiniParameterDetails::CreateWidgetInt(IDetailCategoryBuilder & HouParameterC
 				{
 					for (auto & NextSelectedParam : IntParams) 
 					{
-						if (!NextSelectedParam)
+						if (!IsValidWeakPointer(NextSelectedParam))
 							continue;
 	
 						if (!NextSelectedParam->IsDefaultValueAtIndex(Idx))
@@ -3002,17 +3061,17 @@ FHoudiniParameterDetails::CreateWidgetInt(IDetailCategoryBuilder & HouParameterC
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*>& InParams)
+FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
-	TArray<UHoudiniParameterString*> StringParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterString>> StringParams;
 	if (!CastParameters<UHoudiniParameterString>(InParams, StringParams))
 		return;
 
 	if (StringParams.Num() <= 0)
 		return;
 	
-	UHoudiniParameterString* MainParam = StringParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameterString>& MainParam = StringParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	// Create a new detail row
@@ -3052,8 +3111,14 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 	for (int32 Idx = 0; Idx < MainParam->GetTupleSize(); ++Idx)
 	{
 		// Lambda for changing the parameter value
-		auto ChangeStringValueAt = [&](const FString& Value, UObject* ChosenObj, const int32& Index, const bool& DoChange, TArray<UHoudiniParameterString*> StringParams)
+		auto ChangeStringValueAt = [](const FString& Value, UObject* ChosenObj, const int32& Index, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniParameterString>>& StringParams)
 		{
+			if (StringParams.Num() == 0)
+				return;
+
+			if (!IsValidWeakPointer(StringParams[0]))
+				return;
+			
 			FScopedTransaction Transaction(
 				TEXT(HOUDINI_MODULE_RUNTIME),
 				LOCTEXT("HoudiniParameterSrtingChange", "Houdini Parameter String: Changing a value"),
@@ -3062,7 +3127,7 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 			bool bChanged = false;
 			for (int Idx = 0; Idx < StringParams.Num(); Idx++)
 			{
-				if (!StringParams[Idx])
+				if (!IsValidWeakPointer(StringParams[Idx]))
 					continue;
 
 				StringParams[Idx]->Modify();
@@ -3081,14 +3146,14 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 				Transaction.Cancel();
 			}
 
-			FHoudiniEngineUtils::UpdateEditorProperties(StringParams[0], false);
+			FHoudiniEngineUtils::UpdateEditorProperties(StringParams[0].Get(), false);
 		};
 
-		auto RevertToDefault = [&](const int32& TupleIndex, TArray<UHoudiniParameterString*> StringParams)
+		auto RevertToDefault = [](const int32& TupleIndex, const TArray<TWeakObjectPtr<UHoudiniParameterString>>& StringParams)
 		{
 			for (int32 Idx = 0; Idx < StringParams.Num(); Idx++) 
 			{
-				if (!StringParams[Idx])
+				if (!IsValidWeakPointer(StringParams[Idx]))
 					continue;
 
 				if (StringParams[Idx]->IsDefaultValueAtIndex(TupleIndex))
@@ -3311,7 +3376,7 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 						{
 							for (auto & NextSelectedParam : StringParams) 
 							{
-								if (!NextSelectedParam)
+								if (!IsValidWeakPointer(NextSelectedParam))
 									continue;
 
 								if (!NextSelectedParam->IsDefaultValueAtIndex(Idx))
@@ -3367,7 +3432,7 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 						{
 							for (auto & NextSelectedParam : StringParams)
 							{
-								if (!NextSelectedParam)
+								if (!IsValidWeakPointer(NextSelectedParam))
 									continue;
 
 								if (!NextSelectedParam->IsDefaultValueAtIndex(Idx))
@@ -3396,17 +3461,17 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetColor(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*>& InParams)
+FHoudiniParameterDetails::CreateWidgetColor(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
-	TArray<UHoudiniParameterColor*> ColorParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterColor>> ColorParams;
 	if (!CastParameters<UHoudiniParameterColor>(InParams, ColorParams))
 		return;
 
 	if (ColorParams.Num() <= 0)
 		return;
 
-	UHoudiniParameterColor* MainParam = ColorParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameterColor>& MainParam = ColorParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 		// Create a new detail row
 	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
@@ -3434,7 +3499,7 @@ FHoudiniParameterDetails::CreateWidgetColor(IDetailCategoryBuilder & HouParamete
 				PickerArgs.bUseAlpha = bHasAlpha;
 				PickerArgs.DisplayGamma = TAttribute< float >::Create(
 					TAttribute< float >::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma));
-				PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateLambda([&](FLinearColor InColor) 
+				PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateLambda([MainParam, ColorParams](FLinearColor InColor) 
 				{
 					FScopedTransaction Transaction(
 						TEXT(HOUDINI_MODULE_RUNTIME),
@@ -3444,7 +3509,7 @@ FHoudiniParameterDetails::CreateWidgetColor(IDetailCategoryBuilder & HouParamete
 					bool bChanged = false;
 					for (auto & Param : ColorParams) 
 					{
-						if (!Param)
+						if (!IsValidWeakPointer(Param))
 							continue;
 
 						Param->Modify();
@@ -3474,17 +3539,17 @@ FHoudiniParameterDetails::CreateWidgetColor(IDetailCategoryBuilder & HouParamete
 }
 
 void 
-FHoudiniParameterDetails::CreateWidgetButton(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*>& InParams) 
+FHoudiniParameterDetails::CreateWidgetButton(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams) 
 {
-	TArray<UHoudiniParameterButton*> ButtonParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterButton>> ButtonParams;
 	if (!CastParameters<UHoudiniParameterButton>(InParams, ButtonParams))
 		return;
 
 	if (ButtonParams.Num() <= 0)
 		return;
 
-	UHoudiniParameterButton* MainParam = ButtonParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameterButton>& MainParam = ButtonParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	// Create a new detail row
@@ -3514,7 +3579,7 @@ FHoudiniParameterDetails::CreateWidgetButton(IDetailCategoryBuilder & HouParamet
 		{
 			for (auto & Param : ButtonParams) 
 			{
-				if (!Param)
+				if (!IsValidWeakPointer(Param))
 					continue;
 
 				// There is no undo redo operation for button
@@ -3531,17 +3596,17 @@ FHoudiniParameterDetails::CreateWidgetButton(IDetailCategoryBuilder & HouParamet
 }
 
 void 
-FHoudiniParameterDetails::CreateWidgetButtonStrip(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*>& InParams) 
+FHoudiniParameterDetails::CreateWidgetButtonStrip(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams) 
 {
-	TArray<UHoudiniParameterButtonStrip*> ButtonStripParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterButtonStrip>> ButtonStripParams;
 	if (!CastParameters<UHoudiniParameterButtonStrip>(InParams, ButtonStripParams))
 		return;
 
 	if (ButtonStripParams.Num() <= 0)
 		return;
 
-	UHoudiniParameterButtonStrip* MainParam = ButtonStripParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameterButtonStrip>& MainParam = ButtonStripParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	// Create a new detail row
@@ -3567,7 +3632,7 @@ FHoudiniParameterDetails::CreateWidgetButtonStrip(IDetailCategoryBuilder & HouPa
 
 		for (auto & NextParam : ButtonStripParams)
 		{
-			if (!IsValid(NextParam))
+			if (!IsValidWeakPointer(NextParam))
 				continue;
 
 			if (!NextParam->Values.IsValidIndex(Idx))
@@ -3630,17 +3695,17 @@ FHoudiniParameterDetails::CreateWidgetButtonStrip(IDetailCategoryBuilder & HouPa
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetLabel(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams) 
+FHoudiniParameterDetails::CreateWidgetLabel(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams) 
 {
-	TArray<UHoudiniParameterLabel*> LabelParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterLabel>> LabelParams;
 	if (!CastParameters<UHoudiniParameterLabel>(InParams, LabelParams))
 		return;
 
 	if (LabelParams.Num() <= 0)
 		return;
 
-	UHoudiniParameterLabel* MainParam = LabelParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameterLabel>& MainParam = LabelParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	// Create a new detail row
@@ -3674,17 +3739,17 @@ FHoudiniParameterDetails::CreateWidgetLabel(IDetailCategoryBuilder & HouParamete
 }
 
 void 
-FHoudiniParameterDetails::CreateWidgetToggle(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams) 
+FHoudiniParameterDetails::CreateWidgetToggle(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams) 
 {
-	TArray<UHoudiniParameterToggle*> ToggleParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterToggle>> ToggleParams;
 	if (!CastParameters<UHoudiniParameterToggle>(InParams, ToggleParams))
 		return;
 
 	if (ToggleParams.Num() <= 0)
 		return;
 
-	UHoudiniParameterToggle* MainParam = ToggleParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameterToggle>& MainParam = ToggleParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	// Create a new detail row
@@ -3725,7 +3790,7 @@ FHoudiniParameterDetails::CreateWidgetToggle(IDetailCategoryBuilder & HouParamet
 		bool bChanged = false;
 		for (auto & Param : ToggleParams) 
 		{
-			if (!Param)
+			if (!IsValidWeakPointer(Param))
 				continue;
 
 			Param->Modify();
@@ -3773,17 +3838,17 @@ FHoudiniParameterDetails::CreateWidgetToggle(IDetailCategoryBuilder & HouParamet
 
 }
 
-void FHoudiniParameterDetails::CreateWidgetFile(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams) 
+void FHoudiniParameterDetails::CreateWidgetFile(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams) 
 {
-	TArray<UHoudiniParameterFile*> FileParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterFile>> FileParams;
 	if (!CastParameters<UHoudiniParameterFile>(InParams, FileParams))
 		return;
 
 	if (FileParams.Num() <= 0)
 		return;
 
-	UHoudiniParameterFile* MainParam = FileParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameterFile>& MainParam = FileParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	// Create a new detail row
@@ -3883,7 +3948,7 @@ void FHoudiniParameterDetails::CreateWidgetFile(IDetailCategoryBuilder & HouPara
 				.ToolTipText_Lambda([MainParam]()
 				{
 					// return the current param value as a tooltip
-					FString FileValue = MainParam ? MainParam->GetValueAt(0) : FString();
+					FString FileValue = MainParam.IsValid() ? MainParam->GetValueAt(0) : FString();
 					return FText::FromString(FileValue);
 				})
 				.OnPathPicked(FOnPathPicked::CreateLambda([MainParam, FileParams, UpdateCheckRelativePath, Idx](const FString & PickedPath) 
@@ -3900,7 +3965,7 @@ void FHoudiniParameterDetails::CreateWidgetFile(IDetailCategoryBuilder & HouPara
 
 					for (auto & Param : FileParams) 
 					{
-						if (!Param)
+						if (!IsValidWeakPointer(Param))
 							continue;
 
 						Param->Modify();
@@ -3929,17 +3994,17 @@ void FHoudiniParameterDetails::CreateWidgetFile(IDetailCategoryBuilder & HouPara
 
 
 void
-FHoudiniParameterDetails::CreateWidgetChoice(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*>& InParams)
+FHoudiniParameterDetails::CreateWidgetChoice(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
-	TArray<UHoudiniParameterChoice*> ChoiceParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterChoice>> ChoiceParams;
 	if (!CastParameters<UHoudiniParameterChoice>(InParams, ChoiceParams))
 		return;
 
 	if (ChoiceParams.Num() <= 0)
 		return;
 
-	UHoudiniParameterChoice* MainParam = ChoiceParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameterChoice>& MainParam = ChoiceParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	// Create a new detail row
@@ -3967,7 +4032,7 @@ FHoudiniParameterDetails::CreateWidgetChoice(IDetailCategoryBuilder & HouParamet
 		bool bChanged = false;
 		for (int Idx = 0; Idx < ChoiceParams.Num(); Idx++)
 		{
-			if (!ChoiceParams[Idx])
+			if (!IsValidWeakPointer(ChoiceParams[Idx]))
 				continue;
 
 			ChoiceParams[Idx]->Modify();
@@ -4029,14 +4094,13 @@ FHoudiniParameterDetails::CreateWidgetChoice(IDetailCategoryBuilder & HouParamet
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetSeparator(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*>& InParams, const bool& InIsEnabled)
+FHoudiniParameterDetails::CreateWidgetSeparator(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams, const bool& InIsEnabled)
 {
 	if (InParams.Num() <= 0)
 		return;
 
-	UHoudiniParameter* MainParam = InParams[0];
-
-	if (!MainParam)
+	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	// Create a new detail row
@@ -4054,25 +4118,25 @@ FHoudiniParameterDetails::CreateWidgetSeparator(IDetailCategoryBuilder & HouPara
 }
 
 void 
-FHoudiniParameterDetails::CreateWidgetOperatorPath(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams) 
+FHoudiniParameterDetails::CreateWidgetOperatorPath(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams) 
 {
-	TArray<UHoudiniParameterOperatorPath*> OperatorPathParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterOperatorPath>> OperatorPathParams;
 	if (!CastParameters<UHoudiniParameterOperatorPath>(InParams, OperatorPathParams))
 		return;
 
 	if (OperatorPathParams.Num() <= 0)
 		return;
 
-	UHoudiniParameterOperatorPath* MainParam = OperatorPathParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameterOperatorPath>& MainParam = OperatorPathParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
-	UHoudiniInput* MainInput = MainParam->HoudiniInput.Get();
-	if (!MainInput)
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = MainParam->HoudiniInput;
+	if (!IsValidWeakPointer(MainInput))
 		return;
 
 	// Build an array of edited inputs for multi edition
-	TArray<UHoudiniInput*> EditedInputs;
+	TArray<TWeakObjectPtr<UHoudiniInput>> EditedInputs;
 	EditedInputs.Add(MainInput);
 
 	// Add the corresponding inputs found in the other HAC
@@ -4103,13 +4167,13 @@ FHoudiniParameterDetails::CreateWidgetOperatorPath(IDetailCategoryBuilder & HouP
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetFloatRamp(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams) 
+FHoudiniParameterDetails::CreateWidgetFloatRamp(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams) 
 {
 	if (InParams.Num() < 1)
 		return;
 
-	UHoudiniParameter* MainParam = InParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	// TODO: remove this once we have verified that updating the Points and CachedPoints arrays in
@@ -4274,13 +4338,13 @@ FHoudiniParameterDetails::CreateWidgetFloatRamp(IDetailCategoryBuilder & HouPara
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetColorRamp(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams)
+FHoudiniParameterDetails::CreateWidgetColorRamp(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
 {
 	if (InParams.Num() < 1)
 		return;
 
-	UHoudiniParameter* MainParam = InParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	// TODO: remove this once we have verified that updating the Points and CachedPoints arrays in
@@ -4434,17 +4498,17 @@ FHoudiniParameterDetails::CreateWidgetColorRamp(IDetailCategoryBuilder & HouPara
 
 
 FDetailWidgetRow*
-FHoudiniParameterDetails::CreateWidgetRampCurveEditor(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams)
+FHoudiniParameterDetails::CreateWidgetRampCurveEditor(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
 {
 	if (InParams.Num() <= 0)
 		return nullptr;
 
-	UHoudiniParameter* MainParam = InParams[0];
-	if (!MainParam)
+	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return nullptr;
 	
 	// Create a new detail row
-	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, (TArray<UHoudiniParameter*>)InParams);
+	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
 	if (!Row)
 		return nullptr;
 
@@ -4491,7 +4555,7 @@ FHoudiniParameterDetails::CreateWidgetRampCurveEditor(IDetailCategoryBuilder & H
 		// Add the ramp curve to root to avoid garabage collected.
 		CurrentRampParameterColorCurve->AddToRoot();
 
-		TArray<UHoudiniParameterRampColor*> ColorRampParameters;
+		TArray<TWeakObjectPtr<UHoudiniParameterRampColor>> ColorRampParameters;
 		CastParameters<UHoudiniParameterRampColor>(InParams, ColorRampParameters);
 
 		for (auto NextColorRamp : ColorRampParameters)
@@ -4564,7 +4628,7 @@ FHoudiniParameterDetails::CreateWidgetRampCurveEditor(IDetailCategoryBuilder & H
 		// Add the ramp curve to root to avoid garbage collected
 		CurrentRampParameterFloatCurve->AddToRoot();
 
-		TArray<UHoudiniParameterRampFloat*> FloatRampParameters;
+		TArray<TWeakObjectPtr<UHoudiniParameterRampFloat>> FloatRampParameters;
 		CastParameters<UHoudiniParameterRampFloat>(InParams, FloatRampParameters);		
 		for (auto NextFloatRamp : FloatRampParameters)
 		{
@@ -4585,7 +4649,7 @@ FHoudiniParameterDetails::CreateWidgetRampCurveEditor(IDetailCategoryBuilder & H
 
 
 void 
-FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& CategoryBuilder, FDetailWidgetRow* Row, UHoudiniParameter* InParameter, TArray<UHoudiniParameter*>& InParams) 
+FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& CategoryBuilder, FDetailWidgetRow* Row, UHoudiniParameter* InParameter, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams) 
 {
 	if (!Row || !InParameter)
 		return;
@@ -4593,20 +4657,20 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 	if (InParams.Num() < 1)
 		return;
 	
-	UHoudiniParameter* MainParam = InParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
-	UHoudiniParameterRampFloat * MainFloatRampParameter = nullptr; 
-	UHoudiniParameterRampColor * MainColorRampParameter = nullptr;
+	TWeakObjectPtr<UHoudiniParameterRampFloat> MainFloatRampParameter; 
+	TWeakObjectPtr<UHoudiniParameterRampColor> MainColorRampParameter;
 
-	TArray<UHoudiniParameterRampFloat*> FloatRampParameterList;
-	TArray<UHoudiniParameterRampColor*> ColorRampParameterList;
+	TArray<TWeakObjectPtr<UHoudiniParameterRampFloat>> FloatRampParameterList;
+	TArray<TWeakObjectPtr<UHoudiniParameterRampColor>> ColorRampParameterList;
 	if (MainParam->GetParameterType() == EHoudiniParameterType::FloatRamp)
 	{
 		MainFloatRampParameter = Cast<UHoudiniParameterRampFloat>(MainParam);
 
-		if (!MainFloatRampParameter)
+		if (!IsValidWeakPointer(MainFloatRampParameter))
 			return;
 
 		if (!CastParameters<UHoudiniParameterRampFloat>(InParams, FloatRampParameterList))
@@ -4616,7 +4680,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 	{
 		MainColorRampParameter = Cast<UHoudiniParameterRampColor>(MainParam);
 
-		if (!MainColorRampParameter)
+		if (!IsValidWeakPointer(MainColorRampParameter))
 			return;
 
 		if (!CastParameters<UHoudiniParameterRampColor>(InParams, ColorRampParameterList))
@@ -4636,7 +4700,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 		float& OutValue, 
 		EHoudiniRampInterpolationType& OutInterpType) mutable
 	{
-		if (!MainFloatRampParameter)
+		if (!IsValidWeakPointer(MainFloatRampParameter))
 			return;
 
 		float PrevPosition = 0.0f;
@@ -4741,7 +4805,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 		FLinearColor& OutColor,
 		EHoudiniRampInterpolationType& OutInterpType) mutable
 	{
-		if (!MainColorRampParameter)
+		if (!IsValidWeakPointer(MainColorRampParameter))
 			return;
 
 		float PrevPosition = 0.0f;
@@ -4837,13 +4901,13 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 	
 	int32 RowIndex = 0;
 	auto InsertRampPoint_Lambda = [GetInsertColorPointLambda, GetInsertFloatPointLambda, &CategoryBuilder, bCookingEnabled](
-		UHoudiniParameterRampFloat* MainRampFloat, 
-		UHoudiniParameterRampColor* MainRampColor, 
-		TArray<UHoudiniParameterRampFloat*> &RampFloatList,
-		TArray<UHoudiniParameterRampColor*> &RampColorList,
+		const TWeakObjectPtr<UHoudiniParameterRampFloat>& MainRampFloat, 
+		const TWeakObjectPtr<UHoudiniParameterRampColor>& MainRampColor, 
+		const TArray<TWeakObjectPtr<UHoudiniParameterRampFloat>> &RampFloatList,
+		const TArray<TWeakObjectPtr<UHoudiniParameterRampColor>> &RampColorList,
 		const int32& Index) mutable 
 	{
-		if (MainRampFloat)
+		if (MainRampFloat.IsValid())
 		{
 			float InsertPosition = 0.0f;
 			float InsertValue = 1.0f;
@@ -4855,17 +4919,20 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 
 			for (auto & NextFloatRamp : RampFloatList)
 			{
+				if (!IsValidWeakPointer(NextFloatRamp))
+					continue;
+				
 				if (NextFloatRamp->IsAutoUpdate() && bCookingEnabled)
 				{
 					CreateFloatRampParameterInsertEvent(
-						NextFloatRamp, InsertPosition, InsertValue, InsertInterp);
+						NextFloatRamp.Get(), InsertPosition, InsertValue, InsertInterp);
 
 					NextFloatRamp->MarkChanged(true);
 				}
 				else
 				{
 					UHoudiniParameterRampFloatPoint* NewCachedPoint = NewObject<UHoudiniParameterRampFloatPoint>
-						(NextFloatRamp, UHoudiniParameterRampFloatPoint::StaticClass());
+						(NextFloatRamp.Get(), UHoudiniParameterRampFloatPoint::StaticClass());
 					NewCachedPoint->Position = InsertPosition;
 					NewCachedPoint->Value = InsertValue;
 					NewCachedPoint->Interpolation = InsertInterp;
@@ -4887,7 +4954,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 			}
 
 		}
-		else if (MainRampColor)
+		else if (MainRampColor.IsValid())
 		{
 			float InsertPosition = 0.0f;
 			FLinearColor InsertColor = FLinearColor::Black;
@@ -4898,17 +4965,20 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 			FHoudiniParameterDetails::ReplaceAllColorRampParameterPointsWithMainParameter(RampColorList);
 			for (auto& NextColorRamp : RampColorList)
 			{
+				if (!IsValidWeakPointer(NextColorRamp))
+					continue;
+				
 				if (NextColorRamp->IsAutoUpdate() && bCookingEnabled)
 				{
 					CreateColorRampParameterInsertEvent(
-						NextColorRamp, InsertPosition, InsertColor, InsertInterp);
+						NextColorRamp.Get(), InsertPosition, InsertColor, InsertInterp);
 
 					NextColorRamp->MarkChanged(true);
 				}
 				else
 				{
 					UHoudiniParameterRampColorPoint* NewCachedPoint = NewObject<UHoudiniParameterRampColorPoint>
-						(NextColorRamp, UHoudiniParameterRampColorPoint::StaticClass());
+						(NextColorRamp.Get(), UHoudiniParameterRampColorPoint::StaticClass());
 					NewCachedPoint->Position = InsertPosition;
 					NewCachedPoint->Value = InsertColor;
 					NewCachedPoint->Interpolation = InsertInterp;
@@ -4922,24 +4992,27 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 
 			if (!(MainRampColor->IsAutoUpdate() && bCookingEnabled))
 			{
-				FHoudiniEngineUtils::UpdateEditorProperties(MainRampColor, true);
+				FHoudiniEngineUtils::UpdateEditorProperties(MainRampColor.Get(), true);
 			}
 		}
 	};
 
 	auto DeleteRampPoint_Lambda = [bCookingEnabled](
-		UHoudiniParameterRampFloat* MainRampFloat,
-		UHoudiniParameterRampColor* MainRampColor, 
-		TArray<UHoudiniParameterRampFloat*> &FloatRampList,
-		TArray<UHoudiniParameterRampColor*> &ColorRampList,
+		const TWeakObjectPtr<UHoudiniParameterRampFloat>& MainRampFloat,
+		const TWeakObjectPtr<UHoudiniParameterRampColor>& MainRampColor, 
+		const TArray<TWeakObjectPtr<UHoudiniParameterRampFloat>> &FloatRampList,
+		const TArray<TWeakObjectPtr<UHoudiniParameterRampColor>> &ColorRampList,
 		const int32& Index) mutable
 	{
-		if (MainRampFloat)
+		if (MainRampFloat.IsValid())
 		{
 			FHoudiniParameterDetails::ReplaceAllFloatRampParameterPointsWithMainParameter(FloatRampList);
 
 			for (auto& NextFloatRamp : FloatRampList)
 			{
+				if (!IsValidWeakPointer(NextFloatRamp))
+					continue;
+				
 				if (NextFloatRamp->IsAutoUpdate() && bCookingEnabled)
 				{
 					if (NextFloatRamp->Points.Num() == 0)
@@ -4957,7 +5030,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 
 					const int32 & InstanceIndexToDelete = PointToDelete->InstanceIndex;
 
-					CreateFloatRampParameterDeleteEvent(NextFloatRamp, InstanceIndexToDelete);
+					CreateFloatRampParameterDeleteEvent(NextFloatRamp.Get(), InstanceIndexToDelete);
 					NextFloatRamp->MarkChanged(true);
 				}
 				else
@@ -4980,7 +5053,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 
 			if (!(MainRampFloat->IsAutoUpdate() && bCookingEnabled))
 			{
-				FHoudiniEngineUtils::UpdateEditorProperties(MainRampFloat, true);
+				FHoudiniEngineUtils::UpdateEditorProperties(MainRampFloat.Get(), true);
 			}
 		}
 		else
@@ -4989,6 +5062,9 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 
 			for (auto& NextColorRamp : ColorRampList)
 			{
+				if (!IsValidWeakPointer(NextColorRamp))
+					continue;
+				
 				if (NextColorRamp->IsAutoUpdate() && bCookingEnabled)
 				{
 					if (NextColorRamp->Points.Num() == 0)
@@ -5006,7 +5082,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 
 					const int32 & InstanceIndexToDelete = PointToRemove->InstanceIndex;
 
-					CreateColorRampParameterDeleteEvent(NextColorRamp, InstanceIndexToDelete);
+					CreateColorRampParameterDeleteEvent(NextColorRamp.Get(), InstanceIndexToDelete);
 
 					NextColorRamp->MarkChanged(true);
 				}
@@ -5030,7 +5106,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 
 			if (!(MainRampColor->IsAutoUpdate() && bCookingEnabled))
 			{
-				FHoudiniEngineUtils::UpdateEditorProperties(MainRampColor, true);
+				FHoudiniEngineUtils::UpdateEditorProperties(MainRampColor.Get(), true);
 			}
 		}
 	};
@@ -5057,7 +5133,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 	];
 
 	FString ValueString = TEXT("Value");
-	if (!MainFloatRampParameter)
+	if (!MainFloatRampParameter.IsValid())
 		ValueString = TEXT("Color");
 
 	GridPanel->AddSlot(1, RowIndex)
@@ -5087,14 +5163,14 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 				FSimpleDelegate::CreateLambda([InsertRampPoint_Lambda, MainFloatRampParameter, MainColorRampParameter, FloatRampParameterList, ColorRampParameterList, bCookingEnabled]() mutable
 				{
 					int32 InsertAtIndex = -1;
-					if (MainFloatRampParameter) 
+					if (MainFloatRampParameter.IsValid()) 
 					{
 						if (MainFloatRampParameter->IsAutoUpdate() && bCookingEnabled)
 							InsertAtIndex = MainFloatRampParameter->Points.Num();
 						else
 							InsertAtIndex = MainFloatRampParameter->CachedPoints.Num();
 					}
-					else if (MainColorRampParameter) 
+					else if (MainColorRampParameter.IsValid()) 
 					{
 						if (MainColorRampParameter->IsAutoUpdate() && bCookingEnabled)
 							InsertAtIndex = MainColorRampParameter->Points.Num();
@@ -5129,7 +5205,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 	int32 PointCount = 0;
 	// Use Synced points on auto update mode
 	// Use Cached points on manual update mode
-	if (MainFloatRampParameter)
+	if (MainFloatRampParameter.IsValid())
 	{
 		if (MainFloatRampParameter->IsAutoUpdate() && bCookingEnabled)
 			PointCount = MainFloatRampParameter->Points.Num();
@@ -5137,7 +5213,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 			PointCount = MainFloatRampParameter->CachedPoints.Num();
 	}
 
-	if (MainColorRampParameter)
+	if (MainColorRampParameter.IsValid())
 	{
 		if (MainColorRampParameter->IsAutoUpdate())
 			PointCount = MainColorRampParameter->Points.Num();
@@ -5147,15 +5223,15 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 
 	// Lambda function for changing a ramp point
 	auto OnPointChangeCommit = [bCookingEnabled](
-		UHoudiniParameterRampFloat* MainRampFloat, UHoudiniParameterRampColor* MainRampColor, 
-		UHoudiniParameterRampFloatPoint* MainRampFloatPoint, UHoudiniParameterRampColorPoint* MainRampColorPoint,
-		TArray<UHoudiniParameterRampFloat*> &RampFloatList, TArray<UHoudiniParameterRampColor*> &RampColorList, 
+		const TWeakObjectPtr<UHoudiniParameterRampFloat>& MainRampFloat, const TWeakObjectPtr<UHoudiniParameterRampColor>& MainRampColor, 
+		const TWeakObjectPtr<UHoudiniParameterRampFloatPoint>& MainRampFloatPoint, const TWeakObjectPtr<UHoudiniParameterRampColorPoint>& MainRampColorPoint,
+		const TArray<TWeakObjectPtr<UHoudiniParameterRampFloat>> &RampFloatList, const TArray<TWeakObjectPtr<UHoudiniParameterRampColor>> &RampColorList, 
 		const int32& Index, const FString& ChangedDataName, 
 		const float& NewPosition, const float& NewFloat, 
 		const FLinearColor& NewColor, 
 		const EHoudiniRampInterpolationType& NewInterpType) mutable
 	{
-		if (MainRampFloat && MainRampFloatPoint)
+		if (MainRampFloat.IsValid() && MainRampFloatPoint.IsValid())
 		{
 			if (ChangedDataName == FString("position") && MainRampFloatPoint->GetPosition() == NewPosition)
 				return;
@@ -5167,7 +5243,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 			FHoudiniParameterDetails::ReplaceAllFloatRampParameterPointsWithMainParameter(RampFloatList);
 			for (auto NextFloatRamp : RampFloatList)
 			{
-				if (!NextFloatRamp)
+				if (!IsValidWeakPointer(NextFloatRamp))
 					continue;
 
 				if (NextFloatRamp->IsAutoUpdate() && bCookingEnabled)
@@ -5254,10 +5330,10 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 				}
 
 				if (!(MainRampFloat->IsAutoUpdate() && bCookingEnabled))
-					FHoudiniEngineUtils::UpdateEditorProperties(MainRampFloat, true);
+					FHoudiniEngineUtils::UpdateEditorProperties(MainRampFloat.Get(), true);
 			}
 		}
-		else if (MainRampColor && MainRampColorPoint)
+		else if (MainRampColor.IsValid() && MainRampColorPoint.IsValid())
 		{
 			if (ChangedDataName == FString("position") && MainRampColorPoint->GetPosition() == NewPosition)
 				return;
@@ -5271,7 +5347,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 			FHoudiniParameterDetails::ReplaceAllColorRampParameterPointsWithMainParameter(RampColorList);
 			for (auto NextColorRamp : RampColorList)
 			{
-				if (!NextColorRamp)
+				if (!IsValidWeakPointer(NextColorRamp))
 					continue;
 
 				if (NextColorRamp->IsAutoUpdate() && bCookingEnabled)
@@ -5359,7 +5435,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 				}
 
 				if (!(MainRampColor->IsAutoUpdate() && bCookingEnabled))
-					FHoudiniEngineUtils::UpdateEditorProperties(MainRampColor, true);
+					FHoudiniEngineUtils::UpdateEditorProperties(MainRampColor.Get(), true);
 			}
 		}
 	};
@@ -5369,14 +5445,14 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 		UHoudiniParameterRampFloatPoint* NextFloatRampPoint = nullptr;
 		UHoudiniParameterRampColorPoint* NextColorRampPoint = nullptr;		
 		
-		if (MainFloatRampParameter)
+		if (MainFloatRampParameter.IsValid())
 		{
 			if (MainFloatRampParameter->IsAutoUpdate() && bCookingEnabled)
 				NextFloatRampPoint = MainFloatRampParameter->Points[Index];
 			else
 				NextFloatRampPoint = MainFloatRampParameter->CachedPoints[Index];
 		}
-		if (MainColorRampParameter)
+		if (MainColorRampParameter.IsValid())
 		{
 			if (MainColorRampParameter->IsAutoUpdate() && bCookingEnabled)
 				NextColorRampPoint = MainColorRampParameter->Points[Index];
@@ -5588,7 +5664,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 			]
 		];		
 		
-		if (MainFloatRampParameter && CurrentRampParameterFloatCurve)
+		if (MainFloatRampParameter.IsValid() && CurrentRampParameterFloatCurve)
 		{
 			ERichCurveInterpMode RichCurveInterpMode = UHoudiniParameter::EHoudiniRampInterpolationTypeToERichCurveInterpMode(NextFloatRampPoint->GetInterpolation());
 			FRichCurve & RichCurve = CurrentRampParameterFloatCurve->FloatCurve;
@@ -5596,7 +5672,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 			RichCurve.SetKeyInterpMode(KeyHandle, RichCurveInterpMode);
 		}
 
-		if (MainColorRampParameter && CurrentRampParameterColorCurve)
+		if (MainColorRampParameter.IsValid() && CurrentRampParameterColorCurve)
 		{
 			ERichCurveInterpMode RichCurveInterpMode = UHoudiniParameter::EHoudiniRampInterpolationTypeToERichCurveInterpMode(NextColorRampPoint->GetInterpolation());
 			for (int32 CurveIdx = 0; CurveIdx < 4; ++CurveIdx)
@@ -5609,25 +5685,25 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 		}
 	}	
 
-	if (MainFloatRampParameter)
+	if (MainFloatRampParameter.IsValid())
 		GridPanel->SetEnabled(!MainFloatRampParameter->IsDisabled());
 
-	if (MainColorRampParameter)
+	if (MainColorRampParameter.IsValid())
 		GridPanel->SetEnabled(!MainColorRampParameter->IsDisabled());	
 }
 
 void 
-FHoudiniParameterDetails::CreateWidgetFolderList(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams)
+FHoudiniParameterDetails::CreateWidgetFolderList(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
-	TArray<UHoudiniParameterFolderList*> FolderListParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterFolderList>> FolderListParams;
 	if (!CastParameters<UHoudiniParameterFolderList>(InParams, FolderListParams))
 		return;
 
 	if (FolderListParams.Num() <= 0)
 		return;
 
-	UHoudiniParameterFolderList* MainParam = FolderListParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameterFolderList>& MainParam = FolderListParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	// Add this folder list to the folder map
@@ -5646,7 +5722,7 @@ FHoudiniParameterDetails::CreateWidgetFolderList(IDetailCategoryBuilder & HouPar
 		return;
 
 	// The following folders belong to current folder list
-	CurrentFolderList = MainParam;
+	CurrentFolderList = MainParam.Get();
 
 	// If the tab is either a tabs or radio button and the parameter is visible 
 	if (MainParam->IsTabMenu() && MainParam->ShouldDisplay())
@@ -5669,17 +5745,17 @@ FHoudiniParameterDetails::CreateWidgetFolderList(IDetailCategoryBuilder & HouPar
 
 
 void
-FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams)
+FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
 {
-	TArray<UHoudiniParameterFolder*> FolderParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterFolder>> FolderParams;
 	if (!CastParameters<UHoudiniParameterFolder>(InParams, FolderParams))
 		return;
 
 	if (FolderParams.Num() <= 0)
 		return;
 
-	UHoudiniParameterFolder* MainParam = FolderParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameterFolder>& MainParam = FolderParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	if (!IsValid(CurrentFolderList))	// This should not happen
@@ -5726,7 +5802,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 			return;
 
 		// Get its parent multiparm first
-		UHoudiniParameterMultiParm* ParentMultiParm = nullptr;
+		TWeakObjectPtr<UHoudiniParameterMultiParm> ParentMultiParm;
 		{
 			UHoudiniParameterFolderList * ParentFolderList = nullptr;
 			if (!AllFoldersAndFolderLists.Contains(MainParam->GetParentParmId()))
@@ -5740,7 +5816,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 			if (AllMultiParms.Contains(ParentFolderList->GetParentParmId()))
 				ParentMultiParm = AllMultiParms[ParentFolderList->GetParentParmId()];
 
-			if (!ParentMultiParm)	// This should not happen
+			if (!ParentMultiParm.IsValid())	// This should not happen
 				return;
 		}
 	
@@ -5770,7 +5846,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 		{
 			TArray<UHoudiniParameterFolder*> & MyQueue = FolderStack.Last();
 			MainParam->SetIsContentShown(bShown);
-			MyQueue.Add(MainParam);
+			MyQueue.Add(MainParam.Get());
 		}
 	}
 
@@ -5806,7 +5882,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 				}
 
 				MainParam->SetIsContentShown(bExpanded);
-				MyFolderQueue.Add(MainParam);
+				MyFolderQueue.Add(MainParam.Get());
 			}
 			// Case 2-1-2: The folder IS in a tab menu.
 			else 
@@ -5837,7 +5913,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 				TArray<UHoudiniParameterFolder*>& MyFolderQueue = FolderStack[0];
 				bExpanded &= MainParam->IsExpanded();
 				MainParam->SetIsContentShown(bExpanded);
-				MyFolderQueue.Add(MainParam);
+				MyFolderQueue.Add(MainParam.Get());
 			}
 			// Case 2-2-2: The folder IS under a tab menu.
 			else
@@ -5867,21 +5943,21 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 }
 
 void
-FHoudiniParameterDetails::CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, TArray<UHoudiniParameter*> &InParams)
+FHoudiniParameterDetails::CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
 {
 	if (!HeaderRow)	// The folder is invisible.
 		return;
 
-	TArray<UHoudiniParameterFolder*> FolderParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterFolder>> FolderParams;
 	if (!CastParameters<UHoudiniParameterFolder>(InParams, FolderParams))
 		return;
 
 	if (FolderParams.Num() <= 0)
 		return;
 
-	UHoudiniParameterFolder* MainParam = FolderParams[0];
+	const TWeakObjectPtr<UHoudiniParameterFolder>& MainParam = FolderParams[0];
 
-	if (!IsValid(MainParam))
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	TSharedPtr<SVerticalBox> VerticalBox;
@@ -5919,9 +5995,12 @@ FHoudiniParameterDetails::CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, TArr
 		.Visibility(EVisibility::Visible)
 		.OnClicked_Lambda([=]()
 		{
+			if (!IsValidWeakPointer(MainParam))
+				return FReply::Handled();
+			
 			MainParam->ExpandButtonClicked();
 			
-			FHoudiniEngineUtils::UpdateEditorProperties(MainParam, true);
+			FHoudiniEngineUtils::UpdateEditorProperties(MainParam.Get(), true);
 
 			return FReply::Handled();
 		})
@@ -5948,7 +6027,14 @@ FHoudiniParameterDetails::CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, TArr
 			{
 				FName ResourceName;
 				TSharedPtr<SButton> ExpanderArrowPtr = WeakExpanderArrow.Pin();
-				if (MainParam->IsExpanded())
+
+				bool bIsExpanded = false;
+				if (IsValidWeakPointer(MainParam))
+				{
+					bIsExpanded = MainParam->IsExpanded();
+				}
+				
+				if (bIsExpanded)
 				{
 					ResourceName = ExpanderArrowPtr.IsValid() && ExpanderArrowPtr->IsHovered() ? "TreeArrow_Expanded_Hovered" : "TreeArrow_Expanded";
 				}
@@ -5967,29 +6053,30 @@ FHoudiniParameterDetails::CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, TArr
 
 }
 
-void FHoudiniParameterDetails::CreateWidgetTab(IDetailCategoryBuilder & HouParameterCategory, UHoudiniParameterFolder* InFolder, const bool& bIsShown)
+void FHoudiniParameterDetails::CreateWidgetTab(IDetailCategoryBuilder & HouParameterCategory, const TWeakObjectPtr<UHoudiniParameterFolder>& InFolder, const bool& bIsShown)
 {
-	if (!IsValid(InFolder) || !CurrentFolderList)
+	if (!InFolder.IsValid() || !CurrentFolderList)
 		return;
 
 	if (FolderStack.Num() <= 0)	// error state
 		return;
 
+	UHoudiniParameterFolder* const Folder = InFolder.Get();
 	TArray<UHoudiniParameterFolder*> & FolderQueue = FolderStack.Last();
 
 	// Cache all tabs of current tab folder list.
-	CurrentFolderList->AddTabFolder(InFolder);
+	CurrentFolderList->AddTabFolder(Folder);
 
 	// If the tabs is not shown, just push the folder param into the queue.
 	if (!bIsShown)
 	{
 		InFolder->SetIsContentShown(bIsShown);
-		FolderQueue.Add(InFolder);
+		FolderQueue.Add(Folder);
 		return;
 	}
 	
 	// tabs currently being processed
-	CurrentTabs.Add(InFolder);
+	CurrentTabs.Add(Folder);
 
 	if (CurrentFolderListSize > 1)
 		return;
@@ -6005,7 +6092,7 @@ void FHoudiniParameterDetails::CreateWidgetTab(IDetailCategoryBuilder & HouParam
 	]; 
 
 	// Put current tab folder list param into an array
-	TArray<UHoudiniParameter*> CurrentTabMenuFolderListArr;
+	TArray<TWeakObjectPtr<UHoudiniParameter>> CurrentTabMenuFolderListArr;
 	CurrentTabMenuFolderListArr.Add(CurrentTabMenuFolderList);
 
 	HorizontalBox->SetHoudiniParameter(CurrentTabMenuFolderListArr);
@@ -6090,17 +6177,17 @@ void FHoudiniParameterDetails::CreateWidgetTab(IDetailCategoryBuilder & HouParam
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetMultiParm(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams) 
+FHoudiniParameterDetails::CreateWidgetMultiParm(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams) 
 {
-	TArray<UHoudiniParameterMultiParm*> MultiParmParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterMultiParm>> MultiParmParams;
 	if (!CastParameters<UHoudiniParameterMultiParm>(InParams, MultiParmParams))
 		return;
 
 	if (MultiParmParams.Num() <= 0)
 		return;
 
-	UHoudiniParameterMultiParm* MainParam = MultiParmParams[0];
-	if (!IsValid(MainParam))
+	const TWeakObjectPtr<UHoudiniParameterMultiParm>& MainParam = MultiParmParams[0];
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	// Add current multiparm parameter to AllmultiParms map
@@ -6157,7 +6244,7 @@ FHoudiniParameterDetails::CreateWidgetMultiParm(IDetailCategoryBuilder & HouPara
 
 		for (auto& Param : MultiParmParams)
 		{
-			if (!Param)
+			if (!IsValidWeakPointer(Param))
 				continue;
 
 			// Add a reverse step for redo/undo
@@ -6266,33 +6353,33 @@ FHoudiniParameterDetails::CreateWidgetMultiParm(IDetailCategoryBuilder & HouPara
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetMultiParmObjectButtons(TSharedPtr<SHorizontalBox> HorizontalBox, TArray<UHoudiniParameter*> InParams)
+FHoudiniParameterDetails::CreateWidgetMultiParmObjectButtons(TSharedPtr<SHorizontalBox> HorizontalBox, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
 	
 	if (InParams.Num() <= 0)
 		return;
 
-	UHoudiniParameter* MainParam = InParams[0];
+	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
 
-	if (!IsValid(MainParam))
+	if (!IsValidWeakPointer(MainParam))
 		return;
 
 	if (!HorizontalBox || !AllMultiParms.Contains(MainParam->GetParentParmId()) || !MultiParmInstanceIndices.Contains(MainParam->GetParentParmId()))
 		return;
 
-	UHoudiniParameterMultiParm* MainParentMultiParm = AllMultiParms[MainParam->GetParentParmId()];
+	const TWeakObjectPtr<UHoudiniParameterMultiParm>& MainParentMultiParm = AllMultiParms[MainParam->GetParentParmId()];
 
-	if (!MainParentMultiParm)
+	if (!IsValidWeakPointer(MainParentMultiParm))
 		return;
 
 	if (!MainParentMultiParm->IsShown())
 		return;
 
 	// push all parent multiparm of the InParams to the array
-	TArray<UHoudiniParameterMultiParm*> ParentMultiParams;
+	TArray<TWeakObjectPtr<UHoudiniParameterMultiParm>> ParentMultiParams;
 	for (auto & InParam : InParams) 
 	{
-		if (!InParam)
+		if (!IsValidWeakPointer(InParam))
 			continue;
 
 		if (!MultiParmInstanceIndices.Contains(InParam->GetParentParmId()))
@@ -6300,9 +6387,9 @@ FHoudiniParameterDetails::CreateWidgetMultiParmObjectButtons(TSharedPtr<SHorizon
 
 		if (InParam->GetChildIndex() == 0)
 		{
-			UHoudiniParameterMultiParm* ParentMultiParm = AllMultiParms[InParam->GetParentParmId()];
+			const TWeakObjectPtr<UHoudiniParameterMultiParm>& ParentMultiParm = AllMultiParms[InParam->GetParentParmId()];
 
-			if (ParentMultiParm)
+			if (ParentMultiParm.IsValid())
 				ParentMultiParams.Add(ParentMultiParm);
 		}
 	}
@@ -6315,7 +6402,7 @@ FHoudiniParameterDetails::CreateWidgetMultiParmObjectButtons(TSharedPtr<SHorizon
 		for (auto & ParentParam : ParentMultiParams)
 		{
 			// Add button call back
-			if (!ParentParam)
+			if (!IsValidWeakPointer(ParentParam))
 				continue;
 
 			TArray<EHoudiniMultiParmModificationType>& LastModifiedArray = ParentParam->MultiParmInstanceLastModifyArray;
@@ -6432,9 +6519,9 @@ FHoudiniParameterDetails::PruneStack()
 }
 
 FText
-FHoudiniParameterDetails::GetParameterTooltip(UHoudiniParameter* InParam)
+FHoudiniParameterDetails::GetParameterTooltip(const TWeakObjectPtr<UHoudiniParameter>& InParam)
 {
-	if (!IsValid(InParam))
+	if (!IsValidWeakPointer(InParam))
 		return FText();
 
 	// Tooltip starts with Label (name)
@@ -6822,14 +6909,14 @@ FHoudiniParameterDetails::CreateColorRampParameterInsertEvent(UHoudiniParameterR
 }
 
 void
-FHoudiniParameterDetails:: ReplaceAllFloatRampParameterPointsWithMainParameter(TArray<UHoudiniParameterRampFloat*>& FloatRampParameters)
+FHoudiniParameterDetails::ReplaceAllFloatRampParameterPointsWithMainParameter(const TArray<UHoudiniParameterRampFloat*>& FloatRampParameters)
 {
 	if (FloatRampParameters.Num() < 1)
 		return;
 
 	UHoudiniParameterRampFloat* MainParam = FloatRampParameters[0];
 
-	if (!MainParam)
+	if (!IsValid(MainParam))
 		return;
 
 	if (FHoudiniEngineUtils::IsHoudiniAssetComponentCooking(MainParam))
@@ -6839,7 +6926,7 @@ FHoudiniParameterDetails:: ReplaceAllFloatRampParameterPointsWithMainParameter(T
 	{
 		UHoudiniParameterRampFloat* NextFloatRampParameter = FloatRampParameters[Idx];
 
-		if (!NextFloatRampParameter)
+		if (!IsValid(NextFloatRampParameter))
 			continue;
 
 		FHoudiniParameterDetails::ReplaceFloatRampParameterPointsWithMainParameter(MainParam, NextFloatRampParameter);
@@ -6847,12 +6934,12 @@ FHoudiniParameterDetails:: ReplaceAllFloatRampParameterPointsWithMainParameter(T
 }
 
 void 
-FHoudiniParameterDetails::ReplaceAllFloatRampParameterPointsWithMainParameter(TArray<TWeakObjectPtr<UHoudiniParameterRampFloat>>& FloatRampParameters) 
+FHoudiniParameterDetails::ReplaceAllFloatRampParameterPointsWithMainParameter(const TArray<TWeakObjectPtr<UHoudiniParameterRampFloat>>& FloatRampParameters) 
 {
 	if (FloatRampParameters.Num() < 1)
 		return;
 
-	if (!FloatRampParameters[0].IsValid())
+	if (!IsValidWeakPointer(FloatRampParameters[0]))
 		return;
 
 	UHoudiniParameterRampFloat* MainParam = FloatRampParameters[0].Get();
@@ -6866,7 +6953,7 @@ FHoudiniParameterDetails::ReplaceAllFloatRampParameterPointsWithMainParameter(TA
 
 	for (int32 Idx = 1; Idx < FloatRampParameters.Num(); ++Idx)
 	{
-		if (!FloatRampParameters[Idx].IsValid())
+		if (!IsValidWeakPointer(FloatRampParameters[Idx]))
 			continue;
 
 		UHoudiniParameterRampFloat* NextFloatRampParameter = FloatRampParameters[Idx].Get();
@@ -7068,14 +7155,14 @@ FHoudiniParameterDetails:: ReplaceFloatRampParameterPointsWithMainParameter(UHou
 
 
 void 
-FHoudiniParameterDetails::ReplaceAllColorRampParameterPointsWithMainParameter(TArray<UHoudiniParameterRampColor*>& ColorRampParameters) 
+FHoudiniParameterDetails::ReplaceAllColorRampParameterPointsWithMainParameter(const TArray<UHoudiniParameterRampColor*>& ColorRampParameters) 
 {
 	if (ColorRampParameters.Num() < 1)
 		return;
 
 	UHoudiniParameterRampColor* MainParam = ColorRampParameters[0];
 
-	if (!MainParam)
+	if (!IsValid(MainParam))
 		return;
 
 	if (FHoudiniEngineUtils::IsHoudiniAssetComponentCooking(MainParam))
@@ -7085,7 +7172,7 @@ FHoudiniParameterDetails::ReplaceAllColorRampParameterPointsWithMainParameter(TA
 	{
 		UHoudiniParameterRampColor* NextColorRampParam = ColorRampParameters[Idx];
 
-		if (!NextColorRampParam)
+		if (!IsValid(NextColorRampParam))
 			continue;
 
 		FHoudiniParameterDetails::ReplaceColorRampParameterPointsWithMainParameter(MainParam, NextColorRampParam);
@@ -7093,12 +7180,12 @@ FHoudiniParameterDetails::ReplaceAllColorRampParameterPointsWithMainParameter(TA
 }
 
 void 
-FHoudiniParameterDetails::ReplaceAllColorRampParameterPointsWithMainParameter(TArray<TWeakObjectPtr<UHoudiniParameterRampColor>>& ColorRampParameters) 
+FHoudiniParameterDetails::ReplaceAllColorRampParameterPointsWithMainParameter(const TArray<TWeakObjectPtr<UHoudiniParameterRampColor>>& ColorRampParameters) 
 {
 	if (ColorRampParameters.Num() < 1)
 		return;
 
-	if (!ColorRampParameters[0].IsValid())
+	if (!IsValidWeakPointer(ColorRampParameters[0]))
 		return;
 
 	UHoudiniParameterRampColor* MainParam = ColorRampParameters[0].Get();
@@ -7111,7 +7198,7 @@ FHoudiniParameterDetails::ReplaceAllColorRampParameterPointsWithMainParameter(TA
 
 	for (int32 Idx = 1; Idx < ColorRampParameters.Num(); ++Idx)
 	{
-		if (!ColorRampParameters[Idx].IsValid())
+		if (!IsValidWeakPointer(ColorRampParameters[Idx]))
 			continue;
 
 		UHoudiniParameterRampColor* NextColorRampParameter = ColorRampParameters[Idx].Get();
@@ -7309,9 +7396,9 @@ FHoudiniParameterDetails::ReplaceColorRampParameterPointsWithMainParameter(UHoud
 
 // Check recursively if a parameter hits the end of a visible tabs
 void
-FHoudiniParameterDetails::RemoveTabDividers(IDetailCategoryBuilder& HouParameterCategory, UHoudiniParameter* InParam)
+FHoudiniParameterDetails::RemoveTabDividers(IDetailCategoryBuilder& HouParameterCategory, const TWeakObjectPtr<UHoudiniParameter>& InParam)
 {
-	if (!IsValid(InParam))
+	if (!IsValidWeakPointer(InParam))
 		return;
 
 	// When the paramId is invalid, the directory won't parse.
@@ -7336,15 +7423,15 @@ FHoudiniParameterDetails::RemoveTabDividers(IDetailCategoryBuilder& HouParameter
 	}
 
 	int32 ParentParamId = InParam->GetParentParmId();
-	UHoudiniParameter* CurParam = InParam;
+	TWeakObjectPtr<UHoudiniParameter> CurParam = InParam;
 
 	while (AllFoldersAndFolderLists.Contains(ParentParamId) || AllMultiParms.Contains(ParentParamId))
 	{		
 		if (AllMultiParms.Contains(ParentParamId))
 		{
 			// The parent is a multiparm
-			UHoudiniParameterMultiParm* ParentMultiParm = AllMultiParms[ParentParamId];
-			if (!IsValid(ParentMultiParm))
+			const TWeakObjectPtr<UHoudiniParameterMultiParm>& ParentMultiParm = AllMultiParms[ParentParamId];
+			if (!IsValidWeakPointer(ParentMultiParm))
 				return;
 
 			if (ParentMultiParm->MultiParmInstanceCount * ParentMultiParm->MultiParmInstanceLength - 1 == CurParam->GetChildIndex())
@@ -7363,10 +7450,10 @@ FHoudiniParameterDetails::RemoveTabDividers(IDetailCategoryBuilder& HouParameter
 		else 
 		{
 			// The parent is a folder or folderlist
-			UHoudiniParameter* ParentFolderParam = AllFoldersAndFolderLists[ParentParamId];
+			TWeakObjectPtr<UHoudiniParameter> ParentFolderParam = AllFoldersAndFolderLists[ParentParamId];
 			CurParam = ParentFolderParam;
 
-			if (!IsValid(ParentFolderParam))
+			if (!IsValidWeakPointer(ParentFolderParam))
 				return;
 
 			if (ParentFolderParam->GetParameterType() == EHoudiniParameterType::Folder) 
@@ -7378,7 +7465,7 @@ FHoudiniParameterDetails::RemoveTabDividers(IDetailCategoryBuilder& HouParameter
 			else
 			{
 				// The parent is a folderlist
-				UHoudiniParameterFolderList* ParentFolderList = Cast<UHoudiniParameterFolderList>(ParentFolderParam);
+				UHoudiniParameterFolderList const* const ParentFolderList = Cast<UHoudiniParameterFolderList>(ParentFolderParam);
 				if (!IsValid(ParentFolderList))
 					return;
 
