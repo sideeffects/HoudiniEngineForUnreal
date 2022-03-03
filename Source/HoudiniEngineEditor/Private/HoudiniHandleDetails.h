@@ -36,7 +36,7 @@ enum class EHoudiniHandleType : uint8;
 class FHoudiniHandleDetails : public TSharedFromThis<FHoudiniHandleDetails> 
 {
 public:
-	static void CreateWidget(IDetailCategoryBuilder & HouHandleCategory, TArray<UHoudiniHandleComponent*> &InHandles);
+	static void CreateWidget(IDetailCategoryBuilder & HouHandleCategory, const TArray<TWeakObjectPtr<UHoudiniHandleComponent>> &InHandles);
 
 	static void CreateNameWidget(FDetailWidgetRow& Row);
 

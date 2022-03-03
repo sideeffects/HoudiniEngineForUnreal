@@ -31,6 +31,7 @@
 #include "DetailWidgetRow.h"
 
 #include "HoudiniPDGAssetLink.h"
+#include "HoudiniEngineDetails.h"
 
 class IDetailGroup;
 class IDetailCategoryBuilder;
@@ -61,61 +62,61 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 
 		void CreateWidget(
 			IDetailCategoryBuilder & HouPDGCategory,
-			UHoudiniPDGAssetLink* InPDGAssetLink);
+			const TWeakObjectPtr<UHoudiniPDGAssetLink>&& InPDGAssetLink);
 			//UHoudiniAssetComponent* InHAC);
 
 		void AddPDGAssetWidget(
-			IDetailCategoryBuilder& InPDGCategory, UHoudiniPDGAssetLink* InPDGAssetLink);
+			IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
 
 		void AddWorkItemStatusWidget(
-			FDetailWidgetRow& InRow, const FString& TitleString, UHoudiniPDGAssetLink* InAssetLink, bool bInForSelectedNode);
+			FDetailWidgetRow& InRow, const FString& TitleString, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InAssetLink, bool bInForSelectedNode);
 
 		void AddPDGAssetStatus(
-			IDetailCategoryBuilder& InPDGCategory, UHoudiniPDGAssetLink *InPDGAssetLink);
+			IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
 
 		void AddPDGCommandletStatus(
 			IDetailCategoryBuilder& InPDGCategory, const EHoudiniBGEOCommandletStatus& InCommandletStatus);
 
 		void AddTOPNetworkWidget(
-			IDetailCategoryBuilder& InPDGCategory, UHoudiniPDGAssetLink* InPDGAssetLink);
+			IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
 
 		void AddTOPNodeWidget(
-			IDetailGroup& InGroup, UHoudiniPDGAssetLink* InPDGAssetLink);
+			IDetailGroup& InGroup, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
 
 		static void RefreshPDGAssetLink(
-			UHoudiniPDGAssetLink* InPDGAssetLink);
+			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
 
 		static void RefreshUI(
-			UHoudiniPDGAssetLink* InPDGAssetLink, const bool& InFullUpdate = true);
+			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, const bool& InFullUpdate = true);
 
 		static void 
-			CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, UHoudiniPDGAssetLink* InPDGAssetLink);
+			CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
 	protected:
 		// Helper function for getting the work item tally and color
 		static bool GetWorkItemTallyValueAndColor(
-			UHoudiniPDGAssetLink* InAssetLink, bool bInForSelectedNode, const FString& InTallyItemString,
+			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InAssetLink, bool bInForSelectedNode, const FString& InTallyItemString,
 			int32& OutValue, FLinearColor& OutColor);
 
 		// Helper to get the status text for the selected TOP node, and the color with which to display it on the UI.
 		// Returns false if the InPDGAssetLink is invalid, or there is no selected TOP node.
 		static bool GetSelectedTOPNodeStatusAndColor(
-			UHoudiniPDGAssetLink* InPDGAssetLink, FString& OutTOPNodeStatus, FLinearColor &OutTOPNodeStatusColor);
+			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, FString& OutTOPNodeStatus, FLinearColor &OutTOPNodeStatusColor);
 
 		// Helper to get asset link status and status color for UI
 		static bool GetPDGStatusAndColor(
-			UHoudiniPDGAssetLink* InPDGAssetLink, FString& OutPDGStatusString, FLinearColor& OutPDGStatusColor);
+			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, FString& OutPDGStatusString, FLinearColor& OutPDGStatusColor);
 
 		// Helper for getting the commandlet status text and color for the UI
 		static void GetPDGCommandletStatus(FString& OutStatusString, FLinearColor& OutStatusColor);
 
 		// Helper to check if the asset link state is Linked
-		static FORCEINLINE bool IsPDGLinked(UHoudiniPDGAssetLink* InPDGAssetLink)
+		static FORCEINLINE bool IsPDGLinked(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink)
 		{
-			return IsValid(InPDGAssetLink) && InPDGAssetLink->LinkState == EPDGLinkState::Linked;
+			return IsValidWeakPointer(InPDGAssetLink) && InPDGAssetLink->LinkState == EPDGLinkState::Linked;
 		}
 
 		// Helper for binding IsPDGLinked to a TAttribute<bool>
-		static FORCEINLINE void BindDisableIfPDGNotLinked(TAttribute<bool> &InAttrToBind, UHoudiniPDGAssetLink* InPDGAssetLink)
+		static FORCEINLINE void BindDisableIfPDGNotLinked(TAttribute<bool> &InAttrToBind, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink)
 		{
 			InAttrToBind.Bind(
 				TAttribute<bool>::FGetter::CreateLambda([InPDGAssetLink]()
@@ -126,7 +127,7 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 		}
 
 		// Helper to disable a UI row if InPDGAssetLink is not linked
-		static FORCEINLINE void DisableIfPDGNotLinked(FDetailWidgetRow& InRow, UHoudiniPDGAssetLink* InPDGAssetLink)
+		static FORCEINLINE void DisableIfPDGNotLinked(FDetailWidgetRow& InRow, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink)
 		{
 			BindDisableIfPDGNotLinked(InRow.IsEnabledAttr, InPDGAssetLink);
 		}
