@@ -111,9 +111,9 @@ public:
 
 	// Add indentation to current row, computed by tracing the directory hierarchy,
 	// return the indentation width of this parameter row.
-	float AddIndentation(UHoudiniParameter* InParam, TMap<int32, UHoudiniParameterMultiParm*>& InAllMultiParms, TMap<int32, UHoudiniParameter*>& InAllFoldersAndFolderLists);
+	float AddIndentation(const TWeakObjectPtr<UHoudiniParameter>& InParam, const TMap<int32, TWeakObjectPtr<UHoudiniParameterMultiParm>>& InAllMultiParms, const TMap<int32, TWeakObjectPtr<UHoudiniParameter>>& InAllFoldersAndFolderLists);
 
-	void SetHoudiniParameter(TArray<UHoudiniParameter*>& InParams);
+	void SetHoudiniParameter(const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 };
 
 class SHoudiniFloatRampCurveEditor : public SCurveEditor
@@ -305,52 +305,52 @@ class FHoudiniParameterDetails : public TSharedFromThis<FHoudiniParameterDetails
 	public:
 		void CreateWidget(
 			IDetailCategoryBuilder & HouParameterCategory,
-			TArray<UHoudiniParameter*> &InParams);
+			const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams);
 
 		void CreateWidgetInt(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*>& InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetFloat(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*>& InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetString(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*>& InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetColor(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*>& InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetButton(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*>& InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetButtonStrip(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*>& InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetLabel(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams);
 		void CreateWidgetToggle(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams);
 		void CreateWidgetFile(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams);
 		void CreateWidgetChoice(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*>& InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetSeparator(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*>& InParams, const bool& InIsEnabled);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams, const bool& InIsEnabled);
 		void CreateWidgetFolderList(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams);
 		void CreateWidgetFolder(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams);
 		void CreateWidgetMultiParm(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams);
 		void CreateWidgetOperatorPath(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams);
 		void CreateWidgetFloatRamp(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams);
 		void CreateWidgetColorRamp(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams);
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams);
 
 		void CreateTabEndingRow(IDetailCategoryBuilder & HouParameterCategory);
 		
 
 		void HandleUnsupportedParmType(
-			IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams
+			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams
 		);
 
 
-		static FText GetParameterTooltip(UHoudiniParameter* InParam);
+		static FText GetParameterTooltip(const TWeakObjectPtr<UHoudiniParameter>& InParam);
 
 		static FString GetParameterTypeString(const EHoudiniParameterType& InType, const int32& InTupleSize);
 
@@ -359,17 +359,17 @@ class FHoudiniParameterDetails : public TSharedFromThis<FHoudiniParameterDetails
 		//static void SyncCachedFloatRampPoints(UHoudiniParameterRampFloat* FloatRampParameter);
 
 		// replace the children parameter values of all (multi-selected) float ramp parameters with the main parameter (weak object pointer version)
-		static void ReplaceAllFloatRampParameterPointsWithMainParameter(TArray<TWeakObjectPtr<UHoudiniParameterRampFloat>>& FloatRampParameters);
+		static void ReplaceAllFloatRampParameterPointsWithMainParameter(const TArray<TWeakObjectPtr<UHoudiniParameterRampFloat>>& FloatRampParameters);
 		// raw pointer version
-		static void ReplaceAllFloatRampParameterPointsWithMainParameter(TArray<UHoudiniParameterRampFloat*>& FloatRampParameters);
+		static void ReplaceAllFloatRampParameterPointsWithMainParameter(const TArray<UHoudiniParameterRampFloat*>& FloatRampParameters);
 		// helper
 		static void ReplaceFloatRampParameterPointsWithMainParameter(UHoudiniParameterRampFloat* Param, UHoudiniParameterRampFloat* MainParam);
 
 
 		// replace the children parameter values of all (multi-selected) color ramp parameters with the main parameter (weak object pointer version)
-		static void ReplaceAllColorRampParameterPointsWithMainParameter(TArray<TWeakObjectPtr<UHoudiniParameterRampColor>>& ColorRampParameters);
+		static void ReplaceAllColorRampParameterPointsWithMainParameter(const TArray<TWeakObjectPtr<UHoudiniParameterRampColor>>& ColorRampParameters);
 		// raw pointer version
-		static void ReplaceAllColorRampParameterPointsWithMainParameter(TArray<UHoudiniParameterRampColor*>& ColorRampParameters);
+		static void ReplaceAllColorRampParameterPointsWithMainParameter(const TArray<UHoudiniParameterRampColor*>& ColorRampParameters);
 		// helper
 		static void ReplaceColorRampParameterPointsWithMainParameter(UHoudiniParameterRampColor* Param, UHoudiniParameterRampColor* MainParame);
 
@@ -394,36 +394,40 @@ class FHoudiniParameterDetails : public TSharedFromThis<FHoudiniParameterDetails
 
 		template< class T >
 		static bool CastParameters(
-			TArray<UHoudiniParameter*> InParams, TArray<T*>& OutCastedParams);
+			const TArray<UHoudiniParameter*>& InParams, TArray<T*>& OutCastedParams);
+
+		template< class T >
+		static bool CastParameters(
+			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams, TArray<TWeakObjectPtr<T>>& OutCastedParams);
 
 		//
 		// Private helper functions for widget creation
 		//
 
 		// Creates the default name widget, the parameter will then fill the value after
-		void CreateNameWidget(FDetailWidgetRow* Row, TArray<UHoudiniParameter*> &InParams, bool WithLabel);
+		void CreateNameWidget(FDetailWidgetRow* Row, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams, bool WithLabel);
 
 		// Creates the default name widget, with an extra checkbox for disabling the the parameter update
-		void CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, TArray<UHoudiniParameter*> &InParams, bool WithLabel);
+		void CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams, bool WithLabel);
 
-		FDetailWidgetRow* CreateNestedRow(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> InParams, bool bDecreaseChildCount = true); //
+		FDetailWidgetRow* CreateNestedRow(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams, bool bDecreaseChildCount = true); //
 
-		void CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, TArray<UHoudiniParameter*>& InParams); //
+		void CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams); //
 
-		void CreateWidgetTab(IDetailCategoryBuilder & HouParameterCategory, UHoudiniParameterFolder* InParam, const bool& bIsShown);  //
+		void CreateWidgetTab(IDetailCategoryBuilder & HouParameterCategory, const TWeakObjectPtr<UHoudiniParameterFolder>& InParam, const bool& bIsShown);  //
 
-		void CreateWidgetMultiParmObjectButtons(TSharedPtr<SHorizontalBox> HorizontalBox, TArray<UHoudiniParameter*> InParams); //
+		void CreateWidgetMultiParmObjectButtons(TSharedPtr<SHorizontalBox> HorizontalBox, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams); //
 	
 		// Create the UI for ramp's curve editor.
-		FDetailWidgetRow* CreateWidgetRampCurveEditor(IDetailCategoryBuilder & HouParameterCategory, TArray<UHoudiniParameter*> &InParams); //
+		FDetailWidgetRow* CreateWidgetRampCurveEditor(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams); //
 
 		// Create the UI for ramp's stop points.
-		void CreateWidgetRampPoints(IDetailCategoryBuilder& CategoryBuilder, FDetailWidgetRow* Row, UHoudiniParameter* InParameter, TArray<
-		                            UHoudiniParameter*>& InParams); //
+		void CreateWidgetRampPoints(IDetailCategoryBuilder& CategoryBuilder, FDetailWidgetRow* Row, UHoudiniParameter* InParameter,
+								    const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams); //
 
 		void PruneStack();
 
-		void RemoveTabDividers(IDetailCategoryBuilder& HouParameterCategory, UHoudiniParameter* InParam);
+		void RemoveTabDividers(IDetailCategoryBuilder& HouParameterCategory, const TWeakObjectPtr<UHoudiniParameter>& InParam);
 
 	public:
 		// Stores the created ramp curves
@@ -466,10 +470,10 @@ class FHoudiniParameterDetails : public TSharedFromThis<FHoudiniParameterDetails
 
 
 		/* Variables for keeping expansion state after adding multiparm instance*/
-		TMap<int32, UHoudiniParameterMultiParm*> AllMultiParms;
+		TMap<int32, TWeakObjectPtr<UHoudiniParameterMultiParm>> AllMultiParms;
 
 		// Cached the map of parameter id and folders/folder lists 
-		TMap<int32, UHoudiniParameter*> AllFoldersAndFolderLists;
+		TMap<int32, TWeakObjectPtr<UHoudiniParameter>> AllFoldersAndFolderLists;
 
 		/* Variables for keeping expansion state after adding multiparm instance*/
 

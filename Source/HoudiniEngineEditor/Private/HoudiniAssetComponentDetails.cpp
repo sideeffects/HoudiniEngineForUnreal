@@ -76,11 +76,11 @@ FHoudiniAssetComponentDetails::~FHoudiniAssetComponentDetails()
 
 		for (auto& CurFloatRampCurveEditor : ParamDetailsPtr->CreatedFloatCurveEditors)
 		{
-			if (CurFloatRampCurveEditor.IsValid())
-			{
-				CurFloatRampCurveEditor->HoudiniFloatRampCurve = nullptr;
-				CurFloatRampCurveEditor->SetCurveOwner(nullptr);
-			}
+			if (!CurFloatRampCurveEditor.IsValid())
+				continue;
+
+			CurFloatRampCurveEditor->HoudiniFloatRampCurve = nullptr;
+			CurFloatRampCurveEditor->SetCurveOwner(nullptr);
 		}
 		for (auto& CurFloatRampCurve : ParamDetailsPtr->CreatedFloatRampCurves)
 		{
@@ -92,11 +92,11 @@ FHoudiniAssetComponentDetails::~FHoudiniAssetComponentDetails()
 
 		for (auto& CurColorRampCurveEditor : ParamDetailsPtr->CreatedColorGradientEditors)
 		{
-			if (CurColorRampCurveEditor.IsValid())
-			{
-				CurColorRampCurveEditor->HoudiniColorRampCurve = nullptr;
-				CurColorRampCurveEditor->SetCurveOwner(nullptr);
-			}
+			if (!CurColorRampCurveEditor.IsValid())
+				continue;
+
+			CurColorRampCurveEditor->HoudiniColorRampCurve = nullptr;
+			CurColorRampCurveEditor->SetCurveOwner(nullptr);
 		}
 		for (auto& CurColorRampCurve : ParamDetailsPtr->CreatedColorRampCurves)
 		{
@@ -273,15 +273,15 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	// Extract the Houdini Asset Component to detail
 	for (int32 i = 0; i < ObjectsCustomized.Num(); ++i)
 	{
-		if (ObjectsCustomized[i].IsValid())
+		if (!IsValidWeakPointer(ObjectsCustomized[i]))
+			continue;
+
+		UObject * Object = ObjectsCustomized[i].Get();
+		if (Object)
 		{
-			UObject * Object = ObjectsCustomized[i].Get();
-			if (Object)
-			{
-				UHoudiniAssetComponent * HAC = Cast< UHoudiniAssetComponent >(Object);
-				if (IsValid(HAC))
-					HoudiniAssetComponents.Add(HAC);
-			}
+			UHoudiniAssetComponent * HAC = Cast< UHoudiniAssetComponent >(Object);
+			if (IsValid(HAC))
+				HoudiniAssetComponents.Add(HAC);
 		}
 	}
 
@@ -295,7 +295,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	for (auto HAC : HoudiniAssetComponents)
 	{ 
 		TWeakObjectPtr<UHoudiniAsset> HoudiniAsset = HAC->GetHoudiniAsset();
-		if (!HoudiniAsset.IsValid())
+		if (!IsValidWeakPointer(HoudiniAsset))
 			continue;
 
 		TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& ValueRef = HoudiniAssetToHACs.FindOrAdd(HoudiniAsset);
@@ -309,7 +309,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			continue;
 			   
 		TWeakObjectPtr<UHoudiniAssetComponent> MainComponent = HACs[0];
-		if (!MainComponent.IsValid())
+		if (!IsValidWeakPointer(MainComponent))
 			continue;
 
 		// If we have selected more than one component that have different HDAs, 
@@ -346,11 +346,13 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			if (bIsIndieLicense)
 				AddIndieLicenseRow(HouEngineCategory);
 
-			TArray<UHoudiniAssetComponent*> MultiSelectedHACs;
+			TArray<TWeakObjectPtr<UHoudiniAssetComponent>> MultiSelectedHACs;
 			for (auto& NextHACWeakPtr : HACs) 
 			{
-				if (NextHACWeakPtr.IsValid())
-					MultiSelectedHACs.Add(NextHACWeakPtr.Get());
+				if (!IsValidWeakPointer(NextHACWeakPtr))
+					continue;
+
+				MultiSelectedHACs.Add(NextHACWeakPtr);
 			}
 
 			HoudiniEngineDetails->CreateWidget(HouEngineCategory, MultiSelectedHACs);
@@ -411,7 +413,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				continue;*/
 
 			// Build an array of edited parameter for multi edit
-			TArray<UHoudiniParameter*> EditedParams;
+			TArray<TWeakObjectPtr<UHoudiniParameter>> EditedParams;
 			EditedParams.Add(CurrentParam);
 
 			// Add the corresponding params in the other HAC
@@ -458,7 +460,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			if (!IsValid(CurrentHandleComponent))
 				continue;
 
-			TArray<UHoudiniHandleComponent*> EditedHandles;
+			TArray<TWeakObjectPtr<UHoudiniHandleComponent>> EditedHandles;
 			EditedHandles.Add(CurrentHandleComponent);
 
 			// Add the corresponding params in the other HAC
@@ -515,7 +517,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				continue;
 
 			// Build an array of edited inputs for multi edit
-			TArray<UHoudiniInput*> EditedInputs;
+			TArray<TWeakObjectPtr<UHoudiniInput>> EditedInputs;
 			EditedInputs.Add(CurrentInput);
 
 			// Add the corresponding inputs in the other HAC
@@ -560,7 +562,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				continue;
 
 			// Build an array of edited inpoutputs for multi edit
-			TArray<UHoudiniOutput*> EditedOutputs;
+			TArray<TWeakObjectPtr<UHoudiniOutput>> EditedOutputs;
 			EditedOutputs.Add(CurrentOutput);
 
 			// Add the corresponding outputs in the other HAC

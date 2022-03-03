@@ -38,6 +38,7 @@
 #include "HoudiniLandscapeTranslator.h"
 #include "HoudiniEngineBakeUtils.h"
 #include "HoudiniPackageParams.h"
+#include "HoudiniEngineDetails.h"
 
 #include "Editor.h"
 #include "DetailLayoutBuilder.h"
@@ -104,14 +105,14 @@ public:
 void
 FHoudiniInputDetails::CreateWidget(
 	IDetailCategoryBuilder& HouInputCategory,
-	TArray<UHoudiniInput*> InInputs,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 	FDetailWidgetRow* InputRow)
 {
 	if (InInputs.Num() <= 0)
 		return;
 
-	UHoudiniInput* MainInput = InInputs[0];
-	if (!IsValid(MainInput))
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	if (!IsValidWeakPointer(MainInput))
 		return;
 
 	// Get thumbnail pool for this builder.
@@ -220,9 +221,9 @@ FHoudiniInputDetails::CreateWidget(
 
 void
 FHoudiniInputDetails::CreateNameWidget(
-	UHoudiniInput* InInput, FDetailWidgetRow & Row, bool bLabel, int32 InInputCount)
+	const TWeakObjectPtr<UHoudiniInput>& InInput, FDetailWidgetRow & Row, bool bLabel, int32 InInputCount)
 {
-	if (!IsValid(InInput))
+	if (!IsValidWeakPointer(InInput))
 		return;
 
 	FString InputLabelStr = InInput->GetLabel();
@@ -243,14 +244,14 @@ FHoudiniInputDetails::CreateNameWidget(
 }
 
 FText
-FHoudiniInputDetails::GetInputTooltip(UHoudiniInput* InParam)
+FHoudiniInputDetails::GetInputTooltip(const TWeakObjectPtr<UHoudiniInput>& InParam)
 {
 	// TODO
 	return FText();
 }
 
 void
-FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuilder, TSharedRef<SVerticalBox> VerticalBox, TArray<UHoudiniInput*>& InInputs, const IDetailsView* DetailsView)
+FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuilder, TSharedRef<SVerticalBox> VerticalBox, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const IDetailsView* DetailsView)
 {
 	// Get the details view name and locked status
 	bool bDetailsLocked = false;
@@ -263,13 +264,15 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 	}
 
 	// Lambda return a FText correpsonding to an input's current type
-	auto GetInputText = [](UHoudiniInput* InInput)
+	auto GetInputText = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
 	{
+		if (!IsValidWeakPointer(InInput))
+			return FText();
 		return FText::FromString(InInput->GetInputTypeAsString());
 	};
 
 	// Lambda for changing inputs type
-	auto OnSelChanged = [DetailsPanelName,  &CategoryBuilder](TArray<UHoudiniInput*> InInputsToUpdate, TSharedPtr<FString> InNewChoice)
+	auto OnSelChanged = [DetailsPanelName](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, TSharedPtr<FString> InNewChoice)
 	{
 		if (!InNewChoice.IsValid())
 			return;
@@ -283,8 +286,8 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 		if (InInputsToUpdate.Num() <= 0)
 			return;
 
-		UHoudiniInput * MainInput = InInputsToUpdate[0];
-		if (!IsValid(MainInput))
+		const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputsToUpdate[0];
+		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		UHoudiniAssetBlueprintComponent* HAB = MainInput->GetTypedOuter<UHoudiniAssetBlueprintComponent>();
@@ -299,7 +302,7 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 
 		for (auto CurInput : InInputsToUpdate)
 		{
-			if (!IsValid(CurInput))
+			if (!IsValidWeakPointer(CurInput))
 				continue;
 
 			if (CurInput->GetInputType() == NewInputType)
@@ -336,7 +339,7 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 
 	};
 
-	UHoudiniInput* MainInput = InInputs[0];
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
 	TArray<TSharedPtr<FString>>* SupportedChoices = nullptr;
 	UHoudiniAssetBlueprintComponent* HAC = MainInput->GetTypedOuter<UHoudiniAssetBlueprintComponent>();
 	if (HAC)
@@ -380,19 +383,19 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 }
 
 void
-FHoudiniInputDetails:: AddCurveInputCookOnChangeCheckBox(TSharedRef< SVerticalBox > VerticalBox, TArray<UHoudiniInput*>& InInputs)
+FHoudiniInputDetails:: AddCurveInputCookOnChangeCheckBox(TSharedRef< SVerticalBox > VerticalBox, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
 	if (InInputs.Num() <= 0)
 		return;
 
-	UHoudiniInput * MainInput = InInputs[0];
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
 
-	if (!MainInput || MainInput->GetInputType() != EHoudiniInputType::Curve)
+	if (!MainInput.IsValid() || MainInput->GetInputType() != EHoudiniInputType::Curve)
 		return;
 
 	auto IsCheckedCookOnChange = [MainInput]()
 	{
-		if (!MainInput)
+		if (!IsValidWeakPointer(MainInput))
 			return ECheckBoxState::Checked;
 
 		return MainInput->GetCookOnCurveChange() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -400,10 +403,10 @@ FHoudiniInputDetails:: AddCurveInputCookOnChangeCheckBox(TSharedRef< SVerticalBo
 
 	auto CheckStateChangedCookOnChange = [InInputs](ECheckBoxState NewState)
 	{
-		bool bChecked = NewState == ECheckBoxState::Checked;
+		const bool bChecked = NewState == ECheckBoxState::Checked;
 		for (auto & NextInput : InInputs) 
 		{
-			if (!NextInput)
+			if (!IsValidWeakPointer(NextInput))
 				continue;
 
 			NextInput->SetCookOnCurveChange(bChecked);
@@ -435,25 +438,25 @@ FHoudiniInputDetails:: AddCurveInputCookOnChangeCheckBox(TSharedRef< SVerticalBo
 }
 
 void
-FHoudiniInputDetails::AddKeepWorldTransformCheckBox(TSharedRef< SVerticalBox > VerticalBox, TArray<UHoudiniInput*>& InInputs)
+FHoudiniInputDetails::AddKeepWorldTransformCheckBox(TSharedRef< SVerticalBox > VerticalBox, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
 	if (InInputs.Num() <= 0)
 		return;
 
-	UHoudiniInput* MainInput = InInputs[0];
-	if (!IsValid(MainInput))
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	if (!IsValidWeakPointer(MainInput))
 		return;
 
 	// Lambda returning a CheckState from the input's current KeepWorldTransform state
-	auto IsCheckedKeepWorldTransform = [&](UHoudiniInput* InInput)
+	auto IsCheckedKeepWorldTransform = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
 	{
-		return InInput->GetKeepWorldTransform() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		return InInput.IsValid() && InInput->GetKeepWorldTransform() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	// Lambda for changing KeepWorldTransform state
-	auto CheckStateChangedKeepWorldTransform = [MainInput](TArray<UHoudiniInput*> InInputsToUpdate, ECheckBoxState NewState)
+	auto CheckStateChangedKeepWorldTransform = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -468,7 +471,7 @@ FHoudiniInputDetails::AddKeepWorldTransformCheckBox(TSharedRef< SVerticalBox > V
 
 		for (auto CurInput : InInputsToUpdate)
 		{
-			if (!IsValid(CurInput))
+			if (!IsValidWeakPointer(CurInput))
 				continue;
 
 			if (CurInput->GetKeepWorldTransform() == bNewState)
@@ -514,30 +517,30 @@ FHoudiniInputDetails::AddKeepWorldTransformCheckBox(TSharedRef< SVerticalBox > V
 }
 
 void
-FHoudiniInputDetails::AddPackBeforeMergeCheckbox(TSharedRef< SVerticalBox > VerticalBox, TArray<UHoudiniInput*>& InInputs)
+FHoudiniInputDetails::AddPackBeforeMergeCheckbox(TSharedRef< SVerticalBox > VerticalBox, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
 
 	if (InInputs.Num() <= 0)
 		return;
 
-	UHoudiniInput* MainInput = InInputs[0];
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
 
-	if (!IsValid(MainInput))
+	if (!IsValidWeakPointer(MainInput))
 		return;
 
 	// Lambda returning a CheckState from the input's current PackBeforeMerge state
-	auto IsCheckedPackBeforeMerge = [](UHoudiniInput* InInput)
+	auto IsCheckedPackBeforeMerge = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
 	{
-		if (!IsValid(InInput))
+		if (!IsValidWeakPointer(InInput))
 			return ECheckBoxState::Unchecked;
 
 		return InInput->GetPackBeforeMerge() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	// Lambda for changing PackBeforeMerge state
-	auto CheckStateChangedPackBeforeMerge = [MainInput](TArray<UHoudiniInput*> InInputsToUpdate, ECheckBoxState NewState)
+	auto CheckStateChangedPackBeforeMerge = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -553,7 +556,7 @@ FHoudiniInputDetails::AddPackBeforeMergeCheckbox(TSharedRef< SVerticalBox > Vert
 
 		for (auto CurInput : InInputsToUpdate)
 		{
-			if (!IsValid(CurInput))
+			if (!IsValidWeakPointer(CurInput))
 				continue;
 
 			if (CurInput->GetPackBeforeMerge() == bNewState)
@@ -589,32 +592,32 @@ FHoudiniInputDetails::AddPackBeforeMergeCheckbox(TSharedRef< SVerticalBox > Vert
 }
 
 void
-FHoudiniInputDetails::AddImportAsReferenceCheckbox(TSharedRef< SVerticalBox > VerticalBox, TArray<UHoudiniInput*>& InInputs)
+FHoudiniInputDetails::AddImportAsReferenceCheckbox(TSharedRef< SVerticalBox > VerticalBox, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
 	if (InInputs.Num() <= 0)
 		return;
 
-	UHoudiniInput * MainInput = InInputs[0];
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
 
-	if (!IsValid(MainInput))
+	if (!IsValidWeakPointer(MainInput))
 		return;
 
 	// Lambda returning a CheckState from the input's current PackBeforeMerge state
-	auto IsCheckedImportAsReference= [](UHoudiniInput* InInput)
+	auto IsCheckedImportAsReference= [](const TWeakObjectPtr<UHoudiniInput>& InInput)
 	{
-		if (!IsValid(InInput))
+		if (!IsValidWeakPointer(InInput))
 			return ECheckBoxState::Unchecked;
 
 		return InInput->GetImportAsReference() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	// Lambda for changing PackBeforeMerge state
-	auto CheckStateChangedImportAsReference= [MainInput](TArray<UHoudiniInput*> InInputsToUpdate, ECheckBoxState NewState)
+	auto CheckStateChangedImportAsReference= [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return;
 
-		bool bNewState = (NewState == ECheckBoxState::Checked);
+		const bool bNewState = (NewState == ECheckBoxState::Checked);
 
 		if (MainInput->GetImportAsReference() == bNewState)
 			return;
@@ -627,7 +630,7 @@ FHoudiniInputDetails::AddImportAsReferenceCheckbox(TSharedRef< SVerticalBox > Ve
 
 		for (auto CurInput : InInputsToUpdate)
 		{
-			if (!IsValid(CurInput))
+			if (!IsValidWeakPointer(CurInput))
 				continue;
 
 			if (CurInput->GetImportAsReference() == bNewState)
@@ -677,18 +680,18 @@ FHoudiniInputDetails::AddImportAsReferenceCheckbox(TSharedRef< SVerticalBox > Ve
 	];
 
 	// Add Rot/Scale to input as reference
-	auto IsCheckedImportAsReferenceRotScale= [](UHoudiniInput* InInput)
+	auto IsCheckedImportAsReferenceRotScale= [](const TWeakObjectPtr<UHoudiniInput>& InInput)
 	{
-		if (!IsValid(InInput))
+		if (!IsValidWeakPointer(InInput))
 			return ECheckBoxState::Unchecked;
 
 		return InInput->GetImportAsReferenceRotScaleEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	// Lambda for changing PackBeforeMerge state
-	auto CheckStateChangedImportAsReferenceRotScale= [MainInput](TArray<UHoudiniInput*> InInputsToUpdate, ECheckBoxState NewState)
+	auto CheckStateChangedImportAsReferenceRotScale= [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -704,7 +707,7 @@ FHoudiniInputDetails::AddImportAsReferenceCheckbox(TSharedRef< SVerticalBox > Ve
 
 		for (auto CurInput : InInputsToUpdate)
 		{
-			if (!IsValid(CurInput))
+			if (!IsValidWeakPointer(CurInput))
 				continue;
 
 			if (CurInput->GetImportAsReferenceRotScaleEnabled() == bNewState)
@@ -756,46 +759,46 @@ FHoudiniInputDetails::AddImportAsReferenceCheckbox(TSharedRef< SVerticalBox > Ve
 	];
 }
 void
-FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox, TArray<UHoudiniInput*>& InInputs)
+FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
 	if (InInputs.Num() <= 0)
 		return;
 
-	UHoudiniInput* MainInput = InInputs[0];
-	if (!IsValid(MainInput))
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	if (!IsValidWeakPointer(MainInput))
 		return;
 
 	// Lambda returning a CheckState from the input's current ExportLODs state
-	auto IsCheckedExportLODs = [](UHoudiniInput* InInput)
+	auto IsCheckedExportLODs = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
 	{
-		if (!IsValid(InInput))
+		if (!IsValidWeakPointer(InInput))
 			return ECheckBoxState::Unchecked;
 
 		return InInput->GetExportLODs() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	// Lambda returning a CheckState from the input's current ExportSockets state
-	auto IsCheckedExportSockets = [](UHoudiniInput* InInput)
+	auto IsCheckedExportSockets = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
 	{
-		if (!IsValid(InInput))
+		if (!IsValidWeakPointer(InInput))
 			return ECheckBoxState::Unchecked;
 
 		return InInput->GetExportSockets() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	// Lambda returning a CheckState from the input's current ExportColliders state
-	auto IsCheckedExportColliders = [](UHoudiniInput* InInput)
+	auto IsCheckedExportColliders = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
 	{
-		if (!IsValid(InInput))
+		if (!IsValidWeakPointer(InInput))
 			return ECheckBoxState::Unchecked;
 
 		return InInput->GetExportColliders() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	// Lambda for changing ExportLODs state
-	auto CheckStateChangedExportLODs = [MainInput](TArray<UHoudiniInput*> InInputsToUpdate, ECheckBoxState NewState)
+	auto CheckStateChangedExportLODs = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -811,7 +814,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 
 		for (auto CurInput : InInputsToUpdate)
 		{
-			if (!IsValid(CurInput))
+			if (!IsValidWeakPointer(CurInput))
 				continue;
 
 			if (CurInput->GetExportLODs() == bNewState)
@@ -826,9 +829,9 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 	};
 
 	// Lambda for changing ExportSockets state
-	auto CheckStateChangedExportSockets = [MainInput](TArray<UHoudiniInput*> InInputsToUpdate, ECheckBoxState NewState)
+	auto CheckStateChangedExportSockets = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -844,7 +847,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 
 		for (auto CurInput : InInputsToUpdate)
 		{
-			if (!IsValid(CurInput))
+			if (!IsValidWeakPointer(CurInput))
 				continue;
 
 			if (CurInput->GetExportSockets() == bNewState)
@@ -859,9 +862,9 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 	};
 
 	// Lambda for changing ExportColliders state
-	auto CheckStateChangedExportColliders = [MainInput](TArray<UHoudiniInput*> InInputsToUpdate, ECheckBoxState NewState)
+	auto CheckStateChangedExportColliders = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -877,7 +880,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 
 		for (auto CurInput : InInputsToUpdate)
 		{
-			if (!IsValid(CurInput))
+			if (!IsValidWeakPointer(CurInput))
 				continue;
 
 			if (CurInput->GetExportColliders() == bNewState)
@@ -970,23 +973,23 @@ void
 FHoudiniInputDetails::AddGeometryInputUI(
 	IDetailCategoryBuilder& CategoryBuilder,
 	TSharedRef<SVerticalBox> InVerticalBox, 
-	TArray<UHoudiniInput*>& InInputs,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool )
 {
 	if (InInputs.Num() <= 0)
 		return;
 
-	UHoudiniInput* MainInput = InInputs[0];
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
 
-	if (!MainInput)
+	if (!IsValidWeakPointer(MainInput))
 		return;
 
 	const int32 NumInputObjects = MainInput->GetNumberOfInputObjects(EHoudiniInputType::Geometry);
 
 	// Lambda for changing ExportColliders state
-	auto SetGeometryInputObjectsCount = [MainInput, &CategoryBuilder](TArray<UHoudiniInput*> InInputsToUpdate, const int32& NewInputCount)
+	auto SetGeometryInputObjectsCount = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const int32& NewInputCount)
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		// Record a transaction for undo/redo
@@ -997,7 +1000,7 @@ FHoudiniInputDetails::AddGeometryInputUI(
 
 		for (auto CurInput : InInputsToUpdate)
 		{
-			if (!IsValid(CurInput))
+			if (!IsValidWeakPointer(CurInput))
 				continue;
 
 			if (CurInput->GetNumberOfInputObjects(EHoudiniInputType::Geometry) == NewInputCount)
@@ -1066,12 +1069,12 @@ FHoudiniInputDetails::AddGeometryInputUI(
 void 
 FHoudiniInputDetails::Helper_CreateGeometryWidget(
 	IDetailCategoryBuilder& CategoryBuilder,
-	TArray<UHoudiniInput*>& InInputs, 
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, 
 	const int32& InGeometryObjectIdx,
 	TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool,
 	TSharedRef< SVerticalBox > VerticalBox )
 {
-	UHoudiniInput* MainInput = InInputs[0];
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
 
 	// Access the object used in the corresponding geometry input
 	UHoudiniInputObject* HoudiniInputObject = MainInput->GetHoudiniInputObjectAt(EHoudiniInputType::Geometry, InGeometryObjectIdx);
@@ -1082,9 +1085,9 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 		new FAssetThumbnail(InputObject, 64, 64, AssetThumbnailPool));
 
 	// Lambda for adding new geometry input objects
-	auto UpdateGeometryObjectAt = [MainInput, &CategoryBuilder](TArray<UHoudiniInput*> InInputsToUpdate, const int32& AtIndex, UObject* InObject, const bool& bAutoInserMissingObjects)
+	auto UpdateGeometryObjectAt = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const int32& AtIndex, UObject* InObject, const bool& bAutoInserMissingObjects)
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		if (!IsValid(InObject))
@@ -1098,7 +1101,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 
 		for (auto CurInput : InInputsToUpdate)
 		{
-			if (!IsValid(CurInput))
+			if (!IsValidWeakPointer(CurInput))
 				continue;
 
 			UObject* InputObject = nullptr;
@@ -1376,7 +1379,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 		PropertyCustomizationHelpers::MakeInsertDeleteDuplicateButton(
 		FExecuteAction::CreateLambda( [ InInputs, InGeometryObjectIdx, MainInput ]() 
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return;
 
 			FScopedTransaction Transaction(
@@ -1386,7 +1389,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 			// Insert
 			for (auto CurInput : InInputs)
 			{
-				if (!IsValid(CurInput))
+				if (!IsValidWeakPointer(CurInput))
 					continue;
 
 				CurInput->Modify();
@@ -1395,7 +1398,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 		} ),
 		FExecuteAction::CreateLambda([MainInput, InInputs, InGeometryObjectIdx]()
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return;
 
 			FScopedTransaction Transaction(
@@ -1406,7 +1409,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 			// Delete
 			for (auto CurInput : InInputs)
 			{
-				if (!IsValid(CurInput))
+				if (!IsValidWeakPointer(CurInput))
 					continue;
 
 				CurInput->Modify();
@@ -1418,7 +1421,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 		} ),
 		FExecuteAction::CreateLambda([InInputs, InGeometryObjectIdx, MainInput]()
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return;
 
 			FScopedTransaction Transaction(
@@ -1429,7 +1432,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 			// Duplicate
 			for (auto CurInput : InInputs)
 			{
-				if (!IsValid(CurInput))
+				if (!IsValidWeakPointer(CurInput))
 					continue;
 
 				CurInput->Modify();
@@ -1456,7 +1459,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 				.Visibility( EVisibility::Visible )
 				.OnClicked(FOnClicked::CreateLambda([InInputs, InGeometryObjectIdx, MainInput, &CategoryBuilder]()
 				{
-					if (!IsValid(MainInput))
+					if (!IsValidWeakPointer(MainInput))
 						return FReply::Handled();;
 
 					FScopedTransaction Transaction(
@@ -1467,7 +1470,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 					// Expand transform
 					for (auto CurInput : InInputs)
 					{
-						if (!IsValid(CurInput))
+						if (!IsValidWeakPointer(CurInput))
 							continue;
 
 						CurInput->Modify();	
@@ -1519,7 +1522,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 	}
 
 	// Lambda for changing the transform values
-	auto ChangeTransformOffsetAt = [&](const float& Value, const int32& AtIndex, const int32& PosRotScaleIndex, const int32& XYZIndex, const bool& DoChange, TArray<UHoudiniInput*> InInputs)
+	auto ChangeTransformOffsetAt = [&](const float& Value, const int32& AtIndex, const int32& PosRotScaleIndex, const int32& XYZIndex, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 	{
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
@@ -1530,7 +1533,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 		bool bChanged = true;
 		for (int Idx = 0; Idx < InInputs.Num(); Idx++)
 		{
-			if (!IsValid(InInputs[Idx]))
+			if (!InInputs[Idx].IsValid())
 				continue;
 
 			UHoudiniInputObject* InputObject = InInputs[Idx]->GetHoudiniInputObjectAt(AtIndex);
@@ -1561,7 +1564,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 	bool bResetButtonVisibleScale = false;
 	for (auto & CurInput : InInputs)
 	{
-		if (!IsValid(CurInput))
+		if (!IsValidWeakPointer(CurInput))
 			continue;
 
 		FTransform* CurTransform = CurInput->GetTransformOffset(InGeometryObjectIdx);
@@ -1611,13 +1614,13 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 				.AllowSpin(true)
 				.X(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetPositionOffsetX, InGeometryObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetPositionOffsetX, InGeometryObjectIdx)))
 				.Y(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetPositionOffsetY, InGeometryObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetPositionOffsetY, InGeometryObjectIdx)))
 				.Z(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetPositionOffsetZ, InGeometryObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetPositionOffsetZ, InGeometryObjectIdx)))
 				.OnXCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
 					{ ChangeTransformOffsetAt(Val, InGeometryObjectIdx, 0, 0, true, InInputs); })
 				.OnYCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
@@ -1689,13 +1692,13 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 				.bColorAxisLabels( true )
 				.Roll(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetRotationOffsetRoll, InGeometryObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetRotationOffsetRoll, InGeometryObjectIdx)))
 				.Pitch(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetRotationOffsetPitch, InGeometryObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetRotationOffsetPitch, InGeometryObjectIdx)))
 				.Yaw(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetRotationOffsetYaw, InGeometryObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetRotationOffsetYaw, InGeometryObjectIdx)))
 				.OnRollCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
 					{ ChangeTransformOffsetAt(Val, InGeometryObjectIdx, 1, 0, true, InInputs); })
 				.OnPitchCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
@@ -1770,13 +1773,13 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 				.bColorAxisLabels( true )
 				.X(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetScaleOffsetX, InGeometryObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetScaleOffsetX, InGeometryObjectIdx)))
 				.Y(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetScaleOffsetY, InGeometryObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetScaleOffsetY, InGeometryObjectIdx)))
 				.Z(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetScaleOffsetZ, InGeometryObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetScaleOffsetZ, InGeometryObjectIdx)))
 				.OnXCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
 				{
 					if (bLocked) 
@@ -1823,7 +1826,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 					{
 						for (auto & CurInput : InInputs)
 						{
-							if (!IsValid(CurInput))
+							if (!IsValidWeakPointer(CurInput))
 								continue;
 
 							UHoudiniInputObject*CurInputObject = CurInput->GetHoudiniInputObjectAt(EHoudiniInputType::Geometry, InGeometryObjectIdx);
@@ -1870,10 +1873,10 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 }
 
 void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategoryBuilder& CategoryBuilder,
-	TArray<UHoudiniInput*>& InInputs, const FPlatformTypes::int32& InGeometryCollectionObjectIdx,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const FPlatformTypes::int32& InGeometryCollectionObjectIdx,
 	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool, TSharedRef<SVerticalBox> VerticalBox)
 {
-	UHoudiniInput* MainInput = InInputs[0];
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
 
 	// Access the object used in the corresponding geometry input
 	UHoudiniInputObject* HoudiniInputObject = MainInput->GetHoudiniInputObjectAt(EHoudiniInputType::GeometryCollection, InGeometryCollectionObjectIdx);
@@ -1884,9 +1887,9 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 		new FAssetThumbnail(InputObject, 64, 64, AssetThumbnailPool));
 
 	// Lambda for adding new geometry input objects
-	auto UpdateGeometryCollectionObjectAt = [MainInput, &CategoryBuilder](TArray<UHoudiniInput*> InInputsToUpdate, const int32& AtIndex, UObject* InObject)
+	auto UpdateGeometryCollectionObjectAt = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const int32& AtIndex, UObject* InObject)
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		if (!IsValid(InObject))
@@ -1900,7 +1903,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 
 		for (auto CurInput : InInputsToUpdate)
 		{
-			if (!IsValid(CurInput))
+			if (!IsValidWeakPointer(CurInput))
 				continue;
 
 			UObject* InputObject = CurInput->GetInputObjectAt(EHoudiniInputType::GeometryCollection, AtIndex);
@@ -2147,7 +2150,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 		PropertyCustomizationHelpers::MakeInsertDeleteDuplicateButton(
 		FExecuteAction::CreateLambda( [ InInputs, InGeometryCollectionObjectIdx, MainInput ]() 
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return;
 
 			FScopedTransaction Transaction(
@@ -2157,7 +2160,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 			// Insert
 			for (auto CurInput : InInputs)
 			{
-				if (!IsValid(CurInput))
+				if (!IsValidWeakPointer(CurInput))
 					continue;
 
 				CurInput->Modify();
@@ -2166,7 +2169,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 		} ),
 		FExecuteAction::CreateLambda([MainInput, InInputs, InGeometryCollectionObjectIdx]()
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return;
 
 			FScopedTransaction Transaction(
@@ -2177,7 +2180,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 			// Delete
 			for (auto CurInput : InInputs)
 			{
-				if (!IsValid(CurInput))
+				if (!IsValidWeakPointer(CurInput))
 					continue;
 
 				CurInput->Modify();
@@ -2189,7 +2192,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 		} ),
 		FExecuteAction::CreateLambda([InInputs, InGeometryCollectionObjectIdx, MainInput]()
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return;
 
 			FScopedTransaction Transaction(
@@ -2200,7 +2203,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 			// Duplicate
 			for (auto CurInput : InInputs)
 			{
-				if (!IsValid(CurInput))
+				if (!IsValidWeakPointer(CurInput))
 					continue;
 
 				CurInput->Modify();
@@ -2227,7 +2230,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 				.Visibility( EVisibility::Visible )
 				.OnClicked(FOnClicked::CreateLambda([InInputs, InGeometryCollectionObjectIdx, MainInput, &CategoryBuilder]()
 				{
-					if (!IsValid(MainInput))
+					if (!IsValidWeakPointer(MainInput))
 						return FReply::Handled();;
 
 					FScopedTransaction Transaction(
@@ -2238,7 +2241,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 					// Expand transform
 					for (auto CurInput : InInputs)
 					{
-						if (!IsValid(CurInput))
+						if (!IsValidWeakPointer(CurInput))
 							continue;
 
 						CurInput->Modify();	
@@ -2290,7 +2293,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 	}
 
 	// Lambda for changing the transform values
-	auto ChangeTransformOffsetAt = [&](const float& Value, const int32& AtIndex, const int32& PosRotScaleIndex, const int32& XYZIndex, const bool& DoChange, TArray<UHoudiniInput*> InInputs)
+	auto ChangeTransformOffsetAt = [&](const float& Value, const int32& AtIndex, const int32& PosRotScaleIndex, const int32& XYZIndex, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 	{
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
@@ -2301,7 +2304,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 		bool bChanged = true;
 		for (int Idx = 0; Idx < InInputs.Num(); Idx++)
 		{
-			if (!IsValid(InInputs[Idx]))
+			if (!InInputs[Idx].IsValid())
 				continue;
 
 			UHoudiniInputObject* InputObject = InInputs[Idx]->GetHoudiniInputObjectAt(AtIndex);
@@ -2332,7 +2335,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 	bool bResetButtonVisibleScale = false;
 	for (auto & CurInput : InInputs)
 	{
-		if (!IsValid(CurInput))
+		if (!IsValidWeakPointer(CurInput))
 			continue;
 
 		FTransform* CurTransform = CurInput->GetTransformOffset(InGeometryCollectionObjectIdx);
@@ -2382,13 +2385,13 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 				.AllowSpin(true)
 				.X(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetPositionOffsetX, InGeometryCollectionObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetPositionOffsetX, InGeometryCollectionObjectIdx)))
 				.Y(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetPositionOffsetY, InGeometryCollectionObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetPositionOffsetY, InGeometryCollectionObjectIdx)))
 				.Z(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetPositionOffsetZ, InGeometryCollectionObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetPositionOffsetZ, InGeometryCollectionObjectIdx)))
 				.OnXCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
 					{ ChangeTransformOffsetAt(Val, InGeometryCollectionObjectIdx, 0, 0, true, InInputs); })
 				.OnYCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
@@ -2460,13 +2463,13 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 				.bColorAxisLabels( true )
 				.Roll(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetRotationOffsetRoll, InGeometryCollectionObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetRotationOffsetRoll, InGeometryCollectionObjectIdx)))
 				.Pitch(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetRotationOffsetPitch, InGeometryCollectionObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetRotationOffsetPitch, InGeometryCollectionObjectIdx)))
 				.Yaw(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetRotationOffsetYaw, InGeometryCollectionObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetRotationOffsetYaw, InGeometryCollectionObjectIdx)))
 				.OnRollCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
 					{ ChangeTransformOffsetAt(Val, InGeometryCollectionObjectIdx, 1, 0, true, InInputs); })
 				.OnPitchCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
@@ -2541,13 +2544,13 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 				.bColorAxisLabels( true )
 				.X(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetScaleOffsetX, InGeometryCollectionObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetScaleOffsetX, InGeometryCollectionObjectIdx)))
 				.Y(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetScaleOffsetY, InGeometryCollectionObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetScaleOffsetY, InGeometryCollectionObjectIdx)))
 				.Z(TAttribute<TOptional<float>>::Create(
 					TAttribute<TOptional<float>>::FGetter::CreateUObject(
-						MainInput, &UHoudiniInput::GetScaleOffsetZ, InGeometryCollectionObjectIdx)))
+						MainInput.Get(), &UHoudiniInput::GetScaleOffsetZ, InGeometryCollectionObjectIdx)))
 				.OnXCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
 				{
 					if (bLocked) 
@@ -2594,7 +2597,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 					{
 						for (auto & CurInput : InInputs)
 						{
-							if (!IsValid(CurInput))
+							if (!IsValidWeakPointer(CurInput))
 								continue;
 
 							UHoudiniInputObject*CurInputObject = CurInput->GetHoudiniInputObjectAt(EHoudiniInputType::GeometryCollection, InGeometryCollectionObjectIdx);
@@ -2641,14 +2644,14 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 }
 
 void
-FHoudiniInputDetails::AddAssetInputUI(TSharedRef< SVerticalBox > VerticalBox, TArray<UHoudiniInput*>& InInputs)
+FHoudiniInputDetails::AddAssetInputUI(TSharedRef< SVerticalBox > VerticalBox, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
 	if (InInputs.Num() <= 0)
 		return;
 
-	UHoudiniInput* MainInput = InInputs[0];
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
 
-	if (!IsValid(MainInput))
+	if (!IsValidWeakPointer(MainInput))
 		return;
 	
 	// Houdini Asset Picker Widget
@@ -2668,7 +2671,7 @@ FHoudiniInputDetails::AddAssetInputUI(TSharedRef< SVerticalBox > VerticalBox, TA
 		TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
 		auto IsClearButtonEnabled = [MainInput]() 
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return false;
 
 			TArray<UHoudiniInputObject*>* AssetInputObjectsArray = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::Asset);
@@ -2684,7 +2687,7 @@ FHoudiniInputDetails::AddAssetInputUI(TSharedRef< SVerticalBox > VerticalBox, TA
 
 		FOnClicked OnClearSelect = FOnClicked::CreateLambda([InInputs, MainInput]()
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return FReply::Handled();
 
 			FScopedTransaction Transaction(
@@ -2694,7 +2697,7 @@ FHoudiniInputDetails::AddAssetInputUI(TSharedRef< SVerticalBox > VerticalBox, TA
 
 			for (auto CurrentInput : InInputs)
 			{
-				if (!IsValid(CurrentInput))
+				if (!IsValidWeakPointer(CurrentInput))
 					continue;
 
 				TArray<UHoudiniInputObject*>* AssetInputObjectsArray = CurrentInput->GetHoudiniInputObjectArray(EHoudiniInputType::Asset);
@@ -2736,13 +2739,13 @@ FHoudiniInputDetails::AddAssetInputUI(TSharedRef< SVerticalBox > VerticalBox, TA
 }
 
 void
-FHoudiniInputDetails::AddCurveInputUI(IDetailCategoryBuilder& CategoryBuilder, TSharedRef< SVerticalBox > VerticalBox, TArray<UHoudiniInput*>& InInputs, TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool)
+FHoudiniInputDetails::AddCurveInputUI(IDetailCategoryBuilder& CategoryBuilder, TSharedRef< SVerticalBox > VerticalBox, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool)
 {
 	if (InInputs.Num() <= 0)
 		return;
 
-	UHoudiniInput* MainInput = InInputs[0];
-	if (!MainInput)
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	if (!IsValidWeakPointer(MainInput))
 		return;
 
 	const int32 NumInputObjects = MainInput->GetNumberOfInputObjects(EHoudiniInputType::Curve);
@@ -2750,7 +2753,7 @@ FHoudiniInputDetails::AddCurveInputUI(IDetailCategoryBuilder& CategoryBuilder, T
 	// lambda for inserting an input Houdini curve.
 	auto InsertAnInputCurve = [MainInput, &CategoryBuilder](const int32& NewInputCount) 
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(MainInput->GetOuter());
@@ -2809,7 +2812,7 @@ FHoudiniInputDetails::AddCurveInputUI(IDetailCategoryBuilder& CategoryBuilder, T
 			const bool bChecked = (NewState == ECheckBoxState::Checked);
 			for (auto& CurrentInput : InInputs)
 			{
-				if (!IsValid(CurrentInput))
+				if (!IsValidWeakPointer(CurrentInput))
 					continue;
 
 				CurrentInput->SetAddRotAndScaleAttributes(bChecked);
@@ -2817,7 +2820,7 @@ FHoudiniInputDetails::AddCurveInputUI(IDetailCategoryBuilder& CategoryBuilder, T
 		})
 		.IsChecked_Lambda([MainInput]()
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return ECheckBoxState::Unchecked;
 			
 			return MainInput->IsAddRotAndScaleAttributesEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -2844,7 +2847,7 @@ FHoudiniInputDetails::AddCurveInputUI(IDetailCategoryBuilder& CategoryBuilder, T
 		const bool bChecked = (NewState == ECheckBoxState::Checked);
 		for (auto& CurrentInput : InInputs)
 		{
-			if (!IsValid(CurrentInput))
+			if (!IsValidWeakPointer(CurrentInput))
 				continue;
 
 			CurrentInput->SetUseLegacyInputCurve(bChecked);
@@ -2852,7 +2855,7 @@ FHoudiniInputDetails::AddCurveInputUI(IDetailCategoryBuilder& CategoryBuilder, T
 	})
 	.IsChecked_Lambda([MainInput]()
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return ECheckBoxState::Unchecked;
 			
 		return MainInput->IsUseLegacyInputCurvesEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -2984,25 +2987,25 @@ FHoudiniInputDetails::AddCurveInputUI(IDetailCategoryBuilder& CategoryBuilder, T
 void
 FHoudiniInputDetails::Helper_CreateCurveWidget(
 	IDetailCategoryBuilder& CategoryBuilder,
-	TArray<UHoudiniInput*>& InInputs,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 	const int32& InCurveObjectIdx,
 	TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool,
 	TSharedRef< SVerticalBox > VerticalBox,
 	TSharedPtr<FHoudiniSplineComponentVisualizer> HouSplineComponentVisualizer)
 {
-	UHoudiniInput* MainInput = InInputs[0];
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
 
-	if (!IsValid(MainInput))
+	if (!IsValidWeakPointer(MainInput))
 		return;
 
 	UHoudiniAssetComponent * OuterHAC = Cast<UHoudiniAssetComponent>(MainInput->GetOuter());
 	if (!IsValid(OuterHAC))
 		return;
 
-	auto GetHoudiniSplineComponentAtIndex = [](UHoudiniInput * Input, int32 Index)
+	auto GetHoudiniSplineComponentAtIndex = [](const TWeakObjectPtr<UHoudiniInput>& Input, int32 Index)
 	{
 		UHoudiniSplineComponent* FoundHoudiniSplineComponent = nullptr;
-		if (!IsValid(Input))
+		if (!IsValidWeakPointer(Input))
 			return FoundHoudiniSplineComponent;
 
 		// Get the TArray ptr to the curve objects in this input
@@ -3109,7 +3112,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 		int MainInputCurveArraySize = CurveInputComponentArray->Num();
 		for (auto & Input : InInputs)
 		{
-			if (!IsValid(Input))
+			if (!IsValidWeakPointer(Input))
 				continue;
 
 			Input->Modify();
@@ -3184,7 +3187,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 
 		for (auto & Input : InInputs) 
 		{
-			if (!IsValid(Input))
+			if (!IsValidWeakPointer(Input))
 				continue;
 
 			UHoudiniSplineComponent * HoudiniSplineComponent = GetHoudiniSplineComponentAtIndex(Input, InCurveObjectIdx);
@@ -3248,7 +3251,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 
 		for (auto & Input : InInputs) 
 		{
-			if (!IsValid(Input))
+			if (!IsValidWeakPointer(Input))
 				continue;
 
 			UHoudiniSplineComponent * HoudiniSplineComponent = GetHoudiniSplineComponentAtIndex(Input, InCurveObjectIdx);
@@ -3303,7 +3306,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 
 		for (auto & Input : InInputs) 
 		{
-			if (!IsValid(Input))
+			if (!IsValidWeakPointer(Input))
 				continue;
 
 			UHoudiniSplineComponent * HoudiniSplineComponent = GetHoudiniSplineComponentAtIndex(Input, InCurveObjectIdx);
@@ -3361,7 +3364,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 
 		for (auto & Input : InInputs) 
 		{
-			if (!IsValid(Input))
+			if (!IsValidWeakPointer(Input))
 				continue;
 
 			UHoudiniSplineComponent * HoudiniSplineComponent = GetHoudiniSplineComponentAtIndex(Input, InCurveObjectIdx);
@@ -3458,7 +3461,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 
 		for (auto & Input : InInputs)
 		{
-			if (!IsValid(Input))
+			if (!IsValidWeakPointer(Input))
 				continue;
 
 			UHoudiniSplineComponent * HoudiniSplineComponent = GetHoudiniSplineComponentAtIndex(Input, InCurveObjectIdx);
@@ -3560,7 +3563,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 
 					for (auto & Input : InInputs)
 					{
-						if (!IsValid(Input))
+						if (!IsValidWeakPointer(Input))
 							continue;
 
 						UHoudiniSplineComponent * HoudiniSplineComponent = GetHoudiniSplineComponentAtIndex(Input, InCurveObjectIdx);
@@ -3596,7 +3599,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 
 					for (auto & Input : InInputs)
 					{
-						if (!IsValid(Input))
+						if (!IsValidWeakPointer(Input))
 							continue;
 
 						UHoudiniSplineComponent * HoudiniSplineComponent = GetHoudiniSplineComponentAtIndex(Input, InCurveObjectIdx);
@@ -3646,7 +3649,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 
 			for (auto & Input : InInputs)
 			{
-				if (!IsValid(Input))
+				if (!IsValidWeakPointer(Input))
 					continue;
 
 				UHoudiniSplineComponent * HoudiniSplineComponent = GetHoudiniSplineComponentAtIndex(Input, InCurveObjectIdx);
@@ -3712,11 +3715,11 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 		];
 	}
 	
-	auto BakeInputCurveLambda = [](TArray<UHoudiniInput*> Inputs, int32 Index, bool bBakeToBlueprint)
+	auto BakeInputCurveLambda = [](const TArray<TWeakObjectPtr<UHoudiniInput>>& Inputs, int32 Index, bool bBakeToBlueprint)
 	{
 		for (auto & NextInput : Inputs)
 		{
-			if (!IsValid(NextInput))
+			if (!IsValidWeakPointer(NextInput))
 				continue;
 
 			UHoudiniAssetComponent * OuterHAC = Cast<UHoudiniAssetComponent>(NextInput->GetOuter());
@@ -3831,28 +3834,28 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 }
 
 void
-FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, TArray<UHoudiniInput*>& InInputs)
+FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
 	if (InInputs.Num() <= 0)
 		return;
 
-	UHoudiniInput* MainInput = InInputs[0];
-	if (!MainInput)
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	if (!IsValidWeakPointer(MainInput))
 		return;
 
 	// Lambda returning a CheckState from the input's current KeepWorldTransform state
-	auto IsCheckedUpdateInputLandscape = [](UHoudiniInput* InInput)
+	auto IsCheckedUpdateInputLandscape = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
 	{
-		if (!IsValid(InInput))
+		if (!IsValidWeakPointer(InInput))
 			return ECheckBoxState::Unchecked;
 
 		return InInput->GetUpdateInputLandscape() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	// Lambda for changing KeepWorldTransform state
-	auto CheckStateChangedUpdateInputLandscape = [MainInput](TArray<UHoudiniInput*> InInputsToUpdate, ECheckBoxState NewState)
+	auto CheckStateChangedUpdateInputLandscape = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -3864,7 +3867,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 
 		for (auto CurInput : InInputsToUpdate)
 		{
-			if (!IsValid(CurInput))
+			if (!IsValidWeakPointer(CurInput))
 				continue;
 
 			if (bNewState == CurInput->GetUpdateInputLandscape())
@@ -3991,7 +3994,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		// -------------------------------------
 		auto IsClearButtonEnabled = [MainInput]()
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return false;
 
 			if (MainInput->GetInputType() != EHoudiniInputType::Landscape)
@@ -4012,8 +4015,8 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 			if (InInputs.Num() <= 0)
 				return FReply::Handled();
 
-			UHoudiniInput * MainInput = InInputs[0];
-			if (!IsValid(MainInput))
+			const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+			if (!IsValidWeakPointer(MainInput))
 				return FReply::Handled();
 
 			if (MainInput->GetInputType() != EHoudiniInputType::Landscape)
@@ -4034,7 +4037,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 
 			for (auto & CurInput : InInputs) 
 			{
-				if (!IsValid(CurInput))
+				if (!IsValidWeakPointer(CurInput))
 					continue;
 
 				TArray<UHoudiniInputObject*>* LandscapeInputObjectsArray = CurInput->GetHoudiniInputObjectArray(CurInput->GetInputType());
@@ -4117,9 +4120,9 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 			SAssignNew(ButtonOptionsPanel, SUniformGridPanel)
 		];
 
-		auto IsCheckedExportAs = [](UHoudiniInput* Input, const EHoudiniLandscapeExportType& LandscapeExportType)
+		auto IsCheckedExportAs = [](const TWeakObjectPtr<UHoudiniInput>& Input, const EHoudiniLandscapeExportType& LandscapeExportType)
 		{
-			if (!IsValid(Input))
+			if (!IsValidWeakPointer(Input))
 				return ECheckBoxState::Unchecked;
 
 			if (Input->GetLandscapeExportType() == LandscapeExportType)
@@ -4128,9 +4131,9 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				return ECheckBoxState::Unchecked;
 		};
 
-		auto CheckStateChangedExportAs = [](UHoudiniInput* Input, const EHoudiniLandscapeExportType& LandscapeExportType)
+		auto CheckStateChangedExportAs = [](const TWeakObjectPtr<UHoudiniInput>& Input, const EHoudiniLandscapeExportType& LandscapeExportType)
 		{
-			if (!IsValid(Input))
+			if (!IsValidWeakPointer(Input))
 				return false;
 
 			if (Input->GetLandscapeExportType() == LandscapeExportType)
@@ -4299,14 +4302,14 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 			]
 			.IsChecked_Lambda([MainInput]()
 			{
-				if (!IsValid(MainInput))
+				if (!IsValidWeakPointer(MainInput))
 					return ECheckBoxState::Unchecked;
 
 				return MainInput->bLandscapeExportSelectionOnly ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 			{
-				if (!IsValid(MainInput))
+				if (!IsValidWeakPointer(MainInput))
 					return;
 
 				// Record a transaction for undo/redo
@@ -4317,7 +4320,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 
 				for (auto CurrentInput : InInputs)
 				{
-					if (!IsValid(CurrentInput))
+					if (!IsValidWeakPointer(CurrentInput))
 						continue;
 
 					bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -4350,14 +4353,14 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 			]
 			.IsChecked_Lambda([MainInput]()
 			{
-				if (!IsValid(MainInput))
+				if (!IsValidWeakPointer(MainInput))
 					return ECheckBoxState::Unchecked;
 
 				return MainInput->bLandscapeAutoSelectComponent ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 			{
-				if (!IsValid(MainInput))
+				if (!IsValidWeakPointer(MainInput))
 					return;
 
 				// Record a transaction for undo/redo
@@ -4368,7 +4371,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 
 				for (auto CurrentInput : InInputs)
 				{
-					if (!IsValid(CurrentInput))
+					if (!IsValidWeakPointer(CurrentInput))
 						continue;
 
 					bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -4403,7 +4406,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 	{
 		auto OnButtonUpdateComponentSelection = [InInputs, MainInput]()
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return FReply::Handled();
 
 			// Record a transaction for undo/redo
@@ -4414,7 +4417,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 
 			for (auto CurrentInput : InInputs)
 			{
-				if (!IsValid(CurrentInput))
+				if (!IsValidWeakPointer(CurrentInput))
 					continue;
 
 				CurrentInput->UpdateLandscapeInputSelection();
@@ -4477,14 +4480,14 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				]
 				.IsChecked_Lambda([MainInput]()
 				{
-					if (!IsValid(MainInput))
+					if (!IsValidWeakPointer(MainInput))
 						return ECheckBoxState::Unchecked;
 
 					return MainInput->bLandscapeExportMaterials ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 				})
 				.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 				{
-					if (!IsValid(MainInput))
+					if (!IsValidWeakPointer(MainInput))
 						return;
 
 					// Record a transaction for undo/redo
@@ -4495,7 +4498,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 
 					for (auto CurrentInput : InInputs)
 					{
-						if (!IsValid(CurrentInput))
+						if (!IsValidWeakPointer(CurrentInput))
 							continue;
 
 						bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -4532,14 +4535,14 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				]
 				.IsChecked_Lambda([MainInput]()
 				{
-					if (!IsValid(MainInput))
+					if (!IsValidWeakPointer(MainInput))
 						return ECheckBoxState::Unchecked;
 
 					return MainInput->bLandscapeExportTileUVs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 				})
 				.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 				{
-					if (!IsValid(MainInput))
+					if (!IsValidWeakPointer(MainInput))
 						return;
 
 					// Record a transaction for undo/redo
@@ -4550,7 +4553,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 
 					for (auto CurrentInput : InInputs)
 					{
-						if (!IsValid(CurrentInput))
+						if (!IsValidWeakPointer(CurrentInput))
 							continue;
 
 						bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -4587,14 +4590,14 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 			]
 		.IsChecked_Lambda([MainInput]()
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return ECheckBoxState::Unchecked;
 
 			return MainInput->bLandscapeExportNormalizedUVs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		})
 			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return;
 
 			// Record a transaction for undo/redo
@@ -4605,7 +4608,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 
 			for (auto CurrentInput : InInputs)
 			{
-				if (!IsValid(CurrentInput))
+				if (!IsValidWeakPointer(CurrentInput))
 					continue;
 
 				bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -4642,14 +4645,14 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				]
 			.IsChecked_Lambda([MainInput]()
 			{
-				if (!IsValid(MainInput))
+				if (!IsValidWeakPointer(MainInput))
 					return ECheckBoxState::Unchecked;
 
 				return MainInput->bLandscapeExportLighting ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 				.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 			{
-				if (!IsValid(MainInput))
+				if (!IsValidWeakPointer(MainInput))
 					return;
 
 				// Record a transaction for undo/redo
@@ -4660,7 +4663,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 
 				for (auto CurrentInput : InInputs)
 				{
-					if (!IsValid(CurrentInput))
+					if (!IsValidWeakPointer(CurrentInput))
 						continue;
 
 					bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -4688,7 +4691,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 
 /*
 FMenuBuilder
-FHoudiniInputDetails::Helper_CreateCustomActorPickerWidget(TArray<UHoudiniInput*>& InInputs, const TAttribute<FText>& HeadingText, const bool& bShowCurrentSelectionSection)
+FHoudiniInputDetails::Helper_CreateCustomActorPickerWidget(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const TAttribute<FText>& HeadingText, const bool& bShowCurrentSelectionSection)
 {
 	UHoudiniInput* MainInput = InInputs.Num() > 0 ? InInputs[0] : nullptr;
 
@@ -4847,7 +4850,7 @@ FHoudiniInputDetails::Helper_CreateCustomActorPickerWidget(TArray<UHoudiniInput*
 		// Do Nothing
 	};
 
-	auto OnActorSelected = [OnLandscapeSelected, OnWorldSelected, OnHoudiniAssetActorSelected](AActor* Actor, TArray<UHoudiniInput*> InInputs)
+	auto OnActorSelected = [OnLandscapeSelected, OnWorldSelected, OnHoudiniAssetActorSelected](AActor* Actor, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 	{
 		for (auto& CurInput : InInputs)
 		{
@@ -4932,9 +4935,9 @@ FHoudiniInputDetails::Helper_CreateCustomActorPickerWidget(TArray<UHoudiniInput*
 
 
 FMenuBuilder
-FHoudiniInputDetails::Helper_CreateHoudiniAssetPickerWidget(TArray<UHoudiniInput*>& InInputs)
+FHoudiniInputDetails::Helper_CreateHoudiniAssetPickerWidget(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
-	UHoudiniInput* MainInput = InInputs.Num() > 0 ? InInputs[0] : nullptr;
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs.Num() > 0 ? InInputs[0] : nullptr;
 	auto OnShouldFilterHoudiniAsset = [InInputs](const AActor* const Actor)
 	{
 		if (!Actor)
@@ -4947,7 +4950,7 @@ FHoudiniInputDetails::Helper_CreateHoudiniAssetPickerWidget(TArray<UHoudiniInput
 		// But not our selected Asset Actor
 		for (auto & NextSelectedInput : InInputs) 
 		{
-			if (!NextSelectedInput)
+			if (!IsValidWeakPointer(NextSelectedInput))
 				continue;
 
 			const USceneComponent* RootComp = Cast<const USceneComponent>(NextSelectedInput->GetOuter());
@@ -4962,15 +4965,15 @@ FHoudiniInputDetails::Helper_CreateHoudiniAssetPickerWidget(TArray<UHoudiniInput
 	// Filters are only based on the MainInput
 	auto OnShouldFilterActor = [MainInput, OnShouldFilterHoudiniAsset](const AActor* const Actor)
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return true;
 
 		return OnShouldFilterHoudiniAsset(Actor);
 	};
 
-	auto OnHoudiniAssetActorSelected = [OnShouldFilterHoudiniAsset](AActor* Actor, UHoudiniInput* Input)
+	auto OnHoudiniAssetActorSelected = [OnShouldFilterHoudiniAsset](AActor* Actor, const TWeakObjectPtr<UHoudiniInput>& Input)
 	{
-		if (!IsValid(Actor) || !IsValid(Input))
+		if (!IsValid(Actor) || !Input.IsValid())
 			return;
 		
 		AHoudiniAssetActor* HoudiniAssetActor = Cast<AHoudiniAssetActor>(Actor);
@@ -4988,7 +4991,7 @@ FHoudiniInputDetails::Helper_CreateHoudiniAssetPickerWidget(TArray<UHoudiniInput
 		FName HoudiniAssetActorName = MakeUniqueObjectName(Input->GetOuter(), AHoudiniAssetActor::StaticClass(), TEXT("HoudiniAsset"));
 
 		// Create a Houdini Asset Input Object
-		UHoudiniInputObject* NewInputObject = UHoudiniInputHoudiniAsset::Create(HoudiniAssetActor->GetHoudiniAssetComponent(), Input, HoudiniAssetActorName.ToString());
+		UHoudiniInputObject* NewInputObject = UHoudiniInputHoudiniAsset::Create(HoudiniAssetActor->GetHoudiniAssetComponent(), Input.Get(), HoudiniAssetActorName.ToString());
 
 		UHoudiniInputHoudiniAsset* AssetInput = Cast<UHoudiniInputHoudiniAsset>(NewInputObject);
 		AssetInput->MarkChanged(true);
@@ -5005,11 +5008,11 @@ FHoudiniInputDetails::Helper_CreateHoudiniAssetPickerWidget(TArray<UHoudiniInput
 		Input->MarkChanged(true);
 	};
 
-	auto OnActorSelected = [OnHoudiniAssetActorSelected](AActor* Actor, TArray<UHoudiniInput*> InInputs)
+	auto OnActorSelected = [OnHoudiniAssetActorSelected](AActor* Actor, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 	{
 		for (auto& CurInput : InInputs)
 		{
-			if (!IsValid(CurInput))
+			if (!IsValidWeakPointer(CurInput))
 				return;
 
 			OnHoudiniAssetActorSelected(Actor, CurInput);
@@ -5023,8 +5026,8 @@ FHoudiniInputDetails::Helper_CreateHoudiniAssetPickerWidget(TArray<UHoudiniInput
 	MenuBuilder.BeginSection(NAME_None, LOCTEXT("CurrentActorOperationHeader", "Current Selection"));
 	{
 		MenuBuilder.AddMenuEntry(
-			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(MainInput, &UHoudiniInput::GetCurrentSelectionText)),
-			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(MainInput, &UHoudiniInput::GetCurrentSelectionText)),
+			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(MainInput.Get(), &UHoudiniInput::GetCurrentSelectionText)),
+			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(MainInput.Get(), &UHoudiniInput::GetCurrentSelectionText)),
 			FSlateIcon(),
 			FUIAction(),
 			NAME_None,
@@ -5072,10 +5075,10 @@ FHoudiniInputDetails::Helper_CreateHoudiniAssetPickerWidget(TArray<UHoudiniInput
 }
 
 FMenuBuilder
-FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(TArray<UHoudiniInput*>& InInputs)
+FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
-	UHoudiniInput* MainInput = InInputs.Num() > 0 ? InInputs[0] : nullptr;	
-	auto OnShouldFilterLandscape = [](const AActor* const Actor, UHoudiniInput* InInput)
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs.Num() > 0 ? InInputs[0] : nullptr;	
+	auto OnShouldFilterLandscape = [](const AActor* const Actor, const TWeakObjectPtr<UHoudiniInput>& InInput)
 	{
 		if (!IsValid(Actor))
 			return false;
@@ -5130,16 +5133,16 @@ FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(TArray<UHoudiniInput*>&
 	// Filters are only based on the MainInput
 	auto OnShouldFilterActor = [MainInput, OnShouldFilterLandscape](const AActor* const Actor)
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return true;
 
 		return OnShouldFilterLandscape(Actor, MainInput);
 	};
 
 	// Selection uses the input arrays
-	auto OnLandscapeSelected = [OnShouldFilterLandscape](AActor* Actor, UHoudiniInput* Input)
+	auto OnLandscapeSelected = [OnShouldFilterLandscape](AActor* Actor, const TWeakObjectPtr<UHoudiniInput>& Input)
 	{
-		if (!Actor || !Input)
+		if (!Actor || !Input.IsValid())
 			return;
 
 		// Make sure that the actor is valid for this input
@@ -5160,7 +5163,7 @@ FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(TArray<UHoudiniInput*>&
 
 		// Create a Houdini Input Object.
 		UHoudiniInputObject* NewInputObject = UHoudiniInputLandscape::Create(
-			LandscapeProxy, Input, LandscapeName.ToString());
+			LandscapeProxy, Input.Get(), LandscapeName.ToString());
 
 		UHoudiniInputLandscape* LandscapeInput = Cast<UHoudiniInputLandscape>(NewInputObject);
 		LandscapeInput->MarkChanged(true);
@@ -5169,13 +5172,13 @@ FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(TArray<UHoudiniInput*>&
 		Input->MarkChanged(true);
 	};
 	
-	auto OnActorSelected = [OnLandscapeSelected](AActor* Actor, TArray<UHoudiniInput*> InInputs)
+	auto OnActorSelected = [OnLandscapeSelected](AActor* Actor, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 	{
 		if (InInputs.Num() <= 0)
 			return;
 
-		UHoudiniInput * MainInput = InInputs[0];
-		if (!IsValid(MainInput))
+		const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		// Record a transaction for undo/redo
@@ -5186,7 +5189,7 @@ FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(TArray<UHoudiniInput*>&
 
 		for (auto CurInput : InInputs)
 		{
-			if (!IsValid(CurInput))
+			if (!IsValidWeakPointer(CurInput))
 				continue;
 
 			CurInput->Modify();
@@ -5216,7 +5219,7 @@ FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(TArray<UHoudiniInput*>&
 		
 		FString CurrentSelection;
 
-		if (MainInput)
+		if (MainInput.IsValid())
 		{
 			CurrentSelection = MainInput->GetCurrentSelectionText().ToString();
 		}
@@ -5249,12 +5252,12 @@ FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(TArray<UHoudiniInput*>&
 }
 
 FMenuBuilder
-FHoudiniInputDetails::Helper_CreateWorldActorPickerWidget(TArray<UHoudiniInput*>& InInputs)
+FHoudiniInputDetails::Helper_CreateWorldActorPickerWidget(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
-	UHoudiniInput* MainInput = InInputs.Num() > 0 ? InInputs[0] : nullptr;
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs.Num() > 0 ? InInputs[0] : nullptr;
 	auto OnShouldFilterWorld = [MainInput](const AActor* const Actor)
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return true;
 
 		const TArray<UHoudiniInputObject*>* InputObjects = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
@@ -5333,9 +5336,9 @@ FHoudiniInputDetails::Helper_CreateWorldActorPickerWidget(TArray<UHoudiniInput*>
 }
 
 FMenuBuilder
-FHoudiniInputDetails::Helper_CreateBoundSelectorPickerWidget(TArray<UHoudiniInput*>& InInputs)
+FHoudiniInputDetails::Helper_CreateBoundSelectorPickerWidget(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
-	UHoudiniInput* MainInput = InInputs.Num() > 0 ? InInputs[0] : nullptr;
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs.Num() > 0 ? InInputs[0] : nullptr;
 	auto OnShouldFilter = [MainInput](const AActor* const Actor)
 	{
 		if (!IsValid(Actor))
@@ -5407,14 +5410,14 @@ void
 FHoudiniInputDetails::AddWorldInputUI(
 	IDetailCategoryBuilder& CategoryBuilder,
 	TSharedRef<SVerticalBox> VerticalBox,
-	TArray<UHoudiniInput*>& InInputs,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 	const IDetailsView* DetailsView)
 {
 	if (InInputs.Num() <= 0)
 		return;
 
-	UHoudiniInput* MainInput = InInputs[0];
-	if (!MainInput)
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	if (!IsValidWeakPointer(MainInput))
 		return;
 
 	const int32 NumInputObjects = MainInput->GetNumberOfInputObjects(EHoudiniInputType::World);
@@ -5522,7 +5525,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 
 		FOnClicked OnSelectAll = FOnClicked::CreateLambda([InInputs, MainInput]()
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return FReply::Handled();
 
 			// Record a transaction for undo/redo
@@ -5533,7 +5536,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 
 			for (auto CurrentInput : InInputs)
 			{
-				if (!IsValid(CurrentInput))
+				if (!IsValidWeakPointer(CurrentInput))
 					continue;
 
 				// Get the parent component/actor/world of the current input
@@ -5570,7 +5573,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 
 		FOnClicked OnClearSelect = FOnClicked::CreateLambda([InInputs, MainInput, &CategoryBuilder]()
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return FReply::Handled();
 
 			const bool bMainInputBoundSelection = MainInput->IsWorldInputBoundSelector();
@@ -5651,18 +5654,18 @@ FHoudiniInputDetails::AddWorldInputUI(
 	// Checkbox: Bound Selector
 	{
 		// Lambda returning a CheckState from the input's current bound selector state
-		auto IsCheckedBoundSelector = [](UHoudiniInput* InInput)
+		auto IsCheckedBoundSelector = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
 		{
-			if (!IsValid(InInput))
+			if (!IsValidWeakPointer(InInput))
 				return ECheckBoxState::Unchecked;
 
 			return InInput->IsWorldInputBoundSelector() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		};
 
 		// Lambda for changing bound selector state
-		auto CheckStateChangedIsBoundSelector = [MainInput, &CategoryBuilder](TArray<UHoudiniInput*> InInputsToUpdate, ECheckBoxState NewState)
+		auto CheckStateChangedIsBoundSelector = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return;
 
 			// Record a transaction for undo/redo
@@ -5674,7 +5677,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 			bool bNewState = (NewState == ECheckBoxState::Checked);
 			for (auto CurInput : InInputsToUpdate)
 			{
-				if (!IsValid(CurInput))
+				if (!IsValidWeakPointer(CurInput))
 					continue;
 
 				if (CurInput->IsWorldInputBoundSelector() == bNewState)
@@ -5715,18 +5718,18 @@ FHoudiniInputDetails::AddWorldInputUI(
 	// Checkbox: Bound Selector Auto update
 	{
 		// Lambda returning a CheckState from the input's current auto update state
-		auto IsCheckedAutoUpdate = [](UHoudiniInput* InInput)
+		auto IsCheckedAutoUpdate = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
 		{
-			if (!IsValid(InInput))
+			if (!IsValidWeakPointer(InInput))
 				return ECheckBoxState::Unchecked;
 
 			return InInput->GetWorldInputBoundSelectorAutoUpdates() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		};
 
 		// Lambda for changing the auto update state
-		auto CheckStateChangedBoundAutoUpdates = [MainInput](TArray<UHoudiniInput*> InInputsToUpdate, ECheckBoxState NewState)
+		auto CheckStateChangedBoundAutoUpdates = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 		{
-			if (!IsValid(MainInput))
+			if (!IsValidWeakPointer(MainInput))
 				return;
 
 			// Record a transaction for undo/redo
@@ -5738,7 +5741,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 			bool bNewState = (NewState == ECheckBoxState::Checked);
 			for (auto CurInput : InInputsToUpdate)
 			{
-				if (!IsValid(CurInput))
+				if (!IsValidWeakPointer(CurInput))
 					continue;
 
 				if (CurInput->GetWorldInputBoundSelectorAutoUpdates() == bNewState)
@@ -5823,7 +5826,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 				.Value(MainInput->GetUnrealSplineResolution())
 				.OnValueChanged_Lambda([MainInput, InInputs](float Val) 
 				{
-					if (!IsValid(MainInput))
+					if (!IsValidWeakPointer(MainInput))
 						return;
 
 					// Record a transaction for undo/redo
@@ -5834,7 +5837,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 
 					for (auto CurrentInput : InInputs)
 					{
-						if (!IsValid(CurrentInput))
+						if (!IsValidWeakPointer(CurrentInput))
 							continue;
 
 						if (CurrentInput->GetUnrealSplineResolution() == Val)
@@ -5870,7 +5873,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 				//.OnClicked(FOnClicked::CreateUObject(&InParam, &UHoudiniAssetInput::OnResetSplineResolutionClicked))
 				.OnClicked_Lambda([MainInput, InInputs]()
 				{
-					if (!IsValid(MainInput))
+					if (!IsValidWeakPointer(MainInput))
 						return FReply::Handled();
 
 					// Record a transaction for undo/redo
@@ -5884,7 +5887,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 
 					for (auto CurrentInput : InInputs)
 					{
-						if (!IsValid(CurrentInput))
+						if (!IsValidWeakPointer(CurrentInput))
 							continue;
 
 						if (CurrentInput->GetUnrealSplineResolution() == DefaultSplineResolution)
@@ -5910,28 +5913,28 @@ FHoudiniInputDetails::AddWorldInputUI(
 void
 FHoudiniInputDetails::AddSkeletalInputUI(
 	TSharedRef<SVerticalBox> VerticalBox,
-	TArray<UHoudiniInput*>& InInputs, 
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, 
 	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool )
 {
 }
 
 void FHoudiniInputDetails::AddGeometryCollectionInputUI(IDetailCategoryBuilder& CategoryBuilder, TSharedRef<SVerticalBox> InVerticalBox,
-	TArray<UHoudiniInput*>& InInputs, TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool)
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool)
 {
 	if (InInputs.Num() <= 0)
 		return;
 
-	UHoudiniInput* MainInput = InInputs[0];
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
 
-	if (!MainInput)
+	if (!IsValidWeakPointer(MainInput))
 		return;
 
 	const int32 NumInputObjects = MainInput->GetNumberOfInputObjects(EHoudiniInputType::GeometryCollection);
 
 	// Lambda for changing ExportColliders state
-	auto SetGeometryCollectionInputObjectsCount = [MainInput, &CategoryBuilder](TArray<UHoudiniInput*> InInputsToUpdate, const int32& NewInputCount)
+	auto SetGeometryCollectionInputObjectsCount = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const int32& NewInputCount)
 	{
-		if (!IsValid(MainInput))
+		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		// Record a transaction for undo/redo
@@ -5942,7 +5945,7 @@ void FHoudiniInputDetails::AddGeometryCollectionInputUI(IDetailCategoryBuilder& 
 
 		for (auto CurInput : InInputsToUpdate)
 		{
-			if (!IsValid(CurInput))
+			if (!IsValidWeakPointer(CurInput))
 				continue;
 
 			if (CurInput->GetNumberOfInputObjects(EHoudiniInputType::GeometryCollection) == NewInputCount)
@@ -6007,22 +6010,22 @@ void FHoudiniInputDetails::AddGeometryCollectionInputUI(IDetailCategoryBuilder& 
 }
 
 FReply
-FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& CategoryBuilder, TArray<UHoudiniInput*> InInputs, const FName& DetailsPanelName)
+FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& CategoryBuilder, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const FName& DetailsPanelName)
 {
 	return Helper_OnButtonClickSelectActors(CategoryBuilder, InInputs, DetailsPanelName, false);
 }
 
 FReply
-FHoudiniInputDetails::Helper_OnButtonClickUseSelectionAsBoundSelector(IDetailCategoryBuilder& CategoryBuilder, TArray<UHoudiniInput*> InInputs, const FName& DetailsPanelName)
+FHoudiniInputDetails::Helper_OnButtonClickUseSelectionAsBoundSelector(IDetailCategoryBuilder& CategoryBuilder, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const FName& DetailsPanelName)
 {
 	return Helper_OnButtonClickSelectActors(CategoryBuilder, InInputs, DetailsPanelName, true);
 }
 
 FReply
-FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& CategoryBuilder, TArray<UHoudiniInput*> InInputs, const FName& DetailsPanelName, const bool& bUseWorldInAsWorldSelector)
+FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& CategoryBuilder, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const FName& DetailsPanelName, const bool& bUseWorldInAsWorldSelector)
 {
-	UHoudiniInput* MainInput = InInputs.Num() > 0 ? InInputs[0] : nullptr;
-	if (!IsValid(MainInput))
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs.Num() > 0 ? InInputs[0] : nullptr;
+	if (!IsValidWeakPointer(MainInput))
 		return FReply::Handled();
 
 	// There's no undo operation for button.
@@ -6257,7 +6260,7 @@ FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& C
 
 
 bool
-FHoudiniInputDetails::Helper_CancelWorldSelection(TArray<UHoudiniInput*>& InInputs, const FName& DetailsPanelName)
+FHoudiniInputDetails::Helper_CancelWorldSelection(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const FName& DetailsPanelName)
 {
 	if (InInputs.Num() <= 0)
 		return false;
