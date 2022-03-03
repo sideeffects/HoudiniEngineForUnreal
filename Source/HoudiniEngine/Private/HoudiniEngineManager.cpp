@@ -1747,10 +1747,10 @@ FHoudiniEngineManager::EnableEditorAutoSave(const UHoudiniAssetComponent* HAC = 
 		if (DisableAutoSavingHACs.Num() <= 0)
 			return;
 		
-		TSet<const UHoudiniAssetComponent*> ValidComponents;
+		TSet<TWeakObjectPtr<const UHoudiniAssetComponent>> ValidComponents;
 		for (auto& CurHAC : DisableAutoSavingHACs)
 		{
-			if (IsValid(CurHAC))
+			if (CurHAC.IsValid())
 			{
 				ValidComponents.Add(CurHAC);
 			}

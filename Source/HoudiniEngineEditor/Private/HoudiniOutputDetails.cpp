@@ -87,13 +87,13 @@
 void
 FHoudiniOutputDetails::CreateWidget(
 	IDetailCategoryBuilder& HouOutputCategory,
-	TArray<UHoudiniOutput*> InOutputs)
+	const TArray<TWeakObjectPtr<UHoudiniOutput>>& InOutputs)
 {
 	if (InOutputs.Num() <= 0)
 		return;
 
-	UHoudiniOutput* MainOutput = InOutputs[0];
-	if (!IsValid(MainOutput)) 
+	const TWeakObjectPtr<UHoudiniOutput>& MainOutput = InOutputs[0];
+	if (!IsValidWeakPointer(MainOutput))
 		return;
 
 	// Don't create UI for editable curve.
@@ -147,9 +147,9 @@ FHoudiniOutputDetails::CreateWidget(
 void 
 FHoudiniOutputDetails::CreateLandscapeOutputWidget(
 	IDetailCategoryBuilder& HouOutputCategory,
-	UHoudiniOutput* InOutput)
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput)
 {
-	if (!IsValid(InOutput))
+	if (!IsValidWeakPointer(InOutput))
 		return;
 
 	// Go through this output's objects
@@ -185,27 +185,27 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget(
 void
 FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 	IDetailCategoryBuilder& HouOutputCategory,
-	UHoudiniOutput* InOutput,
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput,
 	const FHoudiniGeoPartObject& HGPO,
-	UHoudiniLandscapePtr* LandscapePointer,
-	const FHoudiniOutputObjectIdentifier & OutputIdentifier)
+	const TWeakObjectPtr<UHoudiniLandscapePtr>& LandscapePointer,
+	const FHoudiniOutputObjectIdentifier& OutputIdentifier)
 {
-	if (!IsValid(LandscapePointer) || !LandscapePointer->LandscapeSoftPtr.IsValid())
+	if (!LandscapePointer.IsValid() || !LandscapePointer->LandscapeSoftPtr.IsValid())
 		return;
 
-	if (!IsValid(InOutput))
+	if (!IsValidWeakPointer(InOutput))
 		return;
 
-	UHoudiniAssetComponent * HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
-	if (!IsValid(HAC))
+	const TWeakObjectPtr<UHoudiniAssetComponent>& HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
+	if (!IsValidWeakPointer(HAC))
 		return;
 
-	AActor * OwnerActor = HAC->GetOwner();
-	if (!IsValid(OwnerActor))
+	const TWeakObjectPtr<AActor>& OwnerActor = HAC->GetOwner();
+	if (!IsValidWeakPointer(OwnerActor))
 		return;
 
-	ALandscapeProxy * Landscape = LandscapePointer->LandscapeSoftPtr.Get();
-	if (!IsValid(Landscape))
+	const TWeakObjectPtr<ALandscapeProxy>& Landscape = LandscapePointer->LandscapeSoftPtr.Get();
+	if (!IsValidWeakPointer(Landscape))
 		return;
 
 	// TODO: Get bake base name
@@ -282,8 +282,11 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 			.HintText(LOCTEXT("BakeNameHintText", "Input bake name to override default"))
 			.OnTextCommitted_Lambda([InOutput, OutputIdentifier](const FText& Val, ETextCommit::Type TextCommitType)
 			{
-				FHoudiniOutputDetails::OnBakeNameCommitted(Val, TextCommitType, InOutput, OutputIdentifier);
-				FHoudiniEngineUtils::UpdateEditorProperties(InOutput, true);
+				if (InOutput.IsValid())
+				{
+					FHoudiniOutputDetails::OnBakeNameCommitted(Val, TextCommitType, InOutput, OutputIdentifier);
+					FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
+				}
 			})
 		]
 		+ SHorizontalBox::Slot()
@@ -310,7 +313,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 
 	// Create the thumbnail for the landscape output object.
 	TSharedPtr< FAssetThumbnail > LandscapeThumbnail =
-		MakeShareable(new FAssetThumbnail(Landscape, 64, 64, AssetThumbnailPool));
+		MakeShareable(new FAssetThumbnail(Landscape.Get(), 64, 64, AssetThumbnailPool));
 
 	TSharedPtr< SBorder > LandscapeThumbnailBorder;
 	TSharedRef< SVerticalBox > VerticalBox = SNew(SVerticalBox);
@@ -338,8 +341,8 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 			[
 				SAssignNew(LandscapeThumbnailBorder, SBorder)
 				.Padding(5.0f)
-				.BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (UObject*)Landscape)
-				.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (UObject *)Landscape)
+				.BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) Landscape)
+				.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) Landscape)
 				[
 					SNew(SBox)
 					.WidthOverride(64)
@@ -364,7 +367,10 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 					.IsEnabled(true)
 					.OnClicked_Lambda([InOutput, OutputIdentifier, HAC, HGPO, Landscape, LandscapeOutputBakeType]()
 					{
-						FHoudiniOutputObject* FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
+						if (!InOutput.IsValid() || !HAC.IsValid() || !Landscape.IsValid())
+							return FReply::Handled();
+						
+						FHoudiniOutputObject const* const FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
 						if (FoundOutputObject)
 						{
 							TArray<UHoudiniOutput*> AllOutputs;
@@ -372,11 +378,11 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 							HAC->GetOutputs(AllOutputs);
 							FHoudiniOutputDetails::OnBakeOutputObject(
 								FoundOutputObject->BakeName,
-								Landscape,
+								Landscape.Get(),
 								OutputIdentifier,
 								*FoundOutputObject,
 								HGPO,
-								HAC,
+								HAC.Get(),
 								HAC->BakeFolder.Path,
 								HAC->TemporaryCookFolder.Path,
 								InOutput->GetType(),
@@ -414,26 +420,33 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 							if (!NewChoiceStr)
 								return;
 
-							if (*NewChoiceStr == FHoudiniEngineEditorUtils::HoudiniLandscapeOutputBakeTypeToString(EHoudiniLandscapeOutputBakeType::Detachment))
+							if (LandscapePointer.IsValid())
 							{
-								LandscapePointer->SetLandscapeOutputBakeType(EHoudiniLandscapeOutputBakeType::Detachment);
-							}
-							else if (*NewChoiceStr == FHoudiniEngineEditorUtils::HoudiniLandscapeOutputBakeTypeToString(EHoudiniLandscapeOutputBakeType::BakeToImage))
-							{
-								LandscapePointer->SetLandscapeOutputBakeType(EHoudiniLandscapeOutputBakeType::BakeToImage);
-							}
-							else
-							{
-								LandscapePointer->SetLandscapeOutputBakeType(EHoudiniLandscapeOutputBakeType::BakeToWorld);
+								if (*NewChoiceStr == FHoudiniEngineEditorUtils::HoudiniLandscapeOutputBakeTypeToString(EHoudiniLandscapeOutputBakeType::Detachment))
+								{
+									LandscapePointer->SetLandscapeOutputBakeType(EHoudiniLandscapeOutputBakeType::Detachment);
+								}
+								else if (*NewChoiceStr == FHoudiniEngineEditorUtils::HoudiniLandscapeOutputBakeTypeToString(EHoudiniLandscapeOutputBakeType::BakeToImage))
+								{
+									LandscapePointer->SetLandscapeOutputBakeType(EHoudiniLandscapeOutputBakeType::BakeToImage);
+								}
+								else
+								{
+									LandscapePointer->SetLandscapeOutputBakeType(EHoudiniLandscapeOutputBakeType::BakeToWorld);
+								}
 							}
 
-							FHoudiniEngineUtils::UpdateEditorProperties(InOutput, true);
+							if (InOutput.IsValid())
+								FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
 						})
 					[
 						SNew(STextBlock)
 						.Text_Lambda([LandscapePointer]()
 						{
-							FString BakeTypeString = FHoudiniEngineEditorUtils::HoudiniLandscapeOutputBakeTypeToString(LandscapePointer->GetLandscapeOutputBakeType());
+							if (!IsValidWeakPointer(LandscapePointer))
+								return FText();
+							
+							const FString BakeTypeString = FHoudiniEngineEditorUtils::HoudiniLandscapeOutputBakeTypeToString(LandscapePointer->GetLandscapeOutputBakeType());
 							return FText::FromString(BakeTypeString);
 						})
 						.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
@@ -485,8 +498,8 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 		[
 			SAssignNew(MaterialThumbnailBorder, SBorder)
 			.Padding(5.0f)
-			.BorderImage(this, &FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder, (UObject*)Landscape, MaterialIdx)
-			.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (UObject *)MaterialInterface)
+			.BorderImage(this, &FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder, (const TWeakObjectPtr<UObject>&) Landscape, MaterialIdx)
+			.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) MaterialInterface)
 			[
 				SNew(SBox)
 				.WidthOverride(64)
@@ -500,7 +513,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 
 		// Store thumbnail for this landscape and material index.
 		{
-			TPairInitializer<ALandscapeProxy *, int32> Pair(Landscape, MaterialIdx);
+			TPairInitializer<TWeakObjectPtr<ALandscapeProxy>, int32> Pair(Landscape, MaterialIdx);
 			MaterialInterfaceThumbnailBorders.Add(Pair, MaterialThumbnailBorder);
 		}
 
@@ -524,7 +537,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 				//.ToolTipText( this, &FHoudiniAssetComponentDetails::OnGetToolTip )
 				.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
 				.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
-				.OnGetMenuContent(this, &FHoudiniOutputDetails::OnGetMaterialInterfaceMenuContent, MaterialInterface, (UObject*)Landscape, InOutput, MaterialIdx)
+				.OnGetMenuContent(this, &FHoudiniOutputDetails::OnGetMaterialInterfaceMenuContent, TWeakObjectPtr<UMaterialInterface>(MaterialInterface), (TWeakObjectPtr<UObject>)Landscape, InOutput, MaterialIdx)
 				.ContentPadding(2.0f)
 				.ButtonContent()
 				[
@@ -552,7 +565,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 			PropertyCustomizationHelpers::MakeUseSelectedButton(
 				FSimpleDelegate::CreateSP(
 					this, &FHoudiniOutputDetails::OnUseContentBrowserSelectedMaterialInterface,
-					(UObject*)Landscape, InOutput, MaterialIdx),
+					(const TWeakObjectPtr<UObject>&)Landscape, InOutput, MaterialIdx),
 				TAttribute< FText >(LOCTEXT("UseSelectedAssetFromContentBrowser", "Use Selected Asset from Content Browser")))
 		];
 
@@ -569,7 +582,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 		[
 			PropertyCustomizationHelpers::MakeBrowseButton(
 				FSimpleDelegate::CreateSP(
-					this, &FHoudiniOutputDetails::OnBrowseTo, (UObject*)MaterialInterface),
+					this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&)MaterialInterface),
 				TAttribute< FText >(MaterialTooltip))
 		];
 
@@ -592,32 +605,32 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 
 		// Store combo button for this mesh and index.
 		{
-			TPairInitializer<ALandscapeProxy *, int32> Pair(Landscape, MaterialIdx);
+			TPairInitializer<TWeakObjectPtr<ALandscapeProxy>, int32> Pair(Landscape, MaterialIdx);
 			MaterialInterfaceComboButtons.Add(Pair, AssetComboButton);
 		}
 	}
 }
 
 void FHoudiniOutputDetails::CreateLandscapeEditLayerOutputWidget_Helper(IDetailCategoryBuilder& HouOutputCategory,
-	UHoudiniOutput* InOutput, const FHoudiniGeoPartObject& HGPO, UHoudiniLandscapeEditLayer* LandscapeEditLayer,
-	const FHoudiniOutputObjectIdentifier& OutputIdentifier)
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput, const FHoudiniGeoPartObject& HGPO,
+	const TWeakObjectPtr<UHoudiniLandscapeEditLayer>& LandscapeEditLayer, const FHoudiniOutputObjectIdentifier& OutputIdentifier)
 {
-	if (!IsValid(LandscapeEditLayer) || !LandscapeEditLayer->LandscapeSoftPtr.IsValid())
+	if (!LandscapeEditLayer.IsValid() || !LandscapeEditLayer->LandscapeSoftPtr.IsValid())
 		return;
 
-	if (!IsValid(InOutput))
+	if (!IsValidWeakPointer(InOutput))
 		return;
 
-	UHoudiniAssetComponent * HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
-	if (!IsValid(HAC))
+	const TWeakObjectPtr<UHoudiniAssetComponent>& HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
+	if (!IsValidWeakPointer(HAC))
 		return;
 
-	AActor * OwnerActor = HAC->GetOwner();
-	if (!IsValid(OwnerActor))
+	const TWeakObjectPtr<AActor>& OwnerActor = HAC->GetOwner();
+	if (!IsValidWeakPointer(OwnerActor))
 		return;
 
-	ALandscapeProxy * Landscape = LandscapeEditLayer->LandscapeSoftPtr.Get();
-	if (!IsValid(Landscape))
+	const TWeakObjectPtr<ALandscapeProxy>& Landscape = LandscapeEditLayer->LandscapeSoftPtr.Get();
+	if (!IsValidWeakPointer(Landscape))
 		return;
 
 	const FString Label = Landscape->GetName();
@@ -938,13 +951,13 @@ void FHoudiniOutputDetails::CreateLandscapeEditLayerOutputWidget_Helper(IDetailC
 void
 FHoudiniOutputDetails::CreateMeshOutputWidget(
 	IDetailCategoryBuilder& HouOutputCategory,
-	UHoudiniOutput* InOutput)
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput)
 {
-	if (!IsValid(InOutput))
+	if (!IsValidWeakPointer(InOutput))
 		return;
 
-	UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
-	if (!IsValid(HAC))
+	const TWeakObjectPtr<UHoudiniAssetComponent>& HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
+	if (!IsValidWeakPointer(HAC))
 		return;
 
 	// Go through this output's object
@@ -994,9 +1007,9 @@ FHoudiniOutputDetails::CreateMeshOutputWidget(
 }
 
 void 
-FHoudiniOutputDetails::CreateCurveOutputWidget(IDetailCategoryBuilder& HouOutputCategory, UHoudiniOutput* InOutput) 
+FHoudiniOutputDetails::CreateCurveOutputWidget(IDetailCategoryBuilder& HouOutputCategory, const TWeakObjectPtr<UHoudiniOutput>& InOutput) 
 {
-	if (!IsValid(InOutput))
+	if (!IsValidWeakPointer(InOutput))
 		return;
 
 	int32 OutputObjIdx = 0;
@@ -1024,9 +1037,9 @@ FHoudiniOutputDetails::CreateCurveOutputWidget(IDetailCategoryBuilder& HouOutput
 }
 
 void FHoudiniOutputDetails::CreateGeometryCollectionOutputWidget(IDetailCategoryBuilder& HouOutputCategory,
-	UHoudiniOutput* InOutput)
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput)
 {
-	if (!IsValid(InOutput))
+	if (!IsValidWeakPointer(InOutput))
 		return;
 
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
@@ -1059,26 +1072,26 @@ void FHoudiniOutputDetails::CreateGeometryCollectionOutputWidget(IDetailCategory
 void 
 FHoudiniOutputDetails::CreateCurveWidgets(
 	IDetailCategoryBuilder& HouOutputCategory,
-	UHoudiniOutput* InOutput,
-	USceneComponent* SplineComponent,
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+	const TWeakObjectPtr<USceneComponent>& SplineComponent,
 	FHoudiniOutputObject& OutputObject,
 	FHoudiniOutputObjectIdentifier& OutputIdentifier,
 	FHoudiniGeoPartObject& HoudiniGeoPartObject) 
 {
-	if (!IsValid(InOutput))
+	if (!IsValidWeakPointer(InOutput))
 		return;
 
 	// We support Unreal Spline out only for now
-	USplineComponent* SplineOutput = Cast<USplineComponent>(SplineComponent);
-	if (!IsValid(SplineOutput))
+	const TWeakObjectPtr<USplineComponent>& SplineOutput = Cast<USplineComponent>(SplineComponent);
+	if (!IsValidWeakPointer(SplineOutput))
 		return;
 
-	UHoudiniAssetComponent * HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
-	if (!IsValid(HAC))
+	const TWeakObjectPtr<UHoudiniAssetComponent>& HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
+	if (!IsValidWeakPointer(HAC))
 		return;
 
-	AActor * OwnerActor = HAC->GetOwner();
-	if (!IsValid(OwnerActor))
+	const TWeakObjectPtr<AActor>& OwnerActor = HAC->GetOwner();
+	if (!IsValidWeakPointer(OwnerActor))
 		return;
 
 	FHoudiniCurveOutputProperties* OutputProperty = &(OutputObject.CurveOutputProperty);
@@ -1122,8 +1135,11 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 			.HintText(LOCTEXT("BakeNameHintText", "Input bake name to override default"))
 			.OnTextCommitted_Lambda([InOutput, OutputIdentifier](const FText& Val, ETextCommit::Type TextCommitType)
 			{
-				FHoudiniOutputDetails::OnBakeNameCommitted(Val, TextCommitType, InOutput, OutputIdentifier);
-				FHoudiniEngineUtils::UpdateEditorProperties(InOutput, true);
+				if (InOutput.IsValid())
+				{
+					FHoudiniOutputDetails::OnBakeNameCommitted(Val, TextCommitType, InOutput, OutputIdentifier);
+					FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
+				}
 			})
 		]
 
@@ -1177,7 +1193,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 
 	//if (bIsUnrealSpline)
 	//{
-		USplineComponent* UnrealSpline = Cast<USplineComponent>(SplineComponent);
+		const TWeakObjectPtr<USplineComponent>& UnrealSpline = Cast<USplineComponent>(SplineComponent);
 
 		// Curve type combo box UI
 		auto InitialSelectionLambda = [OutputProperty]()
@@ -1213,8 +1229,11 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 			return SNew(STextBlock).Text(FText::FromString(*InItem));
 		})
 		.OnSelectionChanged_Lambda(
-			[OutputProperty, InOutput, SplineComponent](TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType)
+			[OutputIdentifier, InOutput, SplineComponent](TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType)
 		{
+			if (!IsValidWeakPointer(SplineComponent))
+				return;
+				
 			// Set the curve point type locally
 			USplineComponent* Spline = Cast<USplineComponent>(SplineComponent);
 			if (!IsValid(Spline))
@@ -1224,12 +1243,21 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 			if (!NewChoiceStr)
 				return;
 
+			if (!IsValidWeakPointer(InOutput))
+				return;
+
+			FHoudiniOutputObject* const OutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
+			if (!OutputObject)
+				return;
+				
+			FHoudiniCurveOutputProperties& OutputProperty = OutputObject->CurveOutputProperty;
+
 			if (*NewChoiceStr == "Linear")
 			{
-				if (OutputProperty->CurveType == EHoudiniCurveType::Polygon)
+				if (OutputProperty.CurveType == EHoudiniCurveType::Polygon)
 					return;
 
-				OutputProperty->CurveType = EHoudiniCurveType::Polygon;
+				OutputProperty.CurveType = EHoudiniCurveType::Polygon;
 
 				for (int32 PtIdx = 0; PtIdx < Spline->GetNumberOfSplinePoints(); ++PtIdx)
 				{
@@ -1237,14 +1265,14 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 				}
 
 				FHoudiniEngineEditorUtils::ReselectSelectedActors();
-				FHoudiniEngineUtils::UpdateEditorProperties(InOutput, true);
+				FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
 			}
 			else if (*NewChoiceStr == "Curve")
 			{
-				if (OutputProperty->CurveType != EHoudiniCurveType::Polygon)
+				if (OutputProperty.CurveType != EHoudiniCurveType::Polygon)
 					return;
 
-				OutputProperty->CurveType = EHoudiniCurveType::Bezier;
+				OutputProperty.CurveType = EHoudiniCurveType::Bezier;
 
 				for (int32 PtIdx = 0; PtIdx < Spline->GetNumberOfSplinePoints(); ++PtIdx)
 				{
@@ -1252,7 +1280,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 				}
 
 				FHoudiniEngineEditorUtils::ReselectSelectedActors();
-				FHoudiniEngineUtils::UpdateEditorProperties(InOutput, true);
+				FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
 			}
 		})
 		[
@@ -1282,16 +1310,18 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 			SAssignNew(ClosedCheckBox, SCheckBox)
 			.OnCheckStateChanged_Lambda([UnrealSpline, InOutput](ECheckBoxState NewState)
 			{
-				if (!IsValid(UnrealSpline))
+				if (!IsValidWeakPointer(UnrealSpline))
 					return;
 
 				UnrealSpline->SetClosedLoop(NewState == ECheckBoxState::Checked);
 				FHoudiniEngineEditorUtils::ReselectSelectedActors();
-				FHoudiniEngineUtils::UpdateEditorProperties(InOutput, true);
+
+				if (InOutput.IsValid())
+					FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
 			})
 			.IsChecked_Lambda([UnrealSpline]()
 			{
-				if (!IsValid(UnrealSpline))
+				if (!IsValidWeakPointer(UnrealSpline))
 					return ECheckBoxState::Unchecked;
 
 				return UnrealSpline->IsClosedLoop() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -1314,18 +1344,36 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 		.Text(LOCTEXT("OutputCurveBakeButtonText", "Bake"))
 		.IsEnabled(true)
 		.ToolTipText(LOCTEXT("OutputCurveBakeButtonUnrealSplineTooltipText", "Bake to Unreal spline"))
-		.OnClicked_Lambda([InOutput, SplineComponent, OutputIdentifier, HoudiniGeoPartObject, HAC, OutputCurveName, OutputObject]()
+		.OnClicked_Lambda([InOutput, SplineComponent, OutputIdentifier, HAC, OutputCurveName]()
 		{
+			if (!HAC.IsValid() || !SplineComponent.IsValid() || !InOutput.IsValid())
+				return FReply::Handled();
+
+			FHoudiniOutputObject* const OutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
+			if (OutputObject)
+				return FReply::Handled();
+
 			TArray<UHoudiniOutput*> AllOutputs;
 			AllOutputs.Reserve(HAC->GetNumOutputs());
 			HAC->GetOutputs(AllOutputs);
+
+			FHoudiniGeoPartObject HoudiniGeoPartObject;
+			for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects()) 
+			{
+				if (!OutputIdentifier.Matches(curHGPO))
+					continue;
+
+				HoudiniGeoPartObject = curHGPO;
+				break;
+			}
+
 			FHoudiniOutputDetails::OnBakeOutputObject(
 				OutputCurveName,
-				SplineComponent,
+				SplineComponent.Get(),
 				OutputIdentifier,
-				OutputObject,
+				*OutputObject,
 				HoudiniGeoPartObject,
-				HAC,
+				HAC.Get(),
 				HAC->BakeFolder.Path,
 				HAC->TemporaryCookFolder.Path,
 				InOutput->GetType(),
@@ -1339,18 +1387,18 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 
 
 void FHoudiniOutputDetails::CreateGeometryCollectionWidgets(IDetailCategoryBuilder& HouOutputCategory,
-        UHoudiniOutput* InOutput, AGeometryCollectionActor* GeometryCollectionActor, FHoudiniOutputObject& OutputObject,
-        FHoudiniOutputObjectIdentifier& OutputIdentifier, FHoudiniGeoPartObject& HoudiniGeoPartObject)
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput, const TWeakObjectPtr<AGeometryCollectionActor>& GeometryCollectionActor,
+	FHoudiniOutputObject& OutputObject, FHoudiniOutputObjectIdentifier& OutputIdentifier, FHoudiniGeoPartObject& HoudiniGeoPartObject)
 {
-
+	if (!IsValidWeakPointer(GeometryCollectionActor))
+		return;
+	
 	FGeometryCollectionEdit GeometryCollectionEdit = GeometryCollectionActor->GetGeometryCollectionComponent()->EditRestCollection(GeometryCollection::EEditUpdate::RestPhysicsDynamic);
 	UGeometryCollection* GeometryCollection = GeometryCollectionEdit.GetRestCollection();
 	
 	if (!IsValid(GeometryCollection))
 		return;
 
-	UHoudiniAssetComponent* OwningHAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
-	
 	FHoudiniOutputObject* FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
 	FString BakeName = FoundOutputObject ? FoundOutputObject->BakeName : FString();
 
@@ -1398,8 +1446,8 @@ void FHoudiniOutputDetails::CreateGeometryCollectionWidgets(IDetailCategoryBuild
 		[
 			SAssignNew( StaticMeshThumbnailBorder, SBorder )
 			.Padding( 5.0f )
-			.BorderImage( this, &FHoudiniOutputDetails::GetThumbnailBorder, (UObject*)GeometryCollection )
-			.OnMouseDoubleClick( this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (UObject *) GeometryCollection )
+			.BorderImage( this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&)GeometryCollection )
+			.OnMouseDoubleClick( this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) GeometryCollection )
 			[
 				SNew( SBox )
 				.WidthOverride( 64 )
@@ -1424,17 +1472,17 @@ void FHoudiniOutputDetails::CreateGeometryCollectionWidgets(IDetailCategoryBuild
 void
 FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 	IDetailCategoryBuilder& HouOutputCategory,
-	UHoudiniOutput* InOutput,
-	UStaticMesh * StaticMesh,
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+	const TWeakObjectPtr<UStaticMesh>& StaticMesh,
 	FHoudiniOutputObjectIdentifier& OutputIdentifier,
 	const FString BakeFolder,
 	FHoudiniGeoPartObject& HoudiniGeoPartObject,
 	const bool& bIsProxyMeshCurrent)
 {
-	if (!IsValid(StaticMesh))
+	if (!IsValidWeakPointer(StaticMesh))
 		return;
 
-	UHoudiniAssetComponent* OwningHAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
+	const TWeakObjectPtr<UHoudiniAssetComponent>& OwningHAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
 	
 	FHoudiniOutputObject* FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
 	FString BakeName = FoundOutputObject ? FoundOutputObject->BakeName : FString();
@@ -1450,7 +1498,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 
 	// Create thumbnail for this mesh.
 	TSharedPtr< FAssetThumbnail > StaticMeshThumbnail =
-		MakeShareable(new FAssetThumbnail(StaticMesh, 64, 64, AssetThumbnailPool));
+		MakeShareable(new FAssetThumbnail(StaticMesh.Get(), 64, 64, AssetThumbnailPool));
 	TSharedPtr<SBorder> StaticMeshThumbnailBorder;
 
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
@@ -1478,6 +1526,9 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.OnTextCommitted_Lambda([OutputIdentifier, InOutput](const FText& Val, ETextCommit::Type TextCommitType)
 			{
+				if (!IsValidWeakPointer(InOutput))
+					return;
+
 				FHoudiniOutputDetails::OnBakeNameCommitted(Val, TextCommitType, InOutput, OutputIdentifier);
 				FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
 			})
@@ -1590,8 +1641,8 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 		[
 			SAssignNew( StaticMeshThumbnailBorder, SBorder )
 			.Padding( 5.0f )
-			.BorderImage( this, &FHoudiniOutputDetails::GetThumbnailBorder, (UObject*)StaticMesh )
-			.OnMouseDoubleClick( this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (UObject *) StaticMesh )
+			.BorderImage( this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&)StaticMesh )
+			.OnMouseDoubleClick( this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) StaticMesh )
 			[
 				SNew( SBox )
 				.WidthOverride( 64 )
@@ -1620,32 +1671,47 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 					.HAlign( HAlign_Center )
 					.Text( LOCTEXT( "Bake", "Bake" ) )
 					.IsEnabled(true)
-					.OnClicked_Lambda([BakeName, StaticMesh, OutputIdentifier, HoudiniGeoPartObject, BakeFolder, InOutput, OwningHAC, FoundOutputObject]()
+					.OnClicked_Lambda([BakeName, StaticMesh, OutputIdentifier, BakeFolder, InOutput, OwningHAC]()
 					{
-						if (FoundOutputObject)
-						{
-							TArray<UHoudiniOutput*> AllOutputs;
-							FString TempCookFolder;
-							if (IsValid(OwningHAC))
-							{
-								AllOutputs.Reserve(OwningHAC->GetNumOutputs());
-								OwningHAC->GetOutputs(AllOutputs);
+						if (!StaticMesh.IsValid() || !InOutput.IsValid())
+							return FReply::Handled();
+						
+						FHoudiniOutputObject* const FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
+						if (!FoundOutputObject)
+							return FReply::Handled();
 
-								TempCookFolder = OwningHAC->TemporaryCookFolder.Path;
-							}
-							FHoudiniOutputDetails::OnBakeOutputObject(
-								BakeName,
-								StaticMesh,
-								OutputIdentifier,
-								*FoundOutputObject,
-								HoudiniGeoPartObject,
-								OwningHAC,
-								BakeFolder,
-								TempCookFolder,
-								InOutput->GetType(),
-								EHoudiniLandscapeOutputBakeType::InValid,
-								AllOutputs);
+						TArray<UHoudiniOutput*> AllOutputs;
+						FString TempCookFolder;
+						if (OwningHAC.IsValid())
+						{
+							AllOutputs.Reserve(OwningHAC->GetNumOutputs());
+							OwningHAC->GetOutputs(AllOutputs);
+
+							TempCookFolder = OwningHAC->TemporaryCookFolder.Path;
 						}
+						
+						FHoudiniGeoPartObject HoudiniGeoPartObject;
+						for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects())
+						{
+							if (!OutputIdentifier.Matches(curHGPO))
+								continue;
+
+							HoudiniGeoPartObject = curHGPO;
+							break;
+						}
+
+						FHoudiniOutputDetails::OnBakeOutputObject(
+							BakeName,
+							StaticMesh.Get(),
+							OutputIdentifier,
+							*FoundOutputObject,
+							HoudiniGeoPartObject,
+							OwningHAC.Get(),
+							BakeFolder,
+							TempCookFolder,
+							InOutput->GetType(),
+							EHoudiniLandscapeOutputBakeType::InValid,
+							AllOutputs);
 
 						return FReply::Handled();
 					})
@@ -1658,7 +1724,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 				[
 					PropertyCustomizationHelpers::MakeBrowseButton(
 						FSimpleDelegate::CreateSP(
-							this, &FHoudiniOutputDetails::OnBrowseTo, (UObject*)StaticMesh),
+							this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&)StaticMesh),
 							TAttribute<FText>(LOCTEXT("HoudiniStaticMeshBrowseButton", "Browse to this generated static mesh in the content browser")))
 				]
 			]
@@ -1666,7 +1732,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 	];
 
 	// Store thumbnail for this mesh.
-	OutputObjectThumbnailBorders.Add((UObject*)StaticMesh, StaticMeshThumbnailBorder);
+	OutputObjectThumbnailBorders.Add(StaticMesh, StaticMeshThumbnailBorder);
 
 	// We need to add material box for each material present in this static mesh.
 	auto & StaticMeshMaterials = StaticMesh->StaticMaterials;
@@ -1710,9 +1776,9 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 			SAssignNew( MaterialThumbnailBorder, SBorder )
 			.Padding( 5.0f )
 			.BorderImage(
-				this, &FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder, (UObject *)StaticMesh, MaterialIdx )
+				this, &FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder, (const TWeakObjectPtr<UObject>&)StaticMesh, MaterialIdx )
 			.OnMouseDoubleClick(
-				this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (UObject *)MaterialInterface )
+				this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&)MaterialInterface )
 			[
 				SNew( SBox )
 				.WidthOverride( 64 )
@@ -1726,7 +1792,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 
 		// Store thumbnail for this mesh and material index.
 		{
-			TPairInitializer<UStaticMesh *, int32> Pair( StaticMesh, MaterialIdx );
+			TPairInitializer<const TWeakObjectPtr<UStaticMesh>&, int32> Pair( StaticMesh, MaterialIdx );
 			MaterialInterfaceThumbnailBorders.Add( Pair, MaterialThumbnailBorder );
 		}
 
@@ -1749,7 +1815,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 				.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
 				.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
 				.OnGetMenuContent(this, &FHoudiniOutputDetails::OnGetMaterialInterfaceMenuContent,
-				MaterialInterface, (UObject*)StaticMesh, InOutput, MaterialIdx)
+				TWeakObjectPtr<UMaterialInterface>(MaterialInterface), (const TWeakObjectPtr<UObject>&)StaticMesh, InOutput, MaterialIdx)
 				.ContentPadding(2.0f)
 				.ButtonContent()
 				[
@@ -1785,7 +1851,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 			PropertyCustomizationHelpers::MakeUseSelectedButton(
 				FSimpleDelegate::CreateSP(
 					this, &FHoudiniOutputDetails::OnUseContentBrowserSelectedMaterialInterface,
-					(UObject*)StaticMesh, InOutput, MaterialIdx),
+					(const TWeakObjectPtr<UObject>&)StaticMesh, InOutput, MaterialIdx),
 				TAttribute< FText >(LOCTEXT("UseSelectedAssetFromContentBrowser", "Use Selected Asset from Content Browser")))
 		];
 
@@ -1797,7 +1863,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 		[
 			PropertyCustomizationHelpers::MakeBrowseButton(
 				FSimpleDelegate::CreateSP(
-					this, &FHoudiniOutputDetails::OnBrowseTo, (UObject*)MaterialInterface ), TAttribute< FText >( MaterialTooltip ) )
+					this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&)MaterialInterface ), TAttribute< FText >( MaterialTooltip ) )
 		];
 
 		// Reset button
@@ -1821,7 +1887,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 
 		// Store combo button for this mesh and index.
 		{
-			TPairInitializer<UStaticMesh *, int32> Pair( StaticMesh, MaterialIdx );
+			TPairInitializer<const TWeakObjectPtr<UStaticMesh>&, int32> Pair( StaticMesh, MaterialIdx );
 			MaterialInterfaceComboButtons.Add( Pair, AssetComboButton );
 		}
 	}
@@ -1830,13 +1896,13 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 void
 FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 	IDetailCategoryBuilder& HouOutputCategory,
-	UHoudiniOutput* InOutput,
-	UHoudiniStaticMesh * ProxyMesh,
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+	const TWeakObjectPtr<UHoudiniStaticMesh>& ProxyMesh,
 	FHoudiniOutputObjectIdentifier& OutputIdentifier,
 	const FString BakeFolder,
 	FHoudiniGeoPartObject& HoudiniGeoPartObject)
 {
-	if (!IsValid(ProxyMesh))
+	if (!IsValidWeakPointer(ProxyMesh))
 		return;
 
 	FHoudiniOutputObject* FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
@@ -1852,7 +1918,7 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 		Label = HoudiniGeoPartObject.PartName;
 
 	// Create thumbnail for this mesh.
-	TSharedPtr<FAssetThumbnail> MeshThumbnail =	MakeShareable(new FAssetThumbnail(ProxyMesh, 64, 64, AssetThumbnailPool));
+	TSharedPtr<FAssetThumbnail> MeshThumbnail =	MakeShareable(new FAssetThumbnail(ProxyMesh.Get(), 64, 64, AssetThumbnailPool));
 	TSharedPtr<SBorder> MeshThumbnailBorder;
 
 	TSharedRef< SVerticalBox > VerticalBox = SNew(SVerticalBox);
@@ -1954,8 +2020,8 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 		[
 			SAssignNew(MeshThumbnailBorder, SBorder)
 			.Padding(5.0f)
-			.BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (UObject*)ProxyMesh)
-			.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (UObject *)ProxyMesh)
+			.BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) ProxyMesh)
+			.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) ProxyMesh)
 			[
 				SNew(SBox)
 				.WidthOverride(64)
@@ -1983,7 +2049,7 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 					.HAlign(HAlign_Center)
 					.Text(LOCTEXT("Refine", "Refine"))					
 					.IsEnabled(true)
-					.OnClicked(this, &FHoudiniOutputDetails::OnRefineClicked, (UObject *)ProxyMesh, InOutput)
+					.OnClicked(this, &FHoudiniOutputDetails::OnRefineClicked, (const TWeakObjectPtr<UObject>&)ProxyMesh, InOutput)
 					.ToolTipText(LOCTEXT("RefineTooltip", "Refine this Proxy Mesh to a Static Mesh"))
 				]
 			]
@@ -2039,9 +2105,9 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 			SAssignNew(MaterialThumbnailBorder, SBorder)
 			.Padding(5.0f)
 			.BorderImage(
-				this, &FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder, (UObject*)ProxyMesh, MaterialIdx)
+				this, &FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder, (const TWeakObjectPtr<UObject>&) ProxyMesh, MaterialIdx)
 			.OnMouseDoubleClick(
-				this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (UObject *)MaterialInterface)
+				this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) MaterialInterface)
 			[
 				SNew(SBox)
 				.WidthOverride(64)
@@ -2055,7 +2121,7 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 
 		// Store thumbnail for this mesh and material index.
 		{
-			TPairInitializer<UObject*, int32> Pair((UObject*)ProxyMesh, MaterialIdx);
+			TPairInitializer<const TWeakObjectPtr<UObject>&, int32> Pair(ProxyMesh, MaterialIdx);
 			MaterialInterfaceThumbnailBorders.Add(Pair, MaterialThumbnailBorder);
 		}
 				
@@ -2129,7 +2195,7 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 		.VAlign(VAlign_Center)
 		[
 			PropertyCustomizationHelpers::MakeBrowseButton(
-				FSimpleDelegate::CreateSP(this, &FHoudiniOutputDetails::OnBrowseTo, (UObject*)MaterialInterface), TAttribute<FText>(MaterialTooltip))
+				FSimpleDelegate::CreateSP(this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&) MaterialInterface), TAttribute<FText>(MaterialTooltip))
 		];
 
 		/*
@@ -2154,15 +2220,18 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 
 		// Store combo button for this mesh and index.
 		{
-			TPairInitializer<UObject*, int32> Pair(ProxyMesh, MaterialIdx);
+			TPairInitializer<const TWeakObjectPtr<UObject>&, int32> Pair(ProxyMesh, MaterialIdx);
 			MaterialInterfaceComboButtons.Add(Pair, AssetComboButton);
 		}
 	}
 }
 
 FText
-FHoudiniOutputDetails::GetOutputDebugName(UHoudiniOutput* InOutput)
+FHoudiniOutputDetails::GetOutputDebugName(const TWeakObjectPtr<UHoudiniOutput>& InOutput)
 {
+	if (!InOutput.IsValid())
+		return FText::FromString(TEXT("Invalid"));
+	
 	// Get the name and type
 	FString OutputNameStr = InOutput->GetName() + TEXT(" ") + UHoudiniOutput::OutputTypeToString(InOutput->GetType());
 
@@ -2172,8 +2241,11 @@ FHoudiniOutputDetails::GetOutputDebugName(UHoudiniOutput* InOutput)
 	return FText::FromString(OutputNameStr);
 }
 FText
-FHoudiniOutputDetails::GetOutputDebugDescription(UHoudiniOutput* InOutput)
+FHoudiniOutputDetails::GetOutputDebugDescription(const TWeakObjectPtr<UHoudiniOutput>& InOutput)
 {	
+	if (!InOutput.IsValid())
+		return FText::FromString(TEXT("Invalid"));
+
 	const TArray<FHoudiniGeoPartObject>& HGPOs = InOutput->GetHoudiniGeoPartObjects();
 	
 	FString OutputValStr;
@@ -2228,7 +2300,7 @@ FHoudiniOutputDetails::GetOutputDebugDescription(UHoudiniOutput* InOutput)
 }
 
 FText
-FHoudiniOutputDetails::GetOutputTooltip(UHoudiniOutput* InOutput)
+FHoudiniOutputDetails::GetOutputTooltip(const TWeakObjectPtr<UHoudiniOutput>& InOutput)
 {
 	// TODO
 	return FText();
@@ -2236,7 +2308,7 @@ FHoudiniOutputDetails::GetOutputTooltip(UHoudiniOutput* InOutput)
 
 
 const FSlateBrush *
-FHoudiniOutputDetails::GetThumbnailBorder(UObject* Mesh) const
+FHoudiniOutputDetails::GetThumbnailBorder(const TWeakObjectPtr<UObject> Mesh) const
 {
 	TSharedPtr<SBorder> ThumbnailBorder = OutputObjectThumbnailBorders[Mesh];
 	if (ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
@@ -2247,12 +2319,12 @@ FHoudiniOutputDetails::GetThumbnailBorder(UObject* Mesh) const
 
 
 const FSlateBrush *
-FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder(UObject* OutputObject, int32 MaterialIdx) const
+FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder(const TWeakObjectPtr<UObject> OutputObject, int32 MaterialIdx) const
 {
-	if (!OutputObject)
+	if (!IsValidWeakPointer(OutputObject))
 		return nullptr;
 
-	TPairInitializer<UObject*, int32> Pair(OutputObject, MaterialIdx);
+	TPairInitializer<const TWeakObjectPtr<UObject>&, int32> Pair(OutputObject, MaterialIdx);
 	TSharedPtr<SBorder> ThumbnailBorder = MaterialInterfaceThumbnailBorders[Pair];
 
 	if (ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
@@ -2281,10 +2353,10 @@ FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder(ALandscapeProxy * Lan
 FReply
 FHoudiniOutputDetails::OnThumbnailDoubleClick(
 	const FGeometry & InMyGeometry,
-	const FPointerEvent & InMouseEvent, UObject * Object)
+	const FPointerEvent & InMouseEvent, const TWeakObjectPtr<UObject> Object)
 {
-	if (Object && GEditor)
-		GEditor->EditObject(Object);
+	if (Object.IsValid() && GEditor)
+		GEditor->EditObject(Object.Get());
 
 	return FReply::Handled();
 }
@@ -2320,12 +2392,12 @@ FHoudiniOutputDetails::OnMaterialInterfaceDraggedOver(const UObject * InObject) 
 
 FReply
 FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
-	UStaticMesh * StaticMesh,
-	UHoudiniOutput * HoudiniOutput,
+	const TWeakObjectPtr<UStaticMesh> StaticMesh,
+	const TWeakObjectPtr<UHoudiniOutput> HoudiniOutput,
 	int32 MaterialIdx)
 {
 	FReply RetValue = FReply::Handled();
-	if (!IsValid(StaticMesh))
+	if (!StaticMesh.IsValid() || !HoudiniOutput.IsValid())
 		return RetValue;
 
 	if (!StaticMesh->StaticMaterials.IsValidIndex(MaterialIdx))
@@ -2345,12 +2417,12 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 	}
 
 	// This material has been replaced previously.
-	FString MaterialString = *FoundString;
+	const FString MaterialString = *FoundString;
 
 	// Record a transaction for undo/redo
 	FScopedTransaction Transaction(
 		TEXT(HOUDINI_MODULE_EDITOR),
-		LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Reset"), HoudiniOutput);
+		LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Reset"), HoudiniOutput.Get());
 
 	// Remove the replacement
 	HoudiniOutput->Modify();
@@ -2377,7 +2449,7 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 		if (!SMC)
 			continue;
 
-		if (SMC->GetStaticMesh() != StaticMesh)
+		if (SMC->GetStaticMesh() != StaticMesh.Get())
 			continue;
 
 		SMC->Modify();
@@ -2394,12 +2466,12 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 
 FReply
 FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
-	ALandscapeProxy* InLandscape,
-	UHoudiniOutput * InHoudiniOutput,
+	const TWeakObjectPtr<ALandscapeProxy> InLandscape,
+	const TWeakObjectPtr<UHoudiniOutput> InHoudiniOutput,
 	int32 InMaterialIdx)
 {
 	FReply RetValue = FReply::Handled();
-	if (!IsValid(InLandscape))
+	if (!InLandscape.IsValid() || !InHoudiniOutput.IsValid())
 		return RetValue;
 	
 	// Retrieve the material interface which is being replaced.
@@ -2420,7 +2492,7 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 	// Record a transaction for undo/redo
 	FScopedTransaction Transaction(
 		TEXT(HOUDINI_MODULE_EDITOR),
-		LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Reset"), InHoudiniOutput);
+		LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Reset"), InHoudiniOutput.Get());
 
 	// Remove the replacement
 	InHoudiniOutput->Modify();
@@ -2550,21 +2622,24 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 */
 
 void
-FHoudiniOutputDetails::OnBrowseTo(UObject* InObject)
+FHoudiniOutputDetails::OnBrowseTo(const TWeakObjectPtr<UObject> InObject)
 {
+	if (!IsValidWeakPointer(InObject))
+		return;
+	
 	if (GEditor)
 	{
 		TArray<UObject *> Objects;
-		Objects.Add(InObject);
+		Objects.Add(InObject.Get());
 		GEditor->SyncBrowserToObjects(Objects);
 	}
 }
 
 TSharedRef<SWidget>
 FHoudiniOutputDetails::OnGetMaterialInterfaceMenuContent(
-	UMaterialInterface* MaterialInterface,
-	UObject* OutputObject,
-	UHoudiniOutput* InOutput,
+	const TWeakObjectPtr<UMaterialInterface> MaterialInterface,
+	const TWeakObjectPtr<UObject> OutputObject,
+	const TWeakObjectPtr<UHoudiniOutput> InOutput,
 	int32 MaterialIdx)
 {
 	TArray<const UClass *> AllowedClasses;
@@ -2573,7 +2648,7 @@ FHoudiniOutputDetails::OnGetMaterialInterfaceMenuContent(
 	TArray<UFactory *> NewAssetFactories;
 
 	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
-		FAssetData(MaterialInterface),
+		FAssetData(MaterialInterface.Get()),
 		true,
 		AllowedClasses,
 		NewAssetFactories,
@@ -2594,15 +2669,18 @@ FHoudiniOutputDetails::CloseMaterialInterfaceComboButton()
 void
 FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 	UObject * InObject,
-	UStaticMesh * StaticMesh,
-	UHoudiniOutput * HoudiniOutput,
+	const TWeakObjectPtr<UStaticMesh> StaticMesh,
+	const TWeakObjectPtr<UHoudiniOutput> HoudiniOutput,
 	int32 MaterialIdx)
 {
+	if (!IsValid(InObject) || !HoudiniOutput.IsValid())
+		return;
+	
 	UMaterialInterface * MaterialInterface = Cast<UMaterialInterface>(InObject);
 	if (!IsValid(MaterialInterface))
 		return;
 
-	if (!IsValid(StaticMesh))
+	if (!IsValidWeakPointer(StaticMesh))
 		return;
 
 	if (!StaticMesh->StaticMaterials.IsValidIndex(MaterialIdx))
@@ -2655,7 +2733,7 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 	// Record a transaction for undo/redo
 	FScopedTransaction Transaction(
 		TEXT(HOUDINI_MODULE_EDITOR),
-		LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Replacement"), HoudiniOutput);
+		LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Replacement"), HoudiniOutput.Get());
 
 	// Add a new material replacement entry.
 	HoudiniOutput->Modify(); 
@@ -2672,7 +2750,7 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 		UStaticMeshComponent * SMC = Cast<UStaticMeshComponent>(OutputObject.Value.OutputComponent);
 		if (IsValid(SMC))
 		{
-			if (SMC->GetStaticMesh() == StaticMesh)
+			if (SMC->GetStaticMesh() == StaticMesh.Get())
 			{
 				SMC->Modify();
 				SMC->SetMaterial(MaterialIdx, MaterialInterface);
@@ -2706,15 +2784,15 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 void
 FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 	UObject* InDroppedObject,
-	ALandscapeProxy* InLandscape,
-	UHoudiniOutput* InOutput,
+	const TWeakObjectPtr<ALandscapeProxy> InLandscape,
+	const TWeakObjectPtr<UHoudiniOutput> InOutput,
 	int32 MaterialIdx)
 {
 	UMaterialInterface * MaterialInterface = Cast< UMaterialInterface >(InDroppedObject);
 	if (!IsValid(MaterialInterface))
 		return;
 
-	if (!IsValid(InLandscape))
+	if (!InLandscape.IsValid() || !InOutput.IsValid())
 		return;
 
 	bool bViewportNeedsUpdate = false;
@@ -2765,7 +2843,7 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 	// Record a transaction for undo/redo
 	FScopedTransaction Transaction(
 		TEXT(HOUDINI_MODULE_EDITOR),
-		LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Replacement"), InOutput);
+		LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Replacement"), InOutput.Get());
 
 	// Add a new material replacement entry.
 	InOutput->Modify();
@@ -2807,11 +2885,11 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 void
 FHoudiniOutputDetails::OnMaterialInterfaceSelected(
 	const FAssetData & AssetData,
-	UObject* OutputObject,
-	UHoudiniOutput * InOutput,
+	const TWeakObjectPtr<UObject> OutputObject,
+	const TWeakObjectPtr<UHoudiniOutput> InOutput,
 	int32 MaterialIdx)
 {
-	TPairInitializer<UObject*, int32> Pair(OutputObject, MaterialIdx);
+	TPairInitializer<const TWeakObjectPtr<UObject>&, int32> Pair(OutputObject, MaterialIdx);
 	TSharedPtr<SComboButton> AssetComboButton = MaterialInterfaceComboButtons[Pair];
 	if (AssetComboButton.IsValid())
 	{
@@ -2835,14 +2913,14 @@ FHoudiniOutputDetails::OnMaterialInterfaceSelected(
 
 void 
 FHoudiniOutputDetails::OnUseContentBrowserSelectedMaterialInterface(
-	UObject* OutputObject,
-	UHoudiniOutput * InOutput,
+	const TWeakObjectPtr<UObject> OutputObject,
+	const TWeakObjectPtr<UHoudiniOutput> InOutput,
 	int32 MaterialIdx) 
 {
-	if (!IsValid(OutputObject))
+	if (!IsValidWeakPointer(OutputObject))
 		return;
 
-	if (!IsValid(InOutput))
+	if (!IsValidWeakPointer(InOutput))
 		return;
 
 	if (GEditor)
@@ -2880,12 +2958,20 @@ FHoudiniOutputDetails::OnUseContentBrowserSelectedMaterialInterface(
 	}
 }
 
+FHoudiniInstancedOutput* GetInstancedOutput(const TWeakObjectPtr<UHoudiniOutput>& InOutput, const FHoudiniOutputObjectIdentifier& InIdentifier)
+{
+	if (!IsValidWeakPointer(InOutput))
+		return nullptr;
+	
+	return InOutput->GetInstancedOutputs().Find(InIdentifier);
+}
+
 void
 FHoudiniOutputDetails::CreateInstancerOutputWidget(
 	IDetailCategoryBuilder& HouOutputCategory,
-	UHoudiniOutput* InOutput)
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput)
 {
-	if (!IsValid(InOutput))
+	if (!IsValidWeakPointer(InOutput))
 		return;
 
 	// Do not display instancer UI for one-instance instancers
@@ -2932,7 +3018,8 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 
 		InOutputToUpdate.MarkChanged(true);
 
-		FHoudiniEngineUtils::UpdateEditorProperties(InOutput, true);
+		if (InOutput.IsValid())
+			FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
 	};
 
 	// Lambda for adding new geometry input objects
@@ -2952,7 +3039,8 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 
 		InOutputToUpdate.MarkChanged(true);
 
-		FHoudiniEngineUtils::UpdateEditorProperties(InOutput, true);
+		if (InOutput.IsValid())
+			FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
 	};
 
 	// Lambda for updating a variation
@@ -2965,7 +3053,8 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 
 		InOutputToUpdate.MarkChanged(true);
 
-		FHoudiniEngineUtils::UpdateEditorProperties(InOutput, true);
+		if (InOutput.IsValid())
+			FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
 	};
 
 	// Lambda for changing the transform offset values
@@ -2982,7 +3071,8 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 		if (GEditor)
 			GEditor->RedrawAllViewports();
 
-		FHoudiniEngineUtils::UpdateEditorProperties(InOutput, true);
+		if (InOutput.IsValid())
+			FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
 	};
 
 	// Get this output's OutputObject
@@ -3088,9 +3178,13 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 							return true;
 						})
 					)
-					.OnAssetDropped_Lambda([&CurInstanceOutput, VariationIdx, SetObjectAt](UObject* InObject)
+					.OnAssetDropped_Lambda([InOutput, CurOutputObjectIdentifier, VariationIdx, SetObjectAt](UObject* InObject)
 					{
-						return SetObjectAt(CurInstanceOutput, VariationIdx, InObject);
+						FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+						if (!InstanceOutput)
+							return;
+						
+						return SetObjectAt(*InstanceOutput, VariationIdx, InObject);
 					})
 					[
 						SAssignNew(PickerHorizontalBox, SHorizontalBox)
@@ -3101,7 +3195,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 				[
 					SAssignNew(VariationThumbnailBorder, SBorder)
 					.Padding( 5.0f )
-					.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, InstancedObject)
+					.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, TWeakObjectPtr<UObject>(InstancedObject))
 					[
 						SNew(SBox)
 						.WidthOverride(64)
@@ -3128,13 +3222,17 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 				PickerHorizontalBox->AddSlot().AutoWidth().Padding(0.0f, 28.0f, 0.0f, 28.0f)
 				[
 					PropertyCustomizationHelpers::MakeAddButton(
-						FSimpleDelegate::CreateLambda([&CurInstanceOutput, VariationIdx, AddObjectAt]()
-						{				
-							UObject* ObjToAdd = CurInstanceOutput.VariationObjects.IsValidIndex(VariationIdx) ?
-								CurInstanceOutput.VariationObjects[VariationIdx].LoadSynchronous()
+						FSimpleDelegate::CreateLambda([InOutput, CurOutputObjectIdentifier, VariationIdx, AddObjectAt]()
+						{
+							FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+							if (!InstanceOutput)
+								return;
+							
+							UObject* ObjToAdd = InstanceOutput->VariationObjects.IsValidIndex(VariationIdx) ?
+								InstanceOutput->VariationObjects[VariationIdx].LoadSynchronous()
 								: nullptr;
 
-							return AddObjectAt(CurInstanceOutput, VariationIdx, ObjToAdd);
+							return AddObjectAt(*InstanceOutput, VariationIdx, ObjToAdd);
 						}),
 						LOCTEXT("AddAnotherInstanceToolTip", "Add Another Instance"))
 				];
@@ -3142,9 +3240,13 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 				PickerHorizontalBox->AddSlot().AutoWidth().Padding( 2.0f, 28.0f, 4.0f, 28.0f )
 				[
 					PropertyCustomizationHelpers::MakeRemoveButton(
-						FSimpleDelegate::CreateLambda([&CurInstanceOutput, VariationIdx, RemoveObjectAt]()
+						FSimpleDelegate::CreateLambda([InOutput, CurOutputObjectIdentifier, VariationIdx, RemoveObjectAt]()
 						{
-							return RemoveObjectAt(CurInstanceOutput, VariationIdx);
+							FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+							if (!InstanceOutput)
+								return;
+
+							return RemoveObjectAt(*InstanceOutput, VariationIdx);
 						}),
 						LOCTEXT("RemoveLastInstanceToolTip", "Remove Last Instance"))
 				];
@@ -3196,14 +3298,18 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 						NewAssetFactories,
 						FOnShouldFilterAsset(),
 						FOnAssetSelected::CreateLambda(
-							[&CurInstanceOutput, VariationIdx, SetObjectAt, WeakAssetComboButton](const FAssetData& AssetData)
+							[InOutput, CurOutputObjectIdentifier, VariationIdx, SetObjectAt, WeakAssetComboButton](const FAssetData& AssetData)
 							{
+								FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+								if (!InstanceOutput)
+									return;
+
 								TSharedPtr<SComboButton> AssetComboButtonPtr = WeakAssetComboButton.Pin();
 								if (AssetComboButtonPtr.IsValid())
 								{
 									AssetComboButtonPtr->SetIsOpen(false);
 									UObject * Object = AssetData.GetAsset();
-									SetObjectAt(CurInstanceOutput, VariationIdx, Object);
+									SetObjectAt(*InstanceOutput, VariationIdx, Object);
 								}
 							}
 						),
@@ -3226,10 +3332,14 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 				.VAlign(VAlign_Center)
 				[
 					PropertyCustomizationHelpers::MakeBrowseButton(
-						FSimpleDelegate::CreateLambda([&CurInstanceOutput, VariationIdx]()
+						FSimpleDelegate::CreateLambda([InOutput, CurOutputObjectIdentifier, VariationIdx]()
 						{
-							UObject* InputObject = CurInstanceOutput.VariationObjects.IsValidIndex(VariationIdx) ?
-								CurInstanceOutput.VariationObjects[VariationIdx].LoadSynchronous()
+							FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+							if (!InstanceOutput)
+								return;
+							
+							UObject* InputObject = InstanceOutput->VariationObjects.IsValidIndex(VariationIdx) ?
+								InstanceOutput->VariationObjects[VariationIdx].LoadSynchronous()
 								: nullptr;
 
 							if (GEditor && InputObject)
@@ -3252,9 +3362,13 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 					.ContentPadding(0)
 					.Visibility(EVisibility::Visible)
-					.OnClicked_Lambda([SetObjectAt, &CurInstanceOutput, VariationIdx]()
+					.OnClicked_Lambda([SetObjectAt, InOutput, CurOutputObjectIdentifier, VariationIdx]()
 					{
-						SetObjectAt(CurInstanceOutput, VariationIdx, CurInstanceOutput.OriginalObject.LoadSynchronous());
+						FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+						if (!InstanceOutput)
+							return FReply::Handled();
+
+						SetObjectAt(*InstanceOutput, VariationIdx, InstanceOutput->OriginalObject.LoadSynchronous());
 						return FReply::Handled();
 					})
 					[
@@ -3281,11 +3395,15 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 				if (CurTransform.GetScale3D() != FVector::OneVector)
 					bResetButtonVisibleScale = true;
 				
-				auto ChangeTransformOffsetUniformlyAt = [ChangeTransformOffsetAt, VariationIdx, &CurInstanceOutput](const float& Val, const int32& PosRotScaleIndex)
+				auto ChangeTransformOffsetUniformlyAt = [ChangeTransformOffsetAt, VariationIdx, InOutput, CurOutputObjectIdentifier](const float& Val, const int32& PosRotScaleIndex)
 				{
-					ChangeTransformOffsetAt(CurInstanceOutput, VariationIdx, Val, PosRotScaleIndex, 0);
-					ChangeTransformOffsetAt(CurInstanceOutput, VariationIdx, Val, PosRotScaleIndex, 1);
-					ChangeTransformOffsetAt(CurInstanceOutput, VariationIdx, Val, PosRotScaleIndex, 2);
+					FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+					if (!InstanceOutput)
+						return;
+
+					ChangeTransformOffsetAt(*InstanceOutput, VariationIdx, Val, PosRotScaleIndex, 0);
+					ChangeTransformOffsetAt(*InstanceOutput, VariationIdx, Val, PosRotScaleIndex, 1);
+					ChangeTransformOffsetAt(*InstanceOutput, VariationIdx, Val, PosRotScaleIndex, 2);
 				};
 
 				TSharedRef<SVerticalBox> OffsetVerticalBox = SNew(SVerticalBox);
@@ -3308,23 +3426,53 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 						.bColorAxisLabels(true)
 						.AllowSpin(true)
 						.X(TAttribute<TOptional<float>>::Create(
-							TAttribute<TOptional<float>>::FGetter::CreateLambda([&CurInstanceOutput, VariationIdx]()
-								{ return CurInstanceOutput.GetTransformOffsetAt(VariationIdx, 0, 0); }
+							TAttribute<TOptional<float>>::FGetter::CreateLambda([InOutput, CurOutputObjectIdentifier, VariationIdx]()
+							{
+								FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+								if (!InstanceOutput)
+									return 0.0f;
+								return InstanceOutput->GetTransformOffsetAt(VariationIdx, 0, 0);
+							}
 						)))
 						.Y(TAttribute<TOptional<float>>::Create(
-							TAttribute<TOptional<float>>::FGetter::CreateLambda([&CurInstanceOutput, VariationIdx]()
-								{ return CurInstanceOutput.GetTransformOffsetAt(VariationIdx, 0, 1); }
+							TAttribute<TOptional<float>>::FGetter::CreateLambda([InOutput, CurOutputObjectIdentifier, VariationIdx]()
+							{
+								FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+								if (!InstanceOutput)
+									return 0.0f;
+								return InstanceOutput->GetTransformOffsetAt(VariationIdx, 0, 1);
+							}
 						)))
 						.Z(TAttribute<TOptional<float>>::Create(
-							TAttribute<TOptional<float>>::FGetter::CreateLambda([&CurInstanceOutput, VariationIdx]()
-								{ return CurInstanceOutput.GetTransformOffsetAt(VariationIdx, 0, 2); }
+							TAttribute<TOptional<float>>::FGetter::CreateLambda([InOutput, CurOutputObjectIdentifier, VariationIdx]()
+							{
+								FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+								if (!InstanceOutput)
+									return 0.0f;
+								return InstanceOutput->GetTransformOffsetAt(VariationIdx, 0, 2);
+							}
 						)))
-						.OnXCommitted_Lambda([&CurInstanceOutput, VariationIdx, ChangeTransformOffsetAt](float Val, ETextCommit::Type TextCommitType)
-							{ ChangeTransformOffsetAt(CurInstanceOutput, VariationIdx, Val, 0, 0); })	
-						.OnYCommitted_Lambda([&CurInstanceOutput, VariationIdx, ChangeTransformOffsetAt](float Val, ETextCommit::Type TextCommitType)
-							{ ChangeTransformOffsetAt(CurInstanceOutput, VariationIdx, Val, 0, 1); })
-						.OnZCommitted_Lambda([&CurInstanceOutput, VariationIdx, ChangeTransformOffsetAt](float Val, ETextCommit::Type TextCommitType)
-							{ ChangeTransformOffsetAt(CurInstanceOutput, VariationIdx, Val, 0, 2); })
+						.OnXCommitted_Lambda([InOutput, CurOutputObjectIdentifier, VariationIdx, ChangeTransformOffsetAt](float Val, ETextCommit::Type TextCommitType)
+						{
+							FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+							if (!InstanceOutput)
+								return;
+							ChangeTransformOffsetAt(*InstanceOutput, VariationIdx, Val, 0, 0);
+						})	
+						.OnYCommitted_Lambda([InOutput, CurOutputObjectIdentifier, VariationIdx, ChangeTransformOffsetAt](float Val, ETextCommit::Type TextCommitType)
+						{
+							FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+							if (!InstanceOutput)
+								return;
+							ChangeTransformOffsetAt(*InstanceOutput, VariationIdx, Val, 0, 1);
+						})
+						.OnZCommitted_Lambda([InOutput, CurOutputObjectIdentifier, VariationIdx, ChangeTransformOffsetAt](float Val, ETextCommit::Type TextCommitType)
+						{
+							FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+							if (!InstanceOutput)
+								return;
+							ChangeTransformOffsetAt(*InstanceOutput, VariationIdx, Val, 0, 2);
+						})
 					]
 
 					+ SHorizontalBox::Slot()
@@ -3385,23 +3533,53 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 						.AllowSpin(true)
 						.bColorAxisLabels(true)                    
 						.Roll(TAttribute<TOptional<float>>::Create(
-							TAttribute<TOptional<float>>::FGetter::CreateLambda([&CurInstanceOutput, VariationIdx]()
-								{ return CurInstanceOutput.GetTransformOffsetAt(VariationIdx, 1, 0); }
+							TAttribute<TOptional<float>>::FGetter::CreateLambda([InOutput, CurOutputObjectIdentifier, VariationIdx]()
+							{
+								FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+								if (!InstanceOutput)
+									return 0.0f;
+								return InstanceOutput->GetTransformOffsetAt(VariationIdx, 1, 0);
+							}
 						)))
 						.Pitch(TAttribute<TOptional<float>>::Create(
-							TAttribute<TOptional<float>>::FGetter::CreateLambda([&CurInstanceOutput, VariationIdx]()
-								{ return CurInstanceOutput.GetTransformOffsetAt(VariationIdx, 1, 1); }
+							TAttribute<TOptional<float>>::FGetter::CreateLambda([InOutput, CurOutputObjectIdentifier, VariationIdx]()
+							{
+								FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+								if (!InstanceOutput)
+									return 0.0f;
+								return InstanceOutput->GetTransformOffsetAt(VariationIdx, 1, 1);
+							}
 						)))
 						.Yaw(TAttribute<TOptional<float>>::Create(
-							TAttribute<TOptional<float>>::FGetter::CreateLambda([&CurInstanceOutput, VariationIdx]()
-								{ return CurInstanceOutput.GetTransformOffsetAt(VariationIdx, 1, 2); }
+							TAttribute<TOptional<float>>::FGetter::CreateLambda([InOutput, CurOutputObjectIdentifier, VariationIdx]()
+							{
+								FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+								if (!InstanceOutput)
+									return 0.0f;
+								return InstanceOutput->GetTransformOffsetAt(VariationIdx, 1, 2);
+							}
 						)))
-						.OnRollCommitted_Lambda([&CurInstanceOutput, VariationIdx, ChangeTransformOffsetAt](float Val, ETextCommit::Type TextCommitType)
-							{ ChangeTransformOffsetAt(CurInstanceOutput, VariationIdx, Val, 1, 0); })	
-						.OnPitchCommitted_Lambda([&CurInstanceOutput, VariationIdx, ChangeTransformOffsetAt](float Val, ETextCommit::Type TextCommitType)
-							{ ChangeTransformOffsetAt(CurInstanceOutput, VariationIdx, Val, 1, 1); })
-						.OnYawCommitted_Lambda([&CurInstanceOutput, VariationIdx, ChangeTransformOffsetAt](float Val, ETextCommit::Type TextCommitType)
-							{ ChangeTransformOffsetAt(CurInstanceOutput, VariationIdx, Val, 1, 2); })
+						.OnRollCommitted_Lambda([InOutput, CurOutputObjectIdentifier, VariationIdx, ChangeTransformOffsetAt](float Val, ETextCommit::Type TextCommitType)
+						{
+							FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+							if (!InstanceOutput)
+								return;
+							ChangeTransformOffsetAt(*InstanceOutput, VariationIdx, Val, 1, 0);
+						})	
+						.OnPitchCommitted_Lambda([InOutput, CurOutputObjectIdentifier, VariationIdx, ChangeTransformOffsetAt](float Val, ETextCommit::Type TextCommitType)
+						{
+							FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+							if (!InstanceOutput)
+								return;
+							ChangeTransformOffsetAt(*InstanceOutput, VariationIdx, Val, 1, 1);
+						})
+						.OnYawCommitted_Lambda([InOutput, CurOutputObjectIdentifier, VariationIdx, ChangeTransformOffsetAt](float Val, ETextCommit::Type TextCommitType)
+						{
+							FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+							if (!InstanceOutput)
+								return;
+							ChangeTransformOffsetAt(*InstanceOutput, VariationIdx, Val, 1, 2);
+						})
 					]
 
 					+ SHorizontalBox::Slot()
@@ -3461,37 +3639,61 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 						SNew(SVectorInputBox)
 						.bColorAxisLabels(true)
 						.X(TAttribute<TOptional<float>>::Create(
-							TAttribute<TOptional<float>>::FGetter::CreateLambda([&CurInstanceOutput, VariationIdx]()
-								{ return CurInstanceOutput.GetTransformOffsetAt(VariationIdx, 2, 0); }
+							TAttribute<TOptional<float>>::FGetter::CreateLambda([InOutput, CurOutputObjectIdentifier, VariationIdx]()
+								{ 
+									FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+									if (!InstanceOutput)
+										return 1.0f;
+									return InstanceOutput->GetTransformOffsetAt(VariationIdx, 2, 0); 
+								}
 						)))
 						.Y(TAttribute<TOptional<float>>::Create(
-							TAttribute<TOptional<float>>::FGetter::CreateLambda([&CurInstanceOutput, VariationIdx]()
-								{ return CurInstanceOutput.GetTransformOffsetAt(VariationIdx, 2, 1); }
+							TAttribute<TOptional<float>>::FGetter::CreateLambda([InOutput, CurOutputObjectIdentifier, VariationIdx]()
+								{ 
+									FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+									if (!InstanceOutput)
+										return 1.0f;
+									return InstanceOutput->GetTransformOffsetAt(VariationIdx, 2, 1); 
+								}
 						)))
 						.Z(TAttribute<TOptional<float>>::Create(
-							TAttribute<TOptional<float>>::FGetter::CreateLambda([&CurInstanceOutput, VariationIdx]()
-								{ return CurInstanceOutput.GetTransformOffsetAt(VariationIdx, 2, 2); }
+							TAttribute<TOptional<float>>::FGetter::CreateLambda([InOutput, CurOutputObjectIdentifier, VariationIdx]()
+								{ 
+									FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+									if (!InstanceOutput)
+										return 1.0f;
+									return InstanceOutput->GetTransformOffsetAt(VariationIdx, 2, 2); 
+								}
 						)))
-						.OnXCommitted_Lambda([&CurInstanceOutput, VariationIdx, ChangeTransformOffsetAt, ChangeTransformOffsetUniformlyAt](float Val, ETextCommit::Type TextCommitType)
+						.OnXCommitted_Lambda([InOutput, CurOutputObjectIdentifier, VariationIdx, ChangeTransformOffsetAt, ChangeTransformOffsetUniformlyAt](float Val, ETextCommit::Type TextCommitType)
 						{
-							if (CurInstanceOutput.IsUnformScaleLocked())
+							FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+							if (!InstanceOutput)
+								return;
+							if (InstanceOutput->IsUnformScaleLocked())
 								ChangeTransformOffsetUniformlyAt(Val, 2);
 							else
-								ChangeTransformOffsetAt(CurInstanceOutput, VariationIdx, Val, 2, 0); 
+								ChangeTransformOffsetAt(*InstanceOutput, VariationIdx, Val, 2, 0); 
 						})	
-						.OnYCommitted_Lambda([&CurInstanceOutput, VariationIdx, ChangeTransformOffsetAt, ChangeTransformOffsetUniformlyAt](float Val, ETextCommit::Type TextCommitType)
+						.OnYCommitted_Lambda([InOutput, CurOutputObjectIdentifier, VariationIdx, ChangeTransformOffsetAt, ChangeTransformOffsetUniformlyAt](float Val, ETextCommit::Type TextCommitType)
 						{
-							if (CurInstanceOutput.IsUnformScaleLocked())
+							FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+							if (!InstanceOutput)
+								return;
+							if (InstanceOutput->IsUnformScaleLocked())
 								ChangeTransformOffsetUniformlyAt(Val, 2);
 							else
-								ChangeTransformOffsetAt(CurInstanceOutput, VariationIdx, Val, 2, 1); 
+								ChangeTransformOffsetAt(*InstanceOutput, VariationIdx, Val, 2, 1); 
 						})
-						.OnZCommitted_Lambda([&CurInstanceOutput, VariationIdx, ChangeTransformOffsetAt, ChangeTransformOffsetUniformlyAt](float Val, ETextCommit::Type TextCommitType)
+						.OnZCommitted_Lambda([InOutput, CurOutputObjectIdentifier, VariationIdx, ChangeTransformOffsetAt, ChangeTransformOffsetUniformlyAt](float Val, ETextCommit::Type TextCommitType)
 						{
-							if (CurInstanceOutput.IsUnformScaleLocked())
+							FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+							if (!InstanceOutput)
+								return;
+							if (InstanceOutput->IsUnformScaleLocked())
 								ChangeTransformOffsetUniformlyAt(Val, 2);
 							else
-								ChangeTransformOffsetAt(CurInstanceOutput, VariationIdx, Val, 2, 2);
+								ChangeTransformOffsetAt(*InstanceOutput, VariationIdx, Val, 2, 2);
 						})
 					]
 
@@ -3512,9 +3714,14 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 								SNew(SImage)
 								.Image(CurInstanceOutput.IsUnformScaleLocked() ? FEditorStyle::GetBrush("GenericLock") : FEditorStyle::GetBrush("GenericUnlock"))
 							]
-							.OnClicked_Lambda([&CurInstanceOutput, InOutput]() 
+							.OnClicked_Lambda([InOutput, CurOutputObjectIdentifier]() 
 							{
-								CurInstanceOutput.SwitchUniformScaleLock();
+								FHoudiniInstancedOutput* InstanceOutput = GetInstancedOutput(InOutput, CurOutputObjectIdentifier);
+								if (!InstanceOutput)
+									return FReply::Handled();
+								
+								InstanceOutput->SwitchUniformScaleLock();
+								
 								FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
 								return FReply::Handled();
 							})
@@ -3608,9 +3815,9 @@ FHoudiniOutputDetails::OnMaterialInterfaceSelected(
 void
 FHoudiniOutputDetails::CreateDefaultOutputWidget(
 	IDetailCategoryBuilder& HouOutputCategory,
-	UHoudiniOutput* InOutput)
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput)
 {
-	if (!InOutput)
+	if (!IsValidWeakPointer(InOutput))
 		return;
 
 	// Get thumbnail pool for this builder.
@@ -3732,22 +3939,24 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 }
 
 FReply
-FHoudiniOutputDetails::OnRefineClicked(UObject* ObjectToRefine, UHoudiniOutput* InOutput)
+FHoudiniOutputDetails::OnRefineClicked(const TWeakObjectPtr<UObject> ObjectToRefine, const TWeakObjectPtr<UHoudiniOutput> InOutput)
 {	
 	// TODO: Actually refine only the selected ProxyMesh
 	// For now, refine all the selection
 	FHoudiniEngineCommands::RefineHoudiniProxyMeshesToStaticMeshes(true, true);
 
-	FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+	if (InOutput.IsValid())
+		FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+	
 	return FReply::Handled();
 }
 
 void
 FHoudiniOutputDetails::OnBakeNameCommitted(
 	const FText& Val, ETextCommit::Type TextCommitType,
-	UHoudiniOutput * InOutput, const FHoudiniOutputObjectIdentifier& InIdentifier) 
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput, const FHoudiniOutputObjectIdentifier& InIdentifier) 
 {
-	if (!InOutput)
+	if (!IsValidWeakPointer(InOutput))
 		return;
 
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
@@ -3760,9 +3969,9 @@ FHoudiniOutputDetails::OnBakeNameCommitted(
 }
 
 void
-FHoudiniOutputDetails::OnRevertBakeNameToDefault(UHoudiniOutput * InOutput, const FHoudiniOutputObjectIdentifier & InIdentifier) 
+FHoudiniOutputDetails::OnRevertBakeNameToDefault(const TWeakObjectPtr<UHoudiniOutput>& InOutput, const FHoudiniOutputObjectIdentifier & InIdentifier) 
 {
-	if (!InOutput)
+	if (!IsValidWeakPointer(InOutput))
 		return;
 
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
