@@ -1462,7 +1462,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 				HoudiniParameterButtonStrip->Count = ParmInfo.choiceCount;
 			}
 
-			if (bFullUpdate) 
+			if (bFullUpdate && ParmInfo.choiceCount > 0)
 			{
 				// Get the choice descriptors.
 				TArray< HAPI_ParmChoiceInfo > ParmChoices;
