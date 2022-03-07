@@ -884,4 +884,7 @@ protected:
 		bool& bOutBakedToActor,
 		FHoudiniEngineBakedActor& OutBakedActorEntry);
 
+
+	static ALandscapeProxy* MoveLandscapeComponentsToLevel(ULandscapeInfo* LandscapeInfo, const TArray<ULandscapeComponent*>& InComponents, ULevel* TargetLevel, FName NewProxyName = NAME_None);
+
 };

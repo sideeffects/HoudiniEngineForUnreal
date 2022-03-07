@@ -87,6 +87,7 @@
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
 #include "LandscapeEdit.h"
+#include "LandscapeInfoMap.h"
 #include "ActorFactories/ActorFactoryClass.h"
 #include "Containers/UnrealString.h"
 #include "Components/AudioComponent.h"
@@ -106,6 +107,8 @@
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "WorldPartition/WorldPartition.h"
 
 HOUDINI_BAKING_DEFINE_LOG_CATEGORY();
 
@@ -2622,6 +2625,81 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 	return true;
 }
 
+ALandscapeProxy* FHoudiniEngineBakeUtils::MoveLandscapeComponentsToLevel(ULandscapeInfo* LandscapeInfo,
+	const TArray<ULandscapeComponent*>& InComponents, ULevel* TargetLevel, FName NewProxyName)
+{
+	if (!IsValid(LandscapeInfo))
+		return nullptr;
+		
+	ALandscape* Landscape = LandscapeInfo->LandscapeActor.Get();
+	check(Landscape != nullptr);
+
+	// Make sure references are in a different package (should be fixed up before calling this method)
+	// Check the Physical Material is same package with Landscape
+	if (Landscape->DefaultPhysMaterial && Landscape->DefaultPhysMaterial->GetOutermost() == Landscape->GetOutermost())
+	{
+		return nullptr;
+	}
+
+	// Check the LayerInfoObjects are not in same package as Landscape
+	TArray<FLandscapeInfoLayerSettings>& Layers = LandscapeInfo->Layers;
+	for (int32 i = 0; i < Layers.Num(); ++i)
+	{
+		const ULandscapeLayerInfoObject* LayerInfo = Layers[i].LayerInfoObj;
+		if (LayerInfo && LayerInfo->GetOutermost() == Landscape->GetOutermost())
+		{
+			return nullptr;
+		}
+	}
+
+	// Check the Landscape Materials are not in same package as moved components
+	for (const ULandscapeComponent* Component : InComponents)
+	{
+		UMaterialInterface* LandscapeMaterial = Component->GetLandscapeMaterial();
+		if (LandscapeMaterial && LandscapeMaterial->GetOutermost() == Component->GetOutermost())
+		{
+			return nullptr;
+		}
+	}
+	
+	UWorld* TargetWorld = TargetLevel->GetWorld();
+	ALandscapeProxy* TargetProxy = nullptr;
+	ULandscapeInfoMap& TargetLandscapeInfoMaps = ULandscapeInfoMap::GetLandscapeInfoMap(TargetWorld);
+
+	// NOTE: We can't transfer landscape components between two different landscapes so we have to create a completely
+	// new landscape.
+
+	// TODO: Transfer foliage association from previous landscape tile to new landscape tile.
+
+	// ALandscapeProxy* LandscapeProxy = LandscapeInfo->GetLandscapeProxyForLevel(TargetLevel);
+	bool bSetPositionAndOffset = false;
+	{
+		// Create the streaming proxy in the target level, register it with the current landscape and then move
+		// the components.
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Name = NewProxyName;
+		SpawnParams.OverrideLevel = TargetLevel;
+		ALandscapeStreamingProxy* StreamingProxy = TargetLevel->GetWorld()->SpawnActor<ALandscapeStreamingProxy>(SpawnParams);
+
+		// copy shared properties to this new proxy
+		StreamingProxy->SetActorLabel(StreamingProxy->GetName());
+		StreamingProxy->GetSharedProperties(Landscape);
+		StreamingProxy->LandscapeActor = Landscape;
+		LandscapeInfo->RegisterActor(StreamingProxy, false);
+		bSetPositionAndOffset = true;
+		
+		TargetProxy = StreamingProxy;
+	}
+
+	// Ensure the editing layer is cleared otherwise the MoveComponentsToProxy can crash.
+	Landscape->SetEditingLayer(FGuid());
+	// Move landscape components
+	ALandscapeProxy* TileActor = LandscapeInfo->MoveComponentsToProxy(InComponents, TargetProxy, bSetPositionAndOffset, TargetLevel);
+	
+	return TileActor;
+}
+
+
 bool 
 FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
@@ -3577,12 +3655,16 @@ FHoudiniEngineBakeUtils::BakeLandscape(
 	{
 		if (!LandscapeWorld)
 			continue;
+		
 		FHoudiniEngineUtils::RescanWorldPath(LandscapeWorld);
 		ULandscapeInfo::RecreateLandscapeInfo(LandscapeWorld, true);
 		if (LandscapeWorld->WorldComposition)
 		{
 			UWorldComposition::WorldCompositionChangedEvent.Broadcast(LandscapeWorld);
 		}
+
+		FEditorDelegates::RefreshLevelBrowser.Broadcast();
+		FEditorDelegates::RefreshAllBrowsers.Broadcast();
 	}
 
 	if (PackagesToSave.Num() > 0)
@@ -3778,7 +3860,15 @@ FHoudiniEngineBakeUtils::BakeLandscapeObject(
 			// We can only move streaming proxies to sublevels for now.
 			TArray<AActor*> ActorsToMove = {TileActor};
 
-			ALandscapeProxy* NewLandscapeProxy = LandscapeInfo->MoveComponentsToLevel(TileActor->LandscapeComponents, TargetLevel);
+			// NOTE: We can't use the LandscapeInfo's MoveComponentsToLevel directly since there is the assumption
+			//       that the target level is already loaded in the current world where the shared landscape exists.
+			//       In other words the TargetLevel->GetWorld() and Landscape->GetWorld() should be the same world.
+			//       To make matters worse, we can't manually load a newly created level into the editor as a _sublevel_
+			//       since the whole WorldBrowser / LevelCollection API is private and the LevelEditor subsystem doesn't
+			//       provide any functions to achieve this.
+			// ALandscapeProxy* NewLandscapeProxy = LandscapeInfo->MoveComponentsToLevel(TileActor->LandscapeComponents, TargetLevel);
+			ALandscapeProxy* NewLandscapeProxy = MoveLandscapeComponentsToLevel(LandscapeInfo, TileActor->LandscapeComponents, TargetLevel);
+			
 			// We have now moved the landscape components into the new level. We can (hopefully) safely delete the
 			// old tile actor.
 			TileActor->Destroy();
