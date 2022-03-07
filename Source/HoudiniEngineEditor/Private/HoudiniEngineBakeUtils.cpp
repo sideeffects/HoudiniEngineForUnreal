@@ -2625,81 +2625,6 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 	return true;
 }
 
-ALandscapeProxy* FHoudiniEngineBakeUtils::MoveLandscapeComponentsToLevel(ULandscapeInfo* LandscapeInfo,
-	const TArray<ULandscapeComponent*>& InComponents, ULevel* TargetLevel, FName NewProxyName)
-{
-	if (!IsValid(LandscapeInfo))
-		return nullptr;
-		
-	ALandscape* Landscape = LandscapeInfo->LandscapeActor.Get();
-	check(Landscape != nullptr);
-
-	// Make sure references are in a different package (should be fixed up before calling this method)
-	// Check the Physical Material is same package with Landscape
-	if (Landscape->DefaultPhysMaterial && Landscape->DefaultPhysMaterial->GetOutermost() == Landscape->GetOutermost())
-	{
-		return nullptr;
-	}
-
-	// Check the LayerInfoObjects are not in same package as Landscape
-	TArray<FLandscapeInfoLayerSettings>& Layers = LandscapeInfo->Layers;
-	for (int32 i = 0; i < Layers.Num(); ++i)
-	{
-		const ULandscapeLayerInfoObject* LayerInfo = Layers[i].LayerInfoObj;
-		if (LayerInfo && LayerInfo->GetOutermost() == Landscape->GetOutermost())
-		{
-			return nullptr;
-		}
-	}
-
-	// Check the Landscape Materials are not in same package as moved components
-	for (const ULandscapeComponent* Component : InComponents)
-	{
-		UMaterialInterface* LandscapeMaterial = Component->GetLandscapeMaterial();
-		if (LandscapeMaterial && LandscapeMaterial->GetOutermost() == Component->GetOutermost())
-		{
-			return nullptr;
-		}
-	}
-	
-	UWorld* TargetWorld = TargetLevel->GetWorld();
-	ALandscapeProxy* TargetProxy = nullptr;
-	ULandscapeInfoMap& TargetLandscapeInfoMaps = ULandscapeInfoMap::GetLandscapeInfoMap(TargetWorld);
-
-	// NOTE: We can't transfer landscape components between two different landscapes so we have to create a completely
-	// new landscape.
-
-	// TODO: Transfer foliage association from previous landscape tile to new landscape tile.
-
-	// ALandscapeProxy* LandscapeProxy = LandscapeInfo->GetLandscapeProxyForLevel(TargetLevel);
-	bool bSetPositionAndOffset = false;
-	{
-		// Create the streaming proxy in the target level, register it with the current landscape and then move
-		// the components.
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Name = NewProxyName;
-		SpawnParams.OverrideLevel = TargetLevel;
-		ALandscapeStreamingProxy* StreamingProxy = TargetLevel->GetWorld()->SpawnActor<ALandscapeStreamingProxy>(SpawnParams);
-
-		// copy shared properties to this new proxy
-		StreamingProxy->SetActorLabel(StreamingProxy->GetName());
-		StreamingProxy->GetSharedProperties(Landscape);
-		StreamingProxy->LandscapeActor = Landscape;
-		LandscapeInfo->RegisterActor(StreamingProxy, false);
-		bSetPositionAndOffset = true;
-		
-		TargetProxy = StreamingProxy;
-	}
-
-	// Ensure the editing layer is cleared otherwise the MoveComponentsToProxy can crash.
-	Landscape->SetEditingLayer(FGuid());
-	// Move landscape components
-	ALandscapeProxy* TileActor = LandscapeInfo->MoveComponentsToProxy(InComponents, TargetProxy, bSetPositionAndOffset, TargetLevel);
-	
-	return TileActor;
-}
-
-
 bool 
 FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
@@ -7519,6 +7444,283 @@ FHoudiniEngineBakeUtils::PostSpawnBakeActor(AActor* const InSpawnedActor, UHoudi
 	{
 		BakedRootComponent->SetMobility(InHAC->Mobility);
 	}
+}
+
+ALandscapeProxy* FHoudiniEngineBakeUtils::MoveLandscapeComponentsToLevel(ULandscapeInfo* LandscapeInfo,
+	const TArray<ULandscapeComponent*>& InComponents, ULevel* TargetLevel, FName NewProxyName)
+{
+	if (!IsValid(LandscapeInfo))
+		return nullptr;
+		
+	ALandscape* Landscape = LandscapeInfo->LandscapeActor.Get();
+	check(Landscape != nullptr);
+
+	// Make sure references are in a different package (should be fixed up before calling this method)
+	// Check the Physical Material is same package with Landscape
+	if (Landscape->DefaultPhysMaterial && Landscape->DefaultPhysMaterial->GetOutermost() == Landscape->GetOutermost())
+	{
+		return nullptr;
+	}
+
+	// Check the LayerInfoObjects are not in same package as Landscape
+	TArray<FLandscapeInfoLayerSettings>& Layers = LandscapeInfo->Layers;
+	for (int32 i = 0; i < Layers.Num(); ++i)
+	{
+		const ULandscapeLayerInfoObject* LayerInfo = Layers[i].LayerInfoObj;
+		if (LayerInfo && LayerInfo->GetOutermost() == Landscape->GetOutermost())
+		{
+			return nullptr;
+		}
+	}
+
+	// Check the Landscape Materials are not in same package as moved components
+	for (const ULandscapeComponent* Component : InComponents)
+	{
+		UMaterialInterface* LandscapeMaterial = Component->GetLandscapeMaterial();
+		if (LandscapeMaterial && LandscapeMaterial->GetOutermost() == Component->GetOutermost())
+		{
+			return nullptr;
+		}
+	}
+	
+	UWorld* TargetWorld = TargetLevel->GetWorld();
+	ALandscapeProxy* TargetProxy = nullptr;
+	ULandscapeInfoMap& TargetLandscapeInfoMaps = ULandscapeInfoMap::GetLandscapeInfoMap(TargetWorld);
+
+	// NOTE: We can't transfer landscape components between two different landscapes so we have to create a completely
+	// new landscape.
+
+	// TODO: Transfer foliage association from previous landscape tile to new landscape tile.
+
+	// ALandscapeProxy* LandscapeProxy = LandscapeInfo->GetLandscapeProxyForLevel(TargetLevel);
+	bool bSetPositionAndOffset = false;
+	{
+		// Create the streaming proxy in the target level, register it with the current landscape and then move
+		// the components.
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Name = NewProxyName;
+		SpawnParams.OverrideLevel = TargetLevel;
+		ALandscapeStreamingProxy* StreamingProxy = TargetLevel->GetWorld()->SpawnActor<ALandscapeStreamingProxy>(SpawnParams);
+
+		// copy shared properties to this new proxy
+		StreamingProxy->SetActorLabel(StreamingProxy->GetName());
+		StreamingProxy->GetSharedProperties(Landscape);
+		StreamingProxy->LandscapeActor = Landscape;
+		LandscapeInfo->RegisterActor(StreamingProxy, false);
+		bSetPositionAndOffset = true;
+		
+		TargetProxy = StreamingProxy;
+	}
+
+	// Ensure the editing layer is cleared otherwise the MoveComponentsToProxy can crash.
+	Landscape->SetEditingLayer(FGuid());
+	// Move landscape components
+	ALandscapeProxy* TileActor = MoveLandscapeComponentsToProxy(LandscapeInfo, InComponents, TargetProxy, bSetPositionAndOffset, TargetLevel);
+	
+	return TileActor;
+}
+
+ALandscapeProxy*
+FHoudiniEngineBakeUtils::MoveLandscapeComponentsToProxy(
+	ULandscapeInfo* LandscapeInfo,
+	const TArray<ULandscapeComponent*>& InComponents,
+	ALandscapeProxy* LandscapeProxy,
+	bool bSetPositionAndOffset,
+	ULevel* TargetLevel)
+{
+	if (!LandscapeInfo)
+		return nullptr;
+	
+	ALandscape* Landscape = LandscapeInfo->LandscapeActor.Get();
+	check(Landscape != nullptr);
+	
+	struct FCompareULandscapeComponentBySectionBase
+	{
+		FORCEINLINE bool operator()(const ULandscapeComponent& A, const ULandscapeComponent& B) const
+		{
+			return (A.GetSectionBase().X == B.GetSectionBase().X) ? (A.GetSectionBase().Y < B.GetSectionBase().Y) : (A.GetSectionBase().X < B.GetSectionBase().X);
+		}
+	};
+	TArray<ULandscapeComponent*> ComponentsToMove(InComponents);
+	ComponentsToMove.Sort(FCompareULandscapeComponentBySectionBase());
+		
+	const int32 ComponentSizeVerts = Landscape->NumSubsections * (Landscape->SubsectionSizeQuads + 1);
+	const int32 NeedHeightmapSize = 1 << FMath::CeilLogTwo(ComponentSizeVerts);
+
+	TSet<ALandscapeProxy*> SelectProxies;
+	TSet<ULandscapeComponent*> TargetSelectedComponents;
+	TArray<ULandscapeHeightfieldCollisionComponent*> TargetSelectedCollisionComponents;
+	for (ULandscapeComponent* Component : ComponentsToMove)
+	{
+		SelectProxies.Add(Component->GetLandscapeProxy());
+		if (Component->GetLandscapeProxy() != LandscapeProxy && (!TargetLevel || Component->GetLandscapeProxy()->GetOuter() != TargetLevel))
+		{
+			TargetSelectedComponents.Add(Component);
+		}
+
+		ULandscapeHeightfieldCollisionComponent* CollisionComp = Component->CollisionComponent.Get();
+		SelectProxies.Add(CollisionComp->GetLandscapeProxy());
+		if (CollisionComp->GetLandscapeProxy() != LandscapeProxy && (!TargetLevel || CollisionComp->GetLandscapeProxy()->GetOuter() != TargetLevel))
+		{
+			TargetSelectedCollisionComponents.Add(CollisionComp);
+		}
+	}
+
+	// Check which ones are need for height map change
+	TSet<UTexture2D*> OldHeightmapTextures;
+	for (ULandscapeComponent* Component : TargetSelectedComponents)
+	{
+		Component->Modify();
+		OldHeightmapTextures.Add(Component->GetHeightmap());
+	}
+
+	// Need to split all the component which share Heightmap with selected components
+	TMap<ULandscapeComponent*, bool> HeightmapUpdateComponents;
+	HeightmapUpdateComponents.Reserve(TargetSelectedComponents.Num() * 4); // worst case
+	for (ULandscapeComponent* Component : TargetSelectedComponents)
+	{
+		// Search neighbor only
+		const int32 SearchX = Component->GetHeightmap()->Source.GetSizeX() / NeedHeightmapSize - 1;
+		const int32 SearchY = Component->GetHeightmap()->Source.GetSizeY() / NeedHeightmapSize - 1;
+		const FIntPoint ComponentBase = Component->GetSectionBase() / Component->ComponentSizeQuads;
+
+		for (int32 Y = -SearchY; Y <= SearchY; ++Y)
+		{
+			for (int32 X = -SearchX; X <= SearchX; ++X)
+			{
+				ULandscapeComponent* const Neighbor = LandscapeInfo->XYtoComponentMap.FindRef(ComponentBase + FIntPoint(X, Y));
+				if (Neighbor && Neighbor->GetHeightmap() == Component->GetHeightmap() && !HeightmapUpdateComponents.Contains(Neighbor))
+				{
+					Neighbor->Modify();
+					bool bNeedsMoveToCurrentLevel = TargetSelectedComponents.Contains(Neighbor);
+					HeightmapUpdateComponents.Add(Neighbor, bNeedsMoveToCurrentLevel);
+				}
+			}
+		}
+	}
+
+	// Proxy position/offset needs to be set
+	if(bSetPositionAndOffset)
+	{
+		// set proxy location
+		// by default first component location
+		ULandscapeComponent* FirstComponent = *TargetSelectedComponents.CreateConstIterator();
+		LandscapeProxy->GetRootComponent()->SetWorldLocationAndRotation(FirstComponent->GetComponentLocation(), FirstComponent->GetComponentRotation());
+		LandscapeProxy->LandscapeSectionOffset = FirstComponent->GetSectionBase();
+	}
+
+	// Hide(unregister) the new landscape if owning level currently in hidden state
+	if (LandscapeProxy->GetLevel()->bIsVisible == false)
+	{
+		LandscapeProxy->UnregisterAllComponents();
+	}
+
+	// Changing Heightmap format for selected components
+	for (const auto& HeightmapUpdateComponentPair : HeightmapUpdateComponents)
+	{
+		ALandscape::SplitHeightmap(HeightmapUpdateComponentPair.Key, HeightmapUpdateComponentPair.Value ? LandscapeProxy : nullptr);
+	}
+
+	// Delete if it is no referenced textures...
+	for (UTexture2D* Texture : OldHeightmapTextures)
+	{
+		Texture->SetFlags(RF_Transactional);
+		Texture->Modify();
+		Texture->MarkPackageDirty();
+		Texture->ClearFlags(RF_Standalone);
+	}
+
+	for (ALandscapeProxy* Proxy : SelectProxies)
+	{
+		Proxy->Modify();
+	}
+
+	LandscapeProxy->Modify();
+	LandscapeProxy->MarkPackageDirty();
+
+	// Handle XY-offset textures (these don't need splitting, as they aren't currently shared between components like heightmaps/weightmaps can be)
+	for (ULandscapeComponent* Component : TargetSelectedComponents)
+	{
+		if (Component->XYOffsetmapTexture)
+		{
+			Component->XYOffsetmapTexture->Modify();
+			Component->XYOffsetmapTexture->Rename(nullptr, LandscapeProxy);
+		}
+	}
+
+	// Change Weight maps...
+	{
+		FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
+		for (ULandscapeComponent* Component : TargetSelectedComponents)
+		{
+			Component->ReallocateWeightmaps(&LandscapeEdit, false, true, true, LandscapeProxy);
+			Component->ForEachLayer([&](const FGuid& LayerGuid, FLandscapeLayerComponentData& LayerData)
+			{
+				FScopedSetLandscapeEditingLayer Scope(Landscape, LayerGuid);
+				Component->ReallocateWeightmaps(&LandscapeEdit, true, true, true, LandscapeProxy);
+			});
+			Landscape->RequestLayersContentUpdateForceAll();
+		}
+
+		// Need to Repacking all the Weight map (to make it packed well...)
+		for (ALandscapeProxy* Proxy : SelectProxies)
+		{
+			Proxy->RemoveInvalidWeightmaps();
+		}
+	}
+
+	// Move the components to the Proxy actor
+	// This does not use the MoveSelectedActorsToCurrentLevel path as there is no support to only move certain components.
+	for (ULandscapeComponent* Component : TargetSelectedComponents)
+	{
+		// Need to move or recreate all related data (Height map, Weight map, maybe collision components, allocation info)
+		Component->GetLandscapeProxy()->LandscapeComponents.Remove(Component);
+		Component->UnregisterComponent();
+		Component->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+		Component->InvalidateLightingCache();
+		Component->Rename(nullptr, LandscapeProxy);
+		LandscapeProxy->LandscapeComponents.Add(Component);
+		Component->AttachToComponent(LandscapeProxy->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+
+		// clear transient mobile data
+		Component->MobileDataSourceHash.Invalidate();
+		Component->MobileMaterialInterfaces.Reset();
+		Component->MobileWeightmapTextures.Reset();
+
+		Component->UpdateMaterialInstances();
+	}
+	LandscapeProxy->UpdateCachedHasLayersContent();
+
+	for (ULandscapeHeightfieldCollisionComponent* Component : TargetSelectedCollisionComponents)
+	{
+		// Need to move or recreate all related data (Height map, Weight map, maybe collision components, allocation info)
+
+		Component->GetLandscapeProxy()->CollisionComponents.Remove(Component);
+		Component->UnregisterComponent();
+		Component->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+		Component->Rename(nullptr, LandscapeProxy);
+		LandscapeProxy->CollisionComponents.Add(Component);
+		Component->AttachToComponent(LandscapeProxy->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+
+		// Move any foliage associated
+		AInstancedFoliageActor::MoveInstancesForComponentToLevel(Component, LandscapeProxy->GetLevel());
+	}
+		
+	// Register our new components if destination landscape is registered in scene 
+	if (LandscapeProxy->GetRootComponent()->IsRegistered())
+	{
+		LandscapeProxy->RegisterAllComponents();
+	}
+
+	for (ALandscapeProxy* Proxy : SelectProxies)
+	{
+		if (Proxy->GetRootComponent()->IsRegistered())
+		{
+			Proxy->RegisterAllComponents();
+		}
+	}
+
+	return LandscapeProxy;
 }
 
 #undef LOCTEXT_NAMESPACE
