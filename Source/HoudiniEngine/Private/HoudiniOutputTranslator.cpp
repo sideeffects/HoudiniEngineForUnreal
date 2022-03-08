@@ -607,7 +607,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	{
 		// Force the asset registry to update its cache of packages paths
 		// recursively for this world, otherwise world composition won't
-		// pick them up during the WorldComposition::Rescan().
+		// detect new maps during the WorldComposition::Rescan().
 		FHoudiniEngineUtils::RescanWorldPath(PersistentWorld);
 
 		ULandscapeInfo::RecreateLandscapeInfo(PersistentWorld, true);
@@ -617,6 +617,9 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		{
 			UWorldComposition::WorldCompositionChangedEvent.Broadcast(PersistentWorld);
 		}
+
+		// NOTE: We are unable to force the world outliner to update it's list of actors from sublevels so the
+		// user has to unload / reload the sublevels to see the tiles in the world outliner.
 
 		FEditorDelegates::RefreshLevelBrowser.Broadcast();
 		FEditorDelegates::RefreshAllBrowsers.Broadcast();

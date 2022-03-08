@@ -515,10 +515,11 @@ FHoudiniEngineUtils::FindWorldInPackage(const FString& PackagePath, bool bCreate
 
 	if (!IsValid(PackageWorld) && bCreateMissingPackage)
 	{
+		const FName ShortName(FPackageName::GetShortName(PackagePath));
 		// The map for this tile does not exist. Create one
 		UWorldFactory* Factory = NewObject<UWorldFactory>();
 		Factory->WorldType = EWorldType::Inactive; // World that is being loaded but not currently edited by editor.
-		PackageWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Package, NAME_None, RF_Public | RF_Standalone, NULL, GWarn));
+		PackageWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Package, ShortName, RF_Public | RF_Standalone, NULL, GWarn));
 
 		if (IsValid(PackageWorld))
 		{

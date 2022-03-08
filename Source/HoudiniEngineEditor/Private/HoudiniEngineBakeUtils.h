@@ -930,4 +930,11 @@ protected:
 	// Called by SpawnBakeActor after the actor was successfully spawned. Used to copy any settings we need from the
 	// HAC or its owner to the spawned actor and/or its root component.
 	static void PostSpawnBakeActor(AActor* const InSpawnedActor, UHoudiniAssetComponent const * const InHAC);
+
+	// This function was taken from ULandscapeInfo::MoveComponentsToLevel and customized since the stock function
+	// makes a few assumptions that breaks our workflow.
+	static ALandscapeProxy* MoveLandscapeComponentsToLevel(ULandscapeInfo* LandscapeInfo, const TArray<ULandscapeComponent*>& InComponents, ULevel* TargetLevel, FName NewProxyName = NAME_None);
+	// The ULandscapeInfo::MoveComponentsToProxy function is only available in UE5 so we're putting it here for backporting purposes.
+	static ALandscapeProxy* MoveLandscapeComponentsToProxy(ULandscapeInfo* LandscapeInfo, const TArray<ULandscapeComponent*>& InComponents, ALandscapeProxy* LandscapeProxy, bool bSetPositionAndOffset, ULevel* TargetLevel);
+
 };
