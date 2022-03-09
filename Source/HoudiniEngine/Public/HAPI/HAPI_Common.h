@@ -1958,59 +1958,34 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_SphereInfo )
 /// Data associated with a PDG Event
 struct HAPI_API HAPI_PDG_EventInfo
 {
-    /// id of related node.
-    HAPI_NodeId nodeId;
-
-    /// id of related work item.
-    HAPI_PDG_WorkItemId workItemId;
-
-    /// id of related work item dependency.
-    HAPI_PDG_WorkItemId dependencyId;
-
-    /// ::HAPI_PDG_WorkItemState value of current state for state change.
-    int currentState;
-
-    /// ::HAPI_PDG_WorkItemState value of last state for state change.
-    int lastState;
-    
-    /// ::HAPI_PDG_EventType event type.
-    int eventType;
-
-    /// String handle of the event message (> 0 if there is a message).
-    HAPI_StringHandle msgSH;
+    HAPI_NodeId nodeId;                     /// id of related node
+    HAPI_PDG_WorkItemId workitemId;         /// id of related workitem
+    HAPI_PDG_WorkItemId dependencyId;       /// id of related workitem dependency
+    int currentState;                       /// ::HAPI_PDG_WorkItemState value of current state for state change
+    int lastState;                          /// ::HAPI_PDG_WorkItemState value of last state for state change
+    int eventType;                          /// ::HAPI_PDG_EventType event type
+    HAPI_StringHandle msgSH;                /// String handle of the event message (> 0 if there is a message)
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_EventInfo )
 
 /// Info for a PDG work item
 struct HAPI_API HAPI_PDG_WorkItemInfo
 {
-    /// The work item's index
-    int index;
-    
-    /// The number of output files reported by the work item.
-    int outputFileCount;
-
-    /// Name of the work item
-    HAPI_StringHandle nameSH; 
+    int index;                    /// index of the workitem
+    int numResults;		          /// number of results reported
+    HAPI_StringHandle nameSH;     /// name of the workitem
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkItemInfo )
 
 /// Backwards compatibility for HAPI_PDG_WorkitemInfo
 typedef HAPI_PDG_WorkItemInfo HAPI_PDG_WorkitemInfo;
 
-/// Data for a PDG output file
+/// Data for a PDG file result
 struct HAPI_API HAPI_PDG_WorkItemOutputFile
 {
-    /// The file path of the output.
-    int filePathSH;
-
-    /// The file tag of the output.
-    int tagSH;
-
-    /// Hash of the output file. Properties such as the file path and
-    /// modification time of the file are typical inputs to the hash function,
-    /// but this will vary based on the node that is producing the output file.
-    HAPI_Int64 hash;
+    int resultSH;		/// result string data
+    int resultTagSH;		/// result tag
+    HAPI_Int64 resultHash;	/// hash value of result
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_WorkItemOutputFile )
 
