@@ -3991,16 +3991,14 @@ FHoudiniEngineBakeUtils::BakeLandscape(
 	{
 		if (!LandscapeWorld)
 			continue;
-		
-		FHoudiniEngineUtils::RescanWorldPath(LandscapeWorld);
-		ULandscapeInfo::RecreateLandscapeInfo(LandscapeWorld, true);
-		if (LandscapeWorld->WorldComposition)
+
+		AWorldSettings* WorldSettings = LandscapeWorld->GetWorldSettings();
+		if (WorldSettings && WorldSettings->bEnableWorldComposition)
 		{
-			UWorldComposition::WorldCompositionChangedEvent.Broadcast(LandscapeWorld);
+			// We force a PostEditChangeProperty event which will trigger world composition to properly detect
+			// newly created maps, if enabled.
+			FHoudiniEngineRuntimeUtils::DoPostEditChangeProperty(WorldSettings, "bEnableWorldComposition");
 		}
-		
-		FEditorDelegates::RefreshLevelBrowser.Broadcast();
-		FEditorDelegates::RefreshAllBrowsers.Broadcast();
 	}
 
 	if (PackagesToSave.Num() > 0)
@@ -8171,14 +8169,18 @@ ALandscapeProxy* FHoudiniEngineBakeUtils::MoveLandscapeComponentsToLevel(ULandsc
 		StreamingProxy->GetSharedProperties(Landscape);
 		StreamingProxy->SetActorLabel(StreamingProxy->GetName());
 		StreamingProxy->LandscapeActor = Landscape;
+		StreamingProxy->bHasLayersContent = Landscape->CanHaveLayersContent();
 		LandscapeInfo->RegisterActor(StreamingProxy, false);
 		bSetPositionAndOffset = true;
 		
 		TargetProxy = StreamingProxy;
 	}
 
-	// Ensure the editing layer is cleared otherwise the MoveComponentsToProxy can crash.
-	Landscape->SetEditingLayer(FGuid());
+	if (Landscape->CanHaveLayersContent())
+	{
+		// Ensure the editing layer is cleared otherwise the MoveComponentsToProxy can crash.
+		Landscape->SetEditingLayer(FGuid());
+	}
 	// Move landscape components
 	ALandscapeProxy* TileActor = MoveLandscapeComponentsToProxy(LandscapeInfo, InComponents, TargetProxy, bSetPositionAndOffset, TargetLevel);
 	
