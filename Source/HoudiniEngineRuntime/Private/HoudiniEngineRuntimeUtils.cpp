@@ -27,6 +27,7 @@
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniRuntimeSettings.h"
+#include "LandscapeProxy.h"
 
 #include "EngineUtils.h"
 #include "Engine/EngineTypes.h"
@@ -481,6 +482,48 @@ FHoudiniEngineRuntimeUtils::MarkBlueprintAsModified(UActorComponent* ComponentTe
 	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 }
 #endif
+
+FTransform FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(ULandscapeInfo* LandscapeInfo)
+{
+	ALandscapeProxy* LandscapeProxy = LandscapeInfo->GetLandscapeProxy();
+	FTransform OutTransform = LandscapeProxy->GetTransform();
+		
+	FVector LandscapeScale = OutTransform.GetScale3D();
+
+	// The final landscape transform that should go into Houdini consist of the following two components:
+	// - Shared Landscape Transform
+	// - Extents of all the loaded landscape components
+
+	// The houdini transform will always be in the center of the currently loaded landscape components.
+
+	FIntRect Extent;
+	Extent.Min.X = INT32_MAX;
+	Extent.Min.Y = INT32_MAX;
+	Extent.Max.X = INT32_MIN;
+	Extent.Max.Y = INT32_MIN;
+	
+	LandscapeInfo->ForAllLandscapeComponents([&Extent](ULandscapeComponent* LandscapeComponent)
+	{
+		LandscapeComponent->GetComponentExtent(Extent.Min.X, Extent.Min.Y, Extent.Max.X, Extent.Max.Y);
+	});
+
+	FIntVector ExtentCenter(
+			(Extent.Min.X + Extent.Max.X)/2,
+			(Extent.Min.Y + Extent.Max.Y)/2,
+			1);
+	
+	FVector ExtentMin = FVector(Extent.Min.X * LandscapeScale.X, Extent.Min.Y * LandscapeScale.Y, 1.0);
+	FVector ExtentMax = FVector(Extent.Max.X * LandscapeScale.X, Extent.Max.Y * LandscapeScale.Y, 1.0);
+	
+	// Add section base offset to the landscape transform
+	FVector Loc = OutTransform.GetLocation();
+	Loc.X += ExtentCenter.X * LandscapeScale.X;
+	Loc.Y += ExtentCenter.Y * LandscapeScale.Y;
+	
+	OutTransform.SetLocation(Loc);
+
+	return OutTransform;
+}
 
 
 #if WITH_EDITOR

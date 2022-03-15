@@ -1911,39 +1911,33 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 		EditLayerType == HAPI_UNREAL_LANDSCAPE_EDITLAYER_TYPE_ADDITIVE))
 			return false;
 
-
-	// ----------------------------------------------------
-	// Calculate Tile location and landscape offset
-	// ---------------------------------------------------- 
-
-	int32 TargetMinX, TargetMaxX, TargetMinY, TargetMaxY;
-	TargetLandscapeInfo->GetLandscapeExtent(TargetMinX, TargetMinY, TargetMaxX, TargetMaxY);
-
 	// ----------------------------------------------------
 	//  Calculate the draw location (in quad space) of
 	//  where the Modify Layer should be drawn 
 	// ----------------------------------------------------
-	FVector LandscapeBaseLoc = TargetLandscape->GetTransform().InverseTransformPosition(TargetLandscape->GetTransform().GetLocation());
-	FTransform HACTransform = HAC->GetComponentTransform();
 
-	// We need to unscale the TileTransform before concatenating it with the HAC transform.
-	FTransform UnscaledTileTransform = TileTransform;
-	UnscaledTileTransform.SetScale3D(FVector::OneVector);
+	// In order to determine the 'draw location' in quad space we have to do the following:
+	// 1. Calculate the heightfield's world space position
+	// 2. Calculate the transform of the heightfield _relative_ to the Landscape's origin 
+	// 3. Convert the relative HF transform to a quad space coordinate
+	// 4. Final draw coordinate: Landscape's section base offset + relative quad space coordinate
 
-	// Calculate the tile's transform in quad space on the target landscape.
-	const FTransform LocalTileTransform = HACTransform * UnscaledTileTransform * TargetLandscape->GetTransform().Inverse();
+	FTransform UnscaledLandscapeTransform = TargetLandscapeTransform;
+	UnscaledLandscapeTransform.SetScale3D(FVector::OneVector);
 	
-	const FVector LocalPos = LocalTileTransform.GetLocation();
-	TargetMinX += LocalPos.X;
-	TargetMinY += LocalPos.Y;
+	const FTransform TileWSTransform = TileTransform * HAC->GetComponentTransform();
+	const FTransform RelativeTileTransform = TileWSTransform * UnscaledLandscapeTransform.Inverse();
+
+	FVector LandscapeScale = TargetLandscapeTransform.GetScale3D();
+	const FVector RelativeTileCoordinate = RelativeTileTransform.GetLocation() / LandscapeScale;
 	
-	// The layer location will be offset / drawn at the "min" location (on the target landscape) in quad space
-	const FVector LayerLoc = FVector(TargetMinX, TargetMinY, 0.f);
+	const FIntPoint LandscapeBaseLoc = TargetLandscape->GetSectionBaseOffset();
+
+	// Calculate the final draw coordinates
 
 	FIntPoint TargetTileLoc;
-	
-	TargetTileLoc.X = FMath::RoundToInt(LayerLoc.X);
-	TargetTileLoc.Y = FMath::RoundToInt(LayerLoc.Y);
+	TargetTileLoc.X = LandscapeBaseLoc.X + FMath::RoundToInt(RelativeTileCoordinate.X);
+	TargetTileLoc.Y = LandscapeBaseLoc.Y + FMath::RoundToInt(RelativeTileCoordinate.Y);
 
 	FVector TileMin, TileMax;
 	TileMin.X = TargetTileLoc.X;
@@ -1951,8 +1945,6 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 	TileMax.X = TargetTileLoc.X + LandscapeTileSizeInfo.UnrealSizeX - 1;
 	TileMax.Y = TargetTileLoc.Y + LandscapeTileSizeInfo.UnrealSizeY - 1;
 	TileMin.Z = TileMax.Z = 0.f;
-
-	FTransform DestLandscapeTransform = TargetLandscapeProxy->LandscapeActorToWorld();
 
 	// NOTE: we don't manually inject a tile number in the object name. This should
 	// already be encoded in the TileName string.
@@ -2436,6 +2428,28 @@ FHoudiniLandscapeTranslator::FindExistingLandscapeActor_Bake(
 		// 	// still find the tile actor in OutWorld.
 			OutActor = FHoudiniEngineUtils::FindActorInWorld<ALandscapeProxy>(OutWorld, FName(InActorName));
 		// }
+	}
+
+	if (OutWorld && OutLevel)
+	{
+		// Ensure that a LevelBounds actor is present in the sublevel. This is needed for world composition.
+		bool bHasLevelBounds = false;
+		for (TActorIterator<ALevelBounds> ActorItr(OutLevel->GetWorld()); ActorItr; ++ActorItr)
+		{
+			if (ActorItr->GetLevel() == OutLevel)
+			{
+				bHasLevelBounds = true;
+				break; 
+			}
+		}
+
+		if (!bHasLevelBounds)
+		{
+			FActorSpawnParameters SpawnParms;
+			SpawnParms.OverrideLevel = OutLevel;
+			ALevelBounds* LevelBoundsActor = OutWorld->SpawnActor<ALevelBounds>(SpawnParms);
+			LevelBoundsActor->MarkPackageDirty();
+		}
 	}
 
 	return OutActor;
