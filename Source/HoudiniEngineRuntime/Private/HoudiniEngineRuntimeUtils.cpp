@@ -28,6 +28,7 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniRuntimeSettings.h"
 #include "LandscapeProxy.h"
+#include "LandscapeInfo.h"
 
 #include "EngineUtils.h"
 #include "Engine/EngineTypes.h"
@@ -485,6 +486,7 @@ FHoudiniEngineRuntimeUtils::MarkBlueprintAsModified(UActorComponent* ComponentTe
 
 FTransform FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(ULandscapeInfo* LandscapeInfo)
 {
+#if WITH_EDITOR
 	ALandscapeProxy* LandscapeProxy = LandscapeInfo->GetLandscapeProxy();
 	FTransform OutTransform = LandscapeProxy->GetTransform();
 		
@@ -523,6 +525,9 @@ FTransform FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(ULands
 	OutTransform.SetLocation(Loc);
 
 	return OutTransform;
+#else
+	return FTransform();
+#endif
 }
 
 
