@@ -93,6 +93,7 @@
 #include "ActorFactories/ActorFactoryClass.h"
 #include "Containers/UnrealString.h"
 #include "Components/AudioComponent.h"
+#include "Engine/LevelBounds.h"
 #include "Engine/WorldComposition.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "MaterialEditor/Public/MaterialEditingLibrary.h"
@@ -3998,7 +3999,7 @@ FHoudiniEngineBakeUtils::BakeLandscape(
 			// We force a PostEditChangeProperty event which will trigger world composition to properly detect
 			// newly created maps, if enabled.
 			FHoudiniEngineRuntimeUtils::DoPostEditChangeProperty(WorldSettings, "bEnableWorldComposition");
-		}
+		} 
 	}
 
 	if (PackagesToSave.Num() > 0)
@@ -4200,7 +4201,6 @@ FHoudiniEngineBakeUtils::BakeLandscapeObject(
 			//       To make matters worse, we can't manually load a newly created level into the editor as a _sublevel_
 			//       since the whole WorldBrowser / LevelCollection API is private and the LevelEditor subsystem doesn't
 			//       provide any functions to achieve this.
-			// ALandscapeProxy* NewLandscapeProxy = LandscapeInfo->MoveComponentsToLevel(TileActor->LandscapeComponents, TargetLevel);
 			ALandscapeProxy* NewLandscapeProxy = MoveLandscapeComponentsToLevel(LandscapeInfo, TileActor->LandscapeComponents, TargetLevel);
 			
 			// We have now moved the landscape components into the new level. We can (hopefully) safely delete the
@@ -4233,6 +4233,11 @@ FHoudiniEngineBakeUtils::BakeLandscapeObject(
 				// The move failed
 				return false;
 			}
+		}
+		// Ensure target level bounds are up to date
+		if (IsValid(TargetLevel) && TargetLevel->LevelBoundsActor.IsValid())
+		{
+			TargetLevel->LevelBoundsActor->MarkLevelBoundsDirty();
 		}
 	}
 	else

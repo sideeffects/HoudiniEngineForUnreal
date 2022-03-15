@@ -371,7 +371,7 @@ UHoudiniInputActor::GetActor() const
 }
 
 ALandscapeProxy*
-UHoudiniInputLandscape::GetLandscapeProxy() 
+UHoudiniInputLandscape::GetLandscapeProxy() const
 {
 	return Cast<ALandscapeProxy>(InputObject.LoadSynchronous());
 }
@@ -382,6 +382,31 @@ UHoudiniInputLandscape::SetLandscapeProxy(UObject* InLandscapeProxy)
 	UObject* LandscapeProxy = Cast<UObject>(InLandscapeProxy);
 	if (LandscapeProxy)
 		InputObject = LandscapeProxy;
+}
+
+int32 UHoudiniInputLandscape::CountLandscapeComponents() const
+{
+	ALandscapeProxy* LandscapeProxy = GetLandscapeProxy();
+	if (!IsValid(LandscapeProxy))
+	{
+		return false;
+	}
+	
+	ULandscapeInfo* LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
+	if (!IsValid(LandscapeInfo))
+	{
+		return false; 
+	}
+
+	int32 NumComponents = 0;
+	LandscapeInfo->ForAllLandscapeProxies([&NumComponents](ALandscapeProxy* Proxy)
+	{
+		if (IsValid(Proxy))
+		{
+			NumComponents += Proxy->LandscapeComponents.Num();
+		}
+	});
+	return NumComponents;
 }
 
 ABrush*
@@ -1559,19 +1584,54 @@ bool UHoudiniInputLandscape::ShouldTrackComponent(UActorComponent* InComponent)
 	return InComponent->IsA(ULandscapeComponent::StaticClass());
 }
 
+bool UHoudiniInputLandscape::HasContentChanged() const
+{
+	if (Super::HasContentChanged())
+	{
+		return true;
+	}
+
+	const int32 NumComponents = CountLandscapeComponents();
+	return NumComponents != CachedNumLandscapeComponents;
+}
+
 void
 UHoudiniInputLandscape::Update(UObject * InObject)
 {
 	Super::Update(InObject);
 
-	ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(InObject);
+	const ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(InObject);
 
 	//ensure(Landscape);
 
 	if (Landscape)
 	{
-		// Nothing to do for landscapes?
+		Transform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(Landscape->GetLandscapeInfo());
+		CachedNumLandscapeComponents = CountLandscapeComponents();
 	}
+}
+
+bool UHoudiniInputLandscape::HasActorTransformChanged() const
+{
+	if (!GetActor())
+		return false;
+
+	if (HasComponentsTransformChanged())
+		return true;
+
+	// We replace the root component transform comparison, with a transform that is calculated, for Houdini, based
+	// on the currently loaded tiles.
+	ALandscapeProxy* LandscapeProxy = GetLandscapeProxy();
+	if (IsValid(LandscapeProxy))
+	{
+		const FTransform HoudiniTransform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(LandscapeProxy->GetLandscapeInfo());
+		if (!Transform.Equals(HoudiniTransform))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 EHoudiniInputObjectType
