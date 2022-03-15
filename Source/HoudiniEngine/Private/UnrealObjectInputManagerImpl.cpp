@@ -302,7 +302,7 @@ FUnrealObjectInputManagerImpl::UpdateLeaf(
 	const int32 InNodeId,
 	const bool bInClearDirtyFlag)
 {
-	if (!InIdentifier.IsValid() || InIdentifier.GetNodeType() != EUnrealObjectInputNodeType::Container)
+	if (!InIdentifier.IsValid() || InIdentifier.GetNodeType() != EUnrealObjectInputNodeType::Leaf)
 		return false;
 
 	FUnrealObjectInputNode* Node = nullptr;
