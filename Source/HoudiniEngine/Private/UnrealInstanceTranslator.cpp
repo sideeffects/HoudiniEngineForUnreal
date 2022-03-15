@@ -30,6 +30,7 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEnginePrivatePCH.h"
 #include "UnrealMeshTranslator.h"
+#include "UnrealObjectInputRuntimeTypes.h"
 
 #include "Engine/StaticMesh.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -39,6 +40,7 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	UInstancedStaticMeshComponent* ISMC, 
 	const FString& InNodeName, 
 	HAPI_NodeId& OutCreatedNodeId,
+	FUnrealObjectInputHandle& OutHandle,
 	const bool& bExportLODs,
 	const bool& bExportSockets,
 	const bool& bExportColliders,
@@ -56,33 +58,131 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	// Marshall the Static Mesh to Houdini
 	int32 SMNodeId = -1;
 	FString ISMCName = InNodeName + TEXT("_") + ISMC->GetName();
+	FUnrealObjectInputHandle SMNodeHandle;
 	bool bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
-		SM, SMNodeId, InNodeName, ISMC, bExportLODs, bExportSockets, bExportColliders);
+		SM, SMNodeId, InNodeName, SMNodeHandle, ISMC, bExportLODs, bExportSockets, bExportColliders);
 
 	if (!bSuccess)
 		return false;
 
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	FString FinalInputNodeName = InNodeName;
+	HAPI_NodeId ParentNodeId = -1;
+	FUnrealObjectInputHandle ParentHandle;
+	FUnrealObjectInputIdentifier Identifier;
+	if (bUseRefCountedInputSystem)
+	{
+		// Build the identifier for the entry in the manager
+		constexpr bool bImportAsReference = false;
+		constexpr bool bImportAsReferenceRotScaleEnabled = false;
+		constexpr bool bIsLeaf = false;
+		FUnrealObjectInputOptions Options(bImportAsReference, bImportAsReferenceRotScaleEnabled, bExportLODs, bExportSockets, bExportColliders);
+		Identifier = FUnrealObjectInputIdentifier(ISMC, Options, bIsLeaf);
+
+		// If the entry exists in the manager, the associated HAPI nodes are valid, and it is not marked as dirty, then
+		// return the existing entry
+		FUnrealObjectInputHandle Handle;
+		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		{
+			// Check consistency: the ref node should have 0 or 1 entries. If it has more than one, then it is incompatible
+			// and we need to proceed with recreation
+			TSet<FUnrealObjectInputHandle> ReferencedNodes;
+			if (FHoudiniEngineUtils::GetReferencedNodes(Handle, ReferencedNodes))
+			{
+				if (ReferencedNodes.Num() <= 1)
+				{
+					if (!ReferencedNodes.Contains(SMNodeHandle))
+						FHoudiniEngineUtils::SetReferencedNodes(Handle, {SMNodeHandle});
+
+					HAPI_NodeId NodeId = -1;
+					if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId))
+					{
+						// Ensure that the SM node is connected to ref node's (copytopoints) input 0
+						HAPI_NodeId CurrentInputNodeId = -1;
+						HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
+						if (FHoudiniApi::QueryNodeInput(Session, NodeId, 0, &CurrentInputNodeId) == HAPI_RESULT_SUCCESS && CurrentInputNodeId >= 0)
+						{
+							// Get the objpath1 node parm from the object_merge
+							if (FHoudiniApi::GetParmNodeValue(Session, CurrentInputNodeId, TCHAR_TO_UTF8(TEXT("objpath1")), &CurrentInputNodeId) != HAPI_RESULT_SUCCESS)
+								CurrentInputNodeId = -1;
+						}
+						// If we cannot connect the nodes, then we have to rebuild
+						if (CurrentInputNodeId == SMNodeId || FHoudiniApi::ConnectNodeInput(Session, NodeId, 0, SMNodeId, 0) == HAPI_RESULT_SUCCESS)
+						{
+							OutHandle = Handle;
+							OutCreatedNodeId = NodeId;
+							return true;
+						}
+					}
+				}
+			}
+		}
+		// If the entry does not exist, or is invalid, then we need create it
+		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
+		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle) && ParentHandle.IsValid())
+			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+	}
+	
 	// To create the instance properly (via packed prim), we need to:
 	// - create a copytopoints (with pack and instance enable
 	// - an inputnode containing all of the instances transform as points
 	// - plug the input node and the static mesh node in the copytopoints
 
 	// Create the copytopoints SOP.
+	HAPI_NodeId ObjectNodeId = -1;
 	int32 CopyNodeId = -1;
-	HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
-		-1, TEXT("SOP/copytopoints"), InNodeName, true, &CopyNodeId), false);
+	if (bUseRefCountedInputSystem)
+	{
+		// If we have existing valid HAPI nodes (so we are rebuilding a dirty / old version) reuse those nodes. This
+		// is quite important, to keep our obj merges / node references in _Houdini_ valid
+		bool bCreateNodes = true;
+		if (FHoudiniEngineUtils::AreHAPINodesValid(Identifier))
+		{
+			if (FHoudiniEngineUtils::GetHAPINodeId(Identifier, CopyNodeId))
+			{
+				ObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CopyNodeId);
+				if (ObjectNodeId >= 0)
+				{
+					bCreateNodes = false;
+					// Best effort: clean up: disconnect the object merge from input 0 (HAPI should delete it
+					// automatically) and delete the instances null that is connected to input 1
+					FHoudiniApi::DisconnectNodeInput(FHoudiniEngine::Get().GetSession(), CopyNodeId, 0);
+					HAPI_NodeId OldInstancesId = -1;
+					if (FHoudiniApi::QueryNodeInput(FHoudiniEngine::Get().GetSession(), CopyNodeId, 1, &OldInstancesId) == HAPI_RESULT_SUCCESS
+							&& OldInstancesId >= 0)
+					{
+						FHoudiniEngineUtils::DeleteHoudiniNode(OldInstancesId);
+					}
+				}
+			}
+		}
+		
+		if (bCreateNodes)
+		{
+			HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
+				ParentNodeId, ParentNodeId < 0 ? TEXT("Object/geo") : TEXT("geo"), FinalInputNodeName, true, &ObjectNodeId), false);
+			HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
+				ObjectNodeId, ObjectNodeId < 0 ? TEXT("SOP/copytopoints") : TEXT("copytopoints"), FinalInputNodeName, true, &CopyNodeId), false);
+		}
+	}
+	else
+	{
+		HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
+			-1, TEXT("SOP/copytopoints"), FinalInputNodeName, true, &CopyNodeId), false);
+		
+		// Get the copytopoints parent OBJ NodeID
+		ObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CopyNodeId);
+	}
 
 	// set "Pack And Instance" (pack) to true
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(
 		FHoudiniEngine::Get().GetSession(), CopyNodeId, "pack", 0, 1), false);
 
-	// Get the copytopoints parent OBJ NodeID
-	HAPI_NodeId ParentNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CopyNodeId);
-
 	// Now create an input node for the instance transforms
 	int32 InstancesNodeId = -1;
 	HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
-		ParentNodeId, TEXT("null"), "instances", false, &InstancesNodeId), false);
+		ObjectNodeId, TEXT("null"), "instances", false, &InstancesNodeId), false);
 
 	// MARSHALL THE INSTANCE TRANSFORM
 	{
@@ -195,9 +295,29 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 		FHoudiniEngine::Get().GetSession(), CopyNodeId, 0, SMNodeId, 0), false);
 
+	// When using the ref counted input system, we have to set the object_merge's xformtype to world origin
+	if (bUseRefCountedInputSystem)
+	{
+		HAPI_NodeId ObjMergeNodeId = -1;
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::QueryNodeInput(
+			FHoudiniEngine::Get().GetSession(), CopyNodeId, 0, &ObjMergeNodeId), false);
+		if (!FHoudiniEngineUtils::SetObjectMergeXFormTypeToWorldOrigin(ObjMergeNodeId))
+			return false;
+	}
+
 	// Connect the instances to the copytopoints node's second input
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 		FHoudiniEngine::Get().GetSession(), CopyNodeId, 1, InstancesNodeId, 0), false);
+
+	// Update/create the entry in the input manager
+	if (bUseRefCountedInputSystem)
+	{
+		// Record the node in the manager
+		FUnrealObjectInputHandle Handle;
+		TSet<FUnrealObjectInputHandle> ReferencedNodes({SMNodeHandle});
+		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, CopyNodeId, Handle, ObjectNodeId, &ReferencedNodes))
+			OutHandle = Handle;
+	}
 
 	// Update this input object's node IDs
 	OutCreatedNodeId = CopyNodeId;

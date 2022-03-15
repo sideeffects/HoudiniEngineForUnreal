@@ -39,6 +39,7 @@
 #include "HoudiniStaticMesh.h"
 #include "HoudiniOutput.h"
 #include "HoudiniEngineStyle.h"
+#include "UnrealObjectInputManager.h"
 
 #include "DesktopPlatformModule.h"
 #include "Interfaces/IMainFrameModule.h"
@@ -1406,6 +1407,19 @@ FHoudiniEngineCommands::SetPDGCommandletEnabled(bool InEnabled)
 	}
 
 	return false;
+}
+
+void
+FHoudiniEngineCommands::ClearInputManager()
+{
+	IUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
+	if (!Manager)
+	{
+		HOUDINI_LOG_WARNING(TEXT("[ClearInputManager]: Manager is null!"));
+		return;
+	}
+
+	Manager->Clear();
 }
 
 void

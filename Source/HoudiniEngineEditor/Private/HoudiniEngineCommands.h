@@ -143,7 +143,10 @@ public:
 	static bool IsPDGCommandletEnabled();
 
 	// Set the bPDGAsyncCommandletImportEnabled in the settings
-	static bool SetPDGCommandletEnabled(bool InEnabled);	
+	static bool SetPDGCommandletEnabled(bool InEnabled);
+
+	// Calls the FUnrealObjectInputManager::Clear() function on the input manager singleton.
+	static void ClearInputManager();
 
 	static FDelegateHandle& GetOnPostSaveWorldRefineProxyMeshesHandle() { return OnPostSaveWorldRefineProxyMeshesHandle; }
 

@@ -29,7 +29,6 @@
 #include "HAPI/HAPI_Common.h"
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
-#include "CoreMinimal.h"
 
 class AActor;
 
@@ -56,6 +55,9 @@ class UHoudiniSplineComponent;
 class UHoudiniInputCameraComponent;
 class UHoudiniInputDataTable;
 class UHoudiniInputFoliageType_InstancedStaticMesh;
+
+class FUnrealObjectInputHandle;
+class FUnrealObjectInputIdentifier;
 
 class AActor;
 
@@ -135,6 +137,17 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 	static bool HapiCreateInputNodeForObject(
 		const FString& InObjNodeName, UHoudiniInputObject* InObject);
 	
+	static bool HapiSetGeoObjectTransform(const HAPI_NodeId& InObjectNodeId, const FTransform& InTransform);
+
+	static bool HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
+		const int32 InParentNodeId,
+		const HAPI_NodeId& InNodeToObjectMerge,
+		const FString& InObjNodeName,
+		HAPI_NodeId& InOutObjectMergeNodeId,
+		HAPI_NodeId& InOutGeoObjectNodeId,
+		const bool bInCreateIfMissingInvalid=true,
+		const FTransform& InTransform=FTransform::Identity);
+	
 	static bool	HapiCreateInputNodeForStaticMesh(
 		const FString& InObjNodeName,
 		UHoudiniInputStaticMesh* InObject,
@@ -198,7 +211,7 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 
 	static bool HapiCreateInputNodeForCamera(
 		const FString& InObjNodeName, UHoudiniInputCameraComponent* InObject);
-	
+
 	// Create input node for Brush. Optionally exclude actors when combining
 	// brush with other intersecting brushes. This is typically used to 
 	// exclude Selector objects.
@@ -222,12 +235,23 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 
 	// HAPI: Create an input node for reference
 	static bool CreateInputNodeForReference(
+		const HAPI_NodeId InParentNodeId,
 		HAPI_NodeId& InputNodeId,
 		const FString & InRef,
 		const FString & InputNodeName,
 		const FTransform & InTransform,
 		const bool& bImportAsReferenceRotScaleEnabled);
 
-	//static bool HapiUpdateInputNodeTransform(const HAPI_NodeId InputNodeId, const FTransform& Transform);
+	// HAPI: Create an input node for reference
+	static bool CreateInputNodeForReference(
+		HAPI_NodeId& InputNodeId,
+		UObject const* const InObjectToRef,
+		const FString & InputNodeName,
+		const FTransform & InTransform,
+		const bool& bImportAsReferenceRotScaleEnabled,
+		const bool bInUseRefCountedInputSystem,
+		FUnrealObjectInputHandle& OutHandle);
 
+	//static bool HapiUpdateInputNodeTransform(const HAPI_NodeId InputNodeId, const FTransform& Transform);
+	
 };
