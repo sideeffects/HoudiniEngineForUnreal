@@ -25,6 +25,7 @@
 */
 
 #include "HoudiniEngine.h"
+
 #include "HoudiniEnginePrivatePCH.h"
 
 #include "HoudiniApi.h"
@@ -37,6 +38,8 @@
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniAssetComponent.h"
+#include "UnrealObjectInputManager.h"
+#include "UnrealObjectInputManagerImpl.h"
 #include "HAPI/HAPI_Version.h"
 
 #include "Modules/ModuleManager.h"
@@ -207,6 +210,9 @@ FHoudiniEngine::StartupModule()
 	// Create Houdini Asset Manager
 	HoudiniEngineManager = new FHoudiniEngineManager();
 
+	// Create Unreal Object Input manager and its implementation (the singleton takes ownership of the implementation)
+	FUnrealObjectInputManager::CreateSingleton(new FUnrealObjectInputManagerImpl());
+
 	// Set the session status to Not Started
 	SetSessionStatus(EHoudiniSessionStatus::NotStarted);
 
@@ -294,6 +300,9 @@ FHoudiniEngine::ShutdownModule()
 	if (SettingsModule)
 		SettingsModule->UnregisterSettings("Project", "Plugins", "HoudiniEngine");
 #endif
+
+	// Destroy the Unreal Object Input manager
+	FUnrealObjectInputManager::DestroySingleton();
 
 	// Do scheduler and thread clean up.
 	if (HoudiniEngineScheduler)

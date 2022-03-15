@@ -253,6 +253,14 @@ protected:
 		FString DefaultBakeFolder;
 
 		//-------------------------------------------------------------------------------------------------------------
+		// Input options.
+		//-------------------------------------------------------------------------------------------------------------
+
+		// EXPERIMENTAL: Enable the reference counted input system. Not all input types are currently supported.
+		UPROPERTY(GlobalConfig, EditAnywhere, Category = Inputs, Experimental)
+		bool bEnableTheReferenceCountedInputSystem;		
+
+		//-------------------------------------------------------------------------------------------------------------
 		// Parameter options.
 		//-------------------------------------------------------------------------------------------------------------
 

@@ -45,6 +45,7 @@ public:
 		UFoliageType_InstancedStaticMesh* InFoliageType,
 		HAPI_NodeId& InputObjectNodeId,
 		const FString& InputNodeName,
+		FUnrealObjectInputHandle& OutHandle,
 		const bool& ExportAllLODs = false,
 		const bool& ExportSockets = false,
 		const bool& ExportColliders = false);
@@ -53,12 +54,13 @@ public:
 	// Also calls CreateHoudiniFoliageTypeAttributes, to create the unreal_foliage attribute, as well as
 	// unreal_uproperty_ attributes for the foliage type settings.
 	static bool CreateInputNodeForReference(
-		UFoliageType* InFoliageType,
 		HAPI_NodeId& InInputNodeId,
-		const FString& InRef,
+		UFoliageType* InFoliageType,
 		const FString& InInputNodeName,
 		const FTransform& InTransform,
-		const bool& bImportAsReferenceRotScaleEnabled);
+		const bool& bImportAsReferenceRotScaleEnabled,
+		const bool bInUseRefCountedInputSystem,
+		FUnrealObjectInputHandle& OutHandle);
 
 protected:
 	// Creates the unreal_foliage and unreal_uproperty_ attributes for the foliage type.

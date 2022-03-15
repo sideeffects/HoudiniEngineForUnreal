@@ -30,6 +30,7 @@
 
 #include "HoudiniSplineComponent.h"
 #include "HoudiniGeoPartObject.h"
+#include "UnrealObjectInputRuntimeTypes.h"
 
 #include "CoreTypes.h"
 #include "Materials/MaterialInterface.h"
@@ -126,7 +127,7 @@ public:
 	// Indicates if this input needs to trigger an update
 	virtual bool NeedsToTriggerUpdate() const { return bNeedsToTriggerUpdate; };
 
-	virtual void MarkChanged(const bool& bInChanged) { bHasChanged = bInChanged; SetNeedsToTriggerUpdate(bInChanged); };
+	virtual void MarkChanged(const bool& bInChanged);
 	void MarkTransformChanged(const bool& bInChanged) { bTransformChanged = bInChanged; SetNeedsToTriggerUpdate(bInChanged); };
 	virtual void SetNeedsToTriggerUpdate(const bool& bInTriggersUpdate) { bNeedsToTriggerUpdate = bInTriggersUpdate; };
 
@@ -200,6 +201,9 @@ public:
 	UPROPERTY(DuplicateTransient)
 	FGuid Guid;
 
+	// Handle to the entry that this input object uses in the new ref counted input system.
+	FUnrealObjectInputHandle InputNodeHandle;
+
 protected:
 
 	// Indicates this input object has changed
@@ -267,7 +271,7 @@ public:
 
 	// The Blueprint's Static Meshe Components that can be sent as inputs
 	UPROPERTY()
-	TArray<UHoudiniInputStaticMesh*> BlueprintStaticMeshes;
+	TArray<UHoudiniInputObject*> BlueprintStaticMeshes;
 };
 
 

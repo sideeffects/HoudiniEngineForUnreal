@@ -34,6 +34,8 @@
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetBlueprintComponent.h"
+#include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputManager.h"
 
 #include "EngineUtils.h"
 #include "Engine/Brush.h"
@@ -179,20 +181,37 @@ void UHoudiniInput::PostEditUndo()
 
 		 if (Type == EHoudiniInputType::World)
 		 {
-			 if (WorldInputObjects.Num() == 0 && InputNodeId >= 0)
-			 {
-				 for (auto & NextNodeId : CreatedDataNodeIds)
-				 {
-					 if (bCanDeleteHoudiniNodes)
-						FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(NextNodeId, true);
-				 }
+		 	if (WorldInputObjects.Num() == 0 && InputNodeId >= 0)
+		 	{
+		 		// If the ref counted input system is being used, we must not delete nodes managed by the system
+				TSet<int32> ManagedNodeIds;
+				const bool bIsRefCountedInputSystemEnabled = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+				if (bIsRefCountedInputSystemEnabled)
+				{
+					IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+					if (Manager)
+					{
+						TArray<int32> ManagedNodeIdArray;
+						if (Manager->GetAllHAPINodeIds(ManagedNodeIdArray))
+							ManagedNodeIds.Append(ManagedNodeIdArray);
+					}
+				}
 
-				 CreatedDataNodeIds.Empty();
+			 	for (auto & NextNodeId : CreatedDataNodeIds)
+			 	{
+			 		if (bIsRefCountedInputSystemEnabled && ManagedNodeIds.Contains(NextNodeId))
+			 			continue;
+			 		
+			 		if (bCanDeleteHoudiniNodes)
+			 			FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(NextNodeId, true);
+			 	}
 
-				 if (bCanDeleteHoudiniNodes)
-					MarkInputNodeAsPendingDelete();
-				 InputNodeId = -1;
-			 }
+			 	CreatedDataNodeIds.Empty();
+
+			 	if (bCanDeleteHoudiniNodes)
+			 		MarkInputNodeAsPendingDelete();
+			 	InputNodeId = -1;
+			}
 		 }
 
 		 if (Type == EHoudiniInputType::Curve)
@@ -1264,11 +1283,28 @@ void UHoudiniInput::InvalidateData()
 		InputObject->InvalidateData();
 	}
 	
-	if (bCanDeleteHoudiniNodes)
+	if (bCanDeleteHoudiniNodes && !CreatedDataNodeIds.IsEmpty())
 	{
-		auto& HoudiniEngineRuntime = FHoudiniEngineRuntime::Get();
-		for(int32 NodeId : CreatedDataNodeIds)
+		// If the ref counted input system is being used, we must not delete nodes managed by the system
+		TSet<int32> ManagedNodeIds;
+		const bool bIsRefCountedInputSystemEnabled = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+		if (bIsRefCountedInputSystemEnabled)
 		{
+			IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+			if (Manager)
+			{
+				TArray<int32> ManagedNodeIdArray;
+				if (Manager->GetAllHAPINodeIds(ManagedNodeIdArray))
+					ManagedNodeIds.Append(ManagedNodeIdArray);
+			}
+		}
+		
+		auto& HoudiniEngineRuntime = FHoudiniEngineRuntime::Get();
+		for (int32 NodeId : CreatedDataNodeIds)
+		{
+			if (bIsRefCountedInputSystemEnabled && ManagedNodeIds.Contains(NodeId))
+				continue;
+			
 			HoudiniEngineRuntime.MarkNodeIdAsPendingDelete(NodeId, true);
 		}
 	}
