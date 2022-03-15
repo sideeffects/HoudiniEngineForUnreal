@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include "LandscapeInfo.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/UObjectGlobals.h"
 #include "UObject/Class.h"
@@ -195,6 +196,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 		static void MarkBlueprintAsStructurallyModified(UActorComponent* ComponentTemplate);
 		static void MarkBlueprintAsModified(UActorComponent* ComponentTemplate);
 #endif
+
+		// -------------------------------------------------
+		// Landscape utilities
+		// -------------------------------------------------
+
+		static FTransform CalculateHoudiniLandscapeTransform(ULandscapeInfo* LandscapeInfo);
 
 		// -------------------------------------------------
 		// Editor Helpers

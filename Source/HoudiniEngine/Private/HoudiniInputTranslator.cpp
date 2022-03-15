@@ -1669,35 +1669,9 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 
 			// // Only apply diff for landscape since the HF's transform is used for value conversion as well
 			// FTransform CurrentTransform = InputLandscape->Transform;
-			const FTransform NewTransform = Landscape->ActorToWorld();
-
-			// // Only handle position/rotation differences
-			// FVector PosDiff = NewTransform.GetLocation() - CurrentTransform.GetLocation();
-			// FQuat RotDiff = NewTransform.GetRotation() - CurrentTransform.GetRotation();
-			//
-			// // Now get the HF's current transform
-			// HAPI_Transform HapiTransform;
-			// FHoudiniApi::Transform_Init(&HapiTransform);
-			//
-			// if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjectTransform(
-			// 	FHoudiniEngine::Get().GetSession(),
-			// 	InputLandscape->InputObjectNodeId, -1, HAPI_SRT, &HapiTransform))
-			// {
-			// 	bSuccess = false;
-			// 	break;
-			// }
-			//
-			// // Convert it to unreal
-			// FTransform HFTransform;
-			// FHoudiniEngineUtils::TranslateHapiTransform(HapiTransform, HFTransform);
-			//
-			// // Apply the position offset if needed
-			// if (!PosDiff.IsZero())
-			// 	HFTransform.AddToTranslation(PosDiff);
-			//
-			// // Apply the rotation offset if needed
-			// if (!RotDiff.IsIdentity())
-			// 	HFTransform.ConcatenateRotation(RotDiff);
+			// const FTransform NewTransform = Landscape->ActorToWorld();
+			
+			const FTransform NewTransform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(Landscape->GetLandscapeInfo());
 
 			// Convert back to a HAPI Transform and update the HF's transform
 			HAPI_TransformEuler NewHAPITransform;
