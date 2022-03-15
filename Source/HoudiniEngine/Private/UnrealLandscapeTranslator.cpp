@@ -297,12 +297,11 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	TArray<float> HeightfieldFloatValues;
 	HAPI_VolumeInfo HeightfieldVolumeInfo;
 	FHoudiniApi::VolumeInfo_Init(&HeightfieldVolumeInfo);
-	//FTransform LandscapeTransform = LandscapeProxy->LandscapeActorToWorld();// LandscapeProxy->ActorToWorld();
 
-	// Get the actual transform of this proxy, not the landscape actor's transform!
-	FTransform LandscapeTM = LandscapeProxy->LandscapeActorToWorld();
-	FTransform ProxyRelativeTM(FVector(LandscapeProxy->LandscapeSectionOffset));
-	FTransform LandscapeTransform = ProxyRelativeTM * LandscapeTM;
+	// NOTE: The landscape actor's transform cannot be directly used to position the heightfield in Houdini since only a
+	// part of the full landscape may be loaded. We need to calculate the center of all the loaded tiles / landscape
+	// components.
+	FTransform LandscapeTransform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(LandscapeProxy->GetLandscapeInfo());
 
 	FVector CenterOffset = FVector::ZeroVector;
 	if (!ConvertLandscapeDataToHeightfieldData(
@@ -482,7 +481,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	//FMemory::Memzero< HAPI_TransformEuler >( HAPIObjectTransform );
 	LandscapeTransform.SetScale3D(FVector::OneVector);
 	FHoudiniEngineUtils::TranslateUnrealTransform(LandscapeTransform, HAPIObjectTransform);
-	HAPIObjectTransform.position[1] = 0.0f;
+	// HAPIObjectTransform.position[1] = 0.0f;
 
 	HAPI_NodeId ParentObjNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(HeightFieldId);
 	FHoudiniApi::SetObjectTransform(FHoudiniEngine::Get().GetSession(), ParentObjNodeId, &HAPIObjectTransform);

@@ -737,10 +737,14 @@ public:
 	
 	virtual void Update(UObject * InObject) override;
 
+	virtual bool HasActorTransformChanged() const override;
+
 	virtual bool ShouldTrackComponent(UActorComponent* InComponent) override;
 
+	virtual bool HasContentChanged() const override;
+
 	// ALandscapeProxy accessor
-	ALandscapeProxy* GetLandscapeProxy();
+	ALandscapeProxy* GetLandscapeProxy() const;
 
 	void SetLandscapeProxy(UObject* InLandscapeProxy);
 
@@ -748,8 +752,17 @@ public:
 	UPROPERTY()
 	FTransform CachedInputLandscapeTraqnsform;
 
+	// The number of landscape components that was processed. If this count changes, .e.g, levels have been
+	// loaded / unloaded then the input content has changed.
+	UPROPERTY()
+	int32 CachedNumLandscapeComponents;
+
 protected:
 	virtual bool UsesInputObjectNode() const override { return true; }
+
+	// Count the number of landscape components that are currently registered with LandscapeInfo, i.e., loaded into
+	// the current world.
+	virtual int32 CountLandscapeComponents() const;
 
 };
 

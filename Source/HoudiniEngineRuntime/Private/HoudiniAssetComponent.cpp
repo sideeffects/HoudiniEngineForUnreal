@@ -2016,7 +2016,7 @@ UHoudiniAssetComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformF
 	if (!bCookOnTransformChange)
 		return;
 
-	if (GetComponentTransform().Equals(LastComponentTransform))
+	if (!GetComponentTransform().Equals(LastComponentTransform))
 	{
 		// Only set transform changed flag if the transform actually changed.
 		// WorldComposition can call ApplyWorldOffset with a zero vector (for example during a map save)
