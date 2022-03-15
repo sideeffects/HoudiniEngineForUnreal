@@ -29,6 +29,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEnginePrivatePCH.h"
+#include "UnrealObjectInputRuntimeTypes.h"
 
 #include "RawMesh.h"
 #include "MeshDescription.h"
@@ -61,14 +62,117 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	UStaticMesh* StaticMesh,
 	HAPI_NodeId& InputNodeId,
 	const FString& InputNodeName,
+	FUnrealObjectInputHandle& OutHandle,
 	UStaticMeshComponent* StaticMeshComponent /* = nullptr */,
 	const bool& ExportAllLODs /* = false */,
 	const bool& ExportSockets /* = false */,
-	const bool& ExportColliders /* = false */)
+	const bool& ExportColliders /* = false */,
+	const bool& ExportMainMesh /* = true */)
 {
 	// If we don't have a static mesh there's nothing to do.
 	if (!IsValid(StaticMesh))
 		return false;
+
+	// Input node name, default to InputNodeName, but can be changed by the new input system
+	FString FinalInputNodeName = InputNodeName;
+	
+	// Find the node in new input system
+	// Identifier will be the identifier for the entry created in this call of the function. We may call this function
+	// recursively to create the main mesh, LODs, sockets and colliders, each getting its own identifier.
+	FUnrealObjectInputIdentifier Identifier;
+	FUnrealObjectInputHandle ParentHandle;
+	HAPI_NodeId ParentNodeId = -1;
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	if (bUseRefCountedInputSystem)
+	{
+		// Check if we already have an input node for this asset
+		bool bSingleLeafNodeOnly = false;
+		FUnrealObjectInputIdentifier IdentReferenceNode;
+		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
+		if (!FHoudiniEngineUtils::BuildStaticMeshInputObjectIdentifiers(
+				StaticMesh,
+				ExportMainMesh,
+				ExportAllLODs,
+				ExportSockets,
+				ExportColliders,
+				bSingleLeafNodeOnly,
+				IdentReferenceNode,
+				IdentPerOption))
+		{
+			return false;
+		}
+
+		if (bSingleLeafNodeOnly)
+		{
+			// We'll create the static mesh input node entirely is this function call
+			check(IdentPerOption.Num() > 0);
+			Identifier = IdentPerOption[0];
+		}
+		else
+		{
+			// Look for the reference node that references the per-option (LODs, sockets, colliders) nodes
+			Identifier = IdentReferenceNode;
+		}
+		FUnrealObjectInputHandle Handle;
+		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		{
+			HAPI_NodeId NodeId = -1;
+			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && (bSingleLeafNodeOnly || FHoudiniEngineUtils::AreReferencedHAPINodesValid(Handle)))
+			{
+				OutHandle = Handle;
+				InputNodeId = NodeId;
+				return true;				
+			}
+		}
+
+		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
+		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle) && ParentHandle.IsValid())
+			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+
+		// We now need to create the nodes (since we couldn't find existing ones in the manager)
+		// For the single leaf node case we can simply continue this function
+		// For the ref + multiple options, we call this function again for each option (as a single leaf node) and
+		// then create the reference node.
+		if (!bSingleLeafNodeOnly)
+		{
+			TSet<FUnrealObjectInputHandle> PerOptionNodeHandles;
+			PerOptionNodeHandles.Reserve(IdentPerOption.Num());
+			for (const FUnrealObjectInputIdentifier& OptionIdentifier : IdentPerOption)
+			{
+				FUnrealObjectInputHandle OptionHandle;
+				const FUnrealObjectInputOptions& Options = OptionIdentifier.GetOptions();
+				HAPI_NodeId NewNodeId = -1;
+				FString NodeLabel;
+				FHoudiniEngineUtils::GetDefaultInputNodeName(OptionIdentifier, NodeLabel);
+				
+				if (!HapiCreateInputNodeForStaticMesh(
+						StaticMesh,
+						NewNodeId,
+						NodeLabel,
+						OptionHandle,
+						StaticMeshComponent,
+						Options.bExportLODs,
+						Options.bExportSockets,
+						Options.bExportColliders,
+						!Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders))
+				{
+					return false;
+				}
+
+				PerOptionNodeHandles.Add(OptionHandle);
+			}
+
+			// Create or update the HAPI node for the reference node if it does not exist
+			FUnrealObjectInputHandle RefNodeHandle;
+			if (!FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(IdentReferenceNode, PerOptionNodeHandles, RefNodeHandle))
+				return false;
+			
+			OutHandle = RefNodeHandle;
+			FHoudiniEngineUtils::GetHAPINodeId(IdentReferenceNode, InputNodeId);
+			return true;
+		}
+	}
 
 	// Node ID for the newly created node
 	HAPI_NodeId NewNodeId = -1;
@@ -104,15 +208,28 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 
 		// Create a merge SOP asset. This will be our "InputNodeId"
 		// as all the different LOD meshes and sockets will be plugged into it
-		HOUDINI_CHECK_ERROR_RETURN(	FHoudiniEngineUtils::CreateNode(
-			-1, TEXT("SOP/merge"), InputNodeName, true, &NewNodeId), false);
+		if (ParentNodeId < 0)
+		{
+			HOUDINI_CHECK_ERROR_RETURN(	FHoudiniEngineUtils::CreateNode(
+				-1, TEXT("SOP/merge"), FinalInputNodeName, true, &NewNodeId), false);
+		}
+		else
+		{
+			// When creating a node inside a parent node (in other words, ParentNodeId is not -1), then we cannot
+			// specify the node type category prefix on the node name. We have to create the geo Object and merge
+			// SOPs separately.
+			HAPI_NodeId ObjectNodeId = -1; 
+			HOUDINI_CHECK_ERROR_RETURN(	FHoudiniEngineUtils::CreateNode(
+				ParentNodeId, TEXT("geo"), FinalInputNodeName, true, &ObjectNodeId), false);
+			HOUDINI_CHECK_ERROR_RETURN(	FHoudiniEngineUtils::CreateNode(
+				ObjectNodeId, TEXT("merge"), FinalInputNodeName, true, &NewNodeId), false);
+		}
 	}
 	else
 	{
 		// No LODs/Sockets, we just need a single input node
 		// If InputNodeId is invalid, we need to create an input node.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputNode(
-			FHoudiniEngine::Get().GetSession(), &NewNodeId, TCHAR_TO_ANSI(*InputNodeName)), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateInputNode(FinalInputNodeName, NewNodeId, ParentNodeId), false);
 
 		if (!FHoudiniEngineUtils::HapiCookNode(NewNodeId, nullptr, true))
 			return false;
@@ -144,13 +261,13 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 		if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
 			FHoudiniEngine::Get().GetSession(), PreviousInputNodeId))
 		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *InputNodeName);
+			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *FinalInputNodeName);
 		}
 
 		if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
 			FHoudiniEngine::Get().GetSession(), PreviousInputOBJNode))
 		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input OBJ node for %s."), *InputNodeName);
+			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input OBJ node for %s."), *FinalInputNodeName);
 		}		
 	}
 
@@ -171,7 +288,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	const bool bNaniteBuildEnabled = false;
 	const bool bHaveHiResSourceModel = false;
 	bool bHiResMeshSuccess = false;
-	if (bHaveHiResSourceModel && bNaniteBuildEnabled)
+	if (bHaveHiResSourceModel && bNaniteBuildEnabled && ExportMainMesh)
 	{
 		/* UE5-ONLY
 		// Get the HiRes Mesh description and SourceModel
@@ -217,110 +334,177 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 		*/
 	}
 
-	int32 NumLODsToExport = DoExportLODs ? StaticMesh->GetNumLODs() : 1;
-
-	// Do not export LOD0 if we have exported the HiRes mesh and don't need additional LODs
-	if (!DoExportLODs && bHiResMeshSuccess)
-		NumLODsToExport = 0;
-
-	for (int32 LODIndex = 0; LODIndex < NumLODsToExport; LODIndex++)
+	// Determine which LODs to export based on the ExportLODs/ExportMainMesh, high res mesh availability and whether
+	// the new input system is being used.
+	const int32 NumLODs = StaticMesh->GetNumLODs();
+	int32 FirstLODIndex = 0;
+	int32 LastLODIndex = -1;
+	if (bUseRefCountedInputSystem)
 	{
-		// Grab the LOD level.
-		FStaticMeshSourceModel & SrcModel = StaticMesh->GetSourceModel(LODIndex);
-
-		// If we're using a merge node, we need to create a new input null
-		HAPI_NodeId CurrentLODNodeId = -1;
-		if (UseMergeNode)
+		if (DoExportLODs)
 		{
-			// Create a new input node for the current LOD
-			const char * LODName = "";
+			// With the new system we export LODs and the main mesh in separate steps. We only want to export LOD0 with
+			// the LODs if this is a Nanite mesh
+			if (bHaveHiResSourceModel && bNaniteBuildEnabled)
 			{
-				FString LOD = TEXT("lod") + FString::FromInt(LODIndex);
-				LODName = TCHAR_TO_UTF8(*LOD);
-			}
-
-			// Create the node in this input object's OBJ node
-			HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
-				InputObjectNodeId, TEXT("null"), LODName, false, &CurrentLODNodeId), false);
-		}
-		else
-		{
-			// No merge node, just use the input node we created before
-			CurrentLODNodeId = NewNodeId;
-		}
-
-		// Either export the current LOD Mesh by using RawMEsh or MeshDescription (legacy)
-		FMeshDescription* MeshDesc = nullptr;
-		// if (!bExportViaRawMesh)
-		if (ExportMethod == 1)
-		{
-			// This will either fetch the mesh description that is cached on the SrcModel
-			// or load it from bulk data / DDC once
-			if (SrcModel.MeshDescription.IsValid())
-			{
-				MeshDesc = SrcModel.MeshDescription.Get();
+				LastLODIndex = NumLODs - 1;
+				FirstLODIndex = 0;
 			}
 			else
 			{
-				const double StartTime = FPlatformTime::Seconds();
-				MeshDesc = StaticMesh->GetMeshDescription(LODIndex);
-				HOUDINI_LOG_MESSAGE(TEXT("StaticMesh->GetMeshDescription completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
+				// Don't export LOD0 with the LODs if this is not a nanite mesh, since we have a separate "main mesh"
+				// input
+				LastLODIndex = NumLODs - 1;
+				FirstLODIndex = 1;
 			}
 		}
-
-		bool bMeshSuccess = false;
-		if (ExportMethod == 1 && MeshDesc)
+		else if (ExportMainMesh)
 		{
-			// Convert the Mesh using FMeshDescription
-			const double StartTime = FPlatformTime::Seconds();
-			bMeshSuccess = FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
-				CurrentLODNodeId,
-				*MeshDesc,
-				LODIndex,
-				DoExportLODs,
-				StaticMesh,
-				StaticMeshComponent);
-			HOUDINI_LOG_MESSAGE(TEXT("FUnrealMeshTranslator::CreateInputNodeForMeshDescription completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
-		}
-		else if (ExportMethod == 2)
-		{
-			// Convert the LOD Mesh using FStaticMeshLODResources
-			const double StartTime = FPlatformTime::Seconds();
-			bMeshSuccess = FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
-				CurrentLODNodeId,
-				StaticMesh->GetLODForExport(LODIndex),
-				LODIndex,
-				DoExportLODs,
-				StaticMesh,
-				StaticMeshComponent);
-			HOUDINI_LOG_MESSAGE(TEXT("FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
+			if (bHiResMeshSuccess)
+			{
+				LastLODIndex = -1;
+				FirstLODIndex = 0;
+			}
+			else
+			{
+				// Without nanite, the main mesh/high res mesh is LOD0
+				LastLODIndex = 0;
+				FirstLODIndex = 0;
+			}
 		}
 		else
 		{
-			// Convert the LOD Mesh using FRawMesh
-			const double StartTime = FPlatformTime::Seconds();
-			bMeshSuccess = FUnrealMeshTranslator::CreateInputNodeForRawMesh(
-				CurrentLODNodeId,
-				SrcModel,
-				LODIndex,
-				DoExportLODs,
-				StaticMesh,
-				StaticMeshComponent);
-			HOUDINI_LOG_MESSAGE(TEXT("FUnrealMeshTranslator::CreateInputNodeForRawMesh completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
+			LastLODIndex = -1;
+			FirstLODIndex = 0;
 		}
-
-		if (!bMeshSuccess)
-			continue;
-
-		if (UseMergeNode)
+	}
+	else
+	{
+		if (!DoExportLODs && bHiResMeshSuccess)
 		{
-			// Connect the LOD node to the merge node.
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-				FHoudiniEngine::Get().GetSession(),
-				NewNodeId, NextMergeIndex, CurrentLODNodeId, 0), false);
+			// Do not export LOD0 if we have exported the HiRes mesh and don't need additional LODs
+			LastLODIndex = -1;
+			FirstLODIndex = 0;
 		}
+		else if (DoExportLODs)
+		{
+			LastLODIndex = NumLODs - 1;
+			FirstLODIndex = 0;
+		}
+		else if (ExportMainMesh)
+		{
+			// The main mesh, if nanite is not used, is LOD0
+			LastLODIndex = 0;
+			FirstLODIndex = 0;
+		}
+		else
+		{
+			LastLODIndex = -1;
+			FirstLODIndex = 0;
+		}
+	}
 
-		NextMergeIndex++;
+	if (LastLODIndex >= 0)
+	{
+		for (int32 LODIndex = FirstLODIndex; LODIndex <= LastLODIndex; LODIndex++)
+		{
+			// Grab the LOD level.
+			FStaticMeshSourceModel & SrcModel = StaticMesh->GetSourceModel(LODIndex);
+
+			// If we're using a merge node, we need to create a new input null
+			HAPI_NodeId CurrentLODNodeId = -1;
+			if (UseMergeNode)
+			{
+				// Create a new input node for the current LOD
+				const char * LODName = "";
+				{
+					FString LOD = TEXT("lod") + FString::FromInt(LODIndex);
+					LODName = TCHAR_TO_UTF8(*LOD);
+				}
+
+				// Create the node in this input object's OBJ node
+				HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
+					InputObjectNodeId, TEXT("null"), LODName, false, &CurrentLODNodeId), false);
+			}
+			else
+			{
+				// No merge node, just use the input node we created before
+				CurrentLODNodeId = NewNodeId;
+			}
+
+			// Either export the current LOD Mesh by using RawMEsh or MeshDescription (legacy)
+			FMeshDescription* MeshDesc = nullptr;
+			// if (!bExportViaRawMesh)
+			if (ExportMethod == 1)
+			{
+				// This will either fetch the mesh description that is cached on the SrcModel
+				// or load it from bulk data / DDC once
+				if (SrcModel.MeshDescription.IsValid())
+				{
+					MeshDesc = SrcModel.MeshDescription.Get();
+				}
+				else
+				{
+					const double StartTime = FPlatformTime::Seconds();
+					MeshDesc = StaticMesh->GetMeshDescription(LODIndex);
+					HOUDINI_LOG_MESSAGE(TEXT("StaticMesh->GetMeshDescription completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
+				}
+			}
+
+			bool bMeshSuccess = false;
+			if (ExportMethod == 1 && MeshDesc)
+			{
+				// Convert the Mesh using FMeshDescription
+				const double StartTime = FPlatformTime::Seconds();
+				bMeshSuccess = FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
+					CurrentLODNodeId,
+					*MeshDesc,
+					LODIndex,
+					DoExportLODs,
+					StaticMesh,
+					StaticMeshComponent);
+				HOUDINI_LOG_MESSAGE(TEXT("FUnrealMeshTranslator::CreateInputNodeForMeshDescription completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
+			}
+			else if (ExportMethod == 2)
+			{
+				// Convert the LOD Mesh using FStaticMeshLODResources
+				const double StartTime = FPlatformTime::Seconds();
+				bMeshSuccess = FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
+					CurrentLODNodeId,
+					StaticMesh->GetLODForExport(LODIndex),
+					LODIndex,
+					DoExportLODs,
+					StaticMesh,
+					StaticMeshComponent);
+				HOUDINI_LOG_MESSAGE(TEXT("FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
+			}
+			else
+			{
+				// Convert the LOD Mesh using FRawMesh
+				const double StartTime = FPlatformTime::Seconds();
+				bMeshSuccess = FUnrealMeshTranslator::CreateInputNodeForRawMesh(
+					CurrentLODNodeId,
+					SrcModel,
+					LODIndex,
+					DoExportLODs,
+					StaticMesh,
+					StaticMeshComponent);
+				HOUDINI_LOG_MESSAGE(TEXT("FUnrealMeshTranslator::CreateInputNodeForRawMesh completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
+			}
+
+			if (!bMeshSuccess)
+				continue;
+
+			if (UseMergeNode)
+			{
+				// Connect the LOD node to the merge node.
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+					FHoudiniEngine::Get().GetSession(),
+					NewNodeId, NextMergeIndex, CurrentLODNodeId, 0), false);
+			}
+
+			NextMergeIndex++;
+		}
 	}
 
 	if (DoExportColliders)
@@ -430,6 +614,13 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 		}
 	}
 
+	if (bUseRefCountedInputSystem)
+	{
+		FUnrealObjectInputHandle Handle;
+		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId))
+			OutHandle = Handle;
+	}
+	
 	//
 	return true;
 }

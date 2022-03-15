@@ -1,4 +1,4 @@
-/*
+﻿/*
 * Copyright (c) <2021> Side Effects Software Inc.
 * All rights reserved.
 *
@@ -24,28 +24,45 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#include "UnrealObjectInputManager.h"
 
-#include "HAPI/HAPI_Common.h"
+FUnrealObjectInputManager* FUnrealObjectInputManager::Singleton = nullptr;
 
-#include "CoreMinimal.h"
-#include "UObject/ObjectMacros.h"
 
-class UInstancedStaticMeshComponent;
-class FUnrealObjectInputHandle;
-
-struct HOUDINIENGINE_API FUnrealInstanceTranslator
+IUnrealObjectInputManager::~IUnrealObjectInputManager()
 {
-	public:
+}
 
-		// HAPI : Marshaling, extract geometry and create input asset for it - return true on success
-		static bool HapiCreateInputNodeForInstancer(
-			UInstancedStaticMeshComponent* ISMC,
-			const FString& InNodeName,
-			HAPI_NodeId& OutCreatedNodeId,
-			FUnrealObjectInputHandle& OutHandle,
-			const bool& bExportLODs,
-			const bool& bExportSockets,
-			const bool& bExportColliders,
-			const bool& bExportAsAttributeInstancer);
-};
+
+
+FUnrealObjectInputManager::FUnrealObjectInputManager(IUnrealObjectInputManager* InImplementation)
+	: Implementation(InImplementation)
+{
+}
+
+FUnrealObjectInputManager::~FUnrealObjectInputManager()
+{
+}
+
+bool
+FUnrealObjectInputManager::CreateSingleton(IUnrealObjectInputManager* InImplementation)
+{
+	if (Singleton)
+		return false;
+
+	Singleton = new FUnrealObjectInputManager(InImplementation);
+
+	return Singleton != nullptr;
+}
+
+bool
+FUnrealObjectInputManager::DestroySingleton()
+{
+	if (!Singleton)
+		return false;
+
+	delete Singleton;
+	Singleton = nullptr;
+
+	return true;
+}

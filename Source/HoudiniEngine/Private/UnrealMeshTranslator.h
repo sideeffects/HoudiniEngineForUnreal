@@ -35,6 +35,7 @@ class UStaticMesh;
 class UStaticMeshComponent;
 class UMaterialInterface;
 class UStaticMeshSocket;
+class FUnrealObjectInputHandle;
 
 struct FStaticMeshSourceModel;
 struct FStaticMeshLODResources;
@@ -50,10 +51,12 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			UStaticMesh * Mesh,
 			HAPI_NodeId& InputObjectNodeId,
 			const FString& InputNodeName,
+			FUnrealObjectInputHandle& OutHandle,
 			class UStaticMeshComponent* StaticMeshComponent = nullptr,
 			const bool& ExportAllLODs = false,
 			const bool& ExportSockets = false,
-			const bool& ExportColliders = false);
+			const bool& ExportColliders = false,
+			const bool& ExportMainMesh = true);
 
 		// Convert the Mesh using FStaticMeshLODResources
 		static bool CreateInputNodeForStaticMeshLODResources(

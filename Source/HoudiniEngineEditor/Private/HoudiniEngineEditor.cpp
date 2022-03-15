@@ -1253,6 +1253,13 @@ FHoudiniEngineEditor::RegisterConsoleCommands()
 		TEXT("Houdini.OpenSessionSync"),
 		TEXT("Stops the current session, opens Houdini and automatically start and connect a Session Sync."),
 		FConsoleCommandDelegate::CreateStatic(&FHoudiniEngineCommands::OpenSessionSync));
+
+#if !UE_BUILD_SHIPPING
+	static FAutoConsoleCommand CCmdClearInputManager = FAutoConsoleCommand(
+		TEXT("Houdini.Debug.ClearInputManager"),
+		TEXT("Clears all entries from the input manager."),
+		FConsoleCommandDelegate::CreateStatic(&FHoudiniEngineCommands::ClearInputManager));
+#endif
 }
 
 void

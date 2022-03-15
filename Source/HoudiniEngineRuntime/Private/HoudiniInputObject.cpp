@@ -27,10 +27,13 @@
 #include "HoudiniInputObject.h"
 
 #include "HoudiniEngineRuntime.h"
+#include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniInput.h"
+#include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputManager.h"
 
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
@@ -48,7 +51,6 @@
 #include "Model.h"
 #include "Engine/Brush.h"
 
-#include "HoudiniEngineRuntimeUtils.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
@@ -237,6 +239,16 @@ UObject*
 UHoudiniInputObject::GetObject() const
 {
 	return InputObject.LoadSynchronous();
+}
+
+void
+UHoudiniInputObject::MarkChanged(const bool& bInChanged)
+{
+	bHasChanged = bInChanged;
+	SetNeedsToTriggerUpdate(bInChanged);
+	
+	if (InputNodeHandle.IsValid())
+		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier());
 }
 
 UStaticMesh*
@@ -728,20 +740,20 @@ UHoudiniInputStaticMesh::CopyStateFrom(UHoudiniInputObject* InInput, bool bCopyA
 	UHoudiniInputStaticMesh* StaticMeshInput = Cast<UHoudiniInputStaticMesh>(InInput); 
 	check(InInput);
 
-	TArray<UHoudiniInputStaticMesh*> PrevInputs = BlueprintStaticMeshes;
+	const TArray<UHoudiniInputObject*> PrevInputs = BlueprintStaticMeshes;
 	
 	Super::CopyStateFrom(StaticMeshInput, bCopyAllProperties);
 
 	const int32 NumInputs = StaticMeshInput->BlueprintStaticMeshes.Num();
 	BlueprintStaticMeshes = PrevInputs;
-	TArray<UHoudiniInputStaticMesh*> StaleInputs(BlueprintStaticMeshes);
+	TArray<UHoudiniInputObject*> StaleInputs(BlueprintStaticMeshes);
 
 	BlueprintStaticMeshes.SetNum(NumInputs);
 
 	for (int i = 0; i < NumInputs; ++i)
 	{
-		UHoudiniInputStaticMesh* FromInput = StaticMeshInput->BlueprintStaticMeshes[i];
-		UHoudiniInputStaticMesh* ToInput = BlueprintStaticMeshes[i];
+		UHoudiniInputObject* FromInput = StaticMeshInput->BlueprintStaticMeshes[i];
+		UHoudiniInputObject* ToInput = BlueprintStaticMeshes[i];
 
 		if (!FromInput)
 		{
@@ -775,7 +787,7 @@ UHoudiniInputStaticMesh::CopyStateFrom(UHoudiniInputObject* InInput, bool bCopyA
 		BlueprintStaticMeshes[i] = ToInput;
 	}
 
-	for(UHoudiniInputStaticMesh* StaleInput : StaleInputs)
+	for(UHoudiniInputObject* const StaleInput : StaleInputs)
 	{
 		if (!StaleInput)
 			continue;
@@ -787,7 +799,7 @@ void
 UHoudiniInputStaticMesh::SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes)
 {
 	Super::SetCanDeleteHoudiniNodes(bInCanDeleteNodes);
-	for(UHoudiniInputStaticMesh* Input : BlueprintStaticMeshes)
+	for(UHoudiniInputObject* const Input : BlueprintStaticMeshes)
 	{
 		if (!Input)
 			continue;
@@ -798,7 +810,7 @@ UHoudiniInputStaticMesh::SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes)
 void
 UHoudiniInputStaticMesh::InvalidateData()
 {
-	for(UHoudiniInputStaticMesh* Input : BlueprintStaticMeshes)
+	for(UHoudiniInputObject* const Input : BlueprintStaticMeshes)
 	{
 		if (!Input)
 			continue;
@@ -897,10 +909,15 @@ UHoudiniInputObject::Create(UObject * InObject, UObject* InOuter, const FString&
 bool
 UHoudiniInputObject::Matches(const UHoudiniInputObject& Other) const
 {
-	return (Type == Other.Type 
+	bool Matches = (Type == Other.Type 
 		&& InputNodeId == Other.InputNodeId
 		&& InputObjectNodeId == Other.InputObjectNodeId
 		);
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	if (bUseRefCountedInputSystem)
+		Matches &= InputNodeHandle == Other.InputNodeHandle;
+
+	return Matches;
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -911,15 +928,37 @@ void
 UHoudiniInputObject::InvalidateData()
 {
 	// If valid, mark our input nodes for deletion..	
-	if (this->IsA<UHoudiniInputHoudiniAsset>() || !bCanDeleteHoudiniNodes)
+	if (this->IsA<UHoudiniInputHoudiniAsset>() || !CanDeleteHoudiniNodes())
 	{
 		// Unless if we're a HoudiniAssetInput! we don't want to delete the other HDA's node!
 		// just invalidate the node IDs!
 		InputNodeId = -1;
 		InputObjectNodeId = -1;
+		InputNodeHandle.Reset();
 		return;
 	}
 
+	// If we are using the new input system, then don't delete the nodes if we have a valid handle, and the HAPI
+	// nodes associated with the handle matches InputNodeId / InputObjectNodeId
+	const bool bIsRefCountedInputSystemEnabled = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	if (bIsRefCountedInputSystemEnabled && InputNodeHandle.IsValid())
+	{
+		IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+		if (Manager)
+		{
+			TArray<int32> ManagedNodeIds;
+			if (Manager->GetHAPINodeIds(InputNodeHandle.GetIdentifier(), ManagedNodeIds))
+			{
+				if (ManagedNodeIds.Contains(InputNodeId))
+					InputNodeId = -1;
+				if (ManagedNodeIds.Contains(InputObjectNodeId))
+					InputObjectNodeId = -1;
+			}
+		}
+	}
+
+	InputNodeHandle.Reset();
+	
 	if (InputNodeId >= 0)
 	{
 		FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(InputNodeId);
@@ -2043,6 +2082,7 @@ UHoudiniInputObject::CopyStateFrom(UHoudiniInputObject* InInput, bool bCopyAllPr
 	bNeedsToTriggerUpdate = InInput->bNeedsToTriggerUpdate;
 	bTransformChanged = InInput->bTransformChanged;
 	Guid = InInput->Guid;
+	InputNodeHandle = InInput->InputNodeHandle;
 
 #if WITH_EDITORONLY_DATA
 	bUniformScaleLocked = InInput->bUniformScaleLocked;

@@ -41,6 +41,7 @@
 
 class AActor;
 class UWorld;
+class FUnrealObjectInputIdentifier;
 struct FHoudiniStaticMeshGenerationProperties;
 struct FMeshBuildSettings;
 
@@ -350,6 +351,20 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 		return true;
 	}
 #endif
+
+		// -------------------------------------------------
+		// Ref counted inputs
+		// -------------------------------------------------
+
+		// Returns true if the reference counted input system is enabled
+		static bool IsRefCountedInputSystemEnabled();
+	
+		// Helper for checking if an input node is marked as dirty in the ref counted input system.
+		static bool IsInputNodeDirty(const FUnrealObjectInputIdentifier& InIdentifier);
+		// Helper for marking an input node as dirty in the ref counted input system.
+		static bool MarkInputNodeAsDirty(const FUnrealObjectInputIdentifier& InIdentifier);
+		// Helper for clearing the dirty flag an input node in the ref counted input system.
+		static bool ClearInputNodeDirtyFlag(const FUnrealObjectInputIdentifier& InIdentifier);
 
 	protected:
 		// taken from FPaths::GetTCharPtr

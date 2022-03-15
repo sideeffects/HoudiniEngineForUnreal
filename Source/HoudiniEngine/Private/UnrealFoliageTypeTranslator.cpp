@@ -31,6 +31,7 @@
 #include "FoliageType_InstancedStaticMesh.h"
 #include "HoudiniGenericAttribute.h"
 #include "HoudiniInputTranslator.h"
+#include "UnrealObjectInputRuntimeTypes.h"
 
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
@@ -41,6 +42,7 @@ FUnrealFoliageTypeTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticM
 	UFoliageType_InstancedStaticMesh* InFoliageType, 
 	HAPI_NodeId& InputObjectNodeId,
 	const FString& InputNodeName,
+	FUnrealObjectInputHandle& OutHandle,
 	const bool& ExportAllLODs,
 	const bool& ExportSockets,
 	const bool& ExportColliders)
@@ -53,10 +55,12 @@ FUnrealFoliageTypeTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticM
 		return false;
 
 	UStaticMeshComponent* const StaticMeshComponent = nullptr;
+	FUnrealObjectInputHandle InputNodeHandle;
 	bool bSuccess = HapiCreateInputNodeForStaticMesh(
 		InputSM,
 		InputObjectNodeId,
 		InputNodeName,
+		InputNodeHandle,
 		StaticMeshComponent,
 		ExportAllLODs,
 		ExportSockets,
@@ -64,6 +68,7 @@ FUnrealFoliageTypeTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticM
 
 	if (bSuccess)
 	{
+		OutHandle = InputNodeHandle;
 		const int32 PartId = 0; 
 		CreateHoudiniFoliageTypeAttributes(InFoliageType, InputObjectNodeId, PartId, HAPI_ATTROWNER_DETAIL);
 		
@@ -75,18 +80,36 @@ FUnrealFoliageTypeTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticM
 }
 
 bool FUnrealFoliageTypeTranslator::CreateInputNodeForReference(
-	UFoliageType* InFoliageType,
 	HAPI_NodeId& InInputNodeId,
-	const FString& InRef,
+	UFoliageType* InFoliageType,
 	const FString& InInputNodeName,
 	const FTransform& InTransform,
-	const bool& bImportAsReferenceRotScaleEnabled)
+	const bool& bImportAsReferenceRotScaleEnabled,
+	const bool bInUseRefCountedInputSystem,
+	FUnrealObjectInputHandle& OutHandle)
 {
-	bool bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InInputNodeId, InRef, InInputNodeName, InTransform, bImportAsReferenceRotScaleEnabled);
+	if (!IsValid(InFoliageType))
+		return true;
+
+	UObject* ObjectToRef = nullptr;
+	if (UFoliageType_InstancedStaticMesh const* const SMFoliageType = Cast<UFoliageType_InstancedStaticMesh>(InFoliageType))
+	{
+		ObjectToRef = SMFoliageType->GetStaticMesh();
+	}
+	else
+	{
+		return false;
+	}
+
+	if (!IsValid(ObjectToRef))
+		return true;
+
+	const bool bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
+		InInputNodeId, ObjectToRef, InInputNodeName, InTransform, bImportAsReferenceRotScaleEnabled, bInUseRefCountedInputSystem, OutHandle);
 	if (!bSuccess)
 		return false;
 
-	const int32 PartId = 0;
+	constexpr int32 PartId = 0;
 	if (CreateHoudiniFoliageTypeAttributes(InFoliageType, InInputNodeId, PartId, HAPI_ATTROWNER_POINT))
 	{
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(

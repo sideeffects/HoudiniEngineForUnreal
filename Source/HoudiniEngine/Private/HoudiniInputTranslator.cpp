@@ -47,6 +47,8 @@
 #include "UnrealInstanceTranslator.h"
 #include "UnrealLandscapeTranslator.h"
 #include "UnrealFoliageTypeTranslator.h"
+#include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputManager.h"
 
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
@@ -435,15 +437,40 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 	if (InputType == EHoudiniInputType::Asset)
 		return true;
 
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	IUnrealObjectInputManager const* const Manager = bUseRefCountedInputSystem ? FUnrealObjectInputManager::Get() : nullptr;
+	
 	// Destroy the nodes created by all the input objects
 	TArray<int32> CreatedInputDataAssetIds = InputToDestroy->GetCreatedDataNodeIds();
 	TArray<UHoudiniInputObject*>* InputObjectNodes = InputToDestroy->GetHoudiniInputObjectArray(InputType);
 	if (InputObjectNodes)
 	{
+		TArray<int32> ManagedHAPINodeIds;
 		for (auto CurInputObject : *InputObjectNodes)
 		{
 			if (!IsValid(CurInputObject))
 				continue;
+
+			if (bUseRefCountedInputSystem && Manager && CurInputObject->InputNodeHandle.IsValid())
+			{
+				// If the ref counted system is being used, and we have a valid input handle, remove the HAPI nodes
+				// associated with the handle from CreatedInputDataAssetIds so that we don't delete those nodes here:
+				// the manager will take care of their deletion when necessary.
+				ManagedHAPINodeIds.Reset();
+				if (Manager->GetHAPINodeIds(CurInputObject->InputNodeHandle.GetIdentifier(), ManagedHAPINodeIds)
+						&& ManagedHAPINodeIds.Num() > 0)
+				{
+					for (const int32& NodeId : ManagedHAPINodeIds)
+					{
+						CreatedInputDataAssetIds.Remove(NodeId);
+
+						if (NodeId == CurInputObject->InputNodeId)
+							CurInputObject->InputNodeId = -1;
+						if (NodeId == CurInputObject->InputObjectNodeId)
+							CurInputObject->InputObjectNodeId = -1;
+					}
+				}
+			}
 
 			if (CurInputObject->Type == EHoudiniInputObjectType::HoudiniAssetComponent)
 			{
@@ -466,6 +493,34 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 						if (!IsValid(CurActorComponent))
 							continue;
 
+						if (!CurActorComponent->CanDeleteHoudiniNodes())
+						{
+							CreatedInputDataAssetIds.Remove(CurActorComponent->InputNodeId);
+							CreatedInputDataAssetIds.Remove(CurActorComponent->InputObjectNodeId);
+							continue;
+						}
+						
+						if (bUseRefCountedInputSystem && Manager && CurActorComponent->InputNodeHandle.IsValid())
+						{
+							// If the ref counted system is being used, and we have a valid input handle, remove the HAPI nodes
+							// associated with the handle from CreatedInputDataAssetIds so that we don't delete those nodes here:
+							// the manager will take care of their deletion when necessary.
+							ManagedHAPINodeIds.Reset();
+							if (Manager->GetHAPINodeIds(CurActorComponent->InputNodeHandle.GetIdentifier(), ManagedHAPINodeIds)
+									&& ManagedHAPINodeIds.Num() > 0)
+							{
+								for (const int32& NodeId : ManagedHAPINodeIds)
+								{
+									CreatedInputDataAssetIds.Remove(NodeId);
+
+									if (NodeId == CurActorComponent->InputNodeId)
+										CurActorComponent->InputNodeId = -1;
+									if (NodeId == CurActorComponent->InputObjectNodeId)
+										CurActorComponent->InputObjectNodeId = -1;
+								}
+							}
+						}
+						
 						// No need to delete the nodes created for an asset component manually here,
 						// As they will be deleted when we clean up the CreateNodeIds array
 						CurActorComponent->InputNodeId = -1;
@@ -493,7 +548,6 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 				if (FHoudiniEngineUtils::IsHoudiniNodeValid(ParentNodeId))
 					FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), ParentNodeId);
 			}
-
 			// Also directly invalidate HoudiniSplineComponent's node IDs.
 			UHoudiniInputHoudiniSplineComponent* HoudiniSplineInputObject = Cast<UHoudiniInputHoudiniSplineComponent>(CurInputObject);
 			if (IsValid(HoudiniSplineInputObject) && !IsGarbageCollecting())
@@ -1305,8 +1359,9 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 
 			if (bSuccess)
 			{
-				// If this SM input object takes in a BP, add all its BP StaticMesh components input object node id to the created id list.
-				if (InputSM->bIsBlueprint()) 
+				// If this SM input object takes in a BP, and we are not using the ref counted input system, add all
+				// its BP StaticMesh components input object node id to the created id list.
+				if (InputSM->bIsBlueprint() && !FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled()) 
 				{
 					for (auto & CurSMObj : InputSM->BlueprintStaticMeshes)
 						OutCreatedNodeIds.Add(CurSMObj->InputObjectNodeId);
@@ -1543,6 +1598,9 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 		return true;
 	};
 
+	// Check if the new input system is being used
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	
 	bool bSuccess = true;
 	switch (InInputObject->Type)
 	{
@@ -1583,6 +1641,27 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 		case EHoudiniInputObjectType::InstancedStaticMeshComponent:
 		{
 			// TODO: Only update the instances transform
+			if (bUseRefCountedInputSystem)
+			{
+				// For the new input system, updated instanced static mesh components in the same way as static mesh
+				// component / scene components
+				
+				// Update using the component's transform
+				UHoudiniInputSceneComponent* const InComponent = Cast<UHoudiniInputSceneComponent>(InInputObject);
+				if (!IsValid(InComponent))
+				{
+					bSuccess = false;
+					break;
+				}
+
+				USceneComponent const* const SceneComponent = InComponent->GetSceneComponent();
+				const FTransform NewTransform = IsValid(SceneComponent) ? SceneComponent->GetComponentTransform() : InInputObject->Transform;
+				if(!UpdateTransform(NewTransform, InInputObject->InputObjectNodeId))
+					bSuccess = false;
+
+				// Update the InputObject's transform
+				InInputObject->Transform = NewTransform;
+			}
 			break;
 		}
 
@@ -1835,6 +1914,96 @@ FHoudiniInputTranslator::HapiCreateInputNodeForObject(const FString& InObjNodeNa
 }
 
 bool
+FHoudiniInputTranslator::HapiSetGeoObjectTransform(const HAPI_NodeId& InObjectNodeId, const FTransform& InTransform)
+{
+	// Updating the Transform
+	HAPI_TransformEuler HapiTransform;
+	FHoudiniApi::TransformEuler_Init(&HapiTransform);
+
+	FHoudiniEngineUtils::TranslateUnrealTransform(InTransform, HapiTransform);
+
+	// Set the transform on the OBJ parent
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
+		FHoudiniEngine::Get().GetSession(), InObjectNodeId, &HapiTransform), false);
+
+	return true;
+}
+
+bool
+FHoudiniInputTranslator::HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
+	const int32 InParentNodeId,
+	const HAPI_NodeId& InNodeToObjectMerge,
+	const FString& InObjNodeName,
+	HAPI_NodeId& InOutObjectMergeNodeId,
+	HAPI_NodeId& InOutGeoObjectNodeId,
+	const bool bInCreateIfMissingInvalid,
+	const FTransform& InTransform)
+{
+	if (!FHoudiniEngineUtils::IsHoudiniNodeValid(InNodeToObjectMerge))
+		return false;
+
+	bool bCreatedGeoObject = false;
+	constexpr bool bCookOnCreation = true;
+	// Check that InOutGeoObjectNodeId is valid
+	if (!FHoudiniEngineUtils::IsHoudiniNodeValid(InOutGeoObjectNodeId))
+	{
+		if (!bInCreateIfMissingInvalid)
+			return false;
+
+		// Create Geo object in InParentNodeId's network
+		const FString ObjOperatorName = InParentNodeId >= 0 ? TEXT("geo") : TEXT("Object/geo");
+		HOUDINI_CHECK_ERROR_RETURN(
+			FHoudiniEngineUtils::CreateNode(InParentNodeId, ObjOperatorName, InObjNodeName, bCookOnCreation, &InOutGeoObjectNodeId), false);
+		bCreatedGeoObject = true;
+	}
+	// Check that InOutObjectMergeNodeId is valid
+	if (!FHoudiniEngineUtils::IsHoudiniNodeValid(InOutObjectMergeNodeId))
+	{
+		if (!bInCreateIfMissingInvalid)
+			return false;
+
+		// Create objmerge SOP in InOutGeoObjectNodeId
+		HOUDINI_CHECK_ERROR_RETURN(
+			FHoudiniEngineUtils::CreateNode(InOutGeoObjectNodeId, TEXT("object_merge"), InObjNodeName, bCookOnCreation, &InOutObjectMergeNodeId), false);
+	}
+
+	// Set the objpath1 on the object merge
+	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
+	HOUDINI_CHECK_ERROR_RETURN(
+		FHoudiniApi::SetParmNodeValue(Session, InOutObjectMergeNodeId, TCHAR_TO_UTF8(TEXT("objpath1")), InNodeToObjectMerge), false);
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	if (bUseRefCountedInputSystem)
+	{
+		IUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
+		if (!Manager)
+		{
+			HOUDINI_LOG_WARNING(TEXT("[FHoudiniInputTranslator::HapiCreateOrUpdateGeoObjectMergeAndSetTransform] Could not find input object manager."));
+			return false;
+		}
+		const HAPI_NodeId WorldOriginNodeId = Manager->GetWorldOriginHAPINodeId();
+		if (WorldOriginNodeId < 0)
+		{
+			HOUDINI_LOG_WARNING(TEXT("[FHoudiniInputTranslator::HapiCreateOrUpdateGeoObjectMergeAndSetTransform] Could not find/create world origin null."));
+			return false;
+		}
+		// Set the transform value to "Into Specified Object"
+		HOUDINI_CHECK_ERROR_RETURN(
+			FHoudiniApi::SetParmIntValue(Session, InOutObjectMergeNodeId, TCHAR_TO_UTF8(TEXT("xformtype")), 0, 2), false);
+		// Set the transform object to the world origin null from the manager
+		HOUDINI_CHECK_ERROR_RETURN(
+			FHoudiniApi::SetParmNodeValue(Session, InOutObjectMergeNodeId, TCHAR_TO_UTF8(TEXT("xformpath")), WorldOriginNodeId), false);
+	}
+	
+	if (!InTransform.Equals(FTransform::Identity) || !bCreatedGeoObject)
+	{
+		if (!HapiSetGeoObjectTransform(InOutGeoObjectNodeId, InTransform))
+			return false;
+	}
+
+	return true;
+}
+
+bool
 FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 	const FString& InObjNodeName,
 	UHoudiniInputStaticMesh* InObject,
@@ -1871,33 +2040,20 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 	}
 
 	// Marshall the Static Mesh to Houdini
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	FUnrealObjectInputHandle InputNodeHandle;
+	HAPI_NodeId CreatedNodeId = InObject->InputNodeId;
 	bool bSuccess = true;
 
 	if (bImportAsReference) 
 	{
-		// Start by getting the Object's full name
-		FString AssetReference;
+		UObject* ObjectToRef = nullptr;
 		if (SM)
-			AssetReference += SM->GetFullName();
-
-		if (BP)
-			AssetReference += BP->GetFullName();
-
-		// Replace the first space to '\''
-		for (int32 Itr = 0; Itr < AssetReference.Len(); Itr++)
-		{
-			if (AssetReference[Itr] == ' ')
-			{
-				AssetReference[Itr] = '\'';
-				break;
-			}
-		}
-
-		// Attach another '\'' to the end
-		AssetReference += FString("'");
-
+			ObjectToRef = SM;
+		else if (BP)
+			ObjectToRef = BP;
 		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
-			InObject->InputNodeId, AssetReference, SMName, InObject->Transform, bImportAsReferenceRotScaleEnabled);
+			CreatedNodeId, ObjectToRef, SMName, InObject->Transform, bImportAsReferenceRotScaleEnabled, bUseRefCountedInputSystem, InputNodeHandle);
 	}
 	else 
 	{
@@ -1937,70 +2093,136 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 		// This is a BP, add all the BP SM comps to its BlueprintStaticMeshes list.
 		if (InObject->bIsBlueprint())
 		{
+			// If we are using the ref counted input system, we will create a reference node to reference all of the
+			// SMC nodes created in the loop
+			TSet<FUnrealObjectInputHandle> SMCHandles;
+			constexpr bool bImportAsReferenceRotScale = false;
+			// Use the blueprint generated class for as the object in the input system
+			UObject* BPGenClass = BP->GeneratedClass;
+			if (!IsValid(BPGenClass))
+				BPGenClass = BP;
 			for (auto & CurSMC : StaticMeshComponents)
 			{
 				if (!IsValid(CurSMC))
 					continue;
 
-				UHoudiniInputStaticMesh* SMObject = Cast<UHoudiniInputStaticMesh>(
-					UHoudiniInputObject::CreateTypedInputObject(CurSMC->GetStaticMesh(), InObject, InObject->GetName() + TEXT("_") + CurSMC->GetName()));
-
-				if (!IsValid(SMObject))
-					continue;
-
-				bSuccess &= FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
-					CurSMC->GetStaticMesh(), SMObject->InputNodeId, SMName, nullptr, bExportLODs, bExportSockets, bExportColliders);
-
-				InObject->SetImportAsReference(false);
-
-				// Update this input object's OBJ NodeId
-				SMObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(SMObject->InputNodeId);
-
-				// Update the component's transform
-				FTransform ComponentTransform = CurSMC->GetRelativeTransform();
-				if (!ComponentTransform.Equals(FTransform::Identity))
+				if (bUseRefCountedInputSystem)
 				{
-					// convert to HAPI_Transform
-					HAPI_TransformEuler HapiTransform;
-					FHoudiniApi::TransformEuler_Init(&HapiTransform);
-					FHoudiniEngineUtils::TranslateUnrealTransform(ComponentTransform, HapiTransform);
+					CurSMC->ConditionalUpdateComponentToWorld();
+					UHoudiniInputMeshComponent* SMCObject = Cast<UHoudiniInputMeshComponent>(
+						UHoudiniInputObject::CreateTypedInputObject(CurSMC, InObject, BPGenClass->GetName() + TEXT("_") + CurSMC->GetName()));
 
-					// Set the transform on the OBJ parent
-					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
-						FHoudiniEngine::Get().GetSession(), SMObject->InputObjectNodeId, &HapiTransform), false);
+					if (!IsValid(SMCObject))
+						continue;
+
+					constexpr bool bKeepWorldTransform = false;
+					if (!HapiCreateInputNodeForStaticMeshComponent(BPGenClass->GetName(), SMCObject, bExportLODs, bExportSockets, bExportColliders, bKeepWorldTransform, bImportAsReference, bImportAsReferenceRotScale))
+						continue;
+
+					if (SMCObject->InputNodeHandle.IsValid())
+						SMCHandles.Add(SMCObject->InputNodeHandle);
+					InObject->BlueprintStaticMeshes.Add(SMCObject);
+				}
+				else
+				{
+					UHoudiniInputStaticMesh* SMObject = Cast<UHoudiniInputStaticMesh>(
+						UHoudiniInputObject::CreateTypedInputObject(CurSMC->GetStaticMesh(), InObject, InObject->GetName() + TEXT("_") + CurSMC->GetName()));
+
+					if (!IsValid(SMObject))
+						continue;
+					
+					FUnrealObjectInputHandle Handle;
+					bSuccess &= FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
+						CurSMC->GetStaticMesh(), SMObject->InputNodeId, SMName, Handle, nullptr, bExportLODs, bExportSockets, bExportColliders);
+					
+					InObject->SetImportAsReference(false);
+					
+					// Update this input object's OBJ NodeId
+					SMObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(SMObject->InputNodeId);
+					SMObject->InputNodeHandle = Handle;
+					
+					// Update the component's transform
+					FTransform ComponentTransform = CurSMC->GetRelativeTransform();
+					if (!ComponentTransform.Equals(FTransform::Identity))
+					{
+						// convert to HAPI_Transform
+						HAPI_TransformEuler HapiTransform;
+						FHoudiniApi::TransformEuler_Init(&HapiTransform);
+						FHoudiniEngineUtils::TranslateUnrealTransform(ComponentTransform, HapiTransform);
+					
+						// Set the transform on the OBJ parent
+						HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
+							FHoudiniEngine::Get().GetSession(), SMObject->InputObjectNodeId, &HapiTransform), false);
+					}
+					InObject->BlueprintStaticMeshes.Add(SMObject);
 				}
 
-				InObject->BlueprintStaticMeshes.Add(SMObject);
 			}
 
-			return true;
+			if (!bUseRefCountedInputSystem)
+				return true;
+
+			// If we are using the ref counted system, then we have to make a reference for the blueprint that merges
+			// all of its SMCs
+			constexpr bool bIsLeaf = false;
+			FUnrealObjectInputOptions Options(bImportAsReference, bImportAsReferenceRotScale, bExportLODs, bExportSockets, bExportColliders);
+			FUnrealObjectInputIdentifier Identifier(BPGenClass, Options, bIsLeaf);
+			FUnrealObjectInputHandle Handle;
+			if (FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(Identifier, SMCHandles, Handle))
+				InputNodeHandle = Handle;
 		}
 		// This is a normal static mesh input, process it normally as a static mesh Input Object
 		else 
 		{
 			bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
-				SM, InObject->InputNodeId, SMName, nullptr, bExportLODs, bExportSockets, bExportColliders);
+				SM, CreatedNodeId, SMName, InputNodeHandle, nullptr, bExportLODs, bExportSockets, bExportColliders);
 		}
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);
 
-	// Update this input object's OBJ NodeId
-	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
-
-	// If the Input mesh has a Transform offset
-	FTransform TransformOffset = InObject->Transform;
-	if (!TransformOffset.Equals(FTransform::Identity))
+	InObject->InputNodeHandle = InputNodeHandle;
+	if (bUseRefCountedInputSystem)
 	{
-		// Updating the Transform
-		HAPI_TransformEuler HapiTransform;
-		FHoudiniApi::TransformEuler_Init(&HapiTransform);
-		FHoudiniEngineUtils::TranslateUnrealTransform(TransformOffset, HapiTransform);
-
-		// Set the transform on the OBJ parent
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
-			FHoudiniEngine::Get().GetSession(), InObject->InputObjectNodeId, &HapiTransform), false);
+		constexpr HAPI_NodeId ParentNodeId = -1;
+		constexpr bool bCreateIfMissingInvalid = true;
+		HAPI_NodeId SMNodeId = -1;
+		if (!FHoudiniEngineUtils::GetHAPINodeId(InputNodeHandle, SMNodeId))
+			return false;
+		if (!HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
+				ParentNodeId, 
+				SMNodeId,
+				SMName,
+				InObject->InputNodeId,
+				InObject->InputObjectNodeId,
+				bCreateIfMissingInvalid,
+				InObject->Transform))
+		{
+			return false;
+		}
 	}
+	else
+	{
+		// Update this input object's OBJ NodeId
+		InObject->InputNodeId = CreatedNodeId;
+		InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
+		if (!HapiSetGeoObjectTransform(InObject->InputObjectNodeId, InObject->Transform))
+			return false;
+	}
+
+	// // If the Input mesh has a Transform offset
+	// FTransform TransformOffset = InObject->Transform;
+	// if (!TransformOffset.Equals(FTransform::Identity))
+	// {
+	// 	// Updating the Transform
+	// 	HAPI_TransformEuler HapiTransform;
+	// 	FHoudiniApi::TransformEuler_Init(&HapiTransform);
+	// 	FHoudiniEngineUtils::TranslateUnrealTransform(TransformOffset, HapiTransform);
+	//
+	// 	// Set the transform on the OBJ parent
+	// 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
+	// 		FHoudiniEngine::Get().GetSession(), InObject->InputObjectNodeId, &HapiTransform), false);
+	// }
 
 	return bSuccess;
 }
@@ -2035,49 +2257,65 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(const FSt
 	 
 	FString GCName = InObjNodeName + TEXT("_") + GeometryCollection->GetName();
 
+	// const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	constexpr bool bUseRefCountedInputSystem = false;
+	FUnrealObjectInputHandle InputNodeHandle;
+	HAPI_NodeId CreatedNodeId = InObject->InputNodeId;
+
 	// Marshall the GeometryCollection to Houdini
 	bool bSuccess = true;
 	if (bImportAsReference) 
 	{
-		// Start by getting the Object's full name
-		FString AssetReference = GeometryCollection->GetFullName();
-
-		// Replace the first space to '\''
-		for (int32 Itr = 0; Itr < AssetReference.Len(); Itr++)
-		{
-			if (AssetReference[Itr] == ' ')
-			{
-				AssetReference[Itr] = '\'';
-				break;
-			}
-		}
-
-		// Attach another '\'' to the end
-		AssetReference += FString("'");
-
-		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InObject->InputNodeId, AssetReference, GCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled());
+		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
+			CreatedNodeId, GeometryCollection, GCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled(), bUseRefCountedInputSystem, InputNodeHandle);
 	}
 	else 
 	{
-		bSuccess = FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(GeometryCollection, InObject->InputNodeId, GCName, nullptr);
+		bSuccess = FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(GeometryCollection, CreatedNodeId, GCName, nullptr);
 	}
 	
-	// Update this input object's OBJ NodeId
-	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
-
-	// If the Input mesh has a Transform offset
-	FTransform TransformOffset = InObject->Transform;
-	if (!TransformOffset.Equals(FTransform::Identity))
+	InObject->InputNodeHandle = InputNodeHandle;
+	if (bUseRefCountedInputSystem)
 	{
-		// Updating the Transform
-		HAPI_TransformEuler HapiTransform;
-		FHoudiniApi::TransformEuler_Init(&HapiTransform);
-		FHoudiniEngineUtils::TranslateUnrealTransform(TransformOffset, HapiTransform);
-
-		// Set the transform on the OBJ parent
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
-			FHoudiniEngine::Get().GetSession(), InObject->InputObjectNodeId, &HapiTransform), false);
+		constexpr HAPI_NodeId ParentNodeId = -1;
+		constexpr bool bCreateIfMissingInvalid = true;
+		HAPI_NodeId SMNodeId = -1;
+		if (!FHoudiniEngineUtils::GetHAPINodeId(InputNodeHandle, SMNodeId))
+			return false;
+		if (!HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
+				ParentNodeId, 
+				SMNodeId,
+				GCName,
+				InObject->InputNodeId,
+				InObject->InputObjectNodeId,
+				bCreateIfMissingInvalid,
+				InObject->Transform))
+		{
+			return false;
+		}
 	}
+	else
+	{
+		// Update this input object's OBJ NodeId
+		InObject->InputNodeId = CreatedNodeId;
+		InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
+		if (!HapiSetGeoObjectTransform(InObject->InputObjectNodeId, InObject->Transform))
+			return false;
+	}
+
+	// // If the Input mesh has a Transform offset
+	// FTransform TransformOffset = InObject->Transform;
+	// if (!TransformOffset.Equals(FTransform::Identity))
+	// {
+	// 	// Updating the Transform
+	// 	HAPI_TransformEuler HapiTransform;
+	// 	FHoudiniApi::TransformEuler_Init(&HapiTransform);
+	// 	FHoudiniEngineUtils::TranslateUnrealTransform(TransformOffset, HapiTransform);
+	//
+	// 	// Set the transform on the OBJ parent
+	// 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
+	// 		FHoudiniEngine::Get().GetSession(), InObject->InputObjectNodeId, &HapiTransform), false);
+	// }
 
 	return bSuccess;
 }
@@ -2096,6 +2334,9 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 	UGeometryCollection* GC = InObject->GetGeometryCollection();
 	if (!IsValid(GC))
 		return true;
+
+	constexpr bool bUseRefCountedInputSystem = false;
+	FUnrealObjectInputHandle InputNodeHandle;
 	
 	// Marshall the GeometryCollection to Houdini
 	FString GCName = InObjNodeName + TEXT("_") + GCC->GetName();
@@ -2103,23 +2344,8 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 	bool bSuccess = true;
 	if (bImportAsReference) 
 	{
-		// Start by getting the Object's full name
-		FString AssetReference = GC->GetFullName();
-
-		// Replace the first space to '\''
-		for (int32 Itr = 0; Itr < AssetReference.Len(); Itr++)
-		{
-			if (AssetReference[Itr] == ' ')
-			{
-				AssetReference[Itr] = '\'';
-				break;
-			}
-		}
-
-		// Attach another '\'' to the end
-		AssetReference += FString("'");
-
-		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InObject->InputNodeId, AssetReference, GCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled());
+		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
+			InObject->InputNodeId, GC, GCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled(), bUseRefCountedInputSystem, InputNodeHandle);
 	}
 	else 
 	{
@@ -2167,26 +2393,14 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionActor(cons
 	// Marshall the GeometryCollection to Houdini
 	FString GCName = InObjNodeName + TEXT("_") + GCC->GetName();
 
+	constexpr bool bUseRefCountedInputSystem = false;
+	FUnrealObjectInputHandle InputNodeHandle;
+
 	bool bSuccess = true;
 	if (bImportAsReference) 
 	{
-		// Start by getting the Object's full name
-		FString AssetReference = GC->GetFullName();
-
-		// Replace the first space to '\''
-		for (int32 Itr = 0; Itr < AssetReference.Len(); Itr++)
-		{
-			if (AssetReference[Itr] == ' ')
-			{
-				AssetReference[Itr] = '\'';
-				break;
-			}
-		}
-
-		// Attach another '\'' to the end
-		AssetReference += FString("'");
-
-		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InObject->InputNodeId, AssetReference, GCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled());
+		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
+			InObject->InputNodeId, GC, GCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled(), bUseRefCountedInputSystem, InputNodeHandle);
 	}
 	else 
 	{
@@ -2263,29 +2477,17 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 	UStaticMesh* SM = SMC->GetStaticMesh();
 	if (!IsValid(SM))
 		return true;
-	
+
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	HAPI_NodeId CreatedNodeId = InObject->InputNodeId;
+
 	// Marshall the Static Mesh to Houdini
 	FString SMCName = InObjNodeName + TEXT("_") + SMC->GetName();
 
+	FUnrealObjectInputHandle InputNodeHandle;
 	bool bSuccess = true;
 	if (bImportAsReference) 
 	{
-		// Start by getting the Object's full name
-		FString AssetReference = SM->GetFullName();
-
-		// Replace the first space to '\''
-		for (int32 Itr = 0; Itr < AssetReference.Len(); Itr++)
-		{
-			if (AssetReference[Itr] == ' ')
-			{
-				AssetReference[Itr] = '\'';
-				break;
-			}
-		}
-
-		// Attach another '\'' to the end
-		AssetReference += FString("'");
-
 		FTransform ImportAsReferenceTransform = InObject->Transform;
 
 		if (!bKeepWorldTransform)
@@ -2297,18 +2499,34 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 			ImportAsReferenceTransform *= InActorTransform.Inverse();
 		}
 
-		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InObject->InputNodeId, AssetReference, SMCName, ImportAsReferenceTransform, bImportAsReferenceRotScaleEnabled);
-
+		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
+			CreatedNodeId, SM, SMCName, ImportAsReferenceTransform, bImportAsReferenceRotScaleEnabled, bUseRefCountedInputSystem, InputNodeHandle);
 	}
 	else 
 	{
 		bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
-			SM, InObject->InputNodeId, SMCName, SMC, bExportLODs, bExportSockets, bExportColliders);
+			SM, CreatedNodeId, SMCName, InputNodeHandle, SMC, bExportLODs, bExportSockets, bExportColliders);
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);
 
+	// Create/update the node in the input manager
+	if (bUseRefCountedInputSystem)
+	{
+		FUnrealObjectInputOptions Options(
+			bImportAsReference, bImportAsReferenceRotScaleEnabled, bExportLODs, bExportSockets, bExportColliders);
+		constexpr bool bIsLeaf = false;
+		FUnrealObjectInputIdentifier SMCIdentifier(SMC, Options, bIsLeaf);
+		FUnrealObjectInputHandle Handle;
+		if (!FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(SMCIdentifier, {InputNodeHandle}, Handle))
+			return false;
+		
+		FHoudiniEngineUtils::GetHAPINodeId(Handle, CreatedNodeId);
+		InObject->InputNodeHandle = Handle;
+	}
+	
 	// Update this input object's OBJ NodeId
+	InObject->InputNodeId = CreatedNodeId;
 	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
 
 	// Update this input object's cache data
@@ -2352,17 +2570,38 @@ FHoudiniInputTranslator::HapiCreateInputNodeForInstancedStaticMeshComponent(
 		return true;
 
 	HAPI_NodeId NewNodeId = -1;
+	FUnrealObjectInputHandle InputNodeHandle;
 	if (!FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
-		ISMC, InObjNodeName, NewNodeId, bExportLODs, bExportSockets, bExportColliders, false))
+		ISMC, InObjNodeName, NewNodeId, InputNodeHandle, bExportLODs, bExportSockets, bExportColliders, false))
 		return false;
 
 	// Update this input object's node IDs
 	InObject->InputNodeId = NewNodeId;
 	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(NewNodeId);
+	InObject->InputNodeHandle = InputNodeHandle;
 
 	// Update the component's cached instances
 	InObject->Update(ISMC);
 
+	// When using the ref counted input system, set the component's transform
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	if (bUseRefCountedInputSystem)
+	{
+		// Update the component's transform
+		const FTransform ComponentTransform = InObject->Transform;
+		if (!ComponentTransform.Equals(FTransform::Identity))
+		{
+			// convert to HAPI_Transform
+			HAPI_TransformEuler HapiTransform;
+			FHoudiniApi::TransformEuler_Init(&HapiTransform);
+			FHoudiniEngineUtils::TranslateUnrealTransform(ComponentTransform, HapiTransform);
+
+			// Set the transform on the OBJ parent
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
+				FHoudiniEngine::Get().GetSession(), InObject->InputObjectNodeId, &HapiTransform), false);
+		}
+	}
+	
 	return true;
 }
 
@@ -2509,24 +2748,10 @@ HapiCreateInputNodeForHoudiniAssetComponent(const FString& InObjNodeName, UHoudi
 		if(bIsAssetInput)
 			HoudiniInput->SetInputNodeId(-1);
 
-		// Start by getting the Object's full name
-		FString AssetReference = InputHAC->GetFullName();
-
-		// Replace the first space to '\''
-		for (int32 Itr = 0; Itr < AssetReference.Len(); Itr++)
-		{
-			if (AssetReference[Itr] == ' ')
-			{
-				AssetReference[Itr] = '\'';
-				break;
-			}
-		}
-
-		// Attach another '\'' to the end
-		AssetReference += FString("'");
-		
+		constexpr bool bUseRefCountedInputSystem = false;
+		FUnrealObjectInputHandle InputNodeHandle;
 		if (!FHoudiniInputTranslator::CreateInputNodeForReference(
-			InObject->InputNodeId, AssetReference, InObject->GetName(), InObject->Transform, bImportAsReferenceRotScaleEnabled)) // do not delete previous node if it was HAC
+				InObject->InputNodeId, InputHAC, InObject->GetName(), InObject->Transform, bImportAsReferenceRotScaleEnabled, bUseRefCountedInputSystem, InputNodeHandle)) // do not delete previous node if it was HAC
 			return false;
 
 		if (bIsAssetInput)
@@ -3018,6 +3243,7 @@ FHoudiniInputTranslator::UpdateWorldInput(UHoudiniInput* InInput)
 
 bool
 FHoudiniInputTranslator::CreateInputNodeForReference(
+	const HAPI_NodeId InParentNodeId,
 	HAPI_NodeId& InputNodeId,
 	const FString& InRef,
 	const FString& InputNodeName,
@@ -3026,9 +3252,16 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 {
 	HAPI_NodeId NewNodeId = -1;
 
-	// Create a single input node 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputNode(
-		FHoudiniEngine::Get().GetSession(), &NewNodeId, TCHAR_TO_UTF8(*InputNodeName)), false);
+	// Create a single input node
+	if (InParentNodeId >= 0)
+	{
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateInputNode(InputNodeName, NewNodeId, InParentNodeId), false);
+	}
+	else
+	{
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputNode(
+			FHoudiniEngine::Get().GetSession(), &NewNodeId, TCHAR_TO_UTF8(*InputNodeName)), false);
+	}
 
 	/*
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
@@ -3191,7 +3424,90 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 	return true;
 }
 
+bool FHoudiniInputTranslator::CreateInputNodeForReference(
+	HAPI_NodeId& InputNodeId,
+	UObject const* const InObjectToRef,
+	const FString & InputNodeName,
+	const FTransform & InTransform,
+	const bool& bImportAsReferenceRotScaleEnabled,
+	const bool bInUseRefCountedInputSystem,
+	FUnrealObjectInputHandle& OutHandle)
+{
+	// The identifier to the node in the input system
+	FString FinalInputNodeName = InputNodeName;
+	HAPI_NodeId ParentNodeId = -1;
+	FUnrealObjectInputHandle ParentHandle;
+	FUnrealObjectInputIdentifier Identifier;
+	if (bInUseRefCountedInputSystem)
+	{
+		// Build the identifier for the entry in the manager
+		constexpr bool bImportAsReference = true;
+		constexpr bool bIsLeaf = true;
+		FUnrealObjectInputOptions Options(bImportAsReference, bImportAsReferenceRotScaleEnabled);
+		Identifier = FUnrealObjectInputIdentifier(InObjectToRef, Options, bIsLeaf);
 
+		// If the entry exists in the manager, the associated HAPI nodes are valid, and it is not marked as dirty, then
+		// return the existing entry
+		FUnrealObjectInputHandle Handle;
+		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		{
+			HAPI_NodeId NodeId = -1;
+			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId))
+			{
+				OutHandle = Handle;
+				InputNodeId = NodeId;
+				return true;
+			}
+		}
+		// If the entry does not exist, or is invalid, then we need create it
+		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
+		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle) && ParentHandle.IsValid())
+			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+	}
+
+	// Start by getting the Object's full name
+	FString AssetReference;
+	AssetReference += InObjectToRef->GetFullName();
+
+	// Replace the first space to '\''
+	for (int32 Itr = 0; Itr < AssetReference.Len(); Itr++)
+	{
+		if (AssetReference[Itr] == ' ')
+		{
+			AssetReference[Itr] = '\'';
+			break;
+		}
+	}
+
+	// Attach another '\'' to the end
+	AssetReference += FString("'");
+
+	HAPI_NodeId NodeId = -1;
+	const bool bSuccess = CreateInputNodeForReference(
+		ParentNodeId,
+		NodeId,
+		AssetReference,
+		FinalInputNodeName,
+		InTransform,
+		bImportAsReferenceRotScaleEnabled);
+
+	if (!bSuccess)
+		return false;
+
+	InputNodeId = NodeId;
+	
+	if (bInUseRefCountedInputSystem)
+	{
+		// Record the node in the manager
+		const HAPI_NodeId ObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
+		FUnrealObjectInputHandle Handle;
+		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, ObjectNodeId))
+			OutHandle = Handle;
+	}
+
+	return bSuccess;
+}
 
 bool
 FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeName, UHoudiniInputDataTable* InInputObject)
@@ -3406,40 +3722,26 @@ FHoudiniInputTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 	FTName += FoliageType->GetName();
 
 	// Marshall the Static Mesh to Houdini
+	FUnrealObjectInputHandle InputNodeHandle;
+	constexpr bool bUseRefCountedInputSystem = false;
 	bool bSuccess = true;
 
 	if (bImportAsReference) 
 	{
-		// Start by getting the Object's full name
-		FString AssetReference;
-		AssetReference += SM->GetFullName();
-
-		// Replace the first space to '\''
-		for (int32 Itr = 0; Itr < AssetReference.Len(); Itr++)
-		{
-			if (AssetReference[Itr] == ' ')
-			{
-				AssetReference[Itr] = '\'';
-				break;
-			}
-		}
-
-		// Attach another '\'' to the end
-		AssetReference += FString("'");
-
 		bSuccess = FUnrealFoliageTypeTranslator::CreateInputNodeForReference(
-			FoliageType, InObject->InputNodeId, AssetReference, FTName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled());
+			InObject->InputNodeId, FoliageType, FTName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled(), bUseRefCountedInputSystem, InputNodeHandle);
 	}
 	else 
 	{
 		bSuccess = FUnrealFoliageTypeTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
-			FoliageType, InObject->InputNodeId, FTName, bExportLODs, bExportSockets, bExportColliders);
+			FoliageType, InObject->InputNodeId, FTName, InputNodeHandle, bExportLODs, bExportSockets, bExportColliders);
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);
 
 	// Update this input object's OBJ NodeId
 	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
+	InObject->InputNodeHandle = InputNodeHandle;
 
 	// If the Input mesh has a Transform offset
 	const FTransform TransformOffset = InObject->Transform;

@@ -40,6 +40,8 @@ class FString;
 class UStaticMesh;
 class UHoudiniAsset;
 class UHoudiniAssetComponent;
+class FUnrealObjectInputIdentifier;
+class FUnrealObjectInputHandle;
 
 struct FHoudiniPartInfo;
 struct FHoudiniMeshSocket;
@@ -293,6 +295,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		// Destroy asset, returns the status.
 		static bool DestroyHoudiniAsset(const HAPI_NodeId& AssetId);
+
+		// Deletes the specified HAPI node by id.
+		static bool DeleteHoudiniNode(const HAPI_NodeId& InNodeId);
 
 		// Loads an HDA file and returns its AssetLibraryId
 		static bool LoadHoudiniAsset(
@@ -920,6 +925,79 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 
 		static UHoudiniAssetComponent* GetOuterHoudiniAssetComponent(const UObject* Obj);
+
+		// -------------------------------------------------
+		// Ref counted inputs
+		// -------------------------------------------------
+
+		// Find the node in the input manager that corresponds to Identifier. If it could not be found return false.
+		// If found, return true and set Handle to reference the node.
+		static bool FindNodeViaManager(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle);
+
+		// Helper to get a handle to the parent of node of InHandle.
+		static bool FindParentNodeViaManager(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle);
+
+		// Returns true if the HAPI nodes for input referenced by InHandle are valid (exist).
+		static bool AreHAPINodesValid(const FUnrealObjectInputHandle& InHandle);
+
+		// Helper that checks that the input entry associated with InIdentifier exists, the HAPI nodes for are valid and
+		// the entry is not marked as dirty.
+		static bool NodeExistsAndIsNotDirty(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle);
+
+		// Returns true if the HAPI nodes referenced by the input reference node of InHandle are valid (exist).
+		static bool AreReferencedHAPINodesValid(const FUnrealObjectInputHandle& InHandle);
+
+		// Add an entry for an input to track and reference count in the manager.
+		// Returns true on success and sets OutHandle to point to the entry.
+		static bool AddNodeOrUpdateNode(
+			const FUnrealObjectInputIdentifier& InIdentifier,
+			const int32 NodeId,
+			FUnrealObjectInputHandle& OutHandle,
+			const int32 InObjectNodeId=INDEX_NONE,
+			TSet<FUnrealObjectInputHandle> const* const InReferencedNodes=nullptr);
+
+		// Helper to get the HAPI NodeId associated with InHandle.
+		static bool GetHAPINodeId(const FUnrealObjectInputHandle& InHandle, int32& OutNodeId);
+
+		// Helper to get the default input node name to use via the new input system.
+		static bool GetDefaultInputNodeName(const FUnrealObjectInputIdentifier& InIdentifier, FString& OutNodeName);
+
+		// Helper to ensure that the parent/container nodes of a given identifier exist
+		static bool EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle);
+
+		// Helper to set the references on a reference node
+		static bool SetReferencedNodes(const FUnrealObjectInputHandle& InRefNodeHandle, const TSet<FUnrealObjectInputHandle>& InReferencedNodes);
+
+		// Helper to get the references on a reference node
+		static bool GetReferencedNodes(const FUnrealObjectInputHandle& InRefNodeHandle, TSet<FUnrealObjectInputHandle>& OutReferencedNodes);
+
+		// Helper to build identifiers for static mesh inputs based on options (such as LODs, Colliders, Sockets)
+		static bool BuildStaticMeshInputObjectIdentifiers(
+			UStaticMesh const* const InStaticMesh,
+			const bool bInExportMainMesh,
+			const bool bInExportLODs,
+			const bool bInExportSockets,
+			const bool bInExportColliders,
+			bool &bOutSingleLeafNodeOnly,
+			FUnrealObjectInputIdentifier& OutReferenceNode,
+			TArray<FUnrealObjectInputIdentifier>& OutPerOptionIdentifiers);
+
+		// Helper to create an input node (similar to the HAPI version, but allows for specifying a parent node id
+		static HAPI_Result CreateInputNode(const FString& InNodeLabel, HAPI_NodeId& OutNodeId, const int32 InParentNodeId=-1);
+
+		// Helper to set an object_merge SOP's xformtype to "Into Specified Object" and the xformpath to the manager's
+		// WorldOrigin null.
+		static bool SetObjectMergeXFormTypeToWorldOrigin(const HAPI_NodeId& InObjMergeNodeId);
+
+		// Helper to connect a reference node's referenced nodes to its merge SOP
+		static bool ConnectReferencedNodesToMerge(const FUnrealObjectInputIdentifier& InRefNodeIdentifier);
+
+		// Helper to create a SOP/merge for merging InReferencedNodes.
+		static bool CreateOrUpdateReferenceInputMergeNode(
+			const FUnrealObjectInputIdentifier& InIdentifier,
+			const TSet<FUnrealObjectInputHandle>& InReferencedNodes,
+			FUnrealObjectInputHandle& OutHandle,
+			const bool bInConnectReferencedNodes=true);
 
 	protected:
 		
