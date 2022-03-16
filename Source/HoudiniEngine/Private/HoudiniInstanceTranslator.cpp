@@ -2706,7 +2706,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 			FoliageInstance->Rotation = HoudiniAssetTransform.TransformRotation(CurrentTransform.GetRotation()).Rotator();
 			FoliageInstance->DrawScale3D = CurrentTransform.GetScale3D() * HoudiniAssetTransform.GetScale3D();
 		}
-
+		
+		FoliageInstances.Add(FoliageInstance);
 		//FoliageInfo->AddInstance(FoliageType, FoliageInstance);
 		//CurrentInstanceCount++;
 	}
