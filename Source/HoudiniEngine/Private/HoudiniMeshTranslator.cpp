@@ -1460,7 +1460,6 @@ FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const
 	// Start by looking for the nanite enabled attribute, disabled by default
 	bool bEnableNanite = false;
 	TArray<int32> IntData;
-
 	// Look for a specific prim attribute first
 	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
 		GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_ENABLED,
@@ -1499,24 +1498,65 @@ FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const
 		StaticMesh->NaniteSettings.PositionPrecision = IntData[0];
 	}
 
-	// Finally look for the percent triangle attributer, zero by default (no triangles)
-	StaticMesh->NaniteSettings.FallbackPercentTriangles = 0.0f;
+	// Look for the percent triangle attribute, one by default (all triangles)
+	// as this mesh is also used in the physics engine as the complex collision version
+	StaticMesh->NaniteSettings.FallbackPercentTriangles = 1.0f;
+	
 	TArray<float> FloatData;
-
 	// Look for a specific prim attribute first
 	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-		GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_POSITION_PRECISION,
+		GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_PERCENT_TRIANGLES,
 		AttributeInfo, FloatData, 1, HAPI_ATTROWNER_PRIM, PrimIndex, 1))
 	{
 		//Global search for the attribute
 		FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-			GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_POSITION_PRECISION,
+			GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_PERCENT_TRIANGLES,
 			AttributeInfo, FloatData, 1, HAPI_ATTROWNER_INVALID, 0, 1);
 	}
 
 	if (FloatData.Num() > 0)
 	{
 		StaticMesh->NaniteSettings.FallbackPercentTriangles = FMath::Clamp<float>(FloatData[0], 0.0f, 1.0f);
+	}
+
+	// Also look for an attribute setting the relative error (default to 1)
+	StaticMesh->NaniteSettings.FallbackRelativeError = 1.0f;
+
+	FloatData.Empty();
+	// Look for a specific prim attribute first
+	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+		GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_FB_RELATIVE_ERROR,
+		AttributeInfo, FloatData, 1, HAPI_ATTROWNER_PRIM, PrimIndex, 1))
+	{
+		//Global search for the attribute
+		FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+			GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_FB_RELATIVE_ERROR,
+			AttributeInfo, FloatData, 1, HAPI_ATTROWNER_INVALID, 0, 1);
+	}
+
+	if (FloatData.Num() > 0)
+	{
+		StaticMesh->NaniteSettings.FallbackRelativeError = FMath::Clamp<float>(FloatData[0], 0.0f, 1.0f);
+	}
+
+	// And do the same for the trim relative error (default to 0)
+	StaticMesh->NaniteSettings.TrimRelativeError = 0.0f;
+
+	FloatData.Empty();
+	// Look for a specific prim attribute first
+	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+		GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_TRIM_RELATIVE_ERROR,
+		AttributeInfo, FloatData, 1, HAPI_ATTROWNER_PRIM, PrimIndex, 1))
+	{
+		//Global search for the attribute
+		FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+			GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_TRIM_RELATIVE_ERROR,
+			AttributeInfo, FloatData, 1, HAPI_ATTROWNER_INVALID, 0, 1);
+	}
+
+	if (FloatData.Num() > 0)
+	{
+		StaticMesh->NaniteSettings.TrimRelativeError = FMath::Clamp<float>(FloatData[0], 0.0f, 1.0f);
 	}
 
 	StaticMesh->NaniteSettings.bEnabled = bEnableNanite;
