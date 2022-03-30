@@ -1499,18 +1499,19 @@ FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const
 		StaticMesh->NaniteSettings.PositionPrecision = IntData[0];
 	}
 
-	// Finally look for the percent triangle attributer, zero by default (no triangles)
-	StaticMesh->NaniteSettings.FallbackPercentTriangles = 0.0f;
+	// Finally look for the percent triangle attributer, one by default (all triangles)
+	// as this mesh is also used as in physics engine as the complex collision version
+	StaticMesh->NaniteSettings.FallbackPercentTriangles = 1.0f;
 	TArray<float> FloatData;
 
 	// Look for a specific prim attribute first
 	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-		GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_POSITION_PRECISION,
+		GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_PERCENT_TRIANGLES,
 		AttributeInfo, FloatData, 1, HAPI_ATTROWNER_PRIM, PrimIndex, 1))
 	{
 		//Global search for the attribute
 		FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-			GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_POSITION_PRECISION,
+			GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_PERCENT_TRIANGLES,
 			AttributeInfo, FloatData, 1, HAPI_ATTROWNER_INVALID, 0, 1);
 	}
 
