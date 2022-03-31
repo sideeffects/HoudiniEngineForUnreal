@@ -2696,7 +2696,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 		//FoliageInfo->AddInstance(FoliageType, FoliageInstance);
 	}
 
-	FoliageInfo->AddInstances(FoliageType, FoliageInstancesPtr);
+	FoliageInfo->AddInstances(InstancedFoliageActor, FoliageType, FoliageInstancesPtr);
 
 	UHierarchicalInstancedStaticMeshComponent* FoliageHISMC = FoliageInfo->GetComponent();	
 	if (IsValid(FoliageHISMC))
