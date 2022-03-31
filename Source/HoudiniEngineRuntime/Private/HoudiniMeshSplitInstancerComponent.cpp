@@ -203,15 +203,21 @@ UHoudiniMeshSplitInstancerComponent::SetInstanceTransforms(
 
         SMC->RegisterComponent();
 
-		/*
-		// TODO:
-        // Properties not being propagated to newly created UStaticMeshComponents
-        if (UHoudiniAssetComponent * pHoudiniAsset = Cast<UHoudiniAssetComponent>(GetAttachParent()))
-        {
-            pHoudiniAsset->CopyComponentPropertiesTo(SMC);
-        }
-		*/
-    }
+		// UE5: Make sure we update/recreate the Component's render state
+		// after the update or the mesh component will not be rendered!
+		if (SMC->IsRenderStateCreated())
+		{
+			// Need to send this to render thread at some point
+			SMC->MarkRenderStateDirty();
+		}
+		else// if (SMC->ShouldCreateRenderState())
+		{
+			// If we didn't have a valid StaticMesh assigned before
+			// our render state might not have been created so
+			// do it now.
+			SMC->RecreateRenderState_Concurrent();
+		}
+	}
 
 	return true;
 }
