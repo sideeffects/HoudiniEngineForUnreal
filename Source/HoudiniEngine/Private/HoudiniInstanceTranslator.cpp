@@ -1169,7 +1169,7 @@ FHoudiniInstanceTranslator::GetPackedPrimitiveInstancerHGPOsAndTransforms(
 
 	// Convert the transform to Unreal's coordinate system
 	TArray<FTransform> InstancerUnrealTransforms;
-	InstancerUnrealTransforms.SetNumUninitialized(InstancerPartTransforms.Num());
+	InstancerUnrealTransforms.SetNum(InstancerPartTransforms.Num());
 	for (int32 InstanceIdx = 0; InstanceIdx < InstancerPartTransforms.Num(); InstanceIdx++)
 	{
 		const auto& InstanceTransform = InstancerPartTransforms[InstanceIdx];
@@ -2118,8 +2118,42 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedStaticMeshComponent(
 	}
 
 	// Now add the instances themselves
-	InstancedStaticMeshComponent->ClearInstances();
-	InstancedStaticMeshComponent->AddInstances(InstancedObjectTransforms, false);
+	//InstancedStaticMeshComponent->ClearInstances();
+	//InstancedStaticMeshComponent->AddInstances(InstancedObjectTransforms, false);
+
+	int32 NumOldInstances = InstancedStaticMeshComponent->GetInstanceCount();
+	int32 NumNewInstances = InstancedObjectTransforms.Num();
+	if (NumOldInstances >= NumNewInstances)
+	{
+		if (NumOldInstances > NumNewInstances)
+		{
+			// We need to remove instances
+			// Remove instance will occasionally cause crashes in UE5-EA2, so clear and re-create the instances
+			InstancedStaticMeshComponent->ClearInstances();
+			InstancedStaticMeshComponent->AddInstances(InstancedObjectTransforms, false);
+		}
+		else  // Reuse existing instances, and update instances transform
+			InstancedStaticMeshComponent->BatchUpdateInstancesTransforms(0, InstancedObjectTransforms, false, true);
+
+		// Remove instance occasionally cause crashes in UE5-EA2
+		//for (int32 n = NumOldInstances - 1; n >= NumNewInstances; n--)
+		//	InstancedStaticMeshComponent->RemoveInstance(n);
+		//InstancedStaticMeshComponent->BatchUpdateInstancesTransforms(0, InstancedObjectTransforms, false, true);
+	}
+	else
+	{
+		// We need to append new instances
+		TArray<FTransform> CreatedTransforms = InstancedObjectTransforms;
+		TArray<FTransform> NewTransforms;
+		for (int32 n = NumNewInstances - 1; n >= NumOldInstances; n--)
+			NewTransforms.Add(CreatedTransforms.Pop());
+
+		// Update the existing instances
+		InstancedStaticMeshComponent->BatchUpdateInstancesTransforms(0, CreatedTransforms, false, true);
+
+		// Append the new ones
+		InstancedStaticMeshComponent->AddInstances(NewTransforms, false);
+	}
 
 	// Apply generic attributes if we have any
 	UpdateGenericPropertiesAttributes(InstancedStaticMeshComponent, AllPropertyAttributes, InstancerObjectIdx);
@@ -2623,35 +2657,46 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 		return false;
 
 	FTransform HoudiniAssetTransform = ParentComponent->GetComponentTransform();
-	FFoliageInstance FoliageInstance;
-	int32 CurrentInstanceCount = 0;
+	//FFoliageInstance FoliageInstance;	
+	//FoliageInfo->ReserveAdditionalInstances(FoliageType, InstancedObjectTransforms.Num());
+	
+	TArray<FFoliageInstance> FoliageInstances;
+	FoliageInstances.SetNum(InstancedObjectTransforms.Num());
 
-	FoliageInfo->ReserveAdditionalInstances(InstancedFoliageActor, FoliageType, InstancedObjectTransforms.Num());
-	for (auto CurrentTransform : InstancedObjectTransforms)
+	TArray<const FFoliageInstance*> FoliageInstancesPtr;
+	FoliageInstancesPtr.SetNum(InstancedObjectTransforms.Num());
+
+	//for (auto CurrentTransform : InstancedObjectTransforms)
+	for(int32 n = 0; n < InstancedObjectTransforms.Num(); n++)
 	{
+		FTransform CurrentTransform = InstancedObjectTransforms[n];
+
 		// Use our parent component for the base component of the instances,
 		// this will allow us to clean the instances by component
-		FoliageInstance.BaseComponent = ParentComponent;
+		FoliageInstances[n].BaseComponent = ParentComponent;
 
 		// TODO: FIX ME!
 		// Somehow, the first time when we create the Foliage type, instances need to be added with relative transform
 		// On subsequent cooks, they are actually expecting world transform
 		if (bCreatedNew)
 		{
-			FoliageInstance.Location = CurrentTransform.GetLocation();
-			FoliageInstance.Rotation = CurrentTransform.GetRotation().Rotator();
-			FoliageInstance.DrawScale3D = CurrentTransform.GetScale3D();
+			FoliageInstances[n].Location = CurrentTransform.GetLocation();
+			FoliageInstances[n].Rotation = CurrentTransform.GetRotation().Rotator();
+			FoliageInstances[n].DrawScale3D = CurrentTransform.GetScale3D();
 		}
 		else
 		{
-			FoliageInstance.Location = HoudiniAssetTransform.TransformPosition(CurrentTransform.GetLocation());
-			FoliageInstance.Rotation = HoudiniAssetTransform.TransformRotation(CurrentTransform.GetRotation()).Rotator();
-			FoliageInstance.DrawScale3D = CurrentTransform.GetScale3D() * HoudiniAssetTransform.GetScale3D();
+			FoliageInstances[n].Location = HoudiniAssetTransform.TransformPosition(CurrentTransform.GetLocation());
+			FoliageInstances[n].Rotation = HoudiniAssetTransform.TransformRotation(CurrentTransform.GetRotation()).Rotator();
+			FoliageInstances[n].DrawScale3D = CurrentTransform.GetScale3D() * HoudiniAssetTransform.GetScale3D();
 		}
 
-		FoliageInfo->AddInstance(InstancedFoliageActor, FoliageType, FoliageInstance);
-		CurrentInstanceCount++;
+		FoliageInstancesPtr[n] = &FoliageInstances[n];
+
+		//FoliageInfo->AddInstance(FoliageType, FoliageInstance);
 	}
+
+	FoliageInfo->AddInstances(FoliageType, FoliageInstancesPtr);
 
 	UHierarchicalInstancedStaticMeshComponent* FoliageHISMC = FoliageInfo->GetComponent();	
 	if (IsValid(FoliageHISMC))
