@@ -2732,6 +2732,73 @@ FHoudiniEngineUtils::TranslateUnrealTransform(
 	}
 }
 
+void
+FHoudiniEngineUtils::ConvertHoudiniPositionToUnrealVector(const TArray<float>& InRawData, TArray<FVector>& OutVectorData)
+{
+	OutVectorData.SetNum(InRawData.Num() / 3);
+
+	for (int32 OutIndex = 0; OutIndex < OutVectorData.Num(); OutIndex++)
+	{
+		const int32& InIndex = OutIndex * 3;
+
+		// Swap Y/Z and scale meters to centimeters
+		OutVectorData[OutIndex].X = InRawData[InIndex + 0] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
+		OutVectorData[OutIndex].Y = InRawData[InIndex + 2] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
+		OutVectorData[OutIndex].Z = InRawData[InIndex + 1] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
+	}
+}
+
+void
+FHoudiniEngineUtils::ConvertHoudiniScaleToUnrealVector(const TArray<float>& InRawData, TArray<FVector>& OutVectorData)
+{
+	OutVectorData.SetNum(InRawData.Num() / 3);
+
+	for (int32 OutIndex = 0; OutIndex < OutVectorData.Num(); OutIndex++)
+	{
+		const int32& InIndex = OutIndex * 3;
+
+		// Just swap Y/Z
+		OutVectorData[OutIndex].X = InRawData[InIndex + 0];
+		OutVectorData[OutIndex].Y = InRawData[InIndex + 2];
+		OutVectorData[OutIndex].Z = InRawData[InIndex + 1];
+	}
+}
+
+void
+FHoudiniEngineUtils::ConvertHoudiniRotQuatToUnrealVector(const TArray<float>& InRawData, TArray<FVector>& OutVectorData)
+{
+	OutVectorData.SetNum(InRawData.Num() / 4);
+
+	for (int32 OutIndex = 0; OutIndex < OutVectorData.Num(); OutIndex++)
+	{
+		const int32& InIndex = OutIndex * 4;
+
+		// Extract a quaternion: Swap Y/Z, invert W
+		FQuat ObjectRotation(
+			InRawData[InIndex + 0], InRawData[InIndex + 2],
+			InRawData[InIndex + 1], -InRawData[InIndex + 3]);
+
+		// Get Euler angles
+		OutVectorData[OutIndex] = ObjectRotation.Euler();
+	}
+}
+
+void
+FHoudiniEngineUtils::ConvertHoudiniRotEulerToUnrealVector(const TArray<float>& InRawData, TArray<FVector>& OutVectorData)
+{
+	OutVectorData.SetNum(InRawData.Num() / 3);
+
+	for (int32 OutIndex = 0; OutIndex < OutVectorData.Num(); OutIndex++)
+	{
+		const int32& InIndex = OutIndex * 3;
+
+		// Just swap Y/Z
+		OutVectorData[OutIndex].X = InRawData[InIndex + 0];
+		OutVectorData[OutIndex].Y = InRawData[InIndex + 2];
+		OutVectorData[OutIndex].Z = InRawData[InIndex + 1];
+	}
+}
+
 bool
 FHoudiniEngineUtils::UploadHACTransform(UHoudiniAssetComponent* HAC)
 {

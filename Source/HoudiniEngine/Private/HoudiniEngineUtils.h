@@ -129,6 +129,18 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		// HAPI : Translate Unreal transform to HAPI Euler one.
 		static void TranslateUnrealTransform(const FTransform & UnrealTransform, HAPI_TransformEuler & HapiTransformEuler);
+		
+		// Translate an array of float position values from Houdini to Unreal
+		static void ConvertHoudiniPositionToUnrealVector(const TArray<float>& InRawData, TArray<FVector>& OutVectorData);
+
+		// Translate an array of float scale values from Houdini to Unreal
+		static void ConvertHoudiniScaleToUnrealVector(const TArray<float>& InRawData, TArray<FVector>& OutVectorData);
+
+		// Translate an array of float quaternion rotation values from Houdini to Unreal
+		static void ConvertHoudiniRotQuatToUnrealVector(const TArray<float>& InRawData, TArray<FVector>& OutVectorData);
+
+		// Translate an array of float euler rotation values from Houdini to Unreal
+		static void ConvertHoudiniRotEulerToUnrealVector(const TArray<float>& InRawData, TArray<FVector>& OutVectorData);
 
 		// Return true if asset is valid.
 		static bool IsHoudiniNodeValid(const HAPI_NodeId& AssetId);
