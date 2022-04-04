@@ -66,38 +66,22 @@ FHoudiniSplineTranslator::ExtractStringPositions(const FString& Positions, TArra
 }
 
 void
-FHoudiniSplineTranslator::ConvertToVectorData(const TArray<float> & InRawData, TArray<FVector>& OutVectorData)
-{
-	OutVectorData.SetNum(InRawData.Num() / 3);
-
-	for (int32 OutIndex = 0; OutIndex < OutVectorData.Num(); OutIndex++)
-	{
-		const int32& InIndex = OutIndex * 3;
-		OutVectorData[OutIndex].X = InRawData[InIndex + 0] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
-		OutVectorData[OutIndex].Y = InRawData[InIndex + 2] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
-		OutVectorData[OutIndex].Z = InRawData[InIndex + 1] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
-	}
-}
-
-void 
-FHoudiniSplineTranslator::ConvertToVectorData(const TArray<float> & InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts) 
+FHoudiniSplineTranslator::ConvertPositionToVectorData(const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts)
 {
 	OutVectorData.SetNum(CurveCounts.Num());
 
 	int32 TotalNumPoints = 0;
-	for (const int32 & NextCount : CurveCounts)
+	for (const int32& NextCount : CurveCounts)
 		TotalNumPoints += NextCount;
 
 	// Do not fill the output array, if the total number of points does not match
 	if (InRawData.Num() < TotalNumPoints * 3)
 		return;
 
-
 	int32 Itr = 0;
-
 	for (int32 n = 0; n < CurveCounts.Num(); ++n)
 	{
-		TArray<FVector> & NextVectorDataArray = OutVectorData[n];
+		TArray<FVector>& NextVectorDataArray = OutVectorData[n];
 		NextVectorDataArray.SetNumZeroed(CurveCounts[n]);
 
 		for (int32 PtIdx = 0; PtIdx < CurveCounts[n]; ++PtIdx)
@@ -105,7 +89,8 @@ FHoudiniSplineTranslator::ConvertToVectorData(const TArray<float> & InRawData, T
 			if (Itr + 2 >= InRawData.Num())
 				return;
 
-			NextVectorDataArray[PtIdx].X = InRawData[Itr]     * HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			// Swap Y/Z convert meters to centimeters
+			NextVectorDataArray[PtIdx].X = InRawData[Itr] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
 			NextVectorDataArray[PtIdx].Y = InRawData[Itr + 2] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
 			NextVectorDataArray[PtIdx].Z = InRawData[Itr + 1] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
 
@@ -113,6 +98,112 @@ FHoudiniSplineTranslator::ConvertToVectorData(const TArray<float> & InRawData, T
 		}
 	}
 }
+
+void
+FHoudiniSplineTranslator::ConvertScaleToVectorData(const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts)
+{
+	OutVectorData.SetNum(CurveCounts.Num());
+
+	int32 TotalNumPoints = 0;
+	for (const int32& NextCount : CurveCounts)
+		TotalNumPoints += NextCount;
+
+	// Do not fill the output array, if the total number of points does not match
+	if (InRawData.Num() < TotalNumPoints * 3)
+		return;
+
+	int32 Itr = 0;
+	for (int32 n = 0; n < CurveCounts.Num(); ++n)
+	{
+		TArray<FVector>& NextVectorDataArray = OutVectorData[n];
+		NextVectorDataArray.SetNumZeroed(CurveCounts[n]);
+
+		for (int32 PtIdx = 0; PtIdx < CurveCounts[n]; ++PtIdx)
+		{
+			if (Itr + 2 >= InRawData.Num())
+				return;
+
+			// Just Swap Y/Z
+			NextVectorDataArray[PtIdx].X = InRawData[Itr];
+			NextVectorDataArray[PtIdx].Y = InRawData[Itr + 2];
+			NextVectorDataArray[PtIdx].Z = InRawData[Itr + 1];
+
+			Itr += 3;
+		}
+	}
+}
+
+void
+FHoudiniSplineTranslator::ConvertEulerRotationToVectorData(const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts)
+{
+	OutVectorData.SetNum(CurveCounts.Num());
+
+	int32 TotalNumPoints = 0;
+	for (const int32& NextCount : CurveCounts)
+		TotalNumPoints += NextCount;
+
+	// Do not fill the output array, if the total number of points does not match
+	if (InRawData.Num() < TotalNumPoints * 3)
+		return;
+
+	int32 Itr = 0;
+	for (int32 n = 0; n < CurveCounts.Num(); ++n)
+	{
+		TArray<FVector>& NextVectorDataArray = OutVectorData[n];
+		NextVectorDataArray.SetNumZeroed(CurveCounts[n]);
+
+		for (int32 PtIdx = 0; PtIdx < CurveCounts[n]; ++PtIdx)
+		{
+			if (Itr + 2 >= InRawData.Num())
+				return;
+
+			// Just Swap Y/Z
+			NextVectorDataArray[PtIdx].X = InRawData[Itr];
+			NextVectorDataArray[PtIdx].Y = InRawData[Itr + 2];
+			NextVectorDataArray[PtIdx].Z = InRawData[Itr + 1];
+
+			Itr += 3;
+		}
+	}
+}
+
+void
+FHoudiniSplineTranslator::ConvertQuaternionRotationToVectorData(const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts)
+{
+	OutVectorData.SetNum(CurveCounts.Num());
+
+	int32 TotalNumPoints = 0;
+	for (const int32& NextCount : CurveCounts)
+		TotalNumPoints += NextCount;
+
+	// Do not fill the output array, if the total number of points does not match
+	if (InRawData.Num() < TotalNumPoints * 4)
+		return;
+
+	int32 Itr = 0;
+	for (int32 n = 0; n < CurveCounts.Num(); ++n)
+	{
+		TArray<FVector>& NextVectorDataArray = OutVectorData[n];
+		NextVectorDataArray.SetNumZeroed(CurveCounts[n]);
+
+		for (int32 PtIdx = 0; PtIdx < CurveCounts[n]; ++PtIdx)
+		{
+			if (Itr + 3 >= InRawData.Num())
+				return;
+
+			// Extract a quaternion: Swap Y/Z, invert W
+			FQuat ObjectRotation(
+				InRawData[Itr + 0], InRawData[Itr + 2],
+				InRawData[Itr + 1], -InRawData[Itr + 3]);
+
+			// Get Euler angles
+			NextVectorDataArray[PtIdx] = ObjectRotation.Euler();
+
+			Itr += 4;
+		}
+	}
+}
+
 void
 FHoudiniSplineTranslator::UpdateHoudiniInputCurves(UHoudiniAssetComponent* HAC)
 {
@@ -213,7 +304,7 @@ FHoudiniSplineTranslator::UpdateHoudiniCurve(UHoudiniSplineComponent* HoudiniSpl
 		CurveInputPoints.SetNum(CurveInputPointsFloat.Num() / 3);
 
 		// Coordinate conversion
-		FHoudiniSplineTranslator::ConvertToVectorData(CurveInputPointsFloat, CurveInputPoints);
+		FHoudiniEngineUtils::ConvertHoudiniPositionToUnrealVector(CurveInputPointsFloat, CurveInputPoints);
 
 		// Build curve points for editable curves.
 		if (HoudiniSplineComponent->CurvePoints.Num() != CurveInputPoints.Num()) 
@@ -238,8 +329,8 @@ FHoudiniSplineTranslator::UpdateHoudiniCurve(UHoudiniSplineComponent* HoudiniSpl
 	}
 
 	TArray<FVector> CurveDisplayPoints;
-	FHoudiniSplineTranslator::ConvertToVectorData(RefinedCurvePositions, CurveDisplayPoints);
-	
+	FHoudiniEngineUtils::ConvertHoudiniPositionToUnrealVector(RefinedCurvePositions, CurveDisplayPoints);
+
 	// Update the display point on the curve
 	HoudiniSplineComponent->Construct(CurveDisplayPoints);
 
@@ -316,7 +407,7 @@ bool FHoudiniSplineTranslator::UpdateHoudiniCurveLegacy(UHoudiniSplineComponent*
 	FHoudiniSplineTranslator::ExtractStringPositions(CurvePointsString, CurvePoints);
 
 	TArray<FVector> CurveDisplayPoints;
-	FHoudiniSplineTranslator::ConvertToVectorData(RefinedCurvePositions, CurveDisplayPoints);
+	FHoudiniEngineUtils::ConvertHoudiniPositionToUnrealVector(RefinedCurvePositions, CurveDisplayPoints);
 
 	// Build curve points for editable curves.
 	if (HoudiniSplineComponent->CurvePoints.Num() != CurvePoints.Num()) 
@@ -1352,7 +1443,7 @@ FHoudiniSplineTranslator::CreateHoudiniSplineComponentFromHoudiniEditableNode(co
 }
 
 UHoudiniSplineComponent*
-FHoudiniSplineTranslator::CreateOutputHoudiniSplineComponent(TArray<FVector>& CurvePoints, const TArray<FVector>& CurveRotations, const TArray<FVector>& CurveScales, UHoudiniAssetComponent* OuterHAC) 
+FHoudiniSplineTranslator::CreateOutputHoudiniSplineComponent(UHoudiniAssetComponent* OuterHAC, TArray<FVector>& CurvePoints, const TArray<FVector>& CurveRotations, const TArray<FVector>& CurveScales)
 {
 	if (!IsValid(OuterHAC))
 		return nullptr;
@@ -1398,8 +1489,13 @@ FHoudiniSplineTranslator::CreateOutputHoudiniSplineComponent(TArray<FVector>& Cu
 }
 
 USplineComponent* 
-FHoudiniSplineTranslator::CreateOutputUnrealSplineComponent(const TArray<FVector>& CurvePoints, const TArray<FVector>& CurveRotations, const TArray<FVector>& CurveScales,
-	UObject* OuterComponent, const bool& bIsLinear, const bool& bIsClosed)
+FHoudiniSplineTranslator::CreateOutputUnrealSplineComponent(
+	UObject* OuterComponent,
+	const TArray<FVector>& CurvePoints,
+	const TArray<FVector>& CurveRotations,
+	const TArray<FVector>& CurveScales,
+	const bool& bIsLinear,
+	const bool& bIsClosed)
 {
 	if (!IsValid(OuterComponent))
 		return nullptr;
@@ -1419,22 +1515,28 @@ FHoudiniSplineTranslator::CreateOutputUnrealSplineComponent(const TArray<FVector
 	// Clear default USplineComponent's points
 	NewSplineComponent->ClearSplinePoints();
 	NewSplineComponent->bEditableWhenInherited = false;
-
-	//bool bHasRotations = CurveRotations.Num() == CurvePoints.Num();
-	//bool bHasScales = CurveScales.Num() == CurvePoints.Num();
  
 	for (int32 n = 0; n < CurvePoints.Num(); ++n) 
 	{
 		NewSplineComponent->AddSplinePoint(CurvePoints[n], ESplineCoordinateSpace::Local);
-		
-		//FSplinePoint NewSplinePoint;
-		//NewSplinePoint.Position = CurvePoints[n];
-		//if (bHasRotations)
-		//	NewSplinePoint.Rotation = CurveRotations[n].Rotation();
+	}
 
-		//if (bHasScales)
-		//	NewSplinePoint.Scale = CurveScales[n];
-		//NewSplineComponent->AddPoint(NewSplinePoint, false);
+	bool bHasScales = CurveScales.Num() == CurvePoints.Num();
+	if (bHasScales)
+	{
+		for (int32 n = 0; n < CurvePoints.Num(); ++n)
+		{
+			NewSplineComponent->SetScaleAtSplinePoint(n, CurveScales[n], false);
+		}
+	}
+
+	bool bHasRotations = CurveRotations.Num() == CurvePoints.Num();
+	if (bHasRotations)
+	{
+		for (int32 n = 0; n < CurvePoints.Num(); ++n)
+		{
+			NewSplineComponent->SetRotationAtSplinePoint(n, CurveRotations[n].Rotation(), ESplineCoordinateSpace::Local, false);
+		}
 	}
 
 	if (bIsLinear)
@@ -1451,20 +1553,7 @@ FHoudiniSplineTranslator::CreateOutputUnrealSplineComponent(const TArray<FVector
 
 	NewSplineComponent->SetClosedLoop(bIsClosed);
 
-	/*
-	NewSplineComponent->SetClosedLoop(bClosed);
-
-	if (Type == int32(EHoudiniCurveType::Linear))
-	{
-		for (int32 n = 0; n < CurvePoints.Num(); ++n)
-			NewSplineComponent->SetSplinePointType(n, ESplinePointType::Linear);
-	}
-	else 
-	{
-		for (int32 n = 0; n < CurvePoints.Num(); ++n)
-			NewSplineComponent->SetSplinePointType(n, ESplinePointType::Curve);
-	}
-	*/
+	NewSplineComponent->UpdateSpline();
 
 	NewSplineComponent->AttachToComponent(OuterSceneComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	NewSplineComponent->RegisterComponent();
@@ -1478,7 +1567,13 @@ FHoudiniSplineTranslator::CreateOutputUnrealSplineComponent(const TArray<FVector
 }
 
 bool 
-FHoudiniSplineTranslator::UpdateOutputUnrealSplineComponent(const TArray<FVector>& CurvePoints, USplineComponent* EditedSplineComponent, const EHoudiniCurveType& CurveType, const bool& bClosed)
+FHoudiniSplineTranslator::UpdateOutputUnrealSplineComponent(
+	USplineComponent* EditedSplineComponent,
+	const TArray<FVector>& CurvePoints,
+	const TArray<FVector>& CurveRotations,
+	const TArray<FVector>& CurveScales,
+	const EHoudiniCurveType& CurveType,
+	const bool& bClosed)
 {
 	if (!IsValid(EditedSplineComponent))
 		return false;
@@ -1486,12 +1581,7 @@ FHoudiniSplineTranslator::UpdateOutputUnrealSplineComponent(const TArray<FVector
 	if (CurvePoints.Num() < 2)
 		return false;
 
-	int MinCount = FMath::Min(CurvePoints.Num(), EditedSplineComponent->GetNumberOfSplinePoints());
-
-	for (int32 Idx = EditedSplineComponent->GetNumberOfSplinePoints() - 1; Idx >= 0; --Idx) 
-	{
-		EditedSplineComponent->RemoveSplinePoint(Idx, false);
-	}
+	EditedSplineComponent->ClearSplinePoints();
 
 	for (int32 Idx = 0; Idx < CurvePoints.Num(); ++Idx) 
 	{
@@ -1501,6 +1591,24 @@ FHoudiniSplineTranslator::UpdateOutputUnrealSplineComponent(const TArray<FVector
 			EditedSplineComponent->SetSplinePointType(Idx, ESplinePointType::Linear, false);
 		else
 			EditedSplineComponent->SetSplinePointType(Idx, ESplinePointType::Curve, false);
+	}
+
+	bool bHasScales = CurveScales.Num() == CurvePoints.Num();
+	if (bHasScales)
+	{
+		for (int32 n = 0; n < CurvePoints.Num(); ++n)
+		{
+			EditedSplineComponent->SetScaleAtSplinePoint(n, CurveScales[n], false);
+		}
+	}
+
+	bool bHasRotations = CurveRotations.Num() == CurvePoints.Num();
+	if (bHasRotations)
+	{
+		for (int32 n = 0; n < CurvePoints.Num(); ++n)
+		{
+			EditedSplineComponent->SetRotationAtSplinePoint(n, CurveRotations[n].Rotation(), ESplineCoordinateSpace::Local, false);
+		}
 	}
 
 	EditedSplineComponent->SetClosedLoop(bClosed, true);
@@ -1609,13 +1717,20 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 	FHoudiniApi::GetCurveCounts(FHoudiniEngine::Get().GetSession(), CurveNodeId, CurvePartId, CurvePointsCounts.GetData(), 0, NumOfCurves);
 
 	TArray<TArray<FVector>> CurvesDisplayPoints;
-	FHoudiniSplineTranslator::ConvertToVectorData(RefinedCurvePositions, CurvesDisplayPoints, CurvePointsCounts);
+	FHoudiniSplineTranslator::ConvertPositionToVectorData(RefinedCurvePositions, CurvesDisplayPoints, CurvePointsCounts);
 
 	TArray<TArray<FVector>> CurvesRotations;
-	FHoudiniSplineTranslator::ConvertToVectorData(RefinedCurveRotations, CurvesRotations, CurvePointsCounts);
+	if (AttributeRefinedCurveRotations.exists && AttributeRefinedCurveRotations.tupleSize == 4)
+	{
+		FHoudiniSplineTranslator::ConvertQuaternionRotationToVectorData(RefinedCurveRotations, CurvesRotations, CurvePointsCounts);
+	}
+	else
+	{
+		FHoudiniSplineTranslator::ConvertEulerRotationToVectorData(RefinedCurveRotations, CurvesRotations, CurvePointsCounts);
+	}
 
 	TArray<TArray<FVector>> CurvesScales;
-	FHoudiniSplineTranslator::ConvertToVectorData(RefinedCurveScales, CurvesScales, CurvePointsCounts);
+	FHoudiniSplineTranslator::ConvertScaleToVectorData(RefinedCurveScales, CurvesScales, CurvePointsCounts);
 
 	// Extract all curve points from this HGPO
 	FString GeoName = InHGPO.PartName;
@@ -1679,7 +1794,9 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 			// If not found (at initialize), create an Unreal spline  
 			// We only support unreal spline for now..
 			// May support Houdini spline too later
-			USplineComponent* CreatedSplineComponent = FHoudiniSplineTranslator::CreateOutputUnrealSplineComponent(CurvesDisplayPoints[n], CurvesRotations[n], CurvesScales[n], InOuterComponent, bIsLinear, bIsClosed);
+			USplineComponent* CreatedSplineComponent = FHoudiniSplineTranslator::CreateOutputUnrealSplineComponent(
+				InOuterComponent, CurvesDisplayPoints[n], CurvesRotations[n], CurvesScales[n], bIsLinear, bIsClosed);
+
 			if (!CreatedSplineComponent)
 				continue;
 
@@ -1722,7 +1839,9 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 						InHGPO.ObjectId, *InHGPO.ObjectName, InHGPO.GeoId, InHGPO.PartId, *InHGPO.PartName, CurveIdx, CurvePointsCounts[n]);
 
 					USplineComponent* FoundUnrealSpline = Cast<USplineComponent>(FoundOutputObject->OutputComponent);
-					if (!FHoudiniSplineTranslator::UpdateOutputUnrealSplineComponent(CurvesDisplayPoints[n], FoundUnrealSpline, FoundOutputObject->CurveOutputProperty.CurveType, FoundOutputObject->CurveOutputProperty.bClosed))
+					if (!FHoudiniSplineTranslator::UpdateOutputUnrealSplineComponent(
+						FoundUnrealSpline, CurvesDisplayPoints[n], CurvesRotations[n], CurvesScales[n], 
+						FoundOutputObject->CurveOutputProperty.CurveType, FoundOutputObject->CurveOutputProperty.bClosed))
 						continue;
 					
 					FoundOutputObject = &OutSplines.Add(CurveIdentifier, *FoundOutputObject);
@@ -1737,7 +1856,9 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 						TEXT("Creating Unreal Spline: Object [%d %s], Geo [%d], Part [%d %s], Curve# [%d], number of points [%d]."),
 						InHGPO.ObjectId, *InHGPO.ObjectName, InHGPO.GeoId, InHGPO.PartId, *InHGPO.PartName, CurveIdx, CurvePointsCounts[n]);
 
-					USplineComponent* NewUnrealSpline = FHoudiniSplineTranslator::CreateOutputUnrealSplineComponent(CurvesDisplayPoints[n], CurvesRotations[n], CurvesScales[n], InOuterComponent, bIsLinear, bIsClosed);
+					USplineComponent* NewUnrealSpline = FHoudiniSplineTranslator::CreateOutputUnrealSplineComponent(
+						InOuterComponent, CurvesDisplayPoints[n], CurvesRotations[n], CurvesScales[n], bIsLinear, bIsClosed);
+
 					if (!NewUnrealSpline)
 						continue;
 
