@@ -106,13 +106,16 @@ struct HOUDINIENGINE_API FHoudiniSplineTranslator
 	// Helper functions.
 	static void ExtractStringPositions(const FString& Positions, TArray<FVector>& OutPositions);
 
-	static void ConvertToVectorData(const TArray<float> & InRawData, TArray<FVector>& OutVectorData);
-
-	static void ConvertToVectorData(const TArray<float> & InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts);
+	static void ConvertPositionToVectorData(const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts);
+	static void ConvertScaleToVectorData(const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts);
+	static void ConvertEulerRotationToVectorData(const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts);
+	static void ConvertQuaternionRotationToVectorData(const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts);
 
 	static void CreatePositionsString(const TArray<FVector>& InPositions, FString& OutPositionString);
 
-	static bool CreateOutputSplinesFromHoudiniGeoPartObject(const FHoudiniGeoPartObject& InHGPO, UObject* InOuterComponent,
+	static bool CreateOutputSplinesFromHoudiniGeoPartObject(
+		const FHoudiniGeoPartObject& InHGPO,
+		UObject* InOuterComponent,
 		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InSplines,
 		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutSplines,
 		const bool& InForceRebuild,
@@ -120,16 +123,35 @@ struct HOUDINIENGINE_API FHoudiniSplineTranslator
 		const bool& bIsLinear,
 		const bool& bIsClosed);
 
-	static bool CreateAllSplinesFromHoudiniOutput(UHoudiniOutput* InOutput, UObject* InOuterComponent);
+	static bool CreateAllSplinesFromHoudiniOutput(
+		UHoudiniOutput* InOutput,
+		UObject* InOuterComponent);
 
-	static USplineComponent* CreateOutputUnrealSplineComponent(const TArray<FVector>& CurvePoints, 
-				const TArray<FVector>& CurveRotations, const TArray<FVector>& CurveScales, UObject* OuterComponent, const bool& bIsLinear, const bool& bIsClosed);
+	static USplineComponent* CreateOutputUnrealSplineComponent(
+		UObject* OuterComponent,
+		const TArray<FVector>& CurvePoints,
+		const TArray<FVector>& CurveRotations,
+		const TArray<FVector>& CurveScales,
+		const bool& bIsLinear,
+		const bool& bIsClosed);
 
-	static UHoudiniSplineComponent* CreateOutputHoudiniSplineComponent(TArray<FVector>& CurvePoints, const TArray<FVector>& CurveRotations, const TArray<FVector>& CurveScales, UHoudiniAssetComponent* OuterHAC);
+	static UHoudiniSplineComponent* CreateOutputHoudiniSplineComponent(
+		UHoudiniAssetComponent* OuterHAC,
+		TArray<FVector>& CurvePoints,
+		const TArray<FVector>& CurveRotations,
+		const TArray<FVector>& CurveScales);
 
-	static bool UpdateOutputUnrealSplineComponent(const TArray<FVector>& CurvePoints, USplineComponent* EditedSplineComponent, const EHoudiniCurveType& CurveType, const bool& bClosed);
+	static bool UpdateOutputUnrealSplineComponent(
+		USplineComponent* EditedSplineComponent,
+		const TArray<FVector>& CurvePoints,
+		const TArray<FVector>& CurveRotations,
+		const TArray<FVector>& CurveScales,
+		const EHoudiniCurveType& CurveType,
+		const bool& bClosed);
 
-	static bool UpdateOutputHoudiniSplineComponent(const TArray<FVector>& CurvePoints, UHoudiniSplineComponent* EditedHoudiniSplineComponent);
+	static bool UpdateOutputHoudiniSplineComponent(
+		const TArray<FVector>& CurvePoints, 
+		UHoudiniSplineComponent* EditedHoudiniSplineComponent);
 
 	static void ReselectSelectedActors();
 };
