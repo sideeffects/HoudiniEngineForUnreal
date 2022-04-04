@@ -626,7 +626,7 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(UGeometryCollectio
 			TMap<FString, TArray<FString>> TextureMaterialParameters;
 
 			bool bAttributeSuccess = false;
-			bool bAddMaterialParametersAsAttributes = false;
+			bool bAddMaterialParametersAsAttributes = true;
 
 			if (bAddMaterialParametersAsAttributes)
 			{
@@ -666,7 +666,6 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(UGeometryCollectio
 
 			if (!bAttributeSuccess)
 			{
-				check(0);
 				return false;
 			}
 		}

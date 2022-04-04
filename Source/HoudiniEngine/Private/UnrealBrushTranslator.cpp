@@ -375,7 +375,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 		TMap<FString, TArray<FString>> TextureMaterialParameters;
 
 		bool bAttributeSuccess = false;
-		bool bAddMaterialParametersAsAttributes = false;
+		bool bAddMaterialParametersAsAttributes = true;
 
 		if (bAddMaterialParametersAsAttributes)
 		{
@@ -415,14 +415,13 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 
 		if (!bAttributeSuccess)
 		{
-			check(0);
 			return false;
 		}
 	}
 
 	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), CreatedNodeId), false );
-
+	HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
+		FHoudiniEngine::Get().GetSession(), CreatedNodeId), false );
 
 	return true;
 }
