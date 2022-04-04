@@ -151,10 +151,6 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			TMap<FString, TArray<float>>& OutVectorMaterialParameters,
 			TMap<FString, TArray<FString>>& OutTextureMaterialParameters);
 
-		// Delete helper array of material names.
-		// Clean up the memory allocated by CreateFaceMaterialArray()
-		//static void DeleteFaceMaterialArray(TArray<char *> & OutStaticMeshFaceMaterials);
-
 		// Create and set mesh material attribute and material (scalar, vector and texture) parameters attributes
 		static bool CreateHoudiniMeshAttributes(
 			const int32& NodeId,
@@ -164,15 +160,6 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			const TMap<FString, TArray<float>>& ScalarMaterialParameters,
 			const TMap<FString, TArray<float>>& VectorMaterialParameters,
 			const TMap<FString, TArray<FString>>& TextureMaterialParameters);
-
-		/*
-		// Creates the unreal_level_path attribute on the input mesh
-		static bool AddLevelPathAttributeToMesh(
-			const HAPI_NodeId& NodeId,
-			const HAPI_PartId& PartId,
-			const FString& LevelPath,
-			const int32& Count);
-			*/
 
 	private:
 

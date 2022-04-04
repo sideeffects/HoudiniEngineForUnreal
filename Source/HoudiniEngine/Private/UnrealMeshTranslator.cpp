@@ -1363,7 +1363,7 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 		TMap<FString, TArray<FString>> TextureMaterialParameters;
 
 		bool bAttributeSuccess = false;
-		bool bAddMaterialParametersAsAttributes = false;
+		bool bAddMaterialParametersAsAttributes = true;
 
 		if (bAddMaterialParametersAsAttributes)
 		{
@@ -1401,18 +1401,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 				TextureMaterialParameters);
 		}
 
-		// Delete material names.
-		//FUnrealMeshTranslator::DeleteFaceMaterialArray(StaticMeshFaceMaterials);
-
-		/*// Delete texture material parameter names
-		for (auto & Pair : TextureMaterialParameters)
-		{
-			FUnrealMeshTranslator::DeleteFaceMaterialArray(Pair.Value);
-		}*/
-
 		if (!bAttributeSuccess)
 		{
-			check(0);
 			return false;
 		}
 	}
@@ -1626,19 +1616,6 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 
 			// Add the unreal_level_path attribute
 			FHoudiniEngineUtils::AddLevelPathAttribute(NodeId, 0, ParentActor->GetLevel(), Part.faceCount);
-			/*
-			if (ULevel* Level = ParentActor->GetLevel())
-			{
-				LevelPath = Level->GetPathName();
-
-				// We just want the path up to the first point
-				int32 DotIndex;
-				if (LevelPath.FindChar('.', DotIndex))
-					LevelPath.LeftInline(DotIndex, false);
-
-				AddLevelPathAttributeToMesh(NodeId, 0, LevelPath, Part.faceCount);
-			}
-			*/
 		}
 	}
 
@@ -2200,7 +2177,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 			TMap<FString, TArray<FString>> TextureMaterialParameters;
 
 			bool bAttributeSuccess = false;
-			bool bAddMaterialParametersAsAttributes = false;
+			bool bAddMaterialParametersAsAttributes = true;
 
 			if (bAddMaterialParametersAsAttributes)
 			{
@@ -2238,18 +2215,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 					TextureMaterialParameters);
 			}
 
-			// Delete material names.
-			//FUnrealMeshTranslator::DeleteFaceMaterialArray(TriangleMaterials);
-
-			/*// Delete texture material parameter names
-			for (auto & Pair : TextureMaterialParameters)
-			{
-				FUnrealMeshTranslator::DeleteFaceMaterialArray(Pair.Value);
-			}*/
-
 			if (!bAttributeSuccess)
 			{
-				check(0);
 				return false;
 			}
 		}
@@ -2467,22 +2434,6 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 			// Add the unreal_level_path attribute
 			FHoudiniEngineUtils::AddLevelPathAttribute(NodeId, 0, ParentActor->GetLevel(), Part.faceCount);
-
-			/*
-			// Add the unreal_level_path attribute
-			FString LevelPath = ActorPath;// FString();
-			if (ULevel* Level = ParentActor->GetLevel())
-			{
-				LevelPath = Level->GetPathName();
-
-				// We just want the path up to the first point
-				int32 DotIndex;
-				if (LevelPath.FindChar('.', DotIndex))
-					LevelPath.LeftInline(DotIndex, false);
-
-				AddLevelPathAttributeToMesh(NodeId, 0, LevelPath, Part.faceCount);
-			}
-			*/
 		}
 	}
 
@@ -3109,7 +3060,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			TMap<FString, TArray<FString>> TextureMaterialParameters;
 
 			bool bAttributeSuccess = false;
-			bool bAddMaterialParametersAsAttributes = false;
+			bool bAddMaterialParametersAsAttributes = true;
 
 			if (bAddMaterialParametersAsAttributes)
 			{
@@ -3147,19 +3098,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 					TextureMaterialParameters);
 			}
 
-			// Delete material names.
-			//FUnrealMeshTranslator::DeleteFaceMaterialArray(TriangleMaterials);
-			/*
-			// Delete texture material parameter names
-			for (auto & Pair : TextureMaterialParameters)
-			{
-				FUnrealMeshTranslator::DeleteFaceMaterialArray(Pair.Value);
-			}
-			*/
-
 			if (!bAttributeSuccess)
 			{
-				check(0);
 				return false;
 			}
 		}
@@ -3398,24 +3338,6 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 
 			// Add the unreal_level_path attribute
 			FHoudiniEngineUtils::AddLevelPathAttribute(NodeId, 0, ParentActor->GetLevel(), Part.faceCount);
-
-			/*
-			FString LevelPath = FString();
-			if (IsValid(ParentActor))
-			{
-				if (ULevel* Level = ParentActor->GetLevel())
-				{
-					LevelPath = Level->GetPathName();
-
-					// We just want the path up to the first point
-					int32 DotIndex;
-					if (LevelPath.FindChar('.', DotIndex))
-						LevelPath.LeftInline(DotIndex, false);
-
-					AddLevelPathAttributeToMesh(NodeId, 0, LevelPath, Part.faceCount);
-				}
-			}
-			*/
 		}
 	}
 
@@ -3647,20 +3569,6 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 	}
 }
 
-/*
-void
-FUnrealMeshTranslator::DeleteFaceMaterialArray(TArray<char *>& OutStaticMeshFaceMaterials)
-{
-	// Clean up the memory allocated by CreateFaceMaterialArray()
-	TSet<char *> UniqueMaterials(OutStaticMeshFaceMaterials);
-	for (TSet<char *>::TIterator Iter = UniqueMaterials.CreateIterator(); Iter; ++Iter)
-	{
-		char* MaterialName = *Iter;
-		FMemory::Free(MaterialName);
-	}
-
-	OutStaticMeshFaceMaterials.Empty();
-}*/
 
 bool
 FUnrealMeshTranslator::CreateInputNodeForBox(
@@ -4232,6 +4140,7 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	for (auto& Pair : ScalarMaterialParameters)
 	{
 		FString CurMaterialParamAttribName = FString(HAPI_UNREAL_ATTRIB_MATERIAL) + "_parameter_" + Pair.Key;
+		FHoudiniEngineUtils::SanitizeHAPIVariableName(CurMaterialParamAttribName);
 
 		// Create attribute for material parameter.
 		HAPI_AttributeInfo AttributeInfoMaterialParameter;
@@ -4261,6 +4170,7 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	for (auto& Pair : VectorMaterialParameters)
 	{
 		FString CurMaterialParamAttribName = FString(HAPI_UNREAL_ATTRIB_MATERIAL) + "_parameter_" + Pair.Key;
+		FHoudiniEngineUtils::SanitizeHAPIVariableName(CurMaterialParamAttribName);
 
 		// Create attribute for material parameter.
 		HAPI_AttributeInfo AttributeInfoMaterialParameter;
@@ -4289,6 +4199,7 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	for (auto& Pair : TextureMaterialParameters)
 	{
 		FString CurMaterialParamAttribName = FString(HAPI_UNREAL_ATTRIB_MATERIAL) + "_parameter_" + Pair.Key;
+		FHoudiniEngineUtils::SanitizeHAPIVariableName(CurMaterialParamAttribName);
 
 		// Create attribute for material parameter.
 		HAPI_AttributeInfo AttributeInfoMaterialParameter;
@@ -4304,25 +4215,6 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		if (HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
 			NodeId, PartId, TCHAR_TO_ANSI(*CurMaterialParamAttribName), &AttributeInfoMaterialParameter))
 		{
-			/*
-			// Replace null strings by empty strings to prevent crashes when setting the attribute.
-			char* EmptyString = nullptr;
-			TArray<char*> StringData = Pair.Value;
-			for (auto& CurValue : StringData)
-			{
-				if (CurValue != nullptr)
-					continue;
-
-				if (!EmptyString)
-				{
-					// Allocate the empty string the first time it is needed. This is free'd along with
-					// the other strings in the arrays in TextureMaterialParameters by calls to DeleteFaceMaterialArray
-					EmptyString = FHoudiniEngineUtils::ExtractRawString(FString(TEXT("")));
-				}
-				CurValue = EmptyString;
-			}
-			*/
-
 			// The New attribute has been successfully created, set its value
 			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeStringData(				
 				Pair.Value, NodeId, PartId, CurMaterialParamAttribName, AttributeInfoMaterialParameter))
@@ -4335,62 +4227,3 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	return bSuccess;
 }
 
-/*
-bool
-FUnrealMeshTranslator::AddLevelPathAttributeToMesh(
-	const HAPI_NodeId& NodeId,
-	const HAPI_PartId& PartId,
-	const FString& LevelPath,
-	const int32& Count)
-{
-	if (NodeId == -1 || LevelPath.IsEmpty() || Count <= 0)
-		return false;
-
-	// Get name of attribute used for level path
-	std::string MarshallingAttributeLevelPath = HAPI_UNREAL_ATTRIB_LEVEL_PATH;
-
-	// Marshall in level path.
-	HAPI_AttributeInfo AttributeInfoLevelPath;
-	FHoudiniApi::AttributeInfo_Init(&AttributeInfoLevelPath);
-	AttributeInfoLevelPath.count = Count;
-	AttributeInfoLevelPath.tupleSize = 1;
-	AttributeInfoLevelPath.exists = true;
-	AttributeInfoLevelPath.owner = HAPI_ATTROWNER_PRIM;
-	AttributeInfoLevelPath.storage = HAPI_STORAGETYPE_STRING;
-	AttributeInfoLevelPath.originalOwner = HAPI_ATTROWNER_INVALID;
-
-	HAPI_Result Result = FHoudiniApi::AddAttribute(
-		FHoudiniEngine::Get().GetSession(), NodeId, PartId,
-		MarshallingAttributeLevelPath.c_str(), &AttributeInfoLevelPath);
-
-	if (HAPI_RESULT_SUCCESS == Result)
-	{
-		// Convert the FString to a cont char * array
-		std::string LevelPathCStr = TCHAR_TO_ANSI(*LevelPath);
-		const char* LevelPathCStrRaw = LevelPathCStr.c_str();
-		TArray<const char*> PrimitiveAttrs;
-		PrimitiveAttrs.AddUninitialized(Count);
-		for (int32 Idx = 0; Idx < Count; ++Idx)
-		{
-			PrimitiveAttrs[Idx] = LevelPathCStrRaw;
-		}
-
-		// Set the attribute's string data
-		Result = FHoudiniApi::SetAttributeStringData(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, PartId,
-			MarshallingAttributeLevelPath.c_str(), &AttributeInfoLevelPath,
-			PrimitiveAttrs.GetData(), 0, AttributeInfoLevelPath.count);
-	}
-
-	if (Result != HAPI_RESULT_SUCCESS)
-	{
-		// Failed to create the attribute
-		HOUDINI_LOG_WARNING(
-			TEXT("Failed to upload unreal_level_path attribute for mesh: %s"),
-			*FHoudiniEngineUtils::GetErrorDescription());
-	}
-
-	return true;
-}
-*/
