@@ -376,12 +376,12 @@ void FHoudiniStaticMeshSceneProxy::PopulateBuffers(const UHoudiniStaticMesh *InM
 	InBuffers->ColorVertexBuffer.Init(NumVertices);
 	InBuffers->TriangleIndexBuffer.Indices.AddUninitialized(NumTriangles * 3);
 
-	const TArray<FVector>& VertexPositions = InMesh->GetVertexPositions();
+	const TArray<FVector3f>& VertexPositions = InMesh->GetVertexPositions();
 	const TArray<FIntVector>& TriangleIndices = InMesh->GetTriangleIndices();
 	const TArray<FColor>& VertexInstanceColors = InMesh->GetVertexInstanceColors();
-	const TArray<FVector>& VertexInstanceNormals = InMesh->GetVertexInstanceNormals();
-	const TArray<FVector>& VertexInstanceUTangents = InMesh->GetVertexInstanceUTangents();
-	const TArray<FVector>& VertexInstanceVTangents = InMesh->GetVertexInstanceVTangents();
+	const TArray<FVector3f>& VertexInstanceNormals = InMesh->GetVertexInstanceNormals();
+	const TArray<FVector3f>& VertexInstanceUTangents = InMesh->GetVertexInstanceUTangents();
+	const TArray<FVector3f>& VertexInstanceVTangents = InMesh->GetVertexInstanceVTangents();
 	const TArray<FVector2d>& VertexInstanceUVs = InMesh->GetVertexInstanceUVs();
 
 	const bool bHasColors = InMesh->HasColors();
@@ -395,8 +395,8 @@ void FHoudiniStaticMeshSceneProxy::PopulateBuffers(const UHoudiniStaticMesh *InM
 		const uint32 TriangleID = InTriangleIDs ? (*InTriangleIDs)[InTriangleGroupStartIdx + TriangleIDIdx] : TriangleIDIdx;
 		const FIntVector &TriIndices = TriangleIndices[TriangleID];
 
-		FVector TangentU;
-		FVector TangentV;
+		FVector3f TangentU;
+		FVector3f TangentV;
 		uint32 VertIdx = VertCounter.Add(3);
 		for (uint8 TriVertIdx = 0; TriVertIdx < 3; ++TriVertIdx)
 		{
@@ -405,7 +405,7 @@ void FHoudiniStaticMeshSceneProxy::PopulateBuffers(const UHoudiniStaticMesh *InM
 
 			InBuffers->PositionVertexBuffer.VertexPosition(VertIdx) = VertexPositions[TriIndices[TriVertIdx]];
 
-			FVector Normal = bHasNormals ? VertexInstanceNormals[MeshVtxInstanceIdx] : FVector(0, 0, 1);
+			FVector3f Normal = bHasNormals ? VertexInstanceNormals[MeshVtxInstanceIdx] : FVector3f(0, 0, 1);
 			if (bHasTangents)
 			{
 				TangentU = VertexInstanceUTangents[MeshVtxInstanceIdx];

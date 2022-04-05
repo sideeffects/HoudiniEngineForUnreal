@@ -46,7 +46,7 @@ UHoudiniStaticMesh::Initialize(uint32 InNumVertices, uint32 InNumTriangles, uint
 	// Initialize the vertex positions and triangle indices arrays
 	VertexPositions.SetNumUninitialized(InNumVertices);
 	for(int32 n = 0; n < VertexPositions.Num(); n++)
-		VertexPositions[n] = FVector::ZeroVector;
+		VertexPositions[n] = FVector3f::ZeroVector;
 
 	TriangleIndices.SetNumUninitialized(InNumTriangles);
 	for (int32 n = 0; n < TriangleIndices.Num(); n++)
@@ -90,7 +90,7 @@ UHoudiniStaticMesh::SetHasNormals(bool bInHasNormals)
 	{
 		VertexInstanceNormals.SetNumUninitialized(GetNumVertexInstances());
 		for (int32 n = 0; n < VertexInstanceNormals.Num(); n++)
-			VertexInstanceNormals[n] = FVector(0, 0, 1);
+			VertexInstanceNormals[n] = FVector3f(0, 0, 1);
 	}
 	else
 		VertexInstanceNormals.Empty();
@@ -104,11 +104,11 @@ UHoudiniStaticMesh::SetHasTangents(bool bInHasTangents)
 	{
 		VertexInstanceUTangents.SetNumUninitialized(GetNumVertexInstances());
 		for (int32 n = 0; n < VertexInstanceUTangents.Num(); n++)
-			VertexInstanceUTangents[n] = FVector(1, 0, 0);
+			VertexInstanceUTangents[n] = FVector3f(1, 0, 0);
 
 		VertexInstanceVTangents.SetNumUninitialized(GetNumVertexInstances());
 		for (int32 n = 0; n < VertexInstanceVTangents.Num(); n++)
-			VertexInstanceVTangents[n] = FVector(0, 1, 0);
+			VertexInstanceVTangents[n] = FVector3f(0, 1, 0);
 	}
 	else
 	{
@@ -152,7 +152,7 @@ void UHoudiniStaticMesh::SetNumStaticMaterials(uint32 InNumMaterials)
 		StaticMaterials.Empty();
 }
 
-void UHoudiniStaticMesh::SetVertexPosition(uint32 InVertexIndex, const FVector& InPosition)
+void UHoudiniStaticMesh::SetVertexPosition(uint32 InVertexIndex, const FVector3f& InPosition)
 {
 	check(VertexPositions.IsValidIndex(InVertexIndex));
 
@@ -169,7 +169,7 @@ void UHoudiniStaticMesh::SetTriangleVertexIndices(uint32 InTriangleIndex, const 
 	TriangleIndices[InTriangleIndex] = InTriangleVertexIndices;
 }
 
-void UHoudiniStaticMesh::SetTriangleVertexNormal(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, const FVector& InNormal)
+void UHoudiniStaticMesh::SetTriangleVertexNormal(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, const FVector3f& InNormal)
 {
 	if (!bHasNormals)
 	{
@@ -183,7 +183,7 @@ void UHoudiniStaticMesh::SetTriangleVertexNormal(uint32 InTriangleIndex, uint8 I
 	VertexInstanceNormals[VertexInstanceIndex] = InNormal;
 }
 
-void UHoudiniStaticMesh::SetTriangleVertexUTangent(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, const FVector& InUTangent)
+void UHoudiniStaticMesh::SetTriangleVertexUTangent(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, const FVector3f& InUTangent)
 {
 	if (!bHasTangents)
 	{
@@ -197,7 +197,7 @@ void UHoudiniStaticMesh::SetTriangleVertexUTangent(uint32 InTriangleIndex, uint8
 	VertexInstanceUTangents[VertexInstanceIndex] = InUTangent;
 }
 
-void UHoudiniStaticMesh::SetTriangleVertexVTangent(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, const FVector& InVTangent)
+void UHoudiniStaticMesh::SetTriangleVertexVTangent(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, const FVector3f& InVTangent)
 {
 	if (!bHasTangents)
 	{
@@ -269,14 +269,14 @@ void UHoudiniStaticMesh::CalculateNormals(bool bInComputeWeightedNormals)
 	const int32 NumVertices = GetNumVertices();
 	
 	// Setup a vertex normal array
-	TArray<FVector> VertexNormals;
+	TArray<FVector3f> VertexNormals;
 	VertexNormals.SetNum(NumVertices);
 
 	// Zero all entries in VertexNormals
 	// for (int32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
 	ParallelFor(NumVertices, [&VertexNormals](int32 VertexIndex) 
 	{
-		VertexNormals[VertexIndex] = FVector::ZeroVector;
+		VertexNormals[VertexIndex] = FVector3f::ZeroVector;
 	});
 
 	// Calculate face normals and sum them for each vertex that shares the triangle
@@ -295,24 +295,24 @@ void UHoudiniStaticMesh::CalculateNormals(bool bInComputeWeightedNormals)
 			return;
 		}
 
-		const FVector& V0 = VertexPositions[TriangleVertexIndices[0]];
-		const FVector& V1 = VertexPositions[TriangleVertexIndices[1]];
-		const FVector& V2 = VertexPositions[TriangleVertexIndices[2]];
+		const FVector3f& V0 = VertexPositions[TriangleVertexIndices[0]];
+		const FVector3f& V1 = VertexPositions[TriangleVertexIndices[1]];
+		const FVector3f& V2 = VertexPositions[TriangleVertexIndices[2]];
 		
-		FVector TriangleNormal = FVector::CrossProduct(V2 - V0, V1 - V0);
+		FVector3f TriangleNormal = FVector3f::CrossProduct(V2 - V0, V1 - V0);
 		float Area = TriangleNormal.Size();
 		TriangleNormal /= Area;
 		Area /= 2.0f;
 
 		const float Weight[3] = {
-			bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle(V0, V1, V2) : 1.0f,
-			bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle(V1, V2, V0) : 1.0f,
-			bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle(V2, V0, V1) : 1.0f,
+			bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle((FVector)V0, (FVector)V1, (FVector)V2) : 1.0f,
+			bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle((FVector)V1, (FVector)V2, (FVector)V0) : 1.0f,
+			bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle((FVector)V2, (FVector)V0, (FVector)V1) : 1.0f,
 		};
 
 		for (int CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
 		{
-			const FVector WeightedNormal = TriangleNormal * Weight[CornerIndex];
+			const FVector3f WeightedNormal = TriangleNormal * Weight[CornerIndex];
 			if (!WeightedNormal.IsNearlyZero(SMALL_NUMBER) && !WeightedNormal.ContainsNaN())
 			{
 				if (!VertexNormals.IsValidIndex(TriangleVertexIndices[CornerIndex]))
@@ -368,7 +368,7 @@ void UHoudiniStaticMesh::CalculateTangents(bool bInComputeWeightedNormals)
 	// for (int32 VertexInstanceIndex = 0; VertexInstanceIndex < NumVertexInstances; ++VertexInstanceIndex)
 	ParallelFor(NumVertexInstances, [this](int32 VertexInstanceIndex) 
 	{
-		const FVector& Normal = VertexInstanceNormals[VertexInstanceIndex];
+		const FVector3f& Normal = VertexInstanceNormals[VertexInstanceIndex];
 		Normal.FindBestAxisVectors(
 			VertexInstanceUTangents[VertexInstanceIndex], VertexInstanceVTangents[VertexInstanceIndex]);
 	});
@@ -396,11 +396,11 @@ FBox UHoudiniStaticMesh::CalcBounds() const
 	if (NumVertices == 0)
 		return FBox();
 
-	const FVector InitPosition = VertexPositions[0];
+	const FVector3f InitPosition = VertexPositions[0];
 	double MinX = InitPosition.X, MaxX = InitPosition.X, MinY = InitPosition.Y, MaxY = InitPosition.Y, MinZ = InitPosition.Z, MaxZ = InitPosition.Z;
 	for (uint32 VertIdx = 0; VertIdx < NumVertices; ++VertIdx)
 	{
-		const FVector Position = VertexPositions[VertIdx];
+		const FVector3f Position = VertexPositions[VertIdx];
 		if (Position.X < MinX) MinX = Position.X; else if (Position.X > MaxX) MaxX = Position.X;
 		if (Position.Y < MinY) MinY = Position.Y; else if (Position.Y > MaxY) MaxY = Position.Y;
 		if (Position.Z < MinZ) MinZ = Position.Z; else if (Position.Z > MaxZ) MaxZ = Position.Z;

@@ -248,8 +248,8 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 
 		for (int32 PosIndex = 0; PosIndex < NumPoints; ++PosIndex)
 		{
-			FVector Point = BrushModel->Points[PosIndex];
-			Point = ActorTransform.InverseTransformPosition(Point);
+			FVector3f Point = BrushModel->Points[PosIndex];
+			Point = (FVector3f)ActorTransform.InverseTransformPosition((FVector3d)Point);
 			FVector Pos(Point.X, Point.Z, Point.Y);
 			OutPosition[PosIndex] = Pos/HAPI_UNREAL_SCALE_FACTOR_POSITION;
 		}
@@ -295,7 +295,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 				// Vertex Index
 				Indices[iVertex] = Verts[Node.iVertPool + NodeVertexIndex].pVertex;
 				// Normal
-				FVector N = Vectors[Surf.vNormal];			
+				FVector3d N = (FVector3d)Vectors[Surf.vNormal];			
 				N = NmlInvXform.TransformVector(N).GetSafeNormal();
 
 				OutNormals[iVertex] = FVector(N.X, N.Z, N.Y);
@@ -303,9 +303,9 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 				FVector3f& vU = Vectors[Surf.vTextureU];
 				FVector3f& vV = Vectors[Surf.vTextureV];
 				FVector3f deltaVtx = (Positions[Indices[iVertex]] - Positions[Surf.pBase]);
-				float U = FVector::DotProduct(deltaVtx, vU) / UModel::GetGlobalBSPTexelScale();
-				float V = -FVector::DotProduct(deltaVtx, vV) / UModel::GetGlobalBSPTexelScale();
-				OutUV[iVertex] = FVector3f(U, V, 0.f);
+				float U = FVector3f::DotProduct(deltaVtx, vU) / UModel::GetGlobalBSPTexelScale();
+				float V = -FVector3f::DotProduct(deltaVtx, vV) / UModel::GetGlobalBSPTexelScale();
+				OutUV[iVertex] = FVector3d(U, V, 0.f);
 				++iVertex;
 			}
 			// Face Material
