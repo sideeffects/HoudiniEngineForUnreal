@@ -288,7 +288,7 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(UGeometryCollectio
 			for (int32 VertexIdx = 0; VertexIdx < VertexCount; ++VertexIdx)
 			{
 				int32 IndexInArray = VertexStart + VertexIdx;
-				const FVector & PositionVector = Vertex[IndexInArray];
+				const FVector3f& PositionVector = Vertex[IndexInArray];
 
 				// Convert Unreal to Houdini
 				StaticMeshVertices[VertexIdx * 3 + 0] = PositionVector.X / HAPI_UNREAL_SCALE_FACTOR_POSITION;

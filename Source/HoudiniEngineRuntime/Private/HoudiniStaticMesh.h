@@ -97,19 +97,19 @@ public:
 	uint32 GetNumVertexInstances() const { return TriangleIndices.Num() * 3; }
 
 	UFUNCTION()
-	void SetVertexPosition(uint32 InVertexIndex, const FVector& InPosition);
+	void SetVertexPosition(uint32 InVertexIndex, const FVector3f& InPosition);
 
 	UFUNCTION()
 	void SetTriangleVertexIndices(uint32 InTriangleIndex, const FIntVector& InTriangleVertexIndices);
 
 	UFUNCTION()
-	void SetTriangleVertexNormal(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, const FVector& InNormal);
+	void SetTriangleVertexNormal(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, const FVector3f& InNormal);
 
 	UFUNCTION()
-	void SetTriangleVertexUTangent(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, const FVector& InUTangent);
+	void SetTriangleVertexUTangent(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, const FVector3f& InUTangent);
 
 	UFUNCTION()
-	void SetTriangleVertexVTangent(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, const FVector& InVTangent);
+	void SetTriangleVertexVTangent(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, const FVector3f& InVTangent);
 
 	UFUNCTION()
 	void SetTriangleVertexColor(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, const FColor& InColor);
@@ -158,7 +158,7 @@ public:
 	FBox CalcBounds() const;
 
 	UFUNCTION()
-	const TArray<FVector>& GetVertexPositions() const { return VertexPositions; }
+	const TArray<FVector3f>& GetVertexPositions() const { return VertexPositions; }
 
 	UFUNCTION()
 	const TArray<FIntVector>& GetTriangleIndices() const { return TriangleIndices; }
@@ -167,13 +167,13 @@ public:
 	const TArray<FColor>& GetVertexInstanceColors() const { return VertexInstanceColors; }
 
 	UFUNCTION()
-	const TArray<FVector>& GetVertexInstanceNormals() const { return VertexInstanceNormals; }
+	const TArray<FVector3f>& GetVertexInstanceNormals() const { return VertexInstanceNormals; }
 
 	UFUNCTION()
-	const TArray<FVector>& GetVertexInstanceUTangents() const { return VertexInstanceUTangents; }
+	const TArray<FVector3f>& GetVertexInstanceUTangents() const { return VertexInstanceUTangents; }
 
 	UFUNCTION()
-	const TArray<FVector>& GetVertexInstanceVTangents() const { return VertexInstanceVTangents; }
+	const TArray<FVector3f>& GetVertexInstanceVTangents() const { return VertexInstanceVTangents; }
 
 	UFUNCTION()
 	const TArray<FVector2D>& GetVertexInstanceUVs() const { return VertexInstanceUVs; }
@@ -221,7 +221,7 @@ protected:
 
 	/** Vertex positions. The vertex id == vertex index => indexes into this array. */
 	UPROPERTY(SkipSerialization)
-	TArray<FVector> VertexPositions;
+	TArray<FVector3f> VertexPositions;
 
 	/** Triangle vertices. Triangle id == triangle index => indexes into this array, which returns a FIntVector of
 	 * vertex ids/indices for VertexPositions.
@@ -235,15 +235,15 @@ protected:
 
 	/** Array of normals per vertex instance, in other words, a normal per triangle-vertex. Index 3 * TriangleID + LocalTriangleVertexIndex. */
 	UPROPERTY(SkipSerialization)
-	TArray<FVector> VertexInstanceNormals;
+	TArray<FVector3f> VertexInstanceNormals;
 
 	/** Array of U tangents per vertex instance, in other words, a tangent per triangle-vertex. Index 3 * TriangleID + LocalTriangleVertexIndex. */
 	UPROPERTY(SkipSerialization)
-	TArray<FVector> VertexInstanceUTangents;
+	TArray<FVector3f> VertexInstanceUTangents;
 
 	/** Array of V tangents per vertex instance, in other words, a tangent per triangle-vertex. Index 3 * TriangleID + LocalTriangleVertexIndex. */
 	UPROPERTY(SkipSerialization)
-	TArray<FVector> VertexInstanceVTangents;
+	TArray<FVector3f> VertexInstanceVTangents;
 
 	/** Array of UV layers to array of per triangle-vertex UVs. Index: UVLayerIndex * (NumVertexInstances) + 3 * TriangleID + LocalTriangleVertexIndex. */
 	UPROPERTY(SkipSerialization)

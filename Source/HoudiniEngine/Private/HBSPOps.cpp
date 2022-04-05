@@ -58,7 +58,7 @@ static void UpdateBoundWithPolys( FBox& Bound, FPoly** PolyList, int32 nPolys )
 {
 	for( int32 i=0; i<nPolys; i++ )
 		for( int32 j=0; j<PolyList[i]->Vertices.Num(); j++ )
-			Bound += PolyList[i]->Vertices[j];
+			Bound += (FVector)PolyList[i]->Vertices[j];
 }
 
 //
@@ -82,7 +82,7 @@ static void UpdateConvolutionWithPolys( UModel *Model, int32 iNode, FPoly **Poly
 				Model->LeafHulls.Add(PolyList[i]->iBrushPoly);
 		}
 		for( int32 j=0; j<PolyList[i]->Vertices.Num(); j++ )
-			Box += PolyList[i]->Vertices[j];
+			Box += (FVector)PolyList[i]->Vertices[j];
 	}
 	Model->LeafHulls.Add(INDEX_NONE);
 
@@ -159,11 +159,11 @@ static void SplitPartitioner
 //
 FPoly FHBSPOps::BuildInfiniteFPoly( UModel* Model, int32 iNode )
 {
-	FBspNode &Node   = Model->Nodes  [iNode       ];
-	FBspSurf &Poly   = Model->Surfs  [Node.iSurf  ];
-	FVector  Base    = Poly.Plane * Poly.Plane.W;
-	FVector  Normal  = Poly.Plane;
-	FVector	 Axis1,Axis2;
+	FBspNode& Node = Model->Nodes[iNode];
+	FBspSurf& Poly = Model->Surfs[Node.iSurf];
+	FVector  Base = FVector(Poly.Plane * Poly.Plane.W);
+	FVector  Normal = (FVector)Poly.Plane;
+	FVector	 Axis1, Axis2;
 
 	// Find two non-problematic axis vectors.
 	Normal.FindBestAxisVectors( Axis1, Axis2 );
@@ -171,12 +171,12 @@ FPoly FHBSPOps::BuildInfiniteFPoly( UModel* Model, int32 iNode )
 	// Set up the FPoly.
 	FPoly EdPoly;
 	EdPoly.Init();
-	EdPoly.Normal      = Normal;
-	EdPoly.Base        = Base;
-	new(EdPoly.Vertices) FVector(Base + Axis1*WORLD_MAX + Axis2*WORLD_MAX);
-	new(EdPoly.Vertices) FVector(Base - Axis1*WORLD_MAX + Axis2*WORLD_MAX);
-	new(EdPoly.Vertices) FVector(Base - Axis1*WORLD_MAX - Axis2*WORLD_MAX);
-	new(EdPoly.Vertices) FVector(Base + Axis1*WORLD_MAX - Axis2*WORLD_MAX);
+	EdPoly.Normal      = (FVector3f)Normal;
+	EdPoly.Base        = (FVector3f)Base;
+	new(EdPoly.Vertices) FVector3f(Base + Axis1*WORLD_MAX + Axis2*WORLD_MAX);
+	new(EdPoly.Vertices) FVector3f(Base - Axis1*WORLD_MAX + Axis2*WORLD_MAX);
+	new(EdPoly.Vertices) FVector3f(Base - Axis1*WORLD_MAX - Axis2*WORLD_MAX);
+	new(EdPoly.Vertices) FVector3f(Base + Axis1*WORLD_MAX - Axis2*WORLD_MAX);
 
 	return EdPoly;
 }
@@ -199,7 +199,7 @@ static void FilterBound
 	FMemMark Mark(FMemStack::Get());
 	FBspNode&	Node	= Model->Nodes  [iNode];
 	FBspSurf&	Surf	= Model->Surfs  [Node.iSurf];
-	FVector	Base = Surf.Plane * Surf.Plane.W;
+	FVector3f	Base = Surf.Plane * Surf.Plane.W;
 	FVector3f&	Normal	= Model->Vectors[Surf.vNormal];
 	FBox		Bound(ForceInit);
 
@@ -369,7 +369,7 @@ static FPoly *FindBestSplit
 		for( j=0; j<NumPolys; j+=Inc ) if( j != Index )
 		{
 			FPoly *OtherPoly = PolyList[j];
-			switch( OtherPoly->SplitWithPlaneFast( FPlane( Poly->Vertices[0], Poly->Normal), NULL, NULL ) )
+			switch( OtherPoly->SplitWithPlaneFast( FPlane((FVector)Poly->Vertices[0], (FVector)Poly->Normal), NULL, NULL ) )
 			{
 				case SP_Coplanar:
 					Coplanar++;
@@ -705,7 +705,7 @@ int32 FHBSPOps::bspAddVector( UModel* Model, FVector* V, bool Exact, UHBspPoints
 		const int32 ReturnedIndex = BspVectors->FindOrAddPoint(*V, NextIndex, Thresh);
 		if (ReturnedIndex == NextIndex)
 		{
-			Model->Vectors.Add(*V);
+			Model->Vectors.Add((FVector3f)*V);
 		}
 
 		return ReturnedIndex;
@@ -714,7 +714,7 @@ int32 FHBSPOps::bspAddVector( UModel* Model, FVector* V, bool Exact, UHBspPoints
 	return AddThing
 	(
 		Model->Vectors,
-		*V,
+		(FVector3f)*V,
 		Exact ? THRESH_NORMALS_ARE_SAME : THRESH_VECTORS_ARE_NEAR,
 		1
 	);
@@ -733,7 +733,7 @@ int32 FHBSPOps::bspAddPoint( UModel* Model, FVector* V, bool Exact, UHBspPointsG
 		const int32 ReturnedIndex = BspPoints->FindOrAddPoint(*V, NextIndex, THRESH_POINTS_ARE_SAME);
 		if (ReturnedIndex == NextIndex)
 		{
-			Model->Points.Add(*V);
+			Model->Points.Add((FVector3f)*V);
 		}
 
 		return ReturnedIndex;
@@ -743,7 +743,7 @@ int32 FHBSPOps::bspAddPoint( UModel* Model, FVector* V, bool Exact, UHBspPointsG
 	// except for any dissociated from nodes/surfaces during a rebuild.
 	FVector3f Temp;
 	int32 pVertex;
-	float NearestDist = Model->FindNearestVertex(*V,Temp,Thresh,pVertex);
+	float NearestDist = Model->FindNearestVertex((FVector3f)*V,Temp,Thresh,pVertex);
 	if( (NearestDist >= 0.0) && (NearestDist <= Thresh) )
 	{
 		// Found an existing point.
@@ -752,7 +752,7 @@ int32 FHBSPOps::bspAddPoint( UModel* Model, FVector* V, bool Exact, UHBspPointsG
 	else
 	{
 		// No match found; add it slowly to find duplicates.
-		return AddThing(Model->Points, *V, Thresh, !GFastRebuild);
+		return AddThing(Model->Points, (FVector3f)*V, Thresh, !GFastRebuild);
 	}
 }
 
@@ -1003,46 +1003,46 @@ void FHBSPOps::bspBuildBounds( UModel* Model )
 		PolyList[i]->iBrushPoly = INDEX_NONE;
 	}
 
-	new(Polys[0].Vertices)FVector(-HALF_WORLD_MAX,-HALF_WORLD_MAX,HALF_WORLD_MAX);
-	new(Polys[0].Vertices)FVector( HALF_WORLD_MAX,-HALF_WORLD_MAX,HALF_WORLD_MAX);
-	new(Polys[0].Vertices)FVector( HALF_WORLD_MAX, HALF_WORLD_MAX,HALF_WORLD_MAX);
-	new(Polys[0].Vertices)FVector(-HALF_WORLD_MAX, HALF_WORLD_MAX,HALF_WORLD_MAX);
-	Polys[0].Normal   =FVector( 0.000000,  0.000000,  1.000000 );
+	new(Polys[0].Vertices)FVector3f(-HALF_WORLD_MAX,-HALF_WORLD_MAX,HALF_WORLD_MAX);
+	new(Polys[0].Vertices)FVector3f( HALF_WORLD_MAX,-HALF_WORLD_MAX,HALF_WORLD_MAX);
+	new(Polys[0].Vertices)FVector3f( HALF_WORLD_MAX, HALF_WORLD_MAX,HALF_WORLD_MAX);
+	new(Polys[0].Vertices)FVector3f(-HALF_WORLD_MAX, HALF_WORLD_MAX,HALF_WORLD_MAX);
+	Polys[0].Normal   = FVector3f( 0.000000,  0.000000,  1.000000 );
 	Polys[0].Base     =Polys[0].Vertices[0];
 
-	new(Polys[1].Vertices)FVector(-HALF_WORLD_MAX, HALF_WORLD_MAX,-HALF_WORLD_MAX);
-	new(Polys[1].Vertices)FVector( HALF_WORLD_MAX, HALF_WORLD_MAX,-HALF_WORLD_MAX);
-	new(Polys[1].Vertices)FVector( HALF_WORLD_MAX,-HALF_WORLD_MAX,-HALF_WORLD_MAX);
-	new(Polys[1].Vertices)FVector(-HALF_WORLD_MAX,-HALF_WORLD_MAX,-HALF_WORLD_MAX);
-	Polys[1].Normal   =FVector( 0.000000,  0.000000, -1.000000 );
+	new(Polys[1].Vertices)FVector3f(-HALF_WORLD_MAX, HALF_WORLD_MAX,-HALF_WORLD_MAX);
+	new(Polys[1].Vertices)FVector3f( HALF_WORLD_MAX, HALF_WORLD_MAX,-HALF_WORLD_MAX);
+	new(Polys[1].Vertices)FVector3f( HALF_WORLD_MAX,-HALF_WORLD_MAX,-HALF_WORLD_MAX);
+	new(Polys[1].Vertices)FVector3f(-HALF_WORLD_MAX,-HALF_WORLD_MAX,-HALF_WORLD_MAX);
+	Polys[1].Normal   = FVector3f( 0.000000,  0.000000, -1.000000 );
 	Polys[1].Base     =Polys[1].Vertices[0];
 
-	new(Polys[2].Vertices)FVector(-HALF_WORLD_MAX,HALF_WORLD_MAX,-HALF_WORLD_MAX);
-	new(Polys[2].Vertices)FVector(-HALF_WORLD_MAX,HALF_WORLD_MAX, HALF_WORLD_MAX);
-	new(Polys[2].Vertices)FVector( HALF_WORLD_MAX,HALF_WORLD_MAX, HALF_WORLD_MAX);
-	new(Polys[2].Vertices)FVector( HALF_WORLD_MAX,HALF_WORLD_MAX,-HALF_WORLD_MAX);
-	Polys[2].Normal   =FVector( 0.000000,  1.000000,  0.000000 );
+	new(Polys[2].Vertices)FVector3f(-HALF_WORLD_MAX,HALF_WORLD_MAX,-HALF_WORLD_MAX);
+	new(Polys[2].Vertices)FVector3f(-HALF_WORLD_MAX,HALF_WORLD_MAX, HALF_WORLD_MAX);
+	new(Polys[2].Vertices)FVector3f( HALF_WORLD_MAX,HALF_WORLD_MAX, HALF_WORLD_MAX);
+	new(Polys[2].Vertices)FVector3f( HALF_WORLD_MAX,HALF_WORLD_MAX,-HALF_WORLD_MAX);
+	Polys[2].Normal   = FVector3f( 0.000000,  1.000000,  0.000000 );
 	Polys[2].Base     =Polys[2].Vertices[0];
 
-	new(Polys[3].Vertices)FVector( HALF_WORLD_MAX,-HALF_WORLD_MAX,-HALF_WORLD_MAX);
-	new(Polys[3].Vertices)FVector( HALF_WORLD_MAX,-HALF_WORLD_MAX, HALF_WORLD_MAX);
-	new(Polys[3].Vertices)FVector(-HALF_WORLD_MAX,-HALF_WORLD_MAX, HALF_WORLD_MAX);
-	new(Polys[3].Vertices)FVector(-HALF_WORLD_MAX,-HALF_WORLD_MAX,-HALF_WORLD_MAX);
-	Polys[3].Normal   =FVector( 0.000000, -1.000000,  0.000000 );
+	new(Polys[3].Vertices)FVector3f( HALF_WORLD_MAX,-HALF_WORLD_MAX,-HALF_WORLD_MAX);
+	new(Polys[3].Vertices)FVector3f( HALF_WORLD_MAX,-HALF_WORLD_MAX, HALF_WORLD_MAX);
+	new(Polys[3].Vertices)FVector3f(-HALF_WORLD_MAX,-HALF_WORLD_MAX, HALF_WORLD_MAX);
+	new(Polys[3].Vertices)FVector3f(-HALF_WORLD_MAX,-HALF_WORLD_MAX,-HALF_WORLD_MAX);
+	Polys[3].Normal   =FVector3f( 0.000000, -1.000000,  0.000000 );
 	Polys[3].Base     =Polys[3].Vertices[0];
 
-	new(Polys[4].Vertices)FVector(HALF_WORLD_MAX, HALF_WORLD_MAX,-HALF_WORLD_MAX);
-	new(Polys[4].Vertices)FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX);
-	new(Polys[4].Vertices)FVector(HALF_WORLD_MAX,-HALF_WORLD_MAX, HALF_WORLD_MAX);
-	new(Polys[4].Vertices)FVector(HALF_WORLD_MAX,-HALF_WORLD_MAX,-HALF_WORLD_MAX);
-	Polys[4].Normal   =FVector( 1.000000,  0.000000,  0.000000 );
+	new(Polys[4].Vertices)FVector3f(HALF_WORLD_MAX, HALF_WORLD_MAX,-HALF_WORLD_MAX);
+	new(Polys[4].Vertices)FVector3f(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX);
+	new(Polys[4].Vertices)FVector3f(HALF_WORLD_MAX,-HALF_WORLD_MAX, HALF_WORLD_MAX);
+	new(Polys[4].Vertices)FVector3f(HALF_WORLD_MAX,-HALF_WORLD_MAX,-HALF_WORLD_MAX);
+	Polys[4].Normal   =FVector3f( 1.000000,  0.000000,  0.000000 );
 	Polys[4].Base     =Polys[4].Vertices[0];
 
-	new(Polys[5].Vertices)FVector(-HALF_WORLD_MAX,-HALF_WORLD_MAX,-HALF_WORLD_MAX);
-	new(Polys[5].Vertices)FVector(-HALF_WORLD_MAX,-HALF_WORLD_MAX, HALF_WORLD_MAX);
-	new(Polys[5].Vertices)FVector(-HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX);
-	new(Polys[5].Vertices)FVector(-HALF_WORLD_MAX, HALF_WORLD_MAX,-HALF_WORLD_MAX);
-	Polys[5].Normal   =FVector(-1.000000,  0.000000,  0.000000 );
+	new(Polys[5].Vertices)FVector3f(-HALF_WORLD_MAX,-HALF_WORLD_MAX,-HALF_WORLD_MAX);
+	new(Polys[5].Vertices)FVector3f(-HALF_WORLD_MAX,-HALF_WORLD_MAX, HALF_WORLD_MAX);
+	new(Polys[5].Vertices)FVector3f(-HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX);
+	new(Polys[5].Vertices)FVector3f(-HALF_WORLD_MAX, HALF_WORLD_MAX,-HALF_WORLD_MAX);
+	Polys[5].Normal   =FVector3f(-1.000000,  0.000000,  0.000000 );
 	Polys[5].Base     =Polys[5].Vertices[0];
 	// Empty hulls.
 	Model->LeafHulls.Empty();
@@ -1085,7 +1085,7 @@ void FHBSPOps::bspValidateBrush( UModel* Brush, bool ForceValidate, bool DoStatu
 					&&	OtherPoly->PolyFlags == EdPoly->PolyFlags
 					&&	(OtherPoly->Normal | EdPoly->Normal)>0.9999 )
 					{
-						float Dist = FVector::PointPlaneDist( OtherPoly->Vertices[0], EdPoly->Vertices[0], EdPoly->Normal );
+						float Dist = FVector3f::PointPlaneDist( OtherPoly->Vertices[0], EdPoly->Vertices[0], EdPoly->Normal );
 						if( Dist>-0.001 && Dist<0.001 )
 						{
 							OtherPoly->iLink = i;
@@ -1136,7 +1136,11 @@ int32	FHBSPOps::bspAddNode( UModel* Model, int32 iParent, enum ENodePlace NodePl
 		Surf = &Model->Surfs[NewIndex];
 
 		// This node has a new polygon being added by bspBrushCSG; must set its properties here.
-		FVector Base = EdPoly->Base, Normal = EdPoly->Normal, TextureU = EdPoly->TextureU, TextureV = EdPoly->TextureV;
+		FVector Base = (FVector)EdPoly->Base;
+		FVector Normal = (FVector)EdPoly->Normal;
+		FVector TextureU = (FVector)EdPoly->TextureU;
+		FVector TextureV = (FVector)EdPoly->TextureV;
+
 		Surf->pBase     	= bspAddPoint  (Model,&Base,1,BspPoints);
 		Surf->vNormal   	= bspAddVector (Model,&Normal,1,BspVectors);
 		Surf->vTextureU 	= bspAddVector (Model,&TextureU,0,BspVectors);
@@ -1271,7 +1275,7 @@ int32	FHBSPOps::bspAddNode( UModel* Model, int32 iParent, enum ENodePlace NodePl
 		FVert* VertPool	 = &Model->Verts[ Node.iVertPool ];
 		for( uint8 i=0; i<EdPoly->Vertices.Num(); i++ )
 		{
-			FVector Vertex = EdPoly->Vertices[i];
+			FVector Vertex = (FVector)EdPoly->Vertices[i];
 			int32 pVertex = bspAddPoint(Model,&Vertex,0, BspPoints);
 			if( Node.NumVertices==0 || VertPool[Node.NumVertices-1].pVertex!=pVertex )
 			{
@@ -1324,20 +1328,20 @@ void FHBSPOps::RotateBrushVerts(ABrush* Brush, const FRotator& Rotation, bool bC
 			FPoly* Poly = &(Brush->GetBrushComponent()->Brush->Polys->Element[poly]);
 
 			// Rotate the vertices.
-			const FRotationMatrix RotMatrix( Rotation );
-			for( int32 vertex = 0 ; vertex < Poly->Vertices.Num() ; vertex++ )
+			const FRotationMatrix RotMatrix(Rotation);
+			for (int32 vertex = 0; vertex < Poly->Vertices.Num(); vertex++)
 			{
-				Poly->Vertices[vertex] = Brush->GetPivotOffset() + RotMatrix.TransformVector(Poly->Vertices[vertex] - Brush->GetPivotOffset());
+				Poly->Vertices[vertex] = FVector3f(Brush->GetPivotOffset() + (FVector)RotMatrix.TransformVector((FVector)Poly->Vertices[vertex] - Brush->GetPivotOffset()));
 			}
-			Poly->Base = Brush->GetPivotOffset() + RotMatrix.TransformVector(Poly->Base - Brush->GetPivotOffset());
+			Poly->Base = FVector3f(Brush->GetPivotOffset() + (FVector)RotMatrix.TransformVector(FVector(Poly->Base) - Brush->GetPivotOffset()));
 
 			// Rotate the texture vectors.
-			Poly->TextureU = FVector4f(RotMatrix.TransformVector( Poly->TextureU ));
-			Poly->TextureV = FVector4f(RotMatrix.TransformVector( Poly->TextureV ));
+			Poly->TextureU = FVector4f(RotMatrix.TransformVector((FVector)Poly->TextureU));
+			Poly->TextureV = FVector4f(RotMatrix.TransformVector((FVector)Poly->TextureV));
 
 			// Recalc the normal for the poly.
-			Poly->Normal = FVector::ZeroVector;
-			Poly->Finalize(Brush,0);
+			Poly->Normal = FVector3f::ZeroVector;
+			Poly->Finalize(Brush, 0);
 		}
 
 		Brush->GetBrushComponent()->Brush->BuildBound();

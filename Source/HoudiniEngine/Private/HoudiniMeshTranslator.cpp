@@ -2911,7 +2911,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			//		 a no-op on SrcModel->SaveRawMesh (leaves previous data in place).
 			// TODO: perhaps we can use an alternative "error" mesh?
 			RawMesh.Empty();
-			RawMesh.VertexPositions.Add(FVector::ZeroVector);
+			RawMesh.VertexPositions.Add(FVector3f::ZeroVector);
 			RawMesh.WedgeIndices.SetNumZeroed(3);
 			//RawMesh.WedgeTexCoords[0].Init(FVector2D::ZeroVector, RawMesh.WedgeIndices.Num());
 			RawMesh.WedgeTexCoords[0].SetNumUninitialized(RawMesh.WedgeIndices.Num());
@@ -4214,9 +4214,9 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 						TangentY.Z = SplitTangentV[SplitVertexIndex_Z];
 
 						VertexInstanceBinormalSigns[VertexInstanceID] = GetBasisDeterminantSign(
-							VertexInstanceTangents[VertexInstanceID].GetSafeNormal(),
-							TangentY.GetSafeNormal(),
-							VertexInstanceNormals[VertexInstanceID].GetSafeNormal());
+							(FVector)VertexInstanceTangents[VertexInstanceID].GetSafeNormal(),
+							(FVector)TangentY.GetSafeNormal(),
+							(FVector)VertexInstanceNormals[VertexInstanceID].GetSafeNormal());
 					}
 
 					// Color
@@ -5118,7 +5118,7 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 					}
 
 					// We need to swap Z and Y coordinate here, and convert from m to cm. 
-					FoundStaticMesh->SetVertexPosition(VertexPositionIdx, FVector(
+					FoundStaticMesh->SetVertexPosition(VertexPositionIdx, FVector3f(
 						PartPositions[NeededVertexIndex * 3 + 0] * HAPI_UNREAL_SCALE_FACTOR_POSITION,
 						PartPositions[NeededVertexIndex * 3 + 2] * HAPI_UNREAL_SCALE_FACTOR_POSITION,
 						PartPositions[NeededVertexIndex * 3 + 1] * HAPI_UNREAL_SCALE_FACTOR_POSITION
@@ -5163,7 +5163,7 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 						for (int32 ElementIdx = 0; ElementIdx < 3; ++ElementIdx)
 						{
 							const bool bHasNormal = (NormalCount > 0 && SplitNormals.IsValidIndex(TriVertIdx0 * 3 + 3 * 3 - 1));
-							FVector Normal = FVector::ZeroVector;
+							FVector3f Normal = FVector3f::ZeroVector;
 							if (bHasNormal)
 							{
 								// Flip Z and Y coordinate for normal, but don't scale
@@ -5178,7 +5178,7 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 
 							if (bReadTangents || bGenerateTangentsFromNormalAttribute)
 							{
-								FVector TangentU, TangentV;
+								FVector3f TangentU, TangentV;
 								if (bGenerateTangentsFromNormalAttribute)
 								{
 									if (bHasNormal)
@@ -6880,7 +6880,7 @@ FHoudiniMeshTranslator::CalcBoundingSphyl(const TArray<FVector>& PositionArray, 
 }
 
 int32
-FHoudiniMeshTranslator::GenerateKDopAsSimpleCollision(const TArray<FVector>& InPositionArray, const TArray<FVector> &Dirs, FKAggregateGeom& OutAggregateCollisions)
+FHoudiniMeshTranslator::GenerateKDopAsSimpleCollision(const TArray<FVector>& InPositionArray, const TArray<FVector>& Dirs, FKAggregateGeom& OutAggregateCollisions)
 {
 	//
 	// Code simplified and adapted to work with a simple vector array from GeomFitUtils.cpp
@@ -6918,9 +6918,9 @@ FHoudiniMeshTranslator::GenerateKDopAsSimpleCollision(const TArray<FVector>& InP
 	}
 
 	// Now we have the planes of the kdop, we work out the face polygons.
-	TArray<FPlane> planes;
+	TArray<FPlane4f> planes;
 	for (int32 i = 0; i < kCount; i++)
-		planes.Add(FPlane(Dirs[i], maxDist[i]));
+		planes.Add(FPlane4f((FVector3f)Dirs[i], maxDist[i]));
 
 	for (int32 i = 0; i < planes.Num(); i++)
 	{
@@ -6942,7 +6942,7 @@ FHoudiniMeshTranslator::GenerateKDopAsSimpleCollision(const TArray<FVector>& InP
 		{
 			if (i != j)
 			{
-				if (!Polygon->Split(-FVector(planes[j]), planes[j] * planes[j].W))
+				if (!Polygon->Split(-FVector3f(planes[j]), planes[j] * planes[j].W))
 				{
 					Polygon->Vertices.Empty();
 					break;

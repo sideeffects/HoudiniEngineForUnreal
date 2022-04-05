@@ -764,9 +764,9 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 		TArray<float> StaticMeshVertices;
 		StaticMeshVertices.SetNumZeroed(RawMesh.VertexPositions.Num() * 3);
 		for (int32 VertexIdx = 0; VertexIdx < RawMesh.VertexPositions.Num(); ++VertexIdx)
-		{
+		{			
 			// Convert Unreal to Houdini
-			const FVector & PositionVector = RawMesh.VertexPositions[VertexIdx];
+			const FVector3f& PositionVector = RawMesh.VertexPositions[VertexIdx];
 			StaticMeshVertices[VertexIdx * 3 + 0] = PositionVector.X / HAPI_UNREAL_SCALE_FACTOR_POSITION * BuildScaleVector.X;
 			StaticMeshVertices[VertexIdx * 3 + 1] = PositionVector.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION * BuildScaleVector.Z;
 			StaticMeshVertices[VertexIdx * 3 + 2] = PositionVector.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION * BuildScaleVector.Y;
@@ -1480,7 +1480,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	TArray<int32> UEVertexInstanceIdxToPointIdx;
 	UEVertexInstanceIdxToPointIdx.Reserve(OrigNumVertexInstances);
 
-	TMap<FVector, int32> PositionToPointIndexMap;
+	TMap<FVector3f, int32> PositionToPointIndexMap;
 	PositionToPointIndexMap.Reserve(OrigNumVertexInstances);
 
 	TArray<float> StaticMeshVertices;
@@ -1488,7 +1488,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	for (uint32 VertexInstanceIndex = 0; VertexInstanceIndex < OrigNumVertexInstances; ++VertexInstanceIndex)
 	{
 		// Convert Unreal to Houdini
-		const FVector &PositionVector = LODResources.VertexBuffers.PositionVertexBuffer.VertexPosition(VertexInstanceIndex);
+		const FVector3f &PositionVector = LODResources.VertexBuffers.PositionVertexBuffer.VertexPosition(VertexInstanceIndex);
 		const int32 *FoundPointIndexPtr = PositionToPointIndexMap.Find(PositionVector);
 		if (!FoundPointIndexPtr)
 		{
@@ -1757,7 +1757,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 					// In order to calculate the binormal we also need the tangent and normal
 					if (bIsVertexInstanceBinormalsValid)
 					{
-						FVector Binormal = LODResources.VertexBuffers.StaticMeshVertexBuffer.VertexTangentY(UEVertexIndex);
+						FVector3f Binormal = LODResources.VertexBuffers.StaticMeshVertexBuffer.VertexTangentY(UEVertexIndex);
 						Binormals[Float3Index + 0] = Binormal.X;
 						Binormals[Float3Index + 1] = Binormal.Z;
 						Binormals[Float3Index + 2] = Binormal.Y;
@@ -2359,7 +2359,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		for (const FVertexID& VertexID : MDVertices.GetElementIDs())
 		{
 			// Convert Unreal to Houdini
-			const FVector &PositionVector = VertexPositions.Get(VertexID);
+			const FVector3f& PositionVector = VertexPositions.Get(VertexID);
 			StaticMeshVertices[VertexIdx * 3 + 0] = PositionVector.X / HAPI_UNREAL_SCALE_FACTOR_POSITION * BuildScaleVector.X;
 			StaticMeshVertices[VertexIdx * 3 + 1] = PositionVector.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION * BuildScaleVector.Z;
 			StaticMeshVertices[VertexIdx * 3 + 2] = PositionVector.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION * BuildScaleVector.Y;
@@ -2611,7 +2611,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 					//---------------------------------------------------------------------------------------------------------------------
 					if (bIsVertexInstanceNormalsValid)
 					{
-						const FVector &Normal = VertexInstanceNormals.Get(VertexInstanceID);
+						const FVector3f &Normal = VertexInstanceNormals.Get(VertexInstanceID);
 						Normals[Float3Index + 0] = Normal.X;
 						Normals[Float3Index + 1] = Normal.Z;
 						Normals[Float3Index + 2] = Normal.Y;
@@ -2622,7 +2622,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 					//---------------------------------------------------------------------------------------------------------------------
 					if (bIsVertexInstanceTangentsValid)
 					{
-						const FVector &Tangent = VertexInstanceTangents.Get(VertexInstanceID);
+						const FVector3f &Tangent = VertexInstanceTangents.Get(VertexInstanceID);
 						Tangents[Float3Index + 0] = Tangent.X;
 						Tangents[Float3Index + 1] = Tangent.Z;
 						Tangents[Float3Index + 2] = Tangent.Y;
@@ -3684,9 +3684,9 @@ FUnrealMeshTranslator::CreateInputNodeForConvex(
 
 	FTransform ConvexTransform = ConvexCollider.GetTransform();
 
-	FVector TransformOffset = ConvexTransform.GetLocation();
-	FVector ScaleOffset = ConvexTransform.GetScale3D();
-	FQuat RotationOffset = ConvexTransform.GetRotation();
+	FVector3d TransformOffset = ConvexTransform.GetLocation();
+	FVector3d ScaleOffset = ConvexTransform.GetScale3D();
+	FQuat4d RotationOffset = ConvexTransform.GetRotation();
 
 #if PHYSICS_INTERFACE_PHYSX
 	if (ConvexCollider.GetConvexMesh() || ConvexCollider.GetMirroredConvexMesh())
@@ -3704,7 +3704,7 @@ FUnrealMeshTranslator::CreateInputNodeForConvex(
 
 		for (int32 i = 0; i < VertexBuffer.Num(); i++)
 		{
-			VertexBuffer[i].Position =  TransformOffset + (RotationOffset * (ScaleOffset * VertexBuffer[i].Position));
+			VertexBuffer[i].Position =  (FVector3f)(TransformOffset + (RotationOffset * (ScaleOffset * (FVector3d)VertexBuffer[i].Position)));
 		}
 
 		Vertices.SetNum(VertexBuffer.Num() * 3);

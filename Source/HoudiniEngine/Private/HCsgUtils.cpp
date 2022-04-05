@@ -384,7 +384,7 @@ void UHCsgUtils::FilterEdPoly
 		// See whether Node's iFront or iBack points to the side of the tree on the front
 		// of this polygon (will be as expected if this polygon is facing the same
 		// way as first coplanar in link, otherwise opposite).
-		if( (FVector(Model->Nodes[iNode].Plane) | EdPoly->Normal) >= 0.0 )
+		if ((FVector(Model->Nodes[iNode].Plane) | (FVector)EdPoly->Normal) >= 0.0)
 		{
 			iOurFront = Model->Nodes[iNode].iFront;
 			iOurBack  = Model->Nodes[iNode].iBack;
@@ -639,7 +639,7 @@ void UHCsgUtils::FilterWorldThroughBrush
 		int DoFront = 1, DoBack = 1;
 		if( BrushSphere )
 		{
-			float Dist = Model->Nodes[iNode].Plane.PlaneDot( BrushSphere->Center );
+			float Dist = Model->Nodes[iNode].Plane.PlaneDot((FVector3f)BrushSphere->Center);
 			DoFront    = (Dist >= -BrushSphere->W);
 			DoBack     = (Dist <= +BrushSphere->W);
 		}
@@ -969,9 +969,9 @@ int UHCsgUtils::ComposeBrushCSG
 	const bool bIsMirrored = (Scale.X * Scale.Y * Scale.Z < 0.0f);
 
 	// Cache actor transform which is used for the geometry being built
-	Brush->OwnerLocationWhenLastBuilt = Location;
+	Brush->OwnerLocationWhenLastBuilt = (FVector3f)Location;
 	Brush->OwnerRotationWhenLastBuilt = Rotation;
-	Brush->OwnerScaleWhenLastBuilt = Scale;
+	Brush->OwnerScaleWhenLastBuilt = (FVector3f)Scale;
 	Brush->bCachedOwnerTransformValid = true;
 
 	for( i=0; i<Brush->Polys->Element.Num(); i++ )
@@ -1006,9 +1006,9 @@ int UHCsgUtils::ComposeBrushCSG
 		}
 
 		// Transform it.
-		DestEdPoly.Scale( Scale );
-		DestEdPoly.Rotate(FRotator3f(Rotation));
-		DestEdPoly.Transform( Location );
+		DestEdPoly.Scale((FVector3f)Scale);
+		DestEdPoly.Rotate(FRotator3f(Rotation));	// LWC_TODO: Precision loss?
+		DestEdPoly.Transform((FVector3f)Location);	// LWC_TODO: Precision loss
 
 		// Reverse winding and normal if the parent brush is mirrored
 		if (bIsMirrored)
@@ -1132,15 +1132,15 @@ int UHCsgUtils::ComposeBrushCSG
 		Brush->Linked = 1;
 
 		// Detransform the obtained brush back into its original coordinate system.
-		for( i=0; i<Brush->Polys->Element.Num(); i++ )
+		for (i = 0; i < Brush->Polys->Element.Num(); i++)
 		{
-			FPoly *DestEdPoly = &Brush->Polys->Element[i];
-			DestEdPoly->Transform(-Location);
+			FPoly* DestEdPoly = &Brush->Polys->Element[i];
+			DestEdPoly->Transform((FVector3f)-Location);
 			DestEdPoly->Rotate(FRotator3f(Rotation.GetInverse()));
-			DestEdPoly->Scale(FVector(1.0f) / Scale);
+			DestEdPoly->Scale(FVector3f(1.0f) / (FVector3f)Scale);
 			DestEdPoly->Fix();
-			DestEdPoly->Actor		= NULL;
-			DestEdPoly->iBrushPoly	= i;
+			DestEdPoly->Actor = NULL;
+			DestEdPoly->iBrushPoly = i;
 		}
 	}
 
@@ -1191,32 +1191,32 @@ int UHCsgUtils::ComposeBrushCSG
 int UHCsgUtils::TryToMerge( FPoly *Poly1, FPoly *Poly2 )
 {
 	// Find one overlapping point.
-	int32 Start1=0, Start2=0;
-	for( Start1=0; Start1<Poly1->Vertices.Num(); Start1++ )
-		for( Start2=0; Start2<Poly2->Vertices.Num(); Start2++ )
-			if( FVector::PointsAreSame(Poly1->Vertices[Start1], Poly2->Vertices[Start2]) )
+	int32 Start1 = 0, Start2 = 0;
+	for (Start1 = 0; Start1 < Poly1->Vertices.Num(); Start1++)
+		for (Start2 = 0; Start2 < Poly2->Vertices.Num(); Start2++)
+			if (FVector3f::PointsAreSame(Poly1->Vertices[Start1], Poly2->Vertices[Start2]))
 				goto FoundOverlap;
 	return 0;
-	FoundOverlap:
+FoundOverlap:
 
 	// Wrap around trying to merge.
-	int32 End1  = Start1;
-	int32 End2  = Start2;
-	int32 Test1 = Start1+1; if (Test1>=Poly1->Vertices.Num()) Test1 = 0;
-	int32 Test2 = Start2-1; if (Test2<0)                   Test2 = Poly2->Vertices.Num()-1;
-	if( FVector::PointsAreSame(Poly1->Vertices[Test1],Poly2->Vertices[Test2]) )
+	int32 End1 = Start1;
+	int32 End2 = Start2;
+	int32 Test1 = Start1 + 1; if (Test1 >= Poly1->Vertices.Num()) Test1 = 0;
+	int32 Test2 = Start2 - 1; if (Test2 < 0)                   Test2 = Poly2->Vertices.Num() - 1;
+	if (FVector3f::PointsAreSame(Poly1->Vertices[Test1], Poly2->Vertices[Test2]))
 	{
-		End1   = Test1;
+		End1 = Test1;
 		Start2 = Test2;
 	}
 	else
 	{
-		Test1 = Start1-1; if (Test1<0)                   Test1=Poly1->Vertices.Num()-1;
-		Test2 = Start2+1; if (Test2>=Poly2->Vertices.Num()) Test2=0;
-		if( FVector::PointsAreSame(Poly1->Vertices[Test1],Poly2->Vertices[Test2]) )
+		Test1 = Start1 - 1; if (Test1 < 0)                   Test1 = Poly1->Vertices.Num() - 1;
+		Test2 = Start2 + 1; if (Test2 >= Poly2->Vertices.Num()) Test2 = 0;
+		if (FVector3f::PointsAreSame(Poly1->Vertices[Test1], Poly2->Vertices[Test2]))
 		{
 			Start1 = Test1;
-			End2   = Test2;
+			End2 = Test2;
 		}
 		else return 0;
 	}
@@ -1225,22 +1225,22 @@ int UHCsgUtils::TryToMerge( FPoly *Poly1, FPoly *Poly2 )
 	FPoly NewPoly = *Poly1;
 	NewPoly.Vertices.Empty();
 	int32 Vertex = End1;
-	for( int32 i=0; i<Poly1->Vertices.Num(); i++ )
+	for (int32 i = 0; i < Poly1->Vertices.Num(); i++)
 	{
-		new(NewPoly.Vertices) FVector(Poly1->Vertices[Vertex]);
-		if( ++Vertex >= Poly1->Vertices.Num() )
-			Vertex=0;
+		new(NewPoly.Vertices) FVector3f(Poly1->Vertices[Vertex]);
+		if (++Vertex >= Poly1->Vertices.Num())
+			Vertex = 0;
 	}
 	Vertex = End2;
-	for( int32 i=0; i<(Poly2->Vertices.Num()-2); i++ )
+	for (int32 i = 0; i < (Poly2->Vertices.Num() - 2); i++)
 	{
-		if( ++Vertex >= Poly2->Vertices.Num() )
-			Vertex=0;
-		new(NewPoly.Vertices) FVector(Poly2->Vertices[Vertex]);
+		if (++Vertex >= Poly2->Vertices.Num())
+			Vertex = 0;
+		new(NewPoly.Vertices) FVector3f(Poly2->Vertices[Vertex]);
 	}
 
 	// Remove colinear vertices and check convexity.
-	if( NewPoly.RemoveColinears() )
+	if (NewPoly.RemoveColinears())
 	{
 		*Poly1 = NewPoly;
 		Poly2->Vertices.Empty();
@@ -1282,67 +1282,67 @@ void UHCsgUtils::bspMergeCoplanars( UModel* Model, bool RemapLinks, bool MergeDi
 	int32 OriginalNum = Model->Polys->Element.Num();
 
 	// Mark all polys as unprocessed.
-	for( int32 i=0; i<Model->Polys->Element.Num(); i++ )
+	for (int32 i = 0; i < Model->Polys->Element.Num(); i++)
 		Model->Polys->Element[i].PolyFlags &= ~PF_EdProcessed;
 
 	// Find matching coplanars and merge them.
 	FMemMark Mark(FMemStack::Get());
-	int32* PolyList = new(FMemStack::Get(),Model->Polys->Element.Num())int32;
-	int32 n=0;
-	for( int32 i=0; i<Model->Polys->Element.Num(); i++ )
+	int32* PolyList = new(FMemStack::Get(), Model->Polys->Element.Num())int32;
+	int32 n = 0;
+	for (int32 i = 0; i < Model->Polys->Element.Num(); i++)
 	{
 		FPoly* EdPoly = &Model->Polys->Element[i];
-		if( EdPoly->Vertices.Num()>0 && !(EdPoly->PolyFlags & PF_EdProcessed) )
+		if (EdPoly->Vertices.Num() > 0 && !(EdPoly->PolyFlags & PF_EdProcessed))
 		{
-			int32 PolyCount         =  0;
-			PolyList[PolyCount++] =  i;
-			EdPoly->PolyFlags    |= PF_EdProcessed;
-			for( int32 j=i+1; j<Model->Polys->Element.Num(); j++ )
+			int32 PolyCount = 0;
+			PolyList[PolyCount++] = i;
+			EdPoly->PolyFlags |= PF_EdProcessed;
+			for (int32 j = i + 1; j < Model->Polys->Element.Num(); j++)
 			{
 				FPoly* OtherPoly = &Model->Polys->Element[j];
-				if( OtherPoly->iLink == EdPoly->iLink && OtherPoly->Vertices.Num() )
+				if (OtherPoly->iLink == EdPoly->iLink && OtherPoly->Vertices.Num())
 				{
 					float Dist = (OtherPoly->Vertices[0] - EdPoly->Vertices[0]) | EdPoly->Normal;
 					if
-					(	Dist>-0.001
-					&&	Dist<0.001
-					&&	(OtherPoly->Normal|EdPoly->Normal)>0.9999
-					&&	(MergeDisparateTextures
-						||	(	FVector::PointsAreNear(OtherPoly->TextureU,EdPoly->TextureU,THRESH_VECTORS_ARE_NEAR)
-							&&	FVector::PointsAreNear(OtherPoly->TextureV,EdPoly->TextureV,THRESH_VECTORS_ARE_NEAR) ) ) )
+						(Dist > -0.001
+							&& Dist < 0.001
+							&& (OtherPoly->Normal | EdPoly->Normal)>0.9999
+							&& (MergeDisparateTextures
+								|| (FVector::PointsAreNear((FVector)OtherPoly->TextureU, (FVector)EdPoly->TextureU, THRESH_VECTORS_ARE_NEAR)
+									&& FVector::PointsAreNear((FVector)OtherPoly->TextureV, (FVector)EdPoly->TextureV, THRESH_VECTORS_ARE_NEAR))))
 					{
 						OtherPoly->PolyFlags |= PF_EdProcessed;
 						PolyList[PolyCount++] = j;
 					}
 				}
 			}
-			if( PolyCount > 1 )
+			if (PolyCount > 1)
 			{
-				MergeCoplanars( Model, PolyList, PolyCount );
+				MergeCoplanars(Model, PolyList, PolyCount);
 				n++;
 			}
 		}
 	}
-//	UE_LOG(LogEditorBsp, Log,  TEXT("Found %i coplanar sets in %i"), n, Model->Polys->Element.Num() );
+	//	UE_LOG(LogEditorBsp, Log,  TEXT("Found %i coplanar sets in %i"), n, Model->Polys->Element.Num() );
 	Mark.Pop();
 
 	// Get rid of empty EdPolys while remapping iLinks.
 	FMemMark Mark2(FMemStack::Get());
-	int32 j=0;
-	int32* Remap = new(FMemStack::Get(),Model->Polys->Element.Num())int32;
-	for( int32 i=0; i<Model->Polys->Element.Num(); i++ )
+	int32 j = 0;
+	int32* Remap = new(FMemStack::Get(), Model->Polys->Element.Num())int32;
+	for (int32 i = 0; i < Model->Polys->Element.Num(); i++)
 	{
-		if( Model->Polys->Element[i].Vertices.Num() )
+		if (Model->Polys->Element[i].Vertices.Num())
 		{
 			Remap[i] = j;
 			Model->Polys->Element[j] = Model->Polys->Element[i];
 			j++;
 		}
 	}
-	Model->Polys->Element.RemoveAt( j, Model->Polys->Element.Num()-j );
-	if( RemapLinks )
+	Model->Polys->Element.RemoveAt(j, Model->Polys->Element.Num() - j);
+	if (RemapLinks)
 	{
-		for( int32 i=0; i<Model->Polys->Element.Num(); i++ )
+		for (int32 i = 0; i < Model->Polys->Element.Num(); i++)
 		{
 			if (Model->Polys->Element[i].iLink != INDEX_NONE)
 			{
@@ -1351,7 +1351,7 @@ void UHCsgUtils::bspMergeCoplanars( UModel* Model, bool RemapLinks, bool MergeDi
 			}
 		}
 	}
-// 	UE_LOG(LogEditorBsp, Log,  TEXT("BspMergeCoplanars reduced %i->%i"), OriginalNum, Model->Polys->Element.Num() );
+	// 	UE_LOG(LogEditorBsp, Log,  TEXT("BspMergeCoplanars reduced %i->%i"), OriginalNum, Model->Polys->Element.Num() );
 	Mark2.Pop();
 }
 

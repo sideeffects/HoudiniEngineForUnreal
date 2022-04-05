@@ -1208,7 +1208,7 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 		const int32 VertexStart = GeometryCollection->NumElements(FGeometryCollection::VerticesGroup);
 		int32 VertexCount = 0;
 		
-		FVector Scale = StaticMeshTransform.GetScale3D();
+		FVector3f Scale = (FVector3f)StaticMeshTransform.GetScale3D();
 		
 		// We'll need to re-introduce UV seams, etc. by splitting vertices.
 		// A new mapping of MeshDescription vertex instances to the split vertices is maintained.
@@ -1248,7 +1248,7 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 
 				TargetNormal[CurrentVertex] = SourceNormal[ExemplarInstanceID];
 				TargetTangentU[CurrentVertex] = SourceTangent[ExemplarInstanceID];
-				TargetTangentV[CurrentVertex] = SourceBinormalSign[ExemplarInstanceID] * FVector::CrossProduct(TargetNormal[CurrentVertex], TargetTangentU[CurrentVertex]);
+				TargetTangentV[CurrentVertex] = SourceBinormalSign[ExemplarInstanceID] * FVector3f::CrossProduct(TargetNormal[CurrentVertex], TargetTangentU[CurrentVertex]);
 
 				TargetUVs[CurrentVertex] = SplitVertex.Key.UVs;
 
@@ -1362,12 +1362,14 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 		TManagedArray<int32>& TransformToGeometryIndexArray = GeometryCollection->TransformToGeometryIndex;
 		TransformToGeometryIndexArray[TransformIndex1] = GeometryIndex;
 
-		FVector Center(0);
+		FVector3f Center(0);
 		for (int32 VertexIndex = VertexStart; VertexIndex < VertexStart + VertexCount; VertexIndex++)
 		{
 			Center += TargetVertex[VertexIndex];
 		}
-		if (VertexCount) Center /= VertexCount;
+
+		if (VertexCount)
+			Center /= VertexCount;
 
 		// Inner/Outer edges, bounding box
 		BoundingBox[GeometryIndex] = FBox(ForceInitToZero);
@@ -1375,7 +1377,7 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 		OuterRadius[GeometryIndex] = -FLT_MAX;
 		for (int32 VertexIndex = VertexStart; VertexIndex < VertexStart + VertexCount; VertexIndex++)
 		{
-			BoundingBox[GeometryIndex] += TargetVertex[VertexIndex];
+			BoundingBox[GeometryIndex] += (FVector3d)TargetVertex[VertexIndex];
 
 			float Delta = (Center - TargetVertex[VertexIndex]).Size();
 			InnerRadius[GeometryIndex] = FMath::Min(InnerRadius[GeometryIndex], Delta);
@@ -1385,7 +1387,7 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 		// Inner/Outer centroid
 		for (int fdx = IndicesStart; fdx < IndicesStart + IndicesCount; fdx++)
 		{
-			FVector Centroid(0);
+			FVector3f Centroid(0);
 			for (int e = 0; e < 3; e++)
 			{
 				Centroid += TargetVertex[TargetIndices[fdx][e]];
@@ -1403,14 +1405,15 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 			for (int e = 0; e < 3; e++)
 			{
 				int i = e, j = (e + 1) % 3;
-				FVector Edge = TargetVertex[TargetIndices[fdx][i]] + 0.5 * (TargetVertex[TargetIndices[fdx][j]] - TargetVertex[TargetIndices[fdx][i]]);
+				FVector3f Edge = TargetVertex[TargetIndices[fdx][i]] + 0.5 * (TargetVertex[TargetIndices[fdx][j]] - TargetVertex[TargetIndices[fdx][i]]);
 				float Delta = (Center - Edge).Size();
 				InnerRadius[GeometryIndex] = FMath::Min(InnerRadius[GeometryIndex], Delta);
 				OuterRadius[GeometryIndex] = FMath::Max(OuterRadius[GeometryIndex], Delta);
 			}
 		}
 
-		if (ReindexMaterials) {
+		if (ReindexMaterials) 
+		{
 			GeometryCollection->ReindexMaterials();
 		}
 	}
