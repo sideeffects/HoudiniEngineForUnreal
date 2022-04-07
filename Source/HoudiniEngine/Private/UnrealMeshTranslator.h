@@ -29,6 +29,7 @@
 #include "HAPI/HAPI_Common.h"
 
 #include "CoreMinimal.h"
+#include "Engine/SkeletalMesh.h"
 #include "UObject/ObjectMacros.h"
 
 class UStaticMesh;
@@ -57,6 +58,24 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			const bool& ExportSockets = false,
 			const bool& ExportColliders = false,
 			const bool& ExportMainMesh = true);
+
+		static bool HapiCreateInputNodeForSkeletalMesh(
+		    USkeletalMesh* Mesh,
+		    HAPI_NodeId& InputObjectNodeId,
+		    const FString& InputNodeName,
+		    class USkeletalMeshComponent* SkeletalMeshComponent = nullptr,
+		    const bool& ExportAllLODs = false,
+		    const bool& ExportSockets = false,
+		    const bool& ExportColliders = false);
+
+		static bool SetSkeletalMeshDataOnNode(
+		    USkeletalMesh* SkeletalMesh,
+		    HAPI_NodeId& NewNodeId);
+
+		static bool SetStaticMeshDataOnNode(
+		    UStaticMesh* StaticMesh,
+		    HAPI_NodeId& NewNodeId);
+
 
 		// Convert the Mesh using FStaticMeshLODResources
 		static bool CreateInputNodeForStaticMeshLODResources(
