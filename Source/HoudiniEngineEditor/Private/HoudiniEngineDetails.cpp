@@ -24,8 +24,9 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "HoudiniEngineDetails.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
+
+#include "HoudiniEngineDetails.h"
 
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetComponentDetails.h"

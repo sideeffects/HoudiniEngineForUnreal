@@ -70,10 +70,6 @@
 #include "Widgets/Input/SCheckBox.h"
 #include "Logging/LogMacros.h"
 //#include "UObject/ObjectSaveContext.h"
-#include "Engine/SkeletalMesh.h"
-#include "UnrealMeshTranslator.h"
-#include "HoudiniEditorSubsystem.h"
-#include "ContentBrowserModule.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -129,9 +125,6 @@ void FHoudiniEngineEditor::StartupModule()
 
 	// Extend the World Outliner Menu
 	AddLevelViewportMenuExtender();
-
-	//Extend the right click context menu
-	ExtendContextMenu();
 
 	// Adds the custom console commands
 	RegisterConsoleCommands();
@@ -1056,70 +1049,6 @@ FHoudiniEngineEditor::InitializeWidgetResource()
 		}
 	}
 }
-
-void FHoudiniEngineEditor::SendToHoudini(TArray<FAssetData> SelectedAssets)
-{
-
-	UHoudiniEditorSubsystem* HoudiniSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
-	HoudiniSubsystem->SendToHoudini(SelectedAssets);
-
-	return;
-
-
-}
-
-void
-FHoudiniEngineEditor::ExtendContextMenu()
-{
-	{
-		FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-		TArray< FContentBrowserMenuExtender_SelectedAssets >& CBMenuExtenderDelegates = ContentBrowserModule.GetAllAssetViewContextMenuExtenders();
-
-		CBMenuExtenderDelegates.Add(FContentBrowserMenuExtender_SelectedAssets::CreateLambda([this](const TArray<FAssetData>& SelectedAssets)
-			{
-				TSharedRef<FExtender> Extender(new FExtender());
-
-				bool bShouldExtendAssetActions = true;
-				for (const FAssetData& Asset : SelectedAssets)
-				{
-					if ((Asset.AssetClass != USkeletalMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UStaticMesh::StaticClass()->GetFName()))
-					{
-						bShouldExtendAssetActions = false;
-						break;
-					}
-				}
-
-				if (bShouldExtendAssetActions)
-				{
-					Extender->AddMenuExtension(
-						"GetAssetActions",
-						EExtensionHook::After,
-						nullptr,
-						FMenuExtensionDelegate::CreateLambda(
-							[SelectedAssets, this](FMenuBuilder& MenuBuilder)
-							{
-								MenuBuilder.AddMenuEntry(
-									LOCTEXT("CB_Extension_SendToHoudini", "Send To Houdini"),
-									LOCTEXT("CB_Extension_SendToHoudini_Tooltip", "Send this skeletal mesh to houdini"),
-									FSlateIcon(),
-									FUIAction(
-										FExecuteAction::CreateLambda([SelectedAssets, this]() { SendToHoudini(SelectedAssets); }),
-										FCanExecuteAction::CreateLambda([=] { return (SelectedAssets.Num() > 0); })
-									)
-								);
-							})
-					);
-				}
-
-				return Extender;
-			}
-		));
-		ContentBrowserExtenderDelegateHandle = CBMenuExtenderDelegates.Last().GetHandle();
-
-	}
-
-}
-
 
 void
 FHoudiniEngineEditor::AddLevelViewportMenuExtender()

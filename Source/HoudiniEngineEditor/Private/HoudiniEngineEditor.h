@@ -209,13 +209,6 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 		// Adds the custom Houdini Engine commands to the world outliner context menu
 		void AddLevelViewportMenuExtender();
 
-		//Extend the SkeletalMesh Context Menu
-		void ExtendContextMenu();
-
-		void SendToHoudini(TArray<FAssetData> SelectedAssets);
-
-		FDelegateHandle ContentBrowserExtenderDelegateHandle;
-
 		// Removes the custom Houdini Engine commands to the world outliner context menu
 		void RemoveLevelViewportMenuExtender();
 

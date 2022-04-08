@@ -867,7 +867,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		static void LogWorldInfo(const UWorld* InWorld);
 
 		static FString HapiGetEventTypeAsString(const HAPI_PDG_EventType& InEventType);
-		static FString HapiGetWorkItemStateAsString(const HAPI_PDG_WorkitemState& InWorkItemState);
+		static FString HapiGetWorkItemStateAsString(const HAPI_PDG_WorkItemState& InWorkItemState);
 
 		// -------------------------------------------------
 		// Generic naming / pathing utilities

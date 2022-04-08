@@ -33,12 +33,10 @@ public class HoudiniEngineRuntime : ModuleRules
 {
     public HoudiniEngineRuntime( ReadOnlyTargetRules Target ) : base( Target )
     {
-		//bPrecompile = true;
-		//PCHUsage = PCHUsageMode.NoSharedPCHs;
-		//PrivatePCHHeaderFile = "Private/HoudiniEngineRuntimePrivatePCH.h";
-		//PrecompileForTargets = PrecompileTargetsType.Any;
-		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-
+        bPrecompile = true;
+        PCHUsage = PCHUsageMode.NoSharedPCHs;
+        PrivatePCHHeaderFile = "Private/HoudiniEngineRuntimePrivatePCH.h";
+		PrecompileForTargets = PrecompileTargetsType.Any;
 
 		// Check if we are compiling for unsupported platforms.
 		if ( Target.Platform != UnrealTargetPlatform.Win64 &&
