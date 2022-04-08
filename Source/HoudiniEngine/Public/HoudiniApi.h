@@ -180,7 +180,8 @@ public:
 	typedef HAPI_Result (*GetOutputNodeIdFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int output, HAPI_NodeId * output_node_id);
 	typedef HAPI_Result (*GetPDGEventsFuncPtr)(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_PDG_EventInfo * event_array, int length, int * event_count, int * remaining_events);
 	typedef HAPI_Result (*GetPDGGraphContextIdFuncPtr)(const HAPI_Session * session, HAPI_NodeId top_node_id, HAPI_PDG_GraphContextId * context_id);
-	typedef HAPI_Result (*GetPDGGraphContextsFuncPtr)(const HAPI_Session * session, int * num_contexts, HAPI_StringHandle * context_names_array, HAPI_PDG_GraphContextId * context_id_array, int count);
+	typedef HAPI_Result (*GetPDGGraphContextsFuncPtr)(const HAPI_Session * session, HAPI_StringHandle * context_names_array, HAPI_PDG_GraphContextId * context_id_array, int start, int length);
+	typedef HAPI_Result (*GetPDGGraphContextsCountFuncPtr)(const HAPI_Session* session, int* num_contexts);
 	typedef HAPI_Result (*GetPDGStateFuncPtr)(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, int * pdg_state);
 	typedef HAPI_Result (*GetParametersFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmInfo * parm_infos_array, int start, int length);
 	typedef HAPI_Result (*GetParmChoiceListsFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmChoiceInfo * parm_choices_array, int start, int length);
@@ -541,6 +542,7 @@ public:
 	static GetPDGEventsFuncPtr GetPDGEvents;
 	static GetPDGGraphContextIdFuncPtr GetPDGGraphContextId;
 	static GetPDGGraphContextsFuncPtr GetPDGGraphContexts;
+	static GetPDGGraphContextsCountFuncPtr GetPDGGraphContextsCount;
 	static GetPDGStateFuncPtr GetPDGState;
 	static GetParametersFuncPtr GetParameters;
 	static GetParmChoiceListsFuncPtr GetParmChoiceLists;
@@ -900,7 +902,8 @@ public:
 	static HAPI_Result GetOutputNodeIdEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int output, HAPI_NodeId * output_node_id);
 	static HAPI_Result GetPDGEventsEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_PDG_EventInfo * event_array, int length, int * event_count, int * remaining_events);
 	static HAPI_Result GetPDGGraphContextIdEmptyStub(const HAPI_Session * session, HAPI_NodeId top_node_id, HAPI_PDG_GraphContextId * context_id);
-	static HAPI_Result GetPDGGraphContextsEmptyStub(const HAPI_Session * session, int * num_contexts, HAPI_StringHandle * context_names_array, HAPI_PDG_GraphContextId * context_id_array, int count);
+	static HAPI_Result GetPDGGraphContextsEmptyStub(const HAPI_Session * session, HAPI_StringHandle * context_names_array, HAPI_PDG_GraphContextId * context_id_array, int start, int length);
+	static HAPI_Result GetPDGGraphContextsCountEmptyStub(const HAPI_Session* session, int* num_contexts);
 	static HAPI_Result GetPDGStateEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, int * pdg_state);
 	static HAPI_Result GetParametersEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmInfo * parm_infos_array, int start, int length);
 	static HAPI_Result GetParmChoiceListsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmChoiceInfo * parm_choices_array, int start, int length);

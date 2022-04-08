@@ -203,7 +203,6 @@ private:
 	TArray<TWeakObjectPtr<UHoudiniPDGAssetLink>> PDGAssetLinks;
 
 	int32 MaxNumberOfPDGEvents = 20;
-	int32 MaxNumberOPDGContexts = 20;
 
 	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> BGEOCommandletEndpoint;
 	FMessageAddress BGEOCommandletAddress;
