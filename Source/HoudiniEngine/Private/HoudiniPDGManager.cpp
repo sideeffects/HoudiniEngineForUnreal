@@ -849,25 +849,27 @@ void
 FHoudiniPDGManager::ReinitializePDGContext()
 {
 	int32 NumContexts = 0;
+	FHoudiniApi::GetPDGGraphContextsCount(FHoudiniEngine::Get().GetSession(), &NumContexts);
 
-	PDGContextNames.SetNum(MaxNumberOPDGContexts);
-	PDGContextIDs.SetNum(MaxNumberOPDGContexts);
-	
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetPDGGraphContexts(
-		FHoudiniEngine::Get().GetSession(),
-		&NumContexts, PDGContextNames.GetData(), PDGContextIDs.GetData(), MaxNumberOPDGContexts) || NumContexts <= 0)
+	if(NumContexts > 0)
+	{
+		PDGContextNames.SetNum(NumContexts);
+		PDGContextIDs.SetNum(NumContexts);
+
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetPDGGraphContexts(
+				FHoudiniEngine::Get().GetSession(),
+				PDGContextNames.GetData(), PDGContextIDs.GetData(), 0, NumContexts))
+		{
+			PDGContextNames.SetNum(0);
+			PDGContextIDs.SetNum(0);
+		}
+	}
+	else 
 	{
 		PDGContextNames.SetNum(0);
 		PDGContextIDs.SetNum(0);
-		return;
 	}
-
-	if(PDGContextIDs.Num() != NumContexts)
-		PDGContextIDs.SetNum(NumContexts);
-
-	if (PDGContextNames.Num() != NumContexts)
-		PDGContextNames.SetNum(NumContexts);
-}
+} 
 
 // Process a PDG event. Notify the relevant PDGAssetLink object.
 void
