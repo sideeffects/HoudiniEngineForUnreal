@@ -456,6 +456,9 @@ FHoudiniApi::GetPDGGraphContextId = &FHoudiniApi::GetPDGGraphContextIdEmptyStub;
 FHoudiniApi::GetPDGGraphContextsFuncPtr
 FHoudiniApi::GetPDGGraphContexts = &FHoudiniApi::GetPDGGraphContextsEmptyStub;
 
+FHoudiniApi::GetPDGGraphContextsCountFuncPtr
+FHoudiniApi::GetPDGGraphContextsCount = &FHoudiniApi::GetPDGGraphContextsCountEmptyStub;
+
 FHoudiniApi::GetPDGStateFuncPtr
 FHoudiniApi::GetPDGState = &FHoudiniApi::GetPDGStateEmptyStub;
 
@@ -1247,6 +1250,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetPDGEvents = (GetPDGEventsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPDGEvents"));
 	FHoudiniApi::GetPDGGraphContextId = (GetPDGGraphContextIdFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPDGGraphContextId"));
 	FHoudiniApi::GetPDGGraphContexts = (GetPDGGraphContextsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPDGGraphContexts"));
+	FHoudiniApi::GetPDGGraphContextsCount = (GetPDGGraphContextsCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPDGGraphContextsCount"));
 	FHoudiniApi::GetPDGState = (GetPDGStateFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPDGState"));
 	FHoudiniApi::GetParameters = (GetParametersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParameters"));
 	FHoudiniApi::GetParmChoiceLists = (GetParmChoiceListsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmChoiceLists"));
@@ -1610,6 +1614,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetPDGEvents = &FHoudiniApi::GetPDGEventsEmptyStub;
 	FHoudiniApi::GetPDGGraphContextId = &FHoudiniApi::GetPDGGraphContextIdEmptyStub;
 	FHoudiniApi::GetPDGGraphContexts = &FHoudiniApi::GetPDGGraphContextsEmptyStub;
+	FHoudiniApi::GetPDGGraphContextsCount = &FHoudiniApi::GetPDGGraphContextsCountEmptyStub;
 	FHoudiniApi::GetPDGState = &FHoudiniApi::GetPDGStateEmptyStub;
 	FHoudiniApi::GetParameters = &FHoudiniApi::GetParametersEmptyStub;
 	FHoudiniApi::GetParmChoiceLists = &FHoudiniApi::GetParmChoiceListsEmptyStub;
@@ -2829,7 +2834,14 @@ FHoudiniApi::GetPDGGraphContextIdEmptyStub(const HAPI_Session * session, HAPI_No
 
 
 HAPI_Result
-FHoudiniApi::GetPDGGraphContextsEmptyStub(const HAPI_Session * session, int * num_contexts, HAPI_StringHandle * context_names_array, HAPI_PDG_GraphContextId * context_id_array, int count)
+FHoudiniApi::GetPDGGraphContextsEmptyStub(const HAPI_Session * session, HAPI_StringHandle * context_names_array, HAPI_PDG_GraphContextId * context_id_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetPDGGraphContextsCountEmptyStub(const HAPI_Session* session, int* num_contexts)
 {
 	return HAPI_RESULT_FAILURE;
 }
