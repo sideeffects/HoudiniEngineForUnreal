@@ -9065,8 +9065,8 @@ HAPI_DECL HAPI_SetSessionSyncInfo(
 /// @defgroup PDG PDG/TOPs
 /// Functions for working with PDG/TOPs
 
-/// @brief Return an array of PDG graph context names and ids, the first 
-///        count names will be returned.  These ids can be used 
+/// @brief Return an array of PDG graph context names and ids, the first
+///        count names will be returned. These ids can be used
 ///        with ::HAPI_GetPDGEvents and ::HAPI_GetPDGState.  The values
 ///        of the names can be retrieved with ::HAPI_GetString.
 ///
@@ -9078,25 +9078,49 @@ HAPI_DECL HAPI_SetSessionSyncInfo(
 ///                 Pass NULL to just use the default in-process session.
 ///                 <!-- default NULL -->
 ///
-/// @param[out]     num_contexts
-///                 Total number of PDG graph contexts found.
-///
 /// @param[out]     context_names_array
-///                 Array of int (string handles) to house the
-///                 context names.  These handles are valid until the next
-///                 call to this function.
+///                 Array of context names stored as ::HAPI_StringHandle 
+///                 at least the size of length. These can be used
+///                 with ::HAPI_GetString() and are valid until the
+///                 next call to this function.       
 ///
 /// @param[out]     context_id_array
-///                 Array of graph context ids.
+///                 Array of graph context ids at least the size of length.
 ///
-/// @param[in]      count
-///                 Length of @p context_names_array and @p context_id_array
+/// @param[in]      start
+///                 First index of range. Must be at least @c 0 and at most
+///                 @c context_count - 1 where @c context_count is the count
+///                 returned by ::HAPI_GetPDGGraphContextsCount()
+///                 <!-- min 0 -->
+///                 <!-- max ::HAPI_GetPDGGraphContextsCount -->
+///                 <!-- default 0 -->
 ///
+/// @param[in]      length
+///                 Given @c num_contexts returned by ::HAPI_GetPDGGraphContextsCount(),
+///                 length should be at least @c 0 and at most <tt>num_contexts - start.</tt>
+///                 <!-- default 0 -->
 HAPI_DECL HAPI_GetPDGGraphContexts( const HAPI_Session * session,
-                                    int * num_contexts,
                                     HAPI_StringHandle * context_names_array,
                                     HAPI_PDG_GraphContextId * context_id_array,
-                                    int count );
+                                    int start,
+                                    int length );
+
+/// @brief Return the total number of PDG graph contexts found.
+///
+/// @ingroup PDG
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[out]     num_contexts
+///                 Total PDG graph contexts count.
+///
+HAPI_DECL HAPI_GetPDGGraphContextsCount( 
+    const HAPI_Session* session,
+    int* num_contexts );
 
 /// @brief  Get the PDG graph context for the specified TOP node.
 ///
