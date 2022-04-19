@@ -2013,8 +2013,6 @@ UHoudiniAssetComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformF
 #if WITH_EDITOR
 	if (!bUploadTransformsToHoudiniEngine)
 		return;
-	if (!bCookOnTransformChange)
-		return;
 
 	if (!GetComponentTransform().Equals(LastComponentTransform))
 	{
