@@ -31,11 +31,12 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniStaticMesh.h"
 #include "HoudiniStringResolver.h"
-
+#include "Engine/SkeletalMesh.h"
 #include "PackageTools.h"
 #include "ObjectTools.h"
 #include "Engine/StaticMesh.h"
 #include "UObject/MetaData.h"
+#include "Animation/Skeleton.h"
 
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 
@@ -308,6 +309,13 @@ FHoudiniPackageParams::CreatePackageForObject(FString& OutPackageName, int32 InB
 
 		// Build the final package name
 		FString FinalPackageName = PackagePath + TEXT("/") + OutPackageName;
+
+		//NodeSync Name Override
+		if (OverideEnabled)
+		{
+			FinalPackageName = FolderOverride + TEXT("/") + NameOverride;
+			OutPackageName = NameOverride;
+		}
 		// Sanitize package name.
 		FinalPackageName = UPackageTools::SanitizePackageName(FinalPackageName);
 
@@ -375,6 +383,8 @@ void TemplateFixer()
 {
 	FHoudiniPackageParams PP;
 	UStaticMesh* SM = PP.CreateObjectAndPackage<UStaticMesh>();
+	USkeletalMesh* SK = PP.CreateObjectAndPackage<USkeletalMesh>();
+	USkeleton* Skelly = PP.CreateObjectAndPackage<USkeleton>();
 	UHoudiniStaticMesh* HSM = PP.CreateObjectAndPackage<UHoudiniStaticMesh>();
 	UGeometryCollection* GC = PP.CreateObjectAndPackage<UGeometryCollection>();
 	//UMaterial* Mat = PP.CreateObjectAndPackage<UMaterial>();
@@ -395,7 +405,7 @@ T* FHoudiniPackageParams::CreateObjectAndPackage()
 	T* ExistingTypedObject = FindObject<T>(Package, *NewObjectName);
 	UObject* ExistingObject = FindObject<UObject>(Package, *NewObjectName);
 
-	if (IsValid(ExistingTypedObject))
+	if (IsValid(ExistingObject))
 	{
 		// An object of the appropriate type already exists, update it!
 		ExistingTypedObject->PreEditChange(nullptr);

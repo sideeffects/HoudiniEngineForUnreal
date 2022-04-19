@@ -29,7 +29,6 @@
 #include "HAPI/HAPI_Common.h"
 #include "CoreMinimal.h"
 
-#include "CoreMinimal.h"
 
 class UHoudiniOutput;
 class UHoudiniAssetComponent;

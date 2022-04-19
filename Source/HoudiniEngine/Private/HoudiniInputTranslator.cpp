@@ -2237,14 +2237,16 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMesh(const FString& InObj
 	if (!IsValid(SkelMesh))
 		return true;
 
+	FString SKName = InObjNodeName + TEXT("_");
+	SKName += SkelMesh->GetName();
+
 	// Get the SM's transform offset
 	FTransform TransformOffset = InObject->Transform;
+	bool bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(SkelMesh, InObject->InputNodeId, SKName, nullptr);
 
-	// TODO
-	// Support this type of input object
-	// FUnrealMeshTranslator::CreateInputNodeForSkeletalMesh(...)
-
-	return HapiCreateInputNodeForObject(InObjNodeName, InObject);
+	// Update this input object's OBJ NodeId
+	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
+	return bSuccess;
 }
 
 bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(const FString& InObjNodeName,

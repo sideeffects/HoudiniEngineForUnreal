@@ -108,7 +108,8 @@ public class HoudiniEngineEditor : ModuleRules
                 "SceneOutliner",
                 "PropertyPath",
                 "MaterialEditor",
-                "SourceControl"
+                "SourceControl",
+                "EditorSubsystem"
             }
         );
 
