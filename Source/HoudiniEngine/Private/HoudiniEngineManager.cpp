@@ -689,7 +689,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 				// Update the HAC's state
 				HAC->SetAssetState(EHoudiniAssetState::PreCook);
 			}
-			else if (HAC->NeedTransformUpdate())
+			else if (HAC->bCookOnTransformChange && HAC->bUploadTransformsToHoudiniEngine && HAC->bHasComponentTransformChanged)
 			{
 				FHoudiniEngineUtils::UploadHACTransform(HAC);
 			}
@@ -1163,7 +1163,7 @@ FHoudiniEngineManager::PreCook(UHoudiniAssetComponent* HAC)
 	FHoudiniOutputTranslator::UploadChangedEditableOutput(HAC, false);
 
 	// Upload the asset's transform if needed
-	if (HAC->NeedTransformUpdate())
+	if (HAC->bHasComponentTransformChanged && HAC->bUploadTransformsToHoudiniEngine)
 		FHoudiniEngineUtils::UploadHACTransform(HAC);
 	
 	HAC->ClearRefineMeshesTimer();

@@ -114,9 +114,6 @@ public:
 	// Indicates if the HAC needs to be updated
 	bool NeedUpdate() const;
 
-	// Indicates if the HAC's transform needs to be updated
-	bool NeedTransformUpdate() const { return (bHasComponentTransformChanged && bUploadTransformsToHoudiniEngine); };
-
 	// Indicates if any of the HAC's output components needs to be updated (no recook needed)
 	bool NeedOutputUpdate() const;
 
