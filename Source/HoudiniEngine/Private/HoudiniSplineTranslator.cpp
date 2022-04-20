@@ -523,7 +523,25 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
 	FHoudiniApi::InputCurveInfo_Init(&InputCurveInfo);
 
 	// Check if connected asset id is valid, if it is not, we need to create an input asset.
-	if (CurveNodeId < 0 || FHoudiniApi::GetInputCurveInfo( FHoudiniEngine::Get().GetSession(), CurveNodeId, 0, &InputCurveInfo) != HAPI_RESULT_SUCCESS)
+	bool bNeedToCreateNewCurveInputNode = CurveNodeId < 0;
+	if (!bNeedToCreateNewCurveInputNode)
+	{
+		// We already have an input node, make sure that it's a curve input
+		// This causes crashes in HAPI/HARS, need to be replaced!1
+		//bNeedToCreateNewCurveInputNode &= (FHoudiniApi::GetInputCurveInfo(FHoudiniEngine::Get().GetSession(), CurveNodeId, 0, &InputCurveInfo) != HAPI_RESULT_SUCCESS);
+
+		HAPI_GeoInfo InputGeoInfo;
+		FHoudiniApi::GeoInfo_Init(&InputGeoInfo);
+		bNeedToCreateNewCurveInputNode &= (FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), CurveNodeId, &InputGeoInfo) != HAPI_RESULT_SUCCESS);
+		bNeedToCreateNewCurveInputNode &= InputGeoInfo.type != HAPI_GEOTYPE_CURVE;
+
+		HAPI_PartInfo InputPartInfo;
+		FHoudiniApi::PartInfo_Init(&InputPartInfo);
+		bNeedToCreateNewCurveInputNode &= (FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), CurveNodeId, 0, &InputPartInfo) != HAPI_RESULT_SUCCESS);
+		bNeedToCreateNewCurveInputNode &= InputPartInfo.type != HAPI_PARTTYPE_CURVE;
+	}
+
+	if (bNeedToCreateNewCurveInputNode)
 	{
 		HAPI_NodeId NodeId = -1;
 		// Create the curve SOP Node
