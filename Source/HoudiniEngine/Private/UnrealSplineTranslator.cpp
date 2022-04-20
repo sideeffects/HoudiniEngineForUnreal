@@ -36,7 +36,7 @@
 #include "HoudiniSplineTranslator.h"
 
 bool
-FUnrealSplineTranslator::CreateInputNodeForSplineComponent(USplineComponent* SplineComponent, const float& SplineResolution, HAPI_NodeId& CreatedInputNodeId, const FString& NodeName) 
+FUnrealSplineTranslator::CreateInputNodeForSplineComponent(USplineComponent* SplineComponent, const float& SplineResolution, HAPI_NodeId& CreatedInputNodeId, const FString& NodeName, const bool& bInUseLegacyInputCurves)
 {
 	if (!IsValid(SplineComponent))
 		return false;
@@ -80,14 +80,18 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(USplineComponent* Spl
 			RefinedSplineScales[n] = SplineComponent->GetScaleAtDistanceAlongSpline(CurrentDistance);
 
 			CurrentDistance += SplineResolution;
-		}			
+		}
 	}
 
-
-	if (!FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(CreatedInputNodeId, NodeName,
+	if (!FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
+		CreatedInputNodeId, NodeName,
 		&RefinedSplinePositions, &RefinedSplineRotations, &RefinedSplineScales,
-		EHoudiniCurveType::Polygon, EHoudiniCurveMethod::Breakpoints, false, SplineComponent->IsClosedLoop()))
+		EHoudiniCurveType::Polygon, EHoudiniCurveMethod::Breakpoints, SplineComponent->IsClosedLoop(), false,
+		false, FTransform::Identity, bInUseLegacyInputCurves))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Failed to create the input curve data!"));
 		return false;
+	}
 
 	// Add spline component tags if it has any
 	bool NeedToCommit = FHoudiniEngineUtils::CreateGroupsFromTags(CreatedInputNodeId, 0, SplineComponent->ComponentTags);
