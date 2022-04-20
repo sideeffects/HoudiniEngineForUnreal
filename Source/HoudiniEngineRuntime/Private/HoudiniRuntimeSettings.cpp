@@ -148,7 +148,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 
 	// Curve inputs and editable output curves
 	bAddRotAndScaleAttributesOnCurves = false;
-	bUseLegacyInputCurves = false;
+	bUseLegacyInputCurves = true;
 }
 
 UHoudiniRuntimeSettings::~UHoudiniRuntimeSettings()
