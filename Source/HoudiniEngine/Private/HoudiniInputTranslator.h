@@ -161,8 +161,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 	static bool	HapiCreateInputNodeForHoudiniSplineComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputHoudiniSplineComponent* InObject,
-		bool bInSetRotAndScaleAttributes,
-		bool bInUseLegacyInputCurves);
+		const bool& bInSetRotAndScaleAttributes,
+		const bool& bInUseLegacyInputCurves);
 
 	static bool	HapiCreateInputNodeForLandscape(
 		const FString& InObjNodeName,
@@ -170,18 +170,27 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		UHoudiniInput* InInput);
 
 	static bool HapiCreateInputNodeForSkeletalMesh(
-		const FString& InObjNodeName, UHoudiniInputSkeletalMesh* InObject);
+		const FString& InObjNodeName,
+		UHoudiniInputSkeletalMesh* InObject);
+
 	static bool HapiCreateInputNodeForGeometryCollection(
-		const FString& InObjNodeName, UHoudiniInputGeometryCollection* InObject, const bool& bImportAsReference);
+		const FString& InObjNodeName,
+		UHoudiniInputGeometryCollection* InObject,
+		const bool& bImportAsReference);
 
 	static bool HapiCreateInputNodeForGeometryCollectionComponent(
-		const FString& InObjNodeName, UHoudiniInputGeometryCollectionComponent* InObject, const bool& bImportAsReference);
+		const FString& InObjNodeName,
+		UHoudiniInputGeometryCollectionComponent* InObject,
+		const bool& bImportAsReference);
 
 	static bool HapiCreateInputNodeForGeometryCollectionActor(
-		const FString& InObjNodeName, UHoudiniInputGeometryCollectionActor* InObject, const bool& bImportAsReference);
+		const FString& InObjNodeName,
+		UHoudiniInputGeometryCollectionActor* InObject,
+		const bool& bImportAsReference);
 	
 	static bool	HapiCreateInputNodeForSceneComponent(
-		const FString& InObjNodeName, UHoudiniInputSceneComponent* InObject);
+		const FString& InObjNodeName,
+		UHoudiniInputSceneComponent* InObject);
 
 	static bool	HapiCreateInputNodeForStaticMeshComponent(
 		const FString& InObjNodeName,
@@ -202,16 +211,26 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bExportColliders);
 
 	static bool	HapiCreateInputNodeForSplineComponent(
-		const FString& InObjNodeName, UHoudiniInputSplineComponent* InObject, const float& SplineResolution);
+		const FString& InObjNodeName,
+		UHoudiniInputSplineComponent* InObject,
+		const float& SplineResolution,
+		const bool& bInUseLegacyInputCurves);
 
 	static bool	HapiCreateInputNodeForHoudiniAssetComponent(
-		const FString& InObjNodeName, UHoudiniInputHoudiniAsset* InObject, const bool bKeepWorldTransform, const bool& bImportAsReference, const bool& bImportAsReferenceRotScaleEnabled);
+		const FString& InObjNodeName,
+		UHoudiniInputHoudiniAsset* InObject,
+		const bool& bKeepWorldTransform,
+		const bool& bImportAsReference,
+		const bool& bImportAsReferenceRotScaleEnabled);
 
 	static bool	HapiCreateInputNodeForActor(
-		UHoudiniInput* InInput, UHoudiniInputActor* InObject, const FTransform & InActorTransform, TArray<int32>& OutCreatedNodeIds);
+		UHoudiniInput* InInput, UHoudiniInputActor* InObject,
+		const FTransform & InActorTransform,
+		TArray<int32>& OutCreatedNodeIds);
 
 	static bool HapiCreateInputNodeForCamera(
-		const FString& InObjNodeName, UHoudiniInputCameraComponent* InObject);
+		const FString& InObjNodeName,
+		UHoudiniInputCameraComponent* InObject);
 
 	// Create input node for Brush. Optionally exclude actors when combining
 	// brush with other intersecting brushes. This is typically used to 

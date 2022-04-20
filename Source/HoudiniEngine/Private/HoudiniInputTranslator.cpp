@@ -1461,7 +1461,7 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		case EHoudiniInputObjectType::SplineComponent:
 		{
 			UHoudiniInputSplineComponent* InputSpline = Cast<UHoudiniInputSplineComponent>(InInputObject);
-			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(ObjBaseName, InputSpline, InInput->GetUnrealSplineResolution());
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(ObjBaseName, InputSpline, InInput->GetUnrealSplineResolution(), InInput->IsUseLegacyInputCurvesEnabled());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -2608,7 +2608,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForInstancedStaticMeshComponent(
 }
 
 bool
-FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(const FString& InObjNodeName, UHoudiniInputSplineComponent* InObject, const float& SplineResolution)
+FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(
+	const FString& InObjNodeName,
+	UHoudiniInputSplineComponent* InObject,
+	const float& SplineResolution, 
+	const bool& bInUseLegacyInputCurves)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2624,7 +2628,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(const FString& In
 
 	FString NodeName = InObjNodeName + TEXT("_") + InObject->GetName();
 
-	if (!FUnrealSplineTranslator::CreateInputNodeForSplineComponent(Spline, SplineResolution, InObject->InputNodeId, NodeName))
+	if (!FUnrealSplineTranslator::CreateInputNodeForSplineComponent(Spline, SplineResolution, InObject->InputNodeId, NodeName, bInUseLegacyInputCurves))
 		return false;
 
 	// Cache the exported curve's data to the input object
@@ -2658,7 +2662,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(const FString& In
 
 bool
 FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniSplineComponent(
-	const FString& InObjNodeName, UHoudiniInputHoudiniSplineComponent* InObject, bool bInAddRotAndScaleAttributes, bool bInUseLegacyInputCurves)
+	const FString& InObjNodeName, UHoudiniInputHoudiniSplineComponent* InObject, const bool& bInAddRotAndScaleAttributes, const bool& bInUseLegacyInputCurves)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2692,7 +2696,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniSplineComponent(
 
 bool
 FHoudiniInputTranslator::
-HapiCreateInputNodeForHoudiniAssetComponent(const FString& InObjNodeName, UHoudiniInputHoudiniAsset* InObject, const bool bKeepWorldTransform, const bool& bImportAsReference, const bool& bImportAsReferenceRotScaleEnabled)
+HapiCreateInputNodeForHoudiniAssetComponent(const FString& InObjNodeName, UHoudiniInputHoudiniAsset* InObject, const bool& bKeepWorldTransform, const bool& bImportAsReference, const bool& bImportAsReferenceRotScaleEnabled)
 {
 	if (!IsValid(InObject))
 		return false;
