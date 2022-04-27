@@ -1031,8 +1031,8 @@ UHoudiniAssetComponent::NeedUpdate() const
 	if (!bCookOnParameterChange && !bRecookRequested && !bRebuildRequested)
 		return false;
 
-	// Check if the HAC's transform has changed and transform triggers cook is enabled
-	if (bCookOnTransformChange && bHasComponentTransformChanged)
+	// Check if the HAC's transform has changed and we need to cook because of it
+	if (bCookOnTransformChange && bHasComponentTransformChanged && bUploadTransformsToHoudiniEngine)
 		return true;
 
 	if (NeedUpdateParameters())
