@@ -1855,7 +1855,7 @@ HAPI_DECL HAPI_SaveHIPFile( const HAPI_Session * session,
 /// @param[out]     count
 ///                 Pointer to an int where the HIP file node count will be
 ///                 stored.
-HAPI_DECL HAPI_GetHIPFileNodeCount(const HAPI_Session *session,
+HAPI_DECL HAPI_GetHIPFileNodeCount(const HAPI_Session * session,
                                    HAPI_HIPFileId id,
                                    int * count);
 
@@ -1879,7 +1879,7 @@ HAPI_DECL HAPI_GetHIPFileNodeCount(const HAPI_Session *session,
 ///                 The number of ::HAPI_NodeId to be stored. This should be at
 ///                 least 0 and at most the count provided by
 ///                 HAPI_GetHIPFileNodeCount
-HAPI_DECL HAPI_GetHIPFileNodeIds(const HAPI_Session *session,
+HAPI_DECL HAPI_GetHIPFileNodeIds(const HAPI_Session * session,
                                  HAPI_HIPFileId id,
                                  HAPI_NodeId * node_ids,
                                  int length);
