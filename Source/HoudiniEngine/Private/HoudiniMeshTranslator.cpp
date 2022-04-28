@@ -1476,7 +1476,7 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 			TSubclassOf<UMeshComponent> ComponentType = UHoudiniStaticMeshComponent::StaticClass();
 			const FHoudiniGeoPartObject *FoundHGPO = nullptr;
 			bool bCreated = false;
-			UMeshComponent *MeshComponent = CreateOrUpdateMeshComponent(InOutput, InOuterComponent, OutputIdentifier, ComponentType, OutputObject, FoundHGPO, bCreated);
+			UMeshComponent* MeshComponent = CreateOrUpdateMeshComponent(InOutput, InOuterComponent, OutputIdentifier, ComponentType, OutputObject, FoundHGPO, bCreated);
 			if (MeshComponent)
 			{
 				UHoudiniStaticMeshComponent *HSMC = Cast<UHoudiniStaticMeshComponent>(MeshComponent);
@@ -1522,7 +1522,7 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 			}
 
 			const FHoudiniGeoPartObject* FoundHGPO = nullptr;
-			UMeshComponent* MeshComponent;
+			UMeshComponent* MeshComponent = nullptr;
 			if (Mesh->IsA<UStaticMesh>())
 			{
 				TSubclassOf<UMeshComponent> ComponentType = UStaticMeshComponent::StaticClass();
