@@ -292,18 +292,10 @@ void SortBonesByParent(FSkeletalMeshImportData& SkeletalMeshImportData)
 //Builds Skeletal Mesh and Skeleton Assets from FSkeletalMeshImportData
 void FHoudiniMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSettings, TArray<FSkeletalMaterial>& Materials)
 {
-	//---------------------------------------------
-	//FName SKMeshName = TEXT("FooMesh");
-	//FString PackageName = FString(TEXT("/Game/FooMesh"));
-	//NewMesh = NewObject<USkeletalMesh>(Package, FName(*SKMeshName), RF_Public | RF_Standalone );
-	FSkeletalMeshImportData& SkeletalMeshImportData = BuildSettings.SkeletalMeshImportData;
-	USkeleton* MySkeleton = BuildSettings.Skeleton;
-	//FBox BoundingBox(SkeletalMeshImportData.Points.GetData(), SkeletalMeshImportData.Points.Num());
+    FSkeletalMeshImportData& SkeletalMeshImportData = BuildSettings.SkeletalMeshImportData;
+    USkeleton* MySkeleton = BuildSettings.Skeleton;
 	FBox3f BoundingBox(SkeletalMeshImportData.Points.GetData(), SkeletalMeshImportData.Points.Num());
 	const FVector3f BoundingBoxSize = BoundingBox.GetSize();
-
-	//NewMesh->RefSkeleton = MySkeleton->GetReferenceSkeleton();
-
 
 	//Setup NewMesh defaults
 	FSkeletalMeshModel* ImportedResource = BuildSettings.SKMesh->GetImportedModel();
@@ -319,34 +311,23 @@ void FHoudiniMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSetting
 
 	BuildSettings.SKMesh->SaveLODImportedData(0, SkeletalMeshImportData);  //Import the ImportData
 
-	//USkeleton* ExistingSkeleton = nullptr;// = ExistSkelMeshDataPtr ? ExistSkelMeshDataPtr->ExistingSkeleton : ImportOptions->SkeletonForAnimation;
-	int32 SkeletalDepth = 0;
-	SkeletalMeshImportUtils::ProcessImportMeshSkeleton(MySkeleton, BuildSettings.SKMesh->RefSkeleton, SkeletalDepth, SkeletalMeshImportData);
-
-	//Setup Materials
-	/*for (FSkeletalMaterial SkeletalMaterial : Materials)
-	{
-	NewMesh->Materials.Add(SkeletalMaterial);
-	}*/
+    int32 SkeletalDepth = 0;
+	FReferenceSkeleton& RefSkeleton = BuildSettings.SKMesh->GetRefSkeleton();
+    SkeletalMeshImportUtils::ProcessImportMeshSkeleton(MySkeleton, RefSkeleton, SkeletalDepth, SkeletalMeshImportData);
 
 	for (SkeletalMeshImportData::FMaterial SkeletalImportMaterial : SkeletalMeshImportData.Materials)
 	{
-	UMaterialInterface* MaterialInterface;
-	MaterialInterface = Cast<UMaterialInterface>(
+		UMaterialInterface* MaterialInterface;
+		MaterialInterface = Cast<UMaterialInterface>(
 	    StaticLoadObject(UMaterialInterface::StaticClass(),
 		nullptr, *SkeletalImportMaterial.MaterialImportName, nullptr, LOAD_NoWarn, nullptr));
-	FSkeletalMaterial SkeletalMaterial;
-	SkeletalMaterial.MaterialInterface = MaterialInterface;
-	BuildSettings.SKMesh->Materials.Add(SkeletalMaterial);
+		FSkeletalMaterial SkeletalMaterial;
+		SkeletalMaterial.MaterialInterface = MaterialInterface;
+		BuildSettings.SKMesh->GetMaterials().Add(SkeletalMaterial);
 	}
 
-	//NewMesh->RefSkeleton = Mesh->RefSkeleton; //bool SkeletalMeshHelper::ProcessImportMeshSkeleton(
-
-	// process bone influences from import data
-	SkeletalMeshImportUtils::ProcessImportMeshInfluences(SkeletalMeshImportData, BuildSettings.SKMesh->GetPathName());
-	//Store the original fbx import data the SkelMeshImportDataPtr should not be modified after this
-	//NewMesh->SaveLODImportedData(0, SkeletalMeshImportData);  //Import the ImportData
-
+    // process bone influences from import data
+    SkeletalMeshImportUtils::ProcessImportMeshInfluences(SkeletalMeshImportData, BuildSettings.SKMesh->GetPathName());
 
 	BuildSettings.SKMesh->ResetLODInfo();
 	FSkeletalMeshLODInfo& NewLODInfo = BuildSettings.SKMesh->AddLODInfo();
@@ -357,7 +338,7 @@ void FHoudiniMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSetting
 	FBoxSphereBounds3f bsb3f = FBoxSphereBounds3f(BoundingBox);
 	BuildSettings.SKMesh->SetImportedBounds(FBoxSphereBounds(bsb3f));
 	// Store whether or not this mesh has vertex colors
-	BuildSettings.SKMesh->bHasVertexColors = SkeletalMeshImportData.bHasVertexColors;
+	BuildSettings.SKMesh->SetHasVertexColors(SkeletalMeshImportData.bHasVertexColors);
 	//NewMesh->VertexColorGuid = Mesh->bHasVertexColors ? FGuid::NewGuid() : FGuid();
 
 	// Pass the number of texture coordinate sets to the LODModel.  Ensure there is at least one UV coord
@@ -389,15 +370,12 @@ void FHoudiniMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSetting
 	//BuildOptions.ThresholdUV = ImportOptions->OverlappingThresholds.ThresholdUV;
 	//BuildOptions.MorphThresholdPosition = ImportOptions->OverlappingThresholds.MorphThresholdPosition;
 	BuildSettings.SKMesh->GetLODInfo(ImportLODModelIndex)->BuildSettings = BuildOptions;
-	//New MeshDescription build process
-	IMeshBuilderModule& MeshBuilderModule = IMeshBuilderModule::GetForRunningPlatform();
-	//We must build the LODModel so we can restore properly the mesh, but we do not have to regenerate LODs
-	//int32 SkeletalDepth = 0;
-	//ProcessImportMeshSkeleton(MySkeleton, NewMesh->RefSkeleton, SkeletalDepth, SkeletalMeshImportData);
-	
-	FSkeletalMeshBuildParameters SkeletalMeshBuildParameters = FSkeletalMeshBuildParameters(BuildSettings.SKMesh, GetTargetPlatformManagerRef().GetRunningTargetPlatform(), ImportLODModelIndex, false);
-	bool bBuildSuccess = MeshBuilderModule.BuildSkeletalMesh(SkeletalMeshBuildParameters);
-	//bool bBuildSuccess = MeshBuilderModule.BuildSkeletalMesh(NewMesh, ImportLODModelIndex, false);
+    //New MeshDescription build process
+    IMeshBuilderModule& MeshBuilderModule = IMeshBuilderModule::GetForRunningPlatform();
+    //We must build the LODModel so we can restore properly the mesh, but we do not have to regenerate LODs
+    
+    FSkeletalMeshBuildParameters SkeletalMeshBuildParameters = FSkeletalMeshBuildParameters(BuildSettings.SKMesh, GetTargetPlatformManagerRef().GetRunningTargetPlatform(), ImportLODModelIndex, false);
+    bool bBuildSuccess = MeshBuilderModule.BuildSkeletalMesh(SkeletalMeshBuildParameters);
 
 	//We need to have a valid render data to create physic asset
 	BuildSettings.SKMesh->Build();
@@ -408,35 +386,13 @@ void FHoudiniMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSetting
 	//CREATE A NEW SKELETON ASSET IF NEEDED
 	if (MySkeleton == NULL)
 	{
-	FString ObjectName = FString::Printf(TEXT("%s_Skeleton"), *BuildSettings.SKMesh->GetName());
-	//Skeleton = CreateAsset<USkeleton>(SKMeshName, ObjectName, true);
-	MySkeleton = NewObject<USkeleton>(BuildSettings.SKPackage, *ObjectName, RF_Public | RF_Standalone);
-	//NewMesh = NewObject<USkeletalMesh>(Package, SKMeshName, RF_Public | RF_Standalone | RF_MarkAsRootSet);
-	MySkeleton->MarkPackageDirty();
-	}
-	//SkeletalMeshHelper::ProcessImportMeshSkeleton(MySkeleton, NewMesh->RefSkeleton, SkeletalDepth, SkeletalMeshImportData);
-	//ProcessImportMeshSkeleton(MySkeleton, NewMesh->RefSkeleton, SkeletalDepth, SkeletalMeshImportData);
-	MySkeleton->MergeAllBonesToBoneTree(BuildSettings.SKMesh);
+		FString ObjectName = FString::Printf(TEXT("%s_Skeleton"), *BuildSettings.SKMesh->GetName());
+		MySkeleton = NewObject<USkeleton>(BuildSettings.SKPackage, *ObjectName, RF_Public | RF_Standalone);
+		MySkeleton->MarkPackageDirty();
+    }
+    MySkeleton->MergeAllBonesToBoneTree(BuildSettings.SKMesh);
 
-	BuildSettings.SKMesh->Skeleton = MySkeleton;
-	//   USkeleton* Skeleton = nullptr;  // = ImportOptions->SkeletonForAnimation;
-	//   if (Skeleton == NULL)
-	//   {
-	   //FString ObjectName = FString::Printf(TEXT("%s_Skeleton"), *NewMesh->GetName());
-	   ////Skeleton = CreateAsset<USkeleton>(SKMeshName, ObjectName, true);
-	   //Skeleton = NewObject<USkeleton>(Package, *ObjectName, RF_Public | RF_Standalone);
-	   ////NewMesh = NewObject<USkeletalMesh>(Package, SKMeshName, RF_Public | RF_Standalone | RF_MarkAsRootSet);
-	   //Skeleton->MarkPackageDirty();
-	//   }
-
-
-	   /*if (NewMesh->Skeleton != MySkeleton)
-	   {
-	   NewMesh->Skeleton = MySkeleton;
-	   NewMesh->MarkPackageDirty();
-	   }*/
-	//bool bSuccess = UPackage::SavePackage(Package, NewMesh, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone, *PackageName);
-
+	BuildSettings.SKMesh->SetSkeleton(MySkeleton);
 	UE_LOG(LogTemp, Log, TEXT("SkeletalMeshImportData:  Materials %i Points %i Wedges %i Faces %i Influences %i"), SkeletalMeshImportData.Materials.Num(),
 	SkeletalMeshImportData.Points.Num(),
 	SkeletalMeshImportData.Wedges.Num(),
@@ -769,6 +725,9 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 	TArray<float> BoneCaptureData;  //if not fbx imported, these indexes match CaptNamesAltData sorting
 	FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId, "boneCapture", BoneCaptureInfo, BoneCaptureData);
 	SkeletalMeshImportData::FRawBoneInfluence RawBoneInfluence;
+	RawBoneInfluence.BoneIndex = 0;
+	RawBoneInfluence.VertexIndex = 0;
+	RawBoneInfluence.Weight = 0;
 	int InfluenceVertIndex = 0;
 	int BoneInfluence_idx = 0;
 	int CaptureCount = 0;
@@ -860,14 +819,15 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 void FHoudiniMeshTranslator::CreateSKAssetAndPackage(SKBuildSettings& BuildSettings, const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, FString PackageName, int MaxInfluences, bool ImportNormals)
 {
 	FString SKMeshName = FPackageName::GetShortName(PackageName);
-	UPackage* Package = CreatePackage(NULL, *PackageName);
+	//UPackage* Package = CreatePackage(NULL, *PackageName);
+	UPackage* Package = CreatePackage(*PackageName);
 	Package->FullyLoad();
 	USkeletalMesh* NewMesh = nullptr;
 	NewMesh = NewObject<USkeletalMesh>(Package, FName(*SKMeshName), RF_Public | RF_Standalone | RF_MarkAsRootSet);
 
 	FString SkeltonPackageName = PackageName + "Skeleton";
 	FString SkeletonName = FPackageName::GetShortName(SkeltonPackageName);
-	UPackage* SkeletonPackage = CreatePackage(NULL, *SkeltonPackageName);
+	UPackage* SkeletonPackage = CreatePackage(*SkeltonPackageName);
 	SkeletonPackage->FullyLoad();
 	USkeleton* NewSkeleton = nullptr;
 	NewSkeleton = NewObject<USkeleton>(SkeletonPackage, FName(*SkeletonName), RF_Public | RF_Standalone | RF_MarkAsRootSet);
