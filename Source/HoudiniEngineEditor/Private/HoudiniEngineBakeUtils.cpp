@@ -6006,6 +6006,17 @@ FHoudiniEngineBakeUtils::CopyPropertyToNewActorAndComponent(
 
 	UBodySetup* InBodySetup = InSMC->GetBodySetup();
 	UBodySetup* NewBodySetup = NewSMC->GetBodySetup();
+
+	// See if we need to create a body setup for the new SMC
+	if (InBodySetup && !NewBodySetup)
+	{
+		if (NewSMC->GetStaticMesh())
+		{
+			NewSMC->GetStaticMesh()->CreateBodySetup();
+			NewBodySetup = NewSMC->GetBodySetup();
+		}
+	}
+
 	if (InBodySetup && NewBodySetup)
 	{
 		// Copy the BodySetup

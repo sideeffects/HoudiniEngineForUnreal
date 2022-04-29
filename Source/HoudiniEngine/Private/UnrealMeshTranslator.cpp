@@ -1400,7 +1400,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 		}
 	}
 
-	if (DoExportColliders)
+	if (DoExportColliders && StaticMesh->GetBodySetup() != nullptr)
 	{
 		FKAggregateGeom SimpleColliders = StaticMesh->GetBodySetup()->AggGeom;
 
