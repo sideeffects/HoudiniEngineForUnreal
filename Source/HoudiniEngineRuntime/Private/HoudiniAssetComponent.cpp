@@ -2900,7 +2900,7 @@ UHoudiniAssetComponent::SetStaticMeshGenerationProperties(UStaticMesh* InStaticM
 	for (int32 AssetUserDataIdx = 0; AssetUserDataIdx < StaticMeshGenerationProperties.GeneratedAssetUserData.Num(); AssetUserDataIdx++)
 		InStaticMesh->AddAssetUserData(StaticMeshGenerationProperties.GeneratedAssetUserData[AssetUserDataIdx]);
 
-	//
+	// Create a body setup if needed
 	if (!InStaticMesh->GetBodySetup())
 		InStaticMesh->CreateBodySetup();
 
