@@ -1127,6 +1127,10 @@ UHoudiniInputMeshComponent::Update(UObject * InObject)
 	Super::Update(InObject);
 
 	UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(InObject);
+
+	// Empty the materials array here!, else it will continuously keep growing
+	// and bloat the size of the HAC for nothing
+	MeshComponentsMaterials.Empty();
 	
 	ensure(SMC);
 
@@ -1968,7 +1972,6 @@ bool UHoudiniInputBrush::FindIntersectingSubtractiveBrushes(const UHoudiniInputB
 {
 	TArray<AActor*> IntersectingActors;	
 	TArray<FBox> Bounds;
-
 
 	if (!IsValid(InputBrush))
 		return false;
