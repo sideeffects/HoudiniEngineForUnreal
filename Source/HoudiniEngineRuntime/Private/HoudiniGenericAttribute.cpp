@@ -463,18 +463,17 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 		UActorComponent* AC = Cast< UActorComponent >(InObject);
 		if (IsValid(AC))
 		{
-			/*
 			FName NameAttr = FName(*InPropertyAttribute.GetStringValue(AtIndex));
 			if (!AC->ComponentTags.Contains(NameAttr))
 				AC->ComponentTags.Add(NameAttr);
-			*/
+			/*
 			for (int nIdx = 0; nIdx < InPropertyAttribute.AttributeCount; nIdx++)
 			{
 				FName NameAttr = FName(*InPropertyAttribute.GetStringValue(nIdx));
 				if (!AC->ComponentTags.Contains(NameAttr))
 					AC->ComponentTags.Add(NameAttr);
 			}
-			
+			*/
 			return true;
 		}
 		return false;
