@@ -402,11 +402,10 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 			FString StringValue = InPropertyAttribute.GetStringValue(AtIndex);
 			FName Value = FName(*StringValue);
 
-			// Create a body setup if needed
-			if (!SM->GetBodySetup())
-				SM->CreateBodySetup();
-
-			SM->GetBodySetup()->DefaultInstance.SetCollisionProfileName(Value);
+			if (IsValid(SM->BodySetup))
+			{
+				SM->BodySetup->DefaultInstance.SetCollisionProfileName(Value);
+			}
 
 			return true;
 		}
@@ -463,18 +462,17 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 		UActorComponent* AC = Cast< UActorComponent >(InObject);
 		if (IsValid(AC))
 		{
-			/*
 			FName NameAttr = FName(*InPropertyAttribute.GetStringValue(AtIndex));
 			if (!AC->ComponentTags.Contains(NameAttr))
 				AC->ComponentTags.Add(NameAttr);
-			*/
+			/*
 			for (int nIdx = 0; nIdx < InPropertyAttribute.AttributeCount; nIdx++)
 			{
 				FName NameAttr = FName(*InPropertyAttribute.GetStringValue(nIdx));
 				if (!AC->ComponentTags.Contains(NameAttr))
 					AC->ComponentTags.Add(NameAttr);
 			}
-			
+			*/
 			return true;
 		}
 		return false;
