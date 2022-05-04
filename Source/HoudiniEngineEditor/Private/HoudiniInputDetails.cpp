@@ -2814,33 +2814,33 @@ FHoudiniInputDetails::AddCurveInputUI(IDetailCategoryBuilder& CategoryBuilder, T
 	.Padding(2, 2, 5, 2)
 	.AutoHeight()
 	[
-	SNew(SCheckBox)
-	.Content()
-	[
-		SNew(STextBlock)
-		.Text(LOCTEXT("HoudiniEngineLegacyInputCurvesLabel", "Use Legacy Input Curves"))
-		.ToolTipText(LegacyInputCurveTooltipText)
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-	]
-	.OnCheckStateChanged_Lambda([InInputs](ECheckBoxState NewState)
-	{
-		const bool bChecked = (NewState == ECheckBoxState::Checked);
-		for (auto& CurrentInput : InInputs)
+		SNew(SCheckBox)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("HoudiniEngineLegacyInputCurvesLabel", "Use Legacy Input Curves"))
+			.ToolTipText(LegacyInputCurveTooltipText)
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		.OnCheckStateChanged_Lambda([InInputs](ECheckBoxState NewState)
 		{
-			if (!IsValidWeakPointer(CurrentInput))
-				continue;
+			const bool bChecked = (NewState == ECheckBoxState::Checked);
+			for (auto& CurrentInput : InInputs)
+			{
+				if (!IsValidWeakPointer(CurrentInput))
+					continue;
 
-			CurrentInput->SetUseLegacyInputCurve(bChecked);
-		}
-	})
-	.IsChecked_Lambda([MainInput]()
-	{
-		if (!IsValidWeakPointer(MainInput))
-			return ECheckBoxState::Unchecked;
+				CurrentInput->SetUseLegacyInputCurve(bChecked);
+			}
+		})
+		.IsChecked_Lambda([MainInput]()
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return ECheckBoxState::Unchecked;
 			
-		return MainInput->IsUseLegacyInputCurvesEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-	})
-	.ToolTipText(TooltipText)
+			return MainInput->IsUseLegacyInputCurvesEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		})
+		.ToolTipText(TooltipText)
 	];
 	
 	VerticalBox->AddSlot()
@@ -2935,7 +2935,9 @@ FHoudiniInputDetails::AddCurveInputUI(IDetailCategoryBuilder& CategoryBuilder, T
 			}),
 			LOCTEXT("EmptyInputsCurve", "Removes All Curve Inputs"), true)
 		]
-		+ SHorizontalBox::Slot().FillWidth(80.f).MaxWidth(80.f)
+		+ SHorizontalBox::Slot()
+		.FillWidth(80.f)
+		.MaxWidth(80.f)
 		[
 			SNew(SButton)
 			.Text(LOCTEXT("ResetCurveOffsetStr", "Reset Offset"))
@@ -2969,8 +2971,8 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 	IDetailCategoryBuilder& CategoryBuilder,
 	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 	const int32& InCurveObjectIdx,
-	TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool,
-	TSharedRef< SVerticalBox > VerticalBox,
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool,
+	TSharedRef<SVerticalBox> VerticalBox,
 	TSharedPtr<FHoudiniSplineComponentVisualizer> HouSplineComponentVisualizer)
 {
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
@@ -3029,7 +3031,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 	FString HoudiniSplineName = HoudiniSplineComponent->GetHoudiniSplineName();
 
 	// Editable label for the current Houdini curve
-	TSharedPtr <SHorizontalBox> LabelHorizontalBox;
+	TSharedPtr<SHorizontalBox> LabelHorizontalBox;
 	VerticalBox->AddSlot()
 	.Padding(0, 2)
 	.AutoHeight()
@@ -3038,41 +3040,41 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 	];
 
 
-	TSharedPtr <SEditableText> LabelBlock;
+	TSharedPtr<SEditableText> LabelBlock;
 	LabelHorizontalBox->AddSlot()
-		.Padding(0, 15, 0, 2)
-		.MaxWidth(150.f)
-		.FillWidth(150.f)
-		.VAlign(VAlign_Bottom)
-		.HAlign(HAlign_Left)
-		[	
-			SNew(SBox).HeightOverride(20.f).WidthOverride(200.f).VAlign(VAlign_Center)
-			[
-				SAssignNew(LabelBlock, SEditableText).Text(FText::FromString(HoudiniSplineName))
-				.OnTextCommitted_Lambda([HoudiniSplineComponent](FText NewText, ETextCommit::Type CommitType)
+	.Padding(0, 15, 0, 2)
+	.MaxWidth(150.f)
+	.FillWidth(150.f)
+	.VAlign(VAlign_Bottom)
+	.HAlign(HAlign_Left)
+	[	
+		SNew(SBox).HeightOverride(20.f).WidthOverride(200.f).VAlign(VAlign_Center)
+		[
+			SAssignNew(LabelBlock, SEditableText).Text(FText::FromString(HoudiniSplineName))
+			.OnTextCommitted_Lambda([HoudiniSplineComponent](FText NewText, ETextCommit::Type CommitType)
+			{
+				if (CommitType == ETextCommit::Type::OnEnter)
 				{
-					if (CommitType == ETextCommit::Type::OnEnter)
-					{
-						HoudiniSplineComponent->SetHoudiniSplineName(NewText.ToString());
-					}
-				})
-			]		
-		];
+					HoudiniSplineComponent->SetHoudiniSplineName(NewText.ToString());
+				}
+			})
+		]		
+	];
 
 	// 'Editing...' TextBlock showing if this component is being edited
 	TSharedPtr<SCurveEditingTextBlock> EditingTextBlock;
 	LabelHorizontalBox->AddSlot()
-		.Padding(0, 15, 0, 2)
-		.MaxWidth(55.f)
-		.FillWidth(55.f)
-		.VAlign(VAlign_Bottom)
-		.HAlign(HAlign_Left)
+	.Padding(0, 15, 0, 2)
+	.MaxWidth(55.f)
+	.FillWidth(55.f)
+	.VAlign(VAlign_Bottom)
+	.HAlign(HAlign_Left)
+	[
+		SNew(SBox).HeightOverride(20.f).WidthOverride(75.f).VAlign(VAlign_Center)
 		[
-			SNew(SBox).HeightOverride(20.f).WidthOverride(75.f).VAlign(VAlign_Center)
-			[
-				SAssignNew(EditingTextBlock, SCurveEditingTextBlock).Text(LOCTEXT("HoudiniCurveInputEditingLabel", "(editing...)"))
-			]
-		];
+			SAssignNew(EditingTextBlock, SCurveEditingTextBlock).Text(LOCTEXT("HoudiniCurveInputEditingLabel", "(editing...)"))
+		]
+	];
 
 	EditingTextBlock->HoudiniSplineComponent = HoudiniSplineComponent;
 	EditingTextBlock->HoudiniSplineComponentVisualizer = HouSplineComponentVisualizer;
@@ -3129,17 +3131,26 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 	};
 
 	// Add delete button UI
-	LabelHorizontalBox->AddSlot().Padding(0, 2, 0, 2).HAlign(HAlign_Right).VAlign(VAlign_Bottom).AutoWidth()
-		[
-			PropertyCustomizationHelpers::MakeEmptyButton(FSimpleDelegate::CreateLambda([DeleteHoudiniCurveAtIndex]()
-	{
-		return DeleteHoudiniCurveAtIndex();
-	}))
-		];
+	LabelHorizontalBox->AddSlot()
+	.Padding(0, 2, 0, 2)
+	.HAlign(HAlign_Right)
+	.VAlign(VAlign_Bottom)
+	.AutoWidth()
+	[
+		PropertyCustomizationHelpers::MakeEmptyButton(FSimpleDelegate::CreateLambda([DeleteHoudiniCurveAtIndex]()
+		{
+			return DeleteHoudiniCurveAtIndex();
+		}))
+	];
 
 
-	TSharedPtr <SHorizontalBox> HorizontalBox = NULL;
-	VerticalBox->AddSlot().Padding(0, 2).AutoHeight()[SAssignNew(HorizontalBox, SHorizontalBox)];
+	TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
+	VerticalBox->AddSlot()
+	.Padding(0, 2)
+	.AutoHeight()
+	[
+		SAssignNew(HorizontalBox, SHorizontalBox)
+	];
 
 	// Closed check box
 	// Lambda returning a closed state
@@ -3186,24 +3197,26 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 	};
 
 	// Add Closed check box UI
-	TSharedPtr <SCheckBox> CheckBoxClosed = NULL;
-	HorizontalBox->AddSlot().Padding(0, 2).AutoWidth()
+	TSharedPtr<SCheckBox> CheckBoxClosed = NULL;
+	HorizontalBox->AddSlot()
+	.Padding(0, 2)
+	.AutoWidth()
+	[
+		SAssignNew(CheckBoxClosed, SCheckBox).Content()
 		[
-			SAssignNew(CheckBoxClosed, SCheckBox).Content()
-			[
-				SNew(STextBlock).Text(LOCTEXT("ClosedCurveCheckBox", "Closed"))
-				.ToolTipText(LOCTEXT("ClosedCurveCheckboxTip", "Close this input curve."))
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-			]
-	.IsChecked_Lambda([IsCheckedClosedCurve]()
-	{
-		return IsCheckedClosedCurve();
-	})
-		.OnCheckStateChanged_Lambda([CheckStateChangedClosedCurve](ECheckBoxState NewState)
-	{
-		return CheckStateChangedClosedCurve(NewState);
-	})
-		];
+			SNew(STextBlock).Text(LOCTEXT("ClosedCurveCheckBox", "Closed"))
+			.ToolTipText(LOCTEXT("ClosedCurveCheckboxTip", "Close this input curve."))
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		.IsChecked_Lambda([IsCheckedClosedCurve]()
+		{
+			return IsCheckedClosedCurve();
+		})
+			.OnCheckStateChanged_Lambda([CheckStateChangedClosedCurve](ECheckBoxState NewState)
+		{
+			return CheckStateChangedClosedCurve(NewState);
+		})
+	];
 
 	// Reversed check box
 	// Lambda returning a reversed state
@@ -3248,26 +3261,26 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 	};
 
 	// Add reversed check box UI
-	TSharedPtr <SCheckBox> CheckBoxReversed = NULL;
+	TSharedPtr<SCheckBox> CheckBoxReversed = NULL;
 	HorizontalBox->AddSlot()
-		.Padding(2, 2)
-		.AutoWidth()
+	.Padding(2, 2)
+	.AutoWidth()
+	[
+		SAssignNew(CheckBoxReversed, SCheckBox).Content()
 		[
-			SAssignNew(CheckBoxReversed, SCheckBox).Content()
-			[
-				SNew(STextBlock).Text(LOCTEXT("ReversedCurveCheckBox", "Reversed"))
-				.ToolTipText(LOCTEXT("ReversedCurveCheckboxTip", "Reverse this input curve."))
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-			]
-	.IsChecked_Lambda([IsCheckedReversedCurve]()
-	{
-		return IsCheckedReversedCurve();
-	})
+			SNew(STextBlock).Text(LOCTEXT("ReversedCurveCheckBox", "Reversed"))
+			.ToolTipText(LOCTEXT("ReversedCurveCheckboxTip", "Reverse this input curve."))
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		.IsChecked_Lambda([IsCheckedReversedCurve]()
+		{
+			return IsCheckedReversedCurve();
+		})
 		.OnCheckStateChanged_Lambda([CheckStateChangedReversedCurve](ECheckBoxState NewState)
-	{
-		return CheckStateChangedReversedCurve(NewState);
-	})
-		];
+		{
+			return CheckStateChangedReversedCurve(NewState);
+		})
+	];
 
 	// Visible check box
 	// Lambda returning a visible state
@@ -3300,29 +3313,30 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 		}
 
 		if (GEditor)
-			GEditor->RedrawAllViewports();
-		
+			GEditor->RedrawAllViewports();		
 	};
 
 	// Add visible check box UI
-	TSharedPtr <SCheckBox> CheckBoxVisible = NULL;
-	HorizontalBox->AddSlot().Padding(2, 2).AutoWidth()
+	TSharedPtr<SCheckBox> CheckBoxVisible = NULL;
+	HorizontalBox->AddSlot()
+	.Padding(2, 2)
+	.AutoWidth()
+	[
+		SAssignNew(CheckBoxVisible, SCheckBox).Content()
 		[
-			SAssignNew(CheckBoxVisible, SCheckBox).Content()
-			[
-				SNew(STextBlock).Text(LOCTEXT("VisibleCurveCheckBox", "Visible"))
-				.ToolTipText(LOCTEXT("VisibleCurveCheckboxTip", "Set the visibility of this curve."))
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-			]
-	.IsChecked_Lambda([IsCheckedVisibleCurve]()
-	{
-		return IsCheckedVisibleCurve();
-	})
+			SNew(STextBlock).Text(LOCTEXT("VisibleCurveCheckBox", "Visible"))
+			.ToolTipText(LOCTEXT("VisibleCurveCheckboxTip", "Set the visibility of this curve."))
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		.IsChecked_Lambda([IsCheckedVisibleCurve]()
+		{
+			return IsCheckedVisibleCurve();
+		})
 		.OnCheckStateChanged_Lambda([CheckStateChangedVisibleCurve](ECheckBoxState NewState)
-	{
-		return CheckStateChangedVisibleCurve(NewState);
-	})
-		];
+		{
+			return CheckStateChangedVisibleCurve(NewState);
+		})
+	];
 
 	// Curve type comboBox
 	// Lambda for changing Houdini curve type
@@ -3377,49 +3391,51 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 	// Add curve type combo box UI
 	TSharedPtr<SHorizontalBox> CurveTypeHorizontalBox;
 	VerticalBox->AddSlot()
-		.Padding(0, 2, 2, 0)
-		.AutoHeight()
-		[
-			SAssignNew(CurveTypeHorizontalBox, SHorizontalBox)
-		];
+	.Padding(0, 2, 2, 0)
+	.AutoHeight()
+	[
+		SAssignNew(CurveTypeHorizontalBox, SHorizontalBox)
+	];
 
 	// Add curve type label UI
-	CurveTypeHorizontalBox->AddSlot().Padding(0, 10, 0, 2).AutoWidth()
-		[
-			SNew(STextBlock).Text(LOCTEXT("CurveTypeText", "Curve Type     "))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-		];
-
-	TSharedPtr < SComboBox < TSharedPtr < FString > > > ComboBoxCurveType;
 	CurveTypeHorizontalBox->AddSlot()
-		.Padding(2, 2, 5, 2)
-		.FillWidth(150.f)
-		.MaxWidth(150.f)
-		[
-			SAssignNew(ComboBoxCurveType, SComboBox<TSharedPtr<FString>>)
-			.OptionsSource(FHoudiniEngineEditor::Get().GetHoudiniCurveTypeChoiceLabels())
+	.Padding(0, 10, 0, 2)
+	.AutoWidth()
+	[
+		SNew(STextBlock).Text(LOCTEXT("CurveTypeText", "Curve Type     "))
+		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+	];
+
+	TSharedPtr<SComboBox<TSharedPtr<FString>>> ComboBoxCurveType;
+	CurveTypeHorizontalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.FillWidth(150.f)
+	.MaxWidth(150.f)
+	[
+		SAssignNew(ComboBoxCurveType, SComboBox<TSharedPtr<FString>>)
+		.OptionsSource(FHoudiniEngineEditor::Get().GetHoudiniCurveTypeChoiceLabels())
 		.InitiallySelectedItem((*FHoudiniEngineEditor::Get().GetHoudiniCurveTypeChoiceLabels())[(int)HoudiniSplineComponent->GetCurveType()])
 		.OnGenerateWidget_Lambda([](TSharedPtr<FString> ChoiceEntry)
-	{
-		FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
-		return SNew(STextBlock)
-			.Text(ChoiceEntryText)
-			.ToolTipText(ChoiceEntryText)
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
-	})
+		{
+			FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
+			return SNew(STextBlock)
+				.Text(ChoiceEntryText)
+				.ToolTipText(ChoiceEntryText)
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+		})
 		.OnSelectionChanged_Lambda([OnCurveTypeChanged](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
-	{
-		return OnCurveTypeChanged(NewChoice);
-	})
+		{
+			return OnCurveTypeChanged(NewChoice);
+		})
 		[
 			SNew(STextBlock)
 			.Text_Lambda([GetCurveTypeText]()
-	{
-		return GetCurveTypeText();
-	})
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			{
+				return GetCurveTypeText();
+			})
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
-		];
+	];
 
 	// Houdini curve method combo box
 	// Lambda for changing Houdini curve method
@@ -3465,53 +3481,66 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 	};
 	
 	// Add curve method combo box UI
-	TSharedPtr< SHorizontalBox > CurveMethodHorizontalBox;
-	VerticalBox->AddSlot().Padding(0, 2, 2, 0).AutoHeight()[SAssignNew(CurveMethodHorizontalBox, SHorizontalBox)];
+	TSharedPtr<SHorizontalBox> CurveMethodHorizontalBox;
+	VerticalBox->AddSlot()
+	.Padding(0, 2, 2, 0)
+	.AutoHeight()
+	[
+		SAssignNew(CurveMethodHorizontalBox, SHorizontalBox)
+	];
 
 	// Add curve method label UI
-	CurveMethodHorizontalBox->AddSlot().Padding(0, 10, 0, 2).AutoWidth()
-		[
-			SNew(STextBlock).Text(LOCTEXT("CurveMethodText", "Curve Method "))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-		];
+	CurveMethodHorizontalBox->AddSlot()
+	.Padding(0, 10, 0, 2)
+	.AutoWidth()
+	[
+		SNew(STextBlock).Text(LOCTEXT("CurveMethodText", "Curve Method "))
+		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+	];
 
-	TSharedPtr < SComboBox < TSharedPtr < FString > > > ComboBoxCurveMethod;
-	CurveMethodHorizontalBox->AddSlot().Padding(2, 2, 5, 2).FillWidth(150.f).MaxWidth(150.f)
-		[
-			SAssignNew(ComboBoxCurveMethod, SComboBox<TSharedPtr<FString>>)
-			.OptionsSource(FHoudiniEngineEditor::Get().GetHoudiniCurveMethodChoiceLabels())
+	TSharedPtr<SComboBox<TSharedPtr<FString>>> ComboBoxCurveMethod;
+	CurveMethodHorizontalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.FillWidth(150.f)
+	.MaxWidth(150.f)
+	[
+		SAssignNew(ComboBoxCurveMethod, SComboBox<TSharedPtr<FString>>)
+		.OptionsSource(FHoudiniEngineEditor::Get().GetHoudiniCurveMethodChoiceLabels())
 		.InitiallySelectedItem((*FHoudiniEngineEditor::Get().GetHoudiniCurveMethodChoiceLabels())[(int)HoudiniSplineComponent->GetCurveMethod()])
 		.OnGenerateWidget_Lambda([](TSharedPtr<FString> ChoiceEntry)
-	{
-		FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
-		return SNew(STextBlock)
-			.Text(ChoiceEntryText)
-			.ToolTipText(ChoiceEntryText)
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
-	})
+		{
+			FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
+			return SNew(STextBlock)
+				.Text(ChoiceEntryText)
+				.ToolTipText(ChoiceEntryText)
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+		})
 		.OnSelectionChanged_Lambda([OnCurveMethodChanged](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
-	{
-		return OnCurveMethodChanged(NewChoice);
-	})
+		{
+			return OnCurveMethodChanged(NewChoice);
+		})
 		[
 			SNew(STextBlock)
 			.Text_Lambda([GetCurveMethodText]()
-	{
-		return GetCurveMethodText();
-	})
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			{
+				return GetCurveMethodText();
+			})
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
-		];
+	];
 
 	if (!bIsLegacyCurve)
 	{
 		// Order
 		TSharedPtr<SNumericEntryBox<int>> NumericEntryBox;
 		int32 Idx = 0;
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		VerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
 		[
 			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().Padding(0, 10, 0, 2)
+			+ SHorizontalBox::Slot()
+			.Padding(0, 10, 0, 2)
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("CurveOrder", "Curve Order"))
@@ -3604,8 +3633,6 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 		];
 	}
 
-
-
 	// Curve Parameterization
 	if (!bIsLegacyCurve)
 	{
@@ -3627,7 +3654,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 				LOCTEXT("HoudiniCurveInputChangeBreakpointParameterization", "Houdini Input: Changing Curve Breakpoint Parameterization"),
 				OuterHAC);
 
-			for (auto & Input : InInputs)
+			for (auto& Input : InInputs)
 			{
 				if (!IsValidWeakPointer(Input))
 					continue;
@@ -3654,44 +3681,54 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 		const bool CurveBreakpointsVisible = HoudiniSplineComponent->GetCurveMethod() == EHoudiniCurveMethod::Breakpoints;
 
 		// Add curve method combo box UI
-		TSharedPtr< SHorizontalBox > CurveBreakpointParamHorizontalBox;
-		VerticalBox->AddSlot().Padding(0, 2, 2, 0).AutoHeight()[SAssignNew(CurveBreakpointParamHorizontalBox, SHorizontalBox)];
+		TSharedPtr<SHorizontalBox> CurveBreakpointParamHorizontalBox;
+		VerticalBox->AddSlot()
+		.Padding(0, 2, 2, 0)
+		.AutoHeight()
+		[
+			SAssignNew(CurveBreakpointParamHorizontalBox, SHorizontalBox)
+		];
 
 		CurveBreakpointParamHorizontalBox->SetEnabled(CurveBreakpointsVisible);
 
 		// Add curve method label UI
-		CurveBreakpointParamHorizontalBox->AddSlot().Padding(0, 10, 0, 2).AutoWidth()
+		CurveBreakpointParamHorizontalBox->AddSlot()
+		.Padding(0, 10, 0, 2)
+		.AutoWidth()
 		[
 			SNew(STextBlock).Text(LOCTEXT("CurveBreakpointParameterizationText", "Breakpoint Parameterization"))
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		];
 
-		TSharedPtr < SComboBox < TSharedPtr < FString > > > ComboBoxCurveBreakpointParam;
-		CurveBreakpointParamHorizontalBox->AddSlot().Padding(2, 2, 5, 2).FillWidth(150.f).MaxWidth(150.f)
+		TSharedPtr<SComboBox<TSharedPtr<FString>>> ComboBoxCurveBreakpointParam;
+		CurveBreakpointParamHorizontalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.FillWidth(150.f)
+		.MaxWidth(150.f)
 		[
-		SAssignNew(ComboBoxCurveBreakpointParam, SComboBox<TSharedPtr<FString>>)
-		.OptionsSource(FHoudiniEngineEditor::Get().GetHoudiniCurveBreakpointParameterizationChoiceLabels())
-		.InitiallySelectedItem((*FHoudiniEngineEditor::Get().GetHoudiniCurveBreakpointParameterizationChoiceLabels())[(int32)HoudiniSplineComponent->GetCurveBreakpointParameterization()])
-		.OnGenerateWidget_Lambda([](TSharedPtr<FString> ChoiceEntry)
-		{
-			FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
-			return SNew(STextBlock)
-			.Text(ChoiceEntryText)
-			.ToolTipText(ChoiceEntryText)
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
-		})
-		.OnSelectionChanged_Lambda([OnBreakpointParameterizationChanged](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
-		{	
-			return OnBreakpointParameterizationChanged(NewChoice);
-		})
-		[
-		SNew(STextBlock)
-		.Text_Lambda([GetCurveBreakpointParameterizationText]()
-		{
-			return GetCurveBreakpointParameterizationText();
-		})
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-		]
+			SAssignNew(ComboBoxCurveBreakpointParam, SComboBox<TSharedPtr<FString>>)
+			.OptionsSource(FHoudiniEngineEditor::Get().GetHoudiniCurveBreakpointParameterizationChoiceLabels())
+			.InitiallySelectedItem((*FHoudiniEngineEditor::Get().GetHoudiniCurveBreakpointParameterizationChoiceLabels())[(int32)HoudiniSplineComponent->GetCurveBreakpointParameterization()])
+			.OnGenerateWidget_Lambda([](TSharedPtr<FString> ChoiceEntry)
+			{
+				FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
+				return SNew(STextBlock)
+				.Text(ChoiceEntryText)
+				.ToolTipText(ChoiceEntryText)
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+			})
+			.OnSelectionChanged_Lambda([OnBreakpointParameterizationChanged](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
+			{	
+				return OnBreakpointParameterizationChanged(NewChoice);
+			})
+			[
+				SNew(STextBlock)
+				.Text_Lambda([GetCurveBreakpointParameterizationText]()
+				{
+					return GetCurveBreakpointParameterizationText();
+				})
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
 		];
 	}
 	
@@ -3758,37 +3795,43 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 	};
 
 	// Add input curve bake button
-	TSharedPtr< SHorizontalBox > InputCurveBakeHorizontalBox;
-	VerticalBox->AddSlot().Padding(0, 2, 2, 0).AutoHeight()[SAssignNew(InputCurveBakeHorizontalBox, SHorizontalBox)];
+	TSharedPtr<SHorizontalBox> InputCurveBakeHorizontalBox;
 	VerticalBox->AddSlot()
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().MaxWidth(110.f)
+	.Padding(0, 2, 2, 0)
+	.AutoHeight()
+	[
+		SAssignNew(InputCurveBakeHorizontalBox, SHorizontalBox)
+	];
+	VerticalBox->AddSlot()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.MaxWidth(110.f)
 		[
 			SNew(SButton)
 			.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
-		.Text(LOCTEXT("HoudiniInputCurveBakeToActorButton", "Bake to Actor"))
-		.IsEnabled(true)
-		.OnClicked_Lambda([InInputs, InCurveObjectIdx, BakeInputCurveLambda]()
-		{
-			return BakeInputCurveLambda(InInputs, InCurveObjectIdx, false);
-		})
-		.ToolTipText(LOCTEXT("HoudiniInputCurveBakeToActorButtonToolTip", "Bake this input curve to Actor"))
+			.HAlign(HAlign_Center)
+			.Text(LOCTEXT("HoudiniInputCurveBakeToActorButton", "Bake to Actor"))
+			.IsEnabled(true)
+			.OnClicked_Lambda([InInputs, InCurveObjectIdx, BakeInputCurveLambda]()
+			{
+				return BakeInputCurveLambda(InInputs, InCurveObjectIdx, false);
+			})
+			.ToolTipText(LOCTEXT("HoudiniInputCurveBakeToActorButtonToolTip", "Bake this input curve to Actor"))
 		]
-
-	+ SHorizontalBox::Slot().MaxWidth(110.f)
+		+ SHorizontalBox::Slot()
+		.MaxWidth(110.f)
 		[
 			SNew(SButton)
 			.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
-		.Text(LOCTEXT("HoudiniInputCurveBakeToBPButton", "Bake to Blueprint"))
-		.IsEnabled(true)
-		.OnClicked_Lambda([InInputs, InCurveObjectIdx, BakeInputCurveLambda]()
-		{
-			return BakeInputCurveLambda(InInputs, InCurveObjectIdx, true);
-		})
-		.ToolTipText(LOCTEXT("HoudiniInputCurveBakeToBPButtonToolTip", "Bake this input curve to Blueprint"))
+			.HAlign(HAlign_Center)
+			.Text(LOCTEXT("HoudiniInputCurveBakeToBPButton", "Bake to Blueprint"))
+			.IsEnabled(true)
+			.OnClicked_Lambda([InInputs, InCurveObjectIdx, BakeInputCurveLambda]()
+			{
+				return BakeInputCurveLambda(InInputs, InCurveObjectIdx, true);
+			})
+			.ToolTipText(LOCTEXT("HoudiniInputCurveBakeToBPButtonToolTip", "Bake this input curve to Blueprint"))
 		]
 	];
 
@@ -5420,12 +5463,10 @@ FHoudiniInputDetails::AddWorldInputUI(
 
 	// Button : Start Selection / Use current selection + refresh        
 	{
-		TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
+		TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
 		FPropertyEditorModule & PropertyModule =
 			FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >("PropertyEditor");
 
-		//auto ButtonLabel = LOCTEXT("WorldInputStartSelection", "Start Selection (Locks Details Panel)");
-		//auto ButtonTooltip = LOCTEXT("WorldInputStartSelectionTooltip", "Locks the Details Panel, and allow you to select object in the world that you can commit to the input afterwards.");
 		FText ButtonLabel;
 		FText ButtonTooltip;
 		if (!bIsBoundSelector)
@@ -5441,11 +5482,10 @@ FHoudiniInputDetails::AddWorldInputUI(
 				ButtonLabel = LOCTEXT("WorldInputStartSelection", "Start Selection (Locks Details Panel)");
 				ButtonTooltip = LOCTEXT("WorldInputStartSelectionTooltip", "Locks the Details Panel, and allow you to select object in the world that you can commit to the input afterwards.");
 			}
-			/*
-			FOnClicked OnSelectActors = FOnClicked::CreateStatic(
-				&FHoudiniInputDetails::Helper_OnButtonClickSelectActors, InInputs, DetailsPanelName);
-			*/
-			VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+
+			VerticalBox->AddSlot()
+			.Padding(2, 2, 5, 2)
+			.AutoHeight()
 			[
 				SAssignNew(HorizontalBox, SHorizontalBox)
 				+ SHorizontalBox::Slot()
@@ -5455,12 +5495,10 @@ FHoudiniInputDetails::AddWorldInputUI(
 					.HAlign(HAlign_Center)
 					.Text(ButtonLabel)
 					.ToolTipText(ButtonTooltip)
-					//.OnClicked(OnSelectActors)
 					.OnClicked_Lambda([InInputs, DetailsPanelName, &CategoryBuilder]()
 					{
 						return Helper_OnButtonClickSelectActors(CategoryBuilder, InInputs, DetailsPanelName);
-					})
-					
+					})					
 				]
 			];
 		}
@@ -5478,11 +5516,9 @@ FHoudiniInputDetails::AddWorldInputUI(
 				ButtonTooltip = LOCTEXT("WorldInputStartBoundSelectionTooltip", "Locks the Details Panel, and allow you to select object in the world that will be used as bounds.");
 			}
 			
-			/*
-			FOnClicked OnSelectBounds = FOnClicked::CreateStatic(
-				&FHoudiniInputDetails::Helper_OnButtonClickUseSelectionAsBoundSelector, InInputs, DetailsPanelName);
-			*/
-			VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+			VerticalBox->AddSlot()
+			.Padding(2, 2, 5, 2)
+			.AutoHeight()
 			[
 				SAssignNew(HorizontalBox, SHorizontalBox)
 				+ SHorizontalBox::Slot()
@@ -5492,7 +5528,6 @@ FHoudiniInputDetails::AddWorldInputUI(
 					.HAlign(HAlign_Center)
 					.Text(ButtonLabel)
 					.ToolTipText(ButtonTooltip)
-					//.OnClicked(OnSelectBounds)
 					.OnClicked_Lambda([InInputs, DetailsPanelName, &CategoryBuilder]()
 					{
 						return Helper_OnButtonClickUseSelectionAsBoundSelector(CategoryBuilder, InInputs, DetailsPanelName);
@@ -5504,7 +5539,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 
 	// Button : Select All + Clear Selection
 	{
-		TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
+		TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
 
 		FOnClicked OnSelectAll = FOnClicked::CreateLambda([InInputs, MainInput]()
 		{
@@ -5604,7 +5639,9 @@ FHoudiniInputDetails::AddWorldInputUI(
 			ClearSelectionTooltip = LOCTEXT("ClearSelectionTooltip", "Clear the input's current selection.");
 		}
 
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		VerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
 		[
 			SAssignNew(HorizontalBox, SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -5676,8 +5713,10 @@ FHoudiniInputDetails::AddWorldInputUI(
 		};
 
 		// Checkbox : Is Bound Selector
-		TSharedPtr< SCheckBox > CheckBoxBoundSelector;
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		TSharedPtr<SCheckBox> CheckBoxBoundSelector;
+		VerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
 		[
 			SAssignNew(CheckBoxBoundSelector, SCheckBox)
 			.Content()
@@ -5738,8 +5777,10 @@ FHoudiniInputDetails::AddWorldInputUI(
 		};
 
 		// Checkbox : Is Bound Selector
-		TSharedPtr< SCheckBox > CheckBoxBoundAutoUpdate;
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		TSharedPtr<SCheckBox> CheckBoxBoundAutoUpdate;
+		VerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
 		[
 			SAssignNew(CheckBoxBoundAutoUpdate, SCheckBox)
 			.Content()
@@ -5766,7 +5807,9 @@ FHoudiniInputDetails::AddWorldInputUI(
 	if(bIsBoundSelector)
 	{
 		FMenuBuilder MenuBuilder = Helper_CreateBoundSelectorPickerWidget(InInputs);
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		VerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
 		[
 			MenuBuilder.MakeWidget()
 		];
@@ -5775,17 +5818,22 @@ FHoudiniInputDetails::AddWorldInputUI(
 	// ActorPicker : World Outliner
 	{
 		FMenuBuilder MenuBuilder = Helper_CreateWorldActorPickerWidget(InInputs);
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		VerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
 		[
 			MenuBuilder.MakeWidget()
 		];
 	}
 
+	// Spline Resolution
 	{
-		// Spline Resolution
+		
 		TSharedPtr<SNumericEntryBox<float>> NumericEntryBox;
 		int32 Idx = 0;
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		VerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -5832,14 +5880,6 @@ FHoudiniInputDetails::AddWorldInputUI(
 						CurrentInput->MarkChanged(true);
 					}					
 				})
-				/*
-				.Value(TAttribute< TOptional< float > >::Create(TAttribute< TOptional< float > >::FGetter::CreateUObject(
-					&InParam, &UHoudiniAssetInput::GetSplineResolutionValue)))
-				.OnValueChanged(SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
-					&InParam, &UHoudiniAssetInput::SetSplineResolutionValue))
-				.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateUObject(
-					&InParam, &UHoudiniAssetInput::IsSplineResolutionEnabled)))
-				*/
 				.SliderExponent(1.0f)
 			]
 			+ SHorizontalBox::Slot()
@@ -5852,8 +5892,6 @@ FHoudiniInputDetails::AddWorldInputUI(
 				.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 				.ContentPadding(0)
 				.Visibility(EVisibility::Visible)
-				// TODO: FINISH ME!
-				//.OnClicked(FOnClicked::CreateUObject(&InParam, &UHoudiniAssetInput::OnResetSplineResolutionClicked))
 				.OnClicked_Lambda([MainInput, InInputs]()
 				{
 					if (!IsValidWeakPointer(MainInput))
@@ -5889,6 +5927,43 @@ FHoudiniInputDetails::AddWorldInputUI(
 					.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 				]
 			]
+		];
+	}
+
+	// Use Legacy Input curves
+	{
+		FText LegacyInputCurveTooltipText = LOCTEXT("HoudiniEngineLegacyInputCurvesTooltip", "If enabled, will use the deprecated curve::1.0 node for spline inputs.");
+		VerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("HoudiniEngineLegacyInputCurvesLabel", "Use Legacy Input Curves"))
+				.ToolTipText(LegacyInputCurveTooltipText)
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.OnCheckStateChanged_Lambda([InInputs](ECheckBoxState NewState)
+			{
+				const bool bChecked = (NewState == ECheckBoxState::Checked);
+				for (auto& CurrentInput : InInputs)
+				{
+					if (!IsValidWeakPointer(CurrentInput))
+						continue;
+
+					CurrentInput->SetUseLegacyInputCurve(bChecked);
+				}
+			})
+			.IsChecked_Lambda([MainInput]()
+			{
+				if (!IsValidWeakPointer(MainInput))
+					return ECheckBoxState::Unchecked;
+			
+				return MainInput->IsUseLegacyInputCurvesEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.ToolTipText(LegacyInputCurveTooltipText)
 		];
 	}
 }

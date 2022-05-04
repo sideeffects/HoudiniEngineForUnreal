@@ -90,6 +90,8 @@ struct FHoudiniMoveTracker
 		GEditor->OnBeginObjectMovement().AddLambda([this](UObject&) { IsObjectMoving = true; });
 		GEditor->OnEndObjectMovement().AddLambda([this](UObject&) { IsObjectMoving = false; });
 
+		GEditor->OnActorsMoved().AddLambda([this](TArray<AActor*>&) { IsObjectMoving = false; });
+
 		GEditor->OnBeginCameraMovement().AddLambda([this](UObject&) { IsObjectMoving = false; });
 		GEditor->OnEndCameraMovement().AddLambda([this](UObject&) { IsObjectMoving = false; });
 	}
