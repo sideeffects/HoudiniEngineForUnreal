@@ -5275,7 +5275,7 @@ FHoudiniEngineUtils::CreateGroupsFromTags(
 	const TArray<FName>& Tags )
 {
 	if (Tags.Num() <= 0)
-		return true;
+		return false;
 
 	HAPI_Result Result = HAPI_RESULT_FAILURE;
 	
@@ -5979,9 +5979,6 @@ FHoudiniEngineUtils::AddLevelPathAttribute(
 	if (LevelPath.FindChar('.', DotIndex))
 		LevelPath.LeftInline(DotIndex, false);
 
-	// Get name of attribute used for level path
-	std::string MarshallingAttributeLevelPath = HAPI_UNREAL_ATTRIB_LEVEL_PATH;
-
 	// Marshall in level path.
 	HAPI_AttributeInfo AttributeInfoLevelPath;
 	FHoudiniApi::AttributeInfo_Init(&AttributeInfoLevelPath);
@@ -5994,26 +5991,13 @@ FHoudiniEngineUtils::AddLevelPathAttribute(
 
 	HAPI_Result Result = FHoudiniApi::AddAttribute(
 		FHoudiniEngine::Get().GetSession(), InNodeId, InPartId,
-		MarshallingAttributeLevelPath.c_str(), &AttributeInfoLevelPath);
+		HAPI_UNREAL_ATTRIB_LEVEL_PATH, &AttributeInfoLevelPath);
 
 	if (HAPI_RESULT_SUCCESS == Result)
 	{
-		// Convert the FString to a cont char * array
-		std::string LevelPathCStr = TCHAR_TO_ANSI(*LevelPath);
-		const char* LevelPathCStrRaw = LevelPathCStr.c_str();
-		TArray<const char*> PrimitiveAttrs;
-		PrimitiveAttrs.AddUninitialized(InCount);
-		for (int32 Idx = 0; Idx < InCount; ++Idx)
-		{
-			PrimitiveAttrs[Idx] = LevelPathCStrRaw;
-		}
-
 		// Set the attribute's string data
-		Result = FHoudiniApi::SetAttributeStringData(
-			FHoudiniEngine::Get().GetSession(),
-			InNodeId, InPartId,
-			MarshallingAttributeLevelPath.c_str(), &AttributeInfoLevelPath,
-			PrimitiveAttrs.GetData(), 0, AttributeInfoLevelPath.count);
+		Result = FHoudiniEngineUtils::HapiSetAttributeStringData(
+			LevelPath, InNodeId, InPartId, HAPI_UNREAL_ATTRIB_LEVEL_PATH, AttributeInfoLevelPath);
 	}
 
 	if (Result != HAPI_RESULT_SUCCESS)
@@ -6044,9 +6028,6 @@ FHoudiniEngineUtils::AddActorPathAttribute(
 	// Extract the actor path
 	FString ActorPath = InActor->GetPathName();
 
-	// Get name of attribute used for Actor path
-	std::string MarshallingAttributeActorPath = HAPI_UNREAL_ATTRIB_ACTOR_PATH;
-
 	// Marshall in Actor path.
 	HAPI_AttributeInfo AttributeInfoActorPath;
 	FHoudiniApi::AttributeInfo_Init(&AttributeInfoActorPath);
@@ -6059,26 +6040,13 @@ FHoudiniEngineUtils::AddActorPathAttribute(
 
 	HAPI_Result Result = FHoudiniApi::AddAttribute(
 		FHoudiniEngine::Get().GetSession(), InNodeId, InPartId,
-		MarshallingAttributeActorPath.c_str(), &AttributeInfoActorPath);
+		HAPI_UNREAL_ATTRIB_ACTOR_PATH, &AttributeInfoActorPath);
 
 	if (HAPI_RESULT_SUCCESS == Result)
 	{
-		// Convert the FString to a cont char * array
-		std::string ActorPathCStr = TCHAR_TO_ANSI(*ActorPath);
-		const char* ActorPathCStrRaw = ActorPathCStr.c_str();
-		TArray<const char*> PrimitiveAttrs;
-		PrimitiveAttrs.AddUninitialized(InCount);
-		for (int32 Idx = 0; Idx < InCount; ++Idx)
-		{
-			PrimitiveAttrs[Idx] = ActorPathCStrRaw;
-		}
-
 		// Set the attribute's string data
-		Result = FHoudiniApi::SetAttributeStringData(
-			FHoudiniEngine::Get().GetSession(),
-			InNodeId, InPartId,
-			MarshallingAttributeActorPath.c_str(), &AttributeInfoActorPath,
-			PrimitiveAttrs.GetData(), 0, AttributeInfoActorPath.count);
+		Result = FHoudiniEngineUtils::HapiSetAttributeStringData(
+			ActorPath, InNodeId, InPartId, HAPI_UNREAL_ATTRIB_ACTOR_PATH, AttributeInfoActorPath);
 	}
 
 	if (Result != HAPI_RESULT_SUCCESS)

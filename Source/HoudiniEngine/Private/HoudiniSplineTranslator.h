@@ -61,6 +61,9 @@ struct HOUDINIENGINE_API FHoudiniSplineTranslator
 	// Upload Houdini spline component data to the curve node, and then sync the Houdini Spline Component with the curve node.
 	static bool HapiUpdateNodeForHoudiniSplineComponent(UHoudiniSplineComponent* HoudiniSplineComponent, bool bInSetRotAndScaleAttributes);
 
+	// Indicates if the node is a valid curve input node
+	static bool IsCurveInputNodeValid(const HAPI_NodeId& InNodeId, const bool& bLegacyNode = false);
+
 	// Update the curve node data, or create a new curve node if the CurveNodeId is valid.
 	static bool HapiCreateCurveInputNodeForData(
 		HAPI_NodeId& CurveNodeId,
