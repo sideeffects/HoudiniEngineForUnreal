@@ -165,8 +165,10 @@ UHoudiniInputSplineComponent::HasComponentChanged() const
 	if (SplineClosed != SplineComponent->IsClosedLoop()) 
 		return true;
 
-
 	if (SplineComponent->GetNumberOfSplinePoints() != NumberOfSplineControlPoints)
+		return true;
+
+	if (SplineComponent->GetSplineLength() != SplineLength)
 		return true;
 
 	for (int32 n = 0; n < SplineComponent->GetNumberOfSplinePoints(); ++n) 
