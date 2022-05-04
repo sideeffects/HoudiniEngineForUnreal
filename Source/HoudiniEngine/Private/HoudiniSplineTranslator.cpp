@@ -490,6 +490,67 @@ FHoudiniSplineTranslator::HapiUpdateNodeForHoudiniSplineComponent(
 }
 
 bool
+FHoudiniSplineTranslator::IsCurveInputNodeValid(const HAPI_NodeId& InNodeId, const bool& bLegacyNode)
+{
+	// Check if connected asset id is valid, if it is not, we need to create an input asset.
+	if(InNodeId < 0)
+		return false;
+
+	if (bLegacyNode)
+	{
+		// Legacy Curve::1.0 node
+		// Check if the input node has a curve "coords" params.
+		// If it doesn't, then the node is not a valid legacy curve1.0 node
+		HAPI_ParmId ParmId = -1;
+		if (FHoudiniApi::GetParmIdFromName(
+			FHoudiniEngine::Get().GetSession(), InNodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId) != HAPI_RESULT_SUCCESS
+			|| ParmId < 0)
+		{
+			return false;
+		}
+	}
+	else
+	{
+		// New input curves
+		// First, check that the geo type is a curve
+		HAPI_GeoInfo InputGeoInfo;
+		FHoudiniApi::GeoInfo_Init(&InputGeoInfo);
+		if (FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), InNodeId, &InputGeoInfo) != HAPI_RESULT_SUCCESS)
+			return false;
+
+		if (InputGeoInfo.type != HAPI_GEOTYPE_CURVE)
+			return false;
+
+		// Check that the part type is a curve
+		HAPI_PartInfo InputPartInfo;
+		FHoudiniApi::PartInfo_Init(&InputPartInfo);
+		if (FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), InNodeId, 0, &InputPartInfo) != HAPI_RESULT_SUCCESS)
+			return false;
+
+		if (InputPartInfo.type != HAPI_PARTTYPE_CURVE)
+			return false;
+
+		// Check if the input node has a curve "coords" params.
+		// If it does, then the node a legacy curve1.0 node, so we need to recreate the input node!
+		HAPI_ParmId ParmId = -1;
+		if (FHoudiniApi::GetParmIdFromName(
+			FHoudiniEngine::Get().GetSession(), InNodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId) == HAPI_RESULT_SUCCESS
+			&& ParmId >= 0)
+			return false;
+
+		// Previous method. 
+		// This caused crashes in HAPI/HARS and forced the user to restart the session manually!
+		// We already have an input node, make sure that it's a curve input	
+		// if (FHoudiniApi::GetInputCurveInfo(FHoudiniEngine::Get().GetSession(), CurveNodeId, 0, &InputCurveInfo) != HAPI_RESULT_SUCCESS)
+		// return false;
+	}	
+
+	// We can reuse the node!
+	return true;
+}
+
+
+bool
 FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
 	HAPI_NodeId& CurveNodeId,
 	const FString& InputNodeName,
@@ -519,45 +580,45 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
 	if (NumberOfCVs < 2)
 		return false;
 
+	// Check if connected asset id is valid, if it is not, we need to create an input asset.
+	bool bNeedToCreateNewCurveInputNode = !IsCurveInputNodeValid(CurveNodeId);
+
 	HAPI_InputCurveInfo InputCurveInfo;
 	FHoudiniApi::InputCurveInfo_Init(&InputCurveInfo);
-
-	// Check if connected asset id is valid, if it is not, we need to create an input asset.
-	bool bNeedToCreateNewCurveInputNode = CurveNodeId < 0;
-	if (!bNeedToCreateNewCurveInputNode)
-	{
-		// We already have an input node, make sure that it's a curve input
-		// This causes crashes in HAPI/HARS, need to be replaced!1
-		//bNeedToCreateNewCurveInputNode &= (FHoudiniApi::GetInputCurveInfo(FHoudiniEngine::Get().GetSession(), CurveNodeId, 0, &InputCurveInfo) != HAPI_RESULT_SUCCESS);
-
-		HAPI_GeoInfo InputGeoInfo;
-		FHoudiniApi::GeoInfo_Init(&InputGeoInfo);
-		bNeedToCreateNewCurveInputNode &= (FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), CurveNodeId, &InputGeoInfo) != HAPI_RESULT_SUCCESS);
-		bNeedToCreateNewCurveInputNode &= InputGeoInfo.type != HAPI_GEOTYPE_CURVE;
-
-		HAPI_PartInfo InputPartInfo;
-		FHoudiniApi::PartInfo_Init(&InputPartInfo);
-		bNeedToCreateNewCurveInputNode &= (FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), CurveNodeId, 0, &InputPartInfo) != HAPI_RESULT_SUCCESS);
-		bNeedToCreateNewCurveInputNode &= InputPartInfo.type != HAPI_PARTTYPE_CURVE;
-	}
-
 	if (bNeedToCreateNewCurveInputNode)
 	{
+		// Create a new curve input Node
 		HAPI_NodeId NodeId = -1;
-		// Create the curve SOP Node
-
 		if (!FHoudiniSplineTranslator::HapiCreateCurveInputNode(NodeId, InputNodeName, InIsLegacyCurve))
 			return false;
-	
 
 		// Check if we have a valid id for this new input asset.
 		if (!FHoudiniEngineUtils::IsHoudiniNodeValid(NodeId))
 			return false;
 
 		// We now have a valid id.
-		CurveNodeId = NodeId;	
-	}
+		HAPI_NodeId PreviousInputNodeId = CurveNodeId;
+		CurveNodeId = NodeId;
 
+		// We have now created a valid new input node, delete the previous one
+		if (PreviousInputNodeId >= 0)
+		{
+			// Get the parent OBJ node ID before deleting!
+			HAPI_NodeId PreviousInputOBJNode = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
+
+			if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
+				FHoudiniEngine::Get().GetSession(), PreviousInputNodeId))
+			{
+				HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input curve node"));
+			}
+
+			if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
+				FHoudiniEngine::Get().GetSession(), PreviousInputOBJNode))
+			{
+				HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input curve OBJ node."));
+			}
+		}
+	}
 
 	InputCurveInfo.curveType = (HAPI_CurveType)InCurveType;
 	InputCurveInfo.inputMethod = (HAPI_InputCurveMethod)InCurveMethod;
@@ -651,13 +712,9 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForDataLegacy(
 	int32 NumberOfCVs = Positions->Num();
 	if (NumberOfCVs < 2)
 		return false;
-	
-	HAPI_ParmId ParmId = -1;
 
 	// Check if connected asset id is valid, if it is not, we need to create an input asset.
-	if (CurveNodeId < 0 || FHoudiniApi::GetParmIdFromName(
-		FHoudiniEngine::Get().GetSession(), CurveNodeId,
-		HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId) != HAPI_RESULT_SUCCESS || ParmId < 0)
+	if (!IsCurveInputNodeValid(CurveNodeId, true))
 	{
 		HAPI_NodeId NodeId = -1;
 		// Create the curve SOP Node
@@ -669,7 +726,27 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForDataLegacy(
 			return false;
 
 		// We now have a valid id.
-		CurveNodeId = NodeId;	
+		HAPI_NodeId PreviousInputNodeId = CurveNodeId;
+		CurveNodeId = NodeId;
+
+		// We have now created a valid new input node, delete the previous one
+		if (PreviousInputNodeId >= 0)
+		{
+			// Get the parent OBJ node ID before deleting!
+			HAPI_NodeId PreviousInputOBJNode = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
+
+			if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
+				FHoudiniEngine::Get().GetSession(), PreviousInputNodeId))
+			{
+				HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input curve node"));
+			}
+
+			if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
+				FHoudiniEngine::Get().GetSession(), PreviousInputOBJNode))
+			{
+				HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input curve OBJ node."));
+			}
+		}
 	}
 	else
 	{
@@ -755,6 +832,7 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForDataLegacy(
 	FHoudiniSplineTranslator::CreatePositionsString(*Positions, PositionString);
 
 	// Get param id for the PositionString and modify it
+	HAPI_ParmId ParmId = -1;
 	if (FHoudiniApi::GetParmIdFromName(
 		FHoudiniEngine::Get().GetSession(), CurveNodeId,
 		HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId) != HAPI_RESULT_SUCCESS)
