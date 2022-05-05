@@ -3424,8 +3424,11 @@ FHoudiniEngineUtils::HapiSetAttributeStringData(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
+	// Ensure we create an array of the appropriate size
 	TArray<FString> StringArray;
-	StringArray.Add(InString);
+	StringArray.SetNum(InAttributeInfo.count);
+	for(int n = 0; n < StringArray.Num(); n++)
+		StringArray[n] = InString;
 
 	return HapiSetAttributeStringData(StringArray, InNodeId, InPartId, InAttributeName, InAttributeInfo);
 }
@@ -3445,7 +3448,7 @@ FHoudiniEngineUtils::HapiSetAttributeStringData(
 		StringDataArray.Add(FHoudiniEngineUtils::ExtractRawString(CurrentString));
 	}
 
-	// Send strings in smaller chunks due to their potential size	
+	// Send strings in smaller chunks due to their potential size
 	int32 ChunkSize = (THRIFT_MAX_CHUNKSIZE / 100) / InAttributeInfo.tupleSize;
 
 	HAPI_Result Result = HAPI_RESULT_FAILURE;
