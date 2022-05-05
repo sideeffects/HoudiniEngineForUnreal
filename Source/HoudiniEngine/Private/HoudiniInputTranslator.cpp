@@ -2390,6 +2390,10 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionActor(cons
 	if (!IsValid(InObject))
 		return false;
 
+	AGeometryCollectionActor* GCA = InObject->GetGeometryCollectionActor();
+	if (!IsValid(GCA))
+		return true;
+
 	UGeometryCollectionComponent* GCC = InObject->GetGeometryCollectionComponent();
 	if (!IsValid(GCC))
 		return true;
@@ -2420,7 +2424,7 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionActor(cons
 	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
 
 	// Update this input object's cache data
-	InObject->Update(GCC);
+	InObject->Update(GCA);
 
 	// Use the component transform to drive offsets, because the actor itself is usually not the transform we want to look at.
 	FTransform ComponentTransform = InObject->Transform * GCC->GetComponentTransform();
@@ -3618,15 +3622,9 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 		// Get the object path
 		FString ObjectPathName = DataTable->GetPathName();
 
-		// Create an array
-		TArray<FString> ObjectPaths;
-		ObjectPaths.SetNum(NumRows);
-		for (int32 n = 0; n < ObjectPaths.Num(); n++)
-			ObjectPaths[n] = ObjectPathName;
-
 		// Set the point's path attribute
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
-			ObjectPaths, InputNodeId, 0, HAPI_UNREAL_ATTRIB_OBJECT_PATH, AttributeInfoPoint), false);
+			ObjectPathName, InputNodeId, 0, HAPI_UNREAL_ATTRIB_OBJECT_PATH, AttributeInfoPoint), false);
 	}
 
 	{
@@ -3647,13 +3645,9 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 		// Get the object path
 		FString RowStructName = DataTable->GetRowStructName().ToString();
 
-		// Create an array
-		TArray<FString> RowStructNames;
-		RowStructNames.Init(RowStructName, NumRows);
-
 		// Set the point's path attribute
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
-			RowStructNames, InputNodeId, 0, 
+			RowStructName, InputNodeId, 0, 
 			HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT, AttributeInfoPoint), false);
 	}
 
