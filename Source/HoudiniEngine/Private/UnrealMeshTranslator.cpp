@@ -4093,12 +4093,6 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	{
 		// Create primitive attribute with mesh asset path
 		const FString MeshAssetPath = StaticMesh->GetPathName();
-		TArray<FString> PrimitiveAttrs;
-		PrimitiveAttrs.SetNum(Part.faceCount);
-		for (int32 Ix = 0; Ix < Part.faceCount; ++Ix)
-		{
-			PrimitiveAttrs[Ix] = MeshAssetPath;
-		}
 
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
@@ -4114,7 +4108,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, &AttributeInfo), false);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
-			PrimitiveAttrs, NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, AttributeInfo), false);
+			MeshAssetPath, NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, AttributeInfo), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -4134,14 +4128,6 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 
 		if (!Filename.IsEmpty())
 		{
-			TArray<FString> PrimitiveAttrs;
-			PrimitiveAttrs.SetNum(Part.faceCount);
-			for (int32 Ix = 0; Ix < Part.faceCount; ++Ix)
-			{
-				//PrimitiveAttrs[Ix] = TEXT("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-				PrimitiveAttrs[Ix] = Filename;
-			}
-
 			HAPI_AttributeInfo AttributeInfo;
 			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 			AttributeInfo.count = Part.faceCount;
@@ -4156,7 +4142,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 				NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE, &AttributeInfo), false);
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
-				PrimitiveAttrs, NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE, AttributeInfo), false);
+				Filename, NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE, AttributeInfo), false);
 		}
 	}
 
