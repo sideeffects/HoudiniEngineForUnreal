@@ -6,15 +6,17 @@
 #include "HoudiniInstanceTranslator.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "GeometryCollection/GeometryCollectionClusteringUtility.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionDebugDrawComponent.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
+#include "GeometryCollection/GeometryCollectionComponent.h"
+#include "GeometryCollection/GeometryCollectionObject.h"
+#include "GeometryCollection/GeometryCollectionActor.h"
 #include "Materials/Material.h"
 
-
-void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutputs(
-	TArray<UHoudiniOutput*>& InAllOutputs, UObject* InOuterComponent, const FHoudiniPackageParams& InPackageParams, UWorld * InWorld)
+void
+FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutputs(
+	TArray<UHoudiniOutput*>& InAllOutputs,
+	UObject* InOuterComponent,
+	const FHoudiniPackageParams& InPackageParams, 
+	UWorld * InWorld)
 {
 	USceneComponent* ParentComponent = Cast<USceneComponent>(InOuterComponent);
 	if (!ParentComponent)
@@ -87,7 +89,11 @@ void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromO
 		UGeometryCollection* GeometryCollection = GCData.PackParams.CreateObjectAndPackage<UGeometryCollection>();
 		if (!IsValid(GeometryCollection))
 			return;
-		
+
+		// Ensure we have a SizeSpecificData
+		if (!GeometryCollection->SizeSpecificData.Num()) 
+			GeometryCollection->SizeSpecificData.Add(FGeometryCollectionSizeSpecificData());
+
 		AGeometryCollectionActor * GeometryCollectionActor = Cast<AGeometryCollectionActor>(OutputObject.OutputObject);
 		
 		if (!GeometryCollectionActor)
@@ -146,8 +152,9 @@ void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromO
 			FSoftObjectPath SourceSoftObjectPath(ComponentStaticMesh);
 			decltype(FGeometryCollectionSource::SourceMaterial) SourceMaterials(StaticMeshComponent->GetMaterials());
 			GeometryCollection->GeometrySource.Add({ SourceSoftObjectPath, ComponentTransform, SourceMaterials });
-			AppendStaticMesh(ComponentStaticMesh, SourceMaterials, ComponentTransform, GeometryCollection, true);
-			
+
+			FHoudiniGeometryCollectionTranslator::AppendStaticMesh(ComponentStaticMesh, SourceMaterials, ComponentTransform, GeometryCollection, true);
+
 			RemoveAndDestroyComponent(OldComponent);
 			
 			GeometryCollectionPiece.InstancerOutput->OutputComponent = nullptr;
@@ -212,6 +219,7 @@ void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromO
 	}
 }
 
+
 UGeometryCollectionComponent*
 FHoudiniGeometryCollectionTranslator::CreateGeometryCollectionComponent(UObject *InOuterComponent)
 {
@@ -255,7 +263,6 @@ FHoudiniGeometryCollectionTranslator::CreateGeometryCollectionComponent(UObject 
 }
 
 
-
 bool
 FHoudiniGeometryCollectionTranslator::RemoveAndDestroyComponent(UObject* InComponent)
 {
@@ -287,7 +294,11 @@ FHoudiniGeometryCollectionTranslator::RemoveAndDestroyComponent(UObject* InCompo
 	return false;
 }
 
-bool FHoudiniGeometryCollectionTranslator::GetGeometryCollectionData(const TArray<UHoudiniOutput*>& InAllOutputs, const FHoudiniPackageParams& InPackageParams,
+
+bool 
+FHoudiniGeometryCollectionTranslator::GetGeometryCollectionData(
+	const TArray<UHoudiniOutput*>& InAllOutputs,
+	const FHoudiniPackageParams& InPackageParams,
 	TMap<FString, FHoudiniGeometryCollectionData>& OutGeometryCollectionData)
 {
 	for (auto & HoudiniOutput : InAllOutputs)
@@ -359,7 +370,11 @@ bool FHoudiniGeometryCollectionTranslator::GetGeometryCollectionData(const TArra
 }
 
 
-AGeometryCollectionActor* FHoudiniGeometryCollectionTranslator::CreateNewGeometryActor(UWorld * InWorld, const FString & InActorName, const FTransform InTransform)
+AGeometryCollectionActor*
+FHoudiniGeometryCollectionTranslator::CreateNewGeometryActor(
+	UWorld * InWorld,
+	const FString& InActorName,
+	const FTransform& InTransform)
 {
 	// Create the new Geometry Collection actor
 	FActorSpawnParameters SpawnParameters;
@@ -378,7 +393,10 @@ AGeometryCollectionActor* FHoudiniGeometryCollectionTranslator::CreateNewGeometr
 	return NewActor;
 }
 
-bool FHoudiniGeometryCollectionTranslator::GetGeometryCollectionNames(TArray<UHoudiniOutput*>& InAllOutputs,
+
+bool
+FHoudiniGeometryCollectionTranslator::GetGeometryCollectionNames(
+	TArray<UHoudiniOutput*>& InAllOutputs,
 	TSet<FString>& Names)
 {
 	for (auto & HoudiniOutput : InAllOutputs)
@@ -425,29 +443,37 @@ bool FHoudiniGeometryCollectionTranslator::GetGeometryCollectionNames(TArray<UHo
 	return true;
 }
 
-bool FHoudiniGeometryCollectionTranslator::GetFracturePieceAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, int& OutInt)
+bool 
+FHoudiniGeometryCollectionTranslator::GetFracturePieceAttribute(
+	const HAPI_NodeId& GeoId,
+	const HAPI_NodeId& PartId,
+	int32& OutInt)
 {
 	bool HasFractureAttribute = false;
+
 	HAPI_AttributeInfo AttriInfo;
 	FHoudiniApi::AttributeInfo_Init(&AttriInfo);
+
 	TArray<int> IntData;
 	IntData.Empty();
-
-	if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(GeoId, PartId,
-	HAPI_UNREAL_ATTRIB_GC_PIECE, AttriInfo, IntData, 1))
+	if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+		GeoId, PartId, HAPI_UNREAL_ATTRIB_GC_PIECE, AttriInfo, IntData, 1))
 	{
 		if (IntData.Num() > 0)
 		{
 			HasFractureAttribute = true;
 			OutInt = IntData[0];
-		}
-			
+		}			
 	}
 
 	return HasFractureAttribute;
 }
 
-bool FHoudiniGeometryCollectionTranslator::GetClusterPieceAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, int& OutInt)
+bool 
+FHoudiniGeometryCollectionTranslator::GetClusterPieceAttribute(
+	const HAPI_NodeId& GeoId,
+	const HAPI_NodeId& PartId,
+	int& OutInt)
 {
 	bool HasClusterAttribute = false;
 	HAPI_AttributeInfo AttriInfo;
@@ -471,8 +497,11 @@ bool FHoudiniGeometryCollectionTranslator::GetClusterPieceAttribute(const HAPI_N
 	return HasClusterAttribute;
 }
 
-bool FHoudiniGeometryCollectionTranslator::GetGeometryCollectionNameAttribute(const HAPI_NodeId& GeoId,
-	const HAPI_NodeId& PartId, FString& OutName)
+bool 
+FHoudiniGeometryCollectionTranslator::GetGeometryCollectionNameAttribute(
+	const HAPI_NodeId& GeoId,
+	const HAPI_NodeId& PartId,
+	FString& OutName)
 {
 	bool HasAttribute = false;
 	HAPI_AttributeInfo AttriInfo;
@@ -499,7 +528,9 @@ bool FHoudiniGeometryCollectionTranslator::GetGeometryCollectionNameAttribute(co
 	return HasAttribute;
 }
 
-bool FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancer(const UHoudiniOutput* HoudiniOutput)
+bool 
+FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancer(
+	const UHoudiniOutput* HoudiniOutput)
 {
 	if (HoudiniOutput == nullptr)
 	{
@@ -543,7 +574,9 @@ bool FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancer(const U
 	return true;
 }
 
-bool FHoudiniGeometryCollectionTranslator::IsGeometryCollectionMesh(const UHoudiniOutput* HoudiniOutput)
+bool 
+FHoudiniGeometryCollectionTranslator::IsGeometryCollectionMesh(
+	const UHoudiniOutput* HoudiniOutput)
 {
 	EHoudiniOutputType OutputType = HoudiniOutput->Type;
 	if (OutputType != EHoudiniOutputType::Mesh)
@@ -584,7 +617,10 @@ bool FHoudiniGeometryCollectionTranslator::IsGeometryCollectionMesh(const UHoudi
 	return true;
 }
 
-bool FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancerPart(const HAPI_NodeId InstancerGeoId, const HAPI_PartId InstancerPartId)
+bool 
+FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancerPart(
+	const HAPI_NodeId& InstancerGeoId,
+	const HAPI_PartId& InstancerPartId)
 {
 	HAPI_ParmId InstancedPartId = -1;
 
@@ -629,7 +665,9 @@ bool FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancerPart(con
 }
 
 
-void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGeometryCollection* GeometryCollection,
+void
+FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(
+	UGeometryCollection* GeometryCollection,
 	FHoudiniGeometryCollectionPiece FirstPiece)
 {
 	int32 GeoId = FirstPiece.InstancerOutputIdentifier->GeoId;
@@ -652,7 +690,6 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
                 	FHoudiniEngine::Get().GetSession(), GeoId, PartId,
                 	AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &AttributeInfo) && AttributeInfo.exists)
                 {
-
                 	FloatData.SetNumZeroed(AttributeInfo.totalArrayElements);
                 	FloatDataSizes.SetNumZeroed(AttributeInfo.totalArrayElements);
 
