@@ -54,6 +54,7 @@
 #include "UObject/UObjectGlobals.h"
 #include "BodySetupEnums.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Private/GeomFitUtils.h"
@@ -2946,7 +2947,11 @@ UHoudiniAssetComponent::UpdateRenderingInformation()
 	{
 		USceneComponent * SceneComponent = *Iter;
 		if (IsValid(SceneComponent))
-			SceneComponent->RecreatePhysicsState();
+		{
+			// Do not recreate the phys state for GCC
+			if(!SceneComponent->IsA<UGeometryCollectionComponent>())
+				SceneComponent->RecreatePhysicsState();
+		}
 	}
 
 	// !!! Do not call UpdateBounds() here as this could cause
