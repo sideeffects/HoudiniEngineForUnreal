@@ -40,7 +40,7 @@
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
 #include "Engine/Selection.h"
-#include "AssetRegistryModule.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "EditorViewportClient.h"
 #include "ActorFactories/ActorFactory.h"
 #include "FileHelpers.h"

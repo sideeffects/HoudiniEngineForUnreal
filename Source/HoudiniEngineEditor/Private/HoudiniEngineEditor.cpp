@@ -56,7 +56,7 @@
 #include "HAL/PlatformFileManager.h"
 #include "Misc/MessageDialog.h"
 #include "Misc/Paths.h"
-#include "AssetRegistryModule.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "PropertyEditorModule.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "LevelEditor.h"

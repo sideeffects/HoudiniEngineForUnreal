@@ -47,7 +47,7 @@
 #include "Misc/ScopedSlowTask.h"
 #include "Async/Async.h"
 #include "FileHelpers.h"
-#include "AssetRegistryModule.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "Engine/ObjectLibrary.h"
 #include "ObjectTools.h"
 #include "CoreGlobals.h"
@@ -205,7 +205,7 @@ FHoudiniEngineCommands::OpenInHoudini()
 		*UserTempPath,
 		true, false, false,
 		nullptr, 0,
-		FPlatformProcess::UserTempDir(),
+		*FPlatformProcess::GetCurrentWorkingDirectory(),
 		nullptr, nullptr);
 
 	if (!ProcHandle.IsValid())
@@ -218,7 +218,7 @@ FHoudiniEngineCommands::OpenInHoudini()
 			*UserTempPath,
 			true, false, false,
 			nullptr, 0,
-			FPlatformProcess::UserTempDir(),
+			*FPlatformProcess::GetCurrentWorkingDirectory(),
 			nullptr, nullptr);
 
 		if (!ProcHandle.IsValid())
@@ -1017,7 +1017,7 @@ FHoudiniEngineCommands::OpenSessionSync()
 			*SessionSyncArgs,
 			true, false, false,
 			nullptr, 0,
-			FPlatformProcess::UserTempDir(),
+			*FPlatformProcess::GetCurrentWorkingDirectory(),
 			nullptr, nullptr);
 
 		if (!HESSHandle.IsValid())
@@ -1031,7 +1031,7 @@ FHoudiniEngineCommands::OpenSessionSync()
 				*SessionSyncArgs,
 				true, false, false,
 				nullptr, 0,
-				FPlatformProcess::UserTempDir(),
+				*FPlatformProcess::GetCurrentWorkingDirectory(),
 				nullptr, nullptr);
 
 			if (!HESSHandle.IsValid())
@@ -1058,28 +1058,28 @@ FHoudiniEngineCommands::OpenSessionSync()
 			// Houdini might not be done loading, sleep for one second 
 			FPlatformProcess::Sleep(1);
 
-                        // Check for license error
-                        int32 HESSReturnCode;
-                        FProcHandle HESSHandle = FHoudiniEngine::Get().GetHESSProcHandle();
-                        if (FPlatformProcess::GetProcReturnCode(HESSHandle, &HESSReturnCode))
-                        {
-                            FString Notification = TEXT("Failed to start SessionSync...");
-                            FHoudiniEngineUtils::CreateSlateNotification(Notification);
+            // Check for license error
+            int32 HESSReturnCode;
+            FProcHandle HESSHandle = FHoudiniEngine::Get().GetHESSProcHandle();
+            if (FPlatformProcess::GetProcReturnCode(HESSHandle, &HESSReturnCode))
+            {
+                FString Notification = TEXT("Failed to start SessionSync...");
+                FHoudiniEngineUtils::CreateSlateNotification(Notification);
 
-                            switch (HESSReturnCode)
-                            {
-                                case 3:
-                                    HOUDINI_LOG_ERROR(TEXT("Failed to start SessionSync - No licenses were available"));
-                                    FHoudiniEngine::Get().SetSessionStatus(EHoudiniSessionStatus::NoLicense);
-                                    return false;
-                                    break;
-                                default:
-                                    HOUDINI_LOG_ERROR(TEXT("Failed to start SessionSync - Unknown error"));
-                                    FHoudiniEngine::Get().SetSessionStatus(EHoudiniSessionStatus::Failed);
-                                    return false;
-                                    break;
-                            }
-                        }
+                switch (HESSReturnCode)
+                {
+                    case 3:
+                        HOUDINI_LOG_ERROR(TEXT("Failed to start SessionSync - No licenses were available"));
+                        FHoudiniEngine::Get().SetSessionStatus(EHoudiniSessionStatus::NoLicense);
+                        return false;
+                        break;
+                    default:
+                        HOUDINI_LOG_ERROR(TEXT("Failed to start SessionSync - Unknown error"));
+                        FHoudiniEngine::Get().SetSessionStatus(EHoudiniSessionStatus::Failed);
+                        return false;
+                        break;
+                }
+            }
 
 			// Check for the timeout
 			if (FPlatformTime::Seconds() - StartTimestamp > Timeout)

@@ -52,7 +52,7 @@
 #include "Widgets/SViewport.h"
 #include "FileHelpers.h"
 #include "LevelEditor.h"
-#include "AssetRegistryModule.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "Core/Public/HAL/FileManager.h"
 #include "Core/Public/HAL/PlatformFileManager.h"
 #include "Editor/EditorPerformanceSettings.h"
