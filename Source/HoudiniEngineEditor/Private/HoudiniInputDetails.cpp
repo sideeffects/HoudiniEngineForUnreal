@@ -62,7 +62,7 @@
 #include "Engine/SkeletalMesh.h"
 #include "Engine/Selection.h"
 #include "EngineUtils.h"
-#include "AssetData.h"
+#include "AssetRegistry/AssetData.h"
 #include "Framework/SlateDelegates.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Modules/ModuleManager.h"

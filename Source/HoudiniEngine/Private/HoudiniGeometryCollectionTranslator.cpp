@@ -9,14 +9,17 @@
 #include "StaticMeshOperations.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "GeometryCollection/GeometryCollectionClusteringUtility.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
+#include "GeometryCollection/GeometryCollectionComponent.h"
+#include "GeometryCollection/GeometryCollectionObject.h"
+#include "GeometryCollection/GeometryCollectionActor.h"
 #include "Materials/Material.h"
 
-
-void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutputs(
-	TArray<UHoudiniOutput*>& InAllOutputs, UObject* InOuterComponent, const FHoudiniPackageParams& InPackageParams, UWorld * InWorld)
+void
+FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutputs(
+	TArray<UHoudiniOutput*>& InAllOutputs,
+	UObject* InOuterComponent,
+	const FHoudiniPackageParams& InPackageParams, 
+	UWorld * InWorld)
 {
 	USceneComponent* ParentComponent = Cast<USceneComponent>(InOuterComponent);
 	if (!ParentComponent)
@@ -89,7 +92,11 @@ void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromO
 		UGeometryCollection* GeometryCollection = GCData.PackParams.CreateObjectAndPackage<UGeometryCollection>();
 		if (!IsValid(GeometryCollection))
 			return;
-		
+
+		// Ensure we have a SizeSpecificData
+		if (!GeometryCollection->SizeSpecificData.Num()) 
+			GeometryCollection->SizeSpecificData.Add(FGeometryCollectionSizeSpecificData());
+
 		AGeometryCollectionActor * GeometryCollectionActor = Cast<AGeometryCollectionActor>(OutputObject.OutputObject);
 		
 		if (!GeometryCollectionActor)
@@ -148,8 +155,9 @@ void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromO
 			FSoftObjectPath SourceSoftObjectPath(ComponentStaticMesh);
 			decltype(FGeometryCollectionSource::SourceMaterial) SourceMaterials(StaticMeshComponent->GetMaterials());
 			GeometryCollection->GeometrySource.Add({ SourceSoftObjectPath, ComponentTransform, SourceMaterials });
-			AppendStaticMesh(ComponentStaticMesh, SourceMaterials, ComponentTransform, GeometryCollection, true);
-			
+
+			FHoudiniGeometryCollectionTranslator::AppendStaticMesh(ComponentStaticMesh, SourceMaterials, ComponentTransform, GeometryCollection, true);
+
 			RemoveAndDestroyComponent(OldComponent);
 			
 			GeometryCollectionPiece.InstancerOutput->OutputComponent = nullptr;
@@ -214,6 +222,7 @@ void FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromO
 	}
 }
 
+
 UGeometryCollectionComponent*
 FHoudiniGeometryCollectionTranslator::CreateGeometryCollectionComponent(UObject *InOuterComponent)
 {
@@ -259,7 +268,6 @@ FHoudiniGeometryCollectionTranslator::CreateGeometryCollectionComponent(UObject 
 }
 
 
-
 bool
 FHoudiniGeometryCollectionTranslator::RemoveAndDestroyComponent(UObject* InComponent)
 {
@@ -294,7 +302,11 @@ FHoudiniGeometryCollectionTranslator::RemoveAndDestroyComponent(UObject* InCompo
 	return false;
 }
 
-bool FHoudiniGeometryCollectionTranslator::GetGeometryCollectionData(const TArray<UHoudiniOutput*>& InAllOutputs, const FHoudiniPackageParams& InPackageParams,
+
+bool 
+FHoudiniGeometryCollectionTranslator::GetGeometryCollectionData(
+	const TArray<UHoudiniOutput*>& InAllOutputs,
+	const FHoudiniPackageParams& InPackageParams,
 	TMap<FString, FHoudiniGeometryCollectionData>& OutGeometryCollectionData)
 {
 	for (auto & HoudiniOutput : InAllOutputs)
@@ -366,7 +378,11 @@ bool FHoudiniGeometryCollectionTranslator::GetGeometryCollectionData(const TArra
 }
 
 
-AGeometryCollectionActor* FHoudiniGeometryCollectionTranslator::CreateNewGeometryActor(UWorld * InWorld, const FString & InActorName, const FTransform InTransform)
+AGeometryCollectionActor*
+FHoudiniGeometryCollectionTranslator::CreateNewGeometryActor(
+	UWorld * InWorld,
+	const FString& InActorName,
+	const FTransform& InTransform)
 {
 	// Create the new Geometry Collection actor
 	FActorSpawnParameters SpawnParameters;
@@ -385,7 +401,10 @@ AGeometryCollectionActor* FHoudiniGeometryCollectionTranslator::CreateNewGeometr
 	return NewActor;
 }
 
-bool FHoudiniGeometryCollectionTranslator::GetGeometryCollectionNames(TArray<UHoudiniOutput*>& InAllOutputs,
+
+bool
+FHoudiniGeometryCollectionTranslator::GetGeometryCollectionNames(
+	TArray<UHoudiniOutput*>& InAllOutputs,
 	TSet<FString>& Names)
 {
 	for (auto & HoudiniOutput : InAllOutputs)
@@ -432,29 +451,37 @@ bool FHoudiniGeometryCollectionTranslator::GetGeometryCollectionNames(TArray<UHo
 	return true;
 }
 
-bool FHoudiniGeometryCollectionTranslator::GetFracturePieceAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, int& OutInt)
+bool 
+FHoudiniGeometryCollectionTranslator::GetFracturePieceAttribute(
+	const HAPI_NodeId& GeoId,
+	const HAPI_NodeId& PartId,
+	int32& OutInt)
 {
 	bool HasFractureAttribute = false;
+
 	HAPI_AttributeInfo AttriInfo;
 	FHoudiniApi::AttributeInfo_Init(&AttriInfo);
+
 	TArray<int> IntData;
 	IntData.Empty();
-
-	if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(GeoId, PartId,
-	HAPI_UNREAL_ATTRIB_GC_PIECE, AttriInfo, IntData, 1))
+	if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+		GeoId, PartId, HAPI_UNREAL_ATTRIB_GC_PIECE, AttriInfo, IntData, 1))
 	{
 		if (IntData.Num() > 0)
 		{
 			HasFractureAttribute = true;
 			OutInt = IntData[0];
-		}
-			
+		}			
 	}
 
 	return HasFractureAttribute;
 }
 
-bool FHoudiniGeometryCollectionTranslator::GetClusterPieceAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, int& OutInt)
+bool 
+FHoudiniGeometryCollectionTranslator::GetClusterPieceAttribute(
+	const HAPI_NodeId& GeoId,
+	const HAPI_NodeId& PartId,
+	int& OutInt)
 {
 	bool HasClusterAttribute = false;
 	HAPI_AttributeInfo AttriInfo;
@@ -478,8 +505,11 @@ bool FHoudiniGeometryCollectionTranslator::GetClusterPieceAttribute(const HAPI_N
 	return HasClusterAttribute;
 }
 
-bool FHoudiniGeometryCollectionTranslator::GetGeometryCollectionNameAttribute(const HAPI_NodeId& GeoId,
-	const HAPI_NodeId& PartId, FString& OutName)
+bool 
+FHoudiniGeometryCollectionTranslator::GetGeometryCollectionNameAttribute(
+	const HAPI_NodeId& GeoId,
+	const HAPI_NodeId& PartId,
+	FString& OutName)
 {
 	bool HasAttribute = false;
 	HAPI_AttributeInfo AttriInfo;
@@ -506,7 +536,9 @@ bool FHoudiniGeometryCollectionTranslator::GetGeometryCollectionNameAttribute(co
 	return HasAttribute;
 }
 
-bool FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancer(const UHoudiniOutput* HoudiniOutput)
+bool 
+FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancer(
+	const UHoudiniOutput* HoudiniOutput)
 {
 	if (HoudiniOutput == nullptr)
 	{
@@ -550,7 +582,9 @@ bool FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancer(const U
 	return true;
 }
 
-bool FHoudiniGeometryCollectionTranslator::IsGeometryCollectionMesh(const UHoudiniOutput* HoudiniOutput)
+bool 
+FHoudiniGeometryCollectionTranslator::IsGeometryCollectionMesh(
+	const UHoudiniOutput* HoudiniOutput)
 {
 	EHoudiniOutputType OutputType = HoudiniOutput->Type;
 	if (OutputType != EHoudiniOutputType::Mesh)
@@ -591,7 +625,10 @@ bool FHoudiniGeometryCollectionTranslator::IsGeometryCollectionMesh(const UHoudi
 	return true;
 }
 
-bool FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancerPart(const HAPI_NodeId InstancerGeoId, const HAPI_PartId InstancerPartId)
+bool 
+FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancerPart(
+	const HAPI_NodeId& InstancerGeoId,
+	const HAPI_PartId& InstancerPartId)
 {
 	HAPI_ParmId InstancedPartId = -1;
 
@@ -636,7 +673,9 @@ bool FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancerPart(con
 }
 
 
-void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGeometryCollection* GeometryCollection,
+void
+FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(
+	UGeometryCollection* GeometryCollection,
 	FHoudiniGeometryCollectionPiece FirstPiece)
 {
 	int32 GeoId = FirstPiece.InstancerOutputIdentifier->GeoId;
@@ -658,7 +697,6 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 			FHoudiniEngine::Get().GetSession(), GeoId, PartId,
 			AttributeName, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &AttributeInfo) && AttributeInfo.exists)
 		{
-
 			FloatData.SetNumZeroed(AttributeInfo.totalArrayElements);
 			FloatDataSizes.SetNumZeroed(AttributeInfo.totalArrayElements);
 
@@ -1104,8 +1142,10 @@ void FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(UGe
 
 }
 
+//----------------------------------------------------------------------------------------------------------
 // FUniqueVertex struct copied from GeometryCollectionConversion.h
-// Replace this when you can figure out a way to access this code.
+// Replace this when you can figure out a way to access this code without depending on the GC plugin
+//----------------------------------------------------------------------------------------------------------
 struct FUniqueVertex
 {
 	FVector3f Normal;
@@ -1118,7 +1158,7 @@ struct FUniqueVertex
 		{
 			return false;
 		}
-		
+
 		bool bEquality = true;
 		bEquality &= (this->Normal == Other.Normal);
 		bEquality &= (this->Tangent == Other.Tangent);
@@ -1126,7 +1166,7 @@ struct FUniqueVertex
 		{
 			bEquality &= (this->UVs[UVLayerIdx] == Other.UVs[UVLayerIdx]);
 		}
-		
+
 		return bEquality;
 	}
 };
@@ -1139,17 +1179,23 @@ FORCEINLINE uint32 GetTypeHash(const FUniqueVertex& UniqueVertex)
 	{
 		VertexHash = HashCombine(VertexHash, GetTypeHash(UniqueVertex.UVs[UVLayerIdx]));
 	}
-	
+
 	return VertexHash;
 }
 
-void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
+
+
+//----------------------------------------------------------------------------------------------------------
+// AppendStaticMesh function copied from GeometryCollectionConversion.h
+// Replace this when you can figure out a way to access this code without depending on the GC plugin
+//----------------------------------------------------------------------------------------------------------
+void
+FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 	const UStaticMesh* StaticMesh,
 	const TArray<UMaterialInterface*>& Materials,
 	const FTransform& StaticMeshTransform,
 	UGeometryCollection* GeometryCollectionObject,
-	const bool& ReindexMaterials,
-	const int32& Level)
+	bool ReindexMaterials)
 {
 	if (StaticMesh == nullptr)
 	{
@@ -1193,7 +1239,7 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 		{
 			SourceUVArrays[UVLayerIdx] = InstanceUVs.GetRawArray(UVLayerIdx);
 		}
-		
+
 		// target vertex information
 		TManagedArray<FVector3f>& TargetVertex = GeometryCollection->Vertex;
 		TManagedArray<FVector3f>& TargetTangentU = GeometryCollection->TangentU;
@@ -1207,16 +1253,16 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 
 		const int32 VertexStart = GeometryCollection->NumElements(FGeometryCollection::VerticesGroup);
 		int32 VertexCount = 0;
-		
-		FVector3f Scale = (FVector3f)StaticMeshTransform.GetScale3D();
-		
+
+		FVector Scale = StaticMeshTransform.GetScale3D();
+
 		// We'll need to re-introduce UV seams, etc. by splitting vertices.
 		// A new mapping of MeshDescription vertex instances to the split vertices is maintained.
 		TMap<FVertexInstanceID, int32> VertexInstanceToGeometryCollectionVertex;
 		VertexInstanceToGeometryCollectionVertex.Reserve(Attributes.GetVertexInstanceNormals().GetNumElements());
-		
+
 		for (const FVertexID VertexIndex : MeshDescription->Vertices().GetElementIDs())
-		{		
+		{
 			TArrayView<const FVertexInstanceID> ReferencingVertexInstances = MeshDescription->GetVertexVertexInstanceIDs(VertexIndex);
 
 			// Generate per instance hash of splittable attributes.
@@ -1229,26 +1275,26 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 				{
 					SourceUVs[UVLayerIdx] = SourceUVArrays[UVLayerIdx][InstanceID];
 				}
-				
+
 				FUniqueVertex UniqueVertex{ SourceNormal[InstanceID], SourceTangent[InstanceID], SourceUVs };
 				TArray<FVertexInstanceID>& SplitVertex = SplitVertices.FindOrAdd(UniqueVertex);
 				SplitVertex.Add(InstanceID);
 			}
 
 			int32 CurrentVertex = GeometryCollection->AddElements(SplitVertices.Num(), FGeometryCollection::VerticesGroup);
-			
+
 			// Create a new vertex for each split vertex and map the mesh description instance to it.
-			for (const TTuple<FUniqueVertex,TArray<FVertexInstanceID>>& SplitVertex : SplitVertices)
+			for (const TTuple<FUniqueVertex, TArray<FVertexInstanceID>>& SplitVertex : SplitVertices)
 			{
 				const TArray<FVertexInstanceID>& InstanceIDs = SplitVertex.Value;
 				const FVertexInstanceID& ExemplarInstanceID = InstanceIDs[0];
 
-				TargetVertex[CurrentVertex] = SourcePosition[VertexIndex] * Scale;
+				TargetVertex[CurrentVertex] = SourcePosition[VertexIndex] * (FVector3f)Scale;
 				TargetBoneMap[CurrentVertex] = GeometryCollection->NumElements(FGeometryCollection::TransformGroup);
 
 				TargetNormal[CurrentVertex] = SourceNormal[ExemplarInstanceID];
 				TargetTangentU[CurrentVertex] = SourceTangent[ExemplarInstanceID];
-				TargetTangentV[CurrentVertex] = SourceBinormalSign[ExemplarInstanceID] * FVector3f::CrossProduct(TargetNormal[CurrentVertex], TargetTangentU[CurrentVertex]);
+				TargetTangentV[CurrentVertex] = (FVector3f)SourceBinormalSign[ExemplarInstanceID] * FVector3f::CrossProduct(TargetNormal[CurrentVertex], TargetTangentU[CurrentVertex]);
 
 				TargetUVs[CurrentVertex] = SplitVertex.Key.UVs;
 
@@ -1362,14 +1408,12 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 		TManagedArray<int32>& TransformToGeometryIndexArray = GeometryCollection->TransformToGeometryIndex;
 		TransformToGeometryIndexArray[TransformIndex1] = GeometryIndex;
 
-		FVector3f Center(0);
+		FVector Center(0);
 		for (int32 VertexIndex = VertexStart; VertexIndex < VertexStart + VertexCount; VertexIndex++)
 		{
-			Center += TargetVertex[VertexIndex];
+			Center += (FVector)TargetVertex[VertexIndex];
 		}
-
-		if (VertexCount)
-			Center /= VertexCount;
+		if (VertexCount) Center /= VertexCount;
 
 		// Inner/Outer edges, bounding box
 		BoundingBox[GeometryIndex] = FBox(ForceInitToZero);
@@ -1377,9 +1421,9 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 		OuterRadius[GeometryIndex] = -FLT_MAX;
 		for (int32 VertexIndex = VertexStart; VertexIndex < VertexStart + VertexCount; VertexIndex++)
 		{
-			BoundingBox[GeometryIndex] += (FVector3d)TargetVertex[VertexIndex];
+			BoundingBox[GeometryIndex] += (FVector)TargetVertex[VertexIndex];
 
-			float Delta = (Center - TargetVertex[VertexIndex]).Size();
+			float Delta = (Center - (FVector)TargetVertex[VertexIndex]).Size();
 			InnerRadius[GeometryIndex] = FMath::Min(InnerRadius[GeometryIndex], Delta);
 			OuterRadius[GeometryIndex] = FMath::Max(OuterRadius[GeometryIndex], Delta);
 		}
@@ -1387,10 +1431,10 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 		// Inner/Outer centroid
 		for (int fdx = IndicesStart; fdx < IndicesStart + IndicesCount; fdx++)
 		{
-			FVector3f Centroid(0);
+			FVector Centroid(0);
 			for (int e = 0; e < 3; e++)
 			{
-				Centroid += TargetVertex[TargetIndices[fdx][e]];
+				Centroid += (FVector)TargetVertex[TargetIndices[fdx][e]];
 			}
 			Centroid /= 3;
 
@@ -1405,19 +1449,19 @@ void FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 			for (int e = 0; e < 3; e++)
 			{
 				int i = e, j = (e + 1) % 3;
-				FVector3f Edge = TargetVertex[TargetIndices[fdx][i]] + 0.5 * (TargetVertex[TargetIndices[fdx][j]] - TargetVertex[TargetIndices[fdx][i]]);
+				FVector Edge = (FVector)TargetVertex[TargetIndices[fdx][i]] + 0.5 * FVector(TargetVertex[TargetIndices[fdx][j]] - TargetVertex[TargetIndices[fdx][i]]);
 				float Delta = (Center - Edge).Size();
 				InnerRadius[GeometryIndex] = FMath::Min(InnerRadius[GeometryIndex], Delta);
 				OuterRadius[GeometryIndex] = FMath::Max(OuterRadius[GeometryIndex], Delta);
 			}
 		}
 
-		if (ReindexMaterials) 
-		{
+		if (ReindexMaterials) {
 			GeometryCollection->ReindexMaterials();
 		}
 	}
 }
+
 
 // Copied from FractureToolEmbed.h
 void FHoudiniGeometryCollectionTranslator::AddSingleRootNodeIfRequired(UGeometryCollection* GeometryCollectionObject)

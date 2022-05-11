@@ -55,7 +55,7 @@
 #include "BSPOps.h"
 #include "Model.h"
 #include "Engine/Polys.h"
-#include "AssetRegistryModule.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
 #include "GeometryToolsEngine.h"
@@ -422,7 +422,8 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 			}
 
 			// If the mesh we just created is templated, hide it in game
-			if (IsValid(MeshComponent) && FoundHGPO->bIsTemplated)
+			bool bIsTemplated = FoundHGPO ? FoundHGPO->bIsTemplated : false;
+			if (IsValid(MeshComponent) && bIsTemplated)
 			{
 				MeshComponent->SetHiddenInGame(true);
 			}
