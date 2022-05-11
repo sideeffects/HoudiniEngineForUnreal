@@ -26,14 +26,11 @@
 
 #pragma once
 
-
 #include "HAPI/HAPI_Common.h"
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniOutput.h"
 #include "HoudiniPackageParams.h"
 #include "HoudiniAssetComponent.h"
-
-
 
 #include "CoreMinimal.h"
 
@@ -85,19 +82,18 @@ struct HOUDINIENGINE_API FHoudiniGeometryCollectionTranslator
 
 		static bool IsGeometryCollectionInstancer(const UHoudiniOutput* HoudiniOutput);
 		static bool IsGeometryCollectionMesh(const UHoudiniOutput* HoudiniOutput);
-		static bool IsGeometryCollectionInstancerPart(const HAPI_NodeId InstancerGeoId, const HAPI_PartId InstancerPartId);
+		static bool IsGeometryCollectionInstancerPart(const HAPI_NodeId& InstancerGeoId, const HAPI_PartId& InstancerPartId);
 	 	
-		static AGeometryCollectionActor * CreateNewGeometryActor(UWorld * InWorld, const FString & InActorName, const FTransform InTransform);
+		static AGeometryCollectionActor * CreateNewGeometryActor(UWorld * InWorld, const FString& InActorName, const FTransform& InTransform);
 
 		static bool GetGeometryCollectionNames(TArray<UHoudiniOutput*>& InAllOutputs, TSet<FString>& Names);
-	
 
 	private:
 
 		static UGeometryCollectionComponent* CreateGeometryCollectionComponent(UObject *InOuterComponent);
 	
 		static bool RemoveAndDestroyComponent(UObject* InComponent);
-	
+
 
 		// Extracts all Geometry collection data from the outputs
 		// Map is representing gc_name -> gc_data
@@ -105,7 +101,15 @@ struct HOUDINIENGINE_API FHoudiniGeometryCollectionTranslator
 	
 		static void ApplyGeometryCollectionAttributes(UGeometryCollection* GeometryCollection, FHoudiniGeometryCollectionPiece FirstPiece);
 
-		// Copied from GeometryCollectionConversion.h because they are from the editor module.
+		// Copied from GeometryCollectionConversion.h
+		// As we cannot access the UE function without depending on the GC plugin.
+		/**
+		*  Appends a static mesh to a GeometryCollectionComponent.
+		*  @param StaticMesh : Const mesh to read vertex/normals/index data from
+		*  @param Materials : Materials fetched from the StaticMeshComponent used to configure this geometry
+		*  @param StaticMeshTransform : Mesh transform.
+		*  @param GeometryCollection  : Collection to append the mesh into.
+		*/
 		static void AppendStaticMesh(
 			const UStaticMesh* StaticMesh,
 			const TArray<UMaterialInterface*>& Materials,
@@ -115,7 +119,6 @@ struct HOUDINIENGINE_API FHoudiniGeometryCollectionTranslator
 			const int32& Level = 0);
 
 		// Copied from FractureToolEmbed.h
-		static void AddSingleRootNodeIfRequired(UGeometryCollection* GeometryCollectionObject);
-	
+		static void AddSingleRootNodeIfRequired(UGeometryCollection* GeometryCollectionObject);	
 };
 

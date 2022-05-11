@@ -42,6 +42,7 @@
 #include "Materials/MaterialInterface.h"
 #include "MeshAttributes.h"
 #include "StaticMeshAttributes.h"
+
 #include "Rendering/SkeletalMeshModel.h"
 
 #include <locale> 
@@ -135,8 +136,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 {
 
     // If we don't have a static mesh there's nothing to do.
-    if (!SkeletalMesh || SkeletalMesh->IsPendingKill())
-	return false;
+    if (!IsValid(SkeletalMesh))
+		return false;
 
     // Node ID for the newly created node
     HAPI_NodeId NewNodeId = -1;
@@ -646,7 +647,7 @@ FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(
 	 //Capt_Names-------------------------------------------------------------
 	 //Bone Names--------------------------------------------------------------------------------------
 
-    const FReferenceSkeleton& RefSkeleton = SkeletalMesh->RefSkeleton;
+    const FReferenceSkeleton& RefSkeleton = SkeletalMesh->GetRefSkeleton();
 
     TArray<FTransform> ComponentSpaceTransforms;
     get_ref_pose_bone_comp_space_transform(ComponentSpaceTransforms, RefSkeleton);
