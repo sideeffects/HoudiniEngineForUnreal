@@ -92,6 +92,7 @@
 #if WITH_EDITOR
 	#include "EditorModeManager.h"
 	#include "EditorModes.h"
+	#include "EditorFramework/AssetImportData.h"
 #endif
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
@@ -1546,9 +1547,9 @@ FHoudiniEngineUtils::LoadHoudiniAsset(const UHoudiniAsset * HoudiniAsset, HAPI_A
 	if (HoudiniRuntimeSettings)
 		bMemoryCopyFirst = HoudiniRuntimeSettings->bPreferHdaMemoryCopyOverHdaSourceFile;
 
-	// Get the HDA's file path
+	// Get the HDA's file path, using the AssetImportData if we have it
+	FString AssetFileName = (HoudiniAsset->AssetImportData != nullptr) ? HoudiniAsset->AssetImportData->GetFirstFilename() : HoudiniAsset->GetAssetFileName();
 	// We need to convert relative file path to absolute
-	FString AssetFileName = HoudiniAsset->GetAssetFileName();
 	if (FPaths::IsRelative(AssetFileName))
 		AssetFileName = FPaths::ConvertRelativePathToFull(AssetFileName);
 

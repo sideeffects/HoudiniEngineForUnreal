@@ -86,7 +86,6 @@ UHoudiniAssetFactory::FactoryCreateBinary(
 
 	// Create a new asset.
 	UHoudiniAsset * HoudiniAsset = NewObject< UHoudiniAsset >(InParent, InName, Flags);
-	HoudiniAsset->CreateAsset(Buffer, BufferEnd, UFactory::GetCurrentFilename());
 
 	// Create reimport information.
 	UAssetImportData * AssetImportData = HoudiniAsset->AssetImportData;
@@ -97,6 +96,9 @@ UHoudiniAssetFactory::FactoryCreateBinary(
 	}
 
 	AssetImportData->Update(UFactory::GetCurrentFilename());
+
+	// import with the sanitized filename from the AssetImportData
+	HoudiniAsset->CreateAsset(Buffer, BufferEnd, AssetImportData->GetSourceData().SourceFiles[0].RelativeFilename);
 
 	// Broadcast notification that the new asset has been imported.
 	GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, HoudiniAsset);
