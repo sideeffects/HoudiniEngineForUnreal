@@ -6,9 +6,10 @@
 #include "HoudiniInstanceTranslator.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "GeometryCollection/GeometryCollectionClusteringUtility.h"
-#include "GeometryCollection/GeometryCollectionDebugDrawComponent.h"
-#include "GeometryCollection/GeometryCollectionObject.h"
-#include "GeometryCollection/GeometryCollectionActor.h"
+#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
+#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionDebugDrawComponent.h"
+#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
+#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
 #include "Materials/Material.h"
 
 void
