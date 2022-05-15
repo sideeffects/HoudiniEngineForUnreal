@@ -62,34 +62,42 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent,
 
 		void CopyHoudiniData(const UHoudiniSplineComponent* OtherHoudiniSplineComponent);
 
+		UFUNCTION(BlueprintCallable)
 		void ResetCurvePoints();
 
+		UFUNCTION(BlueprintCallable)
 		void ResetDisplayPoints();
 
+		UFUNCTION(BlueprintCallable)
 		void AddCurvePoints(const TArray<FTransform>& Points);
 
+		UFUNCTION(BlueprintCallable)
 		void AddDisplayPoints(const TArray<FVector>& Points);
 
 		void AppendPoint(const FTransform& NewPoint);
 
 		void InsertPointAtIndex(const FTransform& NewPoint, const int32& Index);
-
+	
 		void RemovePointAtIndex(const int32& Index);
 
+		UFUNCTION(BlueprintCallable)
 		void EditPointAtindex(const FTransform& NewPoint, const int32& Index);
 
 		void MarkModified(const bool & InModified) { bHasChanged = InModified; };
 
 		// To set the offset of default position of houdini curve
+		UFUNCTION(BlueprintCallable)
 		void SetOffset(const float& Offset);
 
 		bool HasChanged() const;
 
+		UFUNCTION(BlueprintCallable)
 		void MarkChanged(const bool& Changed);
 
 		// Mark the associated Houdini nodes for pending kill
 		void MarkInputNodesAsPendingKill();
 
+		UFUNCTION(BlueprintCallable)
 		FORCEINLINE
 		FString& GetHoudiniSplineName() { return HoudiniSplineName; }
 
@@ -116,19 +124,24 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent,
 	
 		FORCEINLINE
 		void SetCurveBreakpointParameterization(const EHoudiniCurveBreakpointParameterization& NewBreakpointMethod) { CurveBreakpointParameterization = NewBreakpointMethod; }
-	
+
+		UFUNCTION(BlueprintPure)
 		FORCEINLINE
 		int32 GetCurvePointCount() const { return CurvePoints.Num(); }
 
+		UFUNCTION(BlueprintPure)
 		FORCEINLINE
 		bool IsClosedCurve() const { return bClosed; }
 
+		UFUNCTION(BlueprintCallable)
 		FORCEINLINE
 		void SetClosedCurve(const bool& Closed) { bClosed = Closed; }
 
+		UFUNCTION(BlueprintPure)
 		FORCEINLINE
 		bool IsReversed() const { return bReversed; }
 
+		UFUNCTION(BlueprintCallable)
 		void SetReversed(const bool& Reversed);
 
 		FORCEINLINE
@@ -196,10 +209,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent,
 
 	public:
 
-		UPROPERTY()
+		UPROPERTY(BlueprintReadOnly)
 		TArray<FTransform> CurvePoints;
 
-		UPROPERTY()
+		UPROPERTY(BlueprintReadOnly)
 		TArray<FVector> DisplayPoints;
 
 		UPROPERTY()

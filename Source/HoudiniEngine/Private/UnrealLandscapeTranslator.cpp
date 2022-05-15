@@ -288,8 +288,11 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	TArray<uint16> HeightData;
 	int32 XSize, YSize;
 	FVector Min, Max;
-	if (!GetLandscapeData(LandscapeProxy, HeightData, XSize, YSize, Min, Max))
-		return false;
+	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FUnrealLandscapeTranslator::GetLandscapeData);
+		if (!GetLandscapeData(LandscapeProxy, HeightData, XSize, YSize, Min, Max))
+			return false;
+	}
 
 	//--------------------------------------------------------------------------------------------------
 	// 2. Convert the height uint16 data to float
@@ -304,10 +307,14 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	FTransform LandscapeTransform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(LandscapeProxy->GetLandscapeInfo());
 
 	FVector CenterOffset = FVector::ZeroVector;
-	if (!ConvertLandscapeDataToHeightfieldData(
-		HeightData, XSize, YSize, Min, Max, LandscapeTransform,
-		HeightfieldFloatValues, HeightfieldVolumeInfo, CenterOffset))
-		return false;
+	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FUnrealLandscapeTranslator::GetLandscapeData);
+		if (!ConvertLandscapeDataToHeightfieldData(
+			HeightData, XSize, YSize, Min, Max, LandscapeTransform,
+			HeightfieldFloatValues, HeightfieldVolumeInfo, CenterOffset))
+				return false;
+	}
+
 
 	//--------------------------------------------------------------------------------------------------
 	// 3. Create the Heightfield Input Node

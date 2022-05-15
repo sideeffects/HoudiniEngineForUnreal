@@ -5206,17 +5206,22 @@ FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(const TArray<TWeakObjec
 		// Populate the Landscape options from landscape actors in the world (subject to filtering).
 		UWorld* LandscapeWorld = MainInput->GetWorld();
 		TMap<FString, AActor*> LandscapeOptions;
-		for (TActorIterator<ALandscapeProxy> It(LandscapeWorld); It; ++It)
-		{ 
-			ALandscapeProxy* Actor = *It;
-			if (!OnShouldFilterActor(*It))
-			{
-				continue;
-			}
 
-			LandscapeOptions.Add(It->GetActorLabel(), Actor);
+		// Will be invalid if in BP editor
+		if(LandscapeWorld)
+		{
+			for (TActorIterator<ALandscapeProxy> It(LandscapeWorld); It; ++It)
+			{ 
+				ALandscapeProxy* Actor = *It;
+				if (!OnShouldFilterActor(*It))
+				{
+					continue;
+				}
+
+				LandscapeOptions.Add(It->GetActorLabel(), Actor);
+			}
 		}
-		
+
 		FString CurrentSelection;
 
 		if (MainInput.IsValid())

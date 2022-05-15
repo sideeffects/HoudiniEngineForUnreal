@@ -1569,6 +1569,11 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 		for (int i = 0; i < NumInputs; ++i)
 		{
 			UHoudiniInput* FromInput = InstanceData->Inputs[i];
+			if (!FromInput)
+			{
+				continue;
+			}
+			
 			UHoudiniInput* ToInput = Inputs[i];
 
 			if (ToInput)
