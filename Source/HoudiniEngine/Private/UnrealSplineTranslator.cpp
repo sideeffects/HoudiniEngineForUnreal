@@ -36,7 +36,7 @@
 #include "HoudiniSplineTranslator.h"
 
 bool
-FUnrealSplineTranslator::CreateInputNodeForSplineComponent(USplineComponent* SplineComponent, const float& SplineResolution, HAPI_NodeId& CreatedInputNodeId, const FString& NodeName) 
+FUnrealSplineTranslator::CreateInputNodeForSplineComponent(USplineComponent* SplineComponent, const float& SplineResolution, HAPI_NodeId& CreatedInputNodeId, const FString& NodeName, const bool& bInUseLegacyInputCurves)
 {
 	if (!IsValid(SplineComponent))
 		return false;
@@ -80,14 +80,18 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(USplineComponent* Spl
 			RefinedSplineScales[n] = SplineComponent->GetScaleAtDistanceAlongSpline(CurrentDistance);
 
 			CurrentDistance += SplineResolution;
-		}			
+		}
 	}
 
-
-	if (!FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(CreatedInputNodeId, NodeName,
+	if (!FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
+		CreatedInputNodeId, NodeName,
 		&RefinedSplinePositions, &RefinedSplineRotations, &RefinedSplineScales,
-		EHoudiniCurveType::Polygon, EHoudiniCurveMethod::Breakpoints, false, SplineComponent->IsClosedLoop()))
+		EHoudiniCurveType::Polygon, EHoudiniCurveMethod::Breakpoints, SplineComponent->IsClosedLoop(), false,
+		false, FTransform::Identity, bInUseLegacyInputCurves))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Failed to create the input curve data!"));
 		return false;
+	}
 
 	// Add spline component tags if it has any
 	bool NeedToCommit = FHoudiniEngineUtils::CreateGroupsFromTags(CreatedInputNodeId, 0, SplineComponent->ComponentTags);
@@ -117,6 +121,15 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(USplineComponent* Spl
 		// We successfully added tags to the geo, so we need to commit the changes
 		if (HAPI_RESULT_SUCCESS != FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), CreatedInputNodeId))
 			HOUDINI_LOG_WARNING(TEXT("Could not create groups for the spline input's tags!"));
+
+		// And cook it with refinement enabled
+		// This is mandatory as it fixes issues down the line on the next update!
+		// (session was lost upon trying to access the data afterwards)
+		HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
+		CookOptions.maxVerticesPerPrimitive = -1;
+		CookOptions.refineCurveToLinear = true;
+		if (!FHoudiniEngineUtils::HapiCookNode(CreatedInputNodeId, &CookOptions, false))
+			return false;
 	}
 
 

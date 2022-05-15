@@ -88,6 +88,8 @@ struct FHoudiniMoveTracker
 		GEditor->OnBeginObjectMovement().AddLambda([this](UObject&) { IsObjectMoving = true; });
 		GEditor->OnEndObjectMovement().AddLambda([this](UObject&) { IsObjectMoving = false; });
 
+		GEditor->OnActorsMoved().AddLambda([this](TArray<AActor*>&) { IsObjectMoving = false; });
+
 		GEditor->OnBeginCameraMovement().AddLambda([this](UObject&) { IsObjectMoving = false; });
 		GEditor->OnEndCameraMovement().AddLambda([this](UObject&) { IsObjectMoving = false; });
 	}
@@ -1406,7 +1408,7 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		case EHoudiniInputObjectType::SplineComponent:
 		{
 			UHoudiniInputSplineComponent* InputSpline = Cast<UHoudiniInputSplineComponent>(InInputObject);
-			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(ObjBaseName, InputSpline, InInput->GetUnrealSplineResolution());
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(ObjBaseName, InputSpline, InInput->GetUnrealSplineResolution(), InInput->IsUseLegacyInputCurvesEnabled());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -2155,6 +2157,10 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionActor(cons
 	if (!IsValid(InObject))
 		return false;
 
+	AGeometryCollectionActor* GCA = InObject->GetGeometryCollectionActor();
+	if (!IsValid(GCA))
+		return true;
+
 	UGeometryCollectionComponent* GCC = InObject->GetGeometryCollectionComponent();
 	if (!IsValid(GCC))
 		return true;
@@ -2197,7 +2203,7 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionActor(cons
 	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
 
 	// Update this input object's cache data
-	InObject->Update(GCC);
+	InObject->Update(GCA);
 
 	// Use the component transform to drive offsets, because the actor itself is usually not the transform we want to look at.
 	FTransform ComponentTransform = InObject->Transform * GCC->GetComponentTransform();
@@ -2367,7 +2373,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForInstancedStaticMeshComponent(
 }
 
 bool
-FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(const FString& InObjNodeName, UHoudiniInputSplineComponent* InObject, const float& SplineResolution)
+FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(
+	const FString& InObjNodeName,
+	UHoudiniInputSplineComponent* InObject,
+	const float& SplineResolution, 
+	const bool& bInUseLegacyInputCurves)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2383,7 +2393,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(const FString& In
 
 	FString NodeName = InObjNodeName + TEXT("_") + InObject->GetName();
 
-	if (!FUnrealSplineTranslator::CreateInputNodeForSplineComponent(Spline, SplineResolution, InObject->InputNodeId, NodeName))
+	if (!FUnrealSplineTranslator::CreateInputNodeForSplineComponent(Spline, SplineResolution, InObject->InputNodeId, NodeName, bInUseLegacyInputCurves))
 		return false;
 
 	// Cache the exported curve's data to the input object
@@ -2417,7 +2427,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(const FString& In
 
 bool
 FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniSplineComponent(
-	const FString& InObjNodeName, UHoudiniInputHoudiniSplineComponent* InObject, bool bInAddRotAndScaleAttributes, bool bInUseLegacyInputCurves)
+	const FString& InObjNodeName, UHoudiniInputHoudiniSplineComponent* InObject, const bool& bInAddRotAndScaleAttributes, const bool& bInUseLegacyInputCurves)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2451,7 +2461,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniSplineComponent(
 
 bool
 FHoudiniInputTranslator::
-HapiCreateInputNodeForHoudiniAssetComponent(const FString& InObjNodeName, UHoudiniInputHoudiniAsset* InObject, const bool bKeepWorldTransform, const bool& bImportAsReference, const bool& bImportAsReferenceRotScaleEnabled)
+HapiCreateInputNodeForHoudiniAssetComponent(const FString& InObjNodeName, UHoudiniInputHoudiniAsset* InObject, const bool& bKeepWorldTransform, const bool& bImportAsReference, const bool& bImportAsReferenceRotScaleEnabled)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -3289,15 +3299,9 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 		// Get the object path
 		FString ObjectPathName = DataTable->GetPathName();
 
-		// Create an array
-		TArray<FString> ObjectPaths;
-		ObjectPaths.SetNum(NumRows);
-		for (int32 n = 0; n < ObjectPaths.Num(); n++)
-			ObjectPaths[n] = ObjectPathName;
-
 		// Set the point's path attribute
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
-			ObjectPaths, InputNodeId, 0, HAPI_UNREAL_ATTRIB_OBJECT_PATH, AttributeInfoPoint), false);
+			ObjectPathName, InputNodeId, 0, HAPI_UNREAL_ATTRIB_OBJECT_PATH, AttributeInfoPoint), false);
 	}
 
 	{
@@ -3318,13 +3322,9 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 		// Get the object path
 		FString RowStructName = DataTable->GetRowStructName().ToString();
 
-		// Create an array
-		TArray<FString> RowStructNames;
-		RowStructNames.Init(RowStructName, NumRows);
-
 		// Set the point's path attribute
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
-			RowStructNames, InputNodeId, 0, 
+			RowStructName, InputNodeId, 0, 
 			HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT, AttributeInfoPoint), false);
 	}
 

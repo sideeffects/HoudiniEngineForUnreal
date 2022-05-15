@@ -165,8 +165,10 @@ UHoudiniInputSplineComponent::HasComponentChanged() const
 	if (SplineClosed != SplineComponent->IsClosedLoop()) 
 		return true;
 
-
 	if (SplineComponent->GetNumberOfSplinePoints() != NumberOfSplineControlPoints)
+		return true;
+
+	if (SplineComponent->GetSplineLength() != SplineLength)
 		return true;
 
 	for (int32 n = 0; n < SplineComponent->GetNumberOfSplinePoints(); ++n) 
@@ -1127,6 +1129,10 @@ UHoudiniInputMeshComponent::Update(UObject * InObject)
 	Super::Update(InObject);
 
 	UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(InObject);
+
+	// Empty the materials array here!, else it will continuously keep growing
+	// and bloat the size of the HAC for nothing
+	MeshComponentsMaterials.Empty();
 	
 	ensure(SMC);
 
@@ -1968,7 +1974,6 @@ bool UHoudiniInputBrush::FindIntersectingSubtractiveBrushes(const UHoudiniInputB
 {
 	TArray<AActor*> IntersectingActors;	
 	TArray<FBox> Bounds;
-
 
 	if (!IsValid(InputBrush))
 		return false;

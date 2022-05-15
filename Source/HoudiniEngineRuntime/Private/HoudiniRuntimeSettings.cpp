@@ -102,9 +102,9 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 	MarshallingSplineResolution = 50.0f;
 
 	// Static mesh proxy refinement settings
-	bEnableProxyStaticMesh = false;
+	bEnableProxyStaticMesh = true;
 	bShowDefaultMesh = true;
-	bEnableProxyStaticMeshRefinementByTimer = true;
+	bEnableProxyStaticMeshRefinementByTimer = false;
 	ProxyMeshAutoRefineTimeoutSeconds = 10.0f;
 	bEnableProxyStaticMeshRefinementOnPreSaveWorld = true;
 	bEnableProxyStaticMeshRefinementOnPreBeginPIE = true;
@@ -148,7 +148,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 
 	// Curve inputs and editable output curves
 	bAddRotAndScaleAttributesOnCurves = false;
-	bUseLegacyInputCurves = false;
+	bUseLegacyInputCurves = true;
 }
 
 UHoudiniRuntimeSettings::~UHoudiniRuntimeSettings()

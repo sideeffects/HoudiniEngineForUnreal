@@ -54,6 +54,7 @@
 #include "UObject/UObjectGlobals.h"
 #include "BodySetupEnums.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Private/GeomFitUtils.h"
@@ -1031,8 +1032,8 @@ UHoudiniAssetComponent::NeedUpdate() const
 	if (!bCookOnParameterChange && !bRecookRequested && !bRebuildRequested)
 		return false;
 
-	// Check if the HAC's transform has changed and transform triggers cook is enabled
-	if (bCookOnTransformChange && bHasComponentTransformChanged)
+	// Check if the HAC's transform has changed and we need to cook because of it
+	if (bCookOnTransformChange && bHasComponentTransformChanged && bUploadTransformsToHoudiniEngine)
 		return true;
 
 	if (NeedUpdateParameters())
@@ -2013,8 +2014,6 @@ UHoudiniAssetComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformF
 #if WITH_EDITOR
 	if (!bUploadTransformsToHoudiniEngine)
 		return;
-	if (!bCookOnTransformChange)
-		return;
 
 	if (!GetComponentTransform().Equals(LastComponentTransform))
 	{
@@ -2902,7 +2901,7 @@ UHoudiniAssetComponent::SetStaticMeshGenerationProperties(UStaticMesh* InStaticM
 	for (int32 AssetUserDataIdx = 0; AssetUserDataIdx < StaticMeshGenerationProperties.GeneratedAssetUserData.Num(); AssetUserDataIdx++)
 		InStaticMesh->AddAssetUserData(StaticMeshGenerationProperties.GeneratedAssetUserData[AssetUserDataIdx]);
 
-	//
+	// Create a body setup if needed
 	if (!InStaticMesh->GetBodySetup())
 		InStaticMesh->CreateBodySetup();
 
@@ -2948,7 +2947,11 @@ UHoudiniAssetComponent::UpdateRenderingInformation()
 	{
 		USceneComponent * SceneComponent = *Iter;
 		if (IsValid(SceneComponent))
-			SceneComponent->RecreatePhysicsState();
+		{
+			// Do not recreate the phys state for GCC
+			if(!SceneComponent->IsA<UGeometryCollectionComponent>())
+				SceneComponent->RecreatePhysicsState();
+		}
 	}
 
 	// !!! Do not call UpdateBounds() here as this could cause
