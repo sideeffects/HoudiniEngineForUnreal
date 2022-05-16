@@ -34,6 +34,7 @@ class UHoudiniAssetComponent;
 class UHoudiniOutput;
 class ALandscapeProxy;
 class UStaticMesh;
+class USkeletalMesh;
 class USplineComponent;
 class UPackage;
 class UWorld;
@@ -345,6 +346,19 @@ public:
 		TMap<UMaterialInterface *, UMaterialInterface *>& InOutAlreadyBakedMaterialsMap,
 		FHoudiniEngineOutputStats& OutBakeStats);
 
+	static USkeletalMesh* DuplicateSkeletalMeshAndCreatePackageIfNeeded(
+		USkeletalMesh* InSkeletalMesh,
+		USkeletalMesh* InPreviousBakeSkeletalMesh,
+		const FHoudiniPackageParams& PackageParams,
+		const TArray<UHoudiniOutput*>& InParentOutputs,
+		const TArray<FHoudiniEngineBakedActor>& InCurrentBakedActors,
+		const FString& InTemporaryCookFolder,
+		TArray<UPackage*>& OutCreatedPackages,
+		TMap<USkeletalMesh*, USkeletalMesh*>& InOutAlreadyBakedStaticMeshMap,
+		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
+		FHoudiniEngineOutputStats& OutBakeStats);
+
+
 	static UGeometryCollection * DuplicateGeometryCollectionAndCreatePackageIfNeeded(
 		UGeometryCollection * InGeometryCollection,
 		UGeometryCollection * InPreviousBakeGeometryCollection,
@@ -564,6 +578,13 @@ public:
 		UStaticMeshComponent* NewSMC,
 		UStaticMeshComponent* InSMC,
 		bool bInCopyWorldTransform=false);
+
+	static void CopyPropertyToNewActorAndSkeletalComponent(
+		AActor* NewActor,
+		USkeletalMeshComponent* NewSKC,
+		USkeletalMeshComponent* InSKC,
+		bool bInCopyWorldTransform = false);
+
 
 	// Function used to copy properties from the source GeometryCollection Component to the new (baked) one
 	static void CopyPropertyToNewGeometryCollectionActorAndComponent(
@@ -878,6 +899,30 @@ protected:
 		const TArray<FHoudiniEngineBakedActor>& InAllBakedActors,
 		TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
 		TMap<UMaterialInterface *, UMaterialInterface *>& InOutAlreadyBakedMaterialsMap,
+		TArray<UPackage*>& OutPackagesToSave,
+		FHoudiniEngineOutputStats& OutBakeStats,
+		FHoudiniBakedOutputObject& OutBakedOutputObject,
+		bool& bOutBakedToActor,
+		FHoudiniEngineBakedActor& OutBakedActorEntry);
+
+	// Skeletal Mesh Version
+	static bool BakeSkeletalMeshOutputObjectToActor(
+		const UHoudiniAssetComponent* InHoudiniAssetComponent,
+		int32 InOutputIndex,
+		const TArray<UHoudiniOutput*>& InAllOutputs,
+		const FHoudiniOutputObjectIdentifier& InIdentifier,
+		const FHoudiniOutputObject& InOutputObject,
+		const TArray<FHoudiniGeoPartObject>& InHGPOs,
+		const TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& InOldBakedOutputObjects,
+		const FDirectoryPath& InTempCookFolder,
+		const FDirectoryPath& InBakeFolder,
+		const bool bInReplaceActors,
+		const bool bInReplaceAssets,
+		AActor* InFallbackActor,
+		const FString& InFallbackWorldOutlinerFolder,
+		const TArray<FHoudiniEngineBakedActor>& InAllBakedActors,
+		TMap<USkeletalMesh*, USkeletalMesh*>& InOutAlreadyBakedStaticMeshMap,
+		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
 		TArray<UPackage*>& OutPackagesToSave,
 		FHoudiniEngineOutputStats& OutBakeStats,
 		FHoudiniBakedOutputObject& OutBakedOutputObject,

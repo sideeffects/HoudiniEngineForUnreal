@@ -108,7 +108,6 @@ void UHoudiniEditorSubsystem::DumpSessionInfo()
     
     HOUDINI_LOG_MESSAGE(TEXT("DisplayGeo %s NodeID %i  PartCount %i "), *DisplayName, DisplayHapiGeoInfo.nodeId, DisplayHapiGeoInfo.partCount );
 
-    FHoudiniMeshTranslator::DumpInfo(DisplayHapiGeoInfo.nodeId, 0);
 }
 
 

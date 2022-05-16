@@ -49,6 +49,8 @@
 #include "HoudiniEngineRuntimeUtils.h"
 
 #include "Engine/StaticMesh.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 #include "RawMesh.h"
 #include "UObject/Package.h"
@@ -104,6 +106,7 @@
 #include "Misc/ScopedSlowTask.h"
 #include "WorldPartition/WorldPartitionSubsystem.h"
 #include "Kismet2/ComponentEditorUtils.h"
+#include "Animation/SkeletalMeshActor.h"
 
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
@@ -2626,6 +2629,220 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 	return true;
 }
 
+bool
+FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
+	const UHoudiniAssetComponent* InHoudiniAssetComponent,
+	int32 InOutputIndex,
+	const TArray<UHoudiniOutput*>& InAllOutputs,
+	const FHoudiniOutputObjectIdentifier& InIdentifier,
+	const FHoudiniOutputObject& InOutputObject,
+	const TArray<FHoudiniGeoPartObject>& InHGPOs,
+	const TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& InOldBakedOutputObjects,
+	const FDirectoryPath& InTempCookFolder,
+	const FDirectoryPath& InBakeFolder,
+	const bool bInReplaceActors,
+	const bool bInReplaceAssets,
+	AActor* InFallbackActor,
+	const FString& InFallbackWorldOutlinerFolder,
+	const TArray<FHoudiniEngineBakedActor>& InAllBakedActors,
+	TMap<USkeletalMesh*, USkeletalMesh*>& InOutAlreadyBakedSkeletalMeshMap,
+	TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
+	TArray<UPackage*>& OutPackagesToSave,
+	FHoudiniEngineOutputStats& OutBakeStats,
+	FHoudiniBakedOutputObject& OutBakedOutputObject,
+	bool& bOutBakedToActor,
+	FHoudiniEngineBakedActor& OutBakedActorEntry
+)
+{
+	if (!InAllOutputs.IsValidIndex(InOutputIndex))
+		return false;
+	UHoudiniOutput* const InOutput = InAllOutputs[InOutputIndex];
+
+	// Initialize the baked output object entry (use the previous bake's data, if available).
+	if (InOldBakedOutputObjects.Contains(InIdentifier))
+		OutBakedOutputObject = InOldBakedOutputObjects.FindChecked(InIdentifier);
+	else
+		OutBakedOutputObject = FHoudiniBakedOutputObject();
+
+	USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(InOutputObject.OutputObject);
+	if (!IsValid(SkeletalMesh))
+		return false;
+
+	USkeletalMeshComponent* InSKC = Cast<USkeletalMeshComponent>(InOutputObject.OutputComponent);
+	const bool bHasOutputSKC = IsValid(InSKC);
+	if (!bHasOutputSKC && !InOutputObject.bIsImplicit)
+		return false;
+
+	// Find the HGPO that matches this output identifier
+	const FHoudiniGeoPartObject* FoundHGPO = nullptr;
+	FindHGPO(InIdentifier, InHGPOs, FoundHGPO);
+
+	// We do not bake templated geos
+	if (FoundHGPO && FoundHGPO->bIsTemplated)
+		return true;
+
+	const FString DefaultObjectName = FHoudiniPackageParams::GetPackageNameExcludingGUID(SkeletalMesh);
+
+	UWorld* DesiredWorld = InOutput ? InOutput->GetWorld() : GWorld;
+	ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+
+	FHoudiniPackageParams PackageParams;
+
+	if (!ResolvePackageParams(
+		InHoudiniAssetComponent,
+		InOutput,
+		InIdentifier,
+		InOutputObject,
+		DefaultObjectName,
+		InBakeFolder,
+		bInReplaceAssets,
+		PackageParams,
+		OutPackagesToSave))
+	{
+		return false;
+	}
+
+	// Bake the static mesh if it is still temporary
+	USkeletalMesh* BakedSK = FHoudiniEngineBakeUtils::DuplicateSkeletalMeshAndCreatePackageIfNeeded(
+		SkeletalMesh,
+		Cast<USkeletalMesh>(OutBakedOutputObject.GetBakedObjectIfValid()),
+		PackageParams,
+		InAllOutputs,
+		InAllBakedActors,
+		InTempCookFolder.Path,
+		OutPackagesToSave,
+		InOutAlreadyBakedSkeletalMeshMap,
+		InOutAlreadyBakedMaterialsMap,
+		OutBakeStats);
+
+	if (!IsValid(BakedSK))
+		return false;
+
+	// Record the baked object
+	OutBakedOutputObject.BakedObject = FSoftObjectPath(BakedSK).ToString();
+
+	if (bHasOutputSKC)
+	{
+		const FName WorldOutlinerFolderPath = GetOutlinerFolderPath(
+			InOutputObject,
+			FName(InFallbackWorldOutlinerFolder.IsEmpty() ? PackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
+
+		// Get the actor factory for the unreal_bake_actor_class attribute. If not set, use an empty actor.
+		TSubclassOf<AActor> BakeActorClass = nullptr;
+		UActorFactory* const Factory = GetActorFactory(InOutputObject, BakeActorClass, UActorFactoryEmptyActor::StaticClass(), BakedSK);
+
+		// If we could not find a factory, we have to skip this output object
+		if (!Factory)
+			return false;
+
+		// Make sure we have a level to spawn to
+		if (!IsValid(DesiredLevel))
+			return false;
+
+		// Try to find the unreal_bake_actor, if specified
+		FName BakeActorName;
+		AActor* FoundActor = nullptr;
+		bool bHasBakeActorName = false;
+		if (!FindUnrealBakeActor(
+			InOutputObject,
+			OutBakedOutputObject,
+			InAllBakedActors,
+			DesiredLevel,
+			*(PackageParams.ObjectName),
+			bInReplaceActors,
+			InFallbackActor,
+			FoundActor,
+			bHasBakeActorName,
+			BakeActorName))
+			return false;
+
+		bool bCreatedNewActor = false;
+		USkeletalMeshComponent* SKC = nullptr;
+		if (!FoundActor)
+		{
+			// Spawn the new actor
+			FoundActor = SpawnBakeActor(Factory, BakedSK, DesiredLevel, InSKC->GetComponentTransform(), InHoudiniAssetComponent, BakeActorClass);
+			if (!IsValid(FoundActor))
+				return false;
+
+			bCreatedNewActor = true;
+
+			// Copy properties to new actor
+			ASkeletalMeshActor* SMActor = Cast<ASkeletalMeshActor >(FoundActor);
+			if (IsValid(SMActor))
+				SKC = SMActor->GetSkeletalMeshComponent();
+		}
+
+		if (!IsValid(SKC))
+		{
+			if (bInReplaceAssets && !bCreatedNewActor)
+			{
+				// Check if we have a previous bake component and that it belongs to FoundActor, if so, reuse it
+				USkeletalMeshComponent* PrevSKC = Cast<USkeletalMeshComponent>(OutBakedOutputObject.GetBakedComponentIfValid());
+				if (IsValid(PrevSKC) && (PrevSKC->GetOwner() == FoundActor))
+				{
+					SKC = PrevSKC;
+				}
+			}
+
+			const bool bCreateIfMissing = true;
+			USceneComponent* RootComponent = GetActorRootComponent(FoundActor, bCreateIfMissing);
+
+			if (!IsValid(SKC))
+			{
+				// Create a new static mesh component on the existing actor
+				SKC = NewObject<USkeletalMeshComponent>(FoundActor, NAME_None, RF_Transactional);
+
+				FoundActor->AddInstanceComponent(SKC);
+				if (IsValid(RootComponent))
+					SKC->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+				else
+					FoundActor->SetRootComponent(SKC);
+				SKC->RegisterComponent();
+			}
+		}
+
+		// We need to make a unique name for the actor, renaming an object on top of another is a fatal error
+		const FString NewNameStr = MakeUniqueObjectNameIfNeeded(DesiredLevel, Factory->NewActorClass, BakeActorName.ToString(), FoundActor);
+		RenameAndRelabelActor(FoundActor, NewNameStr, false);
+		SetOutlinerFolderPath(FoundActor, InOutputObject, WorldOutlinerFolderPath);
+
+		if (IsValid(SKC))
+		{
+			constexpr bool bCopyWorldTransform = true;
+			CopyPropertyToNewActorAndSkeletalComponent(FoundActor, SKC, InSKC, bCopyWorldTransform);
+			SKC->SetSkeletalMesh(BakedSK);
+			OutBakedOutputObject.BakedComponent = FSoftObjectPath(SKC).ToString();
+		}
+
+		OutBakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
+		OutBakedActorEntry = FHoudiniEngineBakedActor(
+			FoundActor, BakeActorName, WorldOutlinerFolderPath, InOutputIndex, InIdentifier, BakedSK, SkeletalMesh, SKC,
+			PackageParams.BakeFolder, PackageParams);
+		bOutBakedToActor = true;
+	}
+	else
+	{
+		// Implicit object, no component and no actor
+		OutBakedOutputObject.BakedComponent = nullptr;
+		OutBakedOutputObject.Actor = nullptr;
+		bOutBakedToActor = false;
+	}
+
+	// If we are baking in replace mode, remove previously baked components/instancers
+	if (bInReplaceActors && bInReplaceAssets)
+	{
+		constexpr bool bInDestroyBakedComponent = false;
+		constexpr bool bInDestroyBakedInstancedActors = true;
+		constexpr bool bInDestroyBakedInstancedComponents = true;
+		DestroyPreviousBakeOutput(
+			OutBakedOutputObject, bInDestroyBakedComponent, bInDestroyBakedInstancedActors, bInDestroyBakedInstancedComponents);
+	}
+
+	return true;
+}
+
+
 bool 
 FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
@@ -2669,6 +2886,9 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 	TArray<FHoudiniEngineBakedActor> AllBakedActors = InBakedActors;
 	TArray<FHoudiniEngineBakedActor> NewBakedActors;
 
+	//DAMIEN - Do we need to do something with this
+	TMap<USkeletalMesh*, USkeletalMesh*> AlreadyBakedSkeletalMeshMap;
+
 	// We need to bake invisible complex colliders first, since they are static meshes themselves but are referenced
 	// by the main static mesh
 	for (auto& Pair : OutputObjects)
@@ -2684,7 +2904,12 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 		FHoudiniBakedOutputObject BakedOutputObject;
 		bool bBakedToActor = false;
 		FHoudiniEngineBakedActor BakedActorEntry;
-		if (BakeStaticMeshOutputObjectToActor(
+		bool WasBaked = false;
+
+		UStaticMesh* StaticMesh = Cast<UStaticMesh>(OutputObject.OutputObject);
+		if (IsValid(StaticMesh))
+		{
+			WasBaked = BakeStaticMeshOutputObjectToActor(
 				HoudiniAssetComponent,
 				InOutputIndex,
 				InAllOutputs,
@@ -2705,7 +2930,39 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 				OutBakeStats,
 				BakedOutputObject,
 				bBakedToActor,
-				BakedActorEntry))
+				BakedActorEntry);
+		}
+		else
+		{
+			USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(OutputObject.OutputObject);
+			if (IsValid(SkeletalMesh))
+			{
+				WasBaked = BakeSkeletalMeshOutputObjectToActor(
+					HoudiniAssetComponent,
+					InOutputIndex,
+					InAllOutputs,
+					Identifier,
+					OutputObject,
+					HGPOs,
+					OldBakedOutputObjects,
+					InTempCookFolder,
+					InBakeFolder,
+					bInReplaceActors,
+					bInReplaceAssets,
+					InFallbackActor,
+					InFallbackWorldOutlinerFolder,
+					AllBakedActors,
+					AlreadyBakedSkeletalMeshMap,
+					InOutAlreadyBakedMaterialsMap,
+					OutPackagesToSave,
+					OutBakeStats,
+					BakedOutputObject,
+					bBakedToActor,
+					BakedActorEntry);
+			}
+		}
+
+		if (WasBaked)
 		{
 			NewBakedOutputObjects.Add(Identifier, BakedOutputObject);
 			if (bBakedToActor)
@@ -2730,7 +2987,12 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 		FHoudiniBakedOutputObject BakedOutputObject;
 		bool bBakedToActor = false;
 		FHoudiniEngineBakedActor BakedActorEntry;
-		if (BakeStaticMeshOutputObjectToActor(
+		bool WasBaked = false;
+
+		UStaticMesh* StaticMesh = Cast<UStaticMesh>(OutputObject.OutputObject);
+		if (IsValid(StaticMesh))
+		{
+			WasBaked = BakeStaticMeshOutputObjectToActor(
 				HoudiniAssetComponent,
 				InOutputIndex,
 				InAllOutputs,
@@ -2751,7 +3013,38 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 				OutBakeStats,
 				BakedOutputObject,
 				bBakedToActor,
-				BakedActorEntry))
+				BakedActorEntry);
+		}
+		else
+		{
+			USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(OutputObject.OutputObject);
+			if (IsValid(SkeletalMesh))
+			{
+				WasBaked = BakeSkeletalMeshOutputObjectToActor(
+					HoudiniAssetComponent,
+					InOutputIndex,
+					InAllOutputs,
+					Identifier,
+					OutputObject,
+					HGPOs,
+					OldBakedOutputObjects,
+					InTempCookFolder,
+					InBakeFolder,
+					bInReplaceActors,
+					bInReplaceAssets,
+					InFallbackActor,
+					InFallbackWorldOutlinerFolder,
+					AllBakedActors,
+					AlreadyBakedSkeletalMeshMap,
+					InOutAlreadyBakedMaterialsMap,
+					OutPackagesToSave,
+					OutBakeStats,
+					BakedOutputObject,
+					bBakedToActor,
+					BakedActorEntry);
+			}
+		}
+		if (WasBaked)
 		{
 			NewBakedOutputObjects.Add(Identifier, BakedOutputObject);
 			if (bBakedToActor)
@@ -4189,6 +4482,189 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 	return DuplicatedStaticMesh;
 }
 
+USkeletalMesh*
+FHoudiniEngineBakeUtils::DuplicateSkeletalMeshAndCreatePackageIfNeeded(
+	USkeletalMesh* InSkeletalMesh,
+	USkeletalMesh* InPreviousBakeSkeletalMesh,
+	const FHoudiniPackageParams& PackageParams,
+	const TArray<UHoudiniOutput*>& InParentOutputs,
+	const TArray<FHoudiniEngineBakedActor>& InCurrentBakedActors,
+	const FString& InTemporaryCookFolder,
+	TArray<UPackage*>& OutCreatedPackages,
+	TMap<USkeletalMesh*, USkeletalMesh*>& InOutAlreadyBakedSkeletalMeshMap,
+	TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
+	FHoudiniEngineOutputStats& OutBakeStats)
+{
+	if (!IsValid(InSkeletalMesh))
+		return nullptr;
+
+	const bool bIsTemporarySkeletalMesh = IsObjectTemporary(InSkeletalMesh, EHoudiniOutputType::Mesh, InParentOutputs, InTemporaryCookFolder);
+	if (!bIsTemporarySkeletalMesh)
+	{
+		// The Skeletal Mesh is not a temporary one/already baked, we can simply reuse it
+		// instead of duplicating it
+		return InSkeletalMesh;
+	}
+
+	USkeletalMesh** AlreadyBakedSK = InOutAlreadyBakedSkeletalMeshMap.Find(InSkeletalMesh);
+	if (AlreadyBakedSK && IsValid(*AlreadyBakedSK))
+		return *AlreadyBakedSK;
+
+	// Look for InSkeletalMesh as the SourceObject in InCurrentBakedActors (it could have already been baked along with
+	// a previous output: instancers etc)
+	for (const FHoudiniEngineBakedActor& BakedActor : InCurrentBakedActors)
+	{
+		if (BakedActor.SourceObject == InSkeletalMesh && IsValid(BakedActor.BakedObject)
+			&& BakedActor.BakedObject->IsA(InSkeletalMesh->GetClass()))
+		{
+			// We have found a bake result where InStaticMesh was the source object and we have a valid BakedObject
+			// of a compatible class
+			return Cast<USkeletalMesh>(BakedActor.BakedObject);
+		}
+	}
+
+	// InSkeletalMesh is temporary and we didn't find a baked version of it in our current bake output, we need to bake it
+
+	// If we have a previously baked skeletal mesh, get the bake counter from it so that both replace and increment
+	// is consistent with the bake counter
+	int32 BakeCounter = 0;
+	bool bPreviousBakeStaticMeshValid = IsValid(InPreviousBakeSkeletalMesh);
+	TArray<FSkeletalMaterial> PreviousBakeMaterials;
+	if (bPreviousBakeStaticMeshValid)
+	{
+		bPreviousBakeStaticMeshValid = PackageParams.MatchesPackagePathNameExcludingBakeCounter(InPreviousBakeSkeletalMesh);
+		if (bPreviousBakeStaticMeshValid)
+		{
+			PackageParams.GetBakeCounterFromBakedAsset(InPreviousBakeSkeletalMesh, BakeCounter);
+			PreviousBakeMaterials = InPreviousBakeSkeletalMesh->GetMaterials();
+		}
+	}
+	FString CreatedPackageName;
+	UPackage* MeshPackage = PackageParams.CreatePackageForObject(CreatedPackageName, BakeCounter);
+	if (!IsValid(MeshPackage))
+		return nullptr;
+	OutBakeStats.NotifyPackageCreated(1);
+	OutCreatedPackages.Add(MeshPackage);
+
+	// We need to be sure the package has been fully loaded before calling DuplicateObject
+	if (!MeshPackage->IsFullyLoaded())
+	{
+		FlushAsyncLoading();
+		if (!MeshPackage->GetOuter())
+		{
+			MeshPackage->FullyLoad();
+		}
+		else
+		{
+			MeshPackage->GetOutermost()->FullyLoad();
+		}
+	}
+
+	// If the a USkeletalMesh with that name already exists then detach it from all of its components before replacing
+	// it so that its render resources can be safely replaced/updated, and then reattach it
+	USkeletalMesh* DuplicatedSkeletalMesh = nullptr;
+	USkeletalMesh* ExistingMesh = FindObject<USkeletalMesh>(MeshPackage, *CreatedPackageName);
+	bool bFoundExistingMesh = false;
+	if (IsValid(ExistingMesh))
+	{
+		FSkinnedMeshComponentRecreateRenderStateContext SMRecreateContext(ExistingMesh);
+		DuplicatedSkeletalMesh = DuplicateObject<USkeletalMesh>(InSkeletalMesh, MeshPackage, *CreatedPackageName);
+		bFoundExistingMesh = true;
+		OutBakeStats.NotifyObjectsReplaced(USkeletalMesh::StaticClass()->GetName(), 1);
+	}
+	else
+	{
+		DuplicatedSkeletalMesh = DuplicateObject<USkeletalMesh>(InSkeletalMesh, MeshPackage, *CreatedPackageName);
+		OutBakeStats.NotifyObjectsUpdated(USkeletalMesh::StaticClass()->GetName(), 1);
+	}
+
+	if (!IsValid(DuplicatedSkeletalMesh))
+		return nullptr;
+
+	InOutAlreadyBakedSkeletalMeshMap.Add(InSkeletalMesh, DuplicatedSkeletalMesh);
+
+	// Add meta information.
+	FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
+		MeshPackage, DuplicatedSkeletalMesh,
+		HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
+	FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
+		MeshPackage, DuplicatedSkeletalMesh,
+		HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *CreatedPackageName);
+
+	// See if we need to duplicate materials and textures.
+	TArray<FSkeletalMaterial>DuplicatedMaterials;
+	TArray<FSkeletalMaterial>& Materials = DuplicatedSkeletalMesh->GetMaterials();
+	for (int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); ++MaterialIdx)
+	{
+		UMaterialInterface* MaterialInterface = Materials[MaterialIdx].MaterialInterface;
+		if (!IsValid(MaterialInterface))
+			continue;
+
+		// Only duplicate the material if it is temporary
+		if (IsObjectTemporary(MaterialInterface, EHoudiniOutputType::Invalid, InParentOutputs, InTemporaryCookFolder))
+		{
+			UPackage* MaterialPackage = Cast<UPackage>(MaterialInterface->GetOuter());
+			if (IsValid(MaterialPackage))
+			{
+				FString MaterialName;
+				if (FHoudiniEngineBakeUtils::GetHoudiniGeneratedNameFromMetaInformation(
+					MeshPackage, DuplicatedSkeletalMesh, MaterialName))
+				{
+					MaterialName = MaterialName + "_Material" + FString::FromInt(MaterialIdx + 1);
+
+					// We only deal with materials.
+					if (!MaterialInterface->IsA(UMaterial::StaticClass()) && !MaterialInterface->IsA(UMaterialInstance::StaticClass()))
+					{
+						continue;
+					}
+
+					UMaterialInterface* Material = MaterialInterface;
+
+					if (IsValid(Material))
+					{
+						// Look for a previous bake material at this index
+						UMaterialInterface* PreviousBakeMaterial = nullptr;
+						if (bPreviousBakeStaticMeshValid && PreviousBakeMaterials.IsValidIndex(MaterialIdx))
+						{
+							PreviousBakeMaterial = Cast<UMaterialInterface>(PreviousBakeMaterials[MaterialIdx].MaterialInterface);
+						}
+						// Duplicate material resource.
+						UMaterialInterface* DuplicatedMaterial = FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
+							Material, PreviousBakeMaterial, MaterialName, PackageParams, OutCreatedPackages, InOutAlreadyBakedMaterialsMap,
+							OutBakeStats);
+
+						if (!IsValid(DuplicatedMaterial))
+							continue;
+
+						// Store duplicated material.
+						FSkeletalMaterial DupeStaticMaterial = Materials[MaterialIdx];
+						DupeStaticMaterial.MaterialInterface = DuplicatedMaterial;
+						DuplicatedMaterials.Add(DupeStaticMaterial);
+						continue;
+					}
+				}
+			}
+		}
+
+		// We can simply reuse the source material
+		DuplicatedMaterials.Add(Materials[MaterialIdx]);
+	}
+
+	// Assign duplicated materials.
+	DuplicatedSkeletalMesh->SetMaterials(DuplicatedMaterials);
+
+	// Notify registry that we have created a new duplicate mesh.
+	if (!bFoundExistingMesh)
+		FAssetRegistryModule::AssetCreated(DuplicatedSkeletalMesh);
+
+	// Dirty the static mesh package.
+	DuplicatedSkeletalMesh->MarkPackageDirty();
+
+	return DuplicatedSkeletalMesh;
+}
+
+
+
 UGeometryCollection* FHoudiniEngineBakeUtils::DuplicateGeometryCollectionAndCreatePackageIfNeeded(
 	UGeometryCollection* InGeometryCollection, UGeometryCollection* InPreviousBakeGeometryCollection,
 	const FHoudiniPackageParams& PackageParams, const TArray<UHoudiniOutput*>& InParentOutputs,
@@ -5285,6 +5761,21 @@ bool FHoudiniEngineBakeUtils::IsObjectTemporary(
 
 	return false;	
 }
+
+void
+FHoudiniEngineBakeUtils::CopyPropertyToNewActorAndSkeletalComponent(
+	AActor* NewActor,
+	USkeletalMeshComponent* NewSKC,
+	USkeletalMeshComponent* InSKC,
+	bool bInCopyWorldTransform)
+{
+	if (!IsValid(NewSKC))
+		return;
+
+	if (!IsValid(InSKC))
+		return;
+}
+
 
 void 
 FHoudiniEngineBakeUtils::CopyPropertyToNewActorAndComponent(

@@ -2781,6 +2781,17 @@ FHoudiniEngineUtils::ConvertHoudiniPositionToUnrealVector(const TArray<float>& I
 	}
 }
 
+FVector3f
+FHoudiniEngineUtils::ConvertHoudiniPositionToUnrealVector3f(FVector3f InVector)
+{
+	FVector3f ConvertedPoint;
+	ConvertedPoint.X = InVector.X * HAPI_UNREAL_SCALE_FACTOR_POSITION;
+	ConvertedPoint.Y = InVector.Z * HAPI_UNREAL_SCALE_FACTOR_POSITION;
+	ConvertedPoint.Z = InVector.Y * HAPI_UNREAL_SCALE_FACTOR_POSITION;
+	return ConvertedPoint;
+}
+
+
 void
 FHoudiniEngineUtils::ConvertHoudiniScaleToUnrealVector(const TArray<float>& InRawData, TArray<FVector>& OutVectorData)
 {

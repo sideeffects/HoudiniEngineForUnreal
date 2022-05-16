@@ -405,7 +405,7 @@ T* FHoudiniPackageParams::CreateObjectAndPackage()
 	T* ExistingTypedObject = FindObject<T>(Package, *NewObjectName);
 	UObject* ExistingObject = FindObject<UObject>(Package, *NewObjectName);
 
-	if (IsValid(ExistingObject))
+	if (IsValid(ExistingTypedObject))
 	{
 		// An object of the appropriate type already exists, update it!
 		ExistingTypedObject->PreEditChange(nullptr);
