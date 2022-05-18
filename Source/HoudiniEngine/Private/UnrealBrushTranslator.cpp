@@ -294,11 +294,13 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 			{
 				// Vertex Index
 				Indices[iVertex] = Verts[Node.iVertPool + NodeVertexIndex].pVertex;
+
 				// Normal
 				FVector N = Vectors[Surf.vNormal];			
 				N = NmlInvXform.TransformVector(N).GetSafeNormal();
 
 				OutNormals[iVertex] = FVector(N.X, N.Z, N.Y);
+
 				// UVs
 				FVector& vU = Vectors[Surf.vTextureU];
 				FVector& vV = Vectors[Surf.vTextureV];
@@ -308,6 +310,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 				OutUV[iVertex] = FVector(U, V, 0.f);
 				++iVertex;
 			}
+
 			// Face Material
 			// Construct a material index array for the faces
 			int32 MaterialIndex = MaterialMap.FindOrAdd(Surf.Material, MaterialMap.Num());
@@ -357,7 +360,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 			// Do not reduce the array of materials, this could cause crahses in some weird cases..
 			/*if (MaterialMap.Num() > MaterialInterfaces.Num())
 				MaterialInterfaces.SetNumZeroed(MaterialMap.Num());*/
-			Materials.SetNumUninitialized(MaterialMap.Num());
+			Materials.SetNum(MaterialMap.Num());
 
 			int32 MaterialIndex = 0;
 			for (auto Kvp : MaterialMap)
