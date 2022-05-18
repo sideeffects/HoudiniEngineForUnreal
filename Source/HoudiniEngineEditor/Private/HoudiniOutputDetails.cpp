@@ -1414,6 +1414,9 @@ void FHoudiniOutputDetails::CreateGeometryCollectionWidgets(IDetailCategoryBuild
 	if (HoudiniGeoPartObject.bHasCustomPartName)
 		Label = HoudiniGeoPartObject.PartName;
 
+	int32 NumPieces = GeometryCollection->GeometrySource.Num();
+	FString PiecesString = NumPieces > 1 ? FString::FromInt(NumPieces) + TEXT(" pieces.") : TEXT("Geometry Collection");
+
 	// Create thumbnail for this mesh.
 	TSharedPtr< FAssetThumbnail > StaticMeshThumbnail =
 		MakeShareable(new FAssetThumbnail(GeometryCollection, 64, 64, AssetThumbnailPool));
@@ -1461,10 +1464,25 @@ void FHoudiniOutputDetails::CreateGeometryCollectionWidgets(IDetailCategoryBuild
 				]
 			]
 		]
-
-		+SHorizontalBox::Slot()
-		.FillWidth( 1.0f )
-		.Padding( 0.0f, 4.0f, 4.0f, 4.0f )
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString(PiecesString))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			PropertyCustomizationHelpers::MakeBrowseButton(
+				FSimpleDelegate::CreateSP(
+					this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&)GeometryCollection),
+				TAttribute<FText>(LOCTEXT("HoudiniGeometryCollectionBrowseButton", "Browse to this generated Geometry Collection in the content browser")))
+		]
 	];
 
 	OutputObjectThumbnailBorders.Add((UObject*)GeometryCollection, StaticMeshThumbnailBorder);
