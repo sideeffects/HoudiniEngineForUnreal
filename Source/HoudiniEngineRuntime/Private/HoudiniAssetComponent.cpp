@@ -2947,9 +2947,7 @@ UHoudiniAssetComponent::UpdateRenderingInformation()
 		USceneComponent * SceneComponent = *Iter;
 		if (IsValid(SceneComponent))
 		{
-			// Do not recreate the phys state for GCC
-			if(!SceneComponent->IsA<UGeometryCollectionComponent>())
-				SceneComponent->RecreatePhysicsState();
+			SceneComponent->RecreatePhysicsState();
 		}
 	}
 
