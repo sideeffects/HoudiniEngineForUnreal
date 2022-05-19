@@ -178,18 +178,17 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
 	static const float SizeGrabHandleNormalSmall = 12.f;
 	
 	FVector PreviousPosition;
-
 	if (HoudiniSplineComponent) 
 	{
-		const FTransform & HoudiniSplineComponentTransform = HoudiniSplineComponent->GetComponentTransform();
+		const FTransform& HoudiniSplineComponentTransform = HoudiniSplineComponent->GetComponentTransform();
 
-		const TArray< FVector > & DisplayPoints = HoudiniSplineComponent->DisplayPoints;  // not used yet
-		const TArray< FTransform > & CurvePoints = HoudiniSplineComponent->CurvePoints;
+		const TArray<FVector> & DisplayPoints = HoudiniSplineComponent->DisplayPoints;  // not used yet
+		const TArray<FTransform> & CurvePoints = HoudiniSplineComponent->CurvePoints;
 
 		// Draw display points (simply linearly connect the control points for temporary)
 		for (int32 Index = 0; Index < DisplayPoints.Num(); ++Index) 
 		{
-			const FVector & CurrentPoint = DisplayPoints[Index];
+			const FVector& CurrentPoint = DisplayPoints[Index];
 			// Fix incorrect scale when actor has been scaled
 			//FVector CurrentPosition = CurrentPoint + HoudiniSplineComponentTransform.GetLocation();
 			FVector CurrentPosition = HoudiniSplineComponentTransform.TransformPosition(CurrentPoint);
@@ -210,9 +209,9 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
 		{
 			for (int32 Index = 0; Index < CurvePoints.Num(); ++Index)
 			{
-				const FVector & ControlPoint = HoudiniSplineComponentTransform.TransformPosition(CurvePoints[Index].GetLocation());
+				const FVector& ControlPoint = HoudiniSplineComponentTransform.TransformPosition(CurvePoints[Index].GetLocation());
 
-				HHoudiniSplineControlPointVisProxy * HitProxy = new HHoudiniSplineControlPointVisProxy(HoudiniSplineComponent, Index);
+				HHoudiniSplineControlPointVisProxy* HitProxy = new HHoudiniSplineControlPointVisProxy(HoudiniSplineComponent, Index);
 				PDI->SetHitProxy(HitProxy);
 
 				FColor DrawColor = ColorNormal;
@@ -223,9 +222,10 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
 					DrawColor = ColorNormalHandleFirst;
 					DrawSize = SizeGrabHandleNormalLarge;
 				}
-
-				if (Index == 1)
+				else if (Index == 1)
+				{
 					DrawColor = ColorNormalHandleSecond;
+				}
 
 				// If this is an point that being editted
 				if (EditedHoudiniSplineComponent == HoudiniSplineComponent && EditedHoudiniSplineComponent->EditedControlPointsIndexes.Contains(Index))
@@ -234,13 +234,11 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
 					{
 						DrawColor = ColorSelectedHandleFirst;
 					}
-
 					else if (Index == 1)
 					{
 						DrawColor = ColorSelectedHandleSecond;
 						DrawSize = SizeGrabHandleSelected;
 					}
-
 					else
 					{
 						DrawColor = ColorSelectedHandle;
@@ -649,8 +647,8 @@ FHoudiniSplineComponentVisualizer::OnInsertControlPointWithoutUpdate()
 	if (!IsValid(EditedHoudiniSplineComponent)) 
 		return -1;
 
-	TArray<FTransform> & CurvePoints = EditedHoudiniSplineComponent->CurvePoints;
-	TArray<FVector> & DisplayPoints = EditedHoudiniSplineComponent->DisplayPoints;
+	TArray<FTransform>& CurvePoints = EditedHoudiniSplineComponent->CurvePoints;
+	TArray<FVector>& DisplayPoints = EditedHoudiniSplineComponent->DisplayPoints;
 
 	if (EditedCurveSegmentIndex >= DisplayPoints.Num())
 		return -1;

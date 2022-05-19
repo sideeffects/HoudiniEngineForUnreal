@@ -217,7 +217,7 @@ FHoudiniHandleComponentVisualizer::GetCustomInputCoordinateSystem(
 bool
 FHoudiniHandleComponentVisualizer::HandleInputDelta(
 	FEditorViewportClient * ViewportClient, FViewport * Viewport,
-	FVector& DeltaTranslate, FRotator & DeltaRotate, FVector & DeltaScale)
+	FVector& DeltaTranslate, FRotator & DeltaRotate, FVector& DeltaScale)
 {
 	if (!EditedComponent)
 		return false;

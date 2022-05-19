@@ -1145,6 +1145,23 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 					OnPropertyChanged(StructProperty);
 				}
 			}
+			else if (PropertyName == NAME_Vector2D)
+			{
+				// Found a vector property, fill it with up to 2 tuple values
+				FVector2D& Vector = *static_cast<FVector2D*>(PropertyValue);
+				FVector2D NewVector = FVector2D::ZeroVector;
+
+				NewVector.X = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 0);
+				if (InGenericAttribute.AttributeTupleSize > 1)
+					NewVector.Y = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 1);
+
+				if (NewVector != Vector)
+				{
+					OnPrePropertyChanged(StructProperty);
+					Vector = NewVector;
+					OnPropertyChanged(StructProperty);
+				}
+			}
 			else if (PropertyName == NAME_Transform)
 			{
 				// Found a transform property fill it with the attribute tuple values
@@ -1481,6 +1498,14 @@ FHoudiniGenericAttribute::GetPropertyValueFromObject(
 					InGenericAttribute.SetDoubleValue(Vector.Y, AtIndex + TupleIndex + 1);
 				if (InGenericAttribute.AttributeTupleSize > 2)
 					InGenericAttribute.SetDoubleValue(Vector.Z, AtIndex + TupleIndex + 2);
+			}
+			else if (PropertyName == NAME_Vector2D)
+			{
+				// Found a vector property, fill it with up to 3 tuple values
+				const FVector2D& Vector = *static_cast<FVector2D*>(PropertyValue);
+				InGenericAttribute.SetDoubleValue(Vector.X, AtIndex + TupleIndex + 0);
+				if (InGenericAttribute.AttributeTupleSize > 1)
+					InGenericAttribute.SetDoubleValue(Vector.Y, AtIndex + TupleIndex + 1);
 			}
 			else if (PropertyName == NAME_Transform)
 			{
