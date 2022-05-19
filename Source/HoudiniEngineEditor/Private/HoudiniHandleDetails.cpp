@@ -93,7 +93,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 		if (!IsValidWeakPointer(MainHandle))
 			return FReply::Handled();
 
-		FVector DefaultLocation = FVector3d::ZeroVector;
+		FVector DefaultLocation = FVector::ZeroVector;
 		MainHandle->SetRelativeLocation(DefaultLocation);
 		FHoudiniHandleTranslator::UpdateTransformParameters(MainHandle.Get());
 

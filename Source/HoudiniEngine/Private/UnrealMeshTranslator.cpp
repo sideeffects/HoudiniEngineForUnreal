@@ -325,8 +325,6 @@ FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(
 		}
 	}
 
-    }
-
     //OLD WAY
  //   for (uint32 VertexInstanceIndex = 0; VertexInstanceIndex < VertexCount; ++VertexInstanceIndex)
  //   {
