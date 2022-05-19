@@ -200,7 +200,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent,
 		TArray<FTransform> CurvePoints;
 
 		UPROPERTY()
-		TArray<FVector> DisplayPoints;
+		TArray<FVector3d> DisplayPoints;
 
 		UPROPERTY()
 		TArray<int32> DisplayPointIndexDivider;

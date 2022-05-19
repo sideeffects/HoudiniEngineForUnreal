@@ -75,7 +75,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 		if (!IsValidWeakPointer(MainHandle))
 			return;
 
-		FVector Location = MainHandle->GetRelativeTransform().GetLocation();
+		FVector3d Location = MainHandle->GetRelativeTransform().GetLocation();
 
 		if (Axis == 0)
 			Location.X = Val;
@@ -93,7 +93,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 		if (!IsValidWeakPointer(MainHandle))
 			return FReply::Handled();
 
-		FVector DefaultLocation = FVector(0.f, 0.f, 0.f);
+		FVector3d DefaultLocation = FVector3d::ZeroVector;
 		MainHandle->SetRelativeLocation(DefaultLocation);
 		FHoudiniHandleTranslator::UpdateTransformParameters(MainHandle.Get());
 
@@ -234,7 +234,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 		if (!IsValidWeakPointer(MainHandle))
 			return;
 
-		FVector Scale = MainHandle->GetRelativeTransform().GetScale3D();
+		FVector3d Scale = MainHandle->GetRelativeTransform().GetScale3D();
 
 		if (Axis == 0)
 			Scale.X = Val;
@@ -292,7 +292,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 				if (!IsValidWeakPointer(MainHandle))
 					return EVisibility::Hidden;
 
-				if (MainHandle->GetRelativeTransform().GetScale3D() == FVector::OneVector)
+				if (MainHandle->GetRelativeTransform().GetScale3D() == FVector3d::OneVector)
 					return EVisibility::Hidden;
 
 				return EVisibility::Visible;

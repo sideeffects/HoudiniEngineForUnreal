@@ -359,7 +359,7 @@ UHoudiniAssetComponent::ConvertLegacyData()
 			for (int32 Idx = 0; Idx < NumVar; Idx++)
 			{
 				FTransform TransOffset;
-				TransOffset.SetLocation(FVector::ZeroVector);
+				TransOffset.SetLocation(FVector3d::ZeroVector);
 				if (LegacyInstanceInputField->RotationOffsets.IsValidIndex(Idx))
 					TransOffset.SetRotation(LegacyInstanceInputField->RotationOffsets[Idx].Quaternion());
 
@@ -2470,8 +2470,8 @@ UHoudiniAssetComponent::CalcBounds(const FTransform & LocalToWorld) const
 {
 	FBoxSphereBounds LocalBounds;
 	FBox BoundingBox = GetAssetBounds(nullptr, false);
-	if (BoundingBox.GetExtent() == FVector::ZeroVector)
-		BoundingBox = BoundingBox.ExpandBy(1.0f);
+	if (BoundingBox.GetExtent() == FVector3d::ZeroVector)
+		BoundingBox = BoundingBox.ExpandBy(1.0);
 
 	LocalBounds = FBoxSphereBounds(BoundingBox);
 	// fix for offset bounds - maintain local bounds origin

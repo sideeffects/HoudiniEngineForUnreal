@@ -138,7 +138,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		
 		// Translate an array of float position values from Houdini to Unreal
 		static void ConvertHoudiniPositionToUnrealVector(const TArray<float>& InRawData, TArray<FVector>& OutVectorData);
-		static FVector3f ConvertHoudiniPositionToUnrealVector3f(FVector3f InVector);
+		static FVector3f ConvertHoudiniPositionToUnrealVector3f(const FVector3f& InVector);
 
 		// Translate an array of float scale values from Houdini to Unreal
 		static void ConvertHoudiniScaleToUnrealVector(const TArray<float>& InRawData, TArray<FVector>& OutVectorData);

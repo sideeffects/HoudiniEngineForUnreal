@@ -333,28 +333,21 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(UGeometryCollectio
 
 		const bool HasUVs = UV.Num() == Vertex.Num();
 		TArray<float> UVs;
-
 		if (HasUVs)
 			UVs.SetNumZeroed(Part.vertexCount * 3);
-
 		
 		const bool HasNormals = Normal.Num() == Vertex.Num();
 		TArray<float> Normals;
-
 		if (HasNormals)
 			Normals.SetNumZeroed(Part.vertexCount * 3);
 
-
 		const bool HasTangentU = TangentU.Num() == Vertex.Num();
 		TArray<float> Tangents;
-
 		if (HasTangentU)
 			Tangents.SetNumZeroed(Part.vertexCount * 3);
 
-
 		const bool HasTangentV = TangentV.Num() == Vertex.Num();
 		TArray<float> Binormals;
-
 		if (HasTangentV)
 			Binormals.SetNumZeroed(Part.vertexCount * 3);
 

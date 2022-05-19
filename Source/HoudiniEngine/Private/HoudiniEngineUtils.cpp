@@ -2620,42 +2620,57 @@ FHoudiniEngineUtils::HapiGetAssetTransform(const HAPI_NodeId& InNodeId, FTransfo
 }
 
 void
-FHoudiniEngineUtils::TranslateHapiTransform(const HAPI_Transform & HapiTransform, FTransform & UnrealTransform)
+FHoudiniEngineUtils::TranslateHapiTransform(const HAPI_Transform& HapiTransform, FTransform& UnrealTransform)
 {
 	if ( HAPI_UNREAL_CONVERT_COORDINATE_SYSTEM )
 	{
 		// Swap Y/Z, invert W
-		FQuat ObjectRotation(
-			HapiTransform.rotationQuaternion[0], HapiTransform.rotationQuaternion[2],
-			HapiTransform.rotationQuaternion[1], -HapiTransform.rotationQuaternion[3]);
+		FQuat4d ObjectRotation(
+			(double)HapiTransform.rotationQuaternion[0],
+			(double)HapiTransform.rotationQuaternion[2],
+			(double)HapiTransform.rotationQuaternion[1],
+			(double)-HapiTransform.rotationQuaternion[3]);
 
 		// Swap Y/Z and scale
-		FVector ObjectTranslation(HapiTransform.position[0], HapiTransform.position[2], HapiTransform.position[1]);
+		FVector3d ObjectTranslation(
+			(double)HapiTransform.position[0],
+			(double)HapiTransform.position[2],
+			(double)HapiTransform.position[1]);
 		ObjectTranslation *= HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
 
 		// Swap Y/Z
-		FVector ObjectScale3D(HapiTransform.scale[0], HapiTransform.scale[2], HapiTransform.scale[1]);
+		FVector3d ObjectScale3D(
+			(double)HapiTransform.scale[0],
+			(double)HapiTransform.scale[2],
+			(double)HapiTransform.scale[1]);
 
 		UnrealTransform.SetComponents(ObjectRotation, ObjectTranslation, ObjectScale3D);
 	}
 	else
 	{
-		FQuat ObjectRotation(
-			HapiTransform.rotationQuaternion[0], HapiTransform.rotationQuaternion[1],
-			HapiTransform.rotationQuaternion[2], HapiTransform.rotationQuaternion[3]);
+		FQuat4d ObjectRotation(
+			(double)HapiTransform.rotationQuaternion[0],
+			(double)HapiTransform.rotationQuaternion[1],
+			(double)HapiTransform.rotationQuaternion[2],
+			(double)HapiTransform.rotationQuaternion[3]);
 
-		FVector ObjectTranslation(
-			HapiTransform.position[0], HapiTransform.position[1], HapiTransform.position[2]);
+		FVector3d ObjectTranslation(
+			(double)HapiTransform.position[0],
+			(double)HapiTransform.position[1],
+			(double)HapiTransform.position[2]);
 		ObjectTranslation *= HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
 
-		FVector ObjectScale3D(HapiTransform.scale[0], HapiTransform.scale[1], HapiTransform.scale[2]);
+		FVector3d ObjectScale3D(
+			(double)HapiTransform.scale[0],
+			(double)HapiTransform.scale[1],
+			(double)HapiTransform.scale[2]);
 
 		UnrealTransform.SetComponents(ObjectRotation, ObjectTranslation, ObjectScale3D);
 	}
 }
 
 void
-FHoudiniEngineUtils::TranslateHapiTransform(const HAPI_TransformEuler & HapiTransformEuler, FTransform & UnrealTransform)
+FHoudiniEngineUtils::TranslateHapiTransform(const HAPI_TransformEuler& HapiTransformEuler, FTransform& UnrealTransform)
 {
 	float HapiMatrix[16];
 	FHoudiniApi::ConvertTransformEulerToMatrix(FHoudiniEngine::Get().GetSession(), &HapiTransformEuler, HapiMatrix);
@@ -2668,47 +2683,47 @@ FHoudiniEngineUtils::TranslateHapiTransform(const HAPI_TransformEuler & HapiTran
 }
 
 void
-FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform & UnrealTransform, HAPI_Transform & HapiTransform)
+FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform, HAPI_Transform& HapiTransform)
 {
 	FMemory::Memzero< HAPI_Transform >(HapiTransform);
 	HapiTransform.rstOrder = HAPI_SRT;
 
-	FQuat UnrealRotation = UnrealTransform.GetRotation();
-	FVector UnrealTranslation = UnrealTransform.GetTranslation();
-	FVector UnrealScale = UnrealTransform.GetScale3D();
+	FQuat4d UnrealRotation = UnrealTransform.GetRotation();
+	FVector3d UnrealTranslation = UnrealTransform.GetTranslation();
+	FVector3d UnrealScale = UnrealTransform.GetScale3D();
 
 	if (HAPI_UNREAL_CONVERT_COORDINATE_SYSTEM)
 	{
 		// Swap Y/Z, invert XYZ
-		HapiTransform.rotationQuaternion[0] = -UnrealRotation.X;
-		HapiTransform.rotationQuaternion[1] = -UnrealRotation.Z;
-		HapiTransform.rotationQuaternion[2] = -UnrealRotation.Y;
-		HapiTransform.rotationQuaternion[3] = UnrealRotation.W;
+		HapiTransform.rotationQuaternion[0] = (float)-UnrealRotation.X;
+		HapiTransform.rotationQuaternion[1] = (float)-UnrealRotation.Z;
+		HapiTransform.rotationQuaternion[2] = (float)-UnrealRotation.Y;
+		HapiTransform.rotationQuaternion[3] = (float)UnrealRotation.W;
 
 		// Swap Y/Z, scale
-		HapiTransform.position[0] = UnrealTranslation.X / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
-		HapiTransform.position[1] = UnrealTranslation.Z / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
-		HapiTransform.position[2] = UnrealTranslation.Y / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
+		HapiTransform.position[0] = (float)UnrealTranslation.X / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
+		HapiTransform.position[1] = (float)UnrealTranslation.Z / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
+		HapiTransform.position[2] = (float)UnrealTranslation.Y / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
 
 		// Swap Y/Z
-		HapiTransform.scale[0] = UnrealScale.X;
-		HapiTransform.scale[1] = UnrealScale.Z;
-		HapiTransform.scale[2] = UnrealScale.Y;
+		HapiTransform.scale[0] = (float)UnrealScale.X;
+		HapiTransform.scale[1] = (float)UnrealScale.Z;
+		HapiTransform.scale[2] = (float)UnrealScale.Y;
 	}
 	else
 	{
-		HapiTransform.rotationQuaternion[0] = UnrealRotation.X;
-		HapiTransform.rotationQuaternion[1] = UnrealRotation.Y;
-		HapiTransform.rotationQuaternion[2] = UnrealRotation.Z;
-		HapiTransform.rotationQuaternion[3] = UnrealRotation.W;
+		HapiTransform.rotationQuaternion[0] = (float)UnrealRotation.X;
+		HapiTransform.rotationQuaternion[1] = (float)UnrealRotation.Y;
+		HapiTransform.rotationQuaternion[2] = (float)UnrealRotation.Z;
+		HapiTransform.rotationQuaternion[3] = (float)UnrealRotation.W;
 
-		HapiTransform.position[0] = UnrealTranslation.X;
-		HapiTransform.position[1] = UnrealTranslation.Y;
-		HapiTransform.position[2] = UnrealTranslation.Z;
+		HapiTransform.position[0] = (float)UnrealTranslation.X;
+		HapiTransform.position[1] = (float)UnrealTranslation.Y;
+		HapiTransform.position[2] = (float)UnrealTranslation.Z;
 
-		HapiTransform.scale[0] = UnrealScale.X;
-		HapiTransform.scale[1] = UnrealScale.Y;
-		HapiTransform.scale[2] = UnrealScale.Z;
+		HapiTransform.scale[0] = (float)UnrealScale.X;
+		HapiTransform.scale[1] = (float)UnrealScale.Y;
+		HapiTransform.scale[2] = (float)UnrealScale.Z;
 	}
 }
 
@@ -2775,14 +2790,14 @@ FHoudiniEngineUtils::ConvertHoudiniPositionToUnrealVector(const TArray<float>& I
 		const int32& InIndex = OutIndex * 3;
 
 		// Swap Y/Z and scale meters to centimeters
-		OutVectorData[OutIndex].X = InRawData[InIndex + 0] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
-		OutVectorData[OutIndex].Y = InRawData[InIndex + 2] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
-		OutVectorData[OutIndex].Z = InRawData[InIndex + 1] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
+		OutVectorData[OutIndex].X = (double)(InRawData[InIndex + 0] * HAPI_UNREAL_SCALE_FACTOR_POSITION);
+		OutVectorData[OutIndex].Y = (double)(InRawData[InIndex + 2] * HAPI_UNREAL_SCALE_FACTOR_POSITION);
+		OutVectorData[OutIndex].Z = (double)(InRawData[InIndex + 1] * HAPI_UNREAL_SCALE_FACTOR_POSITION);
 	}
 }
 
 FVector3f
-FHoudiniEngineUtils::ConvertHoudiniPositionToUnrealVector3f(FVector3f InVector)
+FHoudiniEngineUtils::ConvertHoudiniPositionToUnrealVector3f(const FVector3f& InVector)
 {
 	FVector3f ConvertedPoint;
 	ConvertedPoint.X = InVector.X * HAPI_UNREAL_SCALE_FACTOR_POSITION;
@@ -2802,9 +2817,9 @@ FHoudiniEngineUtils::ConvertHoudiniScaleToUnrealVector(const TArray<float>& InRa
 		const int32& InIndex = OutIndex * 3;
 
 		// Just swap Y/Z
-		OutVectorData[OutIndex].X = InRawData[InIndex + 0];
-		OutVectorData[OutIndex].Y = InRawData[InIndex + 2];
-		OutVectorData[OutIndex].Z = InRawData[InIndex + 1];
+		OutVectorData[OutIndex].X = (double)InRawData[InIndex + 0];
+		OutVectorData[OutIndex].Y = (double)InRawData[InIndex + 2];
+		OutVectorData[OutIndex].Z = (double)InRawData[InIndex + 1];
 	}
 }
 
@@ -2819,8 +2834,10 @@ FHoudiniEngineUtils::ConvertHoudiniRotQuatToUnrealVector(const TArray<float>& In
 
 		// Extract a quaternion: Swap Y/Z, invert W
 		FQuat ObjectRotation(
-			InRawData[InIndex + 0], InRawData[InIndex + 2],
-			InRawData[InIndex + 1], -InRawData[InIndex + 3]);
+			(double)InRawData[InIndex + 0],
+			(double)InRawData[InIndex + 2],
+			(double)InRawData[InIndex + 1],
+			(double)-InRawData[InIndex + 3]);
 
 		// Get Euler angles
 		OutVectorData[OutIndex] = ObjectRotation.Euler();
@@ -2837,9 +2854,9 @@ FHoudiniEngineUtils::ConvertHoudiniRotEulerToUnrealVector(const TArray<float>& I
 		const int32& InIndex = OutIndex * 3;
 
 		// Just swap Y/Z
-		OutVectorData[OutIndex].X = InRawData[InIndex + 0];
-		OutVectorData[OutIndex].Y = InRawData[InIndex + 2];
-		OutVectorData[OutIndex].Z = InRawData[InIndex + 1];
+		OutVectorData[OutIndex].X = (double)InRawData[InIndex + 0];
+		OutVectorData[OutIndex].Y = (double)InRawData[InIndex + 2];
+		OutVectorData[OutIndex].Z = (double)InRawData[InIndex + 1];
 	}
 }
 

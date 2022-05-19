@@ -3365,15 +3365,14 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 			HAPI_UNREAL_ATTRIB_ROTATION,
 			&AttributeInfoRotation), false);
 
-		TArray< float > InputRotations;
+		TArray<float> InputRotations;
 		InputRotations.SetNumZeroed(4);
 
 		FQuat InputRotation = InTransform.GetRotation();
-
-		InputRotations[0] = InputRotation.X;
-                InputRotations[1] = InputRotation.Z;
-                InputRotations[2] = InputRotation.Y;
-                InputRotations[3] = -InputRotation.W;
+		InputRotations[0] = (float)InputRotation.X;
+		InputRotations[1] = (float)InputRotation.Z;
+		InputRotations[2] = (float)InputRotation.Y;
+		InputRotations[3] = (float)-InputRotation.W;
 
 		//we can now upload them to our attribute.
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
@@ -3395,10 +3394,10 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
                         HAPI_UNREAL_ATTRIB_SCALE,
                         &AttributeInfoScale), false);
 
-		TArray< float > InputScales;
+		TArray<float> InputScales;
 		InputScales.SetNumZeroed(3);
 
-		FVector InputScale = InTransform.GetScale3D();
+		FVector3f InputScale = (FVector3f)InTransform.GetScale3D();
 		InputScales[0] = InputScale.X;
 		InputScales[1] = InputScale.Z;
 		InputScales[2] = InputScale.Y;
