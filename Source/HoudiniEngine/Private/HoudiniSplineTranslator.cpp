@@ -47,7 +47,7 @@
 void
 FHoudiniSplineTranslator::ExtractStringPositions(const FString& Positions, TArray<FVector>& OutPositions)
 {
-	TArray< FString > PointStrings;
+	TArray<FString> PointStrings;
 	static const TCHAR * PositionSeparators[] =
 	{
 		TEXT(" "),
@@ -59,9 +59,9 @@ FHoudiniSplineTranslator::ExtractStringPositions(const FString& Positions, TArra
 	for (int32 OutIndex = 0; OutIndex < OutPositions.Num(); OutIndex++)
 	{
 		const int32& CoordIndex = OutIndex * 3;
-		OutPositions[OutIndex].X = FCString::Atof(*(PointStrings[CoordIndex + 0])) * HAPI_UNREAL_SCALE_FACTOR_POSITION;
-		OutPositions[OutIndex].Y = FCString::Atof(*(PointStrings[CoordIndex + 2])) * HAPI_UNREAL_SCALE_FACTOR_POSITION;
-		OutPositions[OutIndex].Z = FCString::Atof(*(PointStrings[CoordIndex + 1])) * HAPI_UNREAL_SCALE_FACTOR_POSITION;
+		OutPositions[OutIndex].X = FCString::Atod(*(PointStrings[CoordIndex + 0])) * HAPI_UNREAL_SCALE_FACTOR_POSITION;
+		OutPositions[OutIndex].Y = FCString::Atod(*(PointStrings[CoordIndex + 2])) * HAPI_UNREAL_SCALE_FACTOR_POSITION;
+		OutPositions[OutIndex].Z = FCString::Atod(*(PointStrings[CoordIndex + 1])) * HAPI_UNREAL_SCALE_FACTOR_POSITION;
 	}
 }
 
@@ -90,9 +90,9 @@ FHoudiniSplineTranslator::ConvertPositionToVectorData(const TArray<float>& InRaw
 				return;
 
 			// Swap Y/Z convert meters to centimeters
-			NextVectorDataArray[PtIdx].X = InRawData[Itr] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
-			NextVectorDataArray[PtIdx].Y = InRawData[Itr + 2] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
-			NextVectorDataArray[PtIdx].Z = InRawData[Itr + 1] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			NextVectorDataArray[PtIdx].X = (double)(InRawData[Itr] * HAPI_UNREAL_SCALE_FACTOR_POSITION);
+			NextVectorDataArray[PtIdx].Y = (double)(InRawData[Itr + 2] * HAPI_UNREAL_SCALE_FACTOR_POSITION);
+			NextVectorDataArray[PtIdx].Z = (double)(InRawData[Itr + 1] * HAPI_UNREAL_SCALE_FACTOR_POSITION);
 
 			Itr += 3;
 		}
@@ -124,9 +124,9 @@ FHoudiniSplineTranslator::ConvertScaleToVectorData(const TArray<float>& InRawDat
 				return;
 
 			// Just Swap Y/Z
-			NextVectorDataArray[PtIdx].X = InRawData[Itr];
-			NextVectorDataArray[PtIdx].Y = InRawData[Itr + 2];
-			NextVectorDataArray[PtIdx].Z = InRawData[Itr + 1];
+			NextVectorDataArray[PtIdx].X = (double)InRawData[Itr];
+			NextVectorDataArray[PtIdx].Y = (double)InRawData[Itr + 2];
+			NextVectorDataArray[PtIdx].Z = (double)InRawData[Itr + 1];
 
 			Itr += 3;
 		}
@@ -158,9 +158,9 @@ FHoudiniSplineTranslator::ConvertEulerRotationToVectorData(const TArray<float>& 
 				return;
 
 			// Just Swap Y/Z
-			NextVectorDataArray[PtIdx].X = InRawData[Itr];
-			NextVectorDataArray[PtIdx].Y = InRawData[Itr + 2];
-			NextVectorDataArray[PtIdx].Z = InRawData[Itr + 1];
+			NextVectorDataArray[PtIdx].X = (double)InRawData[Itr];
+			NextVectorDataArray[PtIdx].Y = (double)InRawData[Itr + 2];
+			NextVectorDataArray[PtIdx].Z = (double)InRawData[Itr + 1];
 
 			Itr += 3;
 		}
@@ -193,8 +193,10 @@ FHoudiniSplineTranslator::ConvertQuaternionRotationToVectorData(const TArray<flo
 
 			// Extract a quaternion: Swap Y/Z, invert W
 			FQuat ObjectRotation(
-				InRawData[Itr + 0], InRawData[Itr + 2],
-				InRawData[Itr + 1], -InRawData[Itr + 3]);
+				(double)InRawData[Itr + 0],
+				(double)InRawData[Itr + 2],
+				(double)InRawData[Itr + 1],
+				(double)-InRawData[Itr + 3]);
 
 			// Get Euler angles
 			NextVectorDataArray[PtIdx] = ObjectRotation.Euler();
@@ -636,10 +638,10 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
 
 	for (int32 i = 0; i < Positions->Num(); i++)
 	{
-		CurvePositions[i*3 + 0] = (*Positions)[i].X / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+		CurvePositions[i*3 + 0] = (float)((*Positions)[i].X) / HAPI_UNREAL_SCALE_FACTOR_POSITION;
 		// Swap Y/Z
-		CurvePositions[i*3 + 1] = (*Positions)[i].Z / HAPI_UNREAL_SCALE_FACTOR_POSITION;
-		CurvePositions[i*3 + 2] = (*Positions)[i].Y / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+		CurvePositions[i*3 + 1] = (float)((*Positions)[i].Z) / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+		CurvePositions[i*3 + 2] = (float)((*Positions)[i].Y) / HAPI_UNREAL_SCALE_FACTOR_POSITION;
 	}
 
 	TArray<float> CurveRotations;
@@ -653,10 +655,10 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
 		CurveRotations.SetNum(NumberOfCVs * 4);
 		for (int32 i = 0; i < Rotations->Num(); i++)
 		{
-			CurveRotations[i * 4 + 0] = (*Rotations)[i].X;
-			CurveRotations[i * 4 + 1] = (*Rotations)[i].Z;
-			CurveRotations[i * 4 + 2] = (*Rotations)[i].Y;
-			CurveRotations[i * 4 + 3] = -(*Rotations)[i].W;
+			CurveRotations[i * 4 + 0] = (float)(*Rotations)[i].X;
+			CurveRotations[i * 4 + 1] = (float)(*Rotations)[i].Z;
+			CurveRotations[i * 4 + 2] = (float)(*Rotations)[i].Y;
+			CurveRotations[i * 4 + 3] = (float)-(*Rotations)[i].W;
 		}
 	}
 
@@ -665,9 +667,9 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
 		CurveScales.SetNum(NumberOfCVs * 3);
 		for (int32 i = 0; i < Scales3d->Num(); i++)
 		{
-			CurveScales[i * 3 + 0] = (*Scales3d)[i].X;
-			CurveScales[i * 3 + 1] = (*Scales3d)[i].Z;
-			CurveScales[i * 3 + 2] = (*Scales3d)[i].Y;
+			CurveScales[i * 3 + 0] = (float)(*Scales3d)[i].X;
+			CurveScales[i * 3 + 1] = (float)(*Scales3d)[i].Z;
+			CurveScales[i * 3 + 2] = (float)(*Scales3d)[i].Y;
 		}
 	}
 

@@ -1374,7 +1374,7 @@ FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 
 		int32 TransformIndex1 = GeometryCollection->AddElements(1, FGeometryCollection::TransformGroup);
 		Transform[TransformIndex1] = StaticMeshTransform;
-		Transform[TransformIndex1].SetScale3D(FVector(1.f, 1.f, 1.f));
+		Transform[TransformIndex1].SetScale3D(FVector::OneVector);
 
 		// Bone Hierarchy - Added at root with no common parent
 		TManagedArray<int32>& Parent = GeometryCollection->Parent;
@@ -1408,7 +1408,7 @@ FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 		TManagedArray<int32>& TransformToGeometryIndexArray = GeometryCollection->TransformToGeometryIndex;
 		TransformToGeometryIndexArray[TransformIndex1] = GeometryIndex;
 
-		FVector Center(0);
+		FVector Center(FVector::ZeroVector);
 		for (int32 VertexIndex = VertexStart; VertexIndex < VertexStart + VertexCount; VertexIndex++)
 		{
 			Center += (FVector)TargetVertex[VertexIndex];

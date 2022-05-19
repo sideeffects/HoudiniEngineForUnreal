@@ -1128,7 +1128,7 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 		if (PropertyValue)
 		{
 			const FName PropertyName = StructProperty->Struct->GetFName();
-			if (PropertyName == NAME_Vector)
+			if (PropertyName == NAME_Vector || PropertyName == NAME_Vector3d)
 			{
 				// Found a vector property, fill it with up to 3 tuple values
 				FVector& Vector = *static_cast<FVector*>(PropertyValue);
@@ -1146,17 +1146,69 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 					OnPropertyChanged(StructProperty);
 				}
 			}
+			else if (PropertyName == NAME_Vector3f)
+			{
+				// Found a vector property, fill it with up to 3 tuple values
+				FVector3f& Vector = *static_cast<FVector3f*>(PropertyValue);
+				FVector3f NewVector = FVector3f::ZeroVector;
+				NewVector.X = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 0);
+				if (InGenericAttribute.AttributeTupleSize > 1)
+					NewVector.Y = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 1);
+				if (InGenericAttribute.AttributeTupleSize > 2)
+					NewVector.Z = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 2);
+
+				if (NewVector != Vector)
+				{
+					OnPrePropertyChanged(StructProperty);
+					Vector = NewVector;
+					OnPropertyChanged(StructProperty);
+				}
+			}
+			else if (PropertyName == NAME_Vector2D || PropertyName == NAME_Vector2d)
+			{
+				// Found a vector property, fill it with up to 2 tuple values
+				FVector2D& Vector = *static_cast<FVector2D*>(PropertyValue);
+				FVector2D NewVector = FVector2D::ZeroVector;
+
+				NewVector.X = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 0);
+				if (InGenericAttribute.AttributeTupleSize > 1)
+					NewVector.Y = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 1);
+
+				if (NewVector != Vector)
+				{
+					OnPrePropertyChanged(StructProperty);
+					Vector = NewVector;
+					OnPropertyChanged(StructProperty);
+				}
+			}
+			else if (PropertyName == NAME_Vector2f)
+			{
+				// Found a vector property, fill it with up to 2 tuple values
+				FVector2f& Vector = *static_cast<FVector2f*>(PropertyValue);
+				FVector2f NewVector = FVector2f::ZeroVector;
+
+				NewVector.X = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 0);
+				if (InGenericAttribute.AttributeTupleSize > 1)
+					NewVector.Y = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 1);
+
+				if (NewVector != Vector)
+				{
+					OnPrePropertyChanged(StructProperty);
+					Vector = NewVector;
+					OnPropertyChanged(StructProperty);
+				}
+			}
 			else if (PropertyName == NAME_Transform)
 			{
 				// Found a transform property fill it with the attribute tuple values
-				FVector Translation;
+				FVector3d Translation;
 				Translation.X = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 0);
 				if (InGenericAttribute.AttributeTupleSize > 1)
 					Translation.Y = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 1);
 				if (InGenericAttribute.AttributeTupleSize > 2)
 					Translation.Z = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 2);
 
-				FQuat Rotation;
+				FQuat4d Rotation;
 				if (InGenericAttribute.AttributeTupleSize > 3)
 					Rotation.W = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 3);
 				if (InGenericAttribute.AttributeTupleSize > 4)
@@ -1166,7 +1218,7 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 				if (InGenericAttribute.AttributeTupleSize > 6)
 					Rotation.Z = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 6);
 
-				FVector Scale(1, 1, 1);
+				FVector3d Scale(1, 1, 1);
 				if (InGenericAttribute.AttributeTupleSize > 7)
 					Scale.X = InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex + 7);
 				if (InGenericAttribute.AttributeTupleSize > 8)
@@ -1473,7 +1525,7 @@ FHoudiniGenericAttribute::GetPropertyValueFromObject(
 		if (PropertyValue)
 		{
 			const FName PropertyName = StructProperty->Struct->GetFName();
-			if (PropertyName == NAME_Vector)
+			if (PropertyName == NAME_Vector || PropertyName == NAME_Vector3d)
 			{
 				// Found a vector property, fill it with up to 3 tuple values
 				const FVector& Vector = *static_cast<FVector*>(PropertyValue);
@@ -1483,12 +1535,38 @@ FHoudiniGenericAttribute::GetPropertyValueFromObject(
 				if (InGenericAttribute.AttributeTupleSize > 2)
 					InGenericAttribute.SetDoubleValue(Vector.Z, AtIndex + TupleIndex + 2);
 			}
+			else if (PropertyName == NAME_Vector3f)
+			{
+				// Found a vector property, fill it with up to 3 tuple values
+				const FVector3f& Vector = *static_cast<FVector3f*>(PropertyValue);
+				InGenericAttribute.SetDoubleValue((double)Vector.X, AtIndex + TupleIndex + 0);
+				if (InGenericAttribute.AttributeTupleSize > 1)
+					InGenericAttribute.SetDoubleValue((double)Vector.Y, AtIndex + TupleIndex + 1);
+				if (InGenericAttribute.AttributeTupleSize > 2)
+					InGenericAttribute.SetDoubleValue((double)Vector.Z, AtIndex + TupleIndex + 2);
+			}
+			else if (PropertyName == NAME_Vector2D || PropertyName == NAME_Vector2d)
+			{
+				// Found a vector property, fill it with up to 3 tuple values
+				const FVector2D& Vector = *static_cast<FVector2D*>(PropertyValue);
+				InGenericAttribute.SetDoubleValue(Vector.X, AtIndex + TupleIndex + 0);
+				if (InGenericAttribute.AttributeTupleSize > 1)
+					InGenericAttribute.SetDoubleValue(Vector.Y, AtIndex + TupleIndex + 1);				
+			}
+			else if (PropertyName == NAME_Vector2f)
+			{
+				// Found a vector property, fill it with up to 3 tuple values
+				const FVector2f& Vector = *static_cast<FVector2f*>(PropertyValue);
+				InGenericAttribute.SetDoubleValue((double)Vector.X, AtIndex + TupleIndex + 0);
+				if (InGenericAttribute.AttributeTupleSize > 1)
+					InGenericAttribute.SetDoubleValue((double)Vector.Y, AtIndex + TupleIndex + 1);
+			}
 			else if (PropertyName == NAME_Transform)
 			{
 				// Found a transform property fill it with the attribute tuple values
 				const FTransform& Transform = *static_cast<FTransform*>(PropertyValue);
-				const FVector Translation = Transform.GetTranslation();
-				const FQuat Rotation = Transform.GetRotation();
+				const FVector3d Translation = Transform.GetTranslation();
+				const FQuat4d Rotation = Transform.GetRotation();
 				const FVector Scale = Transform.GetScale3D();
 
 				InGenericAttribute.SetDoubleValue(Translation.X, AtIndex + TupleIndex + 0);

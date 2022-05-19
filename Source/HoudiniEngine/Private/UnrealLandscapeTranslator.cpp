@@ -130,11 +130,11 @@ FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
 	// 3. Extract the landscape data
 	//--------------------------------------------------------------------------------------------------
 	// Array for the position data
-	TArray<FVector> LandscapePositionArray;
+	TArray<FVector3f> LandscapePositionArray;
 	// Array for the normals
-	TArray<FVector> LandscapeNormalArray;
+	TArray<FVector3f> LandscapeNormalArray;
 	// Array for the UVs
-	TArray<FVector> LandscapeUVArray;
+	TArray<FVector3f> LandscapeUVArray;
 	// Array for the vertex index of each point in its component
 	TArray<FIntPoint> LandscapeComponentVertexIndicesArray;
 	// Array for the tile names per point
@@ -879,7 +879,7 @@ FUnrealLandscapeTranslator::GetLandscapeData(
 	ALandscapeProxy* LandscapeProxy,
 	TArray<uint16>& HeightData,
 	int32& XSize, int32& YSize,
-	FVector& Min, FVector& Max)
+	FVector3d& Min, FVector3d& Max)
 {
 	if (!LandscapeProxy)
 		return false;
@@ -918,7 +918,7 @@ FUnrealLandscapeTranslator::GetLandscapeData(
 	// Get the landscape Min/Max values
 	// Do not use Landscape->GetActorBounds() here as instanced geo
 	// (due to grass layers for example) can cause it to return incorrect bounds!
-	FVector Origin, Extent;
+	FVector3d Origin, Extent;
 	GetLandscapeProxyBounds(LandscapeProxy, Origin, Extent);
 
 	// Get the landscape Min/Max values
@@ -957,7 +957,7 @@ FUnrealLandscapeTranslator::GetLandscapeData(
 
 void
 FUnrealLandscapeTranslator::GetLandscapeProxyBounds(
-	ALandscapeProxy* LandscapeProxy, FVector& Origin, FVector& Extents)
+	ALandscapeProxy* LandscapeProxy, FVector3d& Origin, FVector3d& Extents)
 {
 	// Iterate only on the landscape components
 	FBox Bounds(ForceInit);
@@ -1549,9 +1549,9 @@ bool
 FUnrealLandscapeTranslator::ExtractLandscapeData(
 	ALandscapeProxy * LandscapeProxy, TSet<ULandscapeComponent *>& SelectedComponents,
 	const bool& bExportLighting, const bool& bExportTileUVs, const bool& bExportNormalizedUVs,
-	TArray<FVector>& LandscapePositionArray,
-	TArray<FVector>& LandscapeNormalArray,
-	TArray<FVector>& LandscapeUVArray,
+	TArray<FVector3f>& LandscapePositionArray,
+	TArray<FVector3f>& LandscapeNormalArray,
+	TArray<FVector3f>& LandscapeUVArray,
 	TArray<FIntPoint>& LandscapeComponentVertexIndicesArray,
 	TArray<const char *>& LandscapeComponentNameArray,
 	TArray<FLinearColor>& LandscapeLightmapValues)
@@ -1700,7 +1700,7 @@ FUnrealLandscapeTranslator::ExtractLandscapeData(
 			TangentY.Normalize();
 
 			// Perform position scaling.
-			FVector PositionTransformed = PositionVector / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			FVector3f PositionTransformed = (FVector3f)PositionVector / HAPI_UNREAL_SCALE_FACTOR_POSITION;
 			LandscapePositionArray[AllPositionsIdx].X = PositionTransformed.X;
 			LandscapePositionArray[AllPositionsIdx].Y = PositionTransformed.Z;
 			LandscapePositionArray[AllPositionsIdx].Z = PositionTransformed.Y;
@@ -1715,10 +1715,10 @@ FUnrealLandscapeTranslator::ExtractLandscapeData(
 			LandscapeComponentVertexIndicesArray[AllPositionsIdx].Y = VertY;
 
 			// Store point normal.
-			LandscapeNormalArray[AllPositionsIdx] = Normal;
+			LandscapeNormalArray[AllPositionsIdx] = (FVector3f)Normal;
 
 			// Store uv.
-			LandscapeUVArray[AllPositionsIdx] = TextureUV;
+			LandscapeUVArray[AllPositionsIdx] = (FVector3f)TextureUV;
 
 			AllPositionsIdx++;
 		}
@@ -1735,7 +1735,7 @@ FUnrealLandscapeTranslator::ExtractLandscapeData(
 
 		for (int32 UVIdx = 0; UVIdx < VertexCount; ++UVIdx)
 		{
-			FVector & PositionUV = LandscapeUVArray[UVIdx];
+			FVector3f& PositionUV = LandscapeUVArray[UVIdx];
 			PositionUV.X /= IntPointMax.X;
 			PositionUV.Y /= IntPointMax.Y;
 		}
@@ -1769,7 +1769,7 @@ FUnrealLandscapeTranslator::PickVertexColorFromTextureMip(
 }
 
 bool 
-FUnrealLandscapeTranslator::AddLandscapePositionAttribute(const HAPI_NodeId& NodeId, const TArray< FVector >& LandscapePositionArray)
+FUnrealLandscapeTranslator::AddLandscapePositionAttribute(const HAPI_NodeId& NodeId, const TArray<FVector3f>& LandscapePositionArray)
 {
 	int32 VertexCount = LandscapePositionArray.Num();
 	if (VertexCount < 3)
@@ -1797,7 +1797,7 @@ FUnrealLandscapeTranslator::AddLandscapePositionAttribute(const HAPI_NodeId& Nod
 }
 
 bool 
-FUnrealLandscapeTranslator::AddLandscapeNormalAttribute(const HAPI_NodeId& NodeId, const TArray<FVector>& LandscapeNormalArray)
+FUnrealLandscapeTranslator::AddLandscapeNormalAttribute(const HAPI_NodeId& NodeId, const TArray<FVector3f>& LandscapeNormalArray)
 {
 	int32 VertexCount = LandscapeNormalArray.Num();
 	if (VertexCount < 3)
@@ -1823,7 +1823,7 @@ FUnrealLandscapeTranslator::AddLandscapeNormalAttribute(const HAPI_NodeId& NodeI
 }
 
 bool 
-FUnrealLandscapeTranslator::AddLandscapeUVAttribute(const HAPI_NodeId& NodeId, const TArray<FVector>& LandscapeUVArray)
+FUnrealLandscapeTranslator::AddLandscapeUVAttribute(const HAPI_NodeId& NodeId, const TArray<FVector3f>& LandscapeUVArray)
 {
 	int32 VertexCount = LandscapeUVArray.Num();
 	if (VertexCount < 3)

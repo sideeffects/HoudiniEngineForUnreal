@@ -488,7 +488,7 @@ FTransform FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(ULands
 	ALandscapeProxy* LandscapeProxy = LandscapeInfo->GetLandscapeProxy();
 	FTransform OutTransform = LandscapeProxy->GetTransform();
 		
-	FVector LandscapeScale = OutTransform.GetScale3D();
+	FVector3d LandscapeScale = OutTransform.GetScale3D();
 
 	// The final landscape transform that should go into Houdini consist of the following two components:
 	// - Shared Landscape Transform
@@ -512,11 +512,11 @@ FTransform FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(ULands
 			(Extent.Min.Y + Extent.Max.Y)/2,
 			1);
 	
-	FVector ExtentMin = FVector(Extent.Min.X * LandscapeScale.X, Extent.Min.Y * LandscapeScale.Y, 1.0);
-	FVector ExtentMax = FVector(Extent.Max.X * LandscapeScale.X, Extent.Max.Y * LandscapeScale.Y, 1.0);
+	FVector3d ExtentMin = FVector3d(Extent.Min.X * LandscapeScale.X, Extent.Min.Y * LandscapeScale.Y, 1.0);
+	FVector3d ExtentMax = FVector3d(Extent.Max.X * LandscapeScale.X, Extent.Max.Y * LandscapeScale.Y, 1.0);
 	
 	// Add section base offset to the landscape transform
-	FVector Loc = OutTransform.GetLocation();
+	FVector3d Loc = OutTransform.GetLocation();
 	Loc.X += ExtentCenter.X * LandscapeScale.X;
 	Loc.Y += ExtentCenter.Y * LandscapeScale.Y;
 	
