@@ -5403,7 +5403,7 @@ FHoudiniEngineBakeUtils::BakeInputHoudiniCurveToActor(
 	if (!IsValid(InHoudiniSplineComponent))
 		return nullptr;
 
-	TArray<FVector> & DisplayPoints = InHoudiniSplineComponent->DisplayPoints;
+	TArray<FVector>& DisplayPoints = InHoudiniSplineComponent->DisplayPoints;
 	if (DisplayPoints.Num() < 2)
 		return nullptr;
 
@@ -5443,7 +5443,7 @@ FHoudiniEngineBakeUtils::BakeInputHoudiniCurveToActor(
 	// add display points to created unreal spline component
 	for (int32 n = 0; n < DisplayPoints.Num(); ++n) 
 	{
-		FVector & NextPoint = DisplayPoints[n];
+		FVector& NextPoint = DisplayPoints[n];
 		BakedUnrealSplineComponent->AddSplinePoint(NextPoint, ESplineCoordinateSpace::Local);
 		// Set the curve point type to be linear, since we are using display points
 		BakedUnrealSplineComponent->SetSplinePointType(n, ESplinePointType::Linear);
@@ -7742,11 +7742,9 @@ FHoudiniEngineBakeUtils::CenterActorToBoundingBoxCenter(AActor* InActor)
 
 	const bool bOnlyCollidingComponents = false;
 	const bool bIncludeFromChildActors = true;
-	FVector Origin;
-	FVector BoxExtent;
+
 	// InActor->GetActorBounds(bOnlyCollidingComponents, Origin, BoxExtent, bIncludeFromChildActors);
 	FBox Box(ForceInit);
-
 	InActor->ForEachComponent<UPrimitiveComponent>(bIncludeFromChildActors, [&](const UPrimitiveComponent* InPrimComp)
 	{
 		// Only use non-editor-only components for the bounds calculation (to exclude things like editor only sprite/billboard components)
@@ -7756,6 +7754,9 @@ FHoudiniEngineBakeUtils::CenterActorToBoundingBoxCenter(AActor* InActor)
 			Box += InPrimComp->Bounds.GetBox();
 		}
 	});
+
+	FVector Origin;
+	FVector BoxExtent;
 	Box.GetCenterAndExtents(Origin, BoxExtent);
 
 	const FVector Delta = Origin - RootComponent->GetComponentLocation();

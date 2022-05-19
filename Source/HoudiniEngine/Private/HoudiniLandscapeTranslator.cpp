@@ -3178,8 +3178,10 @@ TArray<T> ExpandData(const TArray<T>& Data,
 bool
 FHoudiniLandscapeTranslator::ResizeHeightDataForLandscape(
 	TArray<uint16>& HeightData,
-	const int32& SizeX, const int32& SizeY,
-	const int32& NewSizeX, const int32& NewSizeY,
+	const int32& SizeX,
+	const int32& SizeY,
+	const int32& NewSizeX,
+	const int32& NewSizeY,
 	FVector& LandscapeResizeFactor,
 	FVector& LandscapePositionOffset)
 {
