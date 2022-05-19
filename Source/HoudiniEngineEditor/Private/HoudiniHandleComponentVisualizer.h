@@ -90,8 +90,8 @@ public:
 
 	/** Handle input change. **/
 	virtual bool HandleInputDelta(
-		FEditorViewportClient *, FViewport *, FVector & DeltaTranslate,
-		FRotator & DeltaRotate, FVector & DeltaScale) override;
+		FEditorViewportClient*, FViewport*, FVector& DeltaTranslate,
+		FRotator & DeltaRotate, FVector& DeltaScale) override;
 
 	virtual bool HandleInputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) override;
 

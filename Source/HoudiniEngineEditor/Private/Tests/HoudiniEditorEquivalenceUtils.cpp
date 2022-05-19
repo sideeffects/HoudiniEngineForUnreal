@@ -1043,7 +1043,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FLinearColor& A, const F
 	const FString Header = "FLinearColor";
 	bool Result = true;
 	
-	Result &= TestExpressionError( FMath::IsNearlyEqual(A.R, B.R, FLOAT_TOLERANCE), Header, "R");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.R, B.R, FLOAT_TOLERANCE), Header, "R");
 	Result &= TestExpressionError(FMath::IsNearlyEqual(A.G, B.G, FLOAT_TOLERANCE), Header, "G");
 	Result &= TestExpressionError(FMath::IsNearlyEqual(A.B, B.B, FLOAT_TOLERANCE), Header, "B");
 	Result &= TestExpressionError(FMath::IsNearlyEqual(A.A, B.A, FLOAT_TOLERANCE), Header, "A");
