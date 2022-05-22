@@ -122,8 +122,8 @@ FHoudiniHandleComponentVisualizer::DrawVisualization(const UActorComponent * Com
 	{
 		// draw the scale box
 		FTransform BoxTransform = HandleComponent->GetComponentTransform();
-		const float BoxRad = 50.f;
-		const FBox Box(FVector(-BoxRad, -BoxRad, -BoxRad), FVector(BoxRad, BoxRad, BoxRad));
+		const double BoxRad = 50.0;
+		const FBox Box(FVector3d(-BoxRad, -BoxRad, -BoxRad), FVector3d(BoxRad, BoxRad, BoxRad));
 		DrawWireBox(PDI, BoxTransform.ToMatrixWithScale(), Box, IsActive ? ActiveColor : InactiveColor, SDPG_Foreground);
 	}
 
@@ -217,7 +217,7 @@ FHoudiniHandleComponentVisualizer::GetCustomInputCoordinateSystem(
 bool
 FHoudiniHandleComponentVisualizer::HandleInputDelta(
 	FEditorViewportClient * ViewportClient, FViewport * Viewport,
-	FVector& DeltaTranslate, FRotator & DeltaRotate, FVector & DeltaScale)
+	FVector& DeltaTranslate, FRotator & DeltaRotate, FVector& DeltaScale)
 {
 	if (!EditedComponent)
 		return false;

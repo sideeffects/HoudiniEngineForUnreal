@@ -4391,7 +4391,7 @@ FHoudiniEngineBakeUtils::BakeHeightfield(
 			// Extract landscape height data
 			TArray<uint16> InLandscapeHeightData;
 			int32 XSize, YSize;
-			FVector Min, Max;
+			FVector3d Min, Max;
 			if (!FUnrealLandscapeTranslator::GetLandscapeData(InLandscapeProxy, InLandscapeHeightData, XSize, YSize, Min, Max))
 				return nullptr;
 
@@ -4706,7 +4706,7 @@ FHoudiniEngineBakeUtils::BakeInputHoudiniCurveToActor(
 	if (!IsValid(InHoudiniSplineComponent))
 		return nullptr;
 
-	TArray<FVector> & DisplayPoints = InHoudiniSplineComponent->DisplayPoints;
+	TArray<FVector3d>& DisplayPoints = InHoudiniSplineComponent->DisplayPoints;
 	if (DisplayPoints.Num() < 2)
 		return nullptr;
 
@@ -4746,7 +4746,7 @@ FHoudiniEngineBakeUtils::BakeInputHoudiniCurveToActor(
 	// add display points to created unreal spline component
 	for (int32 n = 0; n < DisplayPoints.Num(); ++n) 
 	{
-		FVector & NextPoint = DisplayPoints[n];
+		FVector3d& NextPoint = DisplayPoints[n];
 		BakedUnrealSplineComponent->AddSplinePoint(NextPoint, ESplineCoordinateSpace::Local);
 		// Set the curve point type to be linear, since we are using display points
 		BakedUnrealSplineComponent->SetSplinePointType(n, ESplinePointType::Linear);
@@ -7068,11 +7068,9 @@ FHoudiniEngineBakeUtils::CenterActorToBoundingBoxCenter(AActor* InActor)
 
 	const bool bOnlyCollidingComponents = false;
 	const bool bIncludeFromChildActors = true;
-	FVector Origin;
-	FVector BoxExtent;
+
 	// InActor->GetActorBounds(bOnlyCollidingComponents, Origin, BoxExtent, bIncludeFromChildActors);
 	FBox Box(ForceInit);
-
 	InActor->ForEachComponent<UPrimitiveComponent>(bIncludeFromChildActors, [&](const UPrimitiveComponent* InPrimComp)
 	{
 		// Only use non-editor-only components for the bounds calculation (to exclude things like editor only sprite/billboard components)
@@ -7082,9 +7080,12 @@ FHoudiniEngineBakeUtils::CenterActorToBoundingBoxCenter(AActor* InActor)
 			Box += InPrimComp->Bounds.GetBox();
 		}
 	});
+
+	FVector3d Origin;
+	FVector3d BoxExtent;
 	Box.GetCenterAndExtents(Origin, BoxExtent);
 
-	const FVector Delta = Origin - RootComponent->GetComponentLocation();
+	const FVector3d Delta = Origin - RootComponent->GetComponentLocation();
 	// Actor->SetActorLocation(Origin);
 	RootComponent->SetWorldLocation(Origin);
 

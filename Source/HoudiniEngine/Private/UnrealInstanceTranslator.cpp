@@ -100,22 +100,22 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 
 			// Convert Unreal Position to Houdini
 			FVector PositionVector = CurTransform.GetLocation();
-			Positions[InstanceIdx * 3 + 0] = PositionVector.X / HAPI_UNREAL_SCALE_FACTOR_POSITION;
-			Positions[InstanceIdx * 3 + 1] = PositionVector.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION;
-			Positions[InstanceIdx * 3 + 2] = PositionVector.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			Positions[InstanceIdx * 3 + 0] = (float)PositionVector.X / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			Positions[InstanceIdx * 3 + 1] = (float)PositionVector.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			Positions[InstanceIdx * 3 + 2] = (float)PositionVector.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION;
 
 			// Convert Unreal Rotation to Houdini
 			FQuat RotationQuaternion = CurTransform.GetRotation();
-			Rotations[InstanceIdx * 4 + 0] = RotationQuaternion.X;
-			Rotations[InstanceIdx * 4 + 1] = RotationQuaternion.Z;
-			Rotations[InstanceIdx * 4 + 2] = RotationQuaternion.Y;
-			Rotations[InstanceIdx * 4 + 3] = -RotationQuaternion.W;
+			Rotations[InstanceIdx * 4 + 0] = (float)RotationQuaternion.X;
+			Rotations[InstanceIdx * 4 + 1] = (float)RotationQuaternion.Z;
+			Rotations[InstanceIdx * 4 + 2] = (float)RotationQuaternion.Y;
+			Rotations[InstanceIdx * 4 + 3] = (float)-RotationQuaternion.W;
 
 			// Convert Unreal Scale to Houdini
 			FVector ScaleVector = CurTransform.GetScale3D();
-			Scales[InstanceIdx * 3 + 0] = ScaleVector.X;
-			Scales[InstanceIdx * 3 + 1] = ScaleVector.Z;
-			Scales[InstanceIdx * 3 + 2] = ScaleVector.Y;
+			Scales[InstanceIdx * 3 + 0] = (float)ScaleVector.X;
+			Scales[InstanceIdx * 3 + 1] = (float)ScaleVector.Z;
+			Scales[InstanceIdx * 3 + 2] = (float)ScaleVector.Y;
 		}
 
 		// Create a part for the instance points.

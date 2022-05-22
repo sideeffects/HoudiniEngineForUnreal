@@ -754,7 +754,7 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 		HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
 
 	// Grab the build scale
-	FVector BuildScaleVector = SourceModel.BuildSettings.BuildScale3D;
+	FVector3f BuildScaleVector = (FVector3f)SourceModel.BuildSettings.BuildScale3D;
 
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// POSITION (P)
@@ -786,12 +786,12 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 		if (StaticMeshUVCount > 0)
 		{
 			const TArray<FVector2f> & RawMeshUVs = RawMesh.WedgeTexCoords[MeshTexCoordIdx];
-			TArray<FVector> StaticMeshUVs;
+			TArray<FVector3f> StaticMeshUVs;
 			StaticMeshUVs.Reserve(StaticMeshUVCount);
 
 			// Transfer UV data.
 			for (int32 UVIdx = 0; UVIdx < StaticMeshUVCount; UVIdx++)
-				StaticMeshUVs.Emplace(RawMeshUVs[UVIdx].X, 1.0 - RawMeshUVs[UVIdx].Y, 0);
+				StaticMeshUVs.Emplace(RawMeshUVs[UVIdx].X, 1.0f - RawMeshUVs[UVIdx].Y, 0.f);
 
 			// Convert Unreal to Houdini
 			// We need to re-index UVs for wedges we swapped (due to winding differences).
@@ -831,13 +831,13 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 	//---------------------------------------------------------------------------------------------------------------------
 	if (RawMesh.WedgeTangentZ.Num() > 0)
 	{
-		TArray<FVector> ChangedNormals(RawMesh.WedgeTangentZ);
+		TArray<FVector3f> ChangedNormals(RawMesh.WedgeTangentZ);
 		
 		// We need to re-index normals for wedges we swapped (due to winding differences).
 		for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
 		{
-			FVector TangentZ1 = ChangedNormals[WedgeIdx + 1];
-			FVector TangentZ2 = ChangedNormals[WedgeIdx + 2];
+			FVector3f TangentZ1 = ChangedNormals[WedgeIdx + 1];
+			FVector3f TangentZ2 = ChangedNormals[WedgeIdx + 2];
 
 			ChangedNormals[WedgeIdx + 1] = TangentZ2;
 			ChangedNormals[WedgeIdx + 2] = TangentZ1;
@@ -871,13 +871,13 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 	//---------------------------------------------------------------------------------------------------------------------
 	if (RawMesh.WedgeTangentX.Num() > 0)
 	{
-		TArray<FVector> ChangedTangentU(RawMesh.WedgeTangentX);
+		TArray<FVector3f> ChangedTangentU(RawMesh.WedgeTangentX);
 
 		// We need to re-index tangents for wedges we swapped (due to winding differences).
 		for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
 		{
-			FVector TangentU1 = ChangedTangentU[WedgeIdx + 1];
-			FVector TangentU2 = ChangedTangentU[WedgeIdx + 2];
+			FVector3f TangentU1 = ChangedTangentU[WedgeIdx + 1];
+			FVector3f TangentU2 = ChangedTangentU[WedgeIdx + 2];
 
 			ChangedTangentU[WedgeIdx + 1] = TangentU2;
 			ChangedTangentU[WedgeIdx + 2] = TangentU1;
@@ -911,12 +911,12 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 	//---------------------------------------------------------------------------------------------------------------------
 	if (RawMesh.WedgeTangentY.Num() > 0)
 	{
-		TArray<FVector> ChangedTangentV(RawMesh.WedgeTangentY);
+		TArray<FVector3f> ChangedTangentV(RawMesh.WedgeTangentY);
 		// We need to re-index normals for wedges we swapped (due to winding differences).
 		for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
 		{
-			FVector TangentV1 = ChangedTangentV[WedgeIdx + 1];
-			FVector TangentV2 = ChangedTangentV[WedgeIdx + 2];
+			FVector3f TangentV1 = ChangedTangentV[WedgeIdx + 1];
+			FVector3f TangentV2 = ChangedTangentV[WedgeIdx + 2];
 
 			ChangedTangentV[WedgeIdx + 1] = TangentV2;
 			ChangedTangentV[WedgeIdx + 2] = TangentV1;
@@ -1468,7 +1468,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 	// Grab the build scale
 	const FStaticMeshSourceModel &SourceModel = StaticMesh->GetSourceModel(InLODIndex);
-	FVector BuildScaleVector = SourceModel.BuildSettings.BuildScale3D;
+	FVector3f BuildScaleVector = (FVector3f)SourceModel.BuildSettings.BuildScale3D;
 
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// POSITION (P)
@@ -1768,7 +1768,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 					//---------------------------------------------------------------------------------------------------------------------
 					if (bUseComponentOverrideColors || bIsVertexInstanceColorsValid)
 					{
-						FVector4 Color = FLinearColor::White;
+						FLinearColor Color = FLinearColor::White;
 						if (bUseComponentOverrideColors)
 						{
 							FStaticMeshComponentLODInfo& ComponentLODInfo = StaticMeshComponent->LODData[InLODIndex];
@@ -1779,10 +1779,10 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 						{
 							Color = LODResources.VertexBuffers.ColorVertexBuffer.VertexColor(UEVertexIndex).ReinterpretAsLinear();
 						}
-						RGBColors[Float3Index + 0] = Color[0];
-						RGBColors[Float3Index + 1] = Color[1];
-						RGBColors[Float3Index + 2] = Color[2];
-						Alphas[HoudiniVertexIdx] = Color[3];
+						RGBColors[Float3Index + 0] = Color.R;
+						RGBColors[Float3Index + 1] = Color.G;
+						RGBColors[Float3Index + 2] = Color.B;
+						Alphas[HoudiniVertexIdx] = Color.A;
 					}
 
 					//--------------------------------------------------------------------------------------------------------------------- 
@@ -2338,7 +2338,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 
 	// Grab the build scale
 	const FStaticMeshSourceModel &SourceModel = StaticMesh->GetSourceModel(InLODIndex);
-	FVector BuildScaleVector = SourceModel.BuildSettings.BuildScale3D;
+	FVector3f BuildScaleVector = (FVector3f)SourceModel.BuildSettings.BuildScale3D;
 
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// POSITION (P)
@@ -2639,9 +2639,9 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 							FVector(Tangents[Float3Index + 0], Tangents[Float3Index + 1], Tangents[Float3Index + 2]),
 							FVector(Normals[Float3Index + 0], Normals[Float3Index + 1], Normals[Float3Index + 2])
 						) * BinormalSign;
-						Binormals[Float3Index + 0] = Binormal.X;
-						Binormals[Float3Index + 1] = Binormal.Y;
-						Binormals[Float3Index + 2] = Binormal.Z;
+						Binormals[Float3Index + 0] = (float)Binormal.X;
+						Binormals[Float3Index + 1] = (float)Binormal.Y;
+						Binormals[Float3Index + 2] = (float)Binormal.Z;
 					}
 
 					//--------------------------------------------------------------------------------------------------------------------- 
@@ -3384,18 +3384,18 @@ FUnrealMeshTranslator::CreateInputNodeForBox(
 		
 	// Set the box parameters
 	FHoudiniApi::SetParmFloatValue(
-		FHoudiniEngine::Get().GetSession(), BoxNodeId, "size", 0, BoxExtent.X / HAPI_UNREAL_SCALE_FACTOR_POSITION);
+		FHoudiniEngine::Get().GetSession(), BoxNodeId, "size", 0, (float)(BoxExtent.X) / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 	FHoudiniApi::SetParmFloatValue(
-		FHoudiniEngine::Get().GetSession(), BoxNodeId, "size", 1, BoxExtent.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION);
+		FHoudiniEngine::Get().GetSession(), BoxNodeId, "size", 1, (float)(BoxExtent.Z) / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 	FHoudiniApi::SetParmFloatValue(
-		FHoudiniEngine::Get().GetSession(), BoxNodeId, "size", 2, BoxExtent.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION);
+		FHoudiniEngine::Get().GetSession(), BoxNodeId, "size", 2, (float)(BoxExtent.Y) / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 
 	FHoudiniApi::SetParmFloatValue(
-		FHoudiniEngine::Get().GetSession(), BoxNodeId, "t", 0, BoxCenter.X / HAPI_UNREAL_SCALE_FACTOR_POSITION);
+		FHoudiniEngine::Get().GetSession(), BoxNodeId, "t", 0, (float)(BoxCenter.X) / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 	FHoudiniApi::SetParmFloatValue(
-		FHoudiniEngine::Get().GetSession(), BoxNodeId, "t", 1, BoxCenter.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION);
+		FHoudiniEngine::Get().GetSession(), BoxNodeId, "t", 1, (float)(BoxCenter.Z) / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 	FHoudiniApi::SetParmFloatValue(
-		FHoudiniEngine::Get().GetSession(), BoxNodeId, "t", 2, BoxCenter.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION);
+		FHoudiniEngine::Get().GetSession(), BoxNodeId, "t", 2, (float)(BoxCenter.Y) / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 
 	// Do coordinate system conversion before sending to Houdini
 	FQuat RotationQuat = BoxRotation.Quaternion();
@@ -3406,11 +3406,11 @@ FUnrealMeshTranslator::CreateInputNodeForBox(
 
 	// Negate roll and pitch since they are actually RHR
 	FHoudiniApi::SetParmFloatValue(
-		FHoudiniEngine::Get().GetSession(), BoxNodeId, "r", 0, -Rotator.Roll);
+		FHoudiniEngine::Get().GetSession(), BoxNodeId, "r", 0, (float)-Rotator.Roll);
 	FHoudiniApi::SetParmFloatValue(
-		FHoudiniEngine::Get().GetSession(), BoxNodeId, "r", 1, -Rotator.Pitch);
+		FHoudiniEngine::Get().GetSession(), BoxNodeId, "r", 1, (float)-Rotator.Pitch);
 	FHoudiniApi::SetParmFloatValue(
-		FHoudiniEngine::Get().GetSession(), BoxNodeId, "r", 2, Rotator.Yaw);
+		FHoudiniEngine::Get().GetSession(), BoxNodeId, "r", 2, (float)Rotator.Yaw);
 	
 	/*
 	HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
@@ -3475,11 +3475,11 @@ FUnrealMeshTranslator::CreateInputNodeForSphere(
 		FHoudiniEngine::Get().GetSession(), SphereNodeId, "rad", 2, SphereRadius / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 
 	FHoudiniApi::SetParmFloatValue(
-		FHoudiniEngine::Get().GetSession(), SphereNodeId, "t", 0, SphereCenter.X / HAPI_UNREAL_SCALE_FACTOR_POSITION);
+		FHoudiniEngine::Get().GetSession(), SphereNodeId, "t", 0, (float)(SphereCenter.X) / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 	FHoudiniApi::SetParmFloatValue(
-		FHoudiniEngine::Get().GetSession(), SphereNodeId, "t", 1, SphereCenter.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION);
+		FHoudiniEngine::Get().GetSession(), SphereNodeId, "t", 1, (float)(SphereCenter.Z) / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 	FHoudiniApi::SetParmFloatValue(
-		FHoudiniEngine::Get().GetSession(), SphereNodeId, "t", 2, SphereCenter.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION);
+		FHoudiniEngine::Get().GetSession(), SphereNodeId, "t", 2, (float)(SphereCenter.Y) / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 
 	FHoudiniApi::SetParmIntValue(
 		FHoudiniEngine::Get().GetSession(), SphereNodeId, "type", 0, 1);
@@ -3538,7 +3538,6 @@ FUnrealMeshTranslator::CreateInputNodeForSphyl(
 
 	// TODO:
 	// Rotation?
-
 	const int32 NumSides = 6;
 	const int32 NumRings = (NumSides / 2) + 1;
 
@@ -3593,9 +3592,9 @@ FUnrealMeshTranslator::CreateInputNodeForSphyl(
 			FVector CurPosition = SphylCenter + ArcVertex;
 
 			// Convert the UE4 position to Houdini
-			Vertices[VIx * 3 + 0] = CurPosition.X / HAPI_UNREAL_SCALE_FACTOR_POSITION;
-			Vertices[VIx * 3 + 1] = CurPosition.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION;
-			Vertices[VIx * 3 + 2] = CurPosition.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			Vertices[VIx * 3 + 0] = (float)(CurPosition.X) / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			Vertices[VIx * 3 + 1] = (float)(CurPosition.Z) / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			Vertices[VIx * 3 + 2] = (float)(CurPosition.Y) / HAPI_UNREAL_SCALE_FACTOR_POSITION;
 		}
 	}
 
@@ -3697,9 +3696,9 @@ FUnrealMeshTranslator::CreateInputNodeForConvex(
 		int32 CurIndex = 0;
 		for (auto& CurVert : VertexBuffer)
 		{
-			Vertices[CurIndex * 3 + 0] = CurVert.Position.X / HAPI_UNREAL_SCALE_FACTOR_POSITION;
-			Vertices[CurIndex * 3 + 1] = CurVert.Position.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION;
-			Vertices[CurIndex * 3 + 2] = CurVert.Position.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			Vertices[CurIndex * 3 + 0] = (float)(CurVert.Position.X) / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			Vertices[CurIndex * 3 + 1] = (float)(CurVert.Position.Z) / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			Vertices[CurIndex * 3 + 2] = (float)(CurVert.Position.Y) / HAPI_UNREAL_SCALE_FACTOR_POSITION;
 			CurIndex++;
 		}
 		
@@ -3729,9 +3728,9 @@ FUnrealMeshTranslator::CreateInputNodeForConvex(
 		int32 CurIndex = 0;
 		for (auto& CurVert : VertexBuffer)
 		{
-			Vertices[CurIndex * 3 + 0] = CurVert.X / HAPI_UNREAL_SCALE_FACTOR_POSITION;
-			Vertices[CurIndex * 3 + 1] = CurVert.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION;
-			Vertices[CurIndex * 3 + 2] = CurVert.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			Vertices[CurIndex * 3 + 0] = (float)(CurVert.X) / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			Vertices[CurIndex * 3 + 1] = (float)(CurVert.Z) / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+			Vertices[CurIndex * 3 + 2] = (float)(CurVert.Y) / HAPI_UNREAL_SCALE_FACTOR_POSITION;
 
 			/*
 			// TODO: Get proper polygons...

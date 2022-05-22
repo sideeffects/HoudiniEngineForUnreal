@@ -1571,14 +1571,14 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 		if (!CurTransform)
 			continue;
 
-		if (CurTransform->GetLocation() != FVector::ZeroVector)
+		if (CurTransform->GetLocation() != FVector3d::ZeroVector)
 			bResetButtonVisiblePosition = true;
 
 		FRotator Rotator = CurTransform->Rotator();
 		if (Rotator.Roll != 0 || Rotator.Pitch != 0 || Rotator.Yaw != 0)
 			bResetButtonVisibleRotation = true;
 
-		if (CurTransform->GetScale3D() != FVector::OneVector)
+		if (CurTransform->GetScale3D() != FVector3d::OneVector)
 			bResetButtonVisibleScale = true;
 	}
 
@@ -2342,14 +2342,14 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 		if (!CurTransform)
 			continue;
 
-		if (CurTransform->GetLocation() != FVector::ZeroVector)
+		if (CurTransform->GetLocation() != FVector3d::ZeroVector)
 			bResetButtonVisiblePosition = true;
 
 		FRotator Rotator = CurTransform->Rotator();
 		if (Rotator.Roll != 0 || Rotator.Pitch != 0 || Rotator.Yaw != 0)
 			bResetButtonVisibleRotation = true;
 
-		if (CurTransform->GetScale3D() != FVector::OneVector)
+		if (CurTransform->GetScale3D() != FVector3d::OneVector)
 			bResetButtonVisibleScale = true;
 	}
 

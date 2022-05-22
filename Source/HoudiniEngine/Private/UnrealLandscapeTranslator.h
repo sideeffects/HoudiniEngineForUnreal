@@ -89,7 +89,7 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			ALandscapeProxy* LandscapeProxy,
 			TArray<uint16>& HeightData,
 			int32& XSize, int32& YSize,
-			FVector& Min, FVector& Max);
+			FVector3d& Min, FVector3d& Max);
 
 		static bool GetLandscapeData(
 			ULandscapeInfo* LandscapeInfo,
@@ -102,7 +102,7 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 
 		static void GetLandscapeProxyBounds(
 			ALandscapeProxy* LandscapeProxy,
-			FVector& Origin, FVector& Extents);
+			FVector3d& Origin, FVector3d& Extents);
 
 		// Converts Unreal uint16 values to Houdini Float
 		static bool ConvertLandscapeDataToHeightfieldData(
@@ -208,9 +208,9 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			const bool& bExportLighting,
 			const bool& bExportTileUVs,
 			const bool& bExportNormalizedUVs,
-			TArray<FVector>& LandscapePositionArray,
-			TArray<FVector>& LandscapeNormalArray,
-			TArray<FVector>& LandscapeUVArray,
+			TArray<FVector3f>& LandscapePositionArray,
+			TArray<FVector3f>& LandscapeNormalArray,
+			TArray<FVector3f>& LandscapeUVArray,
 			TArray<FIntPoint>& LandscapeComponentVertexIndicesArray,
 			TArray<const char *>& LandscapeComponentNameArray,
 			TArray<FLinearColor>& LandscapeLightmapValues);
@@ -225,17 +225,17 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 		// Add the Position attribute extracted from a landscape
 		static bool AddLandscapePositionAttribute(
 			const HAPI_NodeId& NodeId,
-			const TArray< FVector >& LandscapePositionArray);
+			const TArray<FVector3f>& LandscapePositionArray);
 
 		// Add the Normal attribute extracted from a landscape
 		static bool AddLandscapeNormalAttribute(
 			const HAPI_NodeId& NodeId,
-			const TArray< FVector >& LandscapeNormalArray);
+			const TArray<FVector3f>& LandscapeNormalArray);
 
 		// Add the UV attribute extracted from a landscape
 		static bool AddLandscapeUVAttribute(
 			const HAPI_NodeId& NodeId,
-			const TArray< FVector >& LandscapeUVArray);
+			const TArray<FVector3f>& LandscapeUVArray);
 
 		// Add the Component Vertex Index attribute extracted from a landscape
 		static bool AddLandscapeComponentVertexIndicesAttribute(
