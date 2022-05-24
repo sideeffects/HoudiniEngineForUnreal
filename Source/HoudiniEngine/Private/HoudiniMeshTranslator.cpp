@@ -654,25 +654,20 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 	}
 	else  //use existing skeleton asset
 	{
-		if (IsValid(BuildSettings.Skeleton))
+		MySkeleton = BuildSettings.Skeleton;
+		TArray<FString> UnrealSkeletonData;
+		FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, "unreal_skeleton", UnrealSkeletonInfo, UnrealSkeletonData);
+		if (UnrealSkeletonData.Num() <= 0)
 		{
-			MySkeleton = BuildSettings.Skeleton;
+			return nullptr;
 		}
-		else
+		const FSoftObjectPath SkeletonAssetPath(UnrealSkeletonData[0]);
+		MySkeleton = Cast<USkeleton>(SkeletonAssetPath.TryLoad());
+		if (!IsValid(MySkeleton))
 		{
-			TArray<FString> UnrealSkeletonData;
-			FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, "unreal_skeleton", UnrealSkeletonInfo, UnrealSkeletonData);
-			if (UnrealSkeletonData.Num() <= 0)
-			{
-				return nullptr;
-			}
-			const FSoftObjectPath SkeletonAssetPath(UnrealSkeletonData[0]);
-			MySkeleton = Cast<USkeleton>(SkeletonAssetPath.TryLoad());
-			if (!IsValid(MySkeleton))
-			{
-				return nullptr;
-			}
+			return nullptr;
 		}
+		BuildSettings.Skeleton = MySkeleton;
 		const TArray<FTransform>& RawRefBonePose = MySkeleton->GetReferenceSkeleton().GetRawRefBonePose();
 		//TArray<FTransform3f>& RawRefBonePose = MySkeleton->GetReferenceSkeleton().GetRawRefBonePose();
 		//Populate RefBonesBinary from Existing Skeleton Asset

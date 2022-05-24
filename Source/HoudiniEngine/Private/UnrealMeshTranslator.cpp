@@ -506,8 +506,7 @@ FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(
     TArray<FTransform> ComponentSpaceTransforms;
 	GetComponentSpaceTransforms(ComponentSpaceTransforms, RefSkeleton);
 
-    TArray<const char*> CaptNamesData;
-    TArray<std::string> CaptNamesDataStdStrings;  //need to store non-wide strings.  the standard TCHAR_TO_ANSI cant be used for array apis as it is temporary
+	TArray<FString> CaptNamesData;
     TArray<int32> CaptParentsData;
     TArray<float> XFormsData;
 
@@ -517,10 +516,9 @@ FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(
 
     XFormsData.AddZeroed(16 * RefSkeleton.GetRawBoneNum());
     CaptParentsData.AddUninitialized(RefSkeleton.GetRawBoneNum());
-    CaptNamesData.Reserve(RefSkeleton.GetRawBoneNum());
-    CaptNamesDataStdStrings.Reserve(RefSkeleton.GetRawBoneNum());
+	CaptNamesData.SetNum(RefSkeleton.GetRawBoneNum());
 
-    for (int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetRawBoneNum(); BoneIndex++)
+    for (int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetRawBoneNum(); ++BoneIndex)
     {
 		const FMeshBoneInfo& CurrentBone = RefSkeleton.GetRefBoneInfo()[BoneIndex];
 		const FTransform& LocalBoneTransform = RefSkeleton.GetRefBonePose()[BoneIndex];
@@ -540,22 +538,6 @@ FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(
 		FMatrix M44 = FinalTransform.ToMatrixWithScale();
 		FMatrix M44Inverse = M44.Inverse();  //see pCaptData property
 
-		//SWAP
-		//FVector NewTranslation = BoneTransformConverted.GetTranslation();
-		//ConvertedTransform2.SetTranslation(0.01f * FVector(NewTranslation.X,NewTranslation.Z,NewTranslation.Y));	
-		//FVector UnrealRotation2 = BoneTransformConverted.GetRotation().Euler();
-		//FRotator NewRot = BoneTransformConverted.GetRotation().Rotator();
-		//float Temp = NewRot.Yaw;
-		//NewRot.Yaw = NewRot.Pitch;
-		//NewRot.Pitch = Temp;
-		//HOUDINI_LOG_MESSAGE(TEXT("Bone %s Euler %.2f %.2f %.2f"), *CurrentBone.ExportName, UnrealRotation2.X, UnrealRotation2.Y, UnrealRotation2.Z);
-		//FRotator EulerRotator2 = FRotator::MakeFromEuler(FVector(UnrealRotation2.X, UnrealRotation2.Z, UnrealRotation2.Y));
-		//FQuat ConvertedQuat2 = FQuat::FQuat(NewRot);
-		//ConvertedTransform2.SetRotation(ConvertedQuat2);
-
-		//ConvertedTransform2.SetScale3D(BoneTransformConverted.GetScale3D());
-
-		//FMatrix M44 = BoneTransform.Inverse().ToMatrixWithScale();
 		int32 row = 0;
 		int32 col = 0;
 		for (int32 i = 0; i < 16; i++)
@@ -574,17 +556,8 @@ FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(
 		CaptData[20 * BoneIndex + 18] = 1.0f;//Ratio of (top x radius of tube)/(bottom x radius of tube) adjusted for orientation
 		CaptData[20 * BoneIndex + 19] = 1.0f;//Ratio of (top z radius of tube)/(bottom z radius of tube) adjusted for orientation
 
-		const TCHAR* msg = CurrentBone.ExportName.GetCharArray().GetData();
-		
-		//convert from wide
-		std::wstring wstr = std::wstring(msg);
-		std::wstring string_to_convert = std::wstring(msg);
-		using convert_type = std::codecvt_utf8<wchar_t>;
-		std::wstring_convert<convert_type, wchar_t> converter;
-		std::string converted_str = converter.to_bytes(string_to_convert);
-		CaptNamesDataStdStrings.Add(converted_str);
 
-		CaptNamesData.Add(CaptNamesDataStdStrings[BoneIndex].c_str());	//this is a pointer to the converted string
+		CaptNamesData[BoneIndex] = CurrentBone.ExportName;
 		CaptParentsData[BoneIndex] = CurrentBone.ParentIndex;
     }
 
@@ -605,22 +578,13 @@ FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(
 
     TArray<int32> SizesFixedArray;
     SizesFixedArray.Add(CaptNamesData.Num());
-    HAPI_Result CaptNamesDataResult = FHoudiniApi::SetAttributeStringArrayData(
-		FHoudiniEngine::Get().GetSession(), NewNodeId,
-		0, "capt_names", &CaptNamesInfo, CaptNamesData.GetData(),
-		CaptNamesData.Num(), SizesFixedArray.GetData(), 0, SizesFixedArray.Num());
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// boneCapture_pCaptPath
-	//---------------------------------------------------------------------------------------------------------------------
+	FHoudiniEngineUtils::HapiSetAttributeStringArrayData(CaptNamesData, NewNodeId, 0, "capt_names", CaptNamesInfo, SizesFixedArray);
+	
+    //boneCapture_pCaptPath-------------------------------------------------------------------
     HAPI_Result CaptPathAdd = FHoudiniApi::AddAttribute(
 		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
 		"boneCapture_pCaptPath", &CaptNamesInfo);
-
-    HAPI_Result CaptPathDataResult = FHoudiniApi::SetAttributeStringArrayData(
-		FHoudiniEngine::Get().GetSession(), NewNodeId,
-		0, "boneCapture_pCaptPath", &CaptNamesInfo, CaptNamesData.GetData(),
-		CaptNamesData.Num(), SizesFixedArray.GetData(), 0, SizesFixedArray.Num());
+	FHoudiniEngineUtils::HapiSetAttributeStringArrayData(CaptNamesData, NewNodeId, 0, "boneCapture_pCaptPath", CaptNamesInfo, SizesFixedArray);
 
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// Capt_Parents

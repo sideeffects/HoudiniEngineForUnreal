@@ -3546,6 +3546,58 @@ FHoudiniEngineUtils::HapiSetAttributeStringData(
 	return Result;
 }
 
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeStringArrayData(
+	const TArray<FString>& InStringArray,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo,
+	const TArray<int>& SizesFixedArray)
+{
+	TArray<const char*> StringDataArray;
+	for (const auto& CurrentString : InStringArray)
+	{
+		// Append the converted string to the string array
+		StringDataArray.Add(FHoudiniEngineUtils::ExtractRawString(CurrentString));
+	}
+
+	// Send strings in smaller chunks due to their potential size
+	int32 ChunkSize = (THRIFT_MAX_CHUNKSIZE / 100) / InAttributeInfo.tupleSize;
+
+	HAPI_Result Result = HAPI_RESULT_FAILURE;
+	if (InAttributeInfo.count > ChunkSize)
+	{
+		// Set the attributes in chunks
+		for (int32 ChunkStart = 0; ChunkStart < InAttributeInfo.count; ChunkStart += ChunkSize)
+		{
+			int32 CurCount = StringDataArray.Num() - ChunkStart > ChunkSize ? ChunkSize : StringDataArray.Num() - ChunkStart;
+
+			Result = FHoudiniApi::SetAttributeStringArrayData(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+				&InAttributeInfo, StringDataArray.GetData(), CurCount,
+				SizesFixedArray.GetData(), ChunkStart, CurCount);
+
+			if (Result != HAPI_RESULT_SUCCESS)
+				break;
+		}
+	}
+	else
+	{
+		// Set all the attribute values once
+		Result = FHoudiniApi::SetAttributeStringArrayData(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+			&InAttributeInfo, StringDataArray.GetData(), StringDataArray.Num(),
+			SizesFixedArray.GetData(),0, SizesFixedArray.Num());
+	}
+
+	// ExtractRawString allocates memory using malloc, free it!
+	FreeRawStringMemory(StringDataArray);
+
+	return Result;
+}
 
 
 HAPI_Result
