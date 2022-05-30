@@ -32,7 +32,7 @@
 
 /*
 
-    Houdini Version: 19.5.255
+    Houdini Version: 19.5.267
     Houdini Engine Version: 5.0.0
     Unreal Version: 4.27.0
 
@@ -47,7 +47,7 @@ public class HoudiniEngine : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "19.5.255";
+        string HoudiniVersion = "19.5.267";
         bool bIsRelease = true;
         string HFSPath = "";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Side Effects Software";
