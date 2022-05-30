@@ -3830,19 +3830,31 @@ FHoudiniEngineBakeUtils::BakeLandscapeObject(
 	UPackage * CreatedPackage = TargetLevel->GetOutermost();
 	TMap<UMaterialInterface *, UMaterialInterface *> AlreadyBakedMaterialsMap;
 	
+
 	// Replace materials
-	if (TileActor->LandscapeMaterial)
+	// Only duplicate the materials if they are temporary
+	if (IsValid(TileActor->LandscapeMaterial))
 	{
-		UMaterialInterface * DuplicatedMaterial = BakeSingleMaterialToPackage(
-			TileActor->LandscapeMaterial, PackageParams, OutPackagesToSave, AlreadyBakedMaterialsMap, BakeStats);
-		TileActor->LandscapeMaterial = DuplicatedMaterial;
+		// No need to check the outputs for materials, only check the temp folder
+		//if (IsObjectTemporary(TileActor->LandscapeMaterial, EHoudiniOutputType::Invalid, InParentOutputs, PackageParams.TempCookFolder))
+		if (IsObjectInTempFolder(TileActor->LandscapeMaterial, PackageParams.TempCookFolder))
+		{
+			UMaterialInterface* DuplicatedMaterial = BakeSingleMaterialToPackage(
+				TileActor->LandscapeMaterial, PackageParams, OutPackagesToSave, AlreadyBakedMaterialsMap, BakeStats);
+			TileActor->LandscapeMaterial = DuplicatedMaterial;
+		}
 	}
 
-	if (TileActor->LandscapeHoleMaterial)
+	if (IsValid(TileActor->LandscapeHoleMaterial))
 	{
-		UMaterialInterface * DuplicatedMaterial = BakeSingleMaterialToPackage(
-			TileActor->LandscapeHoleMaterial, PackageParams, OutPackagesToSave, AlreadyBakedMaterialsMap, BakeStats);
-		TileActor->LandscapeHoleMaterial = DuplicatedMaterial;
+		// No need to check the outputs for materials, only check the temp folder
+		//if (IsObjectTemporary(TileActor->LandscapeHoleMaterial, EHoudiniOutputType::Invalid, InParentOutputs, PackageParams.TempCookFolder))
+		if (IsObjectInTempFolder(TileActor->LandscapeHoleMaterial, PackageParams.TempCookFolder))
+		{
+			UMaterialInterface* DuplicatedMaterial = BakeSingleMaterialToPackage(
+				TileActor->LandscapeHoleMaterial, PackageParams, OutPackagesToSave, AlreadyBakedMaterialsMap, BakeStats);
+			TileActor->LandscapeHoleMaterial = DuplicatedMaterial;
+		}
 	}
 
 	// Ensure the tile actor has the desired name.
@@ -4343,6 +4355,7 @@ FHoudiniEngineBakeUtils::BakeHeightfield(
 			InLandscapeProxy->DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
 		}
 		break;
+
 		case EHoudiniLandscapeOutputBakeType::BakeToImage:
 		{
 			// Create heightmap image to the bake folder
@@ -4372,6 +4385,7 @@ FHoudiniEngineBakeUtils::BakeHeightfield(
 			// We should update this to have an asset/package..
 		}
 		break;
+
 		case EHoudiniLandscapeOutputBakeType::BakeToWorld:
 		{
 			ULandscapeInfo * InLandscapeInfo = InLandscapeProxy->GetLandscapeInfo();
@@ -4472,19 +4486,28 @@ FHoudiniEngineBakeUtils::BakeHeightfield(
 
 			TMap<UMaterialInterface *, UMaterialInterface *> AlreadyBakedMaterialsMap;
 
-	
-			if (BakedLandscapeProxy->LandscapeMaterial)
+			if (IsValid(BakedLandscapeProxy->LandscapeMaterial))
 			{
-				UMaterialInterface * DuplicatedMaterial = BakeSingleMaterialToPackage(
-					BakedLandscapeProxy->LandscapeMaterial, PackageParams, PackagesToSave, AlreadyBakedMaterialsMap, OutBakeStats);
-				BakedLandscapeProxy->LandscapeMaterial = DuplicatedMaterial;
+				// No need to check the outputs for materials, only check  if the material is in the temp folder
+				//if (IsObjectTemporary(BakedLandscapeProxy->LandscapeMaterial, EHoudiniOutputType::Invalid, InParentOutputs, PackageParams.TempCookFolder))
+				if (IsObjectInTempFolder(BakedLandscapeProxy->LandscapeMaterial, PackageParams.TempCookFolder))
+				{
+					UMaterialInterface* DuplicatedMaterial = BakeSingleMaterialToPackage(
+						BakedLandscapeProxy->LandscapeMaterial, PackageParams, PackagesToSave, AlreadyBakedMaterialsMap, OutBakeStats);
+					BakedLandscapeProxy->LandscapeMaterial = DuplicatedMaterial;
+				}
 			}
 
-			if (BakedLandscapeProxy->LandscapeHoleMaterial)
+			if (IsValid(BakedLandscapeProxy->LandscapeHoleMaterial))
 			{
-				UMaterialInterface * DuplicatedMaterial = BakeSingleMaterialToPackage(
-					BakedLandscapeProxy->LandscapeHoleMaterial, PackageParams, PackagesToSave, AlreadyBakedMaterialsMap, OutBakeStats);
-				BakedLandscapeProxy->LandscapeHoleMaterial = DuplicatedMaterial;
+				// No need to check the outputs for materials, only check if the material is in the temp folder
+				//if (IsObjectTemporary(BakedLandscapeProxy->LandscapeHoleMaterial, EHoudiniOutputType::Invalid, InParentOutputs, PackageParams.TempCookFolder))
+				if (IsObjectInTempFolder(BakedLandscapeProxy->LandscapeHoleMaterial, PackageParams.TempCookFolder))
+				{
+					UMaterialInterface* DuplicatedMaterial = BakeSingleMaterialToPackage(
+						BakedLandscapeProxy->LandscapeHoleMaterial, PackageParams, PackagesToSave, AlreadyBakedMaterialsMap, OutBakeStats);
+					BakedLandscapeProxy->LandscapeHoleMaterial = DuplicatedMaterial;
+				}
 			}
 
 			// 6. Register all the landscape components, and set landscape actor transform
@@ -7240,10 +7263,12 @@ FHoudiniEngineBakeUtils::DestroyPreviousBakeOutput(
 	return NumDeleted;
 }
 
-UMaterialInterface* FHoudiniEngineBakeUtils::BakeSingleMaterialToPackage(UMaterialInterface* InOriginalMaterial,
-	const FHoudiniPackageParams & InPackageParams,
+UMaterialInterface* 
+FHoudiniEngineBakeUtils::BakeSingleMaterialToPackage(
+	UMaterialInterface* InOriginalMaterial,
+	const FHoudiniPackageParams& InPackageParams,
 	TArray<UPackage*>& OutPackagesToSave,
-	TMap<UMaterialInterface *, UMaterialInterface *>& InOutAlreadyBakedMaterialsMap,
+	TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
 	FHoudiniEngineOutputStats& OutBakeStats)
 {
 	if (!IsValid(InOriginalMaterial))
