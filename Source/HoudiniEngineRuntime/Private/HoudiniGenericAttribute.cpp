@@ -383,7 +383,10 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 		{
 			FString StringValue = InPropertyAttribute.GetStringValue(AtIndex);
 			FName Value = FName(*StringValue);
-			PC->SetCollisionProfileName(Value);
+
+			// Only set if the component has a valid BodySetup
+			if(IsValid(PC->GetBodySetup()))
+				PC->SetCollisionProfileName(Value);
 
 			// Patch the StaticMeshGenerationProperties on the HAC
 			UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(InObject);
