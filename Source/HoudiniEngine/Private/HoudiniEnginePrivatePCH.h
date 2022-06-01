@@ -318,6 +318,7 @@
 #define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE         TEXT( "HoudiniGeneratedTextureType" )
 #define HAPI_UNREAL_PACKAGE_META_NODE_PATH                      TEXT( "HoudiniNodePath" )
 #define HAPI_UNREAL_PACKAGE_META_BAKE_COUNTER                   TEXT( "HoudiniPackageBakeCounter" )
+#define HAPI_UNREAL_PACKAGE_META_BAKED_OBJECT					TEXT( "HoudiniBakedObject" )
 
 #define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL       TEXT( "N" )
 #define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE      TEXT( "C_A" )
