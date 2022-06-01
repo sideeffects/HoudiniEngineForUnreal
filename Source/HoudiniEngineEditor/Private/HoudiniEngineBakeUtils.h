@@ -561,16 +561,35 @@ public:
 
 	// Look for InObjectToFind among InOutputs. Return true if found and set OutOutputIndex and OutIdentifier.
 	static bool FindOutputObject(
-		const UObject* InObjectToFind, EHoudiniOutputType InOutputType, const TArray<UHoudiniOutput*> InOutputs, int32& OutOutputIndex, FHoudiniOutputObjectIdentifier &OutIdentifier);
+		const UObject* InObjectToFind,
+		const EHoudiniOutputType& InOutputType, 
+		const TArray<UHoudiniOutput*> InOutputs,
+		int32& OutOutputIndex,
+		FHoudiniOutputObjectIdentifier& OutIdentifier);
 
-	static bool IsObjectTemporary(UObject* InObject, EHoudiniOutputType InOutputType, UHoudiniAssetComponent* InHAC);
-
-	// Returns true if InObject is in InTemporaryCookFolder, or in the default Temporary cook folder from the runtime
-	// settings.
-	static bool IsObjectInTempFolder(UObject* const InObject, const FString& InTemporaryCookFolder);
-
+	// Returns true if the object is a temporary, houdini-generated object
 	static bool IsObjectTemporary(
-		UObject* InObject, EHoudiniOutputType InOutputType, const TArray<UHoudiniOutput*>& InParentOutputs, const FString& InTemporaryCookFolder);
+		UObject* InObject,
+		const EHoudiniOutputType& InOutputType);
+
+	// Returns true if the object is a temporary, houdini-generated object
+	static bool IsObjectTemporary(
+		UObject* InObject, 
+		const EHoudiniOutputType& InOutputType,
+		UHoudiniAssetComponent* InHAC);
+
+	// Returns true if the object is a temporary, houdini-generated object
+	static bool IsObjectTemporary(
+		UObject* InObject,
+		const EHoudiniOutputType& InOutputType,
+		const TArray<UHoudiniOutput*>& InParentOutputs,
+		const FString& InTemporaryCookFolder);
+
+	// Returns true if InObject is in InTemporaryCookFolder, 
+	// or in the default Temporary cook folder from the runtime settings.
+	static bool IsObjectInTempFolder(
+		UObject* const InObject,
+		const FString& InTemporaryCookFolder);
 
 	// Function used to copy properties from the source Static Mesh Component to the new (baked) one
 	static void CopyPropertyToNewActorAndComponent(
