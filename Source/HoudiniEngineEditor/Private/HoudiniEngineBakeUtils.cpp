@@ -4669,7 +4669,7 @@ FHoudiniEngineBakeUtils::DuplicateSkeletalMeshAndCreatePackageIfNeeded(
 		HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *CreatedPackageName);
 	// Baked object! this is not temporary anymore
 	FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
-		MeshPackage, DuplicatedStaticMesh,
+		MeshPackage, DuplicatedSkeletalMesh,
 		HAPI_UNREAL_PACKAGE_META_BAKED_OBJECT, TEXT("true"));
 
 	// See if we need to duplicate materials and textures.
@@ -4850,7 +4850,7 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 		HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *CreatedPackageName);
 	// Baked object! this is not temporary anymore
 	FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
-		MeshPackage, DuplicatedSkeletalMesh,
+		MeshPackage, DuplicatedStaticMesh,
 		HAPI_UNREAL_PACKAGE_META_BAKED_OBJECT, TEXT("true"));
 
 	// See if we need to duplicate materials and textures.
