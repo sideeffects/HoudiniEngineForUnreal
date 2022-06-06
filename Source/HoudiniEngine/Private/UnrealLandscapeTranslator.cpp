@@ -274,9 +274,11 @@ FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
 
 bool 
 FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
-	ALandscapeProxy* LandscapeProxy, HAPI_NodeId& CreatedHeightfieldNodeId, const FString& InputNodeNameStr) 
+	ALandscapeProxy* LandscapeProxy, 
+	HAPI_NodeId& CreatedHeightfieldNodeId, 
+	const FString& InputNodeNameStr) 
 {
-	if (!LandscapeProxy)
+  	if (!LandscapeProxy)
 		return false;
 
 	// Export the whole landscape and its layer as a single heightfield.
@@ -486,10 +488,13 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	HAPI_NodeId ParentObjNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(HeightFieldId);
 	FHoudiniApi::SetObjectTransform(FHoudiniEngine::Get().GetSession(), ParentObjNodeId, &HAPIObjectTransform);
 
+	/*
+	// Commented out! As we now center the landscape transform in FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform()
 	// Since HF are centered but landscape aren't, we need to set the HF's center parameter
 	FHoudiniApi::SetParmFloatValue(FHoudiniEngine::Get().GetSession(), HeightFieldId, "t", 0, CenterOffset.X);
 	FHoudiniApi::SetParmFloatValue(FHoudiniEngine::Get().GetSession(), HeightFieldId, "t", 1, 0.0);
 	FHoudiniApi::SetParmFloatValue(FHoudiniEngine::Get().GetSession(), HeightFieldId, "t", 2, CenterOffset.Y);
+	*/
 
 	// Finally, cook the Heightfield node
 	/*
@@ -564,8 +569,16 @@ bool FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponentArray(AL
 	return bAllComponentCreated;
 }
 
-bool FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponent(ALandscapeProxy* LandscapeProxy, ULandscapeComponent* LandscapeComponent,
-	const int32& ComponentIndex, HAPI_NodeId& HeightFieldId, HAPI_NodeId& MergeId, int32& MergeInputIndex, const FString& InputNodeNameStr, const FTransform & ParentTransform)
+bool
+FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponent(
+	ALandscapeProxy* LandscapeProxy, 
+	ULandscapeComponent* LandscapeComponent,
+	const int32& ComponentIndex,
+	HAPI_NodeId& HeightFieldId, 
+	HAPI_NodeId& MergeId, 
+	int32& MergeInputIndex,
+	const FString& InputNodeNameStr, 
+	const FTransform & ParentTransform)
 {
 	if ( !LandscapeComponent )
 		return false;
@@ -692,6 +705,8 @@ bool FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponent(ALandsc
 	if (!ExtractAndConvertAllLandscapeLayers(LandscapeProxy, HeightFieldId, PartId, MergeId, MaskId, HeightfieldVolumeInfo, XSize, YSize, MergeInputIndex))
 		return false;
 
+	/*
+	// Commented out! As we now center the landscape transform in FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform()
 	if ( CreatedHeightfieldNode )
 	{
 		// Since HF are centered but landscape arent, we need to set the HF's center parameter
@@ -700,6 +715,7 @@ bool FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponent(ALandsc
 		FHoudiniApi::SetParmFloatValue(FHoudiniEngine::Get().GetSession(), HeightFieldId, "t", 1, 0.0);
 		FHoudiniApi::SetParmFloatValue(FHoudiniEngine::Get().GetSession(), HeightFieldId, "t", 2, CenterOffset.Y);
 	}
+	*/
 
 	// Finally, cook the Heightfield node
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
@@ -1012,8 +1028,10 @@ FUnrealLandscapeTranslator::ApplyAttributesToHeightfieldNode(
 bool
 FUnrealLandscapeTranslator::ConvertLandscapeDataToHeightfieldData(
 	const TArray<uint16>& IntHeightData,
-	const int32& XSize, const int32& YSize,
-	FVector Min, FVector Max,
+	const int32& XSize,
+	const int32& YSize,
+	FVector Min,
+	FVector Max,
 	const FTransform& LandscapeTransform,
 	TArray<float>& HeightfieldFloatValues,
 	HAPI_VolumeInfo& HeightfieldVolumeInfo,
@@ -1101,7 +1119,8 @@ FUnrealLandscapeTranslator::ConvertLandscapeDataToHeightfieldData(
 		}
 
 		// Heightfield are centered, landscapes are not
-		CenterOffset = (Max - Min) * 0.5f;
+		// Commented out! As we now center the landscape transform in FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform()
+		// CenterOffset = (Max - Min) * 0.5f;
 
 		// Unreal XYZ becomes Houdini YXZ (since heightfields are also rotated due the ZX transform) 
 		//FVector Position = LandscapeTransform.GetLocation() / 100.0f;
