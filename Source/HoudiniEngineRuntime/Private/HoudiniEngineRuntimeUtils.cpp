@@ -487,7 +487,8 @@ FHoudiniEngineRuntimeUtils::MarkBlueprintAsModified(UActorComponent* ComponentTe
 }
 #endif
 
-FTransform FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(ULandscapeInfo* LandscapeInfo)
+FTransform 
+FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(ULandscapeInfo* LandscapeInfo)
 {
 #if WITH_EDITOR
 	ALandscapeProxy* LandscapeProxy = LandscapeInfo->GetLandscapeProxy();
