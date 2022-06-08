@@ -4031,6 +4031,17 @@ FHoudiniLandscapeTranslator::CalcHeightfieldsArrayGlobalZMinZMax(
 		GlobalMaximums.Empty();
 	}
 
+	// Get runtime settings.
+	float ForcedZMin = 0.0f;
+	float ForcedZMax = 0.0f;
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	bool bUseForcedMinMax = (HoudiniRuntimeSettings && HoudiniRuntimeSettings->MarshallingLandscapesForceMinMaxValues);
+	if(bUseForcedMinMax)
+	{
+		ForcedZMin = HoudiniRuntimeSettings->MarshallingLandscapesForcedMinValue;
+		ForcedZMax = HoudiniRuntimeSettings->MarshallingLandscapesForcedMaxValue;
+	}
+
 	HAPI_AttributeInfo AttributeInfo;
 	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 	TArray<float> FloatData;
@@ -4089,17 +4100,30 @@ FHoudiniLandscapeTranslator::CalcHeightfieldsArrayGlobalZMinZMax(
 			}
 		}
 
-		if (!(bHasMinAttr && bHasMaxAttr))
+		if (!bHasMinAttr || !bHasMaxAttr)
 		{
+			// We haven't specified both min/max values
 			// Unreal's Z values are Y in Houdini
 			float ymin, ymax;
-			if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetVolumeBounds(FHoudiniEngine::Get().GetSession(),
-				NodeId, CurrentHeightfield.PartId,
-				nullptr, &ymin, nullptr,
-				nullptr, &ymax, nullptr,
-				nullptr, nullptr, nullptr))
-				continue;
 
+			if (bUseForcedMinMax)
+			{
+				// First, see if we should use the forced min/max values from the settings
+				ymin = ForcedZMin;
+				ymax = ForcedZMax;
+			}
+			else
+			{
+				// Get the min/max value from the volume
+				if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetVolumeBounds(
+					FHoudiniEngine::Get().GetSession(),
+					NodeId,
+					CurrentHeightfield.PartId,
+					nullptr, &ymin, nullptr,
+					nullptr, &ymax, nullptr,
+					nullptr, nullptr, nullptr))
+					continue;
+			}
 		
 			if (!bHasMinAttr)
 			{
