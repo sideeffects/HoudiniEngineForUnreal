@@ -543,8 +543,8 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(UGeometryCollectio
 			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                                FHoudiniEngine::Get().GetSession(),
-                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex), false);
+				FHoudiniEngine::Get().GetSession(),
+				GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex), false);
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
 				Binormals, GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, AttributeInfoVertex), false);
@@ -852,13 +852,13 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_CLUSTERING_DAMAGE_THRESHOLD;
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo), false);
 
 		FHoudiniApi::SetAttributeFloatArrayData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const float *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0,  AttributeInfo.count);
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo,
+			(const float *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0,  AttributeInfo.count);
 	}
 	
 	// Collisions - Collision Type
@@ -877,13 +877,13 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 		const char * AttributeName = HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_TYPE;
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo), false);
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo), false);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, AttributeName, &AttributeInfo,
+			(const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
 	}
 
 	// Collisions - Implicit Type
@@ -1178,8 +1178,8 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, 0, HAPI_UNREAL_ATTRIB_INPUT_GC_NAME, &AttributeInfo), false);
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, 0, HAPI_UNREAL_ATTRIB_INPUT_GC_NAME, &AttributeInfo), false);
 
 		const FString AssetPath = GeometryCollectionObject->GetPathName();
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
