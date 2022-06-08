@@ -5529,7 +5529,7 @@ FHoudiniEngineUtils::CreateGroupsFromTags(
 	return NeedToCommitGeo;
 }
 
-
+/*
 bool
 FHoudiniEngineUtils::ForceValidVariableNameInline(FString& InOutString)
 {
@@ -5556,6 +5556,7 @@ FHoudiniEngineUtils::ForceValidVariableNameInline(FString& InOutString)
 
 	return bHasChanged;
 }
+*/
 
 bool
 FHoudiniEngineUtils::SanitizeHAPIVariableName(FString& String)
