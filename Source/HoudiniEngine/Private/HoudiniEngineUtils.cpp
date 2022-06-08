@@ -5447,6 +5447,33 @@ FHoudiniEngineUtils::CreateGroupsFromTags(
 
 
 bool
+FHoudiniEngineUtils::ForceValidVariableNameInline(FString& InOutString)
+{
+	// Reproduces the behaviour of UT_String::forceValidVariableName()
+	// Return true if a change occured
+	bool bHasChanged = false;
+
+	// Replace any special character by `_`
+	for (TCHAR& CurrentChar : InOutString)
+	{
+		if (!FChar::IsAlnum(CurrentChar) && !FChar::IsUnderscore(CurrentChar))
+		{
+			CurrentChar = '_';
+			bHasChanged = true;
+		}
+	}
+
+	// If the string starts with a digit, clean it up by prefixing an _.
+	if (FChar::IsDigit(InOutString[0]))
+	{
+		InOutString.InsertAt(0, '_');
+		bHasChanged = true;
+	}
+
+	return bHasChanged;
+}
+
+bool
 FHoudiniEngineUtils::SanitizeHAPIVariableName(FString& String)
 {
 	// Only keep alphanumeric characters, underscores
@@ -5455,6 +5482,7 @@ FHoudiniEngineUtils::SanitizeHAPIVariableName(FString& String)
 	if (StrArray.Num() <= 0)
 		return false;
 
+	bool bHasChanged = false;
 	for (auto& CurChar : StrArray)
 	{
 		const bool bIsValid = (CurChar >= TEXT('A') && CurChar <= TEXT('Z'))
@@ -5466,16 +5494,20 @@ FHoudiniEngineUtils::SanitizeHAPIVariableName(FString& String)
 			continue;
 
 		CurChar = TEXT('_');
+		bHasChanged = true;
 	}
 
 	if (StrArray.Num() > 0)
 	{
 		TCHAR FirstChar = StrArray[0];
 		if (FirstChar >= TEXT('0') && FirstChar <= TEXT('9'))
+		{
 			StrArray.Insert(TEXT('_'), 0);
+			bHasChanged = true;
+		}
 	}
 
-	return true;
+	return bHasChanged;
 }
 
 bool

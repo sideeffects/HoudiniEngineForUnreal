@@ -748,6 +748,11 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Make sure a string complies with Houdini's internal variable naming convention (group, attr etc..)
 		static bool SanitizeHAPIVariableName(FString& String);
 
+		// Ensures a string is a valid variable (mainly for attributes name)
+		// Reproduces the behaviour of UT_String::forceValidVariableName()
+		// Return true if a change occured, the string is modified inline
+		//static bool ForceValidVariableNameInline(FString& InOutString);
+
 		/** How many GUID symbols are used for package component name generation. **/
 		static const int32 PackageGUIDComponentNameLength;
 

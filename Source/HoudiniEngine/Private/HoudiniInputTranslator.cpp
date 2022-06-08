@@ -3154,10 +3154,10 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 		AttributeInfoScale.originalOwner = HAPI_ATTROWNER_INVALID;
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                        FHoudiniEngine::Get().GetSession(),
-                        NewNodeId, 0,
-                        HAPI_UNREAL_ATTRIB_SCALE,
-                        &AttributeInfoScale), false);
+			FHoudiniEngine::Get().GetSession(),
+			NewNodeId, 0,
+			HAPI_UNREAL_ATTRIB_SCALE,
+			&AttributeInfoScale), false);
 
 		TArray<float> InputScales;
 		InputScales.SetNumZeroed(3);
@@ -3339,6 +3339,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 		DataName = DataName.Replace(TEXT(":"), TEXT("_"));
 		
 		FString CurAttrName = TEXT(HAPI_UNREAL_ATTRIB_DATA_TABLE_PREFIX) + FString::FromInt(ColIdx) + TEXT("_") + DataName;
+		if (FHoudiniEngineUtils::SanitizeHAPIVariableName(CurAttrName))
+		{
+			FString OldName = TEXT(HAPI_UNREAL_ATTRIB_DATA_TABLE_PREFIX) + FString::FromInt(ColIdx) + TEXT("_") + DataName;
+			HOUDINI_LOG_WARNING(TEXT("[HapiCreateInputNodeForDataTable]: Invalid row name (%s) renamed to %s."), *OldName, *CurAttrName);
+		}
 
 		// We need to gt all values for that attribute
 		TArray<FString> AttributeValues;
