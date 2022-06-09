@@ -1,8 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "HoudiniEngine.h"
 #include "HoudiniEditorSubsystem.h"
+#include "HoudiniEngine.h"
 #include "HoudiniEngineEditor.h"
 #include "Engine/SkeletalMesh.h"
 #include "UnrealMeshTranslator.h"
@@ -26,7 +26,7 @@ void UHoudiniEditorSubsystem::CreateSessionHDA()
     HAPI_NodeInfo MyGeoNodeInfo = FHoudiniApi::NodeInfo_Create();
     result = FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), UnrealContentNode, &MyGeoNodeInfo);
 
-    network_node_id = UnrealContentNode;
+    object_node_id = UnrealContentNode;
 }
 
 void UHoudiniEditorSubsystem::SendStaticMeshToHoudini(UStaticMesh* StaticMesh)
@@ -35,7 +35,7 @@ void UHoudiniEditorSubsystem::SendStaticMeshToHoudini(UStaticMesh* StaticMesh)
     HAPI_NodeId mesh_node_id;
  
     HAPI_Result result;
-    result = FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), network_node_id, "null", TCHAR_TO_ANSI(*SKName), true, &mesh_node_id);
+    result = FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), object_node_id, "null", TCHAR_TO_ANSI(*SKName), true, &mesh_node_id);
 
     int32 LODIndex = 0;
     FStaticMeshSourceModel& SrcModel = StaticMesh->GetSourceModel(LODIndex);
@@ -56,7 +56,7 @@ void UHoudiniEditorSubsystem::SendSkeletalMeshToHoudini(USkeletalMesh* SkelMesh)
     FString SKName = TEXT("SkeletalMesh_") + SkelMesh->GetName();
     HAPI_NodeId mesh_node_id;
     result = FHoudiniApi::CreateNode(
-	FHoudiniEngine::Get().GetSession(), network_node_id, "null", TCHAR_TO_ANSI(*SKName), true, &mesh_node_id);
+	FHoudiniEngine::Get().GetSession(), object_node_id, "null", TCHAR_TO_ANSI(*SKName), true, &mesh_node_id);
     FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(SkelMesh, mesh_node_id);
 
     result = FHoudiniApi::SetNodeDisplay(FHoudiniEngine::Get().GetSession(), mesh_node_id, 1);
@@ -69,9 +69,9 @@ void UHoudiniEditorSubsystem::SendToHoudini(const TArray<FAssetData>& SelectedAs
 {
     GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Sending To Houdini!"));
 
-    if (network_node_id < 0)
+    if (object_node_id < 0)
     {
-	CreateSessionHDA();
+	    CreateSessionHDA();
     }
 
     USkeletalMesh* SkelMesh = Cast<USkeletalMesh>(SelectedAssets[0].GetAsset());
@@ -95,7 +95,7 @@ void UHoudiniEditorSubsystem::DumpSessionInfo()
 {
     HAPI_Result result;
 
-    HOUDINI_LOG_MESSAGE(TEXT("network_node_id %i "), network_node_id);
+    HOUDINI_LOG_MESSAGE(TEXT("network_node_id %i "), object_node_id);
     
     // Get the Display Geo's info
     HAPI_GeoInfo DisplayHapiGeoInfo;
@@ -108,7 +108,6 @@ void UHoudiniEditorSubsystem::DumpSessionInfo()
     
     HOUDINI_LOG_MESSAGE(TEXT("DisplayGeo %s NodeID %i  PartCount %i "), *DisplayName, DisplayHapiGeoInfo.nodeId, DisplayHapiGeoInfo.partCount );
 
-    FHoudiniMeshTranslator::DumpInfo(DisplayHapiGeoInfo.nodeId, 0);
 }
 
 
@@ -203,6 +202,11 @@ void UHoudiniEditorSubsystem::SendStaticMeshToUnreal(FString PackageName, FStrin
     HAPI_GeoInfo DisplayHapiGeoInfo;
     FHoudiniApi::GeoInfo_Init(&DisplayHapiGeoInfo);
     result = FHoudiniApi::GetDisplayGeoInfo(FHoudiniEngine::Get().GetSession(), object_node_id, &DisplayHapiGeoInfo);
+    if (result != HAPI_RESULT_SUCCESS)
+    {
+        HOUDINI_LOG_MESSAGE(TEXT("GetDisplayGeoInfo FAILURE trying to get object_node_id %i "), object_node_id);
+        return;
+    }
     result = FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), DisplayHapiGeoInfo.nodeId, nullptr);
 
     // Get the AssetInfo

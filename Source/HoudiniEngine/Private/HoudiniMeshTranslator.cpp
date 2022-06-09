@@ -102,86 +102,92 @@ static TAutoConsoleVariable<float> CVarHoudiniEngineMeshBuildTimer(
 * @return true if the operation completed successfully
 *
 */
-bool ProcessImportMeshSkeleton(const USkeleton* SkeletonAsset, FReferenceSkeleton& RefSkeleton, int32& SkeletalDepth, FSkeletalMeshImportData& ImportData)
+bool ProcessImportMeshSkeleton(const USkeleton* SkeletonAsset, FReferenceSkeleton& OutRefSkeleton, int32& OutSkeletalDepth, FSkeletalMeshImportData& ImportData)
 {
 	TArray <SkeletalMeshImportData::FBone>& RefBonesBinary = ImportData.RefBonesBinary;
 
 	// Setup skeletal hierarchy + names structure.
-	RefSkeleton.Empty();
+	OutRefSkeleton.Empty();
 
-	FReferenceSkeletonModifier RefSkelModifier(RefSkeleton, SkeletonAsset);
+	FReferenceSkeletonModifier RefSkelModifier(OutRefSkeleton, SkeletonAsset);
 
 	// Digest bones to the serializable format.
 	for (int32 b = 0; b < RefBonesBinary.Num(); b++)
 	{
-	const SkeletalMeshImportData::FBone& BinaryBone = RefBonesBinary[b];
-	const FString BoneName = FSkeletalMeshImportData::FixupBoneName(BinaryBone.Name);
-	const FMeshBoneInfo BoneInfo(FName(*BoneName, FNAME_Add), BinaryBone.Name, BinaryBone.ParentIndex);
-	const FTransform BoneTransform(BinaryBone.BonePos.Transform);
+		const SkeletalMeshImportData::FBone& BinaryBone = RefBonesBinary[b];
+		const FString BoneName = FSkeletalMeshImportData::FixupBoneName(BinaryBone.Name);
+		const FMeshBoneInfo BoneInfo(FName(*BoneName, FNAME_Add), BinaryBone.Name, BinaryBone.ParentIndex);
+		const FTransform BoneTransform(BinaryBone.BonePos.Transform);
 
-	if (RefSkeleton.FindRawBoneIndex(BoneInfo.Name) != INDEX_NONE)
-	{
-	    HOUDINI_LOG_MESSAGE(TEXT("SkeletonHasDuplicateBones: Skeleton has non-unique bone names.\nBone named %s encountered more than once."), *BoneName);
+		if (OutRefSkeleton.FindRawBoneIndex(BoneInfo.Name) != INDEX_NONE)
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("SkeletonHasDuplicateBones: Skeleton has non-unique bone names.\nBone named %s encountered more than once."), *BoneName);
+		}
+
+		RefSkelModifier.Add(BoneInfo, BoneTransform);
 	}
 
-	RefSkelModifier.Add(BoneInfo, BoneTransform);
+
+	if (RefBonesBinary.Num() != OutRefSkeleton.GetRawBoneNum())
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("ProcessImportMeshSkeleton : RefBonesBinary Not Equal to RefSkeleton"));
 	}
 
 	// Add hierarchy index to each bone and detect max depth.
-	SkeletalDepth = 0;
+	OutSkeletalDepth = 0;
 
 	TArray<int32> SkeletalDepths;
-	SkeletalDepths.Empty(RefBonesBinary.Num());
-	SkeletalDepths.AddZeroed(RefBonesBinary.Num());
-	for (int32 b = 0; b < RefSkeleton.GetRawBoneNum(); b++)
+	SkeletalDepths.AddZeroed(OutRefSkeleton.GetRawBoneNum());
+	for (int32 b = 0; b < OutRefSkeleton.GetRawBoneNum(); b++)
 	{
-	int32 Parent = RefSkeleton.GetRawParentIndex(b);
-	int32 Depth = 1.0f;
+		int32 Parent = OutRefSkeleton.GetRawParentIndex(b);
+		int32 Depth = 1.0f;
 
-	SkeletalDepths[b] = 1.0f;
-	if (Parent != INDEX_NONE)
-	{
-	    Depth += SkeletalDepths[Parent];
-	}
-	if (SkeletalDepth < Depth)
-	{
-	    SkeletalDepth = Depth;
-	}
-	SkeletalDepths[b] = Depth;
+		SkeletalDepths[b] = 1.0f;
+		if (Parent != INDEX_NONE)
+		{
+			Depth += SkeletalDepths[Parent];
+		}
+		if (OutSkeletalDepth < Depth)
+		{
+			OutSkeletalDepth = Depth;
+		}
+		SkeletalDepths[b] = Depth;
 	}
 
 	return true;
 }
 
-
 // Raw data bone.
 struct FBoneTracker
 {
 	SkeletalMeshImportData::FBone Bone;
-	int OrigIndex;
-	int NewIndex;
+	int32 OrigIndex = 0;
+	int32 NewIndex = 0;
 };
 
-void AddChildren(TArray<FBoneTracker>& SortedBones, int Parent, TArray <SkeletalMeshImportData::FBone>& RefBonesBinary)
+void AddChildren(TArray<FBoneTracker>& OutSortedBones, int Parent, const TArray <SkeletalMeshImportData::FBone>& RefBonesBinary)
 {
 	//Bone.NumChildren
 	for (int32 i = 0; i < RefBonesBinary.Num(); i++)
 	{
-	if (RefBonesBinary[i].ParentIndex == Parent)
-	{
-	    FBoneTracker* BoneTracker = SortedBones.FindByPredicate([i](FBoneTracker& BoneTracker) {
-		return BoneTracker.OrigIndex == i;
+		if (RefBonesBinary[i].ParentIndex != Parent)
+		{
+			continue;
+		}
+		FBoneTracker* BoneTracker = OutSortedBones.FindByPredicate([i](FBoneTracker& BoneTracker) {
+			return BoneTracker.OrigIndex == i;
 		});
-	    if (BoneTracker == nullptr)
-	    {
+	
+		if (BoneTracker != nullptr)
+		{
+			continue;
+		}
 		FBoneTracker NewBone;
 		NewBone.Bone = RefBonesBinary[i];
 		NewBone.OrigIndex = i;
-		SortedBones.Add(NewBone);
-		AddChildren(SortedBones, i, RefBonesBinary);
-	    }
-	}
-
+		OutSortedBones.Add(NewBone);
+		AddChildren(OutSortedBones, i, RefBonesBinary);
 	}
 }
 
@@ -190,16 +196,9 @@ void SortBonesByParent(FSkeletalMeshImportData& SkeletalMeshImportData)
 {
 	for (int32 i = 0; i < SkeletalMeshImportData.RefBonesBinary.Num(); i++)
 	{
-	SkeletalMeshImportData::FBone Bone = SkeletalMeshImportData.RefBonesBinary[i];
-	UE_LOG(LogTemp, Log, TEXT("Bone %i %s parent %i children %i"), i, *Bone.Name, Bone.ParentIndex, Bone.NumChildren);
+		SkeletalMeshImportData::FBone Bone = SkeletalMeshImportData.RefBonesBinary[i];
+		UE_LOG(LogTemp, Log, TEXT("Bone %i %s parent %i children %i"), i, *Bone.Name, Bone.ParentIndex, Bone.NumChildren);
 	}
-
-	//   for (int32 i = 0; i < SkeletalMeshImportData.Influences.Num(); i++)
-	//   {
-	   //int BoneIndex = SkeletalMeshImportData.Influences[i].BoneIndex;
-	   //float weight = SkeletalMeshImportData.Influences[i].Weight;
-	   //UE_LOG(LogTemp, Log, TEXT("Weights %i %s %f parent %i"), BoneIndex, *SkeletalMeshImportData.RefBonesBinary[BoneIndex].Name, weight, SkeletalMeshImportData.RefBonesBinary[BoneIndex].ParentIndex);
-	//   }
 
 	TArray <SkeletalMeshImportData::FBone>& RefBonesBinary = SkeletalMeshImportData.RefBonesBinary;
 	TArray<FBoneTracker> SortedBones;
@@ -257,52 +256,43 @@ void SortBonesByParent(FSkeletalMeshImportData& SkeletalMeshImportData)
 	//update Parent to new index
 	for (int32 i = 0; i < SkeletalMeshImportData.RefBonesBinary.Num(); i++)
 	{
-	int OldParentIndex = SkeletalMeshImportData.RefBonesBinary[i].ParentIndex;
-	//skip reparenting root
-	if (OldParentIndex == -1)
-	    continue;
-	//Lookup incorrect oldparent 
-	FBoneTracker* BoneTracker = SortedBones.FindByPredicate([OldParentIndex](FBoneTracker& BoneTracker) {
-	    return BoneTracker.OrigIndex == OldParentIndex;
-	    });
-	int NewParentIndex = BoneTracker->NewIndex;
-	SkeletalMeshImportData.RefBonesBinary[i].ParentIndex = NewParentIndex;
+		int32 OldParentIndex = SkeletalMeshImportData.RefBonesBinary[i].ParentIndex;
+		//skip reparenting root
+		if (OldParentIndex == -1)
+			continue;
+		//Lookup incorrect oldparent 
+		FBoneTracker* BoneTracker = SortedBones.FindByPredicate([OldParentIndex](FBoneTracker& BoneTracker) {
+			return BoneTracker.OrigIndex == OldParentIndex;
+			});
+		int32 NewParentIndex = BoneTracker->NewIndex;
+		SkeletalMeshImportData.RefBonesBinary[i].ParentIndex = NewParentIndex;
 	}
 
 	//update influence indexes
 	for (int32 i = 0; i < SkeletalMeshImportData.Influences.Num(); i++)
 	{
-	int OldIndex = SkeletalMeshImportData.Influences[i].BoneIndex;
-	FBoneTracker* BoneTracker = SortedBones.FindByPredicate([OldIndex](FBoneTracker& BoneTracker) {
-	    return BoneTracker.OrigIndex == OldIndex;
-	    });
-	if (BoneTracker == nullptr)
-	{
-	    continue;
+		int32 OldIndex = SkeletalMeshImportData.Influences[i].BoneIndex;
+		FBoneTracker* BoneTracker = SortedBones.FindByPredicate([OldIndex](FBoneTracker& BoneTracker) {
+			return BoneTracker.OrigIndex == OldIndex;
+			});
+		if (BoneTracker == nullptr)
+		{
+			continue;
+		}
+		int32 NewIndex = BoneTracker->NewIndex;
+		SkeletalMeshImportData.Influences[i].BoneIndex = NewIndex;
+		float weight = SkeletalMeshImportData.Influences[i].Weight;
+		//UE_LOG(LogTemp, Log, TEXT("Old BoneIndex %i NewBoneIndex %i %s %f %i"), OldIndex, NewIndex, *SkeletalMeshImportData.RefBonesBinary[NewIndex].Name,weight, SkeletalMeshImportData.RefBonesBinary[NewIndex].ParentIndex);
 	}
-	int NewIndex = BoneTracker->NewIndex;
-	SkeletalMeshImportData.Influences[i].BoneIndex = NewIndex;
-	float weight = SkeletalMeshImportData.Influences[i].Weight;
-	//UE_LOG(LogTemp, Log, TEXT("Old BoneIndex %i NewBoneIndex %i %s %f %i"), OldIndex, NewIndex, *SkeletalMeshImportData.RefBonesBinary[NewIndex].Name,weight, SkeletalMeshImportData.RefBonesBinary[NewIndex].ParentIndex);
-
-	}
-
 }
 
 //Builds Skeletal Mesh and Skeleton Assets from FSkeletalMeshImportData
 void FHoudiniMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSettings, TArray<FSkeletalMaterial>& Materials)
 {
-	//---------------------------------------------
-	//FName SKMeshName = TEXT("FooMesh");
-	//FString PackageName = FString(TEXT("/Game/FooMesh"));
-	//NewMesh = NewObject<USkeletalMesh>(Package, FName(*SKMeshName), RF_Public | RF_Standalone );
 	FSkeletalMeshImportData& SkeletalMeshImportData = BuildSettings.SkeletalMeshImportData;
 	USkeleton* MySkeleton = BuildSettings.Skeleton;
     FBox BoundingBox(SkeletalMeshImportData.Points.GetData(), SkeletalMeshImportData.Points.Num());
     const FVector BoundingBoxSize = BoundingBox.GetSize();
-
-	//NewMesh->RefSkeleton = MySkeleton->GetReferenceSkeleton();
-
 
 	//Setup NewMesh defaults
 	FSkeletalMeshModel* ImportedResource = BuildSettings.SKMesh->GetImportedModel();
@@ -318,15 +308,9 @@ void FHoudiniMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSetting
 
 	BuildSettings.SKMesh->SaveLODImportedData(0, SkeletalMeshImportData);  //Import the ImportData
 
-	//USkeleton* ExistingSkeleton = nullptr;// = ExistSkelMeshDataPtr ? ExistSkelMeshDataPtr->ExistingSkeleton : ImportOptions->SkeletonForAnimation;
 	int32 SkeletalDepth = 0;
-	SkeletalMeshImportUtils::ProcessImportMeshSkeleton(MySkeleton, BuildSettings.SKMesh->RefSkeleton, SkeletalDepth, SkeletalMeshImportData);
-
-	//Setup Materials
-	/*for (FSkeletalMaterial SkeletalMaterial : Materials)
-	{
-	NewMesh->Materials.Add(SkeletalMaterial);
-	}*/
+	FReferenceSkeleton& RefSkeleton = BuildSettings.SKMesh->GetRefSkeleton();
+	SkeletalMeshImportUtils::ProcessImportMeshSkeleton(MySkeleton, RefSkeleton, SkeletalDepth, SkeletalMeshImportData);
 
 	for (SkeletalMeshImportData::FMaterial SkeletalImportMaterial : SkeletalMeshImportData.Materials)
 	{
@@ -400,7 +384,7 @@ void FHoudiniMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSetting
 	FAssetRegistryModule::AssetCreated(BuildSettings.SKMesh);
 
 	//CREATE A NEW SKELETON ASSET IF NEEDED
-	if (MySkeleton == NULL)
+	if (MySkeleton == nullptr)
 	{
 	FString ObjectName = FString::Printf(TEXT("%s_Skeleton"), *BuildSettings.SKMesh->GetName());
 	//Skeleton = CreateAsset<USkeleton>(SKMeshName, ObjectName, true);
@@ -633,12 +617,14 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 		ParentsData.SetNum(CaptParentsInfo.totalArrayElements);
 		ParentSizesFixedArray.SetNum(CaptParentsInfo.count);
 		HAPI_Result ParentsDataResult = FHoudiniApi::GetAttributeIntArrayData(FHoudiniEngine::Get().GetSession(), GeoId, PartId, "capt_parents", &CaptParentsInfo, &ParentsData[0], CaptParentsInfo.totalArrayElements, &ParentSizesFixedArray[0], 0, CaptParentsInfo.count);
-		TArray<FMatrix> MatrixData;
 
 		//Build RefBonesBinary ------------------------------------------------------------------------
 		//two passes required since skeleton hierarchy might not be properly ordered
 		//first pass - load matrix, intitalize bone info
-		int BoneIdx = 0;
+		TArray<FMatrix> MatrixData;
+		MatrixData.SetNum(CaptNamesData.Num());
+		int32 BoneIdx = 0;
+		SkeletalMeshImportData.RefBonesBinary.SetNum(CaptNamesData.Num());
 		for (FString BoneName : CaptNamesData)
 		{
 			SkeletalMeshImportData::FBone NewBone;
@@ -647,9 +633,9 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 			NewBone.ParentIndex = ParentsData[BoneIdx];
 			NewBone.NumChildren = 0;
 			FMatrix M44;
-			int row = 0;
-			int col = 0;
-			for (int i = 0; i < 16; i++)
+			int32 row = 0;
+			int32 col = 0;
+			for (int32 i = 0; i < 16; i++)
 			{
 				M44.M[row][col] = XFormsData[16 * BoneIdx + i];
 				col++;
@@ -659,8 +645,8 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 					col = 0;
 				}
 			}
-			MatrixData.Add(M44);
-			SkeletalMeshImportData.RefBonesBinary.Add(NewBone);
+			MatrixData[BoneIdx] = M44;
+			SkeletalMeshImportData.RefBonesBinary[BoneIdx] = NewBone;
 			BoneIdx++;
 		}
 
@@ -705,37 +691,30 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 			SkeletalMeshImportData::FJointPos JointPos;
 			JointPos.Transform = FinalTransform;
 			RefBone.BonePos = JointPos;
-			//FVector Pos = JointPos.Transform.GetLocation();
-			//FRotator Rot = JointPos.Transform.GetRotation().Rotator();
-			//HOUDINI_LOG_MESSAGE(TEXT("Bone %i: %s Parent %i  Pos %s Rot %s "), BoneIdx, *BoneName, Bone.ParentIndex, *Pos.ToString(), *Rot.ToString());
 			BoneIdx++;
 		}
-		//return;//cancel import
 	}
 	else  //use existing skeleton asset
 	{
-		if (IsValid(BuildSettings.Skeleton))
+		MySkeleton = BuildSettings.Skeleton;
+		TArray<FString> UnrealSkeletonData;
+		FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, "unreal_skeleton", UnrealSkeletonInfo, UnrealSkeletonData);
+		if (UnrealSkeletonData.Num() <= 0)
 		{
-			MySkeleton = BuildSettings.Skeleton;
+			return nullptr;
 		}
-		else
+		const FSoftObjectPath SkeletonAssetPath(UnrealSkeletonData[0]);
+		MySkeleton = Cast<USkeleton>(SkeletonAssetPath.TryLoad());
+		if (!IsValid(MySkeleton))
 		{
-			TArray<FString> UnrealSkeletonData;
-			FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, "unreal_skeleton", UnrealSkeletonInfo, UnrealSkeletonData);
-			if (UnrealSkeletonData.Num() <= 0)
-			{
-				return nullptr;
-			}
-			const FSoftObjectPath SkeletonAssetPath(UnrealSkeletonData[0]);
-			MySkeleton = Cast<USkeleton>(SkeletonAssetPath.TryLoad());
-			if (!IsValid(MySkeleton))
-			{
-				return nullptr;
-			}
+			return nullptr;
 		}
+		BuildSettings.Skeleton = MySkeleton;
 		const TArray<FTransform>& RawRefBonePose = MySkeleton->GetReferenceSkeleton().GetRawRefBonePose();
+		//TArray<FTransform3f>& RawRefBonePose = MySkeleton->GetReferenceSkeleton().GetRawRefBonePose();
 		//Populate RefBonesBinary from Existing Skeleton Asset
-		int BoneIdx = 0;
+		int32 BoneIdx = 0;
+		SkeletalMeshImportData.RefBonesBinary.SetNum(MySkeleton->GetReferenceSkeleton().GetRefBoneInfo().Num());
 		for (FMeshBoneInfo BoneInfo : MySkeleton->GetReferenceSkeleton().GetRefBoneInfo())
 		{
 			SkeletalMeshImportData::FBone Bone;
@@ -744,7 +723,7 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 			SkeletalMeshImportData::FJointPos JointPos;
 			JointPos.Transform = RawRefBonePose[BoneIdx];
 			Bone.BonePos = JointPos;
-			SkeletalMeshImportData.RefBonesBinary.Add(Bone);
+			SkeletalMeshImportData.RefBonesBinary[BoneIdx] = Bone;
 			BoneIdx++;
 		}
 	}
@@ -759,11 +738,14 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 	TArray<float> BoneCaptureData;  //if not fbx imported, these indexes match CaptNamesAltData sorting
 	FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId, "boneCapture", BoneCaptureInfo, BoneCaptureData);
 	SkeletalMeshImportData::FRawBoneInfluence RawBoneInfluence;
-	int InfluenceVertIndex = 0;
-	int BoneInfluence_idx = 0;
-	int CaptureCount = 0;
+	RawBoneInfluence.BoneIndex = 0;
+	RawBoneInfluence.VertexIndex = 0;
+	RawBoneInfluence.Weight = 0;
+	int32 InfluenceVertIndex = 0;
+	int32 BoneInfluence_idx = 0;
+	int32 CaptureCount = 0;
 	float sum = 0;
-	int bonecount = 0;
+	int32 bonecount = 0;
 
 
 	//   TArray<int> BoneIndexes;
@@ -779,55 +761,48 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 
 	FString BoneName;
 	int firstinfluence = 0;
-
-	for (float BoneCapture : BoneCaptureData)
+	int32 TotalPairs = BoneCaptureData.Num() / 2;
+	for (int32 i = 0; i < TotalPairs; i++)
 	{
-		CaptureCount++;
-		if ((CaptureCount % 2) == 0)  //have last dat afor this BoneInfluence so store
-		{
+		CaptureCount++;//count the pairs
+		//set current weigth/index pair
+		float idx = BoneCaptureData[i * 2];
+		float weight = BoneCaptureData[(i * 2) + 1];
 
-			//RawBoneInfluence.Weight = 1.0f;
-			//if (BoneCapture > 0)
-			//{
-			//if ((bonecount < 1)  && (RawBoneInfluence.BoneIndex >= 0))
-			if (RawBoneInfluence.BoneIndex >= 0)
-			{
-				RawBoneInfluence.VertexIndex = InfluenceVertIndex;
-				if (BoneCapture < 0.0)
-				{
-					RawBoneInfluence.Weight = 0.0f;
-				}
-				else
-				{
-					RawBoneInfluence.Weight = BoneCapture;
-				}
-				int newinfluence = SkeletalMeshImportData.Influences.Add(RawBoneInfluence);
-				if (bonecount == 0)
-				{
-					firstinfluence = newinfluence;
-				}
-				//UE_LOG(LogTemp, Log, TEXT("RawBoneInfluence: vertindex %i bonecount %i %s %i %i  %f"), InfluenceVertIndex, bonecount, *BoneName, RawBoneInfluence.BoneIndex, RawBoneInfluence.VertexIndex, RawBoneInfluence.Weight);
-				sum += RawBoneInfluence.Weight;
-				bonecount++;
-			}
-			//}
-			BoneInfluence_idx = 0;
-		}
-		else
+		if (CaptNamesAltData.Num() > 0)	 //remap if not fbx imported
 		{
-			//RawBoneInfluence.BoneIndex = BoneCapture;
-			int idx = BoneCapture;
-			if (CaptNamesAltData.Num() > 0)  //remap if not fbx imported
+			if (idx > 0)
 			{
-				if (idx > 0)
-				{
-					BoneName = CaptNamesAltData[idx];
-					idx = CaptNamesData.Find(BoneName);
-				}
+				BoneName = CaptNamesAltData[idx];
+				idx = CaptNamesData.Find(BoneName);
 			}
-			RawBoneInfluence.BoneIndex = idx;//fix up index due to alt names  
 		}
-		if ((CaptureCount % BoneCaptureInfo.tupleSize) == 0)    //Should work with any tuple size
+		RawBoneInfluence.BoneIndex = idx;//fix up index due to alt names  
+
+		if (RawBoneInfluence.BoneIndex >= 0)
+		{
+			RawBoneInfluence.VertexIndex = InfluenceVertIndex;
+			if (weight < 0.0)
+			{
+				RawBoneInfluence.Weight = 0.0f;
+			}
+			else
+			{
+				RawBoneInfluence.Weight = weight;
+			}
+			int32 newinfluence = SkeletalMeshImportData.Influences.Add(RawBoneInfluence);
+			if (bonecount == 0)
+			{
+				firstinfluence = newinfluence;
+			}
+			UE_LOG(LogTemp, Log, TEXT("RawBoneInfluence: vertindex %i bonecount %i %s %i %i  %f"), InfluenceVertIndex, bonecount, *BoneName, RawBoneInfluence.BoneIndex, RawBoneInfluence.VertexIndex, RawBoneInfluence.Weight);
+			sum += RawBoneInfluence.Weight;
+			bonecount++;
+		}
+
+		//fixup so sum of weights is 1
+		int32 Stride = CaptureCount * 2;
+		if ((Stride % BoneCaptureInfo.tupleSize) == 0)	//Should work with any tuple size
 		{
 			if (!FMath::IsNearlyEqual(sum, 1.0f, 0.0001f))
 			{
@@ -913,20 +888,12 @@ void FHoudiniMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 
 	//Point UVs-----------------------------------------------------------------------------------
 	HAPI_AttributeInfo PointUVInfo;
-	FHoudiniApi::AttributeInfo_Init(&PointUVInfo);
-	HAPI_Result PointUVResult = FHoudiniApi::GetAttributeInfo(
-	FHoudiniEngine::Get().GetSession(),
-	GeoId, PartId,
-	HAPI_UNREAL_ATTRIB_UV, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, &PointUVInfo);
-
-	TArray<FVector> PointUVData;
-	PointUVData.SetNum(PointUVInfo.count);  //dont need * PositionInfo.tupleSize, its already a vector container
-	//FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId, HAPI_UNREAL_ATTRIB_POSITION, PositionInfo, PositionData);
-	if (PointUVInfo.exists)
+	TArray<float> PointUVData;
+	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId,
+		HAPI_UNREAL_ATTRIB_UV, PointUVInfo, PointUVData))
 	{
-	FHoudiniApi::GetAttributeFloatData(FHoudiniEngine::Get().GetSession(), GeoId, PartId, HAPI_UNREAL_ATTRIB_UV, &PointUVInfo, -1, (float*)&PointUVData[0], 0, PointUVInfo.count);
+		HOUDINI_LOG_MESSAGE(TEXT("Error Creating Skeletal Mesh :  Invalid UV Data"));
 	}
-
 
 	//Normals--------------------------------------------
 	HAPI_AttributeInfo NormalInfo;
@@ -956,15 +923,10 @@ void FHoudiniMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 	//Tangents---------------------------------------------------------------------
 	HAPI_AttributeInfo TangentInfo;
 	TArray<float> TangentData;
-	FHoudiniApi::AttributeInfo_Init(&TangentInfo);
-	HAPI_Result TangentInfoResult = FHoudiniApi::GetAttributeInfo(
-	FHoudiniEngine::Get().GetSession(),
-	GeoId, PartId,
-	HAPI_UNREAL_ATTRIB_TANGENTU, HAPI_AttributeOwner::HAPI_ATTROWNER_VERTEX, &TangentInfo);
-	if (TangentInfo.exists)
+	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId,
+		HAPI_UNREAL_ATTRIB_TANGENTU, TangentInfo, TangentData))
 	{
-	TangentData.SetNum(TangentInfo.count);
-	bool TangentDataResult = FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId, HAPI_UNREAL_ATTRIB_TANGENTU, TangentInfo, TangentData);
+		HOUDINI_LOG_MESSAGE(TEXT("Error Creating Skeletal Mesh :  Invalid Tangent Data"));
 	}
 
 	//Materials---------------------------------------------------------------------
@@ -1039,21 +1001,21 @@ void FHoudiniMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 	//LoadInWedgeData
 
 	 //FACES AND WEDGES------------------------------------------------------------------
-	int face_id = 0;
-	int face_idx = 0;
-	int count = 0;
+	int32 face_id = 0;
+	int32 face_idx = 0;
+	int32 count = 0;
 
 	SkeletalMeshImportData::FTriangle Triangle;
-	for (int VertexIndex : VertexData)
+	for (int32 VertexIndex : VertexData)
 	{
 	SkeletalMeshImportData::FVertex Wedge;
 	Wedge.VertexIndex = VertexIndex;
 	//Wedge.VertexIndex = count;  //HACK TO FIX WINDING ORDER
 	//Wedge.Color =
-	if (PointUVData.Num() > VertexIndex)
+	if (PointUVData.Num() > VertexIndex * 3)
 	{
-	    FVector uv0 = PointUVData[VertexIndex];
-	    Wedge.UVs[0] = FVector2D(uv0.X, 1.0f - uv0.Y);
+		FVector uv0 = FVector(PointUVData[VertexIndex * 3], PointUVData[VertexIndex * 3 + 1], PointUVData[VertexIndex * 3 + 2]);
+		Wedge.UVs[0] = FVector2D(uv0.X, 1.0f - uv0.Y);
 	}
 	//Wedge.MatIndex = 
 	SkeletalMeshImportData.Wedges.Add(Wedge);
@@ -1115,8 +1077,8 @@ void FHoudiniMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 
 	SkeletalMeshImportData.bDiffPose = false;
 	SkeletalMeshImportData.bUseT0AsRefPose = false;
-	SkeletalMeshImportData.bHasTangents = false;
-	SkeletalMeshImportData.bHasNormals = false;
+	//SkeletalMeshImportData.bHasTangents = false;
+	//SkeletalMeshImportData.bHasNormals = false;
 	SkeletalMeshImportData.bHasVertexColors = false;
 
 	//FSkeletalMeshImportData TestSkeletalMeshImportData;
