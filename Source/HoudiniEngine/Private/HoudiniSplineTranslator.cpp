@@ -653,39 +653,47 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
 	if (bAddRotations)
 	{
 		CurveRotations.SetNum(NumberOfCVs * 4);
-		for (int32 i = 0; i < Rotations->Num(); i++)
+		for (int32 Idx = 0; Idx < Rotations->Num(); Idx++)
 		{
-			CurveRotations[i * 4 + 0] = (float)(*Rotations)[i].X;
-			CurveRotations[i * 4 + 1] = (float)(*Rotations)[i].Z;
-			CurveRotations[i * 4 + 2] = (float)(*Rotations)[i].Y;
-			CurveRotations[i * 4 + 3] = (float)-(*Rotations)[i].W;
+			// Get current quaternion
+			const FQuat& RotationQuaternion = (*Rotations)[Idx];
+
+			CurveRotations[Idx * 4 + 0] = RotationQuaternion.X;
+			CurveRotations[Idx * 4 + 1] = RotationQuaternion.Z;
+			CurveRotations[Idx * 4 + 2] = RotationQuaternion.Y;
+			CurveRotations[Idx * 4 + 3] = -RotationQuaternion.W;
 		}
 	}
 
 	if (bAddScales3d)
 	{
 		CurveScales.SetNum(NumberOfCVs * 3);
-		for (int32 i = 0; i < Scales3d->Num(); i++)
+		for (int32 Idx = 0; Idx < Scales3d->Num(); Idx++)
 		{
-			CurveScales[i * 3 + 0] = (float)(*Scales3d)[i].X;
-			CurveScales[i * 3 + 1] = (float)(*Scales3d)[i].Z;
-			CurveScales[i * 3 + 2] = (float)(*Scales3d)[i].Y;
+			// Get current scale
+			FVector ScaleVector = (*Scales3d)[Idx];
+			CurveScales[Idx * 3 + 0] = ScaleVector.X;
+			CurveScales[Idx * 3 + 1] = ScaleVector.Z;
+			CurveScales[Idx * 3 + 2] = ScaleVector.Y;
 		}
 	}
 
 	if (bAddRotations || bAddScales3d)
 	{
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetInputCurvePositionsRotationsScales(
-			FHoudiniEngine::Get().GetSession(), CurveNodeId, 0,
-			CurvePositions.GetData(), 0, CurvePositions.Num(), CurveRotations.GetData(), 0, CurveRotations.Num(), CurveScales.GetData(), 0, CurveScales.Num()), false);
+			FHoudiniEngine::Get().GetSession(),
+			CurveNodeId, 0,
+			CurvePositions.GetData(), 0, CurvePositions.Num(),
+			CurveRotations.GetData(), 0, CurveRotations.Num(),
+			CurveScales.GetData(), 0, CurveScales.Num()), false);
 	}
 	else
 	{
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetInputCurvePositions(
-			FHoudiniEngine::Get().GetSession(), CurveNodeId, 0,
+			FHoudiniEngine::Get().GetSession(),
+			CurveNodeId, 0,
 			CurvePositions.GetData(), 0, CurvePositions.Num()), false);
-	}
-	
+	}	
 #endif
 
 	return true;
