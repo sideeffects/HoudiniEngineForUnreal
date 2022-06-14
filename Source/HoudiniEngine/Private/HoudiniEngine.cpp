@@ -686,6 +686,8 @@ FHoudiniEngine::SessionSyncConnect(
 	if (HAPI_RESULT_SUCCESS == FHoudiniApi::IsSessionValid(&Session))
 		return true;
 
+	FHoudiniEngine::Get().SetFirstSessionCreated(true);
+
 	// Consider the session failed as long as we dont connect
 	SetSessionStatus(EHoudiniSessionStatus::Failed);
 
