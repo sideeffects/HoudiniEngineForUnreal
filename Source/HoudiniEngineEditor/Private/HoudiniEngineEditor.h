@@ -56,6 +56,8 @@ enum class EPDGBakeSelectionOption : uint8;
 enum class EPDGBakePackageReplaceModeOption : uint8;
 enum class EPackageReplaceMode : int8;
 
+
+
 class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 {
 	public:
@@ -363,4 +365,7 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 		// (Computing points are time consuming since it uses trigonometric functions)
 		TArray<FVector2D> HoudiniParameterRadioButtonPointsOuter;
 		TArray<FVector2D> HoudiniParameterRadioButtonPointsInner;
+
+		//NodeSync Tab
+		TSharedRef<class SDockTab> OnSpawnNodeSyncTab(const class FSpawnTabArgs& SpawnTabArgs);
 };

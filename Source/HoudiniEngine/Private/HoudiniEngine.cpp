@@ -450,6 +450,83 @@ FHoudiniEngine::GetSessionStatus() const
 	return SessionStatus;
 }
 
+bool
+FHoudiniEngine::GetSessionStatusAndColor(
+	FString& OutStatusString, FLinearColor& OutStatusColor)
+{
+	OutStatusString = FString();
+	OutStatusColor = FLinearColor::White;
+
+	switch (SessionStatus)
+	{
+	case EHoudiniSessionStatus::NotStarted:
+		// Session not initialized yet
+		OutStatusString = TEXT("Houdini Engine Session - Not Started");
+		OutStatusColor = FLinearColor::White;
+		break;
+
+	case EHoudiniSessionStatus::Connected:
+		// Session successfully started
+		OutStatusString = TEXT("Houdini Engine Session READY");
+		OutStatusColor = FLinearColor::Green;
+		break;
+	case EHoudiniSessionStatus::Stopped:
+		// Session stopped
+		OutStatusString = TEXT("Houdini Engine Session STOPPED");
+		OutStatusColor = FLinearColor(1.0f, 0.5f, 0.0f);
+		break;
+	case EHoudiniSessionStatus::Failed:
+		// Session failed to be created/connected
+		OutStatusString = TEXT("Houdini Engine Session FAILED");
+		OutStatusColor = FLinearColor::Red;
+		break;
+	case EHoudiniSessionStatus::Lost:
+		// Session Lost (HARS/Houdini Crash?)
+		OutStatusString = TEXT("Houdini Engine Session LOST");
+		OutStatusColor = FLinearColor::Red;
+		break;
+	case EHoudiniSessionStatus::NoLicense:
+		// Failed to acquire a license
+		OutStatusString = TEXT("Houdini Engine Session FAILED - No License");
+		OutStatusColor = FLinearColor::Red;
+		break;
+	case EHoudiniSessionStatus::None:
+		// Session type set to None
+		OutStatusString = TEXT("Houdini Engine Session DISABLED");
+		OutStatusColor = FLinearColor::White;
+		break;
+	default:
+	case EHoudiniSessionStatus::Invalid:
+		OutStatusString = TEXT("Houdini Engine Session INVALID");
+		OutStatusColor = FLinearColor::Red;
+		break;
+	}
+
+	// Handle a few specific case for active session
+	if (SessionStatus == EHoudiniSessionStatus::Connected)
+	{
+		bool bPaused = !FHoudiniEngine::Get().IsCookingEnabled();
+		bool bSSync = FHoudiniEngine::Get().IsSessionSyncEnabled();
+		if (bPaused)
+		{
+			OutStatusString = TEXT("Houdini Engine Session PAUSED");
+			OutStatusColor = FLinearColor::Yellow;
+		}
+		/*
+		else if (bSSync)
+		{
+			OutStatusString = TEXT("Houdini Engine Session Sync READY");
+			OutStatusColor = FLinearColor::Blue;
+		}
+		*/
+	}
+
+	return true;
+}
+
+
+
+
 void
 FHoudiniEngine::SetSessionStatus(const EHoudiniSessionStatus& InSessionStatus)
 {
