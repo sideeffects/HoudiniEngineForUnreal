@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Copyright (c) <2021> Side Effects Software Inc.
 * All rights reserved.
 *
@@ -26,7 +26,10 @@
 
 #include "UnrealObjectInputRuntimeTypes.h"
 
-#include "CoreUObject.h"
+#include "CoreMinimal.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "Misc/Paths.h"
 
 #include "UnrealObjectInputManager.h"
 

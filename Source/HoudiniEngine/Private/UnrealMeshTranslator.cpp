@@ -95,16 +95,26 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
     USkeletalMesh* SkeletalMesh,
     HAPI_NodeId& InputNodeId,
     const FString& InputNodeName,
+	FUnrealObjectInputHandle& OutHandle,
     USkeletalMeshComponent* SkeletalMeshComponent /* = nullptr */,
     const bool& ExportAllLODs /* = false */,
     const bool& ExportSockets /* = false */,
     const bool& ExportColliders /* = false */)
 {
-
     // If we don't have a static mesh there's nothing to do.
     if (!IsValid(SkeletalMesh))
 		return false;
 
+	// Input node name, defaults to InputNodeName, but can be changed by the new input system
+	FString FinalInputNodeName = InputNodeName;
+
+	// NEW INPUT SYSTEM: Not supported Yet!
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	if (bUseRefCountedInputSystem)
+	{
+		HOUDINI_LOG_WARNING(TEXT("Skeletal Mesh Input: New referenced counted input not supported yet!."), *InputNodeName);
+	}
+	
     // Node ID for the newly created node
     HAPI_NodeId NewNodeId = -1;
 
