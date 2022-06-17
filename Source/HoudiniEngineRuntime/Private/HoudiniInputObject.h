@@ -82,7 +82,7 @@ enum class EHoudiniInputObjectType : uint8
 	FoliageType_InstancedStaticMesh,
 	GeometryCollection,
 	GeometryCollectionComponent,
-	GeometryCollectionActor
+	GeometryCollectionActor_Deprecated
 };
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -318,47 +318,8 @@ public:
 	class UGeometryCollection* GetGeometryCollection();
 };
 
-//-----------------------------------------------------------------------------------------------------------------------------
-// UGeometryCollectionComponent input
-//-----------------------------------------------------------------------------------------------------------------------------
-UCLASS()
-class HOUDINIENGINERUNTIME_API UHoudiniInputGeometryCollectionComponent : public UHoudiniInputObject
-{
-	GENERATED_UCLASS_BODY()
 
-public:
-	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
 
-	//
-	virtual void Update(UObject * InObject) override;
-
-	// GeometryCollection accessor
-	class UGeometryCollectionComponent* GetGeometryCollectionComponent();
-	class UGeometryCollection* GetGeometryCollection();
-};
-
-//-----------------------------------------------------------------------------------------------------------------------------
-// UGeometryCollectionActor input
-//-----------------------------------------------------------------------------------------------------------------------------
-UCLASS()
-class HOUDINIENGINERUNTIME_API UHoudiniInputGeometryCollectionActor : public UHoudiniInputObject
-{
-	GENERATED_UCLASS_BODY()
-
-public:
-
-	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
-
-	//
-	virtual void Update(UObject * InObject) override;
-
-	// GeometryCollection accessor
-	class AGeometryCollectionActor* GetGeometryCollectionActor();
-	class UGeometryCollectionComponent* GetGeometryCollectionComponent();
-	class UGeometryCollection* GetGeometryCollection();
-};
 
 //-----------------------------------------------------------------------------------------------------------------------------
 // USceneComponent input
@@ -520,6 +481,25 @@ public:
 };
 
 
+//-----------------------------------------------------------------------------------------------------------------------------
+// UGeometryCollectionComponent input
+//-----------------------------------------------------------------------------------------------------------------------------
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputGeometryCollectionComponent : public UHoudiniInputSceneComponent
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	//
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName);
+
+	//
+	virtual void Update(UObject* InObject) override;
+
+	// GeometryCollection accessor
+	class UGeometryCollectionComponent* GetGeometryCollectionComponent();
+	class UGeometryCollection* GetGeometryCollection();
+};
 
 //-----------------------------------------------------------------------------------------------------------------------------
 // UHoudiniSplineComponent input
@@ -778,41 +758,6 @@ protected:
 // Cache info for a brush in order to determine whether it has changed.
 
 #define BRUSH_HASH_SURFACE_PROPERTIES 0
-
-//USTRUCT()
-//struct FHoudiniBrushSurfaceInfo {
-//	GENERATED_BODY()
-//
-//	FVector Base;
-//	FVector Normal;
-//	FVector TextureU;
-//	FVector TextureV;
-//	TSoftObjectPtr<UMaterialInterface> Material;
-//
-//	FHoudiniBrushSurfaceInfo(const FVector& InBase, const FVector& InNormal, const FVector& InTextureU, const FVector& InTextureV, UMaterialInterface* InMaterial)
-//		: Base(InBase)
-//		, Normal(InNormal)
-//		, TextureU(InTextureU)
-//		, TextureV(InTextureV)
-//		, Material(InMaterial)
-//	{ }
-//
-//	inline bool operator==(const FHoudiniBrushSurfaceInfo& Other) {
-//		return Base.Equals(Other.Base)
-//			&& Normal.Equals(Other.Normal)
-//			&& TextureU.Equals(Other.TextureU)
-//			&& TextureV.Equals(Other.TextureV)
-//			&& Material.Get() == Other.Material.Get();
-//	}
-//
-//	inline bool operator==(const FPoly& Poly) {
-//		return Base.Equals(Poly.Base)
-//			&& Normal.Equals(Poly.Normal)
-//			&& TextureU.Equals(Poly.TextureU)
-//			&& TextureV.Equals(Poly.TextureV)
-//			&& Material.Get() == Poly.Material;
-//	}
-//};
 
 USTRUCT()
 struct FHoudiniBrushInfo

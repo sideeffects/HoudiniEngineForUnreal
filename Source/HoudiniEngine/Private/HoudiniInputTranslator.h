@@ -170,7 +170,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 
 	static bool HapiCreateInputNodeForSkeletalMesh(
 		const FString& InObjNodeName,
-		UHoudiniInputSkeletalMesh* InObject);
+		UHoudiniInputSkeletalMesh* InObject,
+		const bool& bImportAsReference);
 
 	static bool HapiCreateInputNodeForGeometryCollection(
 		const FString& InObjNodeName,
@@ -180,11 +181,6 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 	static bool HapiCreateInputNodeForGeometryCollectionComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputGeometryCollectionComponent* InObject,
-		const bool& bImportAsReference);
-
-	static bool HapiCreateInputNodeForGeometryCollectionActor(
-		const FString& InObjNodeName,
-		UHoudiniInputGeometryCollectionActor* InObject,
 		const bool& bImportAsReference);
 	
 	static bool	HapiCreateInputNodeForSceneComponent(
