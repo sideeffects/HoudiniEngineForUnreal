@@ -1,10 +1,12 @@
 # Houdini Engine for Unreal - Version 2
 
+> The source code in this branch is intended to be used with Unreal Engine 4.26.2
+
 Welcome to the repository for Version 2 of the Houdini Engine For Unreal Plugin.
 
 This plug-in brings Houdini's powerful and flexible procedural workflow into Unreal Engine through Houdini Digital Assets. Artists can interactively adjust asset parameters inside the editor and use Unreal assets as inputs. Houdini's procedural engine will then "cook" the asset and the results will be available in the editor without the need for baking.
 
-Version 2 is a significant rewrite of the core architecture of the existing Houdini Engine plugin, and comes  with many new features, and improvements.
+Version 2 is a significant rewrite of the core architecture of the existing Houdini Engine plugin, and comes with many new features, and improvements.
 
 Here are some of the new features and improvements currently available:
 
@@ -67,18 +69,9 @@ Please send bug reports, feature requests and questions to [Side FX's support](h
 
 # Compatibility
 
-Currently, [Version 2.0](https://github.com/sideeffects/HoudiniEngineForUnreal-v2/releases) has binaries that have been built for UE4.26 and UE4.25, and is linked with the latest production build of Houdini, H18.5.462.
+Currently, the plugins has [binaries](https://github.com/sideeffects/HoudiniEngineForUnreal/releases) that have been built for UE5.0, UE4.27 and UE4.26, and is linked with the latest production build of Houdini.
 
-Source code for the plugin is available on this repository for UE4.26, UE4.25, UE4.24, UE4.23 and the master branch of Unreal (4.27).
-
-Version 2 is also partially backward compatible with version 1 of the Houdini Engine for Unreal plugin.
-
-When loading a level that contains Houdini objects made with version 1, the plugin will attempt to convert the V1 components, parameters, inputs and outputs to their v2 equivalents.
-
-Some HDAs might need to be rebuilt after the conversion for their parameters and inputs to be displayed properly by the v2 plugin.
-
-The conversion of the legacy v1 data is still in progress and will be improved upon in the future.
-However, the Houdini Digital Assets themselves (the HDA files), that were created for version 1 of the plugin are fully compatible with version 2, as it supports most of version 1 workflows.
+Source code for the H19.0 plugin is available on this repository for UE5.0, UE4.27, UE4.26.
 
 # Installing the plugin
 
@@ -94,8 +87,8 @@ However, the Houdini Digital Assets themselves (the HDA files), that were create
 
 # Building from source
 
-01. Get the UE4 source code from: https://github.com/EpicGames/UnrealEngine/releases
-01. Within the UE4 source, navigate to `Engine/Plugins/Runtime`, and clone this repo into a folder named `HoudiniEngine`.
+01. Get the UE source code from: https://github.com/EpicGames/UnrealEngine/releases
+01. Within the UE source, navigate to `Engine/Plugins/Runtime`, and clone this repo into a folder named `HoudiniEngine`. Alternatively, you can also install the plugin in your project, in the `Plugins/Runtime` directory.
 01. Download and install the correct build of 64-bit Houdini. To get the build number, look at the header of `Source/HoudiniEngine/HoudiniEngine.Build.cs`, under `Houdini Version`.
 01. Generate the UE4 Project Files (by running `GenerateProjectFiles`) and build Unreal, either in x64 `Debug Editor` or x64 `Development Editor`.
 01. When starting the Unreal Engine editor, go to Plug-ins menu and make sure to enable the `HoudiniEngine v2` plug-in (in the `Rendering` section). Restart UE4 if you had to enable it.
