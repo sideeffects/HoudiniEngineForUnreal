@@ -65,7 +65,9 @@ struct SKBuildSettings
     FString CurrentObjectName;
     HAPI_NodeId GeoId = -1;
     HAPI_NodeId PartId = -1;
-	bool ImportNormals = false;;
+	bool ImportNormals = false;
+	bool OverwriteSkeleton = false;
+	FString SkeletonAssetPath = "";
 };
 
 UENUM()

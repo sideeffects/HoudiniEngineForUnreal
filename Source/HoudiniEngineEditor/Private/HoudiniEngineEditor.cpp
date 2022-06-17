@@ -1728,9 +1728,19 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArg
 		HoudiniEditorSubsystem->NodeSync.UnrealPathName = NewPathStr;
 	};
 
+	auto OnSkeletonPathTextCommittedLambda = [](const FText& Val, ETextCommit::Type TextCommitType)
+	{
+		FString NewPathStr = Val.ToString();
+
+		UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
+		HoudiniEditorSubsystem->NodeSync.SkeletonAssetPath = NewPathStr;
+	};
+
+
 	const FSlateFontInfo BoldFontStyle = FCoreStyle::GetDefaultFontStyle("Bold", 14);
 
 	//TSharedPtr<SCheckBox> CheckBoxUseDisplayFlag;
+	TSharedPtr<SCheckBox> CheckBoxUseExistingSkeleton;
 
 	TSharedRef<SDockTab> NodeSyncDock = SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)
@@ -1902,7 +1912,6 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArg
 				+ SHorizontalBox::Slot().HAlign(HAlign_Right)
 					[
 							SNew(SEditableTextBox)
-
 							.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 							.ToolTipText(LOCTEXT("UnrealPathTooltip","Path to the asset in unreal"))
 							.HintText(LOCTEXT("UnrealPathLabel", "Path of Asset In Unreal"))
@@ -1940,10 +1949,61 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArg
 						+ SScrollBox::Slot()
 						[
 							SNew(SBox)
+							.WidthOverride(335.0f)
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("SKOptionsLabel", "Skeletal Mesh Options"))
+							]
 							/*.Padding(FMargin(0, 2, 0, 2))
 							[
 								SAssignNew(Grid, SGridPanel)
 							]*/
+						]
+						+ SScrollBox::Slot()
+						.Padding(0.0f, 0.0f, 0.0f, 3.5f)
+						[
+							SNew(SHorizontalBox)
+							+ SHorizontalBox::Slot().HAlign(HAlign_Left)
+							[
+								SNew(SBox)
+								.WidthOverride(160.f)
+								[
+									SAssignNew(CheckBoxUseExistingSkeleton, SCheckBox)
+									.Content()
+									[
+										SNew(STextBlock).Text(LOCTEXT("OverwriteSkeletonLabel", "Use Existing Skeleton"))
+										.ToolTipText(LOCTEXT("OverwriteSkeletonToolTip", "Use Existing Skeleton"))
+										.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+									]
+									.IsChecked_Lambda([]()
+										{
+											UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
+											return HoudiniEditorSubsystem->NodeSync.OverwriteSkeleton ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+										})
+									.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
+										{
+											const bool bNewState = (NewState == ECheckBoxState::Checked);
+											UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
+											HoudiniEditorSubsystem->NodeSync.OverwriteSkeleton = bNewState;
+
+										})
+								]
+							]
+							+ SHorizontalBox::Slot().HAlign(HAlign_Left)
+							[
+								SNew(SEditableTextBox)
+								.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+								.ToolTipText(LOCTEXT("ExistingSkeletonTooltip", "Path to the skelton asset in unreal"))
+								.HintText(LOCTEXT("ExistingSkeletonLabel", "Path to skeleton asset In Unreal"))
+								.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+								.Text_Lambda([]()
+									{
+										UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
+										return FText::FromString(HoudiniEditorSubsystem->NodeSync.SkeletonAssetPath);
+									})
+								.OnTextCommitted_Lambda(OnSkeletonPathTextCommittedLambda)
+							]
+
 						]
 					]
 				]
@@ -2018,8 +2078,6 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArg
 						.OnTextCommitted_Lambda(OnSendNodePathTextCommittedLambda)
 					]
 				]
-
-
 			//SNew(SBox)
 			//.HAlign(HAlign_Center)
 			//.VAlign(VAlign_Top)
