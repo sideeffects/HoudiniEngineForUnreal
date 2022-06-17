@@ -436,10 +436,10 @@ bool FHoudiniMeshTranslator::HasSkeletalMeshData(const HAPI_NodeId& GeoId, const
 {
 	HAPI_AttributeInfo CaptNamesInfo;
 	FHoudiniApi::AttributeInfo_Init(&CaptNamesInfo);
-	HAPI_Result CaptNamesInfoResult = FHoudiniApi::GetAttributeInfo(
-	FHoudiniEngine::Get().GetSession(),
-	GeoId, PartId,
-	"capt_names", HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &CaptNamesInfo);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeInfo(
+		FHoudiniEngine::Get().GetSession(),
+		GeoId, PartId,
+		"capt_names", HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &CaptNamesInfo), false);
 
 	return CaptNamesInfo.exists;
 }
@@ -856,7 +856,8 @@ void FHoudiniMeshTranslator::CreateSKAssetAndPackage(SKBuildSettings& BuildSetti
 	//BuildSKFromImportData(BuildSettings, Materials);
 }
 
-void FHoudiniMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
+void 
+FHoudiniMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 {
 	HAPI_NodeId GeoId = BuildSettings.GeoId;
 	HAPI_NodeId PartId = BuildSettings.PartId;
@@ -864,10 +865,14 @@ void FHoudiniMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 	//Points-----------------------------------------------------------------------------------
 	HAPI_AttributeInfo PositionInfo;
 	FHoudiniApi::AttributeInfo_Init(&PositionInfo);
-	HAPI_Result PositionInfoResult = FHoudiniApi::GetAttributeInfo(
-	FHoudiniEngine::Get().GetSession(),
+
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeInfo(
+		FHoudiniEngine::Get().GetSession(),
 		GeoId, PartId,
-	HAPI_UNREAL_ATTRIB_POSITION, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, &PositionInfo);
+		HAPI_UNREAL_ATTRIB_POSITION, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, &PositionInfo))
+	{
+		return;
+	}
 
 	TArray<FVector> PositionData;
 	PositionData.SetNum(PositionInfo.count);  //dont need * PositionInfo.tupleSize, its already a vector container
@@ -908,16 +913,16 @@ void FHoudiniMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 	TArray<FVector> NormalData;
 	if (NormalInfo.exists)
 	{
-	NormalData.SetNum(NormalInfo.count);  //dont need * PositionInfo.tupleSize, its already a vector container
-	//FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId, HAPI_UNREAL_ATTRIB_POSITION, PositionInfo, PositionData);
-	FHoudiniApi::GetAttributeFloatData(FHoudiniEngine::Get().GetSession(),
-	    GeoId, PartId, HAPI_UNREAL_ATTRIB_NORMAL,
-	    &NormalInfo, -1, (float*)&NormalData[0], 0, NormalInfo.count);
+		NormalData.SetNum(NormalInfo.count);  //dont need * PositionInfo.tupleSize, its already a vector container
+		//FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId, HAPI_UNREAL_ATTRIB_POSITION, PositionInfo, PositionData);
+		FHoudiniApi::GetAttributeFloatData(FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, HAPI_UNREAL_ATTRIB_NORMAL,
+			&NormalInfo, -1, (float*)&NormalData[0], 0, NormalInfo.count);
 	}
 	else
 	{
-	bUseComputedNormals = true;
-	//Use Computed Normals
+		bUseComputedNormals = true;
+		//Use Computed Normals
 	}
 
 	//Tangents---------------------------------------------------------------------
