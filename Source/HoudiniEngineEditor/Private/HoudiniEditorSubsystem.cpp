@@ -29,14 +29,9 @@ void UHoudiniEditorSubsystem::CreateSessionHDA()
     object_node_id = UnrealContentNode;
 }
 
-void UHoudiniEditorSubsystem::SendStaticMeshToHoudini(UStaticMesh* StaticMesh)
+void UHoudiniEditorSubsystem::SendStaticMeshToHoudini(HAPI_NodeId mesh_node_id,UStaticMesh* StaticMesh)
 {
-    FString SKName = TEXT("StaticMesh_") + StaticMesh->GetName();
-    HAPI_NodeId mesh_node_id;
- 
-    HAPI_Result result;
-    result = FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), object_node_id, "null", TCHAR_TO_ANSI(*SKName), true, &mesh_node_id);
-
+  
     int32 LODIndex = 0;
     FStaticMeshSourceModel& SrcModel = StaticMesh->GetSourceModel(LODIndex);
     //FUnrealMeshTranslator::CreateInputNodeForRawMesh(mesh_node_id, SrcModel, LODIndex, false, StaticMesh, nullptr);
@@ -44,19 +39,16 @@ void UHoudiniEditorSubsystem::SendStaticMeshToHoudini(UStaticMesh* StaticMesh)
     MeshDesc = StaticMesh->GetMeshDescription(LODIndex);
     FUnrealMeshTranslator::CreateInputNodeForMeshDescription(mesh_node_id, *MeshDesc, LODIndex, false, StaticMesh, nullptr);
     //bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(SM, InObject->InputNodeId, SMCName, SMC, bExportLODs, bExportSockets, bExportColliders);
-
+   
+    HAPI_Result result;
     result = FHoudiniApi::SetNodeDisplay(FHoudiniEngine::Get().GetSession(), mesh_node_id, 1);
 
     HAPI_Result ResultCommit = FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), mesh_node_id);
 }
 
-void UHoudiniEditorSubsystem::SendSkeletalMeshToHoudini(USkeletalMesh* SkelMesh)
+void UHoudiniEditorSubsystem::SendSkeletalMeshToHoudini(HAPI_NodeId mesh_node_id,USkeletalMesh* SkelMesh)
 {
     HAPI_Result result;
-    FString SKName = TEXT("SkeletalMesh_") + SkelMesh->GetName();
-    HAPI_NodeId mesh_node_id;
-    result = FHoudiniApi::CreateNode(
-	FHoudiniEngine::Get().GetSession(), object_node_id, "null", TCHAR_TO_ANSI(*SKName), true, &mesh_node_id);
     FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(SkelMesh, mesh_node_id);
 
     result = FHoudiniApi::SetNodeDisplay(FHoudiniEngine::Get().GetSession(), mesh_node_id, 1);
@@ -74,20 +66,45 @@ void UHoudiniEditorSubsystem::SendToHoudini(const TArray<FAssetData>& SelectedAs
 	    CreateSessionHDA();
     }
 
+    //FString SendNodePath = "/obj/UnrealContent";
+    UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
+    FString SendNodePath = HoudiniEditorSubsystem->NodeSync.SendNodePath;
+
+    HAPI_NodeId mesh_node_id;
+    HAPI_Result result;
+    HAPI_NodeId  UnrealContentNode = -1;
+    result = FHoudiniApi::GetNodeFromPath(FHoudiniEngine::Get().GetSession(), -1, TCHAR_TO_ANSI(*SendNodePath), &UnrealContentNode);
+
+    if ((result == HAPI_RESULT_SUCCESS) && (UnrealContentNode >= 0))
+    {
+        //HOUDINI_LOG_MESSAGE(TEXT("Sending Node To %s "), *SendNodePath);
+        HOUDINI_LOG_MESSAGE(TEXT("Sending Node"));
+    }
+    else
+    {
+        FString Name = SendNodePath;
+        Name.RemoveFromStart("/obj/");
+        result = FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), -1, "Object/geo", TCHAR_TO_ANSI(*Name), true, &UnrealContentNode);
+    }
+
+
     USkeletalMesh* SkelMesh = Cast<USkeletalMesh>(SelectedAssets[0].GetAsset());
 
     if (SkelMesh)
     {
-	SendSkeletalMeshToHoudini(SkelMesh);
+        FString SKName = TEXT("SkeletalMesh_") + SkelMesh->GetName();
+        result = FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), UnrealContentNode, "null", TCHAR_TO_ANSI(*SKName), true, &mesh_node_id);
+        SendSkeletalMeshToHoudini(mesh_node_id, SkelMesh);
     }
     else
     {
-	UStaticMesh* StaticMesh = Cast<UStaticMesh>(SelectedAssets[0].GetAsset());
-
-	if (StaticMesh)
-	{
-	    SendStaticMeshToHoudini(StaticMesh);
-	}
+	    UStaticMesh* StaticMesh = Cast<UStaticMesh>(SelectedAssets[0].GetAsset());
+	    if (StaticMesh)
+	    {
+            FString SKName = TEXT("StaticMesh_") + StaticMesh->GetName();
+            result = FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), UnrealContentNode, "null", TCHAR_TO_ANSI(*SKName), true, &mesh_node_id);
+	        SendStaticMeshToHoudini(mesh_node_id, StaticMesh);
+	    }
     }
 }
 
@@ -110,17 +127,42 @@ void UHoudiniEditorSubsystem::DumpSessionInfo()
 
 }
 
+void UHoudiniEditorSubsystem::Fetch()
+{
+    SendToUnreal(NodeSync.UnrealAssetName, NodeSync.UnrealPathName);
+}
 
-
-void UHoudiniEditorSubsystem::SendToUnreal(FString PackageName, FString PackageFolder, int MaxInfluences=1, bool ImportNormals=false)
+void UHoudiniEditorSubsystem::SendToUnreal(FString PackageName, FString PackageFolder, int MaxInfluences, bool ImportNormals)
 {
     GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Importing To Unreal!"));
 
+    //FString SendNodePath = "/obj/UnrealContent";
+    UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
+    FString FetchNodePath = HoudiniEditorSubsystem->NodeSync.FetchNodePath;
+
     HAPI_Result result;
-    HAPI_GeoInfo DisplayHapiGeoInfo;
-    FHoudiniApi::GeoInfo_Init(&DisplayHapiGeoInfo);
-    result = FHoudiniApi::GetDisplayGeoInfo(FHoudiniEngine::Get().GetSession(), object_node_id, &DisplayHapiGeoInfo);
-    result = FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), DisplayHapiGeoInfo.nodeId, nullptr);
+    HAPI_NodeId  UnrealContentNode = -1;
+
+    if (HoudiniEditorSubsystem->NodeSync.UseDisplayFlag)
+    {
+        HAPI_GeoInfo DisplayHapiGeoInfo;
+        FHoudiniApi::GeoInfo_Init(&DisplayHapiGeoInfo);
+        result = FHoudiniApi::GetDisplayGeoInfo(FHoudiniEngine::Get().GetSession(), object_node_id, &DisplayHapiGeoInfo);
+        UnrealContentNode = DisplayHapiGeoInfo.nodeId;
+    }
+    else
+    {
+        result = FHoudiniApi::GetNodeFromPath(FHoudiniEngine::Get().GetSession(), -1, TCHAR_TO_ANSI(*FetchNodePath), &UnrealContentNode);
+
+        if ((result != HAPI_RESULT_SUCCESS) || (UnrealContentNode < 0))
+        {
+            //HOUDINI_LOG_MESSAGE(TEXT("Sending Node To %s "), *SendNodePath);
+            HOUDINI_LOG_MESSAGE(TEXT("Invalid FetchNodePath"));
+            return;
+        }
+    }
+    result = FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), UnrealContentNode, nullptr);
+
     //Determine if Skeletal by presence of capt_xforms detail attribute
     int32 PartId = 0;  //multiple parts broken only do first part to get working
     HAPI_AttributeInfo CaptXFormsInfo;
@@ -128,36 +170,35 @@ void UHoudiniEditorSubsystem::SendToUnreal(FString PackageName, FString PackageF
 
     HAPI_Result CaptXFormsInfoResult = FHoudiniApi::GetAttributeInfo(
 	FHoudiniEngine::Get().GetSession(),
-	DisplayHapiGeoInfo.nodeId, PartId,
+    UnrealContentNode, PartId,
 	"capt_xforms", HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &CaptXFormsInfo);
 
     if (CaptXFormsInfo.exists)
     {
-	    SendSkeletalMeshToUnreal(PackageName, PackageFolder, MaxInfluences, ImportNormals);
+	    SendSkeletalMeshToUnreal(UnrealContentNode, PackageName, PackageFolder, MaxInfluences, ImportNormals);
     }
     else
     {
-	    SendStaticMeshToUnreal(PackageName, PackageFolder);
+	    SendStaticMeshToUnreal(UnrealContentNode, PackageName, PackageFolder);
     }
 }
 
-void UHoudiniEditorSubsystem::SendSkeletalMeshToUnreal(FString PackageName, FString PackageFolder, int MaxInfluences = 1, bool ImportNormals = false)
+void UHoudiniEditorSubsystem::SendSkeletalMeshToUnreal(HAPI_NodeId NodeId, FString PackageName, FString PackageFolder, int MaxInfluences = 1, bool ImportNormals = false)
 {
     HAPI_Result result;
 
-    HAPI_GeoInfo DisplayHapiGeoInfo;
-    FHoudiniApi::GeoInfo_Init(&DisplayHapiGeoInfo);
-    result = FHoudiniApi::GetDisplayGeoInfo(FHoudiniEngine::Get().GetSession(), object_node_id, &DisplayHapiGeoInfo);
-    FString NodeName;
-    {
-	FHoudiniEngineString hapiSTR(DisplayHapiGeoInfo.nameSH);
-	hapiSTR.ToFString(NodeName);
-    }
+    //HAPI_GeoInfo DisplayHapiGeoInfo;
+    //FHoudiniApi::GeoInfo_Init(&DisplayHapiGeoInfo);
+    //result = FHoudiniApi::GetDisplayGeoInfo(FHoudiniEngine::Get().GetSession(), object_node_id, &DisplayHapiGeoInfo);
+
+    HAPI_NodeInfo MyNodeInfo = FHoudiniApi::NodeInfo_Create();
+    result = FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeId, &MyNodeInfo);
+    FString NodeName = FHoudiniEngineUtils::HapiGetString(MyNodeInfo.nameSH);
 
     // Get the AssetInfo
     HAPI_AssetInfo AssetInfo;
     FHoudiniApi::AssetInfo_Init(&AssetInfo);
-    result = FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), DisplayHapiGeoInfo.nodeId, &AssetInfo);
+    result = FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), NodeId, &AssetInfo);
 
     FString UniqueName;
     FHoudiniEngineUtils::GetHoudiniAssetName(AssetInfo.nodeId, UniqueName);
@@ -184,9 +225,9 @@ void UHoudiniEditorSubsystem::SendSkeletalMeshToUnreal(FString PackageName, FStr
     FString FullPackageName = PackageFolder + TEXT("/") + PackageName;
     SKBuildSettings skBuildSettings;
     skBuildSettings.CurrentObjectName = NodeName;
-    skBuildSettings.GeoId = DisplayHapiGeoInfo.nodeId;
+    skBuildSettings.GeoId = NodeId;
     skBuildSettings.PartId = PartId;
-    FHoudiniMeshTranslator::CreateSKAssetAndPackage(skBuildSettings, DisplayHapiGeoInfo.nodeId, PartId, FullPackageName, MaxInfluences, ImportNormals);
+    FHoudiniMeshTranslator::CreateSKAssetAndPackage(skBuildSettings, NodeId, PartId, FullPackageName, MaxInfluences, ImportNormals);
     TArray<FSkeletalMaterial> Materials;
     FSkeletalMaterial Mat;
     Materials.Add(Mat);
@@ -195,24 +236,35 @@ void UHoudiniEditorSubsystem::SendSkeletalMeshToUnreal(FString PackageName, FStr
     //BuildSKFromImportData(SkeletalMeshImportData, Materials, MySkeleton, PackageName, NewMesh, Package);
 }
 
-void UHoudiniEditorSubsystem::SendStaticMeshToUnreal(FString PackageName, FString PackageFolder)
+void UHoudiniEditorSubsystem::SendStaticMeshToUnreal(HAPI_NodeId NodeId, FString PackageName, FString PackageFolder)
 {
     HAPI_Result result;
     // Get the Display Geo's info
     HAPI_GeoInfo DisplayHapiGeoInfo;
     FHoudiniApi::GeoInfo_Init(&DisplayHapiGeoInfo);
-    result = FHoudiniApi::GetDisplayGeoInfo(FHoudiniEngine::Get().GetSession(), object_node_id, &DisplayHapiGeoInfo);
+    
+    
+    //result = FHoudiniApi::GetDisplayGeoInfo(FHoudiniEngine::Get().GetSession(), object_node_id, &DisplayHapiGeoInfo);
+    result = FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), NodeId, &DisplayHapiGeoInfo);
     if (result != HAPI_RESULT_SUCCESS)
     {
-        HOUDINI_LOG_MESSAGE(TEXT("GetDisplayGeoInfo FAILURE trying to get object_node_id %i "), object_node_id);
+        HOUDINI_LOG_MESSAGE(TEXT("GetDisplayGeoInfo FAILURE trying to get object_node_id %i "), NodeId);
         return;
     }
-    result = FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), DisplayHapiGeoInfo.nodeId, nullptr);
+
+
+
+
+    result = FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), NodeId, nullptr);
+
+    HAPI_NodeInfo MyNodeInfo = FHoudiniApi::NodeInfo_Create();
+    result = FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeId, &MyNodeInfo);
+    FString NodeName = FHoudiniEngineUtils::HapiGetString(MyNodeInfo.nameSH);
 
     // Get the AssetInfo
     HAPI_AssetInfo AssetInfo;
     FHoudiniApi::AssetInfo_Init(&AssetInfo);
-    result = FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), DisplayHapiGeoInfo.nodeId, &AssetInfo);
+    result = FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), NodeId, &AssetInfo);
 
     // Get the ObjectInfo
     HAPI_ObjectInfo ObjectInfo;
@@ -227,7 +279,7 @@ void UHoudiniEditorSubsystem::SendStaticMeshToUnreal(FString PackageName, FStrin
 	FHoudiniApi::PartInfo_Init(&CurrentHapiPartInfo);
 
 	result = FHoudiniApi::GetPartInfo(
-	    FHoudiniEngine::Get().GetSession(), DisplayHapiGeoInfo.nodeId, PartId, &CurrentHapiPartInfo);
+	    FHoudiniEngine::Get().GetSession(), NodeId, PartId, &CurrentHapiPartInfo);
 
 
 	FString CurrentAssetName;
@@ -244,7 +296,7 @@ void UHoudiniEditorSubsystem::SendStaticMeshToUnreal(FString PackageName, FStrin
 
 	FString CurrentGeoName;
 	{
-	    FHoudiniEngineString hapiSTR(DisplayHapiGeoInfo.nameSH);
+	    FHoudiniEngineString hapiSTR(MyNodeInfo.nameSH);
 	    hapiSTR.ToFString(CurrentGeoName);
 	}
 
@@ -267,7 +319,7 @@ void UHoudiniEditorSubsystem::SendStaticMeshToUnreal(FString PackageName, FStrin
 	currentHGPO.ObjectId = ObjectInfo.nodeId;
 	currentHGPO.ObjectName = CurrentObjectName;
 
-	currentHGPO.GeoId = DisplayHapiGeoInfo.nodeId;;
+	currentHGPO.GeoId = NodeId;
 
 	currentHGPO.PartId = CurrentHapiPartInfo.id;
 

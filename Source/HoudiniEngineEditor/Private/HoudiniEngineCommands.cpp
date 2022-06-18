@@ -83,6 +83,9 @@ FHoudiniEngineCommands::RegisterCommands()
 	UI_COMMAND(_ViewportSyncHoudini, "Sync Houdini to Unreal", "Sync the Houdini viewport to Unreal's.", EUserInterfaceActionType::Check, FInputChord());
 	UI_COMMAND(_ViewportSyncBoth, "Both", "Sync both Unreal and Houdini's viewport.", EUserInterfaceActionType::Check, FInputChord());
 
+	//NodeSync
+	UI_COMMAND(_OpenNodeSync, "Open Houdini Node Sync", "Opens Node Sync Panel.", EUserInterfaceActionType::Button, FInputChord());
+
 	// PDG Import Commandlet
 	UI_COMMAND(_StartPDGCommandlet, "Start Async Importer", "Start the commandlet that imports PDG BGEO results in the background.", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND(_StopPDGCommandlet, "Stop Async Importer", "Stops the commandlet that imports PDG BGEO results in the background.", EUserInterfaceActionType::Button, FInputChord());
@@ -1136,6 +1139,34 @@ FHoudiniEngineCommands::CloseSessionSync()
 		FPlatformProcess::TerminateProc(PreviousHESS, true);
 	}
 }
+
+void
+FHoudiniEngineCommands::OpenNodeSync()
+{
+	//if (!FHoudiniEngine::Get().StopSession())
+	//{
+	//	// StopSession returns false only if Houdini is not initialized
+	//	HOUDINI_LOG_ERROR(TEXT("Failed to stop Session Sync - HAPI Not initialized"));
+	//	return;
+	//}
+
+	//// Add a slate notification
+	//FString Notification = TEXT("Stopping Houdini Session Sync...");
+	//FHoudiniEngineUtils::CreateSlateNotification(Notification);
+
+	//// ... and a log message
+	//HOUDINI_LOG_MESSAGE(TEXT("Stopping Houdini Session Sync."));
+
+	//// Stop Houdini Session sync if it is still running!
+	//FProcHandle PreviousHESS = FHoudiniEngine::Get().GetHESSProcHandle();
+	//if (FPlatformProcess::IsProcRunning(PreviousHESS))
+	//{
+	//	FPlatformProcess::TerminateProc(PreviousHESS, true);
+	//}
+	FGlobalTabmanager::Get()->TryInvokeTab(NodeSyncTabName);
+	return;
+}
+
 
 void
 FHoudiniEngineCommands::SetViewportSync(const int32& ViewportSync)

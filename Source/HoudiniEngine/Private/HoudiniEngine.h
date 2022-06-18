@@ -84,6 +84,8 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 
 		virtual const EHoudiniSessionStatus& GetSessionStatus() const;
 
+		bool GetSessionStatusAndColor(FString& OutStatusString, FLinearColor& OutStatusColor);
+
 		virtual void SetSessionStatus(const EHoudiniSessionStatus& InSessionStatus);
 
 		// Default cook options

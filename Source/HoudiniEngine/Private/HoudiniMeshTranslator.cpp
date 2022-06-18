@@ -314,13 +314,13 @@ void FHoudiniMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSetting
 
 	for (SkeletalMeshImportData::FMaterial SkeletalImportMaterial : SkeletalMeshImportData.Materials)
 	{
-	UMaterialInterface* MaterialInterface;
-	MaterialInterface = Cast<UMaterialInterface>(
-	    StaticLoadObject(UMaterialInterface::StaticClass(),
-		nullptr, *SkeletalImportMaterial.MaterialImportName, nullptr, LOAD_NoWarn, nullptr));
-	FSkeletalMaterial SkeletalMaterial;
-	SkeletalMaterial.MaterialInterface = MaterialInterface;
-	BuildSettings.SKMesh->Materials.Add(SkeletalMaterial);
+		UMaterialInterface* MaterialInterface;
+		MaterialInterface = Cast<UMaterialInterface>(
+			StaticLoadObject(UMaterialInterface::StaticClass(),
+			nullptr, *SkeletalImportMaterial.MaterialImportName, nullptr, LOAD_NoWarn, nullptr));
+		FSkeletalMaterial SkeletalMaterial;
+		SkeletalMaterial.MaterialInterface = MaterialInterface;
+		BuildSettings.SKMesh->GetMaterials().Add(SkeletalMaterial);
 	}
 
 	//NewMesh->RefSkeleton = Mesh->RefSkeleton; //bool SkeletalMeshHelper::ProcessImportMeshSkeleton(
