@@ -34,14 +34,11 @@
 
 #include "UnrealObjectInputRuntimeTypes.h"
 
-#include "Animation/AttributesContainer.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Engine/SkeletalMesh.h"
-
 #include "GeometryCollection/GeometryCollectionClusteringUtility.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionDebugDrawComponent.h"
-
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
 #include "Materials/Material.h"
