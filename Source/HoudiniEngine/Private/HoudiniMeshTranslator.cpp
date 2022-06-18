@@ -339,7 +339,7 @@ void FHoudiniMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSetting
 	NewLODInfo.LODHysteresis = 0.02f;
 	BuildSettings.SKMesh->SetImportedBounds(FBoxSphereBounds(BoundingBox));
 	// Store whether or not this mesh has vertex colors
-	BuildSettings.SKMesh->bHasVertexColors = SkeletalMeshImportData.bHasVertexColors;
+	BuildSettings.SKMesh->SetHasVertexColors(SkeletalMeshImportData.bHasVertexColors);
 	//NewMesh->VertexColorGuid = Mesh->bHasVertexColors ? FGuid::NewGuid() : FGuid();
 
 	// Pass the number of texture coordinate sets to the LODModel.  Ensure there is at least one UV coord
@@ -509,23 +509,11 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 		UnrealSKImportScale.Add(100.0f);
 	}
 	BuildSettings.ImportScale = UnrealSKImportScale[0];
-	//Unreal Skeleton------------------------------------------------------------------------------------
-	HAPI_AttributeInfo UnrealSkeletonInfo;
-	FHoudiniApi::AttributeInfo_Init(&UnrealSkeletonInfo);
-
-	HAPI_Result UnrealSkeletonInfoResult = FHoudiniApi::GetAttributeInfo(
-		FHoudiniEngine::Get().GetSession(),
-		GeoId, PartId,
-		"unreal_skeleton", HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &UnrealSkeletonInfo);
-
 	USkeleton* MySkeleton = nullptr;
 
 	TArray<FString> CaptNamesData;
 	TArray<FString> CaptNamesAltData;
-
-	BuildSettings.bIsNewSkeleton = !UnrealSkeletonInfo.exists;
-	//if ((UnrealSkeletonInfo.exists == false) && (!IsValid(BuildSettings.Skeleton)))
-	if (UnrealSkeletonInfo.exists == false) 
+	if (BuildSettings.bIsNewSkeleton)
 	{
 		//use the pre-created new asset 
 		if (IsValid(BuildSettings.Skeleton))
@@ -697,13 +685,25 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 	else  //use existing skeleton asset
 	{
 		MySkeleton = BuildSettings.Skeleton;
-		TArray<FString> UnrealSkeletonData;
-		FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, "unreal_skeleton", UnrealSkeletonInfo, UnrealSkeletonData);
-		if (UnrealSkeletonData.Num() <= 0)
+		FString SkeletonAssetPathString;
+		if ((BuildSettings.OverwriteSkeleton) && (!BuildSettings.SkeletonAssetPath.IsEmpty()))  //Panel NodeSync Settings Overrides unreal_skeleton  Attribute
 		{
-			return nullptr;
+			SkeletonAssetPathString = BuildSettings.SkeletonAssetPath;
 		}
-		const FSoftObjectPath SkeletonAssetPath(UnrealSkeletonData[0]);
+		else
+		{
+			HAPI_AttributeInfo UnrealSkeletonInfo;
+			FHoudiniApi::AttributeInfo_Init(&UnrealSkeletonInfo);
+			TArray<FString> UnrealSkeletonData;
+			FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, "unreal_skeleton", UnrealSkeletonInfo, UnrealSkeletonData);
+			if (UnrealSkeletonData.Num() <= 0)
+			{
+				return nullptr;
+			}
+
+			SkeletonAssetPathString = UnrealSkeletonData[0];
+		}
+		const FSoftObjectPath SkeletonAssetPath(SkeletonAssetPathString);
 		MySkeleton = Cast<USkeleton>(SkeletonAssetPath.TryLoad());
 		if (!IsValid(MySkeleton))
 		{
@@ -735,7 +735,7 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 		FHoudiniEngine::Get().GetSession(),
 		GeoId, PartId,
 		"boneCapture", HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, &BoneCaptureInfo);
-	TArray<float> BoneCaptureData;  //if not fbx imported, these indexes match CaptNamesAltData sorting
+	TArray<float> BoneCaptureData;	//if not fbx imported, these indexes match CaptNamesAltData sorting
 	FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId, "boneCapture", BoneCaptureInfo, BoneCaptureData);
 	SkeletalMeshImportData::FRawBoneInfluence RawBoneInfluence;
 	RawBoneInfluence.BoneIndex = 0;
@@ -747,17 +747,6 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 	float sum = 0;
 	int32 bonecount = 0;
 
-
-	//   TArray<int> BoneIndexes;
-	//   TArray<int> VertIndexes;
-	//   TArray<float> Weights;
-	//   //Stored in float array Bone|Weight 
-	//   //Total Number of influences is  BoneCaptureInfo.tupleSize/2
-	//   for (float BoneCapture : BoneCaptureData)
-	//   {
-	   //CaptureCount++;
-	//   }
-	   //Hardcode other bones to 0;
 
 	FString BoneName;
 	int firstinfluence = 0;
@@ -825,18 +814,45 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 void FHoudiniMeshTranslator::CreateSKAssetAndPackage(SKBuildSettings& BuildSettings, const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, FString PackageName, int MaxInfluences, bool ImportNormals)
 {
 	FString SKMeshName = FPackageName::GetShortName(PackageName);
-	UPackage* Package = CreatePackage(NULL, *PackageName);
+	//UPackage* Package = CreatePackage(nullptr, *PackageName);
+	UPackage* Package = CreatePackage(*PackageName);
 	Package->FullyLoad();
 	USkeletalMesh* NewMesh = nullptr;
 	NewMesh = NewObject<USkeletalMesh>(Package, FName(*SKMeshName), RF_Public | RF_Standalone | RF_MarkAsRootSet);
 
-	FString SkeltonPackageName = PackageName + "Skeleton";
-	FString SkeletonName = FPackageName::GetShortName(SkeltonPackageName);
-	UPackage* SkeletonPackage = CreatePackage(NULL, *SkeltonPackageName);
-	SkeletonPackage->FullyLoad();
-	USkeleton* NewSkeleton = nullptr;
-	NewSkeleton = NewObject<USkeleton>(SkeletonPackage, FName(*SkeletonName), RF_Public | RF_Standalone | RF_MarkAsRootSet);
 
+
+	//Unreal Skeleton------------------------------------------------------------------------------------
+	HAPI_AttributeInfo UnrealSkeletonInfo;
+	FHoudiniApi::AttributeInfo_Init(&UnrealSkeletonInfo);
+
+	HAPI_Result UnrealSkeletonInfoResult = FHoudiniApi::GetAttributeInfo(
+		FHoudiniEngine::Get().GetSession(),
+		GeoId, PartId,
+		"unreal_skeleton", HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &UnrealSkeletonInfo);
+
+	USkeleton* MySkeleton = nullptr;
+
+	TArray<FString> CaptNamesData;
+	TArray<FString> CaptNamesAltData;
+
+	BuildSettings.bIsNewSkeleton = !UnrealSkeletonInfo.exists;
+
+	if ((BuildSettings.OverwriteSkeleton) && (!BuildSettings.SkeletonAssetPath.IsEmpty()))  //Panel NodeSync Settings Overrides unreal_skeleton  Attribute
+	{
+		BuildSettings.bIsNewSkeleton = false;
+	}
+
+	if (BuildSettings.bIsNewSkeleton)
+	{
+		FString SkeltonPackageName = PackageName + "Skeleton";
+		FString SkeletonName = FPackageName::GetShortName(SkeltonPackageName);
+		UPackage* SkeletonPackage = CreatePackage(*SkeltonPackageName);
+		SkeletonPackage->FullyLoad();
+		USkeleton* NewSkeleton = nullptr;
+		NewSkeleton = NewObject<USkeleton>(SkeletonPackage, FName(*SkeletonName), RF_Public | RF_Standalone | RF_MarkAsRootSet);
+		BuildSettings.Skeleton = NewSkeleton;
+	}
 
 	//Skeleton
 	//USkeleton* MySkeleton = FHoudiniMeshTranslator::CreateOrUpdateSkeleton(BuildSettings, GeoId, PartId, SkeletalMeshImportData);
@@ -845,9 +861,11 @@ void FHoudiniMeshTranslator::CreateSKAssetAndPackage(SKBuildSettings& BuildSetti
 	BuildSettings.PartId = PartId;
 	BuildSettings.SKMesh = NewMesh;
 	BuildSettings.SKPackage = Package;
-	BuildSettings.Skeleton = NewSkeleton;
 	FHoudiniMeshTranslator::CreateOrUpdateSkeleton(BuildSettings);
 	SKImportData(BuildSettings);
+
+
+
 	//Materials
 	/*TArray<FSkeletalMaterial> Materials;
 	FSkeletalMaterial Mat;
@@ -1093,91 +1111,6 @@ FHoudiniMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 
 }
 
-void FHoudiniMeshTranslator::DumpInfoForOwner(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, HAPI_AttributeOwner Owner)
-{
-	HOUDINI_LOG_MESSAGE(TEXT("DumpInfoForOwner:  %i"), (int)Owner);
-	bool bUV1Exists = FHoudiniEngineUtils::HapiCheckAttributeExists(GeoId, PartId, "uv1");
-
-	// Get the part info to get the attribute counts for the part
-	HAPI_PartInfo PartInfo;
-	FHoudiniApi::PartInfo_Init(&PartInfo);
-	FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), GeoId, PartId, &PartInfo);
-
-	int32 nAttribCount = PartInfo.attributeCounts[Owner];
-
-	// Get all attribute names for that part
-	TArray<HAPI_StringHandle> AttribNameSHArray;
-	AttribNameSHArray.SetNum(nAttribCount);
-	HAPI_Result Result = FHoudiniApi::GetAttributeNames(FHoudiniEngine::Get().GetSession(), GeoId, PartId, Owner, AttribNameSHArray.GetData(), nAttribCount);
-	if (Result == HAPI_Result::HAPI_RESULT_SUCCESS)
-	{
-
-	TArray<FString> AttribNameArray;
-	FHoudiniEngineString::SHArrayToFStringArray(AttribNameSHArray, AttribNameArray);
-
-	for (FString AttString : AttribNameArray)
-	{
-	    HAPI_AttributeInfo AttribInfo;
-	    FHoudiniApi::AttributeInfo_Init(&AttribInfo);
-
-	    HAPI_Result AttributeInfoResult = FHoudiniApi::GetAttributeInfo(
-		FHoudiniEngine::Get().GetSession(),
-		GeoId, PartId,
-		TCHAR_TO_ANSI(*AttString), Owner, &AttribInfo);
-
-
-	    TArray<float> OutData;
-	    if (AttribInfo.storage == HAPI_StorageType::HAPI_STORAGETYPE_FLOAT)
-	    {
-		if (AttribInfo.totalArrayElements <= 1)
-		{
-		    bool AttribDataResult = FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId, TCHAR_TO_ANSI(*AttString), AttribInfo, OutData, AttribInfo.tupleSize, Owner);
-		    if (!AttribDataResult)
-		    {
-			HOUDINI_LOG_MESSAGE(TEXT("DumpInfoForOwner:  Error Getting Data"));
-		    }
-		}
-
-		if (AttribInfo.totalArrayElements > 0)
-		{
-		    TArray<float> XFormsData;
-		    TArray<int> SizesFixedArray;
-		    XFormsData.SetNum(AttribInfo.totalArrayElements);
-		    SizesFixedArray.SetNum(AttribInfo.count);
-		    HAPI_Result CaptNamesDataResult2 = FHoudiniApi::GetAttributeFloatArrayData(FHoudiniEngine::Get().GetSession(), GeoId, PartId, "capt_xforms", &AttribInfo, &XFormsData[0], AttribInfo.totalArrayElements, &SizesFixedArray[0], 0, AttribInfo.count);
-
-		}
-	    }
-
-	    if (AttribInfo.storage == HAPI_StorageType::HAPI_STORAGETYPE_STRING)
-	    {
-		if (AttribInfo.totalArrayElements > 0)
-		{
-		    TArray<FString> CaptNamesData;
-		    // Extract the StringHandles
-		    TArray<HAPI_StringHandle> StringHandles;
-		    TArray<int> SizesFixedArray;
-		    SizesFixedArray.SetNum(AttribInfo.totalArrayElements);
-		    //StringHandles.Init(-1, AttribInfo.count * AttribInfo.tupleSize);
-		    StringHandles.Init(-1, AttribInfo.totalArrayElements);
-
-		    HAPI_Result CaptNamesDataResult2 = FHoudiniApi::GetAttributeStringArrayData(FHoudiniEngine::Get().GetSession(), GeoId, PartId, "capt_names", &AttribInfo, &StringHandles[0], AttribInfo.totalArrayElements, &SizesFixedArray[0], 0, AttribInfo.count);
-
-		    // Set the output data size
-		    CaptNamesData.SetNum(StringHandles.Num());
-
-		    // Convert the StringHandles to FString.
-		    // using a map to minimize the number of HAPI calls
-		    FHoudiniEngineString::SHArrayToFStringArray(StringHandles, CaptNamesData);
-		}
-	    }
-
-	    HOUDINI_LOG_MESSAGE(TEXT("Attribute:  %s  tupleSize: %i totalArrayElements : %i DataSize: %i "), *AttString, AttribInfo.tupleSize, AttribInfo.totalArrayElements, OutData.Num());
-	    //HOUDINI_LOG_MESSAGE(TEXT("PostSpawnActor %s, supplied Asset = 0x%0.8p"), *NewActor->GetName(), Asset);
-	}
-	}
-	HOUDINI_LOG_MESSAGE(TEXT("DumpInfoForOwner Finished"));
-}
 
 void FHoudiniMeshTranslator::ExportSkeletalMeshAssets(UHoudiniOutput* InOutput)
 {
@@ -1189,16 +1122,6 @@ void FHoudiniMeshTranslator::ExportSkeletalMeshAssets(UHoudiniOutput* InOutput)
 	    FHoudiniMeshTranslator::LoadImportData(CurHGPO.GeoId, CurHGPO.PartId);
 	}
 	}
-}
-
-void FHoudiniMeshTranslator::DumpInfo(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId)
-{
-	FHoudiniMeshTranslator::DumpInfoForOwner(GeoId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT);
-	FHoudiniMeshTranslator::DumpInfoForOwner(GeoId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_VERTEX);
-	FHoudiniMeshTranslator::DumpInfoForOwner(GeoId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM);
-	FHoudiniMeshTranslator::DumpInfoForOwner(GeoId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL);
-
-	//FHoudiniMeshTranslator::LoadImportData(GeoId, PartId);
 }
 
 // 

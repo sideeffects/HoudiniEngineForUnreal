@@ -63,9 +63,11 @@ struct SKBuildSettings
 	UPackage* SKPackage = nullptr;
     USkeleton* Skeleton = nullptr;
     FString CurrentObjectName;
-    HAPI_NodeId GeoId;
-    HAPI_NodeId PartId;
-	bool ImportNormals;
+    HAPI_NodeId GeoId = -1;
+    HAPI_NodeId PartId = -1;
+	bool ImportNormals = false;
+	bool OverwriteSkeleton = false;
+	FString SkeletonAssetPath = "";
 };
 
 UENUM()
@@ -136,9 +138,6 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		static void BuildSKFromImportData(SKBuildSettings& BuildSettings, TArray<FSkeletalMaterial>& Materials);
 		static void SKImportData(SKBuildSettings& BuildSettings);
 		static USkeleton* CreateOrUpdateSkeleton(SKBuildSettings& BuildSettings);
-
-		static void DumpInfoForOwner(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, HAPI_AttributeOwner Owner);
-		static void DumpInfo(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
 
 		//-----------------------------------------------------------------------------------------------------------------------------
 		// HELPERS

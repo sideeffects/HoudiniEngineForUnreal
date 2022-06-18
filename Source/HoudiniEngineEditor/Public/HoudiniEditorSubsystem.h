@@ -34,6 +34,12 @@ public:
 	UPROPERTY()
 	bool UseDisplayFlag = false;
 
+	UPROPERTY()
+	bool OverwriteSkeleton = false;
+
+	UPROPERTY()
+	FString SkeletonAssetPath = "";
+
 };
 
 
