@@ -2235,8 +2235,6 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMesh(
 
 	FString SKName = InObjNodeName + TEXT("_") + SkelMesh->GetName();
 
-	FString SKName = InObjNodeName + TEXT("_") + SkelMesh->GetName();
-
 	// Get the SM's transform offset
 	FTransform TransformOffset = InObject->Transform;
 
