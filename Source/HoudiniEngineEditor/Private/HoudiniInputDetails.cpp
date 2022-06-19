@@ -4391,7 +4391,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("AutoSelectComponentCheckbox", "Auto-select component in asset bounds"))
-				.ToolTipText(LOCTEXT("AutoSelectComponentCheckboxTooltip", "If enabled, when no Landscape components are curremtly selected, the one within the asset's bounding box will be exported."))
+				.ToolTipText(LOCTEXT("AutoSelectComponentCheckboxTooltip", "If enabled, when no Landscape components are currently selected, the one within the asset's bounding box will be exported."))
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 			.IsChecked_Lambda([MainInput]()
