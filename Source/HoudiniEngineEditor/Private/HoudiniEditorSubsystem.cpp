@@ -227,6 +227,9 @@ void UHoudiniEditorSubsystem::SendSkeletalMeshToUnreal(HAPI_NodeId NodeId, FStri
     skBuildSettings.CurrentObjectName = NodeName;
     skBuildSettings.GeoId = NodeId;
     skBuildSettings.PartId = PartId;
+    skBuildSettings.OverwriteSkeleton = NodeSync.OverwriteSkeleton;
+    skBuildSettings.SkeletonAssetPath = NodeSync.SkeletonAssetPath;
+
     FHoudiniMeshTranslator::CreateSKAssetAndPackage(skBuildSettings, NodeId, PartId, FullPackageName, MaxInfluences, ImportNormals);
     TArray<FSkeletalMaterial> Materials;
     FSkeletalMaterial Mat;

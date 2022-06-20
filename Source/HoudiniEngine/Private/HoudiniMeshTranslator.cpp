@@ -466,23 +466,31 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 		UnrealSKImportScale.Add(100.0f);
 	}
 	BuildSettings.ImportScale = UnrealSKImportScale[0];
-	//Unreal Skeleton------------------------------------------------------------------------------------
-	HAPI_AttributeInfo UnrealSkeletonInfo;
-	FHoudiniApi::AttributeInfo_Init(&UnrealSkeletonInfo);
 
-	HAPI_Result UnrealSkeletonInfoResult = FHoudiniApi::GetAttributeInfo(
-		FHoudiniEngine::Get().GetSession(),
-		GeoId, PartId,
-		"unreal_skeleton", HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &UnrealSkeletonInfo);
+	////Unreal Skeleton------------------------------------------------------------------------------------
+	//HAPI_AttributeInfo UnrealSkeletonInfo;
+	//FHoudiniApi::AttributeInfo_Init(&UnrealSkeletonInfo);
+
+	//HAPI_Result UnrealSkeletonInfoResult = FHoudiniApi::GetAttributeInfo(
+	//	FHoudiniEngine::Get().GetSession(),
+	//	GeoId, PartId,
+	//	"unreal_skeleton", HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &UnrealSkeletonInfo);
 
 	USkeleton* MySkeleton = nullptr;
 
 	TArray<FString> CaptNamesData;
 	TArray<FString> CaptNamesAltData;
 
-	BuildSettings.bIsNewSkeleton = !UnrealSkeletonInfo.exists;
+	//BuildSettings.bIsNewSkeleton = !UnrealSkeletonInfo.exists;
+	//
+	//if ((BuildSettings.OverwriteSkeleton) && (!BuildSettings.SkeletonAssetPath.IsEmpty()))  //Panel NodeSync Settings Overrides unreal_skeleton  Attribute
+	//{
+	//	BuildSettings.bIsNewSkeleton = false;
+	//}
+
+
 	//if ((UnrealSkeletonInfo.exists == false) && (!IsValid(BuildSettings.Skeleton)))
-	if (UnrealSkeletonInfo.exists == false) 
+	if (BuildSettings.bIsNewSkeleton)
 	{
 		//use the pre-created new asset 
 		if (IsValid(BuildSettings.Skeleton))
@@ -655,13 +663,25 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 	else  //use existing skeleton asset
 	{
 		MySkeleton = BuildSettings.Skeleton;
-		TArray<FString> UnrealSkeletonData;
-		FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, "unreal_skeleton", UnrealSkeletonInfo, UnrealSkeletonData);
-		if (UnrealSkeletonData.Num() <= 0)
+		FString SkeletonAssetPathString;
+		if ((BuildSettings.OverwriteSkeleton) && (!BuildSettings.SkeletonAssetPath.IsEmpty()))  //Panel NodeSync Settings Overrides unreal_skeleton  Attribute
 		{
-			return nullptr;
+			SkeletonAssetPathString = BuildSettings.SkeletonAssetPath;
 		}
-		const FSoftObjectPath SkeletonAssetPath(UnrealSkeletonData[0]);
+		else
+		{
+			HAPI_AttributeInfo UnrealSkeletonInfo;
+			FHoudiniApi::AttributeInfo_Init(&UnrealSkeletonInfo);
+			TArray<FString> UnrealSkeletonData;
+			FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, "unreal_skeleton", UnrealSkeletonInfo, UnrealSkeletonData);
+			if (UnrealSkeletonData.Num() <= 0)
+			{
+				return nullptr;
+			}
+
+			SkeletonAssetPathString = UnrealSkeletonData[0];
+		}
+		const FSoftObjectPath SkeletonAssetPath(SkeletonAssetPathString);
 		MySkeleton = Cast<USkeleton>(SkeletonAssetPath.TryLoad());
 		if (!IsValid(MySkeleton))
 		{
@@ -848,12 +868,39 @@ void FHoudiniMeshTranslator::CreateSKAssetAndPackage(SKBuildSettings& BuildSetti
 	USkeletalMesh* NewMesh = nullptr;
 	NewMesh = NewObject<USkeletalMesh>(Package, FName(*SKMeshName), RF_Public | RF_Standalone | RF_MarkAsRootSet);
 
-	FString SkeltonPackageName = PackageName + "Skeleton";
-	FString SkeletonName = FPackageName::GetShortName(SkeltonPackageName);
-	UPackage* SkeletonPackage = CreatePackage(*SkeltonPackageName);
-	SkeletonPackage->FullyLoad();
-	USkeleton* NewSkeleton = nullptr;
-	NewSkeleton = NewObject<USkeleton>(SkeletonPackage, FName(*SkeletonName), RF_Public | RF_Standalone | RF_MarkAsRootSet);
+
+
+	//Unreal Skeleton------------------------------------------------------------------------------------
+	HAPI_AttributeInfo UnrealSkeletonInfo;
+	FHoudiniApi::AttributeInfo_Init(&UnrealSkeletonInfo);
+
+	HAPI_Result UnrealSkeletonInfoResult = FHoudiniApi::GetAttributeInfo(
+		FHoudiniEngine::Get().GetSession(),
+		GeoId, PartId,
+		"unreal_skeleton", HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &UnrealSkeletonInfo);
+
+	USkeleton* MySkeleton = nullptr;
+
+	TArray<FString> CaptNamesData;
+	TArray<FString> CaptNamesAltData;
+
+	BuildSettings.bIsNewSkeleton = !UnrealSkeletonInfo.exists;
+
+	if ((BuildSettings.OverwriteSkeleton) && (!BuildSettings.SkeletonAssetPath.IsEmpty()))  //Panel NodeSync Settings Overrides unreal_skeleton  Attribute
+	{
+		BuildSettings.bIsNewSkeleton = false;
+	}
+
+	if (BuildSettings.bIsNewSkeleton)
+	{
+		FString SkeltonPackageName = PackageName + "Skeleton";
+		FString SkeletonName = FPackageName::GetShortName(SkeltonPackageName);
+		UPackage* SkeletonPackage = CreatePackage(*SkeltonPackageName);
+		SkeletonPackage->FullyLoad();
+		USkeleton* NewSkeleton = nullptr;
+		NewSkeleton = NewObject<USkeleton>(SkeletonPackage, FName(*SkeletonName), RF_Public | RF_Standalone | RF_MarkAsRootSet);
+		BuildSettings.Skeleton = NewSkeleton;
+	}
 
 	//Skeleton
 	//USkeleton* MySkeleton = FHoudiniMeshTranslator::CreateOrUpdateSkeleton(BuildSettings, GeoId, PartId, SkeletalMeshImportData);
@@ -862,9 +909,11 @@ void FHoudiniMeshTranslator::CreateSKAssetAndPackage(SKBuildSettings& BuildSetti
 	BuildSettings.PartId = PartId;
 	BuildSettings.SKMesh = NewMesh;
 	BuildSettings.SKPackage = Package;
-	BuildSettings.Skeleton = NewSkeleton;
 	FHoudiniMeshTranslator::CreateOrUpdateSkeleton(BuildSettings);
 	SKImportData(BuildSettings);
+
+
+
 	//Materials
 	/*TArray<FSkeletalMaterial> Materials;
 	FSkeletalMaterial Mat;
