@@ -35,6 +35,8 @@ class UHoudiniAssetComponent;
 class AHoudiniAssetActor;
 struct FSlowTask;
 
+static const FName NodeSyncTabName("NodeSync");
+
 // Class containing commands for Houdini Engine actions
 class FHoudiniEngineCommands : public TCommands<FHoudiniEngineCommands>
 {
@@ -96,7 +98,10 @@ public:
 
 	// Helper function for closing the current Houdini Sesion Sync
 	static void CloseSessionSync();
-	
+
+	// Helper function for Showing Node Sync
+	static void OpenNodeSync();
+
 	// returns true if the current HE session is valid
 	static bool IsSessionValid();
 
@@ -175,6 +180,9 @@ public:
 	TSharedPtr<FUICommandInfo> _ViewportSyncHoudini;
 	// UI Action to enable bidirectionnal viewport sync
 	TSharedPtr<FUICommandInfo> _ViewportSyncBoth;
+
+	// UI Action to open Houdini Node Sync Panel
+	TSharedPtr<FUICommandInfo> _OpenNodeSync;
 
 	//
 	TSharedPtr<FUICommandInfo> _InstallInfo;

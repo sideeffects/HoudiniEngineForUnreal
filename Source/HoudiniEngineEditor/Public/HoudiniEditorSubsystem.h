@@ -11,6 +11,32 @@
 
 
 class USkeletalMesh;
+
+USTRUCT()
+struct HOUDINIENGINEEDITOR_API FHoudiniNodeSync
+{
+	GENERATED_BODY()
+
+public:
+
+	UPROPERTY()
+	FString FetchNodePath = "/obj/UnrealContent";
+
+	UPROPERTY()
+	FString SendNodePath = "/obj/UnrealContent";
+
+	UPROPERTY()
+	FString UnrealAssetName = "TestAsset";
+
+	UPROPERTY()
+	FString UnrealPathName = "/Game/000";
+
+	UPROPERTY()
+	bool UseDisplayFlag = false;
+
+};
+
+
 /**
  * Editor Susbsystem that creates a "Managed" Session HDA used to transfer assets between Houdini and Unreal
  */
@@ -24,18 +50,23 @@ public:
 	void SendToHoudini(const TArray<FAssetData>& SelectedAssets);
 
 	UFUNCTION(BlueprintCallable, Category = "Houdini")
-	void SendToUnreal(FString PackageName, FString PackageFolder, int MaxInfluences, bool ImportNormals);
+	void SendToUnreal(FString PackageName, FString PackageFolder, int MaxInfluences = 1, bool ImportNormals=false);
 	
+	UFUNCTION(BlueprintCallable, Category = "Houdini")
+	void Fetch();
+
 	void CreateSessionHDA();
 
 	UFUNCTION(BlueprintCallable, Category = "Houdini")
 	void DumpSessionInfo();
 
+	FHoudiniNodeSync NodeSync;
+
 private:
-	void SendStaticMeshToHoudini(UStaticMesh* SkelMesh);
-	void SendSkeletalMeshToHoudini(USkeletalMesh* SkelMesh);
-	void SendSkeletalMeshToUnreal(FString PackageName, FString PackageFolder, int MaxInfluences, bool ImportNormals);
-	void SendStaticMeshToUnreal(FString PackageName, FString PackageFolder);
+	void SendStaticMeshToHoudini(HAPI_NodeId mesh_node_id, UStaticMesh* SkelMesh);
+	void SendSkeletalMeshToHoudini(HAPI_NodeId mesh_node_id, USkeletalMesh* SkelMesh);
+	void SendSkeletalMeshToUnreal(HAPI_NodeId NodeId, FString PackageName, FString PackageFolder, int MaxInfluences, bool ImportNormals);
+	void SendStaticMeshToUnreal(HAPI_NodeId NodeId, FString PackageName, FString PackageFolder);
 
 
 
