@@ -63,6 +63,7 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 		    USkeletalMesh* Mesh,
 		    HAPI_NodeId& InputObjectNodeId,
 		    const FString& InputNodeName,
+			FUnrealObjectInputHandle& OutHandle,
 		    class USkeletalMeshComponent* SkeletalMeshComponent = nullptr,
 		    const bool& ExportAllLODs = false,
 		    const bool& ExportSockets = false,

@@ -33,32 +33,38 @@
 
 class UGeometryCollection;
 class AGeometryCollectionActor;
+class FUnrealObjectInputHandle;
 
 struct HOUDINIENGINE_API FUnrealGeometryCollectionTranslator
 {
 	public:
-	// HAPI : Marshaling, extract geometry and create input asset for it - return true on success
-	static bool HapiCreateInputNodeForGeometryCollection(
-                UGeometryCollection * GeometryCollection,
-                HAPI_NodeId& InputObjectNodeId,
-                const FString& InputNodeName,
-                class UGeometryCollectionComponent* GeometryCollectionComponent = nullptr
-        );
+		// HAPI : Marshaling, extract geometry and create input asset for it - return true on success
+		static bool HapiCreateInputNodeForGeometryCollection(
+			UGeometryCollection * GeometryCollection,
+			HAPI_NodeId& InputObjectNodeId,
+			const FString& InputNodeName,
+			FUnrealObjectInputHandle& OutHandle,
+			class UGeometryCollectionComponent* GeometryCollectionComponent = nullptr);
 
-	static bool SetGeometryCollectionAttributesForPart(
-		UGeometryCollection * InGeometryCollection,
-		int32 InGeometryIndex,
-		HAPI_NodeId InNodeId,
-		FString InName
-	);
+		static bool SetGeometryCollectionAttributesForPart(
+			UGeometryCollection * InGeometryCollection,
+			int32 InGeometryIndex,
+			HAPI_NodeId InNodeId,
+			FString InName);
 
-	static bool UploadGeometryCollection(
-		UGeometryCollection * GeometryCollectionObject, HAPI_NodeId InParentNodeId, FString InName, HAPI_NodeId InMergeNodeId, UGeometryCollectionComponent * GeometryCollectionComponent = nullptr);
+		static bool UploadGeometryCollection(
+			UGeometryCollection * GeometryCollectionObject, 
+			HAPI_NodeId InParentNodeId, 
+			FString InName, 
+			HAPI_NodeId InMergeNodeId, 
+			UGeometryCollectionComponent * GeometryCollectionComponent = nullptr);
 
-
-	static bool AddGeometryCollectionDetailAttributes(UGeometryCollection* GeometryCollectionObject, HAPI_NodeId GeoId, HAPI_PartId PartId, HAPI_PartInfo & Part, const FString& InName, UGeometryCollectionComponent * GeometryCollectionComponent = nullptr);
-
-
-
+		static bool AddGeometryCollectionDetailAttributes(
+			UGeometryCollection* GeometryCollectionObject,
+			HAPI_NodeId GeoId, 
+			HAPI_PartId PartId,
+			HAPI_PartInfo & Part,
+			const FString& InName,
+			UGeometryCollectionComponent * GeometryCollectionComponent = nullptr);
 };
 
