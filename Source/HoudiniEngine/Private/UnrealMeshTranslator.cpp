@@ -43,10 +43,42 @@
 #include "MeshAttributes.h"
 #include "StaticMeshAttributes.h"
 
+#include "Rendering/SkeletalMeshModel.h"
+
+#include <locale> 
+#include <codecvt>
+
 #if WITH_EDITOR
 	#include "EditorFramework/AssetImportData.h"
 #endif
 
+FTransform GetCompSpaceTransformForBone(const FReferenceSkeleton& InSkel,const int32& InBoneIdx)
+{
+    FTransform resultBoneTransform = InSkel.GetRefBonePose()[InBoneIdx];
+
+    auto refBoneInfo = InSkel.GetRefBoneInfo();
+
+	int32 Bone = InBoneIdx;
+    while (Bone)
+    {
+		resultBoneTransform *= InSkel.GetRefBonePose()[refBoneInfo[Bone].ParentIndex];
+		Bone = refBoneInfo[Bone].ParentIndex;
+    }
+
+    return resultBoneTransform;
+}
+
+void GetComponentSpaceTransforms(TArray<FTransform>& OutResult, const FReferenceSkeleton& InRefSkeleton)
+{
+    const int32 PoseNum = InRefSkeleton.GetRefBonePose().Num();
+	OutResult.SetNum(PoseNum);
+
+    for (int32 i = 0; i < PoseNum; i++)
+    {
+		OutResult[i] = GetCompSpaceTransformForBone(InRefSkeleton, i);
+
+    }
+}
 
 static TAutoConsoleVariable<int32> CVarHoudiniEngineStaticMeshExportMethod(
 	TEXT("HoudiniEngine.StaticMeshExportMethod"),
@@ -56,6 +88,666 @@ static TAutoConsoleVariable<int32> CVarHoudiniEngineStaticMeshExportMethod(
 	TEXT("1: Mesh description (default)\n")
 	TEXT("2: Render Mesh / LODResources\n")
 );
+
+bool
+FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
+    USkeletalMesh* SkeletalMesh,
+    HAPI_NodeId& InputNodeId,
+    const FString& InputNodeName,
+    USkeletalMeshComponent* SkeletalMeshComponent /* = nullptr */,
+    const bool& ExportAllLODs /* = false */,
+    const bool& ExportSockets /* = false */,
+    const bool& ExportColliders /* = false */)
+{
+
+    // If we don't have a static mesh there's nothing to do.
+    if (!IsValid(SkeletalMesh))
+		return false;
+
+    // Node ID for the newly created node
+    HAPI_NodeId NewNodeId = -1;
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputNode(
+	FHoudiniEngine::Get().GetSession(), &NewNodeId, TCHAR_TO_ANSI(*InputNodeName)), false);
+
+    if (!FHoudiniEngineUtils::HapiCookNode(NewNodeId, nullptr, true))
+	return false;
+
+    // Check if we have a valid id for this new input asset.
+    if (!FHoudiniEngineUtils::IsHoudiniNodeValid(NewNodeId))
+	return false;
+
+    HAPI_NodeId PreviousInputNodeId = InputNodeId;
+
+    // Update our input NodeId
+    InputNodeId = NewNodeId;
+    // Get our parent OBJ NodeID
+    HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(NewNodeId);
+
+    // We have now created a valid new input node, delete the previous one
+    if (PreviousInputNodeId >= 0)
+    {
+	// Get the parent OBJ node ID before deleting!
+	HAPI_NodeId PreviousInputOBJNode = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
+
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
+	    FHoudiniEngine::Get().GetSession(), PreviousInputNodeId))
+	{
+	    HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *InputNodeName);
+	}
+
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
+	    FHoudiniEngine::Get().GetSession(), PreviousInputOBJNode))
+	{
+	    HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input OBJ node for %s."), *InputNodeName);
+	}
+    }
+
+	if (FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(SkeletalMesh, NewNodeId))
+	{
+		// Commit the geo.
+		HAPI_Result ResultCommit = FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), NewNodeId);
+	}
+
+    return true;
+}
+
+bool
+FUnrealMeshTranslator::SetStaticMeshDataOnNode(
+    UStaticMesh* StaticMesh,
+    HAPI_NodeId& NewNodeId)
+{
+    return true;
+}
+
+
+bool
+FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(
+    USkeletalMesh* SkeletalMesh,
+    HAPI_NodeId& NewNodeId)
+{
+	if (!IsValid(SkeletalMesh))
+		return false;
+
+	const FSkeletalMeshModel* SkelMeshResource = SkeletalMesh->GetImportedModel();
+	if (!SkelMeshResource)
+		return false;
+
+	int32 LODIndex = 0;
+	const FSkeletalMeshLODModel& SourceModel = SkelMeshResource->LODModels[LODIndex];
+
+	// Copy all the vertex data from the various chunks to a single buffer.
+	// Makes the rest of the code in this function cleaner and easier to maintain.  
+	TArray<FSoftSkinVertex> Vertices;
+	SourceModel.GetVertices(Vertices);
+
+	// Verify the integrity of the mesh.
+	const int32 VertexCount = Vertices.Num();
+	if (VertexCount == 0)
+		return false;
+
+	if (Vertices.Num() != VertexCount)
+		return false;
+
+	TArray<FVector> Points;
+	Points.SetNum(VertexCount);
+
+	TArray<FVector> Normals;
+	Normals.SetNum(VertexCount);
+
+	TArray<FVector> UV0;
+	UV0.SetNum(VertexCount);
+
+	for (int32 VertIndex = 0; VertIndex < VertexCount; VertIndex++)
+    {
+		Points[VertIndex] = Vertices[VertIndex].Position;
+		Normals[VertIndex] = Vertices[VertIndex].TangentZ;
+		Swap(Normals[VertIndex].Y, Normals[VertIndex].Z);
+		UV0[VertIndex] = FVector(Vertices[VertIndex].UVs[0].X, 1.0f - Vertices[VertIndex].UVs[0].Y, 0.0f);
+    }
+
+    //--------------------------------------------------------------------------------------------------------------------- 
+	// POSITION (P)
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// In FStaticMeshLODResources each vertex instances stores its position, even if the positions are not unique (in other
+	// words, in Houdini terminology, the number of points and vertices are the same. We'll do the same thing that Epic
+	// does in FBX export: we'll run through all vertex instances and use a hash to determine which instances share a 
+	// position, so that we can a smaller number of points than vertices, and vertices share point positions
+    TArray<int32> UEVertexInstanceIdxToPointIdx;
+    UEVertexInstanceIdxToPointIdx.Reserve(VertexCount);
+
+    TMap<FVector, int32> PositionToPointIndexMap;
+    PositionToPointIndexMap.Reserve(VertexCount);
+	FVector BuildScaleVector = FVector::OneVector;
+
+    TArray<float> SkeletalMeshPoints;
+    SkeletalMeshPoints.Reserve(VertexCount * 3);
+
+    TArray<float> SkeletalMeshNormals;
+    SkeletalMeshNormals.Reserve(VertexCount * 3);
+
+    TArray<float> PointUVs;
+    PointUVs.Reserve(VertexCount * 3);
+
+	TArray<float> BoneCaptureData;
+
+	int32 InfluenceCount = 4;
+    TArray<int32> BoneCaptureIndexArray;
+    BoneCaptureIndexArray.Reserve(InfluenceCount * VertexCount);
+
+    TArray<float> BoneCaptureDataArray;
+    BoneCaptureDataArray.Reserve(InfluenceCount * VertexCount);
+
+    TArray<int32> SizesBoneCaptureIndexArray;
+    SizesBoneCaptureIndexArray.Reserve(InfluenceCount * VertexCount);
+
+    // - Switching to iterate over sections
+    for (FSkelMeshSection section : SourceModel.Sections)
+    {
+		for (int32 VertexInstanceIndex = 0; VertexInstanceIndex < section.SoftVertices.Num(); ++VertexInstanceIndex)
+		{
+			// Convert Unreal to Houdini
+			const FVector& PositionVector = section.SoftVertices[VertexInstanceIndex].Position;
+			const FVector& NormalVector = section.SoftVertices[VertexInstanceIndex].TangentZ;
+			const FVector2D& UV0Vector2d = section.SoftVertices[VertexInstanceIndex].UVs[0];
+			const int32* FoundPointIndexPtr = PositionToPointIndexMap.Find(PositionVector);
+
+			if (!FoundPointIndexPtr)
+			{
+				const int32 NewPointIndex = SkeletalMeshPoints.Add(PositionVector.X / HAPI_UNREAL_SCALE_FACTOR_POSITION * BuildScaleVector.X) / 3;
+				SkeletalMeshPoints.Add(PositionVector.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION * BuildScaleVector.Z);
+				SkeletalMeshPoints.Add(PositionVector.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION * BuildScaleVector.Y);
+				SkeletalMeshNormals.Add(NormalVector.X);
+				//SkeletalMeshNormals.Add(-NormalVector.Z);
+				SkeletalMeshNormals.Add(NormalVector.Z);
+				SkeletalMeshNormals.Add(NormalVector.Y);
+				PointUVs.Add((float)UV0Vector2d.X);
+				PointUVs.Add(1.0f - (float)UV0Vector2d.Y);
+				PointUVs.Add(0);
+
+				PositionToPointIndexMap.Add(PositionVector, NewPointIndex);
+				UEVertexInstanceIdxToPointIdx.Add(NewPointIndex);
+
+				int weightcounts = 0;
+				for (int idx = 0; idx < InfluenceCount; idx++)
+				{
+					float weight = (float)section.SoftVertices[VertexInstanceIndex].InfluenceWeights[idx] / 255.0f;
+					if (weight > 0.0f)
+					{
+						BoneCaptureData.Add(weight);
+						BoneCaptureDataArray.Add(weight);
+						int BoneIndex = section.SoftVertices[VertexInstanceIndex].InfluenceBones[idx];
+						int AltIndex = section.BoneMap[BoneIndex];
+						BoneCaptureData.Add(AltIndex);
+						BoneCaptureIndexArray.Add(AltIndex);
+						weightcounts++;
+					}
+				}
+				SizesBoneCaptureIndexArray.Add(weightcounts);
+			}
+			else
+			{
+				UEVertexInstanceIdxToPointIdx.Add(*FoundPointIndexPtr);
+			}
+		}
+	}
+
+    //OLD WAY
+ //   for (uint32 VertexInstanceIndex = 0; VertexInstanceIndex < VertexCount; ++VertexInstanceIndex)
+ //   {
+	//// Convert Unreal to Houdini
+	//const FVector& PositionVector = Vertices[VertexInstanceIndex].Position;
+	//const int32* FoundPointIndexPtr = PositionToPointIndexMap.Find(PositionVector);
+	//if (!FoundPointIndexPtr)
+	//{
+	//    const int32 NewPointIndex = SkeletalMeshPoints.Add(PositionVector.X / HAPI_UNREAL_SCALE_FACTOR_POSITION * BuildScaleVector.X) / 3;
+	//    SkeletalMeshPoints.Add(PositionVector.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION * BuildScaleVector.Z);
+	//    SkeletalMeshPoints.Add(PositionVector.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION * BuildScaleVector.Y);
+
+	//    PositionToPointIndexMap.Add(PositionVector, NewPointIndex);
+	//    UEVertexInstanceIdxToPointIdx.Add(NewPointIndex);
+
+	//    int weightcounts = 0;
+	//    for (int idx = 0; idx < InfluenceCount; idx++)
+	//    {
+	//	float weight = (float)Vertices[VertexInstanceIndex].InfluenceWeights[idx] / 255.0f;
+	//	if (weight > 0.0f)
+	//	{
+	//	    BoneCaptureData.Add(weight);
+	//	    BoneCaptureDataArray.Add(weight);
+	//	    int BoneIndex = Vertices[VertexInstanceIndex].InfluenceBones[idx];
+	//	    int AltIndex = SourceModel.Sections[0].BoneMap[BoneIndex];
+	//	    BoneCaptureData.Add(AltIndex);
+	//	    BoneCaptureIndexArray.Add(AltIndex);
+	//	    weightcounts++;
+	//	}
+	//    }
+	//    SizesBoneCaptureIndexArray.Add(weightcounts);
+	//}
+	//else
+	//{
+	//    UEVertexInstanceIdxToPointIdx.Add(*FoundPointIndexPtr);
+	//}
+ //   }
+
+    SkeletalMeshPoints.Shrink();
+    SkeletalMeshNormals.Shrink();
+    SizesBoneCaptureIndexArray.Shrink();
+    BoneCaptureIndexArray.Shrink();
+    BoneCaptureDataArray.Shrink();
+
+
+    //--------------------------------------------------------------------------------------------------------------------- 
+    // VERTICES (Vertex Indices)
+    //---------------------------------------------------------------------------------------------------------------------
+    TArray<int32> StaticMeshIndices;
+
+    // Create the per-material polygons sets.
+    int32 SectionCount = SourceModel.Sections.Num();
+    TArray<TPair<uint32, uint32>> VertexIndexOffsetPairArray{ TPair<uint32, uint32>(0,0) };
+
+    int TotalTriangleCount = 0;
+    TArray<FVector> FaceNormals;
+    for (int32 SectionIndex = 0; SectionIndex < SectionCount; ++SectionIndex)
+    {
+		const FSkelMeshSection& Section = SourceModel.Sections[SectionIndex];
+
+		int32 MatIndex = Section.MaterialIndex;
+
+		// Static meshes contain one triangle list per element.
+		int32 TriangleCount = Section.NumTriangles;
+		TotalTriangleCount += TriangleCount;
+
+		// Copy over the index buffer into the FBX polygons set.
+		for (int32 TriangleIndex = 0; TriangleIndex < TriangleCount; ++TriangleIndex)
+		{
+			for (int32 PointIndex = 0; PointIndex < 3; PointIndex++)
+			{
+				int32 VertexPositionIndex = SourceModel.IndexBuffer[Section.BaseIndex + ((TriangleIndex * 3) + PointIndex)];
+				StaticMeshIndices.Add(UEVertexInstanceIdxToPointIdx[VertexPositionIndex]);
+
+				FVector fixed = Normals[VertexPositionIndex];
+				FaceNormals.Add(fixed);
+			}
+
+			//fix winding
+			int32 last = StaticMeshIndices.Num();
+			int32 temp = StaticMeshIndices[last - 1];
+
+			StaticMeshIndices[last - 1] = StaticMeshIndices[last - 2];
+			StaticMeshIndices[last - 2] = temp;
+		}
+    }
+
+    // Create part.
+    HAPI_PartInfo Part;
+    FHoudiniApi::PartInfo_Init(&Part);
+    Part.id = 0;
+    Part.nameSH = 0;
+    Part.attributeCounts[HAPI_ATTROWNER_POINT] = 0;
+    Part.attributeCounts[HAPI_ATTROWNER_PRIM] = 0;
+    Part.attributeCounts[HAPI_ATTROWNER_VERTEX] = 0;
+    Part.attributeCounts[HAPI_ATTROWNER_DETAIL] = 0;
+    Part.vertexCount = StaticMeshIndices.Num();
+    Part.faceCount = TotalTriangleCount;
+    Part.pointCount = SkeletalMeshPoints.Num() / 3;
+    Part.type = HAPI_PARTTYPE_MESH;
+
+    HAPI_Result ResultPartInfo = FHoudiniApi::SetPartInfo(
+		FHoudiniEngine::Get().GetSession(), NewNodeId, 0, &Part);
+
+    //--------------------------------------------------------------------------------------------------------------------- 
+    // POINTS (P)
+    //---------------------------------------------------------------------------------------------------------------------
+    // Create point attribute info.
+    HAPI_AttributeInfo AttributeInfoPoint;
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoPoint);
+    AttributeInfoPoint.count = Part.pointCount;
+    AttributeInfoPoint.tupleSize = 3;
+    AttributeInfoPoint.exists = true;
+    AttributeInfoPoint.owner = HAPI_ATTROWNER_POINT;
+    AttributeInfoPoint.storage = HAPI_STORAGETYPE_FLOAT;
+    AttributeInfoPoint.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HAPI_Result ResultPointAdd = FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
+		HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint);
+
+    // Now that we have raw positions, we can upload them for our attribute.
+    HAPI_Result ResultPointSet = FHoudiniApi::SetAttributeFloatData(
+		FHoudiniEngine::Get().GetSession(),
+		NewNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint,
+		(float*)SkeletalMeshPoints.GetData(), 0, AttributeInfoPoint.count);
+
+    //--------------------------------------------------------------------------------------------------------------------- 
+	// INDICES (VertexList)
+	//---------------------------------------------------------------------------------------------------------------------
+
+	// We can now set vertex list.
+    HAPI_Result ResultVertexSet = FHoudiniApi::SetVertexList(
+		FHoudiniEngine::Get().GetSession(),
+		NewNodeId, 0, StaticMeshIndices.GetData(), 0, StaticMeshIndices.Num());
+
+    // We need to generate array of face counts.
+    TArray< int32 > StaticMeshFaceCounts;
+    StaticMeshFaceCounts.Init(3, Part.faceCount);
+    HAPI_Result ResultFaceSet = FHoudiniApi::SetFaceCounts(
+		FHoudiniEngine::Get().GetSession(),
+		NewNodeId, 0, StaticMeshFaceCounts.GetData(), 0, StaticMeshFaceCounts.Num());
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// NORMALS (N)
+	//---------------------------------------------------------------------------------------------------------------------
+	// Create attribute for normals.
+    HAPI_AttributeInfo AttributeInfoNormal;
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoNormal);
+	AttributeInfoNormal.tupleSize = 3;
+	AttributeInfoNormal.count = Part.pointCount;  //Normals is array of FVector3f
+	AttributeInfoNormal.exists = true;
+	AttributeInfoNormal.owner = HAPI_ATTROWNER_POINT;
+	AttributeInfoNormal.storage = HAPI_STORAGETYPE_FLOAT;
+	AttributeInfoNormal.originalOwner = HAPI_ATTROWNER_INVALID;
+
+	HAPI_Result ResultNormalAdd = FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(),
+		NewNodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoNormal);
+
+	HAPI_Result ResultNormalSet = FHoudiniApi::SetAttributeFloatData(
+		FHoudiniEngine::Get().GetSession(),
+		NewNodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL,
+		&AttributeInfoNormal, (float*)SkeletalMeshNormals.GetData(),
+		0, AttributeInfoNormal.count);	
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// POINT UVS (UV)
+	//---------------------------------------------------------------------------------------------------------------------
+
+	HAPI_AttributeInfo AttributeInfoUV;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfoUV);
+	AttributeInfoUV.tupleSize = 3;
+	AttributeInfoUV.count = PointUVs.Num() / AttributeInfoUV.tupleSize;
+	AttributeInfoUV.exists = true;
+	AttributeInfoUV.owner = HAPI_ATTROWNER_POINT;
+	AttributeInfoUV.storage = HAPI_STORAGETYPE_FLOAT;
+	AttributeInfoUV.originalOwner = HAPI_ATTROWNER_INVALID;
+
+	HAPI_Result ResultUVAdd = FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(),
+		NewNodeId, 0, HAPI_UNREAL_ATTRIB_UV, &AttributeInfoUV);
+
+	HAPI_Result ResultUVSet = FHoudiniApi::SetAttributeFloatData(
+		FHoudiniEngine::Get().GetSession(),
+		NewNodeId, 0, HAPI_UNREAL_ATTRIB_UV,
+		&AttributeInfoUV, (float*)PointUVs.GetData(),
+		0, AttributeInfoUV.count);
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// Materials
+	//---------------------------------------------------------------------------------------------------------------------
+
+    // Create attribute for materials.
+    TArray<UMaterialInterface*> MaterialInterfaces;
+	for(FSkeletalMaterial SkeletalMaterial : SkeletalMesh->Materials)
+	{
+		MaterialInterfaces.Add(SkeletalMaterial.MaterialInterface);
+	}
+
+    // 
+    // List of materials, one for each face.
+	//
+	TArray<FString> TriangleMaterials;
+    if (MaterialInterfaces.Num()>0)
+    {
+		for (int32 SectionIndex = 0; SectionIndex < SectionCount; SectionIndex++)
+		{
+			int32 MaterialIndex = SourceModel.Sections[SectionIndex].MaterialIndex;
+			for (uint32 i = 0; i < SourceModel.Sections[SectionIndex].NumTriangles; i++)
+			{
+				if (MaterialInterfaces.IsValidIndex(MaterialIndex))
+				{
+					TriangleMaterials.Add(MaterialInterfaces[MaterialIndex]->GetPathName());
+				}
+				else
+				{
+					HOUDINI_LOG_WARNING(TEXT("Invalid Material Index"));
+				}
+			}
+		}
+    }
+
+    HAPI_AttributeInfo AttributeInfoMaterial;
+    FHoudiniApi::AttributeInfo_Init(&AttributeInfoMaterial);
+    AttributeInfoMaterial.tupleSize = 1;
+    AttributeInfoMaterial.count = TriangleMaterials.Num();
+    AttributeInfoMaterial.exists = true;
+    AttributeInfoMaterial.owner = HAPI_ATTROWNER_PRIM;
+    AttributeInfoMaterial.storage = HAPI_STORAGETYPE_STRING;
+    AttributeInfoMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    // Create the new attribute
+    HAPI_Result ResultAddAttribute = FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(),
+		NewNodeId, 0, HAPI_UNREAL_ATTRIB_MATERIAL, &AttributeInfoMaterial);
+
+    // The New attribute has been successfully created, set its value
+	HAPI_Result ResultSetAttribute = FHoudiniEngineUtils::HapiSetAttributeStringData(
+		TriangleMaterials, NewNodeId, 0, HAPI_UNREAL_ATTRIB_MATERIAL, AttributeInfoMaterial);
+
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// Capt_Names
+	// Bone Names
+	//---------------------------------------------------------------------------------------------------------------------
+    const FReferenceSkeleton& RefSkeleton = SkeletalMesh->RefSkeleton;
+
+    TArray<FTransform> ComponentSpaceTransforms;
+	GetComponentSpaceTransforms(ComponentSpaceTransforms, RefSkeleton);
+
+	TArray<FString> CaptNamesData;
+    TArray<int32> CaptParentsData;
+    TArray<float> XFormsData;
+
+    int32 TotalBones = RefSkeleton.GetRawBoneNum();
+    TArray<float> CaptData;  //for pCaptData property
+    CaptData.Init(0.0f, TotalBones * 20);
+
+    XFormsData.AddZeroed(16 * RefSkeleton.GetRawBoneNum());
+    CaptParentsData.AddUninitialized(RefSkeleton.GetRawBoneNum());
+	CaptNamesData.SetNum(RefSkeleton.GetRawBoneNum());
+
+    for (int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetRawBoneNum(); ++BoneIndex)
+    {
+	const FMeshBoneInfo& CurrentBone = RefSkeleton.GetRefBoneInfo()[BoneIndex];
+	const FTransform& LocalBoneTransform = RefSkeleton.GetRefBonePose()[BoneIndex];
+	FTransform& BoneTransform = ComponentSpaceTransforms[BoneIndex];
+
+		FTransform ScaleConversion = FTransform(FRotator(0.0, 0.0, 00), FVector(0.0, 0.0, 0.0), FVector(1, 1, -1));
+		FTransform FirstRotationConversion = FTransform(FRotator(0.0, 0, -90.0), FVector(0.0, 0.0, 0.0), FVector(1, 1, 1));
+		FTransform BoneTransformConverted = BoneTransform * ScaleConversion * FirstRotationConversion;
+
+		FTransform FinalTransform;
+		FinalTransform.SetTranslation(0.01f * BoneTransformConverted.GetTranslation());
+
+		FRotator StockRot = BoneTransformConverted.GetRotation().Rotator();
+		StockRot.Roll += 180;
+		FinalTransform.SetRotation(StockRot.Quaternion());
+
+		FMatrix M44 = FinalTransform.ToMatrixWithScale();
+		FMatrix M44Inverse = M44.Inverse();  //see pCaptData property
+
+		int32 row = 0;
+		int32 col = 0;
+		for (int32 i = 0; i < 16; i++)
+		{
+			XFormsData[16 * BoneIndex + i] = M44.M[row][col];
+			CaptData[20 * BoneIndex + i] = M44Inverse.M[row][col];
+			col++;
+			if (col > 3)
+			{
+				row++;
+				col = 0;
+			}
+		}
+		CaptData[20 * BoneIndex + 16] = 1.0f;//Top height
+		CaptData[20 * BoneIndex + 17] = 1.0f;//Bottom Height
+		CaptData[20 * BoneIndex + 18] = 1.0f;//Ratio of (top x radius of tube)/(bottom x radius of tube) adjusted for orientation
+		CaptData[20 * BoneIndex + 19] = 1.0f;//Ratio of (top z radius of tube)/(bottom z radius of tube) adjusted for orientation
+
+
+		CaptNamesData[BoneIndex] = CurrentBone.ExportName;
+	CaptParentsData[BoneIndex] = CurrentBone.ParentIndex;
+    }
+
+    HAPI_AttributeInfo CaptNamesInfo;
+    FHoudiniApi::AttributeInfo_Init(&CaptNamesInfo);
+    CaptNamesInfo.count = 1;
+    CaptNamesInfo.tupleSize = 1;
+    CaptNamesInfo.exists = true;
+    CaptNamesInfo.owner = HAPI_ATTROWNER_DETAIL;
+    CaptNamesInfo.storage = HAPI_STORAGETYPE_STRING_ARRAY;
+    CaptNamesInfo.originalOwner = HAPI_ATTROWNER_DETAIL;
+    CaptNamesInfo.totalArrayElements = CaptNamesData.Num();
+    CaptNamesInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
+
+    HAPI_Result CaptNamesAdd = FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
+		"capt_names", &CaptNamesInfo);
+
+    TArray<int32> SizesFixedArray;
+    SizesFixedArray.Add(CaptNamesData.Num());
+	FHoudiniEngineUtils::HapiSetAttributeStringArrayData(CaptNamesData, NewNodeId, 0, "capt_names", CaptNamesInfo, SizesFixedArray);
+	
+    //boneCapture_pCaptPath-------------------------------------------------------------------
+    HAPI_Result CaptPathAdd = FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
+		"boneCapture_pCaptPath", &CaptNamesInfo);
+	FHoudiniEngineUtils::HapiSetAttributeStringArrayData(CaptNamesData, NewNodeId, 0, "boneCapture_pCaptPath", CaptNamesInfo, SizesFixedArray);
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// Capt_Parents
+	//---------------------------------------------------------------------------------------------------------------------
+    HAPI_AttributeInfo CaptParentsInfo;
+    FHoudiniApi::AttributeInfo_Init(&CaptParentsInfo);
+    CaptParentsInfo.count = 1;
+    CaptParentsInfo.tupleSize = 1;
+    CaptParentsInfo.exists = true;
+    CaptParentsInfo.owner = HAPI_ATTROWNER_DETAIL;
+    CaptParentsInfo.storage = HAPI_STORAGETYPE_INT_ARRAY;
+    CaptParentsInfo.originalOwner = HAPI_ATTROWNER_DETAIL;
+    CaptParentsInfo.totalArrayElements = CaptParentsData.Num();
+    CaptParentsInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
+
+    HAPI_Result CaptParentsAdd = FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
+		"capt_parents", &CaptParentsInfo);
+
+    TArray<int32> SizesParentsArray;
+    SizesParentsArray.Add(CaptParentsData.Num());
+    HAPI_Result CaptParentsDataResult = FHoudiniApi::SetAttributeIntArrayData(
+		FHoudiniEngine::Get().GetSession(), NewNodeId,
+		0, "capt_parents", &CaptParentsInfo, CaptParentsData.GetData(),
+		CaptParentsData.Num(), SizesParentsArray.GetData(), 0, SizesParentsArray.Num());
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// Capt_Xforms
+	//---------------------------------------------------------------------------------------------------------------------
+    HAPI_AttributeInfo CaptXFormsInfo;
+    FHoudiniApi::AttributeInfo_Init(&CaptXFormsInfo);
+    CaptXFormsInfo.count = 1;
+    CaptXFormsInfo.tupleSize = 16;
+    CaptXFormsInfo.exists = true;
+    CaptXFormsInfo.owner = HAPI_ATTROWNER_DETAIL;
+    CaptXFormsInfo.storage = HAPI_STORAGETYPE_FLOAT_ARRAY;
+    CaptXFormsInfo.originalOwner = HAPI_ATTROWNER_DETAIL;
+    CaptXFormsInfo.totalArrayElements = XFormsData.Num();
+    CaptXFormsInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
+
+    HAPI_Result CaptXFormsAdd = FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
+		"capt_xforms", &CaptXFormsInfo);
+
+    TArray<int32> SizesXFormsArray;
+    SizesXFormsArray.Add(TotalBones);
+
+    HAPI_Result CaptXFormsDataResult = FHoudiniApi::SetAttributeFloatArrayData(
+		FHoudiniEngine::Get().GetSession(), NewNodeId,
+		0, "capt_xforms", &CaptXFormsInfo, XFormsData.GetData(),
+		CaptXFormsInfo.totalArrayElements, SizesXFormsArray.GetData(), 0, CaptXFormsInfo.count);
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// boneCapture_pCaptData
+	//---------------------------------------------------------------------------------------------------------------------
+    HAPI_AttributeInfo CaptDataInfo;
+    FHoudiniApi::AttributeInfo_Init(&CaptDataInfo);
+    CaptDataInfo.count = 1;
+    CaptDataInfo.tupleSize = 20;
+    CaptDataInfo.exists = true;
+    CaptDataInfo.owner = HAPI_ATTROWNER_DETAIL;
+    CaptDataInfo.storage = HAPI_STORAGETYPE_FLOAT_ARRAY;
+    CaptDataInfo.originalOwner = HAPI_ATTROWNER_DETAIL;
+    CaptDataInfo.totalArrayElements = CaptData.Num(); //(bones * 20)
+    CaptDataInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
+
+    HAPI_Result CaptDataAdd = FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
+		"boneCapture_pCaptData", &CaptDataInfo);
+
+    TArray<int32> SizesCaptDataArray;
+    SizesCaptDataArray.Add(TotalBones);
+
+    HAPI_Result CaptDataResult = FHoudiniApi::SetAttributeFloatArrayData(
+		FHoudiniEngine::Get().GetSession(), NewNodeId,
+		0, "boneCapture_pCaptData", &CaptDataInfo, CaptData.GetData(),
+		CaptDataInfo.totalArrayElements, SizesCaptDataArray.GetData(), 0, CaptDataInfo.count);
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// boneCapture_data
+	//---------------------------------------------------------------------------------------------------------------------
+	HAPI_AttributeInfo BoneCaptureDataInfo;
+    FHoudiniApi::AttributeInfo_Init(&BoneCaptureDataInfo);
+    BoneCaptureDataInfo.count = Part.pointCount;
+    BoneCaptureDataInfo.tupleSize = 1;
+    BoneCaptureDataInfo.exists = true;
+    BoneCaptureDataInfo.owner = HAPI_ATTROWNER_POINT;
+    BoneCaptureDataInfo.storage = HAPI_STORAGETYPE_FLOAT_ARRAY;
+    BoneCaptureDataInfo.originalOwner = HAPI_ATTROWNER_POINT;
+    BoneCaptureDataInfo.totalArrayElements = BoneCaptureDataArray.Num();// Part.pointCount* InfluenceCount;
+    BoneCaptureDataInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
+
+    HAPI_Result BoneCaptureDataAdd = FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
+		"boneCapture_data", &BoneCaptureDataInfo);
+
+    HAPI_Result BoneCaptureDataResult = FHoudiniApi::SetAttributeFloatArrayData(
+		FHoudiniEngine::Get().GetSession(), NewNodeId,
+		0, "boneCapture_data", &BoneCaptureDataInfo, BoneCaptureDataArray.GetData(),
+		BoneCaptureDataInfo.totalArrayElements, SizesBoneCaptureIndexArray.GetData(), 0, SizesBoneCaptureIndexArray.Num());
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// bonecapture_index
+	//---------------------------------------------------------------------------------------------------------------------
+    HAPI_AttributeInfo BoneCaptureIndexInfo;
+    FHoudiniApi::AttributeInfo_Init(&BoneCaptureIndexInfo);
+    BoneCaptureIndexInfo.count = Part.pointCount;
+    BoneCaptureIndexInfo.tupleSize = 1;
+    BoneCaptureIndexInfo.exists = true;
+    BoneCaptureIndexInfo.owner = HAPI_ATTROWNER_POINT;
+    BoneCaptureIndexInfo.storage = HAPI_STORAGETYPE_INT_ARRAY;
+    BoneCaptureIndexInfo.originalOwner = HAPI_ATTROWNER_POINT;
+    BoneCaptureIndexInfo.totalArrayElements = BoneCaptureIndexArray.Num();// Part.pointCount* InfluenceCount;
+    BoneCaptureIndexInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
+
+    HAPI_Result BoneCaptureIndexAdd = FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
+		"boneCapture_index", &BoneCaptureIndexInfo);
+
+    HAPI_Result BoneCaptureIndexResult = FHoudiniApi::SetAttributeIntArrayData(
+		FHoudiniEngine::Get().GetSession(), NewNodeId,
+		0, "boneCapture_index", &BoneCaptureDataInfo, BoneCaptureIndexArray.GetData(),
+		BoneCaptureIndexInfo.totalArrayElements, SizesBoneCaptureIndexArray.GetData(), 0, SizesBoneCaptureIndexArray.Num());
+
+    return true;
+}
 
 bool
 FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(

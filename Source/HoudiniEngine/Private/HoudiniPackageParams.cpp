@@ -31,7 +31,8 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniStaticMesh.h"
 #include "HoudiniStringResolver.h"
-
+#include "Engine/SkeletalMesh.h"
+#include "Animation/Skeleton.h"
 #include "PackageTools.h"
 #include "ObjectTools.h"
 #include "Engine/StaticMesh.h"
@@ -308,25 +309,21 @@ FHoudiniPackageParams::CreatePackageForObject(FString& OutPackageName, int32 InB
 
 		// Build the final package name
 		FString FinalPackageName = PackagePath + TEXT("/") + OutPackageName;
+
+		//SSAE Name Override
+		if (OverideEnabled)
+		{
+		    FinalPackageName = FolderOverride + TEXT("/") + NameOverride;
+		    OutPackageName = NameOverride;
+		}
+
 		// Sanitize package name.
 		FinalPackageName = UPackageTools::SanitizePackageName(FinalPackageName);
-
-		UObject * PackageOuter = nullptr;
-		/* 
-		// As of UE4.26, it is not possible anymore to create package with a non null outer
-		// CookToLevel is, anyway, no logner supported in v2.
-		if (PackageMode == EPackageMode::CookToLevel_Invalid)
-		{
-			// If we are not baking, then use outermost package, since objects within our package 
-			// need to be visible to external operations, such as copy paste.
-			PackageOuter = OuterPackage;
-		}
-		*/
 
 		// If we are set to create new assets, check if a package named similarly already exists
 		if (ReplaceMode == EPackageReplaceMode::CreateNewAssets)
 		{
-			UPackage* FoundPackage = FindPackage(PackageOuter, *FinalPackageName);
+			UPackage* FoundPackage = FindPackage(nullptr, *FinalPackageName);
 			if (FoundPackage == nullptr)
 			{
 				// Package might not be in memory, check if it exists on disk
@@ -387,6 +384,8 @@ void TemplateFixer()
 {
 	FHoudiniPackageParams PP;
 	UStaticMesh* SM = PP.CreateObjectAndPackage<UStaticMesh>();
+	USkeletalMesh* SK = PP.CreateObjectAndPackage<USkeletalMesh>();
+	USkeleton* Skelly = PP.CreateObjectAndPackage<USkeleton>();
 	UHoudiniStaticMesh* HSM = PP.CreateObjectAndPackage<UHoudiniStaticMesh>();
 	UGeometryCollection* GC = PP.CreateObjectAndPackage<UGeometryCollection>();
 	//UMaterial* Mat = PP.CreateObjectAndPackage<UMaterial>();
