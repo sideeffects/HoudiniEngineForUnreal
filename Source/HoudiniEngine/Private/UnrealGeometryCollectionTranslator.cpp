@@ -83,7 +83,7 @@ FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
 		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && FHoudiniEngineUtils::AreReferencedHAPINodesValid(Handle))
+			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && FHoudiniEngineUtils::IsHoudiniNodeValid(NodeId))
 			{
 				OutHandle = Handle;
 				InputNodeId = NodeId;
