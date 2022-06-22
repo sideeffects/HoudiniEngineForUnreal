@@ -1964,6 +1964,8 @@ FHoudiniInputTranslator::HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
 	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
 	HOUDINI_CHECK_ERROR_RETURN(
 		FHoudiniApi::SetParmNodeValue(Session, InOutObjectMergeNodeId, TCHAR_TO_UTF8(TEXT("objpath1")), InNodeToObjectMerge), false);
+	/*
+	// We shoudnt use WorldOrigin here, as it causes transform issues when merging into an input!
 	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bUseRefCountedInputSystem)
 	{
@@ -1986,6 +1988,7 @@ FHoudiniInputTranslator::HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
 		HOUDINI_CHECK_ERROR_RETURN(
 			FHoudiniApi::SetParmNodeValue(Session, InOutObjectMergeNodeId, TCHAR_TO_UTF8(TEXT("xformpath")), WorldOriginNodeId), false);
 	}
+	*/
 	
 	if (!InTransform.Equals(FTransform::Identity) || !bCreatedGeoObject)
 	{
@@ -2421,7 +2424,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 	
 	// Update this input object's OBJ NodeId
 	InObject->InputNodeId = CreatedNodeId;
-	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
+	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CreatedNodeId);
 
 	// Update this input object's cache data
 	InObject->Update(GCC);
