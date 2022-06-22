@@ -509,8 +509,14 @@ FUnrealObjectInputManagerImpl::GetDefaultNodeName(const FUnrealObjectInputIdenti
 		NameParts.Reserve(4);
 
 		// Get the object name, or for actors, get their label
-		FString ObjectName = IsValid(Actor) ? Actor->GetActorNameOrLabel() : InIdentifier.GetObject()->GetName();
-
+		FString ObjectName = InIdentifier.GetObject()->GetName();
+		if(IsValid(Actor))
+		{
+			ObjectName = Actor->GetActorLabel();
+			if (ObjectName.IsEmpty())
+				ObjectName = Actor->GetName();
+		}
+		
 		NameParts.Add(InIdentifier.GetObject()->GetName());
 
 		const FUnrealObjectInputOptions& Options = InIdentifier.GetOptions();
@@ -526,14 +532,22 @@ FUnrealObjectInputManagerImpl::GetDefaultNodeName(const FUnrealObjectInputIdenti
 			NameParts.Add(TEXT("reference"));
 		if (Options.bImportAsReferenceRotScaleEnabled)
 			NameParts.Add(TEXT("reference_with_rot_scale"));
-		return FString::Join(NameParts, TEXT("_"));		
+		return FString::Join(NameParts, TEXT("_"));
 	}
 	
 	// Get the object name, or for actors, get their label
 	if (IsValid(Actor))
-		return Actor->GetActorNameOrLabel();
+	{
+		FString ActorName = Actor->GetActorLabel();
+		if (ActorName.IsEmpty())
+			ActorName = Actor->GetName();
+		
+		return ActorName;
+	}
 	else
+	{
 		return FPaths::GetBaseFilename(InIdentifier.GetNormalizedObjectPath().ToString());
+	}
 }
 
 bool
