@@ -2129,7 +2129,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 	else 
 	{
 		bSuccess = FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
-			GC, CreatedNodeId, GCCName, InputNodeHandle, GCC);
+			GC, CreatedNodeId, GCCName, GCC);
 	}
 	
 	// Update this input object's OBJ NodeId
