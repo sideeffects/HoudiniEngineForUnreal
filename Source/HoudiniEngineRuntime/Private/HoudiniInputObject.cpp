@@ -103,12 +103,6 @@ UHoudiniInputGeometryCollectionComponent::UHoudiniInputGeometryCollectionCompone
 }
 
 //
-UHoudiniInputGeometryCollectionActor::UHoudiniInputGeometryCollectionActor(const FObjectInitializer& ObjectInitializer)
-        : Super(ObjectInitializer)
-{
-}
-
-//
 UHoudiniInputSceneComponent::UHoudiniInputSceneComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -276,36 +270,8 @@ UHoudiniInputGeometryCollectionComponent::GetGeometryCollectionComponent()
 	return Cast<UGeometryCollectionComponent>(InputObject.LoadSynchronous());
 }
 
-UGeometryCollection* UHoudiniInputGeometryCollectionComponent::GetGeometryCollection()
-{
-	UGeometryCollectionComponent * GeometryCollectionComponent = GetGeometryCollectionComponent();
-	if (!IsValid(GeometryCollectionComponent))
-	{
-		return nullptr;
-	}
-	
-	FGeometryCollectionEdit GeometryCollectionEdit = GeometryCollectionComponent->EditRestCollection();
-	return GeometryCollectionEdit.GetRestCollection();
-}
-
-AGeometryCollectionActor*
-UHoudiniInputGeometryCollectionActor::GetGeometryCollectionActor()
-{
-	return Cast<AGeometryCollectionActor>(InputObject.LoadSynchronous());
-}
-
-UGeometryCollectionComponent* UHoudiniInputGeometryCollectionActor::GetGeometryCollectionComponent()
-{
-	AGeometryCollectionActor * GeometryCollectionActor = GetGeometryCollectionActor();
-	if (!IsValid(GeometryCollectionActor))
-	{
-		return nullptr;
-	}
-
-	return GeometryCollectionActor->GetGeometryCollectionComponent();
-}
-
-UGeometryCollection* UHoudiniInputGeometryCollectionActor::GetGeometryCollection()
+UGeometryCollection* 
+UHoudiniInputGeometryCollectionComponent::GetGeometryCollection()
 {
 	UGeometryCollectionComponent * GeometryCollectionComponent = GetGeometryCollectionComponent();
 	if (!IsValid(GeometryCollectionComponent))
@@ -482,6 +448,7 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 			HoudiniInputObject = UHoudiniInputHoudiniAsset::Create(InObject, InOuter, InName);
 			break;
 		case EHoudiniInputObjectType::Actor:
+		case EHoudiniInputObjectType::GeometryCollectionActor_Deprecated:
 			HoudiniInputObject = UHoudiniInputActor::Create(InObject, InOuter, InName);
 			break;
 
@@ -510,11 +477,8 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 		case EHoudiniInputObjectType::GeometryCollectionComponent:
 			HoudiniInputObject = UHoudiniInputGeometryCollectionComponent::Create(InObject, InOuter, InName);
 			break;
-		case EHoudiniInputObjectType::GeometryCollectionActor:
-			HoudiniInputObject = UHoudiniInputGeometryCollectionActor::Create(InObject, InOuter, InName);
-			break;
 		case EHoudiniInputObjectType::Invalid:
-		default:		
+		default:
 			break;
 	}
 
@@ -862,22 +826,6 @@ UHoudiniInputGeometryCollectionComponent::Create(UObject * InObject, UObject* In
 	return HoudiniInputObject;
 }
 
-UHoudiniInputObject *
-UHoudiniInputGeometryCollectionActor::Create(UObject * InObject, UObject* InOuter, const FString& InName)
-{
-	FString InputObjectNameStr = "HoudiniInputObject_GCA_" + InName;
-	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputGeometryCollectionActor::StaticClass(), *InputObjectNameStr);
-
-	// We need to create a new object
-	UHoudiniInputGeometryCollectionActor * HoudiniInputObject = NewObject<UHoudiniInputGeometryCollectionActor>(
-                InOuter, UHoudiniInputGeometryCollectionActor::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
-
-	HoudiniInputObject->Type = EHoudiniInputObjectType::GeometryCollectionActor;
-	HoudiniInputObject->Update(InObject);
-	HoudiniInputObject->bHasChanged = true;
-
-	return HoudiniInputObject;
-}
 
 UHoudiniInputObject *
 UHoudiniInputObject::Create(UObject * InObject, UObject* InOuter, const FString& InName)
@@ -1001,15 +949,6 @@ UHoudiniInputGeometryCollectionComponent::Update(UObject * InObject)
 }
 
 
-void
-UHoudiniInputGeometryCollectionActor::Update(UObject * InObject)
-{
-	// Nothing to do
-	Super::Update(InObject);
-
-	AGeometryCollectionActor* GeometryCollectionActor = Cast<AGeometryCollectionActor>(InObject);
-	ensure(GeometryCollectionActor);
-}
 
 void
 UHoudiniInputSceneComponent::Update(UObject * InObject)
@@ -1694,10 +1633,6 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 		else if (InObject->IsA(AHoudiniAssetActor::StaticClass()))
 		{
 			return EHoudiniInputObjectType::HoudiniAssetActor;
-		}
-		else if (InObject->IsA(AGeometryCollectionActor::StaticClass()))
-		{
-			return EHoudiniInputObjectType::GeometryCollectionActor;
 		}
 		else
 		{

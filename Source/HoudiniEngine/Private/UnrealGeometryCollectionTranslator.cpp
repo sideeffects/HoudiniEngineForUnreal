@@ -31,10 +31,11 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEnginePrivatePCH.h"
+
 #include "EditorFramework/AssetImportData.h"
 #include "Engine/SkeletalMesh.h"
-#include "GeometryCollection/GeometryCollectionClusteringUtility.h"
 
+#include "GeometryCollection/GeometryCollectionClusteringUtility.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionDebugDrawComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
@@ -43,7 +44,9 @@
 
 bool 
 FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
-	UGeometryCollection* GeometryCollection, HAPI_NodeId& InputNodeId, const FString& InputNodeName,
+	UGeometryCollection* GeometryCollection,
+	HAPI_NodeId& InputNodeId,
+	const FString& InputNodeName,
 	UGeometryCollectionComponent* GeometryCollectionComponent)
 {
 	// If we don't have a static mesh there's nothing to do.
@@ -53,6 +56,7 @@ FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
 	// Node ID for the newly created node
 	HAPI_NodeId PackNodeId = -1;
 	FString PackName = FString::Printf(TEXT("%s_pack"), *InputNodeName);
+
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
 		-1, TEXT("SOP/pack"), InputNodeName, true, &PackNodeId), false);
 
@@ -85,9 +89,7 @@ FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
 		}		
 	}
 
-
 	HAPI_NodeId MergeNodeId = -1;
-
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
                 InputObjectNodeId, TEXT("merge"), InputNodeName, true, &MergeNodeId), false);
 
@@ -122,7 +124,7 @@ FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
 		return false;
 	
 	InputNodeId = PackNodeId;
-	
+
 	return true;
 }
 
@@ -167,8 +169,12 @@ FUnrealGeometryCollectionTranslator::SetGeometryCollectionAttributesForPart(
 }
 
 bool 
-FUnrealGeometryCollectionTranslator::UploadGeometryCollection(UGeometryCollection* GeometryCollectionObject,
-	HAPI_NodeId InParentNodeId, FString InName, HAPI_NodeId InMergeNodeId, UGeometryCollectionComponent * GeometryCollectionComponent)
+FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
+	UGeometryCollection* GeometryCollectionObject,
+	HAPI_NodeId InParentNodeId, 
+	FString InName,
+	HAPI_NodeId InMergeNodeId, 
+	UGeometryCollectionComponent * GeometryCollectionComponent)
 {
 	if (!IsValid(GeometryCollectionObject))
 	{
@@ -239,13 +245,11 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(UGeometryCollectio
 		int32& FaceStart = FaceStartArray[GeometryIndex];
 		int32& FaceCount = FaceCountArray[GeometryIndex];
 
-
 		HAPI_NodeId GeometryNodeId = -1;
 		FString OutputName = FString::Printf( TEXT("gc_piece_%d"), ObjectIndex);
 		// Create the node in this input object's OBJ node
 		HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
-                        InParentNodeId, TEXT("null"), OutputName, false, &GeometryNodeId), false);
-		
+			InParentNodeId, TEXT("null"), OutputName, false, &GeometryNodeId), false);
 		HAPI_PartInfo Part;
 		FHoudiniApi::PartInfo_Init(&Part);
 
@@ -325,8 +329,7 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(UGeometryCollectio
 			}
 
 			TriangleMaterialIndices.Reserve(Part.faceCount);
-		}
- 
+		} 
 		
 		// Setup for vertex instance attributes
 		int32 HoudiniVertexIdx = 0;
