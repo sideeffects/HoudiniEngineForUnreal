@@ -773,7 +773,7 @@ UHoudiniAssetComponent::GetHoudiniAsset() const
 FString
 UHoudiniAssetComponent::GetDisplayName() const
 {
-	return GetOwner() ? GetOwner()->GetName() : GetName();
+	return GetOwner() ? GetOwner()->GetActorNameOrLabel() : GetName();
 }
 
 void

@@ -1324,8 +1324,8 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 
 		case EHoudiniInputObjectType::SkeletalMesh:
 		{
-			UHoudiniInputSkeletalMesh* InputSkelMes = Cast<UHoudiniInputSkeletalMesh>(InInputObject);
-			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMesh(ObjBaseName, InputSkelMes);
+			UHoudiniInputSkeletalMesh* InputSkelMesh = Cast<UHoudiniInputSkeletalMesh>(InInputObject);
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMesh(ObjBaseName, InputSkelMesh);
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1346,16 +1346,6 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		{	
 			UHoudiniInputGeometryCollectionComponent* InputGeometryCollection = Cast<UHoudiniInputGeometryCollectionComponent>(InInputObject);
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(ObjBaseName, InputGeometryCollection, InInput->GetImportAsReference());
-
-			if (bSuccess)
-				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
-
-			break;
-		}
-		case EHoudiniInputObjectType::GeometryCollectionActor:
-		{	
-			UHoudiniInputGeometryCollectionActor* InputGeometryCollection = Cast<UHoudiniInputGeometryCollectionActor>(InInputObject);
-			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionActor(ObjBaseName, InputGeometryCollection, InInput->GetImportAsReference());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1441,6 +1431,7 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		}
 
 		case EHoudiniInputObjectType::Actor:
+		case EHoudiniInputObjectType::GeometryCollectionActor_Deprecated:
 		{			
 			UHoudiniInputActor* InputActor = Cast<UHoudiniInputActor>(InInputObject);
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForActor(InInput, InputActor,
@@ -1602,6 +1593,7 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 		}
 
 		case EHoudiniInputObjectType::Actor:
+		case EHoudiniInputObjectType::GeometryCollectionActor_Deprecated:
 		{
 			UHoudiniInputActor* InputActor = Cast<UHoudiniInputActor>(InInputObject);
 			if (!IsValid(InputActor))
@@ -1715,9 +1707,8 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 		{
 			break;
 		}
-		case EHoudiniInputObjectType::GeometryCollectionComponent:
-		case EHoudiniInputObjectType::GeometryCollectionActor:
 		case EHoudiniInputObjectType::GeometryCollection:
+		case EHoudiniInputObjectType::GeometryCollectionComponent:
 		{
 			// Simply update the Input mesh's Transform offset
 			if (!UpdateTransform(InInputObject->Transform, InInputObject->InputObjectNodeId))
@@ -2008,7 +1999,9 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 }
 
 bool
-FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMesh(const FString& InObjNodeName, UHoudiniInputSkeletalMesh* InObject)
+FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMesh(
+	const FString& InObjNodeName,
+	UHoudiniInputSkeletalMesh* InObject)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2027,8 +2020,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMesh(const FString& InObj
 	return HapiCreateInputNodeForObject(InObjNodeName, InObject);
 }
 
-bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(const FString& InObjNodeName,
-	UHoudiniInputGeometryCollection* InObject, const bool& bImportAsReference)
+bool 
+FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(
+	const FString& InObjNodeName,
+	UHoudiniInputGeometryCollection* InObject, 
+	const bool& bImportAsReference)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2057,11 +2053,13 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(const FSt
 		// Attach another '\'' to the end
 		AssetReference += FString("'");
 
-		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InObject->InputNodeId, AssetReference, GCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled());
+		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
+			InObject->InputNodeId, AssetReference, GCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled());
 	}
 	else 
 	{
-		bSuccess = FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(GeometryCollection, InObject->InputNodeId, GCName, nullptr);
+		bSuccess = FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
+			GeometryCollection, InObject->InputNodeId, GCName, nullptr);
 	}
 	
 	// Update this input object's OBJ NodeId
@@ -2084,8 +2082,11 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(const FSt
 	return bSuccess;
 }
 
-bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(const FString& InObjNodeName,
-	UHoudiniInputGeometryCollectionComponent* InObject, const bool& bImportAsReference)
+bool 
+FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
+	const FString& InObjNodeName,
+	UHoudiniInputGeometryCollectionComponent* InObject, 
+	const bool& bImportAsReference)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2098,9 +2099,11 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 	UGeometryCollection* GC = InObject->GetGeometryCollection();
 	if (!IsValid(GC))
 		return true;
-	
+
+
 	// Marshall the GeometryCollection to Houdini
-	FString GCName = InObjNodeName + TEXT("_") + GCC->GetName();
+	FString GCCName = InObjNodeName + TEXT("_") + GCC->GetName();
+	HAPI_NodeId CreatedNodeId = InObject->InputNodeId;
 
 	bool bSuccess = true;
 	if (bImportAsReference) 
@@ -2121,15 +2124,18 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 		// Attach another '\'' to the end
 		AssetReference += FString("'");
 
-		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InObject->InputNodeId, AssetReference, GCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled());
+		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
+			CreatedNodeId, AssetReference, GCCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled());
 	}
 	else 
 	{
-		bSuccess = FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(GC, InObject->InputNodeId, GCName, GCC);
+		bSuccess = FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
+			GC, CreatedNodeId, GCCName, GCC);
 	}
 	
 	// Update this input object's OBJ NodeId
-	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
+	InObject->InputNodeId = CreatedNodeId;
+	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CreatedNodeId);
 
 	// Update this input object's cache data
 	InObject->Update(GCC);
@@ -2148,77 +2154,6 @@ bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 			FHoudiniEngine::Get().GetSession(), InObject->InputObjectNodeId, &HapiTransform), false);
 	}
 
-	return bSuccess;	
-}
-
-bool FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionActor(const FString& InObjNodeName,
-	UHoudiniInputGeometryCollectionActor* InObject, const bool& bImportAsReference)
-{
-	if (!IsValid(InObject))
-		return false;
-
-	AGeometryCollectionActor* GCA = InObject->GetGeometryCollectionActor();
-	if (!IsValid(GCA))
-		return true;
-
-	UGeometryCollectionComponent* GCC = InObject->GetGeometryCollectionComponent();
-	if (!IsValid(GCC))
-		return true;
-
-	// Get the component's GeometryCollection
-	UGeometryCollection* GC = InObject->GetGeometryCollection();
-	if (!IsValid(GC))
-		return true;
-	
-	// Marshall the GeometryCollection to Houdini
-	FString GCName = InObjNodeName + TEXT("_") + GCC->GetName();
-
-	bool bSuccess = true;
-	if (bImportAsReference) 
-	{
-		// Start by getting the Object's full name
-		FString AssetReference = GC->GetFullName();
-
-		// Replace the first space to '\''
-		for (int32 Itr = 0; Itr < AssetReference.Len(); Itr++)
-		{
-			if (AssetReference[Itr] == ' ')
-			{
-				AssetReference[Itr] = '\'';
-				break;
-			}
-		}
-
-		// Attach another '\'' to the end
-		AssetReference += FString("'");
-
-		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InObject->InputNodeId, AssetReference, GCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled());
-	}
-	else 
-	{
-		bSuccess = FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(GC, InObject->InputNodeId, GCName, GCC);
-	}
-	
-	// Update this input object's OBJ NodeId
-	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
-
-	// Update this input object's cache data
-	InObject->Update(GCA);
-
-	// Use the component transform to drive offsets, because the actor itself is usually not the transform we want to look at.
-	FTransform ComponentTransform = InObject->Transform * GCC->GetComponentTransform();
-	if (!ComponentTransform.Equals(FTransform::Identity))
-	{
-		// convert to HAPI_Transform
-		HAPI_TransformEuler HapiTransform;
-		FHoudiniApi::TransformEuler_Init(&HapiTransform);
-		FHoudiniEngineUtils::TranslateUnrealTransform(ComponentTransform, HapiTransform);
-
-		// Set the transform on the OBJ parent
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
-                        FHoudiniEngine::Get().GetSession(), InObject->InputObjectNodeId, &HapiTransform), false);
-	}
-	
 	return bSuccess;
 }
 
@@ -2293,7 +2228,6 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 		AssetReference += FString("'");
 
 		FTransform ImportAsReferenceTransform = InObject->Transform;
-
 		if (!bKeepWorldTransform)
 		{
 			ImportAsReferenceTransform.SetLocation(FVector::ZeroVector);
@@ -2674,7 +2608,9 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 
 bool
 FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
-	const FString& InObjNodeName, UHoudiniInputLandscape* InObject, UHoudiniInput* InInput)
+	const FString& InObjNodeName,
+	UHoudiniInputLandscape* InObject,
+	UHoudiniInput* InInput)
 {
 	if (!IsValid(InObject))
 		return false;
