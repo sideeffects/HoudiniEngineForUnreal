@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Copyright (c) <2021> Side Effects Software Inc.
 * All rights reserved.
 *
@@ -500,11 +500,17 @@ FUnrealObjectInputManagerImpl::GetDefaultNodeName(const FUnrealObjectInputIdenti
 	if (!InIdentifier.IsValid())
 		return FString();
 
+	const AActor* Actor = Cast<const AActor>(InIdentifier.GetObject());
+
 	const EUnrealObjectInputNodeType Type = InIdentifier.GetNodeType();
 	if (Type == EUnrealObjectInputNodeType::Leaf || Type == EUnrealObjectInputNodeType::Reference)
 	{
 		TArray<FString> NameParts;
 		NameParts.Reserve(4);
+
+		// Get the object name, or for actors, get their label
+		FString ObjectName = IsValid(Actor) ? Actor->GetActorNameOrLabel() : InIdentifier.GetObject()->GetName();
+
 		NameParts.Add(InIdentifier.GetObject()->GetName());
 
 		const FUnrealObjectInputOptions& Options = InIdentifier.GetOptions();
@@ -523,7 +529,11 @@ FUnrealObjectInputManagerImpl::GetDefaultNodeName(const FUnrealObjectInputIdenti
 		return FString::Join(NameParts, TEXT("_"));		
 	}
 	
-	return FPaths::GetBaseFilename(InIdentifier.GetNormalizedObjectPath().ToString());
+	// Get the object name, or for actors, get their label
+	if (IsValid(Actor))
+		return Actor->GetActorNameOrLabel();
+	else
+		return FPaths::GetBaseFilename(InIdentifier.GetNormalizedObjectPath().ToString());
 }
 
 bool
