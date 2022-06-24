@@ -97,7 +97,10 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 	if (SelectedAssets.Num() <= 0)
 		return;
 
-    GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Sending To Houdini!"));
+	// Add a slate notification
+	FString Notification = TEXT("Sending selected assets to Houdini...");
+	FHoudiniEngineUtils::CreateSlateNotification(Notification);
+	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Sending To Houdini!"));
 
 	if (!CreateSessionIfNeeded())
 	{
@@ -270,6 +273,10 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 		// TODO: Always call remove from root, even for failures! (use a lambda for returns)
 		NodeSyncInput->RemoveFromRoot();
 	}
+
+	// TODO: Improve me! handle failures!
+	Notification = TEXT("Houdini Node Sync success!");
+	FHoudiniEngineUtils::CreateSlateNotification(Notification);
 }
 
 void 
@@ -300,19 +307,26 @@ void
 UHoudiniEditorSubsystem::SendToUnreal(
 	const FString& InPackageName, const FString& InPackageFolder, const int32& InMaxInfluences, const bool& InImportNormals)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Importing To Unreal!"));
+	// Add a slate notification
+	FString Notification = TEXT("Fetching data from Houdini...");
+	FHoudiniEngineUtils::CreateSlateNotification(Notification);
+	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Importing To Unreal!"));
+
+	if (!CreateSessionIfNeeded())
+	{
+		// For now, just warn the session is not session sync
+		HOUDINI_LOG_WARNING(TEXT("HoudiniNodeSync: the current session is not session-sync one!"));
+	}
 
     UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
 	if (!IsValid(HoudiniEditorSubsystem))
 		return;
 
-	//TODO: Handle HAPI failures!!!!
 
     FString FetchNodePath = HoudiniEditorSubsystem->NodeSync.FetchNodePath;
 
     HAPI_Result result;
     HAPI_NodeId  UnrealContentNode = -1;
-
     if (HoudiniEditorSubsystem->NodeSync.UseDisplayFlag)
     {
         HAPI_GeoInfo DisplayHapiGeoInfo;
@@ -343,19 +357,36 @@ UHoudiniEditorSubsystem::SendToUnreal(
     HAPI_AttributeInfo CaptXFormsInfo;
     FHoudiniApi::AttributeInfo_Init(&CaptXFormsInfo);
 
+	bool bHasSkeletalMeshData = false;
     HAPI_Result CaptXFormsInfoResult = FHoudiniApi::GetAttributeInfo(
 		FHoudiniEngine::Get().GetSession(),
 		UnrealContentNode, PartId,
 		"capt_xforms", HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &CaptXFormsInfo);
 
-    if (CaptXFormsInfo.exists)
+	bHasSkeletalMeshData = CaptXFormsInfo.exists && (CaptXFormsInfoResult == HAPI_RESULT_SUCCESS);
+
+	bool bSuccess = false;
+    if (bHasSkeletalMeshData)
     {
-	    SendSkeletalMeshToUnreal(UnrealContentNode, InPackageName, InPackageFolder, InMaxInfluences, InImportNormals);
+		bSuccess = SendSkeletalMeshToUnreal(UnrealContentNode, InPackageName, InPackageFolder, InMaxInfluences, InImportNormals);
     }
     else
     {
-	    SendStaticMeshToUnreal(UnrealContentNode, InPackageName, InPackageFolder);
+		bSuccess = SendStaticMeshToUnreal(UnrealContentNode, InPackageName, InPackageFolder);
     }
+
+	if (bSuccess)
+	{
+		// TODO: Improve me!
+		Notification = TEXT("Houdini Node Sync success!");
+		FHoudiniEngineUtils::CreateSlateNotification(Notification);
+	}
+	else
+	{
+		// TODO: Improve me!
+		Notification = TEXT("Houdini Node Sync failed!");
+		FHoudiniEngineUtils::CreateSlateNotification(Notification);
+	}
 }
 
 bool 
@@ -371,17 +402,28 @@ UHoudiniEditorSubsystem::SendSkeletalMeshToUnreal(
     // Get the AssetInfo
     HAPI_AssetInfo AssetInfo;
     FHoudiniApi::AssetInfo_Init(&AssetInfo);
+	// Dont return on failure here...
 	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), InNodeId, &AssetInfo))
-		return false;
+	{
+		HOUDINI_LOG_WARNING(TEXT("HoudiniNodeSync: Failed to get object info when fetching from Houdini!"));
+		//return false;
+	}
 
     FString UniqueName;
     FHoudiniEngineUtils::GetHoudiniAssetName(AssetInfo.nodeId, UniqueName);
 
-    // Get the ObjectInfo
-    HAPI_ObjectInfo ObjectInfo;
-    FHoudiniApi::ObjectInfo_Init(&ObjectInfo);
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjectInfo(FHoudiniEngine::Get().GetSession(), object_node_id, &ObjectInfo))
-		return false;
+	// Get the ObjectInfo
+	HAPI_ObjectInfo ObjectInfo;
+	FHoudiniApi::ObjectInfo_Init(&ObjectInfo);
+
+	// TODO: Improve on this, parent may not be an OBJ node
+	HAPI_NodeId ObjectNodeId = MyNodeInfo.type == HAPI_NodeType::HAPI_NODETYPE_OBJ ? InNodeId : FHoudiniEngineUtils::HapiGetParentNodeId(InNodeId);
+	// Dont return on failure here...
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjectInfo(FHoudiniEngine::Get().GetSession(), ObjectNodeId, &ObjectInfo))
+	{
+		HOUDINI_LOG_WARNING(TEXT("HoudiniNodeSync: Failed to get object info when fetching from Houdini!"));
+		//return false;
+	}
 
     FString CurrentAssetName;
     {
@@ -443,14 +485,25 @@ UHoudiniEditorSubsystem::SendStaticMeshToUnreal(
     // Get the AssetInfo
     HAPI_AssetInfo AssetInfo;
     FHoudiniApi::AssetInfo_Init(&AssetInfo);
+	// Dont return on failure here...
 	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), InNodeId, &AssetInfo))
-		return false;
+	{
+		HOUDINI_LOG_WARNING(TEXT("HoudiniNodeSync: Failed to get object info when fetching from Houdini!"));
+		//return false;
+	}
 
     // Get the ObjectInfo
     HAPI_ObjectInfo ObjectInfo;
     FHoudiniApi::ObjectInfo_Init(&ObjectInfo);
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjectInfo(FHoudiniEngine::Get().GetSession(), object_node_id, &ObjectInfo))
-		return false;
+
+	// TODO: Improve on this, parent may not be an OBJ node
+	HAPI_NodeId ObjectNodeId = MyNodeInfo.type == HAPI_NodeType::HAPI_NODETYPE_OBJ ? InNodeId : FHoudiniEngineUtils::HapiGetParentNodeId(InNodeId);
+	// Dont return on failure here...
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjectInfo(FHoudiniEngine::Get().GetSession(), ObjectNodeId, &ObjectInfo))
+	{
+		HOUDINI_LOG_WARNING(TEXT("HoudiniNodeSync: Failed to get object info when fetching from Houdini!"));
+		//return false;
+	}		
 
 	// TODO: multiple parts broken only do first part to get working
     //for (int32 PartId = 0; PartId < GeoInfo.partCount; ++PartId)
@@ -459,7 +512,6 @@ UHoudiniEditorSubsystem::SendStaticMeshToUnreal(
 		// Get part information.
 		HAPI_PartInfo CurrentHapiPartInfo;
 		FHoudiniApi::PartInfo_Init(&CurrentHapiPartInfo);
-
 		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(
 			FHoudiniEngine::Get().GetSession(), InNodeId, PartId, &CurrentHapiPartInfo))
 			return false;  // continue;
