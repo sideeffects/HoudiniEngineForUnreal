@@ -53,26 +53,29 @@ class HOUDINIENGINEEDITOR_API UHoudiniEditorSubsystem : public UEditorSubsystem
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Houdini")
-	void SendToHoudini(const TArray<FAssetData>& SelectedAssets);
+	void SendToHoudini(const TArray<UObject*>& SelectedAssets);
 
 	UFUNCTION(BlueprintCallable, Category = "Houdini")
-	void SendToUnreal(FString PackageName, FString PackageFolder, int MaxInfluences = 1, bool ImportNormals=false);
+	void SendToUnreal(const FString& InPackageName, const FString& InPackageFolder, const int32& MaxInfluences = 1, const bool& ImportNormals=false);
 	
 	UFUNCTION(BlueprintCallable, Category = "Houdini")
 	void Fetch();
 
-	void CreateSessionHDA();
+	bool CreateSessionIfNeeded();
 
 	UFUNCTION(BlueprintCallable, Category = "Houdini")
 	void DumpSessionInfo();
 
 	FHoudiniNodeSync NodeSync;
 
+	//virtual void RegisterLayoutExtensions(FLayoutExtender& Extender) override;
+
 private:
-	void SendStaticMeshToHoudini(HAPI_NodeId mesh_node_id, UStaticMesh* SkelMesh);
-	void SendSkeletalMeshToHoudini(HAPI_NodeId mesh_node_id, USkeletalMesh* SkelMesh);
-	void SendSkeletalMeshToUnreal(HAPI_NodeId NodeId, FString PackageName, FString PackageFolder, int MaxInfluences, bool ImportNormals);
-	void SendStaticMeshToUnreal(HAPI_NodeId NodeId, FString PackageName, FString PackageFolder);
+
+	bool SendStaticMeshToHoudini(const HAPI_NodeId& InMeshNodeId, UStaticMesh* InMesh);
+	bool SendSkeletalMeshToHoudini(const HAPI_NodeId& InMeshNodeId, USkeletalMesh* InSkelMesh);
+	bool SendSkeletalMeshToUnreal(const HAPI_NodeId& InNodeId, const FString& InPackageName, const FString& InPackageFolder, const int32& MaxInfluences, const bool& ImportNormals);
+	bool SendStaticMeshToUnreal(const HAPI_NodeId& InNodeId, const FString& InPackageName, const FString& InPackageFolder);
 
 
 
