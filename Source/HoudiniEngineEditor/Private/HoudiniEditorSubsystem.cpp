@@ -16,7 +16,7 @@
 #include "HoudiniInputTranslator.h"
 
 #include "Engine/SkeletalMesh.h"
-#include "Toolkits/AssetEditorModeUILayer.h"
+//#include "Toolkits/AssetEditorModeUILayer.h"
 
 
 
