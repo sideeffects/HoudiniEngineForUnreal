@@ -53,7 +53,7 @@ class HOUDINIENGINEEDITOR_API UHoudiniEditorSubsystem : public UEditorSubsystem
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Houdini")
-	void SendToHoudini(const TArray<FAssetData>& SelectedAssets);
+	void SendToHoudini(const TArray<UObject*>& SelectedAssets);
 
 	UFUNCTION(BlueprintCallable, Category = "Houdini")
 	void SendToUnreal(const FString& InPackageName, const FString& InPackageFolder, const int32& MaxInfluences = 1, const bool& ImportNormals=false);

@@ -82,6 +82,8 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 		virtual void UnregisterForUndo() override;
 		virtual void RegisterPlacementModeExtensions() override;
 		virtual void UnregisterPlacementModeExtensions() override;
+		virtual void RegisterEditorTabs() override;
+		virtual void UnRegisterEditorTabs() override;
 
 		// Return singleton instance of Houdini Engine Editor, used internally.
 		static FHoudiniEngineEditor & Get();
@@ -191,6 +193,9 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 		// Gets the PostSaveWorldOnceHandle
 		FDelegateHandle& GetOnPostSaveWorldOnceHandle() { return PostSaveWorldOnceHandle; }
 
+		//void ModulesChangedCallback(FName ModuleName, EModuleChangeReason ReasonForChange);
+		//FDelegateHandle ModulesChangedHandle;
+
 	protected:
 
 		// Binds the commands used by the menus
@@ -211,10 +216,14 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 		// Adds the custom Houdini Engine commands to the world outliner context menu
 		void AddLevelViewportMenuExtender();
 
-		//Extend the SkeletalMesh Context Menu
+		//Extend the content browser Context Menu
 		void ExtendContextMenu();
 
-		void SendToHoudini(TArray<FAssetData> SelectedAssets);
+		// Send CB selection to Houdini
+		void SendToHoudini_CB(TArray<FAssetData> SelectedAssets);
+
+		// Send World selection to Houdini
+		void SendToHoudini_World();
 
 		FDelegateHandle ContentBrowserExtenderDelegateHandle;
 

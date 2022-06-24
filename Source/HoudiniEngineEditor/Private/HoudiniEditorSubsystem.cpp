@@ -92,7 +92,7 @@ UHoudiniEditorSubsystem::SendSkeletalMeshToHoudini(
 
 
 void 
-UHoudiniEditorSubsystem::SendToHoudini(const TArray<FAssetData>& SelectedAssets)
+UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 {
 	if (SelectedAssets.Num() <= 0)
 		return;
@@ -143,7 +143,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<FAssetData>& SelectedAssets)
 		}
 
 		HAPI_NodeId mesh_node_id = -1;
-		USkeletalMesh* SkelMesh = Cast<USkeletalMesh>(SelectedAssets[0].GetAsset());
+		USkeletalMesh* SkelMesh = Cast<USkeletalMesh>(SelectedAssets[0]);
 		if (SkelMesh)
 		{
 			FString SKName = TEXT("SkeletalMesh_") + SkelMesh->GetName();
@@ -152,7 +152,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<FAssetData>& SelectedAssets)
 		}
 		else
 		{
-			UStaticMesh* StaticMesh = Cast<UStaticMesh>(SelectedAssets[0].GetAsset());
+			UStaticMesh* StaticMesh = Cast<UStaticMesh>(SelectedAssets[0]);
 			if (StaticMesh)
 			{
 				FString SKName = TEXT("StaticMesh_") + StaticMesh->GetName();
@@ -218,7 +218,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<FAssetData>& SelectedAssets)
 		for (int32 Idx = 0; Idx < SelectedAssets.Num(); Idx++)
 		{
 			TArray<int32> CreatedNodeIds;
-			UObject* CurrentObject = SelectedAssets[Idx].GetAsset();
+			UObject* CurrentObject = SelectedAssets[Idx];
 			if (!IsValid(CurrentObject))
 				continue;
 
