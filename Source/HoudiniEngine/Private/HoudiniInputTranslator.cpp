@@ -2255,10 +2255,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMesh(
 	else
 	{
 		//bSuccess = FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(GeometryCollection, CreatedNodeId, GCName, InputNodeHandle, nullptr);
-		bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(SkelMesh, InObject->InputNodeId, SKName, InputNodeHandle, nullptr);
+		bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(SkelMesh, CreatedNodeId, SKName, InputNodeHandle, nullptr);
 	}
 
 	InObject->InputNodeHandle = InputNodeHandle;
+
 	if (bUseRefCountedInputSystem)
 	{
 		constexpr HAPI_NodeId ParentNodeId = -1;

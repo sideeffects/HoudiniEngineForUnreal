@@ -74,7 +74,7 @@ FHoudiniEngineCommands::RegisterCommands()
 	UI_COMMAND(_ConnectSession, "Connect Session", "Connects to an existing Houdini Engine session.", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND(_StopSession, "Stop Session", "Stops the current Houdini Engine session.", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND(_RestartSession, "Restart Session", "Restarts the current Houdini Engine session.", EUserInterfaceActionType::Button, FInputChord());
-	UI_COMMAND(_OpenSessionSync, "Open Houdini Session Sync", "Opens Houdini with Session Sync and connect to it.", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(_OpenSessionSync, "Open Houdini Session Sync...", "Opens Houdini with Session Sync and connect to it.", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND(_CloseSessionSync, "Close Houdini Session Sync", "Close the Session Sync Houdini.", EUserInterfaceActionType::Button, FInputChord());
 
 	// Viewport Sync
@@ -84,22 +84,22 @@ FHoudiniEngineCommands::RegisterCommands()
 	UI_COMMAND(_ViewportSyncBoth, "Both", "Sync both Unreal and Houdini's viewport.", EUserInterfaceActionType::Check, FInputChord());
 
 	//NodeSync
-	UI_COMMAND(_OpenNodeSync, "Open Houdini Node Sync", "Opens Node Sync Panel.", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(_OpenNodeSync, "Houdini Node Sync...", "Opens the Houdini Node Sync Panel.", EUserInterfaceActionType::Button, FInputChord());
 
 	// PDG Import Commandlet
 	UI_COMMAND(_StartPDGCommandlet, "Start Async Importer", "Start the commandlet that imports PDG BGEO results in the background.", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND(_StopPDGCommandlet, "Stop Async Importer", "Stops the commandlet that imports PDG BGEO results in the background.", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND(_IsPDGCommandletEnabled, "Enable Async Importer", "Enables the commandlet that imports PDG BGEO results in the background.", EUserInterfaceActionType::Check, FInputChord());
 	
-	UI_COMMAND(_InstallInfo, "Installation Info", "Display information on the current Houdini Engine installation", EUserInterfaceActionType::Button, FInputChord());
-	UI_COMMAND(_PluginSettings, "PluginSettings", "Displays the Houdini Engine plugin settings", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(_InstallInfo, "Installation Info...", "Display information on the current Houdini Engine installation", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(_PluginSettings, "PluginSettings...", "Displays the Houdini Engine plugin settings", EUserInterfaceActionType::Button, FInputChord());
 
-	UI_COMMAND(_OpenInHoudini, "Open scene in Houdini", "Opens the current Houdini scene in Houdini.", EUserInterfaceActionType::Button, FInputChord(EKeys::O, EModifierKey::Control | EModifierKey::Alt));
+	UI_COMMAND(_OpenInHoudini, "Open scene in Houdini...", "Opens the current Houdini scene in Houdini.", EUserInterfaceActionType::Button, FInputChord(EKeys::O, EModifierKey::Control | EModifierKey::Alt));
 	UI_COMMAND(_SaveHIPFile, "Save Houdini scene (HIP)", "Saves a .hip file of the current Houdini scene.", EUserInterfaceActionType::Button, FInputChord());
 		
-	UI_COMMAND(_OnlineDoc, "Online Documentation", "Go to the plugin's online documentation.", EUserInterfaceActionType::Button, FInputChord());
-	UI_COMMAND(_OnlineForum, "Online Forum", "Go to the plugin's online forum.", EUserInterfaceActionType::Button, FInputChord());
-	UI_COMMAND(_ReportBug, "Report a bug", "Report a bug for Houdini Engine for Unreal plugin.", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(_OnlineDoc, "Online Documentation...", "Go to the plugin's online documentation.", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(_OnlineForum, "Online Forum...", "Go to the plugin's online forum.", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(_ReportBug, "Report a bug...", "Report a bug for Houdini Engine for Unreal plugin.", EUserInterfaceActionType::Button, FInputChord());
 
 	UI_COMMAND(_CookAll, "Recook All", "Recooks all Houdini Assets Actors in the current level.", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND(_CookSelected, "Recook Selection", "Recooks selected Houdini Asset Actors in the current level.", EUserInterfaceActionType::Button, FInputChord(EKeys::C, EModifierKey::Control | EModifierKey::Alt));
