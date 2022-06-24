@@ -510,8 +510,11 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	return true;
 }
 
-bool FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponentArray(ALandscapeProxy* LandscapeProxy,
-	const TSet<ULandscapeComponent*>& SelectedComponents, HAPI_NodeId& CreatedHeightfieldNodeId,
+bool 
+FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponentArray(
+	ALandscapeProxy* LandscapeProxy,
+	const TSet<ULandscapeComponent*>& SelectedComponents, 
+	HAPI_NodeId& CreatedHeightfieldNodeId,
 	const FString& InputNodeNameStr)
 {
 	if ( SelectedComponents.Num() <= 0 )
@@ -538,7 +541,7 @@ bool FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponentArray(AL
 	int32 ComponentIdx = 0;
 
 	LandscapeInfo->ForAllLandscapeComponents([&](ULandscapeComponent* CurrentComponent)
-        {
+    {
 		if ( !CurrentComponent )
 			return;
 	

@@ -87,6 +87,10 @@
 #include "Brushes/SlateImageBrush.h"
 #include "Widgets/Input/SComboBox.h"
 #include "Widgets/Layout/SExpandableArea.h"
+#if WITH_EDITOR
+#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructure.h"
+#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#endif
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -154,9 +158,17 @@ void FHoudiniEngineEditor::StartupModule()
 	// Register global undo / redo callbacks.
 	//RegisterForUndo();
 
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(NodeSyncTabName, FOnSpawnTab::CreateRaw(this, &FHoudiniEngineEditor::OnSpawnNodeSyncTab))
-		.SetDisplayName(LOCTEXT("FNodeSyncTitleTitle", "NodeSync"))
-		.SetMenuType(ETabSpawnerMenuType::Hidden);
+	RegisterEditorTabs();
+	/*
+	if (FModuleManager::Get().IsModuleLoaded(TEXT("LevelEditor")))
+	{
+		RegisterEditorTabs();
+	}
+	else
+	{
+		ModulesChangedHandle = FModuleManager::Get().OnModulesChanged().AddRaw(this, &FHoudiniEngineEditor::ModulesChangedCallback);
+	}
+	*/
 
 	//RegisterPlacementModeExtensions();
 
@@ -169,6 +181,17 @@ void FHoudiniEngineEditor::StartupModule()
 
 	HOUDINI_LOG_MESSAGE(TEXT("Houdini Engine Editor module startup complete."));
 }
+
+/*
+//------------------------------------------------------------------------------
+void FHoudiniEngineEditor::ModulesChangedCallback(FName ModuleName, EModuleChangeReason ReasonForChange)
+{
+	if (ReasonForChange == EModuleChangeReason::ModuleLoaded && ModuleName == TEXT("LevelEditor"))
+	{
+		RegisterEditorTabs();
+	}
+}
+*/
 
 void FHoudiniEngineEditor::ShutdownModule()
 {
@@ -192,7 +215,7 @@ void FHoudiniEngineEditor::ShutdownModule()
 	// Unregister detail presenters.
 	UnregisterDetails();
 
-	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(NodeSyncTabName);
+	UnRegisterEditorTabs();
 
 	// Unregister our component visualizers.
 	//UnregisterComponentVisualizers();
@@ -353,6 +376,43 @@ FHoudiniEngineEditor::RegisterActorFactories()
 
 		GEditor->ActorFactories.Add(HoudiniAssetActorFactory);
 	}
+}
+
+void
+FHoudiniEngineEditor::RegisterEditorTabs()
+{
+	/*
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(NodeSyncTabName, FOnSpawnTab::CreateRaw(this, &FHoudiniEngineEditor::OnSpawnNodeSyncTab))
+			.SetDisplayName(LOCTEXT("FNodeSyncTitleTitle", "NodeSync"))
+			.SetMenuType(ETabSpawnerMenuType::Hidden);
+	*/
+
+	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+
+	FGlobalTabmanager::Get()->RegisterTabSpawner(NodeSyncTabName, FOnSpawnTab::CreateRaw(this, &FHoudiniEngineEditor::OnSpawnNodeSyncTab))
+		.SetDisplayName(LOCTEXT("FNodeSyncTitleTitle", "NodeSync"))
+		.SetTooltipText(LOCTEXT("FNodeSyncTitleTitleTooltip", "Houdini Node Sync"))
+		.SetMenuType(ETabSpawnerMenuType::Hidden)
+		.SetGroup(MenuStructure.GetLevelEditorCategory());
+
+	/*
+	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+	TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
+
+	LevelEditorTabManager->RegisterTabSpawner(NodeSyncTabName, FOnSpawnTab::CreateRaw(this, &FHoudiniEngineEditor::OnSpawnNodeSyncTab))
+		.SetDisplayName(LOCTEXT("FNodeSyncTitleTitle", "NodeSync"))
+		.SetTooltipText(LOCTEXT("FNodeSyncTitleTitleTooltip", "Houdini Node Sync"))
+		.SetMenuType(ETabSpawnerMenuType::Hidden)
+		.SetGroup(MenuStructure.GetLevelEditorCategory());
+	*/
+}
+
+void
+FHoudiniEngineEditor::UnRegisterEditorTabs()
+{
+	FGlobalTabmanager::Get()->UnregisterTabSpawner(NodeSyncTabName);
 }
 
 void
@@ -1086,15 +1146,43 @@ FHoudiniEngineEditor::InitializeWidgetResource()
 	}
 }
 
-void FHoudiniEngineEditor::SendToHoudini(TArray<FAssetData> SelectedAssets)
+void 
+FHoudiniEngineEditor::SendToHoudini_CB(TArray<FAssetData> SelectedAssets)
 {
-    
-    UHoudiniEditorSubsystem* HoudiniSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
-    HoudiniSubsystem->SendToHoudini(SelectedAssets);
+	UHoudiniEditorSubsystem* HoudiniSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
+	if (!IsValid(HoudiniSubsystem))
+		return;
 
-    return;
+	TArray<UObject*> SelectedObjects;
+	for (auto& CurrentAsset : SelectedAssets)
+	{
+		UObject* CurrentObject = CurrentAsset.GetAsset();
+		if (!IsValid(CurrentObject))
+			continue;
 
+		SelectedObjects.Add(CurrentObject);
+	}
 
+	HoudiniSubsystem->SendToHoudini(SelectedObjects);
+}
+
+void
+FHoudiniEngineEditor::SendToHoudini_World()
+{
+	UHoudiniEditorSubsystem* HoudiniSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
+	if (!IsValid(HoudiniSubsystem))
+		return;
+
+	// Get current world selection
+	TArray<UObject*> WorldSelection;
+	int32 SelectedHoudiniAssets = FHoudiniEngineEditorUtils::GetWorldSelection(WorldSelection, false);
+	if (SelectedHoudiniAssets <= 0)
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("No selection in the world outliner"));
+		return;
+	}
+
+	HoudiniSubsystem->SendToHoudini(WorldSelection);
 }
 
 void
@@ -1108,37 +1196,38 @@ FHoudiniEngineEditor::ExtendContextMenu()
 	    {
 		TSharedRef<FExtender> Extender(new FExtender());
 
-		bool bShouldExtendAssetActions = true;
-		for (const FAssetData& Asset : SelectedAssets)
-		{
-		    if ((Asset.AssetClass != USkeletalMesh::StaticClass()->GetFName())&& (Asset.AssetClass != UStaticMesh::StaticClass()->GetFName()))
-		    {
-			bShouldExtendAssetActions = false;
-			break;
-		    }
-		}
+				bool bShouldExtendAssetActions = true;
+				for (const FAssetData& Asset : SelectedAssets)
+				{
+					// TODO: Foliage Types? BP ?
+					if ((Asset.AssetClass != USkeletalMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UStaticMesh::StaticClass()->GetFName()))
+					{
+						bShouldExtendAssetActions = false;
+						break;
+					}
+				}
 
-		if (bShouldExtendAssetActions)
-		{
-		    Extender->AddMenuExtension(
-			"GetAssetActions",
-			EExtensionHook::After,
-			nullptr,
-			FMenuExtensionDelegate::CreateLambda(
-			    [SelectedAssets,this](FMenuBuilder& MenuBuilder)
-			    {
-				MenuBuilder.AddMenuEntry(
-				    LOCTEXT("CB_Extension_SendToHoudini", "Send To Houdini"),
-				    LOCTEXT("CB_Extension_SendToHoudini_Tooltip", "Send this skeletal mesh to houdini"),
-				    FSlateIcon(),
-				    FUIAction(
-					FExecuteAction::CreateLambda([SelectedAssets,this]() { SendToHoudini(SelectedAssets); }),
-					FCanExecuteAction::CreateLambda([=] { return (SelectedAssets.Num() > 0); })
-				    )
-				);
-			    })
-		    );
-		}
+				if (bShouldExtendAssetActions)
+				{
+					Extender->AddMenuExtension(
+						"GetAssetActions",
+						EExtensionHook::After,
+						nullptr,
+						FMenuExtensionDelegate::CreateLambda(
+							[SelectedAssets, this](FMenuBuilder& MenuBuilder)
+							{
+								MenuBuilder.AddMenuEntry(
+									LOCTEXT("CB_Extension_SendToHoudini", "Send To Houdini"),
+									LOCTEXT("CB_Extension_SendToHoudini_Tooltip", "Send this asset to houdini"),
+									FSlateIcon(FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+									FUIAction(
+										FExecuteAction::CreateLambda([SelectedAssets, this]() { SendToHoudini_CB(SelectedAssets); }),
+										FCanExecuteAction::CreateLambda([=] { return (SelectedAssets.Num() > 0); })
+									)
+								);
+							})
+					);
+				}
 
 		return Extender;
 	    }
@@ -1183,10 +1272,16 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender(const TSharedRef<FUICo
 	TSharedRef<FExtender> Extender = MakeShareable(new FExtender);
 
 	// Build an array of the HoudiniAssets corresponding to the selected actors
-	TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets;
-	TArray< TWeakObjectPtr< AHoudiniAssetActor > > HoudiniAssetActors;
+	TArray<TWeakObjectPtr<AActor>> Actors;
+	TArray<TWeakObjectPtr<UHoudiniAsset>> HoudiniAssets;
+	TArray<TWeakObjectPtr<AHoudiniAssetActor>> HoudiniAssetActors;
 	for (auto CurrentActor : InActors)
 	{
+		if (!IsValid(CurrentActor))
+			continue;
+
+		Actors.Add(CurrentActor);
+
 		AHoudiniAssetActor * HoudiniAssetActor = Cast<AHoudiniAssetActor>(CurrentActor);
 		if (!IsValid(HoudiniAssetActor))
 			continue;
@@ -1260,6 +1355,31 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender(const TSharedRef<FUICo
 				FUIAction(
 					FExecuteAction::CreateLambda([]() { FHoudiniEngineCommands::RefineHoudiniProxyMeshesToStaticMeshes(true); }),
 					FCanExecuteAction::CreateLambda([=] { return (HoudiniAssetActors.Num() > 0); })
+				)
+			);
+		})
+		);
+	}
+
+	// Now add the node sync extender if we have any actor
+	if (Actors.Num() > 0)
+	{
+		// Add some actor menu extensions
+		FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+		TSharedRef<FUICommandList> LevelEditorCommandBindings = LevelEditor.GetGlobalLevelEditorActions();
+		Extender->AddMenuExtension(
+			"ActorControl",
+			EExtensionHook::After,
+			LevelEditorCommandBindings,
+			FMenuExtensionDelegate::CreateLambda([this, Actors](FMenuBuilder& MenuBuilder)
+		{
+			MenuBuilder.AddMenuEntry(
+				NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "Houdini_NodeSync_SendToHoudini", "Send to Houdini"),
+				NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "Houdini_NodeSync_SendToHoudiniTooltip", "Sends the current selection to Houdini via Node Sync."),
+				FSlateIcon(FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+				FUIAction(
+					FExecuteAction::CreateLambda([this]() { return SendToHoudini_World(); }),
+					FCanExecuteAction::CreateLambda([=] { return ((Actors.Num() > 0) && FHoudiniEngine::Get().IsSessionSyncEnabled()); })
 				)
 			);
 		})

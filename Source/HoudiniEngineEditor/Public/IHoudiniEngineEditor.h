@@ -68,4 +68,8 @@ class IHoudiniEngineEditor : public IModuleInterface
 		/** Create custom placement extensions */
 		virtual void RegisterPlacementModeExtensions() {}
 		virtual void UnregisterPlacementModeExtensions() {}
+
+		/** Custom Tabs */
+		virtual void RegisterEditorTabs() {}
+		virtual void UnRegisterEditorTabs() {}
 };

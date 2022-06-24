@@ -158,6 +158,7 @@ FHoudiniEngineStyle::Initialize()
 	FString ViewportSyncHoudiniIcon = IconsDir + TEXT("viewport_sync_houdini16x16.png");
 	FString ViewportSyncOffIcon = IconsDir + TEXT("viewport_sync_off16x16.png");
 	FString ViewportSyncUnrealIcon = IconsDir + TEXT("viewport_sync_unreal16x16.png");
+	FString NodeSyncIcon = IconsDir + TEXT("icon_houdini_logo_16.png");
 
 	FString InfoIcon = FEditorStyle::GetBrush("Icons.Info")->GetResourceName().ToString();
 	FString SettingsIcon = FEditorStyle::GetBrush("Launcher.EditSettings")->GetResourceName().ToString();
@@ -176,6 +177,8 @@ FHoudiniEngineStyle::Initialize()
 	StyleSet->Set("HoudiniEngine._ViewportSyncBoth", new FSlateImageBrush(ViewportSyncBothIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine._ViewportSyncUnreal", new FSlateImageBrush(ViewportSyncUnrealIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine._ViewportSyncHoudini", new FSlateImageBrush(ViewportSyncHoudiniIcon, Icon16x16));
+
+	StyleSet->Set("HoudiniEngine._OpenNodeSync", new FSlateImageBrush(NodeSyncIcon, Icon16x16));
 
 	StyleSet->Set("HoudiniEngine._InstallInfo", new FSlateImageBrush(InfoIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine._PluginSettings", new FSlateImageBrush(SettingsIcon, Icon16x16));
