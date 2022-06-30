@@ -6287,7 +6287,7 @@ FHoudiniEngineUtils::CreateNode(
 		FHoudiniEngine::Get().GetSession(),
 		InParentNodeId, TCHAR_TO_UTF8(*InOperatorName), TCHAR_TO_UTF8(*InNodeLabel), bInCookOnCreation, OutNewNodeId);
 
-	// Return now if CreateNode fialed
+	// Return now if CreateNode failed
 	if (Result != HAPI_RESULT_SUCCESS)
 		return Result;
 		
@@ -7312,7 +7312,8 @@ FHoudiniEngineUtils::AddNodeOrUpdateNode(
 	const int32 InNodeId,
 	FUnrealObjectInputHandle& OutHandle,
 	const int32 InObjectNodeId,
-	TSet<FUnrealObjectInputHandle> const* const InReferencedNodes)
+	TSet<FUnrealObjectInputHandle> const* const InReferencedNodes,
+	const bool& bInputNodesCanBeDeleted)
 {
 	if (!InIdentifier.IsValid())
 		return false;
@@ -7330,11 +7331,11 @@ FHoudiniEngineUtils::AddNodeOrUpdateNode(
 		case EUnrealObjectInputNodeType::Container:
 			if (bNodeExists)
 			{
-				bSuccess = Manager->UpdateContainer(InIdentifier, InNodeId); 
+				bSuccess = Manager->UpdateContainer(InIdentifier, InNodeId);
 			}
 			else
 			{
-				bSuccess = Manager->AddContainer(InIdentifier, InNodeId, Handle); 
+				bSuccess = Manager->AddContainer(InIdentifier, InNodeId, Handle);
 			}
 			break;
 		case EUnrealObjectInputNodeType::Reference:
@@ -7344,7 +7345,7 @@ FHoudiniEngineUtils::AddNodeOrUpdateNode(
 			}
 			else
 			{
-				bSuccess = Manager->AddReferenceNode(InIdentifier, InObjectNodeId, InNodeId, Handle, InReferencedNodes);				
+				bSuccess = Manager->AddReferenceNode(InIdentifier, InObjectNodeId, InNodeId, Handle, InReferencedNodes);
 			}
 			break;
 		case EUnrealObjectInputNodeType::Leaf:
@@ -7354,7 +7355,7 @@ FHoudiniEngineUtils::AddNodeOrUpdateNode(
 			}
 			else
 			{
-				bSuccess = Manager->AddLeaf(InIdentifier, InObjectNodeId, InNodeId, Handle);				
+				bSuccess = Manager->AddLeaf(InIdentifier, InObjectNodeId, InNodeId, Handle);
 			}
 			break;
 		case EUnrealObjectInputNodeType::Invalid:
@@ -7365,6 +7366,13 @@ FHoudiniEngineUtils::AddNodeOrUpdateNode(
 
 	if (!bSuccess)
 		return false;
+
+	// Make sure to prevent deletion of the node and its parents if needed
+	if (!bInputNodesCanBeDeleted)
+	{
+		//Manager->EnsureParentsExist(InIdentifier, Handle, bInputNodesCanBeDeleted);
+		FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+	}
 
 	OutHandle = Handle;
 	return bSuccess;
@@ -7388,6 +7396,29 @@ FHoudiniEngineUtils::GetHAPINodeId(const FUnrealObjectInputHandle& InHandle, int
 }
 
 bool
+FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(const FUnrealObjectInputHandle& InHandle, const bool& bCanBeDeleted)
+{
+	if (!InHandle.IsValid())
+		return false;
+
+	FUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+	if (!Manager)
+		return false;
+
+	FUnrealObjectInputNode* Node = nullptr;
+	Manager->GetNode(InHandle, Node);
+
+	if (!Node)
+		return false;
+
+	// Only set the value to false if it isnt already
+	if(!bCanBeDeleted)
+		Node->SetCanBeDeleted(bCanBeDeleted);
+
+	return true;
+}
+
+bool
 FHoudiniEngineUtils::GetDefaultInputNodeName(const FUnrealObjectInputIdentifier& InIdentifier, FString& OutNodeName)
 {
 	if (!InIdentifier.IsValid())
@@ -7402,7 +7433,7 @@ FHoudiniEngineUtils::GetDefaultInputNodeName(const FUnrealObjectInputIdentifier&
 }
 
 bool
-FHoudiniEngineUtils::EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle)
+FHoudiniEngineUtils::EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle, const bool& bInputNodesCanBeDeleted)
 {
 	if (!InIdentifier.IsValid())
 		return false;
@@ -7411,7 +7442,7 @@ FHoudiniEngineUtils::EnsureParentsExist(const FUnrealObjectInputIdentifier& InId
 	if (!Manager)
 		return false;
 
-	return Manager->EnsureParentsExist(InIdentifier, OutParentHandle);
+	return Manager->EnsureParentsExist(InIdentifier, OutParentHandle, bInputNodesCanBeDeleted);
 }
 
 bool
@@ -7717,7 +7748,8 @@ FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(
 	const FUnrealObjectInputIdentifier& InIdentifier,
 	const TSet<FUnrealObjectInputHandle>& InReferencedNodes,
 	FUnrealObjectInputHandle& OutHandle,
-	const bool bInConnectReferencedNodes)
+	const bool bInConnectReferencedNodes,
+	const bool& bInputNodesCanBeDeleted)
 {
 	// Identifier must be valid and for a reference node
 	if (!InIdentifier.IsValid() || InIdentifier.GetNodeType() != EUnrealObjectInputNodeType::Reference)
@@ -7730,14 +7762,15 @@ FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(
 		// Then get its parent id and create the HAPI node inside the parent's network
 		int32 ObjectNodeId = -1;
 		int32 NodeId = -1;		
-		if (!AddNodeOrUpdateNode(InIdentifier, NodeId, Handle, ObjectNodeId, &InReferencedNodes))
+		if (!AddNodeOrUpdateNode(InIdentifier, NodeId, Handle, ObjectNodeId, &InReferencedNodes, bInputNodesCanBeDeleted))
 			return false;
 
 		// Get the parent node id
 		int32 ParentNodeId = -1;
 		FUnrealObjectInputHandle ParentHandle;
-		if (EnsureParentsExist(InIdentifier, ParentHandle))
+		if (EnsureParentsExist(InIdentifier, ParentHandle, bInputNodesCanBeDeleted))
 			GetHAPINodeId(ParentHandle, ParentNodeId);
+
 		FString NodeName;
 		GetDefaultInputNodeName(InIdentifier, NodeName);
 		// Create the object node
@@ -7747,7 +7780,7 @@ FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(
 		if (CreateNode(ObjectNodeId, TEXT("merge"), NodeName, true, &NodeId) != HAPI_RESULT_SUCCESS)
 			return false;
 		
-		if (!AddNodeOrUpdateNode(InIdentifier, NodeId, Handle, ObjectNodeId, &InReferencedNodes))
+		if (!AddNodeOrUpdateNode(InIdentifier, NodeId, Handle, ObjectNodeId, &InReferencedNodes, bInputNodesCanBeDeleted))
 			return false;
 
 		if (bInConnectReferencedNodes)

@@ -47,5 +47,6 @@ struct HOUDINIENGINE_API FUnrealInstanceTranslator
 			const bool& bExportLODs,
 			const bool& bExportSockets,
 			const bool& bExportColliders,
-			const bool& bExportAsAttributeInstancer);
+			const bool& bExportAsAttributeInstancer,
+			const bool& bInputNodesCanBeDeleted = true);
 };

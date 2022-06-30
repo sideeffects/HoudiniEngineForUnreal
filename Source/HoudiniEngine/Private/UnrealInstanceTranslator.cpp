@@ -44,7 +44,8 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	const bool& bExportLODs,
 	const bool& bExportSockets,
 	const bool& bExportColliders,
-	const bool& bExportAsAttributeInstancer)
+	const bool& bExportAsAttributeInstancer,
+	const bool& bInputNodesCanBeDeleted)
 {
 	int32 InstanceCount = ISMC->GetInstanceCount();
 	if (InstanceCount < 1)
@@ -109,6 +110,10 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 						// If we cannot connect the nodes, then we have to rebuild
 						if (CurrentInputNodeId == SMNodeId || FHoudiniApi::ConnectNodeInput(Session, NodeId, 0, SMNodeId, 0) == HAPI_RESULT_SUCCESS)
 						{
+							// Make sure the node cant be deleted if needed
+							if (!bInputNodesCanBeDeleted)
+								FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+
 							OutHandle = Handle;
 							OutCreatedNodeId = NodeId;
 							return true;
@@ -120,7 +125,7 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 		// If the entry does not exist, or is invalid, then we need create it
 		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle) && ParentHandle.IsValid())
+		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
 			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
 	}
 	
@@ -315,7 +320,7 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 		// Record the node in the manager
 		FUnrealObjectInputHandle Handle;
 		TSet<FUnrealObjectInputHandle> ReferencedNodes({SMNodeHandle});
-		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, CopyNodeId, Handle, ObjectNodeId, &ReferencedNodes))
+		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, CopyNodeId, Handle, ObjectNodeId, &ReferencedNodes, bInputNodesCanBeDeleted))
 			OutHandle = Handle;
 	}
 
