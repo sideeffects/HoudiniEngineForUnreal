@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Copyright (c) <2021> Side Effects Software Inc.
 * All rights reserved.
 *
@@ -263,7 +263,7 @@ public:
 	 * @return true if the parents already existed, or did not exist but were successfully created, or if InIdentifier
 	 *         by virtue of its type/settings does not have a parent.
 	 */
-	virtual bool EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle) = 0;
+	virtual bool EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle, const bool& bInputNodesCanBeDeleted) = 0;
 
 	/**
 	 * Returns true if the node is dirty. That means that even though the node exists, it has been dirtied and
@@ -396,7 +396,7 @@ public:
 	virtual inline bool GetHAPINodeIds(const FUnrealObjectInputIdentifier& InIdentifier, TArray<int32>& OutNodeIds) const override;
 	virtual inline bool GetAllHAPINodeIds(TArray<int32>& OutNodeIds) const override;
 
-	virtual inline bool EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle) override;
+	virtual inline bool EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle, const bool& bInputNodesCanBeDeleted) override;
 
 	virtual inline bool IsDirty(const FUnrealObjectInputIdentifier& InIdentifier) const override;
 	virtual inline bool MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier) override;
@@ -647,10 +647,10 @@ FUnrealObjectInputManager::GetAllHAPINodeIds(TArray<int32>& OutNodeIds) const
 }
 
 bool
-FUnrealObjectInputManager::EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle)
+FUnrealObjectInputManager::EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle, const bool& bInputNodesCanBeDeleted)
 {
 	if (IUnrealObjectInputManager* const Impl = GetImplementation())
-		return Impl->EnsureParentsExist(InIdentifier, OutParentHandle);
+		return Impl->EnsureParentsExist(InIdentifier, OutParentHandle, bInputNodesCanBeDeleted);
 	return false;
 }
 

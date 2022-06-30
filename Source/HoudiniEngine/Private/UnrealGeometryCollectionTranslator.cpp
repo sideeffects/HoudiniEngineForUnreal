@@ -48,7 +48,8 @@ FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
 	HAPI_NodeId& InputNodeId,
 	const FString& InputNodeName,
 	FUnrealObjectInputHandle& OutHandle,
-	UGeometryCollectionComponent* GeometryCollectionComponent)
+	UGeometryCollectionComponent* GeometryCollectionComponent,
+	const bool& bInputNodesCanBeDeleted)
 {
 	// If we don't have a static mesh there's nothing to do.
 	if (!IsValid(GeometryCollection))
@@ -84,6 +85,10 @@ FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
 			HAPI_NodeId NodeId = -1;
 			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && FHoudiniEngineUtils::IsHoudiniNodeValid(NodeId))
 			{
+				// Make sure to prevent the destruction of the node if needed
+				if (!bInputNodesCanBeDeleted)
+					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+
 				OutHandle = Handle;
 				InputNodeId = NodeId;
 				return true;
@@ -92,7 +97,7 @@ FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
 
 		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle) && ParentHandle.IsValid())
+		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
 			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
 
 		// We now need to create the nodes (since we couldn't find existing ones in the manager)
@@ -188,7 +193,7 @@ FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
 	if (bUseRefCountedInputSystem)
 	{
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId))
+		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
 			OutHandle = Handle;
 	}
 	

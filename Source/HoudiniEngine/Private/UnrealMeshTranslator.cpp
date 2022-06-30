@@ -382,9 +382,9 @@ FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(
     AttributeInfoPoint.storage = HAPI_STORAGETYPE_FLOAT;
     AttributeInfoPoint.originalOwner = HAPI_ATTROWNER_INVALID;
 
-    HAPI_Result ResultPointAdd = FHoudiniApi::AddAttribute(
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
-		HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint);
+		HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
 
     // Now that we have raw positions, we can upload them for our attribute.
     HAPI_Result ResultPointSet = FHoudiniApi::SetAttributeFloatData(
@@ -732,7 +732,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	const bool& ExportAllLODs /* = false */,
 	const bool& ExportSockets /* = false */,
 	const bool& ExportColliders /* = false */,
-	const bool& ExportMainMesh /* = true */)
+	const bool& ExportMainMesh /* = true */,
+	const bool& bInputNodesCanBeDeleted /*= true*/)
 {
 	// If we don't have a static mesh there's nothing to do.
 	if (!IsValid(StaticMesh))
@@ -784,15 +785,21 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 			HAPI_NodeId NodeId = -1;
 			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && (bSingleLeafNodeOnly || FHoudiniEngineUtils::AreReferencedHAPINodesValid(Handle)))
 			{
+				if (!bInputNodesCanBeDeleted)
+				{
+					// Make sure to prevent deletion of the input node if needed
+					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+				}
+
 				OutHandle = Handle;
 				InputNodeId = NodeId;
-				return true;				
+				return true;
 			}
 		}
 
 		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle) && ParentHandle.IsValid())
+		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
 			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
 
 		// We now need to create the nodes (since we couldn't find existing ones in the manager)
@@ -820,7 +827,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 						Options.bExportLODs,
 						Options.bExportSockets,
 						Options.bExportColliders,
-						!Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders))
+						!Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders,
+						bInputNodesCanBeDeleted))
 				{
 					return false;
 				}
@@ -830,7 +838,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 
 			// Create or update the HAPI node for the reference node if it does not exist
 			FUnrealObjectInputHandle RefNodeHandle;
-			if (!FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(IdentReferenceNode, PerOptionNodeHandles, RefNodeHandle))
+			if (!FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(IdentReferenceNode, PerOptionNodeHandles, RefNodeHandle, true, bInputNodesCanBeDeleted))
 				return false;
 			
 			OutHandle = RefNodeHandle;
@@ -1269,7 +1277,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	if (bUseRefCountedInputSystem)
 	{
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId))
+		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
 			OutHandle = Handle;
 	}
 	

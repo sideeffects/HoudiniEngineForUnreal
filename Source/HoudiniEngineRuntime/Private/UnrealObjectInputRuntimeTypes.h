@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Copyright (c) <2021> Side Effects Software Inc.
 * All rights reserved.
 *
@@ -328,6 +328,12 @@ public:
 
 	/** Get the the valid HAPI node ids that this node is using. */
 	virtual void GetHAPINodeIds(TArray<int32>& OutNodeIds) const;
+
+	/** Returns true if the node can be deleted. */
+	virtual bool CanBeDeleted() const { return bCanBeDeleted; }
+
+	/** Returns true if the node can be deleted. */
+	virtual void SetCanBeDeleted(const bool& InCanBeDeleted) { bCanBeDeleted = InCanBeDeleted; }
 	
 protected:
 	friend class FUnrealObjectInputManagerImpl;
@@ -365,6 +371,9 @@ private:
 
 	/** The reference count of this node. */
 	mutable int32 ReferenceCount;
+
+	/** Indicates if this node can be deleted. Used to prevent the destruction of input nodes created by NodeSync*/
+	bool bCanBeDeleted;
 };
 
 
