@@ -108,7 +108,11 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 
 	// Upload data for an input's InputObject
 	static bool UploadHoudiniInputObject(
-		UHoudiniInput* InInput, UHoudiniInputObject* InInputObject, const FTransform& InActorTransform, TArray<int32>& OutCreatedNodeIds);
+		UHoudiniInput* InInput, 
+		UHoudiniInputObject* InInputObject, 
+		const FTransform& InActorTransform, 
+		TArray<int32>& OutCreatedNodeIds, 
+		const bool& bInputNodesCanBeDeleted = true);
 	
 	// Upload transform for an input's InputObject
 	static bool UploadHoudiniInputTransform(
@@ -146,7 +150,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		HAPI_NodeId& InOutObjectMergeNodeId,
 		HAPI_NodeId& InOutGeoObjectNodeId,
 		const bool bInCreateIfMissingInvalid=true,
-		const FTransform& InTransform=FTransform::Identity);
+		const FTransform& InTransform=FTransform::Identity,
+		const int32& InTransformType=-1);
 	
 	static bool	HapiCreateInputNodeForStaticMesh(
 		const FString& InObjNodeName,
@@ -155,7 +160,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bExportSockets,
 		const bool& bExportColliders,
 		const bool& bImportAsReference = false,
-		const bool& bImportAsReferenceRotScaleEnabled = false);
+		const bool& bImportAsReferenceRotScaleEnabled = false,
+		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForHoudiniSplineComponent(
 		const FString& InObjNodeName,
@@ -176,16 +182,19 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 	static bool HapiCreateInputNodeForGeometryCollection(
 		const FString& InObjNodeName,
 		UHoudiniInputGeometryCollection* InObject,
-		const bool& bImportAsReference);
+		const bool& bImportAsReference,
+		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool HapiCreateInputNodeForGeometryCollectionComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputGeometryCollectionComponent* InObject,
-		const bool& bImportAsReference);
+		const bool& bImportAsReference,
+		const bool& bInputNodesCanBeDeleted = true);
 	
 	static bool	HapiCreateInputNodeForSceneComponent(
 		const FString& InObjNodeName,
-		UHoudiniInputSceneComponent* InObject);
+		UHoudiniInputSceneComponent* InObject,
+		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForStaticMeshComponent(
 		const FString& InObjNodeName,
@@ -196,14 +205,16 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bKeepWorldTransform,
 		const bool& bImportAsReference,
 		const bool& bImportAsReferenceRotScaleEnabled = false,
-		const FTransform& InActorTransform = FTransform::Identity);
+		const FTransform& InActorTransform = FTransform::Identity,
+		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForInstancedStaticMeshComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputInstancedMeshComponent* InObject,
 		const bool& bExportLODs,
 		const bool& bExportSockets,
-		const bool& bExportColliders);
+		const bool& bExportColliders,
+		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForSplineComponent(
 		const FString& InObjNodeName,
@@ -219,9 +230,11 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bImportAsReferenceRotScaleEnabled);
 
 	static bool	HapiCreateInputNodeForActor(
-		UHoudiniInput* InInput, UHoudiniInputActor* InObject,
+		UHoudiniInput* InInput, 
+		UHoudiniInputActor* InObject,
 		const FTransform & InActorTransform,
-		TArray<int32>& OutCreatedNodeIds);
+		TArray<int32>& OutCreatedNodeIds,
+		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool HapiCreateInputNodeForCamera(
 		const FString& InObjNodeName,
@@ -265,7 +278,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const FTransform & InTransform,
 		const bool& bImportAsReferenceRotScaleEnabled,
 		const bool bInUseRefCountedInputSystem,
-		FUnrealObjectInputHandle& OutHandle);
+		FUnrealObjectInputHandle& OutHandle,
+		const bool& bInputNodesCanBeDeleted = true);
 
 	//static bool HapiUpdateInputNodeTransform(const HAPI_NodeId InputNodeId, const FTransform& Transform);
 	

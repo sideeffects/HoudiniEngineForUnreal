@@ -2,6 +2,7 @@
 
 
 #include "HoudiniEditorSubsystem.h"
+
 #include "HoudiniEngine.h"
 #include "HoudiniEngineEditor.h"
 #include "UnrealMeshTranslator.h"
@@ -249,7 +250,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 
 			// Send the HoudiniInputObject to H
 			if (!FHoudiniInputTranslator::UploadHoudiniInputObject(
-				NodeSyncInput, CurrentInputObject, CurrentActorTransform, CreatedNodeIds))
+				NodeSyncInput, CurrentInputObject, CurrentActorTransform, CreatedNodeIds, false))
 			{
 				HOUDINI_LOG_WARNING(TEXT("HoudiniNodeSync: Failed to send %s to %s."), *CurrentInputObject->GetName(), *SendNodePath);
 				continue;
@@ -266,7 +267,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 				HAPI_NodeId ObjectMergeNodeId = -1;
 				HAPI_NodeId GeoObjectMergeNodeId = -1;
 				bObjMergeSuccess &= FHoudiniInputTranslator::HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
-					CurrentObjectNodeId, CreatedNodeIds[CreatedNodeIdx], ObjectName, ObjectMergeNodeId, CurrentObjectNodeId, true, FTransform::Identity);
+					CurrentObjectNodeId, CreatedNodeIds[CreatedNodeIdx], ObjectName, ObjectMergeNodeId, CurrentObjectNodeId, true, FTransform::Identity, 1);
 			}
 		}
 

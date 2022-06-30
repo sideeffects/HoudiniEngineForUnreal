@@ -978,16 +978,20 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const int32 NodeId,
 			FUnrealObjectInputHandle& OutHandle,
 			const int32 InObjectNodeId=INDEX_NONE,
-			TSet<FUnrealObjectInputHandle> const* const InReferencedNodes=nullptr);
+			TSet<FUnrealObjectInputHandle> const* const InReferencedNodes=nullptr,
+			const bool& bInputNodesCanBeDeleted=true);
 
 		// Helper to get the HAPI NodeId associated with InHandle.
 		static bool GetHAPINodeId(const FUnrealObjectInputHandle& InHandle, int32& OutNodeId);
+
+		// Helper to set the CanBeDeleted property on the input object associated with InHandle
+		static bool UpdateInputNodeCanBeDeleted(const FUnrealObjectInputHandle& InHandle, const bool& bCanBeDeleted);
 
 		// Helper to get the default input node name to use via the new input system.
 		static bool GetDefaultInputNodeName(const FUnrealObjectInputIdentifier& InIdentifier, FString& OutNodeName);
 
 		// Helper to ensure that the parent/container nodes of a given identifier exist
-		static bool EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle);
+		static bool EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle, const bool& bInputNodesCanBeDeleted);
 
 		// Helper to set the references on a reference node
 		static bool SetReferencedNodes(const FUnrealObjectInputHandle& InRefNodeHandle, const TSet<FUnrealObjectInputHandle>& InReferencedNodes);
@@ -1021,7 +1025,8 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const FUnrealObjectInputIdentifier& InIdentifier,
 			const TSet<FUnrealObjectInputHandle>& InReferencedNodes,
 			FUnrealObjectInputHandle& OutHandle,
-			const bool bInConnectReferencedNodes=true);
+			const bool bInConnectReferencedNodes=true,
+			const bool& bInputNodesCanBeDeleted=true);
 
 	protected:
 		

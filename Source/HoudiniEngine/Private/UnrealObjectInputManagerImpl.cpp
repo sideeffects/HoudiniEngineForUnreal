@@ -103,7 +103,7 @@ FUnrealObjectInputManagerImpl::AddContainer(const FUnrealObjectInputIdentifier& 
 		return false;
 
 	FUnrealObjectInputHandle ParentHandle;
-	if (!EnsureParentsExist(InIdentifier, ParentHandle))
+	if (!EnsureParentsExist(InIdentifier, ParentHandle, true))
 		return false;
 	
 	FUnrealObjectInputContainerNode* const Node = new FUnrealObjectInputContainerNode(InIdentifier, ParentHandle, InNodeId);
@@ -162,7 +162,7 @@ FUnrealObjectInputManagerImpl::AddReferenceNode(
 		return false;
 
 	FUnrealObjectInputHandle ParentHandle;
-	if (!EnsureParentsExist(InIdentifier, ParentHandle))
+	if (!EnsureParentsExist(InIdentifier, ParentHandle, true))
 		return false;
 	
 	FUnrealObjectInputReferenceNode* Node = InReferencedNodes
@@ -205,7 +205,7 @@ FUnrealObjectInputManagerImpl::AddLeaf(
 		return false;
 
 	FUnrealObjectInputHandle ParentHandle;
-	if (!EnsureParentsExist(InIdentifier, ParentHandle))
+	if (!EnsureParentsExist(InIdentifier, ParentHandle, true))
 		return false;
 	
 	FUnrealObjectInputLeafNode* Node = new FUnrealObjectInputLeafNode(InIdentifier, ParentHandle, InObjectNodeId, InNodeId);
@@ -246,7 +246,7 @@ FUnrealObjectInputManagerImpl::UpdateContainer(
 
 	// As part of updating the node, ensure that its parents exist and make sure it is pointing to its parent.
 	FUnrealObjectInputHandle ParentHandle;
-	if (EnsureParentsExist(InIdentifier, ParentHandle))
+	if (EnsureParentsExist(InIdentifier, ParentHandle, true))
 		ContainerNode->SetParent(ParentHandle);
 
 	ContainerNode->SetNodeId(InNodeId);
@@ -278,7 +278,7 @@ FUnrealObjectInputManagerImpl::UpdateReferenceNode(
 
 	// As part of updating the node, ensure that its parents exist and make sure it is pointing to its parent.
 	FUnrealObjectInputHandle ParentHandle;
-	if (EnsureParentsExist(InIdentifier, ParentHandle))
+	if (EnsureParentsExist(InIdentifier, ParentHandle, true))
 		ReferenceNode->SetParent(ParentHandle);
 
 	if (InObjectNodeId)
@@ -314,7 +314,7 @@ FUnrealObjectInputManagerImpl::UpdateLeaf(
 
 	// As part of updating the node, ensure that its parents exist and make sure it is pointing to its parent.
 	FUnrealObjectInputHandle ParentHandle;
-	if (EnsureParentsExist(InIdentifier, ParentHandle))
+	if (EnsureParentsExist(InIdentifier, ParentHandle, true))
 		LeafNode->SetParent(ParentHandle);
 
 	LeafNode->SetObjectNodeId(InObjectNodeId);
@@ -328,7 +328,10 @@ FUnrealObjectInputManagerImpl::UpdateLeaf(
 }
 
 bool
-FUnrealObjectInputManagerImpl::EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle)
+FUnrealObjectInputManagerImpl::EnsureParentsExist(
+	const FUnrealObjectInputIdentifier& InIdentifier,
+	FUnrealObjectInputHandle& OutParentHandle,
+	const bool& bInputNodesCanBeDeleted)
 {
 	if (!InIdentifier.IsValid())
 		return false;
@@ -345,12 +348,16 @@ FUnrealObjectInputManagerImpl::EnsureParentsExist(const FUnrealObjectInputIdenti
 	const bool bParentEntryExists = FindNode(ParentIdentifier, ParentHandle);
 	if (bParentEntryExists && AreHAPINodesValid(ParentIdentifier))
 	{
+		// Make sure we prevent node destruction if needed
+		if (!bInputNodesCanBeDeleted)
+			FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(ParentHandle, bInputNodesCanBeDeleted);
+
 		OutParentHandle = ParentHandle;
 		return true;
 	}
 	
 	FUnrealObjectInputHandle GrandParentHandle;
-	if (!EnsureParentsExist(ParentIdentifier, GrandParentHandle))
+	if (!EnsureParentsExist(ParentIdentifier, GrandParentHandle, bInputNodesCanBeDeleted))
 		return false;
 	
 	int32 GrandParentNodeId = -1;
@@ -379,8 +386,15 @@ FUnrealObjectInputManagerImpl::EnsureParentsExist(const FUnrealObjectInputIdenti
 		AddContainer(ParentIdentifier, ParentNodeId, ParentHandle);
 	else
 		UpdateContainer(ParentIdentifier, ParentNodeId);
+
+	// Make sure we prevent node destruction if needed
+	if (!bInputNodesCanBeDeleted)
+		FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(ParentHandle, bInputNodesCanBeDeleted);
+	else
+		FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(ParentHandle, bInputNodesCanBeDeleted);
 	
 	OutParentHandle = ParentHandle;
+
 	return true;
 }
 
@@ -615,7 +629,7 @@ FUnrealObjectInputManagerImpl::RemoveRef(const FUnrealObjectInputIdentifier& InI
 	if (!Node->RemoveRef())
 		return false;
 	
-	if (Node->IsRefCounted() && Node->GetRefCount() == 0)
+	if (Node->IsRefCounted() && Node->GetRefCount() == 0 && Node->CanBeDeleted())
 	{
 		// Destroy HAPI nodes
 		if (Node->AreHAPINodesValid())
