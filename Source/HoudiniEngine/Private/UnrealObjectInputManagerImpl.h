@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Copyright (c) <2021> Side Effects Software Inc.
 * All rights reserved.
 *
@@ -55,10 +55,15 @@ public:
 	virtual bool GetNode(const FUnrealObjectInputHandle& InHandle, const FUnrealObjectInputNode*& OutNode) const override { return GetNodeByIdentifier(InHandle.GetIdentifier(), OutNode); } 
 	virtual bool GetNode(const FUnrealObjectInputHandle& InHandle, FUnrealObjectInputNode*& OutNode) const override { return GetNodeByIdentifier(InHandle.GetIdentifier(), OutNode); } 
 
-	virtual bool AddContainer(const FUnrealObjectInputIdentifier& InIdentifier, const int32 InNodeId, FUnrealObjectInputHandle& OutHandle) override;
-	virtual bool AddContainer(UObject const* const InObject, const int32 InNodeId, FUnrealObjectInputHandle& OutHandle) override;
-	virtual bool AddContainer(UPackage const* const InPackage, const int32 InNodeId, FUnrealObjectInputHandle& OutHandle) override;
-	virtual bool AddContainer(const FName& InPath, const int32 InNodeId, FUnrealObjectInputHandle& OutHandle) override;
+	virtual bool AddContainer(
+		const FUnrealObjectInputIdentifier& InIdentifier, const int32 InNodeId, FUnrealObjectInputHandle& OutHandle) override;
+	virtual bool AddContainer(
+		UObject const* const InObject, const int32 InNodeId, FUnrealObjectInputHandle& OutHandle) override;
+	virtual bool AddContainer(
+		UPackage const* const InPackage, const int32 InNodeId, FUnrealObjectInputHandle& OutHandle) override;
+	virtual bool AddContainer(
+		const FName& InPath, const int32 InNodeId, FUnrealObjectInputHandle& OutHandle) override;
+
 	virtual bool AddReferenceNode(
 		const FUnrealObjectInputIdentifier& InIdentifier,
 		const int32 InObjectNodeId,
@@ -72,6 +77,7 @@ public:
 		const int32 InNodeId,
 		FUnrealObjectInputHandle& OutHandle,
 		TSet<FUnrealObjectInputHandle> const* const InReferencedNodes=nullptr) override;
+
 	virtual bool AddLeaf(
 		const FUnrealObjectInputIdentifier& InIdentifier,
 		const int32 InObjectNodeId,
@@ -88,12 +94,14 @@ public:
 		const FUnrealObjectInputIdentifier& InIdentifier,
 		const int32 InNodeId,
 		const bool bInClearDirtyFlag=true) override;
+
 	virtual bool UpdateReferenceNode(
 		const FUnrealObjectInputIdentifier& InIdentifier,
 		int32 const* const InObjectNodeId=nullptr,
 		int32 const* const InNodeId=nullptr,
 		TSet<FUnrealObjectInputHandle> const* const InReferencedNodes=nullptr,
 		const bool bInClearDirtyFlag=true) override;
+
 	virtual bool UpdateLeaf(
 		const FUnrealObjectInputIdentifier& InIdentifier,
 		const int32 InObjectNodeId,
@@ -105,11 +113,15 @@ public:
 	virtual bool AreHAPINodesValid(const FUnrealObjectInputHandle& InHandle) const override;
 	virtual bool AreHAPINodesValid(const FUnrealObjectInputIdentifier& InIdentifier) const override;
     virtual bool IsHAPINodeValid(const int32 InNodeId) const override;
+
     virtual bool DeleteHAPINode(const int32 InNodeId) const override;
 	virtual bool GetHAPINodeIds(const FUnrealObjectInputIdentifier& InIdentifier, TArray<int32>& OutNodeIds) const override;
 	virtual bool GetAllHAPINodeIds(TArray<int32>& OutNodeIds) const override;
 	
-	virtual bool EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle);
+	virtual bool EnsureParentsExist(
+		const FUnrealObjectInputIdentifier& InIdentifier,
+		FUnrealObjectInputHandle& OutParentHandle,
+		const bool& bInputNodesCanBeDeleted);
 
 	virtual bool IsDirty(const FUnrealObjectInputIdentifier& InIdentifier) const override;
 	virtual bool MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier) override;

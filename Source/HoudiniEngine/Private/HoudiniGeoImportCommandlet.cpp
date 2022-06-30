@@ -317,7 +317,7 @@ UHoudiniGeoImportCommandlet::HandleImportBGEOMessage(
 		Reply->ImportResult = EHoudiniPDGImportBGEOResult::HPIBR_Success;
 
 		const int32 NumOutputs = Outputs.Num();
-		Reply->Outputs.SetNumUninitialized(NumOutputs);
+		Reply->Outputs.SetNum(NumOutputs);
 		for (int32 n = 0; n < Reply->Outputs.Num(); n++)
 			Reply->Outputs[n] = FHoudiniPDGImportNodeOutput();
 
