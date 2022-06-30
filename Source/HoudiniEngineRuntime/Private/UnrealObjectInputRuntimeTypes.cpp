@@ -351,6 +351,7 @@ FUnrealObjectInputNode::FUnrealObjectInputNode(const FUnrealObjectInputIdentifie
 	, NodeId(INDEX_NONE)
 	, bIsDirty(false)
 	, ReferenceCount(0)
+	, bCanBeDeleted(true)
 {
 	
 }
@@ -361,6 +362,7 @@ FUnrealObjectInputNode::FUnrealObjectInputNode(const FUnrealObjectInputIdentifie
 	, NodeId(InNodeId)
 	, bIsDirty(false)
 	, ReferenceCount(0)
+	, bCanBeDeleted(true)
 {
 	
 }
@@ -385,6 +387,9 @@ bool FUnrealObjectInputNode::AreHAPINodesValid() const
 
 bool FUnrealObjectInputNode::DeleteHAPINodes()
 {
+	if (!CanBeDeleted())
+		return true;
+
 	if (NodeId < 0)
 		return false;
 
@@ -489,6 +494,10 @@ FUnrealObjectInputLeafNode::AreHAPINodesValid() const
 
 bool FUnrealObjectInputLeafNode::DeleteHAPINodes()
 {
+	// If the node cant be deleted, return true
+	if (!CanBeDeleted())
+		return true;
+
 	if (!FUnrealObjectInputNode::DeleteHAPINodes())
 		return false;
 	
