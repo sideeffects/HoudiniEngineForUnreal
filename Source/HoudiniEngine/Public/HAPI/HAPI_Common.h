@@ -1249,7 +1249,7 @@ struct HAPI_API HAPI_CookOptions
     /// Use this to get better performance on deforming meshes.
     HAPI_Bool cacheMeshTopology;
 
-    /// If enabled, calls to ::HAPI_CookNode:: on an OBJ node will cook the output
+    /// If enabled, calls to ::HAPI_CookNode() on an OBJ node will cook the output
     /// nodes of any nested SOP nodes. If none exist or the option is disabled,
     /// HAPI will instead cook the display nodes of any nested SOP nodes.
     HAPI_Bool preferOutputNodes;
