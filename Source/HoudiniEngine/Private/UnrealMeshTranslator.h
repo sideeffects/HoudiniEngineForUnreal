@@ -68,7 +68,8 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 		    class USkeletalMeshComponent* SkeletalMeshComponent = nullptr,
 		    const bool& ExportAllLODs = false,
 		    const bool& ExportSockets = false,
-		    const bool& ExportColliders = false);
+		    const bool& ExportColliders = false,
+			const bool& bInputNodesCanBeDeleted = true);
 
 		static bool SetSkeletalMeshDataOnNode(
 		    USkeletalMesh* SkeletalMesh,
