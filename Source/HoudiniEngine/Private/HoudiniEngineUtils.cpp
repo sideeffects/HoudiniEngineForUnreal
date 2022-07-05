@@ -883,7 +883,7 @@ bool FHoudiniEngineUtils::RenameObject(UObject* Object, const TCHAR* NewName /*=
 			// There should be no need to choose a specific name for an actor in Houdini Engine, instead setting its label should be enough.
 			if (FHoudiniEngineRuntimeUtils::SetActorLabel(Actor, NewName))
 			{
-				HOUDINI_LOG_WARNING(TEXT("Called SetActorLabel(%s) on external actor %s instead of Rename : Explicit naming of an actor that is saved in its own external package is prone to cause name clashes when submitting the file.)"), NewName, *Actor->GetName());
+				HOUDINI_LOG_WARNING(TEXT("Called SetActorLabel(%s) on external actor %s instead of Rename : Explicit naming of an actor that is saved in its own external package is prone to cause name clashes when submitting the file.)"), NewName, *Actor->GetActorNameOrLabel());
 			}
 			// Force to return false (make sure nothing in Houdini Engine plugin relies on actor being renamed to provided name)
 			return false;
@@ -2940,8 +2940,6 @@ FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded(UHoudiniAssetComponent* HAC)
 	if (!IsValid(HAC))
 		return;
 
-	// TODO: Necessary??
-
 #if WITH_EDITOR
 	HAPI_NodeId AssetId = HAC->GetAssetId();
 	if (AssetId < 0)
@@ -2949,6 +2947,11 @@ FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded(UHoudiniAssetComponent* HAC)
 
 	AActor* OwnerActor = HAC->GetOwner();
 	if (!OwnerActor)
+		return;
+
+	// Make sure we only create a unique name for a new Houdini Actor
+	// We don't want to loose custom/manual names
+	if (!OwnerActor->GetActorNameOrLabel().StartsWith(AHoudiniAssetActor::StaticClass()->GetName()))
 		return;
 
 	if (!OwnerActor->GetName().StartsWith(AHoudiniAssetActor::StaticClass()->GetName()))
