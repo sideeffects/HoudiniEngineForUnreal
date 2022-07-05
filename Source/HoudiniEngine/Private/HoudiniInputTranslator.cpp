@@ -1474,7 +1474,7 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		{
 			UHoudiniInputSplineComponent* InputSpline = Cast<UHoudiniInputSplineComponent>(InInputObject);
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(
-				ObjBaseName, InputSpline, InInput->GetUnrealSplineResolution(), InInput->IsUseLegacyInputCurvesEnabled());
+				ObjBaseName, InputSpline, InInput->GetUnrealSplineResolution(), InInput->IsUseLegacyInputCurvesEnabled(), bInputNodesCanBeDeleted);
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -2757,7 +2757,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(
 	const FString& InObjNodeName,
 	UHoudiniInputSplineComponent* InObject,
 	const float& SplineResolution, 
-	const bool& bInUseLegacyInputCurves)
+	const bool& bInUseLegacyInputCurves,
+	const bool& bInputNodesCanBeDeleted)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2766,41 +2767,57 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(
 	if (!IsValid(Spline))
 		return true;
 
-
 	int32 NumberOfSplineControlPoints = InObject->NumberOfSplineControlPoints;
-
 	TArray<FTransform> SplineControlPoints = InObject->SplineControlPoints;
 
-	FString NodeName = InObjNodeName + TEXT("_") + InObject->GetName();
+	FString SplineName = InObjNodeName + TEXT("_") + InObject->GetName();
 
-	if (!FUnrealSplineTranslator::CreateInputNodeForSplineComponent(Spline, SplineResolution, InObject->InputNodeId, NodeName, bInUseLegacyInputCurves))
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	FUnrealObjectInputHandle InputNodeHandle;
+	HAPI_NodeId CreatedNodeId = InObject->InputNodeId;
+
+	if (!FUnrealSplineTranslator::CreateInputNodeForSplineComponent(
+		Spline, CreatedNodeId, InputNodeHandle, SplineResolution, SplineName, bInUseLegacyInputCurves, bInputNodesCanBeDeleted))
 		return false;
 
 	// Cache the exported curve's data to the input object
-	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
+	InObject->InputNodeId = CreatedNodeId;
+	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CreatedNodeId);
 
 	InObject->MarkChanged(true);
-
-	//if (!HapiCreateInputNodeForObject(InObjNodeName, InObject))
-	//	return false;
 
 	// Update the component's cached data
 	InObject->Update(Spline);
 
 	// Update the component's transform
-	FTransform ComponentTransform = InObject->Transform;
-	if (!ComponentTransform.Equals(FTransform::Identity))
+	if (bUseRefCountedInputSystem)
 	{
-		// convert to HAPI_Transform
-		HAPI_TransformEuler HapiTransform;
-		FHoudiniApi::TransformEuler_Init(&HapiTransform);
-		FHoudiniEngineUtils::TranslateUnrealTransform(ComponentTransform, HapiTransform);
+		constexpr HAPI_NodeId ParentNodeId = -1;
+		constexpr bool bCreateIfMissingInvalid = true;
+		HAPI_NodeId SplineNodeId = -1;
+		if (!FHoudiniEngineUtils::GetHAPINodeId(InputNodeHandle, SplineNodeId))
+			return false;
 
-		// Set the transform on the OBJ parent
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
-			FHoudiniEngine::Get().GetSession(), InObject->InputObjectNodeId, &HapiTransform), false);
-	} 
-
+		if (!HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
+			ParentNodeId,
+			SplineNodeId,
+			SplineName,
+			InObject->InputNodeId,
+			InObject->InputObjectNodeId,
+			bCreateIfMissingInvalid,
+			InObject->Transform))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		// Update this input object's OBJ NodeId
+		InObject->InputNodeId = CreatedNodeId;
+		InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
+		if (!HapiSetGeoObjectTransform(InObject->InputObjectNodeId, InObject->Transform))
+			return false;
+	}
 
 	return true;
 }

@@ -67,6 +67,7 @@ struct HOUDINIENGINE_API FHoudiniSplineTranslator
 	// Update the curve node data, or create a new curve node if the CurveNodeId is valid.
 	static bool HapiCreateCurveInputNodeForData(
 		HAPI_NodeId& CurveNodeId,
+		const HAPI_NodeId& ParentNodeId,
 		const FString& InputNodeName,
 		TArray<FVector>* Positions,
 		TArray<FQuat>* Rotations,
@@ -87,12 +88,13 @@ struct HOUDINIENGINE_API FHoudiniSplineTranslator
 	// Update the curve node data, or create a new curve node if the CurveNodeId is valid.
 	static bool HapiCreateCurveInputNodeForDataLegacy(
 		HAPI_NodeId& CurveNodeId,
+		const HAPI_NodeId& ParentNodeId,
 		const FString& InputNodeName,
 		TArray<FVector>* Positions,
 		TArray<FQuat>* Rotations,
 		TArray<FVector>* Scales3d,
-		EHoudiniCurveType InCurveType,
-		EHoudiniCurveMethod InCurveMethod,
+		const EHoudiniCurveType& InCurveType,
+		const EHoudiniCurveMethod& InCurveMethod,
 		const bool& InClosed,
 		const bool& InReversed,
 		const bool& InForceClose = false,
@@ -101,7 +103,10 @@ struct HOUDINIENGINE_API FHoudiniSplineTranslator
 	
 	// Create a default curve node.
 	static bool HapiCreateCurveInputNode(
-		HAPI_NodeId& OutCurveNodeId, const FString& InputNodeName, const bool InIsLegacyCurve);
+		HAPI_NodeId& OutCurveNodeId, 
+		const HAPI_NodeId& ParentNodeId, 
+		const FString& InputNodeName, 
+		const bool& InIsLegacyCurve);
 
 	// Create a Houdini spline component from a given editable node. (Only called once when first build the editable node.)
 	static UHoudiniSplineComponent* CreateHoudiniSplineComponentFromHoudiniEditableNode(const int32 & GeoId, const FString & PartName, UObject* OuterComponent);
