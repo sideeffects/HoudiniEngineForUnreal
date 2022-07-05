@@ -96,10 +96,11 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
     HAPI_NodeId& InputNodeId,
     const FString& InputNodeName,
 	FUnrealObjectInputHandle& OutHandle,
-    USkeletalMeshComponent* SkeletalMeshComponent /* = nullptr */,
-    const bool& ExportAllLODs /* = false */,
-    const bool& ExportSockets /* = false */,
-    const bool& ExportColliders /* = false */)
+    USkeletalMeshComponent* SkeletalMeshComponent /*=nullptr*/,
+    const bool& ExportAllLODs /*=false*/,
+    const bool& ExportSockets /*=false*/,
+    const bool& ExportColliders /*=false*/,
+	const bool& bInputNodesCanBeDeleted /*=true*/)
 {
     // If we don't have a static mesh there's nothing to do.
     if (!IsValid(SkeletalMesh))
@@ -108,18 +109,58 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 	// Input node name, defaults to InputNodeName, but can be changed by the new input system
 	FString FinalInputNodeName = InputNodeName;
 
-	// NEW INPUT SYSTEM: Not supported Yet!
+	// Find the node in new input system
+	// Identifier will be the identifier for the entry created in this call of the function.
+	FUnrealObjectInputIdentifier Identifier;
+	FUnrealObjectInputHandle ParentHandle;
+	HAPI_NodeId ParentNodeId = -1;
 	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bUseRefCountedInputSystem)
 	{
-		HOUDINI_LOG_WARNING(TEXT("Skeletal Mesh Input: New referenced counted input not supported yet!."), *InputNodeName);
+		// Creates this input's identifier and input options
+		bool bDefaultImportAsReference = false;
+		bool bDefaultImportAsReferenceRotScaleEnabled = false;
+		const FUnrealObjectInputOptions Options(
+			bDefaultImportAsReference,
+			bDefaultImportAsReferenceRotScaleEnabled,
+			false,
+			false,
+			false);
+
+		Identifier = FUnrealObjectInputIdentifier(SkeletalMesh, Options, true);
+
+		FUnrealObjectInputHandle Handle;
+		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		{
+			HAPI_NodeId NodeId = -1;
+			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && FHoudiniEngineUtils::AreReferencedHAPINodesValid(Handle))
+			{
+				if (!bInputNodesCanBeDeleted)
+				{
+					// Make sure to prevent deletion of the input node if needed
+					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+				}
+
+				OutHandle = Handle;
+				InputNodeId = NodeId;
+				return true;
+			}
+		}
+
+		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
+		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+
+		// We now need to create the nodes (since we couldn't find existing ones in the manager)
+		// To do that, we can simply continue this function
 	}
 	
     // Node ID for the newly created node
     HAPI_NodeId NewNodeId = -1;
 
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputNode(
-	FHoudiniEngine::Get().GetSession(), &NewNodeId, TCHAR_TO_ANSI(*InputNodeName)), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateInputNode(
+		FinalInputNodeName, NewNodeId, ParentNodeId), false);
 
     if (!FHoudiniEngineUtils::HapiCookNode(NewNodeId, nullptr, true))
 		return false;
@@ -138,26 +179,33 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
     // We have now created a valid new input node, delete the previous one
     if (PreviousInputNodeId >= 0)
     {
-	// Get the parent OBJ node ID before deleting!
-	HAPI_NodeId PreviousInputOBJNode = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
+		// Get the parent OBJ node ID before deleting!
+		HAPI_NodeId PreviousInputOBJNode = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
 
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
-	    FHoudiniEngine::Get().GetSession(), PreviousInputNodeId))
-	{
-	    HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *InputNodeName);
-	}
+		if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
+			FHoudiniEngine::Get().GetSession(), PreviousInputNodeId))
+		{
+			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *InputNodeName);
+		}
 
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
-	    FHoudiniEngine::Get().GetSession(), PreviousInputOBJNode))
-	{
-	    HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input OBJ node for %s."), *InputNodeName);
-	}
+		if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
+			FHoudiniEngine::Get().GetSession(), PreviousInputOBJNode))
+		{
+			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input OBJ node for %s."), *InputNodeName);
+		}
     }
 
 	if (FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(SkeletalMesh, NewNodeId))
 	{
 		// Commit the geo.
 		HAPI_Result ResultCommit = FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), NewNodeId);
+	}
+
+	if (bUseRefCountedInputSystem)
+	{
+		FUnrealObjectInputHandle Handle;
+		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
+			OutHandle = Handle;
 	}
 
     return true;

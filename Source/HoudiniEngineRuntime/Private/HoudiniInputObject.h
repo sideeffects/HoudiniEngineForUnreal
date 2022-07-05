@@ -47,6 +47,7 @@ class UStaticMesh;
 class USkeletalMesh;
 class USceneComponent;
 class UStaticMeshComponent;
+class USkeletalMeshComponent;
 class UInstancedStaticMeshComponent;
 class USplineComponent;
 class UHoudiniAssetComponent;
@@ -82,7 +83,8 @@ enum class EHoudiniInputObjectType : uint8
 	FoliageType_InstancedStaticMesh,
 	GeometryCollection,
 	GeometryCollectionComponent,
-	GeometryCollectionActor_Deprecated
+	GeometryCollectionActor_Deprecated,
+	SkeletalMeshComponent
 };
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -499,6 +501,26 @@ public:
 	// GeometryCollection accessor
 	class UGeometryCollectionComponent* GetGeometryCollectionComponent();
 	class UGeometryCollection* GetGeometryCollection();
+};
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// UHoudiniInputSkeletalMeshComponent input
+//-----------------------------------------------------------------------------------------------------------------------------
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputSkeletalMeshComponent : public UHoudiniInputSceneComponent
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	//
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName);
+
+	//
+	virtual void Update(UObject* InObject) override;
+
+	// Skeletal Mesh accessor
+	class USkeletalMeshComponent* GetSkeletalMeshComponent();
+	class USkeletalMesh* GetSkeletalMesh();
 };
 
 //-----------------------------------------------------------------------------------------------------------------------------
