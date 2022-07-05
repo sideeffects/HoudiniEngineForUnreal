@@ -292,7 +292,7 @@ UHoudiniInputSkeletalMeshComponent::GetSkeletalMesh()
 	if (!IsValid(SkeletalMeshComponent))
 		return nullptr;
 
-	return SkeletalMeshComponent->SkeletalMesh.Get();
+	return SkeletalMeshComponent->SkeletalMesh;
 }
 
 UGeometryCollection*
