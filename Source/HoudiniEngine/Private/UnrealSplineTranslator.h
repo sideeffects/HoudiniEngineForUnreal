@@ -30,10 +30,18 @@
 #include "UObject/NameTypes.h"
 
 class USplineComponent;
+class FUnrealObjectInputHandle;
 
 struct HOUDINIENGINE_API FUnrealSplineTranslator 
 {
 public:
-	static bool CreateInputNodeForSplineComponent(USplineComponent* SplineComponent, const float& SplineResolution, HAPI_NodeId &CreatedInputNodeId, const FString& NodeName, const bool& bInUseLegacyInputCurves);
+	static bool CreateInputNodeForSplineComponent(
+		USplineComponent* SplineComponent, 
+		HAPI_NodeId& OutCreatedInputNodeId,
+		FUnrealObjectInputHandle& OutInputNodeHandle,
+		const float& SplineResolution,
+		const FString& NodeName, 
+		const bool& bInUseLegacyInputCurves,
+		const bool& bInputNodesCanBeDeleted = true);
 
 };

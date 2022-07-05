@@ -228,7 +228,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const FString& InObjNodeName,
 		UHoudiniInputSplineComponent* InObject,
 		const float& SplineResolution,
-		const bool& bInUseLegacyInputCurves);
+		const bool& bInUseLegacyInputCurves,
+		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForHoudiniAssetComponent(
 		const FString& InObjNodeName,
