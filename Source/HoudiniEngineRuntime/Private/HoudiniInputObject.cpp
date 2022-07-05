@@ -41,6 +41,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SplineComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Landscape.h"
 #include "Engine/Brush.h"
 #include "Engine/Engine.h"
@@ -92,16 +93,24 @@ UHoudiniInputSkeletalMesh::UHoudiniInputSkeletalMesh(const FObjectInitializer& O
 }
 
 //
+UHoudiniInputSkeletalMeshComponent::UHoudiniInputSkeletalMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+}
+
+//
 UHoudiniInputGeometryCollection::UHoudiniInputGeometryCollection(const FObjectInitializer& ObjectInitializer)
-        : Super(ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }
 
 //
 UHoudiniInputGeometryCollectionComponent::UHoudiniInputGeometryCollectionComponent(const FObjectInitializer& ObjectInitializer)
-        : Super(ObjectInitializer)
+	: Super(ObjectInitializer)
 {
+
 }
 
 //
@@ -268,6 +277,22 @@ USkeletalMesh*
 UHoudiniInputSkeletalMesh::GetSkeletalMesh()
 {
 	return Cast<USkeletalMesh>(InputObject.LoadSynchronous());
+}
+
+USkeletalMeshComponent*
+UHoudiniInputSkeletalMeshComponent::GetSkeletalMeshComponent()
+{
+	return Cast<USkeletalMeshComponent>(InputObject.LoadSynchronous());
+}
+
+USkeletalMesh*
+UHoudiniInputSkeletalMeshComponent::GetSkeletalMesh()
+{
+	USkeletalMeshComponent* SkeletalMeshComponent = GetSkeletalMeshComponent();
+	if (!IsValid(SkeletalMeshComponent))
+		return nullptr;
+
+	return SkeletalMeshComponent->SkeletalMesh.Get();
 }
 
 UGeometryCollection*
@@ -489,6 +514,11 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 		case EHoudiniInputObjectType::GeometryCollectionComponent:
 			HoudiniInputObject = UHoudiniInputGeometryCollectionComponent::Create(InObject, InOuter, InName);
 			break;
+
+		case EHoudiniInputObjectType::SkeletalMeshComponent:
+			HoudiniInputObject = UHoudiniInputSkeletalMeshComponent::Create(InObject, InOuter, InName);
+			break;
+
 		case EHoudiniInputObjectType::Invalid:
 		default:
 			break;
@@ -804,6 +834,23 @@ UHoudiniInputSkeletalMesh::Create(UObject * InObject, UObject* InOuter, const FS
 	return HoudiniInputObject;
 }
 
+UHoudiniInputObject*
+UHoudiniInputSkeletalMeshComponent::Create(UObject* InObject, UObject* InOuter, const FString& InName)
+{
+	FString InputObjectNameStr = "HoudiniInputObject_SKC_" + InName;
+	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputSkeletalMeshComponent::StaticClass(), *InputObjectNameStr);
+
+	// We need to create a new object
+	UHoudiniInputSkeletalMeshComponent* HoudiniInputObject = NewObject<UHoudiniInputSkeletalMeshComponent>(
+		InOuter, UHoudiniInputSkeletalMeshComponent::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->Type = EHoudiniInputObjectType::SkeletalMeshComponent;
+	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->bHasChanged = true;
+
+	return HoudiniInputObject;
+}
+
 UHoudiniInputObject *
 UHoudiniInputGeometryCollection::Create(UObject * InObject, UObject* InOuter, const FString& InName)
 {
@@ -965,6 +1012,17 @@ UHoudiniInputSkeletalMesh::Update(UObject * InObject)
 	USkeletalMesh* SkelMesh = Cast<USkeletalMesh>(InObject);
 	ensure(SkelMesh);
 }
+
+void
+UHoudiniInputSkeletalMeshComponent::Update(UObject* InObject)
+{
+	// Nothing to do
+	Super::Update(InObject);
+
+	USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(InObject);
+	ensure(SkeletalMeshComponent);
+}
+
 
 void
 UHoudiniInputGeometryCollection::Update(UObject * InObject)
@@ -1624,10 +1682,15 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 	if (InObject->IsA(USceneComponent::StaticClass()))
 	{
 		// Handle component inputs
-		// UISMC derived from USMC, so always test instances before static meshes
 		if (InObject->IsA(UInstancedStaticMeshComponent::StaticClass()))
 		{
+			// ISMC derives from SMC, so always test instances before static meshes
 			return EHoudiniInputObjectType::InstancedStaticMeshComponent;
+		}
+		else if (InObject->IsA(USkeletalMeshComponent::StaticClass()))
+		{
+			// SKMC also derives from SMC, so SKMC must be tested before SMC
+			return EHoudiniInputObjectType::SkeletalMeshComponent;
 		}
 		else if (InObject->IsA(UStaticMeshComponent::StaticClass()))
 		{
