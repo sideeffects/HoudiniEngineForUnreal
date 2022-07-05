@@ -29,17 +29,75 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniGeoPartObject.h"
+#include "HoudiniSplineTranslator.h"
+#include "UnrealObjectInputRuntimeTypes.h"
 
 #include "Components/SplineComponent.h"
-#include "HoudiniGeoPartObject.h"
 
-#include "HoudiniSplineTranslator.h"
 
 bool
-FUnrealSplineTranslator::CreateInputNodeForSplineComponent(USplineComponent* SplineComponent, const float& SplineResolution, HAPI_NodeId& CreatedInputNodeId, const FString& NodeName, const bool& bInUseLegacyInputCurves)
+FUnrealSplineTranslator::CreateInputNodeForSplineComponent(
+	USplineComponent* SplineComponent,
+	HAPI_NodeId& CreatedInputNodeId,
+	FUnrealObjectInputHandle& OutHandle,
+	const float& SplineResolution,
+	const FString& InputNodeName,
+	const bool& bInUseLegacyInputCurves,
+	const bool& bInputNodesCanBeDeleted)
 {
 	if (!IsValid(SplineComponent))
 		return false;
+
+	// Input node name, defaults to InputNodeName, but can be changed by the new input system
+	FString FinalInputNodeName = InputNodeName;
+
+	// Find the node in new input system
+	// Identifier will be the identifier for the entry created in this call of the function.
+	FUnrealObjectInputIdentifier Identifier;
+	FUnrealObjectInputHandle ParentHandle;
+	HAPI_NodeId ParentNodeId = -1;
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	if (bUseRefCountedInputSystem)
+	{
+		// Creates this input's identifier and input options
+		bool bDefaultImportAsReference = false;
+		bool bDefaultImportAsReferenceRotScaleEnabled = false;
+		const FUnrealObjectInputOptions Options(
+			bDefaultImportAsReference,
+			bDefaultImportAsReferenceRotScaleEnabled,
+			false,
+			false,
+			false);
+
+		Identifier = FUnrealObjectInputIdentifier(SplineComponent, Options, true);
+
+		FUnrealObjectInputHandle Handle;
+		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		{
+			HAPI_NodeId NodeId = -1;
+			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && FHoudiniEngineUtils::AreReferencedHAPINodesValid(Handle))
+			{
+				if (!bInputNodesCanBeDeleted)
+				{
+					// Make sure to prevent deletion of the input node if needed
+					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+				}
+
+				OutHandle = Handle;
+				CreatedInputNodeId = NodeId;
+				//return true;
+			}
+		}
+
+		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
+		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+
+		// We now need to create the nodes (since we couldn't find existing ones in the manager)
+		// To do that, we can simply continue this function
+	}
 	
 	int32 NumberOfControlPoints = SplineComponent->GetNumberOfSplinePoints();
 	float SplineLength = SplineComponent->GetSplineLength();
@@ -50,7 +108,6 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(USplineComponent* Spl
 	TArray<FVector> RefinedSplinePositions;
 	TArray<FQuat> RefinedSplineRotations;
 	TArray<FVector> RefinedSplineScales;
-
 	if (NumberOfRefinedSplinePoints <= NumberOfControlPoints) 
 	{
 		// There's not enough refined points, so we'll use the control points instead
@@ -83,11 +140,26 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(USplineComponent* Spl
 		}
 	}
 
+	// Currently, we must create legacy curves when using the new input system
+	// as the new HAPI_CreateInputCurveNode function does not support choosing a parent node!
+	bool bUseLegacy = bInUseLegacyInputCurves;
+	if (bUseRefCountedInputSystem)
+		bUseLegacy = true;
+
 	if (!FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
-		CreatedInputNodeId, NodeName,
-		&RefinedSplinePositions, &RefinedSplineRotations, &RefinedSplineScales,
-		EHoudiniCurveType::Polygon, EHoudiniCurveMethod::Breakpoints, SplineComponent->IsClosedLoop(), false,
-		false, FTransform::Identity, bInUseLegacyInputCurves))
+		CreatedInputNodeId,
+		ParentNodeId,
+		FinalInputNodeName,
+		&RefinedSplinePositions, 
+		&RefinedSplineRotations, 
+		&RefinedSplineScales,
+		EHoudiniCurveType::Polygon, 
+		EHoudiniCurveMethod::Breakpoints, 
+		SplineComponent->IsClosedLoop(), 
+		false,
+		false, 
+		FTransform::Identity,
+		bUseLegacy))
 	{
 		HOUDINI_LOG_ERROR(TEXT("Failed to create the input curve data!"));
 		return false;
@@ -132,6 +204,14 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(USplineComponent* Spl
 			return false;
 	}
 
+	// Get our parent OBJ NodeID
+	HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CreatedInputNodeId);
+	if (bUseRefCountedInputSystem)
+	{
+		FUnrealObjectInputHandle Handle;
+		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, CreatedInputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
+			OutHandle = Handle;
+	}
 
 	return true;
 }

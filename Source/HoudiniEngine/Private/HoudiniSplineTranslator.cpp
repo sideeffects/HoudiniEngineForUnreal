@@ -260,7 +260,7 @@ FHoudiniSplineTranslator::UpdateHoudiniCurve(UHoudiniSplineComponent* HoudiniSpl
 		HAPI_NodeId NodeId = -1;
 		// Create the curve SOP Node
 
-		if (!FHoudiniSplineTranslator::HapiCreateCurveInputNode(NodeId, HoudiniSplineComponent->GetName(), false))
+		if (!FHoudiniSplineTranslator::HapiCreateCurveInputNode(NodeId, -1, HoudiniSplineComponent->GetName(), false))
 			return false;
 
 		HoudiniSplineComponent->SetNodeId(NodeId);
@@ -470,6 +470,7 @@ FHoudiniSplineTranslator::HapiUpdateNodeForHoudiniSplineComponent(
 
 	bool Success = FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
 		CurveNode_id,
+		-1,
 		InputNodeNameString,
 		&PositionArray,
 		bInAddRotAndScaleAttributes ? &RotationArray : nullptr,
@@ -555,6 +556,7 @@ FHoudiniSplineTranslator::IsCurveInputNodeValid(const HAPI_NodeId& InNodeId, con
 bool
 FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
 	HAPI_NodeId& CurveNodeId,
+	const HAPI_NodeId& ParentNodeId,
 	const FString& InputNodeName,
 	TArray<FVector>* Positions,
 	TArray<FQuat>* Rotations,
@@ -572,7 +574,7 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
 {
 	if (InIsLegacyCurve)
 	{
-		return HapiCreateCurveInputNodeForDataLegacy(CurveNodeId, InputNodeName, Positions, Rotations, Scales3d, InCurveType, InCurveMethod, InClosed, InReversed, InForceClose, ParentTransform);
+		return HapiCreateCurveInputNodeForDataLegacy(CurveNodeId, ParentNodeId, InputNodeName, Positions, Rotations, Scales3d, InCurveType, InCurveMethod, InClosed, InReversed, InForceClose, ParentTransform);
 	}
 	
 #if WITH_EDITOR
@@ -591,7 +593,7 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
 	{
 		// Create a new curve input Node
 		HAPI_NodeId NodeId = -1;
-		if (!FHoudiniSplineTranslator::HapiCreateCurveInputNode(NodeId, InputNodeName, InIsLegacyCurve))
+		if (!FHoudiniSplineTranslator::HapiCreateCurveInputNode(NodeId, ParentNodeId, InputNodeName, InIsLegacyCurve))
 			return false;
 
 		// Check if we have a valid id for this new input asset.
@@ -702,12 +704,13 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForData(
 bool
 FHoudiniSplineTranslator::HapiCreateCurveInputNodeForDataLegacy(
 	HAPI_NodeId& CurveNodeId,
+	const HAPI_NodeId& ParentNodeId,
 	const FString& InputNodeName,
 	TArray<FVector>* Positions,
 	TArray<FQuat>* Rotations,
 	TArray<FVector>* Scales3d,
-	EHoudiniCurveType InCurveType,
-	EHoudiniCurveMethod InCurveMethod,
+	const EHoudiniCurveType& InCurveType,
+	const EHoudiniCurveMethod& InCurveMethod,
 	const bool& InClosed,
 	const bool& InReversed,
 	const bool& InForceClose,
@@ -728,7 +731,7 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForDataLegacy(
 	{
 		HAPI_NodeId NodeId = -1;
 		// Create the curve SOP Node
-		if (!FHoudiniSplineTranslator::HapiCreateCurveInputNode(NodeId, InputNodeName, true))
+		if (!FHoudiniSplineTranslator::HapiCreateCurveInputNode(NodeId, ParentNodeId, InputNodeName, true))
 			return false;
 
 		// Check if we have a valid id for this new input asset.
@@ -1456,15 +1459,32 @@ FHoudiniSplineTranslator::CreatePositionsString(const TArray<FVector>& InPositio
 }
 
 bool
-FHoudiniSplineTranslator::HapiCreateCurveInputNode(HAPI_NodeId& OutCurveNodeId, const FString& InputNodeName, const bool InIsLegacyCurve)
+FHoudiniSplineTranslator::HapiCreateCurveInputNode(
+	HAPI_NodeId& OutCurveNodeId, 
+	const HAPI_NodeId& ParentNodeId, 
+	const FString& InputNodeName, 
+	const bool& InIsLegacyCurve)
 {
 	// Create the curve SOP Node
 	HAPI_NodeId NewNodeId = -1;
 	if (InIsLegacyCurve)
 	{
 		// Create the curve SOP Node
-		HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
-			-1, TEXT("SOP/curve::"), InputNodeName, false, &NewNodeId), false);
+		if (ParentNodeId < 0)
+		{
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
+				-1, TEXT("SOP/curve::"), InputNodeName, false, &NewNodeId), false);
+		}
+		else
+		{
+			// When creating a node inside a parent node (in other words, ParentNodeId is not -1), then we cannot
+			// specify the node type category prefix on the node name.
+			HAPI_NodeId ObjectNodeId = -1;
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
+				ParentNodeId, TEXT("geo"), InputNodeName, true, &ObjectNodeId), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
+				ObjectNodeId, TEXT("curve::"), InputNodeName, false, &NewNodeId), false);
+		}
 
 		OutCurveNodeId = NewNodeId;
 
