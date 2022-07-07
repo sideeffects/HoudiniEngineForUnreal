@@ -48,8 +48,6 @@ class HOUDINIENGINERUNTIME_API AHoudiniAssetActor : public AActor
 
 public:
 
-	bool IsEditorOnly() const override;
-
 	// Returns the actor's houdini component.
 	UHoudiniAssetComponent* GetHoudiniAssetComponent() const;
 
@@ -65,16 +63,7 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent) override;
 
 	// Used by the "Sync to Content Browser" right-click menu option in the editor.
-	virtual bool GetReferencedContentObjects(TArray< UObject * >& Objects) const;
+	virtual bool GetReferencedContentObjects(TArray<UObject *>& Objects) const;
 
-/*
-public:
-
-	// Called before editor paste, true allow import
-	virtual bool ShouldImport(FString * ActorPropString, bool IsMovingLevel) override;
-
-	// Used by the "Sync to Content Browser" right-click menu option in the editor.
-	virtual bool GetReferencedContentObjects(TArray< UObject * >& Objects) const;
-*/
 #endif
 };
