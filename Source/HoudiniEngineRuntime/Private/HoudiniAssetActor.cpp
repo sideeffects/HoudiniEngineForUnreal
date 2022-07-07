@@ -40,7 +40,7 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer & ObjectInitiali
 
 	// Create Houdini component and attach it to a root component.
 	HoudiniAssetComponent =
-		ObjectInitializer.CreateDefaultSubobject< UHoudiniAssetComponent >(this, TEXT("HoudiniAssetComponent"));
+		ObjectInitializer.CreateDefaultSubobject<UHoudiniAssetComponent>(this, TEXT("HoudiniAssetComponent"));
 
 	//HoudiniAssetComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 
@@ -53,52 +53,9 @@ AHoudiniAssetActor::GetHoudiniAssetComponent() const
 	return HoudiniAssetComponent;
 }
 
-/*
 #if WITH_EDITOR
 bool
-AHoudiniAssetActor::ShouldImport(FString * ActorPropString, bool IsMovingLevel)
-{
-	if (!ActorPropString)
-		return false;
-
-	// Locate actor which is being copied in clipboard string.
-	AHoudiniAssetActor * CopiedActor = FHoudiniEngineUtils::LocateClipboardActor(this, *ActorPropString);
-
-	// We no longer need clipboard string and can empty it. This seems to avoid occasional crash bug in UE4 which
-	// happens on copy / paste.
-	ActorPropString->Empty();
-
-	if (!IsValid(CopiedActor))
-	{
-		HOUDINI_LOG_WARNING(TEXT("Failed to import from copy: Duplicated actor not found"));
-		return false;
-	}
-
-	// Get Houdini component of an actor which is being copied.
-	UHoudiniAssetComponent * CopiedActorHoudiniAssetComponent = CopiedActor->HoudiniAssetComponent;
-	if (!IsValid(CopiedActorHoudiniAssetComponent))
-		return false;
-
-	HoudiniAssetComponent->OnComponentClipboardCopy(CopiedActorHoudiniAssetComponent);
-
-	// If actor is copied through moving, we need to copy main transform.
-	const FTransform & ComponentWorldTransform = CopiedActorHoudiniAssetComponent->GetComponentTransform();
-	HoudiniAssetComponent->SetWorldLocationAndRotation(
-		ComponentWorldTransform.GetLocation(),
-		ComponentWorldTransform.GetRotation());
-
-	// We also need to copy actor label.
-	const FString & CopiedActorLabel = CopiedActor->GetActorLabel();
-	FActorLabelUtilities::SetActorLabelUnique(this, CopiedActorLabel);
-
-	return true;
-}
-#endif
-*/
-
-#if WITH_EDITOR
-bool
-AHoudiniAssetActor::GetReferencedContentObjects(TArray< UObject * >& Objects) const
+AHoudiniAssetActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
 	Super::GetReferencedContentObjects(Objects);
 
@@ -152,17 +109,6 @@ UHoudiniPDGAssetLink*
 AHoudiniAssetActor::GetPDGAssetLink() const
 {
 	return IsValid(HoudiniAssetComponent) ? HoudiniAssetComponent->GetPDGAssetLink() : nullptr;
-}
-
-bool AHoudiniAssetActor::IsEditorOnly() const
-{
-	// In partitioned world, we treat these actors as editor only. Only the baked actors are used for Game and PIE.
-	ULevel* Level = GetLevel();
-	if (Level && Level->bIsPartitioned)
-	{
-		return true;
-	}
-	return Super::IsEditorOnly();
 }
 
 #undef LOCTEXT_NAMESPACE
