@@ -2732,6 +2732,8 @@ bool FHoudiniMeshTranslator::CreateSkeletalMesh_SkeletalMeshImportData()
 	OutputObject.OutputObject = NewSkeletalMesh;
 	OutputObject.bProxyIsCurrent = false;
 
+	//TODO - Check to see whether new skeleton or existing skeleton
+
 	//FHoudiniOutputObject* FoundOutputObject;
 	//FHoudiniOutputObject NewOutputObject;
 	//FoundOutputObject = &OutputObjects.Add(OutputObjectIdentifier, NewOutputObject);
@@ -2749,6 +2751,7 @@ bool FHoudiniMeshTranslator::CreateSkeletalMesh_SkeletalMeshImportData()
 	skBuildSettings.PartId = HGPO.PartId;
 	skBuildSettings.ImportNormals = true;
 	skBuildSettings.SKMesh = NewSkeletalMesh;
+	skBuildSettings.bIsNewSkeleton = true;
 	skBuildSettings.Skeleton = NewSkeleton;
 	TArray<FSkeletalMaterial> Materials;
 	FSkeletalMaterial Mat;
