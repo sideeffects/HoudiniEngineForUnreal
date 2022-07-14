@@ -2300,6 +2300,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMesh(
 		//bSuccess = FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(GeometryCollection, CreatedNodeId, GCName, InputNodeHandle, nullptr);
 		bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 			SkelMesh, CreatedNodeId, SKName, InputNodeHandle, nullptr, false, false, false, bInputNodesCanBeDeleted );
+		if(!bSuccess)
+		{
+			return false;
+		}
+
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);
