@@ -190,10 +190,10 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
 			FHoudiniEngine::Get().GetSession(), InstancesNodeId), false);
 	}
-		
+
 	// Connect the mesh to the copytopoints node's second input
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-		FHoudiniEngine::Get().GetSession(), CopyNodeId, 0, SMNodeId, 0), false);
+	// Make sure to set the XFormType fopr the obejct merge created to None
+	FHoudiniEngineUtils::HapiConnectNodeInput(CopyNodeId, 0, SMNodeId, 0, 0);
 
 	// Connect the instances to the copytopoints node's second input
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(

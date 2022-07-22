@@ -56,6 +56,7 @@ class UHoudiniSplineComponent;
 class UHoudiniInputCameraComponent;
 class UHoudiniInputDataTable;
 class UHoudiniInputFoliageType_InstancedStaticMesh;
+class UHoudiniInputBlueprint;
 
 class AActor;
 
@@ -208,6 +209,12 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		UHoudiniInput* InInput, UHoudiniInputActor* InObject,
 		const FTransform & InActorTransform,
 		TArray<int32>& OutCreatedNodeIds);
+
+	static bool HapiCreateInputNodeForBP(
+		UHoudiniInput* InInput,
+		UHoudiniInputBlueprint* InObject,
+		TArray<int32>& OutCreatedNodeIds,
+		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool HapiCreateInputNodeForCamera(
 		const FString& InObjNodeName,
