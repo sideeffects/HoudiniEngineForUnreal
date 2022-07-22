@@ -531,7 +531,14 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 			//PackageParams.ObjectName = BuildSettings.CurrentObjectName + "Skeleton";
 			SkeltonPackageParams.ObjectName = BuildSettings.SKMesh->GetName() + "Skeleton";
 			MySkeleton = SkeltonPackageParams.CreateObjectAndPackage<USkeleton>();
+
+			if (!IsValid(MySkeleton))
+				return nullptr;
 		}
+
+		// Free any RHI resources for existing mesh before we re-create in place.
+		MySkeleton->PreEditChange(nullptr);
+
 		//Load Skeleton from capt_ data
 		// 
 		//capt_names---------------------------------------------------------------------------
@@ -687,6 +694,13 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 	else  //use existing skeleton asset
 	{
 		MySkeleton = BuildSettings.Skeleton;
+
+		if (!IsValid(MySkeleton))
+			return nullptr;
+
+		// Free any RHI resources for existing mesh before we re-create in place.
+		MySkeleton->PreEditChange(nullptr);
+
 		FString SkeletonAssetPathString;
 		if ((BuildSettings.OverwriteSkeleton) && (!BuildSettings.SkeletonAssetPath.IsEmpty()))  //Panel NodeSync Settings Overrides unreal_skeleton  Attribute
 		{

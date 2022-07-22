@@ -48,6 +48,8 @@
 #include "GameFramework/Volume.h"
 #include "Camera/CameraComponent.h"
 #include "FoliageType_InstancedStaticMesh.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SCS_Node.h"
 
 #include "Model.h"
 #include "Engine/Brush.h"
@@ -232,6 +234,15 @@ UHoudiniInputLandscape::UHoudiniInputLandscape(const FObjectInitializer& ObjectI
 UHoudiniInputBrush::UHoudiniInputBrush()
 	: CombinedModel(nullptr)
 	, bIgnoreInputObject(false)
+{
+
+}
+
+//
+UHoudiniInputBlueprint::UHoudiniInputBlueprint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, LastUpdateNumComponentsAdded(0)
+	, LastUpdateNumComponentsRemoved(0)
 {
 
 }
@@ -421,6 +432,13 @@ UHoudiniInputBrush::GetBrush() const
 }
 
 
+UBlueprint*
+UHoudiniInputBlueprint::GetBlueprint() const
+{
+	return Cast<UBlueprint>(InputObject.LoadSynchronous());
+}
+
+
 //-----------------------------------------------------------------------------------------------------------------------------
 // CREATE METHODS
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -518,6 +536,9 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 		case EHoudiniInputObjectType::SkeletalMeshComponent:
 			HoudiniInputObject = UHoudiniInputSkeletalMeshComponent::Create(InObject, InOuter, InName);
 			break;
+
+		case EHoudiniInputObjectType::Blueprint:
+			HoudiniInputObject = UHoudiniInputBlueprint::Create(InObject, InOuter, InName);
 
 		case EHoudiniInputObjectType::Invalid:
 		default:
@@ -700,6 +721,23 @@ UHoudiniInputActor::Create(UObject * InObject, UObject* InOuter, const FString& 
 		InOuter, UHoudiniInputActor::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::Actor;
+	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->bHasChanged = true;
+
+	return HoudiniInputObject;
+}
+
+UHoudiniInputObject*
+UHoudiniInputBlueprint::Create(UObject* InObject, UObject* InOuter, const FString& InName)
+{
+	FString InputObjectNameStr = "HoudiniInputObject_BP_" + InName;
+	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputBlueprint::StaticClass(), *InputObjectNameStr);
+
+	// We need to create a new object
+	UHoudiniInputBlueprint* HoudiniInputObject = NewObject<UHoudiniInputBlueprint>(
+		InOuter, UHoudiniInputBlueprint::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->Type = EHoudiniInputObjectType::Blueprint;
 	HoudiniInputObject->Update(InObject);
 	HoudiniInputObject->bHasChanged = true;
 
@@ -1676,6 +1714,253 @@ bool UHoudiniInputLandscape::HasActorTransformChanged() const
 	return false;
 }
 
+bool
+UHoudiniInputBlueprint::GetChangedObjectsAndValidNodes(TArray<UHoudiniInputObject*>& OutChangedObjects, TArray<int32>& OutNodeIdsOfUnchangedValidObjects)
+{
+	if (Super::GetChangedObjectsAndValidNodes(OutChangedObjects, OutNodeIdsOfUnchangedValidObjects))
+		return true;
+
+	bool bAnyChanges = false;
+	// Check each of its child objects (components)
+	for (auto* const CurrentComp : GetComponents())
+	{
+		if (!IsValid(CurrentComp))
+			continue;
+
+		if (CurrentComp->GetChangedObjectsAndValidNodes(OutChangedObjects, OutNodeIdsOfUnchangedValidObjects))
+			bAnyChanges = true;
+	}
+
+	return bAnyChanges;
+}
+
+bool 
+UHoudiniInputBlueprint::HasComponentsTransformChanged() const
+{
+	// Search through all the child components to see if we have changed transforms in there.
+	for (auto CurrentComp : GetComponents())
+	{
+		if (CurrentComp->HasComponentTransformChanged())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool
+UHoudiniInputBlueprint::HasContentChanged() const
+{
+	return false;
+}
+
+void
+UHoudiniInputBlueprint::InvalidateData()
+{
+	// Call invalidate on input component objects
+	for (auto* const CurrentComp : GetComponents())
+	{
+		if (!IsValid(CurrentComp))
+			continue;
+
+		CurrentComp->InvalidateData();
+	}
+
+	Super::InvalidateData();
+}
+
+
+void
+UHoudiniInputBlueprint::Update(UObject* InObject)
+{
+	const bool bHasInputObjectChanged = InputObject != InObject;
+
+	Super::Update(InObject);
+
+	UBlueprint* BP = Cast<UBlueprint>(InObject);
+	ensure(BP);
+
+	if (BP)
+	{
+		// If we are updating (InObject == InputObject), then remove stale components and add new components,
+		// if InObject != InputObject, remove all components and rebuild
+		if (bHasInputObjectChanged)
+		{
+			// The actor's components that can be sent as inputs
+			LastUpdateNumComponentsRemoved = BPComponents.Num();
+
+			BPComponents.Empty();
+			BPSceneComponents.Empty();
+
+			TArray<USceneComponent*> AllComponents;
+			USimpleConstructionScript* SCS = BP->SimpleConstructionScript;
+			if (IsValid(SCS))
+			{
+				const TArray<USCS_Node*>& Nodes = SCS->GetAllNodes();
+				for (auto& CurNode : Nodes)
+				{
+					if (!IsValid(CurNode))
+						continue;
+
+					UActorComponent* CurComp = CurNode->ComponentTemplate;
+					if (!IsValid(CurComp))
+						continue;
+
+					USceneComponent* CurSceneComp = Cast<USceneComponent>(CurComp);
+					if (!IsValid(CurSceneComp))
+						continue;
+
+					AllComponents.Add(CurSceneComp);
+				}
+			}
+
+			BPComponents.Reserve(AllComponents.Num());
+			for (USceneComponent* SceneComponent : AllComponents)
+			{
+				if (!IsValid(SceneComponent))
+					continue;
+
+				UHoudiniInputObject* InputObj = UHoudiniInputObject::CreateTypedInputObject(
+					SceneComponent, GetOuter(), BP->GetName());
+				if (!InputObj)
+					continue;
+
+				UHoudiniInputSceneComponent* SceneInput = Cast<UHoudiniInputSceneComponent>(InputObj);
+				if (!SceneInput)
+					continue;
+
+				BPComponents.Add(SceneInput);
+				BPSceneComponents.Add(TSoftObjectPtr<UObject>(SceneComponent));
+			}
+			LastUpdateNumComponentsAdded = BPComponents.Num();
+		}
+		else
+		{
+			LastUpdateNumComponentsAdded = 0;
+			LastUpdateNumComponentsRemoved = 0;
+
+			// Look for any components to add or remove
+			TArray<USceneComponent*> NewComponents;
+			USimpleConstructionScript* SCS = BP->SimpleConstructionScript;
+			if (IsValid(SCS))
+			{
+				const TArray<USCS_Node*>& Nodes = SCS->GetAllNodes();
+				for (auto& CurNode : Nodes)
+				{
+					if (!IsValid(CurNode))
+						continue;
+
+					UActorComponent* CurComp = CurNode->ComponentTemplate;
+					if (!IsValid(CurComp))
+						continue;
+
+					USceneComponent* CurSceneComp = Cast<USceneComponent>(CurComp);
+					if (!IsValid(CurSceneComp))
+						continue;
+
+					if (!BPSceneComponents.Contains(CurSceneComp))
+					{
+						NewComponents.Add(CurSceneComp);
+					}
+				}
+			}
+
+			// Update the BP input components (from the same actor)
+			TArray<int32> ComponentIndicesToRemove;
+			const int32 NumActorComponents = BPComponents.Num();
+			for (int32 Index = 0; Index < NumActorComponents; ++Index)
+			{
+				UHoudiniInputSceneComponent* CurBPComp = BPComponents[Index];
+				if (!IsValid(CurBPComp))
+				{
+					ComponentIndicesToRemove.Add(Index);
+					continue;
+				}
+
+				// Does the component still exist on the BP?
+				UObject* const CompObj = CurBPComp->GetObject();
+				// Make sure the BP is still valid
+				if (!IsValid(CompObj))
+				{
+					// If it's not, mark it for deletion
+					if ((CurBPComp->InputNodeId > 0) || (CurBPComp->InputObjectNodeId > 0))
+					{
+						CurBPComp->InvalidateData();
+					}
+
+					ComponentIndicesToRemove.Add(Index);
+					continue;
+				}
+			}
+
+			// Remove the destroyed/invalid components
+			const int32 NumToRemove = ComponentIndicesToRemove.Num();
+			if (NumToRemove > 0)
+			{
+				for (int32 Index = NumToRemove - 1; Index >= 0; --Index)
+				{
+					const int32& IndexToRemove = ComponentIndicesToRemove[Index];
+
+					UHoudiniInputSceneComponent* const CurBPComp = BPComponents[IndexToRemove];
+					if (CurBPComp)
+						BPSceneComponents.Remove(CurBPComp->InputObject);
+
+					const bool bAllowShrink = false;
+					BPComponents.RemoveAtSwap(IndexToRemove, 1, bAllowShrink);
+
+					LastUpdateNumComponentsRemoved++;
+				}
+			}
+
+			if (NewComponents.Num() > 0)
+			{
+				for (USceneComponent* SceneComponent : NewComponents)
+				{
+					if (!IsValid(SceneComponent))
+						continue;
+
+					UHoudiniInputObject* InputObj = UHoudiniInputObject::CreateTypedInputObject(
+						SceneComponent, GetOuter(), BP->GetName());
+					if (!InputObj)
+						continue;
+
+					UHoudiniInputSceneComponent* SceneInput = Cast<UHoudiniInputSceneComponent>(InputObj);
+					if (!SceneInput)
+						continue;
+
+					BPComponents.Add(SceneInput);
+					BPSceneComponents.Add(SceneComponent);
+
+					LastUpdateNumComponentsAdded++;
+				}
+			}
+
+			if (LastUpdateNumComponentsAdded > 0 || LastUpdateNumComponentsRemoved > 0)
+			{
+				BPComponents.Shrink();
+			}
+		}
+	}
+	else
+	{
+		// If we don't have a valid BP or null, delete any input components we still have and mark as changed
+		if (BPComponents.Num() > 0)
+		{
+			LastUpdateNumComponentsAdded = 0;
+			LastUpdateNumComponentsRemoved = BPComponents.Num();
+			BPComponents.Empty();
+			BPSceneComponents.Empty();
+		}
+		else
+		{
+			LastUpdateNumComponentsAdded = 0;
+			LastUpdateNumComponentsRemoved = 0;
+		}
+	}
+}
+
+
 EHoudiniInputObjectType
 UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 {
@@ -1743,7 +2028,7 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 	}
 	else if (InObject->IsA(UBlueprint::StaticClass())) 
 	{
-		return EHoudiniInputObjectType::StaticMesh;
+		return EHoudiniInputObjectType::Blueprint;
 	}
 	else if (InObject->IsA(UFoliageType_InstancedStaticMesh::StaticClass())) 
 	{
