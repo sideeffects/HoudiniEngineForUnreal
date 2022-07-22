@@ -76,7 +76,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 	{
 		HAPI_NodeId InputNodeId = -1;
 		//FString BrushNodeName = NodeName + TEXT("_") + BrushActor->GetName();
-		FString BrushNodeName = BrushActor->GetName();
+		FString BrushNodeName = BrushActor->GetActorNameOrLabel();
 		// Create Brush SOP node
 		std::string NodeNameRawString;
 		FHoudiniEngineUtils::ConvertUnrealString(BrushNodeName, NodeNameRawString);
@@ -139,7 +139,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 		if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
 				FHoudiniEngine::Get().GetSession(), ParentNodeId))
 		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input OBJ node for %s."), *(BrushActor->GetName()));
+			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input OBJ node for %s."), *(BrushActor->GetActorNameOrLabel()));
 		}
 		CreatedNodeId = -1;
 		return true;

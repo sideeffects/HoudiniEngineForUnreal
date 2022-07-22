@@ -84,7 +84,8 @@ enum class EHoudiniInputObjectType : uint8
 	GeometryCollection,
 	GeometryCollectionComponent,
 	GeometryCollectionActor_Deprecated,
-	SkeletalMeshComponent
+	SkeletalMeshComponent,
+	Blueprint
 };
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -949,4 +950,72 @@ public:
 	virtual class UBlueprint* GetBlueprint() const override { return nullptr; }
 	
 	virtual bool bIsBlueprint() const override { return false; }
+};
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// Blueprint input
+//-----------------------------------------------------------------------------------------------------------------------------
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputBlueprint : public UHoudiniInputObject
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+
+	//
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName);
+
+	//
+	virtual void Update(UObject* InObject) override;
+
+	virtual bool HasComponentsTransformChanged() const;
+
+public:
+
+	// Return true if any content of this actor has possibly changed (for example geometry edits on a 
+	// Brush or changes on procedurally generated content).
+	// NOTE: This is more generally applicable and could be moved to the HoudiniInputObject class.
+	virtual bool HasContentChanged() const;
+
+	// UBlueprint accessor
+	UBlueprint* GetBlueprint() const;
+
+	const TArray<UHoudiniInputSceneComponent*>& GetComponents() const { return BPComponents; }
+
+	// The number of components added with the last call to Update
+	int32 GetLastUpdateNumComponentsAdded() const { return LastUpdateNumComponentsAdded; }
+	// The number of components remove with the last call to Update	
+	int32 GetLastUpdateNumComponentsRemoved() const { return LastUpdateNumComponentsRemoved; }
+
+	/**
+	 * Populate OutChangedObjects with any output objects (this object and its children if it has any) that has changed
+	 * or have invalid HAPI node ids.
+	 * Any objects that have not changed and have valid HAPI node is have their node ids added to
+	 * OutNodeIdsOfUnchangedValidObjects.
+	 *
+	 * @return true if this object, or any of its child objects, were added to OutChangedObjects.
+	 */
+	virtual bool GetChangedObjectsAndValidNodes(TArray<UHoudiniInputObject*>& OutChangedObjects, TArray<int32>& OutNodeIdsOfUnchangedValidObjects) override;
+
+	virtual void InvalidateData() override;
+
+protected:
+
+	virtual bool UsesInputObjectNode() const override { return false; }
+
+	// The BP's components that can be sent as inputs
+	UPROPERTY()
+		TArray<UHoudiniInputSceneComponent*> BPComponents;
+
+	// The USceneComponents the BP had the last time we called Update (matches the ones in BPComponents).
+	UPROPERTY()
+		TSet<TSoftObjectPtr<UObject>> BPSceneComponents;
+
+	// The number of components added with the last call to Update
+	UPROPERTY()
+		int32 LastUpdateNumComponentsAdded;
+
+	// The number of components remove with the last call to Update
+	UPROPERTY()
+		int32 LastUpdateNumComponentsRemoved;
 };

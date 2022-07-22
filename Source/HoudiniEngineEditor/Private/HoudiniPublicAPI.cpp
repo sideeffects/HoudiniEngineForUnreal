@@ -163,7 +163,7 @@ UHoudiniPublicAPI::InstantiateAssetWithExistingWrapper_Implementation(
 		FString WrapperError;
 		InWrapper->GetLastErrorMessage(WrapperError);
 		SetErrorMessage(FString::Printf(
-			TEXT("Failed to wrap '%s': %s."), *(HoudiniAssetActor->GetName()), *WrapperError));
+			TEXT("Failed to wrap '%s': %s."), *(HoudiniAssetActor->GetActorNameOrLabel()), *WrapperError));
 		return false;
 	}
 
