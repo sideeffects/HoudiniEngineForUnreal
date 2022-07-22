@@ -137,10 +137,11 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 		// Kind of similar to UFractureToolGenerateAsset::ConvertStaticMeshToGeometryCollection
 		for (auto & GeometryCollectionPiece : GeometryCollectionPieces)
 		{
-			if (!GeometryCollectionPiece.InstancerOutput->OutputComponent->IsA(UStaticMeshComponent::StaticClass()))
-			{
+			if (!GeometryCollectionPiece.InstancerOutput || !IsValid(GeometryCollectionPiece.InstancerOutput->OutputComponent))
 				continue;
-			}
+
+			if (!GeometryCollectionPiece.InstancerOutput->OutputComponent->IsA(UStaticMeshComponent::StaticClass()))
+				continue;
 	
 			TPair<int32, int32> ClusterKey = TPair<int32, int32>(GeometryCollectionPiece.FractureIndex, GeometryCollectionPiece.ClusterIndex);
 			TArray<FHoudiniGeometryCollectionPiece *> & Cluster = Clusters.FindOrAdd(ClusterKey);

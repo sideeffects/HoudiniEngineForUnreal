@@ -774,6 +774,26 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// UWorld and UPackage utilities
 		// -------------------------------------------------
 
+		// Find actor in a given world by label or name
+		template<class T>
+		static T* FindActorInWorldByLabelOrName(UWorld* InWorld, FString ActorLabelOrName, EActorIteratorFlags Flags = EActorIteratorFlags::AllActors)
+		{
+			T* OutActor = nullptr;
+			for (TActorIterator<T> ActorIt(InWorld, T::StaticClass(), Flags); ActorIt; ++ActorIt)
+			{
+				OutActor = *ActorIt;
+				if (!OutActor)
+					continue;
+
+				// Try the label first, then the name
+				if (OutActor->GetActorLabel() == ActorLabelOrName)
+					return OutActor;
+				if (OutActor->GetFName().ToString() == ActorLabelOrName)
+					return OutActor;
+			}
+			return nullptr;
+		}
+
 		// Find actor in a given world by label
 		template<class T>
 		static T* FindActorInWorldByLabel(UWorld* InWorld, FString ActorLabel, EActorIteratorFlags Flags = EActorIteratorFlags::AllActors)
@@ -955,6 +975,11 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 
 		static UHoudiniAssetComponent* GetOuterHoudiniAssetComponent(const UObject* Obj);
+
+		// Helper to connect two nodes together
+		// Connects InNodeIdToConnect's OutputIndex to InNodeId's InputIndex
+		// (similar to the HAPI function, but allows for specifying a XformType for the created object merge when the two nodes aren't in the same subnet)
+		static bool HapiConnectNodeInput(const int32& InNodeId, const int32& InputIndex, const int32& InNodeIdToConnect, const int32& OutputIndex, const int32& InXFormType);
 
 	protected:
 		
