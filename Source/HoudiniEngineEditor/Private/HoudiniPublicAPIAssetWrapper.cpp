@@ -3381,7 +3381,7 @@ UHoudiniParameter*
 UHoudiniPublicAPIAssetWrapper::FindValidParameterByName(const FName& InParameterTupleName) const
 {
 	AActor* const Actor = GetHoudiniAssetActor();
-	const FString ActorName = IsValid(Actor) ? Actor->GetName() : FString();
+	const FString ActorName = IsValid(Actor) ? Actor->GetActorNameOrLabel() : FString();
 	
 	UHoudiniAssetComponent* const HAC = GetHoudiniAssetComponent();
 	if (!IsValid(HAC))

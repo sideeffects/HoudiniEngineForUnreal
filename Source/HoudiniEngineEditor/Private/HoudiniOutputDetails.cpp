@@ -1108,7 +1108,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 
 	FString OutputCurveName = OutputObject.BakeName;
 	if(OutputCurveName.IsEmpty())
-		OutputCurveName = OwnerActor->GetName() + "_" + Label;
+		OutputCurveName = OwnerActor->GetActorNameOrLabel() + "_" + Label;
 
 	const FText& LabelText = FText::FromString("Unreal Spline");
 
