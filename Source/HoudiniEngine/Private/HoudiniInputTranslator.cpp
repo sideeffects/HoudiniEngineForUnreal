@@ -457,20 +457,21 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 				continue;
 			}
 
-			// For Actor input objects, set the input node id for all component objects to -1,
-			if (CurInputObject->Type == EHoudiniInputObjectType::Actor) 
+			// For Actor/BP input objects, set the input node id for all component objects to -1,
+			if (CurInputObject->Type == EHoudiniInputObjectType::Actor || CurInputObject->Type == EHoudiniInputObjectType::Blueprint)
 			{
 				UHoudiniInputActor* CurActorInputObject = Cast<UHoudiniInputActor>(CurInputObject);
-				if (CurActorInputObject) 
+				UHoudiniInputBlueprint* CurBPInputObject = Cast<UHoudiniInputBlueprint>(CurInputObject);
+				if (CurActorInputObject || CurBPInputObject) 
 				{
-					for (auto & CurActorComponent : CurActorInputObject->GetActorComponents()) 
+					for (auto & CurComponent : CurActorInputObject ? CurActorInputObject->GetActorComponents() : CurBPInputObject->GetComponents())
 					{
-						if (!IsValid(CurActorComponent))
+						if (!IsValid(CurComponent))
 							continue;
 
 						// No need to delete the nodes created for an asset component manually here,
 						// As they will be deleted when we clean up the CreateNodeIds array
-						CurActorComponent->InputNodeId = -1;
+						CurComponent->InputNodeId = -1;
 					}
 				}
 			}
@@ -895,6 +896,7 @@ FHoudiniInputTranslator::UpdateTransformType(UHoudiniInput* InInput)
 		}
 	}
 
+	/**/
 	// Since our input objects are all plugged into a merge node
 	// We want to also update the transform type on the object merge plugged into the merge node
 	HAPI_NodeId ParentNodeId = InInput->GetInputNodeId();
@@ -921,6 +923,7 @@ FHoudiniInputTranslator::UpdateTransformType(UHoudiniInput* InInput)
 				bSuccess = false;
 		}
 	}
+	/**/
 
 	return bSuccess;
 }
@@ -1496,6 +1499,13 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 			break;
 		}
 
+		case EHoudiniInputObjectType::Blueprint:
+		{
+			UHoudiniInputBlueprint* InputBP = Cast<UHoudiniInputBlueprint>(InInputObject);
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForBP(
+				InInput, InputBP, OutCreatedNodeIds, bInputNodesCanBeDeleted);
+			break;
+		}
 	}
 
 	// Mark that input object as not changed
@@ -1575,7 +1585,23 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 
 		case EHoudiniInputObjectType::InstancedStaticMeshComponent:
 		{
-			// TODO: Only update the instances transform
+			// Update instanced static mesh components in the same way as static mesh component / scene components
+			// Update using the component's transform
+			UHoudiniInputSceneComponent* const InComponent = Cast<UHoudiniInputSceneComponent>(InInputObject);
+			if (!IsValid(InComponent))
+			{
+				bSuccess = false;
+				break;
+			}
+
+			USceneComponent const* const SceneComponent = InComponent->GetSceneComponent();
+			const FTransform NewTransform = IsValid(SceneComponent) ? SceneComponent->GetComponentTransform() : InInputObject->Transform;
+			if(!UpdateTransform(NewTransform, InInputObject->InputObjectNodeId))
+				bSuccess = false;
+
+			// Update the InputObject's transform
+			InInputObject->Transform = NewTransform;
+
 			break;
 		}
 
@@ -1716,6 +1742,35 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 
 			break;
 		}
+
+		case EHoudiniInputObjectType::Blueprint:
+		{
+			UHoudiniInputBlueprint* InputBP = Cast<UHoudiniInputBlueprint>(InInputObject);
+			if (!IsValid(InputBP))
+			{
+				bSuccess = false;
+				break;
+			}
+
+			// Iterate on all the BP's input objects and see if their transform needs to be uploaded
+			for (auto& CurrentComponent : InputBP->GetComponents())
+			{
+				if (!IsValid(CurrentComponent))
+					continue;
+
+				if (!CurrentComponent->HasTransformChanged())
+					continue;
+
+				// Upload the current input object's transform to Houdini	
+				if (!UploadHoudiniInputTransform(InInput, CurrentComponent))
+				{
+					bSuccess = false;
+					continue;
+				}
+			}
+			break;
+		}
+
 		case EHoudiniInputObjectType::Invalid:
 		default:
 			break;
@@ -2302,6 +2357,20 @@ FHoudiniInputTranslator::HapiCreateInputNodeForInstancedStaticMeshComponent(
 	// Update the component's cached instances
 	InObject->Update(ISMC);
 
+	// Update the component's transform
+	const FTransform ComponentTransform = InObject->Transform;
+	if (!ComponentTransform.Equals(FTransform::Identity))
+	{
+		// convert to HAPI_Transform
+		HAPI_TransformEuler HapiTransform;
+		FHoudiniApi::TransformEuler_Init(&HapiTransform);
+		FHoudiniEngineUtils::TranslateUnrealTransform(ComponentTransform, HapiTransform);
+
+		// Set the transform on the OBJ parent
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
+			FHoudiniEngine::Get().GetSession(), InObject->InputObjectNodeId, &HapiTransform), false);
+	}
+
 	return true;
 }
 
@@ -2601,6 +2670,34 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 	//TODO? Check
 	// return true if we have at least uploaded one component
 	// return (ComponentIdx > 0);
+
+	return true;
+}
+
+bool
+FHoudiniInputTranslator::HapiCreateInputNodeForBP(
+	UHoudiniInput* InInput,
+	UHoudiniInputBlueprint* InObject,
+	TArray<int32>& OutCreatedNodeIds,
+	const bool& bInputNodesCanBeDeleted)
+{
+	if (!IsValid(InInput))
+		return false;
+
+	if (!IsValid(InObject))
+		return false;
+
+	UBlueprint* BP = InObject->GetBlueprint();
+	if (!IsValid(BP))
+		return true;
+
+	// Now, commit all of this BP's component
+	int32 ComponentIdx = 0;
+	for (UHoudiniInputSceneComponent* CurComponent : InObject->GetComponents())
+	{
+		if (UploadHoudiniInputObject(InInput, CurComponent, FTransform::Identity, OutCreatedNodeIds, bInputNodesCanBeDeleted))
+			ComponentIdx++;
+	}
 
 	return true;
 }

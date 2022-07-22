@@ -934,6 +934,11 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		static UHoudiniAssetComponent* GetOuterHoudiniAssetComponent(const UObject* Obj);
 
+		// Helper to connect two nodes together
+		// Connects InNodeIdToConnect's OutputIndex to InNodeId's InputIndex
+		// (similar to the HAPI function, but allows for specifying a XformType for the created object merge when the two nodes aren't in the same subnet)
+		static bool HapiConnectNodeInput(const int32& InNodeId, const int32& InputIndex, const int32& InNodeIdToConnect, const int32& OutputIndex, const int32& InXFormType);
+
 	protected:
 		
 		// Computes the XX.YY.ZZZ version string using HAPI_Version
