@@ -213,8 +213,7 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 	static bool HapiCreateInputNodeForBP(
 		UHoudiniInput* InInput,
 		UHoudiniInputBlueprint* InObject,
-		TArray<int32>& OutCreatedNodeIds,
-		const bool& bInputNodesCanBeDeleted = true);
+		TArray<int32>& OutCreatedNodeIds);
 
 	static bool HapiCreateInputNodeForCamera(
 		const FString& InObjNodeName,
