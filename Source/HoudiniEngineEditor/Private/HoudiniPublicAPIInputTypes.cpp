@@ -248,38 +248,11 @@ UHoudiniPublicAPIInput::CopyInputObjectPropertiesToHoudiniInputObject(const int3
 	if (!InputObjects.IsValidIndex(InInputObjectIndex) || !IsValid(InHoudiniInputObject))
 		return false;
 
-	// const EHoudiniInputObjectType InputObjectType = InHoudiniInputObject->Type;
-
 	if (InHoudiniInputObject->GetImportAsReference() != bImportAsReference)
 	{
 		InHoudiniInputObject->SetImportAsReference(bImportAsReference);
 		InHoudiniInputObject->MarkChanged(true);
 	}
-
-	// switch (InputObjectType)
-	// {
-	// 	case EHoudiniInputObjectType::StaticMesh:
-	// 	case EHoudiniInputObjectType::FoliageType_InstancedStaticMesh:
-	// 		break;
-	// 	case EHoudiniInputObjectType::Object:
-	// 	case EHoudiniInputObjectType::SkeletalMesh:
-	// 	case EHoudiniInputObjectType::HoudiniSplineComponent:
-	// 	case EHoudiniInputObjectType::SceneComponent:
-	// 	case EHoudiniInputObjectType::StaticMeshComponent:
-	// 	case EHoudiniInputObjectType::InstancedStaticMeshComponent:
-	// 	case EHoudiniInputObjectType::SplineComponent:
-	// 	case EHoudiniInputObjectType::HoudiniAssetComponent:
-	// 	case EHoudiniInputObjectType::Actor:
-	// 	case EHoudiniInputObjectType::Landscape:
-	// 	case EHoudiniInputObjectType::Brush:
-	// 	case EHoudiniInputObjectType::CameraComponent:
-	// 	case EHoudiniInputObjectType::DataTable:
-	// 	case EHoudiniInputObjectType::HoudiniAssetActor:
-	// 		break;
-	//
-	// 	case EHoudiniInputObjectType::Invalid:
-	// 		return false;
-	// }
 	
 	return true;
 }
