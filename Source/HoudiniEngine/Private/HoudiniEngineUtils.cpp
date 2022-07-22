@@ -7660,6 +7660,30 @@ FHoudiniEngineUtils::SetObjectMergeXFormTypeToWorldOrigin(const HAPI_NodeId& InO
 }
 
 bool
+FHoudiniEngineUtils::HapiConnectNodeInput(const int32& InNodeId, const int32& InputIndex, const int32& InNodeIdToConnect, const int32& OutputIndex, const int32& InXFormType)
+{
+	// Connect the node ids
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+		FHoudiniEngine::Get().GetSession(), InNodeId, InputIndex, InNodeIdToConnect, OutputIndex), false);
+
+	// When connecting two nodes that are NOT in the same subnet,
+	// HAPI creates an object merge node for the connection
+	// See if we have specified a TransformType for that object merge!
+	if(InXFormType <= 0 || InXFormType <= 2)
+	{
+		HAPI_NodeId ObjMergeNodeId = -1;
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::QueryNodeInput(
+			FHoudiniEngine::Get().GetSession(), InNodeId, InputIndex, &ObjMergeNodeId), false);
+
+		// Set the transform value to "None"
+		HOUDINI_CHECK_ERROR_RETURN(
+			FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), ObjMergeNodeId, TCHAR_TO_UTF8(TEXT("xformtype")), 0, InXFormType), false);
+	}
+
+	return true;
+}
+
+bool
 FHoudiniEngineUtils::ConnectReferencedNodesToMerge(const FUnrealObjectInputIdentifier& InRefNodeIdentifier)
 {
 	// Identifier must be valid and for a reference node
@@ -7718,6 +7742,10 @@ FHoudiniEngineUtils::ConnectReferencedNodesToMerge(const FUnrealObjectInputIdent
 		// Set the transform value to "Into Specified Object"
 		// Set the transform object to the world origin null from the manager
 		SetObjectMergeXFormTypeToWorldOrigin(ConnectedNodeId);
+
+		// Set the transform value to "None"
+		//HOUDINI_CHECK_ERROR_RETURN(
+		//	FHoudiniApi::SetParmIntValue(Session, ConnectedNodeId, TCHAR_TO_UTF8(TEXT("xformtype")), 0, 0), false);
 	}
 
 	// Disconnect input indices >= InputIndex
