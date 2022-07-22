@@ -1503,7 +1503,7 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		{
 			UHoudiniInputBlueprint* InputBP = Cast<UHoudiniInputBlueprint>(InInputObject);
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForBP(
-				InInput, InputBP, OutCreatedNodeIds, bInputNodesCanBeDeleted);
+				InInput, InputBP, OutCreatedNodeIds);
 			break;
 		}
 	}
@@ -2681,8 +2681,7 @@ bool
 FHoudiniInputTranslator::HapiCreateInputNodeForBP(
 	UHoudiniInput* InInput,
 	UHoudiniInputBlueprint* InObject,
-	TArray<int32>& OutCreatedNodeIds,
-	const bool& bInputNodesCanBeDeleted)
+	TArray<int32>& OutCreatedNodeIds)
 {
 	if (!IsValid(InInput))
 		return false;
@@ -2698,7 +2697,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForBP(
 	int32 ComponentIdx = 0;
 	for (UHoudiniInputSceneComponent* CurComponent : InObject->GetComponents())
 	{
-		if (UploadHoudiniInputObject(InInput, CurComponent, FTransform::Identity, OutCreatedNodeIds, bInputNodesCanBeDeleted))
+		if (UploadHoudiniInputObject(InInput, CurComponent, FTransform::Identity, OutCreatedNodeIds))
 			ComponentIdx++;
 	}
 
