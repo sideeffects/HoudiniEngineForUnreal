@@ -1670,32 +1670,23 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 
 		case EHoudiniInputObjectType::InstancedStaticMeshComponent:
 		{
-			/*
-			// TODO: Only update the instances transform
-			if (bUseRefCountedInputSystem)
+			// Update instanced static mesh components in the same way as static mesh component / scene components
+			// Update using the component's transform
+			UHoudiniInputSceneComponent* const InComponent = Cast<UHoudiniInputSceneComponent>(InInputObject);
+			if (!IsValid(InComponent))
 			{
-			*/
-				// For the new input system, updated instanced static mesh components in the same way as static mesh
-				// component / scene components
-				
-				// Update using the component's transform
-				UHoudiniInputSceneComponent* const InComponent = Cast<UHoudiniInputSceneComponent>(InInputObject);
-				if (!IsValid(InComponent))
-				{
-					bSuccess = false;
-					break;
-				}
+				bSuccess = false;
+				break;
+			}
 
-				USceneComponent const* const SceneComponent = InComponent->GetSceneComponent();
-				const FTransform NewTransform = IsValid(SceneComponent) ? SceneComponent->GetComponentTransform() : InInputObject->Transform;
-				if(!UpdateTransform(NewTransform, InInputObject->InputObjectNodeId))
-					bSuccess = false;
+			USceneComponent const* const SceneComponent = InComponent->GetSceneComponent();
+			const FTransform NewTransform = IsValid(SceneComponent) ? SceneComponent->GetComponentTransform() : InInputObject->Transform;
+			if(!UpdateTransform(NewTransform, InInputObject->InputObjectNodeId))
+				bSuccess = false;
 
-				// Update the InputObject's transform
-				InInputObject->Transform = NewTransform;
-			/*}
+			// Update the InputObject's transform
+			InInputObject->Transform = NewTransform;
 			break;
-			*/
 		}
 
 		case EHoudiniInputObjectType::HoudiniSplineComponent:
@@ -2776,26 +2767,20 @@ FHoudiniInputTranslator::HapiCreateInputNodeForInstancedStaticMeshComponent(
 
 	// Update the component's cached instances
 	InObject->Update(ISMC);
-	/*
-	// When using the ref counted input system, set the component's transform
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
-	if (bUseRefCountedInputSystem)
-	{
-	*/
-		// Update the component's transform
-		const FTransform ComponentTransform = InObject->Transform;
-		if (!ComponentTransform.Equals(FTransform::Identity))
-		{
-			// convert to HAPI_Transform
-			HAPI_TransformEuler HapiTransform;
-			FHoudiniApi::TransformEuler_Init(&HapiTransform);
-			FHoudiniEngineUtils::TranslateUnrealTransform(ComponentTransform, HapiTransform);
 
-			// Set the transform on the OBJ parent
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
-				FHoudiniEngine::Get().GetSession(), InObject->InputObjectNodeId, &HapiTransform), false);
-		}
-	//}
+	// Update the component's transform
+	const FTransform ComponentTransform = InObject->Transform;
+	if (!ComponentTransform.Equals(FTransform::Identity))
+	{
+		// convert to HAPI_Transform
+		HAPI_TransformEuler HapiTransform;
+		FHoudiniApi::TransformEuler_Init(&HapiTransform);
+		FHoudiniEngineUtils::TranslateUnrealTransform(ComponentTransform, HapiTransform);
+
+		// Set the transform on the OBJ parent
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
+			FHoudiniEngine::Get().GetSession(), InObject->InputObjectNodeId, &HapiTransform), false);
+	}
 	
 	return true;
 }

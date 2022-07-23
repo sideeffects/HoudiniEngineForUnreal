@@ -7738,10 +7738,6 @@ FHoudiniEngineUtils::ConnectReferencedNodesToMerge(const FUnrealObjectInputIdent
 		// Set the transform value to "Into Specified Object"
 		// Set the transform object to the world origin null from the manager
 		SetObjectMergeXFormTypeToWorldOrigin(ConnectedNodeId);
-
-		// Set the transform value to "None"
-		//HOUDINI_CHECK_ERROR_RETURN(
-		//	FHoudiniApi::SetParmIntValue(Session, ConnectedNodeId, TCHAR_TO_UTF8(TEXT("xformtype")), 0, 0), false);
 	}
 
 	// Disconnect input indices >= InputIndex
