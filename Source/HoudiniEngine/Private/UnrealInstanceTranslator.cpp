@@ -300,30 +300,6 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	// Connect the mesh to the copytopoints node's second input
 	// Make sure to set the XFormType fopr the obejct merge created to None
 	FHoudiniEngineUtils::HapiConnectNodeInput(CopyNodeId, 0, SMNodeId, 0, 0);
-	/*	
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-		FHoudiniEngine::Get().GetSession(), CopyNodeId, 0, SMNodeId, 0), false);
-
-	// When using the ref counted input system, we have to set the object_merge's xformtype to world origin
-	/*if (bUseRefCountedInputSystem)
-	{
-		HAPI_NodeId ObjMergeNodeId = -1;
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::QueryNodeInput(
-			FHoudiniEngine::Get().GetSession(), CopyNodeId, 0, &ObjMergeNodeId), false);
-		if (!FHoudiniEngineUtils::SetObjectMergeXFormTypeToWorldOrigin(ObjMergeNodeId))
-			return false;
-	}
-	else*//*
-	{
-		HAPI_NodeId ObjMergeNodeId = -1;
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::QueryNodeInput(
-			FHoudiniEngine::Get().GetSession(), CopyNodeId, 0, &ObjMergeNodeId), false);
-		
-		// Set the transform value to "None"
-		HOUDINI_CHECK_ERROR_RETURN(
-			FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), ObjMergeNodeId, TCHAR_TO_UTF8(TEXT("xformtype")), 0, 0), false);
-	}
-	*/
 
 	// Connect the instances to the copytopoints node's second input
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
