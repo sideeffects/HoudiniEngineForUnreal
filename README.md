@@ -73,16 +73,28 @@ Currently, the plugins has [binaries](https://github.com/sideeffects/HoudiniEngi
 
 Source code for the H19.5 plugin is available on this repository for UE5.0, UE4.27, UE4.26.
 
+
 # Installing the plugin
+01. In this GitHub repository, click **Releases** on the right side. 
+02. Download the Houdini Engine version zip file that matches your Houdini version.  
+03. Extract the **HoudiniEngine** folder to the **Plugins\Runtime** of your Unreal Directory. You can either copy it to Unreal's engine version directory or your Unreal project directory.
 
-01. Download the pre-built binaries of the plugin in the "Releases" section of this repository. 
+    In this example, Unreal's directory location is `C:\Program Files\Epic Games\UE_5.0\Engine\Plugins\Runtime\HoudiniEngine` and the project directory is `C:\Unreal Projects\MyGameProject\Plugins\HoudiniEngine`
 
-01. Extract the "HoudiniEngine" folder in the release to the "Plugins/Runtime" folder of Unreal.
-    You can install the plugin either directly in the engine folder (in "Engine/Plugins/Runtime/HoudiniEngine") or in your project folder (in "Plugins/Runtime/HoudiniEngine").
-01. Start Unreal Engine, open the Plug-ins menu and make sure to enable the `HoudiniEngine v2` plug-in (in the `Rendering` section). Restart UE4 if you had to enable it.
-01. To confirm that the plug-in has been successfully installed and enabled, you can check that the editor main menu bar now has a new "Houdini Engine" menu, between "Edit" and "Window".
-01. You should now be able to import Houdini Digital Assets (HDA) `.otl` or `.hda` files or drag and drop them into the `Content Browser`.
-01. Once you have an HDA in the `Content Browser` you should be able to drag it into the Editor viewport. This will spawn a new Houdini Asset Actor. Geometry cooking will be done in a separate thread and geometry will be displayed once the cooking is complete. At this point you will be able to see asset parameters and inputs in the `Details` panel. Modifying any of the parameters will force the asset to recook and possibly update its geometry.
+    **Note: For Unreal Engine 5, you must use Unreal's project directory.** 
+
+## Verify the Plug-in works
+Once you install the Houdini Engine plug-in, you can verify it's loaded properly. 
+
+01. Open a new or existing Unreal project. 
+02. In the **main menu bar**, you can see **Houdini Engine** as a new selection.
+
+You should also check the Houdini Engine plug-in version matches your Houdini Version for the plug-in to work properly.
+
+01. In Unreal Engine main menu bar, click **Edit** then **Plugins**.
+02. For Houdini Engine, check the **HX.Y.Z.** version number matches your Houdini version. X.Y.Z means your Houdini Version number.
+
+You can learn how to export an Houdini Digital Assets (HDA), import it into Unreal Engine, and update the asset from [Assets documentation.](https://www.sidefx.com/docs/unreal/_assets.html)
 
 
 # Building from source
