@@ -273,17 +273,6 @@ UHoudiniInputStaticMesh::GetStaticMesh() const
 	return Cast<UStaticMesh>(InputObject.LoadSynchronous());
 }
 
-UBlueprint* 
-UHoudiniInputStaticMesh::GetBlueprint() const 
-{
-	return Cast<UBlueprint>(InputObject.LoadSynchronous());
-}
-
-bool UHoudiniInputStaticMesh::bIsBlueprint() const 
-{
-	return (InputObject.IsValid() && InputObject.Get()->IsA<UBlueprint>());
-}
-
 USkeletalMesh*
 UHoudiniInputSkeletalMesh::GetSkeletalMesh()
 {
@@ -759,99 +748,6 @@ UHoudiniInputStaticMesh::Create(UObject * InObject, UObject* InOuter, const FStr
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
-}
-
-// void UHoudiniInputStaticMesh::DuplicateAndCopyState(UObject* DestOuter, UHoudiniInputStaticMesh*& OutNewInput)
-// {
-// 	UHoudiniInputStaticMesh* NewInput = Cast<UHoudiniInputStaticMesh>(StaticDuplicateObject(this, DestOuter));
-// 	OutNewInput = NewInput;
-// 	OutNewInput->CopyStateFrom(this, false);
-// }
-
-void
-UHoudiniInputStaticMesh::CopyStateFrom(UHoudiniInputObject* InInput, bool bCopyAllProperties)
-{
-	UHoudiniInputStaticMesh* StaticMeshInput = Cast<UHoudiniInputStaticMesh>(InInput); 
-	check(InInput);
-
-	const TArray<UHoudiniInputObject*> PrevInputs = BlueprintStaticMeshes;
-	
-	Super::CopyStateFrom(StaticMeshInput, bCopyAllProperties);
-
-	const int32 NumInputs = StaticMeshInput->BlueprintStaticMeshes.Num();
-	BlueprintStaticMeshes = PrevInputs;
-	TArray<UHoudiniInputObject*> StaleInputs(BlueprintStaticMeshes);
-
-	BlueprintStaticMeshes.SetNum(NumInputs);
-
-	for (int i = 0; i < NumInputs; ++i)
-	{
-		UHoudiniInputObject* FromInput = StaticMeshInput->BlueprintStaticMeshes[i];
-		UHoudiniInputObject* ToInput = BlueprintStaticMeshes[i];
-
-		if (!FromInput)
-		{
-			BlueprintStaticMeshes[i] = nullptr;
-			continue;
-		}
-
-		if (ToInput)
-		{
-			// Check whether the ToInput can be reused
-			bool bIsValid = true;
-			bIsValid = bIsValid && ToInput->Matches(*FromInput);
-			bIsValid = bIsValid && ToInput->GetOuter() == this;
-			if (!bIsValid)
-			{
-				ToInput = nullptr;
-			}
-		}
-
-		if (ToInput)
-		{
-			// We have a reusable input
-			ToInput->CopyStateFrom(FromInput, true);
-		}
-		else
-		{
-			// We need to create a new input
-			ToInput = Cast<UHoudiniInputStaticMesh>(FromInput->DuplicateAndCopyState(this));
-		}
-
-		BlueprintStaticMeshes[i] = ToInput;
-	}
-
-	for(UHoudiniInputObject* const StaleInput : StaleInputs)
-	{
-		if (!StaleInput)
-			continue;
-		StaleInput->InvalidateData();
-	}
-}
-
-void
-UHoudiniInputStaticMesh::SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes)
-{
-	Super::SetCanDeleteHoudiniNodes(bInCanDeleteNodes);
-	for(UHoudiniInputObject* const Input : BlueprintStaticMeshes)
-	{
-		if (!Input)
-			continue;
-		Input->SetCanDeleteHoudiniNodes(bInCanDeleteNodes);
-	}
-}
-
-void
-UHoudiniInputStaticMesh::InvalidateData()
-{
-	for(UHoudiniInputObject* const Input : BlueprintStaticMeshes)
-	{
-		if (!Input)
-			continue;
-		Input->InvalidateData();
-	}
-
-	Super::InvalidateData();
 }
 
 
@@ -2466,19 +2362,6 @@ UHoudiniInputFoliageType_InstancedStaticMesh::Create(UObject * InObject, UObject
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
-}
-
-void
-UHoudiniInputFoliageType_InstancedStaticMesh::CopyStateFrom(UHoudiniInputObject* InInput, bool bCopyAllProperties)
-{
-	UHoudiniInputFoliageType_InstancedStaticMesh* FoliageTypeSM = Cast<UHoudiniInputFoliageType_InstancedStaticMesh>(InInput); 
-	if (!IsValid(FoliageTypeSM))
-		return;
-
-	UHoudiniInputObject::CopyStateFrom(FoliageTypeSM, bCopyAllProperties);
-
-	// BlueprintStaticMeshes array is not used in UHoudiniInputFoliageType_InstancedStaticMesh
-	BlueprintStaticMeshes.Empty();
 }
 
 void
