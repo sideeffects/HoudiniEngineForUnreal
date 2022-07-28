@@ -951,9 +951,9 @@ FHoudiniInputTranslator::UpdateTransformType(UHoudiniInput* InInput)
 		}
 	}
 
-	/**/
 	// Since our input objects are all plugged into a merge node
 	// We want to also update the transform type on the object merge plugged into the merge node
+	// TODO: Also do it for Geo IN with multiple objects? or BP?
 	HAPI_NodeId ParentNodeId = InInput->GetInputNodeId();
 	if ((ParentNodeId >= 0) && (InputType != EHoudiniInputType::Geometry) && (InputType != EHoudiniInputType::Asset) && (InputType != EHoudiniInputType::GeometryCollection))
 	{
@@ -978,7 +978,6 @@ FHoudiniInputTranslator::UpdateTransformType(UHoudiniInput* InInput)
 				bSuccess = false;
 		}
 	}
-	/**/
 
 	return bSuccess;
 }
@@ -1372,17 +1371,7 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 
 			if (bSuccess)
 			{
-				// If this SM input object takes in a BP, and we are not using the ref counted input system, add all
-				// its BP StaticMesh components input object node id to the created id list.
-				if (InputSM->bIsBlueprint() && !FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled()) 
-				{
-					for (auto & CurSMObj : InputSM->BlueprintStaticMeshes)
-						OutCreatedNodeIds.Add(CurSMObj->InputObjectNodeId);
-				}
-				else
-				{
-					OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
-				}
+				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
 			}
 
 			break;
@@ -2083,28 +2072,12 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 	if (!IsValid(InObject))
 		return false;
 
-	UBlueprint* BP = nullptr;
-	UStaticMesh* SM = nullptr;
-	 
-	FString SMName = InObjNodeName + TEXT("_");
+	// Get the StaticMesh
+	UStaticMesh* SM = InObject->GetStaticMesh();
+	if (!IsValid(SM))
+		return true;
 
-	// Get Blueprint or StaticMesh
-	if (InObject->bIsBlueprint())
-	{
-		BP = InObject->GetBlueprint();
-		if (!IsValid(BP))
-			return true;
-
-		SMName += BP->GetName();
-	}
-	else
-	{
-		SM = InObject->GetStaticMesh();
-		if (!IsValid(SM))
-			return true;
-
-		SMName += SM->GetName();
-	}
+	FString SMName = InObjNodeName + TEXT("_") + SM->GetName();
 
 	// Marshall the Static Mesh to Houdini
 	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
@@ -2114,139 +2087,13 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 	bool bSuccess = true;
 	if (bImportAsReference) 
 	{
-		UObject* ObjectToRef = nullptr;
-		if (SM)
-			ObjectToRef = SM;
-		else if (BP)
-			ObjectToRef = BP;
-
 		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
-			CreatedNodeId, ObjectToRef, SMName, InObject->Transform, bImportAsReferenceRotScaleEnabled, bUseRefCountedInputSystem, InputNodeHandle);
+			CreatedNodeId, SM, SMName, InObject->Transform, bImportAsReferenceRotScaleEnabled, bUseRefCountedInputSystem, InputNodeHandle);
 	}
 	else 
-	{
-		TArray<UStaticMeshComponent*> StaticMeshComponents;
-
-		// The input object is a Blueprint, Get all its StaticMeshes
-		if (BP) 
-		{
-			USimpleConstructionScript* SCS = BP->SimpleConstructionScript;
-			if (IsValid(SCS)) 
-			{
-				const TArray<USCS_Node*>& Nodes = SCS->GetAllNodes();
-				for (auto & CurNode : Nodes)
-				{
-					if (!IsValid(CurNode))
-						continue;
-
-					UActorComponent * CurComp = CurNode->ComponentTemplate;
-					if (!IsValid(CurComp))
-						continue;
-
-					UStaticMeshComponent* CurSMC = Cast<UStaticMeshComponent>(CurComp);
-					if (!IsValid(CurSMC))
-						continue;
-
-					UStaticMesh* CurSM = CurSMC->GetStaticMesh();
-					if (IsValid(CurSM))
-						StaticMeshComponents.Add(CurSMC);
-					
-				}
-			}
-		}
-		
-		// Clear previous Blueprint Static Mesh Comps (if there is any)
-		InObject->BlueprintStaticMeshes.Empty();
-
-		// This is a BP, add all the BP SM comps to its BlueprintStaticMeshes list.
-		if (InObject->bIsBlueprint())
-		{
-			// If we are using the ref counted input system, we will create a reference node to reference all of the
-			// SMC nodes created in the loop
-			TSet<FUnrealObjectInputHandle> SMCHandles;
-			constexpr bool bImportAsReferenceRotScale = false;
-			// Use the blueprint generated class for as the object in the input system
-			UObject* BPGenClass = BP->GeneratedClass;
-			if (!IsValid(BPGenClass))
-				BPGenClass = BP;
-			for (auto & CurSMC : StaticMeshComponents)
-			{
-				if (!IsValid(CurSMC))
-					continue;
-
-				if (bUseRefCountedInputSystem)
-				{
-					CurSMC->ConditionalUpdateComponentToWorld();
-					UHoudiniInputMeshComponent* SMCObject = Cast<UHoudiniInputMeshComponent>(
-						UHoudiniInputObject::CreateTypedInputObject(CurSMC, InObject, BPGenClass->GetName() + TEXT("_") + CurSMC->GetName()));
-
-					if (!IsValid(SMCObject))
-						continue;
-
-					constexpr bool bKeepWorldTransform = false;
-					if (!HapiCreateInputNodeForStaticMeshComponent(
-						BPGenClass->GetName(), SMCObject, 
-						bExportLODs, bExportSockets, bExportColliders, bKeepWorldTransform, bImportAsReference, bImportAsReferenceRotScale,
-						FTransform::Identity, bInputNodesCanBeDeleted))
-						continue;
-
-					if (SMCObject->InputNodeHandle.IsValid())
-						SMCHandles.Add(SMCObject->InputNodeHandle);
-					InObject->BlueprintStaticMeshes.Add(SMCObject);
-				}
-				else
-				{
-					UHoudiniInputStaticMesh* SMObject = Cast<UHoudiniInputStaticMesh>(
-						UHoudiniInputObject::CreateTypedInputObject(CurSMC->GetStaticMesh(), InObject, InObject->GetName() + TEXT("_") + CurSMC->GetName()));
-
-					if (!IsValid(SMObject))
-						continue;
-					
-					FUnrealObjectInputHandle Handle;
-					bSuccess &= FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
-						CurSMC->GetStaticMesh(), SMObject->InputNodeId, SMName, Handle, nullptr, bExportLODs, bExportSockets, bExportColliders, true, bInputNodesCanBeDeleted);
-					
-					InObject->SetImportAsReference(false);
-					
-					// Update this input object's OBJ NodeId
-					SMObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(SMObject->InputNodeId);
-					SMObject->InputNodeHandle = Handle;
-					
-					// Update the component's transform
-					FTransform ComponentTransform = CurSMC->GetRelativeTransform();
-					if (!ComponentTransform.Equals(FTransform::Identity))
-					{
-						// convert to HAPI_Transform
-						HAPI_TransformEuler HapiTransform;
-						FHoudiniApi::TransformEuler_Init(&HapiTransform);
-						FHoudiniEngineUtils::TranslateUnrealTransform(ComponentTransform, HapiTransform);
-					
-						// Set the transform on the OBJ parent
-						HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
-							FHoudiniEngine::Get().GetSession(), SMObject->InputObjectNodeId, &HapiTransform), false);
-					}
-					InObject->BlueprintStaticMeshes.Add(SMObject);
-				}
-			}
-
-			if (!bUseRefCountedInputSystem)
-				return true;
-
-			// If we are using the ref counted system, then we have to make a reference for the blueprint that merges
-			// all of its SMCs
-			constexpr bool bIsLeaf = false;
-			FUnrealObjectInputOptions Options(bImportAsReference, bImportAsReferenceRotScale, bExportLODs, bExportSockets, bExportColliders);
-			FUnrealObjectInputIdentifier Identifier(BPGenClass, Options, bIsLeaf);
-			FUnrealObjectInputHandle Handle;
-			if (FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(Identifier, SMCHandles, Handle, true, bInputNodesCanBeDeleted))
-				InputNodeHandle = Handle;
-		}
-		// This is a normal static mesh input, process it normally as a static mesh Input Object
-		else 
-		{
-			bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
-				SM, CreatedNodeId, SMName, InputNodeHandle, nullptr, bExportLODs, bExportSockets, bExportColliders, true, bInputNodesCanBeDeleted);
-		}
+	{	
+		bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
+			SM, CreatedNodeId, SMName, InputNodeHandle, nullptr, bExportLODs, bExportSockets, bExportColliders, true, bInputNodesCanBeDeleted);
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);

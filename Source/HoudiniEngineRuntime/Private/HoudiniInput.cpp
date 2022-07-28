@@ -1908,23 +1908,12 @@ UHoudiniInput::GetNumberOfInputMeshes(const EHoudiniInputType& InType)
 	// If geometry input, and we only have one null object, return 0
 	int32 Num = InputObjectsPtr->Num();
 
-	// TODO: Fix BP properly!
-	// Special case for SM in BP:
-	// we need to add extra input objects store in BlueprintStaticMeshes
-	// Same thing for Actor InputObjects!
+	// Special case for Actors and BP
+	// we need to add extra input objects stored in the components array
 	for (auto InputObj : *InputObjectsPtr)
 	{
 		if (!IsValid(InputObj))
 			continue;
-
-		UHoudiniInputStaticMesh* InputSM = Cast<UHoudiniInputStaticMesh>(InputObj);
-		if (IsValid(InputSM))
-		{
-			if (InputSM->BlueprintStaticMeshes.Num() > 0)
-			{
-				Num += (InputSM->BlueprintStaticMeshes.Num() - 1);
-			}
-		}
 
 		UHoudiniInputActor* InputActor = Cast<UHoudiniInputActor>(InputObj);
 		if (IsValid(InputActor))
@@ -1932,6 +1921,15 @@ UHoudiniInput::GetNumberOfInputMeshes(const EHoudiniInputType& InType)
 			if (InputActor->GetActorComponents().Num() > 0)
 			{
 				Num += (InputActor->GetActorComponents().Num() - 1);
+			}
+		}
+
+		UHoudiniInputBlueprint* InputBP = Cast<UHoudiniInputBlueprint>(InputObj);
+		if (IsValid(InputBP))
+		{
+			if (InputBP->GetComponents().Num() > 0)
+			{
+				Num += (InputBP->GetComponents().Num() - 1);
 			}
 		}
 	}

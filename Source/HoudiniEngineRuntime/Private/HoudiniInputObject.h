@@ -251,13 +251,6 @@ public:
 	//
 	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
 
-	// UHoudiniInputObject overrides
-	
-	// virtual void DuplicateAndCopyState(UObject* DestOuter, UHoudiniInputObject*& OutNewObject) override;
-	virtual void CopyStateFrom(UHoudiniInputObject* InInput, bool bCopyAllProperties) override;
-	virtual void SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes) override;
-	virtual void InvalidateData() override;
-
 	//
 	virtual void Update(UObject * InObject) override;
 
@@ -265,16 +258,6 @@ public:
 
 	// StaticMesh accessor
 	virtual class UStaticMesh* GetStaticMesh() const;
-
-	// Blueprint accessor
-	virtual class UBlueprint* GetBlueprint() const;
-
-	// Check if this SM Input object is passed in as a BP
-	virtual bool bIsBlueprint() const;
-
-	// The Blueprint's Static Meshe Components that can be sent as inputs
-	UPROPERTY()
-	TArray<UHoudiniInputObject*> BlueprintStaticMeshes;
 };
 
 
@@ -938,18 +921,11 @@ public:
 
 	// UHoudiniInputObject overrides
 	
-	// virtual void DuplicateAndCopyState(UObject* DestOuter, UHoudiniInputObject*& OutNewObject) override;
-	virtual void CopyStateFrom(UHoudiniInputObject* InInput, bool bCopyAllProperties) override;
-
 	//
 	virtual void Update(UObject * InObject) override;
 
 	// StaticMesh accessor
 	virtual class UStaticMesh* GetStaticMesh() const override;
-	
-	virtual class UBlueprint* GetBlueprint() const override { return nullptr; }
-	
-	virtual bool bIsBlueprint() const override { return false; }
 };
 
 //-----------------------------------------------------------------------------------------------------------------------------
