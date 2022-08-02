@@ -3698,7 +3698,7 @@ FHoudiniEngineBakeUtils::BakeLandscapeObject(
 			if (bHasPreviousSharedLandscape && bInReplaceActors &&
 					PreviousSharedLandscapeActor->GetFName().GetPlainNameString() == SharedLandscapeName)
 			{
-				SharedLandscapeName = PreviousSharedLandscapeActor->GetName(); 
+				SharedLandscapeName = PreviousSharedLandscapeActor->GetName();
 			}
 			else if (!bInReplaceActors)
 			{
@@ -5377,7 +5377,7 @@ FHoudiniEngineBakeUtils::IsObjectTemporary(
 		}
 	}
 
-	return false;
+	return true;
 }
 
 void 
@@ -6884,11 +6884,6 @@ FHoudiniEngineBakeUtils::FindDesiredBakeActorFromBakeActorName(
 		{
 			if (bRenamePendingKillActor)
 			{
-				// FoundActor->Rename(
-    //                 *MakeUniqueObjectNameIfNeeded(
-    //                     FoundActor->GetOuter(),
-    //                     FoundActor->GetClass(),
-    //                     FName(FoundActor->GetName() + "_Pending_Kill")).ToString());
 				RenameAndRelabelActor(
 					FoundActor,
                     *MakeUniqueObjectNameIfNeeded(
