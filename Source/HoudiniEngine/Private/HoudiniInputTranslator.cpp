@@ -3685,12 +3685,12 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 			FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
 			HAPI_UNREAL_ATTRIB_BBOX_MIN, &AttributeInfoBboxPoint), false);
 
-		FVector3f InBboxMinFloat = (FVector3f)InBbox.Min;
+		FVector3f InBboxMin = (FVector3f)InBbox.Min;
 		TArray<float> BboxMin =
 		{
-			InBboxMinFloat.X / HAPI_UNREAL_SCALE_FACTOR_POSITION,
-			InBboxMinFloat.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION,
-			InBboxMinFloat.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION
+			InBboxMin.X / HAPI_UNREAL_SCALE_FACTOR_POSITION,
+			InBboxMin.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION,
+			InBboxMin.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION
 		};
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
@@ -3701,12 +3701,12 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 			FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
 			HAPI_UNREAL_ATTRIB_BBOX_MAX, &AttributeInfoBboxPoint), false);
 
-		FVector3f InBboxMaxFloat = (FVector3f)InBbox.Max;
+		FVector3f InBboxMax = (FVector3f)InBbox.Max;
 		TArray<float> BboxMax =
 		{
-			InBboxMaxFloat.X / HAPI_UNREAL_SCALE_FACTOR_POSITION,
-			InBboxMaxFloat.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION,
-			InBboxMaxFloat.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION
+			InBboxMax.X / HAPI_UNREAL_SCALE_FACTOR_POSITION,
+			InBboxMax.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION,
+			InBboxMax.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION
 		};
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
