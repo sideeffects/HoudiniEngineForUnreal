@@ -109,7 +109,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 		HOUDINI_LOG_WARNING(TEXT("HoudiniNodeSync: the current session is not session-sync one!"));
 	}
 
-    UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
+	UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
 	if (!IsValid(HoudiniEditorSubsystem))
 		return;
 
@@ -190,7 +190,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 			// TODO: Always call remove from root, even for failures! (use a lambda for returns)
 			NodeSyncInput->RemoveFromRoot();
 			return;
-		}			
+		}
 
 		// Set the input options
 		// TODO: Fill those from the NodeSync UI!
