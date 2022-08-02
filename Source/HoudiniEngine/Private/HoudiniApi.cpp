@@ -2603,14 +2603,14 @@ FHoudiniApi::GetGroupNamesOnPackedInstancePartEmptyStub(const HAPI_Session * ses
 
 
 HAPI_Result
-FHoudiniApi::GetHIPFileNodeCountEmptyStub(const HAPI_Session * session, HAPI_HIPFileId id, int * count)
+FHoudiniApi::GetHIPFileNodeCountEmptyStub(const HAPI_Session *session, HAPI_HIPFileId id, int * count)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetHIPFileNodeIdsEmptyStub(const HAPI_Session * session, HAPI_HIPFileId id, HAPI_NodeId * node_ids, int length)
+FHoudiniApi::GetHIPFileNodeIdsEmptyStub(const HAPI_Session *session, HAPI_HIPFileId id, HAPI_NodeId * node_ids, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }

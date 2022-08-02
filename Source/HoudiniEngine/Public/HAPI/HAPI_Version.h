@@ -1,5 +1,5 @@
 /*
-* Copyright (c) <2022> Side Effects Software Inc.*
+* Copyright (c) <2021> Side Effects Software Inc.*
 * Permission is hereby granted, free of charge, to any person obtaining a copy* of this software and associated documentation files (the "Software"), to deal* in the Software without restriction, including without limitation the rights* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell* copies of the Software, and to permit persons to whom the Software is* furnished to do so, subject to the following conditions:** The above copyright notice and this permission notice shall be included in all* copies or substantial portions of the Software.** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE* SOFTWARE. *
  * Produced by:
  *      Side Effects Software Inc
@@ -25,14 +25,14 @@
 
 // The three components of the Houdini version that HAPI is
 // expecting to compile against.
-#define HAPI_VERSION_HOUDINI_MAJOR 20
+#define HAPI_VERSION_HOUDINI_MAJOR 19
 #define HAPI_VERSION_HOUDINI_MINOR 0
-#define HAPI_VERSION_HOUDINI_BUILD 58
+#define HAPI_VERSION_HOUDINI_BUILD 309
 #define HAPI_VERSION_HOUDINI_PATCH 0
 
 // The two components of the Houdini Engine (marketed) version.
-#define HAPI_VERSION_HOUDINI_ENGINE_MAJOR 5
-#define HAPI_VERSION_HOUDINI_ENGINE_MINOR 0
+#define HAPI_VERSION_HOUDINI_ENGINE_MAJOR 4
+#define HAPI_VERSION_HOUDINI_ENGINE_MINOR 2
 
 // This is a monotonously increasing API version number that can be used
 // to lock against a certain API for compatibility purposes. Basically,
