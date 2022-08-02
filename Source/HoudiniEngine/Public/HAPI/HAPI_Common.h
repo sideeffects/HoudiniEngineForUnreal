@@ -1243,12 +1243,16 @@ struct HAPI_API HAPI_CookOptions
     /// gain when disabled.
     HAPI_Bool checkPartChanges;
 
-
     /// This toggle lets you enable the caching of the mesh topology.
     /// By default, this is false.  If this is set to true, cooking a mesh 
     /// geometry will update only the topology if the number of points changed.
     /// Use this to get better performance on deforming meshes.
     HAPI_Bool cacheMeshTopology;
+
+    /// If enabled, calls to ::HAPI_CookNode() on an OBJ node will cook the output
+    /// nodes of any nested SOP nodes. If none exist or the option is disabled,
+    /// HAPI will instead cook the display nodes of any nested SOP nodes.
+    HAPI_Bool preferOutputNodes;
 
     /// For internal use only. :)
     int extraFlags;
