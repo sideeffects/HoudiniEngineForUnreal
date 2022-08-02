@@ -200,6 +200,13 @@ HAPI_DECL_RETURN( void )
 HAPI_DECL_RETURN( HAPI_CurveInfo )
     HAPI_CurveInfo_Create();
 
+// CURVE INPUTS ------------------------------------------------------------
+
+HAPI_DECL_RETURN( void )
+    HAPI_InputCurveInfo_Init( HAPI_InputCurveInfo * in );
+HAPI_DECL_RETURN( HAPI_InputCurveInfo )
+    HAPI_InputCurveInfo_Create();
+
 // TRANSFORMS ---------------------------------------------------------------
 
 HAPI_DECL_RETURN( void )
