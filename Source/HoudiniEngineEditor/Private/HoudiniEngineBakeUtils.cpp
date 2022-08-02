@@ -1421,7 +1421,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 
 			OutBakeStats.NotifyObjectsCreated(FoundActor->GetClass()->GetName(), 1);
 
-			FHoudiniEngineRuntimeUtils::SetActorLabel(FoundActor, DesiredLevel->bUseExternalActors ? BakeActorName.ToString() : FoundActor->GetName());
+			FHoudiniEngineRuntimeUtils::SetActorLabel(FoundActor, DesiredLevel->bUseExternalActors ? BakeActorName.ToString() : FoundActor->GetActorNameOrLabel());
 			FoundActor->SetActorHiddenInGame(InISMC->bHiddenInGame);
 		}
 		else
@@ -2249,7 +2249,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 
 		OutBakeStats.NotifyObjectsCreated(FoundActor->GetClass()->GetName(), 1);
 		
-		FHoudiniEngineRuntimeUtils::SetActorLabel(FoundActor, DesiredLevel->bUseExternalActors ? BakeActorName.ToString() : FoundActor->GetName());
+		FHoudiniEngineRuntimeUtils::SetActorLabel(FoundActor, DesiredLevel->bUseExternalActors ? BakeActorName.ToString() : FoundActor->GetActorNameOrLabel());
 
 		FoundActor->SetActorHiddenInGame(InMSIC->bHiddenInGame);
 	}
@@ -3174,7 +3174,7 @@ bool FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(const UHoudin
 		return false;
 
 	AActor* const OwnerActor = HoudiniAssetComponent->GetOwner();
-	const FString HoudiniAssetActorName = IsValid(OwnerActor) ? OwnerActor->GetName() : FString();
+	const FString HoudiniAssetActorName = IsValid(OwnerActor) ? OwnerActor->GetActorNameOrLabel() : FString();
 
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
 	const TArray<FHoudiniGeoPartObject>& HGPOs = InOutput->GetHoudiniGeoPartObjects();
@@ -3495,7 +3495,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniCurveOutputToActors(
 		return false;
 
 	AActor* OwnerActor = HoudiniAssetComponent->GetOwner();
-	const FString HoudiniAssetActorName = IsValid(OwnerActor) ? OwnerActor->GetName() : FString();
+	const FString HoudiniAssetActorName = IsValid(OwnerActor) ? OwnerActor->GetActorNameOrLabel() : FString();
 
 	TArray<UPackage*> PackagesToSave;
 	
@@ -3769,7 +3769,7 @@ FHoudiniEngineBakeUtils::BakeBlueprints(
 		bInRecenterBakedActors,
 		bInReplaceAssets,
 		IsValid(HoudiniAssetComponent->GetHoudiniAsset()) ? HoudiniAssetComponent->GetHoudiniAsset()->GetName() : FString(), 
-		bIsOwnerActorValid ? OwnerActor->GetName() : FString(),
+		bIsOwnerActorValid ? OwnerActor->GetActorNameOrLabel() : FString(),
 		HoudiniAssetComponent->BakeFolder,
 		&BakedOutputs,
 		nullptr,
@@ -3990,7 +3990,7 @@ FHoudiniEngineBakeUtils::BakeLandscapeObject(
 		// actor
 		FString SharedLandscapeName = InResolver.ResolveAttribute(
 			HAPI_UNREAL_ATTRIB_LANDSCAPE_SHARED_ACTOR_NAME,
-			SharedLandscapeActor->GetName());
+			SharedLandscapeActor->GetActorNameOrLabel());
 
 		// If the shared landscape is still attached, or it's base name does not match the desired name, "bake" it
 		AActor* const AttachedParent = SharedLandscapeActor->GetAttachParentActor();
@@ -3999,7 +3999,7 @@ FHoudiniEngineBakeUtils::BakeLandscapeObject(
 			if (bHasPreviousSharedLandscape && bInReplaceActors &&
 					PreviousSharedLandscapeActor->GetFName().GetPlainNameString() == SharedLandscapeName)
 			{
-				SharedLandscapeName = PreviousSharedLandscapeActor->GetName(); 
+				SharedLandscapeName = PreviousSharedLandscapeActor->GetActorNameOrLabel();
 			}
 			else if (!bInReplaceActors)
 			{
@@ -4008,7 +4008,7 @@ FHoudiniEngineBakeUtils::BakeLandscapeObject(
 					SharedLandscapeActor->GetOuter(), SharedLandscapeActor->GetClass(), *SharedLandscapeName, SharedLandscapeActor);
 			}
 			
-			if (SharedLandscapeActor->GetName() != SharedLandscapeName)
+			if (SharedLandscapeActor->GetActorNameOrLabel() != SharedLandscapeName)
 			{
 				AActor* FoundActor = nullptr;
 				ALandscape* ExistingLandscape = FHoudiniEngineUtils::FindOrRenameInvalidActor<ALandscape>(TileWorld, SharedLandscapeName, FoundActor);
@@ -4051,7 +4051,7 @@ FHoudiniEngineBakeUtils::BakeLandscapeObject(
 		if (IsValid(PreviousPackage) && PreviousPackage->GetPathName() == PackagePath &&
 			PreviousTileActor->GetFName().GetPlainNameString() == ActorName)
 		{
-			ActorName = PreviousTileActor->GetName();
+			ActorName = PreviousTileActor->GetActorNameOrLabel();
 		}
 	}
 
@@ -5265,7 +5265,7 @@ FHoudiniEngineBakeUtils::BakeInputHoudiniCurveToActor(
 		if (!Actor)
 			continue;
 
-		if (Actor->GetName() == PackageParams.ObjectName)
+		if (Actor->GetActorNameOrLabel() == PackageParams.ObjectName)
 		{
 			UWorld* World = Actor->GetWorld();
 			if (!World)
@@ -5865,7 +5865,7 @@ FHoudiniEngineBakeUtils::IsObjectTemporary(
 		}
 	}
 
-	return false;
+	return true;
 }
 
 void
@@ -6189,7 +6189,7 @@ FHoudiniEngineBakeUtils::RemovePreviouslyBakedActor(
 		if (!Actor)
 			continue;
 
-		if (Actor != InNewBakedActor && Actor->GetName() == InPackageParams.ObjectName)
+		if (Actor != InNewBakedActor && Actor->GetActorNameOrLabel() == InPackageParams.ObjectName)
 		{
 			UWorld* World = Actor->GetWorld();
 			if (!World)
@@ -7151,7 +7151,7 @@ FHoudiniEngineBakeUtils::BakePDGTOPNodeBlueprints(
 			bInRecenterBakedActors,
 			bReplaceAssets,
 			InPDGAssetLink->AssetName,
-			IsValid(OwnerActor) ? OwnerActor->GetName() : FString(),
+			IsValid(OwnerActor) ? OwnerActor->GetActorNameOrLabel() : FString(),
 			InPDGAssetLink->BakeFolder,
 			nullptr,
 			&InNode->GetBakedWorkResultObjectsOutputs(),
@@ -7410,17 +7410,12 @@ FHoudiniEngineBakeUtils::FindDesiredBakeActorFromBakeActorName(
 		{
 			if (bRenamePendingKillActor)
 			{
-				// FoundActor->Rename(
-    //                 *MakeUniqueObjectNameIfNeeded(
-    //                     FoundActor->GetOuter(),
-    //                     FoundActor->GetClass(),
-    //                     FName(FoundActor->GetName() + "_Pending_Kill")).ToString());
 				RenameAndRelabelActor(
 					FoundActor,
                     *MakeUniqueObjectNameIfNeeded(
                         FoundActor->GetOuter(),
                         FoundActor->GetClass(),
-                        FoundActor->GetName() + "_Pending_Kill",
+                        FoundActor->GetActorNameOrLabel() + "_Pending_Kill",
                         FoundActor),
                     false);
 			}
@@ -7580,7 +7575,7 @@ FHoudiniEngineBakeUtils::FindExistingActor_Bake(
 		{
 			// The OutLevel is not present in the current world which means we might
 			// still find the tile actor in OutWorld.
-			FoundActor = FHoudiniEngineUtils::FindActorInWorld<AActor>(OutWorld, FName(InActorName));
+			FoundActor = FHoudiniEngineUtils::FindActorInWorldByLabelOrName<AActor>(OutWorld, InActorName);
 		}
 	}
 

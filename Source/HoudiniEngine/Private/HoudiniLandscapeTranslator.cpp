@@ -1102,7 +1102,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 		if (IsValid(FoundLandscapeProxy))
 		{
 			TileActor = FoundLandscapeProxy;
-			if (TileActor->GetName() != LandscapeTileActorName)
+			if (TileActor->GetActorNameOrLabel() != LandscapeTileActorName)
 			{
 				// Ensure the TileActor is named correctly
 				FHoudiniEngineUtils::SafeRenameActor(TileActor, LandscapeTileActorName);
@@ -2422,7 +2422,7 @@ FHoudiniLandscapeTranslator::FindExistingLandscapeActor_Bake(
 		// {
 		// 	// The OutLevel is not present in the current world which means we might
 		// 	// still find the tile actor in OutWorld.
-			OutActor = FHoudiniEngineUtils::FindActorInWorld<ALandscapeProxy>(OutWorld, FName(InActorName));
+			OutActor = FHoudiniEngineUtils::FindActorInWorldByLabelOrName<ALandscapeProxy>(OutWorld, InActorName);
 		// }
 	}
 
@@ -2475,7 +2475,7 @@ ALandscapeProxy* FHoudiniLandscapeTranslator::FindTargetLandscapeProxy(const FSt
 		return LandscapeInputs[InputIndex];
 	}
 
-	return FHoudiniEngineUtils::FindActorInWorldByLabel<ALandscapeProxy>(World, ActorName);
+	return FHoudiniEngineUtils::FindActorInWorldByLabelOrName<ALandscapeProxy>(World, ActorName);
 }
 
 bool FHoudiniLandscapeTranslator::GetEditLayersFromOutput(UHoudiniOutput* InOutput, TArray<FString>& InEditLayers)
@@ -2585,7 +2585,7 @@ FHoudiniLandscapeTranslator::FindExistingLandscapeActor_Temp(
 		if (ValidLandscapes.Contains(OutActor))
 			continue;
 
-		if (OutActor->GetName() != ActorName)
+		if (OutActor->GetActorNameOrLabel() != ActorName)
 			// This is not the droid we're looking for
 			continue;
 
