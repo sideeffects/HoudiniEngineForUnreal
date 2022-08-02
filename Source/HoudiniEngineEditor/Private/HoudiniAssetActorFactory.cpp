@@ -60,7 +60,7 @@ UObject *
 UHoudiniAssetActorFactory::GetAssetFromActorInstance(AActor * Instance)
 {
 	check(Instance->IsA(NewActorClass));
-	AHoudiniAssetActor * HoudiniAssetActor = CastChecked< AHoudiniAssetActor >(Instance);
+	AHoudiniAssetActor * HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(Instance);
 
 	check(HoudiniAssetActor->GetHoudiniAssetComponent());
 	return HoudiniAssetActor->GetHoudiniAssetComponent()->HoudiniAsset;
@@ -69,18 +69,14 @@ UHoudiniAssetActorFactory::GetAssetFromActorInstance(AActor * Instance)
 void
 UHoudiniAssetActorFactory::PostSpawnActor(UObject * Asset, AActor * NewActor)
 {
-	HOUDINI_LOG_MESSAGE(TEXT("PostSpawnActor %s, supplied Asset = 0x%0.8p"), *NewActor->GetName(), Asset);
+	HOUDINI_LOG_MESSAGE(TEXT("PostSpawnActor %s, supplied Asset = 0x%0.8p"), *NewActor->GetActorNameOrLabel(), Asset);
 
 	UHoudiniAsset * HoudiniAsset = CastChecked<UHoudiniAsset>(Asset);
 	if (HoudiniAsset)
 	{
-		AHoudiniAssetActor * HoudiniAssetActor = CastChecked< AHoudiniAssetActor >(NewActor);
+		AHoudiniAssetActor * HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(NewActor);
 		UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
 		check(HoudiniAssetComponent);
-
-		//HoudiniAssetComponent->UnregisterComponent();
-		//HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
-		//HoudiniAssetComponent->RegisterComponent();
 
 		FHoudiniEngineUtils::AddHoudiniLogoToComponent(HoudiniAssetComponent);
 
