@@ -163,6 +163,7 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bExportColliders,
 		const bool& bImportAsReference = false,
 		const bool& bImportAsReferenceRotScaleEnabled = false,
+		const bool& bImportAsReferenceBboxEnabled = false,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForHoudiniSplineComponent(
@@ -180,24 +181,32 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const FString& InObjNodeName,
 		UHoudiniInputSkeletalMesh* InObject,
 		const bool& bImportAsReference,
+		const bool& bImportAsReferenceRotScaleEnabled,
+		const bool& bImportAsReferenceBboxEnabled,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool HapiCreateInputNodeForSkeletalMeshComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputSkeletalMeshComponent* InObject,
 		const bool& bImportAsReference,
+		const bool& bImportAsReferenceRotScaleEnabled,
+		const bool& bImportAsReferenceBboxEnabled,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool HapiCreateInputNodeForGeometryCollection(
 		const FString& InObjNodeName,
 		UHoudiniInputGeometryCollection* InObject,
 		const bool& bImportAsReference,
+		const bool& bImportAsReferenceRotScaleEnabled,
+		const bool& bImportAsReferenceBboxEnabled,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool HapiCreateInputNodeForGeometryCollectionComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputGeometryCollectionComponent* InObject,
 		const bool& bImportAsReference,
+		const bool& bImportAsReferenceRotScaleEnabled,
+		const bool& bImportAsReferenceBboxEnabled,
 		const bool& bInputNodesCanBeDeleted = true);
 	
 	static bool	HapiCreateInputNodeForSceneComponent(
@@ -214,6 +223,7 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bKeepWorldTransform,
 		const bool& bImportAsReference,
 		const bool& bImportAsReferenceRotScaleEnabled = false,
+		const bool& bImportAsReferenceBboxEnabled = false,
 		const FTransform& InActorTransform = FTransform::Identity,
 		const bool& bInputNodesCanBeDeleted = true);
 
@@ -237,7 +247,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		UHoudiniInputHoudiniAsset* InObject,
 		const bool& bKeepWorldTransform,
 		const bool& bImportAsReference,
-		const bool& bImportAsReferenceRotScaleEnabled);
+		const bool& bImportAsReferenceRotScaleEnabled,
+		const bool& bImportAsReferenceBboxEnabled);
 
 	static bool	HapiCreateInputNodeForActor(
 		UHoudiniInput* InInput, 
@@ -275,27 +286,33 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bExportSockets,
 		const bool& bExportColliders,
 		const bool& bImportAsReference = false,
-		const bool& bImportAsReferenceRotScaleEnabled = false);
+		const bool& bImportAsReferenceRotScaleEnabled = false,
+		const bool& bImportAsReferenceBboxEnabled = false,
+		const bool& bInputNodesCanBeDeleted = true);
 
 	// HAPI: Create an input node for reference
 	static bool CreateInputNodeForReference(
 		const HAPI_NodeId InParentNodeId,
 		HAPI_NodeId& InputNodeId,
-		const FString & InRef,
-		const FString & InputNodeName,
-		const FTransform & InTransform,
-		const bool& bImportAsReferenceRotScaleEnabled);
+		const FString& InRef,
+		const FString& InputNodeName,
+		const FTransform& InTransform,
+		const bool& bImportAsReferenceRotScaleEnabled,
+		const bool& bImportAsReferenceBboxEnabled = false,
+		const FBox& InBbox = FBox(EForceInit::ForceInit));
 
 	// HAPI: Create an input node for reference
 	static bool CreateInputNodeForReference(
 		HAPI_NodeId& InputNodeId,
 		UObject const* const InObjectToRef,
-		const FString & InputNodeName,
-		const FTransform & InTransform,
+		const FString& InputNodeName,
+		const FTransform& InTransform,
 		const bool& bImportAsReferenceRotScaleEnabled,
 		const bool bInUseRefCountedInputSystem,
 		FUnrealObjectInputHandle& OutHandle,
-		const bool& bInputNodesCanBeDeleted = true);
+		const bool& bInputNodesCanBeDeleted = true,
+		const bool& bImportAsReferenceBboxEnabled = false,
+		const FBox& InBbox = FBox(EForceInit::ForceInit));
 
 	//static bool HapiUpdateInputNodeTransform(const HAPI_NodeId InputNodeId, const FTransform& Transform);
 	
