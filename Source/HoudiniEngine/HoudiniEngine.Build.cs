@@ -260,10 +260,7 @@ public class HoudiniEngine : ModuleRules
             Log.TraceInformationOnce( log ); 
 
             PlatformID buildPlatformId = Environment.OSVersion.Platform;
-            if (buildPlatformId == PlatformID.Win32NT)
-            {
-                PublicDefinitions.Add("HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath);
-            }
+	    PublicDefinitions.Add("HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath);
         }
 
         PublicIncludePaths.AddRange(
