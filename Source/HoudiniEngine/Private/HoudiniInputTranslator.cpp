@@ -2350,7 +2350,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMeshComponent(
 	{
 		// Get the SM's bbox
 		FBox InBbox = bImportAsReferenceBboxEnabled ?
-			InBbox = SK->GetBounds().GetBox() :
+			SK->GetBounds().GetBox() :
 			FBox(EForceInit::ForceInit);
 
 		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
