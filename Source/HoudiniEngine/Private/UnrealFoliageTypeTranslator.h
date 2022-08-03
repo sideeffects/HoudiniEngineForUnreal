@@ -60,7 +60,10 @@ public:
 		const FTransform& InTransform,
 		const bool& bImportAsReferenceRotScaleEnabled,
 		const bool bInUseRefCountedInputSystem,
-		FUnrealObjectInputHandle& OutHandle);
+		FUnrealObjectInputHandle& OutHandle,
+		const bool& bInputNodesCanBeDeleted = true,
+		const bool& bImportAsReferenceBboxEnabled = false,
+		const FBox& InBbox = FBox(EForceInit::ForceInit));
 
 protected:
 	// Creates the unreal_foliage and unreal_uproperty_ attributes for the foliage type.
