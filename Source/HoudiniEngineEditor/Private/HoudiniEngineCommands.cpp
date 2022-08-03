@@ -984,6 +984,12 @@ FHoudiniEngineCommands::OpenSessionSync()
 		return;
 	}
 
+#if PLATFORM_MAC || PLATFORM_LINUX
+        // Houdini forks into the background by default on macOS and Linux
+	// so we need to explicitly tell it to not fork.
+	SessionSyncArgs += TEXT(" -foreground");
+#endif
+
 	// Add a slate notification
 	FString Notification = TEXT("Opening Houdini Session Sync...");
 	FHoudiniEngineUtils::CreateSlateNotification(Notification);
