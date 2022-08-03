@@ -1291,7 +1291,16 @@ FHoudiniEngineUtils::LoadLibHAPI(FString & StoredLibHAPILocation)
 		}
 
 		// Create full path to libHAPI binary.
+#if PLATFORM_MAC
+		FString LibHAPIPath = FString::Printf(TEXT("%s/../Libraries/%s"), *HFSPath, *LibHAPIName);
+
+		// TODO: Handle developer environment paths on macOS.
+//		if (!FPaths::FileExists(LibHAPIPath))
+//		    LibHAPIPath = FString::Printf(TEXT("%s/dsolib/%s"), *HFSPath, *LibHAPIName);
+
+#else
 		FString LibHAPIPath = FString::Printf(TEXT("%s/%s"), *HFSPath, *LibHAPIName);
+#endif
 
 		if (FPaths::FileExists(LibHAPIPath))
 		{
