@@ -1304,8 +1304,14 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		{
 			UHoudiniInputStaticMesh* InputSM = Cast<UHoudiniInputStaticMesh>(InInputObject);
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
-				ObjBaseName, InputSM, InInput->GetExportLODs(), InInput->GetExportSockets(),
-				InInput->GetExportColliders(), InInput->GetImportAsReference(), InInput->GetImportAsReferenceRotScaleEnabled());
+				ObjBaseName,
+				InputSM,
+				InInput->GetExportLODs(),
+				InInput->GetExportSockets(),
+				InInput->GetExportColliders(),
+				InInput->GetImportAsReference(),
+				InInput->GetImportAsReferenceRotScaleEnabled(),
+				InInput->GetImportAsReferenceBboxEnabled());
 
 			if (bSuccess)
 			{
@@ -1325,10 +1331,16 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 
 			break;
 		}
+
 		case EHoudiniInputObjectType::GeometryCollection:
 		{	
 			UHoudiniInputGeometryCollection* InputGeometryCollection = Cast<UHoudiniInputGeometryCollection>(InInputObject);
-			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(ObjBaseName, InputGeometryCollection, InInput->GetImportAsReference());
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(
+				ObjBaseName,
+				InputGeometryCollection,
+				InInput->GetImportAsReference(),
+				InInput->GetImportAsReferenceRotScaleEnabled(),
+				InInput->GetImportAsReferenceBboxEnabled());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1338,7 +1350,12 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		case EHoudiniInputObjectType::GeometryCollectionComponent:
 		{	
 			UHoudiniInputGeometryCollectionComponent* InputGeometryCollection = Cast<UHoudiniInputGeometryCollectionComponent>(InInputObject);
-			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(ObjBaseName, InputGeometryCollection, InInput->GetImportAsReference());
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
+				ObjBaseName,
+				InputGeometryCollection,
+				InInput->GetImportAsReference(),
+				InInput->GetImportAsReferenceRotScaleEnabled(),
+				InInput->GetImportAsReferenceBboxEnabled());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1368,7 +1385,7 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				InInput->GetKeepWorldTransform(),
 				InInput->GetImportAsReference(),
 				InInput->GetImportAsReferenceRotScaleEnabled(),
-				InActorTransform);
+				InInput->GetImportAsReferenceBboxEnabled());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1391,7 +1408,11 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		case EHoudiniInputObjectType::SplineComponent:
 		{
 			UHoudiniInputSplineComponent* InputSpline = Cast<UHoudiniInputSplineComponent>(InInputObject);
-			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(ObjBaseName, InputSpline, InInput->GetUnrealSplineResolution(), InInput->IsUseLegacyInputCurvesEnabled());
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(
+				ObjBaseName,
+				InputSpline,
+				InInput->GetUnrealSplineResolution(),
+				InInput->IsUseLegacyInputCurvesEnabled());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1403,7 +1424,10 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		{
 			UHoudiniInputHoudiniSplineComponent* InputCurve = Cast<UHoudiniInputHoudiniSplineComponent>(InInputObject);
 
-			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniSplineComponent(ObjBaseName, InputCurve, InInput->IsAddRotAndScaleAttributesEnabled(), InInput->IsUseLegacyInputCurvesEnabled());
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniSplineComponent(ObjBaseName,
+				InputCurve,
+				InInput->IsAddRotAndScaleAttributesEnabled(),
+				InInput->IsUseLegacyInputCurvesEnabled());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1415,7 +1439,13 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		case EHoudiniInputObjectType::HoudiniAssetComponent:
 		{
 			UHoudiniInputHoudiniAsset* InputHAC = Cast<UHoudiniInputHoudiniAsset>(InInputObject);
-			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniAssetComponent(ObjBaseName, InputHAC, InInput->GetKeepWorldTransform(), InInput->GetImportAsReference(), InInput->GetImportAsReferenceRotScaleEnabled());
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniAssetComponent(
+				ObjBaseName,
+				InputHAC,
+				InInput->GetKeepWorldTransform(),
+				InInput->GetImportAsReference(),
+				InInput->GetImportAsReferenceRotScaleEnabled(),
+				InInput->GetImportAsReferenceBboxEnabled());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1427,15 +1457,20 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		case EHoudiniInputObjectType::GeometryCollectionActor_Deprecated:
 		{			
 			UHoudiniInputActor* InputActor = Cast<UHoudiniInputActor>(InInputObject);
-			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForActor(InInput, InputActor,
-				InActorTransform, OutCreatedNodeIds);
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForActor(
+				InInput,
+				InputActor,
+				InActorTransform,
+				OutCreatedNodeIds);
+
 			break;
 		}
 
 		case EHoudiniInputObjectType::Landscape:
 		{
 			UHoudiniInputLandscape* InputLandscape = Cast<UHoudiniInputLandscape>(InInputObject);
-			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(ObjBaseName, InputLandscape, InInput);
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
+				ObjBaseName, InputLandscape, InInput);
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1446,7 +1481,8 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		case EHoudiniInputObjectType::Brush:
 		{
 			UHoudiniInputBrush* InputBrush = Cast<UHoudiniInputBrush>(InInputObject);
-			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForBrush(ObjBaseName, InputBrush, InInput->GetBoundSelectorObjectArray());
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForBrush(
+				ObjBaseName, InputBrush, InInput->GetBoundSelectorObjectArray());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1480,8 +1516,14 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		{
 			UHoudiniInputFoliageType_InstancedStaticMesh* const InputFoliageTypeSM = Cast<UHoudiniInputFoliageType_InstancedStaticMesh>(InInputObject);
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
-				ObjBaseName, InputFoliageTypeSM, InInput->GetExportLODs(), InInput->GetExportSockets(),
-				InInput->GetExportColliders(), InInput->GetImportAsReference(), InInput->GetImportAsReferenceRotScaleEnabled());
+				ObjBaseName,
+				InputFoliageTypeSM,
+				InInput->GetExportLODs(),
+				InInput->GetExportSockets(),
+				InInput->GetExportColliders(),
+				InInput->GetImportAsReference(),
+				InInput->GetImportAsReferenceRotScaleEnabled(),
+				InInput->GetImportAsReferenceBboxEnabled());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1881,7 +1923,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 	const bool& bExportSockets,
 	const bool& bExportColliders,
 	const bool& bImportAsReference,
-	const bool& bImportAsReferenceRotScaleEnabled)
+	const bool& bImportAsReferenceRotScaleEnabled,
+	const bool& bImportAsReferenceBboxEnabled)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -1914,9 +1957,19 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 		// Attach another '\'' to the end
 		AssetReference += FString("'");
 
+		// Get the SM's bbox
+		FBox InBbox = bImportAsReferenceBboxEnabled ?
+			SM->GetBounds().GetBox() :
+			FBox(EForceInit::ForceInit);
 
 		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
-			InObject->InputNodeId, AssetReference, SMName, InObject->Transform, bImportAsReferenceRotScaleEnabled);
+			InObject->InputNodeId,
+			AssetReference,
+			SMName,
+			InObject->Transform,
+			bImportAsReferenceRotScaleEnabled,
+			bImportAsReferenceBboxEnabled,
+			InBbox);
 	}
 	else
 	{
@@ -1925,6 +1978,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);
+	InObject->SetImportAsReferenceBboxEnabled(bImportAsReferenceRotScaleEnabled);
+	InObject->SetImportAsReferenceBboxEnabled(bImportAsReferenceBboxEnabled);
 
 	// Update this input object's OBJ NodeId
 	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
@@ -1972,7 +2027,9 @@ bool
 FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(
 	const FString& InObjNodeName,
 	UHoudiniInputGeometryCollection* InObject, 
-	const bool& bImportAsReference)
+	const bool& bImportAsReference,
+	const bool& bImportAsReferenceRotScaleEnabled,
+	const bool& bImportAsReferenceBboxEnabled)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2001,14 +2058,32 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(
 		// Attach another '\'' to the end
 		AssetReference += FString("'");
 
+		TManagedArray<FBox>& BboxArray = GeometryCollection->GetGeometryCollection()->BoundingBox;
+		FBox InBbox = FBox(EForceInit::ForceInitToZero);
+		if (bImportAsReferenceBboxEnabled)
+		{
+			for (FBox& Bbox : BboxArray)
+				InBbox += Bbox;
+		}
+
 		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
-			InObject->InputNodeId, AssetReference, GCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled());
+			InObject->InputNodeId,
+			AssetReference,
+			GCName,
+			InObject->Transform,
+			bImportAsReferenceRotScaleEnabled,
+			bImportAsReferenceBboxEnabled,
+			InBbox);
 	}
 	else 
 	{
 		bSuccess = FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
 			GeometryCollection, InObject->InputNodeId, GCName, nullptr);
 	}
+
+	InObject->SetImportAsReference(bImportAsReference);
+	InObject->SetImportAsReferenceBboxEnabled(bImportAsReferenceRotScaleEnabled);
+	InObject->SetImportAsReferenceBboxEnabled(bImportAsReferenceBboxEnabled);
 	
 	// Update this input object's OBJ NodeId
 	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
@@ -2034,7 +2109,9 @@ bool
 FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 	const FString& InObjNodeName,
 	UHoudiniInputGeometryCollectionComponent* InObject, 
-	const bool& bImportAsReference)
+	const bool& bImportAsReference,
+	const bool& bImportAsReferenceRotScaleEnabled,
+	const bool& bImportAsReferenceBboxEnabled)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2072,8 +2149,22 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 		// Attach another '\'' to the end
 		AssetReference += FString("'");
 
+		TManagedArray<FBox>& BboxArray = GC->GetGeometryCollection()->BoundingBox;
+		FBox InBbox = FBox(EForceInit::ForceInitToZero);
+		if (bImportAsReferenceBboxEnabled)
+		{
+			for (FBox& Bbox : BboxArray)
+				InBbox += Bbox;
+		}
+
 		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
-			CreatedNodeId, AssetReference, GCCName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled());
+			CreatedNodeId,
+			AssetReference,
+			GCCName,
+			InObject->Transform,
+			bImportAsReferenceRotScaleEnabled,
+			bImportAsReferenceBboxEnabled,
+			InBbox);
 	}
 	else 
 	{
@@ -2081,6 +2172,10 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 			GC, CreatedNodeId, GCCName, GCC);
 	}
 	
+	InObject->SetImportAsReference(bImportAsReference);
+	InObject->SetImportAsReferenceBboxEnabled(bImportAsReferenceRotScaleEnabled);
+	InObject->SetImportAsReferenceBboxEnabled(bImportAsReferenceBboxEnabled);
+
 	// Update this input object's OBJ NodeId
 	InObject->InputNodeId = CreatedNodeId;
 	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CreatedNodeId);
@@ -2139,6 +2234,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 	const bool& bKeepWorldTransform,
 	const bool& bImportAsReference,
 	const bool& bImportAsReferenceRotScaleEnabled,
+	const bool& bImportAsReferenceBboxEnabled,
 	const FTransform& InActorTransform)
 {
 	if (!IsValid(InObject))
@@ -2185,8 +2281,18 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 			ImportAsReferenceTransform *= InActorTransform.Inverse();
 		}
 
-		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InObject->InputNodeId, AssetReference, SMCName, ImportAsReferenceTransform, bImportAsReferenceRotScaleEnabled);
+		FBox InBbox = bImportAsReferenceBboxEnabled ?
+			SM->GetBoundingBox() :
+			FBox(EForceInit::ForceInit);
 
+		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
+			InObject->InputNodeId,
+			AssetReference,
+			SMCName,
+			ImportAsReferenceTransform,
+			bImportAsReferenceRotScaleEnabled,
+			bImportAsReferenceBboxEnabled,
+			InBbox);
 	}
 	else 
 	{
@@ -2195,6 +2301,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);
+	InObject->SetImportAsReferenceBboxEnabled(bImportAsReferenceRotScaleEnabled);
+	InObject->SetImportAsReferenceBboxEnabled(bImportAsReferenceBboxEnabled);
 
 	// Update this input object's OBJ NodeId
 	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
@@ -2356,8 +2464,13 @@ FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniSplineComponent(
 }
 
 bool
-FHoudiniInputTranslator::
-HapiCreateInputNodeForHoudiniAssetComponent(const FString& InObjNodeName, UHoudiniInputHoudiniAsset* InObject, const bool& bKeepWorldTransform, const bool& bImportAsReference, const bool& bImportAsReferenceRotScaleEnabled)
+FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniAssetComponent(
+		const FString& InObjNodeName,
+		UHoudiniInputHoudiniAsset* InObject,
+		const bool& bKeepWorldTransform,
+		const bool& bImportAsReference,
+		const bool& bImportAsReferenceRotScaleEnabled,
+		const bool& bImportAsReferenceBboxEnabled)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2402,8 +2515,10 @@ HapiCreateInputNodeForHoudiniAssetComponent(const FString& InObjNodeName, UHoudi
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);
+	InObject->SetImportAsReferenceBboxEnabled(bImportAsReferenceRotScaleEnabled);
+	InObject->SetImportAsReferenceBboxEnabled(bImportAsReferenceBboxEnabled);
 
-	// If this object is in an Asset input, we need to set the InputNodeId directl
+	// If this object is in an Asset input, we need to set the InputNodeId directly
 	// to avoid creating extra merge nodes. World inputs should not do that!
 	bool bIsAssetInput = HoudiniInput->GetInputType() == EHoudiniInputType::Asset;
 
@@ -2432,7 +2547,11 @@ HapiCreateInputNodeForHoudiniAssetComponent(const FString& InObjNodeName, UHoudi
 		AssetReference += FString("'");
 		
 		if (!FHoudiniInputTranslator::CreateInputNodeForReference(
-			InObject->InputNodeId, AssetReference, InObject->GetName(), InObject->Transform, bImportAsReferenceRotScaleEnabled)) // do not delete previous node if it was HAC
+			InObject->InputNodeId,
+			AssetReference,
+			InObject->GetName(),
+			InObject->Transform,
+			bImportAsReferenceRotScaleEnabled)) // do not delete previous node if it was HAC
 			return false;
 
 		if (bIsAssetInput)
@@ -2957,7 +3076,9 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 	const FString& InRef,
 	const FString& InputNodeName,
 	const FTransform& InTransform,
-	const bool& bImportAsReferenceRotScaleEnabled)
+	const bool& bImportAsReferenceRotScaleEnabled,
+	const bool& bImportAsReferenceBboxEnabled,
+	const FBox& InBbox)
 {
 	HAPI_NodeId NewNodeId = -1;
 
@@ -3097,6 +3218,51 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 			InputScales, NewNodeId, 0, HAPI_UNREAL_ATTRIB_SCALE, AttributeInfoScale), false);
 	}
 
+	if (bImportAsReferenceBboxEnabled)
+	{
+		// Create attribute info for both bbox min and bbox max
+		HAPI_AttributeInfo AttributeInfoBboxPoint;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfoBboxPoint);
+		AttributeInfoBboxPoint.count = 1;
+		AttributeInfoBboxPoint.tupleSize = 3;
+		AttributeInfoBboxPoint.exists = true;
+		AttributeInfoBboxPoint.owner = HAPI_ATTROWNER_POINT;
+		AttributeInfoBboxPoint.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfoBboxPoint.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		// bbox min
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
+			HAPI_UNREAL_ATTRIB_BBOX_MIN, &AttributeInfoBboxPoint), false);
+
+		FVector3f InBboxMinFloat = (FVector3f)InBbox.Min;
+		TArray<float> BboxMin =
+		{
+			InBboxMinFloat.X / HAPI_UNREAL_SCALE_FACTOR_POSITION,
+			InBboxMinFloat.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION,
+			InBboxMinFloat.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION
+		};
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			BboxMin, NewNodeId, 0, HAPI_UNREAL_ATTRIB_BBOX_MIN, AttributeInfoBboxPoint), false);
+
+		// bbox max
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
+			HAPI_UNREAL_ATTRIB_BBOX_MAX, &AttributeInfoBboxPoint), false);
+
+		FVector3f InBboxMaxFloat = (FVector3f)InBbox.Max;
+		TArray<float> BboxMax =
+		{
+			InBboxMaxFloat.X / HAPI_UNREAL_SCALE_FACTOR_POSITION,
+			InBboxMaxFloat.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION,
+			InBboxMaxFloat.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION
+		};
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+			BboxMax, NewNodeId, 0, HAPI_UNREAL_ATTRIB_BBOX_MAX, AttributeInfoBboxPoint), false);
+	}
+
 	// String Attribute
 	{
 		// Create point attribute info.
@@ -3124,8 +3290,6 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 	InputNodeId = NewNodeId;
 	return true;
 }
-
-
 
 bool
 FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeName, UHoudiniInputDataTable* InInputObject)
@@ -3317,7 +3481,9 @@ FHoudiniInputTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 	const bool& bExportSockets,
 	const bool& bExportColliders,
 	const bool& bImportAsReference,
-	const bool& bImportAsReferenceRotScaleEnabled)
+	const bool& bImportAsReferenceRotScaleEnabled,
+	const bool& bImportAsReferenceBboxEnabled,
+	const bool& bInputNodesCanBeDeleted)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -3356,8 +3522,16 @@ FHoudiniInputTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 		// Attach another '\'' to the end
 		AssetReference += FString("'");
 
+		FBox InBbox = bImportAsReferenceBboxEnabled ? SM->GetBoundingBox() : FBox(EForceInit::ForceInit);
 		bSuccess = FUnrealFoliageTypeTranslator::CreateInputNodeForReference(
-			FoliageType, InObject->InputNodeId, AssetReference, FTName, InObject->Transform, InObject->GetImportAsReferenceRotScaleEnabled());
+			FoliageType,
+			InObject->InputNodeId,
+			AssetReference,
+			FTName,
+			InObject->Transform,
+			bImportAsReferenceRotScaleEnabled,
+			bImportAsReferenceBboxEnabled,
+			InBbox);
 	}
 	else 
 	{
@@ -3366,6 +3540,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);
+	InObject->SetImportAsReferenceBboxEnabled(bImportAsReferenceRotScaleEnabled);
+	InObject->SetImportAsReferenceBboxEnabled(bImportAsReferenceBboxEnabled);
 
 	// Update this input object's OBJ NodeId
 	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);

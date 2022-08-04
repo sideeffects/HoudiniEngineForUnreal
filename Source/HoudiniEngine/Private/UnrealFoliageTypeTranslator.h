@@ -58,7 +58,9 @@ public:
 		const FString& InRef,
 		const FString& InInputNodeName,
 		const FTransform& InTransform,
-		const bool& bImportAsReferenceRotScaleEnabled);
+		const bool& bImportAsReferenceRotScaleEnabled,
+		const bool& bImportAsReferenceBboxEnabled = false,
+		const FBox& InBbox = FBox(EForceInit::ForceInit));
 
 protected:
 	// Creates the unreal_foliage and unreal_uproperty_ attributes for the foliage type.
