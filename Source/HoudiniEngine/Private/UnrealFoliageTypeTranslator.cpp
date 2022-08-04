@@ -80,9 +80,19 @@ bool FUnrealFoliageTypeTranslator::CreateInputNodeForReference(
 	const FString& InRef,
 	const FString& InInputNodeName,
 	const FTransform& InTransform,
-	const bool& bImportAsReferenceRotScaleEnabled)
+	const bool& bImportAsReferenceRotScaleEnabled,
+	const bool& bImportAsReferenceBboxEnabled,
+	const FBox& InBbox)
 {
-	bool bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(InInputNodeId, InRef, InInputNodeName, InTransform, bImportAsReferenceRotScaleEnabled);
+	bool bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
+		InInputNodeId,
+		InRef,
+		InInputNodeName,
+		InTransform,
+		bImportAsReferenceRotScaleEnabled,
+		bImportAsReferenceBboxEnabled,
+		InBbox);
+
 	if (!bSuccess)
 		return false;
 
