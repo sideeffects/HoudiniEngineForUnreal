@@ -137,6 +137,9 @@ public:
 
 	void SetImportAsReferenceRotScaleEnabled(const bool& bInImportAsRefRotScaleEnabled) { bImportAsReferenceRotScaleEnabled = bInImportAsRefRotScaleEnabled; };
 	bool GetImportAsReferenceRotScaleEnabled() const { return bImportAsReferenceRotScaleEnabled; };
+
+	void SetImportAsReferenceBboxEnabled(const bool& bInImportAsRefBboxEnabled) { bImportAsReferenceBboxEnabled = bInImportAsRefBboxEnabled; };
+	bool GetImportAsReferenceBboxEnabled() const { return bImportAsReferenceBboxEnabled; };
 	
 #if WITH_EDITOR
 	void SwitchUniformScaleLock() { bUniformScaleLocked = !bUniformScaleLocked; };
@@ -221,6 +224,9 @@ protected:
 
 	UPROPERTY()
 	bool bImportAsReferenceRotScaleEnabled;
+
+	UPROPERTY()
+	bool bImportAsReferenceBboxEnabled;
 	
 	// Indicates if change the scale of Transfrom Offset of this object uniformly
 #if WITH_EDITORONLY_DATA
