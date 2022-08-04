@@ -1004,6 +1004,11 @@ enum HAPI_PDG_EventType
     /// Deprecated
     HAPI_PDG_EVENT_SERVICE_MANAGER_ALL,
 
+    /// Sent when a node finishes cooking
+    HAPI_PDG_EVENT_NODE_COOKED,
+    /// Sent when a node finished generating
+    HAPI_PDG_EVENT_NODE_GENERATED,
+
     HAPI_PDG_CONTEXT_EVENTS
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_PDG_EventType )
