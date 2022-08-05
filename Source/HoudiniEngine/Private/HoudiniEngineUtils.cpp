@@ -97,6 +97,7 @@
 #if WITH_EDITOR
 	#include "EditorModeManager.h"
 	#include "EditorModes.h"
+	#include "EditorFramework/AssetImportData.h"
 #endif
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
