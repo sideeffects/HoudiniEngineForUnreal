@@ -1570,9 +1570,11 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 		for (int i = 0; i < NumInputs; ++i)
 		{
 			UHoudiniInput* FromInput = InstanceData->Inputs[i];
-			UHoudiniInput* ToInput = Inputs[i];
+			if (!IsValid(FromInput))
+				continue;
 
-			if (ToInput)
+			UHoudiniInput* ToInput = Inputs[i];
+			if (IsValid(ToInput))
 			{
 				bool bIsValid = true;
 				bIsValid = bIsValid && ToInput->Matches(*FromInput);
@@ -1583,7 +1585,7 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 				}
 			}
 
-			if (ToInput)
+			if (IsValid(ToInput))
 			{
 				// Reuse input
 				StaleInputs.Remove(ToInput);

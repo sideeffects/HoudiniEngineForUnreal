@@ -4454,7 +4454,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("AutoSelectComponentCheckbox", "Auto-select component in asset bounds"))
-				.ToolTipText(LOCTEXT("AutoSelectComponentCheckboxTooltip", "If enabled, when no Landscape components are curremtly selected, the one within the asset's bounding box will be exported."))
+				.ToolTipText(LOCTEXT("AutoSelectComponentCheckboxTooltip", "If enabled, when no Landscape components are currently selected, the one within the asset's bounding box will be exported."))
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 			.IsChecked_Lambda([MainInput]()
@@ -5313,19 +5313,22 @@ FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(const TArray<TWeakObjec
 		// Populate the Landscape options from landscape actors in the world (subject to filtering).
 		UWorld* LandscapeWorld = MainInput->GetWorld();
 		TMap<FString, AActor*> LandscapeOptions;
-		for (TActorIterator<ALandscapeProxy> It(LandscapeWorld); It; ++It)
-		{ 
-			ALandscapeProxy* Actor = *It;
-			if (!OnShouldFilterActor(*It))
-			{
-				continue;
-			}
 
-			LandscapeOptions.Add(It->GetActorLabel(), Actor);
+		if (LandscapeWorld)
+		{
+			for (TActorIterator<ALandscapeProxy> It(LandscapeWorld); It; ++It)
+			{
+				ALandscapeProxy* Actor = *It;
+				if (!OnShouldFilterActor(*It))
+				{
+					continue;
+				}
+
+				LandscapeOptions.Add(It->GetActorLabel(), Actor);
+			}
 		}
 		
 		FString CurrentSelection;
-
 		if (MainInput.IsValid())
 		{
 			CurrentSelection = MainInput->GetCurrentSelectionText().ToString();
