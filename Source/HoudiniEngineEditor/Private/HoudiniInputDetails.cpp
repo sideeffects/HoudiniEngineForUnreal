@@ -3874,7 +3874,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 			PackageParams.GeoId = NextInput->GetAssetNodeId();
 			PackageParams.PackageMode = EPackageMode::Bake;
 			PackageParams.ObjectId = Index;
-			PackageParams.ObjectName = OwnerActor->GetName() + "InputHoudiniSpline" + FString::FromInt(Index);
+			PackageParams.ObjectName = OwnerActor->GetActorNameOrLabel() + "InputHoudiniSpline" + FString::FromInt(Index);
 
 			if (bBakeToBlueprint) 
 			{
@@ -4474,7 +4474,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("AutoSelectComponentCheckbox", "Auto-select component in asset bounds"))
-				.ToolTipText(LOCTEXT("AutoSelectComponentCheckboxTooltip", "If enabled, when no Landscape components are curremtly selected, the one within the asset's bounding box will be exported."))
+				.ToolTipText(LOCTEXT("AutoSelectComponentCheckboxTooltip", "If enabled, when no Landscape components are currently selected, the one within the asset's bounding box will be exported."))
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 			.IsChecked_Lambda([MainInput]()
@@ -5332,19 +5332,22 @@ FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(const TArray<TWeakObjec
 		// Populate the Landscape options from landscape actors in the world (subject to filtering).
 		UWorld* LandscapeWorld = MainInput->GetWorld();
 		TMap<FString, AActor*> LandscapeOptions;
-		for (TActorIterator<ALandscapeProxy> It(LandscapeWorld); It; ++It)
-		{ 
-			ALandscapeProxy* Actor = *It;
-			if (!OnShouldFilterActor(*It))
-			{
-				continue;
-			}
 
-			LandscapeOptions.Add(It->GetActorLabel(), Actor);
+		if (LandscapeWorld)
+		{
+			for (TActorIterator<ALandscapeProxy> It(LandscapeWorld); It; ++It)
+			{
+				ALandscapeProxy* Actor = *It;
+				if (!OnShouldFilterActor(*It))
+				{
+					continue;
+				}
+
+				LandscapeOptions.Add(It->GetActorLabel(), Actor);
+			}
 		}
 		
 		FString CurrentSelection;
-
 		if (MainInput.IsValid())
 		{
 			CurrentSelection = MainInput->GetCurrentSelectionText().ToString();
@@ -6283,16 +6286,60 @@ FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& C
 		if (!GEditor || !GEditor->GetSelectedObjects())
 			return FReply::Handled();
 
-		USelection * SelectedActors = GEditor->GetSelectedActors();
-		if (!SelectedActors)
+		USelection* SelectedActors = GEditor->GetSelectedActors();
+		USelection* SelectedComponents = GEditor->GetSelectedComponents();
+		if (!SelectedActors && !SelectedComponents)
 			return FReply::Handled();
+
+		TArray<AActor*> AllSelectedActors;
+
+		// Add all actors from the actor selection
+		for (FSelectionIterator It(*SelectedActors); It; ++It)
+		{
+			AActor* CurrentActor = Cast<AActor>(*It);
+			if (!CurrentActor)
+				continue;
+
+			AllSelectedActors.Add(CurrentActor);
+		}
+
+/*
+		// TODO: Fix! Selected instances still dont send their parent actor...
+		// ... also add all actors owning the selected components
+		// TODO: Improve - only send the selected components and not their actors?
+		for (FSelectionIterator It(*SelectedComponents); It; ++It)
+		{
+			UActorComponent* CurrentComponent = Cast<UActorComponent>(*It);
+			if (!CurrentComponent)
+				continue;
+
+			AActor* CurrentActor = CurrentComponent->GetOwner();
+			if (!CurrentActor)
+				continue;
+
+			AllSelectedActors.AddUnique(CurrentActor);
+		}
+
+		// ... also look at the selected editable components
+		for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
+		{
+			USceneComponent* SceneComponent = Cast<USceneComponent>(*It);
+			if (!SceneComponent)
+				continue;
+
+			AActor* CurrentActor = SceneComponent->GetOwner();
+			if (!CurrentActor)
+				continue;
+
+			AllSelectedActors.AddUnique(CurrentActor);
+		}
+*/
 
 		// Create a transaction
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_RUNTIME),
 			LOCTEXT("HoudiniWorldInputSelectionChanged", "Changing Houdini world outliner input objects"),
 			MainInput->GetOuter());
-
 
 		TArray<UObject*> AllActors;
 		for (auto CurrentInput : InInputs)
@@ -6311,9 +6358,8 @@ FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& C
 				
 				// Clean up the selected actors
 				TArray<AActor*> ValidBoundSelectedActors;
-				for (FSelectionIterator It(*SelectedActors); It; ++It)
+				for (auto& CurrentBoundActor : AllSelectedActors)
 				{
-					AActor* CurrentBoundActor = Cast<AActor>(*It);
 					if (!CurrentBoundActor)
 						continue;
 
@@ -6365,9 +6411,8 @@ FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& C
 				//
 
 				TArray<AActor*> ValidSelectedActors;
-				for (FSelectionIterator It(*SelectedActors); It; ++It)
+				for (auto& CurrentActor : AllSelectedActors)
 				{
-					AActor* CurrentActor = Cast<AActor>(*It);
 					if (!CurrentActor)
 						continue;
 
