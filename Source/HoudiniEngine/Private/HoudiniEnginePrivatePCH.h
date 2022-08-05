@@ -118,8 +118,8 @@
 #define HAPI_UNREAL_ATTRIB_ROTATION						"rot"
 #define HAPI_UNREAL_ATTRIB_SCALE						"scale"
 #define HAPI_UNREAL_ATTRIB_UNIFORM_SCALE					"pscale"
-#define HAPI_UNREAL_ATTRIB_BBOX_MIN						"bbox_min"
-#define HAPI_UNREAL_ATTRIB_BBOX_MAX						"bbox_max"
+#define HAPI_UNREAL_ATTRIB_BBOX_MIN						"unreal_bbox_min"
+#define HAPI_UNREAL_ATTRIB_BBOX_MAX						"unreal_bbox_max"
 #define HAPI_UNREAL_ATTRIB_COLOR						HAPI_ATTRIB_COLOR
 #define HAPI_UNREAL_ATTRIB_LIGHTMAP_COLOR					"unreal_lightmap_color"
 #define HAPI_UNREAL_ATTRIB_ALPHA						"Alpha"
