@@ -160,8 +160,8 @@ FHoudiniEngineStyle::Initialize()
 	FString ViewportSyncUnrealIcon = IconsDir + TEXT("viewport_sync_unreal16x16.png");
 	FString NodeSyncIcon = IconsDir + TEXT("icon_houdini_logo_16.png");
 
-	FString InfoIcon = FEditorStyle::GetBrush("Icons.Info")->GetResourceName().ToString();
-	FString SettingsIcon = FEditorStyle::GetBrush("Launcher.EditSettings")->GetResourceName().ToString();
+	FString InfoIcon = FAppStyle::GetBrush("Icons.Info")->GetResourceName().ToString();
+	FString SettingsIcon = FAppStyle::GetBrush("Launcher.EditSettings")->GetResourceName().ToString();
 
 	StyleSet->Set("HoudiniEngine._CreateSession", new FSlateImageBrush(SessionCreateIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine._ConnectSession", new FSlateImageBrush(SessionConnectIcon, Icon16x16));
@@ -210,15 +210,15 @@ FHoudiniEngineStyle::Initialize()
 	StyleSet->Set("HoudiniEngine.PDGLink", new FSlateImageBrush(PDGLinkIcon, Icon16x16));
 
 	/*
-	FString StopIcon = FEditorStyle::GetBrush("PropertyWindow.Button_Clear")->GetResourceName().ToString();
-	FString RestartIcon = FEditorStyle::GetBrush("Tutorials.Browser.RestartButton")->GetResourceName().ToString();
-	FString InfoIcon = FEditorStyle::GetBrush("Icons.Info")->GetResourceName().ToString();
-	FString SettingsIcon = FEditorStyle::GetBrush("Launcher.EditSettings")->GetResourceName().ToString();
-	FString ClearIcon = FEditorStyle::GetBrush("PropertyWindow.Button_Delete")->GetResourceName().ToString();
-	FString HelpIcon = FEditorStyle::GetBrush("Icons.Help")->GetResourceName().ToString();
-	FString WarningIcon = FEditorStyle::GetBrush("Icons.Warning")->GetResourceName().ToString();
-	FString BPIcon = FEditorStyle::GetBrush("PropertyWindow.Button_CreateNewBlueprint")->GetResourceName().ToString();
-	FString PauseIcon = FEditorStyle::GetBrush("Profiler.Pause")->GetResourceName().ToString();
+	FString StopIcon = FAppStyle::GetBrush("PropertyWindow.Button_Clear")->GetResourceName().ToString();
+	FString RestartIcon = FAppStyle::GetBrush("Tutorials.Browser.RestartButton")->GetResourceName().ToString();
+	FString InfoIcon = FAppStyle::GetBrush("Icons.Info")->GetResourceName().ToString();
+	FString SettingsIcon = FAppStyle::GetBrush("Launcher.EditSettings")->GetResourceName().ToString();
+	FString ClearIcon = FAppStyle::GetBrush("PropertyWindow.Button_Delete")->GetResourceName().ToString();
+	FString HelpIcon = FAppStyle::GetBrush("Icons.Help")->GetResourceName().ToString();
+	FString WarningIcon = FAppStyle::GetBrush("Icons.Warning")->GetResourceName().ToString();
+	FString BPIcon = FAppStyle::GetBrush("PropertyWindow.Button_CreateNewBlueprint")->GetResourceName().ToString();
+	FString PauseIcon = FAppStyle::GetBrush("Profiler.Pause")->GetResourceName().ToString();
 
 	StyleSet->Set("HoudiniEngine._CreateSession", new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
 	StyleSet->Set("HoudiniEngine._ConnectSession", new FSlateImageBrush(IconsDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
@@ -255,13 +255,13 @@ FHoudiniEngineStyle::Initialize()
 	*/
 
 	// We need some colors from Editor Style & this is the only way to do this at the moment
-	const FSlateColor DefaultForeground = FEditorStyle::GetSlateColor("DefaultForeground");
-	const FSlateColor InvertedForeground = FEditorStyle::GetSlateColor("InvertedForeground");
-	const FSlateColor SelectorColor = FEditorStyle::GetSlateColor("SelectorColor");
-	const FSlateColor SelectionColor = FEditorStyle::GetSlateColor("SelectionColor");
-	const FSlateColor SelectionColor_Inactive = FEditorStyle::GetSlateColor("SelectionColor_Inactive");
+	const FSlateColor DefaultForeground = FAppStyle::GetSlateColor("DefaultForeground");
+	const FSlateColor InvertedForeground = FAppStyle::GetSlateColor("InvertedForeground");
+	const FSlateColor SelectorColor = FAppStyle::GetSlateColor("SelectorColor");
+	const FSlateColor SelectionColor = FAppStyle::GetSlateColor("SelectionColor");
+	const FSlateColor SelectionColor_Inactive = FAppStyle::GetSlateColor("SelectionColor_Inactive");
 
-	const FTableRowStyle &NormalTableRowStyle = FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.Row");
+	const FTableRowStyle &NormalTableRowStyle = FAppStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.Row");
 	StyleSet->Set(
 		"HoudiniEngine.TableRow", FTableRowStyle(NormalTableRowStyle)
 		.SetEvenRowBackgroundBrush(FSlateNoResource())
@@ -278,7 +278,7 @@ FHoudiniEngineStyle::Initialize()
 	);
 
 	// Normal Text
-	const FTextBlockStyle& NormalText = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("NormalText");
+	const FTextBlockStyle& NormalText = FAppStyle::Get().GetWidgetStyle<FTextBlockStyle>("NormalText");
 	StyleSet->Set(
 		"HoudiniEngine.ThumbnailText", FTextBlockStyle(NormalText)
 		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 9))

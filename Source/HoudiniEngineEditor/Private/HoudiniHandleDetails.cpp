@@ -128,7 +128,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 		[
 			SNew(SButton)
 			.ToolTipText(LOCTEXT("RevertToDefault", "Revert to default"))
-			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+			.ButtonStyle(FAppStyle::Get(), "NoBorder")
 			.ContentPadding(0)
 			.Visibility_Lambda([MainHandle]() 
 			{
@@ -143,7 +143,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 			.OnClicked_Lambda(RevertLocationToDefault)
 			[
 				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+				.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 			]
 		]
 	];
@@ -207,7 +207,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 		[
 			SNew(SButton)
 			.ToolTipText(LOCTEXT("RevertToDefault", "Revert to default"))
-			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+			.ButtonStyle(FAppStyle::Get(), "NoBorder")
 			.ContentPadding(0)
 			.Visibility_Lambda([MainHandle]() 
 			{
@@ -222,7 +222,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 			.OnClicked_Lambda(RevertRotationToDefault)
 			[
 				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+				.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 			]
 		]
 	];
@@ -285,7 +285,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 		[
 			SNew(SButton)
 			.ToolTipText(LOCTEXT("RevertToDefault", "Revert to default"))
-			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+			.ButtonStyle(FAppStyle::Get(), "NoBorder")
 			.ContentPadding(0)
 			.Visibility_Lambda([MainHandle]() 
 			{
@@ -300,7 +300,7 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 			.OnClicked_Lambda(RevertScaleToDefault)
 			[
 				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+				.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 			]
 		]
 	];
@@ -355,21 +355,21 @@ FHoudiniHandleDetails::CreateNameWidget(FDetailWidgetRow& Row)
 	[
 		SNew(STextBlock)
 		.Text(FText::FromString("Translate"))
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 	];
 
 	VerticalBox->AddSlot().AutoHeight().Padding(2.0f, 5.0f, 5.0f, 5.0f).VAlign(VAlign_Center)
 	[
 		SNew(STextBlock)
 		.Text(FText::FromString("Rotation"))
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 	];
 
 	VerticalBox->AddSlot().AutoHeight().Padding(2.0f, 5.0f, 5.0f, 5.0f).VAlign(VAlign_Center)
 	[
 		SNew(STextBlock)
 		.Text(FText::FromString("Scale"))
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 	];
 
 

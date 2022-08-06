@@ -212,7 +212,7 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 			*/
 
 		// Reset material expressions.
-		Material->Expressions.Empty();
+		Material->GetExpressionCollection().Empty();
 
 		// Generate various components for this material.
 		bool bMaterialComponentCreated = false;
@@ -861,7 +861,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 	CreateTexture2DParameters.bSRGB = true;
 
 	// Attempt to look up previously created expressions.
-	UMaterialExpression * MaterialExpression = Material->BaseColor.Expression;
+	UMaterialExpression * MaterialExpression = Material->GetEditorOnlyData()->BaseColor.Expression;
 
 	// Locate sampling expression.
 	UMaterialExpressionTextureSampleParameter2D * ExpressionTextureSample =
@@ -887,7 +887,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 	}
 
 	// Add expression.
-	Material->Expressions.Add(ExpressionConstant4Vector);
+	Material->GetExpressionCollection().Expressions.Add(ExpressionConstant4Vector);
 
 	// Locate vertex color expression.
 	UMaterialExpressionVertexColor * ExpressionVertexColor =
@@ -903,7 +903,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 	}
 
 	// Add expression.
-	Material->Expressions.Add(ExpressionVertexColor);
+	Material->GetExpressionCollection().Expressions.Add(ExpressionVertexColor);
 
 	// Material should have at least one multiply expression.
 	UMaterialExpressionMultiply * MaterialExpressionMultiply = Cast<UMaterialExpressionMultiply>(MaterialExpression);
@@ -912,7 +912,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 			Material, UMaterialExpressionMultiply::StaticClass(), NAME_None, ObjectFlag);
 
 	// Add expression.
-	Material->Expressions.Add(MaterialExpressionMultiply);
+	Material->GetExpressionCollection().Expressions.Add(MaterialExpressionMultiply);
 
 	// See if primary multiplication has secondary multiplication as A input.
 	UMaterialExpressionMultiply * MaterialExpressionMultiplySecondary = nullptr;
@@ -1064,7 +1064,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 				ExpressionTextureSample->SamplerType = SAMPLERTYPE_Color;
 
 				// Add expression.
-				Material->Expressions.Add(ExpressionTextureSample);
+				Material->GetExpressionCollection().Expressions.Add(ExpressionTextureSample);
 
 				// Propagate and trigger diffuse texture updates.
 				if (bCreatedNewTextureDiffuse)
@@ -1126,7 +1126,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 				Material, UMaterialExpressionMultiply::StaticClass(), NAME_None, ObjectFlag);
 
 			// Add expression.
-			Material->Expressions.Add(MaterialExpressionMultiplySecondary);
+			Material->GetExpressionCollection().Expressions.Add(MaterialExpressionMultiplySecondary);
 		}
 	}
 	else
@@ -1185,12 +1185,12 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 			MaterialExpressionMultiply->MaterialExpressionEditorY + FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
 
 		// Assign expression.
-		Material->BaseColor.Expression = MaterialExpressionMultiplySecondary;
+		Material->GetEditorOnlyData()->BaseColor.Expression = MaterialExpressionMultiplySecondary;
 	}
 	else
 	{
 		// Assign expression.
-		Material->BaseColor.Expression = MaterialExpressionMultiply;
+		Material->GetEditorOnlyData()->BaseColor.Expression = MaterialExpressionMultiply;
 
 		MaterialExpressionMultiply->MaterialExpressionEditorX = FHoudiniMaterialTranslator::MaterialExpressionNodeX;
 		MaterialExpressionMultiply->MaterialExpressionEditorY =
@@ -1221,7 +1221,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 	// Name of generating Houdini parameters.
 	FString GeneratingParameterNameTexture = TEXT("");
 
-	UMaterialExpression * MaterialExpression = Material->OpacityMask.Expression;
+	UMaterialExpression * MaterialExpression = Material->GetEditorOnlyData()->OpacityMask.Expression;
 
 	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
 
@@ -1383,20 +1383,20 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 				MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
 
 				// Add expression.
-				Material->Expressions.Add(ExpressionTextureOpacitySample);
+				Material->GetExpressionCollection().Expressions.Add(ExpressionTextureOpacitySample);
 
 				// We need to set material type to masked.
 				TArray< FExpressionOutput > ExpressionOutputs = ExpressionTextureOpacitySample->GetOutputs();
 				FExpressionOutput* ExpressionOutput = ExpressionOutputs.GetData();
 
-				Material->OpacityMask.Expression = ExpressionTextureOpacitySample;
+				Material->GetEditorOnlyData()->OpacityMask.Expression = ExpressionTextureOpacitySample;
 				Material->BlendMode = BLEND_Masked;
 
-				Material->OpacityMask.Mask = ExpressionOutput->Mask;
-				Material->OpacityMask.MaskR = 1;
-				Material->OpacityMask.MaskG = 0;
-				Material->OpacityMask.MaskB = 0;
-				Material->OpacityMask.MaskA = 0;
+				Material->GetEditorOnlyData()->OpacityMask.Mask = ExpressionOutput->Mask;
+				Material->GetEditorOnlyData()->OpacityMask.MaskR = 1;
+				Material->GetEditorOnlyData()->OpacityMask.MaskG = 0;
+				Material->GetEditorOnlyData()->OpacityMask.MaskB = 0;
+				Material->GetEditorOnlyData()->OpacityMask.MaskA = 0;
 
 				// Propagate and trigger opacity texture updates.
 				if (bCreatedNewTextureOpacity)
@@ -1441,7 +1441,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 	FString GeneratingParameterNameScalar = TEXT("");
 	FString GeneratingParameterNameTexture = TEXT("");
 
-	UMaterialExpression * MaterialExpression = Material->Opacity.Expression;
+	UMaterialExpression * MaterialExpression = Material->GetEditorOnlyData()->Opacity.Expression;
 
 	// Opacity expressions.
 	UMaterialExpressionTextureSampleParameter2D * ExpressionTextureOpacitySample = nullptr;
@@ -1459,7 +1459,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 	// If opacity sampling expression was not created, check if diffuse contains an alpha plane.
 	if (!ExpressionTextureOpacitySample)
 	{
-		UMaterialExpression * MaterialExpressionDiffuse = Material->BaseColor.Expression;
+		UMaterialExpression * MaterialExpressionDiffuse = Material->GetEditorOnlyData()->BaseColor.Expression;
 		if (MaterialExpressionDiffuse)
 		{
 			// Locate diffuse sampling expression.
@@ -1528,7 +1528,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 				ExpressionScalarOpacity->ParameterName = *GeneratingParameterNameScalar;
 
 				// Add expression.
-				Material->Expressions.Add(ExpressionScalarOpacity);
+				Material->GetExpressionCollection().Expressions.Add(ExpressionScalarOpacity);
 
 				// If alpha is less than 1, we need translucency.
 				bNeedsTranslucency |= (OpacityValue != 1.0f);
@@ -1552,7 +1552,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 			ExpressionMultiply = NewObject< UMaterialExpressionMultiply >(
 				Material, UMaterialExpressionMultiply::StaticClass(), NAME_None, ObjectFlag);
 
-		Material->Expressions.Add(ExpressionMultiply);
+		Material->GetExpressionCollection().Expressions.Add(ExpressionMultiply);
 
 		TArray< FExpressionOutput > ExpressionOutputs = ExpressionTextureOpacitySample->GetOutputs();
 		FExpressionOutput * ExpressionOutput = ExpressionOutputs.GetData();
@@ -1560,12 +1560,12 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 		ExpressionMultiply->A.Expression = ExpressionTextureOpacitySample;
 		ExpressionMultiply->B.Expression = ExpressionScalarOpacity;
 
-		Material->Opacity.Expression = ExpressionMultiply;
-		Material->Opacity.Mask = ExpressionOutput->Mask;
-		Material->Opacity.MaskR = 0;
-		Material->Opacity.MaskG = 0;
-		Material->Opacity.MaskB = 0;
-		Material->Opacity.MaskA = 1;
+		Material->GetEditorOnlyData()->Opacity.Expression = ExpressionMultiply;
+		Material->GetEditorOnlyData()->Opacity.Mask = ExpressionOutput->Mask;
+		Material->GetEditorOnlyData()->Opacity.MaskR = 0;
+		Material->GetEditorOnlyData()->Opacity.MaskG = 0;
+		Material->GetEditorOnlyData()->Opacity.MaskB = 0;
+		Material->GetEditorOnlyData()->Opacity.MaskA = 1;
 
 		ExpressionMultiply->MaterialExpressionEditorX = FHoudiniMaterialTranslator::MaterialExpressionNodeX;
 		ExpressionMultiply->MaterialExpressionEditorY = MaterialNodeY;
@@ -1579,7 +1579,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 	}
 	else if (ExpressionScalarOpacity)
 	{
-		Material->Opacity.Expression = ExpressionScalarOpacity;
+		Material->GetEditorOnlyData()->Opacity.Expression = ExpressionScalarOpacity;
 
 		ExpressionScalarOpacity->MaterialExpressionEditorX = FHoudiniMaterialTranslator::MaterialExpressionNodeX;
 		ExpressionScalarOpacity->MaterialExpressionEditorY = MaterialNodeY;
@@ -1592,12 +1592,12 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 		TArray<FExpressionOutput> ExpressionOutputs = ExpressionTextureOpacitySample->GetOutputs();
 		FExpressionOutput * ExpressionOutput = ExpressionOutputs.GetData();
 
-		Material->Opacity.Expression = ExpressionTextureOpacitySample;
-		Material->Opacity.Mask = ExpressionOutput->Mask;
-		Material->Opacity.MaskR = 0;
-		Material->Opacity.MaskG = 0;
-		Material->Opacity.MaskB = 0;
-		Material->Opacity.MaskA = 1;
+		Material->GetEditorOnlyData()->Opacity.Expression = ExpressionTextureOpacitySample;
+		Material->GetEditorOnlyData()->Opacity.Mask = ExpressionOutput->Mask;
+		Material->GetEditorOnlyData()->Opacity.MaskR = 0;
+		Material->GetEditorOnlyData()->Opacity.MaskG = 0;
+		Material->GetEditorOnlyData()->Opacity.MaskB = 0;
+		Material->GetEditorOnlyData()->Opacity.MaskA = 1;
 
 		bExpressionCreated = true;
 	}
@@ -1704,7 +1704,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 			HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGBA, true, ImageBuffer))
 		{
 			UMaterialExpressionTextureSampleParameter2D * ExpressionNormal =
-				Cast< UMaterialExpressionTextureSampleParameter2D >(Material->Normal.Expression);
+				Cast< UMaterialExpressionTextureSampleParameter2D >(Material->GetEditorOnlyData()->Normal.Expression);
 
 			UTexture2D * TextureNormal = nullptr;
 			if (ExpressionNormal)
@@ -1714,10 +1714,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 			else
 			{
 				// Otherwise new expression is of a different type.
-				if (Material->Normal.Expression)
+				if (Material->GetEditorOnlyData()->Normal.Expression)
 				{
-					Material->Normal.Expression->ConditionalBeginDestroy();
-					Material->Normal.Expression = nullptr;
+					Material->GetEditorOnlyData()->Normal.Expression->ConditionalBeginDestroy();
+					Material->GetEditorOnlyData()->Normal.Expression = nullptr;
 				}
 			}
 
@@ -1799,8 +1799,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 				Material->bTangentSpaceNormal = bTangentSpaceNormal;
 
 				// Assign expression to material.
-				Material->Expressions.Add(ExpressionNormal);
-				Material->Normal.Expression = ExpressionNormal;
+				Material->GetExpressionCollection().Expressions.Add(ExpressionNormal);
+				Material->GetEditorOnlyData()->Normal.Expression = ExpressionNormal;
 
 				bExpressionCreated = true;
 
@@ -1863,7 +1863,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 				HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true, ImageBuffer))
 			{
 				UMaterialExpressionTextureSampleParameter2D * ExpressionNormal =
-					Cast<UMaterialExpressionTextureSampleParameter2D>(Material->Normal.Expression);
+					Cast<UMaterialExpressionTextureSampleParameter2D>(Material->GetEditorOnlyData()->Normal.Expression);
 
 				UTexture2D* TextureNormal = nullptr;
 				if (ExpressionNormal)
@@ -1873,10 +1873,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 				else
 				{
 					// Otherwise new expression is of a different type.
-					if (Material->Normal.Expression)
+					if (Material->GetEditorOnlyData()->Normal.Expression)
 					{
-						Material->Normal.Expression->ConditionalBeginDestroy();
-						Material->Normal.Expression = nullptr;
+						Material->GetEditorOnlyData()->Normal.Expression->ConditionalBeginDestroy();
+						Material->GetEditorOnlyData()->Normal.Expression = nullptr;
 					}
 				}
 
@@ -1957,8 +1957,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 					Material->bTangentSpaceNormal = bTangentSpaceNormal;
 
 					// Assign expression to material.
-					Material->Expressions.Add(ExpressionNormal);
-					Material->Normal.Expression = ExpressionNormal;
+					Material->GetExpressionCollection().Expressions.Add(ExpressionNormal);
+					Material->GetEditorOnlyData()->Normal.Expression = ExpressionNormal;
 
 					// Propagate and trigger diffuse texture updates.
 					if (bCreatedNewTextureNormal)
@@ -2050,7 +2050,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 			HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGBA, true, ImageBuffer))
 		{
 			UMaterialExpressionTextureSampleParameter2D * ExpressionSpecular =
-				Cast< UMaterialExpressionTextureSampleParameter2D >(Material->Specular.Expression);
+				Cast< UMaterialExpressionTextureSampleParameter2D >(Material->GetEditorOnlyData()->Specular.Expression);
 
 			UTexture2D * TextureSpecular = nullptr;
 			if (ExpressionSpecular)
@@ -2060,10 +2060,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 			else
 			{
 				// Otherwise new expression is of a different type.
-				if (Material->Specular.Expression)
+				if (Material->GetEditorOnlyData()->Specular.Expression)
 				{
-					Material->Specular.Expression->ConditionalBeginDestroy();
-					Material->Specular.Expression = nullptr;
+					Material->GetEditorOnlyData()->Specular.Expression->ConditionalBeginDestroy();
+					Material->GetEditorOnlyData()->Specular.Expression = nullptr;
 				}
 			}
 
@@ -2144,8 +2144,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 				MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
 
 				// Assign expression to material.
-				Material->Expressions.Add(ExpressionSpecular);
-				Material->Specular.Expression = ExpressionSpecular;
+				Material->GetExpressionCollection().Expressions.Add(ExpressionSpecular);
+				Material->GetEditorOnlyData()->Specular.Expression = ExpressionSpecular;
 
 				bExpressionCreated = true;
 
@@ -2193,16 +2193,16 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 				Color.A = 1.0f;
 
 			UMaterialExpressionVectorParameter * ExpressionSpecularColor =
-				Cast< UMaterialExpressionVectorParameter >(Material->Specular.Expression);
+				Cast< UMaterialExpressionVectorParameter >(Material->GetEditorOnlyData()->Specular.Expression);
 
 			// Create color const expression and add it to material, if we don't have one.
 			if (!ExpressionSpecularColor)
 			{
 				// Otherwise new expression is of a different type.
-				if (Material->Specular.Expression)
+				if (Material->GetEditorOnlyData()->Specular.Expression)
 				{
-					Material->Specular.Expression->ConditionalBeginDestroy();
-					Material->Specular.Expression = nullptr;
+					Material->GetEditorOnlyData()->Specular.Expression->ConditionalBeginDestroy();
+					Material->GetEditorOnlyData()->Specular.Expression = nullptr;
 				}
 
 				ExpressionSpecularColor = NewObject< UMaterialExpressionVectorParameter >(
@@ -2221,8 +2221,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 			MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
 
 			// Assign expression to material.
-			Material->Expressions.Add(ExpressionSpecularColor);
-			Material->Specular.Expression = ExpressionSpecularColor;
+			Material->GetExpressionCollection().Expressions.Add(ExpressionSpecularColor);
+			Material->GetEditorOnlyData()->Specular.Expression = ExpressionSpecularColor;
 
 			bExpressionCreated = true;
 		}
@@ -2300,7 +2300,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 			HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGBA, true, ImageBuffer ) )
 		{
 			UMaterialExpressionTextureSampleParameter2D* ExpressionRoughness =
-				Cast< UMaterialExpressionTextureSampleParameter2D >(Material->Roughness.Expression);
+				Cast< UMaterialExpressionTextureSampleParameter2D >(Material->GetEditorOnlyData()->Roughness.Expression);
 
 			UTexture2D* TextureRoughness = nullptr;
 			if (ExpressionRoughness)
@@ -2310,10 +2310,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 			else
 			{
 				// Otherwise new expression is of a different type.
-				if (Material->Roughness.Expression)
+				if (Material->GetEditorOnlyData()->Roughness.Expression)
 				{
-					Material->Roughness.Expression->ConditionalBeginDestroy();
-					Material->Roughness.Expression = nullptr;
+					Material->GetEditorOnlyData()->Roughness.Expression->ConditionalBeginDestroy();
+					Material->GetEditorOnlyData()->Roughness.Expression = nullptr;
 				}
 			}
 
@@ -2392,8 +2392,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 				MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
 
 				// Assign expression to material.
-				Material->Expressions.Add(ExpressionRoughness);
-				Material->Roughness.Expression = ExpressionRoughness;
+				Material->GetExpressionCollection().Expressions.Add(ExpressionRoughness);
+				Material->GetEditorOnlyData()->Roughness.Expression = ExpressionRoughness;
 
 				bExpressionCreated = true;
 
@@ -2440,7 +2440,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 			ParmRoughnessValueInfo.floatValuesIndex, 1) == HAPI_RESULT_SUCCESS)
 		{
 			UMaterialExpressionScalarParameter * ExpressionRoughnessValue =
-				Cast< UMaterialExpressionScalarParameter >(Material->Roughness.Expression);
+				Cast< UMaterialExpressionScalarParameter >(Material->GetEditorOnlyData()->Roughness.Expression);
 
 			// Clamp retrieved value.
 			RoughnessValue = FMath::Clamp< float >(RoughnessValue, 0.0f, 1.0f);
@@ -2449,10 +2449,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 			if (!ExpressionRoughnessValue)
 			{
 				// Otherwise new expression is of a different type.
-				if (Material->Roughness.Expression)
+				if (Material->GetEditorOnlyData()->Roughness.Expression)
 				{
-					Material->Roughness.Expression->ConditionalBeginDestroy();
-					Material->Roughness.Expression = nullptr;
+					Material->GetEditorOnlyData()->Roughness.Expression->ConditionalBeginDestroy();
+					Material->GetEditorOnlyData()->Roughness.Expression = nullptr;
 				}
 
 				ExpressionRoughnessValue = NewObject< UMaterialExpressionScalarParameter >(
@@ -2473,8 +2473,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 			MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
 
 			// Assign expression to material.
-			Material->Expressions.Add(ExpressionRoughnessValue);
-			Material->Roughness.Expression = ExpressionRoughnessValue;
+			Material->GetExpressionCollection().Expressions.Add(ExpressionRoughnessValue);
+			Material->GetEditorOnlyData()->Roughness.Expression = ExpressionRoughnessValue;
 
 			bExpressionCreated = true;
 		}
@@ -2553,7 +2553,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 			HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGBA, true, ImageBuffer))
 		{
 			UMaterialExpressionTextureSampleParameter2D * ExpressionMetallic =
-				Cast< UMaterialExpressionTextureSampleParameter2D >(Material->Metallic.Expression);
+				Cast< UMaterialExpressionTextureSampleParameter2D >(Material->GetEditorOnlyData()->Metallic.Expression);
 
 			UTexture2D * TextureMetallic = nullptr;
 			if (ExpressionMetallic)
@@ -2563,10 +2563,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 			else
 			{
 				// Otherwise new expression is of a different type.
-				if (Material->Metallic.Expression)
+				if (Material->GetEditorOnlyData()->Metallic.Expression)
 				{
-					Material->Metallic.Expression->ConditionalBeginDestroy();
-					Material->Metallic.Expression = nullptr;
+					Material->GetEditorOnlyData()->Metallic.Expression->ConditionalBeginDestroy();
+					Material->GetEditorOnlyData()->Metallic.Expression = nullptr;
 				}
 			}
 
@@ -2646,8 +2646,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 				MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
 
 				// Assign expression to material.
-				Material->Expressions.Add(ExpressionMetallic);
-				Material->Metallic.Expression = ExpressionMetallic;
+				Material->GetExpressionCollection().Expressions.Add(ExpressionMetallic);
+				Material->GetEditorOnlyData()->Metallic.Expression = ExpressionMetallic;
 
 				bExpressionCreated = true;
 
@@ -2693,7 +2693,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 			ParmMetallicTextureInfo.floatValuesIndex, 1) == HAPI_RESULT_SUCCESS)
 		{
 			UMaterialExpressionScalarParameter * ExpressionMetallicValue =
-				Cast< UMaterialExpressionScalarParameter >(Material->Metallic.Expression);
+				Cast< UMaterialExpressionScalarParameter >(Material->GetEditorOnlyData()->Metallic.Expression);
 
 			// Clamp retrieved value.
 			MetallicValue = FMath::Clamp< float >(MetallicValue, 0.0f, 1.0f);
@@ -2702,10 +2702,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 			if (!ExpressionMetallicValue)
 			{
 				// Otherwise new expression is of a different type.
-				if (Material->Metallic.Expression)
+				if (Material->GetEditorOnlyData()->Metallic.Expression)
 				{
-					Material->Metallic.Expression->ConditionalBeginDestroy();
-					Material->Metallic.Expression = nullptr;
+					Material->GetEditorOnlyData()->Metallic.Expression->ConditionalBeginDestroy();
+					Material->GetEditorOnlyData()->Metallic.Expression = nullptr;
 				}
 
 				ExpressionMetallicValue = NewObject< UMaterialExpressionScalarParameter >(
@@ -2726,8 +2726,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 			MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
 
 			// Assign expression to material.
-			Material->Expressions.Add(ExpressionMetallicValue);
-			Material->Metallic.Expression = ExpressionMetallicValue;
+			Material->GetExpressionCollection().Expressions.Add(ExpressionMetallicValue);
+			Material->GetEditorOnlyData()->Metallic.Expression = ExpressionMetallicValue;
 
 			bExpressionCreated = true;
 		}
@@ -2806,7 +2806,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 			HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGBA, true, ImageBuffer))
 		{
 			UMaterialExpressionTextureSampleParameter2D * ExpressionEmissive =
-				Cast< UMaterialExpressionTextureSampleParameter2D >(Material->EmissiveColor.Expression);
+				Cast< UMaterialExpressionTextureSampleParameter2D >(Material->GetEditorOnlyData()->EmissiveColor.Expression);
 
 			UTexture2D * TextureEmissive = nullptr;
 			if (ExpressionEmissive)
@@ -2816,10 +2816,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 			else
 			{
 				// Otherwise new expression is of a different type.
-				if (Material->EmissiveColor.Expression)
+				if (Material->GetEditorOnlyData()->EmissiveColor.Expression)
 				{
-					Material->EmissiveColor.Expression->ConditionalBeginDestroy();
-					Material->EmissiveColor.Expression = nullptr;
+					Material->GetEditorOnlyData()->EmissiveColor.Expression->ConditionalBeginDestroy();
+					Material->GetEditorOnlyData()->EmissiveColor.Expression = nullptr;
 				}
 			}
 
@@ -2898,8 +2898,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 				MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
 
 				// Assign expression to material.
-				Material->Expressions.Add(ExpressionEmissive);
-				Material->EmissiveColor.Expression = ExpressionEmissive;
+				Material->GetExpressionCollection().Expressions.Add(ExpressionEmissive);
+				Material->GetEditorOnlyData()->EmissiveColor.Expression = ExpressionEmissive;
 
 				bExpressionCreated = true;
 
@@ -2946,16 +2946,16 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 				Color.A = 1.0f;
 
 			UMaterialExpressionConstant4Vector * ExpressionEmissiveColor =
-				Cast< UMaterialExpressionConstant4Vector >(Material->EmissiveColor.Expression);
+				Cast< UMaterialExpressionConstant4Vector >(Material->GetEditorOnlyData()->EmissiveColor.Expression);
 
 			// Create color const expression and add it to material, if we don't have one.
 			if (!ExpressionEmissiveColor)
 			{
 				// Otherwise new expression is of a different type.
-				if (Material->EmissiveColor.Expression)
+				if (Material->GetEditorOnlyData()->EmissiveColor.Expression)
 				{
-					Material->EmissiveColor.Expression->ConditionalBeginDestroy();
-					Material->EmissiveColor.Expression = nullptr;
+					Material->GetEditorOnlyData()->EmissiveColor.Expression->ConditionalBeginDestroy();
+					Material->GetEditorOnlyData()->EmissiveColor.Expression = nullptr;
 				}
 
 				ExpressionEmissiveColor = NewObject< UMaterialExpressionConstant4Vector >(
@@ -2975,8 +2975,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 			MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
 
 			// Assign expression to material.
-			Material->Expressions.Add(ExpressionEmissiveColor);
-			Material->EmissiveColor.Expression = ExpressionEmissiveColor;
+			Material->GetExpressionCollection().Expressions.Add(ExpressionEmissiveColor);
+			Material->GetEditorOnlyData()->EmissiveColor.Expression = ExpressionEmissiveColor;
 
 			bExpressionCreated = true;
 		}
@@ -3228,9 +3228,9 @@ FHoudiniMaterialTranslator::UpdateMaterialInstanceParameter(
 			FStaticParameterSet StaticParameters;
 			MaterialInstance->GetStaticParameterValues(StaticParameters);
 
-			for (int32 SwitchParameterIdx = 0; SwitchParameterIdx < StaticParameters.StaticSwitchParameters.Num(); ++SwitchParameterIdx)
+			for (int32 SwitchParameterIdx = 0; SwitchParameterIdx < StaticParameters.EditorOnly.StaticSwitchParameters.Num(); ++SwitchParameterIdx)
 			{
-				FStaticSwitchParameter& SwitchParameter = StaticParameters.StaticSwitchParameters[SwitchParameterIdx];
+				FStaticSwitchParameter& SwitchParameter = StaticParameters.EditorOnly.StaticSwitchParameters[SwitchParameterIdx];
 				if (SwitchParameter.ParameterInfo.Name != CurrentMatParamName)
 					continue;
 

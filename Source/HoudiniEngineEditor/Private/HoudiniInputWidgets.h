@@ -78,7 +78,7 @@ class SLandscapeComboBox : public SComboBox<TSharedPtr<FString>>
 		}
 
 		SelectedItemText = SNew( STextBlock )
-			.Font( FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font( FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			.Text_Lambda([=]() -> FText
 			{
 				return FText::FromString(*CurrentSelection.Get());

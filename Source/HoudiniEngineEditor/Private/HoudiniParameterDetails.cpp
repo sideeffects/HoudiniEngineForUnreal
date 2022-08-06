@@ -2125,7 +2125,7 @@ FHoudiniParameterDetails::CreateNameWidget(FDetailWidgetRow* Row, const TArray<T
 			SNew(STextBlock)
 			.Text(FinalParameterLabelText)
 			.ToolTipText(GetParameterTooltip(MainParam))
-			.Font(FEditorStyle::GetFontStyle(MainParam->IsDefault() ? TEXT("PropertyWindow.NormalFont") : TEXT("PropertyWindow.BoldFont")))
+			.Font(FAppStyle::GetFontStyle(MainParam->IsDefault() ? TEXT("PropertyWindow.NormalFont") : TEXT("PropertyWindow.BoldFont")))
 		];
 	}
 	else 
@@ -2138,7 +2138,7 @@ FHoudiniParameterDetails::CreateNameWidget(FDetailWidgetRow* Row, const TArray<T
 			SNew(STextBlock)
 			.Text(FinalParameterLabelText)
 			.ToolTipText(GetParameterTooltip(MainParam))
-			.Font(FEditorStyle::GetFontStyle(MainParam->IsDefault() ? TEXT("PropertyWindow.NormalFont") : TEXT("PropertyWindow.BoldFont")))
+			.Font(FAppStyle::GetFontStyle(MainParam->IsDefault() ? TEXT("PropertyWindow.NormalFont") : TEXT("PropertyWindow.BoldFont")))
 		];
 	}
 
@@ -2206,7 +2206,7 @@ FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, 
 			SNew(STextBlock)
 			.Text(FinalParameterLabelText)
 			.ToolTipText(GetParameterTooltip(MainParam))
-			.Font(FEditorStyle::GetFontStyle(MainParam->IsDefault() ? TEXT("PropertyWindow.NormalFont") : TEXT("PropertyWindow.BoldFont")))
+			.Font(FAppStyle::GetFontStyle(MainParam->IsDefault() ? TEXT("PropertyWindow.NormalFont") : TEXT("PropertyWindow.BoldFont")))
 		];
 	}
 	else
@@ -2238,7 +2238,7 @@ FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, 
 			SNew(STextBlock)
 			.Text(FinalParameterLabelText)
 			.ToolTipText(GetParameterTooltip(MainParam))
-			.Font(FEditorStyle::GetFontStyle(MainParam->IsDefault() ? TEXT("PropertyWindow.NormalFont") : TEXT("PropertyWindow.BoldFont")))
+			.Font(FAppStyle::GetFontStyle(MainParam->IsDefault() ? TEXT("PropertyWindow.NormalFont") : TEXT("PropertyWindow.BoldFont")))
 		];
 	}
 
@@ -2354,7 +2354,7 @@ FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, 
 				SNew(STextBlock)
 				.Text(LOCTEXT("AutoUpdate", "Auto-update"))
 				.ToolTipText(LOCTEXT("AutoUpdateTip", "When enabled, this parameter will automatically update its value while editing. Turning this off will allow you to more easily update it, and the update can be pushed by checking the toggle again."))
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		]
 	];
@@ -2745,13 +2745,13 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 				+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Right).VAlign(VAlign_Center)
 				[
 					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.ButtonStyle(FAppStyle::Get(), "NoBorder")
 					.ClickMethod(EButtonClickMethod::MouseDown)
 					.ToolTipText(LOCTEXT("FloatParameterLockButtonToolTip", "When locked, change the vector value uniformly."))
 					.Visibility(EVisibility::Visible)
 					[
 						SNew(SImage)
-						.Image(MainParam->IsUniformLocked() ? FEditorStyle::GetBrush("Genericlock") : FEditorStyle::GetBrush("GenericUnlock"))
+						.Image(MainParam->IsUniformLocked() ? FAppStyle::GetBrush("Genericlock") : FAppStyle::GetBrush("GenericUnlock"))
 					]
 					.OnClicked_Lambda([FloatParams, MainParam]()
 					{
@@ -2776,7 +2776,7 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 				[
 					SNew(SButton)
 					.ToolTipText(LOCTEXT("RevertToDefault", "Revert to default"))
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.ButtonStyle(FAppStyle::Get(), "NoBorder")
 					.ContentPadding(0)
 					.Visibility_Lambda([FloatParams]()
 					{
@@ -2794,7 +2794,7 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 					.OnClicked_Lambda([FloatParams, RevertToDefault]() { return RevertToDefault(-1, FloatParams); })
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+						.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 					]
 				]
 			]
@@ -2814,7 +2814,7 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 					SAssignNew(NumericEntryBox, SNumericEntryBox< float >)
 					.AllowSpin(true)
 
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 
 					.MinValue(MainParam->GetMin())
 					.MaxValue(MainParam->GetMax())
@@ -2837,7 +2837,7 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 				[
 					SNew(SButton)
 					.ToolTipText(LOCTEXT("RevertToDefault", "Revert to default"))
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.ButtonStyle(FAppStyle::Get(), "NoBorder")
 					.ContentPadding(0)
 					.OnClicked_Lambda([Idx, FloatParams, RevertToDefault]() { return RevertToDefault(Idx, FloatParams); })
 					.Visibility_Lambda([Idx, FloatParams]()
@@ -2855,7 +2855,7 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 					})
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+						.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 					]
 				]
 			];
@@ -3003,7 +3003,7 @@ FHoudiniParameterDetails::CreateWidgetInt(IDetailCategoryBuilder & HouParameterC
 				SAssignNew(NumericEntryBox, SNumericEntryBox< int32 >)
 				.AllowSpin(true)
 
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 
 				.MinValue(MainParam->GetMin())
 				.MaxValue(MainParam->GetMax())
@@ -3026,7 +3026,7 @@ FHoudiniParameterDetails::CreateWidgetInt(IDetailCategoryBuilder & HouParameterC
 			[
 				SNew(SButton)
 				.ToolTipText(LOCTEXT("RevertToDefault", "Revert to default"))
-				.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+				.ButtonStyle(FAppStyle::Get(), "NoBorder")
 				.ContentPadding(0)
 				.Visibility_Lambda([Idx, IntParams]()
 				{
@@ -3044,7 +3044,7 @@ FHoudiniParameterDetails::CreateWidgetInt(IDetailCategoryBuilder & HouParameterC
 				.OnClicked_Lambda([Idx, IntParams, RevertToDefault]() { return RevertToDefault(Idx, IntParams); })
 				[
 					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+					.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 				]
 			]
 		];
@@ -3239,9 +3239,9 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 					{
 						TSharedPtr<SBorder> ThumbnailBorderPtr = WeakThumbnailBorder.Pin();
 						if (ThumbnailBorderPtr.IsValid() && ThumbnailBorderPtr->IsHovered())
-							return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
+							return FAppStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
 						else
-							return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
+							return FAppStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
 					}
 				)
 			));
@@ -3265,14 +3265,14 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 					+ SHorizontalBox::Slot()
 					[
 						SAssignNew(StaticMeshComboButton, SComboButton)
-						.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
-						.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+						.ButtonStyle(FAppStyle::Get(), "PropertyEditor.AssetComboStyle")
+						.ForegroundColor(FAppStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
 						.ContentPadding(2.0f)
 						.ButtonContent()
 						[
 							SNew(STextBlock)
-							.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
-							.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+							.TextStyle(FAppStyle::Get(), "PropertyEditor.AssetClass")
+							.Font(FAppStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
 							.Text(FText::FromName(AssetData.AssetName))
 							.ToolTipText(FText::FromString(MainParam->GetValueAt(Idx)))
 						]
@@ -3359,7 +3359,7 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 					+ SHorizontalBox::Slot().FillWidth(1.0f).VAlign(VAlign_Top).MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 					[
 						SAssignNew(MultiLineEditableTextBox, SMultiLineEditableTextBox)
-						.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 						.Text(FText::FromString(MainParam->GetValueAt(Idx)))
 						.OnTextCommitted_Lambda([=](const FText& Val, ETextCommit::Type TextCommitType) { ChangeStringValueAt(Val.ToString(), nullptr, Idx, true, StringParams); })
 					]
@@ -3370,7 +3370,7 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 					[
 						SNew(SButton)
 						.ToolTipText(LOCTEXT("RevertToDefault", "Revert to default"))
-						.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+						.ButtonStyle(FAppStyle::Get(), "NoBorder")
 						.ContentPadding(0)
 						.Visibility_Lambda([Idx, StringParams]()
 						{
@@ -3388,7 +3388,7 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 						.OnClicked_Lambda([Idx, StringParams, RevertToDefault]() { return RevertToDefault(Idx, StringParams); })
 						[
 							SNew(SImage)
-							.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+							.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 						]
 					]
 				]
@@ -3414,7 +3414,7 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 					+ SHorizontalBox::Slot().FillWidth(1.0f).MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 					[
 						SAssignNew(EditableTextBox, SEditableTextBox)
-						.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 						.Text(FText::FromString(MainParam->GetValueAt(Idx)))
 						.OnTextCommitted_Lambda([=](const FText& Val, ETextCommit::Type TextCommitType) 
 							{ ChangeStringValueAt(Val.ToString(), nullptr, Idx, true, StringParams); })
@@ -3426,7 +3426,7 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 					[
 						SNew(SButton)
 						.ToolTipText(LOCTEXT("RevertToDefault", "Revert to default"))
-						.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+						.ButtonStyle(FAppStyle::Get(), "NoBorder")
 						.ContentPadding(0)
 						.Visibility_Lambda([Idx, StringParams]()
 						{
@@ -3445,7 +3445,7 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 							{ return RevertToDefault(Idx, StringParams); })
 						[
 							SNew(SImage)
-								.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+								.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 						]
 					]
 				]
@@ -3671,7 +3671,7 @@ FHoudiniParameterDetails::CreateWidgetButtonStrip(IDetailCategoryBuilder & HouPa
 		HorizontalBox->AddSlot().Padding(0).FillWidth(1.0f)
 		[
 			SAssignNew(Button, SCheckBox)
-			.Style(FEditorStyle::Get(), "Property.ToggleButton.Middle")
+			.Style(FAppStyle::Get(), "Property.ToggleButton.Middle")
 			.IsChecked(bPressed ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 			.OnCheckStateChanged_Lambda([OnButtonStateChanged, Idx](ECheckBoxState NewState)
 			{
@@ -3681,7 +3681,7 @@ FHoudiniParameterDetails::CreateWidgetButtonStrip(IDetailCategoryBuilder & HouPa
 			[
 				SNew(STextBlock)
 				.Text(LabelText)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		];
 
@@ -3827,7 +3827,7 @@ FHoudiniParameterDetails::CreateWidgetToggle(IDetailCategoryBuilder & HouParamet
 					SNew(STextBlock)
 					.Text(ParameterLabelText)
 					.ToolTipText(GetParameterTooltip(MainParam))
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				]
 			];
 	}
@@ -3936,8 +3936,8 @@ void FHoudiniParameterDetails::CreateWidgetFile(IDetailCategoryBuilder & HouPara
 			SNew(SHorizontalBox) + SHorizontalBox::Slot().FillWidth(1.0f).MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 			[
 				SNew(SNewFilePathPicker)
-				.BrowseButtonImage(FEditorStyle::GetBrush("PropertyWindow.Button_Ellipsis"))
-				.BrowseButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.BrowseButtonImage(FAppStyle::GetBrush("PropertyWindow.Button_Ellipsis"))
+				.BrowseButtonStyle(FAppStyle::Get(), "HoverHintOnly")
 				.BrowseButtonToolTip(BrowseTooltip)
 				.BrowseDirectory(FileWidgetBrowsePath)
 				.BrowseTitle(LOCTEXT("PropertyEditorTitle", "File picker..."))
@@ -4080,7 +4080,7 @@ FHoudiniParameterDetails::CreateWidgetChoice(IDetailCategoryBuilder & HouParamet
 		[
 			SNew(STextBlock)
 			.Text_Lambda([MainParam]() { return FText::FromString(MainParam->GetLabel()); })
-			.Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+			.Font( FAppStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 		]
 	];
 
@@ -5129,7 +5129,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 	[
 		SNew(STextBlock)
 		.Text(FText::FromString(TEXT("Position")))
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))		
+		.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))		
 	];
 
 	FString ValueString = TEXT("Value");
@@ -5140,14 +5140,14 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 	[
 		SNew(STextBlock)
 			.Text(FText::FromString(ValueString))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 	];
 
 	GridPanel->AddSlot(2, RowIndex)
 	[
 		SNew(STextBlock)
 			.Text(FText::FromString(TEXT("Interp.")))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 	];
 
 	
@@ -5476,7 +5476,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 		[
 			SNew(SNumericEntryBox<float>)
 			.AllowSpin(true)
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			.Value(CurPos)
 			.OnValueChanged_Lambda([](float Val) {})
 			.OnValueCommitted_Lambda([OnPointChangeCommit, MainFloatRampParameter, MainColorRampParameter, NextFloatRampPoint, NextColorRampPoint, FloatRampParameterList, ColorRampParameterList, Index](float Val, ETextCommit::Type TextCommitType) mutable
@@ -5510,7 +5510,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 			[
 				SNew(SNumericEntryBox< float >)
 				.AllowSpin(true)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				.Value(NextFloatRampPoint->Value)
 				.OnValueChanged_Lambda([](float Val){})
 				.OnValueCommitted_Lambda([OnPointChangeCommit, MainFloatRampParameter, MainColorRampParameter,
@@ -5598,7 +5598,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 				return SNew(STextBlock)
 					.Text(ChoiceEntryText)
 					.ToolTipText(ChoiceEntryText)
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+					.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 			})
 			.OnSelectionChanged_Lambda(
 				[OnPointChangeCommit, MainFloatRampParameter, MainColorRampParameter,
@@ -5627,7 +5627,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 
 					return FText::FromString(UHoudiniParameter::GetStringFromHoudiniInterpMethod(CurInterpType));
 				})
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		];
 		
@@ -5990,7 +5990,7 @@ FHoudiniParameterDetails::CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, cons
 	HorizontalBox->AddSlot().Padding(1.0f).VAlign(VAlign_Center).AutoWidth()
 	[
 		SAssignNew(ExpanderArrow, SButton)
-		.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+		.ButtonStyle(FAppStyle::Get(), "NoBorder")
 		.ClickMethod(EButtonClickMethod::MouseDown)
 		.Visibility(EVisibility::Visible)
 		.OnClicked_Lambda([=]()
@@ -6017,7 +6017,7 @@ FHoudiniParameterDetails::CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, cons
 	[
 		SNew(STextBlock)
 		.Text(LabelText)
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 	];
 
 	TWeakPtr<SButton> WeakExpanderArrow(ExpanderArrow);
@@ -6043,7 +6043,7 @@ FHoudiniParameterDetails::CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, cons
 					ResourceName = ExpanderArrowPtr.IsValid() && ExpanderArrowPtr->IsHovered() ? "TreeArrow_Collapsed_Hovered" : "TreeArrow_Collapsed";
 				}
 
-				return FEditorStyle::GetBrush(ResourceName);
+				return FAppStyle::GetBrush(ResourceName);
 			}
 		)
 	));
@@ -6226,7 +6226,7 @@ FHoudiniParameterDetails::CreateWidgetMultiParm(IDetailCategoryBuilder & HouPara
 			SAssignNew(NumericEntryBox, SNumericEntryBox< int32 >)
 			.AllowSpin(true)
 
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		.OnValueChanged(SNumericEntryBox<int32>::FOnValueChanged::CreateLambda([OnInstanceValueChangedLambda](int32 InValue) {
 				OnInstanceValueChangedLambda(InValue);
 		}))

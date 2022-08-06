@@ -1913,7 +1913,7 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArg
 				.VAlign(VAlign_Top)
 				[
 					SNew(STextBlock)
-					//.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.BoldFont")))
+					//.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.BoldFont")))
 					.Font(BoldFontStyle)
 					.Text(LOCTEXT("FetchLabel", "FETCH from Houdini"))
 				]
@@ -1939,7 +1939,7 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArg
 						.ToolTipText(LOCTEXT("HoudiniNodePathTooltip",
 							"The path of the node in Houdini.  e.g /obj/MyNetwork/Mynode "))
 						.HintText(LOCTEXT("NodePathLabel", "Houdini Node Path To Fetch"))
-						.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 						.Text_Lambda([]()
 							{
 								UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
@@ -1961,7 +1961,7 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArg
 			//			[
 			//				SNew(STextBlock).Text(LOCTEXT("UseDisplayFlagLabel", "Use DisplayFlag Instead"))
 			//				.ToolTipText(LOCTEXT("UseDisplayFlagToolTip", "Use DisplayFlag Instead"))
-			//				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			//				.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			//			]
 			//			.IsChecked_Lambda([]()
 			//				{
@@ -2005,7 +2005,7 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArg
 							.ToolTipText(LOCTEXT("UnrealAssetTooltip",
 							"What to name the asset in unreal"))
 						.HintText(LOCTEXT("UnrealAssetLabel", "Name of Asset In Unreal"))
-						.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 						.Text_Lambda([]()
 							{
 								UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
@@ -2034,7 +2034,7 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArg
 							.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 							.ToolTipText(LOCTEXT("UnrealPathTooltip","Path to the asset in unreal"))
 							.HintText(LOCTEXT("UnrealPathLabel", "Path of Asset In Unreal"))
-							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+							.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 							.Text_Lambda([]()
 								{
 									UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
@@ -2092,7 +2092,7 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArg
 									[
 										SNew(STextBlock).Text(LOCTEXT("OverwriteSkeletonLabel", "Use Existing Skeleton"))
 										.ToolTipText(LOCTEXT("OverwriteSkeletonToolTip", "Use Existing Skeleton"))
-										.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+										.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 									]
 									.IsChecked_Lambda([]()
 										{
@@ -2114,7 +2114,7 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArg
 								.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 								.ToolTipText(LOCTEXT("ExistingSkeletonTooltip", "Path to the skelton asset in unreal"))
 								.HintText(LOCTEXT("ExistingSkeletonLabel", "Path to skeleton asset In Unreal"))
-								.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+								.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 								.Text_Lambda([]()
 									{
 										UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
@@ -2188,7 +2188,7 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArg
 						.ToolTipText(LOCTEXT("HoudiniNodePathTooltip",
 						"The path of the node in Houdini to Send too.  e.g /obj/UnrealContent "))
 						.HintText(LOCTEXT("NodePathLabel", "Houdini Node Path To Send To"))
-						.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 						.Text_Lambda([]()
 							{
 								UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();

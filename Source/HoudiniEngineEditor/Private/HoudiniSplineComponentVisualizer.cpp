@@ -58,7 +58,7 @@ FHoudiniSplineComponentVisualizerCommands::FHoudiniSplineComponentVisualizerComm
 		"HoudiniSplineComponentVisualizer",
 		LOCTEXT("HoudiniSplineComponentVisualizer", "Houdini Spline Component Visualizer"),
 		NAME_None,
-		FEditorStyle::GetStyleSetName())
+		FAppStyle::GetAppStyleSetName())
 {}
 
 void 

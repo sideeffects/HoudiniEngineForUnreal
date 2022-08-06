@@ -299,7 +299,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 		[
 			SNew(SButton)
 			.ToolTipText(LOCTEXT("RevertNameOverride", "Revert bake name override"))
-			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+			.ButtonStyle(FAppStyle::Get(), "NoBorder")
 			.ContentPadding(0)
 			.Visibility(EVisibility::Visible)
 			.OnClicked_Lambda([InOutput, OutputIdentifier]() 
@@ -309,7 +309,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 			})
 			[
 				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+				.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 			]
 		]
 	];
@@ -452,7 +452,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 							const FString BakeTypeString = FHoudiniEngineEditorUtils::HoudiniLandscapeOutputBakeTypeToString(LandscapePointer->GetLandscapeOutputBakeType());
 							return FText::FromString(BakeTypeString);
 						})
-						.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 					]
 				]		
 			]
@@ -484,7 +484,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 		[
 			SNew(STextBlock)
 			.Text(MaterialIdx == 0 ? LOCTEXT("LandscapeMaterial", "Landscape Material") : LOCTEXT("LandscapeHoleMaterial", "Landscape Hole Material"))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		];
 
 		VerticalBox->AddSlot().Padding(0, 2)
@@ -538,15 +538,15 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 			[
 				SAssignNew(AssetComboButton, SComboButton)
 				//.ToolTipText( this, &FHoudiniAssetComponentDetails::OnGetToolTip )
-				.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
-				.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+				.ButtonStyle(FAppStyle::Get(), "PropertyEditor.AssetComboStyle")
+				.ForegroundColor(FAppStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
 				.OnGetMenuContent(this, &FHoudiniOutputDetails::OnGetMaterialInterfaceMenuContent, TWeakObjectPtr<UMaterialInterface>(MaterialInterface), (TWeakObjectPtr<UObject>)Landscape, InOutput, MaterialIdx)
 				.ContentPadding(2.0f)
 				.ButtonContent()
 				[
 					SNew(STextBlock)
-					.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
-					.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+					.TextStyle(FAppStyle::Get(), "PropertyEditor.AssetClass")
+					.Font(FAppStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
 					.Text(FText::FromString(MaterialName))
 				]
 			]
@@ -596,13 +596,13 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 		[
 			SNew(SButton)
 			.ToolTipText(LOCTEXT("ResetToBaseMaterial", "Reset to base material"))
-			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+			.ButtonStyle(FAppStyle::Get(), "NoBorder")
 			.ContentPadding(0)
 			.Visibility(EVisibility::Visible)
 			.OnClicked(	this, &FHoudiniOutputDetails::OnResetMaterialInterfaceClicked, Landscape, InOutput, MaterialIdx)
 			[
 				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+				.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 			]
 		];
 
@@ -789,7 +789,7 @@ void FHoudiniOutputDetails::CreateLandscapeEditLayerOutputWidget_Helper(IDetailC
 	// 						FString BakeTypeString = FHoudiniEngineEditorUtils::HoudiniLandscapeOutputBakeTypeToString(LandscapePointer->GetLandscapeOutputBakeType());
 	// 						return FText::FromString(BakeTypeString);
 	// 					})
-	// 					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+	// 					.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 	// 				]
 	// 			]		
 	// 		]
@@ -821,7 +821,7 @@ void FHoudiniOutputDetails::CreateLandscapeEditLayerOutputWidget_Helper(IDetailC
 	// 	[
 	// 		SNew(STextBlock)
 	// 		.Text(MaterialIdx == 0 ? LOCTEXT("LandscapeMaterial", "Landscape Material") : LOCTEXT("LandscapeHoleMaterial", "Landscape Hole Material"))
-	// 		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+	// 		.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 	// 	];
 	//
 	// 	VerticalBox->AddSlot().Padding(0, 2)
@@ -875,15 +875,15 @@ void FHoudiniOutputDetails::CreateLandscapeEditLayerOutputWidget_Helper(IDetailC
 	// 		[
 	// 			SAssignNew(AssetComboButton, SComboButton)
 	// 			//.ToolTipText( this, &FHoudiniAssetComponentDetails::OnGetToolTip )
-	// 			.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
-	// 			.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+	// 			.ButtonStyle(FAppStyle::Get(), "PropertyEditor.AssetComboStyle")
+	// 			.ForegroundColor(FAppStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
 	// 			.OnGetMenuContent(this, &FHoudiniOutputDetails::OnGetMaterialInterfaceMenuContent, MaterialInterface, (UObject*)Landscape, InOutput, MaterialIdx)
 	// 			.ContentPadding(2.0f)
 	// 			.ButtonContent()
 	// 			[
 	// 				SNew(STextBlock)
-	// 				.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
-	// 				.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+	// 				.TextStyle(FAppStyle::Get(), "PropertyEditor.AssetClass")
+	// 				.Font(FAppStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
 	// 				.Text(FText::FromString(MaterialName))
 	// 			]
 	// 		]
@@ -933,13 +933,13 @@ void FHoudiniOutputDetails::CreateLandscapeEditLayerOutputWidget_Helper(IDetailC
 	// 	[
 	// 		SNew(SButton)
 	// 		.ToolTipText(LOCTEXT("ResetToBaseMaterial", "Reset to base material"))
-	// 		.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+	// 		.ButtonStyle(FAppStyle::Get(), "NoBorder")
 	// 		.ContentPadding(0)
 	// 		.Visibility(EVisibility::Visible)
 	// 		.OnClicked(	this, &FHoudiniOutputDetails::OnResetMaterialInterfaceClicked, Landscape, InOutput, MaterialIdx)
 	// 		[
 	// 			SNew(SImage)
-	// 			.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+	// 			.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 	// 		]
 	// 	];
 	//
@@ -1153,7 +1153,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 		[
 			SNew(SButton)
 			.ToolTipText(LOCTEXT("RevertNameOverride", "Revert bake name override"))
-			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+			.ButtonStyle(FAppStyle::Get(), "NoBorder")
 			.ContentPadding(0)
 			.Visibility(EVisibility::Visible)
 			.OnClicked_Lambda([InOutput, OutputIdentifier]()
@@ -1163,7 +1163,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 			})
 			[
 				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+				.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 			]
 		]
 	];
@@ -1295,7 +1295,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 				else
 					return FText::FromString(TEXT("Curve"));
 			})
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		];
 
@@ -1563,7 +1563,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 		[
 			SNew( SButton )
 			.ToolTipText( LOCTEXT( "RevertNameOverride", "Revert bake name override" ) )
-			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+			.ButtonStyle( FAppStyle::Get(), "NoBorder" )
 			.ContentPadding( 0 )
 			.Visibility( EVisibility::Visible )
 			.OnClicked_Lambda([InOutput, OutputIdentifier]() 
@@ -1574,7 +1574,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 			})
 			[
 				SNew( SImage )
-				.Image( FEditorStyle::GetBrush( "PropertyWindow.DiffersFromDefault" ) )
+				.Image( FAppStyle::GetBrush( "PropertyWindow.DiffersFromDefault" ) )
 			]
 		]
 	];
@@ -1833,16 +1833,16 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 			SNew(SVerticalBox) + SVerticalBox::Slot().VAlign(VAlign_Center).FillHeight(1.0f)
 			[
 				SAssignNew(AssetComboButton, SComboButton)
-				.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
-				.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+				.ButtonStyle(FAppStyle::Get(), "PropertyEditor.AssetComboStyle")
+				.ForegroundColor(FAppStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
 				.OnGetMenuContent(this, &FHoudiniOutputDetails::OnGetMaterialInterfaceMenuContent,
 				TWeakObjectPtr<UMaterialInterface>(MaterialInterface), (const TWeakObjectPtr<UObject>&)StaticMesh, InOutput, MaterialIdx)
 				.ContentPadding(2.0f)
 				.ButtonContent()
 				[
 					SNew(STextBlock)
-					.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
-					.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+					.TextStyle(FAppStyle::Get(), "PropertyEditor.AssetClass")
+					.Font(FAppStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
 					.Text(FText::FromString(MaterialName))
 				]
 			]
@@ -1895,14 +1895,14 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 		[
 			SNew( SButton )
 			.ToolTipText( LOCTEXT( "ResetToBaseMaterial", "Reset to base material" ) )
-			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+			.ButtonStyle( FAppStyle::Get(), "NoBorder" )
 			.ContentPadding( 0 )
 			.Visibility( EVisibility::Visible )
 			.OnClicked(
 				this, &FHoudiniOutputDetails::OnResetMaterialInterfaceClicked, StaticMesh, InOutput, MaterialIdx)
 			[
 				SNew( SImage )
-				.Image( FEditorStyle::GetBrush( "PropertyWindow.DiffersFromDefault" ) )
+				.Image( FAppStyle::GetBrush( "PropertyWindow.DiffersFromDefault" ) )
 			]
 		];
 
@@ -1980,7 +1980,7 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 		[
 			SNew(SButton)
 			.ToolTipText(LOCTEXT("RevertNameOverride", "Revert bake name override"))
-			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+			.ButtonStyle(FAppStyle::Get(), "NoBorder")
 			.ContentPadding(0)
 			.Visibility(EVisibility::Visible)
 			.OnClicked_Lambda([InOutput, OutputIdentifier]()
@@ -1991,7 +1991,7 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 			})
 			[
 				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+				.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 			]
 		]
 	];
@@ -2163,16 +2163,16 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 			SNew(SVerticalBox) + SVerticalBox::Slot().FillHeight(1.0f).VAlign(VAlign_Center)
 			[
 				SAssignNew(AssetComboButton, SComboButton)
-				.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
-				.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+				.ButtonStyle(FAppStyle::Get(), "PropertyEditor.AssetComboStyle")
+				.ForegroundColor(FAppStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
 				/*.OnGetMenuContent(this, &FHoudiniOutputDetails::OnGetMaterialInterfaceMenuContent,
 				MaterialInterface, StaticMesh, InOutput, MaterialIdx)*/
 				.ContentPadding(2.0f)
 				.ButtonContent()
 				[
 					SNew(STextBlock)
-					.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
-					.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+					.TextStyle(FAppStyle::Get(), "PropertyEditor.AssetClass")
+					.Font(FAppStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
 					.Text(FText::FromString(MaterialName))
 				]
 			]
@@ -2227,14 +2227,14 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 		[
 			SNew(SButton)
 			.ToolTipText(LOCTEXT("ResetToBaseMaterial", "Reset to base material"))
-			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+			.ButtonStyle(FAppStyle::Get(), "NoBorder")
 			.ContentPadding(0)
 			.Visibility(EVisibility::Visible)
 			.OnClicked(
 				this, &FHoudiniOutputDetails::OnResetMaterialInterfaceClicked, StaticMesh, InOutput, MaterialIdx)
 			[
 				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+				.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 			]
 		];
 		*/
@@ -2333,9 +2333,9 @@ FHoudiniOutputDetails::GetThumbnailBorder(const TWeakObjectPtr<UObject> Mesh) co
 {
 	TSharedPtr<SBorder> ThumbnailBorder = OutputObjectThumbnailBorders[Mesh];
 	if (ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
-		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
+		return FAppStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
 	else
-		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
+		return FAppStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
 }
 
 
@@ -2349,9 +2349,9 @@ FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder(const TWeakObjectPtr<
 	TSharedPtr<SBorder> ThumbnailBorder = MaterialInterfaceThumbnailBorders[Pair];
 
 	if (ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
-		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
+		return FAppStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
 	else
-		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
+		return FAppStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
 }
 
 /*
@@ -2365,9 +2365,9 @@ FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder(ALandscapeProxy * Lan
 	TSharedPtr< SBorder > ThumbnailBorder = LandscapeMaterialInterfaceThumbnailBorders[Pair];
 
 	if (ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
-		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
+		return FAppStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
 	else
-		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
+		return FAppStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
 }
 */
 
@@ -3206,8 +3206,8 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 				[
 					//SNew(SSpacer)
 					SNew(STextBlock)
-					.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
-					.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+					.TextStyle(FAppStyle::Get(), "PropertyEditor.AssetClass")
+					.Font(FAppStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
 					.Text(FText::FromString(InstancerType))
 					//.Size(FVector2D(250, 64))
 				]
@@ -3270,9 +3270,9 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 					{
 						TSharedPtr<SBorder> ThumbnailBorder = WeakVariationThumbnailBorder.Pin();
 						if (ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
-							return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
+							return FAppStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
 						else
-							return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
+							return FAppStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
 					}
 				)));
 
@@ -3324,8 +3324,8 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 						[
 							SAssignNew(AssetComboButton, SComboButton)
 							//.ToolTipText( this, &FHoudiniAssetComponentDetails::OnGetToolTip )
-							.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
-							.ForegroundColor( FEditorStyle::GetColor( "PropertyEditor.AssetName.ColorAndOpacity" ) )
+							.ButtonStyle(FAppStyle::Get(), "PropertyEditor.AssetComboStyle")
+							.ForegroundColor( FAppStyle::GetColor( "PropertyEditor.AssetName.ColorAndOpacity" ) )
 							/* TODO: Update UI
 							.OnMenuOpenChanged( FOnIsOpenChanged::CreateUObject(
 								&InParam, &UHoudiniAssetInstanceInput::ChangedStaticMeshComboButton,
@@ -3335,8 +3335,8 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 							.ButtonContent()
 							[
 								SNew(STextBlock)
-								.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
-								.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+								.TextStyle(FAppStyle::Get(), "PropertyEditor.AssetClass")
+								.Font(FAppStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
 								.Text(FText::FromString(InstancedObject->GetName()))
 							]
 						]
@@ -3416,7 +3416,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 				[
 					SNew(SButton)
 					.ToolTipText(LOCTEXT( "ResetToBase", "Reset to default static mesh"))
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.ButtonStyle(FAppStyle::Get(), "NoBorder")
 					.ContentPadding(0)
 					.Visibility(EVisibility::Visible)
 					.OnClicked_Lambda([SetObjectAt, InOutput, CurOutputObjectIdentifier, VariationIdx]()
@@ -3430,7 +3430,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 					})
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+						.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 					]
 				];
 
@@ -3471,7 +3471,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 					SNew(STextBlock)
 					.Text(LabelPositionText)
 					.ToolTipText(LabelPositionText)
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				]
 				.ValueContent()
 				.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
@@ -3541,25 +3541,25 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 						+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Right).VAlign(VAlign_Center).Padding(0.0f)
 						[
 							SNew(SButton)
-							.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+							.ButtonStyle(FAppStyle::Get(), "NoBorder")
 							.ClickMethod(EButtonClickMethod::MouseDown)
 							.Visibility(EVisibility::Hidden)
 							[
 								SNew(SImage)
-								.Image(FEditorStyle::GetBrush("GenericLock"))
+								.Image(FAppStyle::GetBrush("GenericLock"))
 							]
 						]
 						// Reset Button
 						+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(0.0f)
 						[
 							SNew(SButton)
-							.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+							.ButtonStyle(FAppStyle::Get(), "NoBorder")
 							.ClickMethod(EButtonClickMethod::MouseDown)
 							.ToolTipText(LOCTEXT("InstancerOutputResetButtonToolTip", "Reset To Default"))
 							.Visibility(bResetButtonVisiblePosition ? EVisibility::Visible : EVisibility::Hidden)
 							[
 								SNew(SImage)
-								.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+								.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 							]
 							.OnClicked_Lambda([ChangeTransformOffsetUniformlyAt, CurInstanceOutput, InOutput]()
 							{
@@ -3578,7 +3578,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 					SNew(STextBlock)
 					.Text(LabelRotationText)
 					.ToolTipText(LabelRotationText)
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				]
 				.ValueContent()
 				.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
@@ -3648,25 +3648,25 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 						+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Right).VAlign(VAlign_Center).Padding(0.0f)
 						[
 							SNew(SButton)
-							.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+							.ButtonStyle(FAppStyle::Get(), "NoBorder")
 							.ClickMethod(EButtonClickMethod::MouseDown)
 							.Visibility(EVisibility::Hidden)
 							[
 								SNew(SImage)
-								.Image(FEditorStyle::GetBrush("GenericLock"))
+								.Image(FAppStyle::GetBrush("GenericLock"))
 							]
 						]
 						// Reset Button
 						+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(0.0f)
 						[
 							SNew(SButton)
-							.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+							.ButtonStyle(FAppStyle::Get(), "NoBorder")
 							.ClickMethod(EButtonClickMethod::MouseDown)
 							.ToolTipText(LOCTEXT("GeoInputResetButtonToolTip", "Reset To Default"))
 							.Visibility(bResetButtonVisibleRotation ? EVisibility::Visible : EVisibility::Hidden)
 							[
 								SNew(SImage)
-								.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+								.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 							]
 							.OnClicked_Lambda([ChangeTransformOffsetUniformlyAt, InOutput]()
 							{
@@ -3685,7 +3685,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 					SNew(STextBlock)
 					.Text(LabelScaleText)
 					.ToolTipText(LabelScaleText)
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				]
 				.ValueContent()
 				.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
@@ -3763,13 +3763,13 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 						+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Right).VAlign(VAlign_Center).Padding(0.0f)
 						[
 							SNew(SButton)
-							.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+							.ButtonStyle(FAppStyle::Get(), "NoBorder")
 							.ClickMethod(EButtonClickMethod::MouseDown)
 							.ToolTipText(LOCTEXT("InstancerOutputLockButtonToolTip", "When locked, scales uniformly based on the current xyz scale values so the output object maintains its shape in each direction when scaled"))
 							.Visibility(EVisibility::Visible)
 							[
 								SNew(SImage)
-								.Image(CurInstanceOutput.IsUnformScaleLocked() ? FEditorStyle::GetBrush("GenericLock") : FEditorStyle::GetBrush("GenericUnlock"))
+								.Image(CurInstanceOutput.IsUnformScaleLocked() ? FAppStyle::GetBrush("GenericLock") : FAppStyle::GetBrush("GenericUnlock"))
 							]
 							.OnClicked_Lambda([InOutput, CurOutputObjectIdentifier]() 
 							{
@@ -3787,13 +3787,13 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 						+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(0.0f)
 						[
 							SNew(SButton)
-							.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+							.ButtonStyle(FAppStyle::Get(), "NoBorder")
 							.ClickMethod(EButtonClickMethod::MouseDown)
 							.ToolTipText(LOCTEXT("GeoInputResetButtonToolTip", "Reset To Default"))
 							.Visibility(bResetButtonVisibleScale ? EVisibility::Visible : EVisibility::Hidden)
 							[
 								SNew(SImage)
-								.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+								.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 							]
 							.OnClicked_Lambda([ChangeTransformOffsetUniformlyAt, InOutput]()
 							{
@@ -3809,7 +3809,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 					[
 						// Add a checkbox to toggle between preserving the ratio of x,y,z components of scale when a value is entered
 						SNew(SCheckBox)
-						.Style(FEditorStyle::Get(), "TransparentCheckBox")
+						.Style(FAppStyle::Get(), "TransparentCheckBox")
 						.ToolTipText(LOCTEXT("PreserveScaleToolTip", "When locked, scales uniformly based on the current xyz scale values so the object maintains its shape in each direction when scaled"))
 						*//*
 						.OnCheckStateChanged(FOnCheckStateChanged::CreateLambda([=](ECheckBoxState NewState)
@@ -3833,9 +3833,9 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 								{
 									if ( InputFieldPtr.IsValid() && InputFieldPtr->AreOffsetsScaledLinearly( VariationIdx ) )
 									{
-										return FEditorStyle::GetBrush( TEXT( "GenericLock" ) );
+										return FAppStyle::GetBrush( TEXT( "GenericLock" ) );
 									}
-									return FEditorStyle::GetBrush( TEXT( "GenericUnlock" ) );
+									return FAppStyle::GetBrush( TEXT( "GenericUnlock" ) );
 								}
 							)))
 							*//*
@@ -3894,7 +3894,7 @@ FHoudiniOutputDetails::CreateDefaultOutputWidget(
 			SNew(STextBlock)
 			.Text(OutputNameTxt)
 			.ToolTipText(OutputTooltip)
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+			.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 		// Value
 		FText OutputTypeTxt = GetOutputDebugDescription(InOutput);
@@ -3902,7 +3902,7 @@ FHoudiniOutputDetails::CreateDefaultOutputWidget(
 			SNew(STextBlock)
 			.Text(OutputTypeTxt)
 			.ToolTipText(OutputTooltip)
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+			.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 		Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 	}

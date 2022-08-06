@@ -771,7 +771,7 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 	
 		if (GeometryCollection->HasAttribute("Level", FGeometryCollection::TransformGroup))
 		{
-			TManagedArray<int32>& Levels = GeometryCollection->GetAttribute<int32>("Level", FGeometryCollection::TransformGroup);
+			const TManagedArray<int32>& Levels = GeometryCollection->GetAttribute<int32>("Level", FGeometryCollection::TransformGroup);
 			Level = Levels[GeometryIndex];
 		}
 

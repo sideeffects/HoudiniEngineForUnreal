@@ -5482,7 +5482,7 @@ FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
 		{
 			MaterialPackageParams.GetBakeCounterFromBakedAsset(PreviousBakeMaterial, BakeCounter);
 
-			PreviousBakeMaterialExpressions = PreviousMaterialCast->Expressions;
+			PreviousBakeMaterialExpressions = PreviousMaterialCast->GetExpressionCollection().Expressions;
 		}
 	}
 	
@@ -5515,10 +5515,10 @@ FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
 	UMaterial * DuplicatedMaterialCast = Cast<UMaterial>(DuplicatedMaterial);
 	if (DuplicatedMaterialCast)
 	{
-		const int32 NumExpressions = DuplicatedMaterialCast->Expressions.Num();
+		const int32 NumExpressions = DuplicatedMaterialCast->GetExpressions().Num();
 		for (int32 ExpressionIdx = 0; ExpressionIdx < NumExpressions; ++ExpressionIdx)
 		{
-			UMaterialExpression* Expression = DuplicatedMaterialCast->Expressions[ExpressionIdx];
+			UMaterialExpression* Expression = DuplicatedMaterialCast->GetExpressions()[ExpressionIdx];
 			UMaterialExpression* PreviousBakeExpression = nullptr;
 			if (bIsPreviousBakeMaterialValid && PreviousBakeMaterialExpressions.IsValidIndex(ExpressionIdx))
 			{

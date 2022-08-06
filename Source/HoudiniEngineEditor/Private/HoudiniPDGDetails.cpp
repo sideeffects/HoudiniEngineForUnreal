@@ -287,7 +287,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 			+ SHorizontalBox::Slot().FillWidth(1.0f)
 			[
 				SNew(SEditableTextBox)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				.ToolTipText(Tooltip)
 				.Text_Lambda([InPDGAssetLink]()
 				{
@@ -307,7 +307,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 			[
 				SNew(SButton)
 				.ToolTipText(LOCTEXT("RevertToDefault", "Revert to default"))
-				.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+				.ButtonStyle(FAppStyle::Get(), "NoBorder")
 				.ContentPadding(0)
 				.Visibility(EVisibility::Visible)
 				.OnClicked_Lambda([=]()
@@ -318,7 +318,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 				})
 				[
 					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+					.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 				]
 			];
 	}
@@ -401,7 +401,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 			+ SHorizontalBox::Slot().FillWidth(1.0f)
 			[
 				SNew(SEditableTextBox)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				.Text_Lambda([InPDGAssetLink]()
 				{
 					if (!IsValidWeakPointer(InPDGAssetLink))
@@ -421,7 +421,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 			[
 				SNew(SButton)
 				.ToolTipText(LOCTEXT("RevertToDefault", "Revert to default"))
-				.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+				.ButtonStyle(FAppStyle::Get(), "NoBorder")
 				.ContentPadding(0)
 				.Visibility(EVisibility::Visible)
 				.OnClicked_Lambda([ChangeTOPOutputFilter]()
@@ -432,7 +432,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 				})
 				[
 					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+					.Image(FAppStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 				]
 			];
 	}
@@ -741,7 +741,7 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 			[
 				SNew(SBorder)
 				.IsEnabled_Lambda([InAssetLink]() { return IsPDGLinked(InAssetLink); })
-				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
 				.BorderBackgroundColor(FSlateColor(FLinearColor(0.6, 0.6, 0.6)))
 				.Padding(FMargin(1.0f, 5.0f))
 				[
@@ -770,7 +770,7 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 			[
 				SNew(SBorder)
 				.IsEnabled_Lambda([InAssetLink]() { return IsPDGLinked(InAssetLink); })
-				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
 				.BorderBackgroundColor(FSlateColor(FLinearColor(0.8, 0.8, 0.8)))
 				.Padding(FMargin(1.0f, 5.0f))
 				[
@@ -975,7 +975,7 @@ FHoudiniPDGDetails::AddTOPNetworkWidget(
 					.Text(ChoiceEntryText)
 					.ToolTipText(ChoiceEntryToolTip)
 					.Margin(2.0f)
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+					.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 				})
 				.OnSelectionChanged_Lambda([OnTOPNetChanged](TSharedPtr<FTextAndTooltip> NewChoice, ESelectInfo::Type SelectType)
 				{
@@ -1002,7 +1002,7 @@ FHoudiniPDGDetails::AddTOPNetworkWidget(
 							return FText();
 						}
 					})
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				]
 			];
 	}
@@ -1485,7 +1485,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 					.Text(ChoiceEntryText)
 					.ToolTipText(ChoiceEntryToolTip)
 					.Margin(2.0f)
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+					.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 				})
 				.OnSelectionChanged_Lambda([OnTOPNodeChanged](TSharedPtr<FTextAndTooltip> NewChoice, ESelectInfo::Type SelectType)
 				{
@@ -1515,7 +1515,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 							return FText();
 						}
 					})
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				]
 			]
 			+ SHorizontalBox::Slot()
@@ -1525,7 +1525,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 				SAssignNew(ErrorText, STextBlock)
 				.Text(FText::FromString(NodeErrorText))
 				.ToolTipText(FText::FromString(NodeErrorText))
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				.ColorAndOpacity(FLinearColor::Red)
 				//.ShadowColorAndOpacity(FLinearColor::Black)
 			];
@@ -2263,7 +2263,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 				return SNew(STextBlock)
 						.Text(ChoiceEntryText)
 						.ToolTipText(ChoiceEntryText)
-						.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+						.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 			})
 			.OnSelectionChanged_Lambda(
 				[InPDGAssetLink](TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType)
@@ -2297,7 +2297,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 				{
 					return FText::FromString(FHoudiniEngineEditor::Get().GetStringFromHoudiniEngineBakeOption(InPDGAssetLink->HoudiniEngineBakeOption));
 				})
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		]
 	];
@@ -2331,7 +2331,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 				return SNew(STextBlock)
 						.Text(ChoiceEntryText)
 						.ToolTipText(ChoiceEntryText)
-						.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+						.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 			})
 			.OnSelectionChanged_Lambda(
 				[InPDGAssetLink](TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType)
@@ -2363,7 +2363,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 					return FText::FromString(
 						FHoudiniEngineEditor::Get().GetStringFromPDGBakeTargetOption(InPDGAssetLink->PDGBakeSelectionOption));
 				})
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		]
 	];
@@ -2432,7 +2432,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 				return SNew(STextBlock)
 						.Text(ChoiceEntryText)
 						.ToolTipText(ChoiceEntryText)
-						.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+						.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 			})
 			.OnSelectionChanged_Lambda(
 				[InPDGAssetLink](TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType)
@@ -2464,7 +2464,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 					return FText::FromString(
 						FHoudiniEngineEditor::Get().GetStringFromPDGBakePackageReplaceModeOption(InPDGAssetLink->PDGBakePackageReplaceMode));
 				})
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		]
 	];
@@ -2512,7 +2512,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 				"unreal_bake_folder attribute is not set on the geometry. If this value is blank, the default from the "
 				"plugin settings is used."))
 			.HintText(LOCTEXT("HoudiniEngineBakeFolderHintText", "Input to set bake folder"))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			.Text_Lambda([InPDGAssetLink](){ return FText::FromString(InPDGAssetLink->BakeFolder.Path); })
 			.OnTextCommitted_Lambda(OnBakeFolderTextCommittedLambda)
 		]
@@ -2563,7 +2563,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
             [
                 SNew(STextBlock).Text(LOCTEXT("HoudiniEngineUIRecenterBakedActorsCheckBox", "Recenter Baked Actors"))
                 .ToolTipText(LOCTEXT("HoudiniEngineUIRecenterBakedActorsCheckBoxToolTip", "After baking recenter the baked actors to their bounding box center."))
-                .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+                .Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
             ]
             .IsChecked_Lambda([InPDGAssetLink]()
             {
@@ -2604,7 +2604,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
             [
                 SNew(STextBlock).Text(LOCTEXT("HoudiniEngineUIAutoBakeCheckBox", "Auto Bake"))
                 .ToolTipText(LOCTEXT("HoudiniEngineUIAutoBakeCheckBoxToolTip", "Automatically bake work result object as they are loaded."))
-                .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+                .Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
             ]
             .IsChecked_Lambda([InPDGAssetLink]()
             {
