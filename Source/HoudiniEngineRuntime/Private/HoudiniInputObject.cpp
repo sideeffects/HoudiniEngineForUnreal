@@ -970,7 +970,7 @@ UHoudiniInputObject::UpdateMaterialReferences()
 			const UStaticMesh* SM = Cast<UStaticMesh>(InObject);
 			ensure(SM);
 
-			const TArray<FStaticMaterial> Materials = SM->GetStaticMaterials();
+			const TArray<FStaticMaterial> Materials = SM->StaticMaterials;
 			for (const FStaticMaterial& Material : Materials)
 			{
 				FString AssetReference = FormatAssetReference(Material.MaterialInterface->GetFullName());
@@ -984,7 +984,7 @@ UHoudiniInputObject::UpdateMaterialReferences()
 			const USkeletalMesh* SK = Cast<USkeletalMesh>(InObject);
 			ensure(SK);
 
-			const TArray<FSkeletalMaterial> Materials = SK->GetMaterials();
+			const TArray<FSkeletalMaterial> Materials = SK->Materials;
 			for (const FSkeletalMaterial& Material : Materials)
 			{
 				FString AssetReference = FormatAssetReference(Material.MaterialInterface->GetFullName());
@@ -1018,7 +1018,7 @@ UHoudiniInputObject::UpdateMaterialReferences()
 
 			// Use the override materials from the Instancer if available, otherwise use the original materials from the instanced Static Mesh
 			const TArray<UMaterialInterface*> OverrideMaterials = FT->OverrideMaterials;
-			const TArray<FStaticMaterial> StaticMaterials = SM->GetStaticMaterials();
+			const TArray<FStaticMaterial> StaticMaterials = SM->StaticMaterials;
 			for (const UObject* Material : OverrideMaterials)
 			{
 				FString AssetReference = FormatAssetReference(Material->GetFullName());
