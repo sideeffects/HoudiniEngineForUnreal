@@ -140,7 +140,16 @@ public:
 
 	void SetImportAsReferenceBboxEnabled(const bool& bInImportAsRefBboxEnabled) { bImportAsReferenceBboxEnabled = bInImportAsRefBboxEnabled; };
 	bool GetImportAsReferenceBboxEnabled() const { return bImportAsReferenceBboxEnabled; };
+
+	void SetImportAsReferenceMaterialEnabled(const bool& bInImportAsRefMaterialEnabled) { bImportAsReferenceMaterialEnabled = bInImportAsRefMaterialEnabled; }
+	bool GetImportAsReferenceMaterialEnabled() const { return bImportAsReferenceMaterialEnabled; };
 	
+	const TArray<FString>& GetMaterialReferences();
+
+	// Formats Input Reference path strings obtained by UObject::GetFullName() of format:
+	//`Material /path/to/asset` and adds single quotes: `Material'/path/to/asset'`
+	static FString FormatAssetReference(FString AssetReference);
+
 #if WITH_EDITOR
 	void SwitchUniformScaleLock() { bUniformScaleLocked = !bUniformScaleLocked; };
 	bool IsUniformScaleLocked() const { return bUniformScaleLocked; };
@@ -176,6 +185,9 @@ protected:
 	virtual bool UsesInputObjectNode() const { return true; }
 
 	virtual void BeginDestroy() override;
+
+	// If this type of input object has materials, this function updates its list of string material references.
+	void UpdateMaterialReferences();
 
 public:
 
@@ -227,6 +239,15 @@ protected:
 
 	UPROPERTY()
 	bool bImportAsReferenceBboxEnabled;
+
+	UPROPERTY()
+	bool bImportAsReferenceMaterialEnabled;
+
+	// String References to the materials on the input object.
+	// This is used when sending input by reference to Houdini.
+	// These strings are in the form of: Material'/path/to/reference'
+	UPROPERTY()
+	TArray<FString> MaterialReferences;
 	
 	// Indicates if change the scale of Transfrom Offset of this object uniformly
 #if WITH_EDITORONLY_DATA
@@ -378,10 +399,6 @@ public:
 	// Keep track of the selected Static Mesh
 	UPROPERTY()
 	TSoftObjectPtr<class UStaticMesh> StaticMesh = nullptr;
-
-	// Path to the materials assigned on the SMC
-	UPROPERTY()
-	TArray<FString> MeshComponentsMaterials;
 };
 
 
@@ -976,3 +993,4 @@ protected:
 	UPROPERTY()
 		int32 LastUpdateNumComponentsRemoved;
 };
+
