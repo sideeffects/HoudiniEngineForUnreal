@@ -89,7 +89,9 @@ bool FUnrealFoliageTypeTranslator::CreateInputNodeForReference(
 	FUnrealObjectInputHandle& OutHandle,
 	const bool& bInputNodesCanBeDeleted,
 	const bool& bImportAsReferenceBboxEnabled,
-	const FBox& InBbox)
+	const FBox& InBbox,
+	const bool& bImportAsReferenceMaterialEnabled,
+	const TArray<FString>& MaterialReferences)
 {
 	if (!IsValid(InFoliageType))
 		return true;
@@ -117,7 +119,9 @@ bool FUnrealFoliageTypeTranslator::CreateInputNodeForReference(
 		OutHandle,
 		bInputNodesCanBeDeleted,
 		bImportAsReferenceBboxEnabled,
-		InBbox);
+		InBbox,
+		bImportAsReferenceMaterialEnabled,
+		MaterialReferences);
 
 	if (!bSuccess)
 		return false;
