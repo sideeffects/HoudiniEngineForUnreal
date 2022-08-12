@@ -78,7 +78,7 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 			TSharedRef<SVerticalBox> InVerticalBox,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
-		static void AddImportAsReferenceCheckbox(
+		static void AddImportAsReferenceCheckboxes(
 			TSharedRef< SVerticalBox > VerticalBox,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
