@@ -1952,6 +1952,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 		// Start by getting the Object's full name
 		FString AssetReference = SM->GetFullName();
 
+		// Replace the first space to '\''
+		for (int32 Itr = 0; Itr < AssetReference.Len(); Itr++)
 		{
 			if (AssetReference[Itr] == ' ')
 			{
