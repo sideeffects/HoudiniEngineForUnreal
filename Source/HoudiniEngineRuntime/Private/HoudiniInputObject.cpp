@@ -75,6 +75,10 @@ UHoudiniInputObject::UHoudiniInputObject(const FObjectInitializer& ObjectInitial
 	, bNeedsToTriggerUpdate(false)
 	, bTransformChanged(false)
 	, bImportAsReference(false)
+	, bImportAsReferenceRotScaleEnabled(false)
+	, bImportAsReferenceBboxEnabled(false)
+	, bImportAsReferenceMaterialEnabled(false)
+	, MaterialReferences()
 	, bCanDeleteHoudiniNodes(true)
 {
 	Guid = FGuid::NewGuid();
@@ -265,6 +269,13 @@ UHoudiniInputObject::MarkChanged(const bool& bInChanged)
 	
 	if (bInChanged && InputNodeHandle.IsValid())
 		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier());
+}
+
+const TArray<FString>&
+UHoudiniInputObject::GetMaterialReferences()
+{
+	UpdateMaterialReferences();
+	return MaterialReferences;
 }
 
 UStaticMesh*
@@ -528,6 +539,7 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 
 		case EHoudiniInputObjectType::Blueprint:
 			HoudiniInputObject = UHoudiniInputBlueprint::Create(InObject, InOuter, InName);
+			break;
 
 		case EHoudiniInputObjectType::Invalid:
 		default:
@@ -925,6 +937,126 @@ UHoudiniInputObject::Update(UObject * InObject)
 	InputObject = InObject;
 }
 
+FString UHoudiniInputObject::FormatAssetReference(FString AssetReference) {
+	// Replace the first space with a single quote
+	for (int32 Itr = 0; Itr < AssetReference.Len(); Itr++)
+	{
+		if (AssetReference[Itr] == ' ')
+		{
+			AssetReference[Itr] = '\'';
+			break;
+		}
+	}
+
+	// Attach another single quote to the end
+	AssetReference += FString("'");
+	return AssetReference;
+}
+
+void
+UHoudiniInputObject::UpdateMaterialReferences()
+{
+	UObject* InObject = GetObject();
+	if (!InObject)
+		return;
+
+	MaterialReferences.Empty();
+
+	EHoudiniInputObjectType InputObjectType = GetInputObjectTypeFromObject(InObject);
+	switch (InputObjectType)
+	{
+		case EHoudiniInputObjectType::StaticMesh:
+		{
+			const UStaticMesh* SM = Cast<UStaticMesh>(InObject);
+			ensure(SM);
+
+			const TArray<FStaticMaterial> Materials = SM->GetStaticMaterials();
+			for (const FStaticMaterial& Material : Materials)
+			{
+				FString AssetReference = FormatAssetReference(Material.MaterialInterface->GetFullName());
+				MaterialReferences.Add(AssetReference);
+			}
+			break;
+		}
+
+		case EHoudiniInputObjectType::SkeletalMesh:
+		{
+			const USkeletalMesh* SK = Cast<USkeletalMesh>(InObject);
+			ensure(SK);
+
+			const TArray<FSkeletalMaterial> Materials = SK->GetMaterials();
+			for (const FSkeletalMaterial& Material : Materials)
+			{
+				FString AssetReference = FormatAssetReference(Material.MaterialInterface->GetFullName());
+				MaterialReferences.Add(AssetReference);
+			}
+			break;
+		}
+
+		case EHoudiniInputObjectType::StaticMeshComponent:
+		case EHoudiniInputObjectType::SkeletalMeshComponent:
+		case EHoudiniInputObjectType::GeometryCollectionComponent:
+		{
+			const UMeshComponent* MC = Cast<UMeshComponent>(InObject);
+			ensure(MC);
+
+			const TArray<UMaterialInterface*> Materials = MC->GetMaterials();
+			for (const UObject* Material : Materials)
+			{
+				FString AssetReference = FormatAssetReference(Material->GetFullName());
+				MaterialReferences.Add(AssetReference);
+			}
+
+			break;
+		}
+
+		case EHoudiniInputObjectType::FoliageType_InstancedStaticMesh:
+		{
+			const UFoliageType_InstancedStaticMesh* FT = Cast<UFoliageType_InstancedStaticMesh>(InObject);
+			ensure(FT);
+			const UStaticMesh* SM = FT->GetStaticMesh();
+
+			// Use the override materials from the Instancer if available, otherwise use the original materials from the instanced Static Mesh
+			const TArray<UMaterialInterface*> OverrideMaterials = FT->OverrideMaterials;
+			const TArray<FStaticMaterial> StaticMaterials = SM->GetStaticMaterials();
+			for (const UObject* Material : OverrideMaterials)
+			{
+				FString AssetReference = FormatAssetReference(Material->GetFullName());
+				MaterialReferences.Add(AssetReference);
+			}
+			
+			if (OverrideMaterials.Num() == 0)
+				break;
+
+			for (const FStaticMaterial& Material : StaticMaterials)
+			{
+				FString AssetReference = FormatAssetReference(Material.MaterialInterface->GetFullName());
+				MaterialReferences.Add(AssetReference);
+			}
+
+			break;
+		}
+
+		case EHoudiniInputObjectType::GeometryCollection:
+		{
+			UGeometryCollection* const GC = Cast<UGeometryCollection>(InObject);
+			ensure(GC);
+
+			const TArray<UMaterialInterface*> Materials = GC->Materials;
+
+			for (const UObject* Material : Materials)
+			{
+				FString AssetReference = FormatAssetReference(Material->GetFullName());
+				MaterialReferences.Add(AssetReference);
+			}
+			break;
+		}
+
+		default:
+			break;
+	}
+}
+
 void
 UHoudiniInputStaticMesh::Update(UObject * InObject)
 {
@@ -1100,24 +1232,7 @@ UHoudiniInputMeshComponent::Update(UObject * InObject)
 
 	UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(InObject);
 
-	// Empty the materials array here!, else it will continuously keep growing
-	// and bloat the size of the HAC for nothing
-	MeshComponentsMaterials.Empty();
-	
 	ensure(SMC);
-
-	if (SMC)
-	{
-		StaticMesh = TSoftObjectPtr<UStaticMesh>(SMC->GetStaticMesh());
-
-		TArray<UMaterialInterface*> Materials = SMC->GetMaterials();
-		for (auto CurrentMat : Materials)
-		{
-			// TODO: Update material ref here
-			FString MatRef;
-			MeshComponentsMaterials.Add(MatRef);
-		}
-	}
 }
 
 void
