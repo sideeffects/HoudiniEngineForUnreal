@@ -422,7 +422,7 @@ FUnrealObjectInputNode::AddRef() const
 	if (!IsRefCounted())
 		return false;
 	
-	static_cast<uint32>(FPlatformAtomics::InterlockedIncrement(&ReferenceCount));
+	FPlatformAtomics::InterlockedIncrement(&ReferenceCount);
 	return true;
 }
 
@@ -439,7 +439,7 @@ FUnrealObjectInputNode::RemoveRef() const
 	}
 #endif
 
-	static_cast<uint32>(FPlatformAtomics::InterlockedDecrement(&ReferenceCount));
+	FPlatformAtomics::InterlockedDecrement(&ReferenceCount);
 	return true;
 }
 
