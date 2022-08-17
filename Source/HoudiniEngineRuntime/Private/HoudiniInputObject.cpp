@@ -939,7 +939,7 @@ UHoudiniInputObject::UpdateMaterialReferences()
 				MaterialReferences.Add(AssetReference);
 			}
 			
-			if (OverrideMaterials.Num() == 0)
+			if (OverrideMaterials.Num() > 0)
 				break;
 
 			for (const FStaticMaterial& Material : StaticMaterials)
