@@ -25,7 +25,7 @@
 */
 
 #include "UnrealObjectInputRuntimeTypes.h"
-
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "CoreMinimal.h"
 #include "UObject/Package.h"
 #include "Templates/Casts.h"
@@ -422,7 +422,7 @@ FUnrealObjectInputNode::AddRef() const
 	if (!IsRefCounted())
 		return false;
 	
-	static_cast<uint32>(FPlatformAtomics::InterlockedIncrement(&ReferenceCount));
+	FPlatformAtomics::InterlockedIncrement(&ReferenceCount);
 	return true;
 }
 
@@ -439,7 +439,7 @@ FUnrealObjectInputNode::RemoveRef() const
 	}
 #endif
 
-	static_cast<uint32>(FPlatformAtomics::InterlockedDecrement(&ReferenceCount));
+	FPlatformAtomics::InterlockedDecrement(&ReferenceCount);
 	return true;
 }
 
