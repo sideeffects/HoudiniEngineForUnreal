@@ -398,17 +398,32 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 			return true;
 		}
 
-		// If this is a UStaticMesh, set the default collision profile name on the static mesh.
+		FBodyInstance* FoundBodyInst = nullptr;
+
+		// If this is a UStaticMesh, get its default body instance
 		UStaticMesh* SM = Cast<UStaticMesh>(InObject);
 		if (IsValid(SM))
+		{
+			if (IsValid(SM->BodySetup))
+			{
+				FoundBodyInst = &(SM->BodySetup->DefaultInstance);
+			}
+		}
+
+		// If this is a Landscape, get its body instance
+		ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(InObject);
+		if (IsValid(Landscape))
+		{
+			FoundBodyInst = &(Landscape->BodyInstance);
+		}
+		
+		// Set the default collision profile name on the found body instance.
+		if (FoundBodyInst != nullptr)
 		{
 			FString StringValue = InPropertyAttribute.GetStringValue(AtIndex);
 			FName Value = FName(*StringValue);
 
-			if (IsValid(SM->BodySetup))
-			{
-				SM->BodySetup->DefaultInstance.SetCollisionProfileName(Value);
-			}
+			FoundBodyInst->SetCollisionProfileName(Value);
 
 			return true;
 		}
@@ -456,28 +471,52 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 			Component->SetCastShadow(Value);
 			return true;
 		}
+
+		ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(InObject);
+		if (IsValid(Landscape))
+		{
+			bool Value = InPropertyAttribute.GetBoolValue(AtIndex);
+			Landscape->CastShadow = Value;
+			return true;
+		}
+
 		return false;
 	}
 
 	// Handle Component Tags manually here
 	if (PropertyName.Contains("Tags"))
 	{
-		UActorComponent* AC = Cast< UActorComponent >(InObject);
+		TArray<FName>* FoundTags = nullptr;
+		// Get the componentTags array
+		UActorComponent* AC = Cast<UActorComponent>(InObject);
 		if (IsValid(AC))
 		{
+			FoundTags = &(AC->ComponentTags);
+		}
+
+		// If this is a Landscape, get its Tags array
+		ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(InObject);
+		if (IsValid(Landscape))
+		{
+			FoundTags = &(Landscape->Tags);
+		}
+
+		if (FoundTags != nullptr)
+		{
 			FName NameAttr = FName(*InPropertyAttribute.GetStringValue(AtIndex));
-			if (!AC->ComponentTags.Contains(NameAttr))
-				AC->ComponentTags.Add(NameAttr);
+			if (!FoundTags->Contains(NameAttr))
+				FoundTags->Add(NameAttr);
 			/*
 			for (int nIdx = 0; nIdx < InPropertyAttribute.AttributeCount; nIdx++)
 			{
 				FName NameAttr = FName(*InPropertyAttribute.GetStringValue(nIdx));
-				if (!AC->ComponentTags.Contains(NameAttr))
-					AC->ComponentTags.Add(NameAttr);
+				if (!FoundTags->Contains(NameAttr))
+					FoundTags->Add(NameAttr);
 			}
 			*/
 			return true;
 		}
+
 		return false;
 	}
 #if WITH_EDITOR
