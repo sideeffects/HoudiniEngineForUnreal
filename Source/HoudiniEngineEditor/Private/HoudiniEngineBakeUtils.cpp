@@ -1341,23 +1341,25 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 	bool bSpawnMultipleSMC = false;
 	if (bSpawnMultipleSMC)
 	{
-		// TODO: Double check, Has a crash here!
+		// Deactivated for now, as generating multiple actors curently has issues with BakeReplace mode.
+		// A similar result could be achieve by specifying individual actor names and splitting the instancer to multiple components
+		// (via unreal_bake_actor and unreal_split_attr)
 		// Get the StaticMesh ActorFactory
-		UActorFactory* ActorFactory = nullptr;
 		TSubclassOf<AActor> BakeActorClass = nullptr;
-		if (!FoundActor)
-		{
-			ActorFactory = GetActorFactory(NAME_None, BakeActorClass, UActorFactoryEmptyActor::StaticClass(), BakedStaticMesh);
-
-			if (!ActorFactory)
-				return false;
-		}
+		UActorFactory* ActorFactory = GetActorFactory(NAME_None, BakeActorClass, UActorFactoryStaticMesh::StaticClass(), BakedStaticMesh);
+		if (!ActorFactory)
+			return false;
 
 		// Split the instances to multiple StaticMeshActors
 		for (int32 InstanceIdx = 0; InstanceIdx < InISMC->GetInstanceCount(); InstanceIdx++)
 		{
 			FTransform InstanceTransform;
 			InISMC->GetInstanceTransform(InstanceIdx, InstanceTransform, true);
+
+			FName BakeActorNameWithIndex = FName(BakeActorName.ToString() + _T("_instance_") + FString::FromInt(InstanceIdx), InstanceIdx);
+			FoundActor = nullptr;
+			if (!FindUnrealBakeActor(InOutputObject, InBakedOutputObject, InBakedActors, DesiredLevel, *InstancerName, bInReplaceActors, InFallbackActor, FoundActor, bHasBakeActorName, BakeActorName))
+				return false;
 
 			if (!FoundActor)
 			{
