@@ -1353,7 +1353,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 			FTransform InstanceTransform;
 			InISMC->GetInstanceTransform(InstanceIdx, InstanceTransform, true);
 
-			FName BakeActorNameWithIndex = FName(BakeActorName.ToString() + _T("_instance_") + FString::FromInt(InstanceIdx), InstanceIdx);
+			FName BakeActorNameWithIndex = FName(BakeActorName.ToString() + "_instance_" + FString::FromInt(InstanceIdx), InstanceIdx);
 			FoundActor = nullptr;
 			if (!FindUnrealBakeActor(InOutputObject, InBakedOutputObject, InBakedActors, DesiredLevel, *InstancerName, bInReplaceActors, InFallbackActor, FoundActor, bHasBakeActorName, BakeActorName))
 				return false;
