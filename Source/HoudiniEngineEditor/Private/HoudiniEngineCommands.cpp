@@ -40,7 +40,6 @@
 #include "HoudiniOutput.h"
 #include "HoudiniEngineStyle.h"
 #include "HoudiniEngineDetails.h"
-#include "UnrealObjectInputManager.h"
 
 #include "DesktopPlatformModule.h"
 #include "Interfaces/IMainFrameModule.h"
