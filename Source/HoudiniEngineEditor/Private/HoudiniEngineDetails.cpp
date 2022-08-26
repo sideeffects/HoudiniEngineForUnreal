@@ -39,6 +39,10 @@
 #include "HoudiniPackageParams.h"
 #include "HoudiniEngineEditor.h"
 #include "HoudiniEngineEditorUtils.h"
+#include "HoudiniEngineStyle.h"
+#include "HoudiniApi.h"
+#include "HoudiniEngine.h"
+#include "HAPI/HAPI_Version.h"
 
 #include "CoreMinimal.h"
 #include "DetailCategoryBuilder.h"
@@ -54,6 +58,7 @@
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "Brushes/SlateImageBrush.h"
 #include "Widgets/Input/SComboBox.h"
+#include "Widgets/Text/SRichTextBlock.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "ActorPickerMode.h"
 #include "SceneOutlinerModule.h"
@@ -66,6 +71,8 @@
 #include "ScopedTransaction.h"
 #include "SEnumCombobox.h"
 #include "HAL/FileManager.h"
+#include "HAL/PlatformApplicationMisc.h"
+#include "ActorTreeItem.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -1684,6 +1691,301 @@ FHoudiniEngineDetails::CreateHelpAndDebugWidgets(
 	];
 
 	ButtonRow.WholeRowWidget.Widget = ButtonRowHorizontalBox;
+}
+
+FString
+FormatHoudiniVersionString(int32 VersionMajor, int32 VersionMinor, int32 VersionBuild, int32 VersionPatch)
+{
+	return FString::Printf(TEXT("%d.%d.%d.%d"), VersionMajor, VersionMinor, VersionBuild, VersionPatch);
+}
+
+FString
+FormatEngineVersionString(int32 VersionMajor, int32 VersionMinor, int32 VersionApi)
+{
+	return FString::Printf(TEXT("%d.%d.%d"), VersionMajor, VersionMinor, VersionApi);
+}
+
+void
+CreateInstallInfoStrings(FString &InstallInfo, FString &InstallInfoStyled)
+{
+	FString VersionHoudiniBuilt = FormatHoudiniVersionString(
+		HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD, HAPI_VERSION_HOUDINI_PATCH);
+	FString VersionEngineBuilt = FormatEngineVersionString(
+		HAPI_VERSION_HOUDINI_ENGINE_MAJOR, HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API);
+	FString VersionHoudiniRunning;
+	FString VersionEngineRunning;
+
+	// Add running against Houdini version.
+	{
+		int32 RunningMajor = 0;
+		int32 RunningMinor = 0;
+		int32 RunningBuild = 0;
+		int32 RunningPatch = 0;
+
+		if (FHoudiniApi::IsHAPIInitialized())
+		{
+			const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+			// Retrieve version numbers for running Houdini.
+			FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_MAJOR, &RunningMajor);
+			FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_MINOR, &RunningMinor);
+			FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_BUILD, &RunningBuild);
+			FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_PATCH, &RunningPatch);
+
+			VersionHoudiniRunning = FormatHoudiniVersionString(
+				RunningMajor, RunningMinor, RunningBuild, RunningPatch);
+		}
+		else
+			VersionHoudiniRunning = TEXT("Unknown");
+	}
+
+	// Add running against Houdini Engine version.
+	{
+		int32 RunningEngineMajor = 0;
+		int32 RunningEngineMinor = 0;
+		int32 RunningEngineApi = 0;
+
+		if (FHoudiniApi::IsHAPIInitialized())
+		{
+			const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+			// Retrieve version numbers for running Houdini Engine.
+			FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
+			FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
+			FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
+
+			VersionEngineRunning = FormatEngineVersionString(
+				RunningEngineMajor, RunningEngineMinor, RunningEngineApi);
+		}
+		else
+			VersionHoudiniRunning = "Unknown";
+	}
+
+	// Add path of libHAPI.
+	FString LibHAPILocation = FHoudiniEngine::Get().GetLibHAPILocation();
+	if (LibHAPILocation.IsEmpty())
+		LibHAPILocation = TEXT("Not Found");
+
+	FString HoudiniExecutable = FHoudiniEngine::Get().GetHoudiniExecutable();
+
+	// Add licensing info.
+	FString HAPILicenseType = TEXT("");
+	if (!FHoudiniEngineUtils::GetLicenseType(HAPILicenseType))
+		HAPILicenseType = TEXT("Unknown");
+
+	FString HoudiniSessionStatus;
+	switch (FHoudiniEngine::Get().GetSessionStatus()) {
+	case EHoudiniSessionStatus::Invalid:
+		HoudiniSessionStatus = TEXT("Invalid");
+		break;
+	case EHoudiniSessionStatus::NotStarted:
+		HoudiniSessionStatus = TEXT("NotStarted");
+		break;
+	case EHoudiniSessionStatus::Connected:
+		HoudiniSessionStatus = TEXT("Connected");
+		break;
+	case EHoudiniSessionStatus::None:
+		HoudiniSessionStatus = TEXT("None");
+		break;
+	case EHoudiniSessionStatus::Stopped:
+		HoudiniSessionStatus = TEXT("Stopped");
+		break;
+	case EHoudiniSessionStatus::Failed:
+		HoudiniSessionStatus = TEXT("Failed");
+		break;
+	case EHoudiniSessionStatus::Lost:
+		HoudiniSessionStatus = TEXT("Lost");
+		break;
+	case EHoudiniSessionStatus::NoLicense:
+		HoudiniSessionStatus = TEXT("NoLicense");
+		break;
+	}
+
+	const FString InstallInfoFormat = TEXT(
+R"""(Plugin was built with:
+  Houdini: {0}
+  HoudiniEngine: {1}
+
+Plugin is running with:
+  Houdini: {2}
+  HoudiniEngine: {3}
+
+Houdini Executable Type: {4}
+HoudiniEngine Library Location: {5}
+
+License Type Acquired: {6}
+Current Session Status: {7})""");
+
+	const FString InstallInfoFormatStyled = TEXT(
+R"""(<InstallInfo.Bold>Plugin was built with</>:
+  <InstallInfo.Italic>Houdini</>: {0}
+  <InstallInfo.Italic>HoudiniEngine</>: {1}
+
+<InstallInfo.Bold>Plugin is running with</>:
+  <InstallInfo.Italic>Houdini</>: {2}
+  <InstallInfo.Italic>HoudiniEngine</>: {3}
+
+<InstallInfo.Italic>Houdini Executable Type</>: {4}
+<InstallInfo.Italic>HoudiniEngine Library Location</>: {5}
+
+<InstallInfo.Italic>License Type Acquired</>: {6}
+<InstallInfo.Italic>Current Session Status</>: {7})""");
+
+	TArray<FStringFormatArg> Args
+	{
+		VersionHoudiniBuilt,
+		VersionEngineBuilt,
+		VersionHoudiniRunning,
+		VersionEngineRunning,
+		HoudiniExecutable,
+		LibHAPILocation,
+		HAPILicenseType,
+		HoudiniSessionStatus
+	};
+
+	InstallInfo = FString::Format(*InstallInfoFormat, Args);
+	InstallInfoStyled = FString::Format(*InstallInfoFormatStyled, Args);
+}
+
+void
+FHoudiniEngineDetails::CreateInstallInfoWindow()
+{
+	FString InstallInfo;
+	FString InstallInfoStyled;
+	CreateInstallInfoStrings(InstallInfo, InstallInfoStyled);
+
+	auto CopyInstallInfo = [InstallInfo]()
+	{
+		FPlatformApplicationMisc::ClipboardCopy(*InstallInfo);
+		return FReply::Handled();
+	};
+
+	TSharedPtr<SImage> Image;
+	TSharedPtr<SButton> CloseButton;
+	float InstallInfoButtonWidth = 70.0f;
+
+	TSharedRef<SWindow> InstallInfoWindow =
+		SNew(SWindow)
+		.Title(LOCTEXT("InstallInfoTitle", "Houdini Engine Installation Info"))
+		.SizingRule(ESizingRule::Autosized)
+		.SupportsMaximize(false)
+		.SupportsMinimize(false)
+		[
+			SNew(SVerticalBox)
+			// Houdini Engine Logo
+			+SVerticalBox::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
+			.AutoHeight()
+			.Padding(20.0f, 20.0f, 20.0f, 0.0f)
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.HAlign(HAlign_Left)
+				[
+					SNew(SBox)
+					.HeightOverride(30)
+					.WidthOverride(208)
+					[
+						SAssignNew(Image, SImage)
+						.ColorAndOpacity(FSlateColor::UseForeground())
+					]
+				]
+			]
+			// Install Info
+			+SVerticalBox::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
+			.AutoHeight()
+			.Padding(20.0f, 20.0f, 20.0f, 0.0f)
+			[
+				SNew(SRichTextBlock)
+				.Text(FText::FromString(InstallInfoStyled))
+				.DecoratorStyleSet(FHoudiniEngineStyle::Get().Get())
+				.Justification(ETextJustify::Left)
+				.LineHeightPercentage(1.25f)
+			]
+			+SVerticalBox::Slot()
+			.Padding(20.0f, 20.0f, 20.0f, 0.0f)
+			.AutoHeight()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Fill)
+			[
+				SNew(SHorizontalBox)
+				// Copy Button
+				+SHorizontalBox::Slot()
+				.MaxWidth(InstallInfoButtonWidth)
+				[
+					SNew(SBox)
+					.WidthOverride(InstallInfoButtonWidth)
+					[
+						SNew(SButton)
+						.Content()
+						[
+							SNew(SHorizontalBox)
+							+SHorizontalBox::Slot()
+							.HAlign(HAlign_Center)
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("Copy", "Copy"))
+							]
+						]
+						.OnClicked_Lambda(CopyInstallInfo)
+					]
+				]
+				// Close Button
+				+SHorizontalBox::Slot()
+				.MaxWidth(InstallInfoButtonWidth)
+				[
+					SNew(SBox)
+					.WidthOverride(InstallInfoButtonWidth)
+					[
+						SAssignNew(CloseButton, SButton)
+						.Content()
+						[
+							SNew(SHorizontalBox)
+							+SHorizontalBox::Slot()
+							.HAlign(HAlign_Center)
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("Close", "Close"))
+							]
+						]
+					]
+				]
+			]
+		];
+
+	CloseButton->SetOnClicked(
+		FOnClicked::CreateLambda(
+			[InstallInfoWindow]()
+			{
+				TSharedRef<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(InstallInfoWindow).ToSharedRef();
+				FSlateApplication::Get().RequestDestroyWindow(InstallInfoWindow);
+				return FReply::Handled();
+			}));
+
+	TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIIconBrush();
+
+	// Skip drawing the icon if the icon image is not loaded correctly.
+	if (HoudiniEngineUIIconBrush.IsValid())
+	{
+		Image->SetImage(
+			TAttribute<const FSlateBrush*>::Create(
+				TAttribute<const FSlateBrush*>::FGetter::CreateLambda(
+					[HoudiniEngineUIIconBrush]() { return HoudiniEngineUIIconBrush.Get(); }
+		)));
+	}
+
+	IMainFrameModule &MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+
+	if (MainFrameModule.GetParentWindow().IsValid())
+	{
+		FSlateApplication::Get().AddWindowAsNativeChild(InstallInfoWindow, MainFrameModule.GetParentWindow().ToSharedRef());
+	}
+	else
+	{
+		FSlateApplication::Get().AddWindow(InstallInfoWindow);
+	}
 }
 
 FMenuBuilder 
