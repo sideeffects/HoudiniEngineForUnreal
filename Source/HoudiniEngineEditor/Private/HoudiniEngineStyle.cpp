@@ -160,7 +160,7 @@ FHoudiniEngineStyle::Initialize()
 	FString ViewportSyncUnrealIcon = IconsDir + TEXT("viewport_sync_unreal16x16.png");
 	FString NodeSyncIcon = IconsDir + TEXT("icon_houdini_logo_16.png");
 
-	FString InfoIcon = FEditorStyle::GetBrush("Icons.Info")->GetResourceName().ToString();
+	FString InfoIcon = IconsDir + TEXT("icon_hengine_logo_16.png");
 	FString SettingsIcon = FEditorStyle::GetBrush("Launcher.EditSettings")->GetResourceName().ToString();
 
 	StyleSet->Set("HoudiniEngine._CreateSession", new FSlateImageBrush(SessionCreateIcon, Icon16x16));
@@ -287,6 +287,22 @@ FHoudiniEngineStyle::Initialize()
 		.SetShadowColorAndOpacity(FLinearColor::Black)
 		.SetHighlightColor(FLinearColor(0.02f, 0.3f, 0.0f))
 		.SetHighlightShape(BOX_BRUSH("Common/TextBlockHighlightShape", FMargin(3.f / 8.f)))
+	);
+
+	// InstallInfo Text
+	const FTextBlockStyle RegularText = FTextBlockStyle()
+		.SetFont(FCoreStyle::GetDefaultFontStyle("Regular", 10))
+		.SetColorAndOpacity(FSlateColor::UseForeground());
+
+	StyleSet->Set("InstallInfo.Regular",
+		FTextBlockStyle(NormalText)
+	);
+	StyleSet->Set("InstallInfo.Bold",
+		FTextBlockStyle(NormalText).SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 10))
+	);
+
+	StyleSet->Set("InstallInfo.Italic",
+		FTextBlockStyle(NormalText).SetFont(FCoreStyle::GetDefaultFontStyle("Italic", 10))
 	);
 
 	StyleSet->Set("HoudiniEngine.ThumbnailShadow", new BOX_BRUSH("ContentBrowser/ThumbnailShadow", FMargin(4.0f / 64.0f)));
