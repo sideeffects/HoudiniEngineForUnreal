@@ -422,7 +422,7 @@ FHoudiniEngineEditor::BindMenuCommands()
 	HEngineCommands->MapAction(
 		Commands._InstallInfo,
 		FExecuteAction::CreateLambda([]() { return FHoudiniEngineCommands::ShowInstallInfo(); }),
-		FCanExecuteAction::CreateLambda([]() { return false; }));
+		FCanExecuteAction::CreateLambda([]() { return true; }));
 
 	HEngineCommands->MapAction(
 		Commands._PluginSettings,
