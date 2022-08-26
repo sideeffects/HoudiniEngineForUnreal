@@ -671,8 +671,8 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("ImportInputAsRefCheckbox", "Import input as references"))
-			.ToolTipText(LOCTEXT("ImportInputAsRefCheckboxTip", "Import input objects as references. (Geometry, World and Asset input types only)"))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.ToolTipText(LOCTEXT("ImportInputAsRefCheckboxTip", "Import input objects as references. (Geometry, World and Asset input types only)"))
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		.IsChecked_Lambda([=]()
 			{
@@ -750,8 +750,8 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("ImportInputAsRefRotScaleCheckbox", "Add rot/scale to input references"))
-			.ToolTipText(LOCTEXT("ImportInputAsRefRotScaleCheckboxTip", "Add rot/scale attributes to the input references when Import input as references is enabled"))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.ToolTipText(LOCTEXT("ImportInputAsRefRotScaleCheckboxTip", "Add rot/scale attributes to the input references when Import input as references is enabled"))
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		.IsChecked_Lambda([=]()
 			{
@@ -832,8 +832,8 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("ImportInputAsRefBboxCheckbox", "Add bounding box min/max to input references"))
-			.ToolTipText(LOCTEXT("ImportInputAsRefBboxCheckboxTip", "Add bounding box min/max attributes to the input references when Import input as references is enabled"))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.ToolTipText(LOCTEXT("ImportInputAsRefBboxCheckboxTip", "Add bounding box min/max attributes to the input references when Import input as references is enabled"))
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		.IsChecked_Lambda([=]()
 			{
