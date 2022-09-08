@@ -1233,6 +1233,11 @@ UHoudiniInputMeshComponent::Update(UObject * InObject)
 	UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(InObject);
 
 	ensure(SMC);
+
+	if (IsValid(SMC))
+	{
+		StaticMesh = TSoftObjectPtr<UStaticMesh>(SMC->GetStaticMesh());
+	}
 }
 
 void
