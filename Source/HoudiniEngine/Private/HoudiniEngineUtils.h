@@ -98,6 +98,8 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		static const FString GetAssetHelp(UHoudiniAssetComponent* HoudiniAssetComponent);
 
+		static const FString GetAssetHelpURL(UHoudiniAssetComponent* HoudiniAssetComponent);
+
 		// Updates the Object transform of a Houdini Asset Component
 		static bool UploadHACTransform(UHoudiniAssetComponent* HAC);
 
