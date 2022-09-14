@@ -2152,11 +2152,19 @@ FHoudiniEngineDetails::ShowAssetHelp(const TWeakObjectPtr<UHoudiniAssetComponent
 	if (!IsValidWeakPointer(InHAC))
 		return FReply::Handled();
 
+	// If we have a help URL, then open it
+	const FString AssetHelpURL = FHoudiniEngineUtils::GetAssetHelpURL(InHAC.Get());
+	if (AssetHelpURL.StartsWith(TEXT("http://")) || AssetHelpURL.StartsWith(TEXT("https://")) || AssetHelpURL.StartsWith(TEXT("file://")))
+	{
+		FPlatformProcess::LaunchURL(*AssetHelpURL, nullptr, nullptr);
+		return FReply::Handled();
+	}
+	
+	// If not, get the help string
 	const FString AssetHelp = FHoudiniEngineUtils::GetAssetHelp(InHAC.Get());
-
-	TSharedPtr< SWindow > ParentWindow;
-
+	
 	// Check if the main frame is loaded. When using the old main frame it may not be.
+	TSharedPtr<SWindow> ParentWindow;
 	if (FModuleManager::Get().IsModuleLoaded("MainFrame"))
 	{
 		IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked< IMainFrameModule >("MainFrame");
@@ -2179,6 +2187,7 @@ FHoudiniEngineDetails::ShowAssetHelp(const TWeakObjectPtr<UHoudiniAssetComponent
 		if (FSlateApplication::IsInitialized())
 			FSlateApplication::Get().AddModalWindow(Window, ParentWindow, false);
 	}
+
 	return FReply::Handled();
 }
 
