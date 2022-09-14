@@ -455,14 +455,34 @@ FHoudiniEngineUtils::GetAssetHelp(UHoudiniAssetComponent* HoudiniAssetComponent)
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
 		FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), HelpString);
 
-	if (!FHoudiniEngineString::ToFString(AssetInfo.helpTextSH, HelpString))
-		return HelpString;
-
-	if (!FHoudiniEngineString::ToFString(AssetInfo.helpURLSH, HelpString))
+	if (FHoudiniEngineString::ToFString(AssetInfo.helpTextSH, HelpString))
 		return HelpString;
 
 	if (HelpString.IsEmpty())
 		HelpString = TEXT("No Asset Help Found");
+
+	return HelpString;
+}
+
+const FString
+FHoudiniEngineUtils::GetAssetHelpURL(UHoudiniAssetComponent* HoudiniAssetComponent)
+{
+	FString HelpString = TEXT("");
+	if (!HoudiniAssetComponent)
+		return HelpString;
+
+	HAPI_AssetInfo AssetInfo;
+	FHoudiniApi::AssetInfo_Init(&AssetInfo);
+	HAPI_NodeId AssetId = HoudiniAssetComponent->GetAssetId();
+	if (AssetId < 0)
+		return HelpString;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
+		FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), HelpString);
+
+	// If we have a help url, use it first
+	if (FHoudiniEngineString::ToFString(AssetInfo.helpURLSH, HelpString))
+		return HelpString;
 
 	return HelpString;
 }
