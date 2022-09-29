@@ -520,9 +520,11 @@ FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(ULandscapeInfo* L
 	FVector3d ExtentMax = FVector3d(Extent.Max.X * LandscapeScale.X, Extent.Max.Y * LandscapeScale.Y, 1.0);
 	
 	// Add section base offset to the landscape transform
+	FTransform Trans = FTransform::Identity;
+	Trans.CopyRotation(OutTransform);
+	const FVector Offset = Trans.TransformPosition( FVector(ExtentCenter.X * LandscapeScale.X , ExtentCenter.Y * LandscapeScale.Y, 0));
 	FVector3d Loc = OutTransform.GetLocation();
-	Loc.X += ExtentCenter.X * LandscapeScale.X;
-	Loc.Y += ExtentCenter.Y * LandscapeScale.Y;
+	Loc += Offset;
 	
 	OutTransform.SetLocation(Loc);
 
