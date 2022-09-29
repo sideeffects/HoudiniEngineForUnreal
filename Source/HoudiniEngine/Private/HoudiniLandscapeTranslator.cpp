@@ -2054,18 +2054,19 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 			{
 				if (!ExistingLayers.Contains(InLayerInfo.LayerName))
 					continue;
-				
-				int32 LayerIndex = ExistingLayers.FindChecked(InLayerInfo.LayerName);
-				if (TargetLandscape->EditorLayerSettings.IsValidIndex(LayerIndex))
+
+				for (auto& CurEditLayer : TargetLandscape->EditorLayerSettings)
 				{
-					FLandscapeEditorLayerSettings& CurLayer = TargetLandscape->EditorLayerSettings[LayerIndex];
-					// Draw on the current layer, if it is valid.
-					if (CurLayer.LayerInfoObj)
-					{
-						HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_EditableLayer] Drawing using Alpha accessor. Dest Region: %f, %f, -> %f, %f"), TileMin.X, TileMin.Y, TileMax.X, TileMax.Y);
-						FAlphamapAccessor<false, true> AlphaAccessor(TargetLandscapeInfo, CurLayer.LayerInfoObj);
-						AlphaAccessor.SetData(TileMin.X, TileMin.Y, TileMax.X, TileMax.Y, InLayerInfo.LayerData.GetData(), ELandscapeLayerPaintingRestriction::None);
-					}
+					if (!IsValid(CurEditLayer.LayerInfoObj))
+						continue;
+
+					// Checking the layer by name, we cant reuse the index from ExistingLayers as it won't match EditorLayerSettings
+					if (CurEditLayer.LayerInfoObj->LayerName != InLayerInfo.LayerName)
+						continue;
+
+					HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_EditableLayer] Drawing using Alpha accessor. Dest Region: %f, %f, -> %f, %f"), TileMin.X, TileMin.Y, TileMax.X, TileMax.Y);
+					FAlphamapAccessor<false, true> AlphaAccessor(TargetLandscapeInfo, CurEditLayer.LayerInfoObj);
+					AlphaAccessor.SetData(TileMin.X, TileMin.Y, TileMax.X, TileMax.Y, InLayerInfo.LayerData.GetData(), ELandscapeLayerPaintingRestriction::None);
 				}
 			}
 		}
