@@ -303,7 +303,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	// NOTE: The landscape actor's transform cannot be directly used to position the heightfield in Houdini since only a
 	// part of the full landscape may be loaded. We need to calculate the center of all the loaded tiles / landscape
 	// components.
-	FTransform LandscapeTransform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(LandscapeProxy->GetLandscapeInfo());
+	FTransform LandscapeTransform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(LandscapeProxy);
 
 	FVector CenterOffset = FVector::ZeroVector;
 	if (!ConvertLandscapeDataToHeightfieldData(
@@ -1189,7 +1189,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldInputNode(
 	// Create the heigthfield node via HAPI
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateHeightFieldInput(
 		FHoudiniEngine::Get().GetSession(),
-		-1, NameStr.c_str(), XSize, YSize, 1.0f, HAPI_HeightFieldSampling::HAPI_HEIGHTFIELD_SAMPLING_CORNER,
+		-1, NameStr.c_str(), YSize, XSize, 1.0f, HAPI_HeightFieldSampling::HAPI_HEIGHTFIELD_SAMPLING_CORNER,
 		&HeightfieldNodeId, &HeightNodeId, &MaskNodeId, &MergeNodeId), false);
 	
 	// Cook it
