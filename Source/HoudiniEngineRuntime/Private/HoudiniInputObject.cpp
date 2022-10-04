@@ -1599,13 +1599,13 @@ UHoudiniInputLandscape::Update(UObject * InObject)
 {
 	Super::Update(InObject);
 
-	const ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(InObject);
+	ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(InObject);
 
 	//ensure(Landscape);
 
 	if (Landscape)
 	{
-		Transform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(Landscape->GetLandscapeInfo());
+		Transform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(Landscape);
 		CachedNumLandscapeComponents = CountLandscapeComponents();
 	}
 }
@@ -1623,7 +1623,7 @@ bool UHoudiniInputLandscape::HasActorTransformChanged() const
 	ALandscapeProxy* LandscapeProxy = GetLandscapeProxy();
 	if (IsValid(LandscapeProxy))
 	{
-		const FTransform HoudiniTransform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(LandscapeProxy->GetLandscapeInfo());
+		const FTransform HoudiniTransform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(LandscapeProxy);
 		if (!Transform.Equals(HoudiniTransform))
 		{
 			return true;
