@@ -1729,7 +1729,7 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 			// FTransform CurrentTransform = InputLandscape->Transform;
 			// const FTransform NewTransform = Landscape->ActorToWorld();
 			
-			const FTransform NewTransform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(Landscape->GetLandscapeInfo());
+			const FTransform NewTransform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(Landscape);
 
 			// Convert back to a HAPI Transform and update the HF's transform
 			HAPI_TransformEuler NewHAPITransform;

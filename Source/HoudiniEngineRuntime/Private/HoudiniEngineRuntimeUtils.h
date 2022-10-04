@@ -202,7 +202,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 		// Landscape utilities
 		// -------------------------------------------------
 
-		static FTransform CalculateHoudiniLandscapeTransform(ULandscapeInfo* LandscapeInfo);
+		static FTransform CalculateHoudiniLandscapeTransform(ALandscapeProxy* LandscapeProxy);
 
 		// -------------------------------------------------
 		// Editor Helpers
