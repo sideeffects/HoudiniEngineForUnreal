@@ -27,6 +27,7 @@
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniRuntimeSettings.h"
+#include "Landscape.h"
 #include "LandscapeProxy.h"
 #include "LandscapeInfo.h"
 
@@ -483,49 +484,71 @@ FHoudiniEngineRuntimeUtils::MarkBlueprintAsModified(UActorComponent* ComponentTe
 #endif
 
 FTransform 
-FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(ULandscapeInfo* LandscapeInfo)
+FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(ALandscapeProxy* LandscapeProxy)
 {
+
+	if (!IsValid(LandscapeProxy))
+		return FTransform::Identity;
+
 #if WITH_EDITOR
-	ALandscapeProxy* LandscapeProxy = LandscapeInfo->GetLandscapeProxy();
-	FTransform OutTransform = LandscapeProxy->GetTransform();
-		
-	FVector3d LandscapeScale = OutTransform.GetScale3D();
+	FTransform OutTransform = LandscapeProxy->GetTransform();	
 
 	// The final landscape transform that should go into Houdini consist of the following two components:
 	// - Shared Landscape Transform
 	// - Extents of all the loaded landscape components
 
 	// The houdini transform will always be in the center of the currently loaded landscape components.
-
 	FIntRect Extent;
 	Extent.Min.X = INT32_MAX;
 	Extent.Min.Y = INT32_MAX;
 	Extent.Max.X = INT32_MIN;
 	Extent.Max.Y = INT32_MIN;
 	
-	LandscapeInfo->ForAllLandscapeComponents([&Extent](ULandscapeComponent* LandscapeComponent)
+	ALandscape* Landscape = LandscapeProxy->GetLandscapeActor();
+	if (LandscapeProxy == Landscape)
 	{
-		LandscapeComponent->GetComponentExtent(Extent.Min.X, Extent.Min.Y, Extent.Max.X, Extent.Max.Y);
-	});
+		// The proxy is a landscape actor, so we have to use the whole landscape extent
+		ULandscapeInfo* LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
+		if (IsValid(LandscapeInfo))
+		{
+			//LandscapeInfo->GetLandscapeExtent(Extent.Min.X, Extent.Min.Y, Extent.Max.X, Extent.Max.Y);
+			LandscapeInfo->ForAllLandscapeComponents([&Extent](ULandscapeComponent* LandscapeComponent)
+			{
+				LandscapeComponent->GetComponentExtent(Extent.Min.X, Extent.Min.Y, Extent.Max.X, Extent.Max.Y);
+			});
+		}
+	}
+	else
+	{
+		// We only want to get the size for this landscape proxy.
+		// Get the extents via all the components, not by calling GetLandscapeExtent or we'll end up with the size of ALL the streaming proxies.
+		for (const ULandscapeComponent* Comp : LandscapeProxy->LandscapeComponents)
+		{
+			Comp->GetComponentExtent(Extent.Min.X, Extent.Min.Y, Extent.Max.X, Extent.Max.Y);
+		}
+	}
 
-	FIntVector ExtentCenter(
-			(Extent.Min.X + Extent.Max.X)/2,
-			(Extent.Min.Y + Extent.Max.Y)/2,
-			1);
-	
-	FVector3d ExtentMin = FVector3d(Extent.Min.X * LandscapeScale.X, Extent.Min.Y * LandscapeScale.Y, 1.0);
-	FVector3d ExtentMax = FVector3d(Extent.Max.X * LandscapeScale.X, Extent.Max.Y * LandscapeScale.Y, 1.0);
-	
-	// Add section base offset to the landscape transform
-	FVector3d Loc = OutTransform.GetLocation();
-	Loc.X += ExtentCenter.X * LandscapeScale.X;
-	Loc.Y += ExtentCenter.Y * LandscapeScale.Y;
-	
+	// HF are centered, Landscape aren't
+	// Calculate the offset needed to properly represent the Landscape in H	
+	FVector3d CenterOffset(
+		(double)(Extent.Max.X - Extent.Min.X) / 2.0,
+		(double)(Extent.Max.Y - Extent.Min.Y) / 2.0,
+		1.0);
+
+	// Extract the Landscape rotation/scale and apply them to the offset 
+	FTransform TransformWithRot = FTransform::Identity;
+	TransformWithRot.CopyRotation(OutTransform);
+	FVector3d LandscapeScale = OutTransform.GetScale3D();
+
+	const FVector RotScaledOffset = TransformWithRot.TransformPosition(FVector(CenterOffset.X * LandscapeScale.X, CenterOffset.Y * LandscapeScale.Y, 0));
+
+	// Apply the rotated offset to the transform's position
+	FVector3d Loc = OutTransform.GetLocation() + RotScaledOffset;
 	OutTransform.SetLocation(Loc);
 
 	return OutTransform;
 #else
-	return FTransform();
+	return FTransform::Identity;
 #endif
 }
 
