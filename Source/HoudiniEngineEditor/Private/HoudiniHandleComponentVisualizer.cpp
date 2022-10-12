@@ -45,7 +45,7 @@ FHoudiniHandleComponentVisualizerCommands::FHoudiniHandleComponentVisualizerComm
 		"HoudiniHandleComponentVisualizer",
 		FText::FromString("Houdini handle Component Visualizer"),
 		NAME_None,
-		FEditorStyle::GetStyleSetName())
+		_GetEditorStyle().GetStyleSetName())
 {}
 
 void

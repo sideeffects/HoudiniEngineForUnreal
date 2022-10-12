@@ -242,7 +242,7 @@ FHoudiniInputDetails::CreateNameWidget(
 			SNew(STextBlock)
 			.Text(FinalInputLabelText)
 			.ToolTipText(InputTooltip)
-			.Font(FEditorStyle::GetFontStyle(!InInput->HasChanged() ? TEXT("PropertyWindow.NormalFont") : TEXT("PropertyWindow.BoldFont")));
+			.Font(_GetEditorStyle().GetFontStyle(!InInput->HasChanged() ? TEXT("PropertyWindow.NormalFont") : TEXT("PropertyWindow.BoldFont")));
 	}
 }
 
@@ -368,7 +368,7 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 			return SNew(STextBlock)
 				.Text(ChoiceEntryText)
 				.ToolTipText(ChoiceEntryText)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 		})
 		.OnSelectionChanged_Lambda([=](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
 		{
@@ -380,7 +380,7 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 			{
 				return GetInputText(MainInput); 
 			})            
-			.Font( FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 	];
 }
@@ -426,7 +426,7 @@ FHoudiniInputDetails:: AddCurveInputCookOnChangeCheckBox(TSharedRef< SVerticalBo
 			SNew(STextBlock)
 			.Text(LOCTEXT("CookOnCurveChangedCheckbox", "Auto-update"))
 			.ToolTipText(LOCTEXT("CookOnCurveChangeCheckboxTip", "When checked, cook is triggered automatically when the curve is modified."))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 		.IsChecked_Lambda([IsCheckedCookOnChange, MainInput]()
 		{
@@ -498,7 +498,7 @@ FHoudiniInputDetails::AddKeepWorldTransformCheckBox(TSharedRef< SVerticalBox > V
 			SNew(STextBlock)
 			.Text(LOCTEXT("KeepWorldTransformCheckbox", "Keep World Transform"))
 			.ToolTipText(LOCTEXT("KeepWorldTransformCheckboxTip", "Set this Input's object_merge Transform Type to INTO_THIS_OBJECT. If unchecked, it will be set to NONE."))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]		
 		.IsChecked_Lambda([=]()
 		{
@@ -581,7 +581,7 @@ FHoudiniInputDetails::AddPackBeforeMergeCheckbox(TSharedRef< SVerticalBox > Vert
 			SNew( STextBlock )
 			.Text( LOCTEXT( "PackBeforeMergeCheckbox", "Pack Geometry before merging" ) )
 			.ToolTipText( LOCTEXT( "PackBeforeMergeCheckboxTip", "Pack each separate piece of geometry before merging them into the input." ) )
-			.Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+			.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 		]
 		.IsChecked_Lambda([=]()
 		{
@@ -672,7 +672,7 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 				SNew(STextBlock)
 				.Text(LOCTEXT("ImportInputAsRefCheckbox", "Import input as references"))
 				.ToolTipText(LOCTEXT("ImportInputAsRefCheckboxTip", "Import input objects as references. (Geometry, World and Asset input types only)"))
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		.IsChecked_Lambda([=]()
 			{
@@ -751,7 +751,7 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 				SNew(STextBlock)
 				.Text(LOCTEXT("ImportInputAsRefRotScaleCheckbox", "Add rot/scale to input references"))
 				.ToolTipText(LOCTEXT("ImportInputAsRefRotScaleCheckboxTip", "Add rot/scale attributes to the input references when Import input as references is enabled"))
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		.IsChecked_Lambda([=]()
 			{
@@ -833,7 +833,7 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 				SNew(STextBlock)
 				.Text(LOCTEXT("ImportInputAsRefBboxCheckbox", "Add bounding box min/max to input references"))
 				.ToolTipText(LOCTEXT("ImportInputAsRefBboxCheckboxTip", "Add bounding box min/max attributes to the input references when Import input as references is enabled"))
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		.IsChecked_Lambda([=]()
 			{
@@ -914,7 +914,7 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 				SNew(STextBlock)
 				.Text(LOCTEXT("ImportInputAsRefMaterialCheckbox", "Add material to input references"))
 			.ToolTipText(LOCTEXT("ImportInputAsRefMaterialCheckboxTip", "Add material attributes to the input references when Import input as references is enabled"))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		.IsChecked_Lambda([=]()
 			{
@@ -1082,7 +1082,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 				SNew( STextBlock )
 				.Text( LOCTEXT( "ExportAllLOD", "Export LODs" ) )
 				.ToolTipText( LOCTEXT( "ExportAllLODCheckboxTip", "If enabled, all LOD Meshes in this static mesh will be sent to Houdini." ) )
-				.Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 			]
 			.IsChecked_Lambda([=]()
 			{
@@ -1104,7 +1104,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 				SNew( STextBlock )
 				.Text( LOCTEXT( "ExportSockets", "Export Sockets" ) )
 				.ToolTipText( LOCTEXT( "ExportSocketsTip", "If enabled, all Mesh Sockets in this static mesh will be sent to Houdini." ) )
-				.Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 			]
 			.IsChecked_Lambda([=]()
 			{
@@ -1126,7 +1126,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 				SNew( STextBlock )
 				.Text( LOCTEXT( "ExportColliders", "Export Colliders" ) )
 				.ToolTipText( LOCTEXT( "ExportCollidersTip", "If enabled, collision geometry for this static mesh will be sent to Houdini." ) )
-				.Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 			]
 			.IsChecked_Lambda([=]()
 			{
@@ -1201,7 +1201,7 @@ FHoudiniInputDetails::AddGeometryInputUI(
 		[
 			SNew(STextBlock)
 			.Text(FText::Format(LOCTEXT("NumArrayItemsFmt", "{0} elements"), FText::AsNumber(NumInputObjects)))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 		+ SHorizontalBox::Slot()
 		.Padding(1.0f)
@@ -1377,9 +1377,9 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 		{
 			TSharedPtr<SBorder> ThumbnailBorder = WeakStaticMeshThumbnailBorder.Pin();
 			if (ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
-				return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
+				return _GetEditorStyle().GetBrush("PropertyEditor.AssetThumbnailLight");
 			else
-				return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
+				return _GetEditorStyle().GetBrush("PropertyEditor.AssetThumbnailShadow");
 		}
 	)));
 	
@@ -1404,14 +1404,14 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 		SNew(SVerticalBox) + SVerticalBox::Slot().FillHeight(1.0f).VAlign(VAlign_Center)
 		[
 			SAssignNew(StaticMeshComboButton, SComboButton)
-			.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
-			.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+			.ButtonStyle(_GetEditorStyle(), "PropertyEditor.AssetComboStyle")
+			.ForegroundColor(_GetEditorStyle().GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
 			.ContentPadding(2.0f)
 			.ButtonContent()
 			[
 				SNew(STextBlock)
-				.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
-				.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+				.TextStyle(_GetEditorStyle(), "PropertyEditor.AssetClass")
+				.Font(_GetEditorStyle().GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
 				.Text(MeshNameText)
 			]
 		]
@@ -1527,7 +1527,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 	[
 		SNew( SButton )
 		.ToolTipText( LOCTEXT( "ResetToBase", "Reset to default static mesh" ) )
-		.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+		.ButtonStyle(_GetEditorStyle(), "NoBorder" )
 		.ContentPadding( 0 )
 		.Visibility( EVisibility::Visible )
 		.OnClicked_Lambda( [UpdateGeometryObjectAt, InInputs, InGeometryObjectIdx]()
@@ -1537,7 +1537,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 		})
 		[
 			SNew( SImage )
-			.Image( FEditorStyle::GetBrush( "PropertyWindow.DiffersFromDefault" ) )
+			.Image(_GetEditorStyle().GetBrush( "PropertyWindow.DiffersFromDefault" ) )
 		]
 	];
 
@@ -1625,7 +1625,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 			.AutoWidth()
 			[
 				SAssignNew( ExpanderArrow, SButton )
-				.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+				.ButtonStyle(_GetEditorStyle(), "NoBorder" )
 				.ClickMethod( EButtonClickMethod::MouseDown )
 				.Visibility( EVisibility::Visible )
 				.OnClicked(FOnClicked::CreateLambda([InInputs, InGeometryObjectIdx, MainInput, &CategoryBuilder]()
@@ -1667,7 +1667,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 				SNew( STextBlock )
 				.Text( LOCTEXT("GeoInputTransform", "Transform Offset") )
 				.ToolTipText( LOCTEXT( "GeoInputTransformTooltip", "Transform offset used for correction before sending the asset to Houdini" ) )
-				.Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 			]
 		];
 
@@ -1687,7 +1687,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 				{
 					ResourceName = ExpanderArrowPtr.IsValid() && ExpanderArrowPtr->IsHovered() ? "TreeArrow_Collapsed_Hovered" : "TreeArrow_Collapsed";
 				}
-				return FEditorStyle::GetBrush(ResourceName);
+				return _GetEditorStyle().GetBrush(ResourceName);
 			}
 		)));
 	}
@@ -1775,7 +1775,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 				SNew(STextBlock)
 				.Text( LOCTEXT("GeoInputTranslate", "T") )
 				.ToolTipText( LOCTEXT( "GeoInputTranslateTooltip", "Translate" ) )
-				.Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 			]
 			+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
@@ -1809,25 +1809,25 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 				+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Right).VAlign(VAlign_Center).Padding(0.0f)
 				[
 					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.ButtonStyle(_GetEditorStyle(), "NoBorder")
 					.ClickMethod(EButtonClickMethod::MouseDown)
 					.Visibility(EVisibility::Hidden)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("GenericLock"))
+						.Image(_GetEditorStyle().GetBrush("GenericLock"))
 					]
 				]
 				// Reset Button
 				+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(0.0f)
 				[
 					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.ButtonStyle(_GetEditorStyle(), "NoBorder")
 					.ClickMethod(EButtonClickMethod::MouseDown)
 					.ToolTipText(LOCTEXT("GeoInputResetButtonToolTip", "Reset To Default"))
 					.Visibility(bResetButtonVisiblePosition ? EVisibility::Visible : EVisibility::Hidden)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+						.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
 					]
 					.OnClicked_Lambda([MainInput, ChangeTransformOffsetUniformlyAt, &CategoryBuilder]()
 					{
@@ -1853,7 +1853,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 				SNew(STextBlock)
 				.Text( LOCTEXT("GeoInputRotate", "R") )
 				.ToolTipText( LOCTEXT( "GeoInputRotateTooltip", "Rotate" ) )
-				.Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 			]
 			+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
@@ -1887,25 +1887,25 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 				+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Right).VAlign(VAlign_Center).Padding(0.0f)
 				[
 					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.ButtonStyle(_GetEditorStyle(), "NoBorder")
 					.ClickMethod(EButtonClickMethod::MouseDown)
 					.Visibility(EVisibility::Hidden)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("GenericLock"))
+						.Image(_GetEditorStyle().GetBrush("GenericLock"))
 					]
 				]
 				// Reset Button
 				+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(0.0f)
 				[
 					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.ButtonStyle(_GetEditorStyle(), "NoBorder")
 					.ClickMethod(EButtonClickMethod::MouseDown)
 					.ToolTipText(LOCTEXT("GeoInputResetButtonToolTip", "Reset To Default"))
 					.Visibility(bResetButtonVisibleRotation ? EVisibility::Visible : EVisibility::Hidden)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+						.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
 					]
 					.OnClicked_Lambda([ChangeTransformOffsetUniformlyAt, MainInput, &CategoryBuilder]()
 					{
@@ -1935,7 +1935,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 				SNew( STextBlock )
 				.Text( LOCTEXT( "GeoInputScale", "S" ) )
 				.ToolTipText( LOCTEXT( "GeoInputScaleTooltip", "Scale" ) )
-				.Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 			]
 			+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
@@ -1983,7 +1983,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 				+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Right).VAlign(VAlign_Center).Padding(0.0f)
 				[	
 					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.ButtonStyle(_GetEditorStyle(), "NoBorder")
 					.ToolTipText(HoudiniInputObject ? 
 						LOCTEXT("GeoInputLockButtonToolTip", "When locked, scales uniformly based on the current xyz scale values so the input object maintains its shape in each direction when scaled") : 
 						LOCTEXT("GeoInputLockButtonToolTipNoObject", "No input object selected"))
@@ -1991,7 +1991,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 					.Visibility(EVisibility::Visible)
 					[
 						SNew(SImage)
-						.Image(bLocked ? FEditorStyle::GetBrush("GenericLock") : FEditorStyle::GetBrush("GenericUnlock"))
+						.Image(bLocked ? _GetEditorStyle().GetBrush("GenericLock") : _GetEditorStyle().GetBrush("GenericUnlock"))
 					]
 					.OnClicked_Lambda([InInputs, MainInput, InGeometryObjectIdx, HoudiniInputObject, &CategoryBuilder]() 
 					{
@@ -2021,13 +2021,13 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 				+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(0.0f)
 				[
 					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")				
+					.ButtonStyle(_GetEditorStyle(), "NoBorder")
 					.ClickMethod(EButtonClickMethod::MouseDown)
 					.ToolTipText(LOCTEXT("GeoInputResetButtonToolTip", "Reset To Default"))
 					.Visibility(bResetButtonVisibleScale ? EVisibility::Visible : EVisibility::Hidden)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))		
+						.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
 					]
 					.OnClicked_Lambda([ChangeTransformOffsetUniformlyAt, MainInput, &CategoryBuilder]()
 					{
@@ -2148,9 +2148,9 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 		{
 			TSharedPtr<SBorder> ThumbnailBorder = WeakGeometryCollectionThumbnailBorder.Pin();
 			if (ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
-				return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
+				return _GetEditorStyle().GetBrush("PropertyEditor.AssetThumbnailLight");
 			else
-				return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
+				return _GetEditorStyle().GetBrush("PropertyEditor.AssetThumbnailShadow");
 		}
 	)));
 	
@@ -2175,14 +2175,14 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 		SNew(SVerticalBox) + SVerticalBox::Slot().FillHeight(1.0f).VAlign(VAlign_Center)
 		[
 			SAssignNew(GeometryCollectionComboButton, SComboButton)
-			.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
-			.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+			.ButtonStyle(_GetEditorStyle(), "PropertyEditor.AssetComboStyle")
+			.ForegroundColor(_GetEditorStyle().GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
 			.ContentPadding(2.0f)
 			.ButtonContent()
 			[
 				SNew(STextBlock)
-				.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
-				.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+				.TextStyle(_GetEditorStyle(), "PropertyEditor.AssetClass")
+				.Font(_GetEditorStyle().GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
 				.Text(InputObjectNameText)
 			]
 		]
@@ -2298,7 +2298,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 	[
 		SNew( SButton )
 		.ToolTipText( LOCTEXT( "ResetToBase", "Reset to default geometry collection" ) )
-		.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+		.ButtonStyle(_GetEditorStyle(), "NoBorder" )
 		.ContentPadding( 0 )
 		.Visibility( EVisibility::Visible )
 		.OnClicked_Lambda( [UpdateGeometryCollectionObjectAt, InInputs, InGeometryCollectionObjectIdx]()
@@ -2308,7 +2308,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 		})
 		[
 			SNew( SImage )
-			.Image( FEditorStyle::GetBrush( "PropertyWindow.DiffersFromDefault" ) )
+			.Image(_GetEditorStyle().GetBrush( "PropertyWindow.DiffersFromDefault" ) )
 		]
 	];
 
@@ -2396,7 +2396,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 			.AutoWidth()
 			[
 				SAssignNew( ExpanderArrow, SButton )
-				.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+				.ButtonStyle(_GetEditorStyle(), "NoBorder" )
 				.ClickMethod( EButtonClickMethod::MouseDown )
 				.Visibility( EVisibility::Visible )
 				.OnClicked(FOnClicked::CreateLambda([InInputs, InGeometryCollectionObjectIdx, MainInput, &CategoryBuilder]()
@@ -2438,7 +2438,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 				SNew( STextBlock )
 				.Text( LOCTEXT("GeoInputTransform", "Transform Offset") )
 				.ToolTipText( LOCTEXT( "GeoInputTransformTooltip", "Transform offset used for correction before sending the asset to Houdini" ) )
-				.Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 			]
 		];
 
@@ -2458,7 +2458,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 				{
 					ResourceName = ExpanderArrowPtr.IsValid() && ExpanderArrowPtr->IsHovered() ? "TreeArrow_Collapsed_Hovered" : "TreeArrow_Collapsed";
 				}
-				return FEditorStyle::GetBrush(ResourceName);
+				return _GetEditorStyle().GetBrush(ResourceName);
 			}
 		)));
 	}
@@ -2546,7 +2546,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 				SNew(STextBlock)
 				.Text( LOCTEXT("GeoInputTranslate", "T") )
 				.ToolTipText( LOCTEXT( "GeoInputTranslateTooltip", "Translate" ) )
-				.Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 			]
 			+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
@@ -2580,25 +2580,25 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 				+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Right).VAlign(VAlign_Center).Padding(0.0f)
 				[
 					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.ButtonStyle(_GetEditorStyle(), "NoBorder")
 					.ClickMethod(EButtonClickMethod::MouseDown)
 					.Visibility(EVisibility::Hidden)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("GenericLock"))
+						.Image(_GetEditorStyle().GetBrush("GenericLock"))
 					]
 				]
 				// Reset Button
 				+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(0.0f)
 				[
 					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.ButtonStyle(_GetEditorStyle(), "NoBorder")
 					.ClickMethod(EButtonClickMethod::MouseDown)
 					.ToolTipText(LOCTEXT("GeoInputResetButtonToolTip", "Reset To Default"))
 					.Visibility(bResetButtonVisiblePosition ? EVisibility::Visible : EVisibility::Hidden)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+						.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
 					]
 					.OnClicked_Lambda([MainInput, ChangeTransformOffsetUniformlyAt, &CategoryBuilder]()
 					{
@@ -2624,7 +2624,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 				SNew(STextBlock)
 				.Text( LOCTEXT("GeoInputRotate", "R") )
 				.ToolTipText( LOCTEXT( "GeoInputRotateTooltip", "Rotate" ) )
-				.Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 			]
 			+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
@@ -2658,25 +2658,25 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 				+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Right).VAlign(VAlign_Center).Padding(0.0f)
 				[
 					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.ButtonStyle(_GetEditorStyle(), "NoBorder")
 					.ClickMethod(EButtonClickMethod::MouseDown)
 					.Visibility(EVisibility::Hidden)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("GenericLock"))
+						.Image(_GetEditorStyle().GetBrush("GenericLock"))
 					]
 				]
 				// Reset Button
 				+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(0.0f)
 				[
 					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.ButtonStyle(_GetEditorStyle(), "NoBorder")
 					.ClickMethod(EButtonClickMethod::MouseDown)
 					.ToolTipText(LOCTEXT("GeoInputResetButtonToolTip", "Reset To Default"))
 					.Visibility(bResetButtonVisibleRotation ? EVisibility::Visible : EVisibility::Hidden)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+						.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
 					]
 					.OnClicked_Lambda([ChangeTransformOffsetUniformlyAt, MainInput, &CategoryBuilder]()
 					{
@@ -2706,7 +2706,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 				SNew( STextBlock )
 				.Text( LOCTEXT( "GeoInputScale", "S" ) )
 				.ToolTipText( LOCTEXT( "GeoInputScaleTooltip", "Scale" ) )
-				.Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 			]
 			+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
@@ -2754,7 +2754,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 				+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Right).VAlign(VAlign_Center).Padding(0.0f)
 				[	
 					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.ButtonStyle(_GetEditorStyle(), "NoBorder")
 					.ToolTipText(HoudiniInputObject ? 
 						LOCTEXT("GeoInputLockButtonToolTip", "When locked, scales uniformly based on the current xyz scale values so the input object maintains its shape in each direction when scaled") : 
 						LOCTEXT("GeoInputLockButtonToolTipNoObject", "No input object selected"))
@@ -2762,7 +2762,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 					.Visibility(EVisibility::Visible)
 					[
 						SNew(SImage)
-						.Image(bLocked ? FEditorStyle::GetBrush("GenericLock") : FEditorStyle::GetBrush("GenericUnlock"))
+						.Image(bLocked ? _GetEditorStyle().GetBrush("GenericLock") : _GetEditorStyle().GetBrush("GenericUnlock"))
 					]
 					.OnClicked_Lambda([InInputs, MainInput, InGeometryCollectionObjectIdx, HoudiniInputObject, &CategoryBuilder]() 
 					{
@@ -2792,13 +2792,13 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 				+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(0.0f)
 				[
 					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")				
+					.ButtonStyle(_GetEditorStyle(), "NoBorder")				
 					.ClickMethod(EButtonClickMethod::MouseDown)
 					.ToolTipText(LOCTEXT("GeoInputResetButtonToolTip", "Reset To Default"))
 					.Visibility(bResetButtonVisibleScale ? EVisibility::Visible : EVisibility::Hidden)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))		
+						.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))		
 					]
 					.OnClicked_Lambda([ChangeTransformOffsetUniformlyAt, MainInput, &CategoryBuilder]()
 					{
@@ -2975,7 +2975,7 @@ FHoudiniInputDetails::AddCurveInputUI(IDetailCategoryBuilder& CategoryBuilder, T
 			SNew(STextBlock)
 			.Text(LOCTEXT("HoudiniEngineCurveAddRotScaleAttributesLabel", "Add rot & scale Attributes"))
 			.ToolTipText(TooltipText)
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			//.MinDesiredWidth(160.f)
 		]
 		.OnCheckStateChanged_Lambda([InInputs](ECheckBoxState NewState)
@@ -3011,7 +3011,7 @@ FHoudiniInputDetails::AddCurveInputUI(IDetailCategoryBuilder& CategoryBuilder, T
 			SNew(STextBlock)
 			.Text(LOCTEXT("HoudiniEngineLegacyInputCurvesLabel", "Use Legacy Input Curves"))
 			.ToolTipText(LegacyInputCurveTooltipText)
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 		.OnCheckStateChanged_Lambda([InInputs](ECheckBoxState NewState)
 		{
@@ -3046,7 +3046,7 @@ FHoudiniInputDetails::AddCurveInputUI(IDetailCategoryBuilder& CategoryBuilder, T
 		[
 			SNew(STextBlock)
 			.Text(FText::Format(LOCTEXT("NumArrayItemsFmt", "{0} elements"), FText::AsNumber(NumInputObjects)))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 		+ SHorizontalBox::Slot()
 		.Padding(1.0f)
@@ -3397,7 +3397,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 		[
 			SNew(STextBlock).Text(LOCTEXT("ClosedCurveCheckBox", "Closed"))
 			.ToolTipText(LOCTEXT("ClosedCurveCheckboxTip", "Close this input curve."))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 		.IsChecked_Lambda([IsCheckedClosedCurve]()
 		{
@@ -3461,7 +3461,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 		[
 			SNew(STextBlock).Text(LOCTEXT("ReversedCurveCheckBox", "Reversed"))
 			.ToolTipText(LOCTEXT("ReversedCurveCheckboxTip", "Reverse this input curve."))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 		.IsChecked_Lambda([IsCheckedReversedCurve]()
 		{
@@ -3517,7 +3517,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 		[
 			SNew(STextBlock).Text(LOCTEXT("VisibleCurveCheckBox", "Visible"))
 			.ToolTipText(LOCTEXT("VisibleCurveCheckboxTip", "Set the visibility of this curve."))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 		.IsChecked_Lambda([IsCheckedVisibleCurve]()
 		{
@@ -3594,7 +3594,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 	.AutoWidth()
 	[
 		SNew(STextBlock).Text(LOCTEXT("CurveTypeText", "Curve Type     "))
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 	];
 
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> ComboBoxCurveType;
@@ -3612,7 +3612,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 			return SNew(STextBlock)
 				.Text(ChoiceEntryText)
 				.ToolTipText(ChoiceEntryText)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 		})
 		.OnSelectionChanged_Lambda([OnCurveTypeChanged](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
 		{
@@ -3624,7 +3624,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 			{
 				return GetCurveTypeText();
 			})
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 	];
 
@@ -3686,7 +3686,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 	.AutoWidth()
 	[
 		SNew(STextBlock).Text(LOCTEXT("CurveMethodText", "Curve Method "))
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 	];
 
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> ComboBoxCurveMethod;
@@ -3704,7 +3704,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 			return SNew(STextBlock)
 				.Text(ChoiceEntryText)
 				.ToolTipText(ChoiceEntryText)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 		})
 		.OnSelectionChanged_Lambda([OnCurveMethodChanged](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
 		{
@@ -3716,7 +3716,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 			{
 				return GetCurveMethodText();
 			})
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 	];
 
@@ -3736,7 +3736,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 				SNew(STextBlock)
 				.Text(LOCTEXT("CurveOrder", "Curve Order"))
 				.ToolTipText(LOCTEXT("CurveOrderTooltip", "Curve order of the curve. Only used for Bezier or NURBs curves. Must be a value between 2 and 11."))
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 			+ SHorizontalBox::Slot()
 			.Padding(2.0f, 0.0f)
@@ -3744,7 +3744,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 			[
 				SNew(SNumericEntryBox<int>)
 				.AllowSpin(true)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				.MinValue(HAPI_UNREAL_ATTRIB_HAPI_INPUT_CURVE_ORDER_MIN)
 				.MaxValue(HAPI_UNREAL_ATTRIB_HAPI_INPUT_CURVE_ORDER_MAX)
 				.MinSliderValue(HAPI_UNREAL_ATTRIB_HAPI_INPUT_CURVE_ORDER_MIN)
@@ -3783,7 +3783,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 			[
 				SNew(SButton)
 				.ToolTipText(LOCTEXT("OrderToDefault", "Reset to default value."))
-				.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+				.ButtonStyle(_GetEditorStyle(), "NoBorder")
 				.ContentPadding(0)
 				.Visibility(HoudiniSplineComponent->GetCurveOrder() != HAPI_UNREAL_ATTRIB_HAPI_INPUT_CURVE_ORDER_MIN ? EVisibility::Visible : EVisibility::Hidden)
 				.OnClicked_Lambda([GetHoudiniSplineComponentAtIndex, InInputs, InCurveObjectIdx, OuterHAC]()
@@ -3818,7 +3818,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 				})
 				[
 					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+					.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
 				]
 			]
 		];
@@ -3888,7 +3888,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 		.AutoWidth()
 		[
 			SNew(STextBlock).Text(LOCTEXT("CurveBreakpointParameterizationText", "Breakpoint Parameterization"))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		];
 
 		TSharedPtr<SComboBox<TSharedPtr<FString>>> ComboBoxCurveBreakpointParam;
@@ -3906,7 +3906,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 				return SNew(STextBlock)
 				.Text(ChoiceEntryText)
 				.ToolTipText(ChoiceEntryText)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 			})
 			.OnSelectionChanged_Lambda([OnBreakpointParameterizationChanged](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
 			{	
@@ -3918,7 +3918,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 				{
 					return GetCurveBreakpointParameterizationText();
 				})
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		];
 	}
@@ -4155,7 +4155,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 			SNew(STextBlock)
 			.Text(LOCTEXT("LandscapeUpdateInputCheckbox", "Update Input Landscape Data"))
 			.ToolTipText(LOCTEXT("LandscapeUpdateInputTooltip", "If enabled, the input landscape's data will be updated instead of creating a new landscape Actor"))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 		.IsChecked_Lambda([IsCheckedUpdateInputLandscape, MainInput]()
 		{
@@ -4325,7 +4325,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 			SNew(STextBlock)
 			.Text(LOCTEXT("LandscapeExportAs", "Export Landscape As"))
 			.ToolTipText(LOCTEXT("LandscapeExportAsToolTip", "Choose the type of data you want the ladscape to be exported to:\n * Heightfield\n * Mesh\n * Points"))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		];
 	
 		TSharedPtr <SUniformGridPanel> ButtonOptionsPanel;
@@ -4383,7 +4383,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		ButtonOptionsPanel->AddSlot(0, 0)
 		[
 			SNew(SCheckBox)
-			.Style(FEditorStyle::Get(), "Property.ToggleButton.Start")
+			.Style(_GetEditorStyle(), "Property.ToggleButton.Start")
 			.IsChecked_Lambda([IsCheckedExportAs, MainInput]()
 			{
 				return IsCheckedExportAs(MainInput, EHoudiniLandscapeExportType::Heightfield);
@@ -4402,7 +4402,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				.Padding(2, 2)
 				[
 					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("ClassIcon.LandscapeComponent"))
+					.Image(_GetEditorStyle().GetBrush("ClassIcon.LandscapeComponent"))
 				]
 				+ SHorizontalBox::Slot()
 				.FillWidth(1.f)
@@ -4423,7 +4423,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		ButtonOptionsPanel->AddSlot(1, 0)
 		[
 			SNew(SCheckBox)
-			.Style(FEditorStyle::Get(), "Property.ToggleButton.Middle")
+			.Style(_GetEditorStyle(), "Property.ToggleButton.Middle")
 			.IsChecked_Lambda([IsCheckedExportAs, MainInput]()
 			{
 				return IsCheckedExportAs(MainInput, EHoudiniLandscapeExportType::Mesh);
@@ -4442,7 +4442,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				.Padding(2, 2)
 				[
 					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("ClassIcon.StaticMeshComponent"))
+					.Image(_GetEditorStyle().GetBrush("ClassIcon.StaticMeshComponent"))
 				]
 
 				+ SHorizontalBox::Slot()
@@ -4464,7 +4464,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		ButtonOptionsPanel->AddSlot(2, 0)
 		[
 			SNew(SCheckBox)
-			.Style(FEditorStyle::Get(), "Property.ToggleButton.End")
+			.Style(_GetEditorStyle(), "Property.ToggleButton.End")
 			.IsChecked_Lambda([IsCheckedExportAs, MainInput]()
 			{
 				return IsCheckedExportAs(MainInput, EHoudiniLandscapeExportType::Points);
@@ -4483,7 +4483,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				.Padding(2, 2)
 				[
 					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("Mobility.Static"))
+					.Image(_GetEditorStyle().GetBrush("Mobility.Static"))
 				]
 
 				+ SHorizontalBox::Slot()
@@ -4512,7 +4512,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				SNew(STextBlock)
 				.Text(LOCTEXT("LandscapeSelectedCheckbox", "Export Selected Landscape Components Only"))
 				.ToolTipText(LOCTEXT("LandscapeSelectedTooltip", "If enabled, only the selected Landscape Components will be exported."))
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 			.IsChecked_Lambda([MainInput]()
 			{
@@ -4563,7 +4563,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				SNew(STextBlock)
 				.Text(LOCTEXT("AutoSelectComponentCheckbox", "Auto-select component in asset bounds"))
 				.ToolTipText(LOCTEXT("AutoSelectComponentCheckboxTooltip", "If enabled, when no Landscape components are currently selected, the one within the asset's bounding box will be exported."))
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 			.IsChecked_Lambda([MainInput]()
 			{
@@ -4690,7 +4690,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 					SNew(STextBlock)
 					.Text(LOCTEXT("LandscapeMaterialsCheckbox", "Export Landscape Materials"))
 					.ToolTipText(LOCTEXT("LandscapeMaterialsTooltip", "If enabled, the landscape materials will be exported with it."))
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				]
 				.IsChecked_Lambda([MainInput]()
 				{
@@ -4745,7 +4745,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 					SNew(STextBlock)
 					.Text(LOCTEXT("LandscapeTileUVsCheckbox", "Export Landscape Tile UVs"))
 					.ToolTipText(LOCTEXT("LandscapeTileUVsTooltip", "If enabled, UVs will be exported separately for each Landscape tile."))
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				]
 				.IsChecked_Lambda([MainInput]()
 				{
@@ -4800,7 +4800,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				SNew(STextBlock)
 				.Text(LOCTEXT("LandscapeNormalizedUVsCheckbox", "Export Landscape Normalized UVs"))
 			.ToolTipText(LOCTEXT("LandscapeNormalizedUVsTooltip", "If enabled, landscape UVs will be exported in [0, 1]."))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		.IsChecked_Lambda([MainInput]()
 		{
@@ -4855,7 +4855,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 					SNew(STextBlock)
 					.Text(LOCTEXT("LandscapeLightingCheckbox", "Export Landscape Lighting"))
 				.ToolTipText(LOCTEXT("LandscapeLightingTooltip", "If enabled, lightmap information will be exported with the landscape."))
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				]
 			.IsChecked_Lambda([MainInput]()
 			{
@@ -5273,7 +5273,7 @@ FHoudiniInputDetails::Helper_CreateHoudiniAssetPickerWidget(const TArray<TWeakOb
 			.HeightOverride(SceneOutlinerWindowSize.Y)
 			[
 				SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+				.BorderImage(_GetEditorStyle().GetBrush("Menu.Background"))
 				[
 					SceneOutlinerModule.CreateActorPicker(
 						InitOptions,
@@ -5452,7 +5452,7 @@ FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(const TArray<TWeakObjec
 				return SNew(STextBlock)
 					.Text(ChoiceEntryText)
 					.ToolTipText(ChoiceEntryText)
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 			})
 			.OnLandscapeSelectionChanged_Lambda([OnActorSelected, InInputs](const FString& Name, AActor* LandscapeProxy)
 			{
@@ -5537,7 +5537,7 @@ FHoudiniInputDetails::Helper_CreateWorldActorPickerWidget(const TArray<TWeakObje
 			.HeightOverride(SceneOutlinerWindowSize.Y)
 			[
 				SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+				.BorderImage(_GetEditorStyle().GetBrush("Menu.Background"))
 				[
 					SceneOutlinerModule.CreateActorPicker(
  						InitOptions,
@@ -5608,7 +5608,7 @@ FHoudiniInputDetails::Helper_CreateBoundSelectorPickerWidget(const TArray<TWeakO
 			.HeightOverride(SceneOutlinerWindowSize.Y)
 			[
 				SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+				.BorderImage(_GetEditorStyle().GetBrush("Menu.Background"))
 				[
 					SceneOutlinerModule.CreateActorPicker(
  						InitOptions,
@@ -5915,7 +5915,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 				SNew(STextBlock)
 				.Text(LOCTEXT("BoundSelector", "Bound Selector"))
 				.ToolTipText(LOCTEXT("BoundSelectorTip", "When enabled, this world input works as a bound selector, sending all the objects contained in the bound selector bounding boxes."))
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]		
 			.IsChecked_Lambda([IsCheckedBoundSelector, MainInput]()
 			{
@@ -5979,7 +5979,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 				SNew(STextBlock)
 				.Text(LOCTEXT("BoundAutoUpdate", "Update bound selection automatically"))
 				.ToolTipText(LOCTEXT("BoundAutoUpdateTip", "If enabled and if this world input is set as a bound selector, the objects selected by the bounds will update automatically."))
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 			.IsChecked_Lambda([IsCheckedAutoUpdate, MainInput]()
 			{
@@ -6032,7 +6032,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 				SNew(STextBlock)
 				.Text(LOCTEXT("SplineRes", "Unreal Spline Resolution"))
 				.ToolTipText(LOCTEXT("SplineResTooltip", "Resolution used when marshalling the Unreal Splines to HoudiniEngine.\n(step in cm between control points)\nSet this to 0 to only export the control points."))
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 			+ SHorizontalBox::Slot()
 			.Padding(2.0f, 0.0f)
@@ -6040,7 +6040,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 			[
 				SNew(SNumericEntryBox<float>)
 				.AllowSpin(true)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				.MinValue(-1.0f)
 				.MaxValue(1000.0f)
 				.MinSliderValue(0.0f)
@@ -6080,7 +6080,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 			[
 				SNew(SButton)
 				.ToolTipText(LOCTEXT("SplineResToDefault", "Reset to default value."))
-				.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+				.ButtonStyle(_GetEditorStyle(), "NoBorder")
 				.ContentPadding(0)
 				.Visibility(EVisibility::Visible)
 				.OnClicked_Lambda([MainInput, InInputs]()
@@ -6115,7 +6115,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 				})
 				[
 					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+					.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
 				]
 			]
 		];
@@ -6134,7 +6134,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 				SNew(STextBlock)
 				.Text(LOCTEXT("HoudiniEngineLegacyInputCurvesLabel", "Use Legacy Input Curves"))
 				.ToolTipText(LegacyInputCurveTooltipText)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 			.OnCheckStateChanged_Lambda([InInputs](ECheckBoxState NewState)
 			{
@@ -6224,7 +6224,7 @@ void FHoudiniInputDetails::AddGeometryCollectionInputUI(IDetailCategoryBuilder& 
 		[
 			SNew(STextBlock)
 			.Text(FText::Format(LOCTEXT("NumArrayItemsFmt", "{0} elements"), FText::AsNumber(NumInputObjects)))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 		+ SHorizontalBox::Slot()
 		.Padding(1.0f)
