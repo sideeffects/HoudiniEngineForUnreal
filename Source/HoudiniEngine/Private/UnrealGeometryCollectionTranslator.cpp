@@ -694,11 +694,10 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 		//--------------------------------------------------------------------------------------------------------------------- 
 		// unreal_gc_piece (required for packing)
 		//---------------------------------------------------------------------------------------------------------------------
-		int32 Level = 1;
-	
+		int32 Level = 1;	
 		if (GeometryCollection->HasAttribute("Level", FGeometryCollection::TransformGroup))
 		{
-			TManagedArray<int32>& Levels = GeometryCollection->GetAttribute<int32>("Level", FGeometryCollection::TransformGroup);
+			const TManagedArray<int32>& Levels = GeometryCollection->GetAttribute<int32>("Level", FGeometryCollection::TransformGroup);
 			Level = Levels[GeometryIndex];
 		}
 

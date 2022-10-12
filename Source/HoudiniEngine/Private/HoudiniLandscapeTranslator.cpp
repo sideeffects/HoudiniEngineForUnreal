@@ -49,7 +49,7 @@
 #include "LandscapeStreamingProxy.h"
 #include "LandscapeInfo.h"
 #include "LandscapeEdit.h"
-#include "AssetRegistryModule.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "PackageTools.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "UObject/UnrealType.h"

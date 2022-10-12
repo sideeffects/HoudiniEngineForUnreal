@@ -3673,13 +3673,17 @@ FUnrealMeshTranslator::CreateInputNodeForConvex(
 	FVector3d ScaleOffset = ConvexTransform.GetScale3D();
 	FQuat4d RotationOffset = ConvexTransform.GetRotation();
 
+#if ENGINE_MINOR_VERSION < 1
+	//UE5.0 PhysX/Chaos
 #if PHYSICS_INTERFACE_PHYSX
 	if (ConvexCollider.GetConvexMesh() || ConvexCollider.GetMirroredConvexMesh())
 #elif WITH_CHAOS
-	//if (ConvexCollider.GetChaosConvexMesh().IsValid())
 	if (ConvexCollider.IndexData.Num() > 0 && ConvexCollider.IndexData.Num() % 3 == 0)
 #else
 	if(false)
+#endif
+#else
+	if (ConvexCollider.IndexData.Num() > 0 && ConvexCollider.IndexData.Num() % 3 == 0)
 #endif
 	{
 		// Get the convex colliders vertices and indices from the mesh
