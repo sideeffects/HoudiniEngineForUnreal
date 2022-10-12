@@ -261,7 +261,7 @@ FHoudiniEngineStyle::Initialize()
 	const FSlateColor SelectionColor = FEditorStyle::GetSlateColor("SelectionColor");
 	const FSlateColor SelectionColor_Inactive = FEditorStyle::GetSlateColor("SelectionColor_Inactive");
 
-	const FTableRowStyle &NormalTableRowStyle = FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.Row");
+	const FTableRowStyle &NormalTableRowStyle = _GetEditorStyle().GetWidgetStyle<FTableRowStyle>("TableView.Row");
 	StyleSet->Set(
 		"HoudiniEngine.TableRow", FTableRowStyle(NormalTableRowStyle)
 		.SetEvenRowBackgroundBrush(FSlateNoResource())
@@ -278,7 +278,7 @@ FHoudiniEngineStyle::Initialize()
 	);
 
 	// Normal Text
-	const FTextBlockStyle& NormalText = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("NormalText");
+	const FTextBlockStyle& NormalText = _GetEditorStyle().GetWidgetStyle<FTextBlockStyle>("NormalText");
 	StyleSet->Set(
 		"HoudiniEngine.ThumbnailText", FTextBlockStyle(NormalText)
 		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 9))

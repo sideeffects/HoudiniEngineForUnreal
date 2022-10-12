@@ -90,7 +90,7 @@
 
 #include <vector>
 
-#include "AssetRegistryModule.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "FileHelpers.h"
 #include "Factories/WorldFactory.h"
 #include "HAL/FileManager.h"

@@ -56,7 +56,7 @@
 #include "UObject/Package.h"
 #include "PackageTools.h"
 #include "UObject/MetaData.h"
-#include "AssetRegistryModule.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetSelection.h"
 #include "Materials/Material.h"
 #include "LandscapeProxy.h"
@@ -5484,7 +5484,11 @@ FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
 		{
 			MaterialPackageParams.GetBakeCounterFromBakedAsset(PreviousBakeMaterial, BakeCounter);
 
+#if ENGINE_MINOR_VERSION < 1
 			PreviousBakeMaterialExpressions = PreviousMaterialCast->Expressions;
+#else
+			PreviousBakeMaterialExpressions = PreviousMaterialCast->GetExpressionCollection().Expressions;
+#endif
 		}
 	}
 	
@@ -5517,10 +5521,15 @@ FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
 	UMaterial * DuplicatedMaterialCast = Cast<UMaterial>(DuplicatedMaterial);
 	if (DuplicatedMaterialCast)
 	{
-		const int32 NumExpressions = DuplicatedMaterialCast->Expressions.Num();
+#if ENGINE_MINOR_VERSION < 1
+		auto& MatExpressions = DuplicatedMaterialCast->Expressions;
+#else
+		auto& MatExpressions = DuplicatedMaterialCast->GetExpressionCollection().Expressions;
+#endif
+		const int32 NumExpressions = MatExpressions.Num();
 		for (int32 ExpressionIdx = 0; ExpressionIdx < NumExpressions; ++ExpressionIdx)
 		{
-			UMaterialExpression* Expression = DuplicatedMaterialCast->Expressions[ExpressionIdx];
+			UMaterialExpression* Expression = MatExpressions[ExpressionIdx];
 			UMaterialExpression* PreviousBakeExpression = nullptr;
 			if (bIsPreviousBakeMaterialValid && PreviousBakeMaterialExpressions.IsValidIndex(ExpressionIdx))
 			{

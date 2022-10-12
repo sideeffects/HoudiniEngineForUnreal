@@ -53,6 +53,10 @@ struct HOUDINIENGINE_API FHoudiniMaterialTranslator
 {
 public:
 
+	// Helper function to handle difference with material expressions collection in UE5.1
+	static void _AddMaterialExpression(
+		UMaterial* InMaterial, UMaterialExpression* InMatExp);
+
 	//
 	static bool CreateHoudiniMaterials(
 		const HAPI_NodeId& InNodeId,

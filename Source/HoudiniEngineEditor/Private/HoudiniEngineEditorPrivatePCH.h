@@ -149,3 +149,14 @@
 #define HOUDINI_RADIO_BUTTON_CIRCLE_RADIUS_INNER													   1.0f
 #define HOUDINI_RADIO_BUTTON_CIRCLE_CENTER_X														   7.0f
 #define HOUDINI_RADIO_BUTTON_CIRCLE_CENTER_Y														  13.2f
+
+
+// Backward compatibility with 5.0
+static const ISlateStyle& _GetEditorStyle()
+{
+#if ENGINE_MINOR_VERSION < 1
+	return FEditorStyle::Get();
+#else
+	return FAppStyle::Get();
+#endif
+};
