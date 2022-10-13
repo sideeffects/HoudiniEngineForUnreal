@@ -4665,10 +4665,19 @@ FHoudiniLandscapeTranslator::DestroyLandscape(ALandscape* Landscape)
 	ULandscapeInfo* Info = Landscape->GetLandscapeInfo();
 	if (!IsValid(Info))
 		return;
-
+#if ENGINE_MINOR_VERSION< 1
 	TArray<ALandscapeStreamingProxy*> Proxies = Info->Proxies;
-	for(ALandscapeStreamingProxy* Proxy : Proxies)
+	for (ALandscapeStreamingProxy* Proxy : Proxies)
 	{
+#else
+	TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = Info->StreamingProxies;
+	for (auto ProxyPtr : Proxies)
+	{
+		ALandscapeStreamingProxy* Proxy = ProxyPtr.Get();
+#endif	
+		if (!IsValid(Proxy))
+			continue;
+
 		Info->UnregisterActor(Proxy);
 		Proxy->Destroy();
 	}

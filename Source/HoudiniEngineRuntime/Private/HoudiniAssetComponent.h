@@ -159,7 +159,8 @@ public:
 	UHoudiniAsset * GetHoudiniAsset() const;
 	int32 GetAssetId() const { return AssetId; };
 	EHoudiniAssetState GetAssetState() const { return AssetState; };
-	FString GetAssetStateAsString() const { return FHoudiniEngineRuntimeUtils::EnumToString(TEXT("EHoudiniAssetState"), GetAssetState()); };
+//	FString GetAssetStateAsString() const { return FHoudiniEngineRuntimeUtils::EnumToString(TEXT("EHoudiniAssetState"), GetAssetState()); };
+
 	EHoudiniAssetStateResult GetAssetStateResult() const { return AssetStateResult; };
 	FGuid GetHapiGUID() const { return HapiGUID; };
 	FString GetHapiAssetName() const { return HapiAssetName; };

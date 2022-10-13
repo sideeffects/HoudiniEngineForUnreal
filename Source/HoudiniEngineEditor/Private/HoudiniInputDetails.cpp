@@ -2254,7 +2254,11 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 			UObject* Object = nullptr;
 			for (auto & CurAssetData : CBSelections) 
 			{
+#if ENGINE_MINOR_VERSION < 1
 				if (CurAssetData.AssetClass != UGeometryCollection::StaticClass()->GetFName())
+#else
+				if (CurAssetData.AssetClassPath != UGeometryCollection::StaticClass()->GetClassPathName())
+#endif
 					continue;
 
 				Object = CurAssetData.GetAsset();

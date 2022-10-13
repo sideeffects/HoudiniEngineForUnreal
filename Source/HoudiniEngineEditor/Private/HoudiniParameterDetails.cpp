@@ -3204,7 +3204,11 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 			}
 			else
 			{
+#if ENGINE_MINOR_VERSION < 1
 				AssetData.AssetClass = UnrealRefClass->GetFName();
+#else
+				AssetData.AssetClassPath = UnrealRefClass->GetClassPathName();
+#endif
 			}
 			
 			TSharedPtr< FAssetThumbnail > StaticMeshThumbnail = MakeShareable(

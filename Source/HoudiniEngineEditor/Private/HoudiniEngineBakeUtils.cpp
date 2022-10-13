@@ -7283,7 +7283,11 @@ FHoudiniEngineBakeUtils::MakeUniqueObjectNameIfNeeded(UObject* InOuter, const UC
 			if (!bAppendedNumber)
 			{
 				const bool bSplitName = false;
+#if ENGINE_MINOR_VERSION < 1
 				CandidateName = FName(*InName, NAME_EXTERNAL_TO_INTERNAL(1), FNAME_Add, bSplitName);
+#else
+				CandidateName = FName(*InName, NAME_EXTERNAL_TO_INTERNAL(1), bSplitName);
+#endif
 				bAppendedNumber = true;
 			}
 			else

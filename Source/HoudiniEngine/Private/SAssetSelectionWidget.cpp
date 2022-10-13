@@ -30,6 +30,8 @@
 
 #if WITH_EDITOR
 
+#include "../../Launch/Resources/Version.h"
+
 #include "EditorStyleSet.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Input/SButton.h"
@@ -70,17 +72,21 @@ SAssetSelectionWidget::Construct(const FArguments & InArgs)
 	this->ChildSlot
 		[
 			SNew(SBorder)
+#if ENGINE_MINOR_VERSION < 1
 			.BorderImage(FEditorStyle::GetBrush(TEXT("Menu.Background")))
-		.Content()
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-		.HAlign(HAlign_Center)
-		.VAlign(VAlign_Center)
-		[
-			SAssignNew(VerticalBox, SVerticalBox)
-		]
-		]
+#else
+			.BorderImage(FAppStyle::GetBrush(TEXT("Menu.Background")))
+#endif
+			.Content()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				[
+					SAssignNew(VerticalBox, SVerticalBox)
+				]
+			]
 		];
 
 	for (int32 AssetNameIdx = 0, AssetNameNum = AvailableAssetNames.Num(); AssetNameIdx < AssetNameNum; ++AssetNameIdx)
@@ -100,17 +106,17 @@ SAssetSelectionWidget::Construct(const FArguments & InArgs)
 				[
 					SNew(SHorizontalBox)
 					+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
-				.Padding(2.0f, 4.0f)
-				[
-					SNew(SButton)
+					.HAlign(HAlign_Center)
 					.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
-				.OnClicked(this, &SAssetSelectionWidget::OnButtonAssetPick, AssetName)
-				.Text(AssetNameStringText)
-				.ToolTipText(AssetNameStringText)
-				]
+					.Padding(2.0f, 4.0f)
+					[
+						SNew(SButton)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						.OnClicked(this, &SAssetSelectionWidget::OnButtonAssetPick, AssetName)
+						.Text(AssetNameStringText)
+						.ToolTipText(AssetNameStringText)
+					]
 				];
 		}
 	}

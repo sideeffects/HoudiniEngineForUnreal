@@ -542,26 +542,29 @@ FHoudiniOutputTranslator::UpdateOutputs(
 			{
 				if (!IsValid(Component))
 					continue;
+
 				AActor* Actor = Component->GetOwner();
 				ALandscape* Landscape = Cast<ALandscape>(Actor);
-				if (!Landscape)
-					continue;
-				if (TrackedLandscapes.Contains(Landscape))
-					continue;
-
-				if (Landscape->GetLandscapeInfo()->Proxies.Num() == 0)
 				if (!IsValid(Landscape))
 					continue;
 
+				if (TrackedLandscapes.Contains(Landscape))
+					continue;
+
 				ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
-				if (!LandscapeInfo)
+				if (!IsValid(LandscapeInfo))
 				{
 					Landscape->Destroy();
 					continue;
 				}
-				
+#if ENGINE_MINOR_VERSION < 1
 				if (LandscapeInfo->Proxies.Num() == 0)
+#else
+				if (LandscapeInfo->StreamingProxies.Num() == 0)
+#endif
+				{
 					Landscape->Destroy();
+				}	
 			}
 		}
 
