@@ -2988,9 +2988,15 @@ FHoudiniOutputDetails::OnUseContentBrowserSelectedMaterialInterface(
 		UObject* Object = nullptr;
 		for (auto & CurAssetData : CBSelections)
 		{
+#if ENGINE_MINOR_VERSION < 1
 			if (CurAssetData.AssetClass != UMaterial::StaticClass()->GetFName() &&
 				CurAssetData.AssetClass != UMaterialInstance::StaticClass()->GetFName() &&
 				CurAssetData.AssetClass != UMaterialInstanceConstant::StaticClass()->GetFName())
+#else
+			if (CurAssetData.AssetClassPath != UMaterial::StaticClass()->GetClassPathName() &&
+				CurAssetData.AssetClassPath != UMaterialInstance::StaticClass()->GetClassPathName() &&
+				CurAssetData.AssetClassPath != UMaterialInstanceConstant::StaticClass()->GetClassPathName())
+#endif
 				continue;
 
 			Object = CurAssetData.GetAsset();

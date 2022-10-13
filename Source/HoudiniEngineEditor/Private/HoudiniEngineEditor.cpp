@@ -1199,7 +1199,11 @@ FHoudiniEngineEditor::ExtendContextMenu()
 				for (const FAssetData& Asset : SelectedAssets)
 				{
 					// TODO: Foliage Types? BP ?
+#if ENGINE_MINOR_VERSION < 1
 					if ((Asset.AssetClass != USkeletalMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UStaticMesh::StaticClass()->GetFName()))
+#else
+					if ((Asset.AssetClassPath != USkeletalMesh::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UStaticMesh::StaticClass()->GetClassPathName()))
+#endif
 					{
 						bShouldExtendAssetActions = false;
 						break;
