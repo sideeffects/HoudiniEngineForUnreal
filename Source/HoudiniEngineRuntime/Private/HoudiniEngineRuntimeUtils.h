@@ -164,25 +164,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 		static int32 SafeDeleteObjects(TArray<UObject*>& InObjectsToDelete, TArray<UObject*>* OutObjectsNotDeleted=nullptr);
 
 		// -------------------------------------------------
-		// Type utilities
-		// -------------------------------------------------
-
-		// Taken from here: https://answers.unrealengine.com/questions/330496/conversion-of-enum-to-string.html
-		// Return the string representation of an enum value.
-		template<typename T>
-		static FString EnumToString(const FString& EnumName, const T Value)
-		{
-			UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, *EnumName);
-			return *(Enum ? Enum->GetNameStringByValue(static_cast<uint8>(Value)) : "null");
-		}
-
-		template<typename T>
-		static FString EnumToString(const T Value)
-		{
-			return UEnum::GetValueAsString(Value);
-		}
-
-		// -------------------------------------------------
 		// Blueprint utilities
 		// -------------------------------------------------
 #if WITH_EDITOR

@@ -303,7 +303,11 @@ UHoudiniInputSkeletalMeshComponent::GetSkeletalMesh()
 	if (!IsValid(SkeletalMeshComponent))
 		return nullptr;
 
+#if ENGINE_MINOR_VERSION < 1
 	return SkeletalMeshComponent->SkeletalMesh.Get();
+#else
+	return SkeletalMeshComponent->GetSkeletalMeshAsset();
+#endif
 }
 
 UGeometryCollection*

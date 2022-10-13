@@ -4044,7 +4044,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 			HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT, &AttributeInfoPoint), false);
 
 		// Get the object path
+#if ENGINE_MINOR_VERSION < 1
 		FString RowStructName = DataTable->GetRowStructName().ToString();
+#else
+		FString RowStructName = DataTable->GetRowStructPathName().ToString();
+#endif
 
 		// Set the point's path attribute
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(

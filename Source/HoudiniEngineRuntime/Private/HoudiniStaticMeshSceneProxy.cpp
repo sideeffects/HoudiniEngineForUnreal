@@ -272,7 +272,7 @@ void FHoudiniStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSc
 
 			FDynamicPrimitiveUniformBuffer &DynamicPrimitiveUniformBuffer = Collector.AllocateOneFrameResource<FDynamicPrimitiveUniformBuffer>();
 			DynamicPrimitiveUniformBuffer.Set(
-				GetLocalToWorld(), PreviousLocalToWorld, GetBounds(), GetLocalBounds(), true, bHasPrecomputedVolumetricLightmap, DrawsVelocity(), bOutputVelocity);
+				GetLocalToWorld(), PreviousLocalToWorld, GetBounds(), GetLocalBounds(), true, bHasPrecomputedVolumetricLightmap, bOutputVelocity);
 
 			if (BufferSet->TriangleIndexBuffer.Indices.Num() > 0)
 			{

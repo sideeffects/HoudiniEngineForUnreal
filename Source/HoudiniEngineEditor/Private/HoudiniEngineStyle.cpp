@@ -161,7 +161,7 @@ FHoudiniEngineStyle::Initialize()
 	FString NodeSyncIcon = IconsDir + TEXT("icon_houdini_logo_16.png");
 
 	FString InfoIcon = IconsDir + TEXT("icon_hengine_logo_16.png");
-	FString SettingsIcon = FEditorStyle::GetBrush("Launcher.EditSettings")->GetResourceName().ToString();
+	FString SettingsIcon = _GetEditorStyle().GetBrush("Launcher.EditSettings")->GetResourceName().ToString();
 
 	StyleSet->Set("HoudiniEngine._CreateSession", new FSlateImageBrush(SessionCreateIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine._ConnectSession", new FSlateImageBrush(SessionConnectIcon, Icon16x16));
@@ -255,11 +255,11 @@ FHoudiniEngineStyle::Initialize()
 	*/
 
 	// We need some colors from Editor Style & this is the only way to do this at the moment
-	const FSlateColor DefaultForeground = FEditorStyle::GetSlateColor("DefaultForeground");
-	const FSlateColor InvertedForeground = FEditorStyle::GetSlateColor("InvertedForeground");
-	const FSlateColor SelectorColor = FEditorStyle::GetSlateColor("SelectorColor");
-	const FSlateColor SelectionColor = FEditorStyle::GetSlateColor("SelectionColor");
-	const FSlateColor SelectionColor_Inactive = FEditorStyle::GetSlateColor("SelectionColor_Inactive");
+	const FSlateColor DefaultForeground = _GetEditorStyle().GetSlateColor("DefaultForeground");
+	const FSlateColor InvertedForeground = _GetEditorStyle().GetSlateColor("InvertedForeground");
+	const FSlateColor SelectorColor = _GetEditorStyle().GetSlateColor("SelectorColor");
+	const FSlateColor SelectionColor = _GetEditorStyle().GetSlateColor("SelectionColor");
+	const FSlateColor SelectionColor_Inactive = _GetEditorStyle().GetSlateColor("SelectionColor_Inactive");
 
 	const FTableRowStyle &NormalTableRowStyle = _GetEditorStyle().GetWidgetStyle<FTableRowStyle>("TableView.Row");
 	StyleSet->Set(
