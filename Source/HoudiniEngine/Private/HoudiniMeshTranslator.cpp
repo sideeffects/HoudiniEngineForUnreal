@@ -5780,7 +5780,9 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 			SplitType != EHoudiniSplitType::RenderedSimpleCollider &&
 			SplitType != EHoudiniSplitType::RenderedUCXCollider)
 		{
-			continue;
+			// Only create the invisible colliders if we don't have other splits
+			if(AllSplitGroups.Num() > 1)
+				continue;
 		}
 
 		// We only use LOD if there is no Normal geo
