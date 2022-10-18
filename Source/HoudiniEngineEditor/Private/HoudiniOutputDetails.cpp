@@ -2008,6 +2008,16 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 		MeshLabel += TEXT("\n(templated)");
 	}
 
+	// Mention complex colliders even if they are not used for proxies
+	if (SplitType == EHoudiniSplitType::RenderedComplexCollider)
+	{
+		MeshLabel += TEXT("\n(Rendered Complex Collider)");
+	}
+	else if (SplitType == EHoudiniSplitType::InvisibleComplexCollider)
+	{
+		MeshLabel += TEXT("\n(Invisible Complex Collider)");
+	}
+
 	if (HoudiniGeoPartObject.AllMeshSockets.Num() > 0)
 	{
 		MeshLabel += TEXT("\n(") + FString::FromInt(HoudiniGeoPartObject.AllMeshSockets.Num()) + TEXT(" sockets)");
