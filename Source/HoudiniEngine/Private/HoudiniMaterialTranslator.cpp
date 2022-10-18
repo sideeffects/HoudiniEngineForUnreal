@@ -229,16 +229,8 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
 
-		// Extract opacity plane.
-		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
-			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
-
-		// Extract opacity mask plane.
-		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
-			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
-
-		// Extract normal plane.
-		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
+		// Extract metallic plane.
+		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
 
 		// Extract specular plane.
@@ -249,12 +241,20 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
 
-		// Extract metallic plane.
-		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
-			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
-
 		// Extract emissive plane.
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+
+		// Extract opacity plane.
+		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+
+		// Extract opacity mask plane.
+		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+
+		// Extract normal plane.
+		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
 
 		// Set other material properties.
@@ -1185,7 +1185,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 
 	MaterialExpressionMultiply->MaterialExpressionEditorX = FHoudiniMaterialTranslator::MaterialExpressionNodeX;
 	MaterialExpressionMultiply->MaterialExpressionEditorY =
-		(ExpressionVertexColor->MaterialExpressionEditorY - ExpressionConstant4Vector->MaterialExpressionEditorY) / 2;
+		(ExpressionVertexColor->MaterialExpressionEditorY + ExpressionConstant4Vector->MaterialExpressionEditorY) / 2;
 
 	// Hook up secondary multiplication expression to first one.
 	if (MaterialExpressionMultiplySecondary)
@@ -1214,11 +1214,6 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 	{
 		// Assign expression.
 		MatDiffuse.Expression = MaterialExpressionMultiply;
-
-		MaterialExpressionMultiply->MaterialExpressionEditorX = FHoudiniMaterialTranslator::MaterialExpressionNodeX;
-		MaterialExpressionMultiply->MaterialExpressionEditorY =
-			(ExpressionVertexColor->MaterialExpressionEditorY -
-				ExpressionConstant4Vector->MaterialExpressionEditorY) / 2;
 	}
 
 	return true;
@@ -2815,13 +2810,14 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 	if (!IsValid(Material))
 		return false;
 
-	bool bExpressionCreated = false;
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
 	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
 
-	// Name of generating Houdini parameter.
-	FString GeneratingParameterName = TEXT("");
+	// Names of generating Houdini parameters.
+	FString GeneratingParameterNameEmissiveTexture = TEXT("");
+	FString GeneratingParameterNameEmissiveColor = TEXT("");
+	FString GeneratingParameterNameEmissiveIntensity = TEXT("");
 
 	// Emissive texture creation parameters.
 	FCreateTexture2DParameters CreateTexture2DParameters;
@@ -2831,7 +2827,104 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 	CreateTexture2DParameters.bDeferCompression = true;
 	CreateTexture2DParameters.bSRGB = false;
 
-	// See if emissive texture is available.
+	// Attempt to look up previously created expressions.
+#if ENGINE_MINOR_VERSION < 1
+	FColorMaterialInput& MatEmissive = Material->EmissiveColor;
+#else
+	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
+	FColorMaterialInput& MatEmissive = MaterialEditorOnly->EmissiveColor;
+#endif
+
+	// Locate Texture sampling expression.
+	UMaterialExpressionTextureSampleParameter2D* ExpressionTextureSample =
+		Cast<UMaterialExpressionTextureSampleParameter2D>(FHoudiniMaterialTranslator::MaterialLocateExpression(
+			MatEmissive.Expression, UMaterialExpressionTextureSampleParameter2D::StaticClass()));
+
+	// If texture sampling expression exists, attempt to look up corresponding texture.
+	UTexture2D* TextureEmissive = nullptr;
+	if (IsValid(ExpressionTextureSample))
+		TextureEmissive = Cast<UTexture2D>(ExpressionTextureSample->Texture);
+
+	// Locate emissive color expression.
+	UMaterialExpressionVectorParameter* ExpressionEmissiveColor =
+		Cast<UMaterialExpressionVectorParameter>(FHoudiniMaterialTranslator::MaterialLocateExpression(
+			MatEmissive.Expression, UMaterialExpressionVectorParameter::StaticClass()));
+
+	// If emissive color expression does not exist, create it.
+	if (!IsValid(ExpressionEmissiveColor))
+	{
+		ExpressionEmissiveColor = NewObject<UMaterialExpressionVectorParameter>(
+			Material, UMaterialExpressionVectorParameter::StaticClass(), NAME_None, ObjectFlag);
+		ExpressionEmissiveColor->DefaultValue = FLinearColor::White;
+	}
+
+	// Add expression.
+	_AddMaterialExpression(Material, ExpressionEmissiveColor);
+
+	// Locate emissive intensity expression.
+	UMaterialExpressionConstant* ExpressionEmissiveIntensity =
+		Cast<UMaterialExpressionConstant>(FHoudiniMaterialTranslator::MaterialLocateExpression(
+			MatEmissive.Expression, UMaterialExpressionConstant::StaticClass()));
+
+	// If emissive intensity expression does not exist, create it.
+	if (!IsValid(ExpressionEmissiveIntensity))
+	{
+		ExpressionEmissiveIntensity = NewObject<UMaterialExpressionConstant>(
+			Material, UMaterialExpressionConstant::StaticClass(), NAME_None, ObjectFlag);
+		ExpressionEmissiveIntensity->Desc = GeneratingParameterNameEmissiveIntensity;
+	}
+
+	// Add expression.
+	_AddMaterialExpression(Material, ExpressionEmissiveIntensity);
+
+	// See if emissive intensity is available.
+	HAPI_ParmInfo ParmEmissiveIntensityInfo;
+	HAPI_ParmId ParmEmissiveIntensityId =
+		FHoudiniEngineUtils::HapiFindParameterByTag(InMaterialInfo.nodeId, HAPI_UNREAL_PARAM_VALUE_EMISSIVE_INTENSITY_OGL, ParmEmissiveIntensityInfo);
+
+	if (ParmEmissiveIntensityId >= 0)
+	{
+		GeneratingParameterNameEmissiveIntensity = TEXT(HAPI_UNREAL_PARAM_VALUE_EMISSIVE_INTENSITY_OGL);
+	}
+	else
+	{
+		ParmEmissiveIntensityId =
+			FHoudiniEngineUtils::HapiFindParameterByName(InMaterialInfo.nodeId, HAPI_UNREAL_PARAM_VALUE_EMISSIVE_INTENSITY, ParmEmissiveIntensityInfo);
+
+		if (ParmEmissiveIntensityId >= 0)
+			GeneratingParameterNameEmissiveIntensity = TEXT(HAPI_UNREAL_PARAM_VALUE_EMISSIVE_INTENSITY);
+	}
+
+	bool bHasEmissiveIntensity = false;
+	float EmmissiveIntensity = 0.0f;
+	if (ParmEmissiveIntensityId >= 0)
+	{
+		if (FHoudiniApi::GetParmFloatValues(
+			FHoudiniEngine::Get().GetSession(), InMaterialInfo.nodeId, &EmmissiveIntensity,
+			ParmEmissiveIntensityInfo.floatValuesIndex, 1) == HAPI_RESULT_SUCCESS)
+		{
+			bHasEmissiveIntensity = true;
+		}
+	}
+	ExpressionEmissiveIntensity->R = EmmissiveIntensity;
+	ExpressionEmissiveIntensity->Desc = GeneratingParameterNameEmissiveIntensity;
+
+	// Material should have at least one multiply expression.
+	UMaterialExpressionMultiply* MaterialExpressionMultiply = Cast<UMaterialExpressionMultiply>(MatEmissive.Expression);
+	if (!IsValid(MaterialExpressionMultiply))
+		MaterialExpressionMultiply = NewObject<UMaterialExpressionMultiply>(
+			Material, UMaterialExpressionMultiply::StaticClass(), NAME_None, ObjectFlag);
+
+	// Add expression.
+	_AddMaterialExpression(Material, MaterialExpressionMultiply);
+
+	// See if primary multiplication has secondary multiplication as A input.
+	UMaterialExpressionMultiply* MaterialExpressionMultiplySecondary = nullptr;
+	if (MaterialExpressionMultiply->A.Expression)
+		MaterialExpressionMultiplySecondary =
+		Cast<UMaterialExpressionMultiply>(MaterialExpressionMultiply->A.Expression);
+
+	// See if an emissive texture is available.
 	HAPI_ParmInfo ParmEmissiveTextureInfo;
 	HAPI_ParmId ParmEmissiveTextureId = -1;
 	if (FHoudiniMaterialTranslator::FindTextureParamByNameOrTag(
@@ -2843,7 +2936,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 		ParmEmissiveTextureInfo))
 	{
 		// Found via OGL tag
-		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_EMISSIVE_OGL);
+		GeneratingParameterNameEmissiveTexture = TEXT(HAPI_UNREAL_PARAM_MAP_EMISSIVE_OGL);
 	}
 	else if (FHoudiniMaterialTranslator::FindTextureParamByNameOrTag(
 		InMaterialInfo.nodeId,
@@ -2854,7 +2947,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 		ParmEmissiveTextureInfo))
 	{
 		// Found via Parm name
-		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_EMISSIVE);
+		GeneratingParameterNameEmissiveTexture = TEXT(HAPI_UNREAL_PARAM_MAP_EMISSIVE);
 	}
 	else
 	{
@@ -2862,43 +2955,51 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 		ParmEmissiveTextureId = -1;
 	}
 
-#if ENGINE_MINOR_VERSION < 1
-	FColorMaterialInput& MatEmissiveColor = Material->EmissiveColor;
-#else
-	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
-	FColorMaterialInput& MatEmissiveColor = MaterialEditorOnly->EmissiveColor;
-#endif
-
+	// If we have an emissive texture parameter.
 	if (ParmEmissiveTextureId >= 0)
 	{
-		TArray< char > ImageBuffer;
+		TArray<char> ImageBuffer;
 
-		// Retrieve color plane.
-		if (FHoudiniMaterialTranslator::HapiExtractImage(
-			ParmEmissiveTextureId, InMaterialInfo, HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-			HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGBA, true, ImageBuffer))
+		// Get image planes of the emissive map.
+		TArray<FString> EmissiveImagePlanes;
+		bool bFoundImagePlanes = FHoudiniMaterialTranslator::HapiGetImagePlanes(
+			ParmEmissiveTextureId, InMaterialInfo, EmissiveImagePlanes);
+
+		HAPI_ImagePacking ImagePacking = HAPI_IMAGE_PACKING_UNKNOWN;
+		const char* PlaneType = "";
+
+		if (bFoundImagePlanes && EmissiveImagePlanes.Contains(TEXT(HAPI_UNREAL_MATERIAL_TEXTURE_COLOR)))
 		{
-			UMaterialExpressionTextureSampleParameter2D * ExpressionEmissive =
-				Cast< UMaterialExpressionTextureSampleParameter2D >(MatEmissiveColor.Expression);
-
-			UTexture2D * TextureEmissive = nullptr;
-			if (ExpressionEmissive)
+			if (EmissiveImagePlanes.Contains(TEXT(HAPI_UNREAL_MATERIAL_TEXTURE_ALPHA)))
 			{
-				TextureEmissive = Cast< UTexture2D >(ExpressionEmissive->Texture);
+				ImagePacking = HAPI_IMAGE_PACKING_RGBA;
+				PlaneType = HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA;
+
+				// Material does use alpha.
+				CreateTexture2DParameters.bUseAlpha = true;
 			}
 			else
 			{
-				// Otherwise new expression is of a different type.
-				if (MatEmissiveColor.Expression)
-				{
-					MatEmissiveColor.Expression->ConditionalBeginDestroy();
-					MatEmissiveColor.Expression = nullptr;
-				}
+				// We still need to have the Alpha plane, just not the CreateTexture2DParameters
+				// alpha option. This is because all texture data from Houdini Engine contains
+				// the alpha plane by default.
+				ImagePacking = HAPI_IMAGE_PACKING_RGBA;
+				PlaneType = HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA;
 			}
+		}
+		else
+		{
+			bFoundImagePlanes = false;
+		}
 
-			UPackage * TextureEmissivePackage = nullptr;
-			if (TextureEmissive)
-				TextureEmissivePackage = Cast< UPackage >(TextureEmissive->GetOuter());
+		// Retrieve color plane.
+		if (bFoundImagePlanes && FHoudiniMaterialTranslator::HapiExtractImage(
+			ParmEmissiveTextureId, InMaterialInfo, PlaneType,
+			HAPI_IMAGE_DATA_INT8, ImagePacking, false, ImageBuffer))
+		{
+			UPackage* TextureEmissivePackage = nullptr;
+			if (IsValid(TextureEmissive))
+				TextureEmissivePackage = Cast<UPackage>(TextureEmissive->GetOuter());
 
 			HAPI_ImageInfo ImageInfo;
 			FHoudiniApi::ImageInfo_Init(&ImageInfo);
@@ -2932,7 +3033,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 				}
 
 				// Create emissive texture, if we need to create one.
-				if (!TextureEmissive)
+				if (!IsValid(TextureEmissive))
 					bCreatedNewTextureEmissive = true;
 
 				FString NodePath;
@@ -2943,7 +3044,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 					TextureEmissive,
 					ImageInfo,
 					TextureEmissivePackage,
-					TextureEmissiveName, 
+					TextureEmissiveName,
 					ImageBuffer,
 					CreateTexture2DParameters,
 					TEXTUREGROUP_World,
@@ -2954,29 +3055,22 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 				TextureEmissive->SetFlags(RF_Public | RF_Standalone);
 
 				// Create emissive sampling expression, if needed.
-				if (!ExpressionEmissive)
-					ExpressionEmissive = NewObject< UMaterialExpressionTextureSampleParameter2D >(
+				if (!ExpressionTextureSample)
+				{
+					ExpressionTextureSample = NewObject<UMaterialExpressionTextureSampleParameter2D>(
 						Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, ObjectFlag);
+				}
 
 				// Record generating parameter.
-				ExpressionEmissive->Desc = GeneratingParameterName;
-				ExpressionEmissive->ParameterName = *GeneratingParameterName;
+				ExpressionTextureSample->Desc = GeneratingParameterNameEmissiveTexture;
+				ExpressionTextureSample->ParameterName = *GeneratingParameterNameEmissiveTexture;
+				ExpressionTextureSample->Texture = TextureEmissive;
+				ExpressionTextureSample->SamplerType = SAMPLERTYPE_Color;
 
-				ExpressionEmissive->Texture = TextureEmissive;
-				ExpressionEmissive->SamplerType = SAMPLERTYPE_LinearGrayscale;
+				// Add expression.
+				_AddMaterialExpression(Material, ExpressionTextureSample);
 
-				// Offset node placement.
-				ExpressionEmissive->MaterialExpressionEditorX = FHoudiniMaterialTranslator::MaterialExpressionNodeX;
-				ExpressionEmissive->MaterialExpressionEditorY = MaterialNodeY;
-				MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
-
-				// Assign expression to material.
-				_AddMaterialExpression(Material, ExpressionEmissive);
-				MatEmissiveColor.Expression = ExpressionEmissive;
-
-				bExpressionCreated = true;
-
-				// Propagate and trigger metallic texture updates.
+				// Propagate and trigger emissive texture updates.
 				if (bCreatedNewTextureEmissive)
 					FAssetRegistryModule::AssetCreated(TextureEmissive);
 
@@ -2990,72 +3084,119 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 		}
 	}
 
-	HAPI_ParmInfo ParmEmissiveValueInfo;
-	HAPI_ParmId ParmEmissiveValueId =
-		FHoudiniEngineUtils::HapiFindParameterByTag(InMaterialInfo.nodeId, HAPI_UNREAL_PARAM_VALUE_EMISSIVE_OGL, ParmEmissiveValueInfo);
+	// See if emissive color is available.
+	HAPI_ParmInfo ParmEmissiveColorInfo;
+	HAPI_ParmId ParmEmissiveColorId =
+		FHoudiniEngineUtils::HapiFindParameterByTag(InMaterialInfo.nodeId, HAPI_UNREAL_PARAM_VALUE_EMISSIVE_OGL, ParmEmissiveColorInfo);
 
-	if (ParmEmissiveValueId >= 0)
-		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_VALUE_EMISSIVE_OGL);
+	if (ParmEmissiveColorId >= 0)
+	{
+		GeneratingParameterNameEmissiveColor = TEXT(HAPI_UNREAL_PARAM_VALUE_EMISSIVE_OGL);
+	}
 	else
 	{
-		ParmEmissiveValueId =
-			FHoudiniEngineUtils::HapiFindParameterByName(InMaterialInfo.nodeId, HAPI_UNREAL_PARAM_VALUE_EMISSIVE, ParmEmissiveValueInfo);
+		ParmEmissiveColorId =
+			FHoudiniEngineUtils::HapiFindParameterByName(InMaterialInfo.nodeId, HAPI_UNREAL_PARAM_VALUE_EMISSIVE, ParmEmissiveColorInfo);
 
-		if (ParmEmissiveValueId >= 0)
-			GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_VALUE_EMISSIVE);
+		if (ParmEmissiveColorId >= 0)
+			GeneratingParameterNameEmissiveColor = TEXT(HAPI_UNREAL_PARAM_VALUE_EMISSIVE);
 	}
 
-	if (!bExpressionCreated && ParmEmissiveValueId >= 0)
+	// If we have an emissive color parameter.
+	if (ParmEmissiveColorId >= 0)
 	{
-		// Emissive color is available.
-
 		FLinearColor Color = FLinearColor::White;
-
 		if (FHoudiniApi::GetParmFloatValues(
 			FHoudiniEngine::Get().GetSession(), InMaterialInfo.nodeId, (float*)&Color.R,
-			ParmEmissiveValueInfo.floatValuesIndex, ParmEmissiveValueInfo.size) == HAPI_RESULT_SUCCESS)
+			ParmEmissiveColorInfo.floatValuesIndex, ParmEmissiveColorInfo.size) == HAPI_RESULT_SUCCESS)
 		{
-			if (ParmEmissiveValueInfo.size == 3)
+			if (ParmEmissiveColorInfo.size == 3)
 				Color.A = 1.0f;
 
-			UMaterialExpressionConstant4Vector * ExpressionEmissiveColor =
-				Cast< UMaterialExpressionConstant4Vector >(MatEmissiveColor.Expression);
-
-			// Create color const expression and add it to material, if we don't have one.
-			if (!ExpressionEmissiveColor)
-			{
-				// Otherwise new expression is of a different type.
-				if (MatEmissiveColor.Expression)
-				{
-					MatEmissiveColor.Expression->ConditionalBeginDestroy();
-					MatEmissiveColor.Expression = nullptr;
-				}
-
-				ExpressionEmissiveColor = NewObject< UMaterialExpressionConstant4Vector >(
-					Material, UMaterialExpressionConstant4Vector::StaticClass(), NAME_None, ObjectFlag);
-			}
-
 			// Record generating parameter.
-			ExpressionEmissiveColor->Desc = GeneratingParameterName;
-			if (ExpressionEmissiveColor->CanRenameNode())
-				ExpressionEmissiveColor->SetEditableName(*GeneratingParameterName);
-
-			ExpressionEmissiveColor->Constant = Color;
-
-			// Offset node placement.
-			ExpressionEmissiveColor->MaterialExpressionEditorX = FHoudiniMaterialTranslator::MaterialExpressionNodeX;
-			ExpressionEmissiveColor->MaterialExpressionEditorY = MaterialNodeY;
-			MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
-
-			// Assign expression to material.
-			_AddMaterialExpression(Material, ExpressionEmissiveColor);
-			MatEmissiveColor.Expression = ExpressionEmissiveColor;
-
-			bExpressionCreated = true;
+			ExpressionEmissiveColor->Desc = GeneratingParameterNameEmissiveColor;
+			ExpressionEmissiveColor->ParameterName = *GeneratingParameterNameEmissiveColor;
+			ExpressionEmissiveColor->DefaultValue = Color;
 		}
 	}
 
-	return bExpressionCreated;
+	// If we have have texture sample expression present, we need a secondary multiplication expression.
+	if (ExpressionTextureSample)
+	{
+		if (!MaterialExpressionMultiplySecondary)
+		{
+			MaterialExpressionMultiplySecondary = NewObject<UMaterialExpressionMultiply>(
+				Material, UMaterialExpressionMultiply::StaticClass(), NAME_None, ObjectFlag);
+
+			// Add expression.
+			_AddMaterialExpression(Material, MaterialExpressionMultiplySecondary);
+		}
+	}
+	else
+	{
+		// If secondary multiplication exists, but we have no sampling, we can free it.
+		if (MaterialExpressionMultiplySecondary)
+		{
+			MaterialExpressionMultiplySecondary->A.Expression = nullptr;
+			MaterialExpressionMultiplySecondary->B.Expression = nullptr;
+			MaterialExpressionMultiplySecondary->ConditionalBeginDestroy();
+		}
+	}
+
+	float SecondaryExpressionScale = 1.0f;
+	if (MaterialExpressionMultiplySecondary)
+		SecondaryExpressionScale = 1.5f;
+
+	// Create multiplication expression which has emissive color and emissive intesnity
+	MaterialExpressionMultiply->A.Expression = ExpressionEmissiveColor;
+	MaterialExpressionMultiply->B.Expression = ExpressionEmissiveIntensity;
+
+	ExpressionEmissiveColor->MaterialExpressionEditorX =
+		FHoudiniMaterialTranslator::MaterialExpressionNodeX -
+		FHoudiniMaterialTranslator::MaterialExpressionNodeStepX * SecondaryExpressionScale;
+	ExpressionEmissiveColor->MaterialExpressionEditorY = MaterialNodeY;
+	MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
+
+	ExpressionEmissiveIntensity->MaterialExpressionEditorX =
+		FHoudiniMaterialTranslator::MaterialExpressionNodeX -
+		FHoudiniMaterialTranslator::MaterialExpressionNodeStepX * SecondaryExpressionScale;
+	ExpressionEmissiveIntensity->MaterialExpressionEditorY = MaterialNodeY;
+	MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
+
+	MaterialExpressionMultiply->MaterialExpressionEditorX = FHoudiniMaterialTranslator::MaterialExpressionNodeX;
+	MaterialExpressionMultiply->MaterialExpressionEditorY =
+		(ExpressionEmissiveIntensity->MaterialExpressionEditorY + ExpressionEmissiveColor->MaterialExpressionEditorY) / 2;
+
+	// Hook up secondary multiplication expression to first one.
+	if (MaterialExpressionMultiplySecondary)
+	{
+		MaterialExpressionMultiplySecondary->A.Expression = MaterialExpressionMultiply;
+		MaterialExpressionMultiplySecondary->B.Expression = ExpressionTextureSample;
+
+		if (ExpressionTextureSample)
+		{
+			ExpressionTextureSample->MaterialExpressionEditorX =
+				FHoudiniMaterialTranslator::MaterialExpressionNodeX -
+				FHoudiniMaterialTranslator::MaterialExpressionNodeStepX * SecondaryExpressionScale;
+			ExpressionTextureSample->MaterialExpressionEditorY = MaterialNodeY;
+		}
+
+		MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
+
+		MaterialExpressionMultiplySecondary->MaterialExpressionEditorX = FHoudiniMaterialTranslator::MaterialExpressionNodeX;
+		MaterialExpressionMultiplySecondary->MaterialExpressionEditorY =
+			MaterialExpressionMultiply->MaterialExpressionEditorY + FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
+
+		// Assign expression.
+		MatEmissive.Expression = MaterialExpressionMultiplySecondary;
+	}
+	else
+	{
+		// Assign expression.
+		MatEmissive.Expression = MaterialExpressionMultiply;
+	}
+
+	return true;
 }
 
 

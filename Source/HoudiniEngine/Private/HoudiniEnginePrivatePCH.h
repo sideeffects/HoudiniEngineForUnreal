@@ -408,6 +408,8 @@
 // Materials Emissive.
 #define HAPI_UNREAL_PARAM_VALUE_EMISSIVE_OGL			"ogl_emit"
 #define HAPI_UNREAL_PARAM_VALUE_EMISSIVE				"emitcolor"
+#define HAPI_UNREAL_PARAM_VALUE_EMISSIVE_INTENSITY_OGL  "ogl_emit_intensity"
+#define HAPI_UNREAL_PARAM_VALUE_EMISSIVE_INTENSITY		"emitint"
 
 #define HAPI_UNREAL_PARAM_MAP_EMISSIVE_OGL				"ogl_emissionmap"
 #define HAPI_UNREAL_PARAM_MAP_EMISSIVE_OGL_ENABLED		"ogl_use_emissionmap"
