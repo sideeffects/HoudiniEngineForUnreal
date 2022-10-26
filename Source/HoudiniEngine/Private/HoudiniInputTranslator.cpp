@@ -80,6 +80,8 @@
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 
+#include "UObject/TextProperty.h"
+
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
 #if WITH_EDITOR
