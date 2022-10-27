@@ -377,6 +377,133 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const FString& InAttributeName,
 			const HAPI_AttributeInfo& InAttributeInfo);
 
+		// Helper function to set unsigned Int attribute data
+		// The data will be sent in chunks if too large for thrift
+		static HAPI_Result HapiSetAttributeUIntData(
+			const TArray<int64>& InIntData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		static HAPI_Result HapiSetAttributeUIntData(
+			const int64* InIntData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		// Helper function to set signed int8 attribute data
+		// The data will be sent in chunks if too large for thrift
+		static HAPI_Result HapiSetAttributeInt8Data(
+			const TArray<int8>& InByteData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		static HAPI_Result HapiSetAttributeInt8Data(
+			const int8* InByteData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		// Helper function to set Byte attribute data
+		// The data will be sent in chunks if too large for thrift
+		static HAPI_Result HapiSetAttributeUInt8Data(
+			const TArray<uint8>& InByteData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		static HAPI_Result HapiSetAttributeUInt8Data(
+			const uint8* InByteData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		// Helper function to set signed int16 attribute data
+		// The data will be sent in chunks if too large for thrift
+		static HAPI_Result HapiSetAttributeInt16Data(
+			const TArray<int16>& InShortData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		static HAPI_Result HapiSetAttributeInt16Data(
+			const int16* InShortData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		// Helper function to set uint16 attribute data
+		// The data will be sent in chunks if too large for thrift
+		static HAPI_Result HapiSetAttributeUInt16Data(
+			const TArray<int32>& InShortData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		static HAPI_Result HapiSetAttributeUInt16Data(
+			const int32* InShortData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		// Helper function to set Int64 attribute data
+		// The data will be sent in chunks if too large for thrift
+		static HAPI_Result HapiSetAttributeInt64Data(
+			const TArray<int64>& InInt64Data,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		static HAPI_Result HapiSetAttributeInt64Data(
+			const int64* InInt64Data,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		// Helper function to set unsigned Int64 attribute data
+		// The data will be sent in chunks if too large for thrift
+		static HAPI_Result HapiSetAttributeUInt64Data(
+			const TArray<int64>& InInt64Data,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		static HAPI_Result HapiSetAttributeUInt64Data(
+			const int64* InInt64Data,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		// Helper function to set Double attribute data
+		// The data will be sent in chunks if too large for thrift
+		static HAPI_Result HapiSetAttributeDoubleData(
+			const TArray<double>& InDoubleData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		static HAPI_Result HapiSetAttributeDoubleData(
+			const double* InDoubleData,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
 
 		// Helper function to set Vertex Lists
 		// The data will be sent in chunks if too large for thrift
