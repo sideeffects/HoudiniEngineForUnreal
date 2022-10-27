@@ -3407,6 +3407,368 @@ FHoudiniEngineUtils::HapiSetAttributeIntData(
 }
 
 HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeUIntData(
+	const TArray<int64>& InIntData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	return FHoudiniEngineUtils::HapiSetAttributeInt64Data(
+		InIntData, InNodeId, InPartId, InAttributeName, InAttributeInfo);
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeUIntData(
+	const int64* InIntData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	return FHoudiniEngineUtils::HapiSetAttributeInt64Data(
+		InIntData, InNodeId, InPartId, InAttributeName, InAttributeInfo);
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeInt8Data(
+	const TArray<int8>& InByteData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	if (InByteData.Num() != InAttributeInfo.count * InAttributeInfo.tupleSize)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	return FHoudiniEngineUtils::HapiSetAttributeInt8Data(
+		InByteData.GetData(), InNodeId, InPartId, InAttributeName, InAttributeInfo);
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeInt8Data(
+	const int8* InByteData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	HAPI_Result Result = HAPI_RESULT_FAILURE;
+	int32 ChunkSize = THRIFT_MAX_CHUNKSIZE / InAttributeInfo.tupleSize;
+	if (InAttributeInfo.count > ChunkSize)
+	{
+		// Send the attribte in chunks
+		for (int32 ChunkStart = 0; ChunkStart < InAttributeInfo.count; ChunkStart += ChunkSize)
+		{
+			int32 CurCount = InAttributeInfo.count - ChunkStart > ChunkSize ? ChunkSize : InAttributeInfo.count - ChunkStart;
+
+			Result = FHoudiniApi::SetAttributeInt8Data(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+				&InAttributeInfo, InByteData,
+				ChunkStart, CurCount);
+
+			if (Result != HAPI_RESULT_SUCCESS)
+				break;
+		}
+	}
+	else
+	{
+		// Send all the attribute values once
+		Result = FHoudiniApi::SetAttributeInt8Data(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+			&InAttributeInfo, InByteData,
+			0, InAttributeInfo.count);
+	}
+
+	return Result;
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeUInt8Data(
+	const TArray<uint8>& InByteData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	if (InByteData.Num() != InAttributeInfo.count * InAttributeInfo.tupleSize)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	return FHoudiniEngineUtils::HapiSetAttributeUInt8Data(
+		InByteData.GetData(), InNodeId, InPartId, InAttributeName, InAttributeInfo);
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeUInt8Data(
+	const uint8* InByteData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	HAPI_Result Result = HAPI_RESULT_FAILURE;
+	int32 ChunkSize = THRIFT_MAX_CHUNKSIZE / InAttributeInfo.tupleSize;
+	if (InAttributeInfo.count > ChunkSize)
+	{
+		// Send the attribte in chunks
+		for (int32 ChunkStart = 0; ChunkStart < InAttributeInfo.count; ChunkStart += ChunkSize)
+		{
+			int32 CurCount = InAttributeInfo.count - ChunkStart > ChunkSize ? ChunkSize : InAttributeInfo.count - ChunkStart;
+
+			Result = FHoudiniApi::SetAttributeUInt8Data(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+				&InAttributeInfo, InByteData,
+				ChunkStart, CurCount);
+
+			if (Result != HAPI_RESULT_SUCCESS)
+				break;
+		}
+	}
+	else
+	{
+		// Send all the attribute values once
+		Result = FHoudiniApi::SetAttributeUInt8Data(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+			&InAttributeInfo, InByteData,
+			0, InAttributeInfo.count);
+	}
+
+	return Result;
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeInt16Data(
+	const TArray<int16>& InShortData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	if (InShortData.Num() != InAttributeInfo.count * InAttributeInfo.tupleSize)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	return FHoudiniEngineUtils::HapiSetAttributeInt16Data(
+		InShortData.GetData(), InNodeId, InPartId, InAttributeName, InAttributeInfo);
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeInt16Data(
+	const int16* InShortData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	HAPI_Result Result = HAPI_RESULT_FAILURE;
+	int32 ChunkSize = THRIFT_MAX_CHUNKSIZE / InAttributeInfo.tupleSize;
+	if (InAttributeInfo.count > ChunkSize)
+	{
+		// Send the attribte in chunks
+		for (int32 ChunkStart = 0; ChunkStart < InAttributeInfo.count; ChunkStart += ChunkSize)
+		{
+			int32 CurCount = InAttributeInfo.count - ChunkStart > ChunkSize ? ChunkSize : InAttributeInfo.count - ChunkStart;
+
+			Result = FHoudiniApi::SetAttributeInt16Data(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+				&InAttributeInfo, InShortData,
+				ChunkStart, CurCount);
+
+			if (Result != HAPI_RESULT_SUCCESS)
+				break;
+		}
+	}
+	else
+	{
+		// Send all the attribute values once
+		Result = FHoudiniApi::SetAttributeInt16Data(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+			&InAttributeInfo, InShortData,
+			0, InAttributeInfo.count);
+	}
+
+	return Result;
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeUInt16Data(
+	const TArray<int32>& InShortData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	return FHoudiniEngineUtils::HapiSetAttributeIntData(
+		InShortData, InNodeId, InPartId, InAttributeName, InAttributeInfo);
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeUInt16Data(
+	const int32* InShortData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	return FHoudiniEngineUtils::HapiSetAttributeIntData(
+		InShortData, InNodeId, InPartId, InAttributeName, InAttributeInfo);
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeInt64Data(
+	const TArray<int64>& InInt64Data,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	if (InInt64Data.Num() != InAttributeInfo.count * InAttributeInfo.tupleSize)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	return FHoudiniEngineUtils::HapiSetAttributeInt64Data(
+		InInt64Data.GetData(), InNodeId, InPartId, InAttributeName, InAttributeInfo);
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeInt64Data(
+	const int64* InInt64Data,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	HAPI_Result Result = HAPI_RESULT_FAILURE;
+	int32 ChunkSize = THRIFT_MAX_CHUNKSIZE / InAttributeInfo.tupleSize;
+	if (InAttributeInfo.count > ChunkSize)
+	{
+		// Send the attribte in chunks
+		for (int32 ChunkStart = 0; ChunkStart < InAttributeInfo.count; ChunkStart += ChunkSize)
+		{
+			int32 CurCount = InAttributeInfo.count - ChunkStart > ChunkSize ? ChunkSize : InAttributeInfo.count - ChunkStart;
+
+			Result = FHoudiniApi::SetAttributeInt64Data(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+				&InAttributeInfo, InInt64Data,
+				ChunkStart, CurCount);
+
+			if (Result != HAPI_RESULT_SUCCESS)
+				break;
+		}
+	}
+	else
+	{
+		// Send all the attribute values once
+		Result = FHoudiniApi::SetAttributeInt64Data(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+			&InAttributeInfo, InInt64Data,
+			0, InAttributeInfo.count);
+	}
+
+	return Result;
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeUInt64Data(
+	const TArray<int64>& InInt64Data,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	return FHoudiniEngineUtils::HapiSetAttributeInt64Data(
+		InInt64Data, InNodeId, InPartId, InAttributeName, InAttributeInfo);
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeUInt64Data(
+	const int64* InInt64Data,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	return FHoudiniEngineUtils::HapiSetAttributeInt64Data(
+		InInt64Data, InNodeId, InPartId, InAttributeName, InAttributeInfo);
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeDoubleData(
+	const TArray<double>& InDoubleData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	if (InDoubleData.Num() != InAttributeInfo.count * InAttributeInfo.tupleSize)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	return FHoudiniEngineUtils::HapiSetAttributeDoubleData(
+		InDoubleData.GetData(), InNodeId, InPartId, InAttributeName, InAttributeInfo);
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeDoubleData(
+	const double* InDoubleData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	HAPI_Result Result = HAPI_RESULT_FAILURE;
+	int32 ChunkSize = THRIFT_MAX_CHUNKSIZE / InAttributeInfo.tupleSize;
+	if (InAttributeInfo.count > ChunkSize)
+	{
+		// Send the attribte in chunks
+		for (int32 ChunkStart = 0; ChunkStart < InAttributeInfo.count; ChunkStart += ChunkSize)
+		{
+			int32 CurCount = InAttributeInfo.count - ChunkStart > ChunkSize ? ChunkSize : InAttributeInfo.count - ChunkStart;
+
+			Result = FHoudiniApi::SetAttributeFloat64Data(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+				&InAttributeInfo, InDoubleData,
+				ChunkStart, CurCount);
+
+			if (Result != HAPI_RESULT_SUCCESS)
+				break;
+		}
+	}
+	else
+	{
+		// Send all the attribute values once
+		Result = FHoudiniApi::SetAttributeFloat64Data(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+			&InAttributeInfo, InDoubleData,
+			0, InAttributeInfo.count);
+	}
+
+	return Result;
+}
+
+HAPI_Result
 FHoudiniEngineUtils::HapiSetVertexList(
 	const TArray<int32>& InVertexListData,
 	const HAPI_NodeId& InNodeId,
