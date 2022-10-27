@@ -77,9 +77,71 @@
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 
+#include "UObject/TextProperty.h"
+
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
 #if WITH_EDITOR
+
+namespace
+{
+	template<typename T, typename P>
+	TArray<T>
+	PopulateTArray(TMap<FName, uint8*>::TConstIterator It,
+		uint32 NumRows,
+		uint32 NumComponents,
+		uint32 Offset,
+		uint32 ComponentSize,
+		TArray<uint32> Order)
+	{
+		TArray<T> Values;
+		Values.Reserve(NumRows * NumComponents);
+		for (; It; ++It)
+		{
+			const uint8* Data = It.Value();
+			for (uint32 Idx = 0; Idx < NumComponents; ++Idx)
+			{
+				Values.Add(P::GetPropertyValue(Data + Offset + Order[Idx] * ComponentSize));
+			}
+			
+		}
+		return Values;
+	}
+
+	template<typename T, typename P>
+	TArray<T>
+	PopulateTArray(TMap<FName, uint8*>::TConstIterator It,
+		uint32 NumRows,
+		uint32 NumComponents,
+		uint32 Offset,
+		uint32 ComponentSize)
+	{
+		TArray<uint32> Order;
+		Order.Reserve(NumComponents);
+		for (uint32 Idx = 0; Idx < NumComponents; ++Idx)
+		{
+			Order.Add(Idx);
+		}
+		return PopulateTArray<T, P>(It, NumRows, NumComponents, Offset, ComponentSize, Order);
+	}
+
+	TArray<int8>
+	PopulateBoolArray(TMap<FName, uint8*>::TConstIterator It,
+		const FBoolProperty& Prop,
+		uint32 Count,
+		uint32 Offset)
+	{
+		TArray<int8> Values;
+		Values.Reserve(Count);
+		for (; It; ++It)
+		{
+			const uint8* Data = It.Value();
+			Values.Add(Prop.GetPropertyValue(Data + Offset));
+		}
+		return Values;
+	}
+};
+
 // Allows checking of objects currently being dragged around
 struct FHoudiniMoveTracker
 {
@@ -3369,7 +3431,6 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 bool
 FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeName, UHoudiniInputDataTable* InInputObject)
 {
-	//TODO
 	if (!IsValid(InInputObject))
 		return false;
 
@@ -3377,13 +3438,19 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 	if (!IsValid(DataTable))
 		return true;
 	
-	// Get the DataTable data as string
-	TArray<TArray<FString>> TableData = DataTable->GetTableData(EDataTableExportFlags::None);
-	if (TableData.Num() <= 1)
+	const UScriptStruct* ScriptStruct = DataTable->GetRowStruct();
+	if (!IsValid(ScriptStruct))
 		return true;
 
-	int32 NumRows = TableData.Num() - 1;
-	int32 NumAttributes = TableData[0].Num();
+	TArray<FName> RowNames = DataTable->GetRowNames();
+	TArray<FString> ColTitles = DataTable->GetUniqueColumnTitles();
+	TArray<FString> NiceNames = DataTable->GetColumnTitles();
+
+	if (RowNames.Num() <= 1)
+		return true;
+
+	int32 NumRows = RowNames.Num();
+	int32 NumAttributes = ColTitles.Num();
 	if (NumRows <= 0 || NumAttributes <= 0)
 		return true;
 
@@ -3491,54 +3558,527 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 
 		// Set the point's path attribute
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
-			RowStructName, InputNodeId, 0, 
+			RowStructName, InputNodeId, 0,
 			HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT, AttributeInfoPoint), false);
 	}
 
-	// Now set the attributes values for each "point" of the data table
-	for (int32 ColIdx = 0; ColIdx < NumAttributes; ColIdx++)
 	{
-		// attribute name is "unreal_data_table_COL_NAME"
+		// Manually set the attribute for the unique RowName.
+		HAPI_AttributeInfo AttributeInfoPoint;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfoPoint);
+		AttributeInfoPoint.count = NumRows;
+		AttributeInfoPoint.tupleSize = 1;
+		AttributeInfoPoint.exists = true;
+		AttributeInfoPoint.owner = HAPI_ATTROWNER_POINT;
+		AttributeInfoPoint.storage = HAPI_STORAGETYPE_STRING;
+		AttributeInfoPoint.originalOwner = HAPI_ATTROWNER_INVALID;
 
-		FString DataName = TableData[0][ColIdx];
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+			"unreal_data_table_0_Name", &AttributeInfoPoint), false);
+
+		TArray<FString> Names;
+		Names.Reserve(NumRows);
+		for (auto KV : DataTable->GetRowMap())
+		{
+			Names.Add(KV.Key.ToString());
+		}
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+			Names, InputNodeId, 0, "unreal_data_table_0_Name", AttributeInfoPoint), false);
+	}
+
+	// Now set the attributes values for each "point" of the data table
+	uint32 ColIdx = 0;
+	auto ColIter(ColTitles.CreateConstIterator());
+	// Skip the name column.
+	++ColIter;
+	for (; ColIter; ++ColIter)
+	{
+		++ColIdx;
+		FString ColName = *ColIter;
+		FString NiceName = NiceNames[ColIdx];
 
 		// Validate struct variable names
-		DataName = DataName.Replace(TEXT(" "), TEXT("_"));
-		DataName = DataName.Replace(TEXT(":"), TEXT("_"));
-		
-		FString CurAttrName = TEXT(HAPI_UNREAL_ATTRIB_DATA_TABLE_PREFIX) + FString::FromInt(ColIdx) + TEXT("_") + DataName;
+		NiceName = NiceName.Replace(TEXT(" "), TEXT("_"));
+		NiceName = NiceName.Replace(TEXT(":"), TEXT("_"));
+
+		FString CurAttrName = TEXT(HAPI_UNREAL_ATTRIB_DATA_TABLE_PREFIX) + FString::FromInt(ColIdx) + TEXT("_") + NiceName;
 		if (FHoudiniEngineUtils::SanitizeHAPIVariableName(CurAttrName))
 		{
-			FString OldName = TEXT(HAPI_UNREAL_ATTRIB_DATA_TABLE_PREFIX) + FString::FromInt(ColIdx) + TEXT("_") + DataName;
+			FString OldName = TEXT(HAPI_UNREAL_ATTRIB_DATA_TABLE_PREFIX) + FString::FromInt(ColIdx) + TEXT("_") + NiceName;
 			HOUDINI_LOG_WARNING(TEXT("[HapiCreateInputNodeForDataTable]: Invalid row name (%s) renamed to %s."), *OldName, *CurAttrName);
 		}
 
-		// We need to gt all values for that attribute
-		TArray<FString> AttributeValues;
-		AttributeValues.SetNum(NumRows);
-		for (int32 RowIdx = 0; RowIdx < NumRows; RowIdx++)
+		FProperty* ColumnProp = ScriptStruct->FindPropertyByName(FName(*ColName));
+		if (!ColumnProp)
 		{
-			AttributeValues[RowIdx] = TableData[RowIdx + 1][ColIdx];
+			HOUDINI_LOG_WARNING(TEXT("[HapiCreateInputNodeForDataTable]: Could not find property %s in struct %s."), *ColName, *ScriptStruct->GetFName().ToString());
+			continue;
 		}
-
 		// Create a point attribute info
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 		AttributeInfo.count = NumRows;
-		AttributeInfo.tupleSize = 1;
+		// Set tuple size depending on prop type.
 		AttributeInfo.exists = true;
 		AttributeInfo.owner = HAPI_ATTROWNER_POINT;
-		AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
+		// Set the storage type depending on prop type.
 		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 		AttributeInfo.typeInfo = HAPI_ATTRIBUTE_TYPE_NONE;
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-			FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
-			TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+		uint32 Offset = ColumnProp->GetOffset_ForInternal();
+		TMap<FName, uint8*>::TConstIterator It = DataTable->GetRowMap().CreateConstIterator();
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
-			AttributeValues, InputNodeId, 0,
-			CurAttrName, AttributeInfo), false);
+		// We need to get all values for that attribute
+		if (ColumnProp->IsA<FBoolProperty>())
+		{
+			AttributeInfo.tupleSize = 1;
+			AttributeInfo.storage = HAPI_STORAGETYPE_INT8;
+			TArray<int8> Col = PopulateBoolArray(It, *CastField<FBoolProperty>(ColumnProp), NumRows, Offset);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+				TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeInt8Data(
+				Col, InputNodeId, 0,
+				CurAttrName, AttributeInfo), false);
+		}
+		// Text treated separately because the method used for string fallback
+		// doesn't cleanly convert this
+		else if (ColumnProp->IsA<FTextProperty>())
+		{
+			AttributeInfo.tupleSize = 1;
+			AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
+			TArray<FString> Col;
+			Col.Reserve(NumRows);
+			for (; It; ++It)
+			{
+				FText* TextValue = ColumnProp->ContainerPtrToValuePtr<FText>(It.Value());
+				if (!TextValue)
+				{
+					HOUDINI_LOG_WARNING(TEXT("[HapiCreateInputNodeForDataTable]: Invalid transform value for property %s."), *ColumnProp->GetName());
+					continue;
+				}
+				Col.Add(TextValue->ToString());
+			}
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+				TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+				Col, InputNodeId, 0,
+				CurAttrName, AttributeInfo), false);
+		}
+		else if (FNumericProperty* NumProp = CastField<FNumericProperty>(ColumnProp))
+		{
+			AttributeInfo.tupleSize = 1;
+			if (NumProp->IsInteger())
+			{
+				if (NumProp->IsA<FByteProperty>())
+				{
+					AttributeInfo.storage = HAPI_STORAGETYPE_UINT8;
+					TArray<uint8> Col = PopulateTArray<uint8, FByteProperty>(It, NumRows, 1, Offset, ColumnProp->GetSize());
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeUInt8Data(
+						Col, InputNodeId, 0,
+						CurAttrName, AttributeInfo), false);
+				}
+				else if (NumProp->IsA<FInt16Property>())
+				{
+					AttributeInfo.storage = HAPI_STORAGETYPE_INT16;
+					TArray<int16> Col = PopulateTArray<int16, FInt16Property>(It, NumRows, 1, Offset, ColumnProp->GetSize());
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeInt16Data(
+						Col, InputNodeId, 0,
+						CurAttrName, AttributeInfo), false);
+				}
+				else if (NumProp->IsA<FInt8Property>())
+				{
+					AttributeInfo.storage = HAPI_STORAGETYPE_INT8;
+					TArray<int8> Col = PopulateTArray<int8, FInt8Property>(It, NumRows, 1, Offset, ColumnProp->GetSize());
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeInt8Data(
+						Col, InputNodeId, 0,
+						CurAttrName, AttributeInfo), false);
+				}
+				else if (NumProp->IsA<FIntProperty>())
+				{
+					AttributeInfo.storage = HAPI_STORAGETYPE_INT;
+					TArray<int32> Col = PopulateTArray<int32, FIntProperty>(It, NumRows, 1, Offset, ColumnProp->GetSize());
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
+						Col, InputNodeId, 0,
+						CurAttrName, AttributeInfo), false);
+				}
+				// There is no uint16 datatype in Houdini, convert to int32
+				else if (NumProp->IsA<FUInt16Property>())
+				{
+					AttributeInfo.storage = HAPI_STORAGETYPE_INT;
+					TArray<int32> Col = PopulateTArray<int32, FUInt16Property>(It, NumRows, 1, Offset, ColumnProp->GetSize());
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeUInt16Data(
+						Col, InputNodeId, 0,
+						CurAttrName, AttributeInfo), false);
+				}
+				// There is no uint32 datatype in Houdini, convert to int64
+				else if (NumProp->IsA<FUInt32Property>())
+				{
+					AttributeInfo.storage = HAPI_STORAGETYPE_INT64;
+					TArray<int64> Col = PopulateTArray<int64, FUInt32Property>(It, NumRows, 1, Offset, ColumnProp->GetSize());
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeUIntData(
+						Col, InputNodeId, 0,
+						CurAttrName, AttributeInfo), false);
+				}
+				// There is no uint64 datatype in Houdini, since there is
+				// no int128, just force a conversion to signed int64
+				else if (NumProp->IsA<FUInt64Property>())
+				{
+					AttributeInfo.storage = HAPI_STORAGETYPE_INT64;
+					TArray<int64> Col = PopulateTArray<int64, FUInt64Property>(It, NumRows, 1, Offset, ColumnProp->GetSize());
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeUInt64Data(
+						Col, InputNodeId, 0,
+						CurAttrName, AttributeInfo), false);
+				}
+				// Default to signed int64.
+				else
+				{
+					AttributeInfo.storage = HAPI_STORAGETYPE_INT64;
+					TArray<int64> Col = PopulateTArray<int64, FInt64Property>(It, NumRows, 1, Offset, ColumnProp->GetSize());
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeInt64Data(
+						Col, InputNodeId, 0,
+						CurAttrName, AttributeInfo), false);
+				}
+			}
+			else if (NumProp->IsFloatingPoint())
+			{
+				if (NumProp->IsA<FFloatProperty>())
+				{
+					AttributeInfo.storage = HAPI_STORAGETYPE_FLOAT;
+					TArray<float> Col = PopulateTArray<float, FFloatProperty>(It, NumRows, 1, Offset, ColumnProp->GetSize());
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+						Col, InputNodeId, 0,
+						CurAttrName, AttributeInfo), false);
+				}
+				// Default to double precision floating point.
+				else
+				{
+					AttributeInfo.storage = HAPI_STORAGETYPE_FLOAT64;
+					TArray<double> Col = PopulateTArray<double, FDoubleProperty>(It, NumRows, 1, Offset, ColumnProp->GetSize());
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeDoubleData(
+						Col, InputNodeId, 0,
+						CurAttrName, AttributeInfo), false);
+				}
+			}
+			else
+			{
+				FString ext;
+				FString typ = ColumnProp->GetCPPMacroType(ext);
+				HOUDINI_LOG_WARNING(TEXT("[HapiCreateInputNodeForDataTable]: Unrecognized child of FNumericProperty: %s %s"), *typ, *ext);
+				continue;
+			}
+		}
+		else
+		{
+			if (FStructProperty* StructProp = CastField<FStructProperty>(ColumnProp))
+			{
+				FName StructName = StructProp->Struct->GetFName();
+
+				int32 NumComponents = -1;
+				HAPI_StorageType Storage = HAPI_STORAGETYPE_INVALID;
+				TArray<uint32> Order;
+				if (StructName == NAME_Vector4f || StructName == NAME_LinearColor)
+				{
+					NumComponents = 4;
+					Storage = HAPI_STORAGETYPE_FLOAT;
+				}
+				else if (StructName == NAME_Vector4d || StructName == NAME_Vector4)
+				{
+					NumComponents = 4;
+					Storage = HAPI_STORAGETYPE_FLOAT64;
+				}
+				else if (StructName == NAME_Vector3f)
+				{
+					NumComponents = 3;
+					Storage = HAPI_STORAGETYPE_FLOAT;
+				}
+				else if (StructName == NAME_Rotator3f)
+				{
+					NumComponents = 3;
+					Storage = HAPI_STORAGETYPE_FLOAT;
+					// Roll, Pitch, Yaw
+					Order = { 1, 0, 2 };
+				}
+				else if (StructName == NAME_Vector || StructName == NAME_Vector3d)
+				{
+					NumComponents = 3;
+					Storage = HAPI_STORAGETYPE_FLOAT64;
+				}
+				else if (StructName == NAME_Rotator || StructName == NAME_Rotator3d)
+				{
+					NumComponents = 3;
+					Storage = HAPI_STORAGETYPE_FLOAT64;
+					// Roll, Pitch, Yaw
+					Order = { 1, 0, 2 };
+				}
+				else if (StructName == NAME_Vector2f || StructName == NAME_Vector2D)
+				{
+					NumComponents = 2;
+					Storage = HAPI_STORAGETYPE_FLOAT;
+				}
+				else if (StructName == NAME_Vector2d)
+				{
+					NumComponents = 2;
+					Storage = HAPI_STORAGETYPE_FLOAT64;
+				}
+				else if (StructName == NAME_Color)
+				{
+					NumComponents = 4;
+					Storage = HAPI_STORAGETYPE_UINT8;
+					// RGBA
+					Order = { 2, 1, 0, 3 };
+				}
+				else if (StructName == NAME_Transform || StructName == NAME_Transform3d)
+				{
+					FTransform3d* Transform;
+					TArray<double> RotValues;
+					TArray<double> ScaleValues;
+					TArray<double> TransValues;
+					RotValues.Reserve(3 * NumRows);
+					ScaleValues.Reserve(3 * NumRows);
+					TransValues.Reserve(3 * NumRows);
+					FString RotName = CurAttrName + TEXT("_rotation");
+					FString ScaleName = CurAttrName + TEXT("_scale");
+					FString TransName = CurAttrName + TEXT("_translate");
+					for (; It; ++It)
+					{
+						Transform = ColumnProp->ContainerPtrToValuePtr<FTransform3d>(It.Value());
+						if (!Transform)
+						{
+							HOUDINI_LOG_WARNING(TEXT("[HapiCreateInputNodeForDataTable]: Invalid transform value for property %s."), *ColumnProp->GetName());
+							continue;
+						}
+						const FRotator3d& Rot = Transform->Rotator();
+						RotValues.Add(Rot.Roll);
+						RotValues.Add(Rot.Pitch);
+						RotValues.Add(Rot.Yaw);
+						const FVector& Scale = Transform->GetScale3D();
+						ScaleValues.Add(Scale.X);
+						ScaleValues.Add(Scale.Y);
+						ScaleValues.Add(Scale.Z);
+						const FVector& Trans = Transform->GetTranslation();
+						TransValues.Add(Trans.X);
+						TransValues.Add(Trans.Y);
+						TransValues.Add(Trans.Z);
+					}
+
+					AttributeInfo.tupleSize = 3;
+					AttributeInfo.storage = HAPI_STORAGETYPE_FLOAT64;
+					// Rotation
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*RotName), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeDoubleData(
+						RotValues, InputNodeId, 0,
+						RotName, AttributeInfo), false);
+					// Scale
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*ScaleName), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeDoubleData(
+						ScaleValues, InputNodeId, 0,
+						ScaleName, AttributeInfo), false);
+					// Translate
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*TransName), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeDoubleData(
+						TransValues, InputNodeId, 0,
+						TransName, AttributeInfo), false);
+
+					continue;
+				}
+				else if (StructName == NAME_Transform3f)
+				{
+					FTransform3f* Transform;
+					TArray<float> RotValues;
+					TArray<float> ScaleValues;
+					TArray<float> TransValues;
+					RotValues.Reserve(3 * NumRows);
+					ScaleValues.Reserve(3 * NumRows);
+					TransValues.Reserve(3 * NumRows);
+					for (; It; ++It)
+					{
+						Transform = ColumnProp->ContainerPtrToValuePtr<FTransform3f>(It.Value());
+						if (!Transform)
+						{
+							HOUDINI_LOG_WARNING(TEXT("[HapiCreateInputNodeForDataTable]: Invalid transform value for property %s."), *ColumnProp->GetName());
+							continue;
+						}
+						const FRotator3f& Rot = Transform->Rotator();
+						RotValues.Add(Rot.Roll);
+						RotValues.Add(Rot.Pitch);
+						RotValues.Add(Rot.Yaw);
+						const FVector3f& Scale = Transform->GetScale3D();
+						ScaleValues.Add(Scale.X);
+						ScaleValues.Add(Scale.Y);
+						ScaleValues.Add(Scale.Z);
+						const FVector3f& Trans = Transform->GetTranslation();
+						TransValues.Add(Trans.X);
+						TransValues.Add(Trans.Y);
+						TransValues.Add(Trans.Z);
+					}
+
+					AttributeInfo.tupleSize = 3;
+					AttributeInfo.storage = HAPI_STORAGETYPE_FLOAT;
+					// Rotation
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*CurAttrName + *TEXT("_rotation")), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+						RotValues, InputNodeId, 0,
+						CurAttrName + TEXT("_rotation"), AttributeInfo), false);
+					// Scale
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*CurAttrName + *TEXT("_scale")), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+						ScaleValues, InputNodeId, 0,
+						CurAttrName + TEXT("_scale"), AttributeInfo), false);
+					// Translate
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+						FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+						TCHAR_TO_ANSI(*CurAttrName + *TEXT("_translate")), &AttributeInfo), false);
+
+					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+						TransValues, InputNodeId, 0,
+						CurAttrName + TEXT("_translate"), AttributeInfo), false);
+
+					continue;
+				}
+
+				if (NumComponents != -1 && Storage != HAPI_STORAGETYPE_INVALID)
+				{
+					AttributeInfo.tupleSize = NumComponents;
+					AttributeInfo.storage = Storage;
+					// Bytes
+					if (Storage == HAPI_STORAGETYPE_UINT8)
+					{
+						TArray<uint8> Col = Order.Num() == 0 ? PopulateTArray<uint8, FByteProperty>(It, NumRows, NumComponents, Offset, 1) : PopulateTArray<uint8, FByteProperty>(It, NumRows, NumComponents, Offset, 1, Order);
+						HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+							FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+							TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+						HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeUInt8Data(
+							Col, InputNodeId, 0,
+							CurAttrName, AttributeInfo), false);
+						continue;
+					}
+					// Floats
+					else if (Storage == HAPI_STORAGETYPE_FLOAT)
+					{
+						TArray<float> Col = Order.Num() == 0 ? PopulateTArray<float, FFloatProperty>(It, NumRows, NumComponents, Offset, 4) : PopulateTArray<float, FFloatProperty>(It, NumRows, NumComponents, Offset, 4, Order);
+						HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+							FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+							TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+						HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+							Col, InputNodeId, 0,
+							CurAttrName, AttributeInfo), false);
+						continue;
+					}
+					// Doubles
+					else if (Storage == HAPI_STORAGETYPE_FLOAT64)
+					{
+						TArray<double> Col = Order.Num() == 0 ? PopulateTArray<double, FDoubleProperty>(It, NumRows, NumComponents, Offset, 8) : PopulateTArray<double, FDoubleProperty>(It, NumRows, NumComponents, Offset, 8, Order);
+						HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+							FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+							TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+						HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeDoubleData(
+							Col, InputNodeId, 0,
+							CurAttrName, AttributeInfo), false);
+						continue;
+					}
+					// Something else
+					else
+					{
+						HOUDINI_LOG_WARNING(TEXT("[HapiCreateInputNodeForDataTable]: Invalid component size %d for property %s."), ColumnProp->GetSize(), *ColumnProp->GetName());
+						continue;
+					}
+				}
+			}
+			// Fallback to string if no match
+			AttributeInfo.tupleSize = 1;
+			AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
+			TArray<FString> Col;
+			Col.Reserve(NumRows);
+			for (; It; ++It)
+			{
+				Col.Add(DataTableUtils::GetPropertyValueAsString(ColumnProp, It.Value(), EDataTableExportFlags()));
+			}
+			
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
+				TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(Col, InputNodeId, 0,
+				CurAttrName, AttributeInfo), false);
+				
+		}
+
 	}
 
 	// Commit the geo.
