@@ -31,6 +31,7 @@
 #include "CoreMinimal.h"
 #include "Engine/SkeletalMesh.h"
 #include "UObject/ObjectMacros.h"
+#include "Misc/Optional.h"
 
 class UStaticMesh;
 class UStaticMeshComponent;
@@ -175,14 +176,18 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 
 		// Create and set mesh material attribute and material (scalar, vector and texture) parameters attributes
 		static bool CreateHoudiniMeshAttributes(
-			const int32& NodeId,
-			const int32& PartId,
-			const int32& Count,
-			const TArray<FString> & TriangleMaterials,
-			const TMap<FString, TArray<float>>& ScalarMaterialParameters,
-			const TMap<FString, TArray<float>>& VectorMaterialParameters,
-			const TMap<FString, TArray<FString>>& TextureMaterialParameters);
+		    const int32& NodeId,
+		    const int32& PartId,
+		    const int32& Count,
+		    const TArray<FString>& TriangleMaterials,
+		    const TMap<FString, TArray<float>>& ScalarMaterialParameters,
+		    const TMap<FString, TArray<float>>& VectorMaterialParameters,
+		    const TMap<FString, TArray<FString>>& TextureMaterialParameters,
+		    const TOptional<FString> PhysicalMaterial = TOptional<FString>());
 
 	private:
+	    // Gets the simple physical Material path for the static mesh component overrides or,
+	    // if not set, from the static mesh. 
+	    static FString GetSimplePhysicalMaterialPath(UStaticMeshComponent* StaticMeshComponent, UStaticMesh* StaticMesh);
 
 };
