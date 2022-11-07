@@ -55,6 +55,7 @@
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "Brushes/SlateImageBrush.h"
 #include "Widgets/Input/SComboBox.h"
@@ -73,6 +74,7 @@
 #include "HAL/FileManager.h"
 #include "HAL/PlatformApplicationMisc.h"
 #include "ActorTreeItem.h"
+#include "HoudiniLandscapeTranslator.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -1278,6 +1280,18 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		}
 	};
 
+	auto OnWorldPartitionSizeChangedLambda = [InHACs](int NewValue)
+	{
+		for (auto& NextHAC : InHACs)
+		{
+			if (!IsValidWeakPointer(NextHAC))
+				continue;
+
+			NextHAC->WorldPartitionSize = NewValue;
+			NextHAC->MarkAsNeedCook();
+		}
+	};
+
 	// Checkboxes row
 	FDetailWidgetRow & CheckBoxesRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::GetEmpty());
 	TSharedPtr<SVerticalBox> FirstLeftColumnVerticalBox;
@@ -1542,7 +1556,32 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			.ToolTipText(TooltipText)
 		]
 	];
-	
+
+	// World Partition Size. This is normally available in Unreal in the "Create Landscape"
+	// dialog when creating a landscape inside Unreal.
+	TooltipText = LOCTEXT("WorldPartionSize", "World Partition Size to use when creating landscapes.");
+	SecondLeftColumnVerticalBox->AddSlot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(4.0f)
+		[
+			SNew(STextBlock)
+			.MinDesiredWidth(160.f)
+			.Text(LOCTEXT("WorldPartitionSizeLabel", "World Partition Size"))
+			.ToolTipText(TooltipText)
+		]
+	+ SHorizontalBox::Slot()
+		[
+			SNew(SNumericEntryBox<int>)
+			.ToolTipText(TooltipText)
+			.Value(MainHAC->WorldPartitionSize)
+			.OnValueChanged_Lambda(OnWorldPartitionSizeChangedLambda)
+
+		]
+	];
+
 	// Use whole widget
 	CheckBoxesRow.WholeRowWidget.Widget = WidgetBox;
 }
