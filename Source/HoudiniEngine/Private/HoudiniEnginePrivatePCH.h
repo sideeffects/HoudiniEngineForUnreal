@@ -159,6 +159,7 @@
 #define HAPI_UNREAL_ATTRIB_MATERIAL_HOLE					"unreal_material_hole"
 #define HAPI_UNREAL_ATTRIB_MATERIAL_HOLE_INSTANCE			"unreal_material_hole_instance"
 #define HAPI_UNREAL_ATTRIB_PHYSICAL_MATERIAL				"unreal_physical_material"
+#define HAPI_UNREAL_ATTRIB_SIMPLE_PHYSICAL_MATERIAL	    	"unreal_simple_physical_material"
 #define HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK				"unreal_face_smoothing_mask"
 #define HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION				"unreal_lightmap_resolution"
 #define HAPI_UNREAL_ATTRIB_LOD_SCREENSIZE					"lod_screensize"
