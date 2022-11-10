@@ -22,7 +22,7 @@
 * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+*/ 
 
 #include "UnrealMeshTranslator.h"
 
@@ -42,6 +42,7 @@
 #include "Materials/MaterialInterface.h"
 #include "MeshAttributes.h"
 #include "StaticMeshAttributes.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 #include "Rendering/SkeletalMeshModel.h"
 
@@ -78,7 +79,7 @@ void GetComponentSpaceTransforms(TArray<FTransform>& OutResult, const FReference
 		OutResult[i] = GetCompSpaceTransformForBone(InRefSkeleton, i);
 
     }
-}
+}  
 
 static TAutoConsoleVariable<int32> CVarHoudiniEngineStaticMeshExportMethod(
 	TEXT("HoudiniEngine.StaticMeshExportMethod"),
@@ -1368,6 +1369,55 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 
 			NextMergeIndex++;
 		}
+
+		// Create a new primitive attribute where each value contains the Physical Material
+		// mae in Unreal.
+		UPhysicalMaterial* PhysicalMaterial = StaticMesh->GetBodySetup()->PhysMaterial;
+		if (PhysicalMaterial)
+		{
+			// Create a new Attribute Wrangler node which will be used to create the new attributes.
+			HAPI_NodeId AttribWrangleNodeId;
+			if (FHoudiniEngineUtils::CreateNode(
+			    InputObjectNodeId, TEXT("attribwrangle"), 
+			    TEXT("physical_material"), 
+			    true, &AttribWrangleNodeId) != HAPI_RESULT_SUCCESS)
+			{
+			    // Failed to create the node.
+			    HOUDINI_LOG_WARNING(
+					TEXT("Failed to create Physical Material attribute for mesh: %s"),
+					*FHoudiniEngineUtils::GetErrorDescription());
+			    return false;
+			}
+
+			// Connect the new node to the previous node. Set NewNodeId to the attrib node
+			// as is this the final output of the chain.
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+			    FHoudiniEngine::Get().GetSession(),
+			    AttribWrangleNodeId, 0, NewNodeId, 0), false);
+			NewNodeId = AttribWrangleNodeId;
+
+			// Construct a VEXpression to set create and set a Physical Material Attribute.
+			// eg. s@unreal_physical_material = 'MyPath/PhysicalMaterial';
+			const FString FormatString = TEXT("s@{0} = '{1}';");
+			FString PathName = PhysicalMaterial->GetPathName();
+			FString AttrName = TEXT(HAPI_UNREAL_ATTRIB_SIMPLE_PHYSICAL_MATERIAL);
+			std::string VEXpression = TCHAR_TO_UTF8(*FString::Format(*FormatString, 
+			    { AttrName, PathName }));
+
+			// Set the snippet parameter to the VEXpression.
+			HAPI_ParmInfo ParmInfo;
+			HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(AttribWrangleNodeId, "snippet", ParmInfo);
+			if (ParmId != -1)
+			{
+			    FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId,
+					VEXpression.c_str(), ParmId, 0);
+			}
+			else
+			{
+			    HOUDINI_LOG_WARNING(TEXT("Invalid Parameter: %s"),
+					*FHoudiniEngineUtils::GetErrorDescription());
+			}
+		}
 	}
 
 	if (DoExportSockets && StaticMesh->Sockets.Num() > 0)
@@ -2153,6 +2203,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 		bool bAttributeSuccess = false;
 		bool bAddMaterialParametersAsAttributes = true;
 
+		FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh);
+
 		if (bAddMaterialParametersAsAttributes)
 		{
 			// Create attributes for the material and all its parameters
@@ -2169,7 +2221,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 				StaticMeshFaceMaterials,
 				ScalarMaterialParameters,
 				VectorMaterialParameters,
-				TextureMaterialParameters);
+				TextureMaterialParameters,
+			    PhysicalMaterialPath);
 		}
 		else
 		{
@@ -2186,7 +2239,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 				StaticMeshFaceMaterials,
 				ScalarMaterialParameters,
 				VectorMaterialParameters,
-				TextureMaterialParameters);
+				TextureMaterialParameters,
+			    PhysicalMaterialPath);
 		}
 
 		if (!bAttributeSuccess)
@@ -2967,6 +3021,9 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 			bool bAttributeSuccess = false;
 			bool bAddMaterialParametersAsAttributes = true;
 
+
+			FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh);
+
 			if (bAddMaterialParametersAsAttributes)
 			{
 				// Create attributes for the material and all its parameters
@@ -2983,7 +3040,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 					TriangleMaterials,
 					ScalarMaterialParameters,
 					VectorMaterialParameters,
-					TextureMaterialParameters);
+					TextureMaterialParameters,
+				    PhysicalMaterialPath);
 			}
 			else
 			{
@@ -3000,7 +3058,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 					TriangleMaterials,
 					ScalarMaterialParameters,
 					VectorMaterialParameters,
-					TextureMaterialParameters);
+					TextureMaterialParameters,
+				    PhysicalMaterialPath);
 			}
 
 			if (!bAttributeSuccess)
@@ -3233,6 +3292,22 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 }
 
 
+FString FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(UStaticMeshComponent* StaticMeshComponent, UStaticMesh* StaticMesh)
+{
+    if (StaticMeshComponent && StaticMeshComponent->GetBodyInstance())
+    {
+	UPhysicalMaterial* PhysicalMaterial = StaticMeshComponent->GetBodyInstance()->GetSimplePhysicalMaterial();
+	if (PhysicalMaterial != nullptr && PhysicalMaterial != GEngine->DefaultPhysMaterial)
+	{
+	    return PhysicalMaterial->GetPathName();
+	}
+    }
+
+    if (StaticMesh->GetBodySetup())
+		return StaticMesh->GetBodySetup()->PhysMaterial->GetPathName();
+    return FString();
+}
+
 bool
 FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	const HAPI_NodeId& NodeId,
@@ -3272,6 +3347,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		HOUDINI_LOG_ERROR(TEXT("Expected a triangulated mesh, but # VertexInstances (%d) != # Triangles * 3 (%d)"), MeshDescription.VertexInstances().Num(), NumTriangles * 3);
 		return false;
 	}
+
+	FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh);
 
 	// Determine which attributes we have
 	const bool bIsVertexPositionsValid = VertexPositions.IsValid();
@@ -3866,7 +3943,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 					TriangleMaterials,
 					ScalarMaterialParameters,
 					VectorMaterialParameters,
-					TextureMaterialParameters);
+					TextureMaterialParameters,
+				    PhysicalMaterialPath);
 			}
 			else
 			{
@@ -3883,7 +3961,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 					TriangleMaterials,
 					ScalarMaterialParameters,
 					VectorMaterialParameters,
-					TextureMaterialParameters);
+					TextureMaterialParameters,
+				    PhysicalMaterialPath);
 			}
 
 			if (!bAttributeSuccess)
@@ -4878,7 +4957,8 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	const TArray<FString> & TriangleMaterials,
 	const TMap<FString, TArray<float>>& ScalarMaterialParameters,
 	const TMap<FString, TArray<float>>& VectorMaterialParameters,
-	const TMap<FString, TArray<FString>>& TextureMaterialParameters)
+	const TMap<FString, TArray<FString>>& TextureMaterialParameters,
+    const TOptional<FString> PhysicalMaterial)
 {
 	if (NodeId < 0)
 		return false;
@@ -4996,6 +5076,31 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		}
 	}
 
+    if (PhysicalMaterial.IsSet())
+    {
+		// Create attribute for physical materials.
+		HAPI_AttributeInfo AttributeInfoPhysicalMaterial;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfoPhysicalMaterial);
+		AttributeInfoPhysicalMaterial.tupleSize = 1;
+		AttributeInfoPhysicalMaterial.count = Count;
+		AttributeInfoPhysicalMaterial.exists = true;
+		AttributeInfoPhysicalMaterial.owner = HAPI_ATTROWNER_PRIM;
+		AttributeInfoPhysicalMaterial.storage = HAPI_STORAGETYPE_STRING;
+		AttributeInfoPhysicalMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		// Create the new attribute
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(
+		    FHoudiniEngine::Get().GetSession(),
+		    NodeId, PartId, HAPI_UNREAL_ATTRIB_SIMPLE_PHYSICAL_MATERIAL, &AttributeInfoPhysicalMaterial))
+		{
+		    // The New attribute has been successfully created, set its value
+		    if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeStringData(
+				*PhysicalMaterial, NodeId, PartId, HAPI_UNREAL_ATTRIB_SIMPLE_PHYSICAL_MATERIAL, AttributeInfoPhysicalMaterial))
+		    {
+			bSuccess = false;
+		    }
+		}
+    }
 	return bSuccess;
 }
 
