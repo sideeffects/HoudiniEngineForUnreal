@@ -74,7 +74,7 @@
 #include "HoudiniGeometryCollectionTranslator.h"
 //#include "ImportUtils/SkeletalMeshImportUtils.h"
 #include "Math/UnrealMathUtility.h"
-
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 #if WITH_EDITOR
 	#include "UnrealEd/Private/ConvexDecompTool.h"
@@ -972,9 +972,9 @@ FHoudiniMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 	HAPI_AttributeInfo MaterialInfo;
 	FHoudiniApi::AttributeInfo_Init(&MaterialInfo);
 	HAPI_Result MaterialInfoResult = FHoudiniApi::GetAttributeInfo(
-	FHoudiniEngine::Get().GetSession(),
-	GeoId, PartId,
-	HAPI_UNREAL_ATTRIB_MATERIAL, HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM, &MaterialInfo);
+		FHoudiniEngine::Get().GetSession(),
+		GeoId, PartId,
+		HAPI_UNREAL_ATTRIB_MATERIAL, HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM, &MaterialInfo);
 
 	TArray<FString> MaterialNamesData;
 
@@ -4151,6 +4151,26 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 				BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseDefault;
 			}
 
+		    HAPI_AttributeInfo AttributeInfo;
+		    FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+
+		    TArray<FString> AttributeValues;
+		    if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+				HGPO.GeoId, HGPO.PartId,
+				HAPI_UNREAL_ATTRIB_SIMPLE_PHYSICAL_MATERIAL,
+				AttributeInfo, AttributeValues, 1, HAPI_ATTROWNER_PRIM, 0, 1) &&
+				AttributeValues.Num() > 0)
+		    {
+				// Fetch the physics material name based off the first primitve attribute
+				auto& MaterialName = AttributeValues[0];
+				BodySetup->PhysMaterial = LoadObject<UPhysicalMaterial>(nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr);
+
+				if (!BodySetup->PhysMaterial)
+				{
+				    HOUDINI_LOG_HELPER(Error, TEXT("Physical Material not found: %s."), *MaterialName);
+				}
+		    }
+
 			// See if we need to enable collisions on the whole mesh
 			if (SplitType == EHoudiniSplitType::InvisibleComplexCollider || SplitType == EHoudiniSplitType::RenderedComplexCollider)
 			{
@@ -5543,6 +5563,27 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			{
 				BodySetup->AddCollisionFrom(*CurrentAggColl);
 				BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseDefault;
+			}
+
+			// Set physical material if present
+			HAPI_AttributeInfo AttributeInfo;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+
+			TArray<FString> AttributeValues;
+			if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+			    HGPO.GeoId, HGPO.PartId,
+			    HAPI_UNREAL_ATTRIB_SIMPLE_PHYSICAL_MATERIAL,
+			    AttributeInfo, AttributeValues, 1, HAPI_ATTROWNER_PRIM, 0, 1) &&
+			    AttributeValues.Num() > 0)
+			{
+			    // Fetch the physics material name based off the first primitve attribute
+			    auto& MaterialName = AttributeValues[0];
+			    BodySetup->PhysMaterial = LoadObject<UPhysicalMaterial>(nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr);
+
+			    if (!BodySetup->PhysMaterial)
+			    {
+				HOUDINI_LOG_HELPER(Error, TEXT("Physical Material not found: %s."), *MaterialName);
+			    }
 			}
 
 			// Moved RefreshCollisionChange to after the SM->Build call
