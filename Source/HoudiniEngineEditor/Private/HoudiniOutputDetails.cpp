@@ -361,12 +361,13 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 			.Padding(0.0f, 4.0f, 4.0f, 4.0f)
 			.VAlign(VAlign_Center)
 			[
-				SNew(SBox).WidthOverride(40.0f)
+				SNew(SBox)
+				//.WidthOverride(40.0f)
 				[
 					SNew(SButton)
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("Bake", "Bake"))
+					.Text(LOCTEXT("BakeOutputLandscape", "Bake Output"))
 					.IsEnabled(true)
 					.OnClicked_Lambda([InOutput, OutputIdentifier, HAC, HGPO, Landscape, LandscapeOutputBakeType]()
 					{
@@ -396,7 +397,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 						// TODO: Remove the output landscape if the landscape bake type is Detachment?
 						return FReply::Handled();
 					})
-					.ToolTipText(LOCTEXT("HoudiniLandscapeBakeButton", "Bake this landscape"))	
+					.ToolTipText(LOCTEXT("HoudiniLandscapeBakeButton", "Bake this output Landscape to a new Landscape Actor."))	
 				]	
 			]
 			+ SHorizontalBox::Slot()
@@ -992,11 +993,10 @@ FHoudiniOutputDetails::CreateMeshOutputWidget(
 			break;
 		}
 
-		if (IsValid(StaticMesh))
+		bool bIsProxyMeshCurrent = IterObject.Value.bProxyIsCurrent;
+		if (IsValid(StaticMesh) && !bIsProxyMeshCurrent)
 		{
-			bool bIsProxyMeshCurrent = IterObject.Value.bProxyIsCurrent;
-
-			// If we have a static mesh, alway display its widget even if the proxy is more recent
+			// If we have a static mesh, display its widget unless the proxy is more recent
 			CreateStaticMeshAndMaterialWidgets(
 				HouOutputCategory, InOutput, StaticMesh, OutputIdentifier, HAC->BakeFolder.Path, HoudiniGeoPartObject, bIsProxyMeshCurrent);
 		}
@@ -1344,9 +1344,9 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 		SAssignNew(BakeButton, SButton)
 		.VAlign(VAlign_Center)
 		.HAlign(HAlign_Center)
-		.Text(LOCTEXT("OutputCurveBakeButtonText", "Bake"))
+		.Text(LOCTEXT("OutputCurveBakeButtonText", "Bake Output"))
 		.IsEnabled(true)
-		.ToolTipText(LOCTEXT("OutputCurveBakeButtonUnrealSplineTooltipText", "Bake to Unreal spline"))
+		.ToolTipText(LOCTEXT("OutputCurveBakeButtonUnrealSplineTooltipText", "Bake this output curve to an Actor with a Spline Component."))
 		.OnClicked_Lambda([InOutput, SplineComponent, OutputIdentifier, HAC, OutputCurveName]()
 		{
 			if (!HAC.IsValid() || !SplineComponent.IsValid() || !InOutput.IsValid())
@@ -1685,12 +1685,12 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 			[
 				SNew( SHorizontalBox )
 				+SHorizontalBox::Slot()
-				.MaxWidth( 80.0f )
+				.MaxWidth( 120.0f )
 				[
 					SNew( SButton )
 					.VAlign( VAlign_Center )
 					.HAlign( HAlign_Center )
-					.Text( LOCTEXT( "Bake", "Bake" ) )
+					.Text( LOCTEXT( "BakeOutputMesh", "Bake Output" ) )
 					.IsEnabled(true)
 					.OnClicked_Lambda([BakeName, StaticMesh, OutputIdentifier, BakeFolder, InOutput, OwningHAC]()
 					{
@@ -1736,7 +1736,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 
 						return FReply::Handled();
 					})
-					.ToolTipText( LOCTEXT( "HoudiniStaticMeshBakeButton", "Bake this generated static mesh" ) )
+					.ToolTipText( LOCTEXT( "HoudiniStaticMeshBakeButton", "Bake this output object to a Static Mesh in the Bake folder." ) )
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
@@ -2073,15 +2073,16 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 			[
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
-				.MaxWidth(80.0f)
+				.AutoWidth()
+				//.MaxWidth(80.0f)
 				[
 					SNew(SButton)
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("Refine", "Refine"))					
+					.Text(LOCTEXT("RefineOutputProxy", "Refine Proxy"))
 					.IsEnabled(true)
 					.OnClicked(this, &FHoudiniOutputDetails::OnRefineClicked, (const TWeakObjectPtr<UObject>&)ProxyMesh, InOutput)
-					.ToolTipText(LOCTEXT("RefineTooltip", "Refine this Proxy Mesh to a Static Mesh"))
+					.ToolTipText(LOCTEXT("RefineTooltip", "Refine this Proxy Mesh Component to a Static Mesh Component."))
 				]
 			]
 		]
