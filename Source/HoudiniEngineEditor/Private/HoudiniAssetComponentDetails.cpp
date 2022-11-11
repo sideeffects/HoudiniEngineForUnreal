@@ -395,7 +395,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			DetailBuilder.EditCategory(*ParamCatName, FText::GetEmpty(), ECategoryPriority::Important);
 
 		// If we are running Houdini Engine Indie license, we need to display a special label.
-		if(bIsIndieLicense)
+		if(bIsIndieLicense && MainComponent->GetNumParameters() > 0)
 			AddIndieLicenseRow(HouParameterCategory);
 
 		// Iterate through the component's parameters
@@ -449,7 +449,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			DetailBuilder.EditCategory(*HandleCatName, FText::GetEmpty(), ECategoryPriority::Important);
 
 		// If we are running Houdini Engine Indie license, we need to display a special label.
-		if (bIsIndieLicense)
+		if (bIsIndieLicense && MainComponent->GetNumHandles() > 0)
 			AddIndieLicenseRow(HouHandleCategory);
 
 		// Iterate through the component's Houdini handles
@@ -499,7 +499,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			DetailBuilder.EditCategory(*InputCatName, FText::GetEmpty(), ECategoryPriority::Important);
 
 		// If we are running Houdini Engine Indie license, we need to display a special label.
-		if (bIsIndieLicense)
+		if (bIsIndieLicense && MainComponent->GetNumInputs() > 0)
 			AddIndieLicenseRow(HouInputCategory);
 		
 		// Iterate through the component's inputs
@@ -561,7 +561,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			if (!IsValid(CurrentOutput))
 				continue;
 
-			// Build an array of edited inpoutputs for multi edit
+			// Build an array of edited outputs for multi edit
 			TArray<TWeakObjectPtr<UHoudiniOutput>> EditedOutputs;
 			EditedOutputs.Add(CurrentOutput);
 
