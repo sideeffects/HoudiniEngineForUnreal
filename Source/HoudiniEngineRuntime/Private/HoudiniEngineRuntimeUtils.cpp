@@ -563,7 +563,8 @@ bool FHoudiniEngineRuntimeUtils::SetActorLabel(AActor* Actor, const FString& Act
 {
 	// Clean up the incoming string a bit
 	FString NewActorLabel = ActorLabel.TrimStartAndEnd();
-	if (NewActorLabel == Actor->GetActorLabel(/*bCreateIfNone*/false))
+	FString OldActorLabel = Actor->GetActorLabel(/*bCreateIfNone*/false);
+	if (NewActorLabel == OldActorLabel)
 	{
 		return false;
 	}

@@ -529,10 +529,6 @@ public:
 	UPROPERTY()
 	bool bUseOutputNodes;
 
-	// World Partition Size to use when creating landscapes.
-	UPROPERTY()
-	int WorldPartitionSize;
-
 	// Temporary cook folder
 	UPROPERTY()
 	FDirectoryPath TemporaryCookFolder;

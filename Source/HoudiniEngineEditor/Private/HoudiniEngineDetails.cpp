@@ -1280,18 +1280,6 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		}
 	};
 
-	auto OnWorldPartitionSizeChangedLambda = [InHACs](int NewValue)
-	{
-		for (auto& NextHAC : InHACs)
-		{
-			if (!IsValidWeakPointer(NextHAC))
-				continue;
-
-			NextHAC->WorldPartitionSize = NewValue;
-			NextHAC->MarkAsNeedCook();
-		}
-	};
-
 	// Checkboxes row
 	FDetailWidgetRow & CheckBoxesRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::GetEmpty());
 	TSharedPtr<SVerticalBox> FirstLeftColumnVerticalBox;
@@ -1554,31 +1542,6 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			.OnCheckStateChanged_Lambda(OnCheckStateChangedPushTransformToHoudiniLambda)
 			.IsChecked_Lambda(IsCheckedPushTransformToHoudiniLambda)
 			.ToolTipText(TooltipText)
-		]
-	];
-
-	// World Partition Size. This is normally available in Unreal in the "Create Landscape"
-	// dialog when creating a landscape inside Unreal.
-	TooltipText = LOCTEXT("WorldPartionSize", "World Partition Size to use when creating landscapes.");
-	SecondLeftColumnVerticalBox->AddSlot()
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.FillWidth(4.0f)
-		[
-			SNew(STextBlock)
-			.MinDesiredWidth(160.f)
-			.Text(LOCTEXT("WorldPartitionSizeLabel", "World Partition Size"))
-			.ToolTipText(TooltipText)
-		]
-	+ SHorizontalBox::Slot()
-		[
-			SNew(SNumericEntryBox<int>)
-			.ToolTipText(TooltipText)
-			.Value(MainHAC->WorldPartitionSize)
-			.OnValueChanged_Lambda(OnWorldPartitionSizeChangedLambda)
-
 		]
 	];
 
