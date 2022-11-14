@@ -407,7 +407,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 				PackageParams,
 				ClearedLandscapeLayers,
 				CreatedPackages,
-				HAC->WorldPartitionSize);
+				FHoudiniEngineUtils::GetLandscapePartitionGridSize(CurOutput));
 
 			bHasLandscape = true;
 
