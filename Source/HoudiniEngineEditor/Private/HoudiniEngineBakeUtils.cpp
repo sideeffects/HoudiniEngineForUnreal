@@ -2013,16 +2013,17 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 			continue;
 
 		const FString NewNameStr = MakeUniqueObjectNameIfNeeded(DesiredLevel, CurrentInstancedActor->GetClass(), PackageParams.ObjectName);
-		FName NewName = FName(NewNameStr);
 
 		FTransform CurrentTransform = CurrentInstancedActor->GetTransform();
-		AActor* NewActor = FHoudiniInstanceTranslator::SpawnInstanceActor(CurrentTransform, DesiredLevel, InIAC, NewName);
+		AActor* NewActor = FHoudiniInstanceTranslator::SpawnInstanceActor(CurrentTransform, DesiredLevel, InIAC);
 		if (!IsValid(NewActor))
 			continue;
 
 		OutBakeStats.NotifyObjectsCreated(NewActor->GetClass()->GetName(), 1);
 
 		EditorUtilities::CopyActorProperties(CurrentInstancedActor, NewActor);
+
+		FHoudiniEngineUtils::SafeRenameActor(NewActor, NewNameStr);
 
 		SetOutlinerFolderPath(NewActor, InOutputObject, WorldOutlinerFolderPath);
 		NewActor->SetActorTransform(CurrentTransform);

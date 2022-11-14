@@ -236,9 +236,6 @@
 #define HAPI_UNREAL_LANDSCAPE_EDITLAYER_TYPE_BASE			0
 #define HAPI_UNREAL_LANDSCAPE_EDITLAYER_TYPE_ADDITIVE		1
 
-// World Partition Size
-#define HAPI_UNREAL_ATTRIB_WORLD_PARTITION_SIZE             "unreal_world_partition_size"
-
 // Subtractive mode for paint layers on landscape edit layers
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_EDITLAYER_SUBTRACTIVE	"unreal_landscape_editlayer_subtractive"
 #define HAPI_UNREAL_LANDSCAPE_EDITLAYER_SUBTRACTIVE_ON		0

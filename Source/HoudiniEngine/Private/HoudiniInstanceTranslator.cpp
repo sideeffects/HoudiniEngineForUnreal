@@ -2261,8 +2261,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedActorComponent(
 		AActor* CurInstance = InstancedActorComponent->GetInstancedActorAt(Idx);
 		if (!IsValid(CurInstance))
 		{
-			FName Name = "SomeShit";
-			CurInstance = SpawnInstanceActor(CurTransform, SpawnLevel, InstancedActorComponent, Name);
+			CurInstance = SpawnInstanceActor(CurTransform, SpawnLevel, InstancedActorComponent);
 			InstancedActorComponent->SetInstanceAt(Idx, CurTransform, CurInstance);
 		}
 		else
@@ -3170,8 +3169,7 @@ AActor*
 FHoudiniInstanceTranslator::SpawnInstanceActor(
 	const FTransform& InTransform,
 	ULevel* InSpawnLevel,
-	UHoudiniInstancedActorComponent* InIAC,
-	const FName & Name)
+	UHoudiniInstancedActorComponent* InIAC)
 {
 	if (!IsValid(InIAC))
 		return nullptr;
@@ -3186,8 +3184,8 @@ FHoudiniInstanceTranslator::SpawnInstanceActor(
 	// Try to spawn a new actor for the given transform
 	GEditor->ClickLocation = InTransform.GetTranslation();
 	GEditor->ClickPlane = FPlane(GEditor->ClickLocation, FVector::UpVector);
-
-	TArray<AActor*> NewActors = FLevelEditorViewportClient::TryPlacingActorFromObject(InSpawnLevel, InstancedObject, false, RF_Transactional, nullptr, Name);
+		
+	TArray<AActor*> NewActors = FLevelEditorViewportClient::TryPlacingActorFromObject(InSpawnLevel, InstancedObject, false, RF_Transactional, nullptr);
 	if (NewActors.Num() > 0)
 	{
 		if (IsValid(NewActors[0]))
@@ -3195,10 +3193,10 @@ FHoudiniInstanceTranslator::SpawnInstanceActor(
 			NewActor = NewActors[0];
 		}
 	}
-#else
+#endif
+
 	// Make sure that the actor was spawned in the proper level
 	FHoudiniEngineUtils::MoveActorToLevel(NewActor, InSpawnLevel);
-#endif
 
 	return NewActor;
 }

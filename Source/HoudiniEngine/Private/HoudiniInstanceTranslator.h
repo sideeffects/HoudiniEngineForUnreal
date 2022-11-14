@@ -387,8 +387,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 		static AActor* SpawnInstanceActor(
 			const FTransform& InTransform,
 			ULevel* InSpawnLevel, 
-			UHoudiniInstancedActorComponent* InIAC,
-			const FName & Name);
+			UHoudiniInstancedActorComponent* InIAC);
 
 		// Helper functions for generic property attributes
 		static bool GetGenericPropertiesAttributes(
