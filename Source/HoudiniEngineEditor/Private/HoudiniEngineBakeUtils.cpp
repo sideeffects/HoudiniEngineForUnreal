@@ -2012,18 +2012,21 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 		if (!IsValid(CurrentInstancedActor))
 			continue;
 
+		// Make sure we have a globally unique name and use it to name the new actor at spawn time.
 		const FString NewNameStr = MakeUniqueObjectNameIfNeeded(DesiredLevel, CurrentInstancedActor->GetClass(), PackageParams.ObjectName);
 
 		FTransform CurrentTransform = CurrentInstancedActor->GetTransform();
-		AActor* NewActor = FHoudiniInstanceTranslator::SpawnInstanceActor(CurrentTransform, DesiredLevel, InIAC);
+		AActor* NewActor = FHoudiniInstanceTranslator::SpawnInstanceActor(CurrentTransform, DesiredLevel, InIAC, FName(NewNameStr));
 		if (!IsValid(NewActor))
 			continue;
+
+		// Explicitly set the actor label as there appears to be a bug in AActor::GetActorLabel() which sets the first
+		// duplicate actor name to "name-1" (minus one) instead of leaving off the 0.
+		NewActor->SetActorLabel(NewNameStr);
 
 		OutBakeStats.NotifyObjectsCreated(NewActor->GetClass()->GetName(), 1);
 
 		EditorUtilities::CopyActorProperties(CurrentInstancedActor, NewActor);
-
-		FHoudiniEngineUtils::SafeRenameActor(NewActor, NewNameStr);
 
 		SetOutlinerFolderPath(NewActor, InOutputObject, WorldOutlinerFolderPath);
 		NewActor->SetActorTransform(CurrentTransform);
