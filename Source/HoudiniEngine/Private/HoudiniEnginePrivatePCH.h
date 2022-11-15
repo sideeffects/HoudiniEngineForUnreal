@@ -258,7 +258,8 @@
 
 // data tables
 #define HAPI_UNREAL_ATTRIB_DATA_TABLE_PREFIX				"unreal_data_table_"
-#define HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT				"unreal_datatable_rowstruct"
+#define HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT				"unreal_data_table_rowstruct"
+#define HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWNAME               "unreal_data_table_rowname"
 
 // Attributes for Curve Outputs
 #define HAPI_UNREAL_ATTRIB_OUTPUT_UNREAL_CURVE				"unreal_output_curve"

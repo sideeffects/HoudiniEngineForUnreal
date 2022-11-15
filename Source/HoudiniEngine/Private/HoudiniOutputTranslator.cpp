@@ -26,6 +26,8 @@
 
 #include "HoudiniOutputTranslator.h"
 
+#include "HAPI/HAPI.h"
+
 #include "HoudiniOutput.h"
 #include "HoudiniApi.h"
 #include "HoudiniEngine.h"
@@ -42,6 +44,7 @@
 #include "HoudiniInput.h"
 #include "HoudiniStaticMesh.h"
 
+#include "HoudiniDataTableTranslator.h"
 #include "HoudiniMeshTranslator.h"
 #include "HoudiniSplineTranslator.h"
 #include "HoudiniLandscapeTranslator.h"
@@ -62,9 +65,11 @@
 #include "GeometryCollection/GeometryCollectionActor.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 
+#include "Engine/UserDefinedStruct.h"
+
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
-// 
+//
 bool
 FHoudiniOutputTranslator::UpdateOutputs(
 	UHoudiniAssetComponent* HAC,
@@ -279,7 +284,9 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		FHoudiniEngine::Get().UpdateTaskSlateNotification(FText::FromString(Notification));
 
 		if (!HAC->IsOutputTypeSupported(CurOutput->GetType()))
+		{
 			continue;
+		}
 
 		switch (CurOutput->GetType())
 		{
@@ -439,6 +446,217 @@ FHoudiniOutputTranslator::UpdateOutputs(
 			}
 
 			bCreatedNewMaps |= bNewMapCreated;
+			break;
+		}
+		case EHoudiniOutputType::DataTable:
+		{
+			for (auto&& HGPO : CurOutput->HoudiniGeoPartObjects)
+			{
+
+				int32 GeoId = HGPO.GeoId;
+				int32 PartId = HGPO.PartId;
+
+				HAPI_PartInfo PartInfo;
+				FHoudiniApi::PartInfo_Init(&PartInfo);
+				HAPI_Result Error = HAPI_RESULT_FAILURE;
+				Error = FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), 
+					GeoId, PartId, &PartInfo);
+				if (Error != HAPI_RESULT_SUCCESS)
+				{
+					HOUDINI_LOG_WARNING(TEXT("[FHoudiniOutputTranslator::UpdateOutputs]: Error %d when trying to get part info."), Error);
+					continue;
+				}
+
+				HAPI_AttributeOwner AttribOwner = HAPI_ATTROWNER_POINT;
+				int32 NumAttributes = PartInfo.attributeCounts[AttribOwner];
+				int32 NumRows = PartInfo.pointCount;
+				if (NumAttributes < 1)
+				{
+					HOUDINI_LOG_WARNING(TEXT("[FHoudiniOutputTranslator::UpdateOutputs]: Asset %s has no attributes to import into datatable."), *HGPO.AssetName);
+					continue;
+				}
+
+				TArray<FString> RowNames;
+				bool Status = FHoudiniDataTableTranslator::GenerateRowNames(GeoId, PartId, NumRows, RowNames);
+
+				HAPI_AttributeInfo AttribInfo;
+
+				FString DataTableName = "";
+				FString DataTableFolder = "";
+				Status = FHoudiniDataTableTranslator::SetOutputPath(GeoId, PartId, AttribInfo, DataTableName, DataTableFolder);
+				
+				TArray<FString> AttribNames;
+				Status = FHoudiniDataTableTranslator::GetAttribNames(GeoId, PartId, NumAttributes, AttribOwner, AttribNames);
+
+				// Find the struct to use as the basis for the datatable.
+				AttribInfo.exists = false;
+				UScriptStruct* RowStruct = nullptr;
+				bool RowStructNeedsProps = true;
+				FString RowStructName;
+				Status = FHoudiniDataTableTranslator::GetRowStructAttrib(GeoId, PartId, AttribInfo, RowStruct, RowStructName);
+				// Row struct already exists, don't add props later
+				if (RowStruct)
+				{
+					RowStructNeedsProps = false;
+				}
+
+				UUserDefinedStruct* NewStruct = nullptr;
+				FGuid DefaultPropId;
+				if (!RowStruct)
+				{
+					// Create the struct if it doesn't already exist
+
+					Status = FHoudiniDataTableTranslator::CreateRowStruct(HGPO, RowStructName, NewStruct, DefaultPropId);
+					if (!Status)
+					{
+						continue;
+					}
+
+					RowStruct = NewStruct;
+					RowStruct->PreEditChange(nullptr);
+				}
+
+				TMap<FString, FProperty*> ActualProps;
+				TMap<FString, int32> PropIndices;
+				int32 StructSize = RowStructNeedsProps ? 0 : RowStruct->GetStructureSize();
+				if (!RowStructNeedsProps)
+				{
+					FHoudiniDataTableTranslator::PopulatePropList(RowStruct, ActualProps, PropIndices);
+				}
+
+				TMap<FString, FHoudiniDataTableTranslator::TransformComponents> TransformCandidates;
+				TSet<FString> TransformAttribs;
+				FHoudiniDataTableTranslator::FindTransformAttribs(AttribNames, TransformCandidates, TransformAttribs);
+
+				// Array of attribs that definitely represent a transform
+				TMap<FString, FProperty*> FoundProps;
+				TMap<FString, HAPI_AttributeInfo> FoundInfos;
+				int32 AssignedIdx = 1;
+				TMap<FString, FGuid> CreatedIds;
+				for (const FString& TAttrib : TransformAttribs)
+				{
+					const FHoudiniDataTableTranslator::TransformComponents& Comps = TransformCandidates[TAttrib];
+					if (RowStructNeedsProps)
+					{
+						Status = FHoudiniDataTableTranslator::CreateTransformProp(TAttrib, NewStruct, AssignedIdx, CreatedIds);
+					}
+					else
+					{
+						Status = FHoudiniDataTableTranslator::ApplyTransformProp(TAttrib, Comps, PropIndices, ActualProps, FoundProps);
+					}
+					if (!Status)
+					{
+						continue;
+					}
+					FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(),
+						GeoId, PartId, TCHAR_TO_ANSI(*Comps.Rotation), AttribOwner, &AttribInfo);
+					FoundInfos.Add(Comps.Rotation, AttribInfo);
+					FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(),
+						GeoId, PartId, TCHAR_TO_ANSI(*Comps.Translate), AttribOwner, &AttribInfo);
+					FoundInfos.Add(Comps.Translate, AttribInfo);
+					FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(),
+						GeoId, PartId, TCHAR_TO_ANSI(*Comps.Scale), AttribOwner, &AttribInfo);
+					FoundInfos.Add(Comps.Scale, AttribInfo);
+
+					// At this point we know there is a valid transform property to map the attribs to,
+					// remove them from the list that we iterate over later.
+					AttribNames.Remove(Comps.Rotation);
+					AttribNames.Remove(Comps.Translate);
+					AttribNames.Remove(Comps.Scale);
+				}
+
+				for (const FString& AttribName : AttribNames)
+				{
+					// Skip any attrib without the unreal_data_table prefix
+					// as well as any attribs we preprocess
+					if (!AttribName.StartsWith(HAPI_UNREAL_ATTRIB_DATA_TABLE_PREFIX) ||
+						AttribName == HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWNAME ||
+						AttribName == HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT)
+					{
+						continue;
+					}
+					// Slice off the prefix
+					FString Fragment = AttribName.Mid(FString(HAPI_UNREAL_ATTRIB_DATA_TABLE_PREFIX).Len());
+
+					if (RowStructNeedsProps)
+					{
+						// Need to create and add the prop to the struct
+						Status = FHoudiniDataTableTranslator::CreateRowStructProp(GeoId,
+							PartId,
+							AttribName,
+							Fragment,
+							AttribOwner,
+							AttribInfo,
+							NewStruct,
+							AssignedIdx,
+							CreatedIds,
+							FoundInfos);
+					}
+					else
+					{
+						Status = FHoudiniDataTableTranslator::ApplyRowStructProp(GeoId,
+							PartId,
+							AttribName,
+							Fragment,
+							AttribOwner,
+							AttribInfo,
+							ActualProps,
+							FoundProps,
+							PropIndices,
+							FoundInfos);
+					}
+				}
+				// Now that all props have been added to the created struct,
+				// remove the default bool prop that comes with it.
+				// This has to be done after because a struct must always have at least 1 prop.
+				if (RowStructNeedsProps)
+				{
+					Status = FHoudiniDataTableTranslator::RemoveDefaultProp(NewStruct,
+						DefaultPropId,
+						StructSize,
+						CreatedIds,
+						TransformAttribs,
+						TransformCandidates,
+						FoundProps);
+					if (!Status)
+					{
+						continue;
+					}
+				}
+
+				if (!FoundProps.Num())
+				{
+					HOUDINI_LOG_WARNING(TEXT("[FHoudiniOutputTranslator::UpdateOutputs]: No valid attributes to migrate to data table."));
+					continue;
+				}
+
+				// A packed list of rows, the rows are next to each other in memory.
+				uint8* RowData = (uint8*) FMemory::MallocZeroed(NumRows * StructSize);
+				// FoundProps is the map of properties that need to be set in the data table
+				// They are guaranteed to have an attribute in the point cloud input.
+				Status = FHoudiniDataTableTranslator::PopulateRowData(GeoId,
+					PartId,
+					FoundProps,
+					FoundInfos,
+					StructSize,
+					NumRows,
+					RowData);
+				if (!Status)
+				{
+					continue;
+				}
+
+				FHoudiniDataTableTranslator::CreateAndSaveDataTable(HGPO,
+					NumRows,
+					RowNames,
+					StructSize,
+					DataTableFolder,
+					DataTableName,
+					RowStruct,
+					RowData);
+
+				FMemory::Free(RowData);
+			}
 			break;
 		}
 		default:
@@ -1428,11 +1646,15 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 								}
 								else
 								{
-									// No vertices, not an instancer, just a point cloud, consider ourself as invalid
-									CurrentPartType = EHoudiniPartType::Invalid;
-									HOUDINI_LOG_MESSAGE(
-										TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] is a point cloud mesh - skipping."),
-										CurrentHapiObjectInfo.nodeId, *CurrentObjectName, CurrentHapiGeoInfo.nodeId, PartId, *CurrentPartName);
+									// No vertices, not an instancer, just a point cloud
+									if (FHoudiniEngineUtils::IsValidDataTable(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
+									{
+										CurrentPartType = EHoudiniPartType::DataTable;
+									}
+									else
+									{
+										CurrentPartType = EHoudiniPartType::Invalid;
+									}
 								}
 							}
 						}
