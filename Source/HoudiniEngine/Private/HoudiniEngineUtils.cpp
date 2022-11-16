@@ -949,6 +949,23 @@ FHoudiniEngineUtils::ValidatePath(const FString& InPath, FText* OutInvalidPathRe
 	return FPaths::ValidatePath(AbsolutePath, OutInvalidPathReason); 
 }
 
+bool
+FHoudiniEngineUtils::DoesFolderExist(const FString& InPath)
+{
+	FString AbsolutePath;
+	if (InPath.StartsWith("/Game"))
+	{
+		const FString RelativePath = FPaths::ProjectContentDir() + InPath.Mid(6, InPath.Len() - 6);
+		AbsolutePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*RelativePath);
+	}
+	else
+	{
+		AbsolutePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*InPath);
+	}
+
+	return FPaths::DirectoryExists(AbsolutePath);
+}
+
 void
 FHoudiniEngineUtils::FillInPackageParamsForBakingOutput(
 	FHoudiniPackageParams& OutPackageParams,
@@ -4785,6 +4802,40 @@ FHoudiniEngineUtils::IsAttributeInstancer(const HAPI_NodeId& GeoId, const HAPI_P
 	{
 		OutInstancerType = EHoudiniInstancerType::OldSchoolAttributeInstancer;
 		return true;
+	}
+
+	return false;
+}
+
+bool FHoudiniEngineUtils::IsValidDataTable(const HAPI_NodeId& GeoId, const HAPI_PartId& PartId)
+{
+	HAPI_PartInfo PartInfo;
+	HAPI_Result Error = FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(),
+		GeoId, PartId, &PartInfo);
+	if (Error != HAPI_RESULT_SUCCESS)
+	{
+		return false;
+	}
+	TArray<HAPI_StringHandle> AttribNameHandles;
+	AttribNameHandles.SetNum(PartInfo.attributeCounts[HAPI_ATTROWNER_POINT]);
+	Error = FHoudiniApi::GetAttributeNames(FHoudiniEngine::Get().GetSession(),
+		GeoId,
+		PartId,
+		HAPI_ATTROWNER_POINT,
+		AttribNameHandles.GetData(),
+		PartInfo.attributeCounts[HAPI_ATTROWNER_POINT]);
+	if (Error != HAPI_RESULT_SUCCESS)
+	{
+		return false;
+	}
+	TArray<FString> AttribNames;
+	FHoudiniEngineString::SHArrayToFStringArray(AttribNameHandles, AttribNames);
+	for (auto&& Name : AttribNames)
+	{
+		if (Name.StartsWith(HAPI_UNREAL_ATTRIB_DATA_TABLE_PREFIX) && Name != HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWNAME && Name != HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT)
+		{
+			return true;
+		}
 	}
 
 	return false;

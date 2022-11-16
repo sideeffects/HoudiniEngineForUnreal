@@ -31,13 +31,17 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniStaticMesh.h"
 #include "HoudiniStringResolver.h"
-
+#include "Engine/DataTable.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/Skeleton.h"
 #include "PackageTools.h"
 #include "ObjectTools.h"
 #include "Engine/StaticMesh.h"
 #include "UObject/MetaData.h"
 
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
+
+#include "Engine/UserDefinedStruct.h"
 
 //
 FHoudiniPackageParams::FHoudiniPackageParams()
@@ -381,7 +385,6 @@ FHoudiniPackageParams::CreatePackageForObject(FString& OutPackageName, int32 InB
 	return NewPackage;
 }
 
-
 // Fixes link error with the template function under
 void TemplateFixer()
 {
@@ -389,6 +392,7 @@ void TemplateFixer()
 	UStaticMesh* SM = PP.CreateObjectAndPackage<UStaticMesh>();
 	UHoudiniStaticMesh* HSM = PP.CreateObjectAndPackage<UHoudiniStaticMesh>();
 	UGeometryCollection* GC = PP.CreateObjectAndPackage<UGeometryCollection>();
+	UDataTable* DT = PP.CreateObjectAndPackage<UDataTable>();
 	//UMaterial* Mat = PP.CreateObjectAndPackage<UMaterial>();
 	//UTexture2D* Text = PP.CreateObjectAndPackage<UTexture2D>();
 }
@@ -450,4 +454,3 @@ T* FHoudiniPackageParams::CreateObjectAndPackage()
 
 	return CreatedObject;
 }
-
