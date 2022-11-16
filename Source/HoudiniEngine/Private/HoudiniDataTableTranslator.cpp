@@ -915,16 +915,15 @@ FHoudiniDataTableTranslator::PopulateRowData(int32 GeoId,
 			HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::PopulateRowData]: Unknown attribute type %d."), AttribInfo.storage);
 			return false;
 		}
-		if (Error)
-		{
-			HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::PopulateRowData]: Error %d when trying to get values for attribute %s."), Error, *KV.Key);
-			return false;
-		}
-
 		if (Data)
 		{
 			FMemory::Free(Data);
 			Data = nullptr;
+		}
+		if (Error)
+		{
+			HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::PopulateRowData]: Error %d when trying to get values for attribute %s."), Error, *KV.Key);
+			return false;
 		}
 
 		++RowIdx;
