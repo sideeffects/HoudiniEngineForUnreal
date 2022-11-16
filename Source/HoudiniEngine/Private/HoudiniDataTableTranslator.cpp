@@ -113,7 +113,7 @@ namespace
 		else if (Prop->IsA<FByteProperty>())
 		{
 			WriteAttributeDataToStruct<T, uint8, FByteProperty>(AttrData,
-				Offset,ue_
+				Offset,
 				RowSize,
 				NumRows,
 				TupleSize,
