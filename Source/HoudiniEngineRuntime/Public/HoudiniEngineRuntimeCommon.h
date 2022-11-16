@@ -86,7 +86,8 @@ enum class EHoudiniOutputType : uint8
 	Landscape,
 	Curve,
 	Skeletal,
-	GeometryCollection
+	GeometryCollection,
+	DataTable,
 };
 
 UENUM()
