@@ -311,6 +311,14 @@ FHoudiniPackageParams::CreatePackageForObject(FString& OutPackageName, int32 InB
 
 		// Build the final package name
 		FString FinalPackageName = PackagePath + TEXT("/") + OutPackageName;
+
+		//NodeSync Name Override
+		if (OverideEnabled)
+		{
+			FinalPackageName = FolderOverride + TEXT("/") + NameOverride;
+			OutPackageName = NameOverride;
+		}
+
 		// Sanitize package name.
 		FinalPackageName = UPackageTools::SanitizePackageName(FinalPackageName);
 
