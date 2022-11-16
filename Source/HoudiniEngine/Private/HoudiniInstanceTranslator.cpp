@@ -3135,7 +3135,8 @@ AActor*
 FHoudiniInstanceTranslator::SpawnInstanceActor(
 	const FTransform& InTransform,
 	ULevel* InSpawnLevel,
-	UHoudiniInstancedActorComponent* InIAC)
+	UHoudiniInstancedActorComponent* InIAC,
+	const FName Name)
 {
 	if (!IsValid(InIAC))
 		return nullptr;
@@ -3151,7 +3152,7 @@ FHoudiniInstanceTranslator::SpawnInstanceActor(
 	GEditor->ClickLocation = InTransform.GetTranslation();
 	GEditor->ClickPlane = FPlane(GEditor->ClickLocation, FVector::UpVector);
 		
-	TArray<AActor*> NewActors = FLevelEditorViewportClient::TryPlacingActorFromObject(InSpawnLevel, InstancedObject, false, RF_Transactional, nullptr);
+	TArray<AActor*> NewActors = FLevelEditorViewportClient::TryPlacingActorFromObject(InSpawnLevel, InstancedObject, false, RF_Transactional, nullptr, Name);
 	if (NewActors.Num() > 0)
 	{
 		if (IsValid(NewActors[0]))
