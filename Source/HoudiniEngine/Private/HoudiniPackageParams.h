@@ -166,6 +166,16 @@ public:
 	UPROPERTY()
 	int32 PDGWorkResultArrayIndex;
 
+	//Session Sync Asset Editor Users need the ability explicitly set the name
+	UPROPERTY()
+	FString NameOverride;
+
+	UPROPERTY()
+	FString FolderOverride;
+
+	UPROPERTY()
+	bool OverideEnabled = false;
+
 	////TODO: We don't have access to Houdini attributes in HoudiniEngine/HoudiniEnginePrivatePCH. 
 	//FString GetTempFolderArgument(ERuntimePackageMode PackageMode) const;
 	//FString GetBakeFolderArgument(ERuntimePackageMode PackageMode) const;
