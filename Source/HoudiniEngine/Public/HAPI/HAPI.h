@@ -7106,7 +7106,7 @@ HAPI_DECL HAPI_GetMaterialInfo( const HAPI_Session * session,
 /// @param[in]      cop_node_id
 ///                 The COP node id.
 ///
-HAPI_DECL HAPI_RenderCOPToImage( const HAPI_Session * session,
+HAPI_DECL HAPI_RenderCOP2ToImage( const HAPI_Session * session,
                                  HAPI_NodeId cop_node_id );
 
 /// @brief  Render only a single texture to an image for later extraction.
