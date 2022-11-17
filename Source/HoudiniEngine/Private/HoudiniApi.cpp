@@ -831,8 +831,8 @@ FHoudiniApi::RemoveParmExpression = &FHoudiniApi::RemoveParmExpressionEmptyStub;
 FHoudiniApi::RenameNodeFuncPtr
 FHoudiniApi::RenameNode = &FHoudiniApi::RenameNodeEmptyStub;
 
-FHoudiniApi::RenderCOPToImageFuncPtr
-FHoudiniApi::RenderCOPToImage = &FHoudiniApi::RenderCOPToImageEmptyStub;
+FHoudiniApi::RenderCOP2ToImageFuncPtr
+FHoudiniApi::RenderCOP2ToImage = &FHoudiniApi::RenderCOP2ToImageEmptyStub;
 
 FHoudiniApi::RenderTextureToImageFuncPtr
 FHoudiniApi::RenderTextureToImage = &FHoudiniApi::RenderTextureToImageEmptyStub;
@@ -1375,7 +1375,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::RemoveMultiparmInstance = (RemoveMultiparmInstanceFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RemoveMultiparmInstance"));
 	FHoudiniApi::RemoveParmExpression = (RemoveParmExpressionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RemoveParmExpression"));
 	FHoudiniApi::RenameNode = (RenameNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenameNode"));
-	FHoudiniApi::RenderCOPToImage = (RenderCOPToImageFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenderCOPToImage"));
+	FHoudiniApi::RenderCOP2ToImage = (RenderCOP2ToImageFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenderCOP2ToImage"));
 	FHoudiniApi::RenderTextureToImage = (RenderTextureToImageFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenderTextureToImage"));
 	FHoudiniApi::ResetSimulation = (ResetSimulationFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ResetSimulation"));
 	FHoudiniApi::RevertGeo = (RevertGeoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RevertGeo"));
@@ -1739,7 +1739,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::RemoveMultiparmInstance = &FHoudiniApi::RemoveMultiparmInstanceEmptyStub;
 	FHoudiniApi::RemoveParmExpression = &FHoudiniApi::RemoveParmExpressionEmptyStub;
 	FHoudiniApi::RenameNode = &FHoudiniApi::RenameNodeEmptyStub;
-	FHoudiniApi::RenderCOPToImage = &FHoudiniApi::RenderCOPToImageEmptyStub;
+	FHoudiniApi::RenderCOP2ToImage = &FHoudiniApi::RenderCOP2ToImageEmptyStub;
 	FHoudiniApi::RenderTextureToImage = &FHoudiniApi::RenderTextureToImageEmptyStub;
 	FHoudiniApi::ResetSimulation = &FHoudiniApi::ResetSimulationEmptyStub;
 	FHoudiniApi::RevertGeo = &FHoudiniApi::RevertGeoEmptyStub;
@@ -3716,7 +3716,7 @@ FHoudiniApi::RenameNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_
 
 
 HAPI_Result
-FHoudiniApi::RenderCOPToImageEmptyStub(const HAPI_Session * session, HAPI_NodeId cop_node_id)
+FHoudiniApi::RenderCOP2ToImageEmptyStub(const HAPI_Session * session, HAPI_NodeId cop_node_id)
 {
 	return HAPI_RESULT_FAILURE;
 }
