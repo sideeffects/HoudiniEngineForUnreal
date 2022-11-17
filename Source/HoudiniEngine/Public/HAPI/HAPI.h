@@ -1772,14 +1772,14 @@ HAPI_DECL HAPI_GetLoadedAssetLibraryCount(
 ///                 Array of HAPI_AssetLibraryIds at least the size of length.
 ///
 /// @param[in]      start
-///                 First index from the list of HAPI_AssetInfo's to return.
-///                 Must be at least 0 and at most count - 1 where count is the
-///                 value returned by ::HAPI_GetLoadedAssetLibraryCount.
+///                 First index from the list of HAPI_AssetLibraryId's to
+///                 return. Must be at least 0 and at most count - 1 where count
+///                 is the value returned by ::HAPI_GetLoadedAssetLibraryCount.
 ///
 /// @param[in]      length
-///                 The number of HAPI_AssetInfo's to return. Must be at least 0
-///                 and at most count - start where count is the value returned
-///                 by HAPI_GetLoadedAssetLibraryCount
+///                 The number of HAPI_AssetLibraryId's to return. Must be at
+///                 least 0 and at most count - start where count is the value
+///                 returned by HAPI_GetLoadedAssetLibraryCount.
 /// 
 HAPI_DECL HAPI_GetAssetLibraryIds(
     const HAPI_Session * session,
