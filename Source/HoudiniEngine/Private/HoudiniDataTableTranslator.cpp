@@ -771,8 +771,18 @@ FHoudiniDataTableTranslator::PopulateRowData(int32 GeoId,
 	int32 StructSize,
 	int32 NumRows,
 	uint8* RowData,
-	TArray<void*>& ExtraPointers)
+	UScriptStruct* RowStruct,
+	TArray<FString*> ExtraStrings,
+	TArray<FText*> ExtraTexts,
+	TArray<FName*> ExtraNames)
 {
+	// TODO: Figure out of this is necessary. Remember to also update 4.26-v2 if needed.
+	/*
+	for (int32 Idx = 0; Idx < NumRows; ++Idx)
+	{
+		RowStruct->InitializeStruct(&RowData[Idx * StructSize]);
+	}
+	*/
 	HAPI_AttributeInfo AttribInfo;
 	HAPI_Result Error = HAPI_RESULT_FAILURE;
 	int32 Offset;
@@ -871,22 +881,30 @@ FHoudiniDataTableTranslator::PopulateRowData(int32 GeoId,
 			for (int32 Idx = 0; Idx < NumRows; ++Idx)
 			{
 				// We cannot initialize the string directly into RowData for some reason - results in crash.
-				void* Str;
+				// Mem copying the bytes from an FString into the RowData works, but we cannot free the FString
+				// until the data table is already built.
+				// Therefore, add the FString pointers to the output and delete them after in HoudiniOutputTranslator.
 				if (Prop->IsA<FStrProperty>())
 				{
-					Str = new FString();
+					FString* Str = new FString();
+					Prop->ImportText(*StringData[Idx], Str, PPF_ExternalEditor, nullptr);
+					FMemory::Memcpy(&RowData[Idx * StructSize + Offset], Str, 16);
+					ExtraStrings.Add(Str);
 				}
 				else if (Prop->IsA<FTextProperty>())
 				{
-					Str = new FText();
+					FText* Str = new FText();
+					Prop->ImportText(*StringData[Idx], Str, PPF_ExternalEditor, nullptr);
+					FMemory::Memcpy(&RowData[Idx * StructSize + Offset], Str, 16);
+					ExtraTexts.Add(Str);
 				}
 				else
 				{
-					Str = new FName();
+					FName* Str = new FName();
+					Prop->ImportText(*StringData[Idx], Str, PPF_ExternalEditor, nullptr);
+					FMemory::Memcpy(&RowData[Idx * StructSize + Offset], Str, 16);
+					ExtraNames.Add(Str);
 				}
-				Prop->ImportText(*StringData[Idx], Str, PPF_ExternalEditor, nullptr);
-				FMemory::Memcpy(&RowData[Idx * StructSize + Offset], Str, 16);
-				ExtraPointers.Add(Str);
 			}
 		}
 		else {
