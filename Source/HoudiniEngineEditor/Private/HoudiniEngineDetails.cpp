@@ -55,6 +55,7 @@
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "Brushes/SlateImageBrush.h"
 #include "Widgets/Input/SComboBox.h"
@@ -73,6 +74,7 @@
 #include "HAL/FileManager.h"
 #include "HAL/PlatformApplicationMisc.h"
 #include "ActorTreeItem.h"
+#include "HoudiniLandscapeTranslator.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -1542,7 +1544,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			.ToolTipText(TooltipText)
 		]
 	];
-	
+
 	// Use whole widget
 	CheckBoxesRow.WholeRowWidget.Widget = WidgetBox;
 }

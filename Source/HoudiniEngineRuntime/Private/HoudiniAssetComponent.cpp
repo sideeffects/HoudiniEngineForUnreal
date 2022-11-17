@@ -661,7 +661,6 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 	bOutputless = false;
 	bOutputTemplateGeos = false;
 	bUseOutputNodes = true;
-
 	PDGAssetLink = nullptr;
 
 	StaticMeshMethod = EHoudiniStaticMeshMethod::RawMesh;
