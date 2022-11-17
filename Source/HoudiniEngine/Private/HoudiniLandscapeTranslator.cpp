@@ -63,7 +63,7 @@
 #include "Factories/WorldFactory.h"
 #include "Misc/Guid.h"
 #include "Engine/LevelBounds.h"
-
+#include "LandscapeConfigHelper.h"
 #include "HAL/IConsoleManager.h"
 #include "Engine/AssetManager.h"
 #include "Misc/ScopedSlowTask.h"
@@ -104,7 +104,8 @@ FHoudiniLandscapeTranslator::CreateLandscape(
 	FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
 	FHoudiniPackageParams InPackageParams,
 	TSet<FString>& ClearedLayers,
-	TArray<UPackage*>& OutCreatedPackages
+	TArray<UPackage*>& OutCreatedPackages,
+	int WorldPartitionSize
 )
 {
 	// Do the absolute minimum in order to determine which output mode we're dealing with (Temp or Editable Layers).
@@ -184,7 +185,8 @@ FHoudiniLandscapeTranslator::CreateLandscape(
 				LandscapeReferenceLocation,
 				ClearedLayers,
 				InPackageParams,
-				OutCreatedPackages
+				OutCreatedPackages,
+				WorldPartitionSize
 				);
 		}
 		break;
@@ -207,7 +209,8 @@ FHoudiniLandscapeTranslator::OutputLandscape_Generate(
 	FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
 	TSet<FString>& ClearedLayers,
 	FHoudiniPackageParams InPackageParams,
-	TArray<UPackage*>& OutCreatedPackages
+	TArray<UPackage*>& OutCreatedPackages,
+	int WorldPartitionSize
 )
 {
 	TArray<FString> EditLayerNames;
@@ -283,7 +286,8 @@ FHoudiniLandscapeTranslator::OutputLandscape_Generate(
 			AllLayerNames,
 			ClearedLayers,
 			OutCreatedPackages,
-			ActiveLandscapes);
+			ActiveLandscapes,
+			WorldPartitionSize);
 		AfterLayerName = LayerFName;
 	}
 
@@ -351,7 +355,8 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	const TArray<FName>& AllLayerNames,
 	TSet<FString>& ClearedLayers,
 	TArray<UPackage*>& OutCreatedPackages,
-	TSet<ALandscapeProxy*>& OutActiveLandscapes
+	TSet<ALandscapeProxy*>& OutActiveLandscapes,
+	int WorldPartitionSize
 )
 {
 	FName InEditLayerFName = FName(InEditLayerName);
@@ -1218,7 +1223,8 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 			PackageParams,
 			bHasEditLayers,
 			InEditLayerFName,
-			AfterLayerName);
+			AfterLayerName,
+			WorldPartitionSize);
 
 		if (!TileActor || !TileActor->IsValidLowLevel())
 			return false;
@@ -4360,7 +4366,8 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 	FHoudiniPackageParams InPackageParams,
 	bool bHasEditLayers,
 	const FName& EditLayerName,
-	const FName& AfterLayerName)
+	const FName& AfterLayerName,
+	int WorldPartitionSize)
 {
 	if (!IsValid(InWorld))
 		return nullptr;
@@ -4562,6 +4569,18 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 	}
 
 	check(LandscapeInfo);
+
+	// Call FLandscapeConfigHelper::ChangeGridSize() to build the Streaming Landscape Proxy(s) for
+	// the landscape inside a Partiioned World.
+	if (InWorld->IsPartitionedWorld())
+	{
+		TSet<AActor*> ActorsToDelete;
+		FLandscapeConfigHelper::ChangeGridSize(LandscapeInfo, WorldPartitionSize, ActorsToDelete);
+		for (AActor* ActorToDelete : ActorsToDelete)
+		{
+			InWorld->DestroyActor(ActorToDelete);
+		}
+	}
 
 	if (bHasEditLayers && bRenameDefaultEditLayer)
 	{

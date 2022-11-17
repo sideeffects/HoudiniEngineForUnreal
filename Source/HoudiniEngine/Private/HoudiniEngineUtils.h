@@ -105,7 +105,10 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		// Convert FString to std::string
 		static void ConvertUnrealString(const FString & UnrealString, std::string& String);
-		
+
+		// Gets the world partition grid size from an output.
+		static int GetLandscapePartitionGridSize(UHoudiniOutput* Output);
+
 		// Wrapper for the CreateNode function
 		// As HAPI_CreateNode is an async call, this function actually waits for the node creation to be done before returning
 		static HAPI_Result CreateNode(

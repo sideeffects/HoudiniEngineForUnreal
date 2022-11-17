@@ -7725,4 +7725,37 @@ FHoudiniEngineUtils::HapiConnectNodeInput(const int32& InNodeId, const int32& In
 	return true;
 }
 
+int
+FHoudiniEngineUtils::GetLandscapePartitionGridSize(UHoudiniOutput* Output)
+{
+	// The World Partition Grid Size is set to 2 by default in the Landscape editor and
+	// set to 4 in the WorldPartitionConvertCommandlet. By default we set it to 4 to
+	// match the commandlet.
+
+	int WorldPartitionGridSize = 4;
+
+	for (const FHoudiniGeoPartObject& HGPO : Output->GetHoudiniGeoPartObjects())
+	{
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		TArray<int> AttributeValues;
+		if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+			HGPO.GeoId, HGPO.PartId,
+			HAPI_UNREAL_ATTRIB_LANDSCAPE_PARTITION_GRID_SIZE,
+			AttributeInfo, AttributeValues, 1, HAPI_ATTROWNER_PRIM, 0, 1) && AttributeValues.Num() > 0)
+		{
+			WorldPartitionGridSize = AttributeValues[0];
+		}
+		else if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+			HGPO.GeoId, HGPO.PartId,
+			HAPI_UNREAL_ATTRIB_LANDSCAPE_PARTITION_GRID_SIZE,
+			AttributeInfo, AttributeValues, 1, HAPI_ATTROWNER_DETAIL, 0, 1) && AttributeValues.Num() > 0)
+		{
+			WorldPartitionGridSize = AttributeValues[0];
+		}
+	}
+
+	return WorldPartitionGridSize;
+}
+
 #undef LOCTEXT_NAMESPACE
