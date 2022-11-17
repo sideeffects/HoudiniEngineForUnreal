@@ -638,6 +638,9 @@ FHoudiniOutputTranslator::UpdateOutputs(
 				// FoundProps is the map of properties that need to be set in the data table
 				// They are guaranteed to have an attribute in the point cloud input.
 				TArray<void*> ExtraPointers;
+				TArray<FString*> ExtraStrings;
+				TArray<FText*> ExtraTexts;
+				TArray<FName*> ExtraNames;
 				Status = FHoudiniDataTableTranslator::PopulateRowData(GeoId,
 					PartId,
 					FoundProps,
@@ -645,10 +648,21 @@ FHoudiniOutputTranslator::UpdateOutputs(
 					StructSize,
 					NumRows,
 					RowData,
-					ExtraPointers);
+					RowStruct,
+					ExtraStrings,
+					ExtraTexts,
+					ExtraNames);
 				if (!Status)
 				{
-					for (auto&& Ptr : ExtraPointers)
+					for (const FString* Ptr : ExtraStrings)
+					{
+						delete Ptr;
+					}
+					for (const FText* Ptr : ExtraTexts)
+					{
+						delete Ptr;
+					}
+					for (const FName* Ptr : ExtraNames)
 					{
 						delete Ptr;
 					}
@@ -663,7 +677,15 @@ FHoudiniOutputTranslator::UpdateOutputs(
 					DataTableName,
 					RowStruct,
 					RowData);
-				for (auto&& Ptr : ExtraPointers)
+				for (const FString* Ptr : ExtraStrings)
+				{
+					delete Ptr;
+				}
+				for (const FText* Ptr : ExtraTexts)
+				{
+					delete Ptr;
+				}
+				for (const FName* Ptr : ExtraNames)
 				{
 					delete Ptr;
 				}

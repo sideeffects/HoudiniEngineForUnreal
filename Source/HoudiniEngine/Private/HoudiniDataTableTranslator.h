@@ -125,7 +125,10 @@ struct HOUDINIENGINE_API FHoudiniDataTableTranslator
 		int32 StructSize,
 		int32 NumRows,
 		uint8* RowData,
-		TArray<void*>& ExtraPointers);
+		UScriptStruct* RowStruct,
+		TArray<FString*> ExtraStrings,
+		TArray<FText*> ExtraTexts,
+		TArray<FName*> ExtraNames);
 
 	static bool CreateAndSaveDataTable(const FHoudiniGeoPartObject& HGPO,
 		int32 NumRows,
