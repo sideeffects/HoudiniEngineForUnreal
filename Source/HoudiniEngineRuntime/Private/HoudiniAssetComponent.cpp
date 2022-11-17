@@ -564,7 +564,6 @@ UHoudiniAssetComponent::ConvertLegacyData()
 	bOutputless = false;
 	bOutputTemplateGeos = false;
 	bUseOutputNodes = false;
-	WorldPartitionSize = 4;
 	bFullyLoaded = Version1CompatibilityHAC->bFullyLoaded;
 
 	//bContainsHoudiniLogoGeometry = Version1CompatibilityHAC->bContainsHoudiniLogoGeometry;
@@ -662,7 +661,6 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 	bOutputless = false;
 	bOutputTemplateGeos = false;
 	bUseOutputNodes = true;
-	WorldPartitionSize = 4;
 	PDGAssetLink = nullptr;
 
 	StaticMeshMethod = EHoudiniStaticMeshMethod::RawMesh;
