@@ -447,6 +447,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 			bCreatedNewMaps |= bNewMapCreated;
 			break;
 		}
+
 		case EHoudiniOutputType::DataTable:
 		{
 			for (auto&& HGPO : CurOutput->HoudiniGeoPartObjects)
@@ -688,6 +689,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 			}
 			break;
 		}
+
 		default:
 			// Do Nothing for now
 			break;
@@ -1697,15 +1699,21 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 							// Instancer type is set by IsAttributeInstancer
 							//CurrentInstancerType = EHoudiniInstancerType::OldSchoolAttributeInstancer;
 						}
+						else if (FHoudiniEngineUtils::IsValidDataTable(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
+						{
+							// the curve is actually a data table!
+							CurrentPartType = EHoudiniPartType::DataTable;
+						}
 						else
 						{
 							// The curve is a curve!
 							CurrentPartType = EHoudiniPartType::Curve;
 						}
 					}
-						break;
+					break;
 
 					case HAPI_PARTTYPE_INSTANCER:
+					{
 						// This is a packed primitive instancer
 						CurrentPartType = EHoudiniPartType::Instancer;
 						if (!bIsGeometryCollection)
@@ -1716,8 +1724,8 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 						{
 							CurrentInstancerType = EHoudiniInstancerType::GeometryCollection;
 						}
-					
-						break;
+					}
+					break;
 
 					case HAPI_PARTTYPE_VOLUME:
 						// Volume data, likely a Heightfield height / mask	
