@@ -811,19 +811,15 @@ FHoudiniDataTableTranslator::PopulateRowData(int32 GeoId,
 	int32 NumRows,
 	uint8* RowData)
 {
-	HAPI_AttributeInfo AttribInfo;
-	HAPI_Result Error = HAPI_RESULT_FAILURE;
-	int32 Offset;
-	FProperty* Prop;
-	ANSICHAR* AttribName;
 	int32 RowIdx = 0;
 	for (auto&& KV : FoundProps)
 	{
-		AttribName = TCHAR_TO_ANSI(*KV.Key);
-		Prop = KV.Value;
-		Offset = Prop->GetOffset_ForInternal();
+		HAPI_Result Result = HAPI_RESULT_FAILURE;
+		ANSICHAR* AttribName = TCHAR_TO_ANSI(*KV.Key);
+		FProperty* Prop = KV.Value;
+		int32 Offset = Prop->GetOffset_ForInternal();
 
-		AttribInfo = FoundInfos[KV.Key];
+		HAPI_AttributeInfo AttribInfo = FoundInfos[KV.Key];
 		if (AttribInfo.count < 1)
 		{
 			HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::PopulateRowData]: Attribute %s has no values."), *KV.Key);
@@ -847,55 +843,61 @@ FHoudiniDataTableTranslator::PopulateRowData(int32 GeoId,
 		if (AttribInfo.storage == HAPI_STORAGETYPE_INT)
 		{
 			Data = FMemory::Malloc(AttribInfo.count * AttribInfo.tupleSize * sizeof(int32));
-			Error = FHoudiniApi::GetAttributeIntData(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<int32*>(Data), 0, AttribInfo.count);
+			Result = FHoudiniApi::GetAttributeIntData(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<int32*>(Data), 0, AttribInfo.count);
 
 			WriteAttributeDataToStruct<int32>(Data, StructSize, AttribInfo, RowData, Prop, KV.Key);
 		}
 		else if (AttribInfo.storage == HAPI_STORAGETYPE_INT64)
 		{
 			Data = FMemory::Malloc(AttribInfo.count * AttribInfo.tupleSize * sizeof(int64));
-			Error = FHoudiniApi::GetAttributeInt64Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<int64*>(Data), 0, AttribInfo.count);
+			Result = FHoudiniApi::GetAttributeInt64Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<int64*>(Data), 0, AttribInfo.count);
 
 			WriteAttributeDataToStruct<int64>(Data, StructSize, AttribInfo, RowData, Prop, KV.Key);
 		}
 		else if (AttribInfo.storage == HAPI_STORAGETYPE_FLOAT)
 		{
 			Data = FMemory::Malloc(AttribInfo.count * AttribInfo.tupleSize * sizeof(float));
-			Error = FHoudiniApi::GetAttributeFloatData(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<float*>(Data), 0, AttribInfo.count);
+			Result = FHoudiniApi::GetAttributeFloatData(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<float*>(Data), 0, AttribInfo.count);
 
 			WriteAttributeDataToStruct<float>(Data, StructSize, AttribInfo, RowData, Prop, KV.Key);
 		}
 		else if (AttribInfo.storage == HAPI_STORAGETYPE_FLOAT64)
 		{
 			Data = FMemory::Malloc(AttribInfo.count * AttribInfo.tupleSize * sizeof(double));
-			Error = FHoudiniApi::GetAttributeFloat64Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<double*>(Data), 0, AttribInfo.count);
+			Result = FHoudiniApi::GetAttributeFloat64Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<double*>(Data), 0, AttribInfo.count);
 
 			WriteAttributeDataToStruct<double>(Data, StructSize, AttribInfo, RowData, Prop, KV.Key);
 		}
 		else if (AttribInfo.storage == HAPI_STORAGETYPE_UINT8)
 		{
 			Data = FMemory::Malloc(AttribInfo.count * AttribInfo.tupleSize * sizeof(uint8));
-			Error = FHoudiniApi::GetAttributeUInt8Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<uint8*>(Data), 0, AttribInfo.count);
+			Result = FHoudiniApi::GetAttributeUInt8Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<uint8*>(Data), 0, AttribInfo.count);
 
 			WriteAttributeDataToStruct<uint8>(Data, StructSize, AttribInfo, RowData, Prop, KV.Key);
 		}
 		else if (AttribInfo.storage == HAPI_STORAGETYPE_INT8)
 		{
 			Data = FMemory::Malloc(AttribInfo.count * AttribInfo.tupleSize * sizeof(int8));
-			Error = FHoudiniApi::GetAttributeInt8Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<int8*>(Data), 0, AttribInfo.count);
+			Result = FHoudiniApi::GetAttributeInt8Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<int8*>(Data), 0, AttribInfo.count);
 
 			WriteAttributeDataToStruct<int8>(Data, StructSize, AttribInfo, RowData, Prop, KV.Key);
 		}
-		else if (AttribInfo.storage == HAPI_STORAGETYPE_INT16) {
+		else if (AttribInfo.storage == HAPI_STORAGETYPE_INT16) 
+		{
 			Data = FMemory::Malloc(AttribInfo.count * AttribInfo.tupleSize * sizeof(int16));
-			Error = FHoudiniApi::GetAttributeInt16Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<int16*>(Data), 0, AttribInfo.count);
+			Result = FHoudiniApi::GetAttributeInt16Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<int16*>(Data), 0, AttribInfo.count);
 
 			WriteAttributeDataToStruct<int16>(Data, StructSize, AttribInfo, RowData, Prop, KV.Key);
 		}
-		else if (AttribInfo.storage == HAPI_STORAGETYPE_STRING) {
+		else if (AttribInfo.storage == HAPI_STORAGETYPE_STRING) 
+		{
 			TArray<FString> StringData;
 			StringData.Reserve(NumRows);
-			FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, AttribName, AttribInfo, StringData, AttribInfo.tupleSize);
+			if (!FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, AttribName, AttribInfo, StringData, AttribInfo.tupleSize))
+				Result = HAPI_RESULT_FAILURE;
+			else
+				Result = HAPI_RESULT_SUCCESS;
+
 			if (AttribInfo.tupleSize != 1)
 			{
 				HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::PopulateRowData]: Tuples of strings are not supported, skipping attribute %s."), *KV.Key);
@@ -908,21 +910,30 @@ FHoudiniDataTableTranslator::PopulateRowData(int32 GeoId,
 			}
 			for (int32 Idx = 0; Idx < NumRows; ++Idx)
 			{
+#if ENGINE_MINOR_VERSION < 1
 				Prop->ImportText(*StringData[Idx], &RowData[Idx * StructSize + Offset], PPF_ExternalEditor, nullptr);
+
+#else
+				Prop->ImportText_Direct(*StringData[Idx], &RowData[Idx * StructSize + Offset], nullptr, PPF_ExternalEditor);
+#endif
+
 			}
 		}
-		else {
+		else 
+		{
 			HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::PopulateRowData]: Unknown attribute type %d."), AttribInfo.storage);
 			return false;
 		}
+
 		if (Data)
 		{
 			FMemory::Free(Data);
 			Data = nullptr;
 		}
-		if (Error)
+
+		if (Result != HAPI_RESULT_SUCCESS)
 		{
-			HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::PopulateRowData]: Error %d when trying to get values for attribute %s."), Error, *KV.Key);
+			HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::PopulateRowData]: Error %d when trying to get values for attribute %s."), Result, *KV.Key);
 			return false;
 		}
 
