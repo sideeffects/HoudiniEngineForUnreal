@@ -80,8 +80,8 @@
 /// [HAPI_CACHE]
 /// Common cache names. You can see these same cache names in the
 /// Cache Manager window in Houdini (Windows > Cache Manager).
-#define HAPI_CACHE_COP_COOK                 "COP Cook Cache"
-#define HAPI_CACHE_COP_FLIPBOOK             "COP Flipbook Cache"
+#define HAPI_CACHE_COP2_COOK                 "COP Cook Cache"
+#define HAPI_CACHE_COP2_FLIPBOOK             "COP Flipbook Cache"
 #define HAPI_CACHE_IMAGE                    "Image Cache"
 #define HAPI_CACHE_OBJ                      "Object Transform Cache"
 #define HAPI_CACHE_GL_TEXTURE               "OpenGL Texture Cache"
@@ -865,7 +865,7 @@ enum HAPI_CacheProperty
     HAPI_CACHEPROP_MAX, /// Max cache memory limit in MB.
 
     /// How aggressive to cull memory. This only works for:
-    ///     - ::HAPI_CACHE_COP_COOK where:
+    ///     - ::HAPI_CACHE_COP2_COOK where:
     ///         0   ->  Never reduce inactive cache.
     ///         1   ->  Always reduce inactive cache.
     ///     - ::HAPI_CACHE_OBJ where:
