@@ -1738,6 +1738,77 @@ HAPI_DECL HAPI_GetAssetDefinitionParmValues(
     int choice_start,
     int choice_length );
 
+/// @brief  Gets the number of HDAs that have been loaded by Houdini.
+///
+///         @note This only includes HDAs that have been loaded from disk.
+///             Embedded HDAs will be excluded.
+///
+/// @ingroup Assets
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[out]     count
+///                 The returned number of loaded HDAs.
+///
+HAPI_DECL HAPI_GetLoadedAssetLibraryCount(
+    const HAPI_Session * session,
+    int * count);
+
+/// @brief  Gets the HAPI_AssetLibraryIds for HDAs that are loaded in Houdini.
+///
+/// @ingroup Assets
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[out]     asset_library_ids_array
+///                 Array of HAPI_AssetLibraryIds at least the size of length.
+///
+/// @param[in]      start
+///                 First index from the list of HAPI_AssetLibraryId's to
+///                 return. Must be at least 0 and at most count - 1 where count
+///                 is the value returned by ::HAPI_GetLoadedAssetLibraryCount.
+///
+/// @param[in]      length
+///                 The number of HAPI_AssetLibraryId's to return. Must be at
+///                 least 0 and at most count - start where count is the value
+///                 returned by HAPI_GetLoadedAssetLibraryCount.
+/// 
+HAPI_DECL HAPI_GetAssetLibraryIds(
+    const HAPI_Session * session,
+    HAPI_AssetLibraryId * asset_library_ids_array,
+    int start,
+    int length);
+
+/// @brief  Gets the HAPI_StringHandle for the file path of a loaded asset
+///         library.
+///
+/// @ingroup Assets
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      asset_library_id
+///                 The HAPI_AssetLibraryId of the asset library.
+///
+/// @param[out]     file_path_sh
+///                 The returned HAPI_StringHandle of the asset's file path on
+///                 disk.
+///
+HAPI_DECL HAPI_GetAssetLibraryFilePath(
+    const HAPI_Session * session,
+    HAPI_AssetLibraryId asset_library_id,
+    HAPI_StringHandle * file_path_sh);
+
 /// @defgroup HipFiles Hip Files
 /// Functions for managing hip files
 
