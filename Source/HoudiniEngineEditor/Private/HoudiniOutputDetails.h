@@ -73,6 +73,9 @@ public:
 	void CreateGeometryCollectionOutputWidget(
         IDetailCategoryBuilder& HouOutputCategory,
         const TWeakObjectPtr<UHoudiniOutput>& InOutput);
+
+	void CreateDataTableOutputWidget(IDetailCategoryBuilder& HouOutputCategory,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
 	
 	void CreateStaticMeshAndMaterialWidgets(
 		IDetailCategoryBuilder& HouOutputCategory,
