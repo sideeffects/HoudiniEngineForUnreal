@@ -2209,7 +2209,6 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArg
 			//]
 		];
 
-
 	//FDetailWidgetRow& Row = HoudiniEngineCategoryBuilder.AddCustomRow(FText::GetEmpty());
 	TSharedPtr<SImage> Image;
 

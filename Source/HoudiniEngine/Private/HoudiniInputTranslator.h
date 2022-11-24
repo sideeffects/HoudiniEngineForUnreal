@@ -166,7 +166,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bImportAsReferenceRotScaleEnabled = false,
 		const bool& bImportAsReferenceBboxEnabled = false,
 		const bool& bImportAsReferenceMaterialEnabled = false,
-		const bool& bInputNodesCanBeDeleted = true);
+		const bool& bInputNodesCanBeDeleted = true,
+		const bool& bPreferNaniteFallbackMesh = false);
 
 	static bool	HapiCreateInputNodeForHoudiniSplineComponent(
 		const FString& InObjNodeName,
@@ -236,7 +237,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bImportAsReferenceBboxEnabled = false,
 		const bool& bImportAsReferenceMaterialEnabled = false,
 		const FTransform& InActorTransform = FTransform::Identity,
-		const bool& bInputNodesCanBeDeleted = true);
+		const bool& bInputNodesCanBeDeleted = true,
+		const bool& bPreferNaniteFallbackMesh = false);
 
 	static bool	HapiCreateInputNodeForInstancedStaticMeshComponent(
 		const FString& InObjNodeName,

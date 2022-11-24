@@ -107,6 +107,8 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 	// Static mesh proxy refinement settings
 	bEnableProxyStaticMesh = true;
 	bShowDefaultMesh = true;
+	bPreferNaniteFallbackMesh = false;
+
 	bEnableProxyStaticMeshRefinementByTimer = false;
 	ProxyMeshAutoRefineTimeoutSeconds = 10.0f;
 	bEnableProxyStaticMeshRefinementOnPreSaveWorld = true;
