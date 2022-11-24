@@ -83,6 +83,9 @@
 #include "SSCSEditor.h"
 #include "SSubobjectEditor.h"
 #include "Engine/WorldComposition.h"
+#include "FoliageEditUtility.h"
+#include "FoliageType_InstancedStaticMesh.h"
+#include "InstancedFoliageActor.h"
 
 #if WITH_EDITOR
 	#include "Interfaces/IMainFrameModule.h"
@@ -8427,6 +8430,87 @@ FHoudiniEngineUtils::GetLandscapePartitionGridSize(UHoudiniOutput* Output)
 	}
 
 	return WorldPartitionGridSize;
+}
+
+
+AInstancedFoliageActor *
+FHoudiniEngineUtils::GetInstancedFoliageActor(ULevel* DesiredLevel, bool bCreateIfNone)
+{
+	// TODO: see if all calls to GetInstancedFoliageActorForLevel() can be replaced by this function
+
+    AInstancedFoliageActor* InstancedFoliageActor = nullptr;
+    UWorld* World = DesiredLevel->GetWorld();
+
+    if (World->IsPartitionedWorld())
+    {
+	    InstancedFoliageActor = AInstancedFoliageActor::Get(World, bCreateIfNone, DesiredLevel);
+    }
+    else
+    {
+		InstancedFoliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(DesiredLevel, bCreateIfNone);
+    }
+    return InstancedFoliageActor;
+}
+
+UFoliageType*
+FHoudiniEngineUtils::CreateFoliageType(const FHoudiniPackageParams & Params, int OutputIndex, const ULevel* DesiredLevel, AInstancedFoliageActor* IFA, UStaticMesh* InstancedStaticMesh)
+{
+	HOUDINI_CHECK_RETURN(DesiredLevel, nullptr);
+	HOUDINI_CHECK_RETURN(DesiredLevel->GetWorld(), nullptr);
+
+	// TODO: see if all calls to AddMesh() can be replaced by this function
+
+    UFoliageType* FoliageType = nullptr;
+
+    if (DesiredLevel->GetWorld()->IsPartitionedWorld())
+    {
+		FHoudiniPackageParams FoliageParams = Params;
+		FoliageParams.ObjectName = FString::Printf(TEXT("%s_%d_%s"), *FoliageParams.HoudiniAssetName, OutputIndex + 1, TEXT("foliage_type"));
+		if (UFoliageType_InstancedStaticMesh * InstancedMeshFoliageType = FoliageParams.CreateObjectAndPackage<UFoliageType_InstancedStaticMesh>())
+		{
+	        InstancedMeshFoliageType->SetStaticMesh(InstancedStaticMesh);
+
+            FoliageType = InstancedMeshFoliageType;
+		    IFA->AddMesh(FoliageType);
+		}
+    }
+    else
+    {
+		// Use the existing, pre-world partition, Foliage API to  add the foliage mesh.
+		IFA->AddMesh(InstancedStaticMesh, &FoliageType);
+    }
+    return FoliageType;
+
+}
+
+UFoliageType* 
+FHoudiniEngineUtils::GetFoliageType(const ULevel* DesiredLevel, AInstancedFoliageActor* IFA, const UStaticMesh* InstancedStaticMesh)
+{
+	// TODO: see if all calls to GetLocalFoliageTypeForSource() can be replaced by this function
+
+	if (!DesiredLevel->GetWorld()->IsPartitionedWorld())
+	{
+		return IFA->GetLocalFoliageTypeForSource(InstancedStaticMesh);
+	}
+	else
+	{
+		TArray<const UFoliageType*> FoliageTypes;
+		IFA->GetAllFoliageTypesForSource(InstancedStaticMesh, FoliageTypes);
+		if (FoliageTypes.Num() == 0)
+		{
+			return nullptr;
+		}
+		else
+		{
+			// Just pick the first one. In the UE Editor it doesn't seem to possible to create two sets of foliage
+			// with the same instance. TODO: figure out if t is even possible for this to happen.
+			//
+			// GetAllFoliageTypesForSource() returns an array of const UFoliageTypes while the rest of the Unreal
+			// API is pretty const ignorant for foliage types. So remove consting.
+			return const_cast<UFoliageType*>(FoliageTypes[0]);
+		}
+		
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

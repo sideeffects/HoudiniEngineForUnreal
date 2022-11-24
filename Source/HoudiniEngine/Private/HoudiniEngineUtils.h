@@ -1213,6 +1213,15 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const bool bInConnectReferencedNodes=true,
 			const bool& bInputNodesCanBeDeleted=true);
 
+		// Helper to return the Instance Foliage Actor for the level
+		static AInstancedFoliageActor* GetInstancedFoliageActor(ULevel* DesiredLevel, bool bCreateIfNone);
+
+		// Helper to create a new Foliage Type
+		static UFoliageType* CreateFoliageType(const FHoudiniPackageParams& Params, int OutputIndex, const ULevel* DesiredLevel, AInstancedFoliageActor* IFA, UStaticMesh* InstancedStaticMesh);
+
+		// Helper to return the Foliage Type for the Instanced Static Mesh
+		static UFoliageType* GetFoliageType(const ULevel* DesiredLevel, AInstancedFoliageActor* IFA, const UStaticMesh* InstancedStaticMesh);
+
 	protected:
 		
 		// Computes the XX.YY.ZZZ version string using HAPI_Version
