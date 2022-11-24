@@ -325,7 +325,11 @@ namespace
 					if (TupleSize == 1)
 					{
 						FString Str = IsFloat ? FString::SanitizeFloat(CastedData[Idx]) : FString::FromInt(CastedData[Idx]);
+#if ENGINE_MINOR_VERSION < 1
 						Prop->ImportText(*Str, &PropData[Idx * RowSize + Offset], PPF_ExternalEditor, nullptr);
+#else
+						Prop->ImportText_Direct(*Str, &PropData[Idx * RowSize + Offset], nullptr, PPF_ExternalEditor);
+#endif
 						continue;
 					}
 					FString Str = "(";
@@ -338,7 +342,11 @@ namespace
 						}
 					}
 					Str.Append(")");
+#if ENGINE_MINOR_VERSION < 1
 					Prop->ImportText(*Str, &PropData[Idx * RowSize + Offset], PPF_ExternalEditor, nullptr);
+#else
+					Prop->ImportText_Direct(*Str, &PropData[Idx * RowSize + Offset], nullptr, PPF_ExternalEditor);
+#endif
 				}
 			}
 			else
