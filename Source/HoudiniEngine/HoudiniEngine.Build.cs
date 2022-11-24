@@ -290,6 +290,7 @@ public class HoudiniEngine : ModuleRules
                 "InputCore",
                 "RHI",
                 "Foliage",
+                "FoliageEdit",
                 "Landscape",
                 "StaticMeshDescription",
                 "Chaos",
