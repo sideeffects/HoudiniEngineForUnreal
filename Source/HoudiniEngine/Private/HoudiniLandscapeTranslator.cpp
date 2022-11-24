@@ -856,12 +856,14 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 			// Create and configure the main landscape actor.
 			// We need to create the landscape now and assign it a new GUID so we can create the LayerInfos
 			FActorSpawnParameters SpawnParameters;
+			SpawnParameters.Name = FName(SharedLandscapeActorName);
 			if (IsValid(TileLevel))
 				SpawnParameters.OverrideLevel = TileLevel;
 			SharedLandscapeActor = TileWorld->SpawnActor<ALandscape>(SpawnParameters);
+
 			if (SharedLandscapeActor)
 			{
-				CreatedUntrackedOutputs.Add( SharedLandscapeActor );
+			    CreatedUntrackedOutputs.Add( SharedLandscapeActor );
 
 				// NOTE that shared landscape is always located at the origin, but not the tile actors. The
 				// tiles are properly transformed.
@@ -871,6 +873,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 				SharedLandscapeActor->NumSubsections = NumSectionPerLandscapeComponent;
 				SharedLandscapeActor->SubsectionSizeQuads = NumQuadsPerLandscapeSection;
 				SharedLandscapeActor->SetLandscapeGuid( FGuid::NewGuid() );
+				SharedLandscapeActor->SetActorLabel(SharedLandscapeActorName);
 				SharedLandscapeActor->bCastStaticShadow = false;
 				for (const auto& ImportLayerInfo : LayerInfos)
 				{
@@ -885,8 +888,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 				SharedLandscapeActor->LandscapeHoleMaterial = LandscapeHoleMaterial;
 				DoPreEditChangeProperty(SharedLandscapeActor, "LandscapeMaterial");
 				
-				// Ensure the landscape actor name and label matches `LandscapeActorName`.
-				FHoudiniEngineUtils::SafeRenameActor(SharedLandscapeActor, SharedLandscapeActorName);
+
 
 				SharedLandscapeActor->MarkPackageDirty();
 			}
