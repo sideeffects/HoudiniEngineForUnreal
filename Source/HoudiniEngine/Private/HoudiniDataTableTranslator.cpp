@@ -7,6 +7,7 @@
 #include "HoudiniPackageParams.h"
 
 #include "DataTableEditorUtils.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "EdGraph/EdGraphPin.h"
 #include "Engine/DataTable.h"
 #include "Kismet2/StructureEditorUtils.h"
@@ -313,6 +314,244 @@ namespace
 };
 
 bool
+FHoudiniDataTableTranslator::BuildDataTable(FHoudiniGeoPartObject& HGPO,
+	UHoudiniOutput* CurOutput,
+	FHoudiniPackageParams& PackageParams)
+{
+	int32 GeoId = HGPO.GeoId;
+	int32 PartId = HGPO.PartId;
+
+	HAPI_PartInfo PartInfo;
+	FHoudiniApi::PartInfo_Init(&PartInfo);
+	HAPI_Result Error = HAPI_RESULT_FAILURE;
+	Error = FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(),
+		GeoId, PartId, &PartInfo);
+	if (Error != HAPI_RESULT_SUCCESS)
+	{
+		HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::BuildDataTable]: Error %d when trying to get part info."), Error);
+		return false;
+	}
+
+	HAPI_AttributeOwner AttribOwner = HAPI_ATTROWNER_POINT;
+	int32 NumAttributes = PartInfo.attributeCounts[AttribOwner];
+	int32 NumRows = PartInfo.pointCount;
+	if (NumAttributes < 1)
+	{
+		HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::BuildDataTable]: Asset %s has no attributes to import into datatable."), *HGPO.AssetName);
+		return false;
+	}
+
+	TArray<FString> RowNames;
+	bool Status = FHoudiniDataTableTranslator::GenerateRowNames(GeoId, PartId, NumRows, RowNames);
+
+	HAPI_AttributeInfo AttribInfo;
+
+	FString DataTableName = "";
+	FString DataTableFolder = "";
+	Status = FHoudiniDataTableTranslator::SetOutputPath(GeoId, PartId, AttribInfo, DataTableName, DataTableFolder);
+
+	TArray<FString> AttribNames;
+	Status = FHoudiniDataTableTranslator::GetAttribNames(GeoId, PartId, NumAttributes, AttribOwner, AttribNames);
+
+	// Find the struct to use as the basis for the datatable.
+	AttribInfo.exists = false;
+	UScriptStruct* RowStruct = nullptr;
+	bool RowStructNeedsProps = true;
+	FString RowStructName;
+	Status = FHoudiniDataTableTranslator::GetRowStructAttrib(GeoId, PartId, AttribInfo, RowStruct, RowStructName);
+	// Row struct already exists, don't add props later
+	if (RowStruct)
+	{
+		RowStructNeedsProps = false;
+	}
+
+	UUserDefinedStruct* NewStruct = nullptr;
+	FGuid DefaultPropId;
+	if (!RowStruct)
+	{
+		// Create the struct if it doesn't already exist
+
+		Status = FHoudiniDataTableTranslator::CreateRowStruct(HGPO, RowStructName, NewStruct, DefaultPropId, PackageParams);
+		if (!Status)
+		{
+			return false;
+		}
+
+		RowStruct = NewStruct;
+		RowStruct->PreEditChange(nullptr);
+	}
+
+	TMap<FString, FProperty*> ActualProps;
+	TMap<FString, int32> PropIndices;
+	int32 StructSize = RowStructNeedsProps ? 0 : RowStruct->GetStructureSize();
+	if (!RowStructNeedsProps)
+	{
+		FHoudiniDataTableTranslator::PopulatePropList(RowStruct, ActualProps, PropIndices);
+	}
+
+	TMap<FString, FHoudiniDataTableTranslator::TransformComponents> TransformCandidates;
+	TSet<FString> TransformAttribs;
+	FHoudiniDataTableTranslator::FindTransformAttribs(AttribNames, TransformCandidates, TransformAttribs);
+
+	// Array of attribs that definitely represent a transform
+	TMap<FString, FProperty*> FoundProps;
+	TMap<FString, HAPI_AttributeInfo> FoundInfos;
+	int32 AssignedIdx = 1;
+	TMap<FString, FGuid> CreatedIds;
+	for (const FString& TAttrib : TransformAttribs)
+	{
+		const FHoudiniDataTableTranslator::TransformComponents& Comps = TransformCandidates[TAttrib];
+		if (RowStructNeedsProps)
+		{
+			Status = FHoudiniDataTableTranslator::CreateTransformProp(TAttrib, NewStruct, AssignedIdx, CreatedIds);
+		}
+		else
+		{
+			Status = FHoudiniDataTableTranslator::ApplyTransformProp(TAttrib, Comps, PropIndices, ActualProps, FoundProps);
+		}
+		if (!Status)
+		{
+			continue;
+		}
+		FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, TCHAR_TO_ANSI(*Comps.Rotation), AttribOwner, &AttribInfo);
+		FoundInfos.Add(Comps.Rotation, AttribInfo);
+		FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, TCHAR_TO_ANSI(*Comps.Translate), AttribOwner, &AttribInfo);
+		FoundInfos.Add(Comps.Translate, AttribInfo);
+		FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, TCHAR_TO_ANSI(*Comps.Scale), AttribOwner, &AttribInfo);
+		FoundInfos.Add(Comps.Scale, AttribInfo);
+
+		// At this point we know there is a valid transform property to map the attribs to,
+		// remove them from the list that we iterate over later.
+		AttribNames.Remove(Comps.Rotation);
+		AttribNames.Remove(Comps.Translate);
+		AttribNames.Remove(Comps.Scale);
+	}
+
+	for (const FString& AttribName : AttribNames)
+	{
+		// Skip any attrib without the unreal_data_table prefix
+		// as well as any attribs we preprocess
+		if (!AttribName.StartsWith(HAPI_UNREAL_ATTRIB_DATA_TABLE_PREFIX) ||
+			AttribName == HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWNAME ||
+			AttribName == HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT)
+		{
+			continue;
+		}
+		// Slice off the prefix
+		FString Fragment = AttribName.Mid(FString(HAPI_UNREAL_ATTRIB_DATA_TABLE_PREFIX).Len());
+
+		if (RowStructNeedsProps)
+		{
+			// Need to create and add the prop to the struct
+			Status = FHoudiniDataTableTranslator::CreateRowStructProp(GeoId,
+				PartId,
+				AttribName,
+				Fragment,
+				AttribOwner,
+				AttribInfo,
+				NewStruct,
+				AssignedIdx,
+				CreatedIds,
+				FoundInfos);
+		}
+		else
+		{
+			Status = FHoudiniDataTableTranslator::ApplyRowStructProp(GeoId,
+				PartId,
+				AttribName,
+				Fragment,
+				AttribOwner,
+				AttribInfo,
+				ActualProps,
+				FoundProps,
+				PropIndices,
+				FoundInfos);
+		}
+	}
+	// Now that all props have been added to the created struct,
+	// remove the default bool prop that comes with it.
+	// This has to be done after because a struct must always have at least 1 prop.
+	if (RowStructNeedsProps)
+	{
+		Status = FHoudiniDataTableTranslator::RemoveDefaultProp(NewStruct,
+			DefaultPropId,
+			StructSize,
+			CreatedIds,
+			TransformAttribs,
+			TransformCandidates,
+			FoundProps);
+		if (!Status)
+		{
+			return false;
+		}
+	}
+
+	if (!FoundProps.Num())
+	{
+		HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::BuildDataTable]: No valid attributes to migrate to data table."));
+		return false;
+	}
+
+	// A packed list of rows, the rows are next to each other in memory.
+	uint8* RowData = (uint8*)FMemory::MallocZeroed(NumRows * StructSize);
+	// FoundProps is the map of properties that need to be set in the data table
+	// They are guaranteed to have an attribute in the point cloud input.
+	TArray<FString*> ExtraStrings;
+	TArray<FText*> ExtraTexts;
+	TArray<FName*> ExtraNames;
+	Status = FHoudiniDataTableTranslator::PopulateRowData(GeoId,
+		PartId,
+		FoundProps,
+		FoundInfos,
+		StructSize,
+		NumRows,
+		RowData,
+		RowStruct,
+		ExtraStrings,
+		ExtraTexts,
+		ExtraNames);
+	if (!Status)
+	{
+		return false;
+	}
+
+	UDataTable* Res = FHoudiniDataTableTranslator::CreateAndSaveDataTable(HGPO,
+		NumRows,
+		RowNames,
+		StructSize,
+		DataTableFolder,
+		DataTableName,
+		RowStruct,
+		RowData,
+		PackageParams);
+
+	FHoudiniOutputObjectIdentifier OutputID(HGPO.ObjectId, GeoId, PartId, HGPO.PartName);
+	FHoudiniOutputObject& FoundOutputObject = CurOutput->GetOutputObjects().FindOrAdd(OutputID);
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = CurOutput->GetOutputObjects();
+	FoundOutputObject.OutputComponent = Cast<UObject>(Res);
+
+	for (const FString* Ptr : ExtraStrings)
+	{
+		delete Ptr;
+	}
+	for (const FText* Ptr : ExtraTexts)
+	{
+		delete Ptr;
+	}
+	for (const FName* Ptr : ExtraNames)
+	{
+		delete Ptr;
+	}
+
+	FMemory::Free(RowData);
+
+	return true;
+}
+
+bool
 FHoudiniDataTableTranslator::GenerateRowNames(int32 GeoId, int32 PartId, int32 NumRows, TArray<FString>& RowNames)
 {
 	HAPI_AttributeInfo AttribInfo;
@@ -390,7 +629,7 @@ FHoudiniDataTableTranslator::GetRowStructAttrib(int32 GeoId,
 	if (Status && AttribInfo.exists && AttribInfo.storage == HAPI_STORAGETYPE_STRING && StructPathHolder.Num())
 	{
 		RowStructName = StructPathHolder[0];
-		RowStruct = LoadObject<UScriptStruct>(UScriptStruct::StaticClass(), *(FString("'") + RowStructName + FString("'")));
+		RowStruct = LoadObject<UScriptStruct>(UScriptStruct::StaticClass(), *RowStructName);
 	}
 	return Status;
 }
@@ -399,34 +638,34 @@ bool
 FHoudiniDataTableTranslator::CreateRowStruct(const FHoudiniGeoPartObject& HGPO,
 	const FString& RowStructName,
 	UUserDefinedStruct*& NewStruct,
-	FGuid& DefaultPropId)
+	FGuid& DefaultPropId,
+	FHoudiniPackageParams PackageParams)
 {
-	FHoudiniPackageParams RSPackageParams;
-	RSPackageParams.ObjectId = HGPO.ObjectId;
-	RSPackageParams.GeoId = HGPO.GeoId;
-	RSPackageParams.PartId = HGPO.PartId;
+	PackageParams.ObjectId = HGPO.ObjectId;
+	PackageParams.GeoId = HGPO.GeoId;
+	PackageParams.PartId = HGPO.PartId;
 	// If no name specified, one will be automatically generated.
 	if (RowStructName != "")
 	{
 		FString RowStructFile = FPaths::GetBaseFilename(RowStructName, true);
 		FString RowStructPath = FPaths::GetPath(RowStructName);
-		RSPackageParams.ObjectName = RowStructFile;
-		RSPackageParams.NameOverride = RowStructFile;
-		RSPackageParams.FolderOverride = RowStructPath;
-		RSPackageParams.OverideEnabled = true;
+		PackageParams.ObjectName = RowStructFile;
+		PackageParams.NameOverride = RowStructFile;
+		PackageParams.FolderOverride = RowStructPath;
+		PackageParams.OverideEnabled = true;
 	}
 	else
 	{
-		RSPackageParams.ObjectName = MakeUniqueObjectName(nullptr, UScriptStruct::StaticClass()).ToString();
+		PackageParams.ObjectName = MakeUniqueObjectName(nullptr, UScriptStruct::StaticClass()).ToString();
 	}
 	FString PackageName = "";
-	UPackage* Pkg = RSPackageParams.CreatePackageForObject(PackageName);
+	UPackage* Pkg = PackageParams.CreatePackageForObject(PackageName);
 	if (!Pkg)
 	{
 		HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::CreateRowStruct]: Failed to create package."));
 		return false;
 	}
-	if (RSPackageParams.OverideEnabled && !FHoudiniEngineUtils::DoesFolderExist(RSPackageParams.FolderOverride))
+	if (PackageParams.OverideEnabled && !FHoudiniEngineUtils::DoesFolderExist(PackageParams.FolderOverride))
 	{
 		HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::CreateRowStruct]: Invalid package path %s."), *RowStructName);
 		return false;
@@ -435,6 +674,8 @@ FHoudiniDataTableTranslator::CreateRowStruct(const FHoudiniGeoPartObject& HGPO,
 	NewStruct = FStructureEditorUtils::CreateUserDefinedStruct(Pkg, FName(PackageName), RF_Standalone | RF_Public);
 	TFieldIterator<FProperty> It(NewStruct);
 	DefaultPropId = FStructureEditorUtils::GetGuidForProperty(*It);
+
+	FAssetRegistryModule::AssetCreated(NewStruct);
 
 	return true;
 }
@@ -934,7 +1175,7 @@ FHoudiniDataTableTranslator::PopulateRowData(int32 GeoId,
 	return true;
 }
 
-bool
+UDataTable*
 FHoudiniDataTableTranslator::CreateAndSaveDataTable(const FHoudiniGeoPartObject& HGPO,
 	int32 NumRows,
 	const TArray<FString>& RowNames,
@@ -942,7 +1183,8 @@ FHoudiniDataTableTranslator::CreateAndSaveDataTable(const FHoudiniGeoPartObject&
 	const FString& DataTableFolder,
 	const FString& DataTableName,
 	UScriptStruct* RowStruct,
-	uint8* RowData)
+	uint8* RowData,
+	FHoudiniPackageParams PackageParams)
 {
 	TMap<FName, const uint8*> TableData;
 	UDataTable* CreatedDataTable;
@@ -952,23 +1194,22 @@ FHoudiniDataTableTranslator::CreateAndSaveDataTable(const FHoudiniGeoPartObject&
 		TableData.Add(FName(RowNames[Idx]), &RowData[Idx * StructSize]);
 	}
 
-	FHoudiniPackageParams DTPackageParams;
-	DTPackageParams.ObjectId = HGPO.ObjectId;
-	DTPackageParams.GeoId = HGPO.GeoId;
-	DTPackageParams.PartId = HGPO.PartId;
+	PackageParams.ObjectId = HGPO.ObjectId;
+	PackageParams.GeoId = HGPO.GeoId;
+	PackageParams.PartId = HGPO.PartId;
 	// If no name specified, one will be automatically generated.
 	if (DataTableName != "")
 	{
-		DTPackageParams.ObjectName = DataTableName;
+		PackageParams.ObjectName = DataTableName;
 		if (DataTableFolder != "")
 		{
-			DTPackageParams.FolderOverride = DataTableFolder;
-			DTPackageParams.NameOverride = DataTableName;
-			DTPackageParams.OverideEnabled = true;
+			PackageParams.FolderOverride = DataTableFolder;
+			PackageParams.NameOverride = DataTableName;
+			PackageParams.OverideEnabled = true;
 		}
 	}
 
-	CreatedDataTable = DTPackageParams.CreateObjectAndPackage<UDataTable>();
+	CreatedDataTable = PackageParams.CreateObjectAndPackage<UDataTable>();
 	CreatedDataTable->PreEditChange(nullptr);
 
 	// CreateTableFromRawData not available on UE4.
@@ -985,7 +1226,9 @@ FHoudiniDataTableTranslator::CreateAndSaveDataTable(const FHoudiniGeoPartObject&
 
 	CreatedDataTable->MarkPackageDirty();
 
-	return true;
+	FAssetRegistryModule::AssetCreated(CreatedDataTable);
+
+	return CreatedDataTable;
 }
 
 const FString FHoudiniDataTableTranslator::DEFAULT_PROP_PREFIX = "MemberVar_";
