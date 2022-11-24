@@ -34,6 +34,10 @@ class UDataTable;
 
 struct HOUDINIENGINE_API FHoudiniDataTableTranslator
 {
+	static bool BuildDataTable(FHoudiniGeoPartObject& HGPO,
+		UHoudiniOutput* CurOutput,
+		FHoudiniPackageParams& PackageParams);
+
 	static bool GenerateRowNames(int32 GeoId,
 		int32 PartId,
 		int32 NumRows,
@@ -60,7 +64,8 @@ struct HOUDINIENGINE_API FHoudiniDataTableTranslator
 	static bool CreateRowStruct(const FHoudiniGeoPartObject& HGPO,
 		const FString& RowStructName,
 		UUserDefinedStruct*& NewStruct,
-		FGuid& DefaultPropId);
+		FGuid& DefaultPropId,
+		FHoudiniPackageParams PackageParams);
 
 	static bool PopulatePropList(const UScriptStruct* RowStruct,
 		TMap<FString, FProperty*>& ActualProps,
@@ -130,14 +135,15 @@ struct HOUDINIENGINE_API FHoudiniDataTableTranslator
 		TArray<FText*> ExtraTexts,
 		TArray<FName*> ExtraNames);
 
-	static bool CreateAndSaveDataTable(const FHoudiniGeoPartObject& HGPO,
+	static UDataTable* CreateAndSaveDataTable(const FHoudiniGeoPartObject& HGPO,
 		int32 NumRows,
 		const TArray<FString>& RowNames,
 		int32 StructSize,
 		const FString& DataTableFolder,
 		const FString& DataTableName,
 		UScriptStruct* RowStruct,
-		uint8* RowData);
+		uint8* RowData,
+		FHoudiniPackageParams PackageParams);
 
 private:
 	static const FString DEFAULT_PROP_PREFIX;
