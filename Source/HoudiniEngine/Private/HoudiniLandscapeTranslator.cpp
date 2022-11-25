@@ -1228,8 +1228,9 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 			AfterLayerName,
 			WorldPartitionSize);
 
-		if (!TileActor || !TileActor->IsValidLowLevel())
-			return false;
+		HOUDINI_CHECK_RETURN(TileActor != nullptr, false);
+		HOUDINI_CHECK_RETURN(TileActor->IsValidLowLevel(), false);
+		HOUDINI_CHECK_RETURN(TileActor->GetLandscapeActor() != nullptr, false);
 
 		TileActor->GetLandscapeActor()->bCanHaveLayersContent = bHasEditLayers;
 		LandscapeInfo = TileActor->GetLandscapeInfo();
