@@ -1374,7 +1374,8 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				InInput->GetImportAsReference(),
 				InInput->GetImportAsReferenceRotScaleEnabled(),
 				InInput->GetImportAsReferenceBboxEnabled(),
-				InInput->GetImportAsReferenceMaterialEnabled());
+				InInput->GetImportAsReferenceMaterialEnabled(),
+				InInput->GetPreferNaniteFallbackMesh());
 
 			if (bSuccess)
 			{
@@ -1454,7 +1455,8 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				InInput->GetImportAsReferenceRotScaleEnabled(),
 				InInput->GetImportAsReferenceBboxEnabled(),
 				InInput->GetImportAsReferenceMaterialEnabled(),
-				InActorTransform);
+				InActorTransform,
+				InInput->GetPreferNaniteFallbackMesh());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1994,7 +1996,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 	const bool& bImportAsReference,
 	const bool& bImportAsReferenceRotScaleEnabled,
 	const bool& bImportAsReferenceBboxEnabled,
-	const bool& bImportAsReferenceMaterialEnabled)
+	const bool& bImportAsReferenceMaterialEnabled,
+	const bool& bPreferNaniteFallbackMesh)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2050,7 +2053,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 	else
 	{
 		bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
-			SM, InObject->InputNodeId, SMName, nullptr, bExportLODs, bExportSockets, bExportColliders);
+			SM, InObject->InputNodeId, SMName, nullptr, bExportLODs, bExportSockets, bExportColliders, bPreferNaniteFallbackMesh);
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);
@@ -2337,7 +2340,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 	const bool& bImportAsReferenceRotScaleEnabled,
 	const bool& bImportAsReferenceBboxEnabled,
 	const bool& bImportAsReferenceMaterialEnabled,
-	const FTransform& InActorTransform)
+	const FTransform& InActorTransform,
+	const bool& bPreferNaniteFallbackMesh)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2402,7 +2406,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 	else 
 	{
 		bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
-			SM, InObject->InputNodeId, SMCName, SMC, bExportLODs, bExportSockets, bExportColliders);
+			SM, CreatedNodeId, SMCName, InputNodeHandle, SMC, bExportLODs, bExportSockets, bExportColliders, bPreferNaniteFallbackMesh);
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);

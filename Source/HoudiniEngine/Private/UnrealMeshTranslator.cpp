@@ -65,7 +65,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	UStaticMeshComponent* StaticMeshComponent /* = nullptr */,
 	const bool& ExportAllLODs /* = false */,
 	const bool& ExportSockets /* = false */,
-	const bool& ExportColliders /* = false */)
+	const bool& ExportColliders /* = false */,
+	const bool& bPreferNaniteFallbackMesh /*= false*/)
 {
 	// If we don't have a static mesh there's nothing to do.
 	if (!IsValid(StaticMesh))
@@ -161,7 +162,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	const bool bNaniteBuildEnabled = StaticMesh->NaniteSettings.bEnabled;
 	const bool bHaveHiResSourceModel = StaticMesh->IsHiResMeshDescriptionValid();
 	bool bHiResMeshSuccess = false;
-	if (bHaveHiResSourceModel && bNaniteBuildEnabled)
+	const bool ShouldUseNaniteFallback = bPreferNaniteFallbackMesh && StaticMesh->GetRenderData()->LODResources.Num();
+	if (bHaveHiResSourceModel && bNaniteBuildEnabled && !ShouldUseNaniteFallback)
 	{
 		// Get the HiRes Mesh description and SourceModel
 		FMeshDescription HiResMeshDescription = *StaticMesh->GetHiResMeshDescription();
@@ -257,7 +259,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 		}
 
 		bool bMeshSuccess = false;
-		if (ExportMethod == 1 && MeshDesc)
+		if (ExportMethod == 1 && MeshDesc && !ShouldUseNaniteFallback)
 		{
 			// Convert the Mesh using FMeshDescription
 			const double StartTime = FPlatformTime::Seconds();
@@ -270,7 +272,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 				StaticMeshComponent);
 			HOUDINI_LOG_MESSAGE(TEXT("FUnrealMeshTranslator::CreateInputNodeForMeshDescription completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
 		}
-		else if (ExportMethod == 2)
+		else if (ExportMethod == 2 || (ExportMethod == 1 && ShouldUseNaniteFallback))
 		{
 			// Convert the LOD Mesh using FStaticMeshLODResources
 			const double StartTime = FPlatformTime::Seconds();

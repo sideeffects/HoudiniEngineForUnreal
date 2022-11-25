@@ -367,6 +367,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInput* A, const 
 	Result &= TestExpressionError(A->bImportAsReferenceRotScaleEnabled == B->bImportAsReferenceRotScaleEnabled, Header, "bImportAsReferenceRotScaleEnabled");
 	Result &= TestExpressionError(A->bExportLODs == B->bExportLODs, Header, "bExportLODs");
 	Result &= TestExpressionError(A->bExportSockets == B->bExportSockets, Header, "bExportSockets");
+	Result &= TestExpressionError(A->bPreferNaniteFallbackMesh == B->bPreferNaniteFallbackMesh, Header, "bPreferNaniteFallbackMesh");
 	Result &= TestExpressionError(A->bExportColliders == B->bExportColliders, Header, "bExportColliders");
 	// Result &= TestExpressionError(A->bCookOnCurveChanged == B->bCookOnCurveChanged, Header, "bCookOnCurveChanged");
 

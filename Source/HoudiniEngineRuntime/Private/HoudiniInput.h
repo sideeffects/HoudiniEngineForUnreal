@@ -140,6 +140,7 @@ public:
 	bool GetImportAsReferenceMaterialEnabled() const		{ return bImportAsReferenceMaterialEnabled; };
 	bool GetExportLODs() const				{ return bExportLODs; };
 	bool GetExportSockets() const			{ return bExportSockets; };
+	bool GetPreferNaniteFallbackMesh() const { return bPreferNaniteFallbackMesh; }
 	bool GetExportColliders() const			{ return bExportColliders; };
 	bool IsObjectPathParameter() const		{ return bIsObjectPathParameter; };
 	float GetUnrealSplineResolution() const { return UnrealSplineResolution; };
@@ -254,6 +255,7 @@ public:
 	void SetImportAsReferenceMaterialEnabled(const bool& bInImportAsReferenceMaterialEnabled)		{ bImportAsReferenceMaterialEnabled = bInImportAsReferenceMaterialEnabled; };
 	void SetExportLODs(const bool& bInExportLODs)					{ bExportLODs = bInExportLODs; };
 	void SetExportSockets(const bool& bInExportSockets)				{ bExportSockets = bInExportSockets; };
+	void SetPreferNaniteFallbackMesh(const bool& bInPreferNaniteFallbackMesh) { bPreferNaniteFallbackMesh = bInPreferNaniteFallbackMesh; };
 	void SetExportColliders(const bool& bInExportColliders)			{ bExportColliders = bInExportColliders; };
 	void SetInputNodeId(const int32& InCreatedNodeId)				{ InputNodeId = InCreatedNodeId; };
 	void SetUnrealSplineResolution(const float& InResolution)		{ UnrealSplineResolution = InResolution; };
@@ -476,6 +478,10 @@ protected:
 	// Indicates that all sockets in the input should be marshalled to Houdini
 	UPROPERTY()
 	bool bExportSockets;
+
+	// Override property for preferring the Nanite fallback mesh when using a Nanite geometry as input
+	UPROPERTY()
+	bool bPreferNaniteFallbackMesh;
 
 	// Indicates that all colliders in the input should be marshalled to Houdini
 	UPROPERTY()

@@ -54,7 +54,8 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			class UStaticMeshComponent* StaticMeshComponent = nullptr,
 			const bool& ExportAllLODs = false,
 			const bool& ExportSockets = false,
-			const bool& ExportColliders = false);
+			const bool& ExportColliders = false,
+			const bool& bPreferNaniteFallbackMesh = false);
 
 		// Convert the Mesh using FStaticMeshLODResources
 		static bool CreateInputNodeForStaticMeshLODResources(
