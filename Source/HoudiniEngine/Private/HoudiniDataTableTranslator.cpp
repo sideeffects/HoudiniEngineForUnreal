@@ -1064,8 +1064,27 @@ FHoudiniDataTableTranslator::PopulateRowData(int32 GeoId,
 		else if (AttribInfo.storage == HAPI_STORAGETYPE_INT64)
 		{
 			Data = FMemory::Malloc(AttribInfo.count * AttribInfo.tupleSize * sizeof(int64));
+			// int64 might be different from HAPI_Int64 on some linux platforms
+#if PLATFORM_LINUX
+			if (sizeof(int64) != sizeof(HAPI_Int64))
+			{
+				TArray<HAPI_Int64> HData;
+				HData.Reserve(AttribInfo.count * AttribInfo.tupleSize);
+				Result = FHoudiniApi::GetAttributeInt64Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, HData.GetData(), 0, AttribInfo.count);
+				int32 Idx = 0;
+				int64* Ptr = static_cast<int64*>(Data);
+				for (const HAPI_Int64& Item : HData)
+				{
+					Ptr[Idx++] = static_cast<int64>(Item);
+				}
+			}
+			else
+			{
+				Result = FHoudiniApi::GetAttributeInt64Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<int64*>(Data), 0, AttribInfo.count);
+			}
+#else
 			Result = FHoudiniApi::GetAttributeInt64Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<int64*>(Data), 0, AttribInfo.count);
-
+#endif
 			WriteAttributeDataToStruct<int64>(Data, StructSize, AttribInfo, RowData, Prop, KV.Key);
 		}
 		else if (AttribInfo.storage == HAPI_STORAGETYPE_FLOAT)
