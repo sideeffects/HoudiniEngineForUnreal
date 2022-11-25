@@ -210,6 +210,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
 	bool bExportColliders;
 
+	/** Prefer Nanite fallback mesh when using Nanite asset as geometry input */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Houdini Engine | Public API | Inputs")
+	bool bPreferNaniteFallbackMesh;
+
 	/**
 	 * Set the transform offset of the specified input object InObject (must already have been set via SetInputObjects()).
 	 * @param InObject The input object to set a transform offset for.

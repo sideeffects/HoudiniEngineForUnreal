@@ -351,6 +351,11 @@ UHoudiniPublicAPIGeoInput::UpdateHoudiniInput(UHoudiniInput* const InInput) cons
 		InInput->SetExportSockets(bExportSockets);
 		bAnyChanges = true;
 	}
+	if (InInput->GetPreferNaniteFallbackMesh() != bPreferNaniteFallbackMesh)
+	{
+		InInput->SetPreferNaniteFallbackMesh(bPreferNaniteFallbackMesh);
+		bAnyChanges = true;
+	}
 	if (InInput->GetExportColliders() != bExportColliders)
 	{
 		InInput->SetExportColliders(bExportColliders);

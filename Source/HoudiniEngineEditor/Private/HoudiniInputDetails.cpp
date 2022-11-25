@@ -966,6 +966,14 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		return InInput->GetExportColliders() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
+	auto IsCheckedPreferNanite = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->GetPreferNaniteFallbackMesh() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
 	// Lambda for changing ExportLODs state
 	auto CheckStateChangedExportLODs = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 	{
@@ -1065,9 +1073,42 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		}
 	};
 
+	auto CheckStateChangedPreferNanite = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->GetPreferNaniteFallbackMesh() == bNewState)
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changing Use Nanite Fallback Preference"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetPreferNaniteFallbackMesh() == bNewState)
+				continue;
+
+			CurInput->Modify();
+
+			CurInput->SetPreferNaniteFallbackMesh(bNewState);
+			CurInput->MarkChanged(true);
+			CurInput->MarkAllInputObjectsChanged(true);
+		}
+	};
+
 	TSharedPtr< SCheckBox > CheckBoxExportLODs;
 	TSharedPtr< SCheckBox > CheckBoxExportSockets;
 	TSharedPtr< SCheckBox > CheckBoxExportColliders;
+	TSharedPtr< SCheckBox > CheckBoxPreferNaniteFallback;
 	VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
 	[
 		SNew( SHorizontalBox )
@@ -1138,6 +1179,33 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 			})
 		]
 	];
+
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(1.0f)
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			[
+				SAssignNew(CheckBoxPreferNaniteFallback, SCheckBox)
+				.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("PreferNaniteFallbackMesh", "Prefer Nanite Fallback Mesh"))
+				.ToolTipText(LOCTEXT("PreferNaniteFallbackMeshTip", "If enabled, when a Nanite asset is used as input, Houdini will use the fallback mesh if available."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked_Lambda([=]()
+			{
+				return IsCheckedPreferNanite(MainInput);
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return CheckStateChangedPreferNanite(InInputs, NewState);
+			})
+			]
+		];
 }
 
 void

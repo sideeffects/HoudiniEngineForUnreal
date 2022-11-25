@@ -59,7 +59,8 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			const bool& ExportSockets = false,
 			const bool& ExportColliders = false,
 			const bool& ExportMainMesh = true,
-			const bool& bInputNodesCanBeDeleted = true);
+			const bool& bInputNodesCanBeDeleted = true,
+			const bool& bPreferNaniteFallbackMesh = false);
 
 		static bool HapiCreateInputNodeForSkeletalMesh(
 		    USkeletalMesh* Mesh,

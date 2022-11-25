@@ -322,6 +322,10 @@ protected:
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = "Static Mesh", meta = (DisplayName = "Show Default Mesh"))
 		bool bShowDefaultMesh;
 
+		// Prefer the Nanite fallback mesh when a Nanite asset is used as Houdini input.
+		UPROPERTY(GlobalConfig, EditAnywhere, Category = "Static Mesh", meta = (DisplayName = "Prefer Nanite Fallback Mesh"))
+		bool bPreferNaniteFallbackMesh;
+
 		// If fast proxy meshes are being created, must it be baked as a StaticMesh after a period of no updates?
 		UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category = "Static Mesh", meta = (DisplayName = "Refine Proxy Static Meshes After a Timeout", EditCondition = "bEnableProxyStaticMesh"))
 		bool bEnableProxyStaticMeshRefinementByTimer;

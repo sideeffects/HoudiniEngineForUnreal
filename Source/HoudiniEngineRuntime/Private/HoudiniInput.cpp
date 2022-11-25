@@ -76,6 +76,7 @@ UHoudiniInput::UHoudiniInput()
 	, bPackBeforeMerge(false)
 	, bExportLODs(false)
 	, bExportSockets(false)
+	, bPreferNaniteFallbackMesh(false)
 	, bExportColliders(false)
 	, bCookOnCurveChanged(true)
 	, bStaticMeshChanged(false)
@@ -111,6 +112,8 @@ UHoudiniInput::UHoudiniInput()
 
 	bAddRotAndScaleAttributesOnCurves = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bAddRotAndScaleAttributesOnCurves : false;
 	bUseLegacyInputCurves = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bUseLegacyInputCurves : false;
+
+	bPreferNaniteFallbackMesh = HoudiniRuntimeSettings && HoudiniRuntimeSettings->bPreferNaniteFallbackMesh;
 
 #if WITH_EDITORONLY_DATA
 	bLandscapeUIAdvancedIsExpanded = false;
