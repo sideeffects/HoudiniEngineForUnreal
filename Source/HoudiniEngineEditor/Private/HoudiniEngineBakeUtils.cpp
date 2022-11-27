@@ -75,6 +75,7 @@
 #include "EditorLevelUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "FileHelpers.h"
+#include "FoliageEditUtility.h"
 #include "HoudiniEngineEditor.h"
 #include "HoudiniEngine.h"
 #include "HoudiniGeometryCollectionTranslator.h"
@@ -681,7 +682,9 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToFoliage(
 
 	// Get foliage actor for the level
 	const bool bCreateIfNone = true;
-	AInstancedFoliageActor* InstancedFoliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(DesiredLevel, bCreateIfNone);
+
+	AInstancedFoliageActor* InstancedFoliageActor = FHoudiniEngineUtils::GetInstancedFoliageActor(DesiredLevel, bCreateIfNone);
+
 	if (!IsValid(InstancedFoliageActor))
 	{
 		HOUDINI_LOG_ERROR(TEXT("Could not find or create an instanced foliage actor for level %s"), *(DesiredLevel->GetPathName()));
@@ -705,9 +708,13 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToFoliage(
 	UFoliageType* FoliageType = InstancedFoliageActor->GetLocalFoliageTypeForSource(BakedStaticMesh);
 	if (!IsValid(FoliageType))
 	{
+		FHoudiniPackageParams Params = InstancerPackageParams;
+		Params.ObjectName.Empty();
+
 		// We need to create a new FoliageType for this Static Mesh
 		// TODO: Add foliage default settings
-		InstancedFoliageActor->AddMesh(BakedStaticMesh, &FoliageType);
+		FoliageType = FHoudiniEngineUtils::CreateFoliageType(Params, InOutputIndex, DesiredLevel, InstancedFoliageActor, BakedStaticMesh);
+
 		// Update the previous bake results with the foliage type we created
 		InBakedOutputObject.BakedComponent = FSoftObjectPath(FoliageType).ToString();
 	}

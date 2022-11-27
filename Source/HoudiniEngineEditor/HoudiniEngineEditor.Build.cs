@@ -77,6 +77,7 @@ public class HoudiniEngineEditor : ModuleRules
                 "SlateCore",
                 "Landscape",
                 "Foliage",
+                "FoliageEdit",
                 "Chaos",
                 "GeometryCollectionEngine"
             }

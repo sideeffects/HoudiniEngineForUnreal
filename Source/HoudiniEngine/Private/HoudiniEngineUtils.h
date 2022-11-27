@@ -1118,6 +1118,15 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// (similar to the HAPI function, but allows for specifying a XformType for the created object merge when the two nodes aren't in the same subnet)
 		static bool HapiConnectNodeInput(const int32& InNodeId, const int32& InputIndex, const int32& InNodeIdToConnect, const int32& OutputIndex, const int32& InXFormType);
 
+		// Helper to return the Instance Foliage Actor for the level
+		static AInstancedFoliageActor* GetInstancedFoliageActor(ULevel* DesiredLevel, bool bCreateIfNone);
+
+		// Helper to create a new Foliage Type
+		static UFoliageType* CreateFoliageType(const FHoudiniPackageParams& Params, int OutputIndex, const ULevel* DesiredLevel, AInstancedFoliageActor* IFA, UStaticMesh* InstancedStaticMesh);
+
+		// Helper to return the Foliage Type for the Instanced Static Mesh
+		static UFoliageType* GetFoliageType(const ULevel* DesiredLevel, AInstancedFoliageActor* IFA, const UStaticMesh* InstancedStaticMesh);
+
 	protected:
 		
 		// Computes the XX.YY.ZZZ version string using HAPI_Version

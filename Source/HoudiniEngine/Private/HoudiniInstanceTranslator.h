@@ -294,7 +294,8 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			UObject* InstancedObject,
 			const TArray<FTransform>& InstancedObjectTransforms,
 			const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
-			const FHoudiniGeoPartObject& InstancerGeoPartObject,			
+			const FHoudiniGeoPartObject& InstancerGeoPartObject,
+			const FHoudiniPackageParams& InPackageParams,
 			USceneComponent* ParentComponent,
 			USceneComponent* OldComponent,
 			USceneComponent*& NewComponent,
@@ -367,6 +368,8 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const int32& FirstOriginalIndex,
 			const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
 			const FHoudiniGeoPartObject& InstancerGeoPartObject,
+			const FHoudiniPackageParams& InPackageParams,
+			int InstancerObjectIdx,
 			USceneComponent* ParentComponent,
 			USceneComponent*& NewInstancedComponent,
 			UMaterialInterface * InstancerMaterial /*=nullptr*/);

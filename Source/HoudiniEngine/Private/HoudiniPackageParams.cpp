@@ -37,7 +37,7 @@
 #include "ObjectTools.h"
 #include "Engine/StaticMesh.h"
 #include "UObject/MetaData.h"
-
+#include "FoliageType_InstancedStaticMesh.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 
 #include "Engine/UserDefinedStruct.h"
@@ -388,12 +388,13 @@ void TemplateFixer()
 	UHoudiniStaticMesh* HSM = PP.CreateObjectAndPackage<UHoudiniStaticMesh>();
 	UGeometryCollection* GC = PP.CreateObjectAndPackage<UGeometryCollection>();
 	UDataTable* DT = PP.CreateObjectAndPackage<UDataTable>();
+	UFoliageType_InstancedStaticMesh * ISM = PP.CreateObjectAndPackage<UFoliageType_InstancedStaticMesh>();
 	//UMaterial* Mat = PP.CreateObjectAndPackage<UMaterial>();
 	//UTexture2D* Text = PP.CreateObjectAndPackage<UTexture2D>();
 }
 
 template<typename T>
-T* FHoudiniPackageParams::CreateObjectAndPackage()
+T* FHoudiniPackageParams::CreateObjectAndPackage() const
 {
 	// Create the package for the object
 	FString NewObjectName;

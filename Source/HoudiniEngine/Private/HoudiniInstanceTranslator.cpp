@@ -45,6 +45,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "InstancedFoliageActor.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
+#include "FoliageEditUtility.h"
 //#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionDebugDrawComponent.h"
 
 #if WITH_EDITOR
@@ -359,6 +360,7 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 				InstancedObjectTransforms,
 				InstancedOutputPartData.AllPropertyAttributes,
 				CurHGPO,
+				InPackageParms,
 				ParentComponent,
 				OldInstancerComponent,
 				NewInstancerComponent,
@@ -705,6 +707,7 @@ FHoudiniInstanceTranslator::UpdateChangedInstancedOutput(
 			InstancedObjectTransforms,
 			AllPropertyAttributes, 
 			HGPO,
+			InPackageParams,
 			InParentComponent,
 			OldInstancerComponent,
 			NewInstancerComponent,
@@ -1865,6 +1868,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 	const TArray<FTransform>& InstancedObjectTransforms,
 	const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
 	const FHoudiniGeoPartObject& InstancerGeoPartObject,
+	const FHoudiniPackageParams& InPackageParams,
 	USceneComponent* ParentComponent,
 	USceneComponent* OldComponent,
 	USceneComponent*& NewComponent,	
@@ -2029,7 +2033,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		case Foliage:
 		{
 			bSuccess = CreateOrUpdateFoliageInstances(
-				StaticMesh, FoliageType, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterial);
+				StaticMesh, FoliageType, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, InPackageParams, InstancerObjectIdx, ParentComponent, NewComponent, InstancerMaterial);
 		}
 	}
 
@@ -2613,6 +2617,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	const int32& FirstOriginalIndex,
 	const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
 	const FHoudiniGeoPartObject& InstancerGeoPartObject,
+	const FHoudiniPackageParams& InPackageParams,
+	int InstancerObjectIdx,
 	USceneComponent* ParentComponent,
 	USceneComponent*& NewInstancedComponent,
 	UMaterialInterface * InstancerMaterial /*=nullptr*/)
@@ -2640,7 +2646,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	if (!IsValid(DesiredLevel))
 		return false;
 
-	AInstancedFoliageActor* InstancedFoliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(DesiredLevel, true);
+	AInstancedFoliageActor* InstancedFoliageActor = AInstancedFoliageActor::Get(DesiredLevel->GetWorld(), true, DesiredLevel);
 	if (!IsValid(InstancedFoliageActor))
 		return false;
 
@@ -2650,7 +2656,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	if (!IsValid(FoliageType))
 	{
 		// Foliage Type wasnt specified, only the mesh, try to find an existing foliage for that SM
-		FoliageType = InstancedFoliageActor->GetLocalFoliageTypeForSource(InstancedStaticMesh);
+		FoliageType = FHoudiniEngineUtils::GetFoliageType(DesiredLevel, InstancedFoliageActor, InstancedStaticMesh);
 	}
 	else
 	{
@@ -2669,9 +2675,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 
 	if (!IsValid(FoliageType))
 	{
-		// We need to create a new FoliageType for this Static Mesh
-		// TODO: Add foliage default settings
-		InstancedFoliageActor->AddMesh(InstancedStaticMesh, &FoliageType);
+		FHoudiniPackageParams FoliageTypePackageParams =  InPackageParams;
+		FoliageType = FHoudiniEngineUtils::CreateFoliageType(FoliageTypePackageParams, InstancerObjectIdx, DesiredLevel, InstancedFoliageActor, InstancedStaticMesh);
 		bCreatedNew = true;
 	}
 
@@ -2708,12 +2713,24 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 
 		// TODO: FIX ME!
 		// Somehow, the first time when we create the Foliage type, instances need to be added with relative transform
-		// On subsequent cooks, they are actually expecting world transform
+		// .. EXCEPT for World Partition, its must be transformed by the InstancedFoliageActor...
+		// On subsequent cooks, they are actually expecting world transform.... 
 		if (bCreatedNew)
 		{
-			FoliageInstances[n].Location = CurrentTransform.GetLocation();
-			FoliageInstances[n].Rotation = CurrentTransform.GetRotation().Rotator();
-			FoliageInstances[n].DrawScale3D = (FVector3f)CurrentTransform.GetScale3D();
+			if (!DesiredLevel->GetWorld()->IsPartitionedWorld())
+			{
+				FoliageInstances[n].Location = CurrentTransform.GetLocation();
+				FoliageInstances[n].Rotation = CurrentTransform.GetRotation().Rotator();
+				FoliageInstances[n].DrawScale3D = (FVector3f)CurrentTransform.GetScale3D();
+			}
+			else
+			{
+				const FTransform & IFATransform = InstancedFoliageActor->GetTransform();
+				FoliageInstances[n].Location = IFATransform.TransformPosition(CurrentTransform.GetLocation());
+				FoliageInstances[n].Rotation = IFATransform.TransformRotation(CurrentTransform.GetRotation()).Rotator();
+				FoliageInstances[n].DrawScale3D = (FVector3f)(IFATransform.GetScale3D() * HoudiniAssetTransform.GetScale3D());
+			}
+
 		}
 		else
 		{

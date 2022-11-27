@@ -207,6 +207,20 @@ HOUDINIENGINEEDITOR_API DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngineEditor, Log,
 	#define HOUDINI_LANDSCAPE_WARNING( HOUDINI_LOG_TEXT, ... ) 
 #endif
 
+// ------------------------------------------------------------------------------------
+// Checks. HOUDINI_CHECK_RETURN can be used like UE's check(), except it outputs a 
+// message which maybe useful to debug a problem and then returns _RETURN_VALUE
+// instead of ending the program. It is not intended for "user error" situations but
+// for internal code errors, ie. assumptions we believe are true.
+// -------------------------------------------------------------------------------------
+#define HOUDINI_CHECK_RETURN_STRING(x) #x
+#define HOUDINI_CHECK_RETURN_STRINGFY(x) HOUDINI_CHECK_RETURN_STRING(x)
+
+#define HOUDINI_CHECK_RETURN(_EXPRESSION_TO_CHECK, _RETURN_VALUE) \
+	if (!(_EXPRESSION_TO_CHECK)) {\
+	    HOUDINI_LOG_ERROR( TEXT("Internal Error: " __FILE__ ":" HOUDINI_CHECK_RETURN_STRINGFY(__LINE__) " " #_EXPRESSION_TO_CHECK));\
+	    return _RETURN_VALUE;\
+	}
 
 // ---------------------------------------------------------
 // Baking Debug Logging
