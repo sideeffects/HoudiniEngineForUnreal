@@ -86,6 +86,7 @@
 #include "FoliageEditUtility.h"
 #include "FoliageType_InstancedStaticMesh.h"
 #include "InstancedFoliageActor.h"
+#include "LandscapeStreamingProxy.h"
 
 #if WITH_EDITOR
 	#include "Interfaces/IMainFrameModule.h"
@@ -3412,6 +3413,23 @@ FHoudiniEngineUtils::HapiSetAttributeIntData(
 
 	return FHoudiniEngineUtils::HapiSetAttributeIntData(
 		InIntData.GetData(), InNodeId, InPartId, InAttributeName, InAttributeInfo);
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeIntData(
+	const int32 InIntData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	// Ensure we create an array of the appropriate size
+	TArray<int32> IntArray;
+	IntArray.SetNum(InAttributeInfo.count);
+	for (int n = 0; n < IntArray.Num(); n++)
+		IntArray[n] = InIntData;
+
+	return HapiSetAttributeIntData(IntArray, InNodeId, InPartId, InAttributeName, InAttributeInfo);
 }
 
 HAPI_Result
@@ -6750,6 +6768,49 @@ FHoudiniEngineUtils::AddActorPathAttribute(
 	return true;
 }
 
+bool
+FHoudiniEngineUtils::AddLandscapeTypeAttribute(
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	AActor* InActor,
+	const int32& InCount)
+{
+	HOUDINI_CHECK_RETURN(IsValid(InActor), false);
+
+	// Currently we only add an attribute for landscaping streaming proxies.
+	bool bIsStreamingProxy = InActor->IsA(ALandscapeStreamingProxy::StaticClass());
+	if (!bIsStreamingProxy) return false;
+	
+	HAPI_AttributeInfo AttributeInfoActorPath;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfoActorPath);
+	AttributeInfoActorPath.count = InCount;
+	AttributeInfoActorPath.tupleSize = 1;
+	AttributeInfoActorPath.exists = true;
+	AttributeInfoActorPath.owner = HAPI_ATTROWNER_PRIM;
+	AttributeInfoActorPath.storage = HAPI_STORAGETYPE_INT;
+	AttributeInfoActorPath.originalOwner = HAPI_ATTROWNER_INVALID;
+
+	HAPI_Result Result = FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), InNodeId, InPartId,
+		HAPI_UNREAL_ATTRIB_LANDSCAPE_STREAMING_PROXY, &AttributeInfoActorPath);
+
+	if (Result == HAPI_RESULT_SUCCESS )
+	{
+		// Set the attribute's string data
+		Result = FHoudiniEngineUtils::HapiSetAttributeIntData(
+			1, InNodeId, InPartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_STREAMING_PROXY, AttributeInfoActorPath);
+	}
+
+	if (Result != HAPI_RESULT_SUCCESS)
+	{
+		// Failed to create the attribute
+		HOUDINI_LOG_WARNING(
+			TEXT("Failed to upload unreal_actor_path attribute for mesh: %s"),
+			*FHoudiniEngineUtils::GetErrorDescription());
+		return false;
+	}
+	return true;
+}
 
 bool
 FHoudiniEngineUtils::ContainsInvalidLightmapFaces(const FRawMesh & RawMesh, int32 LightmapSourceIdx)

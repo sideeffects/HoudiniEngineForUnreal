@@ -36,6 +36,7 @@
 #include "HoudiniGeoPartObject.h"
 
 #include "Landscape.h"
+#include "LandscapeStreamingProxy.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeEdit.h"
 #include "LightMap.h"
@@ -1025,6 +1026,9 @@ FUnrealLandscapeTranslator::ApplyAttributesToHeightfieldNode(
 		AddLevelPathAttributeToVolume(HeightId, PartId, LevelPath);
 		*/
 	}
+
+	// Add streaming poxy attribute
+	FHoudiniEngineUtils::AddLandscapeTypeAttribute(HeightId, PartId, LandscapeProxy, 1);
 }
 
 
