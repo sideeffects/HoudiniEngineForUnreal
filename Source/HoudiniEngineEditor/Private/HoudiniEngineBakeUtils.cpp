@@ -5361,16 +5361,18 @@ FHoudiniEngineBakeUtils::IsObjectTemporary(
 		return false;
 
 	// Check the object's meta-data first
-	if (!IsObjectTemporary(InObject, InOutputType))
-		return false;
+	if (IsObjectTemporary(InObject, InOutputType))
+		return true;
 
 	// Previous IsObjectTemporary tests 
 	// Only kept here for compatibility with assets previously baked before adding the "Baked" metadata.
+	// Check that the object is in the outputs, and stored in the temp directory
 
 	// Object not in the outputs, assume not temp
 	int32 ParentOutputIndex = -1;
 	FHoudiniOutputObjectIdentifier Identifier;
-	if (!FindOutputObject(InObject, InOutputType, InParentOutputs, ParentOutputIndex, Identifier))
+	// Generated materials will have an invalid output type, dont look for them in the outputs.
+	if (InOutputType != EHoudiniOutputType::Invalid && !FindOutputObject(InObject, InOutputType, InParentOutputs, ParentOutputIndex, Identifier))
 		return false;
 
 	// Check the package path for this object
