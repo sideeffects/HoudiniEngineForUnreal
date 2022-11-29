@@ -3640,21 +3640,49 @@ FHoudiniEngineUtils::HapiSetAttributeInt64Data(
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
+#if PLATFORM_LINUX
+	TArray<HAPI_Int64> HData;
+	if (sizeof(int64) != sizeof(HAPI_Int64))
+	{
+		for (int32 Idx = 0; Idx < InAttributeInfo.count; ++Idx)
+		{
+			HData.Add(static_cast<HAPI_Int64>(InInt64Data[Idx]));
+		}
+	}
+#endif
+
 	HAPI_Result Result = HAPI_RESULT_FAILURE;
 	int32 ChunkSize = THRIFT_MAX_CHUNKSIZE / InAttributeInfo.tupleSize;
 	if (InAttributeInfo.count > ChunkSize)
 	{
-		// Send the attribte in chunks
+		// Send the attribute in chunks
 		for (int32 ChunkStart = 0; ChunkStart < InAttributeInfo.count; ChunkStart += ChunkSize)
 		{
 			int32 CurCount = InAttributeInfo.count - ChunkStart > ChunkSize ? ChunkSize : InAttributeInfo.count - ChunkStart;
-
+#if PLATFORM_LINUX
+			if (sizeof(int64) != sizeof(HAPI_Int64))
+			{
+				Result = FHoudiniApi::SetAttributeInt64Data(
+					FHoudiniEngine::Get().GetSession(),
+					InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+					&InAttributeInfo, HData.GetData(),
+					ChunkStart, CurCount);
+			}
+			else
+			{
+				Result = FHoudiniApi::SetAttributeInt64Data(
+					FHoudiniEngine::Get().GetSession(),
+					InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+					&InAttributeInfo, InInt64Data,
+					ChunkStart, CurCount);
+			}
+#else
 			Result = FHoudiniApi::SetAttributeInt64Data(
 				FHoudiniEngine::Get().GetSession(),
 				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
 				&InAttributeInfo, InInt64Data,
 				ChunkStart, CurCount);
-
+#endif
 			if (Result != HAPI_RESULT_SUCCESS)
 				break;
 		}
@@ -3662,11 +3690,30 @@ FHoudiniEngineUtils::HapiSetAttributeInt64Data(
 	else
 	{
 		// Send all the attribute values once
+#if PLATFORM_LINUX
+		if (sizeof(int64) != sizeof(HAPI_Int64))
+		{
+			Result = FHoudiniApi::SetAttributeInt64Data(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+				&InAttributeInfo, HData.GetData(),
+				0, InAttributeInfo.count);
+		}
+		else
+		{
+			Result = FHoudiniApi::SetAttributeInt64Data(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+				&InAttributeInfo, InInt64Data,
+				0, InAttributeInfo.count);
+		}
+#else
 		Result = FHoudiniApi::SetAttributeInt64Data(
 			FHoudiniEngine::Get().GetSession(),
 			InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
 			&InAttributeInfo, InInt64Data,
 			0, InAttributeInfo.count);
+#endif
 	}
 
 	return Result;
