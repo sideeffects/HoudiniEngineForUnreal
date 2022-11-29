@@ -864,7 +864,7 @@ FHoudiniEngine::InitializeHAPISession()
 		// Display an error message
 
 		// 
-		// return false;
+		return false;
 
 	}
 	else if (RunningEngineApi != HAPI_VERSION_HOUDINI_ENGINE_API)
