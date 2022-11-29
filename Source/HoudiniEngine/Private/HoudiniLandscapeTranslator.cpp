@@ -4386,26 +4386,25 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 		return nullptr;
 
 	ALandscapeProxy* LandscapeTile = nullptr;
-	UPackage *CreatedPackage = nullptr;
-	
 	ALandscapeStreamingProxy* CachedStreamingProxyActor = nullptr;
 	ALandscape* CachedLandscapeActor = nullptr;
 	
 	HOUDINI_LANDSCAPE_MESSAGE(TEXT("[FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld] Creating tile with layer: %s"), *(EditLayerName.ToString()));
 
-	UWorld* NewWorld = nullptr;
 	FString MapFileName;
-	bool bBroadcastMaterialUpdate = false;
 	bool bRenameDefaultEditLayer = false;
 	//... Create landscape tile ...//
 	{
+		// Set the level to spawn in to InLevel
+		FActorSpawnParameters SpawnParameters;
+		if (IsValid(InLevel))
+			SpawnParameters.OverrideLevel = InLevel;
+		SpawnParameters.Name = FName(LandscapeTileActorName);
+		SpawnParameters.NameMode = FActorSpawnParameters::ESpawnActorNameMode::Requested;
+
 		// We need to create the landscape now and assign it a new GUID so we can create the LayerInfos
 		if (ActorType == LandscapeActorType::LandscapeStreamingProxy)
 		{
-			// Set the level to spawn in to InLevel
-			FActorSpawnParameters SpawnParameters;
-			if (IsValid(InLevel))
-				SpawnParameters.OverrideLevel = InLevel;
 			CachedStreamingProxyActor = InWorld->SpawnActor<ALandscapeStreamingProxy>(SpawnParameters);
 			if (CachedStreamingProxyActor)
 			{
@@ -4416,7 +4415,6 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 				CachedStreamingProxyActor->GetSharedProperties(SharedLandscapeActor);
 				CachedStreamingProxyActor->LandscapeActor = SharedLandscapeActor;
 				CachedStreamingProxyActor->bCastStaticShadow = false;
-
 				LandscapeTile = CachedStreamingProxyActor;
 			}
 			else
@@ -4428,10 +4426,6 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 		else
 		{
 			// Create a normal landscape actor
-			// Set the level to spawn in to InLevel
-			FActorSpawnParameters SpawnParameters;
-			if (IsValid(InLevel))
-				SpawnParameters.OverrideLevel = InLevel;
 			CachedLandscapeActor = InWorld->SpawnActor<ALandscape>(SpawnParameters);
 			if (CachedLandscapeActor)
 			{
@@ -4441,7 +4435,6 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 				CachedLandscapeActor->LandscapeHoleMaterial = LandscapeHoleMaterial;
 				CachedLandscapeActor->bCastStaticShadow = false;
 				CachedLandscapeActor->bCanHaveLayersContent = bHasEditLayers;
-				bBroadcastMaterialUpdate = true;
 				LandscapeTile = CachedLandscapeActor;
 				bRenameDefaultEditLayer = true;
 			}
@@ -4572,8 +4565,8 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 	check(LandscapeInfo);
 
 	// Call FLandscapeConfigHelper::ChangeGridSize() to build the Streaming Landscape Proxy(s) for
-	// the landscape inside a Partiioned World.
-	if (InWorld->IsPartitionedWorld())
+	// the landscape inside a Partitioned World.
+	if (InWorld->IsPartitionedWorld() && bIsStandalone)
 	{
 		TSet<AActor*> ActorsToDelete;
 		FLandscapeConfigHelper::ChangeGridSize(LandscapeInfo, WorldPartitionSize, ActorsToDelete);
@@ -4653,15 +4646,6 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 			}
 		}
 	}
-
-	// ----------------------------------------------------
-	// Rename the actor
-	// ----------------------------------------------------
-
-	// NOTE: The LandscapeProxy needs to be properly initialized before renaming (which is why the rename is taking
-	// place at the end) since the rename will trigger PostEditChange and can crash if the actor has not been
-	// correctly setup.
-	FHoudiniEngineUtils::SafeRenameActor(LandscapeTile, LandscapeTileActorName);
 	
 	if (!LandscapeTile->MarkPackageDirty())
 	{
