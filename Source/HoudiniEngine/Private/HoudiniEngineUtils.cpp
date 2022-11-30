@@ -3642,9 +3642,10 @@ FHoudiniEngineUtils::HapiSetAttributeInt64Data(
 
 #if PLATFORM_LINUX
 	TArray<HAPI_Int64> HData;
+	HData.Reserve(InAttributeInfo.count * InAttributeInfo.tupleSize);
 	if (sizeof(int64) != sizeof(HAPI_Int64))
 	{
-		for (int32 Idx = 0; Idx < InAttributeInfo.count; ++Idx)
+		for (int32 Idx = 0; Idx < InAttributeInfo.count * InAttributeInfo.tupleSize; ++Idx)
 		{
 			HData.Add(static_cast<HAPI_Int64>(InInt64Data[Idx]));
 		}
