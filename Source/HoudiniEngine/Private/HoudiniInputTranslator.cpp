@@ -511,11 +511,12 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 
 			if (CurInputObject->Type == EHoudiniInputObjectType::HoudiniAssetComponent)
 			{
-				// Remove this input object's node Id from the
-				// CreatedInputDataAssetIds array to avoid its deletion further down
+				// Houdini Asset Input, we don't want to destroy / invalidate the input HDA!
+				// Just remove this input object's node Id from the CreatedInputDataAssetIds array
+				// to avoid its deletion further down
 				CreatedInputDataAssetIds.Remove(CurInputObject->InputNodeId);
-				CurInputObject->InputNodeId = -1;
-				CurInputObject->InputObjectNodeId = -1;
+				//CurInputObject->InputNodeId = -1;
+				//CurInputObject->InputObjectNodeId = -1;
 				continue;
 			}
 
@@ -2766,15 +2767,26 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 	{
 		if(UploadHoudiniInputObject(InInput, CurComponent, InActorTransform, OutCreatedNodeIds))
 			ComponentIdx++;
-	}
 
-	// TODO: We should call Update here...
-	// needs to be fixed
+		// If we're importing the actor as ref, add the level path / actor path attribute to the created nodes
+		if (InInput->GetImportAsReference())
+		{
+			bool bNeedCommit = false;
+			if (FHoudiniEngineUtils::AddLevelPathAttribute(CurComponent->InputNodeId, 0, Actor->GetLevel(), 1, HAPI_ATTROWNER_POINT))
+				bNeedCommit = true;
+
+			if(FHoudiniEngineUtils::AddActorPathAttribute(CurComponent->InputNodeId, 0, Actor, 1, HAPI_ATTROWNER_POINT))
+				bNeedCommit = true;
+
+			// Commit the geo if needed
+			if(bNeedCommit)
+				FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), CurComponent->InputNodeId);
+		}
+	}
 
 	// Cache our transformn
 	InObject->Transform = Actor->GetTransform();
 
-	// Do something for our actor's transform?
 	/*
 	// TODO
 	// Support this type of input object

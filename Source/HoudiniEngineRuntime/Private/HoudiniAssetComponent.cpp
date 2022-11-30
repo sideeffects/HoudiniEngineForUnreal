@@ -1173,12 +1173,12 @@ UHoudiniAssetComponent::NotifyCookedToDownstreamAssets()
 	// Before notifying, clean up our downstream assets
 	// - check that they are still valid
 	// - check that we are still connected to one of its asset input
-	// - check that the asset as the CookOnAssetInputCook trigger enabled
+	// - check that the asset has the CookOnAssetInputCook trigger enabled
 	TArray<UHoudiniAssetComponent*> DownstreamToDelete;	
 	for(auto& CurrentDownstreamHAC : DownstreamHoudiniAssets)
 	{
 		// Remove the downstream connection by default,
-		// unless we actually were properly connected to one of this HDa's input.
+		// unless we actually were properly connected to one of this HDA's input.
 		bool bRemoveDownstream = true;
 		if (IsValid(CurrentDownstreamHAC))
 		{
@@ -1193,8 +1193,30 @@ UHoudiniAssetComponent::NotifyCookedToDownstreamAssets()
 					&& CurrentDownstreamInputType != EHoudiniInputType::World)
 					continue;
 
+				// Ensure that we are an input object of that input
 				if (!CurrentDownstreamInput->ContainsInputObject(this, CurrentDownstreamInputType))
 					continue;
+
+				// We are an input to this HDA
+				// Make sure that the 
+				if (!CurrentDownstreamInput->GetImportAsReference())
+				{
+					const TArray<UHoudiniInputObject*>* ObjectArray = CurrentDownstreamInput->GetHoudiniInputObjectArray(CurrentDownstreamInputType);
+					if (ObjectArray)
+					{
+						for (auto& CurrentInputObject : (*ObjectArray))
+						{
+							if (!IsValid(CurrentInputObject))
+								continue;
+
+							if (CurrentInputObject->GetObject() != this)
+								continue;
+
+							CurrentInputObject->InputNodeId = GetAssetId();
+							CurrentInputObject->InputObjectNodeId = GetAssetId();
+						}
+					}
+				}
 
 				if (CurrentDownstreamHAC->bCookOnAssetInputCook)
 				{
@@ -2497,6 +2519,8 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, const bool& b
 {
 	FBox BoxBounds(ForceInitToZero);
 
+	/*
+	// Commented out: Creates incorrect focus bounds..
 	// Query the bounds for all output objects
 	for (auto & CurOutput : Outputs) 
 	{
@@ -2505,6 +2529,7 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, const bool& b
 
 		BoxBounds += CurOutput->GetBounds();
 	}
+	*/
 
 	// Query the bounds for all our inputs
 	for (auto & CurInput : Inputs) 
@@ -2542,9 +2567,10 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, const bool& b
 
 		BoxBounds += CurHandleComp->GetBounds();
 	}
-
+	/*
+	// Commented out: Creates incorrect focus bounds..
 	// Also scan all our decendants for SMC bounds not just top-level children
-	// ( split mesh instances' mesh bounds were not gathered proiperly )
+	// ( split mesh instances' mesh bounds were not gathered properly )
 	TArray<USceneComponent*> LocalAttachedChildren;
 	LocalAttachedChildren.Reserve(16);
 	GetChildrenComponents(true, LocalAttachedChildren);
@@ -2564,6 +2590,7 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, const bool& b
 				BoxBounds += StaticMeshBounds;
 		}
 	}
+	*/
 
 	// If nothing was found, init with the asset's location
 	if (BoxBounds.GetVolume() == 0.0f)
