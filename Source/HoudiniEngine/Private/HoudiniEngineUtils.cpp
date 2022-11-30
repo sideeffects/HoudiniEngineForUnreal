@@ -6572,7 +6572,8 @@ FHoudiniEngineUtils::AddLevelPathAttribute(
 	const HAPI_NodeId& InNodeId,
 	const HAPI_PartId& InPartId,
 	ULevel* InLevel,
-	const int32& InCount)
+	const int32& InCount,
+	const HAPI_AttributeOwner& InAttrOwner)
 {
 	if (InNodeId < 0 || InCount <= 0)
 		return false;
@@ -6594,7 +6595,7 @@ FHoudiniEngineUtils::AddLevelPathAttribute(
 	AttributeInfoLevelPath.count = InCount;
 	AttributeInfoLevelPath.tupleSize = 1;
 	AttributeInfoLevelPath.exists = true;
-	AttributeInfoLevelPath.owner = HAPI_ATTROWNER_PRIM;
+	AttributeInfoLevelPath.owner = InAttrOwner;
 	AttributeInfoLevelPath.storage = HAPI_STORAGETYPE_STRING;
 	AttributeInfoLevelPath.originalOwner = HAPI_ATTROWNER_INVALID;
 
@@ -6626,7 +6627,8 @@ FHoudiniEngineUtils::AddActorPathAttribute(
 	const HAPI_NodeId& InNodeId,
 	const HAPI_PartId& InPartId,
 	AActor* InActor,
-	const int32& InCount)
+	const int32& InCount,
+	const HAPI_AttributeOwner& InAttrOwner)
 {
 	if (InNodeId < 0 || InCount <= 0)
 		return false;
@@ -6643,7 +6645,7 @@ FHoudiniEngineUtils::AddActorPathAttribute(
 	AttributeInfoActorPath.count = InCount;
 	AttributeInfoActorPath.tupleSize = 1;
 	AttributeInfoActorPath.exists = true;
-	AttributeInfoActorPath.owner = HAPI_ATTROWNER_PRIM;
+	AttributeInfoActorPath.owner = InAttrOwner;
 	AttributeInfoActorPath.storage = HAPI_STORAGETYPE_STRING;
 	AttributeInfoActorPath.originalOwner = HAPI_ATTROWNER_INVALID;
 

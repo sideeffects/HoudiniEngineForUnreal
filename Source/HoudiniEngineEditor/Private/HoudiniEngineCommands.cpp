@@ -1472,7 +1472,13 @@ FHoudiniEngineCommands::TriageHoudiniAssetComponentsForProxyMeshRefinement(UHoud
 
 	UWorld *World = InHAC->GetWorld();
 	if (!IsValid(World))
-		return;
+	{
+		World = InHAC->GetOwner() ? InHAC->GetOwner()->GetWorld() : nullptr;
+	}
+
+	// No need to return here if we're just starting PIE
+	if (bOnPreSaveWorld && !IsValid(World))
+		return;	
 
 	if (bOnPreSaveWorld && OnPreSaveWorld && OnPreSaveWorld != World)
 		return;
