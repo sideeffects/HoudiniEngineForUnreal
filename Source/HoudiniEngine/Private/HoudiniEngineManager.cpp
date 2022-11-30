@@ -336,8 +336,8 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 					break;
 			}
 
-			// Safeguard, useless? 
 			// Stop processing if the state hasn't changed
+			// for example, if we're waiting for HDA inputs to finish cooking/instantiating
 			if (PrevState == NewState)
 				bKeepProcessing = false;
 
