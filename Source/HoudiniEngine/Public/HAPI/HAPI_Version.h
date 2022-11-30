@@ -40,6 +40,6 @@
 // might no longer compile. Semantic changes to the methods will also
 // cause this version to increase. This number will be reset to 0
 // every time the Houdini Engine version is bumped.
-#define HAPI_VERSION_HOUDINI_ENGINE_API 3
+#define HAPI_VERSION_HOUDINI_ENGINE_API 4
 
 #endif // __HAPI_VERSION_h__
