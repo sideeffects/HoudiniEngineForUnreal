@@ -885,14 +885,16 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const HAPI_NodeId& InNodeId,
 			const HAPI_PartId& InPartId,
 			ULevel* InLevel,
-			const int32& InCount);
+			const int32& InCount,
+			const HAPI_AttributeOwner& InAttributeOwner = HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM);
 
 		// Adds the "unreal_actor_path" primitive attribute
 		static bool AddActorPathAttribute(
 			const HAPI_NodeId& InNodeId,
 			const HAPI_PartId& InPartId,
 			AActor* InActor,
-			const int32& InCount);
+			const int32& InCount,
+			const HAPI_AttributeOwner& InAttributeOwner = HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM);
 
 		// Adds the landscape type primitive attribute based off InActor's type.
 	    // (currently just ALandscapeStreamingProxy)
