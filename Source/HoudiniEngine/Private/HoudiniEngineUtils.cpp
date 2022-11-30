@@ -3725,6 +3725,7 @@ FHoudiniEngineUtils::HapiSetAttributeInt64Data(
 
 #if PLATFORM_LINUX
 	TArray<HAPI_Int64> HData;
+	HData.Reserve(InAttributeInfo.count);
 	if (sizeof(int64) != sizeof(HAPI_Int64))
 	{
 		for (int32 Idx = 0; Idx < InAttributeInfo.count; ++Idx)
