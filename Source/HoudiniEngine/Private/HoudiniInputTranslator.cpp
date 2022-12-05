@@ -4098,7 +4098,6 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(Col, InputNodeId, 0,
 				CurAttrName, AttributeInfo), false);
-				
 		}
 
 	}
