@@ -2337,7 +2337,6 @@ FString FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(UStaticMeshComponen
 		return StaticMesh->BodySetup->PhysMaterial->GetPathName();
     return FString();
 }
-
 bool
 FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	const HAPI_NodeId& NodeId,
@@ -2657,10 +2656,12 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 
 		int32 TriangleIdx = 0;
 		int32 VertexInstanceIdx = 0;
+
 		for (const FPolygonID &PolygonID : MDPolygons.GetElementIDs())
 		{
 			for (const FTriangleID &TriangleID : MeshDescription.GetPolygonTriangleIDs(PolygonID))
 			{
+
 				MeshTriangleVertexCounts[TriangleIdx] = 3;
 				for (int32 TriangleVertexIndex = 0; TriangleVertexIndex < 3; ++TriangleVertexIndex)
 				{
@@ -2771,12 +2772,13 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 				//--------------------------------------------------------------------------------------------------------------------- 
 				// TRIANGLE MATERIAL ASSIGNMENT
 				//---------------------------------------------------------------------------------------------------------------------
-				const FPolygonGroupID &PolygonGroupID = MeshDescription.GetPolygonPolygonGroup(PolygonID);
-				const int32 MaterialIndex = PolygonGroupToMaterialIndex.FindChecked(PolygonGroupID);
+				const FPolygonGroupID& PolygonGroupID = MeshDescription.GetPolygonPolygonGroup(PolygonID);
+				int32 MaterialIndex = PolygonGroupToMaterialIndex.FindChecked(PolygonGroupID);
 				TriangleMaterialIndices.Add(MaterialIndex);
 
 				TriangleIdx++;
 			}
+
 		}
 
 		// Now transfer valid vertex instance attributes to Houdini vertex attributes
@@ -3226,7 +3228,6 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 
 	return true;
 }
-
 
 void
 FUnrealMeshTranslator::CreateFaceMaterialArray(
@@ -4007,6 +4008,7 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		FHoudiniEngine::Get().GetSession(),
 		NodeId, PartId, HAPI_UNREAL_ATTRIB_MATERIAL, &AttributeInfoMaterial))
 	{
+
 		// The New attribute has been successfully created, set its value
 		if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeStringData(
 			TriangleMaterials, NodeId, PartId, HAPI_UNREAL_ATTRIB_MATERIAL, AttributeInfoMaterial))
