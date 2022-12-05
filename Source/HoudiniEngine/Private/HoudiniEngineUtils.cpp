@@ -141,10 +141,9 @@ FHoudiniEngineUtils::PackageGUIDItemNameLength = 8;
 
 // Maximum size of the data that can be sent via thrift
 //#define THRIFT_MAX_CHUNKSIZE			100 * 1024 * 1024 // This is supposedly the current limit in thrift, but still seems to be too large
-//#define THRIFT_MAX_CHUNKSIZE			10 * 1024 * 1024
+#define THRIFT_MAX_CHUNKSIZE			10 * 1024 * 1024
 //#define THRIFT_MAX_CHUNKSIZE			2048 * 2048
 //#define THRIFT_MAX_CHUNKSIZE_STRING		256 * 256
-#define THRIFT_MAX_CHUNKSIZE 400
 
 const FString
 FHoudiniEngineUtils::GetErrorDescription(HAPI_Result Result)
