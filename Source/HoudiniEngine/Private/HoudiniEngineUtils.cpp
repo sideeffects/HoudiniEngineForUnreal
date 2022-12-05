@@ -3953,7 +3953,7 @@ FHoudiniEngineUtils::HapiSetAttributeStringData(
 	const HAPI_AttributeInfo& InAttributeInfo )
 {
 	TArray<const char *> StringDataArray;
-	for (const auto& CurrentString : InStringArray)
+	for (auto CurrentString : InStringArray)
 	{
 		// Append the converted string to the string array
 		StringDataArray.Add(FHoudiniEngineUtils::ExtractRawString(CurrentString));
@@ -3966,36 +3966,28 @@ FHoudiniEngineUtils::HapiSetAttributeStringData(
 	if (InAttributeInfo.count > ChunkSize)
 	{
 		// Set the attributes in chunks
-		int32 StringStart = 0;
 		for (int32 ChunkStart = 0; ChunkStart < InAttributeInfo.count; ChunkStart += ChunkSize)
 		{
-			int32 CurCount = SizesFixedArray.Num() - ChunkStart > ChunkSize ? ChunkSize : SizesFixedArray.Num() - ChunkStart;
-			int32 NumSent = 0;
-			for (int32 Idx = 0; Idx < CurCount; ++Idx)
-			{
-				NumSent += SizesFixedArray[Idx + ChunkStart * InAttributeInfo.tupleSize];
-			}
+			int32 CurCount = InAttributeInfo.count - ChunkStart > ChunkSize ? ChunkSize : InAttributeInfo.count - ChunkStart;
 
-			Result = FHoudiniApi::SetAttributeStringArrayData(
+			Result = FHoudiniApi::SetAttributeStringData(
 				FHoudiniEngine::Get().GetSession(),
 				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-				&InAttributeInfo, StringDataArray.GetData() + StringStart, NumSent,
-				SizesFixedArray.GetData() + ChunkStart * InAttributeInfo.tupleSize, ChunkStart, CurCount);
+				&InAttributeInfo, StringDataArray.GetData() + ChunkStart * InAttributeInfo.tupleSize,
+				ChunkStart, CurCount);
 
 			if (Result != HAPI_RESULT_SUCCESS)
 				break;
-
-			StringStart += NumSent;
 		}
 	}
 	else
 	{
 		// Set all the attribute values once
-		Result = FHoudiniApi::SetAttributeStringArrayData(
+		Result = FHoudiniApi::SetAttributeStringData(
 			FHoudiniEngine::Get().GetSession(),
 			InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-			&InAttributeInfo, StringDataArray.GetData(), StringDataArray.Num(),
-			SizesFixedArray.GetData(),0, SizesFixedArray.Num());
+			&InAttributeInfo, StringDataArray.GetData(),
+			0, InAttributeInfo.count);
 	}
 
 	// ExtractRawString allocates memory using malloc, free it!
