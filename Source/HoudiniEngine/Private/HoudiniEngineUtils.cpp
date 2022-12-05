@@ -3380,7 +3380,7 @@ FHoudiniEngineUtils::HapiSetAttributeFloatData(
 			Result = FHoudiniApi::SetAttributeFloatData(
 				FHoudiniEngine::Get().GetSession(),
 				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-				&InAttributeInfo, InFloatData,
+				&InAttributeInfo, InFloatData + ChunkStart * InAttributeInfo.tupleSize,
 				ChunkStart, CurCount);
 
 			if (Result != HAPI_RESULT_SUCCESS)
@@ -3455,7 +3455,7 @@ FHoudiniEngineUtils::HapiSetAttributeIntData(
 			Result = FHoudiniApi::SetAttributeIntData(
 				FHoudiniEngine::Get().GetSession(),
 				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-				&InAttributeInfo, InIntData,
+				&InAttributeInfo, InIntData + ChunkStart * InAttributeInfo.tupleSize,
 				ChunkStart, CurCount);
 
 			if (Result != HAPI_RESULT_SUCCESS)
@@ -3537,7 +3537,7 @@ FHoudiniEngineUtils::HapiSetAttributeInt8Data(
 			Result = FHoudiniApi::SetAttributeInt8Data(
 				FHoudiniEngine::Get().GetSession(),
 				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-				&InAttributeInfo, InByteData,
+				&InAttributeInfo, InByteData + ChunkStart * InAttributeInfo.tupleSize,
 				ChunkStart, CurCount);
 
 			if (Result != HAPI_RESULT_SUCCESS)
@@ -3595,7 +3595,7 @@ FHoudiniEngineUtils::HapiSetAttributeUInt8Data(
 			Result = FHoudiniApi::SetAttributeUInt8Data(
 				FHoudiniEngine::Get().GetSession(),
 				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-				&InAttributeInfo, InByteData,
+				&InAttributeInfo, InByteData + ChunkStart * InAttributeInfo.tupleSize,
 				ChunkStart, CurCount);
 
 			if (Result != HAPI_RESULT_SUCCESS)
@@ -3653,7 +3653,7 @@ FHoudiniEngineUtils::HapiSetAttributeInt16Data(
 			Result = FHoudiniApi::SetAttributeInt16Data(
 				FHoudiniEngine::Get().GetSession(),
 				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-				&InAttributeInfo, InShortData,
+				&InAttributeInfo, InShortData + ChunkStart * InAttributeInfo.tupleSize,
 				ChunkStart, CurCount);
 
 			if (Result != HAPI_RESULT_SUCCESS)
@@ -3749,7 +3749,7 @@ FHoudiniEngineUtils::HapiSetAttributeInt64Data(
 				Result = FHoudiniApi::SetAttributeInt64Data(
 					FHoudiniEngine::Get().GetSession(),
 					InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-					&InAttributeInfo, HData.GetData(),
+					&InAttributeInfo, HData.GetData() + ChunkStart * InAttributeInfo.tupleSize,
 					ChunkStart, CurCount);
 			}
 			else
@@ -3757,14 +3757,14 @@ FHoudiniEngineUtils::HapiSetAttributeInt64Data(
 				Result = FHoudiniApi::SetAttributeInt64Data(
 					FHoudiniEngine::Get().GetSession(),
 					InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-					&InAttributeInfo, InInt64Data,
+					&InAttributeInfo, InInt64Data + ChunkStart * InAttributeInfo.tupleSize,
 					ChunkStart, CurCount);
 			}
 #else
 			Result = FHoudiniApi::SetAttributeInt64Data(
 				FHoudiniEngine::Get().GetSession(),
 				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-				&InAttributeInfo, InInt64Data,
+				&InAttributeInfo, InInt64Data + ChunkStart * InAttributeInfo.tupleSize,
 				ChunkStart, CurCount);
 #endif
 			if (Result != HAPI_RESULT_SUCCESS)
@@ -3865,7 +3865,7 @@ FHoudiniEngineUtils::HapiSetAttributeDoubleData(
 			Result = FHoudiniApi::SetAttributeFloat64Data(
 				FHoudiniEngine::Get().GetSession(),
 				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-				&InAttributeInfo, InDoubleData,
+				&InAttributeInfo, InDoubleData + ChunkStart * InAttributeInfo.tupleSize,
 				ChunkStart, CurCount);
 
 			if (Result != HAPI_RESULT_SUCCESS)
@@ -3905,7 +3905,7 @@ FHoudiniEngineUtils::HapiSetVertexList(
 			int32 CurCount = ListNum - ChunkStart > ChunkSize ? ChunkSize : ListNum - ChunkStart;
 			Result = FHoudiniApi::SetVertexList(
 				FHoudiniEngine::Get().GetSession(),
-				InNodeId, InPartId, InVertexListData.GetData(), ChunkStart, CurCount);
+				InNodeId, InPartId, InVertexListData.GetData() + ChunkStart, ChunkStart, CurCount);
 
 			if (Result != HAPI_RESULT_SUCCESS)
 				break;
@@ -3942,7 +3942,7 @@ FHoudiniEngineUtils::HapiSetFaceCounts(
 			int32 CurCount = FaceCountsNum - ChunkStart > ChunkSize ? ChunkSize : FaceCountsNum - ChunkStart;
 			Result = FHoudiniApi::SetFaceCounts(
 				FHoudiniEngine::Get().GetSession(),
-				InNodeId, InPartId, InFaceCounts.GetData(), ChunkStart, CurCount);
+				InNodeId, InPartId, InFaceCounts.GetData() + ChunkStart, ChunkStart, CurCount);
 
 			if (Result != HAPI_RESULT_SUCCESS)
 				break;
@@ -4004,7 +4004,7 @@ FHoudiniEngineUtils::HapiSetAttributeStringData(
 			Result = FHoudiniApi::SetAttributeStringData(
 				FHoudiniEngine::Get().GetSession(),
 				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-				&InAttributeInfo, StringDataArray.GetData(),
+				&InAttributeInfo, StringDataArray.GetData() + ChunkStart * InAttributeInfo.tupleSize,
 				ChunkStart, CurCount);
 
 			if (Result != HAPI_RESULT_SUCCESS)
@@ -4050,18 +4050,26 @@ FHoudiniEngineUtils::HapiSetAttributeStringArrayData(
 	if (InAttributeInfo.count > ChunkSize)
 	{
 		// Set the attributes in chunks
+		int32 StringStart = 0;
 		for (int32 ChunkStart = 0; ChunkStart < InAttributeInfo.count; ChunkStart += ChunkSize)
 		{
-			int32 CurCount = StringDataArray.Num() - ChunkStart > ChunkSize ? ChunkSize : StringDataArray.Num() - ChunkStart;
+			int32 CurCount = SizesFixedArray.Num() - ChunkStart > ChunkSize ? ChunkSize : SizesFixedArray.Num() - ChunkStart;
+			int32 NumSent = 0;
+			for (int32 Idx = 0; Idx < CurCount; ++Idx)
+			{
+				NumSent += SizesFixedArray[Idx + ChunkStart * InAttributeInfo.tupleSize];
+			}
 
 			Result = FHoudiniApi::SetAttributeStringArrayData(
 				FHoudiniEngine::Get().GetSession(),
 				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-				&InAttributeInfo, StringDataArray.GetData(), CurCount,
-				SizesFixedArray.GetData(), ChunkStart, CurCount);
+				&InAttributeInfo, StringDataArray.GetData() + StringStart, NumSent,
+				SizesFixedArray.GetData() + ChunkStart * InAttributeInfo.tupleSize, ChunkStart, CurCount);
 
 			if (Result != HAPI_RESULT_SUCCESS)
 				break;
+
+			StringStart += NumSent;
 		}
 	}
 	else
