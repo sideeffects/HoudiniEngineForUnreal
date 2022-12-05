@@ -1126,14 +1126,14 @@ FHoudiniOutputDetails::CreateDataTableOutputWidget(IDetailCategoryBuilder& HouOu
 				.AutoWidth()
 				[
 					SAssignNew(DTThumbnailBorder, SBorder)
-					.Padding(5.0f)
-					.BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) DT)
-					.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) DT)
+						.Padding(5.0f)
+						.BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) DT)
+						.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) DT)
 					[
 						SNew(SBox)
-						.WidthOverride(64)
-						.HeightOverride(64)
-						.ToolTipText(FText::FromString(DT->GetPathName()))
+							.WidthOverride(64)
+							.HeightOverride(64)
+							.ToolTipText(FText::FromString(DT->GetPathName()))
 						[
 							DTThumbnail->MakeThumbnailWidget()
 						]
@@ -1231,7 +1231,7 @@ FHoudiniOutputDetails::CreateDataTableOutputWidget(IDetailCategoryBuilder& HouOu
 							TAttribute<FText>(LOCTEXT("HoudiniDataTableRowStructBrowseButton", "Browse to the generated Data Table's row struct in the content browser")))
 					]
 				]
-
+				
 			];
 
 			OutputObjectThumbnailBorders.Add((UObject*) DT, DTThumbnailBorder);
