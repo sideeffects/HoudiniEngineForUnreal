@@ -7767,9 +7767,14 @@ FHoudiniEngineBakeUtils::MakeUniqueObjectNameIfNeeded(UObject* InOuter, const UC
 	// return MakeUniqueObjectName(InOuter, InClass, CandidateName).ToString();
 	do
 	{
-		if (InOuter == ANY_PACKAGE)
+		if (!IsValid(InOuter))
 		{
-			ExistingObject = StaticFindObject(nullptr, ANY_PACKAGE, *(CandidateName.ToString()));
+#if ENGINE_MINOR_VERSION < 1
+			ExistingObject = StaticFindObject(nullptr, ANY_PACKAGE, );
+#else
+			// UE5.1 deprecated ANY_PACKAGE
+			ExistingObject = StaticFindFirstObject(nullptr, *(CandidateName.ToString()), EFindFirstObjectOptions::NativeFirst);
+#endif
 		}
 		else
 		{
@@ -7941,7 +7946,14 @@ FHoudiniEngineBakeUtils::GetBakeActorClassOverride(const FName& InActorClassName
 	const FString ActorClassNameString = *InActorClassName.ToString();
 	UClass* FoundClass = LoadClass<AActor>(nullptr, *ActorClassNameString);
 	if (!IsValid(FoundClass))
+	{
+#if ENGINE_MINOR_VERSION < 1
 		FoundClass = FindObjectSafe<UClass>(ANY_PACKAGE, *ActorClassNameString);
+#else
+		// UE5.1 deprecated ANY_PACKAGE
+		FoundClass = FindFirstObjectSafe<UClass>(*ActorClassNameString, EFindFirstObjectOptions::NativeFirst);
+#endif
+	}
 
 	if (!IsValid(FoundClass))
 		return nullptr;

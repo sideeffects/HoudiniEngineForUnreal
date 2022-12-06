@@ -1453,7 +1453,13 @@ FHoudiniInstanceTranslator::GetAttributeInstancerObjectsAndTransforms(
 		if (!AttributeObject)
 		{
 			// See if the ref is a class that we can instantiate
-			UClass * FoundClass = FindObject<UClass>(ANY_PACKAGE, *AssetName);
+#if ENGINE_MINOR_VERSION < 1
+			UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *AssetName);
+#else
+			// UE5.1 deprecated ANY_PACKAGE, using a null outer doesn't work so use FindFirstObject instead
+			//FoundClass = FindObject<UClass>(nullptr, *Iter);
+			UClass* FoundClass = FindFirstObject<UClass>(*AssetName, EFindFirstObjectOptions::NativeFirst);
+#endif
 			if (FoundClass != nullptr)
 			{
 				// TODO: ensure we'll be able to create an actor from this class! 
@@ -1533,8 +1539,14 @@ FHoudiniInstanceTranslator::GetAttributeInstancerObjectsAndTransforms(
 
 				if (!AttributeObject)
 				{
-					// See if the ref is a class that we can instantiate
-					UClass * FoundClass = FindObject<UClass>(ANY_PACKAGE, *Iter);
+#if ENGINE_MINOR_VERSION < 1
+					UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *Iter);
+#else
+					// UE5.1 deprecated ANY_PACKAGE, using a null outer doesn't work so use FindFirstObject instead
+					//FoundClass = FindObject<UClass>(nullptr, *Iter);
+					UClass* FoundClass = FindFirstObject<UClass>(*Iter, EFindFirstObjectOptions::NativeFirst);						
+#endif
+
 					if (FoundClass != nullptr)
 					{
 						// TODO: ensure we'll be able to create an actor from this class!
