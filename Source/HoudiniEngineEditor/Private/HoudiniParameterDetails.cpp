@@ -3095,7 +3095,13 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 
 		if (Tags.Contains(HOUDINI_PARAMETER_STRING_REF_CLASS_TAG))
 		{
-			UClass * FoundClass = FindObject<UClass>(ANY_PACKAGE, *Tags[HOUDINI_PARAMETER_STRING_REF_CLASS_TAG]);
+#if ENGINE_MINOR_VERSION < 1
+			UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *Tags[HOUDINI_PARAMETER_STRING_REF_CLASS_TAG]);
+#else
+			// UE5.1 deprecated ANY_PACKAGE, using a null outer doesn't work so use FindFirstObject instead
+			UClass* FoundClass = FindFirstObject<UClass>(*Tags[HOUDINI_PARAMETER_STRING_REF_CLASS_TAG], EFindFirstObjectOptions::NativeFirst);
+#endif
+			
 			if (FoundClass != nullptr)
 			{
 				UnrealRefClass = FoundClass;
