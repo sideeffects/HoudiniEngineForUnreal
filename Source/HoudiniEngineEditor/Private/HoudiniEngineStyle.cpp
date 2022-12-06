@@ -26,6 +26,7 @@
 
 #include "HoudiniEngineStyle.h"
 
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineEditor.h"
 #include "HoudiniEngineUtils.h"
 

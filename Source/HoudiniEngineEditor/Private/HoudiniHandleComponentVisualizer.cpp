@@ -28,6 +28,7 @@
 
 #include "EditorViewportClient.h"
 
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniHandleTranslator.h"
 #include "HoudiniAssetComponent.h"
 
