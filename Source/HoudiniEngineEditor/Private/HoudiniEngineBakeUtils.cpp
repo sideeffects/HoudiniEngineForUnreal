@@ -7275,7 +7275,7 @@ FHoudiniEngineBakeUtils::MakeUniqueObjectNameIfNeeded(UObject* InOuter, const UC
 		if (!IsValid(InOuter))
 		{
 #if ENGINE_MINOR_VERSION < 1
-			ExistingObject = StaticFindObject(nullptr, ANY_PACKAGE, );
+			ExistingObject = StaticFindObject(nullptr, ANY_PACKAGE, *(CandidateName.ToString()));
 #else
 			// UE5.1 deprecated ANY_PACKAGE
 			ExistingObject = StaticFindFirstObject(nullptr, *(CandidateName.ToString()), EFindFirstObjectOptions::NativeFirst);
