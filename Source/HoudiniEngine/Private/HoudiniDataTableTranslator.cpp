@@ -1095,7 +1095,7 @@ FHoudiniDataTableTranslator::PopulateRowData(int32 GeoId,
 			}
 			else
 			{
-				Result = FHoudiniApi::GetAttributeInt64Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<int64*>(Data), 0, AttribInfo.count);
+				Result = FHoudiniApi::GetAttributeInt64Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, reinterpret_cast<HAPI_Int64*>(Data), 0, AttribInfo.count);
 			}
 #else
 			Result = FHoudiniApi::GetAttributeInt64Data(FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttribName, &AttribInfo, -1, static_cast<int64*>(Data), 0, AttribInfo.count);
