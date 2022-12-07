@@ -3674,7 +3674,7 @@ FHoudiniEngineUtils::HapiSetAttributeInt64Data(
 				Result = FHoudiniApi::SetAttributeInt64Data(
 					FHoudiniEngine::Get().GetSession(),
 					InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-					&InAttributeInfo, InInt64Data + ChunkStart * InAttributeInfo.tupleSize,
+					&InAttributeInfo, reinterpret_cast<const HAPI_Int64*>(InInt64Data + ChunkStart * InAttributeInfo.tupleSize),
 					ChunkStart, CurCount);
 			}
 #else
@@ -3705,7 +3705,7 @@ FHoudiniEngineUtils::HapiSetAttributeInt64Data(
 			Result = FHoudiniApi::SetAttributeInt64Data(
 				FHoudiniEngine::Get().GetSession(),
 				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-				&InAttributeInfo, InInt64Data,
+				&InAttributeInfo, reinterpret_cast<const HAPI_Int64*>(InInt64Data),
 				0, InAttributeInfo.count);
 		}
 #else
