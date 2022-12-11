@@ -222,6 +222,8 @@ HOUDINIENGINEEDITOR_API DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngineEditor, Log,
 	    return _RETURN_VALUE;\
 	}
 
+#define HOUDINI_CHECK(_EXPRESSION_TO_CHECK) HOUDINI_CHECK_RETURN(_EXPRESSION_TO_CHECK, )
+
 // ---------------------------------------------------------
 // Baking Debug Logging
 // ---------------------------------------------------------

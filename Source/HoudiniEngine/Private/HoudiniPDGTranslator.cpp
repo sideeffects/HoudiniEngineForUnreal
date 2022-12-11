@@ -424,18 +424,11 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 
 	// Process instancer outputs after all other outputs have been processed, since it
 	// might depend on meshes etc from other outputs
-	if (InstancerOutputs.Num() > 0)
-	{
-		for (UHoudiniOutput* CurOutput : InstancerOutputs)
-		{
-			FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
-				CurOutput,
+	FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(
 				InOutputs,
 				InOuterComponent,
 				InPackageParams,
 				InPreBuiltInstancedOutputPartData);
-		}
-	}
 	
 	USceneComponent* ParentComponent = Cast<USceneComponent>(InOuterComponent);
 	if (IsValid(ParentComponent))

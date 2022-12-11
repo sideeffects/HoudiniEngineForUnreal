@@ -47,6 +47,7 @@
 #include "HoudiniStringResolver.h"
 #include "HoudiniEngineCommands.h"
 #include "HoudiniEngineRuntimeUtils.h"
+#include "HoudiniFoliageTools.h"
 
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
@@ -686,7 +687,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToFoliage(
 	// Get foliage actor for the level
 	const bool bCreateIfNone = true;
 
-	AInstancedFoliageActor* InstancedFoliageActor = FHoudiniEngineUtils::GetInstancedFoliageActor(DesiredLevel, bCreateIfNone);
+	AInstancedFoliageActor* InstancedFoliageActor = FHoudiniFoliageTools::GetInstancedFoliageActor(DesiredLevel, bCreateIfNone);
 
 	if (!IsValid(InstancedFoliageActor))
 	{
@@ -716,7 +717,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToFoliage(
 
 		// We need to create a new FoliageType for this Static Mesh
 		// TODO: Add foliage default settings
-		FoliageType = FHoudiniEngineUtils::CreateFoliageType(Params, InOutputIndex, DesiredLevel, InstancedFoliageActor, BakedStaticMesh);
+		FoliageType = FHoudiniFoliageTools::CreateFoliageType(Params, InOutputIndex, DesiredLevel, BakedStaticMesh);
 
 		// Update the previous bake results with the foliage type we created
 		InBakedOutputObject.BakedComponent = FSoftObjectPath(FoliageType).ToString();
