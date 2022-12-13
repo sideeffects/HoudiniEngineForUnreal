@@ -34,6 +34,7 @@
 #include "HoudiniMeshSplitInstancerComponent.h"
 #include "HoudiniStaticMeshComponent.h"
 #include "HoudiniStaticMesh.h"
+#include "HoudiniFoliageTools.h"
 
 //#include "HAPI/HAPI_Common.h"
 
@@ -163,12 +164,70 @@ FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(
 	return true;
 }
 
+int
+FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(
+	const TArray<UHoudiniOutput*>& InAllOutputs,
+	UObject* InOuterComponent,
+	const FHoudiniPackageParams& InPackageParms,
+	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* InPreBuiltInstancedOutputPartData)
+{
+	return CreateAllInstancersFromHoudiniOutputs(
+		InAllOutputs,
+		InAllOutputs,
+		InOuterComponent,
+		InPackageParms,
+		InPreBuiltInstancedOutputPartData);
+}
+
+int
+FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(
+	const TArray<UHoudiniOutput*>& InSubsets,
+	const TArray<UHoudiniOutput*>& InAllOutputs,
+	UObject* InOuterComponent,
+	const FHoudiniPackageParams& InPackageParms,
+	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* InPreBuiltInstancedOutputPartData)
+{
+	int FoliageTypeCount = 0;
+
+	USceneComponent* ParentComponent = Cast<USceneComponent>(InOuterComponent);
+	if (!ParentComponent)
+		return false;
+
+	// Remove any foliage instances attached to the Parent.
+	FHoudiniFoliageTools::CleanupFoliageInstances(ParentComponent);
+
+	int InstanceCount = 0;
+	for (auto Output : InSubsets)
+	{
+		if (Output->GetType() != EHoudiniOutputType::Instancer)
+			continue;
+
+		bool bSuccess = FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
+			Output,
+			InAllOutputs,
+			InOuterComponent,
+			InPackageParms,
+			FoliageTypeCount,
+			InPreBuiltInstancedOutputPartData);
+
+		if (bSuccess)
+			++InstanceCount;
+	}
+
+	if (FoliageTypeCount > 0)
+	{
+		FHoudiniEngineUtils::RepopulateFoliageTypeListInUI();
+	}
+	return InstanceCount;
+}
+
 bool
 FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 	UHoudiniOutput* InOutput,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
 	UObject* InOuterComponent,
 	const FHoudiniPackageParams& InPackageParms,
+	int & FoliageTypeCount,
 	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* InPreBuiltInstancedOutputPartData
 )
 {
@@ -193,22 +252,6 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 	USceneComponent* ParentComponent = Cast<USceneComponent>(InOuterComponent);
 	if (!ParentComponent)
 		return false;
-
-	// Keep track of if we remove, create or update any foliage, so that we can repopulate the foliage type list in
-	// the UI (foliage mode) at the end
-	bool bHaveAnyFoliageInstancers = false;
-
-	// We also need to cleanup the previous foliages instances (if we have any)
-	for (auto& CurrentPair : OldOutputObjects)
-	{
-		// Foliage instancers store a HISMC in the components
-		UHierarchicalInstancedStaticMeshComponent* FoliageHISMC = Cast<UHierarchicalInstancedStaticMeshComponent>(CurrentPair.Value.OutputComponent);
-		if (!IsValid(FoliageHISMC))
-			continue;
-
-		CleanupFoliageInstances(FoliageHISMC, CurrentPair.Value.OutputObject, ParentComponent);
-		bHaveAnyFoliageInstancers = true;
-	}
 
 	// The default SM to be used if the instanced object has not been found (when using attribute instancers)
 	UStaticMesh * DefaultReferenceSM = FHoudiniEngine::Get().GetHoudiniDefaultReferenceMesh().Get();
@@ -253,10 +296,6 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 			if (!GetInstancerMaterialInstances(InstancedOutputPartData.MaterialAttributes, CurHGPO, InPackageParms, InstancerMaterials))
 				InstancerMaterials.Empty();
 		}
-
-
-		if (InstancedOutputPartData.bIsFoliageInstancer)
-			bHaveAnyFoliageInstancers = true;
 
 		//
 		// TODO: REFACTOR THIS!
@@ -368,7 +407,7 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 				InstancedOutputPartData.bIsFoliageInstancer,
 				VariationMaterials,
 				InstancedOutputPartData.OriginalInstancedIndices[VariationOriginalIndex],
-				InstanceObjectIdx,
+				FoliageTypeCount,
 				InstancedOutputPartData.bForceHISM,
 				InstancedOutputPartData.bForceInstancer))
 			{
@@ -566,11 +605,6 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 	// Update the output's object map
 	// Instancer do not create objects, clean the map
 	InOutput->SetOutputObjects(NewOutputObjects);
-
-	// If we removed, created or updated any foliage instancers, repopulate the list of foliage types in the UI (foliage
-	// mode)
-	if (bHaveAnyFoliageInstancers)
-		FHoudiniEngineUtils::RepopulateFoliageTypeListInUI();
 
 	return true;
 }
@@ -1888,7 +1922,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 	const bool& InIsFoliageInstancer,
 	const TArray<UMaterialInterface *>& InstancerMaterials,
 	const TArray<int32>& OriginalInstancerObjectIndices,
-	const int32& InstancerObjectIdx,
+	int32& FoliageTypeCount,
 	const bool& bForceHISM,
 	const bool& bForceInstancer)
 {
@@ -1941,8 +1975,13 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 	// See what type of component we want to create
 	InstancerComponentType NewType = InstancerComponentType::Invalid;
 
-	UStaticMesh * StaticMesh = Cast<UStaticMesh>(InstancedObject);
-	UFoliageType * FoliageType = Cast<UFoliageType>(InstancedObject);
+	UStaticMesh* StaticMesh = Cast<UStaticMesh>(InstancedObject);
+
+	UFoliageType* FoliageType = Cast<UFoliageType>(InstancedObject);
+	if (IsValid(FoliageType))
+	{
+	    StaticMesh = Cast<UStaticMesh>(FoliageType->GetSource());
+	}
 
 	UHoudiniStaticMesh * HSM = nullptr;
 	if (!StaticMesh && !FoliageType)
@@ -2045,7 +2084,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		case Foliage:
 		{
 			bSuccess = CreateOrUpdateFoliageInstances(
-				StaticMesh, FoliageType, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, InPackageParams, InstancerObjectIdx, ParentComponent, NewComponent, InstancerMaterial);
+				StaticMesh, FoliageType, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, InPackageParams, FoliageTypeCount, ParentComponent, NewComponent, InstancerMaterial);
+
 		}
 	}
 
@@ -2630,45 +2670,32 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
 	const FHoudiniGeoPartObject& InstancerGeoPartObject,
 	const FHoudiniPackageParams& InPackageParams,
-	int InstancerObjectIdx,
+	int & FoliageTypeCount,
 	USceneComponent* ParentComponent,
 	USceneComponent*& NewInstancedComponent,
 	UMaterialInterface * InstancerMaterial /*=nullptr*/)
 {
-	// We need either a valid SM or a valid Foliage Type
-	if ((!IsValid(InstancedStaticMesh))
-		&& (!IsValid(InFoliageType)))
-		return false;
-
-	if (!IsValid(ParentComponent))
-		return false;
-
-	UObject* ComponentOuter = ParentComponent;
-	if (IsValid(ParentComponent->GetOwner()))
-		ComponentOuter = ParentComponent->GetOwner();
+	HOUDINI_CHECK_RETURN(IsValid(InstancedStaticMesh) || IsValid(InFoliageType), false);
+	HOUDINI_CHECK_RETURN(IsValid(ParentComponent), false);
 
 	AActor* OwnerActor = ParentComponent->GetOwner();
-	if (!IsValid(OwnerActor))
-		return false;
-	
+	HOUDINI_CHECK_RETURN(IsValid(OwnerActor), false);
+
 	// We want to spawn the foliage in the same level as the parent HDA
 	// as spawning in the current level may cause reference issue later on.
-	//ULevel* DesiredLevel = GWorld->GetCurrentLevel();
 	ULevel* DesiredLevel = OwnerActor->GetLevel();
-	if (!IsValid(DesiredLevel))
-		return false;
+	HOUDINI_CHECK_RETURN(IsValid(DesiredLevel), false);
 
-	AInstancedFoliageActor* InstancedFoliageActor = AInstancedFoliageActor::Get(DesiredLevel->GetWorld(), true, DesiredLevel);
-	if (!IsValid(InstancedFoliageActor))
-		return false;
+	UWorld* World = DesiredLevel->GetWorld();
+	HOUDINI_CHECK_RETURN(IsValid(World), false);
 
-	// See if we already have a FoliageType for that static mesh
+    // See if we already have a FoliageType for that static mesh
 	bool bCreatedNew = false;
 	UFoliageType *FoliageType = InFoliageType;
 	if (!IsValid(FoliageType))
 	{
-		// Foliage Type wasnt specified, only the mesh, try to find an existing foliage for that SM
-		FoliageType = FHoudiniEngineUtils::GetFoliageType(DesiredLevel, InstancedFoliageActor, InstancedStaticMesh);
+		// Foliage Type wasn't specified, only the mesh, try to find an existing foliage for that SM
+		FoliageType = FHoudiniFoliageTools::GetFoliageType(DesiredLevel, InstancedStaticMesh);
 	}
 	else
 	{
@@ -2678,41 +2705,20 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 		{
 			InstancedStaticMesh = FoliageISM->GetStaticMesh();
 		}
-
-		// See a component already exist on the actor
-		// If we cant find Foliage info for that foliage type, a new one will be created.
-		// when we call FindOrAddMesh
-		bCreatedNew = InstancedFoliageActor->FindInfo(FoliageType) == nullptr;
 	}		
 
 	if (!IsValid(FoliageType))
 	{
 		FHoudiniPackageParams FoliageTypePackageParams =  InPackageParams;
-		FoliageType = FHoudiniEngineUtils::CreateFoliageType(FoliageTypePackageParams, InstancerObjectIdx, DesiredLevel, InstancedFoliageActor, InstancedStaticMesh);
+		FoliageType = FHoudiniFoliageTools::CreateFoliageType(FoliageTypePackageParams, FoliageTypeCount, DesiredLevel, InstancedStaticMesh);
+		++FoliageTypeCount;
 		bCreatedNew = true;
 	}
 
-	if (!bCreatedNew && NewInstancedComponent)
-	{
-		// TODO: Shouldnt be needed anymore
-		// Clean up the instances previously generated for that component
-		InstancedFoliageActor->DeleteInstancesForComponent(ParentComponent, FoliageType);
-	}
-
- 	// Get the FoliageMeshInfo for this Foliage type so we can add the instance to it
-	FFoliageInfo* FoliageInfo = InstancedFoliageActor->FindOrAddMesh(FoliageType);
-	if (!FoliageInfo)
-		return false;
-
 	FTransform HoudiniAssetTransform = ParentComponent->GetComponentTransform();
-	//FFoliageInstance FoliageInstance;	
-	//FoliageInfo->ReserveAdditionalInstances(FoliageType, InstancedObjectTransforms.Num());
 	
 	TArray<FFoliageInstance> FoliageInstances;
 	FoliageInstances.SetNum(InstancedObjectTransforms.Num());
-
-	TArray<const FFoliageInstance*> FoliageInstancesPtr;
-	FoliageInstancesPtr.SetNum(InstancedObjectTransforms.Num());
 
 	//for (auto CurrentTransform : InstancedObjectTransforms)
 	for(int32 n = 0; n < InstancedObjectTransforms.Num(); n++)
@@ -2725,24 +2731,12 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 
 		// TODO: FIX ME!
 		// Somehow, the first time when we create the Foliage type, instances need to be added with relative transform
-		// .. EXCEPT for World Partition, its must be transformed by the InstancedFoliageActor...
 		// On subsequent cooks, they are actually expecting world transform.... 
 		if (bCreatedNew)
 		{
-			if (!DesiredLevel->GetWorld()->IsPartitionedWorld())
-			{
-				FoliageInstances[n].Location = CurrentTransform.GetLocation();
-				FoliageInstances[n].Rotation = CurrentTransform.GetRotation().Rotator();
-				FoliageInstances[n].DrawScale3D = (FVector3f)CurrentTransform.GetScale3D();
-			}
-			else
-			{
-				const FTransform & IFATransform = InstancedFoliageActor->GetTransform();
-				FoliageInstances[n].Location = IFATransform.TransformPosition(CurrentTransform.GetLocation());
-				FoliageInstances[n].Rotation = IFATransform.TransformRotation(CurrentTransform.GetRotation()).Rotator();
-				FoliageInstances[n].DrawScale3D = (FVector3f)(IFATransform.GetScale3D() * HoudiniAssetTransform.GetScale3D());
-			}
-
+			FoliageInstances[n].Location = CurrentTransform.GetLocation();
+			FoliageInstances[n].Rotation = CurrentTransform.GetRotation().Rotator();
+			FoliageInstances[n].DrawScale3D = (FVector3f)CurrentTransform.GetScale3D();
 		}
 		else
 		{
@@ -2750,38 +2744,45 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 			FoliageInstances[n].Rotation = HoudiniAssetTransform.TransformRotation(CurrentTransform.GetRotation()).Rotator();
 			FoliageInstances[n].DrawScale3D = (FVector3f)(CurrentTransform.GetScale3D() * HoudiniAssetTransform.GetScale3D());
 		}
-
-		FoliageInstancesPtr[n] = &FoliageInstances[n];
-
-		//FoliageInfo->AddInstance(FoliageType, FoliageInstance);
 	}
 
-	FoliageInfo->AddInstances(FoliageType, FoliageInstancesPtr);
+	FHoudiniFoliageTools::SpawnFoliageInstance(World, FoliageType, FoliageInstances, true);
 
-	UHierarchicalInstancedStaticMeshComponent* FoliageHISMC = FoliageInfo->GetComponent();	
-	if (IsValid(FoliageHISMC))
+	// Clear the returned component. This should be set, but doesn't make in world partition.
+	// In future, this should be an array of components.
+	NewInstancedComponent = nullptr;
+
+	TArray<FFoliageInfo*> FoliageInfos = FHoudiniFoliageTools::GetAllFoliageInfo(DesiredLevel->GetWorld(), FoliageType);
+	for(FFoliageInfo * FoliageInfo : FoliageInfos)
 	{
-		// TODO: This was due to a bug in UE4.22-20, check if still needed! 
-		FoliageHISMC->BuildTreeIfOutdated(true, true);
 
-		if (InstancerMaterial)
-		{
-			FoliageHISMC->OverrideMaterials.Empty();
-			int32 MeshMaterialCount = InstancedStaticMesh ? InstancedStaticMesh->GetStaticMaterials().Num() : 1;
-			for (int32 Idx = 0; Idx < MeshMaterialCount; ++Idx)
-				FoliageHISMC->SetMaterial(Idx, InstancerMaterial);
-		}
+	    UHierarchicalInstancedStaticMeshComponent* FoliageHISMC = FoliageInfo->GetComponent();	
+	    if (IsValid(FoliageHISMC))
+	    {
+		    // TODO: This was due to a bug in UE4.22-20, check if still needed! 
+		    FoliageHISMC->BuildTreeIfOutdated(true, true);
+
+		    if (InstancerMaterial)
+		    {
+			    FoliageHISMC->OverrideMaterials.Empty();
+			    int32 MeshMaterialCount = InstancedStaticMesh ? InstancedStaticMesh->GetStaticMaterials().Num() : 1;
+			    for (int32 Idx = 0; Idx < MeshMaterialCount; ++Idx)
+				    FoliageHISMC->SetMaterial(Idx, InstancerMaterial);
+		    }
+
+			if (!World->IsPartitionedWorld())
+		    	NewInstancedComponent = FoliageHISMC;
+
+			UpdateGenericPropertiesAttributes(FoliageHISMC, AllPropertyAttributes, FirstOriginalIndex);
+	    }
 	}
 
 	// Try to apply generic properties attributes
 	// either on the instancer, mesh or foliage type
 	// TODO: Use proper atIndex!!
-	UpdateGenericPropertiesAttributes(FoliageHISMC, AllPropertyAttributes, FirstOriginalIndex);
+
 	UpdateGenericPropertiesAttributes(InstancedStaticMesh, AllPropertyAttributes, FirstOriginalIndex);
 	UpdateGenericPropertiesAttributes(FoliageType, AllPropertyAttributes, FirstOriginalIndex);
-
-	if (IsValid(FoliageHISMC))
-		NewInstancedComponent = FoliageHISMC;
 
 	// TODO:
 	// We want to make this invisible if it's a collision instancer.

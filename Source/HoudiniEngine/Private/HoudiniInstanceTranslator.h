@@ -210,13 +210,29 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const TArray<UHoudiniOutput*>& InAllOutputs,
 			FHoudiniInstancedOutputPartData& OutInstancedOutputPartData);
 
+		static int CreateAllInstancersFromHoudiniOutputs(
+			const TArray<UHoudiniOutput*>& InAllOutputs,
+			UObject* InOuterComponent,
+			const FHoudiniPackageParams& InPackageParms,
+			const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* InPreBuiltInstancedOutputPartData = nullptr);
+
+		static int CreateAllInstancersFromHoudiniOutputs(
+			const TArray<UHoudiniOutput*>& InSubsets,
+			const TArray<UHoudiniOutput*>& InAllOutputs,
+			UObject* InOuterComponent,
+			const FHoudiniPackageParams& InPackageParms,
+			const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* InPreBuiltInstancedOutputPartData = nullptr);
+
+	private:
 		static bool CreateAllInstancersFromHoudiniOutput(
 			UHoudiniOutput* InOutput,
 			const TArray<UHoudiniOutput*>& InAllOutputs,
 			UObject* InOuterComponent,
 			const FHoudiniPackageParams& InPackageParms,
+			int & FoliageTypeCount,
 			const TMap<FHoudiniOutputObjectIdentifier,FHoudiniInstancedOutputPartData>* InPreBuiltInstancedOutputPartData = nullptr);
 
+	public:
 		static bool GetInstancerObjectsAndTransforms(
 			const FHoudiniGeoPartObject& InHGPO,
 			const TArray<UHoudiniOutput*>& InAllOutputs,
@@ -303,7 +319,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const bool& InIsFoliageInstancer,
 			const TArray<UMaterialInterface *>& InstancerMaterials,
 			const TArray<int32>& OriginalInstancerObjectIndices, 
-			const int32& InstancerObjectIdx = 0,			
+			int32& FoliageTypeCount,
 			const bool& bForceHISM = false,
 			const bool& bForceInstancer = false);
 
@@ -369,7 +385,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
 			const FHoudiniGeoPartObject& InstancerGeoPartObject,
 			const FHoudiniPackageParams& InPackageParams,
-			int InstancerObjectIdx,
+			int & FoliageTypeCount,
 			USceneComponent* ParentComponent,
 			USceneComponent*& NewInstancedComponent,
 			UMaterialInterface * InstancerMaterial /*=nullptr*/);
