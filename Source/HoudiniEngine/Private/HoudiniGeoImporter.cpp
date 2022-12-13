@@ -583,14 +583,15 @@ UHoudiniGeoImporter::CreateInstancers(TArray<UHoudiniOutput*>& InOutputs, UObjec
 	// Create a fake outer component that we'll use as a temporary outer for our instancers
 	USceneComponent* OuterComponent = NewObject<USceneComponent>();
 
+	// Create all the instancers and attach them to a fake outer component
+	FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(
+		InOutputs, OuterComponent, InPackageParams);
+
 	for (auto& CurOutput : InOutputs)
 	{
+		// Transfer all the instancer components to the BP
 		if (CurOutput->GetType() != EHoudiniOutputType::Instancer)
 			continue;
-
-		// Create all the instancers and attach them to a fake outer component
-		FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
-			CurOutput, InOutputs, OuterComponent, InPackageParams);
 
 		// Prepare an ActorComponent array for AddComponentsToBlueprint()
 		TArray<UActorComponent*> OutputComp;
@@ -603,7 +604,6 @@ UHoudiniGeoImporter::CreateInstancers(TArray<UHoudiniOutput*>& InOutputs, UObjec
 			OutputComp.Add(CurObj);
 		}
 
-		// Transfer all the instancer components to the BP
 		if (OutputComp.Num() > 0)
 		{
 			FKismetEditorUtilities::FAddComponentsToBlueprintParams Params;

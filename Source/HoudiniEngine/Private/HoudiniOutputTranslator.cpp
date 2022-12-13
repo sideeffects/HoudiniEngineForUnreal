@@ -474,16 +474,15 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	bool HasGeometryCollection = false;
 	
 	// Now that all meshes have been created, process the instancers
+	int InstanceCount = FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(HAC->Outputs, OuterComponent, PackageParams);
+	NumVisibleOutputs += InstanceCount;
+
 	for (auto& CurOutput : InstancerOutputs)
 	{
-		if (!FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(CurOutput, HAC->Outputs, OuterComponent, PackageParams))
-			continue;
-
-		NumVisibleOutputs++;
-
 		if (!HasGeometryCollection && FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancer(CurOutput))
 		{
 			HasGeometryCollection = true;
+			break;
 		}
 	}
 
@@ -715,10 +714,7 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 	// Rebuild instancers if we built any static meshes from proxies
 	if (bFoundProxies)
 	{
-		for (auto& CurOutput : InstancerOutputs)
-		{
-			FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(CurOutput, HAC->Outputs, OuterComponent, PackageParams);
-		}
+		FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(HAC->Outputs, OuterComponent, PackageParams);
 	}
 
 	return true;
@@ -1995,6 +1991,8 @@ FHoudiniOutputTranslator::UpdateChangedOutputs(UHoudiniAssetComponent* HAC)
 	
 	TArray<UHoudiniOutput*>& Outputs = HAC->Outputs;
 
+	TArray<UHoudiniOutput *> OutputsToUpdate;
+
 	// Iterate through the outputs array of HAC.
 	for (int32 Index = 0; Index < HAC->GetNumOutputs(); ++Index)
 	{
@@ -2041,7 +2039,8 @@ FHoudiniOutputTranslator::UpdateChangedOutputs(UHoudiniAssetComponent* HAC)
 					}
 					else
 					{
-						FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(CurrentOutput, Outputs, HAC, PackageParams);
+						OutputsToUpdate.Add(CurrentOutput);
+
 					}
 				}
 			}
@@ -2057,6 +2056,8 @@ FHoudiniOutputTranslator::UpdateChangedOutputs(UHoudiniAssetComponent* HAC)
 				break;
 		}
 	}
+
+	FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(OutputsToUpdate, Outputs, HAC, PackageParams);
 
 	return true;
 }
