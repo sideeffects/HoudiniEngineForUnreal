@@ -384,7 +384,8 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 				}
 				else
 				{
-					OldInstancerComponent = Cast<USceneComponent>(FoundOutputObject->OutputComponent);
+					OldInstancerComponent = FoundOutputObject->OutputComponents.Num() > 0 ?
+				        Cast<USceneComponent>(FoundOutputObject->OutputComponents[0]) : nullptr;
 				}
 			}
 
@@ -454,7 +455,9 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 			}
 			else
 			{
-				NewOutputObject.OutputComponent = NewInstancerComponent;
+				check(NewOutputObject.OutputComponents.Num() < 2); // Multiple components not supported yet.
+				NewOutputObject.OutputComponents.Empty();
+				NewOutputObject.OutputComponents.Add(NewInstancerComponent);
 				NewOutputObject.OutputObject = InstancedObject;
 			}
 
@@ -541,13 +544,14 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 
 		bool bKeep = false;
 
-		UObject* NewComponent = CurNewPair.Value.OutputComponent;
-		if (NewComponent)
+		for(UObject* NewComponent : CurNewPair.Value.OutputComponents)
 		{
-			UObject* FoundOldComponent = FoundOldOutputObject->OutputComponent;
-			if (IsValid(FoundOldComponent))
+			for(UObject* FoundOldComponent : FoundOldOutputObject->OutputComponents)
 			{
-				bKeep = (FoundOldComponent == NewComponent);
+			    if (IsValid(FoundOldComponent))
+			    {
+				    bKeep = (FoundOldComponent == NewComponent);
+			    }
 			}
 		}
 
@@ -573,8 +577,7 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 	{
 		// Get the old Identifier / StaticMesh
 		FHoudiniOutputObjectIdentifier& OutputIdentifier = OldPair.Key;
-		UObject* OldComponent = OldPair.Value.OutputComponent;
-		if (OldComponent)
+		for(UObject* OldComponent : OldPair.Value.OutputComponents)
 		{
 			bool bDestroy = true;
 			if (OldComponent->IsA<UHierarchicalInstancedStaticMeshComponent>())
@@ -588,7 +591,7 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 			if(bDestroy)
 				RemoveAndDestroyComponent(OldComponent, OldPair.Value.OutputObject);
 
-			OldPair.Value.OutputComponent = nullptr;
+			OldPair.Value.OutputComponents.Empty();
 			OldPair.Value.OutputObject = nullptr;
 		}
 
@@ -726,7 +729,9 @@ FHoudiniInstanceTranslator::UpdateChangedInstancedOutput(
 		FHoudiniOutputObject* FoundOutputObject = OutputObjects.Find(OutputIdentifier);
 		if (FoundOutputObject)
 		{
-			OldInstancerComponent = Cast<USceneComponent>(FoundOutputObject->OutputComponent);
+
+			OldInstancerComponent = FoundOutputObject->OutputComponents.Num() > 0 ?
+			    Cast<USceneComponent>(FoundOutputObject->OutputComponents[0]) : nullptr;
 		}
 
 		// Extract the material for this variation
@@ -768,12 +773,14 @@ FHoudiniInstanceTranslator::UpdateChangedInstancedOutput(
 			// Replace it with the new component
 			if (FoundOutputObject)
 			{
-				FoundOutputObject->OutputComponent = NewInstancerComponent;
+				FoundOutputObject->OutputComponents.Empty();
+				FoundOutputObject->OutputComponents.Add(NewInstancerComponent);
 			}
 			else
 			{
 				FHoudiniOutputObject& NewOutputObject = OutputObjects.Add(OutputIdentifier);
-				NewOutputObject.OutputComponent = NewInstancerComponent;
+				NewOutputObject.OutputComponents.Empty();
+				NewOutputObject.OutputComponents.Add(NewInstancerComponent);
 			}
 		}
 
@@ -787,11 +794,14 @@ FHoudiniInstanceTranslator::UpdateChangedInstancedOutput(
 	{
 		// Get the old Identifier / StaticMesh
 		FHoudiniOutputObjectIdentifier& ToDeleteIdentifier = ToDeletePair.Key;
-		UObject* OldComponent = ToDeletePair.Value.OutputComponent;
-		if (OldComponent)
+		for(int Index = 0; Index < ToDeletePair.Value.OutputComponents.Num(); Index++)
 		{
-			RemoveAndDestroyComponent(OldComponent, ToDeletePair.Value.OutputObject);
-			ToDeletePair.Value.OutputComponent = nullptr;
+			UObject * OldComponent = ToDeletePair.Value.OutputComponents[Index];
+		    if (OldComponent)
+		    {
+			    RemoveAndDestroyComponent(OldComponent, ToDeletePair.Value.OutputObject);
+			    ToDeletePair.Value.OutputComponents[Index] = nullptr;
+		    }
 		}
 
 		UObject* OldProxyComponent = ToDeletePair.Value.ProxyComponent;
@@ -800,7 +810,7 @@ FHoudiniInstanceTranslator::UpdateChangedInstancedOutput(
 			RemoveAndDestroyComponent(OldProxyComponent, ToDeletePair.Value.ProxyObject);
 			ToDeletePair.Value.ProxyComponent = nullptr;
 		}
-
+		
 		// Make sure the stale output object is not in the output map anymore
 		OutputObjects.Remove(ToDeleteIdentifier);
 	}

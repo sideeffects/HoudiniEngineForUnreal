@@ -2752,7 +2752,11 @@ UHoudiniPublicAPIAssetWrapper::GetOutputComponentAt_Implementation(const int32 I
 	if (!OutputObject)
 		return nullptr;
 
-	return OutputObject->bProxyIsCurrent ? OutputObject->ProxyComponent : OutputObject->OutputComponent;
+	if (OutputObject->bProxyIsCurrent) {
+	    return OutputObject->ProxyComponent;
+	} else {
+	    return OutputObject->OutputComponents.Num() > 0 ? OutputObject->OutputComponents[0] : nullptr;
+	}
 }
 
 bool
@@ -2832,8 +2836,8 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(const int32 InI
 			}
 			break;
 		}
-		case EHoudiniOutputType::Curve:
-			ObjectToBake = OutputObject->OutputComponent;
+	case EHoudiniOutputType::Curve:
+			ObjectToBake = OutputObject->OutputComponents.Num() > 0 ? OutputObject->OutputComponents[0] : nullptr;
 			break;
 		case EHoudiniOutputType::Mesh:
 			ObjectToBake = OutputObject->OutputObject;

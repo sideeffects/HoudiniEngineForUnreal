@@ -444,9 +444,9 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 				FHoudiniOutputObject& OutputObject = Pair.Value;
 
 				// If the OutputObject has an OutputComponent, try to attach it to ParentComponent
-				if (IsValid(OutputObject.OutputComponent))
+				for(auto OutputComponent : OutputObject.OutputComponents)
 				{
-					USceneComponent* Component = Cast<USceneComponent>(OutputObject.OutputComponent);
+					USceneComponent* Component = Cast<USceneComponent>(OutputComponent);
 					if (IsValid(Component) && !Component->IsAttachedTo(ParentComponent))
 					{
 						Component->AttachToComponent(ParentComponent, FAttachmentTransformRules::KeepWorldTransform);

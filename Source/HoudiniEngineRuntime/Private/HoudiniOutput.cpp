@@ -471,20 +471,25 @@ UHoudiniOutput::GetBounds() const
 		{
 			const FHoudiniOutputObject& CurObj = CurPair.Value;
 
-			UMeshComponent* MeshComp = nullptr;
 			if (CurObj.bProxyIsCurrent)
 			{
-				MeshComp = Cast<UMeshComponent>(CurObj.ProxyComponent);
+				UMeshComponent* MeshComp = Cast<UMeshComponent>(CurObj.ProxyComponent);
+				if (!IsValid(MeshComp))
+					continue;
+
+				BoxBounds += MeshComp->Bounds.GetBox();
 			}
 			else
 			{
-				MeshComp = Cast<UMeshComponent>(CurObj.OutputComponent);
+				for(auto Component : CurObj.OutputComponents)
+				{
+					UMeshComponent* MeshComp = Cast<UMeshComponent>(Component);
+					if (!IsValid(MeshComp))
+						continue;
+
+					BoxBounds += MeshComp->Bounds.GetBox();
+				}
 			}
-
-			if (!IsValid(MeshComp))
-				continue;
-
-			BoxBounds += MeshComp->Bounds.GetBox();
 		}
 	}
 	break;
@@ -530,19 +535,22 @@ UHoudiniOutput::GetBounds() const
 		for (auto & CurPair : OutputObjects)
 		{
 			const FHoudiniOutputObject& CurObj = CurPair.Value;
-			UHoudiniSplineComponent* CurHoudiniSplineComp = Cast<UHoudiniSplineComponent>(CurObj.OutputComponent);
-			if (!IsValid(CurHoudiniSplineComp))
-				continue;
-
-			FBox CurCurveBound(ForceInitToZero);
-			for (auto & Trans : CurHoudiniSplineComp->CurvePoints)
+			for(auto Component : CurObj.OutputComponents)
 			{
-				CurCurveBound += Trans.GetLocation();
-			}
+			    UHoudiniSplineComponent* CurHoudiniSplineComp = Cast<UHoudiniSplineComponent>(Component);
+			    if (!IsValid(CurHoudiniSplineComp))
+				    continue;
 
-			UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(GetOuter());
-			if (IsValid(OuterHAC))
-				BoxBounds += CurCurveBound.MoveTo(OuterHAC->GetComponentLocation());
+			    FBox CurCurveBound(ForceInitToZero);
+			    for (auto & Trans : CurHoudiniSplineComp->CurvePoints)
+			    {
+				    CurCurveBound += Trans.GetLocation();
+			    }
+
+			    UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(GetOuter());
+			    if (IsValid(OuterHAC))
+				    BoxBounds += CurCurveBound.MoveTo(OuterHAC->GetComponentLocation());
+			}
 		}
 
 	}
@@ -568,48 +576,51 @@ UHoudiniOutput::Clear()
 
 	for (auto& CurrentOutputObject : OutputObjects)
 	{
-		UHoudiniSplineComponent* SplineComponent = Cast<UHoudiniSplineComponent>(CurrentOutputObject.Value.OutputComponent);
-		if (IsValid(SplineComponent))
+		for (auto Component : CurrentOutputObject.Value.OutputComponents)
 		{
-			// The spline component is a special case where the output
-			// object as associated Houdini nodes (as input object).
-			// We can only explicitly remove those nodes when the output object gets
-			// removed. 
-			SplineComponent->MarkInputNodesAsPendingKill();
-		}
-		
-		// Clear the output component
-		USceneComponent* SceneComp = Cast<USceneComponent>(CurrentOutputObject.Value.OutputComponent);
-		if (IsValid(SceneComp))
-		{
-			SceneComp->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-			SceneComp->UnregisterComponent();
-			SceneComp->DestroyComponent();
-		}
+		    UHoudiniSplineComponent* SplineComponent = Cast<UHoudiniSplineComponent>(Component);
+		    if (IsValid(SplineComponent))
+		    {
+			    // The spline component is a special case where the output
+			    // object as associated Houdini nodes (as input object).
+			    // We can only explicitly remove those nodes when the output object gets
+			    // removed. 
+			    SplineComponent->MarkInputNodesAsPendingKill();
+		    }
+		    
+		    // Clear the output component
+		    USceneComponent* SceneComp = Cast<USceneComponent>(Component);
+		    if (IsValid(SceneComp))
+		    {
+			    SceneComp->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+			    SceneComp->UnregisterComponent();
+			    SceneComp->DestroyComponent();
+		    }
 
 
-		// Also destroy proxy components
-		USceneComponent* ProxyComp = Cast<USceneComponent>(CurrentOutputObject.Value.ProxyComponent);
-		if (IsValid(ProxyComp))
-		{
-			ProxyComp->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-			ProxyComp->UnregisterComponent();
-			ProxyComp->DestroyComponent();
-		}
+		    // Also destroy proxy components
+		    USceneComponent* ProxyComp = Cast<USceneComponent>(Component);
+		    if (IsValid(ProxyComp))
+		    {
+			    ProxyComp->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+			    ProxyComp->UnregisterComponent();
+			    ProxyComp->DestroyComponent();
+		    }
 
-		if (Type == EHoudiniOutputType::Landscape && !bLandscapeWorldComposition && !IsGarbageCollecting())
-		{
-			// NOTE: We cannot resolve soft pointers during garbage collection. Any Get() or IsValid() call
-			// will result in a StaticFindObject() call which will raise an exception during GC.
-			UHoudiniLandscapePtr* LandscapePtr = Cast<UHoudiniLandscapePtr>(CurrentOutputObject.Value.OutputObject);
-			TSoftObjectPtr<ALandscapeProxy> LandscapeProxy = LandscapePtr ? LandscapePtr->GetSoftPtr() : nullptr;
-			if (!LandscapeProxy.IsNull() && LandscapeProxy.IsValid())
-			{
-				LandscapeProxy->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-				LandscapeProxy->ConditionalBeginDestroy();
-				LandscapeProxy->Destroy();
-				LandscapePtr->SetSoftPtr(nullptr);
-			}
+		    if (Type == EHoudiniOutputType::Landscape && !bLandscapeWorldComposition && !IsGarbageCollecting())
+		    {
+			    // NOTE: We cannot resolve soft pointers during garbage collection. Any Get() or IsValid() call
+			    // will result in a StaticFindObject() call which will raise an exception during GC.
+			    UHoudiniLandscapePtr* LandscapePtr = Cast<UHoudiniLandscapePtr>(CurrentOutputObject.Value.OutputObject);
+			    TSoftObjectPtr<ALandscapeProxy> LandscapeProxy = LandscapePtr ? LandscapePtr->GetSoftPtr() : nullptr;
+			    if (!LandscapeProxy.IsNull() && LandscapeProxy.IsValid())
+			    {
+				    LandscapeProxy->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+				    LandscapeProxy->ConditionalBeginDestroy();
+				    LandscapeProxy->Destroy();
+				    LandscapePtr->SetSoftPtr(nullptr);
+			    }
+		    }
 		}
 	}
 

@@ -1885,8 +1885,11 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 		if (!FoundOutputObject)
 			bNeedToRebuildSpline = true;
 
-		USceneComponent* FoundComponent = Cast<USceneComponent>(FoundOutputObject ? FoundOutputObject->OutputComponent : nullptr);
-		if (IsValid(FoundComponent))
+		USceneComponent* FoundComponent = nullptr;
+		if (FoundOutputObject && FoundOutputObject->OutputComponents.Num() > 0)
+			FoundComponent = Cast<USceneComponent>(FoundOutputObject->OutputComponents[0]);
+
+	    if (IsValid(FoundComponent))
 		{
 			// Only support output to Unreal Spline for now...
 			//if (FoundComponent->IsA<USplineComponent>() && FoundOutputObject->CurveOutputProperty.CurveOutputType != EHoudiniCurveOutputType::UnrealSpline)
@@ -1928,7 +1931,9 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 
 			// Create a new output object
 			FHoudiniOutputObject NewOutputObject;
-			NewOutputObject.OutputComponent = CreatedSplineComponent;
+			check(NewOutputObject.OutputComponents.Num() < 2); // Multiple components not supported yet.
+			NewOutputObject.OutputComponents.Empty();
+			NewOutputObject.OutputComponents.Add(CreatedSplineComponent);
 
 			NewOutputObject.CurveOutputProperty.CurveOutputType = OutputCurveType;
 			NewOutputObject.CurveOutputProperty.NumPoints = CurvePointsCounts[n];
@@ -1955,7 +1960,7 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 			if (FoundOutputObject->CurveOutputProperty.CurveOutputType == EHoudiniCurveOutputType::UnrealSpline)
 			{
 				// See if we can simply update the previous Spline Component
-				bool bCanUpdateUnrealSpline = (FoundOutputObject->OutputComponent &&  FoundOutputObject->OutputComponent->IsA<USplineComponent>());
+				bool bCanUpdateUnrealSpline = (!FoundOutputObject->OutputComponents.IsEmpty() &&  FoundOutputObject->OutputComponents[0]->IsA<USplineComponent>());
 				if (bCanUpdateUnrealSpline)
 				{
 					// Update the existing unreal spline component
@@ -1964,7 +1969,8 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 						TEXT("Updating Unreal Spline: Object [%d %s], Geo [%d], Part [%d %s], Curve# [%d], number of points [%d]."),
 						InHGPO.ObjectId, *InHGPO.ObjectName, InHGPO.GeoId, InHGPO.PartId, *InHGPO.PartName, CurveIdx, CurvePointsCounts[n]);
 
-					USplineComponent* FoundUnrealSpline = Cast<USplineComponent>(FoundOutputObject->OutputComponent);
+					USplineComponent* FoundUnrealSpline = FoundOutputObject->OutputComponents.Num() > 0 ?
+					        Cast<USplineComponent>(FoundOutputObject->OutputComponents[0]) : nullptr;
 					if (!FHoudiniSplineTranslator::UpdateOutputUnrealSplineComponent(
 						FoundUnrealSpline, CurvesDisplayPoints[n], CurvesRotations[n], CurvesScales[n], 
 						FoundOutputObject->CurveOutputProperty.CurveType, FoundOutputObject->CurveOutputProperty.bClosed))
@@ -1988,7 +1994,9 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 					if (!NewUnrealSpline)
 						continue;
 
-					FoundOutputObject->OutputComponent = NewUnrealSpline;
+					check(FoundOutputObject->OutputComponents.Num() < 2); // Multiple components not supported yet.
+					FoundOutputObject->OutputComponents.Empty();
+					FoundOutputObject->OutputComponents.Add(NewUnrealSpline);
 
 					FoundOutputObject = &OutSplines.Add(CurveIdentifier, *FoundOutputObject);
 				}
@@ -2118,7 +2126,8 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 		if (FoundOutputObject && FHoudiniEngineUtils::GetGenericPropertiesAttributes(
 			InHGPO.GeoId, InHGPO.PartId, true, 0, 0, 0, GenericAttributes))
 		{
-			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(FoundOutputObject->OutputComponent, GenericAttributes);
+			for(auto Component : FoundOutputObject->OutputComponents)
+			    FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(Component, GenericAttributes);
 		}
 		
 		if (bReusedPreviousOutput)
@@ -2216,18 +2225,22 @@ FHoudiniSplineTranslator::CreateAllSplinesFromHoudiniOutput(UHoudiniOutput* InOu
 	// The old map now only contains unused/stale output curves destroy them
 	for (auto& OldPair : OldOutputObjects)
 	{
-		USceneComponent* OldSplineSceneComponent = Cast<USceneComponent>(OldPair.Value.OutputComponent);
-		
-		if (!IsValid(OldSplineSceneComponent))
-			continue;
+		for(auto Component : OldPair.Value.OutputComponents)
+		{
+		    USceneComponent* OldSplineSceneComponent = Cast<USceneComponent>(Component);
+		    
+		    if (!IsValid(OldSplineSceneComponent))
+			    continue;
 
-		// The output object is supposed to be a spline
-		if (!OldSplineSceneComponent->IsA<USplineComponent>() && !OldSplineSceneComponent->IsA<UHoudiniSplineComponent>())
-			continue;
+		    // The output object is supposed to be a spline
+		    if (!OldSplineSceneComponent->IsA<USplineComponent>() && !OldSplineSceneComponent->IsA<UHoudiniSplineComponent>())
+			    continue;
 
-		OldSplineSceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-		OldSplineSceneComponent->UnregisterComponent();
-		OldSplineSceneComponent->DestroyComponent();
+		    OldSplineSceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+		    OldSplineSceneComponent->UnregisterComponent();
+		    OldSplineSceneComponent->DestroyComponent();
+        }
+		OldPair.Value.OutputComponents.Empty();
 	}
 	OldOutputObjects.Empty();
 

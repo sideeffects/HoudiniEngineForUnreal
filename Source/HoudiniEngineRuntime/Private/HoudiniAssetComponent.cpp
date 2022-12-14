@@ -234,7 +234,7 @@ UHoudiniAssetComponent::ConvertLegacyData()
 		// Build/Update the  output object
 		FHoudiniOutputObject& OutputObj = NewOutput->GetOutputObjects().FindOrAdd(Identifier);
 		OutputObj.OutputObject = LegacySM.Value;
-		OutputObj.OutputComponent = nullptr;
+		OutputObj.OutputComponents.Empty();
 		OutputObj.ProxyObject = nullptr;
 		OutputObj.ProxyComponent = nullptr;
 		OutputObj.bProxyIsCurrent = false;
@@ -244,7 +244,10 @@ UHoudiniAssetComponent::ConvertLegacyData()
 		{
 			UStaticMeshComponent** FoundSMC = Version1CompatibilityHAC->StaticMeshComponents.Find(LegacySM.Value);
 			if (FoundSMC && IsValid(*FoundSMC))
-				OutputObj.OutputComponent = *FoundSMC;
+			{
+				OutputObj.OutputComponents.Empty();
+				OutputObj.OutputComponents.Add(*FoundSMC);
+			}
 		}
 
 		// Add to the outputs
@@ -289,7 +292,7 @@ UHoudiniAssetComponent::ConvertLegacyData()
 		LandscapePtr->SetSoftPtr(LegacyLandscape.Value.IsValid() ? LegacyLandscape.Value.Get() : nullptr);
 
 		OutputObj.OutputObject = LandscapePtr;
-		OutputObj.OutputComponent = nullptr;
+		OutputObj.OutputComponents.Empty();
 		OutputObj.ProxyObject = nullptr;
 		OutputObj.ProxyComponent = nullptr;
 		OutputObj.bProxyIsCurrent = false;
@@ -401,7 +404,8 @@ UHoudiniAssetComponent::ConvertLegacyData()
 				FHoudiniOutputObject& OutputObj = NewOutput->GetOutputObjects().FindOrAdd(VarIdentifier);
 
 				OutputObj.OutputObject = nullptr;
-				OutputObj.OutputComponent = LegacyComp;
+				OutputObj.OutputComponents.Empty();
+				OutputObj.OutputComponents.Add(LegacyComp);
 				OutputObj.ProxyObject = nullptr;
 				OutputObj.ProxyComponent = nullptr;
 				OutputObj.bProxyIsCurrent = false;
@@ -462,7 +466,8 @@ UHoudiniAssetComponent::ConvertLegacyData()
 
 			TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = NewOutput->GetOutputObjects();
 			FHoudiniOutputObject& FoundOutputObject = OutputObjects.FindOrAdd(EditableSplineComponentIdentifier);
-			FoundOutputObject.OutputComponent = CurSplineComp;
+			FoundOutputObject.OutputComponents.Empty();
+			FoundOutputObject.OutputComponents.Add(CurSplineComp);
 
 			//CurSplineComp->SetHasEditableNodeBuilt(true);
 			CurSplineComp->SetIsInputCurve(false);
@@ -1055,17 +1060,20 @@ UHoudiniAssetComponent::NeedUpdate() const
 		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = CurrentOutput->GetOutputObjects();
 		for (auto& NextPair : OutputObjects)
 		{
-			// For now, only editable curves can trigger update
-			UHoudiniSplineComponent* HoudiniSplineComponent = Cast<UHoudiniSplineComponent>(NextPair.Value.OutputComponent);
-			if (!HoudiniSplineComponent)
-				continue;
+			for(auto Component : NextPair.Value.OutputComponents)
+			{
+			    // For now, only editable curves can trigger update
+			    UHoudiniSplineComponent* HoudiniSplineComponent = Cast<UHoudiniSplineComponent>(Component);
+			    if (!HoudiniSplineComponent)
+				    continue;
 
-			// Output curves cant trigger an update!
-			if (HoudiniSplineComponent->bIsOutputCurve)
-				continue;
+			    // Output curves cant trigger an update!
+			    if (HoudiniSplineComponent->bIsOutputCurve)
+				    continue;
 
-			if (HoudiniSplineComponent->NeedsToTriggerUpdate())
-				return true;
+			    if (HoudiniSplineComponent->NeedsToTriggerUpdate())
+				    return true;
+			}
 		}
 	}
 
@@ -1121,15 +1129,18 @@ UHoudiniAssetComponent::PreventAutoUpdates()
 		for (auto& NextPair : OutputObjects)
 		{
 			// For now, only editable curves can trigger update
-			UHoudiniSplineComponent* HoudiniSplineComponent = Cast<UHoudiniSplineComponent>(NextPair.Value.OutputComponent);
-			if (!HoudiniSplineComponent)
-				continue;
+			for(auto Component : NextPair.Value.OutputComponents)
+			{
+			    UHoudiniSplineComponent* HoudiniSplineComponent = Cast<UHoudiniSplineComponent>(Component);
+			    if (!HoudiniSplineComponent)
+				    continue;
 
-			// Output curves cant trigger an update!
-			if (HoudiniSplineComponent->bIsOutputCurve)
-				continue;
+			    // Output curves cant trigger an update!
+			    if (HoudiniSplineComponent->bIsOutputCurve)
+				    continue;
 
-			HoudiniSplineComponent->SetNeedsToTriggerUpdate(false);
+			    HoudiniSplineComponent->SetNeedsToTriggerUpdate(false);
+			}
 		}
 	}
 }
@@ -1344,12 +1355,15 @@ UHoudiniAssetComponent::MarkAsNeedCook()
 			if (OutputObject.CurveOutputProperty.CurveOutputType != EHoudiniCurveOutputType::HoudiniSpline)
 				continue;
 
-			UHoudiniSplineComponent* SplineComponent = Cast<UHoudiniSplineComponent>(OutputObject.OutputComponent);
-			if (!IsValid(SplineComponent))
-				continue;
+            for(auto Component : OutputObject.OutputComponents)
+            {
+			    UHoudiniSplineComponent* SplineComponent = Cast<UHoudiniSplineComponent>(Component);
+			    if (!IsValid(SplineComponent))
+				    continue;
 
-			// This sets bHasChanged and bNeedsToTriggerUpdate
-			SplineComponent->MarkChanged(true);
+			    // This sets bHasChanged and bNeedsToTriggerUpdate
+			    SplineComponent->MarkChanged(true);
+            }
 		}
 	}
 
@@ -1437,12 +1451,15 @@ UHoudiniAssetComponent::MarkAsNeedRebuild()
 			if (OutputObject.CurveOutputProperty.CurveOutputType != EHoudiniCurveOutputType::HoudiniSpline)
 				continue;
 
-			UHoudiniSplineComponent* SplineComponent = Cast<UHoudiniSplineComponent>(OutputObject.OutputComponent);
-			if (!IsValid(SplineComponent))
-				continue;
+			for(auto Component : OutputObject.OutputComponents)
+			{
+			    UHoudiniSplineComponent* SplineComponent = Cast<UHoudiniSplineComponent>(Component);
+			    if (!IsValid(SplineComponent))
+				    continue;
 
-			// This sets bHasChanged and bNeedsToTriggerUpdate
-			SplineComponent->MarkChanged(true);
+			    // This sets bHasChanged and bNeedsToTriggerUpdate
+			    SplineComponent->MarkChanged(true);
+			}
 		}
 	}
 
@@ -1572,6 +1589,31 @@ UHoudiniAssetComponent::PostLoad()
 
 	// !!! Do not update rendering while loading, do it when setting up the render state
 	// UpdateRenderingInformation();
+
+	// Handle FHoudiniOutputObjects which have the old single component and migrate it to an array.
+	bool bFoundDeprecatedComponent = false;
+	for(auto Output : Outputs)
+	{
+	    if (!IsValid(Output))
+	        continue;
+
+	    for(auto It : Output->GetOutputObjects())
+	    {
+			FHoudiniOutputObject& OutputObject = It.Value;
+			if (OutputObject.OutputComponent_DEPRECATED != nullptr)
+			{
+			    OutputObject.OutputComponents.Add(OutputObject.OutputComponent_DEPRECATED);
+				OutputObject.OutputComponent_DEPRECATED = nullptr;
+				bFoundDeprecatedComponent = true;
+			}
+	    }
+	}
+
+	if (bFoundDeprecatedComponent)
+	{
+		// User should see this message once when loading an old asset.
+		HOUDINI_LOG_MESSAGE(TEXT("Upgraded deprecated single component in FHoudiniOutputObject"));
+	}
 }
 
 void
@@ -1791,47 +1833,51 @@ UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 		// Clean up foliages instances
 		for (auto& CurrentOutputObject : CurrentOutput->GetOutputObjects())
 		{
-			// Foliage instancers store a HISMC in the components
-			UHierarchicalInstancedStaticMeshComponent* FoliageHISMC = Cast<UHierarchicalInstancedStaticMeshComponent>(CurrentOutputObject.Value.OutputComponent);
-			if (!FoliageHISMC)
-				continue;
-
-			UStaticMesh* FoliageSM = FoliageHISMC->GetStaticMesh();
-			if (!IsValid(FoliageSM))
-				continue;
-
-			// If we are a foliage HISMC, then our owner is an Instanced Foliage Actor,
-			// if it is not, then we are just a "regular" HISMC
-			AInstancedFoliageActor* InstancedFoliageActor = Cast<AInstancedFoliageActor>(FoliageHISMC->GetOwner());
-			if (!IsValid(InstancedFoliageActor))
-				continue;
-
-			UFoliageType *FoliageType = InstancedFoliageActor->GetLocalFoliageTypeForSource(FoliageSM);
-			if (!IsValid(FoliageType))
-				continue;
-
-			if (IsInGameThread() && IsGarbageCollecting())
+			for(int Index = 0; Index < CurrentOutputObject.Value.OutputComponents.Num(); Index++)
 			{
-				// TODO: ??
-				// Calling DeleteInstancesForComponent during GC will cause unreal to crash... 
-				HOUDINI_LOG_WARNING(TEXT("%s: Unable to clear foliage instances because of GC"), GetOwner() ? *(GetOwner()->GetName()) : *GetName());
-			}
-			else
-			{
-				// Clean up the instances generated for that component
-				InstancedFoliageActor->DeleteInstancesForComponent(this, FoliageType);
-			}
+				auto Component = CurrentOutputObject.Value.OutputComponents[Index];
+			    // Foliage instancers store a HISMC in the components
+			    UHierarchicalInstancedStaticMeshComponent* FoliageHISMC = Cast<UHierarchicalInstancedStaticMeshComponent>(Component);
+			    if (!FoliageHISMC)
+				    continue;
 
-			if (FoliageHISMC->GetInstanceCount() > 0)
-			{
-				// If the component still has instances left after the cleanup,
-				// make sure that we dont delete it, as the leftover instances are likely hand-placed
-				CurrentOutputObject.Value.OutputComponent = nullptr;
-			}
-			else
-			{
-				// Remove the foliage type if it doesn't have any more instances
-				InstancedFoliageActor->RemoveFoliageType(&FoliageType, 1);
+			    UStaticMesh* FoliageSM = FoliageHISMC->GetStaticMesh();
+			    if (!IsValid(FoliageSM))
+				    continue;
+
+			    // If we are a foliage HISMC, then our owner is an Instanced Foliage Actor,
+			    // if it is not, then we are just a "regular" HISMC
+			    AInstancedFoliageActor* InstancedFoliageActor = Cast<AInstancedFoliageActor>(FoliageHISMC->GetOwner());
+			    if (!IsValid(InstancedFoliageActor))
+				    continue;
+
+			    UFoliageType *FoliageType = InstancedFoliageActor->GetLocalFoliageTypeForSource(FoliageSM);
+			    if (!IsValid(FoliageType))
+				    continue;
+
+			    if (IsInGameThread() && IsGarbageCollecting())
+			    {
+				    // TODO: ??
+				    // Calling DeleteInstancesForComponent during GC will cause unreal to crash... 
+				    HOUDINI_LOG_WARNING(TEXT("%s: Unable to clear foliage instances because of GC"), GetOwner() ? *(GetOwner()->GetName()) : *GetName());
+			    }
+			    else
+			    {
+				    // Clean up the instances generated for that component
+				    InstancedFoliageActor->DeleteInstancesForComponent(this, FoliageType);
+			    }
+
+			    if (FoliageHISMC->GetInstanceCount() > 0)
+			    {
+				    // If the component still has instances left after the cleanup,
+				    // make sure that we dont delete it, as the leftover instances are likely hand-placed
+				    CurrentOutputObject.Value.OutputComponents[Index] = nullptr;
+			    }
+			    else
+			    {
+				    // Remove the foliage type if it doesn't have any more instances
+				    InstancedFoliageActor->RemoveFoliageType(&FoliageType, 1);
+			    }
 			}
 		}
 #endif
@@ -2679,8 +2725,11 @@ UHoudiniAssetComponent::HasAnyOutputComponent() const
 	{
 		for(auto& CurrentOutputObject : Output->GetOutputObjects())
 		{
-			if(CurrentOutputObject.Value.OutputComponent)
-				return true;
+			for(auto Component : CurrentOutputObject.Value.OutputComponents)
+			{
+			    if(Component)
+				    return true;
+			}
 		}
 	}
 
@@ -2696,12 +2745,17 @@ UHoudiniAssetComponent::HasOutputObject(UObject* InOutputObjectToFind) const
 		{
 			if (CurOutputObject.Value.OutputObject == InOutputObjectToFind)
 				return true;
-			else if (CurOutputObject.Value.OutputComponent == InOutputObjectToFind)
+			if (CurOutputObject.Value.ProxyObject == InOutputObjectToFind)
 				return true;
-			else if (CurOutputObject.Value.ProxyObject == InOutputObjectToFind)
+			if (CurOutputObject.Value.ProxyComponent == InOutputObjectToFind)
 				return true;
-			else if (CurOutputObject.Value.ProxyComponent == InOutputObjectToFind)
-				return true;
+
+			for(auto Component : CurOutputObject.Value.OutputComponents)
+			{
+				if (Component == InOutputObjectToFind)
+				    return true;
+			}
+
 		}
 	}
 

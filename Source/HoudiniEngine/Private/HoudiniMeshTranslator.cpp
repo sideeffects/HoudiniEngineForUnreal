@@ -1327,8 +1327,10 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 		FHoudiniOutputObject& OldOutputObject = OldPair.Value;
 
 		// Remove the old component from the map
-		RemoveAndDestroyComponent(OldOutputObject.OutputComponent);
-		OldOutputObject.OutputComponent = nullptr;
+		for(auto Component : OldOutputObject.OutputComponents)
+		    RemoveAndDestroyComponent(Component);
+		OldOutputObject.OutputComponents.Empty();
+
 		// Remove the old proxy component from the map
 		RemoveAndDestroyComponent(OldOutputObject.ProxyComponent);
 		OldOutputObject.ProxyComponent = nullptr;
@@ -1393,11 +1395,11 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 		{
 			// This output is implicit and shouldn't have a representative component/proxy in the scene
 			// Remove the old component from the map
-			if (OutputObject.OutputComponent)
+			for(auto Component : OutputObject.OutputComponents)
 			{
-				RemoveAndDestroyComponent(OutputObject.OutputComponent);
-				OutputObject.OutputComponent = nullptr;
+				RemoveAndDestroyComponent(Component);
 			}
+			OutputObject.OutputComponents.Empty();
 
 			// Remove the old proxy component from the map
 			RemoveAndDestroyComponent(OutputObject.ProxyComponent);
@@ -1442,11 +1444,14 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 			}
 
 			// Now, ensure that meshes replaced by proxies are still kept but hidden
-			USceneComponent* SceneComponent = Cast<USceneComponent>(OutputObject.OutputComponent);
-			if (SceneComponent)
+			for(auto Component : OutputObject.OutputComponents)
 			{
-				SceneComponent->SetVisibility(false);
-				SceneComponent->SetHiddenInGame(true);
+			    USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
+			    if (SceneComponent)
+			    {
+				    SceneComponent->SetVisibility(false);
+				    SceneComponent->SetHiddenInGame(true);
+			    }
 			}
 
 			// If the proxy mesh we just created is templated, hide it in game
@@ -8413,10 +8418,11 @@ FHoudiniMeshTranslator::CreateOrUpdateMeshComponent(
 
 	// See if we already have a component for that mesh
 	UMeshComponent* MeshComponent = nullptr;
-	if (bIsProxyComponent)
+	if (bIsProxyComponent) {
 		MeshComponent = Cast<UMeshComponent>(OutputObject.ProxyComponent);
-	else
-		MeshComponent = Cast<UMeshComponent>(OutputObject.OutputComponent);
+	} else if (OutputObject.OutputComponents.Num() > 0) {
+        MeshComponent = Cast<UMeshComponent>(OutputObject.OutputComponents[0]);
+	}
 
 	// If there is an existing component, but it is pending kill, then it was likely
 	// deleted by some other process, such as by the user in the editor, so don't use it
@@ -8439,7 +8445,11 @@ FHoudiniMeshTranslator::CreateOrUpdateMeshComponent(
 			if (bIsProxyComponent)
 				OutputObject.ProxyComponent = MeshComponent;
 			else
-				OutputObject.OutputComponent = MeshComponent;
+			{
+				check(OutputObject.OutputComponents.Num() < 2); // Multiple components not supported yet.
+				OutputObject.OutputComponents.Empty();
+				OutputObject.OutputComponents.Add(MeshComponent);
+			}
 
 			bCreated = true;
 		}
