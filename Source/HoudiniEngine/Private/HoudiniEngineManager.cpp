@@ -1221,8 +1221,11 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 			HAC->SetHasBeenDuplicated(false);
 		}
 
-		// Update rendering information.
-		HAC->UpdateRenderingInformation();
+		// Update Physics state.
+		HAC->UpdatePhysicsState();
+
+		// Mark  Render State as dirty
+		HAC->MarkRenderStateDirty();
 
 		// Since we have new asset, we need to update bounds.
 		HAC->UpdateBounds();
