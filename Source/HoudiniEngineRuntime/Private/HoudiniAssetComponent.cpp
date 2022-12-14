@@ -1619,7 +1619,7 @@ UHoudiniAssetComponent::PostLoad()
 void
 UHoudiniAssetComponent::CreateRenderState_Concurrent(FRegisterComponentContext* Context)
 {
-	UpdateRenderingInformation();
+	// Just call parent class for now.
 	Super::CreateRenderState_Concurrent(Context);
 }
 
@@ -3011,11 +3011,8 @@ UHoudiniAssetComponent::SetStaticMeshGenerationProperties(UStaticMesh* InStaticM
 
 
 void
-UHoudiniAssetComponent::UpdateRenderingInformation()
+UHoudiniAssetComponent::UpdatePhysicsState()
 {
-	// Need to send this to render thread at some point.
-	MarkRenderStateDirty();
-
 	// Update physics representation right away.
 	RecreatePhysicsState();
 
