@@ -481,9 +481,9 @@ protected:
 	//
 	//static void AddReferencedObjects(UObject * InThis, FReferenceCollector & Collector);
 
-	// Updates physics state, bounds, and mark render state dirty
+	// Updates physics state & bounds.
 	// Should be call PostLoad and PostProcessing
-	void UpdateRenderingInformation();
+	void UpdatePhysicsState();
 
 	// Mutators
 
