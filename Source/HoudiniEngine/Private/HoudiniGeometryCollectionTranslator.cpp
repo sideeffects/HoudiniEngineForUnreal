@@ -137,35 +137,38 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 		// Kind of similar to UFractureToolGenerateAsset::ConvertStaticMeshToGeometryCollection
 		for (auto & GeometryCollectionPiece : GeometryCollectionPieces)
 		{
-			if (!GeometryCollectionPiece.InstancerOutput || !IsValid(GeometryCollectionPiece.InstancerOutput->OutputComponent))
-				continue;
+			for(auto Component : GeometryCollectionPiece.InstancerOutput->OutputComponents)
+			{
+			    if (!GeometryCollectionPiece.InstancerOutput || !IsValid(Component))
+				    continue;
 
-			if (!GeometryCollectionPiece.InstancerOutput->OutputComponent->IsA(UStaticMeshComponent::StaticClass()))
-				continue;
-	
-			TPair<int32, int32> ClusterKey = TPair<int32, int32>(GeometryCollectionPiece.FractureIndex, GeometryCollectionPiece.ClusterIndex);
-			TArray<FHoudiniGeometryCollectionPiece *> & Cluster = Clusters.FindOrAdd(ClusterKey);
-			Cluster.Add(&GeometryCollectionPiece);
-			
-			UObject * OldComponent = GeometryCollectionPiece.InstancerOutput->OutputComponent;
-			
-			UStaticMeshComponent * StaticMeshComponent = Cast<UStaticMeshComponent>(GeometryCollectionPiece.InstancerOutput->OutputComponent);
-			UStaticMesh * ComponentStaticMesh = StaticMeshComponent->GetStaticMesh();
-			FTransform ComponentTransform(StaticMeshComponent->GetComponentTransform());
-			ComponentTransform.SetTranslation(ComponentTransform.GetTranslation() - ActorTransform.GetTranslation());
-			FSoftObjectPath SourceSoftObjectPath(ComponentStaticMesh);
-			decltype(FGeometryCollectionSource::SourceMaterial) SourceMaterials(StaticMeshComponent->GetMaterials());
-			GeometryCollection->GeometrySource.Add({ SourceSoftObjectPath, ComponentTransform, SourceMaterials });
+			    if (!Component->IsA(UStaticMeshComponent::StaticClass()))
+				    continue;
+	    
+			    TPair<int32, int32> ClusterKey = TPair<int32, int32>(GeometryCollectionPiece.FractureIndex, GeometryCollectionPiece.ClusterIndex);
+			    TArray<FHoudiniGeometryCollectionPiece *> & Cluster = Clusters.FindOrAdd(ClusterKey);
+			    Cluster.Add(&GeometryCollectionPiece);
+			    
+			    UObject * OldComponent = Component;
+			    
+			    UStaticMeshComponent * StaticMeshComponent = Cast<UStaticMeshComponent>(Component);
+			    UStaticMesh * ComponentStaticMesh = StaticMeshComponent->GetStaticMesh();
+			    FTransform ComponentTransform(StaticMeshComponent->GetComponentTransform());
+			    ComponentTransform.SetTranslation(ComponentTransform.GetTranslation() - ActorTransform.GetTranslation());
+			    FSoftObjectPath SourceSoftObjectPath(ComponentStaticMesh);
+			    decltype(FGeometryCollectionSource::SourceMaterial) SourceMaterials(StaticMeshComponent->GetMaterials());
+			    GeometryCollection->GeometrySource.Add({ SourceSoftObjectPath, ComponentTransform, SourceMaterials });
 
-			FHoudiniGeometryCollectionTranslator::AppendStaticMesh(ComponentStaticMesh, SourceMaterials, ComponentTransform, GeometryCollection, true);
+			    FHoudiniGeometryCollectionTranslator::AppendStaticMesh(ComponentStaticMesh, SourceMaterials, ComponentTransform, GeometryCollection, true);
 
-			RemoveAndDestroyComponent(OldComponent);
-			
-			GeometryCollectionPiece.InstancerOutput->OutputComponent = nullptr;
-	
-			// Sets the GeometryIndex, to identify which this piece is when dealing with the geometry collection
-			int32 GeometryIndex = GeometryCollection->NumElements(FGeometryCollection::TransformGroup) - 1;
-			GeometryCollectionPiece.GeometryIndex = GeometryIndex;
+			    RemoveAndDestroyComponent(OldComponent);
+			    
+			    GeometryCollectionPiece.InstancerOutput->OutputComponents.Empty();
+	    
+			    // Sets the GeometryIndex, to identify which this piece is when dealing with the geometry collection
+			    int32 GeometryIndex = GeometryCollection->NumElements(FGeometryCollection::TransformGroup) - 1;
+			    GeometryCollectionPiece.GeometryIndex = GeometryIndex;
+			}
 		}
 		
 		GeometryCollection->InitializeMaterials();
@@ -216,7 +219,9 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 	
 		// Set output object
 		OutputObject.OutputObject = GeometryCollectionActor;
-		OutputObject.OutputComponent = GeometryCollectionComponent;
+		check(OutputObject.OutputComponents.Num() < 2); // Multiple components not supported yet.
+		OutputObject.OutputComponents.Empty();
+		OutputObject.OutputComponents.Add(GeometryCollectionComponent);
 		
 		// Mark the render state dirty otherwise it won't appear until you move it
 	        GeometryCollectionComponent->MarkRenderStateDirty();

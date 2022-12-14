@@ -1503,7 +1503,7 @@ UHoudiniPDGAssetLink::HasTemporaryOutputs() const
 						for (const auto& OutputObjectPair : Output->GetOutputObjects())
 						{
 							if ((OutputType == EHoudiniOutputType::Landscape && IsValid(OutputObjectPair.Value.OutputObject)) ||
-								IsValid(OutputObjectPair.Value.OutputComponent))
+								OutputObjectPair.Value.OutputComponents.Num() > 0)
 							{
 								return true;								
 							}
@@ -1757,14 +1757,16 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 		{
 			FHoudiniOutputObjectIdentifier& Identifier = Pair.Key;
 			FHoudiniOutputObject& OutputObject = Pair.Value;
-			if (IsValid(OutputObject.OutputComponent))
+			for(int Index = 0; Index < OutputObject.OutputComponents.Num(); Index++)
 			{
+				auto Component = OutputObject.OutputComponents[Index];
+
 				// Instancer components require some special handling around foliage
 				// TODO: move/refactor so that we can use the InstanceTranslator's helper functions (RemoveAndDestroyComponent and CleanupFoliageInstances)
 				bool bDestroyComponent = true;
-				if (OutputObject.OutputComponent->IsA<UHierarchicalInstancedStaticMeshComponent>())
+				if (Component->IsA<UHierarchicalInstancedStaticMeshComponent>())
 				{
-					UHierarchicalInstancedStaticMeshComponent* HISMC = Cast<UHierarchicalInstancedStaticMeshComponent>(OutputObject.OutputComponent);
+					UHierarchicalInstancedStaticMeshComponent* HISMC = Cast<UHierarchicalInstancedStaticMeshComponent>(Component);
 					if (HISMC->GetOwner() && HISMC->GetOwner()->IsA<AInstancedFoliageActor>())
 					{
 						// Make sure foliage our foliage instances have been removed
@@ -1805,19 +1807,18 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 						// if (HISMC->GetInstanceCount() > 0)
 						bDestroyComponent = false;
 
-						OutputObject.OutputComponent = nullptr;
+						OutputObject.OutputComponents[Index] = nullptr;
 					}
 				}
-				
 				if (bDestroyComponent)
 				{
-					USceneComponent* SceneComponent = Cast<USceneComponent>(OutputObject.OutputComponent);
+					USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
 					if (IsValid(SceneComponent))
 					{
 						// Remove from its actor first
 						if (SceneComponent->GetOwner())
 							SceneComponent->GetOwner()->RemoveOwnedComponent(SceneComponent);
-					
+
 						// Detach from its parent component if attached
 						SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 						SceneComponent->UnregisterComponent();
@@ -1825,7 +1826,7 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 
 						bDidDestroyObjects = true;
 
-						OutputObject.OutputComponent = nullptr;
+						OutputObject.OutputComponents[Index] = nullptr;
 					}
 				}
 			}

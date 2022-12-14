@@ -373,11 +373,14 @@ UHoudiniGeoImporter::CreateCurves(TArray<UHoudiniOutput*>& InOutputs, UObject* I
 		TArray<UActorComponent*> OutputComp;
 		for (auto CurOutputPair : CurOutput->GetOutputObjects())
 		{
-			UActorComponent* CurObj = Cast<UActorComponent>(CurOutputPair.Value.OutputComponent);
-			if (!IsValid(CurObj))
-				continue;
+			for(auto Component : CurOutputPair.Value.OutputComponents)
+			{
+			    UActorComponent* CurObj = Cast<UActorComponent>(Component);
+			    if (!IsValid(CurObj))
+				    continue;
 
-			OutputComp.Add(CurObj);
+			    OutputComp.Add(CurObj);
+			}
 		}
 
 		// Transfer all the instancer components to the BP
@@ -597,11 +600,14 @@ UHoudiniGeoImporter::CreateInstancers(TArray<UHoudiniOutput*>& InOutputs, UObjec
 		TArray<UActorComponent*> OutputComp;
 		for (auto CurOutputPair : CurOutput->GetOutputObjects())
 		{
-			UActorComponent* CurObj = Cast<UActorComponent>(CurOutputPair.Value.OutputComponent);
-			if (!IsValid(CurObj))
-				continue;
+			for(auto Component : CurOutputPair.Value.OutputComponents)
+			{
+			    UActorComponent* CurObj = Cast<UActorComponent>(Component);
+			    if (!IsValid(CurObj))
+				    continue;
 
-			OutputComp.Add(CurObj);
+			    OutputComp.Add(CurObj);
+			}
 		}
 
 		if (OutputComp.Num() > 0)

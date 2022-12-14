@@ -909,7 +909,15 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniOutputObject& A,
 	bool Result = true;
 
 	Result &= TestExpressionError(IsEquivalent(A.OutputObject, B.OutputObject), Header, "OutputObject");
-	Result &= TestExpressionError(IsEquivalent(A.OutputComponent, B.OutputComponent), Header, "OutputComponent");
+
+	if (A.OutputComponents.Num() != B.OutputComponents.Num())
+	    return false;
+
+	for(int Index = 0; Index < A.OutputComponents.Num(); Index++)
+	{
+	    Result &= TestExpressionError(IsEquivalent(A.OutputComponents[Index], B.OutputComponents[Index]), Header, "OutputComponent");
+	}
+
 	// Proxies can't be saved, so comparing them will be difficult (saving refines the proxies to SM)
 	// Result &= TestExpressionError(IsEquivalent(A.ProxyObject, B.ProxyObject), Header, "ProxyObject");
 	// Result &= TestExpressionError(IsEquivalent(A.ProxyComponent, B.ProxyComponent), Header, "ProxyComponent");

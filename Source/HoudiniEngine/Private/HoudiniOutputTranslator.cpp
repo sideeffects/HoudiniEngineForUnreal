@@ -367,8 +367,9 @@ FHoudiniOutputTranslator::UpdateOutputs(
 						
 						TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = CurOutput->GetOutputObjects();
 						FHoudiniOutputObject& FoundOutputObject = OutputObjects.FindOrAdd(EditableSplineComponentIdentifier);
-						FoundOutputObject.OutputComponent = HoudiniSplineComponent;
-
+						check(FoundOutputObject.OutputComponents.Num() < 2); // Multiple components not supported yet.
+						FoundOutputObject.OutputComponents.Empty();
+						FoundOutputObject.OutputComponents.Add(HoudiniSplineComponent);
 						CurOutput->SetHasEditableNodeBuilt(true);
 					}
 				}
@@ -857,17 +858,20 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 					if (Idx >= EditableCurvePartIds.Num())
 						break;
 
-					UHoudiniSplineComponent * HoudiniSplineComponent = Cast<UHoudiniSplineComponent>(Pair.Value.OutputComponent);
-					if (IsValid(HoudiniSplineComponent))
+					for(auto Component : Pair.Value.OutputComponents)
 					{
-						HoudiniSplineComponent->SetNodeId(EditableCurveGeoIds[Idx]);
+					    UHoudiniSplineComponent * HoudiniSplineComponent = Cast<UHoudiniSplineComponent>(Component);
+					    if (IsValid(HoudiniSplineComponent))
+					    {
+						    HoudiniSplineComponent->SetNodeId(EditableCurveGeoIds[Idx]);
 
-						Pair.Key.ObjectId = EditableCurveObjIds[Idx];
-						Pair.Key.GeoId = EditableCurveGeoIds[Idx];
-						Pair.Key.PartId = EditableCurvePartIds[Idx];
-						Pair.Key.PartName = EditableCurvePartNames[Idx];
+						    Pair.Key.ObjectId = EditableCurveObjIds[Idx];
+						    Pair.Key.GeoId = EditableCurveGeoIds[Idx];
+						    Pair.Key.PartId = EditableCurvePartIds[Idx];
+						    Pair.Key.PartName = EditableCurvePartNames[Idx];
 
-						Idx += 1;
+						    Idx += 1;
+					    }
 					}
 				}
 			}
@@ -906,8 +910,9 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 
 						TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = CurrentOutput->GetOutputObjects();
 						FHoudiniOutputObject& NewOutputObject = OutputObjects.FindOrAdd(EditableSplineComponentIdentifier);
-						NewOutputObject.OutputComponent = CurAttachedSplineComp;
-
+						check(NewOutputObject.OutputComponents.Num() < 2); // Multiple components not supported yet.
+						NewOutputObject.OutputComponents.Empty();
+						NewOutputObject.OutputComponents.Add(CurAttachedSplineComp);
 						CurrentOutput->SetHasEditableNodeBuilt(true);
 
 						// Never add additional rot/scale attributes on editable curves as this crashes HAPI
@@ -957,19 +962,22 @@ FHoudiniOutputTranslator::UploadChangedEditableOutput(
 
 		for (auto& CurrentOutputObj : CurrentOutput->GetOutputObjects())
 		{
-			UHoudiniSplineComponent* HoudiniSplineComponent = Cast<UHoudiniSplineComponent>(CurrentOutputObj.Value.OutputComponent);
-			if (!IsValid(HoudiniSplineComponent))
-				continue;
+			for(auto Component : CurrentOutputObj.Value.OutputComponents)
+			{
+			    UHoudiniSplineComponent* HoudiniSplineComponent = Cast<UHoudiniSplineComponent>(Component);
+			    if (!IsValid(HoudiniSplineComponent))
+				    continue;
 
-			if (!HoudiniSplineComponent->HasChanged())
-				continue;
+			    if (!HoudiniSplineComponent->HasChanged())
+				    continue;
 
-			// Dont add rot/scale on editable curves as this crashes HAPI
-			if (FHoudiniSplineTranslator::HapiUpdateNodeForHoudiniSplineComponent(
-					HoudiniSplineComponent, false))
-				HoudiniSplineComponent->MarkChanged(false);
-			else
-				HoudiniSplineComponent->SetNeedsToTriggerUpdate(false);
+			    // Dont add rot/scale on editable curves as this crashes HAPI
+			    if (FHoudiniSplineTranslator::HapiUpdateNodeForHoudiniSplineComponent(
+					    HoudiniSplineComponent, false))
+				    HoudiniSplineComponent->MarkChanged(false);
+			    else
+				    HoudiniSplineComponent->SetNeedsToTriggerUpdate(false);
+			}
 		}
 	}
 
@@ -2349,40 +2357,43 @@ FHoudiniOutputTranslator::ClearOutput(UHoudiniOutput* Output)
 		{
 			for (auto& OutputObject : Output->GetOutputObjects())
 			{
-				// Is this a foliage instancer? Check if the component is owned by an AInstancedFoliageActor
-				UActorComponent* const Component = Cast<UActorComponent>(OutputObject.Value.OutputComponent);
-				if (!IsValid(Component))
-					continue;
-				AActor* const OwnerActor = Component->GetOwner();
-				if (!IsValid(OwnerActor) || !OwnerActor->IsA<AInstancedFoliageActor>())
-					continue;
-				
-				UHierarchicalInstancedStaticMeshComponent* const FoliageHISMC = Cast<UHierarchicalInstancedStaticMeshComponent>(Component);
-				if (IsValid(FoliageHISMC))
+				for(auto OutputComponent : OutputObject.Value.OutputComponents)
 				{
-					// Find the parent component: the output is typically owned by an HAC.
-					USceneComponent* ParentComponent = nullptr;
-					UObject* const OutputOuter = Output->GetOuter();
-					if (IsValid(OutputOuter))
-					{
-						if (OutputOuter->IsA<UHoudiniAssetComponent>())
-						{
-							ParentComponent = Cast<USceneComponent>(OutputOuter);
-						}
-						// other possibilities?
-					}
-					
-					// fallback to trying the owner of the HISMC
-					if (!ParentComponent)
-					{
-						ParentComponent = Cast<USceneComponent>(FoliageHISMC);
-					}
-					
-					if (IsValid(ParentComponent))
-					{
-						FHoudiniInstanceTranslator::CleanupFoliageInstances(FoliageHISMC, OutputObject.Value.OutputObject, ParentComponent);
-						FHoudiniEngineUtils::RepopulateFoliageTypeListInUI();
-					}
+				    // Is this a foliage instancer? Check if the component is owned by an AInstancedFoliageActor
+				    UActorComponent* const Component = Cast<UActorComponent>(OutputComponent);
+				    if (!IsValid(Component))
+					    continue;
+				    AActor* const OwnerActor = Component->GetOwner();
+				    if (!IsValid(OwnerActor) || !OwnerActor->IsA<AInstancedFoliageActor>())
+					    continue;
+				    
+				    UHierarchicalInstancedStaticMeshComponent* const FoliageHISMC = Cast<UHierarchicalInstancedStaticMeshComponent>(Component);
+				    if (IsValid(FoliageHISMC))
+				    {
+					    // Find the parent component: the output is typically owned by an HAC.
+					    USceneComponent* ParentComponent = nullptr;
+					    UObject* const OutputOuter = Output->GetOuter();
+					    if (IsValid(OutputOuter))
+					    {
+						    if (OutputOuter->IsA<UHoudiniAssetComponent>())
+						    {
+							    ParentComponent = Cast<USceneComponent>(OutputOuter);
+						    }
+						    // other possibilities?
+					    }
+					    
+					    // fallback to trying the owner of the HISMC
+					    if (!ParentComponent)
+					    {
+						    ParentComponent = Cast<USceneComponent>(FoliageHISMC);
+					    }
+					    
+					    if (IsValid(ParentComponent))
+					    {
+						    FHoudiniInstanceTranslator::CleanupFoliageInstances(FoliageHISMC, OutputObject.Value.OutputObject, ParentComponent);
+						    FHoudiniEngineUtils::RepopulateFoliageTypeListInUI();
+					    }
+				    }
 				}
 			}
 		}

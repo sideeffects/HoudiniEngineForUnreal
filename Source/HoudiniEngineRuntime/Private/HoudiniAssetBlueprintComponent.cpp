@@ -113,18 +113,6 @@ UHoudiniAssetBlueprintComponent::CopyStateToTemplateComponent()
 	USimpleConstructionScript* SCS = CachedBlueprint->SimpleConstructionScript;
 	check(SCS);
 
-	/*
-	USCS_Node* SCSNodeForInstance = FindSCSNodeForInstanceComponent(SCS, this);
-	if (SCSNodeForInstance)
-	{
-	
-	}
-	else 
-	{
-	
-	}
-	*/
-
 	//// If we don't have an SCS node for this preview instance, we need to create one, regardless
 	//// of whether output updates are required.
 	//if (!CachedTemplateComponent->bOutputsRequireUpdate && SCSNodeForInstance != nullptr)
@@ -234,22 +222,36 @@ UHoudiniAssetBlueprintComponent::CopyStateToTemplateComponent()
 				// create a new component template.
 				TemplateObj = InstanceObj;
 				TemplateObj.ProxyComponent = nullptr;
-				TemplateObj.OutputComponent = nullptr;
+				TemplateObj.OutputComponents.Empty();
 				TemplateObj.ProxyObject = nullptr;
 			}
 
-			USceneComponent* ComponentInstance = Cast<USceneComponent>(InstanceObj.OutputComponent);
-			USceneComponent* ComponentTemplate = Cast<USceneComponent>(TemplateObj.OutputComponent);
-			UObject* OutputObject = InstanceObj.OutputObject;
+			// If the there is only one component we try to reuse templates. However, if there is more than
+			// one component, don't bother; the logic for doing so can become quite complicated and multiple components
+			// outputs are only currently used for world partition, which don't make sense for use in blueprints.
 
-			if (ComponentInstance)
+			USceneComponent* ComponentTemplate = nullptr;
+			if (InstanceObj.OutputComponents.Num() == 1)
 			{
+				ComponentTemplate = Cast<USceneComponent>(TemplateObj.OutputComponents[0]);
+			}
+			else
+			{
+				TemplateObj.OutputComponents.Empty();
+			}
+
+			for(auto Component : InstanceObj.OutputComponents)
+			{
+				USceneComponent* ComponentInstance = Cast<USceneComponent>(Component);
+
 				// The translation process has either constructed new components, or it is 
 				// reusing existing components, or changed an output (or all or none of the aforementioned). 
 				// Carefully inspect the SCS graph to determine whether there is a corresponding 
 				// (and compatible) node for this output. If not, create a new node and remove unusable node, if any.
 
 				USCS_Node* ComponentNode = nullptr;
+
+				if (InstanceObj.OutputComponents.Num() == 1)
 				{
 					// Check whether the current OutputComponent being referenced by the template is still valid.
 					// Even if it was removed in the editor, it doesn't have any associated destroyed / pendingkill state. 
@@ -266,7 +268,7 @@ UHoudiniAssetBlueprintComponent::CopyStateToTemplateComponent()
 					{
 						// Either this component was removed from the editor or it doesn't exist yet.
 						// Ensure the references are cleared
-						TemplateObj.OutputComponent = nullptr;
+						TemplateObj.OutputComponents.Empty();
 						ComponentTemplate = nullptr;
 					}
 				}
@@ -354,7 +356,8 @@ UHoudiniAssetBlueprintComponent::CopyStateToTemplateComponent()
 					SCSHACNode->AddChildNode(ComponentNode);
 
 					// Set the output component.
-					TemplateObj.OutputComponent = ComponentNode->ComponentTemplate;
+					TemplateObj.OutputComponents.Empty();
+					TemplateObj.OutputComponents.Add(ComponentNode->ComponentTemplate);
 
 					CachedTemplateComponent->MarkAsBlueprintStructureModified();
 				}
@@ -363,12 +366,7 @@ UHoudiniAssetBlueprintComponent::CopyStateToTemplateComponent()
 				check(ComponentNode);
 				CachedOutputNodes.Add(Entry.Key, ComponentNode->VariableGuid);
 			} // if (ComponentInstance)
-			/*
-			else if (InstanceObj.OutputObject)
-			{
-			
-			}
-			*/
+
 
 			// Add the updated output object to the template output
 			TemplateOutputObjects.Add(Entry.Key, TemplateObj);
@@ -382,30 +380,21 @@ UHoudiniAssetBlueprintComponent::CopyStateToTemplateComponent()
 			// Ensure the component template is no longer referencing this output.
 			TemplateOutputObjects.Remove(StaleId);
 
-			USceneComponent* TemplateComponent = Cast<USceneComponent>(OutputObj.OutputComponent);
+			for(auto Component : OutputObj.OutputComponents)
+			{
+			    USceneComponent* TemplateComponent = Cast<USceneComponent>(Component);
 
-			if (TemplateComponent)
-			{
-				USCS_Node* StaleNode = FindSCSNodeForTemplateComponentInClassHierarchy(TemplateComponent);
-				if (StaleNode)
-				{
-				
-					SCS->RemoveNode(StaleNode, false);
-					CachedTemplateComponent->MarkAsBlueprintStructureModified();
-				}
-				/*
-				else
-				{
-				
-				}
-				*/
-			}
-			/*
-			else
-			{
-			
-			}
-			*/
+			    if (TemplateComponent)
+			    {
+				    USCS_Node* StaleNode = FindSCSNodeForTemplateComponentInClassHierarchy(TemplateComponent);
+				    if (StaleNode)
+				    {
+				    
+					    SCS->RemoveNode(StaleNode, false);
+					    CachedTemplateComponent->MarkAsBlueprintStructureModified();
+				    }
+			    }
+	        }
 		}
 	} //for (int i = 0; i < Outputs.Num(); i++)
 
@@ -419,18 +408,22 @@ UHoudiniAssetBlueprintComponent::CopyStateToTemplateComponent()
 		for (auto& Entry : StaleOutput->GetOutputObjects())
 		{
 			FHoudiniOutputObject& StaleObject = Entry.Value;
-			USceneComponent* OutputComponent = Cast<USceneComponent>(StaleObject.OutputComponent);
 
-			if (OutputComponent)
+			for(auto Component : StaleObject.OutputComponents)
 			{
-			
-				USCS_Node* StaleNode = FindSCSNodeForTemplateComponentInClassHierarchy(OutputComponent);
-				if (StaleNode)
-				{
-				
-					SCS->RemoveNode(StaleNode, false);
-					CachedTemplateComponent->MarkAsBlueprintStructureModified();
-				}
+			    USceneComponent* OutputComponent = Cast<USceneComponent>(Component);
+
+			    if (OutputComponent)
+			    {
+			    
+				    USCS_Node* StaleNode = FindSCSNodeForTemplateComponentInClassHierarchy(OutputComponent);
+				    if (StaleNode)
+				    {
+				    
+					    SCS->RemoveNode(StaleNode, false);
+					    CachedTemplateComponent->MarkAsBlueprintStructureModified();
+				    }
+			    }
 			}
 		}
 
@@ -605,10 +598,10 @@ UHoudiniAssetBlueprintComponent::CopyStateFromTemplateComponent(UHoudiniAssetBlu
 			FHoudiniOutputObject& OutputObj = InstanceOutputObjects.FindChecked(StaleId);
 
 			InstanceOutputObjects.Remove(StaleId);
-			if (OutputObj.OutputComponent)
+			if (OutputObj.OutputComponents.Num() > 0)
 			{
 				//OutputObj.OutputComponent->ConditionalBeginDestroy();
-				OutputObj.OutputComponent = nullptr;
+				OutputObj.OutputComponents.Empty();
 			}
 		}
 	} // for (int i = 0; i < TemplateOutputs.Num(); i++)
@@ -1628,7 +1621,7 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 			TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = Output->GetOutputObjects();
 			FHoudiniOutputObject NewObject = OutputData.OutputObject;
 
-			if (OutputData.OutputObject.OutputComponent)
+			if (OutputData.OutputObject.OutputComponents.Num() > 0)
 			{
 				// Update the output component reference.
 				check(CachedOutputNodes.Contains(ObjectId))
@@ -1639,11 +1632,11 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 				{
 					// Find the component that corresponds to the SCS node.
 					USceneComponent* SceneComponent = FindActorComponentByName(GetOwner(), SCSNode->GetVariableName());
-					NewObject.OutputComponent = SceneComponent;
+					NewObject.OutputComponents[0] = SceneComponent;
 				}
 				else
 				{
-					NewObject.OutputComponent = nullptr;
+					NewObject.OutputComponents.Empty();
 				}
 			}
 
