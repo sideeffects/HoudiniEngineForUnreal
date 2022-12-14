@@ -376,7 +376,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 
 		// The main output component
 		UPROPERTY()
-		UObject* OutputComponent = nullptr;
+		TArray<UObject*> OutputComponents;
+
+		UPROPERTY()
+        UObject* OutputComponent_DEPRECATED = nullptr;
 
 		// Proxy object
 		UPROPERTY()

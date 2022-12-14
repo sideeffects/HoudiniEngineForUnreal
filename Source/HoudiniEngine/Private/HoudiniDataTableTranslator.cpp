@@ -571,7 +571,9 @@ FHoudiniDataTableTranslator::BuildDataTable(FHoudiniGeoPartObject& HGPO,
 	FHoudiniOutputObjectIdentifier OutputID(HGPO.ObjectId, GeoId, PartId, HGPO.PartName);
 	FHoudiniOutputObject& FoundOutputObject = CurOutput->GetOutputObjects().FindOrAdd(OutputID);
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = CurOutput->GetOutputObjects();
-	FoundOutputObject.OutputComponent = Cast<UObject>(Res);
+	check(FoundOutputObject.OutputComponents.Num() < 2); // Multiple components not supported yet.
+	FoundOutputObject.OutputComponents.Empty();
+	FoundOutputObject.OutputComponents.Add(Cast<UObject>(Res));
 
 	FMemory::Free(RowData);
 

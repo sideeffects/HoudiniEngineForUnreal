@@ -1026,22 +1026,25 @@ FHoudiniOutputDetails::CreateCurveOutputWidget(IDetailCategoryBuilder& HouOutput
 	for (auto& IterObject : OutputObjects)
 	{
 		FHoudiniOutputObject& CurrentOutputObject = IterObject.Value;
-		USceneComponent* SplineComponent = Cast<USceneComponent>(IterObject.Value.OutputComponent);
-		if (!IsValid(SplineComponent))
-			continue;
-
-		FHoudiniOutputObjectIdentifier& OutputIdentifier = IterObject.Key;
-		FHoudiniGeoPartObject HoudiniGeoPartObject;
-		for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects()) 
+		for(auto Component : IterObject.Value.OutputComponents)
 		{
-			if (!OutputIdentifier.Matches(curHGPO))
-				continue;
+		    USceneComponent* SplineComponent = Cast<USceneComponent>(Component);
+		    if (!IsValid(SplineComponent))
+			    continue;
 
-			HoudiniGeoPartObject = curHGPO;
-			break;
+		    FHoudiniOutputObjectIdentifier& OutputIdentifier = IterObject.Key;
+		    FHoudiniGeoPartObject HoudiniGeoPartObject;
+		    for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects()) 
+		    {
+			    if (!OutputIdentifier.Matches(curHGPO))
+				    continue;
+
+			    HoudiniGeoPartObject = curHGPO;
+			    break;
+		    }
+
+		    CreateCurveWidgets(HouOutputCategory, InOutput, SplineComponent, CurrentOutputObject, OutputIdentifier, HoudiniGeoPartObject);
 		}
-
-		CreateCurveWidgets(HouOutputCategory, InOutput, SplineComponent, CurrentOutputObject, OutputIdentifier, HoudiniGeoPartObject);
 	}
 }
 
@@ -1091,154 +1094,157 @@ FHoudiniOutputDetails::CreateDataTableOutputWidget(IDetailCategoryBuilder& HouOu
 	{
 		FHoudiniOutputObject& CurrentOutputObject = IterObject.Value;
 
-		if (UDataTable* DT = Cast<UDataTable>(CurrentOutputObject.OutputComponent))
+		for(auto Component : CurrentOutputObject.OutputComponents)
 		{
-			FString DTIndex = "Data Table Output " + FString::FromInt(Idx++);
-			IDetailGroup& DTOutputGrp = HouOutputCategory.AddGroup(FName(DTIndex), FText::FromString(DTIndex), false, false);
-			TSharedRef<SVerticalBox> DTVerticalBox = SNew(SVerticalBox);
-			TSharedRef<SVerticalBox> RSVerticalBox = SNew(SVerticalBox);
-			TSharedPtr<SBorder> DTThumbnailBorder;
-			TSharedPtr<SBorder> RSThumbnailBorder;
-			IDetailLayoutBuilder& DetailLayoutBuilder = HouOutputCategory.GetParentLayout();
-			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
-			TSharedPtr< FAssetThumbnail > DTThumbnail =
-				MakeShareable(new FAssetThumbnail(DT, 64, 64, AssetThumbnailPool));
-			TSharedPtr< FAssetThumbnail > RSThumbnail =
-				MakeShareable(new FAssetThumbnail(DT->RowStruct, 64, 64, AssetThumbnailPool));
+		    if (UDataTable* DT = Cast<UDataTable>(Component))
+		    {
+			    FString DTIndex = "Data Table Output " + FString::FromInt(Idx++);
+			    IDetailGroup& DTOutputGrp = HouOutputCategory.AddGroup(FName(DTIndex), FText::FromString(DTIndex), false, false);
+			    TSharedRef<SVerticalBox> DTVerticalBox = SNew(SVerticalBox);
+			    TSharedRef<SVerticalBox> RSVerticalBox = SNew(SVerticalBox);
+			    TSharedPtr<SBorder> DTThumbnailBorder;
+			    TSharedPtr<SBorder> RSThumbnailBorder;
+			    IDetailLayoutBuilder& DetailLayoutBuilder = HouOutputCategory.GetParentLayout();
+			    TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
+			    TSharedPtr< FAssetThumbnail > DTThumbnail =
+				    MakeShareable(new FAssetThumbnail(DT, 64, 64, AssetThumbnailPool));
+			    TSharedPtr< FAssetThumbnail > RSThumbnail =
+				    MakeShareable(new FAssetThumbnail(DT->RowStruct, 64, 64, AssetThumbnailPool));
 
-			DTOutputGrp.AddWidgetRow()
-			.NameContent()
-			[
-				SNew(STextBlock)
-				.Text(FText::FromString("Data Table"))
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-			]
-			.ValueContent()
-			.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
-			[
-				DTVerticalBox
-			];
+			    DTOutputGrp.AddWidgetRow()
+			    .NameContent()
+			    [
+				    SNew(STextBlock)
+				    .Text(FText::FromString("Data Table"))
+				    .Font(IDetailLayoutBuilder::GetDetailFont())
+			    ]
+			    .ValueContent()
+			    .MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+			    [
+				    DTVerticalBox
+			    ];
 
-			DTVerticalBox->AddSlot()
-			.Padding(0, 2)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.Padding(0.0f, 0.0f, 2.0f, 0.0f)
-				.AutoWidth()
-				[
-					SAssignNew(DTThumbnailBorder, SBorder)
-						.Padding(5.0f)
-						.BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) DT)
-						.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) DT)
-					[
-						SNew(SBox)
-							.WidthOverride(64)
-							.HeightOverride(64)
-							.ToolTipText(FText::FromString(DT->GetPathName()))
-						[
-							DTThumbnail->MakeThumbnailWidget()
-						]
-					]
-				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(2.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SVerticalBox)
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(2.0f, 0.0f)
-					.VAlign(VAlign_Center)
-					[
-						SNew(STextBlock)
-						.Text(FText::FromName(DT->GetFName()))
-						.Font(IDetailLayoutBuilder::GetDetailFont())
-					]
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(2, 0)
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Left)
-					[
-						PropertyCustomizationHelpers::MakeBrowseButton(
-							FSimpleDelegate::CreateSP(
-								this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&) DT),
-							TAttribute<FText>(LOCTEXT("HoudiniDataTableBrowseButton", "Browse to this generated Data Table in the content browser")))
-					]
-				]
-			];
+			    DTVerticalBox->AddSlot()
+			    .Padding(0, 2)
+			    .AutoHeight()
+			    [
+				    SNew(SHorizontalBox)
+				    + SHorizontalBox::Slot()
+				    .Padding(0.0f, 0.0f, 2.0f, 0.0f)
+				    .AutoWidth()
+				    [
+					    SAssignNew(DTThumbnailBorder, SBorder)
+						    .Padding(5.0f)
+						    .BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) DT)
+						    .OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) DT)
+					    [
+						    SNew(SBox)
+							    .WidthOverride(64)
+							    .HeightOverride(64)
+							    .ToolTipText(FText::FromString(DT->GetPathName()))
+						    [
+							    DTThumbnail->MakeThumbnailWidget()
+						    ]
+					    ]
+				    ]
+				    + SHorizontalBox::Slot()
+				    .AutoWidth()
+				    .Padding(2.0f, 0.0f)
+				    .VAlign(VAlign_Center)
+				    [
+					    SNew(SVerticalBox)
+					    + SVerticalBox::Slot()
+					    .AutoHeight()
+					    .Padding(2.0f, 0.0f)
+					    .VAlign(VAlign_Center)
+					    [
+						    SNew(STextBlock)
+						    .Text(FText::FromName(DT->GetFName()))
+						    .Font(IDetailLayoutBuilder::GetDetailFont())
+					    ]
+					    + SVerticalBox::Slot()
+					    .AutoHeight()
+					    .Padding(2, 0)
+					    .VAlign(VAlign_Center)
+					    .HAlign(HAlign_Left)
+					    [
+						    PropertyCustomizationHelpers::MakeBrowseButton(
+							    FSimpleDelegate::CreateSP(
+								    this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&) DT),
+							    TAttribute<FText>(LOCTEXT("HoudiniDataTableBrowseButton", "Browse to this generated Data Table in the content browser")))
+					    ]
+				    ]
+			    ];
 
-			DTOutputGrp.AddWidgetRow()
-			.NameContent()
-			[
-				SNew(STextBlock)
-				.Text(FText::FromString("Row Struct"))
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-			]
-			.ValueContent()
-			.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
-			[
-				RSVerticalBox
-			];
+			    DTOutputGrp.AddWidgetRow()
+			    .NameContent()
+			    [
+				    SNew(STextBlock)
+				    .Text(FText::FromString("Row Struct"))
+				    .Font(IDetailLayoutBuilder::GetDetailFont())
+			    ]
+			    .ValueContent()
+			    .MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+			    [
+				    RSVerticalBox
+			    ];
 
-			RSVerticalBox->AddSlot()
-			.Padding(0, 2)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.Padding(0.0f, 0.0f, 2.0f, 0.0f)
-				.AutoWidth()
-				[
-					SAssignNew(RSThumbnailBorder, SBorder)
-					.Padding(5.0f)
-					.BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) DT->RowStruct)
-					.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) DT->RowStruct)
-					[
-						SNew(SBox)
-						.WidthOverride(64)
-						.HeightOverride(64)
-						.ToolTipText(FText::FromName(DT->RowStruct->GetFName()))
-						[
-							RSThumbnail->MakeThumbnailWidget()
-						]
-					]
-				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(2.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SVerticalBox)
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(2.0f, 0.0f)
-					.VAlign(VAlign_Center)
-					[
-						SNew(STextBlock)
-						.Text(FText::FromName(DT->RowStruct->GetFName()))
-						.Font(IDetailLayoutBuilder::GetDetailFont())
-					]
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(2.0f, 0.0f)
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Left)
-					[
-						PropertyCustomizationHelpers::MakeBrowseButton(
-							FSimpleDelegate::CreateSP(
-								this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&) DT->RowStruct),
-							TAttribute<FText>(LOCTEXT("HoudiniDataTableRowStructBrowseButton", "Browse to the generated Data Table's row struct in the content browser")))
-					]
-				]
-				
-			];
+			    RSVerticalBox->AddSlot()
+			    .Padding(0, 2)
+			    .AutoHeight()
+			    [
+				    SNew(SHorizontalBox)
+				    + SHorizontalBox::Slot()
+				    .Padding(0.0f, 0.0f, 2.0f, 0.0f)
+				    .AutoWidth()
+				    [
+					    SAssignNew(RSThumbnailBorder, SBorder)
+					    .Padding(5.0f)
+					    .BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) DT->RowStruct)
+					    .OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) DT->RowStruct)
+					    [
+						    SNew(SBox)
+						    .WidthOverride(64)
+						    .HeightOverride(64)
+						    .ToolTipText(FText::FromName(DT->RowStruct->GetFName()))
+						    [
+							    RSThumbnail->MakeThumbnailWidget()
+						    ]
+					    ]
+				    ]
+				    + SHorizontalBox::Slot()
+				    .AutoWidth()
+				    .Padding(2.0f, 0.0f)
+				    .VAlign(VAlign_Center)
+				    [
+					    SNew(SVerticalBox)
+					    + SVerticalBox::Slot()
+					    .AutoHeight()
+					    .Padding(2.0f, 0.0f)
+					    .VAlign(VAlign_Center)
+					    [
+						    SNew(STextBlock)
+						    .Text(FText::FromName(DT->RowStruct->GetFName()))
+						    .Font(IDetailLayoutBuilder::GetDetailFont())
+					    ]
+					    + SVerticalBox::Slot()
+					    .AutoHeight()
+					    .Padding(2.0f, 0.0f)
+					    .VAlign(VAlign_Center)
+					    .HAlign(HAlign_Left)
+					    [
+						    PropertyCustomizationHelpers::MakeBrowseButton(
+							    FSimpleDelegate::CreateSP(
+								    this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&) DT->RowStruct),
+							    TAttribute<FText>(LOCTEXT("HoudiniDataTableRowStructBrowseButton", "Browse to the generated Data Table's row struct in the content browser")))
+					    ]
+				    ]
+				    
+			    ];
 
-			OutputObjectThumbnailBorders.Add((UObject*) DT, DTThumbnailBorder);
-			OutputObjectThumbnailBorders.Add((UObject*) DT->RowStruct, RSThumbnailBorder);
+			    OutputObjectThumbnailBorders.Add((UObject*) DT, DTThumbnailBorder);
+			    OutputObjectThumbnailBorders.Add((UObject*) DT->RowStruct, RSThumbnailBorder);
+		    }
 		}
 	}
 }
@@ -2490,12 +2496,15 @@ FHoudiniOutputDetails::GetOutputDebugDescription(const TWeakObjectPtr<UHoudiniOu
 			{
 				OutputValStr += OutObject->GetFullName() + TEXT(" (obj)\n");
 			}
-			
-			UObject* OutComp = Iter.Value.OutputComponent;
-			if (OutComp)
+
+			for(auto Component : Iter.Value.OutputComponents)
 			{
-				OutputValStr += OutComp->GetFullName() + TEXT(" (comp)\n");
-			}
+			    UObject* OutComp = Component;
+			    if (OutComp)
+			    {
+				    OutputValStr += OutComp->GetFullName() + TEXT(" (comp)\n");
+			    }
+            }
 		}
 	}
 
@@ -2650,16 +2659,19 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 	// TODO: ?? Replace for all?
 	for (auto& OutputObject : HoudiniOutput->GetOutputObjects())
 	{
-		// Only look at MeshComponents
-		UStaticMeshComponent * SMC = Cast<UStaticMeshComponent>(OutputObject.Value.OutputComponent);
-		if (!SMC)
-			continue;
+		for(auto Component : OutputObject.Value.OutputComponents)
+		{
+		    // Only look at MeshComponents
+		    UStaticMeshComponent * SMC = Cast<UStaticMeshComponent>(Component);
+		    if (!SMC)
+			    continue;
 
-		if (SMC->GetStaticMesh() != StaticMesh.Get())
-			continue;
+		    if (SMC->GetStaticMesh() != StaticMesh.Get())
+			    continue;
 
-		SMC->Modify();
-		SMC->SetMaterial(MaterialIdx, AssignMaterial);
+		    SMC->Modify();
+		    SMC->SetMaterial(MaterialIdx, AssignMaterial);
+		}
 	}
 
 	FHoudiniEngineUtils::UpdateEditorProperties(HoudiniOutput->GetOuter(), true);
@@ -2968,28 +2980,28 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 	// Replace the material on any component (SMC/ISMC) that uses the above SM
 	for (auto& OutputObject : HoudiniOutput->GetOutputObjects())
 	{
-		// Only look at MeshComponents
-		UStaticMeshComponent * SMC = Cast<UStaticMeshComponent>(OutputObject.Value.OutputComponent);
-		if (IsValid(SMC))
+		for(auto Component : OutputObject.Value.OutputComponents)
 		{
-			if (SMC->GetStaticMesh() == StaticMesh.Get())
-			{
-				SMC->Modify();
-				SMC->SetMaterial(MaterialIdx, MaterialInterface);
+		    // Only look at MeshComponents
+		    UStaticMeshComponent * SMC = Cast<UStaticMeshComponent>(Component);
+		    if (IsValid(SMC))
+		    {
+			    if (SMC->GetStaticMesh() == StaticMesh.Get())
+			    {
+				    SMC->Modify();
+				    SMC->SetMaterial(MaterialIdx, MaterialInterface);
+			    }
+		    }
+		    else 
+		    {
+			    UStaticMesh* SM = Cast<UStaticMesh>(OutputObject.Value.OutputObject);
+			    if (IsValid(SM)) 
+			    {
+				    SM->Modify();
+				    SM->SetMaterial(MaterialIdx, MaterialInterface);
+			    }
 			}
 		}
-		else 
-		{
-			UStaticMesh* SM = Cast<UStaticMesh>(OutputObject.Value.OutputObject);
-			if (IsValid(SM)) 
-			{
-				SM->Modify();
-				SM->SetMaterial(MaterialIdx, MaterialInterface);
-			}
-		}
-
-
-
 	}
 
 	FHoudiniEngineUtils::UpdateEditorProperties(HoudiniOutput->GetOuter(), true);
@@ -3386,8 +3398,8 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 				FHoudiniOutputObjectIdentifier CurVariationIdentifier = CurOutputObjectIdentifier;
 				CurVariationIdentifier.SplitIdentifier += TEXT("_") + FString::FromInt(VariationIdx);
 				const FHoudiniOutputObject* VariationOutputObject = OutputObjects.Find(CurVariationIdentifier);
-				if(VariationOutputObject)
-					InstancerType = FHoudiniInstanceTranslator::GetInstancerTypeFromComponent(VariationOutputObject->OutputComponent);
+				if(VariationOutputObject && VariationOutputObject->OutputComponents.Num() > 0)
+					InstancerType = FHoudiniInstanceTranslator::GetInstancerTypeFromComponent(VariationOutputObject->OutputComponents[0]);
 
 				DetailGroup->AddWidgetRow()
 				.NameContent()

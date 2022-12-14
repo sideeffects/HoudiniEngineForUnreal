@@ -2043,11 +2043,11 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 					FHoudiniOutputObject *OutputObject = NewOutput->GetOutputObjects().Find(Identifier);
 					if (OutputObject)
 					{
-						if (IsValid(OutputObject->OutputComponent))
+						for(auto Component : OutputObject->OutputComponents)
 						{
 							// Update generic property attributes
 							FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(
-								OutputObject->OutputComponent,
+								Component,
 								ImportOutputObject.GenericAttributes.PropertyAttributes);
 						}
 
