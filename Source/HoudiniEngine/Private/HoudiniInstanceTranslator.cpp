@@ -374,18 +374,20 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 			// Get the OutputObj for this variation
 			FHoudiniOutputObject* FoundOutputObject = OldOutputObjects.Find(OutputIdentifier);
 			// See if we can find an preexisting component for this obj	to try to reuse it
-			USceneComponent* OldInstancerComponent = nullptr;
+			TArray<USceneComponent*> OldInstancerComponents;
 			const bool bIsProxyMesh = InstancedObject->IsA<UHoudiniStaticMesh>();
 			if (FoundOutputObject)
 			{
 				if (bIsProxyMesh)
 				{
-					OldInstancerComponent = Cast<USceneComponent>(FoundOutputObject->ProxyComponent);
+					OldInstancerComponents.Add(Cast<USceneComponent>(FoundOutputObject->ProxyComponent));
 				}
 				else
 				{
-					OldInstancerComponent = FoundOutputObject->OutputComponents.Num() > 0 ?
-				        Cast<USceneComponent>(FoundOutputObject->OutputComponents[0]) : nullptr;
+					for(auto Component : FoundOutputObject->OutputComponents)
+					{
+					    OldInstancerComponents.Add(Cast<USceneComponent>(Component));
+					}
 				}
 			}
 
@@ -394,7 +396,9 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 			if (!GetVariationMaterials(FoundInstancedOutput, InstanceObjectIdx, InstancedOutputPartData.OriginalInstancedIndices[VariationOriginalIndex], InstancerMaterials, VariationMaterials))
 				VariationMaterials.Empty();
 
-			USceneComponent* NewInstancerComponent = nullptr;
+			TArray<USceneComponent*> NewInstancerComponents;
+			UFoliageType* FoliageTypeUsed = nullptr;
+
 			if (!CreateOrUpdateInstanceComponent(
 				InstancedObject,
 				InstancedObjectTransforms,
@@ -402,13 +406,14 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 				CurHGPO,
 				InPackageParms,
 				ParentComponent,
-				OldInstancerComponent,
-				NewInstancerComponent,
+				OldInstancerComponents,
+				NewInstancerComponents,
 				InstancedOutputPartData.bSplitMeshInstancer,
 				InstancedOutputPartData.bIsFoliageInstancer,
 				VariationMaterials,
 				InstancedOutputPartData.OriginalInstancedIndices[VariationOriginalIndex],
 				FoliageTypeCount,
+				FoliageTypeUsed,
 				InstancedOutputPartData.bForceHISM,
 				InstancedOutputPartData.bForceInstancer))
 			{
@@ -416,48 +421,58 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 				continue;
 			}
 
-			if (!NewInstancerComponent)
+			if (NewInstancerComponents.IsEmpty())
 				continue;
 
-			// Copy the per-instance custom data if we have any
-			if (InstancedOutputPartData.PerInstanceCustomData.Num() > 0)
-			{
-				UpdateChangedPerInstanceCustomData(
-					InstancedOutputPartData.PerInstanceCustomData[VariationOriginalIndex], NewInstancerComponent);
-			}
 
-			// See if the HiddenInGame property is overriden
-			bool bOverridesHiddenInGame = false;
-			for (auto& CurPropAttr : InstancedOutputPartData.AllPropertyAttributes)
+			for(auto NewInstancerComponent : NewInstancerComponents)
 			{
-				if (CurPropAttr.AttributeName.Equals(TEXT("HiddenInGame"))
-					|| CurPropAttr.AttributeName.Equals(TEXT("bHiddenInGame")))
+				// Copy the per-instance custom data if we have any
+				if (InstancedOutputPartData.PerInstanceCustomData.Num() > 0)
 				{
-					bOverridesHiddenInGame = true;
-				}
-			}
 
-			// If the instanced object (by ref) wasn't found, hide the component	
-			if(InstancedObject == DefaultReferenceSM)
-				NewInstancerComponent->SetHiddenInGame(true);
-			else
-			{
-				// Dont force the property if it is overriden by generic attributes
-				if (!bOverridesHiddenInGame)
-					NewInstancerComponent->SetHiddenInGame(false);
+				    UpdateChangedPerInstanceCustomData(
+					    InstancedOutputPartData.PerInstanceCustomData[VariationOriginalIndex], NewInstancerComponent);
+
+
+				    // See if the HiddenInGame property is overriden
+				    bool bOverridesHiddenInGame = false;
+				    for (auto& CurPropAttr : InstancedOutputPartData.AllPropertyAttributes)
+				    {
+					    if (CurPropAttr.AttributeName.Equals(TEXT("HiddenInGame"))
+						    || CurPropAttr.AttributeName.Equals(TEXT("bHiddenInGame")))
+					    {
+						    bOverridesHiddenInGame = true;
+					    }
+				    }
+
+				    // If the instanced object (by ref) wasn't found, hide the component	
+				    if (InstancedObject == DefaultReferenceSM)
+					    NewInstancerComponent->SetHiddenInGame(true);
+				    else
+				    {
+					    // Dont force the property if it is overriden by generic attributes
+					    if (!bOverridesHiddenInGame)
+						    NewInstancerComponent->SetHiddenInGame(false);
+				    }
+			    }
 			}
 
 			FHoudiniOutputObject& NewOutputObject = NewOutputObjects.FindOrAdd(OutputIdentifier);
+			NewOutputObject.InstancedObject = InstancedObject;
+			NewOutputObject.FoliageType = FoliageTypeUsed;
+
 			if (bIsProxyMesh)
 			{
-				NewOutputObject.ProxyComponent = NewInstancerComponent;
+				NewOutputObject.ProxyComponent = NewInstancerComponents.Num() > 0 ? NewInstancerComponents[0] : nullptr;
 				NewOutputObject.ProxyObject = InstancedObject;
 			}
 			else
 			{
 				check(NewOutputObject.OutputComponents.Num() < 2); // Multiple components not supported yet.
 				NewOutputObject.OutputComponents.Empty();
-				NewOutputObject.OutputComponents.Add(NewInstancerComponent);
+				for(auto NewComponent : NewInstancerComponents)
+				    NewOutputObject.OutputComponents.Add(NewComponent);
 				NewOutputObject.OutputObject = InstancedObject;
 			}
 
@@ -591,9 +606,9 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 			if(bDestroy)
 				RemoveAndDestroyComponent(OldComponent, OldPair.Value.OutputObject);
 
-			OldPair.Value.OutputComponents.Empty();
-			OldPair.Value.OutputObject = nullptr;
 		}
+		OldPair.Value.OutputComponents.Empty();
+		OldPair.Value.OutputObject = nullptr;
 
 		UObject* OldProxyComponent = OldPair.Value.ProxyComponent;
 		if (OldProxyComponent)
@@ -725,13 +740,14 @@ FHoudiniInstanceTranslator::UpdateChangedInstancedOutput(
 			+ FString::FromInt(VariationIndices[InstanceObjectIdx]);
 
 		// See if we can find an preexisting component for this obj	to try to reuse it
-		USceneComponent* OldInstancerComponent = nullptr;
+		TArray<USceneComponent*> OldInstancerComponents;
 		FHoudiniOutputObject* FoundOutputObject = OutputObjects.Find(OutputIdentifier);
 		if (FoundOutputObject)
 		{
-
-			OldInstancerComponent = FoundOutputObject->OutputComponents.Num() > 0 ?
-			    Cast<USceneComponent>(FoundOutputObject->OutputComponents[0]) : nullptr;
+		    for(auto Component : FoundOutputObject->OutputComponents)
+		    {
+		        OldInstancerComponents.Add(Cast<USceneComponent>(Component));
+		    }
 		}
 
 		// Extract the material for this variation
@@ -740,7 +756,9 @@ FHoudiniInstanceTranslator::UpdateChangedInstancedOutput(
 		if (!GetVariationMaterials(&InInstancedOutput, InstanceObjectIdx, OriginalInstanceIndices[0], InstancerMaterials, VariationMaterials))
 			VariationMaterials.Empty();
 
-		USceneComponent* NewInstancerComponent = nullptr;
+		TArray<USceneComponent*> NewInstancerComponents;
+		UFoliageType * FoliageTypeUsed = nullptr;
+
 		if (!CreateOrUpdateInstanceComponent(
 			InstancedObject,
 			InstancedObjectTransforms,
@@ -748,13 +766,14 @@ FHoudiniInstanceTranslator::UpdateChangedInstancedOutput(
 			HGPO,
 			InPackageParams,
 			InParentComponent,
-			OldInstancerComponent,
-			NewInstancerComponent,
+			OldInstancerComponents,
+			NewInstancerComponents,
 			bSplitMeshInstancer,
 			bIsFoliageInstancer,
 			InstancerMaterials,
 			OriginalInstanceIndices[0],
 			InstanceObjectIdx,
+			FoliageTypeUsed,
 			bForceHISM,
 			bForceInstancer))
 		{
@@ -762,27 +781,30 @@ FHoudiniInstanceTranslator::UpdateChangedInstancedOutput(
 			continue;
 		}
 
-		if (!NewInstancerComponent)
+		if (NewInstancerComponents.IsEmpty())
 			continue;
 
-		if (OldInstancerComponent != NewInstancerComponent)
+		// Remove old components not used.
+		TSet<USceneComponent *> ComponentsToRemove;
+		for(auto NewComponent : NewInstancerComponents)
 		{
-			// Previous component wasn't reused, detach and delete it
-			RemoveAndDestroyComponent(OldInstancerComponent, nullptr);
-
-			// Replace it with the new component
-			if (FoundOutputObject)
-			{
-				FoundOutputObject->OutputComponents.Empty();
-				FoundOutputObject->OutputComponents.Add(NewInstancerComponent);
-			}
-			else
-			{
-				FHoudiniOutputObject& NewOutputObject = OutputObjects.Add(OutputIdentifier);
-				NewOutputObject.OutputComponents.Empty();
-				NewOutputObject.OutputComponents.Add(NewInstancerComponent);
-			}
+		    if (ComponentsToRemove.Contains(NewComponent))
+			    ComponentsToRemove.Remove(NewComponent);
 		}
+		for(auto Component : ComponentsToRemove)
+		{
+		    RemoveAndDestroyComponent(Component, nullptr);
+		}
+
+		if (!FoundOutputObject)
+			FoundOutputObject = &OutputObjects.Add(OutputIdentifier);
+
+		FoundOutputObject->OutputComponents.Empty();
+		for(auto NewInstancerComponent : NewInstancerComponents)
+			FoundOutputObject->OutputComponents.Add(NewInstancerComponent);
+
+		FoundOutputObject->InstancedObject = InstancedObject;
+		FoundOutputObject->FoliageType = FoliageTypeUsed;
 
 		// Remove this output object from the todelete map
 		ToDeleteOutputObjects.Remove(OutputIdentifier);
@@ -1918,6 +1940,50 @@ FHoudiniInstanceTranslator::GetObjectInstancerHGPOsAndTransforms(
 	return true;
 }
 
+InstancerComponentType GetComponentsType(USceneComponent* Component)
+{
+	InstancerComponentType ComponentType = InstancerComponentType::Invalid;
+
+    if (Component != nullptr)
+	{
+		if (Component->IsA<UFoliageInstancedStaticMeshComponent>())
+			ComponentType = Foliage;
+		else if (Component->GetOwner() && Component->GetOwner()->IsA<AInstancedFoliageActor>())
+			ComponentType = Foliage;
+		else if (Component->IsA<UHierarchicalInstancedStaticMeshComponent>())
+			ComponentType = HierarchicalInstancedStaticMeshComponent;
+		else if (Component->IsA<UInstancedStaticMeshComponent>())
+			ComponentType = InstancedStaticMeshComponent;
+		else if (Component->IsA<UHoudiniMeshSplitInstancerComponent>())
+			ComponentType = MeshSplitInstancerComponent;
+		else if (Component->IsA<UHoudiniInstancedActorComponent>())
+			ComponentType = HoudiniInstancedActorComponent;
+		else if (Component->IsA<UStaticMeshComponent>())
+			ComponentType = StaticMeshComponent;
+		else if (Component->IsA<UHoudiniStaticMeshComponent>())
+			ComponentType = HoudiniStaticMeshComponent;
+		else if (Component->IsA<UGeometryCollectionComponent>())
+			ComponentType = GeometryCollectionComponent;
+	}
+	return ComponentType;
+}
+
+InstancerComponentType GetComponentsType(TArray<USceneComponent*>& Components)
+{
+	if (Components.Num() == 0)
+	    return InstancerComponentType::Invalid;
+
+	InstancerComponentType ComponentType = GetComponentsType(Components[0]);
+
+	for(int Index = 0; Index < Components.Num(); Index++)
+	{
+        int OtherType = GetComponentsType(Components[Index]);
+		check(OtherType == ComponentType);
+	}
+	return ComponentType;
+
+}
+
 bool
 FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 	UObject* InstancedObject,
@@ -1926,60 +1992,28 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 	const FHoudiniGeoPartObject& InstancerGeoPartObject,
 	const FHoudiniPackageParams& InPackageParams,
 	USceneComponent* ParentComponent,
-	USceneComponent* OldComponent,
-	USceneComponent*& NewComponent,	
+	TArray<USceneComponent*>& OldComponents,
+	TArray<USceneComponent*> & NewComponents,	
 	const bool& InIsSplitMeshInstancer,
 	const bool& InIsFoliageInstancer,
 	const TArray<UMaterialInterface *>& InstancerMaterials,
 	const TArray<int32>& OriginalInstancerObjectIndices,
 	int32& FoliageTypeCount,
+	UFoliageType*& FoliageTypeUsed,
 	const bool& bForceHISM,
 	const bool& bForceInstancer)
 {
-	enum InstancerComponentType
-	{
-		Invalid = -1,
-		InstancedStaticMeshComponent = 0,
-		HierarchicalInstancedStaticMeshComponent = 1,
-		MeshSplitInstancerComponent = 2,
-		HoudiniInstancedActorComponent = 3,
-		StaticMeshComponent = 4,
-		HoudiniStaticMeshComponent = 5,
-		Foliage = 6,
-		GeometryCollectionComponent = 7
-	};
-
 	// See if we can reuse the old component
-	InstancerComponentType OldType = InstancerComponentType::Invalid;
-
-	// The old component could be marked as pending kill, dont IsValid() here
-	if (OldComponent !=	nullptr)
-	{
-		if(OldComponent->IsA<UFoliageInstancedStaticMeshComponent>())
-			OldType = Foliage;
-		else if (OldComponent->GetOwner() && OldComponent->GetOwner()->IsA<AInstancedFoliageActor>())
-			OldType = Foliage;
-		else if (OldComponent->IsA<UHierarchicalInstancedStaticMeshComponent>())
-			OldType = HierarchicalInstancedStaticMeshComponent;			
-		else if (OldComponent->IsA<UInstancedStaticMeshComponent>())
-			OldType = InstancedStaticMeshComponent;
-		else if (OldComponent->IsA<UHoudiniMeshSplitInstancerComponent>())
-			OldType = MeshSplitInstancerComponent;
-		else if (OldComponent->IsA<UHoudiniInstancedActorComponent>())
-			OldType = HoudiniInstancedActorComponent;
-		else if (OldComponent->IsA<UStaticMeshComponent>())
-			OldType = StaticMeshComponent;
-		else if (OldComponent->IsA<UHoudiniStaticMeshComponent>())
-			OldType = HoudiniStaticMeshComponent;
-		else if (OldComponent->IsA<UGeometryCollectionComponent>())
-			OldType = GeometryCollectionComponent;
-	}
+	InstancerComponentType OldType = GetComponentsType(OldComponents);
 
 	// Geometry collections only have one component for all instancers and is rebuilt in HoudiniGeometryCollectionTrnaslator.
-	if (OldType == GeometryCollectionComponent && IsValid(OldComponent))
+	if (OldType == GeometryCollectionComponent && !OldComponents.IsEmpty())
 	{
-		RemoveAndDestroyComponent(OldComponent, nullptr);
-		OldComponent = nullptr;
+		for(auto OldComponent : OldComponents)
+		{
+		    RemoveAndDestroyComponent(OldComponent, nullptr);
+		}
+		OldComponents.Empty();
 	}
 
 	// See what type of component we want to create
@@ -2035,7 +2069,12 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 	}
 
 	if (OldType == NewType)
-		NewComponent = OldComponent;
+	{
+		NewComponents = OldComponents;
+	}
+
+    if (NewComponents.Num() == 0)
+		NewComponents.Add(nullptr);
 
 	// First valid index in the original instancer part 
 	// This should be used to access attributes that are store for the whole part, not split
@@ -2055,7 +2094,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		{
 			// Create an Instanced Static Mesh Component
 			bSuccess = CreateOrUpdateInstancedStaticMeshComponent(
-				StaticMesh, InstancedObjectTransforms, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterial, bForceHISM, FirstOriginalIndex);
+				StaticMesh, InstancedObjectTransforms, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponents[0], InstancerMaterial, bForceHISM, FirstOriginalIndex);
 			bCheckRenderState = true;
 		}
 		break;
@@ -2063,14 +2102,14 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		case MeshSplitInstancerComponent:
 		{
 			bSuccess = CreateOrUpdateMeshSplitInstancerComponent(
-				StaticMesh, InstancedObjectTransforms, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterials);
+				StaticMesh, InstancedObjectTransforms, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponents[0], InstancerMaterials);
 		}
 		break;
 
 		case HoudiniInstancedActorComponent:
 		{
 			bSuccess = CreateOrUpdateInstancedActorComponent(
-				InstancedObject, InstancedObjectTransforms, OriginalInstancerObjectIndices, AllPropertyAttributes, ParentComponent, NewComponent);
+				InstancedObject, InstancedObjectTransforms, OriginalInstancerObjectIndices, AllPropertyAttributes, ParentComponent, NewComponents[0]);
 		}
 		break;
 
@@ -2078,7 +2117,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		{
 			// Create a Static Mesh Component
 			bSuccess = CreateOrUpdateStaticMeshComponent(
-				StaticMesh, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterial);
+				StaticMesh, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponents[0], InstancerMaterial);
 			bCheckRenderState = true;
 		}
 		break;
@@ -2087,59 +2126,70 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		{
 			// Create a Houdini Static Mesh Component
 			bSuccess = CreateOrUpdateHoudiniStaticMeshComponent(
-				HSM, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterial);
+				HSM, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponents[0], InstancerMaterial);
 		}
 		break;
 
 		case Foliage:
 		{
 			bSuccess = CreateOrUpdateFoliageInstances(
-				StaticMesh, FoliageType, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, InPackageParams, FoliageTypeCount, ParentComponent, NewComponent, InstancerMaterial);
+				StaticMesh, FoliageType, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, InPackageParams, FoliageTypeCount, ParentComponent, FoliageTypeUsed, NewComponents, InstancerMaterial);
 
 		}
 	}
 
-	if (!NewComponent)
-		return false;
-
-	// UE5: Make sure we update/recreate the Component's render state
-	// after the update or the mesh component will not be rendered!
-	if (bCheckRenderState)
+	for(auto NewComponentToSet : NewComponents)
 	{
-		UMeshComponent* const NewMeshComponent = Cast<UMeshComponent>(NewComponent);
-		if (IsValid(NewMeshComponent))
-		{
-			if (NewMeshComponent->IsRenderStateCreated())
-			{
-				// Need to send this to render thread at some point
-				NewMeshComponent->MarkRenderStateDirty();
-			}
-			else if (NewMeshComponent->ShouldCreateRenderState())
-			{
-				// If we didn't have a valid StaticMesh assigned before
-				// our render state might not have been created so
-				// do it now.
-				NewMeshComponent->RecreateRenderState_Concurrent();
-			}
-		}
+		    // UE5: Make sure we update/recreate the Component's render state
+	    // after the update or the mesh component will not be rendered!
+	    if (bCheckRenderState)
+	    {
+		    UMeshComponent* const NewMeshComponent = Cast<UMeshComponent>(NewComponentToSet);
+		    if (IsValid(NewMeshComponent))
+		    {
+			    if (NewMeshComponent->IsRenderStateCreated())
+			    {
+				    // Need to send this to render thread at some point
+				    NewMeshComponent->MarkRenderStateDirty();
+			    }
+			    else if (NewMeshComponent->ShouldCreateRenderState())
+			    {
+				    // If we didn't have a valid StaticMesh assigned before
+				    // our render state might not have been created so
+				    // do it now.
+				    NewMeshComponent->RecreateRenderState_Concurrent();
+			    }
+		    }
+	    }
+
+		NewComponentToSet->SetMobility(ParentComponent->Mobility);
+
+		if (NewType != Foliage)
+		    NewComponentToSet->AttachToComponent(ParentComponent, FAttachmentTransformRules::KeepRelativeTransform);
+
+	    // For single instance, that generates a SMC, the transform is already set on the component
+	    // TODO: Should cumulate transform in that case?
+	    if(NewType != StaticMeshComponent && NewType != HoudiniStaticMeshComponent)
+			NewComponentToSet->SetRelativeTransform(InstancerGeoPartObject.TransformMatrix);
+
+	    // Only register if we have a valid component
+	    if (NewComponentToSet->GetOwner() && NewComponentToSet->GetWorld())
+			NewComponentToSet->RegisterComponent();
+
 	}
 
-	NewComponent->SetMobility(ParentComponent->Mobility);
-	NewComponent->AttachToComponent(ParentComponent, FAttachmentTransformRules::KeepRelativeTransform);
+	// If the old components couldn't be reused, dettach/ destroy them.
 
-	// For single instance, that generates a SMC, the transform is already set on the component
-	// TODO: Should cumulate transform in that case?
-	if(NewType != StaticMeshComponent && NewType != HoudiniStaticMeshComponent)
-		NewComponent->SetRelativeTransform(InstancerGeoPartObject.TransformMatrix);
-
-	// Only register if we have a valid component
-	if (NewComponent->GetOwner() && NewComponent->GetWorld())
-		NewComponent->RegisterComponent();
-
-	// If the old component couldn't be reused, dettach/ destroy it
-	if (IsValid(OldComponent) && (OldComponent != NewComponent))
+	TSet<USceneComponent*> ComponentsToRemove(OldComponents);
+	for(auto Component : NewComponents)
 	{
-		RemoveAndDestroyComponent(OldComponent, nullptr);
+	    if (ComponentsToRemove.Contains(Component))
+		    ComponentsToRemove.Remove(Component);
+	}
+
+	for (auto Component : ComponentsToRemove)
+	{
+		RemoveAndDestroyComponent(Component, nullptr);
 	}
 
 	return bSuccess;
@@ -2682,7 +2732,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	const FHoudiniPackageParams& InPackageParams,
 	int & FoliageTypeCount,
 	USceneComponent* ParentComponent,
-	USceneComponent*& NewInstancedComponent,
+	UFoliageType*& FoliageTypeUsed,
+	TArray<USceneComponent*>& NewInstancedComponents,
 	UMaterialInterface * InstancerMaterial /*=nullptr*/)
 {
 	HOUDINI_CHECK_RETURN(IsValid(InstancedStaticMesh) || IsValid(InFoliageType), false);
@@ -2701,11 +2752,11 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 
     // See if we already have a FoliageType for that static mesh
 	bool bCreatedNew = false;
-	UFoliageType *FoliageType = InFoliageType;
-	if (!IsValid(FoliageType))
+	FoliageTypeUsed = InFoliageType;
+	if (!IsValid(FoliageTypeUsed))
 	{
 		// Foliage Type wasn't specified, only the mesh, try to find an existing foliage for that SM
-		FoliageType = FHoudiniFoliageTools::GetFoliageType(DesiredLevel, InstancedStaticMesh);
+		FoliageTypeUsed = FHoudiniFoliageTools::GetFoliageType(DesiredLevel, InstancedStaticMesh);
 	}
 	else
 	{
@@ -2717,10 +2768,10 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 		}
 	}		
 
-	if (!IsValid(FoliageType))
+	if (!IsValid(FoliageTypeUsed))
 	{
 		FHoudiniPackageParams FoliageTypePackageParams =  InPackageParams;
-		FoliageType = FHoudiniFoliageTools::CreateFoliageType(FoliageTypePackageParams, FoliageTypeCount, DesiredLevel, InstancedStaticMesh);
+		FoliageTypeUsed = FHoudiniFoliageTools::CreateFoliageType(FoliageTypePackageParams, FoliageTypeCount, DesiredLevel, InstancedStaticMesh);
 		++FoliageTypeCount;
 		bCreatedNew = true;
 	}
@@ -2756,13 +2807,13 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 		}
 	}
 
-	FHoudiniFoliageTools::SpawnFoliageInstance(World, FoliageType, FoliageInstances, true);
+	FHoudiniFoliageTools::SpawnFoliageInstance(World, FoliageTypeUsed, FoliageInstances, true);
 
 	// Clear the returned component. This should be set, but doesn't make in world partition.
 	// In future, this should be an array of components.
-	NewInstancedComponent = nullptr;
+	NewInstancedComponents.Empty();
 
-	TArray<FFoliageInfo*> FoliageInfos = FHoudiniFoliageTools::GetAllFoliageInfo(DesiredLevel->GetWorld(), FoliageType);
+	TArray<FFoliageInfo*> FoliageInfos = FHoudiniFoliageTools::GetAllFoliageInfo(DesiredLevel->GetWorld(), FoliageTypeUsed);
 	for(FFoliageInfo * FoliageInfo : FoliageInfos)
 	{
 
@@ -2780,8 +2831,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 				    FoliageHISMC->SetMaterial(Idx, InstancerMaterial);
 		    }
 
-			if (!World->IsPartitionedWorld())
-		    	NewInstancedComponent = FoliageHISMC;
+	        NewInstancedComponents.Add(FoliageHISMC);
 
 			UpdateGenericPropertiesAttributes(FoliageHISMC, AllPropertyAttributes, FirstOriginalIndex);
 	    }
@@ -2792,7 +2842,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	// TODO: Use proper atIndex!!
 
 	UpdateGenericPropertiesAttributes(InstancedStaticMesh, AllPropertyAttributes, FirstOriginalIndex);
-	UpdateGenericPropertiesAttributes(FoliageType, AllPropertyAttributes, FirstOriginalIndex);
+	UpdateGenericPropertiesAttributes(FoliageTypeUsed, AllPropertyAttributes, FirstOriginalIndex);
 
 	// TODO:
 	// We want to make this invisible if it's a collision instancer.

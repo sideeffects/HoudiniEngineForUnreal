@@ -42,6 +42,19 @@ class UHoudiniStaticMesh;
 class UHoudiniInstancedActorComponent;
 struct FHoudiniPackageParams;
 
+enum InstancerComponentType
+{
+	Invalid = -1,
+	InstancedStaticMeshComponent = 0,
+	HierarchicalInstancedStaticMeshComponent = 1,
+	MeshSplitInstancerComponent = 2,
+	HoudiniInstancedActorComponent = 3,
+	StaticMeshComponent = 4,
+	HoudiniStaticMeshComponent = 5,
+	Foliage = 6,
+	GeometryCollectionComponent = 7
+};
+
 USTRUCT()
 struct HOUDINIENGINE_API FHoudiniInstancedOutputPerSplitAttributes
 {
@@ -313,13 +326,14 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const FHoudiniGeoPartObject& InstancerGeoPartObject,
 			const FHoudiniPackageParams& InPackageParams,
 			USceneComponent* ParentComponent,
-			USceneComponent* OldComponent,
-			USceneComponent*& NewComponent,
+			TArray<USceneComponent*>& OutputComponents,
+			TArray<USceneComponent*>& NewComponents,
 			const bool& InIsSplitMeshInstancer,
 			const bool& InIsFoliageInstancer,
 			const TArray<UMaterialInterface *>& InstancerMaterials,
 			const TArray<int32>& OriginalInstancerObjectIndices, 
 			int32& FoliageTypeCount,
+			UFoliageType*& FoliageTypeUsed,
 			const bool& bForceHISM = false,
 			const bool& bForceInstancer = false);
 
@@ -387,7 +401,8 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const FHoudiniPackageParams& InPackageParams,
 			int & FoliageTypeCount,
 			USceneComponent* ParentComponent,
-			USceneComponent*& NewInstancedComponent,
+			UFoliageType* & FoliageTypeUsed,
+			TArray<USceneComponent*> & NewInstancedComponents,
 			UMaterialInterface * InstancerMaterial /*=nullptr*/);
 
 		// Helper fumction to properly remove/destroy a component

@@ -323,7 +323,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors(
 
 bool
 FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
-	const UHoudiniAssetComponent* HoudiniAssetComponent,
+	UHoudiniAssetComponent* HoudiniAssetComponent,
 	const TArray<UHoudiniOutput*>& InOutputs,
 	TArray<FHoudiniBakedOutput>& InBakedOutputs,
 	const FTransform& InParentTransform,
@@ -482,7 +482,19 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 
 	if (bHasAnyInstancers)
 	{
-		for (int32 OutputIdx = 0; OutputIdx < NumOutputs; ++OutputIdx)
+
+	    FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
+			HoudiniAssetComponent,
+			AlreadyBakedStaticMeshMap,
+			InOutputs,
+			InBakeFolder,
+			InTempCookFolder,
+			bInReplaceAssets,
+			NewBakedActors,
+			OutPackagesToSave,
+			OutBakeStats);
+
+	    for (int32 OutputIdx = 0; OutputIdx < NumOutputs; ++OutputIdx)
 		{
 			UHoudiniOutput* Output = InOutputs[OutputIdx];
 			if (!IsValid(Output))
@@ -549,6 +561,146 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 	return true;
 }
 
+void
+FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
+	UHoudiniAssetComponent* HoudiniAssetComponent,
+	TMap<UStaticMesh*, UStaticMesh*> AlreadyBakedStaticMeshMap,
+	const TArray<UHoudiniOutput*>& InAllOutputs,
+	const FDirectoryPath& InBakeFolder,
+	const FDirectoryPath& InTempCookFolder,
+	bool bInReplaceAssets,
+	const TArray<FHoudiniEngineBakedActor>& BakeResults,
+	TArray<UPackage*>& OutPackagesToSave,
+	FHoudiniEngineOutputStats& OutBakeStats)
+{
+	TMap<UFoliageType*, UFoliageType*> FoliageMap;
+
+	UWorld* World = HoudiniAssetComponent->GetWorld();
+
+    // Create Foliage Types assocatied with each output.
+    for(int InOutputIndex = 0; InOutputIndex < InAllOutputs.Num(); InOutputIndex++)
+    {
+		BakeFoliageTypes(
+			FoliageMap,
+			HoudiniAssetComponent,
+			InOutputIndex,
+			InAllOutputs,
+			InBakeFolder,
+			InTempCookFolder,
+			bInReplaceAssets,
+			BakeResults,
+			OutPackagesToSave,
+			OutBakeStats);
+    }
+
+	// Replace any mesh referenced in the cooked foliage with the new reference.
+	for (auto It : FoliageMap)
+	{
+		auto* CookedFoliageType = Cast<UFoliageType_InstancedStaticMesh>(It.Key);
+		auto* BakedFoliageType = Cast<UFoliageType_InstancedStaticMesh>(It.Value);
+		if (!CookedFoliageType || !BakedFoliageType)
+		    continue;
+
+		if (AlreadyBakedStaticMeshMap.Contains(CookedFoliageType->GetStaticMesh()))
+			BakedFoliageType->SetStaticMesh(AlreadyBakedStaticMeshMap[CookedFoliageType->GetStaticMesh()]);
+	}
+
+    // For each cooked foliage type, get all the instances and store it for the new baked Foliage Type to used.
+	TMap<UFoliageType*, TArray<FFoliageInstance>> Instances;
+	for(auto It : FoliageMap)
+	{
+	    UFoliageType * FoliageType = It.Key;
+		TArray<FFoliageInfo*> FoliageInfos = FHoudiniFoliageTools::GetAllFoliageInfo(World, FoliageType);
+
+		TArray<FFoliageInstance> FoliageInstances;
+		for(auto FoliageInfo : FoliageInfos)
+		{
+			FoliageInstances.Append(FoliageInfo->Instances);
+		}
+		Instances.Add(It.Value, FoliageInstances);
+	}
+
+    // Remove all cooked existing foliage.
+	FHoudiniFoliageTools::CleanupFoliageInstances(HoudiniAssetComponent);
+
+    // Spawn the baked Foliage Instances into the given World/Foliage Type.
+	for (auto It : FoliageMap)
+	{
+		UFoliageType* FoliageType = It.Value;
+        FHoudiniFoliageTools::SpawnFoliageInstance(World, FoliageType, Instances[FoliageType], true);
+	}
+}
+
+
+void
+FHoudiniEngineBakeUtils::BakeFoliageTypes(
+	TMap<UFoliageType*, UFoliageType*> & FoliageMap,
+	UHoudiniAssetComponent* HoudiniAssetComponent,
+	int32 InOutputIndex,
+	const TArray<UHoudiniOutput*>& InAllOutputs,
+	const FDirectoryPath& InBakeFolder,
+	const FDirectoryPath& InTempCookFolder,
+	bool bInReplaceAssets,
+	const TArray<FHoudiniEngineBakedActor>& BakeResults,
+	TArray<UPackage*>& OutPackagesToSave,
+	FHoudiniEngineOutputStats& OutBakeStats)
+{
+	const EPackageReplaceMode AssetPackageReplaceMode = bInReplaceAssets
+		? EPackageReplaceMode::ReplaceExistingAssets
+		: EPackageReplaceMode::CreateNewAssets;
+
+	UHoudiniOutput* Output = InAllOutputs[InOutputIndex];
+	UWorld* DesiredWorld = Output ? Output->GetWorld() : GWorld;
+
+	auto & OutputObjects = Output->GetOutputObjects();
+
+	for (auto& Pair : OutputObjects)
+	{
+		const FHoudiniOutputObjectIdentifier& Identifier = Pair.Key;
+		FHoudiniOutputObject* OutputObject = &Pair.Value;
+
+		// Skip non foliage outputs
+        if (OutputObject->FoliageType == nullptr)
+		    continue;
+
+		if (FoliageMap.Contains(OutputObject->FoliageType))
+		    continue;
+
+		bool bUserSpecifiedFoliageType = OutputObject->InstancedObject->IsA<UFoliageType>();
+		if (bUserSpecifiedFoliageType)
+		{
+		    // The user specified a Foliage Type, so we have nothing to bake. The instances will have been
+			// written during cooking. Just record an identity mapping.
+			FoliageMap[OutputObject->FoliageType] = OutputObject->FoliageType;
+		}
+		else
+		{
+			// The Foliage Type was created by this plugin. Copy it to the Baked output.
+			FString ObjectName = FHoudiniPackageParams::GetPackageNameExcludingGUID(OutputObject->FoliageType);
+
+			FHoudiniPackageParams PackageParams;
+			FHoudiniAttributeResolver InstancerResolver;
+			FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
+				DesiredWorld, HoudiniAssetComponent, Identifier, *OutputObject, ObjectName,
+				PackageParams, InstancerResolver, InBakeFolder.Path, AssetPackageReplaceMode);
+
+			UFoliageType * BakedFoliageType = DuplicateFoliageTypeAndCreatePackageIfNeeded(
+				OutputObject->FoliageType,
+				PackageParams,
+				InAllOutputs,
+				BakeResults,
+				InTempCookFolder.Path,
+				FoliageMap,
+				BakeResults,
+				OutPackagesToSave,
+				OutBakeStats);
+
+			FoliageMap.Add(OutputObject->FoliageType, BakedFoliageType);
+		}
+    }
+	return;
+}
+
 bool
 FHoudiniEngineBakeUtils::BakeInstancerOutputToFoliage(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
@@ -559,40 +711,37 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToFoliage(
 	FHoudiniBakedOutputObject& InBakedOutputObject,
 	const FDirectoryPath& InBakeFolder,
 	const FDirectoryPath& InTempCookFolder,
-	bool bInReplaceActors,
 	bool bInReplaceAssets,
-	const TArray<FHoudiniEngineBakedActor>& InBakedActors,
-	FHoudiniEngineBakedActor& OutBakedActorEntry,
+	const TArray<FHoudiniEngineBakedActor>& BakeResults,
+	FHoudiniEngineBakedActor& OutBakeActorEntry,
 	TArray<UPackage*>& OutPackagesToSave,
+	TMap<UStaticMesh*, UFoliageType*> FoliageMap,
 	TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
 	TMap<UMaterialInterface *, UMaterialInterface *>& InOutAlreadyBakedMaterialsMap,
 	FHoudiniEngineOutputStats& OutBakeStats)
 {
+
 	UHoudiniOutput* Output = InAllOutputs[InOutputIndex];
-	if (!IsValid(Output))
-		return false;
+    HOUDINI_CHECK_RETURN(IsValid(Output), false);
+	HOUDINI_CHECK_RETURN(Output->GetType() == EHoudiniOutputType::Instancer, false);
+	HOUDINI_CHECK_RETURN(!InOutputObject.OutputComponents.IsEmpty(), false);
 
-	if (Output->GetType() != EHoudiniOutputType::Instancer)
-		return false;
-
-	if (InOutputObject.OutputComponents.IsEmpty())
-		return false;
+	bool bUpdateFoliageUI = false;
 
 	for(auto Component : InOutputObject.OutputComponents)
 	{
 	    UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(Component);
 	    if (!IsValid(SMC))
 	    {
-		    HOUDINI_LOG_WARNING(
-			    TEXT("Unsupported component for foliage: %s"),*(Component->GetClass()->GetName()));
-		    return false;
+		    HOUDINI_LOG_WARNING(TEXT("Unsupported component for foliage: %s"),*(Component->GetClass()->GetName()));
+		    continue;
 	    }
 
 	    UStaticMesh* InstancedStaticMesh = SMC->GetStaticMesh();
 		if (!IsValid(InstancedStaticMesh))
 		{
 			// No mesh, skip this instancer
-			return false;
+	        continue;
 		}
 
 
@@ -636,7 +785,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToFoliage(
 
 		    // This will bake/duplicate the mesh if temporary, or return the input one if it is not
 		    BakedStaticMesh = FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
-			    InstancedStaticMesh, PreviousStaticMesh, MeshPackageParams, InAllOutputs, InBakedActors, InTempCookFolder.Path,
+			    InstancedStaticMesh, PreviousStaticMesh, MeshPackageParams, InAllOutputs, BakeResults, InTempCookFolder.Path,
 			    OutPackagesToSave, InOutAlreadyBakedStaticMeshMap, InOutAlreadyBakedMaterialsMap, OutBakeStats);
 	    }
 
@@ -687,60 +836,32 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToFoliage(
 	    if (!DesiredLevel)
 		    return false;
 
-	    // Get foliage actor for the level
-	    const bool bCreateIfNone = true;
-
-	AInstancedFoliageActor* InstancedFoliageActor = FHoudiniFoliageTools::GetInstancedFoliageActor(DesiredLevel, bCreateIfNone);
-
-	    if (!IsValid(InstancedFoliageActor))
-	    {
-		    HOUDINI_LOG_ERROR(TEXT("Could not find or create an instanced foliage actor for level %s"), *(DesiredLevel->GetPathName()));
-		    return false;
-	    }
-
 	    // Get the previous bake data for this instancer
 	    InBakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
 
-	    // Foliage type is replaced in replacement mode if:
-	    //   the previous baked object is this foliage type
-	    //   and we haven't bake this foliage type during this bake (BakeResults)
-	    //   NOTE: foliage type is only recorded as the previous bake object if we created the foliage type
-	    //   TODO: replacement mode should probably only affect the instances themselves and not the foliage type
-	    //			since the foliage type is already linked to whatever mesh we are using (which will be replaced
-	    //			incremented already). To track instances it looks like we would have to use the locations of the
-	    //			baked instances (likely cannot use the indices, since the user might modify/add/remove instances
-	    //			after the bake).
-	    
 	    // See if we already have a FoliageType for that static mesh
-	    UFoliageType* FoliageType = InstancedFoliageActor->GetLocalFoliageTypeForSource(BakedStaticMesh);
-	    if (!IsValid(FoliageType))
+
+		UFoliageType * FoliageType = nullptr;
+	    if (FoliageMap.Contains(BakedStaticMesh))
 	    {
+			// Re-use FoliageType already created/ used on this export.
+	        FoliageType = FoliageMap[BakedStaticMesh];
+	    }
+		else
+		{
 		    FHoudiniPackageParams Params = InstancerPackageParams;
 		    Params.ObjectName.Empty();
 
 		    // We need to create a new FoliageType for this Static Mesh
 		    // TODO: Add foliage default settings
 		    FoliageType = FHoudiniFoliageTools::CreateFoliageType(Params, InOutputIndex, DesiredLevel, BakedStaticMesh);
+			FoliageMap.Add(BakedStaticMesh, FoliageType);
 
 		    // Update the previous bake results with the foliage type we created
 		    InBakedOutputObject.BakedComponent = FSoftObjectPath(FoliageType).ToString();
 	    }
-	    else
-	    {
-		    const FString FoliageTypePath = FSoftObjectPath(FoliageType).ToString();
-		    if (bInReplaceAssets && InBakedOutputObject.BakedComponent == FoliageTypePath &&
-			    !InBakedActors.FindByPredicate([FoliageType](const FHoudiniEngineBakedActor& Entry) { return Entry.BakedComponent == FoliageType; }))
-		    {
-			    InstancedFoliageActor->RemoveFoliageType(&FoliageType, 1);
-			    // Update the previous bake results with the foliage type
-			    InBakedOutputObject.BakedComponent = FoliageTypePath;
-		    }
-		    else
-		    {
-			    // If we didn't create the foliage type, don't set the baked component
-			    InBakedOutputObject.BakedComponent.Empty();
-		    }
-	    }
+
+		HOUDINI_CHECK_RETURN(IsValid(FoliageType), false);
 
 	    // Record the foliage bake in the current results
 	    FHoudiniEngineBakedActor NewResult;
@@ -750,14 +871,9 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToFoliage(
 	    NewResult.BakedObject = BakedStaticMesh;
 	    NewResult.BakedComponent = FoliageType;
 
-	    OutBakedActorEntry = NewResult;
+		OutBakeActorEntry = NewResult;
 
-	    // Get the FoliageMeshInfo for this Foliage type so we can add the instance to it
-	    FFoliageInfo* FoliageInfo = InstancedFoliageActor->FindOrAddMesh(FoliageType);
-	    if (!FoliageInfo)
-		    return false;
-
-	    int32 CurrentInstanceCount = 0;
+		TArray<FFoliageInstance> FoliageInstances;
 	    if (SMC->IsA<UInstancedStaticMeshComponent>())
 	    {
 		    UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>(SMC);
@@ -772,9 +888,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToFoliage(
 				    FoliageInstance.Location = InstanceTransform.GetLocation();
 				    FoliageInstance.Rotation = InstanceTransform.GetRotation().Rotator();
 				    FoliageInstance.DrawScale3D = (FVector3f)InstanceTransform.GetScale3D();
-
-				    FoliageInfo->AddInstance(FoliageType, FoliageInstance);
-				    CurrentInstanceCount++;
+					FoliageInstances.Add(FoliageInstance);
 			    }
 		    }
 	    }
@@ -785,27 +899,26 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToFoliage(
 		    FoliageInstance.Location = ComponentToWorldTransform.GetLocation();
 		    FoliageInstance.Rotation = ComponentToWorldTransform.GetRotation().Rotator();
 		    FoliageInstance.DrawScale3D = (FVector3f)ComponentToWorldTransform.GetScale3D();
-
-		    FoliageInfo->AddInstance(FoliageType, FoliageInstance);
-
-		    CurrentInstanceCount++;
+			FoliageInstances.Add(FoliageInstance);
 	    }
 
-	    // TODO: This was due to a bug in UE4.22-20, check if still needed! 
-	    if (FoliageInfo->GetComponent())
-		    FoliageInfo->GetComponent()->BuildTreeIfOutdated(true, true);
+		// Spawn the Foliage Instances into the given World/Foliage Type.
+		FHoudiniFoliageTools::SpawnFoliageInstance(DesiredWorld, FoliageType, FoliageInstances, true);
 
 	    // Notify the user that we succesfully bake the instances to foliage
-	    FString Notification = TEXT("Successfully baked ") + FString::FromInt(CurrentInstanceCount) + TEXT(" instances of ") + BakedStaticMesh->GetName() + TEXT(" to Foliage");
+	    FString Notification = TEXT("Successfully baked ") + FString::FromInt(FoliageInstances.Num()) + TEXT(" instances of ") + BakedStaticMesh->GetName() + TEXT(" to Foliage");
 	    FHoudiniEngineUtils::CreateSlateNotification(Notification);
 
-	    InstancedFoliageActor->RegisterAllComponents();
+		if (FoliageInstances.Num() > 0)
+		    bUpdateFoliageUI = true;
 
-	    // Update / repopulate the foliage editor mode's mesh list
-	    if (CurrentInstanceCount > 0)
-		    FHoudiniEngineUtils::RepopulateFoliageTypeListInUI();
     }
-	return true;
+
+	// Update / repopulate the foliage editor mode's mesh list
+	if (bUpdateFoliageUI)
+		FHoudiniEngineUtils::RepopulateFoliageTypeListInUI();
+
+    return true;
 }
 
 bool 
@@ -866,7 +979,9 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(UHoudiniAssetComponent* Houdi
 		BakedOutputs.SetNum(NumOutputs);
 
 	TArray<FHoudiniEngineBakedActor> AllBakedActors;
-	
+
+	TMap<UStaticMesh*, UFoliageType*> FoliageMap;
+
 	bool bSuccess = true;
 	// Map storing original and baked Static Meshes
 	for (int32 OutputIdx = 0; OutputIdx < NumOutputs; OutputIdx++)
@@ -892,7 +1007,6 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(UHoudiniAssetComponent* Houdi
 				BakedOutputObject = OldBakedOutputObjects.FindChecked(Identifier);
 
 			FHoudiniEngineBakedActor OutputBakedActorEntry;
-			const bool bInReplaceActors = false;
 			if (BakeInstancerOutputToFoliage(
 					HoudiniAssetComponent,
 					OutputIdx,
@@ -902,11 +1016,11 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(UHoudiniAssetComponent* Houdi
 					BakedOutputObject,
 					HoudiniAssetComponent->BakeFolder,
 					HoudiniAssetComponent->TemporaryCookFolder,
-					bInReplaceActors,
 					bInReplaceAssets,
-					AllBakedActors,
+				    AllBakedActors,
 					OutputBakedActorEntry,
 					PackagesToSave,
+					FoliageMap,
 					AlreadyBakedStaticMeshMap,
 					AlreadyBakedMaterialsMap,
 					BakeStats))
@@ -987,7 +1101,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 	TArray<FHoudiniEngineBakedActor> NewBakedActors;
 	TArray<FHoudiniEngineBakedActor> OutputBakedActors;
 
-	// Iterate on the output objects, baking their object/component as we go
+    // Iterate on the output objects, baking their object/component as we go
 	for (auto& Pair : OutputObjects)
 	{
 		const FHoudiniOutputObjectIdentifier& Identifier = Pair.Key;
@@ -1010,62 +1124,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 
 		    OutputBakedActors.Reset();
 
-		    if (Component->IsA<UFoliageInstancedStaticMeshComponent>())
-		    {
-			    // Bake foliage as foliage
-			    if (!InInstancerComponentTypesToBake ||
-				    InInstancerComponentTypesToBake->Contains(EHoudiniInstancerComponentType::FoliageInstancedStaticMeshComponent))
-			    {
-				    FHoudiniEngineBakedActor BakedActorEntry;
-				    if (BakeInstancerOutputToFoliage(
-						    HoudiniAssetComponent,
-						    InOutputIndex,
-						    InAllOutputs,
-						    // InBakedOutputs,
-						    Pair.Key, 
-						    CurrentOutputObject, 
-						    BakedOutputObject,
-						    InBakeFolder,
-						    InTempCookFolder,
-						    bInReplaceActors, 
-						    bInReplaceAssets,
-						    AllBakedActors,
-						    BakedActorEntry,
-						    OutPackagesToSave,
-						    InOutAlreadyBakedStaticMeshMap,
-						    InOutAlreadyBakedMaterialsMap,
-						    OutBakeStats))
-				    {
-					    OutputBakedActors.Add(BakedActorEntry);
-				    }
-			    }
-			    else if (!InInstancerComponentTypesToBake ||
-				    InInstancerComponentTypesToBake->Contains(EHoudiniInstancerComponentType::FoliageAsHierarchicalInstancedStaticMeshComponent))
-			    {
-				    BakeInstancerOutputToActors_ISMC(
-					    HoudiniAssetComponent,
-					    InOutputIndex,
-					    InAllOutputs,
-					    // InBakedOutputs,
-					    Pair.Key, 
-					    CurrentOutputObject, 
-					    BakedOutputObject,
-					    InTransform,
-					    InBakeFolder,
-					    InTempCookFolder,
-					    bInReplaceActors, 
-					    bInReplaceAssets,
-					    AllBakedActors,
-					    OutputBakedActors,
-					    OutPackagesToSave,
-					    InOutAlreadyBakedStaticMeshMap,
-					    InOutAlreadyBakedMaterialsMap,
-					    OutBakeStats,
-					    InFallbackActor,
-					    InFallbackWorldOutlinerFolder);
-			    }
-		    }
-		    else if (Component->IsA<UInstancedStaticMeshComponent>()
+            if (Component->IsA<UInstancedStaticMeshComponent>()
 			    && (!InInstancerComponentTypesToBake || InInstancerComponentTypesToBake->Contains(EHoudiniInstancerComponentType::InstancedStaticMeshComponent)))
 		    {
 			    BakeInstancerOutputToActors_ISMC(
@@ -4373,13 +4432,115 @@ FHoudiniEngineBakeUtils::BakeLandscapeObject(
 	return true;
 }
 
+UFoliageType* FHoudiniEngineBakeUtils::DuplicateFoliageTypeAndCreatePackageIfNeeded(
+	UFoliageType* InFoliageType,
+	const FHoudiniPackageParams& PackageParams,
+	const TArray<UHoudiniOutput*>& InParentOutputs,
+	const TArray<FHoudiniEngineBakedActor>& InCurrentBakeResults,
+	const FString& InTemporaryCookFolder,
+	TMap<UFoliageType*, UFoliageType*>& InOutAlreadyBakedFoliageTypes,
+	const TArray<FHoudiniEngineBakedActor>& BakedResults,
+	TArray<UPackage*>& OutCreatedPackages,
+	FHoudiniEngineOutputStats& OutBakeStats)
+{
+	HOUDINI_CHECK_RETURN(IsValid(InFoliageType), nullptr);
+
+	// The not a temporary one/already baked, we can simply reuse it
+    // instead of duplicating it.
+
+	const bool bIsTemporary = IsObjectTemporary(InFoliageType, EHoudiniOutputType::Instancer, InParentOutputs, InTemporaryCookFolder);
+	if (!bIsTemporary)
+	{
+		return InFoliageType;
+	}
+
+	// See if we already baked this one. If so, use it.
+
+	UFoliageType ** AlreadyBaked = InOutAlreadyBakedFoliageTypes.Find(InFoliageType);
+	if (AlreadyBaked && IsValid(*AlreadyBaked))
+		return *AlreadyBaked;
+
+    // Look to see if its in the baked results.
+
+	for (const FHoudiniEngineBakedActor& BakeResult : BakedResults)
+	{
+		if (BakeResult.SourceObject == InFoliageType && IsValid(BakeResult.BakedObject)
+			&& BakeResult.BakedObject->IsA(InFoliageType->GetClass()))
+		{
+			// We have found a bake result where InStaticMesh was the source object and we have a valid BakedObject
+			// of a compatible class
+			return Cast<UFoliageType>(BakeResult.BakedObject);
+		}
+	}
+
+    // Not previously baked, so make a copy of the cooked asset.
+
+	int32 BakeCounter = 0;
+	FString CreatedPackageName;
+	UPackage* Package = PackageParams.CreatePackageForObject(CreatedPackageName, BakeCounter);
+	HOUDINI_CHECK_RETURN(IsValid(Package), false);
+
+    OutBakeStats.NotifyPackageCreated(1);
+	OutCreatedPackages.Add(Package);
+
+	// We need to be sure the package has been fully loaded before calling DuplicateObject
+	if (!Package->IsFullyLoaded())
+	{
+		FlushAsyncLoading();
+		if (!Package->GetOuter())
+		{
+			Package->FullyLoad();
+		}
+		else
+		{
+			Package->GetOutermost()->FullyLoad();
+		}
+	}
+
+	// Duplicate the foliage type.
+
+	UFoliageType* DuplicatedFoliageType = nullptr;
+	UFoliageType* ExistingFoliageType = FindObject<UFoliageType>(Package, *CreatedPackageName);
+	bool bFoundExisting= false;
+	if (IsValid(ExistingFoliageType))
+	{
+		bFoundExisting = true;
+		DuplicatedFoliageType = DuplicateObject<UFoliageType>(InFoliageType, Package, *CreatedPackageName);
+		OutBakeStats.NotifyObjectsReplaced(UFoliageType::StaticClass()->GetName(), 1);
+	}
+	else
+	{
+		DuplicatedFoliageType = DuplicateObject<UFoliageType>(InFoliageType, Package, *CreatedPackageName);
+		OutBakeStats.NotifyObjectsUpdated(UFoliageType::StaticClass()->GetName(), 1);
+	}
+
+	if (!IsValid(DuplicatedFoliageType))
+		return nullptr;
+
+	InOutAlreadyBakedFoliageTypes.Add(InFoliageType, DuplicatedFoliageType);
+
+	// Add meta information.
+    FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(Package, DuplicatedFoliageType, HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
+	FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(Package, DuplicatedFoliageType, HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *CreatedPackageName);
+	FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(Package, DuplicatedFoliageType, HAPI_UNREAL_PACKAGE_META_BAKED_OBJECT, TEXT("true"));
+
+
+	if (!bFoundExisting)
+		FAssetRegistryModule::AssetCreated(DuplicatedFoliageType);
+
+	DuplicatedFoliageType->MarkPackageDirty();
+
+	return DuplicatedFoliageType;
+}
+
+
 UStaticMesh * 
 FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 	UStaticMesh * InStaticMesh,
 	UStaticMesh * InPreviousBakeStaticMesh,
 	const FHoudiniPackageParams &PackageParams,
 	const TArray<UHoudiniOutput*>& InParentOutputs, 
-	const TArray<FHoudiniEngineBakedActor>& InCurrentBakedActors,
+	const TArray<FHoudiniEngineBakedActor>& BakedResults,
 	const FString& InTemporaryCookFolder,
 	TArray<UPackage*> & OutCreatedPackages,
 	TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
@@ -4401,16 +4562,16 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 	if (AlreadyBakedSM && IsValid(*AlreadyBakedSM))
 		return *AlreadyBakedSM;
 
-	// Look for InStaticMesh as the SourceObject in InCurrentBakedActors (it could have already been baked along with
+	// Look for InStaticMesh as the SourceObject in BakedResults (it could have already been baked along with
 	// a previous output: instancers etc)
-	for (const FHoudiniEngineBakedActor& BakedActor : InCurrentBakedActors)
+	for (const FHoudiniEngineBakedActor& BakeResult : BakedResults)
 	{
-		if (BakedActor.SourceObject == InStaticMesh && IsValid(BakedActor.BakedObject)
-			&& BakedActor.BakedObject->IsA(InStaticMesh->GetClass()))
+		if (BakeResult.SourceObject == InStaticMesh && IsValid(BakeResult.BakedObject)
+			&& BakeResult.BakedObject->IsA(InStaticMesh->GetClass()))
 		{
 			// We have found a bake result where InStaticMesh was the source object and we have a valid BakedObject
 			// of a compatible class
-			return Cast<UStaticMesh>(BakedActor.BakedObject);
+			return Cast<UStaticMesh>(BakeResult.BakedObject);
 		}
 	}
 
@@ -6451,7 +6612,7 @@ FHoudiniEngineBakeUtils::BakePDGWorkResultObject(
 	InNode->GetBakedWorkResultObjectOutputsKey(InWorkResultArrayIndex, InWorkResultObjectArrayIndex, Key);
 	FHoudiniPDGWorkResultObjectBakedOutput& BakedOutputContainer = InNode->GetBakedWorkResultObjectsOutputs().FindOrAdd(Key);
 
-	const UHoudiniAssetComponent* HoudiniAssetComponent = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(InPDGAssetLink);
+	UHoudiniAssetComponent* HoudiniAssetComponent = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(InPDGAssetLink);
 	check(IsValid(HoudiniAssetComponent));
 
 	TArray<FHoudiniEngineBakedActor> WROBakedActors;
