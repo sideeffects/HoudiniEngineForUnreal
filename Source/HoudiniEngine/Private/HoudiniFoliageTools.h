@@ -63,8 +63,5 @@ public:
 	// Return all FFoliageInfo which reference the FoliageType in the given world.
 	static TArray<FFoliageInfo*> GetAllFoliageInfo(UWorld * World, UFoliageType * FoliageType);
 
-	// Remove all references to the foliage in the world.
-	static void RemoveFoliageType(UWorld * World, UFoliageType* FoliageType, const UHoudiniAssetComponent* HoudiniAssetComponent);
-
 };
 
