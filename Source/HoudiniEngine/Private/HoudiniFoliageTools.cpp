@@ -44,26 +44,6 @@
 #include "EditorModes.h"
 #endif
 
-AInstancedFoliageActor*
-FHoudiniFoliageTools::GetInstancedFoliageActor(ULevel* DesiredLevel, bool bCreateIfNone)
-{
-	// TODO: This function should eventually be removed as there can ca more than one InstancedFoliageActor
-	// in a World Partitioned Level. For now, some old code still uses it (Baking).
-
-	AInstancedFoliageActor* InstancedFoliageActor = nullptr;
-	UWorld* World = DesiredLevel->GetWorld();
-
-	if (World->IsPartitionedWorld())
-	{
-		InstancedFoliageActor = AInstancedFoliageActor::Get(World, bCreateIfNone, DesiredLevel);
-	}
-	else
-	{
-		InstancedFoliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(DesiredLevel, bCreateIfNone);
-	}
-	return InstancedFoliageActor;
-}
-
 UFoliageType*
 FHoudiniFoliageTools::CreateFoliageType(const FHoudiniPackageParams& Params, int OutputIndex, ULevel* DesiredLevel, UStaticMesh* InstancedStaticMesh)
 {
@@ -72,24 +52,15 @@ FHoudiniFoliageTools::CreateFoliageType(const FHoudiniPackageParams& Params, int
 
 	UFoliageType* FoliageType = nullptr;
 
-	if (DesiredLevel->GetWorld()->IsPartitionedWorld())
+	// With world partition, Foliage Types must be assets. Create a package and save it.
+	FHoudiniPackageParams FoliageParams = Params;
+	FoliageParams.ObjectName = FString::Printf(TEXT("%s_%d_%s"), *FoliageParams.HoudiniAssetName, OutputIndex + 1, TEXT("foliage_type"));
+	if (UFoliageType_InstancedStaticMesh* InstancedMeshFoliageType = FoliageParams.CreateObjectAndPackage<UFoliageType_InstancedStaticMesh>())
 	{
-		// With world partition, Foliage Types must be assets. Create a package and save it.
-		FHoudiniPackageParams FoliageParams = Params;
-		FoliageParams.ObjectName = FString::Printf(TEXT("%s_%d_%s"), *FoliageParams.HoudiniAssetName, OutputIndex + 1, TEXT("foliage_type"));
-		if (UFoliageType_InstancedStaticMesh* InstancedMeshFoliageType = FoliageParams.CreateObjectAndPackage<UFoliageType_InstancedStaticMesh>())
-		{
-			InstancedMeshFoliageType->SetStaticMesh(InstancedStaticMesh);
-			InstancedMeshFoliageType->MarkPackageDirty();
-			FAssetRegistryModule::AssetCreated(InstancedMeshFoliageType);
-			FoliageType = InstancedMeshFoliageType;
-		}
-	}
-	else
-	{
-		// Use the existing (pre-world partition) Foliage API to add the foliage mesh.
-	    AInstancedFoliageActor* IFA = FHoudiniFoliageTools::GetInstancedFoliageActor(DesiredLevel, true);
-		IFA->AddMesh(InstancedStaticMesh, &FoliageType);
+		InstancedMeshFoliageType->SetStaticMesh(InstancedStaticMesh);
+		InstancedMeshFoliageType->MarkPackageDirty();
+		FAssetRegistryModule::AssetCreated(InstancedMeshFoliageType);
+		FoliageType = InstancedMeshFoliageType;
 	}
 	return FoliageType;
 
@@ -157,8 +128,12 @@ TArray<FFoliageInfo*> FHoudiniFoliageTools::GetAllFoliageInfo(UWorld * World, UF
 
 		for (const auto& FoliageIt : FoliageInfos)
 		{
-			const FFoliageInfo& FoliageInfo = *FoliageIt.Value;
-			Results.Add(const_cast<FFoliageInfo*>(&FoliageInfo));
+			if (FoliageIt.Key == FoliageType)
+			{
+			    const FFoliageInfo& FoliageInfo = *FoliageIt.Value;
+			    Results.Add(const_cast<FFoliageInfo*>(&FoliageInfo));
+			}
+
 		}
 	}
     return Results;
@@ -208,8 +183,18 @@ bool FHoudiniFoliageTools::CleanupFoliageInstances(USceneComponent* BaseComponen
 	return bRemovedSome;
 }
 
+void FHoudiniFoliageTools::RemoveFoliageType(UWorld* World, UFoliageType* FoliageType, const UHoudiniAssetComponent* HoudiniAssetComponent)
+{
+	// Remove all uses of this foliage type from all IFAs.
+	for (TActorIterator<AActor> It(World, AInstancedFoliageActor::StaticClass()); It; ++It)
+	{
+		AInstancedFoliageActor* IFA = Cast<AInstancedFoliageActor>(*It);
+		IFA->DeleteInstancesForComponent(const_cast<UHoudiniAssetComponent*>(HoudiniAssetComponent), FoliageType);
+		IFA->RemoveFoliageType(&FoliageType, 1);
+	}
+}
 
-void FHoudiniFoliageTools::SpawnFoliageInstance(UWorld* InWorld, const UFoliageType* Settings, const TArray<FFoliageInstance>& PlacedInstances, bool InRebuildFoliageTree)
+void FHoudiniFoliageTools::SpawnFoliageInstance(UWorld* InWorld, UFoliageType* Settings, const TArray<FFoliageInstance>& PlacedInstances, bool InRebuildFoliageTree)
 {
 	// This code is largely cribbed from SpawnFoliageInstance() in UE5's FoliageEdMode.cpp. It has UI specific functionality removed.
 
@@ -234,9 +219,18 @@ void FHoudiniFoliageTools::SpawnFoliageInstance(UWorld* InWorld, const UFoliageT
 		UFoliageType* FoliageSettings = IFA->AddFoliageType(Settings, &Info);
 
 		Info->AddInstances(FoliageSettings, PlacedLevelInstances.Value);
-		if (InRebuildFoliageTree)
+
+		Info->Refresh(false, true);
+	}
+
+	TArray<FFoliageInfo*> FoliageInfos = FHoudiniFoliageTools::GetAllFoliageInfo(InWorld, Settings);
+	for(auto & FoliageInfo : FoliageInfos)
+	{
+	    if (FoliageInfo != nullptr)
 		{
-			Info->Refresh(true, false);
+		    FoliageInfo->Refresh(true, false);
 		}
 	}
+
 }
+

@@ -27,6 +27,11 @@
 #pragma once
 #include "InstancedFoliage.h"
 
+struct FHoudiniEngineOutputStats;
+class UHoudiniOutput;
+class UHoudiniAssetComponent;
+struct FHoudiniOutputObjectIdentifier;
+struct FHoudiniOutputObject;
 class AInstancedFoliageActor;
 class ULevel;
 struct FHoudiniPackageParams;
@@ -37,10 +42,6 @@ class UFoliageType;
 class HOUDINIENGINE_API FHoudiniFoliageTools
 {
 public:
-	// Returns the AInstancedFoliageActor for the current level.
-	// TODO: Remove all calls to this, as its not correct in World Partition.
-	static AInstancedFoliageActor* GetInstancedFoliageActor(ULevel* DesiredLevel, bool bCreateIfNone);
-
 	// Create a new Foliage type using the InstancedStaticMesh as an Asset.
 	static UFoliageType* CreateFoliageType(const FHoudiniPackageParams& Params, int OutputIndex, ULevel* DesiredLevel, UStaticMesh* InstancedStaticMesh);
 
@@ -54,12 +55,16 @@ public:
 	static bool CleanupFoliageInstances(USceneComponent * BaseComponent);
 
 	// Spawn the Foliage Instances into the given World/Foliage Type.
-	static void SpawnFoliageInstance(UWorld* InWorld, const UFoliageType* Settings, const TArray<FFoliageInstance>& PlacedInstances, bool InRebuildFoliageTree);
+	static void SpawnFoliageInstance(UWorld* InWorld, UFoliageType* Settings, const TArray<FFoliageInstance>& PlacedInstances, bool InRebuildFoliageTree);
 
 	// Return all Foliage Types used by the AInstancedFoliageActor.
 	static TArray<UFoliageType*> GetFoliageTypes(AInstancedFoliageActor* IFA);
 
 	// Return all FFoliageInfo which reference the FoliageType in the given world.
 	static TArray<FFoliageInfo*> GetAllFoliageInfo(UWorld * World, UFoliageType * FoliageType);
+
+	// Remove all references to the foliage in the world.
+	static void RemoveFoliageType(UWorld * World, UFoliageType* FoliageType, const UHoudiniAssetComponent* HoudiniAssetComponent);
+
 };
 

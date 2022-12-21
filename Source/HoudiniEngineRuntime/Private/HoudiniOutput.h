@@ -36,6 +36,7 @@
 
 #include "HoudiniOutput.generated.h"
 
+class UFoliageType;
 class UMaterialInterface;
 class ULandscapeLayerInfoObject;
 
@@ -438,6 +439,14 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 		// at bake time. 
 		UPROPERTY()
 		TMap<FString, FString> CachedTokens;
+
+		// Object that was instanced.
+		UPROPERTY()
+	    UObject* InstancedObject = nullptr;
+
+		// Foliage Type was that used.
+		UPROPERTY()
+        UFoliageType* FoliageType = nullptr;
 };
 
 
