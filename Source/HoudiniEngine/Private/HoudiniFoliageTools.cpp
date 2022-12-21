@@ -160,7 +160,6 @@ bool FHoudiniFoliageTools::CleanupFoliageInstances(USceneComponent* BaseComponen
 		for (auto FoliageType : FoliageTypes)
 		{
 			IFA->DeleteInstancesForComponent(BaseComponent, FoliageType);
-			IFA->RemoveFoliageType(&FoliageType, 1);
 			bRemovedSome = true;
 		}
 	}
@@ -180,17 +179,6 @@ bool FHoudiniFoliageTools::CleanupFoliageInstances(USceneComponent* BaseComponen
 	}
 
 	return bRemovedSome;
-}
-
-void FHoudiniFoliageTools::RemoveFoliageType(UWorld* World, UFoliageType* FoliageType, const UHoudiniAssetComponent* HoudiniAssetComponent)
-{
-	// Remove all uses of this foliage type from all IFAs.
-	for (TActorIterator<AActor> It(World, AInstancedFoliageActor::StaticClass()); It; ++It)
-	{
-		AInstancedFoliageActor* IFA = Cast<AInstancedFoliageActor>(*It);
-		IFA->DeleteInstancesForComponent(const_cast<UHoudiniAssetComponent*>(HoudiniAssetComponent), FoliageType);
-		IFA->RemoveFoliageType(&FoliageType, 1);
-	}
 }
 
 void FHoudiniFoliageTools::SpawnFoliageInstance(UWorld* InWorld, UFoliageType* Settings, const TArray<FFoliageInstance>& PlacedInstances, bool InRebuildFoliageTree)
