@@ -4478,7 +4478,7 @@ UFoliageType* FHoudiniEngineBakeUtils::DuplicateFoliageTypeAndCreatePackageIfNee
 	int32 BakeCounter = 0;
 	FString CreatedPackageName;
 	UPackage* Package = PackageParams.CreatePackageForObject(CreatedPackageName, BakeCounter);
-	HOUDINI_CHECK_RETURN(IsValid(Package), false);
+	HOUDINI_CHECK_RETURN(IsValid(Package), nullptr);
 
     OutBakeStats.NotifyPackageCreated(1);
 	OutCreatedPackages.Add(Package);
