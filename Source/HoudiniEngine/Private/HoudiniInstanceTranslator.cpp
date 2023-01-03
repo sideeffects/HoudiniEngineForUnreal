@@ -27,6 +27,7 @@
 #include "HoudiniInstanceTranslator.h"
 
 #include "HoudiniEngine.h"
+#include "HoudiniEngineString.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniGenericAttribute.h"
@@ -1986,7 +1987,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		{
 			// Create an Instanced Static Mesh Component
 			bSuccess = CreateOrUpdateInstancedStaticMeshComponent(
-				StaticMesh, InstancedObjectTransforms, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterial, bForceHISM, FirstOriginalIndex);
+				StaticMesh, InstancedObjectTransforms, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterials, bForceHISM, FirstOriginalIndex);
 		}
 		break;
 
@@ -2008,7 +2009,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		{
 			// Create a Static Mesh Component
 			bSuccess = CreateOrUpdateStaticMeshComponent(
-				StaticMesh, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterial);
+				StaticMesh, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterials);
 		}
 		break;
 
@@ -2016,14 +2017,14 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		{
 			// Create a Houdini Static Mesh Component
 			bSuccess = CreateOrUpdateHoudiniStaticMeshComponent(
-				HSM, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterial);
+				HSM, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterials);
 		}
 		break;
 
 		case Foliage:
 		{
 			bSuccess = CreateOrUpdateFoliageInstances(
-				StaticMesh, FoliageType, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterial);
+				StaticMesh, FoliageType, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterials);
 		}
 	}
 
@@ -2059,7 +2060,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedStaticMeshComponent(
 	const FHoudiniGeoPartObject& InstancerGeoPartObject,
 	USceneComponent* ParentComponent,
 	USceneComponent*& CreatedInstancedComponent,
-	UMaterialInterface * InstancerMaterial, /*=nullptr*/
+	TArray<UMaterialInterface*> InstancerMaterials,
 	const bool & bForceHISM,
 	const int32& InstancerObjectIdx)
 {
@@ -2110,11 +2111,14 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedStaticMeshComponent(
 	}
 
 	InstancedStaticMeshComponent->OverrideMaterials.Empty();
-	if (InstancerMaterial)
+	if (InstancerMaterials.Num() > 0)
 	{
 		int32 MeshMaterialCount = InstancedStaticMesh->StaticMaterials.Num();
 		for (int32 Idx = 0; Idx < MeshMaterialCount; ++Idx)
-			InstancedStaticMeshComponent->SetMaterial(Idx, InstancerMaterial);
+		{
+			if (InstancerMaterials.IsValidIndex(Idx))
+				InstancedStaticMeshComponent->SetMaterial(Idx, InstancerMaterials[Idx]);
+		}
 	}
 
 	// Now add the instances themselves
@@ -2447,7 +2451,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateStaticMeshComponent(
 	const FHoudiniGeoPartObject& InstancerGeoPartObject,
 	USceneComponent* ParentComponent,
 	USceneComponent*& CreatedInstancedComponent,
-	UMaterialInterface * InstancerMaterial /*=nullptr*/)
+	TArray<UMaterialInterface*> InstancerMaterials)
 {
 	if (!InstancedStaticMesh)
 		return false;
@@ -2480,11 +2484,14 @@ FHoudiniInstanceTranslator::CreateOrUpdateStaticMeshComponent(
 	SMC->GetBodyInstance()->bAutoWeld = false;
 
 	SMC->OverrideMaterials.Empty();
-	if (InstancerMaterial)
+	if (InstancerMaterials.Num() > 0)
 	{
 		int32 MeshMaterialCount = InstancedStaticMesh->StaticMaterials.Num();
 		for (int32 Idx = 0; Idx < MeshMaterialCount; ++Idx)
-			SMC->SetMaterial(Idx, InstancerMaterial);
+		{
+			if (InstancerMaterials.IsValidIndex(Idx))
+				SMC->SetMaterial(Idx, InstancerMaterials[Idx]);
+		}
 	}
 
 	// Now add the instances Transform
@@ -2516,7 +2523,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateHoudiniStaticMeshComponent(
 	const FHoudiniGeoPartObject& InstancerGeoPartObject,
 	USceneComponent* ParentComponent,
 	USceneComponent*& CreatedInstancedComponent,
-	UMaterialInterface * InstancerMaterial /*=nullptr*/)
+	TArray<UMaterialInterface*> InstancerMaterials)
 {
 	if (!InstancedProxyStaticMesh)
 		return false;
@@ -2548,11 +2555,14 @@ FHoudiniInstanceTranslator::CreateOrUpdateHoudiniStaticMeshComponent(
 	HSMC->SetMesh(InstancedProxyStaticMesh);
 	
 	HSMC->OverrideMaterials.Empty();
-	if (InstancerMaterial)
+	if (InstancerMaterials.Num() > 0)
 	{
-		int32 MeshMaterialCount = InstancedProxyStaticMesh->GetNumStaticMaterials();
+		int32 MeshMaterialCount = InstancedProxyStaticMesh->GetStaticMaterials().Num();
 		for (int32 Idx = 0; Idx < MeshMaterialCount; ++Idx)
-			HSMC->SetMaterial(Idx, InstancerMaterial);
+		{
+			if (InstancerMaterials.IsValidIndex(Idx))
+				HSMC->SetMaterial(Idx, InstancerMaterials[Idx]);
+		}
 	}
 
 	// Now add the instances Transform
@@ -2584,7 +2594,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	const FHoudiniGeoPartObject& InstancerGeoPartObject,
 	USceneComponent* ParentComponent,
 	USceneComponent*& NewInstancedComponent,
-	UMaterialInterface * InstancerMaterial /*=nullptr*/)
+	TArray<UMaterialInterface*> InstancerMaterials)
 {
 	// We need either a valid SM or a valid Foliage Type
 	if ((!IsValid(InstancedStaticMesh))
@@ -2704,12 +2714,15 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 		// TODO: This was due to a bug in UE4.22-20, check if still needed! 
 		FoliageHISMC->BuildTreeIfOutdated(true, true);
 
-		if (InstancerMaterial)
+		if (InstancerMaterials.Num() > 0)
 		{
 			FoliageHISMC->OverrideMaterials.Empty();
 			int32 MeshMaterialCount = InstancedStaticMesh ? InstancedStaticMesh->StaticMaterials.Num() : 1;
 			for (int32 Idx = 0; Idx < MeshMaterialCount; ++Idx)
-				FoliageHISMC->SetMaterial(Idx, InstancerMaterial);
+			{
+				if (InstancerMaterials.IsValidIndex(Idx))
+					FoliageHISMC->SetMaterial(Idx, InstancerMaterials[Idx]);
+			}
 		}
 	}
 
@@ -2874,8 +2887,72 @@ FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
 
 	OutMaterialOverrideNeedsCreateInstance = false;
 
-	FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-		InGeoNodeId, InPartId, HAPI_UNREAL_ATTRIB_MATERIAL, MaterialAttributeInfo, OutMaterialAttributes);
+	HAPI_PartInfo PartInfo;
+	FHoudiniApi::PartInfo_Init(&PartInfo);
+	HAPI_Result Error = HAPI_RESULT_FAILURE;
+	HAPI_AttributeOwner AttribOwner = HAPI_ATTROWNER_PRIM;
+	Error = FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(),
+		InGeoNodeId, InPartId, &PartInfo);
+
+	if (Error != HAPI_RESULT_SUCCESS)
+	{
+		HOUDINI_LOG_WARNING(TEXT("[FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes]: Error %d when trying to get part info."), Error);
+	}
+
+	int32 NumAttribs = PartInfo.attributeCounts[AttribOwner];
+	TArray<HAPI_StringHandle> AttribNameHandles;
+	AttribNameHandles.SetNum(NumAttribs);
+	Error = FHoudiniApi::GetAttributeNames(FHoudiniEngine::Get().GetSession(), InGeoNodeId, InPartId, AttribOwner, AttribNameHandles.GetData(), NumAttribs);
+
+	if (Error != HAPI_RESULT_SUCCESS)
+	{
+		HOUDINI_LOG_WARNING(TEXT("[FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes]: Error %d when trying to get list of attribute names."), Error);
+	}
+
+	TArray<FString> AttribNames;
+	FHoudiniEngineString::SHArrayToFStringArray(AttribNameHandles, AttribNames);
+
+	int32 PrefixLength = FString(HAPI_UNREAL_ATTRIB_MATERIAL).Len();
+	TArray<FString> MatName;
+	for (const FString& AttribName : AttribNames)
+	{
+		if (!AttribName.StartsWith(HAPI_UNREAL_ATTRIB_MATERIAL))
+		{
+			continue;
+		}
+
+		FString Fragment = AttribName.Mid(PrefixLength);
+		// the attrib is exactly "unreal_material", use it as the default mat (index 0)
+		if (Fragment == "")
+		{
+			Fragment = "-1";
+		}
+
+		if (!Fragment.IsNumeric())
+		{
+			continue;
+		}
+
+		int32 OverrideIdx = FCString::Atoi(*Fragment) + 1;
+		if (OverrideIdx < 0)
+		{
+			continue;
+		}
+
+		while (OutMaterialAttributes.Num() <= OverrideIdx)
+		{
+			OutMaterialAttributes.Add("");
+		}
+
+		bool Res = FHoudiniEngineUtils::HapiGetAttributeDataAsString(InGeoNodeId, InPartId, TCHAR_TO_ANSI(*AttribName), MaterialAttributeInfo, MatName);
+		if (!Res)
+		{
+			HOUDINI_LOG_WARNING(TEXT("[FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes]: Failed to get material override index %d."), OverrideIdx);
+			continue;
+		}
+
+		OutMaterialAttributes[OverrideIdx] = MatName[0];
+	}
 
 	// If material attribute was not found, check fallback compatibility attribute.
 	if (!MaterialAttributeInfo.exists)
@@ -3018,8 +3095,8 @@ FHoudiniInstanceTranslator::GetVariationMaterials(
 	{
 		for (int32 Idx = 0; Idx < InOriginalIndices.Num(); Idx++)
 		{
-			if (InInstancerMaterials.IsValidIndex(InOriginalIndices[Idx]))
-				OutVariationMaterials.Add(InInstancerMaterials[InOriginalIndices[Idx]]);
+			if (InInstancerMaterials.IsValidIndex(InOriginalIndices[Idx] + 1))
+				OutVariationMaterials.Add(InInstancerMaterials[InOriginalIndices[Idx] + 1]);
 			else
 				OutVariationMaterials.Add(InInstancerMaterials[0]);
 		}

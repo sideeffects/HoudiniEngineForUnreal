@@ -68,9 +68,16 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	// - plug the input node and the static mesh node in the copytopoints
 
 	// Create the copytopoints SOP.
-	int32 CopyNodeId = -1;
+	int32 MatNodeId = -1;
 	HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
-		-1, TEXT("SOP/copytopoints"), InNodeName, true, &CopyNodeId), false);
+		-1, TEXT("SOP/attribcreate"), FinalInputNodeName, true, &MatNodeId), false);
+	
+	// Get the attribcreate node's parent OBJ NodeID
+	ObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(MatNodeId);
+
+	HAPI_NodeId CopyNodeId = -1;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
+		ObjectNodeId, TEXT("copytopoints"), "copytopoints", false, &CopyNodeId), false);
 
 	// set "Pack And Instance" (pack) to true
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(
@@ -80,7 +87,7 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	HAPI_NodeId ParentNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CopyNodeId);
 
 	// Now create an input node for the instance transforms
-	int32 InstancesNodeId = -1;
+	HAPI_NodeId InstancesNodeId = -1;
 	HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
 		ParentNodeId, TEXT("null"), "instances", false, &InstancesNodeId), false);
 
@@ -199,8 +206,32 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 		FHoudiniEngine::Get().GetSession(), CopyNodeId, 1, InstancesNodeId, 0), false);
 
+	FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), MatNodeId, "numattr", 0, SM->GetStaticMaterials().Num());
+	HAPI_ParmInfo ParmInfo;
+	HAPI_PartId ParmId;
+
+	const TArray<FStaticMaterial>& MeshMaterials = SM->GetStaticMaterials();
+	int32 MatIdx = 0;
+	for (const FStaticMaterial& Mat : MeshMaterials)
+	{
+		FString MatName = MeshMaterials.Num() == 1 ? "unreal_material" : FString("unreal_material") + FString::FromInt(MatIdx);
+
+		// parm name is one indexed
+		ParmId = FHoudiniEngineUtils::HapiFindParameterByName(MatNodeId, "name" + std::to_string(++MatIdx), ParmInfo);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), MatNodeId, TCHAR_TO_ANSI(*MatName), ParmId, 0), false);
+
+		// set attribute type to string (index 3)
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), MatNodeId, TCHAR_TO_ANSI(*(FString("type") + FString::FromInt(MatIdx))), 0, 3), false);
+
+		// set value to path of material
+		ParmId = FHoudiniEngineUtils::HapiFindParameterByName(MatNodeId, "string" + std::to_string(MatIdx), ParmInfo);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), MatNodeId, TCHAR_TO_ANSI(*Mat.MaterialInterface->GetPathName(nullptr)), ParmId, 0), false);
+	}
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+		FHoudiniEngine::Get().GetSession(), MatNodeId, 0, CopyNodeId, 0), false);
+
 	// Update this input object's node IDs
-	OutCreatedNodeId = CopyNodeId;
+	OutCreatedNodeId = MatNodeId;
 
 	return true;
 }
