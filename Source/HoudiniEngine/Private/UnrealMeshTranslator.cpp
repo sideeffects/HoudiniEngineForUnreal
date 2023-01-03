@@ -4277,6 +4277,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 		// We have materials.
 		for (int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); MaterialIdx++)
 		{
+			FString ParamPrefix = Materials.Num() == 1 ? "" : FString::FromInt(MaterialIdx) + FString("_");
 			MaterialInterface = Materials[MaterialIdx];
 			if (!MaterialInterface)
 			{
@@ -4298,7 +4299,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 
 				for (auto& CurScalarParam : MaterialScalarParamInfos)
 				{
-					FString CurScalarParamName = CurScalarParam.Name.ToString();
+					FString CurScalarParamName = ParamPrefix + CurScalarParam.Name.ToString();
 					float CurScalarVal;
 					MaterialInterface->GetScalarParameterValue(CurScalarParam, CurScalarVal);
 					if (!ScalarParams.Contains(CurScalarParamName))
@@ -4325,7 +4326,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 
 				for (auto& CurVectorParam : MaterialVectorParamInfos) 
 				{
-					FString CurVectorParamName = CurVectorParam.Name.ToString();
+					FString CurVectorParamName = ParamPrefix + CurVectorParam.Name.ToString();
 					FLinearColor CurVectorValue;
 					MaterialInterface->GetVectorParameterValue(CurVectorParam, CurVectorValue);
 					if (!VectorParams.Contains(CurVectorParamName)) 
@@ -4352,7 +4353,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 
 				for (auto & CurTextureParam : MaterialTextureParamInfos) 
 				{
-					FString CurTextureParamName = CurTextureParam.Name.ToString();
+					FString CurTextureParamName = ParamPrefix + CurTextureParam.Name.ToString();
 					UTexture * CurTexture = nullptr;
 					MaterialInterface->GetTextureParameterValue(CurTextureParam, CurTexture);
 
@@ -4379,6 +4380,14 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 	{
 		// We do not have any materials, add default.
 		UniqueMaterialList.Add(DefaultMaterialName);
+	}
+
+	if (UniqueMaterialList.Num() > 1)
+	{
+		for (int32 Idx = 0; Idx < UniqueMaterialList.Num(); ++Idx)
+		{
+			UniqueMaterialList[Idx] = "[" + FString::FromInt(Idx) + "]" + UniqueMaterialList[Idx];
+		}
 	}
 
 	// TODO: Needs to be improved!

@@ -3701,7 +3701,9 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 
 				UMaterialInterface * MaterialInterface = nullptr;
 				int32 CurrentFaceMaterialIdx = 0;
-				const FString& MaterialName = PartFaceMaterialOverrides[SplitFaceIndex];
+				FString MaterialName = PartFaceMaterialOverrides[SplitFaceIndex];
+				int32 MatIndex = -1;
+				ExtractMaterialIndex(MaterialName, MatIndex);
 				UMaterialInterface** FoundMaterialInterface = MapHoudiniMatAttributesToUnrealInterface.Find(MaterialName);
 				if (FoundMaterialInterface)
 					MaterialInterface = *FoundMaterialInterface;
@@ -3776,18 +3778,10 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 
 				if (MaterialInterface)
 				{
-					int32 const * FoundFaceMaterialIdx = MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh.Find(MaterialInterface);
-					if (FoundFaceMaterialIdx)
-					{
-						// We already know what material index to use for that override
-						CurrentFaceMaterialIdx = *FoundFaceMaterialIdx;
-					}
-					else
-					{
-						// Add the material to the Static mesh
-						CurrentFaceMaterialIdx = FoundStaticMesh->StaticMaterials.Add(FStaticMaterial(MaterialInterface));
-						MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh.Add(MaterialInterface, CurrentFaceMaterialIdx);
-					}
+					CurrentFaceMaterialIdx = GetFaceMaterialIndex(MaterialInterface,
+						MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh,
+						MatIndex,
+						FoundStaticMaterials);
 					
 					// Update the Face Material on the mesh
 					RawMesh.FaceMaterialIndices[FaceIdx] = CurrentFaceMaterialIdx;
@@ -4963,10 +4957,16 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 
 					UMaterialInterface * MaterialInterface = nullptr;
 					int32 CurrentFaceMaterialIdx = -1;
+					int32 MatIndex = -1;
 					if (PartFaceMaterialOverrides.IsValidIndex(SplitFaceIndex))
 					{
-						const FString & MaterialName = PartFaceMaterialOverrides[SplitFaceIndex];
-						UMaterialInterface** FoundMaterialInterface = MapHoudiniMatAttributesToUnrealInterface.Find(MaterialName);
+						// For MeshDescription specifically, we need OutputAssignmentMaterials/MapHoudiniMatAttributesToUnrealInterface
+						// to have an entry for each index (distinguish between identical materials in different slots).
+						// This is so we have the correct size and create enough polygon groups later.
+						const FString& OriginalMaterialName = PartFaceMaterialOverrides[SplitFaceIndex];
+						FString MaterialName = OriginalMaterialName;
+						ExtractMaterialIndex(MaterialName, MatIndex);
+						UMaterialInterface** FoundMaterialInterface = MapHoudiniMatAttributesToUnrealInterface.Find(OriginalMaterialName);
 						if (FoundMaterialInterface)
 							MaterialInterface = *FoundMaterialInterface;
 
@@ -4975,7 +4975,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 							// Try to locate the corresponding material interface
 
 							// Start by looking in our assignment map
-							FoundMaterialInterface = OutputAssignmentMaterials.Find(MaterialName);
+							FoundMaterialInterface = OutputAssignmentMaterials.Find(OriginalMaterialName);
 							if (FoundMaterialInterface)
 								MaterialInterface = *FoundMaterialInterface;
 
@@ -4994,7 +4994,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 							{
 								// We managed to load the UE4 material
 								// Make sure this material is in the assignments before replacing it.
-								OutputAssignmentMaterials.Add(MaterialName, MaterialInterface);
+								OutputAssignmentMaterials.Add(OriginalMaterialName, MaterialInterface);
 								
 								// See if we have a replacement material and use it on the mesh instead
 								UMaterialInterface * const *ReplacementMaterialInterface = ReplacementMaterials.Find(MaterialName);
@@ -5002,7 +5002,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 									MaterialInterface = *ReplacementMaterialInterface;
 
 								// Add this material to the map
-								MapHoudiniMatAttributesToUnrealInterface.Add(MaterialName, MaterialInterface);
+								MapHoudiniMatAttributesToUnrealInterface.Add(OriginalMaterialName, MaterialInterface);
 							}
 						}
 
@@ -5042,18 +5042,10 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 						}
 					}
 
-					int32 const * FoundFaceMaterialIdx = MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh.Find(MaterialInterface);
-					if (FoundFaceMaterialIdx)
-					{
-						// We already know what material index to use for that override
-						CurrentFaceMaterialIdx = *FoundFaceMaterialIdx;
-					}
-					else
-					{
-						// Add the material to the Static mesh
-						CurrentFaceMaterialIdx = FoundStaticMesh->StaticMaterials.Add(FStaticMaterial(MaterialInterface));
-						MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh.Add(MaterialInterface, CurrentFaceMaterialIdx);
-					}
+					CurrentFaceMaterialIdx = GetFaceMaterialIndex(MaterialInterface,
+						MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh,
+						MatIndex,
+						FoundStaticMaterials);
 
 					// Update the Face Material on the mesh
 					SplitFaceMaterialIndices[FaceIdx] = CurrentFaceMaterialIdx;
@@ -5066,6 +5058,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 
 			// We must use the number of assignment materials found to reserve the number of material slots
 			// Don't use the SM's StaticMaterials here as we may not reserve enough polygon groups when adding more materials
+			// Create a polygon group for each material slot.
 			int32 NumberOfMaterials = OutputAssignmentMaterials.Num();
 			if (NumberOfMaterials <= 0)
 			{
@@ -6401,7 +6394,9 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 
 				UMaterialInterface * MaterialInterface = nullptr;
 				int32 CurrentFaceMaterialIdx = 0;
-				const FString& MaterialName = PartFaceMaterialOverrides[SplitFaceIndex];
+				FString MaterialName = PartFaceMaterialOverrides[SplitFaceIndex];
+				int32 MatIndex = -1;
+				ExtractMaterialIndex(MaterialName, MatIndex);
 				UMaterialInterface** FoundMaterialInterface = MapHoudiniMatAttributesToUnrealInterface.Find(MaterialName);
 				if (FoundMaterialInterface)
 					MaterialInterface = *FoundMaterialInterface;
@@ -6477,18 +6472,10 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 
 				if (MaterialInterface)
 				{
-					int32 const * FoundFaceMaterialIdx = MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh.Find(MaterialInterface);
-					if (FoundFaceMaterialIdx)
-					{
-						// We already know what material index to use for that override
-						CurrentFaceMaterialIdx = *FoundFaceMaterialIdx;
-					}
-					else
-					{
-						// Add the material to the Static mesh
-						CurrentFaceMaterialIdx = FoundStaticMaterials.Add(FStaticMaterial(MaterialInterface));
-						MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh.Add(MaterialInterface, CurrentFaceMaterialIdx);
-					}
+					CurrentFaceMaterialIdx = GetFaceMaterialIndex(MaterialInterface,
+						MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh,
+						MatIndex,
+						FoundStaticMaterials);
 					// Update the Face Material on the mesh
 					FoundStaticMesh->SetTriangleMaterialID(FaceIdx, CurrentFaceMaterialIdx);
 				}
@@ -6774,6 +6761,76 @@ FHoudiniMeshTranslator::CreateNeededMaterials()
 	}
 
 	return true;
+}
+
+bool
+FHoudiniMeshTranslator::ExtractMaterialIndex(FString& MaterialName, int32& MatIndex)
+{
+	// Attempt to extract an index
+	if (MaterialName.StartsWith("["))
+	{
+		int32 End = MaterialName.Find("]");
+		if (End != -1)
+		{
+			FString Fragment = MaterialName.Mid(1, End - 1);
+			if (FCString::IsNumeric(*Fragment))
+			{
+				MatIndex = FCString::Atoi(*Fragment);
+				MaterialName = MaterialName.Mid(End + 1);
+			}
+		}
+	}
+	// correct invalid index
+	if (MatIndex < -1)
+	{
+		MaterialName = "[" + FString::FromInt(MatIndex) + "]" + MaterialName;
+		MatIndex = -1;
+	}
+
+	return true;
+}
+
+int32
+FHoudiniMeshTranslator::GetFaceMaterialIndex(UMaterialInterface* MaterialInterface,
+	TMap<UMaterialInterface*, int32>& MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh,
+	int32 MatIndex,
+	TArray<FStaticMaterial>& FoundStaticMaterials)
+{
+	int32 CurrentFaceMaterialIdx = 0;
+	// only rely on our map if no index specified in the attribute value
+	int32 const* FoundFaceMaterialIdx = MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh.Find(MaterialInterface);
+	if (FoundFaceMaterialIdx && MatIndex == -1)
+	{
+		// We already know what material index to use for that override
+		CurrentFaceMaterialIdx = *FoundFaceMaterialIdx;
+	}
+	else
+	{
+		// assign a default index for this mat
+		if (MatIndex == -1)
+		{
+			CurrentFaceMaterialIdx = FoundStaticMaterials.Add(FStaticMaterial(MaterialInterface));
+			MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh.Add(MaterialInterface, CurrentFaceMaterialIdx);
+		}
+		// else, there is a specific index specified in the attrib value
+		else
+		{
+			// add the mat to the mesh's material list if needed
+			if (FoundStaticMaterials.Num() <= MatIndex || FoundStaticMaterials[MatIndex].MaterialInterface == nullptr)
+			{
+				FoundStaticMaterials.Reserve(MatIndex + 1);
+				// pad with empty materials
+				while (FoundStaticMaterials.Num() <= MatIndex)
+				{
+					FoundStaticMaterials.Add(FStaticMaterial());
+				}
+				FoundStaticMaterials[MatIndex] = FStaticMaterial(MaterialInterface);
+			}
+			CurrentFaceMaterialIdx = MatIndex;
+		}
+	}
+
+	return CurrentFaceMaterialIdx;
 }
 
 FString

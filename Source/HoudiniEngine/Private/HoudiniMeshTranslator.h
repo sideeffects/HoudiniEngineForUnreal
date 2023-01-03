@@ -180,6 +180,8 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			FProperty*& OutFoundProperty,
 			void*& OutContainer);
 
+		static bool ExtractMaterialIndex(FString& MaterialName, int32& MatIndex);
+
 		// Update the MeshBuild Settings using the values from the runtime settings/overrides on the HAC
 		void UpdateMeshBuildSettings(
 			FMeshBuildSettings& OutMeshBuildSettings,
@@ -304,6 +306,11 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 
 		// Updates and create the material that are needed for this part
 		bool CreateNeededMaterials();
+
+		int32 GetFaceMaterialIndex(UMaterialInterface* MaterialInterface,
+			TMap<UMaterialInterface*, int32>& MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh,
+			int32 MatIndex,
+			TArray<FStaticMaterial>& FoundStaticMaterials);
 
 		USkeletalMesh* CreateNewSkeletalMesh(const FString& InSplitIdentifier);
 		USkeleton* CreateNewSkeleton(const FString& InSplitIdentifier);
