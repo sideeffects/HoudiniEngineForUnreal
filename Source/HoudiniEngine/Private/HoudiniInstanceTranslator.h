@@ -345,7 +345,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const FHoudiniGeoPartObject& InstancerGeoPartObject,
 			USceneComponent* ParentComponent,
 			USceneComponent*& CreatedInstancedComponent,
-			UMaterialInterface * InstancerMaterial = nullptr,
+			TArray<UMaterialInterface*> InstancerMaterials,
 			const bool& bForceHISM = false,
 			const int32& InstancerObjectIdx = 0);
 
@@ -377,7 +377,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const FHoudiniGeoPartObject& InstancerGeoPartObject,
 			USceneComponent* ParentComponent,
 			USceneComponent*& CreatedInstancedComponent,
-			UMaterialInterface * InstancerMaterial = nullptr);
+			TArray<UMaterialInterface*> InstancerMaterials);
 
 		// Create or update a HoudiniStaticMeshComponent (when we have only one instance)
 		static bool CreateOrUpdateHoudiniStaticMeshComponent(
@@ -388,7 +388,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const FHoudiniGeoPartObject& InstancerGeoPartObject,
 			USceneComponent* ParentComponent,
 			USceneComponent*& CreatedInstancedComponent,
-			UMaterialInterface * InstancerMaterial = nullptr);
+			TArray<UMaterialInterface*> InstancerMaterials);
 
 		// Create or update a Foliage instances
 		static bool CreateOrUpdateFoliageInstances(
@@ -403,7 +403,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			USceneComponent* ParentComponent,
 			UFoliageType* & FoliageTypeUsed,
 			TArray<USceneComponent*> & NewInstancedComponents,
-			UMaterialInterface * InstancerMaterial /*=nullptr*/);
+			TArray<UMaterialInterface*> InstancerMaterials);
 
 		// Helper fumction to properly remove/destroy a component
 		static bool RemoveAndDestroyComponent(
