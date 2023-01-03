@@ -33,6 +33,7 @@
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniGenericAttribute.h"
 #include "HoudiniPackageParams.h"
+#include "HoudiniMeshTranslator.h"
 
 #include "Materials/Material.h"
 #include "Materials/MaterialInstance.h"
@@ -300,6 +301,13 @@ FHoudiniMaterialTranslator::CreateMaterialInstances(
 	if (UniqueMaterialInstanceOverrides.Num() <= 0)
 		return false;
 
+	// See if we need to override some of the material instance's parameters
+	TArray<FHoudiniGenericAttribute> DetailMatParams;
+	// Get the detail material parameters
+	int32 ParamCount = FHoudiniEngineUtils::GetGenericAttributeList(
+		InHGPO.GeoId, InHGPO.PartId, HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX,
+		DetailMatParams, HAPI_ATTROWNER_DETAIL, -1);
+
 	// TODO: Improve!
 	// Get the material name from the material_instance attribute 
 	// Since the material instance attribute can be set per primitive, it's going to be very difficult to know 
@@ -311,6 +319,10 @@ FHoudiniMaterialTranslator::CreateMaterialInstances(
 	for (TMap<FString, int32>::TConstIterator Iter(UniqueMaterialInstanceOverrides); Iter; ++Iter)
 	{
 		FString CurrentSourceMaterial = Iter->Key;
+
+		int32 SlotIndex = MaterialIndex;
+		FHoudiniMeshTranslator::ExtractMaterialIndex(CurrentSourceMaterial, SlotIndex);
+
 		if (CurrentSourceMaterial.IsEmpty())
 			continue;
 
@@ -388,12 +400,8 @@ FHoudiniMaterialTranslator::CreateMaterialInstances(
 		FMaterialUpdateContext MaterialUpdateContext;
 
 		bool bModifiedMaterialParameters = false;
-		// See if we need to override some of the material instance's parameters
-		TArray<FHoudiniGenericAttribute> AllMatParams;
-		// Get the detail material parameters
-		int32 ParamCount = FHoudiniEngineUtils::GetGenericAttributeList(
-			InHGPO.GeoId, InHGPO.PartId, HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX, 
-			AllMatParams, HAPI_ATTROWNER_DETAIL, -1);
+
+		TArray<FHoudiniGenericAttribute> AllMatParams = DetailMatParams;
 
 		// Then the primitive material parameters
 		int32 MaterialIndexToAttributeIndex = Iter->Value;
@@ -403,8 +411,32 @@ FHoudiniMaterialTranslator::CreateMaterialInstances(
 
 		for (int32 ParamIdx = 0; ParamIdx < AllMatParams.Num(); ParamIdx++)
 		{
+			FHoudiniGenericAttribute& ParamOverride = AllMatParams[ParamIdx];
+			FString& AttribName = ParamOverride.AttributeName;
+			// If no index specified, assume it applies to all mats
+			int32 OverrideIndex = MaterialIndex - 1;
+			int32 TentativeIndex = 0;
+			char CurChar = AttribName[0];
+			int32 AttribNameIndex = 0;
+			while (CurChar >= '0' && CurChar <= '9')
+			{
+				TentativeIndex *= 10;
+				TentativeIndex += CurChar - '0';
+				CurChar = AttribName[++AttribNameIndex];
+			}
+			if (CurChar == '_')
+			{
+				AttribName = AttribName.Mid(AttribNameIndex + 1);
+				OverrideIndex = TentativeIndex;
+			}
+
+			if (OverrideIndex != MaterialIndex - 1)
+			{
+				continue;
+			}
+
 			// Try to update the material instance parameter corresponding to the attribute
-			if (UpdateMaterialInstanceParameter(AllMatParams[ParamIdx], NewMaterialInstance, InPackages))
+			if (UpdateMaterialInstanceParameter(ParamOverride, NewMaterialInstance, InPackages))
 				bModifiedMaterialParameters = true;
 		}
 

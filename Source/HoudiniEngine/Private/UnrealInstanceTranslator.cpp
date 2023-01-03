@@ -137,7 +137,7 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 
 	// Create the copytopoints SOP.
 	HAPI_NodeId ObjectNodeId = -1;
-	int32 CopyNodeId = -1;
+	int32 MatNodeId = -1;
 	if (bUseRefCountedInputSystem)
 	{
 		// If we have existing valid HAPI nodes (so we are rebuilding a dirty / old version) reuse those nodes. This
@@ -145,17 +145,17 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 		bool bCreateNodes = true;
 		if (FHoudiniEngineUtils::AreHAPINodesValid(Identifier))
 		{
-			if (FHoudiniEngineUtils::GetHAPINodeId(Identifier, CopyNodeId))
+			if (FHoudiniEngineUtils::GetHAPINodeId(Identifier, MatNodeId))
 			{
-				ObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CopyNodeId);
+				ObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(MatNodeId);
 				if (ObjectNodeId >= 0)
 				{
 					bCreateNodes = false;
 					// Best effort: clean up: disconnect the object merge from input 0 (HAPI should delete it
 					// automatically) and delete the instances null that is connected to input 1
-					FHoudiniApi::DisconnectNodeInput(FHoudiniEngine::Get().GetSession(), CopyNodeId, 0);
+					FHoudiniApi::DisconnectNodeInput(FHoudiniEngine::Get().GetSession(), MatNodeId, 0);
 					HAPI_NodeId OldInstancesId = -1;
-					if (FHoudiniApi::QueryNodeInput(FHoudiniEngine::Get().GetSession(), CopyNodeId, 1, &OldInstancesId) == HAPI_RESULT_SUCCESS
+					if (FHoudiniApi::QueryNodeInput(FHoudiniEngine::Get().GetSession(), MatNodeId, 1, &OldInstancesId) == HAPI_RESULT_SUCCESS
 							&& OldInstancesId >= 0)
 					{
 						FHoudiniEngineUtils::DeleteHoudiniNode(OldInstancesId);
@@ -169,24 +169,28 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 			HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
 				ParentNodeId, ParentNodeId < 0 ? TEXT("Object/geo") : TEXT("geo"), FinalInputNodeName, true, &ObjectNodeId), false);
 			HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
-				ObjectNodeId, ObjectNodeId < 0 ? TEXT("SOP/copytopoints") : TEXT("copytopoints"), FinalInputNodeName, true, &CopyNodeId), false);
+				ObjectNodeId, ObjectNodeId < 0 ? TEXT("SOP/attribcreate") : TEXT("attribcreate"), FinalInputNodeName, true, &MatNodeId), false);
 		}
 	}
 	else
 	{
 		HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
-			-1, TEXT("SOP/copytopoints"), FinalInputNodeName, true, &CopyNodeId), false);
+			-1, TEXT("SOP/attribcreate"), FinalInputNodeName, true, &MatNodeId), false);
 		
-		// Get the copytopoints parent OBJ NodeID
-		ObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CopyNodeId);
+		// Get the attribcreate node's parent OBJ NodeID
+		ObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(MatNodeId);
 	}
+
+	HAPI_NodeId CopyNodeId = -1;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
+		ObjectNodeId, TEXT("copytopoints"), "copytopoints", false, &CopyNodeId), false);
 
 	// set "Pack And Instance" (pack) to true
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(
 		FHoudiniEngine::Get().GetSession(), CopyNodeId, "pack", 0, 1), false);
 
 	// Now create an input node for the instance transforms
-	int32 InstancesNodeId = -1;
+	HAPI_NodeId InstancesNodeId = -1;
 	HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
 		ObjectNodeId, TEXT("null"), "instances", false, &InstancesNodeId), false);
 
@@ -305,18 +309,45 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 		FHoudiniEngine::Get().GetSession(), CopyNodeId, 1, InstancesNodeId, 0), false);
 
+	FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), MatNodeId, "numattr", 0, SM->GetStaticMaterials().Num());
+	HAPI_ParmInfo ParmInfo;
+	HAPI_PartId ParmId;
+
+	const TArray<FStaticMaterial>& MeshMaterials = SM->GetStaticMaterials();
+	int32 MatIdx = 0;
+	for (const FStaticMaterial& Mat : MeshMaterials)
+	{
+		FString MatName = MeshMaterials.Num() == 1 ? "unreal_material" : FString("unreal_material") + FString::FromInt(MatIdx);
+
+		// parm name is one indexed
+		ParmId = FHoudiniEngineUtils::HapiFindParameterByName(MatNodeId, "name" + std::to_string(++MatIdx), ParmInfo);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), MatNodeId, TCHAR_TO_ANSI(*MatName), ParmId, 0), false);
+
+		// set attribute type to string (index 3)
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), MatNodeId, TCHAR_TO_ANSI(*(FString("type") + FString::FromInt(MatIdx))), 0, 3), false);
+
+		// set value to path of material
+		ParmId = FHoudiniEngineUtils::HapiFindParameterByName(MatNodeId, "string" + std::to_string(MatIdx), ParmInfo);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), MatNodeId, TCHAR_TO_ANSI(*Mat.MaterialInterface->GetPathName(nullptr)), ParmId, 0), false);
+	}
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+		FHoudiniEngine::Get().GetSession(), MatNodeId, 0, CopyNodeId, 0), false);
+
 	// Update/create the entry in the input manager
 	if (bUseRefCountedInputSystem)
 	{
 		// Record the node in the manager
 		FUnrealObjectInputHandle Handle;
 		TSet<FUnrealObjectInputHandle> ReferencedNodes({SMNodeHandle});
-		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, CopyNodeId, Handle, ObjectNodeId, &ReferencedNodes, bInputNodesCanBeDeleted))
+		//FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, CopyNodeId, Handle, ObjectNodeId, &ReferencedNodes, bInputNodesCanBeDeleted);
+		FUnrealObjectInputHandle CopyPointsHandle;
+		//ReferencedNodes = { CopyPointsHandle };
+		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, MatNodeId, Handle, ObjectNodeId, &ReferencedNodes, bInputNodesCanBeDeleted))
 			OutHandle = Handle;
 	}
 
 	// Update this input object's node IDs
-	OutCreatedNodeId = CopyNodeId;
+	OutCreatedNodeId = MatNodeId;
 
 	return true;
 }
