@@ -309,11 +309,11 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 		FHoudiniEngine::Get().GetSession(), CopyNodeId, 1, InstancesNodeId, 0), false);
 
-	FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), MatNodeId, "numattr", 0, SM->GetStaticMaterials().Num());
+	FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), MatNodeId, "numattr", 0, SM->StaticMaterials.Num());
 	HAPI_ParmInfo ParmInfo;
 	HAPI_PartId ParmId;
 
-	const TArray<FStaticMaterial>& MeshMaterials = SM->GetStaticMaterials();
+	const TArray<FStaticMaterial>& MeshMaterials = SM->StaticMaterials;
 	int32 MatIdx = 0;
 	for (const FStaticMaterial& Mat : MeshMaterials)
 	{
