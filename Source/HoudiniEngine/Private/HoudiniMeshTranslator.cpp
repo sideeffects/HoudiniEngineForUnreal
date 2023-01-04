@@ -2592,7 +2592,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 					CurrentFaceMaterialIdx = GetFaceMaterialIndex(MaterialInterface,
 						MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh,
 						MatIndex,
-						FoundStaticMaterials);
+						FoundStaticMesh->StaticMaterials);
 					
 					// Update the Face Material on the mesh
 					RawMesh.FaceMaterialIndices[FaceIdx] = CurrentFaceMaterialIdx;
@@ -3856,7 +3856,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 					CurrentFaceMaterialIdx = GetFaceMaterialIndex(MaterialInterface,
 						MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh,
 						MatIndex,
-						FoundStaticMaterials);
+						FoundStaticMesh->StaticMaterials);
 
 					// Update the Face Material on the mesh
 					SplitFaceMaterialIndices[FaceIdx] = CurrentFaceMaterialIdx;
