@@ -2134,7 +2134,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		case Foliage:
 		{
 			bSuccess = CreateOrUpdateFoliageInstances(
-				StaticMesh, FoliageType, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, InPackageParams, FoliageTypeCount, ParentComponent, FoliageTypeUsed, NewComponents, InstancerMaterial);
+				StaticMesh, FoliageType, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, InPackageParams, FoliageTypeCount, ParentComponent, FoliageTypeUsed, NewComponents, InstancerMaterials);
 
 		}
 	}
