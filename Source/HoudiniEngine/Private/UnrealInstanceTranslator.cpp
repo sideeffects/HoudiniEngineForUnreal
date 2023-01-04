@@ -68,9 +68,10 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	// - plug the input node and the static mesh node in the copytopoints
 
 	// Create the copytopoints SOP.
+	HAPI_NodeId ObjectNodeId = -1;
 	int32 MatNodeId = -1;
 	HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
-		-1, TEXT("SOP/attribcreate"), FinalInputNodeName, true, &MatNodeId), false);
+		-1, TEXT("SOP/attribcreate"), InNodeName, true, &MatNodeId), false);
 	
 	// Get the attribcreate node's parent OBJ NodeID
 	ObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(MatNodeId);

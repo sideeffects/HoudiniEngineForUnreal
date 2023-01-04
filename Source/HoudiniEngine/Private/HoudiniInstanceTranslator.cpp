@@ -2095,7 +2095,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		{
 			// Create an Instanced Static Mesh Component
 			bSuccess = CreateOrUpdateInstancedStaticMeshComponent(
-				StaticMesh, InstancedObjectTransforms, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterials, bForceHISM, FirstOriginalIndex);
+				StaticMesh, InstancedObjectTransforms, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponents[0], InstancerMaterials, bForceHISM, FirstOriginalIndex);
 			bCheckRenderState = true;
 		}
 		break;
@@ -2118,7 +2118,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		{
 			// Create a Static Mesh Component
 			bSuccess = CreateOrUpdateStaticMeshComponent(
-				StaticMesh, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterials);
+				StaticMesh, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponents[0], InstancerMaterials);
 			bCheckRenderState = true;
 		}
 		break;
@@ -2127,14 +2127,14 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		{
 			// Create a Houdini Static Mesh Component
 			bSuccess = CreateOrUpdateHoudiniStaticMeshComponent(
-				HSM, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponent, InstancerMaterials);
+				HSM, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, ParentComponent, NewComponents[0], InstancerMaterials);
 		}
 		break;
 
 		case Foliage:
 		{
 			bSuccess = CreateOrUpdateFoliageInstances(
-				StaticMesh, FoliageType, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, InPackageParams, FoliageTypeCount, ParentComponent, NewComponent, InstancerMaterials);
+				StaticMesh, FoliageType, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, InPackageParams, FoliageTypeCount, ParentComponent, FoliageTypeUsed, NewComponents, InstancerMaterial);
 
 		}
 	}
