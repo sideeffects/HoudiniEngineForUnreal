@@ -1932,7 +1932,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 
 			// Retrieve color plane - this will contain normal data.
 			if (FHoudiniMaterialTranslator::HapiExtractImage(
-				ParmDiffuseTextureId, InMaterialInfo, HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL,
+				ParmDiffuseTextureId, InMaterialInfo, HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
 				HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true, ImageBuffer))
 			{
 				UMaterialExpressionTextureSampleParameter2D * ExpressionNormal =
