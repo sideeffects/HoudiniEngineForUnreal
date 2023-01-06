@@ -621,6 +621,16 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 	}
 	OldOutputObjects.Empty();
 
+	// We need to clean up the instanced outputs that are still marked as stale
+	// See Bug #124444
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutput> NewInstancedOutputs;
+	for (const auto& CurrentInstancedOutput : InstancedOutputs)
+	{
+		if (!CurrentInstancedOutput.Value.bStale)
+			NewInstancedOutputs.Add(CurrentInstancedOutput);
+	}
+	InOutput->SetInstancedOutputs(NewInstancedOutputs);
+
 	// Update the output's object map
 	// Instancer do not create objects, clean the map
 	InOutput->SetOutputObjects(NewOutputObjects);
