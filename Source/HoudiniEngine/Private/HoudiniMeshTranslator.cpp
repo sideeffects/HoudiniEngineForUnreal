@@ -2779,37 +2779,6 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			tick = FPlatformTime::Seconds();
 		}
 
-		{
-			// Patch the MeshDescription data structure that is being output from SaveRawMesh. SaveRawMesh leaves invalid entries
-		 	// in the PolyGroups / MaterialSlotNames arrays that causes issues later when the static mesh is built and LOD material assignments
-			// are being done (materials aren't correctly assigned to LODs if LODs use different materials).
-
-			// Create a Polygon Group for each material slot
-			TPolygonGroupAttributesRef<FName> PolygonGroupImportedMaterialSlotNames =
-				SrcModel->MeshDescription->PolygonGroupAttributes().GetAttributesRef<FName>(MeshAttribute::PolygonGroup::ImportedMaterialSlotName);
-
-			// We must use the number of assignment materials found to reserve the number of material slots
-			// Don't use the SM's StaticMaterials here as we may not reserve enough polygon groups when adding more materials
-			int32 NumberOfMaterials = FoundStaticMesh->StaticMaterials.Num();
-			if (NumberOfMaterials <= 0)
-			{
-				// No materials, create a polygon group for the default one
-				const FPolygonGroupID& PolygonGroupID = SrcModel->MeshDescription->CreatePolygonGroup();
-				PolygonGroupImportedMaterialSlotNames[PolygonGroupID] = FName(HAPI_UNREAL_DEFAULT_MATERIAL_NAME);
-			}
-			else
-			{
-				FPolygonGroupArray& PolyGroups = SrcModel->MeshDescription->PolygonGroups();
-				for (auto& CurrentMatAssignment : OutputAssignmentMaterials)
-				{
-					const FPolygonGroupID& PolygonGroupID = SrcModel->MeshDescription->CreatePolygonGroup();
-					
-					PolygonGroupImportedMaterialSlotNames[PolygonGroupID] =
-						FName(CurrentMatAssignment.Value ? *(CurrentMatAssignment.Value->GetName()) : *(CurrentMatAssignment.Key));
-				}
-			}
-		}
-
 		// LOD Screensize
 		// default values has already been set, see if we have any attribute override for this
 		float screensize = GetLODSCreensizeForSplit(SplitGroupName);
@@ -2902,6 +2871,61 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			bCollidersOnly = false;
 			break;
 		}
+	}
+
+	{
+        // This code block works around a bug in UE when we build meshes from FMeshDescription structures. The FMeshDescription
+		// structures are built correctly (one per LOD). UE then creates one mesh section for each material in each LOD and
+		// fills in the correct Material Id. So far so good.
+		//
+		// However, UE then calls the function FStaticMeshRenderData::ResolveSectionInfo() which then overwrites this 
+		// material Id with one store inthe Section Info Map:
+		//
+		//			FMeshSectionInfo Info = Owner->GetSectionInfoMap().Get(LODIndex, SectionIndex);
+		//			...
+		//			Section.MaterialIndex = Info.MaterialIndex;
+		//
+		// The problem is that there is no Section Info Map, so FMeshSectionInfoMap::Get() creates one, but the one created is not
+		// // correct - if FMeshSectionInfoMap::Get(LodIndex,...) is called, and no section map exists for LodIndex, it uses LODIndex
+		// of 0. This causes us to end up with the wrong materials on the LODs.
+		//
+		// So the work around is to crib the code that creates the sections (BuildVertexBuffer inside StaticMeshBuilder.cpp) and
+		// create a correct Section info Map before building the Static Mesh; then everything works.
+
+	    for (auto& It : StaticMeshToBuild)
+	    {
+		    UStaticMesh* StaticMesh = It.Value;
+		    FMeshSectionInfoMap& InfoMap = StaticMesh->GetSectionInfoMap();
+
+			int NumLODs = StaticMesh->GetSourceModels().Num();
+			if (NumLODs > 1)
+			{
+		        for(int LODIndex = 0; LODIndex < NumLODs; LODIndex++)
+			    {
+				    FMeshDescription * MeshDescription = StaticMesh->GetMeshDescription(LODIndex);
+
+				    FStaticMeshConstAttributes Attributes(*MeshDescription);
+				    TPolygonGroupAttributesConstRef<FName> PolygonGroupImportedMaterialSlotNames = Attributes.GetPolygonGroupMaterialSlotNames();
+
+  				    TMap<FPolygonGroupID, int32> PolygonGroupToSectionIndex;
+				    int SectionCount = 0;
+				    for (const FPolygonGroupID PolygonGroupID : MeshDescription->PolygonGroups().GetElementIDs())
+				    {
+					    int32& SectionIndex = PolygonGroupToSectionIndex.FindOrAdd(PolygonGroupID);
+					    SectionIndex = SectionCount++;
+					    int MaterialIndex = StaticMesh->GetMaterialIndexFromImportedMaterialSlotName(PolygonGroupImportedMaterialSlotNames[PolygonGroupID]);
+					    if (MaterialIndex == INDEX_NONE)
+					    {
+						    MaterialIndex = PolygonGroupID.GetValue();
+					    }
+
+					    FMeshSectionInfo Info;
+					    Info.MaterialIndex = MaterialIndex;
+					    InfoMap.Set(LODIndex, SectionIndex, Info);
+				    }
+			    }
+			}
+	    }
 	}
 
 	FHoudiniScopedGlobalSilence ScopedGlobalSilence;
