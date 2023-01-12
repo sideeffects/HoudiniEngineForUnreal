@@ -4023,9 +4023,6 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 	TArray<FString> ColTitles = DataTable->GetUniqueColumnTitles();
 	TArray<FString> NiceNames = DataTable->GetColumnTitles();
 
-	if (RowNames.Num() <= 1)
-		return true;
-
 	int32 NumRows = RowNames.Num();
 	int32 NumAttributes = ColTitles.Num();
 	if (NumRows <= 0 || NumAttributes <= 0)
