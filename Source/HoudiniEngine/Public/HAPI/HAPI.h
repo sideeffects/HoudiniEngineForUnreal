@@ -3,6 +3,13 @@
  * Side Effects Software Inc., and is not to be reproduced,
  * transmitted, or disclosed in any way without written permission.
  *
+ * Produced by:
+ *      Side Effects Software Inc
+ *      123 Front Street West, Suite 1401
+ *      Toronto, Ontario
+ *      Canada   M5J 2M2
+ *      416-504-9876
+ *
  * COMMENTS:
  * For parsing help, there is a variable naming convention we maintain:
  *      strings:            char * and does not end in "buffer"
