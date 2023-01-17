@@ -184,16 +184,16 @@ UHoudiniInputSplineComponent::HasComponentChanged() const
 
 	for (int32 n = 0; n < SplineComponent->GetNumberOfSplinePoints(); ++n) 
 	{
-		const FTransform &CurSplineComponentTransform = SplineComponent->GetTransformAtSplinePoint(n, ESplineCoordinateSpace::Local);
+		const FTransform &CurSplineComponentTransform = SplineComponent->GetTransformAtSplinePoint(n, ESplineCoordinateSpace::Local, true);
 		const FTransform &CurInputTransform = SplineControlPoints[n];
 
-		if (CurInputTransform.GetLocation() != CurSplineComponentTransform.GetLocation())
+		if (CurInputTransform.TranslationEquals(CurSplineComponentTransform))
 			return true;
 
-		if (CurInputTransform.GetRotation().Rotator() != CurSplineComponentTransform.GetRotation().Rotator())
+		if (CurInputTransform.RotationEquals(CurSplineComponentTransform))
 			return true;
 
-		if (CurInputTransform.GetScale3D() != CurSplineComponentTransform.GetScale3D())
+		if (CurInputTransform.Scale3DEquals(CurSplineComponentTransform))
 			return true;
 	}
 
@@ -1309,7 +1309,7 @@ UHoudiniInputSplineComponent::Update(UObject * InObject)
 	if (Spline)
 	{
 		NumberOfSplineControlPoints = Spline->GetNumberOfSplinePoints();
-		SplineLength = Spline->GetSplineLength();		
+		SplineLength = Spline->GetSplineLength();
 		SplineClosed = Spline->IsClosedLoop();
 
 		//SplineResolution = -1.0f;
@@ -1317,7 +1317,7 @@ UHoudiniInputSplineComponent::Update(UObject * InObject)
 		SplineControlPoints.SetNumZeroed(NumberOfSplineControlPoints);
 		for (int32 Idx = 0; Idx < NumberOfSplineControlPoints; Idx++)
 		{
-			SplineControlPoints[Idx] = Spline->GetTransformAtSplinePoint(Idx, ESplineCoordinateSpace::Local);
+			SplineControlPoints[Idx] = Spline->GetTransformAtSplinePoint(Idx, ESplineCoordinateSpace::Local, true);
 		}		
 	}
 }
