@@ -3646,8 +3646,21 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 		uint32 Offset = ColumnProp->GetOffset_ForInternal();
 		TMap<FName, uint8*>::TConstIterator It = DataTable->GetRowMap().CreateConstIterator();
 
+		// Identify the type of the Property
+		bool bIsBoolProperty = ColumnProp->IsA<FBoolProperty>();
+		bool bIsTextProperty = ColumnProp->IsA<FTextProperty>();
+
+		// For numeric properties, we want to treat enum separately to send them as string and not ints
+		FNumericProperty* NumProp = CastField<FNumericProperty>(ColumnProp);
+		bool bIsNumericProperty = NumProp != nullptr ? !NumProp->IsEnum() : false;
+		bool bIsEnumProperty = NumProp != nullptr ? NumProp->IsEnum() : false;
+
+		// Struct props 
+		FStructProperty* StructProp = CastField<FStructProperty>(ColumnProp);
+		bool bIsStructProperty = StructProp != nullptr;
+
 		// We need to get all values for that attribute
-		if (ColumnProp->IsA<FBoolProperty>())
+		if (bIsBoolProperty)
 		{
 			AttributeInfo.tupleSize = 1;
 			AttributeInfo.storage = HAPI_STORAGETYPE_INT8;
@@ -3663,7 +3676,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 		}
 		// Text treated separately because the method used for string fallback
 		// doesn't cleanly convert this
-		else if (ColumnProp->IsA<FTextProperty>())
+		else if (bIsTextProperty)
 		{
 			AttributeInfo.tupleSize = 1;
 			AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
@@ -3688,7 +3701,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 				Col, InputNodeId, 0,
 				CurAttrName, AttributeInfo), false);
 		}
-		else if (FNumericProperty* NumProp = CastField<FNumericProperty>(ColumnProp))
+		else if (bIsNumericProperty && !bIsEnumProperty)
 		{
 			AttributeInfo.tupleSize = 1;
 			if (NumProp->IsInteger())
@@ -3843,7 +3856,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 		}
 		else
 		{
-			if (FStructProperty* StructProp = CastField<FStructProperty>(ColumnProp))
+			if (bIsStructProperty)
 			{
 				FName StructName = StructProp->Struct->GetFName();
 
@@ -4099,7 +4112,6 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(Col, InputNodeId, 0,
 				CurAttrName, AttributeInfo), false);
 		}
-
 	}
 
 	// Commit the geo.
