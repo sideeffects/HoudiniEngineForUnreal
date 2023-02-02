@@ -75,6 +75,8 @@
 #include "HAL/PlatformApplicationMisc.h"
 #include "ActorTreeItem.h"
 #include "HoudiniLandscapeTranslator.h"
+#include "ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -90,6 +92,126 @@
 #define HOUDINI_ENGINE_UI_SECTION_ASSET_OPTIONS_HEADER_TEXT						   "Asset Options"
 #define HOUDINI_ENGINE_UI_SECTION_HELP_AND_DEBUG_HEADER_TEXT					   "Help and Debug"
 
+
+class SSelectFolderPathDialog : public SWindow
+{
+public:
+	SLATE_BEGIN_ARGS(SSelectFolderPathDialog) {}
+	SLATE_ARGUMENT(FText, InitialPath)
+	SLATE_ARGUMENT(FText, TitleText)
+	SLATE_END_ARGS()
+
+	SSelectFolderPathDialog()
+		: UserResponse(EAppReturnType::Cancel)
+	{
+
+	}
+
+	void Construct(const FArguments& InArgs)
+	{
+		FolderPath = InArgs._InitialPath;
+
+		if (FolderPath.IsEmpty())
+		{
+			FolderPath = FText::FromString(TEXT("/Game"));
+		}
+
+		FPathPickerConfig PathPickerConfig;
+		PathPickerConfig.DefaultPath = FolderPath.ToString();
+		PathPickerConfig.OnPathSelected = FOnPathSelected::CreateSP(this, &SSelectFolderPathDialog::OnPathChange);
+		PathPickerConfig.bAddDefaultPath = true;
+
+		FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+
+		SWindow::Construct(SWindow::FArguments()
+		.Title(InArgs._TitleText)
+		.SupportsMinimize(false)
+		.SupportsMaximize(false)
+		.IsTopmostWindow(true)
+		.ClientSize(FVector2D(450, 450))
+		[
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.Padding(2)
+			[
+				SNew(SBorder)
+				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+				[
+					SNew(SVerticalBox)
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("SelectPath", "Select Path"))
+						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 14))
+					]
+
+					+ SVerticalBox::Slot()
+					.FillHeight(1)
+					.Padding(3)
+					[
+						ContentBrowserModule.Get().CreatePathPicker(PathPickerConfig)
+					]
+				]
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.HAlign(HAlign_Right)
+			.Padding(5)
+			[
+				SNew(SUniformGridPanel)
+				.SlotPadding(FAppStyle::GetMargin("StandardDialog.SlotPadding"))
+				.MinDesiredSlotWidth(FAppStyle::GetFloat("StandardDialog.MinDesiredSlotWidth"))
+				.MinDesiredSlotHeight(FAppStyle::GetFloat("StandardDialog.MinDesiredSlotHeight"))
+				+ SUniformGridPanel::Slot(0, 0)
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.ContentPadding(FAppStyle::GetMargin("StandardDialog.ContentPadding"))
+					.Text(LOCTEXT("OK", "OK"))
+					.OnClicked(this, &SSelectFolderPathDialog::OnButtonClick, EAppReturnType::Ok)
+				]
+				+ SUniformGridPanel::Slot(1, 0)
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.ContentPadding(FAppStyle::GetMargin("StandardDialog.ContentPadding"))
+					.Text(LOCTEXT("Cancel", "Cancel"))
+					.OnClicked(this, &SSelectFolderPathDialog::OnButtonClick, EAppReturnType::Cancel)
+				]
+			]
+		]);
+	}
+
+	EAppReturnType::Type ShowModal()
+	{
+		GEditor->EditorAddModalWindow(SharedThis(this));
+		return UserResponse;
+	}
+
+	const FText& GetFolderPath() const
+	{
+		return FolderPath;
+	}
+
+private:
+	void OnPathChange(const FString& NewPath)
+	{
+		FolderPath = FText::FromString(NewPath);
+	}
+
+	FReply OnButtonClick(EAppReturnType::Type ButtonID)
+	{
+		UserResponse = ButtonID;
+		RequestDestroyWindow();
+		return FReply::Handled();
+	}
+
+	EAppReturnType::Type UserResponse;
+	FText FolderPath;
+};
 
 void
 SHoudiniAssetLogWidget::Construct(const FArguments & InArgs)
@@ -111,7 +233,6 @@ SHoudiniAssetLogWidget::Construct(const FArguments & InArgs)
 		]
 	];
 }
-
 
 void 
 FHoudiniEngineDetails::CreateWidget(
@@ -274,37 +395,30 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 
 	auto OnCookFolderTextCommittedLambda = [InHACs, MainHAC](const FText& Val, ETextCommit::Type TextCommitType)
 	{
-		if (!IsValidWeakPointer(MainHAC))
-			return;
+		SetCookFolderPath(Val, MainHAC, InHACs);
+	};
 
-		FString NewPathStr = Val.ToString();
-		
-		if (NewPathStr.StartsWith("Game/")) 
+	auto OnCookFolderBrowseButtonClickedLambda = [InHACs, MainHAC]()
+	{
+		TSharedRef<SSelectFolderPathDialog> Dialog =
+			SNew(SSelectFolderPathDialog)
+			.InitialPath(FText::FromString(MainHAC->GetTemporaryCookFolderOrDefault()))
+			.TitleText(LOCTEXT("CookFolderDialogTitle", "Select Temporary Cook Folder"));
+
+		if (Dialog->ShowModal() != EAppReturnType::Cancel)
 		{
-			NewPathStr = "/" + NewPathStr;
+			SetCookFolderPath(Dialog->GetFolderPath(), MainHAC, InHACs);
 		}
 
-		{
-			FText InvalidPathReason;
-			if (!FHoudiniEngineUtils::ValidatePath(NewPathStr, &InvalidPathReason)) 
-			{
-				HOUDINI_LOG_WARNING(TEXT("Invalid path: %s"), *InvalidPathReason.ToString());
+		return FReply::Handled();
+	};
 
-				FHoudiniEngineUtils::UpdateEditorProperties(MainHAC.Get(), true);
-				return;
-			}
-		}
+	auto OnCookFolderResetButtonClickedLambda = [InHACs, MainHAC]()
+	{
+		FText EmptyText;
+		SetCookFolderPath(EmptyText, MainHAC, InHACs);
 
-		for (auto& NextHAC : InHACs)
-		{
-			if (!IsValidWeakPointer(NextHAC))
-				continue;
-
-			if (NextHAC->TemporaryCookFolder.Path.Equals(NewPathStr))
-				continue;
-
-			NextHAC->TemporaryCookFolder.Path = NewPathStr;
-		}
+		return FReply::Handled();
 	};
 
 	FHoudiniEngineDetails::AddHeaderRowForHoudiniAssetComponent(HoudiniEngineCategoryBuilder, MainHAC, HOUDINI_ENGINE_UI_SECTION_GENERATE);
@@ -554,6 +668,28 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 			.OnTextCommitted_Lambda(OnCookFolderTextCommittedLambda)
 		]
 	];
+
+	TempCookFolderRowHorizontalBox->AddSlot()
+	.AutoWidth()
+	[
+		SNew(SButton)
+		.ContentPadding(FMargin(6.0, 2.0))
+		.IsEnabled(true)
+		.Text(LOCTEXT("BrowseButtonText", "Browse"))
+		.ToolTipText(LOCTEXT("CookFolderBrowseButtonToolTip", "Browse to select temporary cook folder"))
+		.OnClicked_Lambda(OnCookFolderBrowseButtonClickedLambda)
+	];
+
+	TempCookFolderRowHorizontalBox->AddSlot()
+	.AutoWidth()
+	[
+		SNew(SButton)
+		.ContentPadding(FMargin(6.0, 2.0))
+		.IsEnabled(true)
+		.Text(LOCTEXT("ResetButtonText", "Reset"))
+		.ToolTipText(LOCTEXT("CookFolderResetButtonToolTip", "Reset the cook folder to default setting"))
+		.OnClicked_Lambda(OnCookFolderResetButtonClickedLambda)
+	];
 	
 	TempCookFolderRow.WholeRowWidget.Widget = TempCookFolderRowHorizontalBox;
 }
@@ -620,37 +756,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 
 	auto OnBakeFolderTextCommittedLambda = [InHACs, MainHAC](const FText& Val, ETextCommit::Type TextCommitType)
 	{
-		if (!IsValidWeakPointer(MainHAC))
-			return;
-
-		FString NewPathStr = Val.ToString();
-
-		if (NewPathStr.StartsWith("Game/"))
-		{
-			NewPathStr = "/" + NewPathStr;
-		}
-
-		{
-			FText InvalidPathReason;
-			if (!FHoudiniEngineUtils::ValidatePath(NewPathStr, &InvalidPathReason))
-			{
-				HOUDINI_LOG_WARNING(TEXT("Invalid path: %s"), *InvalidPathReason.ToString());
-
-				FHoudiniEngineUtils::UpdateEditorProperties(MainHAC.Get(), true);
-				return;
-			}
-		}
-
-		for (auto& NextHAC : InHACs)
-		{
-			if (!IsValidWeakPointer(NextHAC))
-				continue;
-
-			if (NextHAC->BakeFolder.Path.Equals(NewPathStr))
-				continue;
-
-			NextHAC->BakeFolder.Path = NewPathStr;
-		}
+		SetBakeFolderPath(Val, MainHAC, InHACs);
 	};
 
 	// Button Row
@@ -1037,6 +1143,51 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 			})
 			.OnTextCommitted_Lambda(OnBakeFolderTextCommittedLambda)
 		]
+	];
+
+	auto OnBakeFolderBrowseButtonClickedLambda = [BakeFolderRowHorizontalBox, MainHAC, InHACs]()
+	{
+		TSharedRef<SSelectFolderPathDialog> Dialog =
+			SNew(SSelectFolderPathDialog)
+			.InitialPath(FText::FromString(MainHAC->GetBakeFolderOrDefault()))
+			.TitleText(LOCTEXT("BakeFolderDialogTitle", "Select Bake Folder"));
+
+		if (Dialog->ShowModal() != EAppReturnType::Cancel)
+		{
+			SetBakeFolderPath(Dialog->GetFolderPath(), MainHAC, InHACs);
+		}
+
+		return FReply::Handled();
+	};
+
+	auto OnBakeFolderResetButtonClickedLambda = [MainHAC, InHACs]()
+	{
+		FText EmptyText;
+		SetBakeFolderPath(EmptyText, MainHAC, InHACs);
+
+		return FReply::Handled();
+	};
+
+	BakeFolderRowHorizontalBox->AddSlot()
+	.AutoWidth()
+	[
+		SNew(SButton)
+		.ContentPadding(FMargin(6.0, 2.0))
+		.IsEnabled(true)
+		.Text(LOCTEXT("BrowseButtonText", "Browse"))
+		.ToolTipText(LOCTEXT("BakeFolderBrowseButtonToolTip", "Browse to select bake folder"))
+		.OnClicked_Lambda(OnBakeFolderBrowseButtonClickedLambda)
+	];
+
+	BakeFolderRowHorizontalBox->AddSlot()
+	.AutoWidth()
+	[
+		SNew(SButton)
+		.ContentPadding(FMargin(6.0, 2.0))
+		.IsEnabled(true)
+		.Text(LOCTEXT("ResetButtonText", "Reset"))
+		.ToolTipText(LOCTEXT("BrowseButtonToolTip", "Reset the bake folder to default setting"))
+		.OnClicked_Lambda(OnBakeFolderResetButtonClickedLambda)
 	];
 
 	BakeFolderRow.WholeRowWidget.Widget = BakeFolderRowHorizontalBox;
@@ -2400,6 +2551,74 @@ FHoudiniEngineDetails::AddHeaderRow(
 			{
 				return InGetExpanderBrush(ExpanderArrow.Get());
 			}));
+}
+
+void
+FHoudiniEngineDetails::SetCookFolderPath(const FText& InPathText, const TWeakObjectPtr<UHoudiniAssetComponent>& InMainHAC, const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs)
+{
+	if (!IsValidWeakPointer(InMainHAC))
+		return;
+
+	FString NewPathStr = InPathText.ToString();
+
+	if (NewPathStr.StartsWith("Game/"))
+	{
+		NewPathStr = "/" + NewPathStr;
+	}
+
+	FText InvalidPathReason;
+	if (!FHoudiniEngineUtils::ValidatePath(NewPathStr, &InvalidPathReason))
+	{
+		HOUDINI_LOG_WARNING(TEXT("Invalid path: %s"), *InvalidPathReason.ToString());
+
+		FHoudiniEngineUtils::UpdateEditorProperties(InMainHAC.Get(), true);
+		return;
+	}
+
+	for (auto& NextHAC : InHACs)
+	{
+		if (!IsValidWeakPointer(NextHAC))
+			continue;
+
+		if (NextHAC->TemporaryCookFolder.Path.Equals(NewPathStr))
+			continue;
+
+		NextHAC->TemporaryCookFolder.Path = NewPathStr;
+	}
+}
+
+void
+FHoudiniEngineDetails::SetBakeFolderPath(const FText& InPathText, const TWeakObjectPtr<UHoudiniAssetComponent>& InMainHAC, const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs)
+{
+	if (!IsValidWeakPointer(InMainHAC))
+		return;
+
+	FString NewPathStr = InPathText.ToString();
+
+	if (NewPathStr.StartsWith("Game/"))
+	{
+		NewPathStr = "/" + NewPathStr;
+	}
+
+	FText InvalidPathReason;
+	if (!FHoudiniEngineUtils::ValidatePath(NewPathStr, &InvalidPathReason))
+	{
+		HOUDINI_LOG_WARNING(TEXT("Invalid path: %s"), *InvalidPathReason.ToString());
+
+		FHoudiniEngineUtils::UpdateEditorProperties(InMainHAC.Get(), true);
+		return;
+	}
+
+	for (auto& NextHAC : InHACs)
+	{
+		if (!IsValidWeakPointer(NextHAC))
+			continue;
+
+		if (NextHAC->BakeFolder.Path.Equals(NewPathStr))
+			continue;
+
+		NextHAC->BakeFolder.Path = NewPathStr;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
