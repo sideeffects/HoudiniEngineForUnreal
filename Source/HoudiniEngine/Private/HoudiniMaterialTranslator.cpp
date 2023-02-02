@@ -672,20 +672,83 @@ FHoudiniMaterialTranslator::CreateUnrealTexture(
 	uint32 SrcHeight = ImageInfo.yRes;
 	const char * SrcData = &ImageBuffer[0];
 
+	// Handle the different packing for the source Houdini texture
+	uint32 PackOffset = 4;
+	uint32 OffsetR = 0;
+	uint32 OffsetG = 1;
+	uint32 OffsetB = 2;
+	uint32 OffsetA = 3;
+	switch (ImageInfo.packing)
+	{
+		case HAPI_IMAGE_PACKING_SINGLE:
+			PackOffset = 1;
+			OffsetR = 0;
+			OffsetG = 0;
+			OffsetB = 0;
+			OffsetA = 0;
+			break;
+
+		case HAPI_IMAGE_PACKING_DUAL:
+			PackOffset = 2;
+			OffsetR = 0;
+			OffsetG = 1;
+			OffsetB = 1;
+			OffsetA = 0;
+			break;
+
+		case HAPI_IMAGE_PACKING_RGB:
+			PackOffset = 3;
+			OffsetR = 0;
+			OffsetG = 1;
+			OffsetB = 2;
+			OffsetA = 0;
+			break;
+
+		case HAPI_IMAGE_PACKING_BGR:
+			PackOffset = 3;
+			OffsetR = 2;
+			OffsetG = 1;
+			OffsetB = 0;
+			OffsetA = 0;
+			break;
+
+		case HAPI_IMAGE_PACKING_RGBA:
+			PackOffset = 4;
+			OffsetR = 0;
+			OffsetG = 1;
+			OffsetB = 2;
+			OffsetA = 3;
+			break;
+
+		case HAPI_IMAGE_PACKING_ABGR:
+			PackOffset = 4;
+			OffsetR = 3;
+			OffsetG = 2;
+			OffsetB = 1;
+			OffsetA = 0;
+			break;
+
+		case HAPI_IMAGE_PACKING_UNKNOWN:
+		case HAPI_IMAGE_PACKING_MAX:
+			// invalid packing
+			return nullptr;
+			break;
+	}
+
 	for (uint32 y = 0; y < SrcHeight; y++)
 	{
 		DestPtr = &MipData[(SrcHeight - 1 - y) * SrcWidth * sizeof(FColor)];
 
 		for (uint32 x = 0; x < SrcWidth; x++)
 		{
-			uint32 DataOffset = y * SrcWidth * 4 + x * 4;
+			uint32 DataOffset = y * SrcWidth * PackOffset + x * PackOffset;
 
-			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 2); // B
-			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 1); // G
-			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 0); // R
+			*DestPtr++ = *(uint8*)(SrcData + DataOffset + OffsetB); // B
+			*DestPtr++ = *(uint8*)(SrcData + DataOffset + OffsetG); // G
+			*DestPtr++ = *(uint8*)(SrcData + DataOffset + OffsetR); // R
 
-			if (TextureParameters.bUseAlpha)
-				*DestPtr++ = *(uint8*)(SrcData + DataOffset + 3); // A
+			if (TextureParameters.bUseAlpha && PackOffset == 4)
+				*DestPtr++ = *(uint8*)(SrcData + DataOffset + OffsetA); // A
 			else
 				*DestPtr++ = 0xFF;
 		}

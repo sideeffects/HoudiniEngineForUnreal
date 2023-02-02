@@ -1502,23 +1502,33 @@ FHoudiniEngineEditor::UnregisterConsoleCommands()
 void
 FHoudiniEngineEditor::RegisterEditorDelegates()
 {
-	PreSaveWorldEditorDelegateHandle = FEditorDelegates::PreSaveWorldWithContext.AddLambda([](UWorld* World, FObjectPreSaveContext InContext)
+	// This runs when the world has been modified and saved
+	// (in non-WP world, this is called when saving the level)
+	PreSaveWorldEditorDelegateHandle = FEditorDelegates::PreSaveWorldWithContext.AddLambda([this](UWorld* World, FObjectPreSaveContext InContext)
 	{
 		// Skip if this is a game world or an autosave, only refine meshes when the user manually saves
-		if (!World->IsGameWorld() && (InContext.GetSaveFlags() & ESaveFlags::SAVE_FromAutosave) == 0)
+		if (World->IsGameWorld() || InContext.GetSaveFlags() & ESaveFlags::SAVE_FromAutosave || InContext.IsProceduralSave())
+			return;
+
+		// Do the refinement
+		HandleOnPreSave(World);
+
+		// Set a PostSaveWorld delegate for saving all dirty temp packages
+		FDelegateHandle& OnPostSaveWorldHandle = FHoudiniEngineEditor::Get().GetOnPostSaveWorldOnceHandle();
+		if (OnPostSaveWorldHandle.IsValid())
 		{
-			const bool bSelectedOnly = false;
-			const bool bSilent = false;
-			const bool bRefineAll = false;
-			const bool bOnPreSaveWorld = true;
-			UWorld * const OnPreSaveWorld = World;
-			const bool bOnPreBeginPIE = false;
-			FHoudiniEngineCommands::RefineHoudiniProxyMeshesToStaticMeshes(bSelectedOnly, bSilent, bRefineAll, bOnPreSaveWorld, OnPreSaveWorld, bOnPreBeginPIE);
+			if (FEditorDelegates::PostSaveWorldWithContext.Remove(OnPostSaveWorldHandle))
+				OnPostSaveWorldHandle.Reset();
 		}
 
-		if (!World->IsGameWorld())
+		// Save all dirty temporary cook package OnPostSaveWorld
+		OnPostSaveWorldHandle = FEditorDelegates::PostSaveWorldWithContext.AddLambda(
+			[World](UWorld* PreSaveWorld, FObjectPostSaveContext InContext)
 		{
-			UWorld * const OnPreSaveWorld = World;
+			if (World && World != PreSaveWorld)
+				return;
+
+			FHoudiniEngineEditorUtils::SaveAllHoudiniTemporaryCookData(PreSaveWorld);
 
 			FDelegateHandle& OnPostSaveWorldHandle = FHoudiniEngineEditor::Get().GetOnPostSaveWorldOnceHandle();
 			if (OnPostSaveWorldHandle.IsValid())
@@ -1526,56 +1536,63 @@ FHoudiniEngineEditor::RegisterEditorDelegates()
 				if (FEditorDelegates::PostSaveWorldWithContext.Remove(OnPostSaveWorldHandle))
 					OnPostSaveWorldHandle.Reset();
 			}
-
-			// Save all dirty temporary cook package OnPostSaveWorld
-			OnPostSaveWorldHandle = FEditorDelegates::PostSaveWorldWithContext.AddLambda(
-				[OnPreSaveWorld](UWorld* InWorld, FObjectPostSaveContext InContext)
-			{
-				if (OnPreSaveWorld && OnPreSaveWorld != InWorld)
-					return;
-
-				FHoudiniEngineEditorUtils::SaveAllHoudiniTemporaryCookData(InWorld);
-
-				FDelegateHandle& OnPostSaveWorldHandle = FHoudiniEngineEditor::Get().GetOnPostSaveWorldOnceHandle();
-				if (OnPostSaveWorldHandle.IsValid())
-				{
-					if (FEditorDelegates::PostSaveWorldWithContext.Remove(OnPostSaveWorldHandle))
-						OnPostSaveWorldHandle.Reset();
-				}
-			});
-		}
+		});
 	});
-
-	PreBeginPIEEditorDelegateHandle = FEditorDelegates::PreBeginPIE.AddLambda([&](const bool bIsSimulating)
+	
+	// WP worlds do not call the PreSaveWorld callback when saving the current level
+	// This prevented the refinement when saving from being executed properly
+	// We can instead rely on PreSavePackage, when called on HoudiniAssetActors.
+	// This means that the refinement is called multiple times when multiple HDAs are in the level,
+	// but the actual refinement process happens only once.
+	PreSavePackageEditorDelegateHandle = UPackage::PreSavePackageWithContextEvent.AddLambda([this](UPackage* Package, FObjectPreSaveContext InContext)
 	{
-		const bool bSelectedOnly = false;
-		const bool bSilent = false;
-		const bool bRefineAll = false;
-		const bool bOnPreSaveWorld = false;
-		UWorld * const OnPreSaveWorld = nullptr;
-		const bool bOnPreBeginPIE = true;
+		// Detect if we should actually do anything (check for autosaves, cooking, etc.)
+		if (InContext.GetSaveFlags() & ESaveFlags::SAVE_FromAutosave || InContext.IsProceduralSave())
+			return;
 
-
-		// We'll need to reconnect the Houdini session after PIE.
-		if (FHoudiniEngine::Get().IsTicking())
-		{
-			const bool bWasConnected = FHoudiniEngine::Get().GetSessionStatus() == EHoudiniSessionStatus::Connected;
-			EndPIEEditorDelegateHandle = FEditorDelegates::EndPIE.AddLambda([&, bWasConnected](const bool bEndPIEIsSimulating)
-			{
-				if (bWasConnected)
-				{
-					// If the Houdini session was previously connected, we need to reestablish the connection after PIE.
-					// We need to restart the current Houdini Engine Session
-					// This will reuse the previous session if it didnt shutdown, or start a new one if needed.
-					// (HARS shuts down when stopping the session, so we cant just reconnect when not using Session Sync)
-					FHoudiniEngineCommands::RestartSession();
-				}
-				FEditorDelegates::EndPIE.Remove(EndPIEEditorDelegateHandle);
-			});
-		}
+		// Only runs the refinement when Houdini Asset Actors are being saved
+		UObject* Asset = Package->FindAssetInPackage();
+		if (!IsValid(Asset) || !Asset->IsA<AHoudiniAssetActor>())
+			return;
 		
-		FHoudiniEngineCommands::RefineHoudiniProxyMeshesToStaticMeshes(bSelectedOnly, bSilent, bRefineAll, bOnPreSaveWorld, OnPreSaveWorld, bOnPreBeginPIE);
+		AHoudiniAssetActor* HAA = Cast<AHoudiniAssetActor>(Asset);
+		if (!IsValid(HAA))
+			return;
+		
+		UWorld* World = HAA->GetWorld();
+		if (World->IsGameWorld())
+			return;
+
+		bool bPostSaveNeeded = HandleOnPreSave(World);
+		
+		// Only add a PostSave delegate call if refinement happened
+		if(!bPostSaveNeeded)
+			return;
+
+		// Set a PostSavePackage delegate for saving all dirty temp packages
+		FDelegateHandle& OnPostSavePackageOnceHandle = FHoudiniEngineEditor::Get().GetOnPostSavePackageOnceHandle();
+		if (OnPostSavePackageOnceHandle.IsValid())
+		{
+			if (UPackage::PackageSavedWithContextEvent.Remove(OnPostSavePackageOnceHandle))
+				OnPostSavePackageOnceHandle.Reset();
+		}
+
+		// Save all dirty temporary cook package on PostSavePackage
+		OnPostSavePackageOnceHandle = UPackage::PackageSavedWithContextEvent.AddLambda(
+			[World](const FString & PackageFilename, UPackage * Package, FObjectPostSaveContext ObjectSaveContext)
+		{
+			FHoudiniEngineEditorUtils::SaveAllHoudiniTemporaryCookData(World);
+
+			FDelegateHandle& OnPostSavePackageOnceHandle = FHoudiniEngineEditor::Get().GetOnPostSavePackageOnceHandle();
+			if (OnPostSavePackageOnceHandle.IsValid())
+			{
+				if (UPackage::PackageSavedWithContextEvent.Remove(OnPostSavePackageOnceHandle))
+					OnPostSavePackageOnceHandle.Reset();
+			}
+		});
 	});
+
+	PreBeginPIEEditorDelegateHandle = FEditorDelegates::PreBeginPIE.AddLambda([this](const bool bIsSimulating){	this->HandleOnBeginPIE(); });
 
 	OnDeleteActorsBegin = FEditorDelegates::OnDeleteActorsBegin.AddLambda([this](){ this->HandleOnDeleteActorsBegin(); });
 	OnDeleteActorsEnd = FEditorDelegates::OnDeleteActorsEnd.AddLambda([this](){ this-> HandleOnDeleteActorsEnd(); });
@@ -1586,6 +1603,9 @@ FHoudiniEngineEditor::UnregisterEditorDelegates()
 {
 	if (PreSaveWorldEditorDelegateHandle.IsValid())
 		FEditorDelegates::PreSaveWorldWithContext.Remove(PreSaveWorldEditorDelegateHandle);
+
+	if (PreSavePackageEditorDelegateHandle.IsValid())
+		UPackage::PreSavePackageWithContextEvent.Remove(PreSavePackageEditorDelegateHandle);
 
 	if (PreBeginPIEEditorDelegateHandle.IsValid())
 		FEditorDelegates::PreBeginPIE.Remove(PreBeginPIEEditorDelegateHandle);
@@ -1732,6 +1752,61 @@ FHoudiniEngineEditor::PDGBakePackageReplaceModeToPackageReplaceMode(const EPDGBa
 	}
 
 	return Mode;
+}
+
+bool
+FHoudiniEngineEditor::HandleOnPreSave(UWorld* InWorld)
+{
+	// Refine current ProxyMeshes to Static Meshes
+	const bool bSelectedOnly = false;
+	const bool bSilent = false;
+	const bool bRefineAll = false;
+	const bool bOnPreSaveWorld = true;
+	//UWorld* const OnPreSaveWorld = InWorld;
+	const bool bOnPreBeginPIE = false;
+	
+	// Do the refinement
+	EHoudiniProxyRefineRequestResult RefineResult = FHoudiniEngineCommands::RefineHoudiniProxyMeshesToStaticMeshes(bSelectedOnly, bSilent, bRefineAll, bOnPreSaveWorld, InWorld, bOnPreBeginPIE);
+
+	//Return true only if a refinement happened 
+	if (RefineResult == EHoudiniProxyRefineRequestResult::Invalid || RefineResult == EHoudiniProxyRefineRequestResult::None)
+		return false;
+
+	return true;
+}
+
+void
+FHoudiniEngineEditor::HandleOnBeginPIE()
+{
+	// If the Houdini Engine Session was connected and valid before PIE, 
+	// we'll need to reconnect the Houdini session after PIE.
+	// Setup a delegate for that
+	if (FHoudiniEngine::Get().IsTicking())
+	{
+		const bool bWasConnected = FHoudiniEngine::Get().GetSessionStatus() == EHoudiniSessionStatus::Connected;
+		if (bWasConnected)
+		{
+			EndPIEEditorDelegateHandle = FEditorDelegates::EndPIE.AddLambda([&, bWasConnected](const bool bEndPIEIsSimulating)
+			{
+				// If the Houdini session was previously connected, we need to reestablish the connection after PIE.
+				// We need to restart the current Houdini Engine Session
+				// This will reuse the previous session if it didnt shutdown, or start a new one if needed.
+				// (HARS shuts down when stopping the session, so we cant just reconnect when not using Session Sync)
+				FHoudiniEngineCommands::RestartSession();
+
+				FEditorDelegates::EndPIE.Remove(EndPIEEditorDelegateHandle);
+			});
+		}
+	}
+
+	// Refine ProxyMeshes to StaticMeshes for PIE
+	const bool bSelectedOnly = false;
+	const bool bSilent = false;
+	const bool bRefineAll = false;
+	const bool bOnPreSaveWorld = false;
+	UWorld* const OnPreSaveWorld = nullptr;
+	const bool bOnPreBeginPIE = true;
+	FHoudiniEngineCommands::RefineHoudiniProxyMeshesToStaticMeshes(bSelectedOnly, bSilent, bRefineAll, bOnPreSaveWorld, OnPreSaveWorld, bOnPreBeginPIE);
 }
 
 void
