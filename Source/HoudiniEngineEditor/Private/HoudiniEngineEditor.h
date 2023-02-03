@@ -189,6 +189,9 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 		// Gets the PostSaveWorldOnceHandle
 		FDelegateHandle& GetOnPostSaveWorldOnceHandle() { return PostSaveWorldOnceHandle; }
 
+		// Gets the PostSavePackageOnceHandle
+		FDelegateHandle& GetOnPostSavePackageOnceHandle() { return PostSavePackageOnceHandle; }
+
 	protected:
 
 		// Binds the commands used by the menus
@@ -237,6 +240,15 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 
 		// Re-select AHoudiniAssetActors that were deselected (to avoid deletion) by HandleOnDeleteActorsBegin 
 		void HandleOnDeleteActorsEnd();
+
+		// Handle pre-save events
+		// Either PreSaveWorld/PreSavePackage
+		// This allows proper refinement of Proxies to Static Mesh when saving
+		bool HandleOnPreSave(UWorld* InWorld);
+
+		// Handle Begin PlayInEditor event
+		// This allows proper refinement of Proxies to Static Mesh
+		void HandleOnBeginPIE();
 
 	private:
 
@@ -330,11 +342,18 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 
 		// Delegate handle for the PreSaveWorld editor delegate
 		FDelegateHandle PreSaveWorldEditorDelegateHandle;
+		
+		// Delegate handle for the PreSavePackage editor delegate
+		FDelegateHandle PreSavePackageEditorDelegateHandle;
 
 		// Delegate handle for the PostSaveWorld editor delegate: this
 		// is bound on PreSaveWorld with specific captures and then unbound
 		// by itself
 		FDelegateHandle PostSaveWorldOnceHandle;
+
+		// Delegate handle for the PostSavePackage delegate:
+		// this is bound on PreSavePackage with specific captures and then unbound by itself
+		FDelegateHandle PostSavePackageOnceHandle;
 
 		// Delegate handle for the PreBeginPIE editor delegate
 		FDelegateHandle PreBeginPIEEditorDelegateHandle;
