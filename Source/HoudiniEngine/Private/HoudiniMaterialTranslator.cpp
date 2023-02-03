@@ -731,7 +731,7 @@ FHoudiniMaterialTranslator::CreateUnrealTexture(
 		case HAPI_IMAGE_PACKING_UNKNOWN:
 		case HAPI_IMAGE_PACKING_MAX:
 			// invalid packing
-			return nullptr;
+			HOUDINI_CHECK_RETURN(false, nullptr);
 			break;
 	}
 
