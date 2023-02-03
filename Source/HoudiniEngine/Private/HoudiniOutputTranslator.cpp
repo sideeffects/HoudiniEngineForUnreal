@@ -332,7 +332,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 				// Look for UHoudiniStaticMesh in the output, and set bOutHasHoudiniStaticMeshOutput accordingly
 				if (bIsProxyStaticMeshEnabled && !bOutHasHoudiniStaticMeshOutput)
 				{
-					bOutHasHoudiniStaticMeshOutput &= CurOutput->HasAnyCurrentProxy();
+					bOutHasHoudiniStaticMeshOutput = bOutHasHoudiniStaticMeshOutput || CurOutput->HasAnyCurrentProxy();
 				}
 
 				break;
