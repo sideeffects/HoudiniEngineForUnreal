@@ -63,5 +63,8 @@ public:
 	// Return all FFoliageInfo which reference the FoliageType in the given world.
 	static TArray<FFoliageInfo*> GetAllFoliageInfo(UWorld * World, UFoliageType * FoliageType);
 
+private:
+	// Update the instance base ID of AInstancedFoliageActor.
+	static void UpdateBaseInfoForFoliageInstance(AInstancedFoliageActor* InstancedFoliageActor);
 };
 
