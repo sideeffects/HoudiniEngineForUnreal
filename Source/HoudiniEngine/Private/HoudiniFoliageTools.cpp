@@ -45,11 +45,8 @@
 #endif
 
 UFoliageType*
-FHoudiniFoliageTools::CreateFoliageType(const FHoudiniPackageParams& Params, int OutputIndex, ULevel* DesiredLevel, UStaticMesh* InstancedStaticMesh)
+FHoudiniFoliageTools::CreateFoliageType(const FHoudiniPackageParams& Params, int OutputIndex, UStaticMesh* InstancedStaticMesh)
 {
-	HOUDINI_CHECK_RETURN(DesiredLevel, nullptr);
-	HOUDINI_CHECK_RETURN(DesiredLevel->GetWorld(), nullptr);
-
 	UFoliageType* FoliageType = nullptr;
 
 	// With world partition, Foliage Types must be assets. Create a package and save it.
@@ -65,6 +62,26 @@ FHoudiniFoliageTools::CreateFoliageType(const FHoudiniPackageParams& Params, int
 	return FoliageType;
 
 }
+
+// Duplicate foliage asset.
+UFoliageType* FHoudiniFoliageTools::DuplicateFoliageType(const FHoudiniPackageParams& Params, int OutputIndex, UFoliageType* OrigFoliageType)
+{
+	UFoliageType* FoliageType = nullptr;
+
+	FHoudiniPackageParams FoliageParams = Params;
+	FoliageParams.ObjectName = FString::Printf(TEXT("%s_%s_%d_%s"), *FoliageParams.HoudiniAssetName, *OrigFoliageType->GetName(), OutputIndex + 1, TEXT("foliage_type"));
+
+	UFoliageType_InstancedStaticMesh * FTISM = Cast<UFoliageType_InstancedStaticMesh>(OrigFoliageType);
+
+	if (UFoliageType_InstancedStaticMesh* InstancedMeshFoliageType = FoliageParams.CreateObjectAndPackage<UFoliageType_InstancedStaticMesh>(FTISM))
+	{
+		InstancedMeshFoliageType->MarkPackageDirty();
+		FAssetRegistryModule::AssetCreated(InstancedMeshFoliageType);
+		FoliageType = InstancedMeshFoliageType;
+	}
+	return FoliageType;
+}
+
 
 UFoliageType*
 FHoudiniFoliageTools::GetFoliageType(const ULevel* DesiredLevel, const UStaticMesh* InstancedStaticMesh)
@@ -139,47 +156,24 @@ TArray<FFoliageInfo*> FHoudiniFoliageTools::GetAllFoliageInfo(UWorld * World, UF
     return Results;
 }
 
-bool FHoudiniFoliageTools::CleanupFoliageInstances(USceneComponent* BaseComponent)
+TArray<FFoliageInstance> FHoudiniFoliageTools::GetAllFoliageInstances(UWorld* InWorld, UFoliageType* FoliageType)
 {
-	HOUDINI_CHECK_RETURN(BaseComponent, false);
+	TArray<FFoliageInstance> Results;
 
-    ULevel* Level = BaseComponent->GetOwner()->GetLevel();
-	HOUDINI_CHECK_RETURN(Level, false);
-
-    UWorld* World = Level->GetWorld();
-	HOUDINI_CHECK_RETURN(World, false);
-
-	bool bRemovedSome = false;
-
-	// Get all AInstancedFoliageActors in the world and remove foliage associated with the parent component.
-
-	for (TActorIterator<AActor> It(World, AInstancedFoliageActor::StaticClass()); It; ++It)
+	for (TActorIterator<AActor> It(InWorld, AInstancedFoliageActor::StaticClass()); It; ++It)
 	{
 		AInstancedFoliageActor* IFA = Cast<AInstancedFoliageActor>(*It);
-		TArray<UFoliageType*> FoliageTypes = GetFoliageTypes(IFA);
 
-		for (auto FoliageType : FoliageTypes)
+        auto InstanceMap = IFA->GetAllInstancesFoliageType();
+		for(auto & InstanceIt : InstanceMap)
 		{
-			IFA->DeleteInstancesForComponent(BaseComponent, FoliageType);
-			bRemovedSome = true;
+		    FFoliageInfo * FoliageInfo = InstanceIt.Value;
+			if (InstanceIt.Key == FoliageType)
+			    Results.Append(FoliageInfo->Instances);
+
 		}
 	}
-
-	// clear all instanced static mesh components attached to the ParentComponent.
-
-	TArray<USceneComponent*> Children;
-	BaseComponent->GetChildrenComponents(false, Children);
-	for (auto Child : Children)
-	{
-		auto* ISM = Cast<UHierarchicalInstancedStaticMeshComponent>(Child);
-		if (ISM == nullptr)
-			continue;
-
-		ISM->ClearInstances();
-		ISM->BuildTreeIfOutdated(true, true);
-	}
-
-	return bRemovedSome;
+    return Results;
 }
 
 void FHoudiniFoliageTools::SpawnFoliageInstance(UWorld* InWorld, UFoliageType* Settings, const TArray<FFoliageInstance>& PlacedInstances, bool InRebuildFoliageTree)
@@ -219,6 +213,16 @@ void FHoudiniFoliageTools::SpawnFoliageInstance(UWorld* InWorld, UFoliageType* S
 		    FoliageInfo->Refresh(true, false);
 		}
 	}
-
 }
+
+void
+FHoudiniFoliageTools::RemoveFoliageTypeFromWorld(UWorld* World, UFoliageType* FoliageType)
+{
+	for (TActorIterator<AInstancedFoliageActor> ActorIt(World, AInstancedFoliageActor::StaticClass()); ActorIt; ++ActorIt)
+	{
+	    AInstancedFoliageActor * IFA = *ActorIt;
+        IFA->RemoveFoliageType(&FoliageType, 1);
+	}
+}
+
 
