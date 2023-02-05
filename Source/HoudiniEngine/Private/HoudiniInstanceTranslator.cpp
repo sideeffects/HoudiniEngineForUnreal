@@ -194,14 +194,21 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(
 	if (!ParentComponent)
 		return false;
 
-	// Remove any foliage instances attached to the Parent.
-	FHoudiniFoliageTools::CleanupFoliageInstances(ParentComponent);
-
-	int InstanceCount = 0;
+    int InstanceCount = 0;
 	for (auto Output : InSubsets)
 	{
 		if (Output->GetType() != EHoudiniOutputType::Instancer)
 			continue;
+
+		for(auto OutputObject : Output->GetOutputObjects())
+		{
+			for(auto & OutputComponent : OutputObject.Value.OutputComponents)
+			{
+				if (OutputComponent)
+			        FHoudiniFoliageTools::RemoveFoliageTypeFromWorld(OutputComponent->GetWorld(), OutputObject.Value.FoliageType);
+			}
+		}
+
 
 		bool bSuccess = FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 			Output,
@@ -596,7 +603,7 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 		for(UObject* OldComponent : OldPair.Value.OutputComponents)
 		{
 			bool bDestroy = true;
-			if (OldComponent->IsA<UHierarchicalInstancedStaticMeshComponent>())
+			if (IsValid(OldComponent) && OldComponent->IsA<UHierarchicalInstancedStaticMeshComponent>())
 			{
 				// When destroying a component, we have to be sure it's not an HISMC owned by an InstanceFoliageActor
 				UHierarchicalInstancedStaticMeshComponent* HISMC = Cast<UHierarchicalInstancedStaticMeshComponent>(OldComponent);
@@ -1613,6 +1620,8 @@ FHoudiniInstanceTranslator::GetAttributeInstancerObjectsAndTransforms(
 				if (!IsValid(AttributeObject))
 					AttributeObject = StaticLoadObject(
 						UObject::StaticClass(), nullptr, *Iter, nullptr, LOAD_None, nullptr);
+
+				// HERER!
 
 				if (!AttributeObject)
 				{
@@ -2752,7 +2761,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	const FHoudiniPackageParams& InPackageParams,
 	int & FoliageTypeCount,
 	USceneComponent* ParentComponent,
-	UFoliageType*& FoliageTypeUsed,
+	UFoliageType*& CookedFoliageType,
 	TArray<USceneComponent*>& NewInstancedComponents,
 	TArray<UMaterialInterface*> InstancerMaterials)
 {
@@ -2770,31 +2779,20 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	UWorld* World = DesiredLevel->GetWorld();
 	HOUDINI_CHECK_RETURN(IsValid(World), false);
 
-    // See if we already have a FoliageType for that static mesh
-	bool bCreatedNew = false;
-	FoliageTypeUsed = InFoliageType;
-	if (!IsValid(FoliageTypeUsed))
-	{
-		// Foliage Type wasn't specified, only the mesh, try to find an existing foliage for that SM
-		FoliageTypeUsed = FHoudiniFoliageTools::GetFoliageType(DesiredLevel, InstancedStaticMesh);
-	}
-	else
-	{
-		// Foliage Type was specified, see if we can get its static mesh
-		UFoliageType_InstancedStaticMesh* FoliageISM = Cast<UFoliageType_InstancedStaticMesh>(InFoliageType);
-		if (FoliageISM)
-		{
-			InstancedStaticMesh = FoliageISM->GetStaticMesh();
-		}
-	}		
+    // Previously, (pre 2023) we used to try to find existing foliage types in the current world, but this is dangerous
+	// because it can trash the users data if they non-HDA foliage. This can get fairly confusing if there are two HDA
+	// in the same level, and doesn't make it clear what is baked where. So always create a custom foliage type.
 
-	if (!IsValid(FoliageTypeUsed))
+    FHoudiniPackageParams FoliageTypePackageParams =  InPackageParams;
+
+	if (InFoliageType)
 	{
-		FHoudiniPackageParams FoliageTypePackageParams =  InPackageParams;
-		FoliageTypeUsed = FHoudiniFoliageTools::CreateFoliageType(FoliageTypePackageParams, FoliageTypeCount, DesiredLevel, InstancedStaticMesh);
-		++FoliageTypeCount;
-		bCreatedNew = true;
-	}
+	    CookedFoliageType = FHoudiniFoliageTools::DuplicateFoliageType(FoliageTypePackageParams, FoliageTypeCount, InFoliageType);
+	} else {
+		CookedFoliageType = FHoudiniFoliageTools::CreateFoliageType(FoliageTypePackageParams, FoliageTypeCount, InstancedStaticMesh);
+    }
+
+	++FoliageTypeCount;
 
 	FTransform HoudiniAssetTransform = ParentComponent->GetComponentTransform();
 	
@@ -2804,36 +2802,21 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	//for (auto CurrentTransform : InstancedObjectTransforms)
 	for(int32 n = 0; n < InstancedObjectTransforms.Num(); n++)
 	{
-		FTransform CurrentTransform = InstancedObjectTransforms[n];
+		const FTransform & CurrentTransform = InstancedObjectTransforms[n];
 
-		// Use our parent component for the base component of the instances,
-		// this will allow us to clean the instances by component
-		FoliageInstances[n].BaseComponent = ParentComponent;
+		FoliageInstances[n].Location = CurrentTransform.GetLocation();
+		FoliageInstances[n].Rotation = CurrentTransform.GetRotation().Rotator();
+        FoliageInstances[n].DrawScale3D = (FVector3f)CurrentTransform.GetScale3D();
 
-		// TODO: FIX ME!
-		// Somehow, the first time when we create the Foliage type, instances need to be added with relative transform
-		// On subsequent cooks, they are actually expecting world transform.... 
-		if (bCreatedNew)
-		{
-			FoliageInstances[n].Location = CurrentTransform.GetLocation();
-			FoliageInstances[n].Rotation = CurrentTransform.GetRotation().Rotator();
-			FoliageInstances[n].DrawScale3D = (FVector3f)CurrentTransform.GetScale3D();
-		}
-		else
-		{
-			FoliageInstances[n].Location = HoudiniAssetTransform.TransformPosition(CurrentTransform.GetLocation());
-			FoliageInstances[n].Rotation = HoudiniAssetTransform.TransformRotation(CurrentTransform.GetRotation()).Rotator();
-			FoliageInstances[n].DrawScale3D = (FVector3f)(CurrentTransform.GetScale3D() * HoudiniAssetTransform.GetScale3D());
-		}
 	}
 
-	FHoudiniFoliageTools::SpawnFoliageInstance(World, FoliageTypeUsed, FoliageInstances, true);
+	FHoudiniFoliageTools::SpawnFoliageInstance(World, CookedFoliageType, FoliageInstances, true);
 
 	// Clear the returned component. This should be set, but doesn't make in world partition.
 	// In future, this should be an array of components.
 	NewInstancedComponents.Empty();
 
-	TArray<FFoliageInfo*> FoliageInfos = FHoudiniFoliageTools::GetAllFoliageInfo(DesiredLevel->GetWorld(), FoliageTypeUsed);
+	TArray<FFoliageInfo*> FoliageInfos = FHoudiniFoliageTools::GetAllFoliageInfo(DesiredLevel->GetWorld(), CookedFoliageType);
 	for(FFoliageInfo * FoliageInfo : FoliageInfos)
 	{
 
@@ -2864,7 +2847,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	// TODO: Use proper atIndex!!
 
 	UpdateGenericPropertiesAttributes(InstancedStaticMesh, AllPropertyAttributes, FirstOriginalIndex);
-	UpdateGenericPropertiesAttributes(FoliageTypeUsed, AllPropertyAttributes, FirstOriginalIndex);
+	UpdateGenericPropertiesAttributes(CookedFoliageType, AllPropertyAttributes, FirstOriginalIndex);
 
 	// TODO:
 	// We want to make this invisible if it's a collision instancer.

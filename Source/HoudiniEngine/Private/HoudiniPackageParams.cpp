@@ -394,7 +394,7 @@ void TemplateFixer()
 }
 
 template<typename T>
-T* FHoudiniPackageParams::CreateObjectAndPackage() const
+T* FHoudiniPackageParams::CreateObjectAndPackage(T * TemplateObject) const
 {
 	// Create the package for the object
 	FString NewObjectName;
@@ -433,7 +433,7 @@ T* FHoudiniPackageParams::CreateObjectAndPackage() const
 		}
 	}
 
-	T* const CreatedObject = NewObject<T>(Package, FName(*SanitizedObjectName), GetObjectFlags());
+	T* CreatedObject = NewObject<T>(Package, FName(*SanitizedObjectName), GetObjectFlags(), TemplateObject);
 
 	// Add meta information to the new object in the package.
 	if (IsValid(CreatedObject))

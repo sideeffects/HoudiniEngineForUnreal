@@ -401,7 +401,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const FHoudiniPackageParams& InPackageParams,
 			int & FoliageTypeCount,
 			USceneComponent* ParentComponent,
-			UFoliageType* & FoliageTypeUsed,
+			UFoliageType* & CookedFoliageType,
 			TArray<USceneComponent*> & NewInstancedComponents,
 			TArray<UMaterialInterface*> InstancerMaterials);
 

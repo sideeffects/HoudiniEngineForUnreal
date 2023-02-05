@@ -602,30 +602,14 @@ FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 			BakedFoliageType->SetStaticMesh(AlreadyBakedStaticMeshMap[CookedFoliageType->GetStaticMesh()]);
 	}
 
-    // For each cooked foliage type, get all the instances and store it for the new baked Foliage Type to used.
-	TMap<UFoliageType*, TArray<FFoliageInstance>> Instances;
-	for(auto It : FoliageMap)
-	{
-	    UFoliageType * FoliageType = It.Key;
-		TArray<FFoliageInfo*> FoliageInfos = FHoudiniFoliageTools::GetAllFoliageInfo(World, FoliageType);
-
-		TArray<FFoliageInstance> FoliageInstances;
-		for(auto FoliageInfo : FoliageInfos)
-		{
-			FoliageInstances.Append(FoliageInfo->Instances);
-		}
-		Instances.Add(It.Value, FoliageInstances);
-	}
-
-    // Remove all cooked existing foliage.
-	FHoudiniFoliageTools::CleanupFoliageInstances(HoudiniAssetComponent);
-
-    // Spawn the baked Foliage Instances into the given World/Foliage Type.
+	// Remove all cooked existing foliage.
+	//FHoudiniFoliageTools::CleanupFoliageInstances(HoudiniAssetComponent);
 	for (auto It : FoliageMap)
 	{
-		UFoliageType* FoliageType = It.Value;
-        FHoudiniFoliageTools::SpawnFoliageInstance(World, FoliageType, Instances[FoliageType], true);
+		auto* CookedFoliageType = Cast<UFoliageType_InstancedStaticMesh>(It.Key);
+		FHoudiniFoliageTools::RemoveFoliageTypeFromWorld(World, CookedFoliageType);
 	}
+
 }
 
 
@@ -663,15 +647,19 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 		if (FoliageMap.Contains(OutputObject->FoliageType))
 		    continue;
 
+		UFoliageType* TargetFoliageType = nullptr;
+
 		bool bUserSpecifiedFoliageType = OutputObject->InstancedObject->IsA<UFoliageType>();
 		if (bUserSpecifiedFoliageType)
 		{
-		    // The user specified a Foliage Type, so we have nothing to bake. The instances will have been
-			// written during cooking. Just record an identity mapping.
-			FoliageMap[OutputObject->FoliageType] = OutputObject->FoliageType;
+		    // The user specified a Foliage Type, so store it.
+			TargetFoliageType = Cast<UFoliageType>(OutputObject->InstancedObject);
+			FoliageMap.Add(OutputObject->FoliageType, TargetFoliageType);
 		}
 		else
 		{
+			// TODO: Support "ReplaceExistingAssets"
+
 			// The Foliage Type was created by this plugin. Copy it to the Baked output.
 			FString ObjectName = FHoudiniPackageParams::GetPackageNameExcludingGUID(OutputObject->FoliageType);
 
@@ -681,7 +669,7 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 				DesiredWorld, HoudiniAssetComponent, Identifier, *OutputObject, ObjectName,
 				PackageParams, InstancerResolver, InBakeFolder.Path, AssetPackageReplaceMode);
 
-			UFoliageType * BakedFoliageType = DuplicateFoliageTypeAndCreatePackageIfNeeded(
+			TargetFoliageType = DuplicateFoliageTypeAndCreatePackageIfNeeded(
 				OutputObject->FoliageType,
 				PackageParams,
 				InAllOutputs,
@@ -692,8 +680,22 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 				OutPackagesToSave,
 				OutBakeStats);
 
-			FoliageMap.Add(OutputObject->FoliageType, BakedFoliageType);
+			FoliageMap.Add(OutputObject->FoliageType, TargetFoliageType);
 		}
+
+		check(IsValid(TargetFoliageType));
+
+		// Copy all cooked instances to reference the baked instances.
+		auto Instances = FHoudiniFoliageTools::GetAllFoliageInstances(DesiredWorld, OutputObject->FoliageType);
+
+		for (auto Instance : Instances)
+		{
+			// Clear the HAC reference, so the user can deleted the HAC reference happily.
+			Instance.BaseComponent = nullptr;
+		}
+
+		FHoudiniFoliageTools::SpawnFoliageInstance(DesiredWorld, TargetFoliageType, Instances, true);
+
     }
 	return;
 }
@@ -851,7 +853,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToFoliage(
 
 		    // We need to create a new FoliageType for this Static Mesh
 		    // TODO: Add foliage default settings
-		    FoliageType = FHoudiniFoliageTools::CreateFoliageType(Params, InOutputIndex, DesiredLevel, BakedStaticMesh);
+		    FoliageType = FHoudiniFoliageTools::CreateFoliageType(Params, InOutputIndex, BakedStaticMesh);
 			FoliageMap.Add(BakedStaticMesh, FoliageType);
 
 		    // Update the previous bake results with the foliage type we created

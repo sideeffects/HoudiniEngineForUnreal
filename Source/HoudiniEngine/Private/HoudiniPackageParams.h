@@ -101,7 +101,7 @@ public:
 	UPackage* CreatePackageForObject(FString& OutPackageName, int32 InBakeCounterStart=0) const;
 
 	// Helper function to create an object and its package
-	template<typename T> T* CreateObjectAndPackage() const;
+	template<typename T> T* CreateObjectAndPackage(T * TemplateObject = nullptr) const;
 
 	// The current cook/baking mode
 	UPROPERTY()
