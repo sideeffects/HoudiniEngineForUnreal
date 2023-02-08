@@ -43,7 +43,10 @@ class HOUDINIENGINE_API FHoudiniFoliageTools
 {
 public:
 	// Create a new Foliage type using the InstancedStaticMesh as an Asset.
-	static UFoliageType* CreateFoliageType(const FHoudiniPackageParams& Params, int OutputIndex, ULevel* DesiredLevel, UStaticMesh* InstancedStaticMesh);
+	static UFoliageType* CreateFoliageType(const FHoudiniPackageParams& Params, int OutputIndex, UStaticMesh* InstancedStaticMesh);
+
+	// Duplicate foliage asset.
+	static UFoliageType* DuplicateFoliageType(const FHoudiniPackageParams& Params, int OutputIndex, UFoliageType* FoliageType);
 
 	// Get the Foliage Type which uses the Instanced Static Mesh. If more than one is found, a warning is printed.
 	static UFoliageType* GetFoliageType(const ULevel* DesiredLevel, const UStaticMesh* InstancedStaticMesh);
@@ -51,17 +54,20 @@ public:
 	// Get all Foliage Types which use the Instanced Static Mesh.
 	static TArray<UFoliageType*> GetFoliageTypes(const ULevel* DesiredLevel, const UStaticMesh* InstancedStaticMesh);
 
-	// Remove all FoliageInstances which have been associated with the component (FFoliageInstance::BaseComponent).
-	static bool CleanupFoliageInstances(USceneComponent * BaseComponent);
-
 	// Spawn the Foliage Instances into the given World/Foliage Type.
 	static void SpawnFoliageInstance(UWorld* InWorld, UFoliageType* Settings, const TArray<FFoliageInstance>& PlacedInstances, bool InRebuildFoliageTree);
+
+	// Returns Foliage Instances used in the given World by the Foliage Type.
+	static TArray<FFoliageInstance> GetAllFoliageInstances(UWorld* InWorld, UFoliageType* Settings);
 
 	// Return all Foliage Types used by the AInstancedFoliageActor.
 	static TArray<UFoliageType*> GetFoliageTypes(AInstancedFoliageActor* IFA);
 
 	// Return all FFoliageInfo which reference the FoliageType in the given world.
 	static TArray<FFoliageInfo*> GetAllFoliageInfo(UWorld * World, UFoliageType * FoliageType);
+
+	// Removed Foliage Type from world
+	static void RemoveFoliageTypeFromWorld(UWorld * World, UFoliageType * FoliageType);
 
 private:
 	// Update the instance base ID of AInstancedFoliageActor.
