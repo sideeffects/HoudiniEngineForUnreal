@@ -5960,12 +5960,17 @@ FHoudiniEngineBakeUtils::FindOutputObject(
 		
 		for (auto& CurOutputObject : CurOutput->GetOutputObjects())
 		{
+			if (CurOutputObject.Value.OutputObject == InObjectToFind
+				|| CurOutputObject.Value.ProxyObject == InObjectToFind
+				|| CurOutputObject.Value.ProxyComponent == InObjectToFind)
+			{
+				OutOutputIndex = OutputIdx;
+				OutIdentifier = CurOutputObject.Key;
+				return true;
+			}
 			for(auto Component : CurOutputObject.Value.OutputComponents)
 			{
-			    if (CurOutputObject.Value.OutputObject == InObjectToFind
-				    || Component == InObjectToFind
-				    || CurOutputObject.Value.ProxyObject == InObjectToFind
-				    || CurOutputObject.Value.ProxyComponent == InObjectToFind)
+			    if (Component == InObjectToFind)
 			    {
 				    OutOutputIndex = OutputIdx;
 				    OutIdentifier = CurOutputObject.Key;
