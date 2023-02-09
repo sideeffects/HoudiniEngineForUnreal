@@ -2235,10 +2235,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 		AssetReference += FString("'");
 
 		FTransform ImportAsReferenceTransform = InObject->Transform;
-		if (!bKeepWorldTransform)
-			ImportAsReferenceTransform.SetLocation(FVector::ZeroVector);
-		else
-			ImportAsReferenceTransform *= InActorTransform.Inverse();
+		
+		// Previously, ImportAsReferenceTransform was multiplied by
+		// InActorTransform.Inverse() if bKeepWorldTransform was true,
+		// but this created a double transform issue.
+		ImportAsReferenceTransform.SetLocation(FVector::ZeroVector);
 
 		TManagedArray<FBox>& BboxArray = GC->GetGeometryCollection()->BoundingBox;
 		FBox InBbox = FBox(EForceInit::ForceInitToZero);
@@ -2372,10 +2373,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 		AssetReference += FString("'");
 
 		FTransform ImportAsReferenceTransform = InObject->Transform;
-		if (!bKeepWorldTransform)
-			ImportAsReferenceTransform.SetLocation(FVector::ZeroVector);
-		else
-			ImportAsReferenceTransform *= InActorTransform.Inverse();
+
+		// Previously, ImportAsReferenceTransform was multiplied by
+		// InActorTransform.Inverse() if bKeepWorldTransform was true,
+		// but this created a double transform issue.
+		ImportAsReferenceTransform.SetLocation(FVector::ZeroVector);
 
 		FBox InBbox = bImportAsReferenceBboxEnabled ?
 			SM->GetBoundingBox() :
