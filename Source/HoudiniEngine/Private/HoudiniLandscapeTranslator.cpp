@@ -781,7 +781,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	UHoudiniAssetComponent* HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(InOutput);
 	if (IsValid(HAC))
 	{
-		TileWorld = HAC->GetWorld();
+		TileWorld = HAC->GetHACWorld();
 		TileLevel = HAC->GetComponentLevel();
 	}
 	else
@@ -2476,7 +2476,11 @@ ALandscapeProxy* FHoudiniLandscapeTranslator::FindTargetLandscapeProxy(const FSt
 		return LandscapeInputs[InputIndex];
 	}
 
-	return FHoudiniEngineUtils::FindActorInWorldByLabel<ALandscapeProxy>(World, ActorName);
+	ALandscapeProxy* FoundLandscape = FHoudiniEngineUtils::FindActorInWorldByLabel<ALandscapeProxy>(World, ActorName);
+	if(!FoundLandscape)
+		FoundLandscape = FHoudiniEngineUtils::FindActorInWorldByLabel<ALandscape>(World, ActorName);
+
+	return FoundLandscape;
 }
 
 bool FHoudiniLandscapeTranslator::GetEditLayersFromOutput(UHoudiniOutput* InOutput, TArray<FString>& InEditLayers)
