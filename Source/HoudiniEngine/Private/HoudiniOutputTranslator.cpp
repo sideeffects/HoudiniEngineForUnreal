@@ -158,7 +158,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	
 	// NOTE: PersistentWorld can be NULL when, for example, working with
 	// HoudiniAssetComponents in Blueprints.
-	UWorld* PersistentWorld = HAC->GetWorld();
+	UWorld* PersistentWorld = HAC->GetHACWorld();
 	UWorldComposition* WorldComposition = nullptr;
 	if (PersistentWorld)
 	{
@@ -492,7 +492,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 
 	if (HasGeometryCollection)
 	{
-		FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutputs(HAC->Outputs, OuterComponent, PackageParams, HAC->GetWorld());
+		FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutputs(HAC->Outputs, OuterComponent, PackageParams, HAC->GetHACWorld());
 	}
 
 	if (NumVisibleOutputs > 0)
