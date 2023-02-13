@@ -114,6 +114,7 @@ UHoudiniInput::UHoudiniInput()
 	bLandscapeUIAdvancedIsExpanded = false;
 #endif
 	
+	CachedBounds.Init();
 }
 
 void
@@ -336,9 +337,14 @@ void UHoudiniInput::PostEditUndo()
 
 
 FBox 
-UHoudiniInput::GetBounds() const 
+UHoudiniInput::GetBounds() 
 {
 	FBox BoxBounds(ForceInitToZero);
+
+	// Return the cached bounds to prevent crashing when trying to access the input objects during GC/ saving
+	// Fixes #126804
+	if (UE::IsSavingPackage(nullptr) || IsGarbageCollectingAndLockingUObjectHashTables())
+		return CachedBounds;
 
 	switch (Type)
 	{
@@ -443,11 +449,20 @@ UHoudiniInput::GetBounds() const
 		// TODO: Can probably iterate through the GC objects to properly identify the bounds.
 	}
 	break;
+
 	case EHoudiniInputType::Skeletal:
+	{
+		// TODO: return SK mesh bounds
+	}
+	break;
+
 	case EHoudiniInputType::Invalid:
 	default:
 		break;
 	}
+
+	// Cache the new bounds
+	CachedBounds = BoxBounds;
 
 	return BoxBounds;
 }

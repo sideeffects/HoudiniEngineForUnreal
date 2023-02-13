@@ -1637,9 +1637,8 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	{
 		// See if we can find the mesh in the outputs
 		int32 MeshOutputIndex = INDEX_NONE;
-		FHoudiniOutputObjectIdentifier MeshIdentifier;
+		FHoudiniOutputObjectIdentifier MeshIdentifier = InOutputObjectIdentifier;
 		BakeFolderPath = InBakeFolder.Path;
-
 		const bool bFoundMeshOutput = FindOutputObject(StaticMesh, EHoudiniOutputType::Mesh, InAllOutputs, MeshOutputIndex, MeshIdentifier);
 		if (bFoundMeshOutput)
 		{
@@ -6130,12 +6129,15 @@ FHoudiniEngineBakeUtils::BakePDGTOPNodeOutputsKeepActors(
 	TArray<FHoudiniEngineBakedActor> WorkResultObjectBakedActors;
 	for (int32 WorkResultArrayIdx = 0; WorkResultArrayIdx < NumWorkResults; ++WorkResultArrayIdx)
 	{
+		// Bug: #126086
+		// Fixed ensure failure due to invalid amount of work passed to the FSlowTask
+		Progress.EnterProgressFrame(1.0f);
+
 		FTOPWorkResult& WorkResult = InNode->WorkResult[WorkResultArrayIdx];
 		const int32 NumWorkResultObjects = WorkResult.ResultObjects.Num();
 		for (int32 WorkResultObjectArrayIdx = 0; WorkResultObjectArrayIdx < NumWorkResultObjects; ++WorkResultObjectArrayIdx)
 		{
 			WorkResultObjectBakedActors.Reset();
-			Progress.EnterProgressFrame(1.0f);
 
 			BakePDGWorkResultObject(
 				InPDGAssetLink,
