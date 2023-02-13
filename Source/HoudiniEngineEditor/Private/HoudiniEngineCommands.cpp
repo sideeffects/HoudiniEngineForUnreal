@@ -1328,7 +1328,7 @@ FHoudiniEngineCommands::RefineHoudiniProxyMeshesToStaticMeshes(bool bOnlySelecte
 			if (!IsValid(HoudiniAssetComponent))
 				continue;
 
-			if (bOnPreSaveWorld && OnPreSaveWorld && OnPreSaveWorld != HoudiniAssetComponent->GetWorld())
+			if (bOnPreSaveWorld && OnPreSaveWorld && OnPreSaveWorld != HoudiniAssetComponent->GetHACWorld())
 				continue;
 
 			// Check if we should consider this component for proxy mesh refinement or cooking, based on its settings and
@@ -1442,11 +1442,7 @@ FHoudiniEngineCommands::TriageHoudiniAssetComponentsForProxyMeshRefinement(UHoud
 	if (!IsValid(Owner))
 		return;
 
-	UWorld *World = InHAC->GetWorld();
-	if (!IsValid(World))
-	{
-		World = InHAC->GetOwner() ? InHAC->GetOwner()->GetWorld() : nullptr;
-	}
+	UWorld *World = InHAC->GetHACWorld();
 
 	// No need to return here if we're just starting PIE
 	if (bOnPreSaveWorld && !IsValid(World))

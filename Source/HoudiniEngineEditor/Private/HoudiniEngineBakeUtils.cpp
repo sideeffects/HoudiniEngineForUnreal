@@ -572,7 +572,7 @@ FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 {
 	TMap<UFoliageType*, UFoliageType*> FoliageMap;
 
-	UWorld* World = HoudiniAssetComponent->GetWorld();
+	UWorld* World = HoudiniAssetComponent->GetHACWorld();
 
     // Create Foliage Types assocatied with each output.
     for(int InOutputIndex = 0; InOutputIndex < InAllOutputs.Num(); InOutputIndex++)
@@ -1720,9 +1720,8 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	    {
 		    // See if we can find the mesh in the outputs
 		    int32 MeshOutputIndex = INDEX_NONE;
-		    FHoudiniOutputObjectIdentifier MeshIdentifier;
+		    FHoudiniOutputObjectIdentifier MeshIdentifier = InOutputObjectIdentifier;
 		    BakeFolderPath = InBakeFolder.Path;
-
 		    const bool bFoundMeshOutput = FindOutputObject(StaticMesh, EHoudiniOutputType::Mesh, InAllOutputs, MeshOutputIndex, MeshIdentifier);
 		    if (bFoundMeshOutput)
 		    {
@@ -5475,12 +5474,18 @@ FHoudiniEngineBakeUtils::FindOutputObject(
 		
 		for (auto& CurOutputObject : CurOutput->GetOutputObjects())
 		{
-			for(auto Component : CurOutputObject.Value.OutputComponents)
+			if (CurOutputObject.Value.OutputObject == InObjectToFind
+				|| CurOutputObject.Value.ProxyObject == InObjectToFind
+				|| CurOutputObject.Value.ProxyComponent == InObjectToFind)
 			{
-			    if (CurOutputObject.Value.OutputObject == InObjectToFind
-				    || Component == InObjectToFind
-				    || CurOutputObject.Value.ProxyObject == InObjectToFind
-				    || CurOutputObject.Value.ProxyComponent == InObjectToFind)
+				OutOutputIndex = OutputIdx;
+				OutIdentifier = CurOutputObject.Key;
+				return true;
+			}
+
+			for(auto CurrentComponent : CurOutputObject.Value.OutputComponents)
+			{
+			    if (CurrentComponent == InObjectToFind)
 			    {
 				    OutOutputIndex = OutputIdx;
 				    OutIdentifier = CurOutputObject.Key;
@@ -6369,12 +6374,15 @@ FHoudiniEngineBakeUtils::BakePDGTOPNodeOutputsKeepActors(
 	TArray<FHoudiniEngineBakedActor> WorkResultObjectBakedActors;
 	for (int32 WorkResultArrayIdx = 0; WorkResultArrayIdx < NumWorkResults; ++WorkResultArrayIdx)
 	{
+		// Bug: #126086
+		// Fixed ensure failure due to invalid amount of work passed to the FSlowTask
+		Progress.EnterProgressFrame(1.0f);
+
 		FTOPWorkResult& WorkResult = InNode->WorkResult[WorkResultArrayIdx];
 		const int32 NumWorkResultObjects = WorkResult.ResultObjects.Num();
 		for (int32 WorkResultObjectArrayIdx = 0; WorkResultObjectArrayIdx < NumWorkResultObjects; ++WorkResultObjectArrayIdx)
 		{
-			WorkResultObjectBakedActors.Reset();
-			Progress.EnterProgressFrame(1.0f);
+			WorkResultObjectBakedActors.Reset();			
 
 			BakePDGWorkResultObject(
 				InPDGAssetLink,

@@ -153,6 +153,9 @@ public:
 	// Returns true if the component has InOutputObjectToFind in its output object
 	bool HasOutputObject(UObject* InOutputObjectToFind) const;
 
+	/** Getter for the cached world pointer, will return null if the component is not actually spawned in a level */
+	virtual UWorld* GetHACWorld() const;
+
 	//------------------------------------------------------------------------------------------------
 	// Accessors
 	//------------------------------------------------------------------------------------------------

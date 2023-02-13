@@ -558,7 +558,7 @@ FHoudiniEngineEditorUtils::SaveAllHoudiniTemporaryCookData(UWorld *InSaveWorld)
 		if (!IsValid(HAC))
 			continue;
 
-		if (InSaveWorld && InSaveWorld != HAC->GetWorld())
+		if (InSaveWorld && InSaveWorld != HAC->GetHACWorld())
 			continue;
 
 		const int32 NumOutputs = HAC->GetNumOutputs();

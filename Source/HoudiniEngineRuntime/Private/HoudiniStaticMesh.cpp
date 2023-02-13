@@ -305,9 +305,9 @@ void UHoudiniStaticMesh::CalculateNormals(bool bInComputeWeightedNormals)
 		Area /= 2.0f;
 
 		const float Weight[3] = {
-			bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle((FVector)V0, (FVector)V1, (FVector)V2) : 1.0f,
-			bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle((FVector)V1, (FVector)V2, (FVector)V0) : 1.0f,
-			bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle((FVector)V2, (FVector)V0, (FVector)V1) : 1.0f,
+			static_cast<float>(bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle((FVector)V0, (FVector)V1, (FVector)V2) : 1.0f),
+			static_cast<float>(bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle((FVector)V1, (FVector)V2, (FVector)V0) : 1.0f),
+			static_cast<float>(bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle((FVector)V2, (FVector)V0, (FVector)V1) : 1.0f),
 		};
 
 		for (int CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
