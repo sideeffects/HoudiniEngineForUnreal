@@ -176,13 +176,13 @@ UHoudiniInputSplineComponent::HasComponentChanged() const
 		const FTransform &CurSplineComponentTransform = SplineComponent->GetTransformAtSplinePoint(n, ESplineCoordinateSpace::Local, true);
 		const FTransform &CurInputTransform = SplineControlPoints[n];
 
-		if (CurInputTransform.TranslationEquals(CurSplineComponentTransform))
+		if (!CurInputTransform.TranslationEquals(CurSplineComponentTransform))
 			return true;
 
-		if (CurInputTransform.RotationEquals(CurSplineComponentTransform))
+		if (!CurInputTransform.RotationEquals(CurSplineComponentTransform))
 			return true;
 
-		if (CurInputTransform.Scale3DEquals(CurSplineComponentTransform))
+		if (!CurInputTransform.Scale3DEquals(CurSplineComponentTransform))
 			return true;
 	}
 
