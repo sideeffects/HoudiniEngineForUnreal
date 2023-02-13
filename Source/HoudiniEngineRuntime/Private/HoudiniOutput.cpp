@@ -597,16 +597,6 @@ UHoudiniOutput::Clear()
 			    SceneComp->DestroyComponent();
 		    }
 
-
-		    // Also destroy proxy components
-		    USceneComponent* ProxyComp = Cast<USceneComponent>(Component);
-		    if (IsValid(ProxyComp))
-		    {
-			    ProxyComp->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-			    ProxyComp->UnregisterComponent();
-			    ProxyComp->DestroyComponent();
-		    }
-
 		    if (Type == EHoudiniOutputType::Landscape && !bLandscapeWorldComposition && !IsGarbageCollecting())
 		    {
 			    // NOTE: We cannot resolve soft pointers during garbage collection. Any Get() or IsValid() call
@@ -621,6 +611,15 @@ UHoudiniOutput::Clear()
 				    LandscapePtr->SetSoftPtr(nullptr);
 			    }
 		    }
+		}
+
+		// Also destroy proxy components
+		USceneComponent* ProxyComp = Cast<USceneComponent>(CurrentOutputObject.Value.ProxyComponent);
+		if (IsValid(ProxyComp))
+		{
+			ProxyComp->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+			ProxyComp->UnregisterComponent();
+			ProxyComp->DestroyComponent();
 		}
 	}
 
