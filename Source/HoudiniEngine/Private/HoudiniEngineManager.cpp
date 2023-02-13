@@ -176,7 +176,7 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 			}
 			
 			{
-				UWorld* World = CurrentComponent->GetWorld();
+				UWorld* World = CurrentComponent->GetHACWorld();
 				if (World && (World->IsPlayingReplay() || World->IsPlayInEditor()))
 				{
 					if (!CurrentComponent->IsPlayInEditorRefinementAllowed())

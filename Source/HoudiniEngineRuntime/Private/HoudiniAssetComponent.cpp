@@ -768,6 +768,17 @@ void UHoudiniAssetComponent::PostInitProperties()
 	RegisterHoudiniComponent(this);
 }
 
+UWorld* 
+UHoudiniAssetComponent::GetHACWorld() const
+{
+	UWorld* World = GetWorld();
+	if (!IsValid(World))
+		World = GetOwner() ? GetOwner()->GetWorld() : nullptr;
+
+	return World; 
+}
+
+
 UHoudiniAsset *
 UHoudiniAssetComponent::GetHoudiniAsset() const
 {
@@ -1729,11 +1740,10 @@ UHoudiniAssetComponent::OnComponentCreated()
 {
 	// This event will only be fired for native Actor and native Component.
  	Super::OnComponentCreated();
-
+	/*
 	if (!GetOwner() || !GetOwner()->GetWorld())
 		return;
-	
-	/*
+
 	if (StaticMeshes.Num() == 0)
 	{
 		// Create Houdini logo static mesh and component for it.
@@ -1770,7 +1780,7 @@ UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 		{
 			CurrentParm->ConditionalBeginDestroy();
 		}
-		else if (GetWorld() != NULL && GetWorld()->WorldType != EWorldType::PIE)
+		else if (GetHACWorld() != nullptr && GetHACWorld()->WorldType != EWorldType::PIE)
 		{
 			// TODO unneeded log?
 			// Avoid spamming that error when leaving PIE mode
@@ -1902,7 +1912,7 @@ UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 	if (IsValid(PDGAssetLink))
 	{
 #if WITH_EDITOR
-		const UWorld* const World = GetWorld();
+		const UWorld* const World = GetHACWorld();
 		if (IsValid(World))
 		{
 			// Only do this for editor worlds, only interactively (not during engine shutdown or garbage collection)
@@ -2647,7 +2657,7 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, const bool& b
 void
 UHoudiniAssetComponent::ClearRefineMeshesTimer()
 {
-	UWorld *World = GetWorld();
+	UWorld *World = GetHACWorld();
 	if (!World)
 	{
 		//HOUDINI_LOG_ERROR(TEXT("Cannot ClearRefineMeshesTimer, World is nullptr!"));
@@ -2660,7 +2670,7 @@ UHoudiniAssetComponent::ClearRefineMeshesTimer()
 void
 UHoudiniAssetComponent::SetRefineMeshesTimer()
 {
-	UWorld *World = GetWorld();
+	UWorld* World = GetHACWorld();
 	if (!World)
 	{
 		HOUDINI_LOG_ERROR(TEXT("Cannot SetRefineMeshesTimer, World is nullptr!"));
