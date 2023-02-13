@@ -1711,9 +1711,6 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 		const FHoudiniStaticMeshGenerationProperties& StaticMeshGenerationProperties = HAC ? HAC->StaticMeshGenerationProperties : FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
 		const FMeshBuildSettings& MeshBuildSettings = HAC ? HAC->StaticMeshBuildSettings : FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
 
-		// UWorld *World = ParentActor ? ParentActor->GetWorld() : AssetLink->GetWorld();
-		UWorld *World = AssetLink->GetWorld();
-
 		// .. All TOP Nets
 		for (UTOPNetwork* CurrentTOPNet : AssetLink->AllTOPNetworks)
 		{
