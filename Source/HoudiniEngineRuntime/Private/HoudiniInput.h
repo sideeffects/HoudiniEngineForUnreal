@@ -363,7 +363,7 @@ public:
 	virtual void PostEditUndo() override;
 #endif
 
-	FBox GetBounds() const;
+	FBox GetBounds();
 
 	void UpdateLandscapeInputSelection();
 
@@ -438,6 +438,11 @@ protected:
 	// If this is false but the input has changed, we may have just updated in input parameter,
 	// and don't need to resend all the input data
 	bool bDataUploadNeeded;
+
+	// Cached Bounds of this input
+	// Used when we cannot access the input objects (ie, during GC)
+	UPROPERTY()
+	FBox CachedBounds;
 
 	// Help for this parameter/input
 	UPROPERTY()

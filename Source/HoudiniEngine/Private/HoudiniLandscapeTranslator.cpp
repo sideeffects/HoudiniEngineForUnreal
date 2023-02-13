@@ -786,7 +786,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	UHoudiniAssetComponent* HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(InOutput);
 	if (IsValid(HAC))
 	{
-		TileWorld = HAC->GetWorld();
+		TileWorld = HAC->GetHACWorld();
 		TileLevel = HAC->GetComponentLevel();
 	}
 	else
