@@ -45,7 +45,8 @@ FUnrealFoliageTypeTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticM
 	FUnrealObjectInputHandle& OutHandle,
 	const bool& ExportAllLODs,
 	const bool& ExportSockets,
-	const bool& ExportColliders)
+	const bool& ExportColliders,
+	bool ExportMaterialParameters)
 {
 	if (!IsValid(InFoliageType))
 		return false;
@@ -64,7 +65,11 @@ FUnrealFoliageTypeTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticM
 		StaticMeshComponent,
 		ExportAllLODs,
 		ExportSockets,
-		ExportColliders);
+		ExportColliders,
+		true,
+		true,
+		false,
+		ExportMaterialParameters);
 
 	if (bSuccess)
 	{

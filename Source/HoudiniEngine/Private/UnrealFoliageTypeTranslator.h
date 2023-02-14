@@ -48,7 +48,8 @@ public:
 		FUnrealObjectInputHandle& OutHandle,
 		const bool& ExportAllLODs = false,
 		const bool& ExportSockets = false,
-		const bool& ExportColliders = false);
+		const bool& ExportColliders = false,
+		bool ExportMaterialParameters = false);
 
 	// Create an input node that references the asset via InRef (unreal_instance).
 	// Also calls CreateHoudiniFoliageTypeAttributes, to create the unreal_foliage attribute, as well as

@@ -966,6 +966,14 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		return InInput->GetExportColliders() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
+	auto IsCheckedExportMaterialParameters = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->GetExportMaterialParameters() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
 	// Lambda for changing ExportLODs state
 	auto CheckStateChangedExportLODs = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 	{
@@ -1065,15 +1073,51 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		}
 	};
 
-	TSharedPtr< SCheckBox > CheckBoxExportLODs;
-	TSharedPtr< SCheckBox > CheckBoxExportSockets;
-	TSharedPtr< SCheckBox > CheckBoxExportColliders;
-	VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
+	// Lambda for changing ExportMaterialParameters state
+	auto CheckStateChangedExportMaterialParameters = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->GetExportMaterialParameters() == bNewState)
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changing Export Material Parameters"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetExportMaterialParameters() == bNewState)
+				continue;
+
+			CurInput->Modify();
+
+			CurInput->SetExportMaterialParameters(bNewState);
+			CurInput->MarkChanged(true);
+			CurInput->MarkAllInputObjectsChanged(true);
+		}
+	};
+
+	TSharedPtr<SCheckBox> CheckBoxExportLODs;
+	TSharedPtr<SCheckBox> CheckBoxExportSockets;
+	TSharedPtr<SCheckBox> CheckBoxExportColliders;
+	TSharedPtr<SCheckBox> CheckBoxExportMaterialParameters;
+	VerticalBox->AddSlot()
+	.Padding( 2, 2, 5, 2 )
+	.AutoHeight()
 	[
-		SNew( SHorizontalBox )
+		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
-		.Padding( 1.0f )
-		.VAlign( VAlign_Center )
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
 		.AutoWidth()
 		[
 			SAssignNew(CheckBoxExportLODs, SCheckBox )
@@ -1135,6 +1179,35 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
 			{
 				return CheckStateChangedExportColliders(InInputs, NewState);
+			})
+		]
+	];
+
+	VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SAssignNew(CheckBoxExportMaterialParameters, SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("ExportMaterialParameters", "Export Material Parameters"))
+				.ToolTipText(LOCTEXT("ExportMaterialParametersTip", "If enabled, materials parameters on the input objects will be sent to Houdini as primitive attributes."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked_Lambda([=]()
+			{
+				return IsCheckedExportMaterialParameters(MainInput);
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return CheckStateChangedExportMaterialParameters(InInputs, NewState);
 			})
 		]
 	];
