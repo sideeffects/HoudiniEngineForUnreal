@@ -53,7 +53,6 @@
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
-#include "UObject/GarbageCollection.h"
 
 #if WITH_EDITOR
 
@@ -344,7 +343,7 @@ UHoudiniInput::GetBounds()
 
 	// Return the cached bounds to prevent crashing when trying to access the input objects during GC/ saving
 	// Fixes #126804
-	if (UE::IsSavingPackage(nullptr) || IsGarbageCollectingAndLockingUObjectHashTables())
+	if (UE::IsSavingPackage(nullptr) || IsGarbageCollecting())
 		return CachedBounds;
 
 	switch (Type)
