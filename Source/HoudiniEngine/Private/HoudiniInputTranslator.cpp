@@ -1376,7 +1376,8 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				InInput->GetImportAsReferenceRotScaleEnabled(),
 				InInput->GetImportAsReferenceBboxEnabled(),
 				InInput->GetImportAsReferenceMaterialEnabled(),
-				InInput->GetPreferNaniteFallbackMesh());
+				InInput->GetPreferNaniteFallbackMesh(),
+				InInput->GetExportMaterialParameters());
 
 			if (bSuccess)
 			{
@@ -1406,7 +1407,8 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				InInput->GetImportAsReference(),
 				InInput->GetImportAsReferenceRotScaleEnabled(),
 				InInput->GetImportAsReferenceBboxEnabled(),
-				InInput->GetImportAsReferenceMaterialEnabled());
+				InInput->GetImportAsReferenceMaterialEnabled(),
+				InInput->GetExportMaterialParameters());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1424,6 +1426,7 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				InInput->GetImportAsReferenceRotScaleEnabled(),
 				InInput->GetImportAsReferenceBboxEnabled(),
 				InInput->GetImportAsReferenceMaterialEnabled(),
+				InInput->GetExportMaterialParameters(),
 				InActorTransform);
 
 			if (bSuccess)
@@ -1457,7 +1460,8 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				InInput->GetImportAsReferenceBboxEnabled(),
 				InInput->GetImportAsReferenceMaterialEnabled(),
 				InActorTransform,
-				InInput->GetPreferNaniteFallbackMesh());
+				InInput->GetPreferNaniteFallbackMesh(),
+				InInput->GetExportMaterialParameters());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1469,7 +1473,12 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		{
 			UHoudiniInputInstancedMeshComponent* InputISMC = Cast<UHoudiniInputInstancedMeshComponent>(InInputObject);
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForInstancedStaticMeshComponent(
-				ObjBaseName, InputISMC, InInput->GetExportLODs(), InInput->GetExportSockets(), InInput->GetExportColliders());
+				ObjBaseName,
+				InputISMC,
+				InInput->GetExportLODs(),
+				InInput->GetExportSockets(),
+				InInput->GetExportColliders(),
+				InInput->GetExportMaterialParameters());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1553,7 +1562,10 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		{
 			UHoudiniInputBrush* InputBrush = Cast<UHoudiniInputBrush>(InInputObject);
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForBrush(
-				ObjBaseName, InputBrush, InInput->GetBoundSelectorObjectArray());
+				ObjBaseName,
+				InputBrush,
+				InInput->GetBoundSelectorObjectArray(),
+				InInput->GetExportMaterialParameters());
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1592,6 +1604,7 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				InInput->GetExportLODs(),
 				InInput->GetExportSockets(),
 				InInput->GetExportColliders(),
+				InInput->GetExportMaterialParameters(),
 				InInput->GetImportAsReference(),
 				InInput->GetImportAsReferenceRotScaleEnabled(),
 				InInput->GetImportAsReferenceBboxEnabled(),
@@ -1998,7 +2011,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 	const bool& bImportAsReferenceRotScaleEnabled,
 	const bool& bImportAsReferenceBboxEnabled,
 	const bool& bImportAsReferenceMaterialEnabled,
-	const bool& bPreferNaniteFallbackMesh)
+	const bool& bPreferNaniteFallbackMesh,
+	bool bExportMaterialParameters)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2054,7 +2068,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 	else
 	{
 		bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
-			SM, InObject->InputNodeId, SMName, nullptr, bExportLODs, bExportSockets, bExportColliders, bPreferNaniteFallbackMesh);
+			SM, InObject->InputNodeId, SMName, nullptr, bExportLODs, bExportSockets, bExportColliders, bPreferNaniteFallbackMesh, bExportMaterialParameters);
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);
@@ -2111,13 +2125,16 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(
 	const bool& bImportAsReference,
 	const bool& bImportAsReferenceRotScaleEnabled,
 	const bool& bImportAsReferenceBboxEnabled,
-	const bool& bImportAsReferenceMaterialEnabled)
+	const bool& bImportAsReferenceMaterialEnabled,
+	bool bExportMaterialParameters)
 {
 	if (!IsValid(InObject))
 		return false;
 
 	UGeometryCollection* GeometryCollection = InObject->GetGeometryCollection();
-	 
+	if (!IsValid(GeometryCollection))
+		return false;
+
 	FString GCName = InObjNodeName + TEXT("_") + GeometryCollection->GetName();
 
 	// Marshall the GeometryCollection to Houdini
@@ -2166,7 +2183,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(
 	else 
 	{
 		bSuccess = FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
-			GeometryCollection, InObject->InputNodeId, GCName, nullptr);
+			GeometryCollection,
+			InObject->InputNodeId,
+			GCName,
+			bExportMaterialParameters,
+			nullptr);
 	}
 
 	// Update this input object's OBJ NodeId
@@ -2203,6 +2224,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 	const bool& bImportAsReferenceRotScaleEnabled,
 	const bool& bImportAsReferenceBboxEnabled,
 	const bool& bImportAsReferenceMaterialEnabled,
+	bool bExportMaterialParameters,
 	const FTransform& InActorTransform)
 {
 	if (!IsValid(InObject))
@@ -2274,7 +2296,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 	else 
 	{
 		bSuccess = FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
-			GC, CreatedNodeId, GCCName, GCC);
+			GC,
+			CreatedNodeId,
+			GCCName,
+			bExportMaterialParameters,
+			GCC);
 	}
 	
 	InObject->SetImportAsReference(bImportAsReference);
@@ -2343,7 +2369,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 	const bool& bImportAsReferenceBboxEnabled,
 	const bool& bImportAsReferenceMaterialEnabled,
 	const FTransform& InActorTransform,
-	const bool& bPreferNaniteFallbackMesh)
+	const bool& bPreferNaniteFallbackMesh,
+	bool bExportMaterialParameters)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2409,7 +2436,15 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 	else 
 	{
 		bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
-			SM, InObject->InputNodeId, SMCName, SMC, bExportLODs, bExportSockets, bExportColliders, bPreferNaniteFallbackMesh);
+			SM, 
+			InObject->InputNodeId, 
+			SMCName,
+			SMC, 
+			bExportLODs, 
+			bExportSockets, 
+			bExportColliders,
+			bPreferNaniteFallbackMesh,
+			bExportMaterialParameters);
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);
@@ -2446,7 +2481,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForInstancedStaticMeshComponent(
 	UHoudiniInputInstancedMeshComponent* InObject,
 	const bool& bExportLODs,
 	const bool& bExportSockets,
-	const bool& bExportColliders)
+	const bool& bExportColliders,
+	bool bExportMaterialParameters)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2462,7 +2498,14 @@ FHoudiniInputTranslator::HapiCreateInputNodeForInstancedStaticMeshComponent(
 
 	HAPI_NodeId NewNodeId = -1;
 	if (!FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
-		ISMC, InObjNodeName, NewNodeId, bExportLODs, bExportSockets, bExportColliders, false))
+		ISMC,
+		InObjNodeName,
+		NewNodeId,
+		bExportLODs,
+		bExportSockets,
+		bExportColliders,
+		false,
+		bExportMaterialParameters))
 		return false;
 
 	// Update this input object's node IDs
@@ -2858,7 +2901,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 	bool bExportSelectionOnly = InInput->bLandscapeExportSelectionOnly;
 	bool bLandscapeAutoSelectComponent = InInput->bLandscapeAutoSelectComponent;
 
-	TSet< ULandscapeComponent * > SelectedComponents = InInput->GetLandscapeSelectedComponents();
+	TSet<ULandscapeComponent *> SelectedComponents = InInput->GetLandscapeSelectedComponents();
 	if (bExportSelectionOnly && SelectedComponents.Num() == 0)
 	{
 		InInput->UpdateLandscapeInputSelection();
@@ -2904,7 +2947,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 }
 
 bool
-FHoudiniInputTranslator::HapiCreateInputNodeForBrush(const FString& InObjNodeName, UHoudiniInputBrush* InObject, TArray<AActor*>* ExcludeActors)
+FHoudiniInputTranslator::HapiCreateInputNodeForBrush(
+	const FString& InObjNodeName,
+	UHoudiniInputBrush* InObject,
+	TArray<AActor*>* ExcludeActors,
+	bool bExportMaterialParameters)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -2913,7 +2960,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForBrush(const FString& InObjNodeNam
 	if (!IsValid(BrushActor))
 		return true;
 
-	if (!FUnrealBrushTranslator::CreateInputNodeForBrush(InObject, BrushActor, ExcludeActors, InObject->InputNodeId, InObjNodeName))
+	if (!FUnrealBrushTranslator::CreateInputNodeForBrush(InObject, BrushActor, ExcludeActors, InObject->InputNodeId, InObjNodeName, bExportMaterialParameters))
 		return false;
 
 	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
@@ -4131,6 +4178,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 	const bool& bExportLODs,
 	const bool& bExportSockets,
 	const bool& bExportColliders,
+	bool bExportMaterialParameters,
 	const bool& bImportAsReference,
 	const bool& bImportAsReferenceRotScaleEnabled,
 	const bool& bImportAsReferenceBboxEnabled,
@@ -4195,7 +4243,13 @@ FHoudiniInputTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 	else 
 	{
 		bSuccess = FUnrealFoliageTypeTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
-			FoliageType, InObject->InputNodeId, FTName, bExportLODs, bExportSockets, bExportColliders);
+			FoliageType,
+			InObject->InputNodeId,
+			FTName,
+			bExportLODs,
+			bExportSockets,
+			bExportColliders,
+			bExportMaterialParameters);
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);

@@ -55,7 +55,8 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			const bool& ExportAllLODs = false,
 			const bool& ExportSockets = false,
 			const bool& ExportColliders = false,
-			const bool& bPreferNaniteFallbackMesh = false);
+			const bool& bPreferNaniteFallbackMesh = false,
+			const bool& bExportMaterialParameters = false);
 
 		// Convert the Mesh using FStaticMeshLODResources
 		static bool CreateInputNodeForStaticMeshLODResources(
@@ -63,6 +64,7 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			const FStaticMeshLODResources& LODResources,
 			const int32& LODIndex,
 			const bool&	DoExportLODs,
+			bool bInExportMaterialParametersAsAttributes,
 			UStaticMesh* StaticMesh,
 			UStaticMeshComponent* StaticMeshComponent);
 
@@ -72,16 +74,17 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			const FMeshDescription& MeshDescription,
 			const int32& LODIndex,
 			const bool&	DoExportLODs,
+			bool bInExportMaterialParametersAsAttributes,
 			UStaticMesh* StaticMesh,
 			UStaticMeshComponent* StaticMeshComponent);
 
 		// Convert the Mesh using FRawMesh
-
 		static bool CreateInputNodeForRawMesh(
 			const HAPI_NodeId& NodeId,
 			const FStaticMeshSourceModel& SourceModel,
 			const int32& LODIndex,
 			const bool&	DoExportLODs,
+			bool bInExportMaterialParametersAsAttributes,
 			UStaticMesh* StaticMesh,
 			UStaticMeshComponent* StaticMeshComponent);
 

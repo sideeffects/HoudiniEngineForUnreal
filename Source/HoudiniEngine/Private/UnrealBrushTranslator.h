@@ -38,13 +38,12 @@ class AActor;
 
 struct HOUDINIENGINE_API FUnrealBrushTranslator 
 {
-public:
-	static bool CreateInputNodeForBrush(
-		UHoudiniInputBrush* InputBrushObject, 
-		ABrush* BrushActor, 
-		const TArray<AActor*>* ExcludeActors, 
-		HAPI_NodeId &CreatedNodeId, 
-		const FString& NodeName
-	);
-
+	public:
+		static bool CreateInputNodeForBrush(
+			UHoudiniInputBrush* InputBrushObject, 
+			ABrush* BrushActor, 
+			const TArray<AActor*>* ExcludeActors, 
+			HAPI_NodeId &CreatedNodeId, 
+			const FString& NodeName,
+			bool bInExportMaterialParametersAsAttributes);
 };

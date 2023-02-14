@@ -42,6 +42,7 @@ struct HOUDINIENGINE_API FUnrealGeometryCollectionTranslator
 			UGeometryCollection * GeometryCollection,
 			HAPI_NodeId& InputObjectNodeId,
 			const FString& InputNodeName,
+			bool bExportMaterialParameters,
 			class UGeometryCollectionComponent* GeometryCollectionComponent = nullptr);
 
 		static bool SetGeometryCollectionAttributesForPart(
@@ -54,7 +55,8 @@ struct HOUDINIENGINE_API FUnrealGeometryCollectionTranslator
 			UGeometryCollection * GeometryCollectionObject, 
 			HAPI_NodeId InParentNodeId, 
 			FString InName, 
-			HAPI_NodeId InMergeNodeId, 
+			HAPI_NodeId InMergeNodeId,
+			bool bInExportMaterialParametersAsAttributes,
 			UGeometryCollectionComponent * GeometryCollectionComponent = nullptr);
 
 		static bool AddGeometryCollectionDetailAttributes(
