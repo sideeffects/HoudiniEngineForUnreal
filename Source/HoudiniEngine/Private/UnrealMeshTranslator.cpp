@@ -836,7 +836,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	const bool& ExportSockets /* = false */,
 	const bool& ExportColliders /* = false */,
 	const bool& ExportMainMesh /* = true */,
-	const bool& bInputNodesCanBeDeleted /*= true*/)
+	const bool& bInputNodesCanBeDeleted /*= true*/,
+	const bool& bExportMaterialParameters /*= false*/)
 {
 	// If we don't have a static mesh there's nothing to do.
 	if (!IsValid(StaticMesh))
@@ -931,7 +932,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 						Options.bExportSockets,
 						Options.bExportColliders,
 						!Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders,
-						bInputNodesCanBeDeleted))
+						bInputNodesCanBeDeleted,
+						bExportMaterialParameters))
 				{
 					return false;
 				}
@@ -1093,6 +1095,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 			HiResMeshDescription,
 			-1,
 			false,
+			bExportMaterialParameters,
 			StaticMesh,
 			StaticMeshComponent);
 
@@ -1237,6 +1240,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 					*MeshDesc,
 					LODIndex,
 					DoExportLODs,
+					bExportMaterialParameters,
 					StaticMesh,
 					StaticMeshComponent);
 				HOUDINI_LOG_MESSAGE(TEXT("FUnrealMeshTranslator::CreateInputNodeForMeshDescription completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
@@ -1250,6 +1254,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 					StaticMesh->GetLODForExport(LODIndex),
 					LODIndex,
 					DoExportLODs,
+					bExportMaterialParameters,
 					StaticMesh,
 					StaticMeshComponent);
 				HOUDINI_LOG_MESSAGE(TEXT("FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
@@ -1263,6 +1268,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 					SrcModel,
 					LODIndex,
 					DoExportLODs,
+					bExportMaterialParameters,
 					StaticMesh,
 					StaticMeshComponent);
 				HOUDINI_LOG_MESSAGE(TEXT("FUnrealMeshTranslator::CreateInputNodeForRawMesh completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
@@ -1742,6 +1748,7 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 	const FStaticMeshSourceModel& SourceModel,
 	const int32& InLODIndex,
 	const bool& bAddLODGroups,
+	bool bInExportMaterialParametersAsAttributes,
 	UStaticMesh* StaticMesh,
 	UStaticMeshComponent* StaticMeshComponent )
 {
@@ -2199,28 +2206,14 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 		TMap<FString, TArray<FString>> TextureMaterialParameters;
 
 		bool bAttributeSuccess = false;
-		bool bAddMaterialParametersAsAttributes = true;
-
 		FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh);
-
-		if (bAddMaterialParametersAsAttributes)
+		if (bInExportMaterialParametersAsAttributes)
 		{
 			// Create attributes for the material and all its parameters
 			// Get material attribute data, and all material parameters data
 			FUnrealMeshTranslator::CreateFaceMaterialArray(
 				MaterialInterfaces, RawMesh.FaceMaterialIndices, StaticMeshFaceMaterials,
 				ScalarMaterialParameters, VectorMaterialParameters, TextureMaterialParameters);
-
-			// Create attribute for materials and all attributes for material parameters
-			bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
-				NodeId,
-				0,
-				RawMesh.FaceMaterialIndices.Num(),
-				StaticMeshFaceMaterials,
-				ScalarMaterialParameters,
-				VectorMaterialParameters,
-				TextureMaterialParameters,
-			    PhysicalMaterialPath);
 		}
 		else
 		{
@@ -2228,18 +2221,18 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 			// Only get the material attribute data
 			FUnrealMeshTranslator::CreateFaceMaterialArray(
 				MaterialInterfaces, RawMesh.FaceMaterialIndices, StaticMeshFaceMaterials);
-
-			// Create attribute for materials
-			bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
-				NodeId,
-				0,
-				RawMesh.FaceMaterialIndices.Num(),
-				StaticMeshFaceMaterials,
-				ScalarMaterialParameters,
-				VectorMaterialParameters,
-				TextureMaterialParameters,
-			    PhysicalMaterialPath);
 		}
+
+		// Create all the needed attributes for materials
+		bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
+			NodeId,
+			0,
+			RawMesh.FaceMaterialIndices.Num(),
+			StaticMeshFaceMaterials,
+			ScalarMaterialParameters,
+			VectorMaterialParameters,
+			TextureMaterialParameters,
+			PhysicalMaterialPath);
 
 		if (!bAttributeSuccess)
 		{
@@ -2473,6 +2466,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	const FStaticMeshLODResources& LODResources,
 	const int32& InLODIndex,
 	const bool& bAddLODGroups,
+	bool bInExportMaterialParametersAsAttributes,
 	UStaticMesh* StaticMesh,
 	UStaticMeshComponent* StaticMeshComponent)
 {
@@ -3015,29 +3009,14 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 			TMap<FString, TArray<FString>> TextureMaterialParameters;
 
 			bool bAttributeSuccess = false;
-			bool bAddMaterialParametersAsAttributes = true;
-
-
 			FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh);
-
-			if (bAddMaterialParametersAsAttributes)
+			if (bInExportMaterialParametersAsAttributes)
 			{
 				// Create attributes for the material and all its parameters
 				// Get material attribute data, and all material parameters data
 				FUnrealMeshTranslator::CreateFaceMaterialArray(
 					MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials,
 					ScalarMaterialParameters, VectorMaterialParameters, TextureMaterialParameters);
-
-				// Create attribute for materials and all attributes for material parameters
-				bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
-					NodeId,
-					0,
-					TriangleMaterials.Num(),
-					TriangleMaterials,
-					ScalarMaterialParameters,
-					VectorMaterialParameters,
-					TextureMaterialParameters,
-				    PhysicalMaterialPath);
 			}
 			else
 			{
@@ -3045,18 +3024,18 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				// Only get the material attribute data
 				FUnrealMeshTranslator::CreateFaceMaterialArray(
 					MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials);
-
-				// Create attribute for materials
-				bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
-					NodeId,
-					0,
-					TriangleMaterials.Num(),
-					TriangleMaterials,
-					ScalarMaterialParameters,
-					VectorMaterialParameters,
-					TextureMaterialParameters,
-				    PhysicalMaterialPath);
 			}
+
+			// Create all the needed attributes for materials
+			bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
+				NodeId,
+				0,
+				TriangleMaterials.Num(),
+				TriangleMaterials,
+				ScalarMaterialParameters,
+				VectorMaterialParameters,
+				TextureMaterialParameters,
+				PhysicalMaterialPath);
 
 			if (!bAttributeSuccess)
 			{
@@ -3309,6 +3288,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	const FMeshDescription& MeshDescription,
 	const int32& InLODIndex,
 	const bool& bAddLODGroups,
+	bool bInExportMaterialParametersAsAttributes,
 	UStaticMesh* StaticMesh,
 	UStaticMeshComponent* StaticMeshComponent)
 {
@@ -3920,26 +3900,13 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			TMap<FString, TArray<FString>> TextureMaterialParameters;
 
 			bool bAttributeSuccess = false;
-			bool bAddMaterialParametersAsAttributes = true;
-
-			if (bAddMaterialParametersAsAttributes)
+			if (bInExportMaterialParametersAsAttributes)
 			{
 				// Create attributes for the material and all its parameters
 				// Get material attribute data, and all material parameters data
 				FUnrealMeshTranslator::CreateFaceMaterialArray(
 					MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials,
 					ScalarMaterialParameters, VectorMaterialParameters, TextureMaterialParameters);
-
-				// Create attribute for materials and all attributes for material parameters
-				bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
-					NodeId,
-					0,
-					TriangleMaterials.Num(),
-					TriangleMaterials,
-					ScalarMaterialParameters,
-					VectorMaterialParameters,
-					TextureMaterialParameters,
-				    PhysicalMaterialPath);
 			}
 			else
 			{
@@ -3947,18 +3914,18 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 				// Only get the material attribute data
 				FUnrealMeshTranslator::CreateFaceMaterialArray(
 					MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials);
-
-				// Create attribute for materials
-				bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
-					NodeId,
-					0,
-					TriangleMaterials.Num(),
-					TriangleMaterials,
-					ScalarMaterialParameters,
-					VectorMaterialParameters,
-					TextureMaterialParameters,
-				    PhysicalMaterialPath);
 			}
+
+			// Create all the needed attributes for materials
+			bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
+				NodeId,
+				0,
+				TriangleMaterials.Num(),
+				TriangleMaterials,
+				ScalarMaterialParameters,
+				VectorMaterialParameters,
+				TextureMaterialParameters,
+				PhysicalMaterialPath);
 
 			if (!bAttributeSuccess)
 			{
@@ -5105,6 +5072,7 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		    }
 		}
     }
+
 	return bSuccess;
 }
 

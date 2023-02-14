@@ -45,6 +45,7 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	const bool& bExportSockets,
 	const bool& bExportColliders,
 	const bool& bExportAsAttributeInstancer,
+	bool bExportMaterialParameters,
 	const bool& bInputNodesCanBeDeleted)
 {
 	int32 InstanceCount = ISMC->GetInstanceCount();
@@ -61,7 +62,18 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	FString ISMCName = InNodeName + TEXT("_") + ISMC->GetName();
 	FUnrealObjectInputHandle SMNodeHandle;
 	bool bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
-		SM, SMNodeId, InNodeName, SMNodeHandle, ISMC, bExportLODs, bExportSockets, bExportColliders);
+		SM,
+		SMNodeId, 
+		InNodeName,
+		SMNodeHandle,
+		ISMC,
+		bExportLODs, 
+		bExportSockets,
+		bExportColliders,
+		true, 
+		true,
+		false, 
+		bExportMaterialParameters);
 
 	if (!bSuccess)
 		return false;
