@@ -46,6 +46,7 @@ FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
 	UGeometryCollection* GeometryCollection,
 	HAPI_NodeId& InputNodeId,
 	const FString& InputNodeName,
+	bool bExportMaterialParameters,
 	UGeometryCollectionComponent* GeometryCollectionComponent)
 {
 	// If we don't have a static mesh there's nothing to do.
@@ -100,7 +101,7 @@ FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
                 FHoudiniEngine::Get().GetSession(),
                 PackNodeId, 0, MergeNodeId, 0), false);
 
-	UploadGeometryCollection(GeometryCollection, InputObjectNodeId, InputNodeName, MergeNodeId, GeometryCollectionComponent);
+	UploadGeometryCollection(GeometryCollection, InputObjectNodeId, InputNodeName, MergeNodeId, bExportMaterialParameters, GeometryCollectionComponent);
 
 	// Setup the pack node to create packed primitives.
 	{
@@ -173,6 +174,7 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 	HAPI_NodeId InParentNodeId, 
 	FString InName,
 	HAPI_NodeId InMergeNodeId, 
+	bool bInExportMaterialParametersAsAttributes,
 	UGeometryCollectionComponent * GeometryCollectionComponent)
 {
 	if (!IsValid(GeometryCollectionObject))
@@ -621,25 +623,13 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 			TMap<FString, TArray<FString>> TextureMaterialParameters;
 
 			bool bAttributeSuccess = false;
-			bool bAddMaterialParametersAsAttributes = true;
-
-			if (bAddMaterialParametersAsAttributes)
+			if (bInExportMaterialParametersAsAttributes)
 			{
 				// Create attributes for the material and all its parameters
 				// Get material attribute data, and all material parameters data
 				FUnrealMeshTranslator::CreateFaceMaterialArray(
                                         MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials,
                                         ScalarMaterialParameters, VectorMaterialParameters, TextureMaterialParameters);
-
-				// Create attribute for materials and all attributes for material parameters
-				bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
-					GeometryNodeId,
-					0,
-					TriangleMaterials.Num(),
-					TriangleMaterials,
-					ScalarMaterialParameters,
-					VectorMaterialParameters,
-					TextureMaterialParameters);
 			}
 			else
 			{
@@ -647,17 +637,17 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 				// Only get the material attribute data
 				FUnrealMeshTranslator::CreateFaceMaterialArray(
 					MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials);
-
-				// Create attribute for materials
-				bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
-					GeometryNodeId,
-					0,
-					TriangleMaterials.Num(),
-					TriangleMaterials,
-					ScalarMaterialParameters,
-					VectorMaterialParameters,
-					TextureMaterialParameters);
 			}
+
+			// Create all the needed attributes for materials
+			bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
+				GeometryNodeId,
+				0,
+				TriangleMaterials.Num(),
+				TriangleMaterials,
+				ScalarMaterialParameters,
+				VectorMaterialParameters,
+				TextureMaterialParameters);
 
 			if (!bAttributeSuccess)
 			{
