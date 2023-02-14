@@ -60,7 +60,8 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			const bool& ExportColliders = false,
 			const bool& ExportMainMesh = true,
 			const bool& bInputNodesCanBeDeleted = true,
-			const bool& bPreferNaniteFallbackMesh = false);
+			const bool& bPreferNaniteFallbackMesh = false,
+			const bool& bExportMaterialParameters = false);
 
 		static bool HapiCreateInputNodeForSkeletalMesh(
 		    USkeletalMesh* Mesh,
@@ -88,6 +89,7 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			const FStaticMeshLODResources& LODResources,
 			const int32& LODIndex,
 			const bool&	DoExportLODs,
+			bool bInExportMaterialParametersAsAttributes,
 			UStaticMesh* StaticMesh,
 			UStaticMeshComponent* StaticMeshComponent);
 
@@ -97,16 +99,17 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			const FMeshDescription& MeshDescription,
 			const int32& LODIndex,
 			const bool&	DoExportLODs,
+			bool bInExportMaterialParametersAsAttributes,
 			UStaticMesh* StaticMesh,
 			UStaticMeshComponent* StaticMeshComponent);
 
 		// Convert the Mesh using FRawMesh
-
 		static bool CreateInputNodeForRawMesh(
 			const HAPI_NodeId& NodeId,
 			const FStaticMeshSourceModel& SourceModel,
 			const int32& LODIndex,
 			const bool&	DoExportLODs,
+			bool bInExportMaterialParametersAsAttributes,
 			UStaticMesh* StaticMesh,
 			UStaticMeshComponent* StaticMeshComponent);
 

@@ -55,7 +55,7 @@ UHoudiniEditorSubsystem::SendStaticMeshToHoudini(
 		return false;
 
 	if (!FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
-		InMeshNodeId, *MeshDesc, LODIndex, false, InStaticMesh, nullptr))
+		InMeshNodeId, *MeshDesc, LODIndex, false, false, InStaticMesh, nullptr))
 		return false;
 
     //bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(SM, InObject->InputNodeId, SMCName, SMC, bExportLODs, bExportSockets, bExportColliders);

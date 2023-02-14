@@ -142,6 +142,7 @@ public:
 	bool GetExportSockets() const			{ return bExportSockets; };
 	bool GetPreferNaniteFallbackMesh() const { return bPreferNaniteFallbackMesh; }
 	bool GetExportColliders() const			{ return bExportColliders; };
+	bool GetExportMaterialParameters() const { return bExportMaterialParameters; };
 	bool IsObjectPathParameter() const		{ return bIsObjectPathParameter; };
 	float GetUnrealSplineResolution() const { return UnrealSplineResolution; };
 	
@@ -257,6 +258,7 @@ public:
 	void SetExportSockets(const bool& bInExportSockets)				{ bExportSockets = bInExportSockets; };
 	void SetPreferNaniteFallbackMesh(const bool& bInPreferNaniteFallbackMesh) { bPreferNaniteFallbackMesh = bInPreferNaniteFallbackMesh; };
 	void SetExportColliders(const bool& bInExportColliders)			{ bExportColliders = bInExportColliders; };
+	void SetExportMaterialParameters(const bool& bInExportMaterialParameters) { bExportMaterialParameters = bInExportMaterialParameters; };
 	void SetInputNodeId(const int32& InCreatedNodeId)				{ InputNodeId = InCreatedNodeId; };
 	void SetUnrealSplineResolution(const float& InResolution)		{ UnrealSplineResolution = InResolution; };
 
@@ -491,6 +493,10 @@ protected:
 	// Indicates that all colliders in the input should be marshalled to Houdini
 	UPROPERTY()
 	bool bExportColliders;
+
+	// Indicates that material parameters should be exported as attributes
+	UPROPERTY()
+	bool bExportMaterialParameters;
 
 	// Indicates that if trigger cook automatically on curve Input spline modified
 	UPROPERTY()

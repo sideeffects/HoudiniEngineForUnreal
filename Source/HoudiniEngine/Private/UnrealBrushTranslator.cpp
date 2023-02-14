@@ -54,9 +54,9 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 	UHoudiniInputBrush* InputBrushObject, 
 	ABrush* BrushActor, 
 	const TArray<AActor*>* ExcludeActors, 
-	HAPI_NodeId &CreatedNodeId, 
-	const FString& NodeName
-)
+	HAPI_NodeId& CreatedNodeId, 
+	const FString& NodeName,
+	bool bInExportMaterialParametersAsAttributes)
 {
 	if (!IsValid(BrushActor))
 		return false;
@@ -378,25 +378,13 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 		TMap<FString, TArray<FString>> TextureMaterialParameters;
 
 		bool bAttributeSuccess = false;
-		bool bAddMaterialParametersAsAttributes = true;
-
-		if (bAddMaterialParametersAsAttributes)
+		if (bInExportMaterialParametersAsAttributes)
 		{
 			// Create attributes for the material and all its parameters
 			// Get material attribute data, and all material parameters data
 			FUnrealMeshTranslator::CreateFaceMaterialArray(
 				Materials, MaterialIndices, OutMaterials,
 				ScalarMaterialParameters, VectorMaterialParameters, TextureMaterialParameters);
-
-			// Create attribute for materials and all attributes for material parameters
-			bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
-				CreatedNodeId,
-				0,
-				NumNodes,
-				OutMaterials,
-				ScalarMaterialParameters,
-				VectorMaterialParameters,
-				TextureMaterialParameters);
 		}
 		else
 		{
@@ -404,17 +392,17 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 			// Only get the material attribute data
 			FUnrealMeshTranslator::CreateFaceMaterialArray(
 				Materials, MaterialIndices, OutMaterials);
-
-			// Create attribute for materials
-			bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
-				CreatedNodeId,
-				0,
-				NumNodes,
-				OutMaterials,
-				ScalarMaterialParameters,
-				VectorMaterialParameters,
-				TextureMaterialParameters);
 		}
+
+		// Create all the needed attributes for materials
+		bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
+			CreatedNodeId,
+			0,
+			NumNodes,
+			OutMaterials,
+			ScalarMaterialParameters,
+			VectorMaterialParameters,
+			TextureMaterialParameters);
 
 		if (!bAttributeSuccess)
 		{
