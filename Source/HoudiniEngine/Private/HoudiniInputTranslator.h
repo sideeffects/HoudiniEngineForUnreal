@@ -303,6 +303,7 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bExportLODs,
 		const bool& bExportSockets,
 		const bool& bExportColliders,
+		bool bExportMaterialParameters,
 		const bool& bImportAsReference = false,
 		const bool& bImportAsReferenceRotScaleEnabled = false,
 		const bool& bImportAsReferenceBboxEnabled = false,

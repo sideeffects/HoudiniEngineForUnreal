@@ -1701,12 +1701,12 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				InInput->GetExportLODs(),
 				InInput->GetExportSockets(),
 				InInput->GetExportColliders(),
+				InInput->GetExportMaterialParameters(),
 				InInput->GetImportAsReference(),
 				InInput->GetImportAsReferenceRotScaleEnabled(),
 				InInput->GetImportAsReferenceBboxEnabled(),
 				InInput->GetImportAsReferenceMaterialEnabled(),
-				bInputNodesCanBeDeleted,
-				InInput->GetExportMaterialParameters());
+				bInputNodesCanBeDeleted);
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -4755,6 +4755,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 	const bool& bExportLODs,
 	const bool& bExportSockets,
 	const bool& bExportColliders,
+	bool bExportMaterialParameters,
 	const bool& bImportAsReference,
 	const bool& bImportAsReferenceRotScaleEnabled,
 	const bool& bImportAsReferenceBboxEnabled,
@@ -4806,7 +4807,14 @@ FHoudiniInputTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 	else 
 	{
 		bSuccess = FUnrealFoliageTypeTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
-			FoliageType, InObject->InputNodeId, FTName, InputNodeHandle, bExportLODs, bExportSockets, bExportColliders);
+			FoliageType,
+			InObject->InputNodeId,
+			FTName,
+			InputNodeHandle,
+			bExportLODs,
+			bExportSockets,
+			bExportColliders,
+			bExportMaterialParameters);
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);
