@@ -55,6 +55,7 @@
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
+#include "UObject/GarbageCollection.h"
 
 #if WITH_EDITOR
 
