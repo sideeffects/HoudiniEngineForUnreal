@@ -343,7 +343,8 @@ UHoudiniInput::GetBounds()
 
 	// Return the cached bounds to prevent crashing when trying to access the input objects during GC/ saving
 	// Fixes #126804
-	if (UE::IsSavingPackage(nullptr) || IsGarbageCollecting())
+	//if (UE::IsSavingPackage(nullptr) || IsGarbageCollecting())
+	if(IsGarbageCollecting())
 		return CachedBounds;
 
 	switch (Type)
