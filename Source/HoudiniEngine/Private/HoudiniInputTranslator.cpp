@@ -1432,7 +1432,7 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				InInput->GetImportAsReferenceRotScaleEnabled(),
 				InInput->GetImportAsReferenceBboxEnabled(),
 				InInput->GetImportAsReferenceMaterialEnabled(),
-				bInputNodesCanBeDeleted);
+				bInputNodesCanBeDeleted,
 				InInput->GetExportMaterialParameters());
 
 			if (bSuccess)
