@@ -1199,7 +1199,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 				SNew(STextBlock)
 				.Text(LOCTEXT("ExportMaterialParameters", "Export Material Parameters"))
 				.ToolTipText(LOCTEXT("ExportMaterialParametersTip", "If enabled, materials parameters on the input objects will be sent to Houdini as primitive attributes."))
-				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 			]
 			.IsChecked_Lambda([=]()
 			{

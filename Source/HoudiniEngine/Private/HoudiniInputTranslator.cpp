@@ -1375,7 +1375,7 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				InInput->GetImportAsReference(),
 				InInput->GetImportAsReferenceRotScaleEnabled(),
 				InInput->GetImportAsReferenceBboxEnabled(),
-				InInput->GetImportAsReferenceMaterialEnabled());
+				InInput->GetImportAsReferenceMaterialEnabled(),
 				InInput->GetExportMaterialParameters());
 
 			if (bSuccess)
