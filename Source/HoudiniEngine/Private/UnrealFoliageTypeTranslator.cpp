@@ -66,9 +66,6 @@ FUnrealFoliageTypeTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticM
 		ExportAllLODs,
 		ExportSockets,
 		ExportColliders,
-		true,
-		true,
-		false,
 		ExportMaterialParameters);
 
 	if (bSuccess)

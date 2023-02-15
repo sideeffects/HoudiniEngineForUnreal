@@ -70,9 +70,6 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 		bExportLODs, 
 		bExportSockets,
 		bExportColliders,
-		true, 
-		true,
-		false, 
 		bExportMaterialParameters);
 
 	if (!bSuccess)
