@@ -2788,9 +2788,11 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	if (InFoliageType)
 	{
 	    CookedFoliageType = FHoudiniFoliageTools::DuplicateFoliageType(FoliageTypePackageParams, FoliageTypeCount, InFoliageType);
-	} else {
+	}
+	else
+	{
 		CookedFoliageType = FHoudiniFoliageTools::CreateFoliageType(FoliageTypePackageParams, FoliageTypeCount, InstancedStaticMesh);
-    }
+	}
 
 	++FoliageTypeCount;
 
@@ -2802,12 +2804,13 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	//for (auto CurrentTransform : InstancedObjectTransforms)
 	for(int32 n = 0; n < InstancedObjectTransforms.Num(); n++)
 	{
-		const FTransform & CurrentTransform = InstancedObjectTransforms[n];
+		// Instances transforms are relative to the HDA, 
+		// But we need world transform for the Foliage Types
+		FTransform CurrentTransform = InstancedObjectTransforms[n] * HoudiniAssetTransform;
 
 		FoliageInstances[n].Location = CurrentTransform.GetLocation();
 		FoliageInstances[n].Rotation = CurrentTransform.GetRotation().Rotator();
-        FoliageInstances[n].DrawScale3D = (FVector3f)CurrentTransform.GetScale3D();
-
+		FoliageInstances[n].DrawScale3D = (FVector3f)CurrentTransform.GetScale3D();
 	}
 
 	FHoudiniFoliageTools::SpawnFoliageInstance(World, CookedFoliageType, FoliageInstances, true);
