@@ -2031,7 +2031,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 	{
 		for(auto OldComponent : OldComponents)
 		{
-		    RemoveAndDestroyComponent(OldComponent, nullptr);
+			RemoveAndDestroyComponent(OldComponent, nullptr);
 		}
 		OldComponents.Empty();
 	}
@@ -2044,14 +2044,19 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 	UFoliageType* FoliageType = Cast<UFoliageType>(InstancedObject);
 	if (IsValid(FoliageType))
 	{
-	    StaticMesh = Cast<UStaticMesh>(FoliageType->GetSource());
+		StaticMesh = Cast<UStaticMesh>(FoliageType->GetSource());
 	}
 
 	UHoudiniStaticMesh * HSM = nullptr;
 	if (!StaticMesh && !FoliageType)
 		HSM = Cast<UHoudiniStaticMesh>(InstancedObject);
 
-	if (StaticMesh)
+	if (IsValid(FoliageType))
+	{
+		// We must test for foliage type first, or FT will be considered as meshes
+		NewType = Foliage;
+	}
+	else if(IsValid(StaticMesh))
 	{
 		const bool bMustUseInstancerComponent = InstancedObjectTransforms.Num() > 1 || bForceInstancer;
 		if (InIsFoliageInstancer)
@@ -2068,7 +2073,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		else
 			NewType = StaticMeshComponent;
 	}
-	else if (HSM)
+	else if (IsValid(HSM))
 	{
 		if (InstancedObjectTransforms.Num() == 1)
 			NewType = HoudiniStaticMeshComponent;
@@ -2078,10 +2083,6 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 			NewType = Invalid;
 			return false;
 		}
-	}
-	else if (FoliageType)
-	{
-		NewType = Foliage;
 	}
 	else
 	{
@@ -2093,7 +2094,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		NewComponents = OldComponents;
 	}
 
-    if (NewComponents.Num() == 0)
+	if (NewComponents.Num() == 0)
 		NewComponents.Add(nullptr);
 
 	// First valid index in the original instancer part 
