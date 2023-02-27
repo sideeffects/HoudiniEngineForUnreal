@@ -3966,13 +3966,17 @@ FHoudiniEngineUtils::HapiSetAttributeStringData(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
-	// Ensure we create an array of the appropriate size
-	TArray<FString> StringArray;
-	StringArray.SetNum(InAttributeInfo.count);
-	for(int n = 0; n < StringArray.Num(); n++)
-		StringArray[n] = InString;
+	return FHoudiniApi::SetAttributeStringUniqueData(
+		FHoudiniEngine::Get().GetSession(),
+		InNodeId, 
+		InPartId, 
+		TCHAR_TO_ANSI(*InAttributeName),
+		&InAttributeInfo, 
+		TCHAR_TO_ANSI(*InString),
+		0,
+		InAttributeInfo.count);
 
-	return HapiSetAttributeStringData(StringArray, InNodeId, InPartId, InAttributeName, InAttributeInfo);
+
 }
 
 HAPI_Result
