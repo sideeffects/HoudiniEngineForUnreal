@@ -2006,25 +2006,14 @@ FUnrealLandscapeTranslator::AddLandscapeMeshIndicesAndMaterialsAttribute(
 
 	// Allocate space for face names.
 	// The LandscapeMaterial and HoleMaterial per point
-	TArray<const char *> FaceMaterials;
-	TArray<const char *> FaceHoleMaterials;
-	FaceMaterials.SetNumUninitialized(QuadCount);
-	FaceHoleMaterials.SetNumUninitialized(QuadCount);
+	FHoudiniEngineIndexedStringMap FaceMaterials;
+    FHoudiniEngineIndexedStringMap FaceHoleMaterials;
 
 	int32 VertIdx = 0;
 	int32 QuadIdx = 0;
 
-	const char * MaterialRawStr = nullptr;
-	const char * MaterialHoleRawStr = nullptr;
-
-	// Lambda for freeing the memory allocated by ExtractRawString and returning
-	auto FreeMemoryReturn = [&MaterialRawStr, &MaterialHoleRawStr](const bool& bReturn)
-	{
-		FHoudiniEngineUtils::FreeRawStringMemory(MaterialRawStr);
-		FHoudiniEngineUtils::FreeRawStringMemory(MaterialHoleRawStr);
-
-		return bReturn;
-	};
+	FString MatrialName;
+    FString HoleMaterialName;
 
 	const int32 QuadComponentCount = ComponentSizeQuads + 1;
 	for (int32 ComponentIdx = 0; ComponentIdx < LandscapeProxy->LandscapeComponents.Num(); ComponentIdx++)
@@ -2038,13 +2027,13 @@ FUnrealLandscapeTranslator::AddLandscapeMeshIndicesAndMaterialsAttribute(
 			// If component has an override material, we need to get the raw name (if exporting materials).
 			if (LandscapeComponent->OverrideMaterial)
 			{
-				MaterialRawStr = FHoudiniEngineUtils::ExtractRawString(LandscapeComponent->OverrideMaterial->GetName());
+				MatrialName = LandscapeComponent->OverrideMaterial->GetName();
 			}
 
 			// If component has an override hole material, we need to get the raw name (if exporting materials).
 			if (LandscapeComponent->OverrideHoleMaterial)
 			{
-				MaterialHoleRawStr = FHoudiniEngineUtils::ExtractRawString(LandscapeComponent->OverrideHoleMaterial->GetName());
+				HoleMaterialName = LandscapeComponent->OverrideHoleMaterial->GetName();
 			}
 		}
 
@@ -2061,8 +2050,8 @@ FUnrealLandscapeTranslator::AddLandscapeMeshIndicesAndMaterialsAttribute(
 				// Store override materials (if exporting materials).
 				if (bExportMaterials)
 				{
-					FaceMaterials[QuadIdx] = MaterialRawStr;
-					FaceHoleMaterials[QuadIdx] = MaterialHoleRawStr;
+					FaceMaterials.SetString(QuadIdx, MatrialName);
+					FaceHoleMaterials.SetString(QuadIdx, HoleMaterialName);
 				}
 
 				VertIdx += 4;
@@ -2073,7 +2062,7 @@ FUnrealLandscapeTranslator::AddLandscapeMeshIndicesAndMaterialsAttribute(
 
 	// We can now set vertex list.
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetVertexList(
-		LandscapeIndices, NodeId, 0), FreeMemoryReturn(false));
+		LandscapeIndices, NodeId, 0), false);
 
 	// We need to generate array of face counts.
 	TArray<int32> LandscapeFaces;
@@ -2082,65 +2071,59 @@ FUnrealLandscapeTranslator::AddLandscapeMeshIndicesAndMaterialsAttribute(
 		LandscapeFaces[n] = 4;
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetFaceCounts(
-		LandscapeFaces, NodeId, 0),	FreeMemoryReturn(false));
+		LandscapeFaces, NodeId, 0), false);
 
 	if (bExportMaterials)
 	{
-		if (!FaceMaterials.Contains(nullptr))
-		{
-			// Marshall in override primitive material names.
-			HAPI_AttributeInfo AttributeInfoPrimitiveMaterial;
-			FHoudiniApi::AttributeInfo_Init(&AttributeInfoPrimitiveMaterial);
-			//FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPrimitiveMaterial );
-			AttributeInfoPrimitiveMaterial.count = FaceMaterials.Num();
-			AttributeInfoPrimitiveMaterial.tupleSize = 1;
-			AttributeInfoPrimitiveMaterial.exists = true;
-			AttributeInfoPrimitiveMaterial.owner = HAPI_ATTROWNER_PRIM;
-			AttributeInfoPrimitiveMaterial.storage = HAPI_STORAGETYPE_STRING;
-			AttributeInfoPrimitiveMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
+        if (FaceMaterials.HasEntries())
+        {
+            // Marshall in override primitive material names.
+            HAPI_AttributeInfo AttributeInfoPrimitiveMaterial;
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfoPrimitiveMaterial);
+            AttributeInfoPrimitiveMaterial.count = FaceMaterials.GetIds().Num();
+            AttributeInfoPrimitiveMaterial.tupleSize = 1;
+            AttributeInfoPrimitiveMaterial.exists = true;
+            AttributeInfoPrimitiveMaterial.owner = HAPI_ATTROWNER_PRIM;
+            AttributeInfoPrimitiveMaterial.storage = HAPI_STORAGETYPE_STRING;
+            AttributeInfoPrimitiveMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_MATERIAL, &AttributeInfoPrimitiveMaterial),
-				FreeMemoryReturn(false));
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                                           FHoudiniEngine::Get().GetSession(),
+                                           NodeId, 0, HAPI_UNREAL_ATTRIB_MATERIAL, &AttributeInfoPrimitiveMaterial),
+                                       false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_MATERIAL, &AttributeInfoPrimitiveMaterial,
-				(const char **)FaceMaterials.GetData(), 0, AttributeInfoPrimitiveMaterial.count),
-				FreeMemoryReturn(false));
-		}
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringMap(FaceMaterials,
+                                           NodeId, 0, HAPI_UNREAL_ATTRIB_MATERIAL, AttributeInfoPrimitiveMaterial),
+                                       false);
+        }
 
-		if (!FaceHoleMaterials.Contains(nullptr))
-		{
-			// Marshall in override primitive material hole names.
-			HAPI_AttributeInfo AttributeInfoPrimitiveMaterialHole;
-			FHoudiniApi::AttributeInfo_Init(&AttributeInfoPrimitiveMaterialHole);
-			//FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPrimitiveMaterialHole );
-			AttributeInfoPrimitiveMaterialHole.count = FaceHoleMaterials.Num();
-			AttributeInfoPrimitiveMaterialHole.tupleSize = 1;
-			AttributeInfoPrimitiveMaterialHole.exists = true;
-			AttributeInfoPrimitiveMaterialHole.owner = HAPI_ATTROWNER_PRIM;
-			AttributeInfoPrimitiveMaterialHole.storage = HAPI_STORAGETYPE_STRING;
-			AttributeInfoPrimitiveMaterialHole.originalOwner = HAPI_ATTROWNER_INVALID;
+        if (FaceHoleMaterials.HasEntries())
+        {
+            // Marshall in override primitive material hole names.
+            HAPI_AttributeInfo AttributeInfoPrimitiveMaterialHole;
+            FHoudiniApi::AttributeInfo_Init(&AttributeInfoPrimitiveMaterialHole);
+            AttributeInfoPrimitiveMaterialHole.count = FaceHoleMaterials.GetIds().Num();
+            AttributeInfoPrimitiveMaterialHole.tupleSize = 1;
+            AttributeInfoPrimitiveMaterialHole.exists = true;
+            AttributeInfoPrimitiveMaterialHole.owner = HAPI_ATTROWNER_PRIM;
+            AttributeInfoPrimitiveMaterialHole.storage = HAPI_STORAGETYPE_STRING;
+            AttributeInfoPrimitiveMaterialHole.originalOwner = HAPI_ATTROWNER_INVALID;
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_MATERIAL_HOLE,
-				&AttributeInfoPrimitiveMaterialHole),
-				FreeMemoryReturn(false));
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+                                           FHoudiniEngine::Get().GetSession(),
+                                           NodeId, 0, HAPI_UNREAL_ATTRIB_MATERIAL_HOLE,
+                                           &AttributeInfoPrimitiveMaterialHole),
+                                       false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_MATERIAL_HOLE,
-				&AttributeInfoPrimitiveMaterialHole, (const char **)FaceHoleMaterials.GetData(), 0,
-				AttributeInfoPrimitiveMaterialHole.count),
-				FreeMemoryReturn(false));
-		}
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringMap(
+                                           FaceHoleMaterials,
+                                           NodeId, 0, HAPI_UNREAL_ATTRIB_MATERIAL_HOLE,
+                                           AttributeInfoPrimitiveMaterialHole),
+                                       false);
+        }
 	}		
 
-	// Free the memory and return true
-	return FreeMemoryReturn(true);
+    return true;
 }
 
 bool 
