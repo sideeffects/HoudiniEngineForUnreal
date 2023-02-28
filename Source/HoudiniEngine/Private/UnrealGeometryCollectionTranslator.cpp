@@ -688,7 +688,7 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 		if (NumMaterials > 0)
 		{
 			// List of materials, one for each face.
-			TArray<FString> TriangleMaterials;
+			FHoudiniEngineIndexedStringMap TriangleMaterials;
 
 			//Lists of material parameters
 			TMap<FString, TArray<float>> ScalarMaterialParameters;
@@ -716,7 +716,7 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 			bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 				GeometryNodeId,
 				0,
-				TriangleMaterials.Num(),
+				TriangleMaterials.GetIds().Num(),
 				TriangleMaterials,
 				ScalarMaterialParameters,
 				VectorMaterialParameters,

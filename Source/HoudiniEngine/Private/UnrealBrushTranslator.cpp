@@ -370,7 +370,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 		}
 
 		// List of materials, one for each face.
-		TArray<FString> OutMaterials;
+		FHoudiniEngineIndexedStringMap OutMaterials;
 
 		//Lists of material parameters
 		TMap<FString, TArray<float>> ScalarMaterialParameters;

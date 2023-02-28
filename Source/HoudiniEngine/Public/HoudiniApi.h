@@ -327,6 +327,7 @@ public:
 	typedef HAPI_Result (*SetAttributeFloatArrayDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const float * data_fixed_array, int data_fixed_length, const int * sizes_fixed_array, int start, int sizes_fixed_length);
 	typedef HAPI_Result (*SetAttributeFloatDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const float * data_array, int start, int length);
 	typedef HAPI_Result (*SetAttributeFloatUniqueDataFuncPtr)(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const float* data_array, int start, int length);
+	typedef HAPI_Result (*SetAttributeIndexedStringDataFuncPtr)(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const char** string_array, int string_count, const int* indices_array, int indices_start, int indices_length);
 	typedef HAPI_Result (*SetAttributeInt16ArrayDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const HAPI_Int16 * data_fixed_array, int data_fixed_length, const int * sizes_fixed_array, int start, int sizes_fixed_length);
 	typedef HAPI_Result (*SetAttributeInt16DataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const HAPI_Int16 * data_array, int start, int length);
 	typedef HAPI_Result (*SetAttributeInt16UniqueDataFuncPtr)(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const HAPI_Int16* data_array, int start, int length);
@@ -699,6 +700,7 @@ public:
 	static SetAttributeFloatArrayDataFuncPtr SetAttributeFloatArrayData;
 	static SetAttributeFloatDataFuncPtr SetAttributeFloatData;
 	static SetAttributeFloatUniqueDataFuncPtr SetAttributeFloatUniqueData;
+	static SetAttributeIndexedStringDataFuncPtr SetAttributeIndexedStringData;
 	static SetAttributeInt16ArrayDataFuncPtr SetAttributeInt16ArrayData;
 	static SetAttributeInt16DataFuncPtr SetAttributeInt16Data;
 	static SetAttributeInt16UniqueDataFuncPtr SetAttributeInt16UniqueData;
@@ -1071,6 +1073,7 @@ public:
 	static HAPI_Result SetAttributeFloatArrayDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const float * data_fixed_array, int data_fixed_length, const int * sizes_fixed_array, int start, int sizes_fixed_length);
 	static HAPI_Result SetAttributeFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const float * data_array, int start, int length);
 	static HAPI_Result SetAttributeFloatUniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const float* data_array, int start, int length);
+	static HAPI_Result SetAttributeIndexedStringDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const char** string_array, int string_count, const int* indices_array, int indices_start, int indices_length);
 	static HAPI_Result SetAttributeInt16ArrayDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const HAPI_Int16 * data_fixed_array, int data_fixed_length, const int * sizes_fixed_array, int start, int sizes_fixed_length);
 	static HAPI_Result SetAttributeInt16DataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const HAPI_Int16 * data_array, int start, int length);
 	static HAPI_Result SetAttributeInt16UniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const HAPI_Int16* data_array, int start, int length);

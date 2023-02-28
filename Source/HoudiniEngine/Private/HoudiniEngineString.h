@@ -78,3 +78,42 @@ class HOUDINIENGINE_API FHoudiniEngineString
 		// Id of the underlying Houdini Engine string.
 		int32 StringId;
 };
+
+class FHoudiniEngineRawStrings
+{
+public:
+    // This class coverts an array of Unreal FStrings to raw C++ strings.
+    // Since the strings need memory the pointers are stored in RawStrings
+    // and the data is stored in "Buffer". Destructing this class automatically
+    // deletes the temporary memory memory needed.
+
+    void CreateRawStrings(const TArray<FString> & Strings);
+
+    TArray<const char*> RawStrings;
+    TArray<char> Buffer;
+};
+
+class FHoudiniEngineIndexedStringMap
+{
+public:
+    // This class stores indexed strings which can be used with HAPI. Every time a new
+    // string is added via SetString(index,string) the string is checked to see if it
+    // is already present and, if so, its re-used.
+
+    using StringId = int;
+
+    void Reset(int Size);
+    const FString& GetStringForIndex(int index) const;
+    void SetString(int Index, const FString & value);
+
+    FHoudiniEngineRawStrings GetRawStrings() const;
+
+    const TArray<StringId> & GetIds() const { return Ids; }
+
+	bool HasEntries();
+
+private:
+    TArray<FString> Strings; // Each unique string.
+    TMap<FString, StringId> StringToId; // Backwards mapping to optimize lookup
+    TArray<StringId> Ids; // Strings[Ids[i]] is the string to use.
+};

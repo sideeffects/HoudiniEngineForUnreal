@@ -3979,6 +3979,26 @@ FHoudiniEngineUtils::HapiSetAttributeStringData(
 
 }
 
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeStringMap(
+	const FHoudiniEngineIndexedStringMap& InIndexedStringMap,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	FHoudiniEngineRawStrings IndexedRawStrings = InIndexedStringMap.GetRawStrings();
+	TArray<int> IndexArray = InIndexedStringMap.GetIds();
+
+	HAPI_Result Result = FHoudiniApi::SetAttributeIndexedStringData(
+	    FHoudiniEngine::Get().GetSession(),
+		InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+		&InAttributeInfo, IndexedRawStrings.RawStrings.GetData(), IndexedRawStrings.RawStrings.Num(), IndexArray.GetData(), 0, IndexArray.Num());
+
+	return Result;
+}
+
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeStringData(
 	const TArray<FString>& InStringArray, 
