@@ -6418,6 +6418,64 @@ HAPI_DECL HAPI_SetAttributeStringData( const HAPI_Session * session,
                                        const char ** data_array,
                                        int start, int length );
 
+/// @brief  Set attribute string data by index.
+///
+/// @ingroup GeometrySetters Attributes
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[in]      string_array
+///                 An array of strings at least the size of
+///                 <tt>string_count/tt>.
+///
+/// @param[in]      string_count
+///                 Number of strings that are indexed.
+///
+/// @param[in]      index_array
+///                 integer array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>. Each
+///                 entry indexes string_array.
+///
+/// @param[in]      indices_start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///                 <!-- default 0 -->
+///
+/// @param[in]      indices_length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+HAPI_DECL HAPI_SetAttributeIndexedStringData( const HAPI_Session* session,
+                                              HAPI_NodeId node_id,
+                                              HAPI_PartId part_id,
+                                              const char* name,
+                                              const HAPI_AttributeInfo* attr_info,
+                                              const char** string_array,
+                                              int string_count,
+                                              const int* indices_array,
+                                              int indices_start,
+                                              int indices_length);
+
 /// @brief  Set multiple attribute string data to the same unique value.
 ///
 /// @ingroup GeometrySetters Attributes
