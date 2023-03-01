@@ -44,7 +44,7 @@
 #include "StaticMeshAttributes.h"
 #include "DynamicMeshBuilder.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-
+#include "HoudiniEngineTimers.h"
 #include "Rendering/SkeletalMeshModel.h"
 #include "MeshUtilities.h"
 #include <locale> 
@@ -3249,6 +3249,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	UStaticMesh* StaticMesh,
 	UStaticMeshComponent* StaticMeshComponent)
 {
+    SCOPED_FUNCTION_TIMER();
+
 	// Convert the Mesh using FMeshDescription
 	// Get references to the attributes we are interested in
 	// before sending to Houdini we'll check if each attribute is valid
@@ -3985,6 +3987,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	// INPUT SOURCE FILE
 	//---------------------------------------------------------------------------------------------------------------------
 	{
+        SCOPED_FUNCTION_LABELLED_TIMER(HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE);
+
 		// Create primitive attribute with mesh asset path
 		FString Filename;
 		if (UAssetImportData* ImportData = StaticMesh->AssetImportData)
@@ -4184,6 +4188,8 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 	TMap<FString, TArray<float>> & OutVectorMaterialParameters,
 	TMap<FString, TArray<FString>> & OutTextureMaterialParameters)
 {
+    SCOPED_FUNCTION_TIMER();
+
 	// Get the default material
 	UMaterialInterface* DefaultMaterialInterface = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
 	FString DefaultMaterialName = DefaultMaterialInterface ? DefaultMaterialInterface->GetPathName() : TEXT("default");
@@ -4894,6 +4900,8 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	const TMap<FString, TArray<FString>>& TextureMaterialParameters,
     const TOptional<FString> PhysicalMaterial)
 {
+    SCOPED_FUNCTION_TIMER();
+
 	if (NodeId < 0)
 		return false;
 
