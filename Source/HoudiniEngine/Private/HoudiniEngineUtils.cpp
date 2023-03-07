@@ -3525,6 +3525,8 @@ FHoudiniEngineUtils::HapiSetAttributeInt8Data(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
@@ -3583,6 +3585,8 @@ FHoudiniEngineUtils::HapiSetAttributeUInt8Data(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
@@ -3626,6 +3630,8 @@ FHoudiniEngineUtils::HapiSetAttributeInt16Data(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	if (InShortData.Num() != InAttributeInfo.count * InAttributeInfo.tupleSize)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
@@ -3641,6 +3647,8 @@ FHoudiniEngineUtils::HapiSetAttributeInt16Data(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
@@ -3723,6 +3731,8 @@ FHoudiniEngineUtils::HapiSetAttributeInt64Data(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
@@ -3853,6 +3863,8 @@ FHoudiniEngineUtils::HapiSetAttributeDoubleData(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
@@ -3991,6 +4003,8 @@ FHoudiniEngineUtils::HapiSetAttributeStringMap(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	FHoudiniEngineRawStrings IndexedRawStrings = InIndexedStringMap.GetRawStrings();
 	TArray<int> IndexArray = InIndexedStringMap.GetIds();
 

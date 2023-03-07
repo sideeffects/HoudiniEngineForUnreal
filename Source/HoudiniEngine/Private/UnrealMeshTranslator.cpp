@@ -2158,7 +2158,7 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 		//Lists of material parameters
 		TMap<FString, TArray<float>> ScalarMaterialParameters;
 		TMap<FString, TArray<float>> VectorMaterialParameters;
-		TMap<FString, TArray<FString>> TextureMaterialParameters;
+        TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
 
 		bool bAttributeSuccess = false;
 		FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh);
@@ -2963,7 +2963,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 			//Lists of material parameters
 			TMap<FString, TArray<float>> ScalarMaterialParameters;
 			TMap<FString, TArray<float>> VectorMaterialParameters;
-			TMap<FString, TArray<FString>> TextureMaterialParameters;
+            TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
 
 			bool bAttributeSuccess = false;
 			FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh);
@@ -3859,7 +3859,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			//Lists of material parameters
 			TMap<FString, TArray<float>> ScalarMaterialParameters;
 			TMap<FString, TArray<float>> VectorMaterialParameters;
-			TMap<FString, TArray<FString>> TextureMaterialParameters;
+            TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
 
 			bool bAttributeSuccess = false;
 			if (bInExportMaterialParametersAsAttributes)
@@ -4186,7 +4186,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 	FHoudiniEngineIndexedStringMap& OutStaticMeshFaceMaterials,
 	TMap<FString, TArray<float>> & OutScalarMaterialParameters,
 	TMap<FString, TArray<float>> & OutVectorMaterialParameters,
-	TMap<FString, TArray<FString>> & OutTextureMaterialParameters)
+    TMap<FString, FHoudiniEngineIndexedStringMap>& OutTextureMaterialParameters)
 {
     SCOPED_FUNCTION_TIMER();
 
@@ -4347,7 +4347,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 
 			for (auto & Pair : TextureParams)
 			{
-				OutTextureMaterialParameters[Pair.Key].Add(Pair.Value[FaceMaterialIdx]);
+                OutTextureMaterialParameters[Pair.Key].SetString(FaceIdx, Pair.Value[FaceMaterialIdx]);
 			}
 		}
 		else
@@ -4897,7 +4897,7 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	const FHoudiniEngineIndexedStringMap& TriangleMaterials,
 	const TMap<FString, TArray<float>>& ScalarMaterialParameters,
 	const TMap<FString, TArray<float>>& VectorMaterialParameters,
-	const TMap<FString, TArray<FString>>& TextureMaterialParameters,
+    const TMap<FString, FHoudiniEngineIndexedStringMap>& TextureMaterialParameters,
     const TOptional<FString> PhysicalMaterial)
 {
     SCOPED_FUNCTION_TIMER();
@@ -5006,13 +5006,15 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		AttributeInfoMaterialParameter.storage = HAPI_STORAGETYPE_STRING;
 		AttributeInfoMaterialParameter.originalOwner = HAPI_ATTROWNER_INVALID;
 
+		const FHoudiniEngineIndexedStringMap & StringMap = Pair.Value;
 		// Create the new attribute
 		if (HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
 			NodeId, PartId, TCHAR_TO_ANSI(*CurMaterialParamAttribName), &AttributeInfoMaterialParameter))
 		{
 			// The New attribute has been successfully created, set its value
-			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeStringData(				
-				Pair.Value, NodeId, PartId, CurMaterialParamAttribName, AttributeInfoMaterialParameter))
+            if (HAPI_RESULT_SUCCESS
+                != FHoudiniEngineUtils::HapiSetAttributeStringMap(				
+				StringMap, NodeId, PartId, CurMaterialParamAttribName, AttributeInfoMaterialParameter))
 			{
 				bSuccess = false;
 			}

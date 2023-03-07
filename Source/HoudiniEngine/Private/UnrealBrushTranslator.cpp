@@ -375,7 +375,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 		//Lists of material parameters
 		TMap<FString, TArray<float>> ScalarMaterialParameters;
 		TMap<FString, TArray<float>> VectorMaterialParameters;
-		TMap<FString, TArray<FString>> TextureMaterialParameters;
+        TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
 
 		bool bAttributeSuccess = false;
 		if (bInExportMaterialParametersAsAttributes)
