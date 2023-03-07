@@ -28,7 +28,7 @@
 
 #include <string>
 #include "HoudiniApi.h"
-
+#include "Containers/Map.h"
 class FText;
 class FString;
 class FName;
