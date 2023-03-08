@@ -46,8 +46,13 @@
 //
 // easier to view.
 
-#define SCOPED_FUNCTION_TIMER() FHoudiniEngineScopedTimer __scopedTimer(__FUNCTION__, FString(""))
-#define SCOPED_FUNCTION_LABELLED_TIMER(__LABEL) FHoudiniEngineScopedTimer __scopedLabelledTimer(__FUNCTION__, __LABEL)
+#define SCOPED_FUNCTION_CONCAT(A, B) SCOPED_FUNCTION_CONCAT_INNER(A, B)
+#define SCOPED_FUNCTION_CONCAT_INNER(A, B) A##B
+#define SCOPED_FUNCTION_UNIQUE_NAME(__NAME) SCOPED_FUNCTION_CONCAT(__NAME, __LINE__)
+#define SCOPED_FUNCTION_TIMER() \
+    FHoudiniEngineScopedTimer SCOPED_FUNCTION_UNIQUE_NAME(__scopedTimer)(__FUNCTION__, FString(""))
+#define SCOPED_FUNCTION_LABELLED_TIMER(__LABEL) \
+    FHoudiniEngineScopedTimer SCOPED_FUNCTION_UNIQUE_NAME(__scopedTimer) (__FUNCTION__, __LABEL)
 
 // FHoudiniEngineTimer simple timer class wrapper
 class FHoudiniEngineTimer
@@ -73,7 +78,7 @@ public:
     // Set OutputLevel to control how deep to print out nested timers. 0 will output no information,
     // 1 will input 1 level, 2 two levels, ... INT_MAX all levels.
 
-    static int OutputLevel;
+    static int GetOutputLevelLevel();
 
 private:
     FString Label;

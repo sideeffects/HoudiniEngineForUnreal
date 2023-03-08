@@ -102,7 +102,7 @@ public:
 
     using StringId = int;
 
-    void Reset(int Size);
+    void Reset(int ExpectedStringCount, int ExprectedIndiexCount);
     const FString& GetStringForIndex(int index) const;
     void SetString(int Index, const FString & value);
 
