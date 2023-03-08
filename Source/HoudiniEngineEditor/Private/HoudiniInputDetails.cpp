@@ -112,8 +112,13 @@ FHoudiniInputDetails::CreateWidget(
 		return;
 
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	
 	if (!IsValidWeakPointer(MainInput))
 		return;
+
+	// TEMP - REMOVE AFTER TESTING
+	auto type = MainInput->GetInputType();
+	auto arr = *MainInput->GetHoudiniInputObjectArray(MainInput->GetInputType());
 
 	// Get thumbnail pool for this builder.
 	TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool = HouInputCategory.GetParentLayout().GetThumbnailPool();
@@ -139,15 +144,17 @@ FHoudiniInputDetails::CreateWidget(
 	const IDetailsView* DetailsView = HouInputCategory.GetParentLayout().GetDetailsView();
 	AddInputTypeComboBox(HouInputCategory, VerticalBox, InInputs, DetailsView);
 
-	// Checkbox : Keep World Transform
-	AddKeepWorldTransformCheckBox(VerticalBox, InInputs);
 
+	// The New Geometry and New World input UI's create their own
+	// Keep World Transform under the Export Options Menu
+	if (MainInputType != EHoudiniInputType::NewGeometry && MainInputType != EHoudiniInputType::NewWorld)
+	{
+		AddKeepWorldTransformCheckBox(VerticalBox, InInputs);
+	}
 
 	// Checkbox : CurveInput trigger cook on curve changed
 	AddCurveInputCookOnChangeCheckBox(VerticalBox, InInputs);
 
-
-	
 	if (MainInputType == EHoudiniInputType::Geometry || MainInputType == EHoudiniInputType::World)
 	{
 		// Checkbox : Pack before merging
@@ -206,12 +213,23 @@ FHoudiniInputDetails::CreateWidget(
 		}
 		break;
 
+		case EHoudiniInputType::NewGeometry:
+		{
+			AddNewGeometryInputUI(HouInputCategory, VerticalBox, InInputs, AssetThumbnailPool);
+		}
+		break;
+
+		case EHoudiniInputType::NewWorld:
+		{
+			AddNewWorldInputUI(HouInputCategory, VerticalBox, InInputs, DetailsView);
+		}
+		break;
+
 		case EHoudiniInputType::GeometryCollection:
 		{
 			AddGeometryCollectionInputUI(HouInputCategory, VerticalBox, InInputs, AssetThumbnailPool);
 		}
 		break;
-		
 	}
 
 
@@ -298,7 +316,7 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniInputChange", "Houdini Input: Changing Input Type"),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Input Type"),
 			MainInput->GetOuter());
 
 		bool bBlueprintStructureModified = false;
@@ -469,7 +487,7 @@ FHoudiniInputDetails::AddKeepWorldTransformCheckBox(TSharedRef< SVerticalBox > V
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniInputChange", "Houdini Input: Changing Keep World Transform"),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Keep World Transform"),
 			MainInput->GetOuter());
 
 		for (auto CurInput : InInputsToUpdate)
@@ -522,7 +540,6 @@ FHoudiniInputDetails::AddKeepWorldTransformCheckBox(TSharedRef< SVerticalBox > V
 void
 FHoudiniInputDetails::AddPackBeforeMergeCheckbox(TSharedRef< SVerticalBox > VerticalBox, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
-
 	if (InInputs.Num() <= 0)
 		return;
 
@@ -554,7 +571,7 @@ FHoudiniInputDetails::AddPackBeforeMergeCheckbox(TSharedRef< SVerticalBox > Vert
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniInputChange", "Houdini Input: Changing Pack before merge"),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Pack before merge"),
 			MainInput->GetOuter());
 
 		for (auto CurInput : InInputsToUpdate)
@@ -572,16 +589,16 @@ FHoudiniInputDetails::AddPackBeforeMergeCheckbox(TSharedRef< SVerticalBox > Vert
 		}
 	};
 
-	TSharedPtr< SCheckBox > CheckBoxPackBeforeMerge;
-	VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
+	TSharedPtr<SCheckBox> CheckBoxPackBeforeMerge;
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
 	[
-		SAssignNew( CheckBoxPackBeforeMerge, SCheckBox )
+		SAssignNew(CheckBoxPackBeforeMerge, SCheckBox)
 		.Content()
 		[
-			SNew( STextBlock )
-			.Text( LOCTEXT( "PackBeforeMergeCheckbox", "Pack Geometry before merging" ) )
-			.ToolTipText( LOCTEXT( "PackBeforeMergeCheckboxTip", "Pack each separate piece of geometry before merging them into the input." ) )
-			.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+			SNew(STextBlock)
+			.Text(LOCTEXT("PackBeforeMergeCheckbox", "Pack Geometry Before Merging"))
+			.ToolTipText(LOCTEXT( "PackBeforeMergeCheckboxTip", "Pack each separate piece of geometry before merging them into the input."))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 		.IsChecked_Lambda([=]()
 		{
@@ -630,7 +647,7 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 			// Record a transaction for undo/redo
 			FScopedTransaction Transaction(
 				TEXT(HOUDINI_MODULE_EDITOR),
-				LOCTEXT("HoudiniInputChange", "Houdini Input: Changing Pack before merge"),
+				LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Pack before merge"),
 				MainInput->GetOuter());
 
 			for (auto CurInput : InInputsToUpdate)
@@ -709,7 +726,7 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 			// Record a transaction for undo/redo
 			FScopedTransaction Transaction(
 				TEXT(HOUDINI_MODULE_EDITOR),
-				LOCTEXT("HoudiniInputAsReferenceRotScale", "Houdini Input: Changing InputAsReference Rot/Scale"),
+				LOCTEXT("HoudiniInputAsReferenceRotScale", "Houdini Input: Changed InputAsReference Rot/Scale"),
 				MainInput->GetOuter());
 
 			for (auto CurInput : InInputsToUpdate)
@@ -791,7 +808,7 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 			// Record a transaction for undo/redo
 			FScopedTransaction Transaction(
 				TEXT(HOUDINI_MODULE_EDITOR),
-				LOCTEXT("HoudiniInputAsReferenceRotScale", "Houdini Input: Changing InputAsReference Bbox"),
+				LOCTEXT("HoudiniInputAsReferenceRotScale", "Houdini Input: Changed InputAsReference Bbox"),
 				MainInput->GetOuter());
 
 			for (auto CurInput : InInputsToUpdate)
@@ -872,7 +889,7 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 			// Record a transaction for undo/redo
 			FScopedTransaction Transaction(
 				TEXT(HOUDINI_MODULE_EDITOR),
-				LOCTEXT("HoudiniInputAsReferenceRotScale", "Houdini Input: Changing InputAsReference Material"),
+				LOCTEXT("HoudiniInputAsReferenceRotScale", "Houdini Input: Changed InputAsReference Material"),
 				MainInput->GetOuter());
 
 			for (auto CurInput : InInputsToUpdate)
@@ -996,7 +1013,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniInputChange", "Houdini Input: Changing Export LODs"),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Export LODs"),
 			MainInput->GetOuter());
 
 		for (auto CurInput : InInputsToUpdate)
@@ -1029,7 +1046,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniInputChange", "Houdini Input: Changing Export Sockets"),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Export Sockets"),
 			MainInput->GetOuter());
 
 		for (auto CurInput : InInputsToUpdate)
@@ -1062,7 +1079,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniInputChange", "Houdini Input: Changing Export Colliders"),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Export Colliders"),
 			MainInput->GetOuter());
 
 		for (auto CurInput : InInputsToUpdate)
@@ -1094,7 +1111,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniInputChange", "Houdini Input: Changing Use Nanite Fallback Preference"),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Use Nanite Fallback Preference"),
 			MainInput->GetOuter());
 
 		for (auto CurInput : InInputsToUpdate)
@@ -1127,7 +1144,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniInputChange", "Houdini Input: Changing Export Material Parameters"),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Export Material Parameters"),
 			MainInput->GetOuter());
 
 		for (auto CurInput : InInputsToUpdate)
@@ -1283,6 +1300,1254 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 	];
 }
 
+void 
+FHoudiniInputDetails::AddExportAsReferenceCheckBoxes(
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	// NOTE: The "Export*" checkboxes are represented in
+	// UHoudiniInput as "Import*". This function is used for the
+	// New Geometry and New World input types. It differs from
+	// AddImportAsReferenceCheckboxes in the appearance of the
+	// checkboxes.
+
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	// Lambda returning a CheckState from the input's current
+	// ImportAsReference state
+	auto IsCheckedImportAsReference = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->GetImportAsReference() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	// Add export input as references checkbox
+	{
+		auto CheckStateChangeImportAsReference = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return;
+
+			const bool bNewState = (NewState == ECheckBoxState::Checked);
+
+			if (MainInput->GetImportAsReference() == bNewState)
+				return;
+
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Export Input as References CheckBox"),
+				MainInput->GetOuter());
+
+			for (auto CurInput : InInputsToUpdate)
+			{
+				if (!IsValidWeakPointer(CurInput))
+					continue;
+
+				if (CurInput->GetImportAsReference() == bNewState)
+					continue;
+
+				TArray<UHoudiniInputObject*>* InputObjs = CurInput->GetHoudiniInputObjectArray(CurInput->GetInputType());
+				
+				if (InputObjs)
+				{
+					for (auto CurInputObj : *InputObjs)
+					{
+						if (!IsValid(CurInputObj))
+							continue;
+
+						if (CurInputObj->GetImportAsReference() != bNewState)
+						{
+							CurInputObj->SetImportAsReference(bNewState);
+							CurInputObj->MarkChanged(true);
+						}
+					}
+				}
+
+				CurInput->Modify();
+				CurInput->SetImportAsReference(bNewState);
+				CurInput->MarkChanged(true);
+			}
+		};
+
+		TSharedPtr<SCheckBox> CheckBoxImportAsReference;
+		InVerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SAssignNew(CheckBoxImportAsReference, SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("ExportInputAsRefCheckbox", "Export Input as References"))
+				.ToolTipText(LOCTEXT("ExportInputAsRefCheckboxTip", "Export input objects as references to Houdini."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked_Lambda([=]()
+			{
+				return IsCheckedImportAsReference(MainInput);
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return CheckStateChangeImportAsReference(InInputs, NewState);
+			})
+		];
+	}
+
+	// 1 - Add rot/scale checkbox
+	{
+		auto IsCheckedImportAsReferenceRotScale = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+		{
+			if (!IsValidWeakPointer(InInput))
+				return ECheckBoxState::Unchecked;
+			
+			return InInput->GetImportAsReferenceRotScaleEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		};
+
+		auto CheckStateChangedImportAsReferenceRotScale = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return;
+
+			bool bNewState = (NewState == ECheckBoxState::Checked);
+
+			if (MainInput->GetImportAsReferenceRotScaleEnabled() == bNewState)
+				return;
+
+			FScopedTransaction Transcation(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniExportAsRefRotScale", "Houdini Input: Changed Add Rotation/Scale to References CheckBox"),
+				MainInput->GetOuter());
+
+			for (auto CurInput : InInputsToUpdate)
+			{
+				if (!IsValidWeakPointer(CurInput))
+					continue;
+
+				if (CurInput->GetImportAsReferenceRotScaleEnabled() == bNewState)
+					continue;
+
+				TArray<UHoudiniInputObject*>* InputObjs = CurInput->GetHoudiniInputObjectArray(CurInput->GetInputType());
+				if (InputObjs)
+				{
+					for (auto CurInputObj : *InputObjs)
+					{
+						if (!IsValid(CurInputObj))
+							continue;
+
+						if (CurInputObj->GetImportAsReferenceRotScaleEnabled() != bNewState)
+						{
+							CurInputObj->SetImportAsReferenceRotScaleEnabled(bNewState);
+							CurInputObj->MarkChanged(true);
+						}
+					}
+				}
+
+				CurInput->Modify();
+				CurInput->SetImportAsReferenceRotScaleEnabled(bNewState);
+				CurInput->MarkChanged(true);
+			}
+		};
+		
+		if (IsCheckedImportAsReference(MainInput) == ECheckBoxState::Checked) {
+			TSharedPtr<SCheckBox> CheckBoxImportAsReferenceRotScale;
+			
+			InVerticalBox->AddSlot()
+			.Padding(10, 2, 5, 2)
+			.AutoHeight()
+			[
+				SAssignNew(CheckBoxImportAsReferenceRotScale, SCheckBox)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("ExportInputAsRefRotScaleCheckbox", "Add Rotation/Scale to References"))
+					.ToolTipText(LOCTEXT("ExportInputAsRefRotScaleTip", "Add rotation/scale attributes to the input references when Export Input as References is enabled."))
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				]
+				.IsChecked_Lambda([=]()
+				{
+					return IsCheckedImportAsReferenceRotScale(MainInput);
+				})
+				.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+				{
+					return CheckStateChangedImportAsReferenceRotScale(InInputs, NewState);
+				})
+			];
+		}
+	}
+
+	// 2 - Add bounding box min/max checkbox
+	{
+		auto IsCheckedImportAsReferenceBbox = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+		{
+			if (!IsValidWeakPointer(InInput))
+				return ECheckBoxState::Unchecked;
+			
+			return InInput->GetImportAsReferenceBboxEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		};
+
+		auto CheckStateChangedImportAsReferenceBbox = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return;
+
+			bool bNewState = (NewState == ECheckBoxState::Checked);
+
+			if (MainInput->GetImportAsReferenceBboxEnabled() == bNewState)
+				return;
+
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniInputAsReferenceBbox", "Houdini Input: Changed Add Bbox Min/Max to References CheckBox"),
+				MainInput->GetOuter());
+
+			for (auto CurInput : InInputsToUpdate)
+			{
+				if (!IsValidWeakPointer(CurInput))
+					continue;
+
+				if (CurInput->GetImportAsReferenceBboxEnabled() == bNewState)
+					continue;
+
+				TArray<UHoudiniInputObject*>* InputObjs = CurInput->GetHoudiniInputObjectArray(CurInput->GetInputType());
+				if (InputObjs)
+				{
+					for (auto CurInputObj : *InputObjs)
+					{
+						if (!IsValid(CurInputObj))
+							continue;
+
+						if (CurInputObj->GetImportAsReferenceBboxEnabled() != bNewState)
+						{
+							CurInputObj->SetImportAsReferenceBboxEnabled(bNewState);
+							CurInputObj->MarkChanged(true);
+						}
+					}
+				}
+
+				CurInput->Modify();
+				CurInput->SetImportAsReferenceBboxEnabled(bNewState);
+				CurInput->MarkChanged(true);
+			}
+		};
+
+		if (IsCheckedImportAsReference(MainInput) == ECheckBoxState::Checked)
+		{
+			TSharedPtr<SCheckBox> CheckBoxImportAsReferenceBbox;
+			
+			InVerticalBox->AddSlot()
+			.Padding(10, 2, 5, 2)
+			.AutoHeight()
+			[
+				SAssignNew(CheckBoxImportAsReferenceBbox, SCheckBox)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("ExportInputAsRefBboxCheckBox", "Add Bounding Box Min/Max to References"))
+					.ToolTipText(LOCTEXT("ExportInputAsRefBboxTip", "Add bounding box min/max attributes to the input references when Export Input as References is enabled."))
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				]
+				.IsChecked_Lambda([=]()
+				{
+					return IsCheckedImportAsReferenceBbox(MainInput);
+				})
+				.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+				{
+					return CheckStateChangedImportAsReferenceBbox(InInputs, NewState);
+				})
+			];
+		}
+	}
+
+	// 3 - Add material checkbox
+	{
+		auto IsCheckedImportAsReferenceMaterial = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+		{
+			if (!IsValidWeakPointer(InInput))
+				return ECheckBoxState::Unchecked;
+			
+			return InInput->GetImportAsReferenceMaterialEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		};
+
+		auto CheckStateChangedImportAsReferenceMaterial = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return;
+
+			bool bNewState = (NewState == ECheckBoxState::Checked);
+
+			if (MainInput->GetImportAsReferenceMaterialEnabled() == bNewState)
+				return;
+
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniInputAsReferenceMaterial", "Houdini Input: Changed Add Material to References CheckBox"),
+				MainInput->GetOuter());
+
+			for (auto CurInput : InInputsToUpdate)
+			{
+				if (!IsValidWeakPointer(CurInput))
+					continue;
+
+				if (CurInput->GetImportAsReferenceMaterialEnabled() == bNewState)
+					continue;
+
+				TArray<UHoudiniInputObject*>* InputObjs = CurInput->GetHoudiniInputObjectArray(CurInput->GetInputType());
+				if (InputObjs)
+				{
+					for (auto CurInputObj : *InputObjs)
+					{
+						if (!IsValid(CurInputObj))
+							continue;
+
+						if (CurInputObj->GetImportAsReferenceMaterialEnabled() != bNewState)
+						{
+							CurInputObj->SetImportAsReferenceMaterialEnabled(bNewState);
+							CurInputObj->MarkChanged(true);
+						}
+					}
+				}
+
+				CurInput->Modify();
+				CurInput->SetImportAsReferenceMaterialEnabled(bNewState);
+				CurInput->MarkChanged(true);
+			}
+		};
+
+		if (IsCheckedImportAsReference(MainInput) == ECheckBoxState::Checked)
+		{
+			TSharedPtr<SCheckBox> CheckBoxImportAsReferenceMaterial;
+			
+			InVerticalBox->AddSlot()
+			.Padding(10, 2, 5, 2)
+			.AutoHeight()
+			[
+				SAssignNew(CheckBoxImportAsReferenceMaterial, SCheckBox)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("ExportInputAsRefMaterialCheckBox", "Add Material to References"))
+					.ToolTipText(LOCTEXT("ExportInputAsRefMaterialTip", "Add material attributes to the input references when Export Input as References is enabled."))
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				]
+				.IsChecked_Lambda([=]()
+				{
+					return IsCheckedImportAsReferenceMaterial(MainInput);
+				})
+				.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+				{
+					return CheckStateChangedImportAsReferenceMaterial(InInputs, NewState);
+				})
+			];
+		}
+	}
+}
+
+void
+FHoudiniInputDetails::AddDirectlyConnectHdasCheckBox(
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	auto DirectlyConnectHdas = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->GetDirectlyConnectHdas() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	auto CheckStateChangedDirectlyConnectHdas = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->GetDirectlyConnectHdas() == bNewState)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Directly Connect HDAs CheckBox"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetDirectlyConnectHdas() == bNewState)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetDirectlyConnectHdas(bNewState);
+			CurInput->MarkChanged(true);
+		}
+	};
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SCheckBox)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("DirectlyConnectHdasCheckBox", "Directly Connect HDAs in Houdini"))
+			.ToolTipText(LOCTEXT("DirectlyConnectHdasCheckBoxTip", "Directly connect HDAs in Houdini instead of processing input HDAs separately."))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		.IsChecked_Lambda([=]()
+		{
+			return DirectlyConnectHdas(MainInput);
+		})
+		.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+		{
+			return CheckStateChangedDirectlyConnectHdas(InInputs, NewState);
+		})
+	];
+}
+
+void
+FHoudiniInputDetails::AddUnrealSplineResolutionInput(
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	auto UnrealSplineResolutionChanged = [MainInput, InInputs](float NewVal)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Unreal Spline Resolution"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputs)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetUnrealSplineResolution() == NewVal)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetUnrealSplineResolution(NewVal);
+			CurInput->MarkChanged(true);
+		}
+	};
+
+	auto ResetUnrealSplineResolution = [MainInput, InInputs]()
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return FReply::Handled();
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Reset Unreal Spline Resolution"),
+			MainInput->GetOuter());
+
+		const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+		float DefaultSplineResolution = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->MarshallingSplineResolution : 50;
+
+		for (auto CurInput : InInputs)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetUnrealSplineResolution() == DefaultSplineResolution)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetUnrealSplineResolution(DefaultSplineResolution);
+			CurInput->MarkChanged(true);
+		}
+		
+		return FReply::Handled();
+	};
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("UnrealSplineResolution", "Unreal Spline Resolution"))
+			.ToolTipText(LOCTEXT("UnrealSplineResolutionTip", "Resolution used when marshalling the Unreal Splines to HoudiniEngine.\n(step in cm between control points)\nSet this to 0 to only export the control points."))
+			.Font(_GetEditorStyle().GetFontStyle("PropertyWindow.NormalFont"))
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(2, 0)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SNumericEntryBox<float>)
+			.AllowSpin(true)
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.MinValue(0)
+			.MaxValue(1000)
+			.MinSliderValue(0)
+			.MaxSliderValue(1000)
+			.Value(MainInput->GetUnrealSplineResolution())
+			.SliderExponent(1)
+			.OnValueChanged_Lambda([UnrealSplineResolutionChanged](float NewVal)
+			{
+				UnrealSplineResolutionChanged(NewVal);
+			})
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2, 0)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SButton)
+			.ToolTipText(LOCTEXT("UnrealSpineResolutionDefault", "Result to default value."))
+			.ButtonStyle(_GetEditorStyle(), "NoBorder")
+			.ContentPadding(0)
+			.Visibility(EVisibility::Visible)
+			.OnClicked_Lambda([ResetUnrealSplineResolution]()
+			{
+				return ResetUnrealSplineResolution();
+			})
+			[
+				SNew(SImage)
+				.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
+			]
+		]
+	];
+}
+
+void
+FHoudiniInputDetails::AddUseLegacyInputCurvesCheckBox(
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	auto UseLegacyInputCurves = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->IsUseLegacyInputCurvesEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	auto CheckStateChangedUseLegacyInputCurves = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->IsUseLegacyInputCurvesEnabled() == bNewState)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Use Legacy Input Curves CheckBox"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->IsUseLegacyInputCurvesEnabled() == bNewState)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetUseLegacyInputCurve(bNewState);
+			CurInput->MarkChanged(true);
+		}
+	};
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SCheckBox)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("UseLegacyInputCurvesCheckBox", "Use Legacy Input Curves"))
+			.ToolTipText(LOCTEXT("UseLegacyInputCurvesCheckBoxTip", "If enabled, the deprecated curve::1.0 node will be used for spline inputs."))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		.IsChecked_Lambda([=]()
+		{
+			return UseLegacyInputCurves(MainInput);
+		})
+		.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+		{
+			return CheckStateChangedUseLegacyInputCurves(InInputs, NewState);
+		})
+	];
+}
+
+void
+FHoudiniInputDetails::AddExportSelectedLandscapesOnlyCheckBox(
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SCheckBox)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("ExportSelectedLandscapeCheckBox", "Export Selected Landscape Components Only"))
+			.ToolTipText(LOCTEXT("ExportSelectedLandscapeCheckBoxTip", "If enabled, only the selected landscape components will be exported."))
+			.Font(_GetEditorStyle().GetFontStyle("PropertyWindow.NormalFont"))
+		]
+		.IsChecked_Lambda([MainInput]()
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return ECheckBoxState::Unchecked;
+
+			return MainInput->bLandscapeExportSelectionOnly ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		})
+		.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return;
+
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Export Selected Landscape Components Only CheckBox"),
+				MainInput->GetOuter());
+
+			for (auto CurrentInput : InInputs)
+			{
+				if (!IsValidWeakPointer(CurrentInput))
+					continue;
+
+				bool bNewState = (NewState == ECheckBoxState::Checked);
+				if (bNewState == CurrentInput->bLandscapeExportSelectionOnly)
+					continue;
+
+				CurrentInput->Modify();
+				CurrentInput->bLandscapeExportSelectionOnly = bNewState;
+				CurrentInput->UpdateLandscapeInputSelection();
+				CurrentInput->MarkChanged(true);
+			}
+		})
+	];
+
+	if (MainInput->bLandscapeExportSelectionOnly)
+	{
+		InVerticalBox->AddSlot()
+		.Padding(10, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("AutoSelectComponentCheckbox", "Auto Select Components in Asset Bounds"))
+				.ToolTipText(LOCTEXT("AutoSelectComponentCheckboxTooltip", "If enabled, when no Landscape components are currently selected, the one within the asset's bounding box will be exported."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked_Lambda([MainInput]()
+			{
+				if (!IsValidWeakPointer(MainInput))
+					return ECheckBoxState::Unchecked;
+
+				return MainInput->bLandscapeAutoSelectComponent ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainInput))
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Landscape Auto Select Components in Asset Bounds CheckBox"),
+					MainInput->GetOuter());
+
+				for (auto CurrentInput : InInputs)
+				{
+					if (!IsValidWeakPointer(CurrentInput))
+						continue;
+
+					bool bNewState = (NewState == ECheckBoxState::Checked);
+					if (bNewState == CurrentInput->bLandscapeAutoSelectComponent)
+						continue;
+
+					CurrentInput->Modify();
+					CurrentInput->bLandscapeAutoSelectComponent = bNewState;
+					CurrentInput->UpdateLandscapeInputSelection();
+					CurrentInput->MarkChanged(true);
+				}
+			})
+		];
+	}
+}
+
+void
+FHoudiniInputDetails::AddExportLandscapeAsOptions(
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("LandscapeExportAs", "Export Landscape as"))
+		.ToolTipText(LOCTEXT("LandscapeExportAsTip", "Choose the type of data you want the ladscape to be exported to:\n * Heightfield\n * Mesh\n * Points"))
+		.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+	];
+
+	TSharedPtr <SUniformGridPanel> ButtonOptionsPanel;
+	InVerticalBox->AddSlot()
+	.Padding(2, 4, 5, 4)
+	.AutoHeight()
+	[
+		SAssignNew(ButtonOptionsPanel, SUniformGridPanel)
+	];
+
+	auto IsCheckedExportAs = [](const TWeakObjectPtr<UHoudiniInput>& Input, const EHoudiniLandscapeExportType& LandscapeExportType)
+	{
+		if (!IsValidWeakPointer(Input))
+			return ECheckBoxState::Unchecked;
+
+		return Input->GetLandscapeExportType() == LandscapeExportType ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	auto CheckStateChangedExportAs = [](const TWeakObjectPtr<UHoudiniInput>& Input, const EHoudiniLandscapeExportType& LandscapeExportType)
+	{
+		if (!IsValidWeakPointer(Input))
+			return false;
+
+		if (Input->GetLandscapeExportType() == LandscapeExportType)
+			return false;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Landscape Export Type"),
+			Input->GetOuter());
+		Input->Modify();
+
+		Input->SetLandscapeExportType(LandscapeExportType);
+		Input->SetHasLandscapeExportTypeChanged(true);
+		Input->MarkChanged(true);
+
+		TArray<UHoudiniInputObject*>* LandscapeInputObjectsArray = Input->GetHoudiniInputObjectArray(Input->GetInputType());
+		if (!LandscapeInputObjectsArray)
+			return true;
+
+		for (UHoudiniInputObject* NextInputObj : *LandscapeInputObjectsArray)
+		{
+			if (!NextInputObj)
+				continue;
+			NextInputObj->MarkChanged(true);
+		}
+
+		return true;
+	};
+
+	// Heightfield
+	FText HeightfieldTooltip = LOCTEXT("LandscapeExportAsHeightfieldTip", "If enabled, the landscape will be exported to Houdini as a heightfield.");
+	ButtonOptionsPanel->AddSlot(0, 0)
+	[
+		SNew(SCheckBox)
+		.Style(_GetEditorStyle(), "Property.ToggleButton.Start")
+		.IsChecked_Lambda([IsCheckedExportAs, MainInput]()
+		{
+			return IsCheckedExportAs(MainInput, EHoudiniLandscapeExportType::Heightfield);
+		})
+		.OnCheckStateChanged_Lambda([CheckStateChangedExportAs, InInputs](ECheckBoxState NewState)
+		{
+			for (auto CurrentInput : InInputs)
+				CheckStateChangedExportAs(CurrentInput, EHoudiniLandscapeExportType::Heightfield);
+		})
+		.ToolTipText(HeightfieldTooltip)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(2, 2)
+			[
+				SNew(SImage)
+				.Image(_GetEditorStyle().GetBrush("ClassIcon.LandscapeComponent"))
+			]
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.f)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.Padding(2, 2)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("LandscapeExportAsHeightfieldCheckbox", "Heightfield"))
+				.ToolTipText(HeightfieldTooltip)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
+		]
+	];
+
+	// Mesh
+	FText MeshTooltip = LOCTEXT("LandscapeExportAsHeightfieldTip", "If enabled, the landscape will be exported to Houdini as a mesh.");
+	ButtonOptionsPanel->AddSlot(1, 0)
+	[
+		SNew(SCheckBox)
+		.Style(_GetEditorStyle(), "Property.ToggleButton.Middle")
+		.IsChecked_Lambda([IsCheckedExportAs, MainInput]()
+		{
+			return IsCheckedExportAs(MainInput, EHoudiniLandscapeExportType::Mesh);
+		})
+		.OnCheckStateChanged_Lambda([CheckStateChangedExportAs, InInputs](ECheckBoxState NewState)
+		{
+			for (auto CurrentInput : InInputs)
+				CheckStateChangedExportAs(CurrentInput, EHoudiniLandscapeExportType::Mesh);
+		})
+		.ToolTipText(MeshTooltip)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(2, 2)
+			[
+				SNew(SImage)
+				.Image(_GetEditorStyle().GetBrush("ClassIcon.StaticMeshComponent"))
+			]
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.Padding(2, 2)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("LandscapeExportAsMeshCheckbox", "Mesh"))
+				.ToolTipText(MeshTooltip)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
+		]
+	];
+
+	// Points
+	FText PointsTooltip = LOCTEXT("LandscapeExportAsPointsTip", "If enabled, the landscape will be exported to Houdini as points.");
+	ButtonOptionsPanel->AddSlot(2, 0)
+	[
+		SNew(SCheckBox)
+		.Style(_GetEditorStyle(), "Property.ToggleButton.End")
+		.IsChecked_Lambda([IsCheckedExportAs, MainInput]()
+		{
+			return IsCheckedExportAs(MainInput, EHoudiniLandscapeExportType::Points);
+		})
+		.OnCheckStateChanged_Lambda([CheckStateChangedExportAs, InInputs](ECheckBoxState NewState)
+		{
+			for (auto CurrentInput : InInputs)
+				CheckStateChangedExportAs(CurrentInput, EHoudiniLandscapeExportType::Points);
+		})
+		.ToolTipText(PointsTooltip)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(2, 2)
+			[
+				SNew(SImage)
+				.Image(_GetEditorStyle().GetBrush("Mobility.Static"))
+			]
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.Padding(2, 2)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("LandscapeExportAsPointsCheckbox", "Points"))
+				.ToolTipText(PointsTooltip)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
+		]
+	];
+
+	// The following checkbox are only added when not in heightfield mode
+	if (MainInput->LandscapeExportType != EHoudiniLandscapeExportType::Heightfield)
+	{
+		TSharedPtr<SCheckBox> CheckBoxExportMaterials;
+		InVerticalBox->AddSlot()
+		.Padding(10, 2, 5, 2)
+		.AutoHeight()
+		[
+			SAssignNew(CheckBoxExportMaterials, SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("LandscapeMaterialsCheckbox", "Export Landscape Materials"))
+				.ToolTipText(LOCTEXT("LandscapeMaterialsTooltip", "If enabled, the landscape materials will be exported with it."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked_Lambda([MainInput]()
+			{
+				if (!IsValidWeakPointer(MainInput))
+					return ECheckBoxState::Unchecked;
+
+				return MainInput->bLandscapeExportMaterials ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainInput))
+					return;
+
+				// Record a transaction for undo/redo
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Export Landscape Materials CheckBox"),
+					MainInput->GetOuter());
+
+				for (auto CurrentInput : InInputs)
+				{
+					if (!IsValidWeakPointer(CurrentInput))
+						continue;
+
+					bool bNewState = (NewState == ECheckBoxState::Checked);
+					if (bNewState == CurrentInput->bLandscapeExportMaterials)
+						continue;
+
+					CurrentInput->Modify();
+
+					CurrentInput->bLandscapeExportMaterials = bNewState;
+					CurrentInput->MarkChanged(true);
+				}
+			})
+		];
+
+		TSharedPtr<SCheckBox> CheckBoxExportTileUVs;
+		InVerticalBox->AddSlot()
+		.Padding(10, 2, 5, 2)
+		.AutoHeight()
+		[
+			SAssignNew(CheckBoxExportTileUVs, SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("LandscapeTileUVsCheckbox", "Export Landscape Tile UVs"))
+				.ToolTipText(LOCTEXT("LandscapeTileUVsTooltip", "If enabled, UVs will be exported separately for each Landscape tile."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked_Lambda([MainInput]()
+			{
+				if (!IsValidWeakPointer(MainInput))
+					return ECheckBoxState::Unchecked;
+
+				return MainInput->bLandscapeExportTileUVs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainInput))
+					return;
+
+				// Record a transaction for undo/redo
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Export Landscape Tile UVs CheckBox"),
+					MainInput->GetOuter());
+
+				for (auto CurrentInput : InInputs)
+				{
+					if (!IsValidWeakPointer(CurrentInput))
+						continue;
+
+					bool bNewState = (NewState == ECheckBoxState::Checked);
+					if (bNewState == CurrentInput->bLandscapeExportTileUVs)
+						continue;
+
+					CurrentInput->Modify();
+
+					CurrentInput->bLandscapeExportTileUVs = bNewState;
+					CurrentInput->MarkChanged(true);
+				}
+			})
+		];
+
+		TSharedPtr<SCheckBox> CheckBoxExportNormalizedUVs;
+		InVerticalBox->AddSlot()
+		.Padding(10, 2, 5, 2)
+		.AutoHeight()
+		[
+			SAssignNew(CheckBoxExportNormalizedUVs, SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("LandscapeNormalizedUVsCheckbox", "Export Landscape Normalized UVs"))
+				.ToolTipText(LOCTEXT("LandscapeNormalizedUVsTooltip", "If enabled, landscape UVs will be exported in [0, 1]."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked_Lambda([MainInput]()
+			{
+				if (!IsValidWeakPointer(MainInput))
+					return ECheckBoxState::Unchecked;
+
+				return MainInput->bLandscapeExportNormalizedUVs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainInput))
+					return;
+
+				// Record a transaction for undo/redo
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Export Landscape Normalized UVs"),
+					MainInput->GetOuter());
+
+				for (auto CurrentInput : InInputs)
+				{
+					if (!IsValidWeakPointer(CurrentInput))
+						continue;
+
+					bool bNewState = (NewState == ECheckBoxState::Checked);
+					if (bNewState == CurrentInput->bLandscapeExportNormalizedUVs)
+						continue;
+
+					CurrentInput->Modify();
+
+					CurrentInput->bLandscapeExportNormalizedUVs = bNewState;
+					CurrentInput->MarkChanged(true);
+				}
+			})
+		];
+
+		TSharedPtr<SCheckBox> CheckBoxExportLighting;
+		InVerticalBox->AddSlot()
+		.Padding(10, 2, 5, 2)
+		.AutoHeight()
+		[
+			SAssignNew(CheckBoxExportLighting, SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("LandscapeLightingCheckbox", "Export Landscape Lighting"))
+				.ToolTipText(LOCTEXT("LandscapeLightingTooltip", "If enabled, lightmap information will be exported with the landscape."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked_Lambda([MainInput]()
+			{
+				if (!IsValidWeakPointer(MainInput))
+					return ECheckBoxState::Unchecked;
+
+				return MainInput->bLandscapeExportLighting ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainInput))
+					return;
+
+				// Record a transaction for undo/redo
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniInputChange", "Houdini Input: Export Landscape Lighting"),
+					MainInput->GetOuter());
+
+				for (auto CurrentInput : InInputs)
+				{
+					if (!IsValidWeakPointer(CurrentInput))
+						continue;
+
+					bool bNewState = (NewState == ECheckBoxState::Checked);
+					if (bNewState == CurrentInput->bLandscapeExportLighting)
+						continue;
+
+					CurrentInput->Modify();
+
+					CurrentInput->bLandscapeExportLighting = bNewState;
+					CurrentInput->MarkChanged(true);
+				}
+			})
+		];
+
+	}
+}
+
+void
+FHoudiniInputDetails::AddExportOptions(
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	auto ExportOptionsMenuStateChanged = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, bool bInNewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = bInNewState;
+
+		if (MainInput->GetExportOptionsMenuExpanded() == bNewState)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniExportOptionsMenu", "Houdini Input: Changed Export Options Menu State"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetExportOptionsMenuExpanded() == bNewState)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetExportOptionsMenuExpanded(bNewState);
+		}
+	};
+
+	TSharedRef<SVerticalBox> ExportOptions_VerticalBox = SNew(SVerticalBox);
+
+	TSharedRef<SExpandableArea> ExportOptions_Expandable = SNew(SExpandableArea)
+		.AreaTitle(LOCTEXT("NewInputsExportOptionsMenu", "Export Options"))
+		.InitiallyCollapsed(!MainInput->GetExportOptionsMenuExpanded())
+		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
+		{
+			return ExportOptionsMenuStateChanged(InInputs, bNewState);
+		})
+		.BodyContent()
+		[
+			ExportOptions_VerticalBox
+		];
+
+	AddKeepWorldTransformCheckBox(ExportOptions_VerticalBox, InInputs);
+	AddPackBeforeMergeCheckbox(ExportOptions_VerticalBox, InInputs);
+	AddExportAsReferenceCheckBoxes(ExportOptions_VerticalBox, InInputs);
+	AddExportCheckboxes(ExportOptions_VerticalBox, InInputs);
+	
+	if (MainInput->GetInputType() == EHoudiniInputType::NewWorld)
+	{
+		AddDirectlyConnectHdasCheckBox(ExportOptions_VerticalBox, InInputs);
+		AddUseLegacyInputCurvesCheckBox(ExportOptions_VerticalBox, InInputs);
+		AddUnrealSplineResolutionInput(ExportOptions_VerticalBox, InInputs);
+	}
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		ExportOptions_Expandable
+	];
+}
+
+void
+FHoudiniInputDetails::AddLandscapeOptions(
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	auto LandscapeOptionsMenuStateChanged = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, bool bInNewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = !bInNewState;
+
+		if (MainInput->GetLandscapeOptionsMenuExpanded() == bNewState)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniLandscapeOptionsMenu", "Houdini Input: Changed Landscape Options Menu State"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetLandscapeOptionsMenuExpanded() == bNewState)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetLandscapeOptionsMenuExpanded(bNewState);
+		}
+	};
+
+	TSharedRef<SVerticalBox> LandscapeOptions_VerticalBox = SNew(SVerticalBox);
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SExpandableArea)
+		.AreaTitle(LOCTEXT("LandscapeOptionsMenu", "Landscape Options"))
+		.InitiallyCollapsed(!MainInput->GetLandscapeOptionsMenuExpanded())
+		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
+		{
+			return LandscapeOptionsMenuStateChanged(InInputs, bNewState);
+		})
+		.BodyContent()
+		[
+			LandscapeOptions_VerticalBox
+		]
+	];
+
+	AddExportSelectedLandscapesOnlyCheckBox(LandscapeOptions_VerticalBox, InInputs);
+	AddExportLandscapeAsOptions(LandscapeOptions_VerticalBox, InInputs);
+}
+
 void
 FHoudiniInputDetails::AddGeometryInputUI(
 	IDetailCategoryBuilder& CategoryBuilder,
@@ -1309,7 +2574,7 @@ FHoudiniInputDetails::AddGeometryInputUI(
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniInputChange", "Houdini Input: Changing the number of Geometry Input Objects"),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed the number of Geometry Input Objects"),
 			MainInput->GetOuter());
 
 		for (auto CurInput : InInputsToUpdate)
@@ -1410,7 +2675,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniInputChange", "Houdini Input: Changing a Geometry Input Object"),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed a Geometry Input Object"),
 			MainInput->GetOuter());
 
 		for (auto CurInput : InInputsToUpdate)
@@ -1841,7 +3106,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniInputTransformChange", "Houdini Input: Changing Transform offset"),
+			LOCTEXT("HoudiniInputTransformChange", "Houdini Input: Changed Transform offset"),
 			InInputs[0]->GetOuter());
 
 		bool bChanged = true;
@@ -2212,7 +3477,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniInputChange", "Houdini Input: Changing a Geometry Input Object"),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed a Geometry Input Object"),
 			MainInput->GetOuter());
 
 		for (auto CurInput : InInputsToUpdate)
@@ -2616,7 +3881,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniInputTransformChange", "Houdini Input: Changing Transform offset"),
+			LOCTEXT("HoudiniInputTransformChange", "Houdini Input: Changed Transform offset"),
 			InInputs[0]->GetOuter());
 
 		bool bChanged = true;
@@ -3511,7 +4776,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 		// Record a transaction for undo/redo.
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniCurveInputChangeClosed", "Houdini Input: Changing Curve Closed"),
+			LOCTEXT("HoudiniCurveInputChangeClosed", "Houdini Input: Changed Curve Closed"),
 			OuterHAC);
 
 		for (auto & Input : InInputs) 
@@ -3577,7 +4842,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 		// Record a transaction for undo/redo.
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniCurveInputChangeReversed", "Houdini Input: Changing Curve Reversed"),
+			LOCTEXT("HoudiniCurveInputChangeReversed", "Houdini Input: Changed Curve Reversed"),
 			OuterHAC);
 
 		for (auto & Input : InInputs) 
@@ -3691,7 +4956,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 		// Record a transaction for undo/redo.
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniCurveInputChangeType", "Houdini Input: Changing Curve Type"),
+			LOCTEXT("HoudiniCurveInputChangeType", "Houdini Input: Changed Curve Type"),
 			OuterHAC);
 
 		for (auto & Input : InInputs) 
@@ -3790,7 +5055,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 		// Record a transaction for undo/redo.
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniCurveInputChangeMethod", "Houdini Input: Changing Curve Method"),
+			LOCTEXT("HoudiniCurveInputChangeMethod", "Houdini Input: Changed Curve Method"),
 			OuterHAC);
 
 		for (auto & Input : InInputs)
@@ -3905,7 +5170,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 					// Record a transaction for undo/redo
 					FScopedTransaction Transaction(
 						TEXT(HOUDINI_MODULE_EDITOR),
-						LOCTEXT("HoudiniChangeCurveOrder", "Houdini Input: Changing curve order"),
+						LOCTEXT("HoudiniChangeCurveOrder", "Houdini Input: Changed curve order"),
 						OuterHAC);
 
 					for (auto & Input : InInputs)
@@ -3941,7 +5206,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 					// Record a transaction for undo/redo.
 					FScopedTransaction Transaction(
 						TEXT(HOUDINI_MODULE_EDITOR),
-					LOCTEXT("HoudiniCurveInputChangeMethod", "Houdini Input: Changing Curve Method"),
+					LOCTEXT("HoudiniCurveInputChangeMethod", "Houdini Input: Changed Curve Method"),
 						OuterHAC);
 
 					for (auto & Input : InInputs)
@@ -3989,7 +5254,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 			// Record a transaction for undo/redo.
 			FScopedTransaction Transaction(
 				TEXT(HOUDINI_MODULE_EDITOR),
-				LOCTEXT("HoudiniCurveInputChangeBreakpointParameterization", "Houdini Input: Changing Curve Breakpoint Parameterization"),
+				LOCTEXT("HoudiniCurveInputChangeBreakpointParameterization", "Houdini Input: Changed Curve Breakpoint Parameterization"),
 				OuterHAC);
 
 			for (auto& Input : InInputs)
@@ -4223,7 +5488,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniLandscapeInputChangedUpdate", "Houdini Input: Changing Keep World Transform"),
+			LOCTEXT("HoudiniLandscapeInputChangedUpdate", "Houdini Input: Changed Keep World Transform"),
 			MainInput->GetOuter());
 
 		for (auto CurInput : InInputsToUpdate)
@@ -4676,7 +5941,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				// Record a transaction for undo/redo
 				FScopedTransaction Transaction(
 					TEXT(HOUDINI_MODULE_EDITOR),
-					LOCTEXT("HoudiniLandscapeInputChangeExportSelectionOnly", "Houdini Input: Changing Landscape export only selected component."),
+					LOCTEXT("HoudiniLandscapeInputChangeExportSelectionOnly", "Houdini Input: Changed Landscape export only selected component."),
 					MainInput->GetOuter());
 
 				for (auto CurrentInput : InInputs)
@@ -4727,7 +5992,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				// Record a transaction for undo/redo
 				FScopedTransaction Transaction(
 					TEXT(HOUDINI_MODULE_EDITOR),
-					LOCTEXT("HoudiniLandscapeInputChangeAutoSelectComponent", "Houdini Input: Changing Landscape input auto-selects components."),
+					LOCTEXT("HoudiniLandscapeInputChangeAutoSelectComponent", "Houdini Input: Changed Landscape input auto-selects components."),
 				MainInput->GetOuter());
 
 				for (auto CurrentInput : InInputs)
@@ -4854,7 +6119,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 					// Record a transaction for undo/redo
 					FScopedTransaction Transaction(
 						TEXT(HOUDINI_MODULE_EDITOR),
-						LOCTEXT("HoudiniLandscapeInputChangeExportMaterials", "Houdini Input: Changing Landscape input export materials."),
+						LOCTEXT("HoudiniLandscapeInputChangeExportMaterials", "Houdini Input: Changed Landscape input export materials."),
 						MainInput->GetOuter());
 
 					for (auto CurrentInput : InInputs)
@@ -4909,7 +6174,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 					// Record a transaction for undo/redo
 					FScopedTransaction Transaction(
 						TEXT(HOUDINI_MODULE_EDITOR),
-						LOCTEXT("HoudiniLandscapeInputChangeExportTileUVs", "Houdini Input: Changing Landscape export tile UVs."),
+						LOCTEXT("HoudiniLandscapeInputChangeExportTileUVs", "Houdini Input: Changed Landscape export tile UVs."),
 						MainInput->GetOuter());
 
 					for (auto CurrentInput : InInputs)
@@ -4964,7 +6229,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 			// Record a transaction for undo/redo
 			FScopedTransaction Transaction(
 				TEXT(HOUDINI_MODULE_EDITOR),
-				LOCTEXT("HoudiniLandscapeInputChangeExportNormalizedUVs", "Houdini Input: Changing Landscape export normalized UVs."),
+				LOCTEXT("HoudiniLandscapeInputChangeExportNormalizedUVs", "Houdini Input: Changed Landscape export normalized UVs."),
 				MainInput->GetOuter());
 
 			for (auto CurrentInput : InInputs)
@@ -5019,7 +6284,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				// Record a transaction for undo/redo
 				FScopedTransaction Transaction(
 					TEXT(HOUDINI_MODULE_EDITOR),
-					LOCTEXT("HoudiniLandscapeInputChangeExportLighting", "Houdini Input: Changing Landscape export lighting."),
+					LOCTEXT("HoudiniLandscapeInputChangeExportLighting", "Houdini Input: Changed Landscape export lighting."),
 					MainInput->GetOuter());
 
 				for (auto CurrentInput : InInputs)
@@ -5617,14 +6882,20 @@ FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(const TArray<TWeakObjec
 
 FMenuBuilder
 FHoudiniInputDetails::Helper_CreateWorldActorPickerWidget(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
-{
+{	
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs.Num() > 0 ? InInputs[0] : nullptr;
-	auto OnShouldFilterWorld = [MainInput](const AActor* const Actor)
+
+	EHoudiniInputType WorldType = EHoudiniInputType::World;
+	
+	if (IsValidWeakPointer(MainInput) && MainInput->GetInputType() == EHoudiniInputType::NewWorld)
+		WorldType = EHoudiniInputType::NewWorld;
+
+	auto OnShouldFilterWorld = [MainInput, WorldType](const AActor* const Actor)
 	{
 		if (!IsValidWeakPointer(MainInput))
 			return true;
 
-		const TArray<UHoudiniInputObject*>* InputObjects = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
+		const TArray<UHoudiniInputObject*>* InputObjects = MainInput->GetHoudiniInputObjectArray(WorldType);
 		if (!InputObjects)
 			return false;
 
@@ -5687,8 +6958,8 @@ FHoudiniInputDetails::Helper_CreateWorldActorPickerWidget(const TArray<TWeakObje
 				.BorderImage(_GetEditorStyle().GetBrush("Menu.Background"))
 				[
 					SceneOutlinerModule.CreateActorPicker(
- 						InitOptions,
- 						FOnActorPicked::CreateLambda(OnWorldSelected))
+						InitOptions,
+						FOnActorPicked::CreateLambda(OnWorldSelected))
 				]
 			];
 
@@ -5703,6 +6974,7 @@ FMenuBuilder
 FHoudiniInputDetails::Helper_CreateBoundSelectorPickerWidget(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs.Num() > 0 ? InInputs[0] : nullptr;
+	
 	auto OnShouldFilter = [MainInput](const AActor* const Actor)
 	{
 		if (!IsValid(Actor))
@@ -5758,8 +7030,8 @@ FHoudiniInputDetails::Helper_CreateBoundSelectorPickerWidget(const TArray<TWeakO
 				.BorderImage(_GetEditorStyle().GetBrush("Menu.Background"))
 				[
 					SceneOutlinerModule.CreateActorPicker(
- 						InitOptions,
- 						FOnActorPicked::CreateLambda(OnSelected))
+						InitOptions,
+						FOnActorPicked::CreateLambda(OnSelected))
 				]
 			];
 
@@ -6029,7 +7301,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 			// Record a transaction for undo/redo
 			FScopedTransaction Transaction(
 				TEXT(HOUDINI_MODULE_EDITOR),
-				LOCTEXT("HoudiniWorldInputChangeBoungSelector", "Houdini Input: Changing world input to bound selector"),
+				LOCTEXT("HoudiniWorldInputChangeBoungSelector", "Houdini Input: Changed world input to bound selector"),
 				MainInput->GetOuter());
 
 			bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -6095,7 +7367,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 			// Record a transaction for undo/redo
 			FScopedTransaction Transaction(
 				TEXT(HOUDINI_MODULE_EDITOR),
-				LOCTEXT("HoudiniWorldInputChangeAutoUpdate", "Houdini Input: Changing bound selector auto-update state."),
+				LOCTEXT("HoudiniWorldInputChangeAutoUpdate", "Houdini Input: Changed bound selector auto-update state."),
 				MainInput->GetOuter());
 
 			bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -6201,7 +7473,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 					// Record a transaction for undo/redo
 					FScopedTransaction Transaction(
 						TEXT(HOUDINI_MODULE_EDITOR),
-						LOCTEXT("HoudiniWorldInputChangeSplineResolution", "Houdini Input: Changing world input spline resolution"),
+						LOCTEXT("HoudiniWorldInputChangeSplineResolution", "Houdini Input: Changed world input spline resolution"),
 						MainInput->GetOuter());
 
 					for (auto CurrentInput : InInputs)
@@ -6336,7 +7608,7 @@ void FHoudiniInputDetails::AddGeometryCollectionInputUI(IDetailCategoryBuilder& 
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniInputChange", "Houdini Input: Changing the number of Geometry Input Objects"),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed the number of Geometry Input Objects"),
 			MainInput->GetOuter());
 
 		for (auto CurInput : InInputsToUpdate)
@@ -6405,6 +7677,1546 @@ void FHoudiniInputDetails::AddGeometryCollectionInputUI(IDetailCategoryBuilder& 
 	
 }
 
+void
+FHoudiniInputDetails::AddNewGeometryInputUI(
+	IDetailCategoryBuilder& CategoryBuilder,
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	const int32 NumInputObjects = MainInput->GetNumberOfInputObjects(EHoudiniInputType::NewGeometry);
+
+	auto SetInputObjectsCount = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const int32& NewInputCount)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Number of New Geometry Input Objects"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetNumberOfInputObjects(EHoudiniInputType::NewGeometry) == NewInputCount)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetInputObjectsNumber(EHoudiniInputType::NewGeometry, NewInputCount);
+			CurInput->MarkChanged(true);
+
+			if (GEditor)
+				GEditor->RedrawAllViewports();
+
+			if (CategoryBuilder.IsParentLayoutValid())
+				CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+		}
+	};
+
+	auto NewGeometryInputsStateChanged = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const bool& bInNewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = bInNewState;
+
+		if (MainInput->GetNewGeometryInputsMenuExpanded() == bNewState)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed New Geometry Inputs Menu State"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetNewGeometryInputsMenuExpanded() == bNewState)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetNewGeometryInputsMenuExpanded(bNewState);
+			
+			if (GEditor)
+				GEditor->RedrawAllViewports();
+
+			if (CategoryBuilder.IsParentLayoutValid())
+				CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+		}
+	};
+
+	AddExportOptions(InVerticalBox, InInputs);
+
+	FText InputsMenuTitle = FText::Format(
+		NumInputObjects == 1 ?
+			LOCTEXT("NumArrayItemsFmt", "{0} Input Selected") :
+			LOCTEXT("NumArrayItemsFmt", "{0} Inputs Selected"),
+		FText::AsNumber(NumInputObjects));
+
+	TSharedRef<SExpandableArea> Inputs_Expandable = SNew(SExpandableArea)
+		.AreaTitle(InputsMenuTitle)
+		.InitiallyCollapsed(!MainInput->GetNewGeometryInputsMenuExpanded())
+		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
+		{
+			return NewGeometryInputsStateChanged(InInputs, bNewState);
+		});
+		
+	TSharedRef<SVerticalBox> InputsCollapsed_VerticalBox = SNew(SVerticalBox).Visibility_Lambda([MainInput]()
+	{
+		return MainInput->GetNewGeometryInputsMenuExpanded() ? EVisibility::Collapsed : EVisibility::Visible;
+	});
+	
+	TSharedRef<SVerticalBox> InputsExpanded_VerticalBox = SNew(SVerticalBox).Visibility_Lambda([MainInput]()
+	{
+		return MainInput->GetNewGeometryInputsMenuExpanded() ? EVisibility::Visible : EVisibility::Collapsed;
+	});
+
+	InVerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()[Inputs_Expandable];
+	InVerticalBox->AddSlot().Padding(5, 5, 5, 5).AutoHeight()[InputsCollapsed_VerticalBox];
+	InVerticalBox->AddSlot().Padding(3, 1, 5, 2).AutoHeight()[InputsExpanded_VerticalBox];
+
+	InputsExpanded_VerticalBox->AddSlot().Padding(2, 0, 5, 2).AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(SButton)
+			.OnClicked_Lambda([SetInputObjectsCount, InInputs, NumInputObjects]()
+			{
+				SetInputObjectsCount(InInputs, NumInputObjects + 1);
+				return FReply::Handled();
+			})
+			.Content()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(1.0f)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(SImage)
+					.Image(FAppStyle::GetBrush("Icons.Plus"))
+					.ColorAndOpacity(FStyleColors::AccentGreen)
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(FMargin(3, 0, 0, 0))
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("AddButtonText", "Add"))
+					.TextStyle(FAppStyle::Get(), "SmallButtonText")
+					.ToolTipText(LOCTEXT("AddButtonTip", "Adds a new Geometry input."))
+				]
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.Padding(FMargin(3, 0, 0, 0))
+		.AutoWidth()
+		[
+			SNew(SButton)
+			.OnClicked_Lambda([SetInputObjectsCount, InInputs, NumInputObjects]()
+			{
+				SetInputObjectsCount(InInputs, 0);
+				return FReply::Handled();
+			})
+			.Content()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(1.0f)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(SImage)
+					.Image(FAppStyle::GetBrush("Icons.Delete"))
+					.ColorAndOpacity(FStyleColors::AccentRed)
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(1.0f)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("ClearAllButtonText", "Clear All"))
+					.TextStyle(FAppStyle::Get(), "SmallButtonText")
+					.ToolTipText(LOCTEXT("ClearAllButtonTip", "Clears all inputs."))
+				]
+			]
+		]
+	];
+
+	if (NumInputObjects <= 0)
+	{
+		InputsExpanded_VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(1.0f)
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("NoInputsSelectedText", "No inputs are selected."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+		];
+	}
+	
+	for (int32 CurObjectIdx = 0; CurObjectIdx < NumInputObjects; CurObjectIdx++)
+	{
+		Helper_CreateNewGeometryInputObjectCollapsed(CategoryBuilder, InInputs, CurObjectIdx, InputsCollapsed_VerticalBox, AssetThumbnailPool);
+		Helper_CreateNewGeometryInputObjectExpanded(CategoryBuilder, InInputs, CurObjectIdx, InputsExpanded_VerticalBox, AssetThumbnailPool);
+	}
+}
+
+void
+FHoudiniInputDetails::AddNewWorldInputUI(
+	IDetailCategoryBuilder& CategoryBuilder,
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
+	const IDetailsView* DetailsView)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	AddExportOptions(InVerticalBox, InInputs);
+	AddLandscapeOptions(InVerticalBox, InInputs);
+
+	bool bIsBoundSelector = MainInput->IsWorldInputBoundSelector();
+
+	const int32 NumInputObjects =
+		bIsBoundSelector ?
+			MainInput->GetNumberOfBoundSelectorObjects() :
+			MainInput->GetNumberOfInputObjects(EHoudiniInputType::NewWorld);
+
+	bool bDetailsLocked = false;
+	FName DetailsPanelName = "LevelEditorSelectionDetails";
+	if (DetailsView)
+	{
+		DetailsPanelName = DetailsView->GetIdentifier();
+		if (DetailsView->IsLocked())
+			bDetailsLocked = true;
+	}
+
+	auto NewWorldInputsStateChanged = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const bool& bInNewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = bInNewState;
+
+		if (MainInput->GetNewWorldInputsMenuExpanded() == bNewState)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed New World Inputs Menu State"),
+			MainInput->GetOuter());
+		
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetNewWorldInputsMenuExpanded() == bNewState)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetNewWorldInputsMenuExpanded(bNewState);
+		}
+
+		if (GEditor)
+			GEditor->RedrawAllViewports();
+
+		if (CategoryBuilder.IsParentLayoutValid())
+			CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+	};
+
+	TSharedRef<SVerticalBox> Inputs_VerticalBox = SNew(SVerticalBox);
+
+	FText InputSelectionType =
+		bIsBoundSelector ?
+			LOCTEXT("BoundSelection", "Bound") :
+			LOCTEXT("InputSelection", "Input");
+
+	FText InputsMenuTitle = FText::Format(
+		NumInputObjects == 1 ?
+			LOCTEXT("NumBoundsSelected", "{0} {1} Selected") :
+			LOCTEXT("NumInputsSelected", "{0} {1}s Selected"),
+		FText::AsNumber(NumInputObjects), InputSelectionType);
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SExpandableArea)
+		.AreaTitle(InputsMenuTitle)
+		.InitiallyCollapsed(!MainInput->GetNewWorldInputsMenuExpanded())
+		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
+		{
+			return NewWorldInputsStateChanged(InInputs, bNewState);
+		})
+		.BodyContent()
+		[
+			Inputs_VerticalBox
+		]
+	];
+
+	// Use Bound Selector CheckBox
+	Inputs_VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SCheckBox)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("UseBoundSelector", "Use Bound Selector"))
+			.ToolTipText(LOCTEXT("UseBoundSelectorTip", "When enabled, this world input works as a bound selector, sending all the objects contained in the bound selector bounding boxes."))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		.IsChecked_Lambda([MainInput]()
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return ECheckBoxState::Unchecked;
+
+			return MainInput->IsWorldInputBoundSelector() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		})
+		.OnCheckStateChanged_Lambda([MainInput, &CategoryBuilder, InInputs](ECheckBoxState NewState)
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return;
+
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniInputChange", "Houdini Input: Changed World Input Use Bound Selector"),
+				MainInput->GetOuter());
+
+			bool bNewState = (NewState == ECheckBoxState::Checked);
+
+			for (auto CurInput : InInputs)
+			{
+				if (!IsValidWeakPointer(CurInput))
+					continue;
+
+				if (CurInput->IsWorldInputBoundSelector() == bNewState)
+					continue;
+
+				CurInput->Modify();
+				CurInput->SetWorldInputBoundSelector(bNewState);
+				CurInput->MarkChanged(true);
+			}
+
+			if (CategoryBuilder.IsParentLayoutValid())
+				CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+		})
+	];
+
+	// Update Bound Selection Automatically CheckBox
+	Inputs_VerticalBox->AddSlot()
+	.Padding(10, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SCheckBox)
+		.Visibility(MainInput->IsWorldInputBoundSelector() ? EVisibility::Visible : EVisibility::Collapsed)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("BoundAutoUpdate", "Update Bound Selection Automatically"))
+			.ToolTipText(LOCTEXT("BoundAutoUpdateTip", "If enabled and if this world input is set as a bound selector, the objects selected by the bounds will update automatically."))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		.IsChecked_Lambda([MainInput]()
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return ECheckBoxState::Unchecked;
+
+			return MainInput->GetWorldInputBoundSelectorAutoUpdates() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		})
+		.OnCheckStateChanged_Lambda([MainInput, InInputs](ECheckBoxState NewState)
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return;
+
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Update Bound Selection Automatically"),
+				MainInput->GetOuter());
+
+			bool bNewState = (NewState == ECheckBoxState::Checked);
+
+			for (auto CurInput : InInputs)
+			{
+				if (!IsValidWeakPointer(CurInput))
+					continue;
+
+				if (CurInput->GetWorldInputBoundSelectorAutoUpdates() == bNewState)
+					continue;
+
+				CurInput->Modify();
+				CurInput->SetWorldInputBoundSelectorAutoUpdates(bNewState);
+				CurInput->MarkChanged(true);
+			}
+		})
+	];
+
+	// Start Selection / Use Current Selection Button
+	FPropertyEditorModule& PropertyModule =
+		FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+	FText SelectButtonText = bDetailsLocked ?
+		LOCTEXT("WorldInputUseCurrentSelection", "Use Current") :
+		LOCTEXT("WorldInputStartSelection", "Start Selection");
+
+	FText SelectButtonTip = bDetailsLocked ?
+		LOCTEXT("WorldInputUseCurrentSelectionTip", "Unlock details panel and use currently selected objects.") :
+		LOCTEXT("WorldInputStartSelectionTip", "Lock details panel and select world objects to use as input.");
+
+	Inputs_VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		[
+			SNew(SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.OnClicked_Lambda([MainInput, InInputs, DetailsPanelName, &CategoryBuilder]()
+			{
+				return MainInput->IsWorldInputBoundSelector() ?
+					Helper_OnButtonClickUseSelectionAsBoundSelector(CategoryBuilder, InInputs, DetailsPanelName) :
+					Helper_OnButtonClickSelectActors(CategoryBuilder, InInputs, DetailsPanelName);
+			})
+			.Content()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(1)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(SImage)
+					.Image(FAppStyle::GetBrush("Icons.Plus"))
+					.ColorAndOpacity(FStyleColors::AccentGreen)
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(FMargin(3, 0, 0, 0))
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(SelectButtonText)
+					.TextStyle(FAppStyle::Get(), "SmallButtonText")
+					.ToolTipText(SelectButtonTip)
+				]
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.Padding(FMargin(3, 0, 0, 0))
+		.AutoWidth()
+		[
+			SNew(SButton)
+			.OnClicked_Lambda([InInputs, MainInput, &CategoryBuilder]()
+			{
+				if (!IsValidWeakPointer(MainInput))
+					return FReply::Handled();
+
+				const bool bMainInputBoundSelection = MainInput->IsWorldInputBoundSelector();
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniInputChange", "Houdini Input: Cleared World Input Selection"),
+					MainInput->GetOuter());
+
+				for (auto CurInput : InInputs)
+				{
+					if (!IsValidWeakPointer(CurInput))
+						continue;
+
+					if (CurInput->IsWorldInputBoundSelector() != bMainInputBoundSelection)
+						continue;
+
+					CurInput->Modify();
+
+					if (CurInput->IsWorldInputBoundSelector())
+					{
+						CurInput->SetBoundSelectorObjectsNumber(0);
+						CurInput->UpdateWorldSelectionFromBoundSelectors();
+
+						if (CategoryBuilder.IsParentLayoutValid())
+							CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+					}
+					else
+					{
+						TArray<AActor*> EmptySelection;
+						CurInput->UpdateWorldSelection(EmptySelection);
+					}
+				}
+
+				return FReply::Handled();
+			})
+			.Content()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(1)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(SImage)
+					.Image(FAppStyle::GetBrush("Icons.Delete"))
+					.ColorAndOpacity(FStyleColors::AccentRed)
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(1)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("ClearSelectionButtonText", "Clear Selection"))
+					.TextStyle(FAppStyle::Get(), "SmallButtonText")
+					.ToolTipText(LOCTEXT("ClearSelectionButtonTip", "Clears all inputs."))
+				]
+			]
+		]
+	];
+
+	if (bIsBoundSelector)
+	{
+		FMenuBuilder MenuBuilder = Helper_CreateBoundSelectorPickerWidget(InInputs);
+		Inputs_VerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			MenuBuilder.MakeWidget()
+		];
+	}
+	{
+		FMenuBuilder MenuBuilder = Helper_CreateWorldActorPickerWidget(InInputs);
+		Inputs_VerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			MenuBuilder.MakeWidget()
+		];
+	}
+}
+
+void
+FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectCollapsed(
+	IDetailCategoryBuilder& CategoryBuilder,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
+	const FPlatformTypes::int32& InObjectIdx,
+	TSharedRef<SVerticalBox> InVerticalBox,
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	UHoudiniInputObject* HoudiniInputObject = MainInput->GetHoudiniInputObjectAt(EHoudiniInputType::NewGeometry, InObjectIdx);
+	UObject* InputObject = HoudiniInputObject ? HoudiniInputObject->GetObject() : nullptr;
+
+	TSharedPtr<FAssetThumbnail> ObjThumbnail = MakeShareable(new FAssetThumbnail(InputObject, 64, 64, AssetThumbnailPool));
+
+	// Create thumbnail for this static mesh.
+	constexpr int32 ThumbnailSize = 30;
+
+	TSharedPtr<FAssetThumbnail> StaticMeshThumbnail = MakeShareable(
+		new FAssetThumbnail(InputObject, ThumbnailSize, ThumbnailSize, AssetThumbnailPool));
+
+	// Lambda for adding new geometry input objects
+	auto UpdateGeometryObjectAt = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const int32& AtIndex, UObject* InObject, const bool& bAutoInserMissingObjects)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		if (!IsValid(InObject))
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed a Geometry Input Object"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			UObject* InputObject = nullptr;
+			int32 NumInputObjects = CurInput->GetNumberOfInputObjects(EHoudiniInputType::NewGeometry);
+			
+			if (AtIndex < NumInputObjects)
+			{
+				InputObject = CurInput->GetInputObjectAt(EHoudiniInputType::NewGeometry, AtIndex);
+				if (InObject == InputObject)
+					continue;
+			}
+			else if (bAutoInserMissingObjects)
+			{
+				CurInput->InsertInputObjectAt(EHoudiniInputType::NewGeometry, AtIndex);
+			}
+			else
+			{
+				continue;
+			}
+
+			UHoudiniInputObject* CurrentInputObjectWrapper = CurInput->GetHoudiniInputObjectAt(AtIndex);
+			if (CurrentInputObjectWrapper)
+				CurrentInputObjectWrapper->Modify();
+
+			CurInput->Modify();
+			CurInput->SetInputObjectAt(EHoudiniInputType::NewGeometry, AtIndex, InObject);
+			CurInput->MarkChanged(true);
+
+			if (CategoryBuilder.IsParentLayoutValid())
+				CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+		}
+	};
+
+	// Drop Target: Static/Skeletal Mesh
+	TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
+	InVerticalBox->AddSlot()
+	.Padding(0.0f)
+	.AutoHeight()
+	[
+		SNew(SAssetDropTarget)
+		.bSupportsMultiDrop(true)
+		.OnAreAssetsAcceptableForDrop_Lambda([](TArrayView<FAssetData> InAssets)
+		{
+			for (auto& CurAssetData : InAssets)
+			{
+				if (UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::NewGeometry, CurAssetData.GetAsset()))
+					return true;
+			}
+				
+			return false;
+		})
+		.OnAssetsDropped_Lambda([InInputs, InObjectIdx, UpdateGeometryObjectAt](const FDragDropEvent&, TArrayView<FAssetData> InAssets)
+		{
+			int32 CurrentObjectIdx = InObjectIdx;
+				
+			for (auto& CurAssetData : InAssets)
+			{
+				UObject* Object = CurAssetData.GetAsset();
+				if (!IsValid(Object))
+					continue;
+				if (!UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::NewGeometry, Object))
+					continue;
+				// Update the object, inserting new one if necessary
+				UpdateGeometryObjectAt(InInputs, CurrentObjectIdx++, Object, true);
+			}
+		})
+		[
+			SAssignNew(HorizontalBox, SHorizontalBox)
+		]
+	];
+
+	// Thumbnail : Static Mesh
+	HorizontalBox->AddSlot()
+	.Padding(0.0f)
+	.AutoWidth()
+	[
+		SNew(SBox)
+		.WidthOverride(ThumbnailSize)
+		.HeightOverride(ThumbnailSize)
+		[
+			StaticMeshThumbnail->MakeThumbnailWidget()
+		]
+	];
+
+	FText MeshNameText = FText::GetEmpty();
+	if (InputObject)
+	{
+		MeshNameText = FText::FromString(InputObject->GetName());
+	}
+
+	HorizontalBox->AddSlot()
+	.FillWidth(1.0f)
+	.Padding(3, 0, 5, 0)
+	.VAlign(VAlign_Center)
+	[
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.VAlign(VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Text(MeshNameText)
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+	];
+}
+
+void
+FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
+	IDetailCategoryBuilder& CategoryBuilder,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
+	const FPlatformTypes::int32& InObjectIdx,
+	TSharedRef<SVerticalBox> InVerticalBox,
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	UHoudiniInputObject* HoudiniInputObject = MainInput->GetHoudiniInputObjectAt(EHoudiniInputType::NewGeometry, InObjectIdx);
+	UObject* InputObject = HoudiniInputObject ? HoudiniInputObject->GetObject() : nullptr;
+
+
+	// Create thumbnail for this static mesh.
+	constexpr int32 ThumbnailSize = 46;
+
+	TSharedPtr<FAssetThumbnail> StaticMeshThumbnail = MakeShareable(
+		new FAssetThumbnail(InputObject, ThumbnailSize, ThumbnailSize, AssetThumbnailPool));
+
+	// Lambda for adding new geometry input objects
+	auto UpdateGeometryObjectAt = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const int32& AtIndex, UObject* InObject, const bool& bAutoInserMissingObjects)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		// TODO: Commented out to make reset button functional. Check
+		// that removing this doesn't create undesired results.
+		//if (!IsValid(InObject))
+		//	return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed a Geometry Input Object"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			UObject* InputObject = nullptr;
+			int32 NumInputObjects = CurInput->GetNumberOfInputObjects(EHoudiniInputType::NewGeometry);
+			if (AtIndex < NumInputObjects)
+			{
+				InputObject = CurInput->GetInputObjectAt(EHoudiniInputType::NewGeometry, AtIndex);
+				if (InObject == InputObject)
+					continue;
+			}
+			else if (bAutoInserMissingObjects)
+			{
+				CurInput->InsertInputObjectAt(EHoudiniInputType::NewGeometry, AtIndex);
+			}
+			else
+			{
+				continue;
+			}
+
+			UHoudiniInputObject* CurrentInputObjectWrapper = CurInput->GetHoudiniInputObjectAt(AtIndex);
+			if (CurrentInputObjectWrapper)
+				CurrentInputObjectWrapper->Modify();
+
+			CurInput->Modify();
+			CurInput->SetInputObjectAt(EHoudiniInputType::NewGeometry, AtIndex, InObject);
+			CurInput->MarkChanged(true);
+
+			if (CategoryBuilder.IsParentLayoutValid())
+				CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+		}
+	};
+
+	TSharedPtr<SHorizontalBox> HorizontalBox;
+	InVerticalBox->AddSlot()
+	.Padding(0, 5, 0, 0)
+	.AutoHeight()
+	[
+		SNew(SAssetDropTarget)
+		.bSupportsMultiDrop(true)
+		.OnAreAssetsAcceptableForDrop_Lambda([](TArrayView<FAssetData> InAssets)
+		{
+			for (auto& CurAssetData : InAssets)
+			{
+				if (UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::NewGeometry, CurAssetData.GetAsset()))
+					return true;
+			}
+
+			return false;
+		})
+		.OnAssetsDropped_Lambda([InInputs, InObjectIdx, UpdateGeometryObjectAt](const FDragDropEvent&, TArrayView<FAssetData> InAssets)
+		{
+			int32 CurrentObjectIdx = InObjectIdx;
+			for (auto& CurAssetData : InAssets)
+			{
+				UObject* Object = CurAssetData.GetAsset();
+				if (!IsValid(Object))
+					continue;
+
+				if (!UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::NewGeometry, Object))
+					continue;
+
+				// Update the object, inserting new one if necessary
+				UpdateGeometryObjectAt(InInputs, CurrentObjectIdx++, Object, true);
+			}
+		})
+		[
+			SAssignNew(HorizontalBox, SHorizontalBox)
+		]
+	];
+
+		
+	FText ThumbnailTip = FText::GetEmpty();
+	if (InputObject)
+	{
+	    ThumbnailTip = FText::FromString(InputObject->GetDesc());
+	}
+
+	HorizontalBox->AddSlot()
+	.Padding(0)
+	.AutoWidth()
+	[
+		SNew(SBorder)
+		.BorderImage(FAppStyle::GetBrush(TEXT("AssetThumbnail.AssetBackground")))
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		.OnMouseDoubleClick_Lambda([MainInput, InObjectIdx](const FGeometry&, const FPointerEvent&)
+		{
+			UObject* InputObject = MainInput->GetInputObjectAt(EHoudiniInputType::NewGeometry, InObjectIdx);
+			if (GEditor && InputObject)
+				GEditor->EditObject(InputObject);
+
+			return FReply::Handled();
+		})
+		[
+			SNew(SBox)
+			.WidthOverride(ThumbnailSize)
+			.HeightOverride(ThumbnailSize)
+			.ToolTipText(ThumbnailTip)
+			[
+				StaticMeshThumbnail->MakeThumbnailWidget()
+			]
+		]
+	];
+
+	FText MeshNameText = FText::GetEmpty();
+	if (InputObject)
+		MeshNameText = FText::FromString(InputObject->GetName());
+
+	TSharedPtr<SVerticalBox> ComboAndButtonBox;
+	HorizontalBox->AddSlot()
+	.FillWidth(1)
+	.Padding(4, 0, 5, 0)
+	.VAlign(VAlign_Center)
+	[
+		SAssignNew(ComboAndButtonBox, SVerticalBox)
+	];
+
+	// Add Combo box : Static Mesh
+	TSharedPtr<SComboButton> StaticMeshComboButton;
+	ComboAndButtonBox->AddSlot()
+	.FillHeight(1)
+	[
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.Padding(0)
+		.VAlign(VAlign_Center)
+		[
+			SAssignNew(StaticMeshComboButton, SComboButton)
+			.ButtonContent()
+			[
+				SNew(STextBlock)
+				.TextStyle(_GetEditorStyle(), TEXT("PropertyEditor.AssetClass"))
+				.Font(_GetEditorStyle().GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+				.ColorAndOpacity(FAppStyle::GetColor(TEXT("AssetThumbnail"), ".ColorAndOpacity"))
+				.Text(MeshNameText)
+			]
+		]
+	];
+
+
+	TWeakPtr<SComboButton> WeakStaticMeshComboButton(StaticMeshComboButton);
+	StaticMeshComboButton->SetOnGetMenuContent(FOnGetContent::CreateLambda(
+		[MainInput, InInputs, InObjectIdx, WeakStaticMeshComboButton, UpdateGeometryObjectAt]()
+		{
+			TArray<const UClass*> AllowedClasses = UHoudiniInput::GetAllowedClasses(EHoudiniInputType::NewGeometry);
+			UObject* DefaultObj = MainInput->GetInputObjectAt(InObjectIdx);
+
+			TArray<UFactory*> NewAssetFactories;
+			return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
+				FAssetData(DefaultObj),
+				true,
+				AllowedClasses,
+				NewAssetFactories,
+				FOnShouldFilterAsset(),
+				FOnAssetSelected::CreateLambda(
+					[InInputs, InObjectIdx, WeakStaticMeshComboButton, UpdateGeometryObjectAt](const FAssetData& AssetData)
+					{
+						TSharedPtr<SComboButton> ComboButton = WeakStaticMeshComboButton.Pin();
+						if (ComboButton.IsValid())
+						{
+							ComboButton->SetIsOpen(false);
+							UObject* Object = AssetData.GetAsset();
+							UpdateGeometryObjectAt(InInputs, InObjectIdx, Object, false);
+						}
+					}
+				),
+				FSimpleDelegate::CreateLambda([]() {}));
+		}));
+
+	// Add buttons
+	TSharedPtr<SHorizontalBox> ButtonHorizontalBox;
+	ComboAndButtonBox->AddSlot()
+	.FillHeight(1)
+	.Padding(0)
+	.VAlign(VAlign_Center)
+	[
+		SAssignNew(ButtonHorizontalBox, SHorizontalBox)
+	];
+
+	// Create tooltip.
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Asset"), MeshNameText);
+	FText StaticMeshTooltip = FText::Format(
+		LOCTEXT("BrowseToSpecificAssetInContentBrowser",
+			"Browse to '{Asset}' in the content browser."), Args);
+
+	// Button : Use selected in content browser
+	ButtonHorizontalBox->AddSlot()
+	.AutoWidth()
+	.Padding(1, 0, 3, 0)
+	.VAlign(VAlign_Center)
+	[
+		PropertyCustomizationHelpers::MakeUseSelectedButton(
+			FSimpleDelegate::CreateLambda([InInputs, InObjectIdx, UpdateGeometryObjectAt]()
+			{
+				if (GEditor)
+				{
+					TArray<FAssetData> CBSelections;
+					GEditor->GetContentBrowserSelections(CBSelections);
+
+					TArray<const UClass*> AllowedClasses = UHoudiniInput::GetAllowedClasses(EHoudiniInputType::NewGeometry);
+					int32 CurrentObjectIdx = InObjectIdx;
+					for (auto& CurAssetData : CBSelections)
+					{
+						UObject* Object = CurAssetData.GetAsset();
+						if (!IsValid(Object))
+							continue;
+
+						if (!UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::NewGeometry, Object))
+							continue;
+
+						UpdateGeometryObjectAt(InInputs, CurrentObjectIdx++, Object, true);
+					}
+				}
+			}),
+			TAttribute<FText>(LOCTEXT("GeometryInputUseSelectedAssetFromCB", "Use the currently selected asset from the content browser.")))
+	];
+
+	// Button : Browse Static Mesh
+	ButtonHorizontalBox->AddSlot()
+	.AutoWidth()
+	.Padding(1, 0, 3, 0)
+	.VAlign(VAlign_Center)
+	[
+		PropertyCustomizationHelpers::MakeBrowseButton(
+			FSimpleDelegate::CreateLambda([MainInput, InObjectIdx]()
+			{
+				UObject* InputObject = MainInput->GetInputObjectAt(InObjectIdx);
+				if (GEditor && InputObject)
+				{
+					TArray<UObject*> Objects;
+					Objects.Add(InputObject);
+					GEditor->SyncBrowserToObjects(Objects);
+				}
+			}),
+			TAttribute<FText>(StaticMeshTooltip))
+	];
+
+	// ButtonBox: Reset
+	ButtonHorizontalBox->AddSlot()
+	.AutoWidth()
+	.Padding(1, 0, 3, 0)
+	.VAlign(VAlign_Center)
+	[
+		PropertyCustomizationHelpers::MakeResetButton(
+			FSimpleDelegate::CreateLambda([UpdateGeometryObjectAt, InInputs, InObjectIdx]()
+			{
+				UpdateGeometryObjectAt(InInputs, InObjectIdx, nullptr, false);
+			}),
+			TAttribute<FText>(LOCTEXT("GeometryInputReset", "Reset this geometry input object.")))
+	];
+
+	ButtonHorizontalBox->AddSlot()
+	.AutoWidth()
+	.Padding(1, 0, 3, 0)
+	.VAlign(VAlign_Center)
+	[
+		SNew(SButton)
+		.ToolTipText(LOCTEXT("TransformOffset", "Open transform offset menu below."))
+		.ButtonStyle(_GetEditorStyle(), "NoBorder")
+		.ContentPadding(0)
+		.Visibility(EVisibility::Visible)
+		.OnClicked_Lambda([&CategoryBuilder, MainInput, InInputs, InObjectIdx]()
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return FReply::Handled();
+
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniInputChange", "Houdini Input: Toggling Transform Offset Menu for Geometry Input Object"),
+				MainInput->GetOuter());
+
+			for (auto CurInput : InInputs)
+			{
+				if (!IsValidWeakPointer(CurInput))
+					continue;
+
+				CurInput->OnTransformUIExpand(InObjectIdx);
+				CurInput->Modify();
+			}
+
+			if (CategoryBuilder.IsParentLayoutValid())
+				CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+
+			return FReply::Handled();
+		})
+		[
+			SNew(SImage)
+			.Image(FAppStyle::GetBrush("Icons.Transform"))
+			.ColorAndOpacity(FSlateColor(FColor(255, 255, 255, 168)))
+		]
+	];
+
+	ButtonHorizontalBox->AddSlot()
+	.AutoWidth()
+	.Padding(1, 0, 3, 0)
+	.VAlign(VAlign_Center)
+	[
+		PropertyCustomizationHelpers::MakeAddButton(
+			FSimpleDelegate::CreateLambda([&CategoryBuilder, MainInput, InInputs, InObjectIdx]()
+			{
+				if (!IsValidWeakPointer(MainInput))
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniInputChange", "Houdini Input: Insert a Geometry Input Object"),
+					MainInput->GetOuter());
+				// Insert
+				for (auto CurInput : InInputs)
+				{
+					if (!IsValidWeakPointer(CurInput))
+						continue;
+
+					CurInput->Modify();
+					CurInput->InsertInputObjectAt(EHoudiniInputType::NewGeometry, InObjectIdx);
+				}
+
+				if (CategoryBuilder.IsParentLayoutValid())
+					CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+			}),
+			TAttribute<FText>(LOCTEXT("GeometryInputAdd", "Add a new geometry input object above.")))
+	];
+
+	ButtonHorizontalBox->AddSlot()
+	.AutoWidth()
+	.Padding(1, 0, 3, 0)
+	.VAlign(VAlign_Center)
+	[
+		SNew(SButton)
+		.ToolTipText(LOCTEXT("DuplicateGeometryInputObject", "Duplicate this geometry input object."))
+		.ButtonStyle(_GetEditorStyle(), "NoBorder")
+		.ContentPadding(0)
+		.Visibility(EVisibility::Visible)
+		.OnClicked_Lambda([&CategoryBuilder, MainInput, InInputs, InObjectIdx]()
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return FReply::Handled();
+
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniInputChange", "Houdini Input: Duplicate a Geometry Input Object"),
+				MainInput->GetOuter());
+
+			// Duplicate
+			for (auto CurInput : InInputs)
+			{
+				if (!IsValidWeakPointer(CurInput))
+					continue;
+
+				CurInput->Modify();
+				CurInput->DuplicateInputObjectAt(EHoudiniInputType::NewGeometry, InObjectIdx);
+			}
+
+			if (CategoryBuilder.IsParentLayoutValid())
+				CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+
+			return FReply::Handled();
+		})
+		[
+			SNew(SImage)
+			.Image(FAppStyle::GetBrush("Icons.Duplicate"))
+			.ColorAndOpacity(FSlateColor(FColor(255, 255, 255, 168)))
+		]
+	];
+
+	ButtonHorizontalBox->AddSlot()
+	.AutoWidth()
+	.Padding(1, 0, 3, 0)
+	.VAlign(VAlign_Center)
+	[
+		PropertyCustomizationHelpers::MakeDeleteButton(
+			FSimpleDelegate::CreateLambda([&CategoryBuilder, MainInput, InInputs, InObjectIdx]()
+			{
+				if (!IsValidWeakPointer(MainInput))
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniInputChange", "Houdini Input: Delete a Geometry Input Object"),
+					MainInput->GetOuter());
+
+				// Delete
+				for (auto CurInput : InInputs)
+				{
+					if (!IsValidWeakPointer(CurInput))
+						continue;
+
+					CurInput->Modify();
+					CurInput->DeleteInputObjectAt(EHoudiniInputType::NewGeometry, InObjectIdx);
+
+					if (GEditor)
+						GEditor->RedrawAllViewports();
+				}
+
+				if (CategoryBuilder.IsParentLayoutValid())
+					CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+			}),
+			TAttribute<FText>(LOCTEXT("GeometryInputDelete", "Delete this geometry input object.")))
+	];
+
+	
+	TSharedPtr<SVerticalBox> TransformOffset_VerticalBox;
+	
+	InVerticalBox->AddSlot()
+	.Padding(5, 0, 0, 0)
+	.AutoHeight()
+	[
+		SAssignNew(TransformOffset_VerticalBox, SVerticalBox)
+		.Visibility(MainInput->IsTransformUIExpanded(InObjectIdx) ? EVisibility::Visible : EVisibility::Collapsed)
+	];
+
+	TransformOffset_VerticalBox->AddSlot()
+	.Padding(0, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("GeoInputTransform", "Transform Offset"))
+			.ToolTipText(LOCTEXT("GeoInputTransformTooltip", "Transform offset used for correction before sending the asset to Houdini."))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+	];
+
+	// Lambda for changing the transform values
+	auto ChangeTransformOffsetAt = [&](const float& Value, const int32& AtIndex, const int32& PosRotScaleIndex, const int32& XYZIndex, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+	{
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Transform Offset"),
+			InInputs[0]->GetOuter());
+
+		bool bChanged = true;
+		for (int Idx = 0; Idx < InInputs.Num(); Idx++)
+		{
+			if (!InInputs[Idx].IsValid())
+				continue;
+
+			UHoudiniInputObject* InputObject = InInputs[Idx]->GetHoudiniInputObjectAt(AtIndex);
+			if (InputObject)
+				InputObject->Modify();
+
+			bChanged &= InInputs[Idx]->SetTransformOffsetAt(Value, AtIndex, PosRotScaleIndex, XYZIndex);
+		}
+
+		if (bChanged && DoChange)
+		{
+			// Mark the values as changed to trigger an update
+			for (int Idx = 0; Idx < InInputs.Num(); Idx++)
+			{
+				InInputs[Idx]->MarkChanged(true);
+			}
+		}
+		else
+		{
+			// Cancel the transaction
+			Transaction.Cancel();
+		}
+	};
+
+	// Get Visibility of reset buttons
+	bool bResetButtonVisiblePosition = false;
+	bool bResetButtonVisibleRotation = false;
+	bool bResetButtonVisibleScale = false;
+
+	for (auto& CurInput : InInputs)
+	{
+		if (!IsValidWeakPointer(CurInput))
+			continue;
+
+		FTransform* CurTransform = CurInput->GetTransformOffset(InObjectIdx);
+		if (!CurTransform)
+			continue;
+
+		if (CurTransform->GetLocation() != FVector3d::ZeroVector)
+			bResetButtonVisiblePosition = true;
+
+		FRotator Rotator = CurTransform->Rotator();
+		if (Rotator.Roll != 0 || Rotator.Pitch != 0 || Rotator.Yaw != 0)
+			bResetButtonVisibleRotation = true;
+
+		if (CurTransform->GetScale3D() != FVector3d::OneVector)
+			bResetButtonVisibleScale = true;
+	}
+
+	auto ChangeTransformOffsetUniformlyAt = [InObjectIdx, InInputs, ChangeTransformOffsetAt](const float& Val, const int32& PosRotScaleIndex)
+	{
+		ChangeTransformOffsetAt(Val, InObjectIdx, PosRotScaleIndex, 0, true, InInputs);
+		ChangeTransformOffsetAt(Val, InObjectIdx, PosRotScaleIndex, 1, true, InInputs);
+		ChangeTransformOffsetAt(Val, InObjectIdx, PosRotScaleIndex, 2, true, InInputs);
+	};
+
+	TransformOffset_VerticalBox->AddSlot()
+	.Padding(0, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("GeoInputTranslate", "T"))
+			.ToolTipText(LOCTEXT("GeoInputTranslateTooltip", "Translate"))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0f)
+		[
+			SNew(SVectorInputBox)
+			.bColorAxisLabels(true)
+			.AllowSpin(true)
+			.X(TAttribute<TOptional<float>>::Create(
+				TAttribute<TOptional<float>>::FGetter::CreateUObject(
+					MainInput.Get(), &UHoudiniInput::GetPositionOffsetX, InObjectIdx)))
+			.Y(TAttribute<TOptional<float>>::Create(
+				TAttribute<TOptional<float>>::FGetter::CreateUObject(
+					MainInput.Get(), &UHoudiniInput::GetPositionOffsetY, InObjectIdx)))
+			.Z(TAttribute<TOptional<float>>::Create(
+				TAttribute<TOptional<float>>::FGetter::CreateUObject(
+					MainInput.Get(), &UHoudiniInput::GetPositionOffsetZ, InObjectIdx)))
+			.OnXCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
+				{ ChangeTransformOffsetAt(Val, InObjectIdx, 0, 0, true, InInputs); })
+			.OnYCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
+				{ ChangeTransformOffsetAt(Val, InObjectIdx, 0, 1, true, InInputs); })
+			.OnZCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
+				{ ChangeTransformOffsetAt(Val, InObjectIdx, 0, 2, true, InInputs); })
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Right)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Center)
+			.Padding(0)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "NoBorder")
+				.ClickMethod(EButtonClickMethod::MouseDown)
+				.Visibility(EVisibility::Hidden)
+				[
+					SNew(SImage)
+					.Image(_GetEditorStyle().GetBrush("GenericLock"))
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Left)
+			.VAlign(VAlign_Center)
+			.Padding(0)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "NoBorder")
+				.ClickMethod(EButtonClickMethod::MouseDown)
+				.ToolTipText(LOCTEXT("GeoInputResetButtonToolTip", "Reset To Default"))
+				.Visibility(bResetButtonVisiblePosition ? EVisibility::Visible : EVisibility::Hidden)
+				[
+					SNew(SImage)
+					.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
+				]
+				.OnClicked_Lambda([MainInput, ChangeTransformOffsetUniformlyAt, &CategoryBuilder]()
+				{
+					ChangeTransformOffsetUniformlyAt(0.0f, 0);
+					if (CategoryBuilder.IsParentLayoutValid())
+						CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+
+					return FReply::Handled();
+				})
+			]
+		]
+	];
+
+	// Rotation
+	TransformOffset_VerticalBox->AddSlot()
+	.Padding(0, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("GeoInputRotate", "R"))
+			.ToolTipText(LOCTEXT("GeoInputRotateTooltip", "Rotate"))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0f)
+		[
+			SNew(SRotatorInputBox)
+			.AllowSpin(true)
+			.bColorAxisLabels(true)
+			.Roll(TAttribute<TOptional<float>>::Create(
+				TAttribute<TOptional<float>>::FGetter::CreateUObject(
+					MainInput.Get(), &UHoudiniInput::GetRotationOffsetRoll, InObjectIdx)))
+			.Pitch(TAttribute<TOptional<float>>::Create(
+				TAttribute<TOptional<float>>::FGetter::CreateUObject(
+					MainInput.Get(), &UHoudiniInput::GetRotationOffsetPitch, InObjectIdx)))
+			.Yaw(TAttribute<TOptional<float>>::Create(
+				TAttribute<TOptional<float>>::FGetter::CreateUObject(
+					MainInput.Get(), &UHoudiniInput::GetRotationOffsetYaw, InObjectIdx)))
+			.OnRollCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
+				{ ChangeTransformOffsetAt(Val, InObjectIdx, 1, 0, true, InInputs); })
+			.OnPitchCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
+				{ ChangeTransformOffsetAt(Val, InObjectIdx, 1, 1, true, InInputs); })
+			.OnYawCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
+				{ ChangeTransformOffsetAt(Val, InObjectIdx, 1, 2, true, InInputs); })
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Right)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Right).VAlign(VAlign_Center).Padding(0.0f)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "NoBorder")
+				.ClickMethod(EButtonClickMethod::MouseDown)
+				.Visibility(EVisibility::Hidden)
+				[
+					SNew(SImage)
+					.Image(_GetEditorStyle().GetBrush("GenericLock"))
+				]
+			]
+			+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(0.0f)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "NoBorder")
+				.ClickMethod(EButtonClickMethod::MouseDown)
+				.ToolTipText(LOCTEXT("GeoInputResetButtonToolTip", "Reset To Default"))
+				.Visibility(bResetButtonVisibleRotation ? EVisibility::Visible : EVisibility::Hidden)
+				[
+					SNew(SImage)
+					.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
+				]
+				.OnClicked_Lambda([ChangeTransformOffsetUniformlyAt, MainInput, &CategoryBuilder]()
+				{
+					ChangeTransformOffsetUniformlyAt(0.0f, 1);
+					if (CategoryBuilder.IsParentLayoutValid())
+						CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+
+					return FReply::Handled();
+				})
+			]
+		]
+	];
+
+	bool bLocked = false;
+	if (HoudiniInputObject)
+		bLocked = HoudiniInputObject->IsUniformScaleLocked();
+
+	TransformOffset_VerticalBox->AddSlot()
+	.Padding(0, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("GeoInputScale", "S"))
+			.ToolTipText(LOCTEXT("GeoInputScaleTooltip", "Scale"))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0f)
+		[
+			SNew(SVectorInputBox)
+			.bColorAxisLabels(true)
+			.X(TAttribute<TOptional<float>>::Create(
+				TAttribute<TOptional<float>>::FGetter::CreateUObject(
+					MainInput.Get(), &UHoudiniInput::GetScaleOffsetX, InObjectIdx)))
+			.Y(TAttribute<TOptional<float>>::Create(
+				TAttribute<TOptional<float>>::FGetter::CreateUObject(
+					MainInput.Get(), &UHoudiniInput::GetScaleOffsetY, InObjectIdx)))
+			.Z(TAttribute<TOptional<float>>::Create(
+				TAttribute<TOptional<float>>::FGetter::CreateUObject(
+					MainInput.Get(), &UHoudiniInput::GetScaleOffsetZ, InObjectIdx)))
+			.OnXCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
+			{
+				if (bLocked)
+					ChangeTransformOffsetUniformlyAt(Val, 2);
+				else
+					ChangeTransformOffsetAt(Val, InObjectIdx, 2, 0, true, InInputs);
+			})
+			.OnYCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
+			{
+				if (bLocked)
+					ChangeTransformOffsetUniformlyAt(Val, 2);
+				else
+					ChangeTransformOffsetAt(Val, InObjectIdx, 2, 1, true, InInputs);
+			})
+			.OnZCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
+			{
+				if (bLocked)
+					ChangeTransformOffsetUniformlyAt(Val, 2);
+				else
+					ChangeTransformOffsetAt(Val, InObjectIdx, 2, 2, true, InInputs);
+			})
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Right)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Center)
+			.Padding(0)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "NoBorder")
+				.ToolTipText(HoudiniInputObject ?
+					LOCTEXT("GeoInputLockButtonToolTip", "When locked, scales uniformly based on the current xyz scale values so the input object maintains its shape in each direction when scaled") :
+					LOCTEXT("GeoInputLockButtonToolTipNoObject", "No input object selected"))
+				.ClickMethod(EButtonClickMethod::MouseDown)
+				.Visibility(EVisibility::Visible)
+				[
+					SNew(SImage)
+					.Image(bLocked ? _GetEditorStyle().GetBrush("GenericLock") : _GetEditorStyle().GetBrush("GenericUnlock"))
+				]
+				.OnClicked_Lambda([InInputs, MainInput, InObjectIdx, HoudiniInputObject, &CategoryBuilder]()
+				{
+					for (auto& CurInput : InInputs)
+					{
+						if (!IsValidWeakPointer(CurInput))
+							continue;
+
+						UHoudiniInputObject* CurInputObject = CurInput->GetHoudiniInputObjectAt(EHoudiniInputType::NewGeometry, InObjectIdx);
+
+						if (!IsValid(CurInputObject))
+							continue;
+
+						CurInputObject->SwitchUniformScaleLock();
+					}
+
+					if (HoudiniInputObject)
+					{
+						if (CategoryBuilder.IsParentLayoutValid())
+							CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+					}
+
+					return FReply::Handled();
+				})
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Left)
+			.VAlign(VAlign_Center)
+			.Padding(0)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "NoBorder")
+				.ClickMethod(EButtonClickMethod::MouseDown)
+				.ToolTipText(LOCTEXT("GeoInputResetButtonToolTip", "Reset To Default"))
+				.Visibility(bResetButtonVisibleScale ? EVisibility::Visible : EVisibility::Hidden)
+				[
+					SNew(SImage)
+					.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
+				]
+				.OnClicked_Lambda([ChangeTransformOffsetUniformlyAt, MainInput, &CategoryBuilder]()
+				{
+					ChangeTransformOffsetUniformlyAt(1.0f, 2);
+					if (CategoryBuilder.IsParentLayoutValid())
+						CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+
+					return FReply::Handled();
+				})
+			]
+		]
+	];
+}
+
 FReply
 FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& CategoryBuilder, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const FName& DetailsPanelName)
 {
@@ -6420,16 +9232,26 @@ FHoudiniInputDetails::Helper_OnButtonClickUseSelectionAsBoundSelector(IDetailCat
 FReply
 FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& CategoryBuilder, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const FName& DetailsPanelName, const bool& bUseWorldInAsWorldSelector)
 {
-	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs.Num() > 0 ? InInputs[0] : nullptr;
+	if (InInputs.Num() <= 0)
+		return FReply::Handled();
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
 	if (!IsValidWeakPointer(MainInput))
 		return FReply::Handled();
 
+	EHoudiniInputType WorldType =
+		MainInput->GetInputType() == EHoudiniInputType::NewWorld ?
+			EHoudiniInputType::NewWorld :
+			EHoudiniInputType::World;
+
 	// There's no undo operation for button.
-	FPropertyEditorModule & PropertyModule =
-		FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >("PropertyEditor");
+	FPropertyEditorModule& PropertyModule =
+		FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 	// Locate the details panel.
 	TSharedPtr<IDetailsView> DetailsView = PropertyModule.FindDetailView(DetailsPanelName);
+	
 	if (!DetailsView.IsValid())
 		return FReply::Handled();
 
@@ -6439,7 +9261,7 @@ FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& C
 			void LockDetailsView() { SDetailsViewBase::bIsLocked = true; }
 			void UnlockDetailsView() { SDetailsViewBase::bIsLocked = false; }
 	};
-	auto * LocalDetailsView = static_cast<SLocalDetailsView *>(DetailsView.Get());
+	auto* LocalDetailsView = static_cast<SLocalDetailsView*>(DetailsView.Get());
 
 	if (!DetailsView->IsLocked())
 	{
@@ -6452,8 +9274,10 @@ FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& C
 
 		// Force refresh of details view.
 		TArray<UObject*> InputOuters;
+
 		for (auto CurIn : InInputs)
 			InputOuters.Add(CurIn->GetOuter());
+
 		if (CategoryBuilder.IsParentLayoutValid())
 			CategoryBuilder.GetParentLayout().ForceRefreshDetails();
 		//ReselectSelectedActors();
@@ -6478,7 +9302,7 @@ FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& C
 			// Regular selection
 			// Select the already chosen input Actors from the World Outliner.
 			GEditor->SelectNone(false, true);
-			int32 NumInputObjects = MainInput->GetNumberOfInputObjects(EHoudiniInputType::World);
+			int32 NumInputObjects = MainInput->GetNumberOfInputObjects(WorldType);
 			for (int32 Idx = 0; Idx < NumInputObjects; Idx++)
 			{
 				UHoudiniInputObject* CurInputObject = MainInput->GetHoudiniInputObjectAt(Idx);
@@ -6573,7 +9397,7 @@ FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& C
 		// Create a transaction
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_RUNTIME),
-			LOCTEXT("HoudiniWorldInputSelectionChanged", "Changing Houdini world outliner input objects"),
+			LOCTEXT("HoudiniInputChange", "Changed Houdini World Outliner Input Objects"),
 			MainInput->GetOuter());
 
 		TArray<UObject*> AllActors;
@@ -6696,7 +9520,6 @@ FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& C
 	return FReply::Handled();
 }
 
-
 bool
 FHoudiniInputDetails::Helper_CancelWorldSelection(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const FName& DetailsPanelName)
 {
@@ -6705,10 +9528,11 @@ FHoudiniInputDetails::Helper_CancelWorldSelection(const TArray<TWeakObjectPtr<UH
 
 	// Get the property module to access the details view
 	FPropertyEditorModule & PropertyModule =
-		FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >("PropertyEditor");
+		FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 	// Locate the details panel.
 	TSharedPtr<IDetailsView> DetailsView = PropertyModule.FindDetailView(DetailsPanelName);
+	
 	if (!DetailsView.IsValid())
 		return false;
 
