@@ -6631,14 +6631,16 @@ HAPI_DECL HAPI_SetAttributeIndexedStringData( const HAPI_Session* session,
 ///                 ::HAPI_AttributeInfo::count - @p start.
 ///                 <!-- source ::HAPI_AttributeInfo::count - start -->
 ///
-HAPI_DECL HAPI_SetAttributeStringUniqueData( const HAPI_Session* session,
-                                                HAPI_NodeId node_id,
-                                                HAPI_PartId part_id,
-                                                const char* name,
-                                                const HAPI_AttributeInfo* attr_info,
-                                                const char* data,
-                                                int start,
-                                                int length);
+HAPI_DECL HAPI_SetAttributeStringUniqueData( 
+        const HAPI_Session* session,
+        HAPI_NodeId node_id,
+        HAPI_PartId part_id,
+        const char* name,
+        const HAPI_AttributeInfo* attr_info,
+        const char* data,
+        int data_length,
+        int start_index,
+        int num_indices);
 
 /// @brief  Set multiple attribute int data to the same unique value.
 ///
@@ -6666,17 +6668,21 @@ HAPI_DECL HAPI_SetAttributeStringUniqueData( const HAPI_Session* session,
 ///                 returned by ::HAPI_GetAttributeInfo().
 ///
 /// @param[in]      data_array
-///                 An integer array at least the size of
-///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///                 A integer array at least the size of
+///                 <tt>::HAPI_AttributeInfo::tupleSize</tt>.
 ///
-/// @param[in]      start
+/// @param[in]      data_length
+///                 An integer of at least the size of
+///                 <tt>::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start_index
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
 ///                 <!-- default 0 -->
 ///
-/// @param[in]      length
+/// @param[in]      num_indices
 ///                 Must be at least 0 and at most
-///                 ::HAPI_AttributeInfo::count - @p start.
+///                 ::HAPI_AttributeInfo::count - @p start_index.
 ///                 <!-- source ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_SetAttributeIntUniqueData(
@@ -6686,8 +6692,9 @@ HAPI_DECL HAPI_SetAttributeIntUniqueData(
         const char* name,
         const HAPI_AttributeInfo* attr_info,
         const int* data_array,
-        int start,
-        int length);
+        int data_length,
+        int start_index,
+        int num_indices);
 
 /// @brief  Set multiple attribute unsigned 8-bit int data to the same unique value.
 ///
@@ -6715,17 +6722,21 @@ HAPI_DECL HAPI_SetAttributeIntUniqueData(
 ///                 returned by ::HAPI_GetAttributeInfo().
 ///
 /// @param[in]      data_array
-///                 An integer array at least the size of
-///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///                 A integer array at least the size of
+///                 <tt>::HAPI_AttributeInfo::tupleSize</tt>.
 ///
-/// @param[in]      start
+/// @param[in]      data_length
+///                 An integer of at least the size of
+///                 <tt>::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start_index
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
 ///                 <!-- default 0 -->
 ///
-/// @param[in]      length
+/// @param[in]      num_indices
 ///                 Must be at least 0 and at most
-///                 ::HAPI_AttributeInfo::count - @p start.
+///                 ::HAPI_AttributeInfo::count - @p start_index.
 ///                 <!-- source ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_SetAttributeUInt8UniqueData(
@@ -6735,8 +6746,9 @@ HAPI_DECL HAPI_SetAttributeUInt8UniqueData(
         const char* name,
         const HAPI_AttributeInfo* attr_info,
         const HAPI_UInt8* data_array,
-        int start,
-        int length);
+        int data_length,
+        int start_index,
+        int num_indices);
 
 /// @brief  Set multiple attribute 8-bit int data to the same unique value.
 ///
@@ -6765,17 +6777,21 @@ HAPI_DECL HAPI_SetAttributeUInt8UniqueData(
 ///                 returned by ::HAPI_GetAttributeInfo().
 ///
 /// @param[in]      data_array
-///                 An integer array at least the size of
-///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///                 A integer array at least the size of
+///                 <tt>::HAPI_AttributeInfo::tupleSize</tt>.
 ///
-/// @param[in]      start
+/// @param[in]      data_length
+///                 An integer of at least the size of
+///                 <tt>::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start_index
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
 ///                 <!-- default 0 -->
 ///
-/// @param[in]      length
+/// @param[in]      num_indices
 ///                 Must be at least 0 and at most
-///                 ::HAPI_AttributeInfo::count - @p start.
+///                 ::HAPI_AttributeInfo::count - @p start_index.
 ///                 <!-- source ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_SetAttributeInt8UniqueData(
@@ -6785,8 +6801,9 @@ HAPI_DECL HAPI_SetAttributeInt8UniqueData(
         const char* name,
         const HAPI_AttributeInfo* attr_info,
         const HAPI_Int8* data_array,
-        int start,
-        int length);
+        int data_length,
+        int start_index,
+        int num_indices);
 
 /// @brief  Set multiple attribute 16-bit int data to the same unique value.
 ///
@@ -6814,17 +6831,21 @@ HAPI_DECL HAPI_SetAttributeInt8UniqueData(
 ///                 returned by ::HAPI_GetAttributeInfo().
 ///
 /// @param[in]      data_array
-///                 An integer array at least the size of
-///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///                 A integer array at least the size of
+///                 <tt>::HAPI_AttributeInfo::tupleSize</tt>.
 ///
-/// @param[in]      start
+/// @param[in]      data_length
+///                 An integer of at least the size of
+///                 <tt>::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start_index
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
 ///                 <!-- default 0 -->
 ///
-/// @param[in]      length
+/// @param[in]      num_indices
 ///                 Must be at least 0 and at most
-///                 ::HAPI_AttributeInfo::count - @p start.
+///                 ::HAPI_AttributeInfo::count - @p start_index.
 ///                 <!-- source ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_SetAttributeInt16UniqueData(
@@ -6834,8 +6855,9 @@ HAPI_DECL HAPI_SetAttributeInt16UniqueData(
         const char* name,
         const HAPI_AttributeInfo* attr_info,
         const HAPI_Int16* data_array,
-        int start,
-        int length);
+        int data_length,
+        int start_index,
+        int num_indices);
 
 /// @brief  Set multiple attribute 64-bit int data to the same unique value.
 ///
@@ -6863,17 +6885,21 @@ HAPI_DECL HAPI_SetAttributeInt16UniqueData(
 ///                 returned by ::HAPI_GetAttributeInfo().
 ///
 /// @param[in]      data_array
-///                 An integer array at least the size of
-///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///                 A integer array at least the size of
+///                 <tt>::HAPI_AttributeInfo::tupleSize</tt>.
 ///
-/// @param[in]      start
+/// @param[in]      data_length
+///                 An integer of at least the size of
+///                 <tt>::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start_index
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
 ///                 <!-- default 0 -->
 ///
-/// @param[in]      length
+/// @param[in]      num_indices
 ///                 Must be at least 0 and at most
-///                 ::HAPI_AttributeInfo::count - @p start.
+///                 ::HAPI_AttributeInfo::count - @p start_index.
 ///                 <!-- source ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_SetAttributeInt64UniqueData(
@@ -6883,8 +6909,9 @@ HAPI_DECL HAPI_SetAttributeInt64UniqueData(
         const char* name,
         const HAPI_AttributeInfo* attr_info,
         const HAPI_Int64* data_array,
-        int start,
-        int length);
+        int data_length,
+        int start_index,
+        int num_indices);
 
 /// @brief  Set multiple attribute float data to the same unique value.
 ///
@@ -6912,17 +6939,21 @@ HAPI_DECL HAPI_SetAttributeInt64UniqueData(
 ///                 returned by ::HAPI_GetAttributeInfo().
 ///
 /// @param[in]      data_array
-///                 An integer array at least the size of
-///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///                 A floating point array at least the size of
+///                 <tt>::HAPI_AttributeInfo::tupleSize</tt>.
 ///
-/// @param[in]      start
+/// @param[in]      data_length
+///                 An integer of at least the size of
+///                 <tt>::HAPI_AttributeInfo::tupleSize</tt>.
+/// 
+/// @param[in]      start_index
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
 ///                 <!-- default 0 -->
 ///
-/// @param[in]      length
+/// @param[in]      num_indices
 ///                 Must be at least 0 and at most
-///                 ::HAPI_AttributeInfo::count - @p start.
+///                 ::HAPI_AttributeInfo::count - @p start_index.
 ///                 <!-- source ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_SetAttributeFloatUniqueData(
@@ -6932,8 +6963,9 @@ HAPI_DECL HAPI_SetAttributeFloatUniqueData(
         const char* name,
         const HAPI_AttributeInfo* attr_info,
         const float* data_array,
-        int start,
-        int length);
+        int data_length,
+        int start_index,
+        int num_indices);
 
 /// @brief  Set multiple attribute 64-bit float data to the same unique value.
 ///
@@ -6954,24 +6986,22 @@ HAPI_DECL HAPI_SetAttributeFloatUniqueData(
 /// @param[in]      name
 ///                 Attribute name.
 ///
-/// @param[in]      attr_info
-///                 ::HAPI_AttributeInfo used as input for what tuple size.
-///                 you want. Also contains some sanity checks like
-///                 data type. Generally should be the same struct
-///                 returned by ::HAPI_GetAttributeInfo().
-///
 /// @param[in]      data_array
-///                 An integer array at least the size of
-///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///                 A floating point array at least the size of
+///                 <tt>::HAPI_AttributeInfo::tupleSize</tt>.
 ///
-/// @param[in]      start
+/// @param[in]      data_length
+///                 An integer of at least the size of
+///                 <tt>::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start_index
 ///                 First index of range. Must be at least 0 and at
 ///                 most ::HAPI_AttributeInfo::count - 1.
 ///                 <!-- default 0 -->
 ///
-/// @param[in]      length
+/// @param[in]      num_indices
 ///                 Must be at least 0 and at most
-///                 ::HAPI_AttributeInfo::count - @p start.
+///                 ::HAPI_AttributeInfo::count - @p start_index.
 ///                 <!-- source ::HAPI_AttributeInfo::count - start -->
 ///
 HAPI_DECL HAPI_SetAttributeFloat64UniqueData(
@@ -6981,8 +7011,9 @@ HAPI_DECL HAPI_SetAttributeFloat64UniqueData(
         const char* name,
         const HAPI_AttributeInfo* attr_info,
         const double* data_array,
-        int start,
-        int length);
+        int data_length,
+        int start_index,
+        int num_indices);
 
 /// @brief  Set attribute dictionary data.
 ///
