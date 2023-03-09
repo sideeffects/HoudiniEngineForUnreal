@@ -133,19 +133,23 @@ public:
 	FString GetName() const					{ return Name; };
 	FString GetLabel() const				{ return Label; };
 	FString GetHelp() const					{ return Help; };	
-	bool GetPackBeforeMerge() const			{ return bPackBeforeMerge; };
-	bool GetImportAsReference() const		{ return bImportAsReference; };
-	bool GetImportAsReferenceRotScaleEnabled() const		{ return bImportAsReferenceRotScaleEnabled; };
+	bool GetPackBeforeMerge() const				{ return bPackBeforeMerge; };
+	bool GetImportAsReference() const			{ return bImportAsReference; };
+	bool GetImportAsReferenceRotScaleEnabled() const	{ return bImportAsReferenceRotScaleEnabled; };
 	bool GetImportAsReferenceBboxEnabled() const		{ return bImportAsReferenceBboxEnabled; };
-	bool GetImportAsReferenceMaterialEnabled() const		{ return bImportAsReferenceMaterialEnabled; };
+	bool GetImportAsReferenceMaterialEnabled() const	{ return bImportAsReferenceMaterialEnabled; };
 	bool GetExportLODs() const				{ return bExportLODs; };
-	bool GetExportSockets() const			{ return bExportSockets; };
-	bool GetPreferNaniteFallbackMesh() const { return bPreferNaniteFallbackMesh; }
-	bool GetExportColliders() const			{ return bExportColliders; };
-	bool GetExportMaterialParameters() const { return bExportMaterialParameters; };
-	bool IsObjectPathParameter() const		{ return bIsObjectPathParameter; };
-	float GetUnrealSplineResolution() const { return UnrealSplineResolution; };
-	
+	bool GetExportSockets() const				{ return bExportSockets; };
+	bool GetPreferNaniteFallbackMesh() const		{ return bPreferNaniteFallbackMesh; }
+	bool GetExportColliders() const				{ return bExportColliders; };
+	bool GetExportMaterialParameters() const		{ return bExportMaterialParameters; };
+	bool GetDirectlyConnectHdas() const			{ return bDirectlyConnectHdas; }
+	bool GetExportOptionsMenuExpanded() const		{ return bExportOptionsMenuExpanded; }
+	bool GetNewGeometryInputsMenuExpanded() const		{ return bNewGeometryInputsMenuExpanded; }
+	bool GetLandscapeOptionsMenuExpanded() const		{ return bLandscapeOptionsMenuExpanded; }
+	bool GetNewWorldInputsMenuExpanded() const		{ return bNewWorldInputsMenuExpanded; }
+	bool IsObjectPathParameter() const			{ return bIsObjectPathParameter; };
+	float GetUnrealSplineResolution() const			{ return UnrealSplineResolution; };
 	virtual bool GetCookOnCurveChange() const		{ return bCookOnCurveChanged; };
 		
 	TArray<UHoudiniInputObject*>* GetHoudiniInputObjectArray(const EHoudiniInputType& InType);
@@ -244,27 +248,32 @@ public:
 	void SetKeepWorldTransform(const bool& bInKeepWorldTransform);
 
 	void SetName(const FString& InName)								{ Name = InName; };
-	void SetLabel(const FString& InLabel)							{ Label = InLabel; };
+	void SetLabel(const FString& InLabel)								{ Label = InLabel; };
 	void SetHelp(const FString& InHelp)								{ Help = InHelp; };
-	void SetAssetNodeId(const int32& InNodeId)						{ AssetNodeId = InNodeId; };
+	void SetAssetNodeId(const int32& InNodeId)							{ AssetNodeId = InNodeId; };
 	void SetInputType(const EHoudiniInputType &InInputType, bool& bOutBlueprintStructureModified);
-	void SetPreviousInputType(const EHoudiniInputType& InType)		{ PreviousType = InType; };
-	void SetPackBeforeMerge(const bool& bInPackBeforeMerge)			{ bPackBeforeMerge = bInPackBeforeMerge; };
-	void SetImportAsReference(const bool& bInImportAsReference)		{ bImportAsReference = bInImportAsReference; };
-	void SetImportAsReferenceRotScaleEnabled(const bool& bInImportAsReferenceRotScaleEnabled)		{ bImportAsReferenceRotScaleEnabled = bInImportAsReferenceRotScaleEnabled; };
+	void SetPreviousInputType(const EHoudiniInputType& InType)					{ PreviousType = InType; };
+	void SetPackBeforeMerge(const bool& bInPackBeforeMerge)						{ bPackBeforeMerge = bInPackBeforeMerge; };
+	void SetImportAsReference(const bool& bInImportAsReference)					{ bImportAsReference = bInImportAsReference; };
+	void SetImportAsReferenceRotScaleEnabled(const bool& bInImportAsReferenceRotScaleEnabled)	{ bImportAsReferenceRotScaleEnabled = bInImportAsReferenceRotScaleEnabled; };
 	void SetImportAsReferenceBboxEnabled(const bool& bInImportAsReferenceBboxEnabled)		{ bImportAsReferenceBboxEnabled = bInImportAsReferenceBboxEnabled; };
-	void SetImportAsReferenceMaterialEnabled(const bool& bInImportAsReferenceMaterialEnabled)		{ bImportAsReferenceMaterialEnabled = bInImportAsReferenceMaterialEnabled; };
-	void SetExportLODs(const bool& bInExportLODs)					{ bExportLODs = bInExportLODs; };
-	void SetExportSockets(const bool& bInExportSockets)				{ bExportSockets = bInExportSockets; };
-	void SetPreferNaniteFallbackMesh(const bool& bInPreferNaniteFallbackMesh) { bPreferNaniteFallbackMesh = bInPreferNaniteFallbackMesh; };
-	void SetExportColliders(const bool& bInExportColliders)			{ bExportColliders = bInExportColliders; };
-	void SetExportMaterialParameters(const bool& bInExportMaterialParameters) { bExportMaterialParameters = bInExportMaterialParameters; };
-	void SetInputNodeId(const int32& InCreatedNodeId)				{ InputNodeId = InCreatedNodeId; };
-	void SetUnrealSplineResolution(const float& InResolution)		{ UnrealSplineResolution = InResolution; };
+	void SetImportAsReferenceMaterialEnabled(const bool& bInImportAsReferenceMaterialEnabled)	{ bImportAsReferenceMaterialEnabled = bInImportAsReferenceMaterialEnabled; };
+	void SetExportLODs(const bool& bInExportLODs)							{ bExportLODs = bInExportLODs; };
+	void SetExportSockets(const bool& bInExportSockets)						{ bExportSockets = bInExportSockets; };
+	void SetPreferNaniteFallbackMesh(const bool& bInPreferNaniteFallbackMesh)			{ bPreferNaniteFallbackMesh = bInPreferNaniteFallbackMesh; };
+	void SetExportColliders(const bool& bInExportColliders)						{ bExportColliders = bInExportColliders; };
+	void SetExportMaterialParameters(const bool& bInExportMaterialParameters)			{ bExportMaterialParameters = bInExportMaterialParameters; };
+	void SetDirectlyConnectHdas(const bool& bInDirectlyConnectHdas)					{ bDirectlyConnectHdas = bInDirectlyConnectHdas; }
+	void SetExportOptionsMenuExpanded(const bool& bInExportOptionsMenuExpanded) { bExportOptionsMenuExpanded = bInExportOptionsMenuExpanded; };
+	void SetNewGeometryInputsMenuExpanded(const bool& bInNewGeometryInputsMenuExpanded)		{ bNewGeometryInputsMenuExpanded = bInNewGeometryInputsMenuExpanded; }
+	void SetLandscapeOptionsMenuExpanded(const bool& bInLandscapeOptionsMenuExpanded)		{ bLandscapeOptionsMenuExpanded = bInLandscapeOptionsMenuExpanded; }
+	void SetNewWorldInputsMenuExpanded(const bool& bInNewWorldInputsMenuExpanded)			{ bNewWorldInputsMenuExpanded = bInNewWorldInputsMenuExpanded; }
+	void SetInputNodeId(const int32& InCreatedNodeId)						{ InputNodeId = InCreatedNodeId; };
+	void SetUnrealSplineResolution(const float& InResolution)					{ UnrealSplineResolution = InResolution; };
 
-	virtual void SetCookOnCurveChange(const bool & bInCookOnCurveChanged)	{ bCookOnCurveChanged = bInCookOnCurveChanged; };
+	virtual void SetCookOnCurveChange(const bool & bInCookOnCurveChanged)				{ bCookOnCurveChanged = bInCookOnCurveChanged; };
 
-	void ResetDefaultCurveOffset()								    { DefaultCurveOffset = 0.f; }
+	void ResetDefaultCurveOffset()									{ DefaultCurveOffset = 0.f; }
 
 	UHoudiniInputObject* CreateNewCurveInputObject(bool& bBlueprintStructureModified);
 
@@ -497,6 +506,26 @@ protected:
 	// Indicates that material parameters should be exported as attributes
 	UPROPERTY()
 	bool bExportMaterialParameters;
+
+	// Indicates whether HDAs are directly connected in Houdini
+	UPROPERTY()
+	bool bDirectlyConnectHdas;
+
+	// Indicates whether the export options menu is initially collapsed
+	UPROPERTY()
+	bool bExportOptionsMenuExpanded;
+
+	// Indicates whether the input selection list in the NewGeometry UI is collapsed
+	UPROPERTY()
+	bool bNewGeometryInputsMenuExpanded;
+
+	// Indicates whether the landscape options menu is collapsed
+	UPROPERTY()
+	bool bLandscapeOptionsMenuExpanded;
+	
+	// Indicates whether the input selection menu in the NewWorld UI is collapsed
+	UPROPERTY()
+	bool bNewWorldInputsMenuExpanded;
 
 	// Indicates that if trigger cook automatically on curve Input spline modified
 	UPROPERTY()

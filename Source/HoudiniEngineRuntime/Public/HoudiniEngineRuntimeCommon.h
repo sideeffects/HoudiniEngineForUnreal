@@ -73,7 +73,9 @@ enum class EHoudiniInputType : uint8
 	Landscape,
 	World,
 	Skeletal,
-	GeometryCollection
+	GeometryCollection,
+	NewGeometry,
+	NewWorld
 };
 
 UENUM()
