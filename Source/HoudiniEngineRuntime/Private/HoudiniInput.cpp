@@ -79,11 +79,6 @@ UHoudiniInput::UHoudiniInput()
 	, bPreferNaniteFallbackMesh(false)
 	, bExportColliders(false)
 	, bExportMaterialParameters(false)
-	, bDirectlyConnectHdas(true)
-	, bExportOptionsMenuExpanded(false)
-	, bNewGeometryInputsMenuExpanded(true)
-	, bLandscapeOptionsMenuExpanded(false)
-	, bNewWorldInputsMenuExpanded(true)
 	, bCookOnCurveChanged(true)
 	, bStaticMeshChanged(false)
 	, bInputAssetConnectedInHoudini(false)
@@ -222,11 +217,6 @@ void UHoudiniInput::PostEditUndo()
 			 		MarkInputNodeAsPendingDelete();
 			 	InputNodeId = -1;
 			}
-		 }
-
-		 if (Type == EHoudiniInputType::NewWorld)
-		 {
-			 // TODO: Check if anything needs to go here (based on EHoudiniInputType::World)
 		 }
 
 		 if (Type == EHoudiniInputType::Curve)
@@ -428,7 +418,6 @@ UHoudiniInput::GetBounds()
 	}
 	break;
 
-	case EHoudiniInputType::NewWorld:
 	case EHoudiniInputType::World:
 	{
 		for (int32 Idx = 0; Idx < WorldInputObjects.Num(); ++Idx)
@@ -491,12 +480,6 @@ UHoudiniInput::GetBounds()
 	case EHoudiniInputType::Skeletal:
 	{
 		// TODO: return SK mesh bounds
-	}
-	break;
-
-	case EHoudiniInputType::NewGeometry:
-	{
-		// TODO: return Geometry object bounds
 	}
 	break;
 
@@ -642,16 +625,6 @@ UHoudiniInput::InputTypeToString(const EHoudiniInputType& InInputType)
 			InputTypeStr = TEXT("GeometryCollection Input");
 		}
 		break;
-		case EHoudiniInputType::NewGeometry:
-		{
-			InputTypeStr = TEXT("New Geometry Input");
-		}
-		break;
-		case EHoudiniInputType::NewWorld:
-		{
-			InputTypeStr = TEXT("New World Input");
-		}
-		break;
 	}
 
 	return InputTypeStr;
@@ -689,14 +662,6 @@ UHoudiniInput::StringToInputType(const FString& InInputTypeString)
 	else if (InInputTypeString.StartsWith(TEXT("Skeletal"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::Skeletal;
-	}
-	else if (InInputTypeString.StartsWith(TEXT("New Geometry"), ESearchCase::IgnoreCase))
-	{
-		return EHoudiniInputType::NewGeometry;
-	}
-	else if (InInputTypeString.StartsWith(TEXT("New World"), ESearchCase::IgnoreCase))
-	{
-		return EHoudiniInputType::NewWorld;
 	}
 
 	return EHoudiniInputType::Invalid;
@@ -796,12 +761,10 @@ UHoudiniInput::GetDefaultXTransformType()
 		case EHoudiniInputType::Geometry:
 		case EHoudiniInputType::Skeletal:
 		case EHoudiniInputType::GeometryCollection: // TODO; Double check this.
-		case EHoudiniInputType::NewGeometry:
 			return EHoudiniXformType::None;
 		case EHoudiniInputType::Asset:
 		case EHoudiniInputType::Landscape:
 		case EHoudiniInputType::World:
-		case EHoudiniInputType::NewWorld:
 			return EHoudiniXformType::IntoThisObject;
 	}
 
@@ -820,8 +783,7 @@ UHoudiniInput::GetKeepWorldTransform() const
 			if (Type == EHoudiniInputType::Curve
 				|| Type == EHoudiniInputType::Geometry
 				|| Type == EHoudiniInputType::Skeletal
-				|| Type == EHoudiniInputType::GeometryCollection
-				|| Type == EHoudiniInputType::NewGeometry)
+				|| Type == EHoudiniInputType::GeometryCollection)
 			{
 				// NONE  for Geo, Curve and skeletal mesh IN
 				bReturn = false;
@@ -985,16 +947,6 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 			break;
 		}
 
-		case EHoudiniInputType::NewGeometry:
-		{
-			break;
-		}
-
-		case EHoudiniInputType::NewWorld:
-		{
-			break;
-		}
-
 		default:
 			break;
 	}
@@ -1009,7 +961,6 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 	// Check current input type
 	switch (InInputType) 
 	{
-		case EHoudiniInputType::NewWorld:	
 		case EHoudiniInputType::World:
 		case EHoudiniInputType::Asset:
 		{
@@ -1108,11 +1059,6 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 		{
 		}
 		break;
-
-		case EHoudiniInputType::NewGeometry:
-		{
-		}
-                break;
 		
 		default:
 		{
@@ -1290,6 +1236,7 @@ void UHoudiniInput::SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes)
 			continue;
 		InputObject->SetCanDeleteHoudiniNodes(bInCanDeleteNodes);
 	}
+
 }
 
 void UHoudiniInput::InvalidateData()
@@ -1358,7 +1305,7 @@ void UHoudiniInput::InvalidateData()
 			continue;
 		InputObject->InvalidateData();
 	}
-
+	
 	if (bCanDeleteHoudiniNodes && !CreatedDataNodeIds.IsEmpty())
 	{
 		// If the ref counted input system is being used, we must not delete nodes managed by the system
@@ -1707,12 +1654,6 @@ UHoudiniInput::GetHoudiniInputObjectArray(const EHoudiniInputType& InType)
 	case EHoudiniInputType::GeometryCollection:
 		return &GeometryCollectionInputObjects;
 
-	case EHoudiniInputType::NewGeometry:
-		return &GeometryInputObjects;
-
-	case EHoudiniInputType::NewWorld:
-		return &WorldInputObjects;
-
 	default:
 	case EHoudiniInputType::Invalid:
 		return nullptr;
@@ -1723,34 +1664,14 @@ UHoudiniInput::GetHoudiniInputObjectArray(const EHoudiniInputType& InType)
 
 TArray<AActor*>*
 UHoudiniInput::GetBoundSelectorObjectArray()
-{	
-	switch (Type)
-	{
-		case EHoudiniInputType::NewWorld:
-		case EHoudiniInputType::World:
-			return &WorldInputBoundSelectorObjects;
-
-		default:
-			return nullptr;
-	}
-
-	return nullptr;
+{
+	return &WorldInputBoundSelectorObjects;
 }
 
 const TArray<AActor*>*
 UHoudiniInput::GetBoundSelectorObjectArray() const
 {
-	switch (Type)
-	{
-		case EHoudiniInputType::NewWorld:
-		case EHoudiniInputType::World:
-			return &WorldInputBoundSelectorObjects;
-
-		default:
-			return nullptr;
-	}
-	
-	return nullptr;
+	return &WorldInputBoundSelectorObjects;
 }
 
 const TArray<UHoudiniInputObject*>*
@@ -1778,12 +1699,6 @@ UHoudiniInput::GetHoudiniInputObjectArray(const EHoudiniInputType& InType) const
 
 		case EHoudiniInputType::GeometryCollection:
 			return &GeometryCollectionInputObjects;
-
-		case EHoudiniInputType::NewGeometry:
-			return &GeometryInputObjects;
-
-		case EHoudiniInputType::NewWorld:
-			return &WorldInputObjects;
 
 		default:
 		case EHoudiniInputType::Invalid:
@@ -1828,15 +1743,10 @@ UHoudiniInput::GetInputObjectAt(const int32& AtIndex)
 AActor*
 UHoudiniInput::GetBoundSelectorObjectAt(const int32& AtIndex)
 {
-	TArray<AActor*>* BoundSelectorObjects = GetBoundSelectorObjectArray();
-
-	if (!BoundSelectorObjects)
+	if (!WorldInputBoundSelectorObjects.IsValidIndex(AtIndex))
 		return nullptr;
 
-	if (!BoundSelectorObjects->IsValidIndex(AtIndex))
-		return nullptr;
-
-	return (*BoundSelectorObjects)[AtIndex];
+	return WorldInputBoundSelectorObjects[AtIndex];
 }
 
 UObject*
@@ -1915,14 +1825,6 @@ UHoudiniInput::DeleteInputObjectAt(const EHoudiniInputType& InType, const int32&
 	else if (Type == EHoudiniInputType::World) 
 	{
 		// ... TODO operations for removing world input type
-	}
-	else if (Type == EHoudiniInputType::NewGeometry)
-	{
-		// ... TODO operations for removing new geometry input type
-	}
-	else if (Type == EHoudiniInputType::NewWorld)
-	{
-		// ... TODO operations for removing new world input type
 	}
 	else 
 	{
@@ -2062,12 +1964,7 @@ UHoudiniInput::GetNumberOfInputMeshes(const EHoudiniInputType& InType)
 int32
 UHoudiniInput::GetNumberOfBoundSelectorObjects() const
 {
-	const TArray<AActor*>* BoundSelectorObjects = GetBoundSelectorObjectArray();
-
-	if (!BoundSelectorObjects)
-		return 0;
-
-	return BoundSelectorObjects->Num();
+	return WorldInputBoundSelectorObjects.Num();
 }
 
 void
@@ -2207,30 +2104,36 @@ UHoudiniInput::SetInputObjectsNumber(const EHoudiniInputType& InType, const int3
 void
 UHoudiniInput::SetBoundSelectorObjectsNumber(const int32& InNewCount)
 {
-	TArray<AActor*>* BoundSelectorObjects = GetBoundSelectorObjectArray();
-
-	if (!BoundSelectorObjects)
-		return;
-
-	if (BoundSelectorObjects->Num() == InNewCount)
-		return;
-
-	BoundSelectorObjects->SetNum(InNewCount);
-
-	/*
-	// For InNewCount <= BoundSelectorObjects->Num():
-	// TODO: Not Needed?
-	// Do not destroy the input object themselves manually,
-	// destroy the input object's nodes and reduce the array's size
-	for (int32 InObjIdx = WorldInputBoundSelectorObjects.Num() - 1; InObjIdx >= InNewCount; InObjIdx--)
+	if (WorldInputBoundSelectorObjects.Num() == InNewCount)
 	{
-		UHoudiniInputObject* CurrentInputObject = WorldInputBoundSelectorObjects[InObjIdx];
-		if (!CurrentInputObject)
-			continue;
-
-		CurrentInputObject->MarkInputNodesForDeletion();
+		// Nothing to do
+		return;
 	}
-	*/
+
+	if (InNewCount > WorldInputBoundSelectorObjects.Num())
+	{
+		// Simply add new default InputObjects
+		WorldInputBoundSelectorObjects.SetNum(InNewCount);
+	}
+	else
+	{
+		/*
+		// TODO: Not Needed?
+		// Do not destroy the input object themselves manually,
+		// destroy the input object's nodes and reduce the array's size  
+		for (int32 InObjIdx = WorldInputBoundSelectorObjects.Num() - 1; InObjIdx >= InNewCount; InObjIdx--)
+		{
+			UHoudiniInputObject* CurrentInputObject = WorldInputBoundSelectorObjects[InObjIdx];
+			if (!CurrentInputObject)
+				continue;
+
+			CurrentInputObject->MarkInputNodesForDeletion();
+		}
+		*/
+
+		// Decrease the input object array size
+		WorldInputBoundSelectorObjects.SetNum(InNewCount);
+	}
 }
 
 void
@@ -2251,12 +2154,8 @@ UHoudiniInput::SetBoundSelectorObjectAt(const int32& AtIndex, AActor* InActor)
 		return;
 	}
 
-	TArray<AActor*>* BoundSelectorObjects = GetBoundSelectorObjectArray();
-
-	if (!BoundSelectorObjects)
-		return;
-
-	(*BoundSelectorObjects)[AtIndex] = InActor;
+	// Update the array with the new object
+	WorldInputBoundSelectorObjects[AtIndex] = InActor;
 }
 
 // Helper function indicating what classes are supported by an input type
@@ -2298,22 +2197,6 @@ UHoudiniInput::GetAllowedClasses(const EHoudiniInputType& InInputType)
 			AllowedClasses.Add(UGeometryCollection::StaticClass());
 			AllowedClasses.Add(UGeometryCollectionComponent::StaticClass());
 			AllowedClasses.Add(AGeometryCollectionActor::StaticClass());
-			break;
-
-		case EHoudiniInputType::NewGeometry:
-			AllowedClasses.Add(UStaticMesh::StaticClass());
-			AllowedClasses.Add(USkeletalMesh::StaticClass());
-			AllowedClasses.Add(UGeometryCollection::StaticClass());
-			AllowedClasses.Add(UGeometryCollectionComponent::StaticClass());
-			AllowedClasses.Add(AGeometryCollectionActor::StaticClass());
-			AllowedClasses.Add(UBlueprint::StaticClass());
-			AllowedClasses.Add(UDataTable::StaticClass());
-			AllowedClasses.Add(UFoliageType_InstancedStaticMesh::StaticClass());
-			break;
-		case EHoudiniInputType::NewWorld:
-			AllowedClasses.Add(AActor::StaticClass());
-			AllowedClasses.Add(UHoudiniAssetComponent::StaticClass());
-			AllowedClasses.Add(ALandscapeProxy::StaticClass());
 			break;
 		default:
 			break;
@@ -2702,14 +2585,13 @@ UHoudiniInput::SetUpdateInputLandscape(const bool bInUpdateInputLandcape)
 bool
 UHoudiniInput::UpdateWorldSelectionFromBoundSelectors()
 {
-	TArray<AActor*>* BoundSelectorObjects = GetBoundSelectorObjectArray();
-
-	if (!BoundSelectorObjects)
+	// Dont do anything if we're not a World Input
+	if (Type != EHoudiniInputType::World)
 		return false;
 
 	// Build an array of the current selection's bounds
 	TArray<FBox> AllBBox;
-	for (auto CurrentActor : *BoundSelectorObjects)
+	for (auto CurrentActor : WorldInputBoundSelectorObjects)
 	{
 		if (!IsValid(CurrentActor))
 			continue;
@@ -2735,7 +2617,7 @@ UHoudiniInput::UpdateWorldSelectionFromBoundSelectors()
 			continue;
 
 		// Check that actor is currently not selected
-		if (BoundSelectorObjects->Contains(CurrentActor))
+		if (WorldInputBoundSelectorObjects.Contains(CurrentActor))
 			continue;
 
 		// Ignore the SkySpheres?
@@ -2773,20 +2655,14 @@ UHoudiniInput::UpdateWorldSelectionFromBoundSelectors()
 bool
 UHoudiniInput::UpdateWorldSelection(const TArray<AActor*>& InNewSelection)
 {
-	// TODO: Can we use a set for NewSelectedActors instead?
 	TArray<AActor*> NewSelectedActors = InNewSelection;
-
-	EHoudiniInputType WorldType =
-		Type == EHoudiniInputType::NewWorld ? Type : EHoudiniInputType::World;
-
-	TArray<UHoudiniInputObject*>* InputObjects = GetHoudiniInputObjectArray(WorldType);
 
 	// Update our current selection with the new one
 	// Keep actors that are still selected, remove the one that are not selected anymore
 	bool bHasSelectionChanged = false;
-	for (int32 Idx = InputObjects->Num() - 1; Idx >= 0; Idx--)
+	for (int32 Idx = WorldInputObjects.Num() - 1; Idx >= 0; Idx--)
 	{
-		UHoudiniInputActor* InputActor = Cast<UHoudiniInputActor>((*InputObjects)[Idx]);
+		UHoudiniInputActor* InputActor = Cast<UHoudiniInputActor>(WorldInputObjects[Idx]);
 		AActor* CurActor = InputActor ? InputActor->GetActor() : nullptr;
 
 		if (CurActor && NewSelectedActors.Contains(CurActor))
@@ -2797,7 +2673,7 @@ UHoudiniInput::UpdateWorldSelection(const TArray<AActor*>& InNewSelection)
 		else
 		{
 			// That actor is no longer selected, remove itr from our current selection
-			DeleteInputObjectAt(WorldType, Idx);
+			DeleteInputObjectAt(EHoudiniInputType::World, Idx);
 			bHasSelectionChanged = true;
 		}
 	}
@@ -2806,9 +2682,9 @@ UHoudiniInput::UpdateWorldSelection(const TArray<AActor*>& InNewSelection)
 		bHasSelectionChanged = true;
 
 	// Then add the newly selected Actors
-	int32 InputObjectIdx = GetNumberOfInputObjects(WorldType);
+	int32 InputObjectIdx = GetNumberOfInputObjects(EHoudiniInputType::World);
 	int32 NewInputObjectNumber = InputObjectIdx + NewSelectedActors.Num();
-	SetInputObjectsNumber(WorldType, NewInputObjectNumber);
+	SetInputObjectsNumber(EHoudiniInputType::World, NewInputObjectNumber);
 	for (const auto& CurActor : NewSelectedActors)
 	{
 		// Update the input objects from the valid selected actors array
@@ -2902,22 +2778,6 @@ void UHoudiniInput::ForAllHoudiniInputObjects(TFunctionRef<void(UHoudiniInputObj
 	if (ShouldIncludeFn(EHoudiniInputType::GeometryCollection))
 	{
 		for(UHoudiniInputObject* InputObject : GeometryCollectionInputObjects)
-		{
-			Fn(InputObject);
-		}
-	}
-
-	if (ShouldIncludeFn(EHoudiniInputType::NewGeometry))
-	{
-		for (UHoudiniInputObject* InputObject : GeometryInputObjects)
-		{
-			Fn(InputObject);
-		}
-	}
-
-	if (ShouldIncludeFn(EHoudiniInputType::NewWorld))
-	{
-		for (UHoudiniInputObject* InputObject : WorldInputObjects)
 		{
 			Fn(InputObject);
 		}

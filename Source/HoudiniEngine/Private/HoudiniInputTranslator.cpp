@@ -433,10 +433,6 @@ FHoudiniInputTranslator::BuildAllInputs(
 				break;
 			case EHoudiniInputType::GeometryCollection:
 				break;
-			case EHoudiniInputType::NewGeometry:
-				break;
-			case EHoudiniInputType::NewWorld:
-				break;
 			default:
 				break;
 		}
@@ -985,7 +981,7 @@ FHoudiniInputTranslator::UpdateTransformType(UHoudiniInput* InInput)
 
 	// Geometry inputs are always set to none
 	EHoudiniInputType InputType = InInput->GetInputType();
-	if (InputType == EHoudiniInputType::Geometry || InputType == EHoudiniInputType::NewGeometry)
+	if (InputType == EHoudiniInputType::Geometry)
 		nTransformType = 0;
 
 	// Get the Input node ID from the host ID
@@ -1022,11 +1018,7 @@ FHoudiniInputTranslator::UpdateTransformType(UHoudiniInput* InInput)
 	// We want to also update the transform type on the object merge plugged into the merge node
 	// TODO: Also do it for Geo IN with multiple objects? or BP?
 	HAPI_NodeId ParentNodeId = InInput->GetInputNodeId();
-	if ((ParentNodeId >= 0)
-		&& (InputType != EHoudiniInputType::Geometry) 
-		&& (InputType != EHoudiniInputType::Asset) 
-		&& (InputType != EHoudiniInputType::GeometryCollection)
-		&& (InputType != EHoudiniInputType::NewGeometry))
+	if ((ParentNodeId >= 0) && (InputType != EHoudiniInputType::Geometry) && (InputType != EHoudiniInputType::Asset) && (InputType != EHoudiniInputType::GeometryCollection))
 	{
 		HAPI_NodeId InputObjectNodeId = -1;
 		int32 NumberOfInputMeshes = InInput->GetNumberOfInputMeshes(InputType);
@@ -1062,9 +1054,7 @@ FHoudiniInputTranslator::UpdatePackBeforeMerge(UHoudiniInput* InInput)
 	// Pack before merge is only available for Geo/World input
 	EHoudiniInputType InputType = InInput->GetInputType();
 	if (InputType != EHoudiniInputType::World
-		&& InputType != EHoudiniInputType::Geometry
-		&& InputType != EHoudiniInputType::NewGeometry
-		&& InputType != EHoudiniInputType::NewWorld)
+		&& InputType != EHoudiniInputType::Geometry)
 	{
 		// Nothing to change
 		return true;
@@ -1123,9 +1113,7 @@ FHoudiniInputTranslator::UpdateTransformOffset(UHoudiniInput* InInput)
 
 	// Transform offsets are only for geometry inputs
 	EHoudiniInputType InputType = InInput->GetInputType();
-	if (InputType != EHoudiniInputType::Geometry
-		&& InputType != EHoudiniInputType::GeometryCollection
-		&& InputType != EHoudiniInputType::NewGeometry)
+	if (InputType != EHoudiniInputType::Geometry && InputType != EHoudiniInputType::GeometryCollection)
 	{
 		// Nothing to change
 		return true;
@@ -3262,9 +3250,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 
 	// Check if this is a world input and if this is a HoudiniAssetActor
 	// If so we need to build static meshes for any proxy meshes
-	if ((InInput->GetInputType() == EHoudiniInputType::World
-		|| InInput->GetInputType() == EHoudiniInputType::NewWorld)
-		&& Actor->IsA<AHoudiniAssetActor>())
+	if (InInput->GetInputType() == EHoudiniInputType::World && Actor->IsA<AHoudiniAssetActor>())
 {
 		AHoudiniAssetActor *HAA = Cast<AHoudiniAssetActor>(Actor);
 		UHoudiniAssetComponent *HAC = HAA->GetHoudiniAssetComponent();
@@ -3603,8 +3589,7 @@ FHoudiniInputTranslator::UpdateWorldInputs(UHoudiniAssetComponent* HAC)
 	{
 		if (!CurrentInput)
 			continue;
-		if (CurrentInput->GetInputType() != EHoudiniInputType::World
-			&& CurrentInput->GetInputType() != EHoudiniInputType::NewWorld)
+		if (CurrentInput->GetInputType() != EHoudiniInputType::World)
 			continue;
 
 		UpdateWorldInput(CurrentInput);
@@ -3619,14 +3604,10 @@ FHoudiniInputTranslator::UpdateWorldInput(UHoudiniInput* InInput)
 	if (!IsValid(InInput))
 		return false;
 
-
-	EHoudiniInputType WorldType = InInput->GetInputType();
-
-	if (WorldType != EHoudiniInputType::World
-		&& WorldType != EHoudiniInputType::NewWorld)
+	if (InInput->GetInputType() != EHoudiniInputType::World)
 		return false;
 
-	TArray<UHoudiniInputObject*>* InputObjectsPtr = InInput->GetHoudiniInputObjectArray(WorldType);
+	TArray<UHoudiniInputObject*>* InputObjectsPtr = InInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
 	if (!InputObjectsPtr)
 		return false;
 
