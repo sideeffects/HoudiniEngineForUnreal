@@ -73,11 +73,7 @@ FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
 
 	if(!FHoudiniEngineUtils::HapiCookNode(InputNodeId, nullptr, true))
 		return false;
-	/*
-	HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-		FHoudiniEngine::Get().GetSession(), InputNodeId, &CookOptions), false);
-	*/
+
 	//--------------------------------------------------------------------------------------------------
     // 2. Set the part info
     //--------------------------------------------------------------------------------------------------
@@ -261,13 +257,6 @@ FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
 	// Commit the geo.
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
 		FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId), false);
-
-	// TODO: Remove me!
-	/*
-	HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-		FHoudiniEngine::Get().GetSession(), InputNodeId, &CookOptions), false);
-	*/
 
 	return FHoudiniEngineUtils::HapiCookNode(InputNodeId, nullptr, true);
 }
@@ -497,11 +486,6 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	*/
 
 	// Finally, cook the Heightfield node
-	/*
-	HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-		FHoudiniEngine::Get().GetSession(), HeightFieldId, &CookOptions), false);
-	*/
 	if(!FHoudiniEngineUtils::HapiCookNode(HeightFieldId, nullptr, true))
 		return false;
 
@@ -721,8 +705,9 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponent(
 	*/
 
 	// Finally, cook the Heightfield node
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-	FHoudiniEngine::Get().GetSession(), HeightFieldId, nullptr), false);
+	if (!FHoudiniEngineUtils::HapiCookNode(HeightFieldId, nullptr, true))
+		return false;
+
 	return true;
 }
 
@@ -967,6 +952,9 @@ FUnrealLandscapeTranslator::GetLandscapeData(
 	
 	// Extracting the uint16 values from the landscape 
 	FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
+	// Ensure we're not triggering a checkout, as we're just reading data
+	LandscapeEdit.SetShouldDirtyPackage(false);
+
 	HeightData.AddZeroed(XSize * YSize);
 	LandscapeEdit.GetHeightDataFast(MinX, MinY, MaxX, MaxY, HeightData.GetData(), 0);
 
@@ -1194,13 +1182,6 @@ FUnrealLandscapeTranslator::CreateHeightfieldInputNode(
 	
 	// Cook it
 	return FHoudiniEngineUtils::HapiCookNode(HeightfieldNodeId, nullptr, true);
-	/*
-	HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-		FHoudiniEngine::Get().GetSession(), HeightfieldNodeId, &CookOptions), false);
-
-	return true;
-	*/
 }
 
 bool
@@ -1212,11 +1193,6 @@ FUnrealLandscapeTranslator::SetHeightfieldData(
 	const FString& HeightfieldName)
 {
 	// Cook the node to get proper infos on it
-	/*
-	HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-		FHoudiniEngine::Get().GetSession(), VolumeNodeId, &CookOptions), false);
-	*/
 	if(!FHoudiniEngineUtils::HapiCookNode(VolumeNodeId, nullptr, true))
 		return false;
 
@@ -1451,6 +1427,9 @@ FUnrealLandscapeTranslator::GetLandscapeLayerData(
 
 	// extracting the uint8 values from the layer
 	FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
+	// Ensure we're not triggering a checkout, as we're just reading data
+	LandscapeEdit.SetShouldDirtyPackage(false);
+
 	LayerData.AddZeroed(XSize * YSize);
 	LandscapeEdit.GetWeightDataFast(LayerInfo, MinX, MinY, MaxX, MaxY, LayerData.GetData(), 0);
 
