@@ -778,8 +778,8 @@ UTOPNode::OnDirtyNode()
 void
 UTOPNode::InvalidateLandscapeCache()
 {
-	LandscapeReferenceLocation.bIsCached = false;
-	LandscapeSizeInfo.bIsCached = false;
+	HoudiniLandscapeSpatialData.ReferenceLocation.bIsCached = false;
+	HoudiniLandscapeSpatialData.TileSizeInfo.bIsCached = false;
 	ClearedLandscapeLayers.Empty();
 }
 

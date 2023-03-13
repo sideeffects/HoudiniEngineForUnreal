@@ -549,10 +549,14 @@ public:
 	// Notification that this TOP node has been dirtied.
 	void OnDirtyNode();
 
-	// Accessors for the landscape data caches
-	FHoudiniLandscapeExtent& GetLandscapeExtent() { return LandscapeExtent; }
-	FHoudiniLandscapeReferenceLocation& GetLandscapeReferenceLocation() { return LandscapeReferenceLocation; }
-	FHoudiniLandscapeTileSizeInfo& GetLandscapeSizeInfo() { return LandscapeSizeInfo; }
+	// Accessors for the landscape data caches - old accessors.
+	FHoudiniLandscapeExtent& GetLandscapeExtent() { return HoudiniLandscapeSpatialData.Extent; }
+	FHoudiniLandscapeReferenceLocation& GetLandscapeReferenceLocation() { return HoudiniLandscapeSpatialData.ReferenceLocation; }
+	FHoudiniLandscapeTileSizeInfo& GetLandscapeSizeInfo() { return HoudiniLandscapeSpatialData.TileSizeInfo; }
+
+	// Accessor for spatial data.
+	FHoudiniLandscapeSpatialData& GetHoudiniLandscapeSpatialData() { return HoudiniLandscapeSpatialData; };
+
 	// More cached landscape data
 	UPROPERTY()
 	TSet<FString> ClearedLandscapeLayers;
@@ -568,9 +572,7 @@ protected:
 	void InvalidateLandscapeCache();
 	
 	// Value caches used during landscape tile creation.
-	FHoudiniLandscapeReferenceLocation LandscapeReferenceLocation;
-	FHoudiniLandscapeTileSizeInfo LandscapeSizeInfo;
-	FHoudiniLandscapeExtent LandscapeExtent;
+	FHoudiniLandscapeSpatialData HoudiniLandscapeSpatialData;
 
 	// Visible in the level
 	UPROPERTY()
