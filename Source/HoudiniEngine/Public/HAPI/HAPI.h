@@ -6567,7 +6567,7 @@ HAPI_DECL HAPI_SetAttributeStringData( const HAPI_Session * session,
 /// @param[in]      string_count
 ///                 Number of strings that are indexed.
 ///
-/// @param[in]      index_array
+/// @param[in]      indices_array
 ///                 integer array at least the size of
 ///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>. Each
 ///                 entry indexes string_array.
@@ -6618,15 +6618,18 @@ HAPI_DECL HAPI_SetAttributeIndexedStringData( const HAPI_Session* session,
 ///                 data type. Generally should be the same struct
 ///                 returned by ::HAPI_GetAttributeInfo().
 ///
-/// @param[in]      data
-///                 An ::HAPI_StringHandle.
+/// @param[in]      data_array
+///                 A string
 ///
-/// @param[in]      start
-///                 First index of range. Must be at least 0 and at
-///                 most ::HAPI_AttributeInfo::count - 1.
-///                 <!-- default 0 -->
+/// @param[in]      data_length
+///                 Must be the length of string data.
 ///
-/// @param[in]      length
+///  @param[in]     start_index
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 <!-- source ::HAPI_AttributeInfo::count - start -->
+///
+///  @param[in]     num_indices
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
 ///                 <!-- source ::HAPI_AttributeInfo::count - start -->
@@ -6637,7 +6640,7 @@ HAPI_DECL HAPI_SetAttributeStringUniqueData(
         HAPI_PartId part_id,
         const char* name,
         const HAPI_AttributeInfo* attr_info,
-        const char* data,
+        const char* data_array,
         int data_length,
         int start_index,
         int num_indices);
