@@ -215,7 +215,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 		NodeSyncInput->SetInputNodeId(UnrealContentNodeId);
 		// Input type? switch to world if actors in the selection ?
 		bool bOutBPModif = false;
-		NodeSyncInput->SetInputType(EHoudiniInputType::Geometry, bOutBPModif);
+		NodeSyncInput->SetInputType(EHoudiniInputType::NewGeometry, bOutBPModif);
 		NodeSyncInput->SetName(TEXT("NodeSyncInput"));
 
 		// For each selected Asset, create a HoudiniInputObject and send it to H

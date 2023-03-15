@@ -57,6 +57,8 @@ public:
 
 	UHoudiniInput();
 
+	virtual void Serialize(FArchive& Ar) override;
+
 	// Equality operator,
 	// We consider two inputs equals if they have the same name, objparam state, and input index/parmId
 	// TODO: ParmId might be an incorrect condition
@@ -99,6 +101,9 @@ public:
 	int32 GetParameterId() const { return bIsObjectPathParameter ? ParmId : -1; };
 	// Returns the NodeId of the node plugged into this input
 	int32 GetInputNodeId() const { return InputNodeId; };
+
+	bool IsAssetInput() const;
+	bool IsLandscapeInput() const;
 
 	// For Geo inputs, returns the InputIndex, -1 if we're an object path parameter
 	int32 GetInputIndex() const { return bIsObjectPathParameter ? -1 : InputIndex; };

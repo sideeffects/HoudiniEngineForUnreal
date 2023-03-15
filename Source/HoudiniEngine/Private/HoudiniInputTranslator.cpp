@@ -696,7 +696,7 @@ FHoudiniInputTranslator::GetDefaultInputTypeFromLabel(const FString& InputName)
 	FString assetPrefix2 = TEXT("hda");
 
 	// By default, geometry input is chosen.
-	EHoudiniInputType InputType = EHoudiniInputType::Geometry;
+	EHoudiniInputType InputType = EHoudiniInputType::NewGeometry;
 
 	if (InputName.Contains(curvePrefix, ESearchCase::IgnoreCase))
 		InputType = EHoudiniInputType::Curve;
@@ -704,15 +704,15 @@ FHoudiniInputTranslator::GetDefaultInputTypeFromLabel(const FString& InputName)
 	else if ((InputName.Contains(landscapePrefix, ESearchCase::IgnoreCase))
 		|| (InputName.Contains(landscapePrefix2, ESearchCase::IgnoreCase))
 		|| (InputName.Contains(landscapePrefix3, ESearchCase::IgnoreCase)))
-		InputType = EHoudiniInputType::Landscape;
+		InputType = EHoudiniInputType::NewWorld; // Landscape;
 
 	else if ((InputName.Contains(worldPrefix, ESearchCase::IgnoreCase))
 		|| (InputName.Contains(worldPrefix2, ESearchCase::IgnoreCase)))
-		InputType = EHoudiniInputType::World;
+		InputType = EHoudiniInputType::NewWorld;
 
 	else if ((InputName.Contains(assetPrefix, ESearchCase::IgnoreCase))
 		|| (InputName.Contains(assetPrefix2, ESearchCase::IgnoreCase)))
-		InputType = EHoudiniInputType::Asset;
+		InputType = EHoudiniInputType::NewWorld; // Asset;
 
 	return InputType;
 }
@@ -807,7 +807,7 @@ FHoudiniInputTranslator::SetDefaultAssetFromHDA(UHoudiniInput* Input, bool& bOut
 		if (!pObject)
 			continue;
 
-		Input->SetInputObjectAt(EHoudiniInputType::Geometry, GeoIdx++, pObject);
+		Input->SetInputObjectAt(EHoudiniInputType::NewGeometry, GeoIdx++, pObject);
 	}
 
 	// See if we can preset world objects as well
@@ -832,8 +832,11 @@ FHoudiniInputTranslator::SetDefaultAssetFromHDA(UHoudiniInput* Input, bool& bOut
 			continue;
 
 		// Select the found actor in the world input
-		Input->SetInputObjectAt(EHoudiniInputType::World, WorldIdx++, FoundActor);
+		Input->SetInputObjectAt(EHoudiniInputType::NewWorld, WorldIdx++, FoundActor);
 
+		// Removed - new World input doesn't require separating assets and
+		// landscapes from world inputs
+		/*
 		if (FoundActor->IsA<UHoudiniAssetComponent>())
 		{
 			// Select the HDA in the asset input
@@ -844,14 +847,18 @@ FHoudiniInputTranslator::SetDefaultAssetFromHDA(UHoudiniInput* Input, bool& bOut
 			// Select the landscape in the landscape input
 			Input->SetInputObjectAt(EHoudiniInputType::Landscape, LandscapedIdx++, FoundActor);
 		}
+		*/
 
 		// Remove the Found Token
 		Tokens.RemoveAt(FoundIdx);
 	}
 
 	// See if we should change the default input type
-	if (Input->GetInputType() == EHoudiniInputType::Geometry && WorldIdx > 0 && GeoIdx == 0)
-	{		
+	if (Input->GetInputType() == EHoudiniInputType::NewGeometry && WorldIdx > 0 && GeoIdx == 0)
+	{	
+		// Can just set the input type NewWorld Input Type
+		Input->SetInputType(EHoudiniInputType::NewWorld, bOutBlueprintStructureModified);
+		/*
 		if (LandscapedIdx == WorldIdx)
 		{
 			// We've only selected landscapes, set to landscape IN
@@ -865,8 +872,9 @@ FHoudiniInputTranslator::SetDefaultAssetFromHDA(UHoudiniInput* Input, bool& bOut
 		else
 		{
 			// Set to world input
-			Input->SetInputType(EHoudiniInputType::World, bOutBlueprintStructureModified);
-		}			
+			Input->SetInputType(EHoudiniInputType::NewWorld, bOutBlueprintStructureModified);
+		}
+		*/
 	}
 
 	return true;
@@ -918,7 +926,8 @@ FHoudiniInputTranslator::UploadChangedInputs(UHoudiniAssetComponent * HAC)
 			ChangeInputType(CurrentInput, false);
 		}
 
-		if (CurrentInput->GetInputType() == EHoudiniInputType::Landscape && CurrentInput->HasLandscapeExportTypeChanged()) 
+		if ((CurrentInput->IsLandscapeInput())
+			&& CurrentInput->HasLandscapeExportTypeChanged()) 
 		{
 			DisconnectAndDestroyInput(CurrentInput, CurrentInput->GetInputType());
 			CurrentInput->MarkAllInputObjectsChanged(true);
@@ -1223,7 +1232,8 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 						FHoudiniEngine::Get().GetSession(), AssetId, InInput->GetInputIndex()));
 				}
 			}
-			else if (InInput->GetInputType() == EHoudiniInputType::World)
+			else if (InInput->GetInputType() == EHoudiniInputType::NewWorld
+					|| InInput->GetInputType() == EHoudiniInputType::World)
 			{
 				// World nodes are handled by InputObjects () (with FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete)
 			}

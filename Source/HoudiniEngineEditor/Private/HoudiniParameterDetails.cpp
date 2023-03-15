@@ -490,6 +490,8 @@ SCustomizedBox::SetHoudiniParameter(const TArray<TWeakObjectPtr<UHoudiniParamete
 				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRYCOLLECTION_MULTIPARMHEADER;
 			}
 			
+			// TODO: Check if NewGeometry and NewWorld need to be
+			// handled separately
 			default:
 				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_MULTIPARMHEADER;
 				break;
@@ -547,6 +549,9 @@ SCustomizedBox::SetHoudiniParameter(const TArray<TWeakObjectPtr<UHoudiniParamete
 					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRYCOLLECTION;
 				}
 				break;
+
+				// TODO: Check if NewGeometry and NewWorld need to be
+				// handled separately
 				default:
 					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT;
 					break;

@@ -571,7 +571,7 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 
 	EHoudiniInputType InputType = EHoudiniInputType::Invalid;
 	if (ChoiceIndex == 0)
-		InputType = EHoudiniInputType::Geometry;
+		InputType = EHoudiniInputType::NewGeometry;
 	else if (ChoiceIndex == 1)
 		InputType = EHoudiniInputType::Asset;
 	else if (ChoiceIndex == 2)
@@ -579,7 +579,7 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 	else if (ChoiceIndex == 3)
 		InputType = EHoudiniInputType::Landscape;
 	else if (ChoiceIndex == 4)
-		InputType = EHoudiniInputType::World;
+		InputType = EHoudiniInputType::NewWorld;
 	else if (ChoiceIndex == 5)
 	{
 		//InputType = EHoudiniInputType::Skeletal;
@@ -627,7 +627,7 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 	Input->SetName(ParameterName);
 	Input->SetUpdateInputLandscape(bUpdateInputLandscape);
 
-	if (InputType == EHoudiniInputType::Geometry)
+	if (InputType == EHoudiniInputType::NewGeometry || InputType == EHoudiniInputType::Geometry)
 	{
 		// Get the geo input object array
 		bool bNeedToEmpty = true;
@@ -736,7 +736,7 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 		
 		//bLandscapeExportCurves;		
 	}
-	else if (InputType == EHoudiniInputType::World)
+	else if (InputType == EHoudiniInputType::NewWorld || InputType == EHoudiniInputType::World)
 	{
 		// Get the world input object array
 		TArray<UHoudiniInputObject*>* WorldInputObjectsPtr = Input->GetHoudiniInputObjectArray(InputType);

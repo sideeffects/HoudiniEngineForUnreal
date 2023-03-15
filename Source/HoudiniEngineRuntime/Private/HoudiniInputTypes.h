@@ -38,7 +38,9 @@ static const EHoudiniInputType HoudiniInputTypeList[] = {
 	EHoudiniInputType::Landscape,
 	EHoudiniInputType::World,
 	EHoudiniInputType::Skeletal,
-	EHoudiniInputType::GeometryCollection};
+	EHoudiniInputType::GeometryCollection,
+	EHoudiniInputType::NewGeometry,
+	EHoudiniInputType::NewWorld};
 
 UENUM()
 enum class EHoudiniXformType : uint8

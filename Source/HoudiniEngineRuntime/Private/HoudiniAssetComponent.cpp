@@ -1210,8 +1210,9 @@ UHoudiniAssetComponent::NotifyCookedToDownstreamAssets()
 					continue;
 
 				EHoudiniInputType CurrentDownstreamInputType = CurrentDownstreamInput->GetInputType();
-				if (CurrentDownstreamInputType != EHoudiniInputType::Asset
-					&& CurrentDownstreamInputType != EHoudiniInputType::World)
+				
+				// Require an asset input type, not just all World/NewWorld
+				if (!CurrentDownstreamInput->IsAssetInput())
 					continue;
 
 				// Ensure that we are an input object of that input
@@ -1272,7 +1273,7 @@ UHoudiniAssetComponent::NeedsToWaitForInputHoudiniAssets()
 
 		EHoudiniInputType CurrentInputType = CurrentInput->GetInputType();
 
-		if(CurrentInputType != EHoudiniInputType::Asset && CurrentInputType != EHoudiniInputType::World)
+		if (!CurrentInput->IsAssetInput())
 			continue;
 
 		TArray<UHoudiniInputObject*>* ObjectArray = CurrentInput->GetHoudiniInputObjectArray(CurrentInputType);
@@ -2850,39 +2851,31 @@ UHoudiniAssetComponent::ApplyInputPresets()
 		if (Object->IsA<ALandscapeProxy>())
 		{
 			// selecting a landscape 
-			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::Landscape);
-			if (InsertNum == 0)
-			{
-				// Landscape inputs only support one object!
-				InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::Landscape, InsertNum, Object);
-			}
+			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::NewWorld);
+			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::NewWorld, InsertNum, Object);
 		}
 
 		// If the object is an actor, add a new world input
 		if (Object->IsA<AActor>())
 		{
 			// selecting an actor 
-			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::World);
-			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::World, InsertNum, Object);
+			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::NewWorld);
+			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::NewWorld, InsertNum, Object);
 		}
 
 		// If the object is a static mesh, add a new geometry input (TODO: or BP ? )
 		if (Object->IsA<UStaticMesh>())
 		{
 			// selecting a Staticn Mesh
-			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::Geometry);
-			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::Geometry, InsertNum, Object);
+			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::NewGeometry);
+			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::NewGeometry, InsertNum, Object);
 		}
 
 		if (Object->IsA<AHoudiniAssetActor>())
 		{
 			// selecting a Houdini Asset 
-			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::Asset);
-			if (InsertNum == 0)
-			{
-				// Assert inputs only support one object!
-				InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::Asset, InsertNum, Object);
-			}
+			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::NewWorld);
+			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::NewWorld, InsertNum, Object);
 		}
 	}
 
@@ -2890,26 +2883,26 @@ UHoudiniAssetComponent::ApplyInputPresets()
 	bool bBPStructureModified = false;
 	for (auto CurrentInput : Inputs)
 	{		
-		int32 NumGeo = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::Geometry);
+		int32 NumGeo = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::NewGeometry);
 		int32 NumAsset = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::Asset);
-		int32 NumWorld = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::World);
+		int32 NumWorld = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::NewWorld);
 		int32 NumLandscape = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::Landscape);
 
 		EHoudiniInputType NewInputType = EHoudiniInputType::Invalid;
 		if (NumLandscape > 0 && NumLandscape >= NumGeo && NumLandscape >= NumAsset && NumLandscape >= NumWorld)
-			NewInputType = EHoudiniInputType::Landscape;
+			NewInputType = EHoudiniInputType::NewWorld; // Landscape;
 		else if (NumWorld > 0 && NumWorld >= NumGeo && NumWorld >= NumAsset && NumWorld >= NumLandscape)
-			NewInputType = EHoudiniInputType::World;
+			NewInputType = EHoudiniInputType::NewWorld;
 		else if (NumAsset > 0 && NumAsset >= NumGeo && NumAsset >= NumWorld && NumAsset >= NumLandscape)
-			NewInputType = EHoudiniInputType::Asset;
+			NewInputType = EHoudiniInputType::NewWorld; // Asset;
 		else if (NumGeo > 0 && NumGeo >= NumAsset && NumGeo >= NumWorld && NumGeo >= NumLandscape)
-			NewInputType = EHoudiniInputType::Geometry;
+			NewInputType = EHoudiniInputType::NewGeometry;
 
 		if (NewInputType == EHoudiniInputType::Invalid)
 			continue;
 
 		// Change the input type, unless if it was preset to a different type and we have object for the preset type
-		if (CurrentInput->GetInputType() == EHoudiniInputType::Geometry && NewInputType != EHoudiniInputType::Geometry)
+		if (CurrentInput->GetInputType() == EHoudiniInputType::NewGeometry && NewInputType != EHoudiniInputType::NewGeometry)
 		{
 			CurrentInput->SetInputType(NewInputType, bBPStructureModified);
 		}

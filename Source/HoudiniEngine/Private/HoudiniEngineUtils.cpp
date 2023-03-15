@@ -1248,37 +1248,24 @@ FHoudiniEngineUtils::GatherLandscapeInputs(
 		UHoudiniInput* CurrentInput = HAC->GetInputAt(InputIndex);
 		if (!CurrentInput)
 			continue;
-		
-		if (CurrentInput->GetInputType() == EHoudiniInputType::World)
-		{
-			// Check if we have any landscapes as world inputs.
-			CurrentInput->ForAllHoudiniInputObjects([&AllInputLandscapes](UHoudiniInputObject* InputObject)
-			{
-				UHoudiniInputLandscape* InputLandscape = Cast<UHoudiniInputLandscape>(InputObject);
-				if (InputLandscape)
-				{
-					ALandscapeProxy* LandscapeProxy = InputLandscape->GetLandscapeProxy();
-					if (IsValid(LandscapeProxy))
-					{
-						AllInputLandscapes.Add(LandscapeProxy);
-					}
-				}
-			}, true);
-		}
-		
-		if (CurrentInput->GetInputType() != EHoudiniInputType::Landscape)
+
+		if (!CurrentInput->IsLandscapeInput())
 			continue;
 
-		// Get the landscape input's landscape
-		ALandscapeProxy* InputLandscape = Cast<ALandscapeProxy>(CurrentInput->GetInputObjectAt(0));
-		if (!InputLandscape)
-			continue;
-
-		AllInputLandscapes.Add(InputLandscape);
-
-		if (CurrentInput->GetUpdateInputLandscape())
+		for (auto InputObject : *CurrentInput->GetHoudiniInputObjectArray(CurrentInput->GetInputType()))
 		{
-			InputLandscapesToUpdate.Add(InputLandscape);
+			UHoudiniInputLandscape *InputLandscape = Cast<UHoudiniInputLandscape>(InputObject);
+			if (!InputLandscape)
+				continue;
+
+			ALandscapeProxy* LandscapeProxy = InputLandscape->GetLandscapeProxy();
+			if (!IsValid(LandscapeProxy))
+				continue;
+
+			AllInputLandscapes.Add(LandscapeProxy);
+
+			if (CurrentInput->GetUpdateInputLandscape())
+				InputLandscapesToUpdate.Add(LandscapeProxy);
 		}
 	}
 }
