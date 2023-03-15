@@ -3895,7 +3895,7 @@ FHoudiniApi::SetAttributeFloat64DataEmptyStub(const HAPI_Session * session, HAPI
 
 
 HAPI_Result
-FHoudiniApi::SetAttributeFloat64UniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const double* data_array, int start, int length)
+FHoudiniApi::SetAttributeFloat64UniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const double* data_array, int data_length, int start_index, int num_indices)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -3916,7 +3916,7 @@ FHoudiniApi::SetAttributeFloatDataEmptyStub(const HAPI_Session * session, HAPI_N
 
 
 HAPI_Result
-FHoudiniApi::SetAttributeFloatUniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const float* data_array, int start, int length)
+FHoudiniApi::SetAttributeFloatUniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const float* data_array, int data_length, int start_index, int num_indices)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -3944,7 +3944,7 @@ FHoudiniApi::SetAttributeInt16DataEmptyStub(const HAPI_Session * session, HAPI_N
 
 
 HAPI_Result
-FHoudiniApi::SetAttributeInt16UniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const HAPI_Int16* data_array, int start, int length)
+FHoudiniApi::SetAttributeInt16UniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const HAPI_Int16* data_array, int data_length, int start_index, int num_indices)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -3965,7 +3965,7 @@ FHoudiniApi::SetAttributeInt64DataEmptyStub(const HAPI_Session * session, HAPI_N
 
 
 HAPI_Result
-FHoudiniApi::SetAttributeInt64UniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const HAPI_Int64* data_array, int start, int length)
+FHoudiniApi::SetAttributeInt64UniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const HAPI_Int64* data_array, int data_length, int start_index, int num_indices)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -3986,7 +3986,7 @@ FHoudiniApi::SetAttributeInt8DataEmptyStub(const HAPI_Session * session, HAPI_No
 
 
 HAPI_Result
-FHoudiniApi::SetAttributeInt8UniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const HAPI_Int8* data_array, int start, int length)
+FHoudiniApi::SetAttributeInt8UniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const HAPI_Int8* data_array, int data_length, int start_index, int num_indices)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -4007,7 +4007,7 @@ FHoudiniApi::SetAttributeIntDataEmptyStub(const HAPI_Session * session, HAPI_Nod
 
 
 HAPI_Result
-FHoudiniApi::SetAttributeIntUniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const int* data_array, int start, int length)
+FHoudiniApi::SetAttributeIntUniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const int* data_array, int data_length, int start_index, int num_indices)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -4028,7 +4028,7 @@ FHoudiniApi::SetAttributeStringDataEmptyStub(const HAPI_Session * session, HAPI_
 
 
 HAPI_Result
-FHoudiniApi::SetAttributeStringUniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const char* data, int start, int length)
+FHoudiniApi::SetAttributeStringUniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const char* data, int data_length, int start_index, int num_indices)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -4049,7 +4049,7 @@ FHoudiniApi::SetAttributeUInt8DataEmptyStub(const HAPI_Session * session, HAPI_N
 
 
 HAPI_Result
-FHoudiniApi::SetAttributeUInt8UniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const HAPI_UInt8* data_array, int start, int length)
+FHoudiniApi::SetAttributeUInt8UniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const HAPI_UInt8* data_array, int data_length, int start_index, int num_indices)
 {
 	return HAPI_RESULT_FAILURE;
 }

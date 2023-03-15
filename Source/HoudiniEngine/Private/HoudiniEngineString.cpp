@@ -290,9 +290,10 @@ const FString& FHoudiniEngineIndexedStringMap::GetStringForIndex(int Index) cons
 void FHoudiniEngineIndexedStringMap::SetString(int Index, const FString& Value)
 {
     StringId Id;
-    if (StringToId.Contains(Value))
+	const auto * Found = StringToId.Find(Value);
+    if (Found != nullptr)
     {
-        Id = StringToId[Value];
+        Id = *Found;
     }
     else
     {
@@ -316,10 +317,12 @@ FHoudiniEngineRawStrings FHoudiniEngineIndexedStringMap::GetRawStrings() const
     return Results;
 }
 
-void FHoudiniEngineIndexedStringMap::Reset(int Size)
+void FHoudiniEngineIndexedStringMap::Reset(int ExpectedStringCount, int ExpectedIndexCount)
 {
     FHoudiniEngineIndexedStringMap Map;
     *this = Map;
+    Ids.Reserve(ExpectedIndexCount);
+	Strings.Reserve(ExpectedStringCount);
 }
 
 void FHoudiniEngineRawStrings::CreateRawStrings(const TArray<FString>& Strings)

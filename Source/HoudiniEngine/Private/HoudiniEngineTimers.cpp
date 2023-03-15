@@ -29,11 +29,17 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineTimers.h"
 
-// Off by default uncomment next line for full info,
-int FHoudiniEngineScopedTimer::OutputLevel = 0;
-//int FHoudiniEngineScopedTimer::OutputLevel = INT_MAX;
-
 int thread_local FHoudiniEngineScopedTimer::CurrentDepth = 0;
+
+static TAutoConsoleVariable<int32> CVarHoudiniEngineScopeFunctionTimerDepth(
+    TEXT("HoudiniEngine.ScopedFunctionTimers"), 
+    0,
+    TEXT("Use this to enable scoped timers. When enabled detailed function timings are sent to the log.\n")
+    TEXT("  0: off.\n")
+    TEXT("  1: profile to a function depth level of 1.\n")
+    TEXT("  2: profile to a function depth level of 2.\n")
+    TEXT("<n>: profile to a function depth level of <n>.\n")
+    );
 
 FHoudiniEngineScopedTimer::FHoudiniEngineScopedTimer(const char* Name, const FString& LabelName)
 {
@@ -49,9 +55,9 @@ FHoudiniEngineScopedTimer::~FHoudiniEngineScopedTimer()
 
     double DeltaTime = Timer.Stop();
     
-    if (DetailLevel <= OutputLevel)
+    if (DetailLevel <= GetOutputLevelLevel())
     {
-        FString Pad = "..";
+        FString Pad = "";
         for(int Indent = 0; Indent < DetailLevel; Indent++)
             Pad += "..";
 
@@ -77,3 +83,7 @@ double FHoudiniEngineTimer::Stop()
     return StopTime - StartTime;
 }
 
+int FHoudiniEngineScopedTimer::GetOutputLevelLevel()
+{
+    return CVarHoudiniEngineScopeFunctionTimerDepth.GetValueOnAnyThread();
+}

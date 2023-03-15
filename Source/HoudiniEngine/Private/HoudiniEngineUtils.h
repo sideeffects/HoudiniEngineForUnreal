@@ -389,14 +389,16 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const HAPI_NodeId& InNodeId,
 			const HAPI_PartId& InPartId,
 			const FString& InAttributeName,
-			const HAPI_AttributeInfo& InAttributeInfo);
+			const HAPI_AttributeInfo& InAttributeInfo,
+			bool bAttemptRunLengthEncoding = false);
 
 		static HAPI_Result HapiSetAttributeFloatData(
 			const float* InFloatData,
 			const HAPI_NodeId& InNodeId,
 			const HAPI_PartId& InPartId,
 			const FString& InAttributeName,
-			const HAPI_AttributeInfo& InAttributeInfo);
+			const HAPI_AttributeInfo& InAttributeInfo,
+			bool bAttemptRunLengthEncoding = false);
 
 		// Helper function to set Int attribute data
 		// The data will be sent in chunks if too large for thrift
@@ -405,14 +407,16 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const HAPI_NodeId& InNodeId,
 			const HAPI_PartId& InPartId,
 			const FString& InAttributeName,
-			const HAPI_AttributeInfo& InAttributeInfo);
+			const HAPI_AttributeInfo& InAttributeInfo,
+            bool bAttemptRunLengthEncoding = false);
 
 		static HAPI_Result HapiSetAttributeIntData(
 			const int32* InIntData,
 			const HAPI_NodeId& InNodeId,
 			const HAPI_PartId& InPartId,
 			const FString& InAttributeName,
-			const HAPI_AttributeInfo& InAttributeInfo);
+			const HAPI_AttributeInfo& InAttributeInfo,
+            bool bAttemptRunLengthEncoding = false);
 
 		static HAPI_Result HapiSetAttributeIntData(
 			const int32 InIntData,

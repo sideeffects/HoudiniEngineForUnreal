@@ -2920,7 +2920,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex), false);
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-				RGBColors, NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, AttributeInfoVertex), false);
+				RGBColors, NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, AttributeInfoVertex, true), false);
 
 			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
 			AttributeInfoVertex.tupleSize = 1;
@@ -3564,369 +3564,373 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 
 		int32 TriangleIdx = 0;
 		int32 VertexInstanceIdx = 0;
-
-		for (const FPolygonID &PolygonID : MDPolygons.GetElementIDs())
 		{
-			for (const FTriangleID& TriangleID : MeshDescription.GetPolygonTriangles(PolygonID))
-			{
+            SCOPED_FUNCTION_LABELLED_TIMER("Fetching Vertex Data");
+		    for (const FPolygonID &PolygonID : MDPolygons.GetElementIDs())
+		    {
+			    for (const FTriangleID& TriangleID : MeshDescription.GetPolygonTriangles(PolygonID))
+			    {
 
-				MeshTriangleVertexCounts[TriangleIdx] = 3;
-				for (int32 TriangleVertexIndex = 0; TriangleVertexIndex < 3; ++TriangleVertexIndex)
-				{
-					// Reverse the winding order for Houdini (but still start at 0)
-					const int32 WindingIdx = (3 - TriangleVertexIndex) % 3;
-					const FVertexInstanceID &VertexInstanceID = MeshDescription.GetTriangleVertexInstance(TriangleID, WindingIdx);
+				    MeshTriangleVertexCounts[TriangleIdx] = 3;
+				    for (int32 TriangleVertexIndex = 0; TriangleVertexIndex < 3; ++TriangleVertexIndex)
+				    {
+					    // Reverse the winding order for Houdini (but still start at 0)
+					    const int32 WindingIdx = (3 - TriangleVertexIndex) % 3;
+					    const FVertexInstanceID &VertexInstanceID = MeshDescription.GetTriangleVertexInstance(TriangleID, WindingIdx);
 
-					// // UE Vertex Instance ID to Houdini Vertex Index look up
-					// VertexInstanceIDToHIndex[VertexInstanceID.GetValue()] = VertexInstanceIdx;
+					    // // UE Vertex Instance ID to Houdini Vertex Index look up
+					    // VertexInstanceIDToHIndex[VertexInstanceID.GetValue()] = VertexInstanceIdx;
 
-					// Calculate the index of the first component of a vertex instance's value in an inline float array 
-					// representing vectors (3 float) per vertex instance
-					const int32 Float3Index = VertexInstanceIdx * 3;
+					    // Calculate the index of the first component of a vertex instance's value in an inline float array 
+					    // representing vectors (3 float) per vertex instance
+					    const int32 Float3Index = VertexInstanceIdx * 3;
 
-					//--------------------------------------------------------------------------------------------------------------------- 
-					// UVS (uvX)
-					//--------------------------------------------------------------------------------------------------------------------- 
-					if (bIsVertexInstanceUVsValid)
-					{
-						for (int32 UVLayerIndex = 0; UVLayerIndex < NumUVLayers; ++UVLayerIndex)
-						{
-							const FVector2f &UV = VertexInstanceUVs.Get(VertexInstanceID, UVLayerIndex);
-							UVs[UVLayerIndex][Float3Index + 0] = UV.X;
-							UVs[UVLayerIndex][Float3Index + 1] = 1.0f - UV.Y;
-							UVs[UVLayerIndex][Float3Index + 2] = 0;
-						}
-					}
+					    //--------------------------------------------------------------------------------------------------------------------- 
+					    // UVS (uvX)
+					    //--------------------------------------------------------------------------------------------------------------------- 
+					    if (bIsVertexInstanceUVsValid)
+					    {
+						    for (int32 UVLayerIndex = 0; UVLayerIndex < NumUVLayers; ++UVLayerIndex)
+						    {
+							    const FVector2f &UV = VertexInstanceUVs.Get(VertexInstanceID, UVLayerIndex);
+							    UVs[UVLayerIndex][Float3Index + 0] = UV.X;
+							    UVs[UVLayerIndex][Float3Index + 1] = 1.0f - UV.Y;
+							    UVs[UVLayerIndex][Float3Index + 2] = 0;
+						    }
+					    }
 
-					//--------------------------------------------------------------------------------------------------------------------- 
-					// NORMALS (N)
-					//---------------------------------------------------------------------------------------------------------------------
-					if (bIsVertexInstanceNormalsValid)
-					{
-						const FVector3f &Normal = VertexInstanceNormals.Get(VertexInstanceID);
-						Normals[Float3Index + 0] = Normal.X;
-						Normals[Float3Index + 1] = Normal.Z;
-						Normals[Float3Index + 2] = Normal.Y;
-					}
+					    //--------------------------------------------------------------------------------------------------------------------- 
+					    // NORMALS (N)
+					    //---------------------------------------------------------------------------------------------------------------------
+					    if (bIsVertexInstanceNormalsValid)
+					    {
+						    const FVector3f &Normal = VertexInstanceNormals.Get(VertexInstanceID);
+						    Normals[Float3Index + 0] = Normal.X;
+						    Normals[Float3Index + 1] = Normal.Z;
+						    Normals[Float3Index + 2] = Normal.Y;
+					    }
 
-					//--------------------------------------------------------------------------------------------------------------------- 
-					// TANGENT (tangentu)
-					//---------------------------------------------------------------------------------------------------------------------
-					if (bIsVertexInstanceTangentsValid)
-					{
-						const FVector3f &Tangent = VertexInstanceTangents.Get(VertexInstanceID);
-						Tangents[Float3Index + 0] = Tangent.X;
-						Tangents[Float3Index + 1] = Tangent.Z;
-						Tangents[Float3Index + 2] = Tangent.Y;
-					}
+					    //--------------------------------------------------------------------------------------------------------------------- 
+					    // TANGENT (tangentu)
+					    //---------------------------------------------------------------------------------------------------------------------
+					    if (bIsVertexInstanceTangentsValid)
+					    {
+						    const FVector3f &Tangent = VertexInstanceTangents.Get(VertexInstanceID);
+						    Tangents[Float3Index + 0] = Tangent.X;
+						    Tangents[Float3Index + 1] = Tangent.Z;
+						    Tangents[Float3Index + 2] = Tangent.Y;
+					    }
 
-					//--------------------------------------------------------------------------------------------------------------------- 
-					// BINORMAL (tangentv)
-					//---------------------------------------------------------------------------------------------------------------------
-					// In order to calculate the binormal we also need the tangent and normal
-					if (bIsVertexInstanceBinormalSignsValid && bIsVertexInstanceTangentsValid && bIsVertexInstanceNormalsValid)
-					{
-						const float &BinormalSign = VertexInstanceBinormalSigns.Get(VertexInstanceID);
-						FVector Binormal = FVector::CrossProduct(
-							FVector(Tangents[Float3Index + 0], Tangents[Float3Index + 1], Tangents[Float3Index + 2]),
-							FVector(Normals[Float3Index + 0], Normals[Float3Index + 1], Normals[Float3Index + 2])
-						) * BinormalSign;
-						Binormals[Float3Index + 0] = (float)Binormal.X;
-						Binormals[Float3Index + 1] = (float)Binormal.Y;
-						Binormals[Float3Index + 2] = (float)Binormal.Z;
-					}
+					    //--------------------------------------------------------------------------------------------------------------------- 
+					    // BINORMAL (tangentv)
+					    //---------------------------------------------------------------------------------------------------------------------
+					    // In order to calculate the binormal we also need the tangent and normal
+					    if (bIsVertexInstanceBinormalSignsValid && bIsVertexInstanceTangentsValid && bIsVertexInstanceNormalsValid)
+					    {
+						    const float &BinormalSign = VertexInstanceBinormalSigns.Get(VertexInstanceID);
+						    FVector Binormal = FVector::CrossProduct(
+							    FVector(Tangents[Float3Index + 0], Tangents[Float3Index + 1], Tangents[Float3Index + 2]),
+							    FVector(Normals[Float3Index + 0], Normals[Float3Index + 1], Normals[Float3Index + 2])
+						    ) * BinormalSign;
+						    Binormals[Float3Index + 0] = (float)Binormal.X;
+						    Binormals[Float3Index + 1] = (float)Binormal.Y;
+						    Binormals[Float3Index + 2] = (float)Binormal.Z;
+					    }
 
-					//--------------------------------------------------------------------------------------------------------------------- 
-					// COLORS (Cd)
-					//---------------------------------------------------------------------------------------------------------------------
-					if (bUseComponentOverrideColors || bIsVertexInstanceColorsValid)
-					{
-						FVector4f Color = FLinearColor::White;
-						if (bUseComponentOverrideColors && SMRenderData)
-						{
-							FStaticMeshComponentLODInfo& ComponentLODInfo = StaticMeshComponent->LODData[InLODIndex];
-							FStaticMeshLODResources& RenderModel = SMRenderData->LODResources[InLODIndex];
-							FColorVertexBuffer& ColorVertexBuffer = *ComponentLODInfo.OverrideVertexColors;
+					    //--------------------------------------------------------------------------------------------------------------------- 
+					    // COLORS (Cd)
+					    //---------------------------------------------------------------------------------------------------------------------
+					    if (bUseComponentOverrideColors || bIsVertexInstanceColorsValid)
+					    {
+						    FVector4f Color = FLinearColor::White;
+						    if (bUseComponentOverrideColors && SMRenderData)
+						    {
+							    FStaticMeshComponentLODInfo& ComponentLODInfo = StaticMeshComponent->LODData[InLODIndex];
+							    FStaticMeshLODResources& RenderModel = SMRenderData->LODResources[InLODIndex];
+							    FColorVertexBuffer& ColorVertexBuffer = *ComponentLODInfo.OverrideVertexColors;
 
-							int32 Index = RenderModel.WedgeMap[VertexInstanceIdx];
-							if (Index != INDEX_NONE)
-							{
-								Color = ColorVertexBuffer.VertexColor(Index).ReinterpretAsLinear();
-							}
-						}
-						else
-						{
-							Color = VertexInstanceColors.Get(VertexInstanceID);
-						}
-						RGBColors[Float3Index + 0] = Color[0];
-						RGBColors[Float3Index + 1] = Color[1];
-						RGBColors[Float3Index + 2] = Color[2];
-						Alphas[VertexInstanceIdx] = Color[3];
-					}
+							    int32 Index = RenderModel.WedgeMap[VertexInstanceIdx];
+							    if (Index != INDEX_NONE)
+							    {
+								    Color = ColorVertexBuffer.VertexColor(Index).ReinterpretAsLinear();
+							    }
+						    }
+						    else
+						    {
+							    Color = VertexInstanceColors.Get(VertexInstanceID);
+						    }
+						    RGBColors[Float3Index + 0] = Color[0];
+						    RGBColors[Float3Index + 1] = Color[1];
+						    RGBColors[Float3Index + 2] = Color[2];
+						    Alphas[VertexInstanceIdx] = Color[3];
+					    }
 
-					//--------------------------------------------------------------------------------------------------------------------- 
-					// TRIANGLE/FACE VERTEX INDICES
-					//---------------------------------------------------------------------------------------------------------------------
-					const FVertexID& VertexID = MeshDescription.GetVertexInstanceVertex(VertexInstanceID);
-					const int32 UEVertexIdx = VertexID.GetValue();
-					if (VertexIDToHIndex.IsValidIndex(UEVertexIdx))
-					{
-						MeshTriangleVertexIndices[VertexInstanceIdx] = VertexIDToHIndex[UEVertexIdx];
-					}
+					    //--------------------------------------------------------------------------------------------------------------------- 
+					    // TRIANGLE/FACE VERTEX INDICES
+					    //---------------------------------------------------------------------------------------------------------------------
+					    const FVertexID& VertexID = MeshDescription.GetVertexInstanceVertex(VertexInstanceID);
+					    const int32 UEVertexIdx = VertexID.GetValue();
+					    if (VertexIDToHIndex.IsValidIndex(UEVertexIdx))
+					    {
+						    MeshTriangleVertexIndices[VertexInstanceIdx] = VertexIDToHIndex[UEVertexIdx];
+					    }
 
-					VertexInstanceIdx++;
-				}
+					    VertexInstanceIdx++;
+				    }
 
-				//--------------------------------------------------------------------------------------------------------------------- 
-				// TRIANGLE MATERIAL ASSIGNMENT
-				//---------------------------------------------------------------------------------------------------------------------
-				const FPolygonGroupID& PolygonGroupID = MeshDescription.GetPolygonPolygonGroup(PolygonID);
-				int32 MaterialIndex = PolygonGroupToMaterialIndex.FindChecked(PolygonGroupID);
-				TriangleMaterialIndices.Add(MaterialIndex);
+				    //--------------------------------------------------------------------------------------------------------------------- 
+				    // TRIANGLE MATERIAL ASSIGNMENT
+				    //---------------------------------------------------------------------------------------------------------------------
+				    const FPolygonGroupID& PolygonGroupID = MeshDescription.GetPolygonPolygonGroup(PolygonID);
+				    int32 MaterialIndex = PolygonGroupToMaterialIndex.FindChecked(PolygonGroupID);
+				    TriangleMaterialIndices.Add(MaterialIndex);
 
-				TriangleIdx++;
-			}
+				    TriangleIdx++;
+			    }
 
+		    }
 		}
-
 		// Now transfer valid vertex instance attributes to Houdini vertex attributes
 
-		//--------------------------------------------------------------------------------------------------------------------- 
-		// UVS (uvX)
-		//--------------------------------------------------------------------------------------------------------------------- 
-		if (bIsVertexInstanceUVsValid)
 		{
-			for (int32 UVLayerIndex = 0; UVLayerIndex < NumUVLayers; UVLayerIndex++)
-			{
-				// Construct the attribute name for this UV index.
-				FString UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
-				if (UVLayerIndex > 0)
-					UVAttributeName += FString::Printf(TEXT("%d"), UVLayerIndex + 1);
+            SCOPED_FUNCTION_LABELLED_TIMER("Transfering Data");
+		    //--------------------------------------------------------------------------------------------------------------------- 
+		    // UVS (uvX)
+		    //--------------------------------------------------------------------------------------------------------------------- 
+		    if (bIsVertexInstanceUVsValid)
+		    {
+			    for (int32 UVLayerIndex = 0; UVLayerIndex < NumUVLayers; UVLayerIndex++)
+			    {
+				    // Construct the attribute name for this UV index.
+				    FString UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
+				    if (UVLayerIndex > 0)
+					    UVAttributeName += FString::Printf(TEXT("%d"), UVLayerIndex + 1);
 
-				// Create attribute for UVs
-				HAPI_AttributeInfo AttributeInfoVertex;
-				FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+				    // Create attribute for UVs
+				    HAPI_AttributeInfo AttributeInfoVertex;
+				    FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
 
-				AttributeInfoVertex.count = NumVertexInstances;
-				AttributeInfoVertex.tupleSize = 3;
-				AttributeInfoVertex.exists = true;
-				AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
-				AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
-				AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+				    AttributeInfoVertex.count = NumVertexInstances;
+				    AttributeInfoVertex.tupleSize = 3;
+				    AttributeInfoVertex.exists = true;
+				    AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+				    AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+				    AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
 
-				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-					FHoudiniEngine::Get().GetSession(),
-					NodeId, 0, TCHAR_TO_ANSI(*UVAttributeName), &AttributeInfoVertex), false);
+				    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+					    FHoudiniEngine::Get().GetSession(),
+					    NodeId, 0, TCHAR_TO_ANSI(*UVAttributeName), &AttributeInfoVertex), false);
 
-				HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-					UVs[UVLayerIndex], NodeId, 0, UVAttributeName, AttributeInfoVertex), false);
-			}
-		}
+				    HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+					    UVs[UVLayerIndex], NodeId, 0, UVAttributeName, AttributeInfoVertex, true), false);
+			    }
+		    }
 
-		//--------------------------------------------------------------------------------------------------------------------- 
-		// NORMALS (N)
-		//---------------------------------------------------------------------------------------------------------------------
-		if (bIsVertexInstanceNormalsValid)
-		{
-			// Create attribute for normals.
-			HAPI_AttributeInfo AttributeInfoVertex;
-			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+		    //--------------------------------------------------------------------------------------------------------------------- 
+		    // NORMALS (N)
+		    //---------------------------------------------------------------------------------------------------------------------
+		    if (bIsVertexInstanceNormalsValid)
+		    {
+			    // Create attribute for normals.
+			    HAPI_AttributeInfo AttributeInfoVertex;
+			    FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
 
-			AttributeInfoVertex.tupleSize = 3;
-			AttributeInfoVertex.count = Normals.Num() / AttributeInfoVertex.tupleSize;
-			AttributeInfoVertex.exists = true;
-			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
-			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
-			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+			    AttributeInfoVertex.tupleSize = 3;
+			    AttributeInfoVertex.count = Normals.Num() / AttributeInfoVertex.tupleSize;
+			    AttributeInfoVertex.exists = true;
+			    AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+			    AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+			    AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex), false);
+			    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				    FHoudiniEngine::Get().GetSession(),
+				    NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-				Normals, NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, AttributeInfoVertex), false);
-		}
+			    HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				    Normals, NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, AttributeInfoVertex, true), false);
+		    }
 
-		//--------------------------------------------------------------------------------------------------------------------- 
-		// TANGENT (tangentu)
-		//---------------------------------------------------------------------------------------------------------------------
-		if (bIsVertexInstanceTangentsValid)
-		{
-			// Create attribute for tangentu.
-			HAPI_AttributeInfo AttributeInfoVertex;
-			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+		    //--------------------------------------------------------------------------------------------------------------------- 
+		    // TANGENT (tangentu)
+		    //---------------------------------------------------------------------------------------------------------------------
+		    if (bIsVertexInstanceTangentsValid)
+		    {
+			    // Create attribute for tangentu.
+			    HAPI_AttributeInfo AttributeInfoVertex;
+			    FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
 
-			AttributeInfoVertex.tupleSize = 3;
-			AttributeInfoVertex.count = Tangents.Num() / AttributeInfoVertex.tupleSize;
-			AttributeInfoVertex.exists = true;
-			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
-			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
-			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+			    AttributeInfoVertex.tupleSize = 3;
+			    AttributeInfoVertex.count = Tangents.Num() / AttributeInfoVertex.tupleSize;
+			    AttributeInfoVertex.exists = true;
+			    AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+			    AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+			    AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, &AttributeInfoVertex), false);
+			    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				    FHoudiniEngine::Get().GetSession(),
+				    NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-				Tangents, NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, AttributeInfoVertex), false);
-		}
+			    HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				    Tangents, NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, AttributeInfoVertex), false);
+		    }
 
-		//--------------------------------------------------------------------------------------------------------------------- 
-		// BINORMAL (tangentv)
-		//---------------------------------------------------------------------------------------------------------------------
-		if (bIsVertexInstanceBinormalSignsValid)
-		{
-			// Create attribute for normals.
-			HAPI_AttributeInfo AttributeInfoVertex;
-			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+		    //--------------------------------------------------------------------------------------------------------------------- 
+		    // BINORMAL (tangentv)
+		    //---------------------------------------------------------------------------------------------------------------------
+		    if (bIsVertexInstanceBinormalSignsValid)
+		    {
+			    // Create attribute for normals.
+			    HAPI_AttributeInfo AttributeInfoVertex;
+			    FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
 
-			AttributeInfoVertex.tupleSize = 3;
-			AttributeInfoVertex.count = Binormals.Num() / AttributeInfoVertex.tupleSize;
-			AttributeInfoVertex.exists = true;
-			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
-			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
-			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+			    AttributeInfoVertex.tupleSize = 3;
+			    AttributeInfoVertex.count = Binormals.Num() / AttributeInfoVertex.tupleSize;
+			    AttributeInfoVertex.exists = true;
+			    AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+			    AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+			    AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex), false);
+			    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				    FHoudiniEngine::Get().GetSession(),
+				    NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-				Binormals, NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, AttributeInfoVertex), false);
-		}
+			    HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				    Binormals, NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, AttributeInfoVertex), false);
+		    }
 
-		//--------------------------------------------------------------------------------------------------------------------- 
-		// COLORS (Cd)
-		//---------------------------------------------------------------------------------------------------------------------
-		if (bUseComponentOverrideColors || bIsVertexInstanceColorsValid)
-		{
-			// Create attribute for colors.
-			HAPI_AttributeInfo AttributeInfoVertex;
-			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+		    //--------------------------------------------------------------------------------------------------------------------- 
+		    // COLORS (Cd)
+		    //---------------------------------------------------------------------------------------------------------------------
+		    if (bUseComponentOverrideColors || bIsVertexInstanceColorsValid)
+		    {
+			    // Create attribute for colors.
+			    HAPI_AttributeInfo AttributeInfoVertex;
+			    FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
 
-			AttributeInfoVertex.tupleSize = 3;
-			AttributeInfoVertex.count = RGBColors.Num() / AttributeInfoVertex.tupleSize;
-			AttributeInfoVertex.exists = true;
-			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
-			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
-			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+			    AttributeInfoVertex.tupleSize = 3;
+			    AttributeInfoVertex.count = RGBColors.Num() / AttributeInfoVertex.tupleSize;
+			    AttributeInfoVertex.exists = true;
+			    AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+			    AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+			    AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex), false);
+			    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				    FHoudiniEngine::Get().GetSession(),
+				    NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-				RGBColors, NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, AttributeInfoVertex), false);
+			    HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				    RGBColors, NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, AttributeInfoVertex, true), false);
 
-			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
-			AttributeInfoVertex.tupleSize = 1;
-			AttributeInfoVertex.count = Alphas.Num();
-			AttributeInfoVertex.exists = true;
-			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
-			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
-			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+			    FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+			    AttributeInfoVertex.tupleSize = 1;
+			    AttributeInfoVertex.count = Alphas.Num();
+			    AttributeInfoVertex.exists = true;
+			    AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+			    AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+			    AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex), false);
+			    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				    FHoudiniEngine::Get().GetSession(),
+				    NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-				Alphas, NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, AttributeInfoVertex), false);
-		}
+			    HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+				    Alphas, NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, AttributeInfoVertex, true), false);
+		    }
 
-		//--------------------------------------------------------------------------------------------------------------------- 
-		// TRIANGLE/FACE VERTEX INDICES
-		//---------------------------------------------------------------------------------------------------------------------
-		// We can now set vertex list.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetVertexList(
-			MeshTriangleVertexIndices, NodeId, 0), false);
+		    //--------------------------------------------------------------------------------------------------------------------- 
+		    // TRIANGLE/FACE VERTEX INDICES
+		    //---------------------------------------------------------------------------------------------------------------------
+		    // We can now set vertex list.
+		    HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetVertexList(
+			    MeshTriangleVertexIndices, NodeId, 0), false);
 
-		// Send the array of face vertex counts.
-		TArray<int32> StaticMeshFaceCounts;
-		StaticMeshFaceCounts.SetNumUninitialized(Part.faceCount);
-		for (int32 n = 0; n < Part.faceCount; n++)
-			StaticMeshFaceCounts[n] = 3;
+		    // Send the array of face vertex counts.
+		    TArray<int32> StaticMeshFaceCounts;
+		    StaticMeshFaceCounts.SetNumUninitialized(Part.faceCount);
+		    for (int32 n = 0; n < Part.faceCount; n++)
+			    StaticMeshFaceCounts[n] = 3;
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetFaceCounts(
-			StaticMeshFaceCounts, NodeId, 0), false);
+		    HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetFaceCounts(
+			    StaticMeshFaceCounts, NodeId, 0), false);
 
-		// Send material assignments to Houdini
-		if (NumMaterials > 0)
-		{
-			// List of materials, one for each face.
-			FHoudiniEngineIndexedStringMap TriangleMaterials;
+		    // Send material assignments to Houdini
+		    if (NumMaterials > 0)
+		    {
+			    // List of materials, one for each face.
+			    FHoudiniEngineIndexedStringMap TriangleMaterials;
 
-			//Lists of material parameters
-			TMap<FString, TArray<float>> ScalarMaterialParameters;
-			TMap<FString, TArray<float>> VectorMaterialParameters;
-            TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
+			    //Lists of material parameters
+			    TMap<FString, TArray<float>> ScalarMaterialParameters;
+			    TMap<FString, TArray<float>> VectorMaterialParameters;
+                TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
 
-			bool bAttributeSuccess = false;
-			if (bInExportMaterialParametersAsAttributes)
-			{
-				// Create attributes for the material and all its parameters
-				// Get material attribute data, and all material parameters data
-				FUnrealMeshTranslator::CreateFaceMaterialArray(
-					MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials,
-					ScalarMaterialParameters, VectorMaterialParameters, TextureMaterialParameters);
-			}
-			else
-			{
-				// Create attributes only for the materials
-				// Only get the material attribute data
-				FUnrealMeshTranslator::CreateFaceMaterialArray(
-					MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials);
-			}
+			    bool bAttributeSuccess = false;
+			    if (bInExportMaterialParametersAsAttributes)
+			    {
+				    // Create attributes for the material and all its parameters
+				    // Get material attribute data, and all material parameters data
+				    FUnrealMeshTranslator::CreateFaceMaterialArray(
+					    MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials,
+					    ScalarMaterialParameters, VectorMaterialParameters, TextureMaterialParameters);
+			    }
+			    else
+			    {
+				    // Create attributes only for the materials
+				    // Only get the material attribute data
+				    FUnrealMeshTranslator::CreateFaceMaterialArray(
+					    MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials);
+			    }
 
-			// Create all the needed attributes for materials
-			bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
-				NodeId,
-				0,
-				TriangleMaterials.GetIds().Num(),
-				TriangleMaterials,
-				ScalarMaterialParameters,
-				VectorMaterialParameters,
-				TextureMaterialParameters,
-				PhysicalMaterialPath);
+			    // Create all the needed attributes for materials
+			    bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
+				    NodeId,
+				    0,
+				    TriangleMaterials.GetIds().Num(),
+				    TriangleMaterials,
+				    ScalarMaterialParameters,
+				    VectorMaterialParameters,
+				    TextureMaterialParameters,
+				    PhysicalMaterialPath);
 
-			if (!bAttributeSuccess)
-			{
-				return false;
-			}
-		}
+			    if (!bAttributeSuccess)
+			    {
+				    return false;
+			    }
+		    }
 
-		//--------------------------------------------------------------------------------------------------------------------- 
-		// TRIANGLE SMOOTHING MASKS
-		//---------------------------------------------------------------------------------------------------------------------
-		TArray<int32> TriangleSmoothingMasks;
-		TriangleSmoothingMasks.SetNumZeroed(NumTriangles);
-		{
-			// Convert uint32 smoothing mask to int
-			TArray<uint32> UnsignedSmoothingMasks;
-			UnsignedSmoothingMasks.SetNumZeroed(NumTriangles);
-			FStaticMeshOperations::ConvertHardEdgesToSmoothGroup(MeshDescription, UnsignedSmoothingMasks);
-			for (int32 n = 0; n < TriangleSmoothingMasks.Num(); n++)
-				TriangleSmoothingMasks[n] = (int32)UnsignedSmoothingMasks[n];
-		}
+		    //--------------------------------------------------------------------------------------------------------------------- 
+		    // TRIANGLE SMOOTHING MASKS
+		    //---------------------------------------------------------------------------------------------------------------------
+		    TArray<int32> TriangleSmoothingMasks;
+		    TriangleSmoothingMasks.SetNumZeroed(NumTriangles);
+		    {
+			    // Convert uint32 smoothing mask to int
+			    TArray<uint32> UnsignedSmoothingMasks;
+			    UnsignedSmoothingMasks.SetNumZeroed(NumTriangles);
+			    FStaticMeshOperations::ConvertHardEdgesToSmoothGroup(MeshDescription, UnsignedSmoothingMasks);
+			    for (int32 n = 0; n < TriangleSmoothingMasks.Num(); n++)
+				    TriangleSmoothingMasks[n] = (int32)UnsignedSmoothingMasks[n];
+		    }
 
-		if (TriangleSmoothingMasks.Num() > 0)
-		{
-			HAPI_AttributeInfo AttributeInfoSmoothingMasks;
-			FHoudiniApi::AttributeInfo_Init(&AttributeInfoSmoothingMasks);
+		    if (TriangleSmoothingMasks.Num() > 0)
+		    {
+			    HAPI_AttributeInfo AttributeInfoSmoothingMasks;
+			    FHoudiniApi::AttributeInfo_Init(&AttributeInfoSmoothingMasks);
 
-			AttributeInfoSmoothingMasks.tupleSize = 1;
-			AttributeInfoSmoothingMasks.count = TriangleSmoothingMasks.Num();
-			AttributeInfoSmoothingMasks.exists = true;
-			AttributeInfoSmoothingMasks.owner = HAPI_ATTROWNER_PRIM;
-			AttributeInfoSmoothingMasks.storage = HAPI_STORAGETYPE_INT;
-			AttributeInfoSmoothingMasks.originalOwner = HAPI_ATTROWNER_INVALID;
+			    AttributeInfoSmoothingMasks.tupleSize = 1;
+			    AttributeInfoSmoothingMasks.count = TriangleSmoothingMasks.Num();
+			    AttributeInfoSmoothingMasks.exists = true;
+			    AttributeInfoSmoothingMasks.owner = HAPI_ATTROWNER_PRIM;
+			    AttributeInfoSmoothingMasks.storage = HAPI_STORAGETYPE_INT;
+			    AttributeInfoSmoothingMasks.originalOwner = HAPI_ATTROWNER_INVALID;
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, &AttributeInfoSmoothingMasks), false);
+			    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				    FHoudiniEngine::Get().GetSession(),
+				    NodeId, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, &AttributeInfoSmoothingMasks), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
-				TriangleSmoothingMasks, NodeId, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, AttributeInfoSmoothingMasks), false);
+			    HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
+				    TriangleSmoothingMasks, NodeId, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, AttributeInfoSmoothingMasks, true), false);
+		    }
 		}
 	}
 
@@ -3956,7 +3960,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, &AttributeInfoLightMapResolution), false);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
-			LightMapResolutions, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
+			LightMapResolutions, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution, true), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -4136,6 +4140,8 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 	UMaterialInterface * DefaultMaterialInterface = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
 	FString DefaultMaterialName = DefaultMaterialInterface ? DefaultMaterialInterface->GetPathName() : TEXT("default");
 
+    OutStaticMeshFaceMaterials.Reset(Materials.Num(), FaceMaterialIndices.Num());
+
 	// We need to create list of unique materials.
 	TArray<FString> UniqueMaterialList;
 
@@ -4164,7 +4170,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 		UniqueMaterialList.Add(DefaultMaterialName);
 	}
 
-	OutStaticMeshFaceMaterials.Reset(FaceMaterialIndices.Num());
+	OutStaticMeshFaceMaterials.Reset(UniqueMaterialList.Num(), FaceMaterialIndices.Num());
 
 	for (int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx)
 	{
@@ -4176,6 +4182,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 
 		OutStaticMeshFaceMaterials.SetString(FaceIdx, MaterialName);
 	}
+
 }
 
 
@@ -4205,6 +4212,8 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 	UMaterialInterface* MaterialInterface = nullptr;
 	if (Materials.Num() > 0)
 	{
+        SCOPED_FUNCTION_LABELLED_TIMER("Grather Materials");
+
 		// We have materials.
 		for (int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); MaterialIdx++)
 		{
@@ -4321,39 +4330,86 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 		}
 	}
 
-	OutStaticMeshFaceMaterials.Reset(FaceMaterialIndices.Num());
+    // Set all materials per face
+    {
+        SCOPED_FUNCTION_LABELLED_TIMER("Materials");
+        OutStaticMeshFaceMaterials.Reset(UniqueMaterialList.Num(), FaceMaterialIndices.Num());
+        for (int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx)
+        {
+            int32 FaceMaterialIdx = FaceMaterialIndices[FaceIdx];
+            if (UniqueMaterialList.IsValidIndex(FaceMaterialIdx))
+            {
+                OutStaticMeshFaceMaterials.SetString(FaceIdx, UniqueMaterialList[FaceMaterialIdx]);
+            }
+            else
+            {
+                OutStaticMeshFaceMaterials.SetString(FaceIdx, DefaultMaterialName);
+            }
+        }
+    }
 
-	// TODO: Needs to be improved!
-	// We shouldnt be testing for each face, but only for each unique facematerial value...
-	for (int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx)
+	// Add scalar parameters
 	{
-		int32 FaceMaterialIdx = FaceMaterialIndices[FaceIdx];
-		if(UniqueMaterialList.IsValidIndex(FaceMaterialIdx))
-		{
-			OutStaticMeshFaceMaterials.SetString(FaceIdx, UniqueMaterialList[FaceMaterialIdx]);
+        SCOPED_FUNCTION_LABELLED_TIMER("ScalarParams");
+	    for (auto& Pair : ScalarParams)
+        {
+            auto & Entries = OutScalarMaterialParameters[Pair.Key];
+            Entries.SetNum(FaceMaterialIndices.Num());
+			int Index = 0;
+            for (int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx)
+            {
+                int32 FaceMaterialIdx = FaceMaterialIndices[FaceIdx];
+                if (UniqueMaterialList.IsValidIndex(FaceMaterialIdx)) 
+			    {
+                    const auto& Value = Pair.Value[FaceMaterialIdx];
+                    Entries[Index++] = Value;
+                }
+            }
+            check(Index == Entries.Num());
+        }
+	}
 
-			for (auto & Pair : ScalarParams)
-			{
-				OutScalarMaterialParameters[Pair.Key].Add(Pair.Value[FaceMaterialIdx]);
-			}
-			
-			for (auto & Pair : VectorParams)
-			{
-				OutVectorMaterialParameters[Pair.Key].Add(Pair.Value[FaceMaterialIdx].R);
-				OutVectorMaterialParameters[Pair.Key].Add(Pair.Value[FaceMaterialIdx].G);
-				OutVectorMaterialParameters[Pair.Key].Add(Pair.Value[FaceMaterialIdx].B);
-				OutVectorMaterialParameters[Pair.Key].Add(Pair.Value[FaceMaterialIdx].A);
-			}
+	// Add vector parameters.
+	{
+        SCOPED_FUNCTION_LABELLED_TIMER("VectorParams");
+        for (auto& Pair : VectorParams)
+        {
+            auto& Entries = OutVectorMaterialParameters[Pair.Key];
+            Entries.SetNum(FaceMaterialIndices.Num() * 4);
+			int Index = 0;
+            for (int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx)
+            {
+                int32 FaceMaterialIdx = FaceMaterialIndices[FaceIdx];
+                if (UniqueMaterialList.IsValidIndex(FaceMaterialIdx))
+                {
+					const auto & Value = Pair.Value[FaceMaterialIdx];
+                    Entries[Index++] = Value.R;
+                    Entries[Index++] = Value.G;
+                    Entries[Index++] = Value.B;
+                    Entries[Index++] = Value.A;
+                }
+            }
+            check(Index == Entries.Num());
+        }
+	}
 
-			for (auto & Pair : TextureParams)
-			{
-                OutTextureMaterialParameters[Pair.Key].SetString(FaceIdx, Pair.Value[FaceMaterialIdx]);
-			}
-		}
-		else
-		{
-			OutStaticMeshFaceMaterials.SetString(FaceIdx, DefaultMaterialName);
-		}
+	// Add texture params.
+	{
+        SCOPED_FUNCTION_LABELLED_TIMER("TextureParams");
+
+	    for (auto& Pair : TextureParams)
+        {
+            auto& Entries = OutTextureMaterialParameters[Pair.Key];
+            Entries.Reset(UniqueMaterialList.Num(), FaceMaterialIndices.Num());
+            for (int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx)
+            {
+                int32 FaceMaterialIdx = FaceMaterialIndices[FaceIdx];
+                if (UniqueMaterialList.IsValidIndex(FaceMaterialIdx))
+                {
+                    Entries.SetString(FaceIdx, Pair.Value[FaceMaterialIdx]);
+                }
+            }
+        }
 	}
 }
 
@@ -4954,7 +5010,7 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		{
 			// The New attribute has been successfully created, set its value
 			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeFloatData(
-				Pair.Value, NodeId, PartId, CurMaterialParamAttribName, AttributeInfoMaterialParameter))
+				Pair.Value, NodeId, PartId, CurMaterialParamAttribName, AttributeInfoMaterialParameter, true))
 			{
 				bSuccess = false;
 			}
@@ -4983,7 +5039,7 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		{
 			// The New attribute has been successfully created, set its value				
 			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeFloatData(
-				Pair.Value, NodeId, PartId, CurMaterialParamAttribName, AttributeInfoMaterialParameter))
+				Pair.Value, NodeId, PartId, CurMaterialParamAttribName, AttributeInfoMaterialParameter, true))
 			{
 				bSuccess = false;
 			}
