@@ -4143,7 +4143,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
     OutStaticMeshFaceMaterials.Reset(Materials.Num(), FaceMaterialIndices.Num());
 
 	// We need to create list of unique materials.
-	TArray<FString> UniqueMaterialList;
+	TArray<FString> PerSlotMaterialList;
 
 	UMaterialInterface* MaterialInterface = nullptr;
 	if (Materials.Num())
@@ -4151,38 +4151,43 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 		// We have materials.
 		for (int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); MaterialIdx++)
 		{
+			FString ParamPrefix = Materials.Num() == 1 ? "" : FString::FromInt(MaterialIdx) + FString("_");
 			MaterialInterface = Materials[MaterialIdx];
 			if (!MaterialInterface)
 			{
 				// Null material interface found, add default instead.
-				UniqueMaterialList.Add(DefaultMaterialName);
+				PerSlotMaterialList.Add(DefaultMaterialName);
 			}
 			else
 			{
-				// We found a material, get its name		
-				UniqueMaterialList.Add(MaterialInterface->GetPathName());
+				// We found a material, get its name
+				PerSlotMaterialList.Add(MaterialInterface->GetPathName());
 			}
 		}
 	}
 	else
 	{
 		// We do not have any materials, just add default.
-		UniqueMaterialList.Add(DefaultMaterialName);
+		PerSlotMaterialList.Add(DefaultMaterialName);
 	}
 
-	OutStaticMeshFaceMaterials.Reset(UniqueMaterialList.Num(), FaceMaterialIndices.Num());
+	// Add the Material slot index in brackets if we have more than one material
+	if (PerSlotMaterialList.Num() > 1)
+	{
+		for (int32 Idx = 0; Idx < PerSlotMaterialList.Num(); ++Idx)
+		{
+			PerSlotMaterialList[Idx] = "[" + FString::FromInt(Idx) + "]" + PerSlotMaterialList[Idx];
+		}
+	}
 
+	OutStaticMeshFaceMaterials.Reset(PerSlotMaterialList.Num(), FaceMaterialIndices.Num());
 	for (int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx)
 	{
 		int32 FaceMaterialIdx = FaceMaterialIndices[FaceIdx];
 
-		const FString & MaterialName = UniqueMaterialList.IsValidIndex(FaceMaterialIdx) ? 
-		            UniqueMaterialList[FaceMaterialIdx] :
-	                DefaultMaterialName;
-
+		const FString & MaterialName = PerSlotMaterialList.IsValidIndex(FaceMaterialIdx) ? PerSlotMaterialList[FaceMaterialIdx] : DefaultMaterialName;
 		OutStaticMeshFaceMaterials.SetString(FaceIdx, MaterialName);
 	}
-
 }
 
 
@@ -4202,7 +4207,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 	FString DefaultMaterialName = DefaultMaterialInterface ? DefaultMaterialInterface->GetPathName() : TEXT("default");
 
 	// We need to create list of unique materials.
-	TArray<FString> UniqueMaterialList;
+	TArray<FString> PerSlotMaterialList;
 
 	// Initialize material parameter arrays
 	TMap<FString, TArray<float>> ScalarParams;
@@ -4222,14 +4227,14 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 			if (!MaterialInterface)
 			{
 				// Null material interface found, add default instead.
-				UniqueMaterialList.Add(DefaultMaterialName);
+				PerSlotMaterialList.Add(DefaultMaterialName);
 
 				// No need to collect material parameters on the default material
 				continue;
 			}
 
 			// We found a material, get its name and material parameters
-			UniqueMaterialList.Add(MaterialInterface->GetPathName());
+			PerSlotMaterialList.Add(MaterialInterface->GetPathName());
 
 			// Collect all scalar parameters in this material
 			{
@@ -4319,27 +4324,28 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 	else
 	{
 		// We do not have any materials, add default.
-		UniqueMaterialList.Add(DefaultMaterialName);
+		PerSlotMaterialList.Add(DefaultMaterialName);
 	}
 
-	if (UniqueMaterialList.Num() > 1)
+	// Add the Material slot index in brackets if we have more than one material
+	if (PerSlotMaterialList.Num() > 1)
 	{
-		for (int32 Idx = 0; Idx < UniqueMaterialList.Num(); ++Idx)
+		for (int32 Idx = 0; Idx < PerSlotMaterialList.Num(); ++Idx)
 		{
-			UniqueMaterialList[Idx] = "[" + FString::FromInt(Idx) + "]" + UniqueMaterialList[Idx];
+			PerSlotMaterialList[Idx] = "[" + FString::FromInt(Idx) + "]" + PerSlotMaterialList[Idx];
 		}
 	}
 
     // Set all materials per face
     {
         SCOPED_FUNCTION_LABELLED_TIMER("Materials");
-        OutStaticMeshFaceMaterials.Reset(UniqueMaterialList.Num(), FaceMaterialIndices.Num());
+        OutStaticMeshFaceMaterials.Reset(PerSlotMaterialList.Num(), FaceMaterialIndices.Num());
         for (int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx)
         {
             int32 FaceMaterialIdx = FaceMaterialIndices[FaceIdx];
-            if (UniqueMaterialList.IsValidIndex(FaceMaterialIdx))
+            if (PerSlotMaterialList.IsValidIndex(FaceMaterialIdx))
             {
-                OutStaticMeshFaceMaterials.SetString(FaceIdx, UniqueMaterialList[FaceMaterialIdx]);
+                OutStaticMeshFaceMaterials.SetString(FaceIdx, PerSlotMaterialList[FaceMaterialIdx]);
             }
             else
             {
@@ -4359,7 +4365,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
             for (int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx)
             {
                 int32 FaceMaterialIdx = FaceMaterialIndices[FaceIdx];
-                if (UniqueMaterialList.IsValidIndex(FaceMaterialIdx)) 
+                if (PerSlotMaterialList.IsValidIndex(FaceMaterialIdx)) 
 			    {
                     const auto& Value = Pair.Value[FaceMaterialIdx];
                     Entries[Index++] = Value;
@@ -4380,7 +4386,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
             for (int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx)
             {
                 int32 FaceMaterialIdx = FaceMaterialIndices[FaceIdx];
-                if (UniqueMaterialList.IsValidIndex(FaceMaterialIdx))
+                if (PerSlotMaterialList.IsValidIndex(FaceMaterialIdx))
                 {
 					const auto & Value = Pair.Value[FaceMaterialIdx];
                     Entries[Index++] = Value.R;
@@ -4400,11 +4406,11 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 	    for (auto& Pair : TextureParams)
         {
             auto& Entries = OutTextureMaterialParameters[Pair.Key];
-            Entries.Reset(UniqueMaterialList.Num(), FaceMaterialIndices.Num());
+            Entries.Reset(PerSlotMaterialList.Num(), FaceMaterialIndices.Num());
             for (int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx)
             {
                 int32 FaceMaterialIdx = FaceMaterialIndices[FaceIdx];
-                if (UniqueMaterialList.IsValidIndex(FaceMaterialIdx))
+                if (PerSlotMaterialList.IsValidIndex(FaceMaterialIdx))
                 {
                     Entries.SetString(FaceIdx, Pair.Value[FaceMaterialIdx]);
                 }
@@ -4461,10 +4467,6 @@ FUnrealMeshTranslator::CreateInputNodeForBox(
 	FHoudiniApi::SetParmFloatValue(
 		FHoudiniEngine::Get().GetSession(), BoxNodeId, "r", 2, (float)Rotator.Yaw);
 	
-	/*
-	HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
-	FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), BoxNodeId, &CookOptions);
-	*/
 	if (!FHoudiniEngineUtils::HapiCookNode(BoxNodeId, nullptr, true))
 		return false;
 
@@ -4537,10 +4539,6 @@ FUnrealMeshTranslator::CreateInputNodeForSphere(
 		FHoudiniEngine::Get().GetSession(), SphereNodeId, "scale", 0, SphereRadius / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 	*/
 
-	/*
-	HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
-	FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), SphereNodeId, &CookOptions);
-	*/
 	if (!FHoudiniEngineUtils::HapiCookNode(SphereNodeId, nullptr, true))
 		return false;
 

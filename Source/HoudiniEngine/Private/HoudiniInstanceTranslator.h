@@ -438,6 +438,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 		static bool GetMaterialOverridesFromAttributes(
 			const int32& InGeoNodeId,
 			const int32& InPartId, 
+			const EHoudiniInstancerType InInstancerType,
 			TArray<FString>& OutMaterialAttributes,
 			bool& OutMaterialOverrideNeedsCreateInstance);
 
