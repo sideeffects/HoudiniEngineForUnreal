@@ -1166,6 +1166,11 @@ FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
 bool
 FHoudiniEngineUtils::RepopulateFoliageTypeListInUI()
 {
+	// When running this as a commandlet there is no UI, 
+	// so GLevelEditorModeTools() is cranky.
+	if (IsRunningCommandlet())
+		return false;
+
 	// Update / repopulate the foliage editor mode's mesh list if the foliage editor mode is active.
 	// TODO: find a better way to do this, the relevant functions are in FEdModeFoliage and FFoliageEdModeToolkit are not API exported
 	FEditorModeTools& EditorModeTools = GLevelEditorModeTools();
