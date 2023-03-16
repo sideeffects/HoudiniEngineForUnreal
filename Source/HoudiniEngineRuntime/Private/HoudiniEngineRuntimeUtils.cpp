@@ -32,10 +32,12 @@
 
 #include "Landscape.h"
 #include "LandscapeProxy.h"
+#include "LandscapeStreamingProxy.h"
 #include "LandscapeInfo.h"
 
 #include "EngineUtils.h"
 #include "Engine/EngineTypes.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 #if WITH_EDITOR
 	#include "Editor.h"
@@ -775,4 +777,26 @@ FHoudiniEngineRuntimeUtils::ClearInputNodeDirtyFlag(const FUnrealObjectInputIden
 		return false;
 
 	return Manager->ClearDirtyFlag(InIdentifier);
+}
+
+void FHoudiniEngineRuntimeUtils::DestroyLandscapeProxy(ALandscapeProxy* Proxy)
+{
+	// UE5 does not automatically delete streaming proxies, so clean them up before detroying the parent actor.
+	// Note the Proxies array must be copied, not referenced, as it is modified when each Proxy is destroyed.
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 1
+	TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = Proxy->GetLandscapeInfo()->StreamingProxies;
+#else
+    TArray<TObjectPtr<ALandscapeStreamingProxy>> Proxies = Proxy->GetLandscapeInfo()->Proxies;
+#endif
+
+	for (TWeakObjectPtr<ALandscapeStreamingProxy> Child : Proxies)
+	{
+		if (Child.Get() != nullptr && IsValid(Child.Get()))
+			Child.Get()->Destroy();
+	}
+
+	// Once we've removed the streaming proxies delete the landscape actor itself.
+
+	Proxy->Destroy();
 }

@@ -41,6 +41,7 @@
 #include "HoudiniPackageParams.h"
 #include "HoudiniStringResolver.h"
 #include "HoudiniInput.h"
+#include "HoudiniEngineRuntimeUtils.h"
 
 #include "ObjectTools.h"
 #include "FileHelpers.h"
@@ -311,7 +312,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_Generate(
 				if (!ActiveLandscapes.Contains(LandscapeProxy))
 				{
 					// This landscape actor is no longer in use. Trash it.
-					LandscapeProxy->Destroy();
+					FHoudiniEngineRuntimeUtils::DestroyLandscapeProxy(LandscapeProxy);
 				}
 			}
 			LandscapePtr->SetSoftPtr(nullptr);
@@ -2111,7 +2112,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 				// We shouldn't destroy any input landscapes
 				if (!InAllInputLandscapes.Contains(LandscapeProxy))
 				{
-					LandscapeProxy->Destroy();
+					FHoudiniEngineRuntimeUtils::DestroyLandscapeProxy(LandscapeProxy);
 					LandscapePtr->SetSoftPtr(nullptr);
 				}
 			}
@@ -2730,7 +2731,7 @@ FHoudiniLandscapeTranslator::SetLandscapeActorAsOutput_Temp(
 		{
 			if (Proxy != LandscapeActor)
 			{
-				Proxy->Destroy();
+				FHoudiniEngineRuntimeUtils::DestroyLandscapeProxy(Proxy);
 				LandscapePtr->GetSoftPtr().Reset();
 			}
 		}
@@ -4505,7 +4506,7 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 			FIntRect Bounds = Proxy->GetBoundingRect();
 			// If this landscape proxy has no more components left, remove it from the LandscapeInfo.
 			LandscapeInfo->UnregisterActor(Proxy);
-			Proxy->Destroy();
+			FHoudiniEngineRuntimeUtils::DestroyLandscapeProxy(Proxy);
 		}
 
 		ULandscapeInfo::RecreateLandscapeInfo(InWorld, true);
@@ -4683,7 +4684,7 @@ FHoudiniLandscapeTranslator::DestroyLandscape(ALandscape* Landscape)
 			continue;
 
 		Info->UnregisterActor(Proxy);
-		Proxy->Destroy();
+		FHoudiniEngineRuntimeUtils::DestroyLandscapeProxy(Proxy);
 	}
 	Landscape->Destroy();
 }
@@ -5623,5 +5624,6 @@ bool FHoudiniLandscapeTranslator::SetActiveLandscapeLayer(ALandscape* Landscape,
 
 	return false;
 }
+
 
 

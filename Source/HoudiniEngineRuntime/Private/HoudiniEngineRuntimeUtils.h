@@ -346,6 +346,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 		// Helper for clearing the dirty flag an input node in the ref counted input system.
 		static bool ClearInputNodeDirtyFlag(const FUnrealObjectInputIdentifier& InIdentifier);
 
+
+		// Helper function for destroying landscapes.
+		static void DestroyLandscapeProxy(ALandscapeProxy* Proxy);
+
 	protected:
 		// taken from FPaths::GetTCharPtr
 		FORCEINLINE static const TCHAR* GetTCharPtr(const TCHAR* Ptr)
