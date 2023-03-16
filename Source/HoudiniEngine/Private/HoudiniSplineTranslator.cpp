@@ -1498,10 +1498,6 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNode(
 			HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT, ParmId, 0), false);
 
 		// Cook the newly created node
-		HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-		FHoudiniEngine::Get().GetSession(), NewNodeId, &CookOptions), false);
-	
 		return FHoudiniEngineUtils::HapiCookNode(NewNodeId, nullptr, true);
 	}
 	else
