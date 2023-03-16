@@ -4602,6 +4602,10 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 		UHoudiniInputHoudiniSplineComponent* HoudiniSplineInputObject =
 			Cast<UHoudiniInputHoudiniSplineComponent>(HoudiniInputObject);
 
+		// When using a blueprint derived class of HoudiniAssetActor, this is null when the blueprint recompiles 
+		if (!IsValid(HoudiniSplineInputObject))
+			return FoundHoudiniSplineComponent;
+
 		FoundHoudiniSplineComponent = HoudiniSplineInputObject->GetCurveComponent();
 
 		return FoundHoudiniSplineComponent;
@@ -4620,6 +4624,10 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 	UHoudiniInputObject* HoudiniInputObject = (*CurveInputComponentArray)[InCurveObjectIdx];
 	UHoudiniInputHoudiniSplineComponent* HoudiniSplineInputObject =
 		Cast<UHoudiniInputHoudiniSplineComponent>(HoudiniInputObject);
+
+	// When using a blueprint derived class of HoudiniAssetActor, this is null when the blueprint recompiles 
+	if (!IsValid(HoudiniInputObject))
+		return;
 
 	UHoudiniSplineComponent * HoudiniSplineComponent = HoudiniSplineInputObject->GetCurveComponent();
 	if (!HoudiniSplineComponent)
