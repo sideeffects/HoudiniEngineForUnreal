@@ -157,7 +157,7 @@ FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(
 	}
 
 	// See if we have instancer material overrides
-	if (!GetMaterialOverridesFromAttributes(InHGPO.GeoId, InHGPO.PartId, OutInstancedOutputPartData.MaterialAttributes, OutInstancedOutputPartData.bMaterialOverrideNeedsCreateInstance))
+	if (!GetMaterialOverridesFromAttributes(InHGPO.GeoId, InHGPO.PartId, InHGPO.InstancerType, OutInstancedOutputPartData.MaterialAttributes, OutInstancedOutputPartData.bMaterialOverrideNeedsCreateInstance))
 		OutInstancedOutputPartData.MaterialAttributes.Empty();
 
 	return true;
@@ -2890,7 +2890,7 @@ FHoudiniInstanceTranslator::RemoveAndDestroyComponent(UObject* InComponent, UObj
 
 bool
 FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
-	const int32& InGeoNodeId, const int32& InPartId, TArray<FString>& OutMaterialAttributes, bool& OutMaterialOverrideNeedsCreateInstance)
+	const int32& InGeoNodeId, const int32& InPartId, const EHoudiniInstancerType InInstancerType, TArray<FString>& OutMaterialAttributes, bool& OutMaterialOverrideNeedsCreateInstance)
 {
 	HAPI_AttributeInfo MaterialAttributeInfo;
 	FHoudiniApi::AttributeInfo_Init(&MaterialAttributeInfo);
@@ -2900,7 +2900,7 @@ FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
 	HAPI_PartInfo PartInfo;
 	FHoudiniApi::PartInfo_Init(&PartInfo);
 	HAPI_Result Error = HAPI_RESULT_FAILURE;
-	HAPI_AttributeOwner AttribOwner = HAPI_ATTROWNER_PRIM;
+	HAPI_AttributeOwner AttribOwner = InInstancerType == EHoudiniInstancerType::AttributeInstancer ? HAPI_ATTROWNER_POINT : HAPI_ATTROWNER_PRIM;
 	Error = FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(),
 		InGeoNodeId, InPartId, &PartInfo);
 
@@ -3076,7 +3076,7 @@ FHoudiniInstanceTranslator::GetInstancerMaterials(
 {
 	TArray<FString> MaterialAttributes;
 	bool bMaterialOverrideNeedsCreateInstance = false;
-	if (!GetMaterialOverridesFromAttributes(InGeoNodeId, InPartId, MaterialAttributes, bMaterialOverrideNeedsCreateInstance))
+	if (!GetMaterialOverridesFromAttributes(InGeoNodeId, InPartId, InHGPO.InstancerType, MaterialAttributes, bMaterialOverrideNeedsCreateInstance))
 		MaterialAttributes.Empty();
 
 	if (!bMaterialOverrideNeedsCreateInstance)
