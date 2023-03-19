@@ -64,7 +64,7 @@
 #include "InstancedFoliageActor.h"
 #include "GeometryCollection/GeometryCollectionActor.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
-
+#include "HoudiniFoliageTools.h"
 #include "Engine/UserDefinedStruct.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
@@ -2353,42 +2353,18 @@ FHoudiniOutputTranslator::ClearOutput(UHoudiniOutput* Output)
 		{
 			for (auto& OutputObject : Output->GetOutputObjects())
 			{
-				for(auto OutputComponent : OutputObject.Value.OutputComponents)
-				{
-				    // Is this a foliage instancer? Check if the component is owned by an AInstancedFoliageActor
-				    UActorComponent* const Component = Cast<UActorComponent>(OutputComponent);
-				    if (!IsValid(Component))
-					    continue;
-				    AActor* const OwnerActor = Component->GetOwner();
-				    if (!IsValid(OwnerActor) || !OwnerActor->IsA<AInstancedFoliageActor>())
-					    continue;
-				    
-				    UHierarchicalInstancedStaticMeshComponent* const FoliageHISMC = Cast<UHierarchicalInstancedStaticMeshComponent>(Component);
-				    if (IsValid(FoliageHISMC))
+				// Note: don't delete the actual components created by Unreal - they are "owned" by Unreal-  instead expcility remove the foliage types.
+
+                if (IsValid(OutputObject.Value.FoliageType))
+                {
+				    if (IsValid(OutputObject.Value.World))
 				    {
-					    // Find the parent component: the output is typically owned by an HAC.
-					    USceneComponent* ParentComponent = nullptr;
-					    UObject* const OutputOuter = Output->GetOuter();
-					    if (IsValid(OutputOuter))
-					    {
-						    if (OutputOuter->IsA<UHoudiniAssetComponent>())
-						    {
-							    ParentComponent = Cast<USceneComponent>(OutputOuter);
-						    }
-						    // other possibilities?
-					    }
-					    
-					    // fallback to trying the owner of the HISMC
-					    if (!ParentComponent)
-					    {
-						    ParentComponent = Cast<USceneComponent>(FoliageHISMC);
-					    }
-					    
-					    if (IsValid(ParentComponent))
-					    {
-						    FHoudiniInstanceTranslator::CleanupFoliageInstances(FoliageHISMC, OutputObject.Value.OutputObject, ParentComponent);
-						    FHoudiniEngineUtils::RepopulateFoliageTypeListInUI();
-					    }
+					    FHoudiniFoliageTools::RemoveFoliageTypeFromWorld(OutputObject.Value.World, OutputObject.Value.FoliageType);
+				    }
+					else
+				    {
+                        HOUDINI_LOG_ERROR(TEXT("Trying to delete Foliage Type, but no World was set. "
+                            "Most likely this foliage was cooked with a previous vertion of the Houdini Plugin, try deleting the foliage manually."));
 				    }
 				}
 			}
