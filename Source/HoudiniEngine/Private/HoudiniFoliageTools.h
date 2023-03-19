@@ -69,5 +69,8 @@ public:
 	// Removed Foliage Type from world
 	static void RemoveFoliageTypeFromWorld(UWorld * World, UFoliageType * FoliageType);
 
+private:
+	// Update the instance base ID of AInstancedFoliageActor.
+	static void UpdateBaseInfoForFoliageInstance(AInstancedFoliageActor* InstancedFoliageActor);
 };
 

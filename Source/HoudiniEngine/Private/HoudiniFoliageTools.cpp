@@ -38,6 +38,8 @@
 #include "FoliageType_InstancedStaticMesh.h"
 #include "InstancedFoliageActor.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "Components/ModelComponent.h"
+#include "Components/BrushComponent.h"
 
 #if WITH_EDITOR
 #include "EditorModeManager.h"
@@ -203,6 +205,8 @@ void FHoudiniFoliageTools::SpawnFoliageInstance(UWorld* InWorld, UFoliageType* S
 		Info->AddInstances(FoliageSettings, PlacedLevelInstances.Value);
 
 		Info->Refresh(false, true);
+
+		UpdateBaseInfoForFoliageInstance(IFA);
 	}
 
 	TArray<FFoliageInfo*> FoliageInfos = FHoudiniFoliageTools::GetAllFoliageInfo(InWorld, Settings);
@@ -225,4 +229,69 @@ FHoudiniFoliageTools::RemoveFoliageTypeFromWorld(UWorld* World, UFoliageType* Fo
 	}
 }
 
+void FHoudiniFoliageTools::UpdateBaseInfoForFoliageInstance(AInstancedFoliageActor* InstancedFoliageActor)
+{
+	InstancedFoliageActor->ForEachFoliageInfo([InstancedFoliageActor](UFoliageType* FoliageType, FFoliageInfo& FoliageInfo)
+	{
+		if (FoliageInfo.Instances.Num() > 0)
+		{
+			FoliageInfo.SelectInstances(true);
+			TArray<int32> SelectedIndices = FoliageInfo.SelectedIndices.Array();
+			FoliageInfo.PreMoveInstances(SelectedIndices);
 
+			UWorld* World = InstancedFoliageActor->GetWorld();
+			for (int32 InstanceIndex = 0; InstanceIndex < FoliageInfo.Instances.Num(); ++InstanceIndex)
+			{
+				FFoliageInstance& FoliageInstance = FoliageInfo.Instances[InstanceIndex];
+				FVector Start = FoliageInstance.Location + FVector(0.f, 0.f, 1000.f);
+				FVector End = FoliageInstance.Location - FVector(0.f, 0.f, 10000.f);
+
+				FHitResult Hit;
+				static FName NAME_UpdateBaseInfo = FName("UpdateFoliageBaseInfo");
+				if (AInstancedFoliageActor::FoliageTrace(World, Hit, FDesiredFoliageInstance(Start, End, FoliageType), NAME_UpdateBaseInfo, false, FFoliageTraceFilterFunc(), (FoliageInstance.Flags & FOLIAGE_AlignToNormal)))
+				{
+					UPrimitiveComponent* HitComponent = Hit.Component.Get();
+					if (HitComponent->GetComponentLevel() != InstancedFoliageActor->GetLevel())
+					{
+						continue;
+					}
+
+					if (HitComponent->IsCreatedByConstructionScript())
+					{
+						continue;
+					}
+
+					if (UModelComponent* ModelComponent = Cast<UModelComponent>(HitComponent))
+					{
+						if (ABrush* BrushActor = ModelComponent->GetModel()->FindBrush((FVector3f)Hit.Location))
+						{
+							HitComponent = BrushActor->GetBrushComponent();
+						}
+					}
+
+					auto NewBaseID = InstancedFoliageActor->InstanceBaseCache.AddInstanceBaseId(FoliageInfo.ShouldAttachToBaseComponent() ? HitComponent : nullptr);
+					FoliageInfo.RemoveFromBaseHash(InstanceIndex);
+					FoliageInstance.BaseId = NewBaseID;
+					if (FoliageInstance.BaseId == FFoliageInstanceBaseCache::InvalidBaseId)
+					{
+						FoliageInstance.BaseComponent = nullptr;
+					}
+					FoliageInfo.AddToBaseHash(InstanceIndex);
+
+					FoliageInstance.Location = Hit.Location;
+					FoliageInstance.ZOffset = 0.f;
+
+					if (FoliageInstance.Flags & FOLIAGE_AlignToNormal)
+					{
+						FoliageInstance.Rotation = FoliageInstance.PreAlignRotation;
+						FoliageInstance.AlignToNormal(Hit.Normal, FoliageType->AlignMaxAngle);
+					}
+				}
+			}
+
+			FoliageInfo.PostMoveInstances(SelectedIndices);
+			FoliageInfo.SelectInstances(false);
+		}
+		return true;
+	});
+}
