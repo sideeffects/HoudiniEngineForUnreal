@@ -49,8 +49,8 @@ FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
 	ALandscapeProxy* LandscapeProxy, 
 	HAPI_NodeId& CreatedNodeId, 
 	const FString& InputNodeNameString,
-	const bool& bExportGeometryAsMesh, 
-	const bool& bExportTileUVs,
+	const bool bExportGeometryAsMesh, 
+	const bool bExportTileUVs,
 	const bool bExportNormalizedUVs,
 	const bool bExportLighting,
 	const bool bExportMaterials	)

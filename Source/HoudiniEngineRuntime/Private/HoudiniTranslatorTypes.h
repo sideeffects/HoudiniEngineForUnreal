@@ -75,3 +75,11 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeReferenceLocation
 	// Transform of the main landscape actor.
 	FTransform MainTransform;
 };
+
+// Used to store cached spatial data. See above structs for more detail.
+struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeSpatialData
+{
+	FHoudiniLandscapeExtent Extent;
+	FHoudiniLandscapeTileSizeInfo TileSizeInfo;
+	FHoudiniLandscapeReferenceLocation ReferenceLocation;
+};
