@@ -1226,11 +1226,14 @@ FHoudiniEngineUtils::RepopulateFoliageTypeListInUI()
 
 	// Update / repopulate the foliage editor mode's mesh list if the foliage editor mode is active.
 	// TODO: find a better way to do this, the relevant functions are in FEdModeFoliage and FFoliageEdModeToolkit are not API exported
+	//
+	// This used to deactivate Foliage then Activate it again. But this crashed in UE 5.0, so for now go back to
+	// Placement mode.
 	FEditorModeTools& EditorModeTools = GLevelEditorModeTools();
 	if (EditorModeTools.IsModeActive(FBuiltinEditorModes::EM_Foliage))
 	{
 		EditorModeTools.DeactivateMode(FBuiltinEditorModes::EM_Foliage);
-		EditorModeTools.ActivateMode(FBuiltinEditorModes::EM_Foliage);
+		EditorModeTools.ActivateMode(FBuiltinEditorModes::EM_Placement);
 		return true;
 	}
 
@@ -1253,24 +1256,37 @@ FHoudiniEngineUtils::GatherLandscapeInputs(
 		UHoudiniInput* CurrentInput = HAC->GetInputAt(InputIndex);
 		if (!CurrentInput)
 			continue;
-
-		if (!CurrentInput->IsLandscapeInput())
+		
+		if (CurrentInput->GetInputType() == EHoudiniInputType::World)
+		{
+			// Check if we have any landscapes as world inputs.
+			CurrentInput->ForAllHoudiniInputObjects([&AllInputLandscapes](UHoudiniInputObject* InputObject)
+			{
+				UHoudiniInputLandscape* InputLandscape = Cast<UHoudiniInputLandscape>(InputObject);
+				if (InputLandscape)
+				{
+					ALandscapeProxy* LandscapeProxy = InputLandscape->GetLandscapeProxy();
+					if (IsValid(LandscapeProxy))
+					{
+						AllInputLandscapes.Add(LandscapeProxy);
+					}
+				}
+			}, true);
+		}
+		
+		if (CurrentInput->GetInputType() != EHoudiniInputType::Landscape)
 			continue;
 
-		for (auto InputObject : *CurrentInput->GetHoudiniInputObjectArray(CurrentInput->GetInputType()))
+		// Get the landscape input's landscape
+		ALandscapeProxy* InputLandscape = Cast<ALandscapeProxy>(CurrentInput->GetInputObjectAt(0));
+		if (!InputLandscape)
+			continue;
+
+		AllInputLandscapes.Add(InputLandscape);
+
+		if (CurrentInput->GetUpdateInputLandscape())
 		{
-			UHoudiniInputLandscape *InputLandscape = Cast<UHoudiniInputLandscape>(InputObject);
-			if (!InputLandscape)
-				continue;
-
-			ALandscapeProxy* LandscapeProxy = InputLandscape->GetLandscapeProxy();
-			if (!IsValid(LandscapeProxy))
-				continue;
-
-			AllInputLandscapes.Add(LandscapeProxy);
-
-			if (CurrentInput->GetUpdateInputLandscape())
-				InputLandscapesToUpdate.Add(LandscapeProxy);
+			InputLandscapesToUpdate.Add(InputLandscape);
 		}
 	}
 }
