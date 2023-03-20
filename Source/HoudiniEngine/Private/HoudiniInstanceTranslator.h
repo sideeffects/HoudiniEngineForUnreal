@@ -334,6 +334,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const TArray<int32>& OriginalInstancerObjectIndices, 
 			int32& FoliageTypeCount,
 			UFoliageType*& FoliageTypeUsed,
+			UWorld* & WorldUsed,
 			const bool& bForceHISM = false,
 			const bool& bForceInstancer = false);
 
@@ -394,6 +395,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 		static bool CreateOrUpdateFoliageInstances(
 			UStaticMesh* InstancedStaticMesh,
 			UFoliageType* InFoliageType,
+			UWorld*& WorldUsed,
 			const TArray<FTransform>& InstancedObjectTransforms,
 			const int32& FirstOriginalIndex,
 			const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
