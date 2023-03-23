@@ -697,6 +697,10 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 			Instance.BaseComponent = nullptr;
 		}
 
+		if (HoudiniAssetComponent->bReplacePreviousBake)
+		{
+			FHoudiniFoliageTools::RemoveInstancesFromWorld(DesiredWorld, TargetFoliageType);
+		}
 		FHoudiniFoliageTools::SpawnFoliageInstance(DesiredWorld, TargetFoliageType, Instances, true);
 
     }

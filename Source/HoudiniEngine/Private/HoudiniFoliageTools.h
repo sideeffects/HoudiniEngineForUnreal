@@ -69,5 +69,8 @@ public:
 	// Removed Foliage Type from world
 	static void RemoveFoliageTypeFromWorld(UWorld * World, UFoliageType * FoliageType);
 
+	// Remove all instances using this Foliage Type from the world
+	static void RemoveInstancesFromWorld(UWorld* World, UFoliageType* FoliageType);
+
 };
 

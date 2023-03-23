@@ -226,3 +226,21 @@ FHoudiniFoliageTools::RemoveFoliageTypeFromWorld(UWorld* World, UFoliageType* Fo
 }
 
 
+void FHoudiniFoliageTools::RemoveInstancesFromWorld(UWorld* World, UFoliageType* FoliageType)
+{
+	TArray<FFoliageInfo*> FoliageInfos = FHoudiniFoliageTools::GetAllFoliageInfo(World, FoliageType);
+	for (auto& FoliageInfo : FoliageInfos)
+	{
+		if (FoliageInfo != nullptr)
+		{
+			TArray<int> InstancesToRemove;
+			InstancesToRemove.SetNum(FoliageInfo->Instances.Num());
+			for(int Index = 0; Index < FoliageInfo->Instances.Num(); Index++)
+			{
+				InstancesToRemove[Index] = Index;
+			}
+			FoliageInfo->RemoveInstances(InstancesToRemove, true);
+		}
+	}
+}
+
