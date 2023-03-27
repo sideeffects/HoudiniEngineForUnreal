@@ -41,6 +41,43 @@ class ULandscapeLayerInfoObject;
 struct FHoudiniGenericAttribute;
 struct FHoudiniPackageParams;
 
+struct FHoudiniRangedValue
+{
+
+	float MinValue = TNumericLimits<float>::Max();
+	float MaxValue = TNumericLimits<float>::Min();
+
+	void Add(float Value)
+	{
+		MinValue = FMath::Min(MinValue, Value);
+		MaxValue = FMath::Max(MaxValue, Value);
+	}
+
+	float Diff() const
+	{
+		return MaxValue - MinValue;
+	}
+
+	bool IsValid() const
+	{
+		return MinValue <= MaxValue;
+	}
+};
+
+struct FLandscapeData
+{
+	TArray<float> Values;
+	FHoudiniRangedValue Range;
+
+};
+
+struct FQuantizedLandscape
+{
+	FTransform LandscapeTransform;
+	TArray<uint16> IntHeightData;
+
+};
+
 struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 {
 	public:
@@ -60,9 +97,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			UWorld* World,
 			const TMap<FString, float>& LayerMinimums,
 			const TMap<FString, float>& LayerMaximums,
-			FHoudiniLandscapeExtent& LandscapeExtent,
-			FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
-			FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
+			FHoudiniLandscapeSpatialData & HoudiniLandscapeSpatialData,
 			FHoudiniPackageParams InPackageParams,
 			TSet<FString>& ClearedLayers,
 			TArray<UPackage*>& OutCreatedPackages,
@@ -78,9 +113,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			UWorld* World,
 			const TMap<FString, float>& LayerMinimums,
 			const TMap<FString, float>& LayerMaximums,
-			FHoudiniLandscapeExtent& LandscapeExtent,
-			FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
-			FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
+			FHoudiniLandscapeSpatialData& HoudiniLandscapeSpatialData,
 			TSet<FString>& ClearedLayers,
 			FHoudiniPackageParams InPackageParams,
 			TArray<UPackage*>& OutCreatedPackages,
@@ -97,9 +130,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			UWorld* World,
 			const TMap<FString, float>& LayerMinimums,
 			const TMap<FString, float>& LayerMaximums,
-			FHoudiniLandscapeExtent& LandscapeExtent,
-			FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
-			FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
+			FHoudiniLandscapeSpatialData& SpatialData,
 			FHoudiniPackageParams InPackageParams,
 			bool bHasEditLayers,
 			const FString& InEditLayerName,
@@ -124,9 +155,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			UWorld* World,
 			const TMap<FString, float>& LayerMinimums,
 			const TMap<FString, float>& LayerMaximums,
-			FHoudiniLandscapeExtent& LandscapeExtent,
-			FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
-			FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
+			FHoudiniLandscapeSpatialData& HoudiniLandscapeSpatialData,
 			FHoudiniPackageParams InPackageParams,
 			TSet<FString>& ClearedLayers,
 			TArray<UPackage*>& OutCreatedPackages);
@@ -141,9 +170,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			UWorld* World,
 			const TMap<FString, float>& LayerMinimums,
 			const TMap<FString, float>& LayerMaximums,
-			FHoudiniLandscapeExtent& LandscapeExtent,
-			FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
-			FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
+			FHoudiniLandscapeSpatialData& HoudiniLandscapeSpatialData,
 			FHoudiniPackageParams InPackageParams,
 			const bool bHasEditLayers,
 			const FName& EditLayerName,
@@ -326,9 +353,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 
 		static bool GetHoudiniHeightfieldFloatData(
 			const FHoudiniGeoPartObject* HGPO,
-			TArray<float> &OutFloatArr,
-			float &OutFloatMin,
-			float &OutFloatMax);
+			FLandscapeData & LandscapeData);
 
 		static bool CalcLandscapeSizeFromHeightfieldSize(
 			const int32& HoudiniSizeX,
@@ -338,15 +363,12 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			int32& NumSectionsPerComponent,
 			int32& NumQuadsPerSection);
 
-		static bool ConvertHeightfieldDataToLandscapeData(
-			const TArray< float >& HeightfieldFloatValues,
+		static bool QuantizeLandscapeData(
+			const FLandscapeData & LandscapeData,
 			const FHoudiniVolumeInfo& HeightfieldVolumeInfo,
 			const int32& FinalXSize,
 			const int32& FinalYSize,
-			float FloatMin,
-			float FloatMax,
-			TArray< uint16 >& IntHeightData,
-			FTransform& LandscapeTransform,
+			FQuantizedLandscape & QuantizedLandscape,
 			const bool NoResize = false,
 			const bool bOverrideZScale = false,
 			const float CustomZScale = 100.f,
@@ -454,9 +476,8 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 		// 	bool& bOutCreatedNewMap);
 
 		static ALandscapeProxy* CreateLandscapeTileInWorld(
-			const TArray< uint16 >& IntHeightData,
+			const FQuantizedLandscape& QuantizedLanscape,
 			const TArray< FLandscapeImportLayerInfo >& ImportLayerInfos,
-			const FTransform& TileTransform,
 			const FIntPoint& TileLocation,
 			const int32& XSize,
 			const int32& YSize,
@@ -553,9 +574,7 @@ public:
 			const FString& LayerName,
 			const int32& InXSize,
 			const int32& InYSize,
-			const TArray<float>& InFloatBuffer,
-			const float& InMin,
-			const float& InMax);
+			const FLandscapeData& LandscapeData);
 
 		static UTexture2D* CreateUnrealTexture(
 			const FHoudiniPackageParams& InPackageParams,

@@ -195,8 +195,8 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			ALandscapeProxy* InLandscape,
 			HAPI_NodeId& InputNodeId,
 			const FString& InInputNodeNameString,
-			const bool& bExportGeometryAsMesh,
-			const bool& bExportTileUVs,
+			const bool bExportGeometryAsMesh,
+			const bool bExportTileUVs,
 			const bool bExportNormalizedUVs,
 			const bool bExportLighting,
 			const bool bExportMaterials);

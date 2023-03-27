@@ -159,7 +159,7 @@ FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(
 	}
 
 	// See if we have instancer material overrides
-	if (!GetMaterialOverridesFromAttributes(InHGPO.GeoId, InHGPO.PartId, OutInstancedOutputPartData.MaterialAttributes, OutInstancedOutputPartData.bMaterialOverrideNeedsCreateInstance))
+	if (!GetMaterialOverridesFromAttributes(InHGPO.GeoId, InHGPO.PartId, InHGPO.InstancerType, OutInstancedOutputPartData.MaterialAttributes, OutInstancedOutputPartData.bMaterialOverrideNeedsCreateInstance))
 		OutInstancedOutputPartData.MaterialAttributes.Empty();
 
 	return true;
@@ -406,6 +406,7 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 
 			TArray<USceneComponent*> NewInstancerComponents;
 			UFoliageType* FoliageTypeUsed = nullptr;
+			UWorld * WorldUsed = nullptr;
 
 			if (!CreateOrUpdateInstanceComponent(
 				InstancedObject,
@@ -422,6 +423,7 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 				InstancedOutputPartData.OriginalInstancedIndices[VariationOriginalIndex],
 				FoliageTypeCount,
 				FoliageTypeUsed,
+				WorldUsed, 
 				InstancedOutputPartData.bForceHISM,
 				InstancedOutputPartData.bForceInstancer))
 			{
@@ -469,6 +471,7 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 			FHoudiniOutputObject& NewOutputObject = NewOutputObjects.FindOrAdd(OutputIdentifier);
 			NewOutputObject.InstancedObject = InstancedObject;
 			NewOutputObject.FoliageType = FoliageTypeUsed;
+			NewOutputObject.World = WorldUsed;
 
 			if (bIsProxyMesh)
 			{
@@ -776,6 +779,7 @@ FHoudiniInstanceTranslator::UpdateChangedInstancedOutput(
 
 		TArray<USceneComponent*> NewInstancerComponents;
 		UFoliageType * FoliageTypeUsed = nullptr;
+		UWorld * World;
 
 		if (!CreateOrUpdateInstanceComponent(
 			InstancedObject,
@@ -792,6 +796,7 @@ FHoudiniInstanceTranslator::UpdateChangedInstancedOutput(
 			OriginalInstanceIndices[0],
 			InstanceObjectIdx,
 			FoliageTypeUsed,
+			World,
 			bForceHISM,
 			bForceInstancer))
 		{
@@ -2020,6 +2025,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 	const TArray<int32>& OriginalInstancerObjectIndices,
 	int32& FoliageTypeCount,
 	UFoliageType*& FoliageTypeUsed,
+	UWorld*& WorldUsed,
 	const bool& bForceHISM,
 	const bool& bForceInstancer)
 {
@@ -2154,7 +2160,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstanceComponent(
 		case Foliage:
 		{
 			bSuccess = CreateOrUpdateFoliageInstances(
-				StaticMesh, FoliageType, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, InPackageParams, FoliageTypeCount, ParentComponent, FoliageTypeUsed, NewComponents, InstancerMaterials);
+				StaticMesh, FoliageType, WorldUsed, InstancedObjectTransforms, FirstOriginalIndex, AllPropertyAttributes, InstancerGeoPartObject, InPackageParams, FoliageTypeCount, ParentComponent, FoliageTypeUsed, NewComponents, InstancerMaterials);
 
 		}
 	}
@@ -2755,6 +2761,7 @@ bool
 FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	UStaticMesh* InstancedStaticMesh,
 	UFoliageType* InFoliageType,
+	UWorld*& WorldUsed,
 	const TArray<FTransform>& InstancedObjectTransforms,
 	const int32& FirstOriginalIndex,
 	const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
@@ -2777,8 +2784,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	ULevel* DesiredLevel = OwnerActor->GetLevel();
 	HOUDINI_CHECK_RETURN(IsValid(DesiredLevel), false);
 
-	UWorld* World = DesiredLevel->GetWorld();
-	HOUDINI_CHECK_RETURN(IsValid(World), false);
+	WorldUsed = DesiredLevel->GetWorld();
+	HOUDINI_CHECK_RETURN(IsValid(WorldUsed), false);
 
     // Previously, (pre 2023) we used to try to find existing foliage types in the current world, but this is dangerous
 	// because it can trash the users data if they non-HDA foliage. This can get fairly confusing if there are two HDA
@@ -2814,7 +2821,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 		FoliageInstances[n].DrawScale3D = (FVector3f)CurrentTransform.GetScale3D();
 	}
 
-	FHoudiniFoliageTools::SpawnFoliageInstance(World, CookedFoliageType, FoliageInstances, true);
+	FHoudiniFoliageTools::SpawnFoliageInstance(WorldUsed, CookedFoliageType, FoliageInstances, true);
 
 	// Clear the returned component. This should be set, but doesn't make in world partition.
 	// In future, this should be an array of components.
@@ -3000,7 +3007,7 @@ FHoudiniInstanceTranslator::RemoveAndDestroyComponent(UObject* InComponent, UObj
 
 bool
 FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
-	const int32& InGeoNodeId, const int32& InPartId, TArray<FString>& OutMaterialAttributes, bool& OutMaterialOverrideNeedsCreateInstance)
+	const int32& InGeoNodeId, const int32& InPartId, const EHoudiniInstancerType InInstancerType, TArray<FString>& OutMaterialAttributes, bool& OutMaterialOverrideNeedsCreateInstance)
 {
 	HAPI_AttributeInfo MaterialAttributeInfo;
 	FHoudiniApi::AttributeInfo_Init(&MaterialAttributeInfo);
@@ -3010,7 +3017,7 @@ FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
 	HAPI_PartInfo PartInfo;
 	FHoudiniApi::PartInfo_Init(&PartInfo);
 	HAPI_Result Error = HAPI_RESULT_FAILURE;
-	HAPI_AttributeOwner AttribOwner = HAPI_ATTROWNER_PRIM;
+	HAPI_AttributeOwner AttribOwner = InInstancerType == EHoudiniInstancerType::AttributeInstancer ? HAPI_ATTROWNER_POINT : HAPI_ATTROWNER_PRIM;
 	Error = FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(),
 		InGeoNodeId, InPartId, &PartInfo);
 
@@ -3186,7 +3193,7 @@ FHoudiniInstanceTranslator::GetInstancerMaterials(
 {
 	TArray<FString> MaterialAttributes;
 	bool bMaterialOverrideNeedsCreateInstance = false;
-	if (!GetMaterialOverridesFromAttributes(InGeoNodeId, InPartId, MaterialAttributes, bMaterialOverrideNeedsCreateInstance))
+	if (!GetMaterialOverridesFromAttributes(InGeoNodeId, InPartId, InHGPO.InstancerType, MaterialAttributes, bMaterialOverrideNeedsCreateInstance))
 		MaterialAttributes.Empty();
 
 	if (!bMaterialOverrideNeedsCreateInstance)

@@ -41,6 +41,7 @@
 #include "HoudiniPackageParams.h"
 #include "HoudiniStringResolver.h"
 #include "HoudiniInput.h"
+#include "HoudiniEngineRuntimeUtils.h"
 
 #include "ObjectTools.h"
 #include "FileHelpers.h"
@@ -99,9 +100,7 @@ FHoudiniLandscapeTranslator::CreateLandscape(
 	UWorld* InWorld, // Persistent / root world for the landscape
 	const TMap<FString, float>& LayerMinimums,
 	const TMap<FString, float>& LayerMaximums,
-	FHoudiniLandscapeExtent& LandscapeExtent,
-	FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
-	FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
+	FHoudiniLandscapeSpatialData& SpatialData,
 	FHoudiniPackageParams InPackageParams,
 	TSet<FString>& ClearedLayers,
 	TArray<UPackage*>& OutCreatedPackages,
@@ -160,9 +159,7 @@ FHoudiniLandscapeTranslator::CreateLandscape(
 				InWorld,
 				LayerMinimums,
 				LayerMaximums,
-				LandscapeExtent,
-				LandscapeTileSizeInfo,
-				LandscapeReferenceLocation,
+				SpatialData,
 				InPackageParams,
 				ClearedLayers,
 				OutCreatedPackages);
@@ -180,9 +177,7 @@ FHoudiniLandscapeTranslator::CreateLandscape(
 				InWorld,
 				LayerMinimums,
 				LayerMaximums,
-				LandscapeExtent,
-				LandscapeTileSizeInfo,
-				LandscapeReferenceLocation,
+				SpatialData,
 				ClearedLayers,
 				InPackageParams,
 				OutCreatedPackages,
@@ -204,9 +199,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_Generate(
 	UWorld* InWorld, // Persistent / root world for the landscape
 	const TMap<FString, float>& LayerMinimums,
 	const TMap<FString, float>& LayerMaximums,
-	FHoudiniLandscapeExtent& LandscapeExtent,
-	FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
-	FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
+	FHoudiniLandscapeSpatialData& HoudiniLandscapeSpatialData,
 	TSet<FString>& ClearedLayers,
 	FHoudiniPackageParams InPackageParams,
 	TArray<UPackage*>& OutCreatedPackages,
@@ -276,9 +269,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_Generate(
 			InWorld,
 			LayerMinimums,
 			LayerMaximums,
-			LandscapeExtent,
-			LandscapeTileSizeInfo,
-			LandscapeReferenceLocation,
+			HoudiniLandscapeSpatialData,
 			InPackageParams,
 			bHasEditLayers,
 			LayerName,
@@ -311,7 +302,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_Generate(
 				if (!ActiveLandscapes.Contains(LandscapeProxy))
 				{
 					// This landscape actor is no longer in use. Trash it.
-					LandscapeProxy->Destroy();
+					FHoudiniEngineRuntimeUtils::DestroyLandscapeProxy(LandscapeProxy);
 				}
 			}
 			LandscapePtr->SetSoftPtr(nullptr);
@@ -345,9 +336,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	UWorld* InWorld, // Persistent / root world for the landscape
 	const TMap<FString, float>& LayerMinimums,
 	const TMap<FString, float>& LayerMaximums,
-	FHoudiniLandscapeExtent& LandscapeExtent,
-	FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
-	FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
+	FHoudiniLandscapeSpatialData& SpatialData,
 	FHoudiniPackageParams InPackageParams,
 	bool bHasEditLayers,
 	const FString& InEditLayerName,
@@ -658,33 +647,33 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 
 	// Extract the float data from the Heightfield.
 	const FHoudiniVolumeInfo &VolumeInfo = Heightfield->VolumeInfo;
-	TArray<float> FloatValues;
-	float FloatMin, FloatMax;
-	if (!GetHoudiniHeightfieldFloatData(Heightfield, FloatValues, FloatMin, FloatMax))
+	FLandscapeData LandscapeData;
+
+	if (!GetHoudiniHeightfieldFloatData(Heightfield, LandscapeData))
 		return false;
 
 	// Heightfield conversions should always use the global float min/max
 	// since they need to be calculated externally, potentially across multiple tiles.
-	FloatMin = fGlobalMin;
-	FloatMax = fGlobalMax;
+	LandscapeData.Range.MinValue = fGlobalMin;
+	LandscapeData.Range.MaxValue = fGlobalMax;
 
 	// Get the Unreal landscape size 
-	const int32 HoudiniHeightfieldXSize = VolumeInfo.YLength;
-	const int32 HoudiniHeightfieldYSize = VolumeInfo.XLength;
+	const int32 HoudiniHeightfieldXSize = VolumeInfo.XLength;
+	const int32 HoudiniHeightfieldYSize = VolumeInfo.YLength;
 
-	if (!LandscapeTileSizeInfo.bIsCached)
+	if (!SpatialData.TileSizeInfo.bIsCached)
 	{
 		// Calculate a landscape size info from this heightfield to be
 		// used by subsequent tiles on the same landscape
 		if (FHoudiniLandscapeTranslator::CalcLandscapeSizeFromHeightfieldSize(
 			HoudiniHeightfieldXSize,
 			HoudiniHeightfieldYSize,
-			LandscapeTileSizeInfo.UnrealSizeX,
-			LandscapeTileSizeInfo.UnrealSizeY,
-			LandscapeTileSizeInfo.NumSectionsPerComponent,
-			LandscapeTileSizeInfo.NumQuadsPerSection))
+			SpatialData.TileSizeInfo.UnrealSizeX,
+			SpatialData.TileSizeInfo.UnrealSizeY,
+			SpatialData.TileSizeInfo.NumSectionsPerComponent,
+			SpatialData.TileSizeInfo.NumQuadsPerSection))
 		{
-			LandscapeTileSizeInfo.bIsCached = true;
+			SpatialData.TileSizeInfo.bIsCached = true;
 		}
 		else
 		{
@@ -692,10 +681,10 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 		}
 	}
 	
-	const int32 UnrealTileSizeX = LandscapeTileSizeInfo.UnrealSizeX;
-	const int32 UnrealTileSizeY = LandscapeTileSizeInfo.UnrealSizeY;
-	const int32 NumSectionPerLandscapeComponent = LandscapeTileSizeInfo.NumSectionsPerComponent;
-	const int32 NumQuadsPerLandscapeSection = LandscapeTileSizeInfo.NumQuadsPerSection;
+	const int32 UnrealTileSizeX = SpatialData.TileSizeInfo.UnrealSizeX;
+	const int32 UnrealTileSizeY = SpatialData.TileSizeInfo.UnrealSizeY;
+	const int32 NumSectionPerLandscapeComponent = SpatialData.TileSizeInfo.NumSectionsPerComponent;
+	const int32 NumQuadsPerLandscapeSection = SpatialData.TileSizeInfo.NumQuadsPerSection;
 
 	// ----------------------------------------------------
 	// Export of layer textures
@@ -711,9 +700,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 			TextureName,
 			HoudiniHeightfieldXSize,
 			HoudiniHeightfieldYSize,
-			FloatValues,
-			FloatMin,
-			FloatMax);
+			LandscapeData);
 	}
 
 	// Look for all the layers/masks corresponding to the current heightfield.
@@ -738,13 +725,12 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 		return false;
 
 	// Convert Houdini's heightfield data to Unreal's landscape data
-	TArray<uint16> IntHeightData;
-	FTransform TileTransform;
-	if (!FHoudiniLandscapeTranslator::ConvertHeightfieldDataToLandscapeData(
-		FloatValues, VolumeInfo,
+	FQuantizedLandscape QuantizedLandscape;
+
+	if (!FHoudiniLandscapeTranslator::QuantizeLandscapeData(
+		LandscapeData, VolumeInfo,
 		UnrealTileSizeX, UnrealTileSizeY,
-		FloatMin, FloatMax,
-		IntHeightData, TileTransform,
+		QuantizedLandscape, 
 		false,
 		false,
 		100.f,
@@ -776,7 +762,13 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	
 	// Calculate the tile location (in quad space) as well as the corrected TileTransform which will compensate
 	// for any landscape shifts due to section base alignment offsets.
-	CalculateTileLocation(NumSectionPerLandscapeComponent, NumQuadsPerLandscapeSection, TileTransform, LandscapeReferenceLocation, LandscapeTransform, TileLoc);
+	CalculateTileLocation(
+		NumSectionPerLandscapeComponent, 
+		NumQuadsPerLandscapeSection, 
+		QuantizedLandscape.LandscapeTransform, 
+		SpatialData.ReferenceLocation,
+		LandscapeTransform, 
+		TileLoc);
 
 	HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_Generate] Tile Transform: %s"), *TileTransform.ToString());
 	HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_Generate] Landscape Transform: %s"), *LandscapeTransform.ToString());
@@ -823,11 +815,11 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 			HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_Generate] Found existing landscape: %s"), *(SharedLandscapeActor->GetPathName()));
 			HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_Generate] Found existing landscape with num proxies: %d"), LandscapeInfo->Proxies.Num());
 			
-			if (!LandscapeExtent.bIsCached)
+			if (!SpatialData.Extent.bIsCached)
 			{
 				LandscapeInfo->FixupProxiesTransform();
 				// Cache the landscape extents. Note that GetLandscapeExtent() will only take into account the currently loaded landscape tiles. 
-				PopulateLandscapeExtents(LandscapeExtent, LandscapeInfo);
+				PopulateLandscapeExtents(SpatialData.Extent, LandscapeInfo);
 			}
 			
 			bool bIsCompatible = IsLandscapeInfoCompatible(
@@ -998,21 +990,21 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 			int32 InputMinY = 0;
 			int32 InputMaxX = 0;
 			int32 InputMaxY = 0;
-			if (!LandscapeExtent.bIsCached)
+			if (!SpatialData.Extent.bIsCached)
 			{
-				PopulateLandscapeExtents(LandscapeExtent, CurrentInfo);
+				PopulateLandscapeExtents(SpatialData.Extent, CurrentInfo);
 			}
 
-			if (!LandscapeExtent.bIsCached)
+			if (!SpatialData.Extent.bIsCached)
 			{
 				HOUDINI_LOG_WARNING(TEXT("Warning: Could not determine landscape extents. Cannot re-use input landscape actor."));
 				continue;
 			}
 			
-			InputMinX = LandscapeExtent.MinY;
-			InputMinY = LandscapeExtent.MinY;
-			InputMaxX = LandscapeExtent.MaxX;
-			InputMaxY = LandscapeExtent.MaxY;
+			InputMinX = SpatialData.Extent.MinX;
+			InputMinY = SpatialData.Extent.MinY;
+			InputMaxX = SpatialData.Extent.MaxX;
+			InputMaxY = SpatialData.Extent.MaxY;
 
 			// If the full size matches, we'll update that input landscape
 			bool SizeMatch = false;
@@ -1211,7 +1203,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 		
 		HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_Generate] Creating new tile actor: %s"), *(LandscapeTileActorName));
 		TileActor = FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
-			IntHeightData, LayerInfos, TileTransform, TileLoc,
+			QuantizedLandscape, LayerInfos, TileLoc,
 			UnrealTileSizeX, UnrealTileSizeY,
 			NumSectionPerLandscapeComponent, NumQuadsPerLandscapeSection,
 			LandscapeMaterial, LandscapeHoleMaterial, LandscapePhysicalMaterial,
@@ -1260,7 +1252,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 		// If we change the number of tiles, or switch from outputting single tile to multiple,
 		// then its fairly likely that the unreal transform has changed even if the
 		// Houdini Transform remained the same
-		bool bUpdateTransform = !TileActor->GetActorTransform().Equals(TileTransform);
+		bool bUpdateTransform = !TileActor->GetActorTransform().Equals(QuantizedLandscape.LandscapeTransform);
 
 		// Update existing landscape / tile
 		if (SharedLandscapeActor && TileActorType == LandscapeActorType::LandscapeStreamingProxy)
@@ -1302,7 +1294,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 			// This is a standalone tile / landscape actor.
 			if (bUpdateTransform)
 			{
-				TileActor->SetActorRelativeTransform(TileTransform);
+				TileActor->SetActorRelativeTransform(QuantizedLandscape.LandscapeTransform);
 				TileActor->SetAbsoluteSectionBase(TileLoc);
 			}
 		}
@@ -1367,7 +1359,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 				// It is important to update the heightmap through HeightmapAccessor this since it will properly
 				// update normals and foliage.
 				FHeightmapAccessor<false> HeightmapAccessor(LandscapeInfo);
-				HeightmapAccessor.SetData(MinX, MinY, MaxX, MaxY, IntHeightData.GetData());
+				HeightmapAccessor.SetData(MinX, MinY, MaxX, MaxY, QuantizedLandscape.IntHeightData.GetData());
 				bHeightLayerDataChanged = true;
 			}
 
@@ -1603,9 +1595,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayers(
 	UWorld* InWorld,
 	const TMap<FString, float>& LayerMinimums,
 	const TMap<FString, float>& LayerMaximums,
-	FHoudiniLandscapeExtent& LandscapeExtent,
-	FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
-	FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
+	FHoudiniLandscapeSpatialData& HoudiniLandscapeSpatialData,
 	FHoudiniPackageParams InPackageParams,
 	TSet<FString>& ClearedLayers,
 	TArray<UPackage*>& OutCreatedPackages)
@@ -1643,9 +1633,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayers(
 			InWorld,
 			LayerMinimums,
 			LayerMaximums,
-			LandscapeExtent,
-			LandscapeTileSizeInfo,
-			LandscapeReferenceLocation,
+			HoudiniLandscapeSpatialData,
 			InPackageParams,
 			bHasEditLayers,
 			LayerFName,
@@ -1666,9 +1654,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 	UWorld* World,
 	const TMap<FString, float>& LayerMinimums,
 	const TMap<FString, float>& LayerMaximums,
-	FHoudiniLandscapeExtent& LandscapeExtent,
-	FHoudiniLandscapeTileSizeInfo& LandscapeTileSizeInfo,
-	FHoudiniLandscapeReferenceLocation& LandscapeReferenceLocation,
+	FHoudiniLandscapeSpatialData& SpatialData,
 	FHoudiniPackageParams InPackageParams,
 	const bool bHasEditLayers,
 	const FName& EditLayerName,
@@ -1745,28 +1731,28 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 
 	// Extract the float data from the Heightfield.
 	const FHoudiniVolumeInfo &VolumeInfo = Heightfield->VolumeInfo;
-	TArray<float> FloatValues;
-	float FloatMin, FloatMax;
-	if (!GetHoudiniHeightfieldFloatData(Heightfield, FloatValues, FloatMin, FloatMax))
+
+	FLandscapeData LandscapeData;
+	if (!GetHoudiniHeightfieldFloatData(Heightfield, LandscapeData))
 		return false;
 
 	// Get the Unreal landscape size 
-	const int32 HoudiniHeightfieldXSize = VolumeInfo.YLength;
-	const int32 HoudiniHeightfieldYSize = VolumeInfo.XLength;
+	const int32 HoudiniHeightfieldXSize = VolumeInfo.XLength;
+	const int32 HoudiniHeightfieldYSize = VolumeInfo.YLength;
 
-	if (!LandscapeTileSizeInfo.bIsCached)
+	if (!SpatialData.TileSizeInfo.bIsCached)
 	{
 		// Calculate a landscape size info from this heightfield to be
 		// used by subsequent tiles on the same landscape
 		if (FHoudiniLandscapeTranslator::CalcLandscapeSizeFromHeightfieldSize(
 			HoudiniHeightfieldXSize,
 			HoudiniHeightfieldYSize,
-			LandscapeTileSizeInfo.UnrealSizeX,
-			LandscapeTileSizeInfo.UnrealSizeY,
-			LandscapeTileSizeInfo.NumSectionsPerComponent,
-			LandscapeTileSizeInfo.NumQuadsPerSection))
+			SpatialData.TileSizeInfo.UnrealSizeX,
+			SpatialData.TileSizeInfo.UnrealSizeY,
+			SpatialData.TileSizeInfo.NumSectionsPerComponent,
+			SpatialData.TileSizeInfo.NumQuadsPerSection))
 		{
-			LandscapeTileSizeInfo.bIsCached = true;
+			SpatialData.TileSizeInfo.bIsCached = true;
 		}
 		else
 		{
@@ -1903,13 +1889,12 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 	// Convert Heightfield data
 	// ----------------------------------------------------
 	// Convert Houdini's heightfield data to Unreal's landscape data
-	TArray<uint16> IntHeightData;
-	FTransform TileTransform;
-	if (!FHoudiniLandscapeTranslator::ConvertHeightfieldDataToLandscapeData(
-		FloatValues, VolumeInfo,
-		LandscapeTileSizeInfo.UnrealSizeX, LandscapeTileSizeInfo.UnrealSizeY,
-		FloatMin, FloatMax,
-		IntHeightData, TileTransform,
+	FQuantizedLandscape QuantizedLandscape;
+	if (!FHoudiniLandscapeTranslator::QuantizeLandscapeData(
+		LandscapeData, VolumeInfo,
+		SpatialData.TileSizeInfo.UnrealSizeX,
+		SpatialData.TileSizeInfo.UnrealSizeY,
+		QuantizedLandscape, 
 		false, true, DestHeightScale,
 		EditLayerType == HAPI_UNREAL_LANDSCAPE_EDITLAYER_TYPE_ADDITIVE))
 			return false;
@@ -1928,7 +1913,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 	FTransform UnscaledLandscapeTransform = TargetLandscapeTransform;
 	UnscaledLandscapeTransform.SetScale3D(FVector::OneVector);
 	
-	const FTransform TileWSTransform = TileTransform * HAC->GetComponentTransform();
+	const FTransform TileWSTransform = QuantizedLandscape.LandscapeTransform * HAC->GetComponentTransform();
 	const FTransform RelativeTileTransform = TileWSTransform * UnscaledLandscapeTransform.Inverse();
 
 	FVector LandscapeScale = TargetLandscapeTransform.GetScale3D();
@@ -1945,8 +1930,8 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 	FVector TileMin, TileMax;
 	TileMin.X = TargetTileLoc.X;
 	TileMin.Y = TargetTileLoc.Y;
-	TileMax.X = TargetTileLoc.X + LandscapeTileSizeInfo.UnrealSizeX - 1;
-	TileMax.Y = TargetTileLoc.Y + LandscapeTileSizeInfo.UnrealSizeY - 1;
+	TileMax.X = TargetTileLoc.X + SpatialData.TileSizeInfo.UnrealSizeX - 1;
+	TileMax.Y = TargetTileLoc.Y + SpatialData.TileSizeInfo.UnrealSizeY - 1;
 	TileMin.Z = TileMax.Z = 0.f;
 
 	// NOTE: we don't manually inject a tile number in the object name. This should
@@ -1971,7 +1956,9 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 	// Get the updated layers.
 	TArray<FLandscapeImportLayerInfo> LayerInfos;
 	TMap<FName, const FHoudiniGeoPartObject*> LayerObjectMapping;
-	if (!CreateOrUpdateLandscapeLayerData(FoundLayers, *Heightfield, LandscapeTileSizeInfo.UnrealSizeX, LandscapeTileSizeInfo.UnrealSizeY, 
+	if (!CreateOrUpdateLandscapeLayerData(FoundLayers, *Heightfield, 
+		SpatialData.TileSizeInfo.UnrealSizeX,
+		SpatialData.TileSizeInfo.UnrealSizeY,
 		LayerMinimums, LayerMaximums, LayerInfos, false, bDefaultNoWeightBlend,
 		TilePackageParams,
 		LayerPackageParams,
@@ -2036,7 +2023,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 		HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_EditableLayer] Drawing heightmap.."));
 		// Draw Heightmap
 		FHeightmapAccessor<false> HeightmapAccessor(TargetLandscapeInfo);
-        HeightmapAccessor.SetData(TileMin.X, TileMin.Y, TileMax.X, TileMax.Y, IntHeightData.GetData());
+        HeightmapAccessor.SetData(TileMin.X, TileMin.Y, TileMax.X, TileMax.Y, QuantizedLandscape.IntHeightData.GetData());
 
 		// Draw material layers on the landscape
 		// Update the layers on the landscape.
@@ -2111,7 +2098,7 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 				// We shouldn't destroy any input landscapes
 				if (!InAllInputLandscapes.Contains(LandscapeProxy))
 				{
-					LandscapeProxy->Destroy();
+					FHoudiniEngineRuntimeUtils::DestroyLandscapeProxy(LandscapeProxy);
 					LandscapePtr->SetSoftPtr(nullptr);
 				}
 			}
@@ -2730,7 +2717,7 @@ FHoudiniLandscapeTranslator::SetLandscapeActorAsOutput_Temp(
 		{
 			if (Proxy != LandscapeActor)
 			{
-				Proxy->Destroy();
+				FHoudiniEngineRuntimeUtils::DestroyLandscapeProxy(Proxy);
 				LandscapePtr->GetSoftPtr().Reset();
 			}
 		}
@@ -2804,20 +2791,18 @@ FHoudiniLandscapeTranslator::DoPostEditChangeProperty(UObject* Obj, FName Proper
 }
 
 bool
-FHoudiniLandscapeTranslator::ConvertHeightfieldDataToLandscapeData(
-	const TArray< float >& HeightfieldFloatValues,
+FHoudiniLandscapeTranslator::QuantizeLandscapeData(
+	const FLandscapeData & LandscapeData,
 	const FHoudiniVolumeInfo& HeightfieldVolumeInfo,
 	const int32& FinalXSize, const int32& FinalYSize,
-	float FloatMin, float FloatMax,
-	TArray< uint16 >& IntHeightData,
-	FTransform& LandscapeTransform,
+	FQuantizedLandscape & QuantizedLandscape,
 	const bool NoResize,
 	const bool bOverrideZScale,
 	const float CustomZScale,
 	const bool bIsAdditive)
 {
-	IntHeightData.Empty();
-	LandscapeTransform.SetIdentity();
+	QuantizedLandscape.IntHeightData.Empty();
+	QuantizedLandscape.LandscapeTransform.SetIdentity();
 
 	// HF sizes needs an X/Y swap
 	// NOPE.. not anymore
@@ -2845,7 +2830,7 @@ FHoudiniLandscapeTranslator::ConvertHeightfieldDataToLandscapeData(
 	const uint16 LandscapeZeroValue = LandscapeDataAccess::GetTexHeight(0.f);
 
 	// The ZRange in Houdini (in m)
-	double MeterZRange = (double)(FloatMax - FloatMin);
+	double MeterZRange = (double)(LandscapeData.Range.Diff());
 
 	// The corresponding unreal digit range (as unreal uses uint16, max is 65535)
 	// We may want to not use the full range in order to be able to sculpt the landscape past the min/max values after.
@@ -2873,11 +2858,15 @@ FHoudiniLandscapeTranslator::ConvertHeightfieldDataToLandscapeData(
 		bUseDefaultUE4Scaling = HoudiniRuntimeSettings->MarshallingLandscapesUseDefaultUnrealScaling;
 
 	bUseDefaultUE4Scaling |= bOverrideZScale;
-	
+
+	float FloatMin = LandscapeData.Range.MinValue;
+	float FloatMax = LandscapeData.Range.MaxValue;
+
 	if (bUseDefaultUE4Scaling)
 	{
 		//Check that our values are compatible with UE4's default scale values
-		if (FloatMin < -256.0f || FloatMin > 256.0f || FloatMax < -256.0f || FloatMax > 256.0f)
+		if (LandscapeData.Range.MinValue < -256.0f || LandscapeData.Range.MinValue > 256.0f || 
+			LandscapeData.Range.MaxValue < -256.0f || LandscapeData.Range.MaxValue > 256.0f)
 		{
 			// Warn the user that the landscape conversion will have issues 
 			// invite him to change that setting
@@ -2892,7 +2881,7 @@ FHoudiniLandscapeTranslator::ConvertHeightfieldDataToLandscapeData(
 		// Default unreal landscape scaling is -256m:256m at Scale = 100, 
 		// We need to apply the scale back, and swap Y/Z axis
 		FloatMin = -256.0f * CurrentVolumeTransform.GetScale3D().Y * 2.0f * CustomZScale/100.f;
-		FloatMax = 256.0f * CurrentVolumeTransform.GetScale3D().Y * 2.0f * CustomZScale/100.f;
+		FloatMax = +256.0f * CurrentVolumeTransform.GetScale3D().Y * 2.0f * CustomZScale/100.f;
 
 		MeterZRange = (double)(FloatMax - FloatMin);
 
@@ -2911,7 +2900,7 @@ FHoudiniLandscapeTranslator::ConvertHeightfieldDataToLandscapeData(
 
 	// Converting the data from Houdini to Unreal
 	// For correct orientation in unreal, the point matrix has to be transposed.
-	IntHeightData.SetNumUninitialized(SizeInPoints);
+	QuantizedLandscape.IntHeightData.SetNumUninitialized(SizeInPoints);
 	
 	int32 nUnreal = 0;
 	bool bValueClippedMin = false;
@@ -2925,7 +2914,7 @@ FHoudiniLandscapeTranslator::ConvertHeightfieldDataToLandscapeData(
 			int32 nHoudini = nY + nX * HoudiniYSize;
 
 			// Get the double values in [0 - ZRange]
-			double DoubleValue = (double)HeightfieldFloatValues[nHoudini];
+			double DoubleValue = (double)LandscapeData.Values[nHoudini];
 
 			// NOTE: Additive (edit) layers should not have their values offset, but they
 			// should be scaled using the same zspacing values as the base layer on the target landscape.
@@ -2945,7 +2934,7 @@ FHoudiniLandscapeTranslator::ConvertHeightfieldDataToLandscapeData(
 			bValueClippedMax = bValueClippedMax || (DoubleValue >= DigitZRange);
 			
 			const int32 IntValue = FMath::RoundToInt(DoubleValue);
-			IntHeightData[nUnreal++] = FMath::Clamp(IntValue, 0, FMath::RoundToInt(DigitZRange)); 
+			QuantizedLandscape.IntHeightData[nUnreal++] = FMath::Clamp(IntValue, 0, FMath::RoundToInt(DigitZRange));
 		}
 	}
 
@@ -2971,7 +2960,7 @@ FHoudiniLandscapeTranslator::ConvertHeightfieldDataToLandscapeData(
 	{
 		// Try to resize the data
 		if (!FHoudiniLandscapeTranslator::ResizeHeightDataForLandscape(
-			IntHeightData,
+			QuantizedLandscape.IntHeightData,
 			HoudiniXSize, HoudiniYSize, FinalXSize, FinalYSize,
 			LandscapeResizeFactor, LandscapePositionOffsetInPixels))
 			return false;
@@ -3068,8 +3057,8 @@ FHoudiniLandscapeTranslator::ConvertHeightfieldDataToLandscapeData(
 	*/
 	
 	// We can now set the Landscape position
-	LandscapeTransform.SetLocation(LandscapePosition);
-	LandscapeTransform.SetScale3D(LandscapeScale);
+	QuantizedLandscape.LandscapeTransform.SetLocation(LandscapePosition);
+	QuantizedLandscape.LandscapeTransform.SetScale3D(LandscapeScale);
 
 	// Rotate the vector using the H rotation	
 	FRotator Rotator = CurrentVolumeTransform.GetRotation().Rotator();
@@ -3079,7 +3068,7 @@ FHoudiniLandscapeTranslator::ConvertHeightfieldDataToLandscapeData(
 
 	// Only rotate if the rotator is far from zero
 	if(!Rotator.IsNearlyZero())
-		LandscapeTransform.SetRotation(FQuat(Rotator));
+		QuantizedLandscape.LandscapeTransform.SetRotation(FQuat(Rotator));
 
 	return true;
 }
@@ -3265,7 +3254,10 @@ FHoudiniLandscapeTranslator::CalcLandscapeSizeFromHeightfieldSize(
 	int32& UnrealSizeX, int32& UnrealSizeY, 
 	int32& NumSectionsPerComponent, int32& NumQuadsPerSection)
 {
-	if ((HoudiniSizeX < 2) || (HoudiniSizeY < 2))
+	int32 FlippedHoudiniSizeX = HoudiniSizeY;
+	int32 FlippedHoudiniSizeY = HoudiniSizeX;
+
+	if ((FlippedHoudiniSizeX < 2) || (FlippedHoudiniSizeY < 2))
 		return false;
 
 	NumSectionsPerComponent = 1;
@@ -3298,14 +3290,14 @@ FHoudiniLandscapeTranslator::CalcLandscapeSizeFromHeightfieldSize(
 			int32 ss = SectionSizes[SectionSizesIdx];
 			int32 ns = NumSections[NumSectionsIdx];
 
-			if (((HoudiniSizeX - 1) % (ss * ns)) == 0 && ((HoudiniSizeX - 1) / (ss * ns)) <= 32 &&
-				((HoudiniSizeY - 1) % (ss * ns)) == 0 && ((HoudiniSizeY - 1) / (ss * ns)) <= 32)
+			if (((FlippedHoudiniSizeX - 1) % (ss * ns)) == 0 && ((FlippedHoudiniSizeX - 1) / (ss * ns)) <= 32 &&
+				((FlippedHoudiniSizeY - 1) % (ss * ns)) == 0 && ((FlippedHoudiniSizeY - 1) / (ss * ns)) <= 32)
 			{
 				bFoundMatch = true;
 				NumQuadsPerSection = ss;
 				NumSectionsPerComponent = ns;
-				ComponentsCountX = (HoudiniSizeX - 1) / (ss * ns);
-				ComponentsCountY = (HoudiniSizeY - 1) / (ss * ns);
+				ComponentsCountX = (FlippedHoudiniSizeX - 1) / (ss * ns);
+				ComponentsCountY = (FlippedHoudiniSizeY - 1) / (ss * ns);
 				ClampLandscapeSize();
 				break;
 			}
@@ -3328,8 +3320,8 @@ FHoudiniLandscapeTranslator::CalcLandscapeSizeFromHeightfieldSize(
 				continue;
 			}
 
-			const int32 ComponentsX = FMath::DivideAndRoundUp((HoudiniSizeX - 1), SectionSizes[SectionSizesIdx] * CurrentNumSections);
-			const int32 ComponentsY = FMath::DivideAndRoundUp((HoudiniSizeY - 1), SectionSizes[SectionSizesIdx] * CurrentNumSections);
+			const int32 ComponentsX = FMath::DivideAndRoundUp((FlippedHoudiniSizeX - 1), SectionSizes[SectionSizesIdx] * CurrentNumSections);
+			const int32 ComponentsY = FMath::DivideAndRoundUp((FlippedHoudiniSizeY - 1), SectionSizes[SectionSizesIdx] * CurrentNumSections);
 			if (ComponentsX <= 32 && ComponentsY <= 32)
 			{
 				bFoundMatch = true;
@@ -3347,8 +3339,8 @@ FHoudiniLandscapeTranslator::CalcLandscapeSizeFromHeightfieldSize(
 		// if the heightmap is very large, fall back to using the largest values we support
 		const int32 MaxSectionSize = SectionSizes[UE_ARRAY_COUNT(SectionSizes) - 1];
 		const int32 MaxNumSubSections = NumSections[UE_ARRAY_COUNT(NumSections) - 1];
-		const int32 ComponentsX = FMath::DivideAndRoundUp((HoudiniSizeX - 1), MaxSectionSize * MaxNumSubSections);
-		const int32 ComponentsY = FMath::DivideAndRoundUp((HoudiniSizeY - 1), MaxSectionSize * MaxNumSubSections);
+		const int32 ComponentsX = FMath::DivideAndRoundUp((FlippedHoudiniSizeX - 1), MaxSectionSize * MaxNumSubSections);
+		const int32 ComponentsY = FMath::DivideAndRoundUp((FlippedHoudiniSizeY - 1), MaxSectionSize * MaxNumSubSections);
 
 		bFoundMatch = true;
 		NumQuadsPerSection = MaxSectionSize;
@@ -3570,35 +3562,23 @@ bool FHoudiniLandscapeTranslator::GetHoudiniHeightfieldVolumeInfo(const FHoudini
 }
 
 bool 
-FHoudiniLandscapeTranslator::GetHoudiniHeightfieldFloatData(const FHoudiniGeoPartObject* HGPO, TArray<float> &OutFloatArr, float &OutFloatMin, float &OutFloatMax) 
+FHoudiniLandscapeTranslator::GetHoudiniHeightfieldFloatData(const FHoudiniGeoPartObject* HGPO, FLandscapeData & LandscapeData) 
 {
-	OutFloatArr.Empty();
-	OutFloatMin = 0.f;
-	OutFloatMax = 0.f;
+	LandscapeData = FLandscapeData();
 
 	HAPI_VolumeInfo VolumeInfo;
 	if (!GetHoudiniHeightfieldVolumeInfo(HGPO, VolumeInfo))
 		return false;
 	
 	const int32 SizeInPoints = VolumeInfo.xLength *  VolumeInfo.yLength;
-
-	OutFloatArr.SetNum(SizeInPoints);
+	LandscapeData.Values.SetNum(SizeInPoints);
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiGetHeightFieldData(
-		HGPO->GeoId, HGPO->PartId, OutFloatArr), false);
-
+		HGPO->GeoId, HGPO->PartId, LandscapeData.Values), false);
 	
-	OutFloatMin = OutFloatArr[0];
-	OutFloatMax = OutFloatMin;
-
-	for (float NextFloatVal : OutFloatArr) 
+	for (float Value : LandscapeData.Values) 
 	{
-		if (NextFloatVal > OutFloatMax)
-		{
-			OutFloatMax = NextFloatVal;
-		}
-		else if (NextFloatVal < OutFloatMin)
-			OutFloatMin = NextFloatVal;
+		LandscapeData.Range.Add(Value);
 	}
 
 	return true;
@@ -3801,11 +3781,9 @@ FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayerData(
 			continue;
 		}
 
-		TArray<float> FloatLayerData;
-		float LayerMin = 0;
-		float LayerMax = 0;
+		FLandscapeData LayerLandscapeData;
 		HOUDINI_LANDSCAPE_MESSAGE(TEXT("[FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayers]: Retrieving heightfield float data for geo part: %s, %s, %d, %d"),  *(LayerGeoPartObject->VolumeName), *(LayerGeoPartObject->VolumeLayerName), LayerGeoPartObject->GeoId, LayerGeoPartObject->PartId);
-		if (!FHoudiniLandscapeTranslator::GetHoudiniHeightfieldFloatData(LayerGeoPartObject, FloatLayerData, LayerMin, LayerMax))
+		if (!FHoudiniLandscapeTranslator::GetHoudiniHeightfieldFloatData(LayerGeoPartObject, LayerLandscapeData))
 			continue;
 
 		HOUDINI_LANDSCAPE_MESSAGE(TEXT("[FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayers]: Layer Min/Max: %f, %f"),  LayerMin, LayerMax);
@@ -3836,17 +3814,18 @@ FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayerData(
 		// Check if that landscape layer has been marked as unit (range in [0-1])
 		if (IsUnitLandscapeLayer(*LayerGeoPartObject))
 		{
-			LayerMin = 0.0f;
-			LayerMax = 1.0f;
+			LayerLandscapeData.Range.MinValue = 0.0f;
+			LayerLandscapeData.Range.MaxValue = 1.0f;
 		}
 		else
 		{
 			// We want to convert the layer using the global Min/Max
-			if (GlobalMaximums.Contains(LayerName))
-				LayerMax = GlobalMaximums[LayerName];
 
 			if (GlobalMinimums.Contains(LayerName))
-				LayerMin = GlobalMinimums[LayerName];
+				LayerLandscapeData.Range.MinValue = GlobalMinimums[LayerName];
+
+			if (GlobalMaximums.Contains(LayerName))
+				LayerLandscapeData.Range.MaxValue = GlobalMaximums[LayerName];
 		}
 
 		if (bExportTexture)
@@ -3858,9 +3837,7 @@ FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayerData(
 				TextureName,
 				LayerVolumeInfo.YLength,  // Y and X inverted?? why?
 				LayerVolumeInfo.XLength,
-				FloatLayerData,
-				LayerMin,
-				LayerMax);
+				LayerLandscapeData);
 		}
 
 		// Get the layer package path
@@ -3911,8 +3888,8 @@ FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayerData(
 		// Convert the float data to uint8
 		// HF masks need their X/Y sizes swapped
 		if (!FHoudiniLandscapeTranslator::ConvertHeightfieldLayerToLandscapeLayer(
-			FloatLayerData, LayerVolumeInfo.YLength, LayerVolumeInfo.XLength,
-			LayerMin, LayerMax,
+			LayerLandscapeData.Values, LayerVolumeInfo.YLength, LayerVolumeInfo.XLength,
+			LayerLandscapeData.Range.MinValue, LayerLandscapeData.Range.MaxValue,
 			LandscapeXSize, LandscapeYSize,
 			ImportLayerInfo.LayerData))
 			continue;
@@ -3920,9 +3897,9 @@ FHoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayerData(
 		// We will store the data used to convert from Houdini values to int in the DebugColor
 		// This is the only way we'll be able to reconvert those values back to their houdini equivalent afterwards...
 		// R = Min, G = Max, B = Spacing, A = ?
-		LayerInfo->LayerUsageDebugColor.R = LayerMin;
-		LayerInfo->LayerUsageDebugColor.G = LayerMax;
-		LayerInfo->LayerUsageDebugColor.B = (LayerMax - LayerMin) / 255.0f;
+		LayerInfo->LayerUsageDebugColor.R = LayerLandscapeData.Range.MinValue;
+		LayerInfo->LayerUsageDebugColor.G = LayerLandscapeData.Range.MaxValue;
+		LayerInfo->LayerUsageDebugColor.B = (LayerLandscapeData.Range.Diff()) / 255.0f;
 		LayerInfo->LayerUsageDebugColor.A = PI;
 
 		HOUDINI_LANDSCAPE_MESSAGE(TEXT("[HoudiniLandscapeTranslator::CreateOrUpdateLandscapeLayers] Processing layer: %s (bDefaultNoWeightBlend: %d"), *(LayerName), bDefaultNoWeightBlending);
@@ -4348,9 +4325,8 @@ FHoudiniLandscapeTranslator::ResizeLayerDataForLandscape(
 
 ALandscapeProxy *
 FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
-	const TArray< uint16 >& IntHeightData,
+	const FQuantizedLandscape & QuantizedLandscape,
 	const TArray< FLandscapeImportLayerInfo >& ImportLayerInfos,
-	const FTransform& TileTransform,
 	const FIntPoint& TileLocation,
 	const int32& XSize, 
 	const int32& YSize,
@@ -4379,7 +4355,7 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 	if ((XSize < 2) || (YSize < 2))
 		return nullptr;
 
-	if (IntHeightData.Num() != (XSize * YSize))
+	if (QuantizedLandscape.IntHeightData.Num() != (XSize * YSize))
 		return nullptr;
 
 	if (!GEditor)
@@ -4473,7 +4449,7 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 
 	TMap<FGuid, TArray<uint16>> HeightmapDataPerLayers;
 	TMap<FGuid, TArray<FLandscapeImportLayerInfo>> MaterialLayerDataPerLayer;
-	HeightmapDataPerLayers.Add(FGuid(), IntHeightData);
+	HeightmapDataPerLayers.Add(FGuid(), QuantizedLandscape.IntHeightData);
 	TArray<FLandscapeImportLayerInfo>& MaterialImportLayerInfos = MaterialLayerDataPerLayer.Add(FGuid(), CustomImportLayerInfos);
 
 	// Before we import new tile data, remove previous tile data that will be overlapped by the new tile.
@@ -4505,7 +4481,7 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 			FIntRect Bounds = Proxy->GetBoundingRect();
 			// If this landscape proxy has no more components left, remove it from the LandscapeInfo.
 			LandscapeInfo->UnregisterActor(Proxy);
-			Proxy->Destroy();
+			FHoudiniEngineRuntimeUtils::DestroyLandscapeProxy(Proxy);
 		}
 
 		ULandscapeInfo::RecreateLandscapeInfo(InWorld, true);
@@ -4543,7 +4519,7 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 	// section offset in order to update the landscape's internal caches (more specifically the component keys, which
 	// are based on the section offsets) otherwise component key calculations won't work correctly.
 
-	LandscapeTile->SetActorRelativeTransform(TileTransform);
+	LandscapeTile->SetActorRelativeTransform(QuantizedLandscape.LandscapeTransform);
 	LandscapeTile->SetAbsoluteSectionBase(TileLocation);
 
 	HOUDINI_LANDSCAPE_MESSAGE(TEXT("[HoudiniLandscapeTranslator::CreateLandscapeTileInWorld] Importing tile for actor: %s "), *(LandscapeTile->GetPathName()));
@@ -4683,7 +4659,7 @@ FHoudiniLandscapeTranslator::DestroyLandscape(ALandscape* Landscape)
 			continue;
 
 		Info->UnregisterActor(Proxy);
-		Proxy->Destroy();
+		FHoudiniEngineRuntimeUtils::DestroyLandscapeProxy(Proxy);
 	}
 	Landscape->Destroy();
 }
@@ -5398,18 +5374,16 @@ FHoudiniLandscapeTranslator::CreateUnrealTexture(
 	const FString& LayerName,
 	const int32& InXSize,
 	const int32& InYSize,
-	const TArray<float>& InFloatBuffer,
-	const float& InMin,
-	const float& InMax)
+	const FLandscapeData & LandscapeData)
 {
 
 	// Convert the float values to uint8
-	double Range = (double)InMax - (double)InMin;
+	double Range = (double)LandscapeData.Range.Diff();
 	TArray<uint8> IntBuffer;
-	IntBuffer.SetNum(InFloatBuffer.Num());
-	for(int32 i = 0; i < InFloatBuffer.Num(); i++)
+	IntBuffer.SetNum(LandscapeData.Values.Num());
+	for(int32 i = 0; i < LandscapeData.Values.Num(); i++)
 	{
-		double dNormalizedValue = ((double)InFloatBuffer[i] - (double)InMin) / (double)Range;
+		double dNormalizedValue = ((double)LandscapeData.Values[i] - (double)LandscapeData.Range.MinValue) / (double)Range;
 		IntBuffer[i] = (uint8)(dNormalizedValue * 255.0);
 	}
 
@@ -5623,5 +5597,6 @@ bool FHoudiniLandscapeTranslator::SetActiveLandscapeLayer(ALandscape* Landscape,
 
 	return false;
 }
+
 
 

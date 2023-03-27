@@ -447,6 +447,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 		// Foliage Type was that used.
 		UPROPERTY()
         UFoliageType* FoliageType = nullptr;
+
+		// World used when creating the output. This is used for Foliage may have no explicit objects
+		// are created and so we cannot track the original world when we want to remove instances.
+		UPROPERTY()
+		UWorld* World = nullptr;
+
 };
 
 

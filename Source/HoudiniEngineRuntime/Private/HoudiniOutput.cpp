@@ -29,7 +29,6 @@
 
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniSplineComponent.h"
-
 #include "Components/SceneComponent.h"
 #include "Components/MeshComponent.h"
 #include "Components/SplineComponent.h"
@@ -607,7 +606,7 @@ UHoudiniOutput::Clear()
 			    {
 				    LandscapeProxy->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 				    LandscapeProxy->ConditionalBeginDestroy();
-				    LandscapeProxy->Destroy();
+					FHoudiniEngineRuntimeUtils::DestroyLandscapeProxy(LandscapeProxy.Get());
 				    LandscapePtr->SetSoftPtr(nullptr);
 			    }
 		    }
