@@ -451,7 +451,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniOutput : public UObject
 	friend struct FHoudiniInstanceTranslator;
 	friend struct FHoudiniOutputTranslator;
 	friend struct FHoudiniGeometryCollectionTranslator;
-	
+	friend struct FHoudiniPDGTranslator;
 
 	virtual ~UHoudiniOutput();
 
