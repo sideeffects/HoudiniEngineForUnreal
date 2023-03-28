@@ -883,6 +883,12 @@ UHoudiniOutput::OutputTypeToString(const EHoudiniOutputType& InOutputType)
 		case EHoudiniOutputType::Skeletal:
 			OutputTypeStr = TEXT("Skeletal");
 			break;
+		case EHoudiniOutputType::GeometryCollection:
+			OutputTypeStr = TEXT("GeometryCollection");
+			break;
+		case EHoudiniOutputType::DataTable:
+			OutputTypeStr = TEXT("DataTable");
+			break;
 
 		default:
 		case EHoudiniOutputType::Invalid:
