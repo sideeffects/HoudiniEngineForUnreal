@@ -42,6 +42,7 @@
 #include "HoudiniMeshTranslator.h"
 #include "HoudiniInstanceTranslator.h"
 #include "HoudiniLandscapeTranslator.h"
+#include "HoudiniDataTableTranslator.h"
 #include "HoudiniPDGAssetLink.h"
 #include "HoudiniOutputTranslator.h"
 #include "HoudiniSplineComponent.h"
@@ -410,6 +411,17 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 				LandscapeOutputs.Add(CurOutput);
 			}
 			break;
+
+			case EHoudiniOutputType::DataTable:
+			{
+				FHoudiniPackageParams PackageParams = InPackageParams;
+
+				for (auto&& HGPO : CurOutput->HoudiniGeoPartObjects)
+				{
+					FHoudiniDataTableTranslator::BuildDataTable(HGPO, CurOutput, PackageParams);
+				}
+				break;
+			}
 
 			default:
 			{
