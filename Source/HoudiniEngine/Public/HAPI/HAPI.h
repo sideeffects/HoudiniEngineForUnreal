@@ -6872,6 +6872,12 @@ HAPI_DECL HAPI_SetAttributeFloatUniqueData(
 /// @param[in]      name
 ///                 Attribute name.
 ///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
 /// @param[in]      data_array
 ///                 A floating point array at least the size of
 ///                 <tt>::HAPI_AttributeInfo::tupleSize</tt>.
