@@ -32,6 +32,7 @@
 #include "UObject/Package.h"
 #include "Templates/Casts.h"
 #include "Misc/Paths.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 #include "UnrealObjectInputManager.h"
 
@@ -140,11 +141,15 @@ uint32
 FUnrealObjectInputIdentifier::GetTypeHash() const
 {
 	const FName ObjectPath = Object.IsValid() ? FName(Object->GetPathName()) : Path;
-		
+
 	switch(NodeType)
 	{
 		case EUnrealObjectInputNodeType::Invalid:
+#if ENGINE_MINOR_VERSION < 2
 			return ::GetTypeHash(FString());
+#else
+			return 0;
+#endif
 		case EUnrealObjectInputNodeType::Container:
 			return ::GetTypeHash(ObjectPath);
 		case EUnrealObjectInputNodeType::Reference:
@@ -153,7 +158,11 @@ FUnrealObjectInputIdentifier::GetTypeHash() const
 			return ::GetTypeHash(Pair);
 	}
 
+#if ENGINE_MINOR_VERSION < 2
 	return ::GetTypeHash(FString());
+#else
+	return 0;
+#endif
 }
 
 bool

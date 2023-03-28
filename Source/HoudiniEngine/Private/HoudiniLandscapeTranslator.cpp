@@ -1273,21 +1273,33 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 			if (SharedLandscapeActor)
 			{
 				if (CachedStreamingProxyActor)
+#if ENGINE_MINOR_VERSION < 2
 					bModifiedLandscapeActor = CachedStreamingProxyActor->LandscapeActor != SharedLandscapeActor;
+#else
+					bModifiedLandscapeActor = CachedStreamingProxyActor->GetLandscapeActor() != SharedLandscapeActor;
+#endif
 				else
 					bModifiedLandscapeActor = true;
 
 				if (bModifiedLandscapeActor)
 				{
+#if ENGINE_MINOR_VERSION < 2
 					CachedStreamingProxyActor->LandscapeActor = SharedLandscapeActor;
+#else
+					CachedStreamingProxyActor->SetLandscapeActor(SharedLandscapeActor);
+#endif
 					// We need to force a state update through PostEditChangeProperty here in order to initialize
 					// since we're about to perform additional data updates on this tile.
 					DoPostEditChangeProperty(CachedStreamingProxyActor, "LandscapeActor");
 				}
 			}
 			else
-			{
+			{				
+#if ENGINE_MINOR_VERSION < 2
 				CachedStreamingProxyActor->LandscapeActor = nullptr;
+#else
+				CachedStreamingProxyActor->SetLandscapeActor(nullptr);
+#endif
 			}
 			
 		}
@@ -4391,7 +4403,11 @@ FHoudiniLandscapeTranslator::CreateLandscapeTileInWorld(
 
 				// Update landscape tile properties from the main landscape actor.
 				CachedStreamingProxyActor->GetSharedProperties(SharedLandscapeActor);
+#if ENGINE_MINOR_VERSION < 2
 				CachedStreamingProxyActor->LandscapeActor = SharedLandscapeActor;
+#else
+				CachedStreamingProxyActor->SetLandscapeActor(SharedLandscapeActor);
+#endif
 				CachedStreamingProxyActor->bCastStaticShadow = false;
 				LandscapeTile = CachedStreamingProxyActor;
 			}

@@ -37,6 +37,10 @@
 #include "HoudiniCompatibilityHelpers.h"
 
 #include "UObject/DevObjectVersion.h"
+#if ENGINE_MINOR_VERSION >= 2
+	#include "UObject/Linker.h"
+#endif
+
 #include "Serialization/CustomVersion.h"
 
 void

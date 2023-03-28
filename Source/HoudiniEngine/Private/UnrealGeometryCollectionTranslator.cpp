@@ -268,7 +268,11 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 	TManagedArray<FVector3f>& TangentU = GeometryCollection->TangentU;
 	TManagedArray<FVector3f>& TangentV = GeometryCollection->TangentV;
 	TManagedArray<FVector3f>& Normal = GeometryCollection->Normal;
+#if ENGINE_MINOR_VERSION < 2
 	TArray<FVector2f>& UV = GeometryCollection->UVs[0];
+#else
+	// UE5.2 has removed the ability to directly access UVs
+#endif
 	TManagedArray<FLinearColor>& Color = GeometryCollection->Color;
 	TManagedArray<int32>& BoneMap = GeometryCollection->BoneMap;
 	TManagedArray<FLinearColor>& BoneColor = GeometryCollection->BoneColor;
@@ -408,7 +412,11 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 		// Setup for vertex instance attributes
 		int32 HoudiniVertexIdx = 0;
 
+#if ENGINE_MINOR_VERSION < 2
 		const bool HasUVs = UV.Num() == Vertex.Num();
+#else
+		const bool HasUVs = GeometryCollection->NumUVLayers() > 0;
+#endif
 		TArray<float> UVs;
 		if (HasUVs)
 			UVs.SetNumZeroed(Part.vertexCount * 3);
@@ -460,9 +468,16 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 				//--------------------------------------------------------------------------------------------------------------------- 
 				if (HasUVs)
 				{
+#if ENGINE_MINOR_VERSION < 2
 					UVs[Float3Index + 0] = UV[VertexIndex].X;
 					UVs[Float3Index + 1] = 1 - UV[VertexIndex].Y;
 					UVs[Float3Index + 2] = 0;
+#else
+					FVector2f currentUV = GeometryCollection->GetUV(VertexIndex, 0);
+					UVs[Float3Index + 0] = currentUV.X;
+					UVs[Float3Index + 1] = 1 - currentUV.Y;
+					UVs[Float3Index + 2] = 0;
+#endif
 				}
 				
 				//--------------------------------------------------------------------------------------------------------------------- 

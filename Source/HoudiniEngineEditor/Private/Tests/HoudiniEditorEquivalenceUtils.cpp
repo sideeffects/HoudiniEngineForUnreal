@@ -1108,6 +1108,17 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FVector2D& A, const FVec
 	return Result;
 }
 
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FVector2f& A, const FVector2f& B)
+{
+	const FString Header = "FVector2f";
+	bool Result = true;
+
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.X, B.X, FLOAT_TOLERANCE), Header, "X");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(A.Y, B.Y, FLOAT_TOLERANCE), Header, "Y");
+
+	return Result;
+}
+
 bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FStaticMaterial& A, const FStaticMaterial& B)
 {
 	const FString Header = "FStaticMaterial";
