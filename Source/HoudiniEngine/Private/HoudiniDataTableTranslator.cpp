@@ -361,7 +361,8 @@ namespace
 };
 
 bool
-FHoudiniDataTableTranslator::BuildDataTable(FHoudiniGeoPartObject& HGPO,
+FHoudiniDataTableTranslator::BuildDataTable(
+	FHoudiniGeoPartObject& HGPO,
 	UHoudiniOutput* CurOutput,
 	FHoudiniPackageParams& PackageParams)
 {
