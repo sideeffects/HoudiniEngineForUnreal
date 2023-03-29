@@ -5319,7 +5319,7 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 								{
 									const int32 UVIdx = TriVertIdx0 * 2 + ElementIdx * 2;
 									// We need to flip V coordinate when it's coming from HAPI.
-									const FVector2D UV(SplitUVs[UVIdx + 0], 1.0f - SplitUVs[UVIdx + 1]);
+									const FVector2f UV(SplitUVs[UVIdx + 0], 1.0f - SplitUVs[UVIdx + 1]);
 									// Set the UV on the vertex instance in the UVLayer
 									FoundStaticMesh->SetTriangleVertexUV(TriangleIdx, TriWindingIndex[ElementIdx], TexCoordIdx, UV);
 								}

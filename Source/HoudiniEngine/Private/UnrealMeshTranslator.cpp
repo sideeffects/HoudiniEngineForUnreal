@@ -43,6 +43,10 @@
 #include "StaticMeshAttributes.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 
+#if ENGINE_MINOR_VERSION >= 2
+	#include "StaticMeshComponentLODInfo.h"
+#endif
+
 #if WITH_EDITOR
 	#include "EditorFramework/AssetImportData.h"
 #endif

@@ -796,7 +796,7 @@ struct FHoudiniBrushInfo
 		s^= ::GetTypeHash(v) + 0x9e3779b9 + (s<< 6) + (s>> 2);
 	}
 
-	inline void HashCombine(uint64& s, const FVector & V) const
+	inline void HashCombine(uint64& s, const FVector3f & V) const
 	{
 		HashCombine(s, V.X);
 		HashCombine(s, V.Y);

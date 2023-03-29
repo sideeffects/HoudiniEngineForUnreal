@@ -381,94 +381,95 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 		OutputBakedActors.Reset();
 		switch (OutputType)
 		{
-		case EHoudiniOutputType::Mesh:
-		{
-			FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
-				HoudiniAssetComponent,
-				OutputIdx,
-				InOutputs,
-				InBakedOutputs,
-				InBakeFolder,
-				InTempCookFolder,
-				bInReplaceActors,
-				bInReplaceAssets,
-				AllBakedActors,
-				OutputBakedActors,
-				OutPackagesToSave,
-				AlreadyBakedStaticMeshMap,
-				AlreadyBakedMaterialsMap,
-				OutBakeStats,
-				InFallbackActor,
-				InFallbackWorldOutlinerFolder);
-		}
-		break;
-
-		case EHoudiniOutputType::Instancer:
-		{
-			if (!bHasAnyInstancers)
-				bHasAnyInstancers = true;
-			NumProcessedOutputs--;
-		}
-		break;
-
-		case EHoudiniOutputType::Landscape:
-		{
-			const bool bResult = BakeLandscape(
-				HoudiniAssetComponent,
-				OutputIdx,
-				InOutputs,
-				InBakedOutputs,
-				bInReplaceActors,
-				bInReplaceAssets,
-				InBakeFolder.Path,
-				OutBakeStats);
-		}
-		break;
-
-		case EHoudiniOutputType::Skeletal:
+			case EHoudiniOutputType::Mesh:
+			{
+				FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
+					HoudiniAssetComponent,
+					OutputIdx,
+					InOutputs,
+					InBakedOutputs,
+					InBakeFolder,
+					InTempCookFolder,
+					bInReplaceActors,
+					bInReplaceAssets,
+					AllBakedActors,
+					OutputBakedActors,
+					OutPackagesToSave,
+					AlreadyBakedStaticMeshMap,
+					AlreadyBakedMaterialsMap,
+					OutBakeStats,
+					InFallbackActor,
+					InFallbackWorldOutlinerFolder);
+			}
 			break;
 
-		case EHoudiniOutputType::Curve:
-		{
-			FHoudiniEngineBakeUtils::BakeHoudiniCurveOutputToActors(
-				HoudiniAssetComponent,
-				OutputIdx,
-				InOutputs,
-				InBakedOutputs,
-				InBakeFolder,
-				bInReplaceActors,
-				bInReplaceAssets,
-				AllBakedActors,
-				OutputBakedActors,
-				OutBakeStats,
-				InFallbackActor,
-				InFallbackWorldOutlinerFolder);
-		}
-		break;
-		case EHoudiniOutputType::GeometryCollection:
-		{
-			BakeGeometryCollectionOutputToActors(
-				HoudiniAssetComponent,
-				OutputIdx,
-				InOutputs,
-				InBakedOutputs,
-				InBakeFolder,
-				InTempCookFolder,
-				bInReplaceActors,
-				bInReplaceAssets,
-				AllBakedActors,
-				OutputBakedActors,
-				OutPackagesToSave,
-				AlreadyBakedStaticMeshMap,
-				AlreadyBakedMaterialsMap,
-				OutBakeStats,
-				InFallbackActor,
-				InFallbackWorldOutlinerFolder);
-		}
-		break;
-
-		case EHoudiniOutputType::Invalid:
+			case EHoudiniOutputType::Instancer:
+			{
+				if (!bHasAnyInstancers)
+					bHasAnyInstancers = true;
+				NumProcessedOutputs--;
+			}
 			break;
+
+			case EHoudiniOutputType::Landscape:
+			{
+				const bool bResult = FHoudiniEngineBakeUtils::BakeLandscape(
+					HoudiniAssetComponent,
+					OutputIdx,
+					InOutputs,
+					InBakedOutputs,
+					bInReplaceActors,
+					bInReplaceAssets,
+					InBakeFolder.Path,
+					OutBakeStats);
+			}
+			break;
+
+			case EHoudiniOutputType::Skeletal:
+				break;
+
+			case EHoudiniOutputType::Curve:
+			{
+				FHoudiniEngineBakeUtils::BakeHoudiniCurveOutputToActors(
+					HoudiniAssetComponent,
+					OutputIdx,
+					InOutputs,
+					InBakedOutputs,
+					InBakeFolder,
+					bInReplaceActors,
+					bInReplaceAssets,
+					AllBakedActors,
+					OutputBakedActors,
+					OutBakeStats,
+					InFallbackActor,
+					InFallbackWorldOutlinerFolder);
+			}
+			break;
+
+			case EHoudiniOutputType::GeometryCollection:
+			{
+				FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
+					HoudiniAssetComponent,
+					OutputIdx,
+					InOutputs,
+					InBakedOutputs,
+					InBakeFolder,
+					InTempCookFolder,
+					bInReplaceActors,
+					bInReplaceAssets,
+					AllBakedActors,
+					OutputBakedActors,
+					OutPackagesToSave,
+					AlreadyBakedStaticMeshMap,
+					AlreadyBakedMaterialsMap,
+					OutBakeStats,
+					InFallbackActor,
+					InFallbackWorldOutlinerFolder);
+			}
+			break;
+
+			case EHoudiniOutputType::Invalid:
+				break;
 		}
 
 		AllBakedActors.Append(OutputBakedActors);
@@ -479,7 +480,6 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 
 	if (bHasAnyInstancers)
 	{
-
 	    FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 			HoudiniAssetComponent,
 			AlreadyBakedStaticMeshMap,
@@ -3629,8 +3629,7 @@ FHoudiniEngineBakeUtils::BakeLandscape(
 	bool bInReplaceActors,
 	bool bInReplaceAssets,
 	const FString& BakePath,
-	FHoudiniEngineOutputStats& BakeStats
-	)
+	FHoudiniEngineOutputStats& BakeStats)
 {
 	// Check that index is not negative
 	if (InOutputIndex < 0)
@@ -4135,7 +4134,8 @@ FHoudiniEngineBakeUtils::BakeLandscapeObject(
 	return true;
 }
 
-UFoliageType* FHoudiniEngineBakeUtils::DuplicateFoliageTypeAndCreatePackageIfNeeded(
+UFoliageType* 
+FHoudiniEngineBakeUtils::DuplicateFoliageTypeAndCreatePackageIfNeeded(
 	UFoliageType* InFoliageType,
 	const FHoudiniPackageParams& PackageParams,
 	const TArray<UHoudiniOutput*>& InParentOutputs,
@@ -7862,7 +7862,11 @@ ALandscapeProxy* FHoudiniEngineBakeUtils::MoveLandscapeComponentsToLevel(ULandsc
 		// copy shared properties to this new proxy
 		StreamingProxy->SetActorLabel(StreamingProxy->GetName());
 		StreamingProxy->GetSharedProperties(Landscape);
+#if ENGINE_MINOR_VERSION < 2
 		StreamingProxy->LandscapeActor = Landscape;
+#else
+		StreamingProxy->SetLandscapeActor(Landscape);
+#endif
 		StreamingProxy->bHasLayersContent = Landscape->CanHaveLayersContent();
 		LandscapeInfo->RegisterActor(StreamingProxy, false);
 		bSetPositionAndOffset = true;
@@ -7919,7 +7923,11 @@ FHoudiniEngineBakeUtils::MoveLandscapeComponentsToProxy(
 			TargetSelectedComponents.Add(Component);
 		}
 
+#if ENGINE_MINOR_VERSION < 2
 		ULandscapeHeightfieldCollisionComponent* CollisionComp = Component->CollisionComponent.Get();
+#else
+		ULandscapeHeightfieldCollisionComponent* CollisionComp = Component->GetCollisionComponent();
+#endif
 		SelectProxies.Add(CollisionComp->GetLandscapeProxy());
 		if (CollisionComp->GetLandscapeProxy() != LandscapeProxy && (!TargetLevel || CollisionComp->GetLandscapeProxy()->GetOuter() != TargetLevel))
 		{

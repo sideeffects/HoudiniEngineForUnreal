@@ -3539,8 +3539,10 @@ FHoudiniMaterialTranslator::UpdateMaterialInstanceParameter(
 
 #if ENGINE_MINOR_VERSION < 1
 			TArray<FStaticSwitchParameter>& StaticSwitchParams = StaticParameters.StaticSwitchParameters;
-#else
+#elif ENGINE_MINOR_VERSION < 2
 			TArray<FStaticSwitchParameter>& StaticSwitchParams = StaticParameters.EditorOnly.StaticSwitchParameters;
+#else
+			TArray<FStaticSwitchParameter>& StaticSwitchParams = StaticParameters.StaticSwitchParameters;
 #endif
 			for (int32 SwitchParameterIdx = 0; SwitchParameterIdx < StaticSwitchParams.Num(); ++SwitchParameterIdx)
 			{
