@@ -42,6 +42,9 @@
 
 #include "UObject/DevObjectVersion.h"
 #include "Serialization/CustomVersion.h"
+#if ENGINE_MINOR_VERSION >= 2
+	#include "UObject/Linker.h"
+#endif
 
 void
 UHoudiniSplineComponent::Serialize(FArchive& Ar)

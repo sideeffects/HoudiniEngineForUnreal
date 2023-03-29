@@ -316,7 +316,11 @@ namespace
 		}
 		else
 		{
+#if ENGINE_MINOR_VERSION < 2
 			bool IsFloat = TIsSame<T, float>::Value || TIsSame<T, double>::Value;
+#else
+			bool IsFloat = std::is_same<T, float>::value || std::is_same<T, double>::value;
+#endif
 			const T* CastedData = static_cast<const T*>(AttrData);
 			if (Prop->IsA<FStrProperty>() || Prop->IsA<FTextProperty>() || Prop->IsA<FNameProperty>())
 			{
