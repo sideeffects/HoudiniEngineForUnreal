@@ -60,6 +60,10 @@
 	#include "Editor/UnrealEd/Private/GeomFitUtils.h"
 #endif
 
+#if ENGINE_MINOR_VERSION >= 2
+	#include "UObject/Linker.h"
+#endif
+
 #include "ComponentReregisterContext.h"
 
 // Macro to update given properties on all children components of the HAC.

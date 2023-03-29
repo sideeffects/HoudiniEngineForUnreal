@@ -3541,7 +3541,11 @@ FHoudiniParameterDetails::CreateWidgetColor(IDetailCategoryBuilder & HouParamete
 						Transaction.Cancel();
 					}
 				});
+#if ENGINE_MINOR_VERSION < 2
 				PickerArgs.InitialColorOverride = MainParam->GetColorValue();
+#else
+				PickerArgs.InitialColor = MainParam->GetColorValue();
+#endif
 				PickerArgs.bOnlyRefreshOnOk = true;
 				OpenColorPicker(PickerArgs);
 				return FReply::Handled();
@@ -5587,7 +5591,11 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 							TAttribute< float >::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma));
 						PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateLambda(OnColorChangeLambda);
 						FLinearColor InitColor = NextColorRampPoint->Value;
+#if ENGINE_MINOR_VERSION < 2
 						PickerArgs.InitialColorOverride = InitColor;
+#else
+						PickerArgs.InitialColor = InitColor;
+#endif
 						PickerArgs.bOnlyRefreshOnOk = true;
 						OpenColorPicker(PickerArgs);
 						return FReply::Handled();
