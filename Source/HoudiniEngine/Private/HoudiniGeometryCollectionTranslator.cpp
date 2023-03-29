@@ -1251,7 +1251,12 @@ FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 		TManagedArray<FVector3f>& TargetTangentU = GeometryCollection->TangentU;
 		TManagedArray<FVector3f>& TargetTangentV = GeometryCollection->TangentV;
 		TManagedArray<FVector3f>& TargetNormal = GeometryCollection->Normal;
+#if ENGINE_MINOR_VERSION < 2
 		TManagedArray<TArray<FVector2f>>& TargetUVs = GeometryCollection->UVs;
+#else
+		// UE5.2 removed direct access to UVs
+		// We need to use ModifyUVs to edit them...
+#endif
 		TManagedArray<FLinearColor>& TargetColor = GeometryCollection->Color;
 		TManagedArray<int32>& TargetBoneMap = GeometryCollection->BoneMap;
 		TManagedArray<FLinearColor>& TargetBoneColor = GeometryCollection->BoneColor;
@@ -1302,7 +1307,14 @@ FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 				TargetTangentU[CurrentVertex] = SourceTangent[ExemplarInstanceID];
 				TargetTangentV[CurrentVertex] = (FVector3f)SourceBinormalSign[ExemplarInstanceID] * FVector3f::CrossProduct(TargetNormal[CurrentVertex], TargetTangentU[CurrentVertex]);
 
+#if ENGINE_MINOR_VERSION < 2
 				TargetUVs[CurrentVertex] = SplitVertex.Key.UVs;
+#else
+				for (int32 LayerIdx = 0; LayerIdx < SplitVertex.Key.UVs.Num(); ++LayerIdx)
+				{
+					GeometryCollection->ModifyUV(CurrentVertex, LayerIdx) = SplitVertex.Key.UVs[LayerIdx];
+				}
+#endif
 
 				if (SourceColor.Num() > 0)
 				{

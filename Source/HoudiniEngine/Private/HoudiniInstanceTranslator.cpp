@@ -50,6 +50,10 @@
 #include "FoliageEditUtility.h"
 //#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionDebugDrawComponent.h"
 
+#if ENGINE_MINOR_VERSION >= 2
+	#include "StaticMeshComponentLODInfo.h"
+#endif
+
 #if WITH_EDITOR
 	//#include "ScopedTransaction.h"
 	#include "LevelEditorViewport.h"

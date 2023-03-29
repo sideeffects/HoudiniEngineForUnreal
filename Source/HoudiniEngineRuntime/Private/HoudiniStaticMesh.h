@@ -115,7 +115,7 @@ public:
 	void SetTriangleVertexColor(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, const FColor& InColor);
 
 	UFUNCTION()
-	void SetTriangleVertexUV(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, uint8 InUVLayer, const FVector2D& InUV);
+	void SetTriangleVertexUV(uint32 InTriangleIndex, uint8 InTriangleVertexIndex, uint8 InUVLayer, const FVector2f& InUV);
 
 	UFUNCTION()
 	void SetTriangleMaterialID(uint32 InTriangleIndex, int32 InMaterialID);
@@ -176,7 +176,7 @@ public:
 	const TArray<FVector3f>& GetVertexInstanceVTangents() const { return VertexInstanceVTangents; }
 
 	UFUNCTION()
-	const TArray<FVector2D>& GetVertexInstanceUVs() const { return VertexInstanceUVs; }
+	const TArray<FVector2f>& GetVertexInstanceUVs() const { return VertexInstanceUVs; }
 
 	UFUNCTION()
 	const TArray<int32>& GetMaterialIDsPerTriangle() const { return MaterialIDsPerTriangle; }
@@ -247,7 +247,7 @@ protected:
 
 	/** Array of UV layers to array of per triangle-vertex UVs. Index: UVLayerIndex * (NumVertexInstances) + 3 * TriangleID + LocalTriangleVertexIndex. */
 	UPROPERTY(SkipSerialization)
-	TArray<FVector2D> VertexInstanceUVs;
+	TArray<FVector2f> VertexInstanceUVs;
 
 	/** Array of material ID per triangle. Indexed by Triangle ID/Index. */
 	UPROPERTY(SkipSerialization)
