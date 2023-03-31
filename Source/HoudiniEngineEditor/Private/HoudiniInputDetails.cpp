@@ -7558,20 +7558,23 @@ FHoudiniInputDetails::Helper_AddCurvePointSelectionUI(
 	{
 		const FTransform& CurTransform = CurvePoints[EditedControlPointsIndexes[i]];
 
+		// Equal to UE_KINDA_SMALL_NUMBER used by UE
+		const float Threshold = 1.e-4f;
+
 		// Translate
-		IsSingleValue[0][0] &= FMath::Abs(CurTransform.GetLocation().X - Transform.GetLocation().X) < UE_KINDA_SMALL_NUMBER;
-		IsSingleValue[0][1] &= FMath::Abs(CurTransform.GetLocation().Y - Transform.GetLocation().Y) < UE_KINDA_SMALL_NUMBER;
-		IsSingleValue[0][2] &= FMath::Abs(CurTransform.GetLocation().Z - Transform.GetLocation().Z) < UE_KINDA_SMALL_NUMBER;
+		IsSingleValue[0][0] &= FMath::Abs(CurTransform.GetLocation().X - Transform.GetLocation().X) < Threshold;
+		IsSingleValue[0][1] &= FMath::Abs(CurTransform.GetLocation().Y - Transform.GetLocation().Y) < Threshold;
+		IsSingleValue[0][2] &= FMath::Abs(CurTransform.GetLocation().Z - Transform.GetLocation().Z) < Threshold;
 
 		// Rotate
-		IsSingleValue[1][0] &= FMath::Abs(CurTransform.GetRotation().Rotator().Roll - Transform.GetRotation().Rotator().Roll) < UE_KINDA_SMALL_NUMBER;
-		IsSingleValue[1][1] &= FMath::Abs(CurTransform.GetRotation().Rotator().Pitch - Transform.GetRotation().Rotator().Pitch) < UE_KINDA_SMALL_NUMBER;
-		IsSingleValue[1][2] &= FMath::Abs(CurTransform.GetRotation().Rotator().Yaw - Transform.GetRotation().Rotator().Yaw) < UE_KINDA_SMALL_NUMBER;
+		IsSingleValue[1][0] &= FMath::Abs(CurTransform.GetRotation().Rotator().Roll - Transform.GetRotation().Rotator().Roll) < Threshold;
+		IsSingleValue[1][1] &= FMath::Abs(CurTransform.GetRotation().Rotator().Pitch - Transform.GetRotation().Rotator().Pitch) < Threshold;
+		IsSingleValue[1][2] &= FMath::Abs(CurTransform.GetRotation().Rotator().Yaw - Transform.GetRotation().Rotator().Yaw) < Threshold;
 
 		// Scale
-		IsSingleValue[2][0] &= FMath::Abs(CurTransform.GetScale3D().X - Transform.GetScale3D().X) < UE_KINDA_SMALL_NUMBER;
-		IsSingleValue[2][1] &= FMath::Abs(CurTransform.GetScale3D().Y - Transform.GetScale3D().Y) < UE_KINDA_SMALL_NUMBER;
-		IsSingleValue[2][2] &= FMath::Abs(CurTransform.GetScale3D().Z - Transform.GetScale3D().Z) < UE_KINDA_SMALL_NUMBER;
+		IsSingleValue[2][0] &= FMath::Abs(CurTransform.GetScale3D().X - Transform.GetScale3D().X) < Threshold;
+		IsSingleValue[2][1] &= FMath::Abs(CurTransform.GetScale3D().Y - Transform.GetScale3D().Y) < Threshold;
+		IsSingleValue[2][2] &= FMath::Abs(CurTransform.GetScale3D().Z - Transform.GetScale3D().Z) < Threshold;
 	}
 
 	const FTransform& HoudiniSplineComponentTransform = HoudiniSplineComponent->GetComponentTransform();
@@ -7933,14 +7936,9 @@ FHoudiniInputDetails::Helper_AddCurvePointSelectionUI(
 			]
 			.ButtonContent()
 			[
-				SNew(SBox)
-				.Padding(0, 0, 2, 0)
-				.MinDesiredWidth(50)
-				[
-					SNew(STextBlock)
-					.Text(bUseAbsLocation ? LOCTEXT("LocationType", "Absolute Location") : LOCTEXT("LocationType", "Location"))
-					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-				]
+				SNew(STextBlock)
+				.Text(bUseAbsLocation ? LOCTEXT("LocationType", "Absolute Location") : LOCTEXT("LocationType", "Location"))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		]
 		+ SHorizontalBox::Slot()
@@ -8105,14 +8103,9 @@ FHoudiniInputDetails::Helper_AddCurvePointSelectionUI(
 			]
 			.ButtonContent()
 			[
-				SNew(SBox)
-				.Padding(0, 0, 2, 0)
-				.MinDesiredWidth(50)
-				[
-					SNew(STextBlock)
-					.Text(bUseAbsRotation ? LOCTEXT("RotationType", "Absolute Rotation") : LOCTEXT("RotationType", "Rotation"))
-					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-				]
+				SNew(STextBlock)
+				.Text(bUseAbsRotation ? LOCTEXT("RotationType", "Absolute Rotation") : LOCTEXT("RotationType", "Rotation"))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		]
 		+ SHorizontalBox::Slot()
