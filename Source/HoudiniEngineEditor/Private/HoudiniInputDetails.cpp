@@ -48,6 +48,7 @@
 #include "Widgets/Input/SComboBox.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SRotatorInputBox.h"
 #include "Widgets/Input/SVectorInputBox.h"
 #include "Widgets/Input/SNumericEntryBox.h"
@@ -75,6 +76,7 @@
 
 #include "HoudiniEngineRuntimeUtils.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
+#include "HoudiniEngineStyle.h"
 
 #include "ActorTreeItem.h"
 #include "Widgets/Layout/SExpandableArea.h"
@@ -99,6 +101,84 @@ public:
 
 		return STextBlock::OnPaint(Args, AllottedGeometry, MyClippingRect,
 			OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	}
+};
+
+// Customized SVerticalBox used by for creating the spline point selection
+// and control UI. When a spline is changed, or the selected points for a spline
+// are changed, then this refreshes the UI so that the transform controls for
+// the points are updated accordingly.
+class SCurveListenerVerticalBox : public SVerticalBox
+{
+public:
+	TSharedPtr<FHoudiniSplineComponentVisualizer> HoudiniSplineComponentVisualizer;
+	IDetailCategoryBuilder* CategoryBuilder;
+	mutable UHoudiniSplineComponent* PrevSplineComponent;
+	mutable FTransform PrevSplineTransform;
+	mutable TArray<int32> PrevEditedControlPointsIndexes;
+
+public:
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect,
+		FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override
+	{
+		if (!HoudiniSplineComponentVisualizer.IsValid())
+			return LayerId;
+
+		bool bRefreshUI = false;
+
+		if (HoudiniSplineComponentVisualizer->GetEditedHoudiniSplineComponent() != PrevSplineComponent)
+		{
+			bRefreshUI = true;
+			PrevSplineComponent = HoudiniSplineComponentVisualizer->GetEditedHoudiniSplineComponent();
+			if (PrevSplineComponent)
+			{
+				PrevEditedControlPointsIndexes = PrevSplineComponent->EditedControlPointsIndexes;
+				PrevSplineTransform = PrevSplineComponent->GetComponentTransform();
+			}
+		}
+		else if (PrevSplineComponent)
+		{
+			if (PrevSplineComponent->HasChanged())
+			{
+				bRefreshUI = true;
+			}
+			else if (PrevSplineTransform.GetLocation() != PrevSplineComponent->GetComponentTransform().GetLocation() ||
+				 PrevSplineTransform.GetRotation() != PrevSplineComponent->GetComponentTransform().GetRotation())
+			{
+				bRefreshUI = true;
+				PrevSplineTransform = PrevSplineComponent->GetComponentTransform();
+			}
+			else {
+				TArray<int32>& CurEditedControlPointIndexes = PrevSplineComponent->EditedControlPointsIndexes;
+
+				if (CurEditedControlPointIndexes.Num() == PrevEditedControlPointsIndexes.Num())
+				{
+					for (int32 Idx = 0; Idx < CurEditedControlPointIndexes.Num(); ++Idx)
+					{
+						if (CurEditedControlPointIndexes[Idx] != PrevEditedControlPointsIndexes[Idx]) {
+							bRefreshUI = true;
+							break;
+						}
+					}
+				}
+				else
+					bRefreshUI = true;
+
+				if (bRefreshUI)
+					PrevEditedControlPointsIndexes = CurEditedControlPointIndexes;
+			}
+		}
+
+		if (bRefreshUI)
+		{
+			if (GEditor)
+				GEditor->RedrawAllViewports();
+
+			if (CategoryBuilder->IsParentLayoutValid())
+				CategoryBuilder->GetParentLayout().ForceRefreshDetails();
+		}
+
+		return LayerId;
 	}
 };
 
@@ -143,13 +223,15 @@ FHoudiniInputDetails::CreateWidget(
 
 	// The New Geometry and New World input UI's create their own
 	// Keep World Transform under the Export Options Menu
-	if (MainInputType != EHoudiniInputType::NewGeometry && MainInputType != EHoudiniInputType::NewWorld)
+	if (MainInputType != EHoudiniInputType::Curve
+		&& MainInputType != EHoudiniInputType::NewGeometry
+		&& MainInputType != EHoudiniInputType::NewWorld)
 	{
 		AddKeepWorldTransformCheckBox(VerticalBox, InInputs);
 	}
 
 	// Checkbox : CurveInput trigger cook on curve changed
-	AddCurveInputCookOnChangeCheckBox(VerticalBox, InInputs);
+	// AddCurveInputCookOnChangeCheckBox(VerticalBox, InInputs);
 
 	if (MainInputType == EHoudiniInputType::Geometry || MainInputType == EHoudiniInputType::World)
 	{
@@ -187,7 +269,7 @@ FHoudiniInputDetails::CreateWidget(
 
 		case EHoudiniInputType::Curve:
 		{
-			AddCurveInputUI(HouInputCategory, VerticalBox, InInputs, AssetThumbnailPool);
+			AddNewCurveInputUI(HouInputCategory, VerticalBox, InInputs, AssetThumbnailPool);
 		}
 		break;
 
@@ -400,7 +482,7 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 }
 
 void
-FHoudiniInputDetails:: AddCurveInputCookOnChangeCheckBox(TSharedRef< SVerticalBox > VerticalBox, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+FHoudiniInputDetails::AddCurveInputCookOnChangeCheckBox(TSharedRef< SVerticalBox > VerticalBox, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
 	if (InInputs.Num() <= 0)
 		return;
@@ -1296,6 +1378,140 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 	];
 }
 
+void
+FHoudiniInputDetails::AddCurveRotScaleAttributesCheckBox(
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	if (!IsValidWeakPointer(MainInput) || MainInput->GetInputType() != EHoudiniInputType::Curve)
+		return;
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SCheckBox)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("CurveAddRotScaleAttributes", "Add Rotation/Scale Attributes"))
+			.ToolTipText(LOCTEXT("CurveAddRotScaleAttributesTip", "If enabled, rotation and scale attributes will be added per to the input curve for each control point."))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		.IsChecked_Lambda([MainInput]()
+		{
+				if (!IsValidWeakPointer(MainInput))
+					return ECheckBoxState::Unchecked;
+
+				return MainInput->IsAddRotAndScaleAttributesEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		})
+		.OnCheckStateChanged_Lambda([MainInput, InInputs](ECheckBoxState NewState)
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return;
+
+			const bool bNewState = (NewState == ECheckBoxState::Checked);
+
+			if (MainInput->IsAddRotAndScaleAttributesEnabled() == bNewState)
+				return;
+
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Add Rotation/Scale Attributes to Curve Checkbox"),
+				MainInput->GetOuter());
+			
+			for (auto CurInput : InInputs)
+			{
+				if (!IsValidWeakPointer(CurInput))
+					continue;
+
+				if (CurInput->IsAddRotAndScaleAttributesEnabled() == bNewState)
+					continue;
+
+				CurInput->Modify();
+				CurInput->SetAddRotAndScaleAttributes(bNewState);
+				CurInput->MarkChanged(true);
+			}
+		})
+	];
+}
+
+void
+FHoudiniInputDetails::AddCurveAutoUpdateCheckBox(
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	if (!IsValidWeakPointer(MainInput) || MainInput->GetInputType() != EHoudiniInputType::Curve)
+		return;
+
+	auto IsAutoUpdate = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->GetCookOnCurveChange() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	auto CheckStateChangedAutoUpdate = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->GetCookOnCurveChange() == bNewState)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Curve Auto Update CheckBox"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetCookOnCurveChange() == bNewState)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetCookOnCurveChange(bNewState);
+			CurInput->MarkChanged(true);
+		}
+	};
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SCheckBox)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("CurveAutoUpdateCheckBox", "Auto Update"))
+			.ToolTipText(LOCTEXT("CurveAutoUpdateCheckBoxTip", "When checked, cook is triggered automatically when the curve is modified."))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		.IsChecked_Lambda([=]()
+		{
+			return IsAutoUpdate(MainInput);
+		})
+		.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+		{
+			return CheckStateChangedAutoUpdate(InInputs, NewState);
+		})
+	];
+}
+
 void 
 FHoudiniInputDetails::AddExportAsReferenceCheckBoxes(
 	TSharedRef<SVerticalBox> InVerticalBox,
@@ -1311,7 +1527,6 @@ FHoudiniInputDetails::AddExportAsReferenceCheckBoxes(
 		return;
 
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
-
 	if (!IsValidWeakPointer(MainInput))
 		return;
 
@@ -2454,6 +2669,7 @@ FHoudiniInputDetails::AddExportOptions(
 	TSharedRef<SExpandableArea> ExportOptions_Expandable = SNew(SExpandableArea)
 		.AreaTitle(LOCTEXT("NewInputsExportOptionsMenu", "Export Options"))
 		.InitiallyCollapsed(!MainInput->GetExportOptionsMenuExpanded())
+		.MinWidth(350.0f)
 		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
 		{
 			return ExportOptionsMenuStateChanged(InInputs, bNewState);
@@ -2463,23 +2679,55 @@ FHoudiniInputDetails::AddExportOptions(
 			ExportOptions_VerticalBox
 		];
 
-	AddKeepWorldTransformCheckBox(ExportOptions_VerticalBox, InInputs);
-	AddPackBeforeMergeCheckbox(ExportOptions_VerticalBox, InInputs);
-	AddExportAsReferenceCheckBoxes(ExportOptions_VerticalBox, InInputs);
-	AddExportCheckboxes(ExportOptions_VerticalBox, InInputs);
-	
-	if (MainInput->GetInputType() == EHoudiniInputType::NewWorld)
+	switch (MainInput->GetInputType())
 	{
-		AddDirectlyConnectHdasCheckBox(ExportOptions_VerticalBox, InInputs);
-		AddUseLegacyInputCurvesCheckBox(ExportOptions_VerticalBox, InInputs);
-		AddUnrealSplineResolutionInput(ExportOptions_VerticalBox, InInputs);
+		case EHoudiniInputType::NewGeometry:
+		{
+			AddKeepWorldTransformCheckBox(ExportOptions_VerticalBox, InInputs);
+			AddPackBeforeMergeCheckbox(ExportOptions_VerticalBox, InInputs);
+			AddExportAsReferenceCheckBoxes(ExportOptions_VerticalBox, InInputs);
+			AddExportCheckboxes(ExportOptions_VerticalBox, InInputs);
+		}
+		break;
+
+		case EHoudiniInputType::NewWorld:
+		{
+			AddKeepWorldTransformCheckBox(ExportOptions_VerticalBox, InInputs);
+			AddPackBeforeMergeCheckbox(ExportOptions_VerticalBox, InInputs);
+			AddExportAsReferenceCheckBoxes(ExportOptions_VerticalBox, InInputs);
+			AddExportCheckboxes(ExportOptions_VerticalBox, InInputs);
+			AddDirectlyConnectHdasCheckBox(ExportOptions_VerticalBox, InInputs);
+			AddUseLegacyInputCurvesCheckBox(ExportOptions_VerticalBox, InInputs);
+			AddUnrealSplineResolutionInput(ExportOptions_VerticalBox, InInputs);
+		}
+		break;
+
+		case EHoudiniInputType::Curve:
+		{
+			AddKeepWorldTransformCheckBox(ExportOptions_VerticalBox, InInputs);
+			AddCurveAutoUpdateCheckBox(ExportOptions_VerticalBox, InInputs);
+			AddCurveRotScaleAttributesCheckBox(ExportOptions_VerticalBox, InInputs);
+			AddUseLegacyInputCurvesCheckBox(ExportOptions_VerticalBox, InInputs);
+		}
+		break;
+
+		default:
+			break;
 	}
+
+	EHoudiniInputType InputType = MainInput->GetInputType();
 
 	InVerticalBox->AddSlot()
 	.Padding(2, 2, 5, 2)
 	.AutoHeight()
 	[
-		ExportOptions_Expandable
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		.FillWidth(350.0f)
+		[
+			ExportOptions_Expandable
+		]
 	];
 }
 
@@ -3218,7 +3466,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 					.Visibility(EVisibility::Hidden)
 					[
 						SNew(SImage)
-						.Image(_GetEditorStyle().GetBrush("GenericLock"))
+						.Image(_GetEditorStyle().GetBrush("Icons.Lock"))
 					]
 				]
 				// Reset Button
@@ -3296,7 +3544,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 					.Visibility(EVisibility::Hidden)
 					[
 						SNew(SImage)
-						.Image(_GetEditorStyle().GetBrush("GenericLock"))
+						.Image(_GetEditorStyle().GetBrush("Icons.Lock"))
 					]
 				]
 				// Reset Button
@@ -3395,7 +3643,7 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 					.Visibility(EVisibility::Visible)
 					[
 						SNew(SImage)
-						.Image(bLocked ? _GetEditorStyle().GetBrush("GenericLock") : _GetEditorStyle().GetBrush("GenericUnlock"))
+						.Image(bLocked ? _GetEditorStyle().GetBrush("Icons.Lock") : _GetEditorStyle().GetBrush("GenericUnlock"))
 					]
 					.OnClicked_Lambda([InInputs, MainInput, InGeometryObjectIdx, HoudiniInputObject, &CategoryBuilder]() 
 					{
@@ -3993,7 +4241,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 					.Visibility(EVisibility::Hidden)
 					[
 						SNew(SImage)
-						.Image(_GetEditorStyle().GetBrush("GenericLock"))
+						.Image(_GetEditorStyle().GetBrush("Icons.Lock"))
 					]
 				]
 				// Reset Button
@@ -4071,7 +4319,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 					.Visibility(EVisibility::Hidden)
 					[
 						SNew(SImage)
-						.Image(_GetEditorStyle().GetBrush("GenericLock"))
+						.Image(_GetEditorStyle().GetBrush("Icons.Lock"))
 					]
 				]
 				// Reset Button
@@ -4170,7 +4418,7 @@ void FHoudiniInputDetails::Helper_CreateGeometryCollectionWidget(IDetailCategory
 					.Visibility(EVisibility::Visible)
 					[
 						SNew(SImage)
-						.Image(bLocked ? _GetEditorStyle().GetBrush("GenericLock") : _GetEditorStyle().GetBrush("GenericUnlock"))
+						.Image(bLocked ? _GetEditorStyle().GetBrush("Icons.Lock") : _GetEditorStyle().GetBrush("GenericUnlock"))
 					]
 					.OnClicked_Lambda([InInputs, MainInput, InGeometryCollectionObjectIdx, HoudiniInputObject, &CategoryBuilder]() 
 					{
@@ -4566,6 +4814,369 @@ FHoudiniInputDetails::AddCurveInputUI(IDetailCategoryBuilder& CategoryBuilder, T
 }
 
 void
+FHoudiniInputDetails::AddNewCurveInputUI(
+	IDetailCategoryBuilder& CategoryBuilder,
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	const int32 NumInputObjects = MainInput->GetNumberOfInputObjects(EHoudiniInputType::Curve);
+
+	auto SetInputObjectsCount = [MainInput, &CategoryBuilder](const int32& NewInputCount)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(MainInput->GetOuter());
+		if (!IsValid(OuterHAC))
+			return;
+
+		// Do not insert input object when the HAC does not finish cooking
+		EHoudiniAssetState CurrentHACState = OuterHAC->GetAssetState();
+		if (CurrentHACState >= EHoudiniAssetState::PreCook && CurrentHACState <= EHoudiniAssetState::Processing)
+			return;
+
+		// Clear the to be inserted object array, which records the pointers of the input objects to be inserted.
+		MainInput->LastInsertedInputs.Empty();
+		
+		// Record the pointer of the object to be inserted before transaction for undo the insert action.
+		bool bBlueprintStructureModified = false;
+		UHoudiniInputHoudiniSplineComponent* NewInput =
+			MainInput->CreateHoudiniSplineInput(nullptr, true, false, bBlueprintStructureModified);
+		MainInput->LastInsertedInputs.Add(NewInput);
+
+		FHoudiniEngineEditorUtils::ReselectSelectedActors();
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Added Curve Input"),
+			MainInput->GetOuter());
+
+		MainInput->Modify();
+		MainInput->GetHoudiniInputObjectArray(MainInput->GetInputType())->Add(NewInput);
+		MainInput->SetInputObjectsNumber(EHoudiniInputType::Curve, NewInputCount);
+
+		if (bBlueprintStructureModified)
+			FHoudiniEngineRuntimeUtils::MarkBlueprintAsStructurallyModified(OuterHAC);
+
+		if (CategoryBuilder.IsParentLayoutValid())
+			CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+	};
+
+	auto CurveInputsStateChanged = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const bool& bInNewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = bInNewState;
+
+		if (MainInput->GetCurveInputsMenuExpanded() == bNewState)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Curve Inputs Menu State"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetCurveInputsMenuExpanded() == bNewState)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetCurveInputsMenuExpanded(bNewState);
+			
+			if (GEditor)
+				GEditor->RedrawAllViewports();
+
+			if (CategoryBuilder.IsParentLayoutValid())
+				CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+		}
+	};
+
+	AddExportOptions(InVerticalBox, InInputs);
+
+	FText InputsMenuTitle = FText::Format(
+		NumInputObjects == 1 ?
+			LOCTEXT("NumArrayItemsFmt", "{0} Curve") :
+			LOCTEXT("NumArrayItemsFmt", "{0} Curves"),
+		FText::AsNumber(NumInputObjects));
+
+	TSharedRef<SExpandableArea> Inputs_Expandable = SNew(SExpandableArea)
+		.AreaTitle(InputsMenuTitle)
+		.InitiallyCollapsed(!MainInput->GetCurveInputsMenuExpanded())
+		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
+		{
+			return CurveInputsStateChanged(InInputs, bNewState);
+		});
+
+	TSharedRef<SVerticalBox> InputsCollapsed_VerticalBox = SNew(SVerticalBox).Visibility_Lambda([MainInput]()
+	{
+		return MainInput->GetCurveInputsMenuExpanded() ? EVisibility::Collapsed : EVisibility::Visible;
+	});
+
+	TSharedRef<SVerticalBox> InputsExpanded_VerticalBox = SNew(SVerticalBox).Visibility_Lambda([MainInput]()
+	{
+		return MainInput->GetCurveInputsMenuExpanded() ? EVisibility::Visible : EVisibility::Collapsed;
+	});
+
+	InVerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()[Inputs_Expandable];
+	InVerticalBox->AddSlot().Padding(5, 5, 5, 5).AutoHeight()[InputsCollapsed_VerticalBox];
+	InVerticalBox->AddSlot().Padding(3, 1, 5, 2).AutoHeight()[InputsExpanded_VerticalBox];
+
+	InputsExpanded_VerticalBox->AddSlot()
+	.Padding(2, 0, 5, 15)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(SButton)
+			.OnClicked_Lambda([SetInputObjectsCount, InInputs, NumInputObjects]()
+			{
+				SetInputObjectsCount(NumInputObjects + 1);
+				return FReply::Handled();
+			})
+			.Content()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(1.0f)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(SImage)
+					.Image(_GetEditorStyle().GetBrush("Icons.Plus"))
+					.ColorAndOpacity(FStyleColors::AccentGreen)
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(FMargin(3, 0, 0, 0))
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("AddButtonText", "Add"))
+					.TextStyle(_GetEditorStyle(), "SmallButtonText")
+					.ToolTipText(LOCTEXT("AddButtonTip", "Adds a new Curve input."))
+				]
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.Padding(FMargin(3, 0, 0, 0))
+		.AutoWidth()
+		[
+			SNew(SButton)
+			.OnClicked_Lambda([InInputs, MainInput, &CategoryBuilder]()
+			{
+				TArray<UHoudiniInputObject*>* CurveInputComponentArray = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+
+				// Detach all curves before deleting.
+				for (int n = CurveInputComponentArray->Num() - 1; n >= 0; n--)
+				{
+					UHoudiniInputHoudiniSplineComponent* HoudiniInput =
+						Cast <UHoudiniInputHoudiniSplineComponent>((*CurveInputComponentArray)[n]);
+					if (!IsValid(HoudiniInput))
+						continue;
+
+					UHoudiniSplineComponent* HoudiniSplineComponent = HoudiniInput->GetCurveComponent();
+					if (!IsValid(HoudiniSplineComponent))
+						continue;
+
+					FDetachmentTransformRules DetachTransRules(EDetachmentRule::KeepRelative, EDetachmentRule::KeepRelative, EDetachmentRule::KeepRelative, false);
+					HoudiniSplineComponent->DetachFromComponent(DetachTransRules);
+				}
+
+				// Clear the insert objects buffer before transaction.
+				MainInput->LastInsertedInputs.Empty();
+
+				// Record a transaction for undo/redo
+				FScopedTransaction Transaction(FText::FromString("Modifying Houdini Input: Delete curve inputs."));
+				MainInput->Modify();
+
+				bool bBlueprintStructureModified = false;
+
+				// actual delete.
+				for (int n = CurveInputComponentArray->Num() - 1; n >= 0; n--)
+				{
+					UHoudiniInputHoudiniSplineComponent* HoudiniInput =
+						Cast <UHoudiniInputHoudiniSplineComponent>((*CurveInputComponentArray)[n]);
+					if (!IsValid(HoudiniInput))
+						continue;
+
+					UHoudiniSplineComponent* HoudiniSplineComponent = HoudiniInput->GetCurveComponent();
+					if (!IsValid(HoudiniSplineComponent))
+						continue;
+
+					MainInput->RemoveSplineFromInputObject(HoudiniInput, bBlueprintStructureModified);
+
+					MainInput->DeleteInputObjectAt(EHoudiniInputType::Curve, n);
+				}
+
+				MainInput->SetInputObjectsNumber(EHoudiniInputType::Curve, 0);
+
+				if (bBlueprintStructureModified)
+				{
+					UActorComponent* OuterComponent = Cast<UActorComponent>(MainInput->GetOuter());
+					FHoudiniEngineRuntimeUtils::MarkBlueprintAsStructurallyModified(OuterComponent);
+				}
+
+				if (CategoryBuilder.IsParentLayoutValid())
+					CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+				return FReply::Handled();
+			})
+			.Content()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(1.0f)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(SImage)
+					.Image(_GetEditorStyle().GetBrush("Icons.Delete"))
+					.ColorAndOpacity(FStyleColors::AccentRed)
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(1.0f)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("ClearAllButtonText", "Clear All"))
+					.TextStyle(_GetEditorStyle(), "SmallButtonText")
+					.ToolTipText(LOCTEXT("ClearAllButtonTip", "Clears all inputs."))
+				]
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.Padding(FMargin(3, 0, 0, 0))
+		.AutoWidth()
+		[
+			SNew(SButton)
+			.OnClicked_Lambda([MainInput]()
+			{
+				MainInput->ResetDefaultCurveOffset();
+				return FReply::Handled();
+			})
+			.Content()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(1.0f)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(SImage)
+					.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
+					.ColorAndOpacity(FStyleColors::AccentYellow)
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(FMargin(3, 0, 0, 0))
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("ResetButtonText", "Reset Offset"))
+					.TextStyle(_GetEditorStyle(), "SmallButtonText")
+					.ToolTipText(LOCTEXT("ResetButtonTip", "Reset offset for all inputs."))
+				]
+			]
+		]
+	];
+
+	TSharedPtr<FHoudiniSplineComponentVisualizer> SplineComponentVisualizer;
+	if (GUnrealEd)
+	{
+		TSharedPtr<FComponentVisualizer> Visualizer =
+			GUnrealEd->FindComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName());
+		SplineComponentVisualizer = StaticCastSharedPtr<FHoudiniSplineComponentVisualizer>(Visualizer);
+	}
+
+	for (int32 Idx = 0; Idx < NumInputObjects; Idx++)
+	{
+		Helper_CreateCurveWidgetCollapsed(CategoryBuilder, InInputs, Idx, AssetThumbnailPool, InputsCollapsed_VerticalBox, SplineComponentVisualizer);
+		Helper_CreateCurveWidgetExpanded(CategoryBuilder, InInputs, Idx, AssetThumbnailPool, InputsExpanded_VerticalBox, SplineComponentVisualizer);
+	}
+
+	auto PointSelectionMenuChanged = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, bool bInNewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = bInNewState;
+
+		if (MainInput->GetCurvePointSelectionMenuExpanded() == bNewState)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniCurvePointSelectionMenu", "Houdini Input: Changed Curve Point Selection Menu State"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetCurvePointSelectionMenuExpanded() == bNewState)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetCurvePointSelectionMenuExpanded(bNewState);
+		}
+	};
+
+	TSharedRef<SVerticalBox> PointSelection_VerticalBox = SNew(SVerticalBox);
+
+	TSharedRef<SExpandableArea> PointSelection_Expandable = SNew(SExpandableArea)
+		.AreaTitle(LOCTEXT("HoudiniCurvePointSelectionMenuTitle", "Spline Point Editor"))
+		.InitiallyCollapsed(!MainInput->GetCurvePointSelectionMenuExpanded())
+		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
+		{
+			return PointSelectionMenuChanged(InInputs, bNewState);
+		})
+		.BodyContent()
+		[
+			PointSelection_VerticalBox
+		];
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		[
+			PointSelection_Expandable
+		]
+	];
+
+	Helper_AddCurvePointSelectionUI(CategoryBuilder, InInputs, AssetThumbnailPool, PointSelection_VerticalBox, SplineComponentVisualizer);
+}
+
+void
 FHoudiniInputDetails::Helper_CreateCurveWidget(
 	IDetailCategoryBuilder& CategoryBuilder,
 	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
@@ -4579,7 +5190,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 	if (!IsValidWeakPointer(MainInput))
 		return;
 
-	UHoudiniAssetComponent * OuterHAC = Cast<UHoudiniAssetComponent>(MainInput->GetOuter());
+	UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(MainInput->GetOuter());
 	if (!IsValid(OuterHAC))
 		return;
 
@@ -5461,6 +6072,2201 @@ FHoudiniInputDetails::Helper_CreateCurveWidget(
 		ComboBoxCurveType->SetEnabled(false);
 		ComboBoxCurveMethod->SetEnabled(false);
 	}
+}
+
+void
+FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
+	IDetailCategoryBuilder& CategoryBuilder,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
+	const int32& InObjIdx,
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool,
+	TSharedRef<SVerticalBox> InVerticalBox,
+	TSharedPtr<class FHoudiniSplineComponentVisualizer> HouSplineComponentVisualizer)
+{
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(MainInput->GetOuter());
+	if (!IsValid(OuterHAC))
+		return;
+
+	TArray<UHoudiniInputObject*>* CurveInputs = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+	if (!CurveInputs)
+		return;
+
+	if (!CurveInputs->IsValidIndex(InObjIdx))
+		return;
+
+	UHoudiniInputObject* HoudiniInputObject = (*CurveInputs)[InObjIdx];
+	UHoudiniInputHoudiniSplineComponent* HoudiniSplineInputObject = Cast<UHoudiniInputHoudiniSplineComponent>(HoudiniInputObject);
+	UHoudiniSplineComponent* HoudiniSplineComponent = HoudiniSplineInputObject->GetCurveComponent();
+	if (!HoudiniSplineComponent)
+		return;
+
+	bool bUseLegacyCurve = HoudiniSplineComponent->IsLegacyInputCurve();
+	FString CurveName = HoudiniSplineComponent->GetHoudiniSplineName();
+	int32 NumCurvePoints = HoudiniSplineComponent->GetCurvePointCount();
+	bool bIsClosed = HoudiniSplineComponent->IsClosedCurve();
+	bool bIsReversed = HoudiniSplineComponent->IsReversed();
+	bool bIsVisible = HoudiniSplineComponent->IsHoudiniSplineVisible();
+
+	auto GetHoudiniSplineComponentAtIdx = [](const TWeakObjectPtr<UHoudiniInput>& InInput, int32 Idx)
+	{
+		UHoudiniSplineComponent* FoundHoudiniSplineComponent = nullptr;
+		if (!IsValidWeakPointer(InInput))
+			return FoundHoudiniSplineComponent;
+
+		// Get the TArray ptr to the curve objects in this input
+		TArray<UHoudiniInputObject*>* CurveInputComponentArray = InInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+		if (!CurveInputComponentArray)
+			return FoundHoudiniSplineComponent;
+
+		if (!CurveInputComponentArray->IsValidIndex(Idx))
+			return FoundHoudiniSplineComponent;
+
+		UHoudiniInputObject* HoudiniInputObject = (*CurveInputComponentArray)[Idx];
+		UHoudiniInputHoudiniSplineComponent* HoudiniSplineInputObject =
+			Cast<UHoudiniInputHoudiniSplineComponent>(HoudiniInputObject);
+
+		FoundHoudiniSplineComponent = HoudiniSplineInputObject->GetCurveComponent();
+
+		return FoundHoudiniSplineComponent;
+	};
+
+	auto DeleteCurveAtIdx = [InInputs, InObjIdx, OuterHAC, CurveInputs, &CategoryBuilder]()
+	{
+		if (!IsValid(OuterHAC))
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Deleted a curve input."),
+			OuterHAC);
+		
+		int CurveInputsNum = CurveInputs->Num();
+		for (auto& CurInput : InInputs)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			CurInput->Modify();
+
+			TArray<UHoudiniInputObject*>* CurCurveInputs = CurInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+			if (!CurCurveInputs ||
+				CurveInputsNum != CurCurveInputs->Num() ||
+				!CurCurveInputs->IsValidIndex(InObjIdx))
+				continue;
+			
+			UHoudiniInputHoudiniSplineComponent* HoudiniInput = Cast<UHoudiniInputHoudiniSplineComponent>((*CurCurveInputs)[InObjIdx]);
+			if (!IsValid(HoudiniInput))
+				return;
+
+			UHoudiniSplineComponent* HoudiniSplineComponent = HoudiniInput->GetCurveComponent();
+			if (!HoudiniSplineComponent)
+				return;
+
+			FDetachmentTransformRules DetachTransRules(EDetachmentRule::KeepRelative, EDetachmentRule::KeepRelative, EDetachmentRule::KeepRelative, false);
+			HoudiniSplineComponent->DetachFromComponent(DetachTransRules);
+
+			CurInput->DeleteInputObjectAt(EHoudiniInputType::Curve, InObjIdx);
+		}
+		
+		if (CategoryBuilder.IsParentLayoutValid())
+			CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+	};
+
+	auto ChangedClosedCurve = [GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHAC, &CategoryBuilder](ECheckBoxState NewState)
+	{
+		if (!IsValid(OuterHAC))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniCurveInputChangeClosed", "Houdini Input: Changed Curve Closed"),
+			OuterHAC);
+
+		for (auto& Input : InInputs)
+		{
+			if (!IsValidWeakPointer(Input))
+				continue;
+
+			UHoudiniSplineComponent* HoudiniSplineComponent = GetHoudiniSplineComponentAtIdx(Input, InObjIdx);
+
+			if (!IsValid(HoudiniSplineComponent))
+				continue;
+
+			if (HoudiniSplineComponent->IsClosedCurve() == bNewState)
+				continue;
+
+			HoudiniSplineComponent->Modify();
+			HoudiniSplineComponent->SetClosedCurve(bNewState);
+			HoudiniSplineComponent->MarkChanged(true);
+		}
+
+		if (CategoryBuilder.IsParentLayoutValid())
+			CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+	};
+
+	auto ChangedReversedCurve = [GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHAC, &CategoryBuilder](ECheckBoxState NewState)
+	{
+		if (!IsValid(OuterHAC))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniCurveInputChangeReversed", "Houdini Input: Changed Curve Reversed"),
+			OuterHAC);
+
+		for (auto& Input : InInputs)
+		{
+			if (!IsValidWeakPointer(Input))
+				continue;
+
+			UHoudiniSplineComponent* HoudiniSplineComponent = GetHoudiniSplineComponentAtIdx(Input, InObjIdx);
+			if (!IsValid(HoudiniSplineComponent))
+				continue;
+
+			if (HoudiniSplineComponent->IsReversed() == bNewState)
+				continue;
+
+			HoudiniSplineComponent->Modify();
+			HoudiniSplineComponent->SetReversed(bNewState);
+			HoudiniSplineComponent->MarkChanged(true);
+		}
+
+		if (CategoryBuilder.IsParentLayoutValid())
+			CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+	};
+
+	auto ChangedVisibleCurve = [GetHoudiniSplineComponentAtIdx, InInputs, OuterHAC, InObjIdx, &CategoryBuilder](ECheckBoxState NewState)
+	{
+		if (!IsValid(OuterHAC))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniCurveInputChangeVisible", "Houdini Input: Changed Curve Visible"),
+			OuterHAC);
+
+		for (auto& Input : InInputs)
+		{
+			if (!IsValidWeakPointer(Input))
+				continue;
+
+			UHoudiniSplineComponent* HoudiniSplineComponent = GetHoudiniSplineComponentAtIdx(Input, InObjIdx);
+			if (!HoudiniSplineComponent)
+				continue;
+
+			if (HoudiniSplineComponent->IsHoudiniSplineVisible() == bNewState)
+				continue;
+
+			HoudiniSplineComponent->SetHoudiniSplineVisible(bNewState);
+		}
+
+		if (CategoryBuilder.IsParentLayoutValid())
+			CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+
+		if (GEditor)
+			GEditor->RedrawAllViewports();
+	};
+
+	TSharedPtr<SCurveEditingTextBlock> EditingTextBlock;
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Left)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(0)
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(0)
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(SEditableText)
+					.Text(FText::FromString(CurveName))
+					.OnTextCommitted_Lambda([HoudiniSplineComponent](FText NewText, ETextCommit::Type CommitType)
+					{
+						if (CommitType == ETextCommit::Type::OnEnter)
+							HoudiniSplineComponent->SetHoudiniSplineName(NewText.ToString());
+					})
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(0)
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SAssignNew(EditingTextBlock, SCurveEditingTextBlock)
+					.Text(LOCTEXT("CurveEdited", "*"))
+					.ToolTipText(LOCTEXT("CurveEditedTip", "This curve is being edited."))
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(8, 0, 0, 0)
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(FText::Format(
+					NumCurvePoints == 1 ?
+						LOCTEXT("NumCurvePointsFmt", "({0} point)") :
+						LOCTEXT("NumCurvePointsFmt", "({0} points)"),
+					FText::AsNumber(NumCurvePoints)))
+				.ToolTipText(LOCTEXT("NumCurvePointsTip", "Number of points on this curve."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Fill)
+		+ SHorizontalBox::Slot()
+		.Padding(20, 0, 0, 0)
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Right)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(0)
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				PropertyCustomizationHelpers::MakeDeleteButton(
+					FSimpleDelegate::CreateLambda([DeleteCurveAtIdx]()
+					{
+						return DeleteCurveAtIdx();
+					}),
+					TAttribute<FText>(LOCTEXT("CurveInputDeleteTip", "Delete this curve input object.")))
+			]
+		]
+	];
+
+	EditingTextBlock->HoudiniSplineComponent = HoudiniSplineComponent;
+	EditingTextBlock->HoudiniSplineComponentVisualizer = HouSplineComponentVisualizer;
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("CurveClosedCheckBox", "Closed"))
+				.ToolTipText(LOCTEXT("CurveClosedCheckBoxTip", "Toggle whether this curve is closed."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked_Lambda([bIsClosed]() {
+				return bIsClosed ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return ChangedClosedCurve(NewState);
+			})
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(5, 0, 0, 0)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("CurveReversedCheckBox", "Reversed"))
+				.ToolTipText(LOCTEXT("CurveReversedCheckBoxTip", "Toggle whether this curve is reversed."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked_Lambda([bIsReversed]() {
+				return bIsReversed ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return ChangedVisibleCurve(NewState);
+			})
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(5, 0, 0, 0)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("CurveVisibleCheckBox", "Visible"))
+				.ToolTipText(LOCTEXT("CurveVisibleCheckBoxTip", "Toggle whether this curve is visible."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked_Lambda([bIsVisible]() {
+				return bIsVisible ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return ChangedVisibleCurve(NewState);
+			})
+		]
+	];
+
+	auto GetCurveTypeText = [HoudiniSplineComponent]()
+	{
+		return FText::FromString(FHoudiniEngineEditorUtils::HoudiniCurveTypeToString(HoudiniSplineComponent->GetCurveType()));
+	};
+
+	auto OnCurveTypeChanged = [GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHAC](TSharedPtr<FString> InNewChoice)
+	{
+		if (!IsValid(OuterHAC))
+			return;
+
+		if (!InNewChoice.IsValid())
+			return;
+
+		EHoudiniCurveType NewInputType = UHoudiniInput::StringToHoudiniCurveType(*InNewChoice.Get());
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniCurveInputChangeType", "Houdini Input: Changed Curve Type"),
+			OuterHAC);
+
+		for (auto& Input : InInputs)
+		{
+			if (!IsValidWeakPointer(Input))
+				continue;
+
+			UHoudiniSplineComponent* HoudiniSplineComponent = GetHoudiniSplineComponentAtIdx(Input, InObjIdx);
+			if (!IsValid(HoudiniSplineComponent))
+				continue;
+
+			if (HoudiniSplineComponent->GetCurveType() == NewInputType)
+				continue;
+
+			HoudiniSplineComponent->Modify();
+			HoudiniSplineComponent->SetCurveType(NewInputType);
+
+			int32 CurveOrder = HoudiniSplineComponent->GetCurveOrder();
+			if (CurveOrder < 4 && (NewInputType == EHoudiniCurveType::Nurbs || NewInputType == EHoudiniCurveType::Bezier))
+				HoudiniSplineComponent->SetCurveOrder(4);
+			else if (NewInputType == EHoudiniCurveType::Polygon)
+				HoudiniSplineComponent->SetCurveOrder(2);
+
+			HoudiniSplineComponent->MarkChanged(true);
+		}
+	};
+
+	auto GetCurveMethodText = [HoudiniSplineComponent]()
+	{
+		return FText::FromString(FHoudiniEngineEditorUtils::HoudiniCurveMethodToString(HoudiniSplineComponent->GetCurveMethod()));
+	};
+
+	auto OnCurveMethodChanged = [GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHAC](TSharedPtr<FString> InNewChoice)
+	{
+		if (!IsValid(OuterHAC))
+			return;
+
+		if (!InNewChoice.IsValid())
+			return;
+
+		EHoudiniCurveMethod NewInputMethod = UHoudiniInput::StringToHoudiniCurveMethod(*InNewChoice.Get());
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniCurveInputChangeMethod", "Houdini Input: Changed Curve Method"),
+			OuterHAC);
+
+		for (auto& Input : InInputs)
+		{
+			if (!IsValidWeakPointer(Input))
+				continue;
+
+			UHoudiniSplineComponent* HoudiniSplineComponent = GetHoudiniSplineComponentAtIdx(Input, InObjIdx);
+			if (!IsValid(HoudiniSplineComponent))
+				continue;
+
+			if (HoudiniSplineComponent->GetCurveMethod() == NewInputMethod)
+				return;
+
+			HoudiniSplineComponent->Modify();
+			HoudiniSplineComponent->SetCurveMethod(NewInputMethod);
+			HoudiniSplineComponent->MarkChanged(true);
+		}
+	};
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		.FillWidth(75)
+		.MaxWidth(75)
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("CurveTypeLabel", "Curve Type"))
+			.ToolTipText(LOCTEXT("CurveTypeLabelTip", "Change the curve type for this curve."))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(5, 0, 0, 0)
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		.FillWidth(100)
+		.MaxWidth(100)
+		[
+			SNew(SComboBox<TSharedPtr<FString>>)
+			.OptionsSource(FHoudiniEngineEditor::Get().GetHoudiniCurveTypeChoiceLabels())
+			.InitiallySelectedItem((*FHoudiniEngineEditor::Get().GetHoudiniCurveTypeChoiceLabels())[(int)HoudiniSplineComponent->GetCurveType()])
+			.OnGenerateWidget_Lambda([](TSharedPtr<FString> ChoiceEntry)
+			{
+				FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
+				return SNew(STextBlock)
+					.Text(ChoiceEntryText)
+					.ToolTipText(ChoiceEntryText)
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+			})
+			.OnSelectionChanged_Lambda([OnCurveTypeChanged](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
+			{
+				return OnCurveTypeChanged(NewChoice);
+			})
+			[
+				SNew(STextBlock)
+				.Text_Lambda([GetCurveTypeText]()
+				{
+					return GetCurveTypeText();
+				})
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+		]
+	];
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		.FillWidth(75)
+		.MaxWidth(75)
+
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("CurveMethodLabel", "Curve Method"))
+			.ToolTipText(LOCTEXT("CurveTypeLabelTip", "Change the curve method for this curve."))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(5, 0, 0, 0)
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		.FillWidth(100)
+		.MaxWidth(100)
+		[
+			SNew(SComboBox<TSharedPtr<FString>>)
+			.OptionsSource(FHoudiniEngineEditor::Get().GetHoudiniCurveMethodChoiceLabels())
+			.InitiallySelectedItem((*FHoudiniEngineEditor::Get().GetHoudiniCurveMethodChoiceLabels())[(int)HoudiniSplineComponent->GetCurveMethod()])
+			.OnGenerateWidget_Lambda([](TSharedPtr<FString> ChoiceEntry)
+			{
+				FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
+				return SNew(STextBlock)
+					.Text(ChoiceEntryText)
+					.ToolTipText(ChoiceEntryText)
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+			})
+			.OnSelectionChanged_Lambda([OnCurveMethodChanged](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
+			{
+				return OnCurveMethodChanged(NewChoice);
+			})
+			[
+				SNew(STextBlock)
+				.Text_Lambda([GetCurveMethodText]()
+				{
+					return GetCurveMethodText();
+				})
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+		]
+	];
+
+	if (!bUseLegacyCurve)
+	{
+		TSharedPtr<SNumericEntryBox<int>> NumericEntryBox;
+		int32 Idx = 0;
+
+		auto OnBreakpointParameterizationChanged = [GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHAC](TSharedPtr<FString> InNewChoice)
+		{
+			if (!IsValid(OuterHAC))
+				return;
+
+			if (!InNewChoice.IsValid())
+				return;
+
+			EHoudiniCurveBreakpointParameterization NewInputMethod = UHoudiniInput::StringToHoudiniCurveBreakpointParameterization(*InNewChoice.Get());
+
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniCurveInputChangeBreakpointParameterization", "Houdini Input: Changed Curve Breakpoint Parameterization"),
+				OuterHAC);
+
+			for (auto& Input : InInputs)
+			{
+				if (!IsValidWeakPointer(Input))
+					continue;
+
+				UHoudiniSplineComponent* HoudiniSplineComponent = GetHoudiniSplineComponentAtIdx(Input, InObjIdx);
+				if (!IsValid(HoudiniSplineComponent))
+					continue;
+
+				if (HoudiniSplineComponent->GetCurveBreakpointParameterization() == NewInputMethod)
+					return;
+
+				HoudiniSplineComponent->Modify();
+				HoudiniSplineComponent->SetCurveBreakpointParameterization(NewInputMethod);
+				HoudiniSplineComponent->MarkChanged(true);
+			}
+		};
+
+		auto GetCurveBreakpointParameterizationText = [HoudiniSplineComponent]()
+		{
+			return FText::FromString(FHoudiniEngineEditorUtils::HoudiniCurveBreakpointParameterizationToString(HoudiniSplineComponent->GetCurveBreakpointParameterization()));
+		};
+
+		InVerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(0)
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.FillWidth(75)
+			.MaxWidth(75)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("CurveOrder", "Curve Order"))
+				.ToolTipText(LOCTEXT("CurveOrderTooltip", "Curve order of the curve. Only used for Bezier or NURBs curves. Must be a value between 2 and 11."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(5, 0, 0, 0)
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.FillWidth(100)
+			.MaxWidth(100)
+			[
+				SNew(SNumericEntryBox<int>)
+				.AllowSpin(true)
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.MinValue(HAPI_UNREAL_ATTRIB_HAPI_INPUT_CURVE_ORDER_MIN)
+				.MaxValue(HAPI_UNREAL_ATTRIB_HAPI_INPUT_CURVE_ORDER_MAX)
+				.MinSliderValue(HAPI_UNREAL_ATTRIB_HAPI_INPUT_CURVE_ORDER_MIN)
+				.MaxSliderValue(HAPI_UNREAL_ATTRIB_HAPI_INPUT_CURVE_ORDER_MAX)
+				.Value(HoudiniSplineComponent->GetCurveOrder())
+				.OnValueChanged_Lambda([GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHAC](int Val)
+				{
+					if (!IsValid(OuterHAC))
+						return;
+
+					FScopedTransaction Transaction(
+						TEXT(HOUDINI_MODULE_EDITOR),
+						LOCTEXT("HoudiniChangeCurveOrder", "Houdini Input: Changed curve order"),
+						OuterHAC);
+
+					for (auto& Input : InInputs)
+					{
+						if (!IsValidWeakPointer(Input))
+							continue;
+
+						UHoudiniSplineComponent* HoudiniSplineComponent = GetHoudiniSplineComponentAtIdx(Input, InObjIdx);
+						if (!IsValid(HoudiniSplineComponent))
+							continue;
+
+						HoudiniSplineComponent->Modify();
+						HoudiniSplineComponent->SetCurveOrder(Val);
+						HoudiniSplineComponent->MarkChanged(true);
+					}
+				})
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2, 0, 0, 0)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SButton)
+				.ToolTipText(LOCTEXT("OrderToDefault", "Reset to default value."))
+				.ButtonStyle(_GetEditorStyle(), "NoBorder")
+				.ContentPadding(0)
+				.Visibility(HoudiniSplineComponent->GetCurveOrder() != HAPI_UNREAL_ATTRIB_HAPI_INPUT_CURVE_ORDER_MIN ? EVisibility::Visible : EVisibility::Hidden)
+				.OnClicked_Lambda([GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHAC]()
+				{
+					if (!IsValid(OuterHAC))
+						return FReply::Handled();
+
+					FScopedTransaction Transaction(
+						TEXT(HOUDINI_MODULE_EDITOR),
+						LOCTEXT("HoudiniCurveInputChangeMethod", "Houdini Input: Changed Curve Method"),
+						OuterHAC);
+
+					for (auto& Input : InInputs)
+					{
+						if (!IsValidWeakPointer(Input))
+							continue;
+
+						UHoudiniSplineComponent* HoudiniSplineComponent = GetHoudiniSplineComponentAtIdx(Input, InObjIdx);
+						if (!IsValid(HoudiniSplineComponent))
+							continue;
+
+						if (HoudiniSplineComponent->GetCurveOrder() == HAPI_UNREAL_ATTRIB_HAPI_INPUT_CURVE_ORDER_MIN)
+							continue;
+
+						HoudiniSplineComponent->Modify();
+						HoudiniSplineComponent->SetCurveOrder(HAPI_UNREAL_ATTRIB_HAPI_INPUT_CURVE_ORDER_MIN);
+						HoudiniSplineComponent->MarkChanged(true);
+					}
+
+					return FReply::Handled();
+				})
+				[
+					SNew(SImage)
+					.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
+				]
+			]
+		];
+
+		InVerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(0)
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("CurveBreakpointParametrizationLabel", "Breakpoint Parametrization"))
+				.ToolTipText(LOCTEXT("CurveBreakpointParametrizationLabelTip", "Change the breakpoint parametrization for this curve if the curve's method is 'Breakpoints'"))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(5, 0, 0, 0)
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.FillWidth(100)
+			.MaxWidth(100)
+			[
+				SNew(SComboBox<TSharedPtr<FString>>)
+				.IsEnabled(HoudiniSplineComponent->GetCurveMethod() == EHoudiniCurveMethod::Breakpoints)
+				.OptionsSource(FHoudiniEngineEditor::Get().GetHoudiniCurveBreakpointParameterizationChoiceLabels())
+				.InitiallySelectedItem((*FHoudiniEngineEditor::Get().GetHoudiniCurveBreakpointParameterizationChoiceLabels())[(int32)HoudiniSplineComponent->GetCurveBreakpointParameterization()])
+				.OnGenerateWidget_Lambda([](TSharedPtr<FString> ChoiceEntry)
+				{
+					FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
+					return SNew(STextBlock)
+						.Text(ChoiceEntryText)
+						.ToolTipText(ChoiceEntryText)
+						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+				})
+				.OnSelectionChanged_Lambda([OnBreakpointParameterizationChanged](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
+				{
+					return OnBreakpointParameterizationChanged(NewChoice);
+				})
+				[
+					SNew(STextBlock)
+					.Text_Lambda([GetCurveBreakpointParameterizationText]()
+					{
+						return GetCurveBreakpointParameterizationText();
+					})
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				]
+			]
+		];
+	}
+
+	auto BakeInputCurveLambda = [](const TArray<TWeakObjectPtr<UHoudiniInput>>& Inputs, int32 Index, bool bBakeToBlueprint)
+	{
+		for (auto& NextInput : Inputs)
+		{
+			if (!IsValidWeakPointer(NextInput))
+				continue;
+
+			UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(NextInput->GetOuter());
+			if (!IsValid(OuterHAC))
+				continue;
+
+			AActor* OwnerActor = OuterHAC->GetOwner();
+			if (!IsValid(OwnerActor))
+				continue;
+
+			TArray<UHoudiniInputObject*>* CurveInputComponentArray = NextInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+			if (!CurveInputComponentArray)
+				continue;
+
+			if (!CurveInputComponentArray->IsValidIndex(Index))
+				continue;
+
+			UHoudiniInputObject* HoudiniInputObject = (*CurveInputComponentArray)[Index];
+			UHoudiniInputHoudiniSplineComponent* HoudiniSplineInputObject =
+				Cast<UHoudiniInputHoudiniSplineComponent>(HoudiniInputObject);
+
+			if (!IsValid(HoudiniSplineInputObject))
+				continue;
+
+			UHoudiniSplineComponent* HoudiniSplineComponent = HoudiniSplineInputObject->GetCurveComponent();
+			if (!IsValid(HoudiniSplineComponent))
+				continue;
+
+			FHoudiniPackageParams PackageParams;
+			PackageParams.BakeFolder = OuterHAC->BakeFolder.Path;
+			PackageParams.HoudiniAssetName = OuterHAC->GetName();
+			PackageParams.GeoId = NextInput->GetAssetNodeId();
+			PackageParams.PackageMode = EPackageMode::Bake;
+			PackageParams.ObjectId = Index;
+			PackageParams.ObjectName = OwnerActor->GetActorNameOrLabel() + "InputHoudiniSpline" + FString::FromInt(Index);
+
+			if (bBakeToBlueprint)
+			{
+				FHoudiniEngineBakeUtils::BakeInputHoudiniCurveToBlueprint(
+					OuterHAC,
+					HoudiniSplineComponent,
+					PackageParams,
+					OwnerActor->GetWorld(), OwnerActor->GetActorTransform());
+			}
+			else
+			{
+				FHoudiniEngineBakeUtils::BakeInputHoudiniCurveToActor(
+					OuterHAC,
+					HoudiniSplineComponent,
+					PackageParams,
+					OwnerActor->GetWorld(), OwnerActor->GetActorTransform());
+			}
+		}
+
+		return FReply::Handled();
+	};
+	
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 15)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		[
+			SNew(SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.Text(LOCTEXT("CurveBakeToActorButton", "Bake to Actor"))
+			.ToolTipText(LOCTEXT("CurveBakeToActorButtonTip", "Bake this input curve to Actor."))
+			.OnClicked_Lambda([InInputs, InObjIdx, BakeInputCurveLambda]()
+			{
+				return BakeInputCurveLambda(InInputs, InObjIdx, false);
+			})
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(10, 0, 0, 0)
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		[
+			SNew(SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.Text(LOCTEXT("CurveBakeToBlueprintButton", "Bake to Blueprint"))
+			.ToolTipText(LOCTEXT("CurveBakeToBlueprintButtonTip", "Back this input curve to Blueprint."))
+			.OnClicked_Lambda([InInputs, InObjIdx, BakeInputCurveLambda]()
+			{
+				return BakeInputCurveLambda(InInputs, InObjIdx, true);
+			})
+		]
+	];
+}
+
+void
+FHoudiniInputDetails::Helper_CreateCurveWidgetCollapsed(
+	IDetailCategoryBuilder& CategoryBuilder,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
+	const int32& InObjIdx,
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool,
+	TSharedRef<SVerticalBox> InVerticalBox,
+	TSharedPtr<class FHoudiniSplineComponentVisualizer> HouSplineComponentVisualizer)
+{
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(MainInput->GetOuter());
+	if (!IsValid(OuterHAC))
+		return;
+
+	TArray<UHoudiniInputObject*>* CurveInputs = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+	if (!CurveInputs)
+		return;
+
+	if (!CurveInputs->IsValidIndex(InObjIdx))
+		return;
+
+	UHoudiniInputObject* HoudiniInputObject = (*CurveInputs)[InObjIdx];
+	UHoudiniInputHoudiniSplineComponent* HoudiniSplineInputObject = Cast<UHoudiniInputHoudiniSplineComponent>(HoudiniInputObject);
+	UHoudiniSplineComponent* HoudiniSplineComponent = HoudiniSplineInputObject->GetCurveComponent();
+	if (!HoudiniSplineComponent)
+		return;
+
+	bool bIsLegacyCurve = HoudiniSplineComponent->IsLegacyInputCurve();
+	FString CurveName = HoudiniSplineComponent->GetHoudiniSplineName();
+	int32 NumCurvePoints = HoudiniSplineComponent->GetCurvePointCount();
+	FText CurveType = FText::FromString(FHoudiniEngineEditorUtils::HoudiniCurveTypeToString(HoudiniSplineComponent->GetCurveType()));
+	FText CurveMethod = FText::FromString(FHoudiniEngineEditorUtils::HoudiniCurveMethodToString(HoudiniSplineComponent->GetCurveMethod()));
+
+	bool bIsClosed = HoudiniSplineComponent->IsClosedCurve();
+	bool bIsReversed = HoudiniSplineComponent->IsReversed();
+	bool bIsVisible = HoudiniSplineComponent->IsHoudiniSplineVisible();
+
+	TSharedPtr<SCurveEditingTextBlock> EditingTextBlock;
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Left)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(0)
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(0)
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(CurveName))
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(2, 0, 0, 0)
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SAssignNew(EditingTextBlock, SCurveEditingTextBlock)
+					.Text(LOCTEXT("CurveEdited", "*"))
+					.ToolTipText(LOCTEXT("CurveEditedTip", "This curve is being edited."))
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(8, 0, 0, 0)
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(FText::Format(
+					NumCurvePoints == 1 ?
+						LOCTEXT("NumCurvePointsFmt", "({0} point)") :
+						LOCTEXT("NumCurvePointsFmt", "({0} points)"),
+					FText::AsNumber(NumCurvePoints)))
+				.ToolTipText(LOCTEXT("SplineNumCurvePointsTip", "Number of points on this curve."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Fill)
+		+ SHorizontalBox::Slot()
+		.Padding(20, 0, 0, 0)
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Right)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(0)
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(CurveType)
+				.ToolTipText(LOCTEXT("CurveTypeTip", "Curve Type"))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(8, 0, 0, 0)
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(CurveMethod)
+				.ToolTipText(LOCTEXT("CurveMethodTip", "Curve Method"))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(20, 0, 0, 0)
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(0)
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(SButton)
+					.ToolTipText(bIsClosed ? 
+							LOCTEXT("CurveClosedTip", "Closed") :
+							LOCTEXT("CurveClosedTip", "Not closed"))
+					.ButtonStyle(_GetEditorStyle(), TEXT("NoBorder"))
+					.ContentPadding(0)
+					.Visibility(EVisibility::Visible)
+					[
+						SNew(SImage)
+						.Image(FSlateIcon(
+							FHoudiniEngineStyle::GetStyleSetName(),
+							bIsClosed ?
+								TEXT("HoudiniEngine._CurveClosed") :
+								TEXT("HoudiniEngine._CurveNotClosed"))
+							.GetSmallIcon())
+						.ColorAndOpacity(FSlateColor(FColor(255, 255, 255, 168)))
+					]
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(5, 0, 0, 0)
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(SButton)
+					.ToolTipText(bIsReversed ?
+							LOCTEXT("CurveReversedTip", "Reversed") :
+							LOCTEXT("CurveReversedTip", "Not reversed"))
+					.ButtonStyle(_GetEditorStyle(), TEXT("NoBorder"))
+					.ContentPadding(0)
+					.Visibility(EVisibility::Visible)
+					[
+						SNew(SImage)
+						.Image(FSlateIcon(
+							FHoudiniEngineStyle::GetStyleSetName(),
+							bIsClosed ?
+								TEXT("HoudiniEngine._CurveReversed") :
+								TEXT("HoudiniEngine._CurveNotReversed"))
+							.GetSmallIcon())
+						.ColorAndOpacity(FSlateColor(FColor(255, 255, 255, 168)))
+					]
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(5, 0, 0, 0)
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(SButton)
+					.ToolTipText(bIsVisible ?
+							LOCTEXT("CurveVisibleTip", "Visible") :
+							LOCTEXT("CurveVisibleTip", "Hidden"))
+					.ButtonStyle(_GetEditorStyle(), TEXT("NoBorder"))
+					.ContentPadding(0)
+					.Visibility(EVisibility::Visible)
+					[
+						SNew(SImage)
+						.Image(_GetEditorStyle().GetBrush(bIsVisible ? "Icons.Visible" : "Icons.Hidden"))
+						.ColorAndOpacity(FSlateColor(FColor(255, 255, 255, 168)))
+					]
+				]
+			]
+		]
+	];
+
+	EditingTextBlock->HoudiniSplineComponent = HoudiniSplineComponent;
+	EditingTextBlock->HoudiniSplineComponentVisualizer = HouSplineComponentVisualizer;
+}
+
+void
+FHoudiniInputDetails::Helper_AddCurvePointSelectionUI(
+	IDetailCategoryBuilder& CategoryBuilder,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool,
+	TSharedRef<SVerticalBox> InVerticalBox,
+	TSharedPtr<class FHoudiniSplineComponentVisualizer> HoudiniSplineComponentVisualizer)
+{
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	UHoudiniSplineComponent* HoudiniSplineComponent = HoudiniSplineComponentVisualizer->GetEditedHoudiniSplineComponent();
+
+	TArray<UHoudiniInputObject*>* CurveInputs = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+	if (!CurveInputs)
+		return;
+
+	UHoudiniInputObject* HoudiniInputObject = nullptr;
+	int32 HoudiniInputObjectIdx = -1;
+	for (int32 Idx = 0; Idx < CurveInputs->Num(); ++Idx)
+	{
+		UHoudiniInputHoudiniSplineComponent* CurSplineInput = Cast<UHoudiniInputHoudiniSplineComponent>((*CurveInputs)[Idx]);
+		UHoudiniSplineComponent* CurSpline = CurSplineInput->GetCurveComponent();
+		if (CurSpline == HoudiniSplineComponent)
+		{
+			HoudiniInputObject = (*CurveInputs)[Idx];
+			HoudiniInputObjectIdx = Idx;
+			break;
+		}
+	}
+
+	TSharedPtr<SCurveListenerVerticalBox> CurveListener;
+
+	// The curve listener vertical box is just an empty box that is added so that the
+	// corresponding SCurveListenerVerticalBox can be used to trigger updates to the
+	// UI and to redraw the viewports when:
+	//   - The currently selected spline is changed
+	//   - The spline is moved
+	//   - The selected control points are changed
+	//   - The spline's control points have moved or changed
+	InVerticalBox->AddSlot()
+	.Padding(0)
+	.MaxHeight(1)
+	[
+		SAssignNew(CurveListener, SCurveListenerVerticalBox)
+	];
+	
+	CurveListener->CategoryBuilder = &CategoryBuilder;
+	CurveListener->HoudiniSplineComponentVisualizer = HoudiniSplineComponentVisualizer;
+	CurveListener->PrevSplineComponent = HoudiniSplineComponent;
+	if (HoudiniSplineComponent)
+	{
+		CurveListener->PrevEditedControlPointsIndexes = HoudiniSplineComponent->EditedControlPointsIndexes;
+		CurveListener->PrevSplineTransform = HoudiniSplineComponent->GetComponentTransform();
+	}
+
+	if (!HoudiniSplineComponent)
+	{
+		InVerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("PointSelectionEmpty", "No spline is being currently edited."))
+			.Font(_GetEditorStyle().GetFontStyle("PropertyWindow.NormalFont"))
+		];
+		return;
+	}
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("PointSelectionSelected", "Currently Editing "))
+			.Font(_GetEditorStyle().GetFontStyle("PropertyWindow.NormalFont"))
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString(HoudiniSplineComponent->GetHoudiniSplineName()))
+		]
+	];
+
+	FMargin ButtonPadding(2, 0);
+	InVerticalBox->AddSlot()
+	.Padding(2, 6, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		.Padding(2, 0, 10, 0)
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("PointSelectionControls", "Point Selection"))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		.Padding(2, 0, 2, 0)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			.Padding(ButtonPadding)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "SplineComponentDetails.SelectFirst")
+				.ContentPadding(2)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.ToolTipText(LOCTEXT("SelectFirstSplinePointToolTip", "Select first spline point."))
+				.OnClicked_Lambda([=]()
+				{
+					HoudiniSplineComponentVisualizer->SelectSplinePoint(0, false);
+					return FReply::Handled();
+				})
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(ButtonPadding)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "SplineComponentDetails.AddPrev")
+				.ContentPadding(2)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.ToolTipText(LOCTEXT("SelectAddPrevSplinePointToolTip", "Add previous spline point to current selection."))
+				.OnClicked_Lambda([=]()
+				{
+					HoudiniSplineComponentVisualizer->ExtendSplinePointSelection(1, true, true);
+					return FReply::Handled();
+				})
+				.IsEnabled(HoudiniSplineComponentVisualizer->AreSplinePointsSelected())
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(ButtonPadding)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "SplineComponentDetails.SelectPrev")
+				.ContentPadding(2)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.ToolTipText(LOCTEXT("SelectPrevSplinePointToolTip", "Select previous spline point."))
+				.OnClicked_Lambda([=]()
+				{
+					HoudiniSplineComponentVisualizer->ExtendSplinePointSelection(1, true, false);
+					return FReply::Handled();
+				})
+				.IsEnabled(HoudiniSplineComponentVisualizer->AreSplinePointsSelected())
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(ButtonPadding)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "SplineComponentDetails.SelectAll")
+				.ContentPadding(2)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.ToolTipText(LOCTEXT("SelectAllSplinePointToolTip", "Select all spline points."))
+				.OnClicked_Lambda([=]()
+				{
+					if (!HoudiniSplineComponent)
+						return FReply::Handled();
+
+					int32 NumTotalPoints = HoudiniSplineComponent->GetCurvePointCount();
+					for (int32 Idx = 0; Idx < NumTotalPoints; ++Idx)
+						HoudiniSplineComponentVisualizer->SelectSplinePoint(Idx, true);
+					return FReply::Handled();
+				})
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(ButtonPadding)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "SplineComponentDetails.SelectNext")
+				.ContentPadding(2)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.ToolTipText(LOCTEXT("SelectNextSplinePointToolTip", "Select next spline point."))
+				.OnClicked_Lambda([=]()
+				{
+					HoudiniSplineComponentVisualizer->ExtendSplinePointSelection(1, false, false);
+					return FReply::Handled();
+				})
+				.IsEnabled(HoudiniSplineComponentVisualizer->AreSplinePointsSelected())
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(ButtonPadding)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "SplineComponentDetails.AddNext")
+				.ContentPadding(2)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.ToolTipText(LOCTEXT("SelectAddNextSplinePointToolTip", "Add next spline point to current selection."))
+				.OnClicked_Lambda([=]()
+				{
+					HoudiniSplineComponentVisualizer->ExtendSplinePointSelection(1, false, true);
+					return FReply::Handled();
+				})
+				.IsEnabled(HoudiniSplineComponentVisualizer->AreSplinePointsSelected())
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(ButtonPadding)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "SplineComponentDetails.SelectLast")
+				.ContentPadding(2)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.ToolTipText(LOCTEXT("SelectLastSplinePointToolTip", "Select last spline point."))
+				.OnClicked_Lambda([=]()
+				{
+					if (!HoudiniSplineComponent)
+						return FReply::Handled();
+					int32 NumTotalPoints = HoudiniSplineComponent->GetCurvePointCount();
+					HoudiniSplineComponentVisualizer->SelectSplinePoint(NumTotalPoints - 1, false);
+					return FReply::Handled();
+				})
+			]
+		]
+	];
+
+	TArray<int32>& EditedControlPointsIndexes = HoudiniSplineComponent->EditedControlPointsIndexes;
+
+	auto GetSelectedPointsAsString = [](const TArray<int32>& SelectedPointIndexes)
+	{
+		FString FormattedString;
+		for (int32 i = 0; i < SelectedPointIndexes.Num(); ++i)
+		{
+			FormattedString += FText::AsNumber(SelectedPointIndexes[i]).ToString();
+			if (i + 1 < SelectedPointIndexes.Num())
+				FormattedString += TEXT(", ");
+		}
+		return FormattedString;
+	};
+
+	auto UpdateSelectedPointsFromString = [MainInput, InInputs, HoudiniSplineComponentVisualizer, &CategoryBuilder](FString InputString)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		TArray<UHoudiniInputObject*>* CurveInputs = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+		if (!CurveInputs)
+			return;
+
+		int32 SplineIdx = -1;
+		UHoudiniSplineComponent* TargetSpline = HoudiniSplineComponentVisualizer->GetEditedHoudiniSplineComponent();
+		for (int32 Idx = 0; Idx < CurveInputs->Num(); ++Idx)
+		{
+			UHoudiniInputHoudiniSplineComponent* CurSplineInput = Cast<UHoudiniInputHoudiniSplineComponent>((*CurveInputs)[Idx]);
+			UHoudiniSplineComponent* CurSpline = CurSplineInput->GetCurveComponent();
+			if (CurSpline == TargetSpline)
+			{
+				SplineIdx = Idx;
+				break;
+			}
+		}
+
+		if (SplineIdx == -1)
+			return;
+
+		// Parse the selected point indexes
+		TArray<int32> SelectedPointIndexes;
+		int32 MaxSelectedPointIdx = -1;
+		{
+			const int32 MaxPointIdx = TargetSpline->GetCurvePointCount();
+			int32 Idx = 0;
+			int32 InputLen = InputString.Len();
+			bool bIsPrevComma = false;
+			while (Idx < InputLen)
+			{
+				// Only allow whitespace and commas. If something else is
+				// present, then the current input string is invalid
+				// and the selection update is cancelled.
+				if (InputString[Idx] == ',')
+				{
+					if (bIsPrevComma)
+						return;
+					bIsPrevComma = true;
+					++Idx;
+					continue;
+				}
+
+				// Skip whitespaces
+				if (InputString[Idx] == ' ')
+				{
+					++Idx;
+					continue;
+				}
+
+				// Require the current character to be a digit.
+				if ('0' > InputString[Idx] || '9' < InputString[Idx])
+					return;
+
+				int32 CurPointIdx = 0;
+				while (Idx < InputLen && '0' <= InputString[Idx] && InputString[Idx] <= '9')
+				{
+					CurPointIdx = (CurPointIdx * 10) + (InputString[Idx] - '0');
+					++Idx;
+					if (CurPointIdx >= MaxPointIdx)
+						return;
+				}
+				if (CurPointIdx > MaxSelectedPointIdx)
+					MaxSelectedPointIdx = CurPointIdx;
+				if (!SelectedPointIndexes.Contains(CurPointIdx))
+					SelectedPointIndexes.Add(CurPointIdx);
+				bIsPrevComma = false;
+			}
+		}
+
+		// If we have got this far, then we can perform the
+		// update transaction.
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Updating the selected spline points from key selection."),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputs)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			TArray<UHoudiniInputObject*>* CurCurveInputs = CurInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+			if (!CurCurveInputs || !CurCurveInputs->IsValidIndex(SplineIdx))
+				continue;
+
+			UHoudiniInputHoudiniSplineComponent* CurSplineInput = Cast<UHoudiniInputHoudiniSplineComponent>((*CurCurveInputs)[SplineIdx]);
+			UHoudiniSplineComponent* CurSpline = CurSplineInput->GetCurveComponent();
+			if (!CurSpline)
+				continue;
+
+			if (MaxSelectedPointIdx >= CurSpline->GetCurvePointCount())
+				continue;
+
+			CurSpline->EditedControlPointsIndexes = SelectedPointIndexes;
+		}
+
+		if (GEditor)
+			GEditor->RedrawAllViewports();
+
+		if (CategoryBuilder.IsParentLayoutValid())
+			CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+	};
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		.FillWidth(85)
+		.MaxWidth(85)
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("SelectedKeys", "Selected Points"))
+			.ToolTipText(LOCTEXT("SelectedKeysTip", "0-indexed collection of comma-separated points currently selected."))
+			.Font(_GetEditorStyle().GetFontStyle("PropertyWindow.NormalFont"))
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(5, 0, 0, 0)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		.FillWidth(160)
+		.MaxWidth(160)
+		[
+			SNew(SEditableTextBox)
+			.MinDesiredWidth(160)
+			.Text_Lambda([&EditedControlPointsIndexes, GetSelectedPointsAsString]() {
+				return FText::FromString(GetSelectedPointsAsString(EditedControlPointsIndexes));
+			})
+			.ToolTipText(LOCTEXT("SelectedKeysInputTip", "Enter the list of points you want to selected as a 0-indexed comma-separated list."))
+			.Font(_GetEditorStyle().GetFontStyle("PropertyWindow.NormalFont"))
+			.OnTextCommitted_Lambda([=](const FText& InputText, ETextCommit::Type CommitType)
+			{
+				if (CommitType != ETextCommit::Type::OnEnter && CommitType != ETextCommit::Type::OnUserMovedFocus)
+					return;
+				UpdateSelectedPointsFromString(InputText.ToString());
+			})
+		]
+	];
+
+	if (!HoudiniSplineComponentVisualizer->AreSplinePointsSelected())
+	{
+		InVerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("NoPointsSelected", "No control points are selected."))
+			.ToolTipText(LOCTEXT("NoPointsSelectedTip", "Select at least one control point to open the transform menu."))
+			.Font(_GetEditorStyle().GetFontStyle("PropertyWindow.NormalFont"))
+		];
+		return;
+	}
+	
+	// From here on forward, we are guaranteed to have at least one point selected.
+
+	// Find the input fields which have multiple values.
+	TArray<FTransform>& CurvePoints = HoudiniSplineComponent->CurvePoints;
+	
+	bool IsSingleValue[3][3];
+	FTransform Transform = CurvePoints[EditedControlPointsIndexes[0]];
+	for (int32 i = 0; i < 3; ++i)
+	{
+		for (int32 j = 0; j < 3; ++j)
+			IsSingleValue[i][j] = 1;
+	}
+
+	for (int32 i = 1; i < EditedControlPointsIndexes.Num(); ++i)
+	{
+		const FTransform& CurTransform = CurvePoints[EditedControlPointsIndexes[i]];
+
+		// Translate
+		IsSingleValue[0][0] &= FMath::Abs(CurTransform.GetLocation().X - Transform.GetLocation().X) < UE_KINDA_SMALL_NUMBER;
+		IsSingleValue[0][1] &= FMath::Abs(CurTransform.GetLocation().Y - Transform.GetLocation().Y) < UE_KINDA_SMALL_NUMBER;
+		IsSingleValue[0][2] &= FMath::Abs(CurTransform.GetLocation().Z - Transform.GetLocation().Z) < UE_KINDA_SMALL_NUMBER;
+
+		// Rotate
+		IsSingleValue[1][0] &= FMath::Abs(CurTransform.GetRotation().Rotator().Roll - Transform.GetRotation().Rotator().Roll) < UE_KINDA_SMALL_NUMBER;
+		IsSingleValue[1][1] &= FMath::Abs(CurTransform.GetRotation().Rotator().Pitch - Transform.GetRotation().Rotator().Pitch) < UE_KINDA_SMALL_NUMBER;
+		IsSingleValue[1][2] &= FMath::Abs(CurTransform.GetRotation().Rotator().Yaw - Transform.GetRotation().Rotator().Yaw) < UE_KINDA_SMALL_NUMBER;
+
+		// Scale
+		IsSingleValue[2][0] &= FMath::Abs(CurTransform.GetScale3D().X - Transform.GetScale3D().X) < UE_KINDA_SMALL_NUMBER;
+		IsSingleValue[2][1] &= FMath::Abs(CurTransform.GetScale3D().Y - Transform.GetScale3D().Y) < UE_KINDA_SMALL_NUMBER;
+		IsSingleValue[2][2] &= FMath::Abs(CurTransform.GetScale3D().Z - Transform.GetScale3D().Z) < UE_KINDA_SMALL_NUMBER;
+	}
+
+	const FTransform& HoudiniSplineComponentTransform = HoudiniSplineComponent->GetComponentTransform();
+	
+	const bool bUseAbsLocation = MainInput->GetCurvePointSelectionUseAbsLocation();
+	if (bUseAbsLocation)
+	{
+		FVector AbsoluteLocation = HoudiniSplineComponentTransform.TransformPosition(Transform.GetLocation());
+		Transform.SetLocation(AbsoluteLocation);
+	}
+
+	const bool bUseAbsRotation = MainInput->GetCurvePointSelectionUseAbsRotation();
+	if (bUseAbsRotation)
+	{
+		FQuat AbsoluteRotation = HoudiniSplineComponentTransform.GetRotation() * Transform.GetRotation();
+		Transform.SetRotation(AbsoluteRotation);
+	}
+
+	auto UpdateTransformLocation = [MainInput, InInputs, HoudiniSplineComponentVisualizer](FVector InNewLocation, bool bUpdateX, bool bUpdateY, bool bUpdateZ, bool bUseAbsLocation)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		TArray<UHoudiniInputObject*>* CurveInputs = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+		if (!CurveInputs)
+			return;
+
+		int32 SplineIdx = -1;
+		UHoudiniSplineComponent* TargetSpline = HoudiniSplineComponentVisualizer->GetEditedHoudiniSplineComponent();
+		for (int32 Idx = 0; Idx < CurveInputs->Num(); ++Idx)
+		{
+			UHoudiniInputHoudiniSplineComponent* CurSplineInput = Cast<UHoudiniInputHoudiniSplineComponent>((*CurveInputs)[Idx]);
+			UHoudiniSplineComponent* CurSpline = CurSplineInput->GetCurveComponent();
+			if (CurSpline == TargetSpline)
+			{
+				SplineIdx = Idx;
+				break;
+			}
+		}
+
+		if (SplineIdx == -1)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Modifying transform for selected spline points."),
+			MainInput->GetOuter());
+
+		const TArray<int32>& SplinePointsToUpdate = TargetSpline->EditedControlPointsIndexes;
+
+		for (auto CurInput : InInputs)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			TArray<UHoudiniInputObject*>* CurCurveInputs = CurInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+			if (!CurCurveInputs || !CurCurveInputs->IsValidIndex(SplineIdx))
+				continue;
+
+			UHoudiniInputHoudiniSplineComponent* CurSplineInput = Cast<UHoudiniInputHoudiniSplineComponent>((*CurCurveInputs)[SplineIdx]);
+			UHoudiniSplineComponent* CurSpline = CurSplineInput->GetCurveComponent();
+			if (!CurSpline)
+				continue;
+
+			CurInput->Modify();
+
+			// If we are passing an absolute location, then convert it back to relative
+			// before storing it back into the spline.
+			FVector CurInNewLocation = InNewLocation;
+			if (bUseAbsLocation)
+			{
+				const FTransform& CurSplineTransform = CurSpline->GetComponentTransform();
+				CurInNewLocation = CurSplineTransform.InverseTransformPosition(CurInNewLocation);
+			}
+
+			const TArray<FTransform>& CurCurvePoints = CurSpline->CurvePoints;
+			for (const int32& Idx : SplinePointsToUpdate)
+			{
+				if (!CurCurvePoints.IsValidIndex(Idx))
+					continue;
+				FTransform CurPoint = CurCurvePoints[Idx];
+				FVector NewLocation = CurPoint.GetLocation();
+				if (bUpdateX)
+					NewLocation.X = CurInNewLocation.X;
+				if (bUpdateY)
+					NewLocation.Y = CurInNewLocation.Y;
+				if (bUpdateZ)
+					NewLocation.Z = CurInNewLocation.Z;
+				CurPoint.SetLocation(NewLocation);
+				CurSpline->EditPointAtindex(CurPoint, Idx);
+			}
+
+			CurInput->MarkChanged(true);
+		}
+	};
+
+	auto UpdateTransformRotation = [MainInput, InInputs, &CategoryBuilder, HoudiniSplineComponentVisualizer](FRotator InNewRotator, bool bUpdateRoll, bool bUpdatePitch, bool bUpdateYaw, bool bUseAbsRotation)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		TArray<UHoudiniInputObject*>* CurveInputs = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+		if (!CurveInputs)
+			return;
+
+		int32 SplineIdx = -1;
+		UHoudiniSplineComponent* TargetSpline = HoudiniSplineComponentVisualizer->GetEditedHoudiniSplineComponent();
+		for (int32 Idx = 0; Idx < CurveInputs->Num(); ++Idx)
+		{
+			UHoudiniInputHoudiniSplineComponent* CurSplineInput = Cast<UHoudiniInputHoudiniSplineComponent>((*CurveInputs)[Idx]);
+			UHoudiniSplineComponent* CurSpline = CurSplineInput->GetCurveComponent();
+			if (CurSpline == TargetSpline)
+			{
+				SplineIdx = Idx;
+				break;
+			}
+		}
+
+		if (SplineIdx == -1)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Modifying rotation for selected spline points."),
+			MainInput->GetOuter());
+
+		const TArray<int32>& SplinePointsToUpdate = TargetSpline->EditedControlPointsIndexes;
+
+		for (auto CurInput : InInputs)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			TArray<UHoudiniInputObject*>* CurCurveInputs = CurInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+			if (!CurCurveInputs || !CurCurveInputs->IsValidIndex(SplineIdx))
+				continue;
+
+			UHoudiniInputHoudiniSplineComponent* CurSplineInput = Cast<UHoudiniInputHoudiniSplineComponent>((*CurCurveInputs)[SplineIdx]);
+			UHoudiniSplineComponent* CurSpline = CurSplineInput->GetCurveComponent();
+			if (!CurSpline)
+				continue;
+
+			CurInput->Modify();
+
+			FRotator CurInNewRotator = InNewRotator;
+			if (bUseAbsRotation)
+			{
+				const FTransform& CurSplineTransform = CurSpline->GetComponentTransform();
+				CurInNewRotator = (CurSplineTransform.GetRotation().Inverse() * FQuat::MakeFromRotator(InNewRotator)).Rotator();
+			}
+
+			const TArray<FTransform>& CurCurvePoints = CurSpline->CurvePoints;
+			for (const int32& Idx : SplinePointsToUpdate)
+			{
+				if (!CurCurvePoints.IsValidIndex(Idx))
+					continue;
+				FTransform CurPoint = CurCurvePoints[Idx];
+				FQuat NewRotation = CurPoint.GetRotation();
+				FRotator NewRotator = NewRotation.Rotator();
+				if (bUpdateRoll)
+					NewRotator.Roll = CurInNewRotator.Roll;
+				if (bUpdatePitch)
+					NewRotator.Pitch = CurInNewRotator.Pitch;
+				if (bUpdateYaw)
+					NewRotator.Yaw = CurInNewRotator.Yaw;
+				CurPoint.SetRotation(FQuat::MakeFromRotator(NewRotator));
+				CurSpline->EditPointAtindex(CurPoint, Idx);
+			}
+
+			CurInput->MarkChanged(true);
+		}
+	};
+
+	auto UpdateTransformScale = [MainInput, InInputs, HoudiniSplineComponentVisualizer](FVector InNewScale, bool bUpdateX, bool bUpdateY, bool bUpdateZ)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		TArray<UHoudiniInputObject*>* CurveInputs = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+		if (!CurveInputs)
+			return;
+
+		int32 SplineIdx = -1;
+		UHoudiniSplineComponent* TargetSpline = HoudiniSplineComponentVisualizer->GetEditedHoudiniSplineComponent();
+		for (int32 Idx = 0; Idx < CurveInputs->Num(); ++Idx)
+		{
+			UHoudiniInputHoudiniSplineComponent* CurSplineInput = Cast<UHoudiniInputHoudiniSplineComponent>((*CurveInputs)[Idx]);
+			UHoudiniSplineComponent* CurSpline = CurSplineInput->GetCurveComponent();
+			if (CurSpline == TargetSpline)
+			{
+				SplineIdx = Idx;
+				break;
+			}
+		}
+
+		if (SplineIdx == -1)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Modifying scale for selected spline points."),
+			MainInput->GetOuter());
+
+		const TArray<int32>& SplinePointsToUpdate = TargetSpline->EditedControlPointsIndexes;
+
+		for (auto CurInput : InInputs)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			TArray<UHoudiniInputObject*>* CurCurveInputs = CurInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+			if (!CurCurveInputs || !CurCurveInputs->IsValidIndex(SplineIdx))
+				continue;
+
+			UHoudiniInputHoudiniSplineComponent* CurSplineInput = Cast<UHoudiniInputHoudiniSplineComponent>((*CurCurveInputs)[SplineIdx]);
+			UHoudiniSplineComponent* CurSpline = CurSplineInput->GetCurveComponent();
+			if (!CurSpline)
+				continue;
+
+			CurInput->Modify();
+
+			const TArray<FTransform>& CurCurvePoints = CurSpline->CurvePoints;
+			for (const int32& Idx : SplinePointsToUpdate)
+			{
+				if (!CurCurvePoints.IsValidIndex(Idx))
+					continue;
+				FTransform CurPoint = CurCurvePoints[Idx];
+				FVector NewScale = CurPoint.GetScale3D();
+				if (bUpdateX)
+					NewScale.X = InNewScale.X;
+				if (bUpdateY)
+					NewScale.Y = InNewScale.Y;
+				if (bUpdateZ)
+					NewScale.Z = InNewScale.Z;
+				CurPoint.SetScale3D(NewScale);
+				CurSpline->EditPointAtindex(CurPoint, Idx);
+			}
+
+			CurInput->MarkChanged(true);
+		}
+	};
+
+	// Add Transform UI
+	TSharedPtr<SVerticalBox> TransformOffset_VerticalBox;
+
+	InVerticalBox->AddSlot()
+	.Padding(0)
+	.AutoHeight()
+	[
+		SAssignNew(TransformOffset_VerticalBox, SVerticalBox)
+	];
+
+	auto GetUseAbsoluteLocation = [MainInput](const bool& bExpectedState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return false;
+		return MainInput->GetCurvePointSelectionUseAbsLocation() == bExpectedState;
+	};
+
+	auto SetUseAbsoluteLocation = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const bool &bNewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		if (MainInput->GetCurvePointSelectionUseAbsLocation() == bNewState)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Change curve point use absolute location."),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetCurvePointSelectionUseAbsLocation() == bNewState)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetCurvePointSelectionUseAbsLocation(bNewState);
+		}
+
+		if (CategoryBuilder.IsParentLayoutValid())
+			CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+	};
+
+	FMenuBuilder LocationMenu(true, NULL, NULL);
+
+	FUIAction SetRelativeLocation
+	(
+		FExecuteAction::CreateLambda([=]()
+		{
+			SetUseAbsoluteLocation(InInputs, false);
+		}),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateLambda([=]()
+		{
+			return GetUseAbsoluteLocation(false);
+		})
+	);
+
+	FUIAction SetAbsoluteLocation
+	(
+		FExecuteAction::CreateLambda([=]()
+		{
+			SetUseAbsoluteLocation(InInputs, true);
+		}),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateLambda([=]()
+		{
+			return GetUseAbsoluteLocation(true);
+		})
+	);
+
+	LocationMenu.BeginSection(TEXT("TransformType"), FText(LOCTEXT("TransformType", "Location Type")));
+
+	LocationMenu.AddMenuEntry
+	(
+		FText(LOCTEXT("LocationRelativeLabel", "Relative")),
+		FText(LOCTEXT("LocationRelativeLabelTip", "Location is relative to its parents.")),
+		FSlateIcon(),
+		SetRelativeLocation,
+		NAME_None,
+		EUserInterfaceActionType::RadioButton
+	);
+
+
+	LocationMenu.AddMenuEntry
+	(
+		FText(LOCTEXT("LocationRelativeLabel", "Absolute")),
+		FText(LOCTEXT("LocationRelativeLabelTip", "Location is absolute to the world.")),
+		FSlateIcon(),
+		SetAbsoluteLocation,
+		NAME_None,
+		EUserInterfaceActionType::RadioButton
+	);
+
+	LocationMenu.EndSection();
+
+	// Translate
+	TransformOffset_VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		.VAlign(VAlign_Center)
+		.FillWidth(80)
+		.MaxWidth(80)
+		[
+			SNew(SComboButton)
+			.ContentPadding(0)
+			.MenuContent()
+			[
+				LocationMenu.MakeWidget()
+			]
+			.ButtonContent()
+			[
+				SNew(SBox)
+				.Padding(0, 0, 2, 0)
+				.MinDesiredWidth(50)
+				[
+					SNew(STextBlock)
+					.Text(bUseAbsLocation ? LOCTEXT("LocationType", "Absolute Location") : LOCTEXT("LocationType", "Location"))
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				]
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.FillWidth(240)
+		.MaxWidth(240)
+		[
+			SNew(SVectorInputBox)
+			.bColorAxisLabels(true)
+			.AllowSpin(true)
+			.X(IsSingleValue[0][0] ? TOptional<float>(Transform.GetLocation().X) : TOptional<float>())
+			.Y(IsSingleValue[0][1] ? TOptional<float>(Transform.GetLocation().Y) : TOptional<float>())
+			.Z(IsSingleValue[0][2] ? TOptional<float>(Transform.GetLocation().Z) : TOptional<float>())
+			.OnXCommitted_Lambda([=](float InNewX, ETextCommit::Type CommitType)
+			{
+				if (CommitType != ETextCommit::Type::OnEnter && CommitType != ETextCommit::Type::OnUserMovedFocus)
+					return;
+				UpdateTransformLocation(FVector(InNewX, 0, 0), true, false, false, bUseAbsLocation);
+			})
+			.OnYCommitted_Lambda([=](float InNewY, ETextCommit::Type CommitType)
+			{
+				if (CommitType != ETextCommit::Type::OnEnter && CommitType != ETextCommit::Type::OnUserMovedFocus)
+					return;
+				UpdateTransformLocation(FVector(0, InNewY, 0), false, true, false, bUseAbsLocation);
+			})
+			.OnZCommitted_Lambda([=](float InNewZ, ETextCommit::Type CommitType)
+			{
+				if (CommitType != ETextCommit::Type::OnEnter && CommitType != ETextCommit::Type::OnUserMovedFocus)
+					return;
+				UpdateTransformLocation(FVector(0, 0, InNewZ), false, false, true, bUseAbsLocation);
+			})
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Right)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Center)
+			.Padding(0)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "NoBorder")
+				.ClickMethod(EButtonClickMethod::MouseDown)
+				.Visibility(EVisibility::Hidden)
+				[
+					SNew(SImage)
+					.Image(_GetEditorStyle().GetBrush("Icons.Lock"))
+				]
+			]
+		]
+	];
+	
+	// Rotation
+	auto GetUseAbsoluteRotation = [MainInput](const bool& bExpectedState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return false;
+		return MainInput->GetCurvePointSelectionUseAbsRotation() == bExpectedState;
+	};
+
+	auto SetUseAbsoluteRotation = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const bool &bNewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		if (MainInput->GetCurvePointSelectionUseAbsRotation() == bNewState)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Change curve point use absolute Rotation."),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetCurvePointSelectionUseAbsRotation() == bNewState)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetCurvePointSelectionUseAbsRotation(bNewState);
+		}
+
+		if (CategoryBuilder.IsParentLayoutValid())
+			CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+	};
+
+	FMenuBuilder RotationMenu(true, NULL, NULL);
+
+	FUIAction SetRelativeRotation
+	(
+		FExecuteAction::CreateLambda([=]()
+		{
+			SetUseAbsoluteRotation(InInputs, false);
+		}),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateLambda([=]()
+		{
+			return GetUseAbsoluteRotation(false);
+		})
+	);
+
+	FUIAction SetAbsoluteRotation
+	(
+		FExecuteAction::CreateLambda([=]()
+		{
+			SetUseAbsoluteRotation(InInputs, true);
+		}),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateLambda([=]()
+		{
+			return GetUseAbsoluteRotation(true);
+		})
+	);
+
+	RotationMenu.BeginSection(TEXT("TransformType"), FText(LOCTEXT("TransformType", "Rotation Type")));
+
+	RotationMenu.AddMenuEntry
+	(
+		FText(LOCTEXT("RotationRelativeLabel", "Relative")),
+		FText(LOCTEXT("RotationRelativeLabelTip", "Rotation is relative to its parents.")),
+		FSlateIcon(),
+		SetRelativeRotation,
+		NAME_None,
+		EUserInterfaceActionType::RadioButton
+	);
+
+
+	RotationMenu.AddMenuEntry
+	(
+		FText(LOCTEXT("RotationRelativeLabel", "Absolute")),
+		FText(LOCTEXT("RotationRelativeLabelTip", "Rotation is absolute to the world.")),
+		FSlateIcon(),
+		SetAbsoluteRotation,
+		NAME_None,
+		EUserInterfaceActionType::RadioButton
+	);
+
+	RotationMenu.EndSection();
+
+	TransformOffset_VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		.VAlign(VAlign_Center)
+		.FillWidth(80)
+		.MaxWidth(80)
+		[
+			SNew(SComboButton)
+			.ContentPadding(0)
+			.MenuContent()
+			[
+				RotationMenu.MakeWidget()
+			]
+			.ButtonContent()
+			[
+				SNew(SBox)
+				.Padding(0, 0, 2, 0)
+				.MinDesiredWidth(50)
+				[
+					SNew(STextBlock)
+					.Text(bUseAbsRotation ? LOCTEXT("RotationType", "Absolute Rotation") : LOCTEXT("RotationType", "Rotation"))
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				]
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.FillWidth(240)
+		.MaxWidth(240)
+		[
+			SNew(SRotatorInputBox)
+			.AllowSpin(true)
+			.bColorAxisLabels(true)
+			.Roll(IsSingleValue[1][0] ? TOptional<float>(Transform.GetRotation().Rotator().Roll) : TOptional<float>())
+			.Pitch(IsSingleValue[1][1] ? TOptional<float>(Transform.GetRotation().Rotator().Pitch) : TOptional<float>())
+			.Yaw(IsSingleValue[1][2] ? TOptional<float>(Transform.GetRotation().Rotator().Yaw) : TOptional<float>())
+			.OnRollCommitted_Lambda([=](float InNewRoll, ETextCommit::Type CommitType)
+			{
+				if (CommitType != ETextCommit::Type::OnEnter && CommitType != ETextCommit::Type::OnUserMovedFocus)
+					return;
+				UpdateTransformRotation(FRotator(InNewRoll, 0, 0), true, false, false, bUseAbsRotation);
+			})
+			.OnPitchCommitted_Lambda([=](float InNewPitch, ETextCommit::Type CommitType)
+			{
+				if (CommitType != ETextCommit::Type::OnEnter && CommitType != ETextCommit::Type::OnUserMovedFocus)
+					return;
+				UpdateTransformRotation(FRotator(0, InNewPitch, 0), false, true, false, bUseAbsRotation);
+			})
+			.OnYawCommitted_Lambda([=](float InNewYaw, ETextCommit::Type CommitType)
+			{
+				if (CommitType != ETextCommit::Type::OnEnter && CommitType != ETextCommit::Type::OnUserMovedFocus)
+					return;
+				UpdateTransformRotation(FRotator(0, 0, InNewYaw), false, false, true, bUseAbsRotation);
+			})
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Right)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Center)
+			.Padding(0.0f)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "NoBorder")
+				.ClickMethod(EButtonClickMethod::MouseDown)
+				.Visibility(EVisibility::Hidden)
+				[
+					SNew(SImage)
+					.Image(_GetEditorStyle().GetBrush("Icons.Lock"))
+				]
+			]
+		]
+	];
+
+	const bool &bScaleLocked = HoudiniInputObject->IsUniformScaleLocked();
+
+	TransformOffset_VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(0)
+		.VAlign(VAlign_Center)
+		.FillWidth(80)
+		.MaxWidth(80)
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("CurvePointInputScale", "Scale"))
+			.ToolTipText(LOCTEXT("CurvePointInputScaleTooltip", "Scale"))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.FillWidth(240)
+		.MaxWidth(240)
+		[
+			SNew(SVectorInputBox)
+			.bColorAxisLabels(true)
+			.X(IsSingleValue[2][0] ? TOptional<float>(Transform.GetScale3D().X) : TOptional<float>())
+			.Y(IsSingleValue[2][1] ? TOptional<float>(Transform.GetScale3D().Y) : TOptional<float>())
+			.Z(IsSingleValue[2][2] ? TOptional<float>(Transform.GetScale3D().Z) : TOptional<float>())
+			.OnXCommitted_Lambda([=](float InNewX, ETextCommit::Type CommitType)
+			{
+				if (CommitType != ETextCommit::Type::OnEnter && CommitType != ETextCommit::Type::OnUserMovedFocus)
+					return;
+				if (bScaleLocked)
+					UpdateTransformScale(FVector(InNewX, InNewX, InNewX), true, true, true);
+				else
+					UpdateTransformScale(FVector(InNewX, 0, 0), true, false, false);
+			})
+			.OnYCommitted_Lambda([=](float InNewY, ETextCommit::Type CommitType)
+			{
+				if (CommitType != ETextCommit::Type::OnEnter && CommitType != ETextCommit::Type::OnUserMovedFocus)
+					return;
+				if (bScaleLocked)
+					UpdateTransformScale(FVector(InNewY, InNewY, InNewY), true, true, true);
+				else
+					UpdateTransformScale(FVector(0, InNewY, 0), false, true, false);
+			})
+			.OnZCommitted_Lambda([=](float InNewZ, ETextCommit::Type CommitType)
+			{
+				if (CommitType != ETextCommit::Type::OnEnter && CommitType != ETextCommit::Type::OnUserMovedFocus)
+					return;
+				if (bScaleLocked)
+					UpdateTransformScale(FVector(InNewZ, InNewZ, InNewZ), true, true, true);
+				else
+					UpdateTransformScale(FVector(0, 0, InNewZ), false, false, true);
+			})
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Right)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Center)
+			.Padding(0)
+			[
+				SNew(SButton)
+				.ButtonStyle(_GetEditorStyle(), "NoBorder")
+				.ClickMethod(EButtonClickMethod::MouseDown)
+				.Visibility(EVisibility::Visible)
+				.OnClicked_Lambda([=, &CategoryBuilder]()
+				{
+					for (auto& CurInput : InInputs)
+					{
+						if (!IsValidWeakPointer(CurInput))
+							continue;
+
+						UHoudiniInputObject* CurInputObject = CurInput->GetHoudiniInputObjectAt(EHoudiniInputType::Curve, HoudiniInputObjectIdx);
+
+						if (!IsValid(CurInputObject))
+							continue;
+
+						CurInputObject->SwitchUniformScaleLock();
+					}
+
+					if (CategoryBuilder.IsParentLayoutValid())
+						CategoryBuilder.GetParentLayout().ForceRefreshDetails();
+			
+					return FReply::Handled();
+				})
+				[
+					SNew(SImage)
+					.Image(_GetEditorStyle().GetBrush(bScaleLocked ? TEXT("Icons.Lock") : TEXT("Icons.Unlock")))
+				]
+		
+			]
+		]
+	];
 }
 
 void
@@ -8985,7 +11791,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 				.Visibility(EVisibility::Hidden)
 				[
 					SNew(SImage)
-					.Image(_GetEditorStyle().GetBrush("GenericLock"))
+					.Image(_GetEditorStyle().GetBrush("Icons.Lock"))
 				]
 			]
 			+ SHorizontalBox::Slot()
@@ -9066,7 +11872,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 				.Visibility(EVisibility::Hidden)
 				[
 					SNew(SImage)
-					.Image(_GetEditorStyle().GetBrush("GenericLock"))
+					.Image(_GetEditorStyle().GetBrush("Icons.Lock"))
 				]
 			]
 			+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(0.0f)
@@ -9167,7 +11973,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 				.Visibility(EVisibility::Visible)
 				[
 					SNew(SImage)
-					.Image(bLocked ? _GetEditorStyle().GetBrush("GenericLock") : _GetEditorStyle().GetBrush("GenericUnlock"))
+					.Image(bLocked ? _GetEditorStyle().GetBrush("Icons.Lock") : _GetEditorStyle().GetBrush("Icons.Unlock"))
 				]
 				.OnClicked_Lambda([InInputs, MainInput, InObjectIdx, HoudiniInputObject, &CategoryBuilder]()
 				{

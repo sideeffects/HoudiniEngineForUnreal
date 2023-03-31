@@ -87,6 +87,14 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 			TSharedRef<SVerticalBox> InVerticalBox,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
+		static void AddCurveRotScaleAttributesCheckBox(
+			TSharedRef<SVerticalBox> InVerticalBox,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
+
+		static void AddCurveAutoUpdateCheckBox(
+			TSharedRef<SVerticalBox> InVerticalBox,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
+
 		// Export options: common checkboxes for the new
 		// Geometry and new World inputs
 		static void AddExportAsReferenceCheckBoxes(
@@ -150,6 +158,29 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 			TSharedRef< SVerticalBox > VerticalBox,
 			TSharedPtr<class FHoudiniSplineComponentVisualizer> HouSplineComponentVisualizer);
 
+		static void Helper_CreateCurveWidgetExpanded(
+			IDetailCategoryBuilder& CategoryBuilder,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
+			const int32& InCurveObjectIdx,
+			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool,
+			TSharedRef<SVerticalBox> InVerticalBox,
+			TSharedPtr<class FHoudiniSplineComponentVisualizer> HouSplineComponentVisualizer);
+
+		static void Helper_CreateCurveWidgetCollapsed(
+			IDetailCategoryBuilder& CategoryBuilder,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
+			const int32& InCurveObjectIdx,
+			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool,
+			TSharedRef<SVerticalBox> InVerticalBox,
+			TSharedPtr<class FHoudiniSplineComponentVisualizer> HouSplineComponentVisualizer);
+
+		static void Helper_AddCurvePointSelectionUI(
+			IDetailCategoryBuilder& CategoryBuilder,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
+			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool,
+			TSharedRef<SVerticalBox> InVerticalBox,
+			TSharedPtr<class FHoudiniSplineComponentVisualizer> HouSplineComponentVisualizer);
+
 		// Add Asset Inputs UI Widgets
 		static void AddAssetInputUI(
 			TSharedRef<SVerticalBox> VerticalBox,
@@ -159,6 +190,12 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 		static void AddCurveInputUI(
 			IDetailCategoryBuilder& CategoryBuilder,
 			TSharedRef<SVerticalBox> VerticalBox,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
+			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool);
+
+		static void AddNewCurveInputUI(
+			IDetailCategoryBuilder& CategoryBuilder,
+			TSharedRef<SVerticalBox> InVerticalBox,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool);
 

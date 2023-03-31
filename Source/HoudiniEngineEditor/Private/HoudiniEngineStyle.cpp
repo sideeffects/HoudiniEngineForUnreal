@@ -160,6 +160,10 @@ FHoudiniEngineStyle::Initialize()
 	FString ViewportSyncOffIcon = IconsDir + TEXT("viewport_sync_off16x16.png");
 	FString ViewportSyncUnrealIcon = IconsDir + TEXT("viewport_sync_unreal16x16.png");
 	FString NodeSyncIcon = IconsDir + TEXT("icon_houdini_logo_16.png");
+	FString CurveClosedIcon = IconsDir + TEXT("curve_closed16x16.png");
+	FString CurveNotClosedIcon = IconsDir + TEXT("curve_not_closed16x16.png");
+	FString CurveReversedIcon = IconsDir + TEXT("curve_reversed16x16.png");
+	FString CurveNotReversedIcon = IconsDir + TEXT("curve_not_reversed16x16.png");
 
 	FString InfoIcon = IconsDir + TEXT("icon_hengine_logo_16.png");
 	FString SettingsIcon = _GetEditorStyle().GetBrush("Launcher.EditSettings")->GetResourceName().ToString();
@@ -209,6 +213,11 @@ FHoudiniEngineStyle::Initialize()
 	StyleSet->Set("HoudiniEngine._Reset", new FSlateImageBrush(ResetIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine.DigitalAsset", new FSlateImageBrush(DigitalAssetIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine.PDGLink", new FSlateImageBrush(PDGLinkIcon, Icon16x16));
+
+	StyleSet->Set("HoudiniEngine._CurveClosed", new FSlateImageBrush(CurveClosedIcon, Icon16x16));
+	StyleSet->Set("HoudiniEngine._CurveNotClosed", new FSlateImageBrush(CurveNotClosedIcon, Icon16x16));
+	StyleSet->Set("HoudiniEngine._CurveReversed", new FSlateImageBrush(CurveReversedIcon, Icon16x16));
+	StyleSet->Set("HoudiniEngine._CurveNotReversed", new FSlateImageBrush(CurveNotReversedIcon, Icon16x16));
 
 	/*
 	FString StopIcon = FEditorStyle::GetBrush("PropertyWindow.Button_Clear")->GetResourceName().ToString();

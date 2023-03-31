@@ -297,7 +297,7 @@ FHoudiniSplineComponentVisualizer::VisProxyHandleClick(
 		return false;
 
 
-	TArray<int32> & EditedControlPointsIndexes = EditedHoudiniSplineComponent->EditedControlPointsIndexes;
+	TArray<int32>& EditedControlPointsIndexes = EditedHoudiniSplineComponent->EditedControlPointsIndexes;
 
 	bool editingCurve = false;
 
@@ -968,6 +968,97 @@ FHoudiniSplineComponentVisualizer::RefreshViewport(bool bInvalidateHitProxies)
 {
 	if (GEditor)
 		GEditor->RedrawLevelEditingViewports(bInvalidateHitProxies);
+}
+
+bool
+FHoudiniSplineComponentVisualizer::AreSplinePointsSelected()
+{
+	UHoudiniSplineComponent* EditedHoudiniSplineComponent = GetEditedHoudiniSplineComponent();
+	if (!EditedHoudiniSplineComponent)
+		return false;
+
+	TArray<int32>& EditedControlPointIndexes = EditedHoudiniSplineComponent->EditedControlPointsIndexes;
+	return EditedControlPointIndexes.Num() > 0;
+
+}
+
+int32
+FHoudiniSplineComponentVisualizer::GetEditedSplinePointsNum()
+{
+	UHoudiniSplineComponent* EditedHoudiniSplineComponent = GetEditedHoudiniSplineComponent();
+	if (!EditedHoudiniSplineComponent)
+		return 0;
+
+	TArray<int32>& EditedControlPointIndexes = EditedHoudiniSplineComponent->EditedControlPointsIndexes;
+	return EditedControlPointIndexes.Num();
+}
+
+void
+FHoudiniSplineComponentVisualizer::SelectSplinePoint(const int32& InPointIndex, const bool& bAddToSelection)
+{
+	UHoudiniSplineComponent* EditedHoudiniSplineComponent = GetEditedHoudiniSplineComponent();
+	if (!IsValid(EditedHoudiniSplineComponent))
+		return;
+
+	TArray<int32>& EditedControlPointIndexes = EditedHoudiniSplineComponent->EditedControlPointsIndexes;
+	if (!bAddToSelection)
+		EditedControlPointIndexes.Empty();
+
+	if (EditedControlPointIndexes.Contains(InPointIndex))
+		return;
+	
+	EditedControlPointIndexes.Add(InPointIndex);
+}
+
+void
+FHoudiniSplineComponentVisualizer::ExtendSplinePointSelection(const int32& InNumPoints, const bool& bExtendFromRight, const bool& bAddToSelection)
+{
+	UHoudiniSplineComponent* EditedHoudiniSplineComponent = GetEditedHoudiniSplineComponent();
+	if (!IsValid(EditedHoudiniSplineComponent))
+		return;
+
+	TArray<int32>& EditedControlPointIndexes = EditedHoudiniSplineComponent->EditedControlPointsIndexes;
+	int32 NumTotalPoints = EditedHoudiniSplineComponent->GetCurvePointCount();
+	if (NumTotalPoints == 0)
+		return;
+	
+	int32 ExtendSelectionFromIndex = 0;
+	if (bExtendFromRight)
+	{
+		ExtendSelectionFromIndex = -1;
+		for (const int32& Index : EditedControlPointIndexes)
+		{
+			if (Index > ExtendSelectionFromIndex)
+				ExtendSelectionFromIndex = Index;
+		}
+	}
+	else
+	{
+		ExtendSelectionFromIndex = NumTotalPoints;
+		for (const int32& Index : EditedControlPointIndexes)
+		{
+			if (Index < ExtendSelectionFromIndex)
+				ExtendSelectionFromIndex = Index;
+		}
+	}
+	
+	if (!bAddToSelection)
+		EditedControlPointIndexes.Empty();
+
+	int32 NextPointDelta = bExtendFromRight ? 1 : -1;
+	int32 CurPointIndex = ExtendSelectionFromIndex;
+
+	for (int Idx = 0; Idx < InNumPoints; ++Idx)
+	{
+		CurPointIndex += NextPointDelta;
+		if (CurPointIndex == NumTotalPoints)
+			CurPointIndex = 0;
+		else if (CurPointIndex == -1)
+			CurPointIndex = NumTotalPoints - 1;
+
+		if (!EditedControlPointIndexes.Contains(CurPointIndex))
+			EditedControlPointIndexes.Add(CurPointIndex);
+	}
 }
 
 // Find the EditorViewportClient of the viewport where the Houdini Spline Component lives in

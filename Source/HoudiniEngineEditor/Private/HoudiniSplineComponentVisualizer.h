@@ -157,6 +157,26 @@ class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
 		FComponentPropertyPath SplinePropertyPath;
 		UHoudiniSplineComponent* GetEditedHoudiniSplineComponent() const { return Cast<UHoudiniSplineComponent>(SplinePropertyPath.GetComponent()); }
 
+
+		// Returns true if at least one point is selected for the current
+		// houdini spline component
+		bool AreSplinePointsSelected();
+
+		// Returns the number of control points selected in the spline
+		// component that is currently being edited.
+		int32 GetEditedSplinePointsNum();
+
+		// Selects the point at the given index, if it is a valid point
+		// within the allowed index range. If the point is not to be added
+		// to selection, then the newly selected point will be the only
+		// selected point.
+		void SelectSplinePoint(const int32& InPointIndex, const bool& bAddToSelection);
+
+		// Extends the current seletion by the specified number of points
+		// to the left, or right, of the current selection. If not adding
+		// to selection, then the currently selected points are cleared first.
+		void ExtendSplinePointSelection(const int32& InNumPoints, const bool& bExtendFromLeft, const bool& bAddToSelection);
+		
 	protected:
 
 		bool bAllowDuplication;

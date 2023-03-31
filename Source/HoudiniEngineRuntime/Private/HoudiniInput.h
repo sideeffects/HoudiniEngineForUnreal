@@ -153,6 +153,10 @@ public:
 	bool GetNewGeometryInputsMenuExpanded() const		{ return bNewGeometryInputsMenuExpanded; }
 	bool GetLandscapeOptionsMenuExpanded() const		{ return bLandscapeOptionsMenuExpanded; }
 	bool GetNewWorldInputsMenuExpanded() const		{ return bNewWorldInputsMenuExpanded; }
+	bool GetCurveInputsMenuExpanded() const			{ return bCurveInputsMenuExpanded; }
+	bool GetCurvePointSelectionMenuExpanded() const		{ return bCurvePointSelectionMenuExpanded; }
+	bool GetCurvePointSelectionUseAbsLocation() const	{ return bCurvePointSelectionUseAbsLocation; }
+	bool GetCurvePointSelectionUseAbsRotation() const	{ return bCurvePointSelectionUseAbsRotation; }
 	bool IsObjectPathParameter() const			{ return bIsObjectPathParameter; };
 	float GetUnrealSplineResolution() const			{ return UnrealSplineResolution; };
 	virtual bool GetCookOnCurveChange() const		{ return bCookOnCurveChanged; };
@@ -273,6 +277,10 @@ public:
 	void SetNewGeometryInputsMenuExpanded(const bool& bInNewGeometryInputsMenuExpanded)		{ bNewGeometryInputsMenuExpanded = bInNewGeometryInputsMenuExpanded; }
 	void SetLandscapeOptionsMenuExpanded(const bool& bInLandscapeOptionsMenuExpanded)		{ bLandscapeOptionsMenuExpanded = bInLandscapeOptionsMenuExpanded; }
 	void SetNewWorldInputsMenuExpanded(const bool& bInNewWorldInputsMenuExpanded)			{ bNewWorldInputsMenuExpanded = bInNewWorldInputsMenuExpanded; }
+	void SetCurveInputsMenuExpanded(const bool& bInCurveInputsMenuExpanded)				{ bCurveInputsMenuExpanded = bInCurveInputsMenuExpanded; }
+	void SetCurvePointSelectionMenuExpanded(const bool& bInCurvePointSelectionMenuExpanded)		{ bCurvePointSelectionMenuExpanded = bInCurvePointSelectionMenuExpanded; }
+	void SetCurvePointSelectionUseAbsLocation(const bool & bInCurvePointSelectionUseAbsLocation)	{ bCurvePointSelectionUseAbsLocation = bInCurvePointSelectionUseAbsLocation;}
+	void SetCurvePointSelectionUseAbsRotation(const bool & bInCurvePointSelectionUseAbsRotation)	{ bCurvePointSelectionUseAbsRotation = bInCurvePointSelectionUseAbsRotation;}
 	void SetInputNodeId(const int32& InCreatedNodeId)						{ InputNodeId = InCreatedNodeId; };
 	void SetUnrealSplineResolution(const float& InResolution)					{ UnrealSplineResolution = InResolution; };
 
@@ -531,6 +539,25 @@ protected:
 	// Indicates whether the input selection menu in the NewWorld UI is collapsed
 	UPROPERTY()
 	bool bNewWorldInputsMenuExpanded;
+
+	// Indicates whether the input selection menu in the new Curve UI is collapsed
+	UPROPERTY()
+	bool bCurveInputsMenuExpanded;
+
+	// Indicates whether the spline component point selection control menu in the
+	// new Curve input UI is collapsed
+	UPROPERTY()
+	bool bCurvePointSelectionMenuExpanded;
+
+	// Indicates whether the spline component point selection control menu
+	// uses absolute location
+	UPROPERTY()
+	bool bCurvePointSelectionUseAbsLocation;
+
+	// Indicates whether the spline component point selection control menu
+	// uses absolute rotation
+	UPROPERTY()
+	bool bCurvePointSelectionUseAbsRotation;
 
 	// Indicates that if trigger cook automatically on curve Input spline modified
 	UPROPERTY()
