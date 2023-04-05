@@ -4118,116 +4118,6 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 	if (!IsValidWeakPointer(MainInput))
 		return;
 
-	// Lambda returning a CheckState from the input's current KeepWorldTransform state
-	auto IsCheckedUpdateInputLandscape = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
-	{
-		if (!IsValidWeakPointer(InInput))
-			return ECheckBoxState::Unchecked;
-
-		return InInput->GetUpdateInputLandscape() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-	};
-
-	// Lambda for changing KeepWorldTransform state
-	auto CheckStateChangedUpdateInputLandscape = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
-	{
-		if (!IsValidWeakPointer(MainInput))
-			return;
-
-		bool bNewState = (NewState == ECheckBoxState::Checked);
-		// Record a transaction for undo/redo
-		FScopedTransaction Transaction(
-			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniLandscapeInputChangedUpdate", "Houdini Input: Changing Keep World Transform"),
-			MainInput->GetOuter());
-
-		for (auto CurInput : InInputsToUpdate)
-		{
-			if (!IsValidWeakPointer(CurInput))
-				continue;
-
-			if (bNewState == CurInput->GetUpdateInputLandscape())
-				continue;
-
-			CurInput->Modify();
-
-			UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(CurInput->GetOuter());
-			if (!HAC)
-				continue;
-
-			TArray<UHoudiniInputObject*>* LandscapeInputObjects = CurInput->GetHoudiniInputObjectArray(CurInput->GetInputType());
-			if (!LandscapeInputObjects)
-				continue;
-
-			for (UHoudiniInputObject* NextInputObj : *LandscapeInputObjects)
-			{
-				UHoudiniInputLandscape* CurrentInputLandscape = Cast<UHoudiniInputLandscape>(NextInputObj);
-				if (!CurrentInputLandscape)
-					continue;
-
-				ALandscapeProxy* CurrentInputLandscapeProxy = CurrentInputLandscape->GetLandscapeProxy();
-				if (!CurrentInputLandscapeProxy)
-					continue;
-
-				if (bNewState)
-				{
-					// We want to update this landscape data directly, start by backing it up to image files in the temp folder
-					FString BackupBaseName = HAC->TemporaryCookFolder.Path
-						+ TEXT("/")
-						+ CurrentInputLandscapeProxy->GetName()
-						+ TEXT("_")
-						+ HAC->GetComponentGUID().ToString().Left(FHoudiniEngineUtils::PackageGUIDComponentNameLength);
-
-					// We need to cache the input landscape to a file
-					FHoudiniLandscapeTranslator::BackupLandscapeToImageFiles(BackupBaseName, CurrentInputLandscapeProxy);
-					
-					// Cache its transform on the input
-					CurrentInputLandscape->CachedInputLandscapeTraqnsform = CurrentInputLandscapeProxy->ActorToWorld();
-
-					HAC->SetMobility(EComponentMobility::Static);
-					CurrentInputLandscapeProxy->AttachToComponent(HAC, FAttachmentTransformRules::KeepWorldTransform);
-				}
-				else
-				{
-					// We are not updating this input landscape anymore, detach it and restore its backed-up values
-					CurrentInputLandscapeProxy->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-
-					// Restore the input landscape's backup data
-					FHoudiniLandscapeTranslator::RestoreLandscapeFromImageFiles(CurrentInputLandscapeProxy);
-
-					// Reapply the source Landscape's transform
-					CurrentInputLandscapeProxy->SetActorTransform(CurrentInputLandscape->CachedInputLandscapeTraqnsform);
-
-					// TODO: 
-					// Clear the input obj map?
-				}
-			}
-
-			CurInput->bUpdateInputLandscape = (NewState == ECheckBoxState::Checked);
-			CurInput->MarkChanged(true);
-		}
-	};
-
-	// CheckBox : Update Input Landscape Data
-	TSharedPtr< SCheckBox > CheckBoxUpdateInput;
-	VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
-	[
-		SAssignNew( CheckBoxUpdateInput, SCheckBox).Content()
-		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("LandscapeUpdateInputCheckbox", "Update Input Landscape Data"))
-			.ToolTipText(LOCTEXT("LandscapeUpdateInputTooltip", "If enabled, the input landscape's data will be updated instead of creating a new landscape Actor"))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-		]
-		.IsChecked_Lambda([IsCheckedUpdateInputLandscape, MainInput]()
-		{
-			return IsCheckedUpdateInputLandscape(MainInput);
-		})
-		.OnCheckStateChanged_Lambda([CheckStateChangedUpdateInputLandscape, InInputs](ECheckBoxState NewState)
-		{
-			return CheckStateChangedUpdateInputLandscape(InInputs, NewState);
-		})
-	];
-	
 	// ------------------------
 	// Landscape: Actor picker
 	// ------------------------
@@ -5377,31 +5267,9 @@ FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(const TArray<TWeakObjec
 		UHoudiniAssetComponent* MyHAC = Cast<UHoudiniAssetComponent>(InInput->GetOuter());
 		AActor* MyOwner = MyHAC ? MyHAC->GetOwner() : nullptr;
 
-		// IF the landscape is owned by ourself, skip it!
+		// If the landscape is owned by ourself, skip it!
 		if (OwnerActor && OwnerActor == MyOwner)
-		{
-			// ... buuuut we dont want to filter input landscapes that have the "Update Input Landscape Data" option enabled
-			// (and are, therefore, outputs as well)
-			for (int32 Idx = 0; Idx < MyHAC->GetNumInputs(); Idx++)
-			{
-				UHoudiniInput* CurrentInput = MyHAC->GetInputAt(Idx);
-				if (!IsValid(CurrentInput))
-					continue;
-
-				if (CurrentInput->GetInputType() != EHoudiniInputType::Landscape)
-					continue;
-
-				if (!CurrentInput->GetUpdateInputLandscape())
-					continue;
-
-				// Don't filter our input landscapes
-				ALandscapeProxy* UpdatedInputLandscape = Cast<ALandscapeProxy>(CurrentInput->GetInputObjectAt(0));
-				if (LandscapeProxy == UpdatedInputLandscape)
-					return true;
-			}
-
 			return false;
-		}
 
 		return true;
 	};

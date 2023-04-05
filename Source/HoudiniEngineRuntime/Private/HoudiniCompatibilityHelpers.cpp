@@ -625,7 +625,6 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 
 	Input->SetLabel(ParameterLabel);
 	Input->SetName(ParameterName);
-	Input->SetUpdateInputLandscape(bUpdateInputLandscape);
 
 	if (InputType == EHoudiniInputType::Geometry)
 	{
