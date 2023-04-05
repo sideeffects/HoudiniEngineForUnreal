@@ -434,7 +434,6 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInput* A, const 
 	// Skip LastInsertedInputs
 	// Skip LastUndoDeletedInputs
 
-	Result &= TestExpressionError(A->bUpdateInputLandscape == B->bUpdateInputLandscape, Header, "bUpdateInputLandscacpe");
 	Result &= TestExpressionError(A->LandscapeExportType == B->LandscapeExportType, Header, "LandscapeExportType");
 	Result &= TestExpressionError(A->bLandscapeExportSelectionOnly == B->bLandscapeExportSelectionOnly, Header, "bLandscapeExportSelectionOnly");
 	Result &= TestExpressionError(A->bLandscapeAutoSelectComponent == B->bLandscapeAutoSelectComponent, Header, "bLandscapeAutoSelectComponent");

@@ -1116,8 +1116,7 @@ UHoudiniPublicAPIWorldInput::UpdateHoudiniInput(UHoudiniInput* const InInput) co
 
 
 UHoudiniPublicAPILandscapeInput::UHoudiniPublicAPILandscapeInput()
-	: bUpdateInputLandscape(false)
-	, LandscapeExportType(EHoudiniLandscapeExportType::Heightfield)
+	: LandscapeExportType(EHoudiniLandscapeExportType::Heightfield)
 	, bLandscapeExportSelectionOnly(false)
 	, bLandscapeAutoSelectComponent(false)
 	, bLandscapeExportMaterials(false)
@@ -1134,7 +1133,6 @@ UHoudiniPublicAPILandscapeInput::PopulateFromHoudiniInput(UHoudiniInput const* c
 	if (!Super::PopulateFromHoudiniInput(InInput))
 		return false;
 
-	bUpdateInputLandscape = InInput->bUpdateInputLandscape;
 	LandscapeExportType = InInput->GetLandscapeExportType();
 	bLandscapeExportSelectionOnly = InInput->bLandscapeExportSelectionOnly;
 	bLandscapeAutoSelectComponent = InInput->bLandscapeAutoSelectComponent;
@@ -1153,12 +1151,6 @@ UHoudiniPublicAPILandscapeInput::UpdateHoudiniInput(UHoudiniInput* const InInput
 		return false;
 
 	bool bAnyChanges = false;
-	if (InInput->bUpdateInputLandscape != bUpdateInputLandscape)
-	{
-		InInput->bUpdateInputLandscape = bUpdateInputLandscape;
-		bAnyChanges = true;
-	}
-	
 	if (InInput->GetLandscapeExportType() != LandscapeExportType)
 	{
 		InInput->SetLandscapeExportType(LandscapeExportType);
