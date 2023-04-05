@@ -2945,7 +2945,7 @@ FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
 	// TODO: We need to turn this to an array in order to support a mix of material AND material instances
 	//OutMaterialOverrideNeedsCreateInstance = false;
 
-	if (AllAttribNames.IsEmpty())
+	if (AllAttribNames.Num() <= 0)
 		return false;
 
 	// Try the "main" material override attributes
@@ -3162,7 +3162,7 @@ FHoudiniInstanceTranslator::GetAllInstancerMaterials(
 	if (!GetInstancerMaterials(MaterialAttributes, OutInstancerMaterials))
 		OutInstancerMaterials.Empty();
 
-	if (!MaterialInstancesAttributes.IsEmpty())
+	if (MaterialInstancesAttributes.Num() > 0)
 	{
 		// Create Materials instances if needed
 		// We need to process all the material instances attributes together at the same time
@@ -3182,7 +3182,7 @@ FHoudiniInstanceTranslator::GetAllInstancerMaterials(
 		}
 	}
 
-	return !OutInstancerMaterials.IsEmpty();
+	return OutInstancerMaterials.Num() > 0;
 }
 
 
