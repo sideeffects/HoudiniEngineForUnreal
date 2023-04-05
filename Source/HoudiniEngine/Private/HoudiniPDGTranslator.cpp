@@ -138,9 +138,8 @@ FHoudiniPDGTranslator::CreateAllResultObjectsForPDGWorkItem(
 		// NOTE: If performance becomes a problem, cache these on the TOPNode along with all the other cached landscape
 		// data.
 		TArray<ALandscapeProxy *> AllInputLandscapes;
-		TArray<ALandscapeProxy *> InputLandscapesToUpdate;
 		UHoudiniAssetComponent* HAC = InAssetLink->GetOuterHoudiniAssetComponent();
-		FHoudiniEngineUtils::GatherLandscapeInputs(HAC, AllInputLandscapes, InputLandscapesToUpdate);
+		FHoudiniEngineUtils::GatherLandscapeInputs(HAC, AllInputLandscapes);
 
 		bResult = CreateAllResultObjectsFromPDGOutputs(
 			NewTOPOutputs,
@@ -151,7 +150,6 @@ FHoudiniPDGTranslator::CreateAllResultObjectsForPDGWorkItem(
 			InTOPNode->GetLandscapeSizeInfo(),
 			InTOPNode->ClearedLandscapeLayers,
 			AllInputLandscapes,
-			InputLandscapesToUpdate,
 			InAssetLink,
 			InOutputTypesToProcess,
 			bInTreatExistingMaterialsAsUpToDate);
@@ -232,9 +230,8 @@ FHoudiniPDGTranslator::LoadExistingAssetsAsResultObjectsForPDGWorkItem(
 	// NOTE: If performance becomes a problem, cache these on the TOPNode along with all the other cached landscape
 	// data.
 	TArray<ALandscapeProxy *> AllInputLandscapes;
-	TArray<ALandscapeProxy *> InputLandscapesToUpdate;
 	UHoudiniAssetComponent* HAC = InAssetLink->GetOuterHoudiniAssetComponent();
-	FHoudiniEngineUtils::GatherLandscapeInputs(HAC, AllInputLandscapes, InputLandscapesToUpdate);
+	FHoudiniEngineUtils::GatherLandscapeInputs(HAC, AllInputLandscapes);
 
 	const bool bInTreatExistingMaterialsAsUpToDate = true;
 	const bool bOnlyUseExistingAssets = true;
@@ -247,7 +244,6 @@ FHoudiniPDGTranslator::LoadExistingAssetsAsResultObjectsForPDGWorkItem(
 		InTOPNode->GetLandscapeSizeInfo(),
 		InTOPNode->ClearedLandscapeLayers,
 		AllInputLandscapes,
-		InputLandscapesToUpdate,
 		InAssetLink,
 		InOutputTypesToProcess,
 		bInTreatExistingMaterialsAsUpToDate,
@@ -276,7 +272,6 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	FHoudiniLandscapeTileSizeInfo& CachedLandscapeSizeInfo,
 	TSet<FString>& ClearedLandscapeLayers,
 	TArray<ALandscapeProxy*> AllInputLandscapes,
-	TArray<ALandscapeProxy*> InputLandscapesToUpdate,
 	UHoudiniPDGAssetLink* const InAssetLink,
 	TArray<EHoudiniOutputType> InOutputTypesToProcess,
 	bool bInTreatExistingMaterialsAsUpToDate,
@@ -394,7 +389,6 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 				FHoudiniLandscapeTranslator::CreateLandscape(
 					CurOutput,
 					CreatedUntrackedOutputs,
-					InputLandscapesToUpdate,
 					AllInputLandscapes,
 					TopnetParent,
 					TEXT("{hda_actor_name}_{pdg_topnet_name}_"),

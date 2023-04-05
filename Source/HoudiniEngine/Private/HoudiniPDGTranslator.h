@@ -77,7 +77,6 @@ struct HOUDINIENGINE_API FHoudiniPDGTranslator
 			FHoudiniLandscapeTileSizeInfo& CachedLandscapeSizeInfo,
 			TSet<FString>& ClearedLandscapeLayers,
 			TArray<ALandscapeProxy*> AllInputLandscapes,
-			TArray<ALandscapeProxy*> InputLandscapesToUpdate,
 			UHoudiniPDGAssetLink* const InAssetLink,
 			TArray<EHoudiniOutputType> InOutputTypesToProcess={},
 			bool bInTreatExistingMaterialsAsUpToDate=false,
