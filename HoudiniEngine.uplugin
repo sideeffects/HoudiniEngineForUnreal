@@ -1,8 +1,8 @@
 {
 	"FileVersion" : 3,
 	"FriendlyName" : "Houdini Engine",
-	"Version" : 20000296,
-	"VersionName" : "2.0 - H20.0.296",
+	"Version" : 20000304,
+	"VersionName" : "2.0 - H20.0.304",
 	"CreatedBy" : "Side Effects Software Inc.",
 	"CreatedByURL" : "http://www.sidefx.com",
 	"DocsURL" : "http://www.sidefx.com/docs/unreal/",
