@@ -93,7 +93,6 @@ bool
 FHoudiniLandscapeTranslator::CreateLandscape(
 	UHoudiniOutput* InOutput,
 	TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedOutputs,
-	TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
 	const TArray<ALandscapeProxy*>& InAllInputLandscapes,
 	USceneComponent* SharedLandscapeActorParent,
 	const FString& DefaultLandscapeActorPrefix,
@@ -152,7 +151,6 @@ FHoudiniLandscapeTranslator::CreateLandscape(
 		{
 			return OutputLandscape_ModifyLayers(InOutput,
 				CreatedUntrackedOutputs,
-				InputLandscapesToUpdate,
 				InAllInputLandscapes,
 				SharedLandscapeActorParent,
 				DefaultLandscapeActorPrefix,
@@ -170,7 +168,6 @@ FHoudiniLandscapeTranslator::CreateLandscape(
 		{
 			return OutputLandscape_Generate(InOutput,
 				CreatedUntrackedOutputs,
-				InputLandscapesToUpdate,
 				InAllInputLandscapes,
 				SharedLandscapeActorParent,
 				DefaultLandscapeActorPrefix,
@@ -192,7 +189,6 @@ bool
 FHoudiniLandscapeTranslator::OutputLandscape_Generate(
 	UHoudiniOutput* InOutput,
 	TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedOutputs,
-	TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
 	const TArray<ALandscapeProxy*>& InAllInputLandscapes,
 	USceneComponent* SharedLandscapeActorParent,
 	const FString& DefaultLandscapeActorPrefix,
@@ -262,7 +258,6 @@ FHoudiniLandscapeTranslator::OutputLandscape_Generate(
 		OutputLandscape_GenerateTile(InOutput,
 			StaleOutputObjects,
 			CreatedUntrackedOutputs,
-			InputLandscapesToUpdate,
 			InAllInputLandscapes,
 			SharedLandscapeActorParent,
 			DefaultLandscapeActorPrefix,
@@ -329,7 +324,6 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 	UHoudiniOutput* InOutput,
 	TArray<FHoudiniOutputObjectIdentifier> &StaleOutputObjects,
 	TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedOutputs,
-	TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
 	const TArray<ALandscapeProxy*>& InAllInputLandscapes,
 	USceneComponent* SharedLandscapeActorParent,
 	const FString& DefaultLandscapeActorPrefix,
@@ -972,59 +966,6 @@ FHoudiniLandscapeTranslator::OutputLandscape_GenerateTile(
 		// In temp mode, only consider our previous output landscapes,
 		// or our input landscapes that have the "update input landscape" option enabled
 		ALandscapeProxy* FoundLandscapeProxy = nullptr;
-
-		// Try to see if we have an input landscape that matches the size of the current HGPO	
-		for (int nIdx = 0; nIdx < InputLandscapesToUpdate.Num(); nIdx++)
-		{
-			ALandscapeProxy* CurrentInputLandscape = InputLandscapesToUpdate[nIdx];
-			if (!CurrentInputLandscape)
-				continue;
-
-			if (SharedLandscapeActor && CurrentInputLandscape->GetLandscapeActor() != SharedLandscapeActor)
-				// This tile actor no longer associated with the current shared landscape
-				continue;
-
-			ULandscapeInfo* CurrentInfo = CurrentInputLandscape->GetLandscapeInfo();
-			if (!CurrentInfo)
-				continue;
-
-			int32 InputMinX = 0;
-			int32 InputMinY = 0;
-			int32 InputMaxX = 0;
-			int32 InputMaxY = 0;
-			if (!SpatialData.Extent.bIsCached)
-			{
-				PopulateLandscapeExtents(SpatialData.Extent, CurrentInfo);
-			}
-
-			if (!SpatialData.Extent.bIsCached)
-			{
-				HOUDINI_LOG_WARNING(TEXT("Warning: Could not determine landscape extents. Cannot re-use input landscape actor."));
-				continue;
-			}
-			
-			InputMinX = SpatialData.Extent.MinX;
-			InputMinY = SpatialData.Extent.MinY;
-			InputMaxX = SpatialData.Extent.MaxX;
-			InputMaxY = SpatialData.Extent.MaxY;
-
-			// If the full size matches, we'll update that input landscape
-			bool SizeMatch = false;
-			if ((InputMaxX - InputMinX + 1) == UnrealTileSizeX && (InputMaxY - InputMinY + 1) == UnrealTileSizeY)
-				SizeMatch = true;
-
-			// HF and landscape don't match, try another one
-			if (!SizeMatch)
-				continue;
-
-			// Replace FoundLandscape by that input landscape
-			FoundLandscapeProxy = CurrentInputLandscape;
-
-			// We've found a valid input landscape, remove it from the input array so we don't try to update it multiple times
-			InputLandscapesToUpdate.RemoveAt(nIdx);
-			break;
-		}
-
 		if (!FoundLandscapeProxy)
 		{
 			HOUDINI_LANDSCAPE_MESSAGE(TEXT("[OutputLandscape_Generate] Could not find input landscape to update. Searching output objects..."));
@@ -1602,7 +1543,6 @@ bool
 FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayers(
 	UHoudiniOutput* InOutput,
 	TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedActors,
-	TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
 	const TArray<ALandscapeProxy*>& InAllInputLandscapes,
 	USceneComponent* SharedLandscapeActorParent,
 	const FString& DefaultLandscapeActorPrefix,
@@ -1640,7 +1580,6 @@ FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayers(
 		
 		Result = Result && OutputLandscape_ModifyLayer(InOutput,
 			CreatedUntrackedActors,
-			InputLandscapesToUpdate,
 			InAllInputLandscapes,
 			SharedLandscapeActorParent,
 			DefaultLandscapeActorPrefix,
@@ -1661,7 +1600,6 @@ bool
 FHoudiniLandscapeTranslator::OutputLandscape_ModifyLayer(
 	UHoudiniOutput* InOutput,
 	TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedActors,
-	TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
 	const TArray<ALandscapeProxy*>& InAllInputLandscapes,
 	USceneComponent* SharedLandscapeActorParent,
 	const FString& DefaultLandscapeActorPrefix,
@@ -5114,90 +5052,6 @@ FHoudiniLandscapeTranslator::UpdateGenericPropertiesAttributes(
 	return (NumSuccess > 0);
 }
 
-
-bool
-FHoudiniLandscapeTranslator::BackupLandscapeToImageFiles(const FString& BaseName, ALandscapeProxy* Landscape)
-{
-	// We need to cache the input landscape to a file    
-	if (!Landscape)
-		return false;
-
-	ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
-	if (!LandscapeInfo)
-		return false;
-
-	// Save Height data to file
-	//FString HeightSave = TEXT("/Game/HoudiniEngine/Temp/HeightCache.png");    
-	FString HeightSave = BaseName + TEXT("_height.png");
-	LandscapeInfo->ExportHeightmap(HeightSave);
-	Landscape->ReimportHeightmapFilePath = HeightSave;
-
-	// Save each layer to a file
-	for (int LayerIndex = 0; LayerIndex < LandscapeInfo->Layers.Num(); LayerIndex++)
-	{
-		FName CurrentLayerName = LandscapeInfo->Layers[LayerIndex].GetLayerName();
-		//ULandscapeLayerInfoObject* CurrentLayerInfo = LandscapeInfo->GetLayerInfoByName(CurrentLayerName, Landscape);
-		ULandscapeLayerInfoObject* CurrentLayerInfo = LandscapeInfo->Layers[LayerIndex].LayerInfoObj;
-		if (!IsValid(CurrentLayerInfo))
-			continue;
-
-		FString LayerSave = BaseName + CurrentLayerName.ToString() + TEXT(".png");
-		LandscapeInfo->ExportLayer(CurrentLayerInfo, LayerSave);
-
-		// Update the file reimport path on the input landscape for this layer
-		LandscapeInfo->GetLayerEditorSettings(CurrentLayerInfo).ReimportLayerFilePath = LayerSave;
-	}
-
-	return true;
-}
-
-
-bool
-FHoudiniLandscapeTranslator::RestoreLandscapeFromImageFiles(ALandscapeProxy* LandscapeProxy)
-{
-	if (!LandscapeProxy)
-		return false;
-
-	ULandscapeInfo* LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
-	if (!LandscapeInfo)
-		return false;
-
-	// Restore Height data from the backup file
-	FString ReimportFile = LandscapeProxy->ReimportHeightmapFilePath;
-	if (!FHoudiniLandscapeTranslator::ImportLandscapeData(LandscapeInfo, ReimportFile, TEXT("height")))
-		HOUDINI_LOG_ERROR(TEXT("Could not restore the landscape actor's source height data."));
-
-	// Restore each layer from the backup file
-	TArray< ULandscapeLayerInfoObject* > SourceLayers;
-	for (int LayerIndex = 0; LayerIndex < LandscapeProxy->EditorLayerSettings.Num(); LayerIndex++)
-	{
-		ULandscapeLayerInfoObject* CurrentLayerInfo = LandscapeProxy->EditorLayerSettings[LayerIndex].LayerInfoObj;
-		if (!IsValid(CurrentLayerInfo))
-			continue;
-
-		FString CurrentLayerName = CurrentLayerInfo->LayerName.ToString();
-		ReimportFile = LandscapeProxy->EditorLayerSettings[LayerIndex].ReimportLayerFilePath;
-
-		if (!FHoudiniLandscapeTranslator::ImportLandscapeData(LandscapeInfo, ReimportFile, CurrentLayerName, CurrentLayerInfo))
-			HOUDINI_LOG_ERROR(TEXT("Could not restore the landscape actor's source height data."));
-
-		SourceLayers.Add(CurrentLayerInfo);
-	}
-
-	// Iterate on the landscape info's layer to remove any layer that could have been added by Houdini
-	for (int LayerIndex = 0; LayerIndex < LandscapeInfo->Layers.Num(); LayerIndex++)
-	{
-		ULandscapeLayerInfoObject* CurrentLayerInfo = LandscapeInfo->Layers[LayerIndex].LayerInfoObj;
-		if (SourceLayers.Contains(CurrentLayerInfo))
-			continue;
-
-		// Delete the added layer
-		FName LayerName = LandscapeInfo->Layers[LayerIndex].LayerName;
-		LandscapeInfo->DeleteLayer(CurrentLayerInfo, LayerName);
-	}
-
-	return true;
-}
 
 
 bool

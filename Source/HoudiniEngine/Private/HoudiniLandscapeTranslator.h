@@ -90,7 +90,6 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 		static bool CreateLandscape(
 			UHoudiniOutput* InOutput,
 			TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedActors,
-			TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
 			const TArray<ALandscapeProxy*>& InAllInputLandscapes,
 			USceneComponent* SharedLandscapeActorParent,
 			const FString& DefaultLandscapeActorPrefix,
@@ -106,7 +105,6 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 		static bool OutputLandscape_Generate(
 			UHoudiniOutput* InOutput,
 			TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedActors,
-			TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
 			const TArray<ALandscapeProxy*>& InAllInputLandscapes,
 			USceneComponent* SharedLandscapeActorParent,
 			const FString& DefaultLandscapeActorPrefix,
@@ -123,7 +121,6 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 			UHoudiniOutput* InOutput,
 			TArray<FHoudiniOutputObjectIdentifier>& StaleOutputObjects,
 			TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedActors,
-			TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
 			const TArray<ALandscapeProxy*>& InAllInputLandscapes,
 			USceneComponent* SharedLandscapeActorParent,
 			const FString& DefaultLandscapeActorPrefix,
@@ -148,7 +145,6 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 		static bool OutputLandscape_ModifyLayers(
 			UHoudiniOutput* InOutput,
 			TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedActors,
-			TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
 			const TArray<ALandscapeProxy*>& InAllInputLandscapes,
 			USceneComponent* SharedLandscapeActorParent,
 			const FString& DefaultLandscapeActorPrefix,
@@ -163,7 +159,6 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 		static bool OutputLandscape_ModifyLayer(
 			UHoudiniOutput* InOutput,
 			TArray<TWeakObjectPtr<AActor>>& CreatedUntrackedActors,
-			TArray<ALandscapeProxy*>& InputLandscapesToUpdate,
 			const TArray<ALandscapeProxy*>& InAllInputLandscapes,
 			USceneComponent* SharedLandscapeActorParent,
 			const FString& DefaultLandscapeActorPrefix,
@@ -547,11 +542,6 @@ public:
 		static bool UpdateGenericPropertiesAttributes(
 			UObject* InObject,
 			const TArray<FHoudiniGenericAttribute>& InAllPropertyAttributes);
-
-		static bool BackupLandscapeToImageFiles(
-			const FString& BaseName, ALandscapeProxy* Landscape);
-
-		static bool RestoreLandscapeFromImageFiles(ALandscapeProxy* LandscapeProxy);
 
 		static UPhysicalMaterial* GetLandscapePhysicalMaterial(const FHoudiniGeoPartObject& InLayerHGPO);
 

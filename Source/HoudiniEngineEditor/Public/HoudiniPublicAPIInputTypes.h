@@ -626,9 +626,9 @@ class HOUDINIENGINEEDITOR_API UHoudiniPublicAPILandscapeInput : public UHoudiniP
 public:
 	UHoudiniPublicAPILandscapeInput();
 
-	/** Indicates that the landscape input's source landscape should be updated instead of creating a new component */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
-	bool bUpdateInputLandscape;
+	/** DEPRECATED Indicates that the landscape input's source landscape should be updated instead of creating a new component */
+	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use Edit Layers instead."))
+	bool bUpdateInputLandscape_DEPRECATED;
 
 	/** Indicates if the landscape should be exported as heightfield, mesh or points */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")

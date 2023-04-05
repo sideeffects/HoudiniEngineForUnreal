@@ -185,12 +185,15 @@ public:
 	UPROPERTY()
 	TArray<int32> TileValues;
 
+	// Array of material attributes
+	// If multiple slots are defined, we store all the different attributes values in a flat array
+	// Such that the size of MaterialAttributes is NumberOfAttributes * NumberOfMaterialSlots
 	UPROPERTY()
 	TArray<FString> MaterialAttributes;
 
 	// Specifies that the materials in MaterialAttributes are to be created as an instance
 	UPROPERTY()
-	bool bMaterialOverrideNeedsCreateInstance = false;
+	TArray<bool> MaterialOverrideNeedCreateInstance;
 	
 	// Custom float array per original instanced object
 	// Size is NumCustomFloat * NumberOfInstances
@@ -439,10 +442,19 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 
 		static bool GetMaterialOverridesFromAttributes(
 			const int32& InGeoNodeId,
+			const int32& InPartId,
+			const int32& InAttributeIndex,
+			const FString& InAttributeName,
+			const TArray<FString>& InAllAttribNames,
+			TArray<FString>& OutMaterialAttributes);
+
+		static bool GetMaterialOverridesFromAttributes(
+			const int32& InGeoNodeId,
 			const int32& InPartId, 
+			const int32& InAttributeIndex,
 			const EHoudiniInstancerType InInstancerType,
 			TArray<FString>& OutMaterialAttributes,
-			bool& OutMaterialOverrideNeedsCreateInstance);
+			TArray<bool>& OutMaterialOverrideNeedToCreateInstance);
 
 		static bool GetInstancerMaterials(
 			const TArray<FString>& MaterialAttribute,
@@ -452,20 +464,14 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const TArray<FString>& MaterialAttribute,
 			const FHoudiniGeoPartObject& InHGPO, const FHoudiniPackageParams& InPackageParams,
 			TArray<UMaterialInterface*>& OutInstancerMaterials);
-		
-		static bool GetInstancerMaterials(
+
+		static bool GetAllInstancerMaterials(
 			const int32& InGeoNodeId,
 			const int32& InPartId,
+			const int32& InOriginalIndex,
 			const FHoudiniGeoPartObject& InHGPO,
 			const FHoudiniPackageParams& InPackageParams,
 			TArray<UMaterialInterface*>& OutInstancerMaterials);
-
-		static bool GetVariationMaterials(
-			FHoudiniInstancedOutput* InInstancedOutput, 
-			const int32& InVariationIndex,
-			const TArray<int32>& InOriginalIndices,
-			const TArray<UMaterialInterface*>& InInstancerMaterials, 
-			TArray<UMaterialInterface*>& OutVariationMaterials);
 
 		static bool IsSplitInstancer(
 			const int32& InGeoId, 
