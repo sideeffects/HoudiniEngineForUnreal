@@ -1168,8 +1168,7 @@ FHoudiniEngineUtils::RepopulateFoliageTypeListInUI()
 void
 FHoudiniEngineUtils::GatherLandscapeInputs(
 	UHoudiniAssetComponent* HAC,
-	TArray<ALandscapeProxy*>& AllInputLandscapes,
-	TArray<ALandscapeProxy*>& InputLandscapesToUpdate)
+	TArray<ALandscapeProxy*>& AllInputLandscapes)
 {
 	if (!IsValid(HAC))
 		return;
@@ -1208,11 +1207,6 @@ FHoudiniEngineUtils::GatherLandscapeInputs(
 			continue;
 
 		AllInputLandscapes.Add(InputLandscape);
-
-		if (CurrentInput->GetUpdateInputLandscape())
-		{
-			InputLandscapesToUpdate.Add(InputLandscape);
-		}
 	}
 }
 
