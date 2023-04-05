@@ -761,10 +761,6 @@ public:
 
 	void SetLandscapeProxy(UObject* InLandscapeProxy);
 
-	// Used to restore an input landscape's transform to its original state
-	UPROPERTY()
-	FTransform CachedInputLandscapeTraqnsform;
-
 	// The number of landscape components that was processed. If this count changes, .e.g, levels have been
 	// loaded / unloaded then the input content has changed.
 	UPROPERTY()
