@@ -207,7 +207,6 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 
 		// default input options
 		NodeSyncInput->SetCanDeleteHoudiniNodes(false);
-		NodeSyncInput->SetUpdateInputLandscape(false);
 		NodeSyncInput->SetUseLegacyInputCurve(true);
 		
 		// TODO: Check?

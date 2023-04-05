@@ -87,7 +87,6 @@ UHoudiniInput::UHoudiniInput()
 	, bIsWorldInputBoundSelector(false)
 	, bWorldInputBoundSelectorAutoUpdate(false)
 	, UnrealSplineResolution(50.0f)
-	, bUpdateInputLandscape(false)
 	, LandscapeExportType(EHoudiniLandscapeExportType::Heightfield)
 	, bLandscapeExportSelectionOnly(false)
 	, bLandscapeAutoSelectComponent(false)
@@ -2555,24 +2554,6 @@ UHoudiniInput::SetHasLandscapeExportTypeChanged(const bool InChanged)
 		return;
 
 	bLandscapeHasExportTypeChanged = InChanged;
-}
-
-bool 
-UHoudiniInput::GetUpdateInputLandscape() const 
-{
-	if (Type != EHoudiniInputType::Landscape)
-		return false;
-
-	return bUpdateInputLandscape;
-}
-
-void 
-UHoudiniInput::SetUpdateInputLandscape(const bool bInUpdateInputLandcape)
-{
-	if (Type != EHoudiniInputType::Landscape)
-		return;
-
-	bUpdateInputLandscape = bInUpdateInputLandcape;
 }
 
 
