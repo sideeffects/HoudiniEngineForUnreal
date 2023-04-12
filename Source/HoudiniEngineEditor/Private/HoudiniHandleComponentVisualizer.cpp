@@ -27,6 +27,7 @@
 #include "HoudiniHandleComponentVisualizer.h"
 
 #include "EditorViewportClient.h"
+#include "CanvasTypes.h"
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniHandleTranslator.h"
@@ -69,26 +70,23 @@ FHoudiniHandleComponentVisualizer::~FHoudiniHandleComponentVisualizer()
 }
 
 void 
-FHoudiniHandleComponentVisualizer::DrawVisualization(const UActorComponent * Component,
-									const FSceneView * View, FPrimitiveDrawInterface * PDI) 
+FHoudiniHandleComponentVisualizer::DrawVisualization(
+	const UActorComponent * Component,
+	const FSceneView * View,
+	FPrimitiveDrawInterface * PDI) 
 {
 	const UHoudiniHandleComponent* HandleComponent = Cast<const UHoudiniHandleComponent>(Component);
-
 	if (!HandleComponent)
 		return;
 
 	UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(HandleComponent->GetOuter());
-
 	if (!HAC)
 		return;
-
 
 	static TMap<int32, const FLinearColor> ColorMapActive;
 	static TMap<int32, const FLinearColor> ColorMapInactive;
 
-
 	int32 AssetId = HAC->GetAssetId();
-
 	if (!ColorMapActive.Contains(AssetId) || !ColorMapInactive.Contains(AssetId)) 
 	{
 		FLinearColor NewActiveColor = FLinearColor::MakeRandomColor();
@@ -97,13 +95,11 @@ FHoudiniHandleComponentVisualizer::DrawVisualization(const UActorComponent * Com
 		ColorMapActive.Add(AssetId, NewActiveColor);
 		ColorMapInactive.Add(AssetId, NewInactiveColor);
 	}
-
 	
 	const FLinearColor& ActiveColor = ColorMapActive[AssetId];
 	const FLinearColor& InactiveColor = ColorMapInactive[AssetId];
 
 	bool IsActive = EditedComponent != nullptr;
-
 	if (IsActive)
 	{
 		UHoudiniAssetComponent* EditedComponentParent = Cast<UHoudiniAssetComponent>(EditedComponent->GetOuter());
@@ -121,26 +117,95 @@ FHoudiniHandleComponentVisualizer::DrawVisualization(const UActorComponent * Com
 
 	if (HandleComponent->HandleType == EHoudiniHandleType::Bounder)
 	{
-		// draw the scale box
+		// Also draw the scale box for bounder handle
 		FTransform BoxTransform = HandleComponent->GetComponentTransform();
 		const double BoxRad = 50.0;
 		const FBox Box(FVector3d(-BoxRad, -BoxRad, -BoxRad), FVector3d(BoxRad, BoxRad, BoxRad));
 		DrawWireBox(PDI, BoxTransform.ToMatrixWithScale(), Box, IsActive ? ActiveColor : InactiveColor, SDPG_Foreground);
 	}
-
+	
 	PDI->SetHitProxy(nullptr);
+}
+
+void 
+FHoudiniHandleComponentVisualizer::DrawVisualizationHUD(
+	const UActorComponent* Component, 
+	const FViewport* Viewport,
+	const FSceneView* View,
+	FCanvas* Canvas)
+{
+	FComponentVisualizer::DrawVisualizationHUD(Component, Viewport, View, Canvas);
+	if (Canvas == nullptr || View == nullptr)
+	{
+		return;
+	}
+
+	const UHoudiniHandleComponent* HandleComponent = Cast<const UHoudiniHandleComponent>(Component);
+	if (!HandleComponent)
+		return;
+
+	UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(HandleComponent->GetOuter());
+	if (!HAC)
+		return;
+
+	int32 AssetId = HAC->GetAssetId();
+	bool IsActive = EditedComponent != nullptr;
+	if (IsActive)
+	{
+		UHoudiniAssetComponent* EditedComponentParent = Cast<UHoudiniAssetComponent>(EditedComponent->GetOuter());
+		IsActive &= EditedComponentParent && EditedComponentParent->GetAssetId() == HAC->GetAssetId();
+	}
+
+	// Get the Handle location in screen space
+	FVector Location = HandleComponent->GetComponentTransform().GetLocation();
+	FPlane Plane(0, 0, 0, 0);
+	Plane = View->Project(Location);
+	const FVector Position(Plane);
+
+	// Calculate the draw position
+	const FIntRect CanvasRect = Canvas->GetViewRect();
+	const float HalfX = CanvasRect.Width() / 2.f;
+	const float HalfY = CanvasRect.Height() / 2.f;
+	float DrawPositionX = FMath::FloorToFloat(HalfX + Position.X * HalfX);
+	float DrawPositionY = FMath::FloorToFloat(HalfY + -1.f * Position.Y * HalfY);
+
+	// Add a slight offset to avoid overlaping the text to the handle itself
+	DrawPositionX += 24.0f;
+
+	// Get the active/inactive color for that handle
+	const FLinearColor& Color = IsActive ? FLinearColor::White : FLinearColor::Gray;
+
+	// Get the handle name and type
+	FString Text = HandleComponent->GetHandleName();
+	switch (HandleComponent->GetHandleType())
+	{
+		case EHoudiniHandleType::Xform:
+			Text += "\n(Transform Handle)";
+			break;
+
+		case EHoudiniHandleType::Bounder:
+			Text += "\n(Bounder Handle)";
+			break;
+
+		default:
+			break;
+	}
+
+	// Draw the handle text
+	Canvas->DrawShadowedString(DrawPositionX, DrawPositionY, *Text, GEngine->GetLargeFont(), Color, FLinearColor::Black);
 }
 
 bool
 FHoudiniHandleComponentVisualizer::VisProxyHandleClick(
-	FEditorViewportClient* InViewportClient, HComponentVisProxy* VisProxy, const FViewportClick& Click)
+	FEditorViewportClient* InViewportClient,
+	HComponentVisProxy* VisProxy,
+	const FViewportClick& Click)
 {
 	bEditing = false;
 
 	bAllowTranslate = false;
 	bAllowRotation = false;
 	bAllowScale = false;
-	
 
 	if (VisProxy && VisProxy->Component.IsValid())
 	{
