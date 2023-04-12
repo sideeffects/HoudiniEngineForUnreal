@@ -2761,7 +2761,7 @@ FHoudiniEngineUtils::TranslateUnrealTransform(
 	const FTransform & UnrealTransform,
 	HAPI_TransformEuler & HapiTransformEuler)
 {
-	FMemory::Memzero< HAPI_TransformEuler >(HapiTransformEuler);
+	FHoudiniApi::TransformEuler_Init(&HapiTransformEuler);
 
 	HapiTransformEuler.rstOrder = HAPI_SRT;
 	HapiTransformEuler.rotationOrder = HAPI_XYZ;
@@ -2778,34 +2778,34 @@ FHoudiniEngineUtils::TranslateUnrealTransform(
 		const FRotator Rotator = UnrealRotation.Rotator();
 
 		// Negate roll and pitch since they are actually RHR
-		HapiTransformEuler.rotationEuler[0] = -Rotator.Roll;
-		HapiTransformEuler.rotationEuler[1] = -Rotator.Pitch;
-		HapiTransformEuler.rotationEuler[2] = Rotator.Yaw;
+		HapiTransformEuler.rotationEuler[0] = -(float)Rotator.Roll;
+		HapiTransformEuler.rotationEuler[1] = -(float)Rotator.Pitch;
+		HapiTransformEuler.rotationEuler[2] = (float)Rotator.Yaw;
 
 		// Swap Y/Z, scale
-		HapiTransformEuler.position[0] = UnrealTranslation.X / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
-		HapiTransformEuler.position[1] = UnrealTranslation.Z / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
-		HapiTransformEuler.position[2] = UnrealTranslation.Y / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
+		HapiTransformEuler.position[0] = (float)(UnrealTranslation.X) / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
+		HapiTransformEuler.position[1] = (float)(UnrealTranslation.Z) / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
+		HapiTransformEuler.position[2] = (float)(UnrealTranslation.Y) / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
 
 		// Swap Y/Z
-		HapiTransformEuler.scale[0] = UnrealScale.X;
-		HapiTransformEuler.scale[1] = UnrealScale.Z;
-		HapiTransformEuler.scale[2] = UnrealScale.Y;
+		HapiTransformEuler.scale[0] = (float)UnrealScale.X;
+		HapiTransformEuler.scale[1] = (float)UnrealScale.Z;
+		HapiTransformEuler.scale[2] = (float)UnrealScale.Y;
 	}
 	else
 	{
 		const FRotator Rotator = UnrealRotation.Rotator();
-		HapiTransformEuler.rotationEuler[0] = Rotator.Roll;
-		HapiTransformEuler.rotationEuler[1] = Rotator.Yaw;
-		HapiTransformEuler.rotationEuler[2] = Rotator.Pitch;
+		HapiTransformEuler.rotationEuler[0] = (float)Rotator.Roll;
+		HapiTransformEuler.rotationEuler[1] = (float)Rotator.Yaw;
+		HapiTransformEuler.rotationEuler[2] = (float)Rotator.Pitch;
 
-		HapiTransformEuler.position[0] = UnrealTranslation.X;
-		HapiTransformEuler.position[1] = UnrealTranslation.Y;
-		HapiTransformEuler.position[2] = UnrealTranslation.Z;
+		HapiTransformEuler.position[0] = (float)UnrealTranslation.X;
+		HapiTransformEuler.position[1] = (float)UnrealTranslation.Y;
+		HapiTransformEuler.position[2] = (float)UnrealTranslation.Z;
 
-		HapiTransformEuler.scale[0] = UnrealScale.X;
-		HapiTransformEuler.scale[1] = UnrealScale.Y;
-		HapiTransformEuler.scale[2] = UnrealScale.Z;
+		HapiTransformEuler.scale[0] = (float)UnrealScale.X;
+		HapiTransformEuler.scale[1] = (float)UnrealScale.Y;
+		HapiTransformEuler.scale[2] = (float)UnrealScale.Z;
 	}
 }
 
