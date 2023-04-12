@@ -1758,7 +1758,7 @@ HAPI_DECL HAPI_GetLoadedAssetLibraryCount(
     const HAPI_Session * session,
     int * count);
 
-/// @brief  Gets the HAPI_AssetLibraryIds for HDAs that are loaded in Houdini.
+/// @brief  Gets the HAPI_AssetLibraryId's for HDAs that are loaded in Houdini.
 ///
 /// @ingroup Assets
 ///
@@ -1769,7 +1769,7 @@ HAPI_DECL HAPI_GetLoadedAssetLibraryCount(
 ///                 <!-- default NULL -->
 ///
 /// @param[out]     asset_library_ids_array
-///                 Array of HAPI_AssetLibraryIds at least the size of length.
+///                 Array of HAPI_AssetLibraryId's at least the size of length.
 ///
 /// @param[in]      start
 ///                 First index from the list of HAPI_AssetLibraryId's to
