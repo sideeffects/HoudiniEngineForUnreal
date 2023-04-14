@@ -37,7 +37,7 @@ UHoudiniParameterButtonStrip::Create(
 	UObject* InOuter,
 	const FString& InParamName)
 {
-	FString ParamNameStr = "HoudiniParameterButton_" + InParamName;
+	FString ParamNameStr = "HoudiniParameterButtonStrip_" + InParamName;
 	FName ParamName = MakeUniqueObjectName(InOuter, UHoudiniParameterButtonStrip::StaticClass(), *ParamNameStr);
 
 	// We need to create a new parameter
