@@ -675,6 +675,9 @@ public:
 	// Check whether the actor transform, or any of its components have transform changes.
 	virtual bool HasActorTransformChanged() const;
 
+	// Indicates this object is dirty and should be updated
+	virtual void MarkChanged(const bool& bInChanged) override;
+
 protected:
 	virtual bool HasRootComponentTransformChanged() const;
 	virtual bool HasComponentsTransformChanged() const;
