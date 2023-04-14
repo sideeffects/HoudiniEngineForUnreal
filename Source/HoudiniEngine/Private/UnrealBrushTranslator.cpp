@@ -34,6 +34,7 @@
 #include "HoudiniGeoPartObject.h"
 #include "Model.h"
 #include "Engine/Polys.h"
+#include "UnrealObjectInputRuntimeTypes.h"
 
 #include "HoudiniEngineRuntimeUtils.h"
 
@@ -56,7 +57,9 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 	const TArray<AActor*>* ExcludeActors, 
 	HAPI_NodeId& CreatedNodeId, 
 	const FString& NodeName,
-	bool bInExportMaterialParametersAsAttributes)
+	bool bInExportMaterialParametersAsAttributes,
+	FUnrealObjectInputHandle& OutInputHandle,
+	const bool& bInputNodesCanBeDeleted)
 {
 	if (!IsValid(BrushActor))
 		return false;
@@ -67,11 +70,52 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 	if (InputBrushObject->ShouldIgnoreThisInput())
 		return true;
 
+	// Input node name, which might be changed by the new input sytem
+	FString FinalInputNodeName = NodeName;
+
+	FUnrealObjectInputIdentifier Identifier;
+	FUnrealObjectInputHandle ParentHandle;
+	HAPI_NodeId ParentNodeId = -1;
+	const bool bUseRefCountedInputSystem = false;// FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+
+	if (bUseRefCountedInputSystem)
+	{
+		bool bDefaultImportAsReference = false;
+		bool bDefaultImportAsReferenceRotScaleEnabled = false;
+		const FUnrealObjectInputOptions Options(
+			bDefaultImportAsReference,
+			bDefaultImportAsReferenceRotScaleEnabled,
+			false,
+			false,
+			false
+		);
+
+		Identifier = FUnrealObjectInputIdentifier(InputBrushObject, Options, true);
+
+		FUnrealObjectInputHandle Handle;
+		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		{
+			HAPI_NodeId NodeId = -1;
+			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && FHoudiniEngineUtils::AreReferencedHAPINodesValid(Handle))
+			{
+				if (!bInputNodesCanBeDeleted)
+					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+
+				OutInputHandle = Handle;
+				CreatedNodeId = NodeId;
+				return true;
+			}
+		}
+
+		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted))
+			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+	}
+
 	//--------------------------------------------------------------------------------------------------
 	// Create an input node
 	//--------------------------------------------------------------------------------------------------
 
-	HAPI_NodeId ParentNodeId = -1;
 	if (!FHoudiniEngineUtils::IsHoudiniNodeValid(CreatedNodeId))
 	{
 		HAPI_NodeId InputNodeId = -1;
@@ -375,7 +419,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 		//Lists of material parameters
 		TMap<FString, TArray<float>> ScalarMaterialParameters;
 		TMap<FString, TArray<float>> VectorMaterialParameters;
-        TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
+		TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
 
 		bool bAttributeSuccess = false;
 		if (bInExportMaterialParametersAsAttributes)
@@ -405,15 +449,21 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 			TextureMaterialParameters);
 
 		if (!bAttributeSuccess)
-		{
 			return false;
-		}
 	}
 
 	// Commit the geo.
 	HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
 		FHoudiniEngine::Get().GetSession(), CreatedNodeId), false );
 
+
+	HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CreatedNodeId);
+	if (bUseRefCountedInputSystem)
+	{
+		FUnrealObjectInputHandle Handle;
+		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, CreatedNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
+			OutInputHandle = Handle;
+	}
+
 	return true;
 }
-

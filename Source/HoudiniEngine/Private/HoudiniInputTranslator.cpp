@@ -1682,7 +1682,8 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				ObjBaseName,
 				InputBrush,
 				InInput->GetBoundSelectorObjectArray(),
-				InInput->GetExportMaterialParameters());
+				InInput->GetExportMaterialParameters(),
+				bInputNodesCanBeDeleted);
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -1706,7 +1707,7 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		{
 			UHoudiniInputDataTable* InputDT = Cast<UHoudiniInputDataTable>(InInputObject);
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(
-				ObjBaseName, InputDT);
+				ObjBaseName, InputDT, bInputNodesCanBeDeleted);
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -3455,12 +3456,14 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 	return bSucess;
 }
 
+
 bool
 FHoudiniInputTranslator::HapiCreateInputNodeForBrush(
 	const FString& InObjNodeName,
 	UHoudiniInputBrush* InObject,
 	TArray<AActor*>* ExcludeActors,
-	bool bExportMaterialParameters)
+	bool bExportMaterialParameters,
+	const bool &bInputNodesCanBeDeleted)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -3469,15 +3472,45 @@ FHoudiniInputTranslator::HapiCreateInputNodeForBrush(
 	if (!IsValid(BrushActor))
 		return true;
 
-	if (!FUnrealBrushTranslator::CreateInputNodeForBrush(InObject, BrushActor, ExcludeActors, InObject->InputNodeId, InObjNodeName, bExportMaterialParameters))
+	const bool bUseRefCountedInputSystem = false;// FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	FUnrealObjectInputHandle InputNodeHandle;
+	HAPI_NodeId CreatedNodeId = InObject->InputNodeId;
+
+
+	if (!FUnrealBrushTranslator::CreateInputNodeForBrush(InObject, BrushActor, ExcludeActors, CreatedNodeId, InObjNodeName, bExportMaterialParameters, InputNodeHandle))
 		return false;
 
-	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
+	InObject->InputNodeId = CreatedNodeId;
+	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CreatedNodeId);
+	
+	InObject->MarkChanged(true);
 	InObject->Update(BrushActor);
+
+	if (bUseRefCountedInputSystem)
+	{
+		constexpr HAPI_NodeId ParentNodeId = -1;
+		constexpr bool bCreateIfMissingInvalid = true;
+		HAPI_NodeId BrushNodeId = -1;
+		if (!FHoudiniEngineUtils::GetHAPINodeId(InputNodeHandle, BrushNodeId))
+			return false;
+
+		if (!HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
+			ParentNodeId,
+			BrushNodeId,
+			InObjNodeName,
+			InObject->InputNodeId,
+			InObject->InputObjectNodeId,
+			bCreateIfMissingInvalid,
+			InObject->Transform))
+			return false;
+	}
+	else {
+		if (!HapiSetGeoObjectTransform(InObject->InputObjectNodeId, InObject->Transform))
+			return false;
+	}
 
 	return true;
 }
-
 
 
 bool
@@ -4100,7 +4133,10 @@ bool FHoudiniInputTranslator::CreateInputNodeForReference(
 }
 
 bool
-FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeName, UHoudiniInputDataTable* InInputObject)
+FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(
+	const FString& InNodeName,
+	UHoudiniInputDataTable* InInputObject,
+	const bool& bInputNodesCanBeDeleted)
 {
 	if (!IsValid(InInputObject))
 		return false;
@@ -4148,7 +4184,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(const FString& InNodeNa
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(
 		FHoudiniEngine::Get().GetSession(), InputNodeId, 0, &Part), false);
-
+	 
 	{
 		// Create point attribute info for P.
 		HAPI_AttributeInfo AttributeInfoPoint;
