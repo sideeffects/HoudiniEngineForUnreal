@@ -128,7 +128,7 @@ public:
 	// Indicates if this input needs to trigger an update
 	virtual bool NeedsToTriggerUpdate() const { return bNeedsToTriggerUpdate; };
 
-	virtual void MarkChanged(const bool& bInChanged) { bHasChanged = bInChanged; SetNeedsToTriggerUpdate(bInChanged); };
+	virtual void MarkChanged(const bool& bInChanged);
 	void MarkTransformChanged(const bool& bInChanged) { bTransformChanged = bInChanged; SetNeedsToTriggerUpdate(bInChanged); };
 	virtual void SetNeedsToTriggerUpdate(const bool& bInTriggersUpdate) { bNeedsToTriggerUpdate = bInTriggersUpdate; };
 
