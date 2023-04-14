@@ -400,7 +400,7 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 		[
 			SNew(SButton)
 			.ToolTipText(LOCTEXT("RecookInput", "Recook this input only."))
-			.ButtonStyle(_GetEditorStyle(), "NoBorder")
+			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 			.ContentPadding(0)
 			.Visibility(EVisibility::Visible)
 			.OnClicked_Lambda([InInputs]()
