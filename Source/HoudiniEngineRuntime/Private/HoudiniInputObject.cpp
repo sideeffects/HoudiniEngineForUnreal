@@ -410,9 +410,6 @@ UHoudiniInputObject::MarkChanged(const bool& bInChanged)
 {
 	bHasChanged = bInChanged;
 	SetNeedsToTriggerUpdate(bInChanged);
-
-	if (bInChanged && InputNodeHandle.IsValid())
-		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier());
 }
 
 void
@@ -420,9 +417,6 @@ UHoudiniInputActor::MarkChanged(const bool& bInChanged)
 {
 	bHasChanged = bInChanged;
 	SetNeedsToTriggerUpdate(bInChanged);
-
-	if (bInChanged && InputNodeHandle.IsValid())
-		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier());
 
 	for (auto& CurComponent : ActorComponents)
 	{
