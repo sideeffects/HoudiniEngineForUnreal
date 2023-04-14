@@ -29,6 +29,7 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
 #include "CoreMinimal.h"
+#include "UObject/NameTypes.h"
 #include "UObject/Package.h"
 #include "Templates/Casts.h"
 #include "Misc/Paths.h"
@@ -107,6 +108,7 @@ FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(const FName& InPath)
 {
 }
 
+
 FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(const FUnrealObjectInputHandle& InHandle)
 	: FUnrealObjectInputIdentifier(InHandle.GetIdentifier())
 {
@@ -140,7 +142,7 @@ FUnrealObjectInputIdentifier::Reset()
 uint32
 FUnrealObjectInputIdentifier::GetTypeHash() const
 {
-	const FName ObjectPath = Object.IsValid() ? FName(Object->GetPathName()) : Path;
+	FName ObjectPath = Object.IsValid() ? FName(Object->GetPathName()) : Path;
 
 	switch(NodeType)
 	{
@@ -151,11 +153,18 @@ FUnrealObjectInputIdentifier::GetTypeHash() const
 			return 0;
 #endif
 		case EUnrealObjectInputNodeType::Container:
-			return ::GetTypeHash(ObjectPath);
-		case EUnrealObjectInputNodeType::Reference:
-		case EUnrealObjectInputNodeType::Leaf:
+		{
+			//return FName::GetTypeHash(ObjectPath);
+			//return ::GetTypeHash(ObjectPath.GetComparisonIndex()) + ObjectPath.GetNumber();
 			const TPair<FName, FUnrealObjectInputOptions> Pair(ObjectPath, Options);
 			return ::GetTypeHash(Pair);
+		}
+		case EUnrealObjectInputNodeType::Reference:
+		case EUnrealObjectInputNodeType::Leaf:
+		{
+			const TPair<FName, FUnrealObjectInputOptions> Pair(ObjectPath, Options);
+			return ::GetTypeHash(Pair);
+		}
 	}
 
 #if ENGINE_MINOR_VERSION < 2
@@ -575,4 +584,21 @@ bool FUnrealObjectInputReferenceNode::AreReferencedHAPINodesValid() const
 	}
 
 	return true;
+}
+
+
+// Marks this and its referenced nodes as dirty. See IsDirty().
+void FUnrealObjectInputReferenceNode::MarkAsDirty()
+{
+	if (ReferencedNodes.IsEmpty())
+		return;
+
+	IUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
+	if (!Manager)
+		return;
+
+	for (const FUnrealObjectInputHandle& Handle : ReferencedNodes)
+	{
+		Manager->MarkAsDirty(Handle.GetIdentifier());
+	}
 }

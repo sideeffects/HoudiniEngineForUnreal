@@ -39,7 +39,7 @@ UHoudiniParameterOperatorPath::UHoudiniParameterOperatorPath(
 UHoudiniParameterOperatorPath *
 UHoudiniParameterOperatorPath::Create(UObject *InOuter, const FString &InParamName)
 {
-    FString ParamNameStr = "HoudiniParameterMultiParm_" + InParamName;
+    FString ParamNameStr = "HoudiniParameterOperatorPath_" + InParamName;
     FName ParamName = MakeUniqueObjectName(
         InOuter, UHoudiniParameterOperatorPath::StaticClass(), *ParamNameStr);
 
@@ -50,7 +50,6 @@ UHoudiniParameterOperatorPath::Create(UObject *InOuter, const FString &InParamNa
             RF_Public | RF_Transactional);
 
     HoudiniAssetParameter->SetParameterType(EHoudiniParameterType::Input);
-
 
     return HoudiniAssetParameter;
 }

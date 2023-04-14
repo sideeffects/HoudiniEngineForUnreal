@@ -261,16 +261,6 @@ UHoudiniInputObject::GetObject() const
 	return InputObject.LoadSynchronous();
 }
 
-void
-UHoudiniInputObject::MarkChanged(const bool& bInChanged)
-{
-	bHasChanged = bInChanged;
-	SetNeedsToTriggerUpdate(bInChanged);
-	
-	if (bInChanged && InputNodeHandle.IsValid())
-		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier());
-}
-
 const TArray<FString>&
 UHoudiniInputObject::GetMaterialReferences()
 {
@@ -440,6 +430,47 @@ UBlueprint*
 UHoudiniInputBlueprint::GetBlueprint() const
 {
 	return Cast<UBlueprint>(InputObject.LoadSynchronous());
+}
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// MARK CHANGED METHODS
+//-----------------------------------------------------------------------------------------------------------------------------
+
+void
+UHoudiniInputObject::MarkChanged(const bool& bInChanged)
+{
+	bHasChanged = bInChanged;
+	SetNeedsToTriggerUpdate(bInChanged);
+
+	if (bInChanged && InputNodeHandle.IsValid())
+		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier());
+}
+
+void
+UHoudiniInputActor::MarkChanged(const bool& bInChanged)
+{
+	bHasChanged = bInChanged;
+	SetNeedsToTriggerUpdate(bInChanged);
+
+	if (bInChanged && InputNodeHandle.IsValid())
+		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier());
+
+	for (auto& CurComponent : ActorComponents)
+	{
+		CurComponent->MarkChanged(bInChanged);
+	}
+}
+
+void
+UHoudiniInputHoudiniSplineComponent::MarkChanged(const bool& bInChanged)
+{
+	Super::MarkChanged(bInChanged);
+
+	UHoudiniSplineComponent* HoudiniSplineComponent = GetCurveComponent();
+	if (HoudiniSplineComponent)
+	{
+		HoudiniSplineComponent->MarkChanged(bInChanged);
+	}
 }
 
 
@@ -1361,18 +1392,6 @@ UObject*
 UHoudiniInputHoudiniSplineComponent::GetObject() const
 {
 	return CachedComponent;
-}
-
-void
-UHoudiniInputHoudiniSplineComponent::MarkChanged(const bool& bInChanged)
-{
-	Super::MarkChanged(bInChanged);
-	
-	UHoudiniSplineComponent* HoudiniSplineComponent = GetCurveComponent();
-	if (HoudiniSplineComponent)
-	{
-		HoudiniSplineComponent->MarkChanged(bInChanged);
-	}
 }
 
 void
