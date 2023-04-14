@@ -294,379 +294,392 @@ SCustomizedBox::SetHoudiniParameter(const TArray<TWeakObjectPtr<UHoudiniParamete
 
 	switch (MainParam->GetParameterType())
 	{
-	case EHoudiniParameterType::Button:
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_BUTTON_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_BUTTON;
-	}
-	break;
-
-	case EHoudiniParameterType::ButtonStrip:
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_BUTTONSTRIP_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_BUTTONSTRIP;
-	}
-	break;
-
-	case EHoudiniParameterType::Color:
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_COLOR_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_COLOR;
-	}
-	break;
-
-	case EHoudiniParameterType::ColorRamp:
-	{
-		UHoudiniParameterRampColor const* const ColorRampParameter = Cast<UHoudiniParameterRampColor>(MainParam.Get());
-		if (!IsValid(ColorRampParameter))
-			return;
-
-		MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_COLORRAMP;
-		if (ColorRampParameter->CachedPoints.Num() > 0)
-			MarginHeight = MarginHeight + HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_COLORRAMP_INSTANCE * (float)(ColorRampParameter->CachedPoints.Num() - 1);
-	}
-	break;
-
-	case EHoudiniParameterType::File:
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILE_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILE;
-	}
-	break;
-
-	case EHoudiniParameterType::FileDir:
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILEDIR_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILEDIR;
-	}
-	break;
-
-	case EHoudiniParameterType::FileGeo:
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILEGEO_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILEGEO;
-	}
-	break;
-
-	case EHoudiniParameterType::FileImage:
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILEIMAGE_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILEIMAGE;
-	}
-	break;
-
-	case EHoudiniParameterType::Float:
-	{
-		if (MainParam->GetTupleSize() == 3)
+		case EHoudiniParameterType::Button:
 		{
 			if (bIsMultiparmInstanceHeader)
-				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOAT_VEC3_MULTIPARMHEADER;
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_BUTTON_MULTIPARMHEADER;
 			else
-				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOAT_VEC3;
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_BUTTON;
 		}
-		else
+		break;
+
+		case EHoudiniParameterType::ButtonStrip:
 		{
 			if (bIsMultiparmInstanceHeader)
-			{
-				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOAT_MULTIPARMHEADER
-					+ (MainParam->GetTupleSize() - 1) * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOAT_INSTANCE_MULTIPARMHEADER;
-			}
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_BUTTONSTRIP_MULTIPARMHEADER;
 			else
-			{
-				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOAT
-					+ (MainParam->GetTupleSize() - 1)* HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOAT_INSTANCE;
-			}
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_BUTTONSTRIP;
 		}
-	}
-	break;
+		break;
 
-	case EHoudiniParameterType::FloatRamp:
-	{
-		UHoudiniParameterRampFloat * FloatRampParameter = Cast<UHoudiniParameterRampFloat>(MainParam);
-		if (!IsValid(FloatRampParameter))
-			return;
-
-		MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOATRAMP;
-
-		if (FloatRampParameter->CachedPoints.Num() > 0)
-			MarginHeight = MarginHeight + Houdini_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOATRAMP_INSTANCE * (float)(FloatRampParameter->CachedPoints.Num() - 1);
-	}
-	break;
-
-	case EHoudiniParameterType::Folder:
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FOLDER_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FOLDER;
-	}
-	break;
-
-	case EHoudiniParameterType::FolderList:
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FOLDERLIST_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FOLDERLIST;
-	}
-	break;
-
-	case EHoudiniParameterType::Input:
-	{
-		UHoudiniParameterOperatorPath* InputParam = Cast<UHoudiniParameterOperatorPath>(MainParam);
-		
-		if (!IsValid(InputParam) || !InputParam->HoudiniInput.IsValid())
-			break;
-
-		UHoudiniInput* Input = InputParam->HoudiniInput.Get();
-		
-		if (!IsValid(Input))
-			break;
-
-
-		if (bIsMultiparmInstanceHeader)
+		case EHoudiniParameterType::Color:
 		{
-			switch (Input->GetInputType())
-			{
-			case EHoudiniInputType::Geometry:
-			{
-				int32 ExpandedTransformUIs = 0;
-				for (int32 Idx = 0; Idx < Input->GetNumberOfInputObjects(); ++Idx)
-				{
-					if (Input->IsTransformUIExpanded(Idx))
-						ExpandedTransformUIs += 1;
-				}
+			if (bIsMultiparmInstanceHeader)
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_COLOR_MULTIPARMHEADER;
+			else
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_COLOR;
+		}
+		break;
 
-				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRY_MULTIPARMHEADER
-					+ Input->GetNumberOfInputObjects() * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRY_INSTANCE_MULTIPARMHEADER
-					+ ExpandedTransformUIs * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRY_INSTANCE_TRANSFORM_MULTIPARMHEADER;
-			}
-			break;
-			case EHoudiniInputType::Curve:
+		case EHoudiniParameterType::ColorRamp:
+		{
+			UHoudiniParameterRampColor const* const ColorRampParameter = Cast<UHoudiniParameterRampColor>(MainParam.Get());
+			if (!IsValid(ColorRampParameter))
+				return;
+
+			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_COLORRAMP;
+			if (ColorRampParameter->CachedPoints.Num() > 0)
+				MarginHeight = MarginHeight + HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_COLORRAMP_INSTANCE * (float)(ColorRampParameter->CachedPoints.Num() - 1);
+		}
+		break;
+
+		case EHoudiniParameterType::File:
+		{
+			if (bIsMultiparmInstanceHeader)
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILE_MULTIPARMHEADER;
+			else
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILE;
+		}
+		break;
+
+		case EHoudiniParameterType::FileDir:
+		{
+			if (bIsMultiparmInstanceHeader)
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILEDIR_MULTIPARMHEADER;
+			else
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILEDIR;
+		}
+		break;
+
+		case EHoudiniParameterType::FileGeo:
+		{
+			if (bIsMultiparmInstanceHeader)
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILEGEO_MULTIPARMHEADER;
+			else
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILEGEO;
+		}
+		break;
+
+		case EHoudiniParameterType::FileImage:
+		{
+			if (bIsMultiparmInstanceHeader)
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILEIMAGE_MULTIPARMHEADER;
+			else
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FILEIMAGE;
+		}
+		break;
+
+		case EHoudiniParameterType::Float:
+		{
+			if (MainParam->GetTupleSize() == 3)
 			{
-				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_CURVE_MULTIPARMHEADER
-					+ Input->GetNumberOfInputObjects() * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_CURVE_INSTANCE_MULTIPARMHEADER;
-			}
-			break;
-			case EHoudiniInputType::Asset:
-			{
-				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_ASSET_MULTIPARMHEADER;
-			}
-			break;
-			case EHoudiniInputType::Landscape:
-			{
-				if (Input->LandscapeExportType == EHoudiniLandscapeExportType::Heightfield)
-					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_LANDSCAPE_MULTIPARMHEADER;
+				if (bIsMultiparmInstanceHeader)
+					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOAT_VEC3_MULTIPARMHEADER;
 				else
-					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_LANDSCAPE_MESH_MULTIPARMHEADER;
+					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOAT_VEC3;
 			}
-			break;
-			case EHoudiniInputType::World:
+			else
 			{
-				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_WORLD_MULTIPARMHEADER;
-			}
-			break;
-			case EHoudiniInputType::Skeletal:
-			{
-				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_SKELETAL_MULTIPARMHEADER;
-			}
-			break;
-			case EHoudiniInputType::GeometryCollection:
-			{
-				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRYCOLLECTION_MULTIPARMHEADER;
-			}
-			
-			default:
-				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_MULTIPARMHEADER;
-				break;
+				if (bIsMultiparmInstanceHeader)
+				{
+					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOAT_MULTIPARMHEADER
+						+ (MainParam->GetTupleSize() - 1) * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOAT_INSTANCE_MULTIPARMHEADER;
+				}
+				else
+				{
+					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOAT
+						+ (MainParam->GetTupleSize() - 1)* HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOAT_INSTANCE;
+				}
 			}
 		}
-		else
+		break;
+
+		case EHoudiniParameterType::FloatRamp:
 		{
-			switch (Input->GetInputType())
+			UHoudiniParameterRampFloat * FloatRampParameter = Cast<UHoudiniParameterRampFloat>(MainParam);
+			if (!IsValid(FloatRampParameter))
+				return;
+
+			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOATRAMP;
+
+			if (FloatRampParameter->CachedPoints.Num() > 0)
+				MarginHeight = MarginHeight + Houdini_PARAMETER_UI_ROW_MARGIN_HEIGHT_FLOATRAMP_INSTANCE * (float)(FloatRampParameter->CachedPoints.Num() - 1);
+		}
+		break;
+
+		case EHoudiniParameterType::Folder:
+		{
+			if (bIsMultiparmInstanceHeader)
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FOLDER_MULTIPARMHEADER;
+			else
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FOLDER;
+		}
+		break;
+
+		case EHoudiniParameterType::FolderList:
+		{
+			if (bIsMultiparmInstanceHeader)
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FOLDERLIST_MULTIPARMHEADER;
+			else
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_FOLDERLIST;
+		}
+		break;
+
+		case EHoudiniParameterType::Input:
+		{
+			UHoudiniParameterOperatorPath* InputParam = Cast<UHoudiniParameterOperatorPath>(MainParam);		
+			if (!IsValid(InputParam) || !InputParam->HoudiniInput.IsValid())
+				break;
+
+			UHoudiniInput* Input = InputParam->HoudiniInput.Get();		
+			if (!IsValid(Input))
+				break;
+
+			if (bIsMultiparmInstanceHeader)
 			{
-				case EHoudiniInputType::Geometry:
+				switch (Input->GetInputType())
 				{
-					int32 ExpandedTransformUIs = 0;
-					for (int32 Idx = 0; Idx < Input->GetNumberOfInputObjects(); ++Idx)
+					case EHoudiniInputType::Geometry:
 					{
-						if (Input->IsTransformUIExpanded(Idx))
-							ExpandedTransformUIs += 1;
+						int32 ExpandedTransformUIs = 0;
+						for (int32 Idx = 0; Idx < Input->GetNumberOfInputObjects(); ++Idx)
+						{
+							if (Input->IsTransformUIExpanded(Idx))
+								ExpandedTransformUIs += 1;
+						}
+
+						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRY_MULTIPARMHEADER
+							+ Input->GetNumberOfInputObjects() * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRY_INSTANCE_MULTIPARMHEADER
+							+ ExpandedTransformUIs * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRY_INSTANCE_TRANSFORM_MULTIPARMHEADER;
 					}
-
-					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRY
-						+ Input->GetNumberOfInputObjects() * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRY_INSTANCE
-						+ ExpandedTransformUIs * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRY_INSTANCE_TRANSFORM;
-				}
-				break;
-				case EHoudiniInputType::Curve:
-				{
-					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_CURVE
-						+ Input->GetNumberOfInputObjects() * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_CURVE_INSTANCE;
-				}
-				break;
-				case EHoudiniInputType::Asset:
-				{
-					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_ASSET;
-				}
-				break;
-				case EHoudiniInputType::Landscape:
-				{
-					if (Input->LandscapeExportType == EHoudiniLandscapeExportType::Heightfield)
-						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_LANDSCAPE;
-					else
-						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_LANDSCAPE_MESH;
-				}
-				break;
-				case EHoudiniInputType::World:
-				{
-					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_WORLD;
-				}
-				break;
-				case EHoudiniInputType::Skeletal:
-				{
-					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_SKELETAL;
-				}
-				break;
-				case EHoudiniInputType::GeometryCollection:
-				{
-					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRYCOLLECTION;
-				}
-				break;
-				default:
-					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT;
 					break;
+
+					case EHoudiniInputType::Curve:
+					{
+						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_CURVE_MULTIPARMHEADER
+							+ Input->GetNumberOfInputObjects() * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_CURVE_INSTANCE_MULTIPARMHEADER;
+					}
+					break;
+
+					case EHoudiniInputType::Asset:
+					{
+						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_ASSET_MULTIPARMHEADER;
+					}
+					break;
+
+					case EHoudiniInputType::Landscape:
+					{
+						if (Input->LandscapeExportType == EHoudiniLandscapeExportType::Heightfield)
+							MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_LANDSCAPE_MULTIPARMHEADER;
+						else
+							MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_LANDSCAPE_MESH_MULTIPARMHEADER;
+					}
+					break;
+
+					case EHoudiniInputType::World:
+					{
+						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_WORLD_MULTIPARMHEADER;
+					}
+					break;
+
+					case EHoudiniInputType::Skeletal:
+					{
+						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_SKELETAL_MULTIPARMHEADER;
+					}
+					break;
+
+					case EHoudiniInputType::GeometryCollection:
+					{
+						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRYCOLLECTION_MULTIPARMHEADER;
+					}
+					break;
+
+					default:
+						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_MULTIPARMHEADER;
+						break;
+				}
+			}
+			else
+			{
+				switch (Input->GetInputType())
+				{
+					case EHoudiniInputType::Geometry:
+					{
+						int32 ExpandedTransformUIs = 0;
+						for (int32 Idx = 0; Idx < Input->GetNumberOfInputObjects(); ++Idx)
+						{
+							if (Input->IsTransformUIExpanded(Idx))
+								ExpandedTransformUIs += 1;
+						}
+
+						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRY
+							+ Input->GetNumberOfInputObjects() * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRY_INSTANCE
+							+ ExpandedTransformUIs * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRY_INSTANCE_TRANSFORM;
+					}
+					break;
+
+					case EHoudiniInputType::Curve:
+					{
+						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_CURVE
+							+ Input->GetNumberOfInputObjects() * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_CURVE_INSTANCE;
+					}
+					break;
+
+					case EHoudiniInputType::Asset:
+					{
+						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_ASSET;
+					}
+					break;
+
+					case EHoudiniInputType::Landscape:
+					{
+						if (Input->LandscapeExportType == EHoudiniLandscapeExportType::Heightfield)
+							MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_LANDSCAPE;
+						else
+							MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_LANDSCAPE_MESH;
+					}
+					break;
+
+					case EHoudiniInputType::World:
+					{
+						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_WORLD;
+					}
+					break;
+
+					case EHoudiniInputType::Skeletal:
+					{
+						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_SKELETAL;
+					}
+					break;
+
+					case EHoudiniInputType::GeometryCollection:
+					{
+						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_GEOMETRYCOLLECTION;
+					}
+					break;
+
+					default:
+						MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT;
+						break;
 				
-			}
-		}	
-	}
-	break;
-
-	case EHoudiniParameterType::Int:
-	{
-		if (MainParam->GetTupleSize() == 3)
-		{
-			if (bIsMultiparmInstanceHeader)
-				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INT_VEC3_MULTIPARMHEADER;
-			else
-				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INT_VEC3;
+				}
+			}	
 		}
-		else
+		break;
+
+		case EHoudiniParameterType::Int:
 		{
-			if (bIsMultiparmInstanceHeader)
+			if (MainParam->GetTupleSize() == 3)
 			{
-				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INT_MULTIPARMHEADER + 
-					(MainParam->GetTupleSize() - 1) * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INT_INSTANCE_MULTIPARMHEADER;
+				if (bIsMultiparmInstanceHeader)
+					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INT_VEC3_MULTIPARMHEADER;
+				else
+					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INT_VEC3;
 			}
 			else
 			{
-				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INT 
-					+ (MainParam->GetTupleSize() - 1) * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INT_INSTANCE;
+				if (bIsMultiparmInstanceHeader)
+				{
+					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INT_MULTIPARMHEADER + 
+						(MainParam->GetTupleSize() - 1) * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INT_INSTANCE_MULTIPARMHEADER;
+				}
+				else
+				{
+					MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INT 
+						+ (MainParam->GetTupleSize() - 1) * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INT_INSTANCE;
+				}
 			}
 		}
-	}
 		break;
 
-	case EHoudiniParameterType::IntChoice: 
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INTCHOICE_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INTCHOICE;
-	}
-		break;
-
-	case EHoudiniParameterType::Label:
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_LABEL_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_LABEL;
-	}
-		break;
-
-	case EHoudiniParameterType::MultiParm: 
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_MULTIPARM_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_MULTIPARM;
-	}
-		break;
-
-	case EHoudiniParameterType::Separator:
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_SEPARATOR_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_SEPARATOR;
-		bIsSeparator = true;
-	}
-		break;
-
-	case EHoudiniParameterType::String: 
-	{
-		if (bIsMultiparmInstanceHeader)
+		case EHoudiniParameterType::IntChoice: 
 		{
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRING_MULTIPARMHEADER 
-				+ (MainParam->GetTupleSize() - 1) * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRING_INSTANCE_MULTIPARMHEADER;
+			if (bIsMultiparmInstanceHeader)
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INTCHOICE_MULTIPARMHEADER;
+			else
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INTCHOICE;
 		}
-		else
+		break;
+
+		case EHoudiniParameterType::Label:
 		{
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRING
-				+ (MainParam->GetTupleSize() - 1) * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRING_INSTANCE;
+			if (bIsMultiparmInstanceHeader)
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_LABEL_MULTIPARMHEADER;
+			else
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_LABEL;
 		}
-	}
 		break;
 
-	case EHoudiniParameterType::StringAssetRef: 
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRINGASSETREF_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRINGASSETREF;
-	}
+		case EHoudiniParameterType::MultiParm: 
+		{
+			if (bIsMultiparmInstanceHeader)
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_MULTIPARM_MULTIPARMHEADER;
+			else
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_MULTIPARM;
+		}
 		break;
 
-	case EHoudiniParameterType::StringChoice:
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRINGCHOICE_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRINGCHOICE;
-	}
+		case EHoudiniParameterType::Separator:
+		{
+			if (bIsMultiparmInstanceHeader)
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_SEPARATOR_MULTIPARMHEADER;
+			else
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_SEPARATOR;
+			bIsSeparator = true;
+		}
 		break;
 
-	case EHoudiniParameterType::Toggle:
-	{
-		if (bIsMultiparmInstanceHeader)
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_TOGGLE_MULTIPARMHEADER;
-		else
-			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_TOGGLE;
-	}
+		case EHoudiniParameterType::String: 
+		{
+			if (bIsMultiparmInstanceHeader)
+			{
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRING_MULTIPARMHEADER 
+					+ (MainParam->GetTupleSize() - 1) * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRING_INSTANCE_MULTIPARMHEADER;
+			}
+			else
+			{
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRING
+					+ (MainParam->GetTupleSize() - 1) * HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRING_INSTANCE;
+			}
+		}
 		break;
 
-	case EHoudiniParameterType::Invalid:
-		MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INVALID;
+		case EHoudiniParameterType::StringAssetRef: 
+		{
+			if (bIsMultiparmInstanceHeader)
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRINGASSETREF_MULTIPARMHEADER;
+			else
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRINGASSETREF;
+		}
 		break;
 
-	default:
-		MarginHeight = 0.0f;
+		case EHoudiniParameterType::StringChoice:
+		{
+			if (bIsMultiparmInstanceHeader)
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRINGCHOICE_MULTIPARMHEADER;
+			else
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_STRINGCHOICE;
+		}
 		break;
+
+		case EHoudiniParameterType::Toggle:
+		{
+			if (bIsMultiparmInstanceHeader)
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_TOGGLE_MULTIPARMHEADER;
+			else
+				MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_TOGGLE;
+		}
+		break;
+
+		case EHoudiniParameterType::Invalid:
+		{
+			MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INVALID;
+		}
+		break;
+
+		default:
+			MarginHeight = 0.0f;
+			break;
 	}
 }
 
@@ -2372,7 +2385,6 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 		return nullptr;
 
 	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
-
 	if (!IsValidWeakPointer(MainParam))
 		return nullptr;
 
@@ -4132,7 +4144,7 @@ FHoudiniParameterDetails::CreateWidgetOperatorPath(IDetailCategoryBuilder & HouP
 		return;
 
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = MainParam->HoudiniInput;
-	if (!IsValidWeakPointer(MainInput))
+	if (!MainInput.IsValid())
 		return;
 
 	// Build an array of edited inputs for multi edition
@@ -6555,97 +6567,97 @@ FHoudiniParameterDetails::GetParameterTypeString(const EHoudiniParameterType& In
 
 	switch (InType)
 	{
-	case EHoudiniParameterType::Button:
-		ParamStr = TEXT("Button");
+		case EHoudiniParameterType::Button:
+			ParamStr = TEXT("Button");
+			break;
+
+		case EHoudiniParameterType::ButtonStrip:
+			ParamStr = TEXT("Button Strip");
+			break;
+
+		case EHoudiniParameterType::Color:
+		{
+			if (InTupleSize == 4)
+				ParamStr = TEXT("Color with Alpha");
+			else
+				ParamStr = TEXT("Color");
+		}
 		break;
 
-	case EHoudiniParameterType::ButtonStrip:
-		ParamStr = TEXT("Button Strip");
-		break;
+		case EHoudiniParameterType::ColorRamp:
+			ParamStr = TEXT("Color Ramp");
+			break;
 
-	case EHoudiniParameterType::Color:
-	{
-		if (InTupleSize == 4)
-			ParamStr = TEXT("Color with Alpha");
-		else
-			ParamStr = TEXT("Color");
-	}
-	break;
+		case EHoudiniParameterType::File:
+			ParamStr = TEXT("File (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
+			break;
 
-	case EHoudiniParameterType::ColorRamp:
-		ParamStr = TEXT("Color Ramp");
-		break;
+		case EHoudiniParameterType::FileDir:
+			ParamStr = TEXT("File Dir (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
+			break;
 
-	case EHoudiniParameterType::File:
-		ParamStr = TEXT("File (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
-		break;
+		case EHoudiniParameterType::FileGeo:
+			ParamStr = TEXT("File Geo (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
+			break;
 
-	case EHoudiniParameterType::FileDir:
-		ParamStr = TEXT("File Dir (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
-		break;
+		case EHoudiniParameterType::FileImage:
+			ParamStr = TEXT("File Image (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
+			break;
 
-	case EHoudiniParameterType::FileGeo:
-		ParamStr = TEXT("File Geo (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
-		break;
+		case EHoudiniParameterType::Float:
+			ParamStr = TEXT("Float (VEC") + FString::FromInt(InTupleSize) + TEXT(")");
+			break;
 
-	case EHoudiniParameterType::FileImage:
-		ParamStr = TEXT("File Image (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
-		break;
+		case EHoudiniParameterType::FloatRamp:
+			ParamStr = TEXT("Float Ramp");
+			break;
 
-	case EHoudiniParameterType::Float:
-		ParamStr = TEXT("Float (VEC") + FString::FromInt(InTupleSize) + TEXT(")");
-		break;
+		case EHoudiniParameterType::Folder:
+		case EHoudiniParameterType::FolderList:
+			break;
 
-	case EHoudiniParameterType::FloatRamp:
-		ParamStr = TEXT("Float Ramp");
-		break;
+		case EHoudiniParameterType::Input:
+			ParamStr = TEXT("Opearator Path");
+			break;
 
-	case EHoudiniParameterType::Folder:
-	case EHoudiniParameterType::FolderList:
-		break;
+		case EHoudiniParameterType::Int:
+			ParamStr = TEXT("Integer (VEC") + FString::FromInt(InTupleSize) + TEXT(")");
+			break;
 
-	case EHoudiniParameterType::Input:
-		ParamStr = TEXT("Opearator Path");
-		break;
+		case EHoudiniParameterType::IntChoice:
+			ParamStr = TEXT("Int Choice");
+			break;
 
-	case EHoudiniParameterType::Int:
-		ParamStr = TEXT("Integer (VEC") + FString::FromInt(InTupleSize) + TEXT(")");
-		break;
+		case EHoudiniParameterType::Label:
+			ParamStr = TEXT("Label (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
+			break;
 
-	case EHoudiniParameterType::IntChoice:
-		ParamStr = TEXT("Int Choice");
-		break;
+		case EHoudiniParameterType::MultiParm:
+			ParamStr = TEXT("MultiParm");
+			break;
 
-	case EHoudiniParameterType::Label:
-		ParamStr = TEXT("Label (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
-		break;
+		case EHoudiniParameterType::Separator:
+			break;
 
-	case EHoudiniParameterType::MultiParm:
-		ParamStr = TEXT("MultiParm");
-		break;
+		case EHoudiniParameterType::String:
+			ParamStr = TEXT("String (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
+			break;
 
-	case EHoudiniParameterType::Separator:
-		break;
+		case EHoudiniParameterType::StringAssetRef:
+			ParamStr = TEXT("String Asset Ref (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
+			break;
 
-	case EHoudiniParameterType::String:
-		ParamStr = TEXT("String (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
-		break;
+		case EHoudiniParameterType::StringChoice:
+			ParamStr = TEXT("String Choice");
+			break;
 
-	case EHoudiniParameterType::StringAssetRef:
-		ParamStr = TEXT("String Asset Ref (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
-		break;
+		case EHoudiniParameterType::Toggle:
+			ParamStr = TEXT("Toggle (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
+			break;
 
-	case EHoudiniParameterType::StringChoice:
-		ParamStr = TEXT("String Choice");
-		break;
-
-	case EHoudiniParameterType::Toggle:
-		ParamStr = TEXT("Toggle (") + FString::FromInt(InTupleSize) + TEXT(" tuple)");
-		break;
-
-	default:
-		ParamStr = TEXT("invalid parameter type");
-		break;
+		default:
+			ParamStr = TEXT("invalid parameter type");
+			break;
 	}
 
 
