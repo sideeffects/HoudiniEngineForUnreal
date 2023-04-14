@@ -2305,18 +2305,23 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 FString FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(UStaticMeshComponent* StaticMeshComponent, UStaticMesh* StaticMesh)
 {
-    if (StaticMeshComponent && StaticMeshComponent->GetBodyInstance())
-    {
-	UPhysicalMaterial* PhysicalMaterial = StaticMeshComponent->GetBodyInstance()->GetSimplePhysicalMaterial();
-	if (PhysicalMaterial != nullptr && PhysicalMaterial != GEngine->DefaultPhysMaterial)
+	if (StaticMeshComponent && StaticMeshComponent->GetBodyInstance())
 	{
-	    return PhysicalMaterial->GetPathName();
+		UPhysicalMaterial* PhysicalMaterial = StaticMeshComponent->GetBodyInstance()->GetSimplePhysicalMaterial();
+		if (PhysicalMaterial != nullptr && PhysicalMaterial != GEngine->DefaultPhysMaterial)
+		{
+			return PhysicalMaterial->GetPathName();
+		}
 	}
-    }
 
-    if (StaticMesh->GetBodySetup())
-		return StaticMesh->GetBodySetup()->PhysMaterial->GetPathName();
-    return FString();
+	if (StaticMesh->GetBodySetup() && StaticMesh->GetBodySetup()->PhysMaterial)
+	{
+		FString Path = StaticMesh->GetBodySetup()->PhysMaterial->GetPathName();
+		if (Path != "None")
+			return Path;
+	}
+
+	return FString();
 }
 bool
 FUnrealMeshTranslator::CreateInputNodeForMeshDescription(

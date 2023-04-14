@@ -33,6 +33,7 @@
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetBlueprintComponent.h"
 #include "HoudiniEngineEditor.h"
+#include "HoudiniEngineStyle.h"
 #include "HoudiniEngineEditorUtils.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniLandscapeTranslator.h"
@@ -355,32 +356,72 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 	}
 
 	// ComboBox :  Input Type
-	TSharedPtr< SComboBox< TSharedPtr< FString > > > ComboBoxInputType;
-	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
+	TSharedPtr<SComboBox<TSharedPtr<FString>>> ComboBoxInputType;
+	TSharedPtr<SImage> RebuildImage;
+	VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
 	[
-		SAssignNew(ComboBoxInputType, SComboBox<TSharedPtr<FString>>)
-		.OptionsSource(SupportedChoices)
-		.InitiallySelectedItem((*FHoudiniEngineEditor::Get().GetInputTypeChoiceLabels())[((int32)MainInput->GetInputType() - 1)])
-		.OnGenerateWidget_Lambda(
-			[](TSharedPtr< FString > ChoiceEntry)
-		{
-			FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
-			return SNew(STextBlock)
-				.Text(ChoiceEntryText)
-				.ToolTipText(ChoiceEntryText)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
-		})
-		.OnSelectionChanged_Lambda([=](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
-		{
-			return OnSelChanged(InInputs, NewChoice);
-		})
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.FillWidth(1.0f)
 		[
-			SNew( STextBlock )
-			.Text_Lambda([=]()
+			SAssignNew(ComboBoxInputType, SComboBox<TSharedPtr<FString>>)
+			.OptionsSource(SupportedChoices)
+			.InitiallySelectedItem((*FHoudiniEngineEditor::Get().GetInputTypeChoiceLabels())[((int32)MainInput->GetInputType() - 1)])
+			.OnGenerateWidget_Lambda(
+				[](TSharedPtr< FString > ChoiceEntry)
 			{
-				return GetInputText(MainInput); 
-			})            
-			.Font( FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
+				return SNew(STextBlock)
+					.Text(ChoiceEntryText)
+					.ToolTipText(ChoiceEntryText)
+					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+			})
+			.OnSelectionChanged_Lambda([=](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
+			{
+				return OnSelChanged(InInputs, NewChoice);
+			})
+			[
+				SNew( STextBlock )
+				.Text_Lambda([=]()
+				{
+					return GetInputText(MainInput); 
+				})
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.MaxWidth(16.0f)
+		.AutoWidth()
+		[
+			SNew(SButton)
+			.ToolTipText(LOCTEXT("RecookInput", "Recook this input only."))
+			.ButtonStyle(_GetEditorStyle(), "NoBorder")
+			.ContentPadding(0)
+			.Visibility(EVisibility::Visible)
+			.OnClicked_Lambda([InInputs]()
+			{
+				for (auto CurInput : InInputs)
+				{
+					if (!IsValidWeakPointer(CurInput))
+						continue;
+
+					// Force the input to reupload its data
+					CurInput->MarkChanged(true);
+					//CurInput->MarkDataUploadNeeded(true);
+					CurInput->MarkAllInputObjectsChanged(true);
+				}
+
+				return FReply::Handled();
+			})
+			[
+				SNew(SImage)
+				.Image(FHoudiniEngineStyle::Get()->GetBrush("HoudiniEngine._RebuildAll"))
+			]
 		]
 	];
 }
@@ -417,8 +458,10 @@ FHoudiniInputDetails:: AddCurveInputCookOnChangeCheckBox(TSharedRef< SVerticalBo
 	};
 
 	// Checkbox : Trigger cook on input curve changed
-	TSharedPtr< SCheckBox > CheckBoxCookOnCurveChanged;
-	VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+	TSharedPtr<SCheckBox> CheckBoxCookOnCurveChanged;
+	VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
 	[
 		SAssignNew(CheckBoxCookOnCurveChanged, SCheckBox)
 		.Content()
@@ -489,8 +532,10 @@ FHoudiniInputDetails::AddKeepWorldTransformCheckBox(TSharedRef< SVerticalBox > V
 
 
 	// Checkbox : Keep World Transform
-	TSharedPtr< SCheckBox > CheckBoxTranformType;
-	VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+	TSharedPtr<SCheckBox> CheckBoxTranformType;
+	VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
 	[
 		SAssignNew(CheckBoxTranformType, SCheckBox)
 		.Content()
@@ -522,12 +567,10 @@ FHoudiniInputDetails::AddKeepWorldTransformCheckBox(TSharedRef< SVerticalBox > V
 void
 FHoudiniInputDetails::AddPackBeforeMergeCheckbox(TSharedRef< SVerticalBox > VerticalBox, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
-
 	if (InInputs.Num() <= 0)
 		return;
 
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
-
 	if (!IsValidWeakPointer(MainInput))
 		return;
 
@@ -572,8 +615,10 @@ FHoudiniInputDetails::AddPackBeforeMergeCheckbox(TSharedRef< SVerticalBox > Vert
 		}
 	};
 
-	TSharedPtr< SCheckBox > CheckBoxPackBeforeMerge;
-	VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
+	TSharedPtr<SCheckBox> CheckBoxPackBeforeMerge;
+	VerticalBox->AddSlot()
+	.Padding( 2, 2, 5, 2 )
+	.AutoHeight()
 	[
 		SAssignNew( CheckBoxPackBeforeMerge, SCheckBox )
 		.Content()
@@ -601,7 +646,6 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 		return;
 
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
-
 	if (!IsValidWeakPointer(MainInput))
 		return;
 
@@ -665,24 +709,24 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 
 		TSharedPtr< SCheckBox > CheckBoxImportAsReference;
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
-			[
-				SAssignNew(CheckBoxImportAsReference, SCheckBox)
-				.Content()
+		[
+			SAssignNew(CheckBoxImportAsReference, SCheckBox)
+			.Content()
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("ImportInputAsRefCheckbox", "Import input as references"))
 				.ToolTipText(LOCTEXT("ImportInputAsRefCheckboxTip", "Import input objects as references. (Geometry, World and Asset input types only)"))
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
-		.IsChecked_Lambda([=]()
+			.IsChecked_Lambda([=]()
 			{
 				return IsCheckedImportAsReference(MainInput);
 			})
 			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
-				{
-					return CheckStateChangedImportAsReference(InInputs, NewState);
-				})
-			];
+			{
+				return CheckStateChangedImportAsReference(InInputs, NewState);
+			})
+		];
 	}
 	
 	// Add Rot/Scale checkbox
@@ -742,28 +786,27 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 			}
 		};
 
-		TSharedPtr< SCheckBox > CheckBoxImportAsReferenceRotScale;
+		TSharedPtr<SCheckBox> CheckBoxImportAsReferenceRotScale;
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
-			[
-				SAssignNew(CheckBoxImportAsReferenceRotScale, SCheckBox)
-				.Content()
+		[
+			SAssignNew(CheckBoxImportAsReferenceRotScale, SCheckBox)
+			.Content()
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("ImportInputAsRefRotScaleCheckbox", "Add rot/scale to input references"))
 				.ToolTipText(LOCTEXT("ImportInputAsRefRotScaleCheckboxTip", "Add rot/scale attributes to the input references when Import input as references is enabled"))
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
-		.IsChecked_Lambda([=]()
+			.IsChecked_Lambda([=]()
 			{
 				return IsCheckedImportAsReferenceRotScale(MainInput);
 			})
 			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
-				{
-					return CheckStateChangedImportAsReferenceRotScale(InInputs, NewState);
-				})
-				.IsEnabled(IsCheckedImportAsReference(MainInput))
-
-			];
+			{
+				return CheckStateChangedImportAsReferenceRotScale(InInputs, NewState);
+			})
+			.IsEnabled(IsCheckedImportAsReference(MainInput))
+		];
 
 	}
 
@@ -824,28 +867,29 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 			}
 		};
 
-		TSharedPtr< SCheckBox > CheckBoxImportAsReferenceBbox;
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
-			[
-				SAssignNew(CheckBoxImportAsReferenceBbox, SCheckBox)
-				.Content()
+		TSharedPtr<SCheckBox> CheckBoxImportAsReferenceBbox;
+		VerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SAssignNew(CheckBoxImportAsReferenceBbox, SCheckBox)
+			.Content()
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("ImportInputAsRefBboxCheckbox", "Add bounding box min/max to input references"))
 				.ToolTipText(LOCTEXT("ImportInputAsRefBboxCheckboxTip", "Add bounding box min/max attributes to the input references when Import input as references is enabled"))
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
-		.IsChecked_Lambda([=]()
+			.IsChecked_Lambda([=]()
 			{
 				return IsCheckedImportAsReferenceBbox(MainInput);
 			})
 			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
-				{
-					return CheckStateChangedImportAsReferenceBbox(InInputs, NewState);
-				})
-				.IsEnabled(IsCheckedImportAsReference(MainInput))
-
-			];
+			{
+				return CheckStateChangedImportAsReferenceBbox(InInputs, NewState);
+			})
+			.IsEnabled(IsCheckedImportAsReference(MainInput))
+		];
 	}
 
 	// Add material checkbox
@@ -906,27 +950,28 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 		};
 
 		TSharedPtr< SCheckBox > CheckBoxImportAsReferenceMaterial;
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
-			[
-				SAssignNew(CheckBoxImportAsReferenceMaterial, SCheckBox)
-				.Content()
+		VerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SAssignNew(CheckBoxImportAsReferenceMaterial, SCheckBox)
+			.Content()
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("ImportInputAsRefMaterialCheckbox", "Add material to input references"))
-			.ToolTipText(LOCTEXT("ImportInputAsRefMaterialCheckboxTip", "Add material attributes to the input references when Import input as references is enabled"))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.ToolTipText(LOCTEXT("ImportInputAsRefMaterialCheckboxTip", "Add material attributes to the input references when Import input as references is enabled"))
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
-		.IsChecked_Lambda([=]()
+			.IsChecked_Lambda([=]()
 			{
 				return IsCheckedImportAsReferenceMaterial(MainInput);
 			})
 			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
-				{
-					return CheckStateChangedImportAsReferenceMaterial(InInputs, NewState);
-				})
-				.IsEnabled(IsCheckedImportAsReference(MainInput))
-
-			];
+			{
+				return CheckStateChangedImportAsReferenceMaterial(InInputs, NewState);
+			})
+			.IsEnabled(IsCheckedImportAsReference(MainInput))
+		];
 	}
 }
 void
@@ -1154,7 +1199,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 			{
 				return IsCheckedExportSockets(MainInput);
 			})
-				.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
 			{
 				return CheckStateChangedExportSockets(InInputs, NewState);
 			})
@@ -1453,9 +1498,14 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 
 	// Add Combo box : Static Mesh
 	TSharedPtr<SComboButton> StaticMeshComboButton;
-	ComboAndButtonBox->AddSlot().FillHeight(1.0f).VAlign(VAlign_Center)
+	ComboAndButtonBox->AddSlot()
+	.FillHeight(1.0f)
+	.VAlign(VAlign_Center)
 	[
-		SNew(SVerticalBox) + SVerticalBox::Slot().FillHeight(1.0f).VAlign(VAlign_Center)
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.FillHeight(1.0f)
+		.VAlign(VAlign_Center)
 		[
 			SAssignNew(StaticMeshComboButton, SComboButton)
 			.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
