@@ -161,7 +161,9 @@ UHoudiniParameterRampColorPoint::SetInterpolation(const EHoudiniRampInterpolatio
 	InterpolationParentParm->UpdateStringValueFromInt();
 	InterpolationParentParm->SetIsChildOfRamp();
 }
-UHoudiniParameterRampColorPoint * UHoudiniParameterRampColorPoint::DuplicateAndCopyState(UObject * DestOuter, EObjectFlags InClearFlags, EObjectFlags InSetFlags)
+UHoudiniParameterRampColorPoint*
+UHoudiniParameterRampColorPoint::DuplicateAndCopyState(
+	UObject * DestOuter, EObjectFlags InClearFlags, EObjectFlags InSetFlags)
 {
 
 	UHoudiniParameterRampColorPoint* NewPoint = Cast<UHoudiniParameterRampColorPoint>(StaticDuplicateObject(this, DestOuter));
@@ -171,7 +173,9 @@ UHoudiniParameterRampColorPoint * UHoudiniParameterRampColorPoint::DuplicateAndC
 	return NewPoint;
 	
 }
-void UHoudiniParameterRampColorPoint::CopyStateFrom(UHoudiniParameterRampColorPoint * InParameter, bool bCopyAllProperties, EObjectFlags InClearFlags, EObjectFlags InSetFlags)
+void 
+UHoudiniParameterRampColorPoint::CopyStateFrom(
+	UHoudiniParameterRampColorPoint* InParameter, bool bCopyAllProperties, EObjectFlags InClearFlags, EObjectFlags InSetFlags)
 {
 #if WITH_EDITOR
 	PreEditChange(nullptr);
@@ -194,7 +198,8 @@ void UHoudiniParameterRampColorPoint::CopyStateFrom(UHoudiniParameterRampColorPo
 #endif
 }
 
-void UHoudiniParameterRampColorPoint::RemapParameters(const TMap<UHoudiniParameter*, UHoudiniParameter*>& ParameterMapping)
+void 
+UHoudiniParameterRampColorPoint::RemapParameters(const TMap<UHoudiniParameter*, UHoudiniParameter*>& ParameterMapping)
 {
 	if (ParameterMapping.Contains(PositionParentParm))
 	{
@@ -264,7 +269,9 @@ UHoudiniParameterRampFloat::Create(
 	return HoudiniParameter;
 }
 
-void UHoudiniParameterRampFloat::CopyStateFrom(UHoudiniParameter* InParameter, bool bCopyAllProperties, EObjectFlags InClearFlags, EObjectFlags InSetFlags)
+void 
+UHoudiniParameterRampFloat::CopyStateFrom(
+	UHoudiniParameter* InParameter, bool bCopyAllProperties, EObjectFlags InClearFlags, EObjectFlags InSetFlags)
 {
 #if WITH_EDITOR
 	PreEditChange(nullptr);
@@ -659,7 +666,8 @@ UHoudiniParameterRampFloat::IsDefault() const
 	return true;
 }
 
-void UHoudiniParameterRampColor::CopyStateFrom(UHoudiniParameter * InParameter, bool bCopyAllProperties, EObjectFlags InClearFlags, EObjectFlags InSetFlags)
+void 
+UHoudiniParameterRampColor::CopyStateFrom(UHoudiniParameter * InParameter, bool bCopyAllProperties, EObjectFlags InClearFlags, EObjectFlags InSetFlags)
 {
 	UHoudiniParameterRampColor* FromParameter = Cast<UHoudiniParameterRampColor>(InParameter);
 	check(FromParameter);
@@ -718,7 +726,8 @@ void UHoudiniParameterRampColor::CopyStateFrom(UHoudiniParameter * InParameter, 
 		SetFlags(InSetFlags);
 }
 
-void UHoudiniParameterRampColor::RemapParameters(const TMap<UHoudiniParameter*, UHoudiniParameter*>& ParameterMapping)
+void 
+UHoudiniParameterRampColor::RemapParameters(const TMap<UHoudiniParameter*, UHoudiniParameter*>& ParameterMapping)
 {
 	Super::RemapParameters(ParameterMapping);
 

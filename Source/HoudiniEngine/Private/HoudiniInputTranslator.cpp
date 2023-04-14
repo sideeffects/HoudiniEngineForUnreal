@@ -205,11 +205,10 @@ FHoudiniInputTranslator::BuildAllInputs(
 		InputCount = AssetInfo.geoInputCount;
 	}
 	*/
-	// Also look for object path parameters inputs
 
+	// Also look for object path parameters inputs
 	// Helper map to get the parameter index, given the parameter name
 	TMap<FString, int32> ParameterNameToIndexMap;
-	
 	TArray<TWeakObjectPtr<UHoudiniParameter>> InputParameters;
 	for (auto Param : Parameters)
 	{
@@ -278,7 +277,6 @@ FHoudiniInputTranslator::BuildAllInputs(
 
 	// Keep a set of used indices, to figure out the unused indices later
 	TSet<int32> UsedParameterIndices;
-	
 	for (int32 InputIdx = 0; InputIdx < Inputs.Num(); InputIdx++)
 	{
 		// SOP input -> Parameter map doesn't make sense - ignore this

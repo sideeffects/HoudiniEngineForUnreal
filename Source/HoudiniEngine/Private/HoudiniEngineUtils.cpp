@@ -2988,9 +2988,12 @@ FHoudiniEngineUtils::GetLicenseType(FString & LicenseType)
 	LicenseType = TEXT("");
 	HAPI_License LicenseTypeValue = HAPI_LICENSE_NONE;
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetSessionEnvInt(
-		FHoudiniEngine::Get().GetSession(), HAPI_SESSIONENVINT_LICENSE,
-		(int32 *)&LicenseTypeValue), false);
+	if (FHoudiniEngine::Get().GetSession())
+	{
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetSessionEnvInt(
+			FHoudiniEngine::Get().GetSession(), HAPI_SESSIONENVINT_LICENSE,
+			(int32*)&LicenseTypeValue), false);
+	}
 
 	switch (LicenseTypeValue)
 	{

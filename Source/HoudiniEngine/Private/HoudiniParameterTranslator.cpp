@@ -851,7 +851,19 @@ FHoudiniParameterTranslator::GetParmTypeFromParmInfo(
 				ParmInfo.inputNodeType == HAPI_NODETYPE_SOP ||
 				ParmInfo.inputNodeType == HAPI_NODETYPE_OBJ)
 			{
-				ParmType = EHoudiniParameterType::Input;
+				// Get the parm name to avoid considering the default object path parameters as inputs
+				FString ParmName = FHoudiniEngineUtils::HapiGetString(ParmInfo.nameSH);
+				if (ParmName == "constraints_path"
+					|| ParmName == "lookatpath"
+					|| ParmName == "lookupobjpath"
+					|| ParmName == "pathobjpath")
+				{
+					ParmType = EHoudiniParameterType::String;
+				}
+				else
+				{
+					ParmType = EHoudiniParameterType::Input;
+				}
 			}
 			else
 			{
@@ -1241,7 +1253,7 @@ FHoudiniParameterTranslator::CreateTypedParameter(UObject * Outer, const EHoudin
 			break;
 
 		case EHoudiniParameterType::Input:
-			// Input parameter simply use the base class as all the processingsince is handled by UHoudiniInput
+			// Input parameter simply use the base class as all the processing is handled by UHoudiniInput
 			HoudiniParameter = UHoudiniParameterOperatorPath::Create(Outer, ParmName);
 			HoudiniParameter->SetParameterType(ParmType);
 			break;
@@ -1322,12 +1334,10 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 	UHoudiniParameterMultiParm* MultiParm = Cast<UHoudiniParameterMultiParm>(HoudiniParameter);
 	if(MultiParm)
 		MultiParm->InstanceStartOffset = ParmInfo.instanceStartOffset;
-
 	
 
 	// Get the parameter type
 	EHoudiniParameterType ParmType = HoudiniParameter->GetParameterType();
-
 	// We need to set string values from the parmInfo
 	if (bFullUpdate)
 	{
