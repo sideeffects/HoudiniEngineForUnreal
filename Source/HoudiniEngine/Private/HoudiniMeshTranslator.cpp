@@ -2992,11 +2992,13 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 		    {
 				// Fetch the physics material name based off the first primitve attribute
 				auto& MaterialName = AttributeValues[0];
-				BodySetup->PhysMaterial = LoadObject<UPhysicalMaterial>(nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr);
-
-				if (!BodySetup->PhysMaterial)
+				if (!MaterialName.IsEmpty() && MaterialName != "None")
 				{
-				    HOUDINI_LOG_HELPER(Error, TEXT("Physical Material not found: %s."), *MaterialName);
+					BodySetup->PhysMaterial = LoadObject<UPhysicalMaterial>(nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr);
+					if (!BodySetup->PhysMaterial)
+					{
+						HOUDINI_LOG_HELPER(Error, TEXT("Physical Material not found: %s."), *MaterialName);
+					}
 				}
 		    }
 
@@ -4406,12 +4408,14 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			{
 			    // Fetch the physics material name based off the first primitve attribute
 			    auto& MaterialName = AttributeValues[0];
-			    BodySetup->PhysMaterial = LoadObject<UPhysicalMaterial>(nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr);
-
-			    if (!BodySetup->PhysMaterial)
-			    {
-				HOUDINI_LOG_HELPER(Error, TEXT("Physical Material not found: %s."), *MaterialName);
-			    }
+				if (!MaterialName.IsEmpty() && MaterialName != "None")
+				{
+					BodySetup->PhysMaterial = LoadObject<UPhysicalMaterial>(nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr);
+					if (!BodySetup->PhysMaterial)
+					{
+						HOUDINI_LOG_HELPER(Error, TEXT("Physical Material not found: %s."), *MaterialName);
+					}
+				}
 			}
 
 			// Moved RefreshCollisionChange to after the SM->Build call
