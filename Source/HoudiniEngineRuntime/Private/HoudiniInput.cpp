@@ -695,13 +695,13 @@ UHoudiniInput::InputTypeToString(const EHoudiniInputType& InInputType)
 	{
 		case EHoudiniInputType::Geometry:
 		{
-			InputTypeStr = TEXT("Geometry Input");
+			InputTypeStr = TEXT("Old Geometry Input");
 		}
 		break;
 
 		case EHoudiniInputType::Asset:
 		{
-			InputTypeStr = TEXT("Asset Input");
+			InputTypeStr = TEXT("Old Asset Input");
 		}
 		break;
 
@@ -713,34 +713,34 @@ UHoudiniInput::InputTypeToString(const EHoudiniInputType& InInputType)
 
 		case EHoudiniInputType::Landscape:
 		{
-			InputTypeStr = TEXT("Landscape Input");
+			InputTypeStr = TEXT("Old Landscape Input");
 		}
 		break;
 
 		case EHoudiniInputType::World:
 		{
-			InputTypeStr = TEXT("World Outliner Input");
+			InputTypeStr = TEXT("Old World Outliner Input");
 		}
 		break;
 
 		case EHoudiniInputType::Skeletal:
 		{
-			InputTypeStr = TEXT("Skeletal Mesh Input");
+			InputTypeStr = TEXT("Old Skeletal Mesh Input");
 		}
 		break;
 		case EHoudiniInputType::GeometryCollection:
 		{
-			InputTypeStr = TEXT("GeometryCollection Input");
+			InputTypeStr = TEXT("Old GeometryCollection Input");
 		}
 		break;
 		case EHoudiniInputType::NewGeometry:
 		{
-			InputTypeStr = TEXT("New Geometry Input");
+			InputTypeStr = TEXT("Geometry Input");
 		}
 		break;
 		case EHoudiniInputType::NewWorld:
 		{
-			InputTypeStr = TEXT("New World Input");
+			InputTypeStr = TEXT("World Input");
 		}
 		break;
 	}
@@ -752,15 +752,15 @@ EHoudiniInputType
 UHoudiniInput::StringToInputType(const FString& InInputTypeString)
 {
 	// Note: Geometry is a prefix of GeometryCollection, so need to make sure to do GeometryCollection first!
-	if (InInputTypeString.StartsWith(TEXT("GeometryCollection"), ESearchCase::IgnoreCase))
+	if (InInputTypeString.StartsWith(TEXT("Old GeometryCollection"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::GeometryCollection;
 	}
-	else if (InInputTypeString.StartsWith(TEXT("Geometry"), ESearchCase::IgnoreCase))
+	else if (InInputTypeString.StartsWith(TEXT("Old Geometry"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::Geometry;
 	}
-	else if (InInputTypeString.StartsWith(TEXT("Asset"), ESearchCase::IgnoreCase))
+	else if (InInputTypeString.StartsWith(TEXT("Old Asset"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::Asset;
 	}
@@ -768,23 +768,23 @@ UHoudiniInput::StringToInputType(const FString& InInputTypeString)
 	{
 		return EHoudiniInputType::Curve;
 	}
-	else if (InInputTypeString.StartsWith(TEXT("Landscape"), ESearchCase::IgnoreCase))
+	else if (InInputTypeString.StartsWith(TEXT("Old Landscape"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::Landscape;
 	}
-	else if (InInputTypeString.StartsWith(TEXT("World"), ESearchCase::IgnoreCase))
+	else if (InInputTypeString.StartsWith(TEXT("Old World"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::World;
 	}
-	else if (InInputTypeString.StartsWith(TEXT("Skeletal"), ESearchCase::IgnoreCase))
+	else if (InInputTypeString.StartsWith(TEXT("Old Skeletal"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::Skeletal;
 	}
-	else if (InInputTypeString.StartsWith(TEXT("New Geometry"), ESearchCase::IgnoreCase))
+	else if (InInputTypeString.StartsWith(TEXT("Geometry"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::NewGeometry;
 	}
-	else if (InInputTypeString.StartsWith(TEXT("New World"), ESearchCase::IgnoreCase))
+	else if (InInputTypeString.StartsWith(TEXT("World"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::NewWorld;
 	}

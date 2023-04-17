@@ -378,7 +378,7 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 			return;
 		
 		EHoudiniInputType NewInputType = UHoudiniInput::StringToInputType(*InNewChoice.Get());
-		if (NewInputType != EHoudiniInputType::World)
+		if (NewInputType != EHoudiniInputType::World || NewInputType != EHoudiniInputType::NewWorld)
 		{
 			Helper_CancelWorldSelection(InInputsToUpdate, DetailsPanelName);
 		}
@@ -451,6 +451,17 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 		SupportedChoices = FHoudiniEngineEditor::Get().GetInputTypeChoiceLabels();
 	}
 
+	TSharedPtr<FString> InitiallySelectedType = (*SupportedChoices)[0];
+	for (int Idx = 0; Idx < SupportedChoices->Num(); ++Idx)
+	{
+		EHoudiniInputType CurType = UHoudiniInput::StringToInputType(*(*SupportedChoices)[Idx]);
+		if (CurType == MainInput->GetInputType())
+		{
+			InitiallySelectedType = (*SupportedChoices)[Idx];
+			break;
+		}
+	}
+
 	// ComboBox :  Input Type
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> ComboBoxInputType;
 	TSharedPtr<SImage> RebuildImage;
@@ -467,7 +478,7 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 		[
 			SAssignNew(ComboBoxInputType, SComboBox<TSharedPtr<FString>>)
 			.OptionsSource(SupportedChoices)
-			.InitiallySelectedItem((*FHoudiniEngineEditor::Get().GetInputTypeChoiceLabels())[((int32)MainInput->GetInputType() - 1)])
+			.InitiallySelectedItem(InitiallySelectedType)
 			.OnGenerateWidget_Lambda(
 				[](TSharedPtr< FString > ChoiceEntry)
 			{
