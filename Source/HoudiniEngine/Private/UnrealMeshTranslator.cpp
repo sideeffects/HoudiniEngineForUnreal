@@ -2191,7 +2191,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 			ScalarMaterialParameters,
 			VectorMaterialParameters,
 			TextureMaterialParameters,
-			PhysicalMaterialPath);
+			PhysicalMaterialPath,
+			StaticMesh->NaniteSettings);
 
 		if (!bAttributeSuccess)
 		{
@@ -2226,17 +2227,12 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 	// LIGHTMAP RESOLUTION
 	//---------------------------------------------------------------------------------------------------------------------
 
-	// TODO:
-	// Fetch default lightmap res from settings...
-	int32 GeneratedLightMapResolution = 32;
-	if (StaticMesh->GetLightMapResolution() != GeneratedLightMapResolution)
 	{
-		TArray< int32 > LightMapResolutions;
-		LightMapResolutions.Add(StaticMesh->GetLightMapResolution());
+		int32 LightMapResolution= StaticMesh->GetLightMapResolution();
 
 		HAPI_AttributeInfo AttributeInfoLightMapResolution;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoLightMapResolution);
-		AttributeInfoLightMapResolution.count = LightMapResolutions.Num();
+		AttributeInfoLightMapResolution.count = 1;
 		AttributeInfoLightMapResolution.tupleSize = 1;
 		AttributeInfoLightMapResolution.exists = true;
 		AttributeInfoLightMapResolution.owner = HAPI_ATTROWNER_DETAIL;
@@ -2247,8 +2243,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, &AttributeInfoLightMapResolution), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
-			LightMapResolutions, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+			LightMapResolution, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -2986,7 +2982,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				FUnrealMeshTranslator::CreateFaceMaterialArray(
 					MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials);
 			}
-
+						
 			// Create all the needed attributes for materials
 			bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 				NodeId,
@@ -2996,7 +2992,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				ScalarMaterialParameters,
 				VectorMaterialParameters,
 				TextureMaterialParameters,
-				PhysicalMaterialPath);
+				PhysicalMaterialPath,
+				StaticMesh->NaniteSettings);
 
 			if (!bAttributeSuccess)
 			{
@@ -3038,18 +3035,12 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// LIGHTMAP RESOLUTION
 	//---------------------------------------------------------------------------------------------------------------------
-
-	// TODO:
-	// Fetch default lightmap res from settings...
-	int32 GeneratedLightMapResolution = 32;
-	if (StaticMesh->GetLightMapResolution() != GeneratedLightMapResolution)
 	{
-		TArray< int32 > LightMapResolutions;
-		LightMapResolutions.Add(StaticMesh->GetLightMapResolution());
+		int32 LightMapResolution = StaticMesh->GetLightMapResolution();
 
 		HAPI_AttributeInfo AttributeInfoLightMapResolution;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoLightMapResolution);
-		AttributeInfoLightMapResolution.count = LightMapResolutions.Num();
+		AttributeInfoLightMapResolution.count = 1;
 		AttributeInfoLightMapResolution.tupleSize = 1;
 		AttributeInfoLightMapResolution.exists = true;
 		AttributeInfoLightMapResolution.owner = HAPI_ATTROWNER_DETAIL;
@@ -3060,8 +3051,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, &AttributeInfoLightMapResolution), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
-			LightMapResolutions, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+			LightMapResolution, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -3899,7 +3890,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 				    ScalarMaterialParameters,
 				    VectorMaterialParameters,
 				    TextureMaterialParameters,
-				    PhysicalMaterialPath);
+				    PhysicalMaterialPath,
+					StaticMesh->NaniteSettings);
 
 			    if (!bAttributeSuccess)
 			    {
@@ -3946,18 +3938,12 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// LIGHTMAP RESOLUTION
 	//---------------------------------------------------------------------------------------------------------------------
-
-	// TODO:
-	// Fetch default lightmap res from settings...
-	int32 GeneratedLightMapResolution = 32;	
-	if (StaticMesh->GetLightMapResolution() != GeneratedLightMapResolution)
 	{
-		TArray<int32> LightMapResolutions;
-		LightMapResolutions.Add(StaticMesh->GetLightMapResolution());
+		int32 LightMapResolution = StaticMesh->GetLightMapResolution();
 
 		HAPI_AttributeInfo AttributeInfoLightMapResolution;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoLightMapResolution);
-		AttributeInfoLightMapResolution.count = LightMapResolutions.Num();
+		AttributeInfoLightMapResolution.count = 1;
 		AttributeInfoLightMapResolution.tupleSize = 1;
 		AttributeInfoLightMapResolution.exists = true;
 		AttributeInfoLightMapResolution.owner = HAPI_ATTROWNER_DETAIL;
@@ -3968,8 +3954,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, &AttributeInfoLightMapResolution), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
-			LightMapResolutions, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution, true), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+			LightMapResolution, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -4961,7 +4947,8 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	const TMap<FString, TArray<float>>& ScalarMaterialParameters,
 	const TMap<FString, TArray<float>>& VectorMaterialParameters,
     const TMap<FString, FHoudiniEngineIndexedStringMap>& TextureMaterialParameters,
-    const TOptional<FString> PhysicalMaterial)
+    const TOptional<FString> PhysicalMaterial,
+	const TOptional<FMeshNaniteSettings> InNaniteSettings)
 {
     SCOPED_FUNCTION_TIMER();
 
@@ -4985,7 +4972,6 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		FHoudiniEngine::Get().GetSession(),
 		NodeId, PartId, HAPI_UNREAL_ATTRIB_MATERIAL, &AttributeInfoMaterial))
 	{
-
 		// The New attribute has been successfully created, set its value
 		if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeStringMap(
 			TriangleMaterials, NodeId, PartId, HAPI_UNREAL_ATTRIB_MATERIAL, AttributeInfoMaterial))
@@ -5084,7 +5070,7 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		}
 	}
 
-    if (PhysicalMaterial.IsSet())
+    if (PhysicalMaterial.IsSet() && !PhysicalMaterial->IsEmpty())
     {
 		// Create attribute for physical materials.
 		HAPI_AttributeInfo AttributeInfoPhysicalMaterial;
@@ -5109,6 +5095,131 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		    }
 		}
     }
+
+	// Add the nanite attributes if needed
+	bool bNaniteEnabled = false;
+	if (InNaniteSettings.IsSet() && InNaniteSettings->bEnabled)
+	{
+		// Create an attribute for nanite enabled
+		HAPI_AttributeInfo AttributeInfoNanite;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfoNanite);
+		AttributeInfoNanite.tupleSize = 1;
+		AttributeInfoNanite.count = Count;
+		AttributeInfoNanite.exists = true;
+		AttributeInfoNanite.owner = HAPI_ATTROWNER_PRIM;
+		AttributeInfoNanite.storage = HAPI_STORAGETYPE_INT;
+		AttributeInfoNanite.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		// Create the new attribute
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			NodeId, PartId, HAPI_UNREAL_ATTRIB_NANITE_ENABLED, &AttributeInfoNanite))
+		{
+			// The New attribute has been successfully created, set its value
+			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+				1, NodeId, PartId, HAPI_UNREAL_ATTRIB_NANITE_ENABLED, AttributeInfoNanite))
+			{
+				bSuccess = false;
+			}
+		}
+
+		// Create an attribute for nanite position precision
+		//HAPI_AttributeInfo AttributeInfoNanite;
+		
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfoNanite);
+		AttributeInfoNanite.tupleSize = 1;
+		AttributeInfoNanite.count = Count;
+		AttributeInfoNanite.exists = true;
+		AttributeInfoNanite.owner = HAPI_ATTROWNER_PRIM;
+		AttributeInfoNanite.storage = HAPI_STORAGETYPE_INT;
+		AttributeInfoNanite.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		// Create the new attribute
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			NodeId, PartId, HAPI_UNREAL_ATTRIB_NANITE_POSITION_PRECISION, &AttributeInfoNanite))
+		{
+			// The New attribute has been successfully created, set its value
+			int32 PositionPrecision = InNaniteSettings->PositionPrecision;
+			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+				InNaniteSettings->PositionPrecision, NodeId, PartId, HAPI_UNREAL_ATTRIB_NANITE_POSITION_PRECISION, AttributeInfoNanite))
+			{
+				bSuccess = false;
+			}
+		}
+
+		// Create an attribute for nanite percent triangle
+		//HAPI_AttributeInfo AttributeInfoNanite;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfoNanite);
+		AttributeInfoNanite.tupleSize = 1;
+		AttributeInfoNanite.count = Count;
+		AttributeInfoNanite.exists = true;
+		AttributeInfoNanite.owner = HAPI_ATTROWNER_PRIM;
+		AttributeInfoNanite.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfoNanite.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		// Create the new attribute
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			NodeId, PartId, HAPI_UNREAL_ATTRIB_NANITE_PERCENT_TRIANGLES, &AttributeInfoNanite))
+		{
+			// The New attribute has been successfully created, set its value
+			float KeepPercentTriangles = InNaniteSettings->KeepPercentTriangles;
+			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeFloatUniqueData(
+				KeepPercentTriangles, NodeId, PartId, HAPI_UNREAL_ATTRIB_NANITE_PERCENT_TRIANGLES, AttributeInfoNanite))
+			{
+				bSuccess = false;
+			}
+		}
+
+		// Create an attribute for nanite fb relative error
+		//HAPI_AttributeInfo AttributeInfoNanite;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfoNanite);
+		AttributeInfoNanite.tupleSize = 1;
+		AttributeInfoNanite.count = Count;
+		AttributeInfoNanite.exists = true;
+		AttributeInfoNanite.owner = HAPI_ATTROWNER_PRIM;
+		AttributeInfoNanite.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfoNanite.originalOwner = HAPI_ATTROWNER_INVALID;
+		
+		// Create the new attribute
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			NodeId, PartId, HAPI_UNREAL_ATTRIB_NANITE_FB_RELATIVE_ERROR, &AttributeInfoNanite))
+		{
+			// The New attribute has been successfully created, set its value
+			float FallbackRelativeError = InNaniteSettings->FallbackRelativeError;
+			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeFloatUniqueData(
+				FallbackRelativeError, NodeId, PartId, HAPI_UNREAL_ATTRIB_NANITE_FB_RELATIVE_ERROR, AttributeInfoNanite))
+			{
+				bSuccess = false;
+			}
+		}
+
+		// Create an attribute for nanite trim relative error
+		//HAPI_AttributeInfo AttributeInfoNanite;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfoNanite);
+		AttributeInfoNanite.tupleSize = 1;
+		AttributeInfoNanite.count = Count;
+		AttributeInfoNanite.exists = true;
+		AttributeInfoNanite.owner = HAPI_ATTROWNER_PRIM;
+		AttributeInfoNanite.storage = HAPI_STORAGETYPE_INT;
+		AttributeInfoNanite.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		// Create the new attribute
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			NodeId, PartId, HAPI_UNREAL_ATTRIB_NANITE_TRIM_RELATIVE_ERROR, &AttributeInfoNanite))
+		{
+			// The New attribute has been successfully created, set its value
+			float TrimRelativeError = InNaniteSettings->TrimRelativeError;
+			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+				TrimRelativeError, NodeId, PartId, HAPI_UNREAL_ATTRIB_NANITE_TRIM_RELATIVE_ERROR, AttributeInfoNanite))
+			{
+				bSuccess = false;
+			}
+		}
+	}
 
 	return bSuccess;
 }
