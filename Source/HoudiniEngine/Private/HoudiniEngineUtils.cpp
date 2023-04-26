@@ -1,4 +1,5 @@
 /*
+/*
 * Copyright (c) <2021> Side Effects Software Inc.
 * All rights reserved.
 *
@@ -57,6 +58,7 @@
 #include "HoudiniParameter.h"
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniEngineRuntime.h"
+#include "HoudiniEngineTimers.h"
 
 #if WITH_EDITOR
 	#include "SAssetSelectionWidget.h"
@@ -133,6 +135,54 @@ FHoudiniEngineUtils::PackageGUIDComponentNameLength = 12;
 
 const int32
 FHoudiniEngineUtils::PackageGUIDItemNameLength = 8;
+
+template <typename DataType>
+TArray<int> RunLengthEncode(const DataType* Data, int TupleSize, int Count, const float MaxCompressionRatio = 0.25f)
+{
+	// Run length encode the data.
+    // If this function returns an empty array it means the desired compression ratio could not be met.
+
+    auto CompareTuple = [TupleSize] (const DataType* StartA, const DataType* StartB)
+    {
+        for (int Index = 0; Index < TupleSize; Index++)
+        {
+            if (StartA[Index] != StartB[Index])
+                return false;
+        }
+        return true;
+    };
+
+    TArray<int> EncodedData;
+    if (Count == 0)
+        return EncodedData;
+
+	// Guess of size needed.
+    EncodedData.Reserve(static_cast<int>(MaxCompressionRatio * Count));
+
+	// The first run always begins on element zero.
+    int Start = 0;
+    EncodedData.Add(Start);
+
+	// Created a run length encoded array based off the input data. eg.
+    // [ 0, 0, 0, 1, 1, 2, 3 ] will return [ 0, 3, 5, 6]
+
+    for(int Index = 0; Index < Count; Index += TupleSize)
+    {
+        if (!CompareTuple(&Data[Start], &Data[Index]))
+        {
+		    // The value changed, so start a new run
+            Start = Index;
+            EncodedData.Add(Start / TupleSize);
+        }
+    }
+
+    // Check we've made a decent compression ratio. If not return an empty array.
+    float Ratio = float(EncodedData.Num() / float(Count));
+    if (Ratio > MaxCompressionRatio)
+        EncodedData.SetNum(0);
+
+    return EncodedData;
+}
 
 // Maximum size of the data that can be sent via thrift
 //#define THRIFT_MAX_CHUNKSIZE			100 * 1024 * 1024 // This is supposedly the current limit in thrift, but still seems to be too large
@@ -3314,12 +3364,14 @@ FHoudiniEngineUtils::HapiSetAttributeFloatData(
 	const HAPI_NodeId& InNodeId,
 	const HAPI_PartId& InPartId,
 	const FString& InAttributeName,
-	const HAPI_AttributeInfo& InAttributeInfo)
+	const HAPI_AttributeInfo& InAttributeInfo,
+	bool bAttemptRunLengthEncoding)
 {
 	if (InFloatData.Num() != InAttributeInfo.count * InAttributeInfo.tupleSize)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
-	return FHoudiniEngineUtils::HapiSetAttributeFloatData(InFloatData.GetData(), InNodeId, InPartId, InAttributeName, InAttributeInfo);
+    return FHoudiniEngineUtils::HapiSetAttributeFloatData(InFloatData.GetData(), InNodeId, InPartId, InAttributeName,
+                                                          InAttributeInfo, bAttemptRunLengthEncoding);
 }
 
 HAPI_Result
@@ -3328,12 +3380,40 @@ FHoudiniEngineUtils::HapiSetAttributeFloatData(
 	const HAPI_NodeId& InNodeId,
 	const HAPI_PartId& InPartId,
 	const FString& InAttributeName,
-	const HAPI_AttributeInfo& InAttributeInfo)
+	const HAPI_AttributeInfo& InAttributeInfo,
+	bool bAttemptRunLengthEncoding)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
 	HAPI_Result Result = HAPI_RESULT_FAILURE;
+
+	if (bAttemptRunLengthEncoding)
+	{
+	    TArray<int> RunLengths = RunLengthEncode(InFloatData, InAttributeInfo.tupleSize, InAttributeInfo.count);
+		if (RunLengths.Num() != 0)
+		{
+		    for(int Index = 0; Index < RunLengths.Num(); Index++)
+		    {
+		        int StartIndex = RunLengths[Index];
+                int EndIndex = InAttributeInfo.count / InAttributeInfo.tupleSize;
+                if (Index != RunLengths.Num() - 1)
+                    EndIndex = RunLengths[Index + 1];
+
+				const float* TupleValues = &InFloatData[StartIndex * InAttributeInfo.tupleSize];
+				Result = FHoudiniApi::SetAttributeFloatUniqueData(FHoudiniEngine::Get().GetSession(), InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+                                                                  &InAttributeInfo, TupleValues, InAttributeInfo.tupleSize, StartIndex, EndIndex - StartIndex);
+
+    			if (Result != HAPI_RESULT_SUCCESS)
+				    return  Result;
+		    }
+			return HAPI_RESULT_SUCCESS;
+		}
+	}
+
+
 	int32 ChunkSize = THRIFT_MAX_CHUNKSIZE / InAttributeInfo.tupleSize;
 	if (InAttributeInfo.count > ChunkSize)
 	{
@@ -3371,13 +3451,14 @@ FHoudiniEngineUtils::HapiSetAttributeIntData(
 	const HAPI_NodeId& InNodeId,
 	const HAPI_PartId& InPartId,
 	const FString& InAttributeName,
-	const HAPI_AttributeInfo& InAttributeInfo)
+	const HAPI_AttributeInfo& InAttributeInfo,
+    bool bAttemptRunLengthEncoding)
 {
 	if (InIntData.Num() != InAttributeInfo.count * InAttributeInfo.tupleSize)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
-	return FHoudiniEngineUtils::HapiSetAttributeIntData(
-		InIntData.GetData(), InNodeId, InPartId, InAttributeName, InAttributeInfo);
+	return FHoudiniEngineUtils::HapiSetAttributeIntData(InIntData.GetData(), InNodeId, InPartId, InAttributeName,
+                                                        InAttributeInfo, bAttemptRunLengthEncoding);
 }
 
 HAPI_Result
@@ -3386,10 +3467,38 @@ FHoudiniEngineUtils::HapiSetAttributeIntData(
 	const HAPI_NodeId& InNodeId,
 	const HAPI_PartId& InPartId,
 	const FString& InAttributeName,
-	const HAPI_AttributeInfo& InAttributeInfo)
+	const HAPI_AttributeInfo& InAttributeInfo,
+	  bool bAttemptRunLengthEncoding)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	if (bAttemptRunLengthEncoding)
+	{
+        TArray<int> RunLengths = RunLengthEncode(InIntData, InAttributeInfo.tupleSize, InAttributeInfo.count);
+        if (RunLengths.Num() != 0)
+        {
+            for (int Index = 0; Index < RunLengths.Num(); Index++)
+            {
+                int StartIndex = RunLengths[Index];
+                int EndIndex = InAttributeInfo.count / InAttributeInfo.tupleSize;
+                if (Index != RunLengths.Num() - 1)
+                    EndIndex = RunLengths[Index + 1];
+
+                const int* TupleValues = &InIntData[StartIndex * InAttributeInfo.tupleSize];
+                HAPI_Result Result = FHoudiniApi::SetAttributeIntUniqueData(
+                    FHoudiniEngine::Get().GetSession(), InNodeId, InPartId,
+                    TCHAR_TO_ANSI(*InAttributeName), &InAttributeInfo, TupleValues, InAttributeInfo.tupleSize,
+                    StartIndex, EndIndex - StartIndex);
+
+                if (Result != HAPI_RESULT_SUCCESS)
+                    return Result;
+            }
+            return HAPI_RESULT_SUCCESS;
+        }
+	}
 
 	HAPI_Result Result = HAPI_RESULT_FAILURE;
 	int32 ChunkSize = THRIFT_MAX_CHUNKSIZE / InAttributeInfo.tupleSize;
@@ -3470,6 +3579,8 @@ FHoudiniEngineUtils::HapiSetAttributeInt8Data(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
@@ -3528,6 +3639,8 @@ FHoudiniEngineUtils::HapiSetAttributeUInt8Data(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
@@ -3571,6 +3684,8 @@ FHoudiniEngineUtils::HapiSetAttributeInt16Data(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	if (InShortData.Num() != InAttributeInfo.count * InAttributeInfo.tupleSize)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
@@ -3586,6 +3701,8 @@ FHoudiniEngineUtils::HapiSetAttributeInt16Data(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
@@ -3668,6 +3785,8 @@ FHoudiniEngineUtils::HapiSetAttributeInt64Data(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
@@ -3798,6 +3917,8 @@ FHoudiniEngineUtils::HapiSetAttributeDoubleData(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
 
@@ -3839,6 +3960,8 @@ FHoudiniEngineUtils::HapiSetVertexList(
 	const HAPI_NodeId& InNodeId,
 	const HAPI_PartId& InPartId)
 {
+    SCOPED_FUNCTION_TIMER();
+
 	int32 ListNum = InVertexListData.Num();
 	if (ListNum < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
@@ -3876,6 +3999,8 @@ FHoudiniEngineUtils::HapiSetFaceCounts(
 	const HAPI_NodeId& InNodeId,
 	const HAPI_PartId& InPartId)
 {
+    SCOPED_FUNCTION_TIMER();
+
 	int32 FaceCountsNum = InFaceCounts.Num();
 	if (FaceCountsNum < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
@@ -3914,13 +4039,38 @@ FHoudiniEngineUtils::HapiSetAttributeStringData(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
-	// Ensure we create an array of the appropriate size
-	TArray<FString> StringArray;
-	StringArray.SetNum(InAttributeInfo.count);
-	for(int n = 0; n < StringArray.Num(); n++)
-		StringArray[n] = InString;
+    return FHoudiniApi::SetAttributeStringUniqueData(
+        FHoudiniEngine::Get().GetSession(),
+        InNodeId,
+        InPartId,
+        TCHAR_TO_ANSI(*InAttributeName),
+        &InAttributeInfo,
+        TCHAR_TO_ANSI(*InString),
+        InAttributeInfo.tupleSize,
+        0,
+        InAttributeInfo.count);
+}
 
-	return HapiSetAttributeStringData(StringArray, InNodeId, InPartId, InAttributeName, InAttributeInfo);
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeStringMap(
+	const FHoudiniEngineIndexedStringMap& InIndexedStringMap,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
+	FHoudiniEngineRawStrings IndexedRawStrings = InIndexedStringMap.GetRawStrings();
+	TArray<int> IndexArray = InIndexedStringMap.GetIds();
+
+	HAPI_Result Result = FHoudiniApi::SetAttributeIndexedStringData(
+	    FHoudiniEngine::Get().GetSession(),
+		InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+		&InAttributeInfo, IndexedRawStrings.RawStrings.GetData(), IndexedRawStrings.RawStrings.Num(), IndexArray.GetData(), 0, IndexArray.Num());
+
+	return Result;
 }
 
 HAPI_Result
@@ -3931,6 +4081,8 @@ FHoudiniEngineUtils::HapiSetAttributeStringData(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo )
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	TArray<const char *> StringDataArray;
 	for (auto CurrentString : InStringArray)
 	{
@@ -3984,6 +4136,8 @@ FHoudiniEngineUtils::HapiSetAttributeStringArrayData(
 	const HAPI_AttributeInfo& InAttributeInfo,
 	const TArray<int>& SizesFixedArray)
 {
+    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
 	TArray<const char*> StringDataArray;
 	for (const auto& CurrentString : InStringArray)
 	{
@@ -4044,6 +4198,8 @@ FHoudiniEngineUtils::HapiSetHeightFieldData(
 	const TArray<float>& InFloatValues,
 	const FString& InHeightfieldName)
 {
+    SCOPED_FUNCTION_TIMER();
+
 	int32 NumValues = InFloatValues.Num();
 	if (NumValues < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
@@ -4089,6 +4245,8 @@ FHoudiniEngineUtils::HapiGetHeightFieldData(
 	const HAPI_PartId& InPartId,
 	TArray<float>& OutFloatValues)
 {
+    SCOPED_FUNCTION_TIMER();
+
 	int32 NumValues = OutFloatValues.Num();
 	if (NumValues < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
