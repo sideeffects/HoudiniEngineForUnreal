@@ -188,7 +188,8 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 		    const TMap<FString, TArray<float>>& ScalarMaterialParameters,
 		    const TMap<FString, TArray<float>>& VectorMaterialParameters,
 			const TMap<FString, FHoudiniEngineIndexedStringMap>& TextureMaterialParameters,
-		    const TOptional<FString> PhysicalMaterial = TOptional<FString>());
+		    const TOptional<FString> PhysicalMaterial = TOptional<FString>(),
+			const TOptional<FMeshNaniteSettings> InNaniteSettings = TOptional<FMeshNaniteSettings>());
 
 	private:
 	    // Gets the simple physical Material path for the static mesh component overrides or,

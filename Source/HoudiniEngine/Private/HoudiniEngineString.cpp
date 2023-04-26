@@ -336,7 +336,11 @@ void FHoudiniEngineRawStrings::CreateRawStrings(const TArray<FString>& Strings)
     {
         const FString& Str = Strings[Id];
 
-        const char* TempString = TCHAR_TO_UTF8(*Str);
+		//const auto Utf8String = StringCast<UTF8CHAR>(*Str);
+		//const char* TempString = (const char*)Utf8String.Get();
+		std::string ConvertedString = TCHAR_TO_UTF8(*Str);
+		const char* TempString = ConvertedString.c_str();
+
         int TempStringLen = strlen(TempString);
         BufferSize += TempStringLen + 1;
     }
@@ -347,7 +351,10 @@ void FHoudiniEngineRawStrings::CreateRawStrings(const TArray<FString>& Strings)
     {
         const FString& Str = Strings[Id];
 
-        const char* TempString = TCHAR_TO_UTF8(*Str);
+		//const auto Utf8String = StringCast<UTF8CHAR>(*Str);
+		//const char* TempString = (const char*)Utf8String.Get();
+		std::string ConvertedString = TCHAR_TO_UTF8(*Str);
+		const char* TempString = ConvertedString.c_str();
 
         RawStrings[Id] = &Buffer[StringStart];
         int TempStringLen = strlen(TempString);

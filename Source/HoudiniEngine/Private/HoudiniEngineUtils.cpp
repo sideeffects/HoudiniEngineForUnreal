@@ -3501,20 +3501,45 @@ FHoudiniEngineUtils::HapiSetAttributeIntData(
 }
 
 HAPI_Result
-FHoudiniEngineUtils::HapiSetAttributeIntData(
+FHoudiniEngineUtils::HapiSetAttributeFloatUniqueData(
+	const float InFloatData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
+	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	HAPI_Result Result = FHoudiniApi::SetAttributeFloatUniqueData(
+		FHoudiniEngine::Get().GetSession(), InNodeId, InPartId,
+		TCHAR_TO_ANSI(*InAttributeName), &InAttributeInfo, &InFloatData, InAttributeInfo.tupleSize,
+		0, InAttributeInfo.count);
+
+	return Result;
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
 	const int32 InIntData,
 	const HAPI_NodeId& InNodeId,
 	const HAPI_PartId& InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
-	// Ensure we create an array of the appropriate size
-	TArray<int32> IntArray;
-	IntArray.SetNum(InAttributeInfo.count);
-	for (int n = 0; n < IntArray.Num(); n++)
-		IntArray[n] = InIntData;
+	SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
 
-	return HapiSetAttributeIntData(IntArray, InNodeId, InPartId, InAttributeName, InAttributeInfo);
+	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	HAPI_Result Result = FHoudiniApi::SetAttributeIntUniqueData(
+		FHoudiniEngine::Get().GetSession(), InNodeId, InPartId,
+		TCHAR_TO_ANSI(*InAttributeName), &InAttributeInfo, &InIntData, InAttributeInfo.tupleSize,
+		0, InAttributeInfo.count);
+
+	return Result;
 }
 
 HAPI_Result
@@ -3524,7 +3549,7 @@ FHoudiniEngineUtils::HapiSetAttributeIntData(
 	const HAPI_PartId& InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo,
-	  bool bAttemptRunLengthEncoding)
+	bool bAttemptRunLengthEncoding)
 {
     SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
 
@@ -7017,7 +7042,7 @@ FHoudiniEngineUtils::AddLandscapeTypeAttribute(
 	if (Result == HAPI_RESULT_SUCCESS )
 	{
 		// Set the attribute's string data
-		Result = FHoudiniEngineUtils::HapiSetAttributeIntData(
+		Result = FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
 			1, InNodeId, InPartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_STREAMING_PROXY, AttributeInfoActorPath);
 	}
 
