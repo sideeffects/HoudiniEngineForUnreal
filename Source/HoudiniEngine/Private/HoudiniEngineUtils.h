@@ -35,6 +35,7 @@
 #include "HoudiniOutput.h"
 #include "HoudiniPackageParams.h"
 #include "Containers/UnrealString.h"
+#include "HoudiniEngineString.h"
 
 class FString;
 class UStaticMesh;
@@ -364,14 +365,16 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const HAPI_NodeId& InNodeId,
 			const HAPI_PartId& InPartId,
 			const FString& InAttributeName,
-			const HAPI_AttributeInfo& InAttributeInfo);
+			const HAPI_AttributeInfo& InAttributeInfo,
+			bool bAttemptRunLengthEncoding = false);
 
 		static HAPI_Result HapiSetAttributeFloatData(
 			const float* InFloatData,
 			const HAPI_NodeId& InNodeId,
 			const HAPI_PartId& InPartId,
 			const FString& InAttributeName,
-			const HAPI_AttributeInfo& InAttributeInfo);
+			const HAPI_AttributeInfo& InAttributeInfo,
+			bool bAttemptRunLengthEncoding = false);
 
 		// Helper function to set Int attribute data
 		// The data will be sent in chunks if too large for thrift
@@ -380,14 +383,16 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const HAPI_NodeId& InNodeId,
 			const HAPI_PartId& InPartId,
 			const FString& InAttributeName,
-			const HAPI_AttributeInfo& InAttributeInfo);
+			const HAPI_AttributeInfo& InAttributeInfo,
+            bool bAttemptRunLengthEncoding = false);
 
 		static HAPI_Result HapiSetAttributeIntData(
 			const int32* InIntData,
 			const HAPI_NodeId& InNodeId,
 			const HAPI_PartId& InPartId,
 			const FString& InAttributeName,
-			const HAPI_AttributeInfo& InAttributeInfo);
+			const HAPI_AttributeInfo& InAttributeInfo,
+            bool bAttemptRunLengthEncoding = false);
 
 		// Helper function to set unsigned Int attribute data
 		// The data will be sent in chunks if too large for thrift
@@ -543,6 +548,13 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// The data will be sent in chunks if too large for thrift
 		static HAPI_Result HapiSetAttributeStringData(
 			const TArray<FString>& InStringArray,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
+		static HAPI_Result HapiSetAttributeStringMap(
+			const FHoudiniEngineIndexedStringMap& InIndexedStringMap,
 			const HAPI_NodeId& InNodeId,
 			const HAPI_PartId& InPartId,
 			const FString& InAttributeName,

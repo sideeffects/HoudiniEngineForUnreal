@@ -38,6 +38,7 @@ class UStaticMeshComponent;
 class UMaterialInterface;
 class UStaticMeshSocket;
 class FUnrealObjectInputHandle;
+class FHoudiniEngineIndexedStringMap;
 
 struct FStaticMeshSourceModel;
 struct FStaticMeshLODResources;
@@ -162,7 +163,7 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 		static void CreateFaceMaterialArray(
 			const TArray<UMaterialInterface* >& Materials,
 			const TArray<int32>& FaceMaterialIndices,
-			TArray<FString>& OutStaticMeshFaceMaterials);
+			FHoudiniEngineIndexedStringMap& OutStaticMeshFaceMaterials);
 
 		// Helper function to extract the array of material names used by a given mesh
 		// Also extracts all scalar/vector/texture parameter in the materials 
@@ -172,20 +173,20 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 		static void CreateFaceMaterialArray(
 			const TArray<UMaterialInterface *>& Materials,
 			const TArray<int32>& FaceMaterialIndices,
-			TArray<FString> & OutStaticMeshFaceMaterials,
+			FHoudiniEngineIndexedStringMap& OutStaticMeshFaceMaterials,
 			TMap<FString, TArray<float>>& OutScalarMaterialParameters,
 			TMap<FString, TArray<float>>& OutVectorMaterialParameters,
-			TMap<FString, TArray<FString>>& OutTextureMaterialParameters);
+			TMap<FString, FHoudiniEngineIndexedStringMap>& OutTextureMaterialParameters);
 
 		// Create and set mesh material attribute and material (scalar, vector and texture) parameters attributes
 		static bool CreateHoudiniMeshAttributes(
 		    const int32& NodeId,
 		    const int32& PartId,
 		    const int32& Count,
-		    const TArray<FString>& TriangleMaterials,
+		    const FHoudiniEngineIndexedStringMap& TriangleMaterials,
 		    const TMap<FString, TArray<float>>& ScalarMaterialParameters,
 		    const TMap<FString, TArray<float>>& VectorMaterialParameters,
-		    const TMap<FString, TArray<FString>>& TextureMaterialParameters,
+			const TMap<FString, FHoudiniEngineIndexedStringMap>& TextureMaterialParameters,
 		    const TOptional<FString> PhysicalMaterial = TOptional<FString>());
 
 	private:

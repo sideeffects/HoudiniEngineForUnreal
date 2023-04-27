@@ -689,12 +689,12 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 		if (NumMaterials > 0)
 		{
 			// List of materials, one for each face.
-			TArray<FString> TriangleMaterials;
+			FHoudiniEngineIndexedStringMap TriangleMaterials;
 
 			//Lists of material parameters
 			TMap<FString, TArray<float>> ScalarMaterialParameters;
 			TMap<FString, TArray<float>> VectorMaterialParameters;
-			TMap<FString, TArray<FString>> TextureMaterialParameters;
+            TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
 
 			bool bAttributeSuccess = false;
 			if (bInExportMaterialParametersAsAttributes)
@@ -717,7 +717,7 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 			bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 				GeometryNodeId,
 				0,
-				TriangleMaterials.Num(),
+				TriangleMaterials.GetIds().Num(),
 				TriangleMaterials,
 				ScalarMaterialParameters,
 				VectorMaterialParameters,
