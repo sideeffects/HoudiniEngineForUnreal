@@ -43,7 +43,7 @@
 #include "MeshAttributes.h"
 #include "StaticMeshAttributes.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-
+#include "HoudiniEngineTimers.h"
 #include "Rendering/SkeletalMeshModel.h"
 
 #include <locale> 
@@ -2198,12 +2198,12 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 		}
 
 		// List of materials, one for each face.
-		TArray<FString> StaticMeshFaceMaterials;
+		FHoudiniEngineIndexedStringMap StaticMeshFaceMaterials;
 
 		//Lists of material parameters
 		TMap<FString, TArray<float>> ScalarMaterialParameters;
 		TMap<FString, TArray<float>> VectorMaterialParameters;
-		TMap<FString, TArray<FString>> TextureMaterialParameters;
+        TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
 
 		bool bAttributeSuccess = false;
 		FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh);
@@ -3001,12 +3001,12 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 		if (NumMaterials > 0)
 		{
 			// List of materials, one for each face.
-			TArray<FString> TriangleMaterials;
+			FHoudiniEngineIndexedStringMap TriangleMaterials;
 
 			//Lists of material parameters
 			TMap<FString, TArray<float>> ScalarMaterialParameters;
 			TMap<FString, TArray<float>> VectorMaterialParameters;
-			TMap<FString, TArray<FString>> TextureMaterialParameters;
+            TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
 
 			bool bAttributeSuccess = false;
 			FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh);
@@ -3030,7 +3030,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 			bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 				NodeId,
 				0,
-				TriangleMaterials.Num(),
+				TriangleMaterials.GetIds().Num(),
 				TriangleMaterials,
 				ScalarMaterialParameters,
 				VectorMaterialParameters,
@@ -3297,6 +3297,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	UStaticMesh* StaticMesh,
 	UStaticMeshComponent* StaticMeshComponent)
 {
+    SCOPED_FUNCTION_TIMER();
+
 	// Convert the Mesh using FMeshDescription
 	// Get references to the attributes we are interested in
 	// before sending to Houdini we'll check if each attribute is valid
@@ -3897,12 +3899,12 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		if (NumMaterials > 0)
 		{
 			// List of materials, one for each face.
-			TArray<FString> TriangleMaterials;
+			FHoudiniEngineIndexedStringMap TriangleMaterials;
 
 			//Lists of material parameters
 			TMap<FString, TArray<float>> ScalarMaterialParameters;
 			TMap<FString, TArray<float>> VectorMaterialParameters;
-			TMap<FString, TArray<FString>> TextureMaterialParameters;
+            TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
 
 			bool bAttributeSuccess = false;
 			if (bInExportMaterialParametersAsAttributes)
@@ -3925,7 +3927,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 				NodeId,
 				0,
-				TriangleMaterials.Num(),
+				TriangleMaterials.GetIds().Num(),
 				TriangleMaterials,
 				ScalarMaterialParameters,
 				VectorMaterialParameters,
@@ -4030,6 +4032,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	// INPUT SOURCE FILE
 	//---------------------------------------------------------------------------------------------------------------------
 	{
+        SCOPED_FUNCTION_LABELLED_TIMER(HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE);
+
 		// Create primitive attribute with mesh asset path
 		FString Filename;
 		if (UAssetImportData* ImportData = StaticMesh->AssetImportData)
@@ -4171,7 +4175,7 @@ void
 FUnrealMeshTranslator::CreateFaceMaterialArray(
 	const TArray<UMaterialInterface* >& Materials,
 	const TArray<int32>& FaceMaterialIndices,
-	TArray<FString>& OutStaticMeshFaceMaterials)
+	FHoudiniEngineIndexedStringMap& OutStaticMeshFaceMaterials)
 {	
 	// Get the default material
 	UMaterialInterface * DefaultMaterialInterface = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
@@ -4221,11 +4225,11 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 		int32 FaceMaterialIdx = FaceMaterialIndices[FaceIdx];
 		if (PerSlotMaterialList.IsValidIndex(FaceMaterialIdx))
 		{
-			OutStaticMeshFaceMaterials.Add(PerSlotMaterialList[FaceMaterialIdx]);
+			OutStaticMeshFaceMaterials.SetString(FaceIdx, PerSlotMaterialList[FaceMaterialIdx]);
 		}
 		else
 		{
-			OutStaticMeshFaceMaterials.Add(DefaultMaterialName);
+			OutStaticMeshFaceMaterials.SetString(FaceIdx, DefaultMaterialName);
 		}
 	}
 }
@@ -4235,11 +4239,13 @@ void
 FUnrealMeshTranslator::CreateFaceMaterialArray(
 	const TArray<UMaterialInterface* >& Materials,
 	const TArray<int32>& FaceMaterialIndices,
-	TArray<FString>& OutStaticMeshFaceMaterials,
+	FHoudiniEngineIndexedStringMap& OutStaticMeshFaceMaterials,
 	TMap<FString, TArray<float>> & OutScalarMaterialParameters,
 	TMap<FString, TArray<float>> & OutVectorMaterialParameters,
-	TMap<FString, TArray<FString>> & OutTextureMaterialParameters)
+    TMap<FString, FHoudiniEngineIndexedStringMap>& OutTextureMaterialParameters)
 {
+    SCOPED_FUNCTION_TIMER();
+
 	// Get the default material
 	UMaterialInterface* DefaultMaterialInterface = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
 	FString DefaultMaterialName = DefaultMaterialInterface ? DefaultMaterialInterface->GetPathName() : TEXT("default");
@@ -4372,6 +4378,8 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 		}
 	}
 
+	OutStaticMeshFaceMaterials.Reset(FaceMaterialIndices.Num());
+
 	// TODO: Needs to be improved!
 	// We shouldnt be testing for each face, but only for each unique facematerial value...
 	for (int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx)
@@ -4379,7 +4387,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 		int32 FaceMaterialIdx = FaceMaterialIndices[FaceIdx];
 		if(PerSlotMaterialList.IsValidIndex(FaceMaterialIdx))
 		{
-			OutStaticMeshFaceMaterials.Add(PerSlotMaterialList[FaceMaterialIdx]);
+			OutStaticMeshFaceMaterials.SetString(FaceIdx, PerSlotMaterialList[FaceMaterialIdx]);
 
 			for (auto & Pair : ScalarParams)
 			{
@@ -4396,12 +4404,12 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 
 			for (auto & Pair : TextureParams)
 			{
-				OutTextureMaterialParameters[Pair.Key].Add(Pair.Value[FaceMaterialIdx]);
+                OutTextureMaterialParameters[Pair.Key].SetString(FaceIdx, Pair.Value[FaceMaterialIdx]);
 			}
 		}
 		else
 		{
-			OutStaticMeshFaceMaterials.Add(DefaultMaterialName);
+			OutStaticMeshFaceMaterials.SetString(FaceIdx, DefaultMaterialName);
 		}
 	}
 }
@@ -4931,12 +4939,14 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	const int32 & NodeId,
 	const int32 & PartId,
 	const int32 & Count,
-	const TArray<FString> & TriangleMaterials,
+	const FHoudiniEngineIndexedStringMap& TriangleMaterials,
 	const TMap<FString, TArray<float>>& ScalarMaterialParameters,
 	const TMap<FString, TArray<float>>& VectorMaterialParameters,
-	const TMap<FString, TArray<FString>>& TextureMaterialParameters,
+    const TMap<FString, FHoudiniEngineIndexedStringMap>& TextureMaterialParameters,
     const TOptional<FString> PhysicalMaterial)
 {
+    SCOPED_FUNCTION_TIMER();
+
 	if (NodeId < 0)
 		return false;
 
@@ -4959,7 +4969,7 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	{
 
 		// The New attribute has been successfully created, set its value
-		if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeStringData(
+		if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeStringMap(
 			TriangleMaterials, NodeId, PartId, HAPI_UNREAL_ATTRIB_MATERIAL, AttributeInfoMaterial))
 		{
 			bSuccess = false;
@@ -5041,13 +5051,15 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		AttributeInfoMaterialParameter.storage = HAPI_STORAGETYPE_STRING;
 		AttributeInfoMaterialParameter.originalOwner = HAPI_ATTROWNER_INVALID;
 
+		const FHoudiniEngineIndexedStringMap & StringMap = Pair.Value;
 		// Create the new attribute
 		if (HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
 			NodeId, PartId, TCHAR_TO_ANSI(*CurMaterialParamAttribName), &AttributeInfoMaterialParameter))
 		{
 			// The New attribute has been successfully created, set its value
-			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeStringData(				
-				Pair.Value, NodeId, PartId, CurMaterialParamAttribName, AttributeInfoMaterialParameter))
+            if (HAPI_RESULT_SUCCESS
+                != FHoudiniEngineUtils::HapiSetAttributeStringMap(				
+				StringMap, NodeId, PartId, CurMaterialParamAttribName, AttributeInfoMaterialParameter))
 			{
 				bSuccess = false;
 			}
