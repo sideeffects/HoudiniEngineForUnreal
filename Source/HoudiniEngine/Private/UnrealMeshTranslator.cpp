@@ -2269,17 +2269,12 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 	// LIGHTMAP RESOLUTION
 	//---------------------------------------------------------------------------------------------------------------------
 
-	// TODO:
-	// Fetch default lightmap res from settings...
-	int32 GeneratedLightMapResolution = 32;
-	if (StaticMesh->GetLightMapResolution() != GeneratedLightMapResolution)
 	{
-		TArray< int32 > LightMapResolutions;
-		LightMapResolutions.Add(StaticMesh->GetLightMapResolution());
+		int32 LightMapResolution= StaticMesh->GetLightMapResolution();
 
 		HAPI_AttributeInfo AttributeInfoLightMapResolution;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoLightMapResolution);
-		AttributeInfoLightMapResolution.count = LightMapResolutions.Num();
+		AttributeInfoLightMapResolution.count = 1;
 		AttributeInfoLightMapResolution.tupleSize = 1;
 		AttributeInfoLightMapResolution.exists = true;
 		AttributeInfoLightMapResolution.owner = HAPI_ATTROWNER_DETAIL;
@@ -2290,8 +2285,8 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, &AttributeInfoLightMapResolution), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
-			LightMapResolutions, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+			LightMapResolution, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -3029,7 +3024,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				FUnrealMeshTranslator::CreateFaceMaterialArray(
 					MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials);
 			}
-
+						
 			// Create all the needed attributes for materials
 			bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 				NodeId,
@@ -3081,18 +3076,12 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// LIGHTMAP RESOLUTION
 	//---------------------------------------------------------------------------------------------------------------------
-
-	// TODO:
-	// Fetch default lightmap res from settings...
-	int32 GeneratedLightMapResolution = 32;
-	if (StaticMesh->GetLightMapResolution() != GeneratedLightMapResolution)
 	{
-		TArray< int32 > LightMapResolutions;
-		LightMapResolutions.Add(StaticMesh->GetLightMapResolution());
+		int32 LightMapResolution = StaticMesh->GetLightMapResolution();
 
 		HAPI_AttributeInfo AttributeInfoLightMapResolution;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoLightMapResolution);
-		AttributeInfoLightMapResolution.count = LightMapResolutions.Num();
+		AttributeInfoLightMapResolution.count = 1;
 		AttributeInfoLightMapResolution.tupleSize = 1;
 		AttributeInfoLightMapResolution.exists = true;
 		AttributeInfoLightMapResolution.owner = HAPI_ATTROWNER_DETAIL;
@@ -3103,8 +3092,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, &AttributeInfoLightMapResolution), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
-			LightMapResolutions, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+			LightMapResolution, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -3985,18 +3974,12 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// LIGHTMAP RESOLUTION
 	//---------------------------------------------------------------------------------------------------------------------
-
-	// TODO:
-	// Fetch default lightmap res from settings...
-	int32 GeneratedLightMapResolution = 32;	
-	if (StaticMesh->GetLightMapResolution() != GeneratedLightMapResolution)
 	{
-		TArray<int32> LightMapResolutions;
-		LightMapResolutions.Add(StaticMesh->GetLightMapResolution());
+		int32 LightMapResolution = StaticMesh->GetLightMapResolution();
 
 		HAPI_AttributeInfo AttributeInfoLightMapResolution;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoLightMapResolution);
-		AttributeInfoLightMapResolution.count = LightMapResolutions.Num();
+		AttributeInfoLightMapResolution.count = 1;
 		AttributeInfoLightMapResolution.tupleSize = 1;
 		AttributeInfoLightMapResolution.exists = true;
 		AttributeInfoLightMapResolution.owner = HAPI_ATTROWNER_DETAIL;
@@ -4007,8 +3990,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, &AttributeInfoLightMapResolution), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
-			LightMapResolutions, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+			LightMapResolution, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -4974,7 +4957,6 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		FHoudiniEngine::Get().GetSession(),
 		NodeId, PartId, HAPI_UNREAL_ATTRIB_MATERIAL, &AttributeInfoMaterial))
 	{
-
 		// The New attribute has been successfully created, set its value
 		if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeStringMap(
 			TriangleMaterials, NodeId, PartId, HAPI_UNREAL_ATTRIB_MATERIAL, AttributeInfoMaterial))
@@ -5073,7 +5055,7 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		}
 	}
 
-    if (PhysicalMaterial.IsSet())
+    if (PhysicalMaterial.IsSet() && !PhysicalMaterial->IsEmpty())
     {
 		// Create attribute for physical materials.
 		HAPI_AttributeInfo AttributeInfoPhysicalMaterial;
@@ -5097,7 +5079,7 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 			bSuccess = false;
 		    }
 		}
-    }
+	}
 
 	return bSuccess;
 }
