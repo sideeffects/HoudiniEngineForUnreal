@@ -3402,7 +3402,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForBrush(
 	UHoudiniInputBrush* InObject,
 	TArray<AActor*>* ExcludeActors,
 	bool bExportMaterialParameters,
-	const bool &bInputNodesCanBeDeleted)
+	const bool& bInputNodesCanBeDeleted)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -3411,24 +3411,19 @@ FHoudiniInputTranslator::HapiCreateInputNodeForBrush(
 	if (!IsValid(BrushActor))
 		return true;
 
-	const bool bUseRefCountedInputSystem = false;// FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
-	FUnrealObjectInputHandle InputNodeHandle;
-	HAPI_NodeId CreatedNodeId = InObject->InputNodeId;
 	FString BrushName = InObjNodeName + TEXT("_") + BrushActor->GetName();
+	FUnrealObjectInputHandle InputNodeHandle;
+	
+	HAPI_NodeId InputNodeId = InObject->InputNodeId;
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
 
-
-	if (!FUnrealBrushTranslator::CreateInputNodeForBrush(InObject, BrushActor, ExcludeActors, CreatedNodeId, BrushName, bExportMaterialParameters, InputNodeHandle))
+	if (!FUnrealBrushTranslator::CreateInputNodeForBrush(InObject, BrushActor, ExcludeActors, InputNodeId, BrushName, bExportMaterialParameters, InputNodeHandle, bInputNodesCanBeDeleted))
 		return false;
 
-	InObject->InputNodeId = CreatedNodeId;
-	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CreatedNodeId);
-	
-	InObject->MarkChanged(true);
-	InObject->Update(BrushActor);
-
+	InObject->InputNodeHandle = InputNodeHandle;
 	if (bUseRefCountedInputSystem)
 	{
-		constexpr HAPI_NodeId ParentNodeId = -1;
+		HAPI_NodeId ParentNodeId = -1;
 		constexpr bool bCreateIfMissingInvalid = true;
 		HAPI_NodeId BrushNodeId = -1;
 		if (!FHoudiniEngineUtils::GetHAPINodeId(InputNodeHandle, BrushNodeId))
@@ -3442,9 +3437,18 @@ FHoudiniInputTranslator::HapiCreateInputNodeForBrush(
 			InObject->InputObjectNodeId,
 			bCreateIfMissingInvalid,
 			InObject->Transform))
+		{
 			return false;
+		}
 	}
-	else {
+	else
+	{
+		InObject->InputNodeId = (int32)InputNodeId;
+		InObject->InputObjectNodeId = (int32)FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
+
+		InObject->MarkChanged(true);
+		InObject->Update(BrushActor);
+
 		if (!HapiSetGeoObjectTransform(InObject->InputObjectNodeId, InObject->Transform))
 			return false;
 	}
