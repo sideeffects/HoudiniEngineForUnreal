@@ -970,10 +970,8 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
                         FHoudiniEngine::Get().GetSession(),
                         GeoId, PartId, AttributeName, &AttributeInfo), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntUniqueData(
-                        FHoudiniEngine::Get().GetSession(),
-                        GeoId, PartId, AttributeName, &AttributeInfo,
-                        ImplicitTypeValue, 0, AttributeData.Num()), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+			ImplicitTypeValue, GeoId, PartId, AttributeName, &AttributeInfo), false);
 	}
 
 	// Collisions - Min Level Set Resolution
