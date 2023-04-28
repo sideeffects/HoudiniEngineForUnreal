@@ -971,7 +971,7 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
                         GeoId, PartId, AttributeName, &AttributeInfo), false);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
-			ImplicitTypeValue, GeoId, PartId, AttributeName, &AttributeInfo), false);
+			ImplicitTypeValue, GeoId, PartId, AttributeName, AttributeInfo), false);
 	}
 
 	// Collisions - Min Level Set Resolution
