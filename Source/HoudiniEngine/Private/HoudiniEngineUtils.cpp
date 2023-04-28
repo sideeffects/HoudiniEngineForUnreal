@@ -3461,13 +3461,55 @@ FHoudiniEngineUtils::HapiSetAttributeIntData(
 }
 
 HAPI_Result
-FHoudiniEngineUtils::HapiSetAttributeIntData(	
+FHoudiniEngineUtils::HapiSetAttributeFloatUniqueData(
+	const float InFloatData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
+	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	HAPI_Result Result = FHoudiniApi::SetAttributeFloatUniqueData(
+		FHoudiniEngine::Get().GetSession(), InNodeId, InPartId,
+		TCHAR_TO_ANSI(*InAttributeName), &InAttributeInfo, &InFloatData, InAttributeInfo.tupleSize,
+		0, InAttributeInfo.count);
+
+	return Result;
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+	const int32 InIntData,
+	const HAPI_NodeId& InNodeId,
+	const HAPI_PartId& InPartId,
+	const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
+	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
+		return HAPI_RESULT_INVALID_ARGUMENT;
+
+	HAPI_Result Result = FHoudiniApi::SetAttributeIntUniqueData(
+		FHoudiniEngine::Get().GetSession(), InNodeId, InPartId,
+		TCHAR_TO_ANSI(*InAttributeName), &InAttributeInfo, &InIntData, InAttributeInfo.tupleSize,
+		0, InAttributeInfo.count);
+
+	return Result;
+}
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeIntData(
 	const int32* InIntData,
 	const HAPI_NodeId& InNodeId,
 	const HAPI_PartId& InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo,
-	  bool bAttemptRunLengthEncoding)
+	bool bAttemptRunLengthEncoding)
 {
     SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
 
