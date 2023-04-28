@@ -772,11 +772,6 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 		}
 
 		{
-			TArray<int32> GCPieceAttribute;
-			GCPieceAttribute.SetNumUninitialized(Part.faceCount);
-			for (int32 n = 0; n < GCPieceAttribute.Num(); n++)
-				GCPieceAttribute[n] = Level;
-			
 			HAPI_AttributeInfo AttributeInfoPrim;
 			FHoudiniApi::AttributeInfo_Init(&AttributeInfoPrim);
 
@@ -791,8 +786,8 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 				FHoudiniEngine::Get().GetSession(), 
 				GeometryNodeId,	0, HAPI_UNREAL_ATTRIB_GC_PIECE, &AttributeInfoPrim), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
-				GCPieceAttribute, GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_GC_PIECE, AttributeInfoPrim), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+				Level, GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_GC_PIECE, AttributeInfoPrim), false);
 		}
 
 		// Identify the cluster level using the parent indices:
@@ -824,12 +819,7 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 		}
 
 		// Add the unreal_gc_cluster attribute
-		{
-			TArray<int32> GCClusterAttribute;
-			GCClusterAttribute.SetNumUninitialized(Part.faceCount);
-			for (int32 n = 0; n < GCClusterAttribute.Num(); n++)
-				GCClusterAttribute[n] = ClusterIndex;
-			
+		{	
 			HAPI_AttributeInfo AttributeInfoPrim;
 			FHoudiniApi::AttributeInfo_Init(&AttributeInfoPrim);
 
@@ -844,8 +834,8 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 				FHoudiniEngine::Get().GetSession(), 
 				GeometryNodeId,	0, HAPI_UNREAL_ATTRIB_GC_CLUSTER_PIECE, &AttributeInfoPrim), false);
 
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
-				GCClusterAttribute, GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_GC_CLUSTER_PIECE, AttributeInfoPrim), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+				ClusterIndex, GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_GC_CLUSTER_PIECE, AttributeInfoPrim), false);
 		}
 		
 
@@ -964,9 +954,7 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 		{
 			ImplicitTypeValue = static_cast<int32>(GeometryCollectionObject->ImplicitType) + 1; // + 1 because 0 = None.
 		}
-		
-		TArray< int32 > AttributeData { ImplicitTypeValue};
-		
+
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 		AttributeInfo.count = 1;
@@ -982,10 +970,10 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
                         FHoudiniEngine::Get().GetSession(),
                         GeoId, PartId, AttributeName, &AttributeInfo), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntUniqueData(
                         FHoudiniEngine::Get().GetSession(),
                         GeoId, PartId, AttributeName, &AttributeInfo,
-                        (const int32 *)AttributeData.GetData(), 0, AttributeData.Num()), false);
+                        ImplicitTypeValue, 0, AttributeData.Num()), false);
 	}
 
 	// Collisions - Min Level Set Resolution
@@ -1015,8 +1003,6 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 
 	// Collisions - Max Level Set Resolution
 	{
-		TArray< int32 > AttributeData { static_cast<int32>(GeometryCollectionObject->MaxLevelSetResolution) };
-		
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 		AttributeInfo.count = 1;
@@ -1032,8 +1018,8 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
                         FHoudiniEngine::Get().GetSession(),
                         GeoId, PartId, AttributeName, &AttributeInfo), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
-			AttributeData, GeoId, PartId, AttributeName, AttributeInfo), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+			GeometryCollectionObject->MaxLevelSetResolution, GeoId, PartId, AttributeName, AttributeInfo), false);
 	}
 	
 	// Collisions - Min cluster level set resolution
@@ -1113,7 +1099,7 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 
 	// Collisions - Mass as density
 	{
-		TArray< int32 > AttributeData { GeometryCollectionObject->bMassAsDensity == true ? 1 : 0 };
+		int32 MassAsDensity = GeometryCollectionObject->bMassAsDensity == true ? 1 : 0;
 		
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
@@ -1130,14 +1116,12 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
                         FHoudiniEngine::Get().GetSession(),
                         GeoId, PartId, AttributeName, &AttributeInfo), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
-			AttributeData, GeoId, PartId, AttributeName, AttributeInfo), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+			MassAsDensity, GeoId, PartId, AttributeName, AttributeInfo), false);
 	}
 
 	// Collisions - Mass
 	{
-		TArray< float > AttributeData { GeometryCollectionObject->Mass };
-		
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 		AttributeInfo.count = 1;
@@ -1153,14 +1137,12 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
                         FHoudiniEngine::Get().GetSession(),
                         GeoId, PartId, AttributeName, &AttributeInfo), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-			AttributeData, GeoId, PartId, AttributeName, AttributeInfo), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatUniqueData(
+			GeometryCollectionObject->Mass, GeoId, PartId, AttributeName, AttributeInfo), false);
 	}
 
 	// Collisions - Minimum Mass Clamp
-	{
-		TArray< float > AttributeData { GeometryCollectionObject->MinimumMassClamp };
-		
+	{	
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 		AttributeInfo.count = 1;
@@ -1176,8 +1158,8 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
                         FHoudiniEngine::Get().GetSession(),
                         GeoId, PartId, AttributeName, &AttributeInfo), false);
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-			AttributeData, GeoId, PartId, AttributeName, AttributeInfo), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatUniqueData(
+			GeometryCollectionObject->MinimumMassClamp, GeoId, PartId, AttributeName, AttributeInfo), false);
 	}
 
 	// Collisions - Collision particles fraction
