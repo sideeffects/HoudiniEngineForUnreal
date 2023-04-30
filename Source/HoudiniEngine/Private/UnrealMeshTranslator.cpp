@@ -2268,7 +2268,7 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 	//---------------------------------------------------------------------------------------------------------------------
 
 	{
-		int32 LightMapResolution= StaticMesh->GetLightMapResolution();
+		int32 LightMapResolution= StaticMesh->LightMapResolution;
 
 		HAPI_AttributeInfo AttributeInfoLightMapResolution;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoLightMapResolution);
@@ -3073,7 +3073,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	// LIGHTMAP RESOLUTION
 	//---------------------------------------------------------------------------------------------------------------------
 	{
-		int32 LightMapResolution = StaticMesh->GetLightMapResolution();
+		int32 LightMapResolution = StaticMesh->LightMapResolution;
 
 		HAPI_AttributeInfo AttributeInfoLightMapResolution;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoLightMapResolution);
@@ -3968,7 +3968,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	// LIGHTMAP RESOLUTION
 	//---------------------------------------------------------------------------------------------------------------------
 	{
-		int32 LightMapResolution = StaticMesh->GetLightMapResolution();
+		int32 LightMapResolution = StaticMesh->LightMapResolution;
 
 		HAPI_AttributeInfo AttributeInfoLightMapResolution;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoLightMapResolution);
