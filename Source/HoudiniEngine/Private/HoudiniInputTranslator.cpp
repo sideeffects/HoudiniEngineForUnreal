@@ -1528,7 +1528,7 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		{
 			UHoudiniInputDataTable* InputDT = Cast<UHoudiniInputDataTable>(InInputObject);
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(
-				ObjBaseName, InputDT, bInputNodesCanBeDeleted);
+				ObjBaseName, InputDT);
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -3448,20 +3448,14 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(
 		return true;
 	
 	FString DataTableName = InNodeName + TEXT("_") + DataTable->GetName();
-	FUnrealObjectInputHandle InputNodeHandle;
 	HAPI_NodeId InputNodeId = InInputObject->InputNodeId;
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
 
-	if (!FUnrealDataTableTranslator::CreateInputNodeForDataTable(DataTable, InputNodeId, DataTableName, InputNodeHandle, bInputNodesCanBeDeleted))
+	if (!FUnrealDataTableTranslator::CreateInputNodeForDataTable(DataTable, InputNodeId, DataTableName, bInputNodesCanBeDeleted))
 		return false;
-
-	InInputObject->InputNodeHandle = InputNodeHandle;
 
 	// Update this input object's NodeId and ObjectNodeId
 	InInputObject->InputNodeId = (int32)InputNodeId;
 	InInputObject->InputObjectNodeId = (int32)FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
-	if (!HapiSetGeoObjectTransform(InInputObject->InputObjectNodeId, InInputObject->Transform))
-		return false;
 
 	/*
 	// Commit the geo.

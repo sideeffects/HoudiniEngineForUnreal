@@ -34,7 +34,6 @@
 #include "HoudiniInputObject.h"
 
 #include "HoudiniEngineRuntimeUtils.h"
-#include "UnrealObjectInputRuntimeTypes.h"
 
 #include "Engine/DataTable.h"
 
@@ -102,7 +101,6 @@ FUnrealDataTableTranslator::CreateInputNodeForDataTable(
         UDataTable* DataTable,
         HAPI_NodeId& InputNodeId,
         const FString& InputNodeName,
-        FUnrealObjectInputHandle& OutHandle,
         const bool& bInputNodesCanBeDeleted)
 {	
 	const UScriptStruct* ScriptStruct = DataTable->GetRowStruct();

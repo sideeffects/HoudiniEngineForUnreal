@@ -30,7 +30,6 @@
 #include "UObject/NameTypes.h"
 
 class UDataTable;
-class FUnrealObjectInputHandle;
 
 struct HOUDINIENGINE_API FUnrealDataTableTranslator
 {
@@ -39,6 +38,5 @@ public:
             UDataTable* DataTable,
             HAPI_NodeId& InputNodeId,
             const FString& InputNodeName,
-            FUnrealObjectInputHandle& OutHandle,
             const bool& bInputNodesCanBeDeleted = true);
 };
