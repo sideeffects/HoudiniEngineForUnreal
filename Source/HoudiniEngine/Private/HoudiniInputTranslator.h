@@ -246,7 +246,9 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		bool bExportMaterialParameters);
 
 	static bool HapiCreateInputNodeForDataTable(
-		const FString& InNodeName, UHoudiniInputDataTable* InInputObject);
+		const FString& InNodeName,
+		UHoudiniInputDataTable* InInputObject,
+		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 		const FString& InObjNodeName,
