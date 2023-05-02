@@ -486,23 +486,12 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 	// Handle Component Tags manually here
 	if (PropertyName.Contains("Tags"))
 	{
-		TArray<FName>* FoundTags = nullptr;
-		// Get the componentTags array
-		UActorComponent* AC = Cast<UActorComponent>(InObject);
-		if (IsValid(AC))
+		// lambda to set the tag values
+		auto SetTags = [InPropertyAttribute, AtIndex](TArray<FName>* FoundTags)
 		{
-			FoundTags = &(AC->ComponentTags);
-		}
+			if (FoundTags == nullptr)
+				return false;
 
-		// If this is a Landscape, get its Tags array
-		ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(InObject);
-		if (IsValid(Landscape))
-		{
-			FoundTags = &(Landscape->Tags);
-		}
-
-		if (FoundTags != nullptr)
-		{
 			FName NameAttr = FName(*InPropertyAttribute.GetStringValue(AtIndex));
 			if (!FoundTags->Contains(NameAttr))
 				FoundTags->Add(NameAttr);
@@ -515,10 +504,44 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 			}
 			*/
 			return true;
+		};
+
+		// Get the componentTags array
+		UActorComponent* AC = Cast<UActorComponent>(InObject);
+		if (IsValid(AC))
+		{
+			// Try to set component tags
+			return SetTags(&(AC->ComponentTags));
 		}
+
+		// If this is an Actor, get its Tags array
+		AActor* Actor = Cast<AActor>(InObject);
+		if (IsValid(Actor))
+		{
+			// On actors, if Components tags weren't specified, just try to set the actor's tag
+			if (!PropertyName.Contains("ComponentTags"))
+			{
+				return SetTags(&(Actor->Tags));
+			}
+			else
+			{
+				//  ComponentTags were specifically asked, try to set them on all actor component of this actors
+				bool bSuccess = false;
+				for (auto& CurrentComponent : Actor->GetComponents())
+				{
+					if (!IsValid(CurrentComponent))
+						continue;
+
+					bSuccess &= SetTags(&(CurrentComponent->ComponentTags));
+				}
+
+				return bSuccess;
+			}
+		}		
 
 		return false;
 	}
+
 #if WITH_EDITOR
 	// Handle landscape edit layers toggling
 	if (PropertyName.Equals("EnableEditLayers", ESearchCase::IgnoreCase) 
