@@ -313,6 +313,15 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bImportAsReferenceMaterialEnabled = false,
 		const bool& bInputNodesCanBeDeleted = true);
 
+	// Import as reference, wrapper function
+	static bool HapiCreateInputNodeForReference(
+		const FString& InObjNodeName,
+		UHoudiniInputObject* InObject,
+		const bool& bImportAsReferenceRotScaleEnabled = false,
+		const bool& bImportAsReferenceBboxEnabled = false,
+		const bool& bImportAsReferenceMaterialEnabled = false,
+		const bool& bInputNodesCanBeDeleted = true);
+
 	// HAPI: Create an input node for reference
 	static bool CreateInputNodeForReference(
 		const HAPI_NodeId InParentNodeId,
