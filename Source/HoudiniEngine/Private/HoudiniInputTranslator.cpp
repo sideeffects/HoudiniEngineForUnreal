@@ -1606,7 +1606,8 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 				ObjBaseName,
 				InputLandscape,
-				InInput);
+				InInput,
+				bInputNodesCanBeDeleted);
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -3424,7 +3425,8 @@ bool
 FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 	const FString& InObjNodeName,
 	UHoudiniInputLandscape* InObject,
-	UHoudiniInput* InInput)
+	UHoudiniInput* InInput,
+	const bool& bInputNodesCanBeDeleted)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -3436,55 +3438,48 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 	if (!IsValid(Landscape))
 		return true;
 
-	EHoudiniLandscapeExportType ExportType = InInput->GetLandscapeExportType();
+	FString LandscapeName = InObjNodeName + TEXT("_") + Landscape->GetActorLabel();
+	FUnrealObjectInputHandle InputNodeHandle;
+	HAPI_NodeId InputNodeId = InObject->InputNodeId;
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
 
-	// Get selected components if bLandscapeExportSelectionOnly or bLandscapeAutoSelectComponent is true
-	bool bExportSelectionOnly = InInput->bLandscapeExportSelectionOnly;
-	bool bLandscapeAutoSelectComponent = InInput->bLandscapeAutoSelectComponent;
+	if (!FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
+		Landscape, InInput, InputNodeId, LandscapeName, InputNodeHandle, bInputNodesCanBeDeleted))
+		return false;
 
-	TSet<ULandscapeComponent *> SelectedComponents = InInput->GetLandscapeSelectedComponents();
-	if (bExportSelectionOnly && SelectedComponents.Num() == 0)
+	InObject->InputNodeHandle = InputNodeHandle;
+	if (bUseRefCountedInputSystem)
 	{
-		InInput->UpdateLandscapeInputSelection();
-		SelectedComponents = InInput->GetLandscapeSelectedComponents();
-	}
-	
-	bool bSucess = false;
-	if (ExportType == EHoudiniLandscapeExportType::Heightfield)
-	{
-		// Ensure we destroy any (Houdini) input nodes before clobbering this object with a new heightfield.
-		//DestroyInputNodes(InInput, InInput->GetInputType());
-		
-		int32 NumComponents = Landscape->LandscapeComponents.Num();
-		if ( !bExportSelectionOnly || ( SelectedComponents.Num() == NumComponents ) )
+		HAPI_NodeId ParentNodeId = -1;
+		bool bCreateIfMissingInvalid = true;
+		HAPI_NodeId LandscapeNodeId = -1;
+
+		if (!FHoudiniEngineUtils::GetHAPINodeId(InputNodeHandle, LandscapeNodeId))
+			return false;
+
+		if (!HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
+			ParentNodeId,
+			LandscapeNodeId,
+			LandscapeName,
+			InObject->InputNodeId,
+			InObject->InputObjectNodeId,
+			bCreateIfMissingInvalid,
+			InObject->Transform))
 		{
-			// Export the whole landscape and its layer as a single heightfield node
-			bSucess = FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(Landscape, InObject->InputNodeId, InObjNodeName);
-		}
-		else
-		{
-			// Each selected landscape component will be exported as separate volumes in a single heightfield
-			bSucess = FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponentArray( Landscape, SelectedComponents, InObject->InputNodeId, InObjNodeName );
+			return false;
 		}
 	}
 	else
 	{
-		bool bExportLighting = InInput->bLandscapeExportLighting;
-		bool bExportMaterials = InInput->bLandscapeExportMaterials;
-		bool bExportNormalizedUVs = InInput->bLandscapeExportNormalizedUVs;
-		bool bExportTileUVs = InInput->bLandscapeExportTileUVs;
-		bool bExportAsMesh = InInput->LandscapeExportType == EHoudiniLandscapeExportType::Mesh;
+		InObject->InputNodeId = (int32)InputNodeId;
+		InObject->InputObjectNodeId = (int32)FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
+		InObject->Update(Landscape);
 
-		bSucess = FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
-			Landscape, InObject->InputNodeId, InObjNodeName,
-			bExportAsMesh, bExportTileUVs, bExportNormalizedUVs, bExportLighting, bExportMaterials);
+		if (!HapiSetGeoObjectTransform(InObject->InputNodeId, InObject->Transform))
+			return false;
 	}
 
-	// Update this input object's OBJ NodeId
-	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
-	InObject->Update(Landscape);
-
-	return bSucess;
+	return true;
 }
 
 

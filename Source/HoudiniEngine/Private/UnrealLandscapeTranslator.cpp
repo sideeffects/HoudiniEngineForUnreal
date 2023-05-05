@@ -31,6 +31,7 @@
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniInput.h"
 
 #include "UnrealLandscapeTranslator.h"
 #include "HoudiniGeoPartObject.h"
@@ -43,6 +44,9 @@
 #include "Engine/MapBuildDataRegistry.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 
+#include "UnrealObjectInputRuntimeTypes.h"
+#include "HoudiniEngineRuntimeUtils.h"
+
 
 bool 
 FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
@@ -53,17 +57,19 @@ FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
 	const bool bExportTileUVs,
 	const bool bExportNormalizedUVs,
 	const bool bExportLighting,
-	const bool bExportMaterials	)
+	const bool bExportMaterials,
+	const HAPI_NodeId& ParentNodeId)
 {
 	//--------------------------------------------------------------------------------------------------
 	// 1. Create an input node
-    //--------------------------------------------------------------------------------------------------
+	//--------------------------------------------------------------------------------------------------
 	HAPI_NodeId InputNodeId = -1;
 	// Create the curve SOP Node
-	std::string NodeNameRawString;
-	FHoudiniEngineUtils::ConvertUnrealString(InputNodeNameString, NodeNameRawString);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputNode(
-		FHoudiniEngine::Get().GetSession(), &InputNodeId, NodeNameRawString.c_str()), false);
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	if (bUseRefCountedInputSystem)
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ParentNodeId, TEXT("null"), InputNodeNameString, true, &InputNodeId), false);
+	else
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateInputNode(InputNodeNameString, InputNodeId, ParentNodeId), false);
 
 	// Check if we have a valid id for this new input asset.
 	if (!FHoudiniEngineUtils::IsHoudiniNodeValid(InputNodeId))
@@ -72,9 +78,9 @@ FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
 	// We now have a valid id.
 	CreatedNodeId = InputNodeId;
 
-	if(!FHoudiniEngineUtils::HapiCookNode(InputNodeId, nullptr, true))
+	if (!FHoudiniEngineUtils::HapiCookNode(InputNodeId, nullptr, true))
 		return false;
-
+	
 	//--------------------------------------------------------------------------------------------------
     // 2. Set the part info
     //--------------------------------------------------------------------------------------------------
@@ -85,8 +91,10 @@ FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
 	int32 NumComponents = LandscapeProxy->LandscapeComponents.Num();
 	int32 VertexCountPerComponent = FMath::Square(ComponentSizeQuads + 1);
 	int32 VertexCount = NumComponents * VertexCountPerComponent;
+
 	if (!VertexCount)
 		return false;
+	
 
 	int32 TriangleCount = NumComponents * FMath::Square(ComponentSizeQuads) * 2;
 	int32 QuadCount = NumComponents * FMath::Square(ComponentSizeQuads);
@@ -258,7 +266,7 @@ FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
 	// Commit the geo.
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
 		FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId), false);
-
+	
 	return FHoudiniEngineUtils::HapiCookNode(InputNodeId, nullptr, true);
 }
 
@@ -266,13 +274,14 @@ bool
 FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	ALandscapeProxy* LandscapeProxy, 
 	HAPI_NodeId& CreatedHeightfieldNodeId, 
-	const FString& InputNodeNameStr) 
+	const FString& InputNodeNameStr,
+	const HAPI_NodeId& ParentNodeId) 
 {
   	if (!LandscapeProxy)
 		return false;
 
 	// Export the whole landscape and its layer as a single heightfield.
-	FString NodeName = InputNodeNameStr + TEXT("_") + LandscapeProxy->GetName();
+	FString NodeName = InputNodeNameStr;
 
 	//--------------------------------------------------------------------------------------------------
 	// 1. Extracting the height data
@@ -308,7 +317,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	HAPI_NodeId HeightId = -1;
 	HAPI_NodeId MaskId = -1;
 	HAPI_NodeId MergeId = -1;
-	if (!CreateHeightfieldInputNode(NodeName, XSize, YSize, HeightFieldId, HeightId, MaskId, MergeId))
+	if (!CreateHeightfieldInputNode(NodeName, XSize, YSize, HeightFieldId, HeightId, MaskId, MergeId, ParentNodeId))
 		return false;
 
 	//--------------------------------------------------------------------------------------------------
@@ -500,7 +509,8 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponentArray(
 	ALandscapeProxy* LandscapeProxy,
 	const TSet<ULandscapeComponent*>& SelectedComponents, 
 	HAPI_NodeId& CreatedHeightfieldNodeId,
-	const FString& InputNodeNameStr)
+	const FString& InputNodeNameStr,
+	const HAPI_NodeId& ParentNodeId)
 {
 	if ( SelectedComponents.Num() <= 0 )
 		return false;
@@ -526,14 +536,14 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponentArray(
 	int32 ComponentIdx = 0;
 
 	LandscapeInfo->ForAllLandscapeComponents([&](ULandscapeComponent* CurrentComponent)
-    {
+	{
 		if ( !CurrentComponent )
 			return;
 	
 		if ( !SelectedComponents.Contains( CurrentComponent ) )
 			return;
 		
-		if ( !CreateHeightfieldFromLandscapeComponent( LandscapeProxy, CurrentComponent, ComponentIdx, HeightfieldNodeId, HeightfieldeMergeId, MergeInputIndex, InputNodeNameStr, LandscapeTransform ) )
+		if ( !CreateHeightfieldFromLandscapeComponent(LandscapeProxy, CurrentComponent, ComponentIdx, HeightfieldNodeId, HeightfieldeMergeId, MergeInputIndex, InputNodeNameStr, LandscapeTransform, ParentNodeId) )
 			bAllComponentCreated = false;
 		
 		ComponentIdx++;
@@ -566,12 +576,13 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponent(
 	HAPI_NodeId& MergeId, 
 	int32& MergeInputIndex,
 	const FString& InputNodeNameStr, 
-	const FTransform & ParentTransform)
+	const FTransform & ParentTransform,
+	const HAPI_NodeId& ParentNodeId)
 {
 	if ( !LandscapeComponent )
 		return false;
 
-	FString NodeName = InputNodeNameStr + TEXT("_") + LandscapeProxy->GetName();
+	FString NodeName = InputNodeNameStr;
 	
 	//--------------------------------------------------------------------------------------------------
 	// 1. Extract the height data
@@ -642,7 +653,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponent(
 	bool CreatedHeightfieldNode = false;
 	if ( HeightFieldId < 0 || MergeId < 0 )
 	{
-		if (!CreateHeightfieldInputNode(NodeName, XSize, YSize, HeightFieldId, HeightId, MaskId, MergeId))
+		if (!CreateHeightfieldInputNode(NodeName, XSize, YSize, HeightFieldId, HeightId, MaskId, MergeId, ParentNodeId))
 			return false;
 
 		MergeInputIndex = 2;
@@ -727,8 +738,8 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscape(
 	HAPI_NodeId& MergeId,
 	TArray<uint16>& HeightData,
 	HAPI_VolumeInfo& HeightfieldVolumeInfo,
-	int32& XSize, int32& YSize
-	)
+	int32& XSize, int32& YSize,
+	const HAPI_NodeId& ParentNodeId)
 {
 	//--------------------------------------------------------------------------------------------------
 	// 1. Extracting the height data
@@ -752,7 +763,7 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscape(
 	//--------------------------------------------------------------------------------------------------
 	// 3. Create the Heightfield Input Node
 	//-------------------------------------------------------------------------------------------------- 
-	if (!CreateHeightfieldInputNode(InputNodeNameStr, XSize, YSize, HeightFieldId, HeightId, MaskId, MergeId))
+	if (!CreateHeightfieldInputNode(InputNodeNameStr, XSize, YSize, HeightFieldId, HeightId, MaskId, MergeId, ParentNodeId))
 		return false;
 
 	//--------------------------------------------------------------------------------------------------
@@ -764,6 +775,179 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscape(
 
 	return true;
 }
+
+
+bool
+FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
+	ALandscapeProxy* InLandscape,
+	UHoudiniInput* InInput,
+	HAPI_NodeId& InputNodeId,
+	const FString& InputNodeName,
+	FUnrealObjectInputHandle& OutHandle,
+	const bool& bInputNodesCanBeDeleted)
+{
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	FString FinalInputNodeName = InputNodeName;
+	EHoudiniLandscapeExportType ExportType = InInput->GetLandscapeExportType();
+
+	FUnrealObjectInputIdentifier Identifier;
+	
+	FUnrealObjectInputIdentifier GeoNodeIdentifier;
+	FUnrealObjectInputHandle GeoNodeHandle;
+
+	FUnrealObjectInputHandle ParentHandle;
+	HAPI_NodeId ParentNodeId = -1;
+
+	if (bUseRefCountedInputSystem)
+	{
+		const FUnrealObjectInputOptions Options(false, false, false, false, false, ExportType);
+		Identifier = FUnrealObjectInputIdentifier(InLandscape, Options, true);
+
+		FUnrealObjectInputHandle Handle;
+		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		{
+			HAPI_NodeId NodeId = -1;
+			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId))
+			{
+				if (!bInputNodesCanBeDeleted)
+					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+
+				OutHandle = Handle;
+				InputNodeId = NodeId;
+				return true;
+			}
+		}
+
+		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted))
+		{
+			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+
+			FUnrealObjectInputIdentifier ParentIdentifier = ParentHandle.GetIdentifier();
+			FName ParentPath = ParentIdentifier.GetObjectPath();
+
+			FString GeoNodePath = ParentPath.ToString() + TEXT("/") + InLandscape->GetName();
+			GeoNodeIdentifier = FUnrealObjectInputIdentifier(FName(GeoNodePath));
+
+			FUnrealObjectInputHandle GeoHandle;
+			if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(GeoNodeIdentifier, GeoHandle))
+			{
+				HAPI_NodeId NodeId = -1;
+				if (!FHoudiniEngineUtils::GetHAPINodeId(GeoHandle, NodeId))
+					return false;
+
+				if (!bInputNodesCanBeDeleted)
+					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(GeoHandle, bInputNodesCanBeDeleted);
+				
+				ParentNodeId = NodeId;
+				GeoNodeHandle = GeoHandle;
+			}
+			else
+			{
+				HAPI_NodeId NodeId = -1;
+				
+				std::string GeoNodeNameStr;
+				FHoudiniEngineUtils::ConvertUnrealString(InLandscape->GetName(), GeoNodeNameStr);
+
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
+					FHoudiniEngine::Get().GetSession(), ParentNodeId, "geo", GeoNodeNameStr.c_str(), true, &NodeId), false);
+
+				if (!FHoudiniEngineUtils::IsHoudiniNodeValid(NodeId))
+					return false;
+
+				HAPI_NodeId GeoObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(NodeId);
+				
+				// TODO: The geo node is not currently being registered with the new input system,
+				// since the geo node will go out of scope with the current implementation, causing
+				// it to get deleted by the input system. For now, a new geo node container is
+				// created for each of heightfield, mesh and points export types instead of a single
+				// geo node as desired.
+				/*
+				if (FHoudiniEngineUtils::AddNodeOrUpdateNode(GeoNodeIdentifier, NodeId, GeoHandle, GeoObjectNodeId))
+				{
+					ParentNodeId = NodeId;
+					GeoNodeHandle = GeoHandle;
+				}
+				*/
+
+				ParentNodeId = NodeId;
+			}
+			
+			switch (ExportType)
+			{
+				case EHoudiniLandscapeExportType::Heightfield:
+				{
+					FinalInputNodeName = "heightfield";
+					break;
+				}
+
+				case EHoudiniLandscapeExportType::Mesh:
+				{
+					FinalInputNodeName = "mesh";
+					break;
+				}
+
+				case EHoudiniLandscapeExportType::Points:
+				{
+					FinalInputNodeName = "points";
+					break;
+				}
+			}
+		}
+	}
+
+	bool bExportSelectionOnly = InInput->bLandscapeExportSelectionOnly;
+	bool bLandscapeAutoSelectComponent = InInput->bLandscapeAutoSelectComponent;
+
+	// Get selected components if bLandscapeExportSelectionOnly or bLandscapeAutoSelectComponent is true
+	TSet<ULandscapeComponent*> SelectedComponents = InInput->GetLandscapeSelectedComponents();
+	if (bExportSelectionOnly && SelectedComponents.Num() == 0)
+	{
+		InInput->UpdateLandscapeInputSelection();
+		SelectedComponents = InInput->GetLandscapeSelectedComponents();
+	}
+
+	bool bSuccess = false;
+	if (ExportType == EHoudiniLandscapeExportType::Heightfield)
+	{
+		// Ensure we destroy any (Houdini) input nodes before clobbering this object with a new heightfield.
+		//DestroyInputNodes(InInput, InInput->GetInputType());
+
+		int32 NumComponents = InLandscape->LandscapeComponents.Num();
+		if (!bExportSelectionOnly || (SelectedComponents.Num() == NumComponents))
+			// Export the whole landscape and its layer as a single heightfield node
+			bSuccess = FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(InLandscape, InputNodeId, FinalInputNodeName, ParentNodeId);
+		else
+			// Each selected landscape component will be exported as separate volumes in a single heightfield
+			bSuccess = FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponentArray(InLandscape, SelectedComponents, InputNodeId, FinalInputNodeName, ParentNodeId);
+	}
+	else
+	{
+		bool bExportLighting = InInput->bLandscapeExportLighting;
+		bool bExportMaterials = InInput->bLandscapeExportMaterials;
+		bool bExportNormalizedUVs = InInput->bLandscapeExportNormalizedUVs;
+		bool bExportTileUVs = InInput->bLandscapeExportTileUVs;
+		bool bExportAsMesh = InInput->LandscapeExportType == EHoudiniLandscapeExportType::Mesh;
+
+		bSuccess = FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
+			InLandscape, InputNodeId, FinalInputNodeName,
+			bExportAsMesh, bExportTileUVs, bExportNormalizedUVs, bExportLighting, bExportMaterials, ParentNodeId);
+	}
+
+	if (!bSuccess)
+		return false;
+
+	if (bUseRefCountedInputSystem)
+	{
+		FUnrealObjectInputHandle Handle;
+		HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
+		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId))
+			OutHandle = Handle;
+	}
+
+	return true;
+}
+
 
 // Converts Unreal uint16 values to Houdini Float
 bool
@@ -1168,7 +1352,8 @@ FUnrealLandscapeTranslator::CreateHeightfieldInputNode(
 	HAPI_NodeId& HeightfieldNodeId, 
 	HAPI_NodeId& HeightNodeId, 
 	HAPI_NodeId& MaskNodeId, 
-	HAPI_NodeId& MergeNodeId)
+	HAPI_NodeId& MergeNodeId,
+	const HAPI_NodeId& ParentNodeId)
 {
 	// Make sure the Heightfield node doesnt already exists
 	if (HeightfieldNodeId != -1)
@@ -1177,13 +1362,12 @@ FUnrealLandscapeTranslator::CreateHeightfieldInputNode(
 	// Convert the node's name
 	std::string NameStr;
 	FHoudiniEngineUtils::ConvertUnrealString(NodeName, NameStr);
-
-	// Create the heigthfield node via HAPI
+	
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateHeightFieldInput(
 		FHoudiniEngine::Get().GetSession(),
-		-1, NameStr.c_str(), YSize, XSize, 1.0f, HAPI_HeightFieldSampling::HAPI_HEIGHTFIELD_SAMPLING_CORNER,
+		ParentNodeId, NameStr.c_str(), YSize, XSize, 1.0f, HAPI_HeightFieldSampling::HAPI_HEIGHTFIELD_SAMPLING_CORNER,
 		&HeightfieldNodeId, &HeightNodeId, &MaskNodeId, &MergeNodeId), false);
-	
+
 	// Cook it
 	return FHoudiniEngineUtils::HapiCookNode(HeightfieldNodeId, nullptr, true);
 }
