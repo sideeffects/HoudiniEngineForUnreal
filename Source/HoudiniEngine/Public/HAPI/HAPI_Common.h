@@ -961,6 +961,8 @@ enum HAPI_PDG_EventType
     HAPI_PDG_EVENT_NODE_CONNECT,
     /// Sent when a node is disconnected from another node
     HAPI_PDG_EVENT_NODE_DISCONNECT,
+    /// Sent when a node cooks for the first time
+    HAPI_PDG_EVENT_NODE_FIRST_COOK,
 
     /// Deprecated
     HAPI_PDG_EVENT_WORKITEM_SET_INT,
@@ -1011,7 +1013,7 @@ enum HAPI_PDG_EventType
     /// Sent when a node finished generating
     HAPI_PDG_EVENT_NODE_GENERATED,
 
-    HAPI_PDG_CONTEXT_EVENTS
+    HAPI_PDG_CONTEXT_EVENTS,
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_PDG_EventType )
 
