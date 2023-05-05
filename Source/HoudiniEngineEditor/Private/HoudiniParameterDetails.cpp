@@ -3792,6 +3792,9 @@ FHoudiniParameterDetails::CreateWidgetToggle(IDetailCategoryBuilder & HouParamet
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 	auto IsToggleCheckedLambda = [MainParam](int32 Index)
 	{
+		if(!IsValidWeakPointer(MainParam))
+			return ECheckBoxState::Unchecked;
+
 		if (Index >= MainParam->GetNumValues())
 			return ECheckBoxState::Unchecked;
 
@@ -3803,6 +3806,9 @@ FHoudiniParameterDetails::CreateWidgetToggle(IDetailCategoryBuilder & HouParamet
 
 	auto OnToggleCheckStateChanged = [MainParam, ToggleParams](ECheckBoxState NewState, int32 Index) 
 	{
+		if (!IsValidWeakPointer(MainParam))
+			return;
+
 		if (Index >= MainParam->GetNumValues())
 			return;
 
