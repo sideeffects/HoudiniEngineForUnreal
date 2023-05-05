@@ -1753,6 +1753,9 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 	
 	for (UHoudiniOutput* CurOutput : ResultOutputs)
 	{
+		if (!IsValid(CurOutput))
+			continue;
+
 		for (auto& Pair : CurOutput->GetOutputObjects())
 		{
 			FHoudiniOutputObjectIdentifier& Identifier = Pair.Key;
@@ -1810,6 +1813,7 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 						OutputObject.OutputComponents[Index] = nullptr;
 					}
 				}
+
 				if (bDestroyComponent)
 				{
 					USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
@@ -1830,6 +1834,7 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 					}
 				}
 			}
+
 			if (IsValid(OutputObject.OutputObject))
 			{
 				// For actors we detach them first and then destroy
