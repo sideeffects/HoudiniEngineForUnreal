@@ -8457,6 +8457,12 @@ FHoudiniMeshTranslator::AddActorsToMeshSocket(UStaticMeshSocket * Socket, UStati
 
 				Socket->AttachActor(NewActors[0], StaticMeshComponent);
 				CreatedDefaultActor = NewActors[0];
+
+				FVector SocketScale = Socket->RelativeScale;
+				if (!SocketScale.IsZero() && !SocketScale.Equals(FVector::One()))
+				{
+					NewActors[0]->SetActorRelativeScale3D(SocketScale);
+				}
 				//HoudiniCreatedSocketActors.Add(NewActors[0]);
 			}
 		}
@@ -8527,6 +8533,12 @@ FHoudiniMeshTranslator::AddActorsToMeshSocket(UStaticMeshSocket * Socket, UStati
 			Socket->AttachActor(Actor, StaticMeshComponent);
 			HoudiniAttachedSocketActors.Add(Actor);
 
+			FVector SocketScale = Socket->RelativeScale;
+			if (!SocketScale.IsZero() && !SocketScale.Equals(FVector::One()))
+			{
+				Actor->SetActorRelativeScale3D(SocketScale);
+			}
+
 			// Remove the string if the actor is found in the editor level
 			ActorStringArray.RemoveAt(StringIdx);
 			break;
@@ -8565,6 +8577,12 @@ FHoudiniMeshTranslator::AddActorsToMeshSocket(UStaticMeshSocket * Socket, UStati
 
 		Socket->AttachActor(NewActors[0], StaticMeshComponent);
 		HoudiniCreatedSocketActors.Add(NewActors[0]);
+
+		FVector SocketScale = Socket->RelativeScale;
+		if (!SocketScale.IsZero() && !SocketScale.Equals(FVector::One()))
+		{
+			NewActors[0]->SetActorRelativeScale3D(SocketScale);
+		}
 
 		ActorStringArray.RemoveAt(Idx);
 	}
