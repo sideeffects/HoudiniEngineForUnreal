@@ -48,7 +48,7 @@ enum class EHoudiniEngineBakeOption : uint8
 {
 	ToActor,
 	ToBlueprint,
-	ToFoliage,
+	ToFoliage_DEPRECATED,
 	ToWorldOutliner,
 };
 #endif
