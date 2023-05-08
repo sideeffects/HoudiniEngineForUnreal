@@ -314,6 +314,34 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			TArray<float>& OutData
 		);
 
+		// Retreives the first value of an attribute. OutData is left unchanged
+		// if there is an error, so you can initialize it with a default.
+		static bool HapiGetFirstAttributeValueAsInteger(
+			const HAPI_NodeId& InGeoId,
+			const HAPI_PartId& InPartId,
+			const char* InAttribName,
+			const HAPI_AttributeOwner InAttribOwner,
+			int32 & OutData);
+
+		// Retreives the first value of an attribute. OutData is left unchanged
+		// if there is an error.
+		static bool HapiGetFirstAttributeValueAsFloat(
+			const HAPI_NodeId& InGeoId,
+			const HAPI_PartId& InPartId,
+			const char* InAttribName,
+			const HAPI_AttributeOwner InAttribOwner,
+			float& OutData);
+
+		// Retreives the first value of an attribute. OutData is left unchanged
+		// if there is an error.
+		static bool HapiGetFirstAttributeValueAsString(
+			const HAPI_NodeId& InGeoId,
+			const HAPI_PartId& InPartId,
+			const char* InAttribName,
+			const HAPI_AttributeOwner InAttribOwner,
+			FString& OutData);
+
+
 		// HAPI : Look for a parameter by name and returns its index. Returns -1 if not found.
 		static HAPI_ParmId HapiFindParameterByName(
 			const HAPI_NodeId& InNodeId, const std::string& InParmName, HAPI_ParmInfo& OutFoundParmInfo);

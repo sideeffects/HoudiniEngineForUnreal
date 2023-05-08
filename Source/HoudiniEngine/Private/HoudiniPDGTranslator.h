@@ -73,7 +73,6 @@ struct HOUDINIENGINE_API FHoudiniPDGTranslator
 			TArray<UHoudiniOutput*>& InOutputs,
 			const FHoudiniPackageParams& InPackageParams,
 			UObject* InOuterComponent,
-			FHoudiniLandscapeSpatialData& HoudiniLandscapeSpatialData,
 			TSet<FString>& ClearedLandscapeLayers,
 			TArray<ALandscapeProxy*> AllInputLandscapes,
 			UHoudiniPDGAssetLink* const InAssetLink,

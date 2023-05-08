@@ -670,6 +670,10 @@ public:
 	UPROPERTY()
 	bool bLandscapeExportSelectionOnly = false;
 
+	// Is set to true when layer visibility is controlled by the plugin.
+	UPROPERTY()
+	bool bLandscapeControlVisiblity = false;
+
 	// Is set to true when the automatic selection of landscape component is active
 	UPROPERTY()
 	bool bLandscapeAutoSelectComponent = false;

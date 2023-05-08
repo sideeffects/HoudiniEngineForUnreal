@@ -201,19 +201,19 @@
 #define HAPI_UNREAL_ATTRIB_INSTANCE_CUSTOM_DATA_PREFIX		"unreal_per_instance_custom_data"
 #define HAPI_UNREAL_ATTRIB_FORCE_INSTANCER					"unreal_force_instancer"
 
-
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_TILE_NAME				 HAPI_ATTRIB_NAME
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_VERTEX_INDEX		    "unreal_vertex_index"
 #define HAPI_UNREAL_ATTRIB_UNIT_LANDSCAPE_LAYER				"unreal_unit_landscape_layer"
 #define HAPI_UNREAL_ATTRIB_NONWEIGHTBLENDED_LAYERS			"unreal_landscape_layer_nonweightblended"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_STREAMING_PROXY		"unreal_landscape_streaming_proxy"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_INFO				"unreal_landscape_layer_info"
+#define HAPI_UNREAL_ATTRIB_LANDSCAPE_SIZE                   "unreal_landscape_size"
 
 // Enable or disable the NoWeightBlend setting for landscape paint layers. 
 // Note this attribute supercedes the unreal_landscape_layer_nonweightblended string attribute.
-#define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_NOWEIGHTBLEND		"unreal_landscape_layer_noweightblend"
-#define HAPI_UNREAL_LANDSCAPE_LAYER_NOWEIGHTBLEND_OFF			0
-#define HAPI_UNREAL_LANDSCAPE_LAYER_NOWEIGHTBLEND_ON			1
+#define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_NOWEIGHTBLEND	"unreal_landscape_layer_noweightblend"
+#define HAPI_UNREAL_LANDSCAPE_LAYER_NOWEIGHTBLEND_OFF		0
+#define HAPI_UNREAL_LANDSCAPE_LAYER_NOWEIGHTBLEND_ON		1
 
 // Landscape output mode:
 // 0 - Generate (generate a landscape from scratch)

@@ -1224,8 +1224,8 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UObject* A, const UObjec
 		Result &= TestExpressionError(IsEquivalent(Cast<UHoudiniStaticMeshComponent>(A), Cast<UHoudiniStaticMeshComponent>(B)), Header, "Object cast");
 	else if (A->IsA(UHoudiniLandscapePtr::StaticClass()))
 		Result &= TestExpressionError(IsEquivalent(Cast<UHoudiniLandscapePtr>(A), Cast<UHoudiniLandscapePtr>(B)), Header, "Object cast");
-	else if (A->IsA(UHoudiniLandscapeEditLayer::StaticClass()))
-		Result &= TestExpressionError(IsEquivalent(Cast<UHoudiniLandscapeEditLayer>(A), Cast<UHoudiniLandscapeEditLayer>(B)), Header, "Object cast");
+	else if (A->IsA(UHoudiniLandscapeTargetLayerOutput::StaticClass()))
+		Result &= TestExpressionError(IsEquivalent(Cast<UHoudiniLandscapeTargetLayerOutput>(A), Cast<UHoudiniLandscapeTargetLayerOutput>(B)), Header, "Object cast");
 		
 	return Result;
 }
@@ -2020,9 +2020,9 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniLandscapePtr* A,
 	return Result;
 }
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniLandscapeEditLayer* A, const UHoudiniLandscapeEditLayer* B)
+bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniLandscapeTargetLayerOutput* A, const UHoudiniLandscapeTargetLayerOutput* B)
 {
-	const FString Header = "UHoudiniLandscapeEditLayer";
+	const FString Header = "UHoudiniLandscapeTargetLayerOutput";
 
 	bool Result = true;
 	
@@ -2033,7 +2033,8 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniLandscapeEditLay
 		return true;
 	}
 
-	Result &= TestExpressionError(A->LayerName.Equals(B->LayerName), Header, "LayerName");
+	// TODO: Add here
+
 
 	return Result;
 }

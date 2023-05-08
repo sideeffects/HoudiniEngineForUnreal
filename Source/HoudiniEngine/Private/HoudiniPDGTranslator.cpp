@@ -31,10 +31,8 @@
 #include "Containers/Array.h"
 #include "FileHelpers.h"
 #include "LandscapeInfo.h"
-// #include "Engine/WorldComposition.h"
 
 #include "HoudiniEngine.h"
-#include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniGeoImporter.h"
 #include "HoudiniPackageParams.h"
@@ -47,7 +45,6 @@
 #include "HoudiniOutputTranslator.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniSplineTranslator.h"
-#include "HoudiniTranslatorTypes.h"
 
 #define LOCTEXT_NAMESPACE "HoudiniEngine"
 
@@ -145,7 +142,6 @@ FHoudiniPDGTranslator::CreateAllResultObjectsForPDGWorkItem(
 			NewTOPOutputs,
 			InPackageParams,
 			WorkItemOutputActor->GetRootComponent(),
-			InTOPNode->GetHoudiniLandscapeSpatialData(),
 			InTOPNode->ClearedLandscapeLayers,
 			AllInputLandscapes,
 			InAssetLink,
@@ -237,7 +233,6 @@ FHoudiniPDGTranslator::LoadExistingAssetsAsResultObjectsForPDGWorkItem(
 		InOutputs,
 		InPackageParams,
 		WorkItemOutputActor->GetRootComponent(),
-		InTOPNode->GetHoudiniLandscapeSpatialData(),
 		InTOPNode->ClearedLandscapeLayers,
 		AllInputLandscapes,
 		InAssetLink,
@@ -263,7 +258,6 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	TArray<UHoudiniOutput*>& InOutputs,
 	const FHoudiniPackageParams& InPackageParams,
 	UObject* InOuterComponent,
-	FHoudiniLandscapeSpatialData& HoudiniLandscapeSpatialData,
 	TSet<FString>& ClearedLandscapeLayers,
 	TArray<ALandscapeProxy*> AllInputLandscapes,
 	UHoudiniPDGAssetLink* const InAssetLink,
@@ -277,24 +271,6 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	// We try to maintain as much parity with the existing HoudiniAssetComponent workflow
 	// as possible.
 
-
-	// // Before processing any of the output,
-	// // we need to get the min/max value for all Height volumes in this output (if any)
-	TMap<FString, float> LandscapeLayerGlobalMinimums;
-	TMap<FString, float> LandscapeLayerGlobalMaximums;
-
-	for (UHoudiniOutput* CurOutput : InOutputs)
-	{
-		const EHoudiniOutputType OutputType = CurOutput->GetType();
-		if (OutputType == EHoudiniOutputType::Landscape)
-		{
-			// Populate all layer minimums/maximums with default values since, in PDG mode,
-			// we can't collect the values across all tiles. The user would have to do this
-			// manually in the Topnet.
-			FHoudiniLandscapeTranslator::GetLayersZMinZMax(CurOutput->GetHoudiniGeoPartObjects(), LandscapeLayerGlobalMinimums, LandscapeLayerGlobalMaximums);
-		}
-	}
-	
 	TArray<UHoudiniOutput*> InstancerOutputs;
 	TArray<UHoudiniOutput*> LandscapeOutputs;
 	TArray<UPackage*> CreatedPackages;
@@ -309,6 +285,7 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	
 	// Keep track of all generated houdini materials to avoid recreating them over and over
 	TMap<FString, UMaterialInterface*> AllOutputMaterials;
+	TMap<FString, ALandscape*> CookedLandscapes;
 
 	for (UHoudiniOutput* CurOutput : InOutputs)
 	{
@@ -378,20 +355,17 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 						TopnetParent = TopnetParentActor->GetRootComponent();
 					}
 				}
-				TArray<TWeakObjectPtr<AActor>> CreatedUntrackedOutputs;
 
-				FHoudiniLandscapeTranslator::CreateLandscape(
+				FString CookedPrefix = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(CurOutput)->GetOwner()->GetActorLabel() + "_"
+					 + InPackageParams.PDGTOPNodeName;
+
+				FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 					CurOutput,
-					CreatedUntrackedOutputs,
 					AllInputLandscapes,
-					TopnetParent,
-					TEXT("{hda_actor_name}_{pdg_topnet_name}_"),
+					CookedPrefix,
 					PersistentWorld,
-					LandscapeLayerGlobalMinimums,
-					LandscapeLayerGlobalMaximums,
-					HoudiniLandscapeSpatialData,
 					InPackageParams,
-					//bCreatedNewMaps,
+					CookedLandscapes,
 					ClearedLandscapeLayers,
 					CreatedPackages,
 					FHoudiniEngineUtils::GetLandscapePartitionGridSize(CurOutput));

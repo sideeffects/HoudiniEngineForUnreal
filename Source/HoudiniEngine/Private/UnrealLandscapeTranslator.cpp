@@ -2370,13 +2370,13 @@ FUnrealLandscapeTranslator::AddLandscapeLayerAttribute(
 
 bool FUnrealLandscapeTranslator::ExtractAndConvertAllLandscapeLayers(
 	ALandscapeProxy* LandscapeProxy,
-	const HAPI_NodeId & HeightFieldId,
-	const HAPI_PartId & PartId,
-	const HAPI_NodeId &MergeId,
-	const HAPI_NodeId &MaskId,
+	const HAPI_NodeId HeightFieldId,
+	const HAPI_PartId PartId,
+	const HAPI_NodeId MergeId,
+	const HAPI_NodeId MaskId,
 	const HAPI_VolumeInfo& HeightfieldVolumeInfo,
-	const int32 & XSize,
-	const int32 & YSize,
+	const int32 XSize,
+	const int32 YSize,
 	int32 & OutMergeInputIndex)
 {
 

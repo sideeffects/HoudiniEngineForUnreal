@@ -65,6 +65,7 @@
 #endif
 
 #include "ComponentReregisterContext.h"
+#include "HoudiniLandscapeRuntimeUtils.h"
 
 // Macro to update given properties on all children components of the HAC.
 #define HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( COMPONENT_CLASS, PROPERTY ) \
@@ -1044,7 +1045,7 @@ UHoudiniAssetComponent::NeedUpdate() const
 	if (!IsValid(HoudiniAsset))
 		return false;
 
-	if (bForceNeedUpdate)
+	if (bForceNeedUpdate || bRecookRequested)
 		return true;
 	
 	// If we don't want to cook on parameter/input change dont bother looking for updates
@@ -1845,7 +1846,10 @@ UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 		CurAttachedSocketActors.Empty();
 
 #if WITH_EDITOR
-		// Clean up foliages instances
+		// Cleanup landscapes
+		FHoudiniLandscapeRuntimeUtils::DeleteLandscapeCookedData(CurrentOutput);
+
+		// Clean up foliage instances
 		for (auto& CurrentOutputObject : CurrentOutput->GetOutputObjects())
 		{
 			for(int Index = 0; Index < CurrentOutputObject.Value.OutputComponents.Num(); Index++)

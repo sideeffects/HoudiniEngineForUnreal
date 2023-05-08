@@ -1256,7 +1256,7 @@ FHoudiniEngineUtils::GatherLandscapeInputs(
 		if (!CurrentInput)
 			continue;
 		
-		if (CurrentInput->GetInputType() == EHoudiniInputType::World)
+		if (CurrentInput->GetInputType() == EHoudiniInputType::World || CurrentInput->GetInputType() == EHoudiniInputType::NewWorld)
 		{
 			// Check if we have any landscapes as world inputs.
 			CurrentInput->ForAllHoudiniInputObjects([&AllInputLandscapes](UHoudiniInputObject* InputObject)
@@ -4815,6 +4815,85 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
 	HOUDINI_LOG_WARNING(TEXT("Found attribute %s, but it was expected to be a float attribute and is of an invalid type."), *FString(InAttribName));
 	return false;
 }
+
+bool
+FHoudiniEngineUtils::HapiGetFirstAttributeValueAsInteger(
+	const HAPI_NodeId& InGeoId,
+	const HAPI_PartId& InPartId,
+	const char* InAttribName,
+	const HAPI_AttributeOwner InAttribOwner,
+	int32& OutData)
+{
+	TArray<int> IntData;
+	HAPI_AttributeInfo AttributeInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+
+	if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+		InGeoId, InPartId, InAttribName,
+		AttributeInfo, IntData, 1, InAttribOwner, 0, 1) &&
+		IntData.Num() > 0)
+	{
+		OutData = IntData[0];
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool
+FHoudiniEngineUtils::HapiGetFirstAttributeValueAsFloat(
+	const HAPI_NodeId& InGeoId,
+	const HAPI_PartId& InPartId,
+	const char* InAttribName,
+	const HAPI_AttributeOwner InAttribOwner,
+	float& OutData)
+{
+	TArray<float> FloatData;
+	HAPI_AttributeInfo AttributeInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+
+	if (FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+		InGeoId, InPartId, InAttribName,
+		AttributeInfo, FloatData, 1, InAttribOwner, 0, 1) &&
+		FloatData.Num() > 0)
+	{
+		OutData = FloatData[0];
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool
+FHoudiniEngineUtils::HapiGetFirstAttributeValueAsString(
+	const HAPI_NodeId& InGeoId,
+	const HAPI_PartId& InPartId,
+	const char* InAttribName,
+	const HAPI_AttributeOwner InAttribOwner,
+	FString& OutData)
+{
+	TArray<FString> StringData;
+	HAPI_AttributeInfo AttributeInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+
+	if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+		InGeoId, InPartId, InAttribName,
+		AttributeInfo, StringData, 1, InAttribOwner, 0, 1) &&
+		StringData.Num() > 0)
+	{
+		OutData = StringData[0];
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(

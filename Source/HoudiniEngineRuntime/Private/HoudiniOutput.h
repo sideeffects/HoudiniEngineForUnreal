@@ -76,6 +76,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniLandscapePtr : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
+	// THIS CLASS IS DEPRECATED. Its only kept around so old assets can be cleaned correctly.
 public:
 	FORCEINLINE
 	void SetSoftPtr(TSoftObjectPtr<ALandscapeProxy> InSoftPtr) { LandscapeSoftPtr = InSoftPtr; };
@@ -108,30 +109,79 @@ public:
 };
 
 
-UCLASS()
-class HOUDINIENGINERUNTIME_API UHoudiniLandscapeEditLayer : public UObject
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FHoudiniExtents
 {
 	GENERATED_BODY()
 
 public:
-	FORCEINLINE
-	void SetSoftPtr(TSoftObjectPtr<ALandscapeProxy> InSoftPtr) { LandscapeSoftPtr = InSoftPtr; };
-
-	FORCEINLINE
-	TSoftObjectPtr<ALandscapeProxy> GetSoftPtr() const { return LandscapeSoftPtr; };
-
-	// Calling Get() during GC will raise an exception because Get calls StaticFindObject.
-	FORCEINLINE
-	ALandscapeProxy* GetRawPtr() { return !IsGarbageCollecting() ? Cast<ALandscapeProxy>(LandscapeSoftPtr.Get()) : nullptr; };
-
-	FORCEINLINE
-	FString GetSoftPtrPath() const { return LandscapeSoftPtr.ToSoftObjectPath().ToString(); };
-	
 	UPROPERTY()
-	TSoftObjectPtr<ALandscapeProxy> LandscapeSoftPtr;
+	FIntPoint Min;
 
 	UPROPERTY()
-	FString LayerName;
+	FIntPoint Max;
+};
+
+
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniLandscapeTargetLayerOutput : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY()
+	ALandscape * Landscape; // Parent Landscape
+
+	UPROPERTY()
+	FString BakedEditLayer; // Final baked layer name
+
+	UPROPERTY()
+	FString CookedEditLayer; // Temp cooked layer name
+
+	UPROPERTY()
+	FString TargetLayer; // Target layer name
+
+	UPROPERTY()
+	FHoudiniExtents Extents; // Extents of the grid updated
+
+	UPROPERTY()
+	bool bClearLayer;
+
+	UPROPERTY()
+	bool bCreatedLandscape;
+
+	UPROPERTY()
+	bool bCookedLayerRequiresBaking;
+
+	UPROPERTY()
+	FString BakedLandscapeName;
+
+	UPROPERTY()
+	TArray<ULandscapeLayerInfoObject*> LayerInfoObjects;
+
+	UPROPERTY()
+	FString BakeOutlinerFolder;
+
+};
+
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniLandscapeOutput : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY()
+	ALandscape* Landscape;
+
+	UPROPERTY()
+	FString BakedName;
+
+	UPROPERTY()
+	TArray<UHoudiniLandscapeTargetLayerOutput*> Layers;
+
+	UPROPERTY()
+	bool bCreated;
+
 };
 
 

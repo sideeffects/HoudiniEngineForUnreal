@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include "EngineUtils.h"
 #include "LandscapeInfo.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/UObjectGlobals.h"
@@ -332,6 +333,27 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 	}
 #endif
 
+	// Find actor in a given world by label or name
+	template<class T>
+	static T* FindActorInWorldByLabelOrName(UWorld* InWorld, FString ActorLabelOrName, EActorIteratorFlags Flags = EActorIteratorFlags::AllActors)
+	{
+		T* OutActor = nullptr;
+		for (TActorIterator<T> ActorIt(InWorld, T::StaticClass(), Flags); ActorIt; ++ActorIt)
+		{
+			OutActor = *ActorIt;
+			if (!OutActor)
+				continue;
+
+			// Try the label first, then the name
+			if (OutActor->GetActorLabel() == ActorLabelOrName)
+				return OutActor;
+			if (OutActor->GetFName().ToString() == ActorLabelOrName)
+				return OutActor;
+		}
+		return nullptr;
+	}
+
+
 		// -------------------------------------------------
 		// Ref counted inputs
 		// -------------------------------------------------
@@ -348,7 +370,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 
 
 		// Helper function for destroying landscapes.
-		static void DestroyLandscapeProxy(ALandscapeProxy* Proxy);
+
 
 	protected:
 		// taken from FPaths::GetTCharPtr
