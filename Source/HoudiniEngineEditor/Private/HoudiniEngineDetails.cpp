@@ -1064,7 +1064,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 		}
 		break;
 
-		case EHoudiniEngineBakeOption::ToFoliage:
+		case EHoudiniEngineBakeOption::ToFoliage_DEPRECATED:
 		{
 			if (!FHoudiniEngineBakeUtils::CanHoudiniAssetComponentBakeToFoliage(MainHAC.Get()))
 			{
@@ -1078,12 +1078,12 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 				if (MainHAC->bReplacePreviousBake)
 				{
 					BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeWithReplaceToFoliageToolTip",
-						"Add this Houdini Asset Actor's instancers to the current level's Foliage, replacing the previously baked foliage instancers from this actor."));
+						"DEPCRECATED: Add this Houdini Asset Actor's instancers to the current level's Foliage, replacing the previously baked foliage instancers from this actor."));
 				}
 				else
 				{
 					BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeToFoliageToolTip",
-						"Add this Houdini Asset Actor's instancers to the current level's Foliage."));
+						"DEPCRECATED: Add this Houdini Asset Actor's instancers to the current level's Foliage."));
 				}
 			}
 		}
