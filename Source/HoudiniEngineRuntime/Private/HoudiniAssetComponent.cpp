@@ -1631,7 +1631,7 @@ UHoudiniAssetComponent::PostLoad()
 		// User should see this message once when loading an old asset.
 		HOUDINI_LOG_MESSAGE(TEXT("Upgraded deprecated single component in FHoudiniOutputObject"));
 	}
-
+#if WITH_EDITORONLY_DATA
 	auto MaxValue = StaticEnum<EHoudiniEngineBakeOption>()->GetMaxEnumValue() - 1;
 
 	if (HoudiniEngineBakeOption == EHoudiniEngineBakeOption::ToFoliage_DEPRECATED || 
@@ -1640,6 +1640,7 @@ UHoudiniAssetComponent::PostLoad()
 		HOUDINI_LOG_WARNING(TEXT("Invalid Bake Type found, settings to Actor. Possibly Foliage, which is deprecated, use the unreal_foliage attribute instead."));
 		HoudiniEngineBakeOption = EHoudiniEngineBakeOption::ToActor;
 	}
+#endif
 }
 
 void
