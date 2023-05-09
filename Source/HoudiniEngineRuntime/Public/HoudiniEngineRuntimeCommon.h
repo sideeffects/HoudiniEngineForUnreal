@@ -48,7 +48,7 @@ enum class EHoudiniEngineBakeOption : uint8
 {
 	ToActor,
 	ToBlueprint,
-	ToFoliage_DEPRECATED,
+	ToFoliage_DEPRECATED, // Keep this enum to prevent issues with deserializing old data.
 	ToWorldOutliner,
 };
 #endif
