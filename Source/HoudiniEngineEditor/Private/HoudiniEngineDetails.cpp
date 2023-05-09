@@ -1066,28 +1066,8 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 		break;
 
 		case EHoudiniEngineBakeOption::ToFoliage_DEPRECATED:
-		{
-			if (!FHoudiniEngineBakeUtils::CanHoudiniAssetComponentBakeToFoliage(MainHAC.Get()))
-			{
-				// If the HAC does not have instanced output, disable Bake to Foliage
-				BakeButton->SetEnabled(false);
-				BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonNoInstancedOutputToolTip",
-					"The Houdini Asset must be outputing at least one instancer in order to be able to bake to Foliage."));
-			}
-			else 
-			{
-				if (MainHAC->bReplacePreviousBake)
-				{
-					BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeWithReplaceToFoliageToolTip",
-						"DEPCRECATED: Add this Houdini Asset Actor's instancers to the current level's Foliage, replacing the previously baked foliage instancers from this actor."));
-				}
-				else
-				{
-					BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeToFoliageToolTip",
-						"DEPCRECATED: Add this Houdini Asset Actor's instancers to the current level's Foliage."));
-				}
-			}
-		}
+		// Do nothing, this is deprecated.
+		HOUDINI_LOG_ERROR(TEXT("Encountered Foliage Bake Type, which is deprecated."));
 		break;
 
 		case EHoudiniEngineBakeOption::ToWorldOutliner:
