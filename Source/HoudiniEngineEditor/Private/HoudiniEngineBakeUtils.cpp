@@ -187,8 +187,9 @@ FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
 	}
 	break;
 
-	case EHoudiniEngineBakeOption::ToFoliage:
+	case EHoudiniEngineBakeOption::ToFoliage_DEPRECATED:
 	{
+		HOUDINI_LOG_ERROR(TEXT("Baking to Foliage is deprecated. Instead, set unreal_foliage in the HDA output. See documentation."));
 		bSuccess = FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(InHACToBake, bInReplacePreviousBake);
 	}
 	break;
