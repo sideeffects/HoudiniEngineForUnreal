@@ -1598,7 +1598,8 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				ObjBaseName,
 				InputBrush,
 				InInput->GetBoundSelectorObjectArray(),
-				InInput->GetExportMaterialParameters());
+				InInput->GetExportMaterialParameters(),
+				bInputNodesCanBeDeleted);
 
 			if (bSuccess)
 				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
@@ -3462,7 +3463,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForBrush(
 	const FString& InObjNodeName,
 	UHoudiniInputBrush* InObject,
 	TArray<AActor*>* ExcludeActors,
-	bool bExportMaterialParameters)
+	bool bExportMaterialParameters,
+	const bool& bInputNodesCanBeDeleted)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -3471,11 +3473,47 @@ FHoudiniInputTranslator::HapiCreateInputNodeForBrush(
 	if (!IsValid(BrushActor))
 		return true;
 
-	if (!FUnrealBrushTranslator::CreateInputNodeForBrush(InObject, BrushActor, ExcludeActors, InObject->InputNodeId, InObjNodeName, bExportMaterialParameters))
+	FString BrushName = InObjNodeName + TEXT("_") + BrushActor->GetName();
+		HAPI_NodeId InputNodeId = InObject->InputNodeId;
+
+	FUnrealObjectInputHandle InputNodeHandle;
+	if (!FUnrealBrushTranslator::CreateInputNodeForBrush(InObject, BrushActor, ExcludeActors, InputNodeId, BrushName, bExportMaterialParameters, InputNodeHandle, bInputNodesCanBeDeleted))
 		return false;
 
-	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
-	InObject->Update(BrushActor);
+	InObject->InputNodeHandle = InputNodeHandle;
+
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	if (bUseRefCountedInputSystem)
+	{
+		HAPI_NodeId ParentNodeId = -1;
+		constexpr bool bCreateIfMissingInvalid = true;
+		HAPI_NodeId BrushNodeId = -1;
+		if (!FHoudiniEngineUtils::GetHAPINodeId(InputNodeHandle, BrushNodeId))
+			return false;
+
+		if (!HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
+			ParentNodeId,
+			BrushNodeId,
+			BrushName,
+			InObject->InputNodeId,
+			InObject->InputObjectNodeId,
+			bCreateIfMissingInvalid,
+			InObject->Transform))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		InObject->InputNodeId = (int32)InputNodeId;
+		InObject->InputObjectNodeId = (int32)FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
+
+		InObject->MarkChanged(true);
+		InObject->Update(BrushActor);
+
+		if (!HapiSetGeoObjectTransform(InObject->InputObjectNodeId, InObject->Transform))
+			return false;
+	}
 
 	return true;
 }
@@ -4119,22 +4157,35 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(
 		return false;
 
 	InInputObject->InputNodeHandle = InputNodeHandle;
+	if (bUseRefCountedInputSystem)
+	{
+		HAPI_NodeId ParentNodeId = -1;
+		bool bCreateIfMissingInvalid = true;
+		HAPI_NodeId DataTableNodeId = -1;
 
-	// Update this input object's NodeId and ObjectNodeId
-	InInputObject->InputNodeId = (int32)InputNodeId;
-	InInputObject->InputObjectNodeId = (int32)FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
-	if (!HapiSetGeoObjectTransform(InInputObject->InputObjectNodeId, InInputObject->Transform))
-		return false;
+		if (!FHoudiniEngineUtils::GetHAPINodeId(InputNodeHandle, DataTableNodeId))
+			return false;
 
-	/*
-	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-		FHoudiniEngine::Get().GetSession(), InputNodeId), false);
-
-	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-		FHoudiniEngine::Get().GetSession(), InputNodeId, nullptr), false);
-	*/
+		if (!HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
+			ParentNodeId,
+			DataTableNodeId,
+			DataTableName,
+			InInputObject->InputNodeId,
+			InInputObject->InputObjectNodeId,
+			bCreateIfMissingInvalid,
+			InInputObject->Transform))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		// Update this input object's NodeId and ObjectNodeId
+		InInputObject->InputNodeId = (int32)InputNodeId;
+		InInputObject->InputObjectNodeId = (int32)FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
+		if (!HapiSetGeoObjectTransform(InInputObject->InputObjectNodeId, InInputObject->Transform))
+			return false;
+	}
 
 	return true;
 }
