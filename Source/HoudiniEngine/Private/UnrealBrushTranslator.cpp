@@ -34,6 +34,7 @@
 #include "HoudiniGeoPartObject.h"
 #include "Model.h"
 #include "Engine/Polys.h"
+#include "UnrealObjectInputRuntimeTypes.h"
 
 #include "HoudiniEngineRuntimeUtils.h"
 
@@ -54,9 +55,11 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 	UHoudiniInputBrush* InputBrushObject, 
 	ABrush* BrushActor, 
 	const TArray<AActor*>* ExcludeActors, 
-	HAPI_NodeId& CreatedNodeId, 
+	HAPI_NodeId& InputNodeId,
 	const FString& NodeName,
-	bool bInExportMaterialParametersAsAttributes)
+	bool bInExportMaterialParametersAsAttributes,
+	FUnrealObjectInputHandle& OutHandle,
+	const bool& bInputNodesCanBeDeleted)
 {
 	if (!IsValid(BrushActor))
 		return false;
@@ -67,48 +70,63 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 	if (InputBrushObject->ShouldIgnoreThisInput())
 		return true;
 
-	//--------------------------------------------------------------------------------------------------
-	// Create an input node
-	//--------------------------------------------------------------------------------------------------
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	FString FinalInputNodeName = NodeName;
 
+	FUnrealObjectInputIdentifier Identifier;
+	FUnrealObjectInputHandle ParentHandle;
 	HAPI_NodeId ParentNodeId = -1;
-	if (!FHoudiniEngineUtils::IsHoudiniNodeValid(CreatedNodeId))
+
+	if (bUseRefCountedInputSystem)
 	{
-		HAPI_NodeId InputNodeId = -1;
-		//FString BrushNodeName = NodeName + TEXT("_") + BrushActor->GetName();
-		FString BrushNodeName = BrushActor->GetName();
-		// Create Brush SOP node
-		std::string NodeNameRawString;
-		FHoudiniEngineUtils::ConvertUnrealString(BrushNodeName, NodeNameRawString);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputNode(
-			FHoudiniEngine::Get().GetSession(), &InputNodeId, NodeNameRawString.c_str()), false);
+		const FUnrealObjectInputOptions Options(false, false, false, false, false);
+		Identifier = FUnrealObjectInputIdentifier(BrushActor, Options, true);
+		FUnrealObjectInputHandle Handle;
+		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		{
+			HAPI_NodeId NodeId = -1;
+			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId))
+			{
+				if (!bInputNodesCanBeDeleted)
+					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
 
-		// Check if we have a valid id for this new input asset.
-		if (!FHoudiniEngineUtils::IsHoudiniNodeValid(InputNodeId))
-			return false;
+				OutHandle = Handle;
+				InputNodeId = NodeId;
+				return true;
+			}
+		}
 
-		// We now have a valid id.
-		CreatedNodeId = InputNodeId;
-		ParentNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CreatedNodeId);	
+		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted))
+			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+	}
 
-		// Add a clean node
-		HAPI_NodeId CleanNodeId;
-		HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode( 
-			ParentNodeId, TEXT("clean"), TEXT("clean"), true, &CleanNodeId), false);
+	HAPI_NodeId InputObjectNodeId = -1;
 
-		// Connect input node to the clean node
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-				FHoudiniEngine::Get().GetSession(), CleanNodeId, 0, CreatedNodeId, 0), false);
-
-		// Set display flag on the clean node
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetNodeDisplay(
-				FHoudiniEngine::Get().GetSession(), CleanNodeId, 1), false);
+	if (FHoudiniEngineUtils::IsHoudiniNodeValid(InputNodeId))
+	{
+		InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
 	}
 	else
 	{
-		ParentNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CreatedNodeId);	
-	}
+		HAPI_NodeId NewNodeId = -1;
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateInputNode(FinalInputNodeName, NewNodeId, ParentNodeId), false);
 
+		if (!FHoudiniEngineUtils::IsHoudiniNodeValid(NewNodeId))
+			return false;
+
+		InputNodeId = NewNodeId;
+		InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
+
+		HAPI_NodeId CleanNodeId;
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(InputObjectNodeId, TEXT("clean"), TEXT("clean"), true, &CleanNodeId), false);
+
+		// Connect input node to the clean node
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(FHoudiniEngine::Get().GetSession(), CleanNodeId, 0, InputNodeId, 0), false);
+
+		// Set display flag on the clean node
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetNodeDisplay(FHoudiniEngine::Get().GetSession(), CleanNodeId, 1), false);
+	}
 	
 	// Transform for positions
 	const FTransform ActorTransform = BrushActor->GetActorTransform();
@@ -130,18 +148,18 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 	// ULevel* Level = BrushActor->GetTypedOuter<ULevel>();
 	// BrushModel = Level->Model;
 
-
 	int NumPoints = BrushModel->Points.Num();
 	if (NumPoints == 0)
 	{
 		// The content has changed and now we don't have geo to output.
 		// Be sure to clean up existing nodes in Houdini.
 		if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
-				FHoudiniEngine::Get().GetSession(), ParentNodeId))
+			FHoudiniEngine::Get().GetSession(), InputObjectNodeId))
 		{
 			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input OBJ node for %s."), *(BrushActor->GetName()));
 		}
-		CreatedNodeId = -1;
+
+		InputNodeId = -1;
 		return true;
 	}
 
@@ -174,18 +192,17 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 	// Apply actor transform
 	//--------------------------------------------------------------------------------------------------
 
-	 if (!ActorTransform.Equals(FTransform::Identity))
-	 {
+	if (!ActorTransform.Equals(FTransform::Identity))
+	{
+		// convert to HAPI_Transform
+		HAPI_TransformEuler HapiTransform;
+		FHoudiniApi::TransformEuler_Init(&HapiTransform);
+		FHoudiniEngineUtils::TranslateUnrealTransform(ActorTransform, HapiTransform);
 
-	 	// convert to HAPI_Transform
-	 	HAPI_TransformEuler HapiTransform;
-	 	FHoudiniApi::TransformEuler_Init(&HapiTransform);
-	 	FHoudiniEngineUtils::TranslateUnrealTransform(ActorTransform, HapiTransform);
-
-	 	// Set the transform on the OBJ parent
-	 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
-	 		FHoudiniEngine::Get().GetSession(), ParentNodeId, &HapiTransform), false);
-	 }
+		// Set the transform on the OBJ parent
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
+			FHoudiniEngine::Get().GetSession(), InputObjectNodeId, &HapiTransform), false);
+	}
 
 	//--------------------------------------------------------------------------------------------------
 	// Start processing the geo and add it to the input node
@@ -207,7 +224,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 	Part.type = HAPI_PARTTYPE_MESH;
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(
-		FHoudiniEngine::Get().GetSession(), CreatedNodeId, 0, &Part), false);	
+		FHoudiniEngine::Get().GetSession(), InputNodeId, 0, &Part), false);
 
 	// -----------------------------
 	// Vector - Point Attribute Info
@@ -222,7 +239,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 	AttributeInfoPointVector.originalOwner = HAPI_ATTROWNER_INVALID;
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		FHoudiniEngine::Get().GetSession(), CreatedNodeId, 0,
+		FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
 		HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPointVector), false);
 
 	// -----------------------------
@@ -256,7 +273,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 
 		// Upload point positions.
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-			(const float*)OutPosition.GetData(), CreatedNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, AttributeInfoPointVector), false);
+			(const float*)OutPosition.GetData(), InputNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, AttributeInfoPointVector), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -319,31 +336,31 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 
 		// Set the vertex index buffer
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetVertexList(
-			Indices, CreatedNodeId, 0), false);
+			Indices, InputNodeId, 0), false);
 
 		// Set the face counts as per the BSP nodes.
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetFaceCounts(
-			FaceCountBuffer, CreatedNodeId,	0), false);
+			FaceCountBuffer, InputNodeId,	0), false);
 
 		// -----------------------------
 		// Normal attribute
 		// -----------------------------
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-			FHoudiniEngine::Get().GetSession(), CreatedNodeId, 0,
+			FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
 			HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertexVector), false);
 		
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-			(const float*)OutNormals.GetData(), CreatedNodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, AttributeInfoVertexVector), false);
+			(const float*)OutNormals.GetData(), InputNodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, AttributeInfoVertexVector), false);
 
 		// -----------------------------
 		// UV attribute
 		// -----------------------------
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-			FHoudiniEngine::Get().GetSession(), CreatedNodeId, 0,
+			FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
 			HAPI_UNREAL_ATTRIB_UV, &AttributeInfoVertexVector), false);
 		
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-			(const float*)OutUV.GetData(), CreatedNodeId, 0, HAPI_UNREAL_ATTRIB_UV, AttributeInfoVertexVector), false);
+			(const float*)OutUV.GetData(), InputNodeId, 0, HAPI_UNREAL_ATTRIB_UV, AttributeInfoVertexVector), false);
 
 		// -----------------------------
 		// Material attribute
@@ -396,7 +413,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 
 		// Create all the needed attributes for materials
 		bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
-			CreatedNodeId,
+			InputNodeId,
 			0,
 			NumNodes,
 			OutMaterials,
@@ -405,14 +422,18 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 			TextureMaterialParameters);
 
 		if (!bAttributeSuccess)
-		{
 			return false;
-		}
 	}
 
-	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
-		FHoudiniEngine::Get().GetSession(), CreatedNodeId), false );
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+		FHoudiniEngine::Get().GetSession(), InputNodeId), false);
+
+	if (bUseRefCountedInputSystem)
+	{
+		FUnrealObjectInputHandle Handle;
+		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId))
+			OutHandle = Handle;
+	}
 
 	return true;
 }
