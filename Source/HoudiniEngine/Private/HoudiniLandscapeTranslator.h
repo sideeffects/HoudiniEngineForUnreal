@@ -75,6 +75,7 @@ private:
 			FHoudiniUnrealLandscapeTarget& Landscape,
 			FHoudiniHeightFieldPartData& Part,
 			UHoudiniAssetComponent& HAC,
+			TSet<FString>& ClearedLayers,
 			const FHoudiniPackageParams& InPackageParams);
 };
 

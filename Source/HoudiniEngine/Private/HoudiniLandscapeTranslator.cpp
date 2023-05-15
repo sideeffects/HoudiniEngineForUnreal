@@ -116,7 +116,7 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 	{
 		int Index = LandscapeMapping.HoudiniLayerToUnrealLandscape[&Part];
 		FHoudiniUnrealLandscapeTarget& Landscape = LandscapeMapping.TargetLandscapes[Index];
-		UHoudiniLandscapeTargetLayerOutput* Result = TranslateHeightFieldPart(InOutput, Landscape, Part, *HAC, InPackageParams);
+		UHoudiniLandscapeTargetLayerOutput* Result = TranslateHeightFieldPart(InOutput, Landscape, Part, *HAC, ClearedLayers, InPackageParams);
 		if (!Result)
 			continue;
 
@@ -125,13 +125,15 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 		OutputObj.OutputObject = Result;
 
 		// Hide baked layer, make cooked layer visible.
-		int EditLayerIndex = Result->Landscape->GetLayerIndex(FName(Result->CookedEditLayer));
+		int EditLayerIndex = Result->Landscape->GetLayerIndex(FName(Result->BakedEditLayer));
+		if (EditLayerIndex != INDEX_NONE)
+			Result->Landscape->SetLayerVisibility(EditLayerIndex, false);
+
+		EditLayerIndex = Result->Landscape->GetLayerIndex(FName(Result->CookedEditLayer));
 		if (EditLayerIndex != INDEX_NONE)
 			Result->Landscape->SetLayerVisibility(EditLayerIndex, true);
 
-		EditLayerIndex = Result->Landscape->GetLayerIndex(FName(Result->BakedEditLayer));
-		if (EditLayerIndex != INDEX_NONE)
-			Result->Landscape->SetLayerVisibility(EditLayerIndex, false);
+
 	}
 	return true;
 }
@@ -455,6 +457,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		FHoudiniUnrealLandscapeTarget& Landscape,
 		FHoudiniHeightFieldPartData& Part,
 		UHoudiniAssetComponent& HAC,
+		TSet<FString>& ClearedLayers,
 		const FHoudiniPackageParams& InPackageParams)
 {
 	//----------------------------------------------------------------------------------------------------------------------------------------
@@ -477,16 +480,20 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	}
 
 	// -----------------------------------------------------------------------------------------------------------------
-	// Set Layer names. The Baked layer name is always what the user specifies; if creating a new ALandscape then
-	// we also use the name the user gave us. If we are modifying an existing landscape, use temporary names.
+	// Set Layer names. The Baked layer name is always what the user specifies; If we are modifying an existing landscape,
+	// use temporary names if specified or user name baked names.
 	// -----------------------------------------------------------------------------------------------------------------
 
 	FString BakedLayerName = Part.UnrealLayerName;
 
 	// For the cooked name, but the layer name first so it is easier to read in the Landscape Editor UI.
 	auto LayerPackageParams = InPackageParams;
-	FString CookedLayerName = BakedLayerName + FString(" : ") + LayerPackageParams.GetPackageName();
-	CookedLayerName = CookedLayerName + HAC.GetComponentGUID().ToString();
+	FString CookedLayerName = BakedLayerName;
+
+	if (HAC.bLandscapeUseTempLayers)
+	{
+		CookedLayerName = CookedLayerName + FString(" : ") + LayerPackageParams.GetPackageName() + HAC.GetComponentGUID().ToString();
+	}	
 
 	// ------------------------------------------------------------------------------------------------------------------
 	// Make sure the target layer exists before we do anything else. If its missing, we can't do anything
@@ -538,7 +545,10 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 
 	bool bIsHeightFieldLayer = Part.TargetLayerName == "height";
 
-	if (UnrealEditLayer != nullptr && OutputLandscape->bHasLayersContent && Part.bClearLayer)
+	if (UnrealEditLayer != nullptr && 
+		OutputLandscape->bHasLayersContent &&
+		Part.bClearLayer &&
+		!ClearedLayers.Contains(CookedLayerName))
 	{
 		if (bIsHeightFieldLayer)
 		{
@@ -548,6 +558,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		{
 			OutputLandscape->ClearPaintLayer(UnrealEditLayer->Guid, TargetLayerInfo);
 		}
+		ClearedLayers.Add(CookedLayerName);
 	}
 
 	// ------------------------------------------------------------------------------------------------------------------
@@ -556,7 +567,11 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 
 	if (OutputLandscape->bHasLayersContent)
 	{
-		OutputLandscape->SetLayerSubstractiveBlendStatus(UnrealEditLayerIndex, Part.bSubtractiveEditLayer, TargetLayerInfo);
+		if (Part.bSubtractiveEditLayer != OutputLandscape->IsLayerBlendSubstractive(UnrealEditLayerIndex, TargetLayerInfo))
+		{
+			OutputLandscape->SetLayerSubstractiveBlendStatus(UnrealEditLayerIndex, Part.bSubtractiveEditLayer, TargetLayerInfo);
+		}
+
 		if (TargetLayerInfo)
 			TargetLayerInfo->bNoWeightBlend = !Part.bIsWeightBlended;
 	}
@@ -699,7 +714,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	Obj->bClearLayer = Part.bClearLayer;
 	Obj->BakedLandscapeName = Landscape.BakedName.ToString();
 	Obj->LayerInfoObjects = Landscape.CreatedLayerInfoObjects;
-	Obj->bCookedLayerRequiresBaking = OutputLandscape->bCanHaveLayersContent;
+	Obj->bCookedLayerRequiresBaking = OutputLandscape->bCanHaveLayersContent && (CookedLayerName != BakedLayerName);
 	Obj->BakeOutlinerFolder = Part.BakeOutlinerFolder;
 	return Obj;
 
