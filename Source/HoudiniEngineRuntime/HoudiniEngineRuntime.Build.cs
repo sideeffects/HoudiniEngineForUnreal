@@ -38,6 +38,10 @@ public class HoudiniEngineRuntime : ModuleRules
         PrivatePCHHeaderFile = "Private/HoudiniEngineRuntimePrivatePCH.h";
 		PrecompileForTargets = PrecompileTargetsType.Any;
 
+#if UE_5_2_OR_LATER
+		bDisableStaticAnalysis = true;
+#endif
+
 		// Check if we are compiling for unsupported platforms.
 		if ( Target.Platform != UnrealTargetPlatform.Win64 &&
 			Target.Platform != UnrealTargetPlatform.Mac &&

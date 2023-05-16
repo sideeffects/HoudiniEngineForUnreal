@@ -232,6 +232,10 @@ public class HoudiniEngine : ModuleRules
         PCHUsage = PCHUsageMode.NoSharedPCHs;
         PrivatePCHHeaderFile = "Private/HoudiniEnginePrivatePCH.h";
 
+#if UE_5_2_OR_LATER
+		bDisableStaticAnalysis = true;
+#endif
+
         // Check if we are compiling on unsupported platforms.
         if ( Target.Platform != UnrealTargetPlatform.Win64 &&
             Target.Platform != UnrealTargetPlatform.Mac &&
