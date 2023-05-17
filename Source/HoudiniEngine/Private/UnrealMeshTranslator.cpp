@@ -4874,12 +4874,11 @@ FUnrealMeshTranslator::CreateInputNodeForCollider(
 	const TArray<int32>& ColliderIndices)
 {
 	// Create a new input node for the collider
-	const char * ColliderNameStr = TCHAR_TO_UTF8(*ColliderName);
 
 	// Create the node in this input object's OBJ node
 	HAPI_NodeId ColliderNodeId = -1;
 	HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
-		InParentNodeID, "null", ColliderNameStr, false, &ColliderNodeId), false);
+		InParentNodeID, "null", TCHAR_TO_UTF8(*ColliderName), false, &ColliderNodeId), false);
 
 	// Create a part
 	HAPI_PartInfo Part;
