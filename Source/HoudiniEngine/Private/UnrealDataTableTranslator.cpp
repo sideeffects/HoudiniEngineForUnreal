@@ -525,7 +525,7 @@ bool FUnrealDataTableTranslator::CreateInputNodeForDataTable(
 
 					HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
 						Col, InputNodeId, 0,
-						CurAttrName, AttributeInfo), false);
+						CurAttrName, AttributeInfo, true), false);
 				}
 				// Default to double precision floating point.
 				else

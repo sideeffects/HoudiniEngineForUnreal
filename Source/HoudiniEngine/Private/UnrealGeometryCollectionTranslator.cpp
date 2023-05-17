@@ -649,7 +649,7 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 				GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex), false);
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-				RGBColors, GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, AttributeInfoVertex), false);
+				RGBColors, GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, AttributeInfoVertex, true), false);
 
 			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
 			AttributeInfoVertex.tupleSize = 1;
@@ -664,7 +664,7 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 				GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex), false);
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-				Alphas, GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, AttributeInfoVertex), false);
+				Alphas, GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, AttributeInfoVertex, true), false);
 		}
 			
 		//--------------------------------------------------------------------------------------------------------------------- 
