@@ -170,7 +170,7 @@ TArray<int> RunLengthEncode(const DataType* Data, int TupleSize, int Count, cons
 	// Created a run length encoded array based off the input data. eg.
     // [ 0, 0, 0, 1, 1, 2, 3 ] will return [ 0, 3, 5, 6]
 
-    for(int Index = 0; Index < Count; Index += TupleSize)
+    for(int Index = 0; Index < Count * TupleSize; Index += TupleSize)
     {
         if (!CompareTuple(&Data[Start], &Data[Index]))
         {
@@ -3437,7 +3437,7 @@ FHoudiniEngineUtils::HapiSetAttributeFloatData(
 		    for(int Index = 0; Index < RunLengths.Num(); Index++)
 		    {
 		        int StartIndex = RunLengths[Index];
-                int EndIndex = InAttributeInfo.count / InAttributeInfo.tupleSize;
+				int EndIndex = InAttributeInfo.count;
                 if (Index != RunLengths.Num() - 1)
                     EndIndex = RunLengths[Index + 1];
 

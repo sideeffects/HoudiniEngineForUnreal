@@ -828,14 +828,14 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 		FUnrealObjectInputIdentifier IdentReferenceNode;
 		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
 		if (!FHoudiniEngineUtils::BuildStaticMeshInputObjectIdentifiers(
-				StaticMesh,
-				ExportMainMesh,
-				ExportAllLODs,
-				ExportSockets,
-				ExportColliders,
-				bSingleLeafNodeOnly,
-				IdentReferenceNode,
-				IdentPerOption))
+			StaticMesh,
+			ExportMainMesh,
+			ExportAllLODs,
+			ExportSockets,
+			ExportColliders,
+			bSingleLeafNodeOnly,
+			IdentReferenceNode,
+			IdentPerOption))
 		{
 			return false;
 		}
@@ -1022,13 +1022,16 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 
 	// Should we export the HiRes Nanite Mesh?
 	const bool bNaniteBuildEnabled = StaticMesh->NaniteSettings.bEnabled;
-	const bool bHaveHiResSourceModel = StaticMesh->IsHiResMeshDescriptionValid();
+	bool bHaveHiResSourceModel = StaticMesh->IsHiResMeshDescriptionValid();
 	bool bHiResMeshSuccess = false;
 	const bool ShouldUseNaniteFallback = bPreferNaniteFallbackMesh && StaticMesh->GetRenderData()->LODResources.Num();
-	if (bHaveHiResSourceModel && bNaniteBuildEnabled && ExportMainMesh && !ShouldUseNaniteFallback)
+
+	bool bWantToExportHiResModel = bNaniteBuildEnabled && ExportMainMesh && !ShouldUseNaniteFallback;
+	if (bWantToExportHiResModel && bHaveHiResSourceModel)
 	{
 		// Get the HiRes Mesh description and SourceModel
 		FMeshDescription HiResMeshDescription = *StaticMesh->GetHiResMeshDescription();
+
 		FStaticMeshSourceModel& HiResSrcModel = StaticMesh->GetHiResSourceModel();
 		FMeshBuildSettings& HiResBuildSettings = HiResSrcModel.BuildSettings;		// cannot be const because FMeshDescriptionHelper modifies the LightmapIndex fields ?!?
 
@@ -3327,7 +3330,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
 
 	// Grab the build scale
-	const FStaticMeshSourceModel &SourceModel = StaticMesh->GetSourceModel(InLODIndex);
+	const FStaticMeshSourceModel &SourceModel = InLODIndex > 0 ? StaticMesh->GetSourceModel(InLODIndex) : StaticMesh->GetHiResSourceModel();
 	FVector3f BuildScaleVector = (FVector3f)SourceModel.BuildSettings.BuildScale3D;
 
 	//--------------------------------------------------------------------------------------------------------------------- 
