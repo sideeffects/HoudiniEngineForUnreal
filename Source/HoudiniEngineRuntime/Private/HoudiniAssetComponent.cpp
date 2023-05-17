@@ -1634,10 +1634,9 @@ UHoudiniAssetComponent::PostLoad()
 #if WITH_EDITORONLY_DATA
 	auto MaxValue = StaticEnum<EHoudiniEngineBakeOption>()->GetMaxEnumValue() - 1;
 
-	if (HoudiniEngineBakeOption == EHoudiniEngineBakeOption::ToFoliage_DEPRECATED || 
-		static_cast<int>(HoudiniEngineBakeOption) > MaxValue)
+	if (static_cast<int>(HoudiniEngineBakeOption) > MaxValue)
 	{
-		HOUDINI_LOG_WARNING(TEXT("Invalid Bake Type found, settings to Actor. Possibly Foliage, which is deprecated, use the unreal_foliage attribute instead."));
+		HOUDINI_LOG_WARNING(TEXT("Invalid Bake Type found, setting to To Actor. Possibly Foliage, which is deprecated, use the unreal_foliage attribute instead."));
 		HoudiniEngineBakeOption = EHoudiniEngineBakeOption::ToActor;
 	}
 #endif

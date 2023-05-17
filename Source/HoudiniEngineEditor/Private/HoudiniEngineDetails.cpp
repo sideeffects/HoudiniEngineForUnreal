@@ -719,11 +719,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> TypeComboBox;
 
 	TArray<TSharedPtr<FString>>* OptionSource = FHoudiniEngineEditor::Get().GetHoudiniEngineBakeTypeOptionsLabels();
-	TSharedPtr<FString> IntialSelec;
-	if (OptionSource) 
-	{
-		IntialSelec = (*OptionSource)[(int)MainHAC->HoudiniEngineBakeOption];
-	}
+	TSharedPtr<FString> IntialSelec = MakeShareable(new FString(FHoudiniEngineEditor::Get().GetStringFromHoudiniEngineBakeOption(MainHAC->HoudiniEngineBakeOption)));
 
 	ButtonRowHorizontalBox->AddSlot()
 	/*.AutoWidth()*/
@@ -1064,32 +1060,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 					"Bake this Houdini Asset Actor to a blueprint."));
 			}
 		break;
-
-		case EHoudiniEngineBakeOption::ToFoliage_DEPRECATED:
-		// Do nothing, this is deprecated.
-		HOUDINI_LOG_ERROR(TEXT("Encountered Foliage Bake Type, which is deprecated."));
-		break;
-
-		case EHoudiniEngineBakeOption::ToWorldOutliner:
-		{
-			if (MainHAC->bReplacePreviousBake)
-			{
-				BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeWithReplaceToWorldOutlinerToolTip",
-					"Not implemented."));
-			}
-			else
-			{
-				BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeToWorldOutlinerToolTip",
-					"Not implemented."));
-			}
-		}
-		break;
 	}
-
-	// Todo: remove me!
-	if (MainHAC->HoudiniEngineBakeOption == EHoudiniEngineBakeOption::ToWorldOutliner)
-		BakeButton->SetEnabled(false);
-
 }
 
 void 

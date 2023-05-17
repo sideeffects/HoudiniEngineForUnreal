@@ -184,14 +184,6 @@ FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
 		bSuccess = FHoudiniEngineBakeUtils::BakeBlueprints(InHACToBake, bInReplacePreviousBake, bInRecenterBakedActors);
 	}
 	break;
-
-	case EHoudiniEngineBakeOption::ToWorldOutliner:
-	{
-		//Todo
-		bSuccess = false;
-	}
-	break;
-
 	}
 
 	if (bSuccess && bInRemoveHACOutputOnSuccess)
