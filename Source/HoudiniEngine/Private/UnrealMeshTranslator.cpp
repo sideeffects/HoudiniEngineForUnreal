@@ -3690,7 +3690,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 							FStaticMeshLODResources& RenderModel = SMRenderData->LODResources[InLODIndex];
 							FColorVertexBuffer& ColorVertexBuffer = *ComponentLODInfo.OverrideVertexColors;
 
-							int32 Index = RenderModel.WedgeMap[VertexInstanceID];
+							int32 Index = RenderModel.WedgeMap[VertexInstanceID.GetValue()];
 							if (Index != INDEX_NONE)
 							{
 								Color = ColorVertexBuffer.VertexColor(Index).ReinterpretAsLinear();
