@@ -1051,7 +1051,10 @@ FHoudiniDataTableTranslator::PopulateRowData(int32 GeoId,
 	for (auto&& KV : FoundProps)
 	{
 		HAPI_Result Result = HAPI_RESULT_FAILURE;
-		ANSICHAR* AttribName = TCHAR_TO_ANSI(*KV.Key);
+
+		auto Src = StringCast<ANSICHAR>(*KV.Key);
+		const ANSICHAR* AttribName = Src.Get();
+
 		FProperty* Prop = KV.Value;
 		int32 Offset = Prop->GetOffset_ForInternal();
 

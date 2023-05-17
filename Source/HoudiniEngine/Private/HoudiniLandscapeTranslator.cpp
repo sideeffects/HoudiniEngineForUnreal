@@ -1011,3 +1011,5 @@ FHoudiniLandscapeTranslator::CalcHeightFieldsArrayGlobalZMinZMax(
 		}
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

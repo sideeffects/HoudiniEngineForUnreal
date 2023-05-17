@@ -2141,7 +2141,7 @@ FUnrealLandscapeTranslator::AddLandscapeLightmapColorAttribute(const HAPI_NodeId
 		0, HAPI_UNREAL_ATTRIB_LIGHTMAP_COLOR, &AttributeInfoPointLightmapColor), false);
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-		(const float*)LandscapeLightmapValues.GetData(), NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_COLOR, AttributeInfoPointLightmapColor), false);
+		(const float*)LandscapeLightmapValues.GetData(), NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_COLOR, AttributeInfoPointLightmapColor, true), false);
 
 	return true;
 }
@@ -2363,7 +2363,7 @@ FUnrealLandscapeTranslator::AddLandscapeLayerAttribute(
 		&AttributeInfoLayer), false);
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-		LandscapeLayerArray, NodeId, 0, LayerName, AttributeInfoLayer), false);
+		LandscapeLayerArray, NodeId, 0, LayerName, AttributeInfoLayer, true), false);
 
 	return true;
 }
