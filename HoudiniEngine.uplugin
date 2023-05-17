@@ -28,7 +28,7 @@
 			"Name" : "HoudiniEngineRuntime",
 			"Type" : "Runtime",
 			"LoadingPhase" : "Default"
-		},
+		}
 	],
 
 	"CanContainContent" : true,
