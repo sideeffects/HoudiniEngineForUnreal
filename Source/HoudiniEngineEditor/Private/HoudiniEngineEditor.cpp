@@ -894,7 +894,6 @@ FHoudiniEngineEditor::InitializeWidgetResource()
 	HoudiniEngineBakeTypeOptionLabels.Reset();
 	HoudiniEngineBakeTypeOptionLabels.Add(MakeShareable(new FString(FHoudiniEngineEditor::GetStringFromHoudiniEngineBakeOption(EHoudiniEngineBakeOption::ToActor))));
 	HoudiniEngineBakeTypeOptionLabels.Add(MakeShareable(new FString(FHoudiniEngineEditor::GetStringFromHoudiniEngineBakeOption(EHoudiniEngineBakeOption::ToBlueprint))));
-	HoudiniEngineBakeTypeOptionLabels.Add(MakeShareable(new FString(FHoudiniEngineEditor::GetStringFromHoudiniEngineBakeOption(EHoudiniEngineBakeOption::ToWorldOutliner))));
 
 	// Option labels for Houdini Engine PDG bake options
 	HoudiniEnginePDGBakeSelectionOptionLabels.Reset();
@@ -1608,14 +1607,6 @@ FHoudiniEngineEditor::GetStringFromHoudiniEngineBakeOption(const EHoudiniEngineB
 	case EHoudiniEngineBakeOption::ToBlueprint:
 		Str = "Blueprint";
 		break;
-
-	case EHoudiniEngineBakeOption::ToFoliage_DEPRECATED:
-		Str = "Foliage - DEPRECATED";
-		break;
-
-	case EHoudiniEngineBakeOption::ToWorldOutliner:
-		Str = "World Outliner";
-		break;
 	}
 
 	return Str;
@@ -1668,12 +1659,6 @@ FHoudiniEngineEditor::StringToHoudiniEngineBakeOption(const FString & InString)
 
 	if (InString == "Blueprint")
 		return EHoudiniEngineBakeOption::ToBlueprint;
-
-	if (InString == "Foliage - DEPRECATED")
-		return EHoudiniEngineBakeOption::ToFoliage_DEPRECATED;
-
-	if (InString == "World Outliner")
-		return EHoudiniEngineBakeOption::ToWorldOutliner;
 
 	return EHoudiniEngineBakeOption::ToActor;
 }
