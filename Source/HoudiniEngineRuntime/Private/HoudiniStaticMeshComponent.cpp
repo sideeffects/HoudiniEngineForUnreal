@@ -28,6 +28,8 @@
 
 #include "Components/BillboardComponent.h"
 #include "Engine/CollisionProfile.h"
+#include "SceneInterface.h"  // MF: For FSceneInterface
+#include "Engine/Texture2D.h"  // MF: For UTextureD2
 
 #include "HoudiniStaticMesh.h"
 #include "HoudiniStaticMeshSceneProxy.h"

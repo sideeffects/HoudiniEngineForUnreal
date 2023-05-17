@@ -12,6 +12,8 @@
 #include "GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollection/GeometryCollectionObject.h"
 #include "GeometryCollection/GeometryCollectionActor.h"
+#include "GeometryCollection/GeometryCollection.h"  // MF: For #include FGeometryCollection
+#include "MaterialDomain.h"  // MF: For MD_Surface
 #include "Materials/Material.h"
 
 void

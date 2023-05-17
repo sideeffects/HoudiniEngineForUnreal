@@ -34,6 +34,7 @@
 
 #include "ActorEditorUtils.h"
 #include "Misc/ScopedSlowTask.h"
+#include "MaterialDomain.h"  // MF: for MD_Surface
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogHCsgUtils, Log, All);

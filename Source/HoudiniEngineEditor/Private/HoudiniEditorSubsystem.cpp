@@ -18,6 +18,7 @@
 
 #include "Engine/SkeletalMesh.h"
 //#include "Toolkits/AssetEditorModeUILayer.h"
+#include "Engine/SkinnedAssetCommon.h"  // MF: For FSkeletalMaterial
 
 
 

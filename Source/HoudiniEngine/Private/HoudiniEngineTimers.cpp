@@ -28,6 +28,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineTimers.h"
+#include "HAL/IConsoleManager.h"
 
 int thread_local FHoudiniEngineScopedTimer::CurrentDepth = 0;
 

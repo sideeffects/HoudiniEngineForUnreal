@@ -109,6 +109,8 @@
 #include "WorldPartition/WorldPartitionSubsystem.h"
 #include "Kismet2/ComponentEditorUtils.h"
 #include "Animation/SkeletalMeshActor.h"
+#include "Engine/SkinnedAssetCommon.h"  // MF: For FSkeletalMaterial
+#include "Materials/MaterialExpressionTextureSample.h"  // MF: For UMaterialExpressionTextureSample
 
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"

@@ -37,10 +37,12 @@
 #include "Engine/SkeletalMesh.h"
 
 #include "GeometryCollection/GeometryCollectionClusteringUtility.h"
+#include "GeometryCollection/GeometryCollection.h"  // MF: For UGeometryCollectio
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
 #include "Materials/Material.h"
+#include "MaterialDomain.h"  // MF: For MD_Surface
 
 bool 
 FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(

@@ -75,6 +75,7 @@
 #include "ImportUtils/SkeletalMeshImportUtils.h"
 #include "Math/UnrealMathUtility.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Engine/SkinnedAssetCommon.h"  // MF: For FSkeletalMaterial
 
 #if WITH_EDITOR
 	#include "ConvexDecompTool.h"

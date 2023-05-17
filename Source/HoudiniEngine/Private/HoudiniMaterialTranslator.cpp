@@ -53,6 +53,8 @@
 #include "PackageTools.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "UObject/MetaData.h"
+#include "MaterialShared.h"  // MF: for FMaterialUpdateContext
+#include "Engine/Texture2D.h"  // MF: for UTexture2D
 
 #if WITH_EDITOR
 	#include "Factories/MaterialFactoryNew.h"

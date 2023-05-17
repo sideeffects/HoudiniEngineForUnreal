@@ -50,6 +50,7 @@
 #include "HAL/PlatformFileManager.h"
 #include "Async/Async.h"
 #include "Logging/LogMacros.h"
+#include "Framework/Application/SlateApplication.h"  // MF: For FSlateApplication
 
 #if WITH_EDITOR
 	#include "Widgets/Notifications/SNotificationList.h"

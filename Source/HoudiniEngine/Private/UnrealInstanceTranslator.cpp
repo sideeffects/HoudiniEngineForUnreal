@@ -34,6 +34,7 @@
 
 #include "Engine/StaticMesh.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Materials/MaterialInterface.h"  // MF: For UMaterialInterface
 
 bool
 FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(

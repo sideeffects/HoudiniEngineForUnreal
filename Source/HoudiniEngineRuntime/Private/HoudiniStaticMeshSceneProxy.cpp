@@ -30,6 +30,9 @@
 #include "Materials/Material.h"
 #include "PrimitiveViewRelevance.h"
 #include "Engine/Engine.h"
+#include "MaterialDomain.h"  // MF: for MD_Surface
+#include "Materials/MaterialRenderProxy.h"  // MF: For FColoredMaterialRenderProxy
+#include "SceneInterface.h" // MF: For FSceneInterface
 
 #include "ProfilingDebugging/CpuProfilerTrace.h"
 

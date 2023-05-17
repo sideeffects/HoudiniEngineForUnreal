@@ -55,6 +55,7 @@
 #include "BodySetupEnums.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
+#include "PrimitiveSceneProxy.h"  // MF: For FPrimitiveSceneProxy
 
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Private/GeomFitUtils.h"

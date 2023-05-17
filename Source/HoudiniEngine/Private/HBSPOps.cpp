@@ -32,6 +32,7 @@
 #include "Editor/EditorEngine.h"
 #include "Components/BrushComponent.h"
 #include "GameFramework/Volume.h"
+#include "MaterialDomain.h"  //MF: for MD_Surface
 
 DEFINE_LOG_CATEGORY_STATIC(LogBSPOps, Log, All);
 

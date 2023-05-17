@@ -47,6 +47,9 @@
 #include "HoudiniEngineTimers.h"
 #include "Rendering/SkeletalMeshModel.h"
 #include "MeshUtilities.h"
+#include "MaterialDomain.h"  // MF: For MD_Surface
+#include "Engine/SkinnedAssetCommon.h"  // MF: For FSkeletalMaterial
+#include "StaticMeshResources.h"  // MF: For FStaticMeshRenderData
 #include <locale> 
 #include <codecvt>
 

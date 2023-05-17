@@ -46,6 +46,8 @@
 #include "FileHelpers.h"
 #include "PropertyPathHelpers.h"
 #include "Components/SceneComponent.h"
+#include "UObject/UObjectIterator.h"  // MF: For TObjectIterator
+#include "Materials/MaterialInterface.h"  // MF: For UMaterialInterface
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
