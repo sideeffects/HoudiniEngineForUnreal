@@ -327,17 +327,17 @@ FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(
 	{
 		for (int32 NumSectionsIdx = UE_ARRAY_COUNT(NumSections) - 1; NumSectionsIdx >= 0; NumSectionsIdx--)
 		{
-			int32 ss = SectionSizes[SectionSizesIdx];
-			int32 ns = NumSections[NumSectionsIdx];
-
-			if (((ProposedUnrealSizeX - 1) % (ss * ns)) == 0 && ((ProposedUnrealSizeX - 1) / (ss * ns)) <= 32 &&
-				((ProposedUnrealSizeY - 1) % (ss * ns)) == 0 && ((ProposedUnrealSizeY - 1) / (ss * ns)) <= 32)
+			int32 SectionSize = SectionSizes[SectionSizesIdx];
+			int32 NumSection = NumSections[NumSectionsIdx];
+			int32 Total = SectionSize * NumSection;
+			if (((ProposedUnrealSizeX - 1) % Total == 0 && ((ProposedUnrealSizeX - 1) / Total) <= 32 &&
+				((ProposedUnrealSizeY - 1) % Total) == 0 && ((ProposedUnrealSizeY - 1) / Total) <= 32))
 			{
 				bFoundMatch = true;
-				NumQuadsPerSection = ss;
-				NumSectionsPerComponent = ns;
-				ComponentsCountX = (ProposedUnrealSizeX - 1) / (ss * ns);
-				ComponentsCountY = (ProposedUnrealSizeY - 1) / (ss * ns);
+				NumQuadsPerSection = SectionSize;
+				NumSectionsPerComponent = NumSection;
+				ComponentsCountX = (ProposedUnrealSizeX - 1) / Total;
+				ComponentsCountY = (ProposedUnrealSizeY - 1) / Total;
 				ClampLandscapeSize();
 				break;
 			}
@@ -350,7 +350,7 @@ FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(
 
 	if (!bFoundMatch)
 	{
-		// if there was no exact match, try increasing the section size until we encompass the whole heightmap
+		// if there was no exact match, try increasing the section size until we encompass the whole height field
 		const int32 CurrentSectionSize = NumQuadsPerSection;
 		const int32 CurrentNumSections = NumSectionsPerComponent;
 		for (int32 SectionSizesIdx = 0; SectionSizesIdx < UE_ARRAY_COUNT(SectionSizes); SectionSizesIdx++)
@@ -958,22 +958,15 @@ FHoudiniHeightFieldData FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(const F
 FIntPoint FHoudiniLandscapeUtils::RoundUpToUnrealDimensions(const FIntPoint& Size)
 {
 	FIntPoint Result;
-	Result.X = RoundUpToUnrealDimension(Size.X);
-	Result.Y = RoundUpToUnrealDimension(Size.Y);
+	int NumSectionsPerComponent;
+	int NumQuadsPerSection;
+
+	FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(
+		Size.X, Size.Y,
+		Result.X, Result.Y,
+		NumSectionsPerComponent, NumQuadsPerSection);
+
 	return Result;
-
-}
-
-float FHoudiniLandscapeUtils::RoundUpToUnrealDimension(float Dimension)
-{
-	static int ValidDimensions[] = { 64, 127, 253, 505, 1099, 2017, 4033, 8129 };
-	int Count = sizeof(ValidDimensions) / sizeof(ValidDimensions[0]);
-	for(int Index = 0; Index < Count; Index++)
-	{
-		if (Dimension <= ValidDimensions[Index])
-			return ValidDimensions[Index];
-	}
-	return ValidDimensions[Count - 1];
 
 }
 

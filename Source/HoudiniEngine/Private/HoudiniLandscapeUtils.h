@@ -243,8 +243,6 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 
     static FIntPoint RoundUpToUnrealDimensions(const FIntPoint & Dimensions);
 
-    static float RoundUpToUnrealDimension(float Dimension);
-
     static FHoudiniHeightFieldData ReDimensionLandscape(const FHoudiniHeightFieldData& HeightField, FIntPoint NewDimensions);
     
     static FHoudiniMinMax GetHeightFieldRange(const FHoudiniHeightFieldData& HeightField);
