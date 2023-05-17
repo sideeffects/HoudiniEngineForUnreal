@@ -3691,7 +3691,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 						}
 						else
 						{
-							Color = VertexInstanceColors.Get(VertexInstanceID);
+							Color = VertexInstanceColors.Get(VertexInstanceID.GetValue());
 						}
 						RGBColors[Float3Index + 0] = Color[0];
 						RGBColors[Float3Index + 1] = Color[1];
