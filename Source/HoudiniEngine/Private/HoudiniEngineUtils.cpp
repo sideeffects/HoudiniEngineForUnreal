@@ -3431,23 +3431,23 @@ FHoudiniEngineUtils::HapiSetAttributeFloatData(
 
 	if (bAttemptRunLengthEncoding)
 	{
-	    TArray<int> RunLengths = RunLengthEncode(InFloatData, InAttributeInfo.tupleSize, InAttributeInfo.count);
+		TArray<int> RunLengths = RunLengthEncode(InFloatData, InAttributeInfo.tupleSize, InAttributeInfo.count);
 		if (RunLengths.Num() != 0)
 		{
-		    for(int Index = 0; Index < RunLengths.Num(); Index++)
-		    {
-		        int StartIndex = RunLengths[Index];
+			for(int Index = 0; Index < RunLengths.Num(); Index++)
+			{
+				int StartIndex = RunLengths[Index];
 				int EndIndex = InAttributeInfo.count;
-                if (Index != RunLengths.Num() - 1)
-                    EndIndex = RunLengths[Index + 1];
+				if (Index != RunLengths.Num() - 1)
+					EndIndex = RunLengths[Index + 1];
 
 				const float* TupleValues = &InFloatData[StartIndex * InAttributeInfo.tupleSize];
 				Result = FHoudiniApi::SetAttributeFloatUniqueData(FHoudiniEngine::Get().GetSession(), InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
-                                                                  &InAttributeInfo, TupleValues, InAttributeInfo.tupleSize, StartIndex, EndIndex - StartIndex);
+					&InAttributeInfo, TupleValues, InAttributeInfo.tupleSize, StartIndex, EndIndex - StartIndex);
 
-    			if (Result != HAPI_RESULT_SUCCESS)
-				    return  Result;
-		    }
+				if (Result != HAPI_RESULT_SUCCESS)
+					return  Result;
+			}
 			return HAPI_RESULT_SUCCESS;
 		}
 	}
