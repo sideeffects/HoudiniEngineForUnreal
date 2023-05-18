@@ -829,14 +829,14 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 		FUnrealObjectInputIdentifier IdentReferenceNode;
 		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
 		if (!FHoudiniEngineUtils::BuildStaticMeshInputObjectIdentifiers(
-				StaticMesh,
-				ExportMainMesh,
-				ExportAllLODs,
-				ExportSockets,
-				ExportColliders,
-				bSingleLeafNodeOnly,
-				IdentReferenceNode,
-				IdentPerOption))
+			StaticMesh,
+			ExportMainMesh,
+			ExportAllLODs,
+			ExportSockets,
+			ExportColliders,
+			bSingleLeafNodeOnly,
+			IdentReferenceNode,
+			IdentPerOption))
 		{
 			return false;
 		}
@@ -1026,10 +1026,13 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	const bool bHaveHiResSourceModel = StaticMesh->IsHiResMeshDescriptionValid();
 	bool bHiResMeshSuccess = false;
 	const bool ShouldUseNaniteFallback = bPreferNaniteFallbackMesh && StaticMesh->GetRenderData()->LODResources.Num();
-	if (bHaveHiResSourceModel && bNaniteBuildEnabled && ExportMainMesh && !ShouldUseNaniteFallback)
+
+	bool bWantToExportHiResModel = bNaniteBuildEnabled && ExportMainMesh && !ShouldUseNaniteFallback;
+	if (bWantToExportHiResModel && bHaveHiResSourceModel)
 	{
 		// Get the HiRes Mesh description and SourceModel
 		FMeshDescription HiResMeshDescription = *StaticMesh->GetHiResMeshDescription();
+
 		FStaticMeshSourceModel& HiResSrcModel = StaticMesh->GetHiResSourceModel();
 		FMeshBuildSettings& HiResBuildSettings = HiResSrcModel.BuildSettings;		// cannot be const because FMeshDescriptionHelper modifies the LightmapIndex fields ?!?
 
@@ -2027,7 +2030,7 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 				NodeId,	0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex), false);
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-				ColorValues, NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, AttributeInfoVertex), false);
+				ColorValues, NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, AttributeInfoVertex, true), false);
 
 			// Create the attribute for Alpha
 			TArray<float> AlphaValues;
@@ -2048,7 +2051,7 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 				NodeId,	0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex), false);
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-				AlphaValues, NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, AttributeInfoVertex), false);
+				AlphaValues, NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, AttributeInfoVertex, true), false);
 		}
 	}
 
@@ -2940,7 +2943,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex), false);
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
-				Alphas, NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, AttributeInfoVertex), false);
+				Alphas, NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, AttributeInfoVertex, true), false);
 		}
 
 		//--------------------------------------------------------------------------------------------------------------------- 
@@ -3332,7 +3335,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
 
 	// Grab the build scale
-	const FStaticMeshSourceModel &SourceModel = StaticMesh->GetSourceModel(InLODIndex);
+	const FStaticMeshSourceModel &SourceModel = InLODIndex > 0 ? StaticMesh->GetSourceModel(InLODIndex) : StaticMesh->GetHiResSourceModel();
 	FVector3f BuildScaleVector = (FVector3f)SourceModel.BuildSettings.BuildScale3D;
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -3654,7 +3657,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 							    FStaticMeshLODResources& RenderModel = SMRenderData->LODResources[InLODIndex];
 							    FColorVertexBuffer& ColorVertexBuffer = *ComponentLODInfo.OverrideVertexColors;
 
-							    int32 Index = RenderModel.WedgeMap[VertexInstanceIdx];
+							    int32 Index = RenderModel.WedgeMap[VertexInstanceID];
 							    if (Index != INDEX_NONE)
 							    {
 								    Color = ColorVertexBuffer.VertexColor(Index).ReinterpretAsLinear();
@@ -4883,13 +4886,10 @@ FUnrealMeshTranslator::CreateInputNodeForCollider(
 	const TArray<float>& ColliderVertices,
 	const TArray<int32>& ColliderIndices)
 {
-	// Create a new input node for the collider
-	const char * ColliderNameStr = TCHAR_TO_UTF8(*ColliderName);
-
-	// Create the node in this input object's OBJ node
+	// Create a new input node for the collider in this input object's OBJ node
 	HAPI_NodeId ColliderNodeId = -1;
 	HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
-		InParentNodeID, "null", ColliderNameStr, false, &ColliderNodeId), false);
+		InParentNodeID, "null", TCHAR_TO_UTF8(*ColliderName), false, &ColliderNodeId), false);
 
 	// Create a part
 	HAPI_PartInfo Part;
