@@ -29,6 +29,7 @@
 // This file contains utility functions for translating Houdini Height Fields to Unreal Landscapes.
 // Do not include this header in other headers; the code is separated out to speed compilation times.
 
+#include "HoudiniLandscapeTranslator.h"
 #include "LandscapeInfo.h"
 #include "HAPI/HAPI_Common.h"
 #include "UObject/Class.h"
@@ -144,6 +145,9 @@ struct FHoudiniHeightFieldPartData
     // Bake Outliner Folder
     FString BakeOutlinerFolder;
 
+    // Size info - number of sections and components.
+    FHoudiniLandscapeCreationInfo SizeInfo;
+
 };
 
 struct FHoudiniUnrealLandscapeTarget
@@ -176,6 +180,8 @@ struct FHoudiniLayersToUnrealLandscapeMapping
     TMap<FHoudiniHeightFieldPartData *,int> HoudiniLayerToUnrealLandscape;
 };
 
+
+
 struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 {
 	
@@ -193,8 +199,6 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 
 	static TArray<uint16> QuantizeNormalizedDataTo16Bit(const TArray<float>& Data);
 
-	static TArray<float> Resize(const FIntPoint& NewSize, const TArray<float>& Data, const FIntPoint& OldSize);
-
     static float GetLandscapeHeightRangeInCM(ALandscape& Landscape);
 
     static TArray<uint16> GetHeightData(ALandscape* Landscape, const FHoudiniExtents& Extents, FLandscapeLayer* EditLayer);
@@ -207,12 +211,17 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 
 	static TArray<uint8_t> GetLayerData(ALandscape* Landscape, const FHoudiniExtents& Extents, const FName& EditLayerName, const FName& TargetLayerName);
 
-    static FHoudiniLayersToUnrealLandscapeMapping ResolveLandscapes(const FString & CookedLandscapePrefix, const FHoudiniPackageParams& PackageParams, UHoudiniAssetComponent* HAC, TMap<FString,ALandscape*>& LandsscapeMap, TArray<FHoudiniHeightFieldPartData>& Parts, UWorld* World, const TArray<ALandscapeProxy*>& LandscapeInputs, int WorldPartitionGridSize );
+    static FHoudiniLayersToUnrealLandscapeMapping ResolveLandscapes(const FString & CookedLandscapePrefix, 
+			const FHoudiniPackageParams& PackageParams, 
+            UHoudiniAssetComponent* HAC, 
+            TMap<FString,ALandscape*>& LandsscapeMap, 
+            TArray<FHoudiniHeightFieldPartData>& Parts, 
+            UWorld* World, 
+            const TArray<ALandscapeProxy*>& LandscapeInputs);
 
-    static bool CalcLandscapeSizeFromHeightFieldSize(const int32 ProposedUnrealSizeX, const int32 ProposedUnrealSizeY,
-        int32& UnrealSizeX, int32& UnrealSizeY, int32& NumSectionsPerComponent, int32& NumQuadsPerSection);
+    static bool CalcLandscapeSizeFromHeightFieldSize(const int32 ProposedUnrealSizeX, const int32 ProposedUnrealSizeY, FHoudiniLandscapeCreationInfo& Info);
 
-    static void CreateDefaultHeightField(ALandscape* LandscapeActor, const FIntPoint& Dimensions);
+    static void CreateDefaultHeightField(ALandscape* LandscapeActor, const FHoudiniLandscapeCreationInfo& Info);
 
     static ALandscapeProxy* FindTargetLandscapeProxy(const FString& ActorName, UWorld* World, const TArray<ALandscapeProxy*>& LandscapeInputs);
 
@@ -240,8 +249,6 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 	static FHoudiniHeightFieldData FetchVolumeInUnrealSpace(const FHoudiniGeoPartObject& HeightField, bool bTransposeData);
 
     static FIntPoint GetVolumeDimensionsInUnrealSpace(const FHoudiniGeoPartObject& HeightField);
-
-    static FIntPoint RoundUpToUnrealDimensions(const FIntPoint & Dimensions);
 
     static FHoudiniHeightFieldData ReDimensionLandscape(const FHoudiniHeightFieldData& HeightField, FIntPoint NewDimensions);
     

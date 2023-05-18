@@ -73,9 +73,7 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 	const FHoudiniPackageParams & InPackageParams,
 	TMap<FString, ALandscape*> & LandscapeMap,
 	TSet<FString>& ClearedLayers,
-	TArray<UPackage*>& OutCreatedPackages,
-	int WorldPartitionSize
-)
+	TArray<UPackage*>& OutCreatedPackages)
 {
 	UHoudiniAssetComponent* HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(InOutput);
 
@@ -103,8 +101,7 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 			LandscapeMap,
 			Parts, 
 			InWorld, 
-			InAllInputLandscapes, 
-			WorldPartitionSize);
+			InAllInputLandscapes);
 
 	OutCreatedPackages += LandscapeMapping.CreatedPackages;
 
@@ -230,9 +227,128 @@ TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTrans
 		NewLayerToCreate.bSubtractiveEditLayer = SubtractiveMode == HAPI_UNREAL_LANDSCAPE_EDITLAYER_SUBTRACTIVE_ON;
 
 		//-----------------------------------------------------------------------------------------------------------------------------
-		// Weight blend.
+		// See if this HAPI Volume is part of a larger landscape, ie. it is a tile. we do this by looking for the
+		// HAPI_UNREAL_ATTRIB_LANDSCAPE_SIZE attribute, which tells us the overall size of the landscape.
 		//-----------------------------------------------------------------------------------------------------------------------------
 
+		FHoudiniTileInfo TileInfo;
+		bool bValid = true;
+
+		// Look for the landscape attribute
+		HAPI_AttributeInfo AttributeInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+		TArray<int> LandscapeDimensions;
+		LandscapeDimensions.SetNumZeroed(2);
+		bValid &= FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+			PartObj.GeoId, PartObj.PartId,
+			HAPI_UNREAL_ATTRIB_LANDSCAPE_SIZE,
+			AttributeInfo, LandscapeDimensions, 2, HAPI_ATTROWNER_INVALID, 0, 1);
+
+		HAPI_AttributeInfo PositionInfo;
+		FHoudiniApi::AttributeInfo_Init(&PositionInfo);
+
+		// Get the center of the tile - this is stored in the "P" attribute.
+		HAPI_AttributeInfo AttribInfoPositions;
+		FHoudiniApi::AttributeInfo_Init(&AttribInfoPositions);
+		TArray<float> TIleCenterRelativeToOrigin;
+		TIleCenterRelativeToOrigin.SetNumZeroed(3);
+		bValid &= FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+			PartObj.GeoId, PartObj.PartId, HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, TIleCenterRelativeToOrigin);
+
+		if (bValid && TIleCenterRelativeToOrigin.Num() == 3)
+		{
+			// Convert "center" of tile (supplied by HAPI) to global lower corner (x,y)
+			// of entire landscape.
+			float TileX = NewLayerToCreate.HeightField->VolumeInfo.XLength;
+			float TileY = NewLayerToCreate.HeightField->VolumeInfo.YLength;
+			float HalfTileX = TileX * 0.5f;
+			float HalfTileY = TileY * 0.5f;
+			float CornerX = TIleCenterRelativeToOrigin[0] - HalfTileX;
+			float CornerY = TIleCenterRelativeToOrigin[2] - HalfTileY;
+			float CenterX = CornerX + (LandscapeDimensions[0]) * 0.5f;
+			float CenterY = CornerY + (LandscapeDimensions[1]) * 0.5f;
+
+			TileInfo.TileStart.X = static_cast<int>(CenterX);
+			TileInfo.TileStart.Y = static_cast<int>(CenterY);
+			TileInfo.LandscapeDimensions.X = LandscapeDimensions[0];
+			TileInfo.LandscapeDimensions.Y = LandscapeDimensions[1];
+
+			// A valid tile is stored.
+			NewLayerToCreate.TileInfo = TileInfo;
+		}
+
+		//-----------------------------------------------------------------------------------------------------------------------------
+		// If creating a new landscape, look for size info.
+		//-----------------------------------------------------------------------------------------------------------------------------
+
+		FHoudiniEngineUtils::HapiGetFirstAttributeValueAsInteger(
+			PartObj.GeoId, PartObj.PartId,
+			HAPI_UNREAL_ATTRIB_LANDSCAPE_PARTITION_GRID_SIZE,
+			HAPI_ATTROWNER_INVALID,
+			NewLayerToCreate.SizeInfo.WorldPartitionGridSize);
+
+		FHoudiniEngineUtils::HapiGetFirstAttributeValueAsInteger(
+			PartObj.GeoId, PartObj.PartId,
+			HAPI_UNREAL_ATTRIB_LANDSCAPE_SECTION_SIZE,
+			HAPI_ATTROWNER_INVALID,
+			NewLayerToCreate.SizeInfo.NumQuadsPerSection);
+
+		FHoudiniEngineUtils::HapiGetFirstAttributeValueAsInteger(
+			PartObj.GeoId, PartObj.PartId,
+			HAPI_UNREAL_ATTRIB_LANDSCAPE_SECTIONS_PER_COMPONENT,
+			HAPI_ATTROWNER_INVALID,
+			NewLayerToCreate.SizeInfo.NumSectionsPerComponent);
+
+		// Make sure both Sections Per Component and Section Size were specified.
+		bool bSectionSizeSet = NewLayerToCreate.SizeInfo.NumQuadsPerSection != 0;
+		bool bSectionsPerComponentSet = NewLayerToCreate.SizeInfo.NumSectionsPerComponent != 0;
+		if ((bSectionSizeSet && !bSectionsPerComponentSet) || (bSectionsPerComponentSet && !bSectionSizeSet))
+		{
+			HOUDINI_LOG_ERROR(TEXT("Both " HAPI_UNREAL_ATTRIB_LANDSCAPE_SECTION_SIZE " and " HAPI_UNREAL_ATTRIB_LANDSCAPE_SECTIONS_PER_COMPONENT " must be set. Ignoring."));
+			NewLayerToCreate.SizeInfo.NumQuadsPerSection = 0;
+			NewLayerToCreate.SizeInfo.NumSectionsPerComponent = 0;
+		}
+		else
+		{
+			bool bValidSizes = true;
+			if (!FMath::IsPowerOfTwo(NewLayerToCreate.SizeInfo.NumQuadsPerSection + 1))
+			{
+				HOUDINI_LOG_ERROR(TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SECTION_SIZE " must be 1 less than a power of two."));
+				bValidSizes = false;
+			}
+			if (NewLayerToCreate.SizeInfo.NumSectionsPerComponent < 0 || NewLayerToCreate.SizeInfo.NumSectionsPerComponent > 2)
+			{
+				HOUDINI_LOG_ERROR(TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SECTIONS_PER_COMPONENT " must be 1 or 2."));
+				bValidSizes = false;
+			}
+			if (!bValidSizes)
+			{
+				NewLayerToCreate.SizeInfo.NumQuadsPerSection = 0;
+				NewLayerToCreate.SizeInfo.NumSectionsPerComponent = 0;
+			}
+		}
+
+		//-----------------------------------------------------------------------------------------------------------------------------
+		// At this point we have all the information to determine the landscapes size in Unreal. 
+		//-----------------------------------------------------------------------------------------------------------------------------
+
+		// Start with the size of the height field Part.
+		NewLayerToCreate.SizeInfo.UnrealSize = FHoudiniLandscapeUtils::GetVolumeDimensionsInUnrealSpace(PartObj);
+
+		// If we have a tile, use the specified size to override.
+		if (NewLayerToCreate.TileInfo.IsSet())
+			NewLayerToCreate.SizeInfo.UnrealSize = NewLayerToCreate.TileInfo.GetValue().LandscapeDimensions;
+
+		// Determine Quads Per section and Num Sections Per Component if they were not specified.
+		if (NewLayerToCreate.SizeInfo.NumQuadsPerSection == 0 || NewLayerToCreate.SizeInfo.NumSectionsPerComponent == 0)
+		{
+			FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(NewLayerToCreate.SizeInfo.UnrealSize.X, NewLayerToCreate.SizeInfo.UnrealSize.Y, NewLayerToCreate.SizeInfo);
+
+		}
+
+		//-----------------------------------------------------------------------------------------------------------------------------
+		// Weight blend.
+		//-----------------------------------------------------------------------------------------------------------------------------
 
 		int NonWeightBlend = HAPI_UNREAL_LANDSCAPE_LAYER_NOWEIGHTBLEND_OFF;
 
@@ -296,58 +412,6 @@ TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTrans
 		{
 			// No name was specified, set a default depending on whether the Output is creating or modifying a landscape
 			NewLayerToCreate.TargetLandscapeName = (LandscapeOutputMode == HAPI_UNREAL_LANDSCAPE_OUTPUT_MODE_GENERATE) ? FString("Landscape") : FString("Input0");
-		}
-
-		//-----------------------------------------------------------------------------------------------------------------------------
-		// See if this HAPI Volume is part of a larger landscape, ie. it is a tile. we do this by looking for the
-		// HAPI_UNREAL_ATTRIB_LANDSCAPE_SIZE attribute, which tells us the overall size of the landscape.
-		//-----------------------------------------------------------------------------------------------------------------------------
-
-
-		FHoudiniTileInfo TileInfo;
-		bool bValid = true;
-
-		// Look for the landscape attribute
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		TArray<int> LandscapeDimensions;
-		LandscapeDimensions.SetNumZeroed(2);
-		bValid &= FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
-			PartObj.GeoId, PartObj.PartId,
-			HAPI_UNREAL_ATTRIB_LANDSCAPE_SIZE,
-			AttributeInfo, LandscapeDimensions, 2, HAPI_ATTROWNER_INVALID, 0, 1);
-
-		HAPI_AttributeInfo PositionInfo;
-		FHoudiniApi::AttributeInfo_Init(&PositionInfo);
-
-		// Get the center of the tile - this is stored in the "P" attribute.
-		HAPI_AttributeInfo AttribInfoPositions;
-		FHoudiniApi::AttributeInfo_Init(&AttribInfoPositions);
-		TArray<float> TIleCenterRelativeToOrigin;
-		TIleCenterRelativeToOrigin.SetNumZeroed(3);
-		bValid &= FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-			PartObj.GeoId, PartObj.PartId, HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, TIleCenterRelativeToOrigin);
-
-		if (bValid && TIleCenterRelativeToOrigin.Num() == 3)
-		{
-			// Convert "center" of tile (supplied by HAPI) to global lower corner (x,y)
-			// of entire landscape.
-			float TileX = NewLayerToCreate.HeightField->VolumeInfo.XLength;
-			float TileY = NewLayerToCreate.HeightField->VolumeInfo.YLength;
-			float HalfTileX = TileX * 0.5f;
-			float HalfTileY = TileY * 0.5f;
-			float CornerX = TIleCenterRelativeToOrigin[0] - HalfTileX;
-			float CornerY = TIleCenterRelativeToOrigin[2] - HalfTileY;
-			float CenterX = CornerX + (LandscapeDimensions[0]) * 0.5f;
-			float CenterY = CornerY + (LandscapeDimensions[1]) * 0.5f;
-
-			TileInfo.TileStart.X = static_cast<int>(CenterX);
-			TileInfo.TileStart.Y = static_cast<int>(CenterY);
-			TileInfo.LandscapeDimensions.X = LandscapeDimensions[0];
-			TileInfo.LandscapeDimensions.Y = LandscapeDimensions[1];
-
-			// A valid tile is stored.
-			NewLayerToCreate.TileInfo = TileInfo;
 		}
 
 		//-----------------------------------------------------------------------------------------------------------------------------
@@ -503,7 +567,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 
 	if (!TargetLayerInfo && Part.TargetLayerName != "height" && Part.TargetLayerName != "visibility")
 	{
-		HOUDINI_LOG_ERROR(TEXT("Could not find target layer: %s"), *(Part.TargetLayerName));
+		HOUDINI_LOG_WARNING(TEXT("Could not find target layer: %s. This should be 'height', 'visibility' or the name of a layer in the material."), *(Part.TargetLayerName));
 		return nullptr;
 	}
 
@@ -590,7 +654,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	}
 	else
 	{
-		// Move the existing data, which has the effect of dlete in the input layer's reference to it. Do this
+		// Move the existing data, which has the effect of delete in the input layer's reference to it. Do this
 		// so we don't have all the layer data loaded at once.
 		HeightFieldData = std::move(*Part.CachedData);
 	}

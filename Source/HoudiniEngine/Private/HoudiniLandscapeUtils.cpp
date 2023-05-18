@@ -149,34 +149,6 @@ static float Convert(int NewValue, int NewMax, int OldMax)
 	return (Scale * OldMax);
 }
 
-TArray<float> FHoudiniLandscapeUtils::Resize(const FIntPoint& NewSize, const TArray<float>& Data, const FIntPoint& OldSize)
-{
-	TArray<float> Result;
-	Result.SetNum(NewSize.X * NewSize.Y);
-
-	for(int X = 0; X < NewSize.X; X++)
-	{
-		for(int Y = 0; Y < NewSize.Y; Y++)
-		{
-			float OldX = Convert(X, NewSize.X, OldSize.X);
-			float OldY = Convert(Y, NewSize.Y, OldSize.Y);
-
-			const int32 X0 = FMath::FloorToInt(OldX);
-			const int32 X1 = FMath::Min(FMath::FloorToInt(OldX) + 1, OldSize.X - 1);
-			const int32 Y0 = FMath::FloorToInt(OldY);
-			const int32 Y1 = FMath::Min(FMath::FloorToInt(OldY) + 1, OldSize.Y - 1);
-			const float Original00 = Data[Y0 * OldSize.X + X0];
-			const float Original10 = Data[Y0 * OldSize.X + X1];
-			const float Original01 = Data[Y1 * OldSize.X + X0];
-			const float Original11 = Data[Y1 * OldSize.X + X1];
-			Result[Y * NewSize.X + X] = FMath::BiLerp(Original00, Original10, Original01, Original11, FMath::Fractional(OldX), FMath::Fractional(OldY));
-		}
-	}
-
-	return Result;
-}
-
-
 float FHoudiniLandscapeUtils::GetLandscapeHeightRangeInCM(ALandscape& Landscape)
 {
 	float Scale = Landscape.GetTransform().GetScale3D().Z;
@@ -291,19 +263,18 @@ TArray<uint8_t> FHoudiniLandscapeUtils::GetLayerData(ALandscape* Landscape, cons
 
 bool
 FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(
-	const int32 ProposedUnrealSizeX, const int32 ProposedUnrealSizeY,
-	int32& UnrealSizeX, int32& UnrealSizeY,
-	int32& NumSectionsPerComponent, int32& NumQuadsPerSection)
+	const int32 ProposedUnrealSizeX, const int32 ProposedUnrealSizeY, 
+	FHoudiniLandscapeCreationInfo & Info)
 {
 	// TODO: We already know Proposed Size will fit, so some of this function is redundant.
 
 	if ((ProposedUnrealSizeX < 2) || (ProposedUnrealSizeY < 2))
 		return false;
 
-	NumSectionsPerComponent = 1;
-	NumQuadsPerSection = 1;
-	UnrealSizeX = -1;
-	UnrealSizeY = -1;
+	Info.NumSectionsPerComponent = 1;
+	Info.NumQuadsPerSection = 1;
+	Info.UnrealSize.X = -1;
+	Info.UnrealSize.Y = -1;
 
 	// Unreal's default sizes
 	int32 SectionSizes[] = { 7, 15, 31, 63, 127, 255 };
@@ -317,8 +288,8 @@ FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(
 	auto ClampLandscapeSize = [&]()
 	{
 		// Max size is either whole components below 8192 verts, or 32 components
-		ComponentsCountX = FMath::Clamp(ComponentsCountX, 1, FMath::Min(32, FMath::FloorToInt(8191.0f / (float)(NumSectionsPerComponent * NumQuadsPerSection))));
-		ComponentsCountY = FMath::Clamp(ComponentsCountY, 1, FMath::Min(32, FMath::FloorToInt(8191.0f / (float)(NumSectionsPerComponent * NumQuadsPerSection))));
+		ComponentsCountX = FMath::Clamp(ComponentsCountX, 1, FMath::Min(32, FMath::FloorToInt(8191.0f / (float)(Info.NumSectionsPerComponent * Info.NumQuadsPerSection))));
+		ComponentsCountY = FMath::Clamp(ComponentsCountY, 1, FMath::Min(32, FMath::FloorToInt(8191.0f / (float)(Info.NumSectionsPerComponent * Info.NumQuadsPerSection))));
 	};
 
 	// Try to find a section size and number of sections that exactly matches the dimensions of the heightfield
@@ -334,8 +305,8 @@ FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(
 				((ProposedUnrealSizeY - 1) % Total) == 0 && ((ProposedUnrealSizeY - 1) / Total) <= 32))
 			{
 				bFoundMatch = true;
-				NumQuadsPerSection = SectionSize;
-				NumSectionsPerComponent = NumSection;
+				Info.NumQuadsPerSection = SectionSize;
+				Info.NumSectionsPerComponent = NumSection;
 				ComponentsCountX = (ProposedUnrealSizeX - 1) / Total;
 				ComponentsCountY = (ProposedUnrealSizeY - 1) / Total;
 				ClampLandscapeSize();
@@ -351,8 +322,8 @@ FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(
 	if (!bFoundMatch)
 	{
 		// if there was no exact match, try increasing the section size until we encompass the whole height field
-		const int32 CurrentSectionSize = NumQuadsPerSection;
-		const int32 CurrentNumSections = NumSectionsPerComponent;
+		const int32 CurrentSectionSize = Info.NumQuadsPerSection;
+		const int32 CurrentNumSections = Info.NumSectionsPerComponent;
 		for (int32 SectionSizesIdx = 0; SectionSizesIdx < UE_ARRAY_COUNT(SectionSizes); SectionSizesIdx++)
 		{
 			if (SectionSizes[SectionSizesIdx] < CurrentSectionSize)
@@ -365,7 +336,7 @@ FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(
 			if (ComponentsX <= 32 && ComponentsY <= 32)
 			{
 				bFoundMatch = true;
-				NumQuadsPerSection = SectionSizes[SectionSizesIdx];
+				Info.NumQuadsPerSection = SectionSizes[SectionSizesIdx];
 				ComponentsCountX = ComponentsX;
 				ComponentsCountY = ComponentsY;
 				ClampLandscapeSize();
@@ -383,8 +354,8 @@ FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(
 		const int32 ComponentsY = FMath::DivideAndRoundUp((ProposedUnrealSizeY - 1), MaxSectionSize * MaxNumSubSections);
 
 		bFoundMatch = true;
-		NumQuadsPerSection = MaxSectionSize;
-		NumSectionsPerComponent = MaxNumSubSections;
+		Info.NumQuadsPerSection = MaxSectionSize;
+		Info.NumSectionsPerComponent = MaxNumSubSections;
 		ComponentsCountX = ComponentsX;
 		ComponentsCountY = ComponentsY;
 		ClampLandscapeSize();
@@ -393,20 +364,20 @@ FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(
 	if (!bFoundMatch)
 	{
 		// Using default size just to not crash..
-		UnrealSizeX = 512;
-		UnrealSizeY = 512;
-		NumSectionsPerComponent = 1;
-		NumQuadsPerSection = 511;
+		Info.UnrealSize.X = 512;
+		Info.UnrealSize.Y = 512;
+		Info.NumSectionsPerComponent = 1;
+		Info.NumQuadsPerSection = 511;
 		ComponentsCountX = 1;
 		ComponentsCountY = 1;
 	}
 	else
 	{
 		// Calculating the desired size
-		int32 QuadsPerComponent = NumSectionsPerComponent * NumQuadsPerSection;
+		int32 QuadsPerComponent = Info.NumSectionsPerComponent * Info.NumQuadsPerSection;
 
-		UnrealSizeX = ComponentsCountX * QuadsPerComponent + 1;
-		UnrealSizeY = ComponentsCountY * QuadsPerComponent + 1;
+		Info.UnrealSize.X = ComponentsCountX * QuadsPerComponent + 1;
+		Info.UnrealSize.Y = ComponentsCountY * QuadsPerComponent + 1;
 	}
 
 	return bFoundMatch;
@@ -420,8 +391,7 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 	TMap<FString, ALandscape*>& LandscapeMap,
 	TArray<FHoudiniHeightFieldPartData>& Parts, 
 	UWorld * World, 
-	const TArray<ALandscapeProxy*>& LandscapeInputs,
-	int WorldPartitionGridSize)
+	const TArray<ALandscapeProxy*>& LandscapeInputs)
 {
 	FHoudiniLayersToUnrealLandscapeMapping Result;
 
@@ -488,8 +458,7 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		FHoudiniHeightFieldPartData* PartForSizing = GetPartWithHeightData(PartsForLandscape);
 		if (!PartForSizing)
 		{
-
-    			PartForSizing = PartsForLandscape.CreateIterator().Value();
+    		PartForSizing = PartsForLandscape.CreateIterator().Value();
 			HOUDINI_BAKING_WARNING(TEXT("No height primitve was found, using %s"), *BaseLayer->TargetLayer);
 		}
 
@@ -553,19 +522,7 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		// in an Edit Layer.
 		//---------------------------------------------------------------------------------------------------------------------------------
 
-		FIntPoint Dimensions = PartForSizing->TileInfo.IsSet() ? 
-									PartForSizing->TileInfo.GetValue().LandscapeDimensions :
-									GetVolumeDimensionsInUnrealSpace(*PartForSizing->HeightField);
-
-		FIntPoint RoundedDimensions = RoundUpToUnrealDimensions(Dimensions);
-
-		if (RoundedDimensions != Dimensions)
-		{
-			HOUDINI_LOG_WARNING(TEXT("Landscape was not an approved Unreal size, rounding up."));
-			Dimensions = RoundedDimensions;
-		}
-
-		CreateDefaultHeightField(LandscapeActor, Dimensions);
+		CreateDefaultHeightField(LandscapeActor, PartForSizing->SizeInfo);
 
 		//---------------------------------------------------------------------------------------------------------------------------------
 		// Set the landscape scale. We will need the actual data for the height field for this, so fetch it and cache it for later.
@@ -586,7 +543,7 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		// World Partition
 		//---------------------------------------------------------------------------------------------------------------------------------
 
-		SetWorldPartitionGridSize(LandscapeActor, WorldPartitionGridSize);
+		SetWorldPartitionGridSize(LandscapeActor, PartForSizing->SizeInfo.WorldPartitionGridSize);
 
 		//---------------------------------------------------------------------------------------------------------------------------------
 		// and store the results.
@@ -602,7 +559,7 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		Output.BakedName = FName(LandscapeActorName);
 		Output.CreatedLayerInfoObjects = CreateLayerInfoObjects;
 		Output.bWasCreated = true;
-		Output.Dimensions = Dimensions;
+		Output.Dimensions = PartForSizing->SizeInfo.UnrealSize;
 		Result.TargetLandscapes.Add(Output);
 		Result.CreatedPackages = CreatedPackages;
 
@@ -610,22 +567,12 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 	return Result;
 }
 
-void FHoudiniLandscapeUtils::CreateDefaultHeightField(ALandscape* LandscapeActor, const FIntPoint& Dimensions)
+void FHoudiniLandscapeUtils::CreateDefaultHeightField(ALandscape* LandscapeActor, const FHoudiniLandscapeCreationInfo& Info)
 {
-	// Figure out the landscape dimensions.
-
-	int32 UnrealNumQuadsX;
-	int32 UnrealNumQuadsY;
-	int32 NumSectionsPerComponent;
-	int32 NumQuadsPerSection;
-	CalcLandscapeSizeFromHeightFieldSize(Dimensions.X, Dimensions.Y,
-		UnrealNumQuadsX, UnrealNumQuadsY, 
-		NumSectionsPerComponent, NumQuadsPerSection);
-
 	// Create an height field of zeros.
 
 	TArray<uint16> Values;
-	int NumPoints = (UnrealNumQuadsX + 1) * (UnrealNumQuadsY + 1);
+	int NumPoints = (Info.UnrealSize.X + 1) * (Info.UnrealSize.Y + 1);
 	Values.SetNumUninitialized(NumPoints);
 	uint16 ZeroHeight = LandscapeDataAccess::GetTexHeight(0.0f);
 	for (int Index = 0; Index < NumPoints; Index++)
@@ -643,9 +590,9 @@ void FHoudiniLandscapeUtils::CreateDefaultHeightField(ALandscape* LandscapeActor
 	// Now call the UE Import() function to actually create the layer
 	LandscapeActor->Import(
 		LandscapeActor->GetLandscapeGuid(),
-		0, 0, UnrealNumQuadsX, UnrealNumQuadsY,
-		NumSectionsPerComponent,
-		NumQuadsPerSection,
+		0, 0, Info.UnrealSize.X, Info.UnrealSize.Y,
+		Info.NumSectionsPerComponent,
+		Info.NumQuadsPerSection,
 		HeightMapDataPerLayers,
 		NULL,
 		MaterialLayerDataPerLayer,
@@ -953,21 +900,6 @@ FHoudiniHeightFieldData FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(const F
 	}
 
 	return Result;
-}
-
-FIntPoint FHoudiniLandscapeUtils::RoundUpToUnrealDimensions(const FIntPoint& Size)
-{
-	FIntPoint Result;
-	int NumSectionsPerComponent;
-	int NumQuadsPerSection;
-
-	FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(
-		Size.X, Size.Y,
-		Result.X, Result.Y,
-		NumSectionsPerComponent, NumQuadsPerSection);
-
-	return Result;
-
 }
 
 FHoudiniHeightFieldData

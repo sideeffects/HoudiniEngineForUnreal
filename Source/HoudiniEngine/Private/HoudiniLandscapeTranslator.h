@@ -41,6 +41,14 @@ struct FHoudiniPackageParams;
 struct FHoudiniHeightFieldPartData;
 struct FHoudiniUnrealLandscapeTarget;
 
+struct FHoudiniLandscapeCreationInfo
+{
+	FIntPoint UnrealSize;
+	int NumSectionsPerComponent = 0;
+	int NumQuadsPerSection = 0;
+	int WorldPartitionGridSize = 4;
+};
+
 struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 {
 	static TArray<FHoudiniHeightFieldPartData> GetPartsToTranslate(UHoudiniOutput* InOutput);
@@ -53,8 +61,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 		const FHoudiniPackageParams& InPackageParams,
 		TMap<FString, ALandscape*> & LandscapeMap,
 		TSet<FString>& ClearedLayers,
-		TArray<UPackage*>& OutCreatedPackages,
-		int WorldPartitionSize);
+		TArray<UPackage*>& OutCreatedPackages);
 
 	static const FHoudiniGeoPartObject* GetHoudiniHeightFieldFromOutput(
 		UHoudiniOutput* InOutput,

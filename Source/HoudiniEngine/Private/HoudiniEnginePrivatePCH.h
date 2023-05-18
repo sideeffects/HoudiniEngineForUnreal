@@ -140,8 +140,10 @@
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_MIN				"unreal_landscape_layer_min"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_MAX				"unreal_landscape_layer_max"
 
-// World Partition Grid Size
+// Landscape controls
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_PARTITION_GRID_SIZE    "unreal_landscape_partition_grid_size"
+#define HAPI_UNREAL_ATTRIB_LANDSCAPE_SECTION_SIZE           "unreal_landscape_section_size"
+#define HAPI_UNREAL_ATTRIB_LANDSCAPE_SECTIONS_PER_COMPONENT "unreal_landscape_sections_per_component"
 
 // Path to the level in which an actor should be generated or which contained the input data
 // "." - (Default) Generate geometry in the the current persistent world
