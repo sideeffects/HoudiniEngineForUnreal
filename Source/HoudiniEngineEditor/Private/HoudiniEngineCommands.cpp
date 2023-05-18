@@ -60,6 +60,11 @@
 #include "UObject/ObjectSaveContext.h"
 //#include "UObject/ObjectSaveContext.h"
 
+// Required for UE5.2 Engine Plugin compilation
+#if ENGINE_MINOR_VERSION > 1
+	#include "UObject/UObjectIterator.h"
+#endif
+
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 FDelegateHandle FHoudiniEngineCommands::OnPostSaveWorldRefineProxyMeshesHandle = FDelegateHandle();

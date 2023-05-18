@@ -400,14 +400,6 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const HAPI_AttributeInfo& InAttributeInfo,
 			bool bAttemptRunLengthEncoding = false);
 
-		// Helper function for setting unique float values
-		static HAPI_Result HapiSetAttributeFloatUniqueData(
-			const float InFloatData,
-			const HAPI_NodeId& InNodeId,
-			const HAPI_PartId& InPartId,
-			const FString& InAttributeName,
-			const HAPI_AttributeInfo& InAttributeInfo);
-
 		// Helper function to set Int attribute data
 		// The data will be sent in chunks if too large for thrift
 		static HAPI_Result HapiSetAttributeIntData(
@@ -426,8 +418,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const HAPI_AttributeInfo& InAttributeInfo,
             bool bAttemptRunLengthEncoding = false);
 
-		// Helper function for setting unique int values
-		static HAPI_Result HapiSetAttributeIntUniqueData(
+		static HAPI_Result HapiSetAttributeIntData(
 			const int32 InIntData,
 			const HAPI_NodeId& InNodeId,
 			const HAPI_PartId& InPartId,
@@ -1163,7 +1154,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// -------------------------------------------------
 
 		// Iterate over the input objects and gather only the landscape inputs.
-		static void GatherLandscapeInputs(UHoudiniAssetComponent* HAC, TArray<ALandscapeProxy*>& AllInputLandscapes);
+		static void GatherLandscapeInputs(UHoudiniAssetComponent* HAC, TArray<ALandscapeProxy*>& AllInputLandscapes, TArray<ALandscapeProxy*>& InputLandscapesToUpdate);
 
 
 		static UHoudiniAssetComponent* GetOuterHoudiniAssetComponent(const UObject* Obj);

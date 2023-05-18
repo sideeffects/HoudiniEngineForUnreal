@@ -1243,7 +1243,8 @@ FHoudiniEngineUtils::RepopulateFoliageTypeListInUI()
 void
 FHoudiniEngineUtils::GatherLandscapeInputs(
 	UHoudiniAssetComponent* HAC,
-	TArray<ALandscapeProxy*>& AllInputLandscapes)
+	TArray<ALandscapeProxy*>& AllInputLandscapes,
+	TArray<ALandscapeProxy*>& InputLandscapesToUpdate)
 {
 	if (!IsValid(HAC))
 		return;
@@ -1282,6 +1283,11 @@ FHoudiniEngineUtils::GatherLandscapeInputs(
 			continue;
 
 		AllInputLandscapes.Add(InputLandscape);
+
+		if (CurrentInput->GetUpdateInputLandscape())
+		{
+			InputLandscapesToUpdate.Add(InputLandscape);
+		}
 	}
 }
 
@@ -2834,7 +2840,7 @@ FHoudiniEngineUtils::TranslateUnrealTransform(
 	const FTransform & UnrealTransform,
 	HAPI_TransformEuler & HapiTransformEuler)
 {
-	FHoudiniApi::TransformEuler_Init(&HapiTransformEuler);
+	FMemory::Memzero< HAPI_TransformEuler >(HapiTransformEuler);
 
 	HapiTransformEuler.rstOrder = HAPI_SRT;
 	HapiTransformEuler.rotationOrder = HAPI_XYZ;
@@ -2851,34 +2857,34 @@ FHoudiniEngineUtils::TranslateUnrealTransform(
 		const FRotator Rotator = UnrealRotation.Rotator();
 
 		// Negate roll and pitch since they are actually RHR
-		HapiTransformEuler.rotationEuler[0] = -(float)Rotator.Roll;
-		HapiTransformEuler.rotationEuler[1] = -(float)Rotator.Pitch;
-		HapiTransformEuler.rotationEuler[2] = (float)Rotator.Yaw;
+		HapiTransformEuler.rotationEuler[0] = -Rotator.Roll;
+		HapiTransformEuler.rotationEuler[1] = -Rotator.Pitch;
+		HapiTransformEuler.rotationEuler[2] = Rotator.Yaw;
 
 		// Swap Y/Z, scale
-		HapiTransformEuler.position[0] = (float)(UnrealTranslation.X) / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
-		HapiTransformEuler.position[1] = (float)(UnrealTranslation.Z) / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
-		HapiTransformEuler.position[2] = (float)(UnrealTranslation.Y) / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
+		HapiTransformEuler.position[0] = UnrealTranslation.X / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
+		HapiTransformEuler.position[1] = UnrealTranslation.Z / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
+		HapiTransformEuler.position[2] = UnrealTranslation.Y / HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
 
 		// Swap Y/Z
-		HapiTransformEuler.scale[0] = (float)UnrealScale.X;
-		HapiTransformEuler.scale[1] = (float)UnrealScale.Z;
-		HapiTransformEuler.scale[2] = (float)UnrealScale.Y;
+		HapiTransformEuler.scale[0] = UnrealScale.X;
+		HapiTransformEuler.scale[1] = UnrealScale.Z;
+		HapiTransformEuler.scale[2] = UnrealScale.Y;
 	}
 	else
 	{
 		const FRotator Rotator = UnrealRotation.Rotator();
-		HapiTransformEuler.rotationEuler[0] = (float)Rotator.Roll;
-		HapiTransformEuler.rotationEuler[1] = (float)Rotator.Yaw;
-		HapiTransformEuler.rotationEuler[2] = (float)Rotator.Pitch;
+		HapiTransformEuler.rotationEuler[0] = Rotator.Roll;
+		HapiTransformEuler.rotationEuler[1] = Rotator.Yaw;
+		HapiTransformEuler.rotationEuler[2] = Rotator.Pitch;
 
-		HapiTransformEuler.position[0] = (float)UnrealTranslation.X;
-		HapiTransformEuler.position[1] = (float)UnrealTranslation.Y;
-		HapiTransformEuler.position[2] = (float)UnrealTranslation.Z;
+		HapiTransformEuler.position[0] = UnrealTranslation.X;
+		HapiTransformEuler.position[1] = UnrealTranslation.Y;
+		HapiTransformEuler.position[2] = UnrealTranslation.Z;
 
-		HapiTransformEuler.scale[0] = (float)UnrealScale.X;
-		HapiTransformEuler.scale[1] = (float)UnrealScale.Y;
-		HapiTransformEuler.scale[2] = (float)UnrealScale.Z;
+		HapiTransformEuler.scale[0] = UnrealScale.X;
+		HapiTransformEuler.scale[1] = UnrealScale.Y;
+		HapiTransformEuler.scale[2] = UnrealScale.Z;
 	}
 }
 
@@ -3072,12 +3078,9 @@ FHoudiniEngineUtils::GetLicenseType(FString & LicenseType)
 	LicenseType = TEXT("");
 	HAPI_License LicenseTypeValue = HAPI_LICENSE_NONE;
 
-	if (FHoudiniEngine::Get().GetSession())
-	{
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetSessionEnvInt(
-			FHoudiniEngine::Get().GetSession(), HAPI_SESSIONENVINT_LICENSE,
-			(int32*)&LicenseTypeValue), false);
-	}
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetSessionEnvInt(
+		FHoudiniEngine::Get().GetSession(), HAPI_SESSIONENVINT_LICENSE,
+		(int32 *)&LicenseTypeValue), false);
 
 	switch (LicenseTypeValue)
 	{
@@ -3501,45 +3504,20 @@ FHoudiniEngineUtils::HapiSetAttributeIntData(
 }
 
 HAPI_Result
-FHoudiniEngineUtils::HapiSetAttributeFloatUniqueData(
-	const float InFloatData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
-	const FString& InAttributeName,
-	const HAPI_AttributeInfo& InAttributeInfo)
-{
-	SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
-
-	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
-		return HAPI_RESULT_INVALID_ARGUMENT;
-
-	HAPI_Result Result = FHoudiniApi::SetAttributeFloatUniqueData(
-		FHoudiniEngine::Get().GetSession(), InNodeId, InPartId,
-		TCHAR_TO_ANSI(*InAttributeName), &InAttributeInfo, &InFloatData, InAttributeInfo.tupleSize,
-		0, InAttributeInfo.count);
-
-	return Result;
-}
-
-HAPI_Result
-FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+FHoudiniEngineUtils::HapiSetAttributeIntData(
 	const int32 InIntData,
 	const HAPI_NodeId& InNodeId,
 	const HAPI_PartId& InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
-	SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+	// Ensure we create an array of the appropriate size
+	TArray<int32> IntArray;
+	IntArray.SetNum(InAttributeInfo.count);
+	for (int n = 0; n < IntArray.Num(); n++)
+		IntArray[n] = InIntData;
 
-	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
-		return HAPI_RESULT_INVALID_ARGUMENT;
-
-	HAPI_Result Result = FHoudiniApi::SetAttributeIntUniqueData(
-		FHoudiniEngine::Get().GetSession(), InNodeId, InPartId,
-		TCHAR_TO_ANSI(*InAttributeName), &InAttributeInfo, &InIntData, InAttributeInfo.tupleSize,
-		0, InAttributeInfo.count);
-
-	return Result;
+	return HapiSetAttributeIntData(IntArray, InNodeId, InPartId, InAttributeName, InAttributeInfo);
 }
 
 HAPI_Result
@@ -3549,7 +3527,7 @@ FHoudiniEngineUtils::HapiSetAttributeIntData(
 	const HAPI_PartId& InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo,
-	bool bAttemptRunLengthEncoding)
+	  bool bAttemptRunLengthEncoding)
 {
     SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
 
@@ -7042,7 +7020,7 @@ FHoudiniEngineUtils::AddLandscapeTypeAttribute(
 	if (Result == HAPI_RESULT_SUCCESS )
 	{
 		// Set the attribute's string data
-		Result = FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
+		Result = FHoudiniEngineUtils::HapiSetAttributeIntData(
 			1, InNodeId, InPartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_STREAMING_PROXY, AttributeInfoActorPath);
 	}
 

@@ -14,6 +14,12 @@
 #include "GeometryCollection/GeometryCollectionActor.h"
 #include "Materials/Material.h"
 
+// Required for UE5.2 Engine Plugin compilation
+#if ENGINE_MINOR_VERSION > 1
+	#include "MaterialDomain.h"
+	#include "GeometryCollection/GeometryCollection.h"
+#endif
+
 void
 FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutputs(
 	TArray<UHoudiniOutput*>& InAllOutputs,

@@ -42,8 +42,6 @@
 
 #include "UObject/DevObjectVersion.h"
 #include "Serialization/CustomVersion.h"
-
-#include "Runtime/Launch/Resources/Version.h"
 #if ENGINE_MINOR_VERSION >= 2
 	#include "UObject/Linker.h"
 #endif

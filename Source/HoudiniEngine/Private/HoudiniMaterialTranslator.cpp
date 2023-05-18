@@ -59,6 +59,11 @@
 	#include "Factories/MaterialInstanceConstantFactoryNew.h"
 #endif
 
+// Required for UE5.2 Engine Plugin compilation
+#if ENGINE_MINOR_VERSION > 1
+	#include "MaterialShared.h"
+#endif
+
 const int32 FHoudiniMaterialTranslator::MaterialExpressionNodeX = -400;
 const int32 FHoudiniMaterialTranslator::MaterialExpressionNodeY = -150;
 const int32 FHoudiniMaterialTranslator::MaterialExpressionNodeStepX = 220;
@@ -484,12 +489,9 @@ FHoudiniMaterialTranslator::CreateMaterialInstances(
 
 bool FHoudiniMaterialTranslator::SortUniqueFaceMaterialOverridesAndCreateMaterialInstances(
 	const TArray<FString>& Materials,
-	const FHoudiniGeoPartObject& InHGPO,
-	const FHoudiniPackageParams& InPackageParams,
-	const TArray<UPackage*>& InPackages, 
-	const TMap<FString, UMaterialInterface*>& InMaterials,
-	TMap<FString, UMaterialInterface*>& OutMaterials,
-	const bool& bForceRecookAll)
+	const FHoudiniGeoPartObject& InHGPO, const FHoudiniPackageParams& InPackageParams,
+	const TArray<UPackage*>& InPackages, const TMap<FString, UMaterialInterface*>& InMaterials,
+	TMap<FString, UMaterialInterface*>& OutMaterials, const bool& bForceRecookAll)
 {
 	// Map containing unique face materials override attribute
 	// and their first valid prim index

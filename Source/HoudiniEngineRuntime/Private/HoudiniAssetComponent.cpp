@@ -62,6 +62,7 @@
 
 #if ENGINE_MINOR_VERSION >= 2
 	#include "UObject/Linker.h"
+	#include "PrimitiveSceneProxy.h"
 #endif
 
 #include "ComponentReregisterContext.h"

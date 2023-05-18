@@ -32,6 +32,11 @@
 #include "HoudiniStaticMesh.h"
 #include "HoudiniStaticMeshSceneProxy.h"
 
+// Required for UE5.2 Engine Plugin compilation
+#if ENGINE_MINOR_VERSION > 1
+	#include "SceneInterface.h"
+	#include "Engine/Texture2D.h"
+#endif
 
 UHoudiniStaticMeshComponent::UHoudiniStaticMeshComponent(const FObjectInitializer &InInitialzer) :
 	Super(InInitialzer)

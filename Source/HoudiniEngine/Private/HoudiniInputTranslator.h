@@ -291,13 +291,11 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const FString& InObjNodeName, 
 		UHoudiniInputBrush* InObject, 
 		TArray<AActor*>* ExcludeActors,
-		bool bExportMaterialParameters,
-		const bool& bInputNodesCanBeDeleted = true);
+		bool bExportMaterialParameters
+	);
 
 	static bool HapiCreateInputNodeForDataTable(
-		const FString& InNodeName,
-		UHoudiniInputDataTable* InInputObject,
-		const bool& bInputNodesCanBeDeleted = true);
+		const FString& InNodeName, UHoudiniInputDataTable* InInputObject);
 
 	static bool	HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 		const FString& InObjNodeName,
@@ -307,15 +305,6 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bExportColliders,
 		bool bExportMaterialParameters,
 		const bool& bImportAsReference = false,
-		const bool& bImportAsReferenceRotScaleEnabled = false,
-		const bool& bImportAsReferenceBboxEnabled = false,
-		const bool& bImportAsReferenceMaterialEnabled = false,
-		const bool& bInputNodesCanBeDeleted = true);
-
-	// Import as reference, wrapper function
-	static bool HapiCreateInputNodeForReference(
-		const FString& InObjNodeName,
-		UHoudiniInputObject* InObject,
 		const bool& bImportAsReferenceRotScaleEnabled = false,
 		const bool& bImportAsReferenceBboxEnabled = false,
 		const bool& bImportAsReferenceMaterialEnabled = false,

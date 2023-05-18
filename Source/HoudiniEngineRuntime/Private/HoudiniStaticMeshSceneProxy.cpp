@@ -36,6 +36,13 @@
 #include "HoudiniStaticMeshComponent.h"
 #include "HoudiniStaticMesh.h"
 
+// Required for UE5.2 Engine Plugin compilation
+#if ENGINE_MINOR_VERSION > 1
+	#include "MaterialDomain.h"
+	#include "SceneInterface.h"
+	#include "Materials/MaterialRenderProxy.h"
+#endif
+
 // Based on: Plugins\Experimental\MeshModelingToolset\Source\ModelingComponents\Private\BaseDynamicMeshSceneProxy.h
 
 //

@@ -56,6 +56,11 @@
 	#include "Framework/Notifications/NotificationManager.h"
 #endif
 
+// Required for UE5.2 Engine Plugin compilation
+#if ENGINE_MINOR_VERSION > 1
+	#include "Framework/Application/SlateApplication.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "HoudiniEngine"
 
 IMPLEMENT_MODULE(FHoudiniEngine, HoudiniEngine)

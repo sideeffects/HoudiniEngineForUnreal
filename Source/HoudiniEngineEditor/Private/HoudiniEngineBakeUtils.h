@@ -30,6 +30,11 @@
 #include "HoudiniOutput.h"
 #include "HoudiniPackageParams.h"
 
+// Required for UE5.2 Engine Plugin compilation
+#if ENGINE_MINOR_VERSION > 1
+	#include "Materials/MaterialExpression.h"
+#endif
+
 class UHoudiniAssetComponent;
 class UHoudiniOutput;
 class ALandscapeProxy;

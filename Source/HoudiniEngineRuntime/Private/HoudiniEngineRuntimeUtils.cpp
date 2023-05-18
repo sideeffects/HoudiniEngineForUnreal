@@ -522,12 +522,6 @@ FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(ALandscapeProxy* 
 				LandscapeComponent->GetComponentExtent(Extent.Min.X, Extent.Min.Y, Extent.Max.X, Extent.Max.Y);
 			});
 		}
-
-		// In World Partition the landscape may not be loaded so we must correct the transform offset.
-		FVector Offset = OutTransform.GetLocation();
-		Offset.X += OutTransform.GetScale3D().X * Extent.Min.X;
-		Offset.Y += OutTransform.GetScale3D().Y * Extent.Min.Y;
-		OutTransform.SetLocation(Offset);
 	}
 	else
 	{

@@ -19,7 +19,10 @@
 #include "Engine/SkeletalMesh.h"
 //#include "Toolkits/AssetEditorModeUILayer.h"
 
-
+// Required for UE5.2 Engine Plugin compilation
+#if ENGINE_MINOR_VERSION > 1
+	#include "Engine/SkinnedAssetCommon.h"
+#endif
 
 bool 
 UHoudiniEditorSubsystem::CreateSessionIfNeeded()
@@ -207,6 +210,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 
 		// default input options
 		NodeSyncInput->SetCanDeleteHoudiniNodes(false);
+		NodeSyncInput->SetUpdateInputLandscape(false);
 		NodeSyncInput->SetUseLegacyInputCurve(true);
 		
 		// TODO: Check?

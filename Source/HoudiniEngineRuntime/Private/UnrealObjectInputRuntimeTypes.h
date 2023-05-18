@@ -467,9 +467,6 @@ public:
 	/** Returns true if all of the nodes that this node references have valid HAPI nodes. */
 	virtual bool AreReferencedHAPINodesValid() const;
 
-	// Marks this and its referenced nodes as dirty. See IsDirty().
-	virtual void MarkAsDirty() override;
-
 private:
 	/** The set of nodes that this node references, by handle. */
 	TSet<FUnrealObjectInputHandle> ReferencedNodes;

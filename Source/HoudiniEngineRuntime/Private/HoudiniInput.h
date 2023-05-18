@@ -125,6 +125,10 @@ public:
 	bool IsTransformUploadNeeded();
 	// Indicates if this input type has been changed
 	bool HasInputTypeChanged() const { return PreviousType != EHoudiniInputType::Invalid ? PreviousType != Type : false; }
+	// 
+	bool GetUpdateInputLandscape() const;
+
+	void SetUpdateInputLandscape(const bool bInUpdateInputLandcape);
 
 	FString GetName() const					{ return Name; };
 	FString GetLabel() const				{ return Label; };
@@ -598,8 +602,8 @@ public:
 
 
 	// Indicates that the landscape input's source landscape should be updated instead of creating a new component
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use Edit Layers instead."))
-	bool bUpdateInputLandscape_DEPRECATED;
+	UPROPERTY()
+	bool bUpdateInputLandscape;
 
 	// Indicates if the landscape should be exported as heightfield, mesh or points
 	UPROPERTY()

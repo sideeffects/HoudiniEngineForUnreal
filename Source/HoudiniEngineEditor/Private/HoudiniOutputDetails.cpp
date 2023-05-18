@@ -3401,7 +3401,6 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 				if(VariationOutputObject && VariationOutputObject->OutputComponents.Num() > 0)
 					InstancerType = FHoudiniInstanceTranslator::GetInstancerTypeFromComponent(VariationOutputObject->OutputComponents[0]);
 
-				FString VariationLabel = TEXT(" [") + CurVariationIdentifier.SplitIdentifier + TEXT("] ") + InstancerType;
 				DetailGroup->AddWidgetRow()
 				.NameContent()
 				[
@@ -3409,7 +3408,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 					SNew(STextBlock)
 					.TextStyle(_GetEditorStyle(), "PropertyEditor.AssetClass")
 					.Font(_GetEditorStyle().GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
-					.Text(FText::FromString(VariationLabel))
+					.Text(FText::FromString(InstancerType))
 					//.Size(FVector2D(250, 64))
 				]
 				.ValueContent()

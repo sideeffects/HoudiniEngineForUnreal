@@ -675,9 +675,6 @@ public:
 	// Check whether the actor transform, or any of its components have transform changes.
 	virtual bool HasActorTransformChanged() const;
 
-	// Indicates this object is dirty and should be updated
-	virtual void MarkChanged(const bool& bInChanged) override;
-
 protected:
 	virtual bool HasRootComponentTransformChanged() const;
 	virtual bool HasComponentsTransformChanged() const;
@@ -763,6 +760,10 @@ public:
 	ALandscapeProxy* GetLandscapeProxy() const;
 
 	void SetLandscapeProxy(UObject* InLandscapeProxy);
+
+	// Used to restore an input landscape's transform to its original state
+	UPROPERTY()
+	FTransform CachedInputLandscapeTraqnsform;
 
 	// The number of landscape components that was processed. If this count changes, .e.g, levels have been
 	// loaded / unloaded then the input content has changed.
