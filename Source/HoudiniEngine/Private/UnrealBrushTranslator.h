@@ -35,15 +35,18 @@ class UModel;
 class UHoudiniInputBrush;
 class ABrush;
 class AActor;
+class FUnrealObjectInputHandle;
 
-struct HOUDINIENGINE_API FUnrealBrushTranslator 
+struct HOUDINIENGINE_API FUnrealBrushTranslator
 {
-	public:
-		static bool CreateInputNodeForBrush(
-			UHoudiniInputBrush* InputBrushObject, 
-			ABrush* BrushActor, 
-			const TArray<AActor*>* ExcludeActors, 
-			HAPI_NodeId &CreatedNodeId, 
-			const FString& NodeName,
-			bool bInExportMaterialParametersAsAttributes);
+public:
+	static bool CreateInputNodeForBrush(
+		UHoudiniInputBrush* InputBrushObject,
+		ABrush* BrushActor,
+		const TArray<AActor*>* ExcludeActors,
+		HAPI_NodeId& CreatedNodeId,
+		const FString& NodeName,
+		bool bInExportMaterialParametersAsAttributes,
+		FUnrealObjectInputHandle& OutInputNodeHandle,
+		const bool& bInputNodesCanBeDeleted = true);
 };
