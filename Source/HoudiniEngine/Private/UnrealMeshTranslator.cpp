@@ -3683,7 +3683,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 							FStaticMeshLODResources& RenderModel = StaticMesh->RenderData->LODResources[InLODIndex];
 							FColorVertexBuffer& ColorVertexBuffer = *ComponentLODInfo.OverrideVertexColors;
 
-							int32 Index = RenderModel.WedgeMap[VertexInstanceID];
+							int32 Index = RenderModel.WedgeMap[VertexInstanceID.GetValue()];
 							if (Index != INDEX_NONE)
 							{
 								Color = ColorVertexBuffer.VertexColor(Index).ReinterpretAsLinear();
@@ -3691,7 +3691,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 						}
 						else
 						{
-							Color = VertexInstanceColors.Get(VertexInstanceID.GetValue());
+							Color = VertexInstanceColors.Get(VertexInstanceID);
 						}
 						RGBColors[Float3Index + 0] = Color[0];
 						RGBColors[Float3Index + 1] = Color[1];
