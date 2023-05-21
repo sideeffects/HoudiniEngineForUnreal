@@ -3457,6 +3457,9 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 		if (!FHoudiniEngineUtils::GetHAPINodeId(InputNodeHandle, LandscapeNodeId))
 			return false;
 
+		FTransform Transform = InObject->Transform;
+		Transform.SetScale3D(FVector::OneVector);
+
 		if (!HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
 			ParentNodeId,
 			LandscapeNodeId,
@@ -3464,7 +3467,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 			InObject->InputNodeId,
 			InObject->InputObjectNodeId,
 			bCreateIfMissingInvalid,
-			InObject->Transform))
+			Transform))
 		{
 			return false;
 		}
