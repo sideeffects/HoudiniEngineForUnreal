@@ -27,6 +27,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HoudiniAssetComponent.h"
 #include "UObject/NoExportTypes.h"
 #include "Templates/SubclassOf.h"
 
@@ -134,6 +135,8 @@ public:
 		const bool bInEnableAutoBake=false,
 		const FString& InBakeDirectoryPath="",
 		const EHoudiniEngineBakeOption InBakeMethod=EHoudiniEngineBakeOption::ToActor,
+		const EHoudiniStaticMeshMethod InStaticMeshMethod=EHoudiniStaticMeshMethod::RawMesh,
+		const FMeshBuildSettings InMeshBuildSettings = FMeshBuildSettings(),
 		const bool bInRemoveOutputAfterBake=false,
 		const bool bInRecenterBakedActors=false,
 		const bool bInReplacePreviousBake=false);
@@ -170,6 +173,8 @@ public:
 		const bool bInEnableAutoBake=false,
 		const FString& InBakeDirectoryPath="",
 		const EHoudiniEngineBakeOption InBakeMethod=EHoudiniEngineBakeOption::ToActor,
+		const EHoudiniStaticMeshMethod InStaticMeshMethod = EHoudiniStaticMeshMethod::RawMesh,
+		const FMeshBuildSettings InMeshBuildSettings = FMeshBuildSettings(),
 		const bool bInRemoveOutputAfterBake=false,
 		const bool bInRecenterBakedActors=false,
 		const bool bInReplacePreviousBake=false);

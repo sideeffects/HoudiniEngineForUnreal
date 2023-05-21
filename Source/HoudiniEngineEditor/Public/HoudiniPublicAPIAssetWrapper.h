@@ -458,6 +458,18 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
 	bool GetBakeMethod(EHoudiniEngineBakeOption& OutBakeMethod);
 
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool SetStaticMeshMethod(const EHoudiniStaticMeshMethod InStaticMeshMethod);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool GetStaticMeshMethod(EHoudiniStaticMeshMethod& OutStaticMeshMethod);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool SetMeshBuildSettings(const FMeshBuildSettings InMeshBuildSettings);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool GetMeshBuildSettings(FMeshBuildSettings& OutMeshBuildSettings);
+
 	/**
 	 * Set the bRemoveOutputAfterBake property, that controls if temporary outputs are removed after a successful bake.
 	 * @param bInRemoveOutputAfterBake If true, then after a successful bake, the HACs outputs will be cleared and

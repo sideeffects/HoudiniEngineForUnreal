@@ -32,6 +32,8 @@
 
 #include "HoudiniPublicAPIAssetWrapper.h"
 
+#include "HoudiniAssetComponent.h"
+
 #include "HoudiniPublicAPIProcessHDANode.generated.h"
 
 
@@ -103,6 +105,8 @@ public:
 		const bool bInEnableAutoBake=false,
 		const FString& InBakeDirectoryPath="",
 		const EHoudiniEngineBakeOption InBakeMethod=EHoudiniEngineBakeOption::ToActor,
+		const EHoudiniStaticMeshMethod InStaticMeshMethod=EHoudiniStaticMeshMethod::RawMesh,
+		const FMeshBuildSettings InMeshBuildSettings=FMeshBuildSettings(),
 		const bool bInRemoveOutputAfterBake=false,
 		const bool bInRecenterBakedActors=false,
 		const bool bInReplacePreviousBake=false,
@@ -222,6 +226,14 @@ protected:
 	/** The bake method/target: for example, to actors vs to blueprints. */
 	UPROPERTY()
 	EHoudiniEngineBakeOption BakeMethod;
+
+	/** The static mesh generation method. */
+	UPROPERTY()
+	EHoudiniStaticMeshMethod StaticMeshMethod;
+
+	/** Build Settings to be used when generating the Static Meshes for this Houdini Asset */
+	UPROPERTY()
+	FMeshBuildSettings StaticMeshBuildSettings;
 
 	/** Remove temporary HDA output after a bake. */
 	UPROPERTY()

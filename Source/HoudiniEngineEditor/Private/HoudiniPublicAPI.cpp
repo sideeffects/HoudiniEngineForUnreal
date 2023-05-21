@@ -32,6 +32,7 @@
 #include "HoudiniPublicAPIAssetWrapper.h"
 #include "HoudiniPublicAPIInputTypes.h"
 #include "HoudiniEngineCommands.h"
+#include "HoudiniAssetComponent.h"
 
 #include "Engine/World.h"
 
@@ -78,6 +79,8 @@ UHoudiniPublicAPI::InstantiateAsset_Implementation(
 	const bool bInEnableAutoBake,
 	const FString& InBakeDirectoryPath,
 	const EHoudiniEngineBakeOption InBakeMethod,
+	const EHoudiniStaticMeshMethod InStaticMeshMethod,
+	const FMeshBuildSettings InMeshBuildSettings,
 	const bool bInRemoveOutputAfterBake,
 	const bool bInRecenterBakedActors,
 	const bool bInReplacePreviousBake)
@@ -106,6 +109,8 @@ UHoudiniPublicAPI::InstantiateAsset_Implementation(
 				bInEnableAutoBake,
 				InBakeDirectoryPath,
 				InBakeMethod,
+				InStaticMeshMethod,
+				InMeshBuildSettings,
 				bInRemoveOutputAfterBake,
 				bInRecenterBakedActors,
 				bInReplacePreviousBake))
@@ -129,6 +134,8 @@ UHoudiniPublicAPI::InstantiateAssetWithExistingWrapper_Implementation(
 	const bool bInEnableAutoBake,
 	const FString& InBakeDirectoryPath,
 	const EHoudiniEngineBakeOption InBakeMethod,
+	const EHoudiniStaticMeshMethod InStaticMeshMethod,
+	const FMeshBuildSettings InMeshBuildSettings,
 	const bool bInRemoveOutputAfterBake,
 	const bool bInRecenterBakedActors,
 	const bool bInReplacePreviousBake)
@@ -173,6 +180,8 @@ UHoudiniPublicAPI::InstantiateAssetWithExistingWrapper_Implementation(
 	BakeDirectoryPath.Path = InBakeDirectoryPath;
 	InWrapper->SetBakeFolder(BakeDirectoryPath);
 	InWrapper->SetBakeMethod(InBakeMethod);
+	InWrapper->SetStaticMeshMethod(InStaticMeshMethod);
+	InWrapper->SetMeshBuildSettings(InMeshBuildSettings);
 	InWrapper->SetRemoveOutputAfterBake(bInRemoveOutputAfterBake);
 	InWrapper->SetRecenterBakedActors(bInRecenterBakedActors);
 	InWrapper->SetReplacePreviousBake(bInReplacePreviousBake);
