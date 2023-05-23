@@ -717,8 +717,8 @@ FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings()
 		}
 
 		// Lightmap UV generation.
-		EHoudiniRuntimeSettingsRecomputeFlag GenerateLightmapUVFlag = (EHoudiniRuntimeSettingsRecomputeFlag)HoudiniRuntimeSettings->RecomputeTangentsFlag;
-		switch (GenerateLightmapUVFlag)
+		EHoudiniRuntimeSettingsRecomputeFlag GenerateLightmapUVsFlag = (EHoudiniRuntimeSettingsRecomputeFlag)HoudiniRuntimeSettings->GenerateLightmapUVsFlag;
+		switch (GenerateLightmapUVsFlag)
 		{
 			case HRSRF_Never:
 			{
