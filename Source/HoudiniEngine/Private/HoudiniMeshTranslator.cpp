@@ -8846,8 +8846,8 @@ FHoudiniMeshTranslator::UpdateMeshBuildSettings(
 		OutMeshBuildSettings.bRecomputeTangents = !bHasTangents;
 
 	// Lightmap UV generation.
-	EHoudiniRuntimeSettingsRecomputeFlag GenerateLightmapUVFlag = HoudiniRuntimeSettings ? (EHoudiniRuntimeSettingsRecomputeFlag)HoudiniRuntimeSettings->RecomputeTangentsFlag : HRSRF_OnlyIfMissing;
-	if (GenerateLightmapUVFlag == HRSRF_OnlyIfMissing)
+	EHoudiniRuntimeSettingsRecomputeFlag GenerateLightmapUVsFlag = HoudiniRuntimeSettings ? (EHoudiniRuntimeSettingsRecomputeFlag)HoudiniRuntimeSettings->GenerateLightmapUVsFlag : HRSRF_OnlyIfMissing;
+	if (GenerateLightmapUVsFlag == HRSRF_OnlyIfMissing)
 		OutMeshBuildSettings.bGenerateLightmapUVs = !bHasLightmapUVSet;
 }
 
