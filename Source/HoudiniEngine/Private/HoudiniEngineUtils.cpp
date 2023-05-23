@@ -6713,8 +6713,10 @@ FHoudiniEngineUtils::GetGenericPropertiesAttributes(const HAPI_NodeId& InGeoNode
 }
 
 bool
-FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(UObject* InObject,
+FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(
+	UObject* InObject,
 	const TArray<FHoudiniGenericAttribute>& InAllPropertyAttributes,
+	const int32& AtIndex,
 	const bool bInDeferPostEditChangePropertyCalls,
 	const FHoudiniGenericAttribute::FFindPropertyFunctionType& InProcessFunction)
 {
@@ -6730,7 +6732,6 @@ FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(UObject* InObject,
 	for (const auto& CurrentPropAttribute : InAllPropertyAttributes)
 	{
 		// Update the current Property Attribute
-		constexpr int32 AtIndex = 0;
 		if (!FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(InObject, CurrentPropAttribute, AtIndex, bInDeferPostEditChangePropertyCalls, &ChangedProperties, InProcessFunction))
 			continue;
 

@@ -687,7 +687,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			TArray<FHoudiniGenericAttribute>& OutPropertyAttributes);
 
 		static bool UpdateGenericPropertiesAttributes(
-			UObject* InObject, const TArray<FHoudiniGenericAttribute>& InAllPropertyAttributes,
+			UObject* InObject,
+			const TArray<FHoudiniGenericAttribute>& InAllPropertyAttributes,
+			const int32& AtIndex = 0,
 			const bool bInDeferPostEditChangePropertyCalls=false,
 			const FHoudiniGenericAttribute::FFindPropertyFunctionType& InProcessFunction=nullptr);
 

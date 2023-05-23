@@ -2338,7 +2338,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedStaticMeshComponent(
 	}
 
 	// Apply generic attributes if we have any
-	UpdateGenericPropertiesAttributes(InstancedStaticMeshComponent, AllPropertyAttributes, InstancerObjectIdx);
+	FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(InstancedStaticMeshComponent, AllPropertyAttributes, InstancerObjectIdx);
 
 	// Assign the new ISMC / HISMC to the output component if we created a new one
 	if(bCreatedNewComponent)
@@ -2422,7 +2422,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedActorComponent(
 		}
 
 		// Update the generic properties for that instance if any
-		UpdateGenericPropertiesAttributes(CurInstance, AllPropertyAttributes, OriginalInstancerObjectIndices[Idx]);
+		FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(CurInstance, AllPropertyAttributes, OriginalInstancerObjectIndices[Idx]);
 	}
 
 	// Assign the new ISMC / HISMC to the output component if we created a new one
@@ -2605,7 +2605,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateMeshSplitInstancerComponent(
 			if (!IsValid(CurSMC))
 				continue;
 
-			UpdateGenericPropertiesAttributes(CurSMC, AllPropertyAttributes, InstIndex);
+			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(CurSMC, AllPropertyAttributes, InstIndex);
 		}
 	}
 
@@ -2679,7 +2679,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateStaticMeshComponent(
 	}	
 
 	// Apply generic attributes if we have any
-	UpdateGenericPropertiesAttributes(SMC, AllPropertyAttributes, InOriginalIndex);
+	FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(SMC, AllPropertyAttributes, InOriginalIndex);
 
 	// Assign the new ISMC / HISMC to the output component if we created a new one
 	if (bCreatedNewComponent)
@@ -2748,7 +2748,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateHoudiniStaticMeshComponent(
 
 	// Apply generic attributes if we have any
 	// TODO: Handle variations w/ index
-	UpdateGenericPropertiesAttributes(HSMC, AllPropertyAttributes, InOriginalIndex);
+	FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(HSMC, AllPropertyAttributes, InOriginalIndex);
 
 	// Assign the new  HSMC to the output component if we created a new one
 	if (bCreatedNewComponent)
@@ -2854,7 +2854,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 
 	        NewInstancedComponents.Add(FoliageHISMC);
 
-			UpdateGenericPropertiesAttributes(FoliageHISMC, AllPropertyAttributes, FirstOriginalIndex);
+			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(FoliageHISMC, AllPropertyAttributes, FirstOriginalIndex);
 	    }
 	}
 
@@ -2862,8 +2862,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	// either on the instancer, mesh or foliage type
 	// TODO: Use proper atIndex!!
 
-	UpdateGenericPropertiesAttributes(InstancedStaticMesh, AllPropertyAttributes, FirstOriginalIndex);
-	UpdateGenericPropertiesAttributes(CookedFoliageType, AllPropertyAttributes, FirstOriginalIndex);
+	FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(InstancedStaticMesh, AllPropertyAttributes, FirstOriginalIndex);
+	FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(CookedFoliageType, AllPropertyAttributes, FirstOriginalIndex);
 
 	// TODO:
 	// We want to make this invisible if it's a collision instancer.
@@ -2929,40 +2929,6 @@ FHoudiniInstanceTranslator::GetGenericPropertiesAttributes(
 		(HAPI_NodeId)InGeoNodeId, (HAPI_PartId)InPartId, HAPI_UNREAL_ATTRIB_GENERIC_UPROP_PREFIX, OutPropertyAttributes, HAPI_ATTROWNER_POINT, -1);
 
 	return FoundCount > 0;
-}
-
-bool
-FHoudiniInstanceTranslator::UpdateGenericPropertiesAttributes(
-	UObject* InObject, 
-	const TArray<FHoudiniGenericAttribute>& InAllPropertyAttributes, 
-	const int32& AtIndex)
-{
-	if (!IsValid(InObject))
-		return false;
-
-	// Iterate over the found Property attributes
-	int32 NumSuccess = 0;
-	for (const auto& CurrentPropAttribute : InAllPropertyAttributes)
-	{
-		if (CurrentPropAttribute.AttributeName.Equals(TEXT("NumCustomDataFloats"), ESearchCase::IgnoreCase))
-		{
-			// Skip, as setting NumCustomDataFloats this way causes Unreal to crash!
-			HOUDINI_LOG_WARNING(
-				TEXT("Skipping UProperty %s on %s, custom data floats should be modified via the unreal_num_custom_floats and unreal_per_instance_custom_dataX attributes"),
-				*CurrentPropAttribute.AttributeName, *InObject->GetName());
-			continue;
-		}
-
-		// Update the current property for the given instance index
-		if (!FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(InObject, CurrentPropAttribute, AtIndex))
-			continue;
-
-		// Success!
-		NumSuccess++;
-		HOUDINI_LOG_MESSAGE(TEXT("Modified UProperty %s on %s named %s"), *CurrentPropAttribute.AttributeName, InObject->GetClass() ? *InObject->GetClass()->GetName() : TEXT("Object"), *InObject->GetName());
-	}
-
-	return (NumSuccess > 0);
 }
 
 bool
