@@ -115,10 +115,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniExtents
 
 public:
 	UPROPERTY()
-	FIntPoint Min;
+	FIntPoint Min = FIntPoint::ZeroValue;
 
 	UPROPERTY()
-	FIntPoint Max;
+	FIntPoint Max = FIntPoint::ZeroValue;
 };
 
 
@@ -423,7 +423,7 @@ struct FHoudiniDataLayer
 	FString Name;
 
 	UPROPERTY()
-	bool bCreateIfNeeded;
+	bool bCreateIfNeeded = false;
 };
 
 
