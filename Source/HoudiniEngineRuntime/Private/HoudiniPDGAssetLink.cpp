@@ -32,6 +32,7 @@
 #include "HoudiniOutput.h"
 
 #include "Engine/StaticMesh.h"
+#include "Engine/Level.h"
 #include "GameFramework/Actor.h"
 #include "Landscape.h"
 #include "UObject/MetaData.h"

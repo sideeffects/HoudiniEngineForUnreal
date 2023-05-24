@@ -39,6 +39,7 @@
 #include "IHoudiniAssetStateEvents.h"
 
 #include "Engine/EngineTypes.h"
+#include "Engine/SimpleConstructionScript.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/SceneComponent.h"
 
