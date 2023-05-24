@@ -107,6 +107,7 @@
 #include "UObject/UnrealType.h"
 #include "WorldPartition/WorldPartition.h"
 #include "HoudiniEngineOutputStats.h"
+#include "HoudiniDataLayerUtils.h"
 
 HOUDINI_BAKING_DEFINE_LOG_CATEGORY();
 
@@ -520,8 +521,16 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 		}
 	}
 
-	// Rename any landscapes
-	FHoudiniLandscapeBake::RenameCookedToBakedLandscapes(InOutputs, bInReplaceActors);
+	// Moved Cooked to Baked Landscapes. 
+	{
+		FHoudiniPackageParams PackageParams;
+		TArray<FHoudiniEngineBakedActor> BakedLandscapeActors = FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
+			PackageParams, 
+			FName(InFallbackWorldOutlinerFolder), 
+			InOutputs, 
+			bInReplaceActors);
+		NewBakedActors.Append(BakedLandscapeActors);
+	}
 
 	// Only do the post bake post-process once per Actor
 	TSet<AActor*> UniqueActors;
@@ -539,6 +548,34 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 				Actor->PostEditMove(true);
 				Actor->MarkPackageDirty();
 			}
+		}
+	}
+
+	for (FHoudiniEngineBakedActor& BakedActor : NewBakedActors)
+	{
+		UHoudiniOutput* Output = InOutputs[BakedActor.OutputIndex];
+		FHoudiniOutputObject& OutputObject = Output->GetOutputObjects()[BakedActor.OutputObjectIdentifier];
+
+		if (IsValid(BakedActor.Actor))
+		{
+			const EPackageReplaceMode AssetPackageReplaceMode = bInReplaceAssets
+				? EPackageReplaceMode::ReplaceExistingAssets
+				: EPackageReplaceMode::CreateNewAssets;
+
+			FHoudiniPackageParams PackageParams;
+			FHoudiniAttributeResolver Resolver;
+			FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
+				BakedActor.Actor->GetWorld(),
+				HoudiniAssetComponent, 
+				BakedActor.OutputObjectIdentifier,
+				OutputObject, 
+				"",
+				PackageParams, 
+				Resolver,
+				InBakeFolder.Path, 
+				AssetPackageReplaceMode);
+
+			FHoudiniDataLayerUtils::ApplyDataLayersToActor(PackageParams, BakedActor.Actor, OutputObject.DataLayers);
 		}
 	}
 

@@ -204,8 +204,10 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		// HAPI : Return all group names for a given Geo. 
 		static bool HapiGetGroupNames(
-			const HAPI_NodeId& GeoId, const HAPI_PartId& PartId,
-			const HAPI_GroupType& GroupType, const bool& isPackedPrim,
+			const HAPI_NodeId GeoId, 
+			const HAPI_PartId PartId,
+			const HAPI_GroupType GroupType, 
+			bool isPackedPrim,
 			TArray<FString>& OutGroupNames );
 
 		// HAPI : Retrieve group membership.
@@ -213,6 +215,11 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const HAPI_NodeId& GeoId, const HAPI_PartInfo& PartInfo,
 			const HAPI_GroupType& GroupType, const FString & GroupName,
 			TArray<int32>& OutGroupMembership, bool& OutAllEquals);
+
+		static bool HapiGetGroupMembership(
+			HAPI_NodeId GeoId, const HAPI_PartId & PartId,
+			const HAPI_GroupType& GroupType, const FString& GroupName,
+			int32 & OutGroupMembership);
 
 		// HAPI : Given vertex list, retrieve new vertex list for a specified group.
 		// Return number of processed valid index vertices for this split.

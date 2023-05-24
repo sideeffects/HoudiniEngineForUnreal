@@ -25,12 +25,10 @@
 */
 
 #include "HoudiniPackageParams.h"
-
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniStaticMesh.h"
-#include "HoudiniStringResolver.h"
 #include "Engine/DataTable.h"
 #include "Engine/SkeletalMesh.h"
 #include "PackageTools.h"
@@ -40,8 +38,11 @@
 #include "Animation/Skeleton.h"
 #include "FoliageType_InstancedStaticMesh.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
+#include "HoudiniDataLayerUtils.h"
 
-#include "Engine/UserDefinedStruct.h"
+#if HOUDINI_ENABLE_DATA_LAYERS
+#include "WorldPartition/DataLayer/DataLayerAsset.h"
+#endif
 
 //
 FHoudiniPackageParams::FHoudiniPackageParams()
@@ -391,8 +392,9 @@ void TemplateFixer()
 	UGeometryCollection* GC = PP.CreateObjectAndPackage<UGeometryCollection>();
 	UDataTable* DT = PP.CreateObjectAndPackage<UDataTable>();
 	UFoliageType_InstancedStaticMesh * ISM = PP.CreateObjectAndPackage<UFoliageType_InstancedStaticMesh>();
-	//UMaterial* Mat = PP.CreateObjectAndPackage<UMaterial>();
-	//UTexture2D* Text = PP.CreateObjectAndPackage<UTexture2D>();
+#if ENGINE_MINOR_VERSION >= 2
+	UDataLayerAsset* DLA = PP.CreateObjectAndPackage<UDataLayerAsset>();
+#endif
 }
 
 template<typename T>

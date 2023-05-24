@@ -4585,8 +4585,8 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(
 
 bool
 FHoudiniEngineUtils::HapiGetGroupNames(
-	const HAPI_NodeId& GeoId, const HAPI_PartId& PartId,
-	const HAPI_GroupType& GroupType, const bool& isPackedPrim,
+	const HAPI_NodeId GeoId, const HAPI_PartId PartId,
+	const HAPI_GroupType GroupType, const bool isPackedPrim,
 	TArray<FString>& OutGroupNames)
 {
 	int32 GroupCount = 0;
@@ -4645,6 +4645,24 @@ FHoudiniEngineUtils::HapiGetGroupNames(
 	*/
 
 	FHoudiniEngineString::SHArrayToFStringArray(GroupNameStringHandles, OutGroupNames);
+
+	return true;
+}
+
+bool FHoudiniEngineUtils::HapiGetGroupMembership(
+	HAPI_NodeId GeoId, const HAPI_PartId& PartId,
+	const HAPI_GroupType& GroupType, const FString& GroupName,
+	int32 & OutGroupMembership)
+{
+	OutGroupMembership = 0;
+
+	std::string ConvertedGroupName = TCHAR_TO_UTF8(*GroupName);
+
+	bool AllEqual;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupMembership(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, GroupType, ConvertedGroupName.c_str(),
+			&AllEqual, &OutGroupMembership, 0, 1), false);
 
 	return true;
 }
@@ -6323,7 +6341,7 @@ bool
 FHoudiniEngineUtils::ForceValidVariableNameInline(FString& InOutString)
 {
 	// Reproduces the behaviour of UT_String::forceValidVariableName()
-	// Return true if a change occured
+	// Return true if a change occurred
 	bool bHasChanged = false;
 
 	// Replace any special character by `_`
