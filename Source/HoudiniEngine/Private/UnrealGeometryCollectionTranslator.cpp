@@ -36,11 +36,15 @@
 #include "EditorFramework/AssetImportData.h"
 #include "Engine/SkeletalMesh.h"
 
+#include "GeometryCollection/GeometryCollection.h"
 #include "GeometryCollection/GeometryCollectionClusteringUtility.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
 #include "Materials/Material.h"
+#if ENGINE_MINOR_VERSION > 1
+	#include "MaterialDomain.h"
+#endif
 
 bool 
 FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(

@@ -60,6 +60,9 @@
 #include "Interfaces/IMainFrameModule.h"
 #include "Misc/AutomationTest.h"
 #include "Tests/AutomationCommon.h"
+#include "SceneView.h"
+#include "PropertyEditorModule.h"
+#include "Framework/Application/SlateApplication.h" 
 
 const FVector2D FHoudiniEditorTestUtils::GDefaultEditorSize = FVector2D(1280, 720);
 const FString FHoudiniEditorTestUtils::SavedPathFolder = "/Game/TestSaved/";

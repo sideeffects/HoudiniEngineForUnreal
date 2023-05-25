@@ -77,6 +77,7 @@
 #include "UnrealGeometryCollectionTranslator.h"
 
 #include "Async/Async.h"
+#include "GeometryCollection/GeometryCollection.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"

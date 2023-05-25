@@ -53,6 +53,10 @@
 #include "PackageTools.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "UObject/MetaData.h"
+#if ENGINE_MINOR_VERSION > 1
+	#include "MaterialShared.h"
+#endif
+#include "Engine/Texture2D.h"
 
 #if WITH_EDITOR
 	#include "Factories/MaterialFactoryNew.h"

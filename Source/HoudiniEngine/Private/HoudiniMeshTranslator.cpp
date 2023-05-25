@@ -75,6 +75,9 @@
 #include "ImportUtils/SkeletalMeshImportUtils.h"
 #include "Math/UnrealMathUtility.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#if ENGINE_MINOR_VERSION > 1
+	#include "Engine/SkinnedAssetCommon.h"
+#endif
 
 #if WITH_EDITOR
 	#include "ConvexDecompTool.h"
@@ -445,6 +448,7 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 	const HAPI_NodeId& GeoId = BuildSettings.GeoId;
 	const HAPI_NodeId& PartId = BuildSettings.PartId;
 	FSkeletalMeshImportData& SkeletalMeshImportData = BuildSettings.SkeletalMeshImportData;
+
 	//ImportScale----------------------------------------------------------------------------------------
 	HAPI_AttributeInfo UnrealSKImportScaleInfo;
 	FHoudiniApi::AttributeInfo_Init(&UnrealSKImportScaleInfo);
@@ -454,7 +458,6 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 		"unreal_sk_import_scale", HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &UnrealSKImportScaleInfo);
 
 	//check result
-
 	TArray<float> UnrealSKImportScale;
 	UnrealSKImportScale.Empty();
 	if (UnrealSKImportScaleInfo.exists == true)

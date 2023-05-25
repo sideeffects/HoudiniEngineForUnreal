@@ -218,6 +218,10 @@ void FHoudiniFoliageTools::SpawnFoliageInstance(UWorld* InWorld, UFoliageType* S
 void
 FHoudiniFoliageTools::RemoveFoliageTypeFromWorld(UWorld* World, UFoliageType* FoliageType)
 {
+	// Avoid needlessly dirtying every FoliageInstanceActor by calling RemoveFoliageType() with null
+	if (!IsValid(FoliageType))
+		return;
+
 	for (TActorIterator<AInstancedFoliageActor> ActorIt(World, AInstancedFoliageActor::StaticClass()); ActorIt; ++ActorIt)
 	{
 	    AInstancedFoliageActor * IFA = *ActorIt;

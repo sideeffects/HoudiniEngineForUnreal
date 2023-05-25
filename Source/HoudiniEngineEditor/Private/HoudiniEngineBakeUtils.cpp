@@ -105,7 +105,12 @@
 #include "UObject/MetaData.h"
 #include "UObject/Package.h"
 #include "UObject/UnrealType.h"
+#if ENGINE_MINOR_VERSION > 1
+	#include "Engine/SkinnedAssetCommon.h"
+#endif
+#include "Materials/MaterialExpressionTextureSample.h" 
 #include "WorldPartition/WorldPartition.h"
+#include "WorldPartition/WorldPartitionSubsystem.h"
 #include "HoudiniEngineOutputStats.h"
 #include "HoudiniDataLayerUtils.h"
 

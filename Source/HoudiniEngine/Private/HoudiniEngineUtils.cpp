@@ -79,6 +79,7 @@
 #include "RawMesh.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Interfaces/IPluginManager.h"
 //#include "Kismet/BlueprintEditor.h"
 #include "SSCSEditor.h"

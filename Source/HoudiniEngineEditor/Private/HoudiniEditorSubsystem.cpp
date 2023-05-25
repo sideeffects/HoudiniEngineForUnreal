@@ -19,6 +19,9 @@
 #include "Engine/SkeletalMesh.h"
 //#include "Toolkits/AssetEditorModeUILayer.h"
 
+#if ENGINE_MINOR_VERSION > 1
+	#include "Engine/SkinnedAssetCommon.h"
+#endif
 
 
 bool 
