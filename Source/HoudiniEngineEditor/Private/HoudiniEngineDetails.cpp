@@ -302,7 +302,12 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 			if (NextHAC->TemporaryCookFolder.Path.Equals(NewPathStr))
 				continue;
 
+			if (NextHAC->TemporaryCookFolder.Path == NewPathStr)
+				continue;
+			
 			NextHAC->TemporaryCookFolder.Path = NewPathStr;
+			NextHAC->MarkPackageDirty();
+			
 		}
 	};
 
@@ -649,6 +654,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 				continue;
 
 			NextHAC->BakeFolder.Path = NewPathStr;
+			NextHAC->MarkPackageDirty();
 		}
 	};
 
@@ -843,7 +849,11 @@ FHoudiniEngineDetails::CreateBakeWidgets(
                     if (!IsValidWeakPointer(NextHAC))
                         continue;
 
+					if (NextHAC->bRemoveOutputAfterBake == bNewState) 
+						continue;
+
                     NextHAC->bRemoveOutputAfterBake = bNewState;
+					NextHAC->MarkPackageDirty();
                 }
 
                 // FHoudiniEngineUtils::UpdateEditorProperties(MainHAC, true);
@@ -881,7 +891,11 @@ FHoudiniEngineDetails::CreateBakeWidgets(
                     if (!IsValidWeakPointer(NextHAC))
                         continue;
 
+					if (NextHAC->bRecenterBakedActors == bNewState)
+						continue;
+
                     NextHAC->bRecenterBakedActors = bNewState;
+					NextHAC->MarkPackageDirty();
                 }
 
                 // FHoudiniEngineUtils::UpdateEditorProperties(MainHAC, true);
@@ -900,7 +914,12 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 			continue;
 
 		const bool bState = NextHAC->IsBakeAfterNextCookEnabled();
+
+		if (NextHAC->IsBakeAfterNextCookEnabled() == bState) 
+			continue;
+
 		NextHAC->SetBakeAfterNextCookEnabled(bState);
+		NextHAC->MarkPackageDirty();
 		OnBakeAfterCookChangedHelper(bState, NextHAC.Get());
 	}	
 	
@@ -934,7 +953,11 @@ FHoudiniEngineDetails::CreateBakeWidgets(
                     if (!IsValidWeakPointer(NextHAC))
                         continue;
 
+					if (NextHAC->IsBakeAfterNextCookEnabled() == bNewState)
+						continue;
+
                     NextHAC->SetBakeAfterNextCookEnabled(bNewState);
+					NextHAC->MarkPackageDirty();
                     OnBakeAfterCookChangedHelper(bNewState, NextHAC.Get());
                 }
 
@@ -974,7 +997,11 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 					if (!IsValidWeakPointer(NextHAC))
 						continue;
 
+					if (NextHAC->bReplacePreviousBake == bNewState)
+						continue;
+
 					NextHAC->bReplacePreviousBake = bNewState;
+					NextHAC->MarkPackageDirty();
 				}
 
 				if (MainHAC.IsValid())
@@ -1096,7 +1123,11 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
+			if (NextHAC->bCookOnParameterChange == bChecked)
+				continue;
+
 			NextHAC->bCookOnParameterChange = bChecked;
+			NextHAC->MarkPackageDirty();
 		}
 	};
 
@@ -1116,8 +1147,11 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
-			NextHAC->bCookOnTransformChange = bChecked;
+			if (NextHAC->bCookOnTransformChange == bChecked)
+				continue;
 
+			NextHAC->bCookOnTransformChange = bChecked;
+			NextHAC->MarkPackageDirty();
 			NextHAC->MarkAsNeedCook();
 		}
 	};
@@ -1138,7 +1172,11 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
+			if (NextHAC->bCookOnAssetInputCook == bChecked)
+				continue;
+
 			NextHAC->bCookOnAssetInputCook = bChecked;
+			NextHAC->MarkPackageDirty();
 		}
 	};
 
@@ -1158,8 +1196,11 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
-			NextHAC->bUploadTransformsToHoudiniEngine = bChecked;
+			if (NextHAC->bUploadTransformsToHoudiniEngine == bChecked)
+				continue;
 
+			NextHAC->bUploadTransformsToHoudiniEngine = bChecked;
+			NextHAC->MarkPackageDirty();
 			NextHAC->MarkAsNeedCook();
 		}
 	};
@@ -1180,8 +1221,11 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
-			NextHAC->bOutputless = bChecked;
+			if (NextHAC->bOutputless == bChecked)
+				continue;
 
+			NextHAC->bOutputless = bChecked;
+			NextHAC->MarkPackageDirty();
 			NextHAC->MarkAsNeedCook();
 		}
 	};
@@ -1202,8 +1246,11 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
-			NextHAC->bOutputTemplateGeos = bChecked;
+			if (NextHAC->bOutputTemplateGeos == bChecked)
+				continue;
 
+			NextHAC->bOutputTemplateGeos = bChecked;
+			NextHAC->MarkPackageDirty();
 			NextHAC->MarkAsNeedCook();
 		}
 	};
@@ -1224,8 +1271,11 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
-			NextHAC->bUseOutputNodes = bChecked;
+			if (NextHAC->bUseOutputNodes == bChecked)
+				continue;
 
+			NextHAC->bUseOutputNodes = bChecked;
+			NextHAC->MarkPackageDirty();
 			NextHAC->MarkAsNeedCook();
 		}
 	};
