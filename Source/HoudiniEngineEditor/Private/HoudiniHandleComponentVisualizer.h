@@ -33,35 +33,35 @@
 #include "Components/ActorComponent.h"
 #include "HoudiniHandleComponent.h"
 
-// Base class for clickable editing proxies.
+/** Base class for clickable editing proxies. **/
 struct HHoudiniHandleVisProxy : public HComponentVisProxy
 {
 	DECLARE_HIT_PROXY();
 	HHoudiniHandleVisProxy(const UActorComponent * InComponent);
 };
 
-// Define commands for our component visualizer
+/** Define commands for our component visualizer */
 class FHoudiniHandleComponentVisualizerCommands : public TCommands< FHoudiniHandleComponentVisualizerCommands >
 {
 public:
 
-	// Constructor.
+	/** Constructor. **/
 	FHoudiniHandleComponentVisualizerCommands();
 
-	// Register commands.
+	/** Register commands. **/
 	virtual void RegisterCommands() override;
 
 public:
 
-	// Command for adding a control point.
+	/** Command for adding a control point. **/
 	TSharedPtr< FUICommandInfo > CommandAddControlPoint;
 
-	// Command for deleting a control point.
+	/** Command for deleting a control point. **/
 	TSharedPtr< FUICommandInfo > CommandDeleteControlPoint;
 };
 
 
-// Our handle visualizer.
+/** Our handle visualizer. **/
 class FHoudiniHandleComponentVisualizer : public FComponentVisualizer
 {
 public:
@@ -69,61 +69,44 @@ public:
 
 	virtual ~FHoudiniHandleComponentVisualizer();
 
-	// FComponentVisualizer methods.
+	/** FComponentVisualizer methods. **/
 
-	// Draw visualization for the given component.
+	/** Draw visualization for the given component. **/
 	virtual void DrawVisualization(
-		const UActorComponent * Component,
-		const FSceneView * View,
+		const UActorComponent * Component, const FSceneView * View,
 		FPrimitiveDrawInterface * PDI) override;
 
-	// Draw visualization HUD for the given component (on screen text).
-	virtual void DrawVisualizationHUD(
-		const UActorComponent* Component,
-		const FViewport* Viewport, 
-		const FSceneView* View,
-		FCanvas* Canvas) override;
-
-	// Handle a click on a registered hit box.
-	virtual bool VisProxyHandleClick(
-		FEditorViewportClient* InViewportClient,
-		HComponentVisProxy* VisProxy,
-		const FViewportClick& Click) override;
+	/** Handle a click on a registered hit box. **/
+	virtual bool VisProxyHandleClick(FEditorViewportClient* InViewportClient, HComponentVisProxy* VisProxy, const FViewportClick& Click) override;
 
 	virtual void EndEditing();
 
-	// Returns location of a gizmo widget.
+	/** Returns location of a gizmo widget. **/
 	virtual bool GetWidgetLocation(
 		const FEditorViewportClient *, FVector & OutLocation) const override;
 
-	//
 	virtual bool GetCustomInputCoordinateSystem(
 		const FEditorViewportClient * ViewportClient, FMatrix & OutMatrix) const override;
 
-	// Handle input change.
+	/** Handle input change. **/
 	virtual bool HandleInputDelta(
 		FEditorViewportClient*, FViewport*, FVector& DeltaTranslate,
 		FRotator & DeltaRotate, FVector& DeltaScale) override;
 
-	//
 	virtual bool HandleInputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) override;
-	
-	//
-	void SetEditedComponent(UHoudiniHandleComponent* InComponent) { EditedComponent = InComponent; };
 
-	//
+	void SetEditedComponent(UHoudiniHandleComponent* InComponent) { EditedComponent = InComponent; };
 	void ClearEditedComponent() { EditedComponent = nullptr; };
 
 
 protected:
+	/** Visualizer actions. **/
+	TSharedPtr< FUICommandList > VisualizerActions;
 
-	// Visualizer actions.
-	TSharedPtr<FUICommandList> VisualizerActions;
-
-	// Houdini component which is being edited.
+	/** Houdini component which is being edited. **/
 	UHoudiniHandleComponent* EditedComponent;
 
-	// Is set to true if we are editing.
+	/** Is set to true if we are editing. **/
 	uint32 bEditing : 1;
 	uint32 bAllowTranslate : 1;
 	uint32 bAllowRotation : 1;

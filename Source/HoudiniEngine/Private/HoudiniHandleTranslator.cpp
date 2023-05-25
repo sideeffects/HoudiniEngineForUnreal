@@ -38,7 +38,6 @@
 #include "HoudiniParameter.h"
 #include "HoudiniHandleComponent.h"
 
-
 bool
 FHoudiniHandleTranslator::UpdateHandles(UHoudiniAssetComponent* HAC) 
 {
@@ -189,7 +188,9 @@ FHoudiniHandleTranslator::BuildAllHandles(
 
 			HAPI_TransformEuler HapiEulerXform;
 			FMemory::Memzero<HAPI_TransformEuler>(HapiEulerXform);
-			FHoudiniApi::TransformEuler_Init(&HapiEulerXform);
+			HapiEulerXform.position[0] = HapiEulerXform.position[1] = HapiEulerXform.position[2] = 0.0f;
+			HapiEulerXform.rotationEuler[0] = HapiEulerXform.rotationEuler[1] = HapiEulerXform.rotationEuler[2] = 0.0f;
+			HapiEulerXform.scale[0] = HapiEulerXform.scale[1] = HapiEulerXform.scale[2] = 1.0f;
 
 			TSharedPtr<FString> RSTOrderStrPtr, XYZOrderStrPtr;
 
@@ -331,7 +332,7 @@ FHoudiniHandleTranslator::UpdateTransformParameters(UHoudiniHandleComponent* Han
 		return;
 
 	HAPI_Transform HapiXform;
-	FHoudiniApi::Transform_Init(&HapiXform);
+	FMemory::Memzero< HAPI_Transform >(HapiXform);
 	FHoudiniEngineUtils::TranslateUnrealTransform(HandleComponent->GetRelativeTransform(), HapiXform);
 
 	const HAPI_Session * Session = FHoudiniEngine::Get().GetSession();
@@ -340,7 +341,7 @@ FHoudiniHandleTranslator::UpdateTransformParameters(UHoudiniHandleComponent* Han
 	FHoudiniApi::ConvertTransformQuatToMatrix(Session, &HapiXform, HapiMatrix);
 
 	HAPI_TransformEuler HapiEulerXform;
-	FHoudiniApi::TransformEuler_Init(&HapiEulerXform);
+	FMemory::Memzero< HAPI_TransformEuler >(HapiEulerXform);
 	FHoudiniApi::ConvertMatrixToEuler(
 		Session,
 		HapiMatrix,
@@ -353,9 +354,9 @@ FHoudiniHandleTranslator::UpdateTransformParameters(UHoudiniHandleComponent* Han
 	*XformParms[int32(EXformParameter::TY)] = HapiEulerXform.position[1];
 	*XformParms[int32(EXformParameter::TZ)] = HapiEulerXform.position[2];
 
-	*XformParms[int32(EXformParameter::RX)] = HapiEulerXform.rotationEuler[0];
-	*XformParms[int32(EXformParameter::RY)] = HapiEulerXform.rotationEuler[1];
-	*XformParms[int32(EXformParameter::RZ)] = HapiEulerXform.rotationEuler[2];
+	*XformParms[int32(EXformParameter::RX)] = FMath::RadiansToDegrees(HapiEulerXform.rotationEuler[0]);
+	*XformParms[int32(EXformParameter::RY)] = FMath::RadiansToDegrees(HapiEulerXform.rotationEuler[1]);
+	*XformParms[int32(EXformParameter::RZ)] = FMath::RadiansToDegrees(HapiEulerXform.rotationEuler[2]);
 
 	constexpr float MaxFloat = TNumericLimits<float>::Max();
 	constexpr float MinFloat = TNumericLimits<float>::Min();

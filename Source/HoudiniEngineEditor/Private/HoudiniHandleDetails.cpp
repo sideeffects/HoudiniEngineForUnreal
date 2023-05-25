@@ -155,14 +155,16 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 		if (!IsValidWeakPointer(MainHandle))
 			return;
 
-		FRotator Rotation = MainHandle->GetRelativeTransform().Rotator();
+		FQuat Rotation = MainHandle->GetRelativeTransform().GetRotation();
+
 		if (Axis == 0)
-			Rotation.Roll = Val;
+			Rotation.X = Val;
 		else if (Axis == 1)
-			Rotation.Pitch = Val;
+			Rotation.Y = Val;
 		else
-			Rotation.Yaw = Val;
-		MainHandle->SetRelativeRotation(Rotation.Quaternion());
+			Rotation.Z = Val;
+
+		MainHandle->SetRelativeRotation(Rotation);
 		FHoudiniHandleTranslator::UpdateTransformParameters(MainHandle.Get());
 	};
 
@@ -184,18 +186,18 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 		[
 			SNew(SVectorInputBox)
 			.bColorAxisLabels(true)
-			.X_Lambda([MainHandle]() {return MainHandle->GetRelativeTransform().Rotator().Roll; })
-			.Y_Lambda([MainHandle]() {return MainHandle->GetRelativeTransform().Rotator().Pitch; })
-			.Z_Lambda([MainHandle]() {return MainHandle->GetRelativeTransform().Rotator().Yaw; })
+			.X_Lambda([MainHandle]() {return MainHandle->GetRelativeTransform().GetRotation().X; })
+			.Y_Lambda([MainHandle]() {return MainHandle->GetRelativeTransform().GetRotation().Y; })
+			.Z_Lambda([MainHandle]() {return MainHandle->GetRelativeTransform().GetRotation().Z; })
 			.OnXCommitted_Lambda([OnRotationChangedLambda](float Val, ETextCommit::Type TextCommitType)
 			{
 				OnRotationChangedLambda(Val, 0);
 			})
-			.OnYCommitted_Lambda([OnRotationChangedLambda](float Val, ETextCommit::Type TextCommitType)
+			.OnXCommitted_Lambda([OnRotationChangedLambda](float Val, ETextCommit::Type TextCommitType)
 			{
 				OnRotationChangedLambda(Val, 1);
 			})
-			.OnZCommitted_Lambda([OnRotationChangedLambda](float Val, ETextCommit::Type TextCommitType)
+			.OnXCommitted_Lambda([OnRotationChangedLambda](float Val, ETextCommit::Type TextCommitType)
 			{
 				OnRotationChangedLambda(Val, 2);
 			})
@@ -269,11 +271,11 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 			{
 				OnScaleChangedLambda(Val, 0);
 			})
-			.OnYCommitted_Lambda([OnScaleChangedLambda](float Val, ETextCommit::Type TextCommitType)
+			.OnXCommitted_Lambda([OnScaleChangedLambda](float Val, ETextCommit::Type TextCommitType)
 			{
 				OnScaleChangedLambda(Val, 1);
 			})
-			.OnZCommitted_Lambda([OnScaleChangedLambda](float Val, ETextCommit::Type TextCommitType)
+			.OnXCommitted_Lambda([OnScaleChangedLambda](float Val, ETextCommit::Type TextCommitType)
 			{
 				OnScaleChangedLambda(Val, 2);
 			})

@@ -83,6 +83,11 @@
 	#include "FileHelpers.h"
 #endif
 
+// Required for UE5.2 Engine Plugin compilation
+#if ENGINE_MINOR_VERSION > 1
+	#include "Engine/SkinnedAssetCommon.h"
+#endif
+
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
 static TAutoConsoleVariable<float> CVarHoudiniEngineMeshBuildTimer(
@@ -4365,13 +4370,11 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 		    {
 				// Fetch the physics material name based off the first primitve attribute
 				auto& MaterialName = AttributeValues[0];
-				if (!MaterialName.IsEmpty() && MaterialName != "None")
+				BodySetup->PhysMaterial = LoadObject<UPhysicalMaterial>(nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr);
+
+				if (!BodySetup->PhysMaterial)
 				{
-					BodySetup->PhysMaterial = LoadObject<UPhysicalMaterial>(nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr);
-					if (!BodySetup->PhysMaterial)
-					{
-						HOUDINI_LOG_HELPER(Error, TEXT("Physical Material not found: %s."), *MaterialName);
-					}
+				    HOUDINI_LOG_HELPER(Error, TEXT("Physical Material not found: %s."), *MaterialName);
 				}
 		    }
 
@@ -5786,14 +5789,12 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			{
 			    // Fetch the physics material name based off the first primitve attribute
 			    auto& MaterialName = AttributeValues[0];
-				if (!MaterialName.IsEmpty() && MaterialName != "None")
-				{
-					BodySetup->PhysMaterial = LoadObject<UPhysicalMaterial>(nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr);
-					if (!BodySetup->PhysMaterial)
-					{
-						HOUDINI_LOG_HELPER(Error, TEXT("Physical Material not found: %s."), *MaterialName);
-					}
-				}
+			    BodySetup->PhysMaterial = LoadObject<UPhysicalMaterial>(nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr);
+
+			    if (!BodySetup->PhysMaterial)
+			    {
+				HOUDINI_LOG_HELPER(Error, TEXT("Physical Material not found: %s."), *MaterialName);
+			    }
 			}
 
 			// Moved RefreshCollisionChange to after the SM->Build call
@@ -8651,12 +8652,6 @@ FHoudiniMeshTranslator::AddActorsToMeshSocket(UStaticMeshSocket * Socket, UStati
 
 				Socket->AttachActor(NewActors[0], StaticMeshComponent);
 				CreatedDefaultActor = NewActors[0];
-
-				FVector SocketScale = Socket->RelativeScale;
-				if (!SocketScale.IsZero() && !SocketScale.Equals(FVector::OneVector))
-				{
-					NewActors[0]->SetActorRelativeScale3D(SocketScale);
-				}
 				//HoudiniCreatedSocketActors.Add(NewActors[0]);
 			}
 		}
@@ -8727,12 +8722,6 @@ FHoudiniMeshTranslator::AddActorsToMeshSocket(UStaticMeshSocket * Socket, UStati
 			Socket->AttachActor(Actor, StaticMeshComponent);
 			HoudiniAttachedSocketActors.Add(Actor);
 
-			FVector SocketScale = Socket->RelativeScale;
-			if (!SocketScale.IsZero() && !SocketScale.Equals(FVector::OneVector))
-			{
-				Actor->SetActorRelativeScale3D(SocketScale);
-			}
-
 			// Remove the string if the actor is found in the editor level
 			ActorStringArray.RemoveAt(StringIdx);
 			break;
@@ -8771,12 +8760,6 @@ FHoudiniMeshTranslator::AddActorsToMeshSocket(UStaticMeshSocket * Socket, UStati
 
 		Socket->AttachActor(NewActors[0], StaticMeshComponent);
 		HoudiniCreatedSocketActors.Add(NewActors[0]);
-		
-		FVector SocketScale = Socket->RelativeScale;
-		if (!SocketScale.IsZero() && !SocketScale.Equals(FVector::OneVector))
-		{
-			NewActors[0]->SetActorRelativeScale3D(SocketScale);
-		}
 
 		ActorStringArray.RemoveAt(Idx);
 	}

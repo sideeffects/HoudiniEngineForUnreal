@@ -33,6 +33,11 @@
 #include "Components/BrushComponent.h"
 #include "GameFramework/Volume.h"
 
+// Required for UE5.2 Engine Plugin compilation
+#if ENGINE_MINOR_VERSION > 1
+	#include "MaterialDomain.h"
+#endif
+
 DEFINE_LOG_CATEGORY_STATIC(LogBSPOps, Log, All);
 
 /** Errors encountered in Csg operation. */

@@ -249,9 +249,13 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	int32 NumOutputs = HAC->Outputs.Num();
 	bool bHasLandscape = false;
 
-	// Get all our landscape inputs
+	// Before processing all the outputs, 
+	// See if we have any landscape input that have "Update Input Landscape" enabled
+	// And make an array of all our input landscapes as well.
 	TArray<ALandscapeProxy *> AllInputLandscapes;
-	FHoudiniEngineUtils::GatherLandscapeInputs(HAC, AllInputLandscapes);
+	TArray<ALandscapeProxy *> InputLandscapesToUpdate;
+	
+	FHoudiniEngineUtils::GatherLandscapeInputs(HAC, AllInputLandscapes, InputLandscapesToUpdate);
 
 	// ----------------------------------------------------
 	// Process outputs
@@ -396,6 +400,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 			FHoudiniLandscapeTranslator::CreateLandscape(
 				CurOutput,
 				UntrackedActors,
+				InputLandscapesToUpdate,
 				AllInputLandscapes,
 				HAC,
 				TEXT("{hda_actor_name}_"),

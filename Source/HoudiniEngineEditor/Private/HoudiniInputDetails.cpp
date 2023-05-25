@@ -33,7 +33,6 @@
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetBlueprintComponent.h"
 #include "HoudiniEngineEditor.h"
-#include "HoudiniEngineStyle.h"
 #include "HoudiniEngineEditorUtils.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniLandscapeTranslator.h"
@@ -356,74 +355,32 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 	}
 
 	// ComboBox :  Input Type
-	TSharedPtr<SComboBox<TSharedPtr<FString>>> ComboBoxInputType;
-	TSharedPtr<SImage> RebuildImage;
-	VerticalBox->AddSlot()
-	.Padding(2, 2, 5, 2)
+	TSharedPtr< SComboBox< TSharedPtr< FString > > > ComboBoxInputType;
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 	[
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.Padding(1.0f)
-		.VAlign(VAlign_Center)
-		.FillWidth(1.0f)
-		//.FillWidth(0.75f)
-		//.AutoWidth()
+		SAssignNew(ComboBoxInputType, SComboBox<TSharedPtr<FString>>)
+		.OptionsSource(SupportedChoices)
+		.InitiallySelectedItem((*FHoudiniEngineEditor::Get().GetInputTypeChoiceLabels())[((int32)MainInput->GetInputType() - 1)])
+		.OnGenerateWidget_Lambda(
+			[](TSharedPtr< FString > ChoiceEntry)
+		{
+			FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
+			return SNew(STextBlock)
+				.Text(ChoiceEntryText)
+				.ToolTipText(ChoiceEntryText)
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+		})
+		.OnSelectionChanged_Lambda([=](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
+		{
+			return OnSelChanged(InInputs, NewChoice);
+		})
 		[
-			SAssignNew(ComboBoxInputType, SComboBox<TSharedPtr<FString>>)
-			.OptionsSource(SupportedChoices)
-			.InitiallySelectedItem((*FHoudiniEngineEditor::Get().GetInputTypeChoiceLabels())[((int32)MainInput->GetInputType() - 1)])
-			.OnGenerateWidget_Lambda(
-				[](TSharedPtr< FString > ChoiceEntry)
+			SNew( STextBlock )
+			.Text_Lambda([=]()
 			{
-				FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
-				return SNew(STextBlock)
-					.Text(ChoiceEntryText)
-					.ToolTipText(ChoiceEntryText)
-					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
-			})
-			.OnSelectionChanged_Lambda([=](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
-			{
-				return OnSelChanged(InInputs, NewChoice);
-			})
-			[
-				SNew( STextBlock )
-				.Text_Lambda([=]()
-				{
-					return GetInputText(MainInput); 
-				})
-				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-			]
-		]
-		+ SHorizontalBox::Slot()
-		.Padding(1.0f)
-		.VAlign(VAlign_Center)
-		.MaxWidth(16.0f)
-		.AutoWidth()
-		[
-			SNew(SButton)
-			.ToolTipText(LOCTEXT("RecookInput", "Recook this input only."))
-			.ButtonStyle(_GetEditorStyle(), "NoBorder")
-			.ContentPadding(0)
-			.Visibility(EVisibility::Visible)
-			.OnClicked_Lambda([InInputs]()
-			{
-				for (auto CurInput : InInputs)
-				{
-					if (!IsValidWeakPointer(CurInput))
-						continue;
-
-					// Force the input to reupload its data
-					CurInput->MarkChanged(true);
-					//CurInput->MarkDataUploadNeeded(true);
-					CurInput->MarkAllInputObjectsChanged(true);
-				}
-
-				return FReply::Handled();
-			})
-			[
-				SNew(SImage)
-				.Image(FHoudiniEngineStyle::Get()->GetBrush("HoudiniEngine._RebuildAll"))
-			]
+				return GetInputText(MainInput); 
+			})            
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 	];
 }
@@ -460,10 +417,8 @@ FHoudiniInputDetails:: AddCurveInputCookOnChangeCheckBox(TSharedRef< SVerticalBo
 	};
 
 	// Checkbox : Trigger cook on input curve changed
-	TSharedPtr<SCheckBox> CheckBoxCookOnCurveChanged;
-	VerticalBox->AddSlot()
-	.Padding(2, 2, 5, 2)
-	.AutoHeight()
+	TSharedPtr< SCheckBox > CheckBoxCookOnCurveChanged;
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
 	[
 		SAssignNew(CheckBoxCookOnCurveChanged, SCheckBox)
 		.Content()
@@ -534,10 +489,8 @@ FHoudiniInputDetails::AddKeepWorldTransformCheckBox(TSharedRef< SVerticalBox > V
 
 
 	// Checkbox : Keep World Transform
-	TSharedPtr<SCheckBox> CheckBoxTranformType;
-	VerticalBox->AddSlot()
-	.Padding(2, 2, 5, 2)
-	.AutoHeight()
+	TSharedPtr< SCheckBox > CheckBoxTranformType;
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
 	[
 		SAssignNew(CheckBoxTranformType, SCheckBox)
 		.Content()
@@ -569,10 +522,12 @@ FHoudiniInputDetails::AddKeepWorldTransformCheckBox(TSharedRef< SVerticalBox > V
 void
 FHoudiniInputDetails::AddPackBeforeMergeCheckbox(TSharedRef< SVerticalBox > VerticalBox, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {
+
 	if (InInputs.Num() <= 0)
 		return;
 
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
 	if (!IsValidWeakPointer(MainInput))
 		return;
 
@@ -617,10 +572,8 @@ FHoudiniInputDetails::AddPackBeforeMergeCheckbox(TSharedRef< SVerticalBox > Vert
 		}
 	};
 
-	TSharedPtr<SCheckBox> CheckBoxPackBeforeMerge;
-	VerticalBox->AddSlot()
-	.Padding( 2, 2, 5, 2 )
-	.AutoHeight()
+	TSharedPtr< SCheckBox > CheckBoxPackBeforeMerge;
+	VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
 	[
 		SAssignNew( CheckBoxPackBeforeMerge, SCheckBox )
 		.Content()
@@ -648,6 +601,7 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 		return;
 
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
 	if (!IsValidWeakPointer(MainInput))
 		return;
 
@@ -711,24 +665,24 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 
 		TSharedPtr< SCheckBox > CheckBoxImportAsReference;
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
-		[
-			SAssignNew(CheckBoxImportAsReference, SCheckBox)
-			.Content()
+			[
+				SAssignNew(CheckBoxImportAsReference, SCheckBox)
+				.Content()
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("ImportInputAsRefCheckbox", "Import input as references"))
 				.ToolTipText(LOCTEXT("ImportInputAsRefCheckboxTip", "Import input objects as references. (Geometry, World and Asset input types only)"))
 				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
-			.IsChecked_Lambda([=]()
+		.IsChecked_Lambda([=]()
 			{
 				return IsCheckedImportAsReference(MainInput);
 			})
 			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
-			{
-				return CheckStateChangedImportAsReference(InInputs, NewState);
-			})
-		];
+				{
+					return CheckStateChangedImportAsReference(InInputs, NewState);
+				})
+			];
 	}
 
 	// Add Rot/Scale checkbox
@@ -788,27 +742,28 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 			}
 		};
 
-		TSharedPtr<SCheckBox> CheckBoxImportAsReferenceRotScale;
+		TSharedPtr< SCheckBox > CheckBoxImportAsReferenceRotScale;
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
-		[
-			SAssignNew(CheckBoxImportAsReferenceRotScale, SCheckBox)
-			.Content()
+			[
+				SAssignNew(CheckBoxImportAsReferenceRotScale, SCheckBox)
+				.Content()
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("ImportInputAsRefRotScaleCheckbox", "Add rot/scale to input references"))
 				.ToolTipText(LOCTEXT("ImportInputAsRefRotScaleCheckboxTip", "Add rot/scale attributes to the input references when Import input as references is enabled"))
 				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
-			.IsChecked_Lambda([=]()
+		.IsChecked_Lambda([=]()
 			{
 				return IsCheckedImportAsReferenceRotScale(MainInput);
 			})
 			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
-			{
-				return CheckStateChangedImportAsReferenceRotScale(InInputs, NewState);
-			})
-			.IsEnabled(IsCheckedImportAsReference(MainInput))
-		];
+				{
+					return CheckStateChangedImportAsReferenceRotScale(InInputs, NewState);
+				})
+				.IsEnabled(IsCheckedImportAsReference(MainInput))
+
+			];
 
 	}
 
@@ -869,29 +824,28 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 			}
 		};
 
-		TSharedPtr<SCheckBox> CheckBoxImportAsReferenceBbox;
-		VerticalBox->AddSlot()
-		.Padding(2, 2, 5, 2)
-		.AutoHeight()
-		[
-			SAssignNew(CheckBoxImportAsReferenceBbox, SCheckBox)
-			.Content()
+		TSharedPtr< SCheckBox > CheckBoxImportAsReferenceBbox;
+		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+			[
+				SAssignNew(CheckBoxImportAsReferenceBbox, SCheckBox)
+				.Content()
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("ImportInputAsRefBboxCheckbox", "Add bounding box min/max to input references"))
 				.ToolTipText(LOCTEXT("ImportInputAsRefBboxCheckboxTip", "Add bounding box min/max attributes to the input references when Import input as references is enabled"))
 				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
-			.IsChecked_Lambda([=]()
+		.IsChecked_Lambda([=]()
 			{
 				return IsCheckedImportAsReferenceBbox(MainInput);
 			})
 			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
-			{
-				return CheckStateChangedImportAsReferenceBbox(InInputs, NewState);
-			})
-			.IsEnabled(IsCheckedImportAsReference(MainInput))
-		];
+				{
+					return CheckStateChangedImportAsReferenceBbox(InInputs, NewState);
+				})
+				.IsEnabled(IsCheckedImportAsReference(MainInput))
+
+			];
 	}
 
 	// Add material checkbox
@@ -952,28 +906,27 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 		};
 
 		TSharedPtr< SCheckBox > CheckBoxImportAsReferenceMaterial;
-		VerticalBox->AddSlot()
-		.Padding(2, 2, 5, 2)
-		.AutoHeight()
-		[
-			SAssignNew(CheckBoxImportAsReferenceMaterial, SCheckBox)
-			.Content()
+		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+			[
+				SAssignNew(CheckBoxImportAsReferenceMaterial, SCheckBox)
+				.Content()
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("ImportInputAsRefMaterialCheckbox", "Add material to input references"))
-				.ToolTipText(LOCTEXT("ImportInputAsRefMaterialCheckboxTip", "Add material attributes to the input references when Import input as references is enabled"))
-				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.ToolTipText(LOCTEXT("ImportInputAsRefMaterialCheckboxTip", "Add material attributes to the input references when Import input as references is enabled"))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
-			.IsChecked_Lambda([=]()
+		.IsChecked_Lambda([=]()
 			{
 				return IsCheckedImportAsReferenceMaterial(MainInput);
 			})
 			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
-			{
-				return CheckStateChangedImportAsReferenceMaterial(InInputs, NewState);
-			})
-			.IsEnabled(IsCheckedImportAsReference(MainInput))
-		];
+				{
+					return CheckStateChangedImportAsReferenceMaterial(InInputs, NewState);
+				})
+				.IsEnabled(IsCheckedImportAsReference(MainInput))
+
+			];
 	}
 }
 void
@@ -1242,7 +1195,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 			{
 				return IsCheckedExportSockets(MainInput);
 			})
-			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+				.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
 			{
 				return CheckStateChangedExportSockets(InInputs, NewState);
 			})
@@ -1589,14 +1542,9 @@ FHoudiniInputDetails::Helper_CreateGeometryWidget(
 
 	// Add Combo box : Static Mesh
 	TSharedPtr<SComboButton> StaticMeshComboButton;
-	ComboAndButtonBox->AddSlot()
-	.FillHeight(1.0f)
-	.VAlign(VAlign_Center)
+	ComboAndButtonBox->AddSlot().FillHeight(1.0f).VAlign(VAlign_Center)
 	[
-		SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		.FillHeight(1.0f)
-		.VAlign(VAlign_Center)
+		SNew(SVerticalBox) + SVerticalBox::Slot().FillHeight(1.0f).VAlign(VAlign_Center)
 		[
 			SAssignNew(StaticMeshComboButton, SComboButton)
 			.ButtonStyle(_GetEditorStyle(), "PropertyEditor.AssetComboStyle")
@@ -4264,6 +4212,115 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 	if (!IsValidWeakPointer(MainInput))
 		return;
 
+	// Lambda returning a CheckState from the input's current KeepWorldTransform state
+	auto IsCheckedUpdateInputLandscape = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->GetUpdateInputLandscape() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	// Lambda for changing KeepWorldTransform state
+	auto CheckStateChangedUpdateInputLandscape = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniLandscapeInputChangedUpdate", "Houdini Input: Changing Keep World Transform"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (bNewState == CurInput->GetUpdateInputLandscape())
+				continue;
+
+			CurInput->Modify();
+
+			UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(CurInput->GetOuter());
+			if (!HAC)
+				continue;
+
+			TArray<UHoudiniInputObject*>* LandscapeInputObjects = CurInput->GetHoudiniInputObjectArray(CurInput->GetInputType());
+			if (!LandscapeInputObjects)
+				continue;
+
+			for (UHoudiniInputObject* NextInputObj : *LandscapeInputObjects)
+			{
+				UHoudiniInputLandscape* CurrentInputLandscape = Cast<UHoudiniInputLandscape>(NextInputObj);
+				if (!CurrentInputLandscape)
+					continue;
+
+				ALandscapeProxy* CurrentInputLandscapeProxy = CurrentInputLandscape->GetLandscapeProxy();
+				if (!CurrentInputLandscapeProxy)
+					continue;
+
+				if (bNewState)
+				{
+					// We want to update this landscape data directly, start by backing it up to image files in the temp folder
+					FString BackupBaseName = HAC->TemporaryCookFolder.Path
+						+ TEXT("/")
+						+ CurrentInputLandscapeProxy->GetName()
+						+ TEXT("_")
+						+ HAC->GetComponentGUID().ToString().Left(FHoudiniEngineUtils::PackageGUIDComponentNameLength);
+
+					// We need to cache the input landscape to a file
+					FHoudiniLandscapeTranslator::BackupLandscapeToImageFiles(BackupBaseName, CurrentInputLandscapeProxy);
+					
+					// Cache its transform on the input
+					CurrentInputLandscape->CachedInputLandscapeTraqnsform = CurrentInputLandscapeProxy->ActorToWorld();
+
+					HAC->SetMobility(EComponentMobility::Static);
+					CurrentInputLandscapeProxy->AttachToComponent(HAC, FAttachmentTransformRules::KeepWorldTransform);
+				}
+				else
+				{
+					// We are not updating this input landscape anymore, detach it and restore its backed-up values
+					CurrentInputLandscapeProxy->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+
+					// Restore the input landscape's backup data
+					FHoudiniLandscapeTranslator::RestoreLandscapeFromImageFiles(CurrentInputLandscapeProxy);
+
+					// Reapply the source Landscape's transform
+					CurrentInputLandscapeProxy->SetActorTransform(CurrentInputLandscape->CachedInputLandscapeTraqnsform);
+
+					// TODO: 
+					// Clear the input obj map?
+				}
+			}
+
+			CurInput->bUpdateInputLandscape = (NewState == ECheckBoxState::Checked);
+			CurInput->MarkChanged(true);
+		}
+	};
+
+	// CheckBox : Update Input Landscape Data
+	TSharedPtr< SCheckBox > CheckBoxUpdateInput;
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+	[
+		SAssignNew( CheckBoxUpdateInput, SCheckBox).Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("LandscapeUpdateInputCheckbox", "Update Input Landscape Data"))
+			.ToolTipText(LOCTEXT("LandscapeUpdateInputTooltip", "If enabled, the input landscape's data will be updated instead of creating a new landscape Actor"))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		.IsChecked_Lambda([IsCheckedUpdateInputLandscape, MainInput]()
+		{
+			return IsCheckedUpdateInputLandscape(MainInput);
+		})
+		.OnCheckStateChanged_Lambda([CheckStateChangedUpdateInputLandscape, InInputs](ECheckBoxState NewState)
+		{
+			return CheckStateChangedUpdateInputLandscape(InInputs, NewState);
+		})
+	];
 	
 	// ------------------------
 	// Landscape: Actor picker
@@ -5413,9 +5470,31 @@ FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(const TArray<TWeakObjec
 		UHoudiniAssetComponent* MyHAC = Cast<UHoudiniAssetComponent>(InInput->GetOuter());
 		AActor* MyOwner = MyHAC ? MyHAC->GetOwner() : nullptr;
 
-		// If the landscape is owned by ourself, skip it!
+		// IF the landscape is owned by ourself, skip it!
 		if (OwnerActor && OwnerActor == MyOwner)
+		{
+			// ... buuuut we dont want to filter input landscapes that have the "Update Input Landscape Data" option enabled
+			// (and are, therefore, outputs as well)
+			for (int32 Idx = 0; Idx < MyHAC->GetNumInputs(); Idx++)
+			{
+				UHoudiniInput* CurrentInput = MyHAC->GetInputAt(Idx);
+				if (!IsValid(CurrentInput))
+					continue;
+
+				if (CurrentInput->GetInputType() != EHoudiniInputType::Landscape)
+					continue;
+
+				if (!CurrentInput->GetUpdateInputLandscape())
+					continue;
+
+				// Don't filter our input landscapes
+				ALandscapeProxy* UpdatedInputLandscape = Cast<ALandscapeProxy>(CurrentInput->GetInputObjectAt(0));
+				if (LandscapeProxy == UpdatedInputLandscape)
+					return true;
+			}
+
 			return false;
+		}
 
 		return true;
 	};

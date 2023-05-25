@@ -61,6 +61,12 @@
 #include "Misc/AutomationTest.h"
 #include "Tests/AutomationCommon.h"
 
+// Required for UE5.2 Engine Plugin compilation
+#if ENGINE_MINOR_VERSION > 1
+	#include "PropertyEditorModule.h"
+	#include "Framework/Application/SlateApplication.h"
+#endif
+
 const FVector2D FHoudiniEditorTestUtils::GDefaultEditorSize = FVector2D(1280, 720);
 const FString FHoudiniEditorTestUtils::SavedPathFolder = "/Game/TestSaved/";
 const FString FHoudiniEditorTestUtils::TempPathFolder = "/Game/TestTemp/";

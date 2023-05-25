@@ -47,6 +47,11 @@
 #include "Engine/Selection.h"
 #include "HModel.h"
 
+// Required for UE5.2 Engine Plugin compilation
+#if ENGINE_MINOR_VERSION > 1
+	#include "SceneView.h"
+#endif
+
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 IMPLEMENT_HIT_PROXY(HHoudiniSplineVisProxy, HComponentVisProxy);
