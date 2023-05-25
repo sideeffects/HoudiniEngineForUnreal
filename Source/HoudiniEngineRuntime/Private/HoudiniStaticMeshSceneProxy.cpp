@@ -30,6 +30,11 @@
 #include "Materials/Material.h"
 #include "PrimitiveViewRelevance.h"
 #include "Engine/Engine.h"
+#if ENGINE_MINOR_VERSION > 1
+	#include "MaterialDomain.h"
+	#include "Materials/MaterialRenderProxy.h"
+	#include "SceneInterface.h" 
+#endif
 
 #include "ProfilingDebugging/CpuProfilerTrace.h"
 

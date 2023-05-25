@@ -32,6 +32,9 @@
 #include "Editor/EditorEngine.h"
 #include "Components/BrushComponent.h"
 #include "GameFramework/Volume.h"
+#if ENGINE_MINOR_VERSION > 1
+	#include "MaterialDomain.h"
+#endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogBSPOps, Log, All);
 

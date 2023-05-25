@@ -34,6 +34,9 @@
 
 #include "ActorEditorUtils.h"
 #include "Misc/ScopedSlowTask.h"
+#if ENGINE_MINOR_VERSION > 1
+	#include "MaterialDomain.h"
+#endif
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogHCsgUtils, Log, All);

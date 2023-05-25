@@ -8,10 +8,14 @@
 #include "StaticMeshAttributes.h"
 #include "StaticMeshOperations.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "GeometryCollection/GeometryCollection.h"
 #include "GeometryCollection/GeometryCollectionClusteringUtility.h"
 #include "GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollection/GeometryCollectionObject.h"
 #include "GeometryCollection/GeometryCollectionActor.h"
+#if ENGINE_MINOR_VERSION > 1
+	#include "MaterialDomain.h"
+#endif
 #include "Materials/Material.h"
 
 void

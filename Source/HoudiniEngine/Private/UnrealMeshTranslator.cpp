@@ -47,11 +47,14 @@
 #include "HoudiniEngineTimers.h"
 #include "Rendering/SkeletalMeshModel.h"
 #include "MeshUtilities.h"
-#include <locale> 
+#include "StaticMeshResources.h"
+#include <locale>
 #include <codecvt>
 
 #if ENGINE_MINOR_VERSION >= 2
 	#include "StaticMeshComponentLODInfo.h"
+	#include "MaterialDomain.h"
+	#include "Engine/SkinnedAssetCommon.h"
 #endif
 
 #if WITH_EDITOR

@@ -41,6 +41,7 @@
 #include "EditorFramework/AssetImportData.h"
 #include "LevelEditor.h"
 #include "Modules/ModuleManager.h"
+#include "UObject/UObjectIterator.h"
 
 #include "Internationalization/Internationalization.h"
 

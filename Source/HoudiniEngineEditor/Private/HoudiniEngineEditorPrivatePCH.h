@@ -31,6 +31,7 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
 #include "Editor.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 // Details panel desired sizes.
 #define HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH              270

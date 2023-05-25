@@ -28,6 +28,7 @@
 
 #include "CoreMinimal.h"
 #include "Logging/LogMacros.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 // Define module names.
 #define HOUDINI_MODULE "HoudiniEngine"

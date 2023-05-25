@@ -28,6 +28,7 @@
 
 #include "EditorViewportClient.h"
 #include "CanvasTypes.h"
+#include "SceneView.h"
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniHandleTranslator.h"

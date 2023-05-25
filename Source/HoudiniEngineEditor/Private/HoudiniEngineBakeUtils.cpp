@@ -109,6 +109,10 @@
 #include "WorldPartition/WorldPartitionSubsystem.h"
 #include "Kismet2/ComponentEditorUtils.h"
 #include "Animation/SkeletalMeshActor.h"
+#if ENGINE_MINOR_VERSION > 1
+	#include "Engine/SkinnedAssetCommon.h"
+#endif
+#include "Materials/MaterialExpressionTextureSample.h" 
 
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"

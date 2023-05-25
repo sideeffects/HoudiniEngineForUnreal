@@ -29,6 +29,7 @@
 #include "HoudiniPDGAssetLink.h"
 #include "HoudiniOutput.h"
 #include "HoudiniPackageParams.h"
+#include "Materials/MaterialExpression.h"
 
 class UHoudiniAssetComponent;
 class UHoudiniOutput;
