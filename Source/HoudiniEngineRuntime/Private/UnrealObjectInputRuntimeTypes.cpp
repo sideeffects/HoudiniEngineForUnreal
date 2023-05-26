@@ -120,8 +120,10 @@ bool FUnrealObjectInputIdentifier::IsValid() const
 	{
 		case EUnrealObjectInputNodeType::Invalid:
 			return false;
+
 		case EUnrealObjectInputNodeType::Container:
 			return Object.IsValid() || Path != NAME_None;
+
 		case EUnrealObjectInputNodeType::Reference:
 		case EUnrealObjectInputNodeType::Leaf:
 			return Object.IsValid();
@@ -159,6 +161,7 @@ FUnrealObjectInputIdentifier::GetTypeHash() const
 			const TPair<FName, FUnrealObjectInputOptions> Pair(ObjectPath, Options);
 			return ::GetTypeHash(Pair);
 		}
+
 		case EUnrealObjectInputNodeType::Reference:
 		case EUnrealObjectInputNodeType::Leaf:
 		{
