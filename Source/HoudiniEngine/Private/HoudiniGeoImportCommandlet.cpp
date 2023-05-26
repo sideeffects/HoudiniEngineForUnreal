@@ -666,9 +666,11 @@ void UHoudiniGeoImportCommandlet::HandleDirectoryChanged(const TArray<FFileChang
 						DiscoveredFiles.Add(FileChangeData.Filename, FDiscoveredFileData(FileChangeData.Filename, true));
 					}
 				break;
+
 				case FFileChangeData::FCA_Removed:
 					DiscoveredFiles.Remove(FileChangeData.Filename);
 				break;
+
 				default:
 					HOUDINI_LOG_WARNING(TEXT("Unknown file change event %d for %s"), FileChangeData.Action, *FileChangeData.Filename);
 			}
