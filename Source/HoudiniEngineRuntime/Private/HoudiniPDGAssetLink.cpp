@@ -1747,8 +1747,7 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 	bool bDidDestroyObjects = false;
 	bool bDidModifyFoliage = false;
 
-	AActor* const OutputActor = OutputActorOwner.GetOutputActor();
-	
+	AActor* const OutputActor = OutputActorOwner.GetOutputActor();	
 	for (UHoudiniOutput* CurOutput : ResultOutputs)
 	{
 		if (!IsValid(CurOutput))
@@ -1761,7 +1760,9 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 			FHoudiniOutputObject& OutputObject = Pair.Value;
 			for(int Index = 0; Index < OutputObject.OutputComponents.Num(); Index++)
 			{
-				auto Component = OutputObject.OutputComponents[Index];
+				UObject* Component = OutputObject.OutputComponents[Index];
+				if (!IsValid(Component))
+					continue;
 
 				// Instancer components require some special handling around foliage
 				// TODO: move/refactor so that we can use the InstanceTranslator's helper functions (RemoveAndDestroyComponent and CleanupFoliageInstances)
