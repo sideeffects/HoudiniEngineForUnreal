@@ -50,7 +50,9 @@
 #include "FoliageType_InstancedStaticMesh.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
-#include "Engine/SkinnedAssetCommon.h"
+#if ENGINE_MINOR_VERSION > 1
+	#include "Engine/SkinnedAssetCommon.h"
+#endif
 
 #include "Model.h"
 #include "Engine/Brush.h"
