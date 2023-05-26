@@ -453,8 +453,15 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 			if(InstancedOutputPartData.AllBakeActorClassNames.IsValidIndex(FirstOriginalInstanceIndex) && !InstancedOutputPartData.AllBakeActorClassNames[FirstOriginalInstanceIndex].IsEmpty())
 				NewOutputObject.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_ACTOR_CLASS, InstancedOutputPartData.AllBakeActorClassNames[FirstOriginalInstanceIndex]);
 
+			// TODO: Check if we should apply the same logic to other cached attributes?
+			// When using PDG, we have one bake folder per PDG output (array size 1)
+			// However, the translator expects one BakeFolder per instance!
+			// This causes variation 0 to use the proper bake folder, but other variations to end up in the default bake folder.
+			// Use this fallback mechanism so that all bake instances end up in the same folder
 			if(InstancedOutputPartData.AllBakeFolders.IsValidIndex(FirstOriginalInstanceIndex) && !InstancedOutputPartData.AllBakeFolders[FirstOriginalInstanceIndex].IsEmpty())
 				NewOutputObject.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_FOLDER, InstancedOutputPartData.AllBakeFolders[FirstOriginalInstanceIndex]);
+			else if (InstancedOutputPartData.AllBakeFolders.IsValidIndex(0) && !InstancedOutputPartData.AllBakeFolders[0].IsEmpty())
+				NewOutputObject.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_FOLDER, InstancedOutputPartData.AllBakeFolders[0]);
 
 			if(InstancedOutputPartData.AllBakeOutlinerFolders.IsValidIndex(FirstOriginalInstanceIndex) && !InstancedOutputPartData.AllBakeOutlinerFolders[FirstOriginalInstanceIndex].IsEmpty())
 				NewOutputObject.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_OUTLINER_FOLDER, InstancedOutputPartData.AllBakeOutlinerFolders[FirstOriginalInstanceIndex]);
