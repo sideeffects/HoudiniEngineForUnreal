@@ -6281,10 +6281,14 @@ FHoudiniEngineBakeUtils::BakePDGAssetLinkOutputsKeepActors(UHoudiniPDGAssetLink*
 				}
 			}
 			break;
+
 		case EPDGBakeSelectionOption::SelectedNetwork:
 			bSuccess = BakePDGTOPNetworkOutputsKeepActors(InPDGAssetLink, InPDGAssetLink->GetSelectedTOPNetwork(), bBakeBlueprints, bIsAutoBake, InPDGBakePackageReplaceMode, BakedActors, PackagesToSave, BakeStats);
+			break;
+
 		case EPDGBakeSelectionOption::SelectedNode:
 			bSuccess = BakePDGTOPNodeOutputsKeepActors(InPDGAssetLink, InPDGAssetLink->GetSelectedTOPNode(), bBakeBlueprints, bIsAutoBake, InPDGBakePackageReplaceMode, BakedActors, PackagesToSave, BakeStats);
+			break;
 	}
 
 	SaveBakedPackages(PackagesToSave);
@@ -6770,6 +6774,7 @@ FHoudiniEngineBakeUtils::BakePDGAssetLinkBlueprints(UHoudiniPDGAssetLink* InPDGA
 				}
 			}
 			break;
+
 		case EPDGBakeSelectionOption::SelectedNetwork:
 			bSuccess &= BakePDGTOPNetworkBlueprints(
 				InPDGAssetLink,
@@ -6779,6 +6784,8 @@ FHoudiniEngineBakeUtils::BakePDGAssetLinkBlueprints(UHoudiniPDGAssetLink* InPDGA
 				Blueprints,
 				PackagesToSave,
 				BakeStats);
+			break;
+
 		case EPDGBakeSelectionOption::SelectedNode:
 			bSuccess &= BakePDGTOPNodeBlueprints(
 				InPDGAssetLink,
@@ -6789,6 +6796,7 @@ FHoudiniEngineBakeUtils::BakePDGAssetLinkBlueprints(UHoudiniPDGAssetLink* InPDGA
 				Blueprints,
 				PackagesToSave,
 				BakeStats);
+			break;
 	}
 
 	// Compile the new/updated blueprints
