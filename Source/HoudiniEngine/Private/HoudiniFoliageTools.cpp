@@ -225,7 +225,14 @@ FHoudiniFoliageTools::RemoveFoliageTypeFromWorld(UWorld* World, UFoliageType* Fo
 	for (TActorIterator<AInstancedFoliageActor> ActorIt(World, AInstancedFoliageActor::StaticClass()); ActorIt; ++ActorIt)
 	{
 	    AInstancedFoliageActor * IFA = *ActorIt;
-        IFA->RemoveFoliageType(&FoliageType, 1);
+
+		// Check to see if the IFA actually contains the FoliageType, then remove it. Do this so we
+		// don't dirty IFAs needlessly because Unreal doesn't check for this and always marks the actor as dirty.
+		FFoliageInfo* Info = IFA->FindInfo(FoliageType);
+		if (Info != nullptr)
+		{
+			IFA->RemoveFoliageType(&FoliageType, 1);
+		}
 	}
 }
 
