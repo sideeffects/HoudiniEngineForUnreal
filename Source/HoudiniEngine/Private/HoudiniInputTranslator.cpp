@@ -3453,7 +3453,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 		InObject->InputObjectNodeId = (int32)FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
 		InObject->Update(Landscape);
 
-		if (!HapiSetGeoObjectTransform(InObject->InputNodeId, InObject->Transform))
+		if (!HapiSetGeoObjectTransform(InObject->InputObjectNodeId, InObject->Transform))
 			return false;
 	}
 
