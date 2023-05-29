@@ -36,6 +36,8 @@ public class HoudiniEngineEditor : ModuleRules
         PCHUsage = PCHUsageMode.NoSharedPCHs;
         PrivatePCHHeaderFile = "Private/HoudiniEngineEditorPrivatePCH.h";
 
+        bUseUnity = false;
+
         // Check if we are compiling on unsupported platforms.
         if ( Target.Platform != UnrealTargetPlatform.Win64 &&
             Target.Platform != UnrealTargetPlatform.Mac &&

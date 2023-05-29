@@ -29,7 +29,7 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "UObject/WeakObjectPtr.h"
-
+#include "HoudiniEngineRuntimeCommon.h"
 
 /**
  * A struct of options that are used by FUnrealObjectInputIdentifier to differentiate between variations of the
@@ -42,7 +42,8 @@ struct HOUDINIENGINERUNTIME_API FUnrealObjectInputOptions
 		const bool bImportAsReferenceRotScaleEnabled=false,
 		const bool bExportLODs=false,
 		const bool bExportSockets=false,
-		const bool bExportColliders=false);
+		const bool bExportColliders=false,
+		const EHoudiniLandscapeExportType LandscapeExportType=EHoudiniLandscapeExportType::Heightfield);
 	
 	/** Return hash value for this object, used when using this object as a key inside hashing containers. */
 	uint32 GetTypeHash() const;
@@ -67,6 +68,9 @@ struct HOUDINIENGINERUNTIME_API FUnrealObjectInputOptions
 
 	/** Indicates that all colliders in the input should be marshalled to Houdini */
 	bool bExportColliders;
+
+	/** Indicates the export type if this input is a Landscape */
+	EHoudiniLandscapeExportType LandscapeExportType;
 };
 
 /** Function used by hashing containers to create a unique hash for this type of object. */

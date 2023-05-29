@@ -2754,6 +2754,9 @@ UHoudiniAssetComponent::HasAnyOutputComponent() const
 bool
 UHoudiniAssetComponent::HasOutputObject(UObject* InOutputObjectToFind) const
 {
+	if (!IsValid(InOutputObjectToFind))
+		return false;
+
 	for (const auto& CurOutput : Outputs)
 	{
 		for (const auto& CurOutputObject : CurOutput->GetOutputObjects())

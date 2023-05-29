@@ -42,12 +42,14 @@ FUnrealObjectInputOptions::FUnrealObjectInputOptions(
 	const bool bInImportAsReferenceRotScaleEnabled,
 	const bool bInExportLODs,
 	const bool bInExportSockets,
-	const bool bInExportColliders)
+	const bool bInExportColliders,
+	const EHoudiniLandscapeExportType LandscapeExportType)
 		: bImportAsReference(bInImportAsReference)
 		, bImportAsReferenceRotScaleEnabled(bInImportAsReferenceRotScaleEnabled)
 		, bExportLODs(bInExportLODs)
 		, bExportSockets(bInExportSockets)
 		, bExportColliders(bInExportColliders)
+		, LandscapeExportType(LandscapeExportType)
 {
 }
 
@@ -64,7 +66,8 @@ FUnrealObjectInputOptions::operator==(const FUnrealObjectInputOptions& InOther) 
 		&& bImportAsReferenceRotScaleEnabled == InOther.bImportAsReferenceRotScaleEnabled
 		&& bExportLODs == InOther.bExportLODs
 		&& bExportSockets == InOther.bExportSockets
-		&& bExportColliders == InOther.bExportColliders);
+		&& bExportColliders == InOther.bExportColliders
+		&& LandscapeExportType == InOther.LandscapeExportType);
 }
 
 
