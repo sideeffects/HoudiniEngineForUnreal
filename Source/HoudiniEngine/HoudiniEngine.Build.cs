@@ -296,7 +296,8 @@ public class HoudiniEngine : ModuleRules
                 "Chaos",
                 "GeometryCollectionEngine",
                 "FieldSystemEngine",
-                "BSPUtils"
+                "BSPUtils",
+				"DataLayerEditor"
             }
         );
 
