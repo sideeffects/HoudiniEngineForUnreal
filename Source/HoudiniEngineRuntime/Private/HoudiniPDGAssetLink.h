@@ -32,7 +32,6 @@
 
 // #include "HoudiniAsset.h"
 #include "HoudiniAssetComponent.h"
-#include "HoudiniTranslatorTypes.h"
 
 #include "HoudiniPDGAssetLink.generated.h"
 
@@ -549,14 +548,6 @@ public:
 	// Notification that this TOP node has been dirtied.
 	void OnDirtyNode();
 
-	// Accessors for the landscape data caches - old accessors.
-	FHoudiniLandscapeExtent& GetLandscapeExtent() { return HoudiniLandscapeSpatialData.Extent; }
-	FHoudiniLandscapeReferenceLocation& GetLandscapeReferenceLocation() { return HoudiniLandscapeSpatialData.ReferenceLocation; }
-	FHoudiniLandscapeTileSizeInfo& GetLandscapeSizeInfo() { return HoudiniLandscapeSpatialData.TileSizeInfo; }
-
-	// Accessor for spatial data.
-	FHoudiniLandscapeSpatialData& GetHoudiniLandscapeSpatialData() { return HoudiniLandscapeSpatialData; };
-
 	// More cached landscape data
 	UPROPERTY()
 	TSet<FString> ClearedLandscapeLayers;
@@ -570,9 +561,6 @@ public:
 
 protected:
 	void InvalidateLandscapeCache();
-	
-	// Value caches used during landscape tile creation.
-	FHoudiniLandscapeSpatialData HoudiniLandscapeSpatialData;
 
 	// Visible in the level
 	UPROPERTY()

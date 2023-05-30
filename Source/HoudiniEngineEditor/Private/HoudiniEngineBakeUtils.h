@@ -216,27 +216,6 @@ public:
 		TMap<UMaterialInterface *, UMaterialInterface *>& InOutAlreadyBakedMaterialsMap,
 		FHoudiniEngineOutputStats& OutBakeStats);
 
-	static bool BakeLandscape(
-		const UHoudiniAssetComponent* HoudiniAssetComponent,
-		int32 InOutputIndex,
-		const TArray<UHoudiniOutput*>& InAllOutputs,
-		TArray<FHoudiniBakedOutput>& InBakedOutputs,
-		bool bInReplaceActors,
-		bool bInReplaceAssets,
-		const FString& BakePath,
-		FHoudiniEngineOutputStats& BakeStats);
-
-	static bool BakeLandscapeObject(
-		FHoudiniOutputObject& InOutputObject,
-		FHoudiniBakedOutputObject& InBakedOutputObject,
-		bool bInReplaceActors,
-		bool bInReplaceAssets,
-		FHoudiniPackageParams& PackageParams,
-		FHoudiniAttributeResolver& InResolver,
-		TArray<UWorld*>& WorldsToUpdate,
-		TArray<UPackage*>& OutPackagesToUnload,
-		FHoudiniEngineOutputStats& BakeStats);
-
 	static bool BakeInstancerOutputToActors(
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
@@ -818,7 +797,7 @@ public:
 
 	// End: PDG Baking
 
-protected:
+public:
 
 	// Find the HGPO with matching identifier. Returns true if the HGPO was found.
 	static bool FindHGPO(
@@ -1000,12 +979,5 @@ protected:
 		const TArray<FHoudiniEngineBakedActor>& BakeResults,
 		TArray<UPackage*>& OutPackagesToSave,
 		FHoudiniEngineOutputStats& OutBakeStats);
-
-
-	// This function was taken from ULandscapeInfo::MoveComponentsToLevel and customized since the stock function
-	// makes a few assumptions that breaks our workflow.
-	static ALandscapeProxy* MoveLandscapeComponentsToLevel(ULandscapeInfo* LandscapeInfo, const TArray<ULandscapeComponent*>& InComponents, ULevel* TargetLevel, FName NewProxyName = NAME_None);
-	// The ULandscapeInfo::MoveComponentsToProxy function is only available in UE5 so we're putting it here for backporting purposes.
-	static ALandscapeProxy* MoveLandscapeComponentsToProxy(ULandscapeInfo* LandscapeInfo, const TArray<ULandscapeComponent*>& InComponents, ALandscapeProxy* LandscapeProxy, bool bSetPositionAndOffset, ULevel* TargetLevel);
 
 };

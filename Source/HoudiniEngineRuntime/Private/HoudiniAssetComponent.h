@@ -607,6 +607,9 @@ public:
 	bool bReplacePreviousBake;
 #endif
 
+	UPROPERTY()
+	bool bLandscapeUseTempLayers;
+
 protected:
 
 	// Id of corresponding Houdini asset.

@@ -35,7 +35,7 @@
 #include "GameFramework/Actor.h"
 #include "Landscape.h"
 #include "UObject/MetaData.h"
-
+#include "HoudiniLandscapeRuntimeUtils.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "InstancedFoliageActor.h"
 
@@ -778,8 +778,6 @@ UTOPNode::OnDirtyNode()
 void
 UTOPNode::InvalidateLandscapeCache()
 {
-	HoudiniLandscapeSpatialData.ReferenceLocation.bIsCached = false;
-	HoudiniLandscapeSpatialData.TileSizeInfo.bIsCached = false;
 	ClearedLandscapeLayers.Empty();
 }
 
@@ -1754,6 +1752,7 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 	{
 		if (!IsValid(CurOutput))
 			continue;
+		FHoudiniLandscapeRuntimeUtils::DeleteLandscapeCookedData(CurOutput);
 
 		for (auto& Pair : CurOutput->GetOutputObjects())
 		{

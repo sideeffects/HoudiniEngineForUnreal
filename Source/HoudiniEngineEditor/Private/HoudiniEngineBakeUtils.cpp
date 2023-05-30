@@ -26,99 +26,87 @@
 
 #include "HoudiniEngineBakeUtils.h"
 
-#include "HoudiniEngineEditorPrivatePCH.h"
-
-#include "HoudiniEngineUtils.h"
-#include "HoudiniAssetActor.h"
-#include "HoudiniAsset.h"
-#include "HoudiniAssetComponent.h"
-#include "HoudiniOutput.h"
-#include "HoudiniSplineComponent.h"
-#include "HoudiniGeoPartObject.h"
-#include "HoudiniPackageParams.h"
-#include "HoudiniEnginePrivatePCH.h"
-#include "HoudiniRuntimeSettings.h"
-#include "HoudiniEngineUtils.h"
-#include "UnrealLandscapeTranslator.h"
-#include "HoudiniInstanceTranslator.h"
-#include "HoudiniInstancedActorComponent.h"
-#include "HoudiniMeshSplitInstancerComponent.h"
-#include "HoudiniPDGAssetLink.h"
-#include "HoudiniStringResolver.h"
-#include "HoudiniEngineCommands.h"
-#include "HoudiniEngineRuntimeUtils.h"
-#include "HoudiniFoliageTools.h"
-
-#include "Engine/StaticMesh.h"
-#include "Engine/SkeletalMesh.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "Engine/World.h"
-#include "RawMesh.h"
-#include "UObject/Package.h"
-#include "PackageTools.h"
-#include "UObject/MetaData.h"
-#include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetSelection.h"
-#include "Materials/Material.h"
-#include "LandscapeProxy.h"
-#include "LandscapeStreamingProxy.h"
-#include "LandscapeInfo.h"
-#include "Factories/WorldFactory.h"
 #include "AssetToolsModule.h"
-#include "InstancedFoliageActor.h"
-#include "Components/SplineComponent.h"
-#include "GameFramework/Actor.h"
-#include "Engine/StaticMeshActor.h"
-#include "Components/StaticMeshComponent.h"
-#include "PhysicsEngine/BodySetup.h"
-#include "ActorFactories/ActorFactoryStaticMesh.h"
-#include "ActorFactories/ActorFactoryEmptyActor.h"
-#include "BusyCursor.h"
 #include "Editor.h"
 #include "EditorLevelUtils.h"
-#include "Kismet2/KismetEditorUtilities.h"
 #include "FileHelpers.h"
-#include "FoliageEditUtility.h"
-#include "HoudiniEngineEditor.h"
+#include "HoudiniAsset.h"
+#include "HoudiniAssetActor.h"
+#include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
+#include "HoudiniEngineCommands.h"
+#include "HoudiniEngineEditor.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineRuntimeUtils.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniFoliageTools.h"
 #include "HoudiniGeometryCollectionTranslator.h"
-#include "HoudiniLandscapeTranslator.h"
+#include "HoudiniGeoPartObject.h"
+#include "HoudiniInstancedActorComponent.h"
+#include "HoudiniInstanceTranslator.h"
+#include "HoudiniBakeLandscape.h"
+#include "HoudiniLandscapeUtils.h"
+#include "HoudiniMeshSplitInstancerComponent.h"
 #include "HoudiniMeshTranslator.h"
+#include "HoudiniOutput.h"
 #include "HoudiniOutputTranslator.h"
-#include "Editor/EditorEngine.h"
-#include "Factories/BlueprintFactory.h"
-#include "Engine/SimpleConstructionScript.h"
-#include "Misc/Paths.h"
-#include "HAL/FileManager.h"
+#include "HoudiniPackageParams.h"
+#include "HoudiniPDGAssetLink.h"
+#include "HoudiniRuntimeSettings.h"
+#include "HoudiniSplineComponent.h"
+#include "HoudiniStringResolver.h"
+#include "InstancedFoliageActor.h"
 #include "LandscapeEdit.h"
+#include "LandscapeInfo.h"
 #include "LandscapeInfoMap.h"
+#include "LandscapeProxy.h"
+#include "LandscapeStreamingProxy.h"
+#include "PackageTools.h"
+#include "RawMesh.h"
+#include "UnrealLandscapeTranslator.h"
 #include "ActorFactories/ActorFactoryClass.h"
-#include "Containers/UnrealString.h"
-#include "Components/AudioComponent.h"
-#include "Engine/LevelBounds.h"
-#include "Engine/WorldComposition.h"
-#include "Kismet2/BlueprintEditorUtils.h"
-#include "MaterialEditor/Public/MaterialEditingLibrary.h"
-#include "MaterialGraph/MaterialGraph.h"
-#include "Materials/MaterialInstance.h"
-#include "Particles/ParticleSystemComponent.h"
-#include "Sound/SoundBase.h"
-#include "UObject/UnrealType.h"
-#include "Math/Box.h"
-#include "Misc/ScopedSlowTask.h"
-#include "WorldPartition/WorldPartitionSubsystem.h"
-#include "Kismet2/ComponentEditorUtils.h"
+#include "ActorFactories/ActorFactoryEmptyActor.h"
+#include "ActorFactories/ActorFactoryStaticMesh.h"
 #include "Animation/SkeletalMeshActor.h"
-#if ENGINE_MINOR_VERSION > 1
-	#include "Engine/SkinnedAssetCommon.h"
-#endif
-#include "Materials/MaterialExpressionTextureSample.h" 
-
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "Components/AudioComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/SplineComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Containers/UnrealString.h"
+#include "Editor/EditorEngine.h"
+#include "Engine/LevelBounds.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/StaticMeshActor.h"
+#include "Engine/World.h"
+#include "Factories/BlueprintFactory.h"
+#include "Factories/WorldFactory.h"
+#include "GameFramework/Actor.h"
+#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/ComponentEditorUtils.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "MaterialEditor/Public/MaterialEditingLibrary.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialInstance.h"
+#include "Math/Box.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Particles/ParticleSystemComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "PhysicsEngine/BodySetup.h"
+#include "Sound/SoundBase.h"
+#include "UObject/MetaData.h"
+#include "UObject/Package.h"
+#include "UObject/UnrealType.h"
 #include "WorldPartition/WorldPartition.h"
+#include "HoudiniEngineOutputStats.h"
 
 HOUDINI_BAKING_DEFINE_LOG_CATEGORY();
 
@@ -357,7 +345,11 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 	// Ensure that InBakedOutputs is the same size as InOutputs
 	if (InBakedOutputs.Num() != NumOutputs)
 		InBakedOutputs.SetNum(NumOutputs);
-	
+
+	// Landscape layers needs to be cleared during baking, but only once. So keep track of which ones
+	// have been cleared.
+	TSet<FString> ClearedLandscapeLayers;
+
 	// First bake everything except instancers, then bake instancers. Since instancers might use meshes in
 	// from the other outputs.
 	bool bHasAnyInstancers = false;
@@ -421,7 +413,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 
 			case EHoudiniOutputType::Landscape:
 			{
-				const bool bResult = FHoudiniEngineBakeUtils::BakeLandscape(
+				const bool bResult = FHoudiniLandscapeBake::BakeLandscape(
 					HoudiniAssetComponent,
 					OutputIdx,
 					InOutputs,
@@ -429,7 +421,8 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 					bInReplaceActors,
 					bInReplaceAssets,
 					InBakeFolder.Path,
-					OutBakeStats);
+					OutBakeStats,
+					ClearedLandscapeLayers);
 			}
 			break;
 
@@ -541,6 +534,9 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 			}
 		}
 	}
+
+	// Rename any landscapes
+	FHoudiniLandscapeBake::RenameCookedToBakedLandscapes(InOutputs, bInReplaceActors);
 
 	// Only do the post bake post-process once per Actor
 	TSet<AActor*> UniqueActors;
@@ -3938,520 +3934,6 @@ FHoudiniEngineBakeUtils::BakeStaticMesh(
 	return BakedStaticMesh;
 }
 
-bool
-FHoudiniEngineBakeUtils::BakeLandscape(
-	const UHoudiniAssetComponent* HoudiniAssetComponent,
-	int32 InOutputIndex,
-	const TArray<UHoudiniOutput*>& InAllOutputs,
-	TArray<FHoudiniBakedOutput>& InBakedOutputs,
-	bool bInReplaceActors,
-	bool bInReplaceAssets,
-	const FString& BakePath,
-	FHoudiniEngineOutputStats& BakeStats)
-{
-	// Check that index is not negative
-	if (InOutputIndex < 0)
-		return false;
-	
-	if (!InAllOutputs.IsValidIndex(InOutputIndex))
-		return false;
-	
-	UHoudiniOutput* const Output = InAllOutputs[InOutputIndex]; 
-	if (!IsValid(Output))
-		return false;
-
-	// Find the previous baked output data for this output index. If an entry
-	// does not exist, create entries up to and including this output index
-	if (!InBakedOutputs.IsValidIndex(InOutputIndex))
-		InBakedOutputs.SetNum(InOutputIndex + 1);
-
-	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = Output->GetOutputObjects();
-	FHoudiniBakedOutput& BakedOutput = InBakedOutputs[InOutputIndex];
-	const TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& OldBakedOutputObjects = BakedOutput.BakedOutputObjects;
-	TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject> NewBakedOutputObjects;
-	TArray<UPackage*> PackagesToSave;
-	TArray<UWorld*> LandscapeWorldsToUpdate;
-
-	FHoudiniPackageParams PackageParams;
-	
-	for (auto& Elem : OutputObjects)
-	{
-		const FHoudiniOutputObjectIdentifier& ObjectIdentifier = Elem.Key;
-		FHoudiniOutputObject& OutputObject = Elem.Value;
-		FHoudiniBakedOutputObject& BakedOutputObject = NewBakedOutputObjects.Add(ObjectIdentifier);
-		if (OldBakedOutputObjects.Contains(ObjectIdentifier))
-			BakedOutputObject = OldBakedOutputObjects.FindChecked(ObjectIdentifier);
-		
-		// Populate the package params for baking this output object.
-		if (!IsValid(OutputObject.OutputObject))
-			continue;
-
-		if (!OutputObject.OutputObject->IsA<UHoudiniLandscapePtr>())
-			continue;
-
-		UHoudiniLandscapePtr* LandscapePtr = Cast<UHoudiniLandscapePtr>(OutputObject.OutputObject);
-		ALandscapeProxy* Landscape = LandscapePtr->GetRawPtr();
-		if (!IsValid(Landscape))
-			continue;
-
-		FString ObjectName = Landscape->GetName();
-
-		// Set the replace mode based on if we are doing a replacement or incremental asset bake
-		const EPackageReplaceMode AssetPackageReplaceMode = bInReplaceAssets ?
-			EPackageReplaceMode::ReplaceExistingAssets : EPackageReplaceMode::CreateNewAssets;
-
-		// Configure FHoudiniAttributeResolver and fill the package params with resolved object name and bake folder.
-		// The resolver is then also configured with the package params for subsequent resolving (level_path etc)
-		FHoudiniAttributeResolver Resolver;
-		UWorld* const DesiredWorld = Landscape ? Landscape->GetWorld() : GWorld;
-		FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-			DesiredWorld, HoudiniAssetComponent, ObjectIdentifier, OutputObject, ObjectName,
-			PackageParams, Resolver, BakePath, AssetPackageReplaceMode);
-
-		BakeLandscapeObject(OutputObject, BakedOutputObject, bInReplaceActors, bInReplaceAssets,
-			PackageParams, Resolver, LandscapeWorldsToUpdate, PackagesToSave, BakeStats);
-	}
-
-	// Update the cached baked output data
-	BakedOutput.BakedOutputObjects = NewBakedOutputObjects;
-	
-	if (PackagesToSave.Num() > 0)
-	{
-		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, true, false);
-	}
-
-	for(UWorld* LandscapeWorld : LandscapeWorldsToUpdate)
-	{
-		if (!LandscapeWorld)
-			continue;
-
-		AWorldSettings* WorldSettings = LandscapeWorld->GetWorldSettings();
-		if (WorldSettings && WorldSettings->bEnableWorldComposition)
-		{
-			// We force a PostEditChangeProperty event which will trigger world composition to properly detect
-			// newly created maps, if enabled.
-			FHoudiniEngineRuntimeUtils::DoPostEditChangeProperty(WorldSettings, "bEnableWorldComposition");
-		} 
-	}
-
-	if (PackagesToSave.Num() > 0)
-	{
-		// These packages were either created during the Bake process or they weren't
-		// loaded in the first place so be sure to unload them again to preserve their "state".
-		
-		TArray<UPackage*> PackagesToUnload;
-		for (UPackage* Package : PackagesToSave)
-		{
-			if (!Package->IsDirty())
-				PackagesToUnload.Add(Package);
-		}
-		UPackageTools::UnloadPackages(PackagesToUnload);
-	}
-
-#if WITH_EDITOR
-	FEditorDelegates::RefreshLevelBrowser.Broadcast();
-	FEditorDelegates::RefreshAllBrowsers.Broadcast();
-#endif
-
-	return true;
-}
-
-bool
-FHoudiniEngineBakeUtils::BakeLandscapeObject(
-	FHoudiniOutputObject& InOutputObject,
-	FHoudiniBakedOutputObject& InBakedOutputObject,
-	bool bInReplaceActors,
-	bool bInReplaceAssets,
-	FHoudiniPackageParams& PackageParams,
-	FHoudiniAttributeResolver& InResolver,
-	TArray<UWorld*>& WorldsToUpdate,
-	TArray<UPackage*>& OutPackagesToSave,
-	FHoudiniEngineOutputStats& BakeStats)
-{
-	UHoudiniLandscapePtr* LandscapePointer = Cast<UHoudiniLandscapePtr>(InOutputObject.OutputObject);
-	if (!LandscapePointer)
-		return false;
-	
-	ALandscapeProxy* TileActor = LandscapePointer->GetRawPtr();
-	if (!TileActor)
-		return false;
-
-	// Fetch the previous bake's pointer and proxy (if available)
-	ALandscapeProxy* PreviousTileActor = Cast<ALandscapeProxy>(InBakedOutputObject.GetBakedObjectIfValid());
-	
-	UWorld* TileWorld = TileActor->GetWorld();
-	ULevel* TileLevel = TileActor->GetLevel();
-
-	ULandscapeInfo::RecreateLandscapeInfo(TileWorld, true);
-
-	// If this actor has a shared landscape, ensure the shared landscape gets detached from the HAC
-	// and has the appropriate name.
-	ALandscape* SharedLandscapeActor = TileActor->GetLandscapeActor();
-	check(SharedLandscapeActor);
-
-	// Fetch the previous bake's shared landscape actor (if available)
-	ALandscape* PreviousSharedLandscapeActor = nullptr;
-	if (IsValid(PreviousTileActor))
-		PreviousSharedLandscapeActor = PreviousTileActor->GetLandscapeActor();
-	
-	const bool bHasSharedLandscape = SharedLandscapeActor != TileActor;
-	bool bHasPreviousSharedLandscape = PreviousSharedLandscapeActor && PreviousSharedLandscapeActor != PreviousTileActor;
-	if (bHasPreviousSharedLandscape)
-	{
-		// Ignore the previous shared landscape if the world's are different
-		// Typically in baking we treat completely different asset/output names in a bake as detached from the "previous" bake
-		if (PreviousSharedLandscapeActor->GetWorld() != SharedLandscapeActor->GetWorld())
-			bHasPreviousSharedLandscape = false;
-	}
-	
-	bool bLandscapeReplaced = false;
-	if (bHasSharedLandscape)
-	{
-		// If we are baking in replace mode and we have a previous shared landscape actor, use the name of that
-		// actor
-		FString SharedLandscapeName = InResolver.ResolveAttribute(
-			HAPI_UNREAL_ATTRIB_LANDSCAPE_SHARED_ACTOR_NAME,
-			SharedLandscapeActor->GetActorNameOrLabel());
-
-		// If the shared landscape is still attached, or it's base name does not match the desired name, "bake" it
-		AActor* const AttachedParent = SharedLandscapeActor->GetAttachParentActor();
-		if (AttachedParent || SharedLandscapeActor->GetFName().GetPlainNameString() != SharedLandscapeName)
-		{
-			if (bHasPreviousSharedLandscape && bInReplaceActors &&
-					PreviousSharedLandscapeActor->GetFName().GetPlainNameString() == SharedLandscapeName)
-			{
-				SharedLandscapeName = PreviousSharedLandscapeActor->GetActorNameOrLabel();
-			}
-			else if (!bInReplaceActors)
-			{
-				// If we are not baking in replacement mode, create a unique name if the name is already in use
-				SharedLandscapeName = MakeUniqueObjectNameIfNeeded(
-					SharedLandscapeActor->GetOuter(), SharedLandscapeActor->GetClass(), *SharedLandscapeName, SharedLandscapeActor);
-			}
-			
-			if (SharedLandscapeActor->GetActorNameOrLabel() != SharedLandscapeName)
-			{
-				AActor* FoundActor = nullptr;
-				ALandscape* ExistingLandscape = FHoudiniEngineUtils::FindOrRenameInvalidActor<ALandscape>(TileWorld, SharedLandscapeName, FoundActor);
-				if (ExistingLandscape && bInReplaceActors)
-				{
-					// Even though we found an existing landscape with the desired type, we're just going to destroy/replace
-					// it for now.
-					FHoudiniEngineUtils::RenameToUniqueActor(ExistingLandscape, SharedLandscapeName+"_0");
-					ExistingLandscape->Destroy();
-					bLandscapeReplaced = true;
-				}
-
-				// Fix name of shared landscape
-				FHoudiniEngineUtils::SafeRenameActor(SharedLandscapeActor, *SharedLandscapeName);
-			}
-			
-			SharedLandscapeActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-			WorldsToUpdate.AddUnique(SharedLandscapeActor->GetWorld());
-		}
-	}
-
-	// Find the world where the landscape tile should be placed.
-
-	TArray<ALandscapeProxy*> ValidLandscapes;
-
-	FString ActorName = InResolver.ResolveOutputName();
-
-	// If the unreal_level_path was not specified, then fallback to the tile world's package
-	FString PackagePath = TileWorld->GetPackage() ? TileWorld->GetPackage()->GetPathName() : FString();
-	bool bHasLevelPathAttribute = InOutputObject.CachedAttributes.Contains(HAPI_UNREAL_ATTRIB_LEVEL_PATH);
-	if (bHasLevelPathAttribute)
-		PackagePath = InResolver.ResolveFullLevelPath();
-	
-	// Get the previous baked actor (if available) name, but only if it is in the
-	// same target level, and it's plain name (no numeric suffix) matches ActorName
-	// In replacement mode we'll then replace the previous tile actor.
-	if (bInReplaceActors && IsValid(PreviousTileActor))
-	{
-		UPackage* PreviousPackage = PreviousTileActor->GetPackage();
-		if (IsValid(PreviousPackage) && PreviousPackage->GetPathName() == PackagePath &&
-			PreviousTileActor->GetFName().GetPlainNameString() == ActorName)
-		{
-			ActorName = PreviousTileActor->GetActorNameOrLabel();
-		}
-	}
-
-	bool bCreatedPackage = false;
-	UWorld* TargetWorld = nullptr;
-	ULevel* TargetLevel = nullptr;
-	ALandscapeProxy* TargetActor = FHoudiniLandscapeTranslator::FindExistingLandscapeActor_Bake(
-		TileActor->GetWorld(),
-		nullptr, //unused in bake mode
-		ValidLandscapes,//unused in bake mode
-		-1, //unused in bake mode
-		-1, //unused in bake mode
-		ActorName,
-		PackagePath,
-		TargetWorld,
-		TargetLevel,
-		bCreatedPackage
-		);
-
-	check(TargetLevel)
-	check(TargetWorld)
-	
-	if (TargetActor && TargetActor != TileActor)
-	{
-		if (bInReplaceActors && (!PreviousTileActor || PreviousTileActor == TargetActor))
-		{
-			// We found an target matching the name that we want. For now, rename it and then nuke it, so that
-			// at the very least we can spawn a new actor with the desired name. At a later stage we'll implement
-			// a content update, if possible.
-			FHoudiniEngineUtils::RenameToUniqueActor(TargetActor, ActorName + TEXT("_0"));
-			TargetActor->Destroy();
-		}
-		else
-		{
-			// incremental, keep existing actor and create a unique name for the new one
-			ActorName = MakeUniqueObjectNameIfNeeded(TargetActor->GetOuter(), TargetActor->GetClass(), ActorName, TileActor);
-		}
-		TargetActor = nullptr;
-	}
-
-	if (TargetLevel != TileActor->GetLevel())
-	{
-		bool bLevelInWorld = TileWorld->ContainsLevel(TargetLevel);
-		ALandscape* SharedLandscape = TileActor->GetLandscapeActor();
-		ULandscapeInfo* LandscapeInfo = TileActor->GetLandscapeInfo();
-		
-		check(LandscapeInfo);
-		
-		// We can now move the current landscape to the new world / level
-		if (TileActor->GetClass()->IsChildOf<ALandscapeStreamingProxy>())
-		{
-			// We can only move streaming proxies to sublevels for now.
-			TArray<AActor*> ActorsToMove = {TileActor};
-
-			// NOTE: We can't use the LandscapeInfo's MoveComponentsToLevel directly since there is the assumption
-			//       that the target level is already loaded in the current world where the shared landscape exists.
-			//       In other words the TargetLevel->GetWorld() and Landscape->GetWorld() should be the same world.
-			//       To make matters worse, we can't manually load a newly created level into the editor as a _sublevel_
-			//       since the whole WorldBrowser / LevelCollection API is private and the LevelEditor subsystem doesn't
-			//       provide any functions to achieve this.
-			ALandscapeProxy* NewLandscapeProxy = MoveLandscapeComponentsToLevel(LandscapeInfo, TileActor->LandscapeComponents, TargetLevel);
-			
-			// We have now moved the landscape components into the new level. We can (hopefully) safely delete the
-			// old tile actor.
-			TileActor->Destroy();
-
-			TargetLevel->MarkPackageDirty();
-
-			TileActor = NewLandscapeProxy;
-		}
-		else
-		{
-			// Move the landscape actor to the target level
-			constexpr bool bWarnAboutReferences = false;
-			constexpr bool bWarnAboutRenaming = false;
-			constexpr bool bMoveAllOrFail = true;
-			TArray<AActor*> MovedActors;
-			if (UEditorLevelUtils::MoveActorsToLevel({TileActor}, TargetLevel, bWarnAboutReferences, bWarnAboutRenaming, bMoveAllOrFail, &MovedActors) > 0)
-			{
-				// The function returned > 0 but no actors were moved
-				if (MovedActors.Num() <= 0)
-					return false;
-				// The moved actor isn't a landscape?
-				TileActor = Cast<ALandscapeProxy>(MovedActors[0]);
-				if (!IsValid(TileActor))
-					return false;
-			}
-			else
-			{
-				// The move failed
-				return false;
-			}
-		}
-		// Ensure target level bounds are up to date
-		if (IsValid(TargetLevel) && TargetLevel->LevelBoundsActor.IsValid())
-		{
-			TargetLevel->LevelBoundsActor->MarkLevelBoundsDirty();
-		}
-	}
-	else
-	{
-		// Ensure the landscape actor is detached.
-		TileActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-	}
-	
-	UPackage * CreatedPackage = TargetLevel->GetOutermost();
-	TMap<UMaterialInterface *, UMaterialInterface *> AlreadyBakedMaterialsMap;
-	
-
-	// Replace materials
-	// Only duplicate the materials if they are temporary
-	if (IsValid(TileActor->LandscapeMaterial))
-	{
-		// No need to check the outputs for materials, only check the temp folder
-		//if (IsObjectTemporary(TileActor->LandscapeMaterial, EHoudiniOutputType::Invalid, InParentOutputs, PackageParams.TempCookFolder))
-		if (IsObjectInTempFolder(TileActor->LandscapeMaterial, PackageParams.TempCookFolder))
-		{
-			UMaterialInterface* DuplicatedMaterial = BakeSingleMaterialToPackage(
-				TileActor->LandscapeMaterial, PackageParams, OutPackagesToSave, AlreadyBakedMaterialsMap, BakeStats);
-			TileActor->LandscapeMaterial = DuplicatedMaterial;
-		}
-	}
-
-	if (IsValid(TileActor->LandscapeHoleMaterial))
-	{
-		// No need to check the outputs for materials, only check the temp folder
-		//if (IsObjectTemporary(TileActor->LandscapeHoleMaterial, EHoudiniOutputType::Invalid, InParentOutputs, PackageParams.TempCookFolder))
-		if (IsObjectInTempFolder(TileActor->LandscapeHoleMaterial, PackageParams.TempCookFolder))
-		{
-			UMaterialInterface* DuplicatedMaterial = BakeSingleMaterialToPackage(
-				TileActor->LandscapeHoleMaterial, PackageParams, OutPackagesToSave, AlreadyBakedMaterialsMap, BakeStats);
-			TileActor->LandscapeHoleMaterial = DuplicatedMaterial;
-		}
-	}
-
-	// Ensure the tile actor has the desired name.
-	FHoudiniEngineUtils::SafeRenameActor(TileActor, ActorName);
-
-	if (TileActor->GetClass()->IsChildOf(ALandscape::StaticClass()))
-	{
-		// This is not a shared landscape. Be sure to update this landscape's world when
-		// baking is done.
-		WorldsToUpdate.AddUnique(TileActor->GetWorld());
-	}
-
-	if (bCreatedPackage)
-	{
-		// We can now save the package again, and unload it.		
-		OutPackagesToSave.Add(TargetLevel->GetOutermost());
-	}
-
-	// Record the landscape in the baked output object via a new UHoudiniLandscapePtr
-	// UHoudiniLandscapePtr* BakedLandscapePtr = NewObject<UHoudiniLandscapePtr>(LandscapePointer->GetOuter());
-	// if (IsValid(BakedLandscapePtr))
-	// {
-	// 	BakedLandscapePtr->SetSoftPtr(TileActor);
-		InBakedOutputObject.BakedObject = FSoftObjectPath(TileActor).ToString();
-	// }
-	// else
-	// {
-	// 	InBakedOutputObject.BakedObject = nullptr;
-	// }
-
-	// Bake the landscape layer uassets
-	ULandscapeInfo* const LandscapeInfo = TileActor->GetLandscapeInfo();
-	if (IsValid(LandscapeInfo) && LandscapeInfo->Layers.Num() > 0)
-	{
-		TSet<ULandscapeLayerInfoObject*> TempLayers;
-		const int32 NumLayers = LandscapeInfo->Layers.Num();
-		TempLayers.Reserve(NumLayers);
-		for (int32 LayerIndex = 0; LayerIndex < NumLayers; ++LayerIndex)
-		{
-			const FLandscapeInfoLayerSettings& Layer = LandscapeInfo->Layers[LayerIndex];
-			if (!IsValid(Layer.LayerInfoObj))
-				continue;
-				
-			if (!IsObjectInTempFolder(Layer.LayerInfoObj, PackageParams.TempCookFolder))
-				continue;
-				
-			if (!TempLayers.Contains(Layer.LayerInfoObj))
-				TempLayers.Add(Layer.LayerInfoObj);
-		}
-
-		// Setup package params to duplicate each layer
-		FHoudiniPackageParams LayerPackageParams = PackageParams;
-		const EPackageReplaceMode AssetPackageReplaceMode = bInReplaceAssets ?
-			EPackageReplaceMode::ReplaceExistingAssets : EPackageReplaceMode::CreateNewAssets;
-		LayerPackageParams.ReplaceMode = AssetPackageReplaceMode;
-
-		// Determine the final bake name of the "owning" landscape (shared landscape in tiled mode, or just the
-		// landscape actor itself in non-tiled mode
-		FString OwningLandscapeActorBakeName;
-		if (bHasSharedLandscape && IsValid(SharedLandscapeActor))
-		{
-			SharedLandscapeActor->GetName(OwningLandscapeActorBakeName);
-		}
-		else
-		{
-			TileActor->GetName(OwningLandscapeActorBakeName);
-		}
-
-		// Keep track of the landscape layers we are baking this time around, and replace in the baked output object
-		// at the end.
-		TMap<FName, FString> ThisBakedLandscapeLayers;
-		
-		// Bake/duplicate temp layers and replace temp layers via LandscapeInfo
-		for (ULandscapeLayerInfoObject* const LayerInfo : TempLayers)
-		{
-			const FString SanitizedLayerName = ObjectTools::SanitizeObjectName(LayerInfo->LayerName.ToString());
-			LayerPackageParams.SplitStr = SanitizedLayerName;
-			LayerPackageParams.ObjectName = OwningLandscapeActorBakeName + TEXT("_layer_") + SanitizedLayerName;
-
-			// Get the previously baked layer info for this layer, if any
-			ULandscapeLayerInfoObject* const PreviousBakedLayerInfo = InBakedOutputObject.GetLandscapeLayerInfoIfValid(
-				LayerInfo->LayerName);
-
-			// If our name is the base name (no number) of the previous, then we can fetch the bake counter for
-			// replacement / incrementing from it
-			int32 BakeCounter = 0;
-			if (IsValid(PreviousBakedLayerInfo) && LayerPackageParams.MatchesPackagePathNameExcludingBakeCounter(PreviousBakedLayerInfo))
-			{
-				// Get the bake counter from the previous bake
-				FHoudiniPackageParams::GetBakeCounterFromBakedAsset(PreviousBakedLayerInfo, BakeCounter);
-			}
-
-			FString LayerPackageName;
-			UPackage* const LayerPackage = LayerPackageParams.CreatePackageForObject(LayerPackageName, BakeCounter);
-			if (IsValid(LayerPackage))
-			{
-				BakeStats.NotifyPackageCreated(1);
-				ULandscapeLayerInfoObject* BakedLayer = DuplicateObject<ULandscapeLayerInfoObject>(
-					LayerInfo, LayerPackage, *LayerPackageName);
-				if (IsValid(BakedLayer))
-				{
-					BakeStats.NotifyObjectsCreated(BakedLayer->GetClass()->GetName(), 1);
-					OutPackagesToSave.Add(LayerPackage);
-					
-					// Trigger update of the Layer Info
-					BakedLayer->PreEditChange(nullptr);
-					BakedLayer->PostEditChange();
-					BakedLayer->MarkPackageDirty();
-
-					// Mark the package dirty...
-					LayerPackage->MarkPackageDirty();
-
-					LandscapeInfo->ReplaceLayer(LayerInfo, BakedLayer);
-
-					// Record as the new baked result for the LayerName
-					ThisBakedLandscapeLayers.Add(LayerInfo->LayerName, FSoftObjectPath(BakedLayer).ToString());
-				}
-			}
-		}
-
-		// Update the baked landscape layers in InBakedOutputObject
-		InBakedOutputObject.LandscapeLayers = ThisBakedLandscapeLayers;
-	}
-
-	// Remove the landscape from the InOutputObject since it should no longer be used/reused/updated by temp cooks
-	InOutputObject.OutputObject = nullptr;
-	
-	DestroyPreviousBakeOutput(InBakedOutputObject, true, true, true);
-
-	// ----------------------------------------------------
-	// Collect baking stats
-	// ----------------------------------------------------
-	if (bLandscapeReplaced)
-		BakeStats.NotifyObjectsReplaced(EHoudiniOutputType::Landscape, 1);
-	else
-		BakeStats.NotifyObjectsCreated(EHoudiniOutputType::Landscape, 1);
-
-	if (bCreatedPackage)
-		BakeStats.NotifyPackageCreated(1);
-	else
-		if (TileLevel != TargetLevel)
-			BakeStats.NotifyPackageUpdated(1);
-
-	return true;
-}
-
 UFoliageType* 
 FHoudiniEngineBakeUtils::DuplicateFoliageTypeAndCreatePackageIfNeeded(
 	UFoliageType* InFoliageType,
@@ -7835,7 +7317,7 @@ FHoudiniEngineBakeUtils::FindExistingActor_Bake(
 		{
 			// The OutLevel is not present in the current world which means we might
 			// still find the tile actor in OutWorld.
-			FoundActor = FHoudiniEngineUtils::FindActorInWorldByLabelOrName<AActor>(OutWorld, InActorName);
+			FoundActor = FHoudiniEngineRuntimeUtils::FindActorInWorldByLabelOrName<AActor>(OutWorld, InActorName);
 		}
 	}
 
@@ -8329,295 +7811,6 @@ FHoudiniEngineBakeUtils::PostSpawnBakeActor(AActor* const InSpawnedActor, UHoudi
 	{
 		BakedRootComponent->SetMobility(InHAC->Mobility);
 	}
-}
-
-ALandscapeProxy* FHoudiniEngineBakeUtils::MoveLandscapeComponentsToLevel(ULandscapeInfo* LandscapeInfo,
-	const TArray<ULandscapeComponent*>& InComponents, ULevel* TargetLevel, FName NewProxyName)
-{
-	if (!IsValid(LandscapeInfo))
-		return nullptr;
-		
-	ALandscape* Landscape = LandscapeInfo->LandscapeActor.Get();
-	check(Landscape != nullptr);
-
-	// Make sure references are in a different package (should be fixed up before calling this method)
-	// Check the Physical Material is same package with Landscape
-	if (Landscape->DefaultPhysMaterial && Landscape->DefaultPhysMaterial->GetOutermost() == Landscape->GetOutermost())
-	{
-		return nullptr;
-	}
-
-	// Check the LayerInfoObjects are not in same package as Landscape
-	TArray<FLandscapeInfoLayerSettings>& Layers = LandscapeInfo->Layers;
-	for (int32 i = 0; i < Layers.Num(); ++i)
-	{
-		const ULandscapeLayerInfoObject* LayerInfo = Layers[i].LayerInfoObj;
-		if (LayerInfo && LayerInfo->GetOutermost() == Landscape->GetOutermost())
-		{
-			return nullptr;
-		}
-	}
-
-	// Check the Landscape Materials are not in same package as moved components
-	for (const ULandscapeComponent* Component : InComponents)
-	{
-		UMaterialInterface* LandscapeMaterial = Component->GetLandscapeMaterial();
-		if (LandscapeMaterial && LandscapeMaterial->GetOutermost() == Component->GetOutermost())
-		{
-			return nullptr;
-		}
-	}
-	
-	UWorld* TargetWorld = TargetLevel->GetWorld();
-	ALandscapeProxy* TargetProxy = nullptr;
-	ULandscapeInfoMap& TargetLandscapeInfoMaps = ULandscapeInfoMap::GetLandscapeInfoMap(TargetWorld);
-
-	// NOTE: We can't transfer landscape components between two different landscapes so we have to create a completely
-	// new landscape.
-
-	// TODO: Transfer foliage association from previous landscape tile to new landscape tile.
-
-	// ALandscapeProxy* LandscapeProxy = LandscapeInfo->GetLandscapeProxyForLevel(TargetLevel);
-	bool bSetPositionAndOffset = false;
-	{
-		// Create the streaming proxy in the target level, register it with the current landscape and then move
-		// the components.
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Name = NewProxyName;
-		SpawnParams.OverrideLevel = TargetLevel;
-		ALandscapeStreamingProxy* StreamingProxy = TargetLevel->GetWorld()->SpawnActor<ALandscapeStreamingProxy>(SpawnParams);
-
-		// copy shared properties to this new proxy
-		StreamingProxy->SetActorLabel(StreamingProxy->GetName());
-		StreamingProxy->GetSharedProperties(Landscape);
-#if ENGINE_MINOR_VERSION < 2
-		StreamingProxy->LandscapeActor = Landscape;
-#else
-		StreamingProxy->SetLandscapeActor(Landscape);
-#endif
-		StreamingProxy->bHasLayersContent = Landscape->CanHaveLayersContent();
-		LandscapeInfo->RegisterActor(StreamingProxy, false);
-		bSetPositionAndOffset = true;
-		
-		TargetProxy = StreamingProxy;
-	}
-
-	if (Landscape->CanHaveLayersContent())
-	{
-		// Ensure the editing layer is cleared otherwise the MoveComponentsToProxy can crash.
-		Landscape->SetEditingLayer(FGuid());
-	}
-	// Move landscape components
-	ALandscapeProxy* TileActor = MoveLandscapeComponentsToProxy(LandscapeInfo, InComponents, TargetProxy, bSetPositionAndOffset, TargetLevel);
-	
-	return TileActor;
-}
-
-ALandscapeProxy*
-FHoudiniEngineBakeUtils::MoveLandscapeComponentsToProxy(
-	ULandscapeInfo* LandscapeInfo,
-	const TArray<ULandscapeComponent*>& InComponents,
-	ALandscapeProxy* LandscapeProxy,
-	bool bSetPositionAndOffset,
-	ULevel* TargetLevel)
-{
-	if (!LandscapeInfo)
-		return nullptr;
-	
-	ALandscape* Landscape = LandscapeInfo->LandscapeActor.Get();
-	check(Landscape != nullptr);
-	
-	struct FCompareULandscapeComponentBySectionBase
-	{
-		FORCEINLINE bool operator()(const ULandscapeComponent& A, const ULandscapeComponent& B) const
-		{
-			return (A.GetSectionBase().X == B.GetSectionBase().X) ? (A.GetSectionBase().Y < B.GetSectionBase().Y) : (A.GetSectionBase().X < B.GetSectionBase().X);
-		}
-	};
-	TArray<ULandscapeComponent*> ComponentsToMove(InComponents);
-	ComponentsToMove.Sort(FCompareULandscapeComponentBySectionBase());
-		
-	const int32 ComponentSizeVerts = Landscape->NumSubsections * (Landscape->SubsectionSizeQuads + 1);
-	const int32 NeedHeightmapSize = 1 << FMath::CeilLogTwo(ComponentSizeVerts);
-
-	TSet<ALandscapeProxy*> SelectProxies;
-	TSet<ULandscapeComponent*> TargetSelectedComponents;
-	TArray<ULandscapeHeightfieldCollisionComponent*> TargetSelectedCollisionComponents;
-	for (ULandscapeComponent* Component : ComponentsToMove)
-	{
-		SelectProxies.Add(Component->GetLandscapeProxy());
-		if (Component->GetLandscapeProxy() != LandscapeProxy && (!TargetLevel || Component->GetLandscapeProxy()->GetOuter() != TargetLevel))
-		{
-			TargetSelectedComponents.Add(Component);
-		}
-
-#if ENGINE_MINOR_VERSION < 2
-		ULandscapeHeightfieldCollisionComponent* CollisionComp = Component->CollisionComponent.Get();
-#else
-		ULandscapeHeightfieldCollisionComponent* CollisionComp = Component->GetCollisionComponent();
-#endif
-		SelectProxies.Add(CollisionComp->GetLandscapeProxy());
-		if (CollisionComp->GetLandscapeProxy() != LandscapeProxy && (!TargetLevel || CollisionComp->GetLandscapeProxy()->GetOuter() != TargetLevel))
-		{
-			TargetSelectedCollisionComponents.Add(CollisionComp);
-		}
-	}
-
-	// Check which ones are need for height map change
-	TSet<UTexture2D*> OldHeightmapTextures;
-	for (ULandscapeComponent* Component : TargetSelectedComponents)
-	{
-		Component->Modify();
-		OldHeightmapTextures.Add(Component->GetHeightmap());
-	}
-
-	// Need to split all the component which share Heightmap with selected components
-	TMap<ULandscapeComponent*, bool> HeightmapUpdateComponents;
-	HeightmapUpdateComponents.Reserve(TargetSelectedComponents.Num() * 4); // worst case
-	for (ULandscapeComponent* Component : TargetSelectedComponents)
-	{
-		// Search neighbor only
-		const int32 SearchX = Component->GetHeightmap()->Source.GetSizeX() / NeedHeightmapSize - 1;
-		const int32 SearchY = Component->GetHeightmap()->Source.GetSizeY() / NeedHeightmapSize - 1;
-		const FIntPoint ComponentBase = Component->GetSectionBase() / Component->ComponentSizeQuads;
-
-		for (int32 Y = -SearchY; Y <= SearchY; ++Y)
-		{
-			for (int32 X = -SearchX; X <= SearchX; ++X)
-			{
-				ULandscapeComponent* const Neighbor = LandscapeInfo->XYtoComponentMap.FindRef(ComponentBase + FIntPoint(X, Y));
-				if (Neighbor && Neighbor->GetHeightmap() == Component->GetHeightmap() && !HeightmapUpdateComponents.Contains(Neighbor))
-				{
-					Neighbor->Modify();
-					bool bNeedsMoveToCurrentLevel = TargetSelectedComponents.Contains(Neighbor);
-					HeightmapUpdateComponents.Add(Neighbor, bNeedsMoveToCurrentLevel);
-				}
-			}
-		}
-	}
-
-	// Proxy position/offset needs to be set
-	if(bSetPositionAndOffset)
-	{
-		// set proxy location
-		// by default first component location
-		ULandscapeComponent* FirstComponent = *TargetSelectedComponents.CreateConstIterator();
-		LandscapeProxy->GetRootComponent()->SetWorldLocationAndRotation(FirstComponent->GetComponentLocation(), FirstComponent->GetComponentRotation());
-		LandscapeProxy->LandscapeSectionOffset = FirstComponent->GetSectionBase();
-	}
-
-	// Hide(unregister) the new landscape if owning level currently in hidden state
-	if (LandscapeProxy->GetLevel()->bIsVisible == false)
-	{
-		LandscapeProxy->UnregisterAllComponents();
-	}
-
-	// Changing Heightmap format for selected components
-	for (const auto& HeightmapUpdateComponentPair : HeightmapUpdateComponents)
-	{
-		ALandscape::SplitHeightmap(HeightmapUpdateComponentPair.Key, HeightmapUpdateComponentPair.Value ? LandscapeProxy : nullptr);
-	}
-
-	// Delete if it is no referenced textures...
-	for (UTexture2D* Texture : OldHeightmapTextures)
-	{
-		Texture->SetFlags(RF_Transactional);
-		Texture->Modify();
-		Texture->MarkPackageDirty();
-		Texture->ClearFlags(RF_Standalone);
-	}
-
-	for (ALandscapeProxy* Proxy : SelectProxies)
-	{
-		Proxy->Modify();
-	}
-
-	LandscapeProxy->Modify();
-	LandscapeProxy->MarkPackageDirty();
-
-	// Handle XY-offset textures (these don't need splitting, as they aren't currently shared between components like heightmaps/weightmaps can be)
-	for (ULandscapeComponent* Component : TargetSelectedComponents)
-	{
-		if (Component->XYOffsetmapTexture)
-		{
-			Component->XYOffsetmapTexture->Modify();
-			Component->XYOffsetmapTexture->Rename(nullptr, LandscapeProxy);
-		}
-	}
-
-	// Change Weight maps...
-	{
-		FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
-		for (ULandscapeComponent* Component : TargetSelectedComponents)
-		{
-			Component->ReallocateWeightmaps(&LandscapeEdit, false, true, true, LandscapeProxy);
-			Component->ForEachLayer([&](const FGuid& LayerGuid, FLandscapeLayerComponentData& LayerData)
-			{
-				FScopedSetLandscapeEditingLayer Scope(Landscape, LayerGuid);
-				Component->ReallocateWeightmaps(&LandscapeEdit, true, true, true, LandscapeProxy);
-			});
-			Landscape->RequestLayersContentUpdateForceAll();
-		}
-
-		// Need to Repacking all the Weight map (to make it packed well...)
-		for (ALandscapeProxy* Proxy : SelectProxies)
-		{
-			Proxy->RemoveInvalidWeightmaps();
-		}
-	}
-
-	// Move the components to the Proxy actor
-	// This does not use the MoveSelectedActorsToCurrentLevel path as there is no support to only move certain components.
-	for (ULandscapeComponent* Component : TargetSelectedComponents)
-	{
-		// Need to move or recreate all related data (Height map, Weight map, maybe collision components, allocation info)
-		Component->GetLandscapeProxy()->LandscapeComponents.Remove(Component);
-		Component->UnregisterComponent();
-		Component->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-		Component->InvalidateLightingCache();
-		Component->Rename(nullptr, LandscapeProxy);
-		LandscapeProxy->LandscapeComponents.Add(Component);
-		Component->AttachToComponent(LandscapeProxy->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
-
-		// clear transient mobile data
-		Component->MobileDataSourceHash.Invalidate();
-		Component->MobileMaterialInterfaces.Reset();
-		Component->MobileWeightmapTextures.Reset();
-
-		Component->UpdateMaterialInstances();
-	}
-	LandscapeProxy->UpdateCachedHasLayersContent();
-
-	for (ULandscapeHeightfieldCollisionComponent* Component : TargetSelectedCollisionComponents)
-	{
-		// Need to move or recreate all related data (Height map, Weight map, maybe collision components, allocation info)
-
-		Component->GetLandscapeProxy()->CollisionComponents.Remove(Component);
-		Component->UnregisterComponent();
-		Component->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-		Component->Rename(nullptr, LandscapeProxy);
-		LandscapeProxy->CollisionComponents.Add(Component);
-		Component->AttachToComponent(LandscapeProxy->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
-
-		// Move any foliage associated
-		AInstancedFoliageActor::MoveInstancesForComponentToLevel(Component, LandscapeProxy->GetLevel());
-	}
-		
-	// Register our new components if destination landscape is registered in scene 
-	if (LandscapeProxy->GetRootComponent()->IsRegistered())
-	{
-		LandscapeProxy->RegisterAllComponents();
-	}
-
-	for (ALandscapeProxy* Proxy : SelectProxies)
-	{
-		if (Proxy->GetRootComponent()->IsRegistered())
-		{
-			Proxy->RegisterAllComponents();
-		}
-	}
-
-	return LandscapeProxy;
 }
 
 #undef LOCTEXT_NAMESPACE

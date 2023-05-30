@@ -1259,6 +1259,28 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		}
 	};
 
+	auto IsCheckedUseTempLandscapesLayersToHoudiniLambda = [MainHAC]()
+	{
+		if (!IsValidWeakPointer(MainHAC))
+			return ECheckBoxState::Unchecked;
+
+		return MainHAC->bLandscapeUseTempLayers ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	auto OnCheckStateChangedUseTempLandscapeLayersLambda = [InHACs](ECheckBoxState NewState)
+	{
+		const bool bChecked = (NewState == ECheckBoxState::Checked);
+		for (auto& NextHAC : InHACs)
+		{
+			if (!IsValidWeakPointer(NextHAC))
+				continue;
+
+			NextHAC->bLandscapeUseTempLayers = bChecked;
+
+			NextHAC->MarkPackageDirty();
+		}
+	};
+
 	auto IsCheckedDoNotGenerateOutputsLambda = [MainHAC]()
 	{
 		if (!IsValidWeakPointer(MainHAC))
@@ -1598,6 +1620,29 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			.ToolTipText(TooltipText)
 		]
 	];
+
+	// Push Transform to Houdini check box
+	TooltipText = LOCTEXT("HoudiniEngineTempLandscapeLayersTooltip", "Cooking use temporary landscape layers.");
+	SecondLeftColumnVerticalBox->AddSlot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+		.FillWidth(4.0f)
+		[
+			SNew(STextBlock)
+			.MinDesiredWidth(160.f)
+		.Text(LOCTEXT("HoudiniEngineTempLandscapeCheckBoxLabel", "Temp Landscape Layers"))
+		.ToolTipText(TooltipText)
+		]
+	+ SHorizontalBox::Slot()
+		[
+			SNew(SCheckBox)
+			.OnCheckStateChanged_Lambda(OnCheckStateChangedUseTempLandscapeLayersLambda)
+		.IsChecked_Lambda(IsCheckedUseTempLandscapesLayersToHoudiniLambda)
+		.ToolTipText(TooltipText)
+		]
+		];
 
 	// Use whole widget
 	CheckBoxesRow.WholeRowWidget.Widget = WidgetBox;

@@ -4818,6 +4818,85 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
 }
 
 bool
+FHoudiniEngineUtils::HapiGetFirstAttributeValueAsInteger(
+	const HAPI_NodeId& InGeoId,
+	const HAPI_PartId& InPartId,
+	const char* InAttribName,
+	const HAPI_AttributeOwner InAttribOwner,
+	int32& OutData)
+{
+	TArray<int> IntData;
+	HAPI_AttributeInfo AttributeInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+
+	if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+		InGeoId, InPartId, InAttribName,
+		AttributeInfo, IntData, 1, InAttribOwner, 0, 1) &&
+		IntData.Num() > 0)
+	{
+		OutData = IntData[0];
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool
+FHoudiniEngineUtils::HapiGetFirstAttributeValueAsFloat(
+	const HAPI_NodeId& InGeoId,
+	const HAPI_PartId& InPartId,
+	const char* InAttribName,
+	const HAPI_AttributeOwner InAttribOwner,
+	float& OutData)
+{
+	TArray<float> FloatData;
+	HAPI_AttributeInfo AttributeInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+
+	if (FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+		InGeoId, InPartId, InAttribName,
+		AttributeInfo, FloatData, 1, InAttribOwner, 0, 1) &&
+		FloatData.Num() > 0)
+	{
+		OutData = FloatData[0];
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool
+FHoudiniEngineUtils::HapiGetFirstAttributeValueAsString(
+	const HAPI_NodeId& InGeoId,
+	const HAPI_PartId& InPartId,
+	const char* InAttribName,
+	const HAPI_AttributeOwner InAttribOwner,
+	FString& OutData)
+{
+	TArray<FString> StringData;
+	HAPI_AttributeInfo AttributeInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+
+	if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+		InGeoId, InPartId, InAttribName,
+		AttributeInfo, StringData, 1, InAttribOwner, 0, 1) &&
+		StringData.Num() > 0)
+	{
+		OutData = StringData[0];
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+
+bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
 	const HAPI_NodeId& InGeoId,
 	const HAPI_PartId& InPartId,
@@ -8704,39 +8783,6 @@ FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(
 
 	OutHandle = Handle;
 	return true;
-}
-
-int
-FHoudiniEngineUtils::GetLandscapePartitionGridSize(UHoudiniOutput* Output)
-{
-	// The World Partition Grid Size is set to 2 by default in the Landscape editor and
-	// set to 4 in the WorldPartitionConvertCommandlet. By default we set it to 4 to
-	// match the commandlet.
-
-	int WorldPartitionGridSize = 4;
-
-	for (const FHoudiniGeoPartObject& HGPO : Output->GetHoudiniGeoPartObjects())
-	{
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		TArray<int> AttributeValues;
-		if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
-			HGPO.GeoId, HGPO.PartId,
-			HAPI_UNREAL_ATTRIB_LANDSCAPE_PARTITION_GRID_SIZE,
-			AttributeInfo, AttributeValues, 1, HAPI_ATTROWNER_PRIM, 0, 1) && AttributeValues.Num() > 0)
-		{
-			WorldPartitionGridSize = AttributeValues[0];
-		}
-		else if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
-			HGPO.GeoId, HGPO.PartId,
-			HAPI_UNREAL_ATTRIB_LANDSCAPE_PARTITION_GRID_SIZE,
-			AttributeInfo, AttributeValues, 1, HAPI_ATTROWNER_DETAIL, 0, 1) && AttributeValues.Num() > 0)
-		{
-			WorldPartitionGridSize = AttributeValues[0];
-		}
-	}
-
-	return WorldPartitionGridSize;
 }
 
 #undef LOCTEXT_NAMESPACE

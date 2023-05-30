@@ -70,8 +70,8 @@ class UHoudiniSplineComponent;
 class UHoudiniStaticMesh;
 class UHoudiniStaticMeshComponent;
 class UHoudiniLandscapePtr;
-class UHoudiniLandscapeEditLayer;
-class UHoudiniLandscapeEditLayer;
+class UHoudiniLandscapeTargetLayerOutput;
+class UHoudiniLandscapeTargetLayerOutput;
 class ALandscapeProxy;
 class UMaterialInterface;
 
@@ -169,7 +169,7 @@ public:
 	static bool IsEquivalent(const UHoudiniStaticMesh* A, const UHoudiniStaticMesh* B);
 	static bool IsEquivalent(const UHoudiniStaticMeshComponent* A, const UHoudiniStaticMeshComponent* B);
 	static bool IsEquivalent(const UHoudiniLandscapePtr* A, const UHoudiniLandscapePtr* B);
-	static bool IsEquivalent(const UHoudiniLandscapeEditLayer* A, const UHoudiniLandscapeEditLayer* B);
+	static bool IsEquivalent(const UHoudiniLandscapeTargetLayerOutput* A, const UHoudiniLandscapeTargetLayerOutput* B);
 	static bool IsEquivalent(const UStaticMeshComponent* A, const UStaticMeshComponent* B);
 	static bool IsEquivalent(const UMaterialInterface* A, const UMaterialInterface* B);
 	static bool IsEquivalent(const UStaticMesh* A, const UStaticMesh* B);

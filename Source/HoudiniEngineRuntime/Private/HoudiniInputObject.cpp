@@ -1713,6 +1713,11 @@ bool UHoudiniInputLandscape::HasContentChanged() const
 		return true;
 	}
 
+	// Ignore changes to landscapes in world partition, loading and unloading landscapes will trigger cooks
+	// which is very tiresome.
+	if (GetLandscapeProxy()->GetWorld()->IsPartitionedWorld())
+		return false;
+
 	const int32 NumComponents = CountLandscapeComponents();
 	return NumComponents != CachedNumLandscapeComponents;
 }

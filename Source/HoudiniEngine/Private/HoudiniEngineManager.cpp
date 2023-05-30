@@ -38,7 +38,7 @@
 #include "HoudiniInputTranslator.h"
 #include "HoudiniOutputTranslator.h"
 #include "HoudiniHandleTranslator.h"
-#include "HoudiniSplineTranslator.h"
+#include "HoudiniLandscapeRuntimeUtils.h"
 
 #include "Misc/MessageDialog.h"
 #include "Misc/ScopedSlowTask.h"
@@ -1118,6 +1118,14 @@ FHoudiniEngineManager::UpdateCooking(UHoudiniAssetComponent* HAC, EHoudiniAssetS
 bool
 FHoudiniEngineManager::PreCook(UHoudiniAssetComponent* HAC)
 {
+
+	// Remove all Cooked (layers) before cooking so we don't received cooked data in Houdini
+	// if a landscape is input back to the HDA.
+	for (int Output = 0; Output < HAC->Outputs.Num(); Output++)
+	{
+		FHoudiniLandscapeRuntimeUtils::DeleteLandscapeCookedData(HAC->Outputs[Output]);
+	}
+
 	// Handle duplicated HAC
 	// We need to clean/duplicate some of the HAC's output data manually here
 	if (HAC->HasBeenDuplicated())

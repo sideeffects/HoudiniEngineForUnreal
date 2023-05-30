@@ -140,8 +140,10 @@
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_MIN				"unreal_landscape_layer_min"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_MAX				"unreal_landscape_layer_max"
 
-// World Partition Grid Size
+// Landscape controls
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_PARTITION_GRID_SIZE    "unreal_landscape_partition_grid_size"
+#define HAPI_UNREAL_ATTRIB_LANDSCAPE_SECTION_SIZE           "unreal_landscape_section_size"
+#define HAPI_UNREAL_ATTRIB_LANDSCAPE_SECTIONS_PER_COMPONENT "unreal_landscape_sections_per_component"
 
 // Path to the level in which an actor should be generated or which contained the input data
 // "." - (Default) Generate geometry in the the current persistent world
@@ -201,19 +203,19 @@
 #define HAPI_UNREAL_ATTRIB_INSTANCE_CUSTOM_DATA_PREFIX		"unreal_per_instance_custom_data"
 #define HAPI_UNREAL_ATTRIB_FORCE_INSTANCER					"unreal_force_instancer"
 
-
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_TILE_NAME				 HAPI_ATTRIB_NAME
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_VERTEX_INDEX		    "unreal_vertex_index"
 #define HAPI_UNREAL_ATTRIB_UNIT_LANDSCAPE_LAYER				"unreal_unit_landscape_layer"
 #define HAPI_UNREAL_ATTRIB_NONWEIGHTBLENDED_LAYERS			"unreal_landscape_layer_nonweightblended"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_STREAMING_PROXY		"unreal_landscape_streaming_proxy"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_INFO				"unreal_landscape_layer_info"
+#define HAPI_UNREAL_ATTRIB_LANDSCAPE_SIZE                   "unreal_landscape_size"
 
 // Enable or disable the NoWeightBlend setting for landscape paint layers. 
 // Note this attribute supercedes the unreal_landscape_layer_nonweightblended string attribute.
-#define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_NOWEIGHTBLEND		"unreal_landscape_layer_noweightblend"
-#define HAPI_UNREAL_LANDSCAPE_LAYER_NOWEIGHTBLEND_OFF			0
-#define HAPI_UNREAL_LANDSCAPE_LAYER_NOWEIGHTBLEND_ON			1
+#define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_NOWEIGHTBLEND	"unreal_landscape_layer_noweightblend"
+#define HAPI_UNREAL_LANDSCAPE_LAYER_NOWEIGHTBLEND_OFF		0
+#define HAPI_UNREAL_LANDSCAPE_LAYER_NOWEIGHTBLEND_ON		1
 
 // Landscape output mode:
 // 0 - Generate (generate a landscape from scratch)

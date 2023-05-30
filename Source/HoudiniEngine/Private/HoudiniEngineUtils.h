@@ -113,9 +113,6 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Convert FString to std::string
 		static void ConvertUnrealString(const FString & UnrealString, std::string& String);
 
-		// Gets the world partition grid size from an output.
-		static int GetLandscapePartitionGridSize(UHoudiniOutput* Output);
-
 		// Wrapper for the CreateNode function
 		// As HAPI_CreateNode is an async call, this function actually waits for the node creation to be done before returning
 		static HAPI_Result CreateNode(
@@ -313,6 +310,34 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			HAPI_AttributeInfo& OutAttributeInfo,
 			TArray<float>& OutData
 		);
+
+		// Retreives the first value of an attribute. OutData is left unchanged
+		// if there is an error, so you can initialize it with a default.
+		static bool HapiGetFirstAttributeValueAsInteger(
+			const HAPI_NodeId& InGeoId,
+			const HAPI_PartId& InPartId,
+			const char* InAttribName,
+			const HAPI_AttributeOwner InAttribOwner,
+			int32 & OutData);
+
+		// Retreives the first value of an attribute. OutData is left unchanged
+		// if there is an error.
+		static bool HapiGetFirstAttributeValueAsFloat(
+			const HAPI_NodeId& InGeoId,
+			const HAPI_PartId& InPartId,
+			const char* InAttribName,
+			const HAPI_AttributeOwner InAttribOwner,
+			float& OutData);
+
+		// Retreives the first value of an attribute. OutData is left unchanged
+		// if there is an error.
+		static bool HapiGetFirstAttributeValueAsString(
+			const HAPI_NodeId& InGeoId,
+			const HAPI_PartId& InPartId,
+			const char* InAttribName,
+			const HAPI_AttributeOwner InAttribOwner,
+			FString& OutData);
+
 
 		// HAPI : Look for a parameter by name and returns its index. Returns -1 if not found.
 		static HAPI_ParmId HapiFindParameterByName(
