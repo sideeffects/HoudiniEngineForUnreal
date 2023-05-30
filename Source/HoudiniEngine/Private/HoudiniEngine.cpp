@@ -35,6 +35,7 @@
 #include "HoudiniEngineScheduler.h"
 #include "HoudiniEngineManager.h"
 #include "HoudiniEngineRuntime.h"
+#include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniAssetComponent.h"
@@ -620,6 +621,9 @@ FHoudiniEngine::StartSession(HAPI_Session*& SessionPtr,
 	// Set the HAPI_CLIENT_NAME environment variable to "unreal"
 	// We need to do this before starting HARS.
 	FPlatformMisc::SetEnvironmentVar(TEXT("HAPI_CLIENT_NAME"), TEXT("unreal"));
+
+	// Set custom $HOME env var if it's been specified
+	FHoudiniEngineRuntimeUtils::SetHoudiniHomeEnvironmentVariable();
 
 	HAPI_Result SessionResult = HAPI_RESULT_FAILURE;
 
