@@ -34,6 +34,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniTool.h"
 #include "HoudiniEngineEditorUtils.h"
+#include "HoudiniEngineRuntimeUtils.h"
 
 #include "EditorReimportHandler.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
@@ -340,6 +341,9 @@ FAssetTypeActions_HoudiniAsset::ExecuteOpenInHoudini(TArray<TWeakObjectPtr<UHoud
 
 	if (FPaths::IsRelative(SourceFilePath))
 		FPaths::ConvertRelativePathToFull(SourceFilePath);
+
+	// Set custom $HOME env var if it's been specified
+	FHoudiniEngineRuntimeUtils::SetHoudiniHomeEnvironmentVariable();
 
 	// Then open the HDA file in Houdini
 	FString LibHAPILocation = FHoudiniEngine::Get().GetLibHAPILocation();
