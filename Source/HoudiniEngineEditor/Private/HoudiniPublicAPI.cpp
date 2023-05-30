@@ -34,6 +34,7 @@
 #include "HoudiniEngineCommands.h"
 
 #include "Engine/World.h"
+#include "Engine/Level.h"
 
 UHoudiniPublicAPI::UHoudiniPublicAPI()
 {
