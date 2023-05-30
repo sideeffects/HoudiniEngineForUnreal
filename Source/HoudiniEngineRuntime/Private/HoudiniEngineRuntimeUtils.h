@@ -64,6 +64,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 		// Returns default SM Build Settings using the default settings values
 		static FMeshBuildSettings GetDefaultMeshBuildSettings();
 
+		// Sets  to the custom dir in the settings
+		static void SetHoudiniHomeEnvironmentVariable();
+
 		// -----------------------------------------------
 		// Bounding Box utilities
 		// -----------------------------------------------

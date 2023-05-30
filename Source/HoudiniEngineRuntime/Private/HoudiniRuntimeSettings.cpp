@@ -90,6 +90,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 	bUseCustomHoudiniLocation = false;
 	CustomHoudiniLocation.Path = TEXT("");
 	HoudiniExecutable = HRSHE_Houdini;
+	CustomHoudiniHomeLocation.Path = TEXT("");
 
 	// Arguments for HAPI_Initialize
 	CookingThreadStackSize = -1;
