@@ -28,7 +28,7 @@
 
 #include "HoudiniApi.h"
 #include "HoudiniEngine.h"
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniEnginePrivatePCH.h"
 
 #include <vector>
 

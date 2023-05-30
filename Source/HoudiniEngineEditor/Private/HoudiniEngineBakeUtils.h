@@ -47,7 +47,8 @@ class UTOPNetwork;
 class UTOPNode;
 class UGeometryCollection;
 class UGeometryCollectionComponent;
-class AGeometryCollectionActor;
+class AGeometryCollectionActor; 
+class UMaterialExpression;
 
 struct FHoudiniPackageParams;
 struct FHoudiniGeoPartObject;

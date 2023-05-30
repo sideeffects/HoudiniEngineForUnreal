@@ -26,7 +26,7 @@
 
 #include "HoudiniEngineScheduler.h"
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngine.h"

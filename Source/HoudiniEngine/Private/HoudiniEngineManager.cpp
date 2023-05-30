@@ -26,7 +26,7 @@
 
 #include "HoudiniEngineManager.h"
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniAsset.h"

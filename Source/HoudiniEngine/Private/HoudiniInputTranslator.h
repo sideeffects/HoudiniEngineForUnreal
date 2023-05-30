@@ -29,7 +29,7 @@
 #include "HAPI/HAPI_Common.h"
 #include "CoreMinimal.h"
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniEnginePrivatePCH.h"
 
 class AActor;
 
