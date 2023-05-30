@@ -30,7 +30,7 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEnginePrivatePCH.h"
 #include "UnrealObjectInputRuntimeTypes.h"
-
+#include "HoudiniDataLayerUtils.h"
 #include "RawMesh.h"
 #include "MeshDescription.h"
 #include "MeshDescriptionOperations.h"
@@ -3257,6 +3257,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 {
     SCOPED_FUNCTION_TIMER();
 
+	AActor* ParentActor = StaticMeshComponent->GetOwner();
+
 	// Convert the Mesh using FMeshDescription
 	// Get references to the attributes we are interested in
 	// before sending to Houdini we'll check if each attribute is valid
@@ -3964,6 +3966,14 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			LightMapResolution, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
 	}
 
+	//---------------------------------------------------------------------------------------------------------------------
+	// DATA LAYERS
+	//---------------------------------------------------------------------------------------------------------------------
+
+	// Parse Data Layers
+	FHoudiniUnrealDataLayersCache Cache = FHoudiniUnrealDataLayersCache::MakeCache(ParentActor->GetWorld());
+	Cache.CreateHapiGroups(ParentActor, NodeId, 0);
+
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// INPUT MESH NAME
 	//---------------------------------------------------------------------------------------------------------------------
@@ -4108,7 +4118,6 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			&& !FHoudiniEngineUtils::CreateGroupsFromTags(NodeId, 0, StaticMeshComponent->ComponentTags))
 			HOUDINI_LOG_WARNING(TEXT("Could not create groups from the Static Mesh Component's tags!"));
 
-		AActor* ParentActor = StaticMeshComponent->GetOwner();
 		if (IsValid(ParentActor))
 		{
 			// Try to create groups for the parent Actor's tags

@@ -33,13 +33,12 @@
 #include "LandscapeProxy.h"
 #include "Misc/StringFormatArg.h"
 #include "UObject/SoftObjectPtr.h"
-
 #include "HoudiniOutput.generated.h"
 
 class UFoliageType;
 class UMaterialInterface;
 class ULandscapeLayerInfoObject;
-
+struct FHoudiniDataLayer;
 
 
 UENUM()
@@ -414,6 +413,20 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutput
 		TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject> BakedOutputObjects;
 };
 
+// Information about the data the output is to be placed in.
+USTRUCT()
+struct FHoudiniDataLayer
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString Name;
+
+	UPROPERTY()
+	bool bCreateIfNeeded;
+};
+
+
 USTRUCT()
 struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 {
@@ -502,6 +515,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 		// are created and so we cannot track the original world when we want to remove instances.
 		UPROPERTY()
 		UWorld* World = nullptr;
+
+		// Data Layers which should be applied (during Baking only).
+		UPROPERTY()
+		TArray<FHoudiniDataLayer> DataLayers;
 
 };
 

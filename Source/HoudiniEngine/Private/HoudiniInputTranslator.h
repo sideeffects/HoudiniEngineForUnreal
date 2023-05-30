@@ -31,6 +31,7 @@
 
 #include "HoudiniEnginePrivatePCH.h"
 
+struct FHoudiniUnrealDataLayersCache;
 class AActor;
 
 class UHoudiniInput;
@@ -108,6 +109,9 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 
 	// Upload all the input's transforms to Houdini
 	static bool UploadInputTransform(UHoudiniInput* InInput);
+
+	// Upload all the input's data layers to Houdini
+	static bool UploadDataLayers(UHoudiniInput* InInput, FHoudiniUnrealDataLayersCache* Cache);
 
 	// Upload data for an input's InputObject
 	static bool UploadHoudiniInputObject(

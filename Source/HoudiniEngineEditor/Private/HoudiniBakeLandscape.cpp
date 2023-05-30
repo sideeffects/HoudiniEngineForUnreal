@@ -49,6 +49,7 @@
 #include "HoudiniBakeLandscape.h"
 #include "HoudiniEngineOutputStats.h"
 #include "FileHelpers.h"
+#include "HoudiniEngineBakeUtils.h"
 #include "HoudiniMeshTranslator.h"
 #include "LandscapeEdit.h"
 #include "PackageTools.h"
@@ -285,12 +286,20 @@ FHoudiniLandscapeBake::BakeLandscape(
 }
 
 
-bool FHoudiniLandscapeBake::RenameCookedToBakedLandscapes(const TArray<UHoudiniOutput*>& InOutputs, bool bReplaceExistingActors)
+TArray<FHoudiniEngineBakedActor>
+FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
+	const FHoudiniPackageParams& InBakedObjectPackageParams,
+	const FName & InFallbackWorldOutlinerFolder,
+	const TArray<UHoudiniOutput*>& InOutputs, 
+	bool bReplaceExistingActors)
 {
 	TSet<ALandscape*> ProcessedLandscapes;
+	TArray<FHoudiniEngineBakedActor> Results;
 
-	for(UHoudiniOutput * HoudiniOutput : InOutputs)
+	for(int OutputIndex = 0; OutputIndex < InOutputs.Num(); OutputIndex++)
 	{
+		UHoudiniOutput* HoudiniOutput = InOutputs[OutputIndex];
+
 		// Get a valid output layer from the output.
 		if (!IsValid(HoudiniOutput) || HoudiniOutput->GetType() != EHoudiniOutputType::Landscape)
 			continue;
@@ -330,13 +339,37 @@ bool FHoudiniLandscapeBake::RenameCookedToBakedLandscapes(const TArray<UHoudiniO
 
 			// Now rename the actor. Clear the old "cooked" output as it should be treated as destroyed
 			FHoudiniEngineUtils::SafeRenameActor(LayerOutput->Landscape, LayerOutput->BakedLandscapeName);
+
+			if (!ProcessedLandscapes.Contains(LayerOutput->Landscape))
+			{
+				ProcessedLandscapes.Add(LayerOutput->Landscape);
+
+				FName WorldOutlinerFolder =
+					!LayerOutput->BakeOutlinerFolder.IsEmpty() ? FName(LayerOutput->BakeOutlinerFolder) : InFallbackWorldOutlinerFolder;
+
+				FHoudiniEngineBakedActor BakeActor(
+						LayerOutput->Landscape,
+						FName(LayerOutput->Landscape->GetActorLabel()),
+						WorldOutlinerFolder,
+						OutputIndex,
+						Elem.Key,
+						nullptr, 
+						nullptr, 
+						nullptr,
+						InBakedObjectPackageParams.BakeFolder,
+						InBakedObjectPackageParams);
+
+				Results.Add(BakeActor);
+
+				FHoudiniEngineBakeUtils::SetOutlinerFolderPath(LayerOutput->Landscape, Elem.Value, WorldOutlinerFolder);
+
+			}
+
 			LayerOutput->Landscape = nullptr;
-
-			ProcessedLandscapes.Add(LayerOutput->Landscape);
 		}
-
 	}
-	return true;
+
+	return Results;
 }
 
 

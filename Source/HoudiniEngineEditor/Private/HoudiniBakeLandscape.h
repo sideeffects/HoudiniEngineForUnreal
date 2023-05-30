@@ -26,6 +26,7 @@
 
 #pragma once
 
+struct FHoudiniEngineBakedActor;
 struct FHoudiniOutputObject;
 struct FHoudiniBakedOutputObject;
 struct FHoudiniPackageParams;
@@ -55,7 +56,11 @@ struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 		FHoudiniEngineOutputStats& BakeStats,
 		TSet<FString>& ClearedLayers);
 
-	static bool RenameCookedToBakedLandscapes(const TArray<UHoudiniOutput*>& InOutputs, bool bReplaceExistingActors);
+	static TArray<FHoudiniEngineBakedActor>  MoveCookedToBakedLandscapes(
+		const FHoudiniPackageParams& InBakedObjectPackageParams,
+		const FName & OutlinerFolder,
+		const TArray<UHoudiniOutput*>& InOutputs, 
+		bool bReplaceExistingActors);
 
 	static ULandscapeLayerInfoObject* CreateBakedLandscapeLayerInfoObject(
 		const FHoudiniPackageParams& PackageParams, 

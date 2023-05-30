@@ -37,7 +37,7 @@
 #include "HoudiniSplineComponent.h"
 #include "HoudiniInputObject.h"
 #include "HoudiniEnginePrivatePCH.h"
-#include "HoudiniGeoPartObject.h"
+#include "HoudiniDataLayerUtils.h"
 #include "HoudiniSplineTranslator.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniOutputTranslator.h"
@@ -814,6 +814,8 @@ FHoudiniInputTranslator::UploadChangedInputs(UHoudiniAssetComponent * HAC)
 {
 	if (!IsValid(HAC))
 		return false;
+
+	FHoudiniUnrealDataLayersCache DataLayerCache = FHoudiniUnrealDataLayersCache::MakeCache(HAC->GetWorld());
 
 	//for (auto CurrentInput : HAC->Inputs)
 	for(int32 InputIdx = 0; InputIdx < HAC->GetNumInputs(); InputIdx++)
@@ -4288,5 +4290,13 @@ FHoudiniInputTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 
 	return bSuccess;
 }
+
+// Upload all the input's data layers to Houdini
+bool FHoudiniInputTranslator::UploadDataLayers(UHoudiniInput* InInput, FHoudiniUnrealDataLayersCache* Cache)
+{
+	return true;
+}
+
+
 
 #undef LOCTEXT_NAMESPACE

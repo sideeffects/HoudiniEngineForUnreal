@@ -54,6 +54,7 @@
 #include "Editor.h"
 #include "EditorSupportDelegates.h"
 #include "FileHelpers.h"
+#include "HoudiniDataLayerUtils.h"
 #include "LandscapeInfo.h"
 #include "HAL/PlatformFileManager.h"
 #include "HAL/FileManager.h"
@@ -624,6 +625,17 @@ FHoudiniOutputTranslator::UpdateOutputs(
 
 		FEditorDelegates::RefreshLevelBrowser.Broadcast();
 		FEditorDelegates::RefreshAllBrowsers.Broadcast();
+	}
+
+	for (auto& CurrentOutput : HAC->Outputs)
+	{
+		for(auto & It : CurrentOutput->OutputObjects)
+		{
+			FHoudiniOutputObjectIdentifier & Id = It.Key;
+			FHoudiniOutputObject & Obj = It.Value;
+
+			Obj.DataLayers = FHoudiniDataLayerUtils::GetDataLayers(Id.GeoId, Id.PartId);;
+		}
 	}
 
 	if (CreatedPackages.Num() > 0)
