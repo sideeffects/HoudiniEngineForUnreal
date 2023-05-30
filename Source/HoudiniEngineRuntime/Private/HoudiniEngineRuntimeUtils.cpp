@@ -784,3 +784,24 @@ FHoudiniEngineRuntimeUtils::ClearInputNodeDirtyFlag(const FUnrealObjectInputIden
 
 	return Manager->ClearDirtyFlag(InIdentifier);
 }
+
+void
+FHoudiniEngineRuntimeUtils::SetHoudiniHomeEnvironmentVariable()
+{
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	if (!HoudiniRuntimeSettings)
+		return;
+
+	if (HoudiniRuntimeSettings->CustomHoudiniHomeLocation.Path.IsEmpty())
+		return;
+
+	FString CustomHoudiniHomeLocationPath = HoudiniRuntimeSettings->CustomHoudiniHomeLocation.Path;
+	if (FPaths::IsRelative(CustomHoudiniHomeLocationPath))
+		CustomHoudiniHomeLocationPath = FPaths::ConvertRelativePathToFull(CustomHoudiniHomeLocationPath);
+
+	if (!FPaths::DirectoryExists(CustomHoudiniHomeLocationPath))
+		return;
+
+	FPlatformMisc::SetEnvironmentVar(TEXT("HOME"), CustomHoudiniHomeLocationPath.GetCharArray().GetData());
+}
+

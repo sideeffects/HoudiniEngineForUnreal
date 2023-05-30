@@ -497,6 +497,10 @@ protected:
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = HoudiniLocation, Meta = (DisplayName = "Houdini Executable"))
 		TEnumAsByte <enum EHoudiniExecutableType> HoudiniExecutable;
 
+		// Custom directory to be used for $HOME
+		UPROPERTY(GlobalConfig, EditAnywhere, Category = HoudiniLocation, Meta = (DisplayName = "Custom Houdini Home Location"))
+		FDirectoryPath CustomHoudiniHomeLocation;
+
 		//-------------------------------------------------------------------------------------------------------------
 		// HAPI_Initialize
 		//-------------------------------------------------------------------------------------------------------------

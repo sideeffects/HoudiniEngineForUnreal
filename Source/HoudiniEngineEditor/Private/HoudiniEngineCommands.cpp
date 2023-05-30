@@ -33,6 +33,7 @@
 #include "HoudiniEngineBakeUtils.h"
 #include "HoudiniEngineEditorUtils.h"
 #include "HoudiniEngineRuntime.h"
+#include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniOutputTranslator.h"
@@ -196,6 +197,9 @@ FHoudiniEngineCommands::OpenInHoudini()
 
 	// Add quotes to the path to avoid issues with spaces
 	UserTempPath = TEXT("\"") + UserTempPath + TEXT("\"");
+
+	// Set custom $HOME env var if it's been specified
+	FHoudiniEngineRuntimeUtils::SetHoudiniHomeEnvironmentVariable();
 
 	// Then open the hip file in Houdini
 	FString LibHAPILocation = FHoudiniEngine::Get().GetLibHAPILocation();
@@ -1015,6 +1019,9 @@ FHoudiniEngineCommands::OpenSessionSync()
 			// Treat an unknown platform the same as Windows for now
 			const FString HoudiniExeLocationRelativeToLibHAPI;
 #		endif
+
+		// Set custom $HOME env var if it's been specified
+		FHoudiniEngineRuntimeUtils::SetHoudiniHomeEnvironmentVariable();
 
 		FString HoudiniExecutable = FHoudiniEngine::Get().GetHoudiniExecutable();
 		FString HoudiniLocation = LibHAPILocation + HoudiniExeLocationRelativeToLibHAPI + TEXT("/") + HoudiniExecutable;
