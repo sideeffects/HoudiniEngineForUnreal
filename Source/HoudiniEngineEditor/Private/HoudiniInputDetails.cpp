@@ -7195,22 +7195,34 @@ FHoudiniInputDetails::Helper_AddCurvePointSelectionUI(
 	UHoudiniSplineComponent* HoudiniSplineComponent = HoudiniSplineComponentVisualizer->GetEditedHoudiniSplineComponent();
 
 	TArray<UHoudiniInputObject*>* CurveInputs = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
-	if (!CurveInputs)
+	if (!CurveInputs || CurveInputs->Num() <= 0)
 		return;
 
 	UHoudiniInputObject* HoudiniInputObject = nullptr;
 	int32 HoudiniInputObjectIdx = -1;
-	for (int32 Idx = 0; Idx < CurveInputs->Num(); ++Idx)
+	if (!HoudiniSplineComponent)
 	{
-		UHoudiniInputHoudiniSplineComponent* CurSplineInput = Cast<UHoudiniInputHoudiniSplineComponent>((*CurveInputs)[Idx]);
-		UHoudiniSplineComponent* CurSpline = CurSplineInput->GetCurveComponent();
-		if (CurSpline == HoudiniSplineComponent)
+		// We're not currently editing spline, get the first one by default
+		HoudiniInputObject = (*CurveInputs)[0];
+		HoudiniInputObjectIdx = 0;
+	}
+	else
+	{
+		for (int32 Idx = 0; Idx < CurveInputs->Num(); ++Idx)
 		{
-			HoudiniInputObject = (*CurveInputs)[Idx];
-			HoudiniInputObjectIdx = Idx;
-			break;
+			UHoudiniInputHoudiniSplineComponent* CurSplineInput = Cast<UHoudiniInputHoudiniSplineComponent>((*CurveInputs)[Idx]);
+			UHoudiniSplineComponent* CurSpline = CurSplineInput->GetCurveComponent();
+			if (CurSpline == HoudiniSplineComponent)
+			{
+				HoudiniInputObject = (*CurveInputs)[Idx];
+				HoudiniInputObjectIdx = Idx;
+				break;
+			}
 		}
 	}
+
+	if (!HoudiniInputObject || HoudiniInputObjectIdx < 0)
+		return;	
 
 	TSharedPtr<SCurveListenerVerticalBox> CurveListener;
 
