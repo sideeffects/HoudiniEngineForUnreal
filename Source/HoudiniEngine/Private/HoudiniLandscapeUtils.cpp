@@ -682,6 +682,8 @@ void FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(ALandscapeProxy*
 			nullptr, *(Materials.HoleMaterial), nullptr, LOAD_NoWarn, nullptr));
 		LandscapeProxy->LandscapeHoleMaterial = Material;
 	}
+
+	LandscapeProxy->GetLandscapeActor()->ForceUpdateLayersContent();
 }
 
 void FHoudiniLandscapeUtils::AssignPhysicsMaterialsToLandscape(ALandscapeProxy* LandscapeProxy, const FString& LayerName, FHoudiniLandscapeMaterial& Materials)
