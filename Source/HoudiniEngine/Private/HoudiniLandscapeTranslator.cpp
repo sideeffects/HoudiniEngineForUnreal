@@ -560,6 +560,13 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	}	
 
 	// ------------------------------------------------------------------------------------------------------------------
+	// Apply materials, if needed.
+	// ------------------------------------------------------------------------------------------------------------------
+
+	FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(&LandscapeProxy, Part.Materials);
+	FHoudiniLandscapeUtils::AssignPhysicsMaterialsToLandscape(&LandscapeProxy, Part.TargetLayerName, Part.Materials);
+
+	// ------------------------------------------------------------------------------------------------------------------
 	// Make sure the target layer exists before we do anything else. If its missing, we can't do anything
 	//-------------------------------------------------------------------------------------------------------------------
 
@@ -595,13 +602,6 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	int UnrealEditLayerIndex = INDEX_NONE;
 	if (UnrealEditLayer != nullptr)
 		UnrealEditLayerIndex = OutputLandscape->GetLayerIndex(UnrealEditLayer->Name);
-
-	// ------------------------------------------------------------------------------------------------------------------
-	// Apply materials, if needed.
-	// ------------------------------------------------------------------------------------------------------------------
-
-	FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(&LandscapeProxy, Part.Materials);
-	FHoudiniLandscapeUtils::AssignPhysicsMaterialsToLandscape(&LandscapeProxy, Part.TargetLayerName, Part.Materials);
 
 	// ------------------------------------------------------------------------------------------------------------------
 	// Clear layer
