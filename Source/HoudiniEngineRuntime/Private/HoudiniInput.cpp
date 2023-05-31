@@ -46,6 +46,7 @@
 #include "Engine/SkeletalMesh.h"
 #include "UObject/UObjectGlobals.h"
 #include "FoliageType_InstancedStaticMesh.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 
 #include "Components/SplineComponent.h"
 #include "Components/StaticMeshComponent.h"
