@@ -43,6 +43,7 @@
 #include "HoudiniApi.h"
 #include "HoudiniEngine.h"
 #include "HAPI/HAPI_Version.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 
 #include "CoreMinimal.h"
 #include "DetailCategoryBuilder.h"
