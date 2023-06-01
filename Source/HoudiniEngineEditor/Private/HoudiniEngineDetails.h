@@ -35,6 +35,8 @@
 #include "Widgets/Layout/SBorder.h"
 #include "Framework/SlateDelegates.h"
 #include "Widgets/Input/SButton.h"
+#include "HoudiniEngineDetails.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 
 class IDetailCategoryBuilder;
 class UHoudiniAssetComponent;
