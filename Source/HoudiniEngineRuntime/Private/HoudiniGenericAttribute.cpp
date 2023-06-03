@@ -30,6 +30,7 @@
 #include "HoudiniAssetComponent.h"
 
 #include "Engine/StaticMesh.h"
+#include "LevelInstance/LevelInstanceActor.h"
 #include "Components/ActorComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -376,6 +377,28 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 		return false;
 
 	// Some Properties need to be handle and modified manually...
+#if WITH_EDITOR
+	if (PropertyName.Equals("WorldAsset", ESearchCase::IgnoreCase))
+	{
+		ALevelInstance* LI = Cast<ALevelInstance>(InObject);
+		if (IsValid(LI))
+		{
+			FString StringValue = InPropertyAttribute.GetStringValue(AtIndex);
+			const FSoftObjectPath WorldPath(StringValue);
+			if (WorldPath.IsValid())
+			{
+				TSoftObjectPtr<UWorld> ptr(WorldPath);
+				if (LI->SetWorldAsset(ptr))
+				{
+					LI->RerunConstructionScripts();
+					LI->OnWorldAssetChanged();
+					return true;
+				}
+			}
+		}
+	}
+#endif
+
 	if (PropertyName.Equals("CollisionProfileName", ESearchCase::IgnoreCase))
 	{
 		UPrimitiveComponent* PC = Cast<UPrimitiveComponent>(InObject);
