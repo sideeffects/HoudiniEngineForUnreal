@@ -44,6 +44,9 @@ void FHoudiniDataLayerUtils::ApplyDataLayersToActor(const FHoudiniPackageParams&
 #if HOUDINI_ENABLE_DATA_LAYERS
     UWorld* World = Actor->GetWorld();
 
+	if (Layers.Num() == 0)
+		return;
+
     AWorldDataLayers* WorldDataLayers = World->GetWorldDataLayers();
     if (!WorldDataLayers)
     {
@@ -77,26 +80,29 @@ void FHoudiniDataLayerUtils::AddActorToLayer(
 			return false;
 		});
 
-	if (!TargetDataLayerInstance && Layer.bCreateIfNeeded)
+	if (!TargetDataLayerInstance)
 	{
-		UDataLayerAsset * DataLayerAsset = CreateDataLayerAsset(Params, Layer.Name);
-
-		FDataLayerCreationParameters CreationParams;
-		CreationParams.DataLayerAsset = DataLayerAsset;
-		CreationParams.WorldDataLayers = WorldDataLayers;
-		TargetDataLayerInstance = UDataLayerEditorSubsystem::Get()->CreateDataLayerInstance(CreationParams);
-
-		if (!TargetDataLayerInstance)
+		if (Layer.bCreateIfNeeded)
 		{
-			HOUDINI_LOG_ERROR(TEXT("Could not create Data Layer: %s"), *Layer.Name);
+			UDataLayerAsset * DataLayerAsset = CreateDataLayerAsset(Params, Layer.Name);
+
+			FDataLayerCreationParameters CreationParams;
+			CreationParams.DataLayerAsset = DataLayerAsset;
+			CreationParams.WorldDataLayers = WorldDataLayers;
+			TargetDataLayerInstance = UDataLayerEditorSubsystem::Get()->CreateDataLayerInstance(CreationParams);
+
+			if (!TargetDataLayerInstance)
+			{
+				HOUDINI_LOG_ERROR(TEXT("Could not create Data Layer: %s"), *Layer.Name);
+				return;
+			}
+		}
+		else
+		{
+			HOUDINI_LOG_WARNING(TEXT("Could not find Data Layer: %s. Set " HAPI_UNREAL_ATTRIB_CREATE_DATA_LAYERS
+								" to create a default data layer asset."), *Layer.Name);
 			return;
 		}
-	}
-	else
-	{
-		HOUDINI_LOG_WARNING(TEXT("Could not find Data Layer: %s. Set " HAPI_UNREAL_ATTRIB_CREATE_DATA_LAYERS
-							" to create a default data layer asset."), *Layer.Name);
-		return;
 	}
 
 	TargetDataLayerInstance->AddActor(Actor);

@@ -466,6 +466,8 @@ TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTrans
 				HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE,
 				HAPI_ATTROWNER_INVALID,
 				NewLayerToCreate.Materials.Material);
+
+			NewLayerToCreate.Materials.bCreateMaterialInstance = !NewLayerToCreate.Materials.Material.IsEmpty();
 		}
 
 		// Hole material
@@ -563,7 +565,8 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	// Apply materials, if needed.
 	// ------------------------------------------------------------------------------------------------------------------
 
-	FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(&LandscapeProxy, Part.Materials);
+	UMaterialInterface * MaterialInstance =
+	FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(&LandscapeProxy, Part.Materials, InPackageParams);
 	FHoudiniLandscapeUtils::AssignPhysicsMaterialsToLandscape(&LandscapeProxy, Part.TargetLayerName, Part.Materials);
 
 	// ------------------------------------------------------------------------------------------------------------------
@@ -772,6 +775,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	Obj->BakedEditLayer = BakedLayerName;
 	Obj->CookedEditLayer = CookedLayerName;
 	Obj->Landscape = OutputLandscape;
+	Obj->LandscapeProxy = &LandscapeProxy;
 	Obj->Extents = Extents;
 	Obj->bCreatedLandscape = Part.bCreateNewLandscape;
 	Obj->TargetLayer = Part.TargetLayerName;
@@ -780,6 +784,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	Obj->LayerInfoObjects = Landscape.CreatedLayerInfoObjects;
 	Obj->bCookedLayerRequiresBaking = OutputLandscape->bCanHaveLayersContent && (CookedLayerName != BakedLayerName);
 	Obj->BakeOutlinerFolder = Part.BakeOutlinerFolder;
+	Obj->MaterialInstance = MaterialInstance;
 	return Obj;
 
 

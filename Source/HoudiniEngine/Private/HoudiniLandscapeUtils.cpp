@@ -37,6 +37,10 @@
 #include "HoudiniEngine/Private/HoudiniPackageParams.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "LandscapeConfigHelper.h"
+#include "Factories/MaterialInstanceConstantFactoryNew.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "HoudiniMaterialTranslator.h"
+#include "PackageTools.h"
 
 TSet<UHoudiniLandscapeTargetLayerOutput *>
 FHoudiniLandscapeUtils::GetEditLayers(UHoudiniOutput& Output)
@@ -509,7 +513,7 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		// Order is important: Assign materials, create landscape info, Create TargetLayerInfo assets.
 		//---------------------------------------------------------------------------------------------------------------------------------
 
-		AssignGraphicsMaterialsToLandscape(LandscapeActor, PartForSizing->Materials);
+		AssignGraphicsMaterialsToLandscape(LandscapeActor, PartForSizing->Materials, PackageParams);
 		LandscapeActor->CreateLandscapeInfo();
 
 		TArray<UPackage*> CreatedPackages;
@@ -666,13 +670,22 @@ FTransform FHoudiniLandscapeUtils::GetHeightFieldTransformInUnrealSpace(const FH
 }
 
 
-void FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(ALandscapeProxy* LandscapeProxy, FHoudiniLandscapeMaterial& Materials)
+UMaterialInterface*
+FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(ALandscapeProxy* LandscapeProxy, FHoudiniLandscapeMaterial& Materials, const FHoudiniPackageParams& Params)
 {
+	UMaterialInterface* MaterialInstance = nullptr;
 
 	if (!Materials.Material.IsEmpty())
 	{
 		UMaterialInterface* Material = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(),
 			nullptr, *(Materials.Material), nullptr, LOAD_NoWarn, nullptr));
+
+		if (Materials.bCreateMaterialInstance)
+		{
+			MaterialInstance = CreateMaterialInstance(LandscapeProxy->GetActorLabel(), Material, Params);
+			Material = MaterialInstance;
+		}
+
 		LandscapeProxy->LandscapeMaterial = Material;
 	}
 
@@ -684,6 +697,8 @@ void FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(ALandscapeProxy*
 	}
 
 	LandscapeProxy->GetLandscapeActor()->ForceUpdateLayersContent();
+
+	return MaterialInstance;
 }
 
 void FHoudiniLandscapeUtils::AssignPhysicsMaterialsToLandscape(ALandscapeProxy* LandscapeProxy, const FString& LayerName, FHoudiniLandscapeMaterial& Materials)
@@ -1101,4 +1116,32 @@ bool FHoudiniLandscapeUtils::GetOutputMode(int GeoId, int PartId, HAPI_Attribute
 		HAPI_UNREAL_ATTRIB_LANDSCAPE_OUTPUT_MODE,
 		Owner,
 		LandscapeOutputMode);
+}
+
+UMaterialInterface*
+FHoudiniLandscapeUtils::CreateMaterialInstance(const FString & Prefix, UMaterialInterface* Material, const FHoudiniPackageParams& Params)
+{
+	// Factory to create materials.
+	UMaterialInstanceConstantFactoryNew* MaterialInstanceFactory = NewObject< UMaterialInstanceConstantFactoryNew >();
+	if (!MaterialInstanceFactory)
+		return nullptr;
+
+
+	FString MaterialName = Prefix + FString("_") + Material->GetName() + TEXT("_instance");
+	MaterialName = UPackageTools::SanitizePackageName(MaterialName);
+
+	FString MaterialInstanceName;
+	UPackage* MaterialPackage = FHoudiniMaterialTranslator::CreatePackageForMaterial(0,
+		MaterialName, Params, MaterialInstanceName);
+
+	// Create the new material instance
+	MaterialInstanceFactory->AddToRoot();
+	MaterialInstanceFactory->InitialParent = Material;
+	auto MaterialInstance = (UMaterialInstanceConstant*)MaterialInstanceFactory->FactoryCreateNew(
+		UMaterialInstanceConstant::StaticClass(), MaterialPackage, FName(*MaterialName),
+		RF_Public | RF_Standalone, NULL, GWarn);
+
+	MaterialInstanceFactory->RemoveFromRoot();
+
+	return MaterialInstance;
 }

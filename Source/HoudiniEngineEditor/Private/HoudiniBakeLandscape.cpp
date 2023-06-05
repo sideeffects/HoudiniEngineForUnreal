@@ -45,7 +45,7 @@
 #include "LandscapeInfo.h"
 #include "GameFramework/Actor.h"
 #include "Editor.h"
-#include "HoudiniLandscapeTranslator.h"
+#include "LandscapeStreamingProxy.h"
 #include "HoudiniBakeLandscape.h"
 #include "HoudiniEngineOutputStats.h"
 #include "FileHelpers.h"
@@ -56,14 +56,16 @@
 #include "Containers/UnrealString.h"
 #include "Components/AudioComponent.h"
 #include "Kismet2/BlueprintEditorUtils.h"
-#include "Sound/SoundBase.h"
+#include "Landscape.h"
 #include "HoudiniLandscapeRuntimeUtils.h"
 #include "WorldPartition/WorldPartition.h"
 
 bool
 FHoudiniLandscapeBake::BakeLandscapeLayer(
 	FHoudiniPackageParams& PackageParams, 
-	UHoudiniLandscapeTargetLayerOutput& LayerOutput, 
+	UHoudiniLandscapeTargetLayerOutput& LayerOutput,
+	bool bInReplaceActors,
+	bool bInReplaceAssets,
 	TArray<UPackage*>& OutPackagesToSave,
 	FHoudiniEngineOutputStats& BakeStats,
 	TSet<FString>& ClearedLayers)
@@ -71,6 +73,20 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 	ALandscape* OutputLandscape = LayerOutput.Landscape;
 	ULandscapeInfo* TargetLandscapeInfo = OutputLandscape->GetLandscapeInfo();
 	FHoudiniExtents Extents = LayerOutput.Extents;
+
+	//---------------------------------------------------------------------------------------------------------------------------
+	// Bake all the LayerInfoObjects, and patch up the result inside the landscape.
+	//---------------------------------------------------------------------------------------------------------------------------
+
+	for (ULandscapeLayerInfoObject* CookedLayerInfoObject : LayerOutput.LayerInfoObjects)
+	{
+		CreateBakedLandscapeLayerInfoObject(
+			PackageParams, 
+			LayerOutput.Landscape, 
+			CookedLayerInfoObject,
+			OutPackagesToSave, 
+			BakeStats);
+	}
 
 	if (!OutputLandscape->bCanHaveLayersContent)
 	{
@@ -158,12 +174,6 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 	// Delete cooked layer.
 	FHoudiniLandscapeRuntimeUtils::DeleteEditLayer(OutputLandscape, FName(LayerOutput.CookedEditLayer));
 
-	// Bake all the LayerInfoObjects, and patch up the result inside the landscape.
-	for (ULandscapeLayerInfoObject* CookedLayerInfoObject : LayerOutput.LayerInfoObjects)
-	{
-		CreateBakedLandscapeLayerInfoObject(PackageParams, LayerOutput.Landscape, CookedLayerInfoObject, OutPackagesToSave, BakeStats);
-	}
-
 	//---------------------------------------------------------------------------------------------------------------------------
 	// Make sure baked layer is visible.
 	//---------------------------------------------------------------------------------------------------------------------------
@@ -186,10 +196,10 @@ FHoudiniLandscapeBake::BakeLandscape(
 	TArray<FHoudiniBakedOutput>& InBakedOutputs,
 	bool bInReplaceActors,
 	bool bInReplaceAssets,
-	const FString& BakePath,
+	const FDirectoryPath& BakePath,
 	FHoudiniEngineOutputStats& BakeStats,
-	TSet<FString> & ClearedLandscapeLayers
-)
+	TSet<FString> & ClearedLandscapeLayers,
+	TArray<UPackage*>& OutPackagesToSave)
 {
 	// Check that index is not negative
 	if (InOutputIndex < 0)
@@ -198,7 +208,7 @@ FHoudiniLandscapeBake::BakeLandscape(
 	if (!InAllOutputs.IsValidIndex(InOutputIndex))
 		return false;
 
-	UHoudiniOutput* const Output = InAllOutputs[InOutputIndex];
+	UHoudiniOutput* Output = InAllOutputs[InOutputIndex];
 	if (!IsValid(Output))
 		return false;
 
@@ -213,8 +223,6 @@ FHoudiniLandscapeBake::BakeLandscape(
 	TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject> NewBakedOutputObjects;
 	TArray<UPackage*> PackagesToSave;
 	TArray<UWorld*> LandscapeWorldsToUpdate;
-
-	FHoudiniPackageParams PackageParams;
 
 	const EPackageReplaceMode AssetPackageReplaceMode = bInReplaceAssets ?
 		EPackageReplaceMode::ReplaceExistingAssets : EPackageReplaceMode::CreateNewAssets;
@@ -237,6 +245,18 @@ FHoudiniLandscapeBake::BakeLandscape(
 			continue;
 		}
 
+		FHoudiniPackageParams PackageParams;
+		FHoudiniEngineBakeUtils::ResolvePackageParams(
+			HoudiniAssetComponent,
+			Output,
+			Elem.Key,
+			Elem.Value,
+			FString(""),
+			BakePath,
+			bInReplaceAssets,
+			PackageParams,
+			OutPackagesToSave);
+
 		UHoudiniLandscapeTargetLayerOutput* LayerOutput = Cast<UHoudiniLandscapeTargetLayerOutput>(OutputObject.OutputObject);
 		HOUDINI_CHECK_RETURN(IsValid(LayerOutput), false);
 
@@ -246,13 +266,7 @@ FHoudiniLandscapeBake::BakeLandscape(
 			continue;
 		}
 
-		FHoudiniAttributeResolver Resolver;
-		UWorld* const DesiredWorld = LayerOutput->Landscape->GetWorld();
-		FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-			DesiredWorld, HoudiniAssetComponent, ObjectIdentifier, OutputObject, LayerOutput->BakedEditLayer,
-			PackageParams, Resolver, BakePath, AssetPackageReplaceMode);
-
-		FHoudiniLandscapeBake::BakeLandscapeLayer(PackageParams, *LayerOutput, PackagesToSave, BakeStats, ClearedLandscapeLayers);
+		FHoudiniLandscapeBake::BakeLandscapeLayer(PackageParams, *LayerOutput, bInReplaceActors, bInReplaceAssets, PackagesToSave, BakeStats, ClearedLandscapeLayers);
 	}
 
 	// Update the cached baked output data
@@ -288,10 +302,14 @@ FHoudiniLandscapeBake::BakeLandscape(
 
 TArray<FHoudiniEngineBakedActor>
 FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
-	const FHoudiniPackageParams& InBakedObjectPackageParams,
+	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	const FName & InFallbackWorldOutlinerFolder,
 	const TArray<UHoudiniOutput*>& InOutputs, 
-	bool bReplaceExistingActors)
+	bool bInReplaceActors,
+	bool bInReplaceAssets,
+	const FDirectoryPath& BakeFolder,
+	TArray<UPackage*>& OutPackagesToSave,
+	FHoudiniEngineOutputStats& BakeStats)
 {
 	TSet<ALandscape*> ProcessedLandscapes;
 	TArray<FHoudiniEngineBakedActor> Results;
@@ -308,16 +326,31 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 
 		for (auto& Elem : OutputObjects)
 		{
-			UHoudiniLandscapeTargetLayerOutput * LayerOutput =  Cast<UHoudiniLandscapeTargetLayerOutput>(Elem.Value.OutputObject);
+			UHoudiniLandscapeTargetLayerOutput* LayerOutput = Cast<UHoudiniLandscapeTargetLayerOutput>(Elem.Value.OutputObject);
 			if (!LayerOutput)
-				continue;
-
-			// If the landscape was not created for this layer, we don't need to do anything, layers have already been renamed.
-			if (!LayerOutput->bCreatedLandscape)
 				continue;
 
 			// Skip renaming of already deleted/moved actors
 			if (!IsValid(LayerOutput->Landscape))
+				continue;
+
+			FHoudiniPackageParams PackageParams;
+			FHoudiniEngineBakeUtils::ResolvePackageParams(
+				HoudiniAssetComponent,
+				HoudiniOutput,
+				Elem.Key,
+				Elem.Value,
+				FString(""), 
+				BakeFolder,
+				bInReplaceAssets,
+				PackageParams,
+				OutPackagesToSave);
+
+			// Bake Material instance
+			BakeMaterials(*LayerOutput, PackageParams, OutPackagesToSave, BakeStats);
+
+			// If the landscape was not created for this layer, we don't need to do anything, layers have already been renamed.
+			if (!LayerOutput->bCreatedLandscape)
 				continue;
 
 			// Only bake each landscape once.
@@ -329,13 +362,16 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 			ALandscape* ExistingLandscape = FHoudiniEngineUtils::FindOrRenameInvalidActor<ALandscape>(
 					LayerOutput->Landscape->GetWorld(), LayerOutput->BakedLandscapeName, FoundActor);
 
-			if (ExistingLandscape && bReplaceExistingActors)
+			if (ExistingLandscape && bInReplaceActors)
 			{
 				// Even though we found an existing landscape with the desired type, we're just going to destroy/replace
 				// it for now.
 				FHoudiniEngineUtils::RenameToUniqueActor(ExistingLandscape, LayerOutput->BakedLandscapeName + "_0");
 				FHoudiniLandscapeRuntimeUtils::DestroyLandscape(ExistingLandscape);
 			}
+
+			BakeStats.NotifyPackageUpdated(1);
+
 
 			// Now rename the actor. Clear the old "cooked" output as it should be treated as destroyed
 			FHoudiniEngineUtils::SafeRenameActor(LayerOutput->Landscape, LayerOutput->BakedLandscapeName);
@@ -356,13 +392,10 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 						nullptr, 
 						nullptr, 
 						nullptr,
-						InBakedObjectPackageParams.BakeFolder,
-						InBakedObjectPackageParams);
+						PackageParams.BakeFolder,
+						PackageParams);
 
 				Results.Add(BakeActor);
-
-				FHoudiniEngineBakeUtils::SetOutlinerFolderPath(LayerOutput->Landscape, Elem.Value, WorldOutlinerFolder);
-
 			}
 
 			LayerOutput->Landscape = nullptr;
@@ -373,18 +406,92 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 }
 
 
+
 ULandscapeLayerInfoObject* 
-FHoudiniLandscapeBake::CreateBakedLandscapeLayerInfoObject(const FHoudiniPackageParams& PackageParams, ALandscape* Landscape, ULandscapeLayerInfoObject* LandscapeLayerInfoObject, TArray<UPackage*>& OutPackagesToSave,
+FHoudiniLandscapeBake::CreateBakedLandscapeLayerInfoObject(
+	const FHoudiniPackageParams& PackageParams, 
+	ALandscape* Landscape, 
+	ULandscapeLayerInfoObject* LandscapeLayerInfoObject,
+	TArray<UPackage*>& OutPackagesToSave,
 	FHoudiniEngineOutputStats& BakeStats)
 {
+	ULandscapeLayerInfoObject * BakedObject = BakeGeneric(
+		LandscapeLayerInfoObject,
+		PackageParams,
+		LandscapeLayerInfoObject->GetName(),
+		OutPackagesToSave,
+		BakeStats);
+
+	Landscape->GetLandscapeInfo()->ReplaceLayer(LandscapeLayerInfoObject, BakedObject);
+
+	BakedObject->MarkPackageDirty();
+
+	return BakedObject;
+
+}
+
+
+void FHoudiniLandscapeBake::BakeMaterials(
+	const UHoudiniLandscapeTargetLayerOutput& Layer,
+	const FHoudiniPackageParams& PackageParams,
+	TArray<UPackage*>& OutPackagesToSave,
+	FHoudiniEngineOutputStats& BakeStats)
+{
+	UMaterialInterface * MaterialInstance = Layer.MaterialInstance;
+	if (!IsValid(MaterialInstance))
+		return;
+
+	auto * BakedMaterialInstance = BakeGeneric(
+		MaterialInstance,
+		PackageParams,
+		MaterialInstance->GetName(),
+		OutPackagesToSave,
+		BakeStats);
+
+	//------------------------------------------------------------------------------------------------------------------------------
+	// Replace the material instance.  If this is a parent landscape actor apply material change to every proxy, because
+	// unreal will not do this for us.
+	//------------------------------------------------------------------------------------------------------------------------------
+
+	Layer.LandscapeProxy->LandscapeMaterial = BakedMaterialInstance;
+
+	if (Layer.LandscapeProxy->IsA<ALandscape>())
+	{
+		ULandscapeInfo* Info = Layer.Landscape->GetLandscapeInfo();
+
+#if ENGINE_MINOR_VERSION < 1
+		TArray<ALandscapeStreamingProxy*> & Proxies = Info->Proxies;
+		for (ALandscapeStreamingProxy* Proxy : Proxies)
+		{
+#else
+		TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> & Proxies = Info->StreamingProxies;
+		for (auto ProxyPtr : Proxies)
+		{
+			ALandscapeStreamingProxy* Proxy = ProxyPtr.Get();
+#endif	
+			if (!IsValid(Proxy))
+				continue;
+
+			Proxy->LandscapeMaterial = BakedMaterialInstance;
+		}
+	}
+
+	Layer.LandscapeProxy->GetLandscapeActor()->ForceUpdateLayersContent();
+}
+
+template<typename UObjectType>
+UObjectType* FHoudiniLandscapeBake::BakeGeneric(
+	UObjectType* CookedObject,
+	const FHoudiniPackageParams& PackageParams,
+	const FString& ObjectName,
+	TArray<UPackage*>& OutPackagesToSave,
+	FHoudiniEngineOutputStats& BakeStats)
+{
+
 	FHoudiniPackageParams LayerPackageParams = PackageParams;
-
-	//------------------------------------------------------------------------------------------------------------------------------
-	// Create the new package and make sure its fully loaded
-	//------------------------------------------------------------------------------------------------------------------------------
-
+	LayerPackageParams.ObjectName = ObjectName;
 	FString CreatedPackageName;
-	UPackage* Package = PackageParams.CreatePackageForObject(CreatedPackageName);
+	UPackage* Package = LayerPackageParams.CreatePackageForObject(CreatedPackageName);
 	if (!Package->IsFullyLoaded())
 	{
 		FlushAsyncLoading();
@@ -401,15 +508,27 @@ FHoudiniLandscapeBake::CreateBakedLandscapeLayerInfoObject(const FHoudiniPackage
 	OutPackagesToSave.Add(Package);
 
 	//------------------------------------------------------------------------------------------------------------------------------
+	// Remove existing layer object
+	//------------------------------------------------------------------------------------------------------------------------------
+
+	UObjectType* ExistingObject = FindObject<UObjectType>(Package, *ObjectName);
+	if (IsValid(ExistingObject))
+	{
+		BakeStats.NotifyObjectsReplaced(UObjectType::StaticClass()->GetName(), 1);
+		BakeStats.NotifyPackageUpdated(1);
+	}
+	else
+	{
+		BakeStats.NotifyObjectsCreated(UObjectType::StaticClass()->GetName(), 1);
+		BakeStats.NotifyPackageCreated(1);
+	}
+
+	//------------------------------------------------------------------------------------------------------------------------------
 	// Replace the layer.
 	//------------------------------------------------------------------------------------------------------------------------------
 
-	FString ObjectName = LandscapeLayerInfoObject->GetName();
-	ULandscapeLayerInfoObject* DuplicatedObject = DuplicateObject<ULandscapeLayerInfoObject>(LandscapeLayerInfoObject, Package, *ObjectName);
-	Landscape->GetLandscapeInfo()->ReplaceLayer(LandscapeLayerInfoObject, DuplicatedObject);
-
+	UObjectType* DuplicatedObject = DuplicateObject<UObjectType>(CookedObject, Package, *ObjectName);
 	Package->MarkPackageDirty();
-	BakeStats.NotifyObjectsCreated(DuplicatedObject->GetClass()->GetName(), 1);
 
 	return DuplicatedObject;
 

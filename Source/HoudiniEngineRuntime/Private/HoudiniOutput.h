@@ -132,6 +132,9 @@ public:
 	ALandscape * Landscape; // Parent Landscape
 
 	UPROPERTY()
+	ALandscapeProxy* LandscapeProxy; // Landscape Proxy
+
+	UPROPERTY()
 	FString BakedEditLayer; // Final baked layer name
 
 	UPROPERTY()
@@ -161,6 +164,8 @@ public:
 	UPROPERTY()
 	FString BakeOutlinerFolder;
 
+	UPROPERTY()
+	UMaterialInterface* MaterialInstance;
 };
 
 UCLASS()

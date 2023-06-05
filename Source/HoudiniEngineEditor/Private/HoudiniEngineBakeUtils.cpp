@@ -435,9 +435,10 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 					InBakedOutputs,
 					bInReplaceActors,
 					bInReplaceAssets,
-					InBakeFolder.Path,
+					InBakeFolder,
 					OutBakeStats,
-					ClearedLandscapeLayers);
+					ClearedLandscapeLayers,
+					OutPackagesToSave);
 			}
 			break;
 
@@ -552,12 +553,18 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 
 	// Moved Cooked to Baked Landscapes. 
 	{
-		FHoudiniPackageParams PackageParams;
+
+
 		TArray<FHoudiniEngineBakedActor> BakedLandscapeActors = FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
-			PackageParams, 
+			HoudiniAssetComponent,
 			FName(InFallbackWorldOutlinerFolder), 
 			InOutputs, 
-			bInReplaceActors);
+			bInReplaceActors,
+			bInReplaceAssets,
+			InBakeFolder,
+			OutPackagesToSave,
+			OutBakeStats);
+
 		NewBakedActors.Append(BakedLandscapeActors);
 	}
 

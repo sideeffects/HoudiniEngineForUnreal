@@ -46,6 +46,7 @@ struct FHoudiniVolumeInfo;
 struct FHoudiniPackageParams;
 struct FHoudiniEngineOutputStats;
 struct FHoudiniEngineOutputStats;
+class UMaterialInstance;
 
 struct FHoudiniMinMax
 {
@@ -72,6 +73,7 @@ struct FHoudiniMinMax
 struct FHoudiniLandscapeMaterial
 {
     FString Material;
+    bool bCreateMaterialInstance = false;
     FString HoleMaterial;
     FString PhysicalMaterial;
 };
@@ -229,7 +231,11 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 
     static FTransform GetHeightFieldTransformInUnrealSpace(const FHoudiniVolumeInfo& VolumeInfo);
 
-    static void AssignGraphicsMaterialsToLandscape(ALandscapeProxy* LandscapeProxy, FHoudiniLandscapeMaterial & Materials);
+    static UMaterialInterface* AssignGraphicsMaterialsToLandscape(
+				ALandscapeProxy* LandscapeProxy, 
+                FHoudiniLandscapeMaterial & Materials,
+				const FHoudiniPackageParams& Params);
+
     static void AssignPhysicsMaterialsToLandscape(ALandscapeProxy* LandscapeProxy, const FString& LayerName, FHoudiniLandscapeMaterial& Materials);
 
     static TArray<ULandscapeLayerInfoObject*> CreateTargetLayerInfoAssets(
@@ -265,4 +271,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
     static ULandscapeLayerInfoObject* GetLandscapeLayerInfoForLayer(const FHoudiniGeoPartObject& Part, const FName& InLayerName);
 
     static bool GetOutputMode(int GeoId, int PartId, HAPI_AttributeOwner Owner, int& LandscapeOutputMode);
+
+    static UMaterialInterface* CreateMaterialInstance(const FString & Prefix, UMaterialInterface * Material, const FHoudiniPackageParams & Params);
+
 };
