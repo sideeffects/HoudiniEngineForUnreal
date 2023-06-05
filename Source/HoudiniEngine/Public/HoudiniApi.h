@@ -102,8 +102,6 @@ public:
 	typedef HAPI_Result (*GetAssetInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_AssetInfo * asset_info);
 	typedef HAPI_Result (*GetAssetLibraryFilePathFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId asset_library_id, HAPI_StringHandle * file_path_sh);
 	typedef HAPI_Result (*GetAssetLibraryIdsFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId * asset_library_ids_array, int start, int length);
-	typedef HAPI_Result (*GetAttributeDictionaryArrayDataFuncPtr)(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, HAPI_AttributeInfo* attr_info, HAPI_StringHandle* data_fixed_array, int data_fixed_length, int* sizes_fixed_array, int start, int sizes_fixed_length);
-	typedef HAPI_Result (*GetAttributeDictionaryDataFuncPtr)(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, HAPI_AttributeInfo* attr_info, HAPI_StringHandle* data_array, int start, int length);
 	typedef HAPI_Result (*GetAttributeFloat64ArrayDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, double * data_fixed_array, int data_fixed_length, int * sizes_fixed_array, int start, int sizes_fixed_length);
 	typedef HAPI_Result (*GetAttributeFloat64DataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, double * data_array, int start, int length);
 	typedef HAPI_Result (*GetAttributeFloatArrayDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, float * data_fixed_array, int data_fixed_length, int * sizes_fixed_array, int start, int sizes_fixed_length);
@@ -323,8 +321,6 @@ public:
 	typedef HAPI_Result (*SaveNodeToFileFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
 	typedef HAPI_SessionSyncInfo (*SessionSyncInfo_CreateFuncPtr)();
 	typedef HAPI_Result (*SetAnimCurveFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int parm_index, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);
-	typedef HAPI_Result (*SetAttributeDictionaryArrayDataFuncPtr)(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const char** data_fixed_array, int data_fixed_length, const int* sizes_fixed_array, int start, int sizes_fixed_length);
-	typedef HAPI_Result (*SetAttributeDictionaryDataFuncPtr)(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const char** data_array, int start, int length);
 	typedef HAPI_Result (*SetAttributeFloat64ArrayDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const double * data_fixed_array, int data_fixed_length, const int * sizes_fixed_array, int start, int sizes_fixed_length);
 	typedef HAPI_Result (*SetAttributeFloat64DataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const double * data_array, int start, int length);
 	typedef HAPI_Result (*SetAttributeFloat64UniqueDataFuncPtr)(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const double* data_array, int data_length, int start_index, int num_indices);
@@ -479,8 +475,6 @@ public:
 	static GetAssetInfoFuncPtr GetAssetInfo;
 	static GetAssetLibraryFilePathFuncPtr GetAssetLibraryFilePath;
 	static GetAssetLibraryIdsFuncPtr GetAssetLibraryIds;
-	static GetAttributeDictionaryArrayDataFuncPtr GetAttributeDictionaryArrayData;
-	static GetAttributeDictionaryDataFuncPtr GetAttributeDictionaryData;
 	static GetAttributeFloat64ArrayDataFuncPtr GetAttributeFloat64ArrayData;
 	static GetAttributeFloat64DataFuncPtr GetAttributeFloat64Data;
 	static GetAttributeFloatArrayDataFuncPtr GetAttributeFloatArrayData;
@@ -700,8 +694,6 @@ public:
 	static SaveNodeToFileFuncPtr SaveNodeToFile;
 	static SessionSyncInfo_CreateFuncPtr SessionSyncInfo_Create;
 	static SetAnimCurveFuncPtr SetAnimCurve;
-	static SetAttributeDictionaryArrayDataFuncPtr SetAttributeDictionaryArrayData;
-	static SetAttributeDictionaryDataFuncPtr SetAttributeDictionaryData;
 	static SetAttributeFloat64ArrayDataFuncPtr SetAttributeFloat64ArrayData;
 	static SetAttributeFloat64DataFuncPtr SetAttributeFloat64Data;
 	static SetAttributeFloat64UniqueDataFuncPtr SetAttributeFloat64UniqueData;
@@ -856,8 +848,6 @@ public:
 	static HAPI_Result GetAssetInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_AssetInfo * asset_info);
 	static HAPI_Result GetAssetLibraryFilePathEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId asset_library_id, HAPI_StringHandle * file_path_sh);
 	static HAPI_Result GetAssetLibraryIdsEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId * asset_library_ids_array, int start, int length);
-	static HAPI_Result GetAttributeDictionaryArrayDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, HAPI_AttributeInfo* attr_info, HAPI_StringHandle* data_fixed_array, int data_fixed_length, int* sizes_fixed_array, int start, int sizes_fixed_length);
-	static HAPI_Result GetAttributeDictionaryDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, HAPI_AttributeInfo* attr_info, HAPI_StringHandle* data_array, int start, int length);
 	static HAPI_Result GetAttributeFloat64ArrayDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, double * data_fixed_array, int data_fixed_length, int * sizes_fixed_array, int start, int sizes_fixed_length);
 	static HAPI_Result GetAttributeFloat64DataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, double * data_array, int start, int length);
 	static HAPI_Result GetAttributeFloatArrayDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, float * data_fixed_array, int data_fixed_length, int * sizes_fixed_array, int start, int sizes_fixed_length);
@@ -1077,8 +1067,6 @@ public:
 	static HAPI_Result SaveNodeToFileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
 	static HAPI_SessionSyncInfo SessionSyncInfo_CreateEmptyStub();
 	static HAPI_Result SetAnimCurveEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int parm_index, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);
-	static HAPI_Result SetAttributeDictionaryArrayDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const char** data_fixed_array, int data_fixed_length, const int* sizes_fixed_array, int start, int sizes_fixed_length);
-	static HAPI_Result SetAttributeDictionaryDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const char** data_array, int start, int length);
 	static HAPI_Result SetAttributeFloat64ArrayDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const double * data_fixed_array, int data_fixed_length, const int * sizes_fixed_array, int start, int sizes_fixed_length);
 	static HAPI_Result SetAttributeFloat64DataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const double * data_array, int start, int length);
 	static HAPI_Result SetAttributeFloat64UniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const double* data_array, int data_length, int start_index, int num_indices);
