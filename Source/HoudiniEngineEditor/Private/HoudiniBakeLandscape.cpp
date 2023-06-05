@@ -480,7 +480,7 @@ void FHoudiniLandscapeBake::BakeMaterials(
 }
 
 template<typename UObjectType>
-static UObjectType* FHoudiniLandscapeBake::BakeGeneric(
+UObjectType* FHoudiniLandscapeBake::BakeGeneric(
 	UObjectType* CookedObject,
 	const FHoudiniPackageParams& PackageParams,
 	const FString& ObjectName,
