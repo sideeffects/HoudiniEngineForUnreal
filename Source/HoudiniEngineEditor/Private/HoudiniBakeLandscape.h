@@ -45,28 +45,52 @@ struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 		TArray<FHoudiniBakedOutput>& InBakedOutputs,
 		bool bInReplaceActors,
 		bool bInReplaceAssets,
-		const FString& BakePath,
+		const FDirectoryPath& BakePath,
 		FHoudiniEngineOutputStats& BakeStats,
-		TSet<FString> & ClearedLayers);
+		TSet<FString> & ClearedLayers,
+		TArray<UPackage*>& OutPackagesToSave);
 
 	static bool BakeLandscapeLayer(
 		FHoudiniPackageParams& PackageParams, 
-		UHoudiniLandscapeTargetLayerOutput& LayerOutput, 
+		UHoudiniLandscapeTargetLayerOutput& LayerOutput,
+		bool bInReplaceActors,
+		bool bInReplaceAssets,
 		TArray<UPackage*>& OutPackagesToSave,
 		FHoudiniEngineOutputStats& BakeStats,
 		TSet<FString>& ClearedLayers);
 
 	static TArray<FHoudiniEngineBakedActor>  MoveCookedToBakedLandscapes(
-		const FHoudiniPackageParams& InBakedObjectPackageParams,
+		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		const FName & OutlinerFolder,
 		const TArray<UHoudiniOutput*>& InOutputs, 
-		bool bReplaceExistingActors);
+		bool bInReplaceActors,
+		bool bInReplaceAssets,
+		const FDirectoryPath& BakeFolder,
+		TArray<UPackage*>& OutPackagesToSave,
+		FHoudiniEngineOutputStats& BakeStats);
 
 	static ULandscapeLayerInfoObject* CreateBakedLandscapeLayerInfoObject(
 		const FHoudiniPackageParams& PackageParams, 
 		ALandscape* Landscape, 
-		ULandscapeLayerInfoObject* LandscapeLayerInfoObject, 
+		ULandscapeLayerInfoObject* LandscapeLayerInfoObject,
 		TArray<UPackage*>& OutPackagesToSave,
 		FHoudiniEngineOutputStats& BakeStats);
+
+	static void BakeMaterials(
+		const UHoudiniLandscapeTargetLayerOutput & Layer,
+		const FHoudiniPackageParams& PackageParams,
+		TArray<UPackage*>& OutPackagesToSave,
+		FHoudiniEngineOutputStats& BakeStats);
+
+	static void MoveToBakeFolder();
+
+	template<typename UObjectType>
+	static UObjectType* BakeGeneric(
+		UObjectType* CookedObject,
+		const FHoudiniPackageParams& PackageParams,
+		const FString& ObjectName,
+		TArray<UPackage*>& OutPackagesToSave,
+		FHoudiniEngineOutputStats& BakeStats);
+
 };
 
