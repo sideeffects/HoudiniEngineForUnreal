@@ -219,12 +219,6 @@ FHoudiniApi::GetAssetLibraryFilePath = &FHoudiniApi::GetAssetLibraryFilePathEmpt
 FHoudiniApi::GetAssetLibraryIdsFuncPtr
 FHoudiniApi::GetAssetLibraryIds = &FHoudiniApi::GetAssetLibraryIdsEmptyStub;
 
-FHoudiniApi::GetAttributeDictionaryArrayDataFuncPtr
-FHoudiniApi::GetAttributeDictionaryArrayData = &FHoudiniApi::GetAttributeDictionaryArrayDataEmptyStub;
-
-FHoudiniApi::GetAttributeDictionaryDataFuncPtr
-FHoudiniApi::GetAttributeDictionaryData = &FHoudiniApi::GetAttributeDictionaryDataEmptyStub;
-
 FHoudiniApi::GetAttributeFloat64ArrayDataFuncPtr
 FHoudiniApi::GetAttributeFloat64ArrayData = &FHoudiniApi::GetAttributeFloat64ArrayDataEmptyStub;
 
@@ -882,12 +876,6 @@ FHoudiniApi::SessionSyncInfo_Create = &FHoudiniApi::SessionSyncInfo_CreateEmptyS
 FHoudiniApi::SetAnimCurveFuncPtr
 FHoudiniApi::SetAnimCurve = &FHoudiniApi::SetAnimCurveEmptyStub;
 
-FHoudiniApi::SetAttributeDictionaryArrayDataFuncPtr
-FHoudiniApi::SetAttributeDictionaryArrayData = &FHoudiniApi::SetAttributeDictionaryArrayDataEmptyStub;
-
-FHoudiniApi::SetAttributeDictionaryDataFuncPtr
-FHoudiniApi::SetAttributeDictionaryData = &FHoudiniApi::SetAttributeDictionaryDataEmptyStub;
-
 FHoudiniApi::SetAttributeFloat64ArrayDataFuncPtr
 FHoudiniApi::SetAttributeFloat64ArrayData = &FHoudiniApi::SetAttributeFloat64ArrayDataEmptyStub;
 
@@ -1219,8 +1207,6 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetAssetInfo = (GetAssetInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetInfo"));
 	FHoudiniApi::GetAssetLibraryFilePath = (GetAssetLibraryFilePathFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetLibraryFilePath"));
 	FHoudiniApi::GetAssetLibraryIds = (GetAssetLibraryIdsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetLibraryIds"));
-	FHoudiniApi::GetAttributeDictionaryArrayData = (GetAttributeDictionaryArrayDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeDictionaryArrayData"));
-	FHoudiniApi::GetAttributeDictionaryData = (GetAttributeDictionaryDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeDictionaryData"));
 	FHoudiniApi::GetAttributeFloat64ArrayData = (GetAttributeFloat64ArrayDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeFloat64ArrayData"));
 	FHoudiniApi::GetAttributeFloat64Data = (GetAttributeFloat64DataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeFloat64Data"));
 	FHoudiniApi::GetAttributeFloatArrayData = (GetAttributeFloatArrayDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeFloatArrayData"));
@@ -1440,8 +1426,6 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::SaveNodeToFile = (SaveNodeToFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveNodeToFile"));
 	FHoudiniApi::SessionSyncInfo_Create = (SessionSyncInfo_CreateFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SessionSyncInfo_Create"));
 	FHoudiniApi::SetAnimCurve = (SetAnimCurveFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAnimCurve"));
-	FHoudiniApi::SetAttributeDictionaryArrayData = (SetAttributeDictionaryArrayDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeDictionaryArrayData"));
-	FHoudiniApi::SetAttributeDictionaryData = (SetAttributeDictionaryDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeDictionaryData"));
 	FHoudiniApi::SetAttributeFloat64ArrayData = (SetAttributeFloat64ArrayDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeFloat64ArrayData"));
 	FHoudiniApi::SetAttributeFloat64Data = (SetAttributeFloat64DataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeFloat64Data"));
 	FHoudiniApi::SetAttributeFloat64UniqueData = (SetAttributeFloat64UniqueDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeFloat64UniqueData"));
@@ -1599,8 +1583,6 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetAssetInfo = &FHoudiniApi::GetAssetInfoEmptyStub;
 	FHoudiniApi::GetAssetLibraryFilePath = &FHoudiniApi::GetAssetLibraryFilePathEmptyStub;
 	FHoudiniApi::GetAssetLibraryIds = &FHoudiniApi::GetAssetLibraryIdsEmptyStub;
-	FHoudiniApi::GetAttributeDictionaryArrayData = &FHoudiniApi::GetAttributeDictionaryArrayDataEmptyStub;
-	FHoudiniApi::GetAttributeDictionaryData = &FHoudiniApi::GetAttributeDictionaryDataEmptyStub;
 	FHoudiniApi::GetAttributeFloat64ArrayData = &FHoudiniApi::GetAttributeFloat64ArrayDataEmptyStub;
 	FHoudiniApi::GetAttributeFloat64Data = &FHoudiniApi::GetAttributeFloat64DataEmptyStub;
 	FHoudiniApi::GetAttributeFloatArrayData = &FHoudiniApi::GetAttributeFloatArrayDataEmptyStub;
@@ -1820,8 +1802,6 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::SaveNodeToFile = &FHoudiniApi::SaveNodeToFileEmptyStub;
 	FHoudiniApi::SessionSyncInfo_Create = &FHoudiniApi::SessionSyncInfo_CreateEmptyStub;
 	FHoudiniApi::SetAnimCurve = &FHoudiniApi::SetAnimCurveEmptyStub;
-	FHoudiniApi::SetAttributeDictionaryArrayData = &FHoudiniApi::SetAttributeDictionaryArrayDataEmptyStub;
-	FHoudiniApi::SetAttributeDictionaryData = &FHoudiniApi::SetAttributeDictionaryDataEmptyStub;
 	FHoudiniApi::SetAttributeFloat64ArrayData = &FHoudiniApi::SetAttributeFloat64ArrayDataEmptyStub;
 	FHoudiniApi::SetAttributeFloat64Data = &FHoudiniApi::SetAttributeFloat64DataEmptyStub;
 	FHoudiniApi::SetAttributeFloat64UniqueData = &FHoudiniApi::SetAttributeFloat64UniqueDataEmptyStub;
@@ -2362,20 +2342,6 @@ FHoudiniApi::GetAssetLibraryFilePathEmptyStub(const HAPI_Session * session, HAPI
 
 HAPI_Result
 FHoudiniApi::GetAssetLibraryIdsEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId * asset_library_ids_array, int start, int length)
-{
-	return HAPI_RESULT_FAILURE;
-}
-
-
-HAPI_Result
-FHoudiniApi::GetAttributeDictionaryArrayDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, HAPI_AttributeInfo* attr_info, HAPI_StringHandle* data_fixed_array, int data_fixed_length, int* sizes_fixed_array, int start, int sizes_fixed_length)
-{
-	return HAPI_RESULT_FAILURE;
-}
-
-
-HAPI_Result
-FHoudiniApi::GetAttributeDictionaryDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, HAPI_AttributeInfo* attr_info, HAPI_StringHandle* data_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -3909,20 +3875,6 @@ FHoudiniApi::SessionSyncInfo_CreateEmptyStub()
 
 HAPI_Result
 FHoudiniApi::SetAnimCurveEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int parm_index, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count)
-{
-	return HAPI_RESULT_FAILURE;
-}
-
-
-HAPI_Result
-FHoudiniApi::SetAttributeDictionaryArrayDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const char** data_fixed_array, int data_fixed_length, const int* sizes_fixed_array, int start, int sizes_fixed_length)
-{
-	return HAPI_RESULT_FAILURE;
-}
-
-
-HAPI_Result
-FHoudiniApi::SetAttributeDictionaryDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const char** data_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
