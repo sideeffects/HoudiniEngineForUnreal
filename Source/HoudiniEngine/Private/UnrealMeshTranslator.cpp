@@ -3257,7 +3257,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 {
     SCOPED_FUNCTION_TIMER();
 
-	AActor* ParentActor = StaticMeshComponent->GetOwner();
+	AActor* ParentActor = StaticMeshComponent ? StaticMeshComponent->GetOwner() : nullptr;
 
 	// Convert the Mesh using FMeshDescription
 	// Get references to the attributes we are interested in
@@ -3971,8 +3971,11 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	//---------------------------------------------------------------------------------------------------------------------
 
 	// Parse Data Layers
-	FHoudiniUnrealDataLayersCache Cache = FHoudiniUnrealDataLayersCache::MakeCache(ParentActor->GetWorld());
-	Cache.CreateHapiGroups(ParentActor, NodeId, 0);
+	if (IsValid(ParentActor))
+	{
+		FHoudiniUnrealDataLayersCache Cache = FHoudiniUnrealDataLayersCache::MakeCache(ParentActor->GetWorld());
+		Cache.CreateHapiGroups(ParentActor, NodeId, 0);
+	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// INPUT MESH NAME
