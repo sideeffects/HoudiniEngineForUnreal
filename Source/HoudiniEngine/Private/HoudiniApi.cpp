@@ -4028,7 +4028,7 @@ FHoudiniApi::SetAttributeStringDataEmptyStub(const HAPI_Session * session, HAPI_
 
 
 HAPI_Result
-FHoudiniApi::SetAttributeStringUniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const char* data, int data_length, int start_index, int num_indices)
+FHoudiniApi::SetAttributeStringUniqueDataEmptyStub(const HAPI_Session* session, HAPI_NodeId node_id, HAPI_PartId part_id, const char* name, const HAPI_AttributeInfo* attr_info, const char* data_array, int data_length, int start_index, int num_indices)
 {
 	return HAPI_RESULT_FAILURE;
 }
