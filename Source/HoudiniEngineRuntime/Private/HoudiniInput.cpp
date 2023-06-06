@@ -179,19 +179,6 @@ void UHoudiniInput::PostEditUndo()
 	 }
 	 else
 	 {
-		 if (Type == EHoudiniInputType::Asset)
-		 {
-			 // Mark the input asset object as changed, since only undo changing asset will get into here.
-			 // The input array will be empty when undo adding asset (only support single asset input object in an input now)
-			 for (auto & NextAssetInputObj : *InputObjectsPtr)
-			 {
-				 if (!IsValid(NextAssetInputObj))
-					 continue;
-
-				 NextAssetInputObj->MarkChanged(true);
-			 }
-		 }
-
 		 if (Type == EHoudiniInputType::World)
 		 {
 		 	if (WorldInputObjects.Num() == 0 && InputNodeId >= 0)
@@ -373,6 +360,7 @@ UHoudiniInput::Serialize(FArchive& Ar)
 
 	// On load, change the input selection from old input types to
 	// the new input types (to Geometry or World)
+	// Move the selected objects to the appropriate array
 	if (Ar.IsLoading()) 
 	{
 		switch (Type)
@@ -381,23 +369,46 @@ UHoudiniInput::Serialize(FArchive& Ar)
 			case EHoudiniInputType::GeometryCollection:
 			{
 				TArray<UHoudiniInputObject*>* InputObjects = GetHoudiniInputObjectArray(Type);
-				for (auto CurObj : *InputObjects)
-					GeometryInputObjects.Add(CurObj);
-				InputObjects->Empty();
+				if (InputObjects && InputObjects->Num() > 0)
+				{
+					GeometryInputObjects.Empty();
+					for (auto CurObj : *InputObjects)
+						GeometryInputObjects.Add(CurObj);
+				}
+
+				// Change to a geometry input
+				Type = EHoudiniInputType::Geometry;
 			}
 
 			case EHoudiniInputType::Asset:
 			case EHoudiniInputType::Landscape:
 			{
+				WorldInputObjects.Empty();
 				TArray<UHoudiniInputObject*>* InputObjects = GetHoudiniInputObjectArray(Type);
-				for (auto CurObj : *InputObjects)
-					WorldInputObjects.Add(CurObj);
-				InputObjects->Empty();
+				if (InputObjects && InputObjects->Num() > 0)
+				{
+					WorldInputObjects.Empty();
+					for (auto CurObj : *InputObjects)
+						WorldInputObjects.Add(CurObj);
+				}
+
+				// Change to a world input
+				Type = EHoudiniInputType::World;
 			}
 
 			default:
 				break;
 		}
+
+		// Clean legacy input object arrays
+		if(AssetInputObjects.Num() > 0)
+			AssetInputObjects.Empty();
+		if (LandscapeInputObjects.Num() > 0)
+			LandscapeInputObjects.Empty();
+		if (GeometryCollectionInputObjects.Num() > 0)
+			GeometryCollectionInputObjects.Empty();
+		if (SkeletalInputObjects.Num() > 0)
+			SkeletalInputObjects.Empty();
 	}
 }
 
@@ -443,30 +454,13 @@ UHoudiniInput::GetBounds()
 	}
 	break;
 
-	case EHoudiniInputType::Asset:
-	{
-		for (int32 Idx = 0; Idx < AssetInputObjects.Num(); ++Idx)
-		{
-			UHoudiniInputHoudiniAsset* CurInAsset = Cast<UHoudiniInputHoudiniAsset>(AssetInputObjects[Idx]);
-			if (!IsValid(CurInAsset))
-				continue;
-
-			UHoudiniAssetComponent* CurInHAC = CurInAsset->GetHoudiniAssetComponent();
-			if (!IsValid(CurInHAC))
-				continue;
-
-			BoxBounds += CurInHAC->GetAssetBounds(nullptr, false);
-		}
-	}
-	break;
-
 	case EHoudiniInputType::World:
 	{
 		for (int32 Idx = 0; Idx < WorldInputObjects.Num(); ++Idx)
 		{
-			UHoudiniInputActor* CurInActor;
-			UHoudiniInputHoudiniAsset* CurInAsset;
-			UHoudiniInputLandscape* CurInLandscape;
+			UHoudiniInputActor* CurInActor = nullptr;
+			UHoudiniInputHoudiniAsset* CurInAsset = nullptr;
+			UHoudiniInputLandscape* CurInLandscape = nullptr;
 			if (IsValid(CurInActor = Cast<UHoudiniInputActor>(WorldInputObjects[Idx])))
 			{
 				AActor* Actor = CurInActor->GetActor();
@@ -502,36 +496,10 @@ UHoudiniInput::GetBounds()
 	}
 	break;
 
+	case EHoudiniInputType::Asset:
 	case EHoudiniInputType::Landscape:
-	{
-		for (int32 Idx = 0; Idx < LandscapeInputObjects.Num(); ++Idx)
-		{
-			UHoudiniInputLandscape* CurInLandscape = Cast<UHoudiniInputLandscape>(LandscapeInputObjects[Idx]);
-			if (!IsValid(CurInLandscape))
-				continue;
-
-			ALandscapeProxy* CurLandscape = CurInLandscape->GetLandscapeProxy();
-			if (!IsValid(CurLandscape))
-				continue;
-
-			FVector Origin, Extent;
-			CurLandscape->GetActorBounds(false, Origin, Extent);
-
-			BoxBounds += FBox::BuildAABB(Origin, Extent);
-		}
-	}
-	break;
 	case EHoudiniInputType::GeometryCollection:
-	{
-		// TODO: Can probably iterate through the GC objects to properly identify the bounds.
-	}
-	break;
-
-	case EHoudiniInputType::Skeletal:
-	{
-		// TODO: return SK mesh bounds
-	}
-	break;
+		HOUDINI_LOG_WARNING(TEXT("Still using legacy houdini input type!"));
 
 	case EHoudiniInputType::Invalid:
 	default:
@@ -679,21 +647,9 @@ UHoudiniInput::InputTypeToString(const EHoudiniInputType& InInputType)
 		}
 		break;
 
-		case EHoudiniInputType::Asset:
-		{
-			InputTypeStr = TEXT("Old Asset Input");
-		}
-		break;
-
 		case EHoudiniInputType::Curve:
 		{
 			InputTypeStr = TEXT("Curve Input");
-		}
-		break;
-
-		case EHoudiniInputType::Landscape:
-		{
-			InputTypeStr = TEXT("Old Landscape Input");
 		}
 		break;
 
@@ -703,14 +659,25 @@ UHoudiniInput::InputTypeToString(const EHoudiniInputType& InInputType)
 		}
 		break;
 
+
+		case EHoudiniInputType::Asset:
+		{
+			InputTypeStr = TEXT("Legacy Asset Input");
+		}
+		break;
+		case EHoudiniInputType::Landscape:
+		{
+			InputTypeStr = TEXT("Legacy Landscape Input");
+		}
+		break;
 		case EHoudiniInputType::Skeletal:
 		{
-			InputTypeStr = TEXT("Old Skeletal Mesh Input");
+			InputTypeStr = TEXT("Legacy Skeletal Mesh Input");
 		}
 		break;
 		case EHoudiniInputType::GeometryCollection:
 		{
-			InputTypeStr = TEXT("Old GeometryCollection Input");
+			InputTypeStr = TEXT("Legacy GeometryCollection Input");
 		}
 		break;
 	}
@@ -722,37 +689,29 @@ EHoudiniInputType
 UHoudiniInput::StringToInputType(const FString& InInputTypeString)
 {
 	// Note: Geometry is a prefix of GeometryCollection, so need to make sure to do GeometryCollection first!
-	if (InInputTypeString.StartsWith(TEXT("Old GeometryCollection"), ESearchCase::IgnoreCase))
+	if (InInputTypeString.StartsWith(TEXT("Legacy GeometryCollection"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::GeometryCollection;
 	}
-	else if (InInputTypeString.StartsWith(TEXT("Old Geometry"), ESearchCase::IgnoreCase))
-	{
-		return EHoudiniInputType::Geometry;
-	}
-	else if (InInputTypeString.StartsWith(TEXT("Old Asset"), ESearchCase::IgnoreCase))
+	else if (InInputTypeString.StartsWith(TEXT("Legacy Asset"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::Asset;
 	}
-	else if (InInputTypeString.StartsWith(TEXT("Curve"), ESearchCase::IgnoreCase))
-	{
-		return EHoudiniInputType::Curve;
-	}
-	else if (InInputTypeString.StartsWith(TEXT("Old Landscape"), ESearchCase::IgnoreCase))
+	else if (InInputTypeString.StartsWith(TEXT("Legacy Landscape"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::Landscape;
 	}
-	else if (InInputTypeString.StartsWith(TEXT("Old World"), ESearchCase::IgnoreCase))
-	{
-		return EHoudiniInputType::World;
-	}
-	else if (InInputTypeString.StartsWith(TEXT("Old Skeletal"), ESearchCase::IgnoreCase))
+	else if (InInputTypeString.StartsWith(TEXT("Legacy Skeletal"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::Skeletal;
 	}
 	else if (InInputTypeString.StartsWith(TEXT("Geometry"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::Geometry;
+	}
+	else if (InInputTypeString.StartsWith(TEXT("Curve"), ESearchCase::IgnoreCase))
+	{
+		return EHoudiniInputType::Curve;
 	}
 	else if (InInputTypeString.StartsWith(TEXT("World"), ESearchCase::IgnoreCase))
 	{
@@ -853,11 +812,8 @@ UHoudiniInput::GetDefaultXTransformType()
 	{
 		case EHoudiniInputType::Curve:
 		case EHoudiniInputType::Geometry:
-		case EHoudiniInputType::Skeletal:
-		case EHoudiniInputType::GeometryCollection: // TODO; Double check this.
 			return EHoudiniXformType::None;
-		case EHoudiniInputType::Asset:
-		case EHoudiniInputType::Landscape:
+
 		case EHoudiniInputType::World:
 			return EHoudiniXformType::IntoThisObject;
 	}
@@ -934,11 +890,6 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 	// Check previous input type
 	switch (PreviousType) 
 	{
-		case EHoudiniInputType::Asset:
-		{
-			break;
-		}
-
 		case EHoudiniInputType::Curve:
 		{
 			// detach the input curves from the asset component
@@ -997,49 +948,8 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 		}
 
 		case EHoudiniInputType::Geometry:
-		{
-			break;
-		}
-
-		case EHoudiniInputType::Landscape:
-		{
-			TArray<UHoudiniInputObject*>* InputObjectsArray = GetHoudiniInputObjectArray(PreviousType);
-
-			if (!InputObjectsArray)
-				break;
-		
-			for (int32 Idx = 0; Idx < InputObjectsArray->Num(); ++Idx)
-			{
-				UHoudiniInputObject* InputObj = (*InputObjectsArray)[Idx];
-
-				if (!IsValid(InputObj))
-					continue;
-
-				UHoudiniInputLandscape* InputLandscape = Cast<UHoudiniInputLandscape>(InputObj);
-
-				if (!IsValid(InputLandscape))
-					continue;
-
-				// do something?
-			}
-		
-			break;
-		}
-
-		case EHoudiniInputType::Skeletal:
-		{
-			break;
-		}
-
-		case EHoudiniInputType::GeometryCollection:
-		{
-			break;
-		}
-
 		case EHoudiniInputType::World:
-		{
 			break;
-		}
 
 		default:
 			break;
@@ -1056,7 +966,6 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 	switch (InInputType) 
 	{
 		case EHoudiniInputType::World:
-		case EHoudiniInputType::Asset:
 		{
 			UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(GetOuter());
 			if (OuterHAC && !bImportAsReference) 
@@ -1133,31 +1042,8 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 		break;
 
 		case EHoudiniInputType::Geometry:
-		{
-
-		}
-		break;
-
-		case EHoudiniInputType::Landscape:
-		{
-			// Need to do anything on select?	
-		}
-		break;
-
-		case EHoudiniInputType::Skeletal:
-		{
-		}
-		break;
-		
-		case EHoudiniInputType::GeometryCollection:
-		{
-		}
-		break;
-		
 		default:
-		{
-		}
-		break;
+			break;
 	}
 }
 
@@ -1334,6 +1220,7 @@ void UHoudiniInput::SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes)
 
 void UHoudiniInput::InvalidateData()
 {
+	/*
 	// If valid, mark our input node for deletion
 	if (InputNodeId >= 0)
 	{
@@ -1347,6 +1234,7 @@ void UHoudiniInput::InvalidateData()
 		
 		InputNodeId = -1;
 	}
+	*/
 
 	for(UHoudiniInputObject* InputObject : GeometryInputObjects)
 	{
@@ -1732,14 +1620,15 @@ UHoudiniInput::GetHoudiniInputObjectArray(const EHoudiniInputType& InType)
 	case EHoudiniInputType::Curve:
 		return &CurveInputObjects;
 
+	case EHoudiniInputType::World:
+		return &WorldInputObjects;
+
+	// TODO: Deprecated arrays! remove after H20
 	case EHoudiniInputType::Asset:
 		return &AssetInputObjects;
 
 	case EHoudiniInputType::Landscape:
 		return &LandscapeInputObjects;
-
-	case EHoudiniInputType::World:
-		return &WorldInputObjects;
 
 	case EHoudiniInputType::Skeletal:
 		return &SkeletalInputObjects;
@@ -1796,14 +1685,15 @@ UHoudiniInput::GetHoudiniInputObjectArray(const EHoudiniInputType& InType) const
 		case EHoudiniInputType::Curve:
 			return &CurveInputObjects;
 
+		case EHoudiniInputType::World:
+			return &WorldInputObjects;
+		
+		// TODO: Deprecated arrays! remove after H20
 		case EHoudiniInputType::Asset:
 			return &AssetInputObjects;
 
 		case EHoudiniInputType::Landscape:
 			return &LandscapeInputObjects;
-
-		case EHoudiniInputType::World:
-			return &WorldInputObjects;
 
 		case EHoudiniInputType::Skeletal:
 			return &SkeletalInputObjects;
@@ -1910,11 +1800,7 @@ UHoudiniInput::DeleteInputObjectAt(const EHoudiniInputType& InType, const int32&
 
 	bool bBlueprintStructureModified = false;
 
-	if (Type == EHoudiniInputType::Asset)
-	{
-		// ... TODO operations for removing asset input type
-	}
-	else if (Type == EHoudiniInputType::Curve)
+	if (Type == EHoudiniInputType::Curve)
 	{
 		UHoudiniInputHoudiniSplineComponent* HoudiniSplineInputObject = Cast<UHoudiniInputHoudiniSplineComponent>((*InputObjectsPtr)[AtIndex]);
 		if (HoudiniSplineInputObject)
@@ -1925,18 +1811,6 @@ UHoudiniInput::DeleteInputObjectAt(const EHoudiniInputType& InType, const int32&
 	else if (Type == EHoudiniInputType::Geometry) 
 	{
 		// ... TODO operations for removing geometry input type
-	}
-	else if (Type == EHoudiniInputType::Landscape) 
-	{
-		// ... TODO operations for removing landscape input type
-	}
-	else if (Type == EHoudiniInputType::Skeletal) 
-	{
-		// ... TODO operations for removing skeletal input type
-	}
-	else if (Type == EHoudiniInputType::GeometryCollection) 
-	{
-		// ... TODO operations for removing geometrycollection input type
 	}
 	else if (Type == EHoudiniInputType::World) 
 	{
@@ -2300,28 +2174,10 @@ UHoudiniInput::GetAllowedClasses(const EHoudiniInputType& InInputType)
 			AllowedClasses.Add(UHoudiniSplineComponent::StaticClass());
 			break;
 
-		case EHoudiniInputType::Asset:
-			AllowedClasses.Add(UHoudiniAssetComponent::StaticClass());
-			break;
-
-		case EHoudiniInputType::Landscape:
-			AllowedClasses.Add(ALandscapeProxy::StaticClass());
-			break;
-
 		case EHoudiniInputType::World:
 			AllowedClasses.Add(AActor::StaticClass());
 			AllowedClasses.Add(UHoudiniAssetComponent::StaticClass());
 			AllowedClasses.Add(ALandscapeProxy::StaticClass());
-			break;
-
-		case EHoudiniInputType::Skeletal:
-			AllowedClasses.Add(USkeletalMesh::StaticClass());
-			break;
-
-		case EHoudiniInputType::GeometryCollection:
-			AllowedClasses.Add(UGeometryCollection::StaticClass());
-			AllowedClasses.Add(UGeometryCollectionComponent::StaticClass());
-			AllowedClasses.Add(AGeometryCollectionActor::StaticClass());
 			break;
 
 		default:
@@ -2614,103 +2470,11 @@ UHoudiniInput::SetUseLegacyInputCurve(const bool& InValue)
 	MarkAllInputObjectsChanged(true);
 }
 
-#if WITH_EDITOR
-FText 
-UHoudiniInput::GetCurrentSelectionText() const 
-{
-	FText CurrentSelectionText;
-	switch (Type) 
-	{
-		case EHoudiniInputType::World:
-		{
-			for (auto CurObj : WorldInputObjects)
-			{
-				UHoudiniInputLandscape* InputLandscape;
-				UHoudiniInputHoudiniAsset* InputAsset;
-				if (IsValid(InputLandscape = Cast<UHoudiniInputLandscape>(CurObj)))
-				{
-					if (!IsValid(InputLandscape))
-						continue;
-
-					ALandscapeProxy* LandscapeProxy = InputLandscape->GetLandscapeProxy();
-					if (!IsValid(LandscapeProxy))
-						continue;
-
-					CurrentSelectionText = FText::FromString(LandscapeProxy->GetActorLabel());
-					break;
-				}
-				else if (IsValid(InputAsset = Cast<UHoudiniInputHoudiniAsset>(CurObj)))
-				{
-					UHoudiniAssetComponent* HAC = InputAsset->GetHoudiniAssetComponent();
-					if (!IsValid(HAC))
-						return CurrentSelectionText;
-
-					UHoudiniAsset* HoudiniAsset = HAC->GetHoudiniAsset();
-					if (!IsValid(HoudiniAsset))
-						return CurrentSelectionText;
-
-					CurrentSelectionText = FText::FromString(HoudiniAsset->GetName());
-					break;
-				}
-
-			}
-		}
-		break;
-
-		case EHoudiniInputType::Landscape :
-		{
-			if (LandscapeInputObjects.Num() > 0) 
-			{
-				UHoudiniInputObject* InputObject = LandscapeInputObjects[0];
-
-				UHoudiniInputLandscape* InputLandscape = Cast<UHoudiniInputLandscape>(InputObject);
-				if (!IsValid(InputLandscape))
-					return CurrentSelectionText;
-
-				ALandscapeProxy* LandscapeProxy = InputLandscape->GetLandscapeProxy();
-				if (!IsValid(LandscapeProxy))
-					return CurrentSelectionText;
-
-				CurrentSelectionText = FText::FromString(LandscapeProxy->GetActorLabel());
-			}	
-		}
-		break;
-
-		case EHoudiniInputType::Asset :
-		{
-			if (AssetInputObjects.Num() > 0) 
-			{
-				UHoudiniInputObject* InputObject = AssetInputObjects[0];
-
-				UHoudiniInputHoudiniAsset* HoudiniAssetInput = Cast<UHoudiniInputHoudiniAsset>(InputObject);
-				if (!IsValid(HoudiniAssetInput))
-					return CurrentSelectionText;
-
-				UHoudiniAssetComponent* HAC = HoudiniAssetInput->GetHoudiniAssetComponent();
-				if (!IsValid(HAC))
-					return CurrentSelectionText;
-
-				UHoudiniAsset* HoudiniAsset = HAC->GetHoudiniAsset();
-				if (!IsValid(HoudiniAsset))
-					return CurrentSelectionText;
-
-				CurrentSelectionText = FText::FromString(HoudiniAsset->GetName());
-			}
-		}
-		break;
-
-		default:
-		break;
-	}
-	
-	return CurrentSelectionText;
-}
-#endif
 
 bool 
 UHoudiniInput::HasLandscapeExportTypeChanged () const 
 {
-	if (Type != EHoudiniInputType::Landscape)
+	if ((Type != EHoudiniInputType::Landscape) && (Type != EHoudiniInputType::World))
 		return false;
 
 	return bLandscapeHasExportTypeChanged;
@@ -2719,7 +2483,7 @@ UHoudiniInput::HasLandscapeExportTypeChanged () const
 void 
 UHoudiniInput::SetHasLandscapeExportTypeChanged(const bool InChanged) 
 {
-	if (Type != EHoudiniInputType::Landscape)
+	if ((Type != EHoudiniInputType::Landscape) && (Type != EHoudiniInputType::World))
 		return;
 
 	bLandscapeHasExportTypeChanged = InChanged;
@@ -2729,7 +2493,6 @@ bool
 UHoudiniInput::UpdateWorldSelectionFromBoundSelectors()
 {
 	TArray<AActor*>* BoundSelectorObjects = GetBoundSelectorObjectArray();
-
 	if (!BoundSelectorObjects)
 		return false;
 
@@ -2881,14 +2644,6 @@ void UHoudiniInput::ForAllHoudiniInputObjects(TFunctionRef<void(UHoudiniInputObj
 		}
 	}
 
-	if (ShouldIncludeFn(EHoudiniInputType::Asset))
-	{
-		for(UHoudiniInputObject* InputObject : AssetInputObjects)
-		{
-			Fn(InputObject);
-		}
-	}
-
 	if (ShouldIncludeFn(EHoudiniInputType::Curve))
 	{
 		for(UHoudiniInputObject* InputObject : CurveInputObjects)
@@ -2897,33 +2652,9 @@ void UHoudiniInput::ForAllHoudiniInputObjects(TFunctionRef<void(UHoudiniInputObj
 		}
 	}
 
-	if (ShouldIncludeFn(EHoudiniInputType::Landscape))
-	{
-		for(UHoudiniInputObject* InputObject : LandscapeInputObjects)
-		{
-			Fn(InputObject);
-		}
-	}
-
 	if (ShouldIncludeFn(EHoudiniInputType::World))
 	{
 		for(UHoudiniInputObject* InputObject : WorldInputObjects)
-		{
-			Fn(InputObject);
-		}
-	}
-
-	if (ShouldIncludeFn(EHoudiniInputType::Skeletal))
-	{
-		for(UHoudiniInputObject* InputObject : SkeletalInputObjects)
-		{
-			Fn(InputObject);
-		}
-	}
-
-	if (ShouldIncludeFn(EHoudiniInputType::GeometryCollection))
-	{
-		for(UHoudiniInputObject* InputObject : GeometryCollectionInputObjects)
 		{
 			Fn(InputObject);
 		}

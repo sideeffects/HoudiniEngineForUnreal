@@ -369,10 +369,6 @@ public:
 
 	void SetHasLandscapeExportTypeChanged(const bool InChanged);
 
-#if WITH_EDITOR
-	FText GetCurrentSelectionText() const;
-#endif
-
 	EHoudiniLandscapeExportType GetLandscapeExportType() const { return LandscapeExportType; };
 
 	void SetLandscapeExportType(const EHoudiniLandscapeExportType InType) { LandscapeExportType = InType; };
@@ -577,6 +573,8 @@ protected:
 
 	//-------------------------------------------------------------------------------------------------------------------------
 	// Asset inputs
+	
+	// TODO: deprecated: usded only for deserialization!
 	UPROPERTY()
 	TArray<UHoudiniInputObject*> AssetInputObjects;
 
@@ -603,6 +601,8 @@ protected:
 	
 	//-------------------------------------------------------------------------------------------------------------------------
 	// Landscape inputs
+
+	// TODO: deprecated: usded only for deserialization!
 	UPROPERTY()
 	TArray<UHoudiniInputObject*> LandscapeInputObjects;
 
@@ -632,10 +632,14 @@ protected:
 
 	//-------------------------------------------------------------------------------------------------------------------------
 	// Skeletal Inputs
+
+	// TODO: deprecated: usded only for deserialization!
 	UPROPERTY()
 	TArray<UHoudiniInputObject*> SkeletalInputObjects;
 
+	//-------------------------------------------------------------------------------------------------------------------------
 	// GeometryCollection inputs
+	// TODO: deprecated: usded only for deserialization!
 	UPROPERTY()
 	TArray<UHoudiniInputObject*> GeometryCollectionInputObjects;
 

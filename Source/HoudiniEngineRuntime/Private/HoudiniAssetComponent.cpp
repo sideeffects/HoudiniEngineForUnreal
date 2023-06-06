@@ -2902,18 +2902,12 @@ UHoudiniAssetComponent::ApplyInputPresets()
 	for (auto CurrentInput : Inputs)
 	{		
 		int32 NumGeo = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::Geometry);
-		int32 NumAsset = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::Asset);
 		int32 NumWorld = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::World);
-		int32 NumLandscape = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::Landscape);
 
 		EHoudiniInputType NewInputType = EHoudiniInputType::Invalid;
-		if (NumLandscape > 0 && NumLandscape >= NumGeo && NumLandscape >= NumAsset && NumLandscape >= NumWorld)
-			NewInputType = EHoudiniInputType::World; // Landscape;
-		else if (NumWorld > 0 && NumWorld >= NumGeo && NumWorld >= NumAsset && NumWorld >= NumLandscape)
+		if (NumWorld > 0 && NumWorld >= NumGeo)
 			NewInputType = EHoudiniInputType::World;
-		else if (NumAsset > 0 && NumAsset >= NumGeo && NumAsset >= NumWorld && NumAsset >= NumLandscape)
-			NewInputType = EHoudiniInputType::World; // Asset;
-		else if (NumGeo > 0 && NumGeo >= NumAsset && NumGeo >= NumWorld && NumGeo >= NumLandscape)
+		else if (NumGeo > 0 && NumGeo >= NumWorld)
 			NewInputType = EHoudiniInputType::Geometry;
 
 		if (NewInputType == EHoudiniInputType::Invalid)

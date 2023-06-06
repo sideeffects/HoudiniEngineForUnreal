@@ -360,18 +360,9 @@ FHoudiniInputTranslator::BuildAllInputs(
 			case EHoudiniInputType::Curve:
 				FHoudiniSplineTranslator::UpdateHoudiniInputCurves(CurrentInput);
 				break;
-			case EHoudiniInputType::Landscape:
-				//FUnrealLandscapeTranslator::UpdateHoudiniInputLandscapes(CurrentInput);
-				break;
-			case EHoudiniInputType::Asset:
-				break;
 			case EHoudiniInputType::Geometry:
 				break;
-			case EHoudiniInputType::Skeletal:
-				break;
 			case EHoudiniInputType::World:
-				break;
-			case EHoudiniInputType::GeometryCollection:
 				break;
 			default:
 				break;
@@ -411,6 +402,7 @@ FHoudiniInputTranslator::DisconnectInput(UHoudiniInput* InputToDestroy, const EH
 		}
 	}
 
+	/*
 	if (InputType == EHoudiniInputType::Asset)
 	{
 		// TODO:
@@ -424,6 +416,7 @@ FHoudiniInputTranslator::DisconnectInput(UHoudiniInput* InputToDestroy, const EH
 
 		InputToDestroy->SetInputNodeId(-1);
 	}
+	*/
 
 	return true;
 }
@@ -437,10 +430,12 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 	if (!InputToDestroy->CanDeleteHoudiniNodes())
 		return false;
 
+	/*
 	// If we're destroying an asset input, don't destroy anything as we don't want to destroy the input HDA
 	// a simple disconnect is sufficient
 	if (InputType == EHoudiniInputType::Asset)
 		return true;
+	*/
 
 	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
 	IUnrealObjectInputManager const* const Manager = bUseRefCountedInputSystem ? FUnrealObjectInputManager::Get() : nullptr;
@@ -938,9 +933,7 @@ FHoudiniInputTranslator::UpdateTransformType(UHoudiniInput* InInput)
 	// TODO: Also do it for Geo IN with multiple objects? or BP?
 	HAPI_NodeId ParentNodeId = InInput->GetInputNodeId();
 	if ((ParentNodeId >= 0)
-		&& (InputType != EHoudiniInputType::Geometry) 
-		&& (InputType != EHoudiniInputType::Asset) 
-		&& (InputType != EHoudiniInputType::GeometryCollection))
+		&& (InputType != EHoudiniInputType::Geometry))
 	{
 		HAPI_NodeId InputObjectNodeId = -1;
 		int32 NumberOfInputMeshes = InInput->GetNumberOfInputMeshes(InputType);
@@ -1035,15 +1028,11 @@ FHoudiniInputTranslator::UpdateTransformOffset(UHoudiniInput* InInput)
 
 	// Transform offsets are only for geometry inputs
 	EHoudiniInputType InputType = InInput->GetInputType();
-	if (InputType != EHoudiniInputType::Geometry
-		&& InputType != EHoudiniInputType::GeometryCollection)
-	{
-		// Nothing to change
+	if (InputType != EHoudiniInputType::Geometry)
 		return true;
-	}
 
 	// Get the input objects
-	TArray<UHoudiniInputObject*>* InputObjectsArray = InInput->GetHoudiniInputObjectArray(InInput->GetInputType());
+	TArray<UHoudiniInputObject*>* InputObjectsArray = InInput->GetHoudiniInputObjectArray(InputType);
 	if (!ensure(InputObjectsArray))
 		return false;
 	
