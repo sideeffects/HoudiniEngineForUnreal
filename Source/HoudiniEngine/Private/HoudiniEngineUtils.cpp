@@ -1257,7 +1257,7 @@ FHoudiniEngineUtils::GatherLandscapeInputs(
 		if (!CurrentInput)
 			continue;
 		
-		if (CurrentInput->GetInputType() == EHoudiniInputType::World || CurrentInput->GetInputType() == EHoudiniInputType::NewWorld)
+		if (CurrentInput->GetInputType() == EHoudiniInputType::World)
 		{
 			// Check if we have any landscapes as world inputs.
 			CurrentInput->ForAllHoudiniInputObjects([&AllInputLandscapes](UHoudiniInputObject* InputObject)

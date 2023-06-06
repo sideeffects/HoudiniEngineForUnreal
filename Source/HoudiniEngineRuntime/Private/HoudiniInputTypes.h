@@ -31,16 +31,16 @@
 #include "HoudiniEngineRuntimeCommon.h"
 
 // Maintain an iterable list of houdini input types
-static const EHoudiniInputType HoudiniInputTypeList[] = {
+static const EHoudiniInputType HoudiniInputTypeList[] = 
+{
 	EHoudiniInputType::Geometry,
 	EHoudiniInputType::Curve,
 	EHoudiniInputType::Asset,
 	EHoudiniInputType::Landscape,
 	EHoudiniInputType::World,
 	EHoudiniInputType::Skeletal,
-	EHoudiniInputType::GeometryCollection,
-	EHoudiniInputType::NewGeometry,
-	EHoudiniInputType::NewWorld};
+	EHoudiniInputType::GeometryCollection
+};
 
 UENUM()
 enum class EHoudiniXformType : uint8

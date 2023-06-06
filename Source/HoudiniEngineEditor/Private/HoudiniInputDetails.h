@@ -131,7 +131,7 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
 		// Add Geometry Inputs UI Widgets
-		static void AddGeometryInputUI(
+		static void AddLegacyGeometryInputUI(
 			IDetailCategoryBuilder& CategoryBuilder,
 			TSharedRef<SVerticalBox> InVerticalBox,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, 
@@ -205,7 +205,7 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
 		// Add World Inputs UI Widgets
-		static void AddWorldInputUI(
+		static void AddLegacyWorldInputUI(
 			IDetailCategoryBuilder& CategoryBuilder,
 			TSharedRef<SVerticalBox> VerticalBox,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
@@ -225,27 +225,27 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool);
 
 		// Add new Geometry UI widget
-		static void AddNewGeometryInputUI(
+		static void AddGeometryInputUI(
 			IDetailCategoryBuilder& CategoryBuilder,
 			TSharedRef<SVerticalBox> InVerticalBox,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool);
 
 		// Add new World UI widget
-		static void AddNewWorldInputUI(
+		static void AddWorldInputUI(
 			IDetailCategoryBuilder& CategoryBuilder,
 			TSharedRef<SVerticalBox> InVerticalBox,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 			const IDetailsView* DetailsView);
 		
-		static void Helper_CreateNewGeometryInputObjectCollapsed(
+		static void Helper_CreateGeometryInputObjectCollapsed(
 			IDetailCategoryBuilder& CategoryBuilder,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 			const FPlatformTypes::int32& InObjectIdx,
 			TSharedRef<SVerticalBox> InVerticalBox,
 			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool);
 
-		static void Helper_CreateNewGeometryInputObjectExpanded(
+		static void Helper_CreateGeometryInputObjectExpanded(
 			IDetailCategoryBuilder& CategoryBuilder,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 			const FPlatformTypes::int32& InObjectIdx,

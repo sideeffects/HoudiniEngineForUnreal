@@ -4103,8 +4103,6 @@ UHoudiniPublicAPIAssetWrapper::CreateAndPopulateAPIInput(const UHoudiniInput* In
 	const EHoudiniInputType InputType = InHoudiniInput->GetInputType();
 	switch (InputType)
 	{
-		// TODO: Check if NewGeometry needs to be separate
-		case EHoudiniInputType::NewGeometry:
 		case EHoudiniInputType::Geometry:
 			APIInputClass = UHoudiniPublicAPIGeoInput::StaticClass();
 			break;
@@ -4114,8 +4112,6 @@ UHoudiniPublicAPIAssetWrapper::CreateAndPopulateAPIInput(const UHoudiniInput* In
 		case EHoudiniInputType::Asset:
 			APIInputClass = UHoudiniPublicAPIAssetInput::StaticClass();
 			break;
-		// TODO: Check if NewWorld needs to be separate
-		case EHoudiniInputType::NewWorld:
 		case EHoudiniInputType::World:
 			APIInputClass = UHoudiniPublicAPIWorldInput::StaticClass();
 			break;

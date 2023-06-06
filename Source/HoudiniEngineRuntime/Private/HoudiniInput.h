@@ -146,9 +146,9 @@ public:
 	bool GetExportMaterialParameters() const		{ return bExportMaterialParameters; };
 	bool GetDirectlyConnectHdas() const			{ return bDirectlyConnectHdas; }
 	bool GetExportOptionsMenuExpanded() const		{ return bExportOptionsMenuExpanded; }
-	bool GetNewGeometryInputsMenuExpanded() const		{ return bNewGeometryInputsMenuExpanded; }
+	bool GetGeometryInputsMenuExpanded() const		{ return bGeometryInputsMenuExpanded; }
 	bool GetLandscapeOptionsMenuExpanded() const		{ return bLandscapeOptionsMenuExpanded; }
-	bool GetNewWorldInputsMenuExpanded() const		{ return bNewWorldInputsMenuExpanded; }
+	bool GetWorldInputsMenuExpanded() const		{ return bWorldInputsMenuExpanded; }
 	bool GetCurveInputsMenuExpanded() const			{ return bCurveInputsMenuExpanded; }
 	bool GetCurvePointSelectionMenuExpanded() const		{ return bCurvePointSelectionMenuExpanded; }
 	bool GetCurvePointSelectionUseAbsLocation() const	{ return bCurvePointSelectionUseAbsLocation; }
@@ -270,9 +270,9 @@ public:
 	void SetExportMaterialParameters(const bool& bInExportMaterialParameters)			{ bExportMaterialParameters = bInExportMaterialParameters; };
 	void SetDirectlyConnectHdas(const bool& bInDirectlyConnectHdas)					{ bDirectlyConnectHdas = bInDirectlyConnectHdas; }
 	void SetExportOptionsMenuExpanded(const bool& bInExportOptionsMenuExpanded) { bExportOptionsMenuExpanded = bInExportOptionsMenuExpanded; };
-	void SetNewGeometryInputsMenuExpanded(const bool& bInNewGeometryInputsMenuExpanded)		{ bNewGeometryInputsMenuExpanded = bInNewGeometryInputsMenuExpanded; }
+	void SetGeometryInputsMenuExpanded(const bool& bInGeometryInputsMenuExpanded)		{ bGeometryInputsMenuExpanded = bInGeometryInputsMenuExpanded; }
 	void SetLandscapeOptionsMenuExpanded(const bool& bInLandscapeOptionsMenuExpanded)		{ bLandscapeOptionsMenuExpanded = bInLandscapeOptionsMenuExpanded; }
-	void SetNewWorldInputsMenuExpanded(const bool& bInNewWorldInputsMenuExpanded)			{ bNewWorldInputsMenuExpanded = bInNewWorldInputsMenuExpanded; }
+	void SetWorldInputsMenuExpanded(const bool& bInWorldInputsMenuExpanded)			{ bWorldInputsMenuExpanded = bInWorldInputsMenuExpanded; }
 	void SetCurveInputsMenuExpanded(const bool& bInCurveInputsMenuExpanded)				{ bCurveInputsMenuExpanded = bInCurveInputsMenuExpanded; }
 	void SetCurvePointSelectionMenuExpanded(const bool& bInCurvePointSelectionMenuExpanded)		{ bCurvePointSelectionMenuExpanded = bInCurvePointSelectionMenuExpanded; }
 	void SetCurvePointSelectionUseAbsLocation(const bool & bInCurvePointSelectionUseAbsLocation)	{ bCurvePointSelectionUseAbsLocation = bInCurvePointSelectionUseAbsLocation;}
@@ -526,7 +526,7 @@ protected:
 
 	// Indicates whether the input selection list in the NewGeometry UI is collapsed
 	UPROPERTY()
-	bool bNewGeometryInputsMenuExpanded;
+	bool bGeometryInputsMenuExpanded;
 
 	// Indicates whether the landscape options menu is collapsed
 	UPROPERTY()
@@ -534,7 +534,7 @@ protected:
 	
 	// Indicates whether the input selection menu in the NewWorld UI is collapsed
 	UPROPERTY()
-	bool bNewWorldInputsMenuExpanded;
+	bool bWorldInputsMenuExpanded;
 
 	// Indicates whether the input selection menu in the new Curve UI is collapsed
 	UPROPERTY()

@@ -72,8 +72,6 @@ enum class EHoudiniInputType : uint8
 	World,
 	Skeletal,
 	GeometryCollection,
-	NewGeometry,
-	NewWorld
 };
 
 UENUM()

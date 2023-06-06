@@ -1206,11 +1206,11 @@ UHoudiniAssetBlueprintComponent::IsInputTypeSupported(EHoudiniInputType InType) 
 {
 	switch (InType)
 	{
-		case EHoudiniInputType::NewGeometry:
 		case EHoudiniInputType::Geometry:
 		case EHoudiniInputType::Curve:
 			return true;
 			break;
+
 		default:
 			break;
 	}

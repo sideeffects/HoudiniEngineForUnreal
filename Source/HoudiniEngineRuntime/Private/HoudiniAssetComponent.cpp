@@ -2869,31 +2869,31 @@ UHoudiniAssetComponent::ApplyInputPresets()
 		if (Object->IsA<ALandscapeProxy>())
 		{
 			// selecting a landscape 
-			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::NewWorld);
-			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::NewWorld, InsertNum, Object);
+			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::World);
+			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::World, InsertNum, Object);
 		}
 
 		// If the object is an actor, add a new world input
 		if (Object->IsA<AActor>())
 		{
 			// selecting an actor 
-			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::NewWorld);
-			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::NewWorld, InsertNum, Object);
+			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::World);
+			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::World, InsertNum, Object);
 		}
 
 		// If the object is a static mesh, add a new geometry input (TODO: or BP ? )
 		if (Object->IsA<UStaticMesh>())
 		{
 			// selecting a Staticn Mesh
-			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::NewGeometry);
-			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::NewGeometry, InsertNum, Object);
+			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::Geometry);
+			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::Geometry, InsertNum, Object);
 		}
 
 		if (Object->IsA<AHoudiniAssetActor>())
 		{
 			// selecting a Houdini Asset 
-			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::NewWorld);
-			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::NewWorld, InsertNum, Object);
+			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::World);
+			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::World, InsertNum, Object);
 		}
 	}
 
@@ -2901,26 +2901,26 @@ UHoudiniAssetComponent::ApplyInputPresets()
 	bool bBPStructureModified = false;
 	for (auto CurrentInput : Inputs)
 	{		
-		int32 NumGeo = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::NewGeometry);
+		int32 NumGeo = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::Geometry);
 		int32 NumAsset = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::Asset);
-		int32 NumWorld = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::NewWorld);
+		int32 NumWorld = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::World);
 		int32 NumLandscape = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::Landscape);
 
 		EHoudiniInputType NewInputType = EHoudiniInputType::Invalid;
 		if (NumLandscape > 0 && NumLandscape >= NumGeo && NumLandscape >= NumAsset && NumLandscape >= NumWorld)
-			NewInputType = EHoudiniInputType::NewWorld; // Landscape;
+			NewInputType = EHoudiniInputType::World; // Landscape;
 		else if (NumWorld > 0 && NumWorld >= NumGeo && NumWorld >= NumAsset && NumWorld >= NumLandscape)
-			NewInputType = EHoudiniInputType::NewWorld;
+			NewInputType = EHoudiniInputType::World;
 		else if (NumAsset > 0 && NumAsset >= NumGeo && NumAsset >= NumWorld && NumAsset >= NumLandscape)
-			NewInputType = EHoudiniInputType::NewWorld; // Asset;
+			NewInputType = EHoudiniInputType::World; // Asset;
 		else if (NumGeo > 0 && NumGeo >= NumAsset && NumGeo >= NumWorld && NumGeo >= NumLandscape)
-			NewInputType = EHoudiniInputType::NewGeometry;
+			NewInputType = EHoudiniInputType::Geometry;
 
 		if (NewInputType == EHoudiniInputType::Invalid)
 			continue;
 
 		// Change the input type, unless if it was preset to a different type and we have object for the preset type
-		if (CurrentInput->GetInputType() == EHoudiniInputType::NewGeometry && NewInputType != EHoudiniInputType::NewGeometry)
+		if (CurrentInput->GetInputType() == EHoudiniInputType::Geometry && NewInputType != EHoudiniInputType::Geometry)
 		{
 			CurrentInput->SetInputType(NewInputType, bBPStructureModified);
 		}

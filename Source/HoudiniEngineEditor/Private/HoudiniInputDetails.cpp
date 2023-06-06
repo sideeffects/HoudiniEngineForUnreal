@@ -221,39 +221,6 @@ FHoudiniInputDetails::CreateWidget(
 	const IDetailsView* DetailsView = HouInputCategory.GetParentLayout().GetDetailsView();
 	AddInputTypeComboBox(HouInputCategory, VerticalBox, InInputs, DetailsView);
 
-
-	// The New Geometry and New World input UI's create their own
-	// Keep World Transform under the Export Options Menu
-	if (MainInputType != EHoudiniInputType::Curve
-		&& MainInputType != EHoudiniInputType::NewGeometry
-		&& MainInputType != EHoudiniInputType::NewWorld)
-	{
-		AddKeepWorldTransformCheckBox(VerticalBox, InInputs);
-	}
-
-	// Checkbox : CurveInput trigger cook on curve changed
-	// AddCurveInputCookOnChangeCheckBox(VerticalBox, InInputs);
-
-	if (MainInputType == EHoudiniInputType::Geometry || MainInputType == EHoudiniInputType::World)
-	{
-		// Checkbox : Pack before merging
-		AddPackBeforeMergeCheckbox(VerticalBox, InInputs);
-	}
-
-	if (MainInputType == EHoudiniInputType::Geometry
-		|| MainInputType == EHoudiniInputType::World
-		|| MainInputType == EHoudiniInputType::Asset
-		|| MainInputType == EHoudiniInputType::GeometryCollection) 
-	{
-		AddImportAsReferenceCheckboxes(VerticalBox, InInputs);
-	}
-
-	if (MainInputType == EHoudiniInputType::Geometry || MainInputType == EHoudiniInputType::World)
-	{
-		// Checkboxes : Export LODs / Sockets / Collisions
-		AddExportCheckboxes(VerticalBox, InInputs);
-	}
-
 	switch (MainInput->GetInputType())
 	{
 		case EHoudiniInputType::Geometry:
@@ -289,18 +256,6 @@ FHoudiniInputDetails::CreateWidget(
 		case EHoudiniInputType::Skeletal:
 		{
 			AddSkeletalInputUI(VerticalBox, InInputs, AssetThumbnailPool);
-		}
-		break;
-
-		case EHoudiniInputType::NewGeometry:
-		{
-			AddNewGeometryInputUI(HouInputCategory, VerticalBox, InInputs, AssetThumbnailPool);
-		}
-		break;
-
-		case EHoudiniInputType::NewWorld:
-		{
-			AddNewWorldInputUI(HouInputCategory, VerticalBox, InInputs, DetailsView);
 		}
 		break;
 
@@ -378,7 +333,7 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 			return;
 		
 		EHoudiniInputType NewInputType = UHoudiniInput::StringToInputType(*InNewChoice.Get());
-		if (NewInputType != EHoudiniInputType::World || NewInputType != EHoudiniInputType::NewWorld)
+		if (NewInputType != EHoudiniInputType::World)
 		{
 			Helper_CancelWorldSelection(InInputsToUpdate, DetailsPanelName);
 		}
@@ -2740,7 +2695,7 @@ FHoudiniInputDetails::AddExportOptions(
 
 	switch (MainInput->GetInputType())
 	{
-		case EHoudiniInputType::NewGeometry:
+		case EHoudiniInputType::Geometry:
 		{
 			AddKeepWorldTransformCheckBox(ExportOptions_VerticalBox, InInputs);
 			AddPackBeforeMergeCheckbox(ExportOptions_VerticalBox, InInputs);
@@ -2749,7 +2704,7 @@ FHoudiniInputDetails::AddExportOptions(
 		}
 		break;
 
-		case EHoudiniInputType::NewWorld:
+		case EHoudiniInputType::World:
 		{
 			AddKeepWorldTransformCheckBox(ExportOptions_VerticalBox, InInputs);
 			AddPackBeforeMergeCheckbox(ExportOptions_VerticalBox, InInputs);
@@ -2852,7 +2807,7 @@ FHoudiniInputDetails::AddLandscapeOptions(
 }
 
 void
-FHoudiniInputDetails::AddGeometryInputUI(
+FHoudiniInputDetails::AddLegacyGeometryInputUI(
 	IDetailCategoryBuilder& CategoryBuilder,
 	TSharedRef<SVerticalBox> InVerticalBox, 
 	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
@@ -9631,18 +9586,13 @@ FMenuBuilder
 FHoudiniInputDetails::Helper_CreateWorldActorPickerWidget(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 {	
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs.Num() > 0 ? InInputs[0] : nullptr;
-
-	EHoudiniInputType WorldType = EHoudiniInputType::World;
 	
-	if (IsValidWeakPointer(MainInput) && MainInput->GetInputType() == EHoudiniInputType::NewWorld)
-		WorldType = EHoudiniInputType::NewWorld;
-
-	auto OnShouldFilterWorld = [MainInput, WorldType](const AActor* const Actor)
+	auto OnShouldFilterWorld = [MainInput](const AActor* const Actor)
 	{
 		if (!IsValidWeakPointer(MainInput))
 			return true;
 
-		const TArray<UHoudiniInputObject*>* InputObjects = MainInput->GetHoudiniInputObjectArray(WorldType);
+		const TArray<UHoudiniInputObject*>* InputObjects = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
 		if (!InputObjects)
 			return false;
 
@@ -9790,7 +9740,7 @@ FHoudiniInputDetails::Helper_CreateBoundSelectorPickerWidget(const TArray<TWeakO
 }
 
 void
-FHoudiniInputDetails::AddWorldInputUI(
+FHoudiniInputDetails::AddLegacyWorldInputUI(
 	IDetailCategoryBuilder& CategoryBuilder,
 	TSharedRef<SVerticalBox> VerticalBox,
 	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
@@ -10425,7 +10375,7 @@ void FHoudiniInputDetails::AddGeometryCollectionInputUI(IDetailCategoryBuilder& 
 }
 
 void
-FHoudiniInputDetails::AddNewGeometryInputUI(
+FHoudiniInputDetails::AddGeometryInputUI(
 	IDetailCategoryBuilder& CategoryBuilder,
 	TSharedRef<SVerticalBox> InVerticalBox,
 	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
@@ -10439,7 +10389,7 @@ FHoudiniInputDetails::AddNewGeometryInputUI(
 	if (!IsValidWeakPointer(MainInput))
 		return;
 
-	const int32 NumInputObjects = MainInput->GetNumberOfInputObjects(EHoudiniInputType::NewGeometry);
+	const int32 NumInputObjects = MainInput->GetNumberOfInputObjects(EHoudiniInputType::Geometry);
 
 	auto SetInputObjectsCount = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const int32& NewInputCount)
 	{
@@ -10456,11 +10406,11 @@ FHoudiniInputDetails::AddNewGeometryInputUI(
 			if (!IsValidWeakPointer(CurInput))
 				continue;
 
-			if (CurInput->GetNumberOfInputObjects(EHoudiniInputType::NewGeometry) == NewInputCount)
+			if (CurInput->GetNumberOfInputObjects(EHoudiniInputType::Geometry) == NewInputCount)
 				continue;
 
 			CurInput->Modify();
-			CurInput->SetInputObjectsNumber(EHoudiniInputType::NewGeometry, NewInputCount);
+			CurInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, NewInputCount);
 			CurInput->MarkChanged(true);
 
 			if (GEditor)
@@ -10471,14 +10421,14 @@ FHoudiniInputDetails::AddNewGeometryInputUI(
 		}
 	};
 
-	auto NewGeometryInputsStateChanged = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const bool& bInNewState)
+	auto GeometryInputsStateChanged = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const bool& bInNewState)
 	{
 		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		bool bNewState = bInNewState;
 
-		if (MainInput->GetNewGeometryInputsMenuExpanded() == bNewState)
+		if (MainInput->GetGeometryInputsMenuExpanded() == bNewState)
 			return;
 
 		FScopedTransaction Transaction(
@@ -10491,11 +10441,11 @@ FHoudiniInputDetails::AddNewGeometryInputUI(
 			if (!IsValidWeakPointer(CurInput))
 				continue;
 
-			if (CurInput->GetNewGeometryInputsMenuExpanded() == bNewState)
+			if (CurInput->GetGeometryInputsMenuExpanded() == bNewState)
 				continue;
 
 			CurInput->Modify();
-			CurInput->SetNewGeometryInputsMenuExpanded(bNewState);
+			CurInput->SetGeometryInputsMenuExpanded(bNewState);
 			
 			if (GEditor)
 				GEditor->RedrawAllViewports();
@@ -10515,20 +10465,20 @@ FHoudiniInputDetails::AddNewGeometryInputUI(
 
 	TSharedRef<SExpandableArea> Inputs_Expandable = SNew(SExpandableArea)
 		.AreaTitle(InputsMenuTitle)
-		.InitiallyCollapsed(!MainInput->GetNewGeometryInputsMenuExpanded())
+		.InitiallyCollapsed(!MainInput->GetGeometryInputsMenuExpanded())
 		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
 		{
-			return NewGeometryInputsStateChanged(InInputs, bNewState);
+			return GeometryInputsStateChanged(InInputs, bNewState);
 		});
 		
 	TSharedRef<SVerticalBox> InputsCollapsed_VerticalBox = SNew(SVerticalBox).Visibility_Lambda([MainInput]()
 	{
-		return MainInput->GetNewGeometryInputsMenuExpanded() ? EVisibility::Collapsed : EVisibility::Visible;
+		return MainInput->GetGeometryInputsMenuExpanded() ? EVisibility::Collapsed : EVisibility::Visible;
 	});
 	
 	TSharedRef<SVerticalBox> InputsExpanded_VerticalBox = SNew(SVerticalBox).Visibility_Lambda([MainInput]()
 	{
-		return MainInput->GetNewGeometryInputsMenuExpanded() ? EVisibility::Visible : EVisibility::Collapsed;
+		return MainInput->GetGeometryInputsMenuExpanded() ? EVisibility::Visible : EVisibility::Collapsed;
 	});
 
 	InVerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()[Inputs_Expandable];
@@ -10632,13 +10582,13 @@ FHoudiniInputDetails::AddNewGeometryInputUI(
 	
 	for (int32 CurObjectIdx = 0; CurObjectIdx < NumInputObjects; CurObjectIdx++)
 	{
-		Helper_CreateNewGeometryInputObjectCollapsed(CategoryBuilder, InInputs, CurObjectIdx, InputsCollapsed_VerticalBox, AssetThumbnailPool);
-		Helper_CreateNewGeometryInputObjectExpanded(CategoryBuilder, InInputs, CurObjectIdx, InputsExpanded_VerticalBox, AssetThumbnailPool);
+		Helper_CreateGeometryInputObjectCollapsed(CategoryBuilder, InInputs, CurObjectIdx, InputsCollapsed_VerticalBox, AssetThumbnailPool);
+		Helper_CreateGeometryInputObjectExpanded(CategoryBuilder, InInputs, CurObjectIdx, InputsExpanded_VerticalBox, AssetThumbnailPool);
 	}
 }
 
 void
-FHoudiniInputDetails::AddNewWorldInputUI(
+FHoudiniInputDetails::AddWorldInputUI(
 	IDetailCategoryBuilder& CategoryBuilder,
 	TSharedRef<SVerticalBox> InVerticalBox,
 	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
@@ -10660,7 +10610,7 @@ FHoudiniInputDetails::AddNewWorldInputUI(
 	const int32 NumInputObjects =
 		bIsBoundSelector ?
 			MainInput->GetNumberOfBoundSelectorObjects() :
-			MainInput->GetNumberOfInputObjects(EHoudiniInputType::NewWorld);
+			MainInput->GetNumberOfInputObjects(EHoudiniInputType::World);
 
 	bool bDetailsLocked = false;
 	FName DetailsPanelName = "LevelEditorSelectionDetails";
@@ -10671,14 +10621,14 @@ FHoudiniInputDetails::AddNewWorldInputUI(
 			bDetailsLocked = true;
 	}
 
-	auto NewWorldInputsStateChanged = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const bool& bInNewState)
+	auto WorldInputsStateChanged = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const bool& bInNewState)
 	{
 		if (!IsValidWeakPointer(MainInput))
 			return;
 
 		bool bNewState = bInNewState;
 
-		if (MainInput->GetNewWorldInputsMenuExpanded() == bNewState)
+		if (MainInput->GetWorldInputsMenuExpanded() == bNewState)
 			return;
 
 		FScopedTransaction Transaction(
@@ -10691,11 +10641,11 @@ FHoudiniInputDetails::AddNewWorldInputUI(
 			if (!IsValidWeakPointer(CurInput))
 				continue;
 
-			if (CurInput->GetNewWorldInputsMenuExpanded() == bNewState)
+			if (CurInput->GetWorldInputsMenuExpanded() == bNewState)
 				continue;
 
 			CurInput->Modify();
-			CurInput->SetNewWorldInputsMenuExpanded(bNewState);
+			CurInput->SetWorldInputsMenuExpanded(bNewState);
 		}
 
 		if (GEditor)
@@ -10724,10 +10674,10 @@ FHoudiniInputDetails::AddNewWorldInputUI(
 	[
 		SNew(SExpandableArea)
 		.AreaTitle(InputsMenuTitle)
-		.InitiallyCollapsed(!MainInput->GetNewWorldInputsMenuExpanded())
+		.InitiallyCollapsed(!MainInput->GetWorldInputsMenuExpanded())
 		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
 		{
-			return NewWorldInputsStateChanged(InInputs, bNewState);
+			return WorldInputsStateChanged(InInputs, bNewState);
 		})
 		.BodyContent()
 		[
@@ -10981,7 +10931,7 @@ FHoudiniInputDetails::AddNewWorldInputUI(
 }
 
 void
-FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectCollapsed(
+FHoudiniInputDetails::Helper_CreateGeometryInputObjectCollapsed(
 	IDetailCategoryBuilder& CategoryBuilder,
 	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 	const FPlatformTypes::int32& InObjectIdx,
@@ -10996,7 +10946,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectCollapsed(
 	if (!IsValidWeakPointer(MainInput))
 		return;
 
-	UHoudiniInputObject* HoudiniInputObject = MainInput->GetHoudiniInputObjectAt(EHoudiniInputType::NewGeometry, InObjectIdx);
+	UHoudiniInputObject* HoudiniInputObject = MainInput->GetHoudiniInputObjectAt(EHoudiniInputType::Geometry, InObjectIdx);
 	UObject* InputObject = HoudiniInputObject ? HoudiniInputObject->GetObject() : nullptr;
 
 	TSharedPtr<FAssetThumbnail> ObjThumbnail = MakeShareable(new FAssetThumbnail(InputObject, 64, 64, AssetThumbnailPool));
@@ -11028,17 +10978,17 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectCollapsed(
 				continue;
 
 			UObject* InputObject = nullptr;
-			int32 NumInputObjects = CurInput->GetNumberOfInputObjects(EHoudiniInputType::NewGeometry);
+			int32 NumInputObjects = CurInput->GetNumberOfInputObjects(EHoudiniInputType::Geometry);
 			
 			if (AtIndex < NumInputObjects)
 			{
-				InputObject = CurInput->GetInputObjectAt(EHoudiniInputType::NewGeometry, AtIndex);
+				InputObject = CurInput->GetInputObjectAt(EHoudiniInputType::Geometry, AtIndex);
 				if (InObject == InputObject)
 					continue;
 			}
 			else if (bAutoInserMissingObjects)
 			{
-				CurInput->InsertInputObjectAt(EHoudiniInputType::NewGeometry, AtIndex);
+				CurInput->InsertInputObjectAt(EHoudiniInputType::Geometry, AtIndex);
 			}
 			else
 			{
@@ -11050,7 +11000,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectCollapsed(
 				CurrentInputObjectWrapper->Modify();
 
 			CurInput->Modify();
-			CurInput->SetInputObjectAt(EHoudiniInputType::NewGeometry, AtIndex, InObject);
+			CurInput->SetInputObjectAt(EHoudiniInputType::Geometry, AtIndex, InObject);
 			CurInput->MarkChanged(true);
 
 			if (CategoryBuilder.IsParentLayoutValid())
@@ -11070,7 +11020,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectCollapsed(
 		{
 			for (auto& CurAssetData : InAssets)
 			{
-				if (UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::NewGeometry, CurAssetData.GetAsset()))
+				if (UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::Geometry, CurAssetData.GetAsset()))
 					return true;
 			}
 				
@@ -11085,7 +11035,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectCollapsed(
 				UObject* Object = CurAssetData.GetAsset();
 				if (!IsValid(Object))
 					continue;
-				if (!UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::NewGeometry, Object))
+				if (!UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::Geometry, Object))
 					continue;
 				// Update the object, inserting new one if necessary
 				UpdateGeometryObjectAt(InInputs, CurrentObjectIdx++, Object, true);
@@ -11132,7 +11082,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectCollapsed(
 }
 
 void
-FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
+FHoudiniInputDetails::Helper_CreateGeometryInputObjectExpanded(
 	IDetailCategoryBuilder& CategoryBuilder,
 	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 	const FPlatformTypes::int32& InObjectIdx,
@@ -11147,7 +11097,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 	if (!IsValidWeakPointer(MainInput))
 		return;
 
-	UHoudiniInputObject* HoudiniInputObject = MainInput->GetHoudiniInputObjectAt(EHoudiniInputType::NewGeometry, InObjectIdx);
+	UHoudiniInputObject* HoudiniInputObject = MainInput->GetHoudiniInputObjectAt(EHoudiniInputType::Geometry, InObjectIdx);
 	UObject* InputObject = HoudiniInputObject ? HoudiniInputObject->GetObject() : nullptr;
 
 
@@ -11179,16 +11129,16 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 				continue;
 
 			UObject* InputObject = nullptr;
-			int32 NumInputObjects = CurInput->GetNumberOfInputObjects(EHoudiniInputType::NewGeometry);
+			int32 NumInputObjects = CurInput->GetNumberOfInputObjects(EHoudiniInputType::Geometry);
 			if (AtIndex < NumInputObjects)
 			{
-				InputObject = CurInput->GetInputObjectAt(EHoudiniInputType::NewGeometry, AtIndex);
+				InputObject = CurInput->GetInputObjectAt(EHoudiniInputType::Geometry, AtIndex);
 				if (InObject == InputObject)
 					continue;
 			}
 			else if (bAutoInserMissingObjects)
 			{
-				CurInput->InsertInputObjectAt(EHoudiniInputType::NewGeometry, AtIndex);
+				CurInput->InsertInputObjectAt(EHoudiniInputType::Geometry, AtIndex);
 			}
 			else
 			{
@@ -11200,7 +11150,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 				CurrentInputObjectWrapper->Modify();
 
 			CurInput->Modify();
-			CurInput->SetInputObjectAt(EHoudiniInputType::NewGeometry, AtIndex, InObject);
+			CurInput->SetInputObjectAt(EHoudiniInputType::Geometry, AtIndex, InObject);
 			CurInput->MarkChanged(true);
 
 			if (CategoryBuilder.IsParentLayoutValid())
@@ -11219,7 +11169,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 		{
 			for (auto& CurAssetData : InAssets)
 			{
-				if (UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::NewGeometry, CurAssetData.GetAsset()))
+				if (UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::Geometry, CurAssetData.GetAsset()))
 					return true;
 			}
 
@@ -11234,7 +11184,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 				if (!IsValid(Object))
 					continue;
 
-				if (!UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::NewGeometry, Object))
+				if (!UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::Geometry, Object))
 					continue;
 
 				// Update the object, inserting new one if necessary
@@ -11263,7 +11213,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 		.HAlign(HAlign_Center)
 		.OnMouseDoubleClick_Lambda([MainInput, InObjectIdx](const FGeometry&, const FPointerEvent&)
 		{
-			UObject* InputObject = MainInput->GetInputObjectAt(EHoudiniInputType::NewGeometry, InObjectIdx);
+			UObject* InputObject = MainInput->GetInputObjectAt(EHoudiniInputType::Geometry, InObjectIdx);
 			if (GEditor && InputObject)
 				GEditor->EditObject(InputObject);
 
@@ -11320,7 +11270,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 	StaticMeshComboButton->SetOnGetMenuContent(FOnGetContent::CreateLambda(
 		[MainInput, InInputs, InObjectIdx, WeakStaticMeshComboButton, UpdateGeometryObjectAt]()
 		{
-			TArray<const UClass*> AllowedClasses = UHoudiniInput::GetAllowedClasses(EHoudiniInputType::NewGeometry);
+			TArray<const UClass*> AllowedClasses = UHoudiniInput::GetAllowedClasses(EHoudiniInputType::Geometry);
 			UObject* DefaultObj = MainInput->GetInputObjectAt(InObjectIdx);
 
 			TArray<UFactory*> NewAssetFactories;
@@ -11376,7 +11326,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 					TArray<FAssetData> CBSelections;
 					GEditor->GetContentBrowserSelections(CBSelections);
 
-					TArray<const UClass*> AllowedClasses = UHoudiniInput::GetAllowedClasses(EHoudiniInputType::NewGeometry);
+					TArray<const UClass*> AllowedClasses = UHoudiniInput::GetAllowedClasses(EHoudiniInputType::Geometry);
 					int32 CurrentObjectIdx = InObjectIdx;
 					for (auto& CurAssetData : CBSelections)
 					{
@@ -11384,7 +11334,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 						if (!IsValid(Object))
 							continue;
 
-						if (!UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::NewGeometry, Object))
+						if (!UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::Geometry, Object))
 							continue;
 
 						UpdateGeometryObjectAt(InInputs, CurrentObjectIdx++, Object, true);
@@ -11491,7 +11441,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 						continue;
 
 					CurInput->Modify();
-					CurInput->InsertInputObjectAt(EHoudiniInputType::NewGeometry, InObjectIdx);
+					CurInput->InsertInputObjectAt(EHoudiniInputType::Geometry, InObjectIdx);
 				}
 
 				if (CategoryBuilder.IsParentLayoutValid())
@@ -11527,7 +11477,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 					continue;
 
 				CurInput->Modify();
-				CurInput->DuplicateInputObjectAt(EHoudiniInputType::NewGeometry, InObjectIdx);
+				CurInput->DuplicateInputObjectAt(EHoudiniInputType::Geometry, InObjectIdx);
 			}
 
 			if (CategoryBuilder.IsParentLayoutValid())
@@ -11565,7 +11515,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 						continue;
 
 					CurInput->Modify();
-					CurInput->DeleteInputObjectAt(EHoudiniInputType::NewGeometry, InObjectIdx);
+					CurInput->DeleteInputObjectAt(EHoudiniInputType::Geometry, InObjectIdx);
 
 					if (GEditor)
 						GEditor->RedrawAllViewports();
@@ -11919,8 +11869,7 @@ FHoudiniInputDetails::Helper_CreateNewGeometryInputObjectExpanded(
 						if (!IsValidWeakPointer(CurInput))
 							continue;
 
-						UHoudiniInputObject* CurInputObject = CurInput->GetHoudiniInputObjectAt(EHoudiniInputType::NewGeometry, InObjectIdx);
-
+						UHoudiniInputObject* CurInputObject = CurInput->GetHoudiniInputObjectAt(EHoudiniInputType::Geometry, InObjectIdx);
 						if (!IsValid(CurInputObject))
 							continue;
 
@@ -11987,11 +11936,6 @@ FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& C
 	if (!IsValidWeakPointer(MainInput))
 		return FReply::Handled();
 
-	EHoudiniInputType WorldType =
-		MainInput->GetInputType() == EHoudiniInputType::NewWorld ?
-			EHoudiniInputType::NewWorld :
-			EHoudiniInputType::World;
-
 	// There's no undo operation for button.
 	FPropertyEditorModule& PropertyModule =
 		FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
@@ -12049,7 +11993,7 @@ FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& C
 			// Regular selection
 			// Select the already chosen input Actors from the World Outliner.
 			GEditor->SelectNone(false, true);
-			int32 NumInputObjects = MainInput->GetNumberOfInputObjects(WorldType);
+			int32 NumInputObjects = MainInput->GetNumberOfInputObjects(EHoudiniInputType::World);
 			for (int32 Idx = 0; Idx < NumInputObjects; Idx++)
 			{
 				UHoudiniInputObject* CurInputObject = MainInput->GetHoudiniInputObjectAt(Idx);
