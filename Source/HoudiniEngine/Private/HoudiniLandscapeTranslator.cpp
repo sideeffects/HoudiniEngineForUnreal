@@ -565,8 +565,8 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	// Apply materials, if needed.
 	// ------------------------------------------------------------------------------------------------------------------
 
-	UMaterialInterface * MaterialInstance =
-	FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(&LandscapeProxy, Part.Materials, InPackageParams);
+	UMaterialInterface * MaterialInstance = FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(
+															&LandscapeProxy, Part.Materials, InPackageParams);
 	FHoudiniLandscapeUtils::AssignPhysicsMaterialsToLandscape(&LandscapeProxy, Part.TargetLayerName, Part.Materials);
 
 	// ------------------------------------------------------------------------------------------------------------------

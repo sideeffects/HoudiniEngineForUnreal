@@ -72,5 +72,8 @@ public:
 	// Remove all instances using this Foliage Type from the world
 	static void RemoveInstancesFromWorld(UWorld* World, UFoliageType* FoliageType);
 
+	// Remove foliage
+	static void RemoveFoliageInstances(UWorld* World, UFoliageType* FoliageType, const TArray<FVector3d>& Positions);
+
 };
 

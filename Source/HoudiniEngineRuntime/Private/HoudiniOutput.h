@@ -402,6 +402,14 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		// For landscapes this is the previously bake layer info assets (layer name as key, soft object path as value)
 		UPROPERTY()
 		TMap<FName, FString> LandscapeLayers;
+
+		// Positions of Foliage instances; used for removal on rebake.
+		UPROPERTY()
+		TArray<FVector> FoliageInstancePositions;
+
+		// Foliage Type (Baked or user-defined)
+		UPROPERTY()
+		UFoliageType* FoliageType = nullptr;
 };
 
 // Container to hold the map of baked objects. There should be one of
