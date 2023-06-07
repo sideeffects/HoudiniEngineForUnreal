@@ -38,6 +38,7 @@
 #include "FoliageType_InstancedStaticMesh.h"
 #include "InstancedFoliageActor.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "Spatial/PointHashGrid3.h"
 
 #if WITH_EDITOR
 #include "EditorModeManager.h"
@@ -255,3 +256,41 @@ void FHoudiniFoliageTools::RemoveInstancesFromWorld(UWorld* World, UFoliageType*
 	}
 }
 
+void FHoudiniFoliageTools::RemoveFoliageInstances(UWorld* World, UFoliageType* FoliageType, const TArray<FVector3d>& Positions)
+{
+	const float Spacing = 1.0f;
+	// Create a spatial hash for fast look up of positions.
+	UE::Geometry::TPointHashGrid3d< int> SpatialHash(Spacing, -1);
+	for (int Index = 0; Index < Positions.Num(); ++Index)
+		SpatialHash.InsertPoint(Index, Positions[Index]);
+
+
+	TArray<FFoliageInfo*> FoliageInfos = FHoudiniFoliageTools::GetAllFoliageInfo(World, FoliageType);
+	for (auto& FoliageInfo : FoliageInfos)
+	{
+		if (FoliageInfo == nullptr) continue;
+
+		// Query all instances in the Foliage Type, see if they are close to one in the set we are trying to remove
+
+		TArray<int> InstancesToRemove;
+		for (int Index = 0; Index < FoliageInfo->Instances.Num(); Index++)
+		{
+			TPair<int, double> Result = SpatialHash.FindNearestInRadius(FoliageInfo->Instances[Index].Location, Spacing, [&](int PosIndex)
+				{
+					return FVector3d::DistSquared(FoliageInfo->Instances[Index].Location, Positions[PosIndex]);
+				});
+
+			if (Result.Key != -1)
+			{
+				// Remove this instance of foliage.
+				InstancesToRemove.Add(Index);
+
+				// Remove the matched point from the spatial hash. This means we will only remove one instance
+				// for each point.
+				SpatialHash.RemovePoint(Result.Value, Positions[Result.Value]);
+			}
+
+		}
+		FoliageInfo->RemoveInstances(InstancesToRemove, true);
+	}
+}

@@ -500,6 +500,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 	    FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 			HoudiniAssetComponent,
 			AlreadyBakedStaticMeshMap,
+			InBakedOutputs,
 			InOutputs,
 			InBakeFolder,
 			InTempCookFolder,
@@ -621,9 +622,32 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 }
 
 void
+FHoudiniEngineBakeUtils::RemoveBakedFoliageInstances(UHoudiniAssetComponent* HoudiniAssetComponent, TArray<FHoudiniBakedOutput>& InBakedOutputs)
+{
+	for(int Index = 0; Index < InBakedOutputs.Num(); Index++)
+	{
+		FHoudiniBakedOutput & BakedOutput = InBakedOutputs[Index];
+		for(auto & BakedObject : BakedOutput.BakedOutputObjects)
+		{
+			if (IsValid(BakedObject.Value.FoliageType))
+			{
+				FHoudiniFoliageTools::RemoveFoliageInstances(
+					HoudiniAssetComponent->GetHACWorld(),
+					BakedObject.Value.FoliageType,
+					BakedObject.Value.FoliageInstancePositions);
+			}
+			BakedObject.Value.FoliageType = nullptr;
+			BakedObject.Value.FoliageInstancePositions.Empty();
+
+		}
+	}
+}
+
+void
 FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 	UHoudiniAssetComponent* HoudiniAssetComponent,
 	TMap<UStaticMesh*, UStaticMesh*> AlreadyBakedStaticMeshMap,
+	TArray<FHoudiniBakedOutput>& InBakedOutputs,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
 	const FDirectoryPath& InBakeFolder,
 	const FDirectoryPath& InTempCookFolder,
@@ -636,13 +660,24 @@ FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 
 	UWorld* World = HoudiniAssetComponent->GetHACWorld();
 
-    // Create Foliage Types assocatied with each output.
+	// Remove previous bake if required.
+	if (bInReplaceAssets)
+	{
+		RemoveBakedFoliageInstances(HoudiniAssetComponent, InBakedOutputs);
+	}
+
+	// Ensure parity
+	if (InBakedOutputs.Num() != InAllOutputs.Num())
+		InBakedOutputs.SetNum(InAllOutputs.Num());
+
+    // Create Foliage Types associated with each output.
     for(int InOutputIndex = 0; InOutputIndex < InAllOutputs.Num(); InOutputIndex++)
     {
 		BakeFoliageTypes(
 			FoliageMap,
 			HoudiniAssetComponent,
 			InOutputIndex,
+			InBakedOutputs,
 			InAllOutputs,
 			InBakeFolder,
 			InTempCookFolder,
@@ -680,6 +715,7 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 	TMap<UFoliageType*, UFoliageType*> & FoliageMap,
 	UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
+	TArray<FHoudiniBakedOutput>& InBakedOutputs,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
 	const FDirectoryPath& InBakeFolder,
 	const FDirectoryPath& InTempCookFolder,
@@ -693,6 +729,8 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 		: EPackageReplaceMode::CreateNewAssets;
 
 	UHoudiniOutput* Output = InAllOutputs[InOutputIndex];
+	FHoudiniBakedOutput& BakedOutput = InBakedOutputs[InOutputIndex];
+
 	UWorld* DesiredWorld = Output ? Output->GetWorld() : GWorld;
 
 	auto & OutputObjects = Output->GetOutputObjects();
@@ -756,12 +794,20 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 			Instance.BaseComponent = nullptr;
 		}
 
-		if (HoudiniAssetComponent->bReplacePreviousBake)
-		{
-			FHoudiniFoliageTools::RemoveInstancesFromWorld(DesiredWorld, TargetFoliageType);
-		}
 		FHoudiniFoliageTools::SpawnFoliageInstance(DesiredWorld, TargetFoliageType, Instances, true);
 
+		TArray<FVector> InstancesPositions;
+		InstancesPositions.Reserve(Instances.Num());
+		for(auto & Instance : Instances)
+		{
+			InstancesPositions.Add(Instance.Location);	
+		}
+
+		// Store back output object.
+		FHoudiniBakedOutputObject BakedObject;
+		BakedObject.FoliageType = TargetFoliageType;
+		BakedObject.FoliageInstancePositions = InstancesPositions;
+		BakedOutput.BakedOutputObjects.Add(Identifier, BakedObject);
     }
 	return;
 }
@@ -4068,11 +4114,13 @@ FHoudiniEngineBakeUtils::DuplicateFoliageTypeAndCreatePackageIfNeeded(
 		bFoundExisting = true;
 		DuplicatedFoliageType = DuplicateObject<UFoliageType>(InFoliageType, Package, *CreatedPackageName);
 		OutBakeStats.NotifyObjectsReplaced(UFoliageType::StaticClass()->GetName(), 1);
+		OutBakeStats.NotifyPackageCreated(1);
 	}
 	else
 	{
 		DuplicatedFoliageType = DuplicateObject<UFoliageType>(InFoliageType, Package, *CreatedPackageName);
 		OutBakeStats.NotifyObjectsUpdated(UFoliageType::StaticClass()->GetName(), 1);
+		OutBakeStats.NotifyPackageUpdated(2);
 	}
 
 	if (!IsValid(DuplicatedFoliageType))

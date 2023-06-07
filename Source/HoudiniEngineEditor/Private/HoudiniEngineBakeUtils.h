@@ -961,6 +961,7 @@ public:
 		TMap<UFoliageType*, UFoliageType*> & FoliageMap,
 	    UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
+		TArray<FHoudiniBakedOutput>& InBakedOutputs,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
@@ -972,6 +973,7 @@ public:
 	static void BakeAllFoliageTypes(
 		UHoudiniAssetComponent* HoudiniAssetComponent,
 		TMap<UStaticMesh*, UStaticMesh*> AlreadyBakedStaticMeshMap,
+		TArray<FHoudiniBakedOutput>& InBakedOutputs,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
@@ -979,5 +981,8 @@ public:
 		const TArray<FHoudiniEngineBakedActor>& BakeResults,
 		TArray<UPackage*>& OutPackagesToSave,
 		FHoudiniEngineOutputStats& OutBakeStats);
+
+	static void RemoveBakedFoliageInstances(UHoudiniAssetComponent* HoudiniAssetComponent, TArray<FHoudiniBakedOutput>& InBakedOutputs);
+
 
 };
