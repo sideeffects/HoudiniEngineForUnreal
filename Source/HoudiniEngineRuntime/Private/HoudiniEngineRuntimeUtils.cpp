@@ -37,6 +37,7 @@
 
 #include "EngineUtils.h"
 #include "Engine/EngineTypes.h"
+#include "Misc/Paths.h"
 #include "Runtime/Launch/Resources/Version.h"
 
 #if WITH_EDITOR
