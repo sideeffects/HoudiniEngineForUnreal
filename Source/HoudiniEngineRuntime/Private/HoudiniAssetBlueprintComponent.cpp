@@ -229,9 +229,8 @@ UHoudiniAssetBlueprintComponent::CopyStateToTemplateComponent()
 			// If the there is only one component we try to reuse templates. However, if there is more than
 			// one component, don't bother; the logic for doing so can become quite complicated and multiple components
 			// outputs are only currently used for world partition, which don't make sense for use in blueprints.
-
 			USceneComponent* ComponentTemplate = nullptr;
-			if (InstanceObj.OutputComponents.Num() == 1)
+			if (TemplateObj.OutputComponents.Num() == 1)
 			{
 				ComponentTemplate = Cast<USceneComponent>(TemplateObj.OutputComponents[0]);
 			}
