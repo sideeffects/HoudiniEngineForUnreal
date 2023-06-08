@@ -1954,62 +1954,6 @@ UHoudiniAssetComponent::OnRegister()
 	// NOTE: Wait until HoudiniEngineTick() before deciding to mark this object as fully loaded
 	// since preview components need to wait for component templates to finish their initialization
 	// before being able to perform state transfers.
-
-	/*
-	// We need to recreate render states for loaded components.
-	if (bLoadedComponent)
-	{
-		// Static meshes.
-		for (TMap< UStaticMesh *, UStaticMeshComponent * >::TIterator Iter(StaticMeshComponents); Iter; ++Iter)
-		{
-			UStaticMeshComponent * StaticMeshComponent = Iter.Value();
-			if (IsValid(StaticMeshComponent))
-			{
-				// Recreate render state.
-				StaticMeshComponent->RecreateRenderState_Concurrent();
-
-				// Need to recreate physics state.
-				StaticMeshComponent->RecreatePhysicsState();
-			}
-		}
-
-		// Instanced static meshes.
-		for (auto& InstanceInput : InstanceInputs)
-		{
-			if (!IsValid(InstanceInput))
-				continue;
-
-			// Recreate render state.
-			InstanceInput->RecreateRenderStates();
-
-			// Recreate physics state.
-			InstanceInput->RecreatePhysicsStates();
-		}
-	}
-	*/
-
-	// Let TickInitialization() take care of manipulating the bFullyLoaded state.
-	//bFullyLoaded = true;
-
-	//// If we're constructing editable components in the SCS editor, set the component instance corresponding to this node for editing purposes
-	//
-	//USimpleConstructionScript* SCS = GetSCS();
-	//if (SCS == nullptr)
-	//{
-	//	bFullyLoaded = true;
-	//}
-	//else
-	//{
-	//	if(SCS->IsConstructingEditorComponents())
-	//	{
-	//		// We're not fully loaded yet. We're expecting 
-	//	}
-	//	else 
-	//	{
-	//		bFullyLoaded = true;
-	//	}
-	//}
-
 }
 
 UHoudiniParameter*
