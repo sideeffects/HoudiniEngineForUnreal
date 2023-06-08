@@ -231,7 +231,7 @@ UHoudiniAssetBlueprintComponent::CopyStateToTemplateComponent()
 			// outputs are only currently used for world partition, which don't make sense for use in blueprints.
 
 			USceneComponent* ComponentTemplate = nullptr;
-			if (InstanceObj.OutputComponents.Num() == 1)
+			if (TemplateObj.OutputComponents.Num() == 1)
 			{
 				ComponentTemplate = Cast<USceneComponent>(TemplateObj.OutputComponents[0]);
 			}
