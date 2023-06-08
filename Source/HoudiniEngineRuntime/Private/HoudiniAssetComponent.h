@@ -787,8 +787,6 @@ protected:
 	UPROPERTY(Transient, DuplicateTransient)
 	bool bCachedIsPreview;
 
-	USimpleConstructionScript* GetSCS() const;
-
 	// Object used to convert V1 HAC to V2 HAC
 	UHoudiniAssetComponent_V1* Version1CompatibilityHAC;
 
