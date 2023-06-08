@@ -121,15 +121,17 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 		FHoudiniOutputObject& OutputObj = InOutput->GetOutputObjects().FindOrAdd(OutputObjectIdentifier);
 		OutputObj.OutputObject = Result;
 
-		// Hide baked layer, make cooked layer visible.
-		int EditLayerIndex = Result->Landscape->GetLayerIndex(FName(Result->BakedEditLayer));
-		if (EditLayerIndex != INDEX_NONE)
-			Result->Landscape->SetLayerVisibility(EditLayerIndex, false);
+		// Hide baked layer, make cooked layer visible, if using temporary landscape layers
+		if (Result->BakedEditLayer != Result->CookedEditLayer)
+		{
+			int EditLayerIndex = Result->Landscape->GetLayerIndex(FName(Result->BakedEditLayer));
+			if (EditLayerIndex != INDEX_NONE)
+				Result->Landscape->SetLayerVisibility(EditLayerIndex, false);
 
-		EditLayerIndex = Result->Landscape->GetLayerIndex(FName(Result->CookedEditLayer));
-		if (EditLayerIndex != INDEX_NONE)
-			Result->Landscape->SetLayerVisibility(EditLayerIndex, true);
-
+			EditLayerIndex = Result->Landscape->GetLayerIndex(FName(Result->CookedEditLayer));
+			if (EditLayerIndex != INDEX_NONE)
+				Result->Landscape->SetLayerVisibility(EditLayerIndex, true);
+		}
 
 	}
 	return true;
@@ -565,8 +567,8 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	// Apply materials, if needed.
 	// ------------------------------------------------------------------------------------------------------------------
 
-	UMaterialInterface * MaterialInstance = FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(
-															&LandscapeProxy, Part.Materials, InPackageParams);
+	UMaterialInterface * MaterialInstance =
+	FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(&LandscapeProxy, Part.Materials, InPackageParams);
 	FHoudiniLandscapeUtils::AssignPhysicsMaterialsToLandscape(&LandscapeProxy, Part.TargetLayerName, Part.Materials);
 
 	// ------------------------------------------------------------------------------------------------------------------
