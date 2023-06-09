@@ -154,6 +154,7 @@ FHoudiniInputTranslator::BuildAllInputs(
 	// Helper map to get the parameter index, given the parameter name
 	TMap<FString, int32> ParameterNameToIndexMap;
 	TArray<TWeakObjectPtr<UHoudiniParameter>> InputParameters;
+	TArray<FString> InputParameterNames;
 	for (auto Param : Parameters)
 	{
 		if (!Param)
@@ -164,6 +165,7 @@ FHoudiniInputTranslator::BuildAllInputs(
 			int InsertionIndex = InputParameters.Num();
 			ParameterNameToIndexMap.Add(Param->GetParameterName(), InsertionIndex);
 			InputParameters.Add(Param);
+			InputParameterNames.Add(Param->GetParameterName());
 		}
 	}
 
@@ -195,19 +197,32 @@ FHoudiniInputTranslator::BuildAllInputs(
 	}
 	else if (InputCount < Inputs.Num())
 	{
-		// TODO: Properly clean up the input object + created nodes?
-		for (int32 InputIdx = Inputs.Num() - 1; InputIdx >= InputCount; InputIdx--)
+		// DO NOT DELETE PARAM INPUTS THAT ARE STILL PRESENT!
+		// This can ause issues with some input type when recooking the HDA after removing inputs!
+		// Make sure that we only delete inputs that are not present anymore!
+		for (int32 InputIdx = Inputs.Num() - 1; InputIdx >= 0; InputIdx--)
 		{
 			UHoudiniInput* CurrentInput = Inputs[InputIdx];
-			if (!IsValid(CurrentInput))
-				continue;
+			if (IsValid(CurrentInput))
+			{
+				// Do not delete a param input that is still present!
+				if (CurrentInput->IsObjectPathParameter()
+					&& InputParameterNames.Contains(CurrentInput->GetName()))
+					continue;
 
-			FHoudiniInputTranslator::DisconnectAndDestroyInput(CurrentInput, CurrentInput->GetInputType());
-			
-			// DO NOT MANUALLY DESTROY THE OLD/DANGLING INPUTS!
-			// This messes up unreal's Garbage collection and would cause crashes on duplication
-			//CurrentInput->ConditionalBeginDestroy();
-			//CurrentInput = nullptr;
+				FHoudiniInputTranslator::DisconnectAndDestroyInput(CurrentInput, CurrentInput->GetInputType());
+
+				// DO NOT MANUALLY DESTROY THE OLD/DANGLING INPUTS!
+				// This messes up unreal's Garbage collection and would cause crashes on duplication
+				//CurrentInput->ConditionalBeginDestroy();
+				//CurrentInput = nullptr;
+			}
+
+			Inputs.RemoveAt(InputIdx);
+
+			// Stop deleting inputs once we've removed enough
+			if (Inputs.Num() <= InputCount)
+				break;
 		}
 
 		Inputs.SetNum(InputCount);

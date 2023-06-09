@@ -935,7 +935,6 @@ UHoudiniAssetComponent::NeedUpdateParameters() const
 {
 	// This is being split into a separate function to that it can
 	// be called separately for component templates.
-
 	if (!bCookOnParameterChange)
 		return false;
 
@@ -953,7 +952,7 @@ UHoudiniAssetComponent::NeedUpdateParameters() const
 		if (!CurrentParm->NeedsToTriggerUpdate())
 			continue;
 
-		HOUDINI_LOG_DISPLAY(TEXT("[UHoudiniAssetBlueprintComponent::NeedUpdateParameters()] Parameters need update for component: %s"), *(GetPathName()));
+		HOUDINI_LOG_DISPLAY(TEXT("[UHoudiniAssetComponent::NeedUpdateParameters()] Parameters need update for component: %s"), *(GetPathName()));
 		return true;
 	}
 
@@ -1584,6 +1583,7 @@ UHoudiniAssetComponent::PostLoad()
 
 	// !!! Do not update rendering while loading, do it when setting up the render state
 	// UpdateRenderingInformation();
+
 #if WITH_EDITORONLY_DATA
 	auto MaxValue = StaticEnum<EHoudiniEngineBakeOption>()->GetMaxEnumValue() - 1;
 
