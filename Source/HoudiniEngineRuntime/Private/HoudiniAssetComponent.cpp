@@ -945,7 +945,6 @@ UHoudiniAssetComponent::NeedUpdateParameters() const
 {
 	// This is being split into a separate function to that it can
 	// be called separately for component templates.
-
 	if (!bCookOnParameterChange)
 		return false;
 
@@ -963,7 +962,7 @@ UHoudiniAssetComponent::NeedUpdateParameters() const
 		if (!CurrentParm->NeedsToTriggerUpdate())
 			continue;
 
-		HOUDINI_LOG_DISPLAY(TEXT("[UHoudiniAssetBlueprintComponent::NeedUpdateParameters()] Parameters need update for component: %s"), *(GetPathName()));
+		HOUDINI_LOG_DISPLAY(TEXT("[UHoudiniAssetComponent::NeedUpdateParameters()] Parameters need update for component: %s"), *(GetPathName()));
 		return true;
 	}
 
@@ -1614,7 +1613,7 @@ UHoudiniAssetComponent::PostLoad()
 	    if (!IsValid(Output))
 	        continue;
 
-	    for(auto It : Output->GetOutputObjects())
+	    for(auto& It : Output->GetOutputObjects())
 	    {
 			FHoudiniOutputObject& OutputObject = It.Value;
 			if (OutputObject.OutputComponent_DEPRECATED != nullptr)
