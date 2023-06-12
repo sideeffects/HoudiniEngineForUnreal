@@ -103,7 +103,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGenericAttribute
 	TArray<FString> StringValues;
 
 	// Accessors
-	
 	double GetDoubleValue(int32 index = 0) const;
 	void GetDoubleTuple(TArray<double>& TupleValues, int32 index = 0) const;
 
@@ -119,7 +118,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGenericAttribute
 	void* GetData();
 
 	// Mutators
-	
 	void SetDoubleValue(double InValue, int32 index = 0);
 	void SetDoubleTuple(const TArray<double>& InTupleValues, int32 index = 0);
 
@@ -132,9 +130,11 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGenericAttribute
 	void SetBoolValue(bool InValue, int32 index = 0);
 	void SetBoolTuple(const TArray<bool>& InTupleValues, int32 index = 0);
 
-	//
+	// Tries to find/update a single property on an Object
 	static bool UpdatePropertyAttributeOnObject(
-		UObject* InObject, const FHoudiniGenericAttribute& InPropertyAttribute, const int32& AtIndex = 0,
+		UObject* InObject, 
+		const FHoudiniGenericAttribute& InPropertyAttribute,
+		const int32& AtIndex = 0,
 		const bool bInDeferPostPropertyChangedEvents=false,
 		TArray<FHoudiniGenericAttributeChangedProperty>* OutChangedProperties=nullptr,
 		const FFindPropertyFunctionType& InFindPropertyFunction=nullptr);
@@ -189,6 +189,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGenericAttribute
 		void*& OutContainer);
 
 	// Helper to call PostEditChangePropertyChain on InObject for the InPropertyChain. 
-	static bool HandlePostEditChangeProperty(UObject* InObject, FEditPropertyChain& InPropertyChain, FProperty* InProperty);
+	static bool HandlePostEditChangeProperty(
+		UObject* InObject,
+		FEditPropertyChain& InPropertyChain, 
+		FProperty* InProperty);
 
 };

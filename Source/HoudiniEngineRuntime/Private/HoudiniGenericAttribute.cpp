@@ -363,8 +363,11 @@ FHoudiniGenericAttribute::SetBoolTuple(const TArray<bool>& InTupleValues, int32 
 
 bool
 FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
-	UObject* InObject, const FHoudiniGenericAttribute& InPropertyAttribute, const int32& AtIndex,
-	const bool bInDeferPostPropertyChangedEvents, TArray<FHoudiniGenericAttributeChangedProperty>* OutChangedProperties,
+	UObject* InObject, 
+	const FHoudiniGenericAttribute& InPropertyAttribute, 
+	const int32& AtIndex,
+	const bool bInDeferPostPropertyChangedEvents, 
+	TArray<FHoudiniGenericAttributeChangedProperty>* OutChangedProperties,
 	const FFindPropertyFunctionType& InFindPropertyFunction)
 {
 	if (!IsValid(InObject))
@@ -374,6 +377,15 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 	const FString& PropertyName = InPropertyAttribute.AttributeName;
 	if (PropertyName.IsEmpty())
 		return false;
+
+	// Skip, as setting NumCustomDataFloats this way causes Unreal to crash!
+	if (PropertyName.Equals(TEXT("NumCustomDataFloats"), ESearchCase::IgnoreCase))
+	{		
+		HOUDINI_LOG_WARNING(
+			TEXT("Skipping UProperty %s on %s, custom data floats should be modified via the unreal_num_custom_floats and unreal_per_instance_custom_dataX attributes"),
+			*PropertyName, *InObject->GetName());
+		return false;
+	}
 
 	// Some Properties need to be handle and modified manually...
 	if (PropertyName.Equals("CollisionProfileName", ESearchCase::IgnoreCase))
@@ -511,8 +523,20 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 		UActorComponent* AC = Cast<UActorComponent>(InObject);
 		if (IsValid(AC))
 		{
-			// Try to set component tags
-			return SetTags(&(AC->ComponentTags));
+			// On components, if Actor Tags weren't specified, just try to set the component's tag
+			if (!PropertyName.Contains("ActorTags"))
+			{
+				return SetTags(&(AC->ComponentTags));
+			}
+			else
+			{
+				// Try to set Actor tags on this component's owner
+				AActor* Actor = AC->GetOwner();
+				if (!IsValid(Actor))
+					return false;
+				else
+					return SetTags(&(Actor->Tags));
+			}
 		}
 
 		// If this is an Actor, get its Tags array
