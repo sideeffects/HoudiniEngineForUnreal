@@ -399,11 +399,6 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const int32& InPartId,
 			TArray<FHoudiniGenericAttribute>& OutPropertyAttributes);
 
-		static bool UpdateGenericPropertiesAttributes(
-			UObject* InObject,
-			const TArray<FHoudiniGenericAttribute>& InAllPropertyAttributes,
-			const int32& AtIndex);
-
 		static bool GetMaterialOverridesFromAttributes(
 			const int32& InGeoNodeId,
 			const int32& InPartId,

@@ -4027,7 +4027,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			// build function is called from PostEditChangeProperty.
 			constexpr bool bDeferPostEditChangePropertyCalls = true;
 			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(
-				FoundStaticMesh, PropertyAttributes, bDeferPostEditChangePropertyCalls, FindPropertyOnSourceModelLamba);
+				FoundStaticMesh, PropertyAttributes, 0, bDeferPostEditChangePropertyCalls, FindPropertyOnSourceModelLamba);
 		}
 
 
@@ -4146,7 +4146,8 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 		// Update property attributes on the SM
 		TArray<FHoudiniGenericAttribute> PropertyAttributes;
 		if (FHoudiniEngineUtils::GetGenericPropertiesAttributes(
-			CurrentObjId.GeoId, CurrentObjId.PartId,
+			CurrentObjId.GeoId,
+			CurrentObjId.PartId,
 			true,
 			CurrentObjId.PrimitiveIndex,
 			INDEX_NONE,
@@ -4156,7 +4157,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_RawMesh()
 			// Defer post edit change calls until after all property values have been set, since the static mesh
 			// build function is called from PostEditChangeProperty.
 			constexpr bool bDeferPostEditChangePropertyCalls = true;
-			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(SM, PropertyAttributes, bDeferPostEditChangePropertyCalls);
+			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(SM, PropertyAttributes, 0, bDeferPostEditChangePropertyCalls);
 		}
 
 		UBodySetup * BodySetup = SM->GetBodySetup();
@@ -5484,7 +5485,8 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 		// Update property attributes on the source model
 		TArray<FHoudiniGenericAttribute> PropertyAttributes;
 		if (FHoudiniEngineUtils::GetGenericPropertiesAttributes(
-			HGPO.GeoId, HGPO.PartId,
+			HGPO.GeoId,
+			HGPO.PartId,
 			true,
 			OutputObjectIdentifier.PrimitiveIndex,
 			INDEX_NONE,
@@ -5508,7 +5510,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			// build function is called from PostEditChangeProperty.
 			constexpr bool bDeferPostEditChangePropertyCalls = true;
 			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(
-				FoundStaticMesh, PropertyAttributes, bDeferPostEditChangePropertyCalls, FindPropertyOnSourceModelLamba);
+				FoundStaticMesh, PropertyAttributes, 0, bDeferPostEditChangePropertyCalls, FindPropertyOnSourceModelLamba);
 		}
 
 
@@ -5561,7 +5563,8 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 		// Update property attributes on the SM
 		TArray<FHoudiniGenericAttribute> PropertyAttributes;
 		if (FHoudiniEngineUtils::GetGenericPropertiesAttributes(
-			CurrentObjId.GeoId, CurrentObjId.PartId,
+			CurrentObjId.GeoId,
+			CurrentObjId.PartId,
 			true,
 			CurrentObjId.PrimitiveIndex,
 			INDEX_NONE,
@@ -5571,7 +5574,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			// Defer post edit change calls until after all property values have been set, since the static mesh
 			// build function is called from PostEditChangeProperty.
 			constexpr bool bDeferPostEditChangePropertyCalls = true;
-			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(SM, PropertyAttributes, bDeferPostEditChangePropertyCalls);
+			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(SM, PropertyAttributes, 0, bDeferPostEditChangePropertyCalls);
 		}
 
 		UBodySetup * BodySetup = SM->GetBodySetup();
