@@ -2772,17 +2772,19 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 		AActor* FoundActor = nullptr;
 		bool bHasBakeActorName = false;
 		if (!FindUnrealBakeActor(
-				InOutputObject,
-				OutBakedOutputObject,
-				InAllBakedActors,
-				DesiredLevel,
-				*(PackageParams.ObjectName),
-				bInReplaceActors,
-				InFallbackActor,
-				FoundActor,
-				bHasBakeActorName,
-				BakeActorName))
+			InOutputObject,
+			OutBakedOutputObject,
+			InAllBakedActors,
+			DesiredLevel,
+			*(PackageParams.ObjectName),
+			bInReplaceActors,
+			InFallbackActor,
+			FoundActor,
+			bHasBakeActorName,
+			BakeActorName))
+		{
 			return false;
+		}
 
 		bool bCreatedNewActor = false;
 		UStaticMeshComponent* SMC = nullptr;
@@ -2813,7 +2815,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 				}
 			}
 
-			const bool bCreateIfMissing = true;
+			const bool bCreateIfMissing = false;
 			USceneComponent* RootComponent = GetActorRootComponent(FoundActor, bCreateIfMissing);
 
 			if (!IsValid(SMC))
@@ -5774,10 +5776,69 @@ FHoudiniEngineBakeUtils::CopyPropertyToNewActorAndComponent(
 
 	NewSMC->SetVisibility(InSMC->IsVisible());
 
+	//--------------------------
+	// Copy Actor Properties
+	//--------------------------
+	// The below code is from EditorUtilities::CopyActorProperties and simplified
+	bool bCopyActorProperties = true;
+	AActor* SourceActor = InSMC->GetOwner();
+	if (IsValid(SourceActor) && bCopyActorProperties)
+	{
+		// The actor's classes should be compatible, right?
+		UClass* ActorClass = SourceActor->GetClass();
+		//check(NewActor->GetClass()->IsChildOf(ActorClass));
+
+		bool bTransformChanged = false;
+		EditorUtilities::FCopyOptions Options(EditorUtilities::ECopyOptions::Default);
+		
+		// Copy non-component properties from the old actor to the new actor
+		TSet<UObject*> ModifiedObjects;
+		for (FProperty* Property = ActorClass->PropertyLink; Property != nullptr; Property = Property->PropertyLinkNext)
+		{
+			const bool bIsTransient = !!(Property->PropertyFlags & CPF_Transient);
+			const bool bIsComponentContainer = !!(Property->PropertyFlags & CPF_ContainsInstancedReference);
+			const bool bIsComponentProp = !!(Property->PropertyFlags & (CPF_InstancedReference | CPF_ContainsInstancedReference));
+			const bool bIsBlueprintReadonly = !!(Property->PropertyFlags & CPF_BlueprintReadOnly);
+			const bool bIsIdentical = Property->Identical_InContainer(SourceActor, NewActor);
+
+			if (!bIsTransient && !bIsIdentical && !bIsComponentContainer && !bIsComponentProp && !bIsBlueprintReadonly)
+			{
+				const bool bIsSafeToCopy = (Property->HasAnyPropertyFlags(CPF_Edit | CPF_Interp))
+					&& (!Property->HasAllPropertyFlags(CPF_DisableEditOnTemplate));
+				if (bIsSafeToCopy)
+				{
+					if (!Options.CanCopyProperty(*Property, *SourceActor))
+					{
+						continue;
+					}
+
+					if (!ModifiedObjects.Contains(NewActor))
+					{
+						// Start modifying the target object
+						NewActor->Modify();
+						ModifiedObjects.Add(NewActor);
+					}
+
+					if (Options.Flags & EditorUtilities::ECopyOptions::CallPostEditChangeProperty)
+					{
+						NewActor->PreEditChange(Property);
+					}
+
+					EditorUtilities::CopySingleProperty(SourceActor, NewActor, Property);
+
+					if (Options.Flags & EditorUtilities::ECopyOptions::CallPostEditChangeProperty)
+					{
+						FPropertyChangedEvent PropertyChangedEvent(Property);
+						NewActor->PostEditChangeProperty(PropertyChangedEvent);
+					}
+				}
+			}
+		}
+	}
+
 	// TODO:
 	// // Reapply the uproperties modified by attributes on the new component
 	// FHoudiniEngineUtils::UpdateAllPropertyAttributesOnObject(InSMC, InHGPO);
-
 	// The below code is from EditorUtilities::CopyActorProperties and modified to only copy from one component to another
 	UClass* ComponentClass = nullptr;
 	if (InSMC->GetClass()->IsChildOf(NewSMC->GetClass()))
@@ -5802,7 +5863,7 @@ FHoudiniEngineBakeUtils::CopyPropertyToNewActorAndComponent(
 	TSet<const FProperty*> SourceUCSModifiedProperties;
 	InSMC->GetUCSModifiedProperties(SourceUCSModifiedProperties);
 
-	AActor* SourceActor = InSMC->GetOwner();
+	//AActor* SourceActor = InSMC->GetOwner();
 	if (!IsValid(SourceActor))
 	{
 		NewSMC->PostEditChange();
@@ -7824,10 +7885,10 @@ FHoudiniEngineBakeUtils::GetActorFactory(const FName& InActorClassName, TSubclas
 		}
 	}
 
-	// If InActorClassName was blank, or we could not find a factory for it, then if InFactoryClass is valid, try to
-	// find a factory of that class
+	// If InActorClassName was blank, or we could not find a factory for it,
+	// Then if InFactoryClass was specified, try to find a factory of that class
 	UClass const* const ActorFactoryClass = InFactoryClass.Get();
-	if (IsValid(ActorFactoryClass))
+	if (IsValid(ActorFactoryClass) && ActorFactoryClass != UActorFactoryEmptyActor::StaticClass())
 	{
 		UActorFactory* const ActorFactory = GEditor->FindActorFactoryByClass(ActorFactoryClass);
 		if (IsValid(ActorFactory))
@@ -7839,6 +7900,14 @@ FHoudiniEngineBakeUtils::GetActorFactory(const FName& InActorClassName, TSubclas
 	if (IsValid(InAsset))
 	{
 		UActorFactory* const ActorFactory = FActorFactoryAssetProxy::GetFactoryForAssetObject(InAsset);
+		if (IsValid(ActorFactory))
+			return ActorFactory;
+	}
+
+	if (IsValid(ActorFactoryClass))
+	{
+		// Return the empty actor factory if we had ignored it above
+		UActorFactory* const ActorFactory = GEditor->FindActorFactoryByClass(ActorFactoryClass);
 		if (IsValid(ActorFactory))
 			return ActorFactory;
 	}
