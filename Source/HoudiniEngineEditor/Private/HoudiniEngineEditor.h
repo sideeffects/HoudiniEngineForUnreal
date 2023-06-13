@@ -268,6 +268,10 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 		// This allows proper refinement of Proxies to Static Mesh
 		void HandleOnBeginPIE();
 
+		// For the Houdini category sections in the UI
+		void RegisterSectionMappings();
+		void UnregisterSectionMappings();
+
 	private:
 
 		// Singleton instance of Houdini Engine Editor.

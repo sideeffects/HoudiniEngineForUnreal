@@ -258,19 +258,12 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			MultiSelectionIdentifier += TEXT(")");
 		}
 
-		/*
-		// Handled by the UPROPERTIES on the component in v2!
-		// Edit the Houdini details category
-		IDetailCategoryBuilder & HoudiniAssetCategory =
-			DetailBuilder.EditCategory("HoudiniAsset", FText::GetEmpty(), ECategoryPriority::Important);
-		*/
-
 		//
 		// 0. HOUDINI ASSET DETAILS
 		//
 
 		{
-			FString HoudiniEngineCategoryName = "Houdini Engine";
+			FString HoudiniEngineCategoryName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_MAIN);
 			HoudiniEngineCategoryName += MultiSelectionIdentifier;
 			
 			// Create Houdini Engine details category
@@ -298,7 +291,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		//
 		if (MainComponent->GetPDGAssetLink())
 		{
-			FString PDGCatName = "HoudiniPDGAssetLink";
+			FString PDGCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_PDG);
 			PDGCatName += MultiSelectionIdentifier;
 
 			// Create the PDG Asset Link details category
@@ -322,7 +315,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 		// If we have selected more than one component that have different HDAs, 
 		// we need to create multiple categories one for each different HDA
-		FString ParamCatName = "HoudiniParameters";
+		FString ParamCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_PARAMS);
 		ParamCatName += MultiSelectionIdentifier;
 
 		// Create the Parameters details category
@@ -376,7 +369,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 		// If we have selected more than one component that have different HDAs, 
 		// we need to create multiple categories one for each different HDA
-		FString HandleCatName = "HoudiniHandles";
+		FString HandleCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_HANDLES);
 		HandleCatName += MultiSelectionIdentifier;
 
 		// Create the Parameters details category
@@ -426,7 +419,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 		// If we have selected more than one component that have different HDAs, 
 		// we need to create multiple categories one for each different HDA
-		FString InputCatName = "HoudiniInputs";
+		FString InputCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_INPUTS);
 		InputCatName += MultiSelectionIdentifier;
 
 		// Create the input details category
@@ -482,7 +475,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 		// If we have selected more than one component that have different HDAs, 
 		// we need to create multiple categories one for each different HDA
-		FString OutputCatName = "HoudiniOutputs";
+		FString OutputCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_OUTPUTS);
 		OutputCatName += MultiSelectionIdentifier;
 
 		// Create the output details category

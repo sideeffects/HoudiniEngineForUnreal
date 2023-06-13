@@ -160,6 +160,10 @@ void FHoudiniEngineEditor::StartupModule()
 	//RegisterForUndo();
 
 	RegisterEditorTabs();
+
+	// Register sections (filters) for the details category
+	RegisterSectionMappings();
+
 	/*
 	if (FModuleManager::Get().IsModuleLoaded(TEXT("LevelEditor")))
 	{
@@ -197,6 +201,9 @@ void FHoudiniEngineEditor::ModulesChangedCallback(FName ModuleName, EModuleChang
 void FHoudiniEngineEditor::ShutdownModule()
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Shutting down the Houdini Engine Editor module."));
+
+	// Unregister the sections (filters) for the details category
+	UnregisterSectionMappings();
 
 	// Deregister editor delegates
 	UnregisterEditorDelegates();
@@ -819,6 +826,53 @@ FHoudiniEngineEditor::UnregisterPlacementModeExtensions()
 
 	HoudiniTools.Empty();
 	*/
+}
+
+void
+FHoudiniEngineEditor::RegisterSectionMappings()
+{
+	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+	// Houdini Category Section
+	FName ClassName = UHoudiniAssetComponent::StaticClass()->GetFName();
+	TSharedRef<FPropertySection> Section = PropertyModule.FindOrCreateSection(ClassName, "Houdini", LOCTEXT("Houdini", "Houdini"));
+
+	// The Section (more or less details filters) will contain the following categories
+	// Houdini Engine
+	FString CatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_MAIN);
+	Section->AddCategory(*CatName);
+
+	// HoudiniPDGAssetLink
+	CatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_PDG);
+	Section->AddCategory(*CatName);
+
+	// HoudiniParameters
+	CatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_PARAMS);
+	Section->AddCategory(*CatName);
+
+	// HoudiniHandles
+	CatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_HANDLES);
+	Section->AddCategory(*CatName);
+
+	// HoudiniInputs
+	CatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_INPUTS);
+	Section->AddCategory(*CatName);
+
+	// HoudiniOutputs
+	CatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_OUTPUTS);
+	Section->AddCategory(*CatName);
+}
+
+void 
+FHoudiniEngineEditor::UnregisterSectionMappings()
+{
+	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor") && FSlateApplication::IsInitialized())
+	{
+		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		FName ClassName = UHoudiniAssetComponent::StaticClass()->GetFName();
+
+		PropertyModule.RemoveSection(ClassName, "Houdini");
+	}
 }
 
 void 
@@ -1858,7 +1912,8 @@ FHoudiniEngineEditor::HandleOnDeleteActorsEnd()
 }
 
 
-TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArgs& SpawnTabArgs)
+TSharedRef<SDockTab> 
+FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArgs& SpawnTabArgs)
 {
 
 	TSharedPtr<SHorizontalBox> Box;
@@ -2299,6 +2354,7 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArg
 
 	return NodeSyncDock;
 }
+
 
 
 #undef LOCTEXT_NAMESPACE
