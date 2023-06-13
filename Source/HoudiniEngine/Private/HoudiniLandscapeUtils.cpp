@@ -680,7 +680,12 @@ FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(ALandscapeProxy* Land
 		UMaterialInterface* Material = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(),
 			nullptr, *(Materials.Material), nullptr, LOAD_NoWarn, nullptr));
 
-		if (Materials.bCreateMaterialInstance)
+		if (!IsValid(Material))
+		{
+			HOUDINI_LOG_ERROR(TEXT("Could not load material: %s"), *Materials.Material);
+		}
+
+		if (Materials.bCreateMaterialInstance && IsValid(Material))
 		{
 			MaterialInstance = CreateMaterialInstance(LandscapeProxy->GetActorLabel(), Material, Params);
 			Material = MaterialInstance;
@@ -694,6 +699,12 @@ FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(ALandscapeProxy* Land
 		UMaterialInterface* Material = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(),
 			nullptr, *(Materials.HoleMaterial), nullptr, LOAD_NoWarn, nullptr));
 		LandscapeProxy->LandscapeHoleMaterial = Material;
+
+		if (!IsValid(Material))
+		{
+			HOUDINI_LOG_ERROR(TEXT("Could not load material: %s"), *Materials.HoleMaterial);
+		}
+
 	}
 
 	LandscapeProxy->GetLandscapeActor()->ForceUpdateLayersContent();
@@ -1121,6 +1132,12 @@ bool FHoudiniLandscapeUtils::GetOutputMode(int GeoId, int PartId, HAPI_Attribute
 UMaterialInterface*
 FHoudiniLandscapeUtils::CreateMaterialInstance(const FString & Prefix, UMaterialInterface* Material, const FHoudiniPackageParams& Params)
 {
+	if (!IsValid(Material))
+	{
+		return nullptr;
+	}
+
+
 	// Factory to create materials.
 	UMaterialInstanceConstantFactoryNew* MaterialInstanceFactory = NewObject< UMaterialInstanceConstantFactoryNew >();
 	if (!MaterialInstanceFactory)
