@@ -45,6 +45,15 @@
 #define HAPI_UNREAL_ONLINE_FORUM_URL							TEXT("https://www.sidefx.com/forum/51/")
 
 
+// UI Category Names
+
+#define HOUDINI_ENGINE_EDITOR_CATEGORY_MAIN						"HoudiniEngine";
+#define HOUDINI_ENGINE_EDITOR_CATEGORY_PDG						"HoudiniPDGAssetLink";
+#define HOUDINI_ENGINE_EDITOR_CATEGORY_PARAMS					"HoudiniParameters";
+#define HOUDINI_ENGINE_EDITOR_CATEGORY_HANDLES					"HoudiniHandles";
+#define HOUDINI_ENGINE_EDITOR_CATEGORY_INPUTS					"HoudiniInputs";
+#define HOUDINI_ENGINE_EDITOR_CATEGORY_OUTPUTS					"HoudiniOutputs";
+
 //
 // Parameter UI constants
 //

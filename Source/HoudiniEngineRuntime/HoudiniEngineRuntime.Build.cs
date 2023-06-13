@@ -38,8 +38,10 @@ public class HoudiniEngineRuntime : ModuleRules
         PrivatePCHHeaderFile = "Private/HoudiniEngineRuntimePrivatePCH.h";
 		PrecompileForTargets = PrecompileTargetsType.Any;
 
-		// Check if we are compiling for unsupported platforms.
-		if ( Target.Platform != UnrealTargetPlatform.Win64 &&
+        bUseUnity = false;
+
+        // Check if we are compiling for unsupported platforms.
+        if ( Target.Platform != UnrealTargetPlatform.Win64 &&
 			Target.Platform != UnrealTargetPlatform.Mac &&
 			Target.Platform != UnrealTargetPlatform.Linux /*&&
 			Target.Platform != UnrealTargetPlatform.Switch */)
