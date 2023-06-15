@@ -25,16 +25,18 @@
 */
 
 #include "HoudiniOutput.h"
-#include "HoudiniAssetComponent.h"
 
+#include "HoudiniAssetComponent.h"
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniLandscapeRuntimeUtils.h"
 #include "HoudiniSplineComponent.h"
+
 #include "Components/SceneComponent.h"
 #include "Components/MeshComponent.h"
 #include "Components/SplineComponent.h"
-#include "Misc/StringFormatArg.h"
+#include "Engine/Blueprint.h"
 #include "Engine/Engine.h"
+#include "Misc/StringFormatArg.h"
 #include "LandscapeLayerInfoObject.h"
 
 UHoudiniLandscapePtr::UHoudiniLandscapePtr(class FObjectInitializer const& Initializer) 

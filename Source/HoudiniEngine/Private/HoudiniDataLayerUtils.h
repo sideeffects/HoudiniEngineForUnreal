@@ -30,6 +30,7 @@
 #include "GameFramework/Actor.h"
 #include "Editor.h"
 #include "HAPI/HAPI_Common.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 
 struct FHoudiniPackageParams;
