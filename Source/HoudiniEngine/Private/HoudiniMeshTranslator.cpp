@@ -483,6 +483,8 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 
 	TArray<FString> CaptNamesData;
 	TArray<FString> CaptNamesAltData;
+	TArray<FString> WeightNamesData;
+
 
 	//BuildSettings.bIsNewSkeleton = !UnrealSkeletonInfo.exists;
 	//
@@ -517,6 +519,9 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 		// Free any RHI resources for existing mesh before we re-create in place.
 		MySkeleton->PreEditChange(nullptr);
 
+		//WeightNames are limited to the bones used by boneCapture point attribute
+		//capt_names are the bones of the full skeleton
+		// //
 		//Load Skeleton from capt_ data
 		// 
 		//capt_names---------------------------------------------------------------------------
@@ -539,6 +544,32 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 		// using a map to minimize the number of HAPI calls
 		FHoudiniEngineString::SHArrayToFStringArray(StringHandles, CaptNamesData);
 
+		//capt_names---------------------------------------------------------------------------
+
+		//weight_names---------------------------------------------------------------------------
+		HAPI_AttributeInfo WeightNamesInfo;
+		FHoudiniApi::AttributeInfo_Init(&WeightNamesInfo);
+		HAPI_Result WeightNamesInfoResult = FHoudiniApi::GetAttributeInfo(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId,
+			"WeightNames", HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &WeightNamesInfo);
+		// Extract the StringHandles
+		TArray<HAPI_StringHandle> WeightNamesStringHandles;
+		TArray<int> WeightNamesSizesFixedArray;
+		WeightNamesSizesFixedArray.SetNum(WeightNamesInfo.totalArrayElements);
+		WeightNamesStringHandles.Init(-1, WeightNamesInfo.totalArrayElements);
+		HAPI_Result WeightNamesInfoResult2 = FHoudiniApi::GetAttributeStringArrayData(FHoudiniEngine::Get().GetSession(), GeoId, PartId, "WeightNames", &WeightNamesInfo, &WeightNamesStringHandles[0], WeightNamesInfo.totalArrayElements, &WeightNamesSizesFixedArray[0], 0, WeightNamesInfo.count);
+
+		// Set the output data size
+		WeightNamesData.SetNum(WeightNamesStringHandles.Num());
+		// Convert the StringHandles to FString.
+		// using a map to minimize the number of HAPI calls
+		FHoudiniEngineString::SHArrayToFStringArray(WeightNamesStringHandles, WeightNamesData);
+		//capt_names---------------------------------------------------------------------------
+
+
+
+		//___DEPRECATED
 		//capt_names_alt---------------------------------------------------------------------------
 		//the capture data bone names dont match the paretnt and transfer data bone names
 		HAPI_AttributeInfo CaptNamesAltInfo;
@@ -748,6 +779,7 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 
 	//Process the incoming weight data 
 	//Data is in [idx,weight] pair, with tuple representing stride for that vertex
+	//NOTE the indexs refer to WeightNamesData not the actual Skeleton CaptNamesData
 
 	FString BoneName;
 	int firstinfluence = 0;
@@ -758,7 +790,19 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 		//set current weigth/index pair
 		float idx = BoneCaptureData[i * 2];
 		float weight = BoneCaptureData[(i * 2) + 1];
-
+		if (idx >= 0)
+		{
+			BoneName = WeightNamesData[idx];
+			float RemappedIndex = CaptNamesData.Find(BoneName);
+			if (RemappedIndex == INDEX_NONE)
+			{
+				//BROKEN
+			}
+			else
+			{
+				idx = RemappedIndex;
+			}
+		}
 		if (CaptNamesAltData.Num() > 0)	 //remap if not fbx imported
 		{
 			if (idx > 0)
@@ -780,29 +824,42 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 			{
 				RawBoneInfluence.Weight = weight;
 			}
+
+			UE_LOG(LogTemp, Log, TEXT("RawBoneInfluence: vertindex %i bonecount %i %s %i %i  %f %f"), InfluenceVertIndex, bonecount, *BoneName, RawBoneInfluence.BoneIndex, RawBoneInfluence.VertexIndex, RawBoneInfluence.Weight, sum);
+			if ((sum + RawBoneInfluence.Weight) > 1.0f)
+			{
+
+				UE_LOG(LogTemp, Log, TEXT("ERROR:  SUM would be %f  clamping wieght to %f"), sum, 1.0 - sum);
+				RawBoneInfluence.Weight = 1.0 - sum;
+			}
+			sum += RawBoneInfluence.Weight;
+
+			if (RawBoneInfluence.BoneIndex == 0)
+			{
+				UE_LOG(LogTemp, Log, TEXT("WARNING:  Root Bone weight %f"), RawBoneInfluence.Weight);
+			}
+
 			int32 newinfluence = SkeletalMeshImportData.Influences.Add(RawBoneInfluence);
 			if (bonecount == 0)
 			{
 				firstinfluence = newinfluence;
 			}
-			UE_LOG(LogTemp, Log, TEXT("RawBoneInfluence: vertindex %i bonecount %i %s %i %i  %f"), InfluenceVertIndex, bonecount, *BoneName, RawBoneInfluence.BoneIndex, RawBoneInfluence.VertexIndex, RawBoneInfluence.Weight);
-			sum += RawBoneInfluence.Weight;
 			bonecount++;
 		}
 
 		//fixup so sum of weights is 1
 		int32 Stride = CaptureCount * 2;
-		if ((Stride % BoneCaptureInfo.tupleSize) == 0)	//Should work with any tuple size
+		if ((Stride % BoneCaptureInfo.tupleSize) == 0)	//Should work with any tuple size  || NOT CONSTANT TUPLE SIZE??
 		{
-			if (!FMath::IsNearlyEqual(sum, 1.0f, 0.0001f))
-			{
-				SkeletalMeshImportData.Influences[firstinfluence].Weight += (1.0f - sum);
-				//UE_LOG(LogTemp, Log, TEXT("ERRROR InfluenceVertIndex %i Sum %f bone %i weight fixed to %f "), InfluenceVertIndex, sum, firstinfluence, SkeletalMeshImportData.Influences[firstinfluence].Weight);
-			}
-			else
-			{
-				//UE_LOG(LogTemp, Log, TEXT("InfluenceVertIndex %i Sum %f"), InfluenceVertIndex, sum);
-			}
+			//	if (!FMath::IsNearlyEqual(sum, 1.0f, 0.0001f))
+			//	{
+			//		SkeletalMeshImportData.Influences[firstinfluence].Weight += (1.0f - sum);
+			//		//UE_LOG(LogTemp, Log, TEXT("ERRROR InfluenceVertIndex %i Sum %f bone %i weight fixed to %f "), InfluenceVertIndex, sum, firstinfluence, SkeletalMeshImportData.Influences[firstinfluence].Weight);
+			//	}
+			//	else
+			//	{
+			//		//UE_LOG(LogTemp, Log, TEXT("InfluenceVertIndex %i Sum %f"), InfluenceVertIndex, sum);
+			//	}
 			InfluenceVertIndex++;
 			sum = 0;
 			bonecount = 0;
