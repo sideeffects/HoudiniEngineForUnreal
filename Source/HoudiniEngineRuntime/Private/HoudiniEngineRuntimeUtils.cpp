@@ -25,18 +25,18 @@
 */
 
 #include "HoudiniEngineRuntimeUtils.h"
+
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniRuntimeSettings.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputManager.h"
 
+#include "EngineUtils.h"
+#include "Engine/EngineTypes.h"
 #include "Landscape.h"
 #include "LandscapeProxy.h"
 #include "LandscapeStreamingProxy.h"
 #include "LandscapeInfo.h"
-
-#include "EngineUtils.h"
-#include "Engine/EngineTypes.h"
 #include "Misc/Paths.h"
 #include "Runtime/Launch/Resources/Version.h"
 
