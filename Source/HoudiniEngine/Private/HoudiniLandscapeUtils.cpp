@@ -405,6 +405,8 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 	//--------------------------------------------------------------------------------------------------------------------------
 
 	TMap<FString, TMap<FString, FHoudiniHeightFieldPartData*> > LandscapesToCreate;
+	TMap<ALandscapeProxy * , TMap<FString, FHoudiniHeightFieldPartData*> > ExistingLandscapes;
+
 	for(int Index = 0; Index < Parts.Num(); Index++)
 	{
 		FHoudiniHeightFieldPartData& Part = Parts[Index];
@@ -423,8 +425,8 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 			}
 			else
 			{
-				auto & EditLayersToCreate = LandscapesToCreate.FindOrAdd(Part.TargetLandscapeName);
-				EditLayersToCreate.Add(Part.TargetLayerName, &Part);
+				auto & PartArry = LandscapesToCreate.FindOrAdd(Part.TargetLandscapeName);
+				PartArry.Add(Part.TargetLayerName, &Part);
 			}
 		}
 		else
@@ -441,6 +443,8 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 			LandscapeTarget.Proxy = LandscapeProxy;
 			LandscapeTarget.bWasCreated = false;
 			Result.TargetLandscapes.Add(LandscapeTarget);
+			auto& PartArray = ExistingLandscapes.FindOrAdd(LandscapeProxy);
+			PartArray.Add(Part.TargetLayerName, &Part);
 		}
 	}
 
@@ -467,6 +471,9 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		}
 
 		auto LayerPackageParams = PackageParams;
+		LayerPackageParams.ObjectId = PartForSizing->ObjectId;
+		LayerPackageParams.GeoId = PartForSizing->GeoId;
+		LayerPackageParams.PartId = PartForSizing->PartId;
 		LayerPackageParams.SplitStr = CookedLandscapePrefix + LandscapeActorName;
 		FString CookingActorName = LayerPackageParams.GetPackageName();
 
@@ -513,13 +520,18 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		// Order is important: Assign materials, create landscape info, Create TargetLayerInfo assets.
 		//---------------------------------------------------------------------------------------------------------------------------------
 
-		AssignGraphicsMaterialsToLandscape(LandscapeActor, PartForSizing->Materials, PackageParams);
+		TArray<UPackage*> CreatedPackages;
+
+		PartForSizing->MaterialInstance = AssignGraphicsMaterialsToLandscape(
+					LandscapeActor, 
+					PartForSizing->Materials, 
+					PackageParams, 
+					CreatedPackages);
+
 		LandscapeActor->CreateLandscapeInfo();
 
-		TArray<UPackage*> CreatedPackages;
 		TArray<ULandscapeLayerInfoObject*> CreateLayerInfoObjects =
 									CreateTargetLayerInfoAssets(LandscapeActor, PackageParams, PartsForLandscape, CreatedPackages);
-
 
 		//---------------------------------------------------------------------------------------------------------------------------------
 		// Create an empty, zeroed height field. The actual height field, if supplied, will be applied after the landscape is created
@@ -566,8 +578,21 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		Output.Dimensions = PartForSizing->SizeInfo.UnrealSize;
 		Result.TargetLandscapes.Add(Output);
 		Result.CreatedPackages = CreatedPackages;
+	}
+
+	//--------------------------------------------------------------------------------------------------------------------------
+	// For existing landscape, go through and apply new data. eg. material assignments
+	//--------------------------------------------------------------------------------------------------------------------------
+
+	for (auto It : ExistingLandscapes)
+	{
+		ALandscapeProxy* LandscapeProxy = It.Key;
+		TMap<FString, FHoudiniHeightFieldPartData*>& PartsForLandscape = It.Value;
+
+		ApplyMaterialsFromParts(LandscapeProxy, PartsForLandscape, PackageParams, Result.CreatedPackages);
 
 	}
+
 	return Result;
 }
 
@@ -671,7 +696,11 @@ FTransform FHoudiniLandscapeUtils::GetHeightFieldTransformInUnrealSpace(const FH
 
 
 UMaterialInterface*
-FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(ALandscapeProxy* LandscapeProxy, FHoudiniLandscapeMaterial& Materials, const FHoudiniPackageParams& Params)
+FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(
+		ALandscapeProxy* LandscapeProxy, 
+		FHoudiniLandscapeMaterial& Materials, 
+		const FHoudiniPackageParams& Params,
+		TArray<UPackage*> & CreatedPackages)
 {
 	UMaterialInterface* MaterialInstance = nullptr;
 
@@ -687,7 +716,7 @@ FHoudiniLandscapeUtils::AssignGraphicsMaterialsToLandscape(ALandscapeProxy* Land
 
 		if (Materials.bCreateMaterialInstance && IsValid(Material))
 		{
-			MaterialInstance = CreateMaterialInstance(LandscapeProxy->GetActorLabel(), Material, Params);
+			MaterialInstance = CreateMaterialInstance(LandscapeProxy->GetName(), Material, Params, CreatedPackages);
 			Material = MaterialInstance;
 		}
 
@@ -762,8 +791,10 @@ TArray<ULandscapeLayerInfoObject*> FHoudiniLandscapeUtils::CreateTargetLayerInfo
 			}
 			else
 			{
-				LayerPackageParams.SplitStr = TargetLayerName;
-				FString PackageName = LayerPackageParams.GetPackageName();
+				// Normally we create packages with a name based off geo/part ids. But this doesn't make sense here
+				// as we're creating a layer info based off the material and name of the landscape.
+				ALandscape * ParentLandscape = LandscapeProxy->GetLandscapeActor();
+				FString PackageName = ParentLandscape->GetName() + FString("_") + TargetLayerName;
 				FString PackagePath = LayerPackageParams.GetPackagePath();
 				UPackage* Package = nullptr;
 				Layer = FindOrCreateLandscapeLayerInfoObject(TargetLayerName, PackagePath, PackageName, Package);
@@ -775,7 +806,6 @@ TArray<ULandscapeLayerInfoObject*> FHoudiniLandscapeUtils::CreateTargetLayerInfo
 				Results.Add(Layer);
 			}
 			LandscapeProxy->EditorLayerSettings.Add(FLandscapeEditorLayerSettings(Layer));
-
 		}
 	}
 
@@ -1130,7 +1160,11 @@ bool FHoudiniLandscapeUtils::GetOutputMode(int GeoId, int PartId, HAPI_Attribute
 }
 
 UMaterialInterface*
-FHoudiniLandscapeUtils::CreateMaterialInstance(const FString & Prefix, UMaterialInterface* Material, const FHoudiniPackageParams& Params)
+FHoudiniLandscapeUtils::CreateMaterialInstance(
+		const FString & Prefix, 
+		UMaterialInterface* Material, 
+		const FHoudiniPackageParams& Params, 
+		TArray<UPackage*>& CreatedPackages)
 {
 	if (!IsValid(Material))
 	{
@@ -1148,17 +1182,47 @@ FHoudiniLandscapeUtils::CreateMaterialInstance(const FString & Prefix, UMaterial
 	MaterialName = UPackageTools::SanitizePackageName(MaterialName);
 
 	FString MaterialInstanceName;
-	UPackage* MaterialPackage = FHoudiniMaterialTranslator::CreatePackageForMaterial(0,
-		MaterialName, Params, MaterialInstanceName);
+
+	FHoudiniPackageParams MaterialParams = Params;
+	MaterialParams.ObjectName = MaterialName;
+	UPackage* MaterialPackage = MaterialParams.CreatePackageForObject(MaterialInstanceName);
 
 	// Create the new material instance
 	MaterialInstanceFactory->AddToRoot();
 	MaterialInstanceFactory->InitialParent = Material;
 	auto MaterialInstance = (UMaterialInstanceConstant*)MaterialInstanceFactory->FactoryCreateNew(
-		UMaterialInstanceConstant::StaticClass(), MaterialPackage, FName(*MaterialName),
+		UMaterialInstanceConstant::StaticClass(), MaterialPackage, FName(*MaterialInstanceName),
 		RF_Public | RF_Standalone, NULL, GWarn);
 
 	MaterialInstanceFactory->RemoveFromRoot();
 
+	FAssetRegistryModule::AssetCreated(MaterialInstance);
+	MaterialPackage->MarkPackageDirty();
+	CreatedPackages.Add(MaterialPackage);
+
 	return MaterialInstance;
+}
+
+void FHoudiniLandscapeUtils::ApplyMaterialsFromParts(
+		ALandscapeProxy* LandscapeProxy, 
+		TMap<FString, FHoudiniHeightFieldPartData*> & Parts, 
+		const FHoudiniPackageParams& PackageParams,
+		TArray<UPackage*>& CreatedPackages)
+{
+	// The user can specify a different materials per part, but this is an error.
+	// Pick the first one we find. TODO: Add checks to see if they conflict.
+
+	for(auto & It : Parts)
+	{
+		It.Value->MaterialInstance = AssignGraphicsMaterialsToLandscape(
+								LandscapeProxy, It.Value->Materials, PackageParams, CreatedPackages);
+
+		AssignPhysicsMaterialsToLandscape(LandscapeProxy, It.Value->TargetLayerName, It.Value->Materials);
+
+		break; // just the first one.
+	}
+	
+
+
+
 }

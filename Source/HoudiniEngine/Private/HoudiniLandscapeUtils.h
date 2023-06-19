@@ -96,6 +96,10 @@ struct FHoudiniTileInfo
 
 struct FHoudiniHeightFieldPartData
 {
+    int ObjectId = 0;
+	int GeoId = 0;
+	int PartId = 0;
+
     // The Edit Layer name to use (Empty if applied to a landscape without edit layers)
     FString UnrealLayerName;
 
@@ -149,6 +153,10 @@ struct FHoudiniHeightFieldPartData
 
     // Size info - number of sections and components.
     FHoudiniLandscapeCreationInfo SizeInfo;
+
+    // Any material instance created.
+	UMaterialInterface* MaterialInstance = nullptr;
+
 
 };
 
@@ -234,7 +242,8 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
     static UMaterialInterface* AssignGraphicsMaterialsToLandscape(
 				ALandscapeProxy* LandscapeProxy, 
                 FHoudiniLandscapeMaterial & Materials,
-				const FHoudiniPackageParams& Params);
+				const FHoudiniPackageParams& Params,
+                TArray<UPackage*> & CreatedPacakages);
 
     static void AssignPhysicsMaterialsToLandscape(ALandscapeProxy* LandscapeProxy, const FString& LayerName, FHoudiniLandscapeMaterial& Materials);
 
@@ -272,6 +281,12 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 
     static bool GetOutputMode(int GeoId, int PartId, HAPI_AttributeOwner Owner, int& LandscapeOutputMode);
 
-    static UMaterialInterface* CreateMaterialInstance(const FString & Prefix, UMaterialInterface * Material, const FHoudiniPackageParams & Params);
+    static UMaterialInterface* CreateMaterialInstance(const FString & Prefix, UMaterialInterface * Material, const FHoudiniPackageParams & Params, TArray<UPackage*>& CreatedPackages);
+
+    static void ApplyMaterialsFromParts(
+			ALandscapeProxy * LandscapeProxy, 
+            TMap<FString, FHoudiniHeightFieldPartData*> & LayerParts, 
+            const FHoudiniPackageParams& PackageParams,
+            TArray<UPackage *> & CreatedPackages);
 
 };

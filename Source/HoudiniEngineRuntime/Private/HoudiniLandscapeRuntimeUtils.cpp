@@ -59,8 +59,12 @@ void FHoudiniLandscapeRuntimeUtils::DeleteLandscapeCookedData(UHoudiniOutput* In
 			// Remove any landscapes that were created.
 			if (OldLayer->bCreatedLandscape && OldLayer->Landscape)
 				LandscapesToDelete.Add(OldLayer->Landscape);
+
+			PrevObj.OutputObject->ConditionalBeginDestroy();
 		}
 	}
+
+	InOutput->GetOutputObjects().Empty();
 
 	for (ALandscape* Landscape : LandscapesToDelete)
 		DestroyLandscape(Landscape);
