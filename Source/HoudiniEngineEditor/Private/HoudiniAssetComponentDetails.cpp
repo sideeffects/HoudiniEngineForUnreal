@@ -44,6 +44,7 @@
 #include "Widgets/Layout/SSeparator.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Images/SImage.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 
 #include "PropertyCustomizationHelpers.h"
 #include "DetailLayoutBuilder.h"

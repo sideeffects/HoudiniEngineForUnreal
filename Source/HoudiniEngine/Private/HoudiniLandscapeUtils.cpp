@@ -520,6 +520,7 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		TArray<ULandscapeLayerInfoObject*> CreateLayerInfoObjects =
 									CreateTargetLayerInfoAssets(LandscapeActor, PackageParams, PartsForLandscape, CreatedPackages);
 
+		ULandscapeInfo* Info = LandscapeActor->GetLandscapeInfo();
 
 		//---------------------------------------------------------------------------------------------------------------------------------
 		// Create an empty, zeroed height field. The actual height field, if supplied, will be applied after the landscape is created
