@@ -501,7 +501,7 @@ TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTrans
 			PartData.Materials.PhysicalMaterial);
 
 		//-----------------------------------------------------------------------------------------------------------------------------
-		// Bake folder
+		// Bake folders
 		//-----------------------------------------------------------------------------------------------------------------------------
 
 		FHoudiniEngineUtils::HapiGetFirstAttributeValueAsString(
@@ -509,6 +509,12 @@ TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTrans
 			HAPI_UNREAL_ATTRIB_BAKE_OUTLINER_FOLDER,
 			HAPI_ATTROWNER_INVALID,
 			PartData.BakeOutlinerFolder);
+
+		FHoudiniEngineUtils::HapiGetFirstAttributeValueAsString(
+			PartObj.GeoId, PartObj.PartId,
+			HAPI_UNREAL_ATTRIB_BAKE_FOLDER,
+			HAPI_ATTROWNER_INVALID,
+			PartData.BakeFolder);
 
 		//-----------------------------------------------------------------------------------------------------------------------------
 		// Add new layer.
@@ -781,6 +787,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	Obj->LayerInfoObjects = Landscape.CreatedLayerInfoObjects;
 	Obj->bCookedLayerRequiresBaking = OutputLandscape->bCanHaveLayersContent && (CookedLayerName != BakedLayerName);
 	Obj->BakeOutlinerFolder = Part.BakeOutlinerFolder;
+	Obj->BakeFolder = Part.BakeFolder;
 	Obj->MaterialInstance = Part.MaterialInstance;
 	return Obj;
 
