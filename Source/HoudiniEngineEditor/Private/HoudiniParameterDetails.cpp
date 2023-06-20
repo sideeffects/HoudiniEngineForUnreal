@@ -2327,7 +2327,7 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 		if (ParentMultiParm.IsValid() && ParentMultiParm->IsShown() && MainParam->ShouldDisplay())
 		{
 			if (MainParam->GetParameterType() != EHoudiniParameterType::FolderList)
-				Row = &(HouParameterCategory.AddCustomRow(FText::GetEmpty()));
+				Row = &(HouParameterCategory.AddCustomRow(FText::FromString(MainParam->GetParameterLabel())));
 		}
 
 	}
@@ -2384,7 +2384,7 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 				if (bShouldDisplayRow)
 				{
 					if (MainParam->GetParameterType() != EHoudiniParameterType::FolderList)
-						Row = &(HouParameterCategory.AddCustomRow(FText::GetEmpty()));					
+						Row = &(HouParameterCategory.AddCustomRow(FText::FromString(MainParam->GetParameterLabel())));
 				}
 			}
 
@@ -2401,7 +2401,7 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 			if (MainParam->ShouldDisplay())
 			{
 				if (MainParam->GetParameterType() != EHoudiniParameterType::FolderList)
-					Row = &(HouParameterCategory.AddCustomRow(FText::GetEmpty()));
+					Row = &(HouParameterCategory.AddCustomRow(FText::FromString(MainParam->GetParameterLabel())));
 			}
 		}
 	}
@@ -2409,9 +2409,13 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 	if (!MainParam->IsVisible())
 		return nullptr;
 
-	
 	if (Row)
 		CurrentTabEndingRow = nullptr;
+
+	if (Row)
+	{
+		Row->RowTag(*(MainParam->GetParameterName()));
+	}
 
 	return Row;
 }
