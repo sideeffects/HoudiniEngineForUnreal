@@ -413,17 +413,25 @@ UHoudiniInput::Serialize(FArchive& Ar)
 }
 
 FBox 
-UHoudiniInput::GetBounds() 
+UHoudiniInput::GetBounds(UWorld * World) 
 {
 	FBox BoxBounds(ForceInitToZero);
 
 	// Return the cached bounds to prevent crashing when trying to access the input objects during GC/ saving
 	// Fixes #126804
+	//
+	// Also, don't do this when playing, only in Editor, This fixes issue in world partition when actors are not
+	// loaded. 
+
+	bool bUseCachedBounds = UE::IsSavingPackage(nullptr) || World->IsGameWorld();
+
 #if ENGINE_MINOR_VERSION < 1
-	if (UE::IsSavingPackage(nullptr) || IsGarbageCollecting())
+	bUseCachedBounds |= IsGarbageCollecting();
 #else
-	if (UE::IsSavingPackage(nullptr) || IsGarbageCollectingAndLockingUObjectHashTables())
+	bUseCachedBounds |= IsGarbageCollectingAndLockingUObjectHashTables();
 #endif
+
+	if (bUseCachedBounds)
 		return CachedBounds;
 
 	switch (Type)
