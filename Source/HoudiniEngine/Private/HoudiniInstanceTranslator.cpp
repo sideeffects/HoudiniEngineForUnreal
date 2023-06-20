@@ -2429,11 +2429,18 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedActorComponent(
 		else
 		{
 			// We can simply update the actor's transform
-			InstancedActorComponent->SetInstanceTransformAt(Idx, CurTransform);
+			InstancedActorComponent->SetInstanceTransformAt(Idx, CurTransform);	
 		}
 
 		// Update the generic properties for that instance if any
 		FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(CurInstance, AllPropertyAttributes, OriginalInstancerObjectIndices[Idx]);
+	}
+
+	// Make sure Post edit change is called on all generated actors
+	TArray<AActor*> NewActors = InstancedActorComponent->GetInstancedActors();
+	for (auto& CurActor : NewActors)
+	{
+		CurActor->PostEditChange();
 	}
 
 	// Assign the new ISMC / HISMC to the output component if we created a new one

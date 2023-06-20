@@ -34,11 +34,13 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "LandscapeStreamingProxy.h"
 
-void FHoudiniLandscapeRuntimeUtils::DeleteLandscapeCookedData(UHoudiniOutput* InOutput)
+void 
+FHoudiniLandscapeRuntimeUtils::DeleteLandscapeCookedData(UHoudiniOutput* InOutput)
 {
 	TSet<ALandscape*> LandscapesToDelete;
-
-	for (auto& OutputObjectPair : InOutput->GetOutputObjects())
+	TArray<FHoudiniOutputObjectIdentifier> OutputObjectsToDelete;
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
+	for (auto& OutputObjectPair : OutputObjects)
 	{
 		const FHoudiniOutputObject& PrevObj = OutputObjectPair.Value;
 		if (IsValid(PrevObj.OutputObject) && PrevObj.OutputObject->IsA<UHoudiniLandscapeTargetLayerOutput>())
@@ -60,11 +62,21 @@ void FHoudiniLandscapeRuntimeUtils::DeleteLandscapeCookedData(UHoudiniOutput* In
 			if (OldLayer->bCreatedLandscape && OldLayer->Landscape)
 				LandscapesToDelete.Add(OldLayer->Landscape);
 
+			OutputObjectsToDelete.Add(OutputObjectPair.Key);
+
 			PrevObj.OutputObject->ConditionalBeginDestroy();
 		}
 	}
 
-	InOutput->GetOutputObjects().Empty();
+	// Dont delete everything as we need to keep previous existing output data for the other output objectss!
+	// This prevents reusing the data/components/objects from previous cooks
+	//InOutput->GetOutputObjects().Empty();	
+
+	// Just delete the output objects we marked as to be deleted
+	for (auto OutputObjectIdentifierToDelete : OutputObjectsToDelete)
+	{
+		OutputObjects.Remove(OutputObjectIdentifierToDelete);
+	}
 
 	for (ALandscape* Landscape : LandscapesToDelete)
 		DestroyLandscape(Landscape);
