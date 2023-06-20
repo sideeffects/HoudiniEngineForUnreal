@@ -2544,7 +2544,7 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, const bool& b
 		if (!IsValid(CurInput))
 			continue;
 
-		BoxBounds += CurInput->GetBounds();
+		BoxBounds += CurInput->GetBounds(this->GetHACWorld());
 	}
 
 	// Query the bounds for all input parameters
@@ -2563,7 +2563,7 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, const bool& b
 		if (!InputParam->HoudiniInput.IsValid())
 			continue;
 
-		BoxBounds += InputParam->HoudiniInput.Get()->GetBounds();
+		BoxBounds += InputParam->HoudiniInput.Get()->GetBounds(this->GetHACWorld());
 	}
 
 	// Query the bounds for all our Houdini handles

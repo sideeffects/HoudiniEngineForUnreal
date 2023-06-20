@@ -361,7 +361,7 @@ public:
 	virtual void PostEditUndo() override;
 #endif
 
-	FBox GetBounds();
+	FBox GetBounds(UWorld * World);
 
 	void UpdateLandscapeInputSelection();
 
