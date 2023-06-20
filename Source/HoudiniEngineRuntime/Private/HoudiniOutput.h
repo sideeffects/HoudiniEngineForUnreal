@@ -165,6 +165,9 @@ public:
 	FString BakeOutlinerFolder;
 
 	UPROPERTY()
+	FString BakeFolder;
+
+	UPROPERTY()
 	UMaterialInterface* MaterialInstance;
 };
 

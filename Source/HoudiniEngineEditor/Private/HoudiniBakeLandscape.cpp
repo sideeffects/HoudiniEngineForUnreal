@@ -317,6 +317,9 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 			if (!IsValid(LayerOutput->Landscape))
 				continue;
 
+			FDirectoryPath BakePath;
+			BakePath.Path = LayerOutput->BakeFolder;
+
 			FHoudiniPackageParams PackageParams;
 			FHoudiniEngineBakeUtils::ResolvePackageParams(
 				HoudiniAssetComponent,
@@ -324,7 +327,7 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 				Elem.Key,
 				Elem.Value,
 				FString(""), 
-				BakeFolder,
+				BakePath,
 				bInReplaceAssets,
 				PackageParams,
 				OutPackagesToSave);

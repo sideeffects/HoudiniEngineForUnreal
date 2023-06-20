@@ -151,6 +151,9 @@ struct FHoudiniHeightFieldPartData
     // Bake Outliner Folder
     FString BakeOutlinerFolder;
 
+    // Bake Folder
+    FString BakeFolder;
+
     // Size info - number of sections and components.
     FHoudiniLandscapeCreationInfo SizeInfo;
 
