@@ -124,7 +124,8 @@ FHoudiniInputDetails::CreateWidget(
 
 	// Create a widget row, or get the given row.
 	FDetailWidgetRow* Row = InputRow;
-	Row = InputRow == nullptr ? &(HouInputCategory.AddCustomRow(FText::GetEmpty())) : InputRow;
+	FString InputRowString = MainInput->GetLabel() + " " + MainInput->GetName();
+	Row = InputRow == nullptr ? &(HouInputCategory.AddCustomRow(FText::FromString(InputRowString))) : InputRow;
 	if (!Row)
 		return;
 
