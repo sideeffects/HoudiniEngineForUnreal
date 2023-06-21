@@ -520,7 +520,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 
 
 	// Temp Cook Folder Row
-	FDetailWidgetRow & TempCookFolderRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::GetEmpty());
+	FDetailWidgetRow & TempCookFolderRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::FromString("Temporary Cook Folder"));
 
 	TSharedRef<SHorizontalBox> TempCookFolderRowHorizontalBox = SNew(SHorizontalBox);
 
@@ -661,7 +661,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 	};
 
 	// Button Row
-	FDetailWidgetRow & ButtonRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::GetEmpty());
+	FDetailWidgetRow & ButtonRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::FromString("Bake"));
 
 	TSharedRef<SHorizontalBox> ButtonRowHorizontalBox = SNew(SHorizontalBox);
 
@@ -796,7 +796,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 	ButtonRow.WholeRowWidget.Widget = ButtonRowHorizontalBox;
 
 	// Clear Output After Baking Row
-	FDetailWidgetRow & ClearOutputAfterBakingRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::GetEmpty());
+	FDetailWidgetRow & ClearOutputAfterBakingRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::FromString("Bake Options"));
 	TSharedRef<SHorizontalBox> AdditionalBakeSettingsRowHorizontalBox = SNew(SHorizontalBox);
 
 	// Remove Output Checkbox
@@ -1023,7 +1023,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 	ClearOutputAfterBakingRow.WholeRowWidget.Widget = AdditionalBakeSettingsRowHorizontalBox;
 
 	// Bake Folder Row
-	FDetailWidgetRow & BakeFolderRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::GetEmpty());
+	FDetailWidgetRow & BakeFolderRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::FromString("Bake Folder"));
 
 	TSharedRef<SHorizontalBox> BakeFolderRowHorizontalBox = SNew(SHorizontalBox);
 
@@ -1358,7 +1358,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 	};
 
 	// Checkboxes row
-	FDetailWidgetRow & CheckBoxesRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::GetEmpty());
+	FDetailWidgetRow & CheckBoxesRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::FromString("Asset Cook Options"));
 	TSharedPtr<SVerticalBox> FirstLeftColumnVerticalBox;
 	TSharedPtr<SVerticalBox> FirstRightColumnVerticalBox;
 	TSharedPtr<SVerticalBox> SecondLeftColumnVerticalBox;
@@ -1678,7 +1678,7 @@ FHoudiniEngineDetails::CreateHelpAndDebugWidgets(
 	};
 
 	// Button Row
-	FDetailWidgetRow & ButtonRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::GetEmpty());
+	FDetailWidgetRow & ButtonRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::FromString("Help Cook Logs"));
 	TSharedRef<SHorizontalBox> ButtonRowHorizontalBox = SNew(SHorizontalBox);
 	TSharedPtr<SHorizontalBox> CookLogButtonHorizontalBox = SNew(SHorizontalBox);
 

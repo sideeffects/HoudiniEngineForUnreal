@@ -151,7 +151,7 @@ FHoudiniAssetComponentDetails::AddIndieLicenseRow(IDetailCategoryBuilder& InCate
 void
 FHoudiniAssetComponentDetails::AddSessionStatusRow(IDetailCategoryBuilder& InCategory)
 {
-	FDetailWidgetRow& PDGStatusRow = InCategory.AddCustomRow(FText::GetEmpty())
+	FDetailWidgetRow& PDGStatusRow = InCategory.AddCustomRow(FText::FromString("PDG Status"))
 	.WholeRowContent()
 	[
 		SNew(SHorizontalBox)

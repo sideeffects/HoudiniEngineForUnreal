@@ -3869,7 +3869,8 @@ FHoudiniOutputDetails::CreateDefaultOutputWidget(
 		// Create a new detail row
 		// Name 
 		FText OutputNameTxt = GetOutputDebugName(InOutput);
-		FDetailWidgetRow & Row = HouOutputCategory.AddCustomRow(FText::GetEmpty());
+		FString OutputRowString = TEXT("Output ") + OutputNameStr;
+		FDetailWidgetRow & Row = HouOutputCategory.AddCustomRow(FText::FromString(OutputRowString));
 		Row.NameWidget.Widget =
 			SNew(STextBlock)
 			.Text(OutputNameTxt)
