@@ -96,7 +96,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 		TSharedRef<SHorizontalBox> RefreshHBox = SNew(SHorizontalBox);
 		TSharedPtr<SHorizontalBox> ResetHBox = SNew(SHorizontalBox);
 
-		FDetailWidgetRow& PDGRefreshResetRow = InPDGCategory.AddCustomRow(FText::GetEmpty())
+		FDetailWidgetRow& PDGRefreshResetRow = InPDGCategory.AddCustomRow(FText::FromString("PDG Refresh"))
 		.WholeRowContent()
 		[
 			SNew(SHorizontalBox)
@@ -235,7 +235,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 				GET_MEMBER_NAME_STRING_CHECKED(UHoudiniPDGAssetLink, TOPNodeFilter), InPDGAssetLink.Get());
 		};
 
-		FDetailWidgetRow& PDGFilterRow = InPDGCategory.AddCustomRow(FText::GetEmpty());
+		FDetailWidgetRow& PDGFilterRow = InPDGCategory.AddCustomRow(FText::FromString("PDG Filter"));
 		// Disable if PDG is not linked
 		DisableIfPDGNotLinked(PDGFilterRow, InPDGAssetLink);
 		PDGFilterRow.NameWidget.Widget =
@@ -348,7 +348,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 				GET_MEMBER_NAME_STRING_CHECKED(UHoudiniPDGAssetLink, TOPOutputFilter), InPDGAssetLink.Get());
 		};
 
-		FDetailWidgetRow& PDGOutputFilterRow = InPDGCategory.AddCustomRow(FText::GetEmpty());
+		FDetailWidgetRow& PDGOutputFilterRow = InPDGCategory.AddCustomRow(FText::FromString("PDG Output"));
 		// Disable if PDG is not linked
 		DisableIfPDGNotLinked(PDGOutputFilterRow, InPDGAssetLink);
 
@@ -440,7 +440,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 	// Checkbox: Autocook
 	{
 		FText Tooltip = FText::FromString(TEXT("When enabled, the selected TOP Network's output will automatically cook after succesfully cooking the PDG Asset Link HDA."));
-		FDetailWidgetRow& PDGAutocookRow = InPDGCategory.AddCustomRow(FText::GetEmpty());
+		FDetailWidgetRow& PDGAutocookRow = InPDGCategory.AddCustomRow(FText::FromString("PDG Autocook"));
 		// Disable if PDG is not linked
 		DisableIfPDGNotLinked(PDGAutocookRow, InPDGAssetLink);
 		PDGAutocookRow.NameWidget.Widget =
@@ -516,7 +516,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 	
 	// WORK ITEM STATUS
 	{
-		FDetailWidgetRow& PDGStatusRow = InPDGCategory.AddCustomRow(FText::GetEmpty());
+		FDetailWidgetRow& PDGStatusRow = InPDGCategory.AddCustomRow(FText::FromString("PDG work item status"));
 		// Disable if PDG is not linked
 		DisableIfPDGNotLinked(PDGStatusRow, InPDGAssetLink);
 		FHoudiniPDGDetails::AddWorkItemStatusWidget(
@@ -563,7 +563,7 @@ void
 FHoudiniPDGDetails::AddPDGAssetStatus(
 	IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink)
 {
-	FDetailWidgetRow& PDGStatusRow = InPDGCategory.AddCustomRow(FText::GetEmpty())
+	FDetailWidgetRow& PDGStatusRow = InPDGCategory.AddCustomRow(FText::FromString("PDG Asset Status"))
 	.WholeRowContent()
 	[
 		SNew(SHorizontalBox)
@@ -622,7 +622,7 @@ void
 FHoudiniPDGDetails::AddPDGCommandletStatus(
 	IDetailCategoryBuilder& InPDGCategory, const EHoudiniBGEOCommandletStatus& InCommandletStatus)
 {
-	FDetailWidgetRow& PDGStatusRow = InPDGCategory.AddCustomRow(FText::GetEmpty())
+	FDetailWidgetRow& PDGStatusRow = InPDGCategory.AddCustomRow(FText::FromString("PDG Commandlet Status"))
     .WholeRowContent()
     [
         SNew(SHorizontalBox)
@@ -2152,7 +2152,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 	};
 
 	// Button Row
-	FDetailWidgetRow & ButtonRow = InPDGCategory.AddCustomRow(FText::GetEmpty());
+	FDetailWidgetRow & ButtonRow = InPDGCategory.AddCustomRow(FText::FromString("PDG Bake"));
 	DisableIfPDGNotLinked(ButtonRow, InPDGAssetLink);
 
 	TSharedRef<SHorizontalBox> ButtonRowHorizontalBox = SNew(SHorizontalBox);
@@ -2383,7 +2383,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 	ButtonRow.WholeRowWidget.Widget = ButtonRowHorizontalBox;
 
 	// Bake package replacement mode row
-	FDetailWidgetRow & BakePackageReplaceRow = InPDGCategory.AddCustomRow(FText::GetEmpty());
+	FDetailWidgetRow & BakePackageReplaceRow = InPDGCategory.AddCustomRow(FText::FromString("PDG Bake Replace Options"));
 	DisableIfPDGNotLinked(BakePackageReplaceRow, InPDGAssetLink);
 
 	TSharedRef<SHorizontalBox> BakePackageReplaceRowHorizontalBox = SNew(SHorizontalBox);
@@ -2484,7 +2484,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 	BakePackageReplaceRow.WholeRowWidget.Widget = BakePackageReplaceRowHorizontalBox;
 
 	// Bake Folder Row
-	FDetailWidgetRow & BakeFolderRow = InPDGCategory.AddCustomRow(FText::GetEmpty());
+	FDetailWidgetRow & BakeFolderRow = InPDGCategory.AddCustomRow(FText::FromString("PDG Bake Folder"));
 	DisableIfPDGNotLinked(BakeFolderRow, InPDGAssetLink);
 
 	TSharedRef<SHorizontalBox> BakeFolderRowHorizontalBox = SNew(SHorizontalBox);
@@ -2533,7 +2533,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 	BakeFolderRow.WholeRowWidget.Widget = BakeFolderRowHorizontalBox;
 
 	// Add additional bake options
-	FDetailWidgetRow & AdditionalBakeSettingsRow = InPDGCategory.AddCustomRow(FText::GetEmpty());
+	FDetailWidgetRow & AdditionalBakeSettingsRow = InPDGCategory.AddCustomRow(FText::FromString("PDG Bake Options"));
 	TSharedRef<SHorizontalBox> AdditionalBakeSettingsRowHorizontalBox = SNew(SHorizontalBox);
 	
 	TSharedPtr<SCheckBox> CheckBoxAutoBake;
