@@ -2615,6 +2615,13 @@ UHoudiniInput::UpdateWorldSelectionFromBoundSelectors()
 		if (ClassName.Contains("BP_Sky_Sphere"))
 			continue;
 
+		// Hacky solution to prevent selecting the UE5 Sky sphere mesh
+		FString ActorLabel = CurrentActor->GetActorLabel();
+		if (ActorLabel.Contains("SkySphere") || ActorLabel.Contains("Sky_Sphere"))
+		{
+			continue;
+		}
+
 		// Don't allow selection of ourselves. Bad things happen if we do.
 		if (ParentActor && (CurrentActor == ParentActor))
 			continue;
