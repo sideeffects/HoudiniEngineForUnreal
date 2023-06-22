@@ -3050,35 +3050,46 @@ FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
 	if (AllAttribNames.IsEmpty())
 		return false;
 
-	// Try the "main" material override attributes
-	if(GetMaterialOverridesFromAttributes(InGeoNodeId, InPartId, InAttributeIndex, HAPI_UNREAL_ATTRIB_MATERIAL, AllAttribNames, OutMaterialAttributes))
-		bFoundMaterialAttributes = true;
-
-	// Also see if we have material instance overrides attributes
+	// Look for material instances overrides first!
+	// This will allow us to set the OutMaterialOverrideNeedToCreateInstance values properly
 	if (GetMaterialOverridesFromAttributes(InGeoNodeId, InPartId, InAttributeIndex, HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE, AllAttribNames, OutMaterialAttributes))
 	{
 		bFoundMaterialAttributes = true;
-		//OutMaterialOverrideNeedsCreateInstance = true;
+
+		OutMaterialOverrideNeedToCreateInstance.SetNum(OutMaterialAttributes.Num());
+		for (int32 Idx = 0; Idx < OutMaterialAttributes.Num(); Idx++)
+		{
+			// Any non null material now is a material instance
+			if (!OutMaterialAttributes[Idx].IsEmpty())
+				OutMaterialOverrideNeedToCreateInstance[Idx] = true;
+			else
+				OutMaterialOverrideNeedToCreateInstance[Idx] = false;
+		}
 	}
+
+	// Now, try the "main" material override attributes
+	if(GetMaterialOverridesFromAttributes(InGeoNodeId, InPartId, InAttributeIndex, HAPI_UNREAL_ATTRIB_MATERIAL, AllAttribNames, OutMaterialAttributes))
+		bFoundMaterialAttributes = true;
 
 	// If we haven't found anything, try the fallback attribute
 	if (!bFoundMaterialAttributes && GetMaterialOverridesFromAttributes(InGeoNodeId, InPartId, InAttributeIndex, HAPI_UNREAL_ATTRIB_MATERIAL_FALLBACK, AllAttribNames, OutMaterialAttributes))
 		bFoundMaterialAttributes = true;
 
+	// We couldnt find any mat attribute? early return
 	if (!bFoundMaterialAttributes)
 	{
 		OutMaterialAttributes.Empty();
-		//OutMaterialOverrideNeedsCreateInstance = false;
+		OutMaterialOverrideNeedToCreateInstance.Empty();
 		return false;
 	}
 
-	// Now identify the one that need to create material instance
-	OutMaterialOverrideNeedToCreateInstance.SetNum(OutMaterialAttributes.Num());
-	for (int32 Idx = 0; Idx < OutMaterialAttributes.Num(); Idx++)
+	// Grow the material instance array for any potential materials that was found after the material instance pass
+	if (OutMaterialAttributes.Num() != OutMaterialOverrideNeedToCreateInstance.Num())
 	{
-		if (!OutMaterialAttributes[Idx].IsEmpty() && AllAttribNames[Idx].StartsWith(HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE))
-			OutMaterialOverrideNeedToCreateInstance[Idx] = true;
-		else
+		int32 ExtraValuesStart = OutMaterialOverrideNeedToCreateInstance.Num();
+		OutMaterialOverrideNeedToCreateInstance.SetNum(OutMaterialAttributes.Num());
+
+		for(int32 Idx = ExtraValuesStart; Idx < OutMaterialOverrideNeedToCreateInstance.Num(); Idx++)
 			OutMaterialOverrideNeedToCreateInstance[Idx] = false;
 	}
 
