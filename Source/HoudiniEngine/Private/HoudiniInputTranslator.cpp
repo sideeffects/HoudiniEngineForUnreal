@@ -3032,6 +3032,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(
 		return false;
 
 	// Cache the exported curve's data to the input object
+	InObject->InputNodeHandle = InputNodeHandle;
 	InObject->InputNodeId = CreatedNodeId;
 	InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CreatedNodeId);
 
