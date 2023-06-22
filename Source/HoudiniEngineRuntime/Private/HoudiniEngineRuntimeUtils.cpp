@@ -37,11 +37,12 @@
 #include "LandscapeProxy.h"
 #include "LandscapeStreamingProxy.h"
 #include "LandscapeInfo.h"
+#include "Misc/Paths.h"
 #include "Runtime/Launch/Resources/Version.h"
 
 #if WITH_EDITOR
 	#include "Editor.h"
-	#include "Kismet2/BlueprintEditorUtils.h"	
+	#include "Kismet2/BlueprintEditorUtils.h"
 	#include "SSubobjectBlueprintEditor.h"
 #endif
 
