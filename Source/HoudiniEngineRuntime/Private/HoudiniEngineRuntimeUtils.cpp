@@ -38,6 +38,7 @@
 #include "LandscapeStreamingProxy.h"
 #include "LandscapeInfo.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "Misc/Paths.h"
 
 #if WITH_EDITOR
 	#include "Editor.h"
