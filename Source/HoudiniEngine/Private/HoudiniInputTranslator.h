@@ -59,6 +59,7 @@ class UHoudiniInputCameraComponent;
 class UHoudiniInputDataTable;
 class UHoudiniInputFoliageType_InstancedStaticMesh;
 class UHoudiniInputBlueprint;
+class UHoudiniInputLandscapeSplinesComponent;
 
 class FUnrealObjectInputHandle;
 class FUnrealObjectInputIdentifier;
@@ -180,10 +181,19 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bInSetRotAndScaleAttributes,
 		const bool& bInUseLegacyInputCurves);
 
+	static bool HapiCreateInputNodeForLandscapeSplinesComponent(
+		const FString& InObjNodeName,
+		UHoudiniInputLandscapeSplinesComponent* const InObject,
+		TArray<int32>& OutCreatedNodeIds,
+		const bool bInExportControlPoints = false,
+		const bool bInExportLeftRightCurves = false,
+		const bool bInInputNodesCanBeDeleted = true);
+
 	static bool	HapiCreateInputNodeForLandscape(
 		const FString& InObjNodeName,
 		UHoudiniInputLandscape* InObject,
 		UHoudiniInput* InInput,
+		TArray<int32>& OutCreatedNodeIds,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool HapiCreateInputNodeForSkeletalMesh(

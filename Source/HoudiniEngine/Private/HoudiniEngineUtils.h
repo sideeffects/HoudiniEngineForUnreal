@@ -1262,6 +1262,16 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			FUnrealObjectInputIdentifier& OutReferenceNode,
 			TArray<FUnrealObjectInputIdentifier>& OutPerOptionIdentifiers);
 
+		// Helper to build identifiers for landscape spline inputs based on options (such as send control points)
+		static bool BuildLandscapeSplinesInputObjectIdentifiers(
+			ULandscapeSplinesComponent const* const InSplinesComponent,
+			const bool bInExportSplineCurves,
+			const bool bInExportControlPoints,
+			const bool bInExportLeftRightCurves,
+			bool &bOutSingleLeafNodeOnly,
+			FUnrealObjectInputIdentifier& OutReferenceNode,
+			TArray<FUnrealObjectInputIdentifier>& OutPerOptionIdentifiers);
+
 		// Helper to create an input node (similar to the HAPI version, but allows for specifying a parent node id
 		static HAPI_Result CreateInputNode(const FString& InNodeLabel, HAPI_NodeId& OutNodeId, const int32 InParentNodeId=-1);
 

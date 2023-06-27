@@ -41,8 +41,11 @@
 #include "Engine/Polys.h"
 #include "UObject/SoftObjectPtr.h"
 
+#include "LandscapeSplineSegment.h"
+
 #include "HoudiniInputObject.generated.h"
 
+class ULandscapeSplineControlPoint;
 class UStaticMesh;
 class USkeletalMesh;
 class USceneComponent;
@@ -85,7 +88,9 @@ enum class EHoudiniInputObjectType : uint8
 	GeometryCollectionComponent,
 	GeometryCollectionActor_Deprecated,
 	SkeletalMeshComponent,
-	Blueprint
+	Blueprint,
+	LandscapeSplineActor,
+	LandscapeSplinesComponent
 };
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -764,6 +769,10 @@ public:
 
 	void SetLandscapeProxy(UObject* InLandscapeProxy);
 
+	void SetExportLandscapeSplinesComponent(const bool bInExportLandscapeSplinesComponent) { bExportLandscapeSplinesComponent = bInExportLandscapeSplinesComponent; }
+
+	bool IsExportLandscapeSplinesComponentEnabled() const { return bExportLandscapeSplinesComponent; }
+
 	// The number of landscape components that was processed. If this count changes, .e.g, levels have been
 	// loaded / unloaded then the input content has changed.
 	UPROPERTY()
@@ -776,6 +785,11 @@ protected:
 	// the current world.
 	virtual int32 CountLandscapeComponents() const;
 
+private:
+	// True if we should track and export the landscape splines component of the landscape proxy. This is separate from
+	// / excludes any landscape spline actors associated with the ULandscapeInfo of the landscape proxy.
+	UPROPERTY()
+	bool bExportLandscapeSplinesComponent;
 };
 
 
@@ -1018,3 +1032,157 @@ protected:
 		int32 LastUpdateNumComponentsRemoved;
 };
 
+//-----------------------------------------------------------------------------------------------------------------------------
+// ALandscapeSplinesActor input
+//-----------------------------------------------------------------------------------------------------------------------------
+
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputLandscapeSplineActor : public UHoudiniInputActor
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	//
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName);
+
+	// ULandscapeSplinesComponent accessor
+	class ALandscapeSplineActor* GetLandscapeSplineActor() const;
+
+	/**
+	 * Returns true if InComponent (a component of the input actor) should be tracked by the input system.
+	 * @param InComponent The component to check for tracking. 
+	 * @return true if InComponent should be tracked.
+	 */
+	virtual bool ShouldTrackComponent(UActorComponent* InComponent) override;	
+};
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// ULandscapeSplinesComponent input
+//-----------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * Struct for caching landscape spline control points. ULandscapeSplineControlPoint cannot be duplicated with
+ * an outer other than ULandscapeSplinesComponent. * 
+ */
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeSplineControlPointData
+{
+	GENERATED_BODY();
+
+	FHoudiniLandscapeSplineControlPointData();
+
+	// Copied properties from ULandscapeSplineControlPoint for which we want to track changes
+	
+	/** Location in Landscape-space */
+	UPROPERTY()
+	FVector Location;
+
+	/** Rotation of tangent vector at this point (in landscape-space) */
+	UPROPERTY()
+	FRotator Rotation;
+
+	/** Half-Width of the spline at this point. */
+	UPROPERTY()
+	float Width;
+
+#if WITH_EDITORONLY_DATA
+	/** Vertical offset of the spline segment mesh. Useful for a river's surface, among other things. */
+	UPROPERTY()
+	float SegmentMeshOffset;
+
+	/**
+	 * Name of blend layer to paint when applying spline to landscape
+	 * If "none", no layer is painted
+	 */
+	UPROPERTY()
+	FName LayerName;
+
+	/** If the spline is above the terrain, whether to raise the terrain up to the level of the spline when applying it to the landscape. */
+	UPROPERTY()
+	uint32 bRaiseTerrain:1;
+
+	/** If the spline is below the terrain, whether to lower the terrain down to the level of the spline when applying it to the landscape. */
+	UPROPERTY()
+	uint32 bLowerTerrain:1;
+
+	/** Mesh to use on the control point */
+	UPROPERTY()
+	TObjectPtr<UStaticMesh> Mesh;
+
+	/** Overrides mesh's materials */
+	UPROPERTY()
+	TArray<TObjectPtr<UMaterialInterface>> MaterialOverrides;
+
+	/** Scale of the control point mesh */
+	UPROPERTY()
+	FVector MeshScale;
+#endif
+	
+};
+
+/**
+ * Struct for caching landscape spline control points. ULandscapeSplineSegment cannot be duplicated with
+ * an outer other than ULandscapeSplinesComponent. * 
+ */
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeSplineSegmentData
+{
+	GENERATED_BODY();
+
+	FHoudiniLandscapeSplineSegmentData();
+	
+	// Copied properties from ULandscapeSplineSegment for which we want to track changes
+
+#if WITH_EDITORONLY_DATA
+	/**
+	 * Name of blend layer to paint when applying spline to landscape
+	 * If "none", no layer is painted
+	 */
+	UPROPERTY()
+	FName LayerName;
+
+	/** If the spline is above the terrain, whether to raise the terrain up to the level of the spline when applying it to the landscape. */
+	UPROPERTY()
+	uint32 bRaiseTerrain:1;
+
+	/** If the spline is below the terrain, whether to lower the terrain down to the level of the spline when applying it to the landscape. */
+	UPROPERTY()
+	uint32 bLowerTerrain:1;
+
+	/** Spline meshes from this list are used in random order along the spline. */
+	UPROPERTY()
+	TArray<FLandscapeSplineMeshEntry> SplineMeshes;
+#endif
+	
+};
+
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputLandscapeSplinesComponent : public UHoudiniInputSceneComponent
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	//
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName);
+
+	//
+	virtual void Update(UObject* InObject) override;
+
+	// ULandscapeSplinesComponent accessor
+	class ULandscapeSplinesComponent* GetLandscapeSplinesComponent() const;
+
+	virtual bool HasComponentChanged() const override;
+
+	const TArray<FHoudiniLandscapeSplineControlPointData>& GetCachedControlPoints() const { return CachedControlPoints; }
+
+	const TArray<FHoudiniLandscapeSplineSegmentData>& GetCachedSegments() const { return CachedSegments; } 
+
+protected:
+	/** A copy of the control points of the spline the last time this object was updated. */
+	UPROPERTY()
+	TArray<FHoudiniLandscapeSplineControlPointData> CachedControlPoints;
+
+	/** A copy of the segments of the landscape spline the last time this was object was updated. */
+	UPROPERTY()
+	TArray<FHoudiniLandscapeSplineSegmentData> CachedSegments;
+};

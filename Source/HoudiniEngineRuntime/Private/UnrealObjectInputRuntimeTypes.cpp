@@ -50,6 +50,8 @@ FUnrealObjectInputOptions::FUnrealObjectInputOptions(
 		, bExportSockets(bInExportSockets)
 		, bExportColliders(bInExportColliders)
 		, LandscapeExportType(LandscapeExportType)
+		, bExportLandscapeSplineControlPoints(false)
+		, bExportLandscapeSplineLeftRightCurves(false)
 {
 }
 
@@ -67,7 +69,9 @@ FUnrealObjectInputOptions::operator==(const FUnrealObjectInputOptions& InOther) 
 		&& bExportLODs == InOther.bExportLODs
 		&& bExportSockets == InOther.bExportSockets
 		&& bExportColliders == InOther.bExportColliders
-		&& LandscapeExportType == InOther.LandscapeExportType);
+		&& LandscapeExportType == InOther.LandscapeExportType
+		&& bExportLandscapeSplineControlPoints == InOther.bExportLandscapeSplineControlPoints
+		&& bExportLandscapeSplineLeftRightCurves == InOther.bExportLandscapeSplineLeftRightCurves);
 }
 
 

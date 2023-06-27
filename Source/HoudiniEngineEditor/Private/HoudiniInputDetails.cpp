@@ -2223,6 +2223,81 @@ FHoudiniInputDetails::AddExportLandscapeAsOptions(
 }
 
 void
+FHoudiniInputDetails::AddLandscapeAutoSelectSplinesCheckBox(
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SCheckBox)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("LandscapeAutoSelectSplinesCheckBox", "Auto Select Landscape Splines For Export"))
+			.ToolTipText(LOCTEXT("LandscapeAutoSelectSplinesCheckBoxTip", "If enabled, then for any landscape that is selected to be sent to Houdini, its splines are also selected for export."))
+			.Font(_GetEditorStyle().GetFontStyle("PropertyWindow.NormalFont"))
+		]
+		.IsChecked_Lambda([MainInput]()
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return ECheckBoxState::Unchecked;
+
+			return MainInput->IsLandscapeAutoSelectSplinesEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		})
+		.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return;
+
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Auto Select Landscape Splines For Export CheckBox"),
+				MainInput->GetOuter());
+
+			for (auto CurrentInput : InInputs)
+			{
+				if (!IsValidWeakPointer(CurrentInput))
+					continue;
+
+				const bool bNewState = (NewState == ECheckBoxState::Checked);
+				if (bNewState == CurrentInput->IsLandscapeAutoSelectSplinesEnabled())
+					continue;
+
+				CurrentInput->Modify();
+				CurrentInput->SetLandscapeAutoSelectSplines(bNewState);
+				if (CurrentInput->GetInputType() == EHoudiniInputType::World)
+				{
+					if (bNewState)
+					{
+						CurrentInput->AddAllLandscapeSplineActorsForInputLandscapes();	
+					}
+					else
+					{
+						CurrentInput->RemoveAllLandscapeSplineActorsForInputLandscapes();
+					}
+				}				
+				CurrentInput->MarkChanged(true);
+			}
+		})
+	];
+
+	if (MainInput->IsLandscapeAutoSelectSplinesEnabled())
+	{
+		// TODO: additional options?
+	}
+}
+
+void
 FHoudiniInputDetails::AddExportOptions(
 	TSharedRef<SVerticalBox> InVerticalBox,
 	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
@@ -2389,6 +2464,211 @@ FHoudiniInputDetails::AddLandscapeOptions(
 
 	AddExportSelectedLandscapesOnlyCheckBox(LandscapeOptions_VerticalBox, InInputs);
 	AddExportLandscapeAsOptions(LandscapeOptions_VerticalBox, InInputs);
+	
+	if (FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
+		AddLandscapeAutoSelectSplinesCheckBox(LandscapeOptions_VerticalBox, InInputs);
+}
+
+void
+FHoudiniInputDetails::AddLandscapeSplinesOptions(
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	auto LandscapeOptionsMenuStateChanged = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, bool bInNewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = bInNewState;
+
+		if (MainInput->IsLandscapeSplinesExportOptionsMenuExpanded() == bNewState)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniLandscapeSplinesOptionsMenu", "Houdini Input: Changed Landscape Splines Options Menu State"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->IsLandscapeSplinesExportOptionsMenuExpanded() == bNewState)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetLandscapeSplinesExportOptionsMenuExpanded(bNewState);
+		}
+	};
+
+	const TSharedRef<SVerticalBox> LandscapeSplinesOptions_VerticalBox = SNew(SVerticalBox);
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SExpandableArea)
+		.AreaTitle(LOCTEXT("LandscapeSplinesOptionsMenu", "Landscape Splines Options"))
+		.InitiallyCollapsed(!MainInput->IsLandscapeSplinesExportOptionsMenuExpanded())
+		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
+		{
+			return LandscapeOptionsMenuStateChanged(InInputs, bNewState);
+		})
+		.BodyContent()
+		[
+			LandscapeSplinesOptions_VerticalBox
+		]
+	];
+
+	// Lambda returning a CheckState from the input's current bLandscapeSplinesExportControlPoints state
+	auto IsLandscapeSplinesExportControlPointsEnabled = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->IsLandscapeSplinesExportControlPointsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	// Lambda for changing bLandscapeSplinesExportControlPoints state
+	auto CheckStateChangedLandscapeSplinesExportControlPoints = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->IsLandscapeSplinesExportControlPointsEnabled() == bNewState)
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Export Landscape Spline Control Points"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->IsLandscapeSplinesExportControlPointsEnabled() == bNewState)
+				continue;
+
+			CurInput->Modify();
+
+			CurInput->SetLandscapeSplinesExportControlPoints(bNewState);
+			CurInput->MarkChanged(true);
+			CurInput->MarkAllInputObjectsChanged(true);
+		}
+	};
+
+	// Lambda returning a CheckState from the input's current bLandscapeSplinesExportLeftRightCurves state
+	auto IsLandscapeSplinesExportLeftRightCurvesEnabled = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->IsLandscapeSplinesExportLeftRightCurvesEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	// Lambda for changing bLandscapeSplinesExportLeftRightCurves state
+	auto CheckStateChangedLandscapeSplinesExportLeftRightCurves = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->IsLandscapeSplinesExportLeftRightCurvesEnabled() == bNewState)
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChangeLandscapeSplinesExportLeftRightCurves", "Houdini Input: Changed Export Landscape Spline Left/Right Curves"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->IsLandscapeSplinesExportLeftRightCurvesEnabled() == bNewState)
+				continue;
+
+			CurInput->Modify();
+
+			CurInput->SetLandscapeSplinesExportLeftRightCurves(bNewState);
+			CurInput->MarkChanged(true);
+			CurInput->MarkAllInputObjectsChanged(true);
+		}
+	};
+
+	TSharedPtr<SCheckBox> CheckBoxLandscapeSplinesExportControlPoints;
+	LandscapeSplinesOptions_VerticalBox->AddSlot()
+	.Padding( 2, 2, 5, 2 )
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SAssignNew(CheckBoxLandscapeSplinesExportControlPoints, SCheckBox )
+			.Content()
+			[
+				SNew( STextBlock )
+				.Text( LOCTEXT( "ExportLandscapeSplineControlPoints", "Export Landscape Spline Control Points" ) )
+				.ToolTipText( LOCTEXT( "ExportLandscapeSplineControlPointsCheckboxTip", "If enabled, the control points of landscape splines are exported as a point cloud." ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+			]
+			.IsChecked_Lambda([=]()
+			{
+				return IsLandscapeSplinesExportControlPointsEnabled(MainInput);
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return CheckStateChangedLandscapeSplinesExportControlPoints(InInputs, NewState);
+			})
+		]
+	];
+
+	TSharedPtr<SCheckBox> CheckBoxLandscapeSplinesExportLeftRightCurves;
+	LandscapeSplinesOptions_VerticalBox->AddSlot()
+	.Padding( 2, 2, 5, 2 )
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SAssignNew(CheckBoxLandscapeSplinesExportLeftRightCurves, SCheckBox )
+			.Content()
+			[
+				SNew( STextBlock )
+				.Text( LOCTEXT( "ExportLandscapeSplineLeftRightCurves", "Export Landscape Spline Left/Right Curves" ) )
+				.ToolTipText( LOCTEXT( "ExportLandscapeSplineLeftRightCurvesCheckboxTip", "If enabled, the left and right curves of landscape splines are also exported." ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+			]
+			.IsChecked_Lambda([=]()
+			{
+				return IsLandscapeSplinesExportLeftRightCurvesEnabled(MainInput);
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return CheckStateChangedLandscapeSplinesExportLeftRightCurves(InInputs, NewState);
+			})
+		]
+	];
 }
 
 void
@@ -5341,6 +5621,8 @@ FHoudiniInputDetails::AddWorldInputUI(
 
 	AddExportOptions(InVerticalBox, InInputs);
 	AddLandscapeOptions(InVerticalBox, InInputs);
+	if (FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
+		AddLandscapeSplinesOptions(InVerticalBox, InInputs);
 
 	bool bIsBoundSelector = MainInput->IsWorldInputBoundSelector();
 

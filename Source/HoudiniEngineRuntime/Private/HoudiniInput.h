@@ -653,6 +653,39 @@ protected:
 
 public:
 
+	// Enable/disable auto selecting landscape splines (for landscapes via world input).
+	void SetLandscapeAutoSelectSplines(const bool bInLandscapeAutoSelectSplines);
+
+	// Is landscape spline auto-selection (for landscapes via world inputs) enabled?
+	bool IsLandscapeAutoSelectSplinesEnabled() const { return bLandscapeAutoSelectSplines; }
+
+	// Enable/disable exporting a separate control point cloud for landscape splines
+	void SetLandscapeSplinesExportControlPoints(const bool bInLandscapeSendControlPoints) { bLandscapeSplinesExportControlPoints = bInLandscapeSendControlPoints; }
+
+	// Is exporting a separate control point cloud for landscape splines enabled?
+	bool IsLandscapeSplinesExportControlPointsEnabled() const { return bLandscapeSplinesExportControlPoints; }
+
+	// Enable/disable exporting left/right curves for landscape splines
+	void SetLandscapeSplinesExportLeftRightCurves(const bool bInLandscapeSplinesExportLeftRightCurves) { bLandscapeSplinesExportLeftRightCurves = bInLandscapeSplinesExportLeftRightCurves; }
+
+	// Is exporting left/right curves for landscape splines enabled?
+	bool IsLandscapeSplinesExportLeftRightCurvesEnabled() const { return bLandscapeSplinesExportLeftRightCurves; }
+
+	// Returns true if the landscape splines export menu is expanded.
+	bool IsLandscapeSplinesExportOptionsMenuExpanded() const { return bLandscapeSplinesExportOptionsMenuExpanded; }
+
+	// Setter for if the landscape splines export menu is expanded.
+	void SetLandscapeSplinesExportOptionsMenuExpanded(const bool bInLandscapeSplinesExportOptionsMenuExpanded) { bLandscapeSplinesExportOptionsMenuExpanded = bInLandscapeSplinesExportOptionsMenuExpanded; }
+
+	// Remove all landscape splines of the landscape input objects currently in the world input object array.
+	// Return true if any objects were removed.
+	bool RemoveAllLandscapeSplineActorsForInputLandscapes();
+
+	// Add all landscape splines of the landscape input objects currently in the world input object array as
+	// world input objects. Will not add splines that are already in the array.
+	// Returns true if any splines were added.
+	bool AddAllLandscapeSplineActorsForInputLandscapes();
+	
 	// This array is to record the last insert action, for undo input insertion actions.
 	UPROPERTY(Transient, DuplicateTransient)
 	TArray<UHoudiniInputHoudiniSplineComponent*> LastInsertedInputs;
@@ -700,4 +733,23 @@ public:
 
 	UPROPERTY()
 	bool bCanDeleteHoudiniNodes = true;
+
+protected:
+
+	// If true, also export a landscape's splines
+	UPROPERTY()
+	bool bLandscapeAutoSelectSplines = false;
+
+	// If true, then the landscape spline export options menu is expanded
+	UPROPERTY()
+	bool bLandscapeSplinesExportOptionsMenuExpanded = false;
+	
+	// If true, send a separate control point cloud of the landscape splines control points.
+	UPROPERTY()
+	bool bLandscapeSplinesExportControlPoints = false;
+
+	// If true, export left and right curves as well
+	UPROPERTY()
+	bool bLandscapeSplinesExportLeftRightCurves = false;
+
 };

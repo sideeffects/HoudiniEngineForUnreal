@@ -36,6 +36,7 @@
 #include "HoudiniAssetBlueprintComponent.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputManager.h"
+#include "LandscapeSplineActor.h"
 
 #include "EngineUtils.h"
 #include "Engine/Brush.h"
@@ -2615,6 +2616,9 @@ UHoudiniInput::UpdateWorldSelection(const TArray<AActor*>& InNewSelection)
 		SetInputObjectAt(InputObjectIdx++, CurActor);
 	}
 
+	if (!bIsWorldInputBoundSelector && bLandscapeAutoSelectSplines && AddAllLandscapeSplineActorsForInputLandscapes())
+		bHasSelectionChanged = true;
+	
 	MarkChanged(bHasSelectionChanged);
 
 	return bHasSelectionChanged;
@@ -2774,4 +2778,157 @@ void UHoudiniInput::RemoveHoudiniInputObject(UHoudiniInputObject* InInputObject)
 	});
 
 	return;
+}
+
+void UHoudiniInput::SetLandscapeAutoSelectSplines(const bool bInLandscapeAutoSelectSplines)
+{
+	if (bInLandscapeAutoSelectSplines == bLandscapeAutoSelectSplines)
+		return;
+	
+	bLandscapeAutoSelectSplines = bInLandscapeAutoSelectSplines;
+}
+
+bool
+UHoudiniInput::RemoveAllLandscapeSplineActorsForInputLandscapes()
+{
+	// Only support world inputs
+	if (Type != EHoudiniInputType::World)
+		return false;
+	
+	// First determine all selected landscapes
+	const int32 NumWorldInputObjects = WorldInputObjects.Num();
+	TSet<ALandscapeProxy const*> SelectedLandscapes;
+	for (UHoudiniInputObject const* const InputObject : WorldInputObjects)
+	{
+		if (!IsValid(InputObject))
+			continue;
+		UHoudiniInputLandscape const* const InputLandscape = Cast<UHoudiniInputLandscape>(InputObject);
+		if (!IsValid(InputLandscape))
+			continue;
+		ALandscapeProxy const* const InputLandscapeProxy = InputLandscape->GetLandscapeProxy();
+		if (!IsValid(InputLandscapeProxy))
+			continue;
+		if (SelectedLandscapes.IsEmpty())
+			SelectedLandscapes.Reserve(NumWorldInputObjects);
+		SelectedLandscapes.Add(InputLandscapeProxy);
+	}
+
+	// If no landscapes are selected, then we don't have to deselect any landscape splines
+	if (SelectedLandscapes.IsEmpty())
+		return false;
+
+	// Get the index of each landscape spline that is in our world input objects selection that belongs to one of
+	// the selected landscapes
+	TArray<int32> IndicesToRemove;
+	for (int32 Index = 0; Index < NumWorldInputObjects; ++Index)
+	{
+		UHoudiniInputObject const* const InputObject = WorldInputObjects[Index];
+		if (!IsValid(InputObject))
+			continue;
+		UHoudiniInputLandscapeSplineActor const* const InputObjectSplineActor = Cast<UHoudiniInputLandscapeSplineActor>(InputObject);
+		if (!IsValid(InputObjectSplineActor))
+			continue;
+		ALandscapeSplineActor const* const SplineActor = InputObjectSplineActor->GetLandscapeSplineActor();
+		if (!IsValid(SplineActor))
+			continue;
+		ULandscapeInfo const* const LandscapeInfo = SplineActor->GetLandscapeInfo();
+		if (!IsValid(LandscapeInfo))
+			continue;
+		ALandscapeProxy const* const LandscapeProxy = LandscapeInfo->GetLandscapeProxy();
+		if (!IsValid(LandscapeProxy))
+			continue;
+		if (!SelectedLandscapes.Contains(LandscapeProxy))
+			continue;
+		if (IndicesToRemove.IsEmpty())
+			IndicesToRemove.Reserve(NumWorldInputObjects);
+		IndicesToRemove.Add(Index);
+	}
+
+	// Remove the landscape splines from highest index to lowest index
+	const int32 NumIndicesToRemove = IndicesToRemove.Num();
+	if (NumIndicesToRemove <= 0)
+		return false;
+	
+	for (int32 Index = NumIndicesToRemove - 1; Index >= 0; --Index)
+	{
+		const int32 IndexToRemove = IndicesToRemove[Index];
+		DeleteInputObjectAt(EHoudiniInputType::World, IndexToRemove);
+	}
+
+	return true;
+}
+
+bool
+UHoudiniInput::AddAllLandscapeSplineActorsForInputLandscapes()
+{
+#if WITH_EDITOR
+	// Only support world inputs
+	if (Type != EHoudiniInputType::World)
+		return false;
+	
+	// Find the current input landscape and splines
+	TSet<UHoudiniInputLandscape const*> InputLandscapes;
+	TSet<ALandscapeSplineActor const*> InputLandscapeSpineActors;
+	
+	for (UHoudiniInputObject const* const InputObject : WorldInputObjects)
+	{
+		if (!IsValid(InputObject))
+			continue;
+		
+		UHoudiniInputLandscape const* const LandscapeObject = Cast<UHoudiniInputLandscape>(InputObject);
+		if (IsValid(LandscapeObject))
+		{
+			InputLandscapes.Add(LandscapeObject);
+			continue;
+		}
+		
+		UHoudiniInputLandscapeSplineActor const* const LandscapeSplineActor = Cast<UHoudiniInputLandscapeSplineActor>(InputObject);
+		if (!IsValid(LandscapeSplineActor))
+			continue;
+
+		ALandscapeSplineActor const* const SplineActor = LandscapeSplineActor->GetLandscapeSplineActor();
+		if (!IsValid(SplineActor))
+			continue;
+
+		InputLandscapeSpineActors.Add(SplineActor);
+	}
+
+	if (InputLandscapes.IsEmpty())
+		return false;
+	
+	// Get all spline actors that belong to InputLandscape splines but that are not in InputLandscapeSplineActors
+	TArray<ALandscapeSplineActor*> SplinesToAdd;
+	for (UHoudiniInputLandscape const* const InputLandscape : InputLandscapes)
+	{
+		if (!IsValid(InputLandscape))
+			continue;
+		ALandscapeProxy const* const LandscapeProxy = InputLandscape->GetLandscapeProxy();
+		if (!IsValid(LandscapeProxy))
+			continue;
+		ULandscapeInfo const* const LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
+		if (!IsValid(LandscapeInfo))
+			continue;
+		LandscapeInfo->ForAllSplineActors([&SplinesToAdd, &InputLandscapeSpineActors](TScriptInterface<ILandscapeSplineInterface> InSplineActor)
+		{
+			ALandscapeSplineActor* const SplineActor = Cast<ALandscapeSplineActor>(InSplineActor.GetObject());
+			if (IsValid(SplineActor) && !InputLandscapeSpineActors.Contains(SplineActor))
+				SplinesToAdd.Add(SplineActor);
+		});
+	}
+
+	// There are no new spline actors to add
+	if (SplinesToAdd.IsEmpty())
+		return false;
+
+	// Add SplinesToAdd to the input object array
+	const int32 NumInputObjects = GetNumberOfInputObjects();
+	const int32 NumToAdd = SplinesToAdd.Num();
+	SetInputObjectsNumber(GetInputType(), NumInputObjects + NumToAdd);
+	for (int32 Index = 0; Index < NumToAdd; ++Index)
+		SetInputObjectAt(NumInputObjects + Index, SplinesToAdd[Index]);
+
+	return true;
+#else
+	return false;
+#endif
 }

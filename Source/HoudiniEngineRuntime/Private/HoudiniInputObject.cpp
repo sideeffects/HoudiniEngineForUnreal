@@ -54,6 +54,9 @@
 	#include "Engine/SkinnedAssetCommon.h"
 #endif
 
+#include "LandscapeSplineActor.h"
+#include "LandscapeSplineControlPoint.h"
+#include "LandscapeSplinesComponent.h"
 #include "Model.h"
 #include "Engine/Brush.h"
 
@@ -117,6 +120,46 @@ UHoudiniInputGeometryCollection::UHoudiniInputGeometryCollection(const FObjectIn
 
 //
 UHoudiniInputGeometryCollectionComponent::UHoudiniInputGeometryCollectionComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+}
+
+FHoudiniLandscapeSplineControlPointData::FHoudiniLandscapeSplineControlPointData()
+	: Location(FVector::ZeroVector)
+	, Rotation(FRotator::ZeroRotator)
+	, Width(1000.0f)
+#if WITH_EDITORONLY_DATA
+	, SegmentMeshOffset(0)
+	, LayerName(NAME_None)
+	, bRaiseTerrain(true)
+	, bLowerTerrain(true)
+	, Mesh(nullptr)
+	, MeshScale(FVector::OneVector)
+#endif
+{
+	
+}
+
+FHoudiniLandscapeSplineSegmentData::FHoudiniLandscapeSplineSegmentData()
+#if WITH_EDITORONLY_DATA
+	: LayerName(NAME_None)
+	, bRaiseTerrain(true)
+	, bLowerTerrain(true)
+#endif
+{
+	
+}
+
+//
+UHoudiniInputLandscapeSplineActor::UHoudiniInputLandscapeSplineActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+}
+
+//
+UHoudiniInputLandscapeSplinesComponent::UHoudiniInputLandscapeSplinesComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 
@@ -203,6 +246,137 @@ UHoudiniInputSplineComponent::HasComponentChanged() const
 	return false;
 }
 
+
+bool
+UHoudiniInputLandscapeSplineActor::ShouldTrackComponent(UActorComponent* InComponent)
+{
+	// We only track ULandscapeSplinesComponents for landscape splines at this stage.
+	// TODO: In the future we could perhaps track the USplineMeshComponent's as well.
+	if (!IsValid(InComponent))
+		return false;
+	return InComponent->IsA(ULandscapeSplinesComponent::StaticClass());	
+}
+
+
+// Return true if the component itself has been modified
+bool 
+UHoudiniInputLandscapeSplinesComponent::HasComponentChanged() const 
+{
+	if (Super::HasComponentChanged())
+	{
+		return true;
+	}
+	
+	ULandscapeSplinesComponent* const SplinesComponent = Cast<ULandscapeSplinesComponent>(InputObject.LoadSynchronous());
+
+	if (!IsValid(SplinesComponent))
+		return false;
+
+	// Get the control point and segment arrays and check if the counts have changed.
+	// Use helper to fetch control points since the landscape splines API differs between UE 5.0 and 5.1+
+	TArray<TObjectPtr<ULandscapeSplineControlPoint>> ControlPoints;
+	TArray<TObjectPtr<ULandscapeSplineSegment>> Segments;
+	FHoudiniEngineRuntimeUtils::GetLandscapeSplinesControlPointsAndSegments(SplinesComponent, &ControlPoints, &Segments);
+
+	const int32 NumControlPoints = ControlPoints.Num();
+	if (NumControlPoints != CachedControlPoints.Num())
+	{
+		return true;
+	}
+	const int32 NumSegments = Segments.Num();
+	if (NumSegments != CachedSegments.Num())
+	{
+		return true;
+	}
+
+	// If the number of control points / segments remain the same, check each point / segment for differences
+	if (NumControlPoints > 0)
+	{
+		for (int32 Idx = 0; Idx < NumControlPoints; ++Idx)
+		{
+			ULandscapeSplineControlPoint const* const ControlPoint = ControlPoints[Idx];
+			const FHoudiniLandscapeSplineControlPointData& CachedControlPoint = CachedControlPoints[Idx];
+
+			// Skip invalid points
+			if (!IsValid(ControlPoint))
+			{
+				continue;
+			}
+
+			// Compare supported fields ...
+			// TODO: could we simplify this by some kind of UProperty based diff, like UEdGraphNode does?
+			if (ControlPoint->Location != CachedControlPoint.Location
+					|| ControlPoint->Rotation != CachedControlPoint.Rotation
+#if WITH_EDITORONLY_DATA
+					|| ControlPoint->SegmentMeshOffset != CachedControlPoint.SegmentMeshOffset
+					|| ControlPoint->LayerName != CachedControlPoint.LayerName
+					|| ControlPoint->bRaiseTerrain != CachedControlPoint.bRaiseTerrain
+					|| ControlPoint->bLowerTerrain != CachedControlPoint.bLowerTerrain
+					|| ControlPoint->Mesh != CachedControlPoint.Mesh
+					|| ControlPoint->MaterialOverrides != CachedControlPoint.MaterialOverrides
+					|| ControlPoint->MeshScale != CachedControlPoint.MeshScale
+#endif
+					|| ControlPoint->Width != CachedControlPoint.Width)
+			{
+				return true;
+			}
+		}
+	}
+	
+	if (NumSegments > 0)
+	{
+		for (int32 Idx = 0; Idx < NumSegments; ++Idx)
+		{
+			ULandscapeSplineSegment const* const Segment = Segments[Idx];
+			const FHoudiniLandscapeSplineSegmentData& CachedSegment = CachedSegments[Idx];
+
+			// Skip invalid segments
+			if (!IsValid(Segment))
+			{
+				continue;
+			}
+
+			// Compare supported fields ...
+			// TODO: could we simplify this by some kind of UProperty based diff, like UEdGraphNode does?
+#if WITH_EDITORONLY_DATA
+			if (Segment->LayerName != CachedSegment.LayerName
+				|| Segment->bRaiseTerrain != CachedSegment.bRaiseTerrain
+				|| Segment->bLowerTerrain != CachedSegment.bLowerTerrain)
+			{
+				return true;
+			}
+
+			const int32 NumSplineMeshes = Segment->SplineMeshes.Num(); 
+			if (NumSplineMeshes != CachedSegment.SplineMeshes.Num())
+			{
+				return true;
+			}
+
+			// The FLandscapeSplineMeshEntry struct is not comparable with == operator
+			for (int32 SplineMeshIdx = 0; SplineMeshIdx < NumSplineMeshes; ++SplineMeshIdx)
+			{
+				const FLandscapeSplineMeshEntry& SplineMeshEntry = Segment->SplineMeshes[SplineMeshIdx];
+				const FLandscapeSplineMeshEntry& CachedSplineMeshEntry = CachedSegment.SplineMeshes[SplineMeshIdx];
+
+				if (SplineMeshEntry.Mesh != CachedSplineMeshEntry.Mesh
+						|| SplineMeshEntry.MaterialOverrides != CachedSplineMeshEntry.MaterialOverrides
+						|| SplineMeshEntry.bCenterH != CachedSplineMeshEntry.bCenterH
+						|| SplineMeshEntry.CenterAdjust != CachedSplineMeshEntry.CenterAdjust
+						|| SplineMeshEntry.bScaleToWidth != CachedSplineMeshEntry.bScaleToWidth
+						|| SplineMeshEntry.Scale != CachedSplineMeshEntry.Scale
+						|| SplineMeshEntry.ForwardAxis != CachedSplineMeshEntry.ForwardAxis
+						|| SplineMeshEntry.UpAxis != CachedSplineMeshEntry.UpAxis)				
+				{
+					return true;
+				}
+			}
+#endif
+		}
+	}
+
+	return false;
+}
+
 //
 UHoudiniInputHoudiniSplineComponent::UHoudiniInputHoudiniSplineComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -233,6 +407,7 @@ UHoudiniInputActor::UHoudiniInputActor(const FObjectInitializer& ObjectInitializ
 //
 UHoudiniInputLandscape::UHoudiniInputLandscape(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, CachedNumLandscapeComponents(0)
 {
 
 }
@@ -328,6 +503,18 @@ UHoudiniInputGeometryCollectionComponent::GetGeometryCollection()
 	return GeometryCollectionEdit.GetRestCollection();
 }
 
+ALandscapeSplineActor*
+UHoudiniInputLandscapeSplineActor::GetLandscapeSplineActor() const
+{
+	return Cast<ALandscapeSplineActor>(InputObject.LoadSynchronous());
+}
+
+ULandscapeSplinesComponent*
+UHoudiniInputLandscapeSplinesComponent::GetLandscapeSplinesComponent() const
+{
+	return Cast<ULandscapeSplinesComponent>(InputObject.LoadSynchronous());
+}
+
 USceneComponent*
 UHoudiniInputSceneComponent::GetSceneComponent()
 {
@@ -421,6 +608,7 @@ int32 UHoudiniInputLandscape::CountLandscapeComponents() const
 	});
 	return NumComponents;
 }
+
 
 ABrush*
 UHoudiniInputBrush::GetBrush() const
@@ -577,6 +765,14 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 
 		case EHoudiniInputObjectType::Blueprint:
 			HoudiniInputObject = UHoudiniInputBlueprint::Create(InObject, InOuter, InName);
+			break;
+
+		case EHoudiniInputObjectType::LandscapeSplineActor:
+			HoudiniInputObject = UHoudiniInputLandscapeSplineActor::Create(InObject, InOuter, InName);
+			break;
+
+		case EHoudiniInputObjectType::LandscapeSplinesComponent:
+			HoudiniInputObject = UHoudiniInputLandscapeSplinesComponent::Create(InObject, InOuter, InName);
 			break;
 
 		case EHoudiniInputObjectType::Invalid:
@@ -870,6 +1066,42 @@ UHoudiniInputGeometryCollectionComponent::Create(UObject * InObject, UObject* In
 }
 
 
+UHoudiniInputObject*
+UHoudiniInputLandscapeSplineActor::Create(UObject* InObject, UObject* InOuter, const FString& InName)
+{
+	const FString InputObjectNameStr = "HoudiniInputObject_LandscapeSplines_" + InName;
+	const FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputLandscapeSplineActor::StaticClass(), *InputObjectNameStr);
+
+	// We need to create a new object
+	UHoudiniInputLandscapeSplineActor* HoudiniInputObject = NewObject<UHoudiniInputLandscapeSplineActor>(
+		InOuter, UHoudiniInputLandscapeSplineActor::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->Type = EHoudiniInputObjectType::LandscapeSplineActor;
+	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->bHasChanged = true;
+
+	return HoudiniInputObject;
+}
+
+
+UHoudiniInputObject*
+UHoudiniInputLandscapeSplinesComponent::Create(UObject* InObject, UObject* InOuter, const FString& InName)
+{
+	const FString InputObjectNameStr = "HoudiniInputObject_LandscapeSplines_" + InName;
+	const FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputLandscapeSplinesComponent::StaticClass(), *InputObjectNameStr);
+
+	// We need to create a new object
+	UHoudiniInputLandscapeSplinesComponent* HoudiniInputObject = NewObject<UHoudiniInputLandscapeSplinesComponent>(
+		InOuter, UHoudiniInputLandscapeSplinesComponent::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->Type = EHoudiniInputObjectType::LandscapeSplinesComponent;
+	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->bHasChanged = true;
+
+	return HoudiniInputObject;
+}
+
+
 UHoudiniInputObject *
 UHoudiniInputObject::Create(UObject * InObject, UObject* InOuter, const FString& InName)
 {
@@ -1149,6 +1381,75 @@ UHoudiniInputGeometryCollectionComponent::Update(UObject * InObject)
 	ensure(GeometryCollectionComponent);
 }
 
+
+void
+UHoudiniInputLandscapeSplinesComponent::Update(UObject * InObject)
+{
+	Super::Update(InObject);
+
+	ULandscapeSplinesComponent* const LandscapeSplinesComponent = Cast<ULandscapeSplinesComponent>(InObject);
+	ensure(LandscapeSplinesComponent);
+
+	// Cache the control points and segments from landscape splines component, for use in HasComponentChanged()
+	// Use helper to fetch control points since the landscape splines API differs between UE 5.0 and 5.1+
+	TArray<TObjectPtr<ULandscapeSplineControlPoint>> ControlPoints;
+	TArray<TObjectPtr<ULandscapeSplineSegment>> Segments;
+	FHoudiniEngineRuntimeUtils::GetLandscapeSplinesControlPointsAndSegments(LandscapeSplinesComponent, &ControlPoints, &Segments);
+	
+	const int32 NumControlPoints = ControlPoints.Num();
+	CachedControlPoints.SetNum(NumControlPoints);
+	if (NumControlPoints > 0)
+	{
+		for (int32 Idx = 0; Idx < NumControlPoints; ++Idx)
+		{
+			ULandscapeSplineControlPoint const* const ControlPoint = ControlPoints[Idx];
+			FHoudiniLandscapeSplineControlPointData& CachedControlPoint = CachedControlPoints[Idx];
+			if (!IsValid(ControlPoint))
+			{
+				// Reset entry to default
+				CachedControlPoint = {};
+				continue;
+			}
+
+			CachedControlPoint.Location = ControlPoint->Location;
+			CachedControlPoint.Rotation = ControlPoint->Rotation;
+			CachedControlPoint.Width = ControlPoint->Width;
+#if WITH_EDITORONLY_DATA
+			CachedControlPoint.SegmentMeshOffset = ControlPoint->SegmentMeshOffset;
+			CachedControlPoint.LayerName = ControlPoint->LayerName;
+			CachedControlPoint.bRaiseTerrain = ControlPoint->bRaiseTerrain;
+			CachedControlPoint.bLowerTerrain = ControlPoint->bLowerTerrain;
+			CachedControlPoint.Mesh = ControlPoint->Mesh;
+			CachedControlPoint.MaterialOverrides = ControlPoint->MaterialOverrides;
+			CachedControlPoint.MeshScale = ControlPoint->MeshScale;
+#endif
+		}
+	}
+
+	const int32 NumSegments = Segments.Num();
+	CachedSegments.SetNum(NumSegments);
+	if (NumSegments > 0)
+	{
+		for (int32 Idx = 0; Idx < NumSegments; ++Idx)
+		{
+			ULandscapeSplineSegment const* const Segment = Segments[Idx];
+			FHoudiniLandscapeSplineSegmentData& CachedSegment = CachedSegments[Idx];
+			if (!IsValid(Segment))
+			{
+				// Reset entry to default
+				CachedSegment = {};
+				continue;
+			}
+
+#if WITH_EDITORONLY_DATA
+			CachedSegment.LayerName = Segment->LayerName;
+			CachedSegment.bRaiseTerrain = Segment->bRaiseTerrain;
+			CachedSegment.bLowerTerrain = Segment->bLowerTerrain;
+			CachedSegment.SplineMeshes = Segment->SplineMeshes;
+#endif
+		}
+	}
+}
 
 
 void
@@ -1536,10 +1837,17 @@ UHoudiniInputActor::Update(UObject * InObject)
 					continue;
 				}
 
-				// Does the component still exist on Actor?
-				UObject* const CompObj = CurActorComp->GetObject();
-				// Make sure the actor is still valid
-				if (!IsValid(CompObj))
+				// If the tracked object is no longer valid, remove the input component.
+				// If the tracked object is valid, and it is a scene component, then if we should no longer be tracking
+				// components of that type remove it.
+				bool bShouldRemove = !IsValid(CurActorComp->GetObject());
+				if (!bShouldRemove)
+				{
+					USceneComponent* const InputComp = CurActorComp->GetSceneComponent();
+					if (IsValid(InputComp) && !ShouldTrackComponent(InputComp))
+						bShouldRemove = true;
+				}
+				if (bShouldRemove)
 				{
 					// If it's not, mark it for deletion
 					if ((CurActorComp->InputNodeId > 0) || (CurActorComp->InputObjectNodeId > 0))
@@ -1703,7 +2011,14 @@ bool UHoudiniInputLandscape::ShouldTrackComponent(UActorComponent* InComponent)
 	// (looking at you Flatten tool) which causes cooking loops.
 	if (!IsValid(InComponent))
 		return false;
-	return InComponent->IsA(ULandscapeComponent::StaticClass());
+	
+	if (InComponent->IsA(ULandscapeComponent::StaticClass()))
+		return true;
+	
+	if (bExportLandscapeSplinesComponent && InComponent->IsA(ULandscapeSplinesComponent::StaticClass()))
+		return true;
+	
+	return false;
 }
 
 bool UHoudiniInputLandscape::HasContentChanged() const
@@ -1735,6 +2050,15 @@ UHoudiniInputLandscape::Update(UObject * InObject)
 	{
 		Transform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(Landscape);
 		CachedNumLandscapeComponents = CountLandscapeComponents();
+	}
+
+	// Sync the setting to also export landscape splines from the owning input
+	UObject const* const Outer = GetOuter();
+	if (IsValid(Outer))
+	{
+		UHoudiniInput const* const Input = Cast<UHoudiniInput>(Outer);
+		if (IsValid(Input))
+			bExportLandscapeSplinesComponent = Input->IsLandscapeAutoSelectSplinesEnabled();
 	}
 }
 
@@ -2048,6 +2372,10 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 		{
 			return EHoudiniInputObjectType::GeometryCollectionComponent;
 		}
+		else if (InObject->IsA(ULandscapeSplinesComponent::StaticClass()))
+		{
+			return EHoudiniInputObjectType::LandscapeSplinesComponent;
+		}
 		else
 		{
 			return EHoudiniInputObjectType::SceneComponent;
@@ -2067,6 +2395,10 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 		else if (InObject->IsA(AHoudiniAssetActor::StaticClass()))
 		{
 			return EHoudiniInputObjectType::HoudiniAssetActor;
+		}
+		else if (InObject->IsA(ALandscapeSplineActor::StaticClass()))
+		{
+			return EHoudiniInputObjectType::LandscapeSplineActor;
 		}
 		else
 		{

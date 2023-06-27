@@ -8549,6 +8549,81 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 	return true;
 }
 
+bool
+FHoudiniEngineUtils::BuildLandscapeSplinesInputObjectIdentifiers(
+	ULandscapeSplinesComponent const* const InSplinesComponent,
+	const bool bInExportSplineCurves,
+	const bool bInExportControlPoints,
+	const bool bInExportLeftRightCurves,
+	bool &bOutSingleLeafNodeOnly,
+	FUnrealObjectInputIdentifier& OutReferenceNode,
+	TArray<FUnrealObjectInputIdentifier>& OutPerOptionIdentifiers)
+{
+	const FUnrealObjectInputOptions DefaultOptions;
+
+	// Determine number of leaves
+	uint32 NumLeaves = 0;
+	if (bInExportSplineCurves)
+		NumLeaves++;
+	if (bInExportControlPoints)
+		NumLeaves++;
+	if (bInExportLeftRightCurves)
+		NumLeaves++;
+	if (NumLeaves <= 1)
+	{
+		// Only one active option, we can create a leaf node and not a reference node
+		FUnrealObjectInputOptions Options = DefaultOptions;
+		Options.bExportLandscapeSplineControlPoints = bInExportControlPoints;
+		Options.bExportLandscapeSplineLeftRightCurves = bInExportLeftRightCurves;
+
+		constexpr bool bIsLeaf = true;
+		bOutSingleLeafNodeOnly = true;
+		OutReferenceNode = FUnrealObjectInputIdentifier();
+		OutPerOptionIdentifiers = {FUnrealObjectInputIdentifier(InSplinesComponent, Options, bIsLeaf)};
+		return true;
+	}
+
+	bOutSingleLeafNodeOnly = false;
+	// Construct the reference node's identifier
+	{
+		FUnrealObjectInputOptions Options = DefaultOptions;
+		Options.bExportLandscapeSplineControlPoints = bInExportControlPoints;
+		Options.bExportLandscapeSplineLeftRightCurves = bInExportLeftRightCurves;
+		
+		constexpr bool bIsLeaf = false;
+		OutReferenceNode = FUnrealObjectInputIdentifier(InSplinesComponent, Options, bIsLeaf);
+	}
+
+	// Construct per-option identifiers
+	TArray<FUnrealObjectInputIdentifier> PerOptionIdentifiers;
+	// First one is the spline curves only, so all options false
+	if (bInExportSplineCurves)
+	{
+		constexpr bool bIsLeaf = true;
+		const FUnrealObjectInputOptions Options = DefaultOptions;
+		// TODO: add a specific spline curves option?
+		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InSplinesComponent, Options, bIsLeaf));
+	}
+	
+	if (bInExportControlPoints)
+	{
+		constexpr bool bIsLeaf = true;
+		FUnrealObjectInputOptions Options = DefaultOptions;
+		Options.bExportLandscapeSplineControlPoints = true;
+		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InSplinesComponent, Options, bIsLeaf));
+	}
+
+	if (bInExportLeftRightCurves)
+	{
+		constexpr bool bIsLeaf = true;
+		FUnrealObjectInputOptions Options = DefaultOptions;
+		Options.bExportLandscapeSplineLeftRightCurves = true;
+		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InSplinesComponent, Options, bIsLeaf));
+	}
+
+	OutPerOptionIdentifiers = MoveTemp(PerOptionIdentifiers);
+	return true;
+}
 
 HAPI_Result
 FHoudiniEngineUtils::CreateInputNode(const FString& InNodeLabel, HAPI_NodeId& OutNodeId, const int32 InParentNodeId)

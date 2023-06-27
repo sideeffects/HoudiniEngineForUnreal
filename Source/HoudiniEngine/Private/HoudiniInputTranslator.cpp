@@ -50,6 +50,7 @@
 #include "UnrealFoliageTypeTranslator.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputManager.h"
+#include "UnrealLandscapeSplineTranslator.h"
 
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
@@ -62,6 +63,7 @@
 #include "Engine/DataTable.h"
 #include "Camera/CameraComponent.h"
 #include "FoliageType_InstancedStaticMesh.h"
+#include "LandscapeSplinesComponent.h"
 
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
@@ -1560,6 +1562,7 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 
 		case EHoudiniInputObjectType::Actor:
 		case EHoudiniInputObjectType::GeometryCollectionActor_Deprecated:
+		case EHoudiniInputObjectType::LandscapeSplineActor:
 		{			
 			UHoudiniInputActor* InputActor = Cast<UHoudiniInputActor>(InInputObject);
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForActor(
@@ -1579,10 +1582,8 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				ObjBaseName,
 				InputLandscape,
 				InInput,
+				OutCreatedNodeIds,
 				bInputNodesCanBeDeleted);
-
-			if (bSuccess)
-				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
 
 			break;
 		}
@@ -1654,6 +1655,22 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 			UHoudiniInputBlueprint* InputBP = Cast<UHoudiniInputBlueprint>(InInputObject);
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForBP(
 				InInput, InputBP, OutCreatedNodeIds, bInputNodesCanBeDeleted);
+			break;
+		}
+
+		case EHoudiniInputObjectType::LandscapeSplinesComponent:
+		{
+			if (!FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
+				break;
+				
+			UHoudiniInputLandscapeSplinesComponent* const InputLandscapeSplinesComponent = Cast<UHoudiniInputLandscapeSplinesComponent>(InInputObject);
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForLandscapeSplinesComponent(
+				ObjBaseName,
+				InputLandscapeSplinesComponent,
+				OutCreatedNodeIds,
+				InInput->IsLandscapeSplinesExportControlPointsEnabled(),
+				InInput->IsLandscapeSplinesExportLeftRightCurvesEnabled(),
+				bInputNodesCanBeDeleted);
 			break;
 		}
 	}
@@ -1772,6 +1789,7 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 
 		case EHoudiniInputObjectType::Actor:
 		case EHoudiniInputObjectType::GeometryCollectionActor_Deprecated:
+		case EHoudiniInputObjectType::LandscapeSplineActor:
 		{
 			UHoudiniInputActor* InputActor = Cast<UHoudiniInputActor>(InInputObject);
 			if (!IsValid(InputActor))
@@ -3402,10 +3420,75 @@ FHoudiniInputTranslator::HapiCreateInputNodeForBP(
 }
 
 bool
+FHoudiniInputTranslator::HapiCreateInputNodeForLandscapeSplinesComponent(
+	const FString& InObjNodeName,
+	UHoudiniInputLandscapeSplinesComponent* const InObject,
+	TArray<int32>& OutCreatedNodeIds,
+	const bool bInExportControlPoints,
+	const bool bInExportLeftRightCurves,
+	const bool bInInputNodesCanBeDeleted)
+{
+	if (!IsValid(InObject))
+		return false;
+
+	ULandscapeSplinesComponent* const SplinesComponent = InObject->GetLandscapeSplinesComponent();
+
+	if (!IsValid(SplinesComponent))
+		return true;
+
+	// const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	HAPI_NodeId CreatedNodeId = InObject->InputNodeId;
+
+	const FString SplinesComponentName = InObjNodeName + TEXT("_") + SplinesComponent->GetName();
+
+	static constexpr bool bLandscapeSplinesExportCurves = true;
+	FUnrealObjectInputHandle CreatedSplinesNodeHandle;
+	const bool bSuccess = FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
+		SplinesComponent,CreatedNodeId,
+		CreatedSplinesNodeHandle,
+		SplinesComponentName,
+		bLandscapeSplinesExportCurves,
+		bInExportControlPoints,
+		bInExportLeftRightCurves,
+		bInInputNodesCanBeDeleted);
+
+	// Update this input object's OBJ NodeId
+	InObject->InputNodeId = CreatedNodeId;
+	InObject->InputObjectNodeId = InObject->InputNodeId >= 0 ? FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId) : -1;
+	InObject->InputNodeHandle = CreatedSplinesNodeHandle;
+
+	// Even if the function failed, some nodes may have been created, so check the node ID
+	if (InObject->InputObjectNodeId >= 0)
+	{
+		OutCreatedNodeIds.Emplace(InObject->InputObjectNodeId);
+	}
+	
+	// Update this input object's cache data
+	InObject->Update(SplinesComponent);
+
+	// Update the component's transform
+	const FTransform ComponentTransform = InObject->Transform;
+	if (!ComponentTransform.Equals(FTransform::Identity))
+	{
+		// convert to HAPI_Transform
+		HAPI_TransformEuler HapiTransform;
+		FHoudiniApi::TransformEuler_Init(&HapiTransform);
+		FHoudiniEngineUtils::TranslateUnrealTransform(ComponentTransform, HapiTransform);
+
+		// Set the transform on the OBJ parent
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
+			FHoudiniEngine::Get().GetSession(), InObject->InputObjectNodeId, &HapiTransform), false);
+	}
+
+	return bSuccess;
+}
+
+bool
 FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 	const FString& InObjNodeName,
 	UHoudiniInputLandscape* InObject,
 	UHoudiniInput* InInput,
+	TArray<int32>& OutCreatedNodeIds,
 	const bool& bInputNodesCanBeDeleted)
 {
 	if (!IsValid(InObject))
@@ -3426,9 +3509,34 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 	if (!FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 		Landscape, InInput, InputNodeId, LandscapeName, InputNodeHandle, bInputNodesCanBeDeleted))
 		return false;
-
-
+	
 	FTransform Transform = InObject->Transform;
+
+	// Now, commit all of the input components of the landscape 
+	for (UHoudiniInputSceneComponent* const CurComponent : InObject->GetActorComponents())
+	{
+		if (!IsValid(CurComponent))
+			continue;
+		
+		if (!UploadHoudiniInputObject(InInput, CurComponent, Transform, OutCreatedNodeIds, bInputNodesCanBeDeleted))
+			continue;
+
+		// If we're importing the actor as ref, add the level path / actor path attribute to the created nodes
+		if (InInput->GetImportAsReference())
+		{
+			bool bNeedCommit = false;
+			if (FHoudiniEngineUtils::AddLevelPathAttribute(CurComponent->InputNodeId, 0, Landscape->GetLevel(), 1, HAPI_ATTROWNER_POINT))
+				bNeedCommit = true;
+
+			if(FHoudiniEngineUtils::AddActorPathAttribute(CurComponent->InputNodeId, 0, Landscape, 1, HAPI_ATTROWNER_POINT))
+				bNeedCommit = true;
+
+			// Commit the geo if needed
+			if(bNeedCommit)
+				FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), CurComponent->InputNodeId);
+		}
+	}
+
 	Transform.SetScale3D(FVector::OneVector);
 
 	InObject->InputNodeHandle = InputNodeHandle;
@@ -3463,6 +3571,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 			return false;
 	}
 
+	OutCreatedNodeIds.Add(InObject->InputObjectNodeId);
+	
 	return true;
 }
 
@@ -3789,6 +3899,14 @@ FHoudiniInputTranslator::UpdateWorldInput(UHoudiniInput* InInput)
 	{
 		InputObjectsPtr->RemoveAt(ObjectToDeleteIndices[ToDeleteIdx]);
 		bHasChanged = true;
+	}
+
+	// If not a bound selector and auto select landscape splines is enabled, add all landscape splines of input
+	// landscapes to our input objects
+	if (!InInput->IsWorldInputBoundSelector() && FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled()
+			&& InInput->IsLandscapeAutoSelectSplinesEnabled())
+	{
+		InInput->AddAllLandscapeSplineActorsForInputLandscapes();
 	}
 
 	// Mark the input as changed if need so it will trigger an upload

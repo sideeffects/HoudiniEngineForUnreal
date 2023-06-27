@@ -37,6 +37,7 @@
 #include "LandscapeProxy.h"
 #include "LandscapeStreamingProxy.h"
 #include "LandscapeInfo.h"
+#include "LandscapeSplinesComponent.h"
 #include "Misc/Paths.h"
 #include "Runtime/Launch/Resources/Version.h"
 
@@ -44,6 +45,9 @@
 	#include "Editor.h"
 	#include "Kismet2/BlueprintEditorUtils.h"	
 	#include "SSubobjectBlueprintEditor.h"
+#if ENGINE_MAJOR_VERSION < 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0)
+	#include "LandscapeSplineControlPoint.h"
+#endif
 #endif
 
 FString
@@ -748,6 +752,13 @@ FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled()
 }
 
 bool
+FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled()
+{
+	UHoudiniRuntimeSettings const* const Settings = GetDefault<UHoudiniRuntimeSettings>();
+	return IsValid(Settings) && Settings->bEnableLandscapeSplineInput;
+}
+
+bool
 FHoudiniEngineRuntimeUtils::IsInputNodeDirty(const FUnrealObjectInputIdentifier& InIdentifier)
 {
 	if (!InIdentifier.IsValid())
@@ -784,6 +795,60 @@ FHoudiniEngineRuntimeUtils::ClearInputNodeDirtyFlag(const FUnrealObjectInputIden
 		return false;
 
 	return Manager->ClearDirtyFlag(InIdentifier);
+}
+
+bool
+FHoudiniEngineRuntimeUtils::GetLandscapeSplinesControlPointsAndSegments(
+	ULandscapeSplinesComponent* const InSplinesComponent,
+	TArray<TObjectPtr<ULandscapeSplineControlPoint>>* OutControlPoints,
+	TArray<TObjectPtr<ULandscapeSplineSegment>>* OutSegments)
+{
+	if (!IsValid(InSplinesComponent))
+		return false;
+	if (!OutControlPoints && !OutSegments)
+		return false;
+#if ENGINE_MAJOR_VERSION < 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0)
+#if !WITH_EDITOR
+	return false;
+#else
+	TSet<TObjectPtr<ULandscapeSplineSegment>> SegmentsSet;
+	const bool bSkipSegments = (OutSegments == nullptr);
+	InSplinesComponent->ForEachControlPoint([OutControlPoints, bSkipSegments, &SegmentsSet](ULandscapeSplineControlPoint* const InControlPoint)
+	{
+		if (OutControlPoints)
+			OutControlPoints->Add(InControlPoint);
+		if (bSkipSegments || !IsValid(InControlPoint))
+			return;
+		for (const FLandscapeSplineConnection& Connection : InControlPoint->ConnectedSegments)
+		{
+			if (!IsValid(Connection.Segment))
+				continue;
+			SegmentsSet.Add(Connection.Segment);
+		}
+	});
+	if (OutSegments)
+		(*OutSegments) = SegmentsSet.Array();
+#endif
+#else
+	if (OutControlPoints)
+		(*OutControlPoints) = InSplinesComponent->GetControlPoints();
+	if (OutSegments)
+		(*OutSegments) = InSplinesComponent->GetSegments();
+#endif
+
+	return true;
+}
+
+bool
+FHoudiniEngineRuntimeUtils::GetLandscapeSplinesControlPoints(ULandscapeSplinesComponent* const InSplinesComponent, TArray<TObjectPtr<ULandscapeSplineControlPoint>>& OutControlPoints)
+{
+	return GetLandscapeSplinesControlPointsAndSegments(InSplinesComponent, &OutControlPoints);	
+}
+
+bool
+FHoudiniEngineRuntimeUtils::GetLandscapeSplinesSegments(ULandscapeSplinesComponent* const InSplinesComponent, TArray<TObjectPtr<ULandscapeSplineSegment>>& OutSegments)
+{
+	return GetLandscapeSplinesControlPointsAndSegments(InSplinesComponent, nullptr, &OutSegments);
 }
 
 void

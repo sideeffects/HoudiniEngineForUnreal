@@ -261,6 +261,14 @@ protected:
 		bool bEnableTheReferenceCountedInputSystem;		
 
 		//-------------------------------------------------------------------------------------------------------------
+		// Experimental Features
+		//-------------------------------------------------------------------------------------------------------------
+
+		// EXPERIMENTAL: Enable landscape spline input.
+		UPROPERTY(GlobalConfig, EditAnywhere, Category = "Experimental Features | Landscape Splines | Input", Experimental)
+		bool bEnableLandscapeSplineInput;
+
+		//-------------------------------------------------------------------------------------------------------------
 		// Parameter options.
 		//-------------------------------------------------------------------------------------------------------------
 
