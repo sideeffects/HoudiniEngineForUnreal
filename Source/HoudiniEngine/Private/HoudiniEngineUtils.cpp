@@ -26,12 +26,6 @@
 
 #include "HoudiniEngineUtils.h"
 
-#include "Misc/StringFormatArg.h"
-
-#include "UnrealObjectInputRuntimeTypes.h"
-#include "UnrealObjectInputManager.h"
-
-
 #if PLATFORM_WINDOWS
 	#include "Windows/WindowsHWrapper.h"
 
@@ -42,69 +36,69 @@
 	#endif
 #endif
 
-#include "HoudiniEnginePrivatePCH.h"
-#include "HoudiniEngineRuntimePrivatePCH.h"
-#include "HoudiniRuntimeSettings.h"
+#include "HAPI/HAPI_Version.h"
+
 #include "HoudiniApi.h"
-#include "HoudiniEngine.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
-#include "HoudiniEngineString.h"
-#include "HoudiniGeoPartObject.h"
-#include "HoudiniGenericAttribute.h"
-#include "HoudiniInput.h"
 #include "HoudiniAssetComponent.h"
-#include "HoudiniParameter.h"
-#include "HoudiniEngineRuntimeUtils.h"
+#include "HoudiniEngine.h"
+#include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngineRuntime.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniEngineRuntimeUtils.h"
+#include "HoudiniEngineString.h"
 #include "HoudiniEngineTimers.h"
+#include "HoudiniGenericAttribute.h"
+#include "HoudiniGeoPartObject.h"
+#include "HoudiniInput.h"
+#include "HoudiniParameter.h"
+#include "HoudiniRuntimeSettings.h"
+
+#include "UnrealObjectInputManager.h"
+#include "UnrealObjectInputRuntimeTypes.h"
 
 #if WITH_EDITOR
 	#include "SAssetSelectionWidget.h"
 #endif
 
-#include "HAPI/HAPI_Version.h"
-
-#include "Misc/Paths.h"
-#include "Editor/EditorEngine.h"
-#include "UnrealEdGlobals.h"
-#include "Editor/UnrealEdEngine.h"
-#include "PropertyEditorModule.h"
-#include "Modules/ModuleManager.h"
-#include "Engine/StaticMeshSocket.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "Async/Async.h"
 #include "BlueprintEditor.h"
+#include "Editor/EditorEngine.h"
+#include "Editor/UnrealEdEngine.h"
 #include "Engine/BlueprintGeneratedClass.h"
-#include "UObject/MetaData.h"
-#include "RawMesh.h"
-#include "Widgets/Notifications/SNotificationList.h"
-#include "Framework/Notifications/NotificationManager.h"
-#include "Framework/Application/SlateApplication.h"
-#include "Interfaces/IPluginManager.h"
-//#include "Kismet/BlueprintEditor.h"
-#include "SSCSEditor.h"
-#include "SSubobjectEditor.h"
+#include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMeshSocket.h"
 #include "Engine/WorldComposition.h"
+#include "Factories/WorldFactory.h"
+#include "FileHelpers.h"
 #include "FoliageEditUtility.h"
 #include "FoliageType_InstancedStaticMesh.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "HAL/FileManager.h"
 #include "InstancedFoliageActor.h"
+#include "Interfaces/IPluginManager.h"
 #include "LandscapeStreamingProxy.h"
-
-#if WITH_EDITOR
-	#include "Interfaces/IMainFrameModule.h"
-#endif
+#include "Misc/Paths.h"
+#include "Misc/StringFormatArg.h"
+#include "Modules/ModuleManager.h"
+#include "PropertyEditorModule.h"
+#include "RawMesh.h"
+#include "SSCSEditor.h"
+#include "SSubobjectEditor.h"
+#include "UnrealEdGlobals.h"
+#include "UObject/MetaData.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 #include <vector>
 
-#include "AssetRegistry/AssetRegistryModule.h"
-#include "FileHelpers.h"
-#include "Factories/WorldFactory.h"
-#include "HAL/FileManager.h"
-
 #if WITH_EDITOR
-	#include "EditorModeManager.h"
-	#include "EditorModes.h"
 	#include "EditorFramework/AssetImportData.h"
+	#include "EditorModeManager.h"
+	#include "EditorModes.h"	
+	#include "Interfaces/IMainFrameModule.h"
 #endif
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
@@ -8473,6 +8467,9 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 		bDefaultExportSockets,
 		bDefaultExportColliders);
 
+	UStaticMesh const* const SM = Cast<UStaticMesh>(InMesh);
+	USkeletalMesh const* const SK = Cast<USkeletalMesh>(InMesh);
+
 	// Determine number of leaves
 	uint32 NumLeaves = 0;
 	if (bInExportMainMesh)
@@ -8494,7 +8491,7 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		bOutSingleLeafNodeOnly = true;
 		OutReferenceNode = FUnrealObjectInputIdentifier();
-		OutPerOptionIdentifiers = {FUnrealObjectInputIdentifier(InMesh, Options, bIsLeaf)};
+		OutPerOptionIdentifiers = {FUnrealObjectInputIdentifier((SM ? SM : (SK ? SK : InMesh)), Options, bIsLeaf)};
 		return true;
 	}
 
@@ -8507,7 +8504,7 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 		Options.bExportColliders = bInExportColliders;
 		
 		constexpr bool bIsLeaf = false;
-		OutReferenceNode = FUnrealObjectInputIdentifier(InMesh, Options, bIsLeaf);
+		OutReferenceNode = FUnrealObjectInputIdentifier((SM ? SM : (SK ? SK : InMesh)), Options, bIsLeaf);
 	}
 
 	// Construct per-option identifiers
@@ -8518,7 +8515,7 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		// TODO: add a specific main mesh option?
-		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InMesh, Options, bIsLeaf));
+		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier((SM ? SM : (SK ? SK : InMesh)), Options, bIsLeaf));
 	}
 	
 	if (bInExportLODs)
@@ -8526,7 +8523,7 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		Options.bExportLODs = true;
-		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InMesh, Options, bIsLeaf));
+		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier((SM ? SM : (SK ? SK : InMesh)), Options, bIsLeaf));
 	}
 
 	if (bInExportSockets)
@@ -8534,7 +8531,7 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		Options.bExportSockets = true;
-		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InMesh, Options, bIsLeaf));
+		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier((SM ? SM : (SK ? SK : InMesh)), Options, bIsLeaf));
 	}
 
 	if (bInExportColliders)
@@ -8542,7 +8539,7 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		Options.bExportColliders = true;
-		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InMesh, Options, bIsLeaf));
+		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier((SM ? SM : (SK ? SK : InMesh)), Options, bIsLeaf));
 	}
 
 	OutPerOptionIdentifiers = MoveTemp(PerOptionIdentifiers);

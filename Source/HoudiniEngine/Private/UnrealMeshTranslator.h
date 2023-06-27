@@ -29,17 +29,20 @@
 #include "HAPI/HAPI_Common.h"
 
 #include "CoreMinimal.h"
-#include "Engine/SkeletalMesh.h"
 #include "UObject/ObjectMacros.h"
 #include "Misc/Optional.h"
 
 class UStaticMesh;
 class UStaticMeshComponent;
-class UMaterialInterface;
 class UStaticMeshSocket;
+
+class USkeletalMesh;
+class USkeletalMeshComponent;
+class USkeletalMeshSocket;
+
+class UMaterialInterface;
 class FUnrealObjectInputHandle;
 class FHoudiniEngineIndexedStringMap;
-
 struct FStaticMeshSourceModel;
 struct FStaticMeshLODResources;
 struct FMeshDescription;
@@ -94,7 +97,8 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 		static bool SetSkeletalMeshDataOnNode(
 			USkeletalMesh* SkeletalMesh,
 			HAPI_NodeId& NewNodeId,
-			int32 LODIndex);
+			int32 LODIndex,
+			const bool& bAddLODGroup);
 
 		// Convert the Mesh using FStaticMeshLODResources
 		static bool CreateInputNodeForStaticMeshLODResources(
@@ -166,6 +170,11 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 
 		static bool CreateInputNodeForMeshSockets(
 			const TArray<UStaticMeshSocket*>& InMeshSocket,
+			const HAPI_NodeId& InParentNodeId,
+			HAPI_NodeId& OutSocketsNodeId);
+
+		static bool CreateInputNodeForSkeletalMeshSockets(
+			USkeletalMesh* InSkeletalMesh,
 			const HAPI_NodeId& InParentNodeId,
 			HAPI_NodeId& OutSocketsNodeId);
 
