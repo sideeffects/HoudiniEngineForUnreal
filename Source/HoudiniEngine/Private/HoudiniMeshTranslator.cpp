@@ -396,7 +396,7 @@ void FHoudiniMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSetting
 	//ProcessImportMeshSkeleton(MySkeleton, NewMesh->RefSkeleton, SkeletalDepth, SkeletalMeshImportData);
 	MySkeleton->MergeAllBonesToBoneTree(BuildSettings.SKMesh);
 
-	BuildSettings.SKMesh->Skeleton = MySkeleton;
+	BuildSettings.SKMesh->SetSkeleton(MySkeleton);
 	//   USkeleton* Skeleton = nullptr;  // = ImportOptions->SkeletonForAnimation;
 	//   if (Skeleton == NULL)
 	//   {
