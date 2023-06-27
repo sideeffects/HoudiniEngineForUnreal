@@ -29,8 +29,9 @@
 #include "HAPI/HAPI_Common.h"
 
 #include "CoreMinimal.h"
-#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
 #include "Misc/Optional.h"
+#include "UObject/ObjectMacros.h"
 
 class UStaticMesh;
 class UStaticMeshComponent;
