@@ -1251,9 +1251,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Helper to get the references on a reference node
 		static bool GetReferencedNodes(const FUnrealObjectInputHandle& InRefNodeHandle, TSet<FUnrealObjectInputHandle>& OutReferencedNodes);
 
-		// Helper to build identifiers for static mesh inputs based on options (such as LODs, Colliders, Sockets)
-		static bool BuildStaticMeshInputObjectIdentifiers(
-			UStaticMesh const* const InStaticMesh,
+		// Helper to build identifiers for static/skeletal mesh inputs based on options (such as LODs, Colliders, Sockets)
+		static bool BuildMeshInputObjectIdentifiers(
+			UObject const* const InMesh,
 			const bool bInExportMainMesh,
 			const bool bInExportLODs,
 			const bool bInExportSockets,

@@ -8451,8 +8451,8 @@ FHoudiniEngineUtils::GetReferencedNodes(const FUnrealObjectInputHandle& InRefNod
 }
 
 bool
-FHoudiniEngineUtils::BuildStaticMeshInputObjectIdentifiers(
-	UStaticMesh const* const InStaticMesh,
+FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
+	UObject const* const InMesh,
 	const bool bInExportMainMesh,
 	const bool bInExportLODs,
 	const bool bInExportSockets,
@@ -8494,7 +8494,7 @@ FHoudiniEngineUtils::BuildStaticMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		bOutSingleLeafNodeOnly = true;
 		OutReferenceNode = FUnrealObjectInputIdentifier();
-		OutPerOptionIdentifiers = {FUnrealObjectInputIdentifier(InStaticMesh, Options, bIsLeaf)};
+		OutPerOptionIdentifiers = {FUnrealObjectInputIdentifier(InMesh, Options, bIsLeaf)};
 		return true;
 	}
 
@@ -8507,7 +8507,7 @@ FHoudiniEngineUtils::BuildStaticMeshInputObjectIdentifiers(
 		Options.bExportColliders = bInExportColliders;
 		
 		constexpr bool bIsLeaf = false;
-		OutReferenceNode = FUnrealObjectInputIdentifier(InStaticMesh, Options, bIsLeaf);		
+		OutReferenceNode = FUnrealObjectInputIdentifier(InMesh, Options, bIsLeaf);
 	}
 
 	// Construct per-option identifiers
@@ -8518,7 +8518,7 @@ FHoudiniEngineUtils::BuildStaticMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		// TODO: add a specific main mesh option?
-		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InStaticMesh, Options, bIsLeaf));
+		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InMesh, Options, bIsLeaf));
 	}
 	
 	if (bInExportLODs)
@@ -8526,7 +8526,7 @@ FHoudiniEngineUtils::BuildStaticMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		Options.bExportLODs = true;
-		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InStaticMesh, Options, bIsLeaf));
+		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InMesh, Options, bIsLeaf));
 	}
 
 	if (bInExportSockets)
@@ -8534,7 +8534,7 @@ FHoudiniEngineUtils::BuildStaticMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		Options.bExportSockets = true;
-		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InStaticMesh, Options, bIsLeaf));
+		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InMesh, Options, bIsLeaf));
 	}
 
 	if (bInExportColliders)
@@ -8542,12 +8542,13 @@ FHoudiniEngineUtils::BuildStaticMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		Options.bExportColliders = true;
-		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InStaticMesh, Options, bIsLeaf));
+		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InMesh, Options, bIsLeaf));
 	}
 
 	OutPerOptionIdentifiers = MoveTemp(PerOptionIdentifiers);
 	return true;
 }
+
 
 HAPI_Result
 FHoudiniEngineUtils::CreateInputNode(const FString& InNodeLabel, HAPI_NodeId& OutNodeId, const int32 InParentNodeId)

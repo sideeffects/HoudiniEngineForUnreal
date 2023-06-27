@@ -81,8 +81,9 @@ UHoudiniEditorSubsystem::SendSkeletalMeshToHoudini(
 	if (!IsValid(InSkelMesh))
 		return false;
 
+	int32 LODIndex = 0;
 	HAPI_NodeId SKNodeId = InNodeId;
-	if (!FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(InSkelMesh, SKNodeId))
+	if (!FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(InSkelMesh, SKNodeId, LODIndex))
 		return false;
 
 	// Set the display flag
