@@ -1668,6 +1668,7 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				ObjBaseName,
 				InputLandscapeSplinesComponent,
 				OutCreatedNodeIds,
+				InInput->GetUnrealSplineResolution(),
 				InInput->IsLandscapeSplinesExportControlPointsEnabled(),
 				InInput->IsLandscapeSplinesExportLeftRightCurvesEnabled(),
 				bInputNodesCanBeDeleted);
@@ -3424,6 +3425,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscapeSplinesComponent(
 	const FString& InObjNodeName,
 	UHoudiniInputLandscapeSplinesComponent* const InObject,
 	TArray<int32>& OutCreatedNodeIds,
+	const float InSplineResolution,
 	const bool bInExportControlPoints,
 	const bool bInExportLeftRightCurves,
 	const bool bInInputNodesCanBeDeleted)
@@ -3447,6 +3449,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscapeSplinesComponent(
 		SplinesComponent,CreatedNodeId,
 		CreatedSplinesNodeHandle,
 		SplinesComponentName,
+		InSplineResolution,
 		bLandscapeSplinesExportCurves,
 		bInExportControlPoints,
 		bInExportLeftRightCurves,

@@ -185,6 +185,7 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const FString& InObjNodeName,
 		UHoudiniInputLandscapeSplinesComponent* const InObject,
 		TArray<int32>& OutCreatedNodeIds,
+		const float InSplineResolution = 0.0f,
 		const bool bInExportControlPoints = false,
 		const bool bInExportLeftRightCurves = false,
 		const bool bInInputNodesCanBeDeleted = true);

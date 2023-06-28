@@ -31,6 +31,7 @@
 #include "HAPI/HAPI_Common.h"
 #include "Landscape/Classes/LandscapeSplinesComponent.h"
 
+struct FLandscapeSplineInterpPoint;
 class ALandscapeProxy;
 class ULandscapeSplinesComponent;
 class UMaterialInterface;
@@ -152,10 +153,13 @@ public:
 	 * node by the caller, which will then be deleted and recreated.
 	 * @param OutInputNodeHandle The input handle for the reference counted input system for the newly created HAPI node.
 	 * @param InNodeName The base name to use for the HAPI nodes.
+	 * @param InSplineResolution The spline resolution. <= 0 leaves the landscape spline at its current resolution.
 	 * @param bInExportCurves If true export the splines as curves.
 	 * @param bInExportControlPoints If true, then create a separate control point point cloud and merge it with
 	 * the splines / curves. This can be useful in cases where the control points in the splines are offset by mesh
 	 * socket connections.
+	 * @param bInExportLeftRightCurves Export curves for the .Left and .Right positions of each interpolated spline
+	 * point as well.
 	 * @param bInInputNodesCanBeDeleted Set to true if deletion of input nodes should be allowed.
 	 * @return True if the landscape splines were successfully sent to Houdini. In failure cases some HAPI nodes could
 	 * still have been created, so OutInputNodeId and OutInputNodeHandle should still be handled appropriately.
@@ -165,6 +169,7 @@ public:
 		HAPI_NodeId& OutInputNodeId,
 		FUnrealObjectInputHandle& OutInputNodeHandle,
 		const FString& InNodeName,
+		const float InSplineResolution=0.0f,
 		const bool bInExportCurves=true,
 		const bool bInExportControlPoints=false,
 		const bool bInExportLeftRightCurves=false,
@@ -176,6 +181,8 @@ public:
 	 * @param InObjectNodeId The HAPI object geo node in which to create the node for the curves.
 	 * @param InNodeName The basename to use for naming the spline curves node. The final node name as a "_splines" suffix.
 	 * @param OutNodeId The HAPI node id of the SOP that was created for the curves.
+	 * @param InExportCurve The curve to export: Center (default), Left or Right.
+	 * @param InSplineResolution The spline resolution. <= 0 leaves the landscape spline at its current resolution.
 	 * @return True if the operation was successful. In failure cases some HAPI nodes could still have been created, so
 	 * OutNodeId must still be handled appropriately.
 	 */
@@ -184,7 +191,8 @@ public:
 		const HAPI_NodeId& InObjectNodeId,
 		const FString& InNodeName,
 		HAPI_NodeId& OutNodeId,
-		const EHoudiniLandscapeSplineCurve InExportCurve=EHoudiniLandscapeSplineCurve::Center);
+		const EHoudiniLandscapeSplineCurve InExportCurve=EHoudiniLandscapeSplineCurve::Center,
+		const float InSplineResolution=0.0f);
 
 	/**
 	 * @brief Create a null SOP with a point cloud of the control points of InSplinesComponent.
@@ -206,12 +214,15 @@ protected:
 	 * @brief Extract landscape splines data arrays: positions, and various attributes.
 	 * @param InSplinesComponent The landscape splines component.
 	 * @param OutSplinesData The struct to extract data into.
+	 * @param InExportCurve The curve to export: Center (default), Left or Right.
+	 * @param InSplineResolution The spline resolution. <= 0 leaves the landscape spline at its current resolution.
 	 * @return True if data was successfully extracted.
 	 */
 	static bool ExtractLandscapeSplineData(
 		ULandscapeSplinesComponent* const InSplinesComponent,
 		FLandscapeSplinesData& OutSplinesData,
-		const EHoudiniLandscapeSplineCurve InExportCurve=EHoudiniLandscapeSplineCurve::Center);
+		const EHoudiniLandscapeSplineCurve InExportCurve=EHoudiniLandscapeSplineCurve::Center,
+		const float InSplineResolution=0.0f);
 		
 	/**
 	 * @brief Extract landscape splines control points data arrays: positions, rotations, and various attributes.

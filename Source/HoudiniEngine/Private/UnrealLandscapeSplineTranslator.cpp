@@ -36,6 +36,67 @@
 #include "LandscapeSplineControlPoint.h"
 #include "Materials/MaterialInterface.h"
 
+/**
+ * Helper struct for storing unresampled points (center, left and right) and the point's normalized [0, 1] position
+ * along the spline.
+ */
+class FUnResampledPoint
+{
+public:
+	FUnResampledPoint(const EHoudiniLandscapeSplineCurve& InSplineSelection);
+	
+	FVector GetSelectedPosition() const;
+	void CopySplinePoint(const FLandscapeSplineInterpPoint& InPoint);
+	
+	FVector Center;
+	FVector Left;
+	FVector Right;
+	float Alpha;
+	EHoudiniLandscapeSplineCurve SplineSelection;
+
+private:
+	explicit FUnResampledPoint();
+};
+
+
+FUnResampledPoint::FUnResampledPoint(const EHoudiniLandscapeSplineCurve& InSplineSelection)
+	: Alpha(0.0f)
+	, SplineSelection(InSplineSelection)
+{
+}
+
+FUnResampledPoint::FUnResampledPoint()
+	: Alpha(0.0f)
+	, SplineSelection(EHoudiniLandscapeSplineCurve::Center)
+{
+}
+
+FVector FUnResampledPoint::GetSelectedPosition() const
+{
+	switch (SplineSelection)
+	{
+	case EHoudiniLandscapeSplineCurve::Center:
+		return Center;
+	case EHoudiniLandscapeSplineCurve::Left:
+		return Left;
+	case EHoudiniLandscapeSplineCurve::Right:
+		return Right;
+	default:
+		HOUDINI_LOG_WARNING(TEXT("Invalid value for SplineSelection: %d, returning Center point."), SplineSelection);
+		break;
+	}
+	
+	return Center;
+}
+
+
+void FUnResampledPoint::CopySplinePoint(const FLandscapeSplineInterpPoint& InPoint)
+{
+	Center = InPoint.Center;
+	Left = InPoint.Left;
+	Right = InPoint.Right;
+}
+
 
 bool
 FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
@@ -43,6 +104,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 	HAPI_NodeId& OutCreatedInputNodeId,
 	FUnrealObjectInputHandle& OutInputNodeHandle,
 	const FString& InNodeName,
+	const float InSplineResolution,
 	const bool bInExportCurves,
 	const bool bInExportControlPoints,
 	const bool bInExportLeftRightCurves,
@@ -135,6 +197,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 						NewNodeId,
 						OptionHandle,
 						NodeLabel,
+						InSplineResolution,
 						!Options.bExportLandscapeSplineControlPoints && !Options.bExportLandscapeSplineLeftRightCurves,
 						Options.bExportLandscapeSplineControlPoints,
 						Options.bExportLandscapeSplineLeftRightCurves,
@@ -208,7 +271,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 		HAPI_NodeId SplinesNodeId = -1;
 		if (!CreateInputNodeForLandscapeSplines(
 				InSplinesComponent, ObjectNodeId, FinalInputNodeName, SplinesNodeId,
-				EHoudiniLandscapeSplineCurve::Center))
+				EHoudiniLandscapeSplineCurve::Center, InSplineResolution))
 		{
 			bSuccess = false;
 		}
@@ -259,7 +322,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 		HAPI_NodeId SplinesNodeId = -1;
 		if (!CreateInputNodeForLandscapeSplines(
 			InSplinesComponent, ObjectNodeId, FinalInputNodeName, SplinesNodeId,
-			EHoudiniLandscapeSplineCurve::Left))
+			EHoudiniLandscapeSplineCurve::Left, InSplineResolution))
 		{
 			bSuccess = false;
 		}
@@ -273,7 +336,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 		}
 		if (!CreateInputNodeForLandscapeSplines(
 			InSplinesComponent, ObjectNodeId, FinalInputNodeName, SplinesNodeId,
-			EHoudiniLandscapeSplineCurve::Right))
+			EHoudiniLandscapeSplineCurve::Right, InSplineResolution))
 		{
 			bSuccess = false;
 		}
@@ -306,7 +369,8 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplines(
 	const HAPI_NodeId& InObjectNodeId,
 	const FString& InNodeName,
 	HAPI_NodeId& OutNodeId,
-	const EHoudiniLandscapeSplineCurve InExportCurve)
+	const EHoudiniLandscapeSplineCurve InExportCurve,
+	const float InSplineResolution)
 {
 	if (!IsValid(InSplinesComponent))
 		return false;
@@ -331,7 +395,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplines(
 	}
 
 	FLandscapeSplinesData SplinesData;
-	if (!ExtractLandscapeSplineData(InSplinesComponent, SplinesData, InExportCurve))
+	if (!ExtractLandscapeSplineData(InSplinesComponent, SplinesData, InExportCurve, InSplineResolution))
 	{
 		HOUDINI_LOG_WARNING(TEXT("Failed to extract landscape splines data."));
 		return false;
@@ -604,13 +668,20 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesControlPoint
 bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 	ULandscapeSplinesComponent* const InSplinesComponent,
 	FLandscapeSplinesData& OutSplinesData,
-	const EHoudiniLandscapeSplineCurve InExportCurve)
+	const EHoudiniLandscapeSplineCurve InExportCurve,
+	const float InSplineResolution)
 {
 	if (!IsValid(InSplinesComponent))
 		return false;
 
 	if (!InSplinesComponent->HasAnyControlPointsOrSegments())
 		return false;
+
+	if (InExportCurve == EHoudiniLandscapeSplineCurve::Invalid)
+	{
+		HOUDINI_LOG_WARNING(TEXT("Invalid value for InExportCurve: %d, aborting landscape spline data extraction."), InExportCurve);
+		return false;
+	}
 
 	// Use helper to fetch segments, since the Landscape Splines API differs between UE 5.0 and 5.1+
 	TArray<TObjectPtr<ULandscapeSplineSegment>> Segments;
@@ -624,14 +695,50 @@ bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 	OutSplinesData.SegmentRaiseTerrains.Empty(NumSegments);
 	OutSplinesData.SegmentLowerTerrains.Empty(NumSegments);
 
+	// We only have to resample the splines if the spline resolution is different than the internal spline resolution
+	// on the landscape splines component.
+	const bool bResampleSplines = (InSplineResolution > 0.0f && InSplineResolution != InSplinesComponent->SplineResolution);
+
 	// Determine total number of points for all segments
+	TArray<float> SegmentLengths;
+	SegmentLengths.SetNum(NumSegments);
 	int32 NumPoints = 0;
 	for (int32 SegmentIdx = 0; SegmentIdx < NumSegments; ++SegmentIdx)
 	{
 		ULandscapeSplineSegment const* const Segment = Segments[SegmentIdx];
+		SegmentLengths[SegmentIdx] = 0.0f;
 		if (!IsValid(Segment))
+		{
+			OutSplinesData.VertexCounts.Add(0);
 			continue;
-		NumPoints += Segment->GetPoints().Num();
+		}
+
+		// Calculate segment length and number of points per segment
+		const TArray<FLandscapeSplineInterpPoint>& Points = Segment->GetPoints();
+		const int32 NumPointsInSegment = Points.Num();
+		int32 NumPointsInResampledSegment = 0;
+		if (bResampleSplines)
+		{
+			// Calculate the resampled points via SegmentLength / SplineResolution
+			for (int32 VertIdx = 1; VertIdx < NumPointsInSegment; ++VertIdx)
+			{
+				FUnResampledPoint Point0(InExportCurve);
+				FUnResampledPoint Point1(InExportCurve);
+				Point0.CopySplinePoint(Points[VertIdx - 1]);
+				Point1.CopySplinePoint(Points[VertIdx]);
+				SegmentLengths[SegmentIdx] += (Point1.GetSelectedPosition() - Point0.GetSelectedPosition()).Length();
+			}
+			NumPointsInResampledSegment = FMath::CeilToInt32(SegmentLengths[SegmentIdx] / InSplineResolution) + 1; 
+		}
+		else
+		{
+			// Not resampling, so just use the points as is
+			NumPointsInResampledSegment = NumPointsInSegment; 
+		}
+
+		// Record the number of (resampled) points we'll have in this spline/segment
+		NumPoints += NumPointsInResampledSegment;
+		OutSplinesData.VertexCounts.Add(NumPointsInResampledSegment);
 	}
 	OutSplinesData.PointPositions.Empty(NumPoints);
 	OutSplinesData.PointConnectionSocketNames.Empty(NumPoints);
@@ -648,7 +755,6 @@ bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 			OutSplinesData.SegmentPaintLayerNames.AddDefaulted();
 			OutSplinesData.SegmentRaiseTerrains.AddDefaulted();
 			OutSplinesData.SegmentLowerTerrains.AddDefaulted();
-			OutSplinesData.VertexCounts.Add(0);
 
 			continue;
 		}
@@ -661,39 +767,87 @@ bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 			OutSplinesData.SegmentPaintLayerNames.AddDefaulted();
 			OutSplinesData.SegmentRaiseTerrains.AddDefaulted();
 			OutSplinesData.SegmentLowerTerrains.AddDefaulted();
-			OutSplinesData.VertexCounts.Add(0);
 
 			continue;
 		}
 
-		for (int32 SegmentVertIdx = 0; SegmentVertIdx < NumVertsInSegment; ++SegmentVertIdx)
-		{
-			const FLandscapeSplineInterpPoint& SegmentPoint = SegmentPoints[SegmentVertIdx];
+		// TODO: handle case NumVertsInSegment == 1
+		// Use helper structs to get keep the Center, Left and Right positions as well as the Alpha value along the spline
+		FUnResampledPoint UnResampledPoint0(InExportCurve);
+		FUnResampledPoint UnResampledPoint1(InExportCurve);
+		int32 UnResampledPointIndex = 1;
+		
+		UnResampledPoint0.CopySplinePoint(SegmentPoints[0]);
+		UnResampledPoint1.CopySplinePoint(SegmentPoints[1]);
+		// If we are resampling, calculate the Alpha value [0, 1] along the segment, with Point 0 at Alpha = 0.
+		if (bResampleSplines)
+			UnResampledPoint1.Alpha = (UnResampledPoint1.GetSelectedPosition() - UnResampledPoint0.GetSelectedPosition()).Length() / SegmentLengths[SegmentIdx];
 
-			// Get the point to use (center, left or right)
-			FVector CurvePoint;
-			switch (InExportCurve)
+		// Loop for the number of resampled points we'll have for this segment (which could be equal to original number
+		// of points in segment if we are not resampling)
+		const int32 NumResampledVertsInSegment = OutSplinesData.VertexCounts[SegmentIdx];
+		for (int32 ResampledSegmentVertIdx = 0; ResampledSegmentVertIdx < NumResampledVertsInSegment; ++ResampledSegmentVertIdx)
+		{
+			FVector ResampledPosition;
+
+			if (bResampleSplines)
 			{
-			case EHoudiniLandscapeSplineCurve::Center:
-				CurvePoint = SegmentPoint.Center;
-				break;
-			case EHoudiniLandscapeSplineCurve::Left:
-				CurvePoint = SegmentPoint.Left;
-				break;
-			case EHoudiniLandscapeSplineCurve::Right:
-				CurvePoint = SegmentPoint.Right;
-				break;
-			default:
-				HOUDINI_LOG_WARNING(TEXT("Invalid value for InExportCurve: %d, aborting landscape spline data extraction."), InExportCurve);
-				return false;
+				// Find P0 and P1: the unresampled points before and after the resampled point on the spline
+				const float Alpha = static_cast<float>(ResampledSegmentVertIdx) / (NumResampledVertsInSegment - 1.0f);
+				while (Alpha > UnResampledPoint1.Alpha && UnResampledPointIndex < NumVertsInSegment - 1)
+				{
+					UnResampledPoint0 = UnResampledPoint1;
+					UnResampledPointIndex++;
+					UnResampledPoint1.CopySplinePoint(SegmentPoints[UnResampledPointIndex]);
+					UnResampledPoint1.Alpha = UnResampledPoint0.Alpha + (UnResampledPoint1.GetSelectedPosition() - UnResampledPoint0.GetSelectedPosition()).Length() / SegmentLengths[SegmentIdx];
+				}
+
+				if (ResampledSegmentVertIdx == 0)
+				{
+					// The first point is a control point and always the same as the unresampled spline's first point
+					ResampledPosition = UnResampledPoint0.GetSelectedPosition();
+				}
+				else if (ResampledSegmentVertIdx == NumResampledVertsInSegment - 1)
+				{
+					// The last point is a control point and always the same as the unresampled spline's last point
+					ResampledPosition = UnResampledPoint1.GetSelectedPosition();
+				}
+				else
+				{
+					// Calculate the [0, 1] value representing the position of the resampled point between P0 and P1
+					const float ResampleAlpha = (Alpha - UnResampledPoint0.Alpha) / (UnResampledPoint1.Alpha - UnResampledPoint0.Alpha);
+					// Lerp to calculate the resampled point's position
+					ResampledPosition = FMath::Lerp(
+						UnResampledPoint0.GetSelectedPosition(), UnResampledPoint1.GetSelectedPosition(), ResampleAlpha);
+
+					// On points that are not control points, the half-width should be half the distance between the
+					// Right and Left points going through the Center point
+					const FVector ResampledLeft = FMath::Lerp(
+					UnResampledPoint0.Left, UnResampledPoint1.Left, ResampleAlpha);
+					const FVector ResampledRight = FMath::Lerp(
+						UnResampledPoint0.Right, UnResampledPoint1.Right, ResampleAlpha);
+					OutSplinesData.ControlPointHalfWidths.Add(
+						((ResampledPosition - ResampledRight) + (ResampledLeft - ResampledPosition)).Length() / 2.0);
+				}
+			}
+			else
+			{
+				// We are not resampling, so simply copy the unresampled position at this index
+				UnResampledPointIndex = ResampledSegmentVertIdx;
+				const FLandscapeSplineInterpPoint& SegmentPoint = SegmentPoints[UnResampledPointIndex];
+				UnResampledPoint1.CopySplinePoint(SegmentPoint);
+				ResampledPosition = UnResampledPoint1.GetSelectedPosition();
+
+				if (ResampledSegmentVertIdx > 0 && ResampledSegmentVertIdx < NumResampledVertsInSegment - 1)
+				{
+					// On points that are not control points, the half-width should be half the distance between the
+					// Right and Left points going through the Center point
+					OutSplinesData.ControlPointHalfWidths.Add(
+						((SegmentPoint.Center - SegmentPoint.Right) + (SegmentPoint.Left - SegmentPoint.Center)).Length() / 2.0);
+				}
 			}
 			
-			OutSplinesData.PointPositions.Add(CurvePoint.X / HAPI_UNREAL_SCALE_FACTOR_POSITION);
-			// Swap Y/Z
-			OutSplinesData.PointPositions.Add(CurvePoint.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION);
-			OutSplinesData.PointPositions.Add(CurvePoint.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION);
-
-			if (SegmentVertIdx == 0)
+			if (ResampledSegmentVertIdx == 0)
 			{
 				// First point is a control point, add the socket name
 				OutSplinesData.PointConnectionSocketNames.Emplace(Segment->Connections[0].SocketName.ToString());
@@ -710,7 +864,7 @@ bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 					OutSplinesData.ControlPointHalfWidths.Emplace(CPoint->Width);
 				}
 			}
-			else if (SegmentVertIdx == NumVertsInSegment - 1)
+			else if (ResampledSegmentVertIdx == NumResampledVertsInSegment - 1)
 			{
 				// Last point is a control point, add the socket name
 				OutSplinesData.PointConnectionSocketNames.Emplace(Segment->Connections[1].SocketName.ToString());
@@ -729,19 +883,19 @@ bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 			}
 			else
 			{
+				// for other points the socket names, tangent lengths and control point name attributes are empty
 				OutSplinesData.PointConnectionSocketNames.AddDefaulted();
 				OutSplinesData.ControlPointTangentLengths.AddDefaulted();
 				OutSplinesData.ControlPointNames.AddDefaulted();
-
-				// On points that are not control points, the half-width should be half the distance between the
-				// Right and Left points going through the Center point
-				OutSplinesData.ControlPointHalfWidths.Add(
-					((SegmentPoint.Center - SegmentPoint.Right) + (SegmentPoint.Left - SegmentPoint.Center)).Length() / 2.0);
 			}
+
+			// Set the final point position
+			OutSplinesData.PointPositions.Add(ResampledPosition.X / HAPI_UNREAL_SCALE_FACTOR_POSITION);
+			// Swap Y/Z
+			OutSplinesData.PointPositions.Add(ResampledPosition.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION);
+			OutSplinesData.PointPositions.Add(ResampledPosition.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 		}
 		
-		OutSplinesData.VertexCounts.Add(NumVertsInSegment);
-
 		// Extract general properties from the segment
 		OutSplinesData.SegmentPaintLayerNames.Emplace(Segment->LayerName.ToString());
 		OutSplinesData.SegmentRaiseTerrains.Add(Segment->bRaiseTerrain);
