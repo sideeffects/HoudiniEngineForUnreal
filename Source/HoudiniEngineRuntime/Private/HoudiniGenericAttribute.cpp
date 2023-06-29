@@ -497,7 +497,7 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 	}
 
 	// Handle Component Tags manually here
-	if (PropertyName.Contains("Tags"))
+	if (PropertyName.Contains("tag"))
 	{
 		// lambda to set the tag values
 		auto SetTags = [InPropertyAttribute, AtIndex](TArray<FName>* FoundTags)
@@ -524,7 +524,7 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 		if (IsValid(AC))
 		{
 			// On components, if Actor Tags weren't specified, just try to set the component's tag
-			if (!PropertyName.Contains("ActorTags"))
+			if (!PropertyName.Contains("ActorTag"))
 			{
 				return SetTags(&(AC->ComponentTags));
 			}
@@ -544,7 +544,7 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 		if (IsValid(Actor))
 		{
 			// On actors, if Components tags weren't specified, just try to set the actor's tag
-			if (!PropertyName.Contains("ComponentTags"))
+			if (!PropertyName.Contains("ComponentTag"))
 			{
 				return SetTags(&(Actor->Tags));
 			}

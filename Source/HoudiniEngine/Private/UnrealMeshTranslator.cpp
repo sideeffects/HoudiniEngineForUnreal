@@ -27,33 +27,40 @@
 #include "UnrealMeshTranslator.h"
 
 #include "HoudiniEngine.h"
-#include "HoudiniEngineUtils.h"
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineTimers.h"
+#include "HoudiniEngineUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 
-#include "RawMesh.h"
-#include "MeshDescription.h"
-#include "MeshDescriptionOperations.h"
-#include "Engine/StaticMesh.h"
-#include "PhysicsEngine/BodySetup.h"
-#include "Engine/StaticMeshSocket.h"
+#include "Animation/Skeleton.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/StaticMeshSocket.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialInterface.h"
 #include "MeshAttributes.h"
-#include "StaticMeshAttributes.h"
+#include "MeshDescription.h"
+#include "MeshDescriptionOperations.h"
+#include "MeshUtilities.h"
+#include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#include "HoudiniEngineTimers.h"
+#include "RawMesh.h"
 #include "Rendering/SkeletalMeshModel.h"
+#include "StaticMeshAttributes.h"
+#include "StaticMeshResources.h"
 
-#include <locale> 
+#include <locale>
 #include <codecvt>
 
 #if WITH_EDITOR
 	#include "EditorFramework/AssetImportData.h"
 #endif
 
-FTransform GetCompSpaceTransformForBone(const FReferenceSkeleton& InSkel,const int32& InBoneIdx)
+FTransform
+GetCompSpaceTransformForBone(const FReferenceSkeleton& InSkel,const int32& InBoneIdx)
 {
     FTransform resultBoneTransform = InSkel.GetRefBonePose()[InBoneIdx];
 
@@ -69,7 +76,8 @@ FTransform GetCompSpaceTransformForBone(const FReferenceSkeleton& InSkel,const i
     return resultBoneTransform;
 }
 
-void GetComponentSpaceTransforms(TArray<FTransform>& OutResult, const FReferenceSkeleton& InRefSkeleton)
+void
+GetComponentSpaceTransforms(TArray<FTransform>& OutResult, const FReferenceSkeleton& InRefSkeleton)
 {
     const int32 PoseNum = InRefSkeleton.GetRefBonePose().Num();
 	OutResult.SetNum(PoseNum);
@@ -90,20 +98,22 @@ static TAutoConsoleVariable<int32> CVarHoudiniEngineStaticMeshExportMethod(
 	TEXT("2: Render Mesh / LODResources\n")
 );
 
+
 bool
 FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
-    USkeletalMesh* SkeletalMesh,
-    HAPI_NodeId& InputNodeId,
-    const FString& InputNodeName,
+	USkeletalMesh* SkeletalMesh,
+	HAPI_NodeId& InputNodeId,
+	const FString& InputNodeName,
 	FUnrealObjectInputHandle& OutHandle,
-    USkeletalMeshComponent* SkeletalMeshComponent /*=nullptr*/,
-    const bool& ExportAllLODs /*=false*/,
-    const bool& ExportSockets /*=false*/,
-    const bool& ExportColliders /*=false*/,
+	USkeletalMeshComponent* SkeletalMeshComponent /*=nullptr*/,
+	const bool& ExportAllLODs /*=false*/,
+	const bool& ExportSockets /*=false*/,
+	const bool& ExportColliders /*=false*/,
+	const bool& ExportMainMesh /* = true */,
 	const bool& bInputNodesCanBeDeleted /*=true*/)
 {
-    // If we don't have a static mesh there's nothing to do.
-    if (!IsValid(SkeletalMesh))
+	// If we don't have a skeletal mesh there's nothing to do.
+	if (!IsValid(SkeletalMesh))
 		return false;
 
 	// Input node name, defaults to InputNodeName, but can be changed by the new input system
@@ -111,29 +121,47 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 
 	// Find the node in new input system
 	// Identifier will be the identifier for the entry created in this call of the function.
+	// We may call this function recursively to create the main mesh, LODs, sockets and colliders, each getting its own identifier.
 	FUnrealObjectInputIdentifier Identifier;
 	FUnrealObjectInputHandle ParentHandle;
 	HAPI_NodeId ParentNodeId = -1;
 	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bUseRefCountedInputSystem)
 	{
-		// Creates this input's identifier and input options
-		bool bDefaultImportAsReference = false;
-		bool bDefaultImportAsReferenceRotScaleEnabled = false;
-		const FUnrealObjectInputOptions Options(
-			bDefaultImportAsReference,
-			bDefaultImportAsReferenceRotScaleEnabled,
-			false,
-			false,
-			false);
+		// Check if we already have an input node for this asset
+		bool bSingleLeafNodeOnly = false;
+		FUnrealObjectInputIdentifier IdentReferenceNode;
+		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
+		if (!FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
+			SkeletalMesh,
+			ExportMainMesh,
+			ExportAllLODs,
+			ExportSockets,
+			ExportColliders,
+			bSingleLeafNodeOnly,
+			IdentReferenceNode,
+			IdentPerOption))
+		{
+			return false;
+		}
 
-		Identifier = FUnrealObjectInputIdentifier(SkeletalMesh, Options, true);
+		if (bSingleLeafNodeOnly)
+		{
+			// We'll create the skeletal mes input node entirely is this function call
+			check(IdentPerOption.Num() > 0);
+			Identifier = IdentPerOption[0];
+		}
+		else
+		{
+			// Look for the reference node that references the per-option (LODs, colliders) nodes
+			Identifier = IdentReferenceNode;
+		}
 
 		FUnrealObjectInputHandle Handle;
 		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && FHoudiniEngineUtils::AreReferencedHAPINodesValid(Handle))
+			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && (bSingleLeafNodeOnly || FHoudiniEngineUtils::AreReferencedHAPINodesValid(Handle)))
 			{
 				if (!bInputNodesCanBeDeleted)
 				{
@@ -153,54 +181,427 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
 
 		// We now need to create the nodes (since we couldn't find existing ones in the manager)
-		// To do that, we can simply continue this function
+		// For the single leaf node case we can simply continue this function
+		// For the ref + multiple options, we call this function again for each option (as a single leaf node) and
+		// then create the reference node.
+		if (!bSingleLeafNodeOnly)
+		{
+			TSet<FUnrealObjectInputHandle> PerOptionNodeHandles;
+			PerOptionNodeHandles.Reserve(IdentPerOption.Num());
+			for (const FUnrealObjectInputIdentifier& OptionIdentifier : IdentPerOption)
+			{
+				const FUnrealObjectInputOptions& Options = OptionIdentifier.GetOptions();
+				
+				FString NodeLabel;
+				FHoudiniEngineUtils::GetDefaultInputNodeName(OptionIdentifier, NodeLabel);
+				
+				HAPI_NodeId NewNodeId = -1;
+				FUnrealObjectInputHandle OptionHandle;
+				if (FHoudiniEngineUtils::FindNodeViaManager(OptionIdentifier, OptionHandle) || !FHoudiniEngineUtils::AreHAPINodesValid(OptionHandle))
+				{
+					FHoudiniEngineUtils::GetHAPINodeId(OptionHandle, NewNodeId);
+				}
+				
+				// Recursive call
+				if(!FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
+					SkeletalMesh,
+					NewNodeId,
+					NodeLabel,
+					OptionHandle,
+					SkeletalMeshComponent,
+					Options.bExportLODs,
+					Options.bExportSockets,
+					Options.bExportColliders,
+					!Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders,
+					bInputNodesCanBeDeleted))
+				{
+					return false;
+				}
+
+				PerOptionNodeHandles.Add(OptionHandle);
+			}
+
+			// Create or update the HAPI node for the reference node if it does not exist
+			FUnrealObjectInputHandle RefNodeHandle;
+			if (!FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(IdentReferenceNode, PerOptionNodeHandles, RefNodeHandle, true, bInputNodesCanBeDeleted))
+				return false;
+			
+			OutHandle = RefNodeHandle;
+			FHoudiniEngineUtils::GetHAPINodeId(IdentReferenceNode, InputNodeId);
+			return true;
+		}
 	}
-	
-    // Node ID for the newly created node
-    HAPI_NodeId NewNodeId = -1;
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateInputNode(
-		FinalInputNodeName, NewNodeId, ParentNodeId), false);
+	// Node ID for the newly created node
+	HAPI_NodeId NewNodeId = -1;
 
-    if (!FHoudiniEngineUtils::HapiCookNode(NewNodeId, nullptr, true))
-	return false;
+	// Export sockets if there are some
+	bool DoExportSockets = ExportSockets && (SkeletalMesh->NumSockets() > 0);
 
-    // Check if we have a valid id for this new input asset.
-    if (!FHoudiniEngineUtils::IsHoudiniNodeValid(NewNodeId))
-	return false;
+	// Export LODs if there are some
+	bool DoExportLODs = ExportAllLODs && (SkeletalMesh->GetLODNum() > 1);
 
-    HAPI_NodeId PreviousInputNodeId = InputNodeId;
+	/*
+	// Const cast due to deprecation warning to access the body setup
+	const USkeletalMesh* SK_const = SkeletalMesh;
+	const UBodySetup* BodySetup = SK_const->GetBodySetup();	
+	bool DoExportColliders = ExportColliders && BodySetup != nullptr;
+	if (DoExportColliders)
+	{
+		if (BodySetup->AggGeom.GetElementCount() <= 0)
+		{
+			DoExportColliders = false;
+		}
+	}*/
 
-    // Update our input NodeId
-    InputNodeId = NewNodeId;
-    // Get our parent OBJ NodeID
-    HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(NewNodeId);
+	// Export colliders if there are some
+	// For Skeletal mesh, we need to look at all the SKBodySetups
+	bool DoExportColliders = false;
+	TArray<USkeletalBodySetup*> BodySetups;
+	if (ExportColliders && SkeletalMesh->GetPhysicsAsset())
+	{
+		BodySetups = SkeletalMesh->GetPhysicsAsset()->SkeletalBodySetups;
+		for (auto& CurBS : BodySetups)
+		{
+			if (CurBS->AggGeom.GetElementCount() <= 0)
+				continue;
 
-    // We have now created a valid new input node, delete the previous one
-    if (PreviousInputNodeId >= 0)
-    {
+			// We found at least one collider, we'll need to export them!
+			DoExportColliders = true;
+			break;
+		}
+	}
+
+	// We need to use a merge node if we export lods OR sockets
+	bool UseMergeNode = DoExportLODs || DoExportSockets || DoExportColliders;
+	if (UseMergeNode)
+	{
+		// TODO:
+		// What if OutInputNodeId already exists? 
+		// Delete previous merge?/input?
+
+		// Create a merge SOP asset. This will be our "InputNodeId"
+		// as all the different LOD meshes and sockets will be plugged into it
+		if (ParentNodeId < 0)
+		{
+			HOUDINI_CHECK_ERROR_RETURN(	FHoudiniEngineUtils::CreateNode(
+				-1, TEXT("SOP/merge"), FinalInputNodeName, true, &NewNodeId), false);
+		}
+		else
+		{
+			// When creating a node inside a parent node (in other words, ParentNodeId is not -1), then we cannot
+			// specify the node type category prefix on the node name. We have to create the geo Object and merge
+			// SOPs separately.
+			HAPI_NodeId ObjectNodeId = -1; 
+			HOUDINI_CHECK_ERROR_RETURN(	FHoudiniEngineUtils::CreateNode(
+				ParentNodeId, TEXT("geo"), FinalInputNodeName, true, &ObjectNodeId), false);
+			HOUDINI_CHECK_ERROR_RETURN(	FHoudiniEngineUtils::CreateNode(
+				ObjectNodeId, TEXT("merge"), FinalInputNodeName, true, &NewNodeId), false);
+		}
+	}
+	else
+	{
+		// No LODs/Sockets, we just need a single input node
+		// If InputNodeId is invalid, we need to create an input node.
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateInputNode(FinalInputNodeName, NewNodeId, ParentNodeId), false);
+		if (!FHoudiniEngineUtils::HapiCookNode(NewNodeId, nullptr, true))
+			return false;
+	}
+
+	// Check if we have a valid id for this new input asset.
+	if (!FHoudiniEngineUtils::IsHoudiniNodeValid(NewNodeId))
+		return false;
+
+	HAPI_NodeId PreviousInputNodeId = InputNodeId;
+
+	// Update our input NodeId
+	InputNodeId = NewNodeId;
+	// Get our parent OBJ NodeID
+	HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(NewNodeId);
+
+	// We have now created a valid new input node, delete the previous one
+	if (PreviousInputNodeId >= 0)
+	{
 		// Get the parent OBJ node ID before deleting!
 		HAPI_NodeId PreviousInputOBJNode = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
 
 		if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
 			FHoudiniEngine::Get().GetSession(), PreviousInputNodeId))
 		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *InputNodeName);
+			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *FinalInputNodeName);
 		}
 
 		if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
 			FHoudiniEngine::Get().GetSession(), PreviousInputOBJNode))
 		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input OBJ node for %s."), *InputNodeName);
-		}
-    }
+			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input OBJ node for %s."), *FinalInputNodeName);
+		}		
+	}
 
-	if (FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(SkeletalMesh, NewNodeId))
+	// Next Index used to connect nodes to the merge
+	int32 NextMergeIndex = 0;
+
+	// Determine which LODs to export based on the ExportLODs/ExportMainMesh, high res mesh availability and whether
+	// the new input system is being used.
+	const int32 NumLODs = SkeletalMesh->GetLODNum();
+	int32 FirstLODIndex = 0;
+	int32 LastLODIndex = -1;
+
+	if (DoExportLODs)
 	{
-		// Commit the geo.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-			FHoudiniEngine::Get().GetSession(), NewNodeId), false);
+		LastLODIndex = NumLODs - 1;
 
+		// When using the new input system
+		// Don't export LOD0 with the LODs  since we have a separate "main mesh" input
+		FirstLODIndex = bUseRefCountedInputSystem ? 1 : 0;
+	}
+	else if (ExportMainMesh)
+	{
+		// Just export the main mesh (LOD0)
+		LastLODIndex = 0;
+		FirstLODIndex = 0;
+	}
+	else
+	{
+		// Dont export any LOD
+		LastLODIndex = -1;
+		FirstLODIndex = 0;
+	}
+	
+	if (LastLODIndex >= 0)
+	{
+		for (int32 LODIndex = FirstLODIndex; LODIndex <= LastLODIndex; LODIndex++)
+		{
+			// If we're using a merge node, we need to create a new input null
+			HAPI_NodeId CurrentLODNodeId = -1;
+			if (UseMergeNode)
+			{
+				// Create a new input node for the current LOD
+				const char * LODName = "";
+				{
+					FString LOD = TEXT("lod") + FString::FromInt(LODIndex);
+					LODName = TCHAR_TO_UTF8(*LOD);
+				}
+
+				// Create the node in this input object's OBJ node
+				HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
+					InputObjectNodeId, TEXT("null"), LODName, false, &CurrentLODNodeId), false);
+			}
+			else
+			{
+				// No merge node, just use the input node we created before
+				CurrentLODNodeId = NewNodeId;
+			}
+			
+			// Set the skeletal mesh data for this lod on the input node
+			if (!FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(SkeletalMesh, CurrentLODNodeId, LODIndex, DoExportLODs))
+			{
+				HOUDINI_LOG_ERROR(TEXT("Failed to set the skeletal mesh data on the input node for %s LOD %d."), *InputNodeName, LODIndex);
+				continue;
+			}
+
+			if (UseMergeNode)
+			{
+				// Connect the LOD node to the merge node.
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+					FHoudiniEngine::Get().GetSession(),
+					NewNodeId, NextMergeIndex, CurrentLODNodeId, 0), false);
+			}
+
+			NextMergeIndex++;
+		}
+	}
+
+	// TODO: duplicate with Static Mesh
+	// Refactor this and the static mesh to a exportcolliders function taking a body setup?
+	if (DoExportColliders && BodySetups.Num() > 0)
+	{
+		FReferenceSkeleton RefSK = SkeletalMesh->GetRefSkeleton();
+		TArray<FTransform> AllBonePos = RefSK.GetRawRefBonePose();
+
+		for (auto& BodySetup : BodySetups)
+		{
+			FKAggregateGeom SimpleColliders = BodySetup->AggGeom;
+
+			// Calculate the colliders transform
+			// They are stored relative to a bone, so we first need to get the corresponding bone's transform
+			// by going up the chains of bones until we reach the root bone
+			int32 BoneIndex = RefSK.FindBoneIndex(BodySetup->BoneName);
+			FTransform BoneTransform = AllBonePos.IsValidIndex(BoneIndex) ? AllBonePos[BoneIndex] : FTransform::Identity;
+			do
+			{
+				int32 ParentIndex = RefSK.GetParentIndex(BoneIndex);
+				if (ParentIndex != INDEX_NONE)
+				{
+					BoneTransform = BoneTransform * AllBonePos[ParentIndex];
+				}
+
+				BoneIndex = ParentIndex;
+			} while (RefSK.IsValidIndex(BoneIndex));
+
+
+			// Export BOX colliders
+			for (auto& CurBox : SimpleColliders.BoxElems)
+			{
+				FTransform BoxTransform = CurBox.GetTransform() * BoneTransform;
+
+				FVector BoxCenter = BoxTransform.GetLocation();//CurBox.Center;
+				FVector BoxExtent = FVector(CurBox.X, CurBox.Y, CurBox.Z);
+				FRotator BoxRotation = BoxTransform.GetRotation().Rotator();//CurBox.Rotation;
+
+				HAPI_NodeId BoxNodeId = -1;
+				if (!CreateInputNodeForBox(
+					BoxNodeId, InputObjectNodeId, NextMergeIndex,
+					BoxCenter, BoxExtent, BoxRotation))
+					continue;
+
+				if (BoxNodeId < 0)
+					continue;
+
+				// Connect the Box node to the merge node.
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+					FHoudiniEngine::Get().GetSession(),
+					NewNodeId, NextMergeIndex, BoxNodeId, 0), false);
+
+				NextMergeIndex++;
+			}
+
+			// Export SPHERE colliders
+			for (auto& CurSphere : SimpleColliders.SphereElems)
+			{
+				FTransform SphereTransform = CurSphere.GetTransform() * BoneTransform;
+				FVector SphereCenter = SphereTransform.GetLocation();// CurSphere.Center;				
+
+				HAPI_NodeId SphereNodeId = -1;
+				if (!CreateInputNodeForSphere(
+					SphereNodeId, InputObjectNodeId, NextMergeIndex,
+					SphereCenter, CurSphere.Radius))
+					continue;
+
+				if (SphereNodeId < 0)
+					continue;
+
+				// Connect the Sphere node to the merge node.
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+					FHoudiniEngine::Get().GetSession(),
+					NewNodeId, NextMergeIndex, SphereNodeId, 0), false);
+
+				NextMergeIndex++;
+			}
+
+			// Export CAPSULE colliders
+			for (auto& CurSphyl : SimpleColliders.SphylElems)
+			{
+				FTransform SphylTransform = CurSphyl.GetTransform() * BoneTransform;
+
+				FVector SphylCenter = SphylTransform.GetLocation(); // CurSphyl.Center
+				FRotator SphylRotation = SphylTransform.GetRotation().Rotator();//CurSphyl.Rotation;
+
+				HAPI_NodeId SphylNodeId = -1;
+				if (!CreateInputNodeForSphyl(
+					SphylNodeId, InputObjectNodeId, NextMergeIndex,
+					SphylCenter, SphylRotation, CurSphyl.Radius, CurSphyl.Length))
+					continue;
+
+				if (SphylNodeId < 0)
+					continue;
+
+				// Connect the capsule node to the merge node.
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+					FHoudiniEngine::Get().GetSession(),
+					NewNodeId, NextMergeIndex, SphylNodeId, 0), false);
+
+				NextMergeIndex++;
+			}
+
+			// TODO!! Insert bone transform here!!
+			// Export CONVEX colliders
+			for (auto& CurConvex : SimpleColliders.ConvexElems)
+			{
+				HAPI_NodeId ConvexNodeId = -1;
+				if (!CreateInputNodeForConvex(
+					ConvexNodeId, InputObjectNodeId, NextMergeIndex, CurConvex))
+					continue;
+
+				if (ConvexNodeId < 0)
+					continue;
+
+				// Connect the capsule node to the merge node.
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+					FHoudiniEngine::Get().GetSession(),
+					NewNodeId, NextMergeIndex, ConvexNodeId, 0), false);
+
+				NextMergeIndex++;
+			}
+
+			// Create a new primitive attribute where each value contains the Physical Material name in Unreal.
+			UPhysicalMaterial* PhysicalMaterial = BodySetup->PhysMaterial;
+			if (PhysicalMaterial)
+			{
+				// Create a new Attribute Wrangler node which will be used to create the new attributes.
+				HAPI_NodeId AttribWrangleNodeId;
+				if (FHoudiniEngineUtils::CreateNode(
+					InputObjectNodeId, TEXT("attribwrangle"),
+					TEXT("physical_material"),
+					true, &AttribWrangleNodeId) != HAPI_RESULT_SUCCESS)
+				{
+					// Failed to create the node.
+					HOUDINI_LOG_WARNING(
+						TEXT("Failed to create Physical Material attribute for mesh: %s"),
+						*FHoudiniEngineUtils::GetErrorDescription());
+					return false;
+				}
+
+				// Connect the new node to the previous node. Set NewNodeId to the attrib node
+				// as is this the final output of the chain.
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+					FHoudiniEngine::Get().GetSession(),
+					AttribWrangleNodeId, 0, NewNodeId, 0), false);
+				NewNodeId = AttribWrangleNodeId;
+
+				// Construct a VEXpression to set create and set a Physical Material Attribute.
+				// eg. s@unreal_physical_material = 'MyPath/PhysicalMaterial';
+				const FString FormatString = TEXT("s@{0} = '{1}';");
+				FString PathName = PhysicalMaterial->GetPathName();
+				FString AttrName = TEXT(HAPI_UNREAL_ATTRIB_SIMPLE_PHYSICAL_MATERIAL);
+				std::string VEXpression = TCHAR_TO_UTF8(*FString::Format(*FormatString,
+					{ AttrName, PathName }));
+
+				// Set the snippet parameter to the VEXpression.
+				HAPI_ParmInfo ParmInfo;
+				HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(AttribWrangleNodeId, "snippet", ParmInfo);
+				if (ParmId != -1)
+				{
+					FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId,
+						VEXpression.c_str(), ParmId, 0);
+				}
+				else
+				{
+					HOUDINI_LOG_WARNING(TEXT("Invalid Parameter: %s"),
+						*FHoudiniEngineUtils::GetErrorDescription());
+				}
+			}
+		}
+	}
+
+	if (DoExportSockets && SkeletalMesh->NumSockets() > 0)
+    {
+		// Create an input node for the skeletal mesh sockets
+		HAPI_NodeId SocketsNodeId = -1;
+		
+		if (CreateInputNodeForSkeletalMeshSockets(SkeletalMesh, InputObjectNodeId, SocketsNodeId))
+		{
+			// We can connect the socket node to the merge node's last input.
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+				FHoudiniEngine::Get().GetSession(), NewNodeId, NextMergeIndex, SocketsNodeId, 0), false);
+
+			NextMergeIndex++;
+		}
+		else if (SocketsNodeId != -1)
+		{
+			// If we failed to properly export the sockets, clean up the created node
+			FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), SocketsNodeId);
+		}
 	}
 
 	if (bUseRefCountedInputSystem)
@@ -209,23 +610,18 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
 			OutHandle = Handle;
 	}
-
-    return true;
-}
-
-bool
-FUnrealMeshTranslator::SetStaticMeshDataOnNode(
-    UStaticMesh* StaticMesh,
-    HAPI_NodeId& NewNodeId)
-{
-    return true;
+	
+	//
+	return true;
 }
 
 
 bool
 FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(
-    USkeletalMesh* SkeletalMesh,
-    HAPI_NodeId& NewNodeId)
+	USkeletalMesh* SkeletalMesh,
+	HAPI_NodeId& NewNodeId,
+	int32 LODIndex,
+	const bool& bAddLODGroups)
 {
 	if (!IsValid(SkeletalMesh))
 		return false;
@@ -233,8 +629,10 @@ FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(
 	const FSkeletalMeshModel* SkelMeshResource = SkeletalMesh->GetImportedModel();
 	if (!SkelMeshResource)
 		return false;
+		
+	if (!SkelMeshResource->LODModels.IsValidIndex(LODIndex))
+		return false;
 
-	int32 LODIndex = 0;
 	const FSkeletalMeshLODModel& SourceModel = SkelMeshResource->LODModels[LODIndex];
 
 	// Copy all the vertex data from the various chunks to a single buffer.
@@ -822,6 +1220,68 @@ FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(
 		0, "boneCapture_index", &BoneCaptureDataInfo, BoneCaptureIndexArray.GetData(),
 		BoneCaptureIndexInfo.totalArrayElements, SizesBoneCaptureIndexArray.GetData(), 0, SizesBoneCaptureIndexArray.Num()), false);
 
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// LOD GROUP AND SCREENSIZE
+	//---------------------------------------------------------------------------------------------------------------------
+	if (bAddLODGroups)
+	{
+		// LOD Group
+		const char* LODGroupStr = "";
+		{
+			FString LODGroup = TEXT("lod") + FString::FromInt(LODIndex);
+			LODGroupStr = TCHAR_TO_UTF8(*LODGroup);
+		}
+
+		// Add a LOD group
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddGroup(
+			FHoudiniEngine::Get().GetSession(),
+			NewNodeId, 0, HAPI_GROUPTYPE_PRIM, LODGroupStr), false);
+
+		// Set GroupMembership
+		TArray<int> GroupArray;
+		GroupArray.SetNumUninitialized(Part.faceCount);
+		for (int32 n = 0; n < GroupArray.Num(); n++)
+			GroupArray[n] = 1;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetGroupMembership(
+			FHoudiniEngine::Get().GetSession(),
+			NewNodeId, 0, HAPI_GROUPTYPE_PRIM, LODGroupStr,
+			GroupArray.GetData(), 0, Part.faceCount), false);
+
+		FSkeletalMeshLODInfo* LODInfo = SkeletalMesh->GetLODInfo(LODIndex);
+		if (LODInfo)
+		{
+			// Add the lodX_screensize attribute
+			FString LODAttributeName =
+				TEXT(HAPI_UNREAL_ATTRIB_LOD_SCREENSIZE_PREFIX) + FString::FromInt(LODIndex) + TEXT(HAPI_UNREAL_ATTRIB_LOD_SCREENSIZE_POSTFIX);
+
+			// Create lodX_screensize detail attribute info.
+			HAPI_AttributeInfo AttributeInfoLODScreenSize;
+			FHoudiniApi::AttributeInfo_Init(&AttributeInfoLODScreenSize);
+			AttributeInfoLODScreenSize.count = 1;
+			AttributeInfoLODScreenSize.tupleSize = 1;
+			AttributeInfoLODScreenSize.exists = true;
+			AttributeInfoLODScreenSize.owner = HAPI_ATTROWNER_DETAIL;
+			AttributeInfoLODScreenSize.storage = HAPI_STORAGETYPE_FLOAT;
+			AttributeInfoLODScreenSize.originalOwner = HAPI_ATTROWNER_INVALID;
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+				FHoudiniEngine::Get().GetSession(),
+				NewNodeId, 0, TCHAR_TO_UTF8(*LODAttributeName), &AttributeInfoLODScreenSize), false);
+
+			float lodscreensize = LODInfo->ScreenSize.Default;
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+				FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
+				TCHAR_TO_UTF8(*LODAttributeName), &AttributeInfoLODScreenSize,
+				&lodscreensize, 0, 1), false);
+		}
+	}
+
+	// Commit the geo.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+		FHoudiniEngine::Get().GetSession(), NewNodeId), false);
+
     return true;
 }
 
@@ -859,7 +1319,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 		bool bSingleLeafNodeOnly = false;
 		FUnrealObjectInputIdentifier IdentReferenceNode;
 		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
-		if (!FHoudiniEngineUtils::BuildStaticMeshInputObjectIdentifiers(
+		if (!FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 			StaticMesh,
 			ExportMainMesh,
 			ExportAllLODs,
@@ -916,11 +1376,17 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 			PerOptionNodeHandles.Reserve(IdentPerOption.Num());
 			for (const FUnrealObjectInputIdentifier& OptionIdentifier : IdentPerOption)
 			{
-				FUnrealObjectInputHandle OptionHandle;
 				const FUnrealObjectInputOptions& Options = OptionIdentifier.GetOptions();
-				HAPI_NodeId NewNodeId = -1;
+
 				FString NodeLabel;
 				FHoudiniEngineUtils::GetDefaultInputNodeName(OptionIdentifier, NodeLabel);
+
+				HAPI_NodeId NewNodeId = -1;
+				FUnrealObjectInputHandle OptionHandle;
+				if (FHoudiniEngineUtils::FindNodeViaManager(OptionIdentifier, OptionHandle) || !FHoudiniEngineUtils::AreHAPINodesValid(OptionHandle))
+				{
+					FHoudiniEngineUtils::GetHAPINodeId(OptionHandle, NewNodeId);
+				}
 				
 				if (!HapiCreateInputNodeForStaticMesh(
 						StaticMesh,
@@ -1744,6 +2210,319 @@ FUnrealMeshTranslator::CreateInputNodeForMeshSockets(
 }
 
 bool
+FUnrealMeshTranslator::CreateInputNodeForSkeletalMeshSockets(
+	USkeletalMesh* InSkeletalMesh, const HAPI_NodeId& InParentNodeId, HAPI_NodeId& OutSocketsNodeId)
+{
+	if (!InSkeletalMesh)
+		return false;
+
+	TArray<USkeletalMeshSocket*> InMeshSocket = InSkeletalMesh->GetActiveSocketList();
+	int32 NumSockets = InMeshSocket.Num();
+	if (NumSockets <= 0)
+		return false;
+
+	FReferenceSkeleton RefSK = InSkeletalMesh->GetRefSkeleton();
+	TArray<FTransform> AllBonePos = RefSK.GetRawRefBonePose();
+
+	// Create a new input node for the sockets
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
+		InParentNodeId, TEXT("null"), "sockets", false, &OutSocketsNodeId), false);
+
+	// Create part.
+	HAPI_PartInfo Part;
+	FHoudiniApi::PartInfo_Init(&Part);
+	Part.id = 0;
+	Part.nameSH = 0;
+	Part.attributeCounts[HAPI_ATTROWNER_POINT] = 0;
+	Part.attributeCounts[HAPI_ATTROWNER_PRIM] = 0;
+	Part.attributeCounts[HAPI_ATTROWNER_VERTEX] = 0;
+	Part.attributeCounts[HAPI_ATTROWNER_DETAIL] = 0;
+	Part.pointCount = NumSockets;
+	Part.vertexCount = 0;
+	Part.faceCount = 0;
+	Part.type = HAPI_PARTTYPE_MESH;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(
+		FHoudiniEngine::Get().GetSession(),
+		OutSocketsNodeId, 0, &Part), false);
+
+	// Create POS point attribute info.
+	HAPI_AttributeInfo AttributeInfoPos;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfoPos);
+	AttributeInfoPos.count = NumSockets;
+	AttributeInfoPos.tupleSize = 3;
+	AttributeInfoPos.exists = true;
+	AttributeInfoPos.owner = HAPI_ATTROWNER_POINT;
+	AttributeInfoPos.storage = HAPI_STORAGETYPE_FLOAT;
+	AttributeInfoPos.originalOwner = HAPI_ATTROWNER_INVALID;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(),
+		OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPos), false);
+
+	// Create Rot point attribute Info
+	HAPI_AttributeInfo AttributeInfoRot;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfoRot);
+	AttributeInfoRot.count = NumSockets;
+	AttributeInfoRot.tupleSize = 4;
+	AttributeInfoRot.exists = true;
+	AttributeInfoRot.owner = HAPI_ATTROWNER_POINT;
+	AttributeInfoRot.storage = HAPI_STORAGETYPE_FLOAT;
+	AttributeInfoRot.originalOwner = HAPI_ATTROWNER_INVALID;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(),
+		OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_ROTATION, &AttributeInfoRot), false);
+
+	// Create scale point attribute Info
+	HAPI_AttributeInfo AttributeInfoScale;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfoScale);
+	AttributeInfoScale.count = NumSockets;
+	AttributeInfoScale.tupleSize = 3;
+	AttributeInfoScale.exists = true;
+	AttributeInfoScale.owner = HAPI_ATTROWNER_POINT;
+	AttributeInfoScale.storage = HAPI_STORAGETYPE_FLOAT;
+	AttributeInfoScale.originalOwner = HAPI_ATTROWNER_INVALID;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(),
+		OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_SCALE, &AttributeInfoScale), false);
+
+	//  Create the name attrib info
+	HAPI_AttributeInfo AttributeInfoName;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfoName);
+	AttributeInfoName.count = NumSockets;
+	AttributeInfoName.tupleSize = 1;
+	AttributeInfoName.exists = true;
+	AttributeInfoName.owner = HAPI_ATTROWNER_POINT;
+	AttributeInfoName.storage = HAPI_STORAGETYPE_STRING;
+	AttributeInfoName.originalOwner = HAPI_ATTROWNER_INVALID;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(),
+		OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME, &AttributeInfoName), false);
+
+	//  Create the bone name attrib info
+	HAPI_AttributeInfo AttributeInfoBoneName;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfoBoneName);
+	AttributeInfoBoneName.count = NumSockets;
+	AttributeInfoBoneName.tupleSize = 1;
+	AttributeInfoBoneName.exists = true;
+	AttributeInfoBoneName.owner = HAPI_ATTROWNER_POINT;
+	AttributeInfoBoneName.storage = HAPI_STORAGETYPE_STRING;
+	AttributeInfoBoneName.originalOwner = HAPI_ATTROWNER_INVALID;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(),
+		OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_MESH_SOCKET_BONE_NAME, &AttributeInfoBoneName), false);
+
+	// Extract the sockets transform values
+	TArray<float> SocketPos;
+	SocketPos.SetNumZeroed(NumSockets * 3);
+	TArray<float> SocketRot;
+	SocketRot.SetNumZeroed(NumSockets * 4);
+	TArray<float > SocketScale;
+	SocketScale.SetNumZeroed(NumSockets * 3);
+
+	TArray<FString> SocketNames;
+	TArray<FString> SocketBoneNames;
+	for (int32 Idx = 0; Idx < NumSockets; ++Idx)
+	{
+		USkeletalMeshSocket* CurrentSocket = InMeshSocket[Idx];
+		if (!IsValid(CurrentSocket))
+			continue;
+
+		// Calculate the sockets transform
+		// They are stored relative to a bone, so we first need to get the corresponding bone's transform
+		int32 BoneIndex = RefSK.FindBoneIndex(CurrentSocket->BoneName);
+		FTransform BoneTransform = AllBonePos.IsValidIndex(BoneIndex) ? AllBonePos[BoneIndex] : FTransform::Identity;
+		do
+		{
+			int32 ParentIndex = RefSK.GetParentIndex(BoneIndex);
+			if (ParentIndex != INDEX_NONE)
+			{
+				BoneTransform = BoneTransform * AllBonePos[ParentIndex];
+			}
+
+			BoneIndex = ParentIndex;
+		} while (RefSK.IsValidIndex(BoneIndex));
+
+		
+		//FTransform BoneTransform = AllBonePos.IsValidIndex(BoneIndex) ? AllBonePos[BoneIndex] : FTransform::Identity;
+		FTransform RelSocketTransform(CurrentSocket->RelativeRotation, CurrentSocket->RelativeLocation, CurrentSocket->RelativeScale);
+		FTransform SocketTransform = RelSocketTransform * BoneTransform;
+		
+		// Convert the socket transform to a HapiTransform		
+		HAPI_Transform HapiSocketTransform;
+		FHoudiniApi::Transform_Init(&HapiSocketTransform);
+		FHoudiniEngineUtils::TranslateUnrealTransform(SocketTransform, HapiSocketTransform);
+
+		// Fill the attribute values
+		SocketPos[3 * Idx + 0] = HapiSocketTransform.position[0];
+		SocketPos[3 * Idx + 1] = HapiSocketTransform.position[1];
+		SocketPos[3 * Idx + 2] = HapiSocketTransform.position[2];
+
+		SocketRot[4 * Idx + 0] = HapiSocketTransform.rotationQuaternion[0];
+		SocketRot[4 * Idx + 1] = HapiSocketTransform.rotationQuaternion[1];
+		SocketRot[4 * Idx + 2] = HapiSocketTransform.rotationQuaternion[2];
+		SocketRot[4 * Idx + 3] = HapiSocketTransform.rotationQuaternion[3];
+
+		SocketScale[3 * Idx + 0] = HapiSocketTransform.scale[0];
+		SocketScale[3 * Idx + 1] = HapiSocketTransform.scale[1];
+		SocketScale[3 * Idx + 2] = HapiSocketTransform.scale[2];
+
+		FString CurrentSocketName;
+		if (!CurrentSocket->SocketName.IsNone())
+			CurrentSocketName = CurrentSocket->SocketName.ToString();
+		else
+			CurrentSocketName = TEXT("Socket") + FString::FromInt(Idx);
+		SocketNames.Add(CurrentSocketName);
+
+		FString BoneName = CurrentSocket->BoneName.ToString();
+		if (!BoneName.IsEmpty())
+			SocketBoneNames.Add(BoneName);
+		else
+			SocketBoneNames.Add("");
+	}
+
+	//we can now upload them to our attribute.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+		SocketPos, OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, AttributeInfoPos), false);
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+		SocketRot, OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_ROTATION, AttributeInfoRot), false);
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+		SocketScale, OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_SCALE, AttributeInfoScale), false);
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+		SocketNames, OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME, AttributeInfoName), false);
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+		SocketBoneNames, OutSocketsNodeId, 0, HAPI_UNREAL_ATTRIB_MESH_SOCKET_BONE_NAME, AttributeInfoBoneName), false);
+
+	// We will also create the socket_details attributes
+	for (int32 Idx = 0; Idx < NumSockets; ++Idx)
+	{
+		// Build the current socket's prefix
+		FString SocketAttrPrefix = TEXT(HAPI_UNREAL_ATTRIB_MESH_SOCKET_PREFIX) + FString::FromInt(Idx);
+
+		// Create mesh_socketX_pos attribute info.
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfoPos);
+		AttributeInfoPos.count = 1;
+		AttributeInfoPos.tupleSize = 3;
+		AttributeInfoPos.exists = true;
+		AttributeInfoPos.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfoPos.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfoPos.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		FString PosAttr = SocketAttrPrefix + TEXT("_pos");
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*PosAttr), &AttributeInfoPos), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+			FHoudiniEngine::Get().GetSession(),
+			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*PosAttr), &AttributeInfoPos,
+			&(SocketPos[3 * Idx]), 0, AttributeInfoPos.count), false);
+
+		// Create mesh_socketX_rot point attribute Info
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfoRot);
+		AttributeInfoRot.count = 1;
+		AttributeInfoRot.tupleSize = 4;
+		AttributeInfoRot.exists = true;
+		AttributeInfoRot.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfoRot.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfoRot.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		FString RotAttr = SocketAttrPrefix + TEXT("_rot");
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*RotAttr), &AttributeInfoRot), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+			FHoudiniEngine::Get().GetSession(),
+			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*RotAttr), &AttributeInfoRot,
+			&(SocketRot[4 * Idx]), 0, AttributeInfoRot.count), false);
+
+		// Create mesh_socketX_scale point attribute Info
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfoScale);
+		AttributeInfoScale.count = 1;
+		AttributeInfoScale.tupleSize = 3;
+		AttributeInfoScale.exists = true;
+		AttributeInfoScale.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfoScale.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfoScale.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		FString ScaleAttr = SocketAttrPrefix + TEXT("_scale");
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*ScaleAttr), &AttributeInfoScale), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+			FHoudiniEngine::Get().GetSession(),
+			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*ScaleAttr), &AttributeInfoScale,
+			&(SocketScale[3 * Idx]), 0, AttributeInfoScale.count), false);
+
+		//  Create the mesh_socketX_name attrib info
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfoName);
+		AttributeInfoName.count = 1;
+		AttributeInfoName.tupleSize = 1;
+		AttributeInfoName.exists = true;
+		AttributeInfoName.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfoName.storage = HAPI_STORAGETYPE_STRING;
+		AttributeInfoName.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		FString NameAttr = SocketAttrPrefix + TEXT("_name");
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*NameAttr), &AttributeInfoName), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+			SocketNames[Idx], OutSocketsNodeId, 0, NameAttr, AttributeInfoName), false);
+
+		//  Create the mesh_socketX_bone attrib info
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfoBoneName);
+		AttributeInfoBoneName.count = 1;
+		AttributeInfoBoneName.tupleSize = 1;
+		AttributeInfoBoneName.exists = true;
+		AttributeInfoBoneName.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfoBoneName.storage = HAPI_STORAGETYPE_STRING;
+		AttributeInfoBoneName.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		FString BoneNameAttr = SocketAttrPrefix + TEXT("_bone_name");
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			OutSocketsNodeId, 0, TCHAR_TO_ANSI(*BoneNameAttr), &AttributeInfoBoneName), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
+			SocketBoneNames[Idx], OutSocketsNodeId, 0, BoneNameAttr, AttributeInfoBoneName), false);
+	}
+
+	// Now add the sockets group
+	const char* SocketGroupStr = "socket_imported";
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddGroup(
+		FHoudiniEngine::Get().GetSession(),
+		OutSocketsNodeId, 0, HAPI_GROUPTYPE_POINT, SocketGroupStr), false);
+
+	// Set GroupMembership
+	TArray<int> GroupArray;
+	GroupArray.SetNumUninitialized(NumSockets);
+	for (int32 n = 0; n < GroupArray.Num(); n++)
+		GroupArray[n] = 1;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetGroupMembership(
+		FHoudiniEngine::Get().GetSession(),
+		OutSocketsNodeId, 0, HAPI_GROUPTYPE_POINT, SocketGroupStr, GroupArray.GetData(), 0, NumSockets), false);
+
+	// Commit the geo.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+		FHoudiniEngine::Get().GetSession(), OutSocketsNodeId), false);
+
+	return true;
+}
+
+bool
 FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 	const HAPI_NodeId& NodeId,
 	const FStaticMeshSourceModel& SourceModel,
@@ -2410,8 +3189,6 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, TCHAR_TO_UTF8(*LODAttributeName), &AttributeInfoLODScreenSize), false);
 
-			// TODO: FIX?
-			// Get the actual screensize instead of the src model default?
 			float lodscreensize = SourceModel.ScreenSize.Default;
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
 				FHoudiniEngine::Get().GetSession(), NodeId, 0,
@@ -3217,8 +3994,6 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, TCHAR_TO_UTF8(*LODAttributeName), &AttributeInfoLODScreenSize), false);
 
-			// TODO: FIX?
-			// Get the actual screensize instead of the src model default?
 			float lodscreensize = SourceModel.ScreenSize.Default;
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
 				FHoudiniEngine::Get().GetSession(), NodeId, 0,
@@ -4119,9 +4894,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, TCHAR_TO_UTF8(*LODAttributeName), &AttributeInfoLODScreenSize), false);
 
-			// TODO: FIX?
-			// Get the actual screensize instead of the src model default?
-			float lodscreensize = SourceModel.ScreenSize.Default;
+			float lodscreensize = (float)SourceModel.ScreenSize.Default;
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
 				FHoudiniEngine::Get().GetSession(), NodeId, 0,
 				TCHAR_TO_UTF8(*LODAttributeName), &AttributeInfoLODScreenSize,
