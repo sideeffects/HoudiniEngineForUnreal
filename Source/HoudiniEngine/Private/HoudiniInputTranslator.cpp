@@ -2540,7 +2540,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMesh(
 	else
 	{
 		bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
-			SkelMesh, CreatedNodeId, SKName, InputNodeHandle, nullptr, bExportLODs, bExportSockets, bExportColliders, bInputNodesCanBeDeleted );
+			SkelMesh, CreatedNodeId, SKName, InputNodeHandle, nullptr, bExportLODs, bExportSockets, bExportColliders, true, bInputNodesCanBeDeleted );
 
 		if(!bSuccess)
 		{
@@ -2657,7 +2657,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMeshComponent(
 	else
 	{
 		bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
-			SK, CreatedNodeId, SKCName, InputNodeHandle, SKC, bExportLODs, bExportSockets, bExportColliders, bInputNodesCanBeDeleted);
+			SK, CreatedNodeId, SKCName, InputNodeHandle, SKC, bExportLODs, bExportSockets, bExportColliders, true, bInputNodesCanBeDeleted);
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);

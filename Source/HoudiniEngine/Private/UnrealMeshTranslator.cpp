@@ -107,138 +107,9 @@ static TAutoConsoleVariable<int32> CVarHoudiniEngineStaticMeshExportMethod(
 	TEXT("2: Render Mesh / LODResources\n")
 );
 
+
 bool
 FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
-    USkeletalMesh* SkeletalMesh,
-    HAPI_NodeId& InputNodeId,
-    const FString& InputNodeName,
-	FUnrealObjectInputHandle& OutHandle,
-    USkeletalMeshComponent* SkeletalMeshComponent /*=nullptr*/,
-    const bool& ExportAllLODs /*=false*/,
-    const bool& ExportSockets /*=false*/,
-    const bool& ExportColliders /*=false*/,
-	const bool& bInputNodesCanBeDeleted /*=true*/)
-{
-    // If we don't have a skeletal mesh there's nothing to do.
-    if (!IsValid(SkeletalMesh))
-		return false;
-
-	// TODO: FINISH!! 
-	//  WIP version of this function that supports LODs, colliders, and Sockets
-	if (true)
-	{
-		return HapiCreateInputNodeForSkeletalMesh2(
-			SkeletalMesh, InputNodeId, InputNodeName, OutHandle, SkeletalMeshComponent,
-			ExportAllLODs, ExportSockets, ExportColliders, true, bInputNodesCanBeDeleted);
-	}
-
-	// Input node name, defaults to InputNodeName, but can be changed by the new input system
-	FString FinalInputNodeName = InputNodeName;
-
-	// Find the node in new input system
-	// Identifier will be the identifier for the entry created in this call of the function.
-	FUnrealObjectInputIdentifier Identifier;
-	FUnrealObjectInputHandle ParentHandle;
-	HAPI_NodeId ParentNodeId = -1;
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
-	if (bUseRefCountedInputSystem)
-	{
-		// Creates this input's identifier and input options
-		bool bDefaultImportAsReference = false;
-		bool bDefaultImportAsReferenceRotScaleEnabled = false;
-		const FUnrealObjectInputOptions Options(
-			bDefaultImportAsReference,
-			bDefaultImportAsReferenceRotScaleEnabled,
-			false,
-			false,
-			false);
-
-		Identifier = FUnrealObjectInputIdentifier(SkeletalMesh, Options, true);
-
-		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
-		{
-			HAPI_NodeId NodeId = -1;
-			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && FHoudiniEngineUtils::AreReferencedHAPINodesValid(Handle))
-			{
-				if (!bInputNodesCanBeDeleted)
-				{
-					// Make sure to prevent deletion of the input node if needed
-					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
-				}
-
-				OutHandle = Handle;
-				InputNodeId = NodeId;
-				return true;
-			}
-		}
-
-		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
-		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
-
-		// We now need to create the nodes (since we couldn't find existing ones in the manager)
-		// To do that, we can simply continue this function
-	}
-	
-    // Node ID for the newly created node
-    HAPI_NodeId NewNodeId = -1;
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateInputNode(
-		FinalInputNodeName, NewNodeId, ParentNodeId), false);
-
-    if (!FHoudiniEngineUtils::HapiCookNode(NewNodeId, nullptr, true))
-		return false;
-
-    // Check if we have a valid id for this new input asset.
-    if (!FHoudiniEngineUtils::IsHoudiniNodeValid(NewNodeId))
-		return false;
-
-    HAPI_NodeId PreviousInputNodeId = InputNodeId;
-
-    // Update our input NodeId
-    InputNodeId = NewNodeId;
-    // Get our parent OBJ NodeID
-    HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(NewNodeId);
-
-    // We have now created a valid new input node, delete the previous one
-    if (PreviousInputNodeId >= 0)
-    {
-		// Get the parent OBJ node ID before deleting!
-		HAPI_NodeId PreviousInputOBJNode = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
-
-		if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
-			FHoudiniEngine::Get().GetSession(), PreviousInputNodeId))
-		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *InputNodeName);
-		}
-
-		if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
-			FHoudiniEngine::Get().GetSession(), PreviousInputOBJNode))
-		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input OBJ node for %s."), *InputNodeName);
-		}
-	}
-	
-	int32 LODIndex = 0;
-	if (!FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(SkeletalMesh, NewNodeId, LODIndex, false))
-	{
-		HOUDINI_LOG_ERROR(TEXT("Failed to set the skeletal mesh data on the input node for %s."), *InputNodeName);
-	}
-
-	if (bUseRefCountedInputSystem)
-	{
-		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
-			OutHandle = Handle;
-	}
-
-    return true;
-}
-
-bool
-FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh2(
 	USkeletalMesh* SkeletalMesh,
 	HAPI_NodeId& InputNodeId,
 	const FString& InputNodeName,
@@ -250,7 +121,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh2(
 	const bool& ExportMainMesh /* = true */,
 	const bool& bInputNodesCanBeDeleted /*=true*/)
 {
-	// If we don't have a static mesh there's nothing to do.
+	// If we don't have a skeletal mesh there's nothing to do.
 	if (!IsValid(SkeletalMesh))
 		return false;
 
@@ -341,7 +212,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh2(
 				}
 				
 				// Recursive call
-				if(!FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh2(
+				if(!FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 					SkeletalMesh,
 					NewNodeId,
 					NodeLabel,

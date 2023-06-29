@@ -69,21 +69,8 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			const bool& bPreferNaniteFallbackMesh = false,
 			const bool& bExportMaterialParameters = false);
 
-
 		// HAPI : Marshaling, extract geometry and skeletons and create input nodes for it - return true on success
 		static bool HapiCreateInputNodeForSkeletalMesh(
-			USkeletalMesh* Mesh,
-			HAPI_NodeId& InputObjectNodeId,
-			const FString& InputNodeName,
-			FUnrealObjectInputHandle& OutHandle,
-			class USkeletalMeshComponent* SkeletalMeshComponent = nullptr,
-			const bool& ExportAllLODs = false,
-			const bool& ExportSockets = false,
-			const bool& ExportColliders = false,
-			const bool& bInputNodesCanBeDeleted = true);
-
-		// HAPI : Marshaling, extract geometry and skeletons and create input nodes for it - return true on success
-		static bool HapiCreateInputNodeForSkeletalMesh2(
 			USkeletalMesh* Mesh,
 			HAPI_NodeId& InputObjectNodeId,
 			const FString& InputNodeName,
