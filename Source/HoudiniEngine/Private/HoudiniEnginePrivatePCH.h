@@ -169,6 +169,7 @@
 
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_PREFIX				"mesh_socket"
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME					"mesh_socket_name"
+#define HAPI_UNREAL_ATTRIB_MESH_SOCKET_BONE_NAME			"mesh_socket_bone_name"
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME_OLD				"unreal_mesh_socket_name"
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_ACTOR				"mesh_socket_actor"
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_ACTOR_OLD			"unreal_mesh_socket_actor"

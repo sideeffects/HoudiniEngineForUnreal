@@ -29,17 +29,21 @@
 #include "HAPI/HAPI_Common.h"
 
 #include "CoreMinimal.h"
-#include "Engine/SkeletalMesh.h"
-#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
 #include "Misc/Optional.h"
+#include "UObject/ObjectMacros.h"
 
 class UStaticMesh;
 class UStaticMeshComponent;
-class UMaterialInterface;
 class UStaticMeshSocket;
+
+class USkeletalMesh;
+class USkeletalMeshComponent;
+class USkeletalMeshSocket;
+
+class UMaterialInterface;
 class FUnrealObjectInputHandle;
 class FHoudiniEngineIndexedStringMap;
-
 struct FStaticMeshSourceModel;
 struct FStaticMeshLODResources;
 struct FMeshDescription;
@@ -63,25 +67,25 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			const bool& bInputNodesCanBeDeleted = true,
 			const bool& bExportMaterialParameters = false);
 
+		// HAPI : Marshaling, extract geometry and skeletons and create input nodes for it - return true on success
 		static bool HapiCreateInputNodeForSkeletalMesh(
-		    USkeletalMesh* Mesh,
-		    HAPI_NodeId& InputObjectNodeId,
-		    const FString& InputNodeName,
+			USkeletalMesh* Mesh,
+			HAPI_NodeId& InputObjectNodeId,
+			const FString& InputNodeName,
 			FUnrealObjectInputHandle& OutHandle,
-		    class USkeletalMeshComponent* SkeletalMeshComponent = nullptr,
-		    const bool& ExportAllLODs = false,
-		    const bool& ExportSockets = false,
-		    const bool& ExportColliders = false,
+			class USkeletalMeshComponent* SkeletalMeshComponent = nullptr,
+			const bool& ExportAllLODs = false,
+			const bool& ExportSockets = false,
+			const bool& ExportColliders = false,
+			const bool& ExportMainMesh  = true,
 			const bool& bInputNodesCanBeDeleted = true);
 
+		// Actually exports the skeletal mesh data (mesh, skeleton ... ) to the newly created input node - returns true on success
 		static bool SetSkeletalMeshDataOnNode(
-		    USkeletalMesh* SkeletalMesh,
-		    HAPI_NodeId& NewNodeId);
-
-		static bool SetStaticMeshDataOnNode(
-		    UStaticMesh* StaticMesh,
-		    HAPI_NodeId& NewNodeId);
-
+			USkeletalMesh* SkeletalMesh,
+			HAPI_NodeId& NewNodeId,
+			int32 LODIndex,
+			const bool& bAddLODGroup);
 
 		// Convert the Mesh using FStaticMeshLODResources
 		static bool CreateInputNodeForStaticMeshLODResources(
@@ -153,6 +157,11 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 
 		static bool CreateInputNodeForMeshSockets(
 			const TArray<UStaticMeshSocket*>& InMeshSocket,
+			const HAPI_NodeId& InParentNodeId,
+			HAPI_NodeId& OutSocketsNodeId);
+
+		static bool CreateInputNodeForSkeletalMeshSockets(
+			USkeletalMesh* InSkeletalMesh,
 			const HAPI_NodeId& InParentNodeId,
 			HAPI_NodeId& OutSocketsNodeId);
 
