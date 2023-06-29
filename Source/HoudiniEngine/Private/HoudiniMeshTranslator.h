@@ -68,6 +68,7 @@ struct SKBuildSettings
 	bool ImportNormals = false;
 	bool OverwriteSkeleton = false;
 	FString SkeletonAssetPath = "";
+	int NumTexCoords = 1;
 };
 
 UENUM()

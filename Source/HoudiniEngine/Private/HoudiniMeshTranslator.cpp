@@ -273,6 +273,7 @@ void SortBonesByParent(FSkeletalMeshImportData& SkeletalMeshImportData)
 void FHoudiniMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSettings, TArray<FSkeletalMaterial>& Materials)
 {
 	FSkeletalMeshImportData& SkeletalMeshImportData = BuildSettings.SkeletalMeshImportData;
+	SkeletalMeshImportData.NumTexCoords = BuildSettings.NumTexCoords;
 	USkeleton* MySkeleton = BuildSettings.Skeleton;
 	FBox3f BoundingBox(SkeletalMeshImportData.Points.GetData(), SkeletalMeshImportData.Points.Num());
 	const FVector3f BoundingBoxSize = BoundingBox.GetSize();
@@ -322,7 +323,7 @@ void FHoudiniMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSetting
 	//NewMesh->VertexColorGuid = Mesh->bHasVertexColors ? FGuid::NewGuid() : FGuid();
 
 	// Pass the number of texture coordinate sets to the LODModel.	Ensure there is at least one UV coord
-	NewLODModel.NumTexCoords = FMath::Max<uint32>(1, SkeletalMeshImportData.NumTexCoords);
+	NewLODModel.NumTexCoords = FMath::Max<uint32>(BuildSettings.NumTexCoords, SkeletalMeshImportData.NumTexCoords);
 
 	//int ImportLODModelIndex = 0;
 	//The imported LOD is always 0 here, the LOD custom import will import the LOD alone(in a temporary skeletalmesh) and add it to the base skeletal mesh later
@@ -1030,12 +1031,43 @@ FHoudiniMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 	//Point UVs-----------------------------------------------------------------------------------
 	HAPI_AttributeInfo PointUVInfo;
 	TArray<float> PointUVData;
-	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId,
+	if (FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId,
 		HAPI_UNREAL_ATTRIB_UV, PointUVInfo, PointUVData))
+	{
+		BuildSettings.NumTexCoords = 1;
+	}
+	else
 	{
 		HOUDINI_LOG_MESSAGE(TEXT("Error Creating Skeletal Mesh :  Invalid UV Data"));
 	}
+	
+	//Point UVs second set-----------------------------------------------------------------------------------
+	HAPI_AttributeInfo PointUV1Info;
+	TArray<float> PointUV1Data;
+	if (FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId,
+		"uv1", PointUV1Info, PointUV1Data))
+	{
+		BuildSettings.NumTexCoords = 2;
+	}
+	else
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("Error Creating Skeletal Mesh :  Invalid UV1 Data"));
+	}
 
+	//Point UVs third set-----------------------------------------------------------------------------------
+	HAPI_AttributeInfo PointUV2Info;
+	TArray<float> PointUV2Data;
+	if (FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId,
+		"uv1", PointUV2Info, PointUV2Data))
+	{
+		BuildSettings.NumTexCoords = 3;
+	}
+	else
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("Error Creating Skeletal Mesh :  Invalid UV2 Data"));
+	}
+
+	
 	//Normals--------------------------------------------
 	HAPI_AttributeInfo NormalInfo;
 	FHoudiniApi::AttributeInfo_Init(&NormalInfo);
@@ -1155,6 +1187,17 @@ FHoudiniMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 			FVector3f uv0 = FVector3f(PointUVData[VertexIndex * 3], PointUVData[VertexIndex * 3 + 1], PointUVData[VertexIndex * 3 + 2]);
 			Wedge.UVs[0] = FVector2f(uv0.X, 1.0f - uv0.Y);
 		}
+		if (PointUV1Data.Num() > VertexIndex * 3)
+		{
+			FVector3f uv1 = FVector3f(PointUV1Data[VertexIndex * 3], PointUV1Data[VertexIndex * 3 + 1], PointUV1Data[VertexIndex * 3 + 2]);
+			Wedge.UVs[1] = FVector2f(uv1.X, 1.0f - uv1.Y);
+		}
+		if (PointUV2Data.Num() > VertexIndex * 3)
+		{
+			FVector3f uv2 = FVector3f(PointUV2Data[VertexIndex * 3], PointUV2Data[VertexIndex * 3 + 1], PointUV2Data[VertexIndex * 3 + 2]);
+			Wedge.UVs[2] = FVector2f(uv2.X, 1.0f - uv2.Y);
+		}
+
 		//Wedge.MatIndex = 
 		SkeletalMeshImportData.Wedges.Add(Wedge);
 		Triangle.WedgeIndex[face_idx] = count;
