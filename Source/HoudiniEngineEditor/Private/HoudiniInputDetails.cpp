@@ -5550,7 +5550,10 @@ FHoudiniInputDetails::AddGeometryInputUI(
 			SNew(SButton)
 			.OnClicked_Lambda([SetInputObjectsCount, InInputs, NumInputObjects]()
 			{
+				// Delete all inputs
 				SetInputObjectsCount(InInputs, 0);
+				// Add a default, empty one
+				SetInputObjectsCount(InInputs, 1);
 				return FReply::Handled();
 			})
 			.Content()
