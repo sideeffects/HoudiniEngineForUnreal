@@ -37,6 +37,7 @@
 
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
+#include "Animation/AnimSequence.h"
 #include "Engine/DataTable.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -99,6 +100,12 @@ UHoudiniInputStaticMesh::UHoudiniInputStaticMesh(const FObjectInitializer& Objec
 
 //
 UHoudiniInputSkeletalMesh::UHoudiniInputSkeletalMesh(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+}
+
+UHoudiniInputAnimation::UHoudiniInputAnimation(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 
@@ -458,6 +465,12 @@ UHoudiniInputSkeletalMesh::GetSkeletalMesh()
 	return Cast<USkeletalMesh>(InputObject.LoadSynchronous());
 }
 
+UAnimSequence*
+UHoudiniInputAnimation::GetAnimation()
+{
+	return Cast<UAnimSequence>(InputObject.LoadSynchronous());
+}
+
 USkeletalMeshComponent*
 UHoudiniInputSkeletalMeshComponent::GetSkeletalMeshComponent()
 {
@@ -690,6 +703,9 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 
 		case EHoudiniInputObjectType::SkeletalMesh:
 			HoudiniInputObject = UHoudiniInputSkeletalMesh::Create(InObject, InOuter, InName);
+			break;
+		case EHoudiniInputObjectType::Animation:
+			HoudiniInputObject = UHoudiniInputAnimation::Create(InObject, InOuter, InName);
 			break;
 		case EHoudiniInputObjectType::SceneComponent:
 			// Do not create input objects for unknown scene component!
@@ -1013,6 +1029,24 @@ UHoudiniInputSkeletalMesh::Create(UObject * InObject, UObject* InOuter, const FS
 
 	return HoudiniInputObject;
 }
+
+UHoudiniInputObject*
+UHoudiniInputAnimation::Create(UObject* InObject, UObject* InOuter, const FString& InName)
+{
+	FString InputObjectNameStr = "HoudiniInputObject_Animation_" + InName;
+	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputAnimation::StaticClass(), *InputObjectNameStr);
+
+	// We need to create a new object
+	UHoudiniInputAnimation* HoudiniInputObject = NewObject<UHoudiniInputAnimation>(
+		InOuter, UHoudiniInputAnimation::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->Type = EHoudiniInputObjectType::Animation;
+	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->bHasChanged = true;
+
+	return HoudiniInputObject;
+}
+
 
 UHoudiniInputObject*
 UHoudiniInputSkeletalMeshComponent::Create(UObject* InObject, UObject* InOuter, const FString& InName)
@@ -1348,6 +1382,17 @@ UHoudiniInputSkeletalMesh::Update(UObject * InObject)
 	USkeletalMesh* SkelMesh = Cast<USkeletalMesh>(InObject);
 	ensure(SkelMesh);
 }
+
+void
+UHoudiniInputAnimation::Update(UObject* InObject)
+{
+	// Nothing to do
+	Super::Update(InObject);
+
+	UAnimSequence* Animation = Cast<UAnimSequence>(InObject);
+	ensure(Animation);
+}
+
 
 void
 UHoudiniInputSkeletalMeshComponent::Update(UObject* InObject)
@@ -2376,6 +2421,10 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 		{
 			return EHoudiniInputObjectType::LandscapeSplinesComponent;
 		}
+		else if (InObject->IsA(UAnimSequence::StaticClass()))
+		{
+			return EHoudiniInputObjectType::Animation;
+		}
 		else
 		{
 			return EHoudiniInputObjectType::SceneComponent;
@@ -2422,6 +2471,10 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 		else if (InObject->IsA(USkeletalMesh::StaticClass()))
 		{
 			return EHoudiniInputObjectType::SkeletalMesh;
+		}
+		else if (InObject->IsA(UAnimSequence::StaticClass()))
+		{
+			return EHoudiniInputObjectType::Animation;
 		}
 		else if (InObject->IsA(UGeometryCollection::StaticClass()))
 		{

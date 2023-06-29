@@ -41,6 +41,7 @@ class UHoudiniAssetComponent;
 class UHoudiniInputObject;
 class UHoudiniInputStaticMesh;
 class UHoudiniInputSkeletalMesh;
+class UHoudiniInputAnimation;
 class UHoudiniInputSkeletalMeshComponent;
 class UHoudiniInputGeometryCollection;
 class UHoudiniInputGeometryCollectionComponent;
@@ -203,6 +204,15 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bExportLODs,
 		const bool& bExportSockets,
 		const bool& bExportColliders,
+		const bool& bImportAsReference,
+		const bool& bImportAsReferenceRotScaleEnabled,
+		const bool& bImportAsReferenceBboxEnabled,
+		const bool& bImportAsReferenceMaterialEnabled,
+		const bool& bInputNodesCanBeDeleted = true);
+
+	static bool HapiCreateInputNodeForAnimation(
+		const FString& InObjNodeName,
+		UHoudiniInputAnimation* InObject,
 		const bool& bImportAsReference,
 		const bool& bImportAsReferenceRotScaleEnabled,
 		const bool& bImportAsReferenceBboxEnabled,

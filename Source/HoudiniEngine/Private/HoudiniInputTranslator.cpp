@@ -54,6 +54,7 @@
 
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
+#include "Animation/AnimSequence.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SplineComponent.h"
@@ -1394,6 +1395,24 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 			break;
 		}
 
+		case EHoudiniInputObjectType::Animation:
+		{
+			UHoudiniInputAnimation* InputAnimation = Cast<UHoudiniInputAnimation>(InInputObject);
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForAnimation(
+				ObjBaseName,
+				InputAnimation,
+				InInput->GetImportAsReference(),
+				InInput->GetImportAsReferenceRotScaleEnabled(),
+				InInput->GetImportAsReferenceBboxEnabled(),
+				InInput->GetImportAsReferenceMaterialEnabled(),
+				bInputNodesCanBeDeleted);
+
+			if (bSuccess)
+				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
+
+			break;
+		}
+
 		case EHoudiniInputObjectType::SkeletalMeshComponent:
 		{
 			UHoudiniInputSkeletalMeshComponent* InputSKC = Cast<UHoudiniInputSkeletalMeshComponent>(InInputObject);
@@ -2348,6 +2367,118 @@ FHoudiniInputTranslator::HapiCreateInputNodeForReference(
     }
 
     return bSuccess;
+}
+
+
+bool
+FHoudiniInputTranslator::HapiCreateInputNodeForAnimation(
+	const FString& InObjNodeName,
+	UHoudiniInputAnimation* InObject,
+	const bool& bImportAsReference,
+	const bool& bImportAsReferenceRotScaleEnabled,
+	const bool& bImportAsReferenceBboxEnabled,
+	const bool& bImportAsReferenceMaterialEnabled,
+	const bool& bInputNodesCanBeDeleted)
+{
+	if (!IsValid(InObject))
+		return false;
+
+	UAnimSequence* Animation = InObject->GetAnimation();
+	if (!IsValid(Animation))
+		return true;
+
+	FString SKName = InObjNodeName + TEXT("_") + Animation->GetName();
+
+	// Get the SM's transform offset
+	FTransform TransformOffset = InObject->Transform;
+
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	FUnrealObjectInputHandle InputNodeHandle;
+	HAPI_NodeId CreatedNodeId = InObject->InputNodeId;
+
+	// Marshall the SkeletalMesh to Houdini
+	bool bSuccess = true;
+
+
+	if (bImportAsReference)
+	{
+		// Get the SM's bbox
+		FBox InBbox = FBox(EForceInit::ForceInit);
+
+		//FBox InBbox = bImportAsReferenceBboxEnabled ?
+		//	SkelMesh->GetBounds().GetBox() :
+		//	FBox(EForceInit::ForceInit);
+
+		const TArray<FString>& MaterialReferences = bImportAsReferenceMaterialEnabled ?
+			InObject->GetMaterialReferences() :
+			TArray<FString>();
+
+		bSuccess = FHoudiniInputTranslator::CreateInputNodeForReference(
+			CreatedNodeId,
+			Animation,
+			SKName,
+			InObject->Transform,
+			bImportAsReferenceRotScaleEnabled,
+			bUseRefCountedInputSystem,
+			InputNodeHandle,
+			bInputNodesCanBeDeleted,
+			bImportAsReferenceBboxEnabled,
+			InBbox,
+			bImportAsReferenceMaterialEnabled,
+			MaterialReferences);
+	}
+	else
+	{
+		bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForAnimation(
+			Animation, CreatedNodeId, SKName, InputNodeHandle, false, false, false, bInputNodesCanBeDeleted);
+		if (!bSuccess)
+		{
+			return false;
+		}
+
+	}
+
+	InObject->SetImportAsReference(bImportAsReference);
+	InObject->SetImportAsReferenceRotScaleEnabled(bImportAsReferenceRotScaleEnabled);
+	InObject->SetImportAsReferenceBboxEnabled(bImportAsReferenceBboxEnabled);
+	InObject->SetImportAsReferenceMaterialEnabled(bImportAsReferenceMaterialEnabled);
+
+	InObject->InputNodeHandle = InputNodeHandle;
+	if (bUseRefCountedInputSystem)
+	{
+		constexpr HAPI_NodeId ParentNodeId = -1;
+		constexpr bool bCreateIfMissingInvalid = true;
+		HAPI_NodeId SKNodeId = -1;
+		if (!FHoudiniEngineUtils::GetHAPINodeId(InputNodeHandle, SKNodeId))
+			return false;
+
+		if (!HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
+			ParentNodeId,
+			SKNodeId,
+			SKName,
+			InObject->InputNodeId,
+			InObject->InputObjectNodeId,
+			bCreateIfMissingInvalid,
+			InObject->Transform))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		// Update this input object's OBJ NodeId
+		InObject->InputNodeId = CreatedNodeId;
+		InObject->InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId);
+		if (!HapiSetGeoObjectTransform(InObject->InputObjectNodeId, InObject->Transform))
+			return false;
+	}
+
+
+
+
+
+
+	return bSuccess;
 }
 
 bool

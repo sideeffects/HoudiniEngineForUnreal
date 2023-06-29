@@ -88,9 +88,10 @@ enum class EHoudiniInputObjectType : uint8
 	GeometryCollectionComponent,
 	GeometryCollectionActor_Deprecated,
 	SkeletalMeshComponent,
-	Blueprint,
 	LandscapeSplineActor,
-	LandscapeSplinesComponent
+	LandscapeSplinesComponent,
+	Blueprint,
+	Animation
 };
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -315,6 +316,30 @@ public:
 	// StaticMesh accessor
 	class USkeletalMesh* GetSkeletalMesh();
 };
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// UAnimSequence input
+//-----------------------------------------------------------------------------------------------------------------------------
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputAnimation : public UHoudiniInputObject
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+
+	//
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName);
+
+	//
+	virtual void Update(UObject* InObject) override;
+
+	// Nothing to add for SkeletalMesh Meshes?
+
+	// StaticMesh accessor
+	class UAnimSequence* GetAnimation();
+};
+
+
 
 //-----------------------------------------------------------------------------------------------------------------------------
 // UGeometryCollection input

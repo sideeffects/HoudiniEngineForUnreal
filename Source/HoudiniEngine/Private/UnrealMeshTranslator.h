@@ -101,6 +101,22 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			int32 LODIndex,
 			const bool& bAddLODGroup);
 
+		static bool HapiCreateInputNodeForAnimation(
+			UAnimSequence* Animation,
+			HAPI_NodeId& InputObjectNodeId,
+			const FString& InputNodeName,
+			FUnrealObjectInputHandle& OutHandle,
+			const bool& ExportAllLODs = false,
+			const bool& ExportSockets = false,
+			const bool& ExportColliders = false,
+			const bool& bInputNodesCanBeDeleted = true);
+
+		static bool SetAnimationDataOnNode(
+			UAnimSequence* Animation,
+			HAPI_NodeId& NewNodeId);
+
+
+
 		// Convert the Mesh using FStaticMeshLODResources
 		static bool CreateInputNodeForStaticMeshLODResources(
 			const HAPI_NodeId& NodeId,

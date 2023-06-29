@@ -71,6 +71,7 @@
 #include "Logging/LogMacros.h"
 //#include "UObject/ObjectSaveContext.h"
 #include "Engine/SkeletalMesh.h"
+#include "Animation/AnimSequence.h"
 #include "UnrealMeshTranslator.h"
 #include "HoudiniEditorSubsystem.h"
 #include "ContentBrowserModule.h"
@@ -1259,9 +1260,9 @@ FHoudiniEngineEditor::ExtendContextMenu()
 				{
 					// TODO: Foliage Types? BP ?
 #if ENGINE_MINOR_VERSION < 1
-					if ((Asset.AssetClass != USkeletalMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UStaticMesh::StaticClass()->GetFName()))
+					if ((Asset.AssetClass != USkeletalMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UStaticMesh::StaticClass()->GetFName()) && (Asset.AssetClassPath != UAnimSequence::StaticClass()->GetClassPathName()))
 #else
-					if ((Asset.AssetClassPath != USkeletalMesh::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UStaticMesh::StaticClass()->GetClassPathName()))
+					if ((Asset.AssetClassPath != USkeletalMesh::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UStaticMesh::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UAnimSequence::StaticClass()->GetClassPathName()))
 #endif
 					{
 						bShouldExtendAssetActions = false;
