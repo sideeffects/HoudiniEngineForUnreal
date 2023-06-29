@@ -34,6 +34,7 @@
 #include "UObject/ObjectMacros.h"
 
 class UStaticMesh;
+class UAnimSequence;
 class UStaticMeshComponent;
 class UStaticMeshSocket;
 
