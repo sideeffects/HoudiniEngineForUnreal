@@ -1412,7 +1412,10 @@ FHoudiniInputDetails::AddGeometryInputUI(
 		[
 			PropertyCustomizationHelpers::MakeEmptyButton(FSimpleDelegate::CreateLambda([SetGeometryInputObjectsCount, InInputs]()
 			{
-				return SetGeometryInputObjectsCount(InInputs, 0);
+				// Clear all input objects
+				SetGeometryInputObjectsCount(InInputs, 0);
+				// ... then add a default empty one
+				SetGeometryInputObjectsCount(InInputs, 1);
 			}),
 			LOCTEXT("EmptyInputs", "Removes All Inputs"), true)
 		]
