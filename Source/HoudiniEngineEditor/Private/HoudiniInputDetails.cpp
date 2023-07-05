@@ -6006,6 +6006,14 @@ FHoudiniInputDetails::AddWorldInputUI(
 	// Spline Resolution
 	{
 		
+		auto GetUnrealSplineResolutionValue = [MainInput]()
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return TOptional<float>();
+
+			return TOptional<float>(MainInput->GetUnrealSplineResolution());
+		};
+
 		TSharedPtr<SNumericEntryBox<float>> NumericEntryBox;
 		int32 Idx = 0;
 		VerticalBox->AddSlot()
@@ -6031,7 +6039,10 @@ FHoudiniInputDetails::AddWorldInputUI(
 				.MaxValue(1000.0f)
 				.MinSliderValue(0.0f)
 				.MaxSliderValue(1000.0f)
-				.Value(MainInput->GetUnrealSplineResolution())
+				.Value_Lambda([GetUnrealSplineResolutionValue]()
+				{
+					return GetUnrealSplineResolutionValue();
+				})
 				.OnValueChanged_Lambda([MainInput, InInputs](float Val) 
 				{
 					if (!IsValidWeakPointer(MainInput))
