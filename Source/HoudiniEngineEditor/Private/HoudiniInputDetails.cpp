@@ -660,6 +660,14 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		return InInput->GetExportColliders() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
+	auto IsCheckedMergeSplineMeshComponents = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->IsMergeSplineMeshComponentsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
 	auto IsCheckedPreferNanite = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
 	{
 		if (!IsValidWeakPointer(InInput))
@@ -775,6 +783,38 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		}
 	};
 
+	auto CheckStateChangedMergeSplineMeshComponents = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->IsMergeSplineMeshComponentsEnabled() == bNewState)
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Merge Spline Mesh Components"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->IsMergeSplineMeshComponentsEnabled() == bNewState)
+				continue;
+
+			CurInput->Modify();
+
+			CurInput->SetMergeSplineMeshComponents(bNewState);
+			CurInput->MarkChanged(true);
+			CurInput->MarkAllInputObjectsChanged(true);
+		}
+	};
+
 	auto CheckStateChangedPreferNanite = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 	{
 		if (!IsValidWeakPointer(MainInput))
@@ -844,6 +884,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 	TSharedPtr<SCheckBox> CheckBoxExportSockets;
 	TSharedPtr<SCheckBox> CheckBoxExportColliders;
 	TSharedPtr<SCheckBox> CheckBoxExportMaterialParameters;
+	TSharedPtr<SCheckBox> CheckBoxMergeSplineMeshComponents;
 	TSharedPtr<SCheckBox> CheckBoxPreferNaniteFallback;
 	VerticalBox->AddSlot()
 	.Padding( 2, 2, 5, 2 )
@@ -943,6 +984,41 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
 			{
 				return CheckStateChangedExportMaterialParameters(InInputs, NewState);
+			})
+		]
+	];
+
+	VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SAssignNew(CheckBoxMergeSplineMeshComponents, SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("MergeSplineMeshComponents", "Merge Spline Mesh Components"))
+				.ToolTipText(LOCTEXT("MergeSplineMeshComponentsTip", "If enabled, when a spline mesh components from actor world input are merged into a single static mesh per actor."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.Visibility_Lambda([]()
+			{
+				if (!FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled())
+					return EVisibility::Collapsed;
+				return EVisibility::Visible;
+			})
+			.IsChecked_Lambda([=]()
+			{
+				return IsCheckedMergeSplineMeshComponents(MainInput);
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return CheckStateChangedMergeSplineMeshComponents(InInputs, NewState);
 			})
 		]
 	];
@@ -2610,6 +2686,48 @@ FHoudiniInputDetails::AddLandscapeSplinesOptions(
 		}
 	};
 
+	// Lambda returning a CheckState from the input's current bLandscapeSplinesExportSplineMeshComponents state
+	auto IsLandscapeSplinesExportSplineMeshComponentsEnabled = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->IsLandscapeSplinesExportSplineMeshComponentsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	// Lambda for changing bLandscapeSplinesExportSplineMeshComponents state
+	auto CheckStateChangedLandscapeSplinesExportSplineMeshComponents = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->IsLandscapeSplinesExportSplineMeshComponentsEnabled() == bNewState)
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChangeLandscapeSplinesExportSplineMeshComponents", "Houdini Input: Changed Export Landscape Spline Mesh Components"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->IsLandscapeSplinesExportSplineMeshComponentsEnabled() == bNewState)
+				continue;
+
+			CurInput->Modify();
+
+			CurInput->SetLandscapeSplinesExportSplineMeshComponents(bNewState);
+			CurInput->MarkChanged(true);
+			CurInput->MarkAllInputObjectsChanged(true);
+		}
+	};
+
 	TSharedPtr<SCheckBox> CheckBoxLandscapeSplinesExportControlPoints;
 	LandscapeSplinesOptions_VerticalBox->AddSlot()
 	.Padding( 2, 2, 5, 2 )
@@ -2666,6 +2784,42 @@ FHoudiniInputDetails::AddLandscapeSplinesOptions(
 			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
 			{
 				return CheckStateChangedLandscapeSplinesExportLeftRightCurves(InInputs, NewState);
+			})
+		]
+	];
+
+	TSharedPtr<SCheckBox> CheckBoxLandscapeSplinesExportSplineMeshComponents;
+	LandscapeSplinesOptions_VerticalBox->AddSlot()
+	.Padding( 2, 2, 5, 2 )
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SAssignNew(CheckBoxLandscapeSplinesExportSplineMeshComponents, SCheckBox )
+			.Content()
+			[
+				SNew( STextBlock )
+				.Text( LOCTEXT( "ExportLandscapeSplineMeshComponents", "Export Spline Mesh Components" ) )
+				.ToolTipText( LOCTEXT( "ExportLandscapeSplineMeshComponentsCheckboxTip", "If enabled, the spline mesh components of landscape splines are also exported." ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+			]
+			.Visibility_Lambda([]()
+			{
+				if (!FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled())
+					return EVisibility::Collapsed;
+				return EVisibility::Visible;
+			})
+			.IsChecked_Lambda([=]()
+			{
+				return IsLandscapeSplinesExportSplineMeshComponentsEnabled(MainInput);
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return CheckStateChangedLandscapeSplinesExportSplineMeshComponents(InInputs, NewState);
 			})
 		]
 	];

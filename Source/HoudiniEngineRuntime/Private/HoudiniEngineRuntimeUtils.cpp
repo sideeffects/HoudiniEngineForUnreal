@@ -759,6 +759,13 @@ FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled()
 }
 
 bool
+FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled()
+{
+	UHoudiniRuntimeSettings const* const Settings = GetDefault<UHoudiniRuntimeSettings>();
+	return IsValid(Settings) && Settings->bEnableSplineMeshInput;
+}
+
+bool
 FHoudiniEngineRuntimeUtils::IsInputNodeDirty(const FUnrealObjectInputIdentifier& InIdentifier)
 {
 	if (!InIdentifier.IsValid())

@@ -161,6 +161,7 @@ FHoudiniLandscapeSplineSegmentData::FHoudiniLandscapeSplineSegmentData()
 //
 UHoudiniInputLandscapeSplineActor::UHoudiniInputLandscapeSplineActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bCachedExportSplineMeshComponents(false)
 {
 
 }
@@ -258,10 +259,19 @@ bool
 UHoudiniInputLandscapeSplineActor::ShouldTrackComponent(UActorComponent* InComponent)
 {
 	// We only track ULandscapeSplinesComponents for landscape splines at this stage.
-	// TODO: In the future we could perhaps track the USplineMeshComponent's as well.
 	if (!IsValid(InComponent))
 		return false;
-	return InComponent->IsA(ULandscapeSplinesComponent::StaticClass());	
+	
+	if (FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled() && InComponent->IsA(ULandscapeSplinesComponent::StaticClass()))
+		return true;
+		
+	if (bCachedExportSplineMeshComponents && FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled()
+			&& InComponent->IsA(USplineMeshComponent::StaticClass()))
+	{
+		return true;
+	}
+	
+	return false;
 }
 
 
@@ -372,7 +382,7 @@ UHoudiniInputLandscapeSplinesComponent::HasComponentChanged() const
 						|| SplineMeshEntry.bScaleToWidth != CachedSplineMeshEntry.bScaleToWidth
 						|| SplineMeshEntry.Scale != CachedSplineMeshEntry.Scale
 						|| SplineMeshEntry.ForwardAxis != CachedSplineMeshEntry.ForwardAxis
-						|| SplineMeshEntry.UpAxis != CachedSplineMeshEntry.UpAxis)				
+						|| SplineMeshEntry.UpAxis != CachedSplineMeshEntry.UpAxis)
 				{
 					return true;
 				}
@@ -405,6 +415,8 @@ UHoudiniInputHoudiniAsset::UHoudiniInputHoudiniAsset(const FObjectInitializer& O
 //
 UHoudiniInputActor::UHoudiniInputActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, SplinesMeshObjectNodeId(-1)
+	, SplinesMeshNodeId(-1)
 	, LastUpdateNumComponentsAdded(0)
 	, LastUpdateNumComponentsRemoved(0)
 {
@@ -415,6 +427,8 @@ UHoudiniInputActor::UHoudiniInputActor(const FObjectInitializer& ObjectInitializ
 UHoudiniInputLandscape::UHoudiniInputLandscape(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, CachedNumLandscapeComponents(0)
+	, bExportLandscapeSplinesComponent(false)
+	, bCachedExportSplineMeshComponents(false)
 {
 
 }
@@ -791,6 +805,10 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 			HoudiniInputObject = UHoudiniInputLandscapeSplinesComponent::Create(InObject, InOuter, InName);
 			break;
 
+		case EHoudiniInputObjectType::SplineMeshComponent:
+			HoudiniInputObject = UHoudiniInputSplineMeshComponent::Create(InObject, InOuter, InName);
+			break;
+
 		case EHoudiniInputObjectType::Invalid:
 		default:
 			break;
@@ -972,6 +990,7 @@ UHoudiniInputActor::Create(UObject * InObject, UObject* InOuter, const FString& 
 		InOuter, UHoudiniInputActor::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::Actor;
+	HoudiniInputObject->GeneratedSplinesMeshPackageGuid = FGuid::NewGuid();
 	HoudiniInputObject->Update(InObject);
 	HoudiniInputObject->bHasChanged = true;
 
@@ -1426,6 +1445,25 @@ UHoudiniInputGeometryCollectionComponent::Update(UObject * InObject)
 	ensure(GeometryCollectionComponent);
 }
 
+void
+UHoudiniInputLandscapeSplineActor::Update(UObject* InObject)
+{
+	// Get the current value for if exporting spline meshes is enabled
+	UHoudiniInput const* const Input = Cast<UHoudiniInput>(GetOuter());
+	if (IsValid(Input))
+	{
+		bCachedExportSplineMeshComponents = Input->IsLandscapeSplinesExportSplineMeshComponentsEnabled();
+		if (!bCachedExportSplineMeshComponents || !Input->IsMergeSplineMeshComponentsEnabled()
+				|| !FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled() 
+				|| !FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
+		{
+			// Invalidate the merged splines nodes
+			InvalidateSplinesMeshData();
+		}
+	}
+
+	Super::Update(InObject);
+}
 
 void
 UHoudiniInputLandscapeSplinesComponent::Update(UObject * InObject)
@@ -1808,6 +1846,10 @@ UHoudiniInputActor::Update(UObject * InObject)
 	
 	Super::Update(InObject);
 
+	// Ensure we have a valid GUID for merged spline mesh components
+	if (!GeneratedSplinesMeshPackageGuid.IsValid())
+		GeneratedSplinesMeshPackageGuid = FGuid::NewGuid();
+
 	AActor* Actor = Cast<AActor>(InObject);
 	ensure(Actor);
 
@@ -2035,8 +2077,61 @@ UHoudiniInputActor::GetChangedObjectsAndValidNodes(TArray<UHoudiniInputObject*>&
 }
 
 void
+UHoudiniInputActor::InvalidateSplinesMeshData()
+{
+	GeneratedSplinesMesh = nullptr;
+	// If valid, mark our input nodes for deletion.
+	if (!CanDeleteHoudiniNodes())
+	{
+		// Unless if we're a HoudiniAssetInput! we don't want to delete the other HDA's node!
+		// just invalidate the node IDs!
+		SplinesMeshNodeId = -1;
+		SplinesMeshObjectNodeId = -1;
+		SplinesMeshInputNodeHandle.Reset();
+	}
+	else
+	{
+		// If we are using the new input system, then don't delete the nodes if we have a valid handle, and the HAPI
+		// nodes associated with the handle matches SplinesMeshNodeId / SplinesMeshObjectNodeId
+		const bool bIsRefCountedInputSystemEnabled = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+		if (bIsRefCountedInputSystemEnabled && SplinesMeshInputNodeHandle.IsValid())
+		{
+			IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+			if (Manager)
+			{
+				TArray<int32> ManagedNodeIds;
+				if (Manager->GetHAPINodeIds(SplinesMeshInputNodeHandle.GetIdentifier(), ManagedNodeIds))
+				{
+					if (ManagedNodeIds.Contains(SplinesMeshNodeId))
+						SplinesMeshNodeId = -1;
+					if (ManagedNodeIds.Contains(SplinesMeshObjectNodeId))
+						SplinesMeshObjectNodeId = -1;
+				}
+			}
+		}
+
+		SplinesMeshInputNodeHandle.Reset();
+		
+		if (SplinesMeshNodeId >= 0)
+		{
+			FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(SplinesMeshNodeId);
+			SplinesMeshNodeId = -1;
+		}
+
+		// ... and the parent OBJ as well to clean up
+		if (SplinesMeshObjectNodeId >= 0)
+		{
+			FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(SplinesMeshObjectNodeId);
+			SplinesMeshObjectNodeId = -1;
+		}
+	}
+}
+
+void
 UHoudiniInputActor::InvalidateData()
 {
+	InvalidateSplinesMeshData();
+	
 	// Call invalidate on input component objects
 	for (auto* const CurrentComp : GetActorComponents())
 	{
@@ -2049,6 +2144,18 @@ UHoudiniInputActor::InvalidateData()
 	Super::InvalidateData();
 }
 
+bool
+UHoudiniInputActor::ShouldTrackComponent(UActorComponent* InComponent)
+{
+	if (!FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled() && InComponent->IsA<ULandscapeSplinesComponent>())
+		return false;
+	
+	if (!FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled() && InComponent->IsA<USplineMeshComponent>())
+		return false;
+	
+	return true;
+}
+
 bool UHoudiniInputLandscape::ShouldTrackComponent(UActorComponent* InComponent)
 {
 	// We only track LandscapeComponents for landscape inputs since the Landscape tools
@@ -2059,9 +2166,18 @@ bool UHoudiniInputLandscape::ShouldTrackComponent(UActorComponent* InComponent)
 	
 	if (InComponent->IsA(ULandscapeComponent::StaticClass()))
 		return true;
-	
-	if (bExportLandscapeSplinesComponent && InComponent->IsA(ULandscapeSplinesComponent::StaticClass()))
-		return true;
+
+	if (bExportLandscapeSplinesComponent && FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
+	{
+		if (InComponent->IsA(ULandscapeSplinesComponent::StaticClass()))
+			return true;
+
+		if (bCachedExportSplineMeshComponents && FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled()
+				&& InComponent->IsA(USplineMeshComponent::StaticClass()))
+		{
+			return true;
+		}
+	}
 	
 	return false;
 }
@@ -2085,6 +2201,22 @@ bool UHoudiniInputLandscape::HasContentChanged() const
 void
 UHoudiniInputLandscape::Update(UObject * InObject)
 {
+	// Get the current value for if exporting spline meshes is enabled
+	UHoudiniInput const* const Input = Cast<UHoudiniInput>(GetOuter());
+	if (IsValid(Input))
+	{
+		bCachedExportSplineMeshComponents = Input->IsLandscapeSplinesExportSplineMeshComponentsEnabled();
+		if (!bCachedExportSplineMeshComponents || !Input->IsMergeSplineMeshComponentsEnabled()
+				|| !FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled()
+				|| !FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
+		{
+			// Invalidate the merged splines nodes
+			InvalidateSplinesMeshData();
+		}
+		// Sync the setting to also export landscape splines from the owning input
+		bExportLandscapeSplinesComponent = Input->IsLandscapeAutoSelectSplinesEnabled();
+	}
+
 	Super::Update(InObject);
 
 	ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(InObject);
@@ -2095,15 +2227,6 @@ UHoudiniInputLandscape::Update(UObject * InObject)
 	{
 		Transform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(Landscape);
 		CachedNumLandscapeComponents = CountLandscapeComponents();
-	}
-
-	// Sync the setting to also export landscape splines from the owning input
-	UObject const* const Outer = GetOuter();
-	if (IsValid(Outer))
-	{
-		UHoudiniInput const* const Input = Cast<UHoudiniInput>(Outer);
-		if (IsValid(Input))
-			bExportLandscapeSplinesComponent = Input->IsLandscapeAutoSelectSplinesEnabled();
 	}
 }
 
@@ -2392,6 +2515,10 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 		{
 			// SKMC also derives from SMC, so SKMC must be tested before SMC
 			return EHoudiniInputObjectType::SkeletalMeshComponent;
+		}
+		else if (InObject->IsA(USplineMeshComponent::StaticClass()))
+		{
+			return EHoudiniInputObjectType::SplineMeshComponent;
 		}
 		else if (InObject->IsA(UStaticMeshComponent::StaticClass()))
 		{
@@ -2920,4 +3047,95 @@ UHoudiniInputFoliageType_InstancedStaticMesh::GetStaticMesh() const
 		return nullptr;
 
 	return FoliageType->GetStaticMesh();
+}
+
+
+UHoudiniInputSplineMeshComponent::UHoudiniInputSplineMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, CachedForwardAxis()
+	, CachedSplineUpDir(FVector::UpVector)
+	, CachedSplineBoundaryMax(0)
+	, CachedSplineBoundaryMin(0)
+	, CachedbSmoothInterpRollScale(false)
+{
+
+}
+
+UHoudiniInputObject*
+UHoudiniInputSplineMeshComponent::Create(UObject* InObject, UObject* InOuter, const FString& InName)
+{
+	const FString InputObjectNameStr = "HoudiniInputObject_SplineMeshComponent_" + InName;
+	const FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputSplineMeshComponent::StaticClass(), *InputObjectNameStr);
+
+	// We need to create a new object
+	UHoudiniInputSplineMeshComponent* HoudiniInputObject = NewObject<UHoudiniInputSplineMeshComponent>(
+		InOuter, UHoudiniInputSplineMeshComponent::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->Type = EHoudiniInputObjectType::SplineMeshComponent;
+	HoudiniInputObject->MeshPackageGuid = FGuid::NewGuid();
+	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->bHasChanged = true;
+
+	return HoudiniInputObject;
+}
+
+void
+UHoudiniInputSplineMeshComponent::Update(UObject* InObject)
+{
+	Super::Update(InObject);
+
+	USplineMeshComponent const* const SplineMeshComponent = Cast<USplineMeshComponent>(InObject);
+	ensure(SplineMeshComponent);
+
+	CachedForwardAxis = SplineMeshComponent->ForwardAxis;
+	CachedSplineParams = SplineMeshComponent->SplineParams;
+	CachedSplineUpDir = SplineMeshComponent->SplineUpDir;
+	CachedSplineBoundaryMax = SplineMeshComponent->SplineBoundaryMax;
+	CachedSplineBoundaryMin = SplineMeshComponent->SplineBoundaryMin;
+	CachedbSmoothInterpRollScale = SplineMeshComponent->bSmoothInterpRollScale;
+}
+
+USplineMeshComponent*
+UHoudiniInputSplineMeshComponent::GetSplineMeshComponent() const
+{
+	return Cast<USplineMeshComponent>(InputObject.LoadSynchronous());
+}
+
+bool
+UHoudiniInputSplineMeshComponent::HasComponentChanged() const
+{
+	if (Super::HasComponentChanged())
+	{
+		return true;
+	}
+	
+	USplineMeshComponent const* const SplineMeshComponent = Cast<USplineMeshComponent>(InputObject.LoadSynchronous());
+
+	if (!IsValid(SplineMeshComponent))
+		return false;
+
+	if (SplineMeshComponent->ForwardAxis != CachedForwardAxis
+		|| SplineMeshComponent->SplineUpDir != CachedSplineUpDir
+		|| SplineMeshComponent->SplineBoundaryMax != CachedSplineBoundaryMax
+		|| SplineMeshComponent->SplineBoundaryMin != CachedSplineBoundaryMin
+		|| SplineMeshComponent->bSmoothInterpRollScale != CachedbSmoothInterpRollScale)
+	{
+		return true;
+	}
+
+	if (SplineMeshComponent->SplineParams.StartPos != CachedSplineParams.StartPos
+			|| SplineMeshComponent->SplineParams.StartTangent != CachedSplineParams.StartTangent
+			|| SplineMeshComponent->SplineParams.StartScale != CachedSplineParams.StartScale
+			|| SplineMeshComponent->SplineParams.StartRoll != CachedSplineParams.StartRoll
+			|| SplineMeshComponent->SplineParams.StartOffset != CachedSplineParams.StartOffset
+			|| SplineMeshComponent->SplineParams.EndPos != CachedSplineParams.EndPos
+			|| SplineMeshComponent->SplineParams.EndScale != CachedSplineParams.EndScale
+			|| SplineMeshComponent->SplineParams.EndTangent != CachedSplineParams.EndTangent
+			|| SplineMeshComponent->SplineParams.EndRoll != CachedSplineParams.EndRoll
+			|| SplineMeshComponent->SplineParams.EndOffset != CachedSplineParams.EndOffset)
+	{
+		return true;
+	}
+
+	return false;
 }

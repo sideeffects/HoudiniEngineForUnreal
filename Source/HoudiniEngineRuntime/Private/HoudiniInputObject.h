@@ -26,8 +26,6 @@
 
 #pragma once
 
-#include <functional>
-
 #include "HoudiniSplineComponent.h"
 #include "HoudiniGeoPartObject.h"
 #include "UnrealObjectInputRuntimeTypes.h"
@@ -91,7 +89,8 @@ enum class EHoudiniInputObjectType : uint8
 	LandscapeSplineActor,
 	LandscapeSplinesComponent,
 	Blueprint,
-	Animation
+	Animation,
+	SplineMeshComponent
 };
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -708,13 +707,22 @@ public:
 	// Indicates this object is dirty and should be updated
 	virtual void MarkChanged(const bool& bInChanged) override;
 
+	// GUID for temp merged SM of all spline mesh components of this actor (if any)
+	FGuid GetSplinesMeshPackageGuid() const { return GeneratedSplinesMeshPackageGuid; }
+
+	// Getter for temp merged SM of all spline mesh components of this actor (if any)
+	UStaticMesh* GetGeneratedSplineMesh() const { return GeneratedSplinesMesh; }
+
+	// Setter for temp merged SM of all spline mesh components of this actor (if any)
+	void SetGeneratedSplineMesh(UStaticMesh* const InSM) { GeneratedSplinesMesh = InSM; }
+
 protected:
 	virtual bool HasRootComponentTransformChanged() const;
 	virtual bool HasComponentsTransformChanged() const;
 
 public:
 	//
-	virtual bool ShouldTrackComponent(UActorComponent* InComponent) { return true; }
+	virtual bool ShouldTrackComponent(UActorComponent* InComponent);
 
 	// Return true if any content of this actor has possibly changed (for example geometry edits on a 
 	// Brush or changes on procedurally generated content).
@@ -743,6 +751,16 @@ public:
 
 	virtual void InvalidateData() override;
 
+	virtual void InvalidateSplinesMeshData();
+
+	UPROPERTY()
+	int32 SplinesMeshObjectNodeId;
+
+	UPROPERTY()
+	int32 SplinesMeshNodeId;
+
+	FUnrealObjectInputHandle SplinesMeshInputNodeHandle;
+
 protected:
 
 	virtual bool UsesInputObjectNode() const override { return false; }
@@ -762,6 +780,14 @@ protected:
 	// The number of components remove with the last call to Update
 	UPROPERTY()
 	int32 LastUpdateNumComponentsRemoved;
+
+	/** Package GUID for temp static mesh for the merged spline mesh components (if any). */
+	UPROPERTY()
+	FGuid GeneratedSplinesMeshPackageGuid;
+
+	/** The merged static mesh generated for the spline mesh components. */
+	UPROPERTY()
+	TObjectPtr<UStaticMesh> GeneratedSplinesMesh;
 };
 
 
@@ -798,6 +824,8 @@ public:
 
 	bool IsExportLandscapeSplinesComponentEnabled() const { return bExportLandscapeSplinesComponent; }
 
+	bool IsCachedExportSplineMeshComponentsEnabled() const { return bCachedExportSplineMeshComponents; }
+	
 	// The number of landscape components that was processed. If this count changes, .e.g, levels have been
 	// loaded / unloaded then the input content has changed.
 	UPROPERTY()
@@ -815,6 +843,10 @@ private:
 	// / excludes any landscape spline actors associated with the ULandscapeInfo of the landscape proxy.
 	UPROPERTY()
 	bool bExportLandscapeSplinesComponent;
+
+	/** Cached value for if we are exporting spline mesh components with those spline actor. */
+	UPROPERTY()
+	bool bCachedExportSplineMeshComponents;
 };
 
 
@@ -1073,12 +1105,21 @@ public:
 	// ULandscapeSplinesComponent accessor
 	class ALandscapeSplineActor* GetLandscapeSplineActor() const;
 
+	virtual void Update(UObject* InObject) override;
+
 	/**
 	 * Returns true if InComponent (a component of the input actor) should be tracked by the input system.
 	 * @param InComponent The component to check for tracking. 
 	 * @return true if InComponent should be tracked.
 	 */
-	virtual bool ShouldTrackComponent(UActorComponent* InComponent) override;	
+	virtual bool ShouldTrackComponent(UActorComponent* InComponent) override;
+
+	bool IsCachedExportSplineMeshComponentsEnabled() const { return bCachedExportSplineMeshComponents; }
+	
+private:
+	/** Cached value for if we are exporting spline mesh components with those spline actor. */
+	UPROPERTY()
+	bool bCachedExportSplineMeshComponents;
 };
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -1200,7 +1241,7 @@ public:
 
 	const TArray<FHoudiniLandscapeSplineControlPointData>& GetCachedControlPoints() const { return CachedControlPoints; }
 
-	const TArray<FHoudiniLandscapeSplineSegmentData>& GetCachedSegments() const { return CachedSegments; } 
+	const TArray<FHoudiniLandscapeSplineSegmentData>& GetCachedSegments() const { return CachedSegments; }
 
 protected:
 	/** A copy of the control points of the spline the last time this object was updated. */
@@ -1210,4 +1251,58 @@ protected:
 	/** A copy of the segments of the landscape spline the last time this was object was updated. */
 	UPROPERTY()
 	TArray<FHoudiniLandscapeSplineSegmentData> CachedSegments;
+
+};
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// USplineMeshComponent input
+//-----------------------------------------------------------------------------------------------------------------------------
+
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputSplineMeshComponent : public UHoudiniInputMeshComponent
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	//
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName);
+
+	//
+	virtual void Update(UObject* InObject) override;
+
+	// USplineMeshComponent accessor
+	class USplineMeshComponent* GetSplineMeshComponent() const;
+
+	virtual bool HasComponentChanged() const override;
+
+	const FGuid& GetMeshPackageGuid() const { return MeshPackageGuid; }
+
+	TObjectPtr<UStaticMesh> GetGeneratedMesh() { return GeneratedMesh; }
+
+	void SetGeneratedMesh(UStaticMesh* const InMesh) { GeneratedMesh = InMesh; }
+
+protected:
+	UPROPERTY()
+	FGuid MeshPackageGuid;
+
+	UPROPERTY()
+	TObjectPtr<UStaticMesh> GeneratedMesh;
+	
+	UPROPERTY()
+	TEnumAsByte<ESplineMeshAxis::Type> CachedForwardAxis;
+	
+	UPROPERTY()
+	FSplineMeshParams CachedSplineParams;
+
+	UPROPERTY()
+	FVector CachedSplineUpDir;
+	
+	UPROPERTY()
+	float CachedSplineBoundaryMax;
+	
+	UPROPERTY()
+	float CachedSplineBoundaryMin;
+	
+	UPROPERTY()
+	uint8 CachedbSmoothInterpRollScale:1;
 };

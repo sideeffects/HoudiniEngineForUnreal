@@ -671,11 +671,23 @@ public:
 	// Is exporting left/right curves for landscape splines enabled?
 	bool IsLandscapeSplinesExportLeftRightCurvesEnabled() const { return bLandscapeSplinesExportLeftRightCurves; }
 
+	// Enable/disable exporting the spline mesh components for landscape splines
+	void SetLandscapeSplinesExportSplineMeshComponents(const bool bInLandscapeSplinesExportSplineMeshes) { bLandscapeSplinesExportSplineMeshComponents = bInLandscapeSplinesExportSplineMeshes; }
+
+	// Is exporting spline mesh components for landscape splines enabled?
+	bool IsLandscapeSplinesExportSplineMeshComponentsEnabled() const { return bLandscapeSplinesExportSplineMeshComponents; }
+
 	// Returns true if the landscape splines export menu is expanded.
 	bool IsLandscapeSplinesExportOptionsMenuExpanded() const { return bLandscapeSplinesExportOptionsMenuExpanded; }
 
 	// Setter for if the landscape splines export menu is expanded.
 	void SetLandscapeSplinesExportOptionsMenuExpanded(const bool bInLandscapeSplinesExportOptionsMenuExpanded) { bLandscapeSplinesExportOptionsMenuExpanded = bInLandscapeSplinesExportOptionsMenuExpanded; }
+
+	// Setter for if spline mesh components should be merged into one SM when exported 
+	void SetMergeSplineMeshComponents(const bool bInMergeSplineMeshComponents) { bMergeSplineMeshComponents = bInMergeSplineMeshComponents; }
+
+	// Getter for if spline mesh components should be merged into one SM when exported
+	bool IsMergeSplineMeshComponentsEnabled() const { return bMergeSplineMeshComponents; }
 
 	// Remove all landscape splines of the landscape input objects currently in the world input object array.
 	// Return true if any objects were removed.
@@ -751,5 +763,14 @@ protected:
 	// If true, export left and right curves as well
 	UPROPERTY()
 	bool bLandscapeSplinesExportLeftRightCurves = false;
+
+	// If true, export the spline mesh components of landscape splines
+	UPROPERTY()
+	bool bLandscapeSplinesExportSplineMeshComponents = false;
+
+	// If true, the deformed meshes of all spline mesh components of an actor are merged into temporary input mesh.
+	// If false, the meshes are sent individually.
+	UPROPERTY()
+	bool bMergeSplineMeshComponents = true;
 
 };

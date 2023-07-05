@@ -222,7 +222,15 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 
 	HAPI_NodeId PreviousInputNodeId = OutCreatedInputNodeId;
 
-	const bool bUseMergeNode = (bInExportCurves && bInExportControlPoints) || bInExportLeftRightCurves;
+	int32 NumNodesNeeded = 0;
+	if (bInExportCurves)
+		NumNodesNeeded++;
+	if (bInExportControlPoints)
+		NumNodesNeeded++;
+	if (bInExportLeftRightCurves)
+		NumNodesNeeded += 2;
+	
+	const bool bUseMergeNode = NumNodesNeeded > 1;
 	HAPI_NodeId NewNodeId = -1;
 	HAPI_NodeId ObjectNodeId = -1;
 	// Create geo node
@@ -614,7 +622,8 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesControlPoint
 		bNeedToCommit = true;
 
 	// Add the unreal_landscape_spline_output attribute to indicate that this a landscape spline and not a normal curve
-	if (AddLandscapeSplineOutputAttribute(OutNodeId, 0, PartInfo.pointCount, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT))
+	// TODO: Should there be a special type / value for the control points
+	if (AddLandscapeSplineOutputAttribute(OutNodeId, 0, 1, PartInfo.pointCount, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT))
 		bNeedToCommit = true;
 	
 	// // Add landscape spline component tags if it has any

@@ -61,6 +61,7 @@ class UHoudiniInputDataTable;
 class UHoudiniInputFoliageType_InstancedStaticMesh;
 class UHoudiniInputBlueprint;
 class UHoudiniInputLandscapeSplinesComponent;
+class UHoudiniInputSplineMeshComponent;
 
 class FUnrealObjectInputHandle;
 class FUnrealObjectInputIdentifier;
@@ -276,6 +277,18 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bPreferNaniteFallbackMesh = false,
 		bool bExportMaterialParameters = false);
 
+	static bool	HapiCreateInputNodeForSplineMeshComponents(
+		const FString& InObjNodeName,
+		UHoudiniInputActor* InParentActorObject,
+		const bool& bExportLODs,
+		const bool& bExportSockets,
+		const bool& bExportColliders,
+		const bool& bKeepWorldTransform,
+		const FTransform& InActorTransform = FTransform::Identity,
+		const bool& bInputNodesCanBeDeleted = true,
+		const bool& bPreferNaniteFallbackMesh = false,
+		bool bExportMaterialParameters = false);
+	
 	static bool	HapiCreateInputNodeForInstancedStaticMeshComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputInstancedMeshComponent* InObject,
@@ -298,6 +311,14 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bKeepWorldTransform,
 		const bool& bImportAsReference,
 		const bool& bImportAsReferenceRotScaleEnabled);
+
+	static bool HapiCreateInputNodesForActorComponents(
+		UHoudiniInput* const InInput,
+		UHoudiniInputActor* const InInputActorObject,
+		AActor* const InActor,
+		const FTransform& InActorTransform,
+		TArray<int32>& OutCreatedNodeIds,
+		const bool& bInputNodesCanBeDeleted);
 
 	static bool	HapiCreateInputNodeForActor(
 		UHoudiniInput* InInput, 

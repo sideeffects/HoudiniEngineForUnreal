@@ -393,6 +393,14 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 		static bool GetLandscapeSplinesSegments(ULandscapeSplinesComponent* const InSplinesComponent, TArray<TObjectPtr<ULandscapeSplineSegment>>& OutSegments);
 
 
+		// -------------------------------------------------
+		// Experimental Features - Spline Meshes
+		// -------------------------------------------------
+
+		// Returns true if spline mesh input is enabled
+		static bool IsSplineMeshInputEnabled();
+
+	
 		// Helper function for destroying landscapes.
 
 

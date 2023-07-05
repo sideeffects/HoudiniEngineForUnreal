@@ -76,6 +76,7 @@
 #endif
 
 #include "HCsgUtils.h"
+#include "HoudiniMeshUtils.h"
 #include "LandscapeInfo.h"
 #include "UnrealGeometryCollectionTranslator.h"
 
@@ -1693,6 +1694,37 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				bInputNodesCanBeDeleted);
 			break;
 		}
+
+		case EHoudiniInputObjectType::SplineMeshComponent:
+		{
+			if (!FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled())
+				break;
+			
+			// Don't send individual Spline Mesh Components if we are merging the meshes
+			if (InInput->IsMergeSplineMeshComponentsEnabled())
+				break;
+				
+			UHoudiniInputMeshComponent* InputSMC = Cast<UHoudiniInputMeshComponent>(InInputObject);
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
+				ObjBaseName,
+				InputSMC,
+				InInput->GetExportLODs(),
+				InInput->GetExportSockets(),
+				InInput->GetExportColliders(),
+				InInput->GetKeepWorldTransform(),
+				InInput->GetImportAsReference(),
+				InInput->GetImportAsReferenceRotScaleEnabled(),
+				InInput->GetImportAsReferenceBboxEnabled(),
+				InInput->GetImportAsReferenceMaterialEnabled(),
+				InActorTransform,
+				bInputNodesCanBeDeleted,
+				InInput->GetPreferNaniteFallbackMesh(),
+				InInput->GetExportMaterialParameters());
+
+			if (bSuccess)
+				OutCreatedNodeIds.Add(InInputObject->InputObjectNodeId);
+			break;
+		}
 	}
 
 	// Mark that input object as not changed
@@ -3106,6 +3138,147 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 }
 
 bool
+FHoudiniInputTranslator::HapiCreateInputNodeForSplineMeshComponents(
+	const FString& InObjNodeName,
+	UHoudiniInputActor* InParentActorObject,
+	const bool& bExportLODs,
+	const bool& bExportSockets,
+	const bool& bExportColliders,
+	const bool& bKeepWorldTransform,
+	const FTransform& InActorTransform,
+	const bool& bInputNodesCanBeDeleted,
+	const bool& bPreferNaniteFallbackMesh,
+	bool bExportMaterialParameters)
+{
+	if (!IsValid(InParentActorObject))
+		return false;
+
+	UHoudiniInputSplineMeshComponent* FirstSMCObject = nullptr;
+	TArray<UPrimitiveComponent*> MeshComponents;
+	TArray<UHoudiniInputSplineMeshComponent*> SMCObjects;
+	for (UHoudiniInputSceneComponent* Component : InParentActorObject->GetActorComponents())
+	{
+		if (!IsValid(Component))
+			continue;
+
+		UHoudiniInputSplineMeshComponent* const SMCObject = Cast<UHoudiniInputSplineMeshComponent>(Component);
+		if (!IsValid(SMCObject))
+			continue;
+
+		SMCObjects.Add(SMCObject);
+
+		// Since we are going to send this SMC as part of a merged mesh for this input we can invalidate the single
+		// mesh case here
+		SMCObject->InvalidateData();
+
+		if (!FirstSMCObject)
+			FirstSMCObject = SMCObject;
+
+		USplineMeshComponent* const SMC = SMCObject->GetSplineMeshComponent();
+		if (!IsValid(SMC))
+			continue;
+
+		MeshComponents.Add(SMC);
+	}
+
+	if (MeshComponents.IsEmpty())
+		return true;
+
+	if (!IsValid(FirstSMCObject))
+		return true;
+	
+	USplineMeshComponent* FirstSMC = FirstSMCObject->GetSplineMeshComponent();
+	
+	// Generate a static mesh from the spline mesh components
+	AActor* const ParentActor = InParentActorObject->GetActor();
+	
+	FHoudiniPackageParams PackageParams;
+	PackageParams.PackageMode = EPackageMode::CookToTemp;
+	PackageParams.ReplaceMode = EPackageReplaceMode::ReplaceExistingAssets;
+	PackageParams.HoudiniAssetActorName = ParentActor->GetName();
+	PackageParams.HoudiniAssetName = ParentActor->GetClass()->GetName();
+	PackageParams.ObjectName = FirstSMC->GetName();
+	PackageParams.ComponentGUID = InParentActorObject->GetSplinesMeshPackageGuid();
+	FMeshMergingSettings Settings;
+	UStaticMesh* SM = nullptr;
+
+	FVector MergedLocation;
+	if (!FHoudiniMeshUtils::MergeMeshes(MeshComponents, PackageParams, Settings, SM, MergedLocation))
+		return true;
+
+	if (!IsValid(SM))
+		return true;
+
+	InParentActorObject->SetGeneratedSplineMesh(SM);
+	
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	HAPI_NodeId CreatedNodeId = InParentActorObject->SplinesMeshNodeId;
+
+	// Marshall the Static Mesh to Houdini
+	FString SMCName = InObjNodeName + TEXT("_") + FirstSMC->GetName();
+
+	FUnrealObjectInputHandle InputNodeHandle;
+	bool bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
+		SM, 
+		CreatedNodeId, 
+		SMCName,
+		InputNodeHandle, 
+		nullptr, 
+		bExportLODs, 
+		bExportSockets, 
+		bExportColliders,
+		true, 
+		bInputNodesCanBeDeleted, 
+		bPreferNaniteFallbackMesh,
+		bExportMaterialParameters);
+
+	// Create/update the node in the input manager
+	if (bUseRefCountedInputSystem)
+	{
+		FUnrealObjectInputOptions Options(
+			false, false, bExportLODs, bExportSockets, bExportColliders);
+		constexpr bool bIsLeaf = false;
+		FUnrealObjectInputIdentifier SMCIdentifier(FirstSMC, Options, bIsLeaf);
+		FUnrealObjectInputHandle Handle;
+		if (!FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(SMCIdentifier, {InputNodeHandle}, Handle, true, bInputNodesCanBeDeleted))
+			return false;
+		
+		FHoudiniEngineUtils::GetHAPINodeId(Handle, CreatedNodeId);
+		InParentActorObject->SplinesMeshInputNodeHandle = Handle;
+	}
+	
+	// Update this input object's OBJ NodeId
+	InParentActorObject->SplinesMeshNodeId = CreatedNodeId;
+	InParentActorObject->SplinesMeshObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InParentActorObject->SplinesMeshNodeId);
+
+	for (UHoudiniInputSplineMeshComponent* const SMCObject : SMCObjects)
+	{
+		if (!IsValid(SMCObject))
+			continue;
+		
+		// Update this input object's cache data
+		SMCObject->Update(SMCObject->GetSplineMeshComponent());
+	}
+
+	// Update the component's transform
+	FTransform ComponentTransform = FTransform::Identity;
+	ComponentTransform.SetTranslation(MergedLocation);
+	if (!ComponentTransform.Equals(FTransform::Identity))
+	{
+		// convert to HAPI_Transform
+		HAPI_TransformEuler HapiTransform;
+		FHoudiniApi::TransformEuler_Init(&HapiTransform);
+		FHoudiniEngineUtils::TranslateUnrealTransform(ComponentTransform, HapiTransform);
+
+		// Set the transform on the OBJ parent
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
+			FHoudiniEngine::Get().GetSession(), InParentActorObject->SplinesMeshObjectNodeId, &HapiTransform), false);
+	}
+
+	return bSuccess;
+}
+
+bool
 FHoudiniInputTranslator::HapiCreateInputNodeForInstancedStaticMeshComponent(
 	const FString& InObjNodeName,
 	UHoudiniInputInstancedMeshComponent* InObject,
@@ -3395,6 +3568,83 @@ FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniAssetComponent(
 }
 
 bool
+FHoudiniInputTranslator::HapiCreateInputNodesForActorComponents(
+	UHoudiniInput* const InInput,
+	UHoudiniInputActor* const InInputActorObject,
+	AActor* const InActor,
+	const FTransform& InActorTransform, 
+	TArray<int32>& OutCreatedNodeIds, 
+	const bool& bInputNodesCanBeDeleted)
+{
+	if (!IsValid(InInput))
+		return false;
+
+	if (!IsValid(InInputActorObject))
+		return false;
+
+	if (!IsValid(InActor))
+		return true;
+
+	// Now, commit all of this actor's component
+	const bool bMergeSplineMeshes = InInput->IsMergeSplineMeshComponentsEnabled();
+	const bool bExportSplineMeshesForLandscapeAndLandscapeSpline = InInput->IsLandscapeSplinesExportSplineMeshComponentsEnabled();
+	const bool bIsActorLandscapeOrLandscapeSpline = (InInputActorObject->Type == EHoudiniInputObjectType::Landscape
+		|| InInputActorObject->Type == EHoudiniInputObjectType::LandscapeSplineActor);
+	bool bHasSplineMeshComponentsToMerge = false;
+	int32 ComponentIdx = 0;
+	for (UHoudiniInputSceneComponent* CurComponent : InInputActorObject->GetActorComponents())
+	{
+		const bool bIsSplineMeshComponent = CurComponent->IsA<UHoudiniInputSplineMeshComponent>();
+		if (!bExportSplineMeshesForLandscapeAndLandscapeSpline && bIsActorLandscapeOrLandscapeSpline && bIsSplineMeshComponent)
+			continue;
+		
+		if (bMergeSplineMeshes && bIsSplineMeshComponent)
+		{
+			bHasSplineMeshComponentsToMerge = true;
+			continue;
+		}
+		
+		if (UploadHoudiniInputObject(InInput, CurComponent, InActorTransform, OutCreatedNodeIds, bInputNodesCanBeDeleted))
+			ComponentIdx++;
+
+		// If we're importing the actor as ref, add the level path / actor path attribute to the created nodes
+		if (InInput->GetImportAsReference())
+		{
+			bool bNeedCommit = false;
+			if (FHoudiniEngineUtils::AddLevelPathAttribute(CurComponent->InputNodeId, 0, InActor->GetLevel(), 1, HAPI_ATTROWNER_POINT))
+				bNeedCommit = true;
+
+			if(FHoudiniEngineUtils::AddActorPathAttribute(CurComponent->InputNodeId, 0, InActor, 1, HAPI_ATTROWNER_POINT))
+				bNeedCommit = true;
+
+			// Commit the geo if needed
+			if(bNeedCommit)
+				FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), CurComponent->InputNodeId);
+		}
+	}
+
+	if (bHasSplineMeshComponentsToMerge && FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled())
+	{
+		if (HapiCreateInputNodeForSplineMeshComponents(
+				InInput->GetNodeBaseName(),
+				InInputActorObject,
+				InInput->GetExportLODs(),
+				InInput->GetExportSockets(),
+				InInput->GetExportColliders(),
+				InInput->GetKeepWorldTransform(),
+				InActorTransform,
+				bInputNodesCanBeDeleted,
+				InInput->GetPreferNaniteFallbackMesh(),
+				InInput->GetExportMaterialParameters()))
+		{
+			OutCreatedNodeIds.Add(InInputActorObject->SplinesMeshObjectNodeId);
+		}
+	}
+
+	return true;
+}
+
+bool
 FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 	UHoudiniInput* InInput, 
 	UHoudiniInputActor* InObject, 
@@ -3416,7 +3666,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 	// If so we need to build static meshes for any proxy meshes
 	if ((InInput->GetInputType() == EHoudiniInputType::World)
 		&& Actor->IsA<AHoudiniAssetActor>())
-{
+	{
 		AHoudiniAssetActor *HAA = Cast<AHoudiniAssetActor>(Actor);
 		UHoudiniAssetComponent *HAC = HAA->GetHoudiniAssetComponent();
 		if (IsValid(HAC))
@@ -3462,27 +3712,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 	}
 
 	// Now, commit all of this actor's component
-	int32 ComponentIdx = 0;
-	for (UHoudiniInputSceneComponent* CurComponent : InObject->GetActorComponents())
-	{
-		if(UploadHoudiniInputObject(InInput, CurComponent, InActorTransform, OutCreatedNodeIds, bInputNodesCanBeDeleted))
-			ComponentIdx++;
-
-		// If we're importing the actor as ref, add the level path / actor path attribute to the created nodes
-		if (InInput->GetImportAsReference())
-		{
-			bool bNeedCommit = false;
-			if (FHoudiniEngineUtils::AddLevelPathAttribute(CurComponent->InputNodeId, 0, Actor->GetLevel(), 1, HAPI_ATTROWNER_POINT))
-				bNeedCommit = true;
-
-			if(FHoudiniEngineUtils::AddActorPathAttribute(CurComponent->InputNodeId, 0, Actor, 1, HAPI_ATTROWNER_POINT))
-				bNeedCommit = true;
-
-			// Commit the geo if needed
-			if(bNeedCommit)
-				FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), CurComponent->InputNodeId);
-		}
-	}
+	bool bSuccess = HapiCreateInputNodesForActorComponents(InInput, InObject, Actor, InActorTransform, OutCreatedNodeIds, bInputNodesCanBeDeleted);
 
 	// Cache our transformn
 	InObject->Transform = Actor->GetTransform();
@@ -3498,7 +3728,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 	// return true if we have at least uploaded one component
 	// return (ComponentIdx > 0);
 
-	return true;
+	return bSuccess;
 }
 
 bool
@@ -3577,7 +3807,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscapeSplinesComponent(
 	static constexpr bool bLandscapeSplinesExportCurves = true;
 	FUnrealObjectInputHandle CreatedSplinesNodeHandle;
 	const bool bSuccess = FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
-		SplinesComponent,CreatedNodeId,
+		SplinesComponent,
+		CreatedNodeId,
 		CreatedSplinesNodeHandle,
 		SplinesComponentName,
 		InSplineResolution,
@@ -3646,30 +3877,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 	
 	FTransform Transform = InObject->Transform;
 
-	// Now, commit all of the input components of the landscape 
-	for (UHoudiniInputSceneComponent* const CurComponent : InObject->GetActorComponents())
-	{
-		if (!IsValid(CurComponent))
-			continue;
-		
-		if (!UploadHoudiniInputObject(InInput, CurComponent, Transform, OutCreatedNodeIds, bInputNodesCanBeDeleted))
-			continue;
-
-		// If we're importing the actor as ref, add the level path / actor path attribute to the created nodes
-		if (InInput->GetImportAsReference())
-		{
-			bool bNeedCommit = false;
-			if (FHoudiniEngineUtils::AddLevelPathAttribute(CurComponent->InputNodeId, 0, Landscape->GetLevel(), 1, HAPI_ATTROWNER_POINT))
-				bNeedCommit = true;
-
-			if(FHoudiniEngineUtils::AddActorPathAttribute(CurComponent->InputNodeId, 0, Landscape, 1, HAPI_ATTROWNER_POINT))
-				bNeedCommit = true;
-
-			// Commit the geo if needed
-			if(bNeedCommit)
-				FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), CurComponent->InputNodeId);
-		}
-	}
+	// Now, commit all of the input components of the landscape
+	bool bSuccess = HapiCreateInputNodesForActorComponents(InInput, InObject, Landscape, Transform, OutCreatedNodeIds, bInputNodesCanBeDeleted);
 
 	Transform.SetScale3D(FVector::OneVector);
 
@@ -3707,7 +3916,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 
 	OutCreatedNodeIds.Add(InObject->InputObjectNodeId);
 	
-	return true;
+	return bSuccess;
 }
 
 

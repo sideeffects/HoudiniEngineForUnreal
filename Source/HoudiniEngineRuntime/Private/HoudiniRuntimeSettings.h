@@ -268,6 +268,10 @@ protected:
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = "Experimental Features | Landscape Splines | Input", Experimental)
 		bool bEnableLandscapeSplineInput;
 
+		// EXPERIMENTAL: Enable spline mesh input.
+		UPROPERTY(GlobalConfig, EditAnywhere, Category = "Experimental Features | Spline Mesh | Input", Experimental)
+		bool bEnableSplineMeshInput;
+
 		//-------------------------------------------------------------------------------------------------------------
 		// Parameter options.
 		//-------------------------------------------------------------------------------------------------------------

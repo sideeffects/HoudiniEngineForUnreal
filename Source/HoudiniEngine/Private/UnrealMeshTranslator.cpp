@@ -31,9 +31,11 @@
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngineTimers.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniMeshUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 
 #include "Animation/Skeleton.h"
+#include "Components/SplineMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "DynamicMeshBuilder.h"
 #include "Engine/SkeletalMesh.h"
@@ -1410,6 +1412,14 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	if (!IsValid(StaticMesh))
 		return false;
 
+	USplineMeshComponent* SplineMeshComponent = nullptr;
+	bool bIsSplineMesh = false;
+	if (IsValid(StaticMeshComponent))
+	{
+		SplineMeshComponent = Cast<USplineMeshComponent>(StaticMeshComponent);
+		bIsSplineMesh = IsValid(SplineMeshComponent);
+	}
+
 	// Input node name, default to InputNodeName, but can be changed by the new input system
 	FString FinalInputNodeName = InputNodeName;
 	
@@ -1631,7 +1641,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	bool bHiResMeshSuccess = false;
 	const bool ShouldUseNaniteFallback = bPreferNaniteFallbackMesh && StaticMesh->GetRenderData()->LODResources.Num();
 
-	bool bWantToExportHiResModel = bNaniteBuildEnabled && ExportMainMesh && !ShouldUseNaniteFallback;
+	bool bWantToExportHiResModel = bNaniteBuildEnabled && ExportMainMesh && !ShouldUseNaniteFallback && !bIsSplineMesh;
 	if (bWantToExportHiResModel && bHaveHiResSourceModel)
 	{
 		// Get the HiRes Mesh description and SourceModel
@@ -1778,20 +1788,32 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 
 			// Either export the current LOD Mesh by using RawMEsh or MeshDescription (legacy)
 			FMeshDescription* MeshDesc = nullptr;
+			FMeshDescription SplineMeshDesc;
 			// if (!bExportViaRawMesh)
 			if (ExportMethod == 1)
 			{
 				// This will either fetch the mesh description that is cached on the SrcModel
 				// or load it from bulk data / DDC once
-				if (SrcModel.GetCachedMeshDescription() != nullptr)
+				if (!bIsSplineMesh)
 				{
-					MeshDesc = SrcModel.GetCachedMeshDescription();
+					if (SrcModel.GetCachedMeshDescription() != nullptr)
+					{
+						MeshDesc = SrcModel.GetCachedMeshDescription();
+					}
+					else
+					{
+						const double StartTime = FPlatformTime::Seconds();
+						MeshDesc = StaticMesh->GetMeshDescription(LODIndex);
+						HOUDINI_LOG_MESSAGE(TEXT("StaticMesh->GetMeshDescription completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
+					}
 				}
 				else
 				{
-					const double StartTime = FPlatformTime::Seconds();
-					MeshDesc = StaticMesh->GetMeshDescription(LODIndex);
-					HOUDINI_LOG_MESSAGE(TEXT("StaticMesh->GetMeshDescription completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
+					// Deform mesh data according to the Spline Mesh Component's data
+					static constexpr bool bPropagateVertexColours = false;
+					static constexpr bool bApplyComponentTransform = false;
+					FHoudiniMeshUtils::RetrieveMesh(SplineMeshComponent, LODIndex, SplineMeshDesc, bPropagateVertexColours, bApplyComponentTransform);
+					MeshDesc = &SplineMeshDesc;
 				}
 			}
 
