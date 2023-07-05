@@ -1675,6 +1675,14 @@ FHoudiniInputDetails::AddUnrealSplineResolutionInput(
 		return FReply::Handled();
 	};
 
+	auto GetUnrealSplineResolutionValue = [MainInput]()
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return TOptional<float>();
+
+		return TOptional<float>(MainInput->GetUnrealSplineResolution());
+	};
+
 	InVerticalBox->AddSlot()
 	.Padding(2, 2, 5, 2)
 	.AutoHeight()
@@ -1698,7 +1706,10 @@ FHoudiniInputDetails::AddUnrealSplineResolutionInput(
 			.MaxValue(1000)
 			.MinSliderValue(0)
 			.MaxSliderValue(1000)
-			.Value(MainInput->GetUnrealSplineResolution())
+			.Value_Lambda([GetUnrealSplineResolutionValue]()
+			{
+				return GetUnrealSplineResolutionValue();
+			})
 			.SliderExponent(1)
 			.OnValueChanged_Lambda([UnrealSplineResolutionChanged](float NewVal)
 			{
