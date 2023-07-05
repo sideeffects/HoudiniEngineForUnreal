@@ -1260,7 +1260,7 @@ FHoudiniEngineEditor::ExtendContextMenu()
 				{
 					// TODO: Foliage Types? BP ?
 #if ENGINE_MINOR_VERSION < 1
-					if ((Asset.AssetClass != USkeletalMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UStaticMesh::StaticClass()->GetFName()) && (Asset.AssetClassPath != UAnimSequence::StaticClass()->GetClassPathName()))
+					if ((Asset.AssetClass != USkeletalMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UStaticMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UAnimSequence::StaticClass()->GetFName()))
 #else
 					if ((Asset.AssetClassPath != USkeletalMesh::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UStaticMesh::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UAnimSequence::StaticClass()->GetClassPathName()))
 #endif
