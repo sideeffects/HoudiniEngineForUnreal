@@ -149,6 +149,8 @@ public:
 	/**
 	 * @brief Create HAPI nodes and send the landscape splines of InLandscapeSplines to Houdini.
 	 * @param InSplinesComponent The landscape splines component to translate to Houdini.
+	 * @param bForceReferenceInputNodeCreation Only applicable to the new input system. If True this function creates
+	 * the reference node even if only bInExport option is True.
 	 * @param OutInputNodeId The HAPI node id of the merge node that will be created. This can be set to the existing
 	 * node by the caller, which will then be deleted and recreated.
 	 * @param OutInputNodeHandle The input handle for the reference counted input system for the newly created HAPI node.
@@ -165,7 +167,8 @@ public:
 	 * still have been created, so OutInputNodeId and OutInputNodeHandle should still be handled appropriately.
 	 */
 	static bool CreateInputNodeForLandscapeSplinesComponent(
-		ULandscapeSplinesComponent* const InSplinesComponent, 
+		ULandscapeSplinesComponent* const InSplinesComponent,
+		const bool bForceReferenceInputNodeCreation,
 		HAPI_NodeId& OutInputNodeId,
 		FUnrealObjectInputHandle& OutInputNodeHandle,
 		const FString& InNodeName,

@@ -140,6 +140,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 	if (bUseRefCountedInputSystem)
 	{
 		// Check if we already have an input node for this asset
+		static constexpr bool bForceCreateInputRefNode = false;
 		bool bSingleLeafNodeOnly = false;
 		FUnrealObjectInputIdentifier IdentReferenceNode;
 		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
@@ -149,6 +150,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 			ExportAllLODs,
 			ExportSockets,
 			ExportColliders,
+			bForceCreateInputRefNode,
 			bSingleLeafNodeOnly,
 			IdentReferenceNode,
 			IdentPerOption))
@@ -1406,7 +1408,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	const bool& ExportMainMesh /* = true */,
 	const bool& bInputNodesCanBeDeleted /*= true*/,
 	const bool& bPreferNaniteFallbackMesh /*= false*/,
-	const bool& bExportMaterialParameters /*= false*/)
+	const bool& bExportMaterialParameters /*= false*/,
+	const bool& bForceReferenceInputNodeCreation /*= false*/)
 {
 	// If we don't have a static mesh there's nothing to do.
 	if (!IsValid(StaticMesh))
@@ -1429,6 +1432,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	FUnrealObjectInputIdentifier Identifier;
 	FUnrealObjectInputHandle ParentHandle;
 	HAPI_NodeId ParentNodeId = -1;
+	UObject* const InputSystemObject = bIsSplineMesh ? static_cast<UObject*>(SplineMeshComponent) : static_cast<UObject*>(StaticMesh);
 	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bUseRefCountedInputSystem)
 	{
@@ -1437,11 +1441,12 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 		FUnrealObjectInputIdentifier IdentReferenceNode;
 		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
 		if (!FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
-			StaticMesh,
+			InputSystemObject,
 			ExportMainMesh,
 			ExportAllLODs,
 			ExportSockets,
 			ExportColliders,
+			bForceReferenceInputNodeCreation,
 			bSingleLeafNodeOnly,
 			IdentReferenceNode,
 			IdentPerOption))
@@ -1504,7 +1509,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 				{
 					FHoudiniEngineUtils::GetHAPINodeId(OptionHandle, NewNodeId);
 				}
-				
+
+				static constexpr bool bForceInputRefNodeCreation = false;
 				if (!HapiCreateInputNodeForStaticMesh(
 						StaticMesh,
 						NewNodeId,
@@ -1517,7 +1523,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 						!Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders,
 						bInputNodesCanBeDeleted,
 						bPreferNaniteFallbackMesh,
-						bExportMaterialParameters))
+						bExportMaterialParameters,
+						bForceInputRefNodeCreation))
 				{
 					return false;
 				}

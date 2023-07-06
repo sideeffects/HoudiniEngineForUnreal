@@ -101,6 +101,7 @@ void FUnResampledPoint::CopySplinePoint(const FLandscapeSplineInterpPoint& InPoi
 bool
 FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 	ULandscapeSplinesComponent* const InSplinesComponent, 
+	const bool bForceReferenceInputNodeCreation,
 	HAPI_NodeId& OutCreatedInputNodeId,
 	FUnrealObjectInputHandle& OutInputNodeHandle,
 	const FString& InNodeName,
@@ -121,9 +122,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 	FUnrealObjectInputIdentifier Identifier;
 	FUnrealObjectInputHandle ParentHandle;
 	HAPI_NodeId ParentNodeId = -1;
-	// const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
-	// TODO: use the ref counted system after adding supporting for identifiers for leaf nodes that use custom paths
-	static constexpr bool bUseRefCountedInputSystem = false;
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bUseRefCountedInputSystem)
 	{
 		// Check if we already have an input node for this component and its options
@@ -135,6 +134,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 			bInExportCurves,
 			bInExportControlPoints,
 			bInExportLeftRightCurves,
+			bForceReferenceInputNodeCreation,
 			bSingleLeafNodeOnly,
 			IdentReferenceNode,
 			IdentPerOption))
@@ -191,9 +191,20 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 				HAPI_NodeId NewNodeId = -1;
 				FString NodeLabel;
 				FHoudiniEngineUtils::GetDefaultInputNodeName(OptionIdentifier, NodeLabel);
-				
+
+				if (FHoudiniEngineUtils::FindNodeViaManager(OptionIdentifier, OptionHandle))
+				{
+					// The node already exists, but it is dirty. Fetch its HAPI node ID so that the old
+					// node can be deleted when creating the new HAPI node.
+					// TODO: maybe the new input system manager should delete the old HAPI nodes when we set the new
+					//		 HAPI node IDs on the node entries in the manager?
+					FHoudiniEngineUtils::GetHAPINodeId(OptionHandle, NewNodeId);
+				}
+
+				static constexpr bool bForceInputRefNodeCreation = false;
 				if (!CreateInputNodeForLandscapeSplinesComponent(
 						InSplinesComponent,
+						bForceInputRefNodeCreation,
 						NewNodeId,
 						OptionHandle,
 						NodeLabel,
@@ -221,6 +232,28 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 	}
 
 	HAPI_NodeId PreviousInputNodeId = OutCreatedInputNodeId;
+
+	// Delete the previous nodes, if valid
+	if (PreviousInputNodeId >= 0 && FHoudiniEngineUtils::IsHoudiniNodeValid(PreviousInputNodeId))
+	{
+		// Get the parent OBJ node ID before deleting!
+		HAPI_NodeId PreviousInputOBJNode = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
+
+		if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
+			FHoudiniEngine::Get().GetSession(), PreviousInputNodeId))
+		{
+			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *FinalInputNodeName);
+		}
+
+		if (PreviousInputOBJNode >= 0)
+		{
+			if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
+				FHoudiniEngine::Get().GetSession(), PreviousInputOBJNode))
+			{
+				HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input OBJ node for %s."), *FinalInputNodeName);
+			}
+		}
+	}
 
 	int32 NumNodesNeeded = 0;
 	if (bInExportCurves)
@@ -253,25 +286,6 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 			return false;
 	}
 	
-	// We have now created a valid new input node, delete the previous one
-	if (PreviousInputNodeId >= 0)
-	{
-		// Get the parent OBJ node ID before deleting!
-		HAPI_NodeId PreviousInputOBJNode = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
-
-		if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
-			FHoudiniEngine::Get().GetSession(), PreviousInputNodeId))
-		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *FinalInputNodeName);
-		}
-
-		if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
-			FHoudiniEngine::Get().GetSession(), PreviousInputOBJNode))
-		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input OBJ node for %s."), *FinalInputNodeName);
-		}
-	}
-
 	bool bSuccess = true;
 	int32 MergeNodeInputIdx = 0;
 	if (bInExportCurves)

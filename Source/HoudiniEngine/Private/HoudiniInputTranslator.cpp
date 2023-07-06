@@ -3043,6 +3043,15 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 	// Marshall the Static Mesh to Houdini
 	FString SMCName = InObjNodeName + TEXT("_") + SMC->GetName();
 
+	// Does the component generate unique to it, or does it use an asset directly? In cases where the component
+	// generates its own data (perhaps derived from an asset, such as a static mesh) there will be no separation
+	// between the component and the data (asset, for example StaticMesh input) in the ref counted input system. For
+	// example StaticMeshComponent uses a StaticMesh, those create separate nodes for the component and the asset (and
+	// its variations) in the input system. But a SplineMeshComponent generates a deformed mesh unique to it, so
+	// the component's node also acts as the main/reference node for what would be the asset data it uses (although
+	// additional nodes can be created for options/variations).
+	const bool bComponentGeneratesData = SMC->IsA<USplineMeshComponent>();
+
 	FUnrealObjectInputHandle InputNodeHandle;
 	bool bSuccess = true;
 	if (bImportAsReference) 
@@ -3090,7 +3099,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 			true, 
 			bInputNodesCanBeDeleted, 
 			bPreferNaniteFallbackMesh,
-			bExportMaterialParameters);
+			bExportMaterialParameters,
+			bComponentGeneratesData);
 	}
 
 	InObject->SetImportAsReference(bImportAsReference);
@@ -3098,19 +3108,26 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 	InObject->SetImportAsReferenceBboxEnabled(bImportAsReferenceBboxEnabled);
 	InObject->SetImportAsReferenceMaterialEnabled(bImportAsReferenceMaterialEnabled);
 
-	// Create/update the node in the input manager
+	// Create/update the node in the input manager if the static mesh component uses an asset directly.
 	if (bUseRefCountedInputSystem)
 	{
-		FUnrealObjectInputOptions Options(
-			bImportAsReference, bImportAsReferenceRotScaleEnabled, bExportLODs, bExportSockets, bExportColliders);
-		constexpr bool bIsLeaf = false;
-		FUnrealObjectInputIdentifier SMCIdentifier(SMC, Options, bIsLeaf);
-		FUnrealObjectInputHandle Handle;
-		if (!FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(SMCIdentifier, {InputNodeHandle}, Handle, true, bInputNodesCanBeDeleted))
-			return false;
-		
-		FHoudiniEngineUtils::GetHAPINodeId(Handle, CreatedNodeId);
-		InObject->InputNodeHandle = Handle;
+		if (!bComponentGeneratesData)
+		{
+			FUnrealObjectInputOptions Options(
+				bImportAsReference, bImportAsReferenceRotScaleEnabled, bExportLODs, bExportSockets, bExportColliders);
+			constexpr bool bIsLeaf = false;
+			FUnrealObjectInputIdentifier SMCIdentifier(SMC, Options, bIsLeaf);
+			FUnrealObjectInputHandle Handle;
+			if (!FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(SMCIdentifier, {InputNodeHandle}, Handle, true, bInputNodesCanBeDeleted))
+				return false;
+			
+			FHoudiniEngineUtils::GetHAPINodeId(Handle, CreatedNodeId);
+			InObject->InputNodeHandle = Handle;
+		}
+		else
+		{
+			InObject->InputNodeHandle = InputNodeHandle;
+		}
 	}
 	
 	// Update this input object's OBJ NodeId
@@ -3804,10 +3821,12 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscapeSplinesComponent(
 
 	const FString SplinesComponentName = InObjNodeName + TEXT("_") + SplinesComponent->GetName();
 
+	static constexpr bool bForceReferenceInputNodeCreation = true;
 	static constexpr bool bLandscapeSplinesExportCurves = true;
 	FUnrealObjectInputHandle CreatedSplinesNodeHandle;
 	const bool bSuccess = FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 		SplinesComponent,
+		bForceReferenceInputNodeCreation,
 		CreatedNodeId,
 		CreatedSplinesNodeHandle,
 		SplinesComponentName,

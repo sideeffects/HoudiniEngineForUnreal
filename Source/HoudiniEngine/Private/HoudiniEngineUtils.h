@@ -1253,11 +1253,12 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		// Helper to build identifiers for static/skeletal mesh inputs based on options (such as LODs, Colliders, Sockets)
 		static bool BuildMeshInputObjectIdentifiers(
-			UObject const* const InMesh,
+			UObject const* const InInputObject,
 			const bool bInExportMainMesh,
 			const bool bInExportLODs,
 			const bool bInExportSockets,
 			const bool bInExportColliders,
+			const bool bForceCreateReferenceNode,
 			bool &bOutSingleLeafNodeOnly,
 			FUnrealObjectInputIdentifier& OutReferenceNode,
 			TArray<FUnrealObjectInputIdentifier>& OutPerOptionIdentifiers);
@@ -1268,6 +1269,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const bool bInExportSplineCurves,
 			const bool bInExportControlPoints,
 			const bool bInExportLeftRightCurves,
+			const bool bForceCreateReferenceNode,
 			bool &bOutSingleLeafNodeOnly,
 			FUnrealObjectInputIdentifier& OutReferenceNode,
 			TArray<FUnrealObjectInputIdentifier>& OutPerOptionIdentifiers);

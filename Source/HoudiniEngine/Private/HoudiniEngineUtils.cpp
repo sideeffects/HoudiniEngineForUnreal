@@ -8446,11 +8446,12 @@ FHoudiniEngineUtils::GetReferencedNodes(const FUnrealObjectInputHandle& InRefNod
 
 bool
 FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
-	UObject const* const InMesh,
+	UObject const* const InInputObject,
 	const bool bInExportMainMesh,
 	const bool bInExportLODs,
 	const bool bInExportSockets,
 	const bool bInExportColliders,
+	const bool bForceCreateReferenceNode,
 	bool &bOutSingleLeafNodeOnly,
 	FUnrealObjectInputIdentifier& OutReferenceNode,
 	TArray<FUnrealObjectInputIdentifier>& OutPerOptionIdentifiers)
@@ -8467,9 +8468,6 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 		bDefaultExportSockets,
 		bDefaultExportColliders);
 
-	UStaticMesh const* const SM = Cast<UStaticMesh>(InMesh);
-	USkeletalMesh const* const SK = Cast<USkeletalMesh>(InMesh);
-
 	// Determine number of leaves
 	uint32 NumLeaves = 0;
 	if (bInExportMainMesh)
@@ -8480,7 +8478,7 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 		NumLeaves++;
 	if (bInExportColliders)
 		NumLeaves++;
-	if (NumLeaves <= 1)
+	if (NumLeaves <= 1 && !bForceCreateReferenceNode)
 	{
 		// Only one active option, we can create a leaf node and not a reference node
 		FUnrealObjectInputOptions Options = DefaultOptions;
@@ -8491,7 +8489,7 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		bOutSingleLeafNodeOnly = true;
 		OutReferenceNode = FUnrealObjectInputIdentifier();
-		OutPerOptionIdentifiers = {FUnrealObjectInputIdentifier((SM ? SM : (SK ? SK : InMesh)), Options, bIsLeaf)};
+		OutPerOptionIdentifiers = {FUnrealObjectInputIdentifier(InInputObject, Options, bIsLeaf)};
 		return true;
 	}
 
@@ -8504,7 +8502,7 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 		Options.bExportColliders = bInExportColliders;
 		
 		constexpr bool bIsLeaf = false;
-		OutReferenceNode = FUnrealObjectInputIdentifier((SM ? SM : (SK ? SK : InMesh)), Options, bIsLeaf);
+		OutReferenceNode = FUnrealObjectInputIdentifier(InInputObject, Options, bIsLeaf);
 	}
 
 	// Construct per-option identifiers
@@ -8515,7 +8513,7 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		// TODO: add a specific main mesh option?
-		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier((SM ? SM : (SK ? SK : InMesh)), Options, bIsLeaf));
+		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InInputObject, Options, bIsLeaf));
 	}
 	
 	if (bInExportLODs)
@@ -8523,7 +8521,7 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		Options.bExportLODs = true;
-		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier((SM ? SM : (SK ? SK : InMesh)), Options, bIsLeaf));
+		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InInputObject, Options, bIsLeaf));
 	}
 
 	if (bInExportSockets)
@@ -8531,7 +8529,7 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		Options.bExportSockets = true;
-		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier((SM ? SM : (SK ? SK : InMesh)), Options, bIsLeaf));
+		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InInputObject, Options, bIsLeaf));
 	}
 
 	if (bInExportColliders)
@@ -8539,7 +8537,7 @@ FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		Options.bExportColliders = true;
-		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier((SM ? SM : (SK ? SK : InMesh)), Options, bIsLeaf));
+		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InInputObject, Options, bIsLeaf));
 	}
 
 	OutPerOptionIdentifiers = MoveTemp(PerOptionIdentifiers);
@@ -8552,6 +8550,7 @@ FHoudiniEngineUtils::BuildLandscapeSplinesInputObjectIdentifiers(
 	const bool bInExportSplineCurves,
 	const bool bInExportControlPoints,
 	const bool bInExportLeftRightCurves,
+	const bool bForceCreateReferenceNode,
 	bool &bOutSingleLeafNodeOnly,
 	FUnrealObjectInputIdentifier& OutReferenceNode,
 	TArray<FUnrealObjectInputIdentifier>& OutPerOptionIdentifiers)
@@ -8566,7 +8565,7 @@ FHoudiniEngineUtils::BuildLandscapeSplinesInputObjectIdentifiers(
 		NumLeaves++;
 	if (bInExportLeftRightCurves)
 		NumLeaves++;
-	if (NumLeaves <= 1)
+	if (NumLeaves <= 1 && !bForceCreateReferenceNode)
 	{
 		// Only one active option, we can create a leaf node and not a reference node
 		FUnrealObjectInputOptions Options = DefaultOptions;
