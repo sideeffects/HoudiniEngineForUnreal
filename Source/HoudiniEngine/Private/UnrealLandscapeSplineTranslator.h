@@ -31,6 +31,7 @@
 #include "HAPI/HAPI_Common.h"
 #include "Landscape/Classes/LandscapeSplinesComponent.h"
 
+class FLandscapeSplineControlPointAttributes;
 struct FLandscapeSplineInterpPoint;
 class ALandscapeProxy;
 class ULandscapeSplinesComponent;
@@ -38,6 +39,9 @@ class UMaterialInterface;
 class UStaticMesh;
 
 class FUnrealObjectInputHandle;
+struct FLandscapeSplineSegmentMeshData;
+struct FLandscapeSplinesControlPointData;
+struct FLandscapeSplinesData;
 
 
 enum class EHoudiniLandscapeSplineCurve : uint8
@@ -46,100 +50,6 @@ enum class EHoudiniLandscapeSplineCurve : uint8
 	Center = 1,
 	Left = 2,
 	Right = 3
-};
-
-struct FLandscapeSplineSegmentMeshData
-{
-	/** Per-segment mesh refs */
-	TArray<FString> MeshRefs;
-	
-	/** Mesh material override, the outer index is material 0, 1, 2 ... the inner index is the segment index. */
-	TArray<TArray<FString>> MeshMaterialOverrideRefs;
-
-	/** Mesh scale. */
-	TArray<float> MeshScales;
-};
-
-struct FLandscapeSplinesData
-{
-	/** Point positions (xyz) for all segments. */
-	TArray<float> PointPositions;
-
-	/** Vertex counts: the number of vertices per landscape spline. */
-	TArray<int32> VertexCounts;
-
-	/** Per-segment paint layer names */
-	TArray<FString> SegmentPaintLayerNames;
-
-	/** Per-segment bRaiseTerrain */
-	TArray<int8> SegmentRaiseTerrains;
-
-	/** Per-segment bLowerTerrain */
-	TArray<int8> SegmentLowerTerrains;
-
-	/** Static mesh attribute, the outer index is mesh 0, 1, 2 ... The struct contains the per-segment data */
-	TArray<FLandscapeSplineSegmentMeshData> PerMeshSegmentData;
-
-	/**
-	 * The mesh socket names on the splines' points, each index is a point index. Only the point indices that
-	 * correspond to control points (first and last point of each segment) will have values set, the rest of the
-	 * array will contain empty strings.
-	 */
-	TArray<FString> PointConnectionSocketNames;
-
-	/**
-	 * If a point corresponds with a control point on the spline, this contains the control point name. If the
-	 * point does not correspond with a control point it'll be the empty string.
-	 */
-	TArray<FString> ControlPointNames;
-
-	/** If a point corresponds with a control point on the spline, this contains the control point's half-width. */
-	TArray<float> ControlPointHalfWidths;
-
-	/**
-	 * If a point corresponds with a control point on the spline, this contains the control point's tangent length
-	 * for the segment connection.
-	 */
-	TArray<float> ControlPointTangentLengths;
-};
-
-struct FLandscapeSplinesControlPointData
-{
-	/**
-	 * The control point positions of the splines. These are the original positions unaffected by connection mesh
-	 * sockets.
-	 */
-	TArray<float> ControlPointPositions;
-
-	/** Control point rotations. */
-	TArray<float> ControlPointRotations;
-	
-	/** Control paint layer names */
-	TArray<FString> ControlPointPaintLayerNames;
-	
-	/** Control bRaiseTerrain */
-	TArray<int8> ControlPointRaiseTerrains;
-	
-	/** Control bLowerTerrain */
-	TArray<int8> ControlPointLowerTerrains;
-
-	/** The StaticMesh of each control point. */
-	TArray<FString> ControlPointMeshRefs;
-
-	/**
-	 * The Material Override refs of each control point. The outer index material override index, the inner index
-	 * is control point index.
-	 */
-	TArray<TArray<FString>> PerMaterialOverrideControlPointRefs;
-
-	/** The static mesh scale of each control point. */
-	TArray<float> ControlPointMeshScales;
-
-	/** The names of the control points. */
-	TArray<FString> ControlPointNames;
-
-	/** The control point half-width. */
-	TArray<float> ControlPointHalfWidths;
 };
 
 
@@ -212,7 +122,7 @@ public:
 		const FString& InNodeName,
 		HAPI_NodeId& OutNodeId);
 
-protected:
+private:
 	/**
 	 * @brief Extract landscape splines data arrays: positions, and various attributes.
 	 * @param InSplinesComponent The landscape splines component.
@@ -233,7 +143,7 @@ protected:
 	 * @param OutSplinesControlPointData The struct to extract data into.
 	 * @return True if data was successfully extracted.
 	 */
-	static bool ExtractLandscapeSplineControlPointData(
+	static bool ExtractLandscapeSplineControlPointsData(
 		ULandscapeSplinesComponent* const InSplinesComponent,
 		FLandscapeSplinesControlPointData& OutSplinesControlPointData);
 
@@ -305,4 +215,7 @@ protected:
 
 	static bool AddLandscapeSplineControlPointMeshScaleAttribute(
 		const HAPI_NodeId& InNodeId, const TArray<float>& InTangentLengths);
+
+	static bool AddLandscapeSplineControlPointAttributes(
+		const HAPI_NodeId& InNodeId, const FLandscapeSplineControlPointAttributes& InControlPointAttributes);
 };
