@@ -3212,7 +3212,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSplineMeshComponents(
 	FHoudiniPackageParams PackageParams;
 	PackageParams.PackageMode = EPackageMode::CookToTemp;
 	PackageParams.ReplaceMode = EPackageReplaceMode::ReplaceExistingAssets;
-	PackageParams.HoudiniAssetActorName = ParentActor->GetName();
+	PackageParams.HoudiniAssetActorName = ParentActor->GetActorNameOrLabel();
 	PackageParams.HoudiniAssetName = ParentActor->GetClass()->GetName();
 	PackageParams.ObjectName = FirstSMC->GetName();
 	PackageParams.ComponentGUID = InParentActorObject->GetSplinesMeshPackageGuid();
