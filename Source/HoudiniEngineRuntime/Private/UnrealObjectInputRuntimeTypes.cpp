@@ -574,9 +574,11 @@ bool FUnrealObjectInputReferenceNode::AreReferencedHAPINodesValid() const
 
 
 // Marks this and its referenced nodes as dirty. See IsDirty().
-void FUnrealObjectInputReferenceNode::MarkAsDirty()
+void FUnrealObjectInputReferenceNode::MarkAsDirty(const bool bInAlsoDirtyReferencedNodes)
 {
-	if (ReferencedNodes.Num() == 0)
+	MarkAsDirty();
+	
+	if (!bInAlsoDirtyReferencedNodes || ReferencedNodes.Num() == 0)
 		return;
 
 	IUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
@@ -585,6 +587,6 @@ void FUnrealObjectInputReferenceNode::MarkAsDirty()
 
 	for (const FUnrealObjectInputHandle& Handle : ReferencedNodes)
 	{
-		Manager->MarkAsDirty(Handle.GetIdentifier());
+		Manager->MarkAsDirty(Handle.GetIdentifier(), bInAlsoDirtyReferencedNodes);
 	}
 }
