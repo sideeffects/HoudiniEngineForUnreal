@@ -28,6 +28,7 @@
 
 #include "HAPI/HAPI_Common.h"
 
+#include "HoudiniApi.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
@@ -370,17 +371,30 @@ FUnrealObjectInputManagerImpl::EnsureParentsExist(
 
 	// Create an obj subnet
 	const FString NodeLabel = GetDefaultNodeName(ParentIdentifier);
-	constexpr bool bCookOnCreation = true;
-	const FString OperatorName = GrandParentNodeId < 0 ? TEXT("Object/subnet") : TEXT("subnet");
+	static constexpr bool bCookOnCreation = true;
+	const bool bIsTopLevelNode = GrandParentNodeId < 0;
+	const FString OperatorName = bIsTopLevelNode ? TEXT("Object/subnet") : TEXT("subnet");
 	int32 ParentNodeId = -1;
-    const HAPI_Result ResultVariable = FHoudiniEngineUtils::CreateNode(
-    	GrandParentNodeId, OperatorName, NodeLabel, bCookOnCreation, &ParentNodeId);
-    if (ResultVariable != HAPI_RESULT_SUCCESS)
-    {
-    	const FString ErrorMessage = FHoudiniEngineUtils::GetErrorDescription();
-        HOUDINI_LOG_WARNING(TEXT( "Failed to create node via HAPI: %s" ), *ErrorMessage);
-        return false;
-    }
+	const HAPI_Result ResultVariable = FHoudiniEngineUtils::CreateNode(
+		GrandParentNodeId, OperatorName, NodeLabel, bCookOnCreation, &ParentNodeId);
+	if (ResultVariable != HAPI_RESULT_SUCCESS)
+	{
+		const FString ErrorMessage = FHoudiniEngineUtils::GetErrorDescription();
+		HOUDINI_LOG_WARNING(TEXT( "Failed to create node via HAPI: %s" ), *ErrorMessage);
+		return false;
+	}
+
+	// In session sync, if the subnet's display flag is enabled, it can cause slow deletion / creation of nodes inside
+	// nested subnets due to display flag propagation checks. So we attempt to disable the display flag of top level
+	// subnets here.
+	if (bIsTopLevelNode)
+	{
+		if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetNodeDisplay(FHoudiniEngine::Get().GetSession(), ParentNodeId, 0))
+		{
+			const FString ErrorMessage = FHoudiniEngineUtils::GetErrorDescription();
+			HOUDINI_LOG_WARNING(TEXT("Failed to disable the display flag of an input subnet via HAPI: %s"), *ErrorMessage);
+		}
+	}
 
 	if (!bParentEntryExists || !ParentHandle.IsValid())
 		AddContainer(ParentIdentifier, ParentNodeId, ParentHandle);
@@ -411,15 +425,25 @@ FUnrealObjectInputManagerImpl::IsDirty(const FUnrealObjectInputIdentifier& InIde
 }
 
 bool
-FUnrealObjectInputManagerImpl::MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier)
+FUnrealObjectInputManagerImpl::MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier, const bool bInAlsoDirtyReferencedNodes)
 {
 	FUnrealObjectInputNode* Node = nullptr;
 	if (!GetNodeByIdentifier(InIdentifier, Node))
 		return false;
 	if (!Node)
 		return false;
-	
-	Node->MarkAsDirty();
+
+	if (bInAlsoDirtyReferencedNodes && InIdentifier.GetNodeType() == EUnrealObjectInputNodeType::Reference)
+	{
+		FUnrealObjectInputReferenceNode* const RefNode = static_cast<FUnrealObjectInputReferenceNode*>(Node);
+		if (!RefNode)
+			return false;
+		RefNode->MarkAsDirty(bInAlsoDirtyReferencedNodes);
+	}
+	else
+	{
+		Node->MarkAsDirty();
+	}
 
 	return true;
 }

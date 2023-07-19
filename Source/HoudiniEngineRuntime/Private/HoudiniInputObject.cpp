@@ -661,7 +661,10 @@ UHoudiniInputObject::MarkChanged(const bool& bInChanged)
 	SetNeedsToTriggerUpdate(bInChanged);
 
 	if (bInChanged && InputNodeHandle.IsValid())
-		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier());
+	{
+		static constexpr bool bAlsoDirtyReferencedNodes = true;
+		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
+	}
 }
 
 void
@@ -671,7 +674,10 @@ UHoudiniInputActor::MarkChanged(const bool& bInChanged)
 	SetNeedsToTriggerUpdate(bInChanged);
 
 	if (bInChanged && InputNodeHandle.IsValid())
-		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier());
+	{
+		static constexpr bool bAlsoDirtyReferencedNodes = true;
+		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
+	}
 
 	for (auto& CurComponent : ActorComponents)
 	{
@@ -1590,10 +1596,14 @@ bool
 UHoudiniInputMeshComponent::HasComponentChanged() const
 {
 	UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(InputObject.LoadSynchronous());
+	UStaticMesh* SMCSM = nullptr;
+	if (IsValid(SMC))
+		SMCSM = SMC->GetStaticMesh();
+	
 	UStaticMesh* MySM = StaticMesh.Get();
 
 	// Return true if SMC's static mesh has been modified
-	return (MySM != SMC->GetStaticMesh());
+	return (MySM != SMCSM);
 }
 
 bool
