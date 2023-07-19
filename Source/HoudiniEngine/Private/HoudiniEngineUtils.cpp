@@ -1104,7 +1104,7 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	}
 	else if (IsValid(HoudiniAssetComponent) && IsValid(HoudiniAssetComponent->GetOwner()))
 	{
-		HoudiniAssetActorName = HoudiniAssetComponent->GetOwner()->GetName();
+		HoudiniAssetActorName = HoudiniAssetComponent->GetOwner()->GetActorNameOrLabel();
 	}
 
 	const bool bHasBakeNameUIOverride = !InOutputObject.BakeName.IsEmpty(); 

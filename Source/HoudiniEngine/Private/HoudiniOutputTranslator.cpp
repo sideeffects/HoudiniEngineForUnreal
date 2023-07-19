@@ -190,7 +190,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 
 	PackageParams.OuterPackage = HAC->GetComponentLevel();
 	PackageParams.HoudiniAssetName = HAC->GetHoudiniAsset() ? HAC->GetHoudiniAsset()->GetName() : FString();
-	PackageParams.HoudiniAssetActorName = HAC->GetOwner()->GetName();
+	PackageParams.HoudiniAssetActorName = HAC->GetOwner()->GetActorNameOrLabel();
 	PackageParams.ComponentGUID = HAC->GetComponentGUID();
 	PackageParams.ObjectName = FString();
 
@@ -665,7 +665,7 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 
 	PackageParams.OuterPackage = HAC->GetComponentLevel();
 	PackageParams.HoudiniAssetName = HAC->GetHoudiniAsset() ? HAC->GetHoudiniAsset()->GetName() : FString();
-	PackageParams.HoudiniAssetActorName = HAC->GetOwner()->GetName();
+	PackageParams.HoudiniAssetActorName = HAC->GetOwner()->GetActorNameOrLabel();
 	PackageParams.ComponentGUID = HAC->GetComponentGUID();
 	PackageParams.ObjectName = FString();
 
@@ -1984,7 +1984,7 @@ FHoudiniOutputTranslator::UpdateChangedOutputs(UHoudiniAssetComponent* HAC)
 
 	PackageParams.OuterPackage = HAC->GetComponentLevel();
 	PackageParams.HoudiniAssetName = HAC->GetHoudiniAsset() ? HAC->GetHoudiniAsset()->GetName() : FString();
-	PackageParams.HoudiniAssetActorName = HAC->GetOwner()->GetName();
+	PackageParams.HoudiniAssetActorName = HAC->GetOwner()->GetActorNameOrLabel();
 	PackageParams.ComponentGUID = HAC->GetComponentGUID();
 	PackageParams.ObjectName = FString();
 	
