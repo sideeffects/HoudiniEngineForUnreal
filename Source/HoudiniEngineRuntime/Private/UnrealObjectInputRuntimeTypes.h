@@ -471,10 +471,13 @@ public:
 	/** Returns true if all of the nodes that this node references have valid HAPI nodes. */
 	virtual bool AreReferencedHAPINodesValid() const;
 
-	// Marks this and its referenced nodes as dirty. See IsDirty().
-	virtual void MarkAsDirty() override;
+	/** Marks this and optionally its referenced nodes as dirty. See IsDirty(). */
+	virtual void MarkAsDirty(bool bInAlsoDirtyReferencedNodes);
 
 private:
+	/** Marks this node as dirty. See IsDirty(). Internal use only, prefer MarkAsDirty(bool bInAlsoDirtyReferencedNodes). */
+	virtual void MarkAsDirty() override { FUnrealObjectInputLeafNode::MarkAsDirty(); }
+
 	/** The set of nodes that this node references, by handle. */
 	TSet<FUnrealObjectInputHandle> ReferencedNodes;
 };
