@@ -275,9 +275,11 @@ public:
 	/**
 	 * Marks the node as dirty. See IsDirty().
 	 * @param InIdentifier The identifier of the node to mark as dirty.
+	 * @param bInAlsoDirtyReferencedNodes For reference nodes: if true, also dirty the referenced nodes, if False only
+	 * the reference node itself is dirtied.
 	 * @returns true if the node was found.
 	 */
-	virtual bool MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier) = 0;
+	virtual bool MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier, bool bInAlsoDirtyReferencedNodes) = 0;
 
 	/**
 	 * Clears the dirty flag on the node. See IsDirty().
@@ -399,7 +401,7 @@ public:
 	virtual inline bool EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle, const bool& bInputNodesCanBeDeleted) override;
 
 	virtual inline bool IsDirty(const FUnrealObjectInputIdentifier& InIdentifier) const override;
-	virtual inline bool MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier) override;
+	virtual inline bool MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier, bool bInAlsoDirtyReferencedNodes) override;
 	virtual inline bool ClearDirtyFlag(const FUnrealObjectInputIdentifier& InIdentifier) override;
 
 	virtual inline bool Clear() override;
@@ -663,10 +665,10 @@ FUnrealObjectInputManager::IsDirty(const FUnrealObjectInputIdentifier& InIdentif
 }
 
 bool
-FUnrealObjectInputManager::MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier)
+FUnrealObjectInputManager::MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier, const bool bInAlsoDirtyReferencedNodes)
 {
 	if (IUnrealObjectInputManager* const Impl = GetImplementation())
-		return Impl->MarkAsDirty(InIdentifier);
+		return Impl->MarkAsDirty(InIdentifier, bInAlsoDirtyReferencedNodes);
 	return false;
 }
 

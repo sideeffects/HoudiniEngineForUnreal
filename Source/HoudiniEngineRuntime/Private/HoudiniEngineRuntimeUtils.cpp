@@ -760,7 +760,7 @@ FHoudiniEngineRuntimeUtils::IsInputNodeDirty(const FUnrealObjectInputIdentifier&
 }
 
 bool
-FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(const FUnrealObjectInputIdentifier& InIdentifier)
+FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(const FUnrealObjectInputIdentifier& InIdentifier, const bool bInAlsoDirtyReferencedNodes)
 {
 	if (!InIdentifier.IsValid())
 		return false;
@@ -769,7 +769,7 @@ FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(const FUnrealObjectInputIdentif
 	if (!Manager)
 		return false;
 
-	return Manager->MarkAsDirty(InIdentifier);
+	return Manager->MarkAsDirty(InIdentifier, bInAlsoDirtyReferencedNodes);
 }
 
 bool

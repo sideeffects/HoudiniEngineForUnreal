@@ -124,7 +124,7 @@ public:
 		const bool& bInputNodesCanBeDeleted);
 
 	virtual bool IsDirty(const FUnrealObjectInputIdentifier& InIdentifier) const override;
-	virtual bool MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier) override;
+	virtual bool MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier, bool bInAlsoDirtyReferencedNodes) override;
 	virtual bool ClearDirtyFlag(const FUnrealObjectInputIdentifier& InIdentifier) override;
 
 	virtual bool Clear() override;
