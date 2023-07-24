@@ -28,12 +28,9 @@
 
 #include "HAPI/HAPI_Common.h"
 #include "HoudiniOutput.h"
-
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-
 #include "HoudiniGenericAttribute.h"
-
 #include "HoudiniInstanceTranslator.generated.h"
 
 class UStaticMesh;
@@ -52,7 +49,8 @@ enum InstancerComponentType
 	StaticMeshComponent = 4,
 	HoudiniStaticMeshComponent = 5,
 	Foliage = 6,
-	GeometryCollectionComponent = 7
+	GeometryCollectionComponent = 7,
+	LevelInstance = 8
 };
 
 USTRUCT()
@@ -233,7 +231,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* InPreBuiltInstancedOutputPartData = nullptr);
 
 		static int CreateAllInstancersFromHoudiniOutputs(
-			const TArray<UHoudiniOutput*>& InSubsets,
+			const TArray<UHoudiniOutput*>& OutputsToUpdate,
 			const TArray<UHoudiniOutput*>& InAllOutputs,
 			UObject* InOuterComponent,
 			const FHoudiniPackageParams& InPackageParms,
@@ -322,24 +320,26 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			TArray<FTransform>& OutProcessedTransforms);
 
 		// Creates a new component or updates the previous one if possible
-		static bool CreateOrUpdateInstanceComponent(
+		static bool CreateOrUpdateInstancer(
 			UObject* InstancedObject,
 			const TArray<FTransform>& InstancedObjectTransforms,
 			const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
 			const FHoudiniGeoPartObject& InstancerGeoPartObject,
 			const FHoudiniPackageParams& InPackageParams,
 			USceneComponent* ParentComponent,
-			TArray<USceneComponent*>& OutputComponents,
+			TArray<USceneComponent*>& OldInstancerComponents,
 			TArray<USceneComponent*>& NewComponents,
-			const bool& InIsSplitMeshInstancer,
-			const bool& InIsFoliageInstancer,
+			TArray<AActor*>& OldActors,
+			TArray<AActor*>& NewActors,
+			const bool InIsSplitMeshInstancer,
+			const bool InIsFoliageInstancer,
 			const TArray<UMaterialInterface *>& InstancerMaterials,
 			const TArray<int32>& OriginalInstancerObjectIndices, 
 			int32& FoliageTypeCount,
 			UFoliageType*& FoliageTypeUsed,
 			UWorld* & WorldUsed,
-			const bool& bForceHISM = false,
-			const bool& bForceInstancer = false);
+			const bool bForceHISM = false,
+			const bool bForceInstancer = false);
 
 		// Create or update an ISMC / HISMC
 		static bool CreateOrUpdateInstancedStaticMeshComponent(
@@ -408,6 +408,18 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			USceneComponent* ParentComponent,
 			UFoliageType* & CookedFoliageType,
 			TArray<USceneComponent*> & NewInstancedComponents,
+			TArray<UMaterialInterface*> InstancerMaterials);
+
+
+		// Create or update Level instances
+		static bool CreateOrUpdateLevelInstanceActors(
+			UWorld* LevelInstanceWorld,
+			const TArray<FTransform>& InstancedObjectTransforms,
+			const int32& InOriginalIndex,
+			const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
+			const FHoudiniGeoPartObject& InstancerGeoPartObject,
+			USceneComponent* ParentComponent,
+			TArray<AActor*>& NewInstanceActors,
 			TArray<UMaterialInterface*> InstancerMaterials);
 
 		// Helper fumction to properly remove/destroy a component

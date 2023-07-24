@@ -52,7 +52,7 @@ GetTypeHash(const FHoudiniOutputObjectIdentifier& HoudiniOutputObjectIdentifier)
 }
 
 void
-FHoudiniInstancedOutput::SetVariationObjectAt(const int32& AtIndex, UObject* InObject)
+FHoudiniInstancedOutput::SetVariationObjectAt(const int32 AtIndex, UObject* InObject)
 {
 	// Resize the array if needed
 	if (VariationObjects.Num() <= AtIndex)
@@ -69,7 +69,7 @@ FHoudiniInstancedOutput::SetVariationObjectAt(const int32& AtIndex, UObject* InO
 }
 
 bool 
-FHoudiniInstancedOutput::SetTransformOffsetAt(const float& Value, const int32& AtIndex, const int32& PosRotScaleIndex, const int32& XYZIndex)
+FHoudiniInstancedOutput::SetTransformOffsetAt(const float Value, const int32 AtIndex, const int32 PosRotScaleIndex, const int32 XYZIndex)
 {
 	FTransform* Transform = VariationTransformOffsets.IsValidIndex(AtIndex) ? &VariationTransformOffsets[AtIndex] : nullptr;
 	if (!Transform)
@@ -130,7 +130,7 @@ FHoudiniInstancedOutput::SetTransformOffsetAt(const float& Value, const int32& A
 }
 
 float 
-FHoudiniInstancedOutput::GetTransformOffsetAt(const int32& AtIndex, const int32& PosRotScaleIndex, const int32& XYZIndex)
+FHoudiniInstancedOutput::GetTransformOffsetAt(const int32 AtIndex, const int32 PosRotScaleIndex, const int32 XYZIndex)
 {
 	FTransform* Transform = VariationTransformOffsets.IsValidIndex(AtIndex) ? &VariationTransformOffsets[AtIndex] : nullptr;
 	if (!Transform)

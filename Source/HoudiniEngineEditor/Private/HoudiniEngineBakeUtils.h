@@ -29,8 +29,10 @@
 #include "HoudiniPDGAssetLink.h"
 #include "HoudiniOutput.h"
 #include "HoudiniPackageParams.h"
+#include "LevelInstance/LevelInstanceActor.h"
 #include "Materials/MaterialExpression.h"
 
+class ULevelInstanceComponent;
 class UHoudiniAssetComponent;
 class UHoudiniOutput;
 class ALandscapeProxy;
@@ -314,6 +316,28 @@ public:
 		FHoudiniEngineOutputStats& OutBakeStats,
 		AActor* InFallbackActor=nullptr,
 		const FString& InFallbackWorldOutlinerFolder="");
+
+	static bool BakeInstancerOutputToActors_LevelInstances(
+		ALevelInstance * LevelInstance,
+		const UHoudiniAssetComponent* HoudiniAssetComponent,
+		int32 InOutputIndex,
+		const TArray<UHoudiniOutput*>& InAllOutputs,
+		// const TArray<FHoudiniBakedOutput>& InAllBakedOutputs,
+		const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
+		const FHoudiniOutputObject& InOutputObject,
+		FHoudiniBakedOutputObject& InBakedOutputObject,
+		const FDirectoryPath& InBakeFolder,
+		const FDirectoryPath& InTempCookFolder,
+		bool bInReplaceActors,
+		bool bInReplaceAssets,
+		const TArray<FHoudiniEngineBakedActor>& InBakedActors,
+		FHoudiniEngineBakedActor& OutBakedActorEntry,
+		TArray<UPackage*>& OutPackagesToSave,
+		TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
+		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
+		FHoudiniEngineOutputStats& OutBakeStats,
+		AActor* InFallbackActor = nullptr,
+		const FString& InFallbackWorldOutlinerFolder = "");
 
 	static UStaticMesh * DuplicateStaticMeshAndCreatePackageIfNeeded(
 		UStaticMesh * InStaticMesh,
@@ -984,5 +1008,8 @@ public:
 
 	static void RemoveBakedFoliageInstances(UHoudiniAssetComponent* HoudiniAssetComponent, TArray<FHoudiniBakedOutput>& InBakedOutputs);
 
-
+	static void RemoveBakedLevelInstances(
+		UHoudiniAssetComponent* HoudiniAssetComponent, 
+		TArray<FHoudiniBakedOutput>& InBakedOutputs,
+		bool bReplaceActors);
 };

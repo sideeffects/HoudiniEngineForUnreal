@@ -29,7 +29,7 @@
 #include "CoreMinimal.h"
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniEngineRuntimeCommon.h"
-
+#include "LevelInstance/LevelInstanceTypes.h"
 #include "LandscapeProxy.h"
 #include "Misc/StringFormatArg.h"
 #include "UObject/SoftObjectPtr.h"
@@ -286,13 +286,13 @@ struct HOUDINIENGINERUNTIME_API FHoudiniInstancedOutput
 
 public:
 
-	void MarkChanged(const bool& InChanged) { bChanged = InChanged; };
+	void MarkChanged(const bool InChanged) { bChanged = InChanged; };
 
-	void SetVariationObjectAt(const int32& AtIndex, UObject* InObject);
+	void SetVariationObjectAt(const int32 AtIndex, UObject* InObject);
 
-	bool SetTransformOffsetAt(const float& Value, const int32& AtIndex, const int32& PosRotScaleIndex, const int32& XYZIndex);
+	bool SetTransformOffsetAt(const float Value, const int32 AtIndex, const int32 PosRotScaleIndex, const int32 XYZIndex);
 
-	float GetTransformOffsetAt(const int32& AtIndex, const int32& PosRotScaleIndex, const int32& XYZIndex);
+	float GetTransformOffsetAt(const int32 AtIndex, const int32 PosRotScaleIndex, const int32 XYZIndex);
 
 #if WITH_EDITOR
 	void SwitchUniformScaleLock() { bUniformScaleLocked = !bUniformScaleLocked; };
@@ -307,10 +307,6 @@ public:
 
 	UPROPERTY()
 	int32 OriginalObjectIndex = -1;
-
-	// Original HoudiniGeoPartObject used by the instancer
-	//UPROPERTY()
-	//FHoudiniGeoPartObject OriginalHGPO;
 	
 	// Original Instance transforms
 	UPROPERTY()
@@ -340,13 +336,26 @@ public:
 	UPROPERTY()
 	bool bStale = false;
 
-	// Indicates if change the scale of Transfrom Offset of this object uniformly
+	// Indicates if change the scale of Transform Offset of this object uniformly
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	bool bUniformScaleLocked = false;
 #endif
 	// TODO
 	// Color overrides??
+};
+
+// Parameters used to create the level instance.
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FHoudiniLevelInstanceParams
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	ELevelInstanceCreationType Type;
+
+	UPROPERTY()
+	FString OutputName;
 };
 
 USTRUCT()
@@ -413,6 +422,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		// Foliage Type (Baked or user-defined)
 		UPROPERTY()
 		UFoliageType* FoliageType = nullptr;
+
+		// All exported level instance actors.
+		UPROPERTY()
+		TArray<FString> LevelInstanceActors;
 };
 
 // Container to hold the map of baked objects. There should be one of
@@ -457,6 +470,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 		// The main output component
 		UPROPERTY()
 		TArray<UObject*> OutputComponents;
+
+		// The main output component
+		UPROPERTY()
+		TArray<TSoftObjectPtr<AActor>> OutputActors;
 
 		UPROPERTY()
         UObject* OutputComponent_DEPRECATED = nullptr;
@@ -521,7 +538,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 
 		// Object that was instanced.
 		UPROPERTY()
-	    UObject* InstancedObject = nullptr;
+	    UObject* UserFoliageType = nullptr;
 
 		// Foliage Type was that used.
 		UPROPERTY()
@@ -536,6 +553,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 		UPROPERTY()
 		TArray<FHoudiniDataLayer> DataLayers;
 
+		UPROPERTY()
+		FHoudiniLevelInstanceParams LevelInstanceParams;
 };
 
 

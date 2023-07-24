@@ -266,6 +266,10 @@
 #define HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT				"unreal_data_table_rowstruct"
 #define HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWNAME               "unreal_data_table_rowname"
 
+// Level instances
+#define HAPI_UNREAL_ATTRIB_LEVEL_INSTANCE_NAME              "unreal_level_instance_name"
+#define HAPI_UNREAL_ATTRIB_LEVEL_INSTANCE_TYPE              "unreal_level_instance_type"
+
 // Attributes for Curve Outputs
 #define HAPI_UNREAL_ATTRIB_OUTPUT_UNREAL_CURVE				"unreal_output_curve"
 #define HAPI_UNREAL_ATTRIB_OUTPUT_UNREAL_CURVE_LINEAR		"unreal_output_curve_linear"

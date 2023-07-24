@@ -66,6 +66,7 @@
 #include "GeometryCollection/GeometryCollectionActor.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 #include "HoudiniFoliageTools.h"
+#include "HoudiniLevelInstanceUtils.h"
 #include "Engine/UserDefinedStruct.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
@@ -637,6 +638,8 @@ FHoudiniOutputTranslator::UpdateOutputs(
 			Obj.DataLayers = FHoudiniDataLayerUtils::GetDataLayers(Id.GeoId, Id.PartId);;
 		}
 	}
+
+	FHoudiniLevelInstanceUtils::FetchLevelInstanceParameters(HAC->Outputs);
 
 	if (CreatedPackages.Num() > 0)
 	{
