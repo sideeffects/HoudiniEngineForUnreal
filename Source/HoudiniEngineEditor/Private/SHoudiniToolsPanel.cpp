@@ -740,6 +740,10 @@ void SHoudiniToolImportPackage::Construct(const FArguments& InArgs)
     // Row counter for widgets in a uniform grid.
     // Allows us to easily insert rows without having to worry about renumbering everything.
     int row = 0;
+
+    const int RowPackageDirSelector = row++;
+    const int RowPackageName = row++;
+    const int RowPackageLocation = row++;
     
     this->ChildSlot
     [
@@ -816,14 +820,14 @@ void SHoudiniToolImportPackage::Construct(const FArguments& InArgs)
                     // Package Directory Selector
                     //--------------------------
 
-                    + SGridPanel::Slot(0, ++row)
+                    + SGridPanel::Slot(0, RowPackageDirSelector)
                     .VAlign(VAlign_Center)
                     .Padding(0.0f, 0.0f, 12.0f, 0.0f)
                     [
                         SNew(STextBlock)
                         .Text(LOCTEXT("ImportPackage_NameLabel", "Package Directory"))
                     ]
-                    + SGridPanel::Slot(1, row)
+                    + SGridPanel::Slot(1, RowPackageDirSelector)
                     .VAlign(VAlign_Center)
                     .Padding(0.f, 3.0f)
                     [
@@ -835,14 +839,14 @@ void SHoudiniToolImportPackage::Construct(const FArguments& InArgs)
                     // Houdini Tools package name
                     //--------------------------
 			        
-                    + SGridPanel::Slot(0, ++row)
+                    + SGridPanel::Slot(0, RowPackageName)
                     .VAlign(VAlign_Center)
                     .Padding(0.0f, 0.0f, 12.0f, 0.0f)
                     [
                         SNew(STextBlock)
                         .Text(LOCTEXT("ImportPackage_NameLabel", "Name"))
                     ]
-                    + SGridPanel::Slot(1, row)
+                    + SGridPanel::Slot(1, RowPackageName)
                     .VAlign(VAlign_Center)
                     .Padding(0.f, 3.0f)
                     [
@@ -880,14 +884,14 @@ void SHoudiniToolImportPackage::Construct(const FArguments& InArgs)
                     // Houdini Tools package location
                     //--------------------------
 			        
-                    + SGridPanel::Slot(0, ++row)
+                    + SGridPanel::Slot(0, RowPackageLocation)
                     .VAlign(VAlign_Center)
                     .Padding(0.0f, 0.0f, 12.0f, 0.0f)
                     [
                         SNew(STextBlock)
                         .Text(LOCTEXT("ImportPackage_LocationLabel", "Location"))
                     ]
-                    + SGridPanel::Slot(1, row)
+                    + SGridPanel::Slot(1, RowPackageLocation)
                     .VAlign(VAlign_Center)
                     .Padding(0.f, 3.0f)
                     [
