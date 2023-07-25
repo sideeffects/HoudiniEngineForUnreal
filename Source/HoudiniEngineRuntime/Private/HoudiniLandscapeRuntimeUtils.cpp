@@ -102,15 +102,15 @@ FHoudiniLandscapeRuntimeUtils::DestroyLandscape(ALandscape* Landscape)
 	ULandscapeInfo* Info = Landscape->GetLandscapeInfo();
 	if (!IsValid(Info))
 		return;
-#if ENGINE_MINOR_VERSION < 1
-	TArray<ALandscapeStreamingProxy*> Proxies = Info->Proxies;
-	for (ALandscapeStreamingProxy* Proxy : Proxies)
-	{
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = Info->StreamingProxies;
 	for (auto ProxyPtr : Proxies)
 	{
 		ALandscapeStreamingProxy* Proxy = ProxyPtr.Get();
+#else
+	TArray<ALandscapeStreamingProxy*> Proxies = Info->Proxies;
+	for (ALandscapeStreamingProxy* Proxy : Proxies)
+	{
 #endif	
 		if (!IsValid(Proxy))
 			continue;

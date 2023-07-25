@@ -39,7 +39,7 @@
 #include "Runtime/Launch/Resources/Version.h"
 
 #include "UObject/DevObjectVersion.h"
-#if ENGINE_MINOR_VERSION >= 2
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 	#include "UObject/Linker.h"
 #endif
 

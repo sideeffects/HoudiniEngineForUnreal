@@ -116,21 +116,21 @@
 #include "UObject/MetaData.h"
 #include "UObject/Package.h"
 #include "UObject/UnrealType.h"
-#if ENGINE_MINOR_VERSION > 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 	#include "Engine/SkinnedAssetCommon.h"
 #endif
 #include "HoudiniBakeLevelInstanceUtils.h"
 #include "HoudiniLevelInstanceUtils.h"
 #include "IDetailTreeNode.h"
 #include "LevelInstance/LevelInstanceActor.h"
-#if ENGINE_MINOR_VERSION >= 1
-#include "LevelInstance/LevelInstanceComponent.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+	#include "LevelInstance/LevelInstanceComponent.h"
 #endif
 #include "Materials/MaterialExpressionTextureSample.h" 
 #include "WorldPartition/WorldPartition.h"
 #include "WorldPartition/WorldPartitionSubsystem.h"
 
-#if ENGINE_MINOR_VERSION > 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 	#include "Engine/SkinnedAssetCommon.h"
 #endif
 
@@ -1369,7 +1369,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 
 			OutputBakedActors.Reset();
 
-#if ENGINE_MINOR_VERSION >= 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 
 			ALevelInstance * LevelInstance = Cast<ALevelInstance>(Actor.Get());
 			if (IsValid(LevelInstance))
@@ -1830,7 +1830,7 @@ bool FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_LevelInstances(
 	AActor* InFallbackActor,
 	const FString& InFallbackWorldOutlinerFolder)
 {
-#if ENGINE_MINOR_VERSION >= 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	FString ObjectName;
 	UWorld* World = HoudiniAssetComponent->GetWorld();
 	const EPackageReplaceMode AssetPackageReplaceMode = bInReplaceAssets ?
@@ -5453,10 +5453,10 @@ FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
 		{
 			MaterialPackageParams.GetBakeCounterFromBakedAsset(PreviousBakeMaterial, BakeCounter);
 
-#if ENGINE_MINOR_VERSION < 1
-			PreviousBakeMaterialExpressions = PreviousMaterialCast->Expressions;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 			PreviousBakeMaterialExpressions = PreviousMaterialCast->GetExpressionCollection().Expressions;
+#else
+			PreviousBakeMaterialExpressions = PreviousMaterialCast->Expressions;
 #endif
 		}
 	}
@@ -5490,10 +5490,10 @@ FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
 	UMaterial * DuplicatedMaterialCast = Cast<UMaterial>(DuplicatedMaterial);
 	if (DuplicatedMaterialCast)
 	{
-#if ENGINE_MINOR_VERSION < 1
-		auto& MatExpressions = DuplicatedMaterialCast->Expressions;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 		auto& MatExpressions = DuplicatedMaterialCast->GetExpressionCollection().Expressions;
+#else
+		auto& MatExpressions = DuplicatedMaterialCast->Expressions;
 #endif
 		const int32 NumExpressions = MatExpressions.Num();
 		for (int32 ExpressionIdx = 0; ExpressionIdx < NumExpressions; ++ExpressionIdx)
@@ -7807,11 +7807,11 @@ FHoudiniEngineBakeUtils::MakeUniqueObjectNameIfNeeded(UObject* InOuter, const UC
 	{
 		if (!IsValid(InOuter))
 		{
-#if ENGINE_MINOR_VERSION < 1
-			ExistingObject = StaticFindObject(nullptr, ANY_PACKAGE, *(CandidateName.ToString()));
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 			// UE5.1 deprecated ANY_PACKAGE
 			ExistingObject = StaticFindFirstObject(nullptr, *(CandidateName.ToString()), EFindFirstObjectOptions::NativeFirst);
+#else
+			ExistingObject = StaticFindObject(nullptr, ANY_PACKAGE, *(CandidateName.ToString()));
 #endif
 		}
 		else
@@ -7833,10 +7833,10 @@ FHoudiniEngineBakeUtils::MakeUniqueObjectNameIfNeeded(UObject* InOuter, const UC
 			if (!bAppendedNumber)
 			{
 				const bool bSplitName = false;
-#if ENGINE_MINOR_VERSION < 1
-				CandidateName = FName(*InName, NAME_EXTERNAL_TO_INTERNAL(1), FNAME_Add, bSplitName);
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 				CandidateName = FName(*InName, NAME_EXTERNAL_TO_INTERNAL(1), bSplitName);
+#else
+				CandidateName = FName(*InName, NAME_EXTERNAL_TO_INTERNAL(1), FNAME_Add, bSplitName);
 #endif
 				bAppendedNumber = true;
 			}
@@ -7985,11 +7985,11 @@ FHoudiniEngineBakeUtils::GetBakeActorClassOverride(const FName& InActorClassName
 	UClass* FoundClass = LoadClass<AActor>(nullptr, *ActorClassNameString);
 	if (!IsValid(FoundClass))
 	{
-#if ENGINE_MINOR_VERSION < 1
-		FoundClass = FindObjectSafe<UClass>(ANY_PACKAGE, *ActorClassNameString);
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 		// UE5.1 deprecated ANY_PACKAGE
-		FoundClass = FindFirstObjectSafe<UClass>(*ActorClassNameString, EFindFirstObjectOptions::NativeFirst);
+		FoundClass = FindFirstObjectSafe<UClass>(*ActorClassNameString, EFindFirstObjectOptions::NativeFirst); 
+#else
+		FoundClass = FindObjectSafe<UClass>(ANY_PACKAGE, *ActorClassNameString);
 #endif
 	}
 

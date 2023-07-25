@@ -13,7 +13,7 @@
 #include "GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollection/GeometryCollectionObject.h"
 #include "GeometryCollection/GeometryCollectionActor.h"
-#if ENGINE_MINOR_VERSION > 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 	#include "MaterialDomain.h"
 #endif
 #include "Materials/Material.h"
@@ -1255,11 +1255,11 @@ FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 		TManagedArray<FVector3f>& TargetTangentU = GeometryCollection->TangentU;
 		TManagedArray<FVector3f>& TargetTangentV = GeometryCollection->TangentV;
 		TManagedArray<FVector3f>& TargetNormal = GeometryCollection->Normal;
-#if ENGINE_MINOR_VERSION < 2
-		TManagedArray<TArray<FVector2f>>& TargetUVs = GeometryCollection->UVs;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 		// UE5.2 removed direct access to UVs
-		// We need to use ModifyUVs to edit them...
+		// We need to use ModifyUVs to edit them...		
+#else
+		TManagedArray<TArray<FVector2f>>& TargetUVs = GeometryCollection->UVs;
 #endif
 		TManagedArray<FLinearColor>& TargetColor = GeometryCollection->Color;
 		TManagedArray<int32>& TargetBoneMap = GeometryCollection->BoneMap;
@@ -1311,13 +1311,13 @@ FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 				TargetTangentU[CurrentVertex] = SourceTangent[ExemplarInstanceID];
 				TargetTangentV[CurrentVertex] = (FVector3f)SourceBinormalSign[ExemplarInstanceID] * FVector3f::CrossProduct(TargetNormal[CurrentVertex], TargetTangentU[CurrentVertex]);
 
-#if ENGINE_MINOR_VERSION < 2
-				TargetUVs[CurrentVertex] = SplitVertex.Key.UVs;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 				for (int32 LayerIdx = 0; LayerIdx < SplitVertex.Key.UVs.Num(); ++LayerIdx)
 				{
 					GeometryCollection->ModifyUV(CurrentVertex, LayerIdx) = SplitVertex.Key.UVs[LayerIdx];
-				}
+				}				
+#else
+				TargetUVs[CurrentVertex] = SplitVertex.Key.UVs;
 #endif
 
 				if (SourceColor.Num() > 0)

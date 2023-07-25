@@ -72,10 +72,10 @@ SAssetSelectionWidget::Construct(const FArguments & InArgs)
 	this->ChildSlot
 		[
 			SNew(SBorder)
-#if ENGINE_MINOR_VERSION < 1
-			.BorderImage(FEditorStyle::GetBrush(TEXT("Menu.Background")))
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 			.BorderImage(FAppStyle::GetBrush(TEXT("Menu.Background")))
+#else
+			.BorderImage(FEditorStyle::GetBrush(TEXT("Menu.Background")))			
 #endif
 			.Content()
 			[

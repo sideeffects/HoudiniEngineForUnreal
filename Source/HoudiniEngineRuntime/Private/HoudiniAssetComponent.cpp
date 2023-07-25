@@ -61,7 +61,7 @@
 	#include "Editor/UnrealEd/Private/GeomFitUtils.h"
 #endif
 
-#if ENGINE_MINOR_VERSION >= 2
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 	#include "UObject/Linker.h"
 #endif
 

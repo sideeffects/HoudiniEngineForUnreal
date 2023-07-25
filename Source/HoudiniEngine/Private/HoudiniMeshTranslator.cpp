@@ -75,7 +75,7 @@
 #include "ImportUtils/SkeletalMeshImportUtils.h"
 #include "Math/UnrealMathUtility.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#if ENGINE_MINOR_VERSION > 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 	#include "Engine/SkinnedAssetCommon.h"
 #endif
 

@@ -30,7 +30,7 @@
 #include "Materials/Material.h"
 #include "PrimitiveViewRelevance.h"
 #include "Engine/Engine.h"
-#if ENGINE_MINOR_VERSION > 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 	#include "MaterialDomain.h"
 	#include "Materials/MaterialRenderProxy.h"
 	#include "SceneInterface.h" 
@@ -275,13 +275,13 @@ void FHoudiniStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSc
 			if (BufferSet->NumTriangles == 0)
 				continue;
 
-			FDynamicPrimitiveUniformBuffer &DynamicPrimitiveUniformBuffer = Collector.AllocateOneFrameResource<FDynamicPrimitiveUniformBuffer>();			
-#if ENGINE_MINOR_VERSION < 1
-			DynamicPrimitiveUniformBuffer.Set(
-				GetLocalToWorld(), PreviousLocalToWorld, GetBounds(), GetLocalBounds(), true, bHasPrecomputedVolumetricLightmap, DrawsVelocity(), bOutputVelocity);
-#else
+			FDynamicPrimitiveUniformBuffer &DynamicPrimitiveUniformBuffer = Collector.AllocateOneFrameResource<FDynamicPrimitiveUniformBuffer>();
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 			DynamicPrimitiveUniformBuffer.Set(
 				GetLocalToWorld(), PreviousLocalToWorld, GetBounds(), GetLocalBounds(), true, bHasPrecomputedVolumetricLightmap, bOutputVelocity);
+#else
+			DynamicPrimitiveUniformBuffer.Set(
+				GetLocalToWorld(), PreviousLocalToWorld, GetBounds(), GetLocalBounds(), true, bHasPrecomputedVolumetricLightmap, DrawsVelocity(), bOutputVelocity);			
 #endif
 
 			if (BufferSet->TriangleIndexBuffer.Indices.Num() > 0)

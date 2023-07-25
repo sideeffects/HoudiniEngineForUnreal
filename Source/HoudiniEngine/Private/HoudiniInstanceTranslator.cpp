@@ -49,11 +49,11 @@
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "FoliageEditUtility.h"
 #include "LevelInstance/LevelInstanceActor.h"
-#if ENGINE_MINOR_VERSION >= 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 #include "LevelInstance/LevelInstanceComponent.h"
 #endif
 
-#if ENGINE_MINOR_VERSION >= 2
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 	#include "StaticMeshComponentLODInfo.h"
 #endif
 
@@ -1581,12 +1581,11 @@ FHoudiniInstanceTranslator::GetAttributeInstancerObjectsAndTransforms(
 		if (!AttributeObject)
 		{
 			// See if the ref is a class that we can instantiate
-#if ENGINE_MINOR_VERSION < 1
-			UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *AssetName);
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 			// UE5.1 deprecated ANY_PACKAGE, using a null outer doesn't work so use FindFirstObject instead
-			//FoundClass = FindObject<UClass>(nullptr, *Iter);
 			UClass* FoundClass = FindFirstObject<UClass>(*AssetName, EFindFirstObjectOptions::NativeFirst);
+#else
+			UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *AssetName);
 #endif
 			if (FoundClass != nullptr)
 			{
@@ -1669,12 +1668,11 @@ FHoudiniInstanceTranslator::GetAttributeInstancerObjectsAndTransforms(
 
 				if (!AttributeObject)
 				{
-#if ENGINE_MINOR_VERSION < 1
-					UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *Iter);
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 					// UE5.1 deprecated ANY_PACKAGE, using a null outer doesn't work so use FindFirstObject instead
-					//FoundClass = FindObject<UClass>(nullptr, *Iter);
-					UClass* FoundClass = FindFirstObject<UClass>(*Iter, EFindFirstObjectOptions::NativeFirst);						
+					UClass* FoundClass = FindFirstObject<UClass>(*Iter, EFindFirstObjectOptions::NativeFirst);
+#else
+					UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *Iter);
 #endif
 
 					if (FoundClass != nullptr)
@@ -2028,7 +2026,7 @@ InstancerComponentType GetComponentsType(USceneComponent* Component)
 			ComponentType = HoudiniStaticMeshComponent;
 		else if (Component->IsA<UGeometryCollectionComponent>())
 			ComponentType = GeometryCollectionComponent;
-#if ENGINE_MINOR_VERSION >= 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 		else if (Component->IsA<ULevelInstanceComponent>())
 			ComponentType = LevelInstance;
 #endif
@@ -2294,7 +2292,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancer(
 
 	for (auto Actor : ActorsToRemove)
 	{
-#if ENGINE_MINOR_VERSION >= 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 		if (IsValid(Actor) && Actor->IsA<ALevelInstance>())
 		{
 			Actor->Destroy();
@@ -2968,7 +2966,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateLevelInstanceActors(
 		TArray<AActor*> & NewInstanceActors,
 		TArray<UMaterialInterface*> InstancerMaterials)
 {
-#if ENGINE_MINOR_VERSION >= 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UWorld* SpawnWorld = ParentComponent->GetWorld();
 
 	for(int Index = 0; Index < InstancedObjectTransforms.Num(); Index++)

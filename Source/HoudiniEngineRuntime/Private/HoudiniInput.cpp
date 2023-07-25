@@ -372,10 +372,10 @@ UHoudiniInput::GetBounds(UWorld * World)
 
 	bool bUseCachedBounds = UE::IsSavingPackage(nullptr) || World->IsGameWorld();
 
-#if ENGINE_MINOR_VERSION < 1
-	bUseCachedBounds |= IsGarbageCollecting();
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	bUseCachedBounds |= IsGarbageCollectingAndLockingUObjectHashTables();
+#else
+	bUseCachedBounds |= IsGarbageCollecting();	
 #endif
 
 	if (bUseCachedBounds)

@@ -39,7 +39,7 @@ struct FHoudiniDataLayer;
 // Determine if we can enable data layers or not. The public API still exists in all versions
 // to minimize the number of defines in the code.
 
-#if ENGINE_MINOR_VERSION >= 2 && WITH_EDITOR
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2 && WITH_EDITOR
 #define HOUDINI_ENABLE_DATA_LAYERS (1)
 #else
 #define HOUDINI_ENABLE_DATA_LAYERS (0)
