@@ -1264,9 +1264,9 @@ FHoudiniEngineEditor::ExtendContextMenu()
 				{
 					// TODO: Foliage Types? BP ?
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
-					if ((Asset.AssetClassPath != USkeletalMesh::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UStaticMesh::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UAnimSequence::StaticClass()->GetClassPathName()))
+					if ((Asset.AssetClassPath != USkeletalMesh::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UStaticMesh::StaticClass()->GetClassPathName()))
 #else
-					if ((Asset.AssetClass != USkeletalMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UStaticMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UAnimSequence::StaticClass()->GetFName()))					
+					if ((Asset.AssetClass != USkeletalMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UStaticMesh::StaticClass()->GetFName()))
 #endif
 					{
 						bShouldExtendAssetActions = false;
