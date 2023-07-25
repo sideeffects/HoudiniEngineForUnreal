@@ -379,6 +379,10 @@ SHoudiniToolNewPackage::Construct(const FArguments& InArgs)
 {
     const FText InitialPackageName = LOCTEXT("CreatePackage_PackageNameValue", "PackageName");
     int row = 0;
+
+    const int RowPackageName = row++;
+    const int RowCategoryName = row++;
+    const int RowPackageLocation = row++;
     
     // Assign our widget events to our delegates
     OnCanceled = InArgs._OnCanceled;
@@ -459,14 +463,14 @@ SHoudiniToolNewPackage::Construct(const FArguments& InArgs)
                     // Houdini Tools package name
                     //--------------------------
 			        
-                    + SGridPanel::Slot(0, row)
+                    + SGridPanel::Slot(0, RowPackageName)
                     .VAlign(VAlign_Center)
                     .Padding(0.0f, 0.0f, 12.0f, 0.0f)
                     [
                         SNew(STextBlock)
                         .Text(LOCTEXT("CreatePackage_NameLabel", "Name"))
                     ]
-                    + SGridPanel::Slot(1, row)
+                    + SGridPanel::Slot(1, RowPackageName)
                     .VAlign(VAlign_Center)
                     .Padding(0.f, 3.0f)
                     [
@@ -481,14 +485,14 @@ SHoudiniToolNewPackage::Construct(const FArguments& InArgs)
                     // Houdini Tools category name
                     //--------------------------
 			        
-                    + SGridPanel::Slot(0, ++row)
+                    + SGridPanel::Slot(0, RowCategoryName)
                     .VAlign(VAlign_Center)
                     .Padding(0.0f, 0.0f, 12.0f, 0.0f)
                     [
                         SNew(STextBlock)
                         .Text(LOCTEXT("CreatePackage_CategoryLabel", "Category"))
                     ]
-                    + SGridPanel::Slot(1, row)
+                    + SGridPanel::Slot(1, RowCategoryName)
                     .VAlign(VAlign_Center)
                     .Padding(0.f, 3.0f)
                     [
@@ -503,14 +507,14 @@ SHoudiniToolNewPackage::Construct(const FArguments& InArgs)
                     // Houdini Tools package location
                     //--------------------------
 			        
-                    + SGridPanel::Slot(0, ++row)
+                    + SGridPanel::Slot(0, RowPackageLocation)
                     .VAlign(VAlign_Center)
                     .Padding(0.0f, 0.0f, 12.0f, 0.0f)
                     [
                         SNew(STextBlock)
                         .Text(LOCTEXT("CreatePackage_LocationLabel", "Location"))
                     ]
-                    + SGridPanel::Slot(1, row)
+                    + SGridPanel::Slot(1, RowPackageLocation)
                     .VAlign(VAlign_Center)
                     .Padding(0.f, 3.0f)
                     [
