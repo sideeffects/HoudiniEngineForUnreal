@@ -32,7 +32,7 @@
 #include "Editor/EditorEngine.h"
 #include "Components/BrushComponent.h"
 #include "GameFramework/Volume.h"
-#if ENGINE_MINOR_VERSION > 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 	#include "MaterialDomain.h"
 #endif
 

@@ -316,10 +316,10 @@ namespace
 		}
 		else
 		{
-#if ENGINE_MINOR_VERSION < 2
-			bool IsFloat = TIsSame<T, float>::Value || TIsSame<T, double>::Value;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 			bool IsFloat = std::is_same<T, float>::value || std::is_same<T, double>::value;
+#else
+			bool IsFloat = TIsSame<T, float>::Value || TIsSame<T, double>::Value;
 #endif
 			const T* CastedData = static_cast<const T*>(AttrData);
 			if (Prop->IsA<FStrProperty>() || Prop->IsA<FTextProperty>() || Prop->IsA<FNameProperty>())
@@ -329,10 +329,10 @@ namespace
 					if (TupleSize == 1)
 					{
 						FString Str = IsFloat ? FString::SanitizeFloat(CastedData[Idx]) : FString::FromInt(CastedData[Idx]);
-#if ENGINE_MINOR_VERSION < 1
-						Prop->ImportText(*Str, &PropData[Idx * RowSize + Offset], PPF_ExternalEditor, nullptr);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+						Prop->ImportText_Direct(*Str, &PropData[Idx * RowSize + Offset], nullptr, PPF_ExternalEditor); 
 #else
-						Prop->ImportText_Direct(*Str, &PropData[Idx * RowSize + Offset], nullptr, PPF_ExternalEditor);
+						Prop->ImportText(*Str, &PropData[Idx * RowSize + Offset], PPF_ExternalEditor, nullptr);
 #endif
 						continue;
 					}
@@ -346,10 +346,10 @@ namespace
 						}
 					}
 					Str.Append(")");
-#if ENGINE_MINOR_VERSION < 1
-					Prop->ImportText(*Str, &PropData[Idx * RowSize + Offset], PPF_ExternalEditor, nullptr);
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 					Prop->ImportText_Direct(*Str, &PropData[Idx * RowSize + Offset], nullptr, PPF_ExternalEditor);
+#else
+					Prop->ImportText(*Str, &PropData[Idx * RowSize + Offset], PPF_ExternalEditor, nullptr);
 #endif
 				}
 			}
@@ -1168,13 +1168,11 @@ FHoudiniDataTableTranslator::PopulateRowData(int32 GeoId,
 			}
 			for (int32 Idx = 0; Idx < NumRows; ++Idx)
 			{
-#if ENGINE_MINOR_VERSION < 1
-				Prop->ImportText(*StringData[Idx], &RowData[Idx * StructSize + Offset], PPF_ExternalEditor, nullptr);
-
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 				Prop->ImportText_Direct(*StringData[Idx], &RowData[Idx * StructSize + Offset], nullptr, PPF_ExternalEditor);
+#else
+				Prop->ImportText(*StringData[Idx], &RowData[Idx * StructSize + Offset], PPF_ExternalEditor, nullptr);				
 #endif
-
 			}
 		}
 		else 

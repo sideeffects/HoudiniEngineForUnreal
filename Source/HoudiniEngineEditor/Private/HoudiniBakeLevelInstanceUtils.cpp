@@ -40,7 +40,7 @@ ILevelInstanceInterface * FHoudiniBakeLevelInstanceUtils::CreateLevelInstance(
 	TArray<UPackage*> PackagesToSave,
 	FHoudiniEngineOutputStats BakeStats)
 {
-#if ENGINE_MINOR_VERSION >= 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
     ULevelInstanceSubsystem* LevelInstanceSubsystem = 
 		GEditor->GetEditorWorldContext().World()->GetSubsystem<ULevelInstanceSubsystem>();
 

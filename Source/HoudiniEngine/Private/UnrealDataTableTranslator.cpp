@@ -266,10 +266,10 @@ bool FUnrealDataTableTranslator::CreateInputNodeForDataTable(
 			HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT, &AttributeInfoPoint), false);
 
 		// Get the object path
-#if ENGINE_MINOR_VERSION < 1
-		FString RowStructName = DataTable->RowStruct->GetPathName();
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 		FString RowStructName = DataTable->GetRowStructPathName().ToString();
+#else
+		FString RowStructName = DataTable->RowStruct->GetPathName();
 #endif
 
 		// Set the point's path attribute

@@ -33,6 +33,12 @@
 #include "Editor.h"
 #include "Runtime/Launch/Resources/Version.h"
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
+    #include "Subsystems/EditorAssetSubsystem.h"
+#else
+    #include "EditorAssetLibrary.h"
+#endif
+
 // Details panel desired sizes.
 #define HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH              270
 #define HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH               310
@@ -162,9 +168,30 @@
 // Backward compatibility with 5.0
 static const ISlateStyle& _GetEditorStyle()
 {
-#if ENGINE_MINOR_VERSION < 1
-	return FEditorStyle::Get();
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+    return FAppStyle::Get();
 #else
-	return FAppStyle::Get();
+    return FEditorStyle::Get();	
 #endif
 };
+
+// Wrapper to manage code compatibility across multiple UE versions
+static bool _DoesAssetExist(const FString& AssetPath)
+{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
+    UEditorAssetSubsystem* EditorAssetSubsystem = GEditor->GetEditorSubsystem<UEditorAssetSubsystem>();
+    return EditorAssetSubsystem->DoesAssetExist(AssetPath);
+#else
+    return UEditorAssetLibrary::DoesAssetExist(AssetPath);
+#endif
+};
+
+// Wrapper to manage code compatibility across multiple UE versions
+static const FSlateBrush* _GetBrush(FName PropertyName)
+{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
+    return FAppStyle::GetBrush(PropertyName);
+#else
+    return FEditorStyle::GetBrush(PropertyName);
+#endif
+}

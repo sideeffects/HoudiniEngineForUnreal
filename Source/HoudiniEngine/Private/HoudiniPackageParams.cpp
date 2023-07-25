@@ -392,7 +392,7 @@ void TemplateFixer()
 	UGeometryCollection* GC = PP.CreateObjectAndPackage<UGeometryCollection>();
 	UDataTable* DT = PP.CreateObjectAndPackage<UDataTable>();
 	UFoliageType_InstancedStaticMesh * ISM = PP.CreateObjectAndPackage<UFoliageType_InstancedStaticMesh>();
-#if ENGINE_MINOR_VERSION >= 2
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 	UDataLayerAsset* DLA = PP.CreateObjectAndPackage<UDataLayerAsset>();
 #endif
 }

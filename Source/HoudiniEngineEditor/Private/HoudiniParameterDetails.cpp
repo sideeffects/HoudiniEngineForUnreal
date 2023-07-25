@@ -3029,11 +3029,11 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 
 		if (Tags.Contains(HOUDINI_PARAMETER_STRING_REF_CLASS_TAG))
 		{
-#if ENGINE_MINOR_VERSION < 1
-			UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *Tags[HOUDINI_PARAMETER_STRING_REF_CLASS_TAG]);
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 			// UE5.1 deprecated ANY_PACKAGE, using a null outer doesn't work so use FindFirstObject instead
 			UClass* FoundClass = FindFirstObject<UClass>(*Tags[HOUDINI_PARAMETER_STRING_REF_CLASS_TAG], EFindFirstObjectOptions::NativeFirst);
+#else
+			UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *Tags[HOUDINI_PARAMETER_STRING_REF_CLASS_TAG]);
 #endif
 			
 			if (FoundClass != nullptr)
@@ -3144,10 +3144,10 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 			}
 			else
 			{
-#if ENGINE_MINOR_VERSION < 1
-				AssetData.AssetClass = UnrealRefClass->GetFName();
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 				AssetData.AssetClassPath = UnrealRefClass->GetClassPathName();
+#else
+				AssetData.AssetClass = UnrealRefClass->GetFName();
 #endif
 			}
 			
@@ -3470,10 +3470,10 @@ FHoudiniParameterDetails::CreateWidgetColor(IDetailCategoryBuilder & HouParamete
 						Transaction.Cancel();
 					}
 				});
-#if ENGINE_MINOR_VERSION < 2
-				PickerArgs.InitialColorOverride = MainParam->GetColorValue();
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
+				PickerArgs.InitialColor = MainParam->GetColorValue(); 
 #else
-				PickerArgs.InitialColor = MainParam->GetColorValue();
+				PickerArgs.InitialColorOverride = MainParam->GetColorValue();
 #endif
 				PickerArgs.bOnlyRefreshOnOk = true;
 				OpenColorPicker(PickerArgs);
@@ -5526,10 +5526,10 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 							TAttribute< float >::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma));
 						PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateLambda(OnColorChangeLambda);
 						FLinearColor InitColor = NextColorRampPoint->Value;
-#if ENGINE_MINOR_VERSION < 2
-						PickerArgs.InitialColorOverride = InitColor;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 						PickerArgs.InitialColor = InitColor;
+#else
+						PickerArgs.InitialColorOverride = InitColor;
 #endif
 						PickerArgs.bOnlyRefreshOnOk = true;
 						OpenColorPicker(PickerArgs);

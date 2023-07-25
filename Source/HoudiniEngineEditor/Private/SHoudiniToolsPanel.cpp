@@ -26,6 +26,8 @@
 
 #include "SHoudiniToolsPanel.h"
 
+#include "HoudiniEngineEditorPrivatePCH.h"
+
 #include "Editor.h"
 #include "Modules/ModuleManager.h"
 #include "Widgets/SBoxPanel.h"
@@ -85,46 +87,6 @@
 #define LOCTEXT_NAMESPACE "HoudiniTools"
 
 
-// Wrapper interface to manage code compatibility across multiple UE versions
-
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
-// Unreal 5.0 implementation
-#include "EditorAssetLibrary.h"
-struct FToolsWrapper
-{
-    static bool DoesAssetExist(const FString& AssetPath)
-    {
-        return UEditorAssetLibrary::DoesAssetExist(AssetPath);
-    };
-
-    static const FSlateBrush* GetBrush(FName PropertyName)
-    {
-        return FEditorStyle::GetBrush(PropertyName);
-    }
-
-};
-
-#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
-// Unreal 5.1+ implementation
-#include "Subsystems/EditorAssetSubsystem.h"
-struct FToolsWrapper
-{
-    static bool DoesAssetExist(const FString& AssetPath)
-    {
-        UEditorAssetSubsystem* EditorAssetSubsystem = GEditor->GetEditorSubsystem<UEditorAssetSubsystem>();
-	    return EditorAssetSubsystem->DoesAssetExist(AssetPath);
-    }
-
-    static const FSlateBrush* GetBrush(FName PropertyName)
-    {
-        return FAppStyle::GetBrush(PropertyName);
-    }
-};
-
-#endif
-
-
-
 struct FHoudiniToolsPanelUtils
 {
     static FHoudiniToolsEditor& GetHoudiniTools() { return FHoudiniEngineEditor::Get().GetHoudiniTools(); }
@@ -139,14 +101,12 @@ struct FHoudiniToolsPanelUtils
 };
 
 
-
-
-
 FString
 FHoudiniToolsPanelUtils::GetAbsoluteGameContentDir()
 {
     return FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
 }
+
 
 FString
 FHoudiniToolsPanelUtils::GetLastDirectory(const bool bRelativeToGameContentDir, const ELastDirectory::Type LastDirectory)
@@ -392,7 +352,7 @@ SHoudiniToolNewPackage::Construct(const FArguments& InArgs)
     [
         SNew(SBorder)
         .Padding(18.0f)
-        .BorderImage( FToolsWrapper::GetBrush("Docking.Tab.ContentAreaBrush") )
+        .BorderImage( _GetBrush("Docking.Tab.ContentAreaBrush") )
         [
         SNew(SBorder)
         .BorderImage(FAppStyle::Get().GetBrush("Brushes.Panel"))
@@ -452,7 +412,7 @@ SHoudiniToolNewPackage::Construct(const FArguments& InArgs)
             .AutoHeight()
             [
                 SNew(SBorder)
-                .BorderImage(FToolsWrapper::GetBrush("DetailsView.CategoryTop"))
+                .BorderImage(_GetBrush("DetailsView.CategoryTop"))
                 .BorderBackgroundColor(FLinearColor(0.6f, 0.6f, 0.6f, 1.0f ))
                 .Padding(FMargin(6.0f, 4.0f, 7.0f, 4.0f))
                 [
@@ -700,7 +660,7 @@ void SHoudiniToolNewPackage::UpdatePackageName(FText NewName)
     const FString PkgBasePath = FHoudiniToolsEditor::GetDefaultPackagePath(CalculatedPackageName.ToString());
     const FString PkgPath = FPaths::Combine(PkgBasePath, FHoudiniToolsRuntimeUtils::GetPackageUAssetName());
     
-	if ( FToolsWrapper::DoesAssetExist(PkgPath) ) 
+	if ( _DoesAssetExist(PkgPath) ) 
     {
         // Package already exists.
         PackageNameError = LOCTEXT("PackageAlreadyExists", "Package already exists: '{0}'");
@@ -749,7 +709,7 @@ void SHoudiniToolImportPackage::Construct(const FArguments& InArgs)
     [
         SNew(SBorder)
         .Padding(18.0f)
-        .BorderImage( FToolsWrapper::GetBrush("Docking.Tab.ContentAreaBrush") )
+        .BorderImage( _GetBrush("Docking.Tab.ContentAreaBrush") )
         [
         SNew(SBorder)
         .BorderImage(FAppStyle::Get().GetBrush("Brushes.Panel"))
@@ -809,7 +769,7 @@ void SHoudiniToolImportPackage::Construct(const FArguments& InArgs)
             .AutoHeight()
             [
                 SNew(SBorder)
-                .BorderImage(FToolsWrapper::GetBrush("DetailsView.CategoryTop"))
+                .BorderImage(_GetBrush("DetailsView.CategoryTop"))
                 .BorderBackgroundColor(FLinearColor(0.6f, 0.6f, 0.6f, 1.0f ))
                 .Padding(FMargin(6.0f, 4.0f, 7.0f, 4.0f))
                 [
@@ -1327,9 +1287,9 @@ SHoudiniToolsPanel::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
 {
     check( HoudiniTool.IsValid() );
  
-    auto HelpDefault = FToolsWrapper::GetBrush( "HelpIcon" );
-    auto HelpHovered = FToolsWrapper::GetBrush( "HelpIcon.Hovered" );
-    auto HelpPressed = FToolsWrapper::GetBrush( "HelpIcon.Pressed" );
+    auto HelpDefault = _GetBrush( "HelpIcon" );
+    auto HelpHovered = _GetBrush( "HelpIcon.Hovered" );
+    auto HelpPressed = _GetBrush( "HelpIcon.Pressed" );
     auto DefaultTool = FHoudiniEngineStyle::Get()->GetBrush( "HoudiniEngine.HoudiniEngineLogo");
     TSharedPtr< SImage > HelpButtonImage;
     TSharedPtr< SButton > HelpButton;
@@ -1526,9 +1486,9 @@ SHoudiniToolsPanel::MakeTileViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
 {
     check( HoudiniTool.IsValid() );
  
-    auto HelpDefault = FToolsWrapper::GetBrush( "HelpIcon" );
-    auto HelpHovered = FToolsWrapper::GetBrush( "HelpIcon.Hovered" );
-    auto HelpPressed = FToolsWrapper::GetBrush( "HelpIcon.Pressed" );
+    auto HelpDefault = _GetBrush( "HelpIcon" );
+    auto HelpHovered = _GetBrush( "HelpIcon.Hovered" );
+    auto HelpPressed = _GetBrush( "HelpIcon.Pressed" );
     auto DefaultTool = FHoudiniEngineStyle::Get()->GetBrush( "HoudiniEngine.HoudiniEngineLogo");
     TSharedPtr< SImage > HelpButtonImage;
     TSharedPtr< SButton > HelpButton;
@@ -2402,7 +2362,7 @@ SHoudiniToolsPanel::CreateFloatingDetailsView( const TArray< UObject* >& InObjec
 
     NewSlateWindow->SetContent(
         SNew( SBorder )
-        .BorderImage( FToolsWrapper::GetBrush( TEXT("PropertyWindow.WindowBorder") ) )
+        .BorderImage(_GetBrush(TEXT("PropertyWindow.WindowBorder")))
         [
             DetailView
         ]

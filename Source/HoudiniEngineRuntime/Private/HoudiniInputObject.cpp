@@ -51,7 +51,7 @@
 #include "FoliageType_InstancedStaticMesh.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
-#if ENGINE_MINOR_VERSION > 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 	#include "Engine/SkinnedAssetCommon.h"
 #endif
 
@@ -498,10 +498,10 @@ UHoudiniInputSkeletalMeshComponent::GetSkeletalMesh()
 	if (!IsValid(SkeletalMeshComponent))
 		return nullptr;
 
-#if ENGINE_MINOR_VERSION < 1
-	return SkeletalMeshComponent->SkeletalMesh.Get();
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	return SkeletalMeshComponent->GetSkeletalMeshAsset();
+#else
+	return SkeletalMeshComponent->SkeletalMesh.Get();
 #endif
 }
 

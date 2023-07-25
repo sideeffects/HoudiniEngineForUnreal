@@ -156,10 +156,10 @@ FUnrealObjectInputIdentifier::GetTypeHash() const
 	switch(NodeType)
 	{
 		case EUnrealObjectInputNodeType::Invalid:
-#if ENGINE_MINOR_VERSION < 2
-			return ::GetTypeHash(FString());
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 			return 0;
+#else
+			return ::GetTypeHash(FString());
 #endif
 		case EUnrealObjectInputNodeType::Container:
 		{
@@ -177,10 +177,10 @@ FUnrealObjectInputIdentifier::GetTypeHash() const
 		}
 	}
 
-#if ENGINE_MINOR_VERSION < 2
-	return ::GetTypeHash(FString());
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 	return 0;
+#else
+	return ::GetTypeHash(FString());
 #endif
 }
 

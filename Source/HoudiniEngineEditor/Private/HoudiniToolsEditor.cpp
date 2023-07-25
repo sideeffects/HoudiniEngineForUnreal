@@ -26,6 +26,8 @@
 
 #include "HoudiniToolsEditor.h"
 
+#include "HoudiniEngineEditorPrivatePCH.h"
+
 #include "Editor.h"
 #include "EditorReimportHandler.h"
 #include "GameProjectUtils.h"
@@ -51,81 +53,64 @@
 #include "Serialization/JsonSerializer.h"
 #include "HoudiniToolsRuntimeUtils.h"
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+    #include "Subsystems/EditorAssetSubsystem.h"
+#else
+    #include "EditorAssetLibrary.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "HoudiniTools"
 
 DEFINE_LOG_CATEGORY(LogHoudiniTools);
 
 // Wrapper interface to manage code compatibility across multiple UE versions
-
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
-// Unreal 5.0 implementations
-#include "EditorAssetLibrary.h"
 struct FToolsWrapper
 {
-    static bool DoesAssetExist(const FString& AssetPath)
-    {
-        return UEditorAssetLibrary::DoesAssetExist(AssetPath);
-    };
-
-    static FName ConvertAssetObjectPath(const FString& Name) { return FName(Name); }
-
-    static void CheckValidEditorAssetSubsystem() {}
-
-    static void ReimportAsync(UObject* Object, bool bAskForNewFileIfMissing, bool bShowNotification, const FString& PreferredReimportFile = TEXT(""))
-    {
-        FReimportManager::Instance()->Reimport(Object, bAskForNewFileIfMissing, bShowNotification, PreferredReimportFile);
-    }
-
-    static bool DoesDirectoryExist(const FString& DirectoryPath)
-    {
-        return UEditorAssetLibrary::DoesDirectoryExist(DirectoryPath);
-    }
-
-    static bool MakeDirectory(const FString& DirectoryPath)
-    {
-        return UEditorAssetLibrary::DoesDirectoryExist(DirectoryPath);
-    }
-};
-
-#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
-// Unreal 5.1+ implementations
-#include "Subsystems/EditorAssetSubsystem.h"
-struct FToolsWrapper
-{
-    static bool DoesAssetExist(const FString& AssetPath)
-    {
-        UEditorAssetSubsystem* EditorAssetSubsystem = GEditor->GetEditorSubsystem<UEditorAssetSubsystem>();
-	    return EditorAssetSubsystem->DoesAssetExist(AssetPath);
-    }
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
     static FSoftObjectPath ConvertAssetObjectPath(const FString& Name) { return FSoftObjectPath(Name); }
+#else
+    static FName ConvertAssetObjectPath(const FString& Name) { return FName(Name); }
+#endif
 
     static void CheckValidEditorAssetSubsystem()
     {
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
         UEditorAssetSubsystem* EditorAssetSubsystem = GEditor->GetEditorSubsystem<UEditorAssetSubsystem>();
         checkf(EditorAssetSubsystem != nullptr, TEXT("Invalid EditorAssetSubsystem"));
+#else
+        // Nothing to do here
+#endif
     }
 
-    static void ReimportAsync(UObject* Object, bool bAskForNewFileIfMissing, bool bShowNotification, const FString& PreferredReimportFile=TEXT(""))
+    static void ReimportAsync(UObject* Object, bool bAskForNewFileIfMissing, bool bShowNotification, const FString& PreferredReimportFile = TEXT(""))
     {
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
         FReimportManager::Instance()->ReimportAsync(Object, bAskForNewFileIfMissing, bShowNotification, PreferredReimportFile);
+#else
+        FReimportManager::Instance()->Reimport(Object, bAskForNewFileIfMissing, bShowNotification, PreferredReimportFile);
+#endif
     }
 
     static bool DoesDirectoryExist(const FString& DirectoryPath)
     {
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
         UEditorAssetSubsystem* EditorAssetSubsystem = GEditor->GetEditorSubsystem<UEditorAssetSubsystem>();
         return EditorAssetSubsystem->DoesDirectoryExist(DirectoryPath);
+#else
+        return UEditorAssetLibrary::DoesDirectoryExist(DirectoryPath);
+#endif
     }
 
     static bool MakeDirectory(const FString& DirectoryPath)
     {
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
         UEditorAssetSubsystem* EditorAssetSubsystem = GEditor->GetEditorSubsystem<UEditorAssetSubsystem>();
         return EditorAssetSubsystem->DoesDirectoryExist(DirectoryPath);
+#else
+        return UEditorAssetLibrary::DoesDirectoryExist(DirectoryPath);
+#endif
     }
 };
-
-#endif
 
 
 IAssetRegistry&
@@ -711,7 +696,7 @@ bool FHoudiniToolsEditor::CanCreateCreateToolsPackage(const FString& PackageName
 
     const FString AssetPath = GetDefaultPackageAssetPath(PackageName);
     
-	if ( FToolsWrapper::DoesAssetExist(AssetPath) )
+	if ( _DoesAssetExist(AssetPath) )
 	{
 	    // Package already exists.
 	    if (FailReason)
@@ -1412,7 +1397,7 @@ FHoudiniToolsEditor::ImportExternalToolsPackage(
     {
         // If the destination directory doesn't contain any assets, we'll allow the import to take place.
         const FString PackageAssetPath = DestDir / FHoudiniToolsRuntimeUtils::GetPackageUAssetName();
-        if (FToolsWrapper::DoesAssetExist(PackageAssetPath))
+        if (_DoesAssetExist(PackageAssetPath))
         {
             HOUDINI_LOG_WARNING(TEXT("Unable to import tool package. Asset already exists: %s"), *PackageAssetPath);
             return nullptr;
@@ -1560,7 +1545,7 @@ FHoudiniToolsEditor::ReimportPackageHDAs(const UHoudiniToolsPackageAsset* Packag
         if ( !HoudiniAssetRef.IsValid() )
         {
             // Try to load the asset, if it exists.
-            if (FToolsWrapper::DoesAssetExist(ToolPath))
+            if (_DoesAssetExist(ToolPath))
             {
                 // Try to load the asset
                 LoadedAsset = HoudiniAssetRef.LoadSynchronous();
@@ -1582,7 +1567,7 @@ FHoudiniToolsEditor::ReimportPackageHDAs(const UHoudiniToolsPackageAsset* Packag
         if (!bHDAExists)
         {
             // We check an edge case here where an asset might exist at the toolpath, but it's not an HoudiniAsset.
-            if (FToolsWrapper::DoesAssetExist(ToolPath))
+            if (_DoesAssetExist(ToolPath))
             {
                 //  Scatter/prox/va.he_proximity_scatter.1.0.hda -> /Game/HoudiniEngine/Tools/Scatter/va_he_proximity_scatter_1_0
                 HOUDINI_LOG_WARNING(TEXT("Cannot not reimport existing HoudiniAsset due to invalid type: %s"), *ToolPath);

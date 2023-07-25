@@ -312,18 +312,18 @@ void UHoudiniStaticMesh::CalculateNormals(bool bInComputeWeightedNormals)
 		TriangleNormal /= Area;
 		Area /= 2.0f;
 
-#if ENGINE_MINOR_VERSION < 2
-		const float Weight[3] = {
-			static_cast<float>(bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle((FVector)V0, (FVector)V1, (FVector)V2) : 1.0f),
-			static_cast<float>(bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle((FVector)V1, (FVector)V2, (FVector)V0) : 1.0f),
-			static_cast<float>(bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle((FVector)V2, (FVector)V0, (FVector)V1) : 1.0f),
-		};
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 		const float Weight[3] = {
 			static_cast<float>(bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle(V0, V1, V2) : 1.0f),
 			static_cast<float>(bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle(V1, V2, V0) : 1.0f),
 			static_cast<float>(bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle(V2, V0, V1) : 1.0f),
 		};
+#else
+		const float Weight[3] = {
+			static_cast<float>(bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle((FVector)V0, (FVector)V1, (FVector)V2) : 1.0f),
+			static_cast<float>(bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle((FVector)V1, (FVector)V2, (FVector)V0) : 1.0f),
+			static_cast<float>(bInComputeWeightedNormals ? Area * TriangleUtilities::ComputeTriangleCornerAngle((FVector)V2, (FVector)V0, (FVector)V1) : 1.0f),
+		};		
 #endif
 
 		for (int CornerIndex = 0; CornerIndex < 3; ++CornerIndex)

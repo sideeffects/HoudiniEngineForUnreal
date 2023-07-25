@@ -42,7 +42,7 @@
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
 #include "Materials/Material.h"
-#if ENGINE_MINOR_VERSION > 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 	#include "MaterialDomain.h"
 #endif
 
@@ -272,10 +272,10 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 	TManagedArray<FVector3f>& TangentU = GeometryCollection->TangentU;
 	TManagedArray<FVector3f>& TangentV = GeometryCollection->TangentV;
 	TManagedArray<FVector3f>& Normal = GeometryCollection->Normal;
-#if ENGINE_MINOR_VERSION < 2
-	TArray<FVector2f>& UV = GeometryCollection->UVs[0];
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 	// UE5.2 has removed the ability to directly access UVs
+#else
+	TArray<FVector2f>& UV = GeometryCollection->UVs[0];
 #endif
 	TManagedArray<FLinearColor>& Color = GeometryCollection->Color;
 	TManagedArray<int32>& BoneMap = GeometryCollection->BoneMap;
@@ -416,10 +416,10 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 		// Setup for vertex instance attributes
 		int32 HoudiniVertexIdx = 0;
 
-#if ENGINE_MINOR_VERSION < 2
-		const bool HasUVs = UV.Num() == Vertex.Num();
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
+		const bool HasUVs = GeometryCollection->NumUVLayers() > 0; 
 #else
-		const bool HasUVs = GeometryCollection->NumUVLayers() > 0;
+		const bool HasUVs = UV.Num() == Vertex.Num();
 #endif
 		TArray<float> UVs;
 		if (HasUVs)
@@ -472,15 +472,15 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 				//--------------------------------------------------------------------------------------------------------------------- 
 				if (HasUVs)
 				{
-#if ENGINE_MINOR_VERSION < 2
-					UVs[Float3Index + 0] = UV[VertexIndex].X;
-					UVs[Float3Index + 1] = 1 - UV[VertexIndex].Y;
-					UVs[Float3Index + 2] = 0;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 					FVector2f currentUV = GeometryCollection->GetUV(VertexIndex, 0);
 					UVs[Float3Index + 0] = currentUV.X;
 					UVs[Float3Index + 1] = 1 - currentUV.Y;
 					UVs[Float3Index + 2] = 0;
+#else
+					UVs[Float3Index + 0] = UV[VertexIndex].X;
+					UVs[Float3Index + 1] = 1 - UV[VertexIndex].Y;
+					UVs[Float3Index + 2] = 0;					
 #endif
 				}
 				
