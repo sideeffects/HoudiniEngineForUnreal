@@ -36,6 +36,8 @@ class AHoudiniAssetActor;
 struct FSlowTask;
 
 static const FName NodeSyncTabName("NodeSync");
+static const FName HoudiniToolsTabName("HoudiniTools");
+static const FName ExamplesTabName("Examples");
 
 // Class containing commands for Houdini Engine actions
 class FHoudiniEngineCommands : public TCommands<FHoudiniEngineCommands>
@@ -101,6 +103,9 @@ public:
 
 	// Helper function for Showing Node Sync
 	static void OpenNodeSync();
+
+	// Helper function for summoning Houdini Tools Tab
+	static void OpenHoudiniToolsTab();
 
 	// returns true if the current HE session is valid
 	static bool IsSessionValid();
@@ -183,6 +188,8 @@ public:
 
 	// UI Action to open Houdini Node Sync Panel
 	TSharedPtr<FUICommandInfo> _OpenNodeSync;
+	// UI Action to open Houdini Tools Panel
+	TSharedPtr<FUICommandInfo> _OpenHoudiniTools;
 
 	//
 	TSharedPtr<FUICommandInfo> _InstallInfo;

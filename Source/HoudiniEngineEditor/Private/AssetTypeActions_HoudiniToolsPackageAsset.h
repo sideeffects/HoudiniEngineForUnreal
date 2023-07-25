@@ -1,5 +1,5 @@
 /*
-* Copyright (c) <2021> Side Effects Software Inc.
+* Copyright (c) <2023> Side Effects Software Inc.
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
 #pragma once
 
 #include "AssetTypeActions_Base.h"
+#include "HoudiniToolsPackageAsset.h"
 
 class UClass;
 class UObject;
@@ -36,7 +37,7 @@ enum class EHoudiniToolType : uint8;
 
 // TODO: UE5.2 uses Asset Definitions instead of Asset Actions. See AssetDefinitions.h for a conversion guide.
 
-class FAssetTypeActions_HoudiniAsset : public FAssetTypeActions_Base
+class FAssetTypeActions_HoudiniToolsPackageAsset : public FAssetTypeActions_Base
 {	
 	public:
 
@@ -49,38 +50,17 @@ class FAssetTypeActions_HoudiniAsset : public FAssetTypeActions_Base
 		virtual bool HasActions(const TArray< UObject * > & InObjects) const override;
 		virtual void GetActions(const TArray< UObject * > & InObjects, class FMenuBuilder & MenuBuilder) override;
 
-		virtual bool AssetsActivatedOverride(const TArray<UObject*>& InObjects, EAssetTypeActivationMethod::Type ActivationType) override;
+		// virtual bool AssetsActivatedOverride(const TArray<UObject*>& InObjects, EAssetTypeActivationMethod::Type ActivationType) override;
 
-		TSharedRef<FExtender> AddLevelEditorMenuExtenders(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs);
+		// TSharedRef<FExtender> AddLevelEditorMenuExtenders(TArray<TWeakObjectPtr<UHoudiniToolsPackageAsset>> PackageAssets);
 
 	protected:
 
 		// Handler for reimport option.
-		void ExecuteReimport(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs);
-
-		// Handler for rebuild all option
-		void ExecuteRebuildAllInstances(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs);
+		void ExecuteReimport(TArray<TWeakObjectPtr<UHoudiniToolsPackageAsset>> PackageAssets);
+		void ExecuteReimportDescriptionOnly(TArray<TWeakObjectPtr<UHoudiniToolsPackageAsset>> PackageAssets);
+		void ExecuteImportNewHDAs(TArray<TWeakObjectPtr<UHoudiniToolsPackageAsset>> PackageAssets);
 
 		// Handler for find in explorer option
-		void ExecuteFindInExplorer(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs);
-
-		// Handler for the open in Houdini option
-		void ExecuteOpenInHoudini(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs);
-
-		// Handler to apply the current hda to the current world selection (single input)
-		void ExecuteApplyOpSingle(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs);
-
-		// Handler to apply the current hda to the current world selection (multi input)
-		void ExecuteApplyOpMulti(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs);
-
-		// Handler to batch apply the current hda to the current world selection
-		void ExecuteApplyBatch(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs );
-
-		// Handler to instantiate the HDA in the world
-		void ExecuteInstantiate(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs);
-
-		// Handler to instantiate the HDA in the world, actor is placed at the origin
-		void ExecuteInstantiateOrigin(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs);
-
-		void ExecuteApplyAssetToSelection(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs, const EHoudiniToolType& InType);
+		void ExecuteFindInExplorer(TArray<TWeakObjectPtr<UHoudiniToolsPackageAsset>> PackageAssets);
 };

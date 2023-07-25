@@ -32,11 +32,14 @@
 #include "HoudiniEngine.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetComponent.h"
-#include "HoudiniTool.h"
 #include "HoudiniEngineEditorUtils.h"
 #include "HoudiniEngineRuntimeUtils.h"
+#include "HoudiniToolsPackageAsset.h"
 
 #include "EditorReimportHandler.h"
+#include "HoudiniEngineToolTypes.h"
+#include "HoudiniToolsEditor.h"
+#include "HoudiniToolTypes.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "HAL/FileManager.h"
 #include "EditorFramework/AssetImportData.h"
@@ -290,9 +293,13 @@ FAssetTypeActions_HoudiniAsset::ExecuteReimport(TArray<TWeakObjectPtr<UHoudiniAs
 {
 	for (auto ObjIt = InHoudiniAssetPtrs.CreateConstIterator(); ObjIt; ++ObjIt)
 	{
-		UHoudiniAsset * HoudiniAsset = (*ObjIt).Get();
+		UHoudiniAsset* HoudiniAsset = (*ObjIt).Get();
 		if (HoudiniAsset)
+		{
 			FReimportManager::Instance()->Reimport(HoudiniAsset, true);
+			// TArray<FString> ReimportPaths;
+			// FReimportManager::Instance()->CanReimport(HoudiniAsset, &ReimportPaths);
+		}
 	}
 }
 

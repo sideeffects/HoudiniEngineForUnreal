@@ -25,10 +25,15 @@
 */
 
 #include "HoudiniAsset.h"
+
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniPluginSerializationVersion.h"
+#include "HoudiniToolsPackageAsset.h"
+#include "HoudiniToolsRuntimeUtils.h"
 
 #include "Misc/Paths.h"
 #include "HAL/UnrealMemory.h"
+#include "UObject/ObjectSaveContext.h"
 
 UHoudiniAsset::UHoudiniAsset(const FObjectInitializer & ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -197,4 +202,21 @@ bool
 UHoudiniAsset::IsExpandedHDA() const
 {
 	return bAssetExpanded;
+}
+
+void
+UHoudiniAsset::PostSaveRoot(FObjectPostSaveRootContext ObjectSaveContext)
+{
+	UObject::PostSaveRoot(ObjectSaveContext);
+#if WITH_EDITOR	
+	// Find the owning package, if it exists.
+	UHoudiniToolsPackageAsset* OwningPackage = FHoudiniToolsRuntimeUtils::FindOwningToolsPackage(this);
+	if (IsValid(OwningPackage) && OwningPackage->bExportToolsDescription)
+	{
+		// If the owning package allows description exporting, export it now.
+		FString JSONFilePath;
+		FHoudiniToolsRuntimeUtils::GetHoudiniAssetJSONPath(this, JSONFilePath);
+		FHoudiniToolsRuntimeUtils::WriteJSONFromHoudiniAsset(this, JSONFilePath);
+	}
+#endif
 }

@@ -90,6 +90,7 @@ FHoudiniEngineCommands::RegisterCommands()
 
 	//NodeSync
 	UI_COMMAND(_OpenNodeSync, "Houdini Node Sync...", "Opens the Houdini Node Sync Panel.", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(_OpenHoudiniTools, "Houdini Tools...", "Opens the Houdini Tools Panel.", EUserInterfaceActionType::Button, FInputChord());
 
 	// PDG Import Commandlet
 	UI_COMMAND(_StartPDGCommandlet, "Start Async Importer", "Start the commandlet that imports PDG BGEO results in the background.", EUserInterfaceActionType::Button, FInputChord());
@@ -1182,6 +1183,11 @@ FHoudiniEngineCommands::OpenNodeSync()
 	//}
 	FGlobalTabmanager::Get()->TryInvokeTab(NodeSyncTabName);
 	return;
+}
+
+void FHoudiniEngineCommands::OpenHoudiniToolsTab()
+{
+	FGlobalTabmanager::Get()->TryInvokeTab(HoudiniToolsTabName);
 }
 
 

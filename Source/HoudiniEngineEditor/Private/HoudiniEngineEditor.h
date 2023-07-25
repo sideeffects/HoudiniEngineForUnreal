@@ -28,6 +28,7 @@
 
 #include "IHoudiniEngineEditor.h"
 #include "HoudiniInputTypes.h"
+#include "HoudiniEngineToolTypes.h"
 
 #include "CoreTypes.h"
 #include "Templates/SharedPointer.h"
@@ -44,6 +45,7 @@ class FMenuBuilder;
 class FMenuBarBuilder;
 class FUICommandList;
 class AActor;
+class FHoudiniToolsEditor;
 
 struct IConsoleCommand;
 struct FSlateDynamicImageBrush;
@@ -198,6 +200,8 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 
 		//void ModulesChangedCallback(FName ModuleName, EModuleChangeReason ReasonForChange);
 		//FDelegateHandle ModulesChangedHandle;
+	
+		FHoudiniToolsEditor& GetHoudiniTools() const { return *HoudiniToolsPtr; }
 
 	protected:
 
@@ -400,4 +404,10 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 
 		//NodeSync Tab
 		TSharedRef<class SDockTab> OnSpawnNodeSyncTab(const class FSpawnTabArgs& SpawnTabArgs);
+
+		//HoudiniTools Tab
+		TSharedRef<class SDockTab> OnSpawnHoudiniToolsTab(const class FSpawnTabArgs& SpawnTabArgs);
+
+		// Houdini Tools utility.
+		TSharedPtr<FHoudiniToolsEditor> HoudiniToolsPtr;
 };

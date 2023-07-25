@@ -28,6 +28,9 @@
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAsset.h"
+#include "HoudiniToolsPackageAsset.h"
+#include "HoudiniEngineEditor.h"
+#include "HoudiniToolsEditor.h"
 
 #include "EditorFramework/AssetImportData.h"
 #include "Misc/FileHelper.h"
@@ -81,6 +84,7 @@ UHoudiniAssetFactory::FactoryCreateBinary(
 	UObject * Context, const TCHAR * Type, const uint8 *& Buffer,
 	const uint8 * BufferEnd, FFeedbackContext * Warn )
 {
+	HOUDINI_LOG_MESSAGE(TEXT("[UHoudiniAssetFactory::FactoryCreateBinary] ..."));
 	// Broadcast notification that a new asset is being imported.
 	GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPreImport(this, InClass, InParent, InName, Type);
 
@@ -100,6 +104,14 @@ UHoudiniAssetFactory::FactoryCreateBinary(
 	FString SanitizedFileName = AssetImportData->GetSourceData().SourceFiles.Num() > 0 ? AssetImportData->GetSourceData().SourceFiles[0].RelativeFilename : UFactory::GetCurrentFilename();
 	HoudiniAsset->CreateAsset(Buffer, BufferEnd, SanitizedFileName);
 
+	// Import optional external data for the HoudiniAsset.
+	HOUDINI_LOG_MESSAGE(TEXT("[UHoudiniAssetFactory::FactoryCreateBinary] PreImport: Has Tool Data: %d."), HoudiniAsset->HoudiniToolData != nullptr);
+
+	// We always import external JSON / Image data if it is available.
+	// The Reimport action has to determine whether it wants to preserve existing data, or use the new data. We won't
+	// be implementing that policy here.
+	FHoudiniToolsEditor::ImportExternalHoudiniAssetData(HoudiniAsset);
+
 	// Broadcast notification that the new asset has been imported.
 	GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, HoudiniAsset);
 
@@ -109,11 +121,15 @@ UHoudiniAssetFactory::FactoryCreateBinary(
 UObject*
 UHoudiniAssetFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
+	HOUDINI_LOG_MESSAGE(TEXT("[UHoudiniAssetFactory::FactoryCreateFile] ..."));
+	
 	// "houdini.hdalibrary" files (expanded hda / hda folder) need a special treatment,
 	// but ".hda" files can be loaded normally
 	FString FileExtension = FPaths::GetExtension(Filename);
 	if (FileExtension.Compare(TEXT("hdalibrary"), ESearchCase::IgnoreCase) != 0)
+	{
 		return Super::FactoryCreateFile(InClass, InParent, InName, Flags, Filename, Parms, Warn, bOutOperationCanceled);
+	}
 
 	// Make sure the file name is sections.list
 	FString NameOfFile = FPaths::GetBaseFilename(Filename);
@@ -180,6 +196,7 @@ UHoudiniAssetFactory::SetReimportPaths(UObject * Obj, const TArray< FString > & 
 EReimportResult::Type
 UHoudiniAssetFactory::Reimport(UObject * Obj)
 {
+	
 	UHoudiniAsset * HoudiniAsset = Cast< UHoudiniAsset >(Obj);
 	if (HoudiniAsset && HoudiniAsset->AssetImportData)
 	{
@@ -189,12 +206,22 @@ UHoudiniAssetFactory::Reimport(UObject * Obj)
 		if (!Filename.Len() || IFileManager::Get().FileSize(*Filename) == INDEX_NONE)
 			return EReimportResult::Failed;
 
+		// TODO: Preserve existing ToolData after import, if ToolPackage->bImportToolDescription == true.
+		UHoudiniToolData* PrevToolData = HoudiniAsset->HoudiniToolData;
+
 		if (UFactory::StaticImportObject(
 			HoudiniAsset->GetClass(), HoudiniAsset->GetOuter(), *HoudiniAsset->GetName(),
 			RF_Public | RF_Standalone, *Filename, NULL, this))
 		{
-			HOUDINI_LOG_MESSAGE(TEXT("Houdini Asset reimported successfully."));
+			UHoudiniToolsPackageAsset* ToolPackage = FHoudiniToolsEditor::FindOwningToolsPackage(HoudiniAsset);
 
+			if (IsValid(ToolPackage) && !ToolPackage->bReimportToolsDescription && IsValid(PrevToolData))
+			{
+				// We need to preserve the old data.
+				UHoudiniToolData* NewToolData = FHoudiniToolsEditor::GetOrCreateHoudiniToolData(HoudiniAsset);
+				NewToolData->CopyFrom(*PrevToolData);
+			}
+			
 			if (HoudiniAsset->GetOuter())
 				HoudiniAsset->GetOuter()->MarkPackageDirty();
 			else

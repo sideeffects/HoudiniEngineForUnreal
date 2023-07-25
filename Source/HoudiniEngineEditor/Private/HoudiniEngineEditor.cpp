@@ -93,6 +93,17 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructure.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #endif
+#include "AssetTypeActions_HoudiniToolsPackageAsset.h"
+#include "EditorScriptingHelpers.h"
+#include "HoudiniEngineEditorSettings.h"
+#include "HoudiniToolsEditor.h"
+#include "HoudiniToolsPackageAsset.h"
+#include "ISettingsModule.h"
+#include "SHoudiniToolsPanel.h"
+#include "HAL/FileManagerGeneric.h"
+#include "Misc/FileHelper.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -124,8 +135,22 @@ void FHoudiniEngineEditor::StartupModule()
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Starting the Houdini Engine Editor module."));
 
+	// Register settings.
+	if (ISettingsModule * SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
+	{
+		SettingsModule->RegisterSettings(
+			"Editor", "Plugins", "HoudiniEngine",
+			LOCTEXT("RuntimeSettingsName", "Houdini Engine"),
+			LOCTEXT("RuntimeSettingsDescription", "Configure the HoudiniEngine plugin"),
+			GetMutableDefault< UHoudiniEngineEditorSettings >());
+	}
+
 	// Create style set.
 	FHoudiniEngineStyle::Initialize();
+
+	// Create HoudiniTools
+	
+	HoudiniToolsPtr = MakeShareable<FHoudiniToolsEditor>(new FHoudiniToolsEditor);
 
 	// Initilizes various resources used by our editor UI widgets
 	InitializeWidgetResource();
@@ -176,7 +201,7 @@ void FHoudiniEngineEditor::StartupModule()
 	}
 	*/
 
-	//RegisterPlacementModeExtensions();
+	// RegisterPlacementModeExtensions();
 
 	// Register for any FEditorDelegates that we are interested in, such as
 	// PreSaveWorld and PreBeginPIE, for HoudiniStaticMesh -> UStaticMesh builds
@@ -233,6 +258,13 @@ void FHoudiniEngineEditor::ShutdownModule()
 	//UnregisterForUndo();
 
 	//UnregisterPlacementModeExtensions();
+
+	// Unregister settings.
+	ISettingsModule * SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+	if (SettingsModule)
+		SettingsModule->UnregisterSettings("Editor", "Plugins", "HoudiniEngine");
+
+	HoudiniToolsPtr.Reset();
 
 	// Unregister the styleset
 	FHoudiniEngineStyle::Shutdown();
@@ -340,6 +372,7 @@ FHoudiniEngineEditor::RegisterAssetTypeActions()
 	// Create and register asset type actions for Houdini asset.
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked< FAssetToolsModule >("AssetTools").Get();
 	RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_HoudiniAsset()));
+	RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_HoudiniToolsPackageAsset()));
 }
 
 void
@@ -404,6 +437,12 @@ FHoudiniEngineEditor::RegisterEditorTabs()
 		.SetMenuType(ETabSpawnerMenuType::Hidden)
 		.SetGroup(MenuStructure.GetLevelEditorCategory());
 
+	FGlobalTabmanager::Get()->RegisterTabSpawner(HoudiniToolsTabName, FOnSpawnTab::CreateRaw(this, &FHoudiniEngineEditor::OnSpawnHoudiniToolsTab))
+		.SetDisplayName(LOCTEXT("FHoudiniToolsTitle", "Houdini Tools"))
+		.SetTooltipText(LOCTEXT("FHoudiniToolsTitleTooltip", "A shelf containing Houdini Digital Assets"))
+		.SetMenuType(ETabSpawnerMenuType::Hidden)
+		.SetGroup(MenuStructure.GetLevelEditorCategory());
+
 	/*
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 
@@ -422,7 +461,10 @@ void
 FHoudiniEngineEditor::UnRegisterEditorTabs()
 {
 	FGlobalTabmanager::Get()->UnregisterTabSpawner(NodeSyncTabName);
+	FGlobalTabmanager::Get()->UnregisterTabSpawner(HoudiniToolsTabName);
 }
+
+
 
 void
 FHoudiniEngineEditor::BindMenuCommands()
@@ -495,6 +537,11 @@ FHoudiniEngineEditor::BindMenuCommands()
 	HEngineCommands->MapAction(
 		Commands._OpenNodeSync,
 		FExecuteAction::CreateLambda([]() { return FHoudiniEngineCommands::OpenNodeSync(); }),
+		FCanExecuteAction::CreateLambda([]() { return true; }));
+
+	HEngineCommands->MapAction(
+		Commands._OpenHoudiniTools,
+		FExecuteAction::CreateLambda([]() { return FHoudiniEngineCommands::OpenHoudiniToolsTab(); }),
 		FCanExecuteAction::CreateLambda([]() { return true; }));
 
 	// PDG commandlet
@@ -723,6 +770,7 @@ FHoudiniEngineEditor::AddHoudiniMainMenuExtension(FMenuBuilder & MenuBuilder)
 		FSlateIcon(FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine._SyncViewport"));
 	
 	MenuBuilder.AddMenuEntry(FHoudiniEngineCommands::Get()._OpenNodeSync);
+	MenuBuilder.AddMenuEntry(FHoudiniEngineCommands::Get()._OpenHoudiniTools);
 
 	MenuBuilder.EndSection();
 
@@ -796,37 +844,13 @@ FHoudiniEngineEditor::UnregisterForUndo()
 void
 FHoudiniEngineEditor::RegisterPlacementModeExtensions()
 {
-	// Load custom houdini tools
-	/*
-	const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-	check(HoudiniRuntimeSettings);
 
-	if (HoudiniRuntimeSettings->bHidePlacementModeHoudiniTools)
-		return;
-
-	FPlacementCategoryInfo Info(
-		LOCTEXT("HoudiniCategoryName", "Houdini Engine"),
-		"HoudiniEngine",
-		TEXT("PMHoudiniEngine"),
-		25
-	);
-	Info.CustomGenerator = []() -> TSharedRef<SWidget> { return SNew(SHoudiniToolPalette); };
-
-	IPlacementModeModule::Get().RegisterPlacementCategory(Info);
-	*/
 }
 
 void
 FHoudiniEngineEditor::UnregisterPlacementModeExtensions()
 {
-	/*
-	if (IPlacementModeModule::IsAvailable())
-	{
-		IPlacementModeModule::Get().UnregisterPlacementCategory("HoudiniEngine");
-	}
 
-	HoudiniTools.Empty();
-	*/
 }
 
 void
@@ -885,6 +909,7 @@ FHoudiniEngineEditor::UnregisterSectionMappings()
 		PropertyModule.RemoveSection(ClassName, "Houdini");
 	}
 }
+
 
 void 
 FHoudiniEngineEditor::InitializeWidgetResource()
@@ -2364,6 +2389,17 @@ FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArgs& SpawnTabArgs)
 	//Row.IsEnabled(false);
 
 	return NodeSyncDock;
+}
+
+TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnHoudiniToolsTab(const FSpawnTabArgs& SpawnTabArgs)
+{
+	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
+		.TabRole(ETabRole::NomadTab)
+		[
+			SNew(SHoudiniToolsPanel)
+		];
+
+	return SpawnedTab;
 }
 
 

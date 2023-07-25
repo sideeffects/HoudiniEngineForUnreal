@@ -499,6 +499,15 @@ protected:
 		bool bAutomaticLegacyHDARebuild;
 
 		//-------------------------------------------------------------------------------------------------------------
+		// Houdini Tools Paths
+		//-------------------------------------------------------------------------------------------------------------
+
+		// Project-specific search paths should be search for HoudiniTools packages, inside of Unreal.
+		// Each subdirectory will be considered for a HoudiniTools package.
+		UPROPERTY(GlobalConfig, EditAnywhere, Category = HoudiniTools)
+		TArray<FString> HoudiniToolsSearchPath;
+
+		//-------------------------------------------------------------------------------------------------------------
 		// Custom Houdini Location
 		//-------------------------------------------------------------------------------------------------------------
 		// Whether to use custom Houdini location.

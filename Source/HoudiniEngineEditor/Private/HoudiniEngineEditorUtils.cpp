@@ -35,7 +35,6 @@
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniAsset.h"
 #include "HoudiniOutput.h"
-#include "HoudiniTool.h"
 
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"

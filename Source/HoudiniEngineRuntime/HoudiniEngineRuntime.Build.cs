@@ -71,16 +71,26 @@ public class HoudiniEngineRuntime : ModuleRules
 				"MeshUtilitiesCommon",
 				"Chaos",
 				"GeometryCollectionEngine"
-			 }
+			}
 		);
 
-	   PrivateDependencyModuleNames.AddRange(
+        PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Landscape",
 				"PhysicsCore"
             }
 		);
+        
+        if (Target.Version.MajorVersion == 5 && (Target.Version.MinorVersion == 0 || Target.Version.MinorVersion == 1))
+		{
+			PublicDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"ImageCore"
+				}
+			);
+		}
 
 		if (Target.bBuildEditor == true)
 		{
@@ -90,7 +100,8 @@ public class HoudiniEngineRuntime : ModuleRules
 					"UnrealEd",
 					"Kismet",
 					"EditorFramework",
-					"SubobjectEditor"
+					"SubobjectEditor",
+					"Json"
 				}
 			);
 		}

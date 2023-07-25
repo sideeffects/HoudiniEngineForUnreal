@@ -159,6 +159,9 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 	// Curve inputs and editable output curves
 	bAddRotAndScaleAttributesOnCurves = false;
 	bUseLegacyInputCurves = true;
+
+	// Houdini Tools
+	HoudiniToolsSearchPath = { TEXT("/Game/HoudiniEngine/Tools") };
 }
 
 UHoudiniRuntimeSettings::~UHoudiniRuntimeSettings()
