@@ -450,7 +450,7 @@ void FHoudiniToolsEditor::FindHoudiniToolsPackages(TArray<UHoudiniToolsPackageAs
     TArray<FString> PackagePaths;
     FindHoudiniToolsPackagePaths(PackagePaths);
     
-    for (const FString PackagePath : PackagePaths)
+    for (const FString& PackagePath : PackagePaths)
     {
         // Ingest tools from this package path
         UHoudiniToolsPackageAsset* PackageAsset = LoadHoudiniToolsPackage(PackagePath);
@@ -2281,3 +2281,4 @@ void FHoudiniToolsEditor::BroadcastToolChanged()
 }
 
 
+#undef LOCTEXT_NAMESPACE

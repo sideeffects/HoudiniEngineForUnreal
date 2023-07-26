@@ -108,11 +108,11 @@ FString FHoudiniToolsRuntimeUtils::GetDefaultHoudiniAssetIconPath(const UHoudini
     if (!IsValid(HoudiniAsset->AssetImportData))
         return FString();
     
-	// Compute the filepath of where we expect this HoudiniAsset's json file resides.
-	const FString& ReimportPath = HoudiniAsset->AssetImportData->GetFirstFilename();
-	FString Path, Filename, Extension;
-	FPaths::Split(ReimportPath, Path, Filename, Extension);
-	return FPaths::Combine(Path, Filename + ".png");
+    // Compute the filepath of where we expect this HoudiniAsset's json file resides.
+    const FString& ReimportPath = HoudiniAsset->AssetImportData->GetFirstFilename();
+    FString Path, Filename, Extension;
+    FPaths::Split(ReimportPath, Path, Filename, Extension);
+    return FPaths::Combine(Path, Filename + ".png");
 }
 
 FString
