@@ -628,6 +628,8 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 
 	if (InputType == EHoudiniInputType::Geometry)
 	{
+		const FHoudiniInputObjectSettings InputSettings(Input);
+
 		// Get the geo input object array
 		bool bNeedToEmpty = true;
 		TArray<UHoudiniInputObject*>* GeoInputObjectsPtr = Input->GetHoudiniInputObjectArray(InputType);
@@ -641,7 +643,7 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 				if (!IsValid(CurObject))
 					continue;
 
-				UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(CurObject, Input, FString::FromInt(AtIndex + 1));
+				UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(CurObject, Input, FString::FromInt(AtIndex + 1), InputSettings);
 				if (!ensure(NewInputObject))
 					continue;
 
@@ -659,6 +661,8 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 	}
 	else if (InputType == EHoudiniInputType::Asset && IsValid(InputAssetComponent))
 	{
+		const FHoudiniInputObjectSettings InputSettings(Input);
+
 		// Get the asset input object array
 		TArray<UHoudiniInputObject*>* AssetInputObjectsPtr = Input->GetHoudiniInputObjectArray(InputType);
 		if (ensure(AssetInputObjectsPtr))
@@ -669,7 +673,7 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 			if (IsValid(InputHAC))
 			{
 				// Create a new InputObject wrapper
-				UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(InputHAC, Input, FString::FromInt(0));
+				UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(InputHAC, Input, FString::FromInt(0), InputSettings);
 				if (ensure(NewInputObject))
 				{
 					// Add to the asset input array
@@ -680,6 +684,8 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 	}
 	else if (InputType == EHoudiniInputType::Curve)
 	{
+		const FHoudiniInputObjectSettings InputSettings(Input);
+
 		// Get the curve input object array
 		TArray<UHoudiniInputObject*>* CurveInputObjectsPtr = Input->GetHoudiniInputObjectArray(InputType);
 		if (ensure(CurveInputObjectsPtr))
@@ -687,7 +693,7 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 			if (IsValid(InputCurve))
 			{
 				// Create a new InputObject wrapper
-				UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(InputCurve, Input, FString::FromInt(0));
+				UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(InputCurve, Input, FString::FromInt(0), InputSettings);
 				if (ensure(NewInputObject))
 				{
 					// Add to the curve input array
@@ -698,7 +704,9 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 
 				UHoudiniInputHoudiniSplineComponent* HoudiniSplineInput = Cast<UHoudiniInputHoudiniSplineComponent>(NewInputObject);
 				if(HoudiniSplineInput)
-					HoudiniSplineInput->Update(InputCurve);
+				{
+					HoudiniSplineInput->Update(InputCurve, InputSettings);
+				}
 			}
 		}
 
@@ -707,6 +715,16 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 	}
 	else if (InputType == EHoudiniInputType::Landscape)
 	{
+		Input->SetLandscapeAutoSelectComponentEnabled(bLandscapeAutoSelectComponent);
+		Input->SetLandscapeExportSelectionOnlyEnabled(bLandscapeExportSelectionOnly);
+		Input->SetLandscapeExportLightingEnabled(bLandscapeExportLighting);
+		Input->SetLandscapeExportMaterialsEnabled(bLandscapeExportMaterials);
+		Input->SetLandscapeExportNormalizedUVsEnabled(bLandscapeExportNormalizedUVs);
+		Input->SetLandscapeExportTileUVsEnabled(bLandscapeExportTileUVs);
+		
+		//bLandscapeExportCurves;
+		const FHoudiniInputObjectSettings InputSettings(Input);
+
 		// Get the Landscape input object array
 		TArray<UHoudiniInputObject*>* LandscapeInputObjectsPtr = Input->GetHoudiniInputObjectArray(InputType);
 		if (ensure(LandscapeInputObjectsPtr))
@@ -717,7 +735,7 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 			if (IsValid(InLandscape))
 			{
 				// Create a new InputObject wrapper
-				UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(InLandscape, Input, FString::FromInt(0));
+				UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(InLandscape, Input, FString::FromInt(0), InputSettings);
 				if (ensure(NewInputObject))
 				{
 					// Add to the geo input array
@@ -725,18 +743,11 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 				}
 			}
 		}
-
-		Input->bLandscapeAutoSelectComponent = bLandscapeAutoSelectComponent;
-		Input->bLandscapeExportSelectionOnly = bLandscapeExportSelectionOnly;
-		Input->bLandscapeExportLighting = bLandscapeExportLighting;
-		Input->bLandscapeExportMaterials = bLandscapeExportMaterials;
-		Input->bLandscapeExportNormalizedUVs = bLandscapeExportNormalizedUVs;
-		Input->bLandscapeExportTileUVs = bLandscapeExportTileUVs;
-		
-		//bLandscapeExportCurves;
 	}
 	else if (InputType == EHoudiniInputType::World)
 	{
+		const FHoudiniInputObjectSettings InputSettings(Input);
+
 		// Get the world input object array
 		TArray<UHoudiniInputObject*>* WorldInputObjectsPtr = Input->GetHoudiniInputObjectArray(InputType);
 
@@ -767,7 +778,7 @@ UHoudiniAssetInput::ConvertLegacyInput(UObject* InOuter)
 					continue;
 
 				// Create a new InputObject wrapper for the actor
-				UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(CurActor, Input, FString::FromInt(AtIndex + 1));
+				UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(CurActor, Input, FString::FromInt(AtIndex + 1), InputSettings);
 				if (!ensure(NewInputObject))
 					continue;
 

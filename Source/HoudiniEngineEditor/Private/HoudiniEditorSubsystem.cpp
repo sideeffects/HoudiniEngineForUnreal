@@ -221,6 +221,8 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 		NodeSyncInput->SetInputType(EHoudiniInputType::Geometry, bOutBPModif);
 		NodeSyncInput->SetName(TEXT("NodeSyncInput"));
 
+		const FHoudiniInputObjectSettings InputSettings(NodeSyncInput);
+
 		// For each selected Asset, create a HoudiniInputObject and send it to H
 		for (int32 Idx = 0; Idx < SelectedAssets.Num(); Idx++)
 		{
@@ -230,7 +232,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 				continue;
 
 			// Create an input object wrapper for the current object
-			UHoudiniInputObject * CurrentInputObject = UHoudiniInputObject::CreateTypedInputObject(CurrentObject, NodeSyncInput, FString::FromInt(Idx + 1));
+			UHoudiniInputObject * CurrentInputObject = UHoudiniInputObject::CreateTypedInputObject(CurrentObject, NodeSyncInput, FString::FromInt(Idx + 1), InputSettings);
 			if (!IsValid(CurrentInputObject))
 				continue;
 

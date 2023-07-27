@@ -1251,7 +1251,6 @@ FHoudiniInputDetails::AddExportAsReferenceCheckBoxes(
 
 						if (CurInputObj->GetImportAsReference() != bNewState)
 						{
-							CurInputObj->SetImportAsReference(bNewState);
 							CurInputObj->MarkChanged(true);
 						}
 					}
@@ -1330,7 +1329,6 @@ FHoudiniInputDetails::AddExportAsReferenceCheckBoxes(
 
 						if (CurInputObj->GetImportAsReferenceRotScaleEnabled() != bNewState)
 						{
-							CurInputObj->SetImportAsReferenceRotScaleEnabled(bNewState);
 							CurInputObj->MarkChanged(true);
 						}
 					}
@@ -1412,7 +1410,6 @@ FHoudiniInputDetails::AddExportAsReferenceCheckBoxes(
 
 						if (CurInputObj->GetImportAsReferenceBboxEnabled() != bNewState)
 						{
-							CurInputObj->SetImportAsReferenceBboxEnabled(bNewState);
 							CurInputObj->MarkChanged(true);
 						}
 					}
@@ -1495,7 +1492,6 @@ FHoudiniInputDetails::AddExportAsReferenceCheckBoxes(
 
 						if (CurInputObj->GetImportAsReferenceMaterialEnabled() != bNewState)
 						{
-							CurInputObj->SetImportAsReferenceMaterialEnabled(bNewState);
 							CurInputObj->MarkChanged(true);
 						}
 					}
@@ -1841,7 +1837,7 @@ FHoudiniInputDetails::AddExportSelectedLandscapesOnlyCheckBox(
 			if (!IsValidWeakPointer(MainInput))
 				return ECheckBoxState::Unchecked;
 
-			return MainInput->bLandscapeExportSelectionOnly ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			return MainInput->IsLandscapeExportSelectionOnlyEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		})
 		.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 		{
@@ -1859,18 +1855,18 @@ FHoudiniInputDetails::AddExportSelectedLandscapesOnlyCheckBox(
 					continue;
 
 				bool bNewState = (NewState == ECheckBoxState::Checked);
-				if (bNewState == CurrentInput->bLandscapeExportSelectionOnly)
+				if (bNewState == CurrentInput->IsLandscapeExportSelectionOnlyEnabled())
 					continue;
 
 				CurrentInput->Modify();
-				CurrentInput->bLandscapeExportSelectionOnly = bNewState;
+				CurrentInput->SetLandscapeExportSelectionOnlyEnabled(bNewState);
 				CurrentInput->UpdateLandscapeInputSelection();
 				CurrentInput->MarkChanged(true);
 			}
 		})
 	];
 
-	if (MainInput->bLandscapeExportSelectionOnly)
+	if (MainInput->IsLandscapeExportSelectionOnlyEnabled())
 	{
 		InVerticalBox->AddSlot()
 		.Padding(10, 2, 5, 2)
@@ -1889,7 +1885,7 @@ FHoudiniInputDetails::AddExportSelectedLandscapesOnlyCheckBox(
 				if (!IsValidWeakPointer(MainInput))
 					return ECheckBoxState::Unchecked;
 
-				return MainInput->bLandscapeAutoSelectComponent ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				return MainInput->IsLandscapeAutoSelectComponentEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 			{
@@ -1907,11 +1903,11 @@ FHoudiniInputDetails::AddExportSelectedLandscapesOnlyCheckBox(
 						continue;
 
 					bool bNewState = (NewState == ECheckBoxState::Checked);
-					if (bNewState == CurrentInput->bLandscapeAutoSelectComponent)
+					if (bNewState == CurrentInput->IsLandscapeAutoSelectComponentEnabled())
 						continue;
 
 					CurrentInput->Modify();
-					CurrentInput->bLandscapeAutoSelectComponent = bNewState;
+					CurrentInput->SetLandscapeAutoSelectComponentEnabled(bNewState);
 					CurrentInput->UpdateLandscapeInputSelection();
 					CurrentInput->MarkChanged(true);
 				}
@@ -2112,7 +2108,7 @@ FHoudiniInputDetails::AddExportLandscapeAsOptions(
 	];
 
 	// The following checkbox are only added when not in heightfield mode
-	if (MainInput->LandscapeExportType != EHoudiniLandscapeExportType::Heightfield)
+	if (MainInput->GetLandscapeExportType() != EHoudiniLandscapeExportType::Heightfield)
 	{
 		TSharedPtr<SCheckBox> CheckBoxExportMaterials;
 		InVerticalBox->AddSlot()
@@ -2132,7 +2128,7 @@ FHoudiniInputDetails::AddExportLandscapeAsOptions(
 				if (!IsValidWeakPointer(MainInput))
 					return ECheckBoxState::Unchecked;
 
-				return MainInput->bLandscapeExportMaterials ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				return MainInput->IsLandscapeExportMaterialsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 			{
@@ -2151,12 +2147,12 @@ FHoudiniInputDetails::AddExportLandscapeAsOptions(
 						continue;
 
 					bool bNewState = (NewState == ECheckBoxState::Checked);
-					if (bNewState == CurrentInput->bLandscapeExportMaterials)
+					if (bNewState == CurrentInput->IsLandscapeExportMaterialsEnabled())
 						continue;
 
 					CurrentInput->Modify();
 
-					CurrentInput->bLandscapeExportMaterials = bNewState;
+					CurrentInput->SetLandscapeExportMaterialsEnabled(bNewState);
 					CurrentInput->MarkChanged(true);
 				}
 			})
@@ -2180,7 +2176,7 @@ FHoudiniInputDetails::AddExportLandscapeAsOptions(
 				if (!IsValidWeakPointer(MainInput))
 					return ECheckBoxState::Unchecked;
 
-				return MainInput->bLandscapeExportTileUVs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				return MainInput->IsLandscapeExportTileUVsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 			{
@@ -2199,12 +2195,12 @@ FHoudiniInputDetails::AddExportLandscapeAsOptions(
 						continue;
 
 					bool bNewState = (NewState == ECheckBoxState::Checked);
-					if (bNewState == CurrentInput->bLandscapeExportTileUVs)
+					if (bNewState == CurrentInput->IsLandscapeExportTileUVsEnabled())
 						continue;
 
 					CurrentInput->Modify();
 
-					CurrentInput->bLandscapeExportTileUVs = bNewState;
+					CurrentInput->SetLandscapeExportTileUVsEnabled(bNewState);
 					CurrentInput->MarkChanged(true);
 				}
 			})
@@ -2228,7 +2224,7 @@ FHoudiniInputDetails::AddExportLandscapeAsOptions(
 				if (!IsValidWeakPointer(MainInput))
 					return ECheckBoxState::Unchecked;
 
-				return MainInput->bLandscapeExportNormalizedUVs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				return MainInput->IsLandscapeExportNormalizedUVsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 			{
@@ -2247,12 +2243,12 @@ FHoudiniInputDetails::AddExportLandscapeAsOptions(
 						continue;
 
 					bool bNewState = (NewState == ECheckBoxState::Checked);
-					if (bNewState == CurrentInput->bLandscapeExportNormalizedUVs)
+					if (bNewState == CurrentInput->IsLandscapeExportNormalizedUVsEnabled())
 						continue;
 
 					CurrentInput->Modify();
 
-					CurrentInput->bLandscapeExportNormalizedUVs = bNewState;
+					CurrentInput->SetLandscapeExportNormalizedUVsEnabled(bNewState);
 					CurrentInput->MarkChanged(true);
 				}
 			})
@@ -2276,7 +2272,7 @@ FHoudiniInputDetails::AddExportLandscapeAsOptions(
 				if (!IsValidWeakPointer(MainInput))
 					return ECheckBoxState::Unchecked;
 
-				return MainInput->bLandscapeExportLighting ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				return MainInput->IsLandscapeExportLightingEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 			{
@@ -2295,12 +2291,12 @@ FHoudiniInputDetails::AddExportLandscapeAsOptions(
 						continue;
 
 					bool bNewState = (NewState == ECheckBoxState::Checked);
-					if (bNewState == CurrentInput->bLandscapeExportLighting)
+					if (bNewState == CurrentInput->IsLandscapeExportLightingEnabled())
 						continue;
 
 					CurrentInput->Modify();
 
-					CurrentInput->bLandscapeExportLighting = bNewState;
+					CurrentInput->SetLandscapeExportLightingEnabled(bNewState);
 					CurrentInput->MarkChanged(true);
 				}
 			})

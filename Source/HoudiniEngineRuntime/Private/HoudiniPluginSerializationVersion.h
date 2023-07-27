@@ -77,6 +77,10 @@ enum EHoudiniPluginSerializationVersion
 	//------<Legacy v1 versions go above this line>------------------------------------------------------
 	VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_V2_BASE = 100,
 
+	// Introduced the FHoudiniInputObjectSettings struct and added it to UHoudiniInput, migrating some input settings
+	// from UHoudiniInput to a member FHoudiniInputObjectSettings struct: UHoudiniInput::InputSettings
+	VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INPUT_OBJECT_SETTINGS_STRUCT = 101,
+
     // -----<new versions can be added before this line>-------------------------------------------------
     // - this needs to be the last line (see note below)
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE_PLUS_ONE,

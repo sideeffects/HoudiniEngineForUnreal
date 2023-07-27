@@ -795,6 +795,8 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 	FUnrealObjectInputIdentifier GeoNodeIdentifier;
 	FUnrealObjectInputHandle GeoNodeHandle;
 
+	const FHoudiniInputObjectSettings& InputSettings = InInput->GetInputSettings();
+
 	FUnrealObjectInputHandle ParentHandle;
 	HAPI_NodeId ParentNodeId = -1;
 
@@ -896,8 +898,8 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 		}
 	}
 
-	bool bExportSelectionOnly = InInput->bLandscapeExportSelectionOnly;
-	bool bLandscapeAutoSelectComponent = InInput->bLandscapeAutoSelectComponent;
+	bool bExportSelectionOnly = InputSettings.bLandscapeExportSelectionOnly;
+	bool bLandscapeAutoSelectComponent = InputSettings.bLandscapeAutoSelectComponent;
 
 	// Get selected components if bLandscapeExportSelectionOnly or bLandscapeAutoSelectComponent is true
 	TSet<ULandscapeComponent*> SelectedComponents = InInput->GetLandscapeSelectedComponents();
@@ -923,11 +925,11 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 	}
 	else
 	{
-		bool bExportLighting = InInput->bLandscapeExportLighting;
-		bool bExportMaterials = InInput->bLandscapeExportMaterials;
-		bool bExportNormalizedUVs = InInput->bLandscapeExportNormalizedUVs;
-		bool bExportTileUVs = InInput->bLandscapeExportTileUVs;
-		bool bExportAsMesh = InInput->LandscapeExportType == EHoudiniLandscapeExportType::Mesh;
+		bool bExportLighting = InputSettings.bLandscapeExportLighting;
+		bool bExportMaterials = InputSettings.bLandscapeExportMaterials;
+		bool bExportNormalizedUVs = InputSettings.bLandscapeExportNormalizedUVs;
+		bool bExportTileUVs = InputSettings.bLandscapeExportTileUVs;
+		bool bExportAsMesh = InputSettings.LandscapeExportType == EHoudiniLandscapeExportType::Mesh;
 
 		bSuccess = FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
 			InLandscape, InputNodeId, FinalInputNodeName,

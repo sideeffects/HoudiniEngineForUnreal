@@ -76,11 +76,6 @@ UHoudiniInput::UHoudiniInput()
 	, bIsObjectPathParameter(false)
 	, bHasChanged(false)
 	, bPackBeforeMerge(false)
-	, bExportLODs(false)
-	, bExportSockets(false)
-	, bPreferNaniteFallbackMesh(false)
-	, bExportColliders(false)
-	, bExportMaterialParameters(false)
 	, bDirectlyConnectHdas(true)
 	, bExportOptionsMenuExpanded(false)
 	, bGeometryInputsMenuExpanded(true)
@@ -94,18 +89,8 @@ UHoudiniInput::UHoudiniInput()
 	, bStaticMeshChanged(false)
 	, bInputAssetConnectedInHoudini(false)
 	, DefaultCurveOffset(0.f)
-	, bAddRotAndScaleAttributesOnCurves(false)
-	, bUseLegacyInputCurves(false)
 	, bIsWorldInputBoundSelector(false)
 	, bWorldInputBoundSelectorAutoUpdate(false)
-	, UnrealSplineResolution(0.0f)
-	, LandscapeExportType(EHoudiniLandscapeExportType::Heightfield)
-	, bLandscapeExportSelectionOnly(false)
-	, bLandscapeAutoSelectComponent(false)
-	, bLandscapeExportMaterials(false)
-	, bLandscapeExportLighting(false)
-	, bLandscapeExportNormalizedUVs(false)
-	, bLandscapeExportTileUVs(false)
 	, bCanDeleteHoudiniNodes(true)
 {
 	Name = TEXT("");
@@ -116,15 +101,25 @@ UHoudiniInput::UHoudiniInput()
 	GeometryInputObjects.Add(nullptr);
 	GeometryCollectionInputObjects.Add(nullptr);
 	
-	KeepWorldTransform = GetDefaultXTransformType();
-
 	const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
-	UnrealSplineResolution = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->MarshallingSplineResolution : 50.0f;
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#else
+#pragma warning(push)
+#pragma warning(disable : 4996)	// disable deprecation warning locally
+#endif
+	UnrealSplineResolution_DEPRECATED = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->MarshallingSplineResolution : 50.0f;
 
-	bAddRotAndScaleAttributesOnCurves = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bAddRotAndScaleAttributesOnCurves : false;
-	bUseLegacyInputCurves = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bUseLegacyInputCurves : false;
+	bAddRotAndScaleAttributesOnCurves_DEPRECATED = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bAddRotAndScaleAttributesOnCurves : false;
+	bUseLegacyInputCurves_DEPRECATED = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bUseLegacyInputCurves : false;
 
-	bPreferNaniteFallbackMesh = HoudiniRuntimeSettings && HoudiniRuntimeSettings->bPreferNaniteFallbackMesh;
+	bPreferNaniteFallbackMesh_DEPRECATED = HoudiniRuntimeSettings && HoudiniRuntimeSettings->bPreferNaniteFallbackMesh;
+#ifdef __clang__
+#pragma clang diagnostic pop
+#else
+#pragma warning(pop)
+#endif
 
 #if WITH_EDITORONLY_DATA
 	bLandscapeUIAdvancedIsExpanded = false;
@@ -287,7 +282,7 @@ void UHoudiniInput::PostEditUndo()
 					 ReconstructedSpline->CopyHoudiniData(SplineComponent);
 
 					 UHoudiniInputObject * ReconstructedInputObject = UHoudiniInputHoudiniSplineComponent::Create(
-						 ReconstructedSpline, GetOuter(), ReconstructedSpline->GetHoudiniSplineName());
+						 ReconstructedSpline, GetOuter(), ReconstructedSpline->GetHoudiniSplineName(), InputSettings);
 					 UHoudiniInputHoudiniSplineComponent *ReconstructedHoudiniSplineInput = (UHoudiniInputHoudiniSplineComponent*)ReconstructedInputObject;
 					 (*InputObjectsPtr)[Index] = ReconstructedHoudiniSplineInput;
 
@@ -359,6 +354,49 @@ UHoudiniInput::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+	Ar.UsingCustomVersion(FHoudiniCustomSerializationVersion::GUID);
+	if (Ar.CustomVer(FHoudiniCustomSerializationVersion::GUID) < VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INPUT_OBJECT_SETTINGS_STRUCT)
+	{
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#else
+#pragma warning(push)
+#pragma warning(disable : 4996)	// disable deprecation warning locally
+#endif
+		// Copy the _DEPRECATED input settings to the InputSettings struct
+		InputSettings.KeepWorldTransform = KeepWorldTransform_DEPRECATED;
+		InputSettings.bImportAsReference = bImportAsReference_DEPRECATED;
+		InputSettings.bImportAsReferenceRotScaleEnabled = bImportAsReferenceRotScaleEnabled_DEPRECATED;
+		InputSettings.bImportAsReferenceBboxEnabled = bImportAsReferenceBboxEnabled_DEPRECATED;
+		InputSettings.bImportAsReferenceMaterialEnabled = bImportAsReferenceMaterialEnabled_DEPRECATED;
+		InputSettings.bExportLODs = bExportLODs_DEPRECATED;
+		InputSettings.bExportSockets = bExportSockets_DEPRECATED;
+		InputSettings.bPreferNaniteFallbackMesh = bPreferNaniteFallbackMesh_DEPRECATED;
+		InputSettings.bExportColliders = bExportColliders_DEPRECATED;
+		InputSettings.bExportMaterialParameters = bExportMaterialParameters_DEPRECATED;
+		InputSettings.bAddRotAndScaleAttributesOnCurves = bAddRotAndScaleAttributesOnCurves_DEPRECATED;
+		InputSettings.bUseLegacyInputCurves = bUseLegacyInputCurves_DEPRECATED;
+		InputSettings.UnrealSplineResolution = UnrealSplineResolution_DEPRECATED;
+		InputSettings.LandscapeExportType = LandscapeExportType_DEPRECATED;
+		InputSettings.bLandscapeExportSelectionOnly = bLandscapeExportSelectionOnly_DEPRECATED;
+		InputSettings.bLandscapeAutoSelectComponent = bLandscapeAutoSelectComponent_DEPRECATED;
+		InputSettings.bLandscapeExportMaterials = bLandscapeExportMaterials_DEPRECATED;
+		InputSettings.bLandscapeExportLighting = bLandscapeExportLighting_DEPRECATED;
+		InputSettings.bLandscapeExportNormalizedUVs = bLandscapeExportNormalizedUVs_DEPRECATED;
+		InputSettings.bLandscapeExportTileUVs = bLandscapeExportTileUVs_DEPRECATED;
+		InputSettings.bLandscapeAutoSelectSplines = bLandscapeAutoSelectSplines_DEPRECATED;
+		InputSettings.bLandscapeSplinesExportControlPoints = bLandscapeSplinesExportControlPoints_DEPRECATED;
+		InputSettings.bLandscapeSplinesExportLeftRightCurves = bLandscapeSplinesExportLeftRightCurves_DEPRECATED;
+		InputSettings.bLandscapeSplinesExportSplineMeshComponents = bLandscapeSplinesExportSplineMeshComponents_DEPRECATED;
+		InputSettings.bMergeSplineMeshComponents = bMergeSplineMeshComponents_DEPRECATED;
+#ifdef __clang__
+#pragma clang diagnostic pop
+#else
+#pragma warning(pop)
+#endif
+	}
+	
 	// On load, change the input selection from old input types to
 	// the new input types (to Geometry or World)
 	// Move the selected objects to the appropriate array
@@ -560,7 +598,7 @@ UHoudiniInput::IsLandscapeInput() const
 void UHoudiniInput::UpdateLandscapeInputSelection()
 {
 	LandscapeSelectedComponents.Reset();
-	if (!bLandscapeExportSelectionOnly) return;
+	if (!InputSettings.bLandscapeExportSelectionOnly) return;
 
 #if WITH_EDITOR
 	if (!IsLandscapeInput())
@@ -578,7 +616,7 @@ void UHoudiniInput::UpdateLandscapeInputSelection()
 
 		// Get selected components if bLandscapeExportSelectionOnly or bLandscapeAutoSelectComponent is true
 		FBox Bounds(ForceInitToZero);
-		if ( bLandscapeAutoSelectComponent )
+		if ( InputSettings.bLandscapeAutoSelectComponent )
 		{
 			// Get our asset's or our connected input asset's bounds
 			UHoudiniAssetComponent* AssetComponent = Cast<UHoudiniAssetComponent>(GetOuter());
@@ -588,7 +626,7 @@ void UHoudiniInput::UpdateLandscapeInputSelection()
 			}
 		}
 	
-		if ( bLandscapeExportSelectionOnly )
+		if ( InputSettings.bLandscapeExportSelectionOnly )
 		{
 			const ULandscapeInfo * LandscapeInfo = CurrentInputLandscapeProxy->GetLandscapeInfo();
 			if ( IsValid(LandscapeInfo) )
@@ -597,7 +635,7 @@ void UHoudiniInput::UpdateLandscapeInputSelection()
 				LandscapeSelectedComponents = LandscapeInfo->GetSelectedComponents();
 			}
 	
-			if ( bLandscapeAutoSelectComponent && LandscapeSelectedComponents.Num() <= 0 && Bounds.IsValid )
+			if ( InputSettings.bLandscapeAutoSelectComponent && LandscapeSelectedComponents.Num() <= 0 && Bounds.IsValid )
 			{
 				// We'll try to use the asset bounds to automatically "select" the components
 				for ( int32 ComponentIdx = 0; ComponentIdx < CurrentInputLandscapeProxy->LandscapeComponents.Num(); ComponentIdx++ )
@@ -834,7 +872,7 @@ bool
 UHoudiniInput::GetKeepWorldTransform() const
 {
 	bool bReturn = false;
-	switch (KeepWorldTransform)
+	switch (InputSettings.KeepWorldTransform)
 	{
 		case EHoudiniXformType::Auto:
 		{
@@ -876,11 +914,11 @@ UHoudiniInput::SetKeepWorldTransform(const bool& bInKeepWorldTransform)
 {
 	if (bInKeepWorldTransform)
 	{
-		KeepWorldTransform = EHoudiniXformType::IntoThisObject;
+		InputSettings.KeepWorldTransform = EHoudiniXformType::IntoThisObject;
 	}
 	else
 	{
-		KeepWorldTransform = EHoudiniXformType::None;
+		InputSettings.KeepWorldTransform = EHoudiniXformType::None;
 	}
 }
 
@@ -977,7 +1015,7 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 		case EHoudiniInputType::World:
 		{
 			UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(GetOuter());
-			if (OuterHAC && !bImportAsReference) 
+			if (OuterHAC && !InputSettings.bImportAsReference) 
 			{
 				for (auto& CurrentInput : *GetHoudiniInputObjectArray(Type)) 
 				{
@@ -1409,7 +1447,7 @@ UHoudiniInput::CreateHoudiniSplineInput(UHoudiniInputHoudiniSplineComponent * Fr
 
 		// Create a Houdini Input Object.
 		UHoudiniInputObject * NewInputObject = UHoudiniInputHoudiniSplineComponent::Create(
-			nullptr, OuterObj, HoudiniSplineName.ToString());
+			nullptr, OuterObj, HoudiniSplineName.ToString(), InputSettings);
 
 		if (!IsValid(NewInputObject))
 			return nullptr;
@@ -1424,7 +1462,7 @@ UHoudiniInput::CreateHoudiniSplineInput(UHoudiniInputHoudiniSplineComponent * Fr
 		if (!IsValid(HoudiniSplineComponent))
 			return nullptr;
 
-		HoudiniSplineInput->Update(HoudiniSplineComponent);
+		HoudiniSplineInput->Update(HoudiniSplineComponent, InputSettings);
 
 		HoudiniSplineComponent->SetHoudiniSplineName(HoudiniSplineName.ToString());
 		HoudiniSplineComponent->SetFlags(RF_Transactional);
@@ -1614,7 +1652,7 @@ UHoudiniInput::RemoveSplineFromInputObject(
 			HoudiniSplineComponent->DestroyComponent();
 		}
 	}
-	InHoudiniSplineInputObject->Update(nullptr);
+	InHoudiniSplineInputObject->Update(nullptr, InputSettings);
 }
 
 
@@ -2023,7 +2061,7 @@ UHoudiniInput::SetInputObjectAt(const EHoudiniInputType& InType, const int32& At
 	if (CurrentObjectType == NewObjectType && NewObjectType != EHoudiniInputObjectType::Invalid)
 	{
 		// The InputObjectTypes match, we can just update the existing object
-		CurrentInputObjectWrapper->Update(InObject);
+		CurrentInputObjectWrapper->Update(InObject, InputSettings);
 		CurrentInputObjectWrapper->MarkChanged(true);
 		return;
 	}
@@ -2033,7 +2071,7 @@ UHoudiniInput::SetInputObjectAt(const EHoudiniInputType& InType, const int32& At
 	if (!ensure(InputObjectsPtr))
 		return;
 
-	UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(InObject, this, FString::FromInt(AtIndex + 1));
+	UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(InObject, this, FString::FromInt(AtIndex + 1), InputSettings);
 	if (!ensure(NewInputObject))
 		return;
 
@@ -2458,10 +2496,10 @@ UHoudiniInput::SetTransformOffsetAt(const float& Value, const int32& AtIndex, co
 void
 UHoudiniInput::SetAddRotAndScaleAttributes(const bool& InValue)
 {
-	if (bAddRotAndScaleAttributesOnCurves == InValue)
+	if (InputSettings.bAddRotAndScaleAttributesOnCurves == InValue)
 		return;
 
-	bAddRotAndScaleAttributesOnCurves = InValue;
+	InputSettings.bAddRotAndScaleAttributesOnCurves = InValue;
 
 	// Mark all input obj as changed
 	MarkAllInputObjectsChanged(true);
@@ -2470,10 +2508,10 @@ UHoudiniInput::SetAddRotAndScaleAttributes(const bool& InValue)
 void
 UHoudiniInput::SetUseLegacyInputCurve(const bool& InValue)
 {
-	if (bUseLegacyInputCurves == InValue)
+	if (InputSettings.bUseLegacyInputCurves == InValue)
 		return;
 
-	bUseLegacyInputCurves = InValue;
+	InputSettings.bUseLegacyInputCurves = InValue;
 
 	// Mark all input obj as changed
 	MarkAllInputObjectsChanged(true);
@@ -2616,7 +2654,7 @@ UHoudiniInput::UpdateWorldSelection(const TArray<AActor*>& InNewSelection)
 		SetInputObjectAt(InputObjectIdx++, CurActor);
 	}
 
-	if (!bIsWorldInputBoundSelector && bLandscapeAutoSelectSplines && AddAllLandscapeSplineActorsForInputLandscapes())
+	if (!bIsWorldInputBoundSelector && InputSettings.bLandscapeAutoSelectSplines && AddAllLandscapeSplineActorsForInputLandscapes())
 		bHasSelectionChanged = true;
 	
 	MarkChanged(bHasSelectionChanged);
@@ -2782,10 +2820,10 @@ void UHoudiniInput::RemoveHoudiniInputObject(UHoudiniInputObject* InInputObject)
 
 void UHoudiniInput::SetLandscapeAutoSelectSplines(const bool bInLandscapeAutoSelectSplines)
 {
-	if (bInLandscapeAutoSelectSplines == bLandscapeAutoSelectSplines)
+	if (bInLandscapeAutoSelectSplines == InputSettings.bLandscapeAutoSelectSplines)
 		return;
 	
-	bLandscapeAutoSelectSplines = bInLandscapeAutoSelectSplines;
+	InputSettings.bLandscapeAutoSelectSplines = bInLandscapeAutoSelectSplines;
 }
 
 bool

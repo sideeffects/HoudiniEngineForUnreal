@@ -56,14 +56,30 @@ bool FHoudiniMeshUtils::MergeMeshes(
 {
 	if (InMeshComponents.IsEmpty())
 		return false;
+
+	// Filter out invalid components or components without valid static meshes
+	TArray<UPrimitiveComponent*> MeshComponents = InMeshComponents.FilterByPredicate([](UPrimitiveComponent const* const InComponent)
+	{
+		if (!IsValid(InComponent))
+			return false;
+		
+		UStaticMeshComponent const* const MeshComponent = Cast<UStaticMeshComponent>(InComponent);
+		if (IsValid(MeshComponent) && !IsValid(MeshComponent->GetStaticMesh()))
+			return false;
+		
+		return true;
+	});
 	
+	if (MeshComponents.IsEmpty())
+		return false;
+
 	// From: MeshMergingTool in the MergeActors plugin
 	
 	const IMeshMergeUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshMergeModule>("MeshMergeUtilities").GetUtilities();
-	UWorld* const World = InMeshComponents[0]->GetWorld();
+	UWorld* const World = MeshComponents[0]->GetWorld();
 	if (!World)
 	{
-		HOUDINI_LOG_WARNING(TEXT("Invalid World retrieved from mesh component \"%s\"!"), *(InMeshComponents[0]->GetPathName()));
+		HOUDINI_LOG_WARNING(TEXT("Invalid World retrieved from mesh component \"%s\"!"), *(MeshComponents[0]->GetPathName()));
 		return false;
 	}
 	TArray<UObject*> AssetsToSync;
@@ -78,16 +94,16 @@ bool FHoudiniMeshUtils::MergeMeshes(
 	if (FindObject<UObject>(nullptr, *PackageName))
 	{
 		FGlobalComponentReregisterContext GlobalReregister;
-		MeshUtilities.MergeComponentsToStaticMesh(InMeshComponents, World, InSettings, nullptr, nullptr, PackageName, AssetsToSync, OutMergedLocation, ScreenAreaSize, true);
+		MeshUtilities.MergeComponentsToStaticMesh(MeshComponents, World, InSettings, nullptr, nullptr, PackageName, AssetsToSync, OutMergedLocation, ScreenAreaSize, true);
 	}
 	else
 	{
-		MeshUtilities.MergeComponentsToStaticMesh(InMeshComponents, World, InSettings, nullptr, nullptr, PackageName, AssetsToSync, OutMergedLocation, ScreenAreaSize, true);
+		MeshUtilities.MergeComponentsToStaticMesh(MeshComponents, World, InSettings, nullptr, nullptr, PackageName, AssetsToSync, OutMergedLocation, ScreenAreaSize, true);
 	}
 
 	if (AssetsToSync.IsEmpty())
 	{
-		HOUDINI_LOG_WARNING(TEXT("Failed to generate static mesh for mesh component \"%s\""), *(InMeshComponents[0]->GetPathName()));
+		HOUDINI_LOG_WARNING(TEXT("Failed to generate static mesh for mesh component \"%s\""), *(MeshComponents[0]->GetPathName()));
 		return false;
 	}
 	

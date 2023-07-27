@@ -1393,6 +1393,8 @@ UHoudiniAssetComponent::MarkAsNeedCook()
 		CurrentInput->SetNeedsToTriggerUpdate(true);
 		CurrentInput->MarkDataUploadNeeded(true);
 
+		FHoudiniInputObjectSettings CurrentInputSettings(CurrentInput);
+
 		// In addition to marking the input as changed/need update, we also need to make sure that any changes on the
 		// Unreal side have been recorded for the input before sending to Houdini. For that we also mark each input
 		// object as changed/need update and explicitly call the Update function on each input object. For example, for
@@ -1408,7 +1410,7 @@ UHoudiniAssetComponent::MarkAsNeedCook()
 
 				UObject* const Object = CurrentInputObject->GetObject();
 				if (IsValid(Object))
-					CurrentInputObject->Update(Object);
+					CurrentInputObject->Update(Object, CurrentInputSettings);
 
 				CurrentInputObject->MarkChanged(true);
 				CurrentInputObject->SetNeedsToTriggerUpdate(true);

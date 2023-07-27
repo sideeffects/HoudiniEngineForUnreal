@@ -66,6 +66,8 @@ class UHoudiniInputSplineMeshComponent;
 class FUnrealObjectInputHandle;
 class FUnrealObjectInputIdentifier;
 
+struct FHoudiniInputObjectSettings;
+
 class AActor;
 
 enum class EHoudiniInputType : uint8;
@@ -166,30 +168,19 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 	static bool	HapiCreateInputNodeForStaticMesh(
 		const FString& InObjNodeName,
 		UHoudiniInputStaticMesh* InObject,
-		const bool& bExportLODs,
-		const bool& bExportSockets,
-		const bool& bExportColliders,
-		const bool& bImportAsReference = false,
-		const bool& bImportAsReferenceRotScaleEnabled = false,
-		const bool& bImportAsReferenceBboxEnabled = false,
-		const bool& bImportAsReferenceMaterialEnabled = false,
-		const bool& bInputNodesCanBeDeleted = true,
-		const bool& bPreferNaniteFallbackMesh = false,
-		bool bExportMaterialParameters = false);
+		const FHoudiniInputObjectSettings& InInputSettings,
+		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForHoudiniSplineComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputHoudiniSplineComponent* InObject,
-		const bool& bInSetRotAndScaleAttributes,
-		const bool& bInUseLegacyInputCurves);
+		const FHoudiniInputObjectSettings& InInputSettings);
 
 	static bool HapiCreateInputNodeForLandscapeSplinesComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputLandscapeSplinesComponent* const InObject,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		TArray<int32>& OutCreatedNodeIds,
-		const float InSplineResolution = 0.0f,
-		const bool bInExportControlPoints = false,
-		const bool bInExportLeftRightCurves = false,
 		const bool bInInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForLandscape(
@@ -202,115 +193,71 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 	static bool HapiCreateInputNodeForSkeletalMesh(
 		const FString& InObjNodeName,
 		UHoudiniInputSkeletalMesh* InObject,
-		const bool& bExportLODs,
-		const bool& bExportSockets,
-		const bool& bExportColliders,
-		const bool& bImportAsReference,
-		const bool& bImportAsReferenceRotScaleEnabled,
-		const bool& bImportAsReferenceBboxEnabled,
-		const bool& bImportAsReferenceMaterialEnabled,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool HapiCreateInputNodeForAnimation(
 		const FString& InObjNodeName,
 		UHoudiniInputAnimation* InObject,
-		const bool& bImportAsReference,
-		const bool& bImportAsReferenceRotScaleEnabled,
-		const bool& bImportAsReferenceBboxEnabled,
-		const bool& bImportAsReferenceMaterialEnabled,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool HapiCreateInputNodeForSkeletalMeshComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputSkeletalMeshComponent* InObject,
-		const bool& bKeepWorldTransform,
-		const bool& bExportLODs,
-		const bool& bExportSockets,
-		const bool& bExportColliders,
-		const bool& bImportAsReference,
-		const bool& bImportAsReferenceRotScaleEnabled,
-		const bool& bImportAsReferenceBboxEnabled,
-		const bool& bImportAsReferenceMaterialEnabled,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		const FTransform& InActorTransform = FTransform::Identity,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool HapiCreateInputNodeForGeometryCollection(
 		const FString& InObjNodeName,
 		UHoudiniInputGeometryCollection* InObject,
-		const bool& bImportAsReference,
-		const bool& bImportAsReferenceRotScaleEnabled,
-		const bool& bImportAsReferenceBboxEnabled,
-		const bool& bImportAsReferenceMaterialEnabled,
-		bool bExportMaterialParameters,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool HapiCreateInputNodeForGeometryCollectionComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputGeometryCollectionComponent* InObject,
-		const bool& bKeepWorldTransform,
-		const bool& bImportAsReference,
-		const bool& bImportAsReferenceRotScaleEnabled,
-		const bool& bImportAsReferenceBboxEnabled,
-		const bool& bImportAsReferenceMaterialEnabled,
-		bool bExportMaterialParameters,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		const FTransform& InActorTransform = FTransform::Identity,
 		const bool& bInputNodesCanBeDeleted = true);
 	
 	static bool	HapiCreateInputNodeForSceneComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputSceneComponent* InObject,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForStaticMeshComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputMeshComponent* InObject,
-		const bool& bExportLODs,
-		const bool& bExportSockets,
-		const bool& bExportColliders,
-		const bool& bKeepWorldTransform,
-		const bool& bImportAsReference,
-		const bool& bImportAsReferenceRotScaleEnabled = false,
-		const bool& bImportAsReferenceBboxEnabled = false,
-		const bool& bImportAsReferenceMaterialEnabled = false,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		const FTransform& InActorTransform = FTransform::Identity,
-		const bool& bInputNodesCanBeDeleted = true,
-		const bool& bPreferNaniteFallbackMesh = false,
-		bool bExportMaterialParameters = false);
+		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForSplineMeshComponents(
 		const FString& InObjNodeName,
 		UHoudiniInputActor* InParentActorObject,
-		const bool& bExportLODs,
-		const bool& bExportSockets,
-		const bool& bExportColliders,
-		const bool& bKeepWorldTransform,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		const FTransform& InActorTransform = FTransform::Identity,
-		const bool& bInputNodesCanBeDeleted = true,
-		const bool& bPreferNaniteFallbackMesh = false,
-		bool bExportMaterialParameters = false);
+		const bool& bInputNodesCanBeDeleted = true);
 	
 	static bool	HapiCreateInputNodeForInstancedStaticMeshComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputInstancedMeshComponent* InObject,
-		const bool& bExportLODs,
-		const bool& bExportSockets,
-		const bool& bExportColliders,
-		bool bExportMaterialParameters,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForSplineComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputSplineComponent* InObject,
-		const float& SplineResolution,
-		const bool& bInUseLegacyInputCurves,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForHoudiniAssetComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputHoudiniAsset* InObject,
-		const bool& bKeepWorldTransform,
-		const bool& bImportAsReference,
-		const bool& bImportAsReferenceRotScaleEnabled);
+		const FHoudiniInputObjectSettings& InInputSettings);
 
 	static bool HapiCreateInputNodesForActorComponents(
 		UHoudiniInput* const InInput,
@@ -335,7 +282,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 
 	static bool HapiCreateInputNodeForCamera(
 		const FString& InObjNodeName,
-		UHoudiniInputCameraComponent* InObject);
+		UHoudiniInputCameraComponent* InObject,
+		const FHoudiniInputObjectSettings& InInputSettings);
 
 	// Create input node for Brush. Optionally exclude actors when combining
 	// brush with other intersecting brushes. This is typically used to 
@@ -344,35 +292,27 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const FString& InObjNodeName, 
 		UHoudiniInputBrush* InObject, 
 		TArray<AActor*>* ExcludeActors,
-		bool bExportMaterialParameters,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		const bool& bInputNodesCanBeDeleted = true
 	);
 
 	static bool HapiCreateInputNodeForDataTable(
 		const FString& InNodeName,
 		UHoudiniInputDataTable* InInputObject,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 		const FString& InObjNodeName,
 		UHoudiniInputFoliageType_InstancedStaticMesh* InObject,
-		const bool& bExportLODs,
-		const bool& bExportSockets,
-		const bool& bExportColliders,
-		bool bExportMaterialParameters,
-		const bool& bImportAsReference = false,
-		const bool& bImportAsReferenceRotScaleEnabled = false,
-		const bool& bImportAsReferenceBboxEnabled = false,
-		const bool& bImportAsReferenceMaterialEnabled = false,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	// Import as reference, wrapper function
 	static bool HapiCreateInputNodeForReference(
 		const FString& InObjNodeName,
 		UHoudiniInputObject* InObject,
-		const bool& bImportAsReferenceRotScaleEnabled = false,
-		const bool& bImportAsReferenceBboxEnabled = false,
-		const bool& bImportAsReferenceMaterialEnabled = false,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	// HAPI: Create an input node for reference

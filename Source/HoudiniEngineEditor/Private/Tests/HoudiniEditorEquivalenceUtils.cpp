@@ -359,16 +359,19 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInput* A, const 
 	Result &= TestExpressionError(A->bIsObjectPathParameter == B->bIsObjectPathParameter, Header, "bIsObjectPathParameter");
 	// Skip bDataUploadNeeded
 	//Result &= TestExpressionError(A->bDataUploadNeeded == B->bDataUploadNeeded, Header, "bDataUploadNeeded");
+
+	const FHoudiniInputObjectSettings& InputSettingsA = A->GetInputSettings();
+	const FHoudiniInputObjectSettings& InputSettingsB = B->GetInputSettings();
 	
 	Result &= TestExpressionError(A->Help.Equals(B->Help), Header, "Help");
-	Result &= TestExpressionError(A->KeepWorldTransform == B->KeepWorldTransform, Header, "KeepWorldTransform");
+	Result &= TestExpressionError(InputSettingsA.KeepWorldTransform == InputSettingsB.KeepWorldTransform, Header, "KeepWorldTransform");
 	Result &= TestExpressionError(A->bPackBeforeMerge == B->bPackBeforeMerge, Header, "bPackBeforeMerge");
-	Result &= TestExpressionError(A->bImportAsReference == B->bImportAsReference, Header, "bImportAsReference");
-	Result &= TestExpressionError(A->bImportAsReferenceRotScaleEnabled == B->bImportAsReferenceRotScaleEnabled, Header, "bImportAsReferenceRotScaleEnabled");
-	Result &= TestExpressionError(A->bExportLODs == B->bExportLODs, Header, "bExportLODs");
-	Result &= TestExpressionError(A->bExportSockets == B->bExportSockets, Header, "bExportSockets");
-	Result &= TestExpressionError(A->bPreferNaniteFallbackMesh == B->bPreferNaniteFallbackMesh, Header, "bPreferNaniteFallbackMesh");
-	Result &= TestExpressionError(A->bExportColliders == B->bExportColliders, Header, "bExportColliders");
+	Result &= TestExpressionError(InputSettingsA.bImportAsReference == InputSettingsB.bImportAsReference, Header, "bImportAsReference");
+	Result &= TestExpressionError(InputSettingsA.bImportAsReferenceRotScaleEnabled == InputSettingsB.bImportAsReferenceRotScaleEnabled, Header, "bImportAsReferenceRotScaleEnabled");
+	Result &= TestExpressionError(InputSettingsA.bExportLODs == InputSettingsB.bExportLODs, Header, "bExportLODs");
+	Result &= TestExpressionError(InputSettingsA.bExportSockets == InputSettingsB.bExportSockets, Header, "bExportSockets");
+	Result &= TestExpressionError(InputSettingsA.bPreferNaniteFallbackMesh == InputSettingsB.bPreferNaniteFallbackMesh, Header, "bPreferNaniteFallbackMesh");
+	Result &= TestExpressionError(InputSettingsA.bExportColliders == InputSettingsB.bExportColliders, Header, "bExportColliders");
 	// Result &= TestExpressionError(A->bCookOnCurveChanged == B->bCookOnCurveChanged, Header, "bCookOnCurveChanged");
 
 	Result &= TestExpressionError(A->GeometryInputObjects.Num() == B->GeometryInputObjects.Num(), Header, "GeometryInputObjects.Num");
@@ -397,9 +400,9 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInput* A, const 
 
 	Result &= TestExpressionError(FMath::IsNearlyEqual(A->DefaultCurveOffset, B->DefaultCurveOffset, FLOAT_TOLERANCE), Header, "DefaultCurveOffset");
 	
-	Result &= TestExpressionError(A->bAddRotAndScaleAttributesOnCurves == B->bAddRotAndScaleAttributesOnCurves, Header, "bAddRotAndScaleAttributeOnCurves");
+	Result &= TestExpressionError(InputSettingsA.bAddRotAndScaleAttributesOnCurves == InputSettingsB.bAddRotAndScaleAttributesOnCurves, Header, "bAddRotAndScaleAttributeOnCurves");
 
-	Result &= TestExpressionError(A->bUseLegacyInputCurves == B->bUseLegacyInputCurves, Header, "bUseLegacyInputCurves");
+	Result &= TestExpressionError(InputSettingsA.bUseLegacyInputCurves == InputSettingsB.bUseLegacyInputCurves, Header, "bUseLegacyInputCurves");
 	
 	Result &= TestExpressionError(A->LandscapeInputObjects.Num() == B->LandscapeInputObjects.Num(), Header, "LandscapeInputObjects.Num");
 	for (int i = 0; i < FMath::Min(A->LandscapeInputObjects.Num(), B->LandscapeInputObjects.Num()); i++)
@@ -423,7 +426,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInput* A, const 
 
 	Result &= TestExpressionError(A->bIsWorldInputBoundSelector == B->bIsWorldInputBoundSelector, Header, "bIsWorldInputBoundSelector");
 	Result &= TestExpressionError(A->bWorldInputBoundSelectorAutoUpdate == B->bWorldInputBoundSelectorAutoUpdate, Header, "bWorldInputBoundSelectorAutoUpdate");
-	Result &= TestExpressionError(FMath::IsNearlyEqual(A->UnrealSplineResolution, B->UnrealSplineResolution, FLOAT_TOLERANCE), Header, "UnrealSplineResolution");
+	Result &= TestExpressionError(FMath::IsNearlyEqual(InputSettingsA.UnrealSplineResolution, InputSettingsB.UnrealSplineResolution, FLOAT_TOLERANCE), Header, "UnrealSplineResolution");
 
 	Result &= TestExpressionError(A->SkeletalInputObjects.Num() == B->SkeletalInputObjects.Num(), Header, "SkeletalInputObjects.Num");
 	for (int i = 0; i < FMath::Min(A->SkeletalInputObjects.Num(), B->SkeletalInputObjects.Num()); i++)
@@ -434,13 +437,13 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInput* A, const 
 	// Skip LastInsertedInputs
 	// Skip LastUndoDeletedInputs
 
-	Result &= TestExpressionError(A->LandscapeExportType == B->LandscapeExportType, Header, "LandscapeExportType");
-	Result &= TestExpressionError(A->bLandscapeExportSelectionOnly == B->bLandscapeExportSelectionOnly, Header, "bLandscapeExportSelectionOnly");
-	Result &= TestExpressionError(A->bLandscapeAutoSelectComponent == B->bLandscapeAutoSelectComponent, Header, "bLandscapeAutoSelectComponent");
-	Result &= TestExpressionError(A->bLandscapeExportMaterials == B->bLandscapeExportMaterials, Header, "bLandscapeExportMaterials");
-	Result &= TestExpressionError(A->bLandscapeExportLighting == B->bLandscapeExportLighting, Header, "bLandscapeExportLighting");
-	Result &= TestExpressionError(A->bLandscapeExportNormalizedUVs == B->bLandscapeExportNormalizedUVs, Header, "bLandscapeExportNormalizedUVs");
-	Result &= TestExpressionError(A->bLandscapeExportTileUVs == B->bLandscapeExportTileUVs, Header, "bLandscapeExportTileUVs");
+	Result &= TestExpressionError(InputSettingsA.LandscapeExportType == InputSettingsB.LandscapeExportType, Header, "LandscapeExportType");
+	Result &= TestExpressionError(InputSettingsA.bLandscapeExportSelectionOnly == InputSettingsB.bLandscapeExportSelectionOnly, Header, "bLandscapeExportSelectionOnly");
+	Result &= TestExpressionError(InputSettingsA.bLandscapeAutoSelectComponent == InputSettingsB.bLandscapeAutoSelectComponent, Header, "bLandscapeAutoSelectComponent");
+	Result &= TestExpressionError(InputSettingsA.bLandscapeExportMaterials == InputSettingsB.bLandscapeExportMaterials, Header, "bLandscapeExportMaterials");
+	Result &= TestExpressionError(InputSettingsA.bLandscapeExportLighting == InputSettingsB.bLandscapeExportLighting, Header, "bLandscapeExportLighting");
+	Result &= TestExpressionError(InputSettingsA.bLandscapeExportNormalizedUVs == InputSettingsB.bLandscapeExportNormalizedUVs, Header, "bLandscapeExportNormalizedUVs");
+	Result &= TestExpressionError(InputSettingsA.bLandscapeExportTileUVs == InputSettingsB.bLandscapeExportTileUVs, Header, "bLandscapeExportTileUVs");
 	Result &= TestExpressionError(A->bCanDeleteHoudiniNodes == B->bCanDeleteHoudiniNodes, Header, "bCanDeleteHoudiniNodes");
 	
 	return Result;
@@ -462,7 +465,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInputObject* A, 
 	Result &= TestExpressionError(IsEquivalent(A->InputObject.Get(), B->InputObject.Get()), Header, "InputObject");
 	Result &= TestExpressionError(IsEquivalent(A->Transform, B->Transform), Header, "Transform");
 	Result &= TestExpressionError(A->Type == B->Type, Header, "Type");
-	Result &= TestExpressionError(A->bImportAsReference == B->bImportAsReference, Header, "bImportAsReference");
+	Result &= TestExpressionError(A->GetImportAsReference() == B->GetImportAsReference(), Header, "bImportAsReference");
 
 	// Skip EditorOnly data
 
