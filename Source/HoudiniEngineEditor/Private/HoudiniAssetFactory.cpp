@@ -84,7 +84,6 @@ UHoudiniAssetFactory::FactoryCreateBinary(
 	UObject * Context, const TCHAR * Type, const uint8 *& Buffer,
 	const uint8 * BufferEnd, FFeedbackContext * Warn )
 {
-	HOUDINI_LOG_MESSAGE(TEXT("[UHoudiniAssetFactory::FactoryCreateBinary] ..."));
 	// Broadcast notification that a new asset is being imported.
 	GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPreImport(this, InClass, InParent, InName, Type);
 
@@ -105,7 +104,6 @@ UHoudiniAssetFactory::FactoryCreateBinary(
 	HoudiniAsset->CreateAsset(Buffer, BufferEnd, SanitizedFileName);
 
 	// Import optional external data for the HoudiniAsset.
-	HOUDINI_LOG_MESSAGE(TEXT("[UHoudiniAssetFactory::FactoryCreateBinary] PreImport: Has Tool Data: %d."), HoudiniAsset->HoudiniToolData != nullptr);
 
 	// We always import external JSON / Image data if it is available.
 	// The Reimport action has to determine whether it wants to preserve existing data, or use the new data. We won't
@@ -121,8 +119,6 @@ UHoudiniAssetFactory::FactoryCreateBinary(
 UObject*
 UHoudiniAssetFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
-	HOUDINI_LOG_MESSAGE(TEXT("[UHoudiniAssetFactory::FactoryCreateFile] ..."));
-	
 	// "houdini.hdalibrary" files (expanded hda / hda folder) need a special treatment,
 	// but ".hda" files can be loaded normally
 	FString FileExtension = FPaths::GetExtension(Filename);

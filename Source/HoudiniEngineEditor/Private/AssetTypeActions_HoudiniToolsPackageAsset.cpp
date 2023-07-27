@@ -267,8 +267,6 @@ FAssetTypeActions_HoudiniToolsPackageAsset::ExecuteImportNewHDAs(TArray<TWeakObj
 			continue;
 		}
 		
-		UE_LOG(LogHoudiniTools, Log, TEXT("[FAssetTypeActions_HoudiniToolsPackageAsset::ExecuteImportNewHDAs] Importing package description to: %s"), *ToolsPackage->GetPathName());
-		
 		// Only import missing HDAs into this package.
 		FHoudiniToolsEditor::ReimportPackageHDAs(ToolsPackage, true);
 	}

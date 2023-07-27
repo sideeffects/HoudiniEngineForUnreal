@@ -227,13 +227,8 @@ UHoudiniToolsPackageAsset::PostEditChangeProperty(FPropertyChangedEvent& Propert
 void
 UHoudiniToolsPackageAsset::MakeRelativePackagePath()
 {
-	UE_LOG(LogTemp, Log, TEXT("[MakeRelativePackagePath] Project Dir: %s"), *FPaths::ProjectDir());
-	UE_LOG(LogTemp, Log, TEXT("[MakeRelativePackagePath] External Dir: %s"), *ExternalPackageDir.Path);
-	
-	
 	const FString ProjectDir = FPaths::ProjectDir();
 	FPaths::MakePathRelativeTo(ExternalPackageDir.Path, *ProjectDir);
-	UE_LOG(LogTemp, Log, TEXT("[MakeRelativePackagePath] Relative External Dir: %s"), *ExternalPackageDir.Path);
 }
 #endif
 

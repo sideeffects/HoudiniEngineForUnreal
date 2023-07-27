@@ -83,6 +83,7 @@
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "HoudiniToolsRuntimeUtils.h"
+#include "Widgets/Layout/SSpacer.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
 
 #define LOCTEXT_NAMESPACE "HoudiniTools"
@@ -1378,10 +1379,7 @@ FReply SHoudiniToolImportPackage::HandleCreateClicked()
     {
         const FText Message = LOCTEXT("ImportPackage_NoHDAs", "No HDAs to import.");
         const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Creation Successful");
-        FMessageDialog::Open(EAppMsgType::Ok,
-            FText::Format(Message, {NumHDAs}),
-            &Title
-            );
+        FMessageDialog::Open(EAppMsgType::Ok, Message, &Title );
     }
 
     // Open the content browser at the newly created asset package.
@@ -1561,62 +1559,7 @@ SHoudiniToolsPanel::Construct( const FArguments& InArgs )
     CategoriesContainer = SNew(SVerticalBox);
 
     RebuildCategories();
-
-    UE_LOG(LogHoudiniTools, Log, TEXT("[SHoudiniToolsPanel::Construct] Categories Container Num Children: %d"), CategoriesContainer->NumSlots());
-
-    // SAssignNew( HoudiniToolListView, SHoudiniToolListView )
-    //     .SelectionMode( ESelectionMode::Single )
-    //     .ListItemsSource( &GetHoudiniTools().GetHoudiniToolsList() )
-    //     .OnGenerateRow( this, &SHoudiniToolPalette::MakeListViewWidget )
-    //     .OnSelectionChanged( this, &SHoudiniToolPalette::OnSelectionChanged )
-    //     .OnMouseButtonDoubleClick( this, &SHoudiniToolPalette::OnDoubleClickedListViewWidget )
-    //     .OnContextMenuOpening( this, &SHoudiniToolPalette::ConstructHoudiniToolContextMenu )
-    //     .ItemHeight( 35 );
     
-    // SAssignNew( HoudiniToolTileView, SHoudiniToolTileView )
-    //     .SelectionMode( ESelectionMode::Single )
-    //     .ListItemsSource( &GetHoudiniTools().GetHoudiniToolsList() )
-    //     .OnGenerateTile( this, &SHoudiniToolPalette::MakeTileViewWidget )
-    //     .OnSelectionChanged( this, &SHoudiniToolPalette::OnSelectionChanged )
-    //     .OnMouseButtonDoubleClick( this, &SHoudiniToolPalette::OnDoubleClickedListViewWidget )
-    //     .OnContextMenuOpening( this, &SHoudiniToolPalette::ConstructHoudiniToolContextMenu )
-    //     .ItemHeight( 64 );
-    //
-    // // int32 ToolDirComboSelectedIdx = HoudiniEngineEditor.CurrentHoudiniToolDirIndex + 1;
-    // int32 ToolDirComboSelectedIdx = 0;
-    // if (!HoudiniToolDirArray.IsValidIndex(ToolDirComboSelectedIdx))
-    //     ToolDirComboSelectedIdx = 0;
-    //
-    // TSharedPtr<FString> Selection;
-    // if (HoudiniToolDirArray.IsValidIndex(ToolDirComboSelectedIdx))
-    //     Selection = HoudiniToolDirArray[ ToolDirComboSelectedIdx ];
-    //
-    // TSharedRef<SComboBox< TSharedPtr< FString > > > HoudiniToolDirComboBox =
-    //     SNew(SComboBox< TSharedPtr< FString > >)
-    //     .OptionsSource( &HoudiniToolDirArray)
-    //     .InitiallySelectedItem(Selection)
-    //     .OnGenerateWidget( SComboBox< TSharedPtr< FString > >::FOnGenerateWidget::CreateLambda(
-    //         []( TSharedPtr< FString > ChoiceEntry ) 
-    //         {
-    //             FText ChoiceEntryText = FText::FromString( *ChoiceEntry );
-    //             return SNew( STextBlock )
-    //                 .Text( ChoiceEntryText )
-    //                 .ToolTipText( ChoiceEntryText )
-    //                 .Font( FAppStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) );
-    //         } ) )
-    //     .OnSelectionChanged( SComboBox< TSharedPtr< FString > >::FOnSelectionChanged::CreateLambda(
-    //         [=]( TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType ) 
-    //         {
-    //             if ( !NewChoice.IsValid() )
-    //                     return;
-    //             OnDirectoryChange(*(NewChoice.Get()) );
-    //         } ) )
-    //         [
-    //             SNew(STextBlock)
-    //             .Text(this, &SHoudiniToolPalette::OnGetSelectedDirText )
-    //             .ToolTipText( this,  &SHoudiniToolPalette::OnGetSelectedDirText )
-    //             .Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-    //         ];
     TSharedPtr< SButton > EditButton;
     FText EditButtonText = FText::FromString(TEXT("Edit"));
     FText EditButtonTooltip = FText::FromString(TEXT("Add, Remove or Edit custom Houdini tool directories"));
@@ -1672,12 +1615,74 @@ SHoudiniToolsPanel::Construct( const FArguments& InArgs )
             [
                 SNew(SBorder)
                 .BorderImage(FAppStyle::Get().GetBrush("Brushes.Recessed"))
+                .Visibility_Lambda([&]() -> EVisibility
+                {
+                    // Only show the categories panel if we have categories
+                    if (CategoriesContainer.IsValid() && CategoriesContainer->NumSlots() > 0)
+                    {
+                        return EVisibility::Visible;
+                    }
+                    return EVisibility::Collapsed;
+                })
                 [
                     SNew(SScrollBox)
                     .ScrollBarAlwaysVisible(true)
                     + SScrollBox::Slot()
                     [
                         CategoriesContainer.ToSharedRef() // vertical box
+                    ]
+                ]
+            ]
+
+            + SVerticalBox::Slot()
+            .FillHeight(1.0)
+            [
+                SNew(SBorder)
+                .BorderImage(FAppStyle::Get().GetBrush("Brushes.Recessed"))
+                .Visibility_Lambda([&]() -> EVisibility
+                {
+                    // Show the "Import SideFX Tools" panel only if we don't have any existing categories.
+                    if (CategoriesContainer.IsValid() && CategoriesContainer->NumSlots() == 0)
+                    {
+                        return EVisibility::Visible;
+                    }
+                    return EVisibility::Collapsed;
+                })
+                [
+                    SNew(SVerticalBox)
+                    + SVerticalBox::Slot()
+                    .FillHeight(1.f)
+                    .HAlign(HAlign_Center)
+                    .VAlign(VAlign_Center)
+                    [
+                        SNew(SVerticalBox)
+                        + SVerticalBox::Slot()
+                        .HAlign(HAlign_Center)
+                        [
+                            SNew(STextBlock)
+                            .Text(LOCTEXT("HoudiniTools_ImportSideFXToolsPanel_Description", "No tools here yet! Import default SideFX Tools?"))
+                        ]
+                        + SVerticalBox::Slot()
+                        .HAlign(HAlign_Center)
+                        .VAlign(VAlign_Center)
+                        .Padding(FMargin(0.f, 10.f))
+                        .AutoHeight()
+                        [
+                            SNew(SButton)
+				            .HAlign(HAlign_Center)
+				            .VAlign(VAlign_Center)
+				            .ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
+				            .ButtonStyle(&_GetEditorStyle().GetWidgetStyle<FButtonStyle>("PrimaryButton"))
+				            .OnClicked_Lambda([&]() -> FReply
+                            {
+                                HandleImportSideFXTools();
+                                return FReply::Handled();
+                            })
+				            [
+					            SNew(STextBlock)
+					            .Text(LOCTEXT( "ImportPackage_CreateButtonLabel", "Import SideFX Tools" ))
+				            ]
+                        ]
                     ]
                 ]
             ]
@@ -2543,6 +2548,16 @@ TSharedPtr<SWidget> SHoudiniToolsPanel::ConstructHoudiniToolsActionMenu()
         )
     );
 
+    // Import HTools Package
+    MenuBuilder.AddMenuEntry(
+        LOCTEXT( "ActionMenu_ImportSideFXTools", "Import SideFX Tools" ),
+        LOCTEXT( "ActionMenu_ImportSideFXToolsTooltip", "Import default SideFX tools from Houdini." ),
+        FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
+        FUIAction(
+            FExecuteAction::CreateSP(this, &SHoudiniToolsPanel::HandleImportSideFXTools )
+        )
+    );
+
     MenuBuilder.EndSection();
 
     MenuBuilder.BeginSection("PackageUpdate", LOCTEXT("ActionMenu_Section_Update", "Update"));
@@ -2649,7 +2664,7 @@ SHoudiniToolsPanel::OnEditActiveHoudiniToolWindowClosed( const TSharedRef<SWindo
     UHoudiniAsset* HoudiniAsset = ActiveTool->HoudiniAsset.LoadSynchronous();
     if (!HoudiniAsset)
     {
-        UE_LOG(LogHoudiniTools, Warning, TEXT("Could not locate active tool. Unable to save changes."));
+        HOUDINI_LOG_WARNING(TEXT("Could not locate active tool. Unable to save changes."));
         return;
     }
 
@@ -2669,8 +2684,6 @@ SHoudiniToolsPanel::OnEditActiveHoudiniToolWindowClosed( const TSharedRef<SWindo
         //     FName BrushName = *IconPath;
         //     CustomIconBrush = new FSlateDynamicImageBrush( BrushName, FVector2D( 40.f, 40.f ) );
         // }
-
-        UE_LOG(LogHoudiniTools, Log, TEXT("[OnEditActiveHoudiniToolWindowClosed] Storing edits on HoudiniToolData..."));
         
         //  - Store all the edited properties on the HoudiniToolData.
         //  - Populate the relevant FHoudiniTool descriptor from the HoudiniAsset.
@@ -3021,6 +3034,31 @@ void SHoudiniToolsPanel::ImportToolsPackage()
 
     // TArray<FString> HoudiniToolsDirs;
     // GetHoudiniTools().FindAllProjectHoudiniToolsPackages(HoudiniToolsDirs);
+}
+
+void SHoudiniToolsPanel::HandleImportSideFXTools()
+{
+    int NumImportedHDAs = 0;
+    const bool bResult = FHoudiniToolsEditor::ImportSideFXTools(&NumImportedHDAs);
+
+    if (bResult)
+    {
+        const FText Title = LOCTEXT("ImportSideFXTools_ImportSuccess_Title", "Import Success");
+        FMessageDialog::Open(EAppMsgType::Ok,
+            FText::Format(LOCTEXT("ImportSideFXTools_ImportSuccess_Title", "Imported {0} HDAs."),
+                FText::AsNumber(NumImportedHDAs)),
+            &Title
+            );
+    }
+    else
+    {
+        const FText Title = LOCTEXT("ImportSideFXTools_ImportFailed_Title", "Import Failed");
+        FMessageDialog::Open(EAppMsgType::Ok,
+            FText::Format( LOCTEXT("ImportSideFXTools_ImportFailed", "Could not import SideFX Tools package."),
+                FText::AsNumber(NumImportedHDAs)),
+            &Title
+            );
+    }
 }
 
 

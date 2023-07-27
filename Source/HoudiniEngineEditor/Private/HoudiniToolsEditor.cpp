@@ -169,6 +169,12 @@ FString FHoudiniToolsEditor::GetDefaultPackageAssetPath(const FString& PackageNa
     return AssetPath;
 }
 
+TSoftObjectPtr<UHoudiniToolsPackageAsset> FHoudiniToolsEditor::GetPackageAssetRef(const FString& PackagePath)
+{
+    const FString PackageName = FString::Format(TEXT("{0}.{0}"), { FHoudiniToolsRuntimeUtils::GetPackageUAssetName() } );
+    return TSoftObjectPtr<UHoudiniToolsPackageAsset>(FString::Format(TEXT("UHoudiniToolsPackageAsset'{0}/{1}'"), {PackagePath, PackageName})); 
+}
+
 FString FHoudiniToolsEditor::GetAbsoluteToolsPackagePath(const UHoudiniToolsPackageAsset* ToolsPackage)
 {
     if (!IsValid(ToolsPackage))
@@ -180,7 +186,13 @@ FString FHoudiniToolsEditor::GetAbsoluteToolsPackagePath(const UHoudiniToolsPack
         return FString();
     }
     // TODO: Can we normalize this path to get rid of the relative path bits?
-    return FPaths::Combine(FPaths::GetPath(FPaths::GetProjectFilePath()), ToolsPackage->ExternalPackageDir.Path);
+    FString AbsPath = FPaths::Combine(FPaths::GetPath(FPaths::GetProjectFilePath()), ToolsPackage->ExternalPackageDir.Path);
+
+    FPaths::NormalizeDirectoryName(AbsPath);
+    FPaths::CollapseRelativeDirectories(AbsPath);
+    AbsPath = FPaths::ConvertRelativePathToFull(AbsPath);
+
+    return AbsPath;
 }
 
 FString FHoudiniToolsEditor::ResolveHoudiniAssetLabel(const UHoudiniAsset* HoudiniAsset)
@@ -1188,7 +1200,6 @@ bool FHoudiniToolsEditor::GetHoudiniPackageDescriptionFromJSON(const FString& Js
 
 bool FHoudiniToolsEditor::ImportExternalHoudiniAssetData(UHoudiniAsset* HoudiniAsset)
 {
-    HOUDINI_LOG_MESSAGE(TEXT("[ImportExternalHoudiniAssetData] ..."));
     if (!IsValid(HoudiniAsset))
     {
         return false;
@@ -1220,7 +1231,6 @@ bool FHoudiniToolsEditor::ImportExternalHoudiniAssetData(UHoudiniAsset* HoudiniA
 		// Ingest external JSON data and cache it on the HDA.
         // If a valid icon is referenced inside the JSON, it will overwrite the previously loaded icon.
 		UHoudiniToolData* ToolData = GetOrCreateHoudiniToolData(HoudiniAsset);
-	    UE_LOG(LogHoudiniTools, Log, TEXT("[ImportExternalHoudiniAssetData] Populating ToolsData from JSON file: %s"), *JSONFilePath);
 		bResult = FHoudiniToolsEditor::PopulateHoudiniToolDataFromJSON(JSONFilePath, *ToolData);
 	}
     
@@ -1237,7 +1247,6 @@ bool FHoudiniToolsEditor::ImportExternalHoudiniAssetData(UHoudiniAsset* HoudiniA
     const FString IconPath = ResolveHoudiniAssetIconPath(HoudiniAsset);
     if (FPaths::FileExists(IconPath))
     {
-        UE_LOG(LogHoudiniTools, Log, TEXT("[ImportExternalHoudiniAssetData] Importing Icon: %s"), *IconPath);
         // If we have found an icon for this HDA, load it now.
         UHoudiniToolData* ToolData = GetOrCreateHoudiniToolData(HoudiniAsset);
         ToolData->LoadIconFromPath(IconPath);
@@ -1488,6 +1497,35 @@ FHoudiniToolsEditor::ImportExternalToolsPackage(
     return Asset;
 }
 
+UHoudiniToolsPackageAsset* FHoudiniToolsEditor::ImportOrCreateToolsPackage(
+    const FString& DestDir,
+    const FString& ExternalPackageDir,
+    const FString& DefaultCategoryName)
+{
+    // If there is an external JSON file, import it. Otherwise, create a new package.
+
+    UHoudiniToolsPackageAsset* PackageAsset = nullptr;
+
+    const FString JSONFilePath = FPaths::Combine(DestDir, FHoudiniToolsRuntimeUtils::GetPackageJSONName());
+    if (FPaths::FileExists(JSONFilePath))
+    {
+        // Try to import the external package.
+        PackageAsset = ImportExternalToolsPackage(DestDir, JSONFilePath, true);
+    }
+
+    if (!IsValid(PackageAsset))
+    {
+        // Create a new, default, package and configure it to point to the external package dir
+        PackageAsset = FHoudiniToolsEditor::CreateToolsPackageAsset(
+            DestDir,
+            DefaultCategoryName,
+            ExternalPackageDir
+            );
+    }
+
+    return PackageAsset;
+}
+
 bool
 FHoudiniToolsEditor::ReimportExternalToolsPackageDescription(UHoudiniToolsPackageAsset* PackageAsset)
 {
@@ -1532,7 +1570,6 @@ FHoudiniToolsEditor::ReimportPackageHDAs(const UHoudiniToolsPackageAsset* Packag
     TArray<UHoudiniAsset*> InternalHoudiniAssets;
     FindHoudiniAssetsInPackage(PackageAsset, InternalHoudiniAssets);
 
-    UE_LOG(LogHoudiniTools, Log, TEXT("Finding HDAs in external package dir: %s"), *ExternalPackageDir);
     // Find all HDAs in the external package directory
     const FString PackageAssetDir = FPaths::GetPath( PackageAsset->GetPathName() );
 
@@ -1621,13 +1658,13 @@ FHoudiniToolsEditor::ReimportPackageHDAs(const UHoudiniToolsPackageAsset* Packag
         {
             // Reimport existing asset from the current tool path
             FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-            TArray<FString> FileNames;
-            FString RelImportPath = ExternalHDAFile;
-            FPaths::MakePathRelativeTo(RelImportPath, *GetAbsoluteGameContentDir());
+            // TArray<FString> FileNames;
+            // FString RelImportPath = ExternalHDAFile;
+            // FPaths::MakePathRelativeTo(RelImportPath, *GetAbsoluteGameContentDir());
             
             InternalHoudiniAssets.Remove(LoadedAsset);
 
-            FToolsWrapper::ReimportAsync(LoadedAsset, false, true, RelImportPath);
+            FToolsWrapper::ReimportAsync(LoadedAsset, false, true, ExternalHDAFile);
         }
         else
         {
@@ -1671,7 +1708,6 @@ FHoudiniToolsEditor::ReimportPackageHDAs(const UHoudiniToolsPackageAsset* Packag
         // reimport any HDAs left over in this array 
         for (UHoudiniAsset* HoudiniAsset : InternalHoudiniAssets)
         {
-            UE_LOG(LogHoudiniTools, Log, TEXT("[FHoudiniTools::ReimportPackageHDAs] Reimporting internal Houdini Asset: %s"), *HoudiniAsset->GetPathName());
             FToolsWrapper::ReimportAsync(HoudiniAsset, false, true);
         }
     }
@@ -1684,7 +1720,6 @@ FHoudiniToolsEditor::CreateUniqueAssetIconBrush(const UHoudiniAsset* HoudiniAsse
 {
     if (IsValid(HoudiniAsset) && IsValid(HoudiniAsset->HoudiniToolData))
     {
-        UE_LOG(LogHoudiniTools, Log, TEXT("[FHoudiniToolsEditor::CreateUniqueAssetIconBrush] '%s' Icon '%s' (%s)"), *(HoudiniAsset->HoudiniToolData->Name), *(HoudiniAsset->HoudiniToolData->IconSourcePath.FilePath), *(HoudiniAsset->HoudiniToolData->IconImageData.RawDataMD5));
         const FHImageData& SrcImageData = HoudiniAsset->HoudiniToolData->IconImageData;
 
         if (SrcImageData.SizeX == 0 || SrcImageData.SizeY == 0 || SrcImageData.RawData.Num() == 0)
@@ -1712,7 +1747,6 @@ FHoudiniToolsEditor::CreateUniqueAssetIconBrush(const UHoudiniAsset* HoudiniAsse
         const FString UniqueResourceName = ResourceName + "_" + SrcImageData.RawDataMD5;
 		if (FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(*UniqueResourceName, SrcImage.SizeX, SrcImage.SizeY, ImageRawData32))
 		{
-            UE_LOG(LogHoudiniTools, Log, TEXT("[FHoudiniToolsEditor::CreateUniqueAssetIconBrush] Created icon brush with resource name: %s"), *UniqueResourceName);
 			return new FSlateDynamicImageBrush(*UniqueResourceName, FVector2D(40.f, 40.f));
 		}
     }
@@ -2126,6 +2160,63 @@ bool FHoudiniToolsEditor::SelectionTypeToString(const EHoudiniToolSelectionType 
     }
 
     return false;
+}
+
+bool FHoudiniToolsEditor::ImportSideFXTools(int* NumImportedHDAs)
+{
+    // Read the default tools from the $HFS/engine/tool folder
+    FDirectoryPath DefaultToolPath;
+    const FString HFSPath = FPaths::GetPath(FHoudiniEngine::Get().GetLibHAPILocation());
+    const FString ExternalPackagePath = FPaths::Combine(HFSPath, TEXT("engine"), TEXT("tools"));
+    const FString PackageJSONPath = FPaths::Combine(ExternalPackagePath, FHoudiniToolsRuntimeUtils::GetPackageJSONName());
+
+    const FString PackageName = TEXT("SideFX");
+    const FString PackageDestPath = FHoudiniToolsEditor::GetDefaultPackagePath(PackageName);
+    
+    const FString PackageAssetPath = FHoudiniToolsEditor::GetDefaultPackageAssetPath(PackageName);
+    UHoudiniToolsPackageAsset* PackageAsset = nullptr;
+
+    // See if there is an existing SideFX package that we can work with.
+    if (_DoesAssetExist(PackageAssetPath))
+    {
+        // Try to load the asset
+        const TSoftObjectPtr<UHoudiniToolsPackageAsset> SideFXPackageRef = GetPackageAssetRef(PackageDestPath);
+        PackageAsset = SideFXPackageRef.LoadSynchronous();
+
+        if (IsValid(PackageAsset))
+        {
+            PackageAsset->Modify();
+
+            // We have a valid existing package. Be sure to update the package path
+            PackageAsset->ExternalPackageDir.Path = ExternalPackagePath;
+            FHoudiniEngineRuntimeUtils::DoPostEditChangeProperty(PackageAsset, "ExternalPackageDir");
+
+            PackageAsset->MarkPackageDirty();
+        }
+    }
+
+    if (!IsValid(PackageAsset))
+    {
+        // We haven't found a SideFX package in the Unreal project. Try to import an external one, and if that
+        // failed, create new one.
+        PackageAsset = FHoudiniToolsEditor::ImportOrCreateToolsPackage(
+            PackageDestPath,
+            ExternalPackagePath,
+            PackageName
+            );
+    }
+    
+    if (!PackageAsset)
+    {
+        // Could not import / create a package
+        HOUDINI_LOG_WARNING(TEXT("Error importing SideFX tools. Could not import or create HoudiniTools package."));
+        return false;
+    }
+
+    // Reimport HDAs for the current package.
+    FHoudiniToolsEditor::ReimportPackageHDAs(PackageAsset, false, NumImportedHDAs);
+
+    return true;
 }
 
 // void

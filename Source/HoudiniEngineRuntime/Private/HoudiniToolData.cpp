@@ -215,14 +215,11 @@ void UHoudiniToolData::LoadIconFromPath(const FString& IconPath)
     {
         FName BrushName = *IconPath;
         FImage TmpImage;
-        UE_LOG(LogTemp, Log, TEXT("[UHoudiniToolData::LoadIconFromPath] Image Path: %s"), *FullIconPath);
 		if (FToolsWrapper::LoadImage(*FullIconPath, TmpImage))
 		{
 	        IconImageData.FromImage(TmpImage);
 	        IconSourcePath.FilePath = FullIconPath;
 			bSuccess = true;
-			UE_LOG(LogTemp, Log, TEXT("[UHoudiniToolData::LoadIconFromPath] Loaded image with MD5 hash: %s"), *IconImageData.RawDataMD5);
-			UE_LOG(LogTemp, Log, TEXT("[UHoudiniToolData::LoadIconFromPath] Num bytes: %d"), IconImageData.RawData.Num());
 		}
     }
 	
@@ -254,5 +251,4 @@ void UHoudiniToolData::CopyFrom(const UHoudiniToolData& Other)
 	DefaultTool = Other.DefaultTool;
 	SelectionType = Other.SelectionType;
 	SourceAssetPath = Other.SourceAssetPath;
-	UE_LOG(LogTemp, Log, TEXT("[UHoudiniToolData::CopyFrom] Source Icon Hash: %s, New Icon Hash: %s"),  *Other.IconImageData.RawDataMD5, *IconImageData.RawDataMD5);
 }

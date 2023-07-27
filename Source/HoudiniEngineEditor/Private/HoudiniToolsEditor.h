@@ -71,6 +71,8 @@ public:
 	static FString GetDefaultHoudiniToolsPath();
 	static FString GetDefaultPackagePath(const FString& PackageName);
 	static FString GetDefaultPackageAssetPath(const FString& PackageName);
+	
+	static TSoftObjectPtr<UHoudiniToolsPackageAsset> GetPackageAssetRef(const FString& PackagePath);
 
 	static FString GetAbsoluteToolsPackagePath(const UHoudiniToolsPackageAsset* ToolsPackage);
 
@@ -202,6 +204,13 @@ public:
 		const FString& PackageJsonPath,
 		const bool bForceReimport);
 
+	// Helper function that will try to import an external package from JSON, if it exists.
+	// If not, simply create a default package in the Unreal project.
+	static UHoudiniToolsPackageAsset* ImportOrCreateToolsPackage(
+		const FString& DestDir,
+		const FString& ExternalPackageDir,
+		const FString& DefaultCategoryName);
+
 	// Import the Tools Package Asset only from the external json file into the given (internal) directory.
 	// To import HDAs for this package, call ImportPackageHDA.  
 	static bool ReimportExternalToolsPackageDescription(UHoudiniToolsPackageAsset* PackageAsset);
@@ -246,6 +255,9 @@ public:
 	// Convert between enums and string values used in JSON files
 	static bool ToolTypeToString(const EHoudiniToolType ToolType, FString& OutString);
 	static bool SelectionTypeToString(const EHoudiniToolSelectionType SelectionType, FString& OutString);
+
+	// Attempt to import default SideFX HDAs from Houdini
+	static bool ImportSideFXTools(int* NumImportedHDAs);
 
 	/** Rebuild the editor's Houdini Tool list for a directory **/
     

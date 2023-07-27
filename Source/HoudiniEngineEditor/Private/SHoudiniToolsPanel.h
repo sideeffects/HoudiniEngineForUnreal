@@ -445,6 +445,8 @@ protected:
 
     /** Import a tools package **/
     void ImportToolsPackage();
+
+    void HandleImportSideFXTools();
     
 
 private:
