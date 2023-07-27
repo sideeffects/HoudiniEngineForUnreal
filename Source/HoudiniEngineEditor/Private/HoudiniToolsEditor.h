@@ -127,6 +127,8 @@ public:
 
 	static bool CanCreateCreateToolsPackage(const FString& PackageName, FText* FailReason = nullptr);
 
+	static UHoudiniToolsPackageAsset* CreateToolsPackageAsset(const FString& PackageDir, const FString& DefaultCategory, const FString& ExternalPackageDir=FString());
+
 	// Return the UHoudiniToolData object on the HoudiniAsset. If it doesn't exist, create it. 
 	static UHoudiniToolData* GetOrCreateHoudiniToolData(UHoudiniAsset* HoudiniAsset);
 

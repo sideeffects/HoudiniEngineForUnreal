@@ -83,6 +83,7 @@
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "HoudiniToolsRuntimeUtils.h"
+#include "Widgets/Layout/SWidgetSwitcher.h"
 
 #define LOCTEXT_NAMESPACE "HoudiniTools"
 
@@ -476,7 +477,7 @@ SHoudiniToolNewPackage::Construct(const FArguments& InArgs)
                     ]
                     + SGridPanel::Slot(1, RowPackageLocation)
                     .VAlign(VAlign_Center)
-                    .Padding(0.f, 3.0f)
+                    .Padding(0.f, 5.0f)
                     [
                         SNew(STextBlock)
                         .Text(this, &SHoudiniToolNewPackage::OnGetPackagePathText)
@@ -683,8 +684,6 @@ void SHoudiniToolNewPackage::CloseContainingWindow()
 }
 
 
-
-
 SHoudiniToolImportPackage::SHoudiniToolImportPackage()
     : bIsValidPackageDirectory(false)
     , bCreateMissingPackageJSON(true)
@@ -696,14 +695,23 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SHoudiniToolImportPackage::Construct(const FArguments& InArgs)
 {
+    const FText ImportPackageTitle = LOCTEXT( "HoudiniTool_ImportPackage_Title", "Import Houdini Tools Package" );
     const FText InitialPackageName = LOCTEXT("CreatePackage_PackageNameValue", "PackageName");
     // Row counter for widgets in a uniform grid.
     // Allows us to easily insert rows without having to worry about renumbering everything.
     int row = 0;
 
+    // First screen
     const int RowPackageDirSelector = row++;
     const int RowPackageName = row++;
     const int RowPackageLocation = row++;
+
+    // Second screen
+    row = 0;
+    const int Row2PackageDir = row++;
+    const int Row2PackageName = row++;
+    const int Row2PackageLocation = row++;
+    const int Row2CreateExternalJSONFile = row++;
     
     this->ChildSlot
     [
@@ -715,151 +723,307 @@ void SHoudiniToolImportPackage::Construct(const FArguments& InArgs)
         .BorderImage(FAppStyle::Get().GetBrush("Brushes.Panel"))
         .Padding(10.0f)
         [
+            // Vertical container for the widget switcher and row of action buttons
             SNew(SVerticalBox)
             + SVerticalBox::Slot()
             .VAlign(VAlign_Center)
             .HAlign(HAlign_Fill)
             .AutoHeight()
-            [
-                SNew(STextBlock)
-                .Font(FAppStyle::Get().GetFontStyle("HeadingExtraSmall"))
-                .Text( LOCTEXT( "HoudiniTool_ImportPackage_Title", "Import Houdini Tools Package" ) )
-                .TransformPolicy(ETextTransformPolicy::ToUpper)
-            ]
-            
-            // -----------------------------
-            // Description
-            // -----------------------------
-            // + SVerticalBox::Slot()
-            // .AutoHeight()
-            // .Padding(0.0f, 10.0f)
-            // [
-            //     SNew(SVerticalBox)
-            //     + SVerticalBox::Slot()
-            //     .AutoHeight()
-            //     [
-            //         SNew(STextBlock)
-            //         .AutoWrapText(true)
-            //         .Text(LOCTEXT("HoudiniTool_ImportPackage_Description", "Enter a name for your new Houdini Tools package. Package names may only contain alphanumeric characters, and may not contain a space."))
-            //     ]
-            //     + SVerticalBox::Slot()
-            //     .AutoHeight()
-            //     [
-            //         SNew(STextBlock)
-            //         .AutoWrapText(true)
-            //         .Text(LOCTEXT("HoudiniTool_CreatePackageDescription2", "When you click the Create button, an empty Houdini Tools package will created at the displayed location."))
-            //     ]
-            //
-            // ]
-            
-            // -----------------------------
-            // Name Error label
-            // -----------------------------
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(0.0f, 5.0f)
-			[
-				SNew(SWarningOrErrorBox)
-				.MessageStyle(EMessageStyle::Error)
-				.Visibility(this, &SHoudiniToolImportPackage::GetNameErrorLabelVisibility)
-				.Message(this, &SHoudiniToolImportPackage::GetNameErrorLabelText)
-			]
+
+            // --------------------------------
+            // Content Switcher Row
+            // --------------------------------
             
             + SVerticalBox::Slot()
-            .AutoHeight()
             [
-                SNew(SBorder)
-                .BorderImage(_GetBrush("DetailsView.CategoryTop"))
-                .BorderBackgroundColor(FLinearColor(0.6f, 0.6f, 0.6f, 1.0f ))
-                .Padding(FMargin(6.0f, 4.0f, 7.0f, 4.0f))
+                SAssignNew(WidgetSwitcher, SWidgetSwitcher)
+
+                // --------------------------------
+                // Import Tool - First Panel
+                // --------------------------------
+                
+                + SWidgetSwitcher::Slot()
                 [
-                    SNew(SGridPanel)
-                    .FillColumn(1, 1.0f)
-
-                    //--------------------------
-                    // Package Directory Selector
-                    //--------------------------
-
-                    + SGridPanel::Slot(0, RowPackageDirSelector)
+                    // -----------------------------
+                    // Title
+                    // -----------------------------
+                
+                    SNew(SVerticalBox)
+                    + SVerticalBox::Slot()
                     .VAlign(VAlign_Center)
-                    .Padding(0.0f, 0.0f, 12.0f, 0.0f)
+                    .HAlign(HAlign_Fill)
+                    .AutoHeight()
                     [
                         SNew(STextBlock)
-                        .Text(LOCTEXT("ImportPackage_NameLabel", "Package Directory"))
-                    ]
-                    + SGridPanel::Slot(1, RowPackageDirSelector)
-                    .VAlign(VAlign_Center)
-                    .Padding(0.f, 3.0f)
-                    [
-                        SAssignNew(DirectoryPicker, SDirectoryPicker)
-                        .OnDirectoryChanged(this, &SHoudiniToolImportPackage::OnDirectoryChanged)
+                        .Font(FAppStyle::Get().GetFontStyle("HeadingExtraSmall"))
+                        .Text( ImportPackageTitle )
+                        .TransformPolicy(ETextTransformPolicy::ToUpper)
                     ]
 
-                    //--------------------------
-                    // Houdini Tools package name
-                    //--------------------------
-			        
-                    + SGridPanel::Slot(0, RowPackageName)
+                    // -----------------------------
+                    // Description
+                    // -----------------------------
+                    + SVerticalBox::Slot()
+                    .AutoHeight()
+                    .Padding(0.0f, 10.0f)
+                    [
+                        SNew(SVerticalBox)
+                        +SVerticalBox::Slot()
+                        .AutoHeight()
+                        [
+                            SNew(STextBlock)
+                            .AutoWrapText(true)
+                            .Text(LOCTEXT("HoudiniTool_ImportPackageDescription", "Select the external package directory."))
+                        ]
+                        +SVerticalBox::Slot()
+                        .AutoHeight()
+                        [
+                            SNew(STextBlock)
+                            .AutoWrapText(true)
+                            .Text(LOCTEXT("HoudiniTool_ImportPackageDescription", "Enter a name for your new Houdini Tools package. Package names may only contain alphanumeric characters, and may not contain a space."))
+                        ]
+                    ]
+                    
+                    // -----------------------------
+                    // Name Error label
+                    // -----------------------------
+                    +SVerticalBox::Slot()
+                    .AutoHeight()
+                    .Padding(0.0f, 5.0f)
+                    [
+                        SNew(SWarningOrErrorBox)
+                        .MessageStyle(EMessageStyle::Error)
+                        .Visibility(this, &SHoudiniToolImportPackage::GetNameErrorLabelVisibility)
+                        .Message(this, &SHoudiniToolImportPackage::GetNameErrorLabelText)
+                    ]
+                    
+                    + SVerticalBox::Slot()
+                    .AutoHeight()
+                    [
+                        SNew(SBorder)
+                        .BorderImage(_GetBrush("DetailsView.CategoryTop"))
+                        .BorderBackgroundColor(FLinearColor(0.6f, 0.6f, 0.6f, 1.0f ))
+                        .Padding(FMargin(6.0f, 4.0f, 7.0f, 4.0f))
+                        [
+                            SNew(SGridPanel)
+                            .FillColumn(1, 1.0f)
+
+                            //--------------------------
+                            // Package Directory Selector
+                            //--------------------------
+
+                            + SGridPanel::Slot(0, RowPackageDirSelector)
+                            .VAlign(VAlign_Center)
+                            .Padding(0.0f, 0.0f, 12.0f, 0.0f)
+                            [
+                                SNew(STextBlock)
+                                .Text(LOCTEXT("ImportPackage_DirectoryLabel", "Package Directory"))
+                            ]
+                            + SGridPanel::Slot(1, RowPackageDirSelector)
+                            .VAlign(VAlign_Center)
+                            .Padding(0.f, 3.0f)
+                            [
+                                SAssignNew(DirectoryPicker, SDirectoryPicker)
+                                .OnDirectoryChanged(this, &SHoudiniToolImportPackage::OnDirectoryChanged)
+                            ]
+
+                            //--------------------------
+                            // Houdini Tools package name
+                            //--------------------------
+			                
+                            + SGridPanel::Slot(0, RowPackageName)
+                            .VAlign(VAlign_Center)
+                            .Padding(0.0f, 0.0f, 12.0f, 0.0f)
+                            [
+                                SNew(STextBlock)
+                                .Text(LOCTEXT("ImportPackage_NameLabel", "Name"))
+                            ]
+                            + SGridPanel::Slot(1, RowPackageName)
+                            .VAlign(VAlign_Center)
+                            .Padding(0.f, 3.0f)
+                            [
+                                SAssignNew(PackageNameEditBox, SEditableTextBox)
+                                .Text(InitialPackageName)
+                                .ToolTipText(LOCTEXT("ImportPackage_NameTooltip", "The name for the package folder as seen in the content browser."))
+                                .OnTextChanged( this, &SHoudiniToolImportPackage::OnPackageNameTextChanged )
+                                .OnTextCommitted( this, &SHoudiniToolImportPackage::OnPackageNameTextCommitted )
+                            ]
+
+                            //--------------------------
+                            // Houdini Tools package location
+                            //--------------------------
+			                
+                            + SGridPanel::Slot(0, RowPackageLocation)
+                            .VAlign(VAlign_Center)
+                            .Padding(0.0f, 0.0f, 12.0f, 0.0f)
+                            [
+                                SNew(STextBlock)
+                                .Text(LOCTEXT("ImportPackage_LocationLabel", "Location"))
+                            ]
+                            + SGridPanel::Slot(1, RowPackageLocation)
+                            .VAlign(VAlign_Center)
+                            .Padding(0.f, 3.0f)
+                            [
+                                SNew(STextBlock)
+                                .Text(this, &SHoudiniToolImportPackage::OnGetPackagePathText)
+                            ]
+                        ]
+                    ] 
+                ] // Switcher - First Panel
+
+                // --------------------------------
+                // Import Tool - Second Panel
+                // --------------------------------
+                
+                + SWidgetSwitcher::Slot()
+                [
+                    // -----------------------------
+                    // Title
+                    // -----------------------------
+                
+                    SNew(SVerticalBox)
+                    + SVerticalBox::Slot()
                     .VAlign(VAlign_Center)
-                    .Padding(0.0f, 0.0f, 12.0f, 0.0f)
+                    .HAlign(HAlign_Fill)
+                    .AutoHeight()
                     [
                         SNew(STextBlock)
-                        .Text(LOCTEXT("ImportPackage_NameLabel", "Name"))
-                    ]
-                    + SGridPanel::Slot(1, RowPackageName)
-                    .VAlign(VAlign_Center)
-                    .Padding(0.f, 3.0f)
-                    [
-                        SAssignNew(PackageNameEditBox, SEditableTextBox)
-                        .Text(InitialPackageName)
-                        .ToolTipText(LOCTEXT("ImportPackage_NameTooltip", "The name for the package folder as seen in the content browser."))
-                        .OnTextChanged( this, &SHoudiniToolImportPackage::OnPackageNameTextChanged )
-                        .OnTextCommitted( this, &SHoudiniToolImportPackage::OnPackageNameTextCommitted )
+                        .Font(FAppStyle::Get().GetFontStyle("HeadingExtraSmall"))
+                        .Text( ImportPackageTitle )
+                        .TransformPolicy(ETextTransformPolicy::ToUpper)
                     ]
 
-                    //--------------------------
-                    // Create missing package descriptor
-                    //--------------------------
-
-                    // + SGridPanel::Slot(0, ++row)
-                    // .VAlign(VAlign_Center)
-                    // .Padding(0.0f, 0.0f, 12.0f, 0.0f)
-                    // [
-                    //     SNew(STextBlock)
-                    //     .Text(LOCTEXT("ImportPackage_CreateMissingJSON", "Create missing JSON files"))
-                    // ]
-                    // + SGridPanel::Slot(1, row)
-                    // .VAlign(VAlign_Center)
-                    // .Padding(0.f, 3.0f)
-                    // [
-                    //     SNew(SCheckBox)
-                    //     .IsChecked(bCreateMissingPackageJSON)
-                    //     .OnCheckStateChanged_Lambda([=](const ECheckBoxState State)
-                    //     {
-                    //         bCreateMissingPackageJSON = State == ECheckBoxState::Checked;
-                    //     })
-                    // ]
-
-                    //--------------------------
-                    // Houdini Tools package location
-                    //--------------------------
-			        
-                    + SGridPanel::Slot(0, RowPackageLocation)
-                    .VAlign(VAlign_Center)
-                    .Padding(0.0f, 0.0f, 12.0f, 0.0f)
+                    // -----------------------------
+                    // Description
+                    // -----------------------------
+                    + SVerticalBox::Slot()
+                    .AutoHeight()
+                    .Padding(0.0f, 10.0f)
                     [
-                        SNew(STextBlock)
-                        .Text(LOCTEXT("ImportPackage_LocationLabel", "Location"))
+                        SNew(SVerticalBox)
+                        +SVerticalBox::Slot()
+                        .AutoHeight()
+                        [
+                            SNew(STextBlock)
+                            .AutoWrapText(true)
+                            .Text(LOCTEXT("HoudiniTool_ImportPackageDescription", "External package descriptor does not exist."))
+                        ]
+                        +SVerticalBox::Slot()
+                        .AutoHeight()
+                        [
+                            SNew(STextBlock)
+                            .AutoWrapText(true)
+                            .Text(LOCTEXT("HoudiniTool_ImportPackageDescription", "Create a new package instead and import HDAs from the package directory."))
+                        ]
                     ]
-                    + SGridPanel::Slot(1, RowPackageLocation)
-                    .VAlign(VAlign_Center)
-                    .Padding(0.f, 3.0f)
+
+                    // -----------------------------
+                    // Grid panel for fields
+                    // -----------------------------
+
+                    + SVerticalBox::Slot()
+                    .AutoHeight()
                     [
-                        SNew(STextBlock)
-                        .Text(this, &SHoudiniToolImportPackage::OnGetPackagePathText)
+                        SNew(SBorder)
+                        .BorderImage(_GetBrush("DetailsView.CategoryTop"))
+                        .BorderBackgroundColor(FLinearColor(0.6f, 0.6f, 0.6f, 1.0f ))
+                        .Padding(FMargin(6.0f, 4.0f, 7.0f, 4.0f))
+                        [
+                            SNew(SGridPanel)
+                            .FillColumn(1, 1.0f)
+
+                            //--------------------------
+                            // External Package Directory
+                            //--------------------------
+			                
+                            + SGridPanel::Slot(0, Row2PackageDir)
+                            .VAlign(VAlign_Center)
+                            .Padding(0.0f, 0.0f, 12.0f, 0.0f)
+                            [
+                                SNew(STextBlock)
+                                .Text(LOCTEXT("ImportPackage_DirectoryLabel", "Package Directory"))
+                            ]
+                            + SGridPanel::Slot(1, Row2PackageDir)
+                            .VAlign(VAlign_Center)
+                            .Padding(0.f, 3.0f)
+                            [
+                                SNew(STextBlock)
+                                .Text_Lambda([&]() -> FText
+                                {
+                                    if (DirectoryPicker.IsValid())
+                                    {
+                                        return FText::FromString(DirectoryPicker->GetDirectory());
+                                    }
+                                    return FText();
+                                })
+                            ]
+
+                            //--------------------------
+                            // External Package Directory
+                            //--------------------------
+			                
+                            + SGridPanel::Slot(0, Row2PackageName)
+                            .VAlign(VAlign_Center)
+                            .Padding(0.0f, 0.0f, 12.0f, 0.0f)
+                            [
+                                SNew(STextBlock)
+                                .Text(LOCTEXT("ImportPackage_PackageNameLabel", "Package Name"))
+                            ]
+                            + SGridPanel::Slot(1, Row2PackageName)
+                            .VAlign(VAlign_Center)
+                            .Padding(0.f, 3.0f)
+                            [
+                                SNew(STextBlock)
+                                .Text_Lambda([&]() -> FText
+                                {
+                                    return FText::FromString(NewPackageName);
+                                })
+                            ]
+
+                            //--------------------------
+                            // Package Location
+                            //--------------------------
+			                
+                            + SGridPanel::Slot(0, Row2PackageLocation)
+                            .VAlign(VAlign_Center)
+                            .Padding(0.0f, 0.0f, 12.0f, 0.0f)
+                            [
+                                SNew(STextBlock)
+                                .Text(LOCTEXT("ImportPackage_LocationLabel", "Location"))
+                            ]
+                            + SGridPanel::Slot(1, Row2PackageLocation)
+                            .VAlign(VAlign_Center)
+                            .Padding(0.f, 3.0f)
+                            [
+                                SNew(STextBlock)
+                                .Text(this, &SHoudiniToolImportPackage::OnGetPackagePathText)
+                            ]
+
+                            //--------------------------
+                            // Create external JSON file
+                            //--------------------------
+			                
+                            + SGridPanel::Slot(0, Row2CreateExternalJSONFile)
+                            .VAlign(VAlign_Center)
+                            .ColumnSpan(2)
+                            .Padding(0.0f, 3.0f, 12.0f, 0.0f)
+                            [
+                                SAssignNew(CreateExternalJSON, SCheckBox)
+                                .Content()
+                                [
+                                    SNew(STextBlock)
+                                    .Text(LOCTEXT("ImportPackage_CreateJSONLabel", "Create external package description (JSON file)"))
+                                ]
+                            ]
+                        ]
                     ]
                 ]
-		    ]
+            ] // Content Switcher Row
+
+            // --------------------------------
+            // Action Buttons row
+            // --------------------------------
+            
 		    + SVerticalBox::Slot()
 		    .VAlign(VAlign_Bottom)
 		    .HAlign(HAlign_Right)
@@ -870,21 +1034,77 @@ void SHoudiniToolImportPackage::Construct(const FArguments& InArgs)
 				.MinDesiredSlotWidth(FCoreStyle::Get().GetFloat("StandardDialog.MinDesiredSlotWidth"))
 				.MinDesiredSlotHeight(FCoreStyle::Get().GetFloat("StandardDialog.MinDesiredSlotHeight"))
 
-				+ SUniformGridPanel::Slot(0, 0)
+				// Back Button
+		        + SUniformGridPanel::Slot(0, 0)
 				[
 		            SNew(SButton)
 				    .HAlign(HAlign_Center)
 				    .VAlign(VAlign_Center)
 				    .ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
+				    .ButtonStyle(&FAppStyle::Get().GetWidgetStyle<FButtonStyle>("Button"))
+				    .OnClicked(this, &SHoudiniToolImportPackage::HandleBackClicked)
+				    .Visibility(this, &SHoudiniToolImportPackage::GetBackVisibility)
+				    [
+					    SNew(STextBlock)
+					    .Text(LOCTEXT( "ImportPackage_NextButtonLabel", "Back" ))
+				    ]
+		        ]
+
+		        // Next Button
+		        + SUniformGridPanel::Slot(1, 0)
+				[
+		            SNew(SButton)
+				    .HAlign(HAlign_Center)
+				    .VAlign(VAlign_Center)
+				    .ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
+				    .ButtonStyle(&FAppStyle::Get().GetWidgetStyle<FButtonStyle>("PrimaryButton"))
+				    .OnClicked(this, &SHoudiniToolImportPackage::HandleNextClicked)
+				    .IsEnabled(this, &SHoudiniToolImportPackage::IsNextEnabled)
+				    .Visibility(this, &SHoudiniToolImportPackage::GetNextVisibility)
+				    [
+					    SNew(STextBlock)
+					    .Text(LOCTEXT( "ImportPackage_NextButtonLabel", "Next" ))
+				    ]
+		        ]
+		        
+				// Import Button
+				+ SUniformGridPanel::Slot(2, 0)
+				[
+		            SNew(SButton)
+				    .HAlign(HAlign_Center)
+				    .VAlign(VAlign_Center)
+				    .ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
+				    .ButtonStyle(&FAppStyle::Get().GetWidgetStyle<FButtonStyle>("PrimaryButton"))
 				    .OnClicked(this, &SHoudiniToolImportPackage::HandleImportClicked)
 				    .IsEnabled(this, &SHoudiniToolImportPackage::IsImportEnabled)
+				    .Visibility(this, &SHoudiniToolImportPackage::GetImportVisibility)
 				    [
 					    SNew(STextBlock)
 					    .Text(LOCTEXT( "ImportPackage_ImportButtonLabel", "Import" ))
 				    ]
 		        ]
+
+		        // Create Button
+				+ SUniformGridPanel::Slot(2, 0)
+				[
+		            SNew(SButton)
+				    .HAlign(HAlign_Center)
+				    .VAlign(VAlign_Center)
+				    .ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
+				    .ButtonStyle(&FAppStyle::Get().GetWidgetStyle<FButtonStyle>("PrimaryButton"))
+				    .OnClicked(this, &SHoudiniToolImportPackage::HandleCreateClicked)
+				    .IsEnabled(this, &SHoudiniToolImportPackage::IsCreateEnabled)
+				    .Visibility(this, &SHoudiniToolImportPackage::GetCreateVisibility)
+				    [
+					    SNew(STextBlock)
+					    .Text(LOCTEXT( "ImportPackage_CreateButtonLabel", "Create" ))
+				    ]
+		        ]
+
+
+		        // Cancel Button
 		        
-		        + SUniformGridPanel::Slot(1, 0)
+		        + SUniformGridPanel::Slot(3, 0)
 		        [
 		            SNew(SButton)
 		            .HAlign(HAlign_Center)
@@ -914,25 +1134,41 @@ EVisibility SHoudiniToolImportPackage::GetNameErrorLabelVisibility() const
         return EVisibility::Visible;
     }
 
+    if (WidgetSwitcher->GetActiveWidgetIndex() == 0)
+    {
+        return EVisibility::Hidden;
+    }
+    else if (WidgetSwitcher->GetActiveWidgetIndex() == 1)
+    {
+        return EVisibility::Visible;
+    }
+
     // Hidden (not collapsed) by default.
     return EVisibility::Hidden;
 }
 
 auto SHoudiniToolImportPackage::GetNameErrorLabelText() const -> FText
 {
-    if (DirectoryPicker->GetDirectory().IsEmpty())
+    if (WidgetSwitcher->GetActiveWidgetIndex() == 0)
     {
-        return LOCTEXT("ImportPackage_EmptyDirectory", "Select a package directory.");
-    }
-    
-    if (!bIsValidPackageDirectory)
-    {
-        return LOCTEXT("ImportPackage_DirectoryNotExist", "Package directory does not exist.");
-    }
+        if (DirectoryPicker->GetDirectory().IsEmpty())
+        {
+            return LOCTEXT("ImportPackage_EmptyDirectory", "Select a package directory.");
+        }
+        
+        if (!bIsValidPackageDirectory)
+        {
+            return LOCTEXT("ImportPackage_DirectoryNotExist", "Directory does not exist.");
+        }
 
-    if (!bValidPackageName)
+        if (!bValidPackageName)
+        {
+            return PackageNameError;
+        }
+    }
+    else if (WidgetSwitcher->GetActiveWidgetIndex() == 1)
     {
-        return PackageNameError;
+        return LOCTEXT("ImportPackage_ExternalPackageNotExist", "External package descriptor does not exist. Create new package.");
     }
 
     return FText();
@@ -940,15 +1176,24 @@ auto SHoudiniToolImportPackage::GetNameErrorLabelText() const -> FText
 
 void SHoudiniToolImportPackage::OnDirectoryChanged(const FString& Directory)
 {
+    bHasPackageJSON = false;
+    bIsValidPackageDirectory = false;
+    
     if (Directory.IsEmpty())
     {
-        bIsValidPackageDirectory = false;
         return;
     }
 
     bIsValidPackageDirectory = FPaths::DirectoryExists(Directory);
     if (bIsValidPackageDirectory)
     {
+        // Check whether the directory contains a JSON file.
+        const FString JSONPath = FPaths::Combine(Directory, FHoudiniToolsRuntimeUtils::GetPackageJSONName());
+        if (FPaths::FileExists(JSONPath))
+        {
+            bHasPackageJSON = true;
+        }
+    
         // Populate the PackageName with the selected directory name.
         FString PackageName = Directory.TrimStartAndEnd();
         if (PackageName.EndsWith("/"))
@@ -983,7 +1228,35 @@ bool SHoudiniToolImportPackage::IsImportEnabled() const
     if (!bValidPackageName)
         return false;
 
-    return true;
+    if (WidgetSwitcher->GetActiveWidgetIndex() == 0)
+    {
+        // On the first page, if we have a valid package JSON, enable import button.
+        return bHasPackageJSON;
+    }
+
+    if (WidgetSwitcher->GetActiveWidgetIndex() == 1)
+    {
+        // On the second page, TODO
+        return false;
+    }
+    
+    return false;
+}
+
+bool SHoudiniToolImportPackage::IsNextEnabled() const
+{
+    if (!bIsValidPackageDirectory)
+        return false;
+    if (!bValidPackageName)
+        return false;
+
+    if (WidgetSwitcher->GetActiveWidgetIndex() == 0)
+    {
+        // On the first page, if don't have a valid package JSON, enable next button.
+        return !bHasPackageJSON;
+    }
+
+    return false;
 }
 
 FReply SHoudiniToolImportPackage::HandleImportClicked()
@@ -1009,16 +1282,26 @@ FReply SHoudiniToolImportPackage::HandleImportClicked()
         int NumHDAs = 0;
         FHoudiniToolsEditor::ReimportPackageHDAs(ImportedPackage, false, &NumHDAs);
 
-        const FText Message = LOCTEXT("ImportPackage_ImportSuccess", "Successfully imported {0} HDAs.");
-        const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Import Successful");
+        if (NumHDAs > 0)
+        {
+            const FText Message = LOCTEXT("ImportPackage_ImportedHDAs", "Imported {0} HDAs.");
+            const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Import Successful");
             FMessageDialog::Open(EAppMsgType::Ok,
                 FText::Format(Message, {NumHDAs}),
                 &Title
                 );
+        }
+        else
+        {
+            const FText Message = LOCTEXT("ImportPackage_NoHDAs", "No HDAs to import.");
+            const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Import Successful");
+            FMessageDialog::Open(EAppMsgType::Ok,
+                FText::Format(Message, {NumHDAs}),
+                &Title
+                );
+        }
         
-        TArray<UObject *> Objects;
-		Objects.Add(ImportedPackage);
-		GEditor->SyncBrowserToObjects(Objects);
+        FHoudiniToolsEditor::BrowseToObjectInContentBrowser(ImportedPackage);
     }
 
 
@@ -1027,7 +1310,127 @@ FReply SHoudiniToolImportPackage::HandleImportClicked()
     return FReply::Handled();
 }
 
-FReply SHoudiniToolImportPackage::HandleCancelClicked()
+EVisibility SHoudiniToolImportPackage::GetImportVisibility() const
+{
+    if (WidgetSwitcher->GetActiveWidgetIndex() == 1)
+    {
+        // We don't want to see the import button on this screen.
+        return EVisibility::Collapsed;
+    }
+    
+    return EVisibility::Visible;
+}
+
+FReply
+SHoudiniToolImportPackage::HandleNextClicked() const
+{
+    WidgetSwitcher->SetActiveWidgetIndex( WidgetSwitcher->GetActiveWidgetIndex() + 1 );
+
+    return FReply::Handled();
+}
+
+EVisibility
+SHoudiniToolImportPackage::GetNextVisibility() const
+{
+    if (WidgetSwitcher->GetActiveWidgetIndex() < 1)
+    {
+        // We only want to see the create button on this screen.
+        return EVisibility::Visible;
+    }
+
+    return EVisibility::Hidden;
+}
+
+FReply SHoudiniToolImportPackage::HandleCreateClicked()
+{
+    const FString PackageDir = FHoudiniToolsEditor::GetDefaultPackagePath(NewPackageName);
+    UHoudiniToolsPackageAsset* Asset = FHoudiniToolsEditor::CreateToolsPackageAsset(
+        PackageDir,
+        NewPackageName,
+        DirectoryPicker->GetDirectory()
+        );
+    if (!Asset)
+    {
+        return FReply::Handled();
+    }
+
+    if (CreateExternalJSON.IsValid() && CreateExternalJSON->IsChecked())
+    {
+        // Create a default external JSON
+        const FString JSONFilePath = FHoudiniToolsRuntimeUtils::GetHoudiniToolsPackageJSONPath(Asset);
+        FHoudiniToolsEditor::WriteDefaultJSONFile(Asset, JSONFilePath);
+    }
+
+    // Import HDAs
+    int NumHDAs = 0;
+    FHoudiniToolsEditor::ReimportPackageHDAs(Asset, false, &NumHDAs);
+
+    if (NumHDAs > 0)
+    {
+        const FText Message = LOCTEXT("ImportPackage_ImportedHDAs", "Imported {0} HDAs.");
+        const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Creation Successful");
+        FMessageDialog::Open(EAppMsgType::Ok,
+            FText::Format(Message, {NumHDAs}),
+            &Title
+            );
+    }
+    else
+    {
+        const FText Message = LOCTEXT("ImportPackage_NoHDAs", "No HDAs to import.");
+        const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Creation Successful");
+        FMessageDialog::Open(EAppMsgType::Ok,
+            FText::Format(Message, {NumHDAs}),
+            &Title
+            );
+    }
+
+    // Open the content browser at the newly created asset package.
+    FHoudiniToolsEditor::BrowseToObjectInContentBrowser(Asset);
+
+    CloseContainingWindow();
+ 
+     return FReply::Handled();
+}
+
+bool SHoudiniToolImportPackage::IsCreateEnabled() const
+{
+    if (WidgetSwitcher->GetActiveWidgetIndex() == 1)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+EVisibility SHoudiniToolImportPackage::GetCreateVisibility() const
+{
+    if (WidgetSwitcher->GetActiveWidgetIndex() == 1)
+    {
+        return EVisibility::Visible;
+    }
+    return EVisibility::Collapsed;
+}
+
+FReply
+SHoudiniToolImportPackage::HandleBackClicked() const
+{
+    WidgetSwitcher->SetActiveWidgetIndex( WidgetSwitcher->GetActiveWidgetIndex() - 1 );
+    return FReply::Handled();
+}
+
+EVisibility
+SHoudiniToolImportPackage::GetBackVisibility() const
+{
+    if (WidgetSwitcher->GetActiveWidgetIndex() >= 1)
+    {
+        return EVisibility::Visible;
+    }
+
+    return EVisibility::Hidden;
+}
+
+FReply
+SHoudiniToolImportPackage::HandleCancelClicked()
 {
     OnCanceled.ExecuteIfBound();
     CloseContainingWindow();
@@ -1035,7 +1438,8 @@ FReply SHoudiniToolImportPackage::HandleCancelClicked()
     return FReply::Handled();
 }
 
-FText SHoudiniToolImportPackage::GetCategory() const
+FText
+SHoudiniToolImportPackage::GetCategory() const
 {
     return FText::FromString(TEXT("PlaceholderCategory"));
 }
@@ -1729,7 +2133,12 @@ SHoudiniToolsPanel::OnDraggingListViewWidget( const FGeometry& MyGeometry, const
             UObject* AssetObj = ActiveTool->HoudiniAsset.LoadSynchronous();
             if ( AssetObj )
             {
+                
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
                 FAssetData BackingAssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*AssetObj->GetPathName());
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+                FAssetData BackingAssetData = AssetRegistryModule.Get().GetAssetByObjectPath(FSoftObjectPath(*AssetObj->GetPathName()));
+#endif
 
                 return FReply::Handled().BeginDragDrop( FAssetDragDropOp::New( BackingAssetData, GEditor->FindActorFactoryForActorClass( AHoudiniAssetActor::StaticClass() ) ) );
             }
@@ -2354,7 +2763,7 @@ SHoudiniToolsPanel::CreateFloatingDetailsView( const TArray< UObject* >& InObjec
     Args.bShowPropertyMatrixButton = false;
     Args.bShowOptions = false;
     Args.bShowModifiedPropertiesOption = false;
-    Args.bShowActorLabel = false;
+    Args.bShowObjectLabel = false;
 
     FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
     TSharedRef<IDetailsView> DetailView = PropertyEditorModule.CreateDetailView( Args );
@@ -2410,7 +2819,7 @@ SHoudiniToolsPanel::CreateFloatingWindow(
     Args.bShowPropertyMatrixButton = false;
     Args.bShowOptions = false;
     Args.bShowModifiedPropertiesOption = false;
-    Args.bShowActorLabel = false;
+    Args.bShowObjectLabel = false;
 
     return NewSlateWindow;
 }

@@ -37,8 +37,10 @@
 #include "HoudiniEngineToolTypes.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Views/STileView.h"
+
 #include "SHoudiniToolsPanel.generated.h"
 
+class SCheckBox;
 class SDirectoryPicker;
 class IDetailsView;
 class ITableRow;
@@ -327,9 +329,21 @@ public:
     FText OnGetPackagePathText() const;
 
     bool IsImportEnabled() const;
+    bool IsNextEnabled() const;
 
     // Create the empty tools package
     FReply HandleImportClicked();
+    EVisibility GetImportVisibility() const;
+
+    FReply HandleNextClicked() const;
+    EVisibility GetNextVisibility() const;
+
+    FReply HandleCreateClicked();
+    bool IsCreateEnabled() const;
+    EVisibility GetCreateVisibility() const;
+    
+    FReply HandleBackClicked() const;
+    EVisibility GetBackVisibility() const;
 
     // Cancel this dialog
     FReply HandleCancelClicked();
@@ -338,10 +352,14 @@ protected:
 
     static FHoudiniToolsEditor& GetHoudiniTools() { return FHoudiniEngineEditor::Get().GetHoudiniTools(); }
 
-    TSharedPtr<SDirectoryPicker> DirectoryPicker;
+    TSharedPtr<SWidgetSwitcher> WidgetSwitcher;
     
+    TSharedPtr<SDirectoryPicker> DirectoryPicker;
     TSharedPtr<SEditableTextBox> PackageNameEditBox;
     TSharedPtr<SEditableTextBox> PackageCategoryEditBox;
+
+    TSharedPtr<SCheckBox> CreateExternalJSON;
+
 
     FText GetCategory() const;
     
@@ -349,12 +367,13 @@ protected:
     void CloseContainingWindow();
 
     // Package Directory state
-    
     bool bIsValidPackageDirectory;
     FText DirectoryInvalidReason;
 
+    // Package JSON state
+    bool bHasPackageJSON;
+
     // Package Name state
-    
 	FString NewPackageName;
     FText PackageNameError;
     bool bValidPackageName;

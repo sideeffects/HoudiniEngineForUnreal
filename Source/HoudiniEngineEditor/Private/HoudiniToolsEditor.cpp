@@ -52,6 +52,7 @@
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "HoudiniToolsRuntimeUtils.h"
+#include "HoudiniEngineRuntimeUtils.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
     #include "Subsystems/EditorAssetSubsystem.h"
@@ -59,7 +60,12 @@
     #include "EditorAssetLibrary.h"
 #endif
 
-#define LOCTEXT_NAMESPACE "HoudiniTools"
+#ifdef LOCTEXT_NAMESPACE
+// This undef is here to get rid of the definition from UE's DecoratedDragDropOp.h.
+#undef LOCTEXT_NAMESPACE
+#endif
+
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
 DEFINE_LOG_CATEGORY(LogHoudiniTools);
 
@@ -708,6 +714,38 @@ bool FHoudiniToolsEditor::CanCreateCreateToolsPackage(const FString& PackageName
 	}
 
     return true;
+}
+
+UHoudiniToolsPackageAsset* FHoudiniToolsEditor::CreateToolsPackageAsset(
+    const FString& PackageDir,
+    const FString& DefaultCategory,
+    const FString& ExternalPackageDir)
+{
+    UHoudiniToolsPackageAssetFactory* Factory = NewObject<UHoudiniToolsPackageAssetFactory>();
+ 
+    const FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+    const FString PackageAssetName = FHoudiniToolsRuntimeUtils::GetPackageUAssetName(); // Name of the Houdini Tools Package asset.
+    const FString FullPath = FPaths::Combine(PackageDir, PackageAssetName);
+ 
+	UHoudiniToolsPackageAsset* Asset = Cast<UHoudiniToolsPackageAsset>(AssetToolsModule.Get().CreateAsset(
+		PackageAssetName, PackageDir,
+		UHoudiniToolsPackageAsset::StaticClass(), Factory, FName("ContentBrowserNewAsset")));
+     
+    if (!Asset)
+    {
+        return nullptr;
+    }
+    
+    // By default add a catch-all category.
+    FCategoryRules DefaultRule;
+    DefaultRule.Include.Add("*");
+    Asset->Categories.Add(DefaultCategory, DefaultRule);
+
+    Asset->ExternalPackageDir.Path = ExternalPackageDir;
+    FHoudiniEngineRuntimeUtils::DoPostEditChangeProperty(Asset, "ExternalPackageDir");
+    UE_LOG(LogHoudiniTools, Log, TEXT("[FHoudiniToolsEditor::CreateToolsPackageAsset] Setting external package dir: %s"), *ExternalPackageDir);
+
+    return Asset;
 }
 
 UHoudiniToolData* FHoudiniToolsEditor::GetOrCreateHoudiniToolData(UHoudiniAsset* HoudiniAsset)
@@ -1443,8 +1481,10 @@ FHoudiniToolsEditor::ImportExternalToolsPackage(
     Asset->bReimportToolsDescription = bImportToolsDescription;
     Asset->bExportToolsDescription = bExportToolsDescription;
     
-    Asset->ExternalPackageDir.Path = PackageJsonPath;
+    Asset->ExternalPackageDir.Path = FPaths::GetPath(PackageJsonPath);
     
+    FHoudiniEngineRuntimeUtils::DoPostEditChangeProperty(Asset, "ExternalPackageDir");
+
     return Asset;
 }
 
@@ -1773,10 +1813,8 @@ TSharedPtr<FJsonObject> FHoudiniToolsEditor::MakeDefaultJSONObject(const UHoudin
     // name of the ToolsPackage.
     // All reimport/export settings will be disabled by default.
 
-    FString AssetPath = FPaths::GetPath(ToolsPackage->GetPathName());
-    UE_LOG(LogHoudiniTools, Log, TEXT("[MakeDefaultJSONObject] Asset Path: %s"), *AssetPath);
-
-    const FString PackageName = TEXT("PackageName");
+    const FString AssetPath = FPaths::GetPath(ToolsPackage->GetPathName());
+    const FString PackageName = FPaths::GetBaseFilename(AssetPath);
     
     // Start by building a JSON object from the tool
     TSharedPtr<FJsonObject> JSONObject = MakeShareable(new FJsonObject);

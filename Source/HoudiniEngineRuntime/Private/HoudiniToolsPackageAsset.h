@@ -87,7 +87,6 @@ public:
 	 */
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	
-	
 	virtual void PreSave(FObjectPreSaveContext SaveContext) override;
 	virtual void PostSaveRoot(FObjectPostSaveRootContext ObjectSaveContext) override;
 
