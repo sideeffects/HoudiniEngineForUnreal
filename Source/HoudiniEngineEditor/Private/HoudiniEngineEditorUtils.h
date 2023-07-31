@@ -99,4 +99,7 @@ public:
 	// Call PostEditChangeChainProperty on InRootObject for the property at InPropertyPath relative to
 	// InRootObject.
 	static void NotifyPostEditChangeProperty(FName InPropertyPath, UObject* InRootObject);
+
+	// Get a ProjectSavedDir()/HoudiniEngine directory for saving editor state
+	static FString HoudiniEngineSavedDir();
 };

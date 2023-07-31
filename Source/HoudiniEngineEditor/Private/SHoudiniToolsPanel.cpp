@@ -83,12 +83,14 @@
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "HoudiniToolsRuntimeUtils.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Styling/StyleColors.h"
 #include "Widgets/Layout/SSpacer.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
 
 #define LOCTEXT_NAMESPACE "HoudiniTools"
 
+const FString SHoudiniToolsPanel::SettingsIniSection = TEXT("HoudiniEngine");
 
 struct FHoudiniToolsPanelUtils
 {
@@ -1306,7 +1308,6 @@ bool SHoudiniToolImportPackage::IsNextEnabled() const
 FReply SHoudiniToolImportPackage::HandleImportClicked()
 {
     const FString PackageJSONPath = FPaths::Combine(DirectoryPicker->GetDirectory(), FHoudiniToolsRuntimeUtils::GetPackageJSONName());
-    UE_LOG(LogHoudiniTools, Log, TEXT("[HandleImportClicked] Trying to load package json file: %s"), *PackageJSONPath);
 
     const FString PackageName = PackageNameEditBox->GetText().ToString();
     const FString PackageDestPath = FHoudiniToolsEditor::GetDefaultPackagePath(PackageName);
@@ -1539,6 +1540,8 @@ SHoudiniToolsPanel::~SHoudiniToolsPanel()
 void
 SHoudiniToolsPanel::Construct( const FArguments& InArgs )
 {
+    LoadConfig();
+    
     const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
     FHoudiniEngineEditor& HoudiniEngineEditor = FModuleManager::GetModuleChecked<FHoudiniEngineEditor>("HoudiniEngineEditor");
     FHoudiniToolsEditor& HoudiniTools = FHoudiniToolsPanelUtils::GetHoudiniTools();
@@ -2504,6 +2507,7 @@ TSharedPtr<SWidget> SHoudiniToolsPanel::ConstructHoudiniToolsActionMenu()
             FExecuteAction::CreateLambda([=]() -> void
             {
                 bAutoRefresh = !bAutoRefresh;
+                SaveConfig();
             }),
             FCanExecuteAction(),
             FGetActionCheckState::CreateLambda([=]() -> ECheckBoxState { return bAutoRefresh ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
@@ -2521,6 +2525,7 @@ TSharedPtr<SWidget> SHoudiniToolsPanel::ConstructHoudiniToolsActionMenu()
             FExecuteAction::CreateLambda([=]() -> void
             {
                 bShowHiddenTools = !bShowHiddenTools;
+                SaveConfig();
                 RequestPanelRefresh();
             }),
             FCanExecuteAction(),
@@ -2540,6 +2545,7 @@ TSharedPtr<SWidget> SHoudiniToolsPanel::ConstructHoudiniToolsActionMenu()
             FExecuteAction::CreateLambda([=]() -> void
             {
                 ViewMode = EHoudiniToolsViewMode::TileView;
+                SaveConfig();
                 RequestPanelRefresh();
             }),
             FCanExecuteAction(),
@@ -2559,6 +2565,7 @@ TSharedPtr<SWidget> SHoudiniToolsPanel::ConstructHoudiniToolsActionMenu()
             FExecuteAction::CreateLambda([=]() -> void
             {
                 ViewMode = EHoudiniToolsViewMode::ListView;
+                SaveConfig();
                 RequestPanelRefresh();
             }),
             FCanExecuteAction(),
@@ -2758,7 +2765,6 @@ SHoudiniToolsPanel::OnEditActiveHoudiniToolWindowClosed( const TSharedRef<SWindo
         if (ToolProperties->IconPath.FilePath.Len() > 0)
         {
             bModified = true;
-            UE_LOG(LogHoudiniTools, Log, TEXT("[OnEditActiveHoudiniToolWindowClosed] Loading new icon from path: %s"), *ToolProperties->IconPath.FilePath);
             ToolData->LoadIconFromPath(ToolProperties->IconPath.FilePath);
         }
         else if (ToolProperties->bClearCachedIcon)
@@ -2768,12 +2774,9 @@ SHoudiniToolsPanel::OnEditActiveHoudiniToolWindowClosed( const TSharedRef<SWindo
         }
         
         ToolData->DefaultTool = false;
-
-        UE_LOG(LogHoudiniTools, Log, TEXT("[OnEditActiveHoudiniToolWindowClosed] Modified: %d"), bModified);
         
         if (bModified)
         {
-            UE_LOG(LogHoudiniTools, Log, TEXT("[OnEditActiveHoudiniToolWindowClosed] Tool property change detected. Refreshing panel..."));
             ToolData->MarkPackageDirty();
             
             // We modified an existing tool. Request a panel refresh.
@@ -2907,7 +2910,6 @@ SHoudiniToolsPanel::OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InK
 void
 SHoudiniToolsPanel::HideActiveToolFromCategory()
 {
-    UE_LOG(LogHoudiniTools, Log, TEXT("[HideActiveToolFromCategory] Hide from category..."));
     if ( !ActiveTool.IsValid() )
         return;
 
@@ -2915,36 +2917,6 @@ SHoudiniToolsPanel::HideActiveToolFromCategory()
     // Manually trigger a rebuild. The ExcludeToolFromCategory will modify the package, but it doesn't trigger an update because
     // the package is not automatically saved.
     RequestPanelRefresh();
-
-    return;
-
-    // Remove the tool from the editor list
-    
-    // TArray< TSharedPtr<FHoudiniTool> >* EditorTools = FHoudiniToolsPanelUtils::GetHoudiniTools().GetHoudiniToolsForWrite();
-    // if ( !EditorTools )
-    //     return;
-    //
-    // int32 EditorIndex = -1;
-    // bool IsDefaultTool = false;
-    // if ( !FHoudiniToolsPanelUtils::GetHoudiniTools().FindHoudiniTool( *ActiveTool, EditorIndex, IsDefaultTool ) )
-    //     return;
-    //
-    // if ( IsDefaultTool )
-    //     return;
-    //
-    // EditorTools->RemoveAt( EditorIndex );
-    //
-    // // Delete the tool's JSON file to remove it
-    // FString ToolJSONFilePath = ActiveTool->ToolDirectory.Path.Path / ActiveTool->JSONFile;
-    //
-    // if ( FPaths::FileExists(ToolJSONFilePath) )
-    // {
-    //     FPlatformFileManager::Get().GetPlatformFile().DeleteFile(*ToolJSONFilePath);
-    // }
-    //
-    // // Call construct to refresh the shelf
-    // SHoudiniToolsPanel::FArguments Args;
-    // Construct( Args );
 }
 
 void SHoudiniToolsPanel::RefreshPanel()
@@ -3186,14 +3158,6 @@ void SHoudiniToolsPanel::RebuildCategories()
             .OnContextMenuOpening( this, &SHoudiniToolsPanel::ConstructHoudiniToolContextMenu )
         ];
     }
-    
-    // ForEachCategory([](SHoudiniToolCategory* InCategory)
-    // {
-    //     if (!InCategory)
-    //         return true;
-    //     InCategory->RequestRefresh();
-    //     return true;
-    // });
 }
 
 void SHoudiniToolsPanel::HandleToolChanged()
@@ -3236,6 +3200,66 @@ void SHoudiniToolsPanel::Tick(const FGeometry& AllottedGeometry, const double In
     }
     
     SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+}
+
+void SHoudiniToolsPanel::LoadConfig()
+{
+    check(GConfig);
+    const FString SettingsString = TEXT("HoudiniTools");
+    
+    // Show Hidden tools
+    if (!GConfig->GetBool(*SettingsIniSection, *(SettingsString + TEXT(".ShowHiddenTools")), bShowHiddenTools, GEditorPerProjectIni))
+    {
+        bShowHiddenTools = false;
+    }
+    
+    // View Mode
+    FString ViewModeName;
+    if (!GConfig->GetString(*SettingsIniSection, *(SettingsString + TEXT(".ViewMode")), ViewModeName, GEditorPerProjectIni))
+    {
+        ViewModeName = TEXT("Tile");
+    }
+    
+    if (ViewModeName == TEXT("List"))
+    {
+        ViewMode = EHoudiniToolsViewMode::ListView; 
+    }
+    else // default: (ViewModeName == TEXT("Tile"))
+    {
+        ViewMode = EHoudiniToolsViewMode::TileView;
+    }
+    
+    // Auto Refresh
+    if (!GConfig->GetBool(*SettingsIniSection, *(SettingsString + TEXT(".AutoRefresh")), bAutoRefresh, GEditorPerProjectIni))
+    {
+        bAutoRefresh = true;
+    }
+}
+
+void SHoudiniToolsPanel::SaveConfig() const
+{
+    check(GConfig);
+    const FString SettingsString = TEXT("HoudiniTools");
+
+    GConfig->SetBool(*SettingsIniSection, *(SettingsString + TEXT(".ShowHiddenTools")), bShowHiddenTools, GEditorPerProjectIni);
+    GConfig->SetBool(*SettingsIniSection, *(SettingsString + TEXT(".AutoRefresh")), bAutoRefresh, GEditorPerProjectIni);
+
+    FString ViewModeName;
+    switch (ViewMode)
+    {
+        case EHoudiniToolsViewMode::ListView:
+            ViewModeName = TEXT("List");
+            break;
+        case EHoudiniToolsViewMode::TileView:
+            ViewModeName = TEXT("Tile");
+            break;
+        default:
+            ViewModeName = TEXT("Tile");
+            break;
+    }
+    GConfig->SetString(*SettingsIniSection, *(SettingsString + TEXT(".ViewMode")), *ViewModeName, GEditorPerProjectIni);
+
+    GConfig->Flush(false, GEditorPerProjectIni);
 }
 
 #undef LOCTEXT_NAMESPACE

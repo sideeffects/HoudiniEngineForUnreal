@@ -147,7 +147,7 @@ public:
 
 
 protected:
-
+    
     void UpdateVisibleItems();
 
     TSharedPtr<FBaseViewType> HoudiniToolsView;
@@ -434,6 +434,9 @@ public:
 protected:
     static FHoudiniToolsEditor& GetHoudiniTools() { return FHoudiniEngineEditor::Get().GetHoudiniTools(); }
 
+    void LoadConfig();
+    void SaveConfig() const;
+
     /** Remove the current tool from the tool list **/
     void HideActiveToolFromCategory();
 
@@ -458,7 +461,8 @@ protected:
     void ImportToolsPackage();
 
     void HandleImportSideFXTools();
-    
+
+    static const FString SettingsIniSection;
 
 private:
 

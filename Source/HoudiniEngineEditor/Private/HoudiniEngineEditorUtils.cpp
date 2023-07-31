@@ -718,4 +718,9 @@ FHoudiniEngineEditorUtils::NotifyPostEditChangeProperty(FName InPropertyPath, UO
 	}
 }
 
+FString FHoudiniEngineEditorUtils::HoudiniEngineSavedDir()
+{
+	return FPaths::ProjectSavedDir() / "HoudiniEngine";
+}
+
 #undef LOCTEXT_NAMESPACE
