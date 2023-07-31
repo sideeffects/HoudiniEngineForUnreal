@@ -83,6 +83,7 @@
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "HoudiniToolsRuntimeUtils.h"
+#include "Styling/StyleColors.h"
 #include "Widgets/Layout/SSpacer.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
 
@@ -232,10 +233,50 @@ SHoudiniToolCategory::SHoudiniToolCategory()
 {
 }
 
+
 void SHoudiniToolCategory::Construct(const FArguments& InArgs)
 {
     CategoryLabel = InArgs._CategoryLabel.Get().ToString();
     SourceEntries = InArgs._HoudiniToolsItemSource.Get();
+    
+    if (InArgs._ViewMode.Get() == EHoudiniToolsViewMode::TileView)
+    {
+        // Configure Tile View
+        SAssignNew(HoudiniToolsView, SHoudiniToolTileView)
+        .ScrollbarVisibility(EVisibility::Collapsed)
+        .SelectionMode( ESelectionMode::Single )
+        .ListItemsSource( &VisibleEntries )
+        .OnGenerateTile( InArgs._OnGenerateTile )
+        .OnSelectionChanged_Lambda( [=](const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectInfo)
+        {
+            ActiveTool = HoudiniTool;
+            InArgs._OnToolSelectionChanged.ExecuteIfBound(this, HoudiniTool, SelectInfo);
+        } )
+        .OnMouseButtonDoubleClick( InArgs._OnMouseButtonDoubleClick )
+        .OnContextMenuOpening( InArgs._OnContextMenuOpening )
+        .ItemHeight( 64 )
+        .ItemWidth( 120 )
+        .ItemAlignment(EListItemAlignment::LeftAligned);
+    }
+    else
+    {
+        // Configure List View
+        SAssignNew(HoudiniToolsView, SHoudiniToolListView)
+        .ScrollbarVisibility(EVisibility::Collapsed)
+        .SelectionMode( ESelectionMode::Single )
+        .ListItemsSource( &VisibleEntries )
+        .OnGenerateRow( InArgs._OnGenerateRow )
+        .OnSelectionChanged_Lambda( [=](const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectInfo)
+        {
+            ActiveTool = HoudiniTool;
+            InArgs._OnToolSelectionChanged.ExecuteIfBound(this, HoudiniTool, SelectInfo);
+        } )
+        .OnMouseButtonDoubleClick( InArgs._OnMouseButtonDoubleClick )
+        .OnContextMenuOpening( InArgs._OnContextMenuOpening )
+        .ItemHeight( 64 );
+        // .ItemWidth( 120 )
+        // .ItemAlignment(EListItemAlignment::LeftAligned);
+    }
     
     ChildSlot
     [
@@ -249,21 +290,23 @@ void SHoudiniToolCategory::Construct(const FArguments& InArgs)
         ]
         .BodyContent()
         [
-            SAssignNew( HoudiniToolsTileView, SHoudiniToolTileView )
-                .ScrollbarVisibility(EVisibility::Collapsed)
-                .SelectionMode( ESelectionMode::Single )
-                .ListItemsSource( &VisibleEntries )
-                .OnGenerateTile( InArgs._OnGenerateTile )
-                .OnSelectionChanged_Lambda( [=](const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectInfo)
-                {
-                    ActiveTool = HoudiniTool;
-                    InArgs._OnToolSelectionChanged.ExecuteIfBound(this, HoudiniTool, SelectInfo);
-                } )
-                .OnMouseButtonDoubleClick( InArgs._OnMouseButtonDoubleClick )
-                .OnContextMenuOpening( InArgs._OnContextMenuOpening )
-                .ItemHeight( 64 )
-                .ItemWidth( 120 )
-                .ItemAlignment(EListItemAlignment::LeftAligned)
+            HoudiniToolsView.ToSharedRef()
+            
+            // SAssignNew( HoudiniToolsView, SHoudiniToolTileView )
+                // .ScrollbarVisibility(EVisibility::Collapsed)
+                // .SelectionMode( ESelectionMode::Single )
+                // .ListItemsSource( &VisibleEntries )
+                // .OnGenerateTile( InArgs._OnGenerateTile )
+                // .OnSelectionChanged_Lambda( [=](const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectInfo)
+                // {
+                //     ActiveTool = HoudiniTool;
+                //     InArgs._OnToolSelectionChanged.ExecuteIfBound(this, HoudiniTool, SelectInfo);
+                // } )
+                // .OnMouseButtonDoubleClick( InArgs._OnMouseButtonDoubleClick )
+                // .OnContextMenuOpening( InArgs._OnContextMenuOpening )
+                // .ItemHeight( 64 )
+                // .ItemWidth( 120 )
+                // .ItemAlignment(EListItemAlignment::LeftAligned)
         ]
     ];
 
@@ -281,26 +324,26 @@ void SHoudiniToolCategory::SetFilterString(const FString& NewFilterString)
 
 void SHoudiniToolCategory::ClearSelection()
 {
-    if (!HoudiniToolsTileView.IsValid())
+    if (!HoudiniToolsView.IsValid())
         return;
     
-    HoudiniToolsTileView->ClearHighlightedItems();
-    HoudiniToolsTileView->ClearSelection();
+    HoudiniToolsView->ClearHighlightedItems();
+    HoudiniToolsView->ClearSelection();
 }
 
 void SHoudiniToolCategory::RequestRefresh()
 {
     ClearSelection();
-    if (HoudiniToolsTileView.IsValid())
+    if (HoudiniToolsView.IsValid())
     {
-        HoudiniToolsTileView->RequestListRefresh();
+        HoudiniToolsView->RequestListRefresh();
     }
 }
 
 void SHoudiniToolCategory::UpdateVisibleItems()
 {
     VisibleEntries.Empty();
-    HoudiniToolsTileView->RequestListRefresh();
+    HoudiniToolsView->RequestListRefresh();
 
     if (!SourceEntries.IsValid())
     {
@@ -1473,6 +1516,7 @@ SHoudiniToolsPanel::SHoudiniToolsPanel()
     : bRefreshPanelRequested(false)
     , bShowHiddenTools(false)
     , bAutoRefresh(true)
+    , ViewMode(EHoudiniToolsViewMode::TileView)
 {
 }
 
@@ -1696,12 +1740,8 @@ SHoudiniToolsPanel::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
 {
     check( HoudiniTool.IsValid() );
  
-    auto HelpDefault = _GetBrush( "HelpIcon" );
-    auto HelpHovered = _GetBrush( "HelpIcon.Hovered" );
-    auto HelpPressed = _GetBrush( "HelpIcon.Pressed" );
     auto DefaultTool = FHoudiniEngineStyle::Get()->GetBrush( "HoudiniEngine.HoudiniEngineLogo");
-    TSharedPtr< SImage > HelpButtonImage;
-    TSharedPtr< SButton > HelpButton;
+    // TSharedPtr< SButton > HelpButton;
     TSharedPtr< SImage > DefaultToolImage;
 
     // Building the tool's tooltip
@@ -1848,41 +1888,40 @@ SHoudiniToolsPanel::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
 
     if ( HasHelp )
     {
+        // const FButtonStyle* BtnStyle = &FHoudiniEngineStyle::Get()->GetWidgetStyle<FButtonStyle>("HoudiniEngine.HelpButton");
+
+        
+
+        
         ContentBox->AddSlot()
         .VAlign( VAlign_Center )
         .AutoWidth()
         [
-            SAssignNew( HelpButton, SButton )
+            // Help Button
+        
+            SNew( SButton )
             .ContentPadding( 0 )
-            .ButtonStyle( FAppStyle::Get(), "HelpButton" )
-            .OnClicked( FOnClicked::CreateLambda( [ HelpURL ]() {
+            .ButtonStyle( FHoudiniEngineStyle::Get(), "HoudiniEngine.HelpButton" )
+            // .ButtonStyle( &DGB_HelpButtonStyle )
+            .OnClicked_Lambda( [ &, HelpURL ]() {
                 if ( HelpURL.Len() )
+                {
                     FPlatformProcess::LaunchURL( *HelpURL, nullptr, nullptr );
+                }
                 return FReply::Handled();
-                } ) )
+                } )
             .HAlign( HAlign_Center )
             .VAlign( VAlign_Center )
             .ToolTip( SNew( SToolTip ).Text( HelpTip ) )
             [
-                SAssignNew( HelpButtonImage, SImage )
-                .ToolTip( SNew( SToolTip ).Text( HelpTip ) )
+                // Help Button Image
+            
+                // At the time of writing, the UE help icon looks better than the Houdini Engine help icon.
+                SNew( SImage )
+                .Image( _GetBrush("Icons.Help") )
+                // .Image( FHoudiniEngineStyle::Get()->GetBrush("HoudiniEngine.AssetHelp") )
             ]
         ];
-
-        HelpButtonImage->SetImage( TAttribute<const FSlateBrush *>::Create( TAttribute<const FSlateBrush *>::FGetter::CreateLambda( [=]()
-        {
-            if ( HelpButton->IsPressed() )
-            {
-                return HelpPressed;
-            }
-
-            if ( HelpButtonImage->IsHovered() )
-            {
-                return HelpHovered;
-            }
-
-            return HelpDefault;
-        } ) ) );
     }
 
     TableRowWidget->SetContent( Content );
@@ -1894,10 +1933,7 @@ TSharedRef< ITableRow >
 SHoudiniToolsPanel::MakeTileViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, const TSharedRef< STableViewBase >& OwnerTable )
 {
     check( HoudiniTool.IsValid() );
- 
-    auto HelpDefault = _GetBrush( "HelpIcon" );
-    auto HelpHovered = _GetBrush( "HelpIcon.Hovered" );
-    auto HelpPressed = _GetBrush( "HelpIcon.Pressed" );
+    
     auto DefaultTool = FHoudiniEngineStyle::Get()->GetBrush( "HoudiniEngine.HoudiniEngineLogo");
     TSharedPtr< SImage > HelpButtonImage;
     TSharedPtr< SButton > HelpButton;
@@ -2049,46 +2085,6 @@ SHoudiniToolsPanel::MakeTileViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
 
         // Houdini logo for the Default Tool
         DefaultToolImage->SetImage( DefaultTool );
-    }
-
-    // TODO: FIX THIS
-    if ( HasHelp && false)
-    {
-        ContentBox->AddSlot()
-        .VAlign( VAlign_Center )
-        .AutoHeight()
-        [
-            SAssignNew( HelpButton, SButton )
-            .ContentPadding( 0 )
-            .ButtonStyle( FAppStyle::Get(), "HelpButton" )
-            .OnClicked( FOnClicked::CreateLambda( [ HelpURL ]() {
-                if ( HelpURL.Len() )
-                    FPlatformProcess::LaunchURL( *HelpURL, nullptr, nullptr );
-                return FReply::Handled();
-                } ) )
-            .HAlign( HAlign_Center )
-            .VAlign( VAlign_Center )
-            .ToolTip( SNew( SToolTip ).Text( HelpTip ) )
-            [
-                SAssignNew( HelpButtonImage, SImage )
-                .ToolTip( SNew( SToolTip ).Text( HelpTip ) )
-            ]
-        ];
-
-        HelpButtonImage->SetImage( TAttribute<const FSlateBrush *>::Create( TAttribute<const FSlateBrush *>::FGetter::CreateLambda( [=]()
-        {
-            if ( HelpButton->IsPressed() )
-            {
-                return HelpPressed;
-            }
-
-            if ( HelpButtonImage->IsHovered() )
-            {
-                return HelpHovered;
-            }
-
-            return HelpDefault;
-        } ) ) );
     }
 
     TableRowWidget->SetContent( Content );
@@ -2394,14 +2390,21 @@ SHoudiniToolsPanel::ConstructHoudiniToolContextMenu()
     FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked< FAssetRegistryModule >( "AssetRegistry" );
 
     FMenuBuilder MenuBuilder( true, NULL );
-    
+
+    bool bHasHelp = false;
+    FString HelpURL;
     TArray< UObject* > AssetArray;
     if ( ActiveTool.IsValid() && !ActiveTool->HoudiniAsset.IsNull() )
     {
         // Load the asset
         UObject* AssetObj = ActiveTool->HoudiniAsset.LoadSynchronous();
         if( AssetObj )
+        {
             AssetArray.Add( AssetObj );
+        }
+
+        HelpURL = ActiveTool->HelpURL;
+        bHasHelp = !HelpURL.IsEmpty();
     }
 
     //MenuBuilder.AddMenuEntry(FGlobalEditorCommonCommands::Get().FindInContentBrowser );
@@ -2461,21 +2464,25 @@ SHoudiniToolsPanel::ConstructHoudiniToolContextMenu()
         )
     );
 
-    
-
-    // // Add HoudiniTools actions
-    // MenuBuilder.AddMenuSeparator();
-
-    // // Generate Missing Tool Descriptions
-    // MenuBuilder.AddMenuEntry(
-    //     NSLOCTEXT("HoudiniToolsTypeActions", "HoudiniTool_GenMissing", "Generate Missing Tool Descriptions"),
-    //     NSLOCTEXT("HoudiniToolsTypeActions", "HoudiniTool_GenMissingTooltip", "Generates the tool descriptions .json file for HDA that doesnt have one."),
-    //     FSlateIcon(FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
-    //     FUIAction(
-    //         FExecuteAction::CreateSP(this, &SHoudiniToolPalette::GenerateMissingJSONFiles ),
-    //         FCanExecuteAction::CreateLambda([&] { return true; })
-    //     )
-    // );
+    // Launch Tool Help
+    FText ToolHelpTooltip = NSLOCTEXT( "HoudiniToolsTypeActions", "HoudiniTool_HelpTooltip", "Launch the browser to open the tools help." );
+    FText ToolNoHelpTooltip = NSLOCTEXT( "HoudiniToolsTypeActions", "HoudiniTool_NoHelpTooltip", "This tool doesn't have a Help URL." );
+    MenuBuilder.AddMenuEntry(
+        NSLOCTEXT( "HoudiniToolsTypeActions", "HoudiniTool_Edit", "Open Tool Help" ),
+        bHasHelp ? ToolHelpTooltip : ToolNoHelpTooltip,
+        // FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
+        FSlateIcon( FAppStyle::GetAppStyleSetName(), "Icons.Help" ),
+        FUIAction(
+            FExecuteAction::CreateLambda([=]()
+            {
+                if (!HelpURL.IsEmpty())
+                {
+                    FPlatformProcess::LaunchURL( *HelpURL, nullptr, nullptr );
+                }
+            } ),
+            FCanExecuteAction::CreateLambda([=] { return bHasHelp; } )
+        )
+    );
 
     return MenuBuilder.MakeWidget();
 }
@@ -2521,6 +2528,44 @@ TSharedPtr<SWidget> SHoudiniToolsPanel::ConstructHoudiniToolsActionMenu()
         ),
         NAME_None,
         EUserInterfaceActionType::ToggleButton
+    );
+
+    // Options - Tile View
+
+    MenuBuilder.AddMenuEntry(
+        FText::FromString("Tile View"),
+        FText::FromString("Show Houdini Tools in a compact tile view."),
+        FSlateIcon(),
+        FUIAction(
+            FExecuteAction::CreateLambda([=]() -> void
+            {
+                ViewMode = EHoudiniToolsViewMode::TileView;
+                RequestPanelRefresh();
+            }),
+            FCanExecuteAction(),
+            FGetActionCheckState::CreateLambda([=]() -> ECheckBoxState { return ViewMode == EHoudiniToolsViewMode::TileView ? ECheckBoxState::Checked : ECheckBoxState::Unchecked ; } )
+        ),
+        NAME_None,
+        EUserInterfaceActionType::RadioButton
+    );
+
+    // Options - List View
+
+    MenuBuilder.AddMenuEntry(
+        FText::FromString("List View"),
+        FText::FromString("Show Houdini Tools in a list view."),
+        FSlateIcon(),
+        FUIAction(
+            FExecuteAction::CreateLambda([=]() -> void
+            {
+                ViewMode = EHoudiniToolsViewMode::ListView;
+                RequestPanelRefresh();
+            }),
+            FCanExecuteAction(),
+            FGetActionCheckState::CreateLambda([=]() -> ECheckBoxState { return ViewMode == EHoudiniToolsViewMode::ListView ? ECheckBoxState::Checked : ECheckBoxState::Unchecked ; } )
+        ),
+        NAME_None,
+        EUserInterfaceActionType::RadioButton
     );
 
     MenuBuilder.EndSection();
@@ -3133,7 +3178,9 @@ void SHoudiniToolsPanel::RebuildCategories()
             SNew(SHoudiniToolCategory)
             .CategoryLabel(FText::FromString(CategoryName))
             .HoudiniToolsItemSource(CategorizedTools)
+            .ViewMode(ViewMode)
             .OnGenerateTile( this, &SHoudiniToolsPanel::MakeTileViewWidget )
+            .OnGenerateRow( this, &SHoudiniToolsPanel::MakeListViewWidget )
             .OnToolSelectionChanged( this, &SHoudiniToolsPanel::OnToolSelectionChanged )
             .OnMouseButtonDoubleClick( this, &SHoudiniToolsPanel::OnDoubleClickedListViewWidget )
             .OnContextMenuOpening( this, &SHoudiniToolsPanel::ConstructHoudiniToolContextMenu )

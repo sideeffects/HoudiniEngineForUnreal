@@ -48,6 +48,14 @@ class STableViewBase;
 struct FSlateBrush;
 enum class ECheckBoxState : uint8;
 
+// View mode for the HoudiniTools panel
+UENUM()
+enum class EHoudiniToolsViewMode
+{
+    TileView,
+    ListView
+};
+
 // Toolbar of the tool panel
 class SHoudiniToolsToolbar : public SCompoundWidget
 {
@@ -64,7 +72,6 @@ protected:
     
 };
 
-
 /** The list view mode of the asset view */
 class SHoudiniToolListView : public SListView< TSharedPtr<FHoudiniTool> >
 {
@@ -76,7 +83,18 @@ class SHoudiniToolListView : public SListView< TSharedPtr<FHoudiniTool> >
         }
 };
 
-// A collapsible category containing a Tile view of houdini tools. 
+/** The grid/tile view mode of the asset view */
+class SHoudiniToolTileView : public STileView< TSharedPtr<FHoudiniTool> >
+{
+    public:
+        virtual bool SupportsKeyboardFocus() const override { return true; }
+        virtual FReply OnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override
+        {
+            return FReply::Unhandled();
+        }
+};
+
+// A collapsible category containing a Tile view of houdini tools.
 class SHoudiniToolCategory : public SCompoundWidget
 {
 public:
@@ -84,7 +102,8 @@ public:
     
     // Typename of this widget
     static FName TypeName;
-    
+
+    typedef SListView< TSharedPtr<FHoudiniTool> > FBaseViewType;
     typedef TSharedPtr<FHoudiniTool> FItemType;
     typedef TListTypeTraits< FItemType >::NullableType FNullableItemType;
     
@@ -99,8 +118,11 @@ public:
         );
     
     
-    SLATE_BEGIN_ARGS( SHoudiniToolCategory ) {}
+    SLATE_BEGIN_ARGS( SHoudiniToolCategory )
+        : _ViewMode(EHoudiniToolsViewMode::TileView)
+    {}
     SLATE_EVENT( FOnGenerateRow, OnGenerateTile )
+    SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
     SLATE_EVENT( FOnMouseButtonClick, OnMouseButtonClick )
     SLATE_EVENT( FOnMouseButtonDoubleClick, OnMouseButtonDoubleClick )
     SLATE_EVENT( FOnContextMenuOpening, OnContextMenuOpening )
@@ -108,6 +130,7 @@ public:
     
     SLATE_ATTRIBUTE( FText, CategoryLabel )
     SLATE_ATTRIBUTE( TSharedPtr<FHoudiniToolList>, HoudiniToolsItemSource )
+    SLATE_ATTRIBUTE( EHoudiniToolsViewMode, ViewMode )
     
     SLATE_END_ARGS();
 
@@ -127,7 +150,8 @@ protected:
 
     void UpdateVisibleItems();
 
-    TSharedPtr<class SHoudiniToolTileView> HoudiniToolsTileView;
+    TSharedPtr<FBaseViewType> HoudiniToolsView;
+    
     FString CategoryLabel;
     FString FilterString;
     
@@ -138,18 +162,6 @@ protected:
     // may be removed in HoudiniTools but we don't want this widget to crash if that happens.
     TSharedPtr<FHoudiniToolList> SourceEntries;
     TArray< TSharedPtr<FHoudiniTool> > VisibleEntries;
-};
-
-
-/** The grid/tile view mode of the asset view */
-class SHoudiniToolTileView : public STileView< TSharedPtr<FHoudiniTool> >
-{
-    public:
-        virtual bool SupportsKeyboardFocus() const override { return true; }
-        virtual FReply OnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override
-        {
-            return FReply::Unhandled();
-        }
 };
 
 
@@ -386,7 +398,6 @@ protected:
     FOnCanceled OnCanceled;
 };
 
-
 /**
  * SHoudiniToolImportPackage 
  */
@@ -504,7 +515,10 @@ private:
     TWeakPtr<SWindow> CreatePackageWindow;
 
     TSharedPtr<FHoudiniTool> ActiveTool;
-    FString ActiveCategoryName; 
+    FString ActiveCategoryName;
+
+    // Temporary button style for testing. Remove when done.
+    FButtonStyle DGB_HelpButtonStyle;
 
     // DEPRECATED
     TArray< TSharedPtr < FString > > HoudiniToolDirArray;
@@ -516,6 +530,8 @@ private:
 
     bool bShowHiddenTools;
     bool bAutoRefresh;
+
+    EHoudiniToolsViewMode ViewMode;
 
     FString FilterString;
 

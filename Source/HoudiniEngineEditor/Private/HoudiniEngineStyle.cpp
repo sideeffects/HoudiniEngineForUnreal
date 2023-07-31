@@ -34,6 +34,7 @@
 #include "Styling/SlateStyleRegistry.h"
 #include "Styling/SlateTypes.h"
 #include "SlateOptMacros.h"
+#include "Styling/StyleColors.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -68,6 +69,8 @@ FHoudiniEngineStyle::Initialize()
 	// Only register the StyleSet once
 	if (StyleSet.IsValid())
 		return;
+
+	UE_LOG(LogTemp, Log, TEXT("[FHoudiniEngineStyle::Initialize] Setting up StyleSet."));
 
 	StyleSet = MakeShareable(new FSlateStyleSet(GetStyleSetName()));
 	StyleSet->SetContentRoot(FPaths::EngineContentDir() / TEXT("Editor/Slate"));
@@ -214,12 +217,14 @@ FHoudiniEngineStyle::Initialize()
 
 	StyleSet->Set("HoudiniEngine._Reset", new FSlateImageBrush(ResetIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine.DigitalAsset", new FSlateImageBrush(DigitalAssetIcon, Icon16x16));
+	StyleSet->Set("HoudiniEngine.AssetHelp", new FSlateImageBrush(AssetHelpIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine.PDGLink", new FSlateImageBrush(PDGLinkIcon, Icon16x16));
 
 	StyleSet->Set("HoudiniEngine._CurveClosed", new FSlateImageBrush(CurveClosedIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine._CurveNotClosed", new FSlateImageBrush(CurveNotClosedIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine._CurveReversed", new FSlateImageBrush(CurveReversedIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine._CurveNotReversed", new FSlateImageBrush(CurveNotReversedIcon, Icon16x16));
+
 
 	/*
 	FString StopIcon = FEditorStyle::GetBrush("PropertyWindow.Button_Clear")->GetResourceName().ToString();
@@ -320,6 +325,24 @@ FHoudiniEngineStyle::Initialize()
 	StyleSet->Set("HoudiniEngine.ThumbnailShadow", new BOX_BRUSH("ContentBrowser/ThumbnailShadow", FMargin(4.0f / 64.0f)));
 	StyleSet->Set("HoudiniEngine.ThumbnailBackground", new IMAGE_BRUSH("Common/ClassBackground_64x", FVector2D(64.f, 64.f), FLinearColor(0.75f, 0.75f, 0.75f, 1.0f)));
 
+	const FButtonStyle SimpleButton = FButtonStyle()
+		.SetNormal(FSlateNoResource())
+		.SetHovered(FSlateNoResource())
+		.SetPressed(FSlateNoResource())
+		// .SetHovered(FSlateRoundedBoxBrush(FStyleColors::Dropdown, 4.0f))
+		// .SetPressed(FSlateRoundedBoxBrush(FStyleColors::Dropdown, 4.0f))
+		.SetDisabled(FSlateNoResource())
+		.SetNormalForeground(FStyleColors::Foreground)
+		// .SetHoveredForeground(FStyleColors::ForegroundHover)
+		// .SetPressedForeground(FStyleColors::ForegroundHover)
+		.SetDisabledForeground(FStyleColors::Foreground)
+		.SetNormalPadding(CoreStyleConstants::ButtonMargins)
+		.SetPressedPadding(CoreStyleConstants::PressedButtonMargins);
+	
+	StyleSet->Set("HoudiniEngine.HelpButton", SimpleButton);
+
+
+	
 	// Register Slate style.
 	FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());
 };
