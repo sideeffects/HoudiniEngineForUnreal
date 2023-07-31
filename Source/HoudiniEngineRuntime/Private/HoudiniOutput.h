@@ -352,7 +352,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLevelInstanceParams
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	ELevelInstanceCreationType Type;
+	ELevelInstanceCreationType Type = ELevelInstanceCreationType::LevelInstance;
 
 	UPROPERTY()
 	FString OutputName;
