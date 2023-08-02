@@ -57,20 +57,69 @@ enum class EHoudiniToolsViewMode
 };
 
 // Toolbar of the tool panel
-class SHoudiniToolsToolbar : public SCompoundWidget
+class SHoudiniToolsCategoryFilter : public SCompoundWidget
 {
 public:
-    SLATE_BEGIN_ARGS( SHoudiniToolsToolbar ) {}
-    //TODO: SLATE_NAMED_SLOT( FArguments, CategoryFilter )
-    SLATE_NAMED_SLOT( FArguments, ActionMenu )
-    SLATE_EVENT( FOnTextChanged, OnSearchTextChanged )
+
+    DECLARE_DELEGATE_TwoParams(FOnCategoryFilterChanged, bool /*ShowAllSource*/, const TSet<FString>& /*HiddenCategories*/);
+    DECLARE_DELEGATE_OneParam(FOnShowAllChanged, bool /*ShowAllSource*/);
+    DECLARE_DELEGATE_TwoParams(FOnCategoryStateChanged, const FString& /*CategoryName*/, const bool /*bIsEnabled*/);
+
+    SHoudiniToolsCategoryFilter();
+
+    SLATE_BEGIN_ARGS( SHoudiniToolsCategoryFilter )
+        : _ShowAll(true)
+        , _HiddenCategoriesSource(nullptr)
+        , _CategoriesSource(nullptr)
+    {}
+    
+    SLATE_EVENT( FOnShowAllChanged, OnShowAllChanged )
+    SLATE_EVENT( FOnCategoryStateChanged, OnCategoryStateChanged )
+
+    SLATE_ATTRIBUTE(bool, ShowAll)
+    SLATE_ARGUMENT(const TSet<FString>*, HiddenCategoriesSource)
+    SLATE_ARGUMENT(const TArray<FString>*, CategoriesSource)
+    
     SLATE_END_ARGS();
 
     void Construct( const FArguments& InArgs );
-
-protected:
     
+    void SetShowAll(TAttribute<bool> InShowAll);
+
+    bool IsCategoryEnabled(FString CategoryName) const;
+
+private:
+    TSharedPtr<SWidget> RebuildWidget();
+
+    TAttribute<bool> ShowAll;
+    const TSet<FString>* HiddenCategories;
+    const TArray<FString>* Categories;
+
+    FOnShowAllChanged OnShowAllChanged;
+    FOnCategoryStateChanged OnCategoryStateChanged;
 };
+
+
+// // Toolbar of the tool panel
+// class SHoudiniToolsToolbar : public SCompoundWidget
+// {
+// public:
+//
+//     DECLARE_DELEGATE_OneParam(FOn)
+//     
+//     SLATE_BEGIN_ARGS( SHoudiniToolsToolbar ) {}
+//     
+//     SLATE_EVENT( FOnTextChanged, OnSearchTextChanged )
+//     SLATE_NAMED_SLOT( FArguments, FilterMenu )
+//     SLATE_NAMED_SLOT( FArguments, ActionMenu )
+//     SLATE_ATTRIBUTE( )
+//     SLATE_END_ARGS();
+//
+//     void Construct( const FArguments& InArgs );
+//
+// protected:
+//     
+// };
 
 /** The list view mode of the asset view */
 class SHoudiniToolListView : public SListView< TSharedPtr<FHoudiniTool> >
@@ -120,6 +169,7 @@ public:
     
     SLATE_BEGIN_ARGS( SHoudiniToolCategory )
         : _ViewMode(EHoudiniToolsViewMode::TileView)
+        , _IsVisible(true)
     {}
     SLATE_EVENT( FOnGenerateRow, OnGenerateTile )
     SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
@@ -131,6 +181,7 @@ public:
     SLATE_ATTRIBUTE( FText, CategoryLabel )
     SLATE_ATTRIBUTE( TSharedPtr<FHoudiniToolList>, HoudiniToolsItemSource )
     SLATE_ATTRIBUTE( EHoudiniToolsViewMode, ViewMode )
+    SLATE_ATTRIBUTE( bool, IsVisible )
     
     SLATE_END_ARGS();
 
@@ -154,6 +205,8 @@ protected:
     
     FString CategoryLabel;
     FString FilterString;
+
+    TAttribute<bool> IsVisible;
     
     TSharedPtr<FHoudiniTool> ActiveTool;
 
@@ -489,6 +542,8 @@ private:
     /** Construct menu widget for the Actions popup button **/
     TSharedPtr< SWidget > ConstructHoudiniToolsActionMenu();
 
+    TSharedPtr< SWidget > ConstructCategoryFilterMenu();
+
     /** Shows a Property Window for editing the properties of new HoudiniTools**/
     void EditActiveHoudiniTool();
 
@@ -532,12 +587,26 @@ private:
     TSharedPtr<SVerticalBox> CategoriesContainer;
     bool bRefreshPanelRequested;
 
+    // Tools filter string
+    FString FilterString;
+
+    // Categories filter menu
+    TSharedPtr<SHoudiniToolsCategoryFilter> CategoryFilterWidget;
+    // When the user clicks on the ShowAll action, it immediately shows all categories (i.e., removes them
+    // from the FilterHiddenCategories array). If the user disables the Show All setting, all categories will immediate
+    // be hidden. Individual categories can still be toggled in both cases. 
+    bool bFilterShowAll;
+    // Any categories that are NOT in this set is considered to be visible.
+    TSet<FString> FilterHiddenCategories;
+    // List of categories to be displayed by the in the filter.
+    TArray<FString> FilterCategoryList;
+    
+    // Tools Settings
     bool bShowHiddenTools;
     bool bAutoRefresh;
 
     EHoudiniToolsViewMode ViewMode;
 
-    FString FilterString;
 
     // Handles to unsubscribe during destruction
     FDelegateHandle AssetMemCreatedHandle;

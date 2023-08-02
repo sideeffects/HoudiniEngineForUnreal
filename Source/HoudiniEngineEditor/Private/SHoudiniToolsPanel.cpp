@@ -164,82 +164,119 @@ UHoudiniToolDirectoryProperties::UHoudiniToolDirectoryProperties(const FObjectIn
 
 FName SHoudiniToolCategory::TypeName = TEXT("SHoudiniToolCategory");
     
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void SHoudiniToolsToolbar::Construct(const FArguments& InArgs)
+
+SHoudiniToolsCategoryFilter::SHoudiniToolsCategoryFilter()
+    : ShowAll(true)
+    , HiddenCategories(nullptr)
+    , Categories(nullptr)
 {
-
-    TSharedPtr< SButton > NewPackageButton;
-    FText NewPkgButtonText = FText::FromString(TEXT("New"));
-    FText NewPkgButtonTooltip = FText::FromString(TEXT("Create an empty Houdini Tools package."));
-
-    TSharedPtr< SButton > EditButton;
-    FText EditButtonText = FText::FromString(TEXT("Edit"));
-    FText EditButtonTooltip = FText::FromString(TEXT("Add, Remove or Edit custom Houdini tool directories"));
-
-    TSharedPtr< SButton > ImportPkgButton;
-    FText ImportPkgButtonText = FText::FromString(TEXT("Import"));
-    FText ImportPkgButtonTooltip = FText::FromString(TEXT("Import Houdini Tools package from disk."));
-
-    TSharedPtr<SLayeredImage> FilterImage = SNew(SLayeredImage)
-		 .Image(FAppStyle::Get().GetBrush("DetailsView.ViewOptions"))
-		 .ColorAndOpacity(FSlateColor::UseForeground());
-
-		// Badge the filter icon if there are filters active
-		// FilterImage->AddLayer(TAttribute<const FSlateBrush*>(this, &SDetailsView::GetViewOptionsBadgeIcon));
-
-    TSharedPtr< SSearchBox > SearchBox;
     
+}
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+void
+SHoudiniToolsCategoryFilter::Construct(const FArguments& InArgs)
+{
+    SetShowAll(InArgs._ShowAll);
+    
+    OnShowAllChanged = InArgs._OnShowAllChanged;
+    OnCategoryStateChanged = InArgs._OnCategoryStateChanged;
+    HiddenCategories = InArgs._HiddenCategoriesSource;
+    Categories = InArgs._CategoriesSource;
+    
+    RebuildWidget();
+}
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+void
+SHoudiniToolsCategoryFilter::SetShowAll(TAttribute<bool> InShowAll)
+{
+    ShowAll = InShowAll;
+}
+
+bool
+SHoudiniToolsCategoryFilter::IsCategoryEnabled(FString CategoryName) const
+{
+    if (!HiddenCategories)
+    {
+        return false;
+    }
+
+    return !HiddenCategories->Contains(CategoryName);
+}
+
+
+TSharedPtr<SWidget>
+SHoudiniToolsCategoryFilter::RebuildWidget()
+{
+    FMenuBuilder MenuBuilder( true, NULL );
+    
+    MenuBuilder.AddMenuEntry(
+        FText::FromString("Show All"),
+        FText::FromString("Show all categories."),
+        FSlateIcon(),
+        FUIAction(
+            FExecuteAction::CreateLambda([&]() -> void
+            {
+                OnShowAllChanged.ExecuteIfBound( !ShowAll.Get() );
+            }),
+            FCanExecuteAction(),
+            FGetActionCheckState::CreateLambda([&]() -> ECheckBoxState { return ShowAll.Get() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
+        ),
+        NAME_None,
+        EUserInterfaceActionType::ToggleButton
+    );
+
+    MenuBuilder.BeginSection("Categories", LOCTEXT("FilterMenu_Section_Categories", "Categories"));
+    
+    // Add all the categories to the menu 
+    
+    if (Categories)
+    {
+        for (const FString& CategoryName : *Categories)
+        {
+            MenuBuilder.AddMenuEntry(
+            FText::FromString(CategoryName),
+            FText::FromString( FString::Format(TEXT("Show/Hide {0}."), {CategoryName}) ),
+            FSlateIcon(),
+            FUIAction(
+                FExecuteAction::CreateLambda([&, CategoryName]() -> void
+                {
+                    OnCategoryStateChanged.ExecuteIfBound(CategoryName, !IsCategoryEnabled(CategoryName));
+                }),
+                FCanExecuteAction(),
+                FGetActionCheckState::CreateLambda([&, CategoryName]() -> ECheckBoxState
+                {
+                    return HiddenCategories->Contains(CategoryName) ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
+                } )
+                ),
+                NAME_None,
+                EUserInterfaceActionType::ToggleButton
+            );
+        }
+    }
+
+    TSharedPtr<SWidget> Widget = MenuBuilder.MakeWidget(); 
     ChildSlot
     [
-        SNew(SVerticalBox)
-        + SVerticalBox::Slot()
-        .AutoHeight()
-        [
-            // Search Box
-            
-            SNew(SHorizontalBox)
-            + SHorizontalBox::Slot()
-            .FillWidth(1.f)
-            [
-                SAssignNew(SearchBox, SSearchBox)
-                .OnTextChanged(InArgs._OnSearchTextChanged)
-            ]
-            
-            // Action Menu Button
-            
-            + SHorizontalBox::Slot()
-            .AutoWidth()
-            .VAlign(VAlign_Center)
-            [
-                SNew(SComboButton)
-				.HasDownArrow(false)
-				.ContentPadding(0)
-				.ForegroundColor( FSlateColor::UseForeground() )
-				.ButtonStyle( FAppStyle::Get(), "SimpleButton" )
-				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ViewOptions")))
-				.MenuContent()
-				[
-				    InArgs._ActionMenu.Widget
-				]
-				.ButtonContent()
-				[
-					FilterImage.ToSharedRef()
-				]
-            ]
-        ]
+        Widget.ToSharedRef()
     ];
+
+    return Widget;
 }
 
 SHoudiniToolCategory::SHoudiniToolCategory()
 {
 }
 
-
-void SHoudiniToolCategory::Construct(const FArguments& InArgs)
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+void
+SHoudiniToolCategory::Construct(const FArguments& InArgs)
 {
     CategoryLabel = InArgs._CategoryLabel.Get().ToString();
     SourceEntries = InArgs._HoudiniToolsItemSource.Get();
+    IsVisible = InArgs._IsVisible;
     
     if (InArgs._ViewMode.Get() == EHoudiniToolsViewMode::TileView)
     {
@@ -276,8 +313,6 @@ void SHoudiniToolCategory::Construct(const FArguments& InArgs)
         .OnMouseButtonDoubleClick( InArgs._OnMouseButtonDoubleClick )
         .OnContextMenuOpening( InArgs._OnContextMenuOpening )
         .ItemHeight( 64 );
-        // .ItemWidth( 120 )
-        // .ItemAlignment(EListItemAlignment::LeftAligned);
     }
     
     ChildSlot
@@ -293,29 +328,15 @@ void SHoudiniToolCategory::Construct(const FArguments& InArgs)
         .BodyContent()
         [
             HoudiniToolsView.ToSharedRef()
-            
-            // SAssignNew( HoudiniToolsView, SHoudiniToolTileView )
-                // .ScrollbarVisibility(EVisibility::Collapsed)
-                // .SelectionMode( ESelectionMode::Single )
-                // .ListItemsSource( &VisibleEntries )
-                // .OnGenerateTile( InArgs._OnGenerateTile )
-                // .OnSelectionChanged_Lambda( [=](const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectInfo)
-                // {
-                //     ActiveTool = HoudiniTool;
-                //     InArgs._OnToolSelectionChanged.ExecuteIfBound(this, HoudiniTool, SelectInfo);
-                // } )
-                // .OnMouseButtonDoubleClick( InArgs._OnMouseButtonDoubleClick )
-                // .OnContextMenuOpening( InArgs._OnContextMenuOpening )
-                // .ItemHeight( 64 )
-                // .ItemWidth( 120 )
-                // .ItemAlignment(EListItemAlignment::LeftAligned)
         ]
     ];
 
     UpdateVisibleItems();
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void SHoudiniToolCategory::SetFilterString(const FString& NewFilterString)
+void
+SHoudiniToolCategory::SetFilterString(const FString& NewFilterString)
 {
     if (FilterString != NewFilterString)
     {
@@ -324,7 +345,8 @@ void SHoudiniToolCategory::SetFilterString(const FString& NewFilterString)
     }
 }
 
-void SHoudiniToolCategory::ClearSelection()
+void
+SHoudiniToolCategory::ClearSelection()
 {
     if (!HoudiniToolsView.IsValid())
         return;
@@ -333,7 +355,8 @@ void SHoudiniToolCategory::ClearSelection()
     HoudiniToolsView->ClearSelection();
 }
 
-void SHoudiniToolCategory::RequestRefresh()
+void
+SHoudiniToolCategory::RequestRefresh()
 {
     ClearSelection();
     if (HoudiniToolsView.IsValid())
@@ -342,7 +365,8 @@ void SHoudiniToolCategory::RequestRefresh()
     }
 }
 
-void SHoudiniToolCategory::UpdateVisibleItems()
+void
+SHoudiniToolCategory::UpdateVisibleItems()
 {
     VisibleEntries.Empty();
     HoudiniToolsView->RequestListRefresh();
@@ -362,7 +386,7 @@ void SHoudiniToolCategory::UpdateVisibleItems()
         }
     }
 
-    if (VisibleEntries.Num() == 0)
+    if (VisibleEntries.Num() == 0 || IsVisible.Get() == false)
     {
         SetVisibility(EVisibility::Collapsed);
     }
@@ -381,6 +405,7 @@ SHoudiniToolNewPackage::SHoudiniToolNewPackage()
 }
 
 
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void
 SHoudiniToolNewPackage::Construct(const FArguments& InArgs)
 {
@@ -575,7 +600,6 @@ SHoudiniToolNewPackage::Construct(const FArguments& InArgs)
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-
 void
 SHoudiniToolNewPackage::OnPackageNameTextChanged(const FText& Text)
 {
@@ -679,12 +703,14 @@ SHoudiniToolNewPackage::HandleCancelClicked()
 }
 
 
-FText SHoudiniToolNewPackage::GetCategory() const
+FText
+SHoudiniToolNewPackage::GetCategory() const
 {
     return PackageCategoryEditBox->GetText();
 }
 
-void SHoudiniToolNewPackage::UpdatePackageName(FText NewName)
+void
+SHoudiniToolNewPackage::UpdatePackageName(FText NewName)
 {
     bValidPackageName = FHoudiniToolsEditor::IsValidPackageName(NewName.ToString(), &PackageNameError);
     CalculatedPackageName = NewName;
@@ -719,7 +745,8 @@ void SHoudiniToolNewPackage::UpdatePackageName(FText NewName)
     PackageNameError = FText();
 }
 
-void SHoudiniToolNewPackage::CloseContainingWindow()
+void
+SHoudiniToolNewPackage::CloseContainingWindow()
 {
     TSharedPtr<SWindow> ContainingWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
 
@@ -738,8 +765,8 @@ SHoudiniToolImportPackage::SHoudiniToolImportPackage()
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
-void SHoudiniToolImportPackage::Construct(const FArguments& InArgs)
+void
+SHoudiniToolImportPackage::Construct(const FArguments& InArgs)
 {
     const FText ImportPackageTitle = LOCTEXT( "HoudiniTool_ImportPackage_Title", "Import Houdini Tools Package" );
     const FText InitialPackageName = LOCTEXT("CreatePackage_PackageNameValue", "PackageName");
@@ -1166,8 +1193,10 @@ void SHoudiniToolImportPackage::Construct(const FArguments& InArgs)
 		]
     ]];
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-EVisibility SHoudiniToolImportPackage::GetNameErrorLabelVisibility() const
+EVisibility
+SHoudiniToolImportPackage::GetNameErrorLabelVisibility() const
 {
     // TODO: Implement error conditions here
     if (!bIsValidPackageDirectory)
@@ -1193,7 +1222,8 @@ EVisibility SHoudiniToolImportPackage::GetNameErrorLabelVisibility() const
     return EVisibility::Hidden;
 }
 
-auto SHoudiniToolImportPackage::GetNameErrorLabelText() const -> FText
+auto
+SHoudiniToolImportPackage::GetNameErrorLabelText() const -> FText
 {
     if (WidgetSwitcher->GetActiveWidgetIndex() == 0)
     {
@@ -1220,7 +1250,8 @@ auto SHoudiniToolImportPackage::GetNameErrorLabelText() const -> FText
     return FText();
 }
 
-void SHoudiniToolImportPackage::OnDirectoryChanged(const FString& Directory)
+void
+SHoudiniToolImportPackage::OnDirectoryChanged(const FString& Directory)
 {
     bHasPackageJSON = false;
     bIsValidPackageDirectory = false;
@@ -1252,22 +1283,26 @@ void SHoudiniToolImportPackage::OnDirectoryChanged(const FString& Directory)
     }
 }
 
-void SHoudiniToolImportPackage::OnPackageNameTextChanged(const FText& Text)
+void
+SHoudiniToolImportPackage::OnPackageNameTextChanged(const FText& Text)
 {
     UpdatePackageName(Text.ToString());
 }
 
-void SHoudiniToolImportPackage::OnPackageNameTextCommitted(const FText& Text, ETextCommit::Type Arg)
+void
+SHoudiniToolImportPackage::OnPackageNameTextCommitted(const FText& Text, ETextCommit::Type Arg)
 {
     UpdatePackageName(Text.ToString());
 }
 
-FText SHoudiniToolImportPackage::OnGetPackagePathText() const
+FText
+SHoudiniToolImportPackage::OnGetPackagePathText() const
 {
     return FText::FromString( FHoudiniToolsEditor::GetDefaultPackagePath(NewPackageName) );
 }
 
-bool SHoudiniToolImportPackage::IsImportEnabled() const
+bool
+SHoudiniToolImportPackage::IsImportEnabled() const
 {
     if (!bIsValidPackageDirectory)
         return false;
@@ -1289,7 +1324,8 @@ bool SHoudiniToolImportPackage::IsImportEnabled() const
     return false;
 }
 
-bool SHoudiniToolImportPackage::IsNextEnabled() const
+bool
+SHoudiniToolImportPackage::IsNextEnabled() const
 {
     if (!bIsValidPackageDirectory)
         return false;
@@ -1305,7 +1341,8 @@ bool SHoudiniToolImportPackage::IsNextEnabled() const
     return false;
 }
 
-FReply SHoudiniToolImportPackage::HandleImportClicked()
+FReply
+SHoudiniToolImportPackage::HandleImportClicked()
 {
     const FString PackageJSONPath = FPaths::Combine(DirectoryPicker->GetDirectory(), FHoudiniToolsRuntimeUtils::GetPackageJSONName());
 
@@ -1355,7 +1392,8 @@ FReply SHoudiniToolImportPackage::HandleImportClicked()
     return FReply::Handled();
 }
 
-EVisibility SHoudiniToolImportPackage::GetImportVisibility() const
+EVisibility
+SHoudiniToolImportPackage::GetImportVisibility() const
 {
     if (WidgetSwitcher->GetActiveWidgetIndex() == 1)
     {
@@ -1386,7 +1424,8 @@ SHoudiniToolImportPackage::GetNextVisibility() const
     return EVisibility::Hidden;
 }
 
-FReply SHoudiniToolImportPackage::HandleCreateClicked()
+FReply
+SHoudiniToolImportPackage::HandleCreateClicked()
 {
     const FString PackageDir = FHoudiniToolsEditor::GetDefaultPackagePath(NewPackageName);
     UHoudiniToolsPackageAsset* Asset = FHoudiniToolsEditor::CreateToolsPackageAsset(
@@ -1434,7 +1473,8 @@ FReply SHoudiniToolImportPackage::HandleCreateClicked()
      return FReply::Handled();
 }
 
-bool SHoudiniToolImportPackage::IsCreateEnabled() const
+bool
+SHoudiniToolImportPackage::IsCreateEnabled() const
 {
     if (WidgetSwitcher->GetActiveWidgetIndex() == 1)
     {
@@ -1444,7 +1484,8 @@ bool SHoudiniToolImportPackage::IsCreateEnabled() const
     return false;
 }
 
-EVisibility SHoudiniToolImportPackage::GetCreateVisibility() const
+EVisibility
+SHoudiniToolImportPackage::GetCreateVisibility() const
 {
     if (WidgetSwitcher->GetActiveWidgetIndex() == 1)
     {
@@ -1486,7 +1527,8 @@ SHoudiniToolImportPackage::GetCategory() const
     return FText::FromString(TEXT("PlaceholderCategory"));
 }
 
-void SHoudiniToolImportPackage::UpdatePackageName(const FString& InName)
+void
+SHoudiniToolImportPackage::UpdatePackageName(const FString& InName)
 {
     NewPackageName = InName;
     
@@ -1499,7 +1541,8 @@ void SHoudiniToolImportPackage::UpdatePackageName(const FString& InName)
     PackageNameError = FText();
 }
 
-void SHoudiniToolImportPackage::CloseContainingWindow()
+void
+SHoudiniToolImportPackage::CloseContainingWindow()
 {
     TSharedPtr<SWindow> ContainingWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
 
@@ -1508,10 +1551,6 @@ void SHoudiniToolImportPackage::CloseContainingWindow()
 		ContainingWindow->RequestDestroyWindow();
 	}
 }
-
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 SHoudiniToolsPanel::SHoudiniToolsPanel()
     : bRefreshPanelRequested(false)
@@ -1537,6 +1576,7 @@ SHoudiniToolsPanel::~SHoudiniToolsPanel()
     UNSUBSCRIBE(AssetRegistryModule.Get().OnAssetUpdatedOnDisk(), AssetUpdatedOnDiskHandle);
 }
 
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void
 SHoudiniToolsPanel::Construct( const FArguments& InArgs )
 {
@@ -1563,10 +1603,6 @@ SHoudiniToolsPanel::Construct( const FArguments& InArgs )
     AssetMemDeletedHandle = AssetRegistryModule.Get().OnInMemoryAssetDeleted().AddLambda(AssetChangedHandlerFn);
 
     // Handler for asset imports. PostImport event is broadcast on both imports and reimports.
-    // AssetPostImportHandle = GEditor->GetEditorSubsystem<UImportSubsystem>()->OnAssetPostImport.AddLambda([=](UFactory* InFactory, UObject* InObject)
-    // {
-    //     AssetChangedHandlerFn(InObject);
-    // });
     AssetPostImportHandle = GEditor->GetEditorSubsystem<UImportSubsystem>()->OnAssetReimport.AddLambda(AssetChangedHandlerFn);
 
     // Handler for asset renames
@@ -1606,53 +1642,134 @@ SHoudiniToolsPanel::Construct( const FArguments& InArgs )
     CategoriesContainer = SNew(SVerticalBox);
 
     RebuildCategories();
-    
-    TSharedPtr< SButton > EditButton;
-    FText EditButtonText = FText::FromString(TEXT("Edit"));
-    FText EditButtonTooltip = FText::FromString(TEXT("Add, Remove or Edit custom Houdini tool directories"));
 
-    TSharedPtr< SButton > NewPkgButton;
-    FText NewPkgButtonText = FText::FromString(TEXT("New"));
-    FText NewPkgButtonTooltip = FText::FromString(TEXT("Create an empty Houdini Tools package."));
+    TSharedPtr<SLayeredImage> OptionsImage = SNew(SLayeredImage)
+		 .Image(FAppStyle::Get().GetBrush("DetailsView.ViewOptions"))
+		 .ColorAndOpacity(FSlateColor::UseForeground());
 
-    TSharedPtr< SButton > ImportPkgButton;
-    FText ImportPkgButtonText = FText::FromString(TEXT("Import"));
-    FText ImportPkgButtonTooltip = FText::FromString(TEXT("Import Houdini Tools package from disk."));
-
-    FText ActiveShelfText = FText::FromString(TEXT("Active Shelf:"));
-    FText ActiveShelfTooltip = FText::FromString(TEXT("Name of the currently selected Houdini Tool Shelf"));
+    TSharedPtr<SLayeredImage> FilterImage = SNew(SLayeredImage)
+		 .Image(FAppStyle::Get().GetBrush("Icons.Filter"))
+		 .ColorAndOpacity(FSlateColor::UseForeground());
 
     ChildSlot
     [
         SNew(SBorder)
         .BorderImage(FAppStyle::Get().GetBrush("Brushes.Panel"))
         [
-            // Toolbar
-        
             SNew(SVerticalBox)
+
+            // Toolbar
+            
             + SVerticalBox::Slot()
             .AutoHeight()
             .Padding(5,5)
             [
-                SNew(SHoudiniToolsToolbar)
-                .ActionMenu()
+                SNew(SHorizontalBox)
+
+                // Search Box
+                
+                + SHorizontalBox::Slot()
+                .FillWidth(1.f)
                 [
-                    ConstructHoudiniToolsActionMenu().ToSharedRef()
-                ]
-                .OnSearchTextChanged_Lambda([=](const FText& NewFilterString) -> void
-                {
-                    // Handle Filter Text Changes.
-                    if (NewFilterString.ToString() != FilterString)
+                    SNew(SSearchBox)
+                    .OnTextChanged_Lambda([=](const FText& NewFilterString) -> void
                     {
-                        // Search filter changed. Update categories.
-                        FilterString = NewFilterString.ToString();
-                        ForEachCategory([=](SHoudiniToolCategory* Category) -> bool
+                        // Handle Filter Text Changes.
+                        if (NewFilterString.ToString() != FilterString)
                         {
-                            Category->SetFilterString(FilterString);
-                            return true;
-                        });
-                    }
-                })
+                            // Search filter changed. Update categories.
+                            FilterString = NewFilterString.ToString();
+                            ForEachCategory([=](SHoudiniToolCategory* Category) -> bool
+                            {
+                                Category->SetFilterString(FilterString);
+                                return true;
+                            });
+                        }
+                    })
+                ] // Search Box
+
+                // Filter Menu Button
+            
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .VAlign(VAlign_Center)
+                [
+                    SNew(SComboButton)
+				    .HasDownArrow(false)
+				    .ContentPadding(0)
+				    .ForegroundColor( FSlateColor::UseForeground() )
+				    .ButtonStyle( FAppStyle::Get(), "SimpleButton" )
+				    .AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ViewOptions")))
+				    .OnGetMenuContent_Lambda([&]()
+				    {
+				        // This menu widget will be rebuilt dynamically when the menu is needed
+				        return SAssignNew(CategoryFilterWidget, SHoudiniToolsCategoryFilter)
+				        .ShowAll_Lambda([&]() { return bFilterShowAll; })
+				        .CategoriesSource(&FilterCategoryList)
+				        .HiddenCategoriesSource(&FilterHiddenCategories)
+				        .OnShowAllChanged_Lambda([&](bool NewShowAll)
+				        {
+				            bFilterShowAll = NewShowAll;
+				            if (bFilterShowAll)
+				            {
+				                FilterHiddenCategories.Empty();
+				            }
+                            else
+                            {
+                                // Set all categories as hidden
+                                ForEachCategory([&](SHoudiniToolCategory* Category) -> bool
+                                {
+                                    if (Category)
+                                    {
+                                        FilterHiddenCategories.Add(Category->GetCategoryLabel());
+                                    }
+                                    return true;
+                                });
+                            }
+				            SaveConfig();
+				            RequestPanelRefresh();
+				        })
+				        .OnCategoryStateChanged_Lambda([&] (const FString& CategoryName, const bool bIsEnabled)
+				        {
+				            if (bIsEnabled)
+				            {
+				                FilterHiddenCategories.Remove(CategoryName);
+				            }
+                            else
+                            {
+                                FilterHiddenCategories.Add(CategoryName);
+                            }
+				            SaveConfig();
+				            RequestPanelRefresh();
+				        });
+				    })
+				    .ButtonContent()
+				    [
+					    FilterImage.ToSharedRef()
+				    ]
+                ] // Filter menu button
+
+                // Action Menu Button
+            
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .VAlign(VAlign_Center)
+                [
+                    SNew(SComboButton)
+				    .HasDownArrow(false)
+				    .ContentPadding(0)
+				    .ForegroundColor( FSlateColor::UseForeground() )
+				    .ButtonStyle( FAppStyle::Get(), "SimpleButton" )
+				    .AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ViewOptions")))
+				    .MenuContent()
+				    [
+				        ConstructHoudiniToolsActionMenu().ToSharedRef()
+				    ]
+				    .ButtonContent()
+				    [
+					    OptionsImage.ToSharedRef()
+				    ]
+                ]
             ]
 
             // Categories Container
@@ -1870,6 +1987,14 @@ SHoudiniToolsPanel::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
         [
             SNew( STextBlock )
             .TextStyle( FHoudiniEngineStyle::Get(), "HoudiniEngine.ThumbnailText" )
+            .HighlightText_Lambda([&]()
+            {
+                if (FilterString.Len() > 0)
+                {
+                    return FText::FromString(FilterString);
+                }
+                return FText();
+            })
             .Text( HoudiniTool->Name )
             .ToolTip( SNew( SToolTip ).Text( ToolTipText ) )
         ];
@@ -1893,9 +2018,6 @@ SHoudiniToolsPanel::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
     {
         // const FButtonStyle* BtnStyle = &FHoudiniEngineStyle::Get()->GetWidgetStyle<FButtonStyle>("HoudiniEngine.HelpButton");
 
-        
-
-        
         ContentBox->AddSlot()
         .VAlign( VAlign_Center )
         .AutoWidth()
@@ -2071,6 +2193,14 @@ SHoudiniToolsPanel::MakeTileViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
             SNew( STextBlock )
             .TextStyle( FHoudiniEngineStyle::Get(), "HoudiniEngine.ThumbnailText" )
             .Text( HoudiniTool->Name )
+            .HighlightText_Lambda([&]()
+            {
+                if (FilterString.Len() > 0)
+                {
+                    return FText::FromString(FilterString);
+                }
+                return FText();
+            })
             .ToolTip( SNew( SToolTip ).Text( ToolTipText ) )
             .WrappingPolicy(ETextWrappingPolicy::AllowPerCharacterWrapping)
         ];
@@ -2490,7 +2620,8 @@ SHoudiniToolsPanel::ConstructHoudiniToolContextMenu()
     return MenuBuilder.MakeWidget();
 }
 
-TSharedPtr<SWidget> SHoudiniToolsPanel::ConstructHoudiniToolsActionMenu()
+TSharedPtr<SWidget>
+SHoudiniToolsPanel::ConstructHoudiniToolsActionMenu()
 {
     FMenuBuilder MenuBuilder( true, NULL );
 
@@ -2624,18 +2755,99 @@ TSharedPtr<SWidget> SHoudiniToolsPanel::ConstructHoudiniToolsActionMenu()
         )
     );
 
-    // // Update tools
-    // MenuBuilder.AddMenuEntry(
-    //     LOCTEXT( "ActionMenu_UpdateTools", "Reimport All Tools (TODO)" ),
-    //     LOCTEXT( "ActionMenu_UpdateToolsTooltip", "Reimport all tools, if an external source is available." ),
-    //     FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
-    //     FUIAction(
-    //         FExecuteAction::CreateSP(this, &SHoudiniToolsPanel::HideActiveToolFromCategory )
-    //     )
-    // );
-
     // Add HoudiniTools actions
     MenuBuilder.EndSection();
+
+    return MenuBuilder.MakeWidget();
+}
+
+TSharedPtr<SWidget>
+SHoudiniToolsPanel::ConstructCategoryFilterMenu()
+{
+    FMenuBuilder MenuBuilder( true, NULL );
+    
+    MenuBuilder.AddMenuEntry(
+        FText::FromString("Show All"),
+        FText::FromString("Show all categories."),
+        FSlateIcon(),
+        FUIAction(
+            FExecuteAction::CreateLambda([&]() -> void
+            {
+                bFilterShowAll = !bFilterShowAll;
+                if (bFilterShowAll)
+                {
+                    FilterHiddenCategories.Empty();
+                }
+                else
+                {
+                    // Set all categories as hidden.
+                    ForEachCategory([&](SHoudiniToolCategory* Category) -> bool
+                    {
+                        if (Category)
+                        {
+                            FilterHiddenCategories.Add(Category->GetCategoryLabel());
+                        }
+                        return true;
+                    });
+                }
+                SaveConfig();
+                RequestPanelRefresh();
+            }),
+            FCanExecuteAction(),
+            FGetActionCheckState::CreateLambda([&]() -> ECheckBoxState { return bFilterShowAll ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
+        ),
+        NAME_None,
+        EUserInterfaceActionType::ToggleButton
+    );
+
+    MenuBuilder.BeginSection("Categories", LOCTEXT("FilterMenu_Section_Categories", "Categories"));
+
+
+    // Add all the categories to the menu 
+    
+    TArray<FString> CategoryList;
+
+    ForEachCategory([&CategoryList](SHoudiniToolCategory* Category) -> bool
+    {
+        if (Category)
+        {
+            CategoryList.Add(Category->GetCategoryLabel());
+        }
+        return true;
+    });
+    CategoryList.Sort();
+
+    for (const FString& CategoryName : CategoryList)
+    {
+        MenuBuilder.AddMenuEntry(
+        FText::FromString(CategoryName),
+        FText::FromString( FString::Format(TEXT("Show/Hide {0}."), {CategoryName}) ),
+        FSlateIcon(),
+        FUIAction(
+            FExecuteAction::CreateLambda([&, CategoryName]() -> void
+            {
+                // Toggle the current category name
+                if (FilterHiddenCategories.Contains(CategoryName))
+                {
+                    FilterHiddenCategories.Remove(CategoryName);
+                }
+                else
+                {
+                    FilterHiddenCategories.Add(CategoryName);
+                }
+                SaveConfig();
+                RequestPanelRefresh();
+            }),
+            FCanExecuteAction(),
+            FGetActionCheckState::CreateLambda([&, CategoryName]() -> ECheckBoxState
+            {
+                return FilterHiddenCategories.Contains(CategoryName) ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
+            } )
+            ),
+            NAME_None,
+            EUserInterfaceActionType::ToggleButton
+        );
+    }
 
     return MenuBuilder.MakeWidget();
 }
@@ -2682,7 +2894,8 @@ SHoudiniToolsPanel::EditActiveHoudiniTool()
     Window->SetOnWindowClosed( FOnWindowClosed::CreateSP( this, &SHoudiniToolsPanel::OnEditActiveHoudiniToolWindowClosed, ActiveHoudiniTools ) );
 }
 
-void SHoudiniToolsPanel::BrowseToActiveToolAsset() const
+void
+SHoudiniToolsPanel::BrowseToActiveToolAsset() const
 {
     if (!ActiveTool.IsValid())
         return;
@@ -2694,7 +2907,8 @@ void SHoudiniToolsPanel::BrowseToActiveToolAsset() const
 	}
 }
 
-void SHoudiniToolsPanel::BrowseToActiveToolPackage() const
+void
+SHoudiniToolsPanel::BrowseToActiveToolPackage() const
 {
     if (!ActiveTool.IsValid())
         return;
@@ -2919,7 +3133,8 @@ SHoudiniToolsPanel::HideActiveToolFromCategory()
     RequestPanelRefresh();
 }
 
-void SHoudiniToolsPanel::RefreshPanel()
+void
+SHoudiniToolsPanel::RefreshPanel()
 {
     UpdateHoudiniToolDirectories();
     RebuildCategories();
@@ -3020,7 +3235,8 @@ SHoudiniToolsPanel::OnEditToolDirectoriesWindowClosed(const TSharedRef<SWindow>&
     Construct(Args);
 }
 
-void SHoudiniToolsPanel::CreateEmptyToolsPackage()
+void
+SHoudiniToolsPanel::CreateEmptyToolsPackage()
 {
     if (!CreatePackageWindow.IsValid())
     {
@@ -3039,7 +3255,8 @@ void SHoudiniToolsPanel::CreateEmptyToolsPackage()
     }
 }
 
-void SHoudiniToolsPanel::ImportToolsPackage()
+void
+SHoudiniToolsPanel::ImportToolsPackage()
 {
     TSharedRef< SWindow > Window = CreateFloatingWindow(
         NSLOCTEXT("HoudiniToolsTypeActions", "HoudiniTools_Action_ImportToolsPackage", "Import Package"),
@@ -3053,7 +3270,8 @@ void SHoudiniToolsPanel::ImportToolsPackage()
     // GetHoudiniTools().FindAllProjectHoudiniToolsPackages(HoudiniToolsDirs);
 }
 
-void SHoudiniToolsPanel::HandleImportSideFXTools()
+void
+SHoudiniToolsPanel::HandleImportSideFXTools()
 {
     int NumImportedHDAs = 0;
     const bool bResult = FHoudiniToolsEditor::ImportSideFXTools(&NumImportedHDAs);
@@ -3116,12 +3334,14 @@ SHoudiniToolsPanel::UpdateHoudiniToolDirectories()
     HoudiniTools.UpdateHoudiniToolListFromProject(bShowHiddenTools);
 }
 
-void SHoudiniToolsPanel::RequestPanelRefresh()
+void
+SHoudiniToolsPanel::RequestPanelRefresh()
 {
     bRefreshPanelRequested = true;
 }
 
-void SHoudiniToolsPanel::RebuildCategories()
+void
+SHoudiniToolsPanel::RebuildCategories()
 {
     // Rebuild categories container
     CategoriesContainer->ClearChildren();
@@ -3139,9 +3359,13 @@ void SHoudiniToolsPanel::RebuildCategories()
             return false;
         return LHS.ToUpper() < RHS.ToUpper();
     });
+
+    // Store all the category names for filtering.
+    FilterCategoryList = SortedKeys;
     
     for (const FString& CategoryName : SortedKeys)
     {
+        // Add Category view widget
         TSharedPtr<FHoudiniToolList> CategorizedTools = CategoriesToolsMap.FindChecked(CategoryName);
         CategoriesContainer->AddSlot()
         .Padding(0,0,0,5)
@@ -3156,11 +3380,13 @@ void SHoudiniToolsPanel::RebuildCategories()
             .OnToolSelectionChanged( this, &SHoudiniToolsPanel::OnToolSelectionChanged )
             .OnMouseButtonDoubleClick( this, &SHoudiniToolsPanel::OnDoubleClickedListViewWidget )
             .OnContextMenuOpening( this, &SHoudiniToolsPanel::ConstructHoudiniToolContextMenu )
+            .IsVisible_Lambda([&, CategoryName](){ return !FilterHiddenCategories.Contains(CategoryName); })
         ];
     }
 }
 
-void SHoudiniToolsPanel::HandleToolChanged()
+void
+SHoudiniToolsPanel::HandleToolChanged()
 {
     // An external tool change was detected.
     // Rebuild the categories.
@@ -3173,7 +3399,8 @@ SHoudiniToolsPanel::OnGetSelectedDirText() const
     return FText::FromString(CurrentHoudiniToolDir);
 }
 
-void SHoudiniToolsPanel::ForEachCategory(const TFunctionRef<bool(SHoudiniToolCategory*)>& ForEachCategoryFunc) const
+void
+SHoudiniToolsPanel::ForEachCategory(const TFunctionRef<bool(SHoudiniToolCategory*)>& ForEachCategoryFunc) const
 {
     // Clear selections on any other categories.
     FChildren* ChildWidgets = CategoriesContainer->GetChildren();
@@ -3190,7 +3417,8 @@ void SHoudiniToolsPanel::ForEachCategory(const TFunctionRef<bool(SHoudiniToolCat
 	}
 }
 
-void SHoudiniToolsPanel::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void
+SHoudiniToolsPanel::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
     if (bRefreshPanelRequested)
     {
@@ -3202,7 +3430,8 @@ void SHoudiniToolsPanel::Tick(const FGeometry& AllottedGeometry, const double In
     SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
-void SHoudiniToolsPanel::LoadConfig()
+void
+SHoudiniToolsPanel::LoadConfig()
 {
     check(GConfig);
     const FString SettingsString = TEXT("HoudiniTools");
@@ -3211,6 +3440,20 @@ void SHoudiniToolsPanel::LoadConfig()
     if (!GConfig->GetBool(*SettingsIniSection, *(SettingsString + TEXT(".ShowHiddenTools")), bShowHiddenTools, GEditorPerProjectIni))
     {
         bShowHiddenTools = false;
+    }
+
+    // Filter - Show All    
+    if (!GConfig->GetBool(*SettingsIniSection, *(SettingsString + TEXT(".Filter.ShowAll")), bFilterShowAll, GEditorPerProjectIni))
+    {
+        bFilterShowAll = true;
+    }
+
+    // Filter - Hidden categories
+    TArray<FString> HiddenCategories;
+    FilterHiddenCategories.Empty();
+    if (GConfig->GetArray(*SettingsIniSection, *(SettingsString + TEXT(".Filter.HiddenCategories")), HiddenCategories, GEditorPerProjectIni))
+    {
+        FilterHiddenCategories.Append(HiddenCategories);
     }
     
     // View Mode
@@ -3236,13 +3479,17 @@ void SHoudiniToolsPanel::LoadConfig()
     }
 }
 
-void SHoudiniToolsPanel::SaveConfig() const
+void
+SHoudiniToolsPanel::SaveConfig() const
 {
     check(GConfig);
     const FString SettingsString = TEXT("HoudiniTools");
-
+    
     GConfig->SetBool(*SettingsIniSection, *(SettingsString + TEXT(".ShowHiddenTools")), bShowHiddenTools, GEditorPerProjectIni);
     GConfig->SetBool(*SettingsIniSection, *(SettingsString + TEXT(".AutoRefresh")), bAutoRefresh, GEditorPerProjectIni);
+
+    GConfig->SetBool(*SettingsIniSection, *(SettingsString + TEXT(".Filter.ShowAll")), bFilterShowAll, GEditorPerProjectIni);
+    GConfig->SetArray(*SettingsIniSection, *(SettingsString + TEXT(".Filter.HiddenCategories")), FilterHiddenCategories.Array(), GEditorPerProjectIni);
 
     FString ViewModeName;
     switch (ViewMode)
@@ -3261,5 +3508,7 @@ void SHoudiniToolsPanel::SaveConfig() const
 
     GConfig->Flush(false, GEditorPerProjectIni);
 }
+
+
 
 #undef LOCTEXT_NAMESPACE
