@@ -27,6 +27,21 @@
 #include "HoudiniEngineEditorSettings.h"
 
 UHoudiniEngineEditorSettings::UHoudiniEngineEditorSettings()
+{}
+
+#if WITH_EDITOR
+void
+UHoudiniEngineEditorSettings::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
 {
-	HoudiniToolsSearchPath = { TEXT("/Game/HoudiniEngine/Tools") };
+	UObject::PostEditChangeChainProperty(PropertyChangedEvent);
+
+	static FName NAME_UserToolCategories = GET_MEMBER_NAME_CHECKED(UHoudiniEngineEditorSettings, UserToolCategories);
+
+	const FName& HeadName = PropertyChangedEvent.PropertyChain.GetHead()->GetValue()->GetFName();
+
+	if (HeadName == NAME_UserToolCategories)
+	{
+		OnUserToolCategoriesChanged.Broadcast();
+	}
 }
+#endif

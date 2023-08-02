@@ -36,6 +36,8 @@
 class HOUDINIENGINERUNTIME_API FHoudiniEngineRuntime : public IModuleInterface
 {
 	public:
+		DECLARE_MULTICAST_DELEGATE(FOnToolOrPackageChanged)
+	
 		FHoudiniEngineRuntime();
 
 		//
@@ -90,6 +92,10 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngineRuntime : public IModuleInterface
 		// Returns the defualt folder used for baking
 		FString GetDefaultBakeFolder() const;
 
+		void BroadcastToolOrPackageChanged() const { OnToolOrPackageChanged.Broadcast(); }
+	
+		FOnToolOrPackageChanged& GetOnToolOrPackageChangedEvent() { return OnToolOrPackageChanged; }
+
 	private:
 
 		// Synchronization primitive. 
@@ -104,4 +110,6 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngineRuntime : public IModuleInterface
 		TArray<int32> NodeIdsPendingDelete;
 
 		TArray<int32> NodeIdsParentPendingDelete;
+
+		FOnToolOrPackageChanged OnToolOrPackageChanged;
 };

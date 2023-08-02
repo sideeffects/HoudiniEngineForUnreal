@@ -616,4 +616,6 @@ private:
     FDelegateHandle AssetUpdatedHandle;
     FDelegateHandle AssetUpdatedOnDiskHandle;
     FDelegateHandle AssetPostImportHandle;
+    FDelegateHandle UserToolCategoriesChangedHandle;
+    FDelegateHandle ToolOrPackageChangedHandle;
 };

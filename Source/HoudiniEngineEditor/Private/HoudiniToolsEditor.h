@@ -60,8 +60,6 @@ class FHoudiniToolsEditor
 public:
 	FHoudiniToolsEditor();
 
-	DECLARE_MULTICAST_DELEGATE(FOnToolChanged)
-
 	// Returns the Default Icon to be used by Houdini Tools
     static FString GetDefaultHoudiniToolIconPath();
 	static FString GetDefaultHoudiniToolIconBrushName();
@@ -123,6 +121,15 @@ public:
 
 	// Apply the category rules to the given HoudiniTool. Append all valid categories for the HoudiniTool in OutCategories.  
 	static void ApplyCategories(const TMap<FString, FCategoryRules>& InCategories, const TSharedPtr<FHoudiniTool>& HoudiniTool, const bool bIgnoreExclusionRules, TArray<FString>& OutCategories);
+	
+	static void ApplyCategoryRules(
+		const FString& HoudiniAssetRelPath,
+		const FString& CategoryName,
+		const TArray<FString>& IncludeRules,
+		const TArray<FString>& ExcludeRules,
+		const bool bIgnoreExclusionRules, 
+		TArray<FString>& OutCategories
+		);
 
 	// Check whether the given name is a valid package name. If not, return the reason.
 	static bool IsValidPackageName(const FString& PkgName, FText* OutFailReason);
@@ -151,12 +158,6 @@ public:
 	 * not scan any external data. 
 	 * **/
     void UpdateHoudiniToolListFromProject(bool bIgnoreExcludePatterns);
-
-	/**
-	 * If the package contains an external package source, generate json files for missing HDAs,
-	 * reimport HDAs if necessary. 
-	 **/
-	void UpdatePackageToolListFromSource(UHoudiniToolsPackageAsset* ToolsPackage);
 
 	// /** Return all the directories where we should look for houdini tools**/
  //    void GetAllHoudiniToolDirectories(TArray<FHoudiniToolDirectory>& HoudiniToolsDirectoryArray) const;
@@ -274,12 +275,6 @@ public:
 	// TODO: TEMPORARY until Houdini Engine Shelf Tools have been migrated. This needs to be removed / replaced with individual shelf descriptors.
 	// UPROPERTY(GlobalConfig, EditAnywhere, Category = CustomHoudiniTools)
 	// mutable TArray<FHoudiniToolDirectory> CustomHoudiniToolsLocation;
-
-	// Execute the OnToolChanged delegate.
-	void BroadcastToolChanged();
-
-	// One or more tools have changed / removed / added. 
-	FOnToolChanged OnToolChanged;
 
 protected:
 	// Categories

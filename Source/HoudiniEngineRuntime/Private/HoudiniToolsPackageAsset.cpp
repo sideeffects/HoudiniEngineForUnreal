@@ -27,6 +27,7 @@
 
 #include "HoudiniToolsPackageAsset.h"
 
+#include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniToolsRuntimeUtils.h"
 #include "Misc/FileHelper.h"
@@ -219,6 +220,12 @@ UHoudiniToolsPackageAsset::PostEditChangeProperty(FPropertyChangedEvent& Propert
 	if (PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UHoudiniToolsPackageAsset, ExternalPackageDir))
 	{
 		UpdateProperties();
+	}
+
+	if (FModuleManager::Get().IsModuleLoaded("HoudiniEngineRuntime"))
+	{
+		const FHoudiniEngineRuntime& HoudiniEngineRuntime = FModuleManager::GetModuleChecked<FHoudiniEngineRuntime>("HoudiniEngineRuntime");
+		HoudiniEngineRuntime.BroadcastToolOrPackageChanged();
 	}
 }
 #endif

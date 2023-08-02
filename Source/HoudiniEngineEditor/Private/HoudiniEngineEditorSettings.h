@@ -28,19 +28,53 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "HoudiniToolTypes.h"
 
 #include "HoudiniEngineEditorSettings.generated.h"
+
+USTRUCT()
+struct FUserCategoryRules 
+{
+	GENERATED_BODY()
+
+	// Tools package that will be used to resolve the include/exclude patterns.
+	UPROPERTY(EditAnywhere, Category="User Category")
+	class UHoudiniToolsPackageAsset* ToolsPackageAsset;
+
+	// Include any tools that match the following patterns (relative to the Tools Package).
+	UPROPERTY(EditAnywhere, Category="User Category")
+	TArray<FString> Include;
+
+	// Any tools matching these patterns (relative to the Tools Package) will be omitted from the inclusion set.
+	UPROPERTY(EditAnywhere, Category="User Category")
+	TArray<FString> Exclude;
+};
 
 UCLASS(config=EditorPerProjectUserSettings, defaultconfig)
 class UHoudiniEngineEditorSettings : public UObject
 {
 	GENERATED_BODY()
 public:
+
+	DECLARE_MULTICAST_DELEGATE(FOnUserToolCategoriesChanged);
+	
 	UHoudiniEngineEditorSettings();
 	
-	// Additional user-specific search paths in the project to search for HoudiniTools packages.
-	// These paths should point to Tools directories that contain on or more HoudiniTools packages. It
-	// should not point to the HoudiniTools packages themselves.
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = HoudiniTools)
-	TArray<FString> HoudiniToolsSearchPath;
+	// // Additional user-specific search paths in the project to search for HoudiniTools packages.
+	// // These paths should point to Tools directories that contain on or more HoudiniTools packages. It
+	// // should not point to the HoudiniTools packages themselves.
+	// UPROPERTY(GlobalConfig, EditAnywhere, Category = HoudiniTools)
+	// TArray<FString> HoudiniToolsSearchPath;
+	
+	// User defined categories for HoudiniTools
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=HoudiniTools)
+	TMap<FString, FUserCategoryRules> UserToolCategories;
+
+	FOnUserToolCategoriesChanged OnUserToolCategoriesChanged;
+
+#if WITH_EDITOR
+	
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
+	
+#endif
 };

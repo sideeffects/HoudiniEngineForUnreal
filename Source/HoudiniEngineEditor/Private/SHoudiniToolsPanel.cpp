@@ -58,6 +58,7 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "AssetToolsModule.h"
 #include "EditorDirectories.h"
+#include "HoudiniEngineEditorSettings.h"
 #include "HoudiniEngineEditorUtils.h"
 #include "HoudiniEngineStyle.h"
 #include "HoudiniToolsEditor.h"
@@ -87,6 +88,7 @@
 #include "Styling/StyleColors.h"
 #include "Widgets/Layout/SSpacer.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
+#include "HoudiniEngineRuntime.h"
 
 #define LOCTEXT_NAMESPACE "HoudiniTools"
 
@@ -1574,6 +1576,13 @@ SHoudiniToolsPanel::~SHoudiniToolsPanel()
     UNSUBSCRIBE(AssetRegistryModule.Get().OnAssetRenamed(), AssetRenamedHandle);
     UNSUBSCRIBE(AssetRegistryModule.Get().OnAssetUpdated(), AssetUpdatedHandle);
     UNSUBSCRIBE(AssetRegistryModule.Get().OnAssetUpdatedOnDisk(), AssetUpdatedOnDiskHandle);
+
+    UHoudiniEngineEditorSettings* HoudiniEngineEditorSettings = const_cast<UHoudiniEngineEditorSettings*>(GetDefault<UHoudiniEngineEditorSettings>());
+    if (HoudiniEngineEditorSettings)
+    {
+        UNSUBSCRIBE(HoudiniEngineEditorSettings->OnUserToolCategoriesChanged, UserToolCategoriesChangedHandle);
+    }
+     
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -1584,7 +1593,8 @@ SHoudiniToolsPanel::Construct( const FArguments& InArgs )
     
     const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
     FHoudiniEngineEditor& HoudiniEngineEditor = FModuleManager::GetModuleChecked<FHoudiniEngineEditor>("HoudiniEngineEditor");
-    FHoudiniToolsEditor& HoudiniTools = FHoudiniToolsPanelUtils::GetHoudiniTools();
+    FHoudiniEngineRuntime& HoudiniEngineRuntime = FModuleManager::GetModuleChecked<FHoudiniEngineRuntime>("HoudiniEngineRuntime");
+    // FHoudiniToolsEditor& HoudiniTools = FHoudiniToolsPanelUtils::GetHoudiniTools();
 
     // Handler to trigger UI updates on asset changes.
     auto AssetChangedHandlerFn = [=](UObject* InObject)
@@ -1636,6 +1646,22 @@ SHoudiniToolsPanel::Construct( const FArguments& InArgs )
     AssetAddedHandle = AssetRegistryModule.Get().OnAssetAdded().AddLambda(AssetUpdatedHandlerFn);
     AssetUpdatedHandle = AssetRegistryModule.Get().OnAssetUpdated().AddLambda(AssetUpdatedHandlerFn);
     AssetUpdatedOnDiskHandle = AssetRegistryModule.Get().OnAssetUpdatedOnDisk().AddLambda(AssetUpdatedHandlerFn);
+
+    // Handler for HoudiniEngineEditorSettings changes
+    UHoudiniEngineEditorSettings* HoudiniEngineEditorSettings = const_cast<UHoudiniEngineEditorSettings*>(GetDefault<UHoudiniEngineEditorSettings>());
+    if (HoudiniEngineEditorSettings)
+    {
+        UserToolCategoriesChangedHandle = HoudiniEngineEditorSettings->OnUserToolCategoriesChanged.AddLambda([&]()
+        {
+            RequestPanelRefresh();
+        });
+    }
+
+    // Handler for tool or package change broadcasts
+    ToolOrPackageChangedHandle = HoudiniEngineRuntime.GetOnToolOrPackageChangedEvent().AddLambda([&]()
+    {
+        RequestPanelRefresh();
+    });
 
     UpdateHoudiniToolDirectories();
 
@@ -1696,7 +1722,7 @@ SHoudiniToolsPanel::Construct( const FArguments& InArgs )
                 [
                     SNew(SComboButton)
 				    .HasDownArrow(false)
-				    .ContentPadding(0)
+				    .ContentPadding(0)     
 				    .ForegroundColor( FSlateColor::UseForeground() )
 				    .ButtonStyle( FAppStyle::Get(), "SimpleButton" )
 				    .AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ViewOptions")))

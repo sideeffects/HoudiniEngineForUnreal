@@ -35,6 +35,7 @@
 #include "HoudiniAssetFactory.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineEditor.h"
+#include "HoudiniEngineEditorSettings.h"
 #include "HoudiniToolsPackageAsset.h"
 #include "HoudiniToolsPackageAssetFactory.h"
 #include "JsonObjectConverter.h"
@@ -629,34 +630,48 @@ FHoudiniToolsEditor::ApplyCategories(
     {
         const FString& CategoryName = Entry.Key;
         const FCategoryRules& Rules = Entry.Value;
+
+        ApplyCategoryRules(HoudiniAssetRelPath, CategoryName, Rules.Include, Rules.Exclude, bIgnoreExclusionRules, OutCategories);
+    }
+}
+
+void
+FHoudiniToolsEditor::ApplyCategoryRules(
+    const FString& HoudiniAssetRelPath,
+    const FString& CategoryName,
+    const TArray<FString>& IncludeRules,
+    const TArray<FString>& ExcludeRules,
+    const bool bIgnoreExclusionRules,
+    TArray<FString>& OutCategories)
+{
+
+    if (!bIgnoreExclusionRules)
+    {
         bool bExclude = false;
-
-        if (!bIgnoreExclusionRules)
-        {
-            // Apply exclude rules
-            for (const FString& Pattern : Rules.Exclude)
-            {
-                if (HoudiniAssetRelPath.MatchesWildcard(Pattern))
-                {
-                    bExclude = true;
-                    break;
-                }
-            }
-            if (bExclude)
-            {
-                // The HDA should be excluded from this category.
-                continue;
-            }
-        }
-
-        // Apply include rules
-        for (const FString& Pattern : Rules.Include)
+        
+        // Apply exclude rules
+        for (const FString& Pattern : ExcludeRules)
         {
             if (HoudiniAssetRelPath.MatchesWildcard(Pattern))
             {
-                OutCategories.Add(CategoryName);
+                bExclude = true;
                 break;
             }
+        }
+        if (bExclude)
+        {
+            // The HDA should be excluded from this category.
+            return;
+        }
+    }
+
+    // Apply include rules
+    for (const FString& Pattern : IncludeRules)
+    {
+        if (HoudiniAssetRelPath.MatchesWildcard(Pattern))
+        {
+            OutCategories.Add(CategoryName);
+            break;
         }
     }
 }
@@ -755,7 +770,6 @@ UHoudiniToolsPackageAsset* FHoudiniToolsEditor::CreateToolsPackageAsset(
 
     Asset->ExternalPackageDir.Path = ExternalPackageDir;
     FHoudiniEngineRuntimeUtils::DoPostEditChangeProperty(Asset, "ExternalPackageDir");
-    UE_LOG(LogHoudiniTools, Log, TEXT("[FHoudiniToolsEditor::CreateToolsPackageAsset] Setting external package dir: %s"), *ExternalPackageDir);
 
     return Asset;
 }
@@ -881,7 +895,6 @@ bool FHoudiniToolsEditor::ExcludeToolFromCategory(UHoudiniAsset* HoudiniAsset, c
     if (!CategoryRules.Exclude.Contains(RelToolPath))
     {
         CategoryRules.Exclude.Add( RelToolPath );
-        UE_LOG(LogHoudiniTools, Log, TEXT("[ExcludeToolFromCategory] Excluded '%s' from category '%s'."), *RelToolPath, *CategoryName);
     }
 
     PackageAsset->MarkPackageDirty();
@@ -946,12 +959,28 @@ bool FHoudiniToolsEditor::ExcludeToolFromCategory(UHoudiniAsset* HoudiniAsset, c
 void
 FHoudiniToolsEditor::UpdateHoudiniToolListFromProject(bool bIgnoreExcludePatterns)
 {
+    const UHoudiniEngineEditorSettings* HoudiniEngineEditorSettings = GetDefault<UHoudiniEngineEditorSettings>();
+    
     // Clean up the existing tool list
     Categories.Empty();
     HoudiniTools.Empty();
 
     TArray<UHoudiniToolsPackageAsset*> ToolsPackages;
     FindHoudiniToolsPackages(ToolsPackages);
+
+    auto AddToolToCategoriesFn = [&](TSharedPtr<FHoudiniTool> HoudiniTool, const TArray<FString>& MatchingCategories)
+    {
+        for(const FString& CategoryName : MatchingCategories)
+        {
+            TSharedPtr<FHoudiniToolList>& CategoryTools = Categories.FindOrAdd(CategoryName);
+            if (!CategoryTools.IsValid())
+            {
+                CategoryTools = MakeShared<FHoudiniToolList>();
+            }
+
+            CategoryTools->Tools.Add(HoudiniTool);
+        }
+    };
     
     for (const UHoudiniToolsPackageAsset* ToolsPackage : ToolsPackages)
     {
@@ -966,53 +995,67 @@ FHoudiniToolsEditor::UpdateHoudiniToolListFromProject(bool bIgnoreExcludePattern
             TArray<FString> MatchingCategories;
             ApplyCategories(ToolsPackage->Categories, HoudiniTool, bIgnoreExcludePatterns, MatchingCategories);
 
-            // TODO: Apply user defined categories.
-
             // Add this tool to the respective category entries
-            for(const FString& CategoryName : MatchingCategories)
-            {
-                TSharedPtr<FHoudiniToolList>& CategoryTools = Categories.FindOrAdd(CategoryName);
-                if (!CategoryTools.IsValid())
-                {
-                    CategoryTools = MakeShared<FHoudiniToolList>();
-                }
-
-                CategoryTools->Tools.Add(HoudiniTool);
-            }
-        }
-
-        // For now, ensure each category is sorted by HoudiniTool display name.
-        // TODO: Implement a mechanism by which we can combine absolute order and wildcards/patterns.
-        for(auto& Entry : Categories)
-        {
-            const TSharedPtr<FHoudiniToolList> CategoryTools = Entry.Value;
-            CategoryTools->Tools.Sort([](const TSharedPtr<FHoudiniTool>& LHS, const TSharedPtr<FHoudiniTool>& RHS) -> bool
-            {
-                return LHS->Name.ToString() < RHS->Name.ToString();
-            });
+            AddToolToCategoriesFn(HoudiniTool, MatchingCategories);
         }
 
         // Append the tools to our global package list.
         HoudiniTools.Append(PackageTools);
     }
     
-    // // Get All the houdini tool directories
-    // TArray<FHoudiniToolDirectory> HoudiniToolsDirectoryArray;
-    // GetHoudiniToolDirectories( SelectedDir, HoudiniToolsDirectoryArray );
+    // Process User defined categories
+    if (HoudiniEngineEditorSettings)
+    {
+        const TMap<FString, FUserCategoryRules>& UserCategories = HoudiniEngineEditorSettings->UserToolCategories;
+        for (auto& Entry : UserCategories)
+        {
+            const FString& CategoryName = Entry.Key;
+            const FUserCategoryRules& Rules = Entry.Value;
+            // Find all tools in this package
+            // TODO: Cache packages from previous for loop so that we don't have to do this work twice
+            TArray<TSharedPtr<FHoudiniTool>> PackageTools;
+            FindHoudiniToolsInPackage(Rules.ToolsPackageAsset, PackageTools);
 
-    // // Add the tools for all the directories
-    // for ( int32 n = 0; n < HoudiniToolsDirectoryArray.Num(); n++ )
-    // {
-    //     FHoudiniToolDirectory CurrentDir = HoudiniToolsDirectoryArray[n];
-    //     bool isDefault = ( (n == 0) && (CurrentHoudiniToolDirIndex <= 0) );
-    //     UpdateHoudiniToolList( CurrentDir, isDefault );
-    // }
-}
+            // Apply category rules to each package tool
+            for(const TSharedPtr<FHoudiniTool> HoudiniTool : PackageTools)
+            {
+                const UHoudiniAsset* HoudiniAsset = HoudiniTool->HoudiniAsset.LoadSynchronous();
+                if (!IsValid(HoudiniAsset))
+                    return;
 
+                //NOTE: We're constructing a relative path here for the purposes of include/exclude pattern matching.
+                //      to keep things as straightforward as possible, we always use the path name of the relevant
+                //      asset for pattern matching. We will NOT use the operator type or the tool label.
+                
+                FString HoudiniAssetRelPath;
+                if (!ResolveHoudiniAssetRelativePath(HoudiniAsset, HoudiniAssetRelPath))
+                {
+                    // if we can't resolve a relative path for this HoudiniAsset tool, we can't apply category matching.
+                    return;
+                }
 
-void
-FHoudiniToolsEditor::UpdatePackageToolListFromSource(UHoudiniToolsPackageAsset* ToolsPackage)
-{
+                TArray<FString> MatchingCategories;
+                ApplyCategoryRules(HoudiniAssetRelPath, CategoryName, Rules.Include, Rules.Exclude, bIgnoreExcludePatterns, MatchingCategories);
+                // Add this tool to the respective category entries
+                AddToolToCategoriesFn(HoudiniTool, MatchingCategories);
+            }
+
+            // Append the tools to our global package list.
+            HoudiniTools.Append(PackageTools);
+        }
+    }
+
+    // For now, ensure each category is sorted by HoudiniTool display name.
+    // TODO: Implement a mechanism by which we can combine absolute order and wildcards/patterns (this might require
+    //       sorting within confined subgroups)
+    for(auto& Entry : Categories)
+    {
+        const TSharedPtr<FHoudiniToolList> CategoryTools = Entry.Value;
+        CategoryTools->Tools.Sort([](const TSharedPtr<FHoudiniTool>& LHS, const TSharedPtr<FHoudiniTool>& RHS) -> bool
+        {
+            return LHS->Name.ToString() < RHS->Name.ToString();
+        });
+    }
 }
 
 
@@ -1064,7 +1107,6 @@ bool FHoudiniToolsEditor::GetHoudiniPackageDescriptionFromJSON(const FString& Js
 			}
         }
         
-        UE_LOG(LogHoudiniTools, Log, TEXT("[GetHoudiniPackageDescriptionFromJSON] Trying to read categories string array field: %d"), CategoryEntries.Num());
         for(TSharedPtr<FJsonObject>& CategoryEntry : CategoryEntries)
         {
             FString CategoryName;
@@ -1091,8 +1133,6 @@ bool FHoudiniToolsEditor::GetHoudiniPackageDescriptionFromJSON(const FString& Js
             CategoryEntry->TryGetStringArrayField(TEXT("exclude"), OutCategoryRules.Exclude);
 
             OutCategories.Add(CategoryName, OutCategoryRules);
-
-            UE_LOG(LogHoudiniTools, Log, TEXT("[GetHoudiniPackageDescriptionFromJSON] Category '%s': includes %d, excludes, %d"), *CategoryName, OutCategoryRules.Include.Num(), OutCategoryRules.Exclude.Num());
         }
     }
 
@@ -1113,89 +1153,6 @@ bool FHoudiniToolsEditor::GetHoudiniPackageDescriptionFromJSON(const FString& Js
     OutImportToolsDescription = GetBoolFieldFn(TEXT("reimport_tools_description"), false);
     OutExportToolsDescription = GetBoolFieldFn(TEXT("export_tools_description"), false);
     return true;
-
-    // if (HDAFilePath.IsEmpty())
-    // {
-    //     // Look for an hda file with the same name as the json file
-    //     HDAFilePath = JsonFilePath.Replace(TEXT(".json"), TEXT(".hda"));
-    //     if (!FPaths::FileExists(HDAFilePath))
-    //     {
-    //         // Try .hdalc
-    //         HDAFilePath = JsonFilePath.Replace(TEXT(".json"), TEXT(".hdalc"));
-    //         if (!FPaths::FileExists(HDAFilePath))
-    //         {
-    //             // Try .hdanc
-    //             HDAFilePath = JsonFilePath.Replace(TEXT(".json"), TEXT(".hdanc"));
-    //             if (!FPaths::FileExists(HDAFilePath))
-    //                 HDAFilePath = FString();
-    //         }
-    //     }
-    // }
-    //
-    // if ( HDAFilePath.IsEmpty() )
-    // {
-    //     HOUDINI_LOG_ERROR(TEXT("Could not find the hda for the Houdini Tool .json file: %s"), *JsonFilePath);
-    //     return false;
-    // }
-    //
-    // // Create a new asset.
-    // OutAssetPath = FFilePath{ HDAFilePath };
-    //
-    // // Read the tool name
-    // OutName = FText::FromString(FPaths::GetBaseFilename(JsonFilePath));
-    // if ( JSONObject->HasField(TEXT("name") ) )
-    //     OutName = FText::FromString(JSONObject->GetStringField(TEXT("name")));
-    //
-    // // Read the tool type
-    // OutType = EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE;
-    // if ( JSONObject->HasField( TEXT("toolType") ) )
-    // {
-    //     FString ToolType = JSONObject->GetStringField(TEXT("toolType"));
-    //     if ( ToolType.Equals( TEXT("GENERATOR"), ESearchCase::IgnoreCase ) )
-    //         OutType = EHoudiniToolType::HTOOLTYPE_GENERATOR;
-    //     else if (ToolType.Equals( TEXT("OPERATOR_SINGLE"), ESearchCase::IgnoreCase ) )
-    //         OutType = EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE;
-    //     else if (ToolType.Equals(TEXT("OPERATOR_MULTI"), ESearchCase::IgnoreCase))
-    //         OutType = EHoudiniToolType::HTOOLTYPE_OPERATOR_MULTI;
-    //     else if (ToolType.Equals(TEXT("BATCH"), ESearchCase::IgnoreCase))
-    //         OutType = EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH;
-    // }
-    //
-    // // Read the tooltip
-    // OutToolTip = FText();
-    // if ( JSONObject->HasField( TEXT("toolTip") ) )
-    // {
-    //     OutToolTip =  FText::FromString(JSONObject->GetStringField(TEXT("toolTip")));
-    // }
-    //
-    // // Read the help url
-    // OutHelpURL = FString();
-    // if (JSONObject->HasField(TEXT("helpURL")))
-    // {
-    //     OutHelpURL = JSONObject->GetStringField(TEXT("helpURL"));
-    // }
-    //
-    // // Read the icon path
-    // FString IconPath = FString();
-    // if (JSONObject->HasField(TEXT("iconPath")))
-    // {
-    //     // If the json has the iconPath field, read it from there
-    //     IconPath = JSONObject->GetStringField(TEXT("iconPath"));
-    //     if (!FPaths::FileExists(IconPath))
-    //         IconPath = FString();
-    // }
-    //
-    // if (IconPath.IsEmpty())
-    // {
-    //     // Look for a png file with the same name as the json file
-    //     IconPath = JsonFilePath.Replace(TEXT(".json"), TEXT(".png"));
-    //     if (!FPaths::FileExists(IconPath))
-    //     {
-    //         IconPath = GetDefaultHoudiniToolIcon();
-    //     }
-    // }
-    //
-    // return true;
 }
 
 bool FHoudiniToolsEditor::ImportExternalHoudiniAssetData(UHoudiniAsset* HoudiniAsset)
@@ -2402,11 +2359,6 @@ FHoudiniToolsEditor::WriteJSONFromHoudiniTool_DEPR(const FHoudiniTool& Tool)
     }
 
     return false;
-}
-
-void FHoudiniToolsEditor::BroadcastToolChanged()
-{
-    OnToolChanged.Broadcast();
 }
 
 
