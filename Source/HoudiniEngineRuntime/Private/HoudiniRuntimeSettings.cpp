@@ -83,10 +83,6 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 	// Input options
 	bEnableTheReferenceCountedInputSystem = false;
 	
-	// Experimental features
-	bEnableLandscapeSplineInput = false;
-	bEnableSplineMeshInput = false;
-	
 	// Parameter options
 	//bTreatRampParametersAsMultiparms = false;
 

@@ -261,14 +261,11 @@ UHoudiniInputLandscapeSplineActor::ShouldTrackComponent(UActorComponent const* I
 	// Use InSettings if provided, otherwise use the settings cached at the last update
 	const FHoudiniInputObjectSettings& Settings = InSettings ? *InSettings : CachedInputSettings;
 	
-	if (FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled() && InComponent->IsA(ULandscapeSplinesComponent::StaticClass()))
+	if (InComponent->IsA(ULandscapeSplinesComponent::StaticClass()))
 		return true;
 		
-	if (Settings.bLandscapeSplinesExportSplineMeshComponents && FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled()
-			&& InComponent->IsA(USplineMeshComponent::StaticClass()))
-	{
+	if (Settings.bLandscapeSplinesExportSplineMeshComponents && InComponent->IsA(USplineMeshComponent::StaticClass()))
 		return true;
-	}
 	
 	return false;
 }
@@ -1452,9 +1449,7 @@ void
 UHoudiniInputLandscapeSplineActor::Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings)
 {
 	// Get the current value for if exporting spline meshes is enabled
-	if (!InSettings.bLandscapeSplinesExportSplineMeshComponents || !InSettings.bMergeSplineMeshComponents
-			|| !FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled() 
-			|| !FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
+	if (!InSettings.bLandscapeSplinesExportSplineMeshComponents || !InSettings.bMergeSplineMeshComponents)
 	{
 		// Invalidate the merged splines nodes
 		InvalidateSplinesMeshData();
@@ -2065,9 +2060,6 @@ bool UHoudiniInputActor::HasComponentsTransformChanged() const
 bool 
 UHoudiniInputActor::HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const
 {
-	if (!FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled())
-		return false;
-
 	// Check if any of the spline mesh components that we are tracking has changed
 	TSet<UActorComponent const*> TrackedSMComponents; 
 	bool bSplineMeshComponentChanged = false;
@@ -2228,12 +2220,6 @@ UHoudiniInputActor::InvalidateData()
 bool
 UHoudiniInputActor::ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings) const
 {
-	if (!FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled() && InComponent->IsA<ULandscapeSplinesComponent>())
-		return false;
-	
-	if (!FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled() && InComponent->IsA<USplineMeshComponent>())
-		return false;
-	
 	return true;
 }
 
@@ -2251,16 +2237,13 @@ bool UHoudiniInputLandscape::ShouldTrackComponent(UActorComponent const* InCompo
 	// Use InSettings if provided, otherwise use the settings cached at the last update
 	const FHoudiniInputObjectSettings& Settings = InSettings ? *InSettings : CachedInputSettings;
 
-	if (Settings.bLandscapeAutoSelectSplines && FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
+	if (Settings.bLandscapeAutoSelectSplines)
 	{
 		if (InComponent->IsA(ULandscapeSplinesComponent::StaticClass()))
 			return true;
 
-		if (Settings.bLandscapeSplinesExportSplineMeshComponents && FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled()
-				&& InComponent->IsA(USplineMeshComponent::StaticClass()))
-		{
+		if (Settings.bLandscapeSplinesExportSplineMeshComponents && InComponent->IsA(USplineMeshComponent::StaticClass()))
 			return true;
-		}
 	}
 	
 	return false;
@@ -2286,9 +2269,7 @@ void
 UHoudiniInputLandscape::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {
 	// Get the current value for if exporting spline meshes is enabled
-	if (!InSettings.bLandscapeSplinesExportSplineMeshComponents || !InSettings.bMergeSplineMeshComponents
-			|| !FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled()
-			|| !FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
+	if (!InSettings.bLandscapeSplinesExportSplineMeshComponents || !InSettings.bMergeSplineMeshComponents)
 	{
 		// Invalidate the merged splines nodes
 		InvalidateSplinesMeshData();

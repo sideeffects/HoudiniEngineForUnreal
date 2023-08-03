@@ -1006,12 +1006,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 				.ToolTipText(LOCTEXT("MergeSplineMeshComponentsTip", "If enabled, when a spline mesh components from actor world input are merged into a single static mesh per actor."))
 				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
-			.Visibility_Lambda([]()
-			{
-				if (!FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled())
-					return EVisibility::Collapsed;
-				return EVisibility::Visible;
-			})
+			.Visibility(EVisibility::Visible)
 			.IsChecked_Lambda([=]()
 			{
 				return IsCheckedMergeSplineMeshComponents(MainInput);
@@ -2547,9 +2542,6 @@ FHoudiniInputDetails::AddLandscapeOptions(
 
 	AddExportSelectedLandscapesOnlyCheckBox(LandscapeOptions_VerticalBox, InInputs);
 	AddExportLandscapeAsOptions(LandscapeOptions_VerticalBox, InInputs);
-	
-	if (FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
-		AddLandscapeAutoSelectSplinesCheckBox(LandscapeOptions_VerticalBox, InInputs);
 }
 
 void
@@ -2814,12 +2806,7 @@ FHoudiniInputDetails::AddLandscapeSplinesOptions(
 				.ToolTipText( LOCTEXT( "ExportLandscapeSplineMeshComponentsCheckboxTip", "If enabled, the spline mesh components of landscape splines are also exported." ) )
 				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 			]
-			.Visibility_Lambda([]()
-			{
-				if (!FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled())
-					return EVisibility::Collapsed;
-				return EVisibility::Visible;
-			})
+			.Visibility(EVisibility::Visible)
 			.IsChecked_Lambda([=]()
 			{
 				return IsLandscapeSplinesExportSplineMeshComponentsEnabled(MainInput);
@@ -2830,6 +2817,8 @@ FHoudiniInputDetails::AddLandscapeSplinesOptions(
 			})
 		]
 	];
+
+	AddLandscapeAutoSelectSplinesCheckBox(LandscapeSplinesOptions_VerticalBox, InInputs);
 }
 
 void
@@ -5785,8 +5774,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 
 	AddExportOptions(InVerticalBox, InInputs);
 	AddLandscapeOptions(InVerticalBox, InInputs);
-	if (FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
-		AddLandscapeSplinesOptions(InVerticalBox, InInputs);
+	AddLandscapeSplinesOptions(InVerticalBox, InInputs);
 
 	bool bIsBoundSelector = MainInput->IsWorldInputBoundSelector();
 

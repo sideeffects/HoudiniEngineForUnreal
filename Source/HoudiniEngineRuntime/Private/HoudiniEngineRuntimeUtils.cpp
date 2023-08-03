@@ -752,20 +752,6 @@ FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled()
 }
 
 bool
-FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled()
-{
-	UHoudiniRuntimeSettings const* const Settings = GetDefault<UHoudiniRuntimeSettings>();
-	return IsValid(Settings) && Settings->bEnableLandscapeSplineInput;
-}
-
-bool
-FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled()
-{
-	UHoudiniRuntimeSettings const* const Settings = GetDefault<UHoudiniRuntimeSettings>();
-	return IsValid(Settings) && Settings->bEnableSplineMeshInput;
-}
-
-bool
 FHoudiniEngineRuntimeUtils::IsInputNodeDirty(const FUnrealObjectInputIdentifier& InIdentifier)
 {
 	if (!InIdentifier.IsValid())

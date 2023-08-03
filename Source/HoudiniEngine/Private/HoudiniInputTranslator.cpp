@@ -1627,9 +1627,6 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 
 		case EHoudiniInputObjectType::LandscapeSplinesComponent:
 		{
-			if (!FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
-				break;
-				
 			UHoudiniInputLandscapeSplinesComponent* const InputLandscapeSplinesComponent = Cast<UHoudiniInputLandscapeSplinesComponent>(InInputObject);
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForLandscapeSplinesComponent(
 				ObjBaseName,
@@ -1642,9 +1639,6 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 
 		case EHoudiniInputObjectType::SplineMeshComponent:
 		{
-			if (!FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled())
-				break;
-			
 			UHoudiniInputMeshComponent* InputSMC = Cast<UHoudiniInputMeshComponent>(InInputObject);
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 				ObjBaseName,
@@ -3456,8 +3450,7 @@ FHoudiniInputTranslator::HapiCreateInputNodesForActorComponents(
 
 	const FHoudiniInputObjectSettings InputSettings(InInput);
 	
-	const bool bMergeSplineMeshes = (FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled()
-		&& InputSettings.bMergeSplineMeshComponents && InInputActorObject->GetNumSplineMeshComponents() > 1);
+	const bool bMergeSplineMeshes = InputSettings.bMergeSplineMeshComponents && InInputActorObject->GetNumSplineMeshComponents() > 1;
 	// If we are not sending a merged mesh, invalidate any previous merge mesh data so that it can be cleaned up
 	if (!bMergeSplineMeshes)
 	{
@@ -3496,7 +3489,7 @@ FHoudiniInputTranslator::HapiCreateInputNodesForActorComponents(
 		}
 	}
 
-	if (bHasSplineMeshComponentsToMerge && FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled())
+	if (bHasSplineMeshComponentsToMerge)
 	{
 		InInputActorObject->SetUsedMergeSplinesMeshAtLastTranslate(true);
 		if (HapiCreateInputNodeForSplineMeshComponents(
@@ -4129,8 +4122,7 @@ FHoudiniInputTranslator::UpdateWorldInput(UHoudiniInput* InInput)
 
 	// If not a bound selector and auto select landscape splines is enabled, add all landscape splines of input
 	// landscapes to our input objects
-	if (!InInput->IsWorldInputBoundSelector() && FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled()
-			&& InInput->IsLandscapeAutoSelectSplinesEnabled())
+	if (!InInput->IsWorldInputBoundSelector() && InInput->IsLandscapeAutoSelectSplinesEnabled())
 	{
 		InInput->AddAllLandscapeSplineActorsForInputLandscapes();
 	}
