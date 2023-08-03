@@ -38,7 +38,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorMaterialTest_Material_Simp
 
 bool HoudiniEditorMaterialTest_Material_Simple::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		const FString MapName = FHoudiniEditorMaterialTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Material_Simple");
@@ -54,7 +54,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorMaterialTest_Material_Maps
 
 bool HoudiniEditorMaterialTest_Material_Maps::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		const FString MapName = FHoudiniEditorMaterialTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Material_Maps");
@@ -70,7 +70,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorMaterialTest_MaterialAttri
 
 bool HoudiniEditorMaterialTest_MaterialAttributes_Common::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		const FString MapName = FHoudiniEditorMaterialTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("MaterialAttributes_Common");

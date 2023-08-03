@@ -642,12 +642,19 @@ int32 UHoudiniInputLandscape::CountLandscapeComponents() const
 	}
 
 	int32 NumComponents = 0;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	LandscapeInfo->ForEachLandscapeProxy([&NumComponents](ALandscapeProxy* Proxy)
+#else
 	LandscapeInfo->ForAllLandscapeProxies([&NumComponents](ALandscapeProxy* Proxy)
+#endif
 	{
 		if (IsValid(Proxy))
 		{
 			NumComponents += Proxy->LandscapeComponents.Num();
 		}
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+		return true;
+#endif
 	});
 	return NumComponents;
 }

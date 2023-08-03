@@ -49,12 +49,12 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorEvergreenTest, "Houdini.Ed
 
 bool HoudiniEditorEvergreenTest::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		FHoudiniEditorTestUtils::GetMainFrameWindow()->Resize(FHoudiniEditorTestUtils::GDefaultEditorSize);
 
 		FHoudiniEditorTestUtils::InstantiateAsset(this, TEXT("/Game/TestHDAs/Evergreen"), 
-		[=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, const bool IsSuccessful)
+		[this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, const bool IsSuccessful)
 		{
 			// Entire editor screenshots don't work well with build machines. Disable for now.
 			// FHoudiniEditorTestUtils::TakeScreenshotEditor(this, TEXT("EverGreen_EntireEditor.png"), FHoudiniEditorTestUtils::ENTIRE_EDITOR, FHoudiniEditorTestUtils::GDefaultEditorSize);
@@ -71,26 +71,26 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorDuplicateTest, "Houdini.Ed
 bool HoudiniEditorDuplicateTest::RunTest(const FString & Parameters)
 {
 	// Really force editor size
-	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		FHoudiniEditorTestUtils::InstantiateAsset(this, TEXT("/Game/TestHDAs/Evergreen"), 
-		[=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, const bool IsSuccessful)
+		[this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, const bool IsSuccessful)
 		{
-		FHoudiniEditorTestUtils::InstantiateAsset(this, TEXT("/Game/TestHDAs/Evergreen"), 
-		[=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper2, const bool IsSuccessful2)
-		{
-			if (FHoudiniEditorEquivalenceUtils::IsEquivalent(InAssetWrapper->GetHoudiniAssetComponent(), InAssetWrapper2->GetHoudiniAssetComponent()))
+			FHoudiniEditorTestUtils::InstantiateAsset(this, TEXT("/Game/TestHDAs/Evergreen"), 
+			[this, InAssetWrapper](UHoudiniPublicAPIAssetWrapper* InAssetWrapper2, const bool IsSuccessful2)
 			{
-				return true;
-			}
-			else
-			{
-				this->AddError("Duplication is not Equivalent! This is a sign we need to update the FHoudiniEditorEquivalenceUtils::IsEquivalent function");
-				return false;
-			}
+				if (FHoudiniEditorEquivalenceUtils::IsEquivalent(InAssetWrapper->GetHoudiniAssetComponent(), InAssetWrapper2->GetHoudiniAssetComponent()))
+				{
+					return true;
+				}
+				else
+				{
+					this->AddError("Duplication is not Equivalent! This is a sign we need to update the FHoudiniEditorEquivalenceUtils::IsEquivalent function");
+					return false;
+				}
 			
+			});
 		});
-	});
 	});
 	
 	return true;
@@ -101,13 +101,13 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorEvergreenEquivalenceTest, 
 bool HoudiniEditorEvergreenEquivalenceTest::RunTest(const FString & Parameters)
 {
 	// Really force editor size
-	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		const FString MapName = TEXT("RandomTests");
 		const FString ActorName = TEXT("EvergreenEquivalence");
 		const FString HDAAssetPath = TEXT("/Game/TestHDAs/Evergreen");
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, [=, this](bool IsSuccessful)
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, [this](bool IsSuccessful)
 		{
 			
 		});
@@ -121,15 +121,15 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorRandomEquivalenceTest, "Ho
 bool HoudiniEditorRandomEquivalenceTest::RunTest(const FString & Parameters)
 {
 	// Really force editor size
-	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/simple_curve"), TEXT("simple_curve"), [=, this](bool IsSuccessful)
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/simple_curve"), TEXT("simple_curve"), [this](bool IsSuccessful)
 		{
-			FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/simple_heightfield"), TEXT("simple_heightfield"), [=, this](bool IsSuccessful)
+			FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/simple_heightfield"), TEXT("simple_heightfield"), [this](bool IsSuccessful)
 			{
-				FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/Instancing_ThreeWays"), TEXT("Instancing_ThreeWays"), [=, this](bool IsSuccessful)
+				FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/Instancing_ThreeWays"), TEXT("Instancing_ThreeWays"), [this](bool IsSuccessful)
 				{
-					FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/SideFX__scott_spookytable"), TEXT("SideFX__scott_spookytable"), [=, this](bool IsSuccessful)
+					FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/SideFX__scott_spookytable"), TEXT("SideFX__scott_spookytable"), [this](bool IsSuccessful)
 					{
 		
 					});

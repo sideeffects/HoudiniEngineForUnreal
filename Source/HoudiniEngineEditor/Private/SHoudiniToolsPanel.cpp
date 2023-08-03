@@ -1357,7 +1357,11 @@ SHoudiniToolImportPackage::HandleImportClicked()
         const FText Title = LOCTEXT("ImportPackage_ImportError_Title", "Import Error");
         FMessageDialog::Open(EAppMsgType::Ok,
             LOCTEXT("ImportPackage_ImportError", "An error occured during import."),
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+            Title
+#else
             &Title
+#endif
             );
     }
     else
@@ -1372,7 +1376,11 @@ SHoudiniToolImportPackage::HandleImportClicked()
             const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Import Successful");
             FMessageDialog::Open(EAppMsgType::Ok,
                 FText::Format(Message, {NumHDAs}),
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+                Title
+#else
                 &Title
+#endif
                 );
         }
         else
@@ -1381,7 +1389,11 @@ SHoudiniToolImportPackage::HandleImportClicked()
             const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Import Successful");
             FMessageDialog::Open(EAppMsgType::Ok,
                 FText::Format(Message, {NumHDAs}),
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+                Title
+#else
                 &Title
+#endif
                 );
         }
         
@@ -1457,14 +1469,25 @@ SHoudiniToolImportPackage::HandleCreateClicked()
         const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Creation Successful");
         FMessageDialog::Open(EAppMsgType::Ok,
             FText::Format(Message, {NumHDAs}),
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+            Title
+#else
             &Title
+#endif
             );
     }
     else
     {
         const FText Message = LOCTEXT("ImportPackage_NoHDAs", "No HDAs to import.");
         const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Creation Successful");
-        FMessageDialog::Open(EAppMsgType::Ok, Message, &Title );
+        FMessageDialog::Open(EAppMsgType::Ok, 
+            Message,
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+            Title
+#else
+            &Title
+#endif
+        );
     }
 
     // Open the content browser at the newly created asset package.
@@ -3307,8 +3330,12 @@ SHoudiniToolsPanel::HandleImportSideFXTools()
         const FText Title = LOCTEXT("ImportSideFXTools_ImportSuccess_Title", "Import Success");
         FMessageDialog::Open(EAppMsgType::Ok,
             FText::Format(LOCTEXT("ImportSideFXTools_ImportSuccess_Title", "Imported {0} HDAs."),
-                FText::AsNumber(NumImportedHDAs)),
+            FText::AsNumber(NumImportedHDAs)),
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+            Title
+#else
             &Title
+#endif
             );
     }
     else
@@ -3316,8 +3343,12 @@ SHoudiniToolsPanel::HandleImportSideFXTools()
         const FText Title = LOCTEXT("ImportSideFXTools_ImportFailed_Title", "Import Failed");
         FMessageDialog::Open(EAppMsgType::Ok,
             FText::Format( LOCTEXT("ImportSideFXTools_ImportFailed", "Could not import SideFX Tools package."),
-                FText::AsNumber(NumImportedHDAs)),
+            FText::AsNumber(NumImportedHDAs)),
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+            Title
+#else
             &Title
+#endif
             );
     }
 }
