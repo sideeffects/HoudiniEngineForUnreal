@@ -32,7 +32,11 @@
 #include "HoudiniPublicAPIAssetWrapper.h"
 #include "HoudiniAssetComponent.h"
 
-#include "Core/Public/HAL/FileManager.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "HAL/FileManager.h"
+#else
+	#include "Core/Public/HAL/FileManager.h"
+#endif
 #include "Misc/AutomationTest.h"
 
 FString FHoudiniEditorParametersTests::EquivalenceTestMapName = TEXT("Parameters");
@@ -43,7 +47,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorParametersTest_Float_Singl
 
 bool HoudiniEditorParametersTest_Float_Single::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("Float_Single");
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -51,14 +55,14 @@ bool HoudiniEditorParametersTest_Float_Single::RunTest(const FString & Parameter
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
 					return;
 
 				// Trigger a parameter update after the first cook, test setting on pre-instantiate as a separate test
 				InTestObject->ExpectedCookCount = 2;
-				InTestObject->OnPostProcessingDelegate.AddLambda([=](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
+				InTestObject->OnPostProcessingDelegate.AddLambda([=, this](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
 				{
 					if (!InWrapper->SetFloatParameterValue(TEXT("uniform_scale"), 2.5f))
 					{
@@ -76,7 +80,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorParametersTest_Float_Tuple
 
 bool HoudiniEditorParametersTest_Float_Tuple::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("Float_Tuple");
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -84,14 +88,14 @@ bool HoudiniEditorParametersTest_Float_Tuple::RunTest(const FString & Parameters
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
 					return;
 
 				// Trigger a parameter update after the first cook, test setting on pre-instantiate as a separate test
 				InTestObject->ExpectedCookCount = 2;
-				InTestObject->OnPostProcessingDelegate.AddLambda([=](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
+				InTestObject->OnPostProcessingDelegate.AddLambda([=, this](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
 				{
 					if (!InWrapper->SetFloatParameterValue(TEXT("scale"), 1.5f, 0))
 					{
@@ -118,7 +122,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorParametersTest_Float_Vecto
 
 bool HoudiniEditorParametersTest_Float_Vector::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("Float_Vector");
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -126,14 +130,14 @@ bool HoudiniEditorParametersTest_Float_Vector::RunTest(const FString & Parameter
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
 					return;
 
 				// Trigger a parameter update after the first cook, test setting on pre-instantiate as a separate test
 				InTestObject->ExpectedCookCount = 2;
-				InTestObject->OnPostProcessingDelegate.AddLambda([=](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
+				InTestObject->OnPostProcessingDelegate.AddLambda([=, this](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
 				{
 					if (!InAssetWrapper->SetFloatParameterValue(TEXT("t"), 100.0f, 0))
 					{
@@ -173,7 +177,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorParametersTest_Float_Tuple
 
 bool HoudiniEditorParametersTest_Float_Tuple_PreInstantiate::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("Float_Tuple_PreInstantiate");
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -181,14 +185,14 @@ bool HoudiniEditorParametersTest_Float_Tuple_PreInstantiate::RunTest(const FStri
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
 					return;
 
 				// Trigger a parameter update during pre-instantiate
 				InTestObject->ExpectedCookCount = 2;
-				InTestObject->OnPostProcessingDelegate.AddLambda([=](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
+				InTestObject->OnPostProcessingDelegate.AddLambda([=, this](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
 				{
 					if (!InWrapper->SetFloatParameterValue(TEXT("scale"), 1.5f, 0))
 					{
@@ -215,7 +219,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorParametersTest_Toggle_Unch
 
 bool HoudiniEditorParametersTest_Toggle_Uncheck::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("Toggle_Uncheck");
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -223,14 +227,14 @@ bool HoudiniEditorParametersTest_Toggle_Uncheck::RunTest(const FString & Paramet
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
 					return;
 
 				// Trigger a parameter update after the first cook, test setting on pre-instantiate as a separate test
 				InTestObject->ExpectedCookCount = 2;
-				InTestObject->OnPostProcessingDelegate.AddLambda([=](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
+				InTestObject->OnPostProcessingDelegate.AddLambda([=, this](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
 				{
 					if (!InAssetWrapper->SetBoolParameterValue(TEXT("enable_polyreduce"), false))
 					{
@@ -249,7 +253,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorParametersTest_Toggle_Chec
 
 bool HoudiniEditorParametersTest_Toggle_Check::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("Toggle_Check");
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -257,14 +261,14 @@ bool HoudiniEditorParametersTest_Toggle_Check::RunTest(const FString & Parameter
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
 					return;
 
 				// Trigger a parameter update after the first cook, test setting on pre-instantiate as a separate test
 				InTestObject->ExpectedCookCount = 2;
-				InTestObject->OnPostProcessingDelegate.AddLambda([=](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
+				InTestObject->OnPostProcessingDelegate.AddLambda([=, this](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
 				{
 					if (!InAssetWrapper->SetBoolParameterValue(TEXT("screws"), true))
 					{
@@ -282,7 +286,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorParametersTest_Toggle_Chec
 
 bool HoudiniEditorParametersTest_Toggle_Check_PreInstantiate::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("Toggle_Check_PreInstantiate");
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -290,7 +294,7 @@ bool HoudiniEditorParametersTest_Toggle_Check_PreInstantiate::RunTest(const FStr
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
 					return;
@@ -311,7 +315,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorParametersTest_Button, "Ho
 
 bool HoudiniEditorParametersTest_Button::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("Button");
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -319,7 +323,7 @@ bool HoudiniEditorParametersTest_Button::RunTest(const FString & Parameters)
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
 					return;
@@ -327,7 +331,7 @@ bool HoudiniEditorParametersTest_Button::RunTest(const FString & Parameters)
 				// Triggering buttons during pre-instantiation is not supported, we have to wait for 1 cook and then
 				// triggering the button and check the results after the 2nd cook
 				InTestObject->ExpectedCookCount = 2;
-				InTestObject->OnPostProcessingDelegate.AddLambda([=](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
+				InTestObject->OnPostProcessingDelegate.AddLambda([=, this](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
 					{
 						if (!InWrapper->TriggerButtonParameter(TEXT("instances_preset_1_button")))
 						{
@@ -346,7 +350,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorParametersTest_Color_Singl
 
 bool HoudiniEditorParametersTest_Color_Single::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("Color_Single");
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -354,14 +358,14 @@ bool HoudiniEditorParametersTest_Color_Single::RunTest(const FString & Parameter
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
 					return;
 
 				// Trigger a parameter update after the first cook, test setting on pre-instantiate as a separate test
 				InTestObject->ExpectedCookCount = 2;
-				InTestObject->OnPostProcessingDelegate.AddLambda([=](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
+				InTestObject->OnPostProcessingDelegate.AddLambda([=, this](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
 				{
 					if (!InAssetWrapper->SetFloatParameterValue(TEXT("color"), 0.27f))
 					{
@@ -379,7 +383,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorParametersTest_Color, "Hou
 
 bool HoudiniEditorParametersTest_Color::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("Color");
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -387,14 +391,14 @@ bool HoudiniEditorParametersTest_Color::RunTest(const FString & Parameters)
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
 					return;
 
 				// Trigger a parameter update after the first cook, test setting on pre-instantiate as a separate test
 				InTestObject->ExpectedCookCount = 2;
-				InTestObject->OnPostProcessingDelegate.AddLambda([=](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
+				InTestObject->OnPostProcessingDelegate.AddLambda([=, this](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
 				{
 					if (!InAssetWrapper->SetColorParameterValue(TEXT("color"), FColor(153, 50, 204)))
 					{
@@ -413,7 +417,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorParametersTest_Color_PreIn
 
 bool HoudiniEditorParametersTest_Color_PreInstantiate::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("Color_PreInstantiate");
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -421,7 +425,7 @@ bool HoudiniEditorParametersTest_Color_PreInstantiate::RunTest(const FString & P
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
 					return;
@@ -443,7 +447,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorParametersTest_String_Choi
 
 bool HoudiniEditorParametersTest_String_Choice_Single::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("String_Choice_Single");
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -451,14 +455,14 @@ bool HoudiniEditorParametersTest_String_Choice_Single::RunTest(const FString & P
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
 					return;
 
 				// Trigger a parameter update after the first cook, test setting on pre-instantiate as a separate test
 				InTestObject->ExpectedCookCount = 2;
-				InTestObject->OnPostProcessingDelegate.AddLambda([=](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
+				InTestObject->OnPostProcessingDelegate.AddLambda([=, this](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
 				{
 					if (!InAssetWrapper->SetStringParameterValue(TEXT("copy_type"), TEXT("copy")))
 					{
@@ -476,7 +480,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorParametersTest_Menu_Single
 
 bool HoudiniEditorParametersTest_Menu_Single_Select::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("Int_Choice_Single");
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -484,14 +488,14 @@ bool HoudiniEditorParametersTest_Menu_Single_Select::RunTest(const FString & Par
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
 					return;
 
 				// Trigger a parameter update after the first cook, test setting on pre-instantiate as a separate test
 				InTestObject->ExpectedCookCount = 2;
-				InTestObject->OnPostProcessingDelegate.AddLambda([=](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
+				InTestObject->OnPostProcessingDelegate.AddLambda([=, this](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
 				{
 					// Enable instancers
 					if (!InAssetWrapper->SetStringParameterValue(TEXT("copy_type"), TEXT("pack")))

@@ -37,7 +37,11 @@
 #include "HoudiniAsset.h"
 #include "HoudiniAssetComponent.h"
 
-#include "Core/Public/HAL/FileManager.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "HAL/FileManager.h"
+#else
+	#include "Core/Public/HAL/FileManager.h"
+#endif
 #include "Misc/AutomationTest.h"
 
 FString FHoudiniEditorInstancerTests::EquivalenceTestMapName = TEXT("Instancer");
@@ -48,7 +52,7 @@ FString FHoudiniEditorInstancerTests::TestHDAPath = TEXT("/Game/TestHDAs/Instanc
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerPackedPrimsOBJ, "Houdini.Editor.Instancer.PackedPrimitivesOBJ", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerPackedPrimsOBJ::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		const FString TestName = TEXT("PackedPrimitives_OBJ");
 
@@ -67,7 +71,7 @@ bool HoudiniEditorInstancerPackedPrimsOBJ::RunTest(const FString & Parameters)
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerAttributeInstancerOBJ, "Houdini.Editor.Instancer.AttributeInstancerOBJ", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerAttributeInstancerOBJ::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("AttributeInstancer_OBJ");
 
@@ -75,7 +79,7 @@ bool HoudiniEditorInstancerAttributeInstancerOBJ::RunTest(const FString & Parame
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("attributeinstancers_obj");
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
+ 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
 	});
 
 	return true;
@@ -86,7 +90,7 @@ bool HoudiniEditorInstancerAttributeInstancerOBJ::RunTest(const FString & Parame
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerSplittingOBJ, "Houdini.Editor.Instancer.SplittingOBJ", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerSplittingOBJ::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerSplitting_OBJ");
 
@@ -105,7 +109,7 @@ bool HoudiniEditorInstancerSplittingOBJ::RunTest(const FString & Parameters)
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerTypesOBJ, "Houdini.Editor.Instancer.TypesOBJ", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerTypesOBJ::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerTypes_OBJ");
 
@@ -124,7 +128,7 @@ bool HoudiniEditorInstancerTypesOBJ::RunTest(const FString & Parameters)
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerCustomDataOBJ, "Houdini.Editor.Instancer.CustomDataOBJ", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerCustomDataOBJ::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerCustomData_OBJ");
 
@@ -143,7 +147,7 @@ bool HoudiniEditorInstancerCustomDataOBJ::RunTest(const FString & Parameters)
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerPackedPrimsSOPOneInstancer, "Houdini.Editor.Instancer.PackedPrimitivesSOP.OneInstancer", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerPackedPrimsSOPOneInstancer::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("PackedPrimitives_SOP_OneInstancer");
 
@@ -152,14 +156,14 @@ bool HoudiniEditorInstancerPackedPrimsSOPOneInstancer::RunTest(const FString & P
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("packedprimitives_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 0;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this,InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -181,7 +185,7 @@ bool HoudiniEditorInstancerPackedPrimsSOPOneInstancer::RunTest(const FString & P
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerPackedPrimsSOPMultipleInstancer, "Houdini.Editor.Instancer.PackedPrimitivesSOP.MultipleInstancer", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerPackedPrimsSOPMultipleInstancer::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("PackedPrimitives_SOP_MultipleInstancer");
 
@@ -190,14 +194,14 @@ bool HoudiniEditorInstancerPackedPrimsSOPMultipleInstancer::RunTest(const FStrin
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("packedprimitives_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 1;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -219,7 +223,7 @@ bool HoudiniEditorInstancerPackedPrimsSOPMultipleInstancer::RunTest(const FStrin
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerPackedPrimsSOPSingleInstance, "Houdini.Editor.Instancer.PackedPrimitivesSOP.SingleInstance", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerPackedPrimsSOPSingleInstance::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("PackedPrimitives_SOP_SingleInstance");
 
@@ -228,14 +232,14 @@ bool HoudiniEditorInstancerPackedPrimsSOPSingleInstance::RunTest(const FString &
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("packedprimitives_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 2;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -257,7 +261,7 @@ bool HoudiniEditorInstancerPackedPrimsSOPSingleInstance::RunTest(const FString &
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerPackedPrimsSOPMultipleSingleInstance, "Houdini.Editor.Instancer.PackedPrimitivesSOP.MultipleSingleInstance", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerPackedPrimsSOPMultipleSingleInstance::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("PackedPrimitives_SOP_MultipleSingleInstance");
 
@@ -266,14 +270,14 @@ bool HoudiniEditorInstancerPackedPrimsSOPMultipleSingleInstance::RunTest(const F
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("packedprimitives_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 2;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -297,7 +301,7 @@ bool HoudiniEditorInstancerPackedPrimsSOPMultipleSingleInstance::RunTest(const F
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerAttributeInstancerSOPOneInstancer, "Houdini.Editor.Instancer.AttributeInstancerSOP.OneInstancer", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerAttributeInstancerSOPOneInstancer::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("AttributeInstancer_SOP_OneInstancer");
 
@@ -306,14 +310,14 @@ bool HoudiniEditorInstancerAttributeInstancerSOPOneInstancer::RunTest(const FStr
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("attribinstancer_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 0;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -335,7 +339,7 @@ bool HoudiniEditorInstancerAttributeInstancerSOPOneInstancer::RunTest(const FStr
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerAttributeInstancerSOPMultipleInstancer, "Houdini.Editor.Instancer.AttributeInstancerSOP.MultipleInstancer", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerAttributeInstancerSOPMultipleInstancer::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("AttributeInstancer_SOP_MultipleInstancer");
 
@@ -344,14 +348,14 @@ bool HoudiniEditorInstancerAttributeInstancerSOPMultipleInstancer::RunTest(const
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("attribinstancer_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 1;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -373,7 +377,7 @@ bool HoudiniEditorInstancerAttributeInstancerSOPMultipleInstancer::RunTest(const
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerAttributeInstancerSOPSingleInstance, "Houdini.Editor.Instancer.AttributeInstancerSOP.SingleInstance", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerAttributeInstancerSOPSingleInstance::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("AttributeInstancer_SOP_SingleInstance");
 
@@ -382,14 +386,14 @@ bool HoudiniEditorInstancerAttributeInstancerSOPSingleInstance::RunTest(const FS
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("attribinstancer_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 2;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 			{
 				if (bSaveAssets)
 					FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -411,7 +415,7 @@ bool HoudiniEditorInstancerAttributeInstancerSOPSingleInstance::RunTest(const FS
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerAttributeInstancerSOPMultipleSingleInstance, "Houdini.Editor.Instancer.AttributeInstancerSOP.MultipleSingleInstance", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerAttributeInstancerSOPMultipleSingleInstance::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("AttributeInstancer_SOP_MultipleSingleInstance");
 
@@ -420,14 +424,14 @@ bool HoudiniEditorInstancerAttributeInstancerSOPMultipleSingleInstance::RunTest(
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("attribinstancer_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 2;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -451,7 +455,7 @@ bool HoudiniEditorInstancerAttributeInstancerSOPMultipleSingleInstance::RunTest(
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerSplittingSOPByColorPacked, "Houdini.Editor.Instancer.SplittingSOP.ByColorPacked", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerSplittingSOPByColorPacked::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerSplitting_SOP_ByColorPacked");
 
@@ -460,14 +464,14 @@ bool HoudiniEditorInstancerSplittingSOPByColorPacked::RunTest(const FString & Pa
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_splitting_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 0;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -489,7 +493,7 @@ bool HoudiniEditorInstancerSplittingSOPByColorPacked::RunTest(const FString & Pa
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerSplittingSOPByColorAttrInstancer, "Houdini.Editor.Instancer.SplittingSOP.ByColorAttrInstancer", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerSplittingSOPByColorAttrInstancer::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerSplitting_SOP_ByColorAttrInstancer");
 
@@ -498,14 +502,14 @@ bool HoudiniEditorInstancerSplittingSOPByColorAttrInstancer::RunTest(const FStri
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_splitting_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 1;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -527,7 +531,7 @@ bool HoudiniEditorInstancerSplittingSOPByColorAttrInstancer::RunTest(const FStri
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerSplittingSOPByStringPacked, "Houdini.Editor.Instancer.SplittingSOP.ByStringPacked", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerSplittingSOPByStringPacked::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerSplitting_SOP_ByStringPacked");
 
@@ -536,14 +540,14 @@ bool HoudiniEditorInstancerSplittingSOPByStringPacked::RunTest(const FString & P
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_splitting_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 2;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -565,7 +569,7 @@ bool HoudiniEditorInstancerSplittingSOPByStringPacked::RunTest(const FString & P
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerSplittingSOPByStringAttrInstancer, "Houdini.Editor.Instancer.SplittingSOP.ByStringAttrInstancer", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerSplittingSOPByStringAttrInstancer::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerSplitting_SOP_ByStringAttrInstancer");
 
@@ -574,14 +578,14 @@ bool HoudiniEditorInstancerSplittingSOPByStringAttrInstancer::RunTest(const FStr
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_splitting_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 3;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -603,7 +607,7 @@ bool HoudiniEditorInstancerSplittingSOPByStringAttrInstancer::RunTest(const FStr
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerSplittingSOPByMatPacked, "Houdini.Editor.Instancer.SplittingSOP.ByMatPacked", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerSplittingSOPByMatPacked::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerSplitting_SOP_ByMatPacked");
 
@@ -612,14 +616,14 @@ bool HoudiniEditorInstancerSplittingSOPByMatPacked::RunTest(const FString & Para
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_splitting_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 4;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -641,7 +645,7 @@ bool HoudiniEditorInstancerSplittingSOPByMatPacked::RunTest(const FString & Para
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerSplittingSOPByMatAttrInstancer, "Houdini.Editor.Instancer.SplittingSOP.ByMatAttrInstancer", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerSplittingSOPByMatAttrInstancer::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerSplitting_SOP_ByMatAttrInstancer");
 
@@ -650,14 +654,14 @@ bool HoudiniEditorInstancerSplittingSOPByMatAttrInstancer::RunTest(const FString
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_splitting_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 5;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -681,7 +685,7 @@ bool HoudiniEditorInstancerSplittingSOPByMatAttrInstancer::RunTest(const FString
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerTypesSOPISMC, "Houdini.Editor.Instancer.TypesSOP.ISMC", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerTypesSOPISMC::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerTypes_SOP_ISMC");
 
@@ -689,14 +693,14 @@ bool HoudiniEditorInstancerTypesSOPISMC::RunTest(const FString & Parameters)
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 0;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -718,7 +722,7 @@ bool HoudiniEditorInstancerTypesSOPISMC::RunTest(const FString & Parameters)
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerTypesSOPHISMC, "Houdini.Editor.Instancer.TypesSOP.HISMC", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerTypesSOPHISMC::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerTypes_SOP_HISMC");
 
@@ -726,14 +730,14 @@ bool HoudiniEditorInstancerTypesSOPHISMC::RunTest(const FString & Parameters)
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 1;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 			{
 				if (bSaveAssets)
 					FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -755,7 +759,7 @@ bool HoudiniEditorInstancerTypesSOPHISMC::RunTest(const FString & Parameters)
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerTypesSOPHISMCForced, "Houdini.Editor.Instancer.TypesSOP.HISMCForced", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerTypesSOPHISMCForced::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerTypes_SOP_HISMCForced");
 
@@ -763,14 +767,14 @@ bool HoudiniEditorInstancerTypesSOPHISMCForced::RunTest(const FString & Paramete
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 2;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 			{
 				if (bSaveAssets)
 					FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -792,7 +796,7 @@ bool HoudiniEditorInstancerTypesSOPHISMCForced::RunTest(const FString & Paramete
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerTypesSOPHISMCForcedOff, "Houdini.Editor.Instancer.TypesSOP.HISMCForcedOff", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerTypesSOPHISMCForcedOff::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerTypes_SOP_HISMCForcedOff");
 
@@ -800,14 +804,14 @@ bool HoudiniEditorInstancerTypesSOPHISMCForcedOff::RunTest(const FString & Param
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 3;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 			{
 				if (bSaveAssets)
 					FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -829,7 +833,7 @@ bool HoudiniEditorInstancerTypesSOPHISMCForcedOff::RunTest(const FString & Param
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerTypesSOPMSIC, "Houdini.Editor.Instancer.TypesSOP.MSIC", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerTypesSOPMSIC::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerTypes_SOP_MSIC");
 
@@ -837,14 +841,14 @@ bool HoudiniEditorInstancerTypesSOPMSIC::RunTest(const FString & Parameters)
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 4;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 			{
 				if (bSaveAssets)
 					FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -866,7 +870,7 @@ bool HoudiniEditorInstancerTypesSOPMSIC::RunTest(const FString & Parameters)
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerTypesSOPIAC, "Houdini.Editor.Instancer.TypesSOP.IAC", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerTypesSOPIAC::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerTypes_SOP_IAC");
 
@@ -874,14 +878,14 @@ bool HoudiniEditorInstancerTypesSOPIAC::RunTest(const FString & Parameters)
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 5;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 			{
 				if (bSaveAssets)
 					FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -903,7 +907,7 @@ bool HoudiniEditorInstancerTypesSOPIAC::RunTest(const FString & Parameters)
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerTypesSOPAttribClass, "Houdini.Editor.Instancer.TypesSOP.AttribClass", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerTypesSOPAttribClass::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerTypes_SOP_AttribClass");
 
@@ -911,14 +915,14 @@ bool HoudiniEditorInstancerTypesSOPAttribClass::RunTest(const FString & Paramete
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 6;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 			{
 				if (bSaveAssets)
 					FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -940,7 +944,7 @@ bool HoudiniEditorInstancerTypesSOPAttribClass::RunTest(const FString & Paramete
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerTypesSOPFoliage, "Houdini.Editor.Instancer.TypesSOP.Foliage", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerTypesSOPFoliage::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerTypes_SOP_Foliage");
 
@@ -948,14 +952,14 @@ bool HoudiniEditorInstancerTypesSOPFoliage::RunTest(const FString & Parameters)
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 7;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 			{
 				if (bSaveAssets)
 					FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -977,7 +981,7 @@ bool HoudiniEditorInstancerTypesSOPFoliage::RunTest(const FString & Parameters)
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerTypesSOPDecals, "Houdini.Editor.Instancer.TypesSOP.Decals", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerTypesSOPDecals::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerTypes_SOP_Decals");
 
@@ -985,14 +989,14 @@ bool HoudiniEditorInstancerTypesSOPDecals::RunTest(const FString & Parameters)
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 8;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 			{
 				if (bSaveAssets)
 					FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -1014,7 +1018,7 @@ bool HoudiniEditorInstancerTypesSOPDecals::RunTest(const FString & Parameters)
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerTypesSOPInvalid, "Houdini.Editor.Instancer.TypesSOP.Invalid", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerTypesSOPInvalid::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerTypes_SOP_Invalid");
 
@@ -1023,14 +1027,14 @@ bool HoudiniEditorInstancerTypesSOPInvalid::RunTest(const FString & Parameters)
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 9;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 			{
 				if (bSaveAssets)
 					FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -1054,7 +1058,7 @@ bool HoudiniEditorInstancerTypesSOPInvalid::RunTest(const FString & Parameters)
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerCustomDataSOPNumberSuite, "Houdini.Editor.Instancer.CustomDataSOP.NumberSuite", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerCustomDataSOPNumberSuite::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerCustomData_SOP_NumberSuite");
 
@@ -1063,14 +1067,14 @@ bool HoudiniEditorInstancerCustomDataSOPNumberSuite::RunTest(const FString & Par
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_customdata_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 0;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -1092,7 +1096,7 @@ bool HoudiniEditorInstancerCustomDataSOPNumberSuite::RunTest(const FString & Par
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerCustomDataSOPColors, "Houdini.Editor.Instancer.CustomDataSOP.Colors", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerCustomDataSOPColors::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerCustomData_SOP_Colors");
 
@@ -1101,14 +1105,14 @@ bool HoudiniEditorInstancerCustomDataSOPColors::RunTest(const FString & Paramete
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_customdata_sop");
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			int32 ParamValue = 1;
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 			{
 				if (bSaveAssets)
 					FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -1133,7 +1137,7 @@ bool HoudiniEditorInstancerCustomDataSOPColors::RunTest(const FString & Paramete
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerPackedPrimsSOP, "Houdini.Editor.Instancer.PackedPrimitivesSOP", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerPackedPrimsSOP::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("PackedPrimitives_SOP");
 
@@ -1145,7 +1149,7 @@ bool HoudiniEditorInstancerPackedPrimsSOP::RunTest(const FString & Parameters)
 		int32 ParamValue = 0;
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
@@ -1153,7 +1157,7 @@ bool HoudiniEditorInstancerPackedPrimsSOP::RunTest(const FString & Parameters)
 			FHoudiniEditorTestUtils::RecookAndWait(
 				this,
 				InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -1201,7 +1205,7 @@ bool HoudiniEditorInstancerPackedPrimsSOP::RunTest(const FString & Parameters)
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerAttributeInstancerSOP, "Houdini.Editor.Instancer.AttributeInstancerSOP", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerAttributeInstancerSOP::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("AttributeInstancer_SOP");
 
@@ -1213,7 +1217,7 @@ bool HoudiniEditorInstancerAttributeInstancerSOP::RunTest(const FString & Parame
 		int32 ParamValue = 0;
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
@@ -1221,7 +1225,7 @@ bool HoudiniEditorInstancerAttributeInstancerSOP::RunTest(const FString & Parame
 			FHoudiniEditorTestUtils::RecookAndWait(
 				this,
 				InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -1267,7 +1271,7 @@ bool HoudiniEditorInstancerAttributeInstancerSOP::RunTest(const FString & Parame
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerSplittingSOP, "Houdini.Editor.Instancer.SplittingSOP", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerSplittingSOP::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerSplitting_SOP");
 
@@ -1279,7 +1283,7 @@ bool HoudiniEditorInstancerSplittingSOP::RunTest(const FString & Parameters)
 		int32 ParamValue = 0;
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
@@ -1287,7 +1291,7 @@ bool HoudiniEditorInstancerSplittingSOP::RunTest(const FString & Parameters)
 			FHoudiniEditorTestUtils::RecookAndWait(
 				this,
 				InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -1350,7 +1354,7 @@ bool HoudiniEditorInstancerSplittingSOP::RunTest(const FString & Parameters)
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerTypesSOP, "Houdini.Editor.Instancer.TypesSOP", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerTypesSOP::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerTypes_SOP");
 
@@ -1362,7 +1366,7 @@ bool HoudiniEditorInstancerTypesSOP::RunTest(const FString & Parameters)
 		int32 ParamValue = 0;
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
@@ -1370,7 +1374,7 @@ bool HoudiniEditorInstancerTypesSOP::RunTest(const FString & Parameters)
 			FHoudiniEditorTestUtils::RecookAndWait(
 				this,
 				InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -1464,7 +1468,7 @@ bool HoudiniEditorInstancerTypesSOP::RunTest(const FString & Parameters)
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInstancerCustomDataSOP, "Houdini.Editor.Instancer.CustomDataSOP", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool HoudiniEditorInstancerCustomDataSOP::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString TestName = TEXT("InstancerCustomData_SOP");
 
@@ -1476,7 +1480,7 @@ bool HoudiniEditorInstancerCustomDataSOP::RunTest(const FString & Parameters)
 		int32 ParamValue = 0;
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
-		auto SetParamsOnPostInstantiate = [=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		auto SetParamsOnPostInstantiate = [=, this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			FString ParamName = TEXT("input");
 			InAssetWrapper->SetIntParameterValue(FName(ParamName), ParamValue, 0);
@@ -1484,7 +1488,7 @@ bool HoudiniEditorInstancerCustomDataSOP::RunTest(const FString & Parameters)
 			FHoudiniEditorTestUtils::RecookAndWait(
 				this,
 				InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[=, this](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();

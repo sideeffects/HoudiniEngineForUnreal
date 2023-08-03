@@ -29,7 +29,12 @@
 #include "CoreMinimal.h"
 
 #include "HAPI/HAPI_Common.h"
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+#include "LandscapeSplinesComponent.h"
+#else
 #include "Landscape/Classes/LandscapeSplinesComponent.h"
+#endif
 
 class FLandscapeSplineControlPointAttributes;
 struct FLandscapeSplineInterpPoint;

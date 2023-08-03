@@ -288,7 +288,7 @@ SHoudiniToolCategory::Construct(const FArguments& InArgs)
         .SelectionMode( ESelectionMode::Single )
         .ListItemsSource( &VisibleEntries )
         .OnGenerateTile( InArgs._OnGenerateTile )
-        .OnSelectionChanged_Lambda( [=](const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectInfo)
+        .OnSelectionChanged_Lambda( [this, InArgs](const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectInfo)
         {
             ActiveTool = HoudiniTool;
             InArgs._OnToolSelectionChanged.ExecuteIfBound(this, HoudiniTool, SelectInfo);
@@ -307,7 +307,7 @@ SHoudiniToolCategory::Construct(const FArguments& InArgs)
         .SelectionMode( ESelectionMode::Single )
         .ListItemsSource( &VisibleEntries )
         .OnGenerateRow( InArgs._OnGenerateRow )
-        .OnSelectionChanged_Lambda( [=](const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectInfo)
+        .OnSelectionChanged_Lambda( [this, InArgs](const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectInfo)
         {
             ActiveTool = HoudiniTool;
             InArgs._OnToolSelectionChanged.ExecuteIfBound(this, HoudiniTool, SelectInfo);
@@ -1597,7 +1597,7 @@ SHoudiniToolsPanel::Construct( const FArguments& InArgs )
     // FHoudiniToolsEditor& HoudiniTools = FHoudiniToolsPanelUtils::GetHoudiniTools();
 
     // Handler to trigger UI updates on asset changes.
-    auto AssetChangedHandlerFn = [=](UObject* InObject)
+    auto AssetChangedHandlerFn = [this](UObject* InObject)
     {
         if (!bAutoRefresh)
             return;
@@ -1616,7 +1616,7 @@ SHoudiniToolsPanel::Construct( const FArguments& InArgs )
     AssetPostImportHandle = GEditor->GetEditorSubsystem<UImportSubsystem>()->OnAssetReimport.AddLambda(AssetChangedHandlerFn);
 
     // Handler for asset renames
-    AssetRenamedHandle = AssetRegistryModule.Get().OnAssetRenamed().AddLambda([=](const FAssetData& AssetData, const FString& AssetName)
+    AssetRenamedHandle = AssetRegistryModule.Get().OnAssetRenamed().AddLambda([this](const FAssetData& AssetData, const FString& AssetName)
     {
         if (!bAutoRefresh)
             return;
@@ -1629,7 +1629,7 @@ SHoudiniToolsPanel::Construct( const FArguments& InArgs )
         }
     });
 
-    auto AssetUpdatedHandlerFn = [=](const FAssetData& AssetData)
+    auto AssetUpdatedHandlerFn = [this](const FAssetData& AssetData)
     {
         if (!bAutoRefresh)
             return;
@@ -1698,14 +1698,14 @@ SHoudiniToolsPanel::Construct( const FArguments& InArgs )
                 .FillWidth(1.f)
                 [
                     SNew(SSearchBox)
-                    .OnTextChanged_Lambda([=](const FText& NewFilterString) -> void
+                    .OnTextChanged_Lambda([this](const FText& NewFilterString) -> void
                     {
                         // Handle Filter Text Changes.
                         if (NewFilterString.ToString() != FilterString)
                         {
                             // Search filter changed. Update categories.
                             FilterString = NewFilterString.ToString();
-                            ForEachCategory([=](SHoudiniToolCategory* Category) -> bool
+                            ForEachCategory([this](SHoudiniToolCategory* Category) -> bool
                             {
                                 Category->SetFilterString(FilterString);
                                 return true;
@@ -2661,13 +2661,13 @@ SHoudiniToolsPanel::ConstructHoudiniToolsActionMenu()
         FText::FromString("Automatically refresh this panel when asset changes have been detected."),
         FSlateIcon(),
         FUIAction(
-            FExecuteAction::CreateLambda([=]() -> void
+            FExecuteAction::CreateLambda([this]() -> void
             {
                 bAutoRefresh = !bAutoRefresh;
                 SaveConfig();
             }),
             FCanExecuteAction(),
-            FGetActionCheckState::CreateLambda([=]() -> ECheckBoxState { return bAutoRefresh ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
+            FGetActionCheckState::CreateLambda([this]() -> ECheckBoxState { return bAutoRefresh ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
         ),
         NAME_None,
         EUserInterfaceActionType::ToggleButton
@@ -2679,14 +2679,14 @@ SHoudiniToolsPanel::ConstructHoudiniToolsActionMenu()
         FText::FromString("Show hidden tools (ignoring any exclusion patterns)."),
         FSlateIcon(),
         FUIAction(
-            FExecuteAction::CreateLambda([=]() -> void
+            FExecuteAction::CreateLambda([this]() -> void
             {
                 bShowHiddenTools = !bShowHiddenTools;
                 SaveConfig();
                 RequestPanelRefresh();
             }),
             FCanExecuteAction(),
-            FGetActionCheckState::CreateLambda([=]() -> ECheckBoxState { return bShowHiddenTools ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
+            FGetActionCheckState::CreateLambda([this]() -> ECheckBoxState { return bShowHiddenTools ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
         ),
         NAME_None,
         EUserInterfaceActionType::ToggleButton
@@ -2699,14 +2699,14 @@ SHoudiniToolsPanel::ConstructHoudiniToolsActionMenu()
         FText::FromString("Show Houdini Tools in a compact tile view."),
         FSlateIcon(),
         FUIAction(
-            FExecuteAction::CreateLambda([=]() -> void
+            FExecuteAction::CreateLambda([this]() -> void
             {
                 ViewMode = EHoudiniToolsViewMode::TileView;
                 SaveConfig();
                 RequestPanelRefresh();
             }),
             FCanExecuteAction(),
-            FGetActionCheckState::CreateLambda([=]() -> ECheckBoxState { return ViewMode == EHoudiniToolsViewMode::TileView ? ECheckBoxState::Checked : ECheckBoxState::Unchecked ; } )
+            FGetActionCheckState::CreateLambda([this]() -> ECheckBoxState { return ViewMode == EHoudiniToolsViewMode::TileView ? ECheckBoxState::Checked : ECheckBoxState::Unchecked ; } )
         ),
         NAME_None,
         EUserInterfaceActionType::RadioButton
@@ -2719,14 +2719,14 @@ SHoudiniToolsPanel::ConstructHoudiniToolsActionMenu()
         FText::FromString("Show Houdini Tools in a list view."),
         FSlateIcon(),
         FUIAction(
-            FExecuteAction::CreateLambda([=]() -> void
+            FExecuteAction::CreateLambda([this]() -> void
             {
                 ViewMode = EHoudiniToolsViewMode::ListView;
                 SaveConfig();
                 RequestPanelRefresh();
             }),
             FCanExecuteAction(),
-            FGetActionCheckState::CreateLambda([=]() -> ECheckBoxState { return ViewMode == EHoudiniToolsViewMode::ListView ? ECheckBoxState::Checked : ECheckBoxState::Unchecked ; } )
+            FGetActionCheckState::CreateLambda([this]() -> ECheckBoxState { return ViewMode == EHoudiniToolsViewMode::ListView ? ECheckBoxState::Checked : ECheckBoxState::Unchecked ; } )
         ),
         NAME_None,
         EUserInterfaceActionType::RadioButton

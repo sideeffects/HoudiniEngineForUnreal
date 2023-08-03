@@ -28,59 +28,61 @@
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 
-#include "HoudiniInput.h"
-#include "HoudiniInputWidgets.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetBlueprintComponent.h"
-#include "HoudiniEngineEditor.h"
-#include "HoudiniEngineStyle.h"
-#include "HoudiniEngineEditorUtils.h"
-#include "HoudiniEngineUtils.h"
+#include "HoudiniInput.h"
+#include "HoudiniInputWidgets.h"
 #include "HoudiniLandscapeTranslator.h"
 #include "HoudiniEngineBakeUtils.h"
-#include "HoudiniPackageParams.h"
 #include "HoudiniEngineDetails.h"
-
-#include "Editor.h"
-#include "DetailLayoutBuilder.h"
-#include "DetailCategoryBuilder.h"
-#include "IDetailCustomization.h"
-#include "DetailWidgetRow.h"
-#include "Widgets/Input/SComboBox.h"
-#include "Widgets/Input/SCheckBox.h"
-#include "Widgets/Input/SButton.h"
-#include "Widgets/Input/SEditableTextBox.h"
-#include "Widgets/Input/SRotatorInputBox.h"
-#include "Widgets/Input/SVectorInputBox.h"
-#include "Widgets/Input/SNumericEntryBox.h"
-#include "Widgets/Images/SImage.h"
-#include "Widgets/Input/SEditableText.h"
-#include "Widgets/Layout/SUniformGridPanel.h"
-#include "Editor/UnrealEd/Public/AssetThumbnail.h"
-#include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
-#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
-#include "SAssetDropTarget.h"
-#include "ScopedTransaction.h"
-#include "Engine/SkeletalMesh.h"
-#include "Engine/Selection.h"
-#include "EngineUtils.h"
-#include "AssetRegistry/AssetData.h"
-#include "Framework/SlateDelegates.h"
-#include "Framework/MultiBox/MultiBoxBuilder.h"
-#include "Modules/ModuleManager.h"
-#include "SceneOutlinerModule.h"
-
-#include "Editor/UnrealEdEngine.h"
-#include "HoudiniSplineComponentVisualizer.h"
-#include "UnrealEdGlobals.h"
-#include "Widgets/SWidget.h"
-
+#include "HoudiniEngineEditor.h"
+#include "HoudiniEngineEditorUtils.h"
 #include "HoudiniEngineRuntimeUtils.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 #include "HoudiniEngineStyle.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniPackageParams.h"
+#include "HoudiniSplineComponentVisualizer.h"
 
 #include "ActorTreeItem.h"
+#include "AssetRegistry/AssetData.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
+#include "DetailWidgetRow.h"
+#include "Editor.h"
+#include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
+#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
+#include "Editor/UnrealEd/Public/AssetThumbnail.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Engine/Selection.h"
+#include "Engine/SkeletalMesh.h"
+#include "EngineUtils.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Framework/SlateDelegates.h"
+#include "IDetailCustomization.h"
+#include "Modules/ModuleManager.h"
+#include "SAssetDropTarget.h"
+#include "SceneOutlinerModule.h"
+#include "ScopedTransaction.h"
+#include "UnrealEdGlobals.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SComboBox.h"
+#include "Widgets/Input/SEditableText.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SNumericEntryBox.h"
+#include "Widgets/Input/SRotatorInputBox.h"
+#include "Widgets/Input/SVectorInputBox.h"
 #include "Widgets/Layout/SExpandableArea.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/SWidget.h"
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "GeometryCollection/GeometryCollectionObject.h"
+#else
+	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
+#endif
+
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -2388,13 +2390,12 @@ FHoudiniInputDetails::AddExportOptions(
 	if (!IsValidWeakPointer(MainInput))
 		return;
 
-	auto ExportOptionsMenuStateChanged = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, bool bInNewState)
+	auto ExportOptionsMenuStateChanged = [MainInput, InInputs](bool bIsExpanded)
 	{
 		if (!IsValidWeakPointer(MainInput))
 			return;
 
-		bool bNewState = bInNewState;
-
+		bool bNewState = bIsExpanded;
 		if (MainInput->GetExportOptionsMenuExpanded() == bNewState)
 			return;
 
@@ -2403,7 +2404,7 @@ FHoudiniInputDetails::AddExportOptions(
 			LOCTEXT("HoudiniExportOptionsMenu", "Houdini Input: Changed Export Options Menu State"),
 			MainInput->GetOuter());
 
-		for (auto CurInput : InInputsToUpdate)
+		for (auto CurInput : InInputs)
 		{
 			if (!IsValidWeakPointer(CurInput))
 				continue;
@@ -2422,10 +2423,7 @@ FHoudiniInputDetails::AddExportOptions(
 		.AreaTitle(LOCTEXT("NewInputsExportOptionsMenu", "Export Options"))
 		.InitiallyCollapsed(!MainInput->GetExportOptionsMenuExpanded())
 		.MinWidth(350.0f)
-		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
-		{
-			return ExportOptionsMenuStateChanged(InInputs, bNewState);
-		})
+		.OnAreaExpansionChanged(FOnBooleanValueChanged::CreateLambda(ExportOptionsMenuStateChanged))
 		.BodyContent()
 		[
 			ExportOptions_VerticalBox
@@ -2493,12 +2491,12 @@ FHoudiniInputDetails::AddLandscapeOptions(
 
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
 
-	auto LandscapeOptionsMenuStateChanged = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, bool bInNewState)
+	auto LandscapeOptionsMenuStateChanged = [MainInput, InInputs](bool bIsExpanded)
 	{
 		if (!IsValidWeakPointer(MainInput))
 			return;
 
-		bool bNewState = bInNewState;
+		bool bNewState = bIsExpanded;
 
 		if (MainInput->GetLandscapeOptionsMenuExpanded() == bNewState)
 			return;
@@ -2508,7 +2506,7 @@ FHoudiniInputDetails::AddLandscapeOptions(
 			LOCTEXT("HoudiniLandscapeOptionsMenu", "Houdini Input: Changed Landscape Options Menu State"),
 			MainInput->GetOuter());
 
-		for (auto CurInput : InInputsToUpdate)
+		for (auto CurInput : InInputs)
 		{
 			if (!IsValidWeakPointer(CurInput))
 				continue;
@@ -2530,10 +2528,7 @@ FHoudiniInputDetails::AddLandscapeOptions(
 		SNew(SExpandableArea)
 		.AreaTitle(LOCTEXT("LandscapeOptionsMenu", "Landscape Options"))
 		.InitiallyCollapsed(!MainInput->GetLandscapeOptionsMenuExpanded())
-		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
-		{
-			return LandscapeOptionsMenuStateChanged(InInputs, bNewState);
-		})
+		.OnAreaExpansionChanged(FOnBooleanValueChanged::CreateLambda(LandscapeOptionsMenuStateChanged))
 		.BodyContent()
 		[
 			LandscapeOptions_VerticalBox
@@ -2554,12 +2549,12 @@ FHoudiniInputDetails::AddLandscapeSplinesOptions(
 
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
 
-	auto LandscapeOptionsMenuStateChanged = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, bool bInNewState)
+	auto LandscapeOptionsMenuStateChanged = [MainInput, InInputs](bool bIsExpanded)
 	{
 		if (!IsValidWeakPointer(MainInput))
 			return;
 
-		bool bNewState = bInNewState;
+		bool bNewState = bIsExpanded;
 
 		if (MainInput->IsLandscapeSplinesExportOptionsMenuExpanded() == bNewState)
 			return;
@@ -2569,7 +2564,7 @@ FHoudiniInputDetails::AddLandscapeSplinesOptions(
 			LOCTEXT("HoudiniLandscapeSplinesOptionsMenu", "Houdini Input: Changed Landscape Splines Options Menu State"),
 			MainInput->GetOuter());
 
-		for (auto CurInput : InInputsToUpdate)
+		for (auto CurInput : InInputs)
 		{
 			if (!IsValidWeakPointer(CurInput))
 				continue;
@@ -2591,10 +2586,7 @@ FHoudiniInputDetails::AddLandscapeSplinesOptions(
 		SNew(SExpandableArea)
 		.AreaTitle(LOCTEXT("LandscapeSplinesOptionsMenu", "Landscape Splines Options"))
 		.InitiallyCollapsed(!MainInput->IsLandscapeSplinesExportOptionsMenuExpanded())
-		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
-		{
-			return LandscapeOptionsMenuStateChanged(InInputs, bNewState);
-		})
+		.OnAreaExpansionChanged(FOnBooleanValueChanged::CreateLambda(LandscapeOptionsMenuStateChanged))
 		.BodyContent()
 		[
 			LandscapeSplinesOptions_VerticalBox
@@ -2879,12 +2871,12 @@ FHoudiniInputDetails::AddCurveInputUI(
 			CategoryBuilder.GetParentLayout().ForceRefreshDetails();
 	};
 
-	auto CurveInputsStateChanged = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const bool& bInNewState)
+	auto CurveInputsStateChanged = [MainInput, InInputs, &CategoryBuilder](bool bIsExpanded)
 	{
 		if (!IsValidWeakPointer(MainInput))
 			return;
 
-		bool bNewState = bInNewState;
+		bool bNewState = bIsExpanded;
 
 		if (MainInput->GetCurveInputsMenuExpanded() == bNewState)
 			return;
@@ -2894,7 +2886,7 @@ FHoudiniInputDetails::AddCurveInputUI(
 			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Curve Inputs Menu State"),
 			MainInput->GetOuter());
 
-		for (auto CurInput : InInputsToUpdate)
+		for (auto CurInput : InInputs)
 		{
 			if (!IsValidWeakPointer(CurInput))
 				continue;
@@ -2924,10 +2916,7 @@ FHoudiniInputDetails::AddCurveInputUI(
 	TSharedRef<SExpandableArea> Inputs_Expandable = SNew(SExpandableArea)
 		.AreaTitle(InputsMenuTitle)
 		.InitiallyCollapsed(!MainInput->GetCurveInputsMenuExpanded())
-		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
-		{
-			return CurveInputsStateChanged(InInputs, bNewState);
-		});
+		.OnAreaExpansionChanged(FOnBooleanValueChanged::CreateLambda(CurveInputsStateChanged));
 
 	TSharedRef<SVerticalBox> InputsCollapsed_VerticalBox = SNew(SVerticalBox).Visibility_Lambda([MainInput]()
 	{
@@ -3127,12 +3116,12 @@ FHoudiniInputDetails::AddCurveInputUI(
 		Helper_CreateCurveWidgetExpanded(CategoryBuilder, InInputs, Idx, AssetThumbnailPool, InputsExpanded_VerticalBox, SplineComponentVisualizer);
 	}
 
-	auto PointSelectionMenuChanged = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, bool bInNewState)
+	auto PointSelectionMenuChanged = [MainInput, InInputs](bool bIsExpanded)
 	{
 		if (!IsValidWeakPointer(MainInput))
 			return;
 
-		bool bNewState = bInNewState;
+		bool bNewState = bIsExpanded;
 
 		if (MainInput->GetCurvePointSelectionMenuExpanded() == bNewState)
 			return;
@@ -3142,7 +3131,7 @@ FHoudiniInputDetails::AddCurveInputUI(
 			LOCTEXT("HoudiniCurvePointSelectionMenu", "Houdini Input: Changed Curve Point Selection Menu State"),
 			MainInput->GetOuter());
 
-		for (auto CurInput : InInputsToUpdate)
+		for (auto CurInput : InInputs)
 		{
 			if (!IsValidWeakPointer(CurInput))
 				continue;
@@ -3160,10 +3149,7 @@ FHoudiniInputDetails::AddCurveInputUI(
 	TSharedRef<SExpandableArea> PointSelection_Expandable = SNew(SExpandableArea)
 		.AreaTitle(LOCTEXT("HoudiniCurvePointSelectionMenuTitle", "Spline Point Editor"))
 		.InitiallyCollapsed(!MainInput->GetCurvePointSelectionMenuExpanded())
-		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
-		{
-			return PointSelectionMenuChanged(InInputs, bNewState);
-		})
+		.OnAreaExpansionChanged(FOnBooleanValueChanged::CreateLambda(PointSelectionMenuChanged))
 		.BodyContent()
 		[
 			PointSelection_VerticalBox
@@ -5588,12 +5574,12 @@ FHoudiniInputDetails::AddGeometryInputUI(
 		}
 	};
 
-	auto GeometryInputsStateChanged = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const bool& bInNewState)
+	auto GeometryInputsStateChanged = [MainInput, InInputs, &CategoryBuilder](bool bIsExpanded)
 	{
 		if (!IsValidWeakPointer(MainInput))
 			return;
 
-		bool bNewState = bInNewState;
+		bool bNewState = bIsExpanded;
 
 		if (MainInput->GetGeometryInputsMenuExpanded() == bNewState)
 			return;
@@ -5603,7 +5589,7 @@ FHoudiniInputDetails::AddGeometryInputUI(
 			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed New Geometry Inputs Menu State"),
 			MainInput->GetOuter());
 
-		for (auto CurInput : InInputsToUpdate)
+		for (auto CurInput : InInputs)
 		{
 			if (!IsValidWeakPointer(CurInput))
 				continue;
@@ -5633,10 +5619,7 @@ FHoudiniInputDetails::AddGeometryInputUI(
 	TSharedRef<SExpandableArea> Inputs_Expandable = SNew(SExpandableArea)
 		.AreaTitle(InputsMenuTitle)
 		.InitiallyCollapsed(!MainInput->GetGeometryInputsMenuExpanded())
-		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
-		{
-			return GeometryInputsStateChanged(InInputs, bNewState);
-		});
+		.OnAreaExpansionChanged(FOnBooleanValueChanged::CreateLambda(GeometryInputsStateChanged));
 		
 	TSharedRef<SVerticalBox> InputsCollapsed_VerticalBox = SNew(SVerticalBox).Visibility_Lambda([MainInput]()
 	{
@@ -5792,13 +5775,12 @@ FHoudiniInputDetails::AddWorldInputUI(
 			bDetailsLocked = true;
 	}
 
-	auto WorldInputsStateChanged = [MainInput, &CategoryBuilder](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, const bool& bInNewState)
+	auto WorldInputsStateChanged = [MainInput, InInputs, &CategoryBuilder](bool bIsExpanded)
 	{
 		if (!IsValidWeakPointer(MainInput))
 			return;
 
-		bool bNewState = bInNewState;
-
+		bool bNewState = bIsExpanded;
 		if (MainInput->GetWorldInputsMenuExpanded() == bNewState)
 			return;
 
@@ -5807,7 +5789,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed New World Inputs Menu State"),
 			MainInput->GetOuter());
 		
-		for (auto CurInput : InInputsToUpdate)
+		for (auto CurInput : InInputs)
 		{
 			if (!IsValidWeakPointer(CurInput))
 				continue;
@@ -5846,10 +5828,7 @@ FHoudiniInputDetails::AddWorldInputUI(
 		SNew(SExpandableArea)
 		.AreaTitle(InputsMenuTitle)
 		.InitiallyCollapsed(!MainInput->GetWorldInputsMenuExpanded())
-		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
-		{
-			return WorldInputsStateChanged(InInputs, bNewState);
-		})
+		.OnAreaExpansionChanged(FOnBooleanValueChanged::CreateLambda(WorldInputsStateChanged))
 		.BodyContent()
 		[
 			Inputs_VerticalBox

@@ -64,10 +64,17 @@
 
 #include "Kismet/KismetSystemLibrary.h"
 
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "GeometryCollection/GeometryCollectionActor.h"
+	#include "GeometryCollection/GeometryCollectionComponent.h"
+	#include "GeometryCollection/GeometryCollectionObject.h"
+#else
+	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
+	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
+	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
+#endif
 #include "LevelInstance/LevelInstanceActor.h"
+
 
 //-----------------------------------------------------------------------------------------------------------------------------
 // Constructors

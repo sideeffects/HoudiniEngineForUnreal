@@ -984,10 +984,14 @@ int UHCsgUtils::ComposeBrushCSG
 		// Set texture the first time.
 		if ( bReplaceNULLMaterialRefs )
 		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+			UMaterialInterface* PolyMat = CurrentPoly.Material.Get();
+#else
 			UMaterialInterface*& PolyMat = CurrentPoly.Material;
+#endif
 			if ( !PolyMat || PolyMat == UMaterial::GetDefaultMaterial(MD_Surface) )
 			{
-				PolyMat = SelectedMaterialInstance;
+				CurrentPoly.Material = SelectedMaterialInstance;
 			}
 		}
 

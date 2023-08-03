@@ -748,3 +748,5 @@ bool FHoudiniToolsRuntimeUtils::WriteJSONFromToolPackageAsset(const UHoudiniTool
 
 
 #endif
+
+#undef LOCTEXT_NAMESPACE

@@ -46,7 +46,11 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "InstancedFoliageActor.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "GeometryCollection/GeometryCollectionComponent.h"
+#else
+	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
+#endif
 #include "FoliageEditUtility.h"
 #include "LevelInstance/LevelInstanceActor.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1

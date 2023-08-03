@@ -1285,9 +1285,9 @@ FHoudiniEngineEditor::ExtendContextMenu()
 				{
 					// TODO: Foliage Types? BP ?
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
-					if ((Asset.AssetClassPath != USkeletalMesh::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UStaticMesh::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UAnimSequence::StaticClass()->GetClassPathName()))
+						if ((Asset.AssetClassPath != USkeletalMesh::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UStaticMesh::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UAnimSequence::StaticClass()->GetClassPathName()))
 #else
-					if ((Asset.AssetClass != USkeletalMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UStaticMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UAnimSequence::StaticClass()->GetFName()))					
+						if ((Asset.AssetClass != USkeletalMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UStaticMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UAnimSequence::StaticClass()->GetFName()))					
 #endif
 					{
 						bShouldExtendAssetActions = false;
@@ -1347,7 +1347,7 @@ FHoudiniEngineEditor::RemoveLevelViewportMenuExtender()
 		{
 			typedef FLevelEditorModule::FLevelViewportMenuExtender_SelectedActors DelegateType;
 			LevelEditorModule->GetAllLevelViewportContextMenuExtenders().RemoveAll(
-				[=](const DelegateType& In) { return In.GetHandle() == LevelViewportExtenderHandle; });
+				[this](const DelegateType& In) { return In.GetHandle() == LevelViewportExtenderHandle; });
 		}
 	}
 }
@@ -1918,7 +1918,11 @@ FHoudiniEngineEditor::HandleOnDeleteActorsBegin()
 				"PDGAssetLink_DeleteWithTemporaryOutputs",
 				"One or more PDG Asset Links in the selection still have temporary outputs. Are you sure you want to "
 				"delete these PDG Asset Links and their actors?"),
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+			DialogTitle);
+#else
 			&DialogTitle);
+#endif
 
 		const bool bKeepAssetLinkActors = (Choice == EAppReturnType::No);
 		for (AHoudiniAssetActor* AssetActor : AssetActorsWithTempPDGOutput)

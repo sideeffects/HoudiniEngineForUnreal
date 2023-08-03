@@ -38,7 +38,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorColliderTest_Colliders_Com
 
 bool HoudiniEditorColliderTest_Colliders_Common::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		const FString MapName = FHoudiniEditorColliderTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Colliders_Common");

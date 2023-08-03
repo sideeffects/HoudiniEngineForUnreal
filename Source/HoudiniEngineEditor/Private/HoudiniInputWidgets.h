@@ -97,7 +97,7 @@ class SLandscapeComboBox : public SComboBox<TSharedPtr<FString>>
 			[
 				SelectedItemText.ToSharedRef()
 			]
-			.OnSelectionChanged_Lambda([=](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
+			.OnSelectionChanged_Lambda([this](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
 			{
 				if (NewChoice.IsValid())
 				{

@@ -795,7 +795,8 @@ USkeleton* FHoudiniMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings& Build
 		{
 			BoneName = WeightNamesData[idx];
 			float RemappedIndex = CaptNamesData.Find(BoneName);
-			if (RemappedIndex == INDEX_NONE)
+			//if (RemappedIndex == INDEX_NONE)
+			if (RemappedIndex < 0)
 			{
 				//BROKEN
 			}

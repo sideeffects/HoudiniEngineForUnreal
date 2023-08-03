@@ -38,7 +38,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorMeshTest_Single, "Houdini.
 
 bool HoudiniEditorMeshTest_Single::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString MapName = FHoudiniEditorMeshTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Single");
@@ -54,7 +54,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorMeshTest_Multiple, "Houdin
 
 bool HoudiniEditorMeshTest_Multiple::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString MapName = FHoudiniEditorMeshTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Multiple");
@@ -70,7 +70,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorMeshTest_LODs_Common, "Hou
 
 bool HoudiniEditorMeshTest_LODs_Common::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [=, this]
 	{
 		const FString MapName = FHoudiniEditorMeshTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("LODs_Common");

@@ -54,7 +54,12 @@
 #include "UObject/UObjectGlobals.h"
 #include "BodySetupEnums.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "GeometryCollection/GeometryCollectionComponent.h"
+#else
+	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
+#endif
+
 #include "PrimitiveSceneProxy.h"
 
 #if WITH_EDITOR
