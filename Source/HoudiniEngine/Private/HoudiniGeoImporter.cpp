@@ -487,6 +487,25 @@ UHoudiniGeoImporter::CreateLandscapes(TArray<UHoudiniOutput*>& InOutputs, UObjec
 
 
 bool
+UHoudiniGeoImporter::CreateLandscapeSplines(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams)
+{
+	for (UHoudiniOutput const* const CurOutput : InOutputs)
+	{
+		if (!IsValid(CurOutput))
+			continue;
+		
+		if (CurOutput->GetType() != EHoudiniOutputType::LandscapeSpline)
+			continue;
+
+		HOUDINI_LOG_WARNING(TEXT("Importing landscape splines directly from BGEOs is not currently supported."));
+		return false;
+	}
+
+	return true;
+}
+
+
+bool
 UHoudiniGeoImporter::CreateInstancers(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams)
 {
 	bool HasInstancer = false;
@@ -763,11 +782,15 @@ UHoudiniGeoImporter::ImportBGEOFile(
 	if (!CreateLandscapes(NewOutputs, InParent, PackageParams))
 		return CleanUpAndReturn(false);
 
-	// 8. Create the instancers in the outputs
+	// 8. Create the landscape splines in the outputs
+	if (!CreateLandscapeSplines(NewOutputs, InParent, PackageParams))
+		return CleanUpAndReturn(false);
+
+	// 9. Create the instancers in the outputs
 	if (!CreateInstancers(NewOutputs, InParent, PackageParams))
 		return CleanUpAndReturn(false);
 
-	// 9. Delete the created  node in Houdini
+	// 10. Delete the created  node in Houdini
 	if (!DeleteCreatedNode(NodeId))
 		return CleanUpAndReturn(false);
 	

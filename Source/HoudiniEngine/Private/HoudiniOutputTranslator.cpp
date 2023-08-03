@@ -48,6 +48,7 @@
 #include "HoudiniMeshTranslator.h"
 #include "HoudiniSplineTranslator.h"
 #include "HoudiniLandscapeTranslator.h"
+#include "HoudiniLandscapeSplineTranslator.h"
 #include "HoudiniInstanceTranslator.h"
 #include "HoudiniGeometryCollectionTranslator.h"
 
@@ -442,6 +443,16 @@ FHoudiniOutputTranslator::UpdateOutputs(
 			{
 				FHoudiniDataTableTranslator::BuildDataTable(HGPO, CurOutput, PackageParams);
 			}
+			break;
+		}
+
+		case EHoudiniOutputType::LandscapeSpline:
+		{
+			if (!FHoudiniLandscapeSplineTranslator::ProcessLandscapeSplineOutput(CurOutput, OuterComponent))
+				break;
+
+			// Translation successful
+			NumVisibleOutputs += CurOutput->GetOutputObjects().Num();
 			break;
 		}
 
@@ -1405,7 +1416,16 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 						if (CurrentHapiGeoInfo.type == HAPI_GEOTYPE_CURVE)
 						{
 							// Closed curve will be seen as mesh
-							CurrentPartType = EHoudiniPartType::Curve;
+							if (FHoudiniEngineUtils::IsLandscapeSpline(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
+							{
+								// This could be a landscape spline...
+								CurrentPartType = EHoudiniPartType::LandscapeSpline;
+							}
+							else
+							{
+								// This is actually a curve
+								CurrentPartType = EHoudiniPartType::Curve;
+							}
 						}
 						else
 						{
@@ -1477,6 +1497,11 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 						{
 							// the curve is actually a data table!
 							CurrentPartType = EHoudiniPartType::DataTable;
+						}
+						else if (FHoudiniEngineUtils::IsLandscapeSpline(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
+						{
+							// the curve is actually a landscape spline!
+							CurrentPartType = EHoudiniPartType::LandscapeSpline;
 						}
 						else
 						{
@@ -1723,11 +1748,11 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				}
 				currentHGPO.VolumeInfo = CurrentVolumeInfo;
 
-				// Cache the curve info as well
+				// Cache the curve info as well, and also for landscape splines
 				// !!! Only call GetCurveInfo if the PartType is Curve
 				// !!! Closed curves are actually Meshes, and calling GetCurveInfo on a Mesh will crash HAPI!
 				FHoudiniCurveInfo CurrentCurveInfo;
-				if (CurrentPartType == EHoudiniPartType::Curve && CurrentPartInfo.Type == EHoudiniPartType::Curve)
+				if ((CurrentPartType == EHoudiniPartType::Curve || CurrentPartType == EHoudiniPartType::LandscapeSpline) && CurrentPartInfo.Type == EHoudiniPartType::Curve)
 				{
 					HAPI_CurveInfo CurrentHapiCurveInfo;
 					FHoudiniApi::CurveInfo_Init(&CurrentHapiCurveInfo);

@@ -361,6 +361,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		static bool IsValidDataTable(
 			const HAPI_NodeId& GeoId, const HAPI_PartId& PartId);
 
+		// Returns true if the given Geo-Part is a landscape spline
+		static bool IsLandscapeSpline(const HAPI_NodeId& GeoId, const HAPI_PartId& PartId);
+
 		// HAPI : Return a give node's parent ID, -1 if none
 		static HAPI_NodeId HapiGetParentNodeId(const HAPI_NodeId& NodeId);
 

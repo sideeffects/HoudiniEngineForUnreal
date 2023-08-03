@@ -38,6 +38,7 @@
 #include "Engine/Engine.h"
 #include "Misc/StringFormatArg.h"
 #include "LandscapeLayerInfoObject.h"
+#include "LandscapeSplineActor.h"
 
 UHoudiniLandscapePtr::UHoudiniLandscapePtr(class FObjectInitializer const& Initializer) 
 {
@@ -558,6 +559,24 @@ UHoudiniOutput::GetBounds() const
 	}
 	break;
 
+	case EHoudiniOutputType::LandscapeSpline:
+	{
+		for (const auto& CurPair : OutputObjects)
+		{
+			const FHoudiniOutputObject& CurObj = CurPair.Value;
+			ALandscapeSplineActor* CurLandscapeSpline = Cast<ALandscapeSplineActor>(CurObj.OutputObject);
+			if (!IsValid(CurLandscapeSpline))
+				continue;
+
+			FVector Origin, Extent;
+			CurLandscapeSpline->GetActorBounds(false, Origin, Extent);
+
+			FBox LandscapeBounds = FBox::BuildAABB(Origin, Extent);
+			BoxBounds += LandscapeBounds;
+		}
+		break;
+	}
+
 	case EHoudiniOutputType::Skeletal:
 	case EHoudiniOutputType::Invalid:
 		break;
@@ -775,6 +794,7 @@ UHoudiniOutput::UpdateOutputType()
 	int32 VolumeCount = 0;
 	int32 InstancerCount = 0;
 	int32 DataTableCount = 0;
+	int32 LandscapeSplineCount = 0;
 	for (auto& HGPO : HoudiniGeoPartObjects)
 	{
 		switch (HGPO.Type)
@@ -793,6 +813,10 @@ UHoudiniOutput::UpdateOutputType()
 			break;
 		case EHoudiniPartType::DataTable:
 			DataTableCount++;
+			break;
+		case EHoudiniPartType::LandscapeSpline:
+			LandscapeSplineCount++;
+			break;
 		default:
 		case EHoudiniPartType::Invalid:
 			break;
@@ -824,6 +848,10 @@ UHoudiniOutput::UpdateOutputType()
 	else if (DataTableCount > 0)
 	{
 		Type = EHoudiniOutputType::DataTable;
+	}
+	else if (LandscapeSplineCount > 0)
+	{
+		Type = EHoudiniOutputType::LandscapeSpline;
 	}
 	else
 	{
@@ -900,6 +928,9 @@ UHoudiniOutput::OutputTypeToString(const EHoudiniOutputType& InOutputType)
 			break;
 		case EHoudiniOutputType::DataTable:
 			OutputTypeStr = TEXT("DataTable");
+			break;
+		case EHoudiniOutputType::LandscapeSpline:
+			OutputTypeStr = TEXT("LandscapeSpline");
 			break;
 
 		default:

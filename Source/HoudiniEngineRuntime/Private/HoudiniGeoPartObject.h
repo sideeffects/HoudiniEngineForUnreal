@@ -50,7 +50,8 @@ enum class EHoudiniPartType : uint8
 	Instancer,
 	Curve,
 	Volume,
-	DataTable
+	DataTable,
+	LandscapeSpline
 };
 
 UENUM()

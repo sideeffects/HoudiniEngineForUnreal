@@ -41,6 +41,7 @@
 #include "HoudiniInstanceTranslator.h"
 #include "HoudiniLandscapeTranslator.h"
 #include "HoudiniDataTableTranslator.h"
+#include "HoudiniLandscapeSplineTranslator.h"
 #include "HoudiniPDGAssetLink.h"
 #include "HoudiniOutputTranslator.h"
 #include "HoudiniSplineComponent.h"
@@ -381,6 +382,12 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 				{
 					FHoudiniDataTableTranslator::BuildDataTable(HGPO, CurOutput, PackageParams);
 				}
+				break;
+			}
+
+			case EHoudiniOutputType::LandscapeSpline:
+			{
+				FHoudiniLandscapeSplineTranslator::ProcessLandscapeSplineOutput(CurOutput, InOuterComponent);
 				break;
 			}
 
