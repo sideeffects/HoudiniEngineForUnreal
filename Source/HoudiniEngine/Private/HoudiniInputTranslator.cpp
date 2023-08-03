@@ -65,7 +65,7 @@
 #include "Camera/CameraComponent.h"
 #include "FoliageType_InstancedStaticMesh.h"
 #include "LandscapeSplinesComponent.h"
-
+#include "LevelInstance/LevelInstanceActor.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
 
@@ -79,6 +79,7 @@
 #include "HoudiniMeshUtils.h"
 #include "LandscapeInfo.h"
 #include "UnrealGeometryCollectionTranslator.h"
+#include "UnrealLevelInstanceTranslator.h"
 
 #include "Async/Async.h"
 #include "GeometryCollection/GeometryCollection.h"
@@ -1562,6 +1563,20 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 			break;
 		}
 
+		case EHoudiniInputObjectType::LevelInstance:
+		{
+			UHoudiniInputLevelInstance* InputLevelInstance = Cast<UHoudiniInputLevelInstance>(InInputObject);
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForLevelInstance(
+				ObjBaseName,
+				InputLevelInstance,
+				InputSettings,
+				InInput,
+				OutCreatedNodeIds,
+				bInputNodesCanBeDeleted);
+
+			break;
+		}
+
 		case EHoudiniInputObjectType::Brush:
 		{
 			UHoudiniInputBrush* InputBrush = Cast<UHoudiniInputBrush>(InInputObject);
@@ -1817,6 +1832,10 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 			break;
 		}
 
+		case EHoudiniInputObjectType::LevelInstance:
+		{
+			break;
+		}
 		case EHoudiniInputObjectType::Landscape:
 		{
 			//
@@ -3717,6 +3736,71 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscapeSplinesComponent(
 	}
 
 	return bSuccess;
+}
+
+bool
+FHoudiniInputTranslator::HapiCreateInputNodeForLevelInstance(
+	const FString& InObjNodeName,
+	UHoudiniInputLevelInstance* InObject,
+	const FHoudiniInputObjectSettings& InInputSettings,
+	UHoudiniInput* InInput,
+	TArray<int32>& OutCreatedNodeIds,
+	const bool& bInputNodesCanBeDeleted)
+{
+	if (!IsValid(InObject) || !IsValid(InInput))
+		return false;
+
+	ALevelInstance * LevelInstance = InObject->GetLevelInstance();
+	if (!IsValid(LevelInstance))
+		return true;
+
+	FString LandscapeName = InObjNodeName + TEXT("_") + LevelInstance->GetActorLabel();
+	FUnrealObjectInputHandle InputNodeHandle;
+	HAPI_NodeId InputNodeId = InObject->InputNodeId;
+	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+
+	if (!FUnrealLevelInstanceTranslator::AddLevelInstance(
+		LevelInstance, InInput, InputNodeId, LandscapeName, InputNodeHandle, bInputNodesCanBeDeleted))
+		return false;
+
+	FTransform Transform = InObject->Transform;
+	Transform.SetScale3D(FVector::OneVector);
+
+	InObject->InputNodeHandle = InputNodeHandle;
+	if (bUseRefCountedInputSystem)
+	{
+		HAPI_NodeId ParentNodeId = -1;
+		bool bCreateIfMissingInvalid = true;
+		HAPI_NodeId LandscapeNodeId = -1;
+
+		if (!FHoudiniEngineUtils::GetHAPINodeId(InputNodeHandle, LandscapeNodeId))
+			return false;
+
+		if (!HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
+			ParentNodeId,
+			LandscapeNodeId,
+			LandscapeName,
+			InObject->InputNodeId,
+			InObject->InputObjectNodeId,
+			bCreateIfMissingInvalid,
+			Transform))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		InObject->InputNodeId = (int32)InputNodeId;
+		InObject->InputObjectNodeId = (int32)FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
+		InObject->Update(LevelInstance, InInputSettings);
+
+		if (!HapiSetGeoObjectTransform(InObject->InputObjectNodeId, Transform))
+			return false;
+	}
+
+	OutCreatedNodeIds.Add(InObject->InputObjectNodeId);
+
+	return true;
 }
 
 bool
