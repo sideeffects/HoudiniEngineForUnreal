@@ -537,6 +537,11 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		TSet<FString>& ClearedLayers,
 		const FHoudiniPackageParams& InPackageParams)
 {
+	enum TargetLayerType
+	{
+		Height, Visibility, Paint
+	};
+
 	//----------------------------------------------------------------------------------------------------------------------------------------
 	// Resolve Landscape Actors
 	//----------------------------------------------------------------------------------------------------------------------------------------
@@ -613,14 +618,18 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	// Clear layer
 	// ------------------------------------------------------------------------------------------------------------------
 
-	bool bIsHeightFieldLayer = Part.TargetLayerName == "height";
+	TargetLayerType LayerType = TargetLayerType::Paint;
+	if (Part.TargetLayerName == "height")
+		LayerType = TargetLayerType::Height;
+	else if (Part.TargetLayerName == "visibility")
+		LayerType = TargetLayerType::Visibility;
 
 	if (UnrealEditLayer != nullptr && 
 		OutputLandscape->bHasLayersContent &&
 		Part.bClearLayer &&
 		!ClearedLayers.Contains(CookedLayerName))
 	{
-		if (bIsHeightFieldLayer)
+		if (LayerType != TargetLayerType::Paint)
 		{
 			OutputLandscape->ClearLayer(UnrealEditLayer->Guid, nullptr, ELandscapeClearMode::Clear_Heightmap);
 		}
@@ -656,7 +665,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 
 	if (!Part.CachedData.IsValid())
 	{
-		HeightFieldData = FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(*Part.HeightField, bIsHeightFieldLayer);
+		HeightFieldData = FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(*Part.HeightField, LayerType == TargetLayerType::Height);
 	}
 	else
 	{
@@ -679,13 +688,13 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	auto Extents = FHoudiniLandscapeUtils::GetExtents(OutputLandscape, HeightFieldData);
 
 	// ------------------------------------------------------------------------------------------------------------------
-	// Is this anything except height layer?
+	// Is a paint layer or visibility layer
 	// ------------------------------------------------------------------------------------------------------------------
 
 	ULandscapeInfo* TargetLandscapeInfo = OutputLandscape->GetLandscapeInfo();
-	if (!bIsHeightFieldLayer)
+	if (LayerType == TargetLayerType::Paint || LayerType == TargetLayerType::Visibility)
 	{
-		if (TargetLayerInfo == nullptr)
+		if (LayerType == TargetLayerType::Paint && TargetLayerInfo == nullptr)
 		{
 			// The target layer doesn't exist, so report an error and do nothing. The target layers are defined by the material
 			// and trying to create new ones is probably not correct. Note, this is different from what we do if a Layer is missing.
@@ -717,7 +726,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 			}
 		}
 
-		if (Part.TargetLayerName == HAPI_UNREAL_VISIBILITY_LAYER_NAME)
+		if (LayerType == TargetLayerType::Visibility)
 		{
 			FAlphamapAccessor<false, false> AlphaAccessor(OutputLandscape->GetLandscapeInfo(), ALandscapeProxy::VisibilityLayer);
 			AlphaAccessor.SetData(
@@ -739,7 +748,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	// Is this the height layer?
 	// ------------------------------------------------------------------------------------------------------------------
 
-	if (bIsHeightFieldLayer)
+	if (LayerType == TargetLayerType::Height)
 	{
 		// Convert Houdini data to Unreal Quantized format.
 
