@@ -161,7 +161,7 @@ UHoudiniGeoImporter::BuildOutputsForNode(const HAPI_NodeId& InNodeId, TArray<UHo
 
 bool
 UHoudiniGeoImporter::CreateStaticMeshes(
-	TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams,
+	TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams,
 	const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
 	const FMeshBuildSettings& InMeshBuildSettings)
 {
@@ -265,7 +265,7 @@ UHoudiniGeoImporter::CreateStaticMeshes(
 
 
 bool
-UHoudiniGeoImporter::CreateCurves(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams)
+UHoudiniGeoImporter::CreateCurves(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams)
 {
 	TArray<UHoudiniOutput*> CurveOutputs;
 	CurveOutputs.Reserve(InOutputs.Num());
@@ -405,7 +405,7 @@ UHoudiniGeoImporter::CreateCurves(TArray<UHoudiniOutput*>& InOutputs, UObject* I
 
 
 bool
-UHoudiniGeoImporter::CreateLandscapes(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams)
+UHoudiniGeoImporter::CreateLandscapes(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams)
 {
 	for (auto& CurOutput : InOutputs)
 	{
@@ -487,7 +487,7 @@ UHoudiniGeoImporter::CreateLandscapes(TArray<UHoudiniOutput*>& InOutputs, UObjec
 
 
 bool
-UHoudiniGeoImporter::CreateLandscapeSplines(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams)
+UHoudiniGeoImporter::CreateLandscapeSplines(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams)
 {
 	for (UHoudiniOutput const* const CurOutput : InOutputs)
 	{
@@ -506,7 +506,7 @@ UHoudiniGeoImporter::CreateLandscapeSplines(TArray<UHoudiniOutput*>& InOutputs, 
 
 
 bool
-UHoudiniGeoImporter::CreateInstancers(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams)
+UHoudiniGeoImporter::CreateInstancers(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams)
 {
 	bool HasInstancer = false;
 	for (auto& CurOutput : InOutputs)
@@ -771,23 +771,23 @@ UHoudiniGeoImporter::ImportBGEOFile(
 	const FMeshBuildSettings& MeshBuildSettings =
 		InMeshBuildSettings ? *InMeshBuildSettings : FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
 		
-	if (!CreateStaticMeshes(NewOutputs, InParent, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
+	if (!CreateStaticMeshes(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
 		return CleanUpAndReturn(false);
 
 	// 6. Create the static meshes in the outputs
-	if (!CreateCurves(NewOutputs, InParent, PackageParams))
+	if (!CreateCurves(NewOutputs, PackageParams))
 		return CleanUpAndReturn(false);
 
 	// 7. Create the landscape in the outputs
-	if (!CreateLandscapes(NewOutputs, InParent, PackageParams))
+	if (!CreateLandscapes(NewOutputs, PackageParams))
 		return CleanUpAndReturn(false);
 
 	// 8. Create the landscape splines in the outputs
-	if (!CreateLandscapeSplines(NewOutputs, InParent, PackageParams))
+	if (!CreateLandscapeSplines(NewOutputs, PackageParams))
 		return CleanUpAndReturn(false);
 
 	// 9. Create the instancers in the outputs
-	if (!CreateInstancers(NewOutputs, InParent, PackageParams))
+	if (!CreateInstancers(NewOutputs, PackageParams))
 		return CleanUpAndReturn(false);
 
 	// 10. Delete the created  node in Houdini
@@ -975,10 +975,16 @@ UHoudiniGeoImporter::CookFileNode(const HAPI_NodeId& InNodeId)
 bool
 UHoudiniGeoImporter::BuildAllOutputsForNode(const HAPI_NodeId& InNodeId, UObject* InOuter, TArray<UHoudiniOutput*>& InOldOutputs, TArray<UHoudiniOutput*>& OutNewOutputs, bool bInAddOutputsToRootSet)
 {
-	// TArray<UHoudiniOutput*> OldOutputs;
-	TArray<HAPI_NodeId> NodeIdsToCook;
+	bool bUseOutputNodes = true;
+	bool bOutputTemplateGeos = false;
+
+	// Gather output nodes for the HAC
+	TArray<int32> OutputNodes;
+	FHoudiniEngineUtils::GatherAllAssetOutputs(InNodeId, bUseOutputNodes, bOutputTemplateGeos, OutputNodes);
+
+	// TArray<UHoudiniOutput*> OldOutputs;	
 	TMap<HAPI_NodeId, int32> OutputNodeCookCount;
-	if (!FHoudiniOutputTranslator::BuildAllOutputs(InNodeId, InOuter, NodeIdsToCook, OutputNodeCookCount, InOldOutputs, OutNewOutputs, false, true))
+	if (!FHoudiniOutputTranslator::BuildAllOutputs(InNodeId, InOuter, OutputNodes, OutputNodeCookCount, InOldOutputs, OutNewOutputs, bOutputTemplateGeos, bUseOutputNodes))
 	{
 		// Couldn't create the package
 		HOUDINI_LOG_ERROR(TEXT("Houdini GEO Importer: Failed to process the File SOP's outputs!"));

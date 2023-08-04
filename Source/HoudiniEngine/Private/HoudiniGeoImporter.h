@@ -71,24 +71,31 @@ public:
 
 		// 1. Start a HE session if needed
 		static bool AutoStartHoudiniEngineSessionIfNeeded();
+		
 		// 2. Update our file members fromn the input file path
 		bool SetFilePath(const FString& InFilePath);
+		
 		// 3. Creates a new file node and loads the bgeo file in HAPI
 		bool LoadBGEOFileInHAPI(HAPI_NodeId& NodeId);
+		
 		// 4. Extract the outputs for a given node ID
 		bool BuildOutputsForNode(const HAPI_NodeId& InNodeId, TArray<UHoudiniOutput*>& InOldOutputs, TArray<UHoudiniOutput*>& OutNewOutputs);
+		
 		// 5. Creates the static meshes object found in the output
 		bool CreateStaticMeshes(
-			TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams,
-			const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties, const FMeshBuildSettings& InMeshBuildSettings);
+			TArray<UHoudiniOutput*>& InOutputs,
+			FHoudiniPackageParams InPackageParams,
+			const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
+			const FMeshBuildSettings& InMeshBuildSettings);
+
 		// 6. Create the output curves
-		bool CreateCurves(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams);
+		bool CreateCurves(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
 		// 7. Create the output landscapes
-		bool CreateLandscapes(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams);
+		bool CreateLandscapes(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
 		// 8. Create the output landscape splines
-		bool CreateLandscapeSplines(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams);
+		bool CreateLandscapeSplines(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
 		// 9. Create the output instancers
-		bool CreateInstancers(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams);
+		bool CreateInstancers(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
 		// 10. Clean up the created node
 		static bool DeleteCreatedNode(const HAPI_NodeId& InNodeId);
 

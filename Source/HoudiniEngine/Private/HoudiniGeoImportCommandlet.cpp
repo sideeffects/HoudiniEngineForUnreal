@@ -540,7 +540,7 @@ int32 UHoudiniGeoImportCommandlet::ImportBGEO(
 		InMeshBuildSettings ? *InMeshBuildSettings : FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
 	
 	HOUDINI_LOG_DISPLAY(TEXT("Create Static Meshes"));
-	if (!GeoImporter->CreateStaticMeshes(OutOutputs, Outer, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
+	if (!GeoImporter->CreateStaticMeshes(OutOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
 		return CleanUpAndExit(1);
 
 	//// 6. Create the landscape in the outputs
@@ -555,7 +555,7 @@ int32 UHoudiniGeoImportCommandlet::ImportBGEO(
 	}
 	else
 	{
-		if (!GeoImporter->CreateInstancers(OutOutputs, Outer, PackageParams))
+		if (!GeoImporter->CreateInstancers(OutOutputs, PackageParams))
 			return CleanUpAndExit(1);
 	}
 

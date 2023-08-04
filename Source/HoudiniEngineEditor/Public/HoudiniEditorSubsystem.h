@@ -7,13 +7,15 @@
 #include "HoudiniApi.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniInput.h"
+
 #include "HoudiniEditorSubsystem.generated.h"
 
 
 class USkeletalMesh;
 
 USTRUCT()
-struct HOUDINIENGINEEDITOR_API FHoudiniNodeSync
+struct HOUDINIENGINEEDITOR_API FHoudiniNodeSyncOptions
 {
 	GENERATED_BODY()
 
@@ -31,15 +33,20 @@ public:
 	UPROPERTY()
 	FString UnrealPathName = "/Game/000";
 
+	//UPROPERTY()
+	//FDirectoryPath DirectoryPath;
+
 	UPROPERTY()
-	bool UseDisplayFlag = false;
+	bool UseOutputNodes = true;
 
 	UPROPERTY()
 	bool OverwriteSkeleton = false;
 
 	UPROPERTY()
 	FString SkeletonAssetPath = "";
-
+	
+	UPROPERTY()
+	UHoudiniInput* NodeSyncInput;
 };
 
 
@@ -56,26 +63,33 @@ public:
 	void SendToHoudini(const TArray<UObject*>& SelectedAssets);
 
 	UFUNCTION(BlueprintCallable, Category = "Houdini")
-	void SendToUnreal(const FString& InPackageName, const FString& InPackageFolder, const int32& MaxInfluences = 1, const bool& ImportNormals=false);
+	void FetchFromHoudini(const FString& InPackageName, const FString& InPackageFolder, const int32& MaxInfluences = 1, const bool& ImportNormals=false);
 	
 	UFUNCTION(BlueprintCallable, Category = "Houdini")
 	void Fetch();
+
+	UFUNCTION(BlueprintCallable, Category = "Houdini")
+	void SendWorldSelection();
 
 	bool CreateSessionIfNeeded();
 
 	UFUNCTION(BlueprintCallable, Category = "Houdini")
 	void DumpSessionInfo();
 
-	FHoudiniNodeSync NodeSync;
+	FHoudiniNodeSyncOptions NodeSyncOptions;
+
+	UHoudiniInput* GetNodeSyncInput();
 
 	//virtual void RegisterLayoutExtensions(FLayoutExtender& Extender) override;
 
 private:
 
+	bool InitNodeSyncInputIfNeeded();
+
 	bool SendStaticMeshToHoudini(const HAPI_NodeId& InMeshNodeId, UStaticMesh* InMesh);
 	bool SendSkeletalMeshToHoudini(const HAPI_NodeId& InMeshNodeId, USkeletalMesh* InSkelMesh);
-	bool SendSkeletalMeshToUnreal(const HAPI_NodeId& InNodeId, const FString& InPackageName, const FString& InPackageFolder, const int32& MaxInfluences, const bool& ImportNormals);
-	bool SendStaticMeshToUnreal(const HAPI_NodeId& InNodeId, const FString& InPackageName, const FString& InPackageFolder);
+	bool FetchSkeletalMeshFromHoudini(const HAPI_NodeId& InNodeId, const FString& InPackageName, const FString& InPackageFolder, const int32& MaxInfluences, const bool& ImportNormals);
+	bool FetchStaticMeshFromHoudini(const HAPI_NodeId& InNodeId, const FString& InPackageName, const FString& InPackageFolder);
 
 
 
