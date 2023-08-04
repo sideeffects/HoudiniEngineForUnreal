@@ -185,7 +185,11 @@ void FUnrealLevelInstanceTranslator::CreateAttributeData(HAPI_NodeId NodeId, ALe
 
 	ActorPaths.Add(LevelInstance->GetPathName());
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
 	FString Level = LevelInstance->GetWorldAsset().ToSoftObjectPath().GetAssetPath().ToString();
+#else
+	FString Level = LevelInstance->GetWorldAsset().ToSoftObjectPath().GetAssetPathName().ToString();
+#endif
 	ActorLevels.Add(Level);
 
 	const FTransform& Transform = LevelInstance->GetActorTransform();
