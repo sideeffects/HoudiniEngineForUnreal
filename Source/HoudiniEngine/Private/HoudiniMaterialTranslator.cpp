@@ -53,7 +53,7 @@
 #include "PackageTools.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "UObject/MetaData.h"
-#if ENGINE_MINOR_VERSION > 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 	#include "MaterialShared.h"
 #endif
 #include "Engine/Texture2D.h"
@@ -217,10 +217,10 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 			*/
 
 		// Reset material expressions.
-#if ENGINE_MINOR_VERSION < 1
-		Material->Expressions.Empty();
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+		Material->GetExpressionCollection().Empty(); 
 #else
-		Material->GetExpressionCollection().Empty();
+		Material->Expressions.Empty();
 #endif
 
 		// Generate various components for this material.
@@ -942,11 +942,11 @@ FHoudiniMaterialTranslator::_AddMaterialExpression(UMaterial* InMaterial, UMater
 	if (!InMaterial || !InMatExp)
 		return;
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	// Access to material expressions has changed in UE5.1
-#if ENGINE_MINOR_VERSION < 1
-	InMaterial->Expressions.Add(InMatExp);
-#else
 	InMaterial->GetExpressionCollection().AddExpression(InMatExp);
+#else
+	InMaterial->Expressions.Add(InMatExp);
 #endif
 }
 
@@ -981,11 +981,11 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 	CreateTexture2DParameters.bSRGB = true;
 
 	// Attempt to look up previously created expressions.
-#if ENGINE_MINOR_VERSION < 1
-	FColorMaterialInput& MatDiffuse = Material->BaseColor;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
 	FColorMaterialInput& MatDiffuse = MaterialEditorOnly->BaseColor;
+#else
+	FColorMaterialInput& MatDiffuse = Material->BaseColor;
 #endif
 
 	// Locate sampling expression.
@@ -1342,11 +1342,11 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 	FString GeneratingParameterNameTexture = TEXT("");
 
 	// Attempt to look up previously created expressions.
-#if ENGINE_MINOR_VERSION < 1
-	FScalarMaterialInput& MatOpacityMask = Material->OpacityMask;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
 	FScalarMaterialInput& MatOpacityMask = MaterialEditorOnly->OpacityMask;
+#else
+	FScalarMaterialInput& MatOpacityMask = Material->OpacityMask;
 #endif
 
 	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
@@ -1567,11 +1567,11 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 	FString GeneratingParameterNameScalar = TEXT("");
 	FString GeneratingParameterNameTexture = TEXT("");
 
-#if ENGINE_MINOR_VERSION < 1
-	FScalarMaterialInput& MatOpacity = Material->Opacity;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
 	FScalarMaterialInput& MatOpacity = MaterialEditorOnly->Opacity;
+#else
+	FScalarMaterialInput& MatOpacity = Material->Opacity;
 #endif
 
 	// Opacity expressions.
@@ -1590,10 +1590,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 	// If opacity sampling expression was not created, check if diffuse contains an alpha plane.
 	if (!ExpressionTextureOpacitySample)
 	{
-#if ENGINE_MINOR_VERSION < 1
-		UMaterialExpression * MaterialExpressionDiffuse = Material->BaseColor.Expression;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 		UMaterialExpression* MaterialExpressionDiffuse = MaterialEditorOnly->BaseColor.Expression;
+#else
+		UMaterialExpression* MaterialExpressionDiffuse = Material->BaseColor.Expression;
 #endif
 
 		if (MaterialExpressionDiffuse)
@@ -1802,11 +1802,11 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 		ParmNormalTextureId = -1;
 	}
 
-#if ENGINE_MINOR_VERSION < 1
-	FVectorMaterialInput& MatNormal = Material->Normal;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
 	FVectorMaterialInput& MatNormal = MaterialEditorOnly->Normal;
+#else
+	FVectorMaterialInput& MatNormal = Material->Normal;
 #endif
 
 	if (ParmNormalTextureId >= 0)
@@ -2183,11 +2183,11 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 		ParmSpecularTextureId = -1;
 	}
 
-#if ENGINE_MINOR_VERSION < 1
-	FScalarMaterialInput& MatSpecular = Material->Specular;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
 	FScalarMaterialInput& MatSpecular = MaterialEditorOnly->Specular;
+#else
+	FScalarMaterialInput& MatSpecular = Material->Specular;
 #endif
 
 	if (ParmSpecularTextureId >= 0)
@@ -2441,11 +2441,11 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 		ParmRoughnessTextureId = -1;
 	}
 
-#if ENGINE_MINOR_VERSION < 1
-	FScalarMaterialInput& MatRoughness = Material->Roughness;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
 	FScalarMaterialInput& MatRoughness = MaterialEditorOnly->Roughness;
+#else
+	FScalarMaterialInput& MatRoughness = Material->Roughness;
 #endif
 
 	if (ParmRoughnessTextureId >= 0)
@@ -2700,12 +2700,13 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 		ParmMetallicTextureId = -1;
 	}
 
-#if ENGINE_MINOR_VERSION < 1
-	FScalarMaterialInput& MatMetallic = Material->Metallic;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
 	FScalarMaterialInput& MatMetallic = MaterialEditorOnly->Metallic;
+#else
+	FScalarMaterialInput& MatMetallic = Material->Metallic;	
 #endif
+
 	if (ParmMetallicTextureId >= 0)
 	{
 		TArray<char> ImageBuffer;
@@ -2930,11 +2931,11 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 	CreateTexture2DParameters.bSRGB = false;
 
 	// Attempt to look up previously created expressions.
-#if ENGINE_MINOR_VERSION < 1
-	FColorMaterialInput& MatEmissive = Material->EmissiveColor;
-#else
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
 	FColorMaterialInput& MatEmissive = MaterialEditorOnly->EmissiveColor;
+#else
+	FColorMaterialInput& MatEmissive = Material->EmissiveColor;
 #endif
 
 	// Locate Texture sampling expression.
@@ -3544,9 +3545,10 @@ FHoudiniMaterialTranslator::UpdateMaterialInstanceParameter(
 			FStaticParameterSet StaticParameters;
 			MaterialInstance->GetStaticParameterValues(StaticParameters);
 
-#if ENGINE_MINOR_VERSION < 1
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 			TArray<FStaticSwitchParameter>& StaticSwitchParams = StaticParameters.StaticSwitchParameters;
-#elif ENGINE_MINOR_VERSION < 2
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 1
 			TArray<FStaticSwitchParameter>& StaticSwitchParams = StaticParameters.EditorOnly.StaticSwitchParameters;
 #else
 			TArray<FStaticSwitchParameter>& StaticSwitchParams = StaticParameters.StaticSwitchParameters;

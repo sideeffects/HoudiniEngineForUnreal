@@ -27,6 +27,7 @@
 #include "HoudiniInput.h"
 
 #include "HoudiniEngineRuntime.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniOutput.h"
 #include "HoudiniSplineComponent.h"
@@ -53,15 +54,20 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Landscape.h"
 #include "LandscapeInfo.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "GeometryCollection/GeometryCollectionActor.h"
+	#include "GeometryCollection/GeometryCollectionComponent.h"
+	#include "GeometryCollection/GeometryCollectionObject.h"
+#else
+	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
+	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
+	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"	
+#endif
+
 
 #if WITH_EDITOR
-
-#include "Kismet2/BlueprintEditorUtils.h"
-#include "Kismet2/KismetEditorUtilities.h"
-
+	#include "Kismet2/BlueprintEditorUtils.h"
+	#include "Kismet2/KismetEditorUtilities.h"
 #endif
 
 //

@@ -968,8 +968,11 @@ FHoudiniEngineManager::UpdateInstantiating(UHoudiniAssetComponent* HAC, EHoudini
 			FString WarningTitle = TEXT("Houdini Engine Plugin Warning");
 			FText WarningTitleText = FText::FromString(WarningTitle);
 			FString WarningMessage = FString::Printf(TEXT("Houdini License issue - %s."), *StatusMessage);
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+			FMessageDialog::Debugf(FText::FromString(WarningMessage), WarningTitleText);
+#else
 			FMessageDialog::Debugf(FText::FromString(WarningMessage), &WarningTitleText);
+#endif
 		}
 
 		// Reset the cook counter.

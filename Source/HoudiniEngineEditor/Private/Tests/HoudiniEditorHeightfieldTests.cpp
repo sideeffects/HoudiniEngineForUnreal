@@ -38,7 +38,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorHeightfieldTest_Heightfiel
 
 bool HoudiniEditorHeightfieldTest_Heightfields_Common::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		const FString MapName = FHoudiniEditorHeightfieldTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Heightfield_Common");
@@ -54,7 +54,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorHeightfieldTest_hf_tile_sc
 
 bool HoudiniEditorHeightfieldTest_hf_tile_scatter_instance::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
         {
                 const FString MapName = FHoudiniEditorHeightfieldTests::EquivalenceTestMapName;
                 const FString ActorName = TEXT("hf_tile_scatter_instance");

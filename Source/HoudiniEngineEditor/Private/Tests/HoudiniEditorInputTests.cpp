@@ -42,7 +42,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInputTest_Mesh_Input, "Hou
 
 bool HoudiniEditorInputTest_Mesh_Input::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		const FString MapName = FHoudiniEditorInputTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Mesh_Input");
@@ -52,7 +52,7 @@ bool HoudiniEditorInputTest_Mesh_Input::RunTest(const FString & Parameters)
 		this->AddSupressedWarning("failed to load '/Game/HoudiniEngine/Temp/plain_cube");
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr, nullptr,
-		[=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		[this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			const FString InputHDAPath = FHoudiniEditorInputTests::TestHDAPath + TEXT("Helpers/plain_cube");
 			const FString InputActorName = TEXT("Mesh_Input_input");
@@ -61,7 +61,7 @@ bool HoudiniEditorInputTest_Mesh_Input::RunTest(const FString & Parameters)
 				FHoudiniEditorTestUtils::DeleteHACWithNameInLevelAndSave(InputActorName);
 			
 			FHoudiniEditorTestUtils::InstantiateAsset(this, FName(InputHDAPath),
-			[=] (UHoudiniPublicAPIAssetWrapper* InInputAssetWrapper, const bool Success)
+			[this, ContinueCallback, InAssetWrapper, InputActorName, bSaveAssets, DefaultCookFolder] (UHoudiniPublicAPIAssetWrapper* InInputAssetWrapper, const bool Success)
 			{
 				if (!Success)
 				{
@@ -81,7 +81,7 @@ bool HoudiniEditorInputTest_Mesh_Input::RunTest(const FString & Parameters)
 				InAssetWrapper->SetInputAtIndex(0, AssetInput);
 
 				FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[this, bSaveAssets, ContinueCallback](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -101,7 +101,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInputTest_Heightfield_Inpu
 
 bool HoudiniEditorInputTest_Heightfield_Input::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		const FString MapName = FHoudiniEditorInputTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Heightfield_Input");
@@ -111,7 +111,7 @@ bool HoudiniEditorInputTest_Heightfield_Input::RunTest(const FString & Parameter
 		 this->AddSupressedWarning("failed to load '/Game/HoudiniEngine/Temp/plain_cube");
 		
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr, nullptr,
-		[=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		[this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			const FString InputHDAPath = FHoudiniEditorInputTests::TestHDAPath + TEXT("Helpers/plain_heightfield");
 			const FString InputActorName = TEXT("Heightfield_Input_input");
@@ -120,7 +120,7 @@ bool HoudiniEditorInputTest_Heightfield_Input::RunTest(const FString & Parameter
 				FHoudiniEditorTestUtils::DeleteHACWithNameInLevelAndSave(InputActorName);
 			
 			FHoudiniEditorTestUtils::InstantiateAsset(this, FName(InputHDAPath),
-			[=] (UHoudiniPublicAPIAssetWrapper* InInputAssetWrapper, const bool Success)
+			[this, ContinueCallback, InputActorName, InAssetWrapper, bSaveAssets, DefaultCookFolder] (UHoudiniPublicAPIAssetWrapper* InInputAssetWrapper, const bool Success)
 			{
 				if (!Success)
 				{
@@ -173,7 +173,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInputTest_Mesh_Geo_Input, 
 
 bool HoudiniEditorInputTest_Mesh_Geo_Input::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		const FString MapName = FHoudiniEditorInputTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Mesh_Geo_Input");
@@ -183,7 +183,7 @@ bool HoudiniEditorInputTest_Mesh_Geo_Input::RunTest(const FString & Parameters)
  		this->AddSupressedWarning("failed to load '/Game/HoudiniEngine/Temp/plain_cube");
 		
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr, nullptr,
-		[=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		[this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 
 			// const FString AssetName = "Blueprint'/Game/TestObjects/BP_Cube.BP_Cube'"; // BUGGED - Please copy/paste this test and remove this line when fixed.
@@ -197,7 +197,7 @@ bool HoudiniEditorInputTest_Mesh_Geo_Input::RunTest(const FString & Parameters)
 			InAssetWrapper->SetInputAtIndex(0, AssetInput);
 
 			FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-			[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+			[this, bSaveAssets, ContinueCallback](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 			{
 				if (bSaveAssets)
 					FHoudiniEditorTestUtils::SaveCurrentLevel();
@@ -216,7 +216,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInputTest_Curve_Input, "Ho
 
 bool HoudiniEditorInputTest_Curve_Input::RunTest(const FString & Parameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		const FString MapName = FHoudiniEditorInputTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Curve_Input");
@@ -226,7 +226,7 @@ bool HoudiniEditorInputTest_Curve_Input::RunTest(const FString & Parameters)
 		this->AddSupressedWarning("failed to load '/Game/HoudiniEngine/Temp/plain_cube");
 		
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr, nullptr,
-		[=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
+		[this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			const FString CurveHDAPath = FHoudiniEditorInputTests::TestHDAPath + TEXT("Helpers/plain_editable_curve");
 			const FString CurveActorName = TEXT("curve_input_hda");
@@ -235,7 +235,7 @@ bool HoudiniEditorInputTest_Curve_Input::RunTest(const FString & Parameters)
 				FHoudiniEditorTestUtils::DeleteHACWithNameInLevelAndSave(CurveActorName);
 			
 			FHoudiniEditorTestUtils::InstantiateAsset(this, FName(CurveHDAPath),
-			[=] (UHoudiniPublicAPIAssetWrapper* InAssetWrapperCurve, const bool Success)
+			[this, CurveActorName, InAssetWrapper, bSaveAssets, ContinueCallback, DefaultCookFolder] (UHoudiniPublicAPIAssetWrapper* InAssetWrapperCurve, const bool Success)
 			{
 				if (!Success)
 				{
@@ -256,7 +256,7 @@ bool HoudiniEditorInputTest_Curve_Input::RunTest(const FString & Parameters)
 
 
 				FHoudiniEditorTestUtils::RecookAndWait(this, InAssetWrapper,
-				[=](UHoudiniPublicAPIAssetWrapper* _, const bool __)
+				[this, bSaveAssets, ContinueCallback](UHoudiniPublicAPIAssetWrapper* _, const bool __)
 				{
 					if (bSaveAssets)
 						FHoudiniEditorTestUtils::SaveCurrentLevel();

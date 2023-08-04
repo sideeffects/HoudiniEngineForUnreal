@@ -37,7 +37,11 @@
 #include "UObject/MetaData.h"
 #include "Animation/Skeleton.h"
 #include "FoliageType_InstancedStaticMesh.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "GeometryCollection/GeometryCollectionObject.h"
+#else
+	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
+#endif
 #include "HoudiniDataLayerUtils.h"
 
 #if HOUDINI_ENABLE_DATA_LAYERS

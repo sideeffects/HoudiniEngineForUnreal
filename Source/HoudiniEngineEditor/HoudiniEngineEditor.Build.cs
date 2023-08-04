@@ -79,7 +79,8 @@ public class HoudiniEngineEditor : ModuleRules
                 "Foliage",
                 "FoliageEdit",
                 "Chaos",
-                "GeometryCollectionEngine"
+                "GeometryCollectionEngine",
+                "MaterialEditor"
             }
         );
 
@@ -117,14 +118,14 @@ public class HoudiniEngineEditor : ModuleRules
         );
 
         if (Target.Version.MajorVersion == 5 && (Target.Version.MinorVersion == 0 || Target.Version.MinorVersion == 1))
-        {
-            PrivateDependencyModuleNames.AddRange(
-                new string[]
-                {
-                    "EditorScriptingUtilities"
-                }
-            );
-        }
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"EditorScriptingUtilities"
+				}
+			);
+		}
 
         DynamicallyLoadedModuleNames.AddRange(
             new string[]

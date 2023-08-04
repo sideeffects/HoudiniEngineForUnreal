@@ -63,8 +63,14 @@
 #include "WorldBrowserModule.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "InstancedFoliageActor.h"
-#include "GeometryCollection/GeometryCollectionActor.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "GeometryCollection/GeometryCollectionActor.h"
+	#include "GeometryCollection/GeometryCollectionObject.h"
+#else
+	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
+	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
+#endif
+
 #include "HoudiniFoliageTools.h"
 #include "HoudiniLevelInstanceUtils.h"
 #include "Engine/UserDefinedStruct.h"

@@ -30,7 +30,11 @@
 #include "HoudiniEditorTestUtils.h"
 #include "HoudiniPublicAPIAssetWrapper.h"
 
-#include "Core/Public/HAL/FileManager.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "HAL/FileManager.h"
+#else
+	#include "Core/Public/HAL/FileManager.h"
+#endif
 #include "Misc/AutomationTest.h"
 #include "HoudiniAssetComponent.h"
 
@@ -42,7 +46,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorTemplatedGeoTest_HACDisabl
 
 bool HoudiniEditorTemplatedGeoTest_HACDisabled::RunTest(const FString& InParameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		const FString TestName = TEXT("HACDisabled");
 		const FString MapName = FHoudiniEditorTemplatedGeoTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -51,7 +55,7 @@ bool HoudiniEditorTemplatedGeoTest_HACDisabled::RunTest(const FString& InParamet
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
 			// OnPreInstantiate -- set parameters or HAC properties etc
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!IsValid(InAssetWrapper))
 				{
@@ -80,7 +84,7 @@ bool HoudiniEditorTemplatedGeoTest_HACEnabled::RunTest(const FString& InParamete
 			"HAPI_CookOptions::cookTemplatedGeos is false. Geo info may be out of date."),
 		EAutomationExpectedErrorFlags::Contains, 0);
 	*/
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		const FString TestName = TEXT("HACEnabled");
 		const FString MapName = FHoudiniEditorTemplatedGeoTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -89,7 +93,7 @@ bool HoudiniEditorTemplatedGeoTest_HACEnabled::RunTest(const FString& InParamete
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
 			// OnPreInstantiate -- set parameters or HAC properties etc
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				UHoudiniAssetComponent* HAC = nullptr;
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperTestObjectAndGetValidHAC(this, InAssetWrapper, InTestObject, HAC))
@@ -109,7 +113,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorTemplatedGeoTest_HACEnable
 
 bool HoudiniEditorTemplatedGeoTest_HACEnabled_NoTemplateInOutput::RunTest(const FString& InParameters)
 {
-	FHoudiniEditorTestUtils::InitializeTests(this, [=]
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		const FString TestName = TEXT("HACEnabled_NoTemplateInOutput");
 		const FString MapName = FHoudiniEditorTemplatedGeoTests::EquivalenceTestMapName + TEXT("/") + TestName;
@@ -118,7 +122,7 @@ bool HoudiniEditorTemplatedGeoTest_HACEnabled_NoTemplateInOutput::RunTest(const 
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
 			// OnPreInstantiate -- set parameters or HAC properties etc
-			[=](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				UHoudiniAssetComponent* HAC = nullptr;
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperTestObjectAndGetValidHAC(this, InAssetWrapper, InTestObject, HAC))

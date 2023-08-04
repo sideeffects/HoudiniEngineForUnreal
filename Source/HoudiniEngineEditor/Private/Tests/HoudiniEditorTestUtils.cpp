@@ -53,8 +53,13 @@
 #include "FileHelpers.h"
 #include "LevelEditor.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "Core/Public/HAL/FileManager.h"
-#include "Core/Public/HAL/PlatformFileManager.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "HAL/FileManager.h"
+	#include "HAL/PlatformFileManager.h"
+#else
+	#include "Core/Public/HAL/FileManager.h"
+	#include "Core/Public/HAL/PlatformFileManager.h"
+#endif
 #include "Editor/EditorPerformanceSettings.h"
 #include "Engine/Selection.h"
 #include "Interfaces/IMainFrameModule.h"
