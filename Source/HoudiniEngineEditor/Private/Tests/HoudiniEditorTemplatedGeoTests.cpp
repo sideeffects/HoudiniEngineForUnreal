@@ -55,7 +55,7 @@ bool HoudiniEditorTemplatedGeoTest_HACDisabled::RunTest(const FString& InParamet
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
 			// OnPreInstantiate -- set parameters or HAC properties etc
-			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!IsValid(InAssetWrapper))
 				{
@@ -93,7 +93,7 @@ bool HoudiniEditorTemplatedGeoTest_HACEnabled::RunTest(const FString& InParamete
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
 			// OnPreInstantiate -- set parameters or HAC properties etc
-			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				UHoudiniAssetComponent* HAC = nullptr;
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperTestObjectAndGetValidHAC(this, InAssetWrapper, InTestObject, HAC))
@@ -122,7 +122,7 @@ bool HoudiniEditorTemplatedGeoTest_HACEnabled_NoTemplateInOutput::RunTest(const 
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
 			// OnPreInstantiate -- set parameters or HAC properties etc
-			[=, this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
+			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				UHoudiniAssetComponent* HAC = nullptr;
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperTestObjectAndGetValidHAC(this, InAssetWrapper, InTestObject, HAC))
