@@ -32,7 +32,7 @@
 
 /*
 
-    Houdini Version: 19.5.697
+    Houdini Version: 19.5.698
     Houdini Engine Version: 5.0.8
     Unreal Version: 5.0.0
 
@@ -47,7 +47,7 @@ public class HoudiniEngine : ModuleRules
 {
     private string GetHFSPath()
     {
-        string HoudiniVersion = "19.5.697";
+        string HoudiniVersion = "19.5.698";
         bool bIsRelease = true;
         string HFSPath = "";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Side Effects Software";
@@ -342,6 +342,13 @@ public class HoudiniEngine : ModuleRules
                     "SubobjectEditor"
                 }
             );
+        }
+
+        if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion >= 3)
+        {
+            PrivateIncludePaths.AddRange(new string[] {
+                System.IO.Path.Combine(GetModuleDirectory("MeshMergeUtilities"), "Private"),
+            });
         }
 
         PrivateIncludePathModuleNames.AddRange(
