@@ -81,6 +81,11 @@ UHoudiniInput::UHoudiniInput()
 	, bIsObjectPathParameter(false)
 	, bHasChanged(false)
 	, bPackBeforeMerge(false)
+	, bExportLODs_DEPRECATED(false)
+	, bExportSockets_DEPRECATED(false)
+	, bPreferNaniteFallbackMesh_DEPRECATED(false)
+	, bExportColliders_DEPRECATED(false)
+	, bExportMaterialParameters_DEPRECATED(false)
 	, bDirectlyConnectHdas(true)
 	, bExportOptionsMenuExpanded(false)
 	, bGeometryInputsMenuExpanded(true)
@@ -94,8 +99,11 @@ UHoudiniInput::UHoudiniInput()
 	, bStaticMeshChanged(false)
 	, bInputAssetConnectedInHoudini(false)
 	, DefaultCurveOffset(0.f)
+	, bAddRotAndScaleAttributesOnCurves_DEPRECATED(false)
+	, bUseLegacyInputCurves_DEPRECATED(false)
 	, bIsWorldInputBoundSelector(false)
 	, bWorldInputBoundSelectorAutoUpdate(false)
+	, UnrealSplineResolution_DEPRECATED(0.0f)
 	, bCanDeleteHoudiniNodes(true)
 {
 	Name = TEXT("");
@@ -105,26 +113,20 @@ UHoudiniInput::UHoudiniInput()
 	// Geometry inputs always have one null default object
 	GeometryInputObjects.Add(nullptr);
 	GeometryCollectionInputObjects.Add(nullptr);
+
+	InputSettings.KeepWorldTransform = GetDefaultXTransformType();
 	
 	const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#else
-#pragma warning(push)
-#pragma warning(disable : 4996)	// disable deprecation warning locally
-#endif
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	KeepWorldTransform_DEPRECATED = GetDefaultXTransformType();
+	
 	UnrealSplineResolution_DEPRECATED = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->MarshallingSplineResolution : 50.0f;
 
 	bAddRotAndScaleAttributesOnCurves_DEPRECATED = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bAddRotAndScaleAttributesOnCurves : false;
 	bUseLegacyInputCurves_DEPRECATED = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bUseLegacyInputCurves : false;
 
 	bPreferNaniteFallbackMesh_DEPRECATED = HoudiniRuntimeSettings && HoudiniRuntimeSettings->bPreferNaniteFallbackMesh;
-#ifdef __clang__
-#pragma clang diagnostic pop
-#else
-#pragma warning(pop)
-#endif
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 #if WITH_EDITORONLY_DATA
 	bLandscapeUIAdvancedIsExpanded = false;
@@ -362,13 +364,7 @@ UHoudiniInput::Serialize(FArchive& Ar)
 	Ar.UsingCustomVersion(FHoudiniCustomSerializationVersion::GUID);
 	if (Ar.CustomVer(FHoudiniCustomSerializationVersion::GUID) < VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INPUT_OBJECT_SETTINGS_STRUCT)
 	{
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#else
-#pragma warning(push)
-#pragma warning(disable : 4996)	// disable deprecation warning locally
-#endif
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		// Copy the _DEPRECATED input settings to the InputSettings struct
 		InputSettings.KeepWorldTransform = KeepWorldTransform_DEPRECATED;
 		InputSettings.bImportAsReference = bImportAsReference_DEPRECATED;
@@ -395,11 +391,7 @@ UHoudiniInput::Serialize(FArchive& Ar)
 		InputSettings.bLandscapeSplinesExportLeftRightCurves = bLandscapeSplinesExportLeftRightCurves_DEPRECATED;
 		InputSettings.bLandscapeSplinesExportSplineMeshComponents = bLandscapeSplinesExportSplineMeshComponents_DEPRECATED;
 		InputSettings.bMergeSplineMeshComponents = bMergeSplineMeshComponents_DEPRECATED;
-#ifdef __clang__
-#pragma clang diagnostic pop
-#else
-#pragma warning(pop)
-#endif
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 	
 	// On load, change the input selection from old input types to
