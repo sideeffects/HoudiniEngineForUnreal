@@ -469,7 +469,7 @@ SCustomizedBox::SetHoudiniParameter(const TArray<TWeakObjectPtr<UHoudiniParamete
 
 					case EHoudiniInputType::Landscape:
 					{
-						if (Input->LandscapeExportType == EHoudiniLandscapeExportType::Heightfield)
+						if (Input->GetLandscapeExportType() == EHoudiniLandscapeExportType::Heightfield)
 							MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_LANDSCAPE_MULTIPARMHEADER;
 						else
 							MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_LANDSCAPE_MESH_MULTIPARMHEADER;
@@ -533,7 +533,7 @@ SCustomizedBox::SetHoudiniParameter(const TArray<TWeakObjectPtr<UHoudiniParamete
 
 					case EHoudiniInputType::Landscape:
 					{
-						if (Input->LandscapeExportType == EHoudiniLandscapeExportType::Heightfield)
+						if (Input->GetLandscapeExportType() == EHoudiniLandscapeExportType::Heightfield)
 							MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_LANDSCAPE;
 						else
 							MarginHeight = HOUDINI_PARAMETER_UI_ROW_MARGIN_HEIGHT_INPUT_LANDSCAPE_MESH;

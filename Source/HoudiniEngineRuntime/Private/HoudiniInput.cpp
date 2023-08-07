@@ -37,6 +37,7 @@
 #include "HoudiniAssetBlueprintComponent.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputManager.h"
+#include "LandscapeSplineActor.h"
 
 #include "EngineUtils.h"
 #include "Engine/Brush.h"
@@ -63,6 +64,7 @@
 	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"	
 #endif
+#include "UObject/ObjectSaveContext.h"
 
 
 #if WITH_EDITOR
@@ -95,13 +97,6 @@ UHoudiniInput::UHoudiniInput()
 	, bIsWorldInputBoundSelector(false)
 	, bWorldInputBoundSelectorAutoUpdate(false)
 	, UnrealSplineResolution(0.0f)
-	, LandscapeExportType(EHoudiniLandscapeExportType::Heightfield)
-	, bLandscapeExportSelectionOnly(false)
-	, bLandscapeAutoSelectComponent(false)
-	, bLandscapeExportMaterials(false)
-	, bLandscapeExportLighting(false)
-	, bLandscapeExportNormalizedUVs(false)
-	, bLandscapeExportTileUVs(false)
 	, bCanDeleteHoudiniNodes(true)
 {
 	Name = TEXT("");
@@ -111,16 +106,20 @@ UHoudiniInput::UHoudiniInput()
 	// Geometry inputs always have one null default object
 	GeometryInputObjects.Add(nullptr);
 	GeometryCollectionInputObjects.Add(nullptr);
-	
-	KeepWorldTransform = GetDefaultXTransformType();
 
+	InputSettings.KeepWorldTransform = GetDefaultXTransformType();
+	
 	const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	KeepWorldTransform = GetDefaultXTransformType();
+	
 	UnrealSplineResolution = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->MarshallingSplineResolution : 50.0f;
 
 	bAddRotAndScaleAttributesOnCurves = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bAddRotAndScaleAttributesOnCurves : false;
 	bUseLegacyInputCurves = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bUseLegacyInputCurves : false;
 
 	bPreferNaniteFallbackMesh = HoudiniRuntimeSettings && HoudiniRuntimeSettings->bPreferNaniteFallbackMesh;
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 #if WITH_EDITORONLY_DATA
 	bLandscapeUIAdvancedIsExpanded = false;
@@ -297,7 +296,7 @@ void UHoudiniInput::PostEditUndo()
 					 ReconstructedSpline->CopyHoudiniData(SplineComponent);
 
 					 UHoudiniInputObject * ReconstructedInputObject = UHoudiniInputHoudiniSplineComponent::Create(
-						 ReconstructedSpline, GetOuter(), ReconstructedSpline->GetHoudiniSplineName());
+						 ReconstructedSpline, GetOuter(), ReconstructedSpline->GetHoudiniSplineName(), InputSettings);
 					 UHoudiniInputHoudiniSplineComponent *ReconstructedHoudiniSplineInput = (UHoudiniInputHoudiniSplineComponent*)ReconstructedInputObject;
 					 (*InputObjectsPtr)[Index] = ReconstructedHoudiniSplineInput;
 
@@ -364,6 +363,75 @@ void UHoudiniInput::PostEditUndo()
 }
 #endif
 
+void
+UHoudiniInput::PreSave(FObjectPreSaveContext SaveContext)
+{
+	// When saving copy the new input settings struct values to the individual properties so that we remain compatible
+	// with older versions that don't have the struct until the next release
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	KeepWorldTransform = InputSettings.KeepWorldTransform;
+	bImportAsReference = InputSettings.bImportAsReference;
+	bImportAsReferenceRotScaleEnabled = InputSettings.bImportAsReferenceRotScaleEnabled;
+	bImportAsReferenceBboxEnabled = InputSettings.bImportAsReferenceBboxEnabled;
+	bImportAsReferenceMaterialEnabled = InputSettings.bImportAsReferenceMaterialEnabled;
+	bExportLODs = InputSettings.bExportLODs;
+	bExportSockets = InputSettings.bExportSockets;
+	bPreferNaniteFallbackMesh = InputSettings.bPreferNaniteFallbackMesh;
+	bExportColliders = InputSettings.bExportColliders;
+	bExportMaterialParameters = InputSettings.bExportMaterialParameters;
+	bAddRotAndScaleAttributesOnCurves = InputSettings.bAddRotAndScaleAttributesOnCurves;
+	bUseLegacyInputCurves = InputSettings.bUseLegacyInputCurves;
+	UnrealSplineResolution = InputSettings.UnrealSplineResolution;
+	LandscapeExportType = InputSettings.LandscapeExportType;
+	bLandscapeExportSelectionOnly = InputSettings.bLandscapeExportSelectionOnly;
+	bLandscapeAutoSelectComponent = InputSettings.bLandscapeAutoSelectComponent;
+	bLandscapeExportMaterials = InputSettings.bLandscapeExportMaterials;
+	bLandscapeExportLighting = InputSettings.bLandscapeExportLighting;
+	bLandscapeExportNormalizedUVs = InputSettings.bLandscapeExportNormalizedUVs;
+	bLandscapeExportTileUVs = InputSettings.bLandscapeExportTileUVs;
+	bLandscapeAutoSelectSplines = InputSettings.bLandscapeAutoSelectSplines;
+	bLandscapeSplinesExportControlPoints = InputSettings.bLandscapeSplinesExportControlPoints;
+	bLandscapeSplinesExportLeftRightCurves = InputSettings.bLandscapeSplinesExportLeftRightCurves;
+	bLandscapeSplinesExportSplineMeshComponents = InputSettings.bLandscapeSplinesExportSplineMeshComponents;
+	bMergeSplineMeshComponents = InputSettings.bMergeSplineMeshComponents;
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	
+	Super::PreSave(SaveContext);
+}
+
+void UHoudiniInput::PostLoad()
+{
+	// Load from the old individual properties and populate the struct
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	InputSettings.KeepWorldTransform = KeepWorldTransform;
+	InputSettings.bImportAsReference = bImportAsReference;
+	InputSettings.bImportAsReferenceRotScaleEnabled = bImportAsReferenceRotScaleEnabled;
+	InputSettings.bImportAsReferenceBboxEnabled = bImportAsReferenceBboxEnabled;
+	InputSettings.bImportAsReferenceMaterialEnabled = bImportAsReferenceMaterialEnabled;
+	InputSettings.bExportLODs = bExportLODs;
+	InputSettings.bExportSockets = bExportSockets;
+	InputSettings.bPreferNaniteFallbackMesh = bPreferNaniteFallbackMesh;
+	InputSettings.bExportColliders = bExportColliders;
+	InputSettings.bExportMaterialParameters = bExportMaterialParameters;
+	InputSettings.bAddRotAndScaleAttributesOnCurves = bAddRotAndScaleAttributesOnCurves;
+	InputSettings.bUseLegacyInputCurves = bUseLegacyInputCurves;
+	InputSettings.UnrealSplineResolution = UnrealSplineResolution;
+	InputSettings.LandscapeExportType = LandscapeExportType;
+	InputSettings.bLandscapeExportSelectionOnly = bLandscapeExportSelectionOnly;
+	InputSettings.bLandscapeAutoSelectComponent = bLandscapeAutoSelectComponent;
+	InputSettings.bLandscapeExportMaterials = bLandscapeExportMaterials;
+	InputSettings.bLandscapeExportLighting = bLandscapeExportLighting;
+	InputSettings.bLandscapeExportNormalizedUVs = bLandscapeExportNormalizedUVs;
+	InputSettings.bLandscapeExportTileUVs = bLandscapeExportTileUVs;
+	InputSettings.bLandscapeAutoSelectSplines = bLandscapeAutoSelectSplines;
+	InputSettings.bLandscapeSplinesExportControlPoints = bLandscapeSplinesExportControlPoints;
+	InputSettings.bLandscapeSplinesExportLeftRightCurves = bLandscapeSplinesExportLeftRightCurves;
+	InputSettings.bLandscapeSplinesExportSplineMeshComponents = bLandscapeSplinesExportSplineMeshComponents;
+	InputSettings.bMergeSplineMeshComponents = bMergeSplineMeshComponents;
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+	Super::PostLoad();
+}
 
 FBox 
 UHoudiniInput::GetBounds(UWorld * World) 
@@ -511,7 +579,7 @@ UHoudiniInput::GetBounds(UWorld * World)
 void UHoudiniInput::UpdateLandscapeInputSelection()
 {
 	LandscapeSelectedComponents.Reset();
-	if (!bLandscapeExportSelectionOnly) return;
+	if (!InputSettings.bLandscapeExportSelectionOnly) return;
 
 #if WITH_EDITOR
 	for (UHoudiniInputObject* NextInputObj : LandscapeInputObjects)
@@ -526,7 +594,7 @@ void UHoudiniInput::UpdateLandscapeInputSelection()
 
 		// Get selected components if bLandscapeExportSelectionOnly or bLandscapeAutoSelectComponent is true
 		FBox Bounds(ForceInitToZero);
-		if ( bLandscapeAutoSelectComponent )
+		if ( InputSettings.bLandscapeAutoSelectComponent )
 		{
 			// Get our asset's or our connected input asset's bounds
 			UHoudiniAssetComponent* AssetComponent = Cast<UHoudiniAssetComponent>(GetOuter());
@@ -536,7 +604,7 @@ void UHoudiniInput::UpdateLandscapeInputSelection()
 			}
 		}
 	
-		if ( bLandscapeExportSelectionOnly )
+		if ( InputSettings.bLandscapeExportSelectionOnly )
 		{
 			const ULandscapeInfo * LandscapeInfo = CurrentInputLandscapeProxy->GetLandscapeInfo();
 			if ( IsValid(LandscapeInfo) )
@@ -545,7 +613,7 @@ void UHoudiniInput::UpdateLandscapeInputSelection()
 				LandscapeSelectedComponents = LandscapeInfo->GetSelectedComponents();
 			}
 	
-			if ( bLandscapeAutoSelectComponent && LandscapeSelectedComponents.Num() <= 0 && Bounds.IsValid )
+			if ( InputSettings.bLandscapeAutoSelectComponent && LandscapeSelectedComponents.Num() <= 0 && Bounds.IsValid )
 			{
 				// We'll try to use the asset bounds to automatically "select" the components
 				for ( int32 ComponentIdx = 0; ComponentIdx < CurrentInputLandscapeProxy->LandscapeComponents.Num(); ComponentIdx++ )
@@ -789,7 +857,7 @@ bool
 UHoudiniInput::GetKeepWorldTransform() const
 {
 	bool bReturn = false;
-	switch (KeepWorldTransform)
+	switch (InputSettings.KeepWorldTransform)
 	{
 		case EHoudiniXformType::Auto:
 		{
@@ -831,11 +899,11 @@ UHoudiniInput::SetKeepWorldTransform(const bool& bInKeepWorldTransform)
 {
 	if (bInKeepWorldTransform)
 	{
-		KeepWorldTransform = EHoudiniXformType::IntoThisObject;
+		InputSettings.KeepWorldTransform = EHoudiniXformType::IntoThisObject;
 	}
 	else
 	{
-		KeepWorldTransform = EHoudiniXformType::None;
+		InputSettings.KeepWorldTransform = EHoudiniXformType::None;
 	}
 }
 
@@ -979,7 +1047,7 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 		case EHoudiniInputType::Asset:
 		{
 			UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(GetOuter());
-			if (OuterHAC && !bImportAsReference) 
+			if (OuterHAC && !InputSettings.bImportAsReference) 
 			{
 				for (auto& CurrentInput : *GetHoudiniInputObjectArray(Type)) 
 				{
@@ -1433,7 +1501,7 @@ UHoudiniInput::CreateHoudiniSplineInput(UHoudiniInputHoudiniSplineComponent * Fr
 
 		// Create a Houdini Input Object.
 		UHoudiniInputObject * NewInputObject = UHoudiniInputHoudiniSplineComponent::Create(
-			nullptr, OuterObj, HoudiniSplineName.ToString());
+			nullptr, OuterObj, HoudiniSplineName.ToString(), InputSettings);
 
 		if (!IsValid(NewInputObject))
 			return nullptr;
@@ -1448,7 +1516,7 @@ UHoudiniInput::CreateHoudiniSplineInput(UHoudiniInputHoudiniSplineComponent * Fr
 		if (!IsValid(HoudiniSplineComponent))
 			return nullptr;
 
-		HoudiniSplineInput->Update(HoudiniSplineComponent);
+		HoudiniSplineInput->Update(HoudiniSplineComponent, InputSettings);
 
 		HoudiniSplineComponent->SetHoudiniSplineName(HoudiniSplineName.ToString());
 		HoudiniSplineComponent->SetFlags(RF_Transactional);
@@ -1638,7 +1706,7 @@ UHoudiniInput::RemoveSplineFromInputObject(
 			HoudiniSplineComponent->DestroyComponent();
 		}
 	}
-	InHoudiniSplineInputObject->Update(nullptr);
+	InHoudiniSplineInputObject->Update(nullptr, InputSettings);
 }
 
 
@@ -2033,7 +2101,7 @@ UHoudiniInput::SetInputObjectAt(const EHoudiniInputType& InType, const int32& At
 	if (CurrentObjectType == NewObjectType && NewObjectType != EHoudiniInputObjectType::Invalid)
 	{
 		// The InputObjectTypes match, we can just update the existing object
-		CurrentInputObjectWrapper->Update(InObject);
+		CurrentInputObjectWrapper->Update(InObject, InputSettings);
 		CurrentInputObjectWrapper->MarkChanged(true);
 		return;
 	}
@@ -2043,7 +2111,7 @@ UHoudiniInput::SetInputObjectAt(const EHoudiniInputType& InType, const int32& At
 	if (!ensure(InputObjectsPtr))
 		return;
 
-	UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(InObject, this, FString::FromInt(AtIndex + 1));
+	UHoudiniInputObject* NewInputObject = UHoudiniInputObject::CreateTypedInputObject(InObject, this, FString::FromInt(AtIndex + 1), InputSettings);
 	if (!ensure(NewInputObject))
 		return;
 
@@ -2481,10 +2549,10 @@ UHoudiniInput::SetTransformOffsetAt(const float& Value, const int32& AtIndex, co
 void
 UHoudiniInput::SetAddRotAndScaleAttributes(const bool& InValue)
 {
-	if (bAddRotAndScaleAttributesOnCurves == InValue)
+	if (InputSettings.bAddRotAndScaleAttributesOnCurves == InValue)
 		return;
 
-	bAddRotAndScaleAttributesOnCurves = InValue;
+	InputSettings.bAddRotAndScaleAttributesOnCurves = InValue;
 
 	// Mark all input obj as changed
 	MarkAllInputObjectsChanged(true);
@@ -2493,10 +2561,10 @@ UHoudiniInput::SetAddRotAndScaleAttributes(const bool& InValue)
 void
 UHoudiniInput::SetUseLegacyInputCurve(const bool& InValue)
 {
-	if (bUseLegacyInputCurves == InValue)
+	if (InputSettings.bUseLegacyInputCurves == InValue)
 		return;
 
-	bUseLegacyInputCurves = InValue;
+	InputSettings.bUseLegacyInputCurves = InValue;
 
 	// Mark all input obj as changed
 	MarkAllInputObjectsChanged(true);
@@ -2694,6 +2762,9 @@ UHoudiniInput::UpdateWorldSelection(const TArray<AActor*>& InNewSelection)
 		SetInputObjectAt(InputObjectIdx++, CurActor);
 	}
 
+	if (!bIsWorldInputBoundSelector && InputSettings.bLandscapeAutoSelectSplines && AddAllLandscapeSplineActorsForInputLandscapes())
+		bHasSelectionChanged = true;
+	
 	MarkChanged(bHasSelectionChanged);
 
 	return bHasSelectionChanged;
@@ -2885,4 +2956,157 @@ void UHoudiniInput::RemoveHoudiniInputObject(UHoudiniInputObject* InInputObject)
 	});
 
 	return;
+}
+
+void UHoudiniInput::SetLandscapeAutoSelectSplines(const bool bInLandscapeAutoSelectSplines)
+{
+	if (bInLandscapeAutoSelectSplines == InputSettings.bLandscapeAutoSelectSplines)
+		return;
+	
+	InputSettings.bLandscapeAutoSelectSplines = bInLandscapeAutoSelectSplines;
+}
+
+bool
+UHoudiniInput::RemoveAllLandscapeSplineActorsForInputLandscapes()
+{
+	// Only support world inputs
+	if (Type != EHoudiniInputType::World)
+		return false;
+	
+	// First determine all selected landscapes
+	const int32 NumWorldInputObjects = WorldInputObjects.Num();
+	TSet<ALandscapeProxy const*> SelectedLandscapes;
+	for (UHoudiniInputObject const* const InputObject : WorldInputObjects)
+	{
+		if (!IsValid(InputObject))
+			continue;
+		UHoudiniInputLandscape const* const InputLandscape = Cast<UHoudiniInputLandscape>(InputObject);
+		if (!IsValid(InputLandscape))
+			continue;
+		ALandscapeProxy const* const InputLandscapeProxy = InputLandscape->GetLandscapeProxy();
+		if (!IsValid(InputLandscapeProxy))
+			continue;
+		if (SelectedLandscapes.IsEmpty())
+			SelectedLandscapes.Reserve(NumWorldInputObjects);
+		SelectedLandscapes.Add(InputLandscapeProxy);
+	}
+
+	// If no landscapes are selected, then we don't have to deselect any landscape splines
+	if (SelectedLandscapes.IsEmpty())
+		return false;
+
+	// Get the index of each landscape spline that is in our world input objects selection that belongs to one of
+	// the selected landscapes
+	TArray<int32> IndicesToRemove;
+	for (int32 Index = 0; Index < NumWorldInputObjects; ++Index)
+	{
+		UHoudiniInputObject const* const InputObject = WorldInputObjects[Index];
+		if (!IsValid(InputObject))
+			continue;
+		UHoudiniInputLandscapeSplineActor const* const InputObjectSplineActor = Cast<UHoudiniInputLandscapeSplineActor>(InputObject);
+		if (!IsValid(InputObjectSplineActor))
+			continue;
+		ALandscapeSplineActor const* const SplineActor = InputObjectSplineActor->GetLandscapeSplineActor();
+		if (!IsValid(SplineActor))
+			continue;
+		ULandscapeInfo const* const LandscapeInfo = SplineActor->GetLandscapeInfo();
+		if (!IsValid(LandscapeInfo))
+			continue;
+		ALandscapeProxy const* const LandscapeProxy = LandscapeInfo->GetLandscapeProxy();
+		if (!IsValid(LandscapeProxy))
+			continue;
+		if (!SelectedLandscapes.Contains(LandscapeProxy))
+			continue;
+		if (IndicesToRemove.IsEmpty())
+			IndicesToRemove.Reserve(NumWorldInputObjects);
+		IndicesToRemove.Add(Index);
+	}
+
+	// Remove the landscape splines from highest index to lowest index
+	const int32 NumIndicesToRemove = IndicesToRemove.Num();
+	if (NumIndicesToRemove <= 0)
+		return false;
+	
+	for (int32 Index = NumIndicesToRemove - 1; Index >= 0; --Index)
+	{
+		const int32 IndexToRemove = IndicesToRemove[Index];
+		DeleteInputObjectAt(EHoudiniInputType::World, IndexToRemove);
+	}
+
+	return true;
+}
+
+bool
+UHoudiniInput::AddAllLandscapeSplineActorsForInputLandscapes()
+{
+#if WITH_EDITOR
+	// Only support world inputs
+	if (Type != EHoudiniInputType::World)
+		return false;
+	
+	// Find the current input landscape and splines
+	TSet<UHoudiniInputLandscape const*> InputLandscapes;
+	TSet<ALandscapeSplineActor const*> InputLandscapeSpineActors;
+	
+	for (UHoudiniInputObject const* const InputObject : WorldInputObjects)
+	{
+		if (!IsValid(InputObject))
+			continue;
+		
+		UHoudiniInputLandscape const* const LandscapeObject = Cast<UHoudiniInputLandscape>(InputObject);
+		if (IsValid(LandscapeObject))
+		{
+			InputLandscapes.Add(LandscapeObject);
+			continue;
+		}
+		
+		UHoudiniInputLandscapeSplineActor const* const LandscapeSplineActor = Cast<UHoudiniInputLandscapeSplineActor>(InputObject);
+		if (!IsValid(LandscapeSplineActor))
+			continue;
+
+		ALandscapeSplineActor const* const SplineActor = LandscapeSplineActor->GetLandscapeSplineActor();
+		if (!IsValid(SplineActor))
+			continue;
+
+		InputLandscapeSpineActors.Add(SplineActor);
+	}
+
+	if (InputLandscapes.IsEmpty())
+		return false;
+	
+	// Get all spline actors that belong to InputLandscape splines but that are not in InputLandscapeSplineActors
+	TArray<ALandscapeSplineActor*> SplinesToAdd;
+	for (UHoudiniInputLandscape const* const InputLandscape : InputLandscapes)
+	{
+		if (!IsValid(InputLandscape))
+			continue;
+		ALandscapeProxy const* const LandscapeProxy = InputLandscape->GetLandscapeProxy();
+		if (!IsValid(LandscapeProxy))
+			continue;
+		ULandscapeInfo const* const LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
+		if (!IsValid(LandscapeInfo))
+			continue;
+		LandscapeInfo->ForAllSplineActors([&SplinesToAdd, &InputLandscapeSpineActors](TScriptInterface<ILandscapeSplineInterface> InSplineActor)
+		{
+			ALandscapeSplineActor* const SplineActor = Cast<ALandscapeSplineActor>(InSplineActor.GetObject());
+			if (IsValid(SplineActor) && !InputLandscapeSpineActors.Contains(SplineActor))
+				SplinesToAdd.Add(SplineActor);
+		});
+	}
+
+	// There are no new spline actors to add
+	if (SplinesToAdd.IsEmpty())
+		return false;
+
+	// Add SplinesToAdd to the input object array
+	const int32 NumInputObjects = GetNumberOfInputObjects();
+	const int32 NumToAdd = SplinesToAdd.Num();
+	SetInputObjectsNumber(GetInputType(), NumInputObjects + NumToAdd);
+	for (int32 Index = 0; Index < NumToAdd; ++Index)
+		SetInputObjectAt(NumInputObjects + Index, SplinesToAdd[Index]);
+
+	return true;
+#else
+	return false;
+#endif
 }

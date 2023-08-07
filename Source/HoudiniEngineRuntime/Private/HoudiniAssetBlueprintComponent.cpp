@@ -865,6 +865,8 @@ UHoudiniAssetBlueprintComponent::UpdateInputObjectComponentReferences(
 	ToInput->GetAllHoudiniInputSplineComponents(ToInputObjects);
 	FromInput->GetAllHoudiniInputSplineComponents(FromInputObjects);
 
+	FHoudiniInputObjectSettings ToInputSettings(ToInput);
+
 	StaleInputObjects = ToInputObjects;
 	
 	const int32 NumInputObjects = FromInputObjects.Num();
@@ -961,7 +963,7 @@ UHoudiniAssetBlueprintComponent::UpdateInputObjectComponentReferences(
 			}
 		}
 
-		ToInputObject->Update(ToComponent);
+		ToInputObject->Update(ToComponent, ToInputSettings);
 		ToInputObjects[InputObjectIndex] = ToInputObject;
 	}
 

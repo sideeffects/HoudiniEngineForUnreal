@@ -30,6 +30,11 @@
 #include "UObject/ObjectMacros.h"
 #include "HoudiniEngineRuntimeCommon.h"
 
+#include "HoudiniInputTypes.generated.h"
+
+// Forward declarations
+class UHoudiniInput;
+
 // Maintain an iterable list of houdini input types
 static const EHoudiniInputType HoudiniInputTypeList[] = {
 	EHoudiniInputType::Geometry,
@@ -48,3 +53,116 @@ enum class EHoudiniXformType : uint8
 	Auto
 };
 
+// Struct of input settings that affect object exporting to Houdini
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FHoudiniInputObjectSettings
+{
+	GENERATED_BODY();
+
+public:
+	FHoudiniInputObjectSettings();
+	
+	// Construct from a HoudiniInput. Copies all supported properties.
+	FHoudiniInputObjectSettings(UHoudiniInput const* InInput);
+
+	UPROPERTY()
+	EHoudiniXformType KeepWorldTransform;
+	
+	// Indicates that all the input objects are imported to Houdini as references instead of actual geo
+	// (for Geo/World/Asset input types only)
+	UPROPERTY()
+	bool bImportAsReference;
+	
+	// Indicates that whether or not to add the rot / scale attributes for reference imports
+	UPROPERTY()
+	bool bImportAsReferenceRotScaleEnabled;
+	
+	// Indicates whether or not to add bbox attributes for reference imports
+	UPROPERTY()
+	bool bImportAsReferenceBboxEnabled;
+	
+	// Indicates whether or not to add material attributes for reference imports
+	UPROPERTY()
+	bool bImportAsReferenceMaterialEnabled;
+
+	// Indicates that all LODs in the input should be marshalled to Houdini
+	UPROPERTY()
+	bool bExportLODs;
+	
+	// Indicates that all sockets in the input should be marshalled to Houdini
+	UPROPERTY()
+	bool bExportSockets;
+	
+	// Override property for preferring the Nanite fallback mesh when using a Nanite geometry as input
+	UPROPERTY()
+	bool bPreferNaniteFallbackMesh;
+
+	// Indicates that all colliders in the input should be marshalled to Houdini
+	UPROPERTY()
+	bool bExportColliders;
+	
+	// Indicates that material parameters should be exported as attributes
+	UPROPERTY()
+	bool bExportMaterialParameters;
+
+	// Set this to true to add rot and scale attributes on curve inputs.
+	UPROPERTY()
+	bool bAddRotAndScaleAttributesOnCurves;
+
+	// Set this to true to use legacy (curve::1.0) input curves
+	UPROPERTY()
+	bool bUseLegacyInputCurves;
+	
+	// Resolution used when converting unreal splines to houdini curves
+	UPROPERTY()
+	float UnrealSplineResolution;
+
+	// Indicates if the landscape should be exported as heightfield, mesh or points
+	UPROPERTY()
+	EHoudiniLandscapeExportType LandscapeExportType;
+
+	// Is set to true when landscape input is set to selection only.
+	UPROPERTY()
+	bool bLandscapeExportSelectionOnly;
+
+	// Is set to true when the automatic selection of landscape component is active
+	UPROPERTY()
+	bool bLandscapeAutoSelectComponent;
+
+	// Is set to true when materials are to be exported.
+	UPROPERTY()
+	bool bLandscapeExportMaterials;
+
+	// Is set to true when lightmap information export is desired.
+	UPROPERTY()
+	bool bLandscapeExportLighting;
+
+	// Is set to true when uvs should be exported in [0,1] space.
+	UPROPERTY()
+	bool bLandscapeExportNormalizedUVs;
+
+	// Is set to true when uvs should be exported for each tile separately.
+	UPROPERTY()
+	bool bLandscapeExportTileUVs;
+
+	// If true, also export a landscape's splines
+	UPROPERTY()
+	bool bLandscapeAutoSelectSplines;
+
+	// If true, send a separate control point cloud of the landscape splines control points.
+	UPROPERTY()
+	bool bLandscapeSplinesExportControlPoints;
+
+	// If true, export left and right curves as well
+	UPROPERTY()
+	bool bLandscapeSplinesExportLeftRightCurves;
+
+	// If true, export the spline mesh components of landscape splines
+	UPROPERTY()
+	bool bLandscapeSplinesExportSplineMeshComponents;
+
+	// If true, the deformed meshes of all spline mesh components of an actor are merged into temporary input mesh.
+	// If false, the meshes are sent individually.
+	UPROPERTY()
+	bool bMergeSplineMeshComponents;
+};

@@ -703,7 +703,6 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 
 						if (CurInputObj->GetImportAsReference() != bNewState)
 						{
-							CurInputObj->SetImportAsReference(bNewState);
 							CurInputObj->MarkChanged(true);
 						}
 					}
@@ -782,7 +781,6 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 
 						if (CurInputObj->GetImportAsReferenceRotScaleEnabled() != bNewState)
 						{
-							CurInputObj->SetImportAsReferenceRotScaleEnabled(bNewState);
 							CurInputObj->MarkChanged(true);
 						}
 					}
@@ -863,7 +861,6 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 
 						if (CurInputObj->GetImportAsReferenceBboxEnabled() != bNewState)
 						{
-							CurInputObj->SetImportAsReferenceBboxEnabled(bNewState);
 							CurInputObj->MarkChanged(true);
 						}
 					}
@@ -945,7 +942,6 @@ FHoudiniInputDetails::AddImportAsReferenceCheckboxes(TSharedRef< SVerticalBox > 
 
 						if (CurInputObj->GetImportAsReferenceMaterialEnabled() != bNewState)
 						{
-							CurInputObj->SetImportAsReferenceMaterialEnabled(bNewState);
 							CurInputObj->MarkChanged(true);
 						}
 					}
@@ -1016,6 +1012,14 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 			return ECheckBoxState::Unchecked;
 
 		return InInput->GetExportColliders() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	auto IsCheckedMergeSplineMeshComponents = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->IsMergeSplineMeshComponentsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto IsCheckedPreferNanite = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
@@ -1133,6 +1137,38 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		}
 	};
 
+	auto CheckStateChangedMergeSplineMeshComponents = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->IsMergeSplineMeshComponentsEnabled() == bNewState)
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Merge Spline Mesh Components"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->IsMergeSplineMeshComponentsEnabled() == bNewState)
+				continue;
+
+			CurInput->Modify();
+
+			CurInput->SetMergeSplineMeshComponents(bNewState);
+			CurInput->MarkChanged(true);
+			CurInput->MarkAllInputObjectsChanged(true);
+		}
+	};
+
 	auto CheckStateChangedPreferNanite = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 	{
 		if (!IsValidWeakPointer(MainInput))
@@ -1202,6 +1238,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 	TSharedPtr<SCheckBox> CheckBoxExportSockets;
 	TSharedPtr<SCheckBox> CheckBoxExportColliders;
 	TSharedPtr<SCheckBox> CheckBoxExportMaterialParameters;
+	TSharedPtr<SCheckBox> CheckBoxMergeSplineMeshComponents;
 	TSharedPtr<SCheckBox> CheckBoxPreferNaniteFallback;
 	VerticalBox->AddSlot()
 	.Padding( 2, 2, 5, 2 )
@@ -1315,6 +1352,41 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		.VAlign(VAlign_Center)
 		.AutoWidth()
 		[
+			SAssignNew(CheckBoxMergeSplineMeshComponents, SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("MergeSplineMeshComponents", "Merge Spline Mesh Components"))
+				.ToolTipText(LOCTEXT("MergeSplineMeshComponentsTip", "If enabled, when a spline mesh components from actor world input are merged into a single static mesh per actor."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.Visibility_Lambda([]()
+			{
+				if (!FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled())
+					return EVisibility::Collapsed;
+				return EVisibility::Visible;
+			})
+			.IsChecked_Lambda([=]()
+			{
+				return IsCheckedMergeSplineMeshComponents(MainInput);
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return CheckStateChangedMergeSplineMeshComponents(InInputs, NewState);
+			})
+		]
+	];
+
+	VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
 			SAssignNew(CheckBoxPreferNaniteFallback, SCheckBox)
 			.Content()
 			[
@@ -1333,6 +1405,358 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 			})
 		]
 	];
+}
+
+void
+FHoudiniInputDetails::AddLandscapeAutoSelectSplinesCheckBox(
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SCheckBox)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("LandscapeAutoSelectSplinesCheckBox", "Auto Select Landscape Splines For Export"))
+			.ToolTipText(LOCTEXT("LandscapeAutoSelectSplinesCheckBoxTip", "If enabled, then for any landscape that is selected to be sent to Houdini, its splines are also selected for export."))
+			.Font(_GetEditorStyle().GetFontStyle("PropertyWindow.NormalFont"))
+		]
+		.IsChecked_Lambda([MainInput]()
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return ECheckBoxState::Unchecked;
+
+			return MainInput->IsLandscapeAutoSelectSplinesEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		})
+		.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return;
+
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Auto Select Landscape Splines For Export CheckBox"),
+				MainInput->GetOuter());
+
+			for (auto CurrentInput : InInputs)
+			{
+				if (!IsValidWeakPointer(CurrentInput))
+					continue;
+
+				const bool bNewState = (NewState == ECheckBoxState::Checked);
+				if (bNewState == CurrentInput->IsLandscapeAutoSelectSplinesEnabled())
+					continue;
+
+				CurrentInput->Modify();
+				CurrentInput->SetLandscapeAutoSelectSplines(bNewState);
+				if (CurrentInput->GetInputType() == EHoudiniInputType::World)
+				{
+					if (bNewState)
+					{
+						CurrentInput->AddAllLandscapeSplineActorsForInputLandscapes();	
+					}
+					else
+					{
+						CurrentInput->RemoveAllLandscapeSplineActorsForInputLandscapes();
+					}
+				}				
+				CurrentInput->MarkChanged(true);
+			}
+		})
+	];
+
+	if (MainInput->IsLandscapeAutoSelectSplinesEnabled())
+	{
+		// TODO: additional options?
+	}
+}
+
+void
+FHoudiniInputDetails::AddLandscapeSplinesOptions(
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	auto LandscapeOptionsMenuStateChanged = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, bool bInNewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = bInNewState;
+
+		if (MainInput->IsLandscapeSplinesExportOptionsMenuExpanded() == bNewState)
+			return;
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniLandscapeSplinesOptionsMenu", "Houdini Input: Changed Landscape Splines Options Menu State"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->IsLandscapeSplinesExportOptionsMenuExpanded() == bNewState)
+				continue;
+
+			CurInput->Modify();
+			CurInput->SetLandscapeSplinesExportOptionsMenuExpanded(bNewState);
+		}
+	};
+
+	const TSharedRef<SVerticalBox> LandscapeSplinesOptions_VerticalBox = SNew(SVerticalBox);
+
+	InVerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SExpandableArea)
+		.AreaTitle(LOCTEXT("LandscapeSplinesOptionsMenu", "Landscape Splines Options"))
+		.InitiallyCollapsed(!MainInput->IsLandscapeSplinesExportOptionsMenuExpanded())
+		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
+		{
+			return LandscapeOptionsMenuStateChanged(InInputs, bNewState);
+		})
+		.BodyContent()
+		[
+			LandscapeSplinesOptions_VerticalBox
+		]
+	];
+
+	// Lambda returning a CheckState from the input's current bLandscapeSplinesExportControlPoints state
+	auto IsLandscapeSplinesExportControlPointsEnabled = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->IsLandscapeSplinesExportControlPointsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	// Lambda for changing bLandscapeSplinesExportControlPoints state
+	auto CheckStateChangedLandscapeSplinesExportControlPoints = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->IsLandscapeSplinesExportControlPointsEnabled() == bNewState)
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Export Landscape Spline Control Points"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->IsLandscapeSplinesExportControlPointsEnabled() == bNewState)
+				continue;
+
+			CurInput->Modify();
+
+			CurInput->SetLandscapeSplinesExportControlPoints(bNewState);
+			CurInput->MarkChanged(true);
+			CurInput->MarkAllInputObjectsChanged(true);
+		}
+	};
+
+	// Lambda returning a CheckState from the input's current bLandscapeSplinesExportLeftRightCurves state
+	auto IsLandscapeSplinesExportLeftRightCurvesEnabled = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->IsLandscapeSplinesExportLeftRightCurvesEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	// Lambda for changing bLandscapeSplinesExportLeftRightCurves state
+	auto CheckStateChangedLandscapeSplinesExportLeftRightCurves = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->IsLandscapeSplinesExportLeftRightCurvesEnabled() == bNewState)
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChangeLandscapeSplinesExportLeftRightCurves", "Houdini Input: Changed Export Landscape Spline Left/Right Curves"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->IsLandscapeSplinesExportLeftRightCurvesEnabled() == bNewState)
+				continue;
+
+			CurInput->Modify();
+
+			CurInput->SetLandscapeSplinesExportLeftRightCurves(bNewState);
+			CurInput->MarkChanged(true);
+			CurInput->MarkAllInputObjectsChanged(true);
+		}
+	};
+
+	// Lambda returning a CheckState from the input's current bLandscapeSplinesExportSplineMeshComponents state
+	auto IsLandscapeSplinesExportSplineMeshComponentsEnabled = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->IsLandscapeSplinesExportSplineMeshComponentsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	// Lambda for changing bLandscapeSplinesExportSplineMeshComponents state
+	auto CheckStateChangedLandscapeSplinesExportSplineMeshComponents = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->IsLandscapeSplinesExportSplineMeshComponentsEnabled() == bNewState)
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChangeLandscapeSplinesExportSplineMeshComponents", "Houdini Input: Changed Export Landscape Spline Mesh Components"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->IsLandscapeSplinesExportSplineMeshComponentsEnabled() == bNewState)
+				continue;
+
+			CurInput->Modify();
+
+			CurInput->SetLandscapeSplinesExportSplineMeshComponents(bNewState);
+			CurInput->MarkChanged(true);
+			CurInput->MarkAllInputObjectsChanged(true);
+		}
+	};
+
+	TSharedPtr<SCheckBox> CheckBoxLandscapeSplinesExportControlPoints;
+	LandscapeSplinesOptions_VerticalBox->AddSlot()
+	.Padding( 2, 2, 5, 2 )
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SAssignNew(CheckBoxLandscapeSplinesExportControlPoints, SCheckBox )
+			.Content()
+			[
+				SNew( STextBlock )
+				.Text( LOCTEXT( "ExportLandscapeSplineControlPoints", "Export Landscape Spline Control Points" ) )
+				.ToolTipText( LOCTEXT( "ExportLandscapeSplineControlPointsCheckboxTip", "If enabled, the control points of landscape splines are exported as a point cloud." ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+			]
+			.IsChecked_Lambda([=]()
+			{
+				return IsLandscapeSplinesExportControlPointsEnabled(MainInput);
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return CheckStateChangedLandscapeSplinesExportControlPoints(InInputs, NewState);
+			})
+		]
+	];
+
+	TSharedPtr<SCheckBox> CheckBoxLandscapeSplinesExportLeftRightCurves;
+	LandscapeSplinesOptions_VerticalBox->AddSlot()
+	.Padding( 2, 2, 5, 2 )
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SAssignNew(CheckBoxLandscapeSplinesExportLeftRightCurves, SCheckBox )
+			.Content()
+			[
+				SNew( STextBlock )
+				.Text( LOCTEXT( "ExportLandscapeSplineLeftRightCurves", "Export Landscape Spline Left/Right Curves" ) )
+				.ToolTipText( LOCTEXT( "ExportLandscapeSplineLeftRightCurvesCheckboxTip", "If enabled, the left and right curves of landscape splines are also exported." ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+			]
+			.IsChecked_Lambda([=]()
+			{
+				return IsLandscapeSplinesExportLeftRightCurvesEnabled(MainInput);
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return CheckStateChangedLandscapeSplinesExportLeftRightCurves(InInputs, NewState);
+			})
+		]
+	];
+
+	TSharedPtr<SCheckBox> CheckBoxLandscapeSplinesExportSplineMeshComponents;
+	LandscapeSplinesOptions_VerticalBox->AddSlot()
+	.Padding( 2, 2, 5, 2 )
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SAssignNew(CheckBoxLandscapeSplinesExportSplineMeshComponents, SCheckBox )
+			.Content()
+			[
+				SNew( STextBlock )
+				.Text( LOCTEXT( "ExportLandscapeSplineMeshComponents", "Export Spline Mesh Components" ) )
+				.ToolTipText( LOCTEXT( "ExportLandscapeSplineMeshComponentsCheckboxTip", "If enabled, the spline mesh components of landscape splines are also exported." ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+			]
+			.Visibility(EVisibility::Visible)
+			.IsChecked_Lambda([=]()
+			{
+				return IsLandscapeSplinesExportSplineMeshComponentsEnabled(MainInput);
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return CheckStateChangedLandscapeSplinesExportSplineMeshComponents(InInputs, NewState);
+			})
+		]
+	];
+
+	AddLandscapeAutoSelectSplinesCheckBox(LandscapeSplinesOptions_VerticalBox, InInputs);
 }
 
 void
@@ -4625,7 +5049,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				if (!IsValidWeakPointer(MainInput))
 					return ECheckBoxState::Unchecked;
 
-				return MainInput->bLandscapeExportSelectionOnly ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				return MainInput->IsLandscapeExportSelectionOnlyEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 			{
@@ -4644,11 +5068,11 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 						continue;
 
 					bool bNewState = (NewState == ECheckBoxState::Checked);
-					if (bNewState == CurrentInput->bLandscapeExportSelectionOnly)
+					if (bNewState == CurrentInput->IsLandscapeExportSelectionOnlyEnabled())
 						continue;
 
 					CurrentInput->Modify();
-					CurrentInput->bLandscapeExportSelectionOnly = bNewState;
+					CurrentInput->SetLandscapeExportSelectionOnlyEnabled(bNewState);
 					CurrentInput->UpdateLandscapeInputSelection();
 
 					CurrentInput->MarkChanged(true);
@@ -4676,7 +5100,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				if (!IsValidWeakPointer(MainInput))
 					return ECheckBoxState::Unchecked;
 
-				return MainInput->bLandscapeAutoSelectComponent ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				return MainInput->IsLandscapeAutoSelectComponentEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 			{
@@ -4695,12 +5119,12 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 						continue;
 
 					bool bNewState = (NewState == ECheckBoxState::Checked);
-					if (bNewState == CurrentInput->bLandscapeAutoSelectComponent)
+					if (bNewState == CurrentInput->IsLandscapeAutoSelectComponentEnabled())
 						continue;
 
 					CurrentInput->Modify();
 
-					CurrentInput->bLandscapeAutoSelectComponent = bNewState;
+					CurrentInput->SetLandscapeAutoSelectComponentEnabled(bNewState);
 					CurrentInput->UpdateLandscapeInputSelection();
 					CurrentInput->MarkChanged(true);
 				}
@@ -4711,7 +5135,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		bool bEnable = false;
 		for (auto CurrentInput : InInputs)
 		{
-			if (!MainInput->bLandscapeExportSelectionOnly)
+			if (!MainInput->IsLandscapeExportSelectionOnlyEnabled())
 				continue;
 
 			bEnable = true;
@@ -4754,7 +5178,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 			bool bEnable = false;
 			for (auto CurrentInput : InInputs)
 			{
-				if (!MainInput->bLandscapeExportSelectionOnly)
+				if (!MainInput->IsLandscapeExportSelectionOnlyEnabled())
 					continue;
 
 				bEnable = true;
@@ -4783,7 +5207,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 	}
 	
 	// The following checkbox are only added when not in heightfield mode
-	if (MainInput->LandscapeExportType != EHoudiniLandscapeExportType::Heightfield)
+	if (MainInput->GetLandscapeExportType() != EHoudiniLandscapeExportType::Heightfield)
 	{
 		// Checkbox : Export materials
 		{
@@ -4803,7 +5227,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 					if (!IsValidWeakPointer(MainInput))
 						return ECheckBoxState::Unchecked;
 
-					return MainInput->bLandscapeExportMaterials ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+					return MainInput->IsLandscapeExportMaterialsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 				})
 				.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 				{
@@ -4822,12 +5246,12 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 							continue;
 
 						bool bNewState = (NewState == ECheckBoxState::Checked);
-						if (bNewState == CurrentInput->bLandscapeExportMaterials)
+						if (bNewState == CurrentInput->IsLandscapeExportMaterialsEnabled())
 							continue;
 
 						CurrentInput->Modify();
 
-						CurrentInput->bLandscapeExportMaterials = bNewState;
+						CurrentInput->SetLandscapeExportMaterialsEnabled(bNewState);
 						CurrentInput->MarkChanged(true);
 					}
 				})
@@ -4858,7 +5282,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 					if (!IsValidWeakPointer(MainInput))
 						return ECheckBoxState::Unchecked;
 
-					return MainInput->bLandscapeExportTileUVs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+					return MainInput->IsLandscapeExportTileUVsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 				})
 				.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 				{
@@ -4877,12 +5301,12 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 							continue;
 
 						bool bNewState = (NewState == ECheckBoxState::Checked);
-						if (bNewState == CurrentInput->bLandscapeExportTileUVs)
+						if (bNewState == CurrentInput->IsLandscapeExportTileUVsEnabled())
 							continue;
 
 						CurrentInput->Modify();
 
-						CurrentInput->bLandscapeExportTileUVs = bNewState;
+						CurrentInput->SetLandscapeExportTileUVsEnabled(bNewState);
 						CurrentInput->MarkChanged(true);
 					}
 				})
@@ -4913,7 +5337,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 			if (!IsValidWeakPointer(MainInput))
 				return ECheckBoxState::Unchecked;
 
-			return MainInput->bLandscapeExportNormalizedUVs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			return MainInput->IsLandscapeExportNormalizedUVsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		})
 			.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 		{
@@ -4932,12 +5356,12 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 					continue;
 
 				bool bNewState = (NewState == ECheckBoxState::Checked);
-				if (bNewState == CurrentInput->bLandscapeExportNormalizedUVs)
+				if (bNewState == CurrentInput->IsLandscapeExportNormalizedUVsEnabled())
 					continue;
 
 				CurrentInput->Modify();
 
-				CurrentInput->bLandscapeExportNormalizedUVs = bNewState;
+				CurrentInput->SetLandscapeExportNormalizedUVsEnabled(bNewState);
 				CurrentInput->MarkChanged(true);
 			}
 		})
@@ -4968,7 +5392,7 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 				if (!IsValidWeakPointer(MainInput))
 					return ECheckBoxState::Unchecked;
 
-				return MainInput->bLandscapeExportLighting ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				return MainInput->IsLandscapeExportLightingEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 				.OnCheckStateChanged_Lambda([InInputs, MainInput](ECheckBoxState NewState)
 			{
@@ -4987,12 +5411,12 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 						continue;
 
 					bool bNewState = (NewState == ECheckBoxState::Checked);
-					if (bNewState == CurrentInput->bLandscapeExportLighting)
+					if (bNewState == CurrentInput->IsLandscapeExportLightingEnabled())
 						continue;
 
 					CurrentInput->Modify();
 
-					CurrentInput->bLandscapeExportLighting = bNewState;
+					CurrentInput->SetLandscapeExportLightingEnabled(bNewState);
 					CurrentInput->MarkChanged(true);
 				}
 			})
@@ -5006,7 +5430,12 @@ FHoudiniInputDetails::AddLandscapeInputUI(TSharedRef<SVerticalBox> VerticalBox, 
 		}
 
 	}
-	
+
+	if (FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
+	{
+		AddLandscapeSplinesOptions(Landscape_VerticalBox, InInputs);
+		AddLandscapeAutoSelectSplinesCheckBox(Landscape_VerticalBox, InInputs);
+	}
 }
 
 /*
@@ -5311,7 +5740,8 @@ FHoudiniInputDetails::Helper_CreateHoudiniAssetPickerWidget(const TArray<TWeakOb
 		FName HoudiniAssetActorName = MakeUniqueObjectName(Input->GetOuter(), AHoudiniAssetActor::StaticClass(), TEXT("HoudiniAsset"));
 
 		// Create a Houdini Asset Input Object
-		UHoudiniInputObject* NewInputObject = UHoudiniInputHoudiniAsset::Create(HoudiniAssetActor->GetHoudiniAssetComponent(), Input.Get(), HoudiniAssetActorName.ToString());
+		const FHoudiniInputObjectSettings InputSettings(Input.Get());
+		UHoudiniInputObject* NewInputObject = UHoudiniInputHoudiniAsset::Create(HoudiniAssetActor->GetHoudiniAssetComponent(), Input.Get(), HoudiniAssetActorName.ToString(), InputSettings);
 
 		UHoudiniInputHoudiniAsset* AssetInput = Cast<UHoudiniInputHoudiniAsset>(NewInputObject);
 		AssetInput->MarkChanged(true);
@@ -5460,8 +5890,9 @@ FHoudiniInputDetails::Helper_CreateLandscapePickerWidget(const TArray<TWeakObjec
 		FName LandscapeName = MakeUniqueObjectName(Input->GetOuter(), ALandscapeProxy::StaticClass(), TEXT("Landscape"));
 
 		// Create a Houdini Input Object.
+		const FHoudiniInputObjectSettings InputSettings(Input.Get());
 		UHoudiniInputObject* NewInputObject = UHoudiniInputLandscape::Create(
-			LandscapeProxy, Input.Get(), LandscapeName.ToString());
+			LandscapeProxy, Input.Get(), LandscapeName.ToString(), InputSettings);
 
 		UHoudiniInputLandscape* LandscapeInput = Cast<UHoudiniInputLandscape>(NewInputObject);
 		LandscapeInput->MarkChanged(true);
@@ -6251,6 +6682,12 @@ FHoudiniInputDetails::AddWorldInputUI(
 			})
 			.ToolTipText(LegacyInputCurveTooltipText)
 		];
+	}
+
+	if (FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
+	{
+		AddLandscapeSplinesOptions(VerticalBox, InInputs);
+		AddLandscapeAutoSelectSplinesCheckBox(VerticalBox, InInputs);
 	}
 }
 

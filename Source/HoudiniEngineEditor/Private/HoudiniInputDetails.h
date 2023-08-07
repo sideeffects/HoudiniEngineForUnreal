@@ -87,6 +87,14 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 			TSharedRef<SVerticalBox> InVerticalBox,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
+		static void AddLandscapeAutoSelectSplinesCheckBox(
+			TSharedRef<SVerticalBox> InVerticalBox,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
+
+		static void AddLandscapeSplinesOptions(
+			TSharedRef<SVerticalBox> InVerticalBox,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
+
 		// Add Geometry Inputs UI Widgets
 		static void AddGeometryInputUI(
 			IDetailCategoryBuilder& CategoryBuilder,

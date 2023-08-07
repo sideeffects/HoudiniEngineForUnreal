@@ -564,6 +564,10 @@ FUnrealObjectInputManagerImpl::GetDefaultNodeName(const FUnrealObjectInputIdenti
 			NameParts.Add(TEXT("reference"));
 		if (Options.bImportAsReferenceRotScaleEnabled)
 			NameParts.Add(TEXT("reference_with_rot_scale"));
+		if (Options.bExportLandscapeSplineControlPoints)
+			NameParts.Add(TEXT("control_points"));
+		if (Options.bExportLandscapeSplineLeftRightCurves)
+			NameParts.Add(TEXT("left_right_curves"));
 		return FString::Join(NameParts, TEXT("_"));		
 	}
 	

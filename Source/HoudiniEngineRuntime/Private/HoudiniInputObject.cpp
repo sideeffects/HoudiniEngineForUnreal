@@ -24,6 +24,7 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "HoudiniInputTypes.h"
 #include "HoudiniInputObject.h"
 
 #include "HoudiniEngineRuntime.h"
@@ -54,6 +55,9 @@
 	#include "Engine/SkinnedAssetCommon.h"
 #endif
 
+#include "LandscapeSplineActor.h"
+#include "LandscapeSplineControlPoint.h"
+#include "LandscapeSplinesComponent.h"
 #include "Model.h"
 #include "Engine/Brush.h"
 
@@ -84,10 +88,6 @@ UHoudiniInputObject::UHoudiniInputObject(const FObjectInitializer& ObjectInitial
 	, bHasChanged(false)
 	, bNeedsToTriggerUpdate(false)
 	, bTransformChanged(false)
-	, bImportAsReference(false)
-	, bImportAsReferenceRotScaleEnabled(false)
-	, bImportAsReferenceBboxEnabled(false)
-	, bImportAsReferenceMaterialEnabled(false)
 	, MaterialReferences()
 	, bCanDeleteHoudiniNodes(true)
 {
@@ -124,6 +124,46 @@ UHoudiniInputGeometryCollection::UHoudiniInputGeometryCollection(const FObjectIn
 
 //
 UHoudiniInputGeometryCollectionComponent::UHoudiniInputGeometryCollectionComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+}
+
+FHoudiniLandscapeSplineControlPointData::FHoudiniLandscapeSplineControlPointData()
+	: Location(FVector::ZeroVector)
+	, Rotation(FRotator::ZeroRotator)
+	, Width(1000.0f)
+#if WITH_EDITORONLY_DATA
+	, SegmentMeshOffset(0)
+	, LayerName(NAME_None)
+	, bRaiseTerrain(true)
+	, bLowerTerrain(true)
+	, Mesh(nullptr)
+	, MeshScale(FVector::OneVector)
+#endif
+{
+	
+}
+
+FHoudiniLandscapeSplineSegmentData::FHoudiniLandscapeSplineSegmentData()
+#if WITH_EDITORONLY_DATA
+	: LayerName(NAME_None)
+	, bRaiseTerrain(true)
+	, bLowerTerrain(true)
+#endif
+{
+	
+}
+
+//
+UHoudiniInputLandscapeSplineActor::UHoudiniInputLandscapeSplineActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+}
+
+//
+UHoudiniInputLandscapeSplinesComponent::UHoudiniInputLandscapeSplinesComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 
@@ -176,7 +216,7 @@ UHoudiniInputCameraComponent::UHoudiniInputCameraComponent(const FObjectInitiali
 
 // Return true if the component itself has been modified
 bool 
-UHoudiniInputSplineComponent::HasComponentChanged() const 
+UHoudiniInputSplineComponent::HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const 
 {
 	USplineComponent* SplineComponent = Cast<USplineComponent>(InputObject.LoadSynchronous());
 
@@ -210,6 +250,149 @@ UHoudiniInputSplineComponent::HasComponentChanged() const
 	return false;
 }
 
+
+bool
+UHoudiniInputLandscapeSplineActor::ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings) const
+{
+	// We only track ULandscapeSplinesComponents for landscape splines at this stage.
+	if (!IsValid(InComponent))
+		return false;
+
+	// Use InSettings if provided, otherwise use the settings cached at the last update
+	const FHoudiniInputObjectSettings& Settings = InSettings ? *InSettings : CachedInputSettings;
+	
+	if (FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled() && InComponent->IsA(ULandscapeSplinesComponent::StaticClass()))
+		return true;
+		
+	if (Settings.bLandscapeSplinesExportSplineMeshComponents && FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled()
+			&& InComponent->IsA(USplineMeshComponent::StaticClass()))
+	{
+		return true;
+	}
+	
+	return false;
+}
+
+
+// Return true if the component itself has been modified
+bool 
+UHoudiniInputLandscapeSplinesComponent::HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const 
+{
+	if (Super::HasComponentChanged(InSettings))
+	{
+		return true;
+	}
+	
+	ULandscapeSplinesComponent* const SplinesComponent = Cast<ULandscapeSplinesComponent>(InputObject.LoadSynchronous());
+
+	if (!IsValid(SplinesComponent))
+		return false;
+
+	// Get the control point and segment arrays and check if the counts have changed.
+	// Use helper to fetch control points since the landscape splines API differs between UE 5.0 and 5.1+
+	TArray<TObjectPtr<ULandscapeSplineControlPoint>> ControlPoints;
+	TArray<TObjectPtr<ULandscapeSplineSegment>> Segments;
+	FHoudiniEngineRuntimeUtils::GetLandscapeSplinesControlPointsAndSegments(SplinesComponent, &ControlPoints, &Segments);
+
+	const int32 NumControlPoints = ControlPoints.Num();
+	if (NumControlPoints != CachedControlPoints.Num())
+	{
+		return true;
+	}
+	const int32 NumSegments = Segments.Num();
+	if (NumSegments != CachedSegments.Num())
+	{
+		return true;
+	}
+
+	// If the number of control points / segments remain the same, check each point / segment for differences
+	if (NumControlPoints > 0)
+	{
+		for (int32 Idx = 0; Idx < NumControlPoints; ++Idx)
+		{
+			ULandscapeSplineControlPoint const* const ControlPoint = ControlPoints[Idx];
+			const FHoudiniLandscapeSplineControlPointData& CachedControlPoint = CachedControlPoints[Idx];
+
+			// Skip invalid points
+			if (!IsValid(ControlPoint))
+			{
+				continue;
+			}
+
+			// Compare supported fields ...
+			// TODO: could we simplify this by some kind of UProperty based diff, like UEdGraphNode does?
+			if (ControlPoint->Location != CachedControlPoint.Location
+					|| ControlPoint->Rotation != CachedControlPoint.Rotation
+#if WITH_EDITORONLY_DATA
+					|| ControlPoint->SegmentMeshOffset != CachedControlPoint.SegmentMeshOffset
+					|| ControlPoint->LayerName != CachedControlPoint.LayerName
+					|| ControlPoint->bRaiseTerrain != CachedControlPoint.bRaiseTerrain
+					|| ControlPoint->bLowerTerrain != CachedControlPoint.bLowerTerrain
+					|| ControlPoint->Mesh != CachedControlPoint.Mesh
+					|| ControlPoint->MaterialOverrides != CachedControlPoint.MaterialOverrides
+					|| ControlPoint->MeshScale != CachedControlPoint.MeshScale
+#endif
+					|| ControlPoint->Width != CachedControlPoint.Width)
+			{
+				return true;
+			}
+		}
+	}
+	
+	if (NumSegments > 0)
+	{
+		for (int32 Idx = 0; Idx < NumSegments; ++Idx)
+		{
+			ULandscapeSplineSegment const* const Segment = Segments[Idx];
+			const FHoudiniLandscapeSplineSegmentData& CachedSegment = CachedSegments[Idx];
+
+			// Skip invalid segments
+			if (!IsValid(Segment))
+			{
+				continue;
+			}
+
+			// Compare supported fields ...
+			// TODO: could we simplify this by some kind of UProperty based diff, like UEdGraphNode does?
+#if WITH_EDITORONLY_DATA
+			if (Segment->LayerName != CachedSegment.LayerName
+				|| Segment->bRaiseTerrain != CachedSegment.bRaiseTerrain
+				|| Segment->bLowerTerrain != CachedSegment.bLowerTerrain)
+			{
+				return true;
+			}
+
+			const int32 NumSplineMeshes = Segment->SplineMeshes.Num(); 
+			if (NumSplineMeshes != CachedSegment.SplineMeshes.Num())
+			{
+				return true;
+			}
+
+			// The FLandscapeSplineMeshEntry struct is not comparable with == operator
+			for (int32 SplineMeshIdx = 0; SplineMeshIdx < NumSplineMeshes; ++SplineMeshIdx)
+			{
+				const FLandscapeSplineMeshEntry& SplineMeshEntry = Segment->SplineMeshes[SplineMeshIdx];
+				const FLandscapeSplineMeshEntry& CachedSplineMeshEntry = CachedSegment.SplineMeshes[SplineMeshIdx];
+
+				if (SplineMeshEntry.Mesh != CachedSplineMeshEntry.Mesh
+						|| SplineMeshEntry.MaterialOverrides != CachedSplineMeshEntry.MaterialOverrides
+						|| SplineMeshEntry.bCenterH != CachedSplineMeshEntry.bCenterH
+						|| SplineMeshEntry.CenterAdjust != CachedSplineMeshEntry.CenterAdjust
+						|| SplineMeshEntry.bScaleToWidth != CachedSplineMeshEntry.bScaleToWidth
+						|| SplineMeshEntry.Scale != CachedSplineMeshEntry.Scale
+						|| SplineMeshEntry.ForwardAxis != CachedSplineMeshEntry.ForwardAxis
+						|| SplineMeshEntry.UpAxis != CachedSplineMeshEntry.UpAxis)
+				{
+					return true;
+				}
+			}
+#endif
+		}
+	}
+
+	return false;
+}
+
 //
 UHoudiniInputHoudiniSplineComponent::UHoudiniInputHoudiniSplineComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -224,6 +407,7 @@ UHoudiniInputHoudiniSplineComponent::UHoudiniInputHoudiniSplineComponent(const F
 UHoudiniInputHoudiniAsset::UHoudiniInputHoudiniAsset(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, AssetOutputIndex(-1)
+	, AssetId(-1)
 {
 
 }
@@ -231,6 +415,8 @@ UHoudiniInputHoudiniAsset::UHoudiniInputHoudiniAsset(const FObjectInitializer& O
 //
 UHoudiniInputActor::UHoudiniInputActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, SplinesMeshObjectNodeId(-1)
+	, SplinesMeshNodeId(-1)
 	, LastUpdateNumComponentsAdded(0)
 	, LastUpdateNumComponentsRemoved(0)
 {
@@ -240,6 +426,7 @@ UHoudiniInputActor::UHoudiniInputActor(const FObjectInitializer& ObjectInitializ
 //
 UHoudiniInputLandscape::UHoudiniInputLandscape(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, CachedNumLandscapeComponents(0)
 {
 
 }
@@ -333,6 +520,18 @@ UHoudiniInputGeometryCollectionComponent::GetGeometryCollection()
 	
 	FGeometryCollectionEdit GeometryCollectionEdit = GeometryCollectionComponent->EditRestCollection();
 	return GeometryCollectionEdit.GetRestCollection();
+}
+
+ALandscapeSplineActor*
+UHoudiniInputLandscapeSplineActor::GetLandscapeSplineActor() const
+{
+	return Cast<ALandscapeSplineActor>(InputObject.LoadSynchronous());
+}
+
+ULandscapeSplinesComponent*
+UHoudiniInputLandscapeSplinesComponent::GetLandscapeSplinesComponent() const
+{
+	return Cast<ULandscapeSplinesComponent>(InputObject.LoadSynchronous());
 }
 
 USceneComponent*
@@ -436,6 +635,7 @@ int32 UHoudiniInputLandscape::CountLandscapeComponents() const
 	return NumComponents;
 }
 
+
 ABrush*
 UHoudiniInputBrush::GetBrush() const
 { 
@@ -472,11 +672,12 @@ UHoudiniInputActor::MarkChanged(const bool& bInChanged)
 	bHasChanged = bInChanged;
 	SetNeedsToTriggerUpdate(bInChanged);
 
+	static constexpr bool bAlsoDirtyReferencedNodes = true;
 	if (bInChanged && InputNodeHandle.IsValid())
-	{
-		static constexpr bool bAlsoDirtyReferencedNodes = true;
 		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
-	}
+
+	if (bInChanged && SplinesMeshInputNodeHandle.IsValid())
+		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(SplinesMeshInputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
 
 	for (auto& CurComponent : ActorComponents)
 	{
@@ -502,7 +703,7 @@ UHoudiniInputHoudiniSplineComponent::MarkChanged(const bool& bInChanged)
 //-----------------------------------------------------------------------------------------------------------------------------
 
 UHoudiniInputObject *
-UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	if (!InObject)
 		return nullptr;
@@ -513,34 +714,34 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 	switch (InputObjectType)
 	{
 		case EHoudiniInputObjectType::Object:
-			HoudiniInputObject = UHoudiniInputObject::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputObject::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
 		case EHoudiniInputObjectType::StaticMesh:
-			HoudiniInputObject = UHoudiniInputStaticMesh::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputStaticMesh::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
 		case EHoudiniInputObjectType::SkeletalMesh:
-			HoudiniInputObject = UHoudiniInputSkeletalMesh::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputSkeletalMesh::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 		case EHoudiniInputObjectType::SceneComponent:
 			// Do not create input objects for unknown scene component!
-			//HoudiniInputObject = UHoudiniInputSceneComponent::Create(InObject, InOuter, InName);
+			//HoudiniInputObject = UHoudiniInputSceneComponent::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
 		case EHoudiniInputObjectType::StaticMeshComponent:
-			HoudiniInputObject = UHoudiniInputMeshComponent::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputMeshComponent::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
 		case EHoudiniInputObjectType::InstancedStaticMeshComponent:
-			HoudiniInputObject = UHoudiniInputInstancedMeshComponent::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputInstancedMeshComponent::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 		case EHoudiniInputObjectType::SplineComponent:
-			HoudiniInputObject = UHoudiniInputSplineComponent::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputSplineComponent::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
 		case EHoudiniInputObjectType::HoudiniSplineComponent:
-			HoudiniInputObject = UHoudiniInputHoudiniSplineComponent::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputHoudiniSplineComponent::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
 		case EHoudiniInputObjectType::HoudiniAssetActor:
@@ -548,7 +749,7 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 				AHoudiniAssetActor* HoudiniActor = Cast<AHoudiniAssetActor>(InObject);
 				if (HoudiniActor)
 				{
-					HoudiniInputObject = UHoudiniInputHoudiniAsset::Create(HoudiniActor->GetHoudiniAssetComponent(), InOuter, InName);
+					HoudiniInputObject = UHoudiniInputHoudiniAsset::Create(HoudiniActor->GetHoudiniAssetComponent(), InOuter, InName, InInputSettings);
 				}
 				else
 				{
@@ -558,45 +759,57 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 			break;
 
 		case EHoudiniInputObjectType::HoudiniAssetComponent:
-			HoudiniInputObject = UHoudiniInputHoudiniAsset::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputHoudiniAsset::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 		case EHoudiniInputObjectType::Actor:
 		case EHoudiniInputObjectType::GeometryCollectionActor_Deprecated:
-			HoudiniInputObject = UHoudiniInputActor::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputActor::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
 		case EHoudiniInputObjectType::Landscape:
-			HoudiniInputObject = UHoudiniInputLandscape::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputLandscape::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
 		case EHoudiniInputObjectType::Brush:
-			HoudiniInputObject = UHoudiniInputBrush::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputBrush::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
 		case EHoudiniInputObjectType::CameraComponent:
-			HoudiniInputObject = UHoudiniInputCameraComponent::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputCameraComponent::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
 		case EHoudiniInputObjectType::DataTable:
-			HoudiniInputObject = UHoudiniInputDataTable::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputDataTable::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 		
 		case EHoudiniInputObjectType::FoliageType_InstancedStaticMesh:
-			HoudiniInputObject = UHoudiniInputFoliageType_InstancedStaticMesh::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputFoliageType_InstancedStaticMesh::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 		case EHoudiniInputObjectType::GeometryCollection:
-			HoudiniInputObject = UHoudiniInputGeometryCollection::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputGeometryCollection::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 		case EHoudiniInputObjectType::GeometryCollectionComponent:
-			HoudiniInputObject = UHoudiniInputGeometryCollectionComponent::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputGeometryCollectionComponent::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
 		case EHoudiniInputObjectType::SkeletalMeshComponent:
-			HoudiniInputObject = UHoudiniInputSkeletalMeshComponent::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputSkeletalMeshComponent::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
 		case EHoudiniInputObjectType::Blueprint:
-			HoudiniInputObject = UHoudiniInputBlueprint::Create(InObject, InOuter, InName);
+			HoudiniInputObject = UHoudiniInputBlueprint::Create(InObject, InOuter, InName, InInputSettings);
+			break;
+
+		case EHoudiniInputObjectType::LandscapeSplineActor:
+			HoudiniInputObject = UHoudiniInputLandscapeSplineActor::Create(InObject, InOuter, InName, InInputSettings);
+			break;
+
+		case EHoudiniInputObjectType::LandscapeSplinesComponent:
+			HoudiniInputObject = UHoudiniInputLandscapeSplinesComponent::Create(InObject, InOuter, InName, InInputSettings);
+			break;
+
+		case EHoudiniInputObjectType::SplineMeshComponent:
+			HoudiniInputObject = UHoudiniInputSplineMeshComponent::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
 		case EHoudiniInputObjectType::Invalid:
@@ -609,7 +822,7 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 
 
 UHoudiniInputObject *
-UHoudiniInputInstancedMeshComponent::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputInstancedMeshComponent::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_ISMC_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputInstancedMeshComponent::StaticClass(), *InputObjectNameStr);
@@ -619,14 +832,14 @@ UHoudiniInputInstancedMeshComponent::Create(UObject * InObject, UObject* InOuter
 		InOuter, UHoudiniInputInstancedMeshComponent::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::InstancedStaticMeshComponent;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
 }
 
 UHoudiniInputObject *
-UHoudiniInputMeshComponent::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputMeshComponent::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_SMC_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputMeshComponent::StaticClass(), *InputObjectNameStr);
@@ -636,14 +849,14 @@ UHoudiniInputMeshComponent::Create(UObject * InObject, UObject* InOuter, const F
 		InOuter, UHoudiniInputMeshComponent::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::StaticMeshComponent;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
 }
 
 UHoudiniInputObject *
-UHoudiniInputSplineComponent::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputSplineComponent::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_Spline_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputSplineComponent::StaticClass(), *InputObjectNameStr);
@@ -653,14 +866,14 @@ UHoudiniInputSplineComponent::Create(UObject * InObject, UObject* InOuter, const
 		InOuter, UHoudiniInputSplineComponent::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::SplineComponent;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
 }
 
 UHoudiniInputObject *
-UHoudiniInputHoudiniSplineComponent::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputHoudiniSplineComponent::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_HoudiniSpline_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputHoudiniSplineComponent::StaticClass(), *InputObjectNameStr);
@@ -670,14 +883,14 @@ UHoudiniInputHoudiniSplineComponent::Create(UObject * InObject, UObject* InOuter
 		InOuter, UHoudiniInputHoudiniSplineComponent::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::HoudiniSplineComponent;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
 }
 
 UHoudiniInputObject *
-UHoudiniInputCameraComponent::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputCameraComponent::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_Camera_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputCameraComponent::StaticClass(), *InputObjectNameStr);
@@ -687,14 +900,14 @@ UHoudiniInputCameraComponent::Create(UObject * InObject, UObject* InOuter, const
 		InOuter, UHoudiniInputCameraComponent::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::CameraComponent;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
 }
 
 UHoudiniInputObject *
-UHoudiniInputHoudiniAsset::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputHoudiniAsset::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	UHoudiniAssetComponent * InHoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InObject);
 	if (!InHoudiniAssetComponent)
@@ -709,17 +922,14 @@ UHoudiniInputHoudiniAsset::Create(UObject * InObject, UObject* InOuter, const FS
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::HoudiniAssetComponent;
 
-	HoudiniInputObject->InputNodeId = InHoudiniAssetComponent->GetAssetId();
-	HoudiniInputObject->InputObjectNodeId = InHoudiniAssetComponent->GetAssetId();
-
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
 }
 
 UHoudiniInputObject *
-UHoudiniInputSceneComponent::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputSceneComponent::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_SceneComp_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputSceneComponent::StaticClass(), *InputObjectNameStr);
@@ -729,14 +939,14 @@ UHoudiniInputSceneComponent::Create(UObject * InObject, UObject* InOuter, const 
 		InOuter, UHoudiniInputSceneComponent::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::SceneComponent;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
 }
 
 UHoudiniInputObject *
-UHoudiniInputLandscape::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputLandscape::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_Landscape_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputLandscape::StaticClass(), *InputObjectNameStr);
@@ -746,14 +956,14 @@ UHoudiniInputLandscape::Create(UObject * InObject, UObject* InOuter, const FStri
 		InOuter, UHoudiniInputLandscape::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::Landscape;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
 }
 
 UHoudiniInputBrush *
-UHoudiniInputBrush::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputBrush::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_Brush_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputBrush::StaticClass(), *InputObjectNameStr);
@@ -763,14 +973,14 @@ UHoudiniInputBrush::Create(UObject * InObject, UObject* InOuter, const FString& 
 		InOuter, UHoudiniInputBrush::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::Brush;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
 }
 
 UHoudiniInputObject *
-UHoudiniInputActor::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputActor::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_Actor_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputActor::StaticClass(), *InputObjectNameStr);
@@ -780,14 +990,15 @@ UHoudiniInputActor::Create(UObject * InObject, UObject* InOuter, const FString& 
 		InOuter, UHoudiniInputActor::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::Actor;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->GeneratedSplinesMeshPackageGuid = FGuid::NewGuid();
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
 }
 
 UHoudiniInputObject*
-UHoudiniInputBlueprint::Create(UObject* InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputBlueprint::Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_BP_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputBlueprint::StaticClass(), *InputObjectNameStr);
@@ -797,14 +1008,14 @@ UHoudiniInputBlueprint::Create(UObject* InObject, UObject* InOuter, const FStrin
 		InOuter, UHoudiniInputBlueprint::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::Blueprint;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
 }
 
 UHoudiniInputObject *
-UHoudiniInputStaticMesh::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputStaticMesh::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_SM_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputStaticMesh::StaticClass(), *InputObjectNameStr);
@@ -814,7 +1025,7 @@ UHoudiniInputStaticMesh::Create(UObject * InObject, UObject* InOuter, const FStr
 		InOuter, UHoudiniInputStaticMesh::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::StaticMesh;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
@@ -822,7 +1033,7 @@ UHoudiniInputStaticMesh::Create(UObject * InObject, UObject* InOuter, const FStr
 
 
 UHoudiniInputObject *
-UHoudiniInputSkeletalMesh::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputSkeletalMesh::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_SkelMesh_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputSkeletalMesh::StaticClass(), *InputObjectNameStr);
@@ -832,14 +1043,14 @@ UHoudiniInputSkeletalMesh::Create(UObject * InObject, UObject* InOuter, const FS
 		InOuter, UHoudiniInputSkeletalMesh::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::SkeletalMesh;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
 }
 
 UHoudiniInputObject*
-UHoudiniInputSkeletalMeshComponent::Create(UObject* InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputSkeletalMeshComponent::Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_SKC_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputSkeletalMeshComponent::StaticClass(), *InputObjectNameStr);
@@ -849,14 +1060,14 @@ UHoudiniInputSkeletalMeshComponent::Create(UObject* InObject, UObject* InOuter, 
 		InOuter, UHoudiniInputSkeletalMeshComponent::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::SkeletalMeshComponent;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
 }
 
 UHoudiniInputObject *
-UHoudiniInputGeometryCollection::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputGeometryCollection::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_GC_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputGeometryCollection::StaticClass(), *InputObjectNameStr);
@@ -866,14 +1077,14 @@ UHoudiniInputGeometryCollection::Create(UObject * InObject, UObject* InOuter, co
                 InOuter, UHoudiniInputGeometryCollection::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::GeometryCollection;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
 }
 
 UHoudiniInputObject *
-UHoudiniInputGeometryCollectionComponent::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputGeometryCollectionComponent::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_GCC_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputGeometryCollectionComponent::StaticClass(), *InputObjectNameStr);
@@ -883,7 +1094,43 @@ UHoudiniInputGeometryCollectionComponent::Create(UObject * InObject, UObject* In
                 InOuter, UHoudiniInputGeometryCollectionComponent::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::GeometryCollectionComponent;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
+	HoudiniInputObject->bHasChanged = true;
+
+	return HoudiniInputObject;
+}
+
+
+UHoudiniInputObject*
+UHoudiniInputLandscapeSplineActor::Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
+{
+	const FString InputObjectNameStr = "HoudiniInputObject_LandscapeSplines_" + InName;
+	const FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputLandscapeSplineActor::StaticClass(), *InputObjectNameStr);
+
+	// We need to create a new object
+	UHoudiniInputLandscapeSplineActor* HoudiniInputObject = NewObject<UHoudiniInputLandscapeSplineActor>(
+		InOuter, UHoudiniInputLandscapeSplineActor::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->Type = EHoudiniInputObjectType::LandscapeSplineActor;
+	HoudiniInputObject->Update(InObject, InInputSettings);
+	HoudiniInputObject->bHasChanged = true;
+
+	return HoudiniInputObject;
+}
+
+
+UHoudiniInputObject*
+UHoudiniInputLandscapeSplinesComponent::Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
+{
+	const FString InputObjectNameStr = "HoudiniInputObject_LandscapeSplines_" + InName;
+	const FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputLandscapeSplinesComponent::StaticClass(), *InputObjectNameStr);
+
+	// We need to create a new object
+	UHoudiniInputLandscapeSplinesComponent* HoudiniInputObject = NewObject<UHoudiniInputLandscapeSplinesComponent>(
+		InOuter, UHoudiniInputLandscapeSplinesComponent::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->Type = EHoudiniInputObjectType::LandscapeSplinesComponent;
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
@@ -891,7 +1138,7 @@ UHoudiniInputGeometryCollectionComponent::Create(UObject * InObject, UObject* In
 
 
 UHoudiniInputObject *
-UHoudiniInputObject::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputObject::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputObject::StaticClass(), *InputObjectNameStr);
@@ -901,7 +1148,7 @@ UHoudiniInputObject::Create(UObject * InObject, UObject* InOuter, const FString&
 		InOuter, UHoudiniInputObject::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::Object;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
@@ -990,9 +1237,10 @@ UHoudiniInputObject::BeginDestroy()
 //-----------------------------------------------------------------------------------------------------------------------------
 
 void
-UHoudiniInputObject::Update(UObject * InObject)
+UHoudiniInputObject::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {
 	InputObject = InObject;
+	CachedInputSettings = InSettings;
 }
 
 FString UHoudiniInputObject::FormatAssetReference(FString AssetReference) {
@@ -1116,10 +1364,10 @@ UHoudiniInputObject::UpdateMaterialReferences()
 }
 
 void
-UHoudiniInputStaticMesh::Update(UObject * InObject)
+UHoudiniInputStaticMesh::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {
 	// Nothing to do
-	Super::Update(InObject);
+	Super::Update(InObject, InSettings);
 	// Static Mesh input accepts SM, BP, FoliageType_InstancedStaticMesh (static mesh) and FoliageType_Actor (if blueprint actor).
 	UStaticMesh* SM = Cast<UStaticMesh>(InObject);
 	UBlueprint* BP = Cast<UBlueprint>(InObject);
@@ -1128,20 +1376,20 @@ UHoudiniInputStaticMesh::Update(UObject * InObject)
 }
 
 void
-UHoudiniInputSkeletalMesh::Update(UObject * InObject)
+UHoudiniInputSkeletalMesh::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {
 	// Nothing to do
-	Super::Update(InObject);
+	Super::Update(InObject, InSettings);
 
 	USkeletalMesh* SkelMesh = Cast<USkeletalMesh>(InObject);
 	ensure(SkelMesh);
 }
 
 void
-UHoudiniInputSkeletalMeshComponent::Update(UObject* InObject)
+UHoudiniInputSkeletalMeshComponent::Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings)
 {
 	// Nothing to do
-	Super::Update(InObject);
+	Super::Update(InObject, InSettings);
 
 	USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(InObject);
 	ensure(SkeletalMeshComponent);
@@ -1149,10 +1397,10 @@ UHoudiniInputSkeletalMeshComponent::Update(UObject* InObject)
 
 
 void
-UHoudiniInputGeometryCollection::Update(UObject * InObject)
+UHoudiniInputGeometryCollection::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {
 	// Nothing to do
-	Super::Update(InObject);
+	Super::Update(InObject, InSettings);
 
 	UGeometryCollection* GeometryCollection = Cast<UGeometryCollection>(InObject);
 	ensure(GeometryCollection);
@@ -1160,21 +1408,104 @@ UHoudiniInputGeometryCollection::Update(UObject * InObject)
 
 
 void
-UHoudiniInputGeometryCollectionComponent::Update(UObject * InObject)
+UHoudiniInputGeometryCollectionComponent::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {
 	// Nothing to do
-	Super::Update(InObject);
+	Super::Update(InObject, InSettings);
 
 	UGeometryCollectionComponent* GeometryCollectionComponent = Cast<UGeometryCollectionComponent>(InObject);
 	ensure(GeometryCollectionComponent);
 }
 
+void
+UHoudiniInputLandscapeSplineActor::Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings)
+{
+	// Get the current value for if exporting spline meshes is enabled
+	if (!InSettings.bLandscapeSplinesExportSplineMeshComponents || !InSettings.bMergeSplineMeshComponents
+			|| !FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled() 
+			|| !FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
+	{
+		// Invalidate the merged splines nodes
+		InvalidateSplinesMeshData();
+	}
+
+	Super::Update(InObject, InSettings);
+}
+
+void
+UHoudiniInputLandscapeSplinesComponent::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
+{
+	Super::Update(InObject, InSettings);
+
+	ULandscapeSplinesComponent* const LandscapeSplinesComponent = Cast<ULandscapeSplinesComponent>(InObject);
+	ensure(LandscapeSplinesComponent);
+
+	// Cache the control points and segments from landscape splines component, for use in HasComponentChanged()
+	// Use helper to fetch control points since the landscape splines API differs between UE 5.0 and 5.1+
+	TArray<TObjectPtr<ULandscapeSplineControlPoint>> ControlPoints;
+	TArray<TObjectPtr<ULandscapeSplineSegment>> Segments;
+	FHoudiniEngineRuntimeUtils::GetLandscapeSplinesControlPointsAndSegments(LandscapeSplinesComponent, &ControlPoints, &Segments);
+	
+	const int32 NumControlPoints = ControlPoints.Num();
+	CachedControlPoints.SetNum(NumControlPoints);
+	if (NumControlPoints > 0)
+	{
+		for (int32 Idx = 0; Idx < NumControlPoints; ++Idx)
+		{
+			ULandscapeSplineControlPoint const* const ControlPoint = ControlPoints[Idx];
+			FHoudiniLandscapeSplineControlPointData& CachedControlPoint = CachedControlPoints[Idx];
+			if (!IsValid(ControlPoint))
+			{
+				// Reset entry to default
+				CachedControlPoint = {};
+				continue;
+			}
+
+			CachedControlPoint.Location = ControlPoint->Location;
+			CachedControlPoint.Rotation = ControlPoint->Rotation;
+			CachedControlPoint.Width = ControlPoint->Width;
+#if WITH_EDITORONLY_DATA
+			CachedControlPoint.SegmentMeshOffset = ControlPoint->SegmentMeshOffset;
+			CachedControlPoint.LayerName = ControlPoint->LayerName;
+			CachedControlPoint.bRaiseTerrain = ControlPoint->bRaiseTerrain;
+			CachedControlPoint.bLowerTerrain = ControlPoint->bLowerTerrain;
+			CachedControlPoint.Mesh = ControlPoint->Mesh;
+			CachedControlPoint.MaterialOverrides = ControlPoint->MaterialOverrides;
+			CachedControlPoint.MeshScale = ControlPoint->MeshScale;
+#endif
+		}
+	}
+
+	const int32 NumSegments = Segments.Num();
+	CachedSegments.SetNum(NumSegments);
+	if (NumSegments > 0)
+	{
+		for (int32 Idx = 0; Idx < NumSegments; ++Idx)
+		{
+			ULandscapeSplineSegment const* const Segment = Segments[Idx];
+			FHoudiniLandscapeSplineSegmentData& CachedSegment = CachedSegments[Idx];
+			if (!IsValid(Segment))
+			{
+				// Reset entry to default
+				CachedSegment = {};
+				continue;
+			}
+
+#if WITH_EDITORONLY_DATA
+			CachedSegment.LayerName = Segment->LayerName;
+			CachedSegment.bRaiseTerrain = Segment->bRaiseTerrain;
+			CachedSegment.bLowerTerrain = Segment->bLowerTerrain;
+			CachedSegment.SplineMeshes = Segment->SplineMeshes;
+#endif
+		}
+	}
+}
 
 
 void
-UHoudiniInputSceneComponent::Update(UObject * InObject)
+UHoudiniInputSceneComponent::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {	
-	Super::Update(InObject);
+	Super::Update(InObject, InSettings);
 
 	USceneComponent* USC = Cast<USceneComponent>(InObject);	
 	ensure(USC);
@@ -1214,7 +1545,7 @@ UHoudiniInputSceneComponent::HasComponentTransformChanged() const
 
 
 bool 
-UHoudiniInputSceneComponent::HasComponentChanged() const
+UHoudiniInputSceneComponent::HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const
 {
 	// Should return true if the component itself has been modified
 	// Should be overriden in child classes
@@ -1223,7 +1554,7 @@ UHoudiniInputSceneComponent::HasComponentChanged() const
 
 
 bool
-UHoudiniInputMeshComponent::HasComponentChanged() const
+UHoudiniInputMeshComponent::HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const
 {
 	UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(InputObject.LoadSynchronous());
 	UStaticMesh* SMCSM = nullptr;
@@ -1237,7 +1568,7 @@ UHoudiniInputMeshComponent::HasComponentChanged() const
 }
 
 bool
-UHoudiniInputCameraComponent::HasComponentChanged() const
+UHoudiniInputCameraComponent::HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const
 {
 	UCameraComponent* Camera = Cast<UCameraComponent>(InputObject.LoadSynchronous());	
 	if (IsValid(Camera))
@@ -1268,9 +1599,9 @@ UHoudiniInputCameraComponent::HasComponentChanged() const
 
 
 void
-UHoudiniInputCameraComponent::Update(UObject * InObject)
+UHoudiniInputCameraComponent::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {
-	Super::Update(InObject);
+	Super::Update(InObject, InSettings);
 
 	UCameraComponent* Camera = Cast<UCameraComponent>(InputObject.LoadSynchronous());
 
@@ -1288,9 +1619,9 @@ UHoudiniInputCameraComponent::Update(UObject * InObject)
 }
 
 void
-UHoudiniInputMeshComponent::Update(UObject * InObject)
+UHoudiniInputMeshComponent::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {
-	Super::Update(InObject);
+	Super::Update(InObject, InSettings);
 
 	UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(InObject);
 
@@ -1303,9 +1634,9 @@ UHoudiniInputMeshComponent::Update(UObject * InObject)
 }
 
 void
-UHoudiniInputInstancedMeshComponent::Update(UObject * InObject)
+UHoudiniInputInstancedMeshComponent::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {
-	Super::Update(InObject);
+	Super::Update(InObject, InSettings);
 
 	UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>(InObject);
 
@@ -1360,9 +1691,9 @@ UHoudiniInputInstancedMeshComponent::HasComponentTransformChanged() const
 }
 
 void
-UHoudiniInputSplineComponent::Update(UObject * InObject)
+UHoudiniInputSplineComponent::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {
-	Super::Update(InObject);
+	Super::Update(InObject, InSettings);
 
 	USplineComponent* Spline = Cast<USplineComponent>(InObject);
 
@@ -1385,9 +1716,9 @@ UHoudiniInputSplineComponent::Update(UObject * InObject)
 }
 
 void
-UHoudiniInputHoudiniSplineComponent::Update(UObject* InObject)
+UHoudiniInputHoudiniSplineComponent::Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings)
 {
-	Super::Update(InObject);
+	Super::Update(InObject, InSettings);
 
 	// We store the component references as a normal pointer property instead of using a soft object reference.
 	// If we use a soft object reference, the editor will complain about deleting a reference that is in use 
@@ -1459,9 +1790,9 @@ UHoudiniInputHoudiniSplineComponent::NeedsToTriggerUpdate() const
 }
 
 void
-UHoudiniInputHoudiniAsset::Update(UObject * InObject)
+UHoudiniInputHoudiniAsset::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {
-	Super::Update(InObject);
+	Super::Update(InObject, InSettings);
 
 	UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(InObject);
 
@@ -1469,22 +1800,23 @@ UHoudiniInputHoudiniAsset::Update(UObject * InObject)
 
 	if (HAC)
 	{
-		// TODO: Notify HAC that we're a downstream?
-		InputNodeId = HAC->GetAssetId();
-		InputObjectNodeId = HAC->GetAssetId();
-
 		// TODO: Allow selection of the asset output
 		AssetOutputIndex = 0;
+		AssetId = HAC->GetAssetId();
 	}
 }
 
 
 void
-UHoudiniInputActor::Update(UObject * InObject)
+UHoudiniInputActor::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {
 	const bool bHasInputObjectChanged = InputObject != InObject;
 	
-	Super::Update(InObject);
+	Super::Update(InObject, InSettings);
+
+	// Ensure we have a valid GUID for merged spline mesh components
+	if (!GeneratedSplinesMeshPackageGuid.IsValid())
+		GeneratedSplinesMeshPackageGuid = FGuid::NewGuid();
 
 	AActor* Actor = Cast<AActor>(InObject);
 	ensure(Actor);
@@ -1503,6 +1835,7 @@ UHoudiniInputActor::Update(UObject * InObject)
 
 			ActorComponents.Empty();
 			ActorSceneComponents.Empty();
+			NumSplineMeshComponents = 0;
 
 			TArray<USceneComponent*> AllComponents;
 			Actor->GetComponents<USceneComponent>(AllComponents, true);
@@ -1516,13 +1849,16 @@ UHoudiniInputActor::Update(UObject * InObject)
 					continue;
 
 				UHoudiniInputObject* InputObj = UHoudiniInputObject::CreateTypedInputObject(
-					SceneComponent, GetOuter(), Actor->GetActorNameOrLabel());
+					SceneComponent, GetOuter(), Actor->GetActorNameOrLabel(), InSettings);
 				if (!InputObj)
 					continue;
 
 				UHoudiniInputSceneComponent* SceneInput = Cast<UHoudiniInputSceneComponent>(InputObj);
 				if (!SceneInput)
 					continue;
+
+				if (SceneInput->IsA<UHoudiniInputSplineMeshComponent>())
+					NumSplineMeshComponents++;
 
 				ActorComponents.Add(SceneInput);
 				ActorSceneComponents.Add(TSoftObjectPtr<UObject>(SceneComponent));
@@ -1533,19 +1869,25 @@ UHoudiniInputActor::Update(UObject * InObject)
 		{
 			LastUpdateNumComponentsAdded = 0;
 			LastUpdateNumComponentsRemoved = 0;
+			NumSplineMeshComponents = 0;
 
 			// Look for any components to add or remove
 			TSet<USceneComponent*> NewComponents;
 			const bool bIncludeFromChildActors = true;
 			Actor->ForEachComponent<USceneComponent>(bIncludeFromChildActors, [&](USceneComponent* InComp)
 			{
-				if (IsValid(InComp))
-				{
-					if (!ActorSceneComponents.Contains(InComp) && ShouldTrackComponent(InComp))
-					{
-						NewComponents.Add(InComp);
-					}
-				}
+				if (!IsValid(InComp))
+					return;
+				if (!ShouldTrackComponent(InComp))
+					return;
+				
+				if (InComp->IsA<USplineMeshComponent>())
+					NumSplineMeshComponents++;
+				
+				if (ActorSceneComponents.Contains(InComp))
+					return;
+				
+				NewComponents.Add(InComp);
 			});
 			
 			// Update the actor input components (from the same actor)
@@ -1560,10 +1902,17 @@ UHoudiniInputActor::Update(UObject * InObject)
 					continue;
 				}
 
-				// Does the component still exist on Actor?
-				UObject* const CompObj = CurActorComp->GetObject();
-				// Make sure the actor is still valid
-				if (!IsValid(CompObj))
+				// If the tracked object is no longer valid, remove the input component.
+				// If the tracked object is valid, and it is a scene component, then if we should no longer be tracking
+				// components of that type remove it.
+				bool bShouldRemove = !IsValid(CurActorComp->GetObject());
+				if (!bShouldRemove)
+				{
+					USceneComponent* const InputComp = CurActorComp->GetSceneComponent();
+					if (IsValid(InputComp) && !ShouldTrackComponent(InputComp))
+						bShouldRemove = true;
+				}
+				if (bShouldRemove)
 				{
 					// If it's not, mark it for deletion
 					if ((CurActorComp->InputNodeId > 0) || (CurActorComp->InputObjectNodeId > 0))
@@ -1586,7 +1935,9 @@ UHoudiniInputActor::Update(UObject * InObject)
 					
 					UHoudiniInputSceneComponent* const CurActorComp = ActorComponents[IndexToRemove];
 					if (CurActorComp)
+					{
 						ActorSceneComponents.Remove(CurActorComp->InputObject);
+					}
 
 					const bool bAllowShrink = false;
 					ActorComponents.RemoveAtSwap(IndexToRemove, 1, bAllowShrink);
@@ -1603,7 +1954,7 @@ UHoudiniInputActor::Update(UObject * InObject)
 						continue;
 
 					UHoudiniInputObject* InputObj = UHoudiniInputObject::CreateTypedInputObject(
-						SceneComponent, GetOuter(), Actor->GetActorNameOrLabel());
+						SceneComponent, GetOuter(), Actor->GetActorNameOrLabel(), InSettings);
 					if (!InputObj)
 						continue;
 
@@ -1639,6 +1990,7 @@ UHoudiniInputActor::Update(UObject * InObject)
 			LastUpdateNumComponentsAdded = 0;
 			LastUpdateNumComponentsRemoved = 0;
 		}
+		NumSplineMeshComponents = 0;
 	}
 }
 
@@ -1680,8 +2032,58 @@ bool UHoudiniInputActor::HasComponentsTransformChanged() const
 }
 
 bool 
-UHoudiniInputActor::HasContentChanged() const
+UHoudiniInputActor::HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const
 {
+	if (!FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled())
+		return false;
+
+	// Check if any of the spline mesh components that we are tracking has changed
+	TSet<UActorComponent const*> TrackedSMComponents; 
+	bool bSplineMeshComponentChanged = false;
+	for (UHoudiniInputSceneComponent const* const Component : ActorComponents)
+	{
+		if (!IsValid(Component))
+			continue;
+
+		UHoudiniInputSplineMeshComponent const* const SMComponent = Cast<UHoudiniInputSplineMeshComponent>(Component);
+		if (!IsValid(SMComponent))
+			continue;
+		
+		TrackedSMComponents.Add(SMComponent->GetSplineMeshComponent());
+		if (!SMComponent->HasComponentTransformChanged() && !SMComponent->HasComponentChanged(InSettings))
+			continue;
+		
+		bSplineMeshComponentChanged = true;
+	}
+
+	// Count the number of spline mesh components the actor has
+	AActor const* const Actor = GetActor();
+	int32 CurrentNumSplineMeshComponents = 0;
+	if (IsValid(Actor))
+	{
+		static constexpr bool bIncludeFromChildActors = false;
+		Actor->ForEachComponent<USplineMeshComponent>(bIncludeFromChildActors, [this, &InSettings, &CurrentNumSplineMeshComponents, &bSplineMeshComponentChanged, &TrackedSMComponents](UActorComponent const* const InComponent)
+		{
+			if (!this->ShouldTrackComponent(InComponent, &InSettings))
+				return;
+			
+			CurrentNumSplineMeshComponents++;
+
+			if (!TrackedSMComponents.Contains(InComponent))
+				bSplineMeshComponentChanged = true;
+		});
+	}
+
+	// This actor should be considered changed if:
+	//		- Merge is switching from enabled to disabled, or disabled to enabled
+	//		- Merging is enabled and at least one spline mesh component has changed, or the number of spline mesh components have changed
+	const bool bNeedsToMergeSplineMeshes = InSettings.bMergeSplineMeshComponents && CurrentNumSplineMeshComponents > 1;
+	if (bUsedMergeSplinesMeshAtLastTranslate != bNeedsToMergeSplineMeshes)
+		return true;
+
+	if (bNeedsToMergeSplineMeshes && (bSplineMeshComponentChanged || NumSplineMeshComponents != CurrentNumSplineMeshComponents))
+		return true;
+
 	return false;
 }
 
@@ -1691,11 +2093,30 @@ UHoudiniInputActor::GetChangedObjectsAndValidNodes(TArray<UHoudiniInputObject*>&
 	if (Super::GetChangedObjectsAndValidNodes(OutChangedObjects, OutNodeIdsOfUnchangedValidObjects))
 		return true;
 
+	// If the actor is merging spline mesh components then it should have a valid SplinesMeshObjectNodeId 
+	if (bUsedMergeSplinesMeshAtLastTranslate)
+	{
+		if (SplinesMeshObjectNodeId > 0)
+		{
+			OutNodeIdsOfUnchangedValidObjects.Add(SplinesMeshObjectNodeId);
+		}
+		else
+		{
+			OutChangedObjects.Add(this);
+			return true;
+		}
+	}
+	
 	bool bAnyChanges = false;
 	// Check each of its child objects (components)
 	for (auto* const CurrentComp : GetActorComponents())
 	{
 		if (!IsValid(CurrentComp))
+			continue;
+
+		// If we are using merged spline mesh components, then spline mesh component changes, or disabling merging are all
+		// treated as actor changes
+		if (bUsedMergeSplinesMeshAtLastTranslate && CurrentComp->IsA<UHoudiniInputSplineMeshComponent>())
 			continue;
 
 		if (CurrentComp->GetChangedObjectsAndValidNodes(OutChangedObjects, OutNodeIdsOfUnchangedValidObjects))
@@ -1706,8 +2127,61 @@ UHoudiniInputActor::GetChangedObjectsAndValidNodes(TArray<UHoudiniInputObject*>&
 }
 
 void
+UHoudiniInputActor::InvalidateSplinesMeshData()
+{
+	GeneratedSplinesMesh = nullptr;
+	// If valid, mark our input nodes for deletion.
+	if (!CanDeleteHoudiniNodes())
+	{
+		// Unless if we're a HoudiniAssetInput! we don't want to delete the other HDA's node!
+		// just invalidate the node IDs!
+		SplinesMeshNodeId = -1;
+		SplinesMeshObjectNodeId = -1;
+		SplinesMeshInputNodeHandle.Reset();
+	}
+	else
+	{
+		// If we are using the new input system, then don't delete the nodes if we have a valid handle, and the HAPI
+		// nodes associated with the handle matches SplinesMeshNodeId / SplinesMeshObjectNodeId
+		const bool bIsRefCountedInputSystemEnabled = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+		if (bIsRefCountedInputSystemEnabled && SplinesMeshInputNodeHandle.IsValid())
+		{
+			IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+			if (Manager)
+			{
+				TArray<int32> ManagedNodeIds;
+				if (Manager->GetHAPINodeIds(SplinesMeshInputNodeHandle.GetIdentifier(), ManagedNodeIds))
+				{
+					if (ManagedNodeIds.Contains(SplinesMeshNodeId))
+						SplinesMeshNodeId = -1;
+					if (ManagedNodeIds.Contains(SplinesMeshObjectNodeId))
+						SplinesMeshObjectNodeId = -1;
+				}
+			}
+		}
+
+		SplinesMeshInputNodeHandle.Reset();
+		
+		if (SplinesMeshNodeId >= 0)
+		{
+			FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(SplinesMeshNodeId);
+			SplinesMeshNodeId = -1;
+		}
+
+		// ... and the parent OBJ as well to clean up
+		if (SplinesMeshObjectNodeId >= 0)
+		{
+			FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(SplinesMeshObjectNodeId);
+			SplinesMeshObjectNodeId = -1;
+		}
+	}
+}
+
+void
 UHoudiniInputActor::InvalidateData()
 {
+	InvalidateSplinesMeshData();
+	
 	// Call invalidate on input component objects
 	for (auto* const CurrentComp : GetActorComponents())
 	{
@@ -1720,19 +2194,50 @@ UHoudiniInputActor::InvalidateData()
 	Super::InvalidateData();
 }
 
-bool UHoudiniInputLandscape::ShouldTrackComponent(UActorComponent* InComponent)
+bool
+UHoudiniInputActor::ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings) const
+{
+	if (!FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled() && InComponent->IsA<ULandscapeSplinesComponent>())
+		return false;
+	
+	if (!FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled() && InComponent->IsA<USplineMeshComponent>())
+		return false;
+	
+	return true;
+}
+
+bool UHoudiniInputLandscape::ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings) const
 {
 	// We only track LandscapeComponents for landscape inputs since the Landscape tools
 	// have this very interesting and creative way of adding components when the tool is activated
 	// (looking at you Flatten tool) which causes cooking loops.
 	if (!IsValid(InComponent))
 		return false;
-	return InComponent->IsA(ULandscapeComponent::StaticClass());
+	
+	if (InComponent->IsA(ULandscapeComponent::StaticClass()))
+		return true;
+
+	// Use InSettings if provided, otherwise use the settings cached at the last update
+	const FHoudiniInputObjectSettings& Settings = InSettings ? *InSettings : CachedInputSettings;
+
+	if (Settings.bLandscapeAutoSelectSplines && FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
+	{
+		if (InComponent->IsA(ULandscapeSplinesComponent::StaticClass()))
+			return true;
+
+		if (Settings.bLandscapeSplinesExportSplineMeshComponents && FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled()
+				&& InComponent->IsA(USplineMeshComponent::StaticClass()))
+		{
+			return true;
+		}
+	}
+	
+	return false;
 }
 
-bool UHoudiniInputLandscape::HasContentChanged() const
+bool UHoudiniInputLandscape::HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const
 {
-	if (Super::HasContentChanged())
+	if (Super::HasContentChanged(InSettings))
 	{
 		return true;
 	}
@@ -1747,9 +2252,18 @@ bool UHoudiniInputLandscape::HasContentChanged() const
 }
 
 void
-UHoudiniInputLandscape::Update(UObject * InObject)
+UHoudiniInputLandscape::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {
-	Super::Update(InObject);
+	// Get the current value for if exporting spline meshes is enabled
+	if (!InSettings.bLandscapeSplinesExportSplineMeshComponents || !InSettings.bMergeSplineMeshComponents
+			|| !FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled()
+			|| !FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled())
+	{
+		// Invalidate the merged splines nodes
+		InvalidateSplinesMeshData();
+	}
+	
+	Super::Update(InObject, InSettings);
 
 	ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(InObject);
 
@@ -1821,7 +2335,7 @@ UHoudiniInputBlueprint::HasComponentsTransformChanged() const
 }
 
 bool
-UHoudiniInputBlueprint::HasContentChanged() const
+UHoudiniInputBlueprint::HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const
 {
 	return false;
 }
@@ -1843,11 +2357,11 @@ UHoudiniInputBlueprint::InvalidateData()
 
 
 void
-UHoudiniInputBlueprint::Update(UObject* InObject)
+UHoudiniInputBlueprint::Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings)
 {
 	const bool bHasInputObjectChanged = InputObject != InObject;
 
-	Super::Update(InObject);
+	Super::Update(InObject, InSettings);
 
 	UBlueprint* BP = Cast<UBlueprint>(InObject);
 	ensure(BP);
@@ -1893,7 +2407,7 @@ UHoudiniInputBlueprint::Update(UObject* InObject)
 					continue;
 
 				UHoudiniInputObject* InputObj = UHoudiniInputObject::CreateTypedInputObject(
-					SceneComponent, GetOuter(), BP->GetName());
+					SceneComponent, GetOuter(), BP->GetName(), InSettings);
 				if (!InputObj)
 					continue;
 
@@ -1992,7 +2506,7 @@ UHoudiniInputBlueprint::Update(UObject* InObject)
 						continue;
 
 					UHoudiniInputObject* InputObj = UHoudiniInputObject::CreateTypedInputObject(
-						SceneComponent, GetOuter(), BP->GetName());
+						SceneComponent, GetOuter(), BP->GetName(), InSettings);
 					if (!InputObj)
 						continue;
 
@@ -2048,6 +2562,10 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 			// SKMC also derives from SMC, so SKMC must be tested before SMC
 			return EHoudiniInputObjectType::SkeletalMeshComponent;
 		}
+		else if (InObject->IsA(USplineMeshComponent::StaticClass()))
+		{
+			return EHoudiniInputObjectType::SplineMeshComponent;
+		}
 		else if (InObject->IsA(UStaticMeshComponent::StaticClass()))
 		{
 			return EHoudiniInputObjectType::StaticMeshComponent;
@@ -2072,6 +2590,10 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 		{
 			return EHoudiniInputObjectType::GeometryCollectionComponent;
 		}
+		else if (InObject->IsA(ULandscapeSplinesComponent::StaticClass()))
+		{
+			return EHoudiniInputObjectType::LandscapeSplinesComponent;
+		}
 		else
 		{
 			return EHoudiniInputObjectType::SceneComponent;
@@ -2091,6 +2613,10 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 		else if (InObject->IsA(AHoudiniAssetActor::StaticClass()))
 		{
 			return EHoudiniInputObjectType::HoudiniAssetActor;
+		}
+		else if (InObject->IsA(ALandscapeSplineActor::StaticClass()))
+		{
+			return EHoudiniInputObjectType::LandscapeSplineActor;
 		}
 		else
 		{
@@ -2287,9 +2813,9 @@ void UHoudiniInputBrush::UpdateCachedData(UModel* InCombinedModel, const TArray<
 
 
 void
-UHoudiniInputBrush::Update(UObject * InObject)
+UHoudiniInputBrush::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {
-	Super::Update(InObject);
+	Super::Update(InObject, InSettings);
 
 	ABrush* BrushActor = GetBrush();
 	if (!IsValid(BrushActor))
@@ -2326,7 +2852,7 @@ UHoudiniInputBrush::ShouldIgnoreThisInput()
 	return bShouldBeIgnored;
 }
 
-bool UHoudiniInputBrush::HasContentChanged() const
+bool UHoudiniInputBrush::HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const
 {
 	ABrush* BrushActor = GetBrush();
 	ensure(BrushActor);
@@ -2494,7 +3020,7 @@ UHoudiniInputDataTable::UHoudiniInputDataTable(const FObjectInitializer& ObjectI
 }
 
 UHoudiniInputObject *
-UHoudiniInputDataTable::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputDataTable::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_DT_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputDataTable::StaticClass(), *InputObjectNameStr);
@@ -2504,7 +3030,7 @@ UHoudiniInputDataTable::Create(UObject * InObject, UObject* InOuter, const FStri
 		InOuter, UHoudiniInputDataTable::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::DataTable;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
@@ -2523,7 +3049,7 @@ UHoudiniInputFoliageType_InstancedStaticMesh::UHoudiniInputFoliageType_Instanced
 }
 
 UHoudiniInputObject*
-UHoudiniInputFoliageType_InstancedStaticMesh::Create(UObject * InObject, UObject* InOuter, const FString& InName)
+UHoudiniInputFoliageType_InstancedStaticMesh::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
 	FString InputObjectNameStr = "HoudiniInputObject_FoliageSM_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputFoliageType_InstancedStaticMesh::StaticClass(), *InputObjectNameStr);
@@ -2533,16 +3059,16 @@ UHoudiniInputFoliageType_InstancedStaticMesh::Create(UObject * InObject, UObject
 		InOuter, UHoudiniInputFoliageType_InstancedStaticMesh::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::FoliageType_InstancedStaticMesh;
-	HoudiniInputObject->Update(InObject);
+	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
 	return HoudiniInputObject;
 }
 
 void
-UHoudiniInputFoliageType_InstancedStaticMesh::Update(UObject * InObject)
+UHoudiniInputFoliageType_InstancedStaticMesh::Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings)
 {
-	UHoudiniInputObject::Update(InObject);
+	UHoudiniInputObject::Update(InObject, InSettings);
 	UFoliageType_InstancedStaticMesh* const FoliageType = Cast<UFoliageType_InstancedStaticMesh>(InObject);
 	ensure(FoliageType);
 	ensure(FoliageType->GetStaticMesh());
@@ -2559,4 +3085,95 @@ UHoudiniInputFoliageType_InstancedStaticMesh::GetStaticMesh() const
 		return nullptr;
 
 	return FoliageType->GetStaticMesh();
+}
+
+
+UHoudiniInputSplineMeshComponent::UHoudiniInputSplineMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, CachedForwardAxis()
+	, CachedSplineUpDir(FVector::UpVector)
+	, CachedSplineBoundaryMax(0)
+	, CachedSplineBoundaryMin(0)
+	, CachedbSmoothInterpRollScale(false)
+{
+
+}
+
+UHoudiniInputObject*
+UHoudiniInputSplineMeshComponent::Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
+{
+	const FString InputObjectNameStr = "HoudiniInputObject_SplineMeshComponent_" + InName;
+	const FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputSplineMeshComponent::StaticClass(), *InputObjectNameStr);
+
+	// We need to create a new object
+	UHoudiniInputSplineMeshComponent* HoudiniInputObject = NewObject<UHoudiniInputSplineMeshComponent>(
+		InOuter, UHoudiniInputSplineMeshComponent::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->Type = EHoudiniInputObjectType::SplineMeshComponent;
+	HoudiniInputObject->MeshPackageGuid = FGuid::NewGuid();
+	HoudiniInputObject->Update(InObject, InInputSettings);
+	HoudiniInputObject->bHasChanged = true;
+
+	return HoudiniInputObject;
+}
+
+void
+UHoudiniInputSplineMeshComponent::Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings)
+{
+	Super::Update(InObject, InSettings);
+
+	USplineMeshComponent const* const SplineMeshComponent = Cast<USplineMeshComponent>(InObject);
+	ensure(SplineMeshComponent);
+
+	CachedForwardAxis = SplineMeshComponent->ForwardAxis;
+	CachedSplineParams = SplineMeshComponent->SplineParams;
+	CachedSplineUpDir = SplineMeshComponent->SplineUpDir;
+	CachedSplineBoundaryMax = SplineMeshComponent->SplineBoundaryMax;
+	CachedSplineBoundaryMin = SplineMeshComponent->SplineBoundaryMin;
+	CachedbSmoothInterpRollScale = SplineMeshComponent->bSmoothInterpRollScale;
+}
+
+USplineMeshComponent*
+UHoudiniInputSplineMeshComponent::GetSplineMeshComponent() const
+{
+	return Cast<USplineMeshComponent>(InputObject.LoadSynchronous());
+}
+
+bool
+UHoudiniInputSplineMeshComponent::HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const
+{
+	if (Super::HasComponentChanged(InSettings))
+	{
+		return true;
+	}
+	
+	USplineMeshComponent const* const SplineMeshComponent = Cast<USplineMeshComponent>(InputObject.LoadSynchronous());
+
+	if (!IsValid(SplineMeshComponent))
+		return false;
+
+	if (SplineMeshComponent->ForwardAxis != CachedForwardAxis
+		|| SplineMeshComponent->SplineUpDir != CachedSplineUpDir
+		|| SplineMeshComponent->SplineBoundaryMax != CachedSplineBoundaryMax
+		|| SplineMeshComponent->SplineBoundaryMin != CachedSplineBoundaryMin
+		|| SplineMeshComponent->bSmoothInterpRollScale != CachedbSmoothInterpRollScale)
+	{
+		return true;
+	}
+
+	if (SplineMeshComponent->SplineParams.StartPos != CachedSplineParams.StartPos
+			|| SplineMeshComponent->SplineParams.StartTangent != CachedSplineParams.StartTangent
+			|| SplineMeshComponent->SplineParams.StartScale != CachedSplineParams.StartScale
+			|| SplineMeshComponent->SplineParams.StartRoll != CachedSplineParams.StartRoll
+			|| SplineMeshComponent->SplineParams.StartOffset != CachedSplineParams.StartOffset
+			|| SplineMeshComponent->SplineParams.EndPos != CachedSplineParams.EndPos
+			|| SplineMeshComponent->SplineParams.EndScale != CachedSplineParams.EndScale
+			|| SplineMeshComponent->SplineParams.EndTangent != CachedSplineParams.EndTangent
+			|| SplineMeshComponent->SplineParams.EndRoll != CachedSplineParams.EndRoll
+			|| SplineMeshComponent->SplineParams.EndOffset != CachedSplineParams.EndOffset)
+	{
+		return true;
+	}
+
+	return false;
 }

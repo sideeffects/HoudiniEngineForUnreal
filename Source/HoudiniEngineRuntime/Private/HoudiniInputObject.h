@@ -26,8 +26,7 @@
 
 #pragma once
 
-#include <functional>
-
+#include "HoudiniInputTypes.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniGeoPartObject.h"
 #include "UnrealObjectInputRuntimeTypes.h"
@@ -41,8 +40,11 @@
 #include "Engine/Polys.h"
 #include "UObject/SoftObjectPtr.h"
 
+#include "LandscapeSplineSegment.h"
+
 #include "HoudiniInputObject.generated.h"
 
+class ULandscapeSplineControlPoint;
 class UStaticMesh;
 class USkeletalMesh;
 class USceneComponent;
@@ -85,8 +87,12 @@ enum class EHoudiniInputObjectType : uint8
 	GeometryCollectionComponent,
 	GeometryCollectionActor_Deprecated,
 	SkeletalMeshComponent,
-	Blueprint
+	Blueprint,
+	LandscapeSplineActor,
+	LandscapeSplinesComponent,
+	SplineMeshComponent
 };
+
 
 //-----------------------------------------------------------------------------------------------------------------------------
 // UObjects input
@@ -101,10 +107,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputObject : public UObject
 public:
 
 	// Create the proper input object
-	static UHoudiniInputObject * CreateTypedInputObject(UObject * InObject, UObject* InOuter, const FString& InParamName);
+	static UHoudiniInputObject * CreateTypedInputObject(UObject * InObject, UObject* InOuter, const FString& InParamName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	// Check whether two input objects match
 	virtual bool Matches(const UHoudiniInputObject& Other) const;
@@ -113,7 +119,7 @@ public:
 	static EHoudiniInputObjectType GetInputObjectTypeFromObject(UObject* InObject);
 
 	//
-	virtual void Update(UObject * InObject);
+	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings);
 
 	// Invalidate and ask for the deletion of this input object's node
 	virtual void InvalidateData();
@@ -134,17 +140,13 @@ public:
 	void MarkTransformChanged(const bool& bInChanged) { bTransformChanged = bInChanged; SetNeedsToTriggerUpdate(bInChanged); };
 	virtual void SetNeedsToTriggerUpdate(const bool& bInTriggersUpdate) { bNeedsToTriggerUpdate = bInTriggersUpdate; };
 
-	void SetImportAsReference(const bool& bInImportAsRef) { bImportAsReference = bInImportAsRef; };
-	bool GetImportAsReference() const { return bImportAsReference; };
+	bool GetImportAsReference() const { return CachedInputSettings.bImportAsReference; };
 
-	void SetImportAsReferenceRotScaleEnabled(const bool& bInImportAsRefRotScaleEnabled) { bImportAsReferenceRotScaleEnabled = bInImportAsRefRotScaleEnabled; };
-	bool GetImportAsReferenceRotScaleEnabled() const { return bImportAsReferenceRotScaleEnabled; };
+	bool GetImportAsReferenceRotScaleEnabled() const { return CachedInputSettings.bImportAsReferenceRotScaleEnabled; };
 
-	void SetImportAsReferenceBboxEnabled(const bool& bInImportAsRefBboxEnabled) { bImportAsReferenceBboxEnabled = bInImportAsRefBboxEnabled; };
-	bool GetImportAsReferenceBboxEnabled() const { return bImportAsReferenceBboxEnabled; };
+	bool GetImportAsReferenceBboxEnabled() const { return CachedInputSettings.bImportAsReferenceBboxEnabled; };
 
-	void SetImportAsReferenceMaterialEnabled(const bool& bInImportAsRefMaterialEnabled) { bImportAsReferenceMaterialEnabled = bInImportAsRefMaterialEnabled; }
-	bool GetImportAsReferenceMaterialEnabled() const { return bImportAsReferenceMaterialEnabled; };
+	bool GetImportAsReferenceMaterialEnabled() const { return CachedInputSettings.bImportAsReferenceMaterialEnabled; };
 	
 	const TArray<FString>& GetMaterialReferences();
 
@@ -236,18 +238,6 @@ protected:
 	UPROPERTY(DuplicateTransient)
 	bool bTransformChanged;
 
-	UPROPERTY()
-	bool bImportAsReference;
-
-	UPROPERTY()
-	bool bImportAsReferenceRotScaleEnabled;
-
-	UPROPERTY()
-	bool bImportAsReferenceBboxEnabled;
-
-	UPROPERTY()
-	bool bImportAsReferenceMaterialEnabled;
-
 	// String References to the materials on the input object.
 	// This is used when sending input by reference to Houdini.
 	// These strings are in the form of: Material'/path/to/reference'
@@ -259,6 +249,10 @@ protected:
 	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
 	bool bUniformScaleLocked;
 #endif
+
+	// The settings cached from the Input at the last Update() call.
+	UPROPERTY()
+	FHoudiniInputObjectSettings CachedInputSettings;
 
 	UPROPERTY()
 	bool bCanDeleteHoudiniNodes;
@@ -276,10 +270,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputStaticMesh : public UHoudiniInputObj
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//
-	virtual void Update(UObject * InObject) override;
+	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	// Nothing to add for Static Meshes?
 
@@ -300,10 +294,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputSkeletalMesh : public UHoudiniInputO
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//
-	virtual void Update(UObject * InObject) override;
+	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	// Nothing to add for SkeletalMesh Meshes?
 
@@ -322,10 +316,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputGeometryCollection : public UHoudini
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//
-	virtual void Update(UObject * InObject) override;
+	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	// GeometryCollection accessor
 	class UGeometryCollection* GetGeometryCollection();
@@ -345,10 +339,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputSceneComponent : public UHoudiniInpu
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//
-	virtual void Update(UObject * InObject) override;
+	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
 	
 	// SceneComponent accessor
 	class USceneComponent* GetSceneComponent();
@@ -360,7 +354,7 @@ public:
 	virtual bool HasComponentTransformChanged() const;
 
 	// Return true if the component itself has been modified
-	virtual bool HasComponentChanged() const;
+	virtual bool HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const;
 
 public:
 
@@ -382,10 +376,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputMeshComponent : public UHoudiniInput
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//
-	virtual void Update(UObject * InObject) override;
+	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	// StaticMeshComponent accessor
 	UStaticMeshComponent* GetStaticMeshComponent();
@@ -397,7 +391,7 @@ public:
 	bool HasComponentMaterialsChanged() const;
 
 	// Return true if SMC's static mesh has been modified
-	virtual bool HasComponentChanged() const override;
+	virtual bool HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const override;
 
 public:
 
@@ -420,10 +414,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputInstancedMeshComponent : public UHou
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//
-	virtual void Update(UObject * InObject) override;
+	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	// InstancedStaticMeshComponent accessor
 	UInstancedStaticMeshComponent* GetInstancedStaticMeshComponent();
@@ -455,16 +449,16 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputSplineComponent : public UHoudiniInp
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//
-	virtual void Update(UObject * InObject) override;
+	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	// USplineComponent accessor
 	USplineComponent* GetSplineComponent();
 
 	// Return true if the component itself has been modified
-	virtual bool HasComponentChanged() const override;
+	virtual bool HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const override;
 
 public:
 
@@ -500,10 +494,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputGeometryCollectionComponent : public
 
 public:
 	//
-	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//
-	virtual void Update(UObject* InObject) override;
+	virtual void Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	// GeometryCollection accessor
 	class UGeometryCollectionComponent* GetGeometryCollectionComponent();
@@ -520,10 +514,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputSkeletalMeshComponent : public UHoud
 
 public:
 	//
-	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//
-	virtual void Update(UObject* InObject) override;
+	virtual void Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	// Skeletal Mesh accessor
 	class USkeletalMeshComponent* GetSkeletalMeshComponent();
@@ -541,9 +535,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputHoudiniSplineComponent : public UHou
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
-	virtual void Update(UObject * InObject) override;
+	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	virtual UObject* GetObject() const override;
 
@@ -596,16 +590,16 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputCameraComponent : public UHoudiniInp
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//
-	virtual void Update(UObject * InObject) override;
+	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	// UCameraComponent accessor
 	UCameraComponent* GetCameraComponent();
 
 	// Return true if SMC's static mesh has been modified
-	virtual bool HasComponentChanged() const override;
+	virtual bool HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const override;
 
 public:
 
@@ -640,10 +634,13 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputHoudiniAsset : public UHoudiniInputO
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//
-	virtual void Update(UObject * InObject) override;
+	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
+
+	// Getter for the asset Id of the tracked HAC. Updated via Update().
+	int32 GetAssetId() const { return AssetId; }
 
 	// UHoudiniAssetComponent accessor
 	UHoudiniAssetComponent* GetHoudiniAssetComponent();
@@ -652,6 +649,12 @@ public:
 	// The output index of the node that we want to use as input
 	UPROPERTY()
 	int32 AssetOutputIndex;
+
+protected:
+	// The asset ID recorded at the last Update().
+	UPROPERTY()
+	int32 AssetId;
+
 };
 
 
@@ -667,10 +670,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputActor : public UHoudiniInputObject
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//
-	virtual void Update(UObject * InObject) override;
+	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	// Check whether the actor transform, or any of its components have transform changes.
 	virtual bool HasActorTransformChanged() const;
@@ -678,18 +681,27 @@ public:
 	// Indicates this object is dirty and should be updated
 	virtual void MarkChanged(const bool& bInChanged) override;
 
+	// GUID for temp merged SM of all spline mesh components of this actor (if any)
+	FGuid GetSplinesMeshPackageGuid() const { return GeneratedSplinesMeshPackageGuid; }
+
+	// Getter for temp merged SM of all spline mesh components of this actor (if any)
+	UStaticMesh* GetGeneratedSplineMesh() const { return GeneratedSplinesMesh; }
+
+	// Setter for temp merged SM of all spline mesh components of this actor (if any)
+	void SetGeneratedSplineMesh(UStaticMesh* const InSM) { GeneratedSplinesMesh = InSM; }
+
 protected:
 	virtual bool HasRootComponentTransformChanged() const;
 	virtual bool HasComponentsTransformChanged() const;
 
 public:
 	//
-	virtual bool ShouldTrackComponent(UActorComponent* InComponent) { return true; }
+	virtual bool ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings=nullptr) const;
 
 	// Return true if any content of this actor has possibly changed (for example geometry edits on a 
 	// Brush or changes on procedurally generated content).
 	// NOTE: This is more generally applicable and could be moved to the HoudiniInputObject class.
-	virtual bool HasContentChanged() const;
+	virtual bool HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const;
 
 	// AActor accessor
 	AActor* GetActor() const;
@@ -711,7 +723,23 @@ public:
 	 */
 	virtual bool GetChangedObjectsAndValidNodes(TArray<UHoudiniInputObject*>& OutChangedObjects, TArray<int32>& OutNodeIdsOfUnchangedValidObjects) override;
 
+	// Returns the number of spline mesh components after the last update.
+	int32 GetNumSplineMeshComponents() const { return NumSplineMeshComponents; }
+
+	bool UsedMergeSplinesMeshAtLastTranslate() const { return bUsedMergeSplinesMeshAtLastTranslate; }
+	void SetUsedMergeSplinesMeshAtLastTranslate(bool bInValue) { bUsedMergeSplinesMeshAtLastTranslate = bInValue; }
+
 	virtual void InvalidateData() override;
+
+	virtual void InvalidateSplinesMeshData();
+
+	UPROPERTY()
+	int32 SplinesMeshObjectNodeId;
+
+	UPROPERTY()
+	int32 SplinesMeshNodeId;
+
+	FUnrealObjectInputHandle SplinesMeshInputNodeHandle;
 
 protected:
 
@@ -732,6 +760,22 @@ protected:
 	// The number of components remove with the last call to Update
 	UPROPERTY()
 	int32 LastUpdateNumComponentsRemoved;
+
+	// The number of spline mesh components in ActorComponents the last time this object was updated.
+	UPROPERTY()
+	int32 NumSplineMeshComponents;
+
+	// Package GUID for temp static mesh for the merged spline mesh components (if any).
+	UPROPERTY()
+	FGuid GeneratedSplinesMeshPackageGuid;
+
+	// The merged static mesh generated for the spline mesh components.
+	UPROPERTY()
+	TObjectPtr<UStaticMesh> GeneratedSplinesMesh;
+
+	// True if the merged spline mesh was sent at the last translation.
+	UPROPERTY()
+	bool bUsedMergeSplinesMeshAtLastTranslate;
 };
 
 
@@ -747,17 +791,17 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputLandscape : public UHoudiniInputActo
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//
 	
-	virtual void Update(UObject * InObject) override;
+	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	virtual bool HasActorTransformChanged() const override;
 
-	virtual bool ShouldTrackComponent(UActorComponent* InComponent) override;
+	virtual bool ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings=nullptr) const override;
 
-	virtual bool HasContentChanged() const override;
+	virtual bool HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const override;
 
 	// ALandscapeProxy accessor
 	ALandscapeProxy* GetLandscapeProxy() const;
@@ -775,7 +819,6 @@ protected:
 	// Count the number of landscape components that are currently registered with LandscapeInfo, i.e., loaded into
 	// the current world.
 	virtual int32 CountLandscapeComponents() const;
-
 };
 
 
@@ -848,16 +891,16 @@ public:
 	UHoudiniInputBrush();
 
 	// Factory function
-	static UHoudiniInputBrush* Create(UObject* InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputBrush* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//----------------------------------------------------------------------
 	// UHoudiniInputActor Interface - Begin
 	//----------------------------------------------------------------------
 
-	virtual void Update(UObject * InObject) override;
+	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	// Indicates if this input has changed and should be updated
-	virtual bool HasContentChanged() const override;
+	virtual bool HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const override;
 
 	// Indicates if this input has changed and should be updated
 	virtual bool HasChanged() const override { return (!bIgnoreInputObject) && bHasChanged; };
@@ -922,7 +965,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputDataTable : public UHoudiniInputObje
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	// DataTable accessor
 	class UDataTable* GetDataTable() const;
@@ -939,12 +982,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputFoliageType_InstancedStaticMesh : pu
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	// UHoudiniInputObject overrides
 	
 	//
-	virtual void Update(UObject * InObject) override;
+	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	// StaticMesh accessor
 	virtual class UStaticMesh* GetStaticMesh() const override;
@@ -961,10 +1004,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputBlueprint : public UHoudiniInputObje
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName);
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	//
-	virtual void Update(UObject* InObject) override;
+	virtual void Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	virtual bool HasComponentsTransformChanged() const;
 
@@ -973,7 +1016,7 @@ public:
 	// Return true if any content of this actor has possibly changed (for example geometry edits on a 
 	// Brush or changes on procedurally generated content).
 	// NOTE: This is more generally applicable and could be moved to the HoudiniInputObject class.
-	virtual bool HasContentChanged() const;
+	virtual bool HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const;
 
 	// UBlueprint accessor
 	UBlueprint* GetBlueprint() const;
@@ -1018,3 +1061,213 @@ protected:
 		int32 LastUpdateNumComponentsRemoved;
 };
 
+//-----------------------------------------------------------------------------------------------------------------------------
+// ALandscapeSplinesActor input
+//-----------------------------------------------------------------------------------------------------------------------------
+
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputLandscapeSplineActor : public UHoudiniInputActor
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	//
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+
+	// ULandscapeSplinesComponent accessor
+	class ALandscapeSplineActor* GetLandscapeSplineActor() const;
+
+	virtual void Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings) override;
+
+	/**
+	 * Returns true if InComponent (a component of the input actor) should be tracked by the input system.
+	 * @param InComponent The component to check for tracking. 
+	 * @return true if InComponent should be tracked.
+	 */
+	virtual bool ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings=nullptr) const override;
+};
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// ULandscapeSplinesComponent input
+//-----------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * Struct for caching landscape spline control points. ULandscapeSplineControlPoint cannot be duplicated with
+ * an outer other than ULandscapeSplinesComponent. * 
+ */
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeSplineControlPointData
+{
+	GENERATED_BODY();
+
+	FHoudiniLandscapeSplineControlPointData();
+
+	// Copied properties from ULandscapeSplineControlPoint for which we want to track changes
+	
+	/** Location in Landscape-space */
+	UPROPERTY()
+	FVector Location;
+
+	/** Rotation of tangent vector at this point (in landscape-space) */
+	UPROPERTY()
+	FRotator Rotation;
+
+	/** Half-Width of the spline at this point. */
+	UPROPERTY()
+	float Width;
+
+#if WITH_EDITORONLY_DATA
+	/** Vertical offset of the spline segment mesh. Useful for a river's surface, among other things. */
+	UPROPERTY()
+	float SegmentMeshOffset;
+
+	/**
+	 * Name of blend layer to paint when applying spline to landscape
+	 * If "none", no layer is painted
+	 */
+	UPROPERTY()
+	FName LayerName;
+
+	/** If the spline is above the terrain, whether to raise the terrain up to the level of the spline when applying it to the landscape. */
+	UPROPERTY()
+	uint32 bRaiseTerrain:1;
+
+	/** If the spline is below the terrain, whether to lower the terrain down to the level of the spline when applying it to the landscape. */
+	UPROPERTY()
+	uint32 bLowerTerrain:1;
+
+	/** Mesh to use on the control point */
+	UPROPERTY()
+	TObjectPtr<UStaticMesh> Mesh;
+
+	/** Overrides mesh's materials */
+	UPROPERTY()
+	TArray<TObjectPtr<UMaterialInterface>> MaterialOverrides;
+
+	/** Scale of the control point mesh */
+	UPROPERTY()
+	FVector MeshScale;
+#endif
+	
+};
+
+/**
+ * Struct for caching landscape spline control points. ULandscapeSplineSegment cannot be duplicated with
+ * an outer other than ULandscapeSplinesComponent. * 
+ */
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeSplineSegmentData
+{
+	GENERATED_BODY();
+
+	FHoudiniLandscapeSplineSegmentData();
+	
+	// Copied properties from ULandscapeSplineSegment for which we want to track changes
+
+#if WITH_EDITORONLY_DATA
+	/**
+	 * Name of blend layer to paint when applying spline to landscape
+	 * If "none", no layer is painted
+	 */
+	UPROPERTY()
+	FName LayerName;
+
+	/** If the spline is above the terrain, whether to raise the terrain up to the level of the spline when applying it to the landscape. */
+	UPROPERTY()
+	uint32 bRaiseTerrain:1;
+
+	/** If the spline is below the terrain, whether to lower the terrain down to the level of the spline when applying it to the landscape. */
+	UPROPERTY()
+	uint32 bLowerTerrain:1;
+
+	/** Spline meshes from this list are used in random order along the spline. */
+	UPROPERTY()
+	TArray<FLandscapeSplineMeshEntry> SplineMeshes;
+#endif
+	
+};
+
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputLandscapeSplinesComponent : public UHoudiniInputSceneComponent
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	//
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+
+	//
+	virtual void Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings) override;
+
+	// ULandscapeSplinesComponent accessor
+	class ULandscapeSplinesComponent* GetLandscapeSplinesComponent() const;
+
+	virtual bool HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const override;
+
+	const TArray<FHoudiniLandscapeSplineControlPointData>& GetCachedControlPoints() const { return CachedControlPoints; }
+
+	const TArray<FHoudiniLandscapeSplineSegmentData>& GetCachedSegments() const { return CachedSegments; }
+
+protected:
+	/** A copy of the control points of the spline the last time this object was updated. */
+	UPROPERTY()
+	TArray<FHoudiniLandscapeSplineControlPointData> CachedControlPoints;
+
+	/** A copy of the segments of the landscape spline the last time this was object was updated. */
+	UPROPERTY()
+	TArray<FHoudiniLandscapeSplineSegmentData> CachedSegments;
+
+};
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// USplineMeshComponent input
+//-----------------------------------------------------------------------------------------------------------------------------
+
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputSplineMeshComponent : public UHoudiniInputMeshComponent
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	//
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+
+	//
+	virtual void Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings) override;
+
+	// USplineMeshComponent accessor
+	class USplineMeshComponent* GetSplineMeshComponent() const;
+
+	virtual bool HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const override;
+
+	const FGuid& GetMeshPackageGuid() const { return MeshPackageGuid; }
+
+	TObjectPtr<UStaticMesh> GetGeneratedMesh() { return GeneratedMesh; }
+
+	void SetGeneratedMesh(UStaticMesh* const InMesh) { GeneratedMesh = InMesh; }
+
+protected:
+	UPROPERTY()
+	FGuid MeshPackageGuid;
+
+	UPROPERTY()
+	TObjectPtr<UStaticMesh> GeneratedMesh;
+	
+	UPROPERTY()
+	TEnumAsByte<ESplineMeshAxis::Type> CachedForwardAxis;
+	
+	UPROPERTY()
+	FSplineMeshParams CachedSplineParams;
+
+	UPROPERTY()
+	FVector CachedSplineUpDir;
+	
+	UPROPERTY()
+	float CachedSplineBoundaryMax;
+	
+	UPROPERTY()
+	float CachedSplineBoundaryMin;
+	
+	UPROPERTY()
+	uint8 CachedbSmoothInterpRollScale:1;
+};

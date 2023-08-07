@@ -250,7 +250,7 @@ UHoudiniPublicAPIInput::CopyInputObjectPropertiesToHoudiniInputObject(const int3
 
 	if (InHoudiniInputObject->GetImportAsReference() != bImportAsReference)
 	{
-		InHoudiniInputObject->SetImportAsReference(bImportAsReference);
+		// InHoudiniInputObject->SetImportAsReference(bImportAsReference);
 		InHoudiniInputObject->MarkChanged(true);
 	}
 	
@@ -1133,13 +1133,15 @@ UHoudiniPublicAPILandscapeInput::PopulateFromHoudiniInput(UHoudiniInput const* c
 	if (!Super::PopulateFromHoudiniInput(InInput))
 		return false;
 
-	LandscapeExportType = InInput->GetLandscapeExportType();
-	bLandscapeExportSelectionOnly = InInput->bLandscapeExportSelectionOnly;
-	bLandscapeAutoSelectComponent = InInput->bLandscapeAutoSelectComponent;
-	bLandscapeExportMaterials = InInput->bLandscapeExportMaterials;
-	bLandscapeExportLighting = InInput->bLandscapeExportLighting;
-	bLandscapeExportNormalizedUVs = InInput->bLandscapeExportNormalizedUVs;
-	bLandscapeExportTileUVs = InInput->bLandscapeExportTileUVs;
+	const FHoudiniInputObjectSettings& InputSettings = InInput->GetInputSettings();
+	
+	LandscapeExportType = InputSettings.LandscapeExportType;
+	bLandscapeExportSelectionOnly = InputSettings.bLandscapeExportSelectionOnly;
+	bLandscapeAutoSelectComponent = InputSettings.bLandscapeAutoSelectComponent;
+	bLandscapeExportMaterials = InputSettings.bLandscapeExportMaterials;
+	bLandscapeExportLighting = InputSettings.bLandscapeExportLighting;
+	bLandscapeExportNormalizedUVs = InputSettings.bLandscapeExportNormalizedUVs;
+	bLandscapeExportTileUVs = InputSettings.bLandscapeExportTileUVs;
 
 	return true;
 }
@@ -1170,40 +1172,40 @@ UHoudiniPublicAPILandscapeInput::UpdateHoudiniInput(UHoudiniInput* const InInput
 
 		bAnyChanges = true;
 	}
-	
-	if (InInput->bLandscapeExportSelectionOnly != bLandscapeExportSelectionOnly)
+
+	if (InInput->IsLandscapeExportSelectionOnlyEnabled() != bLandscapeExportSelectionOnly)
 	{
-		InInput->bLandscapeExportSelectionOnly = bLandscapeExportSelectionOnly;
+		InInput->SetLandscapeExportSelectionOnlyEnabled(bLandscapeExportSelectionOnly);
 		bAnyChanges = true;
 	}
 	
-	if (InInput->bLandscapeAutoSelectComponent != bLandscapeAutoSelectComponent)
+	if (InInput->IsLandscapeAutoSelectComponentEnabled() != bLandscapeAutoSelectComponent)
 	{
-		InInput->bLandscapeAutoSelectComponent = bLandscapeAutoSelectComponent;
+		InInput->SetLandscapeAutoSelectComponentEnabled(bLandscapeAutoSelectComponent);
 		bAnyChanges = true;
 	}
 	
-	if (InInput->bLandscapeExportMaterials != bLandscapeExportMaterials)
+	if (InInput->IsLandscapeExportMaterialsEnabled() != bLandscapeExportMaterials)
 	{
-		InInput->bLandscapeExportMaterials = bLandscapeExportMaterials;
+		InInput->SetLandscapeExportMaterialsEnabled(bLandscapeExportMaterials);
 		bAnyChanges = true;
 	}
 	
-	if (InInput->bLandscapeExportLighting != bLandscapeExportLighting)
+	if (InInput->IsLandscapeExportLightingEnabled() != bLandscapeExportLighting)
 	{
-		InInput->bLandscapeExportLighting = bLandscapeExportLighting;
+		InInput->SetLandscapeExportLightingEnabled(bLandscapeExportLighting);
 		bAnyChanges = true;
 	}
 	
-	if (InInput->bLandscapeExportNormalizedUVs != bLandscapeExportNormalizedUVs)
+	if (InInput->IsLandscapeExportNormalizedUVsEnabled() != bLandscapeExportNormalizedUVs)
 	{
-		InInput->bLandscapeExportNormalizedUVs = bLandscapeExportNormalizedUVs;
+		InInput->SetLandscapeExportNormalizedUVsEnabled(bLandscapeExportNormalizedUVs);
 		bAnyChanges = true;
 	}
 	
-	if (InInput->bLandscapeExportTileUVs != bLandscapeExportTileUVs)
+	if (InInput->IsLandscapeExportTileUVsEnabled() != bLandscapeExportTileUVs)
 	{
-		InInput->bLandscapeExportTileUVs = bLandscapeExportTileUVs;
+		InInput->SetLandscapeExportTileUVsEnabled(bLandscapeExportTileUVs);
 		bAnyChanges = true;
 	}
 

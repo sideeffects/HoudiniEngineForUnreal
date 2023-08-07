@@ -43,6 +43,7 @@
 
 class AActor;
 class UWorld;
+class ULandscapeSplinesComponent;
 class FUnrealObjectInputIdentifier;
 struct FHoudiniStaticMeshGenerationProperties;
 struct FMeshBuildSettings;
@@ -358,12 +359,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 
 
 		// -------------------------------------------------
-		// Ref counted inputs
+		// Experimental Features - Input system
 		// -------------------------------------------------
 
 		// Returns true if the reference counted input system is enabled
 		static bool IsRefCountedInputSystemEnabled();
-	
+
 		// Helper for checking if an input node is marked as dirty in the ref counted input system.
 		static bool IsInputNodeDirty(const FUnrealObjectInputIdentifier& InIdentifier);
 		// Helper for marking an input node, and optionally for reference nodes its referenced nodes, as dirty in the ref counted input system
@@ -372,6 +373,34 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 		static bool ClearInputNodeDirtyFlag(const FUnrealObjectInputIdentifier& InIdentifier);
 
 
+		// -------------------------------------------------
+		// Experimental Features - Landscape Splines
+		// -------------------------------------------------
+
+		// Returns true if landscape spline input is enabled
+		static bool IsLandscapeSplineInputEnabled();
+
+		// Gets the control points and/or segments of the given landscape spline
+		static bool GetLandscapeSplinesControlPointsAndSegments(
+			ULandscapeSplinesComponent* const InSplinesComponent,
+			TArray<TObjectPtr<ULandscapeSplineControlPoint>>* OutControlPoints=nullptr,
+			TArray<TObjectPtr<ULandscapeSplineSegment>>* OutSegments=nullptr);
+
+		// Gets the control points of a ULandscapeSplinesComponent
+		static bool GetLandscapeSplinesControlPoints(ULandscapeSplinesComponent* const InSplinesComponent, TArray<TObjectPtr<ULandscapeSplineControlPoint>>& OutControlPoints);
+
+		// Gets the segments of a ULandscapeSplinesComponent
+		static bool GetLandscapeSplinesSegments(ULandscapeSplinesComponent* const InSplinesComponent, TArray<TObjectPtr<ULandscapeSplineSegment>>& OutSegments);
+
+
+		// -------------------------------------------------
+		// Experimental Features - Spline Meshes
+		// -------------------------------------------------
+
+		// Returns true if spline mesh input is enabled
+		static bool IsSplineMeshInputEnabled();
+
+	
 		// Helper function for destroying landscapes.
 
 

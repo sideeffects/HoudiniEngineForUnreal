@@ -71,6 +71,12 @@ struct HOUDINIENGINERUNTIME_API FUnrealObjectInputOptions
 
 	/** Indicates the export type if this input is a Landscape */
 	EHoudiniLandscapeExportType LandscapeExportType;
+
+	/** Export landscape spline control points as a point cloud. */
+	bool bExportLandscapeSplineControlPoints;
+
+	/** Export landscape spline left and right curves. */
+	bool bExportLandscapeSplineLeftRightCurves;
 };
 
 /** Function used by hashing containers to create a unique hash for this type of object. */

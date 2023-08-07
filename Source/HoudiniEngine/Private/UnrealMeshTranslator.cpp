@@ -31,9 +31,11 @@
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngineTimers.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniMeshUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 
 #include "Animation/Skeleton.h"
+#include "Components/SplineMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "DynamicMeshBuilder.h"
 #include "Engine/SkeletalMesh.h"
@@ -137,6 +139,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 	if (bUseRefCountedInputSystem)
 	{
 		// Check if we already have an input node for this asset
+		static constexpr bool bForceCreateInputRefNode = false;
 		bool bSingleLeafNodeOnly = false;
 		FUnrealObjectInputIdentifier IdentReferenceNode;
 		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
@@ -146,6 +149,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 			ExportAllLODs,
 			ExportSockets,
 			ExportColliders,
+			bForceCreateInputRefNode,
 			bSingleLeafNodeOnly,
 			IdentReferenceNode,
 			IdentPerOption))
@@ -1268,11 +1272,20 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	const bool& ExportMainMesh /* = true */,
 	const bool& bInputNodesCanBeDeleted /*= true*/,
 	const bool& bPreferNaniteFallbackMesh /*= false*/,
-	const bool& bExportMaterialParameters /*= false*/)
+	const bool& bExportMaterialParameters /*= false*/,
+	const bool& bForceReferenceInputNodeCreation /*= false*/)
 {
 	// If we don't have a static mesh there's nothing to do.
 	if (!IsValid(StaticMesh))
 		return false;
+
+	USplineMeshComponent* SplineMeshComponent = nullptr;
+	bool bIsSplineMesh = false;
+	if (IsValid(StaticMeshComponent))
+	{
+		SplineMeshComponent = Cast<USplineMeshComponent>(StaticMeshComponent);
+		bIsSplineMesh = IsValid(SplineMeshComponent);
+	}
 
 	// Input node name, default to InputNodeName, but can be changed by the new input system
 	FString FinalInputNodeName = InputNodeName;
@@ -1283,6 +1296,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	FUnrealObjectInputIdentifier Identifier;
 	FUnrealObjectInputHandle ParentHandle;
 	HAPI_NodeId ParentNodeId = -1;
+	UObject* const InputSystemObject = bIsSplineMesh ? static_cast<UObject*>(SplineMeshComponent) : static_cast<UObject*>(StaticMesh);
 	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bUseRefCountedInputSystem)
 	{
@@ -1291,11 +1305,12 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 		FUnrealObjectInputIdentifier IdentReferenceNode;
 		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
 		if (!FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
-			StaticMesh,
+			InputSystemObject,
 			ExportMainMesh,
 			ExportAllLODs,
 			ExportSockets,
 			ExportColliders,
+			bForceReferenceInputNodeCreation,
 			bSingleLeafNodeOnly,
 			IdentReferenceNode,
 			IdentPerOption))
@@ -1358,7 +1373,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 				{
 					FHoudiniEngineUtils::GetHAPINodeId(OptionHandle, NewNodeId);
 				}
-				
+
+				static constexpr bool bForceInputRefNodeCreation = false;
 				if (!HapiCreateInputNodeForStaticMesh(
 						StaticMesh,
 						NewNodeId,
@@ -1371,7 +1387,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 						!Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders,
 						bInputNodesCanBeDeleted,
 						bPreferNaniteFallbackMesh,
-						bExportMaterialParameters))
+						bExportMaterialParameters,
+						bForceInputRefNodeCreation))
 				{
 					return false;
 				}
@@ -1495,7 +1512,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	bool bHiResMeshSuccess = false;
 	const bool ShouldUseNaniteFallback = bPreferNaniteFallbackMesh && StaticMesh->GetRenderData()->LODResources.Num();
 
-	bool bWantToExportHiResModel = bNaniteBuildEnabled && ExportMainMesh && !ShouldUseNaniteFallback;
+	bool bWantToExportHiResModel = bNaniteBuildEnabled && ExportMainMesh && !ShouldUseNaniteFallback && !bIsSplineMesh;
 	if (bWantToExportHiResModel && bHaveHiResSourceModel)
 	{
 		// Get the HiRes Mesh description and SourceModel
@@ -1642,20 +1659,32 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 
 			// Either export the current LOD Mesh by using RawMEsh or MeshDescription (legacy)
 			FMeshDescription* MeshDesc = nullptr;
+			FMeshDescription SplineMeshDesc;
 			// if (!bExportViaRawMesh)
 			if (ExportMethod == 1)
 			{
 				// This will either fetch the mesh description that is cached on the SrcModel
 				// or load it from bulk data / DDC once
-				if (SrcModel.GetCachedMeshDescription() != nullptr)
+				if (!bIsSplineMesh)
 				{
-					MeshDesc = SrcModel.GetCachedMeshDescription();
+					if (SrcModel.GetCachedMeshDescription() != nullptr)
+					{
+						MeshDesc = SrcModel.GetCachedMeshDescription();
+					}
+					else
+					{
+						const double StartTime = FPlatformTime::Seconds();
+						MeshDesc = StaticMesh->GetMeshDescription(LODIndex);
+						HOUDINI_LOG_MESSAGE(TEXT("StaticMesh->GetMeshDescription completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
+					}
 				}
 				else
 				{
-					const double StartTime = FPlatformTime::Seconds();
-					MeshDesc = StaticMesh->GetMeshDescription(LODIndex);
-					HOUDINI_LOG_MESSAGE(TEXT("StaticMesh->GetMeshDescription completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
+					// Deform mesh data according to the Spline Mesh Component's data
+					static constexpr bool bPropagateVertexColours = false;
+					static constexpr bool bApplyComponentTransform = false;
+					FHoudiniMeshUtils::RetrieveMesh(SplineMeshComponent, LODIndex, SplineMeshDesc, bPropagateVertexColours, bApplyComponentTransform);
+					MeshDesc = &SplineMeshDesc;
 				}
 			}
 

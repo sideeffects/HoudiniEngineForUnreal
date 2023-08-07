@@ -66,7 +66,8 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			const bool& ExportMainMesh = true,
 			const bool& bInputNodesCanBeDeleted = true,
 			const bool& bPreferNaniteFallbackMesh = false,
-			const bool& bExportMaterialParameters = false);
+			const bool& bExportMaterialParameters = false,
+			const bool& bForceReferenceInputNodeCreation = false);
 
 		// HAPI : Marshaling, extract geometry and skeletons and create input nodes for it - return true on success
 		static bool HapiCreateInputNodeForSkeletalMesh(
