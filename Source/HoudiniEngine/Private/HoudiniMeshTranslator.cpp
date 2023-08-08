@@ -66,6 +66,7 @@
 #include "Engine/SkeletalMesh.h"
 #include "Animation/Skeleton.h"
 // #include "Async/ParallelFor.h"
+#include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniEngineString.h" 
 #include "Components/SkeletalMeshComponent.h"
 #include "ProfilingDebugging/CpuProfilerTrace.h"
@@ -8236,7 +8237,7 @@ FHoudiniMeshTranslator::CreateMeshComponent(UObject *InOuterComponent, const TSu
 	}
 
 	// Change the creation method so the component is listed in the details panels
-	MeshComponent->CreationMethod = EComponentCreationMethod::Instance;
+	FHoudiniEngineRuntimeUtils::AddOrSetAsInstanceComponent(MeshComponent);
 
 	// Attach created static mesh component to our Houdini component.
 	MeshComponent->AttachToComponent(OuterSceneComponent, FAttachmentTransformRules::KeepRelativeTransform);

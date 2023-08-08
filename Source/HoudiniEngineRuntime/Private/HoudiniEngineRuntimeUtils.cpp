@@ -785,6 +785,29 @@ FHoudiniEngineRuntimeUtils::ClearInputNodeDirtyFlag(const FUnrealObjectInputIden
 	return Manager->ClearDirtyFlag(InIdentifier);
 }
 
+bool
+FHoudiniEngineRuntimeUtils::AddOrSetAsInstanceComponent(UActorComponent* InActorComponent)
+{
+	if (!IsValid(InActorComponent))
+		return false;
+
+	AActor* const Owner = InActorComponent->GetOwner();
+	if (!IsValid(Owner))
+	{
+		HOUDINI_LOG_WARNING(
+			TEXT("[FHoudiniEngineRuntimeUtils::AddOrSetAsInstanceComponent] Owner of component '%s' is null / invalid, "
+				 "only setting the CreationMethod to EComponentCreationMethod::Instance."),
+			*InActorComponent->GetFName().ToString());
+		InActorComponent->CreationMethod = EComponentCreationMethod::Instance;
+	}
+	else
+	{
+		Owner->AddInstanceComponent(InActorComponent);
+	}
+	
+	return true;
+}
+
 void
 FHoudiniEngineRuntimeUtils::SetHoudiniHomeEnvironmentVariable()
 {

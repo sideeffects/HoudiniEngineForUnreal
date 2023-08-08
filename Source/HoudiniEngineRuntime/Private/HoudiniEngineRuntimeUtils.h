@@ -40,6 +40,7 @@
 #endif
 
 class AActor;
+class UActorComponent;
 class UWorld;
 class FUnrealObjectInputIdentifier;
 struct FHoudiniStaticMeshGenerationProperties;
@@ -368,6 +369,15 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 		static bool MarkInputNodeAsDirty(const FUnrealObjectInputIdentifier& InIdentifier, bool bInAlsoDirtyReferencedNodes);
 		// Helper for clearing the dirty flag an input node in the ref counted input system.
 		static bool ClearInputNodeDirtyFlag(const FUnrealObjectInputIdentifier& InIdentifier);
+
+		// -------------------------------------------------
+		// Component utilities
+		// -------------------------------------------------
+
+		// Adds InActorComponent to its Owner as an instance component via Actor::AddInstanceComponent. If the Owner is
+		// null/invalid, then just set the creation method of InActorComponent to Instance.
+		// Returns false if InActorComponent is null / invalid.
+		static bool AddOrSetAsInstanceComponent(UActorComponent* InActorComponent);
 
 	protected:
 		// taken from FPaths::GetTCharPtr
