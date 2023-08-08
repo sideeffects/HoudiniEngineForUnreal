@@ -403,6 +403,14 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 	
 		// Helper function for destroying landscapes.
 
+		// -------------------------------------------------
+		// Component utilities
+		// -------------------------------------------------
+
+		// Adds InActorComponent to its Owner as an instance component via Actor::AddInstanceComponent. If the Owner is
+		// null/invalid, then just set the creation method of InActorComponent to Instance.
+		// Returns false if InActorComponent is null / invalid.
+		static bool AddOrSetAsInstanceComponent(UActorComponent* InActorComponent);
 
 	protected:
 		// taken from FPaths::GetTCharPtr
