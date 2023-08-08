@@ -2,6 +2,7 @@
 
 #include "HoudiniApi.h"
 #include "HoudiniEngine.h"
+#include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniInstanceTranslator.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -237,7 +238,7 @@ FHoudiniGeometryCollectionTranslator::CreateGeometryCollectionComponent(UObject 
 	GeometryCollectionComponent->SetVisibility(true);
 
 	// Change the creation method so the component is listed in the details panels
-	GeometryCollectionComponent->CreationMethod = EComponentCreationMethod::Instance;
+	FHoudiniEngineRuntimeUtils::AddOrSetAsInstanceComponent(GeometryCollectionComponent);
 
 	// Attach created static mesh component to our Houdini component.
 	GeometryCollectionComponent->AttachToComponent(OuterSceneComponent, FAttachmentTransformRules::KeepRelativeTransform);

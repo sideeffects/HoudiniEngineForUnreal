@@ -1993,7 +1993,7 @@ FOutputActorOwner::CreateOutputActor(UWorld* InWorld, UHoudiniPDGAssetLink* InAs
 		RootComponent = NewObject<USceneComponent>(Actor, USceneComponent::StaticClass(), NAME_None, RF_Transactional);
 
 		// Change the creation method so the component is listed in the details panels
-		RootComponent->CreationMethod = EComponentCreationMethod::Instance;
+		FHoudiniEngineRuntimeUtils::AddOrSetAsInstanceComponent(RootComponent);
 		Actor->SetRootComponent(RootComponent);
 		RootComponent->OnComponentCreated();
 		RootComponent->RegisterComponent();
