@@ -28,6 +28,7 @@
 
 #include "HoudiniApi.h"
 #include "HoudiniEngine.h"
+#include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineString.h"
 
@@ -160,7 +161,7 @@ FHoudiniHandleTranslator::BuildAllHandles(
 				HandleComponent->SetHandleType(HandleType);
 
 				// Change the creation method so the component is listed in the details panels
-				HandleComponent->CreationMethod = EComponentCreationMethod::Instance;
+				FHoudiniEngineRuntimeUtils::AddOrSetAsInstanceComponent(HandleComponent);
 			}
 
 			if (!HandleComponent)

@@ -27,6 +27,7 @@
 #include "HoudiniInstanceTranslator.h"
 
 #include "HoudiniEngine.h"
+#include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEnginePrivatePCH.h"
@@ -2231,6 +2232,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancer(
 
 	for(auto NewComponentToSet : NewComponents)
 	{
+		NewComponentToSet->OnComponentCreated();
+
 		// UE5: Make sure we update/recreate the Component's render state
 	    // after the update or the mesh component will not be rendered!
 	    if (bCheckRenderState)
@@ -2351,9 +2354,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedStaticMeshComponent(
 
 		// Change the creation method so the component is listed in the details panels
 		if (InstancedStaticMeshComponent)
-		{
-			InstancedStaticMeshComponent->CreationMethod = EComponentCreationMethod::Instance;
-		}		
+			FHoudiniEngineRuntimeUtils::AddOrSetAsInstanceComponent(InstancedStaticMeshComponent);
 
 		bCreatedNewComponent = true;
 	}
@@ -2455,7 +2456,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedActorComponent(
 			ComponentOuter, UHoudiniInstancedActorComponent::StaticClass(), NAME_None, RF_Transactional);
 		
 		// Change the creation method so the component is listed in the details panels
-		InstancedActorComponent->CreationMethod = EComponentCreationMethod::Instance;
+		FHoudiniEngineRuntimeUtils::AddOrSetAsInstanceComponent(InstancedActorComponent);
 
 		bCreatedNewComponent = true;
 	}
@@ -2551,7 +2552,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateMeshSplitInstancerComponent(
 			ComponentOuter, UHoudiniMeshSplitInstancerComponent::StaticClass(), NAME_None, RF_Transactional);
 
 		// Change the creation method so the component is listed in the details panels
-		MeshSplitComponent->CreationMethod = EComponentCreationMethod::Instance;
+		FHoudiniEngineRuntimeUtils::AddOrSetAsInstanceComponent(MeshSplitComponent);
 
 		bCreatedNewComponent = true;
 	}
@@ -2737,7 +2738,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateStaticMeshComponent(
 			ComponentOuter, UStaticMeshComponent::StaticClass(), NAME_None, RF_Transactional);
 
 		// Change the creation method so the component is listed in the details panels
-		SMC->CreationMethod = EComponentCreationMethod::Instance;
+		FHoudiniEngineRuntimeUtils::AddOrSetAsInstanceComponent(SMC);
 
 		bCreatedNewComponent = true;
 	}
@@ -2809,7 +2810,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateHoudiniStaticMeshComponent(
 			ComponentOuter, UHoudiniStaticMeshComponent::StaticClass(), NAME_None, RF_Transactional);
 
 		// Change the creation method so the component is listed in the details panels
-		HSMC->CreationMethod = EComponentCreationMethod::Instance;
+		FHoudiniEngineRuntimeUtils::AddOrSetAsInstanceComponent(HSMC);
 
 		bCreatedNewComponent = true;
 	}
