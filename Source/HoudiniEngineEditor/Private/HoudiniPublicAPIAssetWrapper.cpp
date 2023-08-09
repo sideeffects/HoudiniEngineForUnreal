@@ -3137,6 +3137,28 @@ UHoudiniPublicAPIAssetWrapper::IsPDGAutoBakeEnabled_Implementation() const
 }
 
 bool
+UHoudiniPublicAPIAssetWrapper::SetPDGAutoBakeNodesWithFailedWorkItemsEnabled_Implementation(const bool bInEnabled)
+{
+	UHoudiniPDGAssetLink* AssetLink = nullptr;
+	if (!GetValidHoudiniPDGAssetLinkWithError(AssetLink))
+		return false;
+
+	AssetLink->SetAutoBakeNodesWithFailedWorkItemsEnabled(bInEnabled);
+
+	return true;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::IsPDGAutoBakeNodesWithFailedWorkItemsEnabled_Implementation() const
+{
+	UHoudiniPDGAssetLink* AssetLink = nullptr;
+	if (!GetValidHoudiniPDGAssetLinkWithError(AssetLink))
+		return false;
+
+	return AssetLink->IsAutoBakeNodesWithFailedWorkItemsEnabled();
+}
+
+bool
 UHoudiniPublicAPIAssetWrapper::SetPDGBakeMethod_Implementation(const EHoudiniEngineBakeOption InBakeMethod)
 {
 	UHoudiniPDGAssetLink* AssetLink = nullptr;
