@@ -2537,6 +2537,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 	TSharedRef<SHorizontalBox> AdditionalBakeSettingsRowHorizontalBox = SNew(SHorizontalBox);
 	
 	TSharedPtr<SCheckBox> CheckBoxAutoBake;
+	TSharedPtr<SCheckBox> CheckBoxAutoBakeWithFailedWorkItems;
 	TSharedPtr<SCheckBox> CheckBoxRecenterBakedActors;
 
 	TSharedPtr<SVerticalBox> LeftColumnVerticalBox;
@@ -2615,7 +2616,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
             .Content()
             [
                 SNew(STextBlock).Text(LOCTEXT("HoudiniEngineUIAutoBakeCheckBox", "Auto Bake"))
-                .ToolTipText(LOCTEXT("HoudiniEngineUIAutoBakeCheckBoxToolTip", "Automatically bake work result object as they are loaded."))
+                .ToolTipText(LOCTEXT("HoudiniEngineUIAutoBakeCheckBoxToolTip", "Automatically bake work result objects as they are loaded."))
                 .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
             ]
             .IsChecked_Lambda([InPDGAssetLink]()
@@ -2644,6 +2645,53 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
             })
         ]
     ];
+        
+	RightColumnVerticalBox->AddSlot()
+	.AutoHeight()
+	.Padding(0.0f, 0.0f, 0.0f, 3.5f)
+	[
+		SNew(SBox)
+		.WidthOverride(160.f)
+		[
+			SAssignNew(CheckBoxAutoBakeWithFailedWorkItems, SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock).Text(LOCTEXT("HoudiniEngineUIAutoBakeCheckBoxWithFailedWorkItems", "Auto Bake With Failed Work Items"))
+				.ToolTipText(LOCTEXT("HoudiniEngineUIAutoBakeCheckBoxWithFailedWorkItemsToolTip", "Automatically bake work result objects as they are loaded even for nodes with failed work items."))
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsEnabled_Lambda([InPDGAssetLink]()
+			{
+				if (!IsValidWeakPointer(InPDGAssetLink))
+					return false;
+				return InPDGAssetLink->bBakeAfterAllWorkResultObjectsLoaded;
+			})
+			.IsChecked_Lambda([InPDGAssetLink]()
+			{
+			    return InPDGAssetLink->IsAutoBakeNodesWithFailedWorkItemsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([InPDGAssetLink](ECheckBoxState NewState)
+			{
+				const bool bNewState = (NewState == ECheckBoxState::Checked);
+
+				if (!IsValidWeakPointer(InPDGAssetLink))
+					return;
+
+				// Record a transaction for undo/redo
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_RUNTIME),
+					LOCTEXT("HoudiniPDGAssetLinkParameterChange", "Houdini PDG Asset Link Parameter: Changing a value"),
+					InPDGAssetLink.Get());
+
+				InPDGAssetLink->Modify();
+				InPDGAssetLink->SetAutoBakeNodesWithFailedWorkItemsEnabled(bNewState);
+
+				// Notify that we have changed the property
+				FHoudiniEngineEditorUtils::NotifyPostEditChangeProperty(
+					UHoudiniPDGAssetLink::GetbAutoBakeNodesWithFailedWorkItemsPropertyName(), InPDGAssetLink.Get());
+			})
+		]
+	];
 
 	AdditionalBakeSettingsRow.WholeRowWidget.Widget = AdditionalBakeSettingsRowHorizontalBox;
 }
