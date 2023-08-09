@@ -6627,7 +6627,7 @@ FHoudiniEngineBakeUtils::CheckPDGAutoBakeAfterResultObjectLoaded(
 	// Check if the node is ready for baking: all work items must be complete
 	bool bDoNotBake = false;
 	bool bPendingBakeItems = false;
-	if (!InNode->AreAllWorkItemsComplete() || InNode->AnyWorkItemsFailed())
+	if (!InNode->AreAllWorkItemsComplete() || (!InPDGAssetLink->IsAutoBakeNodesWithFailedWorkItemsEnabled() && InNode->AnyWorkItemsFailed()))
 		bDoNotBake = true;
 
 	// Check if the node is ready for baking: all work items must be loaded
