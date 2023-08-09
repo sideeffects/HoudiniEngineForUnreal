@@ -1187,6 +1187,23 @@ public:
 	bool IsPDGAutoBakeEnabled() const;
 
 	/**
+	 * Set if, when automatically baking PDG work items after a successfully loading them (see SetPDGAutoBakeEnabled()),
+	 * nodes with some failed work items should also be auto-baked.
+	 * @param bInEnabled If true, also auto-bake nodes with some failed work items.
+	 * @return false if the asset/wrapper is invalid, or does not contain a TOP network.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool SetPDGAutoBakeNodesWithFailedWorkItemsEnabled(const bool bInEnabled);
+
+	/**
+	 * Returns true if, when auto baking is enabled (see IsPDGAutoBakeEnabled()), nodes with some failed work items
+	 * will also be auto-baked.
+	 * See SetPDGAutoBakeNodesWithFailedWorkItemsEnabled().
+	 */ 
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool IsPDGAutoBakeNodesWithFailedWorkItemsEnabled() const;
+
+	/**
 	 * Sets the bake method to use for PDG baking (to actor, blueprint, foliage).
 	 * @param InBakeMethod The new bake method to set.
 	 * @return false if the asset/wrapper is invalid.
