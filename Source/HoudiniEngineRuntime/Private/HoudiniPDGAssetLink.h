@@ -493,7 +493,7 @@ public:
 	bool IsParentTOPNetwork(UTOPNetwork const * const InNetwork) const;
 
 	// Returns true if this node can still be auto-baked
-	bool CanStillBeAutoBaked() const;
+	bool CanStillBeAutoBaked(bool bInAutoBakeWithFailedWorkItems=true) const;
 
 #if WITH_EDITOR
 	void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
@@ -618,7 +618,7 @@ public:
 	bool AnyWorkItemsFailed() const;
 
 	// Returns true if this network has nodes that can still be auto-baked
-	bool CanStillBeAutoBaked() const;
+	bool CanStillBeAutoBaked(bool bInAutoBakeWithFailedWorkItems=true) const;
 
 	// Handler for when a node in the newtork receives the HAPI_PDG_EVENT_COOK_COMPLETE event (called for each node when a TOPNet completes cooking)
 	void HandleOnPDGEventCookCompleteReceivedByChildNode(UHoudiniPDGAssetLink* const InAssetLink, UTOPNode* const InTOPNode);
@@ -780,6 +780,25 @@ public:
 	void PostTransacted(const FTransactionObjectEvent& TransactionEvent) override;
 #endif
 
+#if WITH_EDITORONLY_DATA
+	// Setter for bAutoBakeNodesWithFailedWorkItems.
+	void SetAutoBakeNodesWithFailedWorkItemsEnabled(const bool bInEnabled) { bAutoBakeNodesWithFailedWorkItems = bInEnabled; }
+#endif
+
+#if WITH_EDITORONLY_DATA
+	// Getter for bAutoBakeNodesWithFailedWorkItems.
+	bool IsAutoBakeNodesWithFailedWorkItemsEnabled() const { return bAutoBakeNodesWithFailedWorkItems; }
+#endif
+	
+#if WITH_EDITORONLY_DATA
+	// Getter for the property name of bAutoBakeNodesWithFailedWorkItems. This is for subclasses or code outside of this
+	// class that needs to access the property name (since bAutoBakeNodesWithFailedWorkItems is private). 
+	static FName GetbAutoBakeNodesWithFailedWorkItemsPropertyName()
+	{
+		return GET_MEMBER_NAME_CHECKED(UHoudiniPDGAssetLink, bAutoBakeNodesWithFailedWorkItems);
+	}
+#endif
+
 private:
 
 	void ClearAllTOPData();
@@ -888,5 +907,12 @@ public:
 
 	// The delegate handle of the auto bake helper function bound to OnWorkResultObjectLoaded.
 	FDelegateHandle AutoBakeDelegateHandle;
+#endif
+
+private:
+#if WITH_EDITORONLY_DATA
+	// If true then a TOP Node with failed work items will still have the successful items auto-baked.
+	UPROPERTY()
+	bool bAutoBakeNodesWithFailedWorkItems;
 #endif
 };

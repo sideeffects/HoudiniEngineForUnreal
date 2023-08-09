@@ -72,6 +72,7 @@ UHoudiniPDGAssetLink::UHoudiniPDGAssetLink(const FObjectInitializer& ObjectIniti
 	PDGBakePackageReplaceMode = EPDGBakePackageReplaceModeOption::ReplaceExistingAssets;
 	bRecenterBakedActors = false;
 	bBakeAfterAllWorkResultObjectsLoaded = false;
+	bAutoBakeNodesWithFailedWorkItems = true;
 #endif
 	
 	// Folder used for baking PDG outputs
@@ -690,14 +691,14 @@ UTOPNode::IsParentTOPNetwork(UTOPNetwork const * const InNetwork) const
 }
 
 bool
-UTOPNode::CanStillBeAutoBaked() const
+UTOPNode::CanStillBeAutoBaked(const bool bInAutoBakeWithFailedWorkItems) const
 {
 	// Only nodes that have results auto-loaded are auto-baked
 	if (!bAutoLoad)
 		return false;
 
-	// Nodes with failures are not auto-baked
-	if (AnyWorkItemsFailed())
+	// Nodes with failures are not auto-baked depending on the value of bAutoBakeWithFailedWorkItems
+	if (!bInAutoBakeWithFailedWorkItems && AnyWorkItemsFailed())
 		return false;
 
 	// All work items are not yet complete, so node cannot yet be baked
@@ -865,11 +866,11 @@ UTOPNetwork::AnyWorkItemsFailed() const
 }
 
 bool
-UTOPNetwork::CanStillBeAutoBaked() const
+UTOPNetwork::CanStillBeAutoBaked(const bool bInAutoBakeWithFailedWorkItems) const
 {
 	for (const UTOPNode* const TOPNode : AllTOPNodes)
 	{
-		if (TOPNode->CanStillBeAutoBaked())
+		if (TOPNode->CanStillBeAutoBaked(bInAutoBakeWithFailedWorkItems))
 			return true;
 	}
 
@@ -1638,7 +1639,7 @@ UHoudiniPDGAssetLink::AnyRemainingAutoBakeNodes() const
 				if (!IsValid(TOPNet))
 					continue;
 
-				if (TOPNet->CanStillBeAutoBaked())
+				if (TOPNet->CanStillBeAutoBaked(bAutoBakeNodesWithFailedWorkItems))
 				{
 					return true;
 				}
@@ -1648,7 +1649,7 @@ UHoudiniPDGAssetLink::AnyRemainingAutoBakeNodes() const
 		case EPDGBakeSelectionOption::SelectedNetwork:
 		{
 			const UTOPNetwork* const TOPNet = GetSelectedTOPNetwork();
-			if (IsValid(TOPNet) && TOPNet->CanStillBeAutoBaked())
+			if (IsValid(TOPNet) && TOPNet->CanStillBeAutoBaked(bAutoBakeNodesWithFailedWorkItems))
 			{
 				return true;
 			}
@@ -1656,7 +1657,7 @@ UHoudiniPDGAssetLink::AnyRemainingAutoBakeNodes() const
 		case EPDGBakeSelectionOption::SelectedNode:
 		{
 			UTOPNode const* const TOPNode = GetSelectedTOPNode();
-			if (IsValid(TOPNode) && TOPNode->CanStillBeAutoBaked())
+			if (IsValid(TOPNode) && TOPNode->CanStillBeAutoBaked(bAutoBakeNodesWithFailedWorkItems))
 			{
 				return true;
 			}
