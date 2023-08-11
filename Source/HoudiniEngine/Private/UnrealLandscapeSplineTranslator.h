@@ -27,6 +27,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 #include "HAPI/HAPI_Common.h"
 

@@ -27,6 +27,8 @@
 #include "HoudiniEditorTemplatedGeoTests.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
+#include "Runtime/Launch/Resources/Version.h"
+
 #include "HoudiniEditorTestUtils.h"
 #include "HoudiniPublicAPIAssetWrapper.h"
 
