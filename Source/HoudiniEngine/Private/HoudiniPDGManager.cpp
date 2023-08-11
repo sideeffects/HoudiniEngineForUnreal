@@ -824,21 +824,24 @@ FHoudiniPDGManager::UpdatePDGContexts()
 		}
 	}
 
-	// Refresh UI if necessary
 	for (auto CurAssetLink : PDGAssetLinks)
 	{
-		UHoudiniPDGAssetLink* AssetLink = CurAssetLink.Get();
-		if (AssetLink)
+		UHoudiniPDGAssetLink* const AssetLink = CurAssetLink.Get();
+		if (!IsValid(AssetLink))
+			continue;
+
+		// Check if the post bake delegate should be fired
+		AssetLink->BroadcastPostAutoBakeDelegateIfRequired();
+
+		// Refresh UI if necessary, otherwise just make sure the work item tally is up to date
+		if (AssetLink->bNeedsUIRefresh)
 		{
-			if (AssetLink->bNeedsUIRefresh)
-			{
-				FHoudiniPDGManager::RefreshPDGAssetLinkUI(AssetLink);
-				AssetLink->bNeedsUIRefresh = false;
-			}
-			else
-			{
-				AssetLink->UpdateWorkItemTally();
-			}
+			FHoudiniPDGManager::RefreshPDGAssetLinkUI(AssetLink);
+			AssetLink->bNeedsUIRefresh = false;
+		}
+		else
+		{
+			AssetLink->UpdateWorkItemTally();
 		}
 	}
 }

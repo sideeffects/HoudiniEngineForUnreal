@@ -698,6 +698,9 @@ public:
 	UTOPNetwork* GetTOPNetwork(const int32& AtIndex);
 	const UTOPNetwork* GetTOPNetwork(const int32& AtIndex) const;
 
+	// Get the UTOPNetwork that contains InNode.
+	UTOPNetwork* GetTOPNetworkForNode(const UTOPNode* InNode) const;
+
 	// Find the node with relative path 'InNodePath' from its topnet.
 	static UTOPNode* GetTOPNodeByNodePath(const FString& InNodePath, const TArray<UTOPNode*>& InTOPNodes, int32& OutIndex);
 	// Find the network with relative path 'InNetPath' from the HDA
@@ -758,6 +761,9 @@ public:
 	bool AnyRemainingAutoBakeNodes() const;
 #endif
 
+	// Used to notify the asset link that InTOPNode was auto-baked. This increments the attempts and success counters.
+	void OnNodeAutoBaked(UTOPNode* InTOPNode, bool bInSuccess);
+
 	// Delegate handlers
 
 	// Get the post bake delegate
@@ -765,6 +771,11 @@ public:
 	
 	// Called by baking code after baking all of the outputs
 	void HandleOnPostBake(const bool bInSuccess);
+
+	// Checks if the post bake delegate should be broadcast. If all auto-baking is done (and there are > 0 items baked)
+	// calls HandleOnPostBake().
+	// Returns true if HandleOnPostBake() was called.
+	bool BroadcastPostAutoBakeDelegateIfRequired();	
 
 	FOnPostTOPNetworkCookDelegate& GetOnPostTOPNetworkCookDelegate() { return OnPostTOPNetworkCookDelegate; }
 
@@ -915,4 +926,12 @@ private:
 	UPROPERTY()
 	bool bAutoBakeNodesWithFailedWorkItems;
 #endif
+
+	// The number of TOP nodes that have been attempted to be baked since the last time HandlePostBake has been called.
+	UPROPERTY()
+	int32 NumAttemptedNodeAutoBakes;
+
+	// The number of TOP nodes that have been successfully baked since the last time HandlePostBake has been called.
+	UPROPERTY()
+	int32 NumSuccessfulNodeAutoBakes; 
 };

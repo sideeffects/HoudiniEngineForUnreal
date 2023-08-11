@@ -61,6 +61,8 @@ UHoudiniPDGAssetLink::UHoudiniPDGAssetLink(const FObjectInitializer& ObjectIniti
 	, OutputCachePath()
 	, bNeedsUIRefresh(false)
 	, OutputParentActor(nullptr)
+	, NumAttemptedNodeAutoBakes(0)
+	, NumSuccessfulNodeAutoBakes(0)
 {
 	TOPNodeFilter = HAPI_UNREAL_PDG_DEFAULT_TOP_FILTER;
 	TOPOutputFilter = HAPI_UNREAL_PDG_DEFAULT_TOP_OUTPUT_FILTER;
@@ -868,6 +870,10 @@ UTOPNetwork::AnyWorkItemsFailed() const
 bool
 UTOPNetwork::CanStillBeAutoBaked(const bool bInAutoBakeWithFailedWorkItems) const
 {
+	// As long as there are still pending work items in the network, something could still be auto baked
+	if (AnyWorkItemsPending())
+		return true;
+
 	for (const UTOPNode* const TOPNode : AllTOPNodes)
 	{
 		if (TOPNode->CanStillBeAutoBaked(bInAutoBakeWithFailedWorkItems))
@@ -1009,6 +1015,31 @@ UHoudiniPDGAssetLink::GetTOPNetwork(const int32& AtIndex) const
 	if(AllTOPNetworks.IsValidIndex(AtIndex))
 	{
 		return AllTOPNetworks[AtIndex];
+	}
+
+	return nullptr;
+}
+
+UTOPNetwork*
+UHoudiniPDGAssetLink::GetTOPNetworkForNode(const UTOPNode* InNode) const
+{
+	if (!IsValid(InNode))
+		return nullptr;
+
+	// TODO: add a parent node pointer (or perhaps have the parent network as the outer / in the outer chain of the node?)
+	// to UTOPNode to prevent having to do these parent name and array Contains searches
+	const int32 NumTOPNet = AllTOPNetworks.Num();
+	for (int32 Index = 0; Index < NumTOPNet; ++Index)
+	{
+		UTOPNetwork* const TOPNet = AllTOPNetworks[Index];
+		if (!IsValid(TOPNet))
+			continue;
+
+		if (InNode->ParentName != TOPNet->ParentName + TEXT("_") + TOPNet->NodeName)
+			continue;
+
+		if (TOPNet->AllTOPNodes.Contains(InNode))
+			return TOPNet;
 	}
 
 	return nullptr;
@@ -1657,9 +1688,15 @@ UHoudiniPDGAssetLink::AnyRemainingAutoBakeNodes() const
 		case EPDGBakeSelectionOption::SelectedNode:
 		{
 			UTOPNode const* const TOPNode = GetSelectedTOPNode();
-			if (IsValid(TOPNode) && TOPNode->CanStillBeAutoBaked(bAutoBakeNodesWithFailedWorkItems))
+			if (IsValid(TOPNode))
 			{
-				return true;
+				const UTOPNetwork* const TOPNet = GetTOPNetworkForNode(TOPNode);
+				// If the network still has pending items, it could add dynamic items to TOPNode (we don't currently
+				// have a way to check for dynamic work items explicitly.)
+				if (IsValid(TOPNet) && TOPNet->AnyWorkItemsPending())
+					return true;
+				if (TOPNode->CanStillBeAutoBaked(bAutoBakeNodesWithFailedWorkItems))
+					return true;
 			}
 		}
 		default:
@@ -1671,10 +1708,38 @@ UHoudiniPDGAssetLink::AnyRemainingAutoBakeNodes() const
 #endif
 
 void
+UHoudiniPDGAssetLink::OnNodeAutoBaked(UTOPNode* InTOPNode, const bool bInSuccess)
+{
+	if (!IsValid(InTOPNode))
+		return;
+
+	NumAttemptedNodeAutoBakes++;
+	if (bInSuccess)
+		NumSuccessfulNodeAutoBakes++; 
+}
+
+void
 UHoudiniPDGAssetLink::HandleOnPostBake(const bool bInSuccess)
 {
 	if (OnPostBakeDelegate.IsBound())
 		OnPostBakeDelegate.Broadcast(this, bInSuccess);
+	NumAttemptedNodeAutoBakes = 0;
+	NumSuccessfulNodeAutoBakes = 0; 
+}
+
+bool
+UHoudiniPDGAssetLink::BroadcastPostAutoBakeDelegateIfRequired()
+{
+#if WITH_EDITOR
+	if (!bBakeAfterAllWorkResultObjectsLoaded || NumAttemptedNodeAutoBakes <= 0 || AnyRemainingAutoBakeNodes())
+		return false;
+	
+	HandleOnPostBake(NumSuccessfulNodeAutoBakes > 0);
+	
+	return true;
+#else
+	return false;
+#endif
 }
 
 #if WITH_EDITORONLY_DATA
