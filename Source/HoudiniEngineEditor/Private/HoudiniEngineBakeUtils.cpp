@@ -6067,7 +6067,6 @@ FHoudiniEngineBakeUtils::CheckPDGAutoBakeAfterResultObjectLoaded(
 
 	// Check if the node is ready for baking: all work items must be complete
 	bool bDoNotBake = false;
-	bool bPendingBakeItems = false;
 	if (!InNode->AreAllWorkItemsComplete() || (!InPDGAssetLink->IsAutoBakeNodesWithFailedWorkItemsEnabled() && InNode->AnyWorkItemsFailed()))
 		bDoNotBake = true;
 
@@ -6123,10 +6122,6 @@ FHoudiniEngineBakeUtils::CheckPDGAutoBakeAfterResultObjectLoaded(
 		}
 	}
 
-	// If there are no nodes left to auto-bake, broadcast the onpostbake delegate
-	if (bDoNotBake && !InPDGAssetLink->AnyRemainingAutoBakeNodes())
-		InPDGAssetLink->HandleOnPostBake(true);
-
 	if (bDoNotBake)
 		return;
 
@@ -6146,8 +6141,7 @@ FHoudiniEngineBakeUtils::CheckPDGAutoBakeAfterResultObjectLoaded(
 			HOUDINI_LOG_WARNING(TEXT("Unsupported HoudiniEngineBakeOption %i"), InPDGAssetLink->HoudiniEngineBakeOption);
 	}
 
-	if (!InPDGAssetLink->AnyRemainingAutoBakeNodes())
-		InPDGAssetLink->HandleOnPostBake(bSuccess);
+	InPDGAssetLink->OnNodeAutoBaked(InNode, bSuccess);
 }
 
 bool
