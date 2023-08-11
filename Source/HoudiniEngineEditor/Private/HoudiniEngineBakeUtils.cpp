@@ -6569,7 +6569,6 @@ FHoudiniEngineBakeUtils::PDGAutoBakeAfterResultObjectLoaded(
 
 	// Check if the node is ready for baking: all work items must be complete
 	bool bDoNotBake = false;
-	bool bPendingBakeItems = false;
 	if (!InNode->AreAllWorkItemsComplete() || (!InPDGAssetLink->IsAutoBakeNodesWithFailedWorkItemsEnabled() && InNode->AnyWorkItemsFailed()))
 		bDoNotBake = true;
 
@@ -6625,10 +6624,6 @@ FHoudiniEngineBakeUtils::PDGAutoBakeAfterResultObjectLoaded(
 		}
 	}
 
-	// If there are no nodes left to auto-bake, broadcast the onpostbake delegate
-	if (bDoNotBake && !InPDGAssetLink->AnyRemainingAutoBakeNodes())
-		InPDGAssetLink->HandleOnPostBake(true);
-
 	if (bDoNotBake)
 		return;
 
@@ -6650,12 +6645,9 @@ FHoudiniEngineBakeUtils::PDGAutoBakeAfterResultObjectLoaded(
 	}
 
 	if (bSuccess)
-	{
 		OutBakedActors = MoveTemp(BakedActors);
-	}
 
-	if (!InPDGAssetLink->AnyRemainingAutoBakeNodes())
-		InPDGAssetLink->HandleOnPostBake(bSuccess);
+	InPDGAssetLink->OnNodeAutoBaked(InNode, bSuccess);
 }
 
 bool
