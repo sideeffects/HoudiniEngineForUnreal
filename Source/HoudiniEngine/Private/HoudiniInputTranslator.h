@@ -61,7 +61,7 @@ class UHoudiniInputFoliageType_InstancedStaticMesh;
 class UHoudiniInputBlueprint;
 class UHoudiniInputLandscapeSplinesComponent;
 class UHoudiniInputSplineMeshComponent;
-
+class UHoudiniInputLevelInstance;
 class FUnrealObjectInputHandle;
 class FUnrealObjectInputIdentifier;
 
@@ -185,6 +185,14 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 	static bool	HapiCreateInputNodeForLandscape(
 		const FString& InObjNodeName,
 		UHoudiniInputLandscape* InObject,
+		UHoudiniInput* InInput,
+		TArray<int32>& OutCreatedNodeIds,
+		const bool& bInputNodesCanBeDeleted = true);
+
+	static bool	HapiCreateInputNodeForLevelInstance(
+		const FString& InObjNodeName,
+		UHoudiniInputLevelInstance* InObject,
+		const FHoudiniInputObjectSettings& InInputSettings,
 		UHoudiniInput* InInput,
 		TArray<int32>& OutCreatedNodeIds,
 		const bool& bInputNodesCanBeDeleted = true);

@@ -72,6 +72,7 @@
 	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 #endif
+#include "LevelInstance/LevelInstanceActor.h"
 
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -424,6 +425,13 @@ UHoudiniInputActor::UHoudiniInputActor(const FObjectInitializer& ObjectInitializ
 }
 
 //
+UHoudiniInputLevelInstance::UHoudiniInputLevelInstance(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+}
+
+//
 UHoudiniInputLandscape::UHoudiniInputLandscape(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, CachedNumLandscapeComponents(0)
@@ -587,6 +595,12 @@ AActor*
 UHoudiniInputActor::GetActor() const
 {
 	return Cast<AActor>(InputObject.LoadSynchronous());
+}
+
+ALevelInstance*
+UHoudiniInputLevelInstance::GetLevelInstance() const
+{
+	return Cast<ALevelInstance>(InputObject.LoadSynchronous());
 }
 
 ALandscapeProxy*
@@ -812,6 +826,10 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 			HoudiniInputObject = UHoudiniInputSplineMeshComponent::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
+		case EHoudiniInputObjectType::LevelInstance:
+			HoudiniInputObject = UHoudiniInputLevelInstance::Create(InObject, InOuter, InName, InInputSettings);
+			break;
+
 		case EHoudiniInputObjectType::Invalid:
 		default:
 			break;
@@ -961,6 +979,23 @@ UHoudiniInputLandscape::Create(UObject * InObject, UObject* InOuter, const FStri
 
 	return HoudiniInputObject;
 }
+
+UHoudiniInputObject*
+UHoudiniInputLevelInstance::Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
+{
+	FString InputObjectNameStr = "HoudiniInputObject_LevelInstance_" + InName;
+	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputLevelInstance::StaticClass(), *InputObjectNameStr);
+
+	// We need to create a new object
+	UHoudiniInputLevelInstance* HoudiniInputObject = NewObject<UHoudiniInputLevelInstance>(
+		InOuter, UHoudiniInputLevelInstance::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->Type = EHoudiniInputObjectType::LevelInstance;
+	HoudiniInputObject->Update(InObject, InInputSettings);
+	HoudiniInputObject->bHasChanged = true;
+	return HoudiniInputObject;
+}
+
 
 UHoudiniInputBrush *
 UHoudiniInputBrush::Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
@@ -2206,6 +2241,18 @@ UHoudiniInputActor::ShouldTrackComponent(UActorComponent const* InComponent, con
 	return true;
 }
 
+void UHoudiniInputLevelInstance::Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings)
+{
+	Super::Update(InObject, InSettings);
+}
+
+
+bool UHoudiniInputLevelInstance::HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const
+{
+	// Since we store positions as attributes, we need to update content after changes to the transform.
+	return bTransformChanged;
+}
+
 bool UHoudiniInputLandscape::ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings) const
 {
 	// We only track LandscapeComponents for landscape inputs since the Landscape tools
@@ -2605,6 +2652,10 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 		if (InObject->IsA(ALandscapeProxy::StaticClass()))
 		{
 			return EHoudiniInputObjectType::Landscape;
+		}
+		else if (InObject->IsA(ALevelInstance::StaticClass()))
+		{
+			return EHoudiniInputObjectType::LevelInstance;
 		}
 		else if (InObject->IsA(ABrush::StaticClass()))
 		{

@@ -61,6 +61,7 @@ class ALandscapeProxy;
 class UModel;
 class UHoudiniInput;
 class UCameraComponent;
+class ALevelInstance;
 
 UENUM()
 enum class EHoudiniInputObjectType : uint8
@@ -90,7 +91,8 @@ enum class EHoudiniInputObjectType : uint8
 	Blueprint,
 	LandscapeSplineActor,
 	LandscapeSplinesComponent,
-	SplineMeshComponent
+	SplineMeshComponent,
+	LevelInstance,
 };
 
 
@@ -137,8 +139,8 @@ public:
 	virtual bool NeedsToTriggerUpdate() const { return bNeedsToTriggerUpdate; };
 
 	virtual void MarkChanged(const bool& bInChanged);
-	void MarkTransformChanged(const bool& bInChanged) { bTransformChanged = bInChanged; SetNeedsToTriggerUpdate(bInChanged); };
 	virtual void SetNeedsToTriggerUpdate(const bool& bInTriggersUpdate) { bNeedsToTriggerUpdate = bInTriggersUpdate; };
+	virtual void MarkTransformChanged(const bool bInChanged) { bTransformChanged = bInChanged; SetNeedsToTriggerUpdate(bInChanged); };
 
 	bool GetImportAsReference() const { return CachedInputSettings.bImportAsReference; };
 
@@ -778,6 +780,29 @@ protected:
 	bool bUsedMergeSplinesMeshAtLastTranslate;
 };
 
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// ALevelInstance input
+//-----------------------------------------------------------------------------------------------------------------------------
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputLevelInstance: public UHoudiniInputActor
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+
+	//
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+
+	//
+
+	virtual void Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings) override;
+
+	virtual bool HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const;
+
+	ALevelInstance* GetLevelInstance() const;
+
+};
 
 
 //-----------------------------------------------------------------------------------------------------------------------------
