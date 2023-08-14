@@ -2295,7 +2295,7 @@ FHoudiniEngineDetails::AddHeaderRowForHoudiniAssetComponent(IDetailCategoryBuild
 	if (!IsValidWeakPointer(HoudiniAssetComponent))
 		return;
 
-	FOnClicked OnExpanderClick = FOnClicked::CreateLambda([HoudiniAssetComponent, MenuSection]()
+	FOnClicked OnExpanderClick = FOnClicked::CreateLambda([HoudiniAssetComponent, MenuSection,&HoudiniEngineCategoryBuilder]()
 	{
 		if (!IsValidWeakPointer(HoudiniAssetComponent))
 			return FReply::Handled();
@@ -2319,6 +2319,13 @@ FHoudiniEngineDetails::AddHeaderRowForHoudiniAssetComponent(IDetailCategoryBuild
 		}
 
 		FHoudiniEngineUtils::UpdateEditorProperties(HoudiniAssetComponent.Get(), true);
+
+		// TODO: This is a quick fix for 130742. However, its not a complete solution since clicking the expansion does not
+		// always update all details panels correctly. The correct solution here is to move all the above expansion bools, like
+		// bAssetOptionMenuExpanded, out of the HAC into per- IDetailLayoutBuilder values. ie. store them per Details panel,
+		// not per-component. https://docs.unrealengine.com/4.27/en-US/ProgrammingAndScripting/Slate/DetailsCustomization/
+
+		HoudiniEngineCategoryBuilder.GetParentLayout().ForceRefreshDetails();
 
 		return FReply::Handled();
 	});
