@@ -69,6 +69,29 @@ FHoudiniEngineRuntimeUtils::GetLibHAPIName()
 }
 
 
+bool
+FHoudiniEngineRuntimeUtils::CheckCustomHoudiniLocation(const FString& InCustomHoudiniLocationPath)
+{
+	const FString LibHAPIName = GetLibHAPIName();
+	const FString LibHAPICustomPath = FString::Printf(TEXT("%s/%s"), *InCustomHoudiniLocationPath, *LibHAPIName);
+
+	// If path does not point to libHAPI location, we need to let user know.
+	if (!FPaths::FileExists(LibHAPICustomPath))
+	{
+		const FString MessageString = FString::Printf(
+			TEXT("%s was not found in %s"), *LibHAPIName, *InCustomHoudiniLocationPath);
+
+		FPlatformMisc::MessageBoxExt(
+			EAppMsgType::Ok, *MessageString,
+			TEXT("Invalid Custom Location Specified, resetting."));
+
+		return false;
+	}
+
+	return true;
+}
+
+
 void 
 FHoudiniEngineRuntimeUtils::GetBoundingBoxesFromActors(const TArray<AActor*> InActors, TArray<FBox>& OutBBoxes)
 {

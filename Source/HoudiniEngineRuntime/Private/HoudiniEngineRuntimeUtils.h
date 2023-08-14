@@ -59,6 +59,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 		// Return platform specific name of libHAPI.
 		static FString GetLibHAPIName();
 
+		// Check InCustomHoudiniLocationPath is a valid Houdini installation.
+		static bool CheckCustomHoudiniLocation(const FString& InCustomHoudiniLocationPath);
+
 		// Returns default SM Generation Properties using the default settings values
 		static FHoudiniStaticMeshGenerationProperties GetDefaultStaticMeshGenerationProperties();
 

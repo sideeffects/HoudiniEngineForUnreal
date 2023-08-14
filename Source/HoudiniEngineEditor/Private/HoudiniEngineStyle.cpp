@@ -192,6 +192,7 @@ FHoudiniEngineStyle::Initialize()
 
 	StyleSet->Set("HoudiniEngine._InstallInfo", new FSlateImageBrush(InfoIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine._PluginSettings", new FSlateImageBrush(SettingsIcon, Icon16x16));
+	StyleSet->Set("HoudiniEngine._PluginEditorSettings", new FSlateImageBrush(SettingsIcon, Icon16x16));
 
 	StyleSet->Set("HoudiniEngine._OpenInHoudini", new FSlateImageBrush(OpenInHIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine._SaveHIPFile", new FSlateImageBrush(SaveToHipIcon, Icon16x16));

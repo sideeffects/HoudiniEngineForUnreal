@@ -98,7 +98,8 @@ FHoudiniEngineCommands::RegisterCommands()
 	UI_COMMAND(_IsPDGCommandletEnabled, "Enable Async Importer", "Enables the commandlet that imports PDG BGEO results in the background.", EUserInterfaceActionType::Check, FInputChord());
 	
 	UI_COMMAND(_InstallInfo, "Installation Info...", "Display information on the current Houdini Engine installation", EUserInterfaceActionType::Button, FInputChord());
-	UI_COMMAND(_PluginSettings, "PluginSettings...", "Displays the Houdini Engine plugin settings", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(_PluginSettings, "Plugin Settings...", "Displays the Houdini Engine plugin project settings", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(_PluginEditorSettings, "Plugin Editor Preferences...", "Displays the Houdini Engine plugin editor preferences", EUserInterfaceActionType::Button, FInputChord());
 
 	UI_COMMAND(_OpenInHoudini, "Open scene in Houdini...", "Opens the current Houdini scene in Houdini.", EUserInterfaceActionType::Button, FInputChord(EKeys::O, EModifierKey::Control | EModifierKey::Alt));
 	UI_COMMAND(_SaveHIPFile, "Save Houdini scene (HIP)", "Saves a .hip file of the current Houdini scene.", EUserInterfaceActionType::Button, FInputChord());
@@ -257,6 +258,12 @@ void
 FHoudiniEngineCommands::ShowPluginSettings()
 {
 	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer(FName("Project"), FName("Plugins"), FName("HoudiniEngine"));
+}
+
+void
+FHoudiniEngineCommands::ShowPluginEditorSettings()
+{
+	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer(FName("Editor"), FName("Plugins"), FName("HoudiniEngine"));
 }
 
 void

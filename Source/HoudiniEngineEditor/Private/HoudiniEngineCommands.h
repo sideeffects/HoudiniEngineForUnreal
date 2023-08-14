@@ -127,6 +127,8 @@ public:
 
 	static void ShowPluginSettings();
 
+	static void ShowPluginEditorSettings();
+
 	static void OnlineDocumentation();
 
 	static void OnlineForum();
@@ -195,6 +197,8 @@ public:
 	TSharedPtr<FUICommandInfo> _InstallInfo;
 	//
 	TSharedPtr<FUICommandInfo> _PluginSettings;
+	//
+	TSharedPtr<FUICommandInfo> _PluginEditorSettings;
 
 	// Menu action called to open the current scene in Houdini.
 	TSharedPtr<FUICommandInfo> _OpenInHoudini;

@@ -37,7 +37,6 @@
 #include "HoudiniEditorSubsystem.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineCommands.h"
-#include "HoudiniEngineEditorSettings.h"
 #include "HoudiniEngineEditorUtils.h"
 #include "HoudiniEngineStyle.h"
 #include "HoudiniEngineUtils.h"
@@ -121,16 +120,6 @@ FHoudiniEngineEditor::FHoudiniEngineEditor()
 void FHoudiniEngineEditor::StartupModule()
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Starting the Houdini Engine Editor module."));
-
-	// Register settings.
-	if (ISettingsModule * SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
-	{
-		SettingsModule->RegisterSettings(
-			"Editor", "Plugins", "HoudiniEngine",
-			LOCTEXT("RuntimeSettingsName", "Houdini Engine"),
-			LOCTEXT("RuntimeSettingsDescription", "Configure the HoudiniEngine plugin"),
-			GetMutableDefault< UHoudiniEngineEditorSettings >());
-	}
 
 	// Create style set.
 	FHoudiniEngineStyle::Initialize();
@@ -565,6 +554,11 @@ FHoudiniEngineEditor::BindMenuCommands()
 		FExecuteAction::CreateLambda([]() { return FHoudiniEngineCommands::ShowPluginSettings(); }),
 		FCanExecuteAction::CreateLambda([]() { return true; }));
 
+	HEngineCommands->MapAction(
+		Commands._PluginEditorSettings,
+		FExecuteAction::CreateLambda([]() { return FHoudiniEngineCommands::ShowPluginEditorSettings(); }),
+		FCanExecuteAction::CreateLambda([]() { return true; }));
+
 	// Files
 
 	HEngineCommands->MapAction(
@@ -782,6 +776,7 @@ FHoudiniEngineEditor::AddHoudiniMainMenuExtension(FMenuBuilder & MenuBuilder)
 	MenuBuilder.BeginSection("Plugin", LOCTEXT("PluginLabel", "Plugin"));
 	MenuBuilder.AddMenuEntry(FHoudiniEngineCommands::Get()._InstallInfo);
 	MenuBuilder.AddMenuEntry(FHoudiniEngineCommands::Get()._PluginSettings);
+	MenuBuilder.AddMenuEntry(FHoudiniEngineCommands::Get()._PluginEditorSettings);
 	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection("File", LOCTEXT("FileLabel", "File"));

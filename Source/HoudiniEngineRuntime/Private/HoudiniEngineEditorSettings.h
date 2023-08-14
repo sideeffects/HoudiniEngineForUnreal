@@ -27,7 +27,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/DeveloperSettings.h"
 #include "UObject/Object.h"
+
 #include "HoudiniToolTypes.h"
 
 #include "HoudiniEngineEditorSettings.generated.h"
@@ -50,16 +52,46 @@ struct FUserCategoryRules
 	TArray<FString> Exclude;
 };
 
-UCLASS(config=EditorPerProjectUserSettings, defaultconfig)
-class UHoudiniEngineEditorSettings : public UObject
+UENUM()
+enum class EHoudiniEngineEditorSettingUseCustomLocation : uint8
+{
+	// Use the per-project plugin settings.
+	Project UMETA(DisplayName = "Use The Per-Project Plugin Settings"),
+	// Do not use a custom location at all.
+	Disabled UMETA(DisplayName = "Do Not Use Custom Location"),
+	// Use the custom location defined here in editor preferences.
+	Enabled UMETA(DisplayName = "Use Custom Location"),
+};
+
+UCLASS(config=HoudiniEngine)
+class HOUDINIENGINERUNTIME_API UHoudiniEngineEditorSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
 public:
 
 	DECLARE_MULTICAST_DELEGATE(FOnUserToolCategoriesChanged);
 	
-	UHoudiniEngineEditorSettings();
+	UHoudiniEngineEditorSettings(const FObjectInitializer& ObjectInitializer);
+
+	// Begin -- UDeveloperSettings interface
 	
+	// Gets the settings container name for the settings, either Project or Editor
+	// We have to override the container name to Editor since we are using a custom config name in the UCLASS macro.
+	virtual FName GetContainerName() const override { return TEXT("Editor"); }
+
+#if WITH_EDITOR
+	virtual FText GetSectionText() const override;
+#endif
+	
+	//End -- UDeveloperSettings interface
+
+#if WITH_EDITOR
+	
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
+	
+#endif
+
+#if WITH_EDITORONLY_DATA
 	// // Additional user-specific search paths in the project to search for HoudiniTools packages.
 	// // These paths should point to Tools directories that contain on or more HoudiniTools packages. It
 	// // should not point to the HoudiniTools packages themselves.
@@ -72,9 +104,16 @@ public:
 
 	FOnUserToolCategoriesChanged OnUserToolCategoriesChanged;
 
-#if WITH_EDITOR
+	//-------------------------------------------------------------------------------------------------------------
+	// Custom Houdini Location
+	//-------------------------------------------------------------------------------------------------------------
+
+	// Whether to use custom Houdini location from the project plugin settings, the editor setting, or do not use a custom location.
+	UPROPERTY(config, EditAnywhere, Category = HoudiniLocation, Meta = (DisplayName = "Use custom Houdini location (requires restart)", ConfigRestartRequired=true))
+	EHoudiniEngineEditorSettingUseCustomLocation UseCustomHoudiniLocation;
 	
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
-	
+	// Custom Houdini location (where HAPI library is located).
+	UPROPERTY(config, EditAnywhere, Category = HoudiniLocation, Meta = (EditCondition = "UseCustomHoudiniLocation == EHoudiniEngineEditorSettingUseCustomLocation::Enabled", DisplayName = "Custom Houdini location", ConfigRestartRequired=true))
+	FDirectoryPath CustomHoudiniLocation;
 #endif
 };

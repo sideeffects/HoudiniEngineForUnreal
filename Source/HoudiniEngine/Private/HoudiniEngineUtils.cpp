@@ -43,6 +43,7 @@
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
+#include "HoudiniEngineEditorSettings.h"
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
@@ -1333,19 +1334,36 @@ FHoudiniEngineUtils::LoadLibHAPI(FString & StoredLibHAPILocation)
 	FString LibHAPIName = FHoudiniEngineRuntimeUtils::GetLibHAPIName();
 
 	// If we have a custom location specified through settings, attempt to use that.
-	bool bCustomPathFound = false;
 	const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-	if (HoudiniRuntimeSettings && HoudiniRuntimeSettings->bUseCustomHoudiniLocation)
+	const UHoudiniEngineEditorSettings * HoudiniEngineEditorSettings = GetDefault< UHoudiniEngineEditorSettings >();
+	bool bCustomPathFound = false;
+	if (IsValid(HoudiniEngineEditorSettings) || IsValid(HoudiniRuntimeSettings))
 	{
-		// Create full path to libHAPI binary.
-		FString CustomHoudiniLocationPath = HoudiniRuntimeSettings->CustomHoudiniLocation.Path;
-		if (!CustomHoudiniLocationPath.IsEmpty())
+		bool bUseCustomPath = false;
+		FString CustomHoudiniLocationPath;
+
+		// The user can set a editor per-project user setting in UHoudiniEngineEditorSettings to determine if
+		// the custom location should be disabled, read from the editor per-project user settings or read from the
+		// per-project settings.
+		if (HoudiniEngineEditorSettings && HoudiniEngineEditorSettings->UseCustomHoudiniLocation == EHoudiniEngineEditorSettingUseCustomLocation::Enabled)
+		{
+			bUseCustomPath = true;
+			CustomHoudiniLocationPath = HoudiniEngineEditorSettings->CustomHoudiniLocation.Path;
+		}
+		else if ((!HoudiniEngineEditorSettings || HoudiniEngineEditorSettings->UseCustomHoudiniLocation == EHoudiniEngineEditorSettingUseCustomLocation::Project) &&
+			HoudiniRuntimeSettings && HoudiniRuntimeSettings->bUseCustomHoudiniLocation)
+		{
+			bUseCustomPath = true;
+			CustomHoudiniLocationPath = HoudiniRuntimeSettings->CustomHoudiniLocation.Path;
+		}
+
+		if (bUseCustomPath && !CustomHoudiniLocationPath.IsEmpty())
 		{
 			// Convert path to absolute if it is relative.
 			if (FPaths::IsRelative(CustomHoudiniLocationPath))
 				CustomHoudiniLocationPath = FPaths::ConvertRelativePathToFull(CustomHoudiniLocationPath);
 
-			FString LibHAPICustomPath = FString::Printf(TEXT("%s/%s"), *CustomHoudiniLocationPath, *LibHAPIName);
+			const FString LibHAPICustomPath = FString::Printf(TEXT("%s/%s"), *CustomHoudiniLocationPath, *LibHAPIName);
 
 			if (FPaths::FileExists(LibHAPICustomPath))
 			{

@@ -498,12 +498,13 @@ protected:
 		//-------------------------------------------------------------------------------------------------------------
 		// Custom Houdini Location
 		//-------------------------------------------------------------------------------------------------------------
+
 		// Whether to use custom Houdini location.
-		UPROPERTY(GlobalConfig, EditAnywhere, Category = HoudiniLocation, Meta = (DisplayName = "Use custom Houdini location (requires restart)"))
+		UPROPERTY(GlobalConfig, EditAnywhere, Category = HoudiniLocation, Meta = (DisplayName = "Use custom Houdini location (requires restart)", ConfigRestartRequired=true))
 		bool bUseCustomHoudiniLocation;
 
 		// Custom Houdini location (where HAPI library is located).
-		UPROPERTY(GlobalConfig, EditAnywhere, Category = HoudiniLocation, Meta = (DisplayName = "Custom Houdini location"))
+		UPROPERTY(GlobalConfig, EditAnywhere, Category = HoudiniLocation, Meta = (EditCondition = "bUseCustomHoudiniLocation", DisplayName = "Custom Houdini location", ConfigRestartRequired=true))
 		FDirectoryPath CustomHoudiniLocation;
 
 		// Select the Houdini executable to be used when opening session sync or opening hip files

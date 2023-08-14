@@ -25,9 +25,31 @@
 */
 
 #include "HoudiniEngineEditorSettings.h"
+#include "HoudiniEngineRuntimeUtils.h"
 
-UHoudiniEngineEditorSettings::UHoudiniEngineEditorSettings()
-{}
+
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
+
+
+UHoudiniEngineEditorSettings::UHoudiniEngineEditorSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	CategoryName = TEXT("Plugins");
+	SectionName = TEXT("HoudiniEngine");
+
+#if WITH_EDITORONLY_DATA
+	// Custom Houdini location.
+	UseCustomHoudiniLocation = EHoudiniEngineEditorSettingUseCustomLocation::Project;
+	CustomHoudiniLocation.Path = TEXT("");
+#endif
+}
+
+#if WITH_EDITOR
+FText UHoudiniEngineEditorSettings::GetSectionText() const
+{
+	return LOCTEXT("HoudiniEngineUserSettingsDisplayName", "Houdini Engine");
+}
+#endif	// WITH_EDITOR
 
 #if WITH_EDITOR
 void
@@ -43,5 +65,12 @@ UHoudiniEngineEditorSettings::PostEditChangeChainProperty(FPropertyChangedChainE
 	{
 		OnUserToolCategoriesChanged.Broadcast();
 	}
+	else if (HeadName == GET_MEMBER_NAME_CHECKED(UHoudiniEngineEditorSettings, CustomHoudiniLocation))
+	{
+		if (!FHoudiniEngineRuntimeUtils::CheckCustomHoudiniLocation(CustomHoudiniLocation.Path))
+			CustomHoudiniLocation.Path = TEXT("");
+	}
 }
 #endif
+
+#undef LOCTEXT_NAMESPACE
