@@ -2232,8 +2232,6 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancer(
 
 	for(auto NewComponentToSet : NewComponents)
 	{
-		NewComponentToSet->OnComponentCreated();
-
 		// UE5: Make sure we update/recreate the Component's render state
 	    // after the update or the mesh component will not be rendered!
 	    if (bCheckRenderState)
