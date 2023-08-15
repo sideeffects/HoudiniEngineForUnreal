@@ -46,13 +46,9 @@ class FAssetTypeActions_HoudiniToolsPackageAsset : public FAssetTypeActions_Base
 		virtual FColor GetTypeColor() const override;
 		virtual UClass* GetSupportedClass() const override;
 		virtual uint32 GetCategories() override;
-		//virtual UThumbnailInfo * GetThumbnailInfo(UObject * Asset) const override;
+		
 		virtual bool HasActions(const TArray< UObject * > & InObjects) const override;
 		virtual void GetActions(const TArray< UObject * > & InObjects, class FMenuBuilder & MenuBuilder) override;
-
-		// virtual bool AssetsActivatedOverride(const TArray<UObject*>& InObjects, EAssetTypeActivationMethod::Type ActivationType) override;
-
-		// TSharedRef<FExtender> AddLevelEditorMenuExtenders(TArray<TWeakObjectPtr<UHoudiniToolsPackageAsset>> PackageAssets);
 
 	protected:
 

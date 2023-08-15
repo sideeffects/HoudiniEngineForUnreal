@@ -25,20 +25,17 @@
 */
 
 #include "AssetTypeActions_HoudiniAsset.h"
+
 #include "HoudiniAsset.h"
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineStyle.h"
 #include "HoudiniEngine.h"
-#include "HoudiniAsset.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngineEditorUtils.h"
 #include "HoudiniEngineRuntimeUtils.h"
-#include "HoudiniToolsPackageAsset.h"
 
 #include "EditorReimportHandler.h"
-#include "HoudiniEngineToolTypes.h"
-#include "HoudiniToolsEditor.h"
 #include "HoudiniToolTypes.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "HAL/FileManager.h"
@@ -74,26 +71,6 @@ FAssetTypeActions_HoudiniAsset::GetCategories()
 {
 	return EAssetTypeCategories::Misc;
 }
-
-/*
-UThumbnailInfo *
-FAssetTypeActions_HoudiniAsset::GetThumbnailInfo(UObject * Asset) const
-{
-	if (!IsValid(Asset))
-		return nullptr;
-
-	UHoudiniAsset * HoudiniAsset = CastChecked< UHoudiniAsset >(Asset);
-	UThumbnailInfo * ThumbnailInfo = HoudiniAsset->ThumbnailInfo;
-	if (!ThumbnailInfo)
-	{
-		// If we have no thumbnail information, construct it.
-		ThumbnailInfo = NewObject< USceneThumbnailInfo >(HoudiniAsset, USceneThumbnailInfo::StaticClass());
-		HoudiniAsset->ThumbnailInfo = ThumbnailInfo;
-	}
-
-	return ThumbnailInfo;
-}
-*/
 
 bool
 FAssetTypeActions_HoudiniAsset::HasActions(const TArray< UObject * > & InObjects) const
@@ -297,8 +274,6 @@ FAssetTypeActions_HoudiniAsset::ExecuteReimport(TArray<TWeakObjectPtr<UHoudiniAs
 		if (HoudiniAsset)
 		{
 			FReimportManager::Instance()->Reimport(HoudiniAsset, true);
-			// TArray<FString> ReimportPaths;
-			// FReimportManager::Instance()->CanReimport(HoudiniAsset, &ReimportPaths);
 		}
 	}
 }
@@ -467,5 +442,7 @@ FAssetTypeActions_HoudiniAsset::ExecuteInstantiate(TArray<TWeakObjectPtr<UHoudin
 		FHoudiniEngineEditorUtils::InstantiateHoudiniAssetAt(HoudiniAsset, DefaultTransform);
 	}
 }
+
+
 
 #undef LOCTEXT_NAMESPACE

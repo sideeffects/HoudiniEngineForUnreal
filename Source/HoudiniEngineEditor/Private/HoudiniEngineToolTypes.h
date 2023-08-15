@@ -70,16 +70,90 @@ struct FHoudiniToolDirectory
     }
 };
 
+UENUM()
+enum class EHoudiniToolCategoryType : uint8
+{
+    Package,
+    User
+};
+
+      // Return hash value for this object, used when using this object as a key inside hashing containers.
+
+
+USTRUCT(BlueprintType)
+struct FHoudiniToolCategory
+{
+    GENERATED_BODY()
+
+    FHoudiniToolCategory()
+        : Name()
+        , CategoryType(EHoudiniToolCategoryType::Package)
+    {}
+
+    FHoudiniToolCategory(const FString& InCategoryName, const EHoudiniToolCategoryType& InCategoryType)
+        : Name(InCategoryName)
+        , CategoryType(InCategoryType)
+    {}
+    
+    bool operator<(const FHoudiniToolCategory& Other) const
+    {
+        if (CategoryType != Other.CategoryType)
+        {
+            // if we have different categories, the User category
+            // should always be first in the list.
+            if (CategoryType == EHoudiniToolCategoryType::User)
+            {
+                return true; // A < B
+            }
+            else
+            {
+                return false; // A > B
+            }
+        }
+
+        // For now, we manually place the SideFX category at the top until
+		// we have a more generic category prioritization mechanism. 
+		if (Name.ToUpper() == TEXT("SIDEFX"))
+			return true;
+		if (Other.Name.ToUpper() == TEXT("SIDEFX"))
+			return false;
+
+        // Category Types are the same. Resolve priority by name.
+        return Name < Other.Name;
+    }
+
+    bool operator==(const FHoudiniToolCategory& Other) const
+    {
+        return (Name == Other.Name) && (CategoryType == Other.CategoryType);
+    }
+    
+
+    FHoudiniToolCategory& operator=(const FHoudiniToolCategory& Other) = default;
+    
+    FString Name;
+    EHoudiniToolCategoryType CategoryType;
+};
+
+inline uint32 GetTypeHash(const FHoudiniToolCategory& Category)
+{
+    uint32 Hash = GetTypeHash(Category.Name);
+    Hash = HashCombine(Hash, FCrc::TypeCrc32(Category.CategoryType));
+    return Hash;
+}
+
+
 struct FHoudiniTool
 {
+    
     FHoudiniTool()
         : HoudiniAsset( nullptr)
         , Name()
         , ToolTipText()
         , Icon()
+        , IconTexture(nullptr)
         , HelpURL()
         , Type(EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE)
-        , DefaultTool(false)
+        , CategoryType(EHoudiniToolCategoryType::Package)
         , SelectionType(EHoudiniToolSelectionType::HTOOL_SELECTION_ALL)
         , SourceAssetPath()
         , ToolDirectory()
@@ -90,16 +164,19 @@ struct FHoudiniTool
     FHoudiniTool(
         const TSoftObjectPtr < class UHoudiniAsset >& InHoudiniAsset, const FText& InName,
         const EHoudiniToolType& InType, const EHoudiniToolSelectionType& InSelType,
-        const FText& InToolTipText, const FSlateBrush* InIcon, const FString& InHelpURL,
-        const bool& isDefault, const FFilePath& InAssetPath, const FHoudiniToolDirectory& InToolDirectory,
+        const FText& InToolTipText, TSharedPtr<FSlateBrush> InIcon,
+        UTexture2D* InIconTexture,
+        const FString& InHelpURL,
+        const EHoudiniToolCategoryType& InCategoryType, const FFilePath& InAssetPath, const FHoudiniToolDirectory& InToolDirectory,
         const FString& InJSONFile )
         : HoudiniAsset( InHoudiniAsset )
         , Name( InName )
         , ToolTipText( InToolTipText )
         , Icon( InIcon )
+        , IconTexture( InIconTexture )
         , HelpURL( InHelpURL )
         , Type( InType )
-        , DefaultTool( isDefault )
+        , CategoryType( InCategoryType )
         , SelectionType( InSelType )
         , SourceAssetPath( InAssetPath )
         , ToolDirectory( InToolDirectory )
@@ -118,7 +195,9 @@ struct FHoudiniTool
     FText ToolTipText;
 
     /** The icon to be displayed */
-    const FSlateBrush* Icon;
+    TSharedPtr<FSlateBrush> Icon;
+
+    UTexture2D* IconTexture;
 
     /** The help URL for this tool */
     FString HelpURL;
@@ -126,10 +205,8 @@ struct FHoudiniTool
     /** The type of tool, this will change how the asset handles the current selection **/
     EHoudiniToolType Type;
 
-    /** Indicate this is one of the default tools **/
-    // TODO: DEPRECATE. We won't be hiding tools based on this default field. Rather, we'll be hiding
-    //       anything in the "default" category in the Tools panel.
-    bool DefaultTool;
+    // Type of category to which FHoudiniTool belongs.
+    EHoudiniToolCategoryType CategoryType;
 
     /** Indicate what the tool should consider for selection **/
     EHoudiniToolSelectionType SelectionType;

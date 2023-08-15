@@ -69,26 +69,6 @@ FAssetTypeActions_HoudiniToolsPackageAsset::GetCategories()
 	return EAssetTypeCategories::Misc;
 }
 
-/*
-UThumbnailInfo *
-FAssetTypeActions_HoudiniToolsPackageAsset::GetThumbnailInfo(UObject * Asset) const
-{
-	if (!IsValid(Asset))
-		return nullptr;
-
-	UHoudiniAsset * HoudiniAsset = CastChecked< UHoudiniAsset >(Asset);
-	UThumbnailInfo * ThumbnailInfo = HoudiniAsset->ThumbnailInfo;
-	if (!ThumbnailInfo)
-	{
-		// If we have no thumbnail information, construct it.
-		ThumbnailInfo = NewObject< USceneThumbnailInfo >(HoudiniAsset, USceneThumbnailInfo::StaticClass());
-		HoudiniAsset->ThumbnailInfo = ThumbnailInfo;
-	}
-
-	return ThumbnailInfo;
-}
-*/
-
 bool
 FAssetTypeActions_HoudiniToolsPackageAsset::HasActions(const TArray< UObject * > & InObjects) const
 {

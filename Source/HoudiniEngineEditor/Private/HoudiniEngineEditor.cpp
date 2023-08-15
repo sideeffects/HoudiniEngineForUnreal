@@ -65,6 +65,7 @@
 #include "Editor.h"
 #include "Editor/UnrealEdEngine.h"
 #include "EditorScriptingHelpers.h"
+#include "HoudiniAssetFactory.h"
 #include "Engine/Selection.h"
 #include "Engine/SkeletalMesh.h"
 #include "Framework/Application/SlateApplication.h"
@@ -203,6 +204,11 @@ void FHoudiniEngineEditor::ModulesChangedCallback(FName ModuleName, EModuleChang
 void FHoudiniEngineEditor::ShutdownModule()
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Shutting down the Houdini Engine Editor module."));
+
+	if (HoudiniToolsPtr.IsValid())
+	{
+		HoudiniToolsPtr->Shutdown();
+	}
 
 	// Unregister the sections (filters) for the details category
 	UnregisterSectionMappings();
@@ -439,8 +445,6 @@ FHoudiniEngineEditor::UnRegisterEditorTabs()
 	FGlobalTabmanager::Get()->UnregisterTabSpawner(NodeSyncTabName);
 	FGlobalTabmanager::Get()->UnregisterTabSpawner(HoudiniToolsTabName);
 }
-
-
 
 void
 FHoudiniEngineEditor::BindMenuCommands()

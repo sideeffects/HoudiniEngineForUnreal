@@ -73,6 +73,7 @@ public class HoudiniEngineEditor : ModuleRules
                 "CoreUObject",
                 "HoudiniEngine",
                 "HoudiniEngineRuntime",
+                "ImageCore",
                 "Slate",
                 "SlateCore",
                 "Landscape",

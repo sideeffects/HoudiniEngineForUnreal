@@ -29,9 +29,8 @@
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAsset.h"
 #include "HoudiniToolsPackageAsset.h"
-#include "HoudiniEngineEditor.h"
 #include "HoudiniToolsEditor.h"
-
+#include "HoudiniEngineUtils.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Misc/FileHelper.h"
 #include "Internationalization/Internationalization.h"
@@ -216,6 +215,12 @@ UHoudiniAssetFactory::Reimport(UObject * Obj)
 				// We need to preserve the old data.
 				UHoudiniToolData* NewToolData = FHoudiniToolsEditor::GetOrCreateHoudiniToolData(HoudiniAsset);
 				NewToolData->CopyFrom(*PrevToolData);
+
+				NewToolData->UpdateOwningAssetThumbnail();
+				
+				HOUDINI_LOG_WARNING(TEXT("Reimported HoudiniAsset (%s) but ignored external data due to package settings."), *HoudiniAsset->GetName());
+				const FString Msg = FString::Format(TEXT("Reimported HoudiniAsset ({0}) but ignored external data (JSON/Icon) due to package settings."), { HoudiniAsset->GetName() });
+				FHoudiniEngineUtils::CreateSlateNotification(Msg);
 			}
 			
 			if (HoudiniAsset->GetOuter())

@@ -109,10 +109,20 @@ public:
 	// After converting the data from this object to JSON, save it to a file.
 	UFUNCTION(BlueprintCallable, Category="HoudiniToolData")
 	bool SaveToJSONFile(const FString& JsonFilePath);
-	
+
+#if WITH_EDITOR
+	// Load an icon from the given path (on the filesystem)
+	// and cache it in this UHoudiniToolData. This will also
+	// cache it as a thumbnail for the owning package of this asset.
 	void LoadIconFromPath(const FString& IconPath);
-	
+
+	// Clear the icon cached on this UHoudiniToolData instance and
+	// clear the cached thumbnail for the owning package.
 	void ClearCachedIcon();
+
+	// Update the owning asset's thumbnail 
+	void UpdateOwningAssetThumbnail();
+#endif
 
 	void CopyFrom(const UHoudiniToolData& Other);
 
@@ -165,5 +175,5 @@ public:
     // FString GetJSonFilePath() { return ToolDirectory.Path.Path / JSONFile; };
 	// TODO: Resolve the JSON file path based using the path relative to the Houdini Package.
 	FString GetJSonFilePath() { return FString(); };
-	
+
 };

@@ -30,6 +30,7 @@
 #include "HoudiniAsset.h"
 #include "HoudiniToolsPackageAsset.h"
 #include "HoudiniToolTypes.h"
+#include "ImageCore.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 
 // -----------------------------
@@ -121,11 +122,12 @@ public:
 	// file, while preserving any existing JSON data.
 	static bool WriteJSONFromToolPackageAsset(const UHoudiniToolsPackageAsset* ToolsPackage, const FString& JSONFilePath);
 
-	// // Execute the OnToolChanged delegate.
-	// void BroadcastToolChanged();
-	//
-	// // One or more tools have changed / removed / added. 
-	// FOnToolChanged OnToolChanged;
-#endif
+	// Thumbnail and Icon
 
+	static void PadImage(const FImage& SrcImage, FImage& DestImage, const int32 NumPixels);
+	
+	// Cache the HoudiniAsset's icon, if it has one, with the Thumbnail Manager.
+	static void UpdateHoudiniAssetThumbnail(UHoudiniAsset* HoudiniAsset);
+
+#endif
 };

@@ -28,9 +28,9 @@
 
 #include "CoreMinimal.h"
 #include "HoudiniAsset.h"
+#include "HoudiniEngineToolTypes.h"
 #include "HoudiniToolsPackageAsset.h"
 #include "HoudiniToolTypes.h"
-#include "ImageCore.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 
 // -----------------------------
@@ -51,6 +51,7 @@ enum class EHoudiniToolType : uint8;
 struct FHoudiniToolDirectory;
 struct FHoudiniTool;
 class UHoudiniToolsPackageAsset;
+
 
 class FHoudiniToolsEditor
 {
@@ -82,8 +83,10 @@ public:
 	// Resolve the icon path for the given HoudiniAsset.
 	static FString ResolveHoudiniAssetIconPath(const UHoudiniAsset* HoudiniAsset);
 
-	// Resolve the path of the houdini asset relative to its owning package. 
+	// Get the path of the houdini asset relative to its owning package. 
 	static bool ResolveHoudiniAssetRelativePath(const UHoudiniAsset* HoudiniAsset, FString& OutPath);
+
+	static FAssetData GetAssetDataByObject(const UObject* AssetObject);
 	
 	// Check if the given directory is a valid HoudiniTools package.
 	bool IsHoudiniToolsPackageDir(const FString& PackageBasePath) const;
@@ -99,7 +102,7 @@ public:
 	// Add the given tool the exclusion list of the owning package for the given category.
 	// If the package name was added to the Category exclusion list (or if it was already present), return true.
 	// If the given category cannot be found in the package, return false.
-	static bool ExcludeToolFromCategory(UHoudiniAsset* HoudiniAsset, const FString& CategoryName, bool bAddCategoryIfMissing);
+	static bool ExcludeToolFromPackageCategory(UHoudiniAsset* HoudiniAsset, const FString& CategoryName, bool bAddCategoryIfMissing);
 
 	void FindHoudiniToolsPackages(TArray<UHoudiniToolsPackageAsset*>& HoudiniToolPackages ) const;
 
@@ -115,12 +118,13 @@ public:
 	static void BrowseToOwningPackageInContentBrowser(const UHoudiniAsset* HoudiniAsset);
 	
 	// Find all the HoudiniTools in the given tools package, in the Unreal project.
-	void FindHoudiniToolsInPackage(const UHoudiniToolsPackageAsset* ToolsPackage, TArray<TSharedPtr<FHoudiniTool>>& OutHoudiniTools) const;
+	// FHoudiniTools are cached for reuse.
+	void FindHoudiniToolsInPackage(const UHoudiniToolsPackageAsset* ToolsPackage, TArray<TSharedPtr<FHoudiniTool>>& OutHoudiniTools);
 
 	static void FindHoudiniAssetsInPackage(const UHoudiniToolsPackageAsset* ToolsPackage, TArray<UHoudiniAsset*>& OutAssets);
 
 	// Apply the category rules to the given HoudiniTool. Append all valid categories for the HoudiniTool in OutCategories.  
-	static void ApplyCategories(const TMap<FString, FCategoryRules>& InCategories, const TSharedPtr<FHoudiniTool>& HoudiniTool, const bool bIgnoreExclusionRules, TArray<FString>& OutCategories);
+	static void ApplyCategories(const TMap<FHoudiniToolCategory, FCategoryRules>& InCategories, const TSharedPtr<FHoudiniTool>& HoudiniTool, const bool bIgnoreExclusionRules, TArray<FString>& OutCategories);
 	
 	static void ApplyCategoryRules(
 		const FString& HoudiniAssetRelPath,
@@ -142,15 +146,11 @@ public:
 	static UHoudiniToolData* GetOrCreateHoudiniToolData(UHoudiniAsset* HoudiniAsset);
 
 	// Populate FHoudiniTool from HoudiniAsset.
-    static void PopulateHoudiniTool(const TSharedPtr<FHoudiniTool>& HoudiniTool,
+    void PopulateHoudiniTool(const TSharedPtr<FHoudiniTool>& HoudiniTool,
                              const UHoudiniAsset* InHoudiniAsset,
                              const UHoudiniToolsPackageAsset* InToolsPackage,
                              bool bIgnoreToolData = false);
 
-	// Find the HoudiniTool that corresponds with the given HoudiniAsset.
-	// Returns true if HoudiniAsset is valid, and FHoudiniTool was found. False otherwise. 
-	bool FindHoudiniToolForAsset(UHoudiniAsset* HoudiniAsset, TSharedPtr<FHoudiniTool>& OutHoudiniTool);
-	
 	/**
 	 * Rebuild the internal list of HoudiniTools
 	 *
@@ -159,25 +159,8 @@ public:
 	 * **/
     void UpdateHoudiniToolListFromProject(bool bIgnoreExcludePatterns);
 
-	// /** Return all the directories where we should look for houdini tools**/
- //    void GetAllHoudiniToolDirectories(TArray<FHoudiniToolDirectory>& HoudiniToolsDirectoryArray) const;
-	// /** Return the directories where we should look for houdini tools**/
- //    void GetHoudiniToolDirectories(const int32& SelectedIndex, TArray<FHoudiniToolDirectory>& HoudiniToolsDirectoryArray) const;
-
-	// TODO
-	// Helper function to retrieve Package asset, given a UHoudiniAsset.
-	// This will traverse up the directory tree from the Houdini Asset and return the first Package asset.
-	//UHoudiniToolsPackageAsset* FindHoudiniToolsPackage(const UHoudiniAsset* HoudiniAsset);
-	TArray< TSharedPtr<FHoudiniTool> >* GetHoudiniToolsForWrite() { return nullptr; }
-
-	// Helper function for retrieving an HoudiniTool in the Editor list
-    // bool FindHoudiniTool( const FHoudiniTool& Tool, int32& FoundIndex, bool& IsDefault );
-
-	// DEPRECATED
-	// Returns the HoudiniTools currently available for the shelf
-    // const TArray< TSharedPtr<FHoudiniTool> >& GetHoudiniToolsList() const { return HoudiniTools; }
-
-	const TMap< FString, TSharedPtr<FHoudiniToolList> >& GetCategorizedTools() const { return Categories; }
+	// Get the cached categorized tools
+	const TMap< FHoudiniToolCategory, TSharedPtr<FHoudiniToolList> >& GetCategorizedTools() const { return Categories; }
 
 	// External Data
 
@@ -220,13 +203,14 @@ public:
 	// if bOnlyMissing == true, then only missing HDAs will be imported. Existing HDAs will be left untouched.
 	static bool ReimportPackageHDAs(const UHoudiniToolsPackageAsset* PackageAsset, const bool bOnlyMissing=false, int* NumImportedHDAs=nullptr);
 
-	// TODO:
-	// static bool ReimportExternalToolPackage() 
-	
-	// This will create a new unique slate brush from the HoudiniAsset's icon data, so be sure to keep a reference to this
-	// brush for as long as it is needed.
-	// Returns nullptr if not able to create a dynamic brush.
-	static const FSlateBrush* CreateUniqueAssetIconBrush(const UHoudiniAsset* HoudiniAsset);
+	/** 
+	 * This will create a new unique slate brush from the HoudiniAsset's icon data, so be sure to keep a reference to this
+	 * brush for as long as it is needed. 
+	 * @param HoudiniTool The HoudiniTool for which the unique icon brush needs to be created. The brush will be
+	 *                      created from the referenced UHoudiniAsset's ToolData.
+	 * @returns nullptr if not able to create a dynamic brush.
+	 */
+	void CreateUniqueAssetIconBrush(TSharedPtr<FHoudiniTool> HoudiniTool);
 
 	// Populate the HoudiniToolData from the given JSON file.
 	static bool PopulateHoudiniToolDataFromJSON(const FString& JSONFilePath, UHoudiniToolData& OutToolData);
@@ -260,27 +244,31 @@ public:
 	// Attempt to import default SideFX HDAs from Houdini
 	static bool ImportSideFXTools(int* NumImportedHDAs);
 
-	/** Rebuild the editor's Houdini Tool list for a directory **/
-    
+	// --------------------------------
+    // User Categories
+    // --------------------------------
 
-    // /** Rebuild the editor's Houdini Tool list for a directory **/
-    // void UpdateHoudiniToolList_DEPR(const FHoudiniToolDirectory& HoudiniToolsDirectory, const bool& isDefault );
+	// Add the tool to the specified user category. If the category does not exist, it will be created.
+	static void AddToolToUserCategory(const UHoudiniAsset* Asset, const FString& CategoryName);
+	static void RemoveToolFromUserCategory(const UHoudiniAsset* Asset, const FString& CategoryName);
+
+	// Get a list of user categories
+	static void GetUserCategoriesList(TArray<FString>& OutCategories);
 	
-    bool WriteJSONFromHoudiniTool_DEPR(const FHoudiniTool& Tool);
+	static void AddIncludePathToUserCategory(const FString& CategoryName, const UHoudiniToolsPackageAsset* Package, const FString& RelPath);
+	static void RemoveIncludePathFromUserCategory(const FString& CategoryName, const UHoudiniToolsPackageAsset* Package, const FString& RelPath);
 
-	// TODO: Store state in an external file in saved directory, not here
-	//** Selected Houdini Tool Dir **/
-    int32 CurrentHoudiniToolDirIndex;
+	// --------------------------------
+    // Shutdown
+    // --------------------------------
 
-	// TODO: TEMPORARY until Houdini Engine Shelf Tools have been migrated. This needs to be removed / replaced with individual shelf descriptors.
-	// UPROPERTY(GlobalConfig, EditAnywhere, Category = CustomHoudiniTools)
-	// mutable TArray<FHoudiniToolDirectory> CustomHoudiniToolsLocation;
+	// Be sure to call this method when the owning module shuts down so that we can remove
+	// all our cached textures from root.
+	void Shutdown();
 
 protected:
 	// Categories
-	TMap< FString, TSharedPtr<FHoudiniToolList> > Categories;
+	TMap< FHoudiniToolCategory, TSharedPtr<FHoudiniToolList> > Categories;
 
-	// We are currently maintaining this array too, for compatibility with some V1 functions,
-	// until everything has been ported.
-	TSet<TSharedPtr<FHoudiniTool>> HoudiniTools;
+	TMap<FString, UTexture2D*> CachedTextures;
 };

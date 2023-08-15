@@ -52,6 +52,18 @@ FText UHoudiniEngineEditorSettings::GetSectionText() const
 #endif	// WITH_EDITOR
 
 #if WITH_EDITOR
+void UHoudiniEngineEditorSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	UObject::PostEditChangeProperty(PropertyChangedEvent);
+	
+	static FName NAME_UserToolCategories = GET_MEMBER_NAME_CHECKED(UHoudiniEngineEditorSettings, UserToolCategories);
+	
+	if (PropertyChangedEvent.Property->GetFName() == NAME_UserToolCategories)
+	{
+		OnUserToolCategoriesChanged.Broadcast();
+	}
+}
+
 void
 UHoudiniEngineEditorSettings::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
 {

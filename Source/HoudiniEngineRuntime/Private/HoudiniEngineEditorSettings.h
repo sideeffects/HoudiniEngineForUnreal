@@ -35,9 +35,13 @@
 #include "HoudiniEngineEditorSettings.generated.h"
 
 USTRUCT()
-struct FUserCategoryRules 
+struct FUserPackageRules 
 {
 	GENERATED_BODY()
+
+	FUserPackageRules()
+		: ToolsPackageAsset(nullptr)
+	{}
 
 	// Tools package that will be used to resolve the include/exclude patterns.
 	UPROPERTY(EditAnywhere, Category="User Category")
@@ -63,6 +67,15 @@ enum class EHoudiniEngineEditorSettingUseCustomLocation : uint8
 	Enabled UMETA(DisplayName = "Use Custom Location"),
 };
 
+USTRUCT()
+struct FUserCategoryRules
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category="User Category")
+	TArray<FUserPackageRules> Packages;
+};
+
 UCLASS(config=HoudiniEngine)
 class HOUDINIENGINERUNTIME_API UHoudiniEngineEditorSettings : public UDeveloperSettings
 {
@@ -86,18 +99,13 @@ public:
 	//End -- UDeveloperSettings interface
 
 #if WITH_EDITOR
-	
+
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 	
 #endif
 
 #if WITH_EDITORONLY_DATA
-	// // Additional user-specific search paths in the project to search for HoudiniTools packages.
-	// // These paths should point to Tools directories that contain on or more HoudiniTools packages. It
-	// // should not point to the HoudiniTools packages themselves.
-	// UPROPERTY(GlobalConfig, EditAnywhere, Category = HoudiniTools)
-	// TArray<FString> HoudiniToolsSearchPath;
-	
 	// User defined categories for HoudiniTools
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=HoudiniTools)
 	TMap<FString, FUserCategoryRules> UserToolCategories;

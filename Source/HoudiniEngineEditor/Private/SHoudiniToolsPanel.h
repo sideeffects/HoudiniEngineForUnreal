@@ -179,6 +179,7 @@ public:
     SLATE_EVENT( FOnToolSelectionChanged, OnToolSelectionChanged )
     
     SLATE_ATTRIBUTE( FText, CategoryLabel )
+    SLATE_ATTRIBUTE( EHoudiniToolCategoryType, CategoryType )
     SLATE_ATTRIBUTE( TSharedPtr<FHoudiniToolList>, HoudiniToolsItemSource )
     SLATE_ATTRIBUTE( EHoudiniToolsViewMode, ViewMode )
     SLATE_ATTRIBUTE( bool, IsVisible )
@@ -190,6 +191,9 @@ public:
     // Get the active tool for this category, if any.
     TSharedPtr<FHoudiniTool> GetActiveTool() const { return ActiveTool; }
     FString GetCategoryLabel() const { return CategoryLabel; }
+    EHoudiniToolCategoryType GetCategoryType() const { return CategoryType; }
+
+    FHoudiniToolCategory GetHoudiniToolCategory() const { return FHoudiniToolCategory(CategoryLabel, CategoryType); }
 
     void SetFilterString(const FString& NewFilterString);
     
@@ -204,6 +208,7 @@ protected:
     TSharedPtr<FBaseViewType> HoudiniToolsView;
     
     FString CategoryLabel;
+    EHoudiniToolCategoryType CategoryType;
     FString FilterString;
 
     TAttribute<bool> IsVisible;
@@ -451,8 +456,76 @@ protected:
     FOnCanceled OnCanceled;
 };
 
+
 /**
- * SHoudiniToolImportPackage 
+ * Add Tool to User Category 
+ */
+
+class SHoudiniToolAddToUserCategory : public SCompoundWidget, public FNotifyHook
+{
+public:
+    SLATE_BEGIN_ARGS( SHoudiniToolAddToUserCategory ) {}
+
+    SLATE_ATTRIBUTE(TSharedPtr<FHoudiniTool>, ActiveTool)
+    
+    SLATE_END_ARGS();
+
+    SHoudiniToolAddToUserCategory();
+
+    void Construct( const FArguments& InArgs );
+
+
+protected:
+
+    FText ToolPackagePathText();
+    
+    // Add To Category Button
+    FReply HandleAddToCategoryClicked();
+    bool GetAddToCategoryEnabled() const;
+    EVisibility GetAddToCategoryVisibility() const;
+
+    // Goto Create New Category button
+    FReply HandleGotoCreateCategoryClicked();
+    bool GetGotoCreateCategoryEnabled() const;
+    EVisibility GetGotoCreateCategoryVisibility() const;
+
+    // Add New Category Button
+    FReply HandleAddNewCategoryClicked();
+    bool GetCreateCategoryEnabled() const;
+    EVisibility GetCreateCategoryVisibility() const;
+
+    // Back Button
+    FReply HandleBackClicked();
+    EVisibility GetBackButtonVisibility() const;
+
+    // Cancel Button
+    FReply HandleCancelClicked();
+
+    // User Category Selection
+    void OnUserCategorySelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectType);
+
+    // User Category Creation
+    void OnUserCategoryCreateTextChanged(const FText& NewText);
+    void OnUserCategoryCreateTextCommitted(const FText& NewText, ETextCommit::Type CommitType);
+
+    void CloseContainingWindow();
+    
+    TSharedPtr<FHoudiniTool> ActiveTool;
+    UHoudiniToolsPackageAsset* Package;
+    
+    TSharedPtr<SWidgetSwitcher> WidgetSwitcher;
+
+    TSharedPtr<SWidget> AddToCategoryView;
+    TSharedPtr<SWidget> CreateCategoryView;
+
+    TArray<TSharedPtr<FString>> UserCategories;
+    TSharedPtr<FString> SelectedCategory;
+
+    FString UserCategoryToCreate;
+};
+
+/**
+ * Houdini Tools panel 
  */
 
 class SHoudiniToolsPanel : public SCompoundWidget, public FNotifyHook
@@ -475,7 +548,7 @@ public:
     /** Handler for Key presses**/
     virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
 
-    bool IsActiveHoudiniToolEditable();
+    bool IsActiveHoudiniToolEditable() const;
 
     FText OnGetSelectedDirText() const;
 
@@ -484,7 +557,7 @@ public:
 
     virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
-protected:
+private:
     static FHoudiniToolsEditor& GetHoudiniTools() { return FHoudiniEngineEditor::Get().GetHoudiniTools(); }
 
     void LoadConfig();
@@ -494,16 +567,6 @@ protected:
     void HideActiveToolFromCategory();
 
     void RefreshPanel();
-
-    /** Shows a property window for editing the current Tool directory **/
-    FReply OnEditToolDirectories();
-
-    /** Handler for closing the EditToolDirectory window **/
-    void OnEditToolDirectoriesWindowClosed(const TSharedRef<SWindow>& InWindow, TArray<UObject *> InObjects);
-
-    // DEPRECATED
-    // /** Generates default JSON files for HDA in the current Tool directory that doesnt have one **/
-    // void GenerateMissingJSONFiles();
 
     // Actions Menu
     
@@ -515,17 +578,14 @@ protected:
 
     void HandleImportSideFXTools();
 
+    void HandleAddToolToUserCategory() const;
+
     static const FString SettingsIniSection;
 
-private:
-
     /** Make a widget for the list view display */
-    TSharedRef<ITableRow> MakeListViewWidget( TSharedPtr<struct FHoudiniTool> BspBuilder, const TSharedRef<STableViewBase>& OwnerTable );
+    TSharedRef<ITableRow> MakeListViewWidget( TSharedPtr<struct FHoudiniTool> HoudiniTool, const TSharedRef<STableViewBase>& OwnerTable );
 
-    TSharedRef<ITableRow> MakeTileViewWidget( TSharedPtr<struct FHoudiniTool> BspBuilder, const TSharedRef<STableViewBase>& OwnerTable );
-
-    /** Returns the index of the currently selected directory in the Editor ToolDirectoryArray **/
-    bool GetCurrentDirectoryIndex(int32& SelectedIndex) const;
+    TSharedRef<ITableRow> MakeTileViewWidget( TSharedPtr<struct FHoudiniTool> HoudiniTool, const TSharedRef<STableViewBase>& OwnerTable );
 
     /** Delegate for when the list view selection changes */
     void OnToolSelectionChanged( SHoudiniToolCategory* Category, const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectionType );
@@ -553,10 +613,15 @@ private:
     /** Focus the content browser on the  **/
     void BrowseToActiveToolPackage() const;
 
-    /** Handler for closing the AddHoudiniTools window**/
-    void OnEditActiveHoudiniToolWindowClosed(const TSharedRef<SWindow>& InWindow, TArray<UObject *> InObjects);
+    /** Handler for Save clicked in the Edit Active Tool dialog. **/
+    void HandleEditHoudiniToolSavedClicked(TSharedPtr<FHoudiniTool> HoudiniTool, TArray<UObject *>& InObjects );
 
-    TSharedRef<SWindow> CreateFloatingDetailsView( const TArray< UObject* >& InObjects );
+    TSharedRef<SWindow> CreateFloatingDetailsView(
+        TArray<UObject*>& InObjects,
+        const FVector2D InClientSize=FVector2D(400,550),
+        const TFunction<void(TArray<UObject*> /*InObjects*/)> OnSaveClickedFn = nullptr
+        );
+    
     TSharedRef<SWindow> CreateFloatingWindow(
         const ::FText& WindowTitle,
         const FVector2D IntialSize=FVector2D(400, 550)) const;
@@ -568,7 +633,7 @@ private:
 
     void HandleToolChanged();
 
-private:
+
     // The active create package window is tracked here so that we can reuse the
     // active window if summoned again.
     TWeakPtr<SWindow> CreatePackageWindow;

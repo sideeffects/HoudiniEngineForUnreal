@@ -64,6 +64,7 @@ public class HoudiniEngineRuntime : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"RenderCore",
+				"ImageCore",
 				"InputCore",
 				"RHI",
 				"Foliage",
@@ -82,16 +83,6 @@ public class HoudiniEngineRuntime : ModuleRules
 				"DeveloperSettings"
             }
 		);
-        
-        if (Target.Version.MajorVersion == 5 && (Target.Version.MinorVersion == 0 || Target.Version.MinorVersion == 1))
-		{
-			PublicDependencyModuleNames.AddRange(
-				new string[]
-				{
-					"ImageCore"
-				}
-			);
-		}
 
 		if (Target.bBuildEditor == true)
 		{

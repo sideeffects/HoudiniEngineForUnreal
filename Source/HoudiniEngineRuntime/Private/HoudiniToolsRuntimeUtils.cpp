@@ -26,19 +26,16 @@
 
 #include "HoudiniToolsRuntimeUtils.h"
 
-#include "HairStrandsInterface.h"
+#if WITH_EDITOR
 #include "HoudiniAsset.h"
-
 #include "HoudiniEngineRuntimePrivatePCH.h"
-
 #include "HoudiniToolsPackageAsset.h"
 #include "ImageUtils.h"
-#include "JsonObjectConverter.h"
 #include "HoudiniToolData.h"
+#include "ImageCore.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Engine/Texture2D.h"
-#include "Framework/Application/SlateApplication.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformFilemanager.h"
 #include "Misc/FileHelper.h"
@@ -46,6 +43,9 @@
 #include "Modules/ModuleManager.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
+
+#include "ObjectTools.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "HoudiniTools"
 
@@ -247,8 +247,7 @@ FHoudiniToolsRuntimeUtils::FindOwningToolsPackage(const UHoudiniAsset* HoudiniAs
 {
     if (!IsValid(HoudiniAsset))
         return nullptr;
-
-    UHoudiniToolsPackageAsset* Package = nullptr;
+    
     FString CurrentPath = FPaths::GetPath(HoudiniAsset->GetPathName());
 
     // Define a depth limit to break out of the loop, in case something
@@ -741,10 +740,111 @@ bool FHoudiniToolsRuntimeUtils::WriteJSONFromToolPackageAsset(const UHoudiniTool
     return true;
 }
 
-// void FHoudiniToolsRuntime::BroadcastToolChanged()
-// {
-//     OnToolChanged.Broadcast();
-// }
+void FHoudiniToolsRuntimeUtils::PadImage(const FImage& SrcImage, FImage& DestImage, const int32 NumPixels)
+{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
+    const int32 BytesPerPixel = SrcImage.GetBytesPerPixel();
+#else
+    const int32 BytesPerPixel = ERawImageFormat::GetBytesPerPixel(SrcImage.Format);
+#endif
+
+    DestImage.SizeX = SrcImage.SizeX + NumPixels*2;
+	DestImage.SizeY = SrcImage.SizeY + NumPixels*2;
+	DestImage.NumSlices = 1;
+	DestImage.Format = SrcImage.Format;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
+	DestImage.GammaSpace = SrcImage.GammaSpace;
+#else
+    DestImage.GammaSpace = SrcImage.GetGammaSpace();
+#endif
+
+    // Init dest image storage
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
+    const int64 NumBytes = DestImage.SizeX * DestImage.SizeY * DestImage.NumSlices * BytesPerPixel;
+#else
+    const int64 NumBytes = DestImage.GetImageSizeBytes();
+#endif
+	DestImage.RawData.Empty(NumBytes);
+	DestImage.RawData.AddZeroed(NumBytes);
+	
+	// Copy the source image into the center of the destination image
+    const int32 SourceRowBytes = SrcImage.SizeX * BytesPerPixel;
+    for (int Row = 0; Row < SrcImage.SizeY; Row++)
+    {
+        const int SourceIndex = (Row * SrcImage.SizeX) * BytesPerPixel;
+        const int DestIndex = (NumPixels + ((Row+NumPixels) * DestImage.SizeX)) * BytesPerPixel;
+        memcpy(&DestImage.RawData[DestIndex], &SrcImage.RawData[SourceIndex], SourceRowBytes );
+    }
+}
+
+void FHoudiniToolsRuntimeUtils::UpdateHoudiniAssetThumbnail(UHoudiniAsset* HoudiniAsset)
+{
+    if (!IsValid(HoudiniAsset) || !IsValid(HoudiniAsset->HoudiniToolData))
+    {
+        return;
+    }
+
+    const FString ObjectFullName = HoudiniAsset->GetFullName();
+    UPackage* AssetPackage = HoudiniAsset->GetPackage();
+    if (!IsValid(AssetPackage))
+    {
+        return;
+    }
+
+    const FHImageData& IconImageData = HoudiniAsset->HoudiniToolData->IconImageData; 
+
+    if (IconImageData.SizeX == 0 || IconImageData.SizeY == 0)
+    {
+        // Clear the thumbnail
+        ThumbnailTools::CacheEmptyThumbnail(ObjectFullName, AssetPackage);
+        return;
+    }
+
+    FImage SrcImage;
+    HoudiniAsset->HoudiniToolData->IconImageData.ToImage(SrcImage);
+
+    // We can expose the margin as a parameter if we want/need to.
+    constexpr float Margin = 0.2f;
+    if (Margin > 0.f)
+    {
+        // We can't configure a margin on the FImage, so we'll pad the image with
+        // zero-byte pixels to give the illusion that we're applying a margin.
+        FImage PaddedImage;
+        PadImage(SrcImage, PaddedImage, SrcImage.SizeX*Margin);
+        SrcImage = PaddedImage;
+    }
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
+    const int32 BytesPerPixel = SrcImage.GetBytesPerPixel();
+#else
+    const int32 BytesPerPixel = ERawImageFormat::GetBytesPerPixel(SrcImage.Format);
+#endif
+
+    FObjectThumbnail TempThumbnail;
+	TempThumbnail.SetImageSize( SrcImage.SizeX, SrcImage.SizeY );
+    TArray<uint8>& ThumbnailData = TempThumbnail.AccessImageData();
+
+    int32 NumBytes = SrcImage.SizeX * SrcImage.SizeY * BytesPerPixel * SrcImage.NumSlices;
+
+    ThumbnailData.AddUninitialized(NumBytes);
+	FMemory::Memcpy(&(ThumbnailData[0]), &(SrcImage.RawData[0]), NumBytes);
+    
+    FObjectThumbnail* NewThumbnail = ThumbnailTools::CacheThumbnail(ObjectFullName, &TempThumbnail, AssetPackage);
+	if ( ensure(NewThumbnail) )
+	{
+		//we need to indicate that the package needs to be resaved
+		AssetPackage->MarkPackageDirty();
+
+		// Let the content browser know that we've changed the thumbnail
+		NewThumbnail->MarkAsDirty();
+			
+		// Signal that the asset was changed so thumbnail pools will update
+		HoudiniAsset->PostEditChange();
+
+		//Set that thumbnail as a valid custom thumbnail so it'll be saved out
+		NewThumbnail->SetCreatedAfterCustomThumbsEnabled();
+	}
+}
 
 
 #endif

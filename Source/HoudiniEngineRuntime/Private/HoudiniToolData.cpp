@@ -26,8 +26,11 @@
 
 #include "HoudiniToolData.h"
 
+#include "HoudiniToolsRuntimeUtils.h"
 #include "ImageCore.h"
 #include "ImageUtils.h"
+#include "Engine/Texture2D.h"
+#include "Misc/Paths.h"
 
 #ifndef ENGINE_MAJOR_VERSION
 #include "Runtime/Launch/Resources/Version.h"
@@ -206,6 +209,7 @@ UHoudiniToolData::SaveToJSONFile(const FString& JsonFilePath)
 	return false;
 }
 
+#if WITH_EDITOR
 void UHoudiniToolData::LoadIconFromPath(const FString& IconPath)
 {
 	const FString FullIconPath = FPaths::ConvertRelativePathToFull(IconPath);
@@ -217,23 +221,39 @@ void UHoudiniToolData::LoadIconFromPath(const FString& IconPath)
         FImage TmpImage;
 		if (FToolsWrapper::LoadImage(*FullIconPath, TmpImage))
 		{
+			Modify();
+			MarkPackageDirty();
 	        IconImageData.FromImage(TmpImage);
 	        IconSourcePath.FilePath = FullIconPath;
 			bSuccess = true;
 		}
     }
-	
-    if (!bSuccess)
+
+	if (bSuccess)
+	{
+		UpdateOwningAssetThumbnail();
+	}
+    else
     {
         ClearCachedIcon();
     }
 }
+#endif
 
+#if WITH_EDITOR
 void UHoudiniToolData::ClearCachedIcon()
 {
 	IconImageData = FHImageData();
     IconSourcePath.FilePath = FString();
+	UpdateOwningAssetThumbnail();
 }
+
+void UHoudiniToolData::UpdateOwningAssetThumbnail()
+{
+	UHoudiniAsset* HoudiniAsset = this->GetTypedOuter<UHoudiniAsset>();
+    FHoudiniToolsRuntimeUtils::UpdateHoudiniAssetThumbnail(HoudiniAsset);
+}
+#endif
 
 void UHoudiniToolData::CopyFrom(const UHoudiniToolData& Other)
 {
@@ -252,3 +272,4 @@ void UHoudiniToolData::CopyFrom(const UHoudiniToolData& Other)
 	SelectionType = Other.SelectionType;
 	SourceAssetPath = Other.SourceAssetPath;
 }
+
