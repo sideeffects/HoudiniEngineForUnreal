@@ -269,55 +269,55 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void
 SHoudiniToolCategory::Construct(const FArguments& InArgs)
 {
-    CategoryLabel = InArgs._CategoryLabel.Get().ToString();
+	CategoryLabel = InArgs._CategoryLabel.Get().ToString();
 	CategoryType = InArgs._CategoryType.Get();
 	SourceEntries = InArgs._HoudiniToolsItemSource.Get();
 	IsVisible = InArgs._IsVisible;
 
 	const FText UserCategoryTooltip = FText::Format(LOCTEXT("HoudiniToolsPanel_UserCategoryTooltip", "{0} (User Category)"), FText::FromString(CategoryLabel));
 	const FText PackageCategoryTooltip = FText::Format( LOCTEXT("HoudiniToolsPanel_PackageCategoryTooltip", "{0} (Package Category)"), FText::FromString(CategoryLabel));
-    
-    if (InArgs._ViewMode.Get() == EHoudiniToolsViewMode::TileView)
-    {
-        // Configure Tile View
-        SAssignNew(HoudiniToolsView, SHoudiniToolTileView)
-        .ScrollbarVisibility(EVisibility::Collapsed)
-        .SelectionMode( ESelectionMode::Single )
-        .ListItemsSource( &VisibleEntries )
-        .OnGenerateTile( InArgs._OnGenerateTile )
-        .OnSelectionChanged_Lambda( [this, InArgs](const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectInfo)
-        {
-            ActiveTool = HoudiniTool;
-            InArgs._OnToolSelectionChanged.ExecuteIfBound(this, HoudiniTool, SelectInfo);
-        } )
-        .OnMouseButtonDoubleClick( InArgs._OnMouseButtonDoubleClick )
-        .OnContextMenuOpening( InArgs._OnContextMenuOpening )
-        .ItemHeight( 64 )
-        .ItemWidth( 120 )
-        .ItemAlignment(EListItemAlignment::LeftAligned);
-    }
-    else
-    {
-        // Configure List View
-        SAssignNew(HoudiniToolsView, SHoudiniToolListView)
-        .ScrollbarVisibility(EVisibility::Collapsed)
-        .SelectionMode( ESelectionMode::Single )
-        .ListItemsSource( &VisibleEntries )
-        .OnGenerateRow( InArgs._OnGenerateRow )
-        .OnSelectionChanged_Lambda( [this, InArgs](const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectInfo)
-        {
-            ActiveTool = HoudiniTool;
-            InArgs._OnToolSelectionChanged.ExecuteIfBound(this, HoudiniTool, SelectInfo);
-        } )
-        .OnMouseButtonDoubleClick( InArgs._OnMouseButtonDoubleClick )
-        .OnContextMenuOpening( InArgs._OnContextMenuOpening )
-        .ItemHeight( 64 );
-    }
-    
-    ChildSlot
-    [
-        SNew(SExpandableArea)
-        .HeaderContent()
+	
+	if (InArgs._ViewMode.Get() == EHoudiniToolsViewMode::TileView)
+	{
+		// Configure Tile View
+		SAssignNew(HoudiniToolsView, SHoudiniToolTileView)
+		.ScrollbarVisibility(EVisibility::Collapsed)
+		.SelectionMode( ESelectionMode::Single )
+		.ListItemsSource( &VisibleEntries )
+		.OnGenerateTile( InArgs._OnGenerateTile )
+		.OnSelectionChanged_Lambda( [this, InArgs](const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectInfo)
+		{
+			ActiveTool = HoudiniTool;
+			InArgs._OnToolSelectionChanged.ExecuteIfBound(this, HoudiniTool, SelectInfo);
+		} )
+		.OnMouseButtonDoubleClick( InArgs._OnMouseButtonDoubleClick )
+		.OnContextMenuOpening( InArgs._OnContextMenuOpening )
+		.ItemHeight( 64 )
+		.ItemWidth( 120 )
+		.ItemAlignment(EListItemAlignment::LeftAligned);
+	}
+	else
+	{
+		// Configure List View
+		SAssignNew(HoudiniToolsView, SHoudiniToolListView)
+		.ScrollbarVisibility(EVisibility::Collapsed)
+		.SelectionMode( ESelectionMode::Single )
+		.ListItemsSource( &VisibleEntries )
+		.OnGenerateRow( InArgs._OnGenerateRow )
+		.OnSelectionChanged_Lambda( [this, InArgs](const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectInfo)
+		{
+			ActiveTool = HoudiniTool;
+			InArgs._OnToolSelectionChanged.ExecuteIfBound(this, HoudiniTool, SelectInfo);
+		} )
+		.OnMouseButtonDoubleClick( InArgs._OnMouseButtonDoubleClick )
+		.OnContextMenuOpening( InArgs._OnContextMenuOpening )
+		.ItemHeight( 64 );
+	}
+	
+	ChildSlot
+	[
+		SNew(SExpandableArea)
+		.HeaderContent()
 		[
 			SNew(SHorizontalBox)
 			.ToolTipText(CategoryType == EHoudiniToolCategoryType::User ? UserCategoryTooltip : PackageCategoryTooltip)
@@ -354,7 +354,7 @@ SHoudiniToolCategory::Construct(const FArguments& InArgs)
 		[
 			HoudiniToolsView.ToSharedRef()
 		]
-    ];
+	];
 
 	UpdateVisibleItems();
 }
@@ -1375,53 +1375,53 @@ SHoudiniToolImportPackage::HandleImportClicked()
 	const FString PackageDestPath = FHoudiniToolsEditor::GetDefaultPackagePath(PackageName);
 	UHoudiniToolsPackageAsset* ImportedPackage = FHoudiniToolsEditor::ImportExternalToolsPackage(PackageDestPath, PackageJSONPath, true);
 	
-    if (!ImportedPackage)
-    {
-        const FText Title = LOCTEXT("ImportPackage_ImportError_Title", "Import Error");
-        FMessageDialog::Open(EAppMsgType::Ok,
-            LOCTEXT("ImportPackage_ImportError", "An error occured during import."),
+	if (!ImportedPackage)
+	{
+		const FText Title = LOCTEXT("ImportPackage_ImportError_Title", "Import Error");
+		FMessageDialog::Open(EAppMsgType::Ok,
+			LOCTEXT("ImportPackage_ImportError", "An error occured during import."),
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-            Title
+			Title
 #else
-            &Title
+			&Title
 #endif
-            );
-    }
-    else
-    {
-        // Performing a reimport on this package will import all hdas found in the external package directory.
-        int NumHDAs = 0;
-        FHoudiniToolsEditor::ReimportPackageHDAs(ImportedPackage, false, &NumHDAs);
+			);
+	}
+	else
+	{
+		// Performing a reimport on this package will import all hdas found in the external package directory.
+		int NumHDAs = 0;
+		FHoudiniToolsEditor::ReimportPackageHDAs(ImportedPackage, false, &NumHDAs);
 
-        if (NumHDAs > 0)
-        {
-            const FText Message = LOCTEXT("ImportPackage_ImportedHDAs", "Imported {0} HDAs.");
-            const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Import Successful");
-            FMessageDialog::Open(EAppMsgType::Ok,
-                FText::Format(Message, {NumHDAs}),
+		if (NumHDAs > 0)
+		{
+			const FText Message = LOCTEXT("ImportPackage_ImportedHDAs", "Imported {0} HDAs.");
+			const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Import Successful");
+			FMessageDialog::Open(EAppMsgType::Ok,
+				FText::Format(Message, {NumHDAs}),
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-                Title
+				Title
 #else
-                &Title
+				&Title
 #endif
-                );
-        }
-        else
-        {
-            const FText Message = LOCTEXT("ImportPackage_NoHDAs", "No HDAs to import.");
-            const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Import Successful");
-            FMessageDialog::Open(EAppMsgType::Ok,
-                FText::Format(Message, {NumHDAs}),
+				);
+		}
+		else
+		{
+			const FText Message = LOCTEXT("ImportPackage_NoHDAs", "No HDAs to import.");
+			const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Import Successful");
+			FMessageDialog::Open(EAppMsgType::Ok,
+				FText::Format(Message, {NumHDAs}),
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-                Title
+				Title
 #else
-                &Title
+				&Title
 #endif
-                );
-        }
-        
-        FHoudiniToolsEditor::BrowseToObjectInContentBrowser(ImportedPackage);
-    }
+				);
+		}
+		
+		FHoudiniToolsEditor::BrowseToObjectInContentBrowser(ImportedPackage);
+	}
 
 	CloseContainingWindow();
 
@@ -1485,32 +1485,32 @@ SHoudiniToolImportPackage::HandleCreateClicked()
 	int NumHDAs = 0;
 	FHoudiniToolsEditor::ReimportPackageHDAs(Asset, false, &NumHDAs);
 
-    if (NumHDAs > 0)
-    {
-        const FText Message = LOCTEXT("ImportPackage_ImportedHDAs", "Imported {0} HDAs.");
-        const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Creation Successful");
-        FMessageDialog::Open(EAppMsgType::Ok,
-            FText::Format(Message, {NumHDAs}),
+	if (NumHDAs > 0)
+	{
+		const FText Message = LOCTEXT("ImportPackage_ImportedHDAs", "Imported {0} HDAs.");
+		const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Creation Successful");
+		FMessageDialog::Open(EAppMsgType::Ok,
+			FText::Format(Message, {NumHDAs}),
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-            Title
+			Title
 #else
-            &Title
+			&Title
 #endif
-            );
-    }
-    else
-    {
-        const FText Message = LOCTEXT("ImportPackage_NoHDAs", "No HDAs to import.");
-        const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Creation Successful");
-        FMessageDialog::Open(EAppMsgType::Ok, 
-            Message,
+			);
+	}
+	else
+	{
+		const FText Message = LOCTEXT("ImportPackage_NoHDAs", "No HDAs to import.");
+		const FText Title = LOCTEXT("ImportPackage_ImportSuccess_Title", "Package Creation Successful");
+		FMessageDialog::Open(EAppMsgType::Ok, 
+			Message,
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-            Title
+			Title
 #else
-            &Title
+			&Title
 #endif
-        );
-    }
+		);
+	}
 
 	// Open the content browser at the newly created asset package.
 	FHoudiniToolsEditor::BrowseToObjectInContentBrowser(Asset);
@@ -2236,51 +2236,51 @@ SHoudiniToolsPanel::Construct( const FArguments& InArgs )
 	FHoudiniEngineRuntime& HoudiniEngineRuntime = FModuleManager::GetModuleChecked<FHoudiniEngineRuntime>("HoudiniEngineRuntime");
 	// FHoudiniToolsEditor& HoudiniTools = FHoudiniToolsPanelUtils::GetHoudiniTools();
 
-    // Handler to trigger UI updates on asset changes.
-    auto AssetChangedHandlerFn = [this](UObject* InObject)
-    {
-        if (!bAutoRefresh)
-            return;
-        if (!InObject)
-            return;
-        if ( InObject->IsA<UHoudiniAsset>() || InObject->IsA<UHoudiniToolsPackageAsset>() )
-        {
-            HandleToolChanged();
-        }
-    };
-    
-    AssetMemCreatedHandle = AssetRegistryModule.Get().OnInMemoryAssetCreated().AddLambda(AssetChangedHandlerFn);
-    AssetMemDeletedHandle = AssetRegistryModule.Get().OnInMemoryAssetDeleted().AddLambda(AssetChangedHandlerFn);
+	// Handler to trigger UI updates on asset changes.
+	auto AssetChangedHandlerFn = [this](UObject* InObject)
+	{
+		if (!bAutoRefresh)
+			return;
+		if (!InObject)
+			return;
+		if ( InObject->IsA<UHoudiniAsset>() || InObject->IsA<UHoudiniToolsPackageAsset>() )
+		{
+			HandleToolChanged();
+		}
+	};
+	
+	AssetMemCreatedHandle = AssetRegistryModule.Get().OnInMemoryAssetCreated().AddLambda(AssetChangedHandlerFn);
+	AssetMemDeletedHandle = AssetRegistryModule.Get().OnInMemoryAssetDeleted().AddLambda(AssetChangedHandlerFn);
 
 	// Handler for asset imports. PostImport event is broadcast on both imports and reimports.
 	AssetPostImportHandle = GEditor->GetEditorSubsystem<UImportSubsystem>()->OnAssetReimport.AddLambda(AssetChangedHandlerFn);
 
-    // Handler for asset renames
-    AssetRenamedHandle = AssetRegistryModule.Get().OnAssetRenamed().AddLambda([this](const FAssetData& AssetData, const FString& AssetName)
-    {
-        if (!bAutoRefresh)
-            return;
-        const UClass* AssetClass = AssetData.GetClass();
-        if (!AssetClass)
-            return;
-        if (AssetClass->IsChildOf(UHoudiniAsset::StaticClass()) || AssetClass->IsChildOf(UHoudiniToolsPackageAsset::StaticClass()))
-        {
-            HandleToolChanged();
-        }
-    });
+	// Handler for asset renames
+	AssetRenamedHandle = AssetRegistryModule.Get().OnAssetRenamed().AddLambda([this](const FAssetData& AssetData, const FString& AssetName)
+	{
+		if (!bAutoRefresh)
+			return;
+		const UClass* AssetClass = AssetData.GetClass();
+		if (!AssetClass)
+			return;
+		if (AssetClass->IsChildOf(UHoudiniAsset::StaticClass()) || AssetClass->IsChildOf(UHoudiniToolsPackageAsset::StaticClass()))
+		{
+			HandleToolChanged();
+		}
+	});
 
-    auto AssetUpdatedHandlerFn = [this](const FAssetData& AssetData)
-    {
-        if (!bAutoRefresh)
-            return;
-        const UClass* AssetClass = AssetData.GetClass();
-        if (!AssetClass)
-            return;
-        if (AssetClass->IsChildOf(UHoudiniAsset::StaticClass()) || AssetClass->IsChildOf(UHoudiniToolsPackageAsset::StaticClass()))
-        {
-            HandleToolChanged();
-        }
-    };
+	auto AssetUpdatedHandlerFn = [this](const FAssetData& AssetData)
+	{
+		if (!bAutoRefresh)
+			return;
+		const UClass* AssetClass = AssetData.GetClass();
+		if (!AssetClass)
+			return;
+		if (AssetClass->IsChildOf(UHoudiniAsset::StaticClass()) || AssetClass->IsChildOf(UHoudiniToolsPackageAsset::StaticClass()))
+		{
+			HandleToolChanged();
+		}
+	};
 
 	// Handlers for asset creation and updates.
 	AssetAddedHandle = AssetRegistryModule.Get().OnAssetAdded().AddLambda(AssetUpdatedHandlerFn);
@@ -2332,27 +2332,27 @@ SHoudiniToolsPanel::Construct( const FArguments& InArgs )
 			[
 				SNew(SHorizontalBox)
 
-                // Search Box
-                
-                + SHorizontalBox::Slot()
-                .FillWidth(1.f)
-                [
-                    SNew(SSearchBox)
-                    .OnTextChanged_Lambda([this](const FText& NewFilterString) -> void
-                    {
-                        // Handle Filter Text Changes.
-                        if (NewFilterString.ToString() != FilterString)
-                        {
-                            // Search filter changed. Update categories.
-                            FilterString = NewFilterString.ToString();
-                            ForEachCategory([this](SHoudiniToolCategory* Category) -> bool
-                            {
-                                Category->SetFilterString(FilterString);
-                                return true;
-                            });
-                        }
-                    })
-                ] // Search Box
+				// Search Box
+				
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.f)
+				[
+					SNew(SSearchBox)
+					.OnTextChanged_Lambda([this](const FText& NewFilterString) -> void
+					{
+						// Handle Filter Text Changes.
+						if (NewFilterString.ToString() != FilterString)
+						{
+							// Search filter changed. Update categories.
+							FilterString = NewFilterString.ToString();
+							ForEachCategory([this](SHoudiniToolCategory* Category) -> bool
+							{
+								Category->SetFilterString(FilterString);
+								return true;
+							});
+						}
+					})
+				] // Search Box
 
 				// Filter Menu Button
 			
@@ -3323,90 +3323,90 @@ SHoudiniToolsPanel::ConstructHoudiniToolsActionMenu()
 {
 	FMenuBuilder MenuBuilder( true, NULL );
 
-    // Section - Options
-    
-    MenuBuilder.BeginSection("PackageCreate", LOCTEXT("ActionMenu_Section_Options", "Options"));
-    
-    // Options - Auto Refresh
-    MenuBuilder.AddMenuEntry(
-        FText::FromString("Auto Refresh"),
-        FText::FromString("Automatically refresh this panel when asset changes have been detected."),
-        FSlateIcon(),
-        FUIAction(
-            FExecuteAction::CreateLambda([this]() -> void
-            {
-                bAutoRefresh = !bAutoRefresh;
-                SaveConfig();
-            	if (bAutoRefresh)
-            	{
-            		RefreshPanel();
-            	}
-            }),
-            FCanExecuteAction(),
-            FGetActionCheckState::CreateLambda([this]() -> ECheckBoxState { return bAutoRefresh ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
-        ),
-        NAME_None,
-        EUserInterfaceActionType::ToggleButton
-    );
-    
-    // Options - Show Hidden Tools
-    MenuBuilder.AddMenuEntry(
-        FText::FromString("Show Hidden Tools"),
-        FText::FromString("Show hidden tools (ignoring any exclusion patterns)."),
-        FSlateIcon(),
-        FUIAction(
-            FExecuteAction::CreateLambda([this]() -> void
-            {
-                bShowHiddenTools = !bShowHiddenTools;
-                SaveConfig();
-                RequestPanelRefresh();
-            }),
-            FCanExecuteAction(),
-            FGetActionCheckState::CreateLambda([this]() -> ECheckBoxState { return bShowHiddenTools ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
-        ),
-        NAME_None,
-        EUserInterfaceActionType::ToggleButton
-    );
+	// Section - Options
+	
+	MenuBuilder.BeginSection("PackageCreate", LOCTEXT("ActionMenu_Section_Options", "Options"));
+	
+	// Options - Auto Refresh
+	MenuBuilder.AddMenuEntry(
+		FText::FromString("Auto Refresh"),
+		FText::FromString("Automatically refresh this panel when asset changes have been detected."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateLambda([this]() -> void
+			{
+				bAutoRefresh = !bAutoRefresh;
+				SaveConfig();
+				if (bAutoRefresh)
+				{
+					RefreshPanel();
+				}
+			}),
+			FCanExecuteAction(),
+			FGetActionCheckState::CreateLambda([this]() -> ECheckBoxState { return bAutoRefresh ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
+		),
+		NAME_None,
+		EUserInterfaceActionType::ToggleButton
+	);
+	
+	// Options - Show Hidden Tools
+	MenuBuilder.AddMenuEntry(
+		FText::FromString("Show Hidden Tools"),
+		FText::FromString("Show hidden tools (ignoring any exclusion patterns)."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateLambda([this]() -> void
+			{
+				bShowHiddenTools = !bShowHiddenTools;
+				SaveConfig();
+				RequestPanelRefresh();
+			}),
+			FCanExecuteAction(),
+			FGetActionCheckState::CreateLambda([this]() -> ECheckBoxState { return bShowHiddenTools ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
+		),
+		NAME_None,
+		EUserInterfaceActionType::ToggleButton
+	);
 
 	// Options - Tile View
 	
-    MenuBuilder.AddMenuEntry(
-        FText::FromString("Tile View"),
-        FText::FromString("Show Houdini Tools in a compact tile view."),
-        FSlateIcon(),
-        FUIAction(
-            FExecuteAction::CreateLambda([this]() -> void
-            {
-                ViewMode = EHoudiniToolsViewMode::TileView;
-                SaveConfig();
-                RequestPanelRefresh();
-            }),
-            FCanExecuteAction(),
-            FGetActionCheckState::CreateLambda([this]() -> ECheckBoxState { return ViewMode == EHoudiniToolsViewMode::TileView ? ECheckBoxState::Checked : ECheckBoxState::Unchecked ; } )
-        ),
-        NAME_None,
-        EUserInterfaceActionType::RadioButton
-    );
+	MenuBuilder.AddMenuEntry(
+		FText::FromString("Tile View"),
+		FText::FromString("Show Houdini Tools in a compact tile view."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateLambda([this]() -> void
+			{
+				ViewMode = EHoudiniToolsViewMode::TileView;
+				SaveConfig();
+				RequestPanelRefresh();
+			}),
+			FCanExecuteAction(),
+			FGetActionCheckState::CreateLambda([this]() -> ECheckBoxState { return ViewMode == EHoudiniToolsViewMode::TileView ? ECheckBoxState::Checked : ECheckBoxState::Unchecked ; } )
+		),
+		NAME_None,
+		EUserInterfaceActionType::RadioButton
+	);
 
 	// Options - List View
 
-    MenuBuilder.AddMenuEntry(
-        FText::FromString("List View"),
-        FText::FromString("Show Houdini Tools in a list view."),
-        FSlateIcon(),
-        FUIAction(
-            FExecuteAction::CreateLambda([this]() -> void
-            {
-                ViewMode = EHoudiniToolsViewMode::ListView;
-                SaveConfig();
-                RequestPanelRefresh();
-            }),
-            FCanExecuteAction(),
-            FGetActionCheckState::CreateLambda([this]() -> ECheckBoxState { return ViewMode == EHoudiniToolsViewMode::ListView ? ECheckBoxState::Checked : ECheckBoxState::Unchecked ; } )
-        ),
-        NAME_None,
-        EUserInterfaceActionType::RadioButton
-    );
+	MenuBuilder.AddMenuEntry(
+		FText::FromString("List View"),
+		FText::FromString("Show Houdini Tools in a list view."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateLambda([this]() -> void
+			{
+				ViewMode = EHoudiniToolsViewMode::ListView;
+				SaveConfig();
+				RequestPanelRefresh();
+			}),
+			FCanExecuteAction(),
+			FGetActionCheckState::CreateLambda([this]() -> ECheckBoxState { return ViewMode == EHoudiniToolsViewMode::ListView ? ECheckBoxState::Checked : ECheckBoxState::Unchecked ; } )
+		),
+		NAME_None,
+		EUserInterfaceActionType::RadioButton
+	);
 
 	MenuBuilder.EndSection();
 
@@ -4004,32 +4004,32 @@ SHoudiniToolsPanel::HandleImportSideFXTools()
 	int NumImportedHDAs = 0;
 	const bool bResult = FHoudiniToolsEditor::ImportSideFXTools(&NumImportedHDAs);
 	
-    if (bResult)
-    {
-        const FText Title = LOCTEXT("ImportSideFXTools_ImportSuccess_Title", "Import Success");
-        FMessageDialog::Open(EAppMsgType::Ok,
-            FText::Format(LOCTEXT("ImportSideFXTools_ImportSuccess_Title", "Imported {0} HDAs."),
-            FText::AsNumber(NumImportedHDAs)),
+	if (bResult)
+	{
+		const FText Title = LOCTEXT("ImportSideFXTools_ImportSuccess_Title", "Import Success");
+		FMessageDialog::Open(EAppMsgType::Ok,
+			FText::Format(LOCTEXT("ImportSideFXTools_ImportSuccess_Title", "Imported {0} HDAs."),
+			FText::AsNumber(NumImportedHDAs)),
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-            Title
+			Title
 #else
-            &Title
+			&Title
 #endif
-            );
-    }
-    else
-    {
-        const FText Title = LOCTEXT("ImportSideFXTools_ImportFailed_Title", "Import Failed");
-        FMessageDialog::Open(EAppMsgType::Ok,
-            FText::Format( LOCTEXT("ImportSideFXTools_ImportFailed", "Could not import SideFX Tools package."),
-            FText::AsNumber(NumImportedHDAs)),
+			);
+	}
+	else
+	{
+		const FText Title = LOCTEXT("ImportSideFXTools_ImportFailed_Title", "Import Failed");
+		FMessageDialog::Open(EAppMsgType::Ok,
+			FText::Format( LOCTEXT("ImportSideFXTools_ImportFailed", "Could not import SideFX Tools package."),
+			FText::AsNumber(NumImportedHDAs)),
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-            Title
+			Title
 #else
-            &Title
+			&Title
 #endif
-            );
-    }
+			);
+	}
 }
 
 void

@@ -52,8 +52,8 @@ enum class ECheckBoxState : uint8;
 UENUM()
 enum class EHoudiniToolsViewMode
 {
-    TileView,
-    ListView
+	TileView,
+	ListView
 };
 
 // Toolbar of the tool panel
@@ -61,42 +61,42 @@ class SHoudiniToolsCategoryFilter : public SCompoundWidget
 {
 public:
 
-    DECLARE_DELEGATE_TwoParams(FOnCategoryFilterChanged, bool /*ShowAllSource*/, const TSet<FString>& /*HiddenCategories*/);
-    DECLARE_DELEGATE_OneParam(FOnShowAllChanged, bool /*ShowAllSource*/);
-    DECLARE_DELEGATE_TwoParams(FOnCategoryStateChanged, const FString& /*CategoryName*/, const bool /*bIsEnabled*/);
+	DECLARE_DELEGATE_TwoParams(FOnCategoryFilterChanged, bool /*ShowAllSource*/, const TSet<FString>& /*HiddenCategories*/);
+	DECLARE_DELEGATE_OneParam(FOnShowAllChanged, bool /*ShowAllSource*/);
+	DECLARE_DELEGATE_TwoParams(FOnCategoryStateChanged, const FString& /*CategoryName*/, const bool /*bIsEnabled*/);
 
-    SHoudiniToolsCategoryFilter();
+	SHoudiniToolsCategoryFilter();
 
-    SLATE_BEGIN_ARGS( SHoudiniToolsCategoryFilter )
-        : _ShowAll(true)
-        , _HiddenCategoriesSource(nullptr)
-        , _CategoriesSource(nullptr)
-    {}
-    
-    SLATE_EVENT( FOnShowAllChanged, OnShowAllChanged )
-    SLATE_EVENT( FOnCategoryStateChanged, OnCategoryStateChanged )
+	SLATE_BEGIN_ARGS( SHoudiniToolsCategoryFilter )
+		: _ShowAll(true)
+		, _HiddenCategoriesSource(nullptr)
+		, _CategoriesSource(nullptr)
+	{}
+	
+	SLATE_EVENT( FOnShowAllChanged, OnShowAllChanged )
+	SLATE_EVENT( FOnCategoryStateChanged, OnCategoryStateChanged )
 
-    SLATE_ATTRIBUTE(bool, ShowAll)
-    SLATE_ARGUMENT(const TSet<FString>*, HiddenCategoriesSource)
-    SLATE_ARGUMENT(const TArray<FString>*, CategoriesSource)
-    
-    SLATE_END_ARGS();
+	SLATE_ATTRIBUTE(bool, ShowAll)
+	SLATE_ARGUMENT(const TSet<FString>*, HiddenCategoriesSource)
+	SLATE_ARGUMENT(const TArray<FString>*, CategoriesSource)
+	
+	SLATE_END_ARGS();
 
-    void Construct( const FArguments& InArgs );
-    
-    void SetShowAll(TAttribute<bool> InShowAll);
+	void Construct( const FArguments& InArgs );
+	
+	void SetShowAll(TAttribute<bool> InShowAll);
 
-    bool IsCategoryEnabled(FString CategoryName) const;
+	bool IsCategoryEnabled(FString CategoryName) const;
 
 private:
-    TSharedPtr<SWidget> RebuildWidget();
+	TSharedPtr<SWidget> RebuildWidget();
 
-    TAttribute<bool> ShowAll;
-    const TSet<FString>* HiddenCategories;
-    const TArray<FString>* Categories;
+	TAttribute<bool> ShowAll;
+	const TSet<FString>* HiddenCategories;
+	const TArray<FString>* Categories;
 
-    FOnShowAllChanged OnShowAllChanged;
-    FOnCategoryStateChanged OnCategoryStateChanged;
+	FOnShowAllChanged OnShowAllChanged;
+	FOnCategoryStateChanged OnCategoryStateChanged;
 };
 
 
@@ -124,102 +124,102 @@ private:
 /** The list view mode of the asset view */
 class SHoudiniToolListView : public SListView< TSharedPtr<FHoudiniTool> >
 {
-    public:
-        virtual bool SupportsKeyboardFocus() const override { return true; }
-        virtual FReply OnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override
-        {
-            return FReply::Unhandled();
-        }
+	public:
+		virtual bool SupportsKeyboardFocus() const override { return true; }
+		virtual FReply OnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override
+		{
+			return FReply::Unhandled();
+		}
 };
 
 /** The grid/tile view mode of the asset view */
 class SHoudiniToolTileView : public STileView< TSharedPtr<FHoudiniTool> >
 {
-    public:
-        virtual bool SupportsKeyboardFocus() const override { return true; }
-        virtual FReply OnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override
-        {
-            return FReply::Unhandled();
-        }
+	public:
+		virtual bool SupportsKeyboardFocus() const override { return true; }
+		virtual FReply OnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override
+		{
+			return FReply::Unhandled();
+		}
 };
 
 // A collapsible category containing a Tile view of houdini tools.
 class SHoudiniToolCategory : public SCompoundWidget
 {
 public:
-    SHoudiniToolCategory();
-    
-    // Typename of this widget
-    static FName TypeName;
+	SHoudiniToolCategory();
+	
+	// Typename of this widget
+	static FName TypeName;
 
-    typedef SListView< TSharedPtr<FHoudiniTool> > FBaseViewType;
-    typedef TSharedPtr<FHoudiniTool> FItemType;
-    typedef TListTypeTraits< FItemType >::NullableType FNullableItemType;
-    
-    typedef TSlateDelegates< FItemType >::FOnGenerateRow FOnGenerateRow;
-    typedef TSlateDelegates< FItemType >::FOnMouseButtonClick FOnMouseButtonClick;
+	typedef SListView< TSharedPtr<FHoudiniTool> > FBaseViewType;
+	typedef TSharedPtr<FHoudiniTool> FItemType;
+	typedef TListTypeTraits< FItemType >::NullableType FNullableItemType;
+	
+	typedef TSlateDelegates< FItemType >::FOnGenerateRow FOnGenerateRow;
+	typedef TSlateDelegates< FItemType >::FOnMouseButtonClick FOnMouseButtonClick;
 	typedef TSlateDelegates< FItemType >::FOnMouseButtonDoubleClick FOnMouseButtonDoubleClick;
 
-    DECLARE_DELEGATE_ThreeParams( FOnToolSelectionChanged,
-        SHoudiniToolCategory* /*CategoryWidget*/,
-        const TSharedPtr<FHoudiniTool>& /*HoudiniTool*/,
-        ESelectInfo::Type /*SelectInfo*/
-        );
-    
-    
-    SLATE_BEGIN_ARGS( SHoudiniToolCategory )
-        : _ViewMode(EHoudiniToolsViewMode::TileView)
-        , _IsVisible(true)
-    {}
-    SLATE_EVENT( FOnGenerateRow, OnGenerateTile )
-    SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
-    SLATE_EVENT( FOnMouseButtonClick, OnMouseButtonClick )
-    SLATE_EVENT( FOnMouseButtonDoubleClick, OnMouseButtonDoubleClick )
-    SLATE_EVENT( FOnContextMenuOpening, OnContextMenuOpening )
-    SLATE_EVENT( FOnToolSelectionChanged, OnToolSelectionChanged )
-    
-    SLATE_ATTRIBUTE( FText, CategoryLabel )
-    SLATE_ATTRIBUTE( EHoudiniToolCategoryType, CategoryType )
-    SLATE_ATTRIBUTE( TSharedPtr<FHoudiniToolList>, HoudiniToolsItemSource )
-    SLATE_ATTRIBUTE( EHoudiniToolsViewMode, ViewMode )
-    SLATE_ATTRIBUTE( bool, IsVisible )
-    
-    SLATE_END_ARGS();
+	DECLARE_DELEGATE_ThreeParams( FOnToolSelectionChanged,
+		SHoudiniToolCategory* /*CategoryWidget*/,
+		const TSharedPtr<FHoudiniTool>& /*HoudiniTool*/,
+		ESelectInfo::Type /*SelectInfo*/
+		);
+	
+	
+	SLATE_BEGIN_ARGS( SHoudiniToolCategory )
+		: _ViewMode(EHoudiniToolsViewMode::TileView)
+		, _IsVisible(true)
+	{}
+	SLATE_EVENT( FOnGenerateRow, OnGenerateTile )
+	SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
+	SLATE_EVENT( FOnMouseButtonClick, OnMouseButtonClick )
+	SLATE_EVENT( FOnMouseButtonDoubleClick, OnMouseButtonDoubleClick )
+	SLATE_EVENT( FOnContextMenuOpening, OnContextMenuOpening )
+	SLATE_EVENT( FOnToolSelectionChanged, OnToolSelectionChanged )
+	
+	SLATE_ATTRIBUTE( FText, CategoryLabel )
+	SLATE_ATTRIBUTE( EHoudiniToolCategoryType, CategoryType )
+	SLATE_ATTRIBUTE( TSharedPtr<FHoudiniToolList>, HoudiniToolsItemSource )
+	SLATE_ATTRIBUTE( EHoudiniToolsViewMode, ViewMode )
+	SLATE_ATTRIBUTE( bool, IsVisible )
+	
+	SLATE_END_ARGS();
 
-    void Construct( const FArguments& InArgs );
+	void Construct( const FArguments& InArgs );
 
-    // Get the active tool for this category, if any.
-    TSharedPtr<FHoudiniTool> GetActiveTool() const { return ActiveTool; }
-    FString GetCategoryLabel() const { return CategoryLabel; }
-    EHoudiniToolCategoryType GetCategoryType() const { return CategoryType; }
+	// Get the active tool for this category, if any.
+	TSharedPtr<FHoudiniTool> GetActiveTool() const { return ActiveTool; }
+	FString GetCategoryLabel() const { return CategoryLabel; }
+	EHoudiniToolCategoryType GetCategoryType() const { return CategoryType; }
 
-    FHoudiniToolCategory GetHoudiniToolCategory() const { return FHoudiniToolCategory(CategoryLabel, CategoryType); }
+	FHoudiniToolCategory GetHoudiniToolCategory() const { return FHoudiniToolCategory(CategoryLabel, CategoryType); }
 
-    void SetFilterString(const FString& NewFilterString);
-    
-    void ClearSelection();
-    void RequestRefresh();
+	void SetFilterString(const FString& NewFilterString);
+	
+	void ClearSelection();
+	void RequestRefresh();
 
 
 protected:
-    
-    void UpdateVisibleItems();
+	
+	void UpdateVisibleItems();
 
-    TSharedPtr<FBaseViewType> HoudiniToolsView;
-    
-    FString CategoryLabel;
-    EHoudiniToolCategoryType CategoryType;
-    FString FilterString;
+	TSharedPtr<FBaseViewType> HoudiniToolsView;
+	
+	FString CategoryLabel;
+	EHoudiniToolCategoryType CategoryType;
+	FString FilterString;
 
-    TAttribute<bool> IsVisible;
-    
-    TSharedPtr<FHoudiniTool> ActiveTool;
+	TAttribute<bool> IsVisible;
+	
+	TSharedPtr<FHoudiniTool> ActiveTool;
 
-    // TODO: Maybe this should become a shared ref?
-    // The source entries are intentionally stored as a SharedPtr since the category / tool list
-    // may be removed in HoudiniTools but we don't want this widget to crash if that happens.
-    TSharedPtr<FHoudiniToolList> SourceEntries;
-    TArray< TSharedPtr<FHoudiniTool> > VisibleEntries;
+	// TODO: Maybe this should become a shared ref?
+	// The source entries are intentionally stored as a SharedPtr since the category / tool list
+	// may be removed in HoudiniTools but we don't want this widget to crash if that happens.
+	TSharedPtr<FHoudiniToolList> SourceEntries;
+	TArray< TSharedPtr<FHoudiniTool> > VisibleEntries;
 };
 
 
@@ -228,47 +228,47 @@ protected:
 UCLASS( EditInlineNew )
 class UHoudiniToolProperties : public UObject
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
-    public:
+	public:
 
-        UHoudiniToolProperties();
+		UHoudiniToolProperties();
 
-        /** Name of the tool */
-        UPROPERTY( Category = Tool, EditAnywhere )
-        FString Name;
+		/** Name of the tool */
+		UPROPERTY( Category = Tool, EditAnywhere )
+		FString Name;
 
-        /** Type of the tool */
-        UPROPERTY( Category = Tool, EditAnywhere )
-        EHoudiniToolType Type;
+		/** Type of the tool */
+		UPROPERTY( Category = Tool, EditAnywhere )
+		EHoudiniToolType Type;
 
-        /** Selection Type of the tool */
-        UPROPERTY( Category = Tool, EditAnywhere )
-        EHoudiniToolSelectionType SelectionType;
+		/** Selection Type of the tool */
+		UPROPERTY( Category = Tool, EditAnywhere )
+		EHoudiniToolSelectionType SelectionType;
 
-        /** Tooltip shown on mouse hover */
-        UPROPERTY( Category = Tool, EditAnywhere )
-        FString ToolTip;
+		/** Tooltip shown on mouse hover */
+		UPROPERTY( Category = Tool, EditAnywhere )
+		FString ToolTip;
 
-        /** Houdini Asset path **/
-        UPROPERTY(Category = Tool, EditAnywhere, meta = (FilePathFilter = "hda"))
-        FFilePath AssetPath;
+		/** Houdini Asset path **/
+		UPROPERTY(Category = Tool, EditAnywhere, meta = (FilePathFilter = "hda"))
+		FFilePath AssetPath;
 
-        /** Clicking on help icon will bring up this URL */
-        UPROPERTY( Category = Tool, EditAnywhere )
-        FString HelpURL;
-    
-        /** This will ensure that the cached icon for this HDA is removed. Note that if an IconPath has been
-         * specified, this option will have no effect.
-         */
-        UPROPERTY( Category = Tool, EditAnywhere )
-        bool bClearCachedIcon;
-    
-        /** Import a new icon for this HDA. If this field is left blank, we will look for an
-         * icon next to the HDA with matching name.
-         */
-        UPROPERTY( Category = Tool, EditAnywhere, meta = (FilePathFilter = "png") )
-        FFilePath IconPath;
+		/** Clicking on help icon will bring up this URL */
+		UPROPERTY( Category = Tool, EditAnywhere )
+		FString HelpURL;
+	
+		/** This will ensure that the cached icon for this HDA is removed. Note that if an IconPath has been
+		 * specified, this option will have no effect.
+		 */
+		UPROPERTY( Category = Tool, EditAnywhere )
+		bool bClearCachedIcon;
+	
+		/** Import a new icon for this HDA. If this field is left blank, we will look for an
+		 * icon next to the HDA with matching name.
+		 */
+		UPROPERTY( Category = Tool, EditAnywhere, meta = (FilePathFilter = "png") )
+		FFilePath IconPath;
 
 };
 
@@ -277,13 +277,13 @@ class UHoudiniToolProperties : public UObject
 UCLASS(EditInlineNew)
 class UHoudiniToolDirectoryProperties : public UObject
 {
-    GENERATED_UCLASS_BODY()
+	GENERATED_UCLASS_BODY()
 
-    public:
+	public:
 
-        /** Custom Houdini Tool Directories **/
-        UPROPERTY(EditAnywhere, Category = CustomHoudiniTools)
-        TArray<FHoudiniToolDirectory> CustomHoudiniToolsDirectories;
+		/** Custom Houdini Tool Directories **/
+		UPROPERTY(EditAnywhere, Category = CustomHoudiniTools)
+		TArray<FHoudiniToolDirectory> CustomHoudiniToolsDirectories;
 };
 
 
@@ -293,14 +293,14 @@ class UHoudiniToolDirectoryProperties : public UObject
 UCLASS()
 class UHoudiniToolHelpers : public UObject
 {
-    GENERATED_BODY()
-    
+	GENERATED_BODY()
+	
 public:
-    /** Create a new empty package */
-    static bool CreateEmptyPackage(const FName& PackageName);
+	/** Create a new empty package */
+	static bool CreateEmptyPackage(const FName& PackageName);
 
-    /** Import a package from disk */
-    static bool ImportPackage(const FName& PackageName, const FString& PackagePath);
+	/** Import a package from disk */
+	static bool ImportPackage(const FName& PackageName, const FString& PackagePath);
 };  
 
 
@@ -311,56 +311,56 @@ public:
 class SHoudiniToolNewPackage : public SCompoundWidget, public FNotifyHook
 {
 public:
-    DECLARE_DELEGATE_OneParam(FOnCreated, const FString&);
-    DECLARE_DELEGATE(FOnCanceled);
-    
-    SLATE_BEGIN_ARGS( SHoudiniToolNewPackage ) {}
-    SLATE_EVENT( FOnCreated, OnCreated )
-    SLATE_EVENT( FOnCanceled, OnCanceled )
-    SLATE_END_ARGS();
+	DECLARE_DELEGATE_OneParam(FOnCreated, const FString&);
+	DECLARE_DELEGATE(FOnCanceled);
+	
+	SLATE_BEGIN_ARGS( SHoudiniToolNewPackage ) {}
+	SLATE_EVENT( FOnCreated, OnCreated )
+	SLATE_EVENT( FOnCanceled, OnCanceled )
+	SLATE_END_ARGS();
 
-    /**
+	/**
 	 * Default constructor.
 	 */
 	SHoudiniToolNewPackage();
 
-    void Construct( const FArguments& InArgs );
-    
-    void OnPackageNameTextChanged(const FText& Text);
-    void OnPackageNameTextCommitted(const FText& Text, ETextCommit::Type Arg);
-    FText OnGetPackagePathText() const;
-    
-    void OnPackageCategoryTextChanged(const FText& Text);
-    void OnPackageCategoryTextCommitted(const FText& Text, ETextCommit::Type Arg);
+	void Construct( const FArguments& InArgs );
+	
+	void OnPackageNameTextChanged(const FText& Text);
+	void OnPackageNameTextCommitted(const FText& Text, ETextCommit::Type Arg);
+	FText OnGetPackagePathText() const;
+	
+	void OnPackageCategoryTextChanged(const FText& Text);
+	void OnPackageCategoryTextCommitted(const FText& Text, ETextCommit::Type Arg);
 
-    EVisibility GetNameErrorLabelVisibility() const;
-    auto GetNameErrorLabelText() const -> FText;    
+	EVisibility GetNameErrorLabelVisibility() const;
+	auto GetNameErrorLabelText() const -> FText;    
 
-    bool IsCreateEnabled() const;
+	bool IsCreateEnabled() const;
 
-    // Create the empty tools package
-    FReply HandleCreateClicked();
-    // Cancel this dialog
-    FReply HandleCancelClicked();
+	// Create the empty tools package
+	FReply HandleCreateClicked();
+	// Cancel this dialog
+	FReply HandleCancelClicked();
 
 protected:
-    
-    TSharedPtr<SEditableTextBox> PackageNameEditBox;
-    TSharedPtr<SEditableTextBox> PackageCategoryEditBox;
-    
-    FText GetCategory() const;
-    
-    void UpdatePackageName(FText NewName);
-    void CloseContainingWindow();
-    
-    /** The calculated name for the new Houdini Tools package */
+	
+	TSharedPtr<SEditableTextBox> PackageNameEditBox;
+	TSharedPtr<SEditableTextBox> PackageCategoryEditBox;
+	
+	FText GetCategory() const;
+	
+	void UpdatePackageName(FText NewName);
+	void CloseContainingWindow();
+	
+	/** The calculated name for the new Houdini Tools package */
 	FText CalculatedPackageName;
-    FText PackageNameError;
-    bool bValidPackageName;
-    bool bSyncCategory;
+	FText PackageNameError;
+	bool bValidPackageName;
+	bool bSyncCategory;
 
-    FOnCreated OnCreated;
-    FOnCanceled OnCanceled;
+	FOnCreated OnCreated;
+	FOnCanceled OnCanceled;
 };
 
 /**
@@ -370,90 +370,90 @@ protected:
 class SHoudiniToolImportPackage : public SCompoundWidget, public FNotifyHook
 {
 public:
-    DECLARE_DELEGATE_OneParam(FOnImported, const FString&);
-    DECLARE_DELEGATE(FOnCanceled);
-    
-    SLATE_BEGIN_ARGS( SHoudiniToolImportPackage ) {}
-    SLATE_EVENT( FOnImported, OnImported )
-    SLATE_EVENT( FOnCanceled, OnCanceled )
-    SLATE_END_ARGS();
+	DECLARE_DELEGATE_OneParam(FOnImported, const FString&);
+	DECLARE_DELEGATE(FOnCanceled);
+	
+	SLATE_BEGIN_ARGS( SHoudiniToolImportPackage ) {}
+	SLATE_EVENT( FOnImported, OnImported )
+	SLATE_EVENT( FOnCanceled, OnCanceled )
+	SLATE_END_ARGS();
 
-    /**
+	/**
 	 * Default constructor.
 	 */
 	SHoudiniToolImportPackage();
 
-    void Construct( const FArguments& InArgs );
+	void Construct( const FArguments& InArgs );
 
-    // Error label
+	// Error label
 
-    EVisibility GetNameErrorLabelVisibility() const;
-    auto GetNameErrorLabelText() const -> FText;
+	EVisibility GetNameErrorLabelVisibility() const;
+	auto GetNameErrorLabelText() const -> FText;
 
-    // Package directory
+	// Package directory
 
-    void OnDirectoryChanged(const FString& Directory);
-    
-    void OnPackageNameTextChanged(const FText& Text);
-    void OnPackageNameTextCommitted(const FText& Text, ETextCommit::Type Arg);
-    FText OnGetPackagePathText() const;
+	void OnDirectoryChanged(const FString& Directory);
+	
+	void OnPackageNameTextChanged(const FText& Text);
+	void OnPackageNameTextCommitted(const FText& Text, ETextCommit::Type Arg);
+	FText OnGetPackagePathText() const;
 
-    bool IsImportEnabled() const;
-    bool IsNextEnabled() const;
+	bool IsImportEnabled() const;
+	bool IsNextEnabled() const;
 
-    // Create the empty tools package
-    FReply HandleImportClicked();
-    EVisibility GetImportVisibility() const;
+	// Create the empty tools package
+	FReply HandleImportClicked();
+	EVisibility GetImportVisibility() const;
 
-    FReply HandleNextClicked() const;
-    EVisibility GetNextVisibility() const;
+	FReply HandleNextClicked() const;
+	EVisibility GetNextVisibility() const;
 
-    FReply HandleCreateClicked();
-    bool IsCreateEnabled() const;
-    EVisibility GetCreateVisibility() const;
-    
-    FReply HandleBackClicked() const;
-    EVisibility GetBackVisibility() const;
+	FReply HandleCreateClicked();
+	bool IsCreateEnabled() const;
+	EVisibility GetCreateVisibility() const;
+	
+	FReply HandleBackClicked() const;
+	EVisibility GetBackVisibility() const;
 
-    // Cancel this dialog
-    FReply HandleCancelClicked();
+	// Cancel this dialog
+	FReply HandleCancelClicked();
 
 protected:
 
-    static FHoudiniToolsEditor& GetHoudiniTools() { return FHoudiniEngineEditor::Get().GetHoudiniTools(); }
+	static FHoudiniToolsEditor& GetHoudiniTools() { return FHoudiniEngineEditor::Get().GetHoudiniTools(); }
 
-    TSharedPtr<SWidgetSwitcher> WidgetSwitcher;
-    
-    TSharedPtr<SDirectoryPicker> DirectoryPicker;
-    TSharedPtr<SEditableTextBox> PackageNameEditBox;
-    TSharedPtr<SEditableTextBox> PackageCategoryEditBox;
+	TSharedPtr<SWidgetSwitcher> WidgetSwitcher;
+	
+	TSharedPtr<SDirectoryPicker> DirectoryPicker;
+	TSharedPtr<SEditableTextBox> PackageNameEditBox;
+	TSharedPtr<SEditableTextBox> PackageCategoryEditBox;
 
-    TSharedPtr<SCheckBox> CreateExternalJSON;
+	TSharedPtr<SCheckBox> CreateExternalJSON;
 
 
-    FText GetCategory() const;
-    
-    void UpdatePackageName(const FString& InName);
-    void CloseContainingWindow();
+	FText GetCategory() const;
+	
+	void UpdatePackageName(const FString& InName);
+	void CloseContainingWindow();
 
-    // Package Directory state
-    bool bIsValidPackageDirectory;
-    FText DirectoryInvalidReason;
+	// Package Directory state
+	bool bIsValidPackageDirectory;
+	FText DirectoryInvalidReason;
 
-    // Package JSON state
-    bool bHasPackageJSON;
+	// Package JSON state
+	bool bHasPackageJSON;
 
-    // Package Name state
+	// Package Name state
 	FString NewPackageName;
-    FText PackageNameError;
-    bool bValidPackageName;
+	FText PackageNameError;
+	bool bValidPackageName;
 
-    // If the external directory being imported doesn't
-    // have a package description, create a default one.
-    bool bCreateMissingPackageJSON;
+	// If the external directory being imported doesn't
+	// have a package description, create a default one.
+	bool bCreateMissingPackageJSON;
 
-    FOnImported OnImported;
-    FOnCanceled OnCanceled;
+	FOnImported OnImported;
+	FOnCanceled OnCanceled;
 };
 
 
@@ -464,64 +464,64 @@ protected:
 class SHoudiniToolAddToUserCategory : public SCompoundWidget, public FNotifyHook
 {
 public:
-    SLATE_BEGIN_ARGS( SHoudiniToolAddToUserCategory ) {}
+	SLATE_BEGIN_ARGS( SHoudiniToolAddToUserCategory ) {}
 
-    SLATE_ATTRIBUTE(TSharedPtr<FHoudiniTool>, ActiveTool)
-    
-    SLATE_END_ARGS();
+	SLATE_ATTRIBUTE(TSharedPtr<FHoudiniTool>, ActiveTool)
+	
+	SLATE_END_ARGS();
 
-    SHoudiniToolAddToUserCategory();
+	SHoudiniToolAddToUserCategory();
 
-    void Construct( const FArguments& InArgs );
+	void Construct( const FArguments& InArgs );
 
 
 protected:
 
-    FText ToolPackagePathText();
-    
-    // Add To Category Button
-    FReply HandleAddToCategoryClicked();
-    bool GetAddToCategoryEnabled() const;
-    EVisibility GetAddToCategoryVisibility() const;
+	FText ToolPackagePathText();
+	
+	// Add To Category Button
+	FReply HandleAddToCategoryClicked();
+	bool GetAddToCategoryEnabled() const;
+	EVisibility GetAddToCategoryVisibility() const;
 
-    // Goto Create New Category button
-    FReply HandleGotoCreateCategoryClicked();
-    bool GetGotoCreateCategoryEnabled() const;
-    EVisibility GetGotoCreateCategoryVisibility() const;
+	// Goto Create New Category button
+	FReply HandleGotoCreateCategoryClicked();
+	bool GetGotoCreateCategoryEnabled() const;
+	EVisibility GetGotoCreateCategoryVisibility() const;
 
-    // Add New Category Button
-    FReply HandleAddNewCategoryClicked();
-    bool GetCreateCategoryEnabled() const;
-    EVisibility GetCreateCategoryVisibility() const;
+	// Add New Category Button
+	FReply HandleAddNewCategoryClicked();
+	bool GetCreateCategoryEnabled() const;
+	EVisibility GetCreateCategoryVisibility() const;
 
-    // Back Button
-    FReply HandleBackClicked();
-    EVisibility GetBackButtonVisibility() const;
+	// Back Button
+	FReply HandleBackClicked();
+	EVisibility GetBackButtonVisibility() const;
 
-    // Cancel Button
-    FReply HandleCancelClicked();
+	// Cancel Button
+	FReply HandleCancelClicked();
 
-    // User Category Selection
-    void OnUserCategorySelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectType);
+	// User Category Selection
+	void OnUserCategorySelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectType);
 
-    // User Category Creation
-    void OnUserCategoryCreateTextChanged(const FText& NewText);
-    void OnUserCategoryCreateTextCommitted(const FText& NewText, ETextCommit::Type CommitType);
+	// User Category Creation
+	void OnUserCategoryCreateTextChanged(const FText& NewText);
+	void OnUserCategoryCreateTextCommitted(const FText& NewText, ETextCommit::Type CommitType);
 
-    void CloseContainingWindow();
-    
-    TSharedPtr<FHoudiniTool> ActiveTool;
-    UHoudiniToolsPackageAsset* Package;
-    
-    TSharedPtr<SWidgetSwitcher> WidgetSwitcher;
+	void CloseContainingWindow();
+	
+	TSharedPtr<FHoudiniTool> ActiveTool;
+	UHoudiniToolsPackageAsset* Package;
+	
+	TSharedPtr<SWidgetSwitcher> WidgetSwitcher;
 
-    TSharedPtr<SWidget> AddToCategoryView;
-    TSharedPtr<SWidget> CreateCategoryView;
+	TSharedPtr<SWidget> AddToCategoryView;
+	TSharedPtr<SWidget> CreateCategoryView;
 
-    TArray<TSharedPtr<FString>> UserCategories;
-    TSharedPtr<FString> SelectedCategory;
+	TArray<TSharedPtr<FString>> UserCategories;
+	TSharedPtr<FString> SelectedCategory;
 
-    FString UserCategoryToCreate;
+	FString UserCategoryToCreate;
 };
 
 /**
@@ -531,156 +531,156 @@ protected:
 class SHoudiniToolsPanel : public SCompoundWidget, public FNotifyHook
 {
 public:
-    SLATE_BEGIN_ARGS( SHoudiniToolsPanel ) {}
-    SLATE_END_ARGS();
+	SLATE_BEGIN_ARGS( SHoudiniToolsPanel ) {}
+	SLATE_END_ARGS();
 
-    SHoudiniToolsPanel();
-    virtual ~SHoudiniToolsPanel() override;
+	SHoudiniToolsPanel();
+	virtual ~SHoudiniToolsPanel() override;
 
-    void Construct( const FArguments& InArgs );
+	void Construct( const FArguments& InArgs );
 
-    static FTransform GetDefaulToolSpawnTransform();
-    static FTransform GetMeanWorldSelectionTransform();
+	static FTransform GetDefaulToolSpawnTransform();
+	static FTransform GetMeanWorldSelectionTransform();
 
-    /** Instantiate the selected HoudiniTool and assigns input depending on the current selection and tool type **/
-    static void InstantiateHoudiniTool( FHoudiniTool* HoudiniTool );
+	/** Instantiate the selected HoudiniTool and assigns input depending on the current selection and tool type **/
+	static void InstantiateHoudiniTool( FHoudiniTool* HoudiniTool );
 
-    /** Handler for Key presses**/
-    virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
+	/** Handler for Key presses**/
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
 
-    bool IsActiveHoudiniToolEditable() const;
+	bool IsActiveHoudiniToolEditable() const;
 
-    FText OnGetSelectedDirText() const;
+	FText OnGetSelectedDirText() const;
 
-    // Iterate over all the category widgets until the lambda returns false.
-    void ForEachCategory(const TFunctionRef<bool(SHoudiniToolCategory*)>& ForEachCategoryFunc) const;
+	// Iterate over all the category widgets until the lambda returns false.
+	void ForEachCategory(const TFunctionRef<bool(SHoudiniToolCategory*)>& ForEachCategoryFunc) const;
 
-    virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
 private:
-    static FHoudiniToolsEditor& GetHoudiniTools() { return FHoudiniEngineEditor::Get().GetHoudiniTools(); }
+	static FHoudiniToolsEditor& GetHoudiniTools() { return FHoudiniEngineEditor::Get().GetHoudiniTools(); }
 
-    void LoadConfig();
-    void SaveConfig() const;
+	void LoadConfig();
+	void SaveConfig() const;
 
-    /** Remove the current tool from the tool list **/
-    void HideActiveToolFromCategory();
+	/** Remove the current tool from the tool list **/
+	void HideActiveToolFromCategory();
 
-    void RefreshPanel();
+	void RefreshPanel();
 
-    // Actions Menu
-    
-    /** Create an empty tools package in the project **/
-    void CreateEmptyToolsPackage();
+	// Actions Menu
+	
+	/** Create an empty tools package in the project **/
+	void CreateEmptyToolsPackage();
 
-    /** Import a tools package **/
-    void ImportToolsPackage();
+	/** Import a tools package **/
+	void ImportToolsPackage();
 
-    void HandleImportSideFXTools();
+	void HandleImportSideFXTools();
 
-    void HandleAddToolToUserCategory() const;
+	void HandleAddToolToUserCategory() const;
 
-    static const FString SettingsIniSection;
+	static const FString SettingsIniSection;
 
-    /** Make a widget for the list view display */
-    TSharedRef<ITableRow> MakeListViewWidget( TSharedPtr<struct FHoudiniTool> HoudiniTool, const TSharedRef<STableViewBase>& OwnerTable );
+	/** Make a widget for the list view display */
+	TSharedRef<ITableRow> MakeListViewWidget( TSharedPtr<struct FHoudiniTool> HoudiniTool, const TSharedRef<STableViewBase>& OwnerTable );
 
-    TSharedRef<ITableRow> MakeTileViewWidget( TSharedPtr<struct FHoudiniTool> HoudiniTool, const TSharedRef<STableViewBase>& OwnerTable );
+	TSharedRef<ITableRow> MakeTileViewWidget( TSharedPtr<struct FHoudiniTool> HoudiniTool, const TSharedRef<STableViewBase>& OwnerTable );
 
-    /** Delegate for when the list view selection changes */
-    void OnToolSelectionChanged( SHoudiniToolCategory* Category, const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectionType );
+	/** Delegate for when the list view selection changes */
+	void OnToolSelectionChanged( SHoudiniToolCategory* Category, const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectionType );
 
-    /** Begin dragging a list widget */
-    FReply OnDraggingListViewWidget( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
+	/** Begin dragging a list widget */
+	FReply OnDraggingListViewWidget( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 
-    /** Handler for double clicking on a Houdini tool **/
-    void OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniTool> ListItem );
+	/** Handler for double clicking on a Houdini tool **/
+	void OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniTool> ListItem );
 
-    /** Handler for the right click context menu on a Houdini tool **/
-    TSharedPtr< SWidget > ConstructHoudiniToolContextMenu();
+	/** Handler for the right click context menu on a Houdini tool **/
+	TSharedPtr< SWidget > ConstructHoudiniToolContextMenu();
 
-    /** Construct menu widget for the Actions popup button **/
-    TSharedPtr< SWidget > ConstructHoudiniToolsActionMenu();
+	/** Construct menu widget for the Actions popup button **/
+	TSharedPtr< SWidget > ConstructHoudiniToolsActionMenu();
 
-    TSharedPtr< SWidget > ConstructCategoryFilterMenu();
+	TSharedPtr< SWidget > ConstructCategoryFilterMenu();
 
-    /** Shows a Property Window for editing the properties of new HoudiniTools**/
-    void EditActiveHoudiniTool();
+	/** Shows a Property Window for editing the properties of new HoudiniTools**/
+	void EditActiveHoudiniTool();
 
-    /** Shows a Property Window for editing the properties of new HoudiniTools**/
-    void BrowseToActiveToolAsset() const;
+	/** Shows a Property Window for editing the properties of new HoudiniTools**/
+	void BrowseToActiveToolAsset() const;
 
-    /** Focus the content browser on the  **/
-    void BrowseToActiveToolPackage() const;
+	/** Focus the content browser on the  **/
+	void BrowseToActiveToolPackage() const;
 
-    /** Handler for Save clicked in the Edit Active Tool dialog. **/
-    void HandleEditHoudiniToolSavedClicked(TSharedPtr<FHoudiniTool> HoudiniTool, TArray<UObject *>& InObjects );
+	/** Handler for Save clicked in the Edit Active Tool dialog. **/
+	void HandleEditHoudiniToolSavedClicked(TSharedPtr<FHoudiniTool> HoudiniTool, TArray<UObject *>& InObjects );
 
-    TSharedRef<SWindow> CreateFloatingDetailsView(
-        TArray<UObject*>& InObjects,
-        const FVector2D InClientSize=FVector2D(400,550),
-        const TFunction<void(TArray<UObject*> /*InObjects*/)> OnSaveClickedFn = nullptr
-        );
-    
-    TSharedRef<SWindow> CreateFloatingWindow(
-        const ::FText& WindowTitle,
-        const FVector2D IntialSize=FVector2D(400, 550)) const;
-    
-    void UpdateHoudiniToolDirectories();
+	TSharedRef<SWindow> CreateFloatingDetailsView(
+		TArray<UObject*>& InObjects,
+		const FVector2D InClientSize=FVector2D(400,550),
+		const TFunction<void(TArray<UObject*> /*InObjects*/)> OnSaveClickedFn = nullptr
+		);
+	
+	TSharedRef<SWindow> CreateFloatingWindow(
+		const ::FText& WindowTitle,
+		const FVector2D IntialSize=FVector2D(400, 550)) const;
+	
+	void UpdateHoudiniToolDirectories();
 
-    void RequestPanelRefresh();
-    void RebuildCategories();
+	void RequestPanelRefresh();
+	void RebuildCategories();
 
-    void HandleToolChanged();
-
-
-    // The active create package window is tracked here so that we can reuse the
-    // active window if summoned again.
-    TWeakPtr<SWindow> CreatePackageWindow;
-
-    TSharedPtr<FHoudiniTool> ActiveTool;
-    FString ActiveCategoryName;
-
-    // Temporary button style for testing. Remove when done.
-    FButtonStyle DGB_HelpButtonStyle;
-
-    // DEPRECATED
-    TArray< TSharedPtr < FString > > HoudiniToolDirArray;
-    // DEPRECATED
-    FString CurrentHoudiniToolDir;
-
-    TSharedPtr<SVerticalBox> CategoriesContainer;
-    bool bRefreshPanelRequested;
-
-    // Tools filter string
-    FString FilterString;
-
-    // Categories filter menu
-    TSharedPtr<SHoudiniToolsCategoryFilter> CategoryFilterWidget;
-    // When the user clicks on the ShowAll action, it immediately shows all categories (i.e., removes them
-    // from the FilterHiddenCategories array). If the user disables the Show All setting, all categories will immediate
-    // be hidden. Individual categories can still be toggled in both cases. 
-    bool bFilterShowAll;
-    // Any categories that are NOT in this set is considered to be visible.
-    TSet<FString> FilterHiddenCategories;
-    // List of categories to be displayed by the in the filter.
-    TArray<FString> FilterCategoryList;
-    
-    // Tools Settings
-    bool bShowHiddenTools;
-    bool bAutoRefresh;
-
-    EHoudiniToolsViewMode ViewMode;
+	void HandleToolChanged();
 
 
-    // Handles to unsubscribe during destruction
-    FDelegateHandle AssetMemCreatedHandle;
-    FDelegateHandle AssetMemDeletedHandle;
-    FDelegateHandle AssetAddedHandle;
-    FDelegateHandle AssetRenamedHandle;
-    FDelegateHandle AssetUpdatedHandle;
-    FDelegateHandle AssetUpdatedOnDiskHandle;
-    FDelegateHandle AssetPostImportHandle;
-    FDelegateHandle UserToolCategoriesChangedHandle;
-    FDelegateHandle ToolOrPackageChangedHandle;
+	// The active create package window is tracked here so that we can reuse the
+	// active window if summoned again.
+	TWeakPtr<SWindow> CreatePackageWindow;
+
+	TSharedPtr<FHoudiniTool> ActiveTool;
+	FString ActiveCategoryName;
+
+	// Temporary button style for testing. Remove when done.
+	FButtonStyle DGB_HelpButtonStyle;
+
+	// DEPRECATED
+	TArray< TSharedPtr < FString > > HoudiniToolDirArray;
+	// DEPRECATED
+	FString CurrentHoudiniToolDir;
+
+	TSharedPtr<SVerticalBox> CategoriesContainer;
+	bool bRefreshPanelRequested;
+
+	// Tools filter string
+	FString FilterString;
+
+	// Categories filter menu
+	TSharedPtr<SHoudiniToolsCategoryFilter> CategoryFilterWidget;
+	// When the user clicks on the ShowAll action, it immediately shows all categories (i.e., removes them
+	// from the FilterHiddenCategories array). If the user disables the Show All setting, all categories will immediate
+	// be hidden. Individual categories can still be toggled in both cases. 
+	bool bFilterShowAll;
+	// Any categories that are NOT in this set is considered to be visible.
+	TSet<FString> FilterHiddenCategories;
+	// List of categories to be displayed by the in the filter.
+	TArray<FString> FilterCategoryList;
+	
+	// Tools Settings
+	bool bShowHiddenTools;
+	bool bAutoRefresh;
+
+	EHoudiniToolsViewMode ViewMode;
+
+
+	// Handles to unsubscribe during destruction
+	FDelegateHandle AssetMemCreatedHandle;
+	FDelegateHandle AssetMemDeletedHandle;
+	FDelegateHandle AssetAddedHandle;
+	FDelegateHandle AssetRenamedHandle;
+	FDelegateHandle AssetUpdatedHandle;
+	FDelegateHandle AssetUpdatedOnDiskHandle;
+	FDelegateHandle AssetPostImportHandle;
+	FDelegateHandle UserToolCategoriesChangedHandle;
+	FDelegateHandle ToolOrPackageChangedHandle;
 };
