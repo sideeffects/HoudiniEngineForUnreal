@@ -2378,42 +2378,18 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedStaticMeshComponent(
 		}
 	}
 
-	// Now add the instances themselves
-	//InstancedStaticMeshComponent->ClearInstances();
-	//InstancedStaticMeshComponent->AddInstances(InstancedObjectTransforms, false);
-
 	int32 NumOldInstances = InstancedStaticMeshComponent->GetInstanceCount();
 	int32 NumNewInstances = InstancedObjectTransforms.Num();
-	if (NumOldInstances >= NumNewInstances)
+	if (NumOldInstances == NumNewInstances)
 	{
-		if (NumOldInstances > NumNewInstances)
-		{
-			// We need to remove instances
-			// Remove instance will occasionally cause crashes in UE5-EA2, so clear and re-create the instances
-			InstancedStaticMeshComponent->ClearInstances();
-			InstancedStaticMeshComponent->AddInstances(InstancedObjectTransforms, false);
-		}
-		else  // Reuse existing instances, and update instances transform
-			InstancedStaticMeshComponent->BatchUpdateInstancesTransforms(0, InstancedObjectTransforms, false, true);
-
-		// Remove instance occasionally cause crashes in UE5-EA2
-		//for (int32 n = NumOldInstances - 1; n >= NumNewInstances; n--)
-		//	InstancedStaticMeshComponent->RemoveInstance(n);
-		//InstancedStaticMeshComponent->BatchUpdateInstancesTransforms(0, InstancedObjectTransforms, false, true);
+		// For efficiency, try to reuse the existing buffer.
+		InstancedStaticMeshComponent->BatchUpdateInstancesTransforms(0, InstancedObjectTransforms, false, true);
 	}
 	else
 	{
-		// We need to append new instances
-		TArray<FTransform> CreatedTransforms = InstancedObjectTransforms;
-		TArray<FTransform> NewTransforms;
-		for (int32 n = NumNewInstances - 1; n >= NumOldInstances; n--)
-			NewTransforms.Add(CreatedTransforms.Pop());
-
-		// Update the existing instances
-		InstancedStaticMeshComponent->BatchUpdateInstancesTransforms(0, CreatedTransforms, false, true);
-
-		// Append the new ones
-		InstancedStaticMeshComponent->AddInstances(NewTransforms, false);
+		// Clear old instances, add new ones.
+		InstancedStaticMeshComponent->ClearInstances();
+		InstancedStaticMeshComponent->AddInstances(InstancedObjectTransforms, false);
 	}
 
 	// Apply generic attributes if we have any
