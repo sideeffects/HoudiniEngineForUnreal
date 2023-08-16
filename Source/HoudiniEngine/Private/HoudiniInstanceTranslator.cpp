@@ -2378,18 +2378,16 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedStaticMeshComponent(
 		}
 	}
 
-	// Now add the instances themselves
-	//InstancedStaticMeshComponent->ClearInstances();
-	//InstancedStaticMeshComponent->AddInstances(InstancedObjectTransforms, false);
-
 	int32 NumOldInstances = InstancedStaticMeshComponent->GetInstanceCount();
 	int32 NumNewInstances = InstancedObjectTransforms.Num();
 	if (NumOldInstances == NumNewInstances)
 	{
+		// For efficiency, try to reuse the existing buffer.
 		InstancedStaticMeshComponent->BatchUpdateInstancesTransforms(0, InstancedObjectTransforms, false, true);
 	}
 	else
 	{
+		// Clear old instances, add new ones.
 		InstancedStaticMeshComponent->ClearInstances();
 		InstancedStaticMeshComponent->AddInstances(InstancedObjectTransforms, false);
 	}
