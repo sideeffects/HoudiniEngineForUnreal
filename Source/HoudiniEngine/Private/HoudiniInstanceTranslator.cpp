@@ -2888,7 +2888,10 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 		FoliageInstances[n].DrawScale3D = (FVector3f)CurrentTransform.GetScale3D();
 	}
 
-	FHoudiniFoliageTools::SpawnFoliageInstance(WorldUsed, CookedFoliageType, FoliageInstances, true);
+	TArray<FFoliageAttachmentInfo> AttachmentTypes = 
+		FHoudiniFoliageTools::GetAttachmentInfo(InstancerGeoPartObject.GeoId, InstancerGeoPartObject.PartId, FoliageInstances.Num());
+
+	FHoudiniFoliageTools::SpawnFoliageInstances(WorldUsed, CookedFoliageType, FoliageInstances, AttachmentTypes);
 
 	// Clear the returned component. This should be set, but doesn't make in world partition.
 	// In future, this should be an array of components.

@@ -39,6 +39,19 @@ class UStaticMesh;
 class USceneComponent;
 class UFoliageType;
 
+enum EFoliageAttachmentType
+{
+	None = 0,
+	All = 1,
+	LandscapeOnly = 2
+};
+
+struct FFoliageAttachmentInfo
+{
+	EFoliageAttachmentType Type = EFoliageAttachmentType::None;
+	float Distance = 1000.0f;
+};
+
 class HOUDINIENGINE_API FHoudiniFoliageTools
 {
 public:
@@ -55,7 +68,7 @@ public:
 	static TArray<UFoliageType*> GetFoliageTypes(const ULevel* DesiredLevel, const UStaticMesh* InstancedStaticMesh);
 
 	// Spawn the Foliage Instances into the given World/Foliage Type.
-	static void SpawnFoliageInstance(UWorld* InWorld, UFoliageType* Settings, const TArray<FFoliageInstance>& PlacedInstances, bool InRebuildFoliageTree);
+	static void SpawnFoliageInstances(UWorld* InWorld, UFoliageType* Settings, const TArray<FFoliageInstance>& InstancesToPlace, const TArray<FFoliageAttachmentInfo> & AttachementInfos);
 
 	// Returns Foliage Instances used in the given World by the Foliage Type.
 	static TArray<FFoliageInstance> GetAllFoliageInstances(UWorld* InWorld, UFoliageType* Settings);
@@ -74,6 +87,12 @@ public:
 
 	// Remove foliage
 	static void RemoveFoliageInstances(UWorld* World, UFoliageType* FoliageType, const TArray<FVector3d>& Positions);
+
+	// Sets the instance attachment based off parameters.
+	static void SetInstanceAttachment(AInstancedFoliageActor* IFA, FFoliageInfo* FoliageInfo, UFoliageType* FoliageType, FFoliageInstance& FoliageInstance, const FFoliageAttachmentInfo& AttachmentInfo);
+
+	// Get all attachment info for a part.
+	static TArray<FFoliageAttachmentInfo> GetAttachmentInfo(int GeoId, int PartId, int Count);
 
 };
 

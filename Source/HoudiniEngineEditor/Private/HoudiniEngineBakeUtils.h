@@ -454,25 +454,6 @@ public:
 		AActor* InFallbackActor=nullptr,
 		const FString& InFallbackWorldOutlinerFolder=TEXT(""));
 
-	static bool BakeInstancerOutputToFoliage(
-		const UHoudiniAssetComponent* HoudiniAssetComponent,
-		int32 InOutputIndex,
-		const TArray<UHoudiniOutput*>& InAllOutputs,
-		// const TArray<FHoudiniBakedOutput>& InAllBakedOutputs,
-		const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
-		const FHoudiniOutputObject& InOutputObject,
-		FHoudiniBakedOutputObject& InBakedOutputObject,
-		const FDirectoryPath& InBakeFolder,
-		const FDirectoryPath& InTempCookFolder,
-		bool bInReplaceAssets,
-		const TArray<FHoudiniEngineBakedActor>& InBakedActors,
-		FHoudiniEngineBakedActor& OutBakedActorEntry,
-		TArray<UPackage*>& OutPackagesToSave,
-		TMap<UStaticMesh*, UFoliageType*> FoliageMap,
-		TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
-		TMap<UMaterialInterface *, UMaterialInterface *>& InOutAlreadyBakedMaterialsMap,
-		FHoudiniEngineOutputStats& OutBakeStats);
-
 	static bool BakeStaticMeshOutputToActors(
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex, 

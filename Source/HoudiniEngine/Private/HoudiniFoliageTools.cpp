@@ -34,7 +34,9 @@
 #include "HoudiniAssetComponent.h"
 #include "Editor/UnrealEdEngine.h"
 #include "Async/Async.h"
-#include "SSubobjectEditor.h"
+#include "Components/BrushComponent.h"
+#include "Components/ModelComponent.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
 #include "FoliageType_InstancedStaticMesh.h"
 #include "InstancedFoliageActor.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -177,33 +179,43 @@ TArray<FFoliageInstance> FHoudiniFoliageTools::GetAllFoliageInstances(UWorld* In
     return Results;
 }
 
-void FHoudiniFoliageTools::SpawnFoliageInstance(UWorld* InWorld, UFoliageType* Settings, const TArray<FFoliageInstance>& PlacedInstances, bool InRebuildFoliageTree)
+void FHoudiniFoliageTools::SpawnFoliageInstances(UWorld* InWorld, UFoliageType* Settings, const TArray<FFoliageInstance>& InstancesToPlace, const TArray<FFoliageAttachmentInfo>& AttachmentInfo)
 {
 	// This code is largely cribbed from SpawnFoliageInstance() in UE5's FoliageEdMode.cpp. It has UI specific functionality removed.
 
-	TMap<AInstancedFoliageActor*, TArray<const FFoliageInstance*>> PerIFAPlacedInstances;
+	TMap<AInstancedFoliageActor*, TArray<int>> PerIFAInstances;
 	const bool bSpawnInCurrentLevel = true;
 	ULevel* CurrentLevel = InWorld->GetCurrentLevel();
 	const bool bCreate = true;
-	for (const FFoliageInstance& PlacedInstance : PlacedInstances)
+	for (int Index = 0; Index < InstancesToPlace.Num(); Index++)
 	{
+		const FFoliageInstance& PlacedInstance = InstancesToPlace[Index];
 		ULevel* LevelHint = bSpawnInCurrentLevel ? CurrentLevel : PlacedInstance.BaseComponent ? PlacedInstance.BaseComponent->GetComponentLevel() : nullptr;
 		if (AInstancedFoliageActor* IFA = AInstancedFoliageActor::Get(InWorld, bCreate, LevelHint, PlacedInstance.Location))
 		{
-			PerIFAPlacedInstances.FindOrAdd(IFA).Add(&PlacedInstance);
+			PerIFAInstances.FindOrAdd(IFA).Add(Index);
 		}
 	}
 
-	for (const auto& PlacedLevelInstances : PerIFAPlacedInstances)
+	for (const auto& PlacedLevelInstances : PerIFAInstances)
 	{
 		AInstancedFoliageActor* IFA = PlacedLevelInstances.Key;
 
 		FFoliageInfo* Info = nullptr;
 		UFoliageType* FoliageSettings = IFA->AddFoliageType(Settings, &Info);
 
-		Info->AddInstances(FoliageSettings, PlacedLevelInstances.Value);
 
+		for(int InstanceIndex = 0; InstanceIndex < PlacedLevelInstances.Value.Num(); InstanceIndex++)
+		{
+			FFoliageInstance Instance = InstancesToPlace[PlacedLevelInstances.Value[InstanceIndex]];
+			if (AttachmentInfo.Num() > 0)
+			{
+				SetInstanceAttachment(IFA, Info, FoliageSettings, Instance, AttachmentInfo[InstanceIndex]);
+			}
+			Info->AddInstance(FoliageSettings, Instance);
+		}
 		Info->Refresh(false, true);
+
 	}
 
 	TArray<FFoliageInfo*> FoliageInfos = FHoudiniFoliageTools::GetAllFoliageInfo(InWorld, Settings);
@@ -238,7 +250,8 @@ FHoudiniFoliageTools::RemoveFoliageTypeFromWorld(UWorld* World, UFoliageType* Fo
 }
 
 
-void FHoudiniFoliageTools::RemoveInstancesFromWorld(UWorld* World, UFoliageType* FoliageType)
+void
+FHoudiniFoliageTools::RemoveInstancesFromWorld(UWorld* World, UFoliageType* FoliageType)
 {
 	TArray<FFoliageInfo*> FoliageInfos = FHoudiniFoliageTools::GetAllFoliageInfo(World, FoliageType);
 	for (auto& FoliageInfo : FoliageInfos)
@@ -256,7 +269,8 @@ void FHoudiniFoliageTools::RemoveInstancesFromWorld(UWorld* World, UFoliageType*
 	}
 }
 
-void FHoudiniFoliageTools::RemoveFoliageInstances(UWorld* World, UFoliageType* FoliageType, const TArray<FVector3d>& Positions)
+void
+FHoudiniFoliageTools::RemoveFoliageInstances(UWorld* World, UFoliageType* FoliageType, const TArray<FVector3d>& Positions)
 {
 	const float Spacing = 1.0f;
 	// Create a spatial hash for fast look up of positions.
@@ -293,4 +307,119 @@ void FHoudiniFoliageTools::RemoveFoliageInstances(UWorld* World, UFoliageType* F
 		}
 		FoliageInfo->RemoveInstances(InstancesToRemove, true);
 	}
+}
+
+void
+FHoudiniFoliageTools::SetInstanceAttachment(AInstancedFoliageActor * IFA, FFoliageInfo * FoliageInfo, UFoliageType * FoliageType, FFoliageInstance& FoliageInstance, const FFoliageAttachmentInfo& AttachmentInfo)
+{
+	UWorld * World = IFA->GetWorld();
+
+	if (AttachmentInfo.Type == EFoliageAttachmentType::None)
+	{
+		// Use whatever was in the instance - this is used when baking.
+		return;
+	}
+
+	TFunction<bool(const UPrimitiveComponent*)> FilterFunc = [AttachmentInfo] (const UPrimitiveComponent* Component)
+	{
+		switch(AttachmentInfo.Type)
+		{
+		case EFoliageAttachmentType::All:
+			return true;
+
+		case EFoliageAttachmentType::LandscapeOnly:
+			return Component->IsA<ULandscapeHeightfieldCollisionComponent>();
+
+		default: 
+			return false;
+		}
+	};
+
+	FVector TraceStart = FoliageInstance.Location + FVector(0.f, 0.f, AttachmentInfo.Distance);
+	FVector TraceEnd = FoliageInstance.Location - FVector(0.f, 0.f, AttachmentInfo.Distance);
+	FHitResult Hit;
+	static FName TraceName = FName("HoudiniFoliageTrace");
+	if (AInstancedFoliageActor::FoliageTrace(World, Hit, FDesiredFoliageInstance(TraceStart, TraceEnd, FoliageType), TraceName, false, FilterFunc, false))
+	{
+		UPrimitiveComponent* BaseComponent = Hit.Component.Get();
+		if (!IsValid(BaseComponent) || BaseComponent->GetComponentLevel() != IFA->GetLevel())
+		{
+			return;
+		}
+
+		if (UModelComponent* ModelComponent = Cast<UModelComponent>(BaseComponent))
+		{
+			if (ABrush* BrushActor = ModelComponent->GetModel()->FindBrush((FVector3f)Hit.Location))
+			{
+				BaseComponent = BrushActor->GetBrushComponent();
+			}
+		}
+
+		FoliageInstance.BaseId = IFA->InstanceBaseCache.AddInstanceBaseId(FoliageInfo->ShouldAttachToBaseComponent() ? BaseComponent : nullptr);
+		if (FoliageInstance.BaseId == FFoliageInstanceBaseCache::InvalidBaseId)
+		{
+			FoliageInstance.BaseComponent = nullptr;
+		}
+		else
+		{
+			FoliageInstance.BaseComponent = BaseComponent;
+		}
+
+		FoliageInstance.Location = Hit.Location;
+		FoliageInstance.ZOffset = 0.f;
+
+#if 0
+		// For now, we do not support this. Possibly this could be controlled by an attribute or setting in the future
+		if (FoliageInstance.Flags & FOLIAGE_AlignToNormal)
+		{
+			FoliageInstance.Rotation = FoliageInstance.PreAlignRotation;
+			FoliageInstance.AlignToNormal(Hit.Normal, FoliageType->AlignMaxAngle);
+		}
+#endif
+	}
+}
+
+TArray<FFoliageAttachmentInfo> FHoudiniFoliageTools::GetAttachmentInfo(int GeoId, int PartId, int Count)
+{
+	TArray<FFoliageAttachmentInfo> Result;
+	Result.SetNum(Count);
+
+	HAPI_AttributeInfo AttributeInfo;
+	TArray<int32> IntData;
+	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+		GeoId, PartId, HAPI_UNREAL_ATTRIB_FOLIAGE_ATTACHMENT_TYPE,
+		AttributeInfo, IntData, 0, HAPI_ATTROWNER_POINT, 0, Count))
+	{
+		return Result;
+	}
+
+	if (!AttributeInfo.exists || AttributeInfo.count <= 0 || IntData.Num() != Count)
+		return Result;
+
+	for(int Index = 0; Index < IntData.Num(); Index++)
+	{
+		switch (IntData[Index])
+		{
+		case 0:	Result[Index].Type = EFoliageAttachmentType::None; break;
+		case 1:	Result[Index].Type = EFoliageAttachmentType::All; break;
+		case 2: Result[Index].Type = EFoliageAttachmentType::LandscapeOnly; break;
+		default: break;
+		}
+	}
+
+	// Get (optional) attachment distance
+	TArray<float> FloatData;
+	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+		GeoId, PartId, HAPI_UNREAL_ATTRIB_FOLIAGE_ATTACHMENT_DISTANCE,
+		AttributeInfo, FloatData, 0, HAPI_ATTROWNER_POINT, 0, Count))
+	{
+		return Result;
+	}
+
+	for (int Index = 0; Index < FloatData.Num(); Index++)
+	{
+		Result[Index].Distance = FloatData[Index];
+	}
+
+	return Result;
 }
