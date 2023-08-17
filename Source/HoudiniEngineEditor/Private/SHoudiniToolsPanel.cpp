@@ -56,6 +56,7 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "AssetToolsModule.h"
 #include "EditorDirectories.h"
+#include "EditorReimportHandler.h"
 #include "HoudiniEngineCommands.h"
 #include "HoudiniEngineEditorSettings.h"
 #include "HoudiniEngineEditorUtils.h"
@@ -3662,6 +3663,9 @@ SHoudiniToolsPanel::HandleEditHoudiniToolSavedClicked(TSharedPtr<FHoudiniTool> H
 		return;
 	}
 
+	// Reimport assets from their new sources.
+	TArray<UHoudiniAsset*> ReimportAssets;
+
 	TArray< FHoudiniTool > EditedToolArray;
 	for ( int32 ObjIdx = 0; ObjIdx < InObjects.Num(); ObjIdx++ )
 	{
@@ -3702,7 +3706,26 @@ SHoudiniToolsPanel::HandleEditHoudiniToolSavedClicked(TSharedPtr<FHoudiniTool> H
 		ASSIGNFN(ToolProperties->SelectionType, ToolData->SelectionType);
 		ASSIGNFN(ToolProperties->ToolTip, ToolData->ToolTip);
 		ASSIGNFN(ToolProperties->HelpURL, ToolData->HelpURL);
-		ASSIGNFN(ToolProperties->AssetPath.FilePath, ToolData->SourceAssetPath.FilePath);
+
+		if (FPaths::FileExists(ToolProperties->AssetPath.FilePath))
+		{
+			// If the AssetPath has changed, reimport the HDA with the new source
+			if (ToolProperties->AssetPath.FilePath != ToolData->SourceAssetPath.FilePath)
+			{
+				TArray<FString> Filenames;
+				Filenames.Add(ToolProperties->AssetPath.FilePath);
+				FReimportManager::Instance()->UpdateReimportPaths(HoudiniAsset, Filenames);
+				
+				ReimportAssets.Add(HoudiniAsset);
+			}
+			ASSIGNFN(ToolProperties->AssetPath.FilePath, ToolData->SourceAssetPath.FilePath);
+		}
+		else
+		{
+			HOUDINI_LOG_WARNING(TEXT("The specified AssetPath does not exist. Source Asset Path will remain unchanged"));
+		}
+
+		
 
 		bool bModifiedIcon = false;
 
@@ -3740,6 +3763,13 @@ SHoudiniToolsPanel::HandleEditHoudiniToolSavedClicked(TSharedPtr<FHoudiniTool> H
 		ToolProperties->RemoveFromRoot();
 	}
 
+	FAssetRegistryModule& AssetRegistry = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	
+
+	for (UHoudiniAsset* Asset : ReimportAssets)
+	{
+		FReimportManager::Instance()->Reimport(Asset, false /* Ask for new file */, true /* Show notification */);
+	}
 }
 
 TSharedRef<SWindow>

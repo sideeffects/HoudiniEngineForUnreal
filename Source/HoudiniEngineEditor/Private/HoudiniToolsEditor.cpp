@@ -799,6 +799,15 @@ FHoudiniToolsEditor::PopulateHoudiniTool(const TSharedPtr<FHoudiniTool>& Houdini
         HoudiniTool->SelectionType = EHoudiniToolSelectionType::HTOOL_SELECTION_ALL;
     }
 
+    if (IsValid(InHoudiniAsset->AssetImportData))
+    {
+        UAssetImportData* ImportData = InHoudiniAsset->AssetImportData;
+        if (ImportData->SourceData.SourceFiles.Num() > 0)
+        {
+            HoudiniTool->SourceAssetPath.FilePath = ImportData->SourceData.SourceFiles[0].RelativeFilename;
+        }
+    }
+
     TWeakObjectPtr<const UHoudiniAsset> HoudiniAssetPtr = InHoudiniAsset;
     
     CreateUniqueAssetIconBrush(HoudiniTool);
