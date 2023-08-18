@@ -1278,7 +1278,16 @@ FHoudiniToolsEditor::GetHoudiniToolDescriptionFromJSON(const FString& JsonFilePa
         // If the json has the iconPath field, read it from there
         IconPath = JSONObject->GetStringField(TEXT("iconPath"));
         if (!FPaths::FileExists(IconPath))
-            IconPath = FString();
+        {
+            // Try to use this as a relative path and see if we can find a file
+            IconPath = FPaths::Combine(FPaths::GetPath(JsonFilePath), IconPath);
+            if (!FPaths::FileExists(IconPath))
+            {
+                // We still couldn't find anything. Giving up.
+                IconPath = FString();
+            }
+        }
+        
     }
 
     if (IconPath.IsEmpty())
