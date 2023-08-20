@@ -93,6 +93,8 @@
 
 #include "Framework/SlateDelegates.h"
 #include "Templates/SharedPointer.h"
+#include "DetailCategoryBuilder.h"
+
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -5789,7 +5791,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 			if (ParentMultiParm->IsShown())
 			{
 				FDetailWidgetRow* FolderHeaderRow = CreateNestedRow(HouParameterCategory, InParams, false);
-				CreateFolderHeaderUI(FolderHeaderRow, InParams);
+				CreateFolderHeaderUI(HouParameterCategory, FolderHeaderRow, InParams);
 			}
 		}
 		// Case 1-2: The folder IS tabs.
@@ -5836,7 +5838,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 				{
 					// Add the folder header UI.
 					FDetailWidgetRow* FolderHeaderRow = CreateNestedRow(HouParameterCategory, InParams, false);
-					CreateFolderHeaderUI(FolderHeaderRow, InParams);
+					CreateFolderHeaderUI(HouParameterCategory, FolderHeaderRow, InParams);
 				}
 
 				MainParam->SetIsContentShown(bExpanded);
@@ -5863,7 +5865,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 
 				// Create Folder header under root.
 				FDetailWidgetRow* FolderRow = CreateNestedRow(HouParameterCategory, InParams, false);
-				CreateFolderHeaderUI(FolderRow, InParams);
+				CreateFolderHeaderUI(HouParameterCategory, FolderRow, InParams);
 
 				if (FolderStack.Num() == 0) // This should not happen
 					return;
@@ -5901,7 +5903,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 }
 
 void
-FHoudiniParameterDetails::CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
+FHoudiniParameterDetails::CreateFolderHeaderUI(IDetailCategoryBuilder& HouParameterCategory, FDetailWidgetRow* HeaderRow, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
 {
 	if (!HeaderRow)	// The folder is invisible.
 		return;
@@ -5951,7 +5953,7 @@ FHoudiniParameterDetails::CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, cons
 		.ButtonStyle(_GetEditorStyle(), "NoBorder")
 		.ClickMethod(EButtonClickMethod::MouseDown)
 		.Visibility(EVisibility::Visible)
-		.OnClicked_Lambda([=]()
+		.OnClicked_Lambda([=, &HouParameterCategory]()
 		{
 			if (!IsValidWeakPointer(MainParam))
 				return FReply::Handled();
@@ -5959,6 +5961,8 @@ FHoudiniParameterDetails::CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, cons
 			MainParam->ExpandButtonClicked();
 			
 			FHoudiniEngineUtils::UpdateEditorProperties(MainParam.Get(), true);
+
+			HouParameterCategory.GetParentLayout().ForceRefreshDetails();
 
 			return FReply::Handled();
 		})
