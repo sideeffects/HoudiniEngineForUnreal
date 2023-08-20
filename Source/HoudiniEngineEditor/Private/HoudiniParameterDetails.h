@@ -412,7 +412,7 @@ class FHoudiniParameterDetails : public TSharedFromThis<FHoudiniParameterDetails
 
 		FDetailWidgetRow* CreateNestedRow(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams, bool bDecreaseChildCount = true); //
 
-		void CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams); //
+		void CreateFolderHeaderUI(IDetailCategoryBuilder& HouParameterCategory, FDetailWidgetRow* HeaderRow, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams); //
 
 		void CreateWidgetTab(IDetailCategoryBuilder & HouParameterCategory, const TWeakObjectPtr<UHoudiniParameterFolder>& InParam, const bool& bIsShown);  //
 
