@@ -194,6 +194,8 @@
 #define HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE				"unreal_instance"
 #define HAPI_UNREAL_ATTRIB_SPLIT_INSTANCES					"unreal_split_instances"
 #define HAPI_UNREAL_ATTRIB_FOLIAGE_INSTANCER				"unreal_foliage"
+#define HAPI_UNREAL_ATTRIB_FOLIAGE_ATTACHMENT_TYPE          "unreal_foliage_attachment_type"
+#define HAPI_UNREAL_ATTRIB_FOLIAGE_ATTACHMENT_DISTANCE      "unreal_foliage_attachment_distance"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_ROTATION				"rot"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_SCALE					"scale"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_POSITION				HAPI_ATTRIB_POSITION

@@ -817,13 +817,7 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 		// Copy all cooked instances to reference the baked instances.
 		auto Instances = FHoudiniFoliageTools::GetAllFoliageInstances(DesiredWorld, OutputObject->FoliageType);
 
-		for (auto Instance : Instances)
-		{
-			// Clear the HAC reference, so the user can deleted the HAC reference happily.
-			Instance.BaseComponent = nullptr;
-		}
-
-		FHoudiniFoliageTools::SpawnFoliageInstance(DesiredWorld, TargetFoliageType, Instances, true);
+		FHoudiniFoliageTools::SpawnFoliageInstances(DesiredWorld, TargetFoliageType, Instances, {});
 
 		TArray<FVector> InstancesPositions;
 		InstancesPositions.Reserve(Instances.Num());
@@ -1042,7 +1036,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToFoliage(
 	    }
 
 		// Spawn the Foliage Instances into the given World/Foliage Type.
-		FHoudiniFoliageTools::SpawnFoliageInstance(DesiredWorld, FoliageType, FoliageInstances, true);
+		FHoudiniFoliageTools::SpawnFoliageInstances(DesiredWorld, FoliageType, FoliageInstances, {});
 
 	    // Notify the user that we succesfully bake the instances to foliage
 	    FString Notification = TEXT("Successfully baked ") + FString::FromInt(FoliageInstances.Num()) + TEXT(" instances of ") + BakedStaticMesh->GetName() + TEXT(" to Foliage");

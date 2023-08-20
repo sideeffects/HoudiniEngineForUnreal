@@ -4910,15 +4910,15 @@ FHoudiniEngineUtils::HapiGetFirstAttributeValueAsString(
 
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
+	const HAPI_NodeId InGeoId,
+	const HAPI_PartId InPartId,
 	const char * InAttribName,
 	HAPI_AttributeInfo& OutAttributeInfo,
 	TArray<int32>& OutData,
-	const int32& InTupleSize,
+	const int32 InTupleSize,
 	const HAPI_AttributeOwner& InOwner,
-	const int32& InStartIndex,
-	const int32& InCount)
+	const int32 InStartIndex,
+	const int32 InCount)
 {
 	OutAttributeInfo.exists = false;
 

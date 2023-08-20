@@ -250,15 +250,15 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		// HAPI : Get attribute data as Integer.
 		static bool HapiGetAttributeDataAsInteger(
-			const HAPI_NodeId& InGeoId,
-			const HAPI_PartId& InPartId,
+			const HAPI_NodeId InGeoId,
+			const HAPI_PartId InPartId,
 			const char * InAttribName,
 			HAPI_AttributeInfo& OutAttributeInfo,
 			TArray<int32>& OutData,
-			const int32& InTupleSize = 0,
+			const int32 InTupleSize = 0,
 			const HAPI_AttributeOwner& InOwner = HAPI_ATTROWNER_INVALID,
-			const int32& InStartIndex = 0,
-			const int32& InCount = -1);
+			const int32 InStartIndex = 0,
+			const int32 InCount = -1);
 
 		// HAPI : Get attribute data as strings.
 		static bool HapiGetAttributeDataAsString(
