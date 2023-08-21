@@ -128,13 +128,13 @@ public:
 
 	/** The name (label) to be displayed. Not to be confused with the operator type name or UAsset name */
 	UPROPERTY()
-    FString Name;
+	FString Name;
 
-    /** The tooltip for this HDA. */
+	/** The tooltip for this HDA. */
 	UPROPERTY()
-    FString ToolTip;
+	FString ToolTip;
 
-    /** Raw image data of the icon to be displayed */
+	/** Raw image data of the icon to be displayed */
 	UPROPERTY()
 	FHImageData IconImageData;
 
@@ -142,37 +142,37 @@ public:
 	UPROPERTY()
 	FFilePath IconSourcePath;
 
-    /** The help URL for this tool */
+	/** The help URL for this tool */
 	UPROPERTY()
-    FString HelpURL;
+	FString HelpURL;
 
-    /** The type of tool, this will change how the asset handles the current selection **/
+	/** The type of tool, this will change how the asset handles the current selection **/
 	UPROPERTY()
-    EHoudiniToolType Type;
+	EHoudiniToolType Type;
 
-    /** DEPRECATED: Indicate this is one of the default tools **/
+	/** DEPRECATED: Indicate this is one of the default tools **/
 	// TODO: Replace DefaultTool usages with the ReadOnlyTools property from the owning tools package instead.
 	UPROPERTY()
-    bool DefaultTool;
+	bool DefaultTool;
 
-    /** Indicate what the tool should consider for selection **/
+	/** Indicate what the tool should consider for selection **/
 	UPROPERTY()
-    EHoudiniToolSelectionType SelectionType;
+	EHoudiniToolSelectionType SelectionType;
 
-    /** Path to the Asset used **/
+	/** Path to the Asset used **/
 	UPROPERTY()
-    FFilePath SourceAssetPath;
+	FFilePath SourceAssetPath;
 
-    // /** Directory containing the tool **/
-    // FHoudiniToolDirectory ToolDirectory;
+	// /** Directory containing the tool **/
+	// FHoudiniToolDirectory ToolDirectory;
 
 	// NOTE: This should be inferred from the SourceAssetPath.
-    /** Name of the JSON containing the tool's description **/
+	/** Name of the JSON containing the tool's description **/
 	// UPROPERTY()
-    // FString JSONFile;
+	// FString JSONFile;
 
-    /** Returns the file path to the JSON file containing the tool's description **/
-    // FString GetJSonFilePath() { return ToolDirectory.Path.Path / JSONFile; };
+	/** Returns the file path to the JSON file containing the tool's description **/
+	// FString GetJSonFilePath() { return ToolDirectory.Path.Path / JSONFile; };
 	// TODO: Resolve the JSON file path based using the path relative to the Houdini Package.
 	FString GetJSonFilePath() { return FString(); };
 

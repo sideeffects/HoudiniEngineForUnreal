@@ -62,7 +62,7 @@ public:
 	FHoudiniToolsEditor();
 
 	// Returns the Default Icon to be used by Houdini Tools
-    static FString GetDefaultHoudiniToolIconPath();
+	static FString GetDefaultHoudiniToolIconPath();
 	static FString GetDefaultHoudiniToolIconBrushName();
 
 	static FString GetAbsoluteGameContentDir();
@@ -146,10 +146,10 @@ public:
 	static UHoudiniToolData* GetOrCreateHoudiniToolData(UHoudiniAsset* HoudiniAsset);
 
 	// Populate FHoudiniTool from HoudiniAsset.
-    void PopulateHoudiniTool(const TSharedPtr<FHoudiniTool>& HoudiniTool,
-                             const UHoudiniAsset* InHoudiniAsset,
-                             const UHoudiniToolsPackageAsset* InToolsPackage,
-                             bool bIgnoreToolData = false);
+	void PopulateHoudiniTool(const TSharedPtr<FHoudiniTool>& HoudiniTool,
+							 const UHoudiniAsset* InHoudiniAsset,
+							 const UHoudiniToolsPackageAsset* InToolsPackage,
+							 bool bIgnoreToolData = false);
 
 	/**
 	 * Rebuild the internal list of HoudiniTools
@@ -157,7 +157,7 @@ public:
 	 * This will refresh the tool list from the Unreal project. This will 
 	 * not scan any external data. 
 	 * **/
-    void UpdateHoudiniToolListFromProject(bool bIgnoreExcludePatterns);
+	void UpdateHoudiniToolListFromProject(bool bIgnoreExcludePatterns);
 
 	// Get the cached categorized tools
 	const TMap< FHoudiniToolCategory, TSharedPtr<FHoudiniToolList> >& GetCategorizedTools() const { return Categories; }
@@ -175,11 +175,11 @@ public:
 	// Import external data for the given HoudiniAsset, if available
 	static bool ImportExternalHoudiniAssetData(UHoudiniAsset* HoudiniAsset);
 	
-    // Reads the Houdini Tool Package Description from a JSON file
-    static bool GetHoudiniToolDescriptionFromJSON(
-	    const FString& JsonFilePath,
-	    FString& OutName, EHoudiniToolType& OutType, EHoudiniToolSelectionType& OutSelectionType,
-	    FString& OutToolTip, FFilePath& OutIconPath, FFilePath& OutAssetPath, FString& OutHelpURL);
+	// Reads the Houdini Tool Package Description from a JSON file
+	static bool GetHoudiniToolDescriptionFromJSON(
+		const FString& JsonFilePath,
+		FString& OutName, EHoudiniToolType& OutType, EHoudiniToolSelectionType& OutSelectionType,
+		FString& OutToolTip, FFilePath& OutIconPath, FFilePath& OutAssetPath, FString& OutHelpURL);
 
 	// Import the Tools Package Asset only from the external json file into the given (internal) directory.
 	// To import HDAs for this package, call ImportPackageHDA.  
@@ -245,8 +245,8 @@ public:
 	static bool ImportSideFXTools(int* NumImportedHDAs);
 
 	// --------------------------------
-    // User Categories
-    // --------------------------------
+	// User Categories
+	// --------------------------------
 
 	// Add the tool to the specified user category. If the category does not exist, it will be created.
 	static void AddToolToUserCategory(const UHoudiniAsset* Asset, const FString& CategoryName);
@@ -259,8 +259,8 @@ public:
 	static void RemoveIncludePathFromUserCategory(const FString& CategoryName, const UHoudiniToolsPackageAsset* Package, const FString& RelPath);
 
 	// --------------------------------
-    // Shutdown
-    // --------------------------------
+	// Shutdown
+	// --------------------------------
 
 	// Be sure to call this method when the owning module shuts down so that we can remove
 	// all our cached textures from root.
