@@ -629,12 +629,10 @@ FHoudiniToolsRuntimeUtils::WriteJSONFromHoudiniAsset(const UHoudiniAsset* Houdin
 
 	// IconPath
 	bool bRemoveIconPath = true;
-	UE_LOG(LogTemp, Log, TEXT("[FHoudiniToolsRuntimeUtils::WriteJSONFromHoudiniAsset] Icon Source Path: %s"), *IconSourcePath);
 	if ( !IconSourcePath.IsEmpty() )
 	{
 		// Only write out the icon path if it differs from the 'default' icon path for the asset.
 		const FString DefaultIconPath = GetDefaultHoudiniAssetIconPath(HoudiniAsset);
-		UE_LOG(LogTemp, Log, TEXT("[FHoudiniToolsRuntimeUtils::WriteJSONFromHoudiniAsset] Default Icon Path: %s"), *DefaultIconPath);
 		if (IconSourcePath.Compare(DefaultIconPath) != 0)
 		{
 			JSONObject->SetStringField(TEXT("iconPath"), IconSourcePath);

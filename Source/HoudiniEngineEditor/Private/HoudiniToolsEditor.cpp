@@ -2349,14 +2349,12 @@ FHoudiniToolsEditor::RemoveIncludePathFromUserCategory(const FString& CategoryNa
 void FHoudiniToolsEditor::Shutdown()
 {
 	Categories.Empty();
-	UE_LOG(LogTemp, Log, TEXT("[FHoudiniToolsEditor::Shutdown] Cached Textures: %d"), CachedTextures.Num());
 	for  (auto& Entry : CachedTextures)
 	{
 		UTexture2D* CachedTexture = Entry.Value;
 		if (IsValid(CachedTexture))
 		{
 			CachedTexture->RemoveFromRoot();
-			UE_LOG(LogTemp, Log, TEXT("[FHoudiniToolsEditor::Shutdown] Removing from root"));
 		}
 	}
 	CachedTextures.Empty();
