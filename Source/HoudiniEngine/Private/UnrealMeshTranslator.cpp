@@ -60,6 +60,8 @@
 #include <locale>
 #include <codecvt>
 
+#include "HoudiniHLODLayerUtils.h"
+
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 	#include "Engine/SkinnedAssetCommon.h"
 	#include "MaterialDomain.h"
@@ -4907,14 +4909,16 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	}
 
 	//---------------------------------------------------------------------------------------------------------------------
-	// DATA LAYERS
+	// DATA & HLOD LAYERS
 	//---------------------------------------------------------------------------------------------------------------------
 
-	// Parse Data Layers
 	if (IsValid(ParentActor))
 	{
 		FHoudiniUnrealDataLayersCache Cache = FHoudiniUnrealDataLayersCache::MakeCache(ParentActor->GetWorld());
 		Cache.CreateHapiGroups(ParentActor, NodeId, 0);
+
+		FHoudiniHLODLayerUtils::AddHLODAttributes(ParentActor, NodeId, 0);
+
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 

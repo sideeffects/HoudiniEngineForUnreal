@@ -75,6 +75,7 @@
 #include "HoudiniFoliageTools.h"
 #include "HoudiniLevelInstanceUtils.h"
 #include "Engine/UserDefinedStruct.h"
+#include "HoudiniHLODLayerUtils.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -652,7 +653,8 @@ FHoudiniOutputTranslator::UpdateOutputs(
 			FHoudiniOutputObjectIdentifier & Id = It.Key;
 			FHoudiniOutputObject & Obj = It.Value;
 
-			Obj.DataLayers = FHoudiniDataLayerUtils::GetDataLayers(Id.GeoId, Id.PartId);;
+			Obj.DataLayers = FHoudiniDataLayerUtils::GetDataLayers(Id.GeoId, Id.PartId);
+			Obj.HLODLayers = FHoudiniHLODLayerUtils::GetHLODLayers(Id.GeoId, Id.PartId);
 		}
 	}
 

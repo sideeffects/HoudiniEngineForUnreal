@@ -457,6 +457,15 @@ struct FHoudiniDataLayer
 
 
 USTRUCT()
+struct FHoudiniHLODLayer
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString Name;
+};
+
+USTRUCT()
 struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 {
 	GENERATED_USTRUCT_BODY()
@@ -552,6 +561,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 		// Data Layers which should be applied (during Baking only).
 		UPROPERTY()
 		TArray<FHoudiniDataLayer> DataLayers;
+
+		// HLOD Layers which should be applied (during Baking only).
+		UPROPERTY()
+		TArray<FHoudiniHLODLayer> HLODLayers;
 
 		UPROPERTY()
 		FHoudiniLevelInstanceParams LevelInstanceParams;
