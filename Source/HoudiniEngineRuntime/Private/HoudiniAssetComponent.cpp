@@ -41,12 +41,16 @@
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniStaticMeshComponent.h"
 #include "HoudiniCompatibilityHelpers.h"
+#include "HoudiniInstancedActorComponent.h"
+#include "HoudiniMeshSplitInstancerComponent.h"
 
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
 #include "TimerManager.h"
 #include "Landscape.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Components/SplineComponent.h"
 #include "InstancedFoliageActor.h"
 #include "UObject/DevObjectVersion.h"
 #include "Serialization/CustomVersion.h"
@@ -1687,10 +1691,26 @@ UHoudiniAssetComponent::UpdatePostDuplicate()
 		USceneComponent * ComponentToRemove = nullptr;
 		if (NextChild->IsA<UStaticMeshComponent>()) 
 		{
+			// This also covers UStaticMeshComponent derived instancers, such as UInstancedStaticMeshComponent,
+			// and UHierarchicalInstancedStaticMeshComponent
 			ComponentToRemove = NextChild;
 		}
 		else if (NextChild->IsA<UHoudiniStaticMeshComponent>())
 		{
+			ComponentToRemove = NextChild;
+		}
+		else if (NextChild->IsA<USplineComponent>())
+		{
+			ComponentToRemove = NextChild;
+		}
+		else if (NextChild->IsA<UHoudiniMeshSplitInstancerComponent>())
+		{
+			ComponentToRemove = NextChild;
+		}
+		else if (NextChild->IsA<UHoudiniInstancedActorComponent>())
+		{
+			// The actors attched to the HoudiniAssetActor are not duplicated, so we only 
+			// have to handle the component.
 			ComponentToRemove = NextChild;
 		}
 		/*  do not destroy attached duplicated editable curves, they are needed to restore editable curves
