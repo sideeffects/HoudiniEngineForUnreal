@@ -216,6 +216,12 @@ private:
 	static bool AddLandscapeSplineHalfWidthAttribute(
 		const HAPI_NodeId& InNodeId, const TArray<float>& InHalfWidths);
 
+	static bool AddLandscapeSplineSideFalloffAttribute(
+		const HAPI_NodeId& InNodeId, const TArray<float>& InSideFalloffs);
+
+	static bool AddLandscapeSplineEndFalloffAttribute(
+		const HAPI_NodeId& InNodeId, const TArray<float>& InEndFalloffs);
+
 	static bool AddLandscapeSplineTangentLengthAttribute(
 		const HAPI_NodeId& InNodeId, const TArray<float>& InTangentLengths);
 

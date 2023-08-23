@@ -108,6 +108,14 @@ struct FLandscapeSplineCurveAttributes
 	bool bHasPointHalfWidthAttribute = false;
 	TArray<float> PointHalfWidths;
 
+	/** The point side-falloff. */
+	bool bHasPointSideFalloffAttribute = false;
+	TArray<float> PointSideFalloffs;
+
+	/** The point end-falloff. */
+	bool bHasPointEndFalloffAttribute = false;
+	TArray<float> PointEndFalloffs;
+
 	//
 	// Although the following properties are named Vertex... they are point attributes in HAPI (but are intended to be
 	// authored as vertex attributes in Houdini). When curves are extracted via HAPI points and vertices are the same.
@@ -711,14 +719,26 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 		}
 
 		// Use the landscape specified with the landscape target attribute
+		FString LandscapeRef;
 		ALandscapeProxy* TargetLandscape = nullptr;
 		if (LandscapeRefs.IsValidIndex(CurveIdx))
 		{
-			const FString LandscapeRef = LandscapeRefs[CurveIdx];
+			LandscapeRef = LandscapeRefs[CurveIdx];
 			TargetLandscape = FHoudiniLandscapeUtils::FindTargetLandscapeProxy(LandscapeRef, InWorld, InAllInputLandscapes);
 		}
+
+		// Use fallback landscape if TargetLandscape could not be found / is invalid
 		if (!IsValid(TargetLandscape))
 			TargetLandscape = FallbackLandscape;
+
+		// If at this point we don't have a valid target landscape then we cannot proceed, return false
+		if (!IsValid(TargetLandscape))
+		{
+			HOUDINI_LOG_ERROR(
+				TEXT("Could not find target landscape: '%s', and also could not find a "
+					 "fallback landscape from the HAC or World."), *LandscapeRef);
+			return false;
+		}
 
 		const FString IdentifierName = FString::Printf(
 			TEXT("%s-%s-%s"), *InHGPO.PartName, *TargetLandscape->GetFName().ToString(), *OutputName.ToString());
@@ -1406,6 +1426,32 @@ FHoudiniLandscapeSplineTranslator::CopyCurveAttributesFromHoudini(
 		InFirstPointIndex,
 		InNumPoints);
 
+	// point side-falloff
+	HAPI_AttributeInfo SideFalloffAttrInfo;
+	OutCurveAttributes.bHasPointSideFalloffAttribute = FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+		InNodeId,
+		InPartId,
+		HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_SIDE_FALLOFF,
+		SideFalloffAttrInfo,
+		OutCurveAttributes.PointSideFalloffs,
+		TupleSizeOne,
+		HAPI_ATTROWNER_POINT,
+		InFirstPointIndex,
+		InNumPoints);
+
+	// point end-falloff
+	HAPI_AttributeInfo EndFalloffAttrInfo;
+	OutCurveAttributes.bHasPointEndFalloffAttribute = FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+		InNodeId,
+		InPartId,
+		HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_END_FALLOFF,
+		EndFalloffAttrInfo,
+		OutCurveAttributes.PointEndFalloffs,
+		TupleSizeOne,
+		HAPI_ATTROWNER_POINT,
+		InFirstPointIndex,
+		InNumPoints);
+
 	// Connection attributes -- there are separate attributes for the two ends of the connection
 	static const char* ConnectionMeshSocketNameAttrNames[]
 	{
@@ -1862,6 +1908,20 @@ FHoudiniLandscapeSplineTranslator::UpdateControlPointFromAttributes(
 	{
 		// Convert from Houdini units to UE units
 		InPoint->Width = InAttributes.PointHalfWidths[InPointIndex] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
+	}
+
+	// Control point side-falloff
+	if (InAttributes.bHasPointSideFalloffAttribute && InAttributes.PointSideFalloffs.IsValidIndex(InPointIndex))
+	{
+		// Convert from Houdini units to UE units
+		InPoint->SideFalloff = InAttributes.PointSideFalloffs[InPointIndex] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
+	}
+
+	// Control point end-falloff
+	if (InAttributes.bHasPointEndFalloffAttribute && InAttributes.PointEndFalloffs.IsValidIndex(InPointIndex))
+	{
+		// Convert from Houdini units to UE units
+		InPoint->EndFalloff = InAttributes.PointEndFalloffs[InPointIndex] * HAPI_UNREAL_SCALE_FACTOR_POSITION;
 	}
 
 	return true;
