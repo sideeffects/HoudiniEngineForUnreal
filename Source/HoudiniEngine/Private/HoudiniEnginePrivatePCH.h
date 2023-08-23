@@ -171,6 +171,7 @@
 #define HAPI_UNREAL_ATTRIB_LOD_SCREENSIZE_PREFIX			"lod"
 #define HAPI_UNREAL_ATTRIB_LOD_SCREENSIZE_POSTFIX			"_screensize"
 #define HAPI_UNREAL_ATTRIB_TAG_PREFIX						"unreal_tag_"
+#define HAPI_UNREAL_ATTRIB_HLOD_LAYER                       "unreal_hlod_layer"
 
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_PREFIX				"mesh_socket"
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME					"mesh_socket_name"
