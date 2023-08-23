@@ -1065,8 +1065,11 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 	const int32 TupleSize = InGenericAttribute.AttributeTupleSize;
 	int32 AtIndex = InAtIndex * TupleSize;
 	FFieldClass* PropertyClass = InnerProperty->GetClass();
-	if (PropertyClass->IsChildOf(FNumericProperty::StaticClass()) || PropertyClass->IsChildOf(FBoolProperty::StaticClass()) ||
-		PropertyClass->IsChildOf(FStrProperty::StaticClass()) || PropertyClass->IsChildOf(FNameProperty::StaticClass()))
+	if (PropertyClass->IsChildOf(FNumericProperty::StaticClass()) || 
+		PropertyClass->IsChildOf(FBoolProperty::StaticClass()) ||
+		PropertyClass->IsChildOf(FEnumProperty::StaticClass()) ||
+		PropertyClass->IsChildOf(FStrProperty::StaticClass()) || 
+		PropertyClass->IsChildOf(FNameProperty::StaticClass()))
 	{
 		// Supported non-struct properties
 
@@ -1152,6 +1155,21 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 						OnPrePropertyChanged(Property);
 						Property->SetPropertyValue(ValuePtr, NewValue);
 						OnPropertyChanged(Property);
+					}
+				}
+				else if (PropertyClass->IsChildOf(FEnumProperty::StaticClass()))
+				{
+					FNumericProperty* const Property = CastField<FEnumProperty>(InnerProperty)->GetUnderlyingProperty();
+					if (Property->IsInteger())
+					{
+						const int64 NewValue = InGenericAttribute.GetIntValue(AtIndex + TupleIndex);
+						const int64 CurrentValue = Property->GetSignedIntPropertyValue(ValuePtr);
+						if (NewValue != CurrentValue)
+						{
+							OnPrePropertyChanged(Property);
+							Property->SetIntPropertyValue(ValuePtr, NewValue);
+							OnPropertyChanged(Property);
+						}
 					}
 				}
 				else if (PropertyClass->IsChildOf(FStrProperty::StaticClass()))
