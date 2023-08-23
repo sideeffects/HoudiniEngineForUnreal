@@ -33,6 +33,11 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "LandscapeStreamingProxy.h"
+#include "LandscapeSplineActor.h"
+#include "LandscapeSplinesComponent.h"
+#include "LandscapeSplineControlPoint.h"
+#include "LandscapeSplineSegment.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 void 
 FHoudiniLandscapeRuntimeUtils::DeleteLandscapeCookedData(UHoudiniOutput* InOutput)
@@ -142,4 +147,299 @@ FHoudiniLandscapeRuntimeUtils::DestroyLandscapeProxy(ALandscapeProxy* Proxy)
 	// Once we've removed the streaming proxies delete the landscape actor itself.
 
 	Proxy->Destroy();
+}
+
+
+bool
+FHoudiniLandscapeRuntimeUtils::DestroyLandscapeSplinesControlPoint(
+	ULandscapeSplineControlPoint* InControlPoint,
+	const bool bInDestroyOnlyIfUnused,
+	const bool bInRemoveDestroyedControlPointFromComponent)
+{
+	if (!IsValid(InControlPoint))
+		return false;
+
+#if ENGINE_MAJOR_VERSION < 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0)
+	HOUDINI_LOG_WARNING(TEXT("Landscape Spline Output is only supported in UE5.1+"));
+	return false;
+#else
+#if WITH_EDITOR
+	InControlPoint->DeleteSplinePoints();
+#endif
+
+	// Remove the point from connected segments
+	for (FLandscapeSplineConnection& Connection : InControlPoint->ConnectedSegments)
+	{
+		if (!IsValid(Connection.Segment))
+			continue;
+
+		if (bInDestroyOnlyIfUnused)
+			return false;
+
+#if WITH_EDITOR
+		Connection.Segment->DeleteSplinePoints();
+#endif
+
+		// Get the control point at the *other* end of the segment and remove it from it
+		ULandscapeSplineControlPoint* OtherEnd = Connection.GetFarConnection().ControlPoint;
+		if (!IsValid(OtherEnd))
+			continue;
+
+		OtherEnd->ConnectedSegments.Remove(FLandscapeSplineConnection(Connection.Segment, 1 - Connection.End));
+#if WITH_EDITOR
+		OtherEnd->UpdateSplinePoints();
+#endif
+	}
+
+	InControlPoint->ConnectedSegments.Empty();
+
+	if (bInRemoveDestroyedControlPointFromComponent)
+	{
+		ULandscapeSplinesComponent* const SplinesComponent = InControlPoint->GetOuterULandscapeSplinesComponent();
+		if (IsValid(SplinesComponent))
+			SplinesComponent->GetControlPoints().Remove(InControlPoint);
+	}
+
+	return true;
+#endif
+}
+
+bool
+FHoudiniLandscapeRuntimeUtils::DestroyLandscapeSplinesSegment(
+	ULandscapeSplineSegment* InSegment,
+	const bool bInRemoveSegmentFromComponent,
+	const bool bInDestroyUnusedControlPoints,
+	const bool bInRemoveDestroyedControlPointsFromComponent,
+	TArray<ULandscapeSplineControlPoint*>* const RemainingControlPoints)
+{
+	if (!IsValid(InSegment))
+		return false;
+
+#if ENGINE_MAJOR_VERSION < 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0)
+	HOUDINI_LOG_WARNING(TEXT("Landscape Spline Output is only supported in UE5.1+"));
+	return false;
+#else
+#if WITH_EDITOR
+	InSegment->DeleteSplinePoints();
+#endif
+
+	ULandscapeSplineControlPoint* CP0 = InSegment->Connections[0].ControlPoint;
+	ULandscapeSplineControlPoint* CP1 = InSegment->Connections[1].ControlPoint;
+	const bool bCP0Valid = IsValid(CP0);
+	const bool bCP1Valid = IsValid(CP1);
+	if (bCP0Valid)
+		CP0->ConnectedSegments.Remove(FLandscapeSplineConnection(InSegment, 0));
+	if (bCP1Valid)
+		CP1->ConnectedSegments.Remove(FLandscapeSplineConnection(InSegment, 1));
+
+#if WITH_EDITOR
+	if (bCP0Valid)
+		CP0->UpdateSplinePoints();
+	if (bCP1Valid)
+		CP1->UpdateSplinePoints();
+#endif
+
+	ULandscapeSplinesComponent* const SplinesComponent = InSegment->GetOuterULandscapeSplinesComponent();
+	const bool bIsSplinesComponentValid = IsValid(SplinesComponent);
+
+	if (bInDestroyUnusedControlPoints)
+	{
+		if (CP0->ConnectedSegments.Num() == 0)
+		{
+#if WITH_EDITOR
+			CP0->DeleteSplinePoints();
+#endif
+			CP0->ConnectedSegments.Empty();
+			if (bInRemoveDestroyedControlPointsFromComponent && bIsSplinesComponentValid)
+				SplinesComponent->GetControlPoints().Remove(CP0);
+			CP0 = nullptr;
+		}
+		if (CP1->ConnectedSegments.Num() == 0)
+		{
+#if WITH_EDITOR
+			CP1->DeleteSplinePoints();
+#endif
+			CP1->ConnectedSegments.Empty();
+			if (bInRemoveDestroyedControlPointsFromComponent && bIsSplinesComponentValid)
+				SplinesComponent->GetControlPoints().Remove(CP1);
+			CP1 = nullptr;
+		}
+	}
+
+	if (RemainingControlPoints)
+	{
+		if (CP0)
+			RemainingControlPoints->Add(CP0);
+		if (CP1)
+			RemainingControlPoints->Add(CP1);
+	}
+
+	if (bInRemoveSegmentFromComponent && bIsSplinesComponentValid)
+		SplinesComponent->GetSegments().Remove(InSegment);
+
+	return true;
+#endif
+}
+
+bool
+FHoudiniLandscapeRuntimeUtils::DestroyLandscapeSplinesSegmentsAndControlPoints(ULandscapeSplinesComponent* const InSplinesComponent)
+{
+#if ENGINE_MAJOR_VERSION < 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0)
+	return false;
+#else
+	if (!IsValid(InSplinesComponent))
+		return false;
+
+	TArray<TObjectPtr<ULandscapeSplineSegment>>& Segments = InSplinesComponent->GetSegments();
+	TArray<TObjectPtr<ULandscapeSplineControlPoint>>& ControlPoints = InSplinesComponent->GetControlPoints();
+
+	bool bSuccess = true;
+	for (ULandscapeSplineSegment* const Segment : Segments)
+	{
+		if (!IsValid(Segment))
+			continue;
+
+		// We don't have to remove the segment from the component here, or destroy the control points, since we'll
+		// empty component's Segments array and destroy all control points below
+		static constexpr bool bRemoveSegmentFromComponent = false;
+		static constexpr bool bDestroyUnusedControlPoints = false;
+		static constexpr bool bRemoveDestroyedControlPointsFromComponent = false;
+		if (!DestroyLandscapeSplinesSegment(
+			Segment,
+			bRemoveSegmentFromComponent,
+			bDestroyUnusedControlPoints,
+			bRemoveDestroyedControlPointsFromComponent))
+		{
+			bSuccess = false;
+		}
+	}
+	Segments.Empty();
+
+	for (ULandscapeSplineControlPoint* const ControlPoint : ControlPoints)
+	{
+		if (!IsValid(ControlPoint))
+			continue;
+
+		// We don't have to remove the control points from the component here as we'll empty component's ControlPoints
+		// array below.
+		static constexpr bool bDestroyOnlyIfUnused = false;
+		static constexpr bool bRemoveControlPointFromComponent = false;
+		if (!DestroyLandscapeSplinesControlPoint(ControlPoint, bDestroyOnlyIfUnused, bRemoveControlPointFromComponent))
+			bSuccess = false;
+	}
+	ControlPoints.Empty();
+
+	return bSuccess;
+#endif
+}
+
+bool
+FHoudiniLandscapeRuntimeUtils::DestroyLandscapeSplinesSegmentsAndControlPoints(UHoudiniLandscapeSplinesOutput* const InOutputObject)
+{
+	
+	if (!IsValid(InOutputObject))
+		return false;
+
+	bool bSuccess = true;
+	for (ULandscapeSplineSegment* const Segment : InOutputObject->GetSegments())
+	{
+		if (!IsValid(Segment))
+			continue;
+		static constexpr bool bRemoveSegmentFromComponent = true;
+		static constexpr bool bDestroyUnusedControlPoints = false;
+		static constexpr bool bRemoveDestroyedControlPointsFromComponent = false;
+		if (!DestroyLandscapeSplinesSegment(
+			Segment,
+			bRemoveSegmentFromComponent,
+			bDestroyUnusedControlPoints,
+			bRemoveDestroyedControlPointsFromComponent))
+		{
+			bSuccess = false;
+		}
+	}
+	InOutputObject->GetSegments().Empty();
+
+	for (ULandscapeSplineControlPoint* const ControlPoint : InOutputObject->GetControlPoints())
+	{
+		if (!IsValid(ControlPoint))
+			continue;
+
+		static constexpr bool bDestroyOnlyIfUnused = true;
+		static constexpr bool bRemoveControlPointFromComponent = true;
+		if (!DestroyLandscapeSplinesControlPoint(ControlPoint, bDestroyOnlyIfUnused, bRemoveControlPointFromComponent))
+			bSuccess = false;
+	}
+	InOutputObject->GetControlPoints().Empty();
+
+	// Return false if we had any failures
+	return bSuccess;
+}
+
+
+void
+FHoudiniLandscapeRuntimeUtils::DeleteLandscapeSplineCookedData(UHoudiniOutput* const InOutput)
+{
+	if (!IsValid(InOutput))
+		return;
+
+	TSet<ALandscapeSplineActor*> LandscapeSplineActorsToDelete;
+	TArray<FHoudiniOutputObjectIdentifier> OutputObjectsToDelete;
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
+	for (auto& OutputObjectPair : OutputObjects)
+	{
+		const FHoudiniOutputObject& PrevObj = OutputObjectPair.Value;
+		if (!IsValid(PrevObj.OutputObject) || !PrevObj.OutputObject->IsA<UHoudiniLandscapeSplinesOutput>())
+			continue;
+
+		// Get the data stored during cooking
+		UHoudiniLandscapeSplinesOutput* OldOutputObject = Cast<UHoudiniLandscapeSplinesOutput>(PrevObj.OutputObject);
+
+		// Delete the splines (segments and control points)
+		DestroyLandscapeSplinesSegmentsAndControlPoints(OldOutputObject);
+
+		// Delete the edit layers
+		for (auto& LayerOutputPair : OldOutputObject->GetLayerOutputs())
+		{
+			UHoudiniLandscapeSplineTargetLayerOutput* const LayerOutput = LayerOutputPair.Value;
+			if (!IsValid(LayerOutput) || !IsValid(LayerOutput->Landscape))
+				continue;
+
+			if (LayerOutput->BakedEditLayer != LayerOutput->CookedEditLayer)
+				DeleteEditLayer(LayerOutput->Landscape, FName(LayerOutput->CookedEditLayer));
+		}
+
+		for (const TSoftObjectPtr<AActor>& Actor : PrevObj.OutputActors)
+		{
+			if (!Actor.IsValid() || !Actor->IsA<ALandscapeSplineActor>())
+				continue;
+
+			LandscapeSplineActorsToDelete.Add(Cast<ALandscapeSplineActor>(Actor.Get()));
+		}
+
+		OutputObjectsToDelete.Add(OutputObjectPair.Key);
+
+		PrevObj.OutputObject->ConditionalBeginDestroy();
+	}
+
+	// Delete the output objects we marked as to be deleted
+	for (const auto& OutputObjectIdentifierToDelete : OutputObjectsToDelete)
+	{
+		OutputObjects.Remove(OutputObjectIdentifierToDelete);
+	}
+
+	// Delete the landscape spline output actors
+	for (ALandscapeSplineActor* const LandscapeSplineActor : LandscapeSplineActorsToDelete)
+	{
+		if (!IsValid(LandscapeSplineActor))
+			continue;
+
+		ULandscapeInfo* const LSInfo = LandscapeSplineActor->GetLandscapeInfo();
+		if (!IsValid(LSInfo))
+			continue;
+
+#if WITH_EDITOR
+		LSInfo->UnregisterSplineActor(LandscapeSplineActor);
+#endif
+		LandscapeSplineActor->Destroy();
+	}
 }

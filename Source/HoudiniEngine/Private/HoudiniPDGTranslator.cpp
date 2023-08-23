@@ -288,6 +288,9 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	TMap<FString, UMaterialInterface*> AllOutputMaterials;
 	TMap<FString, ALandscape*> CookedLandscapes;
 
+	// Landscape splines track edit layers that were cleared per-landscape
+	TMap<ALandscape*, TSet<FName>> ClearedLandscapeEditLayersForSplines;
+
 	for (UHoudiniOutput* CurOutput : InOutputs)
 	{
 		const EHoudiniOutputType OutputType = CurOutput->GetType();
@@ -387,7 +390,13 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 
 			case EHoudiniOutputType::LandscapeSpline:
 			{
-				FHoudiniLandscapeSplineTranslator::ProcessLandscapeSplineOutput(CurOutput, InOuterComponent);
+				FHoudiniLandscapeSplineTranslator::ProcessLandscapeSplineOutput(
+					CurOutput,
+					AllInputLandscapes,
+					PersistentWorld,
+					InPackageParams,
+					ClearedLandscapeEditLayersForSplines);
+
 				break;
 			}
 

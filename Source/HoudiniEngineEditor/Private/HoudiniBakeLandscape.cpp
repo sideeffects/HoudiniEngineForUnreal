@@ -35,6 +35,8 @@
 #include "HoudiniStringResolver.h"
 #include "HoudiniEngineCommands.h"
 #include "HoudiniLandscapeUtils.h"
+#include "HoudiniLandscapeSplineTranslator.h"
+
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 #include "RawMesh.h"
@@ -59,6 +61,7 @@
 #include "Landscape.h"
 #include "HoudiniLandscapeRuntimeUtils.h"
 #include "WorldPartition/WorldPartition.h"
+#include "LandscapeSplineActor.h"
 
 bool
 FHoudiniLandscapeBake::BakeLandscapeLayer(
@@ -182,7 +185,7 @@ FHoudiniLandscapeBake::BakeLandscape(
 	bool bInReplaceAssets,
 	const FDirectoryPath& BakePath,
 	FHoudiniEngineOutputStats& BakeStats,
-	TSet<FString> & ClearedLandscapeLayers,
+	TMap<ALandscape*, TSet<FString>> & ClearedLandscapeLayers,
 	TArray<UPackage*>& OutPackagesToSave)
 {
 	// Check that index is not negative
@@ -250,7 +253,8 @@ FHoudiniLandscapeBake::BakeLandscape(
 			continue;
 		}
 
-		FHoudiniLandscapeBake::BakeLandscapeLayer(PackageParams, *LayerOutput, bInReplaceActors, bInReplaceAssets, PackagesToSave, BakeStats, ClearedLandscapeLayers);
+		TSet<FString>& ClearedLayers = ClearedLandscapeLayers.FindOrAdd(LayerOutput->Landscape);
+		FHoudiniLandscapeBake::BakeLandscapeLayer(PackageParams, *LayerOutput, bInReplaceActors, bInReplaceAssets, PackagesToSave, BakeStats, ClearedLayers);
 	}
 
 	// Update the cached baked output data
@@ -563,4 +567,253 @@ UObjectType* FHoudiniLandscapeBake::BakeGeneric(
 
 	return DuplicatedObject;
 
+}
+
+
+bool
+FHoudiniLandscapeBake::BakeLandscapeSplinesLayer(
+	FHoudiniPackageParams& PackageParams,
+	UHoudiniLandscapeSplineTargetLayerOutput& LayerOutput,
+	TSet<FString>& ClearedLayers,
+	TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& SegmentsToApplyToLayers)
+{
+	ALandscape* const OutputLandscape = LayerOutput.Landscape;
+	ULandscapeInfo* const TargetLandscapeInfo = OutputLandscape->GetLandscapeInfo();
+
+	if (!OutputLandscape->bCanHaveLayersContent)
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("Landscape {0} has no edit layers, so baking does nothing."), *OutputLandscape->GetActorLabel());
+		return true;
+	}
+
+	const FName BakedEditLayer = *LayerOutput.BakedEditLayer;
+
+	// If the landscape has a reserved splines layer, then we don't create any named temp/bake layers on the landscape for splines
+	if (OutputLandscape->GetLandscapeSplinesReservedLayer())
+	{
+		FHoudiniLandscapeSplineApplyLayerData& LayerData = SegmentsToApplyToLayers.FindOrAdd({ OutputLandscape, BakedEditLayer });
+		LayerData.bIsReservedSplineLayer = true;
+		LayerData.Landscape = OutputLandscape;
+		LayerData.EditLayerName = BakedEditLayer;
+		return true;
+	}
+
+	//---------------------------------------------------------------------------------------------------------------------------
+	// For landscape layers baking is the act of copying cooked data to a baked layer. We do not need to do that if we already
+	// wrote directly to the final layer.
+	//---------------------------------------------------------------------------------------------------------------------------
+
+	if (!LayerOutput.bCookedLayerRequiresBaking)
+		return true;
+
+	// Ensure that the baked layer exists
+	FLandscapeLayer* const BakedLayer = FHoudiniLandscapeUtils::GetEditLayerForWriting(OutputLandscape, BakedEditLayer);
+
+	//---------------------------------------------------------------------------------------------------------------------------
+	// Clear the layer, but only once per bake.
+	//---------------------------------------------------------------------------------------------------------------------------
+
+	if (OutputLandscape->HasLayersContent() && LayerOutput.bClearLayer && !ClearedLayers.Contains(LayerOutput.BakedEditLayer))
+	{
+		ClearedLayers.Add(LayerOutput.BakedEditLayer);
+		OutputLandscape->ClearLayer(BakedLayer->Guid, nullptr, ELandscapeClearMode::Clear_Heightmap);
+	}
+
+	//---------------------------------------------------------------------------------------------------------------------------
+	// Record the segments to apply to the baked layer
+	//---------------------------------------------------------------------------------------------------------------------------
+	FHoudiniLandscapeSplineApplyLayerData& LayerData = SegmentsToApplyToLayers.FindOrAdd({ OutputLandscape, BakedEditLayer });
+	LayerData.bIsReservedSplineLayer = false;
+	LayerData.Landscape = OutputLandscape;
+	LayerData.EditLayerName = BakedEditLayer;
+	LayerData.SegmentsToApply.Append(LayerOutput.Segments);
+
+	// Delete the temp/cooked layer
+	FHoudiniLandscapeRuntimeUtils::DeleteEditLayer(OutputLandscape, FName(LayerOutput.CookedEditLayer));
+
+	//---------------------------------------------------------------------------------------------------------------------------
+	// Make sure baked layer is visible.
+	//---------------------------------------------------------------------------------------------------------------------------
+	int EditLayerIndex = OutputLandscape->GetLayerIndex(BakedEditLayer);
+	if (EditLayerIndex != INDEX_NONE)
+		OutputLandscape->SetLayerVisibility(EditLayerIndex, true);
+
+	return true;
+}
+
+bool FHoudiniLandscapeBake::BakeLandscapeSplines(
+	const UHoudiniAssetComponent* HoudiniAssetComponent,
+	const int32 InOutputIndex,
+	const TArray<UHoudiniOutput*>& InAllOutputs,
+	TArray<FHoudiniBakedOutput>& InBakedOutputs,
+	const bool bInReplaceActors,
+	const bool bInReplaceAssets,
+	const FDirectoryPath& BakePath,
+	FHoudiniEngineOutputStats& BakeStats,
+	TMap<ALandscape*, TSet<FString>>& ClearedLandscapeEditLayers,
+	TArray<UPackage*>& OutPackagesToSave)
+{
+	// Check that index is not negative
+	if (InOutputIndex < 0)
+		return false;
+
+	if (!InAllOutputs.IsValidIndex(InOutputIndex))
+		return false;
+
+	UHoudiniOutput* const Output = InAllOutputs[InOutputIndex];
+	if (!IsValid(Output) || Output->GetType() != EHoudiniOutputType::LandscapeSpline)
+		return false;
+
+	// Find the previous baked output data for this output index. If an entry
+	// does not exist, create entries up to and including this output index
+	if (!InBakedOutputs.IsValidIndex(InOutputIndex))
+		InBakedOutputs.SetNum(InOutputIndex + 1);
+
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = Output->GetOutputObjects();
+	FHoudiniBakedOutput& BakedOutput = InBakedOutputs[InOutputIndex];
+	const TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& OldBakedOutputObjects = BakedOutput.BakedOutputObjects;
+	TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject> NewBakedOutputObjects;
+	TArray<UPackage*> PackagesToSave;
+	TArray<UWorld*> LandscapeWorldsToUpdate;
+
+	const EPackageReplaceMode AssetPackageReplaceMode = bInReplaceAssets ?
+		EPackageReplaceMode::ReplaceExistingAssets : EPackageReplaceMode::CreateNewAssets;
+
+	TArray<FHoudiniOutputObjectIdentifier> OutputObjectsBaked;
+
+	TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData> SegmentsToApplyToLayers;
+	for (auto& Entry : OutputObjects)
+	{
+		const FHoudiniOutputObjectIdentifier& ObjectIdentifier = Entry.Key;
+		FHoudiniOutputObject& OutputObject = Entry.Value;
+		FHoudiniBakedOutputObject& BakedOutputObject = NewBakedOutputObjects.Add(ObjectIdentifier);
+		if (OldBakedOutputObjects.Contains(ObjectIdentifier))
+			BakedOutputObject = OldBakedOutputObjects.FindChecked(ObjectIdentifier);
+
+		// Populate the package params for baking this output object.
+		if (!IsValid(OutputObject.OutputObject))
+			continue;
+
+		UHoudiniLandscapeSplinesOutput* const SplinesOutputObject = Cast<UHoudiniLandscapeSplinesOutput>(OutputObject.OutputObject);
+		if (!SplinesOutputObject)
+			continue;
+
+		OutputObjectsBaked.Add(Entry.Key);
+
+		FHoudiniPackageParams PackageParams;
+		FHoudiniEngineBakeUtils::ResolvePackageParams(
+			HoudiniAssetComponent,
+			Output,
+			ObjectIdentifier,
+			OutputObject,
+			FString(""),
+			BakePath,
+			bInReplaceAssets,
+			PackageParams,
+			OutPackagesToSave);
+
+		const FString DesiredBakeName = PackageParams.GetPackageName();
+		ALandscape* const Landscape = SplinesOutputObject->GetLandscape();
+
+		// Bake the landscape spline actors: for this, in replace mode, delete the previous bake actor if any, and then rename
+		// the temp landscape spline actor to the bake name.
+		if (OutputObject.OutputActors.Num() > 0 && OutputObject.OutputActors[0].IsValid() && OutputObject.OutputActors[0]->IsA<ALandscapeSplineActor>())
+		{
+			// For a replace, delete previous baked actor for this output identifier, if any. Also check that
+			// it belongs to the same landscape.
+			if (bInReplaceActors && !BakedOutputObject.Actor.IsEmpty()
+					&& BakedOutputObject.Landscape == FSoftObjectPath(Landscape).ToString())
+			{
+				ULandscapeInfo* const LandscapeInfo = Landscape->GetLandscapeInfo();
+				if (IsValid(LandscapeInfo))
+				{
+					// Only remove the previous actor if it has the LandscapeInfo object
+					ALandscapeSplineActor* const PreviousActor = Cast<ALandscapeSplineActor>(BakedOutputObject.GetActorIfValid());
+					if (IsValid(PreviousActor) && PreviousActor->GetLandscapeInfo() == LandscapeInfo)
+					{
+						LandscapeInfo->UnregisterSplineActor(PreviousActor);
+						PreviousActor->Destroy();
+					}
+				}
+			}
+
+			ALandscapeSplineActor* const ActorToBake = Cast<ALandscapeSplineActor>(OutputObject.OutputActors[0].Get());
+			// Rename to bake name
+			FHoudiniEngineBakeUtils::RenameAndRelabelActor(ActorToBake, DesiredBakeName);
+
+			// Record in baked object entry
+			BakedOutputObject.Actor = FSoftObjectPath(ActorToBake).ToString();
+			BakedOutputObject.BakedComponent = FSoftObjectPath(ActorToBake->GetSplinesComponent()).ToString();
+		}
+		else
+		{
+			// Non-WP case, the splines component is the OutputComponent
+			BakedOutputObject.Actor.Empty();
+			if (OutputObject.OutputComponents.Num() > 0)
+				BakedOutputObject.BakedComponent = FSoftObjectPath(OutputObject.OutputComponents[0]).ToString();
+			else
+				BakedOutputObject.BakedComponent.Empty();
+		}
+
+		// Updated baked object entry
+		BakedOutputObject.ActorBakeName = *DesiredBakeName;
+		BakedOutputObject.BakedObject.Empty();
+		BakedOutputObject.Landscape = FSoftObjectPath(Landscape).ToString();
+
+		// Delete temp edit layers, create baked layers and collect all segments per-landscape-layer.
+		for (const auto& LayerEntry : SplinesOutputObject->GetLayerOutputs())
+		{
+			UHoudiniLandscapeSplineTargetLayerOutput* const LayerOutput = LayerEntry.Value;
+			if (!IsValid(LayerOutput))
+				continue;
+
+			if (!IsValid(LayerOutput->Landscape))
+			{
+				HOUDINI_LOG_WARNING(TEXT("Cooked Landscape was not found, so nothing will be baked"));
+				continue;
+			}
+
+			TSet<FString>& ClearedLandscapeLayers = ClearedLandscapeEditLayers.FindOrAdd(LayerOutput->Landscape);
+			BakeLandscapeSplinesLayer(PackageParams, *LayerOutput, ClearedLandscapeLayers, SegmentsToApplyToLayers);
+		}
+	}
+
+	// Apply segments to baked/reserved layers
+	FHoudiniLandscapeUtils::ApplySegmentsToLandscapeEditLayers(SegmentsToApplyToLayers);
+
+	// Update the cached baked output data
+	BakedOutput.BakedOutputObjects = NewBakedOutputObjects;
+
+	// Remove all output objects: since we don't duplicate anything the temp actors/segments
+	// essentially become the baked ones. We have also already removed all temp layers.
+	for (const FHoudiniOutputObjectIdentifier& Identifier : OutputObjectsBaked)
+	{
+		OutputObjects.Remove(Identifier);
+	}
+
+	if (PackagesToSave.Num() > 0)
+	{
+		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, true, false);
+	}
+
+	if (PackagesToSave.Num() > 0)
+	{
+		// These packages were either created during the Bake process or they weren't
+		// loaded in the first place so be sure to unload them again to preserve their "state".
+
+		TArray<UPackage*> PackagesToUnload;
+		for (UPackage* Package : PackagesToSave)
+		{
+			if (!Package->IsDirty())
+				PackagesToUnload.Add(Package);
+		}
+		UPackageTools::UnloadPackages(PackagesToUnload);
+	}
+
+#if WITH_EDITOR
+	FEditorDelegates::RefreshLevelBrowser.Broadcast();
+	FEditorDelegates::RefreshAllBrowsers.Broadcast();
+#endif
+
+	return true;
 }

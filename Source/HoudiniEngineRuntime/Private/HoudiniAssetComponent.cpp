@@ -1882,6 +1882,9 @@ UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 		CurAttachedSocketActors.Empty();
 
 #if WITH_EDITOR
+		// Cleanup landscape splines
+		FHoudiniLandscapeRuntimeUtils::DeleteLandscapeSplineCookedData(CurrentOutput);
+
 		// Cleanup landscapes
 		FHoudiniLandscapeRuntimeUtils::DeleteLandscapeCookedData(CurrentOutput);
 

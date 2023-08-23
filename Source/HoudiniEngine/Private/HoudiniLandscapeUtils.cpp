@@ -41,6 +41,8 @@
 #include "Materials/MaterialInstanceConstant.h"
 #include "HoudiniMaterialTranslator.h"
 #include "PackageTools.h"
+#include "LandscapeSplineControlPoint.h"
+#include "LandscapeSplineSegment.h"
 
 TSet<UHoudiniLandscapeTargetLayerOutput *>
 FHoudiniLandscapeUtils::GetEditLayers(UHoudiniOutput& Output)
@@ -1225,4 +1227,95 @@ void FHoudiniLandscapeUtils::ApplyMaterialsFromParts(
 
 
 
+}
+
+
+bool
+FHoudiniLandscapeUtils::ApplyLandscapeSplinesToReservedLayer(ALandscape* const InLandscape)
+{
+	if (!IsValid(InLandscape) || !InLandscape->GetLandscapeSplinesReservedLayer())
+		return false;
+
+	InLandscape->RequestSplineLayerUpdate();
+
+	return true;
+}
+
+
+bool
+FHoudiniLandscapeUtils::ApplySegmentsToLandscapeEditLayers(
+	const TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& InSegmentsToApplyToLayers)
+{
+	bool bSuccess = true;
+	for (const auto& Entry : InSegmentsToApplyToLayers)
+	{
+		ALandscape* const Landscape = Entry.Key.Key;
+		const FName LayerName = Entry.Key.Value;
+		const FHoudiniLandscapeSplineApplyLayerData& LayerData = Entry.Value;
+
+		if (!IsValid(Landscape) || LayerName == NAME_None)
+			continue;
+
+		// For landscapes with reserved layers all splines of the landscape are applied to the reserved layer
+		if (LayerData.bIsReservedSplineLayer)
+		{
+			if (!ApplyLandscapeSplinesToReservedLayer(Landscape))
+				bSuccess = false;
+			continue;
+		}
+
+		FLandscapeLayer const* const Layer = Landscape->GetLayer(LayerName);
+		if (!Layer)
+		{
+			HOUDINI_LOG_WARNING(
+				TEXT("Layer '%s' unexpectedly not found on landscape '%s': cannot apply splines to layer."),
+				*LayerName.ToString(), *Landscape->GetFName().ToString());
+			continue;
+		}
+
+		// Not a landscape + reserved layer, so we must select each segment and its control points and then apply it
+		// to the specified edit layer
+		if (LayerData.SegmentsToApply.Num() == 0)
+			continue;
+
+		// Select the segments and their control points
+		for (ULandscapeSplineSegment* const Segment : LayerData.SegmentsToApply)
+		{
+			if (!IsValid(Segment))
+				continue;
+
+			Segment->SetSplineSelected(true);
+
+			ULandscapeSplineControlPoint* const CP0 = Segment->Connections[0].ControlPoint;
+			if (IsValid(CP0))
+				CP0->SetSplineSelected(true);
+
+			ULandscapeSplineControlPoint* const CP1 = Segment->Connections[1].ControlPoint;
+			if (IsValid(CP1))
+				CP1->SetSplineSelected(true);
+		}
+
+		// Apply splines to layer
+		static constexpr bool bUpdateOnlySelected = true;
+		Landscape->UpdateLandscapeSplines(Layer->Guid, bUpdateOnlySelected);
+
+		// Unselect the segments and their control points
+		for (ULandscapeSplineSegment* const Segment : LayerData.SegmentsToApply)
+		{
+			if (!IsValid(Segment))
+				continue;
+
+			Segment->SetSplineSelected(false);
+
+			ULandscapeSplineControlPoint* const CP0 = Segment->Connections[0].ControlPoint;
+			if (IsValid(CP0))
+				CP0->SetSplineSelected(false);
+
+			ULandscapeSplineControlPoint* const CP1 = Segment->Connections[1].ControlPoint;
+			if (IsValid(CP1))
+				CP1->SetSplineSelected(false);
+		}
+	}
+
+	return bSuccess;
 }

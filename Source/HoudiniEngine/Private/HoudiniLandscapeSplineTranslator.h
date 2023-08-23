@@ -33,6 +33,8 @@
 #include "HAPI/HAPI_Common.h"
 
 #include "HoudiniOutput.h"
+#include "LandscapeSplineControlPoint.h"
+
 
 // Unreal engine forward declarations
 class ULandscapeSplineControlPoint;
@@ -40,9 +42,12 @@ class ULandscapeSplineSegment;
 struct FLandscapeSplineSegmentConnection;
 
 // Houdini Engine Plugin forward declarations
+class UHoudiniAssetComponent;
+struct FHoudiniPackageParams;
 struct FLandscapeSplineInfo;
 struct FLandscapeSplineCurveAttributes;
 struct FLandscapeSplineSegmentMeshAttributes;
+struct FHoudiniLandscapeSplineApplyLayerData;
 
 
 struct HOUDINIENGINE_API FHoudiniLandscapeSplineTranslator
@@ -50,33 +55,68 @@ struct HOUDINIENGINE_API FHoudiniLandscapeSplineTranslator
 	/**
 	 * @brief Process the landscape spline output InOutput and create/update the relevant ULandscapeSplinesComponents.
 	 * @param InOutput A landscape output.
-	 * @param InOuterComponent The owner, likely a UHoudiniAssetComponent, of InOutput.
+	 * @param InAllInputLandscaps Input landscapes. Used to find landscapes targets referenced as "Input#".
+	 * @param InPackageParams Package parameters used as the basis for naming LandscapeSplineActors in world partition.
+	 * @param ClearedLayers Map of landscape to a set of layer names: this map is checked and updated to keep track of
+	 * which edit layers have been cleared during output processing.
 	 * @return True if we successfully processed the output and create/update/removed the appropriate landscape splines.
 	 */
-	static bool ProcessLandscapeSplineOutput(UHoudiniOutput* const InOutput, UObject* const InOuterComponent);
+	static bool ProcessLandscapeSplineOutput(
+		UHoudiniOutput* const InOutput,
+		const TArray<ALandscapeProxy*>& InAllInputLandscapes,
+		UWorld* InWorld,
+		const FHoudiniPackageParams& InPackageParams,
+		TMap<ALandscape*, TSet<FName>>& ClearedLayers);
 
 	/**
 	 * @brief Create / update ULandscapeSplinesComponents from the geo in InHGPO.
 	 * @param InHGPO The Houdini geo part object containing the curves to treat as landscape splines.
-	 * @param InOuterComponent The outer component, likely a HoudiniAssetComponent.
+	 * @param InOutput The UHoudiniOutput instance of the InHGPO.
+	 * @param InAllInputLandscaps Input landscapes. Used to find landscapes targets referenced as "Input#".
+	 * @param InPackageParams Package parameters, used as the basis for naming LandscapeSplineActors in world partition
+	 * and for temp edit layer names.
 	 * @param InCurrentSplines The current landscape spline output objects (to be updated/replaced).
-	 * @param bInForceRebuild If true then we always removed the existing landscape splines in InCurrentSplines and
+	 * @param bInForceRebuild If true then we always remove the existing landscape splines in InCurrentSplines and
 	 * create new ones from the content of the InHGPO (instead of re-using existing splines).
 	 * @param InFallbackLandscape If the InHGPO does not have the appropriate target landscape attribute, create the
 	 * splines on this landscape.
+	 * @param ClearedLayers Used to check if a layer has been cleared or already. Cleared layers are added.
+	 * @param SegmentsToApplyToLayers Updated with per-landscape-layer segments that should be applied to the layer
+	 * at the end of output processing.
 	 * @param OutputSplines The created/updated landscape spline output objects.
+	 * @param InHAC The HoudiniAssetComponent if available. Currently this is only to determine if temp edit layers
+	 * should be created and for temp package naming.
 	 * @return True if the landscape splines were successfully created/updated.
 	 */
 	static bool CreateOutputLandscapeSplinesFromHoudiniGeoPartObject(
 		const FHoudiniGeoPartObject& InHGPO,
-		UObject* InOuterComponent,
+		UHoudiniOutput* InOutput,
+		const TArray<ALandscapeProxy*>& InAllInputLandscapes,
+		UWorld* InWorld,
+		const FHoudiniPackageParams& InPackageParams,
 		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InCurrentSplines,
 		bool bInForceRebuild,
 		ALandscapeProxy* InFallbackLandscape,
-		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputSplines);
+		TMap<ALandscape*, TSet<FName>>& ClearedLayers,
+		TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& SegmentsToApplyToLayers,
+		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputSplines,
+		UHoudiniAssetComponent* InHAC=nullptr);
 
 private:
-	static bool DestroyLandscapeSplinesSegmentsAndControlPoints(ULandscapeSplinesComponent* InSplinesComponent);
+	static void DeleteTempLandscapeLayers(UHoudiniOutput* InOutput);
+
+	static void AddSegmentToOutputObject(
+		ULandscapeSplineSegment* InSegment,
+		const FLandscapeSplineCurveAttributes& InAttributes,
+		int32 InVertexIndex,
+		UHoudiniAssetComponent* InHAC,
+		const FHoudiniPackageParams& InPackageParams,
+		UHoudiniLandscapeSplinesOutput& InOutputObject);
+
+	static void UpdateNonReservedEditLayers(
+		const FLandscapeSplineInfo& InSplineInfo,
+		TMap<ALandscape*, TSet<FName>>& ClearedLayers,
+		TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& SegmentsToApplyToLayers);
 
 	static ULandscapeSplineControlPoint* GetOrCreateControlPoint(
 		FLandscapeSplineInfo& SplineInfo, FName InDesiredName, bool& bOutCreated);

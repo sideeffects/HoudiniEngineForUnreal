@@ -39,12 +39,32 @@
 #include "Misc/StringFormatArg.h"
 #include "LandscapeLayerInfoObject.h"
 #include "LandscapeSplineActor.h"
+#include "LandscapeSplineControlPoint.h"
+#include "LandscapeSplineSegment.h"
+
 
 UHoudiniLandscapePtr::UHoudiniLandscapePtr(class FObjectInitializer const& Initializer) 
 {
 	// bIsWorldCompositionLandscape = false;
 	// BakeType = EHoudiniLandscapeOutputBakeType::Detachment;
 };
+
+
+bool
+UHoudiniLandscapeSplinesOutput::GetLayerSegments(const FName InEditLayer, TArray<ULandscapeSplineSegment*>& OutSegments) const
+{
+	UHoudiniLandscapeSplineTargetLayerOutput* const* const LayerOutputPtr = LayerOutputs.Find(InEditLayer);
+	if (!LayerOutputPtr)
+		return false;
+
+	UHoudiniLandscapeSplineTargetLayerOutput* const LayerOutput = *LayerOutputPtr;
+	if (!IsValid(LayerOutput))
+		return false;
+
+	OutSegments = LayerOutput->Segments;
+	return true;
+}
+
 
 uint32
 GetTypeHash(const FHoudiniOutputObjectIdentifier& HoudiniOutputObjectIdentifier)
