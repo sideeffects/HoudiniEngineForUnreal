@@ -427,8 +427,16 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 			}
 			else
 			{
-				auto & PartArry = LandscapesToCreate.FindOrAdd(Part.TargetLandscapeName);
-				PartArry.Add(Part.TargetLayerName, &Part);
+				auto & LandscapeParts = LandscapesToCreate.FindOrAdd(Part.TargetLandscapeName);
+
+				if (LandscapeParts.Contains(Part.TargetLayerName))
+				{
+					HOUDINI_LOG_WARNING(TEXT("Duplicate Layer \"%s\" for landscape \"%s\" was ignored."), *Part.TargetLayerName, *Part.TargetLandscapeName);
+				}
+				else
+				{
+					LandscapeParts.Add(Part.TargetLayerName, &Part);
+				}
 			}
 		}
 		else

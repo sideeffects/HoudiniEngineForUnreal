@@ -111,6 +111,12 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 
 	for (FHoudiniHeightFieldPartData& Part : Parts)
 	{
+		if (!LandscapeMapping.HoudiniLayerToUnrealLandscape.Contains(&Part))
+		{
+			HOUDINI_LOG_WARNING(TEXT("Part was ignored: %s"), *Part.TargetLayerName);
+			continue;
+		}
+
 		int Index = LandscapeMapping.HoudiniLayerToUnrealLandscape[&Part];
 		FHoudiniUnrealLandscapeTarget& Landscape = LandscapeMapping.TargetLandscapes[Index];
 		UHoudiniLandscapeTargetLayerOutput* Result = TranslateHeightFieldPart(InOutput, Landscape, Part, *HAC, ClearedLayers, InPackageParams);
@@ -583,7 +589,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 
 	ULandscapeLayerInfoObject* TargetLayerInfo = OutputLandscape->GetLandscapeInfo()->GetLayerInfoByName(FName(Part.TargetLayerName));
 
-	if (!TargetLayerInfo && Part.TargetLayerName != "height" && Part.TargetLayerName != "visibility")
+	if (!TargetLayerInfo && Part.TargetLayerName != "height" && Part.TargetLayerName != "visibility" && Part.TargetLayerName != "mask")
 	{
 		HOUDINI_LOG_WARNING(TEXT("Could not find target layer: %s. This should be 'height', 'visibility' or the name of a layer in the material."), *(Part.TargetLayerName));
 		return nullptr;
