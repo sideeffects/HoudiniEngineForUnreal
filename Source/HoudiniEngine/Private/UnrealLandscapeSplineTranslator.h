@@ -88,6 +88,8 @@ public:
 		HAPI_NodeId& OutInputNodeId,
 		FUnrealObjectInputHandle& OutInputNodeHandle,
 		const FString& InNodeName,
+		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
+		int32& InNextControlPointId,
 		const float InSplineResolution=0.0f,
 		const bool bInExportCurves=true,
 		const bool bInExportControlPoints=false,
@@ -109,6 +111,8 @@ public:
 		ULandscapeSplinesComponent* const InSplinesComponent, 
 		const HAPI_NodeId& InObjectNodeId,
 		const FString& InNodeName,
+		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
+		int32& InNextControlPointId,
 		HAPI_NodeId& OutNodeId,
 		const EHoudiniLandscapeSplineCurve InExportCurve=EHoudiniLandscapeSplineCurve::Center,
 		const float InSplineResolution=0.0f);
@@ -126,6 +130,8 @@ public:
 		ULandscapeSplinesComponent* const InSplinesComponent, 
 		const HAPI_NodeId& InObjectNodeId,
 		const FString& InNodeName,
+		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
+		int32& InNextControlPointId,
 		HAPI_NodeId& OutNodeId);
 
 private:
@@ -139,6 +145,8 @@ private:
 	 */
 	static bool ExtractLandscapeSplineData(
 		ULandscapeSplinesComponent* const InSplinesComponent,
+		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
+		int32& InNextControlPointId,
 		FLandscapeSplinesData& OutSplinesData,
 		const EHoudiniLandscapeSplineCurve InExportCurve=EHoudiniLandscapeSplineCurve::Center,
 		const float InSplineResolution=0.0f);
@@ -151,6 +159,8 @@ private:
 	 */
 	static bool ExtractLandscapeSplineControlPointsData(
 		ULandscapeSplinesComponent* const InSplinesComponent,
+		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
+		int32& InNextControlPointId,
 		FLandscapeSplinesControlPointData& OutSplinesControlPointData);
 
 	/**
@@ -210,8 +220,8 @@ private:
 	static bool AddLandscapeSplineControlPointMaterialOverrideAttributes(
 		const HAPI_NodeId& InNodeId, const TArray<TArray<FString>>& InMaterialOverrideRefs);
 
-	static bool AddLandscapeSplineControlPointNamesAttribute(
-		const HAPI_NodeId& InNodeId, const TArray<FString>& InControlPointNames);
+	static bool AddLandscapeSplineControlPointIdsAttribute(
+		const HAPI_NodeId& InNodeId, const TArray<int32>& InControlPointIds);
 
 	static bool AddLandscapeSplineHalfWidthAttribute(
 		const HAPI_NodeId& InNodeId, const TArray<float>& InHalfWidths);

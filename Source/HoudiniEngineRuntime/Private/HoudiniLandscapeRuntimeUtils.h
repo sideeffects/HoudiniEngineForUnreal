@@ -131,4 +131,19 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeRuntimeUtils
 	static bool DestroyLandscapeSplinesSegmentsAndControlPoints(UHoudiniLandscapeSplinesOutput* InOutputObject);
 	
 	static void DeleteLandscapeSplineCookedData(UHoudiniOutput* InOutput);
+
+    /**
+     * Get or generate a control point id. The ids are stored in InControlPointIdMap and InNextControlPointId is the
+     * next valid id we can use for a newly seen control point.
+     * @param InControlPoint The control point to get the id for.
+     * @param InControlPointIdMap The map to get the id from. If no valid id for control point in the map, generates one
+     * via InNextControlPointId and add it to the map.
+     * @param InNextControlPointId The next valid control point id. Updated if we needed to generate a new id for
+     * InControlPoint.
+     * @return The control point id. 
+     */
+     static int32 GetOrGenerateValidControlPointId(
+		ULandscapeSplineControlPoint const* const InControlPoint,
+		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
+		int32& InNextControlPointId);
 };

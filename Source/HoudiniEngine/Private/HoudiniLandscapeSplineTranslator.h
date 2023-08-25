@@ -119,7 +119,7 @@ private:
 		TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& SegmentsToApplyToLayers);
 
 	static ULandscapeSplineControlPoint* GetOrCreateControlPoint(
-		FLandscapeSplineInfo& SplineInfo, FName InDesiredName, bool& bOutCreated);
+		FLandscapeSplineInfo& SplineInfo, int32 InControlPointId, bool& bOutCreated);
 	
 	static bool CopySegmentMeshAttributesFromHoudini(
 		HAPI_NodeId InNodeId,

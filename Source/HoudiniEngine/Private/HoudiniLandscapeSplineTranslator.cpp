@@ -100,9 +100,9 @@ struct FLandscapeSplineCurveAttributes
 	bool bHasPointMeshScaleAttribute = false;
 	TArray<float> PointMeshScales;
 
-	/** The names of the control points. */
-	bool bHasPointNameAttribute = false;
-	TArray<FString> PointNames;
+	/** The ids of the control points. */
+	bool bHasPointIdAttribute = false;
+	TArray<int32> PointIds;
 
 	/** The point half-width. */
 	bool bHasPointHalfWidthAttribute = false;
@@ -270,11 +270,11 @@ struct FLandscapeSplineInfo
 	/** Curve prim and point attributes read from Houdini to apply to ULandscapeSplineControlPoint/Segment. */
 	TArray<FLandscapeSplineCurveAttributes> CurveAttributes;
 
-	/**
-	 * Control points mapped by desired name that have been created for this splines component. Names can be
-	 * auto-generated if no name attribute was present.
-	 */
-	TMap<FName, ULandscapeSplineControlPoint*> ControlPointMap;
+	/** Control points mapped by id that have been created for this splines component. */
+	TMap<int32, ULandscapeSplineControlPoint*> ControlPointMap;
+
+	/** The next control point ID (largest ID seen + 1) */
+	int32 NextControlPointId = 0;
 
 	/** Object used to keep track of segments/control points that we create for the FHoudiniOutputObject. */
 	UHoudiniLandscapeSplinesOutput* SplinesOutputObject = nullptr;
@@ -747,6 +747,11 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 			SplineInfo->Identifier = Identifier;
 			SplineInfo->OutputName = OutputName;
 
+			// Initialize NextControlPointId to 0. For each curve primitive added to this SplineInfo we will increase
+			// NextControlPointId based on the control point ids of the curve primitive, so that NextControlPointId
+			// is greater than all of the control point ids of all curves in the SplineInfo
+			SplineInfo->NextControlPointId = 0;
+
 			// Configure package params for spline actors and temp layers
 			SplineInfo->LayerPackageParams = InPackageParams;
 			SplineInfo->LayerPackageParams.ObjectId = Identifier.ObjectId;
@@ -884,8 +889,16 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 			CurveFirstPointIndex,
 			NumPointsInCurve,
 			SplineInfo->CurveAttributes.AddDefaulted_GetRef());
-	}
 
+		// Ensure that NextControlPointId is greater than all of the PointIds from this curve
+		FLandscapeSplineCurveAttributes& CurveAttributes = SplineInfo->CurveAttributes.Last();
+		for (const int32 ControlPointId : CurveAttributes.PointIds)
+		{
+			if (ControlPointId >= SplineInfo->NextControlPointId)
+				SplineInfo->NextControlPointId = ControlPointId + 1;
+		}
+	}
+	
 	// Fetch generic attributes
 	TArray<FHoudiniGenericAttribute> GenericPointAttributes;
 	const bool bHasGenericPointAttributes = (FHoudiniEngineUtils::GetGenericAttributeList(
@@ -928,25 +941,24 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 			{
 				const int32 HGPOPointIndex = SplineInfo.PerCurveFirstPointIndex[CurveEntryIdx] + CurvePointArrayIdx;
 				
-				// Check if this is a control point: it has a control point name attribute, or is the first or last
+				// Check if this is a control point: it has a control point id attribute >= 0, or is the first or last
 				// point of the curve prim.
-				FName ControlPointName = NAME_None;
-				if (!Attributes.PointNames.IsValidIndex(CurvePointArrayIdx))
+				int32 ControlPointId = INDEX_NONE;
+				if (Attributes.bHasPointIdAttribute && Attributes.PointIds.IsValidIndex(CurvePointArrayIdx))
 				{
-					HOUDINI_LOG_WARNING(TEXT("Point index %d out of range for " HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CONTROL_POINT_NAME " attribute."), CurvePointArrayIdx);
-				}
-				else
-				{
-					ControlPointName = *Attributes.PointNames[CurvePointArrayIdx]; 
+					ControlPointId = Attributes.PointIds[CurvePointArrayIdx];
+					if (ControlPointId < 0)
+						ControlPointId = INDEX_NONE;
 				}
 
 				bool bControlPointCreated = false;
 				ULandscapeSplineControlPoint* ThisControlPoint = nullptr;
 				// A point is a control point if:
 				// 1. It is the first or last point of the curve, or
-				// 2. It has non-blank control point name attribute
-				if (!PreviousControlPoint || CurvePointArrayIdx == NumPointsInCurve - 1 || !ControlPointName.IsNone())
-					ThisControlPoint = GetOrCreateControlPoint(SplineInfo, ControlPointName, bControlPointCreated);
+				// 2. It has a valid (>=0) control point id, or
+				// 3. The control point id attribute does not exist
+				if (!PreviousControlPoint || CurvePointArrayIdx == NumPointsInCurve - 1 || ControlPointId >= 0 || !Attributes.bHasPointIdAttribute)
+					ThisControlPoint = GetOrCreateControlPoint(SplineInfo, ControlPointId, bControlPointCreated);
 
 				if (bControlPointCreated && IsValid(ThisControlPoint))
 				{
@@ -1119,26 +1131,32 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 }
 
 ULandscapeSplineControlPoint*
-FHoudiniLandscapeSplineTranslator::GetOrCreateControlPoint(FLandscapeSplineInfo& SplineInfo, const FName InDesiredName, bool& bOutCreated)
+FHoudiniLandscapeSplineTranslator::GetOrCreateControlPoint(FLandscapeSplineInfo& SplineInfo, const int32 InControlPointId, bool& bOutCreated)
 {
 	ULandscapeSplineControlPoint* ControlPoint = nullptr;
-	if (InDesiredName.IsNone() || !SplineInfo.ControlPointMap.Contains(InDesiredName))
+	if (InControlPointId >= 0 && SplineInfo.ControlPointMap.Contains(InControlPointId))
+		ControlPoint = SplineInfo.ControlPointMap[InControlPointId];
+	if (!IsValid(ControlPoint))
 	{
-		// Point has not yet been created, so create it
-		// Have to ensure the name is unique (using InDesiredName as a base).
-		FName NewObjectName = InDesiredName;
-		if (StaticFindObjectFast(ULandscapeSplineControlPoint::StaticClass(), SplineInfo.SplinesComponent, InDesiredName))
+		// Point is null/invalid or has not yet been created, so create it
+		ControlPoint = NewObject<ULandscapeSplineControlPoint>(SplineInfo.SplinesComponent, ULandscapeSplineControlPoint::StaticClass());
+
+		// Assign a control point Id to the new point
+		//	InControlPointId if its valid
+		//	otherwise, generate a new Id from SplineInfo.NextControlPointId 
+		int32 ControlPointId = InControlPointId;
+		if (ControlPointId < 0)
 		{
-			NewObjectName = MakeUniqueObjectName(SplineInfo.SplinesComponent, ULandscapeSplineControlPoint::StaticClass(), InDesiredName);
+			ControlPointId = SplineInfo.NextControlPointId;
+			SplineInfo.NextControlPointId += 1;
 		}
-		ControlPoint = NewObject<ULandscapeSplineControlPoint>(SplineInfo.SplinesComponent, ULandscapeSplineControlPoint::StaticClass(), NewObjectName);
-		SplineInfo.ControlPointMap.Add(InDesiredName, ControlPoint);
+		
+		SplineInfo.ControlPointMap.Add(ControlPointId, ControlPoint);
 		bOutCreated = true;
 	}
 	else
 	{
-		// Found the previously created point, just return it
-		ControlPoint = SplineInfo.ControlPointMap[InDesiredName];
+		// Found the previously created valid point, just return it
 		bOutCreated = false;
 	}
 
@@ -1399,14 +1417,14 @@ FHoudiniLandscapeSplineTranslator::CopyCurveAttributesFromHoudini(
 		InFirstPointIndex,
 		InNumPoints);
 
-	// control point names
+	// control point ids
 	HAPI_AttributeInfo ControlPointNameAttrInfo;
-	OutCurveAttributes.bHasPointNameAttribute = FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+	OutCurveAttributes.bHasPointIdAttribute = FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
 		InNodeId,
 		InPartId,
-		HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CONTROL_POINT_NAME,
+		HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CONTROL_POINT_ID,
 		ControlPointNameAttrInfo,
-		OutCurveAttributes.PointNames,
+		OutCurveAttributes.PointIds,
 		TupleSizeOne,
 		HAPI_ATTROWNER_POINT,
 		InFirstPointIndex,
