@@ -717,7 +717,8 @@ bool FHoudiniLandscapeBake::BakeLandscapeSplines(
 
 		// Bake the landscape spline actors: for this, in replace mode, delete the previous bake actor if any, and then rename
 		// the temp landscape spline actor to the bake name.
-		if (OutputObject.OutputActors.Num() > 0 && OutputObject.OutputActors[0].IsValid() && OutputObject.OutputActors[0]->IsA<ALandscapeSplineActor>())
+		ALandscapeSplineActor* const ActorToBake = SplinesOutputObject->GetLandscapeSplineActor(); 
+		if (IsValid(ActorToBake))
 		{
 			// For a replace, delete previous baked actor for this output identifier, if any. Also check that
 			// it belongs to the same landscape.
@@ -737,7 +738,6 @@ bool FHoudiniLandscapeBake::BakeLandscapeSplines(
 				}
 			}
 
-			ALandscapeSplineActor* const ActorToBake = Cast<ALandscapeSplineActor>(OutputObject.OutputActors[0].Get());
 			// Rename to bake name
 			FHoudiniEngineBakeUtils::RenameAndRelabelActor(ActorToBake, DesiredBakeName);
 
@@ -747,10 +747,11 @@ bool FHoudiniLandscapeBake::BakeLandscapeSplines(
 		}
 		else
 		{
-			// Non-WP case, the splines component is the OutputComponent
+			// Non-WP case, there are no landscape spline actors, so we just track the landscape's LandscapeSplinesComponent
 			BakedOutputObject.Actor.Empty();
-			if (OutputObject.OutputComponents.Num() > 0)
-				BakedOutputObject.BakedComponent = FSoftObjectPath(OutputObject.OutputComponents[0]).ToString();
+			ULandscapeSplinesComponent* const SplinesComponent = SplinesOutputObject->GetLandscapeSplinesComponent();
+			if (IsValid(SplinesComponent))
+				BakedOutputObject.BakedComponent = FSoftObjectPath(SplinesComponent).ToString();
 			else
 				BakedOutputObject.BakedComponent.Empty();
 		}

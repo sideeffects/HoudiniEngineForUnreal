@@ -382,7 +382,6 @@ FHoudiniLandscapeRuntimeUtils::DeleteLandscapeSplineCookedData(UHoudiniOutput* c
 	if (!IsValid(InOutput))
 		return;
 
-	TSet<ALandscapeSplineActor*> LandscapeSplineActorsToDelete;
 	TArray<FHoudiniOutputObjectIdentifier> OutputObjectsToDelete;
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
 	for (auto& OutputObjectPair : OutputObjects)
@@ -392,54 +391,17 @@ FHoudiniLandscapeRuntimeUtils::DeleteLandscapeSplineCookedData(UHoudiniOutput* c
 			continue;
 
 		// Get the data stored during cooking
-		UHoudiniLandscapeSplinesOutput* OldOutputObject = Cast<UHoudiniLandscapeSplinesOutput>(PrevObj.OutputObject);
-
-		// Delete the splines (segments and control points)
-		DestroyLandscapeSplinesSegmentsAndControlPoints(OldOutputObject);
-
-		// Delete the edit layers
-		for (auto& LayerOutputPair : OldOutputObject->GetLayerOutputs())
-		{
-			UHoudiniLandscapeSplineTargetLayerOutput* const LayerOutput = LayerOutputPair.Value;
-			if (!IsValid(LayerOutput) || !IsValid(LayerOutput->Landscape))
-				continue;
-
-			if (LayerOutput->BakedEditLayer != LayerOutput->CookedEditLayer)
-				DeleteEditLayer(LayerOutput->Landscape, FName(LayerOutput->CookedEditLayer));
-		}
-
-		for (const TSoftObjectPtr<AActor>& Actor : PrevObj.OutputActors)
-		{
-			if (!Actor.IsValid() || !Actor->IsA<ALandscapeSplineActor>())
-				continue;
-
-			LandscapeSplineActorsToDelete.Add(Cast<ALandscapeSplineActor>(Actor.Get()));
-		}
+		UHoudiniLandscapeSplinesOutput* const OldOutputObject = Cast<UHoudiniLandscapeSplinesOutput>(PrevObj.OutputObject);
+		OldOutputObject->Clear();
 
 		OutputObjectsToDelete.Add(OutputObjectPair.Key);
 
-		PrevObj.OutputObject->ConditionalBeginDestroy();
+		OldOutputObject->ConditionalBeginDestroy();
 	}
 
 	// Delete the output objects we marked as to be deleted
 	for (const auto& OutputObjectIdentifierToDelete : OutputObjectsToDelete)
 	{
 		OutputObjects.Remove(OutputObjectIdentifierToDelete);
-	}
-
-	// Delete the landscape spline output actors
-	for (ALandscapeSplineActor* const LandscapeSplineActor : LandscapeSplineActorsToDelete)
-	{
-		if (!IsValid(LandscapeSplineActor))
-			continue;
-
-		ULandscapeInfo* const LSInfo = LandscapeSplineActor->GetLandscapeInfo();
-		if (!IsValid(LSInfo))
-			continue;
-
-#if WITH_EDITOR
-		LSInfo->UnregisterSplineActor(LandscapeSplineActor);
-#endif
-		LandscapeSplineActor->Destroy();
 	}
 }

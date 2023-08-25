@@ -239,6 +239,12 @@ struct FLandscapeSplineInfo
 
 	/** Custom output name, if applicable (WP only). */
 	FName OutputName = NAME_None;
+
+	/** Package params for temp layers. */
+	FHoudiniPackageParams LayerPackageParams;
+
+	/** Package params for spline actor. */
+	FHoudiniPackageParams SplineActorPackageParams;
 	
 	/** The landscape spline actor, if applicable (WP only). */
 	ALandscapeSplineActor* LandscapeSplineActor = nullptr;
@@ -381,25 +387,12 @@ FHoudiniLandscapeSplineTranslator::ProcessLandscapeSplineOutput(
 		// Destroy any segments that we previously created
 		UHoudiniLandscapeSplinesOutput* const SplinesOutputObject = Cast<UHoudiniLandscapeSplinesOutput>(OldOutputObject.OutputObject);
 		if (IsValid(SplinesOutputObject))
-			FHoudiniLandscapeRuntimeUtils::DestroyLandscapeSplinesSegmentsAndControlPoints(SplinesOutputObject);
-
-		// The ULandscapeSplineComponents are in OutputComponents
-		OldOutputObject.OutputComponents.Empty();
-		
-		// The landscape spline actors, if applicable, are the OutputActors. Destroy them.
-		for (const TSoftObjectPtr<AActor>& OutputActorObject : OldOutputObject.OutputActors)
 		{
-			ALandscapeSplineActor* OldActor = Cast<ALandscapeSplineActor>(OutputActorObject.Get());
-			if (!IsValid(OldActor))
-				continue;
-			
-			ULandscapeInfo* const LandscapeInfo = OldActor->GetLandscapeInfo();
-			if (IsValid(LandscapeInfo))
-			{
-				LandscapeInfo->UnregisterSplineActor(OldActor);
-			}
-			OldActor->Destroy();
+			// We already cleared all temp layers from this output at the beginning of this function
+			static constexpr bool bClearTempLayers = false;
+			SplinesOutputObject->Clear(bClearTempLayers);
 		}
+
 		OldOutputObject.OutputActors.Empty();
 	}
 	OldOutputObjects.Empty();
@@ -508,10 +501,10 @@ FHoudiniLandscapeSplineTranslator::DeleteTempLandscapeLayers(UHoudiniOutput* con
 		TSet<FName>& DeletedLayers = DeletedLandscapeLayers.FindOrAdd(Landscape);
 		for (const auto& LayerEntry : OutputObject->GetLayerOutputs())
 		{
-			UHoudiniLandscapeSplineTargetLayerOutput* const LayerOutput = LayerEntry.Value;
+			UHoudiniLandscapeSplineTargetLayerOutput const* const LayerOutput = LayerEntry.Value;
 			// Temp layers have a different EditLayerName from their BakedLayerName
 			if (LayerOutput->CookedEditLayer.IsEmpty()
-				|| LayerOutput->BakedEditLayer == LayerOutput->CookedEditLayer)
+					|| LayerOutput->BakedEditLayer == LayerOutput->CookedEditLayer)
 			{
 				continue;
 			}
@@ -754,6 +747,15 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 			SplineInfo->Identifier = Identifier;
 			SplineInfo->OutputName = OutputName;
 
+			// Configure package params for spline actors and temp layers
+			SplineInfo->LayerPackageParams = InPackageParams;
+			SplineInfo->LayerPackageParams.ObjectId = Identifier.ObjectId;
+			SplineInfo->LayerPackageParams.GeoId = Identifier.GeoId;
+			SplineInfo->LayerPackageParams.PartId = Identifier.PartId;
+			
+			SplineInfo->SplineActorPackageParams = SplineInfo->LayerPackageParams;
+			SplineInfo->SplineActorPackageParams.SplitStr = OutputName.ToString();
+
 			FHoudiniOutputObject* FoundOutputObject = InCurrentSplines.Find(Identifier);
 
 			SplineInfo->LandscapeProxy = TargetLandscape;
@@ -777,11 +779,13 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 					// Check if we found a matching Output Object, and check if it already has a landscape spline actor.
 					// That actor must belong to SplineInfo->Landscape/Info. If it does not then we won't reuse that
 					// output object
-					if (FoundOutputObject && !FoundOutputObject->OutputActors.IsEmpty() && FoundOutputObject->OutputActors[0].IsValid()
-							&& FoundOutputObject->OutputActors[0]->IsA<ALandscapeSplineActor>())
+					if (FoundOutputObject && IsValid(FoundOutputObject->OutputObject)
+							&& FoundOutputObject->OutputObject->IsA<UHoudiniLandscapeSplinesOutput>())
 					{
-						ALandscapeSplineActor* const CurrentActor = Cast<ALandscapeSplineActor>(FoundOutputObject->OutputActors[0].Get());
-						if (CurrentActor->GetLandscapeInfo() == SplineInfo->LandscapeInfo)
+						UHoudiniLandscapeSplinesOutput* const SplinesOutputObject = Cast<UHoudiniLandscapeSplinesOutput>(
+							FoundOutputObject->OutputObject);
+						ALandscapeSplineActor* const CurrentActor = SplinesOutputObject->GetLandscapeSplineActor();
+						if (IsValid(CurrentActor) && CurrentActor->GetLandscapeInfo() == SplineInfo->LandscapeInfo)
 						{
 							SplineInfo->LandscapeSplineActor = CurrentActor;
 							SplineInfo->bReusedPreviousOutput = true;
@@ -792,12 +796,7 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 					{
 						SplineInfo->LandscapeSplineActor = SplineInfo->LandscapeInfo->CreateSplineActor(FVector::ZeroVector);
 						// Name the actor according to OutputName via PackageParams.
-						FHoudiniPackageParams SplineActorPackageParams = InPackageParams;
-						SplineActorPackageParams.ObjectId = Identifier.ObjectId;
-						SplineActorPackageParams.GeoId = Identifier.GeoId;
-						SplineActorPackageParams.PartId = Identifier.PartId;
-						SplineActorPackageParams.SplitStr = OutputName.ToString();
-						FHoudiniEngineUtils::SafeRenameActor(SplineInfo->LandscapeSplineActor, SplineActorPackageParams.GetPackageName());
+						FHoudiniEngineUtils::SafeRenameActor(SplineInfo->LandscapeSplineActor, SplineInfo->SplineActorPackageParams.GetPackageName());
 					}
 					
 					if (IsValid(SplineInfo->LandscapeSplineActor))
@@ -817,10 +816,13 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 				else
 				{
 					// Check if we are re-using the splines component 
-					if (FoundOutputObject && !FoundOutputObject->OutputComponents.IsEmpty() && IsValid(FoundOutputObject->OutputComponents[0])
-							&& FoundOutputObject->OutputComponents[0] == SplineInfo->SplinesComponent)
+					if (FoundOutputObject && IsValid(FoundOutputObject->OutputObject)
+						&& FoundOutputObject->OutputObject->IsA<UHoudiniLandscapeSplinesOutput>()) 
 					{
-						SplineInfo->bReusedPreviousOutput = true;
+						UHoudiniLandscapeSplinesOutput* const SplinesOutputObject = Cast<UHoudiniLandscapeSplinesOutput>(
+							FoundOutputObject->OutputObject);
+						if (SplinesOutputObject->GetLandscapeSplinesComponent() == SplineInfo->SplinesComponent)
+							SplineInfo->bReusedPreviousOutput = true;
 					}
 				}
 			}
@@ -832,16 +834,10 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 				// If we are not re-using the previous output object with this identifier, record / create it as a new one.
 
 				FHoudiniOutputObject OutputObject;
-				OutputObject.OutputComponents.Add(SplineInfo->SplinesComponent);
-				if (bIsUsingWorldPartition)
-					OutputObject.OutputActors.Add(SplineInfo->LandscapeSplineActor);
 
 				// Set the output object in the SplineInfo so that we can record segments and control points as we
 				// create them
 				SplineInfo->SplinesOutputObject = NewObject<UHoudiniLandscapeSplinesOutput>(InOutput);
-
-				SplineInfo->SplinesOutputObject->SetLandscapeProxy(SplineInfo->LandscapeProxy);
-				SplineInfo->SplinesOutputObject->SetLandscape(SplineInfo->Landscape);
 				OutputObject.OutputObject = SplineInfo->SplinesOutputObject;
 
 				OutputSplines.Add(SplineInfo->Identifier, OutputObject);
@@ -859,13 +855,16 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 					FoundOutputObject->OutputObject = SplineInfo->SplinesOutputObject;
 				}
 
-				// In the check for re-using the landscape, we checked that the LandscapeInfo or the SplinesComponents match
-				SplineInfo->SplinesOutputObject->SetLandscapeProxy(SplineInfo->LandscapeProxy);
-				SplineInfo->SplinesOutputObject->SetLandscape(SplineInfo->Landscape);
-
 				// Re-use the FoundOutputObject
 				OutputSplines.Add(SplineInfo->Identifier, *FoundOutputObject);
 			}
+
+			// Update the objects on the SplinesOutputObject to match the SplineInfo 
+			SplineInfo->SplinesOutputObject->SetLandscapeProxy(SplineInfo->LandscapeProxy);
+			SplineInfo->SplinesOutputObject->SetLandscape(SplineInfo->Landscape);
+			SplineInfo->SplinesOutputObject->SetLandscapeSplinesComponent(SplineInfo->SplinesComponent);
+			SplineInfo->SplinesOutputObject->SetLandscapeSplineActor(
+				bIsUsingWorldPartition ? SplineInfo->LandscapeSplineActor : nullptr);
 		}
 
 		if (!SplineInfo->bIsValid)
@@ -1015,7 +1014,7 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 						ThisControlPoint->AutoCalcRotation();
 
 					// Add the segment to the appropriate LayerOutput. Will create create the LayerOutput if necessary.
-					AddSegmentToOutputObject(Segment, Attributes, CurvePointArrayIdx, InHAC, InPackageParams, *SplineInfo.SplinesOutputObject);
+					AddSegmentToOutputObject(Segment, Attributes, CurvePointArrayIdx, InHAC, SplineInfo.LayerPackageParams, *SplineInfo.SplinesOutputObject);
 					Segments.Add(Segment);
 				}
 

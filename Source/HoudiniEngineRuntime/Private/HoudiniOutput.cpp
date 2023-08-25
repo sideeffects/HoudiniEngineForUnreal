@@ -37,7 +37,9 @@
 #include "Engine/Blueprint.h"
 #include "Engine/Engine.h"
 #include "Misc/StringFormatArg.h"
+#include "Landscape.h"
 #include "LandscapeLayerInfoObject.h"
+#include "LandscapeSplinesComponent.h"
 #include "LandscapeSplineActor.h"
 #include "LandscapeSplineControlPoint.h"
 #include "LandscapeSplineSegment.h"
@@ -63,6 +65,45 @@ UHoudiniLandscapeSplinesOutput::GetLayerSegments(const FName InEditLayer, TArray
 
 	OutSegments = LayerOutput->Segments;
 	return true;
+}
+
+
+void
+UHoudiniLandscapeSplinesOutput::Clear(const bool bInClearTempLayers)
+{
+	// Delete the splines (segments and control points)
+	FHoudiniLandscapeRuntimeUtils::DestroyLandscapeSplinesSegmentsAndControlPoints(this);
+
+	// Delete the edit layers
+	for (const auto& LayerOutputPair : LayerOutputs)
+	{
+		UHoudiniLandscapeSplineTargetLayerOutput const* const LayerOutput = LayerOutputPair.Value;
+		if (!IsValid(LayerOutput) || !IsValid(LayerOutput->Landscape))
+			continue;
+
+		if (bInClearTempLayers && LayerOutput->BakedEditLayer != LayerOutput->CookedEditLayer)
+			FHoudiniLandscapeRuntimeUtils::DeleteEditLayer(LayerOutput->Landscape, FName(LayerOutput->CookedEditLayer));
+	}
+
+	if (IsValid(LandscapeSplineActor))
+	{
+		ULandscapeInfo* const LSInfo = LandscapeSplineActor->GetLandscapeInfo();
+		if (IsValid(LSInfo))
+		{
+#if WITH_EDITOR
+			LSInfo->UnregisterSplineActor(LandscapeSplineActor);
+#endif
+			LandscapeSplineActor->Destroy();
+		}
+	}
+
+	Landscape = nullptr;
+	LandscapeProxy = nullptr;
+	LandscapeSplineActor = nullptr;
+	LandscapeSplinesComponent = nullptr;
+	LayerOutputs.Empty();
+	Segments.Empty();
+	ControlPoints.Empty();
 }
 
 
@@ -661,6 +702,13 @@ UHoudiniOutput::Clear()
 			ProxyComp->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 			ProxyComp->UnregisterComponent();
 			ProxyComp->DestroyComponent();
+		}
+
+		// Destroy Landscape Spline Output Object
+		if (IsValid(CurrentOutputObject.Value.OutputObject) && CurrentOutputObject.Value.OutputObject->IsA<UHoudiniLandscapeSplinesOutput>())
+		{
+			UHoudiniLandscapeSplinesOutput* const LandscapeSplinesOutputObject = Cast<UHoudiniLandscapeSplinesOutput>(CurrentOutputObject.Value.OutputObject);
+			LandscapeSplinesOutputObject->Clear();
 		}
 	}
 

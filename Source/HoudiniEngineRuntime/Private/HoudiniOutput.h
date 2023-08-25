@@ -38,8 +38,10 @@
 class UFoliageType;
 class UMaterialInterface;
 class ULandscapeLayerInfoObject;
+class ULandscapeSplinesComponent;
 class ULandscapeSplineControlPoint;
 class ULandscapeSplineSegment;
+class ALandscapeSplineActor;
 struct FHoudiniDataLayer;
 
 
@@ -232,12 +234,27 @@ public:
 	void SetLandscapeProxy(ALandscapeProxy* InLandscapeProxy) { LandscapeProxy = InLandscapeProxy; }
 	ALandscapeProxy* GetLandscapeProxy() const { return LandscapeProxy; }
 
+	void SetLandscapeSplineActor(ALandscapeSplineActor* InLandscapeSplineActor) { LandscapeSplineActor = InLandscapeSplineActor; }
+	ALandscapeSplineActor* GetLandscapeSplineActor() const { return LandscapeSplineActor; }
+
+	void SetLandscapeSplinesComponent(ULandscapeSplinesComponent* InLandscapeSplinesComponent) { LandscapeSplinesComponent = InLandscapeSplinesComponent; }
+	ULandscapeSplinesComponent* GetLandscapeSplinesComponent() const { return LandscapeSplinesComponent; }
+
+	// Clear the output object, destroying the segments, control points and landscape spline actor (if applicable).
+	void Clear(bool bInClearTempLayers=true);
+
 private:
 	UPROPERTY()
 	ALandscape* Landscape;
 
 	UPROPERTY()
 	ALandscapeProxy* LandscapeProxy;
+
+	UPROPERTY()
+	ALandscapeSplineActor* LandscapeSplineActor;
+
+	UPROPERTY()
+	ULandscapeSplinesComponent* LandscapeSplinesComponent;
 
 	UPROPERTY()
 	TMap<FName, UHoudiniLandscapeSplineTargetLayerOutput*> LayerOutputs;
