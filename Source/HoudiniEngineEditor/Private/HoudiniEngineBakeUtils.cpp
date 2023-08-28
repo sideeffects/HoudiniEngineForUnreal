@@ -6753,6 +6753,10 @@ FHoudiniEngineBakeUtils::BakePDGWorkResultObject(
 	
 	OutBakedActors = MoveTemp(WROBakedActors);
 	
+	// Ensure that the outer level (or actor in the case of OFPA) is marked as dirty so that references to the
+	// output actors / objects and baked actor results are saved
+	InNode->MarkPackageDirty();
+	
 	return true;
 }
 
