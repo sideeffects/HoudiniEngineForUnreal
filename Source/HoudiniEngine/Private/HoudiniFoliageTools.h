@@ -39,7 +39,7 @@ class UStaticMesh;
 class USceneComponent;
 class UFoliageType;
 
-enum EFoliageAttachmentType
+enum class EFoliageAttachmentType
 {
 	None = 0,
 	All = 1,
