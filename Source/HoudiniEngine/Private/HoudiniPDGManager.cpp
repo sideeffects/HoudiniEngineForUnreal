@@ -1613,7 +1613,8 @@ FHoudiniPDGManager::SyncAndPruneWorkItems(UTOPNode* InTOPNode)
 		HOUDINI_LOG_WARNING(TEXT("GetPDGGraphContextId call failed on TOP Node %s (%d)"), *(InTOPNode->NodeName), InTOPNode->NodeId);
 		return -1;
 	}
-	
+
+	bool bChanged = false;
 	for (const HAPI_PDG_WorkItemId& WorkItemID : WorkItemIDs)
 	{
 		WorkItemIDSet.Add(static_cast<int32>(WorkItemID));
@@ -1623,6 +1624,7 @@ FHoudiniPDGManager::SyncAndPruneWorkItems(UTOPNode* InTOPNode)
 		{
 			CreateOrRelinkWorkItemResult(InTOPNode, ContextId, WorkItemID);
 			InTOPNode->OnWorkItemCreated(WorkItemID);
+			bChanged = true;
 		}
 	}
 
@@ -1646,9 +1648,17 @@ FHoudiniPDGManager::SyncAndPruneWorkItems(UTOPNode* InTOPNode)
 			InTOPNode->WorkResult.RemoveAt(Index);
 			InTOPNode->OnWorkItemRemoved(WorkResult.WorkItemID);
 			NumRemoved++;
+			bChanged = true;
 		}
 	}
 
+	if (bChanged)
+	{
+		// Ensure that the outer level (or actor in the case of OFPA) is marked as dirty so that references to the
+		// output actors / objects are saved
+		InTOPNode->MarkPackageDirty();
+	}
+	
 	return NumRemoved;
 }
 

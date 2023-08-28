@@ -544,6 +544,10 @@ UTOPNode::DeleteWorkResultObjectOutputs(const int32 InWorkResultArrayIndex, cons
 	if (bInDeleteOutputActors)
 		WRO.GetOutputActorOwner().DestroyOutputActor();
 	WRO.State = EPDGWorkResultState::Deleted;
+
+	// Ensure that the outer level (or actor in the case of OFPA) is marked as dirty so that references to the
+	// output actors / objects are saved
+	MarkPackageDirty();
 }
 
 void
@@ -1202,6 +1206,10 @@ UHoudiniPDGAssetLink::ClearTOPNodeWorkItemResults(UTOPNode* TOPNode)
 	}
 
 	OutputActorOwner.DestroyOutputActor();
+
+	// Ensure that the outer level (or actor in the case of OFPA) is marked as dirty so that changes to the
+	// output actors / objects are saved
+	TOPNode->MarkPackageDirty();
 }
 
 
@@ -1216,7 +1224,11 @@ UHoudiniPDGAssetLink::ClearWorkItemResultByID(const int32& InWorkItemID, UTOPNod
 	{
 		WorkResult->ClearAndDestroyResultObjects(InTOPNode->GetHoudiniComponentGuid());
 		// TODO: Should we destroy the FTOPWorkResult struct entirely here?
-		//TOPNode.WorkResult.RemoveByPredicate 
+		//TOPNode.WorkResult.RemoveByPredicate
+
+		// Ensure that the outer level (or actor in the case of OFPA) is marked as dirty so that changes to the
+		// output actors / objects are saved
+		InTOPNode->MarkPackageDirty();
 	}
 }
 
