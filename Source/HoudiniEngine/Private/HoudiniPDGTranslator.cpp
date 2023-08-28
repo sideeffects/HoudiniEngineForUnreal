@@ -118,10 +118,20 @@ FHoudiniPDGTranslator::CreateAllResultObjectsForPDGWorkItem(
 			if (!IsValid(TOPNodeOutputActor))
 			{
 				if (NodeOutputActorOwner.CreateOutputActor(World, InAssetLink, InAssetLink->OutputParentActor, FName(InTOPNode->NodeName)))
+				{
 					TOPNodeOutputActor = NodeOutputActorOwner.GetOutputActor();
+					// Ensure that the outer level (or actor in the case of OFPA) is marked as dirty so that references to the
+					// output actors / objects are saved
+					InTOPNode->MarkPackageDirty();
+				}
 			}
 			if (WROOutputActorOwner.CreateOutputActor(World, InAssetLink, TOPNodeOutputActor, FName(InWorkResultObject.Name)))
+			{
 				WorkItemOutputActor = WROOutputActorOwner.GetOutputActor();
+				// Ensure that the outer level (or actor in the case of OFPA) is marked as dirty so that references to the
+				// output actors / objects are saved
+				InTOPNode->MarkPackageDirty();
+			}
 		}
 
 		for (auto& OldOutput : OldTOPOutputs)
@@ -213,10 +223,20 @@ FHoudiniPDGTranslator::LoadExistingAssetsAsResultObjectsForPDGWorkItem(
 		if (!IsValid(TOPNodeOutputActor))
 		{
 			if (NodeOutputActorOwner.CreateOutputActor(World, InAssetLink, InAssetLink->OutputParentActor, FName(InTOPNode->NodeName)))
+			{
 				TOPNodeOutputActor = NodeOutputActorOwner.GetOutputActor();
+				// Ensure that the outer level (or actor in the case of OFPA) is marked as dirty so that references to the
+				// output actors / objects are saved
+				InTOPNode->MarkPackageDirty();
+			}
 		}
 		if (WROOutputActorOwner.CreateOutputActor(World, InAssetLink, TOPNodeOutputActor, FName(InWorkResultObject.Name)))
+		{
 			WorkItemOutputActor = WROOutputActorOwner.GetOutputActor();
+			// Ensure that the outer level (or actor in the case of OFPA) is marked as dirty so that references to the
+			// output actors / objects are saved
+			InTOPNode->MarkPackageDirty();
+		}
 	}
 
 	InWorkResultObject.SetResultOutputs(InOutputs);
