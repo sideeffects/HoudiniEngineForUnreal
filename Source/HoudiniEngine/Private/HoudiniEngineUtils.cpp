@@ -3229,6 +3229,10 @@ FHoudiniEngineUtils::UpdateEditorProperties_Internal(TArray<UObject*> ObjectsToU
 	// IDetailCategoryBuilder &CategoryBuilder = StructBuilder.GetParentCategory();
     // IDetailLayoutBuilder &LayoutBuilder = CategoryBuilder.GetParentLayout();
     // LayoutBuilder.ForceRefreshDetails();
+	// However, the above code should only be called during UI functions... for now, the following works:
+
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	PropertyEditorModule.NotifyCustomizationModuleChanged();
 
 #if WITH_EDITOR	
 	if (!bInForceFullUpdate)
