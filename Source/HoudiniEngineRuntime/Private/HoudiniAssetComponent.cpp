@@ -2549,9 +2549,14 @@ UHoudiniAssetComponent::CalcBounds(const FTransform & LocalToWorld) const
 
 
 FBox
-UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, const bool& bIgnoreGeneratedLandscape) const
+UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreGeneratedLandscape) const
 {
 	FBox BoxBounds(ForceInitToZero);
+
+	// This function may be called during destruction of the HAC, when the world is not set, so gracefully
+	// do nothing in this case.
+	if (!IsValid(this->GetHACWorld()))
+		return BoxBounds;
 
 	/*
 	// Commented out: Creates incorrect focus bounds..
