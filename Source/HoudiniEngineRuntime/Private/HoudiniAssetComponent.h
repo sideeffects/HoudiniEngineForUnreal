@@ -367,7 +367,7 @@ public:
 	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
 	virtual void OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport) override;
 
-	FBox GetAssetBounds(UHoudiniInput* IgnoreInput, const bool& bIgnoreGeneratedLandscape) const;
+	FBox GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreGeneratedLandscape) const;
 
 	// Set this component's input presets
 	void SetInputPresets(const TMap<UObject*, int32>& InPresets);
