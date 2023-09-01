@@ -249,6 +249,8 @@ public:
     virtual bool IsHAPINodeValid(const int32 InNodeId) const = 0;
 	/** Helper function that deletes the given HAPI node. Returns true if the HAPI node was successfully deleted. */
     virtual bool DeleteHAPINode(const int32 InNodeId) const = 0;
+	/** Helper function that sets the display flag on given HAPI node. */
+    virtual bool SetHAPINodeDisplay(const int32 InNodeId, const bool bInOnOff) const = 0;
 	/** Helper function that gets the HAPI nodes used by a particular entry. */
 	virtual bool GetHAPINodeIds(const FUnrealObjectInputIdentifier& InIdentifier, TArray<int32>& OutNodeIds) const = 0;
 	/** Get all HAPI node ids that are managed by the manager. */
@@ -395,6 +397,7 @@ public:
 	virtual inline bool AreHAPINodesValid(const FUnrealObjectInputIdentifier& InIdentifier) const override;
     virtual inline bool IsHAPINodeValid(const int32 InNodeId) const override;
     virtual inline bool DeleteHAPINode(const int32 InNodeId) const override;
+    virtual inline bool SetHAPINodeDisplay(const int32 InNodeId, const bool bInOnOff) const override;
 	virtual inline bool GetHAPINodeIds(const FUnrealObjectInputIdentifier& InIdentifier, TArray<int32>& OutNodeIds) const override;
 	virtual inline bool GetAllHAPINodeIds(TArray<int32>& OutNodeIds) const override;
 
@@ -629,6 +632,14 @@ FUnrealObjectInputManager::DeleteHAPINode(const int32 InNodeId) const
 {
 	if (IUnrealObjectInputManager const* const Impl = GetImplementation())
 		return Impl->DeleteHAPINode(InNodeId);
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::SetHAPINodeDisplay(const int32 InNodeId, const bool bInOnOff) const
+{
+	if (IUnrealObjectInputManager const* const Impl = GetImplementation())
+		return Impl->SetHAPINodeDisplay(InNodeId, bInOnOff);
 	return false;
 }
 
