@@ -4912,7 +4912,7 @@ FHoudiniEngineBakeUtils::BakeHeightfield(
 				TArray<uint8> CurrentLayerIntData;
 				FLinearColor LayerUsageDebugColor;
 				FString LayerName;
-				if (!FUnrealLandscapeTranslator::GetLandscapeLayerData(InLandscapeProxy, InLandscapeInfo, n, CurrentLayerIntData, LayerUsageDebugColor, LayerName))
+				if (!FUnrealLandscapeTranslator::GetLandscapeTargetLayerData(InLandscapeProxy, InLandscapeInfo, n, CurrentLayerIntData, LayerUsageDebugColor, LayerName))
 					continue;
 
 				FLandscapeImportLayerInfo CurrentLayerInfo;

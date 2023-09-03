@@ -165,4 +165,9 @@ public:
 	// If false, the meshes are sent individually.
 	UPROPERTY()
 	bool bMergeSplineMeshComponents;
+
+	// If enabled, target layers are exported per Edit Layer.
+	UPROPERTY()
+	bool bExportPerEditLayerData;
+
 };

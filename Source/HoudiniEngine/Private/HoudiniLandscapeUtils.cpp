@@ -194,14 +194,14 @@ FLandscapeLayer* FHoudiniLandscapeUtils::GetEditLayerForWriting(ALandscape* Land
 			return nullptr;
 	}
 
-	FLandscapeLayer* UnrealTargetLayer = Landscape->GetLayer(EditLayerIndex);
+	FLandscapeLayer* UnrealEditLayer = Landscape->GetLayer(EditLayerIndex);
 
-	if (UnrealTargetLayer->bLocked)
+	if (UnrealEditLayer->bLocked)
 	{
 		HOUDINI_LOG_ERROR(TEXT("Cannot write to locked layer %s"), *LayerName.ToString());
 		return nullptr;
 	}
-	return UnrealTargetLayer;
+	return UnrealEditLayer;
 }
 
 FLandscapeLayer* 
@@ -214,8 +214,8 @@ FHoudiniLandscapeUtils::GetEditLayerForReading(ALandscape* Landscape, const FNam
 	if (EditLayerIndex == INDEX_NONE)
 		return nullptr;
 
-	FLandscapeLayer* UnrealTargetLayer = Landscape->GetLayer(EditLayerIndex);
-	return UnrealTargetLayer;
+	FLandscapeLayer* UnrealEditLayer = Landscape->GetLayer(EditLayerIndex);
+	return UnrealEditLayer;
 
 }
 
@@ -887,6 +887,38 @@ void FHoudiniLandscapeUtils::SetWorldPartitionGridSize(ALandscape* LandscapeProx
 			World->DestroyActor(ActorToDelete);
 		}
 	}
+}
+
+
+FHoudiniExtents FHoudiniLandscapeUtils::GetLandscapeExtents(ALandscapeProxy* LandscapeProxy)
+{
+	FHoudiniExtents Extents;
+
+	// Get the landscape X/Y Size
+	Extents.Min.X = MAX_int32;
+	Extents.Min.Y = MAX_int32;
+	Extents.Max.X = -MAX_int32;
+	Extents.Max.Y = -MAX_int32;
+
+	ALandscape* Landscape = LandscapeProxy->GetLandscapeActor();
+	if (LandscapeProxy == Landscape)
+	{
+		// The proxy is a landscape actor, so we have to use the landscape extent (landscape components
+		// may have been moved to proxies and may not be present on this actor).
+		Landscape->GetLandscapeInfo()->GetLandscapeExtent(Extents.Min.X, Extents.Min.Y, Extents.Max.X, Extents.Max.Y);
+	}
+	else
+	{
+		// We only want to get the data for this landscape proxy.
+		// To handle streaming proxies correctly, get the extents via all the components,
+		// not by calling GetLandscapeExtent or we'll end up sending ALL the streaming proxies.
+		for (const ULandscapeComponent* Comp : LandscapeProxy->LandscapeComponents)
+		{
+			Comp->GetComponentExtent(Extents.Min.X, Extents.Min.Y, Extents.Max.X, Extents.Max.Y);
+		}
+	}
+
+	return Extents;
 }
 
 FHoudiniExtents
