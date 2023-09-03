@@ -307,6 +307,8 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
             const FHoudiniPackageParams& PackageParams,
             TArray<UPackage *> & CreatedPackages);
 
+    static FHoudiniExtents GetLandscapeExtents(ALandscapeProxy * Landscape);
+
     //-------------------
     // Landscape splines
     //-------------------

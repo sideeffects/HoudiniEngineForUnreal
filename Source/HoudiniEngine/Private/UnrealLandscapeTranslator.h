@@ -42,7 +42,8 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 		// Unreal Landscape to Houdini Heightfield
 		// ------------------------------------------------------------------------------------------
 		static bool CreateHeightfieldFromLandscape(
-			ALandscapeProxy* LandcapeProxy, 
+			ALandscapeProxy* LandcapeProxy,
+			bool bExportPerLayerData,
 			HAPI_NodeId& CreatedHeightfieldNodeId,
 			const FString &InputNodeNameStr,
 			const HAPI_NodeId& ParentNodeId);
@@ -50,6 +51,7 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 		static bool CreateHeightfieldFromLandscapeComponentArray(
 			ALandscapeProxy* LandscapeProxy,
 			const TSet< ULandscapeComponent * > & SelectedComponents,
+			bool bExportPerLayerData,
 			HAPI_NodeId& CreatedHeightfieldNodeId,
 			const FString &InputNodeNameStr,
 			const HAPI_NodeId& ParentNodeId);
@@ -61,6 +63,7 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			HAPI_NodeId& HeightFieldId,
 			HAPI_NodeId& MergeId,
 			int32& MergeInputIndex,
+			bool bExportPerLayerData,
 			const FString& InputNodeNameStr,
 			const FTransform & ParentTransform,
 			const HAPI_NodeId& ParentNodeId);
@@ -131,10 +134,9 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 		// Converts Unreal uint8 values to Houdini Float
 		static bool ConvertLandscapeLayerDataToHeightfieldData(
 			const TArray<uint8>& IntHeightData,
-			const int32& XSize, const int32& YSize,
+			int32 XSize, int32 YSize,
 			const FLinearColor& LayerUsageDebugColor,
-			TArray<float>& LayerFloatValues,
-			HAPI_VolumeInfo& LayerVolumeInfo);
+			TArray<float>& LayerFloatValues);
 
 		// Creates an unlocked heightfield input node
 		static bool CreateHeightfieldInputNode(
@@ -170,24 +172,24 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 		*/
 
 		// Extracts the uint8 values of a given landscape
-		static bool GetLandscapeLayerData(
+		static bool GetLandscapeTargetLayerData(
 			ALandscapeProxy* LandscapeProxy,
 			ULandscapeInfo* LandscapeInfo,
-			const int32& LayerIndex,
-			TArray<uint8>& LayerData,
-			FLinearColor& LayerUsageDebugColor,
-			FString& LayerName);
+			int32 TargetLayerIndex,
+			TArray<uint8>& TargetLayerData,
+			FLinearColor& TargetLayerDebugColor,
+			FString& TaregtLayerName);
 
-		static bool GetLandscapeLayerData(
+		static bool GetLandscapeTargetLayerData(
 			ULandscapeInfo* LandscapeInfo,
-			const int32& LayerIndex,
-			const int32& MinX,
-			const int32& MinY,
-			const int32& MaxX,
-			const int32& MaxY,
-			TArray<uint8>& LayerData,
-			FLinearColor& LayerUsageDebugColor,
-			FString& LayerName);
+			int32 TargetLayerIndex,
+			int32 MinX,
+			int32 MinY,
+			int32 MaxX,
+			int32 MaxY,
+			TArray<uint8>& TargetLayerData,
+			FLinearColor& TargetLayerUsageDebugColor,
+			FString& TargetLayerName);
 
 		// Initialise the Heightfield Mask with default values
 		static bool InitDefaultHeightfieldMask(
@@ -289,15 +291,48 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			const TArray<float>& LandscapeLayerArray,
 			const FString& LayerName);
 
-		static bool ExtractAndConvertAllLandscapeLayers(
+		static bool ExtractAndConvertMainEditLayer(
 			ALandscapeProxy* LandscapeProxy,
-			const HAPI_NodeId HeightFieldId,
-			const HAPI_PartId PartId,
-			const HAPI_NodeId MergeId,
-			const HAPI_NodeId MaskId,
+			HAPI_NodeId HeightFieldId,
+			HAPI_PartId PartId,
+			HAPI_NodeId MergeId,
+			HAPI_NodeId MaskId,
 			const HAPI_VolumeInfo& HeightfieldVolumeInfo,
-			const int32 XSize,
-			const int32 YSize,
+			int32 XSize,
+			int32 YSize,
 			int32 & OutMergeInputIndex);
 
+
+		static bool ExtractAndConvertEditLayers(
+			ALandscapeProxy* LandscapeProxy,
+			HAPI_NodeId HeightFieldId,
+			HAPI_PartId PartId,
+			HAPI_NodeId MergeId,
+			HAPI_NodeId MaskId,
+			const HAPI_VolumeInfo& HeightfieldVolumeInfo,
+			int32 XSize,
+			int32 YSize,
+			int32& OutMergeInputIndex);
+
+		static bool ExtractAndConvertAllLandscapeLayers(
+			ALandscapeProxy* LandscapeProxy,
+			HAPI_NodeId HeightFieldId,
+			HAPI_PartId PartId,
+			HAPI_NodeId MergeId,
+			HAPI_NodeId MaskId,
+			bool bExportPerLayerData,
+			const HAPI_VolumeInfo& HeightfieldVolumeInfo,
+			int32 XSize,
+			int32 YSize,
+			int32& OutMergeInputIndex);
+
+		static HAPI_NodeId CreateVolumeLayer(ALandscapeProxy* LandscapeProxy,
+			const FString& VolumeNameLayer,
+			const HAPI_Transform& NodeTransform,
+			HAPI_NodeId HeightFieldId,
+			HAPI_PartId PartId,
+			HAPI_PartId MaskId,
+			int XSize,
+			int YSize,
+			TArray<float>& Data);
 };
