@@ -53,21 +53,20 @@ FHoudiniLandscapeRuntimeUtils::DeleteLandscapeCookedData(UHoudiniOutput* InOutpu
 			// Get the layer data stored during cooking
 			UHoudiniLandscapeTargetLayerOutput* OldLayer = Cast<UHoudiniLandscapeTargetLayerOutput>(PrevObj.OutputObject);
 
-			// Check if the data is valid; possibly a user deleted the cooked data by hand.
-			if (!IsValid(OldLayer->Landscape))
-				continue;
-
-			// Delete the edit layers
-			if (OldLayer->BakedEditLayer != OldLayer->CookedEditLayer)
-			{
-				DeleteEditLayer(OldLayer->Landscape, FName(OldLayer->CookedEditLayer));
-			}
-
-			// Remove any landscapes that were created.
-			if (OldLayer->bCreatedLandscape && OldLayer->Landscape)
-				LandscapesToDelete.Add(OldLayer->Landscape);
-
 			OutputObjectsToDelete.Add(OutputObjectPair.Key);
+
+			if (IsValid(OldLayer->Landscape))
+			{
+				// Delete the edit layers
+				if (OldLayer->BakedEditLayer != OldLayer->CookedEditLayer)
+				{
+					DeleteEditLayer(OldLayer->Landscape, FName(OldLayer->CookedEditLayer));
+				}
+
+				// Remove any landscapes that were created.
+				if (OldLayer->bCreatedLandscape && OldLayer->Landscape)
+					LandscapesToDelete.Add(OldLayer->Landscape);
+			}
 
 			PrevObj.OutputObject->ConditionalBeginDestroy();
 		}

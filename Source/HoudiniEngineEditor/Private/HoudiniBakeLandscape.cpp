@@ -160,17 +160,13 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 
 	}
 
-	// Delete cooked layer.
-	FHoudiniLandscapeRuntimeUtils::DeleteEditLayer(OutputLandscape, FName(LayerOutput.CookedEditLayer));
-
 	//---------------------------------------------------------------------------------------------------------------------------
 	// Make sure baked layer is visible.
 	//---------------------------------------------------------------------------------------------------------------------------
+
 	int EditLayerIndex = OutputLandscape->GetLayerIndex(FName(LayerOutput.BakedEditLayer));
 	if (EditLayerIndex != INDEX_NONE)
 		OutputLandscape->SetLayerVisibility(EditLayerIndex, true);
-
-
 
 	return true;
 }
@@ -214,6 +210,8 @@ FHoudiniLandscapeBake::BakeLandscape(
 	const EPackageReplaceMode AssetPackageReplaceMode = bInReplaceAssets ?
 		EPackageReplaceMode::ReplaceExistingAssets : EPackageReplaceMode::CreateNewAssets;
 
+	TArray<UHoudiniLandscapeTargetLayerOutput*> LayerOutputs;
+
 	for (auto& Elem : OutputObjects)
 	{
 		const FHoudiniOutputObjectIdentifier& ObjectIdentifier = Elem.Key;
@@ -255,6 +253,17 @@ FHoudiniLandscapeBake::BakeLandscape(
 
 		TSet<FString>& ClearedLayers = ClearedLandscapeLayers.FindOrAdd(LayerOutput->Landscape);
 		FHoudiniLandscapeBake::BakeLandscapeLayer(PackageParams, *LayerOutput, bInReplaceActors, bInReplaceAssets, PackagesToSave, BakeStats, ClearedLayers);
+
+		LayerOutputs.Add(LayerOutput);
+	}
+
+	// Once layers are baked, delete the cooked layers if they existed.
+	for(UHoudiniLandscapeTargetLayerOutput * LayerOutput : LayerOutputs)
+	{
+		if (LayerOutput->bCookedLayerRequiresBaking)
+		{
+			FHoudiniLandscapeRuntimeUtils::DeleteEditLayer(LayerOutput->Landscape, FName(LayerOutput->CookedEditLayer));
+		}
 	}
 
 	// Update the cached baked output data
