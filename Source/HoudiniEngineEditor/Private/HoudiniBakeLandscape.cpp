@@ -91,8 +91,12 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 	if (!LayerOutput.bCookedLayerRequiresBaking)
 		return true;
 
-	FLandscapeLayer* BakedLayer = FHoudiniLandscapeUtils::GetEditLayerForWriting(OutputLandscape, FName(LayerOutput.BakedEditLayer));
+	FLandscapeLayer* BakedLayer = FHoudiniLandscapeUtils::GetOrCreateEditLayer(OutputLandscape, FName(LayerOutput.BakedEditLayer));
 	ULandscapeLayerInfoObject* TargetLayerInfo = OutputLandscape->GetLandscapeInfo()->GetLayerInfoByName(FName(LayerOutput.TargetLayer));
+
+	bool bWasLocked = LayerOutput.bLockLayer;
+	if (LayerOutput.bWriteLockedLayers)
+		LayerOutput.bLockLayer = false;
 
 	//---------------------------------------------------------------------------------------------------------------------------
 	// Clear the layer, but only once per bake.
@@ -148,7 +152,7 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 	}
 	else
 	{
-		FLandscapeLayer* EditLayer = FHoudiniLandscapeUtils::GetEditLayerForReading(OutputLandscape, FName(LayerOutput.CookedEditLayer));
+		FLandscapeLayer* EditLayer = FHoudiniLandscapeUtils::GetEditLayer(OutputLandscape, FName(LayerOutput.CookedEditLayer));
 		HOUDINI_CHECK_RETURN(EditLayer != nullptr, false);
 		TArray<uint16_t> Values = FHoudiniLandscapeUtils::GetHeightData(OutputLandscape, Extents, EditLayer);
 
@@ -159,6 +163,10 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 		HeightmapAccessor.SetData(Extents.Min.X, Extents.Min.Y, Extents.Max.X, Extents.Max.Y, Values.GetData());
 
 	}
+
+
+	if (bWasLocked  && BakedLayer)
+		BakedLayer->bLocked = true;
 
 	//---------------------------------------------------------------------------------------------------------------------------
 	// Make sure baked layer is visible.
@@ -264,6 +272,16 @@ FHoudiniLandscapeBake::BakeLandscape(
 		{
 			FHoudiniLandscapeRuntimeUtils::DeleteEditLayer(LayerOutput->Landscape, FName(LayerOutput->CookedEditLayer));
 		}
+	}
+
+	// Once each layer has been modified see if they need to be locked.
+	for (auto& Elem : OutputObjects)
+	{
+		FHoudiniOutputObject& OutputObject = Elem.Value;
+		UHoudiniLandscapeTargetLayerOutput* LayerOutput = Cast<UHoudiniLandscapeTargetLayerOutput>(OutputObject.OutputObject);
+		if (IsValid(LayerOutput))
+			FHoudiniLandscapeUtils::ApplyLocks(LayerOutput);
+	
 	}
 
 	// Update the cached baked output data
@@ -616,7 +634,7 @@ FHoudiniLandscapeBake::BakeLandscapeSplinesLayer(
 		return true;
 
 	// Ensure that the baked layer exists
-	FLandscapeLayer* const BakedLayer = FHoudiniLandscapeUtils::GetEditLayerForWriting(OutputLandscape, BakedEditLayer);
+	FLandscapeLayer* const BakedLayer = FHoudiniLandscapeUtils::GetOrCreateEditLayer(OutputLandscape, BakedEditLayer);
 
 	//---------------------------------------------------------------------------------------------------------------------------
 	// Clear the layer, but only once per bake.

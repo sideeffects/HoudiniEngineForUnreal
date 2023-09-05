@@ -181,33 +181,26 @@ TArray<uint16> FHoudiniLandscapeUtils::GetHeightData(ALandscape* Landscape, cons
 	return Values;
 }
 
-FLandscapeLayer* FHoudiniLandscapeUtils::GetEditLayerForWriting(ALandscape* Landscape, const FName& LayerName, bool bCreateIfMissing)
+FLandscapeLayer* FHoudiniLandscapeUtils::GetOrCreateEditLayer(ALandscape* Landscape, const FName& LayerName)
 {
-	if (!Landscape->bCanHaveLayersContent)
-		return Landscape->GetLayer(0);
-
-	int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
-	if (EditLayerIndex == INDEX_NONE)
+	FLandscapeLayer* UnrealEditLayer = GetEditLayer(Landscape, LayerName);
+	if (UnrealEditLayer == nullptr)
 	{
-		if (bCreateIfMissing)
-			EditLayerIndex = Landscape->CreateLayer(LayerName);
+		int EditLayerIndex = Landscape->CreateLayer(LayerName);
 
 		if (EditLayerIndex == INDEX_NONE)
+		{
+			HOUDINI_LOG_ERROR(TEXT("Could not create edit layer %s"), *LayerName.ToString());
 			return nullptr;
+		}
+		UnrealEditLayer = Landscape->GetLayer(EditLayerIndex);
 	}
 
-	FLandscapeLayer* UnrealEditLayer = Landscape->GetLayer(EditLayerIndex);
-
-	if (UnrealEditLayer->bLocked)
-	{
-		HOUDINI_LOG_ERROR(TEXT("Cannot write to locked layer %s"), *LayerName.ToString());
-		return nullptr;
-	}
 	return UnrealEditLayer;
 }
 
 FLandscapeLayer* 
-FHoudiniLandscapeUtils::GetEditLayerForReading(ALandscape* Landscape, const FName& LayerName)
+FHoudiniLandscapeUtils::GetEditLayer(ALandscape* Landscape, const FName& LayerName)
 {
 	if (!Landscape->bCanHaveLayersContent)
 		return Landscape->GetLayer(0);
@@ -254,7 +247,7 @@ TArray<uint8_t> FHoudiniLandscapeUtils::GetLayerData(ALandscape* Landscape, cons
 	TArray<uint8_t> Values;
 	Values.SetNum(NumPoints);
 
-	FLandscapeLayer* EditLayer = FHoudiniLandscapeUtils::GetEditLayerForReading(Landscape, EditLayerName);
+	FLandscapeLayer* EditLayer = FHoudiniLandscapeUtils::GetEditLayer(Landscape, EditLayerName);
 	ULandscapeLayerInfoObject* TargetLayerInfo = Landscape->GetLandscapeInfo()->GetLayerInfoByName(TargetLayerName);
 
 	FScopedSetLandscapeEditingLayer Scope(Landscape, EditLayer->Guid, [&] { /*Landscape->RequestLayersContentUpdate(ELandscapeLayerUpdateMode::Update_All); */});
@@ -1358,4 +1351,17 @@ FHoudiniLandscapeUtils::ApplySegmentsToLandscapeEditLayers(
 	}
 
 	return bSuccess;
+}
+
+void FHoudiniLandscapeUtils::ApplyLocks(UHoudiniLandscapeTargetLayerOutput* Output)
+{
+	if (!Output->bLockLayer)
+		return;
+
+	int32 EditLayerIndex = Output->Landscape->GetLayerIndex(FName(Output->CookedEditLayer));
+	if (EditLayerIndex == INDEX_NONE)
+		return;
+
+	FLandscapeLayer* UnrealEditLayer = Output->Landscape->GetLayer(EditLayerIndex);
+	UnrealEditLayer->bLocked = true;
 }

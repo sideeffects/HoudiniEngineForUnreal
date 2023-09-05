@@ -215,6 +215,9 @@
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_INFO				"unreal_landscape_layer_info"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_SIZE                   "unreal_landscape_size"
 
+#define HAPI_UNREAL_ATTRIB_LANDSCAPE_WRITE_LOCKED_LAYERS    "unreal_landscape_write_locked_layer"
+#define HAPI_UNREAL_ATTRIB_LANDSCAPE_LOCK_LAYERS            "unreal_landscape_lock_layer"
+
 #define HAPI_UNREAL_ATTRIB_CREATE_DATA_LAYERS               "unreal_create_data_layers"
 
 // Enable or disable the NoWeightBlend setting for landscape paint layers. 

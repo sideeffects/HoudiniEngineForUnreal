@@ -449,7 +449,7 @@ FHoudiniLandscapeSplineTranslator::UpdateNonReservedEditLayers(
 		const FName CookedEditLayer = *LayerOutput->CookedEditLayer;
 
 		// Create layer if it does not exist
-		FLandscapeLayer* const UnrealEditLayer = FHoudiniLandscapeUtils::GetEditLayerForWriting(InSplineInfo.Landscape, CookedEditLayer);
+		FLandscapeLayer* const UnrealEditLayer = FHoudiniLandscapeUtils::GetOrCreateEditLayer(InSplineInfo.Landscape, CookedEditLayer);
 		if (!UnrealEditLayer)
 		{
 			HOUDINI_LOG_ERROR(TEXT("Could not find edit layer %s and failed to create it: %s"), *CookedEditLayer.ToString(), *(InSplineInfo.Landscape->GetActorLabel()));

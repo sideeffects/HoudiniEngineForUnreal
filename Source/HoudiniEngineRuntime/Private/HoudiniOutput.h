@@ -172,7 +172,14 @@ public:
 	FString BakeFolder;
 
 	UPROPERTY()
-	UMaterialInterface* MaterialInstance;
+	UMaterialInterface* MaterialInstance = nullptr;
+
+	UPROPERTY()
+	bool bWriteLockedLayers = false;
+
+	UPROPERTY()
+	bool bLockLayer = false;
+
 };
 
 UCLASS()

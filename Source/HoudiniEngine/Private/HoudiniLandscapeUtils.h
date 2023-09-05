@@ -160,6 +160,12 @@ struct FHoudiniHeightFieldPartData
     // Any material instance created.
 	UMaterialInterface* MaterialInstance = nullptr;
 
+    // whether or not to unlock the layer (if locked).
+    bool bWriteLockedLayers = false;
+
+    // whether to lock layer after cooking.
+    bool bLockLayer = false;
+
 
 };
 
@@ -231,9 +237,9 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 
     static TArray<uint16> GetHeightData(ALandscape* Landscape, const FHoudiniExtents& Extents, FLandscapeLayer* EditLayer);
 
-    static FLandscapeLayer* GetEditLayerForReading(ALandscape* Landscape, const FName& LayerName);
+    static FLandscapeLayer* GetEditLayer(ALandscape* Landscape, const FName& LayerName);
 
-    static FLandscapeLayer* GetEditLayerForWriting(ALandscape* Landscape, const FName& LayerName, bool bCreateIfMissing = true);
+    static FLandscapeLayer* GetOrCreateEditLayer(ALandscape* Landscape, const FName& LayerName);
 
     static FLandscapeLayer* MoveEditLayerAfter(ALandscape* Landscape, const FName& LayerName, const FName& AfterLayerName);
 
@@ -308,6 +314,8 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
             TArray<UPackage *> & CreatedPackages);
 
     static FHoudiniExtents GetLandscapeExtents(ALandscapeProxy * Landscape);
+
+    static void ApplyLocks(UHoudiniLandscapeTargetLayerOutput* Output);
 
     //-------------------
     // Landscape splines
