@@ -49,7 +49,7 @@ struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 		bool bInReplaceAssets,
 		const FDirectoryPath& BakePath,
 		FHoudiniEngineOutputStats& BakeStats,
-		TMap<ALandscape*, TSet<FString>>& ClearedLayers,
+		TMap<ALandscape*, FHoudiniClearedEditLayers>& ClearedLayers,
 		TArray<UPackage*>& OutPackagesToSave);
 
 	static bool BakeLandscapeLayer(
@@ -59,7 +59,7 @@ struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 		bool bInReplaceAssets,
 		TArray<UPackage*>& OutPackagesToSave,
 		FHoudiniEngineOutputStats& BakeStats,
-		TSet<FString>& ClearedLayers);
+		FHoudiniClearedEditLayers& ClearedLayers);
 
 	static TArray<FHoudiniEngineBakedActor>  MoveCookedToBakedLandscapes(
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
@@ -97,7 +97,7 @@ struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 	static bool BakeLandscapeSplinesLayer(
 		FHoudiniPackageParams& PackageParams,
 		UHoudiniLandscapeSplineTargetLayerOutput& LayerOutput,
-		TSet<FString>& ClearedLayers,
+		FHoudiniClearedEditLayers& ClearedLayers,
 		TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& SegmentsToApplyToLayers);
 
 	static bool BakeLandscapeSplines(
@@ -109,7 +109,7 @@ struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 		bool bInReplaceAssets,
 		const FDirectoryPath& BakePath,
 		FHoudiniEngineOutputStats& BakeStats,
-		TMap<ALandscape*, TSet<FString>>& ClearedLandscapeEditLayers,
+		TMap<ALandscape*, FHoudiniClearedEditLayers>& ClearedLandscapeEditLayers,
 		TArray<UPackage*>& OutPackagesToSave);
 };
 

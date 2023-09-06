@@ -785,7 +785,7 @@ UTOPNode::OnDirtyNode()
 void
 UTOPNode::InvalidateLandscapeCache()
 {
-	ClearedLandscapeLayers.Empty();
+	ClearedLayers.Empty();
 }
 
 UTOPNetwork::UTOPNetwork()
