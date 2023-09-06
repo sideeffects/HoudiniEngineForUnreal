@@ -33,6 +33,7 @@
 #include "LandscapeInfo.h"
 
 #include "HoudiniEngine.h"
+#include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniGeoImporter.h"
 #include "HoudiniPackageParams.h"
@@ -41,6 +42,7 @@
 #include "HoudiniInstanceTranslator.h"
 #include "HoudiniLandscapeTranslator.h"
 #include "HoudiniDataTableTranslator.h"
+#include "HoudiniLandscapeSplineTranslator.h"
 #include "HoudiniPDGAssetLink.h"
 #include "HoudiniOutputTranslator.h"
 #include "HoudiniSplineComponent.h"
@@ -307,6 +309,9 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	TMap<FString, UMaterialInterface*> AllOutputMaterials;
 	TMap<FString, ALandscape*> CookedLandscapes;
 
+	// Landscape splines track edit layers that were cleared per-landscape
+	TMap<ALandscape*, TSet<FName>> ClearedLandscapeEditLayersForSplines;
+
 	for (UHoudiniOutput* CurOutput : InOutputs)
 	{
 		const EHoudiniOutputType OutputType = CurOutput->GetType();
@@ -401,6 +406,21 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 				{
 					FHoudiniDataTableTranslator::BuildDataTable(HGPO, CurOutput, PackageParams);
 				}
+				break;
+			}
+
+			case EHoudiniOutputType::LandscapeSpline:
+			{
+				if (!FHoudiniEngineRuntimeUtils::IsLandscapeSplineOutputEnabled())
+					break;
+
+				FHoudiniLandscapeSplineTranslator::ProcessLandscapeSplineOutput(
+					CurOutput,
+					AllInputLandscapes,
+					PersistentWorld,
+					InPackageParams,
+					ClearedLandscapeEditLayersForSplines);
+
 				break;
 			}
 

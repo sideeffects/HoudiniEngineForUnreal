@@ -72,6 +72,8 @@
 #include "HoudiniEngineOutputStats.h"
 #include "Landscape.h"
 #include "LandscapeProxy.h"
+#include "LandscapeSplineActor.h"
+#include "LandscapeSplinesComponent.h"
 #include "ScopedTransaction.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "UnrealEdGlobals.h"
@@ -143,6 +145,14 @@ FHoudiniOutputDetails::CreateWidget(
 		case EHoudiniOutputType::DataTable:
 		{
 			FHoudiniOutputDetails::CreateDataTableOutputWidget(HouOutputCategory, MainOutput);
+			break;
+		}
+		case EHoudiniOutputType::LandscapeSpline:
+		{
+			if (!FHoudiniEngineRuntimeUtils::IsLandscapeSplineOutputEnabled())
+				FHoudiniOutputDetails::CreateDefaultOutputWidget(HouOutputCategory, MainOutput);
+			else
+				FHoudiniOutputDetails::CreateLandscapeSplineOutputWidget(HouOutputCategory, MainOutput);
 			break;
 		}
 		case EHoudiniOutputType::Skeletal:
@@ -1032,6 +1042,130 @@ FHoudiniOutputDetails::CreateDataTableOutputWidget(IDetailCategoryBuilder& HouOu
 		}
 	}
 }
+
+void FHoudiniOutputDetails::CreateLandscapeSplineOutputWidget(
+	IDetailCategoryBuilder& HouOutputCategory, const TWeakObjectPtr<UHoudiniOutput>& InOutput)
+{
+	if (!IsValidWeakPointer(InOutput))
+		return;
+
+	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
+	
+	for (const auto& IterObject : OutputObjects)
+	{
+		const FHoudiniOutputObject& CurrentOutputObject = IterObject.Value;
+
+		ALandscapeSplineActor* const LandscapeSplineActor = Cast<ALandscapeSplineActor>(IterObject.Value.OutputObject);
+
+		if (!IsValid(LandscapeSplineActor))
+			continue;
+
+		const FHoudiniOutputObjectIdentifier& OutputIdentifier = IterObject.Key;
+		FHoudiniGeoPartObject HoudiniGeoPartObject;
+		for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects()) 
+		{
+			if (!OutputIdentifier.Matches(curHGPO))
+				continue;
+
+			HoudiniGeoPartObject = curHGPO;
+			break;
+		}
+
+		CreateLandscapeSplineWidgets(
+			HouOutputCategory,
+			InOutput,
+			LandscapeSplineActor,
+			CurrentOutputObject,
+			OutputIdentifier,
+			HoudiniGeoPartObject);
+	}
+}
+
+void FHoudiniOutputDetails::CreateLandscapeSplineWidgets(
+	IDetailCategoryBuilder& HouOutputCategory,
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+	const TWeakObjectPtr<ALandscapeSplineActor>& LandscapeSplineActor,
+	const FHoudiniOutputObject& OutputObject,
+	const FHoudiniOutputObjectIdentifier& OutputIdentifier,
+	const FHoudiniGeoPartObject& HoudiniGeoPartObject)
+{
+	if (!IsValidWeakPointer(LandscapeSplineActor))
+		return;
+
+	ULandscapeSplinesComponent* const SplinesComponent = LandscapeSplineActor->GetSplinesComponent();
+	if (!IsValid(SplinesComponent))
+		return;
+
+	// FHoudiniOutputObject const* const FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
+
+	// Get thumbnail pool for this builder.
+	const IDetailLayoutBuilder& DetailLayoutBuilder = HouOutputCategory.GetParentLayout();
+	const TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
+
+	const FString Label = HoudiniGeoPartObject.bHasCustomPartName ? HoudiniGeoPartObject.PartName : LandscapeSplineActor->GetName();
+
+	// Create thumbnail for this mesh.
+	const TSharedPtr<FAssetThumbnail> StaticMeshThumbnail =
+		MakeShareable(new FAssetThumbnail(LandscapeSplineActor.Get(), 64, 64, AssetThumbnailPool));
+	TSharedPtr<SBorder> StaticMeshThumbnailBorder;
+
+	const TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+	
+	IDetailGroup& StaticMeshGrp = HouOutputCategory.AddGroup(FName(*Label), FText::FromString(Label));
+
+	const FString LandscapeSplineLabel = TEXT("Landscape Spline");
+	
+	StaticMeshGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew( STextBlock )
+		.Text( FText::FromString(LandscapeSplineLabel) )
+		.Font( IDetailLayoutBuilder::GetDetailFont() )
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		VerticalBox
+	];
+			
+	VerticalBox->AddSlot()
+	.Padding( 0, 2 )
+	.AutoHeight()
+	[
+		SNew( SHorizontalBox )
+		+SHorizontalBox::Slot()
+		.Padding( 0.0f, 0.0f, 2.0f, 0.0f )
+		.AutoWidth()
+		[
+			SAssignNew( StaticMeshThumbnailBorder, SBorder )
+			.Padding( 5.0f )
+			.BorderImage( this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) LandscapeSplineActor )
+			.OnMouseDoubleClick( this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) LandscapeSplineActor )
+			[
+				SNew( SBox )
+				.WidthOverride( 64 )
+				.HeightOverride( 64 )
+				.ToolTipText( FText::FromString( SplinesComponent->GetPathName() ) )
+				[
+					StaticMeshThumbnail->MakeThumbnailWidget()
+				]
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			PropertyCustomizationHelpers::MakeBrowseButton(
+				FSimpleDelegate::CreateSP(
+					this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&) LandscapeSplineActor),
+				TAttribute<FText>(LOCTEXT("HoudiniLandscapeSplineActorBrowseButton", "Select this Landscape Spline Actor in the viewport")))
+		]
+	];
+
+	OutputObjectThumbnailBorders.Add(LandscapeSplineActor, StaticMeshThumbnailBorder);	
+}
+
 
 void 
 FHoudiniOutputDetails::CreateCurveWidgets(

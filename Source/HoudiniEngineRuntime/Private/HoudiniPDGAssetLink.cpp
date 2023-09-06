@@ -1830,6 +1830,7 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 	{
 		if (!IsValid(CurOutput))
 			continue;
+		FHoudiniLandscapeRuntimeUtils::DeleteLandscapeSplineCookedData(CurOutput);
 		FHoudiniLandscapeRuntimeUtils::DeleteLandscapeCookedData(CurOutput);
 
 		for (auto& Pair : CurOutput->GetOutputObjects())

@@ -45,6 +45,7 @@ class UHoudiniLandscapeTargetLayerOutput;
 class UHoudiniStaticMesh;
 class UMaterialInterface;
 class AGeometryCollectionActor;
+class ALandscapeSplineActor;
 class SBorder;
 class SComboButton;
 
@@ -77,6 +78,17 @@ public:
 	void CreateDataTableOutputWidget(IDetailCategoryBuilder& HouOutputCategory,
 		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
 	
+	void CreateLandscapeSplineOutputWidget(IDetailCategoryBuilder& HouOutputCategory,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
+
+	void CreateLandscapeSplineWidgets(
+		IDetailCategoryBuilder& HouOutputCategory,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+		const TWeakObjectPtr<ALandscapeSplineActor>& LandscapeSplineActor,
+		const FHoudiniOutputObject& OutputObject,
+		const FHoudiniOutputObjectIdentifier& OutputIdentifier,
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject);
+
 	void CreateStaticMeshAndMaterialWidgets(
 		IDetailCategoryBuilder& HouOutputCategory,
 		const TWeakObjectPtr<UHoudiniOutput>& InOutput,

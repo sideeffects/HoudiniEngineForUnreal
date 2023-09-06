@@ -758,6 +758,12 @@ FHoudiniEngineRuntimeUtils::IsLandscapeSplineInputEnabled()
 }
 
 bool
+FHoudiniEngineRuntimeUtils::IsLandscapeSplineOutputEnabled()
+{
+	return false;
+}
+
+bool
 FHoudiniEngineRuntimeUtils::IsSplineMeshInputEnabled()
 {
 	return false;

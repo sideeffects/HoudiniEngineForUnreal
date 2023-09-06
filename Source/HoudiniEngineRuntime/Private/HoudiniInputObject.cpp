@@ -33,6 +33,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniInput.h"
+#include "HoudiniLandscapeRuntimeUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputManager.h"
 
@@ -166,6 +167,7 @@ UHoudiniInputLandscapeSplineActor::UHoudiniInputLandscapeSplineActor(const FObje
 //
 UHoudiniInputLandscapeSplinesComponent::UHoudiniInputLandscapeSplinesComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, NextControlPointId(0)
 {
 
 }
@@ -1167,6 +1169,9 @@ UHoudiniInputLandscapeSplinesComponent::Create(UObject* InObject, UObject* InOut
 	HoudiniInputObject->Type = EHoudiniInputObjectType::LandscapeSplinesComponent;
 	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
+	// Ensure that NextControlPointId is valid
+	if (HoudiniInputObject->NextControlPointId < 0)
+		HoudiniInputObject->NextControlPointId = 0;
 
 	return HoudiniInputObject;
 }
@@ -1482,6 +1487,10 @@ UHoudiniInputLandscapeSplinesComponent::Update(UObject * InObject, const FHoudin
 	FHoudiniEngineRuntimeUtils::GetLandscapeSplinesControlPointsAndSegments(LandscapeSplinesComponent, &ControlPoints, &Segments);
 	
 	const int32 NumControlPoints = ControlPoints.Num();
+
+	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32> OldControlPointIdMap(ControlPointIdMap);
+	ControlPointIdMap.Empty(NumControlPoints);
+
 	CachedControlPoints.SetNum(NumControlPoints);
 	if (NumControlPoints > 0)
 	{
@@ -1494,6 +1503,24 @@ UHoudiniInputLandscapeSplinesComponent::Update(UObject * InObject, const FHoudin
 				// Reset entry to default
 				CachedControlPoint = {};
 				continue;
+			}
+
+			// See if we already have a valid id for this control point and copy it
+			bool bHasValidControlPointId = false;
+			TSoftObjectPtr<ULandscapeSplineControlPoint> ControlPointPtr(ControlPoint);
+			if (int32 const* const ControlPointIdPtr = OldControlPointIdMap.Find(ControlPointPtr))
+			{
+				const int32 ControlPointId = *ControlPointIdPtr;
+				if (ControlPointId >= 0)
+				{
+					ControlPointIdMap.Add(ControlPointPtr, ControlPointId);
+					bHasValidControlPointId = true;
+				}
+			}
+			if (!bHasValidControlPointId)
+			{
+				// Generate a new valid id for ControlPoint and update the map
+				FHoudiniLandscapeRuntimeUtils::GetOrGenerateValidControlPointId(ControlPoint, ControlPointIdMap, NextControlPointId);
 			}
 
 			CachedControlPoint.Location = ControlPoint->Location;

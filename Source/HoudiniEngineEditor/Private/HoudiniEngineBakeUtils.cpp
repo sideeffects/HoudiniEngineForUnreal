@@ -394,7 +394,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 
 	// Landscape layers needs to be cleared during baking, but only once. So keep track of which ones
 	// have been cleared.
-	TSet<FString> ClearedLandscapeLayers;
+	TMap<ALandscape*, TSet<FString>> ClearedLandscapeLayers;
 
 	// First bake everything except instancers, then bake instancers. Since instancers might use meshes in
 	// from the other outputs.
@@ -513,6 +513,25 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 					OutBakeStats,
 					InFallbackActor,
 					InFallbackWorldOutlinerFolder);
+			}
+			break;
+
+			case EHoudiniOutputType::LandscapeSpline:
+			{
+				if (!FHoudiniEngineRuntimeUtils::IsLandscapeSplineOutputEnabled())
+					break;
+
+				const bool bResult = FHoudiniLandscapeBake::BakeLandscapeSplines(
+					HoudiniAssetComponent,
+					OutputIdx,
+					InOutputs,
+					InBakedOutputs,
+					bInReplaceActors,
+					bInReplaceAssets,
+					InBakeFolder,
+					OutBakeStats,
+					ClearedLandscapeLayers,
+					OutPackagesToSave);
 			}
 			break;
 

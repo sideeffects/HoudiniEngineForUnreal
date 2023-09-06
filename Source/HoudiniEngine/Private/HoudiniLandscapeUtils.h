@@ -194,6 +194,21 @@ struct FHoudiniLayersToUnrealLandscapeMapping
 };
 
 
+struct FHoudiniLandscapeSplineApplyLayerData
+{
+    // The landscape.
+    TObjectPtr<ALandscape> Landscape;
+
+    // The edit layer name to apply the segments to.
+    FName EditLayerName;
+
+    // True if this layer is the reserved spline layer.
+    bool bIsReservedSplineLayer = false;
+
+    // The segments to apply to EditLayerName on Landscape.
+    TArray<TObjectPtr<ULandscapeSplineSegment>> SegmentsToApply;
+};
+
 
 struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 {
@@ -294,4 +309,14 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 
     static FHoudiniExtents GetLandscapeExtents(ALandscapeProxy * Landscape);
 
+    //-------------------
+    // Landscape splines
+    //-------------------
+
+    // Apply the landscape splines of InLandscape to its reserved layer.
+    static bool ApplyLandscapeSplinesToReservedLayer(ALandscape* const InLandscape);
+        
+    // Apply the segments to the specified edit layers per landscape.
+    static bool ApplySegmentsToLandscapeEditLayers(
+        const TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& InSegmentsToApplyToLayers);
 };

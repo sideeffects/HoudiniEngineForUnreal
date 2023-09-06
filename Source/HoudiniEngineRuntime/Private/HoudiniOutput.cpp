@@ -37,13 +37,75 @@
 #include "Engine/Blueprint.h"
 #include "Engine/Engine.h"
 #include "Misc/StringFormatArg.h"
+#include "Landscape.h"
 #include "LandscapeLayerInfoObject.h"
+#include "LandscapeSplinesComponent.h"
+#include "LandscapeSplineActor.h"
+#include "LandscapeSplineControlPoint.h"
+#include "LandscapeSplineSegment.h"
+
 
 UHoudiniLandscapePtr::UHoudiniLandscapePtr(class FObjectInitializer const& Initializer) 
 {
 	// bIsWorldCompositionLandscape = false;
 	// BakeType = EHoudiniLandscapeOutputBakeType::Detachment;
 };
+
+
+bool
+UHoudiniLandscapeSplinesOutput::GetLayerSegments(const FName InEditLayer, TArray<ULandscapeSplineSegment*>& OutSegments) const
+{
+	UHoudiniLandscapeSplineTargetLayerOutput* const* const LayerOutputPtr = LayerOutputs.Find(InEditLayer);
+	if (!LayerOutputPtr)
+		return false;
+
+	UHoudiniLandscapeSplineTargetLayerOutput* const LayerOutput = *LayerOutputPtr;
+	if (!IsValid(LayerOutput))
+		return false;
+
+	OutSegments = LayerOutput->Segments;
+	return true;
+}
+
+
+void
+UHoudiniLandscapeSplinesOutput::Clear(const bool bInClearTempLayers)
+{
+	// Delete the splines (segments and control points)
+	FHoudiniLandscapeRuntimeUtils::DestroyLandscapeSplinesSegmentsAndControlPoints(this);
+
+	// Delete the edit layers
+	for (const auto& LayerOutputPair : LayerOutputs)
+	{
+		UHoudiniLandscapeSplineTargetLayerOutput const* const LayerOutput = LayerOutputPair.Value;
+		if (!IsValid(LayerOutput) || !IsValid(LayerOutput->Landscape))
+			continue;
+
+		if (bInClearTempLayers && LayerOutput->BakedEditLayer != LayerOutput->CookedEditLayer)
+			FHoudiniLandscapeRuntimeUtils::DeleteEditLayer(LayerOutput->Landscape, FName(LayerOutput->CookedEditLayer));
+	}
+
+	if (IsValid(LandscapeSplineActor))
+	{
+		ULandscapeInfo* const LSInfo = LandscapeSplineActor->GetLandscapeInfo();
+		if (IsValid(LSInfo))
+		{
+#if WITH_EDITOR
+			LSInfo->UnregisterSplineActor(LandscapeSplineActor);
+#endif
+			LandscapeSplineActor->Destroy();
+		}
+	}
+
+	Landscape = nullptr;
+	LandscapeProxy = nullptr;
+	LandscapeSplineActor = nullptr;
+	LandscapeSplinesComponent = nullptr;
+	LayerOutputs.Empty();
+	Segments.Empty();
+	ControlPoints.Empty();
+}
+
 
 uint32
 GetTypeHash(const FHoudiniOutputObjectIdentifier& HoudiniOutputObjectIdentifier)
@@ -558,6 +620,27 @@ UHoudiniOutput::GetBounds() const
 	}
 	break;
 
+	case EHoudiniOutputType::LandscapeSpline:
+	{
+		if (!FHoudiniEngineRuntimeUtils::IsLandscapeSplineOutputEnabled())
+			break;
+
+		for (const auto& CurPair : OutputObjects)
+		{
+			const FHoudiniOutputObject& CurObj = CurPair.Value;
+			ALandscapeSplineActor* CurLandscapeSpline = Cast<ALandscapeSplineActor>(CurObj.OutputObject);
+			if (!IsValid(CurLandscapeSpline))
+				continue;
+
+			FVector Origin, Extent;
+			CurLandscapeSpline->GetActorBounds(false, Origin, Extent);
+
+			FBox LandscapeBounds = FBox::BuildAABB(Origin, Extent);
+			BoxBounds += LandscapeBounds;
+		}
+		break;
+	}
+
 	case EHoudiniOutputType::Skeletal:
 	case EHoudiniOutputType::Invalid:
 		break;
@@ -622,6 +705,13 @@ UHoudiniOutput::Clear()
 			ProxyComp->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 			ProxyComp->UnregisterComponent();
 			ProxyComp->DestroyComponent();
+		}
+
+		// Destroy Landscape Spline Output Object
+		if (IsValid(CurrentOutputObject.Value.OutputObject) && CurrentOutputObject.Value.OutputObject->IsA<UHoudiniLandscapeSplinesOutput>())
+		{
+			UHoudiniLandscapeSplinesOutput* const LandscapeSplinesOutputObject = Cast<UHoudiniLandscapeSplinesOutput>(CurrentOutputObject.Value.OutputObject);
+			LandscapeSplinesOutputObject->Clear();
 		}
 	}
 
@@ -775,6 +865,7 @@ UHoudiniOutput::UpdateOutputType()
 	int32 VolumeCount = 0;
 	int32 InstancerCount = 0;
 	int32 DataTableCount = 0;
+	int32 LandscapeSplineCount = 0;
 	for (auto& HGPO : HoudiniGeoPartObjects)
 	{
 		switch (HGPO.Type)
@@ -793,6 +884,10 @@ UHoudiniOutput::UpdateOutputType()
 			break;
 		case EHoudiniPartType::DataTable:
 			DataTableCount++;
+			break;
+		case EHoudiniPartType::LandscapeSpline:
+			LandscapeSplineCount++;
+			break;
 		default:
 		case EHoudiniPartType::Invalid:
 			break;
@@ -824,6 +919,10 @@ UHoudiniOutput::UpdateOutputType()
 	else if (DataTableCount > 0)
 	{
 		Type = EHoudiniOutputType::DataTable;
+	}
+	else if (LandscapeSplineCount > 0)
+	{
+		Type = EHoudiniOutputType::LandscapeSpline;
 	}
 	else
 	{
@@ -900,6 +999,9 @@ UHoudiniOutput::OutputTypeToString(const EHoudiniOutputType& InOutputType)
 			break;
 		case EHoudiniOutputType::DataTable:
 			OutputTypeStr = TEXT("DataTable");
+			break;
+		case EHoudiniOutputType::LandscapeSpline:
+			OutputTypeStr = TEXT("LandscapeSpline");
 			break;
 
 		default:

@@ -2844,6 +2844,7 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(const int32 InI
 			break;
 		case EHoudiniOutputType::Instancer:
 		case EHoudiniOutputType::Skeletal:
+		case EHoudiniOutputType::LandscapeSpline:
 		case EHoudiniOutputType::Invalid:
 		default:
 			SetErrorMessage(FString::Printf(

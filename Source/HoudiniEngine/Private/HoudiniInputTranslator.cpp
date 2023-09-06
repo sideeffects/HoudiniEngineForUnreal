@@ -3614,6 +3614,9 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscapeSplinesComponent(
 
 	const FString SplinesComponentName = InObjNodeName + TEXT("_") + SplinesComponent->GetName();
 
+	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32> ControlPointIdMap(InObject->GetControlPointIdMap());
+	int32 NextControlPointId = InObject->GetNextControlPointId();
+	
 	static constexpr bool bForceReferenceInputNodeCreation = true;
 	static constexpr bool bLandscapeSplinesExportCurves = true;
 	FUnrealObjectInputHandle CreatedSplinesNodeHandle;
@@ -3623,6 +3626,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscapeSplinesComponent(
 		CreatedNodeId,
 		CreatedSplinesNodeHandle,
 		SplinesComponentName,
+		ControlPointIdMap,
+		NextControlPointId,
 		InInputSettings.UnrealSplineResolution,
 		bLandscapeSplinesExportCurves,
 		InInputSettings.bLandscapeSplinesExportControlPoints,
@@ -3633,6 +3638,9 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscapeSplinesComponent(
 	InObject->InputNodeId = CreatedNodeId;
 	InObject->InputObjectNodeId = InObject->InputNodeId >= 0 ? FHoudiniEngineUtils::HapiGetParentNodeId(InObject->InputNodeId) : -1;
 	InObject->InputNodeHandle = CreatedSplinesNodeHandle;
+
+	InObject->SetControlPointIdMap(MoveTemp(ControlPointIdMap));
+	InObject->SetNextControlPointId(NextControlPointId);
 
 	// Even if the function failed, some nodes may have been created, so check the node ID
 	if (InObject->InputObjectNodeId >= 0)

@@ -175,6 +175,9 @@ FHoudiniGeoPartObject::HoudiniPartTypeToString(const EHoudiniPartType& InType)
 		case EHoudiniPartType::Volume:
 			OutTypeStr = TEXT("Volume");
 			break;
+		case EHoudiniPartType::LandscapeSpline:
+			OutTypeStr = TEXT("LandscapeSpline");
+			break;
 
 		default:
 		case EHoudiniPartType::Invalid:

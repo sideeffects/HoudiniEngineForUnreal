@@ -380,6 +380,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 		// Returns true if landscape spline input is enabled
 		static bool IsLandscapeSplineInputEnabled();
 
+		// Returns true if landscape spline output is enabled
+		static bool IsLandscapeSplineOutputEnabled();
+
 		// Gets the control points and/or segments of the given landscape spline
 		static bool GetLandscapeSplinesControlPointsAndSegments(
 			ULandscapeSplinesComponent* const InSplinesComponent,

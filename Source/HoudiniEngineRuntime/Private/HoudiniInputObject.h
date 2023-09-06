@@ -1233,6 +1233,13 @@ public:
 
 	const TArray<FHoudiniLandscapeSplineSegmentData>& GetCachedSegments() const { return CachedSegments; }
 
+	const TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& GetControlPointIdMap() const { return ControlPointIdMap; }
+	void SetControlPointIdMap(const TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap) { ControlPointIdMap = InControlPointIdMap; }
+	void SetControlPointIdMap(TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>&& InControlPointIdMap) { ControlPointIdMap = InControlPointIdMap; }
+
+	int32 GetNextControlPointId() const { return NextControlPointId; }
+	void SetNextControlPointId(int32 InNextControlPointId) { NextControlPointId = InNextControlPointId; }
+
 protected:
 	/** A copy of the control points of the spline the last time this object was updated. */
 	UPROPERTY()
@@ -1241,6 +1248,14 @@ protected:
 	/** A copy of the segments of the landscape spline the last time this was object was updated. */
 	UPROPERTY()
 	TArray<FHoudiniLandscapeSplineSegmentData> CachedSegments;
+
+	/** The generated ids for the control points from the last time this object was updated. */
+	UPROPERTY()
+	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32> ControlPointIdMap;
+
+	/** The id to assign the next new control point we encounter. */
+	UPROPERTY()
+	int32 NextControlPointId;
 
 };
 

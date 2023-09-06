@@ -85,9 +85,11 @@ public:
 		bool CreateCurves(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams);
 		// 7. Create the output landscapes
 		bool CreateLandscapes(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams);
-		// 8. Create the output instancers
+		// 8. Create the output landscape splines
+		bool CreateLandscapeSplines(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams);
+		// 9. Create the output instancers
 		bool CreateInstancers(TArray<UHoudiniOutput*>& InOutputs, UObject* InParent, FHoudiniPackageParams InPackageParams);
-		// 9. Clean up the created node
+		// 10. Clean up the created node
 		static bool DeleteCreatedNode(const HAPI_NodeId& InNodeId);
 
 		static bool CreateInstancerOutputPartData(

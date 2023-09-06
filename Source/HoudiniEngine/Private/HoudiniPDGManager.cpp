@@ -1988,7 +1988,8 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 				{
 					EHoudiniOutputType::Landscape,
 					EHoudiniOutputType::Curve,
-					EHoudiniOutputType::Skeletal
+					EHoudiniOutputType::Skeletal,
+					EHoudiniOutputType::LandscapeSpline,  // TODO: could we support splines and curves via the commandlet / BGEO?
 				}
 			);
 			

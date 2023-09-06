@@ -29,6 +29,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniLandscapeRuntimeUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 
 #include "Landscape.h"
@@ -44,7 +45,11 @@ public:
 	void Init(int32 InExpectedPointCount);
 
 	/** Add an entry to each array with the property values from InControlPoint. */
-	bool AddControlPointData(ULandscapeSplineControlPoint const* InControlPoint, int32 InControlPointIndex);
+	bool AddControlPointData(
+		ULandscapeSplineControlPoint const* InControlPoint,
+		int32 InControlPointIndex,
+		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
+		int32& InNextControlPointId);
 
 	/** Add an empty / default initialized entry to each array. */
 	void AddEmpty();
@@ -73,11 +78,17 @@ public:
 	/** The static mesh scale of each control point. */
 	TArray<float> ControlPointMeshScales;
 
-	/** The names of the control points. */
-	TArray<FString> ControlPointNames;
+	/** The ids of the control points. */
+	TArray<int32> ControlPointIds;
 
 	/** The control point half-width. */
 	TArray<float> ControlPointHalfWidths;
+
+	/** The control point side-falloff. */
+	TArray<float> ControlPointSideFalloffs;
+
+	/** The control point end-falloff. */
+	TArray<float> ControlPointEndFalloffs;
 
 private:
 	/** The expected number of points to store attributes for. Set in Init() when reserving space in the arrays. */ 
@@ -166,6 +177,8 @@ public:
 	FVector Center;
 	FVector Left;
 	FVector Right;
+	FVector FalloffLeft;
+	FVector FalloffRight;
 	float Alpha;
 	EHoudiniLandscapeSplineCurve SplineSelection;
 };
@@ -182,26 +195,37 @@ FLandscapeSplineControlPointAttributes::Init(const int32 InExpectedPointCount)
 	ControlPointMeshRefs.Empty(ExpectedPointCount);
 	PerMaterialOverrideControlPointRefs.Empty();
 	ControlPointMeshScales.Empty(ExpectedPointCount * 3);
-	ControlPointNames.Empty(ExpectedPointCount);
+	ControlPointIds.Empty(ExpectedPointCount);
 	ControlPointHalfWidths.Empty(ExpectedPointCount);
+	ControlPointSideFalloffs.Empty(ExpectedPointCount);
+	ControlPointEndFalloffs.Empty(ExpectedPointCount);
 }
 
 
 bool
-FLandscapeSplineControlPointAttributes::AddControlPointData(ULandscapeSplineControlPoint const* const InControlPoint, const int32 InControlPointIndex)
+FLandscapeSplineControlPointAttributes::AddControlPointData(
+	ULandscapeSplineControlPoint const* const InControlPoint,
+	const int32 InControlPointIndex,
+	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
+	int32& InNextControlPointId)
 {
 	if (!IsValid(InControlPoint))
 		return false;
 
-	const FQuat CPRot(InControlPoint->Rotation);
+	// Convert Unreal X-Forward to Houdini -Z-Forward and Unreal Z-Up to Houdini Y-Up
+	const FQuat CPRot = InControlPoint->Rotation.Quaternion() * FQuat(FVector::UpVector, FMath::DegreesToRadians(90.0f));
 	ControlPointRotations.Add(CPRot.X);
 	ControlPointRotations.Add(CPRot.Z);
 	ControlPointRotations.Add(CPRot.Y);
 	ControlPointRotations.Add(-CPRot.W);
 
-	ControlPointNames.Emplace(InControlPoint->GetName());
+	const int32 ControlPointId = FHoudiniLandscapeRuntimeUtils::GetOrGenerateValidControlPointId(
+		InControlPoint, InControlPointIdMap, InNextControlPointId);
+	ControlPointIds.Emplace(ControlPointId);
 
-	ControlPointHalfWidths.Add(InControlPoint->Width);
+	ControlPointHalfWidths.Add(InControlPoint->Width / HAPI_UNREAL_SCALE_FACTOR_POSITION);
+	ControlPointSideFalloffs.Add(InControlPoint->SideFalloff / HAPI_UNREAL_SCALE_FACTOR_POSITION);
+	ControlPointEndFalloffs.Add(InControlPoint->EndFalloff / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 
 	ControlPointPaintLayerNames.Emplace(InControlPoint->LayerName.ToString());
 	ControlPointRaiseTerrains.Add(InControlPoint->bRaiseTerrain);
@@ -241,9 +265,11 @@ FLandscapeSplineControlPointAttributes::AddEmpty()
 	ControlPointRotations.Add(FQuat::Identity.Y);
 	ControlPointRotations.Add(-FQuat::Identity.W);
 
-	ControlPointNames.AddDefaulted();
+	ControlPointIds.Add(INDEX_NONE);
 
 	ControlPointHalfWidths.AddDefaulted();
+	ControlPointSideFalloffs.AddDefaulted();
+	ControlPointEndFalloffs.AddDefaulted();
 
 	ControlPointPaintLayerNames.AddDefaulted();
 	ControlPointRaiseTerrains.Add(false);
@@ -290,6 +316,8 @@ FUnResampledPoint::CopySplinePoint(const FLandscapeSplineInterpPoint& InPoint)
 	Center = InPoint.Center;
 	Left = InPoint.Left;
 	Right = InPoint.Right;
+	FalloffLeft = InPoint.FalloffLeft;
+	FalloffRight = InPoint.FalloffRight;
 }
 
 
@@ -300,6 +328,8 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 	HAPI_NodeId& OutCreatedInputNodeId,
 	FUnrealObjectInputHandle& OutInputNodeHandle,
 	const FString& InNodeName,
+	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
+	int32& InNextControlPointId,
 	const float InSplineResolution,
 	const bool bInExportCurves,
 	const bool bInExportControlPoints,
@@ -403,6 +433,8 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 						NewNodeId,
 						OptionHandle,
 						NodeLabel,
+						InControlPointIdMap,
+						InNextControlPointId,
 						InSplineResolution,
 						!Options.bExportLandscapeSplineControlPoints && !Options.bExportLandscapeSplineLeftRightCurves,
 						Options.bExportLandscapeSplineControlPoints,
@@ -487,8 +519,8 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 	{
 		HAPI_NodeId SplinesNodeId = -1;
 		if (!CreateInputNodeForLandscapeSplines(
-				InSplinesComponent, ObjectNodeId, FinalInputNodeName, SplinesNodeId,
-				EHoudiniLandscapeSplineCurve::Center, InSplineResolution))
+				InSplinesComponent, ObjectNodeId, FinalInputNodeName, InControlPointIdMap, InNextControlPointId,
+				SplinesNodeId,	EHoudiniLandscapeSplineCurve::Center, InSplineResolution))
 		{
 			bSuccess = false;
 		}
@@ -513,7 +545,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 	{
 		HAPI_NodeId ControlPointCloudNodeId = -1;
 		if (!CreateInputNodeForLandscapeSplinesControlPoints(
-			InSplinesComponent, ObjectNodeId, FinalInputNodeName, ControlPointCloudNodeId))
+			InSplinesComponent, ObjectNodeId, FinalInputNodeName, InControlPointIdMap, InNextControlPointId, ControlPointCloudNodeId))
 		{
 			bSuccess = false;
 		}
@@ -538,8 +570,8 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 	{
 		HAPI_NodeId SplinesNodeId = -1;
 		if (!CreateInputNodeForLandscapeSplines(
-			InSplinesComponent, ObjectNodeId, FinalInputNodeName, SplinesNodeId,
-			EHoudiniLandscapeSplineCurve::Left, InSplineResolution))
+			InSplinesComponent, ObjectNodeId, FinalInputNodeName, InControlPointIdMap, InNextControlPointId,
+			SplinesNodeId, EHoudiniLandscapeSplineCurve::Left, InSplineResolution))
 		{
 			bSuccess = false;
 		}
@@ -552,8 +584,8 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 			MergeNodeInputIdx++;
 		}
 		if (!CreateInputNodeForLandscapeSplines(
-			InSplinesComponent, ObjectNodeId, FinalInputNodeName, SplinesNodeId,
-			EHoudiniLandscapeSplineCurve::Right, InSplineResolution))
+			InSplinesComponent, ObjectNodeId, FinalInputNodeName, InControlPointIdMap, InNextControlPointId,
+			SplinesNodeId, EHoudiniLandscapeSplineCurve::Right, InSplineResolution))
 		{
 			bSuccess = false;
 		}
@@ -586,6 +618,8 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplines(
 	ULandscapeSplinesComponent* const InSplinesComponent,
 	const HAPI_NodeId& InObjectNodeId,
 	const FString& InNodeName,
+	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
+	int32& InNextControlPointId,
 	HAPI_NodeId& OutNodeId,
 	const EHoudiniLandscapeSplineCurve InExportCurve,
 	const float InSplineResolution)
@@ -613,7 +647,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplines(
 	}
 
 	FLandscapeSplinesData SplinesData;
-	if (!ExtractLandscapeSplineData(InSplinesComponent, SplinesData, InExportCurve, InSplineResolution))
+	if (!ExtractLandscapeSplineData(InSplinesComponent, InControlPointIdMap, InNextControlPointId, SplinesData, InExportCurve, InSplineResolution))
 	{
 		HOUDINI_LOG_WARNING(TEXT("Failed to extract landscape splines data."));
 		return false;
@@ -755,6 +789,8 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesControlPoint
 	ULandscapeSplinesComponent* const InSplinesComponent,
 	const HAPI_NodeId& InObjectNodeId,
 	const FString& InNodeName,
+	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
+	int32& InNextControlPointId,
 	HAPI_NodeId& OutNodeId)
 {
 	if (!IsValid(InSplinesComponent))
@@ -764,7 +800,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesControlPoint
 	const FString FinalInputNodeName = InNodeName + TEXT("_control_points");
 
 	FLandscapeSplinesControlPointData ControlPointsData;
-	if (!ExtractLandscapeSplineControlPointsData(InSplinesComponent, ControlPointsData))
+	if (!ExtractLandscapeSplineControlPointsData(InSplinesComponent, InControlPointIdMap, InNextControlPointId, ControlPointsData))
 	{
 		HOUDINI_LOG_WARNING(TEXT("Failed to extract landscape splines control points data."));
 		return false;
@@ -861,6 +897,8 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesControlPoint
 
 bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 	ULandscapeSplinesComponent* const InSplinesComponent,
+	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
+	int32& InNextControlPointId,
 	FLandscapeSplinesData& OutSplinesData,
 	const EHoudiniLandscapeSplineCurve InExportCurve,
 	const float InSplineResolution)
@@ -987,6 +1025,7 @@ bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 			FVector ResampledPosition;
 
 			float CalculatedHalfWidth = 0;
+			float CalculatedSideFalloff = 0;
 			if (bResampleSplines)
 			{
 				// Find P0 and P1: the unresampled points before and after the resampled point on the spline
@@ -1024,6 +1063,13 @@ bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 					const FVector ResampledRight = FMath::Lerp(
 						UnResampledPoint0.Right, UnResampledPoint1.Right, ResampleAlpha);
 					CalculatedHalfWidth = ((ResampledPosition - ResampledRight) + (ResampledLeft - ResampledPosition)).Length() / 2.0;
+
+					const FVector ResampledLeftFalloff = FMath::Lerp(
+						UnResampledPoint0.FalloffLeft, UnResampledPoint1.FalloffLeft, ResampleAlpha);
+					const FVector ResampledRightFalloff = FMath::Lerp(
+						UnResampledPoint0.FalloffRight, UnResampledPoint1.FalloffRight, ResampleAlpha);
+					CalculatedSideFalloff = ((ResampledRightFalloff - ResampledRight).Length() 
+						+ (ResampledLeftFalloff - ResampledLeft).Length()) / 2.0;
 				}
 			}
 			else
@@ -1039,6 +1085,8 @@ bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 					// On points that are not control points, the half-width should be half the distance between the
 					// Right and Left points going through the Center point
 					CalculatedHalfWidth = ((SegmentPoint.Center - SegmentPoint.Right) + (SegmentPoint.Left - SegmentPoint.Center)).Length() / 2.0;
+					CalculatedSideFalloff = ((SegmentPoint.FalloffRight - SegmentPoint.Right).Length() 
+						+ (SegmentPoint.FalloffLeft - SegmentPoint.Left).Length()) / 2.0;
 				}
 			}
 			
@@ -1054,7 +1102,8 @@ bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 				}
 				else
 				{
-					OutSplinesData.ControlPointAttributes.AddControlPointData(CPoint, OutputPointIdx);
+					OutSplinesData.ControlPointAttributes.AddControlPointData(
+						CPoint, OutputPointIdx, InControlPointIdMap, InNextControlPointId);
 				}
 			}
 			else if (ResampledSegmentVertIdx == NumResampledVertsInSegment - 1)
@@ -1069,7 +1118,8 @@ bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 				}
 				else
 				{
-					OutSplinesData.ControlPointAttributes.AddControlPointData(CPoint, OutputPointIdx);
+					OutSplinesData.ControlPointAttributes.AddControlPointData(
+						CPoint, OutputPointIdx, InControlPointIdMap, InNextControlPointId);
 				}
 			}
 			else
@@ -1079,7 +1129,10 @@ bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 				OutSplinesData.PointConnectionTangentLengths.AddDefaulted();
 				OutSplinesData.ControlPointAttributes.AddEmpty();
 				// The control point width was calculated, set that manually
-				OutSplinesData.ControlPointAttributes.ControlPointHalfWidths.Last() = CalculatedHalfWidth;
+				OutSplinesData.ControlPointAttributes.ControlPointHalfWidths.Last() = CalculatedHalfWidth / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+				OutSplinesData.ControlPointAttributes.ControlPointSideFalloffs.Last() = CalculatedSideFalloff / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+				// We don't have calculated end-falloff values for non-control points, set to 0
+				OutSplinesData.ControlPointAttributes.ControlPointEndFalloffs.Last() = 0.0f;
 			}
 
 			// Set the final point position
@@ -1162,6 +1215,8 @@ bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 bool
 FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineControlPointsData(
 	ULandscapeSplinesComponent* const InSplinesComponent,
+	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
+	int32& InNextControlPointId,
 	FLandscapeSplinesControlPointData& OutSplinesControlPointData)
 {
 	if (!IsValid(InSplinesComponent))
@@ -1191,7 +1246,8 @@ FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineControlPointsData(
 		OutSplinesControlPointData.ControlPointPositions.Add(CPoint->Location.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 		OutSplinesControlPointData.ControlPointPositions.Add(CPoint->Location.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 
-		OutSplinesControlPointData.Attributes.AddControlPointData(CPoint, ControlPointIdx);
+		OutSplinesControlPointData.Attributes.AddControlPointData(
+			CPoint, ControlPointIdx, InControlPointIdMap, InNextControlPointId);
 	}
 
 	return true;
@@ -1322,13 +1378,16 @@ FUnrealLandscapeSplineTranslator::AddLandscapeSplinePaintLayerNameAttribute(
 	LayerNameAttrInfo.storage = HAPI_STORAGETYPE_STRING;
 	LayerNameAttrInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
+	const FString AttributeName = InAttribOwner == HAPI_ATTROWNER_POINT
+		? HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CONTROL_POINT_PAINT_LAYER_NAME
+		: HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_SEGMENT_PAINT_LAYER_NAME;
+
 	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		Session, InNodeId, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_PAINT_LAYER_NAME, &LayerNameAttrInfo), false);
+		Session, InNodeId, 0, TCHAR_TO_ANSI(*AttributeName), &LayerNameAttrInfo), false);
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
-		InPaintLayerNames, InNodeId, 0, TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_PAINT_LAYER_NAME),
-		LayerNameAttrInfo), false);
+		InPaintLayerNames, InNodeId, 0, AttributeName, LayerNameAttrInfo), false);
 
 	return true;
 }
@@ -1349,13 +1408,16 @@ bool FUnrealLandscapeSplineTranslator::AddLandscapeSplineRaiseTerrainAttribute(
 	RaiseTerrainAttrInfo.storage = HAPI_STORAGETYPE_INT8;
 	RaiseTerrainAttrInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
+	const FString AttributeName = InAttribOwner == HAPI_ATTROWNER_POINT
+		? HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CONTROL_POINT_RAISE_TERRAIN
+		: HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_SEGMENT_RAISE_TERRAIN;
+
 	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		Session, InNodeId, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_RAISE_TERRAIN, &RaiseTerrainAttrInfo), false);
+		Session, InNodeId, 0, TCHAR_TO_ANSI(*AttributeName), &RaiseTerrainAttrInfo), false);
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeInt8Data(
-		InRaiseTerrain, InNodeId, 0, TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_RAISE_TERRAIN),
-		RaiseTerrainAttrInfo), false);
+		InRaiseTerrain, InNodeId, 0, AttributeName, RaiseTerrainAttrInfo), false);
 
 	return true;
 }
@@ -1376,14 +1438,16 @@ bool FUnrealLandscapeSplineTranslator::AddLandscapeSplineLowerTerrainAttribute(
 	LowerTerrainAttrInfo.storage = HAPI_STORAGETYPE_INT8;
 	LowerTerrainAttrInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
+	const FString AttributeName = InAttribOwner == HAPI_ATTROWNER_POINT
+		? HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CONTROL_POINT_LOWER_TERRAIN
+		: HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_SEGMENT_LOWER_TERRAIN;
+
 	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		Session, InNodeId, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_LOWER_TERRAIN,
-		&LowerTerrainAttrInfo), false);
+		Session, InNodeId, 0, TCHAR_TO_ANSI(*AttributeName), &LowerTerrainAttrInfo), false);
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeInt8Data(
-		InLowerTerrain, InNodeId, 0, TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_LOWER_TERRAIN),
-		LowerTerrainAttrInfo), false);
+		InLowerTerrain, InNodeId, 0, AttributeName, LowerTerrainAttrInfo), false);
 
 	return true;
 }
@@ -1442,8 +1506,8 @@ bool FUnrealLandscapeSplineTranslator::AddLandscapeSplineSegmentMeshesAttributes
 
 		// Add the mesh attribute
 		const FString MeshAttrName = (MeshIdx == 0
-			? FString(TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_MESH))
-			: FString::Printf(TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_MESH "%d"), MeshIdx));
+			? FString(TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_SEGMENT_MESH))
+			: FString::Printf(TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_SEGMENT_MESH "%d"), MeshIdx));
 		HAPI_Result Result;
 		HOUDINI_CHECK_ERROR_GET(&Result, FHoudiniApi::AddAttribute(Session, InNodeId, 0, TCHAR_TO_ANSI(*MeshAttrName), &MeshAttrInfo));
 		if (HAPI_RESULT_SUCCESS == Result)
@@ -1569,11 +1633,11 @@ FUnrealLandscapeSplineTranslator::AddLandscapeSplineControlPointMeshAttribute(
 
 	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		Session, InNodeId, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_MESH,
+		Session, InNodeId, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CONTROL_POINT_MESH,
 		&MeshAttrInfo), false);
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
-		InMeshRefs, InNodeId, 0, TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_MESH),
+		InMeshRefs, InNodeId, 0, TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CONTROL_POINT_MESH),
 		MeshAttrInfo), false);
 
 	return true;
@@ -1608,7 +1672,7 @@ FUnrealLandscapeSplineTranslator::AddLandscapeSplineControlPointMaterialOverride
 	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
 	
 	bool bNeedToCommit = false;
-	const FString AttrNamePrefix(TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_MESH HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_MESH_MATERIAL_OVERRIDE_SUFFIX));
+	const FString AttrNamePrefix(TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CONTROL_POINT_MESH HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_MESH_MATERIAL_OVERRIDE_SUFFIX));
 	for (int32 MaterialOverrideIdx = 0; MaterialOverrideIdx < NumMaterialOverrides; ++MaterialOverrideIdx)
 	{
 		// Add the material override attribute
@@ -1631,28 +1695,28 @@ FUnrealLandscapeSplineTranslator::AddLandscapeSplineControlPointMaterialOverride
 
 
 bool
-FUnrealLandscapeSplineTranslator::AddLandscapeSplineControlPointNamesAttribute(
-	const HAPI_NodeId& InNodeId, const TArray<FString>& InControlPointNames)
+FUnrealLandscapeSplineTranslator::AddLandscapeSplineControlPointIdsAttribute(
+	const HAPI_NodeId& InNodeId, const TArray<int32>& InControlPointIds)
 {
-	if (InNodeId < 0 || InControlPointNames.IsEmpty())
+	if (InNodeId < 0 || InControlPointIds.IsEmpty())
 		return false;
 	
 	HAPI_AttributeInfo MeshAttrInfo;
 	FHoudiniApi::AttributeInfo_Init(&MeshAttrInfo);
 	MeshAttrInfo.tupleSize = 1;
-	MeshAttrInfo.count = InControlPointNames.Num();
+	MeshAttrInfo.count = InControlPointIds.Num();
 	MeshAttrInfo.exists = true;
 	MeshAttrInfo.owner = HAPI_ATTROWNER_POINT;
-	MeshAttrInfo.storage = HAPI_STORAGETYPE_STRING;
+	MeshAttrInfo.storage = HAPI_STORAGETYPE_INT;
 	MeshAttrInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
 	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		Session, InNodeId, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CONTROL_POINT_NAME,
+		Session, InNodeId, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CONTROL_POINT_ID,
 		&MeshAttrInfo), false);
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
-		InControlPointNames, InNodeId, 0, TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CONTROL_POINT_NAME),
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntData(
+		InControlPointIds, InNodeId, 0, TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CONTROL_POINT_ID),
 		MeshAttrInfo), false);
 
 	return true;
@@ -1681,6 +1745,62 @@ FUnrealLandscapeSplineTranslator::AddLandscapeSplineHalfWidthAttribute(
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
 		InHalfWidths.GetData(), InNodeId, 0, TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_HALF_WIDTH),
+		AttrInfo), false);
+
+	return true;
+}
+
+
+bool
+FUnrealLandscapeSplineTranslator::AddLandscapeSplineSideFalloffAttribute(
+	const HAPI_NodeId& InNodeId, const TArray<float>& InSideFalloffs)
+{
+	if (InNodeId < 0 || InSideFalloffs.IsEmpty())
+		return false;
+
+	HAPI_AttributeInfo AttrInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttrInfo);
+	AttrInfo.tupleSize = 1;
+	AttrInfo.count = InSideFalloffs.Num();
+	AttrInfo.exists = true;
+	AttrInfo.owner = HAPI_ATTROWNER_POINT;
+	AttrInfo.storage = HAPI_STORAGETYPE_FLOAT;
+	AttrInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+		Session, InNodeId, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_SIDE_FALLOFF, &AttrInfo), false);
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+		InSideFalloffs.GetData(), InNodeId, 0, TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_SIDE_FALLOFF),
+		AttrInfo), false);
+
+	return true;
+}
+
+
+bool
+FUnrealLandscapeSplineTranslator::AddLandscapeSplineEndFalloffAttribute(
+	const HAPI_NodeId& InNodeId, const TArray<float>& InEndFalloffs)
+{
+	if (InNodeId < 0 || InEndFalloffs.IsEmpty())
+		return false;
+
+	HAPI_AttributeInfo AttrInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttrInfo);
+	AttrInfo.tupleSize = 1;
+	AttrInfo.count = InEndFalloffs.Num();
+	AttrInfo.exists = true;
+	AttrInfo.owner = HAPI_ATTROWNER_POINT;
+	AttrInfo.storage = HAPI_STORAGETYPE_FLOAT;
+	AttrInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+		Session, InNodeId, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_END_FALLOFF, &AttrInfo), false);
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+		InEndFalloffs.GetData(), InNodeId, 0, TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_END_FALLOFF),
 		AttrInfo), false);
 
 	return true;
@@ -1731,7 +1851,7 @@ FUnrealLandscapeSplineTranslator::AddLandscapeSplineControlPointMeshScaleAttribu
 	AttrInfo.storage = HAPI_STORAGETYPE_FLOAT;
 	AttrInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
-	const FString AttrName = TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_MESH HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_MESH_SCALE_SUFFIX);
+	const FString AttrName = TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CONTROL_POINT_MESH HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_MESH_SCALE_SUFFIX);
 
 	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
@@ -1756,10 +1876,16 @@ FUnrealLandscapeSplineTranslator::AddLandscapeSplineControlPointAttributes(
 	if (AddLandscapeSplineControlPointRotationAttribute(InNodeId, InControlPointAttributes.ControlPointRotations))
 		bNeedToCommit = true;
 	
-	if (AddLandscapeSplineControlPointNamesAttribute(InNodeId, InControlPointAttributes.ControlPointNames))
+	if (AddLandscapeSplineControlPointIdsAttribute(InNodeId, InControlPointAttributes.ControlPointIds))
 		bNeedToCommit = true;
 
 	if (AddLandscapeSplineHalfWidthAttribute(InNodeId, InControlPointAttributes.ControlPointHalfWidths))
+		bNeedToCommit = true;
+
+	if (AddLandscapeSplineSideFalloffAttribute(InNodeId, InControlPointAttributes.ControlPointSideFalloffs))
+		bNeedToCommit = true;
+
+	if (AddLandscapeSplineEndFalloffAttribute(InNodeId, InControlPointAttributes.ControlPointEndFalloffs))
 		bNeedToCommit = true;
 
 	if (AddLandscapeSplinePaintLayerNameAttribute(InNodeId, InControlPointAttributes.ControlPointPaintLayerNames, HAPI_ATTROWNER_POINT))

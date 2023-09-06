@@ -4990,6 +4990,56 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
 
 		return true;
 	}
+	else if (AttributeInfo.storage == HAPI_STORAGETYPE_INT16)
+	{
+		// Expected Int32, found an Int16, try to convert the attribute
+
+		// Allocate sufficient buffer for data.
+		TArray<int16> Int16Data;
+		Int16Data.SetNum(Count * AttributeInfo.tupleSize);
+
+		// Fetch the float values
+		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeInt16Data(
+			FHoudiniEngine::Get().GetSession(),
+			InGeoId, InPartId, InAttribName,
+			&AttributeInfo, -1, &Int16Data[0], Start, Count))
+		{
+			OutData.SetNum(Int16Data.Num());
+			for (int32 Idx = 0; Idx < Int16Data.Num(); Idx++)
+			{
+				OutData[Idx] = (int32)Int16Data[Idx];
+			}
+
+			HOUDINI_LOG_MESSAGE(TEXT("Attribute %s was expected to be an integer attribute, its value had to be converted from int16."), *FString(InAttribName));
+
+			return true;
+		}
+	}
+	else if (AttributeInfo.storage == HAPI_STORAGETYPE_INT8)
+	{
+		// Expected Int32, found an Int8, try to convert the attribute
+
+		// Allocate sufficient buffer for data.
+		TArray<int8> Int8Data;
+		Int8Data.SetNum(Count * AttributeInfo.tupleSize);
+
+		// Fetch the float values
+		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeInt8Data(
+			FHoudiniEngine::Get().GetSession(),
+			InGeoId, InPartId, InAttribName,
+			&AttributeInfo, -1, &Int8Data[0], Start, Count))
+		{
+			OutData.SetNum(Int8Data.Num());
+			for (int32 Idx = 0; Idx < Int8Data.Num(); Idx++)
+			{
+				OutData[Idx] = (int32)Int8Data[Idx];
+			}
+
+			HOUDINI_LOG_MESSAGE(TEXT("Attribute %s was expected to be an integer attribute, its value had to be converted from int8."), *FString(InAttribName));
+
+			return true;
+		}
+	}
 	else if (AttributeInfo.storage == HAPI_STORAGETYPE_FLOAT)
 	{
 		// Expected Int, found a float, try to convert the attribute
@@ -5313,6 +5363,22 @@ bool FHoudiniEngineUtils::IsValidDataTable(const HAPI_NodeId& GeoId, const HAPI_
 	}
 
 	return false;
+}
+
+bool
+FHoudiniEngineUtils::IsLandscapeSpline(const HAPI_NodeId& GeoId, const HAPI_PartId& PartId)
+{
+	// Check for 
+	// - HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE on points/prim/detail with true/non-zero value
+	TArray<int32> OutData;
+	HAPI_AttributeInfo AttrInfo;
+	if (!HapiGetAttributeDataAsInteger(
+			GeoId, PartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE, AttrInfo, OutData, 1, HAPI_ATTROWNER_INVALID, 0, 1))
+	{
+		return false;
+	}
+
+	return OutData.Num() > 0 && static_cast<bool>(OutData[0]);
 }
 
 bool

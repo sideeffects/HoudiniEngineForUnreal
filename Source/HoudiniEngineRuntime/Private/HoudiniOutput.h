@@ -38,6 +38,10 @@
 class UFoliageType;
 class UMaterialInterface;
 class ULandscapeLayerInfoObject;
+class ULandscapeSplinesComponent;
+class ULandscapeSplineControlPoint;
+class ULandscapeSplineSegment;
+class ALandscapeSplineActor;
 struct FHoudiniDataLayer;
 
 
@@ -189,6 +193,77 @@ public:
 	UPROPERTY()
 	bool bCreated;
 
+};
+
+
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniLandscapeSplineTargetLayerOutput : public UHoudiniLandscapeTargetLayerOutput
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY()
+	FName AfterEditLayer = NAME_None;
+
+	UPROPERTY()
+	TArray<ULandscapeSplineSegment*> Segments;
+};
+
+
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniLandscapeSplinesOutput : public UObject
+{
+	GENERATED_BODY()
+
+public:
+
+	TMap<FName, UHoudiniLandscapeSplineTargetLayerOutput*>& GetLayerOutputs() { return LayerOutputs; }
+	const TMap<FName, UHoudiniLandscapeSplineTargetLayerOutput*>& GetLayerOutputs() const { return LayerOutputs; }
+
+	bool GetLayerSegments(FName InEditLayer, TArray<ULandscapeSplineSegment*>& OutSegments) const;
+
+	TArray<ULandscapeSplineSegment*>& GetSegments() { return Segments; }
+	const TArray<ULandscapeSplineSegment*>& GetSegments() const { return Segments; }
+
+	TArray<ULandscapeSplineControlPoint*>& GetControlPoints() { return ControlPoints; }
+	const TArray<ULandscapeSplineControlPoint*>& GetControlPoints() const { return ControlPoints; }
+
+	void SetLandscape(ALandscape* InLandscape) { Landscape = InLandscape; }
+	ALandscape* GetLandscape() const { return Landscape; }
+
+	void SetLandscapeProxy(ALandscapeProxy* InLandscapeProxy) { LandscapeProxy = InLandscapeProxy; }
+	ALandscapeProxy* GetLandscapeProxy() const { return LandscapeProxy; }
+
+	void SetLandscapeSplineActor(ALandscapeSplineActor* InLandscapeSplineActor) { LandscapeSplineActor = InLandscapeSplineActor; }
+	ALandscapeSplineActor* GetLandscapeSplineActor() const { return LandscapeSplineActor; }
+
+	void SetLandscapeSplinesComponent(ULandscapeSplinesComponent* InLandscapeSplinesComponent) { LandscapeSplinesComponent = InLandscapeSplinesComponent; }
+	ULandscapeSplinesComponent* GetLandscapeSplinesComponent() const { return LandscapeSplinesComponent; }
+
+	// Clear the output object, destroying the segments, control points and landscape spline actor (if applicable).
+	void Clear(bool bInClearTempLayers=true);
+
+private:
+	UPROPERTY()
+	ALandscape* Landscape;
+
+	UPROPERTY()
+	ALandscapeProxy* LandscapeProxy;
+
+	UPROPERTY()
+	ALandscapeSplineActor* LandscapeSplineActor;
+
+	UPROPERTY()
+	ULandscapeSplinesComponent* LandscapeSplinesComponent;
+
+	UPROPERTY()
+	TMap<FName, UHoudiniLandscapeSplineTargetLayerOutput*> LayerOutputs;
+
+	UPROPERTY()
+	TArray<ULandscapeSplineSegment*> Segments;
+
+	UPROPERTY()
+	TArray<ULandscapeSplineControlPoint*> ControlPoints;
 };
 
 
@@ -426,6 +501,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		// All exported level instance actors.
 		UPROPERTY()
 		TArray<FString> LevelInstanceActors;
+
+		// For landscape splines, this is the landscape that contains the splines.
+		UPROPERTY()
+		FString Landscape;
 };
 
 // Container to hold the map of baked objects. There should be one of
