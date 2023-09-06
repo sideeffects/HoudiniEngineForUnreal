@@ -131,9 +131,9 @@ public:
 	// Indicates if this input type has been changed
 	bool HasInputTypeChanged() const { return PreviousType != EHoudiniInputType::Invalid ? PreviousType != Type : false; }
 
-	FString GetName() const					{ return Name; };
-	FString GetLabel() const				{ return Label; };
-	FString GetHelp() const					{ return Help; };	
+	FString GetInputName() const					{ return Name; };
+	FString GetInputLabel() const				{ return Label; };
+	FString GetInputHelp() const					{ return Help; };	
 	bool GetPackBeforeMerge() const				{ return bPackBeforeMerge; };
 	bool GetImportAsReference() const			{ return InputSettings.bImportAsReference; };
 	bool GetImportAsReferenceRotScaleEnabled() const	{ return InputSettings.bImportAsReferenceRotScaleEnabled; };

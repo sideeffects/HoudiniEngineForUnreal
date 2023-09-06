@@ -2318,7 +2318,7 @@ UHoudiniInput::GetNodeBaseName() const
 
 	// Unfortunately CreateInputNode always prefix with input_...
 	if (IsObjectPathParameter())
-		NodeBaseName += TEXT("_") + GetName();
+		NodeBaseName += TEXT("_") + GetInputName();
 	else
 		NodeBaseName += TEXT("_input") + FString::FromInt(GetInputIndex());
 

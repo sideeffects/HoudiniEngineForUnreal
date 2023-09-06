@@ -2681,7 +2681,7 @@ UHoudiniPublicAPIAssetWrapper::GetInputParameters_Implementation(TMap<FName, UHo
 		if (!bSuccessfullyCopied)
 			bAnyFailures = true;
 		
-		OutInputs.Add(FName(HoudiniInput->GetName()), APIInput);
+		OutInputs.Add(FName(HoudiniInput->GetInputName()), APIInput);
 	}
 
 	return !bAnyFailures; 
@@ -4085,7 +4085,7 @@ UHoudiniPublicAPIAssetWrapper::FindValidHoudiniNodeInputParameter(const FName& I
 		UHoudiniInput* const Input = HAC->GetInputAt(Index);
 		if (!IsValid(Input))
 			continue;
-		if (Input->IsObjectPathParameter() && Input->GetName() == InputParameterName)
+		if (Input->IsObjectPathParameter() && Input->GetInputName() == InputParameterName)
 			return Input;
 	}
 
@@ -4109,7 +4109,7 @@ UHoudiniPublicAPIAssetWrapper::FindValidHoudiniNodeInputParameter(const FName& I
 		UHoudiniInput const* const Input = HAC->GetInputAt(Index);
 		if (!IsValid(Input))
 			continue;
-		if (Input->IsObjectPathParameter() && Input->GetName() == InputParameterName)
+		if (Input->IsObjectPathParameter() && Input->GetInputName() == InputParameterName)
 			return Input;
 	}
 

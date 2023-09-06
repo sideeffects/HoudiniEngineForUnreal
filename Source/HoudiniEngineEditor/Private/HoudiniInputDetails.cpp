@@ -207,7 +207,7 @@ FHoudiniInputDetails::CreateWidget(
 
 	// Create a widget row, or get the given row.
 	FDetailWidgetRow* Row = InputRow;
-	FString InputRowString = MainInput->GetLabel() + " " + MainInput->GetName();
+	FString InputRowString = MainInput->GetInputLabel() + " " + MainInput->GetInputName();
 	Row = InputRow == nullptr ? &(HouInputCategory.AddCustomRow(FText::FromString(InputRowString))) : InputRow;
 	if (!Row)
 		return;
@@ -260,7 +260,7 @@ FHoudiniInputDetails::CreateNameWidget(
 	if (!IsValidWeakPointer(InInput))
 		return;
 
-	FString InputLabelStr = InInput->GetLabel();
+	FString InputLabelStr = InInput->GetInputLabel();
 	if (InInputCount > 1)
 	{
 		InputLabelStr += TEXT(" (") + FString::FromInt(InInputCount) + TEXT(")");

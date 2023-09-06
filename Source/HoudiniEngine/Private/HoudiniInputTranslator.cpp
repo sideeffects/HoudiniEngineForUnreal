@@ -220,7 +220,7 @@ FHoudiniInputTranslator::BuildAllInputs(
 			{
 				// Do not delete a param input that is still present!
 				if (CurrentInput->IsObjectPathParameter()
-					&& InputParameterNames.Contains(CurrentInput->GetName()))
+					&& InputParameterNames.Contains(CurrentInput->GetInputName()))
 					continue;
 
 				FHoudiniInputTranslator::DisconnectAndDestroyInput(CurrentInput, CurrentInput->GetInputType());
@@ -263,9 +263,9 @@ FHoudiniInputTranslator::BuildAllInputs(
 			if (!IsValid(CurrentInput))
 				continue;
 
-			if (ParameterNameToIndexMap.Contains(CurrentInput->GetName()))
+			if (ParameterNameToIndexMap.Contains(CurrentInput->GetInputName()))
 			{
-				const int32 ParameterIndex = ParameterNameToIndexMap[CurrentInput->GetName()];
+				const int32 ParameterIndex = ParameterNameToIndexMap[CurrentInput->GetInputName()];
 				InputIdxToInputParamIndex[InputIdx] = ParameterIndex;
 				UsedParameterIndices.Add(ParameterIndex);
 			}
@@ -1312,7 +1312,7 @@ FHoudiniInputTranslator::ConnectInputNode(UHoudiniInput* InInput)
 	if (InInput->IsObjectPathParameter())
 	{
 		// Now we can assign the input node path to the parameter
-		std::string ParamNameString = TCHAR_TO_UTF8(*(InInput->GetName()));
+		std::string ParamNameString = TCHAR_TO_UTF8(*(InInput->GetInputName()));
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmNodeValue(
 			FHoudiniEngine::Get().GetSession(), AssetNodeId,

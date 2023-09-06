@@ -805,7 +805,7 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 			FString InputLabel;
 			if (bIsObjectPathParameter)
 			{
-				ParameterName = Input->GetName();
+				ParameterName = Input->GetInputName();
 				UHoudiniParameter* Param = HAC->FindParameterByName(ParameterName);
 				if (IsValid(Param))
 				{
