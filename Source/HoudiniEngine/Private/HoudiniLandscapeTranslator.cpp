@@ -109,6 +109,8 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 	// Process each layer, cooking to a temporary object.
 	//------------------------------------------------------------------------------------------------------------------------------
 
+	TArray<UHoudiniLandscapeTargetLayerOutput*> AllOutputs;
+
 	for (FHoudiniHeightFieldPartData& Part : Parts)
 	{
 		if (!LandscapeMapping.HoudiniLayerToUnrealLandscape.Contains(&Part))
@@ -122,6 +124,7 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 		UHoudiniLandscapeTargetLayerOutput* Result = TranslateHeightFieldPart(InOutput, Landscape, Part, *HAC, ClearedLayers, InPackageParams);
 		if (!Result)
 			continue;
+		AllOutputs.Add(Result);
 
 		FHoudiniOutputObjectIdentifier OutputObjectIdentifier(Part.HeightField->ObjectId, Part.HeightField->GeoId, Part.HeightField->PartId, "EditableLayer");
 		FHoudiniOutputObject& OutputObj = InOutput->GetOutputObjects().FindOrAdd(OutputObjectIdentifier);
@@ -140,6 +143,17 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 		}
 
 	}
+
+
+	// ------------------------------------------------------------------------------------------------------------------
+	// Once done with processing parts, lock layers
+	// ------------------------------------------------------------------------------------------------------------------
+
+	for (UHoudiniLandscapeTargetLayerOutput* Output : AllOutputs)
+	{
+		FHoudiniLandscapeUtils::ApplyLocks(Output);
+	}
+
 	return true;
 }
 
@@ -224,6 +238,24 @@ TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTrans
 		int LandscapeOutputMode = HAPI_UNREAL_LANDSCAPE_OUTPUT_MODE_GENERATE;
 		FHoudiniLandscapeUtils::GetOutputMode(PartObj.GeoId, PartObj.PartId, HAPI_ATTROWNER_INVALID, LandscapeOutputMode);
 		PartData.bCreateNewLandscape = LandscapeOutputMode == HAPI_UNREAL_LANDSCAPE_OUTPUT_MODE_GENERATE;
+
+		//-----------------------------------------------------------------------------------------------------------------------------
+		// Landscape Locking / Unlocking
+		//-----------------------------------------------------------------------------------------------------------------------------
+
+		int LockValue = 0;
+		FHoudiniEngineUtils::HapiGetFirstAttributeValueAsInteger(PartObj.GeoId, PartObj.PartId,
+			HAPI_UNREAL_ATTRIB_LANDSCAPE_WRITE_LOCKED_LAYERS,
+			HAPI_ATTROWNER_INVALID,
+			LockValue);
+		PartData.bWriteLockedLayers = LockValue != 0;
+
+		LockValue = 0;
+		FHoudiniEngineUtils::HapiGetFirstAttributeValueAsInteger(PartObj.GeoId, PartObj.PartId,
+			HAPI_UNREAL_ATTRIB_LANDSCAPE_LOCK_LAYERS,
+			HAPI_ATTROWNER_INVALID,
+			LockValue);
+		PartData.bLockLayer = LockValue != 0;
 
 		//-----------------------------------------------------------------------------------------------------------------------------
 		// unreal_landscape_editlayer_subtractive
@@ -601,14 +633,27 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 
 	FLandscapeLayer* UnrealEditLayer = nullptr;
 
+	bool bWasLocked = false;
 	if (OutputLandscape->bCanHaveLayersContent)
 	{
-		UnrealEditLayer = FHoudiniLandscapeUtils::GetEditLayerForWriting(OutputLandscape, FName(CookedLayerName));
+		UnrealEditLayer = FHoudiniLandscapeUtils::GetOrCreateEditLayer(OutputLandscape, FName(CookedLayerName));
 		if (!UnrealEditLayer)
-		{
-			HOUDINI_LOG_ERROR(TEXT("Could not find edit layer and failed to create it: %s"), *(OutputLandscape->GetActorLabel()));
 			return nullptr;
+
+		bWasLocked = UnrealEditLayer->bLocked;
+		if (UnrealEditLayer->bLocked)
+		{
+			if (Part.bWriteLockedLayers)
+			{
+				UnrealEditLayer->bLocked = false;
+			}
+			else
+			{
+				HOUDINI_LOG_ERROR(TEXT("Cannot write to locked Edit Layer: %s"), *CookedLayerName);
+				return nullptr;
+			}
 		}
+	
 
 		// Move this layer after another layer if required.
 		if (!Part.AfterLayerName.IsEmpty())
@@ -785,6 +830,9 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 
 	}
 
+	if (bWasLocked && UnrealEditLayer)
+		UnrealEditLayer->bLocked = true;
+
 	// ------------------------------------------------------------------------------------------------------------------
 	// We successfully did what we came to, return an Object
 	// ------------------------------------------------------------------------------------------------------------------
@@ -804,6 +852,8 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	Obj->BakeOutlinerFolder = Part.BakeOutlinerFolder;
 	Obj->BakeFolder = Part.BakeFolder;
 	Obj->MaterialInstance = Part.MaterialInstance;
+	Obj->bWriteLockedLayers = Part.bWriteLockedLayers;
+	Obj->bLockLayer = Part.bLockLayer;
 	return Obj;
 
 
