@@ -69,9 +69,8 @@ private:
 	FReply OnThumbnailDoubleClick(
 		const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, UObject* Object);
 
-
-private:
-
+	// TSharedPtr<SWidget> ConstructActionMenu(TWeakObjectPtr<UHoudiniAssetComponent> HAC);
+	
 	// Components which are being customized.
 	TArray<TWeakObjectPtr<UHoudiniAssetComponent>> HoudiniAssetComponents;
 

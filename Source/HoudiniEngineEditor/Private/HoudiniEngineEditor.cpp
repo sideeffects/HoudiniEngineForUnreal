@@ -57,6 +57,7 @@
 #include "UnrealMeshTranslator.h"
 
 #include "AssetTypeActions_HoudiniAsset.h"
+#include "AssetTypeActions_HoudiniPreset.h"
 #include "AssetTypeActions_HoudiniToolsPackageAsset.h"
 
 #include "Animation/AnimSequence.h"
@@ -355,6 +356,7 @@ FHoudiniEngineEditor::RegisterAssetTypeActions()
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked< FAssetToolsModule >("AssetTools").Get();
 	RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_HoudiniAsset()));
 	RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_HoudiniToolsPackageAsset()));
+	RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_HoudiniPreset()));
 }
 
 void

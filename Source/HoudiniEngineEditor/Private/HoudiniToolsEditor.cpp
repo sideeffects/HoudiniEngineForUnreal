@@ -32,6 +32,7 @@
 #include "EditorReimportHandler.h"
 #include "GameProjectUtils.h"
 #include "HoudiniAsset.h"
+#include "HoudiniAssetComponent.h"
 #include "HoudiniAssetFactory.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineEditor.h"
@@ -52,6 +53,15 @@
 #include "Serialization/JsonSerializer.h"
 #include "HoudiniToolsRuntimeUtils.h"
 #include "HoudiniEngineRuntimeUtils.h"
+#include "HoudiniParameter.h"
+#include "HoudiniParameterColor.h"
+#include "HoudiniParameterFile.h"
+#include "HoudiniParameterFloat.h"
+#include "HoudiniParameterInt.h"
+#include "HoudiniParameterOperatorPath.h"
+#include "HoudiniParameterRamp.h"
+#include "HoudiniParameterString.h"
+#include "HoudiniPreset.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	#include "Subsystems/EditorAssetSubsystem.h"
@@ -210,6 +220,7 @@ FString FHoudiniToolsEditor::ResolveHoudiniAssetLabel(const UHoudiniAsset* Houdi
 	}
 }
 
+
 bool
 FHoudiniToolsEditor::GetHoudiniAssetJSONPath(const UHoudiniAsset* HoudiniAsset, FString& OutJSONFilePath)
 {
@@ -347,47 +358,6 @@ FHoudiniToolsEditor::FindHoudiniToolsPackagePaths( TArray<FString>& HoudiniTools
 			}
 		}
 	}
-
-	
-
- //    // Read the default tools from the $HFS/engine/tool folder
- //    FDirectoryPath DefaultToolPath;
- //    FString HFSPath = FPaths::GetPath(FHoudiniEngine::Get().GetLibHAPILocation());
- //    FString DefaultPath = FPaths::Combine(HFSPath, TEXT("engine"));
- //    DefaultPath = FPaths::Combine(DefaultPath, TEXT("tools"));
- //
- //    FHoudiniToolDirectory ToolDir;
- //    ToolDir.Name = TEXT("Default");
- //    ToolDir.Path.Path = DefaultPath;
- //    ToolDir.ContentDirID = TEXT("Default");
- //
- //    HoudiniToolsDirectoryArray.Add( ToolDir );
- //
- //    // Append all the custom tools directory from the runtime settings
- //    // UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetMutableDefault< UHoudiniRuntimeSettings >();
- //    // if ( !HoudiniRuntimeSettings )
- //    //     return;
- //
-	// // TODO: We need to replace the CustomToolsLocations
- //    // We have to make sure all Custom tool dir have a ContentDirID
- //    bool NeedToSave = false;
- //    for (int32 n = 0; n < CustomHoudiniToolsLocation.Num(); n++ )
- //    {
- //        if (!CustomHoudiniToolsLocation[n].ContentDirID.IsEmpty())
- //            continue;
- //
- //        // Generate a new Directory ID for that directory
- //        CustomHoudiniToolsLocation[n].ContentDirID = ObjectTools::SanitizeObjectName(
- //            CustomHoudiniToolsLocation[n].Name + TEXT(" ") + FGuid::NewGuid().ToString() );
- //
- //        NeedToSave = true;
- //    }
- //
- //    // if ( NeedToSave )
- //    //     HoudiniRuntimeSettings->SaveConfig();
- //
- //    // Add all the custom tool paths
- //    HoudiniToolsDirectoryArray.Append( CustomHoudiniToolsLocation );
 }
 
 bool FHoudiniToolsEditor::LoadJSONFile(const FString& JSONFilePath, TSharedPtr<FJsonObject>& OutJSONObject)
@@ -878,7 +848,7 @@ FHoudiniToolsEditor::UpdateHoudiniToolListFromProject(bool bIgnoreExcludePattern
 	TArray<UHoudiniToolsPackageAsset*> ToolsPackages;
 	FindHoudiniToolsPackages(ToolsPackages);
 
-	auto AddToolToCategoriesFn = [&](TSharedPtr<FHoudiniTool> HoudiniTool, const TArray<FString>& MatchingCategories)
+	auto AddToolToCategoriesFn = [this](TSharedPtr<FHoudiniTool> HoudiniTool, const TArray<FString>& MatchingCategories)
 	{
 		for(const FString& CategoryName : MatchingCategories)
 		{
@@ -891,9 +861,31 @@ FHoudiniToolsEditor::UpdateHoudiniToolListFromProject(bool bIgnoreExcludePattern
 			CategoryTools->Tools.Add(HoudiniTool);
 		}
 	};
+
+	auto AffirmToolCategoryFn = [this](const FString& CategoryName, const EHoudiniToolCategoryType CategoryType)
+	{
+		TSharedPtr<FHoudiniToolList>& ToolList = Categories.FindOrAdd(FHoudiniToolCategory(CategoryName, CategoryType));
+		if (!ToolList.IsValid())
+		{
+			ToolList = MakeShared<FHoudiniToolList>();
+		}
+	};
 	
 	for (const UHoudiniToolsPackageAsset* ToolsPackage : ToolsPackages)
 	{
+		if (!IsValid(ToolsPackage))
+		{
+			continue;
+		}
+
+		// Ensure that we have categories for each category defined in this package to allow us to display empty
+		// categories.
+		for (auto& Entry : ToolsPackage->Categories)
+		{
+			const FString& CategoryName = Entry.Key;
+			AffirmToolCategoryFn(CategoryName, EHoudiniToolCategoryType::Package);
+		}
+		
 		// Find all tools in this package
 		TArray<TSharedPtr<FHoudiniTool>> PackageTools;
 		FindHoudiniToolsInPackage(ToolsPackage, PackageTools);
@@ -932,6 +924,10 @@ FHoudiniToolsEditor::UpdateHoudiniToolListFromProject(bool bIgnoreExcludePattern
 		{
 			const FString& CategoryName = Entry.Key;
 			const FUserCategoryRules& Rules = Entry.Value;
+
+			// Ensure that we have category entry to allow us to display empty categories
+			AffirmToolCategoryFn(CategoryName, EHoudiniToolCategoryType::User);
+
 			for(const FUserPackageRules& PackageRules : Rules.Packages)
 			{
 				// Find all tools in this package
@@ -2346,7 +2342,236 @@ FHoudiniToolsEditor::RemoveIncludePathFromUserCategory(const FString& CategoryNa
 	}
 }
 
-void FHoudiniToolsEditor::Shutdown()
+
+void
+FHoudiniToolsEditor::FindPresetsForHoudiniAsset(const UHoudiniAsset* HoudiniAsset, TArray<UHoudiniPreset*>& OutPresets)
+{
+	if (!IsValid(HoudiniAsset))
+	{
+		return;
+	}
+	
+	const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+
+	TArray<FAssetData> Assets;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
+	AssetRegistryModule.Get().GetAssetsByClass(FTopLevelAssetPath(UHoudiniPreset::StaticClass()), Assets, false);
+#else
+	AssetRegistryModule.Get().GetAssetsByClass( UHoudiniPreset::StaticClass()->GetFName(), Assets, false );
+#endif
+	
+	// Currently we're scanning the whole project for presets. If this becomes a performance problem, we can limit preset
+	// scanning to the HoudiniTools search path.
+
+	for(const FAssetData& AssetData : Assets)
+	{
+		UHoudiniPreset* Preset = Cast<UHoudiniPreset>(AssetData.GetAsset());
+		if (!IsValid(Preset))
+		{
+			continue;
+		}
+		
+		if (Preset->bApplyOnlyToSource == false)
+		{
+			// This preset can be applied to any HDA.
+			OutPresets.Add(Preset);
+			continue;
+		}
+		if (Preset->bApplyOnlyToSource == true && Preset->SourceHoudiniAsset == HoudiniAsset)
+		{
+			// This preset can be applied to this HDA.
+			OutPresets.Add(Preset);
+			continue;
+		}
+	}
+}
+
+
+void
+FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(const UHoudiniPreset* Preset, UHoudiniAssetComponent* HAC)
+{
+	if (!IsValid(HAC) || !IsValid(Preset))
+	{
+		return;
+	}
+
+	if (Preset->bRevertHDAParameters)
+	{
+		// Reset parameters to default values?
+		for (int32 n = 0; n < HAC->GetNumParameters(); ++n)
+		{
+			UHoudiniParameter* Parm = HAC->GetParameterAt(n);
+
+			if (IsValid(Parm) && !Parm->IsDefault())
+			{
+				Parm->RevertToDefault();
+			}
+		}
+	}
+
+	// Iterate over all the parameters and settings in the preset and apply it to the Houdini Asset Component.
+	
+	// Apply all the Int parameters
+	for( const auto& Entry : Preset->IntParameters )
+	{
+		const FString& ParmName = Entry.Key;
+		const FHoudiniPresetIntValues& ParmValues = Entry.Value;
+
+		UHoudiniParameter* Parm = HAC->FindParameterByName( ParmName );
+		if (!IsValid(Parm))
+		{
+			continue;
+		}
+		
+		const EHoudiniParameterType ParmType = Parm->GetParameterType();
+		switch(ParmType)
+		{
+			case EHoudiniParameterType::Int:
+				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterInt>(Parm));
+				break;
+			case EHoudiniParameterType::IntChoice:
+				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterChoice>(Parm));
+				break;
+			case EHoudiniParameterType::Toggle:
+				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterToggle>(Parm));
+				break;
+			default: ;
+		}
+	}
+
+	// Apply all the Float parameters
+	for( const auto& Entry : Preset->FloatParameters )
+	{
+		const FString& ParmName = Entry.Key;
+		const FHoudiniPresetFloatValues& ParmValues = Entry.Value;
+
+		UHoudiniParameter* Parm = HAC->FindParameterByName( ParmName );
+		if (!IsValid(Parm))
+		{
+			continue;
+		}
+		
+		const EHoudiniParameterType ParmType = Parm->GetParameterType();
+		switch(ParmType)
+		{
+			case EHoudiniParameterType::Color:
+				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterColor>(Parm));
+				break;
+			case EHoudiniParameterType::Float:
+				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterFloat>(Parm));
+				break;
+			default: ;
+		}
+	}
+
+	// Apply all the String parameters
+
+	for( const auto& Entry : Preset->StringParameters )
+	{
+		const FString& ParmName = Entry.Key;
+		const FHoudiniPresetStringValues& ParmValues = Entry.Value;
+
+		UHoudiniParameter* Parm = HAC->FindParameterByName( ParmName );
+		if (!IsValid(Parm))
+		{
+			continue;
+		}
+		
+		const EHoudiniParameterType ParmType = Parm->GetParameterType();
+		switch(ParmType)
+		{
+			case EHoudiniParameterType::File:
+			case EHoudiniParameterType::FileDir:
+			case EHoudiniParameterType::FileGeo:
+			case EHoudiniParameterType::FileImage:
+				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterFile>(Parm));
+				break;
+			case EHoudiniParameterType::String:
+			case EHoudiniParameterType::StringAssetRef:
+				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterString>(Parm));
+				break;
+			case EHoudiniParameterType::StringChoice:
+				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterChoice>(Parm));
+				break;
+			default: ;
+		}
+	}
+
+	// Apply all the Ramp Float parameters
+	for( const auto& Entry : Preset->RampFloatParameters )
+	{
+		const FString& ParmName = Entry.Key;
+		const FHoudiniPresetRampFloatValues& ParmValues = Entry.Value;
+
+		UHoudiniParameter* Parm = HAC->FindParameterByName( ParmName );
+		if (!IsValid(Parm))
+		{
+			continue;
+		}
+		
+		const EHoudiniParameterType ParmType = Parm->GetParameterType();
+		switch(ParmType)
+		{
+			case EHoudiniParameterType::FloatRamp:
+				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterRampFloat>(Parm));
+				break;
+			default: ;
+		}
+	}
+
+	// Apply all the Ramp Color parameters
+	for( const auto& Entry : Preset->RampColorParameters )
+	{
+		const FString& ParmName = Entry.Key;
+		const FHoudiniPresetRampColorValues& ParmValues = Entry.Value;
+
+		UHoudiniParameter* Parm = HAC->FindParameterByName( ParmName );
+		if (!IsValid(Parm))
+		{
+			continue;
+		}
+		
+		const EHoudiniParameterType ParmType = Parm->GetParameterType();
+		switch(ParmType)
+		{
+			case EHoudiniParameterType::ColorRamp:
+				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterRampColor>(Parm));
+				break;
+			default: ;
+		}
+	}
+
+	// Apply inputs
+	for(const FHoudiniPresetInputValue& PresetInput : Preset->InputParameters )
+	{
+		if (PresetInput.InputType == EHoudiniInputType::Invalid)
+		{
+			continue;
+		}
+		
+		if (PresetInput.bIsParameterInput)
+		{
+			// Parameter based input
+			UHoudiniParameterOperatorPath* Param = Cast<UHoudiniParameterOperatorPath>( HAC->FindParameterByName(PresetInput.ParameterName) );
+			if (IsValid(Param))
+			{
+				UHoudiniInput* Input = Param->HoudiniInput.Get();
+				FHoudiniPresetHelpers::ApplyPresetParameterValues(PresetInput, Input);
+			}
+		}
+		else
+		{
+			// Absolute input
+			UHoudiniInput* Input = HAC->GetInputAt( PresetInput.InputIndex );
+			FHoudiniPresetHelpers::ApplyPresetParameterValues(PresetInput, Input);
+		}
+		
+	}
+}
+
+
+void
+FHoudiniToolsEditor::Shutdown()
 {
 	Categories.Empty();
 	for  (auto& Entry : CachedTextures)
@@ -2359,5 +2584,7 @@ void FHoudiniToolsEditor::Shutdown()
 	}
 	CachedTextures.Empty();
 }
+
+
 
 #undef LOCTEXT_NAMESPACE

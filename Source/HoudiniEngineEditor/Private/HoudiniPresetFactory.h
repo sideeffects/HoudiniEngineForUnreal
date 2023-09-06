@@ -28,12 +28,12 @@
 
 #include "CoreMinimal.h"
 #include "AssetToolsModule.h"
-#include "HoudiniToolsPackageAsset.h"
+#include "HoudiniPreset.h"
 #include "Factories/Factory.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/Object.h"
 
-#include "HoudiniToolsPackageAssetFactory.generated.h"
+#include "HoudiniPresetFactory.generated.h"
 
 enum class EAssetCommandResult : uint8;
 struct FAssetCategoryPath;
@@ -45,74 +45,54 @@ struct FAssetOpenArgs;
 // --------------------------------------------
 
 UCLASS(hidecategories = Object)
-class UHoudiniToolsPackageAssetFactory : public UFactory
+class UHoudiniPresetFactory : public UFactory
 {
 	GENERATED_BODY()
 
 public:
 
-	UHoudiniToolsPackageAssetFactory()
+	UHoudiniPresetFactory()
 	{
-		SupportedClass = UHoudiniToolsPackageAsset::StaticClass();
+		SupportedClass = UHoudiniPreset::StaticClass();
 
 		bCreateNew = true;
 		bEditAfterNew = true;
 	}
 
-	virtual FText GetDisplayName() const override
+	FText GetDisplayName() const override
 	{
-		return NSLOCTEXT("DisplayName", "AssetDefinition_HoudiniToolsPackage", "Houdini Tools Package");
+		return NSLOCTEXT("DisplayName", "AssetDefinition_HoudiniPreset", "Houdini Preset");
 	}
 
-	virtual FText GetToolTip() const override
+	FText GetToolTip() const override
 	{
-		return NSLOCTEXT("Tooltip", "AssetDefinition_HoudiniToolsPackage", "Describes a Houdini Tools package.");
+		return NSLOCTEXT("Tooltip", "AssetDefinition_HoudiniPresetTooltip", "Contains a preset that can be applied to HDAs.");
 	}
 
-	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override
+	UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override
 	{
-		UHoudiniToolsPackageAsset* Preset = nullptr;
+		UHoudiniPreset* Preset = nullptr;
 		if (ensure(SupportedClass == Class))
 		{
 			ensure(0 != (RF_Public & Flags));
-			Preset = NewObject<UHoudiniToolsPackageAsset>(InParent, Class, Name, Flags);
+			Preset = NewObject<UHoudiniPreset>(InParent, Class, Name, Flags);
 		}
 		return Preset;
 	}
 
-	virtual uint32 GetMenuCategories() const override
+	uint32 GetMenuCategories() const override
 	{
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 		return AssetTools.RegisterAdvancedAssetCategory("HoudiniEngine", NSLOCTEXT("AssetCategoryName", "HoudiniEngineCategory", "Houdini Engine"));
 	}
 
-	virtual FString GetDefaultNewAssetName() const override
+	FString GetDefaultNewAssetName() const override
 	{
-		return TEXT("HoudiniToolsPackage");
+		return TEXT("HoudiniPreset");
 	}
 
-	virtual bool ShouldShowInNewMenu() const override { return true; }
+	bool ShouldShowInNewMenu() const override { return true; }
 };
 
 
-// --------------------------------------------
-// HoudiniToolsPackage asset definition
-// --------------------------------------------
-//
-// UCLASS()
-// class UAssetDefinition_HoudiniToolsPackageAsset : public UAssetDefinitionDefault
-// {
-// 	GENERATED_BODY()
-//
-// public:
-// 	// UAssetDefinition Begin
-// 	virtual FText GetAssetDisplayName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_HoudiniToolsPackageAsset", "Houdini Tools Package Asset"); }
-// 	virtual FLinearColor GetAssetColor() const override { return FLinearColor(FColor(175, 0, 128)); }
-// 	virtual TSoftClassPtr<UObject> GetAssetClass() const override { return UHoudiniToolsPackageAsset::StaticClass(); }
-// 	virtual TConstArrayView<FAssetCategoryPath> GetAssetCategories() const override
-// 	{
-// 		return TConstArrayView<FAssetCategoryPath>();
-// 	}
-// 	virtual FText GetObjectDisplayNameText(UObject* Object) const override { return FText::FromString(TEXT("UHoudiniToolsPackageAsset")); }
-// 	// UAssetDefinition End
-// };	
+

@@ -168,7 +168,8 @@ public:
 	
 	
 	SLATE_BEGIN_ARGS( SHoudiniToolCategory )
-		: _ViewMode(EHoudiniToolsViewMode::TileView)
+		: _ShowEmptyCategory(true)
+		, _ViewMode(EHoudiniToolsViewMode::TileView)
 		, _IsVisible(true)
 	{}
 	SLATE_EVENT( FOnGenerateRow, OnGenerateTile )
@@ -179,6 +180,7 @@ public:
 	SLATE_EVENT( FOnToolSelectionChanged, OnToolSelectionChanged )
 	
 	SLATE_ATTRIBUTE( FText, CategoryLabel )
+	SLATE_ATTRIBUTE( bool, ShowEmptyCategory )
 	SLATE_ATTRIBUTE( EHoudiniToolCategoryType, CategoryType )
 	SLATE_ATTRIBUTE( TSharedPtr<FHoudiniToolList>, HoudiniToolsItemSource )
 	SLATE_ATTRIBUTE( EHoudiniToolsViewMode, ViewMode )
@@ -211,6 +213,7 @@ protected:
 	EHoudiniToolCategoryType CategoryType;
 	FString FilterString;
 
+	TAttribute<bool> ShowEmptyCategory;
 	TAttribute<bool> IsVisible;
 	
 	TSharedPtr<FHoudiniTool> ActiveTool;
@@ -667,6 +670,7 @@ private:
 	TArray<FString> FilterCategoryList;
 	
 	// Tools Settings
+	bool bShowEmptyCategories;
 	bool bShowHiddenTools;
 	bool bAutoRefresh;
 

@@ -109,6 +109,8 @@ public:
 	/** Construct drop down menu content for Houdini asset. **/
 	//static TSharedRef< SWidget > OnGetHoudiniAssetMenuContent(TArray<UHoudiniAssetComponent*> InHACs);
 
+	static TSharedPtr<SWidget> ConstructActionMenu(TWeakObjectPtr<UHoudiniAssetComponent> HAC, class IDetailLayoutBuilder*);
+
 	static void AddHeaderRowForHoudiniAssetComponent(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 		const TWeakObjectPtr<UHoudiniAssetComponent>& HoudiniAssetComponent,

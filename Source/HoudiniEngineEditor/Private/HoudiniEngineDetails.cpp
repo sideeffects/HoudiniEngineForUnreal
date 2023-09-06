@@ -75,7 +75,13 @@
 #include "HAL/FileManager.h"
 #include "HAL/PlatformApplicationMisc.h"
 #include "ActorTreeItem.h"
+#include "AssetSelection.h"
 #include "HoudiniLandscapeTranslator.h"
+#include "HoudiniPresetFactory.h"
+#include "HoudiniToolsEditor.h"
+#include "SHoudiniPresets.h"
+#include "ToolMenuEntry.h"
+#include "Widgets/Images/SLayeredImage.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -155,6 +161,7 @@ FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(
 		return;
 
 	const TWeakObjectPtr<UHoudiniAssetComponent>& MainHAC = InHACs[0];
+	IDetailLayoutBuilder* SavedLayoutBuilder = &HoudiniEngineCategoryBuilder.GetParentLayout();
 
 	if (!IsValidWeakPointer(MainHAC))
 		return;
@@ -167,6 +174,10 @@ FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(
 	FDetailWidgetRow & Row = HoudiniEngineCategoryBuilder.AddCustomRow(FText::GetEmpty());
 	TSharedRef<SHorizontalBox> Box = SNew(SHorizontalBox);
 	TSharedPtr<SImage> Image;
+
+	TSharedPtr<SLayeredImage> OptionsImage = SNew(SLayeredImage)
+		 .Image(FAppStyle::Get().GetBrush("DetailsView.ViewOptions"))
+		 .ColorAndOpacity(FSlateColor::UseForeground());
 	
 	Box->AddSlot()
 	.AutoWidth()
@@ -174,11 +185,32 @@ FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(
 	.HAlign(HAlign_Left)
 	[
 		SNew(SBox)
+		.IsEnabled(false)
 		.HeightOverride(30)
 		.WidthOverride(208)
 		[
 			SAssignNew(Image, SImage)
 			.ColorAndOpacity(FSlateColor::UseForeground())
+		]
+	];
+	
+	Box->AddSlot()
+	.FillWidth(1.0f)
+	.HAlign(HAlign_Right)
+	[
+		SNew(SComboButton)
+		.HasDownArrow(false)
+		.ContentPadding(0)
+		.ForegroundColor( FSlateColor::UseForeground() )
+		.ButtonStyle( FAppStyle::Get(), "SimpleButton" )
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ViewOptions")))
+		.OnGetMenuContent_Lambda([MainHAC, SavedLayoutBuilder]() -> TSharedRef<SWidget>
+		{
+			return ConstructActionMenu(MainHAC, SavedLayoutBuilder).ToSharedRef();
+		})
+		.ButtonContent()
+		[
+			OptionsImage.ToSharedRef()
 		]
 	];
 	
@@ -189,8 +221,10 @@ FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(
 	})));
 
 	Row.WholeRowWidget.Widget = Box;
-	Row.IsEnabled(false);
+	// Don't disable the whole row, otherwise we can't use the action menu. 
+	// Row.IsEnabled(false);
 }
+
 
 void 
 FHoudiniEngineDetails::CreateGenerateWidgets(
@@ -2110,6 +2144,146 @@ FHoudiniEngineDetails::GetHoudiniAssetThumbnailBorder(TSharedPtr< SBorder > Houd
 		return _GetEditorStyle().GetBrush("PropertyEditor.AssetThumbnailLight");
 	else
 		return _GetEditorStyle().GetBrush("PropertyEditor.AssetThumbnailShadow");
+}
+
+TSharedPtr<SWidget>
+FHoudiniEngineDetails::ConstructActionMenu(TWeakObjectPtr<UHoudiniAssetComponent> HAC, class IDetailLayoutBuilder* LayoutBuilder)
+{
+	FMenuBuilder MenuBuilder( true, NULL );
+
+	if (!HAC.IsValid())
+	{
+		return MenuBuilder.MakeWidget();
+	}
+
+	MenuBuilder.BeginSection("AssetCreate", LOCTEXT("HDAActionMenu_SectionCreate", "Create"));
+
+	// Create Preset
+	MenuBuilder.AddMenuEntry(
+		FText::FromString("Create Preset"),
+		FText::FromString("Create a new preset from the current HoudiniAssetComponent parameters."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateLambda([HAC]() -> void
+			{
+				SHoudiniCreatePresetFromHDA::CreateDialog(HAC);
+			}),
+			FCanExecuteAction()
+		)
+	);
+
+	MenuBuilder.EndSection();
+
+	MenuBuilder.BeginSection("Modify", LOCTEXT("HDAActionMenu_SectionModify", "Modify"));
+
+	// Update Selected Preset (if a preset asset is selected)
+	MenuBuilder.AddMenuEntry(
+		FText::FromString("Update Selected Preset (TODO)"),
+		FText::FromString("Update the Houdini Preset that is currently selected in the content browser."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateLambda([HAC]() -> void
+			{
+				SHoudiniCreatePresetFromHDA::CreateDialog(HAC);
+			}),
+			FCanExecuteAction::CreateLambda([]() -> bool
+			{
+				TArray<FAssetData> SelectedAssets; 
+				AssetSelectionUtils::GetSelectedAssets(SelectedAssets);
+				if (SelectedAssets.Num() != 1)
+				{
+					return false;
+				}
+
+				const FAssetData& AssetData = SelectedAssets[0];
+				const UHoudiniPreset* SelectedPreset = Cast<UHoudiniPreset>(AssetData.GetAsset());
+				return IsValid(SelectedPreset);
+			})
+		)
+	);
+	
+	MenuBuilder.EndSection();
+
+	TArray<UHoudiniPreset*> Presets;
+	FHoudiniToolsEditor::FindPresetsForHoudiniAsset(HAC->GetHoudiniAsset(), Presets);
+
+	Algo::Sort(Presets, [](const UHoudiniPreset* LHS, const UHoudiniPreset* RHS) { return LHS->Name < RHS->Name; });
+
+	TSharedPtr<SImage> SearchImage = SNew(SImage)
+		 .Image(FAppStyle::Get().GetBrush("Symbols.SearchGlass"))
+		 .ColorAndOpacity(FSlateColor::UseForeground());
+
+	// Presets
+	// TODO: store presets in a searchable submenu
+	MenuBuilder.BeginSection("Presets", LOCTEXT("HDAActionMenu_SectionPresets", "Presets"));
+	for (UHoudiniPreset* Preset : Presets)
+	{
+		if (!IsValid(Preset))
+		{
+			continue;
+		}
+
+		TSharedRef<SHorizontalBox> PresetItem =
+			SNew(SHorizontalBox)
+
+			// Preset Name 
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text( FText::FromString(Preset->Name) )
+			]
+
+			// Browse to HoudiniPreset button
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.HAlign(HAlign_Right)
+			[
+				SNew(SButton)
+				.ContentPadding(0)
+				.ForegroundColor( FSlateColor::UseForeground() )
+				.ButtonStyle( FAppStyle::Get(), "SimpleButton" )
+				.ToolTipText( LOCTEXT("HDAActionMenu_SectionPresets_FindInCB", "Find in Content Browser") )
+				.OnClicked_Lambda([Preset]() -> FReply
+				{
+					FHoudiniToolsEditor::BrowseToObjectInContentBrowser(Preset);
+					return FReply::Handled();
+				})
+				.Content()
+				[
+					SearchImage.ToSharedRef()
+				]
+			];
+		
+		// Menu entry for preset
+		MenuBuilder.AddMenuEntry(
+			FUIAction(
+				FExecuteAction::CreateLambda([Preset, HAC, LayoutBuilder]() -> void
+					{
+						// Apply preset on Houdini Asset Component
+						if (!HAC.IsValid())
+						{
+							HOUDINI_LOG_WARNING(TEXT("Could not apply preset. HoudiniAssetComponent reference is no longer valid."));
+							return;
+						}
+
+						FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(Preset, HAC.Get());
+						if (LayoutBuilder)
+						{
+							LayoutBuilder->ForceRefreshDetails();
+						}
+					}),
+					FCanExecuteAction()
+				),
+			PresetItem,
+			NAME_None,
+			FText::FromString(Preset->Description)
+			);
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
 }
 
 /*

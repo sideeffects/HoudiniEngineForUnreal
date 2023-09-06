@@ -970,8 +970,7 @@ UHoudiniAssetComponent::NeedUpdateParameters() const
 		// (because it has failed to upload previously or has been loaded)
 		if (!CurrentParm->NeedsToTriggerUpdate())
 			continue;
-
-		HOUDINI_LOG_DISPLAY(TEXT("[UHoudiniAssetComponent::NeedUpdateParameters()] Parameters need update for component: %s"), *(GetPathName()));
+		
 		return true;
 	}
 

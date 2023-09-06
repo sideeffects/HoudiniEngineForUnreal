@@ -2034,7 +2034,7 @@ UHoudiniInput::SetInputObjectAt(const EHoudiniInputType& InType, const int32& At
 	if (!InObject)
 	{
 		// We want to set the input object to null
-		TArray<UHoudiniInputObject*>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);		
+		TArray<UHoudiniInputObject*>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
 		if (!ensure(InputObjectsPtr != nullptr && InputObjectsPtr->IsValidIndex(AtIndex)))
 			return;
 

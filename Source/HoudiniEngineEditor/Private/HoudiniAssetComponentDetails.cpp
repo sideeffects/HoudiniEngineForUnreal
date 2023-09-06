@@ -49,6 +49,11 @@
 #include "PropertyCustomizationHelpers.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
+#include "SHoudiniPresets.h"
+#include "Chaos/AABB.h"
+#include "Chaos/AABB.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Images/SLayeredImage.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -199,6 +204,47 @@ FHoudiniAssetComponentDetails::AddBakeMenu(IDetailCategoryBuilder& InCategory, U
 	
 }
 
+// TSharedPtr<SWidget> FHoudiniAssetComponentDetails::ConstructActionMenu(TWeakObjectPtr<UHoudiniAssetComponent> HAC)
+// {
+// 	FMenuBuilder MenuBuilder( true, NULL );
+//
+// 	if (!HAC.IsValid())
+// 	{
+// 		return MenuBuilder.MakeWidget();
+// 	}
+//
+// 	MenuBuilder.BeginSection("AssetCreate", LOCTEXT("HDAActionMenu_SectionCreate", "Create"));
+//
+// 	// Options - Create Preset
+// 	MenuBuilder.AddMenuEntry(
+// 		FText::FromString("Create Preset"),
+// 		FText::FromString("Create a new preset from the current HoudiniAssetComponent parameters."),
+// 		FSlateIcon(),
+// 		FUIAction(
+// 			FExecuteAction::CreateLambda([HAC]() -> void
+// 			{
+// 				SHoudiniCreatePresetFromHDA::CreateDialog(HAC);
+// 			}),
+// 			FCanExecuteAction()
+// 		)
+// 	);
+// 	
+// 	// SHoudiniCreatePresetFromHDA::Create(HAC);
+//
+// 	MenuBuilder.EndSection();
+//
+// 	MenuBuilder.BeginSection("Modify", LOCTEXT("HDAActionMenu_SectionModify", "Modify"));
+//
+// 	// Presets submenu
+// 	// MenuBuilder.AddSubMenu( LOCTEXT("HDAActionMenu_SubmenuPresets", "Presets")
+// 	// 	,
+// 	// 	)
+// 	MenuBuilder.EndSection();
+//
+// 	return MenuBuilder.MakeWidget();
+// }
+
+
 void
 FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
@@ -266,10 +312,39 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		{
 			FString HoudiniEngineCategoryName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_MAIN);
 			HoudiniEngineCategoryName += MultiSelectionIdentifier;
+
+			TSharedPtr<SLayeredImage> OptionsImage = SNew(SLayeredImage)
+				 .Image(FAppStyle::Get().GetBrush("DetailsView.ViewOptions"))
+				 .ColorAndOpacity(FSlateColor::UseForeground());
 			
 			// Create Houdini Engine details category
 			IDetailCategoryBuilder & HouEngineCategory =
 				DetailBuilder.EditCategory(*HoudiniEngineCategoryName, FText::FromString("Houdini Engine"), ECategoryPriority::Important);
+
+			// // Create an action button that will perform actions on the "main component"
+			// HouEngineCategory.AddCustomRow(FText::GetEmpty())
+			// [
+			// 	SNew(SHorizontalBox)
+			// 	+SHorizontalBox::Slot()
+			// 	.FillWidth(1.0f)
+			// 	.HAlign(HAlign_Right)
+			// 	[
+			// 		SNew(SComboButton)
+			// 		.HasDownArrow(false)
+			// 		.ContentPadding(0)
+			// 		.ForegroundColor( FSlateColor::UseForeground() )
+			// 		.ButtonStyle( FAppStyle::Get(), "SimpleButton" )
+			// 		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ViewOptions")))
+			// 		.MenuContent()
+			// 		[
+			// 			ConstructActionMenu(MainComponent).ToSharedRef()
+			// 		]
+			// 		.ButtonContent()
+			// 		[
+			// 			OptionsImage.ToSharedRef()
+			// 		]
+			// 	]
+			// ];
 		
 			// If we are running Houdini Engine Indie license, we need to display a special label.
 			if (bIsIndieLicense)
@@ -283,6 +358,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 				MultiSelectedHACs.Add(NextHACWeakPtr);
 			}
+
 
 			HoudiniEngineDetails->CreateWidget(HouEngineCategory, MultiSelectedHACs);
 		}

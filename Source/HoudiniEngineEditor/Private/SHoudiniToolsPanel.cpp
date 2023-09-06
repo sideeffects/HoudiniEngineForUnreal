@@ -274,6 +274,7 @@ SHoudiniToolCategory::Construct(const FArguments& InArgs)
 	CategoryType = InArgs._CategoryType.Get();
 	SourceEntries = InArgs._HoudiniToolsItemSource.Get();
 	IsVisible = InArgs._IsVisible;
+	ShowEmptyCategory = InArgs._ShowEmptyCategory;
 
 	const FText UserCategoryTooltip = FText::Format(LOCTEXT("HoudiniToolsPanel_UserCategoryTooltip", "{0} (User Category)"), FText::FromString(CategoryLabel));
 	const FText PackageCategoryTooltip = FText::Format( LOCTEXT("HoudiniToolsPanel_PackageCategoryTooltip", "{0} (Package Category)"), FText::FromString(CategoryLabel));
@@ -412,9 +413,26 @@ SHoudiniToolCategory::UpdateVisibleItems()
 		}
 	}
 
-	if (VisibleEntries.Num() == 0 || IsVisible.Get() == false)
+	if (IsVisible.Get() == false)
 	{
 		SetVisibility(EVisibility::Collapsed);
+	}
+	else if (VisibleEntries.Num() == 0 )
+	{
+		if (FilterString.Len() > 0)
+		{
+			// We are searching for something. Collapse this category.
+			SetVisibility(EVisibility::Collapsed);
+		}
+		else if (ShowEmptyCategory.Get() == true)
+		{
+			// We want to show this (empty) category
+			SetVisibility(EVisibility::Visible);
+		}
+		else
+		{
+			SetVisibility(EVisibility::Collapsed);
+		}
 	}
 	else
 	{
@@ -2197,6 +2215,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 SHoudiniToolsPanel::SHoudiniToolsPanel()
 	: bRefreshPanelRequested(false)
+	, bShowEmptyCategories(true)
 	, bShowHiddenTools(false)
 	, bAutoRefresh(true)
 	, ViewMode(EHoudiniToolsViewMode::TileView)
@@ -3369,6 +3388,25 @@ SHoudiniToolsPanel::ConstructHoudiniToolsActionMenu()
 		EUserInterfaceActionType::ToggleButton
 	);
 
+	// Options - Show Empty Categories
+	MenuBuilder.AddMenuEntry(
+		FText::FromString("Show Empty Categories"),
+		FText::FromString("Show empty categories."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateLambda([this]() -> void
+			{
+				bShowEmptyCategories = !bShowEmptyCategories;
+				SaveConfig();
+				RequestPanelRefresh();
+			}),
+			FCanExecuteAction(),
+			FGetActionCheckState::CreateLambda([this]() -> ECheckBoxState { return bShowEmptyCategories ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
+		),
+		NAME_None,
+		EUserInterfaceActionType::ToggleButton
+	);
+
 	// Options - Tile View
 	
 	MenuBuilder.AddMenuEntry(
@@ -4117,6 +4155,7 @@ SHoudiniToolsPanel::RebuildCategories()
 			SNew(SHoudiniToolCategory)
 			.CategoryLabel(FText::FromString(Category.Name))
 			.CategoryType(Category.CategoryType)
+			.ShowEmptyCategory_Lambda( [this]() -> bool { return bShowEmptyCategories; } )
 			.HoudiniToolsItemSource(CategorizedTools)
 			.ViewMode(ViewMode)
 			.OnGenerateTile( this, &SHoudiniToolsPanel::MakeTileViewWidget )
@@ -4179,6 +4218,12 @@ SHoudiniToolsPanel::LoadConfig()
 {
 	check(GConfig);
 	const FString SettingsString = TEXT("HoudiniTools");
+
+	// Show Empty Categories
+	if (!GConfig->GetBool(*SettingsIniSection, *(SettingsString + TEXT(".ShowEmptyCategories")), bShowEmptyCategories, GEditorPerProjectIni))
+	{
+		bShowEmptyCategories = true;
+	}
 	
 	// Show Hidden tools
 	if (!GConfig->GetBool(*SettingsIniSection, *(SettingsString + TEXT(".ShowHiddenTools")), bShowHiddenTools, GEditorPerProjectIni))
@@ -4228,7 +4273,8 @@ SHoudiniToolsPanel::SaveConfig() const
 {
 	check(GConfig);
 	const FString SettingsString = TEXT("HoudiniTools");
-	
+
+	GConfig->SetBool(*SettingsIniSection, *(SettingsString + TEXT(".ShowEmptyCategories")), bShowEmptyCategories, GEditorPerProjectIni);
 	GConfig->SetBool(*SettingsIniSection, *(SettingsString + TEXT(".ShowHiddenTools")), bShowHiddenTools, GEditorPerProjectIni);
 	GConfig->SetBool(*SettingsIniSection, *(SettingsString + TEXT(".AutoRefresh")), bAutoRefresh, GEditorPerProjectIni);
 

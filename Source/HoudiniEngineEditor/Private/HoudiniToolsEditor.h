@@ -29,6 +29,9 @@
 #include "CoreMinimal.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineToolTypes.h"
+#include "HoudiniParameterChoice.h"
+#include "HoudiniParameterToggle.h"
+#include "HoudiniPreset.h"
 #include "HoudiniToolsPackageAsset.h"
 #include "HoudiniToolTypes.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -259,6 +262,15 @@ public:
 	static void RemoveIncludePathFromUserCategory(const FString& CategoryName, const UHoudiniToolsPackageAsset* Package, const FString& RelPath);
 
 	// --------------------------------
+	// Presets
+	// --------------------------------
+
+	// Find all the presets that can be applied the given Houdini Asset. 
+	static void FindPresetsForHoudiniAsset(const UHoudiniAsset* HoudiniAsset, TArray<UHoudiniPreset*>& OutPresets);
+
+	static void ApplyPresetToHoudiniAssetComponent(const UHoudiniPreset* Preset, UHoudiniAssetComponent* HAC);
+
+	// --------------------------------
 	// Shutdown
 	// --------------------------------
 
@@ -267,6 +279,7 @@ public:
 	void Shutdown();
 
 protected:
+	
 	// Categories
 	TMap< FHoudiniToolCategory, TSharedPtr<FHoudiniToolList> > Categories;
 

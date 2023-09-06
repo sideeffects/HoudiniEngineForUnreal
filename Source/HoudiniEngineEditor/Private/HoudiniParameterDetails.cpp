@@ -6951,7 +6951,7 @@ FHoudiniParameterDetails:: ReplaceFloatRampParameterPointsWithMainParameter(UHou
 		int32 PointIdx = 0;
 		while (MainPoints.IsValidIndex(PointIdx) && Points.IsValidIndex(PointIdx))
 		{
-			UHoudiniParameterRampFloatPoint*& MainPoint = MainPoints[PointIdx];
+			UHoudiniParameterRampFloatPoint*& MainPoint = MainPoints[PointIdx];	
 			UHoudiniParameterRampFloatPoint*& Point = Points[PointIdx];
 
 			if (!MainPoint || !Point)
