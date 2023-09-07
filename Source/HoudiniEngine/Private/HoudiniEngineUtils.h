@@ -36,13 +36,13 @@
 #include "HoudiniPackageParams.h"
 #include "Containers/UnrealString.h"
 #include "HoudiniEngineString.h"
+#include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputManager.h"
 
 class FString;
 class UStaticMesh;
 class UHoudiniAsset;
 class UHoudiniAssetComponent;
-class FUnrealObjectInputIdentifier;
-class FUnrealObjectInputHandle;
 
 struct FHoudiniPartInfo;
 struct FHoudiniMeshSocket;
@@ -1124,6 +1124,12 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// If found, return true and set Handle to reference the node.
 		static bool FindNodeViaManager(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle);
 
+		// Returns the node associated with InHandle. Returns nullptr if the handle is invalid or the node does not exist.
+		static FUnrealObjectInputNode* GetNodeViaManager(const FUnrealObjectInputHandle& InHandle);
+
+		// Returns the node associated with InIdentifier. Returns nullptr if the handle is invalid or the node does not exist.
+		static FUnrealObjectInputNode* GetNodeViaManager(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle);
+
 		// Helper to get a handle to the parent of node of InHandle.
 		static bool FindParentNodeViaManager(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle);
 
@@ -1199,6 +1205,40 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const bool bInConnectReferencedNodes=true,
 			const bool& bInputNodesCanBeDeleted=true);
 
+		// Add a named modifier chain to the input node. Returns false if the chain was not added (if it existed already, for example)
+		static bool AddModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName, int32 InNodeIdToConnectTo);
+
+		// Set the node that the first node of the chain connects to.
+		static bool SetModifierChainNodeToConnectTo(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName, int32 InNodeToConnectTo);
+
+		// Returns true if the named modifier chain exists on the node.
+		static bool DoesModifierChainExist(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
+
+		// Returns the output node id of the named modifier chain on the node. Returns < 0 if the chain does not exist.
+		static int32 GetOutputNodeOfModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
+
+		// Removed the named modifier chain. Returns true if the chain existed and was removed.
+		static bool RemoveModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
+
+		// Destroy the given modifier in the named chain. This deletes the modifier, so InModifierToDestroy will be invalid after a successful call to this function.
+		static bool DestroyModifier(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName, FUnrealObjectInputModifier* InModifierToDestroy);
+
+		// Find and return the first modifier of class T on the node identified by InIdentifier. Returns null if it has
+		// no such modifier.
+		template <class T>
+		static T* FindFirstModifierByClass(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
+
+		// Add a modifier of class T to the node identified by InIdentifier if it does not already have a modifier
+		// of that class. Return the newly created and added (or existing) modifier.
+		template<class T, class... Args>
+		static T* CreateAndAddModifier(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName, Args... ConstructorArguments);
+
+		// Call FUnrealInputObjectModifier::Update() on all modifiers in the chain.
+		static bool UpdateModifiers(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
+
+		// Call FUnrealInputObjectModifier::Update() on all modifiers on the node identified by InIdentifier.
+		static bool UpdateAllModifierChains(const FUnrealObjectInputIdentifier& InIdentifier);
+
 	protected:
 		
 		// Computes the XX.YY.ZZZ version string using HAPI_Version
@@ -1219,3 +1259,27 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Trigger an update of the Blueprint Editor on the game thread
 		static void UpdateBlueprintEditor_Internal(UHoudiniAssetComponent* HAC);
 };
+
+
+template <class T>
+T* FHoudiniEngineUtils::FindFirstModifierByClass(const FUnrealObjectInputIdentifier& InIdentifier, const FName InChainName)
+{
+	FUnrealObjectInputHandle Handle;
+	FUnrealObjectInputNode const* const Node = GetNodeViaManager(InIdentifier, Handle);
+	if (!Node || !Handle.IsValid())
+		return nullptr;
+
+	return Node->FindFirstModifierByClass<T>(InChainName);
+}
+
+
+template<class T, class... Args>
+T* FHoudiniEngineUtils::CreateAndAddModifier(const FUnrealObjectInputIdentifier& InIdentifier, const FName InChainName, Args... ConstructorArguments)
+{
+	FUnrealObjectInputHandle Handle;
+	FUnrealObjectInputNode* const Node = GetNodeViaManager(InIdentifier, Handle);
+	if (!Node || !Handle.IsValid())
+		return nullptr;
+
+	return Node->CreateAndAddModifier<T>(InChainName, ConstructorArguments...);
+}

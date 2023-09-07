@@ -49,6 +49,7 @@
 #include "UnrealLandscapeTranslator.h"
 #include "UnrealFoliageTypeTranslator.h"
 #include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputTypes.h"
 #include "UnrealObjectInputManager.h"
 
 #include "Engine/StaticMesh.h"
@@ -2550,6 +2551,51 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMeshComponent(
 
 		FHoudiniEngineUtils::GetHAPINodeId(Handle, CreatedNodeId);
 		InObject->InputNodeHandle = Handle;
+
+		// Create the output modifier chain if missing
+		const FName ModifierChainName(FUnrealObjectInputNode::OutputChainName);
+		if (!FHoudiniEngineUtils::DoesModifierChainExist(InObject->InputNodeHandle, ModifierChainName))
+			FHoudiniEngineUtils::AddModifierChain(InObject->InputNodeHandle, ModifierChainName, CreatedNodeId);
+		else
+			FHoudiniEngineUtils::SetModifierChainNodeToConnectTo(InObject->InputNodeHandle, ModifierChainName, CreatedNodeId);
+
+		// Make sure that material overrides modifier exists and is correctly configured for this component's input node
+		if (FUnrealObjectInputMaterialOverrides* MatOverrides = FHoudiniEngineUtils::FindFirstModifierByClass<FUnrealObjectInputMaterialOverrides>(InObject->InputNodeHandle, ModifierChainName))
+		{
+			if (bImportAsReference)
+			{
+				if (bImportAsReferenceMaterialEnabled)
+					MatOverrides->SetUsePrimWrangle(false);
+				else
+					FHoudiniEngineUtils::DestroyModifier(InObject->InputNodeHandle, ModifierChainName, MatOverrides);
+			}
+			else
+			{
+				MatOverrides->SetUsePrimWrangle(true);
+			}
+		}
+		else
+		{
+			if (bImportAsReference)
+			{
+				if (bImportAsReferenceMaterialEnabled)
+					FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputMaterialOverrides>(InObject->InputNodeHandle, ModifierChainName, SKC, false);
+			}
+			else
+			{
+				FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputMaterialOverrides>(InObject->InputNodeHandle, ModifierChainName, SKC, true);
+			}
+		}
+
+		// Ensure that the physical material override modifier exists for this component's input node and is correctly configured
+		const HAPI_AttributeOwner PhysMatOverrideAttrOwner = bImportAsReference ? HAPI_ATTROWNER_POINT : HAPI_ATTROWNER_PRIM;
+		if (FUnrealObjectInputPhysicalMaterialOverride* PhysMatOverride = FHoudiniEngineUtils::FindFirstModifierByClass<FUnrealObjectInputPhysicalMaterialOverride>(InObject->InputNodeHandle, ModifierChainName))
+			PhysMatOverride->SetAttributeOwner(PhysMatOverrideAttrOwner);
+		else
+			FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputPhysicalMaterialOverride>(InObject->InputNodeHandle, ModifierChainName, SKC, PhysMatOverrideAttrOwner);
+
+		// Update all modifiers
+		FHoudiniEngineUtils::UpdateAllModifierChains(InObject->InputNodeHandle);
 	}
 
 	// Update this input object's OBJ NodeId
@@ -2935,8 +2981,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 	InObject->SetImportAsReferenceRotScaleEnabled(bImportAsReferenceRotScaleEnabled);
 	InObject->SetImportAsReferenceBboxEnabled(bImportAsReferenceBboxEnabled);
 	InObject->SetImportAsReferenceMaterialEnabled(bImportAsReferenceMaterialEnabled);
-
-	// Create/update the node in the input manager
+	// Create/update the node in the input manager if the static mesh component uses an asset directly.
 	if (bUseRefCountedInputSystem)
 	{
 		FUnrealObjectInputOptions Options(
@@ -2949,6 +2994,51 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 		
 		FHoudiniEngineUtils::GetHAPINodeId(Handle, CreatedNodeId);
 		InObject->InputNodeHandle = Handle;
+
+		// Create the output modifier chain if missing
+		const FName ModifierChainName(FUnrealObjectInputNode::OutputChainName);
+		if (!FHoudiniEngineUtils::DoesModifierChainExist(InObject->InputNodeHandle, ModifierChainName))
+			FHoudiniEngineUtils::AddModifierChain(InObject->InputNodeHandle, ModifierChainName, CreatedNodeId);
+		else
+			FHoudiniEngineUtils::SetModifierChainNodeToConnectTo(InObject->InputNodeHandle, ModifierChainName, CreatedNodeId);
+
+		// Make sure that material overrides modifier exists and is correctly configured for this component's input node
+		if (FUnrealObjectInputMaterialOverrides* MatOverrides = FHoudiniEngineUtils::FindFirstModifierByClass<FUnrealObjectInputMaterialOverrides>(InObject->InputNodeHandle, ModifierChainName))
+		{
+			if (bImportAsReference)
+			{
+				if (bImportAsReferenceMaterialEnabled)
+					MatOverrides->SetUsePrimWrangle(false);
+				else
+					FHoudiniEngineUtils::DestroyModifier(InObject->InputNodeHandle, ModifierChainName, MatOverrides);
+			}
+			else
+			{
+				MatOverrides->SetUsePrimWrangle(true);
+			}
+		}
+		else
+		{
+			if (bImportAsReference)
+			{
+				if (bImportAsReferenceMaterialEnabled)
+					FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputMaterialOverrides>(InObject->InputNodeHandle, ModifierChainName, SMC, false);
+			}
+			else
+			{
+				FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputMaterialOverrides>(InObject->InputNodeHandle, ModifierChainName, SMC, true);
+			}
+		}
+
+		// Ensure that the physical material override modifier exists for this component's input node and is correctly configured
+		const HAPI_AttributeOwner PhysMatOverrideAttrOwner = bImportAsReference ? HAPI_ATTROWNER_POINT : HAPI_ATTROWNER_PRIM;
+		if (FUnrealObjectInputPhysicalMaterialOverride* PhysMatOverride = FHoudiniEngineUtils::FindFirstModifierByClass<FUnrealObjectInputPhysicalMaterialOverride>(InObject->InputNodeHandle, ModifierChainName))
+			PhysMatOverride->SetAttributeOwner(PhysMatOverrideAttrOwner);
+		else
+			FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputPhysicalMaterialOverride>(InObject->InputNodeHandle, ModifierChainName, SMC, PhysMatOverrideAttrOwner);
+
+		// Update all modifiers
+		FHoudiniEngineUtils::UpdateAllModifierChains(InObject->InputNodeHandle);
 	}
 	
 	// Update this input object's OBJ NodeId
@@ -3340,16 +3430,32 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 		// If we're importing the actor as ref, add the level path / actor path attribute to the created nodes
 		if (InInput->GetImportAsReference())
 		{
-			bool bNeedCommit = false;
-			if (FHoudiniEngineUtils::AddLevelPathAttribute(CurComponent->InputNodeId, 0, Actor->GetLevel(), 1, HAPI_ATTROWNER_POINT))
-				bNeedCommit = true;
+			// When using the ref counted input system: the nodes are created differently so we cannot just add attributes
+			// to the input node (it is likely a merge and not an input null). For the new system we add a modifier to
+			// the output modifier chain.
+			if (!FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled() || !CurComponent->InputNodeHandle.IsValid())
+			{
+				bool bNeedCommit = false;
+				if (FHoudiniEngineUtils::AddLevelPathAttribute(CurComponent->InputNodeId, 0, Actor->GetLevel(), 1, HAPI_ATTROWNER_POINT))
+					bNeedCommit = true;
 
-			if(FHoudiniEngineUtils::AddActorPathAttribute(CurComponent->InputNodeId, 0, Actor, 1, HAPI_ATTROWNER_POINT))
-				bNeedCommit = true;
+				if(FHoudiniEngineUtils::AddActorPathAttribute(CurComponent->InputNodeId, 0, Actor, 1, HAPI_ATTROWNER_POINT))
+					bNeedCommit = true;
 
-			// Commit the geo if needed
-			if(bNeedCommit)
-				FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), CurComponent->InputNodeId);
+				// Commit the geo if needed
+				if(bNeedCommit)
+					FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), CurComponent->InputNodeId);
+			}
+			else
+			{
+				const FName ChainName(FUnrealObjectInputNode::OutputChainName);
+				if (!FHoudiniEngineUtils::DoesModifierChainExist(CurComponent->InputNodeHandle, ChainName))
+					FHoudiniEngineUtils::AddModifierChain(CurComponent->InputNodeHandle, ChainName, CurComponent->InputNodeId);
+				if (!FHoudiniEngineUtils::FindFirstModifierByClass<FUnrealObjectInputActorAsReference>(CurComponent->InputNodeHandle, ChainName))
+					FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputActorAsReference>(CurComponent->InputNodeHandle, ChainName, Actor);
+
+				FHoudiniEngineUtils::UpdateModifiers(CurComponent->InputNodeHandle, ChainName);
+			}
 		}
 	}
 
