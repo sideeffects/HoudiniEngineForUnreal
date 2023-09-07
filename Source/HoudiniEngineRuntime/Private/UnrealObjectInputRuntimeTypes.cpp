@@ -29,6 +29,7 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
 #include "CoreMinimal.h"
+#include "Components/StaticMeshComponent.h"
 #include "UObject/NameTypes.h"
 #include "UObject/Package.h"
 #include "Templates/Casts.h"
@@ -375,6 +376,9 @@ FUnrealObjectInputHandle::operator=(const FUnrealObjectInputHandle& InOther)
 }
 
 
+const FName FUnrealObjectInputNode::OutputChainName(TEXT("output"));
+
+
 FUnrealObjectInputNode::FUnrealObjectInputNode(const FUnrealObjectInputIdentifier& InIdentifier)
 	: Identifier(InIdentifier)
 	, Parent()
@@ -399,6 +403,7 @@ FUnrealObjectInputNode::FUnrealObjectInputNode(const FUnrealObjectInputIdentifie
 
 FUnrealObjectInputNode::~FUnrealObjectInputNode()
 {
+	DestroyAllModifierChains();
 	if (AreHAPINodesValid())
 		DeleteHAPINodes();
 }
@@ -444,6 +449,237 @@ FUnrealObjectInputNode::GetHAPINodeIds(TArray<int32>& OutNodeIds) const
 		return;
 
 	OutNodeIds.Add(NodeId);
+}
+
+bool
+FUnrealObjectInputNode::AddModifierChain(const FName InChainName, const int32 InNodeIdToConnectTo)
+{
+	if (ModifierChains.Contains(InChainName))
+		return false;
+	FUnrealObjectInputModifierChain& Chain = ModifierChains.Add(InChainName);
+	Chain.ConnectToNodeId = InNodeIdToConnectTo;
+	return true;
+}
+
+bool
+FUnrealObjectInputNode::SetModifierChainNodeToConnectTo(const FName InChainName, const int32 InNodeToConnectTo)
+{
+	FUnrealObjectInputModifierChain* Chain = ModifierChains.Find(InChainName);
+	if (!Chain)
+		return false;
+	Chain->ConnectToNodeId = InNodeToConnectTo;
+	return true;
+}
+
+int32
+FUnrealObjectInputNode::GetOutputNodeOfModifierChain(const FName InChainName) const
+{
+	FUnrealObjectInputModifierChain const* const Chain = ModifierChains.Find(InChainName);
+	if (!Chain)
+		return INDEX_NONE;
+	FUnrealObjectInputModifier const* const Modifier = Chain->Modifiers.Last();
+	if (!Modifier)
+		return INDEX_NONE;
+	return Modifier->GetOutputHAPINodeId();
+}
+
+bool
+FUnrealObjectInputNode::RemoveModifierChain(const FName InChainName)
+{
+	FUnrealObjectInputModifierChain* Chain = ModifierChains.Find(InChainName);
+	if (!Chain)
+		return false;
+	DestroyModifiers(InChainName);
+	ModifierChains.Remove(InChainName);
+	return true;
+}
+
+bool
+FUnrealObjectInputNode::AddModifier(const FName InChainName, FUnrealObjectInputModifier* const InModifierToAdd)
+{
+	FUnrealObjectInputModifierChain* const Chain = ModifierChains.Find(InChainName);
+	if (!Chain)
+		return false;
+	for (FUnrealObjectInputModifier const* const Modifier : Chain->Modifiers)
+	{
+		if (Modifier == InModifierToAdd)
+			return false;
+	}
+	Chain->Modifiers.Emplace(InModifierToAdd);
+	InModifierToAdd->OnAddedToOwner();
+	return true;
+}
+
+FUnrealObjectInputModifier*
+FUnrealObjectInputNode::FindFirstModifierOfType(const FName InChainName, const EUnrealObjectInputModifierType InModifierType) const
+{
+	FUnrealObjectInputModifierChain const* const Chain = ModifierChains.Find(InChainName);
+	if (!Chain)
+		return nullptr;
+	FUnrealObjectInputModifier* const* const Result = Chain->Modifiers.FindByPredicate([InModifierType](FUnrealObjectInputModifier const* const InModifier)
+	{
+		if (!InModifier)
+			return false;
+		return InModifier->GetType() == InModifierType;
+	});
+
+	if (!Result)
+		return nullptr;
+
+	return *Result;
+}
+
+bool
+FUnrealObjectInputNode::GetAllModifiersOfType(const FName InChainName, const EUnrealObjectInputModifierType InModifierType, TArray<FUnrealObjectInputModifier*>& OutModifiers) const
+{
+	FUnrealObjectInputModifierChain const* const Chain = ModifierChains.Find(InChainName);
+	if (!Chain)
+		return false;
+	TArray<FUnrealObjectInputModifier*> FoundModifiers;
+	for (FUnrealObjectInputModifier* const Modifier : Chain->Modifiers)
+	{
+		if (!Modifier)
+			continue;
+		if (Modifier->GetType() != InModifierType)
+			continue;
+		FoundModifiers.Emplace(Modifier);
+	}
+
+	if (FoundModifiers.Num() <= 0)
+		return false;
+
+	OutModifiers = MoveTemp(FoundModifiers);
+	return true;
+}
+
+bool
+FUnrealObjectInputNode::DestroyModifier(const FName InChainName, FUnrealObjectInputModifier* InModifier)
+{
+	if (!InModifier)
+		return false;
+
+	FUnrealObjectInputModifierChain* const Chain = ModifierChains.Find(InChainName);
+	if (!Chain)
+		return false;
+
+	int32 ModifierIndex = INDEX_NONE;
+	const int32 NumModifiers = Chain->Modifiers.Num();
+	for (int32 Index = 0; Index < NumModifiers; ++Index)
+	{
+		FUnrealObjectInputModifier const* const Modifier = Chain->Modifiers[Index];
+		if (!Modifier)
+			continue;
+		if (Modifier != InModifier)
+			continue;
+
+		ModifierIndex = Index;
+		break;
+	}
+
+	if (ModifierIndex == INDEX_NONE)
+		return false;
+
+	Chain->Modifiers.RemoveAt(ModifierIndex);
+	InModifier->OnRemovedFromOwner();
+	delete InModifier;
+
+	return true;
+}
+
+bool
+FUnrealObjectInputNode::DestroyModifiers(const FName InChainName)
+{
+	FUnrealObjectInputModifierChain* const Chain = ModifierChains.Find(InChainName);
+	if (!Chain)
+		return false;
+
+	while (Chain->Modifiers.Num() > 0)
+	{
+		static constexpr bool bAllowShrinking = false;
+		FUnrealObjectInputModifier* const Modifier = Chain->Modifiers.Pop(bAllowShrinking);
+		if (!Modifier)
+			continue;
+		Modifier->OnRemovedFromOwner();
+		delete Modifier;
+	}
+
+	Chain->Modifiers.Empty();
+
+	return true;
+}
+
+bool
+FUnrealObjectInputNode::DestroyAllModifierChains()
+{
+	bool bSuccess = true;
+	TArray<FName> ChainNames;
+	ModifierChains.GetKeys(ChainNames);
+	for (const FName& ChainName : ChainNames)
+	{
+		if (!DestroyModifiers(ChainName))
+			bSuccess = false;
+	}
+
+	return bSuccess;
+}
+
+bool
+FUnrealObjectInputNode::UpdateModifiers(const FName InChainName)
+{
+	FUnrealObjectInputModifierChain* const Chain = ModifierChains.Find(InChainName);
+	if (!Chain)
+		return false;
+	
+	bool bSuccess = true;
+	int32 NodeToConnectTo = Chain->ConnectToNodeId;
+	if (NodeToConnectTo < 0)
+		NodeToConnectTo = NodeId;
+	for (FUnrealObjectInputModifier* const Modifier : Chain->Modifiers)
+	{
+		if (!Modifier)
+			continue;
+		if (!Modifier->Update(NodeToConnectTo))
+		{
+			bSuccess = false;
+		}
+		else
+		{
+			const int32 OutputNodeId = Modifier->GetOutputHAPINodeId();
+			if (OutputNodeId >= 0)
+				NodeToConnectTo = OutputNodeId;
+		}
+	}
+
+	// If this is the output chain, set it its display node
+	if (OutputChainName == InChainName)
+	{
+		const int32 OutputNodeId = GetOutputNodeOfModifierChain(OutputChainName);
+		if (OutputNodeId >= 0)
+		{
+			IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+			if (Manager)
+				Manager->SetHAPINodeDisplay(OutputNodeId, true);
+		}
+	}
+	
+	return bSuccess;
+}
+
+bool
+FUnrealObjectInputNode::UpdateAllModifierChains()
+{
+	bool bSuccess = true;
+	TArray<FName> ChainNames;
+	ModifierChains.GetKeys(ChainNames);
+	for (const FName& ChainName : ChainNames)
+	{
+		if (!UpdateModifiers(ChainName))
+			bSuccess = false;
+	}
+
+	
+
+	return bSuccess;
 }
 
 bool
@@ -613,4 +849,25 @@ void FUnrealObjectInputReferenceNode::MarkAsDirty(const bool bInAlsoDirtyReferen
 	{
 		Manager->MarkAsDirty(Handle.GetIdentifier(), bInAlsoDirtyReferencedNodes);
 	}
+}
+
+bool
+FUnrealObjectInputModifier::DestroyHAPINodes()
+{
+	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+	if (!Manager)
+		return false;
+
+	bool bSuccess = true;
+	for (const int32 NodeId : HAPINodeIds)
+	{
+		if (!Manager->IsHAPINodeValid(NodeId))
+			continue;
+		// TODO: can we ensure that node input and output nodes are linked after deleting node?
+		if (!Manager->DeleteHAPINode(NodeId))
+			bSuccess = false;
+	}
+	HAPINodeIds.Empty();
+
+	return bSuccess;
 }

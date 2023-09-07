@@ -31,6 +31,12 @@
 #include "UObject/WeakObjectPtr.h"
 #include "HoudiniEngineRuntimeCommon.h"
 
+// Houdini Engine forward declarations
+class FUnrealObjectInputModifier;
+
+// UE forward declarations
+
+
 /**
  * A struct of options that are used by FUnrealObjectInputIdentifier to differentiate between variations of the
  * same object.
@@ -284,6 +290,24 @@ private:
 inline HOUDINIENGINERUNTIME_API uint32 GetTypeHash(const FUnrealObjectInputHandle& InHandle) { return InHandle.GetTypeHash(); }
 
 
+enum class EUnrealObjectInputModifierType : uint8
+{
+	Invalid,
+	MaterialOverrides,
+	PhysicalMaterialOverride,
+	ActorAsReference
+};
+
+/** Represents a chain of FUnrealObjectInputModifiers, owned by a single FUnrealObjectInputNode. See FUnrealObjectInputModifier. */
+struct HOUDINIENGINERUNTIME_API FUnrealObjectInputModifierChain
+{
+	/** The node to connect to the input of the first node of the first modifiers. */ 
+	int32 ConnectToNodeId = INDEX_NONE;
+
+	/** The modifiers of this chain. */
+	TArray<FUnrealObjectInputModifier*> Modifiers;
+};
+
 /**
  * The base class for entries in the FUnrealObjectInputManager.
  * 
@@ -291,6 +315,8 @@ inline HOUDINIENGINERUNTIME_API uint32 GetTypeHash(const FUnrealObjectInputHandl
 class HOUDINIENGINERUNTIME_API FUnrealObjectInputNode
 {
 public:
+	static const FName OutputChainName;
+
 	/** Do not allow construction without an identifier. */
 	FUnrealObjectInputNode() = delete;
 
@@ -344,6 +370,105 @@ public:
 
 	/** Returns true if the node can be deleted. */
 	virtual void SetCanBeDeleted(const bool& InCanBeDeleted) { bCanBeDeleted = InCanBeDeleted; }
+
+	/**
+	 * Add a new modifier chain to the node.
+	 * @param InChainName The name of the chain.
+	 * @param InNodeIdToConnectTo The node to connect the first modifier's input to.
+	 * @return True if the chain was added (and did not already exist).
+	 */
+	bool AddModifierChain(FName InChainName, int32 InNodeIdToConnectTo);
+
+	/** Set the node that the first modifier's input should be connected to for the given chain. */
+	bool SetModifierChainNodeToConnectTo(FName InChainName, int32 InNodeToConnectTo);
+
+	/** Returns the number of modifier chains of this node. */
+	int32 GetNumModifierChains() const { return ModifierChains.Num(); }
+
+	/** Gets a modifier chain by name. Returns nullptr if no such chain exists. */
+	const FUnrealObjectInputModifierChain* GetModifierChain(FName InChainName) const { return ModifierChains.Find(InChainName); }
+
+	/** Get the output node of the chain given by InChainName. Returns < 0 if there is no such chain. */
+	int32 GetOutputNodeOfModifierChain(FName InChainName) const;
+
+	/** Removes the modifier chain with the name InChainName. Returns True if a chain was removed. */
+	bool RemoveModifierChain(FName InChainName);
+
+	/**
+	 * Create and add a new modifier to the chain with name InChainName. The node owns the modifier and is responsible
+	 * for deleting it (and freeing memory) when appropriate.
+	 * @tparam T The class of the modifier, a subclass for FUnrealInputObjectModifier.
+	 * @tparam Args The argument types to the constructor of T.
+	 * @param InChainName The name of the modifier chain to create the modifier in.
+	 * @param ConstructorArguments The arguments to the constructor of the modifier.
+	 * @return The newly created and added modifier, or nullptr if the operation failed.
+	 */
+	template <class T, class... Args>
+	T* CreateAndAddModifier(FName InChainName, Args... ConstructorArguments);
+
+	/**
+	 * Add a pre-created modifier to the given chain. The node takes over ownership of the modifier and becomes
+	 * responsible for deleting it (and freeing memory) when appropriate.
+	 */
+	bool AddModifier(FName InChainName, FUnrealObjectInputModifier* InModifierToAdd);
+
+	/** Return the first modifier in the chain InChainName of the given InModifierType. Returns nullptr if no such modifier was found. */
+	FUnrealObjectInputModifier* FindFirstModifierOfType(FName InChainName, EUnrealObjectInputModifierType InModifierType) const;
+
+	/**
+	 * Find the first modifier in the InChainName chain of the given class.
+	 * @tparam T The class of the modifier to find.
+	 * @param InChainName The name of the chain to search in.
+	 * @return The modifier instance or nullptr if none of class T could be found in the chain.
+	 */
+	template <class T>
+	T* FindFirstModifierByClass(FName InChainName) const;
+
+	/**
+	 * Sets OutModifiers to contain all modifiers from the chain InChainName with type InModifierType to OutModifiers.
+	 * @return True if the chain exists.
+	 */
+	bool GetAllModifiersOfType(FName InChainName, EUnrealObjectInputModifierType InModifierType, TArray<FUnrealObjectInputModifier*>& OutModifiers) const;
+	
+	/**
+	 * Sets OutModifiers to contain all modifiers from the chain InChainName with class T to OutModifiers.
+	 * @tparam T The class of the modifiers to search for.
+	 * @return True if the chain exists.
+	 */
+	template <class T>
+	bool GetAllModifiersByClass(FName InChainName, TArray<T*>& OutModifiers) const;
+
+	/**
+	 * Remove the given modifier, InModifier, from chain InChainName and delete it. 
+	 * @param InChainName The name of the chain that contains InModifier.
+	 * @param InModifier The modifier to remove and delete.
+	 * @return True if the chain exists and modifier was found, removed and deleted.
+	 */
+	bool DestroyModifier(FName InChainName, FUnrealObjectInputModifier* InModifier);
+
+	/** Remove and delete all modifiers from the chain InChainName. Returns true if the chain exists. */
+	bool DestroyModifiers(FName InChainName);
+
+	/**
+	 * Remove and delete all modifiers from all chains and also remove the chains themselves.
+	 * @return True if all underlying calls to DestroyModifiers() returned true.
+	 */
+	bool DestroyAllModifierChains();
+
+	/** Get a const reference to the map of modifier chains. */
+	const TMap<FName, FUnrealObjectInputModifierChain>& GetModifierChains() const { return ModifierChains; }
+
+	/**
+	 * Call FUnrealObjectInputModifier::Update() on all modifiers in chain InChainName.
+	 * @return True if InChainName exists.
+	 */
+	bool UpdateModifiers(FName InChainName);
+
+	/**
+	 * Call UpdateModifiers() on all chains.
+	 * @return True if all calls to UpdateModifiers() returned true.
+	 */
+	bool UpdateAllModifierChains();
 	
 protected:
 	friend class FUnrealObjectInputManagerImpl;
@@ -384,6 +509,9 @@ private:
 
 	/** Indicates if this node can be deleted. Used to prevent the destruction of input nodes created by NodeSync*/
 	bool bCanBeDeleted;
+
+	/** Modifiers on this node */
+	TMap<FName, FUnrealObjectInputModifierChain> ModifierChains;
 };
 
 
@@ -489,6 +617,75 @@ private:
 };
 
 
+/**
+ * Modifiers represent additional nodes that are applied to input nodes. For example, adding a wrangle for setting
+ * material overrides for an input node that represents a StaticMeshComponent.
+ *
+ * The modifiers are added to chains (FUnrealObjectInputModifierChain) and the chains and the modifiers are owned
+ * by a FUnrealObjectInputNode.
+ */
+class HOUDINIENGINERUNTIME_API FUnrealObjectInputModifier
+{
+public:
+	FUnrealObjectInputModifier() = delete;
+	// Don't allow copy constructing since the modifier is linked to HAPI nodes
+	FUnrealObjectInputModifier(const FUnrealObjectInputModifier& InCopyFrom) = delete;
+
+	FUnrealObjectInputModifier(FUnrealObjectInputNode& InOwner) : bNeedsRebuild(true), Owner(InOwner) {}
+
+	/** Static function for getting the modifier type as EUnrealObjectInputModifierType enum. */
+	static EUnrealObjectInputModifierType StaticGetType() { return EUnrealObjectInputModifierType::Invalid; }
+	/** Return the modifier type as EUnrealObjectInputModifierType enum. */
+	virtual EUnrealObjectInputModifierType GetType() const { return StaticGetType(); }
+
+	virtual ~FUnrealObjectInputModifier() { DestroyHAPINodes(); }
+
+	/** Returns the FUnrealObjectInputNode that owns this modifier. */ 
+	FUnrealObjectInputNode& GetOwner() const { return Owner; }
+
+	/** Mark this modifier as requiring rebuild: at the next update all of its HAPI nodes will be removed and recreated. */
+	void MarkAsNeedsRebuild() { bNeedsRebuild = true; }
+
+	/** Returns true if this modifier needs to be rebuilt. See MarkAsNeedsRebuild(). */ 
+	bool NeedsRebuild() const { return bNeedsRebuild; }
+
+	/** Get the HAPI nodes that this modifier created. */
+	const TArray<int32>& GetHAPINodeIds() const { return HAPINodeIds; }
+
+	/** Return the first node / input node of the modifier. */
+	virtual int32 GetInputHAPINodeId() const { return HAPINodeIds.Num() > 0 ? HAPINodeIds[0] : INDEX_NONE; }
+
+	/** Return the last node / output node of the modifier. */
+	virtual int32 GetOutputHAPINodeId() const { return HAPINodeIds.Num() > 0 ? HAPINodeIds.Last() : INDEX_NONE; }
+
+	/** This function is called when a modifier is added to its owner FUnrealObjectInputNode, just after creation. */
+	virtual void OnAddedToOwner() {}
+
+	/** This function is called when this modifier is removed from its owner. */
+	virtual void OnRemovedFromOwner() { DestroyHAPINodes(); }
+
+	/** Destroy all existing / valid nodes in HAPINodeIds and empty HAPINodeIds. */
+	bool DestroyHAPINodes();
+
+	/**
+	 * Updates the modifier. Creates missing nodes and re-sets all parameters on the nodes.
+	 * @param InNodeIdToConnectTo The node to connect to the input of GetInputHAPINodeId().
+	 */
+	virtual bool Update(int32 InNodeIdToConnectTo) = 0;
+
+protected:
+	/** HAPI nodes created/managed by this modifier. */
+	TArray<int32> HAPINodeIds;
+
+	/** If true indicates that the existing, if any, HAPI nodes need to be deleted and rebuilt. */
+	bool bNeedsRebuild;
+
+private:
+	/** The FUnrealObjectInputNode that owns this modifier. */
+	FUnrealObjectInputNode& Owner;
+};
+
+
 bool
 FUnrealObjectInputReferenceNode::AddReferencedNode(const FUnrealObjectInputHandle& InHandle)
 {
@@ -496,4 +693,62 @@ FUnrealObjectInputReferenceNode::AddReferencedNode(const FUnrealObjectInputHandl
 	ReferencedNodes.Add(InHandle, &bAlreadySet);
 
 	return !bAlreadySet;
+}
+
+
+template <class T, class... Args>
+T* FUnrealObjectInputNode::CreateAndAddModifier(const FName InChainName, Args... ConstructorArguments)
+{
+	static_assert(std::is_base_of_v<FUnrealObjectInputModifier, T>, "T must derive from FUnrealObjectInputModifier");
+
+	FUnrealObjectInputModifierChain* const Chain = ModifierChains.Find(InChainName);
+	if (!Chain)
+		return nullptr; 
+	
+	T* Modifier = new T(*this, ConstructorArguments...);
+	check(Modifier);
+	
+	Chain->Modifiers.Emplace(Modifier);
+	
+	Modifier->OnAddedToOwner();
+
+	return Modifier;
+}
+
+template <class T>
+T* FUnrealObjectInputNode::FindFirstModifierByClass(const FName InChainName) const
+{
+	static_assert(std::is_base_of_v<FUnrealObjectInputModifier, T>, "T must derive from FUnrealObjectInputModifier");
+	FUnrealObjectInputModifier* Modifier = FindFirstModifierOfType(InChainName, T::StaticGetType());
+	if (!Modifier)
+		return nullptr;
+	return static_cast<T*>(Modifier);
+}
+
+template <class T>
+bool FUnrealObjectInputNode::GetAllModifiersByClass(const FName InChainName, TArray<T*>& OutModifiers) const
+{
+	static_assert(std::is_base_of_v<FUnrealObjectInputModifier, T>, "T must derive from FUnrealObjectInputModifier");
+
+	FUnrealObjectInputModifierChain const* const Chain = ModifierChains.Find(InChainName);
+	if (!Chain)
+		return false;
+	
+	const EUnrealObjectInputModifierType ModifierType = T::StaticGetType();
+	TArray<T*> FoundModifiers;
+	for (FUnrealObjectInputModifier const* const Modifier : Chain->Modifiers)
+	{
+		if (!Modifier)
+			continue;
+		if (Modifier->GetType() != ModifierType)
+			continue;
+		T* TypedModifier = Cast<T*>(Modifier);
+		FoundModifiers.Emplace(TypedModifier);
+	}
+
+	if (FoundModifiers.Num() <= 0)
+		return false;
+
+	OutModifiers = MoveTemp(FoundModifiers);
+	return true;
 }

@@ -31,6 +31,7 @@
 #include "HoudiniEnginePrivatePCH.h"
 #include "UnrealMeshTranslator.h"
 #include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputTypes.h"
 
 #include "Engine/StaticMesh.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -79,6 +80,9 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	if (!bSuccess)
 		return false;
 
+	// Modifier chain name for component overrides on the static mesh (used with the ref counted input system).
+	const FName MeshChainName("sm_overrides");
+
 	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
 	FString FinalInputNodeName = InNodeName;
 	HAPI_NodeId ParentNodeId = -1;
@@ -103,26 +107,29 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 			TSet<FUnrealObjectInputHandle> ReferencedNodes;
 			if (FHoudiniEngineUtils::GetReferencedNodes(Handle, ReferencedNodes))
 			{
-				if (ReferencedNodes.Num() <= 1)
+				if (ReferencedNodes.Num() == 1 && ReferencedNodes.Contains(SMNodeHandle))
 				{
-					if (!ReferencedNodes.Contains(SMNodeHandle))
-						FHoudiniEngineUtils::SetReferencedNodes(Handle, {SMNodeHandle});
-
 					HAPI_NodeId NodeId = -1;
 					if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId))
 					{
-						// Ensure that the SM node is connected to ref node's (copytopoints) input 0
-						HAPI_NodeId CurrentInputNodeId = -1;
+						// The obj merge should be along input 0 from NodeId until we get to a node that does not have
+						// an input
 						HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
-						if (FHoudiniApi::QueryNodeInput(Session, NodeId, 0, &CurrentInputNodeId) == HAPI_RESULT_SUCCESS && CurrentInputNodeId >= 0)
+						HAPI_NodeId CurrentNodeId = NodeId;
+						HAPI_NodeId CurrentInputNodeId = -1;
+						while (FHoudiniApi::QueryNodeInput(Session, CurrentNodeId, 0, &CurrentInputNodeId) == HAPI_RESULT_SUCCESS && CurrentInputNodeId >= 0)
+						{
+							CurrentNodeId = CurrentInputNodeId;
+						}
+						if (CurrentNodeId >= 0)
 						{
 							// Get the objpath1 node parm from the object_merge
-							if (FHoudiniApi::GetParmNodeValue(Session, CurrentInputNodeId, TCHAR_TO_UTF8(TEXT("objpath1")), &CurrentInputNodeId) != HAPI_RESULT_SUCCESS)
-								CurrentInputNodeId = -1;
+							if (FHoudiniApi::GetParmNodeValue(Session, CurrentNodeId, TCHAR_TO_UTF8(TEXT("objpath1")), &CurrentNodeId) != HAPI_RESULT_SUCCESS)
+								CurrentNodeId = -1;
 						}
 
-						// If we cannot connect the nodes, then we have to rebuild
-						if (CurrentInputNodeId == SMNodeId || FHoudiniEngineUtils::HapiConnectNodeInput(NodeId, 0, SMNodeId, 0, 0))
+						// If SMNodeId is not currently the source of our connected objmerge (or there is no connected objmerge) we have to rebuild
+						if (CurrentNodeId == SMNodeId)
 						{
 							// Make sure the node cant be deleted if needed
 							if (!bInputNodesCanBeDeleted)
@@ -150,6 +157,7 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 
 	// Create the copytopoints SOP.
 	HAPI_NodeId ObjectNodeId = -1;
+	HAPI_NodeId CopyNodeId = -1;
 	int32 MatNodeId = -1;
 	if (bUseRefCountedInputSystem)
 	{
@@ -164,14 +172,17 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 				if (ObjectNodeId >= 0)
 				{
 					bCreateNodes = false;
-					// Best effort: clean up: disconnect the object merge from input 0 (HAPI should delete it
-					// automatically) and delete the instances null that is connected to input 1
-					FHoudiniApi::DisconnectNodeInput(FHoudiniEngine::Get().GetSession(), MatNodeId, 0);
-					HAPI_NodeId OldInstancesId = -1;
-					if (FHoudiniApi::QueryNodeInput(FHoudiniEngine::Get().GetSession(), MatNodeId, 1, &OldInstancesId) == HAPI_RESULT_SUCCESS
-							&& OldInstancesId >= 0)
+					if (FHoudiniApi::QueryNodeInput(FHoudiniEngine::Get().GetSession(), MatNodeId, 0, &CopyNodeId) == HAPI_RESULT_SUCCESS)
 					{
-						FHoudiniEngineUtils::DeleteHoudiniNode(OldInstancesId);
+						// Best effort: clean up: disconnect the object merge from input 0 (HAPI should delete it
+						// automatically) and delete the instances null that is connected to input 1
+						FHoudiniApi::DisconnectNodeInput(FHoudiniEngine::Get().GetSession(), CopyNodeId, 0);
+						HAPI_NodeId OldInstancesId = -1;
+						if (FHoudiniApi::QueryNodeInput(FHoudiniEngine::Get().GetSession(), CopyNodeId, 1, &OldInstancesId) == HAPI_RESULT_SUCCESS
+								&& OldInstancesId >= 0)
+						{
+							FHoudiniEngineUtils::DeleteHoudiniNode(OldInstancesId);
+						}
 					}
 				}
 			}
@@ -194,9 +205,11 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 		ObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(MatNodeId);
 	}
 
-	HAPI_NodeId CopyNodeId = -1;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
-		ObjectNodeId, TEXT("copytopoints"), "copytopoints", false, &CopyNodeId), false);
+	if (CopyNodeId < 0)
+	{
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
+			ObjectNodeId, TEXT("copytopoints"), "copytopoints", false, &CopyNodeId), false);
+	}
 
 	// set "Pack And Instance" (pack) to true
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(
@@ -357,6 +370,61 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 		//ReferencedNodes = { CopyPointsHandle };
 		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, MatNodeId, Handle, ObjectNodeId, &ReferencedNodes, bInputNodesCanBeDeleted))
 			OutHandle = Handle;
+
+		// First create the overrides on the static mesh before the copy + pack
+		
+		// Create the smc_overrides modifier chain if missing
+		HAPI_NodeId SMObjMergeNodeId = -1;
+		if (FHoudiniApi::QueryNodeInput(FHoudiniEngine::Get().GetSession(), CopyNodeId, 0, &SMObjMergeNodeId) != HAPI_RESULT_SUCCESS && SMObjMergeNodeId < 0)
+		{
+			// Destroy chain and log warning
+			HOUDINI_LOG_WARNING(TEXT("Could not find obj merge input node for instancer copytopoints: removing '%s' modifier chain."), *MeshChainName.ToString());
+			FHoudiniEngineUtils::RemoveModifierChain(Handle, MeshChainName);
+		}
+		else
+		{
+			if (!FHoudiniEngineUtils::DoesModifierChainExist(Handle, MeshChainName))
+				FHoudiniEngineUtils::AddModifierChain(Handle, MeshChainName, SMObjMergeNodeId);
+			else
+				FHoudiniEngineUtils::SetModifierChainNodeToConnectTo(Handle, MeshChainName, SMObjMergeNodeId);
+
+			// Make sure that a static mesh component overrides modifier exists for this component's input node
+			if (!FHoudiniEngineUtils::FindFirstModifierByClass<FUnrealObjectInputMaterialOverrides>(Handle, MeshChainName))
+				FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputMaterialOverrides>(Handle, MeshChainName, ISMC);
+
+			// Ensure that the physical material override modifier exists for this component's input node
+			if (!FHoudiniEngineUtils::FindFirstModifierByClass<FUnrealObjectInputPhysicalMaterialOverride>(Handle, MeshChainName))
+				FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputPhysicalMaterialOverride>(Handle, MeshChainName, ISMC, HAPI_ATTROWNER_PRIM);
+		}
+
+		// Then create the output override chain
+		const FName InstancerChainName(FUnrealObjectInputNode::OutputChainName);
+		if (!FHoudiniEngineUtils::DoesModifierChainExist(Handle, InstancerChainName))
+			FHoudiniEngineUtils::AddModifierChain(Handle, InstancerChainName, MatNodeId);
+		else
+			FHoudiniEngineUtils::SetModifierChainNodeToConnectTo(Handle, InstancerChainName, MatNodeId);
+
+		// Make sure that a static mesh component overrides modifier exists for this component's input node
+		if (!FHoudiniEngineUtils::FindFirstModifierByClass<FUnrealObjectInputMaterialOverrides>(Handle, InstancerChainName))
+			FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputMaterialOverrides>(Handle, InstancerChainName, ISMC, false);
+
+		// Ensure that the physical material override modifier exists for this component's input node
+		if (!FHoudiniEngineUtils::FindFirstModifierByClass<FUnrealObjectInputPhysicalMaterialOverride>(Handle, InstancerChainName))
+			FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputPhysicalMaterialOverride>(Handle, InstancerChainName, ISMC, HAPI_ATTROWNER_POINT);
+		
+		// Update all modifiers
+		FHoudiniEngineUtils::UpdateAllModifierChains(Handle);
+
+		// Ensure that the output of the sm chain is connected to the copytopoints node
+		HAPI_NodeId SMChainOutputNodeId = FHoudiniEngineUtils::GetOutputNodeOfModifierChain(Handle, MeshChainName);
+		if (SMChainOutputNodeId >= 0 && FHoudiniEngineUtils::IsHoudiniNodeValid(SMChainOutputNodeId))
+		{
+			if (FHoudiniApi::ConnectNodeInput(
+					FHoudiniEngine::Get().GetSession(), CopyNodeId, 0, SMChainOutputNodeId, 0) != HAPI_RESULT_SUCCESS)
+			{
+				HOUDINI_LOG_WARNING(TEXT("Failed to connect the '%s' chain to the copytopoints instancer node."), SMChainOutputNodeId);
+			}
+		}
 	}
 
 	// Update this input object's node IDs
