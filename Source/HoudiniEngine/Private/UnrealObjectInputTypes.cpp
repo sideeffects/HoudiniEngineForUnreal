@@ -3,6 +3,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 
+#include "GameFramework/Actor.h"
 #include "Components/MeshComponent.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialInterface.h"

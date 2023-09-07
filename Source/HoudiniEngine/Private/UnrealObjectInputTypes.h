@@ -31,10 +31,12 @@
 
 #include "HAPI/HAPI_Common.h"
 
+#include "UObject/ObjectPtr.h"
 
 // Houdini Engine forward declarations
 
 // Unreal Engine forward declarations
+class AActor;
 class UMeshComponent;
 class UPrimitiveComponent;
 
