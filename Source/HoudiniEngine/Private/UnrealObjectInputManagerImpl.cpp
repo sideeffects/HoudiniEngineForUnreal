@@ -620,6 +620,14 @@ FUnrealObjectInputManagerImpl::DeleteHAPINode(const int32 InNodeId) const
 }
 
 bool
+FUnrealObjectInputManagerImpl::SetHAPINodeDisplay(const int32 InNodeId, const bool bInOnOff) const
+{
+	HOUDINI_CHECK_ERROR_RETURN(
+		FHoudiniApi::SetNodeDisplay(FHoudiniEngine::Get().GetSession(), InNodeId, bInOnOff), false);
+	return true;
+}
+
+bool
 FUnrealObjectInputManagerImpl::AddRef(const FUnrealObjectInputIdentifier& InIdentifier)
 {
 	if (!InIdentifier.IsValid())

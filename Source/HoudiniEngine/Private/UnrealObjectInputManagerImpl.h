@@ -115,6 +115,7 @@ public:
     virtual bool IsHAPINodeValid(const int32 InNodeId) const override;
 
     virtual bool DeleteHAPINode(const int32 InNodeId) const override;
+	virtual bool SetHAPINodeDisplay(const int32 InNodeId, const bool bInOnOff) const override;
 	virtual bool GetHAPINodeIds(const FUnrealObjectInputIdentifier& InIdentifier, TArray<int32>& OutNodeIds) const override;
 	virtual bool GetAllHAPINodeIds(TArray<int32>& OutNodeIds) const override;
 	

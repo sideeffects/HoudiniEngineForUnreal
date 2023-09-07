@@ -2908,12 +2908,19 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// FACE MATERIALS
 	//---------------------------------------------------------------------------------------------------------------------
+
 	// Marshall face material indices.
+	// If the static mesh component is valid, and we are not using the ref counted input system, get the materials via
+	// the component to account for overrides. For the ref counted input system the component will override the
+	// materials in its input node.
+	const bool bIsStaticMeshComponentValid = (IsValid(StaticMeshComponent) && StaticMeshComponent->IsValidLowLevel());
+	const bool bUsingRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+
 	if (RawMesh.FaceMaterialIndices.Num() > 0)
 	{
 		// Create an array of Material Interfaces
 		TArray<UMaterialInterface *> MaterialInterfaces;
-		if (IsValid(StaticMeshComponent) && StaticMeshComponent->IsValidLowLevel())
+		if (bIsStaticMeshComponentValid && !bUsingRefCountedInputSystem)
 		{
 			// StaticMeshComponent->GetUsedMaterials(MaterialInterfaces, false);
 
@@ -3377,8 +3384,11 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 	const TArray<FStaticMaterial>& StaticMaterials = StaticMesh->GetStaticMaterials();
 
-	// If the static mesh component is valid, get the materials via the component to account for overrides
+	// If the static mesh component is valid, and we are not using the ref counted input system, get the materials via
+	// the component to account for overrides. For the ref counted input system the component will override the
+	// materials in its input node.
 	const bool bIsStaticMeshComponentValid = (IsValid(StaticMeshComponent) && StaticMeshComponent->IsValidLowLevel());
+	const bool bUsingRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
 	const int32 NumStaticMaterials = StaticMaterials.Num();
 	// If we find any invalid Material (null or pending kill), or we find a section below with an out of range MaterialIndex,
 	// then we will set UEDefaultMaterial at the invalid index
@@ -3391,7 +3401,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 		{
 			const FStaticMaterial &MaterialInfo = StaticMaterials[MaterialIndex];
 			UMaterialInterface *Material = nullptr;
-			if (bIsStaticMeshComponentValid)
+			if (bIsStaticMeshComponentValid && !bUsingRefCountedInputSystem)
 			{
 				Material = StaticMeshComponent->GetMaterial(MaterialIndex);
 			}
@@ -4038,7 +4048,10 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 FString FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(UStaticMeshComponent* StaticMeshComponent, UStaticMesh* StaticMesh)
 {
-	if (StaticMeshComponent && StaticMeshComponent->GetBodyInstance())
+	// If the ref counted input system is used, don't get the override from the component, this will be handled at the
+	// component level by the input system.
+	const bool bIsUsingRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	if (!bIsUsingRefCountedInputSystem && StaticMeshComponent && StaticMeshComponent->GetBodyInstance())
 	{
 		UPhysicalMaterial* PhysicalMaterial = StaticMeshComponent->GetBodyInstance()->GetSimplePhysicalMaterial();
 		if (PhysicalMaterial != nullptr && PhysicalMaterial != GEngine->DefaultPhysMaterial)
@@ -4224,8 +4237,11 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 
 	const TArray<FStaticMaterial>& StaticMaterials = StaticMesh->GetStaticMaterials();
 
-	// If the static mesh component is valid, get the materials via the component to account for overrides
+	// If the static mesh component is valid, and we are not using the ref counted input system, get the materials via
+	// the component to account for overrides. For the ref counted input system the component will override the
+	// materials in its input node.
 	const bool bIsStaticMeshComponentValid = (IsValid(StaticMeshComponent) && StaticMeshComponent->IsValidLowLevel());
+	const bool bUsingRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
 	const int32 NumStaticMaterials = StaticMaterials.Num();
 	// If we find any invalid Material (null or pending kill), or we find a section below with an out of range MaterialIndex,
 	// then we will set UEDefaultMaterial at the invalid index
@@ -4238,7 +4254,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		{
 			const FStaticMaterial &MaterialInfo = StaticMaterials[MaterialIndex];
 			UMaterialInterface *Material = nullptr;
-			if (bIsStaticMeshComponentValid)
+			if (bIsStaticMeshComponentValid && !bUsingRefCountedInputSystem)
 			{
 				Material = StaticMeshComponent->GetMaterial(MaterialIndex);
 			}
