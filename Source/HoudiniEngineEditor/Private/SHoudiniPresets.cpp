@@ -33,7 +33,6 @@
 #include "HoudiniParameterFile.h"
 #include "HoudiniParameterFloat.h"
 #include "HoudiniParameterInt.h"
-#include "HoudiniParameterOperatorPath.h"
 #include "HoudiniParameterRamp.h"
 #include "HoudiniParameterString.h"
 #include "HoudiniPreset.h"
@@ -41,17 +40,13 @@
 #include "HoudiniToolsEditor.h"
 #include "PropertyCustomizationHelpers.h"
 #include "SWarningOrErrorBox.h"
-#include "Algo/Copy.h"
 #include "Interfaces/IMainFrameModule.h"
-#include "Styling/SlateStyleMacros.h"
 #include "ThumbnailRendering/ThumbnailManager.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
-#include "Widgets/Input/SEditableText.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Layout/SGridPanel.h"
 #include "Widgets/Layout/SScrollBox.h"
-#include "Widgets/Layout/SUniformGridPanel.h"
 
 #define LOCTEXT_NAMESPACE "HoudiniPresets"
 
@@ -60,12 +55,17 @@ SHoudiniCreatePresetFromHDA::SHoudiniCreatePresetFromHDA()
 	, bApplyOnlyToSource(true)
 	, bRevertHDAParameters(false)
 	, bCanInstantiate(true)
+	, bApplyTempCookFolder(false)
+	, bApplyBakeFolder(false)
+	, bApplyBakeOptions(false)
+	, bApplyAssetOptions(false)
+	, bApplyStaticMeshGenSettings(false)
+	, bApplyProxyMeshGenSettings(false)
 	, LabelColumnWidth(0.35f)
 	, NameColumnWidth(0.3f)
 	, ValueColumnWidth(0.35f)
 	, bSelectAll(true)
 {
-	
 }
 
 void
@@ -112,8 +112,14 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 		PresetLabel = FHoudiniToolsEditor::ResolveHoudiniAssetLabel(SourceHoudiniAsset.Get());
 		PresetDescription = SourceHoudiniAsset->HoudiniToolData->ToolTip;
 	}
-
+	
 	const int32 NumParms = HAC->GetNumParameters();
+	bApplyBakeFolder = false;
+	bApplyTempCookFolder = false;
+	bApplyBakeOptions = true;
+	bApplyAssetOptions = true;
+	bApplyStaticMeshGenSettings = true;
+	bApplyProxyMeshGenSettings = true;
 
 	TSharedRef<SVerticalBox> Container = SNew(SVerticalBox);
 
@@ -301,17 +307,7 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 			];
 	};
 
-
 	// Preset settings
-	
-	// Value
-	// Label
-	// Description
-	// Source Houdini Asset
-	// Revert HDA Parameters
-	// Apply only to source
-	// Can Instantiate
-
 
 	// Grid panel for Preset properties
 	TSharedRef<SGridPanel> GridPanel =
@@ -482,6 +478,150 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 				.ToolTipText(LOCTEXT("CreatePresetFromHDA_RevertHDAParametersTooltip", "Revert all the HDA parameters before applying this preset."))
 			]
 		];
+
+
+	// Options
+
+	Container->AddSlot()
+	.AutoHeight()
+	.Padding(0.f, 8.f, 0.f, 10.f)
+	[
+		SNew(STextBlock)
+			.Font( FAppStyle::Get().GetFontStyle("HeadingExtraSmall") )
+			.Text( LOCTEXT("CreatePresetFromHDA_PresetOptionsHeading", "Options") )
+			.ToolTipText( LOCTEXT("CreatePresetFromHDA_PresetOptionsHeadingTooltip", "HDA generate, bake and asset options to include in this preset.") )
+			.TransformPolicy(ETextTransformPolicy::ToUpper)
+	];
+
+	{
+		// Bake Options
+
+		{
+			// Temp Cook Folder
+			TSharedPtr<SSplitter> Splitter = CreateSplitterFn();
+			
+			Container->AddSlot()
+			.AutoHeight()
+			.Padding(0.f, 0.f, 0.f, 1.f)
+			[
+				Splitter.ToSharedRef()
+			];
+			
+			Splitter->AddSlot()
+			.Value(this, &SHoudiniCreatePresetFromHDA::GetLabelColumnWidth)
+			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnLabelColumnResized)
+			[
+				SNew(SCheckBox)
+					.IsChecked_Lambda( [this]() -> ECheckBoxState { return bApplyTempCookFolder ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
+					.OnCheckStateChanged_Lambda( [this](const ECheckBoxState NewState) -> void { bApplyTempCookFolder = NewState == ECheckBoxState::Checked; } )
+					// .ToolTipText( LOCTEXT("CreatePresetFromHDA_TempCookFolderTooltip", "Whether or not this preset will apply bake options.") )
+					.Content()
+					[
+						SNew(STextBlock)
+						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						.Text(LOCTEXT("CreatePresetFromHDA_TempCookFolderLabel", "Temporary Cook Folder"))
+					]
+			];
+
+			Splitter->AddSlot()
+			.Value(this, &SHoudiniCreatePresetFromHDA::GetNameColumnWidth)
+			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnNameColumnResized)
+			[
+				SNew(STextBlock)
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.Text( FText::FromString(HAC->TemporaryCookFolder.Path) )
+			];
+
+			Splitter->AddSlot()
+			.Value(this, &SHoudiniCreatePresetFromHDA::GetValueColumnWidth)
+			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnValueColumnResized);
+			
+			
+			// Bake Folder
+			Splitter = CreateSplitterFn();
+			
+			Container->AddSlot()
+			.AutoHeight()
+			.Padding(0.f, 0.f, 0.f, 1.f)
+			[
+				Splitter.ToSharedRef()
+			];
+			
+			Splitter->AddSlot()
+			.Value(this, &SHoudiniCreatePresetFromHDA::GetLabelColumnWidth)
+			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnLabelColumnResized)
+			[
+				SNew(SCheckBox)
+					.IsChecked_Lambda( [this]() -> ECheckBoxState { return bApplyBakeFolder ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
+					.OnCheckStateChanged_Lambda( [this](const ECheckBoxState NewState) -> void { bApplyBakeFolder = NewState == ECheckBoxState::Checked; } )
+					// .ToolTipText( LOCTEXT("CreatePresetFromHDA_TempCookFolderTooltip", "Whether or not this preset will apply bake options.") )
+					.Content()
+					[
+						SNew(STextBlock)
+						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						.Text(LOCTEXT("CreatePresetFromHDA_BakeFolderLabel", "Bake Folder"))
+					]
+			];
+
+			Splitter->AddSlot()
+			.Value(this, &SHoudiniCreatePresetFromHDA::GetNameColumnWidth)
+			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnNameColumnResized)
+			[
+				SNew(STextBlock)
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.Text( FText::FromString(HAC->BakeFolder.Path) )
+			];
+
+			Splitter->AddSlot()
+			.Value(this, &SHoudiniCreatePresetFromHDA::GetValueColumnWidth)
+			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnValueColumnResized);
+		}
+
+
+		// Apply Bake Options 
+
+		Container->AddSlot()
+			.AutoHeight()
+			.Padding(0.f, 0.f, 0.f, 1.f)
+			[
+				SNew(SCheckBox)
+					.IsChecked_Lambda( [this]() -> ECheckBoxState { return bApplyBakeOptions ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
+					.OnCheckStateChanged_Lambda( [this](const ECheckBoxState NewState) -> void { bApplyBakeOptions = NewState == ECheckBoxState::Checked; } )
+					.ToolTipText( LOCTEXT("CreatePresetFromHDA_ApplyBakeOptionsTooltip", "Whether or not this preset will apply bake options.") )
+					.Content()
+					[
+						SNew(STextBlock)
+						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						.Text(LOCTEXT("CreatePresetFromHDA_ApplyBakeOptionsTooltip", "Apply Bake Options"))
+					]
+			];
+
+		TSharedPtr<SVerticalBox> BakeOptionsContainer = SNew(SVerticalBox)
+			.Visibility_Lambda([this]() -> EVisibility
+			{
+				return bApplyBakeOptions ? EVisibility::Visible : EVisibility::Collapsed;
+			});
+
+	}
+
+	{
+		// Asset Options
+		Container->AddSlot()
+			.AutoHeight()
+			.Padding(0.f, 0.f, 0.f, 1.f)
+			[
+				SNew(SCheckBox)
+					.IsChecked_Lambda( [this]() -> ECheckBoxState { return bApplyAssetOptions ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
+					.OnCheckStateChanged_Lambda( [this](const ECheckBoxState NewState) -> void { bApplyAssetOptions = NewState == ECheckBoxState::Checked; } )
+					.ToolTipText( LOCTEXT("CreatePresetFromHDA_ApplyAssetOptionsTooltip", "Whether or not this preset will apply asset options.") )
+					.Content()
+					[
+						SNew(STextBlock)
+						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						.Text(LOCTEXT("CreatePresetFromHDA_ApplyAssetOptionsTooltip", "Apply Asset Options"))
+					]
+			];
+	}
 
 	
 	// Parameter List Header
@@ -828,6 +968,56 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 		}
 	}
 
+	// Mesh Generation Settings
+
+	Container->AddSlot()
+	.AutoHeight()
+	.Padding(0.f, 8.f, 0.f, 10.f)
+	[
+		SNew(STextBlock)
+			.Font( FAppStyle::Get().GetFontStyle("HeadingExtraSmall") )
+			.Text( LOCTEXT("CreatePresetFromHDA_PresetMeshGenHeading", "Mesh Generation") )
+			.ToolTipText( LOCTEXT("CreatePresetFromHDA_PresetMeshGenHeadingTooltip", "Mesh generation settings to include in this preset.") )
+			.TransformPolicy(ETextTransformPolicy::ToUpper)
+	];
+
+	{
+		// Houdini Mesh Generation
+		Container->AddSlot()
+			.AutoHeight()
+			.Padding(0.f, 0.f, 0.f, 1.f)
+			[
+				SNew(SCheckBox)
+					.IsChecked_Lambda( [this]() -> ECheckBoxState { return bApplyStaticMeshGenSettings ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
+					.OnCheckStateChanged_Lambda( [this](const ECheckBoxState NewState) -> void { bApplyStaticMeshGenSettings = NewState == ECheckBoxState::Checked; } )
+					.ToolTipText( LOCTEXT("CreatePresetFromHDA_ApplyMeshGenSettingsTooltip", "Whether or not this preset will apply Mesh Generation settings.") )
+					.Content()
+					[
+						SNew(STextBlock)
+						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						.Text(LOCTEXT("CreatePresetFromHDA_ApplyMeshGenSettingsTooltip", "Apply Mesh Generation Settings"))
+					]
+			];
+
+		// Houdini Proxy Mesh Generation
+		Container->AddSlot()
+			.AutoHeight()
+			.Padding(0.f, 0.f, 0.f, 1.f)
+			[
+				SNew(SCheckBox)
+					.IsChecked_Lambda( [this]() -> ECheckBoxState { return bApplyProxyMeshGenSettings ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
+					.OnCheckStateChanged_Lambda( [this](const ECheckBoxState NewState) -> void { bApplyProxyMeshGenSettings = NewState == ECheckBoxState::Checked; } )
+					.ToolTipText( LOCTEXT("CreatePresetFromHDA_ApplyProxyMeshGenSettingsTooltip", "Whether or not this preset will apply Proxy Mesh Generation settings.") )
+					.Content()
+					[
+						SNew(STextBlock)
+						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						.Text(LOCTEXT("CreatePresetFromHDA_ApplyProxyMeshGenSettingsTooltip", "Apply Proxy Mesh Generation Settings"))
+					]
+			];
+		
+	}
+
 	// Main Panel Structure
 
 	ChildSlot
@@ -1109,7 +1299,6 @@ SHoudiniCreatePresetFromHDA::GetErrorText() const
 	if (!bIsValidPresetPath)
 	{
 		return PresetNameError;
-		return LOCTEXT("CreatePresetFromHDA_ErrorText_InvalidPresetPath", "The preset name / path is not valid.");
 	}
 	
 	return FText();
@@ -1119,7 +1308,9 @@ void
 SHoudiniCreatePresetFromHDA::SelectAllParameters()
 {
 	if (!HoudiniAssetComponent.IsValid())
+	{
 		return;
+	}
 	
 	UHoudiniAssetComponent* HAC = HoudiniAssetComponent.Get();
 	const int32 NumParams = HAC->GetNumParameters();
@@ -1137,6 +1328,12 @@ SHoudiniCreatePresetFromHDA::SelectAllParameters()
 FReply
 SHoudiniCreatePresetFromHDA::HandleCreatePresetClicked()
 {
+	if (!HoudiniAssetComponent.IsValid())
+	{
+		return FReply::Handled();
+	}
+	const UHoudiniAssetComponent* HAC = HoudiniAssetComponent.Get();
+	
 	const FString PresetBasePath = GetPresetAssetBasePath();
 
 	UHoudiniPresetFactory* Factory = NewObject<UHoudiniPresetFactory>();
@@ -1160,6 +1357,13 @@ SHoudiniCreatePresetFromHDA::HandleCreatePresetClicked()
 	Asset->bApplyOnlyToSource = bApplyOnlyToSource;
 	Asset->bCanInstantiate = bCanInstantiate;
 	Asset->bRevertHDAParameters = bRevertHDAParameters;
+
+	Asset->bApplyTemporaryCookFolder = bApplyTempCookFolder;
+	Asset->TemporaryCookFolder = HAC->TemporaryCookFolder.Path;
+	Asset->bApplyBakeFolder = bApplyBakeFolder;
+	Asset->BakeFolder = HAC->BakeFolder.Path;
+
+	FHoudiniToolsEditor::CopySettingsToPreset(HAC, bApplyAssetOptions, bApplyBakeOptions, bApplyStaticMeshGenSettings, bApplyProxyMeshGenSettings, Asset);
 
 	// Transfer int params that we want to keep (checked by the user)
 	Asset->IntParameters.Empty();

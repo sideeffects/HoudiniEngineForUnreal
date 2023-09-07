@@ -605,10 +605,10 @@ public:
 	// If true, replace the previously baked output (if any) instead of creating new objects
 	UPROPERTY()
 	bool bReplacePreviousBake;
-#endif
 
 	UPROPERTY()
 	bool bLandscapeUseTempLayers;
+#endif
 
 protected:
 

@@ -54,7 +54,6 @@ protected:
 
 	void OnLabelColumnResized(float NewSize)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[SHoudiniCreatePresetFromHDA::OnLabelColumnResized] Label Resized: %f"), NewSize);
 		const float TotalSize = LabelColumnWidth + NameColumnWidth;
 		LabelColumnWidth = NewSize;
 		// NameColumnWidth = TotalSize - LabelColumnWidth; // New width of the name column 
@@ -62,13 +61,11 @@ protected:
 
 	void OnNameColumnResized(float NewSize)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[SHoudiniCreatePresetFromHDA::OnLabelColumnResized] Name Resized: %f"), NewSize);
 		NameColumnWidth = NewSize;
 	}
 	
 	void OnValueColumnResized(float NewSize)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[SHoudiniCreatePresetFromHDA::OnLabelColumnResized] Value Resized: %f"), NewSize);
 		ValueColumnWidth = NewSize;
 		// NameColumnWidth = 1.0f - NewSize;
 	}
@@ -145,6 +142,13 @@ protected:
 	bool bApplyOnlyToSource;
 	bool bRevertHDAParameters;
 	bool bCanInstantiate;
+
+	bool bApplyTempCookFolder;
+	bool bApplyBakeFolder;
+	bool bApplyBakeOptions;
+	bool bApplyAssetOptions;
+	bool bApplyStaticMeshGenSettings;
+	bool bApplyProxyMeshGenSettings;
 
 	FText PresetNameError;
 

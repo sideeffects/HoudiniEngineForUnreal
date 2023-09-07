@@ -257,13 +257,13 @@ public:
 
 	// Get a list of user categories
 	static void GetUserCategoriesList(TArray<FString>& OutCategories);
-	
-	static void AddIncludePathToUserCategory(const FString& CategoryName, const UHoudiniToolsPackageAsset* Package, const FString& RelPath);
-	static void RemoveIncludePathFromUserCategory(const FString& CategoryName, const UHoudiniToolsPackageAsset* Package, const FString& RelPath);
 
 	// --------------------------------
 	// Presets
 	// --------------------------------
+
+	static void CopySettingsToPreset(const UHoudiniAssetComponent* HAC, const bool bApplyAssetOptions, const bool bApplyBakeOptions, const bool
+	                                 bApplyMeshGenSettings, const bool bApplyProxyMeshGenSettings, UHoudiniPreset* Preset);
 
 	// Find all the presets that can be applied the given Houdini Asset. 
 	static void FindPresetsForHoudiniAsset(const UHoudiniAsset* HoudiniAsset, TArray<UHoudiniPreset*>& OutPresets);

@@ -326,7 +326,6 @@ void
 FHoudiniToolsEditor::FindHoudiniToolsPackagePaths( TArray<FString>& HoudiniToolsDirectoryArray ) const
 {
 	// Scan the UE project to find valid HoudiniTools package directories.
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 	const TArray<FString>& SearchPaths = HoudiniRuntimeSettings->HoudiniToolsSearchPath;
 	HoudiniToolsDirectoryArray.Empty();
@@ -426,8 +425,7 @@ FHoudiniToolsEditor::FindOwningToolsPackage(const UHoudiniAsset* HoudiniAsset)
 {
 	if (!IsValid(HoudiniAsset))
 		return nullptr;
-
-	UHoudiniToolsPackageAsset* Package = nullptr;
+	
 	FString CurrentPath = FPaths::GetPath(HoudiniAsset->GetPathName());
 
 	// Define a depth limit to break out of the loop, in case something
@@ -778,8 +776,6 @@ FHoudiniToolsEditor::PopulateHoudiniTool(const TSharedPtr<FHoudiniTool>& Houdini
 		}
 	}
 
-	TWeakObjectPtr<const UHoudiniAsset> HoudiniAssetPtr = InHoudiniAsset;
-	
 	CreateUniqueAssetIconBrush(HoudiniTool);
 }
 
@@ -897,8 +893,6 @@ FHoudiniToolsEditor::UpdateHoudiniToolListFromProject(bool bIgnoreExcludePattern
 			// to be used in slate views.
 			TSharedPtr<FHoudiniTool> HoudiniTool = MakeShareable(new FHoudiniTool());
 			*HoudiniTool = *SharedHoudiniTool;
-			
-			UHoudiniAsset* HoudiniAsset = HoudiniTool->HoudiniAsset.LoadSynchronous();
 			
 			TMap<FHoudiniToolCategory, FCategoryRules> CategoryRules;
 			for(auto& Entry : ToolsPackage->Categories)
@@ -1548,8 +1542,7 @@ FHoudiniToolsEditor::ReimportPackageHDAs(const UHoudiniToolsPackageAsset* Packag
 		if (bHDAExists)
 		{
 			// Reimport existing asset from the current tool path
-			FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-			
+
 			InternalHoudiniAssets.Remove(LoadedAsset);
 			FToolsWrapper::ReimportAsync(LoadedAsset, false, true, ExternalHDAFile);
 		}
@@ -2314,32 +2307,47 @@ FHoudiniToolsEditor::GetUserCategoriesList(TArray<FString>& OutCategories)
 }
 
 
-void
-FHoudiniToolsEditor::AddIncludePathToUserCategory(const FString& CategoryName,
-													   const UHoudiniToolsPackageAsset* Package, const FString& RelPath)
+void FHoudiniToolsEditor::CopySettingsToPreset(const UHoudiniAssetComponent* HAC,
+	const bool bApplyAssetOptions,
+	const bool bApplyBakeOptions,
+	const bool bApplyMeshGenSettings,
+	const bool bApplyProxyMeshGenSettings,
+	UHoudiniPreset* Preset)
 {
-	UHoudiniEngineEditorSettings* Settings = GetMutableDefault<UHoudiniEngineEditorSettings>();
-	if (!Settings)
-	{
-		return;
-	}
+	// Populate Bake options
+	Preset->bApplyBakeOptions = bApplyBakeOptions;
+	Preset->HoudiniEngineBakeOption = HAC->HoudiniEngineBakeOption;
+	Preset->bRemoveOutputAfterBake = HAC->bRemoveOutputAfterBake;
+	Preset->bRecenterBakedActors = HAC->bRecenterBakedActors;
+	Preset->bAutoBake = HAC->IsBakeAfterNextCookEnabled();
+	Preset->bReplacePreviousBake = HAC->bReplacePreviousBake;
 
-	FUserCategoryRules& Rules = Settings->UserToolCategories.FindOrAdd(CategoryName);
+	// Populate Asset Settings
+	Preset->bApplyAssetOptions = bApplyAssetOptions;
+	Preset->bCookOnParameterChange = HAC->bCookOnParameterChange;
+	Preset->bCookOnTransformChange = HAC->bCookOnTransformChange;
+	Preset->bCookOnAssetInputCook = HAC->bCookOnAssetInputCook;
+	Preset->bDoNotGenerateOutputs = HAC->bOutputless;
+	Preset->bUseOutputNodes = HAC->bUseOutputNodes;
+	Preset->bOutputTemplateGeos = HAC->bOutputTemplateGeos;
 
-	// bool bFound = false;
-	
-}
+	Preset->bUploadTransformsToHoudiniEngine = HAC->bUploadTransformsToHoudiniEngine;
+	Preset->bLandscapeUseTempLayers = HAC->bLandscapeUseTempLayers;
 
+	// Populate Mesh Gen Settings
+	Preset->bApplyStaticMeshGenSettings = bApplyMeshGenSettings;
+	Preset->StaticMeshGenerationMethod = HAC->StaticMeshMethod;
+	Preset->StaticMeshGenerationProperties = HAC->StaticMeshGenerationProperties;
+	Preset->StaticMeshBuildSettings = HAC->StaticMeshBuildSettings;
 
-void
-FHoudiniToolsEditor::RemoveIncludePathFromUserCategory(const FString& CategoryName,
-	const UHoudiniToolsPackageAsset* Package, const FString& RelPath)
-{
-	UHoudiniEngineEditorSettings* Settings = GetMutableDefault<UHoudiniEngineEditorSettings>();
-	if (!Settings)
-	{
-		return;
-	}
+	// Populate Proxy Mesh Gen Settings
+	Preset->bApplyProxyMeshGenSettings = bApplyProxyMeshGenSettings;
+	Preset->bOverrideGlobalProxyStaticMeshSettings = HAC->bOverrideGlobalProxyStaticMeshSettings;
+	Preset->bEnableProxyStaticMeshOverride = HAC->bEnableProxyStaticMeshOverride;
+	Preset->bEnableProxyStaticMeshRefinementByTimerOverride = HAC->bEnableProxyStaticMeshRefinementByTimerOverride;
+	Preset->ProxyMeshAutoRefineTimeoutSecondsOverride = HAC->ProxyMeshAutoRefineTimeoutSecondsOverride;
+	Preset->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = HAC->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride;
+	Preset->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = HAC->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride;
 }
 
 
@@ -2354,7 +2362,7 @@ FHoudiniToolsEditor::FindPresetsForHoudiniAsset(const UHoudiniAsset* HoudiniAsse
 	const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 
 	TArray<FAssetData> Assets;
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	AssetRegistryModule.Get().GetAssetsByClass(FTopLevelAssetPath(UHoudiniPreset::StaticClass()), Assets, false);
 #else
 	AssetRegistryModule.Get().GetAssetsByClass( UHoudiniPreset::StaticClass()->GetFName(), Assets, false );
@@ -2395,6 +2403,8 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(const UHoudiniPreset* Pr
 		return;
 	}
 
+	HAC->Modify();
+
 	if (Preset->bRevertHDAParameters)
 	{
 		// Reset parameters to default values?
@@ -2407,6 +2417,29 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(const UHoudiniPreset* Pr
 				Parm->RevertToDefault();
 			}
 		}
+	}
+
+	// Populate Bake options
+	if (Preset->bApplyBakeOptions)
+	{
+		HAC->HoudiniEngineBakeOption = Preset->HoudiniEngineBakeOption;
+		HAC->bRemoveOutputAfterBake = Preset->bRemoveOutputAfterBake;
+		HAC->bRecenterBakedActors = Preset->bRecenterBakedActors;
+		HAC->SetBakeAfterNextCookEnabled( Preset->bAutoBake );
+		HAC->bReplacePreviousBake = Preset->bReplacePreviousBake;
+	}
+
+	// Populate Asset Settings
+	if (Preset->bApplyAssetOptions)
+	{
+		HAC->bCookOnParameterChange = Preset->bCookOnParameterChange;
+		HAC->bCookOnTransformChange = Preset->bCookOnTransformChange;
+		HAC->bCookOnAssetInputCook = Preset->bCookOnAssetInputCook;
+		HAC->bOutputless = Preset->bDoNotGenerateOutputs;
+		HAC->bUseOutputNodes = Preset->bUseOutputNodes;
+		HAC->bOutputTemplateGeos = Preset->bOutputTemplateGeos;
+		HAC->bUploadTransformsToHoudiniEngine = Preset->bUploadTransformsToHoudiniEngine;
+		HAC->bLandscapeUseTempLayers = Preset->bLandscapeUseTempLayers;
 	}
 
 	// Iterate over all the parameters and settings in the preset and apply it to the Houdini Asset Component.
@@ -2565,7 +2598,24 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(const UHoudiniPreset* Pr
 			UHoudiniInput* Input = HAC->GetInputAt( PresetInput.InputIndex );
 			FHoudiniPresetHelpers::ApplyPresetParameterValues(PresetInput, Input);
 		}
-		
+	}
+
+	if (Preset->bApplyStaticMeshGenSettings)
+	{
+		HAC->StaticMeshMethod = Preset->StaticMeshGenerationMethod;
+		HAC->StaticMeshGenerationProperties = Preset->StaticMeshGenerationProperties;
+		HAC->StaticMeshBuildSettings = Preset->StaticMeshBuildSettings;
+	}
+
+	if (Preset->bApplyProxyMeshGenSettings)
+	{
+		// Populate Proxy Mesh Gen Settings
+		HAC->bOverrideGlobalProxyStaticMeshSettings = Preset->bOverrideGlobalProxyStaticMeshSettings;
+		HAC->bEnableProxyStaticMeshOverride = Preset->bEnableProxyStaticMeshOverride;
+		HAC->bEnableProxyStaticMeshRefinementByTimerOverride = Preset->bEnableProxyStaticMeshRefinementByTimerOverride;
+		HAC->ProxyMeshAutoRefineTimeoutSecondsOverride = Preset->ProxyMeshAutoRefineTimeoutSecondsOverride;
+		HAC->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = Preset->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride;
+		HAC->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = Preset->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride;
 	}
 }
 
