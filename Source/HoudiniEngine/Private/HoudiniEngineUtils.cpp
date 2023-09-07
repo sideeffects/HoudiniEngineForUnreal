@@ -7942,6 +7942,45 @@ FHoudiniEngineUtils::FindNodeViaManager(
 	return true;
 }
 
+FUnrealObjectInputNode*
+FHoudiniEngineUtils::GetNodeViaManager(const FUnrealObjectInputHandle& InHandle)
+{
+	if (!InHandle.IsValid())
+		return nullptr;
+	
+	FUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+	if (!Manager)
+		return nullptr;
+
+	FUnrealObjectInputNode* Node = nullptr;
+	if (!Manager->GetNode(InHandle, Node))
+		return nullptr;
+
+	return Node;
+}
+
+FUnrealObjectInputNode*
+FHoudiniEngineUtils::GetNodeViaManager(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle)
+{
+	if (!InIdentifier.IsValid())
+		return nullptr;
+	
+	FUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+	if (!Manager)
+		return nullptr;
+
+	FUnrealObjectInputHandle Handle;
+	if (!Manager->FindNode(InIdentifier, Handle))
+		return nullptr;
+
+	FUnrealObjectInputNode* Node = nullptr;
+	if (!Manager->GetNode(Handle, Node))
+		return nullptr;
+
+	OutHandle = Handle;
+	return Node;
+}
+
 bool
 FHoudiniEngineUtils::FindParentNodeViaManager(
 	const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle)
@@ -8535,6 +8574,94 @@ FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(
 
 	OutHandle = Handle;
 	return true;
+}
+
+bool
+FHoudiniEngineUtils::AddModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, const FName InChainName, const int32 InNodeIdToConnectTo)
+{
+	FUnrealObjectInputHandle Handle;
+	FUnrealObjectInputNode* const Node = GetNodeViaManager(InIdentifier, Handle);
+	if (!Node || !Handle.IsValid())
+		return false;
+	
+	return Node->AddModifierChain(InChainName, InNodeIdToConnectTo);
+}
+
+bool
+FHoudiniEngineUtils::SetModifierChainNodeToConnectTo(const FUnrealObjectInputIdentifier& InIdentifier, const FName InChainName, const int32 InNodeToConnectTo)
+{
+	FUnrealObjectInputHandle Handle;
+	FUnrealObjectInputNode* const Node = GetNodeViaManager(InIdentifier, Handle);
+	if (!Node || !Handle.IsValid())
+		return false;
+	
+	return Node->SetModifierChainNodeToConnectTo(InChainName, InNodeToConnectTo);
+}
+
+bool
+FHoudiniEngineUtils::DoesModifierChainExist(const FUnrealObjectInputIdentifier& InIdentifier, const FName InChainName)
+{
+	FUnrealObjectInputHandle Handle;
+	FUnrealObjectInputNode const* const Node = GetNodeViaManager(InIdentifier, Handle);
+	if (!Node || !Handle.IsValid())
+		return false;
+
+	return Node->GetModifierChain(InChainName) != nullptr; 
+}
+
+int32
+FHoudiniEngineUtils::GetOutputNodeOfModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, const FName InChainName)
+{
+	FUnrealObjectInputHandle Handle;
+	FUnrealObjectInputNode const* const Node = GetNodeViaManager(InIdentifier, Handle);
+	if (!Node || !Handle.IsValid())
+		return INDEX_NONE;
+
+	return Node->GetOutputNodeOfModifierChain(InChainName);
+}
+
+bool
+FHoudiniEngineUtils::RemoveModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, const FName InChainName)
+{
+	FUnrealObjectInputHandle Handle;
+	FUnrealObjectInputNode* const Node = GetNodeViaManager(InIdentifier, Handle);
+	if (!Node || !Handle.IsValid())
+		return false;
+
+	return Node->RemoveModifierChain(InChainName);
+}
+
+bool
+FHoudiniEngineUtils::DestroyModifier(const FUnrealObjectInputIdentifier& InIdentifier, const FName InChainName, FUnrealObjectInputModifier* const InModifierToDestroy)
+{
+	FUnrealObjectInputHandle Handle;
+	FUnrealObjectInputNode* const Node = GetNodeViaManager(InIdentifier, Handle);
+	if (!Node || !Handle.IsValid())
+		return false;
+
+	return Node->DestroyModifier(InChainName, InModifierToDestroy);
+}
+
+bool
+FHoudiniEngineUtils::UpdateModifiers(const FUnrealObjectInputIdentifier& InIdentifier, const FName InChainName)
+{
+	FUnrealObjectInputHandle Handle;
+	FUnrealObjectInputNode* const Node = GetNodeViaManager(InIdentifier, Handle);
+	if (!Node || !Handle.IsValid())
+		return false;
+
+	return Node->UpdateModifiers(InChainName);
+}
+
+bool
+FHoudiniEngineUtils::UpdateAllModifierChains(const FUnrealObjectInputIdentifier& InIdentifier)
+{
+	FUnrealObjectInputHandle Handle;
+	FUnrealObjectInputNode* const Node = GetNodeViaManager(InIdentifier, Handle);
+	if (!Node || !Handle.IsValid())
+		return false;
+
+	return Node->UpdateAllModifierChains();
 }
 
 #undef LOCTEXT_NAMESPACE
