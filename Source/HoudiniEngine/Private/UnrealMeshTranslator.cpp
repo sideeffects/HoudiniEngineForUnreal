@@ -110,7 +110,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 	const bool& ExportSockets /*=false*/,
 	const bool& ExportColliders /*=false*/,
 	const bool& ExportMainMesh /* = true */,
-	const bool& bInputNodesCanBeDeleted /*=true*/)
+	const bool& bInputNodesCanBeDeleted /*=true*/,
+	const bool& bExportMaterialParameters /*= false*/)
 {
 	// If we don't have a skeletal mesh there's nothing to do.
 	if (!IsValid(SkeletalMesh))
@@ -213,7 +214,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 					Options.bExportSockets,
 					Options.bExportColliders,
 					!Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders,
-					bInputNodesCanBeDeleted))
+					bInputNodesCanBeDeleted,
+					bExportMaterialParameters))
 				{
 					return false;
 				}
@@ -394,7 +396,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 			}
 			
 			// Set the skeletal mesh data for this lod on the input node
-			if (!FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(SkeletalMesh, CurrentLODNodeId, LODIndex, DoExportLODs))
+			if (!FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(
+					SkeletalMesh, SkeletalMeshComponent, CurrentLODNodeId, LODIndex, DoExportLODs, bExportMaterialParameters))
 			{
 				HOUDINI_LOG_ERROR(TEXT("Failed to set the skeletal mesh data on the input node for %s LOD %d."), *InputNodeName, LODIndex);
 				continue;
@@ -423,6 +426,16 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 		{
 			FKAggregateGeom SimpleColliders = BodySetup->AggGeom;
 
+			// If there are no simple colliders to create then skip this bodysetup
+			if (SimpleColliders.BoxElems.Num() + SimpleColliders.SphereElems.Num() + SimpleColliders.SphylElems.Num()
+					+ SimpleColliders.ConvexElems.Num() <= 0)
+				continue;
+
+			HAPI_NodeId CollisionMergeNodeId = -1;
+			int32 NextCollisionMergeIndex = 0;
+			HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
+				InputObjectNodeId, TEXT("merge"), TEXT("simple_colliders_merge") + FString::FromInt(NextMergeIndex), false, &CollisionMergeNodeId), false);
+			
 			// Calculate the colliders transform
 			// They are stored relative to a bone, so we first need to get the corresponding bone's transform
 			// by going up the chains of bones until we reach the root bone
@@ -451,7 +464,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 
 				HAPI_NodeId BoxNodeId = -1;
 				if (!CreateInputNodeForBox(
-					BoxNodeId, InputObjectNodeId, NextMergeIndex,
+					BoxNodeId, InputObjectNodeId, NextCollisionMergeIndex,
 					BoxCenter, BoxExtent, BoxRotation))
 					continue;
 
@@ -461,9 +474,9 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 				// Connect the Box node to the merge node.
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 					FHoudiniEngine::Get().GetSession(),
-					NewNodeId, NextMergeIndex, BoxNodeId, 0), false);
+					CollisionMergeNodeId, NextCollisionMergeIndex, BoxNodeId, 0), false);
 
-				NextMergeIndex++;
+				NextCollisionMergeIndex++;
 			}
 
 			// Export SPHERE colliders
@@ -474,7 +487,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 
 				HAPI_NodeId SphereNodeId = -1;
 				if (!CreateInputNodeForSphere(
-					SphereNodeId, InputObjectNodeId, NextMergeIndex,
+					SphereNodeId, InputObjectNodeId, NextCollisionMergeIndex,
 					SphereCenter, CurSphere.Radius))
 					continue;
 
@@ -484,9 +497,9 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 				// Connect the Sphere node to the merge node.
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 					FHoudiniEngine::Get().GetSession(),
-					NewNodeId, NextMergeIndex, SphereNodeId, 0), false);
+					CollisionMergeNodeId, NextCollisionMergeIndex, SphereNodeId, 0), false);
 
-				NextMergeIndex++;
+				NextCollisionMergeIndex++;
 			}
 
 			// Export CAPSULE colliders
@@ -499,7 +512,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 
 				HAPI_NodeId SphylNodeId = -1;
 				if (!CreateInputNodeForSphyl(
-					SphylNodeId, InputObjectNodeId, NextMergeIndex,
+					SphylNodeId, InputObjectNodeId, NextCollisionMergeIndex,
 					SphylCenter, SphylRotation, CurSphyl.Radius, CurSphyl.Length))
 					continue;
 
@@ -509,9 +522,9 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 				// Connect the capsule node to the merge node.
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 					FHoudiniEngine::Get().GetSession(),
-					NewNodeId, NextMergeIndex, SphylNodeId, 0), false);
+					CollisionMergeNodeId, NextCollisionMergeIndex, SphylNodeId, 0), false);
 
-				NextMergeIndex++;
+				NextCollisionMergeIndex++;
 			}
 
 			// TODO!! Insert bone transform here!!
@@ -520,7 +533,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 			{
 				HAPI_NodeId ConvexNodeId = -1;
 				if (!CreateInputNodeForConvex(
-					ConvexNodeId, InputObjectNodeId, NextMergeIndex, CurConvex))
+					ConvexNodeId, InputObjectNodeId, NextCollisionMergeIndex, CurConvex))
 					continue;
 
 				if (ConvexNodeId < 0)
@@ -529,9 +542,9 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 				// Connect the capsule node to the merge node.
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 					FHoudiniEngine::Get().GetSession(),
-					NewNodeId, NextMergeIndex, ConvexNodeId, 0), false);
+					CollisionMergeNodeId, NextCollisionMergeIndex, ConvexNodeId, 0), false);
 
-				NextMergeIndex++;
+				NextCollisionMergeIndex++;
 			}
 
 			// Create a new primitive attribute where each value contains the Physical Material name in Unreal.
@@ -556,8 +569,12 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 				// as is this the final output of the chain.
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 					FHoudiniEngine::Get().GetSession(),
-					AttribWrangleNodeId, 0, NewNodeId, 0), false);
-				NewNodeId = AttribWrangleNodeId;
+					AttribWrangleNodeId, 0, CollisionMergeNodeId, 0), false);
+				CollisionMergeNodeId = AttribWrangleNodeId; 
+
+				// Set the wrangle's class to primitives
+				HOUDINI_CHECK_ERROR_RETURN(
+					FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId, "class", 0, 1), false);
 
 				// Construct a VEXpression to set create and set a Physical Material Attribute.
 				// eg. s@unreal_physical_material = 'MyPath/PhysicalMaterial';
@@ -581,6 +598,12 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 						*FHoudiniEngineUtils::GetErrorDescription());
 				}
 			}
+
+			// Connect our collision merge node (or the phys mat attrib wrangle) to the main merge node
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+				FHoudiniEngine::Get().GetSession(),
+				NewNodeId, NextMergeIndex, CollisionMergeNodeId, 0), false);
+			NextMergeIndex++;
 		}
 	}
 
@@ -619,9 +642,11 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 bool
 FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(
 	USkeletalMesh* SkeletalMesh,
+	USkeletalMeshComponent* SkeletalMeshComponent,
 	HAPI_NodeId& NewNodeId,
 	int32 LODIndex,
-	const bool& bAddLODGroups)
+	const bool& bAddLODGroups,
+	const bool bInExportMaterialParametersAsAttributes)
 {
 	if (!IsValid(SkeletalMesh))
 		return false;
@@ -965,47 +990,61 @@ FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(
 	}
 
     // 
-    // List of materials, one for each face.
+    // Build a triangle material indices array: material index per triangle
 	//
-	TArray<FString> TriangleMaterials;
-    if (MaterialInterfaces.Num()>0)
-    {
-		for (int32 SectionIndex = 0; SectionIndex < SectionCount; SectionIndex++)
+	TArray<int32> TriangleMaterialIndices;
+	TriangleMaterialIndices.Reserve(TotalTriangleCount);
+	for (int32 SectionIndex = 0; SectionIndex < SectionCount; ++SectionIndex)
+	{
+		const int32 MaterialIndex = SourceModel.Sections[SectionIndex].MaterialIndex;
+		const int32 NumSectionTriangles = SourceModel.Sections[SectionIndex].NumTriangles;
+		for (int32 SectionTriangleIndex = 0; SectionTriangleIndex < NumSectionTriangles; ++SectionTriangleIndex)
 		{
-			int32 MaterialIndex = SourceModel.Sections[SectionIndex].MaterialIndex;
-			for (uint32 i = 0; i < SourceModel.Sections[SectionIndex].NumTriangles; i++)
-			{
-				if (MaterialInterfaces.IsValidIndex(MaterialIndex))
-				{
-					TriangleMaterials.Add(MaterialInterfaces[MaterialIndex]->GetPathName());
-				}
-				else
-				{
-					HOUDINI_LOG_WARNING(TEXT("Invalid Material Index"));
-				}
-			}
+			TriangleMaterialIndices.Add(MaterialIndex);
 		}
-    }
+	}
+	
+	// List of materials, one for each face.
+	FHoudiniEngineIndexedStringMap StaticMeshFaceMaterials;
 
-    HAPI_AttributeInfo AttributeInfoMaterial;
-    FHoudiniApi::AttributeInfo_Init(&AttributeInfoMaterial);
-    AttributeInfoMaterial.tupleSize = 1;
-    AttributeInfoMaterial.count = TriangleMaterials.Num();
-    AttributeInfoMaterial.exists = true;
-    AttributeInfoMaterial.owner = HAPI_ATTROWNER_PRIM;
-    AttributeInfoMaterial.storage = HAPI_STORAGETYPE_STRING;
-    AttributeInfoMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
+	//Lists of material parameters
+	TMap<FString, TArray<float>> ScalarMaterialParameters;
+	TMap<FString, TArray<float>> VectorMaterialParameters;
+    TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
 
-    // Create the new attribute
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		FHoudiniEngine::Get().GetSession(),
-		NewNodeId, 0, HAPI_UNREAL_ATTRIB_MATERIAL, &AttributeInfoMaterial), false);
+	bool bAttributeSuccess = false;
+	FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(
+		SkeletalMeshComponent, const_cast<USkeletalMesh const*>(SkeletalMesh)->GetBodySetup());
+	if (bInExportMaterialParametersAsAttributes)
+	{
+		// Create attributes for the material and all its parameters
+		// Get material attribute data, and all material parameters data
+		FUnrealMeshTranslator::CreateFaceMaterialArray(
+			MaterialInterfaces, TriangleMaterialIndices, StaticMeshFaceMaterials,
+			ScalarMaterialParameters, VectorMaterialParameters, TextureMaterialParameters);
+	}
+	else
+	{
+		// Create attributes only for the materials
+		// Only get the material attribute data
+		FUnrealMeshTranslator::CreateFaceMaterialArray(
+			MaterialInterfaces, TriangleMaterialIndices, StaticMeshFaceMaterials);
+	}
 
-    // The New attribute has been successfully created, set its value
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
-		TriangleMaterials, NewNodeId, 0, HAPI_UNREAL_ATTRIB_MATERIAL, AttributeInfoMaterial), false);
+	// Create all the needed attributes for materials
+	bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
+		NewNodeId,
+		0,
+		TriangleMaterialIndices.Num(),
+		StaticMeshFaceMaterials,
+		ScalarMaterialParameters,
+		VectorMaterialParameters,
+		TextureMaterialParameters,
+		PhysicalMaterialPath);
 
-
+	if (!bAttributeSuccess)
+		return false;
+	
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// Capt_Names
 	// Bone Names
@@ -1760,135 +1799,148 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	{
 		FKAggregateGeom SimpleColliders = StaticMesh->GetBodySetup()->AggGeom;
 
-		// Export BOX colliders
-		for (auto& CurBox : SimpleColliders.BoxElems)
+		// If there are no simple colliders to create then skip this bodysetup
+		if (SimpleColliders.BoxElems.Num() + SimpleColliders.SphereElems.Num() + SimpleColliders.SphylElems.Num()
+				+ SimpleColliders.ConvexElems.Num() > 0)
 		{
-			FVector BoxCenter = CurBox.Center;
-			FVector BoxExtent = FVector(CurBox.X, CurBox.Y, CurBox.Z);
-			FRotator BoxRotation = CurBox.Rotation;
-
-			HAPI_NodeId BoxNodeId = -1;
-			if (!CreateInputNodeForBox(
-				BoxNodeId, InputObjectNodeId, NextMergeIndex,
-				BoxCenter, BoxExtent, BoxRotation))
-				continue;
-
-			if (BoxNodeId < 0)
-				continue;
-
-			// Connect the Box node to the merge node.
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-				FHoudiniEngine::Get().GetSession(),
-				NewNodeId, NextMergeIndex, BoxNodeId, 0), false);
-
-			NextMergeIndex++;
-		}
-
-		// Export SPHERE colliders
-		for (auto& CurSphere : SimpleColliders.SphereElems)
-		{
-			HAPI_NodeId SphereNodeId = -1;
-			if (!CreateInputNodeForSphere(
-				SphereNodeId, InputObjectNodeId, NextMergeIndex,
-				CurSphere.Center, CurSphere.Radius))
-				continue;
-
-			if (SphereNodeId < 0)
-				continue;
-
-			// Connect the Sphere node to the merge node.
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-				FHoudiniEngine::Get().GetSession(),
-				NewNodeId, NextMergeIndex, SphereNodeId, 0), false);
-
-			NextMergeIndex++;
-		}
-
-		// Export CAPSULE colliders
-		for (auto& CurSphyl : SimpleColliders.SphylElems)
-		{
-			HAPI_NodeId SphylNodeId = -1;
-			if (!CreateInputNodeForSphyl(
-				SphylNodeId, InputObjectNodeId, NextMergeIndex,
-				CurSphyl.Center, CurSphyl.Rotation, CurSphyl.Radius, CurSphyl.Length))
-				continue;
-
-			if (SphylNodeId < 0)
-				continue;
-
-			// Connect the capsule node to the merge node.
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-				FHoudiniEngine::Get().GetSession(),
-				NewNodeId, NextMergeIndex, SphylNodeId, 0), false);
-
-			NextMergeIndex++;
-		}
-
-		// Export CONVEX colliders
-		for (auto& CurConvex : SimpleColliders.ConvexElems)
-		{
-			HAPI_NodeId ConvexNodeId = -1;
-			if (!CreateInputNodeForConvex(
-				ConvexNodeId, InputObjectNodeId, NextMergeIndex, CurConvex))
-				continue;
-
-			if (ConvexNodeId < 0)
-				continue;
-
-			// Connect the capsule node to the merge node.
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-				FHoudiniEngine::Get().GetSession(),
-				NewNodeId, NextMergeIndex, ConvexNodeId, 0), false);
-
-			NextMergeIndex++;
-		}
-
-		// Create a new primitive attribute where each value contains the Physical Material
-		// mae in Unreal.
-		UPhysicalMaterial* PhysicalMaterial = StaticMesh->GetBodySetup()->PhysMaterial;
-		if (PhysicalMaterial)
-		{
-			// Create a new Attribute Wrangler node which will be used to create the new attributes.
-			HAPI_NodeId AttribWrangleNodeId;
-			if (FHoudiniEngineUtils::CreateNode(
-			    InputObjectNodeId, TEXT("attribwrangle"), 
-			    TEXT("physical_material"), 
-			    true, &AttribWrangleNodeId) != HAPI_RESULT_SUCCESS)
+			// Export BOX colliders
+			for (auto& CurBox : SimpleColliders.BoxElems)
 			{
-			    // Failed to create the node.
-			    HOUDINI_LOG_WARNING(
-					TEXT("Failed to create Physical Material attribute for mesh: %s"),
-					*FHoudiniEngineUtils::GetErrorDescription());
-			    return false;
+				FVector BoxCenter = CurBox.Center;
+				FVector BoxExtent = FVector(CurBox.X, CurBox.Y, CurBox.Z);
+				FRotator BoxRotation = CurBox.Rotation;
+
+				HAPI_NodeId BoxNodeId = -1;
+				if (!CreateInputNodeForBox(
+					BoxNodeId, InputObjectNodeId, NextMergeIndex,
+					BoxCenter, BoxExtent, BoxRotation))
+					continue;
+
+				if (BoxNodeId < 0)
+					continue;
+
+				// Connect the Box node to the merge node.
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+					FHoudiniEngine::Get().GetSession(),
+					NewNodeId, NextMergeIndex, BoxNodeId, 0), false);
+
+				NextMergeIndex++;
 			}
 
-			// Connect the new node to the previous node. Set NewNodeId to the attrib node
-			// as is this the final output of the chain.
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-			    FHoudiniEngine::Get().GetSession(),
-			    AttribWrangleNodeId, 0, NewNodeId, 0), false);
-			NewNodeId = AttribWrangleNodeId;
-
-			// Construct a VEXpression to set create and set a Physical Material Attribute.
-			// eg. s@unreal_physical_material = 'MyPath/PhysicalMaterial';
-			const FString FormatString = TEXT("s@{0} = '{1}';");
-			FString PathName = PhysicalMaterial->GetPathName();
-			FString AttrName = TEXT(HAPI_UNREAL_ATTRIB_SIMPLE_PHYSICAL_MATERIAL);
-			std::string VEXpression = TCHAR_TO_UTF8(*FString::Format(*FormatString, 
-			    { AttrName, PathName }));
-
-			// Set the snippet parameter to the VEXpression.
-			HAPI_ParmInfo ParmInfo;
-			HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(AttribWrangleNodeId, "snippet", ParmInfo);
-			if (ParmId != -1)
+			// Export SPHERE colliders
+			for (auto& CurSphere : SimpleColliders.SphereElems)
 			{
-			    FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId,
-					VEXpression.c_str(), ParmId, 0);
+				HAPI_NodeId SphereNodeId = -1;
+				if (!CreateInputNodeForSphere(
+					SphereNodeId, InputObjectNodeId, NextMergeIndex,
+					CurSphere.Center, CurSphere.Radius))
+					continue;
+
+				if (SphereNodeId < 0)
+					continue;
+
+				// Connect the Sphere node to the merge node.
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+					FHoudiniEngine::Get().GetSession(),
+					NewNodeId, NextMergeIndex, SphereNodeId, 0), false);
+
+				NextMergeIndex++;
 			}
-			else
+
+			// Export CAPSULE colliders
+			for (auto& CurSphyl : SimpleColliders.SphylElems)
 			{
-			    HOUDINI_LOG_WARNING(TEXT("Invalid Parameter: %s"),
-					*FHoudiniEngineUtils::GetErrorDescription());
+				HAPI_NodeId SphylNodeId = -1;
+				if (!CreateInputNodeForSphyl(
+					SphylNodeId, InputObjectNodeId, NextMergeIndex,
+					CurSphyl.Center, CurSphyl.Rotation, CurSphyl.Radius, CurSphyl.Length))
+					continue;
+
+				if (SphylNodeId < 0)
+					continue;
+
+				// Connect the capsule node to the merge node.
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+					FHoudiniEngine::Get().GetSession(),
+					NewNodeId, NextMergeIndex, SphylNodeId, 0), false);
+
+				NextMergeIndex++;
+			}
+
+			// Export CONVEX colliders
+			for (auto& CurConvex : SimpleColliders.ConvexElems)
+			{
+				HAPI_NodeId ConvexNodeId = -1;
+				if (!CreateInputNodeForConvex(
+					ConvexNodeId, InputObjectNodeId, NextMergeIndex, CurConvex))
+					continue;
+
+				if (ConvexNodeId < 0)
+					continue;
+
+				// Connect the capsule node to the merge node.
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+					FHoudiniEngine::Get().GetSession(),
+					NewNodeId, NextMergeIndex, ConvexNodeId, 0), false);
+
+				NextMergeIndex++;
+			}
+
+			// Create a new primitive attribute where each value contains the Physical Material
+			// mae in Unreal.
+			UPhysicalMaterial* PhysicalMaterial = StaticMesh->GetBodySetup()->PhysMaterial;
+			if (PhysicalMaterial)
+			{
+				// Create a new Attribute Wrangler node which will be used to create the new attributes.
+				HAPI_NodeId AttribWrangleNodeId;
+				if (FHoudiniEngineUtils::CreateNode(
+					InputObjectNodeId, TEXT("attribwrangle"), 
+					TEXT("physical_material"), 
+					true, &AttribWrangleNodeId) != HAPI_RESULT_SUCCESS)
+				{
+					// Failed to create the node.
+					HOUDINI_LOG_WARNING(
+						TEXT("Failed to create Physical Material attribute for mesh: %s"),
+						*FHoudiniEngineUtils::GetErrorDescription());
+					return false;
+				}
+
+				// Connect the new node to the previous node. Set NewNodeId to the attrib node
+				// as is this the final output of the chain.
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+					FHoudiniEngine::Get().GetSession(),
+					AttribWrangleNodeId, 0, NewNodeId, 0), false);
+				NewNodeId = AttribWrangleNodeId;
+
+				// Set the wrangle's display flag
+				HOUDINI_CHECK_ERROR_RETURN(
+					FHoudiniApi::SetNodeDisplay(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId, true), false);
+
+				// Set the wrangle's class to primitives
+				HOUDINI_CHECK_ERROR_RETURN(
+					FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId, "class", 0, 1), false);
+
+				// Construct a VEXpression to set create and set a Physical Material Attribute.
+				// eg. s@unreal_physical_material = 'MyPath/PhysicalMaterial';
+				const FString FormatString = TEXT("s@{0} = '{1}';");
+				FString PathName = PhysicalMaterial->GetPathName();
+				FString AttrName = TEXT(HAPI_UNREAL_ATTRIB_SIMPLE_PHYSICAL_MATERIAL);
+				std::string VEXpression = TCHAR_TO_UTF8(*FString::Format(*FormatString, 
+					{ AttrName, PathName }));
+
+				// Set the snippet parameter to the VEXpression.
+				HAPI_ParmInfo ParmInfo;
+				HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(AttribWrangleNodeId, "snippet", ParmInfo);
+				if (ParmId != -1)
+				{
+					FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId,
+						VEXpression.c_str(), ParmId, 0);
+				}
+				else
+				{
+					HOUDINI_LOG_WARNING(TEXT("Invalid Parameter: %s"),
+						*FHoudiniEngineUtils::GetErrorDescription());
+				}
 			}
 		}
 	}
@@ -2995,7 +3047,7 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
         TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
 
 		bool bAttributeSuccess = false;
-		FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh);
+		FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh->GetBodySetup());
 		if (bInExportMaterialParametersAsAttributes)
 		{
 			// Create attributes for the material and all its parameters
@@ -3796,7 +3848,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
             TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
 
 			bool bAttributeSuccess = false;
-			FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh);
+			FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh->GetBodySetup());
 			if (bInExportMaterialParametersAsAttributes)
 			{
 				// Create attributes for the material and all its parameters
@@ -4046,23 +4098,24 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 }
 
 
-FString FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(UStaticMeshComponent* StaticMeshComponent, UStaticMesh* StaticMesh)
+FString
+FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(UMeshComponent* MeshComponent, UBodySetup* BodySetup)
 {
 	// If the ref counted input system is used, don't get the override from the component, this will be handled at the
 	// component level by the input system.
 	const bool bIsUsingRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
-	if (!bIsUsingRefCountedInputSystem && StaticMeshComponent && StaticMeshComponent->GetBodyInstance())
+	if (!bIsUsingRefCountedInputSystem && MeshComponent && MeshComponent->GetBodyInstance())
 	{
-		UPhysicalMaterial* PhysicalMaterial = StaticMeshComponent->GetBodyInstance()->GetSimplePhysicalMaterial();
+		UPhysicalMaterial* PhysicalMaterial = MeshComponent->GetBodyInstance()->GetSimplePhysicalMaterial();
 		if (PhysicalMaterial != nullptr && PhysicalMaterial != GEngine->DefaultPhysMaterial)
 		{
 			return PhysicalMaterial->GetPathName();
 		}
 	}
 
-	if (StaticMesh->GetBodySetup() && StaticMesh->GetBodySetup()->PhysMaterial)
+	if (IsValid(BodySetup) && IsValid(BodySetup->PhysMaterial))
 	{
-		FString Path = StaticMesh->GetBodySetup()->PhysMaterial->GetPathName();
+		FString Path = BodySetup->PhysMaterial->GetPathName();
 		if (Path != "None")
 			return Path;
 	}
@@ -4112,7 +4165,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		return false;
 	}
 
-	FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh);
+	FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh->GetBodySetup());
 
 	// Determine which attributes we have
 	const bool bIsVertexPositionsValid = VertexPositions.IsValid();

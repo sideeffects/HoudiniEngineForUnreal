@@ -189,7 +189,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bImportAsReferenceRotScaleEnabled,
 		const bool& bImportAsReferenceBboxEnabled,
 		const bool& bImportAsReferenceMaterialEnabled,
-		const bool& bInputNodesCanBeDeleted = true);
+		const bool& bInputNodesCanBeDeleted = true,
+		const bool bExportMaterialParameters = false);
 
 	static bool HapiCreateInputNodeForSkeletalMeshComponent(
 		const FString& InObjNodeName,
@@ -203,7 +204,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const bool& bImportAsReferenceBboxEnabled,
 		const bool& bImportAsReferenceMaterialEnabled,
 		const FTransform& InActorTransform = FTransform::Identity,
-		const bool& bInputNodesCanBeDeleted = true);
+		const bool& bInputNodesCanBeDeleted = true,
+		const bool bExportMaterialParameters = false);
 
 	static bool HapiCreateInputNodeForGeometryCollection(
 		const FString& InObjNodeName,

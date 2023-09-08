@@ -27,11 +27,15 @@
 #pragma once
 
 #include "HAPI/HAPI_Common.h"
+#include "HoudiniEngineRuntimeUtils.h"
 
 #include "CoreMinimal.h"
+#include "Components/MeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Engine/EngineTypes.h"
 #include "Misc/Optional.h"
 #include "UObject/ObjectMacros.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 class UStaticMesh;
 class UStaticMeshComponent;
@@ -78,14 +82,17 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			const bool& ExportSockets = false,
 			const bool& ExportColliders = false,
 			const bool& ExportMainMesh  = true,
-			const bool& bInputNodesCanBeDeleted = true);
+			const bool& bInputNodesCanBeDeleted = true,
+			const bool& bExportMaterialParameters = false);
 
 		// Actually exports the skeletal mesh data (mesh, skeleton ... ) to the newly created input node - returns true on success
 		static bool SetSkeletalMeshDataOnNode(
 			USkeletalMesh* SkeletalMesh,
+			USkeletalMeshComponent* SkeletalMeshComponent,
 			HAPI_NodeId& NewNodeId,
 			int32 LODIndex,
-			const bool& bAddLODGroup);
+			const bool& bAddLODGroup,
+			const bool bInExportMaterialParametersAsAttributes);
 
 		// Convert the Mesh using FStaticMeshLODResources
 		static bool CreateInputNodeForStaticMeshLODResources(
@@ -199,8 +206,8 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 		    const TOptional<FString> PhysicalMaterial = TOptional<FString>());
 
 	private:
-	    // Gets the simple physical Material path for the static mesh component overrides or,
-	    // if not set, from the static mesh. 
-	    static FString GetSimplePhysicalMaterialPath(UStaticMeshComponent* StaticMeshComponent, UStaticMesh* StaticMesh);
+	    // Gets the simple physical Material path for the mesh component overrides or,
+	    // if not set, from the body setup
+	    static FString GetSimplePhysicalMaterialPath(UMeshComponent* MeshComponent, UBodySetup* BodySetup);
 
 };
