@@ -39,7 +39,7 @@
 #include "MeshMergeModule.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-	#include "Private/MeshMergeHelpers.h"
+	#include "MeshMergeHelpers.h"
 #else
 	#include "MeshMergeUtilities/Private/MeshMergeHelpers.h"
 #endif

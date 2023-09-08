@@ -26,7 +26,6 @@
 
 #include "SHoudiniPresets.h"
 
-#include "AssetViewUtils.h"
 #include "HoudiniAsset.h"
 #include "HoudiniParameter.h"
 #include "HoudiniParameterColor.h"
@@ -38,15 +37,22 @@
 #include "HoudiniPreset.h"
 #include "HoudiniPresetFactory.h"
 #include "HoudiniToolsEditor.h"
+
+#include "AssetViewUtils.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Interfaces/IMainFrameModule.h"
 #include "PropertyCustomizationHelpers.h"
 #include "SWarningOrErrorBox.h"
-#include "Interfaces/IMainFrameModule.h"
 #include "ThumbnailRendering/ThumbnailManager.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Layout/SGridPanel.h"
 #include "Widgets/Layout/SScrollBox.h"
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "UnrealClient.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "HoudiniPresets"
 
