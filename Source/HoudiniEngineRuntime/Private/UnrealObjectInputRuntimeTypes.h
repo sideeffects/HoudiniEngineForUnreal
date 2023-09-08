@@ -699,7 +699,7 @@ FUnrealObjectInputReferenceNode::AddReferencedNode(const FUnrealObjectInputHandl
 template <class T, class... Args>
 T* FUnrealObjectInputNode::CreateAndAddModifier(const FName InChainName, Args... ConstructorArguments)
 {
-	static_assert(std::is_base_of_v<FUnrealObjectInputModifier, T>, "T must derive from FUnrealObjectInputModifier");
+	static_assert(std::is_base_of<FUnrealObjectInputModifier, T>::value, "T must derive from FUnrealObjectInputModifier");
 
 	FUnrealObjectInputModifierChain* const Chain = ModifierChains.Find(InChainName);
 	if (!Chain)
@@ -718,7 +718,7 @@ T* FUnrealObjectInputNode::CreateAndAddModifier(const FName InChainName, Args...
 template <class T>
 T* FUnrealObjectInputNode::FindFirstModifierByClass(const FName InChainName) const
 {
-	static_assert(std::is_base_of_v<FUnrealObjectInputModifier, T>, "T must derive from FUnrealObjectInputModifier");
+	static_assert(std::is_base_of<FUnrealObjectInputModifier, T>::value, "T must derive from FUnrealObjectInputModifier");
 	FUnrealObjectInputModifier* Modifier = FindFirstModifierOfType(InChainName, T::StaticGetType());
 	if (!Modifier)
 		return nullptr;
@@ -728,7 +728,7 @@ T* FUnrealObjectInputNode::FindFirstModifierByClass(const FName InChainName) con
 template <class T>
 bool FUnrealObjectInputNode::GetAllModifiersByClass(const FName InChainName, TArray<T*>& OutModifiers) const
 {
-	static_assert(std::is_base_of_v<FUnrealObjectInputModifier, T>, "T must derive from FUnrealObjectInputModifier");
+	static_assert(std::is_base_of<FUnrealObjectInputModifier, T>::value, "T must derive from FUnrealObjectInputModifier");
 
 	FUnrealObjectInputModifierChain const* const Chain = ModifierChains.Find(InChainName);
 	if (!Chain)
