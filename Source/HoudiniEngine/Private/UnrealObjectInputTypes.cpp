@@ -79,16 +79,21 @@ FUnrealObjectInputMaterialOverrides::UpdateAsPrimWrangle(const int32 InNodeIdToC
 	if (MaterialOverridesNodeId < 0)
 		return false;
 
+	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
+	
 	// Connect our input to InNodeIdToConnectTo's output
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-		FHoudiniEngine::Get().GetSession(),
+		Session,
 		MaterialOverridesNodeId, 0, InNodeIdToConnectTo, 0), false);
 
-	// Set group to exclude applying the material overrides to collision geo and sockets
+	// Set group to exclude applying the material overrides to collision geo
 	HAPI_ParmInfo GroupParmInfo;
 	HAPI_ParmId GroupParmId = FHoudiniEngineUtils::HapiFindParameterByName(MaterialOverridesNodeId, "group", GroupParmInfo);
 	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), MaterialOverridesNodeId, "* ^collision_* ^socket_imported", GroupParmId, 0), false);
+		FHoudiniApi::SetParmStringValue(Session, MaterialOverridesNodeId, "* ^collision_*", GroupParmId, 0), false);
+	// Set grouptype to primitive
+	HOUDINI_CHECK_ERROR_RETURN(
+		FHoudiniApi::SetParmIntValue(Session, MaterialOverridesNodeId, "grouptype", 0, 4), false);
 
 	// Construct a VEXpression to set create and set material override attributes.
 	// eg. s@unreal_material1 = 'MyPath/MyMaterial';
@@ -139,14 +144,14 @@ s@unreal_material = "[" + itoa(material_slot) + "]" + material_overrides[materia
 
 	// Set the wrangle's class to primitives
 	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), MaterialOverridesNodeId, "class", 0, 1), false);
+		FHoudiniApi::SetParmIntValue(Session, MaterialOverridesNodeId, "class", 0, 1), false);
 
 	// Set the snippet parameter to the VEXpression.
 	HAPI_ParmInfo ParmInfo;
 	HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(MaterialOverridesNodeId, "snippet", ParmInfo);
 	if (ParmId != -1)
 	{
-		FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), MaterialOverridesNodeId,
+		FHoudiniApi::SetParmStringValue(Session, MaterialOverridesNodeId,
 			TCHAR_TO_UTF8(*VEXpression), ParmId, 0);
 	}
 	else
@@ -182,16 +187,12 @@ FUnrealObjectInputMaterialOverrides::UpdateAsPointAttribCreate(int32 InNodeIdToC
 	if (MaterialOverridesNodeId < 0)
 		return false;
 
+	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
+	
 	// Connect our input to InNodeIdToConnectTo's output
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-		FHoudiniEngine::Get().GetSession(),
+		Session,
 		MaterialOverridesNodeId, 0, InNodeIdToConnectTo, 0), false);
-
-	// Set group to exclude applying the material overrides to collision geo and sockets
-	HAPI_ParmInfo GroupParmInfo;
-	HAPI_ParmId GroupParmId = FHoudiniEngineUtils::HapiFindParameterByName(MaterialOverridesNodeId, "group", GroupParmInfo);
-	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), MaterialOverridesNodeId, "* ^collision_* ^socket_imported", GroupParmId, 0), false);
 
 	// Get the default material for in case we encounter invalid materials
 	UMaterialInterface const* const DefaultMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
@@ -199,7 +200,7 @@ FUnrealObjectInputMaterialOverrides::UpdateAsPointAttribCreate(int32 InNodeIdToC
 
 	const int32 NumMaterials = MeshComponent->GetNumMaterials();
 	FHoudiniApi::SetParmIntValue(
-		FHoudiniEngine::Get().GetSession(), MaterialOverridesNodeId, "numattr", 0, NumMaterials);
+		Session, MaterialOverridesNodeId, "numattr", 0, NumMaterials);
 	HAPI_ParmInfo ParmInfo;
 	HAPI_PartId ParmId;
 
@@ -216,16 +217,16 @@ FUnrealObjectInputMaterialOverrides::UpdateAsPointAttribCreate(int32 InNodeIdToC
 		// parm name is one indexed
 		ParmId = FHoudiniEngineUtils::HapiFindParameterByName(MaterialOverridesNodeId, TCHAR_TO_ANSI(*FString::Printf(TEXT("name%d"), MatNum)), ParmInfo);
 		HOUDINI_CHECK_ERROR_RETURN(
-			FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), MaterialOverridesNodeId, TCHAR_TO_ANSI(*MatName), ParmId, 0), false);
+			FHoudiniApi::SetParmStringValue(Session, MaterialOverridesNodeId, TCHAR_TO_ANSI(*MatName), ParmId, 0), false);
 	
 		// set attribute type to string (index 3)
 		HOUDINI_CHECK_ERROR_RETURN(
-			FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), MaterialOverridesNodeId, TCHAR_TO_ANSI(*FString::Printf(TEXT("type%d"), MatNum)), 0, 3), false);
+			FHoudiniApi::SetParmIntValue(Session, MaterialOverridesNodeId, TCHAR_TO_ANSI(*FString::Printf(TEXT("type%d"), MatNum)), 0, 3), false);
 	
 		// set value to path of material
 		ParmId = FHoudiniEngineUtils::HapiFindParameterByName(MaterialOverridesNodeId, TCHAR_TO_ANSI(*FString::Printf(TEXT("string%d"), MatNum)), ParmInfo);
 		HOUDINI_CHECK_ERROR_RETURN(
-			FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), MaterialOverridesNodeId, TCHAR_TO_ANSI(*MaterialPathName), ParmId, 0), false);
+			FHoudiniApi::SetParmStringValue(Session, MaterialOverridesNodeId, TCHAR_TO_ANSI(*MaterialPathName), ParmId, 0), false);
 	}
 
 	return true;
@@ -335,13 +336,14 @@ FUnrealObjectInputPhysicalMaterialOverride::Update(int32 InNodeIdToConnectTo)
 	if (PhysMatOverrideNodeId < 0)
 		return false;
 
+	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
+	
 	// Connect our input to InNodeIdToConnectTo's output
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-		FHoudiniEngine::Get().GetSession(),
-		PhysMatOverrideNodeId, 0, InNodeIdToConnectTo, 0), false);
+		Session, PhysMatOverrideNodeId, 0, InNodeIdToConnectTo, 0), false);
 
 	// Set the number of attributes: 1
-	FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), PhysMatOverrideNodeId, "numattr", 0, 1);
+	FHoudiniApi::SetParmIntValue(Session, PhysMatOverrideNodeId, "numattr", 0, 1);
 
 	// Get the attribute class
 	int AttrClass = 1;
@@ -364,66 +366,41 @@ FUnrealObjectInputPhysicalMaterialOverride::Update(int32 InNodeIdToConnectTo)
 			return false;
 	}
 	
-	// We don't have C++ API access to the override property. We have to get it via the property system.
-	// We can't just call GetSimplePhysicalMaterial() since that has fallback checks if the override is not set and
-	// will at least return GEngine->DefaultPhysMaterial, so it does not answer the question of "is there a component
-	// level override?"
 	UPhysicalMaterial const* PhysMat = nullptr;
-	// We cannot use GET_MEMBER_NAME_CHECKED() since the property is protected
-	const FName OverridePropertyName(TEXT("PhysMaterialOverride"));
-	FObjectProperty const* const PhysMatOverrideProperty = FindFProperty<FObjectProperty>(FBodyInstance::StaticStruct(), OverridePropertyName);
-	ensureMsgf(PhysMatOverrideProperty != nullptr, TEXT("Could not find '%s' property on FBodyInstance, has it been removed/deprecated?"), *OverridePropertyName.ToString());
-	if (PhysMatOverrideProperty)
-	{
-		UObject const* const PhysMatObject = PhysMatOverrideProperty->GetObjectPropertyValue_InContainer(&PrimitiveComponent->BodyInstance);
-		// If the override is set to a valid UPhysicalMaterial then fetch the effective simple physical material from
-		// component's body instance
-		if (IsValid(PhysMatObject) && PhysMatObject->IsA<UPhysicalMaterial>())
-			PhysMat = PrimitiveComponent->BodyInstance.GetSimplePhysicalMaterial();
-	}
-	else
-	{
-		HOUDINI_LOG_WARNING(TEXT("Could not find physical material override: could not find property '%s' on FBodyInstance."), *OverridePropertyName.ToString());
-	}
+	PhysMat = PrimitiveComponent->BodyInstance.GetSimplePhysicalMaterial();
 	
 	// If the material is invalid then the path is empty string and we disable the attribute on the node
 	FString MaterialPath("");
 	bool bEnable = false;
-	if (IsValid(PhysMat))
+	if (IsValid(PhysMat) && PhysMat != GEngine->DefaultPhysMaterial)
 	{
 		// If the material is valid get its path
 		MaterialPath = PhysMat->GetPathName();
 		bEnable = true;
 	}
 
-	// Set group to exclude applying the physical material override to sockets (only really applicable when AttrClass is points)
-	HAPI_ParmInfo GroupParmInfo;
-	HAPI_ParmId GroupParmId = FHoudiniEngineUtils::HapiFindParameterByName(PhysMatOverrideNodeId, "group", GroupParmInfo);
-	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), PhysMatOverrideNodeId, "* ^socket_imported", GroupParmId, 0), false);
-
 	// Set enable
 	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), PhysMatOverrideNodeId, "enable1", 0, bEnable), false);
+		FHoudiniApi::SetParmIntValue(Session, PhysMatOverrideNodeId, "enable1", 0, bEnable), false);
 
 	// Set attribute class
 	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), PhysMatOverrideNodeId, "class1", 0, AttrClass), false);
+		FHoudiniApi::SetParmIntValue(Session, PhysMatOverrideNodeId, "class1", 0, AttrClass), false);
 
 	// Set the attribcreate attribute name
 	HAPI_ParmInfo ParmInfo;
 	HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(PhysMatOverrideNodeId, "name1", ParmInfo);
 	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), PhysMatOverrideNodeId, HAPI_UNREAL_ATTRIB_SIMPLE_PHYSICAL_MATERIAL, ParmId, 0), false);
+		FHoudiniApi::SetParmStringValue(Session, PhysMatOverrideNodeId, HAPI_UNREAL_ATTRIB_SIMPLE_PHYSICAL_MATERIAL, ParmId, 0), false);
 
 	// set attribute type to string (index 3)
 	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), PhysMatOverrideNodeId, "type1", 0, 3), false);
+		FHoudiniApi::SetParmIntValue(Session, PhysMatOverrideNodeId, "type1", 0, 3), false);
 
 	// set value to path of material
 	ParmId = FHoudiniEngineUtils::HapiFindParameterByName(PhysMatOverrideNodeId, "string1", ParmInfo);
 	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), PhysMatOverrideNodeId, TCHAR_TO_ANSI(*MaterialPath), ParmId, 0), false);
+		FHoudiniApi::SetParmStringValue(Session, PhysMatOverrideNodeId, TCHAR_TO_ANSI(*MaterialPath), ParmId, 0), false);
 
 	bNeedsRebuild = false;
 
@@ -474,10 +451,11 @@ FUnrealObjectInputActorAsReference::Update(int32 InNodeIdToConnectTo)
 	if (MaterialOverridesNodeId < 0)
 		return false;
 
+	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
+	
 	// Connect our input to InNodeIdToConnectTo's output
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-		FHoudiniEngine::Get().GetSession(),
-		MaterialOverridesNodeId, 0, InNodeIdToConnectTo, 0), false);
+		Session, MaterialOverridesNodeId, 0, InNodeIdToConnectTo, 0), false);
 
 	// Extract the level path from the level
 	FString LevelPath("");
@@ -501,15 +479,14 @@ s@{2} = "{3}";)";
 
 	// Set the wrangle's class to points
 	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), MaterialOverridesNodeId, "class", 0, 2), false);
+		FHoudiniApi::SetParmIntValue(Session, MaterialOverridesNodeId, "class", 0, 2), false);
 
 	// Set the snippet parameter to the VEXpression.
 	HAPI_ParmInfo ParmInfo;
 	HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(MaterialOverridesNodeId, "snippet", ParmInfo);
 	if (ParmId != -1)
 	{
-		FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), MaterialOverridesNodeId,
-			TCHAR_TO_UTF8(*VEXpression), ParmId, 0);
+		FHoudiniApi::SetParmStringValue(Session, MaterialOverridesNodeId, TCHAR_TO_UTF8(*VEXpression), ParmId, 0);
 	}
 	else
 	{
