@@ -418,14 +418,6 @@ public:
 	 * @return True if the chain exists.
 	 */
 	bool GetAllModifiersOfType(FName InChainName, EUnrealObjectInputModifierType InModifierType, TArray<FUnrealObjectInputModifier*>& OutModifiers) const;
-	
-	/**
-	 * Sets OutModifiers to contain all modifiers from the chain InChainName with class T to OutModifiers.
-	 * @tparam T The class of the modifiers to search for.
-	 * @return True if the chain exists.
-	 */
-	template <class T>
-	bool GetAllModifiersByClass(FName InChainName, TArray<T*>& OutModifiers) const;
 
 	/**
 	 * Remove the given modifier, InModifier, from chain InChainName and delete it. 
@@ -712,32 +704,4 @@ T* FUnrealObjectInputNode::FindFirstModifierByClass(const FName InChainName) con
 	if (!Modifier)
 		return nullptr;
 	return static_cast<T*>(Modifier);
-}
-
-template <class T>
-bool FUnrealObjectInputNode::GetAllModifiersByClass(const FName InChainName, TArray<T*>& OutModifiers) const
-{
-	static_assert(std::is_base_of<FUnrealObjectInputModifier, T>::value, "T must derive from FUnrealObjectInputModifier");
-
-	FUnrealObjectInputModifierChain const* const Chain = ModifierChains.Find(InChainName);
-	if (!Chain)
-		return false;
-	
-	const EUnrealObjectInputModifierType ModifierType = T::StaticGetType();
-	TArray<T*> FoundModifiers;
-	for (FUnrealObjectInputModifier const* const Modifier : Chain->Modifiers)
-	{
-		if (!Modifier)
-			continue;
-		if (Modifier->GetType() != ModifierType)
-			continue;
-		T* TypedModifier = Cast<T*>(Modifier);
-		FoundModifiers.Emplace(TypedModifier);
-	}
-
-	if (FoundModifiers.Num() <= 0)
-		return false;
-
-	OutModifiers = MoveTemp(FoundModifiers);
-	return true;
 }
