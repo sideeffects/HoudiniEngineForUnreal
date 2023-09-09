@@ -340,18 +340,19 @@ public class HoudiniEngine : ModuleRules
                     "SlateNullRenderer",
                     "EditorFramework",
                     "SubobjectEditor",
-                    "MeshMergeUtilities"
+                    "MeshMergeUtilities",
+                    "MeshUtilitiesCommon"
                 }
             );
         }
-        /*
+
         if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion >= 3)
         {
             PrivateIncludePaths.AddRange(new string[] {
                 System.IO.Path.Combine(GetModuleDirectory("MeshMergeUtilities"), "Private"),
             });
         }
-        */
+
         PrivateIncludePathModuleNames.AddRange(
             new string[]
             {
