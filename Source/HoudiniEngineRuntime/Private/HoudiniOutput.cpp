@@ -1097,3 +1097,23 @@ UHoudiniOutput::IsProxyCurrent(const FHoudiniOutputObjectIdentifier &InIdentifie
 
 	return FoundOutputObject->bProxyIsCurrent;
 }
+
+
+void FHoudiniClearedEditLayers::Empty()
+{
+	EditLayers.Empty();
+}
+
+
+bool FHoudiniClearedEditLayers::Contains(FString& EditLayer, FString& TargetLayer)
+{
+	return EditLayers.Contains(EditLayer) && EditLayers[EditLayer].TargetLayers.Contains(TargetLayer);
+}
+
+void FHoudiniClearedEditLayers::Add(FString& EditLayer, FString& TargetLayer)
+{
+	if (!EditLayers.Contains(EditLayer))
+		EditLayers.Add(EditLayer, {});
+
+	EditLayers[EditLayer].TargetLayers.Add(TargetLayer);
+};

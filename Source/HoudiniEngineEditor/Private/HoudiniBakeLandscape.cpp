@@ -72,7 +72,7 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 	bool bInReplaceAssets,
 	TArray<UPackage*>& OutPackagesToSave,
 	FHoudiniEngineOutputStats& BakeStats,
-	TSet<FString>& ClearedLayers)
+	FHoudiniClearedEditLayers& ClearedLayers)
 {
 	ALandscape* OutputLandscape = LayerOutput.Landscape;
 	ULandscapeInfo* TargetLandscapeInfo = OutputLandscape->GetLandscapeInfo();
@@ -105,9 +105,10 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 
 	bool bIsHeightFieldLayer = LayerOutput.TargetLayer == "height";
 
-	if (OutputLandscape->bHasLayersContent && LayerOutput.bClearLayer && !ClearedLayers.Contains(LayerOutput.BakedEditLayer))
+	if (OutputLandscape->bHasLayersContent && LayerOutput.bClearLayer && 
+		!ClearedLayers.Contains(LayerOutput.BakedEditLayer, LayerOutput.TargetLayer))
 	{
-		ClearedLayers.Add(LayerOutput.BakedEditLayer);
+		ClearedLayers.Add(LayerOutput.BakedEditLayer, LayerOutput.TargetLayer);
 		if (bIsHeightFieldLayer)
 		{
 			OutputLandscape->ClearLayer(BakedLayer->Guid, nullptr, ELandscapeClearMode::Clear_Heightmap);
@@ -190,7 +191,7 @@ FHoudiniLandscapeBake::BakeLandscape(
 	bool bInReplaceAssets,
 	const FDirectoryPath& BakePath,
 	FHoudiniEngineOutputStats& BakeStats,
-	TMap<ALandscape*, TSet<FString>> & ClearedLandscapeLayers,
+	TMap<ALandscape*, FHoudiniClearedEditLayers> & ClearedLandscapeLayers,
 	TArray<UPackage*>& OutPackagesToSave)
 {
 	// Check that index is not negative
@@ -260,7 +261,7 @@ FHoudiniLandscapeBake::BakeLandscape(
 			continue;
 		}
 
-		TSet<FString>& ClearedLayers = ClearedLandscapeLayers.FindOrAdd(LayerOutput->Landscape);
+		FHoudiniClearedEditLayers & ClearedLayers = ClearedLandscapeLayers.FindOrAdd(LayerOutput->Landscape);
 		FHoudiniLandscapeBake::BakeLandscapeLayer(PackageParams, *LayerOutput, bInReplaceActors, bInReplaceAssets, PackagesToSave, BakeStats, ClearedLayers);
 
 		LayerOutputs.Add(LayerOutput);
@@ -602,7 +603,7 @@ bool
 FHoudiniLandscapeBake::BakeLandscapeSplinesLayer(
 	FHoudiniPackageParams& PackageParams,
 	UHoudiniLandscapeSplineTargetLayerOutput& LayerOutput,
-	TSet<FString>& ClearedLayers,
+	FHoudiniClearedEditLayers& ClearedLayers,
 	TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& SegmentsToApplyToLayers)
 {
 	ALandscape* const OutputLandscape = LayerOutput.Landscape;
@@ -641,9 +642,10 @@ FHoudiniLandscapeBake::BakeLandscapeSplinesLayer(
 	// Clear the layer, but only once per bake.
 	//---------------------------------------------------------------------------------------------------------------------------
 
-	if (OutputLandscape->HasLayersContent() && LayerOutput.bClearLayer && !ClearedLayers.Contains(LayerOutput.BakedEditLayer))
+	if (OutputLandscape->HasLayersContent() && LayerOutput.bClearLayer && 
+		!ClearedLayers.Contains(LayerOutput.BakedEditLayer, LayerOutput.TargetLayer))
 	{
-		ClearedLayers.Add(LayerOutput.BakedEditLayer);
+		ClearedLayers.Add(LayerOutput.BakedEditLayer, LayerOutput.TargetLayer);
 		OutputLandscape->ClearLayer(BakedLayer->Guid, nullptr, ELandscapeClearMode::Clear_Heightmap);
 	}
 
@@ -678,7 +680,7 @@ bool FHoudiniLandscapeBake::BakeLandscapeSplines(
 	const bool bInReplaceAssets,
 	const FDirectoryPath& BakePath,
 	FHoudiniEngineOutputStats& BakeStats,
-	TMap<ALandscape*, TSet<FString>>& ClearedLandscapeEditLayers,
+	TMap<ALandscape*, FHoudiniClearedEditLayers>& ClearedLandscapeEditLayers,
 	TArray<UPackage*>& OutPackagesToSave)
 {
 	if (!FHoudiniEngineRuntimeUtils::IsLandscapeSplineOutputEnabled())
@@ -805,7 +807,7 @@ bool FHoudiniLandscapeBake::BakeLandscapeSplines(
 				continue;
 			}
 
-			TSet<FString>& ClearedLandscapeLayers = ClearedLandscapeEditLayers.FindOrAdd(LayerOutput->Landscape);
+			FHoudiniClearedEditLayers& ClearedLandscapeLayers = ClearedLandscapeEditLayers.FindOrAdd(LayerOutput->Landscape);
 			BakeLandscapeSplinesLayer(PackageParams, *LayerOutput, ClearedLandscapeLayers, SegmentsToApplyToLayers);
 		}
 	}

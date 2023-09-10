@@ -270,7 +270,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	// Landscape creation will cache the first tile as a reference location
 	// in this struct to be used by during construction of subsequent tiles.
 	// Landscape Size info will be cached by the first tile, similar to LandscapeReferenceLocation
-	TSet<FString> ClearedLandscapeLayers;
+	FHoudiniClearedEditLayers ClearedLandscapeLayers;
 	TMap<FString, ALandscape*> LandscapeMap;
 
 	// Landscape splines track edit layers that were cleared per-landscape

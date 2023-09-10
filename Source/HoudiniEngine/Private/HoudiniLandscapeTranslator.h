@@ -60,7 +60,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
 		UWorld* World,
 		const FHoudiniPackageParams& InPackageParams,
 		TMap<FString, ALandscape*> & LandscapeMap,
-		TSet<FString>& ClearedLayers,
+		FHoudiniClearedEditLayers & ClearedLayers,
 		TArray<UPackage*>& OutCreatedPackages);
 
 	static const FHoudiniGeoPartObject* GetHoudiniHeightFieldFromOutput(
@@ -82,7 +82,7 @@ private:
 			FHoudiniUnrealLandscapeTarget& Landscape,
 			FHoudiniHeightFieldPartData& Part,
 			UHoudiniAssetComponent& HAC,
-			TSet<FString>& ClearedLayers,
+			FHoudiniClearedEditLayers& ClearedLayers,
 			const FHoudiniPackageParams& InPackageParams);
 };
 

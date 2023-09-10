@@ -44,6 +44,7 @@ struct FHoudiniLandscapeExtent;
 struct FHoudiniLandscapeReferenceLocation;
 struct FHoudiniLandscapeTileSizeInfo;
 struct FHoudiniLandscapeSpatialData;
+struct FHoudiniClearedEditLayers;
 
 struct HOUDINIENGINE_API FHoudiniPDGTranslator
 {
@@ -73,7 +74,7 @@ struct HOUDINIENGINE_API FHoudiniPDGTranslator
 			TArray<UHoudiniOutput*>& InOutputs,
 			const FHoudiniPackageParams& InPackageParams,
 			UObject* InOuterComponent,
-			TSet<FString>& ClearedLandscapeLayers,
+			FHoudiniClearedEditLayers& ClearedLayers,
 			TArray<ALandscapeProxy*> AllInputLandscapes,
 			UHoudiniPDGAssetLink* const InAssetLink,
 			TArray<EHoudiniOutputType> InOutputTypesToProcess={},

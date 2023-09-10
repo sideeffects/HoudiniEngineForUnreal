@@ -394,7 +394,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 
 	// Landscape layers needs to be cleared during baking, but only once. So keep track of which ones
 	// have been cleared.
-	TMap<ALandscape*, TSet<FString>> ClearedLandscapeLayers;
+	TMap<ALandscape*, FHoudiniClearedEditLayers> ClearedLandscapeLayers;
 
 	// First bake everything except instancers, then bake instancers. Since instancers might use meshes in
 	// from the other outputs.

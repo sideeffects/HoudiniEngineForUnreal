@@ -125,6 +125,28 @@ public:
 	FIntPoint Max = FIntPoint::ZeroValue;
 };
 
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FHoudiniClearedTargetLayer
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TSet<FString> TargetLayers;
+};
+
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FHoudiniClearedEditLayers
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TMap<FString, FHoudiniClearedTargetLayer> EditLayers;
+
+	void Empty();
+	bool Contains(FString & EditLayer, FString & TargetLayer);
+	void Add(FString& EditLayer, FString& TargetLayer);
+};
+
 
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniLandscapeTargetLayerOutput : public UObject

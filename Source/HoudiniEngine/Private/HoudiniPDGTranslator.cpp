@@ -154,7 +154,7 @@ FHoudiniPDGTranslator::CreateAllResultObjectsForPDGWorkItem(
 			NewTOPOutputs,
 			InPackageParams,
 			WorkItemOutputActor->GetRootComponent(),
-			InTOPNode->ClearedLandscapeLayers,
+			InTOPNode->ClearedLayers,
 			AllInputLandscapes,
 			InAssetLink,
 			InOutputTypesToProcess,
@@ -255,7 +255,7 @@ FHoudiniPDGTranslator::LoadExistingAssetsAsResultObjectsForPDGWorkItem(
 		InOutputs,
 		InPackageParams,
 		WorkItemOutputActor->GetRootComponent(),
-		InTOPNode->ClearedLandscapeLayers,
+		InTOPNode->ClearedLayers,
 		AllInputLandscapes,
 		InAssetLink,
 		InOutputTypesToProcess,
@@ -280,7 +280,7 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	TArray<UHoudiniOutput*>& InOutputs,
 	const FHoudiniPackageParams& InPackageParams,
 	UObject* InOuterComponent,
-	TSet<FString>& ClearedLandscapeLayers,
+	FHoudiniClearedEditLayers& ClearedLayers,
 	TArray<ALandscapeProxy*> AllInputLandscapes,
 	UHoudiniPDGAssetLink* const InAssetLink,
 	TArray<EHoudiniOutputType> InOutputTypesToProcess,
@@ -391,7 +391,7 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 					PersistentWorld,
 					InPackageParams,
 					CookedLandscapes,
-					ClearedLandscapeLayers,
+					ClearedLayers,
 					CreatedPackages);
 				// Attach any landscape actors to InOuterComponent
 				LandscapeOutputs.Add(CurOutput);

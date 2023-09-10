@@ -550,7 +550,11 @@ public:
 
 	// More cached landscape data
 	UPROPERTY()
-	TSet<FString> ClearedLandscapeLayers;
+	TSet<FString> ClearedLandscapeLayers_DEPRECATED;
+
+    // Keep track of cleared layers
+	UPROPERTY()
+	FHoudiniClearedEditLayers ClearedLayers;
 
 	// Returns true if the node has received the HAPI_PDG_EVENT_COOK_COMPLETE event since the last the cook started 
 	bool HasReceivedCookCompleteEvent() const { return bHasReceivedCookCompleteEvent; }

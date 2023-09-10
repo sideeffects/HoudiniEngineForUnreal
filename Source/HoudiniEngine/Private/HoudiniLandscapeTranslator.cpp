@@ -71,8 +71,8 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 	const FString& CoookedLandscapeActorPrefix,
 	UWorld* InWorld, // Persistent / root world for the landscape
 	const FHoudiniPackageParams & InPackageParams,
-	TMap<FString, ALandscape*> & LandscapeMap,
-	TSet<FString>& ClearedLayers,
+	TMap<FString, ALandscape*>& LandscapeMap,
+	FHoudiniClearedEditLayers& ClearedLayers,
 	TArray<UPackage*>& OutCreatedPackages)
 {
 	UHoudiniAssetComponent* HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(InOutput);
@@ -572,7 +572,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		FHoudiniUnrealLandscapeTarget& Landscape,
 		FHoudiniHeightFieldPartData& Part,
 		UHoudiniAssetComponent& HAC,
-		TSet<FString>& ClearedLayers,
+		FHoudiniClearedEditLayers& ClearedLayers,
 		const FHoudiniPackageParams& InPackageParams)
 {
 	enum TargetLayerType
@@ -678,7 +678,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	if (UnrealEditLayer != nullptr && 
 		OutputLandscape->bHasLayersContent &&
 		Part.bClearLayer &&
-		!ClearedLayers.Contains(CookedLayerName))
+		!ClearedLayers.Contains(CookedLayerName, Part.TargetLayerName))
 	{
 		if (LayerType != TargetLayerType::Paint)
 		{
@@ -688,7 +688,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		{
 			OutputLandscape->ClearPaintLayer(UnrealEditLayer->Guid, TargetLayerInfo);
 		}
-		ClearedLayers.Add(CookedLayerName);
+		ClearedLayers.Add(CookedLayerName, Part.TargetLayerName);
 	}
 
 	// ------------------------------------------------------------------------------------------------------------------
