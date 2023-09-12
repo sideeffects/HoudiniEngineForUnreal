@@ -2029,7 +2029,11 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 
 		    OutBakeStats.NotifyObjectsCreated(NewActor->GetClass()->GetName(), 1);
 
-		    EditorUtilities::CopyActorProperties(CurrentInstancedActor, NewActor);
+			const auto ComponentCopyOptions = static_cast<EditorUtilities::ECopyOptions::Type>(
+				EditorUtilities::ECopyOptions::CallPostEditChangeProperty |
+				EditorUtilities::ECopyOptions::CallPostEditMove);
+
+		    EditorUtilities::CopyActorProperties(CurrentInstancedActor, NewActor, ComponentCopyOptions);
 
 		    SetOutlinerFolderPath(NewActor, InOutputObject, WorldOutlinerFolderPath);
 		    NewActor->SetActorTransform(CurrentTransform);
