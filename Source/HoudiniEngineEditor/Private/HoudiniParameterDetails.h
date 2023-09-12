@@ -392,6 +392,8 @@ class FHoudiniParameterDetails : public TSharedFromThis<FHoudiniParameterDetails
 
 	private:
 
+		void Debug();
+
 		template< class T >
 		static bool CastParameters(
 			const TArray<UHoudiniParameter*>& InParams, TArray<T*>& OutCastedParams);
@@ -415,6 +417,8 @@ class FHoudiniParameterDetails : public TSharedFromThis<FHoudiniParameterDetails
 		void CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams); //
 
 		void CreateWidgetTab(IDetailCategoryBuilder & HouParameterCategory, const TWeakObjectPtr<UHoudiniParameterFolder>& InParam, const bool& bIsShown);  //
+		void CreateWidgetTabUIElements(IDetailCategoryBuilder& HouParameterCategory, const TWeakObjectPtr<UHoudiniParameterFolder>& InParam); 
+
 
 		void CreateWidgetMultiParmObjectButtons(TSharedPtr<SHorizontalBox> HorizontalBox, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams); //
 	
