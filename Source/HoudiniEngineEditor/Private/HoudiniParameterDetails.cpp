@@ -1908,8 +1908,30 @@ bool FHoudiniParameterDetails::CastParameters(
 }
 
 void
+FHoudiniParameterDetails::Debug()
+{
+	int Entry = 0;
+	for(auto & StackEntry : FolderStack)
+	{
+		FString Output = FString::Format(TEXT("{0} "), { Entry  });
+		for(int Index = 0; Index < StackEntry.Num(); Index++)
+		{
+			Output += StackEntry[Index]->GetParameterLabel();
+			Output += TEXT(" ");
+		}
+
+		HOUDINI_LOG_MESSAGE(TEXT("%s\n"), *Output);
+		Entry++;
+
+	}
+}
+
+void
 FHoudiniParameterDetails::CreateWidget(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
 {
+	// Uncomment this to debug printf the state of the Stack.
+	//Debug();
+
 	if (InParams.Num() <= 0)
 		return;
 
@@ -2490,7 +2512,9 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 			if (bDecreaseChildCount)
 			{
 				CurrentLayerFolderQueue[0]->GetChildCounter() -= 1;
-				PruneStack();
+
+				if (CurrentLayerFolderQueue[0]->GetChildCounter() < 1)
+					PruneStack();
 			}
 		}
 		// If this parameter is in the root dir, just create a row.
@@ -5796,12 +5820,14 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 	// If a folder is invisible, its children won't be listed by HAPI. 
 	// So just reduce FolderListSize by 1, reduce the child counter of its parent folder by 1 if necessary, 
 	// and prune the stack in such case.
-	if (!MainParam->IsVisible())
+
+	// NOTE: Andy: I'm not sure the above comment is correct anymore. However, we do need to special work if processing tabs.
+	if (!MainParam->IsVisible() && MainParam->IsTab())
 	{
 		CurrentFolderListSize -= 1;
 
 		if (CurrentFolderListSize == 0)
-		{						
+		{
 			if (FolderStack.Num() > 1)
 			{
 				TArray<UHoudiniParameterFolder*> &ParentFolderQueue = FolderStack[FolderStack.Num() - 2];
@@ -5809,12 +5835,16 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 					ParentFolderQueue[0]->GetChildCounter() -= 1;
 			}
 
+			CreateWidgetTabUIElements(HouParameterCategory, MainParam);
+
 			PruneStack();
+
+			CurrentFolderList = nullptr;
 		}
+
 
 		return;
 	}
-
 	// We expect 'TupleSize' children param of this folder after finish processing all the child folders of cur folderlist
 	MainParam->ResetChildCounter();
 
@@ -6085,30 +6115,10 @@ FHoudiniParameterDetails::CreateFolderHeaderUI(FDetailWidgetRow* HeaderRow, cons
 
 }
 
-void FHoudiniParameterDetails::CreateWidgetTab(IDetailCategoryBuilder & HouParameterCategory, const TWeakObjectPtr<UHoudiniParameterFolder>& InFolder, const bool& bIsShown)
+void FHoudiniParameterDetails::CreateWidgetTabUIElements(IDetailCategoryBuilder& HouParameterCategory, const TWeakObjectPtr<UHoudiniParameterFolder>& InFolder)
 {
-	if (!InFolder.IsValid() || !CurrentFolderList)
-		return;
-
-	if (FolderStack.Num() <= 0)	// error state
-		return;
-
 	UHoudiniParameterFolder* const Folder = InFolder.Get();
-	TArray<UHoudiniParameterFolder*> & FolderQueue = FolderStack.Last();
-
-	// Cache all tabs of current tab folder list.
-	CurrentFolderList->AddTabFolder(Folder);
-
-	// If the tabs is not shown, just push the folder param into the queue.
-	if (!bIsShown)
-	{
-		InFolder->SetIsContentShown(bIsShown);
-		FolderQueue.Add(Folder);
-		return;
-	}
-	
-	// tabs currently being processed
-	CurrentTabs.Add(Folder);
+	TArray<UHoudiniParameterFolder*>& FolderQueue = FolderStack.Last();
 
 	if (CurrentFolderListSize > 1)
 		return;
@@ -6118,10 +6128,10 @@ void FHoudiniParameterDetails::CreateWidgetTab(IDetailCategoryBuilder & HouParam
 
 	// Create a row (UI) for current tabs
 	TSharedPtr<SCustomizedBox> HorizontalBox;
-	FDetailWidgetRow &Row = HouParameterCategory.AddCustomRow(FText::GetEmpty())
-	[
-		SAssignNew(HorizontalBox, SCustomizedBox)
-	]; 
+	FDetailWidgetRow& Row = HouParameterCategory.AddCustomRow(FText::GetEmpty())
+		[
+			SAssignNew(HorizontalBox, SCustomizedBox)
+		];
 
 	// Put current tab folder list param into an array
 	TArray<TWeakObjectPtr<UHoudiniParameter>> CurrentTabMenuFolderListArr;
@@ -6136,7 +6146,7 @@ void FHoudiniParameterDetails::CreateWidgetTab(IDetailCategoryBuilder & HouParam
 
 	// Process all tabs of current folder list at once when done.
 
-	for (auto & CurTab : CurrentTabs)
+	for (auto& CurTab : CurrentTabs)
 	{
 		if (!IsValid(CurTab))
 			continue;
@@ -6144,7 +6154,7 @@ void FHoudiniParameterDetails::CreateWidgetTab(IDetailCategoryBuilder & HouParam
 		CurTab->SetIsContentShown(CurTab->IsChosen());
 		FolderQueue.Add(CurTab);
 
-		auto OnTabClickedLambda = [CurrentTabMenuFolderList, CurTab, &HouParameterCategory]() 
+		auto OnTabClickedLambda = [CurrentTabMenuFolderList, CurTab, &HouParameterCategory]()
 		{
 			if (CurrentTabMenuFolderList)
 			{
@@ -6177,18 +6187,18 @@ void FHoudiniParameterDetails::CreateWidgetTab(IDetailCategoryBuilder & HouParam
 		TSharedPtr<SCustomizedButton> CurCustomizedButton;
 
 		HorizontalBox->AddSlot().VAlign(VAlign_Bottom)
-		.AutoWidth()
-		.Padding(0.f)
-		.HAlign(HAlign_Left)
-		[
-			SAssignNew(CurCustomizedButton, SCustomizedButton)
-			.OnClicked_Lambda(OnTabClickedLambda)
+			.AutoWidth()
+			.Padding(0.f)
+			.HAlign(HAlign_Left)
+			[
+				SAssignNew(CurCustomizedButton, SCustomizedButton)
+				.OnClicked_Lambda(OnTabClickedLambda)
 			.Content()
 			[
 				SNew(STextBlock)
 				.Text(FText::FromString(FolderLabelString))
 			]
-		];
+			];
 
 		CurCustomizedButton->bChosen = bChosen;
 		CurCustomizedButton->bIsRadioButton = CurTab->GetFolderType() == EHoudiniFolderParameterType::Radio;
@@ -6206,6 +6216,37 @@ void FHoudiniParameterDetails::CreateWidgetTab(IDetailCategoryBuilder & HouParam
 
 	// Clear the temporary tabs
 	CurrentTabs.Empty();
+}
+
+void FHoudiniParameterDetails::CreateWidgetTab(IDetailCategoryBuilder & HouParameterCategory, const TWeakObjectPtr<UHoudiniParameterFolder>& InFolder, const bool& bIsShown)
+{
+	if (!InFolder.IsValid() || !CurrentFolderList)
+		return;
+
+	if (FolderStack.Num() <= 0)	// error state
+		return;
+
+	UHoudiniParameterFolder* const Folder = InFolder.Get();
+	TArray<UHoudiniParameterFolder*> & FolderQueue = FolderStack.Last();
+
+	// Cache all tabs of current tab folder list.
+	CurrentFolderList->AddTabFolder(Folder);
+
+	// If the tabs is not shown, just push the folder param into the queue.
+	if (!bIsShown)
+	{
+		InFolder->SetIsContentShown(bIsShown);
+		FolderQueue.Add(Folder);
+		return;
+	}
+	
+	// tabs currently being processed
+	CurrentTabs.Add(Folder);
+
+	if (CurrentFolderListSize > 1)
+		return;
+
+	CreateWidgetTabUIElements(HouParameterCategory, InFolder);
 }
 
 void
