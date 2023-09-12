@@ -1492,22 +1492,22 @@ FHoudiniInputDetails::AddLandscapeSplinesOptions(
 
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
 
-	auto LandscapeOptionsMenuStateChanged = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, bool bInNewState)
+	auto LandscapeOptionsMenuStateChanged = [MainInput, InInputs](bool bIsExpanded)
 	{
 		if (!IsValidWeakPointer(MainInput))
 			return;
 
-		bool bNewState = bInNewState;
+		bool bNewState = bIsExpanded;
 
 		if (MainInput->IsLandscapeSplinesExportOptionsMenuExpanded() == bNewState)
 			return;
 
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
-			LOCTEXT("HoudiniLandscapeSplinesOptionsMenu", "Houdini Input: Changed Landscape Splines Options Menu State"),
+			LOCTEXT("HoudiniLandscapeOptionsMenu", "Houdini Input: Changed Landscape Options Menu State"),
 			MainInput->GetOuter());
 
-		for (auto CurInput : InInputsToUpdate)
+		for (auto CurInput : InInputs)
 		{
 			if (!IsValidWeakPointer(CurInput))
 				continue;
@@ -1529,10 +1529,7 @@ FHoudiniInputDetails::AddLandscapeSplinesOptions(
 		SNew(SExpandableArea)
 		.AreaTitle(LOCTEXT("LandscapeSplinesOptionsMenu", "Landscape Splines Options"))
 		.InitiallyCollapsed(!MainInput->IsLandscapeSplinesExportOptionsMenuExpanded())
-		.OnAreaExpansionChanged_Lambda([=](bool& bNewState)
-		{
-			return LandscapeOptionsMenuStateChanged(InInputs, bNewState);
-		})
+		.OnAreaExpansionChanged(FOnBooleanValueChanged::CreateLambda(LandscapeOptionsMenuStateChanged))
 		.BodyContent()
 		[
 			LandscapeSplinesOptions_VerticalBox
