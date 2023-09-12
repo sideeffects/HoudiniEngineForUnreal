@@ -139,6 +139,8 @@ public:
 
 	void SetDefaultInstanceCount(int32 InCount);
 
+	void MarkDefault(const bool& bInDefault) override;
+
 private:
 	void InitializeModifyArray();
 
