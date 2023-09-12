@@ -228,3 +228,10 @@ UHoudiniParameterMultiParm::SetDefaultInstanceCount(int32 InCount)
 
 	DefaultInstanceCount = InCount;
 }
+
+void UHoudiniParameterMultiParm::MarkDefault(const bool& bInDefault)
+{
+	Super::MarkDefault(bInDefault);
+	if (bInDefault)
+		MultiParmInstanceLastModifyArray.Empty();
+}
