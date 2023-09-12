@@ -3298,10 +3298,12 @@ bool FHoudiniParameterTranslator::UploadMultiParmValues(UHoudiniParameter* InPar
 	{
 		if (LastModificationArray[Index] == EHoudiniMultiParmModificationType::Inserted)
 		{
-			if (HAPI_RESULT_SUCCESS != FHoudiniApi::InsertMultiparmInstance(
-				FHoudiniEngine::Get().GetSession(), MultiParam->GetNodeId(),
-				MultiParam->GetParmId(), Index + MultiParam->InstanceStartOffset))
-				return false;	
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::InsertMultiparmInstance(
+					FHoudiniEngine::Get().GetSession(), 
+					MultiParam->GetNodeId(),
+					MultiParam->GetParmId(), 
+					Index + MultiParam->InstanceStartOffset),
+					false);
 			
 		}
 	}
@@ -3310,10 +3312,12 @@ bool FHoudiniParameterTranslator::UploadMultiParmValues(UHoudiniParameter* InPar
 	{
 		if (LastModificationArray[Index] == EHoudiniMultiParmModificationType::Removed)
 		{
-			if (HAPI_RESULT_SUCCESS != FHoudiniApi::RemoveMultiparmInstance(
-				FHoudiniEngine::Get().GetSession(), MultiParam->GetNodeId(),
-				MultiParam->GetParmId(), Index + MultiParam->InstanceStartOffset))
-				return false;
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RemoveMultiparmInstance(
+					FHoudiniEngine::Get().GetSession(), 
+					MultiParam->GetNodeId(),
+					MultiParam->GetParmId(), 
+					Index + MultiParam->InstanceStartOffset),
+					false);
 		}
 	}
 
