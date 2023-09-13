@@ -1423,9 +1423,10 @@ SHoudiniCreatePresetFromHDA::HandleCreatePresetClicked()
 
 	// Transfer input parameters
 	Asset->InputParameters.Empty();
-	for (auto& Entry : InputValues)
+	for (int32 InputIndex = 0; InputIndex < InputValues.Num(); ++InputIndex)
 	{
-		if (KeepInputs.Contains(Entry.InputIndex))
+		auto& Entry = InputValues[InputIndex];
+		if (KeepInputs.Contains(InputIndex))
 		{
 			Asset->InputParameters.Add(Entry);
 		}

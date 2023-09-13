@@ -37,6 +37,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineEditor.h"
 #include "HoudiniEngineEditorSettings.h"
+#include "HoudiniEngineEditorUtils.h"
 #include "HoudiniToolsPackageAsset.h"
 #include "HoudiniToolsPackageAssetFactory.h"
 #include "ObjectTools.h"
@@ -2400,12 +2401,21 @@ FHoudiniToolsEditor::FindPresetsForHoudiniAsset(const UHoudiniAsset* HoudiniAsse
 
 
 void
-FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(const UHoudiniPreset* Preset, UHoudiniAssetComponent* HAC)
+FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
+	const UHoudiniPreset* Preset,
+	UHoudiniAssetComponent* HAC,
+	const bool bReselectSelectedActors)
 {
 	if (!IsValid(HAC) || !IsValid(Preset))
 	{
 		return;
 	}
+
+		// Record a transaction for undo/redo
+	FScopedTransaction Transaction(
+		TEXT(HOUDINI_MODULE_EDITOR),
+		LOCTEXT("HoudiniPresets_ApplyToAssetComponent", "Apply Preset to Houdini Asset Component"),
+		HAC->GetOuter());
 
 	HAC->Modify();
 
@@ -2620,6 +2630,11 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(const UHoudiniPreset* Pr
 		HAC->ProxyMeshAutoRefineTimeoutSecondsOverride = Preset->ProxyMeshAutoRefineTimeoutSecondsOverride;
 		HAC->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = Preset->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride;
 		HAC->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = Preset->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride;
+	}
+
+	if (bReselectSelectedActors)
+	{
+		FHoudiniEngineEditorUtils::ReselectSelectedActors();
 	}
 }
 

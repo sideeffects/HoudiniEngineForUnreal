@@ -268,7 +268,12 @@ public:
 	// Find all the presets that can be applied the given Houdini Asset. 
 	static void FindPresetsForHoudiniAsset(const UHoudiniAsset* HoudiniAsset, TArray<UHoudiniPreset*>& OutPresets);
 
-	static void ApplyPresetToHoudiniAssetComponent(const UHoudiniPreset* Preset, UHoudiniAssetComponent* HAC);
+	// Apply the preset to the given HoudiniAssetComponent.
+	// Optionally, reselect selected actors to update the component visualizers.
+	static void ApplyPresetToHoudiniAssetComponent(
+		const UHoudiniPreset* Preset,
+		UHoudiniAssetComponent* HAC,
+		const bool bReselectSelectedActors = true);
 
 	// --------------------------------
 	// Shutdown

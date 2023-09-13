@@ -36,9 +36,27 @@
 #include "HoudiniParameterToggle.h"
 
 
-bool FHoudiniPresetHelpers::IsSupportedInputType(const EHoudiniInputType InputType)
+FHoudiniPresetCurveInputObject::FHoudiniPresetCurveInputObject()
+	: bClosed(false)
+	, bReversed(false)
+	, CurveOrder(0)
+	, bIsHoudiniSplineVisible(false)
+	, CurveType(EHoudiniCurveType::Invalid)
+	, CurveMethod(EHoudiniCurveMethod::Invalid)
+	, CurveBreakpointParameterization(EHoudiniCurveBreakpointParameterization::Invalid)
+	, bIsOutputCurve(false)
+	, bCookOnCurveChanged(false)
+	, bIsLegacyInputCurve(false)
+	, bIsInputCurve(false)
+	, bIsEditableOutputCurve(false)
 {
-	if (InputType == EHoudiniInputType::Geometry)
+}
+
+bool
+FHoudiniPresetHelpers::IsSupportedInputType(const EHoudiniInputType InputType)
+{
+	if (InputType == EHoudiniInputType::Geometry ||
+		InputType == EHoudiniInputType::Curve)
 	{
 		return true;
 	}
@@ -331,12 +349,23 @@ FHoudiniPresetHelpers::IngestGenericInput(
 	Value.bIsParameterInput = bIsParameterInput;
 	Value.InputIndex = Input->GetInputIndex();
 
-	UpdateFromInput(Value, Input);
+	switch( Input->GetInputType() )
+	{
+		case EHoudiniInputType::Geometry:
+			UpdateFromGeometryInput(Value, Input);
+			break;
+		case EHoudiniInputType::Curve:
+			UpdateFromCurveInput(Value, Input);
+			break;
+		default:
+			break;
+	}
 	
 	OutValues.Add(Value);
 }
 
-void FHoudiniPresetHelpers::UpdateFromInput(FHoudiniPresetInputValue& Value, UHoudiniInput* Input)
+void
+FHoudiniPresetHelpers::UpdateGenericInputSettings(FHoudiniPresetInputValue& Value, const UHoudiniInput* Input)
 {
 	Value.InputType = Input->GetInputType();
 
@@ -350,7 +379,13 @@ void FHoudiniPresetHelpers::UpdateFromInput(FHoudiniPresetInputValue& Value, UHo
 	Value.bExportMaterialParameters = Input->GetExportMaterialParameters();
 	Value.bMergeSplineMeshComponents = Input->IsMergeSplineMeshComponentsEnabled();
 	Value.bPreferNaniteFallbackMesh = Input->GetPreferNaniteFallbackMesh();
+}
 
+void
+FHoudiniPresetHelpers::UpdateFromGeometryInput(FHoudiniPresetInputValue& Value, const UHoudiniInput* Input)
+{
+	UpdateGenericInputSettings(Value, Input);
+	
 	const TArray<UHoudiniInputObject*>* InputObjects = Input->GetHoudiniInputObjectArray(EHoudiniInputType::Geometry);
 	if (!InputObjects)
 	{
@@ -361,7 +396,7 @@ void FHoudiniPresetHelpers::UpdateFromInput(FHoudiniPresetInputValue& Value, UHo
 	for (int i = 0; i < NumObjects; i++)
 	{
 		const UHoudiniInputObject* InputObj = (*InputObjects)[i];
-		FHoudiniPresetInputObject PresetObject;
+		FHoudiniPresetGeometryInputObject PresetObject;
 		
 		if (IsValid(InputObj))
 		{
@@ -369,10 +404,55 @@ void FHoudiniPresetHelpers::UpdateFromInput(FHoudiniPresetInputValue& Value, UHo
 			PresetObject.Transform = InputObj->Transform;
 		}
 		
-		Value.InputObjects.Add(PresetObject);
+		Value.GeometryInputObjects.Add(PresetObject);
 	}
 }
 
+void
+FHoudiniPresetHelpers::UpdateFromCurveInput(FHoudiniPresetInputValue& Value, const UHoudiniInput* Input)
+{
+	UpdateGenericInputSettings(Value, Input);
+
+	const TArray<UHoudiniInputObject*>* InputObjects = Input->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+	if (!InputObjects)
+	{
+		return;
+	}
+
+
+	const int32 NumObjects = InputObjects->Num();
+	Value.CurveInputObjects.SetNum(NumObjects);
+	
+	for (int i = 0; i < NumObjects; i++)
+	{
+		const UHoudiniInputHoudiniSplineComponent* InputObj = Cast<UHoudiniInputHoudiniSplineComponent>((*InputObjects)[i]);
+		FHoudiniPresetCurveInputObject PresetObject;
+		if (IsValid(InputObj))
+		{
+		 	PresetObject.Transform = InputObj->Transform;
+
+			const UHoudiniSplineComponent* CurveComponent = InputObj->GetCurveComponent();
+			if (IsValid(CurveComponent))
+			{
+				PresetObject.CurvePoints = CurveComponent->CurvePoints;
+				PresetObject.bClosed = CurveComponent->IsClosedCurve();
+				PresetObject.bReversed = CurveComponent->IsReversed();
+				PresetObject.CurveOrder = CurveComponent->GetCurveOrder();
+				PresetObject.bIsHoudiniSplineVisible = CurveComponent->IsHoudiniSplineVisible();
+				PresetObject.CurveType = CurveComponent->GetCurveType();
+				PresetObject.CurveMethod = CurveComponent->GetCurveMethod();
+				PresetObject.CurveBreakpointParameterization = CurveComponent->GetCurveBreakpointParameterization();
+				PresetObject.bIsOutputCurve = CurveComponent->bIsOutputCurve;
+				PresetObject.bCookOnCurveChanged = CurveComponent->bCookOnCurveChanged;
+				PresetObject.bIsLegacyInputCurve = CurveComponent->IsLegacyInputCurve();
+				PresetObject.bIsInputCurve = CurveComponent->IsInputCurve();
+				PresetObject.bIsEditableOutputCurve = CurveComponent->IsEditableOutputCurve();
+			}
+		}
+		
+		Value.CurveInputObjects[i] = PresetObject;
+	}
+}
 
 void
 FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetIntValues& Values, UHoudiniParameterInt* Parm)
@@ -519,7 +599,8 @@ FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetStringValu
 	}
 }
 
-void FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetRampFloatValues& Values,
+void
+FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetRampFloatValues& Values,
 	UHoudiniParameterRampFloat* Param)
 {
 	if (!IsValid(Param))
@@ -553,7 +634,8 @@ void FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetRampF
 	Param->bCaching = false;
 }
 
-void FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetRampColorValues& Values, UHoudiniParameterRampColor* Param)
+void
+FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetRampColorValues& Values, UHoudiniParameterRampColor* Param)
 {
 	if (!IsValid(Param))
 	{
@@ -609,11 +691,33 @@ FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetInputValue
 	// Overwrite this input with the type and input objects that were captured by the preset. 
 	bool bBlueprintStructureModified = false;
 	Input->SetInputType( PresetInput.InputType, bBlueprintStructureModified );
-	Input->SetInputObjectsNumber( PresetInput.InputType, PresetInput.InputObjects.Num() );
 
-	for (int32 i = 0; i < PresetInput.InputObjects.Num(); i++)
+	switch(PresetInput.InputType)
 	{
-		const FHoudiniPresetInputObject& PresetObject = PresetInput.InputObjects[i];
+		case EHoudiniInputType::Geometry:
+			ApplyPresetGeometryInput(PresetInput, Input);
+			break;
+		case EHoudiniInputType::Curve:
+			ApplyPresetCurveInput(PresetInput, Input);
+			break;
+		default:
+			break;
+	}
+	
+	Input->MarkChanged(true);
+}
+
+void
+FHoudiniPresetHelpers::ApplyPresetGeometryInput(const FHoudiniPresetInputValue& PresetInput, UHoudiniInput* Input)
+{
+	// TODO: Correctly resize geometry array. Delete excess input objects.
+	
+	Input->SetInputObjectsNumber( PresetInput.InputType, PresetInput.GeometryInputObjects.Num() );
+	
+	// Apply Geometry Input Objects
+	for (int32 i = 0; i < PresetInput.GeometryInputObjects.Num(); i++)
+	{
+		const FHoudiniPresetGeometryInputObject& PresetObject = PresetInput.GeometryInputObjects[i];
 		UObject* PresetInputObject = PresetObject.InputObject.LoadSynchronous();
 		if (IsValid(PresetInputObject))
 		{
@@ -642,8 +746,90 @@ FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetInputValue
 			}
 		}
 	}
+}
+
+void
+FHoudiniPresetHelpers::ApplyPresetCurveInput(const FHoudiniPresetInputValue& PresetInput, UHoudiniInput* Input)
+{
+	TArray<UHoudiniInputObject*>* InputObjects = Input->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+	if (!InputObjects)
+	{
+		return;
+	}
+
+	Input->Modify();
+
+	const int32 NumCurves = PresetInput.CurveInputObjects.Num();
+	if (InputObjects->Num() > NumCurves)
+	{
+		// Delete excess input objects
+		for (int i = InputObjects->Num()-1; i < NumCurves; i++ )
+		{
+			Input->DeleteInputObjectAt(i, false);
+		}
+		Input->MarkChanged(true);
+	}
+
+	Input->SetInputObjectsNumber(EHoudiniInputType::Curve, NumCurves);
 	
-	Input->MarkChanged(true);
+	// Apply Curve Input Objects
+	for (int32 i = 0; i < PresetInput.CurveInputObjects.Num(); i++)
+	{
+		const FHoudiniPresetCurveInputObject& PresetObject = PresetInput.CurveInputObjects[i];
+		UE_LOG(LogTemp, Log, TEXT("[FHoudiniPresetHelpers::ApplyPresetCurveInput] Processing input object %d for curve inputs"), i);
+		
+		UHoudiniInputHoudiniSplineComponent* InputObj = nullptr;
+		
+		if (InputObjects->IsValidIndex(i))
+		{
+			InputObj = Cast<UHoudiniInputHoudiniSplineComponent>((*InputObjects)[i]); 
+		}
+		
+		if (!IsValid(InputObj))
+		{
+			bool bBlueprintStructModified = false;
+			InputObj = Input->GetOrCreateCurveInputObjectAt(i ,true, bBlueprintStructModified);
+		}
+
+		if (!IsValid(InputObj))
+		{
+			continue;
+		}
+
+		InputObj->Modify();
+		
+		InputObj->Transform = PresetObject.Transform;
+		InputObj->MarkTransformChanged(true);
+		
+		UHoudiniSplineComponent* SplineComponent = InputObj->GetCurveComponent();
+
+		if (!IsValid(SplineComponent))
+		{
+			continue;
+		}
+
+		SplineComponent->Modify();
+		
+		SplineComponent->CurvePoints = PresetObject.CurvePoints;
+		SplineComponent->ResetDisplayPoints();
+		SplineComponent->SetClosedCurve( PresetObject.bClosed );
+		SplineComponent->SetReversed( PresetObject.bReversed );
+		SplineComponent->SetCurveOrder( PresetObject.CurveOrder );
+		SplineComponent->SetHoudiniSplineVisible( PresetObject.bIsHoudiniSplineVisible );
+		SplineComponent->SetCurveType( PresetObject.CurveType );
+		SplineComponent->SetCurveMethod( PresetObject.CurveMethod );
+		SplineComponent->SetCurveBreakpointParameterization( PresetObject.CurveBreakpointParameterization );
+		SplineComponent->bIsOutputCurve = PresetObject.bIsOutputCurve;
+		SplineComponent->bCookOnCurveChanged = PresetObject.bCookOnCurveChanged;
+		SplineComponent->bIsLegacyInputCurve = PresetObject.bIsLegacyInputCurve;
+		SplineComponent->SetIsInputCurve( PresetObject.bIsInputCurve );
+		SplineComponent->SetIsEditableOutputCurve( PresetObject.bIsEditableOutputCurve );
+
+		InputObj->MarkChanged(true);
+		SplineComponent->MarkChanged(true);
+		
+	}
+
 }
 
 

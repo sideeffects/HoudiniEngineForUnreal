@@ -2268,7 +2268,7 @@ FHoudiniEngineDetails::ConstructActionMenu(TWeakObjectPtr<UHoudiniAssetComponent
 							return;
 						}
 
-						FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(Preset, HAC.Get());
+						FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(Preset, HAC.Get(), true);
 						if (LayoutBuilder)
 						{
 							LayoutBuilder->ForceRefreshDetails();

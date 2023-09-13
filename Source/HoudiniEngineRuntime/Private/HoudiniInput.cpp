@@ -1117,6 +1117,61 @@ UHoudiniInput::CreateNewCurveInputObject(bool& bOutBlueprintStructureModified)
 	return NewCurveInputObject;
 }
 
+UHoudiniInputHoudiniSplineComponent* UHoudiniInput::GetOrCreateCurveInputObjectAt(const int32 Index,
+	const bool bCreateIndex,
+	bool& bOutBlueprintStructureModified)
+{
+
+	if (!bCreateIndex && !CurveInputObjects.IsValidIndex(Index))
+	{
+		// Index is not valid, and we shouldn't create an entry here either
+		return nullptr;
+	}
+	
+	// If the given index does not exist, resize the CurveInputs array to accomodate the entry.
+	if (!CurveInputObjects.IsValidIndex(Index))
+	{
+		CurveInputObjects.SetNum(Index+1);
+	}
+
+	UHoudiniInputObject* ExistingInputObject = Cast<UHoudiniInputObject>(GetInputObjectAt(EHoudiniInputType::Curve, Index));
+	UHoudiniInputHoudiniSplineComponent* CurveInputObject = Cast<UHoudiniInputHoudiniSplineComponent>( ExistingInputObject );
+
+	if (IsValid(CurveInputObject))
+	{
+		return CurveInputObject;
+	}
+	
+	if (IsValid(ExistingInputObject) && !IsValid(CurveInputObject))
+	{
+		// There is an existing input object, but it is not a curve. Delete the existing input object and so that
+		// we can create a new object in its place
+		DeleteInputObjectAt(Index, false);
+		MarkChanged(true);
+	}
+
+	CurveInputObject = CreateHoudiniSplineInput(nullptr, true, false, bOutBlueprintStructureModified);
+	if (!IsValid(CurveInputObject))
+	{
+		return nullptr;
+	}
+	
+	CurveInputObjects[Index] = CurveInputObject;
+
+	UHoudiniSplineComponent* HoudiniSplineComponent = CurveInputObject->GetCurveComponent();
+	if (!IsValid(HoudiniSplineComponent))
+	{
+		return nullptr;
+	}
+
+    // Default Houdini spline component input should not be visible at initialization
+	HoudiniSplineComponent->SetVisibility(true, true);
+	HoudiniSplineComponent->SetHoudiniSplineVisible(true);
+	HoudiniSplineComponent->SetHiddenInGame(false, true);
+
+	return CurveInputObject;
+}
+
 void
 UHoudiniInput::MarkAllInputObjectsChanged(const bool& bInChanged)
 {

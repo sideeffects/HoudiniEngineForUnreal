@@ -173,7 +173,7 @@ struct FHoudiniPresetRampColorValues : public FHoudiniPresetBase
 };
 
 USTRUCT(BlueprintType)
-struct FHoudiniPresetInputObject : public FHoudiniPresetBase
+struct FHoudiniPresetGeometryInputObject : public FHoudiniPresetBase
 {
 	GENERATED_BODY()
 
@@ -182,6 +182,59 @@ struct FHoudiniPresetInputObject : public FHoudiniPresetBase
 	
 	UPROPERTY(EditAnywhere)
 	FTransform Transform;
+};
+
+USTRUCT(BlueprintType)
+struct FHoudiniPresetCurveInputObject : public FHoudiniPresetBase
+{
+	GENERATED_BODY()
+
+	FHoudiniPresetCurveInputObject();
+
+	UPROPERTY(EditAnywhere)
+	FTransform Transform;
+	
+	// Curve Spline Component
+	
+	UPROPERTY(EditAnywhere)
+	TArray<FTransform> CurvePoints;
+
+	UPROPERTY(EditAnywhere)
+	bool bClosed;
+
+	UPROPERTY(EditAnywhere)
+	bool bReversed;
+
+	UPROPERTY(EditAnywhere)
+	int32 CurveOrder;
+
+	UPROPERTY(EditAnywhere)
+	bool bIsHoudiniSplineVisible;
+
+	UPROPERTY(EditAnywhere)
+	EHoudiniCurveType CurveType;
+
+	UPROPERTY(EditAnywhere)
+	EHoudiniCurveMethod CurveMethod;
+
+	// Only used for new HAPI curve / breakpoints
+	UPROPERTY(EditAnywhere)
+	EHoudiniCurveBreakpointParameterization CurveBreakpointParameterization;
+
+	UPROPERTY(EditAnywhere)
+	bool bIsOutputCurve;
+
+	UPROPERTY(EditAnywhere)
+	bool bCookOnCurveChanged;
+
+	UPROPERTY(EditAnywhere)
+	bool bIsLegacyInputCurve;
+
+	UPROPERTY(EditAnywhere)
+	bool bIsInputCurve;
+	
+	UPROPERTY(EditAnywhere)
+	bool bIsEditableOutputCurve;
 };
 
 
@@ -238,7 +291,10 @@ struct FHoudiniPresetInputValue : public FHoudiniPresetBase
 	int32 InputIndex;
 
 	UPROPERTY(EditAnywhere)
-	TArray<FHoudiniPresetInputObject> InputObjects;
+	TArray<FHoudiniPresetGeometryInputObject> GeometryInputObjects;
+
+	UPROPERTY(EditAnywhere)
+	TArray<FHoudiniPresetCurveInputObject> CurveInputObjects;
 };
 
 
@@ -273,8 +329,10 @@ struct FHoudiniPresetHelpers
 	// static bool IngestParameterInput(UHoudiniParameterOperatorPath* Parm, TArray<FHoudiniPresetInputValue>& OutValues, FString& OutValueStr);
 	// static bool IngestAbsoluteInput(int32 InputIndex, UHoudiniInput* Parm, TArray<FHoudiniPresetInputValue>& OutValues, FString& OutValueStr);
 	static void IngestGenericInput(UHoudiniInput* Input, bool bIsParameterInput, const FString& ParameterName, TArray<FHoudiniPresetInputValue>& OutValues, FString& OutValueStr);
-	static void UpdateFromInput(FHoudiniPresetInputValue& Value, UHoudiniInput* Input);
-	
+	static void UpdateGenericInputSettings(FHoudiniPresetInputValue& Value, const UHoudiniInput* Input);
+	static void UpdateFromGeometryInput(FHoudiniPresetInputValue& Value, const UHoudiniInput* Input);
+	static void UpdateFromCurveInput(FHoudiniPresetInputValue& Value, const UHoudiniInput* Input);
+
 
 	// Preset Helpers
 	
@@ -297,7 +355,11 @@ struct FHoudiniPresetHelpers
 	static void ApplyPresetParameterValues(const FHoudiniPresetRampColorValues& Values, UHoudiniParameterRampColor* Param);
 
 	// Input parameters
-	static void ApplyPresetParameterValues(const FHoudiniPresetInputValue& Values, UHoudiniInput* Param);
+	static void ApplyPresetParameterValues(const FHoudiniPresetInputValue& PresetInput, UHoudiniInput* Input);
+
+protected:
+	static void ApplyPresetGeometryInput(const FHoudiniPresetInputValue& PresetInput, UHoudiniInput* Input);
+	static void ApplyPresetCurveInput(const FHoudiniPresetInputValue& PresetInput, UHoudiniInput* Input);
 };
 
 

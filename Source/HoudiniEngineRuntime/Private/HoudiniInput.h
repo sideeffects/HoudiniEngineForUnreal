@@ -301,6 +301,7 @@ public:
 	void ResetDefaultCurveOffset()									{ DefaultCurveOffset = 0.f; }
 
 	UHoudiniInputObject* CreateNewCurveInputObject(bool& bBlueprintStructureModified);
+	UHoudiniInputHoudiniSplineComponent* GetOrCreateCurveInputObjectAt(const int32 Index, const bool bCreateIndex, bool& bOutBlueprintStructureModified);
 
 	void SetGeometryInputObjectsNumber(const int32& NewCount);
 	void SetInputObjectsNumber(const EHoudiniInputType& InType, const int32& InNewCount);
