@@ -647,6 +647,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			// Handle PostCook
 			EHoudiniAssetState NewState = EHoudiniAssetState::None;
 			bool bSuccess = HAC->bLastCookSuccess;
+			HAC->HandleOnPreOutputProcessing();
 			HAC->OnPreOutputProcessing();
 			if (PostCook(HAC, bSuccess, HAC->GetAssetId()))
 			{
@@ -675,6 +676,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HAC->GetAssetId());
 			HAC->SetAssetCookCount(CookCount);
 
+			HAC->HandleOnPostOutputProcessing();
 			HAC->OnPostOutputProcessing();
 			FHoudiniEngineUtils::UpdateBlueprintEditor(HAC);
 			break;

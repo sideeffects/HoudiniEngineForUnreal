@@ -97,6 +97,8 @@ public:
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAssetStateChangeDelegate, UHoudiniAssetComponent*, const EHoudiniAssetState, const EHoudiniAssetState);
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostCookDelegate, UHoudiniAssetComponent*, bool);
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostBakeDelegate, UHoudiniAssetComponent*, bool);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostOutputProcessingDelegate, UHoudiniAssetComponent*, bool);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPreOutputProcessingDelegate, UHoudiniAssetComponent*, bool);
 
 	virtual ~UHoudiniAssetComponent();
 
@@ -220,6 +222,8 @@ public:
 	FOnPostCookDelegate& GetOnPostCookDelegate() { return OnPostCookDelegate; }
 	FOnPostCookBakeDelegate& GetOnPostCookBakeDelegate() { return OnPostCookBakeDelegate; }
 	FOnPostBakeDelegate& GetOnPostBakeDelegate() { return OnPostBakeDelegate; }
+	FOnPreOutputProcessingDelegate& GetOnPreOutputProcessingDelegate() { return OnPreOutputProcessingDelegate; }
+	FOnPostOutputProcessingDelegate& GetOnPostOutputProcessingDelegate() { return OnPostOutputProcessingDelegate; }
 
 	FOnAssetStateChangeDelegate& GetOnAssetStateChangeDelegate() { return OnAssetStateChangeDelegate; }
 
@@ -417,8 +421,8 @@ public:
 
 	virtual void OnPrePreCook() {};
 	virtual void OnPostPreCook() {};
-	virtual void OnPreOutputProcessing() {};
-	virtual void OnPostOutputProcessing() {};
+	virtual void OnPreOutputProcessing() { };
+	virtual void OnPostOutputProcessing() { };
 	virtual void OnPrePreInstantiation() {};
 
 
@@ -449,6 +453,8 @@ public:
 
 	// Called by HandleOnHoudiniAssetStateChange when entering the PostCook state. Broadcasts OnPostCookDelegate. 
 	void HandleOnPostCook();
+	void HandleOnPreOutputProcessing();
+	void HandleOnPostOutputProcessing();
 
 	// Called by baking code after baking all outputs of this HAC (HoudiniEngineBakeOption)
 	void HandleOnPostBake(const bool bInSuccess);
@@ -777,6 +783,9 @@ protected:
 	// Delegate to broadcast after baking the HAC. Not called when just baking individual outputs directly.
 	// Arguments are (HoudiniAssetComponent* HAC, bool bIsSuccessful)
 	FOnPostBakeDelegate OnPostBakeDelegate;
+
+	FOnPostOutputProcessingDelegate OnPostOutputProcessingDelegate;
+	FOnPreOutputProcessingDelegate OnPreOutputProcessingDelegate;
 
 	// Delegate that is broadcast when the asset state changes (HAC version).
 	FOnAssetStateChangeDelegate OnAssetStateChangeDelegate;

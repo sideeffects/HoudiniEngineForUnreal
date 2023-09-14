@@ -3097,6 +3097,24 @@ UHoudiniAssetComponent::HandleOnPostCook()
 }
 
 void
+UHoudiniAssetComponent::HandleOnPreOutputProcessing()
+{
+	if (OnPreOutputProcessingDelegate.IsBound())
+	{
+		OnPreOutputProcessingDelegate.Broadcast(this, true);
+	}
+}
+
+void
+UHoudiniAssetComponent::HandleOnPostOutputProcessing()
+{
+	if (OnPostOutputProcessingDelegate.IsBound())
+	{
+		OnPostOutputProcessingDelegate.Broadcast(this, true);
+	}
+}
+
+void
 UHoudiniAssetComponent::HandleOnPostBake(bool bInSuccess)
 {
 	if (OnPostBakeDelegate.IsBound())

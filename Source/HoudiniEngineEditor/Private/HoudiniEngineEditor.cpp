@@ -67,6 +67,7 @@
 #include "Editor/UnrealEdEngine.h"
 #include "EditorScriptingHelpers.h"
 #include "HoudiniAssetFactory.h"
+#include "HoudiniPresetActorFactory.h"
 #include "Engine/Selection.h"
 #include "Engine/SkeletalMesh.h"
 #include "Framework/Application/SlateApplication.h"
@@ -399,8 +400,11 @@ FHoudiniEngineEditor::RegisterActorFactories()
 	{
 		UHoudiniAssetActorFactory * HoudiniAssetActorFactory =
 			NewObject< UHoudiniAssetActorFactory >(GetTransientPackage(), UHoudiniAssetActorFactory::StaticClass());
+		UHoudiniPresetActorFactory * HoudiniPresetActorFactory =
+			NewObject< UHoudiniPresetActorFactory >(GetTransientPackage(), UHoudiniPresetActorFactory::StaticClass());
 
 		GEditor->ActorFactories.Add(HoudiniAssetActorFactory);
+		GEditor->ActorFactories.Add(HoudiniPresetActorFactory);
 	}
 }
 
