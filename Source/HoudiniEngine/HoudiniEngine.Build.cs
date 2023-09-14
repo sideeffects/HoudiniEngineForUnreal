@@ -346,12 +346,11 @@ public class HoudiniEngine : ModuleRules
             );
         }
 
-        if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion >= 3)
-        {
-            PrivateIncludePaths.AddRange(new string[] {
-                System.IO.Path.Combine(GetModuleDirectory("MeshMergeUtilities"), "Private"),
-            });
-        }
+#if UE_5_3_OR_LATER
+        PrivateIncludePaths.AddRange(new string[] {
+            System.IO.Path.Combine(GetModuleDirectory("MeshMergeUtilities"), "Private"),
+        });
+#endif
 
         PrivateIncludePathModuleNames.AddRange(
             new string[]
