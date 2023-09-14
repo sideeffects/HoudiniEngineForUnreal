@@ -1145,7 +1145,7 @@ void UHoudiniInput::CopyStateFrom(UHoudiniInput* InInput, bool bCopyAllPropertie
 	}
 
 	AssetNodeId = InInput->AssetNodeId;
-	InputNodeId = InInput->InputNodeId;
+	InputNodeId = InInput->GetInputNodeId();
 	ParmId = InInput->ParmId;
 	bCanDeleteHoudiniNodes = bInCanDeleteHoudiniNodes;
 
@@ -1286,7 +1286,9 @@ void UHoudiniInput::InvalidateData()
 			// When the input object is a HoudiniAssetComponent, 
 			// we need to be sure that this HDA node id is not in CreatedDataNodeIds
 			// We dont want to delete the input HDA node!
-			CreatedDataNodeIds.Remove(InputObject->InputNodeId);
+			const int32 ObjInputNodeId = InputObject->GetInputNodeId();
+			if (ObjInputNodeId >= 0)
+				CreatedDataNodeIds.Remove(ObjInputNodeId);
 		}
 
 		InputObject->InvalidateData();
