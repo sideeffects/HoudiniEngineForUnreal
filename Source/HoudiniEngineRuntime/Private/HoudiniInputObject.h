@@ -183,6 +183,11 @@ public:
 	virtual void SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes);
 	bool CanDeleteHoudiniNodes() const { return bCanDeleteHoudiniNodes; }
 
+	// If true then this input object uses the InputNodeHandle instead of InputNodeId and InputObjectNodeId if the
+	// ref counted input system is enabled.
+	void SetInputNodeHandleOverridesNodeIds(bool bInInputNodeHandleOverridesNodeIds) { bInputNodeHandleOverridesNodeIds = bInInputNodeHandleOverridesNodeIds; }
+	bool InputNodeHandleOverridesNodeIds() const { return bInputNodeHandleOverridesNodeIds; }
+
 	FGuid GetInputGuid() const { return Guid; }
 
 	/**
@@ -263,6 +268,11 @@ protected:
 
 	UPROPERTY()
 	bool bCanDeleteHoudiniNodes;
+
+	// If true then this input object uses the InputNodeHandle instead of InputNodeId and InputObjectNodeId if the
+	// ref counted input system is enabled.
+	UPROPERTY()
+	bool bInputNodeHandleOverridesNodeIds;
 
 private:
 	// This input object's "main" (SOP) NodeId

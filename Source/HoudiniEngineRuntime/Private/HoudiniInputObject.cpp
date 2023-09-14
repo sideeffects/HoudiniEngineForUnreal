@@ -91,6 +91,7 @@ UHoudiniInputObject::UHoudiniInputObject(const FObjectInitializer& ObjectInitial
 	, bTransformChanged(false)
 	, MaterialReferences()
 	, bCanDeleteHoudiniNodes(true)
+	, bInputNodeHandleOverridesNodeIds(true)
 	, InputNodeId(-1)
 	, InputObjectNodeId(-1)
 {
@@ -416,7 +417,7 @@ UHoudiniInputHoudiniAsset::UHoudiniInputHoudiniAsset(const FObjectInitializer& O
 	, AssetOutputIndex(-1)
 	, AssetId(-1)
 {
-
+	bInputNodeHandleOverridesNodeIds = false;
 }
 
 //
@@ -476,7 +477,7 @@ void
 UHoudiniInputObject::SetInputNodeId(const int32 InInputNodeId)
 {
 	// Only set the node id if the ref counted system is not used.
-	if (FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
+	if (bInputNodeHandleOverridesNodeIds && FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
 		return;
 	InputNodeId = InInputNodeId;
 }
@@ -487,7 +488,7 @@ UHoudiniInputObject::GetInputNodeId() const
 	// If the ref counted system is enabled then we return the node id via the handle, otherwise return the id stored
 	// on this object
 
-	if (!FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
+	if (!bInputNodeHandleOverridesNodeIds || !FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
 		return InputNodeId;
 
 	if (!InputNodeHandle.IsValid())
@@ -510,7 +511,7 @@ void
 UHoudiniInputObject::SetInputObjectNodeId(const int32 InInputObjectNodeId)
 {
 	// Only set the node id if the ref counted system is not used.
-	if (FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
+	if (bInputNodeHandleOverridesNodeIds && FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
 		return;
 	InputObjectNodeId = InInputObjectNodeId;
 }
@@ -521,7 +522,7 @@ UHoudiniInputObject::GetInputObjectNodeId() const
 	// If the ref counted system is enabled then we return the node id via the handle, otherwise return the id stored
 	// on this object
 
-	if (!FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
+	if (!bInputNodeHandleOverridesNodeIds || !FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
 		return InputObjectNodeId;
 
 	if (!InputNodeHandle.IsValid())
