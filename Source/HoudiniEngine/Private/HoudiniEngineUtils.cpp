@@ -8395,7 +8395,8 @@ FHoudiniEngineUtils::AddNodeOrUpdateNode(
 	FUnrealObjectInputHandle& OutHandle,
 	const int32 InObjectNodeId,
 	TSet<FUnrealObjectInputHandle> const* const InReferencedNodes,
-	const bool& bInputNodesCanBeDeleted)
+	const bool& bInputNodesCanBeDeleted,
+	const TOptional<int32> InReferencesConnectToNodeId)
 {
 	if (!InIdentifier.IsValid())
 		return false;
@@ -8423,11 +8424,11 @@ FHoudiniEngineUtils::AddNodeOrUpdateNode(
 		case EUnrealObjectInputNodeType::Reference:
 			if (bNodeExists)
 			{
-				bSuccess = Manager->UpdateReferenceNode(InIdentifier, &InObjectNodeId, &InNodeId, InReferencedNodes);
+				bSuccess = Manager->UpdateReferenceNode(InIdentifier, InObjectNodeId, InNodeId, InReferencedNodes, InReferencesConnectToNodeId);
 			}
 			else
 			{
-				bSuccess = Manager->AddReferenceNode(InIdentifier, InObjectNodeId, InNodeId, Handle, InReferencedNodes);
+				bSuccess = Manager->AddReferenceNode(InIdentifier, InObjectNodeId, InNodeId, Handle, InReferencedNodes, InReferencesConnectToNodeId.Get(INDEX_NONE));
 			}
 			break;
 		case EUnrealObjectInputNodeType::Leaf:
@@ -8472,7 +8473,7 @@ FHoudiniEngineUtils::GetHAPINodeId(const FUnrealObjectInputHandle& InHandle, int
 	
 	const FUnrealObjectInputNode* Node;
 	Manager->GetNode(InHandle, Node);
-	OutNodeId = Node->GetNodeId();
+	OutNodeId = Node->GetHAPINodeId();
 
 	return true;
 }
@@ -8844,6 +8845,30 @@ FHoudiniEngineUtils::HapiConnectNodeInput(const int32& InNodeId, const int32& In
 }
 
 bool
+FHoudiniEngineUtils::SetReferencesNodeConnectToNodeId(const FUnrealObjectInputIdentifier& InRefNodeIdentifier, const HAPI_NodeId InNodeId)
+{
+	// Identifier must be valid and for a reference node
+	if (!InRefNodeIdentifier.IsValid() || InRefNodeIdentifier.GetNodeType() != EUnrealObjectInputNodeType::Reference)
+		return false;
+
+	IUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
+	if (!Manager)
+		return false;
+
+	FUnrealObjectInputNode* Node = nullptr;
+	if (!Manager->GetNode(InRefNodeIdentifier, Node))
+		return false;
+
+	FUnrealObjectInputReferenceNode* const RefNode = static_cast<FUnrealObjectInputReferenceNode*>(Node);
+	if (!RefNode)
+		return false;
+
+	RefNode->SetReferencesConnectToNodeId(InNodeId);
+
+	return true;
+}
+
+bool
 FHoudiniEngineUtils::ConnectReferencedNodesToMerge(const FUnrealObjectInputIdentifier& InRefNodeIdentifier)
 {
 	// Identifier must be valid and for a reference node
@@ -8869,7 +8894,11 @@ FHoudiniEngineUtils::ConnectReferencedNodesToMerge(const FUnrealObjectInputIdent
 		return false;
 
 	const HAPI_Session* const Session = FHoudiniEngine::Get().GetSession();
-	const HAPI_NodeId RefNodeId = RefNode->GetNodeId();
+	const FUnrealObjectInputHAPINodeId RefNodeId = RefNode->GetReferencesConnectToNodeId();
+	if (!RefNodeId.IsValid())
+		return false;
+
+	const HAPI_NodeId RefHAPINodeId = RefNodeId.GetHAPINodeId();
 	int32 InputIndex = 0;
 	for (const FUnrealObjectInputHandle& Handle : RefNode->GetReferencedNodes())
 	{
@@ -8878,14 +8907,14 @@ FHoudiniEngineUtils::ConnectReferencedNodesToMerge(const FUnrealObjectInputIdent
 			continue;
 
 		// Connect the current input object to the merge node
-		if (FHoudiniApi::ConnectNodeInput(Session, RefNodeId, InputIndex, NodeId, 0) != HAPI_RESULT_SUCCESS)
+		if (FHoudiniApi::ConnectNodeInput(Session, RefHAPINodeId, InputIndex, NodeId, 0) != HAPI_RESULT_SUCCESS)
 		{
 			HOUDINI_LOG_WARNING(TEXT("[FHoudiniEngineUtils::ConnectReferencedNodes] Failed to connected node input: %s"), *FHoudiniEngineUtils::GetErrorDescription());
 			continue;
 		}
 		// HAPI will automatically create a object_merge node, we need to set the xformtype to "Into specified object"
 		HAPI_NodeId ConnectedNodeId = -1;
-		if (FHoudiniApi::QueryNodeInput(Session, RefNodeId, InputIndex, &ConnectedNodeId) != HAPI_RESULT_SUCCESS)
+		if (FHoudiniApi::QueryNodeInput(Session, RefHAPINodeId, InputIndex, &ConnectedNodeId) != HAPI_RESULT_SUCCESS)
 		{
 			HOUDINI_LOG_WARNING(TEXT("[FHoudiniEngineUtils::ConnectReferencedNodes] Failed to query connected node input: %s"), *FHoudiniEngineUtils::GetErrorDescription());
 			continue;
@@ -8907,7 +8936,7 @@ FHoudiniEngineUtils::ConnectReferencedNodesToMerge(const FUnrealObjectInputIdent
 	// Disconnect input indices >= InputIndex
 	HAPI_NodeInfo NodeInfo;
 	FHoudiniApi::NodeInfo_Init(&NodeInfo);
-	if (FHoudiniApi::GetNodeInfo(Session, RefNodeId, &NodeInfo) == HAPI_RESULT_SUCCESS)
+	if (FHoudiniApi::GetNodeInfo(Session, RefHAPINodeId, &NodeInfo) == HAPI_RESULT_SUCCESS)
 	{
 		while (InputIndex < NodeInfo.inputCount)
 		{
@@ -8915,10 +8944,10 @@ FHoudiniEngineUtils::ConnectReferencedNodesToMerge(const FUnrealObjectInputIdent
 			// connected input nodes. So we query the node input at each index until we find an index without a
 			// connection.
 			HAPI_NodeId ConnectedInputNodeId = -1;
-			if (FHoudiniApi::QueryNodeInput(Session, RefNodeId, InputIndex, &ConnectedInputNodeId) != HAPI_RESULT_SUCCESS || ConnectedInputNodeId < 0)
+			if (FHoudiniApi::QueryNodeInput(Session, RefHAPINodeId, InputIndex, &ConnectedInputNodeId) != HAPI_RESULT_SUCCESS || ConnectedInputNodeId < 0)
 				break;
 
-			HOUDINI_CHECK_ERROR(FHoudiniApi::DisconnectNodeInput(Session, RefNodeId, InputIndex));
+			HOUDINI_CHECK_ERROR(FHoudiniApi::DisconnectNodeInput(Session, RefHAPINodeId, InputIndex));
 
 			InputIndex++;
 		}
@@ -9025,7 +9054,18 @@ FHoudiniEngineUtils::DoesModifierChainExist(const FUnrealObjectInputIdentifier& 
 	return Node->GetModifierChain(InChainName) != nullptr; 
 }
 
-int32
+HAPI_NodeId
+FHoudiniEngineUtils::GetInputNodeOfModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, const FName InChainName)
+{
+	FUnrealObjectInputHandle Handle;
+	FUnrealObjectInputNode const* const Node = GetNodeViaManager(InIdentifier, Handle);
+	if (!Node || !Handle.IsValid())
+		return INDEX_NONE;
+
+	return Node->GetInputHAPINodeIdOfModifierChain(InChainName);
+}
+
+HAPI_NodeId
 FHoudiniEngineUtils::GetOutputNodeOfModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, const FName InChainName)
 {
 	FUnrealObjectInputHandle Handle;
@@ -9033,7 +9073,7 @@ FHoudiniEngineUtils::GetOutputNodeOfModifierChain(const FUnrealObjectInputIdenti
 	if (!Node || !Handle.IsValid())
 		return INDEX_NONE;
 
-	return Node->GetOutputNodeOfModifierChain(InChainName);
+	return Node->GetOutputHAPINodeIdOfModifierChain(InChainName);
 }
 
 bool
@@ -9056,6 +9096,17 @@ FHoudiniEngineUtils::DestroyModifier(const FUnrealObjectInputIdentifier& InIdent
 		return false;
 
 	return Node->DestroyModifier(InChainName, InModifierToDestroy);
+}
+
+FUnrealObjectInputModifier*
+FHoudiniEngineUtils::FindFirstModifierOfType(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName, EUnrealObjectInputModifierType InModifierType)
+{
+	FUnrealObjectInputHandle Handle;
+	FUnrealObjectInputNode const* const Node = GetNodeViaManager(InIdentifier, Handle);
+	if (!Node || !Handle.IsValid())
+		return nullptr;
+
+	return Node->FindFirstModifierOfType(InChainName, InModifierType);
 }
 
 bool
