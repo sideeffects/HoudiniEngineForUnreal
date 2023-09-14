@@ -44,9 +44,6 @@ public:
 
 	UPROPERTY()
 	FString SkeletonAssetPath = "";
-	
-	UPROPERTY()
-	UHoudiniInput* NodeSyncInput;
 };
 
 
@@ -78,7 +75,7 @@ public:
 
 	FHoudiniNodeSyncOptions NodeSyncOptions;
 
-	UHoudiniInput* GetNodeSyncInput();
+	bool GetNodeSyncInput(UHoudiniInput*& OutInput);
 
 	//virtual void RegisterLayoutExtensions(FLayoutExtender& Extender) override;
 
@@ -91,8 +88,9 @@ private:
 	bool FetchSkeletalMeshFromHoudini(const HAPI_NodeId& InNodeId, const FString& InPackageName, const FString& InPackageFolder, const int32& MaxInfluences, const bool& ImportNormals);
 	bool FetchStaticMeshFromHoudini(const HAPI_NodeId& InNodeId, const FString& InPackageName, const FString& InPackageFolder);
 
-
-
 	HAPI_NodeId object_node_id = -1;
 	//HAPI_NodeId network_node_id = -1;
+
+	//UPROPERTY()
+	UHoudiniInput* NodeSyncInput;
 };

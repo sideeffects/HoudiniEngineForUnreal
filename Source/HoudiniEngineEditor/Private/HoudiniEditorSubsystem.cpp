@@ -99,21 +99,22 @@ UHoudiniEditorSubsystem::SendSkeletalMeshToHoudini(
 
 
 
-UHoudiniInput* 
-UHoudiniEditorSubsystem::GetNodeSyncInput()
+bool
+UHoudiniEditorSubsystem::GetNodeSyncInput(UHoudiniInput*& OutInput)
 {
 	UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
 	if (!IsValid(HoudiniEditorSubsystem))
-		return nullptr;
+		return false;
 
 	if (!HoudiniEditorSubsystem->InitNodeSyncInputIfNeeded())
-		return nullptr;	
+		return false;
 
-	UHoudiniInput* NodeSyncInput = HoudiniEditorSubsystem->NodeSyncOptions.NodeSyncInput;
-	if (!IsValid(NodeSyncInput))
-		return nullptr;
+	if (!IsValid(HoudiniEditorSubsystem->NodeSyncInput))
+		return false;
 
-	return NodeSyncInput;
+	OutInput = HoudiniEditorSubsystem->NodeSyncInput;
+
+	return true;
 }
 
 
@@ -124,49 +125,49 @@ UHoudiniEditorSubsystem::InitNodeSyncInputIfNeeded()
 	if (!IsValid(HoudiniEditorSubsystem))
 		return false;
 
-	UHoudiniInput*& NodeSyncInput = HoudiniEditorSubsystem->NodeSyncOptions.NodeSyncInput;
-	if (IsValid(NodeSyncInput))
+	UHoudiniInput*& NSInput = HoudiniEditorSubsystem->NodeSyncInput;
+	if (IsValid(NSInput))
 		return true;
 
 	// Create a fake HoudiniInput/HoudiniInputObject so we can use the input Translator to send the data to H
 	FString InputObjectName = TEXT("NodeSyncInput");
-	NodeSyncInput = NewObject<UHoudiniInput>(
+	NSInput = NewObject<UHoudiniInput>(
 		HoudiniEditorSubsystem, UHoudiniInput::StaticClass(), FName(*InputObjectName), RF_Transactional);
 
 	//NodeSyncInput->AddToRoot();
 
-	if (!IsValid(NodeSyncInput))
+	if (!IsValid(NSInput))
 	{
 		// TODO: Always call remove from root, even for failures! (use a lambda for returns)
-		NodeSyncInput->RemoveFromRoot();
+		NSInput->RemoveFromRoot();
 		return false;
 	}
 
 	// Set the default input options
 	// TODO: Fill those from the NodeSync UI?!
-	NodeSyncInput->SetExportColliders(false);
-	NodeSyncInput->SetExportLODs(false);
-	NodeSyncInput->SetExportSockets(false);
-	NodeSyncInput->SetLandscapeExportType(EHoudiniLandscapeExportType::Heightfield);
-	NodeSyncInput->SetAddRotAndScaleAttributes(false);
-	NodeSyncInput->SetImportAsReference(false);
-	NodeSyncInput->SetImportAsReferenceRotScaleEnabled(false);
-	NodeSyncInput->SetKeepWorldTransform(true);
-	NodeSyncInput->SetPackBeforeMerge(false);
-	NodeSyncInput->SetUnrealSplineResolution(50.0f);
+	NSInput->SetExportColliders(false);
+	NSInput->SetExportLODs(false);
+	NSInput->SetExportSockets(false);
+	NSInput->SetLandscapeExportType(EHoudiniLandscapeExportType::Heightfield);
+	NSInput->SetAddRotAndScaleAttributes(false);
+	NSInput->SetImportAsReference(false);
+	NSInput->SetImportAsReferenceRotScaleEnabled(false);
+	NSInput->SetKeepWorldTransform(true);
+	NSInput->SetPackBeforeMerge(false);
+	NSInput->SetUnrealSplineResolution(50.0f);
 
 	// default input options
-	NodeSyncInput->SetCanDeleteHoudiniNodes(false);
-	NodeSyncInput->SetUseLegacyInputCurve(true);
+	NSInput->SetCanDeleteHoudiniNodes(false);
+	NSInput->SetUseLegacyInputCurve(true);
 
 	// TODO: Check?
-	NodeSyncInput->SetAssetNodeId(-1);
-	//NodeSyncInput->SetInputNodeId(UnrealContentNodeId);
+	NSInput->SetAssetNodeId(-1);
+	//NSInput->SetInputNodeId(UnrealContentNodeId);
 
 	// Input type? switch to world if actors in the selection ?
 	bool bOutBPModif = false;
-	NodeSyncInput->SetInputType(EHoudiniInputType::Geometry, bOutBPModif);
-	NodeSyncInput->SetName(TEXT("NodeSyncInput"));
+	NSInput->SetInputType(EHoudiniInputType::Geometry, bOutBPModif);
+	NSInput->SetName(TEXT("NodeSyncInput"));
 
 	return true;
 }
@@ -190,7 +191,7 @@ UHoudiniEditorSubsystem::SendWorldSelection()
 
 	// Input type? switch to world when sending from world? (necessary?)
 	//bool bOutBPModif = false;
-	//HoudiniSubsystem->NodeSyncOptions.NodeSyncInput->SetInputType(EHoudiniInputType::World, bOutBPModif);
+	//HoudiniSubsystem->NodeSyncInput->SetInputType(EHoudiniInputType::World, bOutBPModif);
 
 	HoudiniSubsystem->SendToHoudini(WorldSelection);
 }
@@ -284,23 +285,23 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 		}
 
 		// Get the NodeSync input from the Editor Subsystem
-		UHoudiniInput*& NodeSyncInput = HoudiniEditorSubsystem->NodeSyncOptions.NodeSyncInput;
-		if (!IsValid(NodeSyncInput))
+		UHoudiniInput* NSInput;
+		if (!HoudiniEditorSubsystem->GetNodeSyncInput(NSInput))
 		{
 			// TODO: Always call remove from root, even for failures! (use a lambda for returns)
-			//NodeSyncInput->RemoveFromRoot();
+			//NSInput->RemoveFromRoot();
 			return;
 		}
 
 		// Default input options
-		NodeSyncInput->SetCanDeleteHoudiniNodes(false);
-		NodeSyncInput->SetUseLegacyInputCurve(true);
+		NSInput->SetCanDeleteHoudiniNodes(false);
+		NSInput->SetUseLegacyInputCurve(true);
 		
 		// TODO: Check?
-		NodeSyncInput->SetAssetNodeId(-1);
-		NodeSyncInput->SetInputNodeId(UnrealContentNodeId);
+		NSInput->SetAssetNodeId(-1);
+		NSInput->SetInputNodeId(UnrealContentNodeId);
 
-		const FHoudiniInputObjectSettings InputSettings(NodeSyncInput);
+		const FHoudiniInputObjectSettings InputSettings(NSInput);
 
 		// For each selected Asset, create a HoudiniInputObject and send it to H
 		for (int32 Idx = 0; Idx < SelectedAssets.Num(); Idx++)
@@ -311,7 +312,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 				continue;
 
 			// Create an input object wrapper for the current object
-			UHoudiniInputObject * CurrentInputObject = UHoudiniInputObject::CreateTypedInputObject(CurrentObject, NodeSyncInput, FString::FromInt(Idx + 1), InputSettings);
+			UHoudiniInputObject * CurrentInputObject = UHoudiniInputObject::CreateTypedInputObject(CurrentObject, NSInput, FString::FromInt(Idx + 1), InputSettings);
 			if (!IsValid(CurrentInputObject))
 				continue;
 
@@ -342,7 +343,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 
 			// Send the HoudiniInputObject to H
 			if (!FHoudiniInputTranslator::UploadHoudiniInputObject(
-				NodeSyncInput, CurrentInputObject, CurrentActorTransform, CreatedNodeIds, false))
+				NSInput, CurrentInputObject, CurrentActorTransform, CreatedNodeIds, false))
 			{
 				HOUDINI_LOG_WARNING(TEXT("HoudiniNodeSync: Failed to send %s to %s."), *CurrentInputObject->GetName(), *SendNodePath);
 				continue;
@@ -364,7 +365,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 		}
 
 		// TODO: Always call remove from root, even for failures! (use a lambda for returns)
-		//NodeSyncInput->RemoveFromRoot();
+		//NSInput->RemoveFromRoot();
 	}
 
 	// TODO: Improve me! handle failures!

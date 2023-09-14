@@ -567,8 +567,8 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 	
 	// Get the NodeSync input from the editor subsystem
 	UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
-	UHoudiniInput* NodeSyncInput = HoudiniEditorSubsystem ? HoudiniEditorSubsystem->GetNodeSyncInput() : nullptr;
-	if (!IsValid(NodeSyncInput))
+	UHoudiniInput* NodeSyncInput = nullptr;
+	if (!HoudiniEditorSubsystem || !HoudiniEditorSubsystem->GetNodeSyncInput(NodeSyncInput))
 		return;
 
 	bool bUselessBool;
