@@ -1796,6 +1796,11 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 		if (SimpleColliders.BoxElems.Num() + SimpleColliders.SphereElems.Num() + SimpleColliders.SphylElems.Num()
 				+ SimpleColliders.ConvexElems.Num() > 0)
 		{
+			HAPI_NodeId CollisionMergeNodeId = -1;
+			int32 NextCollisionMergeIndex = 0;
+			HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
+				InputObjectNodeId, TEXT("merge"), TEXT("simple_colliders_merge") + FString::FromInt(NextMergeIndex), false, &CollisionMergeNodeId), false);
+
 			// Export BOX colliders
 			for (auto& CurBox : SimpleColliders.BoxElems)
 			{
@@ -1805,7 +1810,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 
 				HAPI_NodeId BoxNodeId = -1;
 				if (!CreateInputNodeForBox(
-					BoxNodeId, InputObjectNodeId, NextMergeIndex,
+					BoxNodeId, InputObjectNodeId, NextCollisionMergeIndex,
 					BoxCenter, BoxExtent, BoxRotation))
 					continue;
 
@@ -1815,9 +1820,9 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 				// Connect the Box node to the merge node.
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 					FHoudiniEngine::Get().GetSession(),
-					NewNodeId, NextMergeIndex, BoxNodeId, 0), false);
+					CollisionMergeNodeId, NextCollisionMergeIndex, BoxNodeId, 0), false);
 
-				NextMergeIndex++;
+				NextCollisionMergeIndex++;
 			}
 
 			// Export SPHERE colliders
@@ -1825,7 +1830,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 			{
 				HAPI_NodeId SphereNodeId = -1;
 				if (!CreateInputNodeForSphere(
-					SphereNodeId, InputObjectNodeId, NextMergeIndex,
+					SphereNodeId, InputObjectNodeId, NextCollisionMergeIndex,
 					CurSphere.Center, CurSphere.Radius))
 					continue;
 
@@ -1835,9 +1840,9 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 				// Connect the Sphere node to the merge node.
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 					FHoudiniEngine::Get().GetSession(),
-					NewNodeId, NextMergeIndex, SphereNodeId, 0), false);
+					CollisionMergeNodeId, NextCollisionMergeIndex, SphereNodeId, 0), false);
 
-				NextMergeIndex++;
+				NextCollisionMergeIndex++;
 			}
 
 			// Export CAPSULE colliders
@@ -1845,7 +1850,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 			{
 				HAPI_NodeId SphylNodeId = -1;
 				if (!CreateInputNodeForSphyl(
-					SphylNodeId, InputObjectNodeId, NextMergeIndex,
+					SphylNodeId, InputObjectNodeId, NextCollisionMergeIndex,
 					CurSphyl.Center, CurSphyl.Rotation, CurSphyl.Radius, CurSphyl.Length))
 					continue;
 
@@ -1855,9 +1860,9 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 				// Connect the capsule node to the merge node.
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 					FHoudiniEngine::Get().GetSession(),
-					NewNodeId, NextMergeIndex, SphylNodeId, 0), false);
+					CollisionMergeNodeId, NextCollisionMergeIndex, SphylNodeId, 0), false);
 
-				NextMergeIndex++;
+				NextCollisionMergeIndex++;
 			}
 
 			// Export CONVEX colliders
@@ -1865,7 +1870,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 			{
 				HAPI_NodeId ConvexNodeId = -1;
 				if (!CreateInputNodeForConvex(
-					ConvexNodeId, InputObjectNodeId, NextMergeIndex, CurConvex))
+					ConvexNodeId, InputObjectNodeId, NextCollisionMergeIndex, CurConvex))
 					continue;
 
 				if (ConvexNodeId < 0)
@@ -1874,9 +1879,9 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 				// Connect the capsule node to the merge node.
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 					FHoudiniEngine::Get().GetSession(),
-					NewNodeId, NextMergeIndex, ConvexNodeId, 0), false);
+					CollisionMergeNodeId, NextCollisionMergeIndex, ConvexNodeId, 0), false);
 
-				NextMergeIndex++;
+				NextCollisionMergeIndex++;
 			}
 
 			// Create a new primitive attribute where each value contains the Physical Material
@@ -1898,16 +1903,12 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 					return false;
 				}
 
-				// Connect the new node to the previous node. Set NewNodeId to the attrib node
+				// Connect the new node to the previous node. Set CollisionMergeNodeId to the attrib node
 				// as is this the final output of the chain.
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 					FHoudiniEngine::Get().GetSession(),
-					AttribWrangleNodeId, 0, NewNodeId, 0), false);
-				NewNodeId = AttribWrangleNodeId;
-
-				// Set the wrangle's display flag
-				HOUDINI_CHECK_ERROR_RETURN(
-					FHoudiniApi::SetNodeDisplay(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId, true), false);
+					AttribWrangleNodeId, 0, CollisionMergeNodeId, 0), false);
+				CollisionMergeNodeId = AttribWrangleNodeId;
 
 				// Set the wrangle's class to primitives
 				HOUDINI_CHECK_ERROR_RETURN(
@@ -1935,6 +1936,12 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 						*FHoudiniEngineUtils::GetErrorDescription());
 				}
 			}
+
+			// Connect our collision merge node (or the phys mat attrib wrangle) to the main merge node
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+				FHoudiniEngine::Get().GetSession(),
+				NewNodeId, NextMergeIndex, CollisionMergeNodeId, 0), false);
+			NextMergeIndex++;
 		}
 	}
 
