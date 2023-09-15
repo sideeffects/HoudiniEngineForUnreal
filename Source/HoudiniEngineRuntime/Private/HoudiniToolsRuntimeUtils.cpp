@@ -37,7 +37,7 @@
 #include "EditorFramework/AssetImportData.h"
 #include "Engine/Texture2D.h"
 #include "HAL/FileManager.h"
-#include "HAL/PlatformFilemanager.h"
+#include "HAL/PlatformFileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
