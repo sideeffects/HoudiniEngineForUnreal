@@ -69,8 +69,6 @@ UHoudiniInputObject::UHoudiniInputObject(const FObjectInitializer& ObjectInitial
 	: Super(ObjectInitializer)
 	, Transform(FTransform::Identity)
 	, Type(EHoudiniInputObjectType::Invalid)
-	, InputNodeId(-1)
-	, InputObjectNodeId(-1)
 	, bHasChanged(false)
 	, bNeedsToTriggerUpdate(false)
 	, bTransformChanged(false)
@@ -80,6 +78,9 @@ UHoudiniInputObject::UHoudiniInputObject(const FObjectInitializer& ObjectInitial
 	, bImportAsReferenceMaterialEnabled(false)
 	, MaterialReferences()
 	, bCanDeleteHoudiniNodes(true)
+	, bInputNodeHandleOverridesNodeIds(true)
+	, InputNodeId(-1)
+	, InputObjectNodeId(-1)
 {
 	Guid = FGuid::NewGuid();
 }
@@ -215,7 +216,7 @@ UHoudiniInputHoudiniAsset::UHoudiniInputHoudiniAsset(const FObjectInitializer& O
 	: Super(ObjectInitializer)
 	, AssetOutputIndex(-1)
 {
-
+	bInputNodeHandleOverridesNodeIds = false;
 }
 
 //
@@ -259,6 +260,82 @@ UObject*
 UHoudiniInputObject::GetObject() const
 {
 	return InputObject.LoadSynchronous();
+}
+
+void
+UHoudiniInputObject::SetInputNodeId(const int32 InInputNodeId)
+{
+	// Only set the node id if the ref counted system is not used.
+	if (bInputNodeHandleOverridesNodeIds && FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
+		return;
+	InputNodeId = InInputNodeId;
+}
+
+int32
+UHoudiniInputObject::GetInputNodeId() const
+{
+	// If the ref counted system is enabled then we return the node id via the handle, otherwise return the id stored
+	// on this object
+
+	if (!bInputNodeHandleOverridesNodeIds || !FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
+		return InputNodeId;
+
+	if (!InputNodeHandle.IsValid())
+		return -1;
+
+	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+	if (!Manager)
+		return -1;
+
+	FUnrealObjectInputNode const* Node = nullptr;
+	if (!Manager->GetNode(InputNodeHandle, Node))
+		return -1;
+	if (!Node)
+		return -1;
+
+	return Node->GetHAPINodeId();
+}
+
+void
+UHoudiniInputObject::SetInputObjectNodeId(const int32 InInputObjectNodeId)
+{
+	// Only set the node id if the ref counted system is not used.
+	if (bInputNodeHandleOverridesNodeIds && FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
+		return;
+	InputObjectNodeId = InInputObjectNodeId;
+}
+
+int32
+UHoudiniInputObject::GetInputObjectNodeId() const
+{
+	// If the ref counted system is enabled then we return the node id via the handle, otherwise return the id stored
+	// on this object
+
+	if (!bInputNodeHandleOverridesNodeIds || !FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
+		return InputObjectNodeId;
+
+	if (!InputNodeHandle.IsValid())
+		return -1;
+
+	const EUnrealObjectInputNodeType NodeType = InputNodeHandle.GetIdentifier().GetNodeType();
+	if (NodeType != EUnrealObjectInputNodeType::Leaf && NodeType != EUnrealObjectInputNodeType::Reference)
+		return -1;
+
+	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+	if (!Manager)
+		return -1;
+
+	FUnrealObjectInputNode const* Node = nullptr;
+	if (!Manager->GetNode(InputNodeHandle, Node))
+		return -1;
+	if (!Node)
+		return -1;
+
+	FUnrealObjectInputLeafNode const* const LeafNode = static_cast<FUnrealObjectInputLeafNode const*>(Node);
+	if (!LeafNode)
+		return -1;
+
+	return LeafNode->GetObjectHAPINodeId();
 }
 
 const TArray<FString>&
@@ -688,8 +765,8 @@ UHoudiniInputHoudiniAsset::Create(UObject * InObject, UObject* InOuter, const FS
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::HoudiniAssetComponent;
 
-	HoudiniInputObject->InputNodeId = InHoudiniAssetComponent->GetAssetId();
-	HoudiniInputObject->InputObjectNodeId = InHoudiniAssetComponent->GetAssetId();
+	HoudiniInputObject->SetInputNodeId(InHoudiniAssetComponent->GetAssetId());
+	HoudiniInputObject->SetInputObjectNodeId(InHoudiniAssetComponent->GetAssetId());
 
 	HoudiniInputObject->Update(InObject);
 	HoudiniInputObject->bHasChanged = true;
@@ -1449,8 +1526,8 @@ UHoudiniInputHoudiniAsset::Update(UObject * InObject)
 	if (HAC)
 	{
 		// TODO: Notify HAC that we're a downstream?
-		InputNodeId = HAC->GetAssetId();
-		InputObjectNodeId = HAC->GetAssetId();
+		SetInputNodeId(HAC->GetAssetId());
+		SetInputObjectNodeId(HAC->GetAssetId());
 
 		// TODO: Allow selection of the asset output
 		AssetOutputIndex = 0;
@@ -1545,7 +1622,7 @@ UHoudiniInputActor::Update(UObject * InObject)
 				if (!IsValid(CompObj))
 				{
 					// If it's not, mark it for deletion
-					if ((CurActorComp->InputNodeId > 0) || (CurActorComp->InputObjectNodeId > 0))
+					if ((CurActorComp->GetInputNodeId() > 0) || (CurActorComp->GetInputObjectNodeId() > 0))
 					{
 						CurActorComp->InvalidateData();
 					}
@@ -1929,7 +2006,7 @@ UHoudiniInputBlueprint::Update(UObject* InObject)
 				if (!IsValid(CompObj))
 				{
 					// If it's not, mark it for deletion
-					if ((CurBPComp->InputNodeId > 0) || (CurBPComp->InputObjectNodeId > 0))
+					if ((CurBPComp->GetInputNodeId() > 0) || (CurBPComp->GetInputObjectNodeId() > 0))
 					{
 						CurBPComp->InvalidateData();
 					}

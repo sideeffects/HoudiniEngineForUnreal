@@ -34,6 +34,12 @@
 #include "UnrealObjectInputRuntimeTypes.h"
 
 
+struct FUnrealObjectInputBackLinkReferences
+{
+	TMap<FUnrealObjectInputIdentifier, int32> NumReferencesBy;
+};
+
+
 /**
  * Implementation of IUnrealObjectInputManager.
  *
@@ -49,8 +55,8 @@ public:
 
 	virtual bool FindNode(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle) const override;
 
-	virtual inline bool Contains(const FUnrealObjectInputHandle& InHandle) const override { return InputNodes.Contains(InHandle.GetIdentifier()); }
-	virtual inline bool Contains(const FUnrealObjectInputIdentifier& InIdentifier) const override { return InputNodes.Contains(InIdentifier); }
+	virtual bool Contains(const FUnrealObjectInputHandle& InHandle) const override { return InputNodes.Contains(InHandle.GetIdentifier()); }
+	virtual bool Contains(const FUnrealObjectInputIdentifier& InIdentifier) const override { return InputNodes.Contains(InIdentifier); }
 	
 	virtual bool GetNode(const FUnrealObjectInputHandle& InHandle, const FUnrealObjectInputNode*& OutNode) const override { return GetNodeByIdentifier(InHandle.GetIdentifier(), OutNode); } 
 	virtual bool GetNode(const FUnrealObjectInputHandle& InHandle, FUnrealObjectInputNode*& OutNode) const override { return GetNodeByIdentifier(InHandle.GetIdentifier(), OutNode); } 
@@ -69,14 +75,16 @@ public:
 		const int32 InObjectNodeId,
 		const int32 InNodeId,
 		FUnrealObjectInputHandle& OutHandle,
-		TSet<FUnrealObjectInputHandle> const* const InReferencedNodes=nullptr) override;
+		TSet<FUnrealObjectInputHandle> const* const InReferencedNodes=nullptr,
+		const int32 InReferencesConnectToNodeId=INDEX_NONE) override;
 	virtual bool AddReferenceNode(
 		UObject const* const InObject,
 		const FUnrealObjectInputOptions& InOptions,
 		const int32 InObjectNodeId,
 		const int32 InNodeId,
 		FUnrealObjectInputHandle& OutHandle,
-		TSet<FUnrealObjectInputHandle> const* const InReferencedNodes=nullptr) override;
+		TSet<FUnrealObjectInputHandle> const* const InReferencedNodes=nullptr,
+		const int32 InReferencesConnectToNodeId=INDEX_NONE) override;
 
 	virtual bool AddLeaf(
 		const FUnrealObjectInputIdentifier& InIdentifier,
@@ -97,9 +105,10 @@ public:
 
 	virtual bool UpdateReferenceNode(
 		const FUnrealObjectInputIdentifier& InIdentifier,
-		int32 const* const InObjectNodeId=nullptr,
-		int32 const* const InNodeId=nullptr,
+		const TOptional<int32> InObjectNodeId=TOptional<int32>(),
+		const TOptional<int32> InNodeId=TOptional<int32>(),
 		TSet<FUnrealObjectInputHandle> const* const InReferencedNodes=nullptr,
+		const TOptional<int32> InReferencesConnectToNodeId=TOptional<int32>(),
 		const bool bInClearDirtyFlag=true) override;
 
 	virtual bool UpdateLeaf(
@@ -110,19 +119,24 @@ public:
 
 	virtual FString GetDefaultNodeName(const FUnrealObjectInputIdentifier& InIdentifier) const override;
 
+	virtual bool GetUniqueHoudiniNodeId(const int32 InHAPINodeId, int32& OutUniqueHoudiniNodeId) const override;
+	
 	virtual bool AreHAPINodesValid(const FUnrealObjectInputHandle& InHandle) const override;
 	virtual bool AreHAPINodesValid(const FUnrealObjectInputIdentifier& InIdentifier) const override;
-    virtual bool IsHAPINodeValid(const int32 InNodeId) const override;
+	virtual bool IsHAPINodeValid(const FUnrealObjectInputHAPINodeId& InNodeId) const override;
 
-    virtual bool DeleteHAPINode(const int32 InNodeId) const override;
+	virtual bool DeleteHAPINode(const FUnrealObjectInputHAPINodeId& InNodeId) const override;
+	virtual bool SetHAPINodeDisplay(const FUnrealObjectInputHAPINodeId& InNodeId, const bool bInOnOff) const override;
 	virtual bool SetHAPINodeDisplay(const int32 InNodeId, const bool bInOnOff) const override;
+	virtual bool GetHAPINodeIds(const FUnrealObjectInputIdentifier& InIdentifier, TArray<FUnrealObjectInputHAPINodeId>& OutNodeIds) const override;
 	virtual bool GetHAPINodeIds(const FUnrealObjectInputIdentifier& InIdentifier, TArray<int32>& OutNodeIds) const override;
+	virtual bool GetAllHAPINodeIds(TArray<FUnrealObjectInputHAPINodeId>& OutNodeIds) const override;
 	virtual bool GetAllHAPINodeIds(TArray<int32>& OutNodeIds) const override;
 	
 	virtual bool EnsureParentsExist(
 		const FUnrealObjectInputIdentifier& InIdentifier,
 		FUnrealObjectInputHandle& OutParentHandle,
-		const bool& bInputNodesCanBeDeleted);
+		const bool& bInputNodesCanBeDeleted) override;
 
 	virtual bool IsDirty(const FUnrealObjectInputIdentifier& InIdentifier) const override;
 	virtual bool MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier, bool bInAlsoDirtyReferencedNodes) override;
@@ -130,10 +144,19 @@ public:
 
 	virtual bool Clear() override;
 
+	virtual FUnrealObjectInputHAPINodeId GetWorldOriginNodeId(const bool bInCreateIfMissingOrInvalid=true) override;
 	virtual int32 GetWorldOriginHAPINodeId(const bool bInCreateIfMissingOrInvalid=true) override;
 
 	virtual bool AddRef(const FUnrealObjectInputIdentifier& InIdentifier) override;
 	virtual bool RemoveRef(const FUnrealObjectInputIdentifier& InIdentifier) override;
+
+	virtual bool AddBackLink(const FUnrealObjectInputIdentifier& InReferencedIdentifier, const FUnrealObjectInputIdentifier& InReferencedBy) override;
+	virtual bool RemoveBackLink(const FUnrealObjectInputIdentifier& InReferencedIdentifier, const FUnrealObjectInputIdentifier& InReferencedBy) override;
+	virtual bool GetReferencedBy(const FUnrealObjectInputIdentifier& InReferencedIdentifier, TSet<FUnrealObjectInputIdentifier>& OutReferencedBy) const override;
+
+	virtual FOnNodeAddUpdateDelete& GetOnNodeAddedDelegate() override { return OnNodeAddedDelegate; }
+	virtual FOnNodeAddUpdateDelete& GetOnNodeUpdatedDelegate() override { return OnNodeUpdatedDelegate; }
+	virtual FOnNodeAddUpdateDelete& GetOnNodeDeletedDelegate() override { return OnNodeDeletedDelegate; }
 
 protected:
 	/** Helper function to get FUnrealObjectInputNode entries by identifier (FUnrealObjectInputIdentifier). */
@@ -147,5 +170,12 @@ private:
 	TMap<FUnrealObjectInputIdentifier, FUnrealObjectInputNode*> InputNodes;
 
 	/** The HAPI Node id of the world origin null, use for transforms when object merging. */
-	HAPI_NodeId WorldOriginNodeId;
+	FUnrealObjectInputHAPINodeId WorldOriginNodeId;
+
+	/** Map of a node identifier to data about nodes that reference it. */
+	TMap<FUnrealObjectInputIdentifier, FUnrealObjectInputBackLinkReferences> BackLinks;
+
+	FOnNodeAddUpdateDelete OnNodeAddedDelegate;
+	FOnNodeAddUpdateDelete OnNodeUpdatedDelegate;
+	FOnNodeAddUpdateDelete OnNodeDeletedDelegate;
 };
