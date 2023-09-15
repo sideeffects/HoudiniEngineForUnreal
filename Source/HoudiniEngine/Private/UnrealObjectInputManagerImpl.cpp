@@ -34,7 +34,7 @@
 #include "UnrealObjectInputRuntimeTypes.h"
 
 FUnrealObjectInputManagerImpl::FUnrealObjectInputManagerImpl()
-	: WorldOriginNodeId(-1)
+	: WorldOriginNodeId()
 {
 }
 
@@ -111,6 +111,10 @@ FUnrealObjectInputManagerImpl::AddContainer(const FUnrealObjectInputIdentifier& 
 	InputNodes.Add(InIdentifier, Node);
 
 	OutHandle = FUnrealObjectInputHandle(InIdentifier);
+
+	if (OnNodeAddedDelegate.IsBound())
+		OnNodeAddedDelegate.Broadcast(InIdentifier);
+
 	return true;
 }
 
@@ -151,7 +155,8 @@ FUnrealObjectInputManagerImpl::AddReferenceNode(
 	const int32 InObjectNodeId,
 	const int32 InNodeId,
 	FUnrealObjectInputHandle& OutHandle,
-	TSet<FUnrealObjectInputHandle> const* const InReferencedNodes)
+	TSet<FUnrealObjectInputHandle> const* const InReferencedNodes,
+	const int32 InReferencesConnectToNodeId)
 {
 	if (!InIdentifier.IsValid())
 		return false;
@@ -167,11 +172,15 @@ FUnrealObjectInputManagerImpl::AddReferenceNode(
 		return false;
 	
 	FUnrealObjectInputReferenceNode* Node = InReferencedNodes
-		? new FUnrealObjectInputReferenceNode(InIdentifier, ParentHandle, InObjectNodeId, InNodeId, *InReferencedNodes)
-		: new FUnrealObjectInputReferenceNode(InIdentifier, ParentHandle, InObjectNodeId, InNodeId);
+		? new FUnrealObjectInputReferenceNode(InIdentifier, ParentHandle, InObjectNodeId, InNodeId, *InReferencedNodes, InReferencesConnectToNodeId)
+		: new FUnrealObjectInputReferenceNode(InIdentifier, ParentHandle, InObjectNodeId, InNodeId, InReferencesConnectToNodeId);
 	InputNodes.Add(InIdentifier, Node);
 
 	OutHandle = FUnrealObjectInputHandle(InIdentifier);
+
+	if (OnNodeAddedDelegate.IsBound())
+		OnNodeAddedDelegate.Broadcast(InIdentifier);
+
 	return true;
 }
 
@@ -182,11 +191,12 @@ FUnrealObjectInputManagerImpl::AddReferenceNode(
 	const int32 InObjectNodeId,
 	const int32 InNodeId,
 	FUnrealObjectInputHandle& OutHandle,
-	TSet<FUnrealObjectInputHandle> const* const InReferencedNodes)
+	TSet<FUnrealObjectInputHandle> const* const InReferencedNodes,
+	const int32 InReferencesConnectToNodeId)
 {
 	constexpr bool bIsLeaf = false;
 	const FUnrealObjectInputIdentifier Identifier(InObject, InOptions, bIsLeaf);
-	return AddReferenceNode(Identifier, InObjectNodeId, InNodeId, OutHandle, InReferencedNodes);
+	return AddReferenceNode(Identifier, InObjectNodeId, InNodeId, OutHandle, InReferencedNodes, InReferencesConnectToNodeId);
 }
 
 bool
@@ -213,6 +223,10 @@ FUnrealObjectInputManagerImpl::AddLeaf(
 	InputNodes.Add(InIdentifier, Node);
 
 	OutHandle = FUnrealObjectInputHandle(InIdentifier);
+
+	if (OnNodeAddedDelegate.IsBound())
+		OnNodeAddedDelegate.Broadcast(InIdentifier);
+	
 	return true;
 }
 
@@ -250,11 +264,14 @@ FUnrealObjectInputManagerImpl::UpdateContainer(
 	if (EnsureParentsExist(InIdentifier, ParentHandle, true))
 		ContainerNode->SetParent(ParentHandle);
 
-	ContainerNode->SetNodeId(InNodeId);
+	ContainerNode->SetHAPINodeId(InNodeId);
 
 	// Clear the dirty flag if set (based on bInClearDirtyFlag)
 	if (bInClearDirtyFlag)
 		ContainerNode->ClearDirtyFlag();
+
+	if (OnNodeUpdatedDelegate.IsBound())
+		OnNodeUpdatedDelegate.Broadcast(InIdentifier);
 
 	return true;
 }
@@ -262,9 +279,10 @@ FUnrealObjectInputManagerImpl::UpdateContainer(
 bool
 FUnrealObjectInputManagerImpl::UpdateReferenceNode(
 	const FUnrealObjectInputIdentifier& InIdentifier,
-	int32 const* const InObjectNodeId,
-	int32 const* const InNodeId,
+	const TOptional<int32> InObjectNodeId,
+	const TOptional<int32> InNodeId,
 	TSet<FUnrealObjectInputHandle> const* const InReferencedNodes,
+	const TOptional<int32> InReferencesConnectToNodeId,
 	const bool bInClearDirtyFlag)
 {
 	if (!InIdentifier.IsValid() || InIdentifier.GetNodeType() != EUnrealObjectInputNodeType::Reference)
@@ -282,10 +300,25 @@ FUnrealObjectInputManagerImpl::UpdateReferenceNode(
 	if (EnsureParentsExist(InIdentifier, ParentHandle, true))
 		ReferenceNode->SetParent(ParentHandle);
 
-	if (InObjectNodeId)
-		ReferenceNode->SetObjectNodeId(*InObjectNodeId);
-	if (InNodeId)
-		ReferenceNode->SetNodeId(*InNodeId);
+	bool bSuccess = true;
+	if (InObjectNodeId.IsSet() && InObjectNodeId.GetValue() >= 0)
+	{
+		if (!ReferenceNode->SetObjectHAPINodeId(InObjectNodeId.GetValue()))
+			bSuccess = false;
+	}
+	if (InNodeId.IsSet() && InNodeId.GetValue() >= 0)
+	{
+		if (!ReferenceNode->SetHAPINodeId(InNodeId.GetValue()))
+			bSuccess = false;
+	}
+	if (InReferencesConnectToNodeId.IsSet())
+	{
+		const int32 ReferencesConnectToNodeId = InReferencesConnectToNodeId.GetValue(); 
+		if (ReferencesConnectToNodeId < 0)
+			ReferenceNode->ResetReferencesConnectToNodeId();
+		else
+			ReferenceNode->SetReferencesConnectToNodeId(ReferencesConnectToNodeId);
+	}
 	if (InReferencedNodes)
 		ReferenceNode->SetReferencedNodes(*InReferencedNodes);
 
@@ -293,7 +326,10 @@ FUnrealObjectInputManagerImpl::UpdateReferenceNode(
 	if (bInClearDirtyFlag)
 		ReferenceNode->ClearDirtyFlag();
 
-	return true;
+	if (OnNodeUpdatedDelegate.IsBound())
+		OnNodeUpdatedDelegate.Broadcast(InIdentifier);
+
+	return bSuccess;
 }
 
 bool
@@ -318,14 +354,20 @@ FUnrealObjectInputManagerImpl::UpdateLeaf(
 	if (EnsureParentsExist(InIdentifier, ParentHandle, true))
 		LeafNode->SetParent(ParentHandle);
 
-	LeafNode->SetObjectNodeId(InObjectNodeId);
-	LeafNode->SetNodeId(InNodeId);
+	bool bSuccess = true;
+	if (!LeafNode->SetObjectHAPINodeId(InObjectNodeId))
+		bSuccess = false;
+	if (!LeafNode->SetHAPINodeId(InNodeId))
+		bSuccess = false;
 
 	// Clear the dirty flag if set (based on bInClearDirtyFlag)
 	if (bInClearDirtyFlag)
 		LeafNode->ClearDirtyFlag();
 	
-	return true;
+	if (OnNodeUpdatedDelegate.IsBound())
+		OnNodeUpdatedDelegate.Broadcast(InIdentifier);
+
+	return bSuccess;
 }
 
 bool
@@ -366,7 +408,7 @@ FUnrealObjectInputManagerImpl::EnsureParentsExist(
 	{
 		const FUnrealObjectInputNode* Node = nullptr;
 		if (GetNode(GrandParentHandle, Node))
-			GrandParentNodeId = Node->GetNodeId();
+			GrandParentNodeId = Node->GetHAPINodeId();
 	}
 
 	// Create an obj subnet
@@ -462,7 +504,8 @@ FUnrealObjectInputManagerImpl::ClearDirtyFlag(const FUnrealObjectInputIdentifier
 	return true;
 }
 
-bool FUnrealObjectInputManagerImpl::GetHAPINodeIds(const FUnrealObjectInputIdentifier& InIdentifier, TArray<int32>& OutNodeIds) const
+bool
+FUnrealObjectInputManagerImpl::GetHAPINodeIds(const FUnrealObjectInputIdentifier& InIdentifier, TArray<FUnrealObjectInputHAPINodeId>& OutNodeIds) const
 {
 	FUnrealObjectInputNode* Node = nullptr;
 	if (!GetNodeByIdentifier(InIdentifier, Node))
@@ -475,7 +518,43 @@ bool FUnrealObjectInputManagerImpl::GetHAPINodeIds(const FUnrealObjectInputIdent
 	return true;
 }
 
-bool FUnrealObjectInputManagerImpl::GetAllHAPINodeIds(TArray<int32>& OutNodeIds) const
+bool
+FUnrealObjectInputManagerImpl::GetHAPINodeIds(const FUnrealObjectInputIdentifier& InIdentifier, TArray<int32>& OutNodeIds) const
+{
+	FUnrealObjectInputNode* Node = nullptr;
+	if (!GetNodeByIdentifier(InIdentifier, Node))
+		return false;
+	if (!Node)
+		return false;
+
+	Node->GetHAPINodeIds(OutNodeIds);
+
+	return true;
+}
+
+bool
+FUnrealObjectInputManagerImpl::GetAllHAPINodeIds(TArray<FUnrealObjectInputHAPINodeId>& OutNodeIds) const
+{
+	const int32 NumEntries = InputNodes.Num();
+	// Estimate 2 node ids per entry
+	OutNodeIds.Reserve(2 * NumEntries);
+	TArray<FUnrealObjectInputHAPINodeId> NodeIds;
+	for (const auto& Entry : InputNodes)
+	{
+		FUnrealObjectInputNode const* const Node = Entry.Value;
+		if (!Node)
+			continue;
+		if (!NodeIds.IsEmpty())
+			NodeIds.Reset();
+		Node->GetHAPINodeIds(NodeIds);
+		OutNodeIds.Append(NodeIds);
+	}
+
+	return true;
+}
+
+bool
+FUnrealObjectInputManagerImpl::GetAllHAPINodeIds(TArray<int32>& OutNodeIds) const
 {
 	const int32 NumEntries = InputNodes.Num();
 	// Estimate 2 node ids per entry
@@ -512,24 +591,33 @@ FUnrealObjectInputManagerImpl::Clear()
 	return true;
 }
 
-int32
-FUnrealObjectInputManagerImpl::GetWorldOriginHAPINodeId(const bool bInCreateIfMissingOrInvalid)
+FUnrealObjectInputHAPINodeId
+FUnrealObjectInputManagerImpl::GetWorldOriginNodeId(const bool bInCreateIfMissingOrInvalid)
 {
-	if (FHoudiniEngineUtils::IsHoudiniNodeValid(WorldOriginNodeId))
+	static const FUnrealObjectInputHAPINodeId InvalidNode;
+	
+	if (WorldOriginNodeId.IsValid())
 		return WorldOriginNodeId;
 
 	if (!bInCreateIfMissingOrInvalid)
-		return -1;
+		return InvalidNode;
 
 	// Create a OBJ/null with default/identity transform
 	constexpr HAPI_NodeId ParentNodeId = -1;
 	constexpr bool bCookOnCreation = true;
 	HAPI_NodeId NodeId = -1;
 	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniEngineUtils::CreateNode(ParentNodeId, TEXT("Object/null"), TEXT("WorldOrigin"), bCookOnCreation, &NodeId), -1);
+		FHoudiniEngineUtils::CreateNode(ParentNodeId, TEXT("Object/null"), TEXT("WorldOrigin"), bCookOnCreation, &NodeId), InvalidNode);
 
-	WorldOriginNodeId = NodeId;
+	WorldOriginNodeId.Set(NodeId);
 	return WorldOriginNodeId;
+}
+
+int32
+FUnrealObjectInputManagerImpl::GetWorldOriginHAPINodeId(const bool bInCreateIfMissingOrInvalid)
+{
+	const FUnrealObjectInputHAPINodeId NewWorldOriginNodeId = GetWorldOriginNodeId(bInCreateIfMissingOrInvalid);
+	return NewWorldOriginNodeId.GetHAPINodeId();
 }
 
 FString
@@ -579,6 +667,24 @@ FUnrealObjectInputManagerImpl::GetDefaultNodeName(const FUnrealObjectInputIdenti
 }
 
 bool
+FUnrealObjectInputManagerImpl::GetUniqueHoudiniNodeId(const int32 InHAPINodeId, int32& OutUniqueHoudiniNodeId) const
+{
+	if (InHAPINodeId < 0)
+		return false;
+
+	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
+	if (!Session)
+		return false;
+	
+	HAPI_NodeInfo NodeInfo;
+	FHoudiniApi::NodeInfo_Init(&NodeInfo);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(Session, InHAPINodeId, &NodeInfo), false);
+
+	OutUniqueHoudiniNodeId = NodeInfo.uniqueHoudiniNodeId;
+	return true;
+}
+
+bool
 FUnrealObjectInputManagerImpl::AreHAPINodesValid(const FUnrealObjectInputHandle& InHandle) const
 {
 	if (!InHandle.IsValid())
@@ -598,15 +704,47 @@ FUnrealObjectInputManagerImpl::AreHAPINodesValid(const FUnrealObjectInputIdentif
 }
 
 bool
-FUnrealObjectInputManagerImpl::IsHAPINodeValid(const int32 InNodeId) const
+FUnrealObjectInputManagerImpl::IsHAPINodeValid(const FUnrealObjectInputHAPINodeId& InNodeId) const
 {
-	return FHoudiniEngineUtils::IsHoudiniNodeValid(InNodeId);
+	if (!InNodeId.IsSet())
+		return false;
+
+	const HAPI_NodeId NodeId = InNodeId.GetHAPINodeId();
+	
+	HAPI_NodeInfo NodeInfo;
+	FHoudiniApi::NodeInfo_Init(&NodeInfo);
+	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetNodeInfo(Session, NodeId, &NodeInfo))
+		return false;
+
+	if (InNodeId.GetUniqueHoudiniNodeId() != NodeInfo.uniqueHoudiniNodeId)
+		return false;
+
+	bool ValidationAnswer = false;
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::IsNodeValid(Session, NodeId, NodeInfo.uniqueHoudiniNodeId, &ValidationAnswer))
+		return false;
+	
+	return ValidationAnswer;
 }
 
 bool
-FUnrealObjectInputManagerImpl::DeleteHAPINode(const int32 InNodeId) const
+FUnrealObjectInputManagerImpl::DeleteHAPINode(const FUnrealObjectInputHAPINodeId& InNodeId) const
 {
-	return FHoudiniEngineUtils::DeleteHoudiniNode(InNodeId);
+	if (!InNodeId.IsValid())
+		return false;
+
+	return FHoudiniEngineUtils::DeleteHoudiniNode(InNodeId.GetHAPINodeId());
+}
+
+bool
+FUnrealObjectInputManagerImpl::SetHAPINodeDisplay(const FUnrealObjectInputHAPINodeId& InNodeId, const bool bInOnOff) const
+{
+	if (!InNodeId.IsValid())
+		return false;
+
+	HOUDINI_CHECK_ERROR_RETURN(
+		FHoudiniApi::SetNodeDisplay(FHoudiniEngine::Get().GetSession(), InNodeId.GetHAPINodeId(), bInOnOff), false);
+	return true;
 }
 
 bool
@@ -657,16 +795,81 @@ FUnrealObjectInputManagerImpl::RemoveRef(const FUnrealObjectInputIdentifier& InI
 		if (Node->AreHAPINodesValid())
 		{
 			// if (FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), Node->GetNodeId()) != HAPI_RESULT_SUCCESS)
-			if (Node->DeleteHAPINodes())
+			if (!Node->DeleteHAPINodes())
 			{
 				// Log if we could not delete the node
-				HOUDINI_LOG_WARNING(TEXT("Could not delete HAPI node: %d"), Node->GetNodeId());
+				HOUDINI_LOG_WARNING(TEXT("Could not delete HAPI node: %d"), Node->GetHAPINodeId());
 			}
 		}
 
 		InputNodes.Remove(InIdentifier);
 		delete Node;
 		Node = nullptr;
+
+		if (OnNodeDeletedDelegate.IsBound())
+			OnNodeDeletedDelegate.Broadcast(InIdentifier);
+	}
+
+	return true;
+}
+
+bool
+FUnrealObjectInputManagerImpl::AddBackLink(const FUnrealObjectInputIdentifier& InReferencedIdentifier, const FUnrealObjectInputIdentifier& InReferencedBy)
+{
+	if (!InReferencedIdentifier.IsValid() || !InReferencedBy.IsValid())
+		return false;
+
+	FUnrealObjectInputBackLinkReferences& ReferencesData = BackLinks.FindOrAdd(InReferencedIdentifier);
+	int32& NumReferences = ReferencesData.NumReferencesBy.FindOrAdd(InReferencedBy);
+	NumReferences++;
+
+	return true;
+}
+
+bool
+FUnrealObjectInputManagerImpl::RemoveBackLink(const FUnrealObjectInputIdentifier& InReferencedIdentifier, const FUnrealObjectInputIdentifier& InReferencedBy)
+{
+	if (!InReferencedIdentifier.IsValid())
+		return false;
+
+	FUnrealObjectInputBackLinkReferences* const ReferencesData = BackLinks.Find(InReferencedIdentifier);
+	if (!ReferencesData)
+		return false;
+
+	int32* NumReferences = ReferencesData->NumReferencesBy.Find(InReferencedBy);
+	if (!NumReferences)
+		return false;
+	
+	(*NumReferences) -= 1;
+	if (*NumReferences <= 0)
+	{
+		NumReferences = nullptr;
+		ReferencesData->NumReferencesBy.Remove(InReferencedBy);
+	}
+
+	return true;
+}
+
+bool
+FUnrealObjectInputManagerImpl::GetReferencedBy(const FUnrealObjectInputIdentifier& InReferencedIdentifier, TSet<FUnrealObjectInputIdentifier>& OutReferencedBy) const
+{
+	if (!InReferencedIdentifier.IsValid())
+		return false;
+
+	FUnrealObjectInputBackLinkReferences const* const ReferencesData = BackLinks.Find(InReferencedIdentifier);
+	if (!ReferencesData)
+		return false;
+
+	if (ReferencesData->NumReferencesBy.Num() <= 0)
+	{
+		OutReferencedBy.Reset();
+		return true;
+	}
+
+	OutReferencedBy.Empty(ReferencesData->NumReferencesBy.Num());
+	for (const auto& Pair : ReferencesData->NumReferencesBy)
+	{
+		OutReferencedBy.Add(Pair.Key);
 	}
 
 	return true;

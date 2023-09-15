@@ -66,12 +66,12 @@ public:
 	/** Get whether to use a primitive wrangle or point attribcreate. */
 	bool UsePrimWrangle() const { return bUsePrimWrangle; }
 
-	virtual bool Update(int32 InNodeIdToConnectTo) override;
+	virtual bool Update(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo) override;
 
 protected:
-	virtual bool UpdateAsPrimWrangle(int32 InNodeIdToConnectTo);
+	virtual bool UpdateAsPrimWrangle(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo);
 
-	virtual bool UpdateAsPointAttribCreate(int32 InNodeIdToConnectTo);
+	virtual bool UpdateAsPointAttribCreate(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo);
 
 private:
 	HAPI_NodeId EnsureHAPINodeExists(const HAPI_NodeId InParentNetworkNodeId);
@@ -108,7 +108,7 @@ public:
 	/** Getter for which class of attribute to create. */
 	HAPI_AttributeOwner GetAttributeOwner() const { return AttributeOwner; }
 
-	virtual bool Update(int32 InNodeIdToConnectTo) override;
+	virtual bool Update(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo) override;
 	
 private:
 	HAPI_NodeId EnsureHAPINodeExists(const HAPI_NodeId InParentNetworkNodeId);
@@ -136,7 +136,7 @@ public:
 	/** Get the actor to get the actor and level path from. */
 	AActor* GetActor() const { return Actor; }
 
-	virtual bool Update(int32 InNodeIdToConnectTo) override;
+	virtual bool Update(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo) override;
 
 private:
 	HAPI_NodeId EnsureHAPINodeExists(const HAPI_NodeId InParentNetworkNodeId);

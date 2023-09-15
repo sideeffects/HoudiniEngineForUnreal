@@ -15,36 +15,36 @@ EnsureHAPINodeExistsInternal(
 	const HAPI_NodeId InParentNetworkNodeId,
 	const FString& InOpTypeName,
 	const FString& InNodeName,
-	TArray<int32>& InHAPINodeIds,
+	TArray<FUnrealObjectInputHAPINodeId>& InHAPINodeIds,
 	const int32 InIndex)
 {
-	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
-		return INDEX_NONE;
-
 	// Check that InNodeIdToConnectTo is valid
-	if (!Manager->IsHAPINodeValid(InParentNetworkNodeId))
+	if (!FHoudiniEngineUtils::IsHoudiniNodeValid(InParentNetworkNodeId))
 		return false;
 
 	// Check if we already have a valid node, if not create it
-	HAPI_NodeId ExistingNodeId = InHAPINodeIds.IsValidIndex(InIndex) ? InHAPINodeIds[InIndex] : INDEX_NONE;
-	if (ExistingNodeId <= 0 || !Manager->IsHAPINodeValid(ExistingNodeId))
+	FUnrealObjectInputHAPINodeId ExistingNodeId;
+	if (InHAPINodeIds.IsValidIndex(InIndex))
+		ExistingNodeId = InHAPINodeIds[InIndex];
+	if (!ExistingNodeId.IsValid())
 	{
 		static constexpr bool bCookOnCreation = false;
+		HAPI_NodeId NewNodeId = -1;
 		if (FHoudiniEngineUtils::CreateNode(
-				InParentNetworkNodeId, InOpTypeName, InNodeName, bCookOnCreation, &ExistingNodeId) != HAPI_RESULT_SUCCESS)
+				InParentNetworkNodeId, InOpTypeName, InNodeName, bCookOnCreation, &NewNodeId) != HAPI_RESULT_SUCCESS)
 		{
 			// Failed to create the node.
 			HOUDINI_LOG_WARNING(
 				TEXT("Failed to create %s node: %s"), *InNodeName, *FHoudiniEngineUtils::GetErrorDescription());
 			return INDEX_NONE;
 		}
+		ExistingNodeId.Set(NewNodeId);
 		while (InHAPINodeIds.Num() <= InIndex)
-			InHAPINodeIds.Emplace(-1);
+			InHAPINodeIds.AddDefaulted();
 		InHAPINodeIds[InIndex] = ExistingNodeId;
 	}
 
-	return ExistingNodeId;
+	return ExistingNodeId.GetHAPINodeId();
 }
 
 
@@ -57,7 +57,7 @@ FUnrealObjectInputMaterialOverrides::EnsureHAPINodeExists(const HAPI_NodeId InPa
 }
 
 bool
-FUnrealObjectInputMaterialOverrides::UpdateAsPrimWrangle(const int32 InNodeIdToConnectTo)
+FUnrealObjectInputMaterialOverrides::UpdateAsPrimWrangle(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo)
 {
 	// If we don't have a valid mesh component destroy the nodes and return false
 	if (!IsValid(MeshComponent))
@@ -66,16 +66,15 @@ FUnrealObjectInputMaterialOverrides::UpdateAsPrimWrangle(const int32 InNodeIdToC
 		return false;
 	}
 
-	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
+	// Check that InNodeIdToConnectTo is valid
+	if (!InNodeIdToConnectTo.IsValid())
 		return false;
 
-	// Check that InNodeIdToConnectTo is valid
-	if (!Manager->IsHAPINodeValid(InNodeIdToConnectTo))
-		return false;
+	const HAPI_NodeId HAPINodeIdtoConnectTo = InNodeIdToConnectTo.GetHAPINodeId();
 	
 	// Check if we already have a valid node, if not create it
-	const HAPI_NodeId MaterialOverridesNodeId = EnsureHAPINodeExists(FHoudiniEngineUtils::HapiGetParentNodeId(InNodeIdToConnectTo));
+	const HAPI_NodeId MaterialOverridesNodeId = EnsureHAPINodeExists(
+		FHoudiniEngineUtils::HapiGetParentNodeId(HAPINodeIdtoConnectTo));
 	if (MaterialOverridesNodeId < 0)
 		return false;
 
@@ -84,7 +83,7 @@ FUnrealObjectInputMaterialOverrides::UpdateAsPrimWrangle(const int32 InNodeIdToC
 	// Connect our input to InNodeIdToConnectTo's output
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 		Session,
-		MaterialOverridesNodeId, 0, InNodeIdToConnectTo, 0), false);
+		MaterialOverridesNodeId, 0, HAPINodeIdtoConnectTo, 0), false);
 
 	// Set group to exclude applying the material overrides to collision geo
 	HAPI_ParmInfo GroupParmInfo;
@@ -165,7 +164,7 @@ s@unreal_material = "[" + itoa(material_slot) + "]" + material_overrides[materia
 
 
 bool
-FUnrealObjectInputMaterialOverrides::UpdateAsPointAttribCreate(int32 InNodeIdToConnectTo)
+FUnrealObjectInputMaterialOverrides::UpdateAsPointAttribCreate(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo)
 {
 	// If we don't have a valid mesh component destroy the nodes and return false
 	if (!IsValid(MeshComponent))
@@ -174,16 +173,15 @@ FUnrealObjectInputMaterialOverrides::UpdateAsPointAttribCreate(int32 InNodeIdToC
 		return false;
 	}
 
-	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
+	// Check that InNodeIdToConnectTo is valid
+	if (!InNodeIdToConnectTo.IsValid())
 		return false;
 
-	// Check that InNodeIdToConnectTo is valid
-	if (!Manager->IsHAPINodeValid(InNodeIdToConnectTo))
-		return false;
+	const HAPI_NodeId HAPINodeIdToConnectTo = InNodeIdToConnectTo.GetHAPINodeId();
 	
 	// Check if we already have a valid node, if not create it
-	const HAPI_NodeId MaterialOverridesNodeId = EnsureHAPINodeExists(FHoudiniEngineUtils::HapiGetParentNodeId(InNodeIdToConnectTo));
+	const HAPI_NodeId MaterialOverridesNodeId = EnsureHAPINodeExists(
+		FHoudiniEngineUtils::HapiGetParentNodeId(HAPINodeIdToConnectTo));
 	if (MaterialOverridesNodeId < 0)
 		return false;
 
@@ -192,7 +190,7 @@ FUnrealObjectInputMaterialOverrides::UpdateAsPointAttribCreate(int32 InNodeIdToC
 	// Connect our input to InNodeIdToConnectTo's output
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 		Session,
-		MaterialOverridesNodeId, 0, InNodeIdToConnectTo, 0), false);
+		MaterialOverridesNodeId, 0, HAPINodeIdToConnectTo, 0), false);
 
 	// Get the default material for in case we encounter invalid materials
 	UMaterialInterface const* const DefaultMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
@@ -255,7 +253,7 @@ FUnrealObjectInputMaterialOverrides::SetUsePrimWrangle(const bool bInUsePrimWran
 
 
 bool
-FUnrealObjectInputMaterialOverrides::Update(int32 InNodeIdToConnectTo)
+FUnrealObjectInputMaterialOverrides::Update(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo)
 {
 	// If we don't have a valid mesh component, destroy all nodes and return false
 	if (!IsValid(MeshComponent))
@@ -311,14 +309,10 @@ FUnrealObjectInputPhysicalMaterialOverride::EnsureHAPINodeExists(const HAPI_Node
 
 
 bool
-FUnrealObjectInputPhysicalMaterialOverride::Update(int32 InNodeIdToConnectTo)
+FUnrealObjectInputPhysicalMaterialOverride::Update(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo)
 {
-	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
-		return false;
-
 	// Check that InNodeIdToConnectTo is valid
-	if (!Manager->IsHAPINodeValid(InNodeIdToConnectTo))
+	if (!InNodeIdToConnectTo.IsValid())
 		return false;
 
 	if (!IsValid(PrimitiveComponent))
@@ -331,8 +325,11 @@ FUnrealObjectInputPhysicalMaterialOverride::Update(int32 InNodeIdToConnectTo)
 	if (bNeedsRebuild)
 		DestroyHAPINodes();
 
+	const HAPI_NodeId HAPINodeIdToConnectTo = InNodeIdToConnectTo.GetHAPINodeId();
+	
 	// Check if we already have a valid node, if not create it
-	const HAPI_NodeId PhysMatOverrideNodeId = EnsureHAPINodeExists(FHoudiniEngineUtils::HapiGetParentNodeId(InNodeIdToConnectTo));
+	const HAPI_NodeId PhysMatOverrideNodeId = EnsureHAPINodeExists(
+		FHoudiniEngineUtils::HapiGetParentNodeId(HAPINodeIdToConnectTo));
 	if (PhysMatOverrideNodeId < 0)
 		return false;
 
@@ -340,7 +337,7 @@ FUnrealObjectInputPhysicalMaterialOverride::Update(int32 InNodeIdToConnectTo)
 	
 	// Connect our input to InNodeIdToConnectTo's output
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-		Session, PhysMatOverrideNodeId, 0, InNodeIdToConnectTo, 0), false);
+		Session, PhysMatOverrideNodeId, 0, HAPINodeIdToConnectTo, 0), false);
 
 	// Set the number of attributes: 1
 	FHoudiniApi::SetParmIntValue(Session, PhysMatOverrideNodeId, "numattr", 0, 1);
@@ -429,7 +426,7 @@ FUnrealObjectInputActorAsReference::EnsureHAPINodeExists(const HAPI_NodeId InPar
 
 
 bool
-FUnrealObjectInputActorAsReference::Update(int32 InNodeIdToConnectTo)
+FUnrealObjectInputActorAsReference::Update(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo)
 {
 	// If we don't have a valid mesh component destroy the nodes and return false
 	if (!IsValid(Actor))
@@ -438,16 +435,15 @@ FUnrealObjectInputActorAsReference::Update(int32 InNodeIdToConnectTo)
 		return false;
 	}
 
-	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
+	// Check that InNodeIdToConnectTo is valid
+	if (!InNodeIdToConnectTo.IsValid())
 		return false;
 
-	// Check that InNodeIdToConnectTo is valid
-	if (!Manager->IsHAPINodeValid(InNodeIdToConnectTo))
-		return false;
+	const HAPI_NodeId HAPINodeIdToConnectTo = InNodeIdToConnectTo.GetHAPINodeId();
 	
 	// Check if we already have a valid node, if not create it
-	const HAPI_NodeId MaterialOverridesNodeId = EnsureHAPINodeExists(FHoudiniEngineUtils::HapiGetParentNodeId(InNodeIdToConnectTo));
+	const HAPI_NodeId MaterialOverridesNodeId = EnsureHAPINodeExists(
+		FHoudiniEngineUtils::HapiGetParentNodeId(HAPINodeIdToConnectTo));
 	if (MaterialOverridesNodeId < 0)
 		return false;
 
@@ -455,7 +451,7 @@ FUnrealObjectInputActorAsReference::Update(int32 InNodeIdToConnectTo)
 	
 	// Connect our input to InNodeIdToConnectTo's output
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-		Session, MaterialOverridesNodeId, 0, InNodeIdToConnectTo, 0), false);
+		Session, MaterialOverridesNodeId, 0, HAPINodeIdToConnectTo, 0), false);
 
 	// Extract the level path from the level
 	FString LevelPath("");

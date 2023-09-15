@@ -255,8 +255,8 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 
 			// Preset the existing Object Node ID to the unreal content node
 			// !! Do not preset, as the input system will destroy those previous input nodes!
-			CurrentInputObject->InputNodeId = -1;
-			CurrentInputObject->InputObjectNodeId = -1;
+			CurrentInputObject->SetInputNodeId(-1);
+			CurrentInputObject->SetInputObjectNodeId(-1);
 			
 			// TODO: Transform for actors?
 			FTransform CurrentActorTransform = FTransform::Identity;

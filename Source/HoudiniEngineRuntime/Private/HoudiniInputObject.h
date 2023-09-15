@@ -142,6 +142,18 @@ public:
 	virtual void SetNeedsToTriggerUpdate(const bool& bInTriggersUpdate) { bNeedsToTriggerUpdate = bInTriggersUpdate; };
 	virtual void MarkTransformChanged(const bool bInChanged) { bTransformChanged = bInChanged; SetNeedsToTriggerUpdate(bInChanged); };
 
+	// Set the InputNodeId.
+	void SetInputNodeId(int32 InInputNodeId);
+
+	// If the ref counted system is enabled, then return the node via the InputNodeHandle, otherwise return the InputNodeId. 
+	int32 GetInputNodeId() const;
+
+	// Set the InputObjectNodeId
+	void SetInputObjectNodeId(int32 InInputObjectNodeId);
+
+	// If the ref counted system is enabled, then return the node via the InputNodeHandle, otherwise return the InputObjectNodeId. 
+	int32 GetInputObjectNodeId() const;
+
 	bool GetImportAsReference() const { return CachedInputSettings.bImportAsReference; };
 
 	bool GetImportAsReferenceRotScaleEnabled() const { return CachedInputSettings.bImportAsReferenceRotScaleEnabled; };
@@ -169,6 +181,11 @@ public:
 	// Set whether this object can delete Houdini nodes.
 	virtual void SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes);
 	bool CanDeleteHoudiniNodes() const { return bCanDeleteHoudiniNodes; }
+
+	// If true then this input object uses the InputNodeHandle instead of InputNodeId and InputObjectNodeId if the
+	// ref counted input system is enabled.
+	void SetInputNodeHandleOverridesNodeIds(bool bInInputNodeHandleOverridesNodeIds) { bInputNodeHandleOverridesNodeIds = bInInputNodeHandleOverridesNodeIds; }
+	bool InputNodeHandleOverridesNodeIds() const { return bInputNodeHandleOverridesNodeIds; }
 
 	FGuid GetInputGuid() const { return Guid; }
 
@@ -210,14 +227,6 @@ public:
 	UPROPERTY()
 	EHoudiniInputObjectType Type;
 
-	// This input object's "main" (SOP) NodeId
-	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
-	int32 InputNodeId;
-
-	// This input object's "container" (OBJ) NodeId
-	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
-	int32 InputObjectNodeId;
-
 	// Guid that uniquely identifies this input object.
 	// Also useful to correlate inputs between blueprint component templates and instances.
 	UPROPERTY(DuplicateTransient)
@@ -258,6 +267,20 @@ protected:
 
 	UPROPERTY()
 	bool bCanDeleteHoudiniNodes;
+
+	// If true then this input object uses the InputNodeHandle instead of InputNodeId and InputObjectNodeId if the
+	// ref counted input system is enabled.
+	UPROPERTY()
+	bool bInputNodeHandleOverridesNodeIds;
+
+private:
+	// This input object's "main" (SOP) NodeId
+	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
+	int32 InputNodeId;
+
+	// This input object's "container" (OBJ) NodeId
+	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
+	int32 InputObjectNodeId;
 };
 
 

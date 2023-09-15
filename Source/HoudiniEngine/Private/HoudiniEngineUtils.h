@@ -29,6 +29,7 @@
 #include "HAPI/HAPI_Common.h"
 #include "HoudiniEnginePrivatePCH.h"
 #include "EngineUtils.h"
+#include "Misc/Optional.h"
 #include <string>
 
 #include "HoudiniGenericAttribute.h"
@@ -37,7 +38,6 @@
 #include "Containers/UnrealString.h"
 #include "HoudiniEngineString.h"
 #include "UnrealObjectInputRuntimeTypes.h"
-#include "UnrealObjectInputManager.h"
 
 class FString;
 class UStaticMesh;
@@ -1240,7 +1240,8 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			FUnrealObjectInputHandle& OutHandle,
 			const int32 InObjectNodeId=INDEX_NONE,
 			TSet<FUnrealObjectInputHandle> const* const InReferencedNodes=nullptr,
-			const bool& bInputNodesCanBeDeleted=true);
+			const bool& bInputNodesCanBeDeleted=true,
+			const TOptional<int32> InReferencesConnectToNodeId=TOptional<int32>());
 
 		// Helper to get the HAPI NodeId associated with InHandle.
 		static bool GetHAPINodeId(const FUnrealObjectInputHandle& InHandle, int32& OutNodeId);
@@ -1295,6 +1296,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// WorldOrigin null.
 		static bool SetObjectMergeXFormTypeToWorldOrigin(const HAPI_NodeId& InObjMergeNodeId);
 
+		// Helper to set the node that references connect to (such as a Merge SOP) for a reference node in the input system	
+		static bool SetReferencesNodeConnectToNodeId(const FUnrealObjectInputIdentifier& InRefNodeIdentifier, HAPI_NodeId InNodeId);
+
 		// Helper to connect a reference node's referenced nodes to its merge SOP
 		static bool ConnectReferencedNodesToMerge(const FUnrealObjectInputIdentifier& InRefNodeIdentifier);
 
@@ -1315,8 +1319,11 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Returns true if the named modifier chain exists on the node.
 		static bool DoesModifierChainExist(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
 
+		// Returns the input node id of the named modifier chain on the node. Returns < 0 if the chain does not exist.
+		static HAPI_NodeId GetInputNodeOfModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
+
 		// Returns the output node id of the named modifier chain on the node. Returns < 0 if the chain does not exist.
-		static int32 GetOutputNodeOfModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
+		static HAPI_NodeId GetOutputNodeOfModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
 
 		// Removed the named modifier chain. Returns true if the chain existed and was removed.
 		static bool RemoveModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
@@ -1326,8 +1333,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		// Find and return the first modifier of class T on the node identified by InIdentifier. Returns null if it has
 		// no such modifier.
-		template <class T>
-		static T* FindFirstModifierByClass(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
+		static FUnrealObjectInputModifier* FindFirstModifierOfType(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName, EUnrealObjectInputModifierType InModifierType);
 
 		// Add a modifier of class T to the node identified by InIdentifier if it does not already have a modifier
 		// of that class. Return the newly created and added (or existing) modifier.
@@ -1360,18 +1366,6 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Trigger an update of the Blueprint Editor on the game thread
 		static void UpdateBlueprintEditor_Internal(UHoudiniAssetComponent* HAC);
 };
-
-
-template <class T>
-T* FHoudiniEngineUtils::FindFirstModifierByClass(const FUnrealObjectInputIdentifier& InIdentifier, const FName InChainName)
-{
-	FUnrealObjectInputHandle Handle;
-	FUnrealObjectInputNode const* const Node = GetNodeViaManager(InIdentifier, Handle);
-	if (!Node || !Handle.IsValid())
-		return nullptr;
-
-	return Node->FindFirstModifierByClass<T>(InChainName);
-}
 
 
 template<class T, class... Args>

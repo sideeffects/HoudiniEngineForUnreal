@@ -1247,8 +1247,8 @@ UHoudiniAssetComponent::NotifyCookedToDownstreamAssets()
 							if (CurrentInputObject->GetObject() != this)
 								continue;
 
-							CurrentInputObject->InputNodeId = GetAssetId();
-							CurrentInputObject->InputObjectNodeId = GetAssetId();
+							CurrentInputObject->SetInputNodeId(GetAssetId());
+							CurrentInputObject->SetInputObjectNodeId(GetAssetId());
 						}
 					}
 				}
