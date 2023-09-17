@@ -5553,6 +5553,11 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 			.OnValueChanged_Lambda([](float Val) {})
 			.OnValueCommitted_Lambda([OnPointChangeCommit, MainFloatRampParameter, MainColorRampParameter, NextFloatRampPoint, NextColorRampPoint, FloatRampParameterList, ColorRampParameterList, Index](float Val, ETextCommit::Type TextCommitType) mutable
 			{
+				// For some reason I can't figure out, UE sends a second commit event with type Default, which has the old
+				// value, causing the first commit to be reset. So ignore it.
+				if (TextCommitType == ETextCommit::Type::Default)
+					return;
+
 				OnPointChangeCommit(MainFloatRampParameter, MainColorRampParameter,
 					NextFloatRampPoint, NextColorRampPoint,
 					FloatRampParameterList, ColorRampParameterList,
@@ -5588,6 +5593,11 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 				.OnValueCommitted_Lambda([OnPointChangeCommit, MainFloatRampParameter, MainColorRampParameter,
 					NextFloatRampPoint, NextColorRampPoint, FloatRampParameterList, ColorRampParameterList, Index](float Val, ETextCommit::Type TextCommitType) mutable
 				{
+					// For some reason I can't figure out, UE sends a second commit event with type Default, which has the old
+					// value, causing the first commit to be reset. So ignore it.
+					if (TextCommitType == ETextCommit::Type::Default)
+						return;
+
 					OnPointChangeCommit(MainFloatRampParameter, MainColorRampParameter,
 						NextFloatRampPoint, NextColorRampPoint,
 						FloatRampParameterList, ColorRampParameterList,
