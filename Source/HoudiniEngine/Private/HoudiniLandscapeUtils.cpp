@@ -34,7 +34,7 @@
 #include "HoudiniAsset.h"
 #include "HoudiniEngineUtils.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "HoudiniEngine/Private/HoudiniPackageParams.h"
+#include "HoudiniPackageParams.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "LandscapeConfigHelper.h"
 #include "Factories/MaterialInstanceConstantFactoryNew.h"

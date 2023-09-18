@@ -31,7 +31,7 @@
 #include "LevelInstance/LevelInstanceTypes.h"
 #include "LevelInstance/LevelInstanceSubsystem.h"
 #include "HoudiniOutput.h"
-#include "HoudiniEngineEditor/Private/HoudiniEngineBakeUtils.h"
+#include "HoudiniEngineBakeUtils.h"
 
 ILevelInstanceInterface * FHoudiniBakeLevelInstanceUtils::CreateLevelInstance(
 	const FHoudiniLevelInstanceParams& Params, 
