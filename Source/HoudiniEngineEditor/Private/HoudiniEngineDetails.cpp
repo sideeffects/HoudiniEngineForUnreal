@@ -2178,13 +2178,13 @@ FHoudiniEngineDetails::ConstructActionMenu(TWeakObjectPtr<UHoudiniAssetComponent
 
 	// Update Selected Preset (if a preset asset is selected)
 	MenuBuilder.AddMenuEntry(
-		FText::FromString("Update Selected Preset (TODO)"),
+		FText::FromString("Update Selected Preset"),
 		FText::FromString("Update the Houdini Preset that is currently selected in the content browser."),
 		FSlateIcon(),
 		FUIAction(
 			FExecuteAction::CreateLambda([HAC]() -> void
 			{
-				SHoudiniCreatePresetFromHDA::CreateDialog(HAC);
+				SHoudiniUpdatePresetFromHDA::CreateDialog(HAC);
 			}),
 			FCanExecuteAction::CreateLambda([]() -> bool
 			{

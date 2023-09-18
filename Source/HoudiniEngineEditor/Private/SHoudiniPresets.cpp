@@ -26,6 +26,7 @@
 
 #include "SHoudiniPresets.h"
 
+#include "AssetSelection.h"
 #include "HoudiniAsset.h"
 #include "HoudiniParameter.h"
 #include "HoudiniParameterColor.h"
@@ -56,7 +57,7 @@
 
 #define LOCTEXT_NAMESPACE "HoudiniPresets"
 
-SHoudiniCreatePresetFromHDA::SHoudiniCreatePresetFromHDA()
+SHoudiniPresetUIBase::SHoudiniPresetUIBase()
 	: bIsValidPresetPath(true)
 	, bApplyOnlyToSource(true)
 	, bRevertHDAParameters(false)
@@ -74,18 +75,6 @@ SHoudiniCreatePresetFromHDA::SHoudiniCreatePresetFromHDA()
 {
 }
 
-void
-SHoudiniCreatePresetFromHDA::CreateDialog(TWeakObjectPtr<UHoudiniAssetComponent> HAC)
-{
-	const FText Title = LOCTEXT("CreatePreset_WindowTitle", "Create Preset");
-	const TSharedRef<SWindow> Window = CreateFloatingWindow(Title, FVector2D(750, 600));
-
-	Window->SetContent(
-		SNew(SHoudiniCreatePresetFromHDA)
-		.HoudiniAssetComponent(HAC)
-		);
-}
-
 #define PRESET_CAST_OR_CONTINUE(Type, Var) \
 	Type* Var = Cast<Type>(Param); \
 	if (!IsValid(Var)) \
@@ -94,7 +83,7 @@ SHoudiniCreatePresetFromHDA::CreateDialog(TWeakObjectPtr<UHoudiniAssetComponent>
 	} \
 
 void
-SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
+SHoudiniPresetUIBase::Construct(const FArguments& InArgs)
 {
 	TWeakObjectPtr<UHoudiniAssetComponent> HAC = InArgs._HoudiniAssetComponent.Get();
 	HoudiniAssetComponent = HAC;
@@ -160,8 +149,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 
 		// Item Label
 		Splitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetLabelColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnLabelColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetLabelColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnLabelColumnResized)
 			[
 				SNew(SBorder)
 				.Padding(ContentPadding)
@@ -190,8 +179,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 
 		// Item Name
 		Splitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetNameColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnNameColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetNameColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnNameColumnResized)
 			[
 				SNew(SBorder)
 				.Padding(ContentPadding)
@@ -208,8 +197,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 
 		// Item Value
 		Splitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetValueColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnValueColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetValueColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnValueColumnResized)
 			[
 				SNew(SBorder)
 				.Padding(ContentPadding)
@@ -226,7 +215,7 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 	};
 
 
-	auto AddInputItemRowFn = [this, Container, ContentPadding] (TSharedRef<SSplitter> Splitter, const int32 InputIndex, const FString& Label, const FString& Type, const int32 NumObjects)
+	auto AddInputItemRowFn = [this, Container, ContentPadding] (TSharedRef<SSplitter> Splitter, const bool bIsParameterInput, const int32 InputIndex, const FString& ParameterName, const FString& Label, const FString& Tooltip, const FString& Type, const int32 NumObjects)
 	{
 		// Item Row
 		Container->AddSlot()
@@ -245,8 +234,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 		// Input Label
 		
 		Splitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetLabelColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnLabelColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetLabelColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnLabelColumnResized)
 			[
 				SNew(SBorder)
 				.Padding(ContentPadding)
@@ -257,18 +246,19 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 					SNew(SHorizontalBox)
 
 					// Parameter Checkbox
+					
 					+ SHorizontalBox::Slot()
 					[
 						SNew(SCheckBox)
-						.IsChecked_Lambda( [this, InputIndex]() -> ECheckBoxState { return GetInputCheckState(InputIndex); } )
-						.OnCheckStateChanged_Lambda( [this, InputIndex](ECheckBoxState NewState) -> void { OnInputCheckStateChanged(NewState, InputIndex); bSelectAll = false; } )
+						.IsChecked_Lambda( [this, bIsParameterInput, InputIndex, ParameterName]() -> ECheckBoxState { return bIsParameterInput ? GetParameterCheckState(ParameterName) : GetInputCheckState(InputIndex); } )
+						.OnCheckStateChanged_Lambda( [this, bIsParameterInput, InputIndex, ParameterName](const ECheckBoxState NewState) -> void { if (bIsParameterInput) OnParameterCheckStateChanged(NewState, ParameterName); else OnInputCheckStateChanged(NewState, InputIndex); bSelectAll = false; } )
 						// .ToolTipText( FText::FromString(Tooltip) )
 						.Content()
 						[
 							SNew(STextBlock)
 							.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 							.Text(FText::FromString(Label))
-							.ToolTipText(FText::FromString(Label))
+							.ToolTipText(FText::FromString(Tooltip))
 						]
 					]
 				]
@@ -277,8 +267,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 		// Input Type
 
 		Splitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetNameColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnNameColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetNameColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnNameColumnResized)
 			[
 				SNew(SBorder)
 				.Padding(ContentPadding)
@@ -296,8 +286,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 		// Number of Objects
 		
 		Splitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetValueColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnValueColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetValueColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnValueColumnResized)
 			[
 				SNew(SBorder)
 				.Padding(ContentPadding)
@@ -352,8 +342,9 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 		[
 			SNew(SEditableTextBox)
 			.Text_Lambda( [this]() -> FText { return FText::FromString(PresetName); } )
-			.OnTextChanged(this, &SHoudiniCreatePresetFromHDA::OnPresetNameChanged)
-			.OnTextCommitted(this, &SHoudiniCreatePresetFromHDA::OnPresetNameCommitted)
+			.IsEnabled( IsAssetNameEnabled() )
+			.OnTextChanged(this, &SHoudiniPresetUIBase::OnPresetNameChanged)
+			.OnTextCommitted(this, &SHoudiniPresetUIBase::OnPresetNameCommitted)
 		];
 
 	// Preset - Label
@@ -373,8 +364,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 		[
 			SNew(SEditableTextBox)
 			.Text_Lambda( [this]() -> FText { return FText::FromString(PresetLabel); } )
-			.OnTextChanged(this, &SHoudiniCreatePresetFromHDA::OnPresetLabelChanged)
-			.OnTextCommitted(this, &SHoudiniCreatePresetFromHDA::OnPresetLabelCommitted)
+			.OnTextChanged(this, &SHoudiniPresetUIBase::OnPresetLabelChanged)
+			.OnTextCommitted(this, &SHoudiniPresetUIBase::OnPresetLabelCommitted)
 		];
 
 	// Preset - Description
@@ -394,8 +385,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 		[
 			SNew(SEditableTextBox)
 			.Text_Lambda( [this]() -> FText { return FText::FromString(PresetDescription); } )
-			.OnTextChanged(this, &SHoudiniCreatePresetFromHDA::OnPresetDescriptionChanged)
-			.OnTextCommitted(this, &SHoudiniCreatePresetFromHDA::OnPresetDescriptionCommitted)
+			.OnTextChanged(this, &SHoudiniPresetUIBase::OnPresetDescriptionChanged)
+			.OnTextCommitted(this, &SHoudiniPresetUIBase::OnPresetDescriptionCommitted)
 		];
 
 	// Preset - SourceHoudiniAsset
@@ -420,9 +411,9 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 			.DisplayUseSelected(true)
 			.DisplayBrowse(true)
 			.DisplayThumbnail(true)
-			.ObjectPath(this, &SHoudiniCreatePresetFromHDA::GetSourceAssetPath)
+			.ObjectPath(this, &SHoudiniPresetUIBase::GetSourceAssetPath)
 			.ThumbnailPool( UThumbnailManager::Get().GetSharedThumbnailPool() )
-			.OnObjectChanged(this, &SHoudiniCreatePresetFromHDA::OnPresetAssetChanged)
+			.OnObjectChanged(this, &SHoudiniPresetUIBase::OnPresetAssetChanged)
 		];
 
 	// Preset - Apply Only To Source
@@ -434,8 +425,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 		.Padding(0.0f, 0.0f, 12.0f, 0.0f)
 		[
 			SNew(SCheckBox)
-			.IsChecked(this, &SHoudiniCreatePresetFromHDA::GetApplyOnlyToSourceCheckState)
-			.OnCheckStateChanged(this, &SHoudiniCreatePresetFromHDA::OnApplyOnlyToSourceCheckStateChanged)
+			.IsChecked(this, &SHoudiniPresetUIBase::GetApplyOnlyToSourceCheckState)
+			.OnCheckStateChanged(this, &SHoudiniPresetUIBase::OnApplyOnlyToSourceCheckStateChanged)
 			.Content()
 			[
 				SNew(STextBlock)
@@ -454,8 +445,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 		.Padding(0.0f, 0.0f, 12.0f, 0.0f)
 		[
 			SNew(SCheckBox)
-			.IsChecked(this, &SHoudiniCreatePresetFromHDA::GetCanBeInstantiatedCheckState)
-			.OnCheckStateChanged(this, &SHoudiniCreatePresetFromHDA::OnCanBeInstantiatedCheckStateChanged)
+			.IsChecked(this, &SHoudiniPresetUIBase::GetCanBeInstantiatedCheckState)
+			.OnCheckStateChanged(this, &SHoudiniPresetUIBase::OnCanBeInstantiatedCheckStateChanged)
 			.Content()
 			[
 				SNew(STextBlock)
@@ -474,8 +465,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 		.Padding(0.0f, 0.0f, 12.0f, 0.0f)
 		[
 			SNew(SCheckBox)
-			.IsChecked(this, &SHoudiniCreatePresetFromHDA::GetRevertHDAParametersCheckState)
-			.OnCheckStateChanged(this, &SHoudiniCreatePresetFromHDA::OnRevertHDAParametersCheckStateChanged)
+			.IsChecked(this, &SHoudiniPresetUIBase::GetRevertHDAParametersCheckState)
+			.OnCheckStateChanged(this, &SHoudiniPresetUIBase::OnRevertHDAParametersCheckStateChanged)
 			.Content()
 			[
 				SNew(STextBlock)
@@ -514,8 +505,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 			];
 			
 			Splitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetLabelColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnLabelColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetLabelColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnLabelColumnResized)
 			[
 				SNew(SCheckBox)
 					.IsChecked_Lambda( [this]() -> ECheckBoxState { return bApplyTempCookFolder ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
@@ -530,8 +521,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 			];
 
 			Splitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetNameColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnNameColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetNameColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnNameColumnResized)
 			[
 				SNew(STextBlock)
 					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
@@ -539,8 +530,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 			];
 
 			Splitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetValueColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnValueColumnResized);
+			.Value(this, &SHoudiniPresetUIBase::GetValueColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnValueColumnResized);
 			
 			
 			// Bake Folder
@@ -554,8 +545,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 			];
 			
 			Splitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetLabelColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnLabelColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetLabelColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnLabelColumnResized)
 			[
 				SNew(SCheckBox)
 					.IsChecked_Lambda( [this]() -> ECheckBoxState { return bApplyBakeFolder ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
@@ -570,8 +561,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 			];
 
 			Splitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetNameColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnNameColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetNameColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnNameColumnResized)
 			[
 				SNew(STextBlock)
 					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
@@ -579,8 +570,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 			];
 
 			Splitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetValueColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnValueColumnResized);
+			.Value(this, &SHoudiniPresetUIBase::GetValueColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnValueColumnResized);
 		}
 
 
@@ -695,8 +686,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 
 		// Header - Label
 		Splitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetLabelColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnLabelColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetLabelColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnLabelColumnResized)
 			[
 				SNew(SBorder)
 				.Padding(ContentPadding)
@@ -712,8 +703,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 		
 		// Header - Name
 		Splitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetNameColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnNameColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetNameColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnNameColumnResized)
 			[
 				SNew(SBorder)
 				.Padding(ContentPadding)
@@ -729,8 +720,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 
 		// Header - Value
 		Splitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetValueColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnValueColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetValueColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnValueColumnResized)
 			[
 				SNew(SBorder)
 				.Padding(ContentPadding)
@@ -881,8 +872,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 
 		// Header - Label
 		HeaderSplitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetLabelColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnLabelColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetLabelColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnLabelColumnResized)
 			[
 				SNew(SBorder)
 				.Padding(ContentPadding)
@@ -898,8 +889,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 		
 		// Header - Type
 		HeaderSplitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetNameColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnNameColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetNameColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnNameColumnResized)
 			[
 				SNew(SBorder)
 				.Padding(ContentPadding)
@@ -915,8 +906,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 
 		// Header - Number of Objects
 		HeaderSplitter->AddSlot()
-			.Value(this, &SHoudiniCreatePresetFromHDA::GetValueColumnWidth)
-			.OnSlotResized(this, &SHoudiniCreatePresetFromHDA::OnValueColumnResized)
+			.Value(this, &SHoudiniPresetUIBase::GetValueColumnWidth)
+			.OnSlotResized(this, &SHoudiniPresetUIBase::OnValueColumnResized)
 			[
 				SNew(SBorder)
 				.Padding(ContentPadding)
@@ -944,11 +935,10 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 				continue;
 			}
 
-			KeepInputs.Add(i);
-
 			const bool bIsObjectPathParameter = Input->IsObjectPathParameter();
 			FString ParameterName;
 			FString InputLabel;
+			FString InputTooltip;
 			if (bIsObjectPathParameter)
 			{
 				ParameterName = Input->GetInputName();
@@ -956,11 +946,24 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 				if (IsValid(Param))
 				{
 					InputLabel = Param->GetParameterLabel();
+					InputTooltip = FString::Format(TEXT("{0} ({1})"), { Param->GetParameterLabel(), ParameterName});
 				}
 			}
 			else
 			{
 				InputLabel = FString::Format(TEXT("Input: {0}"), {Input->GetInputIndex()});
+				InputTooltip = InputLabel;
+			}
+			
+			if (bIsObjectPathParameter)
+			{
+				// This input is a parameter-based input. Track it along with other inputs.
+				KeepParameters.Add(ParameterName);
+			}
+			else
+			{
+				// This is an absolute (hardwired) input. Track it by index.
+				KeepInputs.Add(i);
 			}
 			
 			const int32 NumObjects = Input->GetNumberOfInputObjects();
@@ -970,7 +973,7 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 
 			TSharedRef<SSplitter> Splitter = CreateSplitterFn();
 
-			AddInputItemRowFn(Splitter, i, InputLabel, InputTypeName, NumObjects);
+			AddInputItemRowFn(Splitter, bIsObjectPathParameter, i, ParameterName, InputLabel, InputTooltip, InputTypeName, NumObjects);
 		}
 	}
 
@@ -1026,6 +1029,20 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 
 	// Main Panel Structure
 
+	TSharedPtr<SWidget> ActionButtons = CreateActionButtonsRow();
+	TSharedPtr<SVerticalBox> DescriptionLinesContainer = SNew(SVerticalBox);
+
+	for( const FText& Line : GetDescriptionLines()  )
+	{
+		DescriptionLinesContainer->AddSlot()
+			.AutoHeight()
+			[
+				SNew(STextBlock)
+				.AutoWrapText(true)
+				.Text(Line)
+			];
+	}
+
 	ChildSlot
 	[
 		SNew(SBorder)
@@ -1048,7 +1065,7 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 				[
 					SNew(STextBlock)
 					.Font(FAppStyle::Get().GetFontStyle("HeadingExtraSmall"))
-					.Text( LOCTEXT( "HoudiniTool_CreatePackageTitle", "Create Houdini Tool Preset " ) )
+					.Text( GetDialogTitle() )
 					.TransformPolicy(ETextTransformPolicy::ToUpper)
 				]
 				
@@ -1059,22 +1076,7 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 				.AutoHeight()
 				.Padding(0.0f, 10.0f)
 				[
-					SNew(SVerticalBox)
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(STextBlock)
-						.AutoWrapText(true)
-						.Text(LOCTEXT("HoudiniTool_CreatePackageDescription", "Enter a name for your new Preset asset. Asset names may only contain alphanumeric characters, and may not contain a space."))
-					]
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(STextBlock)
-						.AutoWrapText(true)
-						.Text(LOCTEXT("HoudiniTool_CreatePackageDescription2", "When you click the Create Preset button, a new Preset asset will created at the displayed location."))
-					]
-
+					DescriptionLinesContainer.ToSharedRef()
 				]
 				
 				// -----------------------------
@@ -1086,8 +1088,8 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 				[
 					SNew(SWarningOrErrorBox)
 					.MessageStyle(EMessageStyle::Error)
-					.Visibility(this, &SHoudiniCreatePresetFromHDA::GetErrorVisibility)
-					.Message(this, &SHoudiniCreatePresetFromHDA::GetErrorText)
+					.Visibility(this, &SHoudiniPresetUIBase::GetErrorVisibility)
+					.Message(this, &SHoudiniPresetUIBase::GetErrorText)
 				]
 			
 				// Scrollable properties / parameters container
@@ -1123,7 +1125,7 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 					.Padding(0.f, 5.0f)
 					[
 						SNew(STextBlock)
-						.Text(this, &SHoudiniCreatePresetFromHDA::GetPresetAssetPathText)
+						.Text(this, &SHoudiniPresetUIBase::GetPresetAssetPathText)
 					]
 				]
 
@@ -1132,34 +1134,40 @@ SHoudiniCreatePresetFromHDA::Construct(const FArguments& InArgs)
 				+SVerticalBox::Slot()
 				.AutoHeight()
 				[
-					
-					// Action Buttons
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.HAlign(HAlign_Right)
-					[
-						// Create Preset Button
-				
-						SNew(SButton)
-						.ButtonStyle(&_GetEditorStyle().GetWidgetStyle<FButtonStyle>("PrimaryButton"))
-						.OnClicked(this, &SHoudiniCreatePresetFromHDA::HandleCreatePresetClicked)
-						.IsEnabled_Lambda([this]()->bool { return bIsValidPresetPath; })
-						.Content()
-						[
-							SNew(STextBlock)
-							.TextStyle( &_GetEditorStyle().GetWidgetStyle<FTextBlockStyle>("PrimaryButtonText") )
-							.Text(LOCTEXT("CreatePresetFromHDA_CreatePreset", "Create Preset"))
-						]
-					]
+					// Action Buttons Row
+					ActionButtons.IsValid() ? ActionButtons.ToSharedRef() : CreateEmptyActionButtonsRow()
 				]
 			]
+		]
+	];
+
+	PostConstruct();
+}
+
+TSharedRef<SWidget> SHoudiniPresetUIBase::CreateEmptyActionButtonsRow()
+{
+	return SNew(SHorizontalBox)
+	+SHorizontalBox::Slot()
+	.HAlign(HAlign_Right)
+	[
+		// Create Preset Button
+	
+		SNew(SButton)
+		.ButtonStyle(&_GetEditorStyle().GetWidgetStyle<FButtonStyle>("PrimaryButton"))
+		.IsEnabled(false)
+		.Visibility(EVisibility::Hidden)
+		.Content()
+		[
+			SNew(STextBlock)
+			.TextStyle( &_GetEditorStyle().GetWidgetStyle<FTextBlockStyle>("PrimaryButtonText") )
+			.Text(FText::FromString(TEXT("DummyText")))
 		]
 	];
 }
 
 
 TSharedRef<SWindow>
-SHoudiniCreatePresetFromHDA::CreateFloatingWindow(
+SHoudiniPresetUIBase::CreateFloatingWindow(
 	const FText& WindowTitle,
 	const FVector2D InitialSize
 	)
@@ -1192,7 +1200,7 @@ SHoudiniCreatePresetFromHDA::CreateFloatingWindow(
 	Args.bHideSelectionTip = true;
 	Args.bLockable = false;
 	Args.bAllowMultipleTopLevelObjects = true;
-	Args.ViewIdentifier = TEXT("Create Preset");
+	Args.ViewIdentifier = FName(WindowTitle.ToString());
 	Args.NameAreaSettings = FDetailsViewArgs::HideNameArea;
 	Args.bShowPropertyMatrixButton = false;
 	Args.bShowOptions = false;
@@ -1202,7 +1210,7 @@ SHoudiniCreatePresetFromHDA::CreateFloatingWindow(
 	return NewSlateWindow;
 }
 
-ECheckBoxState SHoudiniCreatePresetFromHDA::GetParameterCheckState(const FString& ParamName) const
+ECheckBoxState SHoudiniPresetUIBase::GetParameterCheckState(const FString& ParamName) const
 {
 	if (KeepParameters.Contains(ParamName))
 	{
@@ -1211,7 +1219,7 @@ ECheckBoxState SHoudiniCreatePresetFromHDA::GetParameterCheckState(const FString
 	return ECheckBoxState::Unchecked;
 }
 
-void SHoudiniCreatePresetFromHDA::OnParameterCheckStateChanged(ECheckBoxState CheckState, const FString& ParamName)
+void SHoudiniPresetUIBase::OnParameterCheckStateChanged(ECheckBoxState CheckState, const FString& ParamName)
 {
 	if (CheckState == ECheckBoxState::Checked)
 	{
@@ -1223,7 +1231,7 @@ void SHoudiniCreatePresetFromHDA::OnParameterCheckStateChanged(ECheckBoxState Ch
 	}
 }
 
-ECheckBoxState SHoudiniCreatePresetFromHDA::GetInputCheckState(const int32 InputIndex) const
+ECheckBoxState SHoudiniPresetUIBase::GetInputCheckState(const int32 InputIndex) const
 {
 	if (KeepInputs.Contains(InputIndex))
 	{
@@ -1232,7 +1240,7 @@ ECheckBoxState SHoudiniCreatePresetFromHDA::GetInputCheckState(const int32 Input
 	return ECheckBoxState::Unchecked;
 }
 
-void SHoudiniCreatePresetFromHDA::OnInputCheckStateChanged(ECheckBoxState CheckState, const int32 InputIndex)
+void SHoudiniPresetUIBase::OnInputCheckStateChanged(ECheckBoxState CheckState, const int32 InputIndex)
 {
 	if (CheckState == ECheckBoxState::Checked)
 	{
@@ -1244,17 +1252,17 @@ void SHoudiniCreatePresetFromHDA::OnInputCheckStateChanged(ECheckBoxState CheckS
 	}
 }
 
-FString SHoudiniCreatePresetFromHDA::GetSourceAssetPath() const
+FString SHoudiniPresetUIBase::GetSourceAssetPath() const
 {
 	return SourceHoudiniAsset.IsValid() ? SourceHoudiniAsset->GetPathName() : FString("");
 }
 
-void SHoudiniCreatePresetFromHDA::OnPresetAssetChanged(const FAssetData& AssetData)
+void SHoudiniPresetUIBase::OnPresetAssetChanged(const FAssetData& AssetData)
 {
 	SourceHoudiniAsset = Cast<UHoudiniAsset>(AssetData.GetAsset());
 }
 
-FString SHoudiniCreatePresetFromHDA::GetPresetAssetBasePath() const
+FString SHoudiniPresetUIBase::GetPresetAssetBasePath() const
 {
 	FString PresetBasePath;
 	if (HoudiniAssetComponent.IsValid() && IsValid(HoudiniAssetComponent->GetHoudiniAsset()))
@@ -1265,7 +1273,7 @@ FString SHoudiniCreatePresetFromHDA::GetPresetAssetBasePath() const
 	return FString();
 }
 
-FString SHoudiniCreatePresetFromHDA::GetPresetAssetPath() const
+FString SHoudiniPresetUIBase::GetPresetAssetPath() const
 {
 	FString PresetBasePath = GetPresetAssetBasePath();
 
@@ -1278,7 +1286,7 @@ FString SHoudiniCreatePresetFromHDA::GetPresetAssetPath() const
 }
 
 bool
-SHoudiniCreatePresetFromHDA::IsValidPresetPath()
+SHoudiniPresetUIBase::IsValidPresetPath()
 {
 	if (!FHoudiniToolsEditor::IsValidPackageName(PresetName, &PresetNameError))
 	{
@@ -1289,7 +1297,7 @@ SHoudiniCreatePresetFromHDA::IsValidPresetPath()
 }
 
 EVisibility
-SHoudiniCreatePresetFromHDA::GetErrorVisibility() const
+SHoudiniPresetUIBase::GetErrorVisibility() const
 {
 	if (!bIsValidPresetPath)
 	{
@@ -1300,7 +1308,7 @@ SHoudiniCreatePresetFromHDA::GetErrorVisibility() const
 }
 
 FText
-SHoudiniCreatePresetFromHDA::GetErrorText() const
+SHoudiniPresetUIBase::GetErrorText() const
 {
 	if (!bIsValidPresetPath)
 	{
@@ -1311,7 +1319,7 @@ SHoudiniCreatePresetFromHDA::GetErrorText() const
 }
 
 void
-SHoudiniCreatePresetFromHDA::SelectAllParameters()
+SHoudiniPresetUIBase::SelectAllParameters()
 {
 	if (!HoudiniAssetComponent.IsValid())
 	{
@@ -1331,28 +1339,21 @@ SHoudiniCreatePresetFromHDA::SelectAllParameters()
 	}
 }
 
-FReply
-SHoudiniCreatePresetFromHDA::HandleCreatePresetClicked()
+void SHoudiniPresetUIBase::PopulateAssetFromUI(UHoudiniPreset* Asset)
 {
+	if (!IsValid(Asset))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Error populating Preset from UI. Invalid UHoudiniPreset asset."));
+		return;
+	}
+
 	if (!HoudiniAssetComponent.IsValid())
 	{
-		return FReply::Handled();
+		HOUDINI_LOG_ERROR(TEXT("Error populating Preset from UI. Invalid Houdini Asset Component asset."));
+		return;
 	}
-	const UHoudiniAssetComponent* HAC = HoudiniAssetComponent.Get();
 	
-	const FString PresetBasePath = GetPresetAssetBasePath();
-
-	UHoudiniPresetFactory* Factory = NewObject<UHoudiniPresetFactory>();
-
-	const FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
-	UHoudiniPreset* Asset = Cast<UHoudiniPreset>(AssetToolsModule.Get().CreateAsset(
-		PresetName, PresetBasePath,
-		UHoudiniPreset::StaticClass(), Factory, FName("CreateNewHoudiniToolsPreset")));
-
-	if (!Asset)
-	{
-		return FReply::Handled();
-	}
+	const UHoudiniAssetComponent* HAC = HoudiniAssetComponent.Get();
 
 	Asset->Modify();
 	
@@ -1426,9 +1427,19 @@ SHoudiniCreatePresetFromHDA::HandleCreatePresetClicked()
 	for (int32 InputIndex = 0; InputIndex < InputValues.Num(); ++InputIndex)
 	{
 		auto& Entry = InputValues[InputIndex];
-		if (KeepInputs.Contains(InputIndex))
+		if (Entry.bIsParameterInput)
 		{
-			Asset->InputParameters.Add(Entry);
+			if (KeepParameters.Contains(Entry.ParameterName))
+			{
+				Asset->InputParameters.Add(Entry);
+			}
+		}
+		else
+		{
+			if (KeepInputs.Contains(InputIndex))
+			{
+				Asset->InputParameters.Add(Entry);
+			}
 		}
 	}
 
@@ -1453,6 +1464,104 @@ SHoudiniCreatePresetFromHDA::HandleCreatePresetClicked()
 		GCurrentLevelEditingViewportClient = OldViewportClient;
 		Viewport->Draw();
 	}
+}
+
+
+FReply
+SHoudiniPresetUIBase::HandleCancelClicked()
+{
+	CloseWindow();
+
+	return FReply::Handled();
+}
+
+
+void
+SHoudiniPresetUIBase::CloseWindow()
+{
+	TSharedPtr<SWindow> ContainingWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+
+	if ( ContainingWindow.IsValid() )
+	{
+		ContainingWindow->RequestDestroyWindow();
+	}
+}
+
+
+void
+SHoudiniCreatePresetFromHDA::CreateDialog(TWeakObjectPtr<UHoudiniAssetComponent> HAC)
+{
+	const FText Title = LOCTEXT("CreatePreset_WindowTitle", "Create Preset");
+	const TSharedRef<SWindow> Window = CreateFloatingWindow(Title, FVector2D(750, 600));
+
+	Window->SetContent(
+		SNew(SHoudiniCreatePresetFromHDA)
+		.HoudiniAssetComponent(HAC)
+		);
+}
+
+
+TSharedPtr<SWidget>
+SHoudiniCreatePresetFromHDA::CreateActionButtonsRow()
+{
+	return SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.HAlign(HAlign_Right)
+		[
+			// Create Preset Button
+
+			SNew(SButton)
+			.ButtonStyle(&_GetEditorStyle().GetWidgetStyle<FButtonStyle>("PrimaryButton"))
+			.OnClicked(this, &SHoudiniCreatePresetFromHDA::HandleCreatePresetClicked)
+			.IsEnabled_Lambda([this]()->bool { return bIsValidPresetPath; })
+			.Content()
+			[
+				SNew(STextBlock)
+				.TextStyle( &_GetEditorStyle().GetWidgetStyle<FTextBlockStyle>("PrimaryButtonText") )
+				.Text(LOCTEXT("CreatePresetFromHDA_CreatePreset", "Create Preset"))
+			]
+		];
+}
+
+FText SHoudiniCreatePresetFromHDA::GetDialogTitle()
+{
+	return LOCTEXT( "HoudiniTool_CreatePackageTitle", "Create Houdini Tool Preset " );
+}
+
+TArray<FText> SHoudiniCreatePresetFromHDA::GetDescriptionLines()
+{
+	return
+	{
+		LOCTEXT("HoudiniTool_CreatePackageDescription", "Enter a name for your new Preset asset. Asset names may only contain alphanumeric characters, and may not contain a space."),
+		LOCTEXT("HoudiniTool_CreatePackageDescription2", "When you click the Create Preset button, a new Preset asset will created at the displayed location.")
+	};
+}
+
+
+FReply
+SHoudiniCreatePresetFromHDA::HandleCreatePresetClicked()
+{
+	if (!HoudiniAssetComponent.IsValid())
+	{
+		return FReply::Handled();
+	}
+	const UHoudiniAssetComponent* HAC = HoudiniAssetComponent.Get();
+	
+	const FString PresetBasePath = GetPresetAssetBasePath();
+
+	UHoudiniPresetFactory* Factory = NewObject<UHoudiniPresetFactory>();
+
+	const FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+	UHoudiniPreset* Asset = Cast<UHoudiniPreset>(AssetToolsModule.Get().CreateAsset(
+		PresetName, PresetBasePath,
+		UHoudiniPreset::StaticClass(), Factory, FName("CreateNewHoudiniToolsPreset")));
+
+	if (!Asset)
+	{
+		return FReply::Handled();
+	}
+
+	PopulateAssetFromUI(Asset);
 
 	CloseWindow();
 	
@@ -1461,20 +1570,157 @@ SHoudiniCreatePresetFromHDA::HandleCreatePresetClicked()
 }
 
 
-FReply
-SHoudiniCreatePresetFromHDA::HandleCancelClicked()
+void
+SHoudiniUpdatePresetFromHDA::CreateDialog(TWeakObjectPtr<UHoudiniAssetComponent> HAC)
 {
+	const FText Title = LOCTEXT("UpdatePreset_WindowTitle", "Update Preset");
+	const TSharedRef<SWindow> Window = CreateFloatingWindow(Title, FVector2D(750, 600));
+
+	Window->SetContent(
+		SNew(SHoudiniUpdatePresetFromHDA)
+		.HoudiniAssetComponent(HAC)
+		);
+}
+
+
+FReply
+SHoudiniUpdatePresetFromHDA::HandleUpdatePresetClicked()
+{
+	if (!Preset.IsValid())
+	{
+		HOUDINI_LOG_ERROR(TEXT("Preset asset is invalid. Cannot update."));
+		return FReply::Handled();
+	}
+
+	PopulateAssetFromUI(Preset.Get());
+
 	CloseWindow();
 
 	return FReply::Handled();
 }
 
-void SHoudiniCreatePresetFromHDA::CloseWindow()
-{
-	TSharedPtr<SWindow> ContainingWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
 
-	if ( ContainingWindow.IsValid() )
+TSharedPtr<SWidget>
+SHoudiniUpdatePresetFromHDA::CreateActionButtonsRow()
+{
+	return SNew(SHorizontalBox)
+	+SHorizontalBox::Slot()
+	.HAlign(HAlign_Right)
+	[
+		// Create Preset Button
+
+		SNew(SButton)
+		.ButtonStyle(&_GetEditorStyle().GetWidgetStyle<FButtonStyle>("PrimaryButton"))
+		.OnClicked(this, &SHoudiniUpdatePresetFromHDA::HandleUpdatePresetClicked)
+		.IsEnabled_Lambda([this]()->bool { return bIsValidPresetPath; })
+		.Content()
+		[
+			SNew(STextBlock)
+			.TextStyle( &_GetEditorStyle().GetWidgetStyle<FTextBlockStyle>("PrimaryButtonText") )
+			.Text(LOCTEXT("UpdatePreset_UpdatePresetButtonText", "Update Preset"))
+		]
+	];
+}
+
+
+void
+SHoudiniUpdatePresetFromHDA::PostConstruct()
+{
+	SHoudiniPresetUIBase::PostConstruct();
+
+	Preset.Reset();
+
+	// Get the selected asset that needs to be updated
+	TArray<FAssetData> SelectedAssets; 
+	AssetSelectionUtils::GetSelectedAssets(SelectedAssets);
+	if (SelectedAssets.Num() != 1)
 	{
-		ContainingWindow->RequestDestroyWindow();
+		HOUDINI_LOG_ERROR(TEXT("Error constructing Update Preset window. Only one HoudiniPreset asset may be selected."));
+		CloseWindow();
+		return;
 	}
+
+	const FAssetData& AssetData = SelectedAssets[0];
+	UHoudiniPreset* SelectedPreset = Cast<UHoudiniPreset>(AssetData.GetAsset());
+	if (!IsValid(SelectedPreset))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Error constructing Update Preset window. A valid HoudiniPreset asset must be selected."));
+		CloseWindow();
+		return;
+	}
+
+	Preset = SelectedPreset;
+
+	// Only select the parameters that are already preset in the HoudiniPreset asset.
+	
+	bSelectAll = false;
+	KeepParameters.Empty();
+	TArray<FString> Keys;
+	
+	SelectedPreset->FloatParameters.GetKeys(Keys);
+	KeepParameters.Append( Keys );
+	Keys.Empty();
+	
+	SelectedPreset->IntParameters.GetKeys(Keys);
+	KeepParameters.Append( Keys );
+	Keys.Empty();
+
+	SelectedPreset->StringParameters.GetKeys(Keys);
+	KeepParameters.Append( Keys );
+	Keys.Empty();
+
+	SelectedPreset->RampFloatParameters.GetKeys(Keys);
+	KeepParameters.Append( Keys );
+	Keys.Empty();
+
+	SelectedPreset->RampColorParameters.GetKeys(Keys);
+	KeepParameters.Append( Keys );
+	Keys.Empty();
+
+	KeepInputs.Empty();
+	for(const FHoudiniPresetInputValue& Entry : SelectedPreset->InputParameters)
+	{
+		if (Entry.bIsParameterInput)
+		{
+			KeepParameters.Add(Entry.ParameterName);
+		}
+		else
+		{
+			KeepInputs.Add( Entry.InputIndex );
+		}
+	}
+
+	// Sync other parameters from the preset to the UI
+	bApplyOnlyToSource = SelectedPreset->bApplyOnlyToSource;
+	bRevertHDAParameters = SelectedPreset->bRevertHDAParameters;
+	bCanInstantiate = SelectedPreset->bCanInstantiate;
+
+	bApplyTempCookFolder = SelectedPreset->bApplyTemporaryCookFolder;
+	bApplyBakeFolder = SelectedPreset->bApplyBakeFolder;
+	bApplyBakeOptions = SelectedPreset->bApplyBakeOptions;
+	bApplyAssetOptions = SelectedPreset->bApplyAssetOptions;
+	bApplyStaticMeshGenSettings = SelectedPreset->bApplyStaticMeshGenSettings;
+	bApplyProxyMeshGenSettings = SelectedPreset->bApplyProxyMeshGenSettings;
+
+	PresetLabel = SelectedPreset->Name;
+	PresetDescription = SelectedPreset->Description;
+	SourceHoudiniAsset = SelectedPreset->SourceHoudiniAsset;
+}
+
+
+FText
+SHoudiniUpdatePresetFromHDA::GetDialogTitle()
+{
+	return LOCTEXT( "HoudiniTool_UpdatePackageTitle", "Update Houdini Tool Preset " );
+}
+
+
+TArray<FText>
+SHoudiniUpdatePresetFromHDA::GetDescriptionLines()
+{
+	return
+	{
+		LOCTEXT("HoudiniTool_UpdatePackageDescription1", "Options and selected parameters have been populated from the selected preset. Review all parameters to ensure the desired parameters have been selected."),
+		LOCTEXT("HoudiniTool_UpdatePackageDescription2", "When you click the Update Preset button, the preset will be updated to match the options and selected parameters from this dialog.")
+	};
 }

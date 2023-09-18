@@ -166,7 +166,7 @@ struct FHoudiniPresetRampColorValues : public FHoudiniPresetBase
 
 	virtual EHoudiniPresetValueType GetValueType() override { return EHoudiniPresetValueType::String; }
 
-	virtual FString ToString() override { return FString::Format(TEXT("%d color points."), { Points.Num() }); }
+	virtual FString ToString() override { return FString::Format(TEXT("{0} color points."), { Points.Num() }); }
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	TArray<FHoudiniPresetRampColorPoint> Points;

@@ -30,27 +30,38 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniPreset.h"
 
-class SHoudiniCreatePresetFromHDA : public SCompoundWidget //, public FNotifyHook
+class SHoudiniPresetUIBase : public SCompoundWidget //, public FNotifyHook
 {
 public:
-	SLATE_BEGIN_ARGS( SHoudiniCreatePresetFromHDA )
+	SLATE_BEGIN_ARGS( SHoudiniPresetUIBase )
 		: _HoudiniAssetComponent(nullptr)
 	{}
 	SLATE_ATTRIBUTE(TWeakObjectPtr<UHoudiniAssetComponent>, HoudiniAssetComponent)
 	SLATE_END_ARGS();
 
-	SHoudiniCreatePresetFromHDA();
+	SHoudiniPresetUIBase();
 
-	// Create a dialog to create a preset from the given HoudiniAssetComponent
-	static void CreateDialog(TWeakObjectPtr<UHoudiniAssetComponent> HAC);
+	
 	
 	void Construct( const FArguments& InArgs );
+
+	// Post construct handler that can be overridden by child classes
+	virtual void PostConstruct() {};
+
+	TSharedRef<SWidget> CreateEmptyActionButtonsRow();
+
+	// Create action buttons for the Preset user interface. Should be implemented by child classes.
+	virtual TSharedPtr<SWidget> CreateActionButtonsRow() { return nullptr; };
 	
 protected:
 	static TSharedRef<SWindow> CreateFloatingWindow(
 		const FText& WindowTitle,
 		const FVector2D InitialSize=FVector2D(400, 550)
 		);
+
+	virtual FText GetDialogTitle() { return FText(); }
+	virtual TArray<FText> GetDescriptionLines() { return {}; }
+	virtual bool IsAssetNameEnabled() { return true; }
 
 	void OnLabelColumnResized(float NewSize)
 	{
@@ -118,12 +129,13 @@ protected:
 	FText GetPresetAssetPathText() const { return FText::FromString(GetPresetAssetPath()); }
 	bool IsValidPresetPath();
 
-	EVisibility GetErrorVisibility() const;
+	virtual EVisibility GetErrorVisibility() const;
 	FText GetErrorText() const;
 
 	void SelectAllParameters();
 
-	FReply HandleCreatePresetClicked();
+	void PopulateAssetFromUI(UHoudiniPreset* Asset);
+	
 	FReply HandleCancelClicked();
 
 	void CloseWindow();
@@ -156,7 +168,7 @@ protected:
 	float NameColumnWidth;
 	float ValueColumnWidth;
 
-	// Parameters and inputs that should be kept for this preset
+	// Parameters, inputs and their values that should be kept for this preset
 	bool bSelectAll;
 	TSet<FString> KeepParameters;
 	TSet<int> KeepInputs;
@@ -169,4 +181,41 @@ protected:
 	TArray<FHoudiniPresetInputValue> InputValues;
 };
 
+
+class SHoudiniCreatePresetFromHDA : public SHoudiniPresetUIBase
+{
+public:
+	// Create a dialog to create a preset from the given HoudiniAssetComponent
+	static void CreateDialog(TWeakObjectPtr<UHoudiniAssetComponent> HAC);
 	
+protected:
+	virtual TSharedPtr<SWidget> CreateActionButtonsRow() override;
+
+	virtual FText GetDialogTitle() override;
+	virtual TArray<FText> GetDescriptionLines() override;
+	virtual bool IsAssetNameEnabled() override { return true; } 
+
+	FReply HandleCreatePresetClicked();
+};
+
+
+class SHoudiniUpdatePresetFromHDA : public SHoudiniPresetUIBase
+{
+public:
+	// Create a dialog to update the selected preset (in the content browser) from the given HoudiniAssetComponent
+	static void CreateDialog(TWeakObjectPtr<UHoudiniAssetComponent> HAC);
+
+protected:
+	TWeakObjectPtr<UHoudiniPreset> Preset;
+	
+	FReply HandleUpdatePresetClicked();
+	
+	virtual TSharedPtr<SWidget> CreateActionButtonsRow() override;
+	
+	virtual void PostConstruct() override;
+
+	virtual EVisibility GetErrorVisibility() const override { return EVisibility::Collapsed; };
+	virtual FText GetDialogTitle() override;
+	virtual TArray<FText> GetDescriptionLines() override;
+	virtual bool IsAssetNameEnabled() override { return false; }
+};
