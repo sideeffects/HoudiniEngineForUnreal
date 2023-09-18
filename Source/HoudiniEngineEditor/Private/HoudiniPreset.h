@@ -84,7 +84,7 @@ struct FHoudiniPresetFloatValues : public FHoudiniPresetBase
 
 	virtual FString ToString() override { return FString::JoinBy(Values, TEXT(", "), [](const float& Value) { return FString::SanitizeFloat(Value); }); }
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	TArray<float> Values;
 };
 
@@ -98,7 +98,7 @@ struct FHoudiniPresetIntValues : public FHoudiniPresetBase
 
 	virtual FString ToString() override { return FString::JoinBy(Values, TEXT(", "), [](const float& Value) { return FString::FromInt(Value); }); }
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	TArray<int> Values;
 };
 
@@ -112,7 +112,7 @@ struct FHoudiniPresetStringValues : public FHoudiniPresetBase
 
 	virtual FString ToString() override { return FString::Join(Values, TEXT(", ")); }
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	TArray<FString> Values;
 };
 
@@ -121,13 +121,13 @@ struct FHoudiniPresetRampFloatPoint
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	float Position;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	float Value;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	EHoudiniRampInterpolationType Interpolation;
 };
 
@@ -136,13 +136,13 @@ struct FHoudiniPresetRampColorPoint
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	float Position;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	FLinearColor Value;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	EHoudiniRampInterpolationType Interpolation;
 };
 
@@ -155,7 +155,7 @@ struct FHoudiniPresetRampFloatValues : public FHoudiniPresetBase
 
 	virtual FString ToString() override { return FString::Format(TEXT("%d float points."), { Points.Num() }); }
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	TArray<FHoudiniPresetRampFloatPoint> Points;
 };
 
@@ -168,7 +168,7 @@ struct FHoudiniPresetRampColorValues : public FHoudiniPresetBase
 
 	virtual FString ToString() override { return FString::Format(TEXT("%d color points."), { Points.Num() }); }
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	TArray<FHoudiniPresetRampColorPoint> Points;
 };
 
@@ -177,10 +177,10 @@ struct FHoudiniPresetGeometryInputObject : public FHoudiniPresetBase
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	TSoftObjectPtr<UObject> InputObject;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	FTransform Transform;
 };
 
@@ -191,49 +191,49 @@ struct FHoudiniPresetCurveInputObject : public FHoudiniPresetBase
 
 	FHoudiniPresetCurveInputObject();
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	FTransform Transform;
 	
 	// Curve Spline Component
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	TArray<FTransform> CurvePoints;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bClosed;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bReversed;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	int32 CurveOrder;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bIsHoudiniSplineVisible;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	EHoudiniCurveType CurveType;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	EHoudiniCurveMethod CurveMethod;
 
 	// Only used for new HAPI curve / breakpoints
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	EHoudiniCurveBreakpointParameterization CurveBreakpointParameterization;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bIsOutputCurve;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bCookOnCurveChanged;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bIsLegacyInputCurve;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bIsInputCurve;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bIsEditableOutputCurve;
 };
 
@@ -249,51 +249,51 @@ struct FHoudiniPresetInputValue : public FHoudiniPresetBase
 
 	// Export Options
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bKeepWorldTransform;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bPackGeometryBeforeMerging;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bExportInputAsReference;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bExportLODs;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bExportSockets;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bExportColliders;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bExportMaterialParameters;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bMergeSplineMeshComponents;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bPreferNaniteFallbackMesh;
 	
 	// Input properties
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	EHoudiniInputType InputType;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bIsParameterInput;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	FString ParameterName;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	int32 InputIndex;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	TArray<FHoudiniPresetGeometryInputObject> GeometryInputObjects;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	TArray<FHoudiniPresetCurveInputObject> CurveInputObjects;
 };
 
