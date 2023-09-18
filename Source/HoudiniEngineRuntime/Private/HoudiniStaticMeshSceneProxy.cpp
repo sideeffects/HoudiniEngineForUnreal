@@ -30,6 +30,7 @@
 #include "Materials/Material.h"
 #include "PrimitiveViewRelevance.h"
 #include "Engine/Engine.h"
+#include "Runtime/Launch/Resources/Version.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 	#include "MaterialDomain.h"
 	#include "Materials/MaterialRenderProxy.h"
@@ -48,7 +49,8 @@
 //
 
 FHoudiniStaticMeshRenderBufferSet::FHoudiniStaticMeshRenderBufferSet(ERHIFeatureLevel::Type InFeatureLevel)
-	: LocalVertexFactory(InFeatureLevel, "FHoudiniStaticMeshRenderBufferSet")
+	: NumTriangles(0)
+	, LocalVertexFactory(InFeatureLevel, "FHoudiniStaticMeshRenderBufferSet")
 {
 }
 
@@ -94,7 +96,11 @@ void FHoudiniStaticMeshRenderBufferSet::CopyBuffers()
 
 	if (TriangleIndexBuffer.Indices.Num() > 0)
 	{
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+		TriangleIndexBuffer.InitResource(FRHICommandListExecutor::GetImmediateCommandList());
+#else
 		TriangleIndexBuffer.InitResource();
+#endif
 	}
 }
 
@@ -103,9 +109,21 @@ void FHoudiniStaticMeshRenderBufferSet::InitOrUpdateResource(FRenderResource* Re
 	check(IsInRenderingThread());
 
 	if (Resource->IsInitialized())
+	{
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+		Resource->UpdateRHI(FRHICommandListExecutor::GetImmediateCommandList());
+#else
 		Resource->UpdateRHI();
+#endif
+	}
 	else
+	{
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+		Resource->InitResource(FRHICommandListExecutor::GetImmediateCommandList());
+#else
 		Resource->InitResource();
+#endif
+	}
 }
 
 void FHoudiniStaticMeshRenderBufferSet::DestroyRenderBufferSet(FHoudiniStaticMeshRenderBufferSet* BufferSet)
