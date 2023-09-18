@@ -27,9 +27,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "LandscapeSplinesComponent.h"
 
 #include "HAPI/HAPI_Common.h"
-#include "Landscape/Classes/LandscapeSplinesComponent.h"
 
 class FLandscapeSplineControlPointAttributes;
 struct FLandscapeSplineInterpPoint;
