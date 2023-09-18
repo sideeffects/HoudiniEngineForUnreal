@@ -1891,57 +1891,62 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 				NextCollisionMergeIndex++;
 			}
 
+			// Create a new Attribute Wrangler node which will be used to create the new attributes.
+			HAPI_NodeId AttribWrangleNodeId;
+			if (FHoudiniEngineUtils::CreateNode(
+				InputObjectNodeId, TEXT("attribwrangle"),
+				TEXT("physical_material"),
+				true, &AttribWrangleNodeId) != HAPI_RESULT_SUCCESS)
+			{
+				// Failed to create the node.
+				HOUDINI_LOG_WARNING(
+					TEXT("Failed to create Physical Material attribute for mesh: %s"),
+					*FHoudiniEngineUtils::GetErrorDescription());
+				return false;
+			}
+
+			// Connect the new node to the previous node. Set CollisionMergeNodeId to the attrib node
+			// as is this the final output of the chain.
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+				FHoudiniEngine::Get().GetSession(),
+				AttribWrangleNodeId, 0, CollisionMergeNodeId, 0), false);
+			CollisionMergeNodeId = AttribWrangleNodeId;
+
+			// Set the wrangle's class to primitives
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId, "class", 0, 1), false);
+
+			// Create a Vex expression, add the mesh input name.
+
+			const FString FormatString = TEXT("s@{0} = '{1}';\n");
+			FString PathName = StaticMesh->GetPathName();
+			FString AttrName = TEXT(HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME);
+			std::string VEXpression = TCHAR_TO_UTF8(*FString::Format(*FormatString, { AttrName, PathName }));
+
 			// Create a new primitive attribute where each value contains the Physical Material
 			// mae in Unreal.
 			UPhysicalMaterial* PhysicalMaterial = StaticMesh->GetBodySetup()->PhysMaterial;
 			if (PhysicalMaterial)
 			{
-				// Create a new Attribute Wrangler node which will be used to create the new attributes.
-				HAPI_NodeId AttribWrangleNodeId;
-				if (FHoudiniEngineUtils::CreateNode(
-					InputObjectNodeId, TEXT("attribwrangle"), 
-					TEXT("physical_material"), 
-					true, &AttribWrangleNodeId) != HAPI_RESULT_SUCCESS)
-				{
-					// Failed to create the node.
-					HOUDINI_LOG_WARNING(
-						TEXT("Failed to create Physical Material attribute for mesh: %s"),
-						*FHoudiniEngineUtils::GetErrorDescription());
-					return false;
-				}
-
-				// Connect the new node to the previous node. Set CollisionMergeNodeId to the attrib node
-				// as is this the final output of the chain.
-				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-					FHoudiniEngine::Get().GetSession(),
-					AttribWrangleNodeId, 0, CollisionMergeNodeId, 0), false);
-				CollisionMergeNodeId = AttribWrangleNodeId;
-
-				// Set the wrangle's class to primitives
-				HOUDINI_CHECK_ERROR_RETURN(
-					FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId, "class", 0, 1), false);
 
 				// Construct a VEXpression to set create and set a Physical Material Attribute.
 				// eg. s@unreal_physical_material = 'MyPath/PhysicalMaterial';
-				const FString FormatString = TEXT("s@{0} = '{1}';");
-				FString PathName = PhysicalMaterial->GetPathName();
-				FString AttrName = TEXT(HAPI_UNREAL_ATTRIB_SIMPLE_PHYSICAL_MATERIAL);
-				std::string VEXpression = TCHAR_TO_UTF8(*FString::Format(*FormatString, 
-					{ AttrName, PathName }));
+				PathName = PhysicalMaterial->GetPathName();
+				AttrName = TEXT(HAPI_UNREAL_ATTRIB_SIMPLE_PHYSICAL_MATERIAL);
+				VEXpression += TCHAR_TO_UTF8(*FString::Format(*FormatString, { AttrName, PathName }));
+			}
 
-				// Set the snippet parameter to the VEXpression.
-				HAPI_ParmInfo ParmInfo;
-				HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(AttribWrangleNodeId, "snippet", ParmInfo);
-				if (ParmId != -1)
-				{
-					FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId,
-						VEXpression.c_str(), ParmId, 0);
-				}
-				else
-				{
-					HOUDINI_LOG_WARNING(TEXT("Invalid Parameter: %s"),
-						*FHoudiniEngineUtils::GetErrorDescription());
-				}
+			// Set the snippet parameter to the VEXpression.
+			HAPI_ParmInfo ParmInfo;
+			HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(AttribWrangleNodeId, "snippet", ParmInfo);
+			if (ParmId != -1)
+			{
+				FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId,
+					VEXpression.c_str(), ParmId, 0);
+			}
+			else
+			{
+				HOUDINI_LOG_WARNING(TEXT("Invalid Parameter: %s"),
+					*FHoudiniEngineUtils::GetErrorDescription());
 			}
 
 			// Connect our collision merge node (or the phys mat attrib wrangle) to the main merge node
