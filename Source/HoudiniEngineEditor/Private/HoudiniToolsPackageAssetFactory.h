@@ -32,6 +32,7 @@
 #include "Factories/Factory.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/Object.h"
+#include "HoudiniToolsEditor.h"
 
 #include "HoudiniToolsPackageAssetFactory.generated.h"
 
@@ -71,13 +72,14 @@ public:
 
 	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override
 	{
-		UHoudiniToolsPackageAsset* Preset = nullptr;
+		UHoudiniToolsPackageAsset* ToolsPackage = nullptr;
 		if (ensure(SupportedClass == Class))
 		{
 			ensure(0 != (RF_Public & Flags));
-			Preset = NewObject<UHoudiniToolsPackageAsset>(InParent, Class, Name, Flags);
+			ToolsPackage = NewObject<UHoudiniToolsPackageAsset>(InParent, Class, Name, Flags);
+			FHoudiniToolsEditor::PopulatePackageWithDefaultData(ToolsPackage);
 		}
-		return Preset;
+		return ToolsPackage;
 	}
 
 	virtual uint32 GetMenuCategories() const override

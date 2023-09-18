@@ -248,6 +248,12 @@ public:
 	static bool ImportSideFXTools(int* NumImportedHDAs);
 
 	// --------------------------------
+	// Tools Package
+	// --------------------------------
+
+	static void PopulatePackageWithDefaultData(UHoudiniToolsPackageAsset* PackageAsset);
+
+	// --------------------------------
 	// User Categories
 	// --------------------------------
 

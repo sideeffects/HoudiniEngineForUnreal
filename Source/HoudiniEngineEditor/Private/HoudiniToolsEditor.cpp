@@ -2176,6 +2176,22 @@ bool FHoudiniToolsEditor::ImportSideFXTools(int* NumImportedHDAs)
 	return true;
 }
 
+void FHoudiniToolsEditor::PopulatePackageWithDefaultData(UHoudiniToolsPackageAsset* PackageAsset)
+{
+	if (!IsValid(PackageAsset))
+	{
+		return;
+	}
+	
+	FCategoryRules DefaultRules;
+	DefaultRules.Include.Add("*");
+
+	PackageAsset->Modify();
+	
+	PackageAsset->Categories.Empty();
+	PackageAsset->Categories.Add("Default Package Category", DefaultRules);
+}
+
 void
 FHoudiniToolsEditor::AddToolToUserCategory(const UHoudiniAsset* Asset, const FString& CategoryName)
 {
