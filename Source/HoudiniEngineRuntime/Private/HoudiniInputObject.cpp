@@ -408,7 +408,7 @@ UHoudiniInputHoudiniSplineComponent::UHoudiniInputHoudiniSplineComponent(const F
 	, CurveMethod(EHoudiniCurveMethod::CVs)
 	, Reversed(false)
 {
-
+	bInputNodeHandleOverridesNodeIds = false;
 }
 
 //
