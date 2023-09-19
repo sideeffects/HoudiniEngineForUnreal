@@ -72,7 +72,7 @@ public class HoudiniEngine : ModuleRules
 #if UE_5_3_OR_LATER
         Logger.LogInformation(info);
 #else
-        Log.TraceInformationOnce(log);
+        Log.TraceInformationOnce(info);
 #endif
     }
 
