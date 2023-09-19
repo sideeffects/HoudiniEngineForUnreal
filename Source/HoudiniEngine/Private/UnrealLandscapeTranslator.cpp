@@ -970,10 +970,13 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 bool
 FUnrealLandscapeTranslator::ConvertLandscapeLayerDataToHeightfieldData(
 	const TArray<uint8>& IntHeightData,
-	int32 HoudiniXSize, int32 HoudiniYSize,
+	int32 UnrealXSize, int32 UnrealYSize,
 	const FLinearColor& LayerUsageDebugColor,
 	TArray<float>& LayerFloatValues)
 {
+	int HoudiniXSize = UnrealYSize;
+	int HoudiniYSize = UnrealXSize;
+
 	LayerFloatValues.Empty();
 
 	int32 SizeInPoints = HoudiniXSize * HoudiniYSize;
@@ -1031,7 +1034,7 @@ FUnrealLandscapeTranslator::ConvertLandscapeLayerDataToHeightfieldData(
 		{
 			// We need to invert X/Y when reading the value from Unreal
 			int32 nHoudini = nX + nY * HoudiniXSize;
-			int32 nUnreal = nY + nX * HoudiniXSize;
+			int32 nUnreal = nY + nX * HoudiniYSize;
 
 			// Convert the int values to meter
 			// Unreal's digit value have a zero value of 32768
@@ -2491,8 +2494,8 @@ bool FUnrealLandscapeTranslator::ExtractAndConvertMainEditLayer(
 			HeightFieldId,
 			PartId,
 			MaskId,
-			XSize,
 			YSize,
+			XSize,
 			CurrentLayerFloatData);
 
 		if (LayerVolumeNodeId == -1)
@@ -2570,8 +2573,8 @@ bool FUnrealLandscapeTranslator::ExtractAndConvertEditLayers(
 				HeightFieldId,
 				PartId,
 				MaskId,
-				XSize,
 				YSize,
+				XSize,
 				CurrentLayerFloatData);
 
 			if (LayerVolumeNodeId == -1)
