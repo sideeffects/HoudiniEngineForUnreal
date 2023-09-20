@@ -1777,6 +1777,7 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 	bool bSuccess = true;
 	switch (InInputObject->Type)
 	{
+		case EHoudiniInputObjectType::CameraComponent:
 		case EHoudiniInputObjectType::StaticMesh:
 		{
 			// Simply update the Input mesh's Transform offset
