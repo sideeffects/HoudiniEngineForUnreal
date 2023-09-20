@@ -50,6 +50,8 @@ void ACurveInputExample::RunCurveInputExample_Implementation()
 	// Load our HDA uasset
 	UHoudiniAsset* const ExampleHDA = Cast<UHoudiniAsset>(StaticLoadObject(UHoudiniAsset::StaticClass(), nullptr, TEXT("/HoudiniEngine/Examples/hda/copy_to_curve_1_0.copy_to_curve_1_0")));
 	// Create an API wrapper instance for instantiating the HDA and interacting with it
+	// The public API does not manage the lifecycle of the UHoudiniPublicAPIAssetWrapper after creation, so use a 
+	// UProperty to prevent garbage collection while the wrapper is in use 
 	AssetWrapper = API->InstantiateAsset(ExampleHDA, FTransform::Identity);
 	if (IsValid(AssetWrapper))
 	{

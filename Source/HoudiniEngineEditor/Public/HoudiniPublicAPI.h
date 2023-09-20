@@ -105,6 +105,11 @@ public:
 
 	/**
 	 * Instantiates an HDA in the specified world/level. Returns a wrapper for instantiated asset.
+	 *
+	 * Note: the lifecycle / ownership of the UHoudiniPublicAPIAssetWrapper* that is created and returned is not managed
+	 * by the public API after creation, the caller must, for example, use a UProperty to prevent garbage collection of
+	 * the wrapper if desired.
+	 * 
 	 * @param InHoudiniAsset The HDA to instantiate.
 	 * @param InInstantiateAt The Transform to instantiate the HDA with.
 	 * @param InWorldContextObject A world context object for identifying the world to spawn in, if
