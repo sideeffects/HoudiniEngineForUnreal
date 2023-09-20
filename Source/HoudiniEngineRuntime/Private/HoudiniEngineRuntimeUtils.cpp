@@ -27,8 +27,6 @@
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniRuntimeSettings.h"
-#include "UnrealObjectInputRuntimeTypes.h"
-#include "UnrealObjectInputManager.h"
 
 #include "Landscape.h"
 #include "LandscapeProxy.h"
@@ -737,52 +735,6 @@ FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings()
 	}
 
 	return DefaultBuildSettings;
-}
-
-bool
-FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled()
-{
-	UHoudiniRuntimeSettings const* const Settings = GetDefault<UHoudiniRuntimeSettings>();
-	return IsValid(Settings) && Settings->bEnableTheReferenceCountedInputSystem;
-}
-
-bool
-FHoudiniEngineRuntimeUtils::IsInputNodeDirty(const FUnrealObjectInputIdentifier& InIdentifier)
-{
-	if (!InIdentifier.IsValid())
-		return false;
-
-	FUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
-		return false;
-
-	return Manager->IsDirty(InIdentifier);
-}
-
-bool
-FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(const FUnrealObjectInputIdentifier& InIdentifier, const bool bInAlsoDirtyReferencedNodes)
-{
-	if (!InIdentifier.IsValid())
-		return false;
-
-	FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
-		return false;
-
-	return Manager->MarkAsDirty(InIdentifier, bInAlsoDirtyReferencedNodes);
-}
-
-bool
-FHoudiniEngineRuntimeUtils::ClearInputNodeDirtyFlag(const FUnrealObjectInputIdentifier& InIdentifier)
-{
-	if (!InIdentifier.IsValid())
-		return false;
-
-	FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
-		return false;
-
-	return Manager->ClearDirtyFlag(InIdentifier);
 }
 
 bool

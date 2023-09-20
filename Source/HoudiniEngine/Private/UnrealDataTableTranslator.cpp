@@ -34,6 +34,8 @@
 #include "HoudiniInputObject.h"
 
 #include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputUtils.h"
+#include "UnrealObjectInputRuntimeUtils.h"
 #include "HoudiniEngineRuntimeUtils.h"
 
 #include "Engine/DataTable.h"
@@ -104,7 +106,7 @@ bool FUnrealDataTableTranslator::CreateInputNodeForDataTable(
 	FUnrealObjectInputHandle& OutHandle,
 	const bool& bInputNodesCanBeDeleted)
 {
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	FString FinalInputNodeName = InputNodeName;
 
 	FUnrealObjectInputIdentifier Identifier;
@@ -126,13 +128,13 @@ bool FUnrealDataTableTranslator::CreateInputNodeForDataTable(
 		Identifier = FUnrealObjectInputIdentifier(DataTable, Options, true);
 
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId))
+			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId))
 			{
 				if (!bInputNodesCanBeDeleted)
-					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
 
 				OutHandle = Handle;
 				InputNodeId = NodeId;
@@ -140,9 +142,9 @@ bool FUnrealDataTableTranslator::CreateInputNodeForDataTable(
 			}
 		}
 
-		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
-		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
 	}
 
 	// Create the input node
@@ -757,7 +759,7 @@ bool FUnrealDataTableTranslator::CreateInputNodeForDataTable(
 	if (bUseRefCountedInputSystem)
 	{
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
+		if (FUnrealObjectInputUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
 			OutHandle = Handle;
 	}
 
