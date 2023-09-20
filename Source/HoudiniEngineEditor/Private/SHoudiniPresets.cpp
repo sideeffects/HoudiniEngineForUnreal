@@ -939,6 +939,7 @@ SHoudiniPresetUIBase::Construct(const FArguments& InArgs)
 			FString ParameterName;
 			FString InputLabel;
 			FString InputTooltip;
+			int32 InputIndex = Input->GetInputIndex();
 			if (bIsObjectPathParameter)
 			{
 				ParameterName = Input->GetInputName();
@@ -963,7 +964,7 @@ SHoudiniPresetUIBase::Construct(const FArguments& InArgs)
 			else
 			{
 				// This is an absolute (hardwired) input. Track it by index.
-				KeepInputs.Add(i);
+				KeepInputs.Add(InputIndex);
 			}
 			
 			const int32 NumObjects = Input->GetNumberOfInputObjects();
@@ -973,7 +974,7 @@ SHoudiniPresetUIBase::Construct(const FArguments& InArgs)
 
 			TSharedRef<SSplitter> Splitter = CreateSplitterFn();
 
-			AddInputItemRowFn(Splitter, bIsObjectPathParameter, i, ParameterName, InputLabel, InputTooltip, InputTypeName, NumObjects);
+			AddInputItemRowFn(Splitter, bIsObjectPathParameter, InputIndex, ParameterName, InputLabel, InputTooltip, InputTypeName, NumObjects);
 		}
 	}
 

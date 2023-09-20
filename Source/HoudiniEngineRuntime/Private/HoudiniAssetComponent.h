@@ -95,6 +95,8 @@ public:
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnPostCookBakeDelegate, UHoudiniAssetComponent*);
 	// Delegate for when EHoudiniAssetState changes from InFromState to InToState on a Houdini Asset Component (InHAC).
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAssetStateChangeDelegate, UHoudiniAssetComponent*, const EHoudiniAssetState, const EHoudiniAssetState);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreInstantiationDelegate, UHoudiniAssetComponent*);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreCookDelegate, UHoudiniAssetComponent*);
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostCookDelegate, UHoudiniAssetComponent*, bool);
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostBakeDelegate, UHoudiniAssetComponent*, bool);
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostOutputProcessingDelegate, UHoudiniAssetComponent*, bool);
@@ -219,6 +221,8 @@ public:
 	// Returns true if the asset should be bake after the next cook
 	bool IsBakeAfterNextCookEnabled() const { return bBakeAfterNextCook; }
 
+	FOnPreInstantiationDelegate& GetOnPreInstantiationDelegate() { return OnPreInstantiationDelegate; }
+	FOnPreCookDelegate& GetOnPreCookDelegate() { return OnPreCookDelegate; }
 	FOnPostCookDelegate& GetOnPostCookDelegate() { return OnPostCookDelegate; }
 	FOnPostCookBakeDelegate& GetOnPostCookBakeDelegate() { return OnPostCookBakeDelegate; }
 	FOnPostBakeDelegate& GetOnPostBakeDelegate() { return OnPostBakeDelegate; }
@@ -451,7 +455,9 @@ public:
 	// End: IHoudiniAssetStateEvents
 	//
 
-	// Called by HandleOnHoudiniAssetStateChange when entering the PostCook state. Broadcasts OnPostCookDelegate. 
+	// Called by HandleOnHoudiniAssetStateChange when entering the PostCook state. Broadcasts OnPostCookDelegate.
+	void HandleOnPreInstantiation();
+	void HandleOnPreCook();
 	void HandleOnPostCook();
 	void HandleOnPreOutputProcessing();
 	void HandleOnPostOutputProcessing();
@@ -769,6 +775,14 @@ protected:
 	// If true, bake the asset after its next cook.
 	UPROPERTY(DuplicateTransient)
 	bool bBakeAfterNextCook;
+
+	// Delegate to broadcast before instantiation
+	// Arguments are (HoudiniAssetComponent* HAC)
+	FOnPreInstantiationDelegate OnPreInstantiationDelegate;
+
+	// Delegate to broadcast after a post cook event
+	// Arguments are (HoudiniAssetComponent* HAC, bool IsSuccessful)
+	FOnPreCookDelegate OnPreCookDelegate;
 
 	// Delegate to broadcast after a post cook event
 	// Arguments are (HoudiniAssetComponent* HAC, bool IsSuccessful)

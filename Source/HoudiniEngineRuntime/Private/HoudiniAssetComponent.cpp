@@ -2826,9 +2826,8 @@ UHoudiniAssetComponent::ApplyInputPresets()
 	{
 		if (!IsValid(CurrentInput))
 			continue;
-
-		if (CurrentInput->GetInputType() != EHoudiniInputType::Curve)
-			InputArray.Add(CurrentInput);
+		
+		InputArray.Add(CurrentInput);
 	}
 
 	// Try to apply the supplied Object to the Input
@@ -3082,11 +3081,34 @@ UHoudiniAssetComponent::HandleOnHoudiniAssetStateChange(UObject* InHoudiniAssetC
 	if (StateChangeDelegate.IsBound())
 		StateChangeDelegate.Broadcast(this, InFromState, InToState);
 
+	if (InToState == EHoudiniAssetState::PreInstantiation)
+	{
+		HandleOnPreInstantiation();
+	}
+	
+	if (InToState == EHoudiniAssetState::PreCook)
+	{
+		HandleOnPreCook();
+	}
+
 	if (InToState == EHoudiniAssetState::PostCook)
 	{
 		HandleOnPostCook();
 	}
 		
+}
+
+void UHoudiniAssetComponent::HandleOnPreInstantiation()
+{
+	if (OnPreInstantiationDelegate.IsBound())
+		OnPreInstantiationDelegate.Broadcast(this);
+}
+
+void
+UHoudiniAssetComponent::HandleOnPreCook()
+{
+	if (OnPreCookDelegate.IsBound())
+		OnPreCookDelegate.Broadcast(this);
 }
 
 void
