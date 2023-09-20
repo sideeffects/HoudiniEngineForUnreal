@@ -33,6 +33,8 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniMeshUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputRuntimeUtils.h"
+#include "UnrealObjectInputUtils.h"
 
 #include "Animation/Skeleton.h"
 #include "Components/SplineMeshComponent.h"
@@ -139,7 +141,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 	FUnrealObjectInputIdentifier Identifier;
 	FUnrealObjectInputHandle ParentHandle;
 	HAPI_NodeId ParentNodeId = -1;
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bUseRefCountedInputSystem)
 	{
 		// Check if we already have an input node for this asset
@@ -147,7 +149,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 		bool bSingleLeafNodeOnly = false;
 		FUnrealObjectInputIdentifier IdentReferenceNode;
 		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
-		if (!FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
+		if (!FUnrealObjectInputUtils::BuildMeshInputObjectIdentifiers(
 			SkeletalMesh,
 			ExportMainMesh,
 			ExportAllLODs,
@@ -174,15 +176,15 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 		}
 
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && (bSingleLeafNodeOnly || FHoudiniEngineUtils::AreReferencedHAPINodesValid(Handle)))
+			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId) && (bSingleLeafNodeOnly || FUnrealObjectInputUtils::AreReferencedHAPINodesValid(Handle)))
 			{
 				if (!bInputNodesCanBeDeleted)
 				{
 					// Make sure to prevent deletion of the input node if needed
-					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
 				}
 
 				OutHandle = Handle;
@@ -191,10 +193,10 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 			}
 		}
 
-		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
 
 		// We now need to create the nodes (since we couldn't find existing ones in the manager)
 		// For the single leaf node case we can simply continue this function
@@ -209,13 +211,13 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 				const FUnrealObjectInputOptions& Options = OptionIdentifier.GetOptions();
 				
 				FString NodeLabel;
-				FHoudiniEngineUtils::GetDefaultInputNodeName(OptionIdentifier, NodeLabel);
+				FUnrealObjectInputUtils::GetDefaultInputNodeName(OptionIdentifier, NodeLabel);
 				
 				HAPI_NodeId NewNodeId = -1;
 				FUnrealObjectInputHandle OptionHandle;
-				if (FHoudiniEngineUtils::FindNodeViaManager(OptionIdentifier, OptionHandle) || !FHoudiniEngineUtils::AreHAPINodesValid(OptionHandle))
+				if (FUnrealObjectInputUtils::FindNodeViaManager(OptionIdentifier, OptionHandle) || !FUnrealObjectInputUtils::AreHAPINodesValid(OptionHandle))
 				{
-					FHoudiniEngineUtils::GetHAPINodeId(OptionHandle, NewNodeId);
+					FUnrealObjectInputUtils::GetHAPINodeId(OptionHandle, NewNodeId);
 				}
 				
 				// Recursive call
@@ -240,11 +242,11 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 
 			// Create or update the HAPI node for the reference node if it does not exist
 			FUnrealObjectInputHandle RefNodeHandle;
-			if (!FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(IdentReferenceNode, PerOptionNodeHandles, RefNodeHandle, true, bInputNodesCanBeDeleted))
+			if (!FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(IdentReferenceNode, PerOptionNodeHandles, RefNodeHandle, true, bInputNodesCanBeDeleted))
 				return false;
 			
 			OutHandle = RefNodeHandle;
-			FHoudiniEngineUtils::GetHAPINodeId(IdentReferenceNode, InputNodeId);
+			FUnrealObjectInputUtils::GetHAPINodeId(IdentReferenceNode, InputNodeId);
 			return true;
 		}
 	}
@@ -645,7 +647,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 	if (bUseRefCountedInputSystem)
 	{
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
+		if (FUnrealObjectInputUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
 			OutHandle = Handle;
 	}
 	
@@ -677,7 +679,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForAnimation(
 	FUnrealObjectInputIdentifier Identifier;
 	FUnrealObjectInputHandle ParentHandle;
 	HAPI_NodeId ParentNodeId = -1;
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bUseRefCountedInputSystem)
 	{
 		// Creates this input's identifier and input options
@@ -693,15 +695,15 @@ FUnrealMeshTranslator::HapiCreateInputNodeForAnimation(
 		Identifier = FUnrealObjectInputIdentifier(Animation, Options, true);
 
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && FHoudiniEngineUtils::AreReferencedHAPINodesValid(Handle))
+			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId) && FUnrealObjectInputUtils::AreReferencedHAPINodesValid(Handle))
 			{
 				if (!bInputNodesCanBeDeleted)
 				{
 					// Make sure to prevent deletion of the input node if needed
-					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
 				}
 
 				OutHandle = Handle;
@@ -710,10 +712,10 @@ FUnrealMeshTranslator::HapiCreateInputNodeForAnimation(
 			}
 		}
 
-		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
 
 		// We now need to create the nodes (since we couldn't find existing ones in the manager)
 		// To do that, we can simply continue this function
@@ -769,7 +771,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForAnimation(
 	if (bUseRefCountedInputSystem)
 	{
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
+		if (FUnrealObjectInputUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
 			OutHandle = Handle;
 	}
 
@@ -1474,14 +1476,14 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	FUnrealObjectInputHandle ParentHandle;
 	HAPI_NodeId ParentNodeId = -1;
 	UObject* const InputSystemObject = bIsSplineMesh ? static_cast<UObject*>(SplineMeshComponent) : static_cast<UObject*>(StaticMesh);
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bUseRefCountedInputSystem)
 	{
 		// Check if we already have an input node for this asset
 		bool bSingleLeafNodeOnly = false;
 		FUnrealObjectInputIdentifier IdentReferenceNode;
 		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
-		if (!FHoudiniEngineUtils::BuildMeshInputObjectIdentifiers(
+		if (!FUnrealObjectInputUtils::BuildMeshInputObjectIdentifiers(
 			InputSystemObject,
 			ExportMainMesh,
 			ExportAllLODs,
@@ -1507,15 +1509,15 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 			Identifier = IdentReferenceNode;
 		}
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && (bSingleLeafNodeOnly || FHoudiniEngineUtils::AreReferencedHAPINodesValid(Handle)))
+			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId) && (bSingleLeafNodeOnly || FUnrealObjectInputUtils::AreReferencedHAPINodesValid(Handle)))
 			{
 				if (!bInputNodesCanBeDeleted)
 				{
 					// Make sure to prevent deletion of the input node if needed
-					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
 				}
 
 				OutHandle = Handle;
@@ -1524,10 +1526,10 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 			}
 		}
 
-		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
 
 		// We now need to create the nodes (since we couldn't find existing ones in the manager)
 		// For the single leaf node case we can simply continue this function
@@ -1542,13 +1544,13 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 				const FUnrealObjectInputOptions& Options = OptionIdentifier.GetOptions();
 
 				FString NodeLabel;
-				FHoudiniEngineUtils::GetDefaultInputNodeName(OptionIdentifier, NodeLabel);
+				FUnrealObjectInputUtils::GetDefaultInputNodeName(OptionIdentifier, NodeLabel);
 
 				HAPI_NodeId NewNodeId = -1;
 				FUnrealObjectInputHandle OptionHandle;
-				if (FHoudiniEngineUtils::FindNodeViaManager(OptionIdentifier, OptionHandle) || !FHoudiniEngineUtils::AreHAPINodesValid(OptionHandle))
+				if (FUnrealObjectInputUtils::FindNodeViaManager(OptionIdentifier, OptionHandle) || !FUnrealObjectInputUtils::AreHAPINodesValid(OptionHandle))
 				{
-					FHoudiniEngineUtils::GetHAPINodeId(OptionHandle, NewNodeId);
+					FUnrealObjectInputUtils::GetHAPINodeId(OptionHandle, NewNodeId);
 				}
 
 				static constexpr bool bForceInputRefNodeCreation = false;
@@ -1575,11 +1577,11 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 
 			// Create or update the HAPI node for the reference node if it does not exist
 			FUnrealObjectInputHandle RefNodeHandle;
-			if (!FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(IdentReferenceNode, PerOptionNodeHandles, RefNodeHandle, true, bInputNodesCanBeDeleted))
+			if (!FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(IdentReferenceNode, PerOptionNodeHandles, RefNodeHandle, true, bInputNodesCanBeDeleted))
 				return false;
 			
 			OutHandle = RefNodeHandle;
-			FHoudiniEngineUtils::GetHAPINodeId(IdentReferenceNode, InputNodeId);
+			FUnrealObjectInputUtils::GetHAPINodeId(IdentReferenceNode, InputNodeId);
 			return true;
 		}
 	}
@@ -2108,7 +2110,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	if (bUseRefCountedInputSystem)
 	{
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
+		if (FUnrealObjectInputUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
 			OutHandle = Handle;
 	}
 	
@@ -3107,7 +3109,7 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 	// the component to account for overrides. For the ref counted input system the component will override the
 	// materials in its input node.
 	const bool bIsStaticMeshComponentValid = (IsValid(StaticMeshComponent) && StaticMeshComponent->IsValidLowLevel());
-	const bool bUsingRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUsingRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 
 	if (RawMesh.FaceMaterialIndices.Num() > 0)
 	{
@@ -3582,7 +3584,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	// the component to account for overrides. For the ref counted input system the component will override the
 	// materials in its input node.
 	const bool bIsStaticMeshComponentValid = (IsValid(StaticMeshComponent) && StaticMeshComponent->IsValidLowLevel());
-	const bool bUsingRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUsingRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	const int32 NumStaticMaterials = StaticMaterials.Num();
 	// If we find any invalid Material (null or pending kill), or we find a section below with an out of range MaterialIndex,
 	// then we will set UEDefaultMaterial at the invalid index
@@ -4246,7 +4248,7 @@ FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(UMeshComponent* MeshCompone
 {
 	// If the ref counted input system is used, don't get the override from the component, this will be handled at the
 	// component level by the input system.
-	const bool bIsUsingRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bIsUsingRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (!bIsUsingRefCountedInputSystem && MeshComponent && MeshComponent->GetBodyInstance())
 	{
 		UPhysicalMaterial* PhysicalMaterial = MeshComponent->GetBodyInstance()->GetSimplePhysicalMaterial();
@@ -4439,7 +4441,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	// the component to account for overrides. For the ref counted input system the component will override the
 	// materials in its input node.
 	const bool bIsStaticMeshComponentValid = (IsValid(StaticMeshComponent) && StaticMeshComponent->IsValidLowLevel());
-	const bool bUsingRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUsingRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	const int32 NumStaticMaterials = StaticMaterials.Num();
 	// If we find any invalid Material (null or pending kill), or we find a section below with an out of range MaterialIndex,
 	// then we will set UEDefaultMaterial at the invalid index

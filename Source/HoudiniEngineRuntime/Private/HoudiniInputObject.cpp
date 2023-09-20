@@ -36,6 +36,7 @@
 #include "HoudiniLandscapeRuntimeUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputManager.h"
+#include "UnrealObjectInputRuntimeUtils.h"
 
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
@@ -477,7 +478,7 @@ void
 UHoudiniInputObject::SetInputNodeId(const int32 InInputNodeId)
 {
 	// Only set the node id if the ref counted system is not used.
-	if (bInputNodeHandleOverridesNodeIds && FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
+	if (bInputNodeHandleOverridesNodeIds && FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled())
 		return;
 	InputNodeId = InInputNodeId;
 }
@@ -488,7 +489,7 @@ UHoudiniInputObject::GetInputNodeId() const
 	// If the ref counted system is enabled then we return the node id via the handle, otherwise return the id stored
 	// on this object
 
-	if (!bInputNodeHandleOverridesNodeIds || !FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
+	if (!bInputNodeHandleOverridesNodeIds || !FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled())
 		return InputNodeId;
 
 	if (!InputNodeHandle.IsValid())
@@ -511,7 +512,7 @@ void
 UHoudiniInputObject::SetInputObjectNodeId(const int32 InInputObjectNodeId)
 {
 	// Only set the node id if the ref counted system is not used.
-	if (bInputNodeHandleOverridesNodeIds && FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
+	if (bInputNodeHandleOverridesNodeIds && FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled())
 		return;
 	InputObjectNodeId = InInputObjectNodeId;
 }
@@ -522,7 +523,7 @@ UHoudiniInputObject::GetInputObjectNodeId() const
 	// If the ref counted system is enabled then we return the node id via the handle, otherwise return the id stored
 	// on this object
 
-	if (!bInputNodeHandleOverridesNodeIds || !FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
+	if (!bInputNodeHandleOverridesNodeIds || !FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled())
 		return InputObjectNodeId;
 
 	if (!InputNodeHandle.IsValid())
@@ -765,7 +766,7 @@ UHoudiniInputObject::MarkChanged(const bool& bInChanged)
 	if (bInChanged && InputNodeHandle.IsValid())
 	{
 		static constexpr bool bAlsoDirtyReferencedNodes = true;
-		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
+		FUnrealObjectInputRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
 	}
 }
 
@@ -777,10 +778,10 @@ UHoudiniInputActor::MarkChanged(const bool& bInChanged)
 
 	static constexpr bool bAlsoDirtyReferencedNodes = true;
 	if (bInChanged && InputNodeHandle.IsValid())
-		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
+		FUnrealObjectInputRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
 
 	if (bInChanged && SplinesMeshInputNodeHandle.IsValid())
-		FHoudiniEngineRuntimeUtils::MarkInputNodeAsDirty(SplinesMeshInputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
+		FUnrealObjectInputRuntimeUtils::MarkInputNodeAsDirty(SplinesMeshInputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
 
 	for (auto& CurComponent : ActorComponents)
 	{
@@ -1309,7 +1310,7 @@ UHoudiniInputObject::Matches(const UHoudiniInputObject& Other) const
 		&& InputNodeId == Other.InputNodeId
 		&& InputObjectNodeId == Other.InputObjectNodeId
 		);
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bUseRefCountedInputSystem)
 		Matches &= InputNodeHandle == Other.InputNodeHandle;
 
@@ -1336,7 +1337,7 @@ UHoudiniInputObject::InvalidateData()
 
 	// If we are using the new input system, then don't delete the nodes if we have a valid handle, and the HAPI
 	// nodes associated with the handle matches InputNodeId / InputObjectNodeId
-	const bool bIsRefCountedInputSystemEnabled = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bIsRefCountedInputSystemEnabled = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bIsRefCountedInputSystemEnabled && InputNodeHandle.IsValid())
 	{
 		IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
@@ -2319,7 +2320,7 @@ UHoudiniInputActor::InvalidateSplinesMeshData()
 	{
 		// If we are using the new input system, then don't delete the nodes if we have a valid handle, and the HAPI
 		// nodes associated with the handle matches SplinesMeshNodeId / SplinesMeshObjectNodeId
-		const bool bIsRefCountedInputSystemEnabled = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+		const bool bIsRefCountedInputSystemEnabled = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 		if (bIsRefCountedInputSystemEnabled && SplinesMeshInputNodeHandle.IsValid())
 		{
 			IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();

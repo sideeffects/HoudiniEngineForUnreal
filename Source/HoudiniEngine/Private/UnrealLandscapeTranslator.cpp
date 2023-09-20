@@ -45,6 +45,8 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 
 #include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputRuntimeUtils.h"
+#include "UnrealObjectInputUtils.h"
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniLandscapeUtils.h"
 
@@ -66,7 +68,7 @@ FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
 	//--------------------------------------------------------------------------------------------------
 	HAPI_NodeId InputNodeId = -1;
 	// Create the curve SOP Node
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bUseRefCountedInputSystem)
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ParentNodeId, TEXT("null"), InputNodeNameString, true, &InputNodeId), false);
 	else
@@ -790,7 +792,7 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 	FUnrealObjectInputHandle& OutHandle,
 	const bool& bInputNodesCanBeDeleted)
 {
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	FString FinalInputNodeName = InputNodeName;
 	EHoudiniLandscapeExportType ExportType = InInput->GetLandscapeExportType();
 
@@ -810,13 +812,13 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 		Identifier = FUnrealObjectInputIdentifier(InLandscape, Options, true);
 
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId))
+			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId))
 			{
 				if (!bInputNodesCanBeDeleted)
-					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
 
 				OutHandle = Handle;
 				InputNodeId = NodeId;
@@ -824,10 +826,10 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 			}
 		}
 
-		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
-		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted))
+		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted))
 		{
-			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
 
 			FUnrealObjectInputIdentifier ParentIdentifier = ParentHandle.GetIdentifier();
 			FName ParentPath = ParentIdentifier.GetObjectPath();
@@ -836,14 +838,14 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 			GeoNodeIdentifier = FUnrealObjectInputIdentifier(FName(GeoNodePath));
 
 			FUnrealObjectInputHandle GeoHandle;
-			if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(GeoNodeIdentifier, GeoHandle))
+			if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(GeoNodeIdentifier, GeoHandle))
 			{
 				HAPI_NodeId NodeId = -1;
-				if (!FHoudiniEngineUtils::GetHAPINodeId(GeoHandle, NodeId))
+				if (!FUnrealObjectInputUtils::GetHAPINodeId(GeoHandle, NodeId))
 					return false;
 
 				if (!bInputNodesCanBeDeleted)
-					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(GeoHandle, bInputNodesCanBeDeleted);
+					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(GeoHandle, bInputNodesCanBeDeleted);
 				
 				ParentNodeId = NodeId;
 				GeoNodeHandle = GeoHandle;
@@ -958,7 +960,7 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 	{
 		FUnrealObjectInputHandle Handle;
 		HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
-		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId))
+		if (FUnrealObjectInputUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId))
 			OutHandle = Handle;
 	}
 
