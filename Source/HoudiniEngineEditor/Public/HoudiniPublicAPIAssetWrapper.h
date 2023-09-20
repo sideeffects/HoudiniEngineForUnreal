@@ -262,6 +262,11 @@ public:
 
 	/**
 	 * Factory function for creating new wrapper instances around instantiated assets.
+	 * 
+	 * Note: the lifecycle / ownership of the UHoudiniPublicAPIAssetWrapper* that is created and returned is not managed
+	 * by the public API after creation, the caller must, for example, use a UProperty to prevent garbage collection of
+	 * the wrapper if desired.
+	 *
 	 * @param InOuter The outer for the new wrapper instance.
 	 * @param InHoudiniAssetActorOrComponent The AHoudiniAssetActor or UHoudiniAssetComponent to wrap.
 	 * @return The newly instantiated wrapper that wraps InHoudiniAssetActor, or nullptr if the wrapper could not
@@ -273,6 +278,11 @@ public:
 	/**
 	 * Factory function for creating a new empty wrapper instance.
 	 * An instantiated actor can be wrapped using SetHoudiniAssetActor.
+	 * 
+	 * Note: the lifecycle / ownership of the UHoudiniPublicAPIAssetWrapper* that is created and returned is not managed
+	 * by the public API after creation, the caller must, for example, use a UProperty to prevent garbage collection of
+	 * the wrapper if desired.
+	 *
 	 * @param InOuter the outer for the new wrapper instance.
 	 * @return The newly instantiated wrapper.
 	 */
