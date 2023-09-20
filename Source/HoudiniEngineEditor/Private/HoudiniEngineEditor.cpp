@@ -60,6 +60,9 @@
 #include "PropertyEditorModule.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "LevelEditor.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "Subsystems/PlacementSubsystem.h"
+#endif
 #include "Templates/SharedPointer.h"
 #include "Framework/Application/SlateApplication.h"
 #include "HAL/ConsoleManager.h"
@@ -379,10 +382,17 @@ FHoudiniEngineEditor::RegisterActorFactories()
 {
 	if (GEditor)
 	{
-		UHoudiniAssetActorFactory * HoudiniAssetActorFactory =
+		UHoudiniAssetActorFactory* HoudiniAssetActorFactory =
 			NewObject< UHoudiniAssetActorFactory >(GetTransientPackage(), UHoudiniAssetActorFactory::StaticClass());
 
 		GEditor->ActorFactories.Add(HoudiniAssetActorFactory);
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+		if (UPlacementSubsystem* PlacementSubsystem = GEditor->GetEditorSubsystem<UPlacementSubsystem>())
+		{
+			PlacementSubsystem->RegisterAssetFactory(HoudiniAssetActorFactory);
+		}
+#endif
 	}
 }
 
