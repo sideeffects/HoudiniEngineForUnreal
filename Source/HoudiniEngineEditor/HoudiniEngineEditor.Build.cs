@@ -114,7 +114,8 @@ public class HoudiniEngineEditor : ModuleRules
                 "SourceControl",
                 "EditorSubsystem",
                 "GameProjectGeneration",
-                "ToolWidgets"
+                "ToolWidgets",
+                "EditorFramework"
             }
         );
         

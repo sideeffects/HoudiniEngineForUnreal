@@ -47,13 +47,15 @@ UHoudiniAssetActorFactory::UHoudiniAssetActorFactory(const FObjectInitializer & 
 bool
 UHoudiniAssetActorFactory::CanCreateActorFrom(const FAssetData & AssetData, FText & OutErrorMsg)
 {
-	if (!AssetData.IsValid() || !AssetData.GetClass()->IsChildOf(UHoudiniAsset::StaticClass()))
+	if (AssetData.IsValid() && AssetData.IsInstanceOf(UHoudiniAsset::StaticClass()))
 	{
-		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoHoudiniAsset", "A valid Houdini Engine asset must be specified.");
+		return true;
+	}
+	else
+	{
+		OutErrorMsg = NSLOCTEXT("HoudiniEngine", "NoHoudiniAsset", "A valid Houdini Engine asset must be specified.");
 		return false;
 	}
-
-	return true;
 }
 
 UObject *

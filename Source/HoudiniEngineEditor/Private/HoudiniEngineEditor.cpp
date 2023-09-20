@@ -86,6 +86,9 @@
 #include "PropertyEditorModule.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "Subsystems/PlacementSubsystem.h"
+#endif
 #include "Templates/SharedPointer.h"
 #include "UnrealEdGlobals.h"
 #include "Widgets/Docking/SDockTab.h"
@@ -398,13 +401,21 @@ FHoudiniEngineEditor::RegisterActorFactories()
 {
 	if (GEditor)
 	{
-		UHoudiniAssetActorFactory * HoudiniAssetActorFactory =
+		UHoudiniAssetActorFactory* HoudiniAssetActorFactory =
 			NewObject< UHoudiniAssetActorFactory >(GetTransientPackage(), UHoudiniAssetActorFactory::StaticClass());
-		UHoudiniPresetActorFactory * HoudiniPresetActorFactory =
+		UHoudiniPresetActorFactory* HoudiniPresetActorFactory =
 			NewObject< UHoudiniPresetActorFactory >(GetTransientPackage(), UHoudiniPresetActorFactory::StaticClass());
 
 		GEditor->ActorFactories.Add(HoudiniAssetActorFactory);
 		GEditor->ActorFactories.Add(HoudiniPresetActorFactory);
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+		if (UPlacementSubsystem* PlacementSubsystem = GEditor->GetEditorSubsystem<UPlacementSubsystem>())
+		{
+			PlacementSubsystem->RegisterAssetFactory(HoudiniAssetActorFactory);
+			PlacementSubsystem->RegisterAssetFactory(HoudiniPresetActorFactory);
+		}
+#endif
 	}
 }
 
