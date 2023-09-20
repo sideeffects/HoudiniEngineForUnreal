@@ -49,7 +49,7 @@ void AIterateOverHoudiniActorsExample::RunIterateOverHoudiniActorsExample_Implem
 		API->CreateSession();
 
 	// Iterate over HoudiniAssetActors in the world (by default when instantiating an HDA in the world an
-	// AHoudiniAssetActor is spawned, which has a component that manages the instantiated HDA node in Houdini Engine.
+	// AHoudiniAssetActor is spawned, which has a component that manages the instantiated HDA node in Houdini Engine).
 	UWorld* const OurWorld = GetWorld();
 	for (TActorIterator<AHoudiniAssetActor> It(OurWorld); It; ++It)
 	{

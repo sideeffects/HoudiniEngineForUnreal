@@ -32,7 +32,7 @@
 #include "IterateOverHoudiniActorsExample.generated.h"
 
 UCLASS()
-class APIEXAMPLEEDITOR_API AIterateOverHoudiniActorsExample : public AEditorUtilityActor
+class AIterateOverHoudiniActorsExample : public AEditorUtilityActor
 {
 	GENERATED_BODY()
 
