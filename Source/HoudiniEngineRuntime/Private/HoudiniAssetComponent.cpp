@@ -949,6 +949,11 @@ UHoudiniAssetComponent::OnHoudiniAssetChanged()
 	bForceNeedUpdate = true;
 }
 
+void UHoudiniAssetComponent::QueuePreCookCallback(const TFunction<void(UHoudiniAssetComponent*)>& CallbackFn)
+{
+	PreCookCallbacks.Add(CallbackFn);
+}
+
 bool
 UHoudiniAssetComponent::NeedUpdateParameters() const
 {
@@ -2803,115 +2808,6 @@ UHoudiniAssetComponent::IsHoudiniCookedDataAvailable(bool &bOutNeedsRebuildOrDel
 	return false;
 }
 
-void
-UHoudiniAssetComponent::SetInputPresets(const TMap<UObject*, int32>& InPresets)
-{
-	// Set the input preset for this HAC
-#if WITH_EDITOR
-	InputPresets = InPresets;
-#endif
-}
-
-
-void
-UHoudiniAssetComponent::ApplyInputPresets()
-{
-	if (InputPresets.Num() <= 0)
-		return;
-
-#if WITH_EDITOR
-	// Ignore inputs that have been preset to curve
-	TArray<UHoudiniInput*> InputArray;
-	for (auto CurrentInput : Inputs)
-	{
-		if (!IsValid(CurrentInput))
-			continue;
-		
-		InputArray.Add(CurrentInput);
-	}
-
-	// Try to apply the supplied Object to the Input
-	for (TMap< UObject*, int32 >::TIterator IterToolPreset(InputPresets); IterToolPreset; ++IterToolPreset)
-	{
-		UObject * Object = IterToolPreset.Key();
-		if (!IsValid(Object))
-			continue;
-
-		int32 InputNumber = IterToolPreset.Value();
-		if (!InputArray.IsValidIndex(InputNumber))
-			continue;
-
-		// If the object is a landscape, add a new landscape input
-		if (Object->IsA<ALandscapeProxy>())
-		{
-			// selecting a landscape 
-			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::World);
-			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::World, InsertNum, Object);
-		}
-
-		// If the object is an actor, add a new world input
-		if (Object->IsA<AActor>())
-		{
-			// selecting an actor 
-			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::World);
-			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::World, InsertNum, Object);
-		}
-
-		// If the object is a static mesh, add a new geometry input (TODO: or BP ? )
-		if (Object->IsA<UStaticMesh>())
-		{
-			// selecting a Staticn Mesh
-			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::Geometry);
-			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::Geometry, InsertNum, Object);
-		}
-
-		if (Object->IsA<AHoudiniAssetActor>())
-		{
-			// selecting a Houdini Asset 
-			int32 InsertNum = InputArray[InputNumber]->GetNumberOfInputObjects(EHoudiniInputType::World);
-			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::World, InsertNum, Object);
-		}
-	}
-
-	// The input objects have been set, now change the input type
-	bool bBPStructureModified = false;
-	for (auto CurrentInput : Inputs)
-	{		
-		int32 NumGeo = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::Geometry);
-		int32 NumWorld = CurrentInput->GetNumberOfInputObjects(EHoudiniInputType::World);
-
-		EHoudiniInputType NewInputType = EHoudiniInputType::Invalid;
-		if (NumWorld > 0 && NumWorld >= NumGeo)
-			NewInputType = EHoudiniInputType::World;
-		else if (NumGeo > 0 && NumGeo >= NumWorld)
-			NewInputType = EHoudiniInputType::Geometry;
-
-		if (NewInputType == EHoudiniInputType::Invalid)
-			continue;
-
-		// Change the input type, unless if it was preset to a different type and we have object for the preset type
-		if (CurrentInput->GetInputType() == EHoudiniInputType::Geometry && NewInputType != EHoudiniInputType::Geometry)
-		{
-			CurrentInput->SetInputType(NewInputType, bBPStructureModified);
-		}
-		else
-		{
-			// Input type was preset, only change if that type is empty
-			if(CurrentInput->GetNumberOfInputObjects() <= 0)
-				CurrentInput->SetInputType(NewInputType, bBPStructureModified);
-		}
-	}
-	if (bBPStructureModified)
-	{
-		MarkAsBlueprintStructureModified();
-	}
-#endif
-
-	// Discard the tool presets after their first setup
-	InputPresets.Empty();
-}
-
-
 bool
 UHoudiniAssetComponent::IsComponentValid() const
 {
@@ -3107,6 +3003,13 @@ void UHoudiniAssetComponent::HandleOnPreInstantiation()
 void
 UHoudiniAssetComponent::HandleOnPreCook()
 {
+	// Process the PreCookCallbacks array first
+	for(auto CallbackFn : PreCookCallbacks)
+	{
+		CallbackFn(this);
+	}
+	PreCookCallbacks.Empty();
+	
 	if (OnPreCookDelegate.IsBound())
 		OnPreCookDelegate.Broadcast(this);
 }

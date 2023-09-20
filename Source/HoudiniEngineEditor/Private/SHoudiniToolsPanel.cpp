@@ -2995,6 +2995,8 @@ SHoudiniToolsPanel::InstantiateHoudiniTool( FHoudiniTool* HoudiniTool )
 	if ( !HoudiniTool )
 		return;
 
+	// TODO: CLEANUP! Most of this code lives in FHoudiniEngineEditorUtils::InstantiateHoudiniAsset. 
+
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>( "AssetRegistry" );
 
 	// Load the asset
@@ -3075,7 +3077,10 @@ SHoudiniToolsPanel::InstantiateHoudiniTool( FHoudiniTool* HoudiniTool )
 			// Create and set the input preset for this HDA and selected Object
 			TMap< UObject*, int32 > InputPreset;
 			InputPreset.Add( CurrentSelectedObject, 0 );
-			HoudiniAssetComponent->SetInputPresets(InputPreset);
+			HoudiniAssetComponent->QueuePreCookCallback([InputPreset](UHoudiniAssetComponent* HAC)
+			{
+				FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(InputPreset, HAC);
+			});
 
 			// Select the Actor we just created
 			if ( GEditor && GEditor->CanSelectActor( CreatedActor, true, false ) )
@@ -3119,7 +3124,12 @@ SHoudiniToolsPanel::InstantiateHoudiniTool( FHoudiniTool* HoudiniTool )
 
 				// Set the input preset on the HoudiniAssetComponent
 				if ( InputPresets.Num() > 0 )
-					HoudiniAssetComponent->SetInputPresets( InputPresets );
+				{
+					HoudiniAssetComponent->QueuePreCookCallback([InputPresets](UHoudiniAssetComponent* HAC)
+					{
+						FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(InputPresets, HAC);
+					});
+				}
 			}
 		}
 

@@ -101,27 +101,15 @@ UHoudiniPresetActorFactory::PostSpawnActor(UObject* InObject, AActor* NewActor)
 			HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
 			FHoudiniEngineRuntime::Get().RegisterHoudiniComponent(HoudiniAssetComponent);
 
-			// We have to wait for the PostOutputProcessing delegate to be fired before we can apply the preset.
-			// Attempting to apply it earlier (such as PostCook, or PreOutputProcessing) doesn't work properly.
-			FDelegateHandle Handle = HoudiniAssetComponent->GetOnPreCookDelegate().AddLambda([this, Preset](UHoudiniAssetComponent* InHoudiniAssetComponent)
+			// Apply the preset once the HoudiniAssetComponent has reached the PreCookCallback (which is when
+			// both the HAC inputs and parameters have been initialized).
+			HoudiniAssetComponent->QueuePreCookCallback([Preset](UHoudiniAssetComponent* InHoudiniAssetComponent)
 			{
-				if (OnPresetProcessingHandles.Contains(InHoudiniAssetComponent))
+				if (IsValid(InHoudiniAssetComponent) && IsValid(Preset))
 				{
-					// Unsubscribe from the PostOutputProcessing delegate before we perform any additional updates.
-					InHoudiniAssetComponent->GetOnPreCookDelegate().Remove( OnPresetProcessingHandles.FindChecked(InHoudiniAssetComponent) );
-					OnPresetProcessingHandles.Remove(InHoudiniAssetComponent);
-
-					// We only want to apply a preset if we were able to deregister from the PostOutputProcessing event, otherwise
-					// we're going to end up in an endless cook loop here.
-					if (!IsValid(InHoudiniAssetComponent) || !IsValid(Preset))
-						return;
-
 					FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(Preset, InHoudiniAssetComponent);
 				}
 			});
-
-			// Register this HoudiniAssetComponent along with its post cook handle.
-			OnPresetProcessingHandles.Add(HoudiniAssetComponent, Handle);
 		}
 	}
 }

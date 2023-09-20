@@ -43,6 +43,7 @@
 #include "EditorViewportClient.h"
 #include "ActorFactories/ActorFactory.h"
 #include "FileHelpers.h"
+#include "HoudiniToolsEditor.h"
 #include "PropertyPathHelpers.h"
 #include "Components/SceneComponent.h"
 #include "UObject/UObjectIterator.h"
@@ -442,7 +443,11 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset
 			// Create and set the input preset for this HDA and selected Object
 			TMap<UObject*, int32> InputPreset;
 			InputPreset.Add(CurrentSelectedObject, 0);
-			HoudiniAssetComponent->SetInputPresets(InputPreset);
+			HoudiniAssetComponent->QueuePreCookCallback([InputPreset](UHoudiniAssetComponent* HAC)
+			{
+				// Apply the inputs once the HDA has reached its PreCookCallback
+				FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(InputPreset, HAC);
+			});
 
 			// Select the Actor we just created
 			if (GEditor && GEditor->CanSelectActor(CreatedActor, true, false))
@@ -485,8 +490,14 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset
 				}
 
 				// Set the input preset on the HoudiniAssetComponent
-				if (InputPresets.Num() > 0)
-					HoudiniAssetComponent->SetInputPresets(InputPresets);
+				if ( InputPresets.Num() > 0 )
+				{
+					HoudiniAssetComponent->QueuePreCookCallback([InputPresets](UHoudiniAssetComponent* HAC)
+					{
+						// Apply the inputs once the HDA has reached its PreCookCallback
+						FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(InputPresets, HAC);
+					});
+				}
 			}
 		}
 

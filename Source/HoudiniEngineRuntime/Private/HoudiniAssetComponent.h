@@ -231,6 +231,13 @@ public:
 
 	FOnAssetStateChangeDelegate& GetOnAssetStateChangeDelegate() { return OnAssetStateChangeDelegate; }
 
+	// Register a callback that will be fired once during the next PreCook event, after which the callback
+	// will be removed from the queue.
+	// This is typically used when applying presets during HDA instantiation where we need to wait for
+	// the HoudiniAssetComponent to reach it's PreCook phase before we execute the callback to populate the HAC
+	// with the desired preset / input values.
+	void QueuePreCookCallback(const TFunction<void(UHoudiniAssetComponent*)>& CallbackFn);
+
 	// Derived blueprint based components will check whether the template
 	// component contains updates that needs to processed.
 	bool NeedUpdateParameters() const;
@@ -377,11 +384,6 @@ public:
 	virtual void OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport) override;
 
 	FBox GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreGeneratedLandscape) const;
-
-	// Set this component's input presets
-	void SetInputPresets(const TMap<UObject*, int32>& InPresets);
-	// Apply the preset input for HoudiniTools
-	void ApplyInputPresets();
 
 	// return the cached component template, if available.
 	virtual UHoudiniAssetComponent* GetCachedTemplate() const { return nullptr; }
@@ -767,11 +769,7 @@ protected:
 	// instead build the UStaticMesh directly (if applicable for the output types).
 	UPROPERTY(DuplicateTransient)
 	bool bNoProxyMeshNextCookRequested;
-
-	// Maps a UObject to an Input number, used to preset the asset's inputs 
-	UPROPERTY(Transient, DuplicateTransient)
-	TMap<UObject*, int32> InputPresets;
-
+	
 	// If true, bake the asset after its next cook.
 	UPROPERTY(DuplicateTransient)
 	bool bBakeAfterNextCook;
@@ -829,6 +827,9 @@ protected:
 	// End: IHoudiniAssetStateEvents
 	//
 
+	// Store any PreCookCallbacks here until they HAC is ready to process them during the PreCook event.
+	TArray< TFunction<void(UHoudiniAssetComponent*)> > PreCookCallbacks;
+	
 #if WITH_EDITORONLY_DATA
 
 public:

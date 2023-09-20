@@ -276,10 +276,19 @@ public:
 
 	// Apply the preset to the given HoudiniAssetComponent.
 	// Optionally, reselect selected actors to update the component visualizers.
+	// This is typically used in conjunction with UHoudiniAssetComponent::QueueOneShotPreCookCallback
 	static void ApplyPresetToHoudiniAssetComponent(
 		const UHoudiniPreset* Preset,
 		UHoudiniAssetComponent* HAC,
 		const bool bReselectSelectedActors = true);
+
+	// Apply the given objects to the specified input index. The input type will automatically be determined (and set)
+	// based on the types of the mapped inputs.
+	// This is typically used in conjunction with UHoudiniAssetComponent::QueueOneShotPreCookCallback
+	static void ApplyObjectsAsHoudiniAssetInputs(
+		const TMap<UObject*, int32>& InputObjects,
+		UHoudiniAssetComponent* HAC
+		);
 
 	// --------------------------------
 	// Shutdown

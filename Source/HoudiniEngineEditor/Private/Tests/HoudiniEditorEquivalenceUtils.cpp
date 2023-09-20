@@ -188,9 +188,6 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniAssetComponent *
 
 	// Skip bNoProxyMeshNextCookRequested
 
-	// Not sure if this is necessary:
-	Result &= TestExpressionError(A->InputPresets.Num() == B->InputPresets.Num(), Header, "InputPresets");
-
 	// Skip bBakeAfterNextCook
 
 	// Skip delegates

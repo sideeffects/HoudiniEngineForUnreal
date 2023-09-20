@@ -1286,11 +1286,6 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 		}
 	}
 
-	if (HAC->InputPresets.Num() > 0)
-	{
-		HAC->ApplyInputPresets();
-	}
-
 	// Cache the current cook counts of the nodes so that we can more reliable determine
 	// whether content has changed next time build outputs.	
 	const TArray<int32> OutputNodes = HAC->GetOutputNodeIds();

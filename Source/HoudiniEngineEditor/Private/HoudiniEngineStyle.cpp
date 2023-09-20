@@ -70,8 +70,6 @@ FHoudiniEngineStyle::Initialize()
 	if (StyleSet.IsValid())
 		return;
 
-	UE_LOG(LogTemp, Log, TEXT("[FHoudiniEngineStyle::Initialize] Setting up StyleSet."));
-
 	StyleSet = MakeShareable(new FSlateStyleSet(GetStyleSetName()));
 	StyleSet->SetContentRoot(FPaths::EngineContentDir() / TEXT("Editor/Slate"));
 	StyleSet->SetCoreContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));

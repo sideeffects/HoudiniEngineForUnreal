@@ -32,6 +32,7 @@
 #include "EditorReimportHandler.h"
 #include "GameProjectUtils.h"
 #include "HoudiniAsset.h"
+#include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetFactory.h"
 #include "HoudiniEngine.h"
@@ -2652,6 +2653,128 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 	{
 		FHoudiniEngineEditorUtils::ReselectSelectedActors();
 	}
+}
+
+void FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(
+	const TMap<UObject*, int32>& InputObjects,
+	UHoudiniAssetComponent* HAC
+	)
+{
+	if (InputObjects.Num() <= 0)
+		return;
+
+#if WITH_EDITOR
+
+	struct FInputTypeCount
+	{
+		FInputTypeCount(): NumWorldInputs(0), NumGeoInputs(0), NumCurveInputs(0) {}
+
+		int32 NumWorldInputs;
+		int32 NumGeoInputs;
+		int32 NumCurveInputs;
+	};
+	
+	// Ignore inputs that have been preset to curve
+	TArray<UHoudiniInput*> InputArray;
+	TArray<int32> InputIsCleared;
+	TMap<int32, FInputTypeCount> TypeCountMap;
+	
+	const int32 NumInputs = HAC->GetNumInputs();
+	for (int32 InputIndex = 0; InputIndex < NumInputs; InputIndex++)
+	{
+		UHoudiniInput* CurrentInput = HAC->GetInputAt(InputIndex);
+		
+		if (!IsValid(CurrentInput))
+			continue;
+		
+		InputArray.Add(CurrentInput);
+		InputIsCleared.Add(false);
+	}
+
+	// Try to apply the supplied Object to the Input
+	for (TMap< UObject*, int32 >::TConstIterator IterToolPreset(InputObjects); IterToolPreset; ++IterToolPreset)
+	{
+		UObject * Object = IterToolPreset.Key();
+		if (!IsValid(Object))
+			continue;
+
+		const int32 InputNumber = IterToolPreset.Value();
+		if (!InputArray.IsValidIndex(InputNumber))
+			continue;
+
+		FInputTypeCount& Count = TypeCountMap.FindOrAdd(InputNumber); 
+
+		// If the object is a landscape, add a new landscape input
+		if (Object->IsA<ALandscapeProxy>())
+		{
+			// selecting a landscape 
+			int32 InsertNum = Count.NumWorldInputs;
+			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::World, InsertNum, Object);
+			Count.NumWorldInputs++;
+		}
+		// If the object is a static mesh, add a new geometry input (TODO: or BP ? )
+		else if (Object->IsA<UStaticMesh>())
+		{
+			// selecting a Static Mesh
+			int32 InsertNum = Count.NumGeoInputs;
+			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::Geometry, InsertNum, Object);
+			Count.NumGeoInputs++;
+		}
+		else if (Object->IsA<AHoudiniAssetActor>())
+		{
+			// selecting a Houdini Asset 
+			int32 InsertNum = Count.NumWorldInputs;
+			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::World, InsertNum, Object);
+			Count.NumWorldInputs++;
+		}
+		// If the object is an actor, add a new world input
+		else if (Object->IsA<AActor>())
+		{
+			// selecting a generic actor 
+			int32 InsertNum = Count.NumWorldInputs;
+			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::World, InsertNum, Object);
+			Count.NumWorldInputs++;
+		}
+	}
+
+	bool bBPStructureModified = false;
+	
+	// We try to guess the input type based on the count of the received input objects.
+	for (const auto& Entry : TypeCountMap)
+	{
+		const int32 InputIndex = Entry.Key;
+		const FInputTypeCount& Count = Entry.Value;
+
+		if (!InputArray.IsValidIndex(InputIndex) || !IsValid(InputArray[InputIndex]))
+		{
+			continue;
+		}
+		UHoudiniInput* Input = InputArray[InputIndex];
+		if (Count.NumWorldInputs > 0 && Count.NumWorldInputs >= Count.NumGeoInputs && Count.NumWorldInputs >= Count.NumCurveInputs)
+		{
+			Input->SetInputType(EHoudiniInputType::World, bBPStructureModified);
+		}
+		else if (Count.NumGeoInputs >= 0 && Count.NumGeoInputs >= Count.NumCurveInputs)
+		{
+			Input->SetInputType(EHoudiniInputType::Geometry, bBPStructureModified);
+		}
+		else if (Count.NumGeoInputs >= 0 && Count.NumGeoInputs >= Count.NumCurveInputs)
+		{
+			Input->SetInputType(EHoudiniInputType::Geometry, bBPStructureModified);
+		}
+		else
+		{
+			// We don't know what input type this is. Skip it.
+			continue;
+		}
+	}
+
+	if (bBPStructureModified)
+	{
+		HAC->MarkAsBlueprintStructureModified();
+	}
+#endif
+	
 }
 
 

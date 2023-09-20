@@ -55,6 +55,4 @@ public:
 
 protected:
 	bool AddHoudiniLogoToComponent(UHoudiniAssetComponent* HAC);
-
-	TMap<UHoudiniAssetComponent*, FDelegateHandle> OnPresetProcessingHandles;
 };

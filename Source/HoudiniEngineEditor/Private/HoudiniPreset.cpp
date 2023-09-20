@@ -776,7 +776,6 @@ FHoudiniPresetHelpers::ApplyPresetCurveInput(const FHoudiniPresetInputValue& Pre
 	for (int32 i = 0; i < PresetInput.CurveInputObjects.Num(); i++)
 	{
 		const FHoudiniPresetCurveInputObject& PresetObject = PresetInput.CurveInputObjects[i];
-		UE_LOG(LogTemp, Log, TEXT("[FHoudiniPresetHelpers::ApplyPresetCurveInput] Processing input object %d for curve inputs"), i);
 		
 		UHoudiniInputHoudiniSplineComponent* InputObj = nullptr;
 		

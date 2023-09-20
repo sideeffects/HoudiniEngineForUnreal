@@ -223,8 +223,6 @@ FAssetTypeActions_HoudiniToolsPackageAsset::ExecuteReimportDescriptionOnly(TArra
 			continue;
 		}
 		
-		UE_LOG(LogHoudiniTools, Log, TEXT("[FAssetTypeActions_HoudiniToolsPackageAsset::ExecuteReimportDescriptionOnly] Importing package description to: %s"), *ToolsPackage->GetPathName());
-		
 		// Attempt to import the package description
 		FHoudiniToolsEditor::ReimportExternalToolsPackageDescription(ToolsPackage);
 		if (GEditor)
