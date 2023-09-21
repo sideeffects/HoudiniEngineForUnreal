@@ -199,8 +199,9 @@ FString FHoudiniToolsEditor::GetAbsoluteToolsPackagePath(const UHoudiniToolsPack
 	{
 		return FString();
 	}
+	
 	// TODO: Can we normalize this path to get rid of the relative path bits?
-	FString AbsPath = FPaths::Combine(FPaths::GetPath(FPaths::GetProjectFilePath()), ToolsPackage->ExternalPackageDir.Path);
+	FString AbsPath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(FPaths::GetProjectFilePath()), ToolsPackage->ExternalPackageDir.Path);
 
 	FPaths::NormalizeDirectoryName(AbsPath);
 	FPaths::CollapseRelativeDirectories(AbsPath);
@@ -709,6 +710,9 @@ UHoudiniToolsPackageAsset* FHoudiniToolsEditor::CreateToolsPackageAsset(
 	{
 		return nullptr;
 	}
+
+	// Clear out categories since new Houdini Tools Package assets have default category values.
+	Asset->Categories.Empty();
 	
 	// By default add a catch-all category.
 	FCategoryRules DefaultRule;
@@ -2128,9 +2132,11 @@ bool FHoudiniToolsEditor::ImportSideFXTools(int* NumImportedHDAs)
 	const FString ExternalPackagePath = FPaths::Combine(HFSPath, TEXT("engine"), TEXT("tools"));
 	const FString PackageJSONPath = FPaths::Combine(ExternalPackagePath, FHoudiniToolsRuntimeUtils::GetPackageJSONName());
 
+	// Base Path of the tools directory in the Unreal project.
 	const FString PackageName = TEXT("SideFX");
 	const FString PackageDestPath = FHoudiniToolsEditor::GetDefaultPackagePath(PackageName);
-	
+
+	// Path to the Tools Package asset contained in the PackageDestPath.
 	const FString PackageAssetPath = FHoudiniToolsEditor::GetDefaultPackageAssetPath(PackageName);
 	UHoudiniToolsPackageAsset* PackageAsset = nullptr;
 
@@ -2148,21 +2154,18 @@ bool FHoudiniToolsEditor::ImportSideFXTools(int* NumImportedHDAs)
 			// We have a valid existing package. Be sure to update the package path
 			PackageAsset->ExternalPackageDir.Path = ExternalPackagePath;
 			FHoudiniEngineRuntimeUtils::DoPostEditChangeProperty(PackageAsset, "ExternalPackageDir");
-
+			
 			PackageAsset->MarkPackageDirty();
 		}
 	}
-
-	if (!IsValid(PackageAsset))
-	{
-		// We haven't found a SideFX package in the Unreal project. Try to import an external one, and if that
-		// failed, create new one.
-		PackageAsset = FHoudiniToolsEditor::ImportOrCreateToolsPackage(
-			PackageDestPath,
-			ExternalPackagePath,
-			PackageName
-			);
-	}
+	
+	// Regardless of whether we have found an existing SideFX package in the Unreal project, we'll reimport the
+	// external package.
+	PackageAsset = FHoudiniToolsEditor::ImportOrCreateToolsPackage(
+		PackageDestPath,
+		ExternalPackagePath,
+		PackageName
+		);
 	
 	if (!PackageAsset)
 	{
@@ -2170,7 +2173,7 @@ bool FHoudiniToolsEditor::ImportSideFXTools(int* NumImportedHDAs)
 		HOUDINI_LOG_WARNING(TEXT("Error importing SideFX tools. Could not import or create HoudiniTools package."));
 		return false;
 	}
-
+	
 	// Reimport HDAs for the current package.
 	FHoudiniToolsEditor::ReimportPackageHDAs(PackageAsset, false, NumImportedHDAs);
 
