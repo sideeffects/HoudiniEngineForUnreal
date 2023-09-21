@@ -195,6 +195,33 @@ struct FHoudiniPresetCurveInputObject : public FHoudiniPresetBase
 	FTransform Transform;
 	
 	// Curve Spline Component
+
+	EHoudiniCurveType GetValidCurveType() const
+	{
+		if (CurveType == EHoudiniCurveType::Invalid)
+		{
+			return EHoudiniCurveType::Polygon;
+		}
+		return CurveType;
+	}
+
+	EHoudiniCurveMethod GetValidCurveMethod() const
+	{
+		if (CurveMethod == EHoudiniCurveMethod::Invalid)
+		{
+			return EHoudiniCurveMethod::CVs;
+		}
+		return CurveMethod;
+	}
+
+	EHoudiniCurveBreakpointParameterization GetValidCurveBreakpointParameterization() const
+	{
+		if (CurveBreakpointParameterization == EHoudiniCurveBreakpointParameterization::Invalid)
+		{
+			return EHoudiniCurveBreakpointParameterization::Uniform;
+		}
+		return CurveBreakpointParameterization;
+	}
 	
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	TArray<FTransform> CurvePoints;

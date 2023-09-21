@@ -815,9 +815,9 @@ FHoudiniPresetHelpers::ApplyPresetCurveInput(const FHoudiniPresetInputValue& Pre
 		SplineComponent->SetReversed( PresetObject.bReversed );
 		SplineComponent->SetCurveOrder( PresetObject.CurveOrder );
 		SplineComponent->SetHoudiniSplineVisible( PresetObject.bIsHoudiniSplineVisible );
-		SplineComponent->SetCurveType( PresetObject.CurveType );
-		SplineComponent->SetCurveMethod( PresetObject.CurveMethod );
-		SplineComponent->SetCurveBreakpointParameterization( PresetObject.CurveBreakpointParameterization );
+		SplineComponent->SetCurveType( PresetObject.GetValidCurveType() );
+		SplineComponent->SetCurveMethod( PresetObject.GetValidCurveMethod() );
+		SplineComponent->SetCurveBreakpointParameterization( PresetObject.GetValidCurveBreakpointParameterization() );
 		SplineComponent->bIsOutputCurve = PresetObject.bIsOutputCurve;
 		SplineComponent->bCookOnCurveChanged = PresetObject.bCookOnCurveChanged;
 		SplineComponent->bIsLegacyInputCurve = PresetObject.bIsLegacyInputCurve;
