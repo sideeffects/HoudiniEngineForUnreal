@@ -355,7 +355,16 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 			// Get all the materials needed for this object
 			// Multiple material slots are supported, as well as creating new material instances if needed
 			TArray<UMaterialInterface*> VariationMaterials;
-			if (!GetAllInstancerMaterials(OutputIdentifier.GeoId, OutputIdentifier.PartId, VariationOriginalIndex, CurHGPO, InPackageParms, VariationMaterials))
+			// We need to get the point / prim indices of the split via InstancedOutputPartData.OriginalInstancedIndices
+			// to access the material attributes from Houdini/HAPI
+			int32 FirstOriginalIndex = 0;
+			if (InstancedOutputPartData.OriginalInstancedIndices.IsValidIndex(VariationOriginalIndex))
+			{
+				const TArray<int32>& OriginalInstancerObjectIndices = InstancedOutputPartData.OriginalInstancedIndices[VariationOriginalIndex];
+				if (OriginalInstancerObjectIndices.Num() > 0)
+					FirstOriginalIndex = OriginalInstancerObjectIndices[0];
+			}
+			if (!GetAllInstancerMaterials(OutputIdentifier.GeoId, OutputIdentifier.PartId, FirstOriginalIndex, CurHGPO, InPackageParms, VariationMaterials))
 				VariationMaterials.Empty();
 
 			USceneComponent* NewInstancerComponent = nullptr;
