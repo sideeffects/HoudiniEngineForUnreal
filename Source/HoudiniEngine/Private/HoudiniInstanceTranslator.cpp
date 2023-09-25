@@ -2937,29 +2937,20 @@ FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
 	if (AllAttribNames.Num() <= 0)
 		return false;
 
-	// Look for material instances overrides first!
-	// This will allow us to set the OutMaterialOverrideNeedToCreateInstance values properly
-	if (GetMaterialOverridesFromAttributes(InGeoNodeId, InPartId, InAttributeIndex, HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE, AllAttribNames, OutMaterialAttributes))
-	{
+	TArray<FString> MaterialInstanceAttributes;
+	TArray<FString> MaterialAttributes;
+	TArray<bool> MaterialOverrideNeedToCreateInstance;
+
+	// Get material instances overrides attributes
+	if (GetMaterialOverridesFromAttributes(InGeoNodeId, InPartId, InAttributeIndex, HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE, AllAttribNames, MaterialInstanceAttributes))
 		bFoundMaterialAttributes = true;
 
-		OutMaterialOverrideNeedToCreateInstance.SetNum(OutMaterialAttributes.Num());
-		for (int32 Idx = 0; Idx < OutMaterialAttributes.Num(); Idx++)
-		{
-			// Any non null material now is a material instance
-			if (!OutMaterialAttributes[Idx].IsEmpty())
-				OutMaterialOverrideNeedToCreateInstance[Idx] = true;
-			else
-				OutMaterialOverrideNeedToCreateInstance[Idx] = false;
-		}
-	}
-
-	// Now, try the "main" material override attributes
-	if(GetMaterialOverridesFromAttributes(InGeoNodeId, InPartId, InAttributeIndex, HAPI_UNREAL_ATTRIB_MATERIAL, AllAttribNames, OutMaterialAttributes))
+	// Get the "main" material override attributes
+	if(GetMaterialOverridesFromAttributes(InGeoNodeId, InPartId, InAttributeIndex, HAPI_UNREAL_ATTRIB_MATERIAL, AllAttribNames, MaterialAttributes))
 		bFoundMaterialAttributes = true;
 
 	// If we haven't found anything, try the fallback attribute
-	if (!bFoundMaterialAttributes && GetMaterialOverridesFromAttributes(InGeoNodeId, InPartId, InAttributeIndex, HAPI_UNREAL_ATTRIB_MATERIAL_FALLBACK, AllAttribNames, OutMaterialAttributes))
+	if (!bFoundMaterialAttributes && GetMaterialOverridesFromAttributes(InGeoNodeId, InPartId, InAttributeIndex, HAPI_UNREAL_ATTRIB_MATERIAL_FALLBACK, AllAttribNames, MaterialAttributes))
 		bFoundMaterialAttributes = true;
 
 	// We couldnt find any mat attribute? early return
@@ -2970,16 +2961,35 @@ FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
 		return false;
 	}
 
-	// Grow the material instance array for any potential materials that was found after the material instance pass
-	if (OutMaterialAttributes.Num() != OutMaterialOverrideNeedToCreateInstance.Num())
+	// Consolidate the final material (or material instance) selection into MaterialAttributes
+	// Use unreal_material if non-empty. If empty, fallback to unreal_material_instance.
+	// If unreal_material_instance is used in a slot set OutMaterialOverrideNeedToCreateInstance to true for that index
+	// Grow MaterialAttributes if MaterialInstanceAttributes is larger
+	const int32 MaxNumSlots = FMath::Max(MaterialInstanceAttributes.Num(), MaterialAttributes.Num());
+	if (MaterialAttributes.Num() < MaxNumSlots)
+		MaterialAttributes.AddZeroed(MaxNumSlots - MaterialAttributes.Num());
+	// Initially set all slots as not using material instances
+	MaterialOverrideNeedToCreateInstance.SetNumZeroed(MaxNumSlots);
+
+	for (int32 MatIdx = 0; MatIdx < MaxNumSlots; ++MatIdx)
 	{
-		int32 ExtraValuesStart = OutMaterialOverrideNeedToCreateInstance.Num();
-		OutMaterialOverrideNeedToCreateInstance.SetNum(OutMaterialAttributes.Num());
-
-		for(int32 Idx = ExtraValuesStart; Idx < OutMaterialOverrideNeedToCreateInstance.Num(); Idx++)
-			OutMaterialOverrideNeedToCreateInstance[Idx] = false;
+		// No material instances specified >= this slot, so we can keep what we have in MaterialAttributes after this point
+		if (!MaterialInstanceAttributes.IsValidIndex(MatIdx))
+			break;
+		// We have a non-empty unreal_material at this slot index, so we keep it
+		if (!MaterialAttributes[MatIdx].IsEmpty())
+			continue;
+		// Both unreal_material and unreal_material_instance are empty at this slot, so this slot is empty (default material)
+		if (MaterialInstanceAttributes[MatIdx].IsEmpty())
+			continue;
+		// Use unreal_material_instance at this slot
+		MaterialAttributes[MatIdx] = MaterialInstanceAttributes[MatIdx];
+		MaterialOverrideNeedToCreateInstance[MatIdx] = true;
 	}
-
+	
+	OutMaterialAttributes = MoveTemp(MaterialAttributes);
+	OutMaterialOverrideNeedToCreateInstance = MoveTemp(MaterialOverrideNeedToCreateInstance);
+	
 	return true;
 }
 
