@@ -68,11 +68,26 @@ FHoudiniEngineEditorUtils::GetContentBrowserSelection(TArray< UObject* >& Conten
 		if (!IsValid(Object))
 			continue;
 
-		// Only static meshes are supported
-		if (Object->GetClass() != UStaticMesh::StaticClass())
-			continue;
+		bool bIncludeObject = false;
 
-		ContentBrowserSelection.Add(Object);
+		if (Object->GetClass() == UStaticMesh::StaticClass())
+		{
+			// Include if this is a static mesh
+			ContentBrowserSelection.Add(Object);
+			continue;
+		}
+
+		// Only static meshes are supported
+		if (Object->GetClass() == UBlueprint::StaticClass())
+		{
+			const UBlueprint* BlueprintObj = Cast<UBlueprint>(Object);
+			if (IsValid(BlueprintObj) && BlueprintObj->BlueprintType == EBlueprintType::BPTYPE_Normal)
+			{
+				// Include if this is a "normal" blueprint.
+				ContentBrowserSelection.Add(Object);
+				continue;
+			}
+		}
 	}
 
 	return ContentBrowserSelection.Num();

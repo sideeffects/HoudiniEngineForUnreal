@@ -2705,7 +2705,10 @@ void FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(
 		if (!InputArray.IsValidIndex(InputNumber))
 			continue;
 
-		FInputTypeCount& Count = TypeCountMap.FindOrAdd(InputNumber); 
+		FInputTypeCount& Count = TypeCountMap.FindOrAdd(InputNumber);
+
+
+		UBlueprint* BlueprintObj = Cast<UBlueprint>(Object);
 
 		// If the object is a landscape, add a new landscape input
 		if (Object->IsA<ALandscapeProxy>())
@@ -2719,6 +2722,13 @@ void FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(
 		else if (Object->IsA<UStaticMesh>())
 		{
 			// selecting a Static Mesh
+			int32 InsertNum = Count.NumGeoInputs;
+			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::Geometry, InsertNum, Object);
+			Count.NumGeoInputs++;
+		}
+		else if (IsValid(BlueprintObj) && BlueprintObj->BlueprintType == EBlueprintType::BPTYPE_Normal)
+		{
+			// selecting a normal Blueprint asset as Geometry input type
 			int32 InsertNum = Count.NumGeoInputs;
 			InputArray[InputNumber]->SetInputObjectAt(EHoudiniInputType::Geometry, InsertNum, Object);
 			Count.NumGeoInputs++;
