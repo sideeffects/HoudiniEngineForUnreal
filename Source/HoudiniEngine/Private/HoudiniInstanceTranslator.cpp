@@ -1678,8 +1678,6 @@ FHoudiniInstanceTranslator::GetAttributeInstancerObjectsAndTransforms(
 					AttributeObject = StaticLoadObject(
 						UObject::StaticClass(), nullptr, *Iter, nullptr, LOAD_None, nullptr);
 
-				// HERER!
-
 				if (!AttributeObject)
 				{
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
