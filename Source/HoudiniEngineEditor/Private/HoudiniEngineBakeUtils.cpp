@@ -2045,13 +2045,13 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 		// duplicate actor name to "name-1" (minus one) instead of leaving off the 0.
 		NewActor->SetActorLabel(NewNameStr);
 
+		if (InIAC->GetInstancedObject()->IsA<AActor>())
+		{
+			const auto ComponentCopyOptions = static_cast<EditorUtilities::ECopyOptions::Type>(EditorUtilities::ECopyOptions::Default);
+			EditorUtilities::CopyActorProperties(CurrentInstancedActor, NewActor, ComponentCopyOptions);
+		}
+
 		OutBakeStats.NotifyObjectsCreated(NewActor->GetClass()->GetName(), 1);
-
-		const auto ComponentCopyOptions = static_cast<EditorUtilities::ECopyOptions::Type>(
-			EditorUtilities::ECopyOptions::CallPostEditChangeProperty |
-			EditorUtilities::ECopyOptions::CallPostEditMove);
-
-		EditorUtilities::CopyActorProperties(CurrentInstancedActor, NewActor, ComponentCopyOptions);
 
 		SetOutlinerFolderPath(NewActor, InOutputObject, WorldOutlinerFolderPath);
 		NewActor->SetActorTransform(CurrentTransform);
@@ -6181,43 +6181,47 @@ FHoudiniEngineBakeUtils::CopyPropertyToNewActorAndComponent(
 		
 		// Copy non-component properties from the old actor to the new actor
 		TSet<UObject*> ModifiedObjects;
-		for (FProperty* Property = ActorClass->PropertyLink; Property != nullptr; Property = Property->PropertyLinkNext)
+
+		if (NewActor->GetClass()->IsChildOf(ActorClass))
 		{
-			const bool bIsTransient = !!(Property->PropertyFlags & CPF_Transient);
-			const bool bIsComponentContainer = !!(Property->PropertyFlags & CPF_ContainsInstancedReference);
-			const bool bIsComponentProp = !!(Property->PropertyFlags & (CPF_InstancedReference | CPF_ContainsInstancedReference));
-			const bool bIsBlueprintReadonly = !!(Property->PropertyFlags & CPF_BlueprintReadOnly);
-			const bool bIsIdentical = Property->Identical_InContainer(SourceActor, NewActor);
-
-			if (!bIsTransient && !bIsIdentical && !bIsComponentContainer && !bIsComponentProp && !bIsBlueprintReadonly)
+			for (FProperty* Property = ActorClass->PropertyLink; Property != nullptr; Property = Property->PropertyLinkNext)
 			{
-				const bool bIsSafeToCopy = (Property->HasAnyPropertyFlags(CPF_Edit | CPF_Interp))
-					&& (!Property->HasAllPropertyFlags(CPF_DisableEditOnTemplate));
-				if (bIsSafeToCopy)
+				const bool bIsTransient = !!(Property->PropertyFlags & CPF_Transient);
+				const bool bIsComponentContainer = !!(Property->PropertyFlags & CPF_ContainsInstancedReference);
+				const bool bIsComponentProp = !!(Property->PropertyFlags & (CPF_InstancedReference | CPF_ContainsInstancedReference));
+				const bool bIsBlueprintReadonly = !!(Property->PropertyFlags & CPF_BlueprintReadOnly);
+				const bool bIsIdentical = Property->Identical_InContainer(SourceActor, NewActor);
+
+				if (!bIsTransient && !bIsIdentical && !bIsComponentContainer && !bIsComponentProp && !bIsBlueprintReadonly)
 				{
-					if (!Options.CanCopyProperty(*Property, *SourceActor))
+					const bool bIsSafeToCopy = (Property->HasAnyPropertyFlags(CPF_Edit | CPF_Interp))
+						&& (!Property->HasAllPropertyFlags(CPF_DisableEditOnTemplate));
+					if (bIsSafeToCopy)
 					{
-						continue;
-					}
+						if (!Options.CanCopyProperty(*Property, *SourceActor))
+						{
+							continue;
+						}
 
-					if (!ModifiedObjects.Contains(NewActor))
-					{
-						// Start modifying the target object
-						NewActor->Modify();
-						ModifiedObjects.Add(NewActor);
-					}
+						if (!ModifiedObjects.Contains(NewActor))
+						{
+							// Start modifying the target object
+							NewActor->Modify();
+							ModifiedObjects.Add(NewActor);
+						}
 
-					if (Options.Flags & EditorUtilities::ECopyOptions::CallPostEditChangeProperty)
-					{
-						NewActor->PreEditChange(Property);
-					}
+						if (Options.Flags & EditorUtilities::ECopyOptions::CallPostEditChangeProperty)
+						{
+							NewActor->PreEditChange(Property);
+						}
 
-					EditorUtilities::CopySingleProperty(SourceActor, NewActor, Property);
+						EditorUtilities::CopySingleProperty(SourceActor, NewActor, Property);
 
-					if (Options.Flags & EditorUtilities::ECopyOptions::CallPostEditChangeProperty)
-					{
-						FPropertyChangedEvent PropertyChangedEvent(Property);
-						NewActor->PostEditChangeProperty(PropertyChangedEvent);
+						if (Options.Flags & EditorUtilities::ECopyOptions::CallPostEditChangeProperty)
+						{
+							FPropertyChangedEvent PropertyChangedEvent(Property);
+							NewActor->PostEditChangeProperty(PropertyChangedEvent);
+						}
 					}
 				}
 			}
