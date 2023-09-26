@@ -2019,6 +2019,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 		    const FString NewNameStr = MakeUniqueObjectNameIfNeeded(DesiredLevel, CurrentInstancedActor->GetClass(), PackageParams.ObjectName);
 
 		    FTransform CurrentTransform = CurrentInstancedActor->GetTransform();
+
 		    AActor* NewActor = FHoudiniInstanceTranslator::SpawnInstanceActor(CurrentTransform, DesiredLevel, InIAC, FName(NewNameStr));
 		    if (!IsValid(NewActor))
 			   continue;
@@ -2028,11 +2029,13 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 		    NewActor->SetActorLabel(NewNameStr);
 
 			// Copy properties from the Instanced object, but only for actors.
-			if (InIAC->GetInstancedObject()->IsA<AActor>())
-			{
-				const auto ComponentCopyOptions = static_cast<EditorUtilities::ECopyOptions::Type>(EditorUtilities::ECopyOptions::Default);
-				EditorUtilities::CopyActorProperties(CurrentInstancedActor, NewActor, ComponentCopyOptions);
-			}
+			const auto CopyOptions = static_cast<EditorUtilities::ECopyOptions::Type>(
+					EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties |
+					EditorUtilities::ECopyOptions::PropagateChangesToArchetypeInstances | 
+					EditorUtilities::ECopyOptions::CallPostEditChangeProperty |
+					EditorUtilities::ECopyOptions::CallPostEditMove);
+
+			EditorUtilities::CopyActorProperties(CurrentInstancedActor, NewActor, CopyOptions);
 
 			OutBakeStats.NotifyObjectsCreated(NewActor->GetClass()->GetName(), 1);
 
