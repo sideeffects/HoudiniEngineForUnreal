@@ -1897,11 +1897,14 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 		// duplicate actor name to "name-1" (minus one) instead of leaving off the 0.
 		NewActor->SetActorLabel(NewNameStr);
 
-		if (InIAC->GetInstancedObject()->IsA<AActor>())
-		{
-			const auto ComponentCopyOptions = static_cast<EditorUtilities::ECopyOptions::Type>(EditorUtilities::ECopyOptions::Default);
-			EditorUtilities::CopyActorProperties(CurrentInstancedActor, NewActor, ComponentCopyOptions);
-		}
+		// Copy properties from the Instanced object, but only for actors.
+		const auto CopyOptions = static_cast<EditorUtilities::ECopyOptions::Type>(
+			EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties |
+			EditorUtilities::ECopyOptions::PropagateChangesToArchetypeInstances | 
+			EditorUtilities::ECopyOptions::CallPostEditChangeProperty |
+			EditorUtilities::ECopyOptions::CallPostEditMove);
+
+		EditorUtilities::CopyActorProperties(CurrentInstancedActor, NewActor, CopyOptions);
 
 		OutBakeStats.NotifyObjectsCreated(NewActor->GetClass()->GetName(), 1);
 
