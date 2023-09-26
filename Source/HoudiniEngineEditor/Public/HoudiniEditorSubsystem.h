@@ -14,6 +14,28 @@
 
 class USkeletalMesh;
 
+UENUM()
+enum class EHoudiniNodeSyncStatus : uint8
+{
+	// Fetch/Send not used yet
+	None,
+	
+	// Last operation failed
+	Failed,
+	
+	// Last operation was successfull
+	Success,
+	
+	// Last operation was succesfull, but reported errors
+	SuccessWithErrors,
+
+	// Sending/Fetching
+	Running,
+
+	// Display a warning
+	Warning
+};
+
 USTRUCT()
 struct HOUDINIENGINEEDITOR_API FHoudiniNodeSyncOptions
 {
@@ -31,19 +53,28 @@ public:
 	FString UnrealAssetName = "TestAsset";
 
 	UPROPERTY()
-	FString UnrealPathName = "/Game/000";
-
-	//UPROPERTY()
-	//FDirectoryPath DirectoryPath;
+	FString UnrealAssetFolder = "/Game/000";
 
 	UPROPERTY()
-	bool UseOutputNodes = true;
+	bool bUseOutputNodes = true;
 
 	UPROPERTY()
-	bool OverwriteSkeleton = false;
+	bool bFetchToWorld = false;
 
 	UPROPERTY()
-	FString SkeletonAssetPath = "";
+	FString UnrealActorName = "HoudiniActor";
+
+	UPROPERTY()
+	FString UnrealActorFolder = "/Houdini/NodeSync";
+
+	UPROPERTY()
+	bool bReplaceExisting = false;
+
+	UPROPERTY()
+	bool bOverwriteSkeleton = false;
+
+	UPROPERTY()
+	FString SkeletonAssetPath = "";	
 };
 
 
@@ -56,6 +87,7 @@ class HOUDINIENGINEEDITOR_API UHoudiniEditorSubsystem : public UEditorSubsystem
 	GENERATED_BODY()
 
 public:
+
 	UFUNCTION(BlueprintCallable, Category = "Houdini")
 	void SendToHoudini(const TArray<UObject*>& SelectedAssets);
 
@@ -73,7 +105,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Houdini")
 	void DumpSessionInfo();
 
+	// Returns the color corresponding to a given node sync status
+	static FLinearColor GetStatusColor(const EHoudiniNodeSyncStatus& Status);
+
+	// Node sync options
 	FHoudiniNodeSyncOptions NodeSyncOptions;
+
+	// SEND status
+	EHoudiniNodeSyncStatus LastSendStatus = EHoudiniNodeSyncStatus::None;
+	FString SendStatusMessage;
+
+	// FETCH status
+	EHoudiniNodeSyncStatus LastFetchStatus = EHoudiniNodeSyncStatus::None;
+	FString FetchStatusMessage;
 
 	bool GetNodeSyncInput(UHoudiniInput*& OutInput);
 

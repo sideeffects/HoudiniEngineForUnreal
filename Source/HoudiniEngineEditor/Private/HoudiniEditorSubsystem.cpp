@@ -180,12 +180,19 @@ UHoudiniEditorSubsystem::SendWorldSelection()
 	if (!IsValid(HoudiniSubsystem))
 		return;
 
+	HoudiniSubsystem->LastSendStatus = EHoudiniNodeSyncStatus::Running;
+	HoudiniSubsystem->SendStatusMessage = "Sending...";
+
 	// Get current world selection
 	TArray<UObject*> WorldSelection;
 	int32 SelectedHoudiniAssets = FHoudiniEngineEditorUtils::GetWorldSelection(WorldSelection, false);
 	if (SelectedHoudiniAssets <= 0)
 	{
 		HOUDINI_LOG_MESSAGE(TEXT("Houdini Node Sync: No selection in the world outliner"));
+
+		HoudiniSubsystem->LastSendStatus = EHoudiniNodeSyncStatus::Failed;
+		HoudiniSubsystem->SendStatusMessage = "Failed: No selection in the world outliner.";
+
 		return;
 	}
 
@@ -208,15 +215,18 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 	FHoudiniEngineUtils::CreateSlateNotification(Notification);
 	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Sending To Houdini!"));
 
+	// Update status
+	LastSendStatus = EHoudiniNodeSyncStatus::Running;
+	SendStatusMessage = "Sending...";
+
 	if (!CreateSessionIfNeeded())
 	{
 		// For now, just warn the session is not session sync
 		HOUDINI_LOG_WARNING(TEXT("HoudiniNodeSync: the current session is not session-sync one!"));
-	}
 
-	UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
-	if (!IsValid(HoudiniEditorSubsystem))
-		return;
+		LastSendStatus = EHoudiniNodeSyncStatus::Warning;
+		SendStatusMessage = "Warning: the current session is not Session-sync one!";
+	}
 
 	bool bUseInput = true;
 	if (!bUseInput)
@@ -235,7 +245,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 			object_node_id = UnrealContentNode;
 		}
 
-		FString SendNodePath = HoudiniEditorSubsystem->NodeSyncOptions.SendNodePath;
+		FString SendNodePath = NodeSyncOptions.SendNodePath;
 				
 		HAPI_NodeId  UnrealContentNodeId = -1;
 		result = FHoudiniApi::GetNodeFromPath(FHoudiniEngine::Get().GetSession(), -1, TCHAR_TO_ANSI(*SendNodePath), &UnrealContentNodeId);
@@ -274,7 +284,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 	{
 		// Create the content node
 		// As as subnet, so it's able to contain multiple geos
-		FString SendNodePath = HoudiniEditorSubsystem->NodeSyncOptions.SendNodePath;
+		FString SendNodePath = NodeSyncOptions.SendNodePath;
 		HAPI_NodeId  UnrealContentNodeId = -1;
 		HAPI_Result result = FHoudiniApi::GetNodeFromPath(FHoudiniEngine::Get().GetSession(), -1, TCHAR_TO_ANSI(*SendNodePath), &UnrealContentNodeId);
 		if ((result != HAPI_RESULT_SUCCESS) || (UnrealContentNodeId < 0))
@@ -286,7 +296,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 
 		// Get the NodeSync input from the Editor Subsystem
 		UHoudiniInput* NSInput;
-		if (!HoudiniEditorSubsystem->GetNodeSyncInput(NSInput))
+		if (!GetNodeSyncInput(NSInput))
 		{
 			// TODO: Always call remove from root, even for failures! (use a lambda for returns)
 			//NSInput->RemoveFromRoot();
@@ -331,6 +341,9 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 				FHoudiniEngine::Get().GetSession(), UnrealContentNodeId, "geo", TCHAR_TO_ANSI(*ObjectName), true, &CurrentObjectNodeId))
 			{
 				HOUDINI_LOG_WARNING(TEXT("HoudiniNodeSync: Failed to create input object geo node for %s."), *CurrentInputObject->GetName());
+
+				LastSendStatus = EHoudiniNodeSyncStatus::SuccessWithErrors;
+				SendStatusMessage = "Success - Some input objects failed to be created";
 			}
 
 			// Preset the existing Object Node ID to the unreal content node
@@ -346,6 +359,10 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 				NSInput, CurrentInputObject, CurrentActorTransform, CreatedNodeIds, false))
 			{
 				HOUDINI_LOG_WARNING(TEXT("HoudiniNodeSync: Failed to send %s to %s."), *CurrentInputObject->GetName(), *SendNodePath);
+
+				LastSendStatus = EHoudiniNodeSyncStatus::SuccessWithErrors;
+				SendStatusMessage = "Success - Some input objects failed to be created";
+
 				continue;
 			}
 
@@ -367,6 +384,13 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 		// TODO: Always call remove from root, even for failures! (use a lambda for returns)
 		//NSInput->RemoveFromRoot();
 	}
+
+	// Update status
+	if (LastSendStatus != EHoudiniNodeSyncStatus::SuccessWithErrors)
+	{
+		LastSendStatus = EHoudiniNodeSyncStatus::Success;
+		SendStatusMessage = "Success";
+	}	
 
 	// TODO: Improve me! handle failures!
 	Notification = TEXT("Houdini Node Sync success!");
@@ -394,7 +418,10 @@ UHoudiniEditorSubsystem::DumpSessionInfo()
 void 
 UHoudiniEditorSubsystem::Fetch()
 {
-	FetchFromHoudini(NodeSyncOptions.UnrealAssetName, NodeSyncOptions.UnrealPathName);
+	LastFetchStatus = EHoudiniNodeSyncStatus::Running;
+	FetchStatusMessage = "Fetching...";
+
+	FetchFromHoudini(NodeSyncOptions.UnrealAssetName, NodeSyncOptions.UnrealAssetFolder);
 }
 
 void 
@@ -404,24 +431,28 @@ UHoudiniEditorSubsystem::FetchFromHoudini(
 	// Add a slate notification
 	FString Notification = TEXT("Fetching data from Houdini...");
 	FHoudiniEngineUtils::CreateSlateNotification(Notification);
-	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Importing To Unreal!"));
+	
+	LastFetchStatus = EHoudiniNodeSyncStatus::Running;
+	FetchStatusMessage = "Fetching...";
 
  	if (!CreateSessionIfNeeded())
 	{
 		// For now, just warn the session is not session sync
 		HOUDINI_LOG_WARNING(TEXT("HoudiniNodeSync: the current session is not session-sync one!"));
+
+		LastFetchStatus = EHoudiniNodeSyncStatus::Warning;
+		FetchStatusMessage = "warning: the current session is not Session-sync one!";
 	}
 
 	UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
 	if (!IsValid(HoudiniEditorSubsystem))
 		return;
 
-
 	FString FetchNodePath = HoudiniEditorSubsystem->NodeSyncOptions.FetchNodePath;
 
 	HAPI_Result result;
 	HAPI_NodeId  UnrealContentNode = -1;
-	if (!HoudiniEditorSubsystem->NodeSyncOptions.UseOutputNodes)
+	if (!HoudiniEditorSubsystem->NodeSyncOptions.bUseOutputNodes)
 	{
 		// Get the display flag of the geo
 		HAPI_GeoInfo DisplayHapiGeoInfo;
@@ -437,6 +468,10 @@ UHoudiniEditorSubsystem::FetchFromHoudini(
 		{
 			//HOUDINI_LOG_MESSAGE(TEXT("Sending Node To %s "), *SendNodePath);
 			HOUDINI_LOG_MESSAGE(TEXT("Invalid FetchNodePath"));
+
+			LastFetchStatus = EHoudiniNodeSyncStatus::Failed;
+			FetchStatusMessage = "Failed: Invalid Fetch node path!";
+
 			return;
 		}
 	}
@@ -467,8 +502,8 @@ UHoudiniEditorSubsystem::FetchFromHoudini(
 		{
 			CleanUp();
 
-			// Failed to read the file info, fail the import
-			//GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, nullptr);
+			this->LastFetchStatus = EHoudiniNodeSyncStatus::Failed;
+			this->FetchStatusMessage = "Failed";
 
 			// TODO: Improve me!
 			FString Notification = TEXT("Houdini Node Sync failed!");
@@ -568,12 +603,18 @@ UHoudiniEditorSubsystem::FetchFromHoudini(
 		// TODO: Improve me!
 		Notification = TEXT("Houdini Node Sync success!");
 		FHoudiniEngineUtils::CreateSlateNotification(Notification);
+
+		LastFetchStatus = EHoudiniNodeSyncStatus::Success;
+		FetchStatusMessage = "Success";
 	}
 	else
 	{
 		// TODO: Improve me!
 		Notification = TEXT("Houdini Node Sync failed!");
 		FHoudiniEngineUtils::CreateSlateNotification(Notification);
+
+		LastFetchStatus = EHoudiniNodeSyncStatus::Failed;
+		FetchStatusMessage = "Failed";
 	}
 }
 
@@ -632,7 +673,7 @@ UHoudiniEditorSubsystem::FetchSkeletalMeshFromHoudini(
     skBuildSettings.CurrentObjectName = NodeName;
     skBuildSettings.GeoId = InNodeId;
     skBuildSettings.PartId = PartId;
-    skBuildSettings.OverwriteSkeleton = NodeSyncOptions.OverwriteSkeleton;
+    skBuildSettings.OverwriteSkeleton = NodeSyncOptions.bOverwriteSkeleton;
     skBuildSettings.SkeletonAssetPath = NodeSyncOptions.SkeletonAssetPath;
 
     FHoudiniMeshTranslator::CreateSKAssetAndPackage(skBuildSettings, InNodeId, PartId, FullPackageName, MaxInfluences, ImportNormals);
@@ -820,3 +861,44 @@ void UHoudiniEditorSubsystem::RegisterLayoutExtensions(FLayoutExtender& Extender
 	Extender.ExtendLayout(LevelEditorTabIds::PlacementBrowser, ELayoutExtensionPosition::Before, FTabManager::FTab(UAssetEditorUISubsystem::TopLeftTabID, ETabState::ClosedTab));
 }
 */
+
+FLinearColor
+UHoudiniEditorSubsystem::GetStatusColor(const EHoudiniNodeSyncStatus& Status)
+{
+	FLinearColor OutStatusColor = FLinearColor::White;
+
+	switch (Status)
+	{
+		case EHoudiniNodeSyncStatus::None:
+			// Nothing done yet
+			OutStatusColor = FLinearColor::White;
+			break;
+
+		case EHoudiniNodeSyncStatus::Failed:
+			// Last operation failed
+			OutStatusColor = FLinearColor::Red;
+			break;
+
+		case EHoudiniNodeSyncStatus::Success:
+			// Last operation was successfull
+			OutStatusColor = FLinearColor::Green;
+			break;
+
+		case EHoudiniNodeSyncStatus::SuccessWithErrors:
+			// Last operation was succesfull, but reported errors
+			OutStatusColor = FLinearColor(1.0f, 0.647f, 0.0f);
+			break;
+
+		case EHoudiniNodeSyncStatus::Running:
+			// Fetching/Sending
+			OutStatusColor = FLinearColor(0.0f, 0.749f, 1.0f);
+			break;
+		
+		case EHoudiniNodeSyncStatus::Warning:
+			// Display a warning
+			OutStatusColor = FLinearColor(1.0f, 0.647f, 0.0f);
+			break;
+	}
+
+	return OutStatusColor;
+}

@@ -1725,3 +1725,5 @@ SHoudiniUpdatePresetFromHDA::GetDescriptionLines()
 		LOCTEXT("HoudiniTool_UpdatePackageDescription2", "When you click the Update Preset button, the preset will be updated to match the options and selected parameters from this dialog.")
 	};
 }
+
+#undef LOCTEXT_NAMESPACE
