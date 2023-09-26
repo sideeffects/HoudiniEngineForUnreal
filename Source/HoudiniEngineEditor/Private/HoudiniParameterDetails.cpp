@@ -780,7 +780,6 @@ int32
 SCustomizedBox::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect,
 	FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-
 	SHorizontalBox::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	// Initialize line buffer
@@ -6155,15 +6154,20 @@ void FHoudiniParameterDetails::CreateWidgetTabUIElements(IDetailCategoryBuilder&
 	if (CurrentFolderListSize > 1)
 		return;
 
+	// Do not draw anything for empty Tabs!
+	// This would create extra lines in the Param UI, and adds extra dividers to the following parameters.
+	if (CurrentTabs.IsEmpty())
+		return;
+	
 	// The tabs belong to current folder list
 	UHoudiniParameterFolderList* CurrentTabMenuFolderList = CurrentFolderList;
 
 	// Create a row (UI) for current tabs
 	TSharedPtr<SCustomizedBox> HorizontalBox;
 	FDetailWidgetRow& Row = HouParameterCategory.AddCustomRow(FText::GetEmpty())
-		[
-			SAssignNew(HorizontalBox, SCustomizedBox)
-		];
+	[
+		SAssignNew(HorizontalBox, SCustomizedBox)
+	];
 
 	// Put current tab folder list param into an array
 	TArray<TWeakObjectPtr<UHoudiniParameter>> CurrentTabMenuFolderListArr;
