@@ -181,8 +181,12 @@ UHoudiniInstancedActorComponent::ClearAllInstances()
 {
     for ( AActor* Instance : InstancedActors )
     {
-        if ( IsValid(Instance) )
-            Instance->Destroy();
+        if (IsValid(Instance))
+        {
+            UWorld* const World = Instance->GetWorld();
+            if (IsValid(World))
+                World->DestroyActor(Instance);
+        }
     }
     InstancedActors.Empty();
 }
@@ -200,7 +204,11 @@ UHoudiniInstancedActorComponent::SetNumberOfInstances(const int32& NewInstanceNu
 		{
 			AActor* Instance = InstancedActors.IsValidIndex(Idx) ? InstancedActors[Idx] : nullptr;
 			if (IsValid(Instance))
-				Instance->Destroy();
+			{
+				UWorld* const World = Instance->GetWorld();
+				if (IsValid(World))
+					World->DestroyActor(Instance);
+			}
 		}
 	}
 	
