@@ -892,7 +892,7 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 	const FString LastWorkItemStateName = FHoudiniEngineUtils::HapiGetWorkItemStateAsString(LastWorkItemState);
 
 	if(!GetTOPAssetLinkNetworkAndNode(EventInfo.nodeId, PDGAssetLink, TOPNetwork, TOPNode)
-		|| !IsValid(PDGAssetLink) || !IsValid(TOPNetwork) || !IsValid(TOPNode) || !IsValid(TOPNode))
+		|| !IsValid(PDGAssetLink) || !IsValid(TOPNetwork) || !IsValid(TOPNode))
 	{		
 		HOUDINI_LOG_WARNING(TEXT("[ProcessPDGEvent]: Could not find matching TOPNode for event %s, workitem id %d, node id %d"), *EventName, EventInfo.workItemId, EventInfo.nodeId);
 		return;
