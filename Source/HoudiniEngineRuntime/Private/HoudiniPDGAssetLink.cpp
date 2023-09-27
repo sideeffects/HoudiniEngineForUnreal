@@ -893,13 +893,23 @@ UTOPNetwork::HandleOnPDGEventCookCompleteReceivedByChildNode(UHoudiniPDGAssetLin
 	if (!IsValid(InAssetLink))
 		return;
 
+	// Ensure that the work item tally is up to date, since we rely on it below
+	InAssetLink->UpdateWorkItemTally();
+
 	// Check if all nodes have received the HAPI_PDG_EVENT_COOK_COMPLETE event, if so, broadcast the OnPostCook handler.
 	for (const UTOPNode* const TOPNode : AllTOPNodes)
 	{
 		if (!IsValid(TOPNode))
 			continue;
 
-		if (!TOPNode->HasReceivedCookCompleteEvent())
+		// For nodes with child nodes, only the child nodes receive HAPI_PDG_EVENT_COOK_COMPLETE
+		if (TOPNode->bHasChildNodes)
+			continue;
+
+		// If the node has not received cook complete, and it has work items, then the network is not done cooking
+		// (Nodes that are bypassed in the network, or that don't have any work items generated, don't receive
+		//  HAPI_PDG_EVENT_COOK_COMPLETE)
+		if (!TOPNode->HasReceivedCookCompleteEvent() && TOPNode->GetWorkItemTally().NumWorkItems() > 0)
 			return;
 	}
 
