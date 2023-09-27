@@ -29,22 +29,20 @@
 #include "HoudiniMeshSplitInstancerComponent.h"
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
-
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniCompatibilityHelpers.h"
 
-#include "UObject/DevObjectVersion.h"
-#include "Serialization/CustomVersion.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Engine/World.h"
+#include "Internationalization/Internationalization.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "Serialization/CustomVersion.h"
+#include "UObject/DevObjectVersion.h"
 #include "UObject/ObjectResource.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 	#include "UObject/Linker.h"
 #endif
-
-#include "Components/InstancedStaticMeshComponent.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
-
-#include "Internationalization/Internationalization.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
