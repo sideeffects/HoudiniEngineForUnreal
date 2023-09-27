@@ -492,7 +492,9 @@ UHoudiniAssetComponent* FHoudiniEditorTestUtils::GetAssetComponentWithName(const
 
 	for (TActorIterator<AHoudiniAssetActor> It(GEditor->GetEditorWorldContext().World()); It; ++It)
 	{
-		if (It->GetName() == Name)
+        AHoudiniAssetActor * Actor = *It;
+        FString ActorName = Actor->GetName();
+        if (ActorName == Name || Name == Actor->GetActorLabel())
 		{
 			Out.Add(*It);
 		}

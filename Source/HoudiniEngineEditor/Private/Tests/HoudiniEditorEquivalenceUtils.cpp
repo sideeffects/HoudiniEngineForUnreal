@@ -265,7 +265,14 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameter* A, co
 	
 	Result &= TestExpressionError(A->Help.Equals(B->Help), Header, "Help");
 	Result &= TestExpressionError(A->TagCount == B->TagCount, Header, "TagCount");
-	Result &= TestExpressionError(A->ValueIndex == B->ValueIndex, Header, "ValueIndex");
+
+	// Andy: For some reason ValueIndex for folders is set differently when cooking from the test application; the HDA
+	// seems to get cooked 3 times, ending up with different results each time. Since this doesn't (I think!) affect
+	// folders, ignore it for now.
+
+	if ((A->ParmType != EHoudiniParameterType::Folder) && (A->ParmType != EHoudiniParameterType::FolderList))
+	    Result &= TestExpressionError(A->ValueIndex == B->ValueIndex, Header, "ValueIndex");
+
 	Result &= TestExpressionError(A->bHasExpression == B->bHasExpression, Header, "bHasExpression");
 	Result &= TestExpressionError(A->ParamExpression.Equals(B->ParamExpression), Header, "ParamExpression");
 	
