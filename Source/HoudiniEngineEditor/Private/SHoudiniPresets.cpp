@@ -50,6 +50,7 @@
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Layout/SGridPanel.h"
 #include "Widgets/Layout/SScrollBox.h"
+#include "HoudiniToolsRuntimeUtils.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 	#include "UnrealClient.h"
@@ -1444,27 +1445,18 @@ void SHoudiniPresetUIBase::PopulateAssetFromUI(UHoudiniPreset* Asset)
 		}
 	}
 
-	Asset->MarkPackageDirty();
-
-	// Capture thumbnail for the preset from the viewport.
-	FViewport* Viewport = GEditor->GetActiveViewport();
-	if ( ensure(GCurrentLevelEditingViewportClient) && ensure(Viewport) )
+	// Copy the icon from the source houdini asset, if possible
+	if (IsValid(Asset->SourceHoudiniAsset))
 	{
-		//have to re-render the requested viewport
-		FLevelEditorViewportClient* OldViewportClient = GCurrentLevelEditingViewportClient;
-		//remove selection box around client during render
-		GCurrentLevelEditingViewportClient = NULL;
-		Viewport->Draw();
-
-
-		TArray<FAssetData> AssetDataArray;
-		AssetDataArray.Add( FHoudiniToolsEditor::GetAssetDataByObject(Asset) );
-		AssetViewUtils::CaptureThumbnailFromViewport(Viewport, AssetDataArray);
-
-		//redraw viewport to have the yellow highlight again
-		GCurrentLevelEditingViewportClient = OldViewportClient;
-		Viewport->Draw();
+		const UHoudiniToolData* ToolData = Asset->SourceHoudiniAsset->HoudiniToolData;
+		if (IsValid(ToolData))
+		{
+			Asset->IconImageData = ToolData->IconImageData;
+			FHoudiniToolsRuntimeUtils::UpdateAssetThumbnailFromImageData(Asset, Asset->IconImageData);
+		}
 	}
+
+	Asset->MarkPackageDirty();
 }
 
 

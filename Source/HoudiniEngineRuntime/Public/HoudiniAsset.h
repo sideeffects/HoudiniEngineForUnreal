@@ -66,6 +66,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniAsset : public UObject
 
 		// Return true if this asset is an expanded HDA (HDA dir)
 		bool IsExpandedHDA() const;
+
+#if WITH_EDITOR
+		virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 	
 		virtual void PostSaveRoot(FObjectPostSaveRootContext ObjectSaveContext) override; 
 

@@ -27,6 +27,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HoudiniPreset.h"
 
 class FString;
 class UObject;
@@ -76,7 +77,11 @@ public:
 	static AActor* InstantiateHoudiniAssetAt(UHoudiniAsset* InHoudiniAsset, const FTransform& InTransform, UWorld* InSpawnInWorld=nullptr, ULevel* InSpawnInLevelOverride=nullptr);
 
 	// Instantiate the given HDA, and handles the current CB/World selection
-	static void InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset, const EHoudiniToolType& InType, const EHoudiniToolSelectionType& InSelectionType);
+	static void InstantiateHoudiniAsset(
+		UHoudiniAsset* InHoudiniAsset,
+		const EHoudiniToolType& InType,
+		const EHoudiniToolSelectionType& InSelectionType,
+		UHoudiniPreset* InPreset=nullptr);
 
 	// Helper function used to save all temporary packages when the level is saved
 	static void SaveAllHoudiniTemporaryCookData(UWorld *InSaveWorld);

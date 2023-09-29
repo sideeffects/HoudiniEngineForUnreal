@@ -26,6 +26,7 @@
 
 #include "HoudiniAsset.h"
 
+#include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniToolsPackageAsset.h"
@@ -203,6 +204,20 @@ UHoudiniAsset::IsExpandedHDA() const
 {
 	return bAssetExpanded;
 }
+
+#if WITH_EDITOR
+void
+UHoudiniAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	UObject::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (FModuleManager::Get().IsModuleLoaded("HoudiniEngineRuntime"))
+	{
+		const FHoudiniEngineRuntime& HoudiniEngineRuntime = FModuleManager::GetModuleChecked<FHoudiniEngineRuntime>("HoudiniEngineRuntime");
+		HoudiniEngineRuntime.BroadcastToolOrPackageChanged();
+	}
+}
+#endif
 
 void
 UHoudiniAsset::PostSaveRoot(FObjectPostSaveRootContext ObjectSaveContext)

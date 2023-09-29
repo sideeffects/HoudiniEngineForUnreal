@@ -31,6 +31,7 @@
 #include "HoudiniInput.h"
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniToolData.h"
 
 #include "HoudiniPreset.generated.h"
 
@@ -398,12 +399,16 @@ public:
 
 	UHoudiniPreset();
 
+	#if WITH_EDITOR
+		virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	#endif
+
 	// The label for this preset
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	FString Name;
 
 	// A description for this preset
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Houdini Preset", meta=(MultiLine="true"))
 	FString Description;
 
 	// The HoudiniAsset linked to this preset.
@@ -554,4 +559,8 @@ public:
 	
 	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Refine Proxy Static Meshes On PIE"))
 	bool bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride;
+
+	// Raw image data of the icon to be displayed
+	UPROPERTY()
+	FHImageData IconImageData;
 };

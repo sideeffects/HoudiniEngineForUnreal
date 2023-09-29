@@ -36,6 +36,10 @@ class FHoudiniEngineStyle
 		static TSharedPtr<class ISlateStyle> Get();
 		static FName GetStyleSetName();
 
+		static FColor GetHoudiniAssetFColor() { return FColor(255, 165, 0); }
+		static FLinearColor GetHoudiniAssetColor() { return FLinearColor(GetHoudiniAssetFColor()); }
+		static FLinearColor GetHoudiniPresetColor() { return FLinearColor(0.0f, 0.3f, 1.0f, 1.0f); }
+
 	private:
 		//static FString InContent(const FString &RelativePath, const ANSICHAR *Extension);
 		static TSharedPtr<class FSlateStyleSet> StyleSet;

@@ -28,6 +28,7 @@
 
 #include "CoreMinimal.h"
 #include "HoudiniAsset.h"
+#include "HoudiniToolData.h"
 #include "HoudiniToolsPackageAsset.h"
 #include "HoudiniToolTypes.h"
 #include "ImageCore.h"
@@ -122,12 +123,17 @@ public:
 	// file, while preserving any existing JSON data.
 	static bool WriteJSONFromToolPackageAsset(const UHoudiniToolsPackageAsset* ToolsPackage, const FString& JSONFilePath);
 
-	// Thumbnail and Icon
+	// --------------------------------
+	// Icons and Thumbnails
+	// --------------------------------
 
 	static void PadImage(const FImage& SrcImage, FImage& DestImage, const int32 NumPixels);
+
+	static bool LoadFHImageFromFile(const FString& ImagePath, FHImageData& OutImageData);
 	
 	// Cache the HoudiniAsset's icon, if it has one, with the Thumbnail Manager.
 	static void UpdateHoudiniAssetThumbnail(UHoudiniAsset* HoudiniAsset);
+	static void UpdateAssetThumbnailFromImageData(UObject* Asset, const FHImageData& ImageData, const float MarginPct=0.2f);
 
 #endif
 };

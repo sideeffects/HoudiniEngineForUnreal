@@ -86,8 +86,8 @@ public:
 	// Resolve the icon path for the given HoudiniAsset.
 	static FString ResolveHoudiniAssetIconPath(const UHoudiniAsset* HoudiniAsset);
 
-	// Get the path of the houdini asset relative to its owning package. 
-	static bool ResolveHoudiniAssetRelativePath(const UHoudiniAsset* HoudiniAsset, FString& OutPath);
+	// Get the path of the houdini asset / preset relative to its owning package. 
+	static bool ResolveHoudiniAssetRelativePath(const UObject* Object, FString& OutPath);
 
 	static FAssetData GetAssetDataByObject(const UObject* AssetObject);
 	
@@ -105,14 +105,18 @@ public:
 	// Add the given tool the exclusion list of the owning package for the given category.
 	// If the package name was added to the Category exclusion list (or if it was already present), return true.
 	// If the given category cannot be found in the package, return false.
-	static bool ExcludeToolFromPackageCategory(UHoudiniAsset* HoudiniAsset, const FString& CategoryName, bool bAddCategoryIfMissing);
+	static bool ExcludeToolFromPackageCategory(UObject* Object, const FString& CategoryName, bool bAddCategoryIfMissing);
+	
+	static bool CanRemoveToolExcludeFromPackageCategory(UObject* Object, const FString& CategoryName);
+
+	static bool RemoveToolExcludeFromPackageCategory(UObject* Object, const FString& CategoryName);
 
 	void FindHoudiniToolsPackages(TArray<UHoudiniToolsPackageAsset*>& HoudiniToolPackages ) const;
 
 	// From the current HoudiniAsset, search up the directory tree to see if we can find a
 	// HoudiniToolsPackageAsset, since HoudiniAssets can live in subfolders in a package.
 	// Returns the first (closest) HoudiniToolsPackageAsset found.
-	static UHoudiniToolsPackageAsset* FindOwningToolsPackage(const UHoudiniAsset* HoudiniAsset);
+	static UHoudiniToolsPackageAsset* FindOwningToolsPackage(const UObject* Object);
 
 	// Browse to the given UObject in the content browser.
 	static void BrowseToObjectInContentBrowser(UObject* InObject);
@@ -127,15 +131,27 @@ public:
 	static void FindHoudiniAssetsInPackage(const UHoudiniToolsPackageAsset* ToolsPackage, TArray<UHoudiniAsset*>& OutAssets);
 
 	// Apply the category rules to the given HoudiniTool. Append all valid categories for the HoudiniTool in OutCategories.  
-	static void ApplyCategories(const TMap<FHoudiniToolCategory, FCategoryRules>& InCategories, const TSharedPtr<FHoudiniTool>& HoudiniTool, const bool bIgnoreExclusionRules, TArray<FString>& OutCategories);
-	
+	static void ApplyCategories(
+		const TMap<FHoudiniToolCategory, 
+		FCategoryRules>& InCategories,
+		const TSharedPtr<FHoudiniTool>& HoudiniTool,
+		const bool bIgnoreExclusionRules,
+		TArray<FString>& OutIncludeCategories,
+		TArray<FString>& OutExcludeCategories
+		);
+
+	// Apply category rules to an asset inside a HoudiniToolsPackage.
+	// The OutCategories will contain all the categories in which this asset should be displayed.
+	// OutExcludedCategories (a subset of OutCategories) contains all the categories from which the asset is normally
+	// excluded but is now included/displayed due to bIgnoreExclusionRules being true. 
 	static void ApplyCategoryRules(
 		const FString& HoudiniAssetRelPath,
 		const FString& CategoryName,
 		const TArray<FString>& IncludeRules,
 		const TArray<FString>& ExcludeRules,
 		const bool bIgnoreExclusionRules, 
-		TArray<FString>& OutCategories
+		TArray<FString>& OutIncludeCategories, 
+		TArray<FString>& OutExcludeCategories 
 		);
 
 	// Check whether the given name is a valid package name. If not, return the reason.
@@ -151,6 +167,7 @@ public:
 	// Populate FHoudiniTool from HoudiniAsset.
 	void PopulateHoudiniTool(const TSharedPtr<FHoudiniTool>& HoudiniTool,
 							 const UHoudiniAsset* InHoudiniAsset,
+							 const UHoudiniPreset* InHoudiniPreset,
 							 const UHoudiniToolsPackageAsset* InToolsPackage,
 							 bool bIgnoreToolData = false);
 
@@ -215,6 +232,10 @@ public:
 	 */
 	void CreateUniqueAssetIconBrush(TSharedPtr<FHoudiniTool> HoudiniTool);
 
+	static void CaptureThumbnailFromViewport(UObject* Asset);
+
+	static bool CopyThumbnailToImage(const UObject* Asset, FHImageData& ImageData);
+
 	// Populate the HoudiniToolData from the given JSON file.
 	static bool PopulateHoudiniToolDataFromJSON(const FString& JSONFilePath, UHoudiniToolData& OutToolData);
 	
@@ -258,8 +279,8 @@ public:
 	// --------------------------------
 
 	// Add the tool to the specified user category. If the category does not exist, it will be created.
-	static void AddToolToUserCategory(const UHoudiniAsset* Asset, const FString& CategoryName);
-	static void RemoveToolFromUserCategory(const UHoudiniAsset* Asset, const FString& CategoryName);
+	static void AddToolToUserCategory(const UObject* Object, const FString& CategoryName);
+	static void RemoveToolFromUserCategory(const UObject* Object, const FString& CategoryName);
 
 	// Get a list of user categories
 	static void GetUserCategoriesList(TArray<FString>& OutCategories);
@@ -268,8 +289,13 @@ public:
 	// Presets
 	// --------------------------------
 
-	static void CopySettingsToPreset(const UHoudiniAssetComponent* HAC, const bool bApplyAssetOptions, const bool bApplyBakeOptions, const bool
-	                                 bApplyMeshGenSettings, const bool bApplyProxyMeshGenSettings, UHoudiniPreset* Preset);
+	static void CopySettingsToPreset(
+		const UHoudiniAssetComponent* HAC,
+		const bool bApplyAssetOptions,
+		const bool bApplyBakeOptions,
+		const bool bApplyMeshGenSettings,
+		const bool bApplyProxyMeshGenSettings,
+		UHoudiniPreset* Preset);
 
 	// Find all the presets that can be applied the given Houdini Asset. 
 	static void FindPresetsForHoudiniAsset(const UHoudiniAsset* HoudiniAsset, TArray<UHoudiniPreset*>& OutPresets);
@@ -289,6 +315,28 @@ public:
 		const TMap<UObject*, int32>& InputObjects,
 		UHoudiniAssetComponent* HAC
 		);
+
+	// --------------------------------
+	// Editors
+	// --------------------------------
+	
+	static void LaunchHoudiniToolPropertyEditor(const TSharedPtr<FHoudiniTool> HoudiniTool);
+	
+	static TSharedRef<SWindow> CreateFloatingDetailsView(
+		TArray<UObject*>& InObjects,
+		FName InViewIdentifier,
+		const FVector2D InClientSize=FVector2D(400,550),
+		const TFunction<void(TArray<UObject*> /*InObjects*/)> OnSaveClickedFn = nullptr
+		);
+
+protected:
+
+	// Save the settings from the HoudiniTool Property Editor to a HoudiniAsset
+	static void HandleHoudiniAssetPropertyEditorSaveClicked(TSharedPtr<FHoudiniTool> ToolData, TArray<UObject *>& InObjects);
+	// Save the settings from the HoudiniTool Property Editor to a HoudiniPreset
+	static void HandleHoudiniPresetPropertyEditorSaveClicked(TSharedPtr<FHoudiniTool> ToolData, TArray<UObject *>& InObjects);
+
+public:
 
 	// --------------------------------
 	// Shutdown

@@ -1,4 +1,4 @@
-/*
+﻿/*
 * Copyright (c) <2023> Side Effects Software Inc.
 * All rights reserved.
 *
@@ -24,44 +24,23 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "AssetTypeActions_HoudiniPreset.h"
+#include "HoudiniToolTypesEditor.h"
+#include "HoudiniEngineToolTypes.h"
 
-#include "HoudiniEngineEditorPrivatePCH.h"
-#include "HoudiniEngineStyle.h"
 #include "HoudiniPreset.h"
+#include "HoudiniAsset.h"
 
-#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
-
-FText
-FAssetTypeActions_HoudiniPreset::GetName() const
+UHoudiniToolEditorProperties::UHoudiniToolEditorProperties()
+	: Name()
+	, Type(EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE)
+	, SelectionType(EHoudiniToolSelectionType::HTOOL_SELECTION_ALL)
+	, ToolTip()
+	, ToolType(EHoudiniPackageToolType::HoudiniAsset)
+	, AssetPath(FFilePath())
+	, HelpURL()
+	, bClearCachedIcon(false)
+	, IconPath(FFilePath())
+	, HoudiniAsset(nullptr)
+	, HoudiniPreset(nullptr)
 {
-	return LOCTEXT("HoudiniAssetTypeActions", "HoudiniPreset");
-}
-
-FColor
-FAssetTypeActions_HoudiniPreset::GetTypeColor() const
-{
-	return FHoudiniEngineStyle::GetHoudiniPresetColor().ToFColor(true);
-}
-
-UClass *
-FAssetTypeActions_HoudiniPreset::GetSupportedClass() const
-{
-	return UHoudiniPreset::StaticClass();
-}
-
-uint32
-FAssetTypeActions_HoudiniPreset::GetCategories()
-{
-	return EAssetTypeCategories::Misc;
-}
-
-bool
-FAssetTypeActions_HoudiniPreset::HasActions(const TArray< UObject * > & InObjects) const
-{
-	return false;
-}
-
-
-
-#undef LOCTEXT_NAMESPACE
+};

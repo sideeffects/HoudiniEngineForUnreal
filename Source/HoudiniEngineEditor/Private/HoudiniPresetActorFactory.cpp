@@ -80,7 +80,7 @@ UHoudiniPresetActorFactory::GetAssetFromActorInstance(AActor * Instance)
 void
 UHoudiniPresetActorFactory::PostSpawnActor(UObject* InObject, AActor* NewActor)
 {
-	HOUDINI_LOG_MESSAGE(TEXT("PostSpawnActor %s, supplied Preset = 0x%0.8p"), *NewActor->GetActorNameOrLabel(), InObject);
+	HOUDINI_LOG_MESSAGE(TEXT("PostSpawnActor (Preset) %s, supplied Preset = 0x%0.8p"), *NewActor->GetActorNameOrLabel(), InObject);
 	UHoudiniPreset* Preset = Cast<UHoudiniPreset>(InObject);
 	if (!IsValid(Preset))
 	{

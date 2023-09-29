@@ -34,6 +34,7 @@
 #include "HoudiniParameterRamp.h"
 #include "HoudiniParameterString.h"
 #include "HoudiniParameterToggle.h"
+#include "HoudiniEngineRuntime.h"
 
 
 FHoudiniPresetCurveInputObject::FHoudiniPresetCurveInputObject()
@@ -840,3 +841,17 @@ UHoudiniPreset::UHoudiniPreset()
 {
 	
 }
+
+
+#if WITH_EDITOR
+void
+UHoudiniPreset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	UObject::PostEditChangeProperty(PropertyChangedEvent);
+	if (FModuleManager::Get().IsModuleLoaded("HoudiniEngineRuntime"))
+	{
+		const FHoudiniEngineRuntime& HoudiniEngineRuntime = FModuleManager::GetModuleChecked<FHoudiniEngineRuntime>("HoudiniEngineRuntime");
+		HoudiniEngineRuntime.BroadcastToolOrPackageChanged();
+	}
+}
+#endif

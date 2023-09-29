@@ -33,6 +33,7 @@
 #include "ImageUtils.h"
 #include "HoudiniToolData.h"
 #include "ImageCore.h"
+#include "ImageUtils.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Engine/Texture2D.h"
@@ -45,11 +46,96 @@
 #include "Serialization/JsonSerializer.h"
 
 #include "ObjectTools.h"
+
+#ifndef ENGINE_MAJOR_VERSION
+#include "Runtime/Launch/Resources/Version.h"
+#endif
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+#define DEFAULT_GAMMA_SPACE EGammaSpace::Invalid
+#define DEFAULT_RAW_IMAGE_FORMAT_TYPE ERawImageFormat::Invalid
+#else
+#define DEFAULT_GAMMA_SPACE EGammaSpace::sRGB
+#define DEFAULT_RAW_IMAGE_FORMAT_TYPE ERawImageFormat::Type::BGRA8
 #endif
 
 #define LOCTEXT_NAMESPACE "HoudiniTools"
 
-#if WITH_EDITOR
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
+// Unreal 5.0 implementation
+#include "Misc/FileHelper.h"
+#include "Modules/ModuleManager.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
+
+struct FToolsWrapper
+{
+	
+	static bool LoadImage(const TCHAR * Filename, FImage & OutImage)
+	{
+		// implementation adapted from: FSlateRHIResourceManager::LoadTexture
+		bool bSucceeded = false;
+		uint32 BytesPerPixel = 4;
+
+		TArray<uint8> RawFileData;
+		if( FFileHelper::LoadFileToArray( RawFileData, Filename ) )
+		{
+			IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
+
+			//Try and determine format, if that fails assume PNG
+			EImageFormat ImageFormat = ImageWrapperModule.DetectImageFormat(RawFileData.GetData(), RawFileData.Num());
+			if (ImageFormat == EImageFormat::Invalid)
+			{
+				ImageFormat = EImageFormat::PNG;
+			}
+
+			TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
+
+			if ( ImageWrapper.IsValid() && ImageWrapper->SetCompressed( RawFileData.GetData(), RawFileData.Num()) )
+			{
+				OutImage.SizeX = ImageWrapper->GetWidth();
+				OutImage.SizeY = ImageWrapper->GetHeight();
+				OutImage.Format = DEFAULT_RAW_IMAGE_FORMAT_TYPE;
+				OutImage.NumSlices = 1;
+				
+				if (ImageWrapper->GetRaw( ERGBFormat::BGRA, 8, OutImage.RawData))
+				{
+					bSucceeded = true;
+				}
+				else
+				{
+					HOUDINI_LOG_WARNING(TEXT("Invalid texture format for Slate resource only RGBA and RGB pngs are supported: %s"), Filename );
+				}
+			}
+			else
+			{
+				HOUDINI_LOG_WARNING(TEXT("Only pngs are supported in Slate."));
+			}
+		}
+		else
+		{
+			HOUDINI_LOG_WARNING(TEXT("Could not find file: %s"), Filename);
+		}
+
+		return bSucceeded;
+	}
+	
+
+};
+
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+// Unreal 5.1+ implementation
+
+struct FToolsWrapper
+{
+    static bool LoadImage(const TCHAR * Filename, FImage & OutImage)
+    {
+	    return FImageUtils::LoadImage(Filename, OutImage);
+    }
+};
+
+#endif
+
 
 IAssetRegistry&
 FHoudiniToolsRuntimeUtils::GetAssetRegistry()
@@ -62,8 +148,6 @@ FHoudiniToolsRuntimeUtils::FHoudiniToolsRuntimeUtils()
 {
 	
 }
-
-
 
 
 bool
@@ -88,11 +172,13 @@ FHoudiniToolsRuntimeUtils::GetHoudiniAssetJSONPath(const UHoudiniAsset* HoudiniA
 	return true;
 }
 
+
 FString
 FHoudiniToolsRuntimeUtils::GetPackageUAssetName()
 {
 	return TEXT("HoudiniToolsPackage");
 }
+
 
 FString
 FHoudiniToolsRuntimeUtils::GetPackageJSONName()
@@ -100,7 +186,9 @@ FHoudiniToolsRuntimeUtils::GetPackageJSONName()
 	return TEXT("HoudiniToolsPackage.json");
 }
 
-FString FHoudiniToolsRuntimeUtils::GetDefaultHoudiniAssetIconPath(const UHoudiniAsset* HoudiniAsset)
+
+FString
+FHoudiniToolsRuntimeUtils::GetDefaultHoudiniAssetIconPath(const UHoudiniAsset* HoudiniAsset)
 {
 	if (!IsValid(HoudiniAsset))
 		return FString();
@@ -114,6 +202,7 @@ FString FHoudiniToolsRuntimeUtils::GetDefaultHoudiniAssetIconPath(const UHoudini
 	FPaths::Split(ReimportPath, Path, Filename, Extension);
 	return FPaths::Combine(Path, Filename + ".png");
 }
+
 
 FString
 FHoudiniToolsRuntimeUtils::GetHoudiniToolsPackageJSONPath(
@@ -176,7 +265,8 @@ FHoudiniToolsRuntimeUtils::WriteJSONFile(const FString& JSONFilePath, const TSha
 }
 
 
-bool FHoudiniToolsRuntimeUtils::ToolTypeToString(const EHoudiniToolType ToolType, FString& OutString)
+bool
+FHoudiniToolsRuntimeUtils::ToolTypeToString(const EHoudiniToolType ToolType, FString& OutString)
 {
 	switch(ToolType)
 	{
@@ -207,7 +297,8 @@ bool FHoudiniToolsRuntimeUtils::ToolTypeToString(const EHoudiniToolType ToolType
 }
 
 
-bool FHoudiniToolsRuntimeUtils::SelectionTypeToString(const EHoudiniToolSelectionType SelectionType, FString& OutString)
+bool
+FHoudiniToolsRuntimeUtils::SelectionTypeToString(const EHoudiniToolSelectionType SelectionType, FString& OutString)
 {
 	switch (SelectionType)
 	{
@@ -775,23 +866,63 @@ void FHoudiniToolsRuntimeUtils::PadImage(const FImage& SrcImage, FImage& DestIma
 	}
 }
 
-void FHoudiniToolsRuntimeUtils::UpdateHoudiniAssetThumbnail(UHoudiniAsset* HoudiniAsset)
+
+bool
+FHoudiniToolsRuntimeUtils::LoadFHImageFromFile(const FString& ImagePath, FHImageData& OutImageData)
+{
+	const FString FullPath = FPaths::ConvertRelativePathToFull(ImagePath);
+	bool bSuccess = false;
+	
+    if (FPaths::FileExists(FullPath))
+    {
+        FImage TmpImage;
+		if (FToolsWrapper::LoadImage(*FullPath, TmpImage))
+		{
+	        OutImageData.FromImage(TmpImage);
+			return true;
+		}
+    }
+	return false;
+}
+
+
+void
+FHoudiniToolsRuntimeUtils::UpdateHoudiniAssetThumbnail(UHoudiniAsset* HoudiniAsset)
 {
 	if (!IsValid(HoudiniAsset) || !IsValid(HoudiniAsset->HoudiniToolData))
 	{
 		return;
 	}
 
-	const FString ObjectFullName = HoudiniAsset->GetFullName();
-	UPackage* AssetPackage = HoudiniAsset->GetPackage();
+	const FHImageData& IconImageData = HoudiniAsset->HoudiniToolData->IconImageData; 
+
+	UpdateAssetThumbnailFromImageData(HoudiniAsset, HoudiniAsset->HoudiniToolData->IconImageData);
+}
+
+
+void
+FHoudiniToolsRuntimeUtils::UpdateAssetThumbnailFromImageData(UObject* Asset, const FHImageData& ImageData, const float MarginPct)
+{
+	if (!IsValid(Asset))
+	{
+		return;
+	}
+
+	const FString ObjectFullName = Asset->GetFullName();
+	UPackage* AssetPackage = Asset->GetPackage();
 	if (!IsValid(AssetPackage))
 	{
 		return;
 	}
 
-	const FHImageData& IconImageData = HoudiniAsset->HoudiniToolData->IconImageData; 
+	if (ImageData.SizeX == 0 || ImageData.SizeY == 0)
+	{
+		// Clear the thumbnail
+		ThumbnailTools::CacheEmptyThumbnail(ObjectFullName, AssetPackage);
+		return;
+	}
 
-	if (IconImageData.SizeX == 0 || IconImageData.SizeY == 0)
+	if (ImageData.SizeX == 0 || ImageData.SizeY == 0)
 	{
 		// Clear the thumbnail
 		ThumbnailTools::CacheEmptyThumbnail(ObjectFullName, AssetPackage);
@@ -799,16 +930,15 @@ void FHoudiniToolsRuntimeUtils::UpdateHoudiniAssetThumbnail(UHoudiniAsset* Houdi
 	}
 
 	FImage SrcImage;
-	HoudiniAsset->HoudiniToolData->IconImageData.ToImage(SrcImage);
+	ImageData.ToImage(SrcImage);
 
 	// We can expose the margin as a parameter if we want/need to.
-	constexpr float Margin = 0.2f;
-	if (Margin > 0.f)
+	if (MarginPct > 0.f)
 	{
 		// We can't configure a margin on the FImage, so we'll pad the image with
 		// zero-byte pixels to give the illusion that we're applying a margin.
 		FImage PaddedImage;
-		PadImage(SrcImage, PaddedImage, SrcImage.SizeX*Margin);
+		PadImage(SrcImage, PaddedImage, SrcImage.SizeX*MarginPct);
 		SrcImage = PaddedImage;
 	}
 
@@ -822,7 +952,7 @@ void FHoudiniToolsRuntimeUtils::UpdateHoudiniAssetThumbnail(UHoudiniAsset* Houdi
 	TempThumbnail.SetImageSize( SrcImage.SizeX, SrcImage.SizeY );
 	TArray<uint8>& ThumbnailData = TempThumbnail.AccessImageData();
 
-	int32 NumBytes = SrcImage.SizeX * SrcImage.SizeY * BytesPerPixel * SrcImage.NumSlices;
+	const int32 NumBytes = SrcImage.SizeX * SrcImage.SizeY * BytesPerPixel * SrcImage.NumSlices;
 
 	ThumbnailData.AddUninitialized(NumBytes);
 	FMemory::Memcpy(&(ThumbnailData[0]), &(SrcImage.RawData[0]), NumBytes);
@@ -837,7 +967,7 @@ void FHoudiniToolsRuntimeUtils::UpdateHoudiniAssetThumbnail(UHoudiniAsset* Houdi
 		NewThumbnail->MarkAsDirty();
 			
 		// Signal that the asset was changed so thumbnail pools will update
-		HoudiniAsset->PostEditChange();
+		Asset->PostEditChange();
 
 		//Set that thumbnail as a valid custom thumbnail so it'll be saved out
 		NewThumbnail->SetCreatedAfterCustomThumbsEnabled();
@@ -847,4 +977,6 @@ void FHoudiniToolsRuntimeUtils::UpdateHoudiniAssetThumbnail(UHoudiniAsset* Houdi
 
 #endif
 
+#undef DEFAULT_GAMMA_SPACE
+#undef DEFAULT_RAW_IMAGE_FORMAT_TYPE
 #undef LOCTEXT_NAMESPACE

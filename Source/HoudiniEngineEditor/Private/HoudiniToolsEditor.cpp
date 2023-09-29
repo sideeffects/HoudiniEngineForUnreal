@@ -26,6 +26,7 @@
 
 #include "HoudiniToolsEditor.h"
 
+#include "AssetViewUtils.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
 
 #include "Editor.h"
@@ -64,6 +65,10 @@
 #include "HoudiniParameterRamp.h"
 #include "HoudiniParameterString.h"
 #include "HoudiniPreset.h"
+#include "HoudiniToolTypesEditor.h"
+#include "Interfaces/IMainFrameModule.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	#include "Subsystems/EditorAssetSubsystem.h"
@@ -269,12 +274,12 @@ FHoudiniToolsEditor::ResolveHoudiniAssetIconPath(const UHoudiniAsset* HoudiniAss
 }
 
 bool
-FHoudiniToolsEditor::ResolveHoudiniAssetRelativePath(const UHoudiniAsset* HoudiniAsset, FString& OutPath)
+FHoudiniToolsEditor::ResolveHoudiniAssetRelativePath(const UObject* Object, FString& OutPath)
 {
-	if (!IsValid(HoudiniAsset))
+	if (!IsValid(Object))
 		return false;
 
-	const UHoudiniToolsPackageAsset* ToolsPackage = FindOwningToolsPackage(HoudiniAsset);
+	const UHoudiniToolsPackageAsset* ToolsPackage = FindOwningToolsPackage(Object);
 	if (!IsValid(ToolsPackage))
 		return false;
 
@@ -284,8 +289,14 @@ FHoudiniToolsEditor::ResolveHoudiniAssetRelativePath(const UHoudiniAsset* Houdin
 	
 	const FString ToolsPackagePath = ToolsPackage->GetPackage()->GetPathName();
 
+	const UPackage* Package = Object->GetPackage();
+	if (!IsValid(Package))
+	{
+		return false;
+	}
+
 	// Use the HoudiniAsset's relative (to the Package descriptor) path  for category matching.
-	OutPath = HoudiniAsset->GetPackage()->GetPathName();
+	OutPath = Package->GetPathName();
 	FPaths::MakePathRelativeTo(OutPath, *ToolsPackagePath);
 	
 	return true;
@@ -428,12 +439,12 @@ void FHoudiniToolsEditor::FindHoudiniToolsPackages(TArray<UHoudiniToolsPackageAs
 }
 
 UHoudiniToolsPackageAsset*
-FHoudiniToolsEditor::FindOwningToolsPackage(const UHoudiniAsset* HoudiniAsset)
+FHoudiniToolsEditor::FindOwningToolsPackage(const UObject* Object)
 {
-	if (!IsValid(HoudiniAsset))
+	if (!IsValid(Object))
 		return nullptr;
 	
-	FString CurrentPath = FPaths::GetPath(HoudiniAsset->GetPathName());
+	FString CurrentPath = FPaths::GetPath(Object->GetPathName());
 
 	// Define a depth limit to break out of the loop, in case something
 	// goes wrong and we get stuck. If ever needed, we can move this to a
@@ -502,11 +513,19 @@ void FHoudiniToolsEditor::FindHoudiniToolsInPackage(const UHoudiniToolsPackageAs
 	
 	for (const FAssetData& AssetData : AssetDataArray)
 	{
-		if (!AssetData.IsInstanceOf(UHoudiniAsset::StaticClass()))
+		if (!AssetData.IsInstanceOf(UHoudiniAsset::StaticClass()) &&
+			!AssetData.IsInstanceOf(UHoudiniPreset::StaticClass()))
 		{
 			continue;
 		}
+		const UHoudiniPreset* HoudiniPreset = Cast<UHoudiniPreset>( AssetData.GetAsset() ); 
 		const UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>( AssetData.GetAsset() );
+
+		if (IsValid(HoudiniPreset))
+		{
+			HoudiniAsset = HoudiniPreset->SourceHoudiniAsset;
+		}
+		
 		if (!IsValid(HoudiniAsset))
 			continue;
 
@@ -516,7 +535,7 @@ void FHoudiniToolsEditor::FindHoudiniToolsInPackage(const UHoudiniToolsPackageAs
 		// Create a new FHoudiniTool for this asset.
 		HoudiniTool = MakeShareable( new FHoudiniTool() );
 
-		PopulateHoudiniTool(HoudiniTool, HoudiniAsset, ToolsPackage, false);
+		PopulateHoudiniTool(HoudiniTool, HoudiniAsset, HoudiniPreset, ToolsPackage, false);
 		OutHoudiniTools.Add(HoudiniTool);
 	}
 }
@@ -554,21 +573,24 @@ FHoudiniToolsEditor::ApplyCategories(
 	const TMap<FHoudiniToolCategory, FCategoryRules>& InCategories,
 	const TSharedPtr<FHoudiniTool>& HoudiniTool,
 	const bool bIgnoreExclusionRules,
-	TArray<FString>& OutCategories)
+	TArray<FString>& OutIncludeCategories,
+	TArray<FString>& OutExcludeCategories
+	)
 {
 	if (!HoudiniTool.IsValid())
 		return;
 	
-	const UHoudiniAsset* HoudiniAsset = HoudiniTool->HoudiniAsset.LoadSynchronous();
-	if (!IsValid(HoudiniAsset))
+	const UObject* AssetObject = HoudiniTool->GetAssetObject();
+
+	if (!IsValid(AssetObject))
 		return;
 
 	//NOTE: We're constructing a relative path here for the purposes of include/exclude pattern matching.
 	//      to keep things as straightforward as possible, we always use the path name of the relevant
 	//      asset for pattern matching. We will NOT use the operator type or the tool label.
 	
-	FString HoudiniAssetRelPath;
-	if (!ResolveHoudiniAssetRelativePath(HoudiniAsset, HoudiniAssetRelPath))
+	FString RelPath;
+	if (!ResolveHoudiniAssetRelativePath(AssetObject, RelPath))
 	{
 		// if we can't resolve a relative path for this HoudiniAsset tool, we can't apply category matching.
 		return;
@@ -579,7 +601,7 @@ FHoudiniToolsEditor::ApplyCategories(
 		const FString& CategoryName = Entry.Key.Name;
 		const FCategoryRules& Rules = Entry.Value;
 
-		ApplyCategoryRules(HoudiniAssetRelPath, CategoryName, Rules.Include, Rules.Exclude, bIgnoreExclusionRules, OutCategories);
+		ApplyCategoryRules(RelPath, CategoryName, Rules.Include, Rules.Exclude, bIgnoreExclusionRules, OutIncludeCategories, OutExcludeCategories);
 	}
 }
 
@@ -590,9 +612,10 @@ FHoudiniToolsEditor::ApplyCategoryRules(
 	const TArray<FString>& IncludeRules,
 	const TArray<FString>& ExcludeRules,
 	const bool bIgnoreExclusionRules,
-	TArray<FString>& OutCategories)
+	TArray<FString>& OutIncludeCategories,
+	TArray<FString>& OutExcludeCategories
+	)
 {
-
 	if (!bIgnoreExclusionRules)
 	{
 		bool bExclude = false;
@@ -609,6 +632,29 @@ FHoudiniToolsEditor::ApplyCategoryRules(
 		if (bExclude)
 		{
 			// The HDA should be excluded from this category.
+			OutExcludeCategories.Add(CategoryName);
+			return;
+		}
+	}
+	
+	bool bExclude = false;
+	
+	// Apply exclude rules
+	for (const FString& Pattern : ExcludeRules)
+	{
+		if (HoudiniAssetRelPath.MatchesWildcard(Pattern))
+		{
+			bExclude = true;
+			break;
+		}
+	}
+	if (bExclude)
+	{
+		// The HDA should be excluded from this category but will be included due 
+		OutExcludeCategories.Add(CategoryName);
+		
+		if (bIgnoreExclusionRules == false)
+		{
 			return;
 		}
 	}
@@ -618,7 +664,7 @@ FHoudiniToolsEditor::ApplyCategoryRules(
 	{
 		if (HoudiniAssetRelPath.MatchesWildcard(Pattern))
 		{
-			OutCategories.Add(CategoryName);
+			OutIncludeCategories.Add(CategoryName);
 			break;
 		}
 	}
@@ -743,48 +789,68 @@ UHoudiniToolData* FHoudiniToolsEditor::GetOrCreateHoudiniToolData(UHoudiniAsset*
 void
 FHoudiniToolsEditor::PopulateHoudiniTool(const TSharedPtr<FHoudiniTool>& HoudiniTool,
 								   const UHoudiniAsset* InHoudiniAsset,
+								   const UHoudiniPreset* InHoudiniPreset,
 								   const UHoudiniToolsPackageAsset* InToolsPackage,
 								   bool bIgnoreToolData)
 {
 	if (!IsValid(InHoudiniAsset))
 		return;
-		
+
+	HoudiniTool->HoudiniAsset = InHoudiniAsset;
+	HoudiniTool->ToolsPackage = InToolsPackage;
+	
+	if (IsValid(InHoudiniPreset))
+	{
+		HoudiniTool->Name = FText::FromString(InHoudiniPreset->Name);
+		HoudiniTool->ToolTipText = FText::FromString(InHoudiniPreset->Description);
+	}
+	else
+	{
+		if (!bIgnoreToolData && (IsValid(InHoudiniAsset->HoudiniToolData)))
+		{
+			// Populate from ToolData (this is our preferred data source) 
+			UHoudiniToolData* ToolData = InHoudiniAsset->HoudiniToolData;
+			
+			HoudiniTool->Name = FText::FromString(ToolData->Name);
+			HoudiniTool->ToolTipText = FText::FromString(ToolData->ToolTip);
+		}
+		else
+		{
+			// Populate from any data we can extract from UHoudiniAsset without looking outside the Unreal project.
+			// i.e., no peeking at external json files.
+			HoudiniTool->Name = FText::FromString(FPaths::GetBaseFilename(InHoudiniAsset->AssetFileName));
+			HoudiniTool->ToolTipText = HoudiniTool->Name;
+		}
+	}
+	
 	if (!bIgnoreToolData && (IsValid(InHoudiniAsset->HoudiniToolData)))
 	{
 		// Populate from ToolData (this is our preferred data source) 
 		UHoudiniToolData* ToolData = InHoudiniAsset->HoudiniToolData;
-		HoudiniTool->HoudiniAsset = InHoudiniAsset;
-		HoudiniTool->ToolsPackage = InToolsPackage;
 		
-		HoudiniTool->Name = FText::FromString(ToolData->Name);
-		HoudiniTool->ToolTipText = FText::FromString(ToolData->ToolTip);
-		// We don't really know what this HDA is, so we're just going with "no inputs" as a default.
+		HoudiniTool->HelpURL = ToolData->HelpURL;
 		HoudiniTool->Type = ToolData->Type;
 		HoudiniTool->SelectionType = ToolData->SelectionType;
-		HoudiniTool->HelpURL = ToolData->HelpURL;
 	}
 	else
 	{
-		// Populate from any data we can extract from UHoudiniAsset without looking outside the Unreal project.
-		// i.e., no peeking at external json files.
-		HoudiniTool->HoudiniAsset = InHoudiniAsset;
-		HoudiniTool->ToolsPackage = InToolsPackage;
-		
-		HoudiniTool->Name = FText::FromString(FPaths::GetBaseFilename(InHoudiniAsset->AssetFileName));
-		HoudiniTool->ToolTipText = HoudiniTool->Name;
+		HoudiniTool->HelpURL = FString();
 		// We don't really know what this HDA is, so we're just going with "no inputs" as a default.
 		HoudiniTool->Type = EHoudiniToolType::HTOOLTYPE_GENERATOR;
 		HoudiniTool->SelectionType = EHoudiniToolSelectionType::HTOOL_SELECTION_ALL;
 	}
 
-	if (IsValid(InHoudiniAsset->AssetImportData))
-	{
-		UAssetImportData* ImportData = InHoudiniAsset->AssetImportData;
-		if (ImportData->SourceData.SourceFiles.Num() > 0)
-		{
-			HoudiniTool->SourceAssetPath.FilePath = ImportData->SourceData.SourceFiles[0].RelativeFilename;
-		}
-	}
+	HoudiniTool->HoudiniPreset = InHoudiniPreset;
+	HoudiniTool->PackageToolType = IsValid(InHoudiniPreset) ? EHoudiniPackageToolType::Preset : EHoudiniPackageToolType::HoudiniAsset;
+
+	// if (IsValid(InHoudiniAsset->AssetImportData))
+	// {
+	// 	UAssetImportData* ImportData = InHoudiniAsset->AssetImportData;
+	// 	if (ImportData->SourceData.SourceFiles.Num() > 0)
+	// 	{
+	// 		HoudiniTool->SourceAssetPath.FilePath = ImportData->SourceData.SourceFiles[0].RelativeFilename;
+	// 	}
+	// }
 
 	CreateUniqueAssetIconBrush(HoudiniTool);
 }
@@ -795,14 +861,14 @@ UHoudiniToolsPackageAsset* FHoudiniToolsEditor::LoadHoudiniToolsPackage(const FS
 	return LoadObject<UHoudiniToolsPackageAsset>(nullptr, *PkgPath);
 }
 
-bool FHoudiniToolsEditor::ExcludeToolFromPackageCategory(UHoudiniAsset* HoudiniAsset, const FString& CategoryName, bool bAddCategoryIfMissing)
+bool FHoudiniToolsEditor::ExcludeToolFromPackageCategory(UObject* Object, const FString& CategoryName, bool bAddCategoryIfMissing)
 {
-	if (!IsValid(HoudiniAsset))
+	if (!IsValid(Object))
 	{
 		return false;
 	}
 	
-	UHoudiniToolsPackageAsset* PackageAsset = FindOwningToolsPackage(HoudiniAsset);
+	UHoudiniToolsPackageAsset* PackageAsset = FindOwningToolsPackage(Object);
 	if (!IsValid(PackageAsset))
 	{
 		HOUDINI_LOG_WARNING(TEXT("[ExcludeToolFromCategory] Could not find owning package"));
@@ -818,9 +884,9 @@ bool FHoudiniToolsEditor::ExcludeToolFromPackageCategory(UHoudiniAsset* HoudiniA
 
 	// Attempt to resolve the tool path relative to its owning package.
 	FString RelToolPath;
-	if (!ResolveHoudiniAssetRelativePath(HoudiniAsset, RelToolPath))
+	if (!ResolveHoudiniAssetRelativePath(Object, RelToolPath))
 	{
-		HOUDINI_LOG_WARNING(TEXT("Could not resolve tool path relative to an owning package: %s."), *HoudiniAsset->GetPathName());
+		HOUDINI_LOG_WARNING(TEXT("Could not resolve tool path relative to an owning package: %s."), *Object->GetPathName());
 		return false;
 	}
 
@@ -843,6 +909,89 @@ bool FHoudiniToolsEditor::ExcludeToolFromPackageCategory(UHoudiniAsset* HoudiniA
 
 	return true;
 }
+
+
+bool
+FHoudiniToolsEditor::CanRemoveToolExcludeFromPackageCategory(UObject* Object, const FString& CategoryName)
+{
+	if (!IsValid(Object))
+	{
+		return false;
+	}
+	
+	UHoudiniToolsPackageAsset* PackageAsset = FindOwningToolsPackage(Object);
+	if (!IsValid(PackageAsset))
+	{
+		HOUDINI_LOG_WARNING(TEXT("[ExcludeToolFromCategory] Could not find owning package"));
+		return false;
+	}
+
+	const bool bHasCategory = PackageAsset->Categories.Contains(CategoryName); 
+	if (!bHasCategory)
+	{
+		// The category doesn't exist, and we don't want to add it.
+		return false;
+	}
+
+	// Attempt to resolve the tool path relative to its owning package.
+	FString RelToolPath;
+	if (!ResolveHoudiniAssetRelativePath(Object, RelToolPath))
+	{
+		HOUDINI_LOG_WARNING(TEXT("Could not resolve tool path relative to an owning package: %s."), *Object->GetPathName());
+		return false;
+	}
+
+	// NOTE: We always perform exclude pattern matching against the relative path of the asset
+	const FCategoryRules& CategoryRules = PackageAsset->Categories.FindChecked(CategoryName);
+	return CategoryRules.Exclude.Contains(RelToolPath);
+}
+
+
+bool
+FHoudiniToolsEditor::RemoveToolExcludeFromPackageCategory(UObject* Object, const FString& CategoryName)
+{
+	if (!IsValid(Object))
+	{
+		return false;
+	}
+	
+	UHoudiniToolsPackageAsset* PackageAsset = FindOwningToolsPackage(Object);
+	if (!IsValid(PackageAsset))
+	{
+		HOUDINI_LOG_WARNING(TEXT("[ExcludeToolFromCategory] Could not find owning package"));
+		return false;
+	}
+	
+	if (!PackageAsset->Categories.Contains(CategoryName))
+	{
+		// Category does not exist
+		return false;
+	}
+
+	// Attempt to resolve the tool path relative to its owning package.
+	FString RelToolPath;
+	if (!ResolveHoudiniAssetRelativePath(Object, RelToolPath))
+	{
+		HOUDINI_LOG_WARNING(TEXT("Could not resolve tool path relative to an owning package: %s."), *Object->GetPathName());
+		return false;
+	}
+
+	FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniTools_ExcludeToolFromCategory", "Houdini Tools: Excluding tool from category"),
+			PackageAsset);
+
+	PackageAsset->Modify();
+
+	// NOTE: We always perform exclude pattern matching against the relative path of the asset
+	FCategoryRules& CategoryRules = PackageAsset->Categories.FindChecked(CategoryName);
+	CategoryRules.Exclude.Remove( RelToolPath );
+
+	PackageAsset->MarkPackageDirty();
+
+	return true;
+}
+
 
 void
 FHoudiniToolsEditor::UpdateHoudiniToolListFromProject(bool bIgnoreExcludePatterns)
@@ -876,7 +1025,8 @@ FHoudiniToolsEditor::UpdateHoudiniToolListFromProject(bool bIgnoreExcludePattern
 			ToolList = MakeShared<FHoudiniToolList>();
 		}
 	};
-	
+
+	// Process categories defined in Tools Packages.
 	for (const UHoudiniToolsPackageAsset* ToolsPackage : ToolsPackages)
 	{
 		if (!IsValid(ToolsPackage))
@@ -911,9 +1061,10 @@ FHoudiniToolsEditor::UpdateHoudiniToolListFromProject(bool bIgnoreExcludePattern
 			}
 
 			// Find the matching categories from the package 
-			TArray<FString> MatchingCategories;
-			ApplyCategories(CategoryRules, HoudiniTool, bIgnoreExcludePatterns, MatchingCategories);
+			TArray<FString> MatchingCategories, ExcludedCategories;
+			ApplyCategories(CategoryRules, HoudiniTool, bIgnoreExcludePatterns, MatchingCategories, ExcludedCategories);
 			HoudiniTool->CategoryType = EHoudiniToolCategoryType::Package;
+			HoudiniTool->ExcludedFromCategories.Append(ExcludedCategories);
 
 			// Add this tool to the respective category entries
 			AddToolToCategoriesFn(HoudiniTool, MatchingCategories);
@@ -944,25 +1095,30 @@ FHoudiniToolsEditor::UpdateHoudiniToolListFromProject(bool bIgnoreExcludePattern
 				{
 					TSharedPtr<FHoudiniTool> HoudiniTool = MakeShareable(new FHoudiniTool());
 					*HoudiniTool = *SharedHoudiniTool;
-					
-					const UHoudiniAsset* HoudiniAsset = HoudiniTool->HoudiniAsset.LoadSynchronous();
-					if (!IsValid(HoudiniAsset))
-						return;
+
+					const  UObject* AssetObject = HoudiniTool->GetAssetObject();
+
+					if (!IsValid(AssetObject))
+					{
+						continue;
+					}
 
 					//NOTE: We're constructing a relative path here for the purposes of include/exclude pattern matching.
 					//      to keep things as straightforward as possible, we always use the path name of the relevant
 					//      asset for pattern matching. We will NOT use the operator type or the tool label.
 					
 					FString HoudiniAssetRelPath;
-					if (!ResolveHoudiniAssetRelativePath(HoudiniAsset, HoudiniAssetRelPath))
+					if (!ResolveHoudiniAssetRelativePath(AssetObject, HoudiniAssetRelPath))
 					{
 						// if we can't resolve a relative path for this HoudiniAsset tool, we can't apply category matching.
-						return;
+						continue;
 					}
 
-					TArray<FString> MatchingCategories;
-					ApplyCategoryRules(HoudiniAssetRelPath, CategoryName, PackageRules.Include, PackageRules.Exclude, bIgnoreExcludePatterns, MatchingCategories);
+					TArray<FString> MatchingCategories, ExcludedCategories;
+					ApplyCategoryRules(HoudiniAssetRelPath, CategoryName, PackageRules.Include, PackageRules.Exclude, bIgnoreExcludePatterns, MatchingCategories, ExcludedCategories);
 					HoudiniTool->CategoryType = EHoudiniToolCategoryType::User;
+					HoudiniTool->ExcludedFromCategories.Append(ExcludedCategories);
+					
 					// Add this tool to the respective category entries
 					AddToolToCategoriesFn(HoudiniTool, MatchingCategories);
 				}
@@ -1614,13 +1770,19 @@ FHoudiniToolsEditor::CreateUniqueAssetIconBrush(TSharedPtr<FHoudiniTool> Houdini
 		return;
 	}
 
-	const UHoudiniAsset* HoudiniAsset = HoudiniTool->HoudiniAsset.LoadSynchronous();
+	FString ResourceName;
+	bool bHasSourceImage = false;
+	FImage SrcImage;
+	FString RawDataMD5;
 	
-	if (IsValid(HoudiniAsset) && IsValid(HoudiniAsset->HoudiniToolData))
+	UHoudiniPreset* HoudiniPreset = HoudiniTool->HoudiniPreset.LoadSynchronous();
+	if (IsValid(HoudiniPreset))
 	{
-		// We have valid tool data. Let's try to create an icon brush.
-		
-		const FHImageData& SrcImageData = HoudiniAsset->HoudiniToolData->IconImageData;
+		// We have a preset we must try to use this icon. Don't fall back to the SourceAsset icon. We want the
+		// icon (and preset thumbnail) to be managed independently from the source asset, otherwise things can get
+		// visually confusing in the frontend.
+
+		const FHImageData& SrcImageData = HoudiniPreset->IconImageData;
 
 		if (SrcImageData.SizeX == 0 || SrcImageData.SizeY == 0 || SrcImageData.RawData.Num() == 0)
 		{
@@ -1633,9 +1795,44 @@ FHoudiniToolsEditor::CreateUniqueAssetIconBrush(TSharedPtr<FHoudiniTool> Houdini
 			return;
 		}
 
-		FImage SrcImage;
+		// Copy cached image data to SrcImage
 		SrcImageData.ToImage(SrcImage);
+		RawDataMD5 = SrcImageData.RawDataMD5;
+		bHasSourceImage = true;
+		ResourceName = UObject::RemoveClassPrefix( *HoudiniPreset->GetPathName() );
+	}
+	else
+	{
+		// We dont have a valid source image yet. Try to get one from the Houdini Asset.
+		const UHoudiniAsset* HoudiniAsset = HoudiniTool->HoudiniAsset.LoadSynchronous();
+		if (IsValid(HoudiniAsset) && IsValid(HoudiniAsset->HoudiniToolData))
+		{
+			// We have a valid HoudiniAsset in the tool data. Let's try to create an icon brush.
+			
+			const FHImageData& SrcImageData = HoudiniAsset->HoudiniToolData->IconImageData;
 
+			if (SrcImageData.SizeX == 0 || SrcImageData.SizeY == 0 || SrcImageData.RawData.Num() == 0)
+			{
+				return;
+			}
+
+			if (SrcImageData.Format != ERawImageFormat::BGRA8)
+			{
+				HOUDINI_LOG_WARNING(TEXT("Cannot create unique icon brush. Requires raw image format BGRA8."));
+				return;
+			}
+
+			// Copy cached image data to SrcImage
+			SrcImageData.ToImage(SrcImage);
+			RawDataMD5 = SrcImageData.RawDataMD5;
+			bHasSourceImage = true;
+			ResourceName = UObject::RemoveClassPrefix( *HoudiniAsset->GetPathName() );
+		}
+	}
+
+	if (bHasSourceImage)
+	{
+		
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 		if (!SrcImage.IsImageInfoValid())
 		{
@@ -1643,13 +1840,13 @@ FHoudiniToolsEditor::CreateUniqueAssetIconBrush(TSharedPtr<FHoudiniTool> Houdini
 		}
 #endif
 		
-		const FString ResourceName = UObject::RemoveClassPrefix( *HoudiniAsset->GetPathName() );
+		
 
 		
 		// Append the hash of the image data. This will allow the icon to create a unique resource
 		// for different image data, even if the icon image path is the same. At the same time, we're
 		// able to reuse image resource that haven't changed.
-		const FString UniqueResourceName = FString::Format(TEXT("{0}_{1}"), {ResourceName, SrcImageData.RawDataMD5});
+		const FString UniqueResourceName = FString::Format(TEXT("{0}_{1}"), {ResourceName, RawDataMD5});
 		const FName UniqueResourceFName(UniqueResourceName);
 		
 		
@@ -1662,14 +1859,14 @@ FHoudiniToolsEditor::CreateUniqueAssetIconBrush(TSharedPtr<FHoudiniTool> Houdini
 			}
 		}
 		
-		const FString TextureName = FString::Format(TEXT("{0}_{1}"), {FPaths::GetBaseFilename(ResourceName), SrcImageData.RawDataMD5});
+		const FString TextureName = FString::Format(TEXT("{0}_{1}"), {FPaths::GetBaseFilename(ResourceName), RawDataMD5});
 
 		UTexture2D* IconTexture = nullptr;
 
-		if (CachedTextures.Contains(SrcImageData.RawDataMD5))
+		if (CachedTextures.Contains(RawDataMD5))
 		{
 			// Reuse the previously cached texture
-			IconTexture = CachedTextures.FindChecked(SrcImageData.RawDataMD5);
+			IconTexture = CachedTextures.FindChecked(RawDataMD5);
 		}
 
 		if (!IsValid(IconTexture))
@@ -1695,7 +1892,7 @@ FHoudiniToolsEditor::CreateUniqueAssetIconBrush(TSharedPtr<FHoudiniTool> Houdini
 				IconTexture->PostEditChange();
 
 				// Cache the texture so that we can reuse it
-				CachedTextures.Add(SrcImageData.RawDataMD5, IconTexture);
+				CachedTextures.Add(RawDataMD5, IconTexture);
 				IconTexture->AddToRoot();
 				HoudiniTool->IconTexture = IconTexture;
 			}
@@ -1715,6 +1912,49 @@ FHoudiniToolsEditor::CreateUniqueAssetIconBrush(TSharedPtr<FHoudiniTool> Houdini
 	HoudiniTool->Icon = nullptr;
 	HoudiniTool->IconTexture = nullptr;
 }
+
+
+void
+FHoudiniToolsEditor::CaptureThumbnailFromViewport(UObject* Asset)
+{
+	// Capture thumbnail for the preset from the viewport, and use it as the preset icon.
+	FViewport* Viewport = GEditor->GetActiveViewport();
+	if ( ensure(GCurrentLevelEditingViewportClient) && ensure(Viewport) )
+	{
+		//have to re-render the requested viewport
+		FLevelEditorViewportClient* OldViewportClient = GCurrentLevelEditingViewportClient;
+		//remove selection box around client during render
+		GCurrentLevelEditingViewportClient = NULL;
+		Viewport->Draw();
+	
+	
+		TArray<FAssetData> AssetDataArray;
+		AssetDataArray.Add( FHoudiniToolsEditor::GetAssetDataByObject(Asset) );
+		AssetViewUtils::CaptureThumbnailFromViewport(Viewport, AssetDataArray);
+	
+		//redraw viewport to have the yellow highlight again
+		GCurrentLevelEditingViewportClient = OldViewportClient;
+		Viewport->Draw();
+	}
+}
+
+
+bool
+FHoudiniToolsEditor::CopyThumbnailToImage(const UObject* Asset, FHImageData& OutImageData)
+{
+	FObjectThumbnail Thumbnail;
+	if (ThumbnailTools::AssetHasCustomThumbnail(Asset->GetFullName(), Thumbnail))
+	{
+		TArray<uint8> ImageData = Thumbnail.GetUncompressedImageData();
+		OutImageData.RawData = MoveTemp(ImageData);
+		OutImageData.SizeX = Thumbnail.GetImageWidth();
+		OutImageData.SizeY = Thumbnail.GetImageHeight();
+		OutImageData.Format = ERawImageFormat::BGRA8;
+		return true;
+	}
+	return false;
+}
+
 
 bool
 FHoudiniToolsEditor::PopulateHoudiniToolDataFromJSON(const FString& JSONFilePath, UHoudiniToolData& OutToolData)
@@ -2196,16 +2436,17 @@ void FHoudiniToolsEditor::PopulatePackageWithDefaultData(UHoudiniToolsPackageAss
 	PackageAsset->Categories.Add("Default Package Category", DefaultRules);
 }
 
+
 void
-FHoudiniToolsEditor::AddToolToUserCategory(const UHoudiniAsset* Asset, const FString& CategoryName)
+FHoudiniToolsEditor::AddToolToUserCategory(const UObject* Object, const FString& CategoryName)
 {
-	if (!IsValid(Asset))
+	if (!IsValid(Object))
 	{
 		HOUDINI_LOG_ERROR(TEXT("Cannot add tool to category. Invalid asset."));
 		return;
 	}
 		
-	UHoudiniToolsPackageAsset* Package = FHoudiniToolsEditor::FindOwningToolsPackage(Asset);
+	UHoudiniToolsPackageAsset* Package = FHoudiniToolsEditor::FindOwningToolsPackage(Object);
 	if (!IsValid(Package))
 	{
 		HOUDINI_LOG_ERROR(TEXT("Cannot add tool to category. Invalid owning package"));
@@ -2242,7 +2483,7 @@ FHoudiniToolsEditor::AddToolToUserCategory(const UHoudiniAsset* Asset, const FSt
 
 	// Get the relative tool path and add it to the package rules.
 	FString RelPath;
-	ResolveHoudiniAssetRelativePath(Asset, RelPath);
+	ResolveHoudiniAssetRelativePath(Object, RelPath);
 	
 	PackageRules.Include.AddUnique(RelPath);
 	FHoudiniEngineRuntimeUtils::DoPostEditChangeProperty(Settings, "UserToolCategories");
@@ -2250,14 +2491,14 @@ FHoudiniToolsEditor::AddToolToUserCategory(const UHoudiniAsset* Asset, const FSt
 	Settings->SaveConfig();
 }
 
-void FHoudiniToolsEditor::RemoveToolFromUserCategory(const UHoudiniAsset* Asset, const FString& CategoryName)
+void FHoudiniToolsEditor::RemoveToolFromUserCategory(const UObject* Object, const FString& CategoryName)
 {
-	if (!IsValid(Asset))
+	if (!IsValid(Object))
 	{
 		return;
 	}
 		
-	UHoudiniToolsPackageAsset* Package = FHoudiniToolsEditor::FindOwningToolsPackage(Asset);
+	UHoudiniToolsPackageAsset* Package = FHoudiniToolsEditor::FindOwningToolsPackage(Object);
 	if (!IsValid(Package))
 	{
 		return;
@@ -2297,7 +2538,7 @@ void FHoudiniToolsEditor::RemoveToolFromUserCategory(const UHoudiniAsset* Asset,
 
 	// Get the relative tool path and add it to the package rules.
 	FString RelPath;
-	ResolveHoudiniAssetRelativePath(Asset, RelPath);
+	ResolveHoudiniAssetRelativePath(Object, RelPath);
 
 	// Remove all instances of this tool's path.
 	PackageRules.Include.Remove(RelPath);
@@ -2788,6 +3029,453 @@ void FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(
 	}
 #endif
 	
+}
+
+
+void
+FHoudiniToolsEditor::LaunchHoudiniToolPropertyEditor(const TSharedPtr<FHoudiniTool> ToolData)
+{
+	if (!ToolData.IsValid())
+		return;
+	
+	UHoudiniAsset* HoudiniAsset = ToolData->HoudiniAsset.LoadSynchronous();
+	UHoudiniPreset* HoudiniPreset = ToolData->HoudiniPreset.LoadSynchronous();
+	UObject* AssetObject = nullptr;
+	FString PathName;
+
+	if (ToolData->PackageToolType == EHoudiniPackageToolType::HoudiniAsset)
+	{
+		if (!IsValid(HoudiniAsset))
+		{
+			HOUDINI_LOG_ERROR(TEXT("Could not launch HoudiniTool Property Editor. Invalid HoudiniAsset."));
+			return;
+		}
+
+		AssetObject = HoudiniAsset;
+		PathName = HoudiniAsset->GetPathName();
+	}
+
+	if (ToolData->PackageToolType == EHoudiniPackageToolType::Preset)
+	{
+		if (!IsValid(HoudiniPreset))
+		{
+			HOUDINI_LOG_ERROR(TEXT("Could not launch HoudiniTool Property Editor. Invalid HoudiniPreset."));
+			return;
+		}
+		AssetObject = HoudiniPreset;
+		PathName = HoudiniPreset->GetPathName();
+	}
+
+	const FName ViewIdentifier = FName(TEXT("HoudiniToolPropertyEditor:") + PathName);
+
+	// See if we can find an existing property editor for this asset
+
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	TSharedPtr<class IDetailsView> DetailsView = PropertyEditorModule.FindDetailView(ViewIdentifier);
+	if (DetailsView.IsValid())
+	{
+		TSharedPtr<SWindow> ContainingWindow = FSlateApplication::Get().FindWidgetWindow(DetailsView->AsShared());
+		if ( ContainingWindow.IsValid() )
+		{
+			ContainingWindow->BringToFront();
+		}
+		// Focus the existing details view
+		return;
+	}
+	
+	// Create a new Tool property object for the property dialog
+	FString ToolName = ToolData->Name.ToString();
+	if (IsValid(HoudiniAsset))
+	{
+		ToolName += TEXT(" (") + HoudiniAsset->AssetFileName + TEXT(")");
+	}
+	
+	UHoudiniToolEditorProperties* ToolProperties = NewObject< UHoudiniToolEditorProperties >( GetTransientPackage(), FName( *ToolName ) );
+	// ToolProperties->AddToRoot();
+
+	// Set the default values for this asset
+	ToolProperties->Name = ToolData->Name.ToString();
+	ToolProperties->Type = ToolData->Type;
+	ToolProperties->ToolTip = ToolData->ToolTipText.ToString();
+	ToolProperties->HelpURL = ToolData->HelpURL;
+	ToolProperties->SelectionType = ToolData->SelectionType;
+	// Always leave this field blank. The user can use this to import a new icon from an arbitrary location. 
+	ToolProperties->IconPath.FilePath = FString();
+	ToolProperties->ToolType = ToolData->PackageToolType;
+	ToolProperties->HoudiniAsset = HoudiniAsset;
+	ToolProperties->HoudiniPreset = HoudiniPreset;
+
+	TArray<UObject *> ActiveHoudiniTools;
+	ActiveHoudiniTools.Add( ToolProperties );
+
+
+	TSharedPtr<FHoudiniTool> EditingTool = ToolData;
+
+	// Create a new property editor window
+	TSharedRef< SWindow > Window = CreateFloatingDetailsView(
+		ActiveHoudiniTools,
+		ViewIdentifier,
+		FVector2D(450,350),
+		[EditingTool](TArray<UObject*> InObjects)
+		{
+			switch (EditingTool->PackageToolType)
+			{
+				case EHoudiniPackageToolType::HoudiniAsset:
+					HandleHoudiniAssetPropertyEditorSaveClicked(EditingTool, InObjects);
+					break;
+				case EHoudiniPackageToolType::Preset:
+					HandleHoudiniPresetPropertyEditorSaveClicked(EditingTool, InObjects);
+					break;
+				default:
+					HOUDINI_LOG_ERROR(TEXT("Could not save due to unrecognized PackageToolType."));
+			}
+		}
+	);
+}
+
+
+TSharedRef<SWindow>
+FHoudiniToolsEditor::CreateFloatingDetailsView(
+	TArray<UObject*>& InObjects,
+	FName InViewIdentifier,
+	const FVector2D InClientSize, const TFunction<void(TArray<UObject*>)> OnSaveClickedFn)
+{
+	TSharedRef<SWindow> NewSlateWindow = SNew(SWindow)
+		.Title(NSLOCTEXT("PropertyEditor", "WindowTitle", "Houdini Tools Property Editor"))
+		.ClientSize(InClientSize);
+
+	// If the main frame exists parent the window to it
+	TSharedPtr< SWindow > ParentWindow;
+	if ( FModuleManager::Get().IsModuleLoaded("MainFrame") )
+	{
+		IMainFrameModule& MainFrame = FModuleManager::GetModuleChecked<IMainFrameModule>("MainFrame");
+		ParentWindow = MainFrame.GetParentWindow();
+	}
+
+	if ( ParentWindow.IsValid() )
+	{
+		// Parent the window to the main frame 
+		FSlateApplication::Get().AddWindowAsNativeChild( NewSlateWindow, ParentWindow.ToSharedRef() );
+	}
+	else
+	{
+		FSlateApplication::Get().AddWindow( NewSlateWindow );
+	}
+
+	FDetailsViewArgs Args;
+	Args.bHideSelectionTip = true;
+	Args.bLockable = false;
+	Args.bAllowMultipleTopLevelObjects = true;
+	Args.ViewIdentifier = InViewIdentifier;
+	Args.NameAreaSettings = FDetailsViewArgs::HideNameArea;
+	Args.bShowPropertyMatrixButton = false;
+	Args.bShowOptions = false;
+	Args.bShowModifiedPropertiesOption = false;
+	Args.bShowObjectLabel = false;
+
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	const TSharedRef<IDetailsView> DetailView = PropertyEditorModule.CreateDetailView( Args );
+	DetailView->SetObjects( InObjects );
+	TWeakPtr<SWindow> WindowWeakPtr = NewSlateWindow;
+
+	NewSlateWindow->SetContent(
+		SNew( SBorder )
+		.BorderImage(_GetBrush(TEXT("PropertyWindow.WindowBorder")))
+		.BorderImage(FAppStyle::Get().GetBrush("Brushes.Panel"))
+		[
+			SNew(SVerticalBox)
+
+			// Detail View
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				DetailView
+			]
+
+			// Button Row
+			+ SVerticalBox::Slot()
+			.VAlign(VAlign_Bottom)
+			.HAlign(HAlign_Right)
+			.FillHeight(1.f)
+			[
+				SNew(SUniformGridPanel)
+				.SlotPadding(FCoreStyle::Get().GetMargin("StandardDialog.SlotPadding"))
+				.MinDesiredSlotWidth(FCoreStyle::Get().GetFloat("StandardDialog.MinDesiredSlotWidth"))
+				.MinDesiredSlotHeight(FCoreStyle::Get().GetFloat("StandardDialog.MinDesiredSlotHeight"))
+
+				// Save Button
+				+ SUniformGridPanel::Slot(0, 0)
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					.ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
+					.ButtonStyle(&_GetEditorStyle().GetWidgetStyle<FButtonStyle>("PrimaryButton"))
+					.Content()
+					[
+						SNew(STextBlock)
+						.TextStyle( &_GetEditorStyle().GetWidgetStyle<FTextBlockStyle>("PrimaryButtonText") )
+						.Text( LOCTEXT("HoudiniTools_Details_Save","Save") )
+					]
+					.OnClicked_Lambda([WindowWeakPtr, OnSaveClickedFn, InObjects]() -> FReply
+					{
+						OnSaveClickedFn(InObjects);
+						if (WindowWeakPtr.IsValid())
+						{
+							WindowWeakPtr.Pin()->RequestDestroyWindow();
+						}
+						return FReply::Handled();
+					})
+				]
+
+				// Cancel Button
+				+ SUniformGridPanel::Slot(1, 0)
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					.ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
+					.ButtonStyle(&_GetEditorStyle().GetWidgetStyle<FButtonStyle>("Button"))
+					.Content()
+					[
+						SNew(STextBlock)
+						.TextStyle( &_GetEditorStyle().GetWidgetStyle<FTextBlockStyle>("ButtonText") )
+						.Text( LOCTEXT("HoudiniTools_Details_Cancel","Cancel") )
+					]
+					.OnClicked_Lambda([WindowWeakPtr]() -> FReply
+					{
+						if (WindowWeakPtr.IsValid())
+						{
+							WindowWeakPtr.Pin()->RequestDestroyWindow();
+						}
+						return FReply::Handled();
+					})
+				]
+			] // Button Row
+		] // SBorder
+	);
+
+	return NewSlateWindow;
+}
+
+
+void
+FHoudiniToolsEditor::HandleHoudiniAssetPropertyEditorSaveClicked(TSharedPtr<FHoudiniTool> InToolData, TArray<UObject *>& InObjects)
+{
+	// Sanity check, we can only edit one tool at a time!
+	if ( InObjects.Num() != 1 )
+		return;
+
+	if (!InToolData.IsValid())
+		return;
+
+	checkf(InToolData->PackageToolType == EHoudiniPackageToolType::HoudiniAsset, TEXT("This function should only be called for HoudiniAsset tools."));
+
+	UHoudiniAsset* HoudiniAsset = InToolData->HoudiniAsset.LoadSynchronous();
+	if (!HoudiniAsset)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Could not locate active tool. Unable to save changes."));
+		return;
+	}
+
+	// Reimport assets from their new sources.
+	TArray<UHoudiniAsset*> ReimportAssets;
+
+	TArray< FHoudiniTool > EditedToolArray;
+	for ( int32 ObjIdx = 0; ObjIdx < InObjects.Num(); ObjIdx++ )
+	{
+		UHoudiniToolEditorProperties* ToolProperties = Cast< UHoudiniToolEditorProperties >( InObjects[ ObjIdx ] );
+		if ( !ToolProperties )
+			continue;
+
+		// FString IconPath = FPaths::ConvertRelativePathToFull( ToolProperties->IconPath.FilePath );
+		// const FSlateBrush* CustomIconBrush = nullptr;
+		// if ( FPaths::FileExists( IconPath ) )
+		// {
+		//
+		//     // If we have a valid icon path, load the file. 
+		//     FName BrushName = *IconPath;
+		//     CustomIconBrush = new FSlateDynamicImageBrush( BrushName, FVector2D( 40.f, 40.f ) );
+		// }
+		
+		//  - Store all the edited properties on the HoudiniToolData.
+		//  - Populate the relevant FHoudiniTool descriptor from the HoudiniAsset.
+		//  - Save out the JSON description, if required.
+		
+		bool bModified = false;
+
+		// Helper macro for Property assignments and modify flag management
+		#define ASSIGNFN(Src, Dst) \
+		{\
+			if (Src != Dst)\
+			{\
+				bModified = true;\
+				Dst = Src;\
+			}\
+		}
+
+		UHoudiniToolData* ToolData = FHoudiniToolsEditor::GetOrCreateHoudiniToolData(HoudiniAsset);
+		ToolData->Modify();
+		ASSIGNFN(ToolProperties->Name, ToolData->Name);
+		ASSIGNFN(ToolProperties->Type, ToolData->Type);
+		ASSIGNFN(ToolProperties->SelectionType, ToolData->SelectionType);
+		ASSIGNFN(ToolProperties->ToolTip, ToolData->ToolTip);
+		ASSIGNFN(ToolProperties->HelpURL, ToolData->HelpURL);
+
+		if (FPaths::FileExists(ToolProperties->AssetPath.FilePath))
+		{
+			// If the AssetPath has changed, reimport the HDA with the new source
+			if (ToolProperties->AssetPath.FilePath != ToolData->SourceAssetPath.FilePath)
+			{
+				TArray<FString> Filenames;
+				Filenames.Add(ToolProperties->AssetPath.FilePath);
+				FReimportManager::Instance()->UpdateReimportPaths(HoudiniAsset, Filenames);
+				
+				ReimportAssets.Add(HoudiniAsset);
+			}
+			ASSIGNFN(ToolProperties->AssetPath.FilePath, ToolData->SourceAssetPath.FilePath);
+		}
+		else
+		{
+			HOUDINI_LOG_WARNING(TEXT("The specified AssetPath does not exist. Source Asset Path will remain unchanged"));
+		}
+
+		
+
+		bool bModifiedIcon = false;
+
+		if (ToolProperties->IconPath.FilePath.Len() > 0)
+		{
+			bModified = true;
+			bModifiedIcon = true;
+			ToolData->LoadIconFromPath(ToolProperties->IconPath.FilePath);
+		}
+		else if (ToolProperties->bClearCachedIcon)
+		{
+			bModified = true;
+			bModifiedIcon = true;
+			ToolData->ClearCachedIcon();
+		}
+
+		if (bModifiedIcon)
+		{
+			// Ensure the content browser reflects icon changes.
+			const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+			AssetRegistryModule.Get().OnAssetUpdated().Broadcast(FAssetData(HoudiniAsset));
+		}
+		
+		ToolData->DefaultTool = false;
+		
+		if (bModified)
+		{
+			ToolData->MarkPackageDirty();
+			// We modified the HoudiniAsset. Request a panel refresh.
+			HoudiniAsset->PostEditChange();
+		}
+
+		// Remove the tool from Root
+		ToolProperties->RemoveFromRoot();
+	}
+
+	FAssetRegistryModule& AssetRegistry = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	
+
+	for (UHoudiniAsset* Asset : ReimportAssets)
+	{
+		FReimportManager::Instance()->Reimport(Asset, false /* Ask for new file */, true /* Show notification */);
+	}
+}
+
+
+void
+FHoudiniToolsEditor::HandleHoudiniPresetPropertyEditorSaveClicked(TSharedPtr<FHoudiniTool> InToolData, TArray<UObject *>& InObjects)
+{
+	// Sanity check, we can only edit one tool at a time!
+	if ( InObjects.Num() != 1 )
+		return;
+
+	if (!InToolData.IsValid())
+		return;
+
+	checkf(InToolData->PackageToolType == EHoudiniPackageToolType::Preset, TEXT("This function should only be called for HoudiniPreset tools."));
+
+	UHoudiniAsset* HoudiniAsset = InToolData->HoudiniAsset.LoadSynchronous();
+	if (!HoudiniAsset)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Could not locate active tool. Unable to save changes."));
+		return;
+	}
+
+	UHoudiniPreset* HoudiniPreset = InToolData->HoudiniPreset.LoadSynchronous();
+	if (!HoudiniAsset)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Could not locate active tool. Unable to save changes."));
+		return;
+	}
+
+	// Reimport assets from their new sources.
+	TArray<UHoudiniAsset*> ReimportAssets;
+
+	TArray< FHoudiniTool > EditedToolArray;
+	for ( int32 ObjIdx = 0; ObjIdx < InObjects.Num(); ObjIdx++ )
+	{
+		UHoudiniToolEditorProperties* ToolProperties = Cast< UHoudiniToolEditorProperties >( InObjects[ ObjIdx ] );
+		if ( !ToolProperties )
+			continue;
+		
+		bool bModified = false;
+
+		// Helper macro for Property assignments and modify flag management
+		#define ASSIGNFN(Src, Dst) \
+		{\
+			if (Src != Dst)\
+			{\
+				bModified = true;\
+				Dst = Src;\
+			}\
+		}
+
+		HoudiniPreset->Modify();
+		
+		ASSIGNFN(ToolProperties->Name, HoudiniPreset->Name);
+		ASSIGNFN(ToolProperties->ToolTip, HoudiniPreset->Description);
+		
+
+		bool bModifiedIcon = false;
+
+		
+		if (ToolProperties->IconPath.FilePath.Len() > 0)
+		{
+			bModified = true;
+			bModifiedIcon = true;
+			FHoudiniToolsRuntimeUtils::LoadFHImageFromFile( ToolProperties->IconPath.FilePath, HoudiniPreset->IconImageData );
+			FHoudiniToolsRuntimeUtils::UpdateAssetThumbnailFromImageData(HoudiniPreset, HoudiniPreset->IconImageData);
+		}
+		else if (ToolProperties->bClearCachedIcon)
+		{
+			bModified = true;
+			bModifiedIcon = true;
+			HoudiniPreset->IconImageData = FHImageData();
+			FHoudiniToolsRuntimeUtils::UpdateAssetThumbnailFromImageData(HoudiniPreset, FHImageData());
+		}
+		
+		if (bModifiedIcon)
+		{
+			// Ensure the content browser reflects icon changes.
+			const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+			AssetRegistryModule.Get().OnAssetUpdated().Broadcast(FAssetData(HoudiniAsset));
+		}
+		
+		if (bModified)
+		{
+			HoudiniPreset->MarkPackageDirty();
+			// We modified an existing tool. Call PostEditChange to trigger HoudiniPanel update.
+			HoudiniPreset->PostEditChange();
+		}
+		
+		// Remove the tool from Root
+		ToolProperties->RemoveFromRoot();
+	}
 }
 
 

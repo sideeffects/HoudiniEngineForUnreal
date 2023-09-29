@@ -27,7 +27,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "HoudiniToolData.h"
+#include "HoudiniAsset.h"
+#include "HoudiniPreset.h"
 #include "HoudiniToolTypes.h"
 
 #include "HoudiniEngineToolTypes.generated.h"
@@ -70,6 +71,7 @@ struct FHoudiniToolDirectory
 	}
 };
 
+
 UENUM()
 enum class EHoudiniToolCategoryType : uint8
 {
@@ -77,7 +79,13 @@ enum class EHoudiniToolCategoryType : uint8
 	User
 };
 
-	  // Return hash value for this object, used when using this object as a key inside hashing containers.
+
+UENUM()
+enum class EHoudiniPackageToolType : uint8
+{
+	HoudiniAsset,
+	Preset
+};
 
 
 USTRUCT(BlueprintType)
@@ -155,9 +163,6 @@ struct FHoudiniTool
 		, Type(EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE)
 		, CategoryType(EHoudiniToolCategoryType::Package)
 		, SelectionType(EHoudiniToolSelectionType::HTOOL_SELECTION_ALL)
-		, SourceAssetPath()
-		, ToolDirectory()
-		, JSONFile()
 	{
 	}
 
@@ -167,7 +172,7 @@ struct FHoudiniTool
 		const FText& InToolTipText, TSharedPtr<FSlateBrush> InIcon,
 		UTexture2D* InIconTexture,
 		const FString& InHelpURL,
-		const EHoudiniToolCategoryType& InCategoryType, const FFilePath& InAssetPath, const FHoudiniToolDirectory& InToolDirectory,
+		const EHoudiniToolCategoryType& InCategoryType, const FHoudiniToolDirectory& InToolDirectory,
 		const FString& InJSONFile )
 		: HoudiniAsset( InHoudiniAsset )
 		, Name( InName )
@@ -178,15 +183,36 @@ struct FHoudiniTool
 		, Type( InType )
 		, CategoryType( InCategoryType )
 		, SelectionType( InSelType )
-		, SourceAssetPath( InAssetPath )
-		, ToolDirectory( InToolDirectory )
-		, JSONFile( InJSONFile )
 	{
 	}
 
+	// Return the asset object based on the PackageToolType. This will load the object if needed.
+	UObject* GetAssetObject() const
+	{
+		switch (PackageToolType)
+		{
+			case EHoudiniPackageToolType::HoudiniAsset:
+				return HoudiniAsset.LoadSynchronous();
+				break;
+			case EHoudiniPackageToolType::Preset:
+				return HoudiniPreset.LoadSynchronous();
+				break;
+			default: ;
+		}
+		return nullptr;
+	}
+
+	bool IsHiddenInCategory(const FString& CategoryName) const { return ExcludedFromCategories.Contains(CategoryName); }
+
 	/** The Houdini Asset used by the tool **/ 
-	TSoftObjectPtr < class UHoudiniAsset > HoudiniAsset;
+	TSoftObjectPtr < UHoudiniAsset > HoudiniAsset;
+	/** The (optional) Houdini Preset represent by this tool, if it is a present **/
+	TSoftObjectPtr < UHoudiniPreset > HoudiniPreset;
+	/** The owning tools package **/
 	TSoftObjectPtr < class UHoudiniToolsPackageAsset > ToolsPackage;
+
+	// Type for this tool inside a package
+	EHoudiniPackageToolType PackageToolType;
 
 	/** The name to be displayed */
 	FText Name;
@@ -211,21 +237,8 @@ struct FHoudiniTool
 	/** Indicate what the tool should consider for selection **/
 	EHoudiniToolSelectionType SelectionType;
 
-	/** Path to the Asset used **/
-	// TODO: DEPRECATE (this should be retrieved / derived from HoudiniAsset).
-	FFilePath SourceAssetPath;
-
-	/** Directory containing the tool **/
-	// TODO: DEPRECATE (this should be retrieved / derived from HoudiniAsset).
-	FHoudiniToolDirectory ToolDirectory;
-
-	/** Name of the JSON containing the tool's description **/
-	// TODO: DEPRECATE (this should be retrieved / derived from HoudiniAsset -- JSON filename matches the external source filename).
-	FString JSONFile;
-
-	/** Returns the file path to the JSOn file containing the tool's description **/
-	// TODO: Resolve the JSON file path making use of the HoudiniAsset's source file name.
-	FString GetJSonFilePath() { return ToolDirectory.Path.Path / JSONFile; };
+	// Categories from which this HoudiniTool is explicitly excluded / hidden
+	TSet<FString> ExcludedFromCategories;
 };
 
 struct FHoudiniToolList

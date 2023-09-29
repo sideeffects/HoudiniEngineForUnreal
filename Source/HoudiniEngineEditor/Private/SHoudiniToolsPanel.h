@@ -169,6 +169,8 @@ public:
 	
 	SLATE_BEGIN_ARGS( SHoudiniToolCategory )
 		: _ShowEmptyCategory(true)
+		, _ShowHoudiniAssets(true)
+		, _ShowPresets(true)
 		, _ViewMode(EHoudiniToolsViewMode::TileView)
 		, _IsVisible(true)
 	{}
@@ -181,6 +183,8 @@ public:
 	
 	SLATE_ATTRIBUTE( FText, CategoryLabel )
 	SLATE_ATTRIBUTE( bool, ShowEmptyCategory )
+	SLATE_ATTRIBUTE( bool, ShowHoudiniAssets )
+	SLATE_ATTRIBUTE( bool, ShowPresets )
 	SLATE_ATTRIBUTE( EHoudiniToolCategoryType, CategoryType )
 	SLATE_ATTRIBUTE( TSharedPtr<FHoudiniToolList>, HoudiniToolsItemSource )
 	SLATE_ATTRIBUTE( EHoudiniToolsViewMode, ViewMode )
@@ -214,6 +218,8 @@ protected:
 	FString FilterString;
 
 	TAttribute<bool> ShowEmptyCategory;
+	TAttribute<bool> ShowHoudiniAssets;
+	TAttribute<bool> ShowPresets;
 	TAttribute<bool> IsVisible;
 	
 	TSharedPtr<FHoudiniTool> ActiveTool;
@@ -225,55 +231,6 @@ protected:
 	TArray< TSharedPtr<FHoudiniTool> > VisibleEntries;
 };
 
-
-// Class describing the various properties for a Houdini Tool
-// adding a UClass was necessary to use the PropertyEditor window
-UCLASS( EditInlineNew )
-class UHoudiniToolProperties : public UObject
-{
-	GENERATED_BODY()
-
-	public:
-
-		UHoudiniToolProperties();
-
-		/** Name of the tool */
-		UPROPERTY( Category = Tool, EditAnywhere )
-		FString Name;
-
-		/** Type of the tool */
-		UPROPERTY( Category = Tool, EditAnywhere )
-		EHoudiniToolType Type;
-
-		/** Selection Type of the tool */
-		UPROPERTY( Category = Tool, EditAnywhere )
-		EHoudiniToolSelectionType SelectionType;
-
-		/** Tooltip shown on mouse hover */
-		UPROPERTY( Category = Tool, EditAnywhere )
-		FString ToolTip;
-
-		/** Houdini Asset path **/
-		UPROPERTY(Category = Tool, EditAnywhere, meta = (FilePathFilter = "hda"))
-		FFilePath AssetPath;
-
-		/** Clicking on help icon will bring up this URL */
-		UPROPERTY( Category = Tool, EditAnywhere )
-		FString HelpURL;
-	
-		/** This will ensure that the cached icon for this HDA is removed. Note that if an IconPath has been
-		 * specified, this option will have no effect.
-		 */
-		UPROPERTY( Category = Tool, EditAnywhere )
-		bool bClearCachedIcon;
-	
-		/** Import a new icon for this HDA. If this field is left blank, we will look for an
-		 * icon next to the HDA with matching name.
-		 */
-		UPROPERTY( Category = Tool, EditAnywhere, meta = (FilePathFilter = "png") )
-		FFilePath IconPath;
-
-};
 
 // Class describing a Houdini Tool directory
 // adding a UClass was necessary to use the PropertyEditor window
@@ -566,7 +523,11 @@ private:
 	void LoadConfig();
 	void SaveConfig() const;
 
+	bool CanShowActiveToolInCategory() const;
+	void ShowActiveToolInCategory();
+	
 	/** Remove the current tool from the tool list **/
+	bool CanHideActiveToolFromCategory();
 	void HideActiveToolFromCategory();
 
 	void RefreshPanel();
@@ -586,9 +547,9 @@ private:
 	static const FString SettingsIniSection;
 
 	/** Make a widget for the list view display */
-	TSharedRef<ITableRow> MakeListViewWidget( TSharedPtr<struct FHoudiniTool> HoudiniTool, const TSharedRef<STableViewBase>& OwnerTable );
+	TSharedRef<ITableRow> MakeListViewWidget( TSharedPtr<struct FHoudiniTool> HoudiniTool, const FString& CategoryName, const TSharedRef<STableViewBase>& OwnerTable );
 
-	TSharedRef<ITableRow> MakeTileViewWidget( TSharedPtr<struct FHoudiniTool> HoudiniTool, const TSharedRef<STableViewBase>& OwnerTable );
+	TSharedRef<ITableRow> MakeTileViewWidget( TSharedPtr<struct FHoudiniTool> HoudiniTool, const FString& CategoryName, const TSharedRef<STableViewBase>& OwnerTable );
 
 	/** Delegate for when the list view selection changes */
 	void OnToolSelectionChanged( SHoudiniToolCategory* Category, const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectionType );
@@ -608,22 +569,19 @@ private:
 	TSharedPtr< SWidget > ConstructCategoryFilterMenu();
 
 	/** Shows a Property Window for editing the properties of new HoudiniTools**/
-	void EditActiveHoudiniTool();
+	void EditActiveHoudiniTool() const;
 
-	/** Shows a Property Window for editing the properties of new HoudiniTools**/
+	/** Focus the content browser on the asset object that relates to the active tool **/
 	void BrowseToActiveToolAsset() const;
 
-	/** Focus the content browser on the  **/
+	/** Focus the content browser on the HoudiniAsset that relates to the active tool **/
+	void BrowseToSourceAsset() const;
+
+	/** Focus the content browser on the package that owns the active tool **/
 	void BrowseToActiveToolPackage() const;
 
 	/** Handler for Save clicked in the Edit Active Tool dialog. **/
-	void HandleEditHoudiniToolSavedClicked(TSharedPtr<FHoudiniTool> HoudiniTool, TArray<UObject *>& InObjects );
-
-	TSharedRef<SWindow> CreateFloatingDetailsView(
-		TArray<UObject*>& InObjects,
-		const FVector2D InClientSize=FVector2D(400,550),
-		const TFunction<void(TArray<UObject*> /*InObjects*/)> OnSaveClickedFn = nullptr
-		);
+	// void HandleEditHoudiniToolSavedClicked(TSharedPtr<FHoudiniTool> HoudiniTool, TArray<UObject *>& InObjects );
 	
 	TSharedRef<SWindow> CreateFloatingWindow(
 		const ::FText& WindowTitle,
@@ -673,8 +631,15 @@ private:
 	bool bShowEmptyCategories;
 	bool bShowHiddenTools;
 	bool bAutoRefresh;
+	bool bShowHoudiniAssets;
+	bool bShowPresets;
 
 	EHoudiniToolsViewMode ViewMode;
+
+	// Styling
+
+	// Brush used to draw the underline for icons in the HoudiniTools panel.
+	FSlateBrush UnderlineBrush;
 
 
 	// Handles to unsubscribe during destruction

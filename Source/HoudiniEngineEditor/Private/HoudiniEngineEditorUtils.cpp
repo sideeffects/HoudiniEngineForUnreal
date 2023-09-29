@@ -373,7 +373,7 @@ FHoudiniEngineEditorUtils::GetMeanWorldSelectionTransform()
 }
 
 void
-FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset, const EHoudiniToolType& InType, const EHoudiniToolSelectionType& InSelectionType)
+FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset, const EHoudiniToolType& InType, const EHoudiniToolSelectionType& InSelectionType, UHoudiniPreset* InPreset)
 {
 	if (!InHoudiniAsset)
 		return;
@@ -381,7 +381,7 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 
 	// Load the asset
-	UObject* AssetObj = Cast<UObject>(InHoudiniAsset);//InHoudiniAsset->LoadSynchronous();
+	UObject* AssetObj = Cast<UObject>(InHoudiniAsset);
 	if (!AssetObj)
 		return;
 
@@ -455,6 +455,18 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset
 			if (!HoudiniAssetComponent)
 				continue;
 
+			if (IsValid(InPreset))
+			{
+				HoudiniAssetComponent->QueuePreCookCallback([InPreset](UHoudiniAssetComponent* HAC)
+				{
+					// First apply the preset when we reach the PreCook phase.
+					if (IsValid(InPreset))
+					{
+						FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(InPreset, HAC);
+					}
+				});
+			}
+
 			// Create and set the input preset for this HDA and selected Object
 			TMap<UObject*, int32> InputPreset;
 			InputPreset.Add(CurrentSelectedObject, 0);
@@ -504,6 +516,18 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset
 					}
 				}
 
+				if (IsValid(InPreset))
+				{
+					HoudiniAssetComponent->QueuePreCookCallback([InPreset](UHoudiniAssetComponent* HAC)
+					{
+						// First apply the preset when we reach the PreCook phase.
+						if (IsValid(InPreset))
+						{
+							FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(InPreset, HAC);
+						}
+					});
+				}
+
 				// Set the input preset on the HoudiniAssetComponent
 				if ( InputPresets.Num() > 0 )
 				{
@@ -534,7 +558,7 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAssetAt(UHoudiniAsset* InHoudiniAss
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 
 	// Load the asset
-	UObject* AssetObj = Cast<UObject>(InHoudiniAsset);//InHoudiniAsset->LoadSynchronous();
+	UObject* AssetObj = Cast<UObject>(InHoudiniAsset);
 	if (!AssetObj)
 		return nullptr;
 

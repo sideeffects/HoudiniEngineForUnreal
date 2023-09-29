@@ -44,110 +44,6 @@
 #define DEFAULT_RAW_IMAGE_FORMAT_TYPE ERawImageFormat::Type::BGRA8
 #endif
 
-// Wrapper interface to manage code compatibility across multiple UE versions
-
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
-// Unreal 5.0 implementation
-#include "Misc/FileHelper.h"
-#include "Modules/ModuleManager.h"
-#include "IImageWrapper.h"
-#include "IImageWrapperModule.h"
-
-struct FToolsWrapper
-{
-	// static IImageWrapperModule * GetOrLoadImageWrapperModule()
-	// {
-	// 	static FName ImageWrapperName("ImageWrapper");
-	//
-	// 	if ( IsInGameThread() )
-	// 	{
-	// 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(ImageWrapperName);
-	// 		return &ImageWrapperModule;
-	// 	}
-	// 	else
-	// 	{
-	// 		IImageWrapperModule * ImageWrapperModule = FModuleManager::GetModulePtr<IImageWrapperModule>(ImageWrapperName);
-	//
-	// 		if ( ImageWrapperModule == nullptr )
-	// 		{
-	// 			HOUDINI_LOG_WARNING(TEXT("Not on GameThread, cannot load ImageWrapper.  Do on main thread in startup."))
-	//
-	// 			// LoadModule needs to be done on the Game thread as part of your initialization
-	// 			//   before any thread tries to run this code
-	// 			// Engine does this.  If you are making a stand-alone app and hit this error,
-	// 			//   add this to your initialization on the Game thread :
-	// 			// FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
-	// 		}
-	//
-	// 		return ImageWrapperModule;
-	// 	}
-	// }
-	//
-	
-	static bool LoadImage(const TCHAR * Filename, FImage & OutImage)
-	{
-		// implementation adapted from: FSlateRHIResourceManager::LoadTexture
-		bool bSucceeded = false;
-		uint32 BytesPerPixel = 4;
-
-		TArray<uint8> RawFileData;
-		if( FFileHelper::LoadFileToArray( RawFileData, Filename ) )
-		{
-			IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-
-			//Try and determine format, if that fails assume PNG
-			EImageFormat ImageFormat = ImageWrapperModule.DetectImageFormat(RawFileData.GetData(), RawFileData.Num());
-			if (ImageFormat == EImageFormat::Invalid)
-			{
-				ImageFormat = EImageFormat::PNG;
-			}
-
-			TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
-
-			if ( ImageWrapper.IsValid() && ImageWrapper->SetCompressed( RawFileData.GetData(), RawFileData.Num()) )
-			{
-				OutImage.SizeX = ImageWrapper->GetWidth();
-				OutImage.SizeY = ImageWrapper->GetHeight();
-				OutImage.Format = DEFAULT_RAW_IMAGE_FORMAT_TYPE;
-				OutImage.NumSlices = 1;
-				
-				if (ImageWrapper->GetRaw( ERGBFormat::BGRA, 8, OutImage.RawData))
-				{
-					bSucceeded = true;
-				}
-				else
-				{
-					HOUDINI_LOG_WARNING(TEXT("Invalid texture format for Slate resource only RGBA and RGB pngs are supported: %s"), Filename );
-				}
-			}
-			else
-			{
-				HOUDINI_LOG_WARNING(TEXT("Only pngs are supported in Slate."));
-			}
-		}
-		else
-		{
-			HOUDINI_LOG_WARNING(TEXT("Could not find file: %s"), Filename);
-		}
-
-		return bSucceeded;
-	}
-	
-
-};
-
-#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
-// Unreal 5.1+ implementation
-
-struct FToolsWrapper
-{
-    static bool LoadImage(const TCHAR * Filename, FImage & OutImage)
-    {
-	    return FImageUtils::LoadImage(Filename, OutImage);
-    }
-};
-
-#endif
 
 
 FHImageData::FHImageData()
@@ -218,12 +114,12 @@ void UHoudiniToolData::LoadIconFromPath(const FString& IconPath)
     if (FPaths::FileExists(FullIconPath))
     {
         FName BrushName = *IconPath;
-        FImage TmpImage;
-		if (FToolsWrapper::LoadImage(*FullIconPath, TmpImage))
+        FHImageData ImageData;
+		if (FHoudiniToolsRuntimeUtils::LoadFHImageFromFile(*FullIconPath, ImageData))
 		{
 			Modify();
 			MarkPackageDirty();
-	        IconImageData.FromImage(TmpImage);
+	        IconImageData = MoveTemp(ImageData);
 	        IconSourcePath.FilePath = FullIconPath;
 			bSuccess = true;
 		}
@@ -273,3 +169,5 @@ void UHoudiniToolData::CopyFrom(const UHoudiniToolData& Other)
 	SourceAssetPath = Other.SourceAssetPath;
 }
 
+#undef DEFAULT_GAMMA_SPACE
+#undef DEFAULT_RAW_IMAGE_FORMAT_TYPE
