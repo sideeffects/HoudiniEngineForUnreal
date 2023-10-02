@@ -166,10 +166,10 @@ public:
 
 	// Populate FHoudiniTool from HoudiniAsset.
 	void PopulateHoudiniTool(const TSharedPtr<FHoudiniTool>& HoudiniTool,
-							 const UHoudiniAsset* InHoudiniAsset,
-							 const UHoudiniPreset* InHoudiniPreset,
-							 const UHoudiniToolsPackageAsset* InToolsPackage,
-							 bool bIgnoreToolData = false);
+	                                const UHoudiniAsset* InHoudiniAsset,
+	                                const UHoudiniPreset* InHoudiniPreset,
+	                                const UHoudiniToolsPackageAsset* InToolsPackage,
+	                                bool bIgnoreToolData = false);
 
 	/**
 	 * Rebuild the internal list of HoudiniTools

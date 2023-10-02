@@ -29,6 +29,7 @@
 #include "AssetTypeActions_Base.h"
 #include "HoudiniToolsPackageAsset.h"
 
+class UHoudiniPreset;
 class UClass;
 class UObject;
 class UHoudiniAsset;
@@ -48,15 +49,27 @@ class FAssetTypeActions_HoudiniPreset : public FAssetTypeActions_Base
 		virtual uint32 GetCategories() override;
 		
 		virtual bool HasActions(const TArray< UObject * > & InObjects) const override;
-		// virtual void GetActions(const TArray< UObject * > & InObjects, class FMenuBuilder & MenuBuilder) override;
+		virtual void GetActions(const TArray< UObject * > & InObjects, class FMenuBuilder & MenuBuilder) override;
 
 	protected:
+	
+		// Handler to apply the current hda to the current world selection (single input)
+		static void ExecuteApplyOpSingle(TArray<TWeakObjectPtr<UHoudiniPreset>> InHoudiniAssetPtrs);
 
-		// Handler for reimport option.
-		// void ExecuteReimport(TArray<TWeakObjectPtr<UHoudiniToolsPackageAsset>> PackageAssets);
-		// void ExecuteReimportDescriptionOnly(TArray<TWeakObjectPtr<UHoudiniToolsPackageAsset>> PackageAssets);
-		// void ExecuteImportNewHDAs(TArray<TWeakObjectPtr<UHoudiniToolsPackageAsset>> PackageAssets);
+		// Handler to apply the current hda to the current world selection (multi input)
+		static void ExecuteApplyOpMulti(TArray<TWeakObjectPtr<UHoudiniPreset>> InHoudiniAssetPtrs);
 
-		// Handler for find in explorer option
-		// void ExecuteFindInExplorer(TArray<TWeakObjectPtr<UHoudiniToolsPackageAsset>> PackageAssets);
+		// Handler to batch apply the current hda to the current world selection
+		static void ExecuteApplyBatch(TArray<TWeakObjectPtr<UHoudiniPreset>> InHoudiniAssetPtrs );
+
+		// Handler to launch edit tool properties
+		static void ExecuteEditToolProperties(TArray<TWeakObjectPtr<UHoudiniPreset>> InHoudiniAssetPtrs);
+
+		// Handler to instantiate the HDA in the world
+		static void ExecuteInstantiate(TArray<TWeakObjectPtr<UHoudiniPreset>> InHoudiniAssetPtrs);
+
+		// Handler to instantiate the HDA in the world, actor is placed at the origin
+		static void ExecuteInstantiateOrigin(TArray<TWeakObjectPtr<UHoudiniPreset>> InHoudiniAssetPtrs);
+
+		static void ExecuteApplyAssetToSelection(TArray<TWeakObjectPtr<UHoudiniPreset>> InHoudiniAssetPtrs, const EHoudiniToolType& InType);
 };

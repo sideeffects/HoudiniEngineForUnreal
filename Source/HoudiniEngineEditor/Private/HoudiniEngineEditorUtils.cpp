@@ -550,7 +550,7 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset
 }
 
 AActor*
-FHoudiniEngineEditorUtils::InstantiateHoudiniAssetAt(UHoudiniAsset* InHoudiniAsset, const FTransform& InTransform, UWorld* InSpawnInWorld, ULevel* InSpawnInLevelOverride)
+FHoudiniEngineEditorUtils::InstantiateHoudiniAssetAt(UHoudiniAsset* InHoudiniAsset, const FTransform& InTransform, UWorld* InSpawnInWorld, ULevel* InSpawnInLevelOverride, UHoudiniPreset* InPreset)
 {
 	if (!InHoudiniAsset)
 		return nullptr;
@@ -583,6 +583,23 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAssetAt(UHoudiniAsset* InHoudiniAss
 	AActor* CreatedActor = Factory->CreateActor(AssetObj, LevelToSpawnIn, InTransform);
 	if (!CreatedActor)
 		return nullptr;
+
+	if (IsValid(InPreset))
+	{
+		// If we have a preset, we have to apply it during PreCook
+		AHoudiniAssetActor* HACActor = Cast<AHoudiniAssetActor>(CreatedActor);
+		if (IsValid(HACActor))
+		{
+			UHoudiniAssetComponent* HoudiniAssetComponent = HACActor->GetHoudiniAssetComponent();
+			HoudiniAssetComponent->QueuePreCookCallback([InPreset](UHoudiniAssetComponent* HAC)
+			{
+				if (IsValid(InPreset))
+				{
+					FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(InPreset, HAC);
+				}
+			});
+		}
+	}
 
 	// Select the Actor we just created
 	if (GEditor->CanSelectActor(CreatedActor, true, true))

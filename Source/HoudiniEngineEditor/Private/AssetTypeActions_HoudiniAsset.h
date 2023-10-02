@@ -76,6 +76,9 @@ class FAssetTypeActions_HoudiniAsset : public FAssetTypeActions_Base
 		// Handler to batch apply the current hda to the current world selection
 		void ExecuteApplyBatch(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs );
 
+		// Handler to launch edit tool properties
+		static void ExecuteEditToolProperties(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs);
+
 		// Handler to instantiate the HDA in the world
 		void ExecuteInstantiate(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs);
 

@@ -36,6 +36,8 @@
 #include "HoudiniEngineRuntimeUtils.h"
 
 #include "EditorReimportHandler.h"
+#include "HoudiniEngineEditor.h"
+#include "HoudiniToolsEditor.h"
 #include "HoudiniToolTypes.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "HAL/FileManager.h"
@@ -90,6 +92,20 @@ FAssetTypeActions_HoudiniAsset::GetActions(const TArray<UObject *> & InObjects, 
 	}
 
 	FName StyleSetName = FHoudiniEngineStyle::GetStyleSetName();
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("HoudiniPresetTypeActions", "HoudiniPreset_EditToolProperties", "Edit Tool Properties"),
+		NSLOCTEXT(
+			"HoudiniPresetTypeActions", "HoudiniPreset_EditToolProperties_Tooltip",
+			"Edit the HoudiniPreset asset properties."),
+		FSlateIcon(StyleSetName, "HoudiniEngine.HoudiniEngineLogo"),
+		FUIAction(
+			FExecuteAction::CreateStatic(&FAssetTypeActions_HoudiniAsset::ExecuteEditToolProperties, HoudiniAssets),
+			FCanExecuteAction::CreateLambda([=] { return ValidObjects; })
+		)
+	);
+
+	MenuBuilder.AddMenuSeparator();
 
 	MenuBuilder.AddMenuEntry(
 		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_Reimport", "Reimport"),
@@ -382,6 +398,32 @@ void
 FAssetTypeActions_HoudiniAsset::ExecuteApplyBatch(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs)
 {
 	return ExecuteApplyAssetToSelection(InHoudiniAssetPtrs, EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH);
+}
+
+void FAssetTypeActions_HoudiniAsset::ExecuteEditToolProperties(
+	TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs)
+{
+	for(TWeakObjectPtr<UHoudiniAsset> AssetPtr : InHoudiniAssetPtrs)
+	{
+		if (!AssetPtr.IsValid())
+		{
+			continue;
+		}
+
+		const UHoudiniAsset* HoudiniAsset = AssetPtr.Get();
+		const UHoudiniToolsPackageAsset* ToolsPackage = FHoudiniToolsEditor::FindOwningToolsPackage(HoudiniAsset);
+		if (!IsValid(ToolsPackage))
+		{
+			continue;
+		}
+
+		// Create, and populate, a new FHoudiniTool for this asset which is needed to launch the ToolPropertyEditor.
+		TSharedPtr<FHoudiniTool> HoudiniTool;
+		HoudiniTool = MakeShareable( new FHoudiniTool() );
+		FHoudiniToolsEditor& Tools = FHoudiniEngineEditor::Get().GetHoudiniTools();
+		Tools.PopulateHoudiniTool(HoudiniTool, HoudiniAsset, nullptr, ToolsPackage, false);
+		FHoudiniToolsEditor::LaunchHoudiniToolPropertyEditor(HoudiniTool);
+	}
 }
 
 void
