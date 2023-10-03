@@ -558,7 +558,7 @@ public:
 	virtual bool UpdateHoudiniInput(UHoudiniInput* const InInput) const override;
 
 protected:
-	virtual EHoudiniInputType GetInputType() const override { return EHoudiniInputType::Asset; }
+	virtual EHoudiniInputType GetInputType() const override { return EHoudiniInputType::World; }
 
 	virtual UObject* ConvertInternalInputObject(UObject* InInternalInputObject) override;
 

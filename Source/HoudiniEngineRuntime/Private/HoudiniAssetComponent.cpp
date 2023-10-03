@@ -1490,6 +1490,9 @@ UHoudiniAssetComponent::MarkAsNeedRebuild()
 		}
 	}
 
+	// Uncomment this for building regression tests that need a clean output.
+	//Outputs.Empty();
+
 	// We need to mark all our inputs as changed/trigger update
 	for (auto CurrentInput : Inputs)
 	{

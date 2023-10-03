@@ -4777,6 +4777,25 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
 
 		return true;
 	}
+    else if (AttributeInfo.storage == HAPI_STORAGETYPE_FLOAT64)
+    {
+        // Allocate sufficient buffer for data.
+        OutData.SetNum(Count * AttributeInfo.tupleSize);
+
+		TArray<double> Float64Data;
+        Float64Data.SetNum(OutData.Num());
+
+        // Fetch the values
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeFloat64Data(
+		    FHoudiniEngine::Get().GetSession(), InGeoId,
+            InPartId, InAttribName, &AttributeInfo, -1,
+            &Float64Data[0], Start, Count), false);
+
+		for (int Index = 0; Index < OutData.Num(); Index++)
+            OutData[Index] = static_cast<float>(Float64Data[Index]);
+
+        return true;
+    }
 	else if (AttributeInfo.storage == HAPI_STORAGETYPE_INT)
 	{
 		// Expected Float, found an int, try to convert the attribute
