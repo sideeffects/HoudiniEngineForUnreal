@@ -146,9 +146,12 @@ UObject* FHoudiniEditorTestUtils::FindAssetUObject(FHoudiniAutomationTest* Test,
 	return nullptr;
 }
 
-void FHoudiniEditorTestUtils::InstantiateAsset(FHoudiniAutomationTest* Test,
-	const FName AssetUObjectPath, const FPostTestHDAInstantiationCallback & OnFinishInstantiate,
-	const bool ErrorOnFail, const FString DefaultCookFolder,
+void FHoudiniEditorTestUtils::InstantiateAsset(
+    FHoudiniAutomationTest* Test,
+	const FName AssetUObjectPath, 
+	const FPostTestHDAInstantiationCallback & OnFinishInstantiate,
+	const bool ErrorOnFail, 
+	const FString DefaultCookFolder,
 	const FPreInstantiationCallback& OnPreInstantiation)
 {
 	SetUseLessCPUInTheBackground();
@@ -180,6 +183,9 @@ void FHoudiniEditorTestUtils::InstantiateAsset(FHoudiniAutomationTest* Test,
 	const FTransform Location = FTransform::Identity;
 	UHoudiniPublicAPIAssetWrapper* Wrapper = HoudiniAPI->InstantiateAsset(HoudiniAsset, Location);
 	TestObject->InAssetWrappers.Add(Wrapper); // Need to assign it to TestObject otherwise it will be garbage collected!!!
+
+	Wrapper->GetHoudiniAssetComponent()->bEnableProxyStaticMeshOverride = false;
+	Wrapper->GetHoudiniAssetComponent()->bOverrideGlobalProxyStaticMeshSettings = true;
 
 	// Bind delegates from the asset wrapper to UHoudiniEditorTestObject which we use to proxy to non-dynamic delegates
 	// like OnPreInstantiation.
@@ -910,8 +916,13 @@ void FHoudiniEditorTestUtils::CreateTestTempLevel(
 }
 
 
-bool FHoudiniEditorTestUtils::CreateAndLoadNewLevelWithAsset(FHoudiniAutomationTest* Test, const FString MapAssetPath,
-	const FString HDAAssetPath, const FString ActorName, const FPostTestHDAInstantiationCallback & OnFinishInstantiate, FString DefaultCookFolder,
+bool FHoudiniEditorTestUtils::CreateAndLoadNewLevelWithAsset(
+    FHoudiniAutomationTest* Test, 
+    const FString MapAssetPath,
+	const FString HDAAssetPath, 
+	const FString ActorName, 
+	const FPostTestHDAInstantiationCallback & OnFinishInstantiate, 
+	FString DefaultCookFolder,
 	const FPreInstantiationCallback& OnPreInstantiationCallback,
 	const FPostDiffTestHDAInstantiationCallback & OnPostInstantiation)
 {
