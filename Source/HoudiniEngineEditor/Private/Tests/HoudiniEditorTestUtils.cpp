@@ -122,7 +122,7 @@ bool FHoudiniAutomationTest::IsSupressedWarning(const FString& InWarning)
 
 void FHoudiniEditorTestUtils::InitializeTests(FHoudiniAutomationTest* Test, const TFunction<void()>& OnSuccess, const TFunction<void()>& OnFail)
 {
-	LoadMap(Test, TEXT("/Game/TestLevel"), [=]
+	LoadMap(Test, TEXT("/Game/TestSaved/Levels/TestLevel"), [=]
 	{
 		CreateSessionIfInvalidWithLatentRetries(Test, HoudiniEngineSessionPipeName, OnSuccess, OnFail);
 	});
@@ -781,7 +781,7 @@ void FHoudiniEditorTestUtils::RunDifferentialTest(
 						TEXT("HDA is not equivalent. If this change is intended, then DELETE %s and %s and MOVE %s and %s to those locations, fix redirectors in the TestCached folder from the content browser and commit to dev_reg. Do not copy/paste as it will break essential DuplicateTransient references like OutputObjects."),
 						*SavedLevelPath, *SavedAssetsPath, *TempLevelPath, *TempAssetsPath));
 
-					CreateTestTempLevel(Test, MapName, HDAAssetPath, ActorName, OnFinishedCallback, OnPreInstantiationCallback, OnPostInstantiationCallback);
+				//	CreateTestTempLevel(Test, MapName, HDAAssetPath, ActorName, OnFinishedCallback, OnPreInstantiationCallback, OnPostInstantiationCallback);
 
 					return;
 				}
@@ -820,7 +820,7 @@ void FHoudiniEditorTestUtils::CreateTestTempLevel(
 	const FString TempLevelPath = GetTempLevelPath(MapName);
 	const FString TempAssetsPath = GetTempAssetsPath(MapName, ActorName);
 
-	LoadMap(Test, TEXT("/Game/TestLevel"), [=]
+	LoadMap(Test, TEXT("/Game/TestSaved/Levels/TestLevel"), [=]
 	{
 		// Cook the object in the "Cached" Level.
 		// Note: The reason why we do this is because we can't use the map "Save As" functionality, because it counts as duplicating

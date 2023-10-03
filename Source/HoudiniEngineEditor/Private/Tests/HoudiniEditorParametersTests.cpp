@@ -378,7 +378,9 @@ bool HoudiniEditorParametersTest_Color_Single::RunTest(const FString & Parameter
 	return true;
 }
 
-// Test setting a color parameter
+static const FLinearColor TestParameterColor = FLinearColor(0.5f, 0.25f, 0.125f);
+
+    // Test setting a color parameter
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorParametersTest_Color, "Houdini.Editor.Parameters.Color", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 
 bool HoudiniEditorParametersTest_Color::RunTest(const FString & Parameters)
@@ -393,14 +395,14 @@ bool HoudiniEditorParametersTest_Color::RunTest(const FString & Parameters)
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
-				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
-					return;
+			    if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
+				    return;
 
 				// Trigger a parameter update after the first cook, test setting on pre-instantiate as a separate test
 				InTestObject->ExpectedCookCount = 2;
 				InTestObject->OnPostProcessingDelegate.AddLambda([this, InAssetWrapper](UHoudiniPublicAPIAssetWrapper* const InWrapper, UHoudiniEditorTestObject* const InTestObj)
 				{
-					if (!InAssetWrapper->SetColorParameterValue(TEXT("color"), FColor(153, 50, 204)))
+                   if (!InAssetWrapper->SetColorParameterValue(TEXT("color"), TestParameterColor))
 					{
 						FHoudiniEditorTestUtils::LogSetParameterValueViaAPIFailure(this, InAssetWrapper, TEXT("color"), TEXT("color"), TEXT("(153, 50, 204)"), 0);
 					}
@@ -431,7 +433,7 @@ bool HoudiniEditorParametersTest_Color_PreInstantiate::RunTest(const FString & P
 					return;
 
 				// Trigger a parameter update during pre-instantiate
-				if (!InAssetWrapper->SetColorParameterValue(TEXT("color"), FColor(153, 50, 204)))
+                if (!InAssetWrapper->SetColorParameterValue(TEXT("color"), TestParameterColor))
 				{
 					FHoudiniEditorTestUtils::LogSetParameterValueViaAPIFailure(this, InAssetWrapper, TEXT("color"), TEXT("color"), TEXT("(153, 50, 204)"), 0);
 				}
