@@ -3196,10 +3196,11 @@ SHoudiniToolsPanel::ConstructHoudiniToolContextMenu()
 	FString HelpURL;
 	TArray< UObject* > AssetArray;
 	EHoudiniToolCategoryType CategoryType = EHoudiniToolCategoryType::Package; 
+	const UClass* AssetClass = nullptr;
 	if ( ActiveTool.IsValid() && !ActiveTool->HoudiniAsset.IsNull() )
 	{
-		// Load the asset
-		UObject* AssetObj = ActiveTool->HoudiniAsset.LoadSynchronous();
+		// Load the underlying asset (HoudiniAsset or HoudiniPreset) for the active tool 
+		UObject* AssetObj = ActiveTool->GetAssetObject();
 		if( AssetObj )
 		{
 			AssetArray.Add( AssetObj );
@@ -3208,28 +3209,33 @@ SHoudiniToolsPanel::ConstructHoudiniToolContextMenu()
 		HelpURL = ActiveTool->HelpURL;
 		bHasHelp = !HelpURL.IsEmpty();
 		CategoryType = ActiveTool->CategoryType;
+		AssetClass = ActiveTool->GetAssetObjectClass();
 	}
 
-	//MenuBuilder.AddMenuEntry(FGlobalEditorCommonCommands::Get().FindInContentBrowser );
+	if (!IsValid(AssetClass))
+	{
+		return MenuBuilder.MakeWidget();
+	}
 
 	FAssetToolsModule & AssetToolsModule = FModuleManager::GetModuleChecked< FAssetToolsModule >( "AssetTools" );
-	TSharedPtr< IAssetTypeActions > EngineActions = AssetToolsModule.Get().GetAssetTypeActionsForClass( UHoudiniAsset::StaticClass() ).Pin();
+	TSharedPtr< IAssetTypeActions > EngineActions = AssetToolsModule.Get().GetAssetTypeActionsForClass( AssetClass ).Pin();
 	if ( EngineActions.IsValid() )
 		EngineActions->GetActions( AssetArray, MenuBuilder );
 
 	// Add HoudiniTools actions
 	MenuBuilder.AddMenuSeparator();
 
-	// Edit Tool
-	MenuBuilder.AddMenuEntry(
-		NSLOCTEXT( "HoudiniToolsTypeActions", "HoudiniTool_Edit", "Edit Tool Properties" ),
-		NSLOCTEXT( "HoudiniToolsTypeActions", "HoudiniTool_EditTooltip", "Edit the selected tool properties." ),
-		FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
-		FUIAction(
-			FExecuteAction::CreateSP(this, &SHoudiniToolsPanel::EditActiveHoudiniTool ),
-			FCanExecuteAction::CreateLambda([&] { return IsActiveHoudiniToolEditable(); } )
-		)
-	);
+	// Edit Tool properties has been moved to the AssetType Actions.
+	// // Edit Tool
+	// MenuBuilder.AddMenuEntry(
+	// 	NSLOCTEXT( "HoudiniToolsTypeActions", "HoudiniTool_Edit", "Edit Tool Properties" ),
+	// 	NSLOCTEXT( "HoudiniToolsTypeActions", "HoudiniTool_EditTooltip", "Edit the selected tool properties." ),
+	// 	FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
+	// 	FUIAction(
+	// 		FExecuteAction::CreateSP(this, &SHoudiniToolsPanel::EditActiveHoudiniTool ),
+	// 		FCanExecuteAction::CreateLambda([&] { return IsActiveHoudiniToolEditable(); } )
+	// 	)
+	// );
 
 	if (ActiveTool->IsHiddenInCategory(ActiveCategoryName))
 	{

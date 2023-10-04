@@ -300,6 +300,10 @@ public:
 	// Find all the presets that can be applied the given Houdini Asset. 
 	static void FindPresetsForHoudiniAsset(const UHoudiniAsset* HoudiniAsset, TArray<UHoudiniPreset*>& OutPresets);
 
+	static bool CanApplyPresetToHoudiniAssetcomponent(
+		const UHoudiniPreset* Preset,
+		UHoudiniAssetComponent* HAC
+		);
 	// Apply the preset to the given HoudiniAssetComponent.
 	// Optionally, reselect selected actors to update the component visualizers.
 	// This is typically used in conjunction with UHoudiniAssetComponent::QueueOneShotPreCookCallback
@@ -315,6 +319,9 @@ public:
 		const TMap<UObject*, int32>& InputObjects,
 		UHoudiniAssetComponent* HAC
 		);
+
+	// Apply the given preset to the currently selected actors. Optionally reselecting them to update viewport drawings.
+	static void ApplyPresetToSelectedHoudiniAssetActors(const UHoudiniPreset* Preset, bool bReselectSelectedActors=true);
 
 	// --------------------------------
 	// Editors

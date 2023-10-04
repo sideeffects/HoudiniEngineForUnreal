@@ -204,9 +204,9 @@ FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(
 		.ForegroundColor( FSlateColor::UseForeground() )
 		.ButtonStyle( FAppStyle::Get(), "SimpleButton" )
 		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ViewOptions")))
-		.OnGetMenuContent_Lambda([MainHAC, SavedLayoutBuilder]() -> TSharedRef<SWidget>
+		.OnGetMenuContent_Lambda([InHACs, SavedLayoutBuilder]() -> TSharedRef<SWidget>
 		{
-			return ConstructActionMenu(MainHAC, SavedLayoutBuilder).ToSharedRef();
+			return ConstructActionMenu(InHACs, SavedLayoutBuilder).ToSharedRef();
 		})
 		.ButtonContent()
 		[
@@ -2147,9 +2147,16 @@ FHoudiniEngineDetails::GetHoudiniAssetThumbnailBorder(TSharedPtr< SBorder > Houd
 }
 
 TSharedPtr<SWidget>
-FHoudiniEngineDetails::ConstructActionMenu(TWeakObjectPtr<UHoudiniAssetComponent> HAC, class IDetailLayoutBuilder* LayoutBuilder)
+FHoudiniEngineDetails::ConstructActionMenu(const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs, class IDetailLayoutBuilder* LayoutBuilder)
 {
 	FMenuBuilder MenuBuilder( true, NULL );
+
+	if (InHACs.Num() == 0)
+	{
+		return MenuBuilder.MakeWidget();
+	}
+
+	TWeakObjectPtr<UHoudiniAssetComponent> HAC = InHACs[0];
 
 	if (!HAC.IsValid())
 	{
@@ -2259,17 +2266,23 @@ FHoudiniEngineDetails::ConstructActionMenu(TWeakObjectPtr<UHoudiniAssetComponent
 		// Menu entry for preset
 		MenuBuilder.AddMenuEntry(
 			FUIAction(
-				FExecuteAction::CreateLambda([Preset, HAC, LayoutBuilder]() -> void
+				FExecuteAction::CreateLambda([Preset, InHACs, LayoutBuilder]() -> void
 					{
-						// Apply preset on Houdini Asset Component
-						if (!HAC.IsValid())
+						bool bPresetApplied = false;
+						for (TWeakObjectPtr<UHoudiniAssetComponent> HAC : InHACs)
 						{
-							HOUDINI_LOG_WARNING(TEXT("Could not apply preset. HoudiniAssetComponent reference is no longer valid."));
-							return;
-						}
+							// Apply preset on Houdini Asset Component
+							if (!HAC.IsValid())
+							{
+								HOUDINI_LOG_WARNING(TEXT("Could not apply preset. HoudiniAssetComponent reference is no longer valid."));
+								continue;
+							}
 
-						FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(Preset, HAC.Get(), true);
-						if (LayoutBuilder)
+							FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(Preset, HAC.Get(), true);
+							bPresetApplied = true;
+						}
+					
+						if (bPresetApplied && LayoutBuilder)
 						{
 							LayoutBuilder->ForceRefreshDetails();
 						}

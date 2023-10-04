@@ -66,6 +66,9 @@
 #include "HoudiniParameterString.h"
 #include "HoudiniPreset.h"
 #include "HoudiniToolTypesEditor.h"
+#include "PropertyEditorModule.h"
+#include "Selection.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Interfaces/IMainFrameModule.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
@@ -2661,6 +2664,34 @@ FHoudiniToolsEditor::FindPresetsForHoudiniAsset(const UHoudiniAsset* HoudiniAsse
 }
 
 
+bool
+FHoudiniToolsEditor::CanApplyPresetToHoudiniAssetcomponent(const UHoudiniPreset* Preset,
+	UHoudiniAssetComponent* HAC)
+{
+	if (!IsValid(Preset))
+	{
+		return false;
+	}
+	if (!IsValid(HAC))
+	{
+		return false;
+	}
+
+	if (!Preset->bApplyOnlyToSource)
+	{
+		// We can apply this preset to any HoudiniAsset
+		return true;
+	}
+
+	// We can only apply this preset to the SourceHoudiniAsset
+	if (!IsValid(Preset->SourceHoudiniAsset))
+	{
+		return false;
+	}
+	return Preset->SourceHoudiniAsset == HAC->GetHoudiniAsset();
+}
+
+
 void
 FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 	const UHoudiniPreset* Preset,
@@ -2668,6 +2699,11 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 	const bool bReselectSelectedActors)
 {
 	if (!IsValid(HAC) || !IsValid(Preset))
+	{
+		return;
+	}
+
+	if (!CanApplyPresetToHoudiniAssetcomponent(Preset, HAC))
 	{
 		return;
 	}
@@ -3029,6 +3065,32 @@ void FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(
 	}
 #endif
 	
+}
+
+void FHoudiniToolsEditor::ApplyPresetToSelectedHoudiniAssetActors(const UHoudiniPreset* Preset, bool bReselectSelectedActors)
+{
+	USelection* Selection = GEditor->GetSelectedActors();
+	TArray<AActor*> SelectedActors;
+	SelectedActors.SetNum(GEditor->GetSelectedActorCount());
+	Selection->GetSelectedObjects(SelectedActors);
+
+	for (AActor* SelectedActor : SelectedActors)
+	{
+		const AHoudiniAssetActor* HouActor = Cast<AHoudiniAssetActor>(SelectedActor);
+		if (IsValid(HouActor))
+		{
+			UHoudiniAssetComponent* HAC = HouActor->GetHoudiniAssetComponent();
+			if (IsValid(HAC))
+			{
+				ApplyPresetToHoudiniAssetComponent(Preset, HAC, false);
+			}
+		}
+	}
+
+	if (bReselectSelectedActors)
+	{
+		FHoudiniEngineEditorUtils::ReselectSelectedActors();
+	}
 }
 
 
@@ -3399,15 +3461,15 @@ FHoudiniToolsEditor::HandleHoudiniPresetPropertyEditorSaveClicked(TSharedPtr<FHo
 
 	checkf(InToolData->PackageToolType == EHoudiniPackageToolType::Preset, TEXT("This function should only be called for HoudiniPreset tools."));
 
-	UHoudiniAsset* HoudiniAsset = InToolData->HoudiniAsset.LoadSynchronous();
-	if (!HoudiniAsset)
-	{
-		HOUDINI_LOG_ERROR(TEXT("Could not locate active tool. Unable to save changes."));
-		return;
-	}
+	// UHoudiniAsset* HoudiniAsset = InToolData->HoudiniAsset.LoadSynchronous();
+	// if (!HoudiniAsset)
+	// {
+	// 	HOUDINI_LOG_ERROR(TEXT("Could not locate active tool. Unable to save changes."));
+	// 	return;
+	// }
 
 	UHoudiniPreset* HoudiniPreset = InToolData->HoudiniPreset.LoadSynchronous();
-	if (!HoudiniAsset)
+	if (!HoudiniPreset)
 	{
 		HOUDINI_LOG_ERROR(TEXT("Could not locate active tool. Unable to save changes."));
 		return;
@@ -3440,9 +3502,7 @@ FHoudiniToolsEditor::HandleHoudiniPresetPropertyEditorSaveClicked(TSharedPtr<FHo
 		ASSIGNFN(ToolProperties->Name, HoudiniPreset->Name);
 		ASSIGNFN(ToolProperties->ToolTip, HoudiniPreset->Description);
 		
-
 		bool bModifiedIcon = false;
-
 		
 		if (ToolProperties->IconPath.FilePath.Len() > 0)
 		{
@@ -3463,7 +3523,7 @@ FHoudiniToolsEditor::HandleHoudiniPresetPropertyEditorSaveClicked(TSharedPtr<FHo
 		{
 			// Ensure the content browser reflects icon changes.
 			const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-			AssetRegistryModule.Get().OnAssetUpdated().Broadcast(FAssetData(HoudiniAsset));
+			AssetRegistryModule.Get().OnAssetUpdated().Broadcast(FAssetData(HoudiniPreset));
 		}
 		
 		if (bModified)

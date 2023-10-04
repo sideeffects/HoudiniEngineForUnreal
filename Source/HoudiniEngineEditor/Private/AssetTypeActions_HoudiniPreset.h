@@ -52,6 +52,9 @@ class FAssetTypeActions_HoudiniPreset : public FAssetTypeActions_Base
 		virtual void GetActions(const TArray< UObject * > & InObjects, class FMenuBuilder & MenuBuilder) override;
 
 	protected:
+
+		// Handler to apply the preset to the selected HoudiniAsset actors
+		static void ExecuteApplyPreset(TArray<TWeakObjectPtr<UHoudiniPreset>> InHoudiniAssetPtrs);
 	
 		// Handler to apply the current hda to the current world selection (single input)
 		static void ExecuteApplyOpSingle(TArray<TWeakObjectPtr<UHoudiniPreset>> InHoudiniAssetPtrs);

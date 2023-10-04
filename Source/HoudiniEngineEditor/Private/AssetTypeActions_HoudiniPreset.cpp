@@ -122,6 +122,20 @@ void FAssetTypeActions_HoudiniPreset::GetActions(const TArray<UObject*>& InObjec
 	MenuBuilder.AddMenuSeparator();
 
 	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("HoudiniPresetTypeActions", "HoudiniPreset_ApplyPresetToSelection", "Apply preset to HoudiniAsset actors"),
+		NSLOCTEXT(
+			"HoudiniPresetTypeActions", "HoudiniPreset_ApplyPresetToSelectionTooltip",
+			"Applies the preset to the parameters of all the selected HoudiniAsset actors, if allowed by the preset."),
+		FSlateIcon(StyleSetName, "HoudiniEngine.HoudiniEngineLogo"),
+		FUIAction(
+			FExecuteAction::CreateStatic(&FAssetTypeActions_HoudiniPreset::ExecuteApplyPreset, PresetAssets),
+			FCanExecuteAction::CreateLambda([=] { return (PresetAssets.Num() == 1); })
+		)
+	);
+
+	MenuBuilder.AddMenuSeparator();
+
+	MenuBuilder.AddMenuEntry(
 		NSLOCTEXT("HoudiniPresetTypeActions", "HoudiniPreset_ApplyOpSingle", "Apply to the current selection (single input)"),
 		NSLOCTEXT(
 			"HoudiniPresetTypeActions", "HoudiniPreset_ApplyOpSingleTooltip",
@@ -156,6 +170,20 @@ void FAssetTypeActions_HoudiniPreset::GetActions(const TArray<UObject*>& InObjec
 			FCanExecuteAction::CreateLambda([=] { return (PresetAssets.Num() == 1); })
 		)
 	);
+}
+
+void FAssetTypeActions_HoudiniPreset::ExecuteApplyPreset(TArray<TWeakObjectPtr<UHoudiniPreset>> InHoudiniAssetPtrs)
+{
+	for(TWeakObjectPtr<UHoudiniPreset> PresetPtr : InHoudiniAssetPtrs)
+	{
+		if (!PresetPtr.IsValid())
+		{
+			continue;
+		}
+
+		const UHoudiniPreset* HoudiniPreset = PresetPtr.Get();
+		FHoudiniToolsEditor::ApplyPresetToSelectedHoudiniAssetActors(HoudiniPreset);
+	}
 }
 
 void
