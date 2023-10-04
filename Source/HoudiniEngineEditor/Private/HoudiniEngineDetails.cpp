@@ -133,22 +133,25 @@ FHoudiniEngineDetails::CreateWidget(
 	if (!IsValidWeakPointer(MainHAC))
 		return;
 
-	// 0. Houdini Engine Icon
+	// Houdini Engine Icon
 	FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(HoudiniEngineCategoryBuilder, InHACs);
+
+	// Widget for HoudiniAsset related actions. Currently only contains things for Presets.
+	FHoudiniEngineDetails::CreateHoudiniEngineActionWidget(HoudiniEngineCategoryBuilder, InHACs);
 	
-	// 1. Houdini Engine Session Status
+	// Houdini Engine Session Status
 	FHoudiniAssetComponentDetails::AddSessionStatusRow(HoudiniEngineCategoryBuilder);
 	
-	// 2. Create Generate Category
+	// Create Generate Category
 	FHoudiniEngineDetails::CreateGenerateWidgets(HoudiniEngineCategoryBuilder, InHACs);
 	
-	// 3. Create Bake Category
+	// Create Bake Category
 	FHoudiniEngineDetails::CreateBakeWidgets(HoudiniEngineCategoryBuilder, InHACs);
 	
-	// 4. Create Asset Options Category
+	// Create Asset Options Category
 	FHoudiniEngineDetails::CreateAssetOptionsWidgets(HoudiniEngineCategoryBuilder, InHACs);
 
-	// 5. Create Help and Debug Category
+	// Create Help and Debug Category
 	FHoudiniEngineDetails::CreateHelpAndDebugWidgets(HoudiniEngineCategoryBuilder, InHACs);
 }
 
@@ -193,6 +196,43 @@ FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(
 			.ColorAndOpacity(FSlateColor::UseForeground())
 		]
 	];
+
+	Image->SetImage(
+		TAttribute<const FSlateBrush*>::Create(
+			TAttribute<const FSlateBrush*>::FGetter::CreateLambda([HoudiniEngineUIIconBrush]() {
+		return HoudiniEngineUIIconBrush.Get();
+	})));
+
+	Row.WholeRowWidget.Widget = Box;
+	Row.IsEnabled(false);
+}
+
+
+void
+FHoudiniEngineDetails::CreateHoudiniEngineActionWidget(IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
+	const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs)
+{
+	if (InHACs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniAssetComponent>& MainHAC = InHACs[0];
+	IDetailLayoutBuilder* SavedLayoutBuilder = &HoudiniEngineCategoryBuilder.GetParentLayout();
+
+	if (!IsValidWeakPointer(MainHAC))
+		return;
+
+	// Skip drawing the icon if the icon image is not loaded correctly.
+	TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIIconBrush();
+	if (!HoudiniEngineUIIconBrush.IsValid())
+		return;
+
+	FDetailWidgetRow & Row = HoudiniEngineCategoryBuilder.AddCustomRow(FText::GetEmpty());
+	TSharedRef<SHorizontalBox> Box = SNew(SHorizontalBox);
+	TSharedPtr<SImage> Image;
+
+	TSharedPtr<SLayeredImage> OptionsImage = SNew(SLayeredImage)
+		 .Image(FAppStyle::Get().GetBrush("DetailsView.ViewOptions"))
+		 .ColorAndOpacity(FSlateColor::UseForeground());
 	
 	Box->AddSlot()
 	.FillWidth(1.0f)
@@ -213,16 +253,8 @@ FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(
 			OptionsImage.ToSharedRef()
 		]
 	];
-	
-	Image->SetImage(
-		TAttribute<const FSlateBrush*>::Create(
-			TAttribute<const FSlateBrush*>::FGetter::CreateLambda([HoudiniEngineUIIconBrush]() {
-		return HoudiniEngineUIIconBrush.Get();
-	})));
 
 	Row.WholeRowWidget.Widget = Box;
-	// Don't disable the whole row, otherwise we can't use the action menu. 
-	// Row.IsEnabled(false);
 }
 
 

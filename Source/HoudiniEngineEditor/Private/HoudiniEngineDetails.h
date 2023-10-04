@@ -76,6 +76,10 @@ public:
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
+	static void CreateHoudiniEngineActionWidget(
+		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
+		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
+
 	static void CreateGenerateWidgets(
 			IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 			const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
