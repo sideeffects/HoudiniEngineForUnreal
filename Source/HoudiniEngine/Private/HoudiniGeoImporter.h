@@ -44,8 +44,6 @@ public:
 	GENERATED_UCLASS_BODY()
 
 	public:
-		//UHoudiniGeoImporter();
-		//~UHoudiniGeoImporter();
 		
 		void SetBakeRootFolder(const FString& InFolder) { BakeRootFolder = InFolder; };
 		void SetOutputFilename(const FString& InOutFilename) { OutputFilename = InOutFilename; };
@@ -55,17 +53,28 @@ public:
 		// BEGIN: Static API
 		// Open a BGEO file: create a file node in HAPI and cook it
 		static bool OpenBGEOFile(const FString& InBGEOFile, HAPI_NodeId& OutNodeId, bool bInUseWorldComposition=false);
+
 		// Cook the file node specified by the valid NodeId.
 		static bool CookFileNode(const HAPI_NodeId& InNodeId);
+
 		// Extract the outputs for a given node ID
-		static bool BuildAllOutputsForNode(const HAPI_NodeId& InNodeId, UObject* InOuter, TArray<UHoudiniOutput*>& InOldOutputs, TArray<UHoudiniOutput*>& OutNewOutputs, bool bInAddOutputsToRootSet=false);
+		static bool BuildAllOutputsForNode(
+			const HAPI_NodeId& InNodeId, 
+			UObject* InOuter, 
+			TArray<UHoudiniOutput*>& InOldOutputs, 
+			TArray<UHoudiniOutput*>& OutNewOutputs, 
+			bool bInAddOutputsToRootSet = false,
+			bool bInUseOutputNodes = true);
+
 		// Delete the HAPI node and remove InOutputs from the root set.
 		static bool CloseBGEOFile(const HAPI_NodeId& InNodeId);
 		// END: Static API
 
 		// Import the BGEO file
 		bool ImportBGEOFile(
-			const FString& InBGEOFile, UObject* InParent, const FHoudiniPackageParams* InPackageParams=nullptr,
+			const FString& InBGEOFile, 
+			UObject* InParent, 
+			const FHoudiniPackageParams* InPackageParams=nullptr,
 			const FHoudiniStaticMeshGenerationProperties* InStaticMeshGenerationProperties=nullptr,
 			const FMeshBuildSettings* InMeshBuildSettings=nullptr);
 
@@ -77,10 +86,17 @@ public:
 		
 		// 3. Creates a new file node and loads the bgeo file in HAPI
 		bool LoadBGEOFileInHAPI(HAPI_NodeId& NodeId);
-		
+
+		// 3.2 (alternative) Uses an object merge node to load the geo data in HAPI (used for node sync fetch)
+		bool MergeGeoFromNode(const FString& InNodePath, HAPI_NodeId& OutNodeId);
+
 		// 4. Extract the outputs for a given node ID
-		bool BuildOutputsForNode(const HAPI_NodeId& InNodeId, TArray<UHoudiniOutput*>& InOldOutputs, TArray<UHoudiniOutput*>& OutNewOutputs);
-		
+		bool BuildOutputsForNode(
+			const HAPI_NodeId& InNodeId,
+			TArray<UHoudiniOutput*>& InOldOutputs, 
+			TArray<UHoudiniOutput*>& OutNewOutputs,
+			bool bInUseOutputNodes = true);
+
 		// 5. Creates the static meshes object found in the output
 		bool CreateStaticMeshes(
 			TArray<UHoudiniOutput*>& InOutputs,
@@ -105,34 +121,23 @@ public:
 
 	private:
 
-		//
-		// Input file
-		//
-		// Path how the file we're currently loading
+		// Path to the file we're currently loading
 		FString SourceFilePath;
+
 		// Absolute Path to the file
 		FString AbsoluteFilePath;
 		FString AbsoluteFileDirectory;
-		// File Name / Extension
+
+		// Input File Name / Extension
 		FString FileName;
 		FString FileExtension;
-		
-		
-		//
-		// Output file
-		//
+
 		// Output filename, if empty, will be set to the input filename
 		FString OutputFilename;
 		// Root Folder for storing the created files
 		FString BakeRootFolder;
 
-		//
 		// Output Objects
-		// 
 		TArray<UObject*> OutputObjects;
-
-		//TArray<UObject*> OutputStaticMeshes;
-		//TArray<UObject*> OutputLandscapes;
-		//TArray<UObject*> OutputInstancers;
 
 };

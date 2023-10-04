@@ -35,7 +35,7 @@ class UHoudiniAssetComponent;
 class AHoudiniAssetActor;
 struct FSlowTask;
 
-static const FName NodeSyncTabName("NodeSync");
+static const FName NodeSyncTabName("Houdini Node Sync");
 static const FName HoudiniToolsTabName("HoudiniTools");
 static const FName ExamplesTabName("Examples");
 

@@ -422,16 +422,10 @@ FHoudiniEngineEditor::RegisterActorFactories()
 void
 FHoudiniEngineEditor::RegisterEditorTabs()
 {
-	/*
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(NodeSyncTabName, FOnSpawnTab::CreateRaw(this, &FHoudiniEngineEditor::OnSpawnNodeSyncTab))
-			.SetDisplayName(LOCTEXT("FNodeSyncTitleTitle", "NodeSync"))
-			.SetMenuType(ETabSpawnerMenuType::Hidden);
-	*/
-
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 
 	FGlobalTabmanager::Get()->RegisterTabSpawner(NodeSyncTabName, FOnSpawnTab::CreateRaw(this, &FHoudiniEngineEditor::OnSpawnNodeSyncTab))
-		.SetDisplayName(LOCTEXT("FNodeSyncTitleTitle", "NodeSync"))
+		.SetDisplayName(LOCTEXT("FNodeSyncTitleTitle", "Houdini Node Sync"))
 		.SetTooltipText(LOCTEXT("FNodeSyncTitleTitleTooltip", "Houdini Node Sync"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden)
 		.SetGroup(MenuStructure.GetLevelEditorCategory());
@@ -449,7 +443,7 @@ FHoudiniEngineEditor::RegisterEditorTabs()
 	TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
 
 	LevelEditorTabManager->RegisterTabSpawner(NodeSyncTabName, FOnSpawnTab::CreateRaw(this, &FHoudiniEngineEditor::OnSpawnNodeSyncTab))
-		.SetDisplayName(LOCTEXT("FNodeSyncTitleTitle", "NodeSync"))
+		.SetDisplayName(LOCTEXT("FNodeSyncTitleTitle", "Houdini Node Sync"))
 		.SetTooltipText(LOCTEXT("FNodeSyncTitleTitleTooltip", "Houdini Node Sync"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden)
 		.SetGroup(MenuStructure.GetLevelEditorCategory());

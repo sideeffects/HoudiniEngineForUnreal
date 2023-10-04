@@ -519,7 +519,7 @@ int32 UHoudiniGeoImportCommandlet::ImportBGEO(
 
 	// 4. Get the output from the file node
 	HOUDINI_LOG_DISPLAY(TEXT("BuildOutputsForNode %d"), NodeId);
-	if (!GeoImporter->BuildOutputsForNode(NodeId, OldOutputs, OutOutputs))
+	if (!GeoImporter->BuildOutputsForNode(NodeId, OldOutputs, OutOutputs, true))
 		return CleanUpAndExit(1);
 
 	// Create uniquely named packages, commandlet runs in conjunction

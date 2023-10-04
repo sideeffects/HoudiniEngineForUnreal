@@ -114,10 +114,12 @@ public:
 	// SEND status
 	EHoudiniNodeSyncStatus LastSendStatus = EHoudiniNodeSyncStatus::None;
 	FString SendStatusMessage;
+	FString SendStatusDetails;
 
 	// FETCH status
 	EHoudiniNodeSyncStatus LastFetchStatus = EHoudiniNodeSyncStatus::None;
 	FString FetchStatusMessage;
+	FString FetchStatusDetails;
 
 	bool GetNodeSyncInput(UHoudiniInput*& OutInput);
 

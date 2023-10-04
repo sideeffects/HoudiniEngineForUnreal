@@ -102,17 +102,13 @@ UHoudiniEditorSubsystem::SendSkeletalMeshToHoudini(
 bool
 UHoudiniEditorSubsystem::GetNodeSyncInput(UHoudiniInput*& OutInput)
 {
-	UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
-	if (!IsValid(HoudiniEditorSubsystem))
+	if (!InitNodeSyncInputIfNeeded())
 		return false;
 
-	if (!HoudiniEditorSubsystem->InitNodeSyncInputIfNeeded())
+	if (!IsValid(NodeSyncInput))
 		return false;
 
-	if (!IsValid(HoudiniEditorSubsystem->NodeSyncInput))
-		return false;
-
-	OutInput = HoudiniEditorSubsystem->NodeSyncInput;
+	OutInput = NodeSyncInput;
 
 	return true;
 }
@@ -121,53 +117,48 @@ UHoudiniEditorSubsystem::GetNodeSyncInput(UHoudiniInput*& OutInput)
 bool
 UHoudiniEditorSubsystem::InitNodeSyncInputIfNeeded()
 {
-	UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
-	if (!IsValid(HoudiniEditorSubsystem))
-		return false;
-
-	UHoudiniInput*& NSInput = HoudiniEditorSubsystem->NodeSyncInput;
-	if (IsValid(NSInput))
+	if (IsValid(NodeSyncInput))
 		return true;
 
 	// Create a fake HoudiniInput/HoudiniInputObject so we can use the input Translator to send the data to H
 	FString InputObjectName = TEXT("NodeSyncInput");
-	NSInput = NewObject<UHoudiniInput>(
-		HoudiniEditorSubsystem, UHoudiniInput::StaticClass(), FName(*InputObjectName), RF_Transactional);
+	NodeSyncInput = NewObject<UHoudiniInput>(
+		this, UHoudiniInput::StaticClass(), FName(*InputObjectName), RF_Transactional);
 
 	//NodeSyncInput->AddToRoot();
 
-	if (!IsValid(NSInput))
+	if (!IsValid(NodeSyncInput))
 	{
 		// TODO: Always call remove from root, even for failures! (use a lambda for returns)
-		NSInput->RemoveFromRoot();
+		NodeSyncInput->RemoveFromRoot();
 		return false;
 	}
 
 	// Set the default input options
 	// TODO: Fill those from the NodeSync UI?!
-	NSInput->SetExportColliders(false);
-	NSInput->SetExportLODs(false);
-	NSInput->SetExportSockets(false);
-	NSInput->SetLandscapeExportType(EHoudiniLandscapeExportType::Heightfield);
-	NSInput->SetAddRotAndScaleAttributes(false);
-	NSInput->SetImportAsReference(false);
-	NSInput->SetImportAsReferenceRotScaleEnabled(false);
-	NSInput->SetKeepWorldTransform(true);
-	NSInput->SetPackBeforeMerge(false);
-	NSInput->SetUnrealSplineResolution(50.0f);
+	NodeSyncInput->SetExportColliders(false);
+	NodeSyncInput->SetExportLODs(false);
+	NodeSyncInput->SetExportSockets(false);
+	NodeSyncInput->SetLandscapeExportType(EHoudiniLandscapeExportType::Heightfield);
+	NodeSyncInput->SetAddRotAndScaleAttributes(false);
+	NodeSyncInput->SetImportAsReference(false);
+	NodeSyncInput->SetImportAsReferenceRotScaleEnabled(false);
+	NodeSyncInput->SetKeepWorldTransform(true);
+	NodeSyncInput->SetPackBeforeMerge(false);
+	NodeSyncInput->SetUnrealSplineResolution(50.0f);
 
 	// default input options
-	NSInput->SetCanDeleteHoudiniNodes(false);
-	NSInput->SetUseLegacyInputCurve(true);
+	NodeSyncInput->SetCanDeleteHoudiniNodes(false);
+	NodeSyncInput->SetUseLegacyInputCurve(true);
 
 	// TODO: Check?
-	NSInput->SetAssetNodeId(-1);
-	//NSInput->SetInputNodeId(UnrealContentNodeId);
+	NodeSyncInput->SetAssetNodeId(-1);
+	//NodeSyncInput->SetInputNodeId(UnrealFetchNodeIdId);
 
 	// Input type? switch to world if actors in the selection ?
 	bool bOutBPModif = false;
-	NSInput->SetInputType(EHoudiniInputType::Geometry, bOutBPModif);
-	NSInput->SetName(TEXT("NodeSyncInput"));
+	NodeSyncInput->SetInputType(EHoudiniInputType::Geometry, bOutBPModif);
+	NodeSyncInput->SetName(TEXT("NodeSyncInput"));
 
 	return true;
 }
@@ -191,7 +182,8 @@ UHoudiniEditorSubsystem::SendWorldSelection()
 		HOUDINI_LOG_MESSAGE(TEXT("Houdini Node Sync: No selection in the world outliner"));
 
 		HoudiniSubsystem->LastSendStatus = EHoudiniNodeSyncStatus::Failed;
-		HoudiniSubsystem->SendStatusMessage = "Failed: No selection in the world outliner.";
+		HoudiniSubsystem->SendStatusMessage = "Send Failed: No selection in the world outliner.";
+		HoudiniSubsystem->SendStatusDetails = "Houdini Node Sync - Send Failed: No selection in the world outliner\nPlease select Actors in the World and try again.";
 
 		return;
 	}
@@ -226,6 +218,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 
 		LastSendStatus = EHoudiniNodeSyncStatus::Warning;
 		SendStatusMessage = "Warning: the current session is not Session-sync one!";
+		SendStatusDetails = SendStatusMessage + "\nYou can start a Session-sync session by using the Open Session Sync entry in the Houdini Engine menu.";
 	}
 
 	bool bUseInput = true;
@@ -343,7 +336,8 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 				HOUDINI_LOG_WARNING(TEXT("HoudiniNodeSync: Failed to create input object geo node for %s."), *CurrentInputObject->GetName());
 
 				LastSendStatus = EHoudiniNodeSyncStatus::SuccessWithErrors;
-				SendStatusMessage = "Success - Some input objects failed to be created";
+				SendStatusMessage = "Send Success with errors";
+				SendStatusDetails = "Houdini Node Sync - Send success with errors - Not all selected objects were created.";
 			}
 
 			// Preset the existing Object Node ID to the unreal content node
@@ -361,7 +355,8 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 				HOUDINI_LOG_WARNING(TEXT("HoudiniNodeSync: Failed to send %s to %s."), *CurrentInputObject->GetName(), *SendNodePath);
 
 				LastSendStatus = EHoudiniNodeSyncStatus::SuccessWithErrors;
-				SendStatusMessage = "Success - Some input objects failed to be created";
+				SendStatusMessage = "Send Success with errors";
+				SendStatusDetails = "Houdini Node Sync - Send success with errors - Not all selected objects were created.";
 
 				continue;
 			}
@@ -389,7 +384,8 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 	if (LastSendStatus != EHoudiniNodeSyncStatus::SuccessWithErrors)
 	{
 		LastSendStatus = EHoudiniNodeSyncStatus::Success;
-		SendStatusMessage = "Success";
+		SendStatusMessage = "Send Success";
+		SendStatusDetails = "Houdini Node Sync - Send success";
 	}	
 
 	// TODO: Improve me! handle failures!
@@ -442,71 +438,65 @@ UHoudiniEditorSubsystem::FetchFromHoudini(
 
 		LastFetchStatus = EHoudiniNodeSyncStatus::Warning;
 		FetchStatusMessage = "warning: the current session is not Session-sync one!";
+		FetchStatusDetails = FetchStatusMessage + "\nYou can start a Session-sync session by using the Open Session Sync entry in the Houdini Engine menu.";
 	}
 
-	UHoudiniEditorSubsystem* HoudiniEditorSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
-	if (!IsValid(HoudiniEditorSubsystem))
+	// Make sure that the FetchNodePath is a valid Houdini node path pointing to a valid Node
+	HAPI_NodeId  UnrealFetchNodeId = -1;
+	HAPI_Result Result = HAPI_RESULT_FAILURE;
+
+	FString FetchNodePath = NodeSyncOptions.FetchNodePath;
+	Result = FHoudiniApi::GetNodeFromPath(FHoudiniEngine::Get().GetSession(), -1, TCHAR_TO_ANSI(*FetchNodePath), &UnrealFetchNodeId);
+	if ((Result != HAPI_RESULT_SUCCESS) || (UnrealFetchNodeId < 0))
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("Invalid FetchNodePath"));
+		LastFetchStatus = EHoudiniNodeSyncStatus::Failed;
+		FetchStatusMessage = "Failed: Invalid Fetch node path!";
+		FetchStatusDetails = "Houdini Node Sync - Fetch Failed - The Fetch node path is invalid.";
+
 		return;
-
-	FString FetchNodePath = HoudiniEditorSubsystem->NodeSyncOptions.FetchNodePath;
-
-	HAPI_Result result;
-	HAPI_NodeId  UnrealContentNode = -1;
-	if (!HoudiniEditorSubsystem->NodeSyncOptions.bUseOutputNodes)
-	{
-		// Get the display flag of the geo
-		HAPI_GeoInfo DisplayHapiGeoInfo;
-		FHoudiniApi::GeoInfo_Init(&DisplayHapiGeoInfo);
-		result = FHoudiniApi::GetDisplayGeoInfo(FHoudiniEngine::Get().GetSession(), object_node_id, &DisplayHapiGeoInfo);
-		UnrealContentNode = DisplayHapiGeoInfo.nodeId;
 	}
-	else
+
+	// Make sure that the node is cooked
+	//Result = FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), UnrealFetchNodeId, nullptr);
+	HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
+	if (!FHoudiniEngineUtils::HapiCookNode(UnrealFetchNodeId, &CookOptions, true))
 	{
-		result = FHoudiniApi::GetNodeFromPath(FHoudiniEngine::Get().GetSession(), -1, TCHAR_TO_ANSI(*FetchNodePath), &UnrealContentNode);
-
-		if ((result != HAPI_RESULT_SUCCESS) || (UnrealContentNode < 0))
-		{
-			//HOUDINI_LOG_MESSAGE(TEXT("Sending Node To %s "), *SendNodePath);
-			HOUDINI_LOG_MESSAGE(TEXT("Invalid FetchNodePath"));
-
-			LastFetchStatus = EHoudiniNodeSyncStatus::Failed;
-			FetchStatusMessage = "Failed: Invalid Fetch node path!";
-
-			return;
-		}
+		HOUDINI_LOG_ERROR(TEXT("Failed to cook NodeSyncFetch node!"));
+		return;
 	}
-	result = FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), UnrealContentNode, nullptr);
 
-	bool bUseBGEOImport = true;
-	bool bReimport = true;
+	// We use the BGEO importer when Fetching to the contentbrowser
+	bool bUseBGEOImport = !NodeSyncOptions.bFetchToWorld;
 	bool bSuccess = false;
 	if (bUseBGEOImport)
 	{
 		// Create a new Geo importer
 		TArray<UHoudiniOutput*> DummyOldOutputs;
 		TArray<UHoudiniOutput*> NewOutputs;
-		UHoudiniGeoImporter* BGEOImporter = NewObject<UHoudiniGeoImporter>(this);
-		BGEOImporter->AddToRoot();
+		UHoudiniGeoImporter* HoudiniGeoImporter = NewObject<UHoudiniGeoImporter>(this);
+		HoudiniGeoImporter->AddToRoot();
 
 		// Clean up lambda
-		auto CleanUp = [&NewOutputs, &BGEOImporter]()
+		auto CleanUp = [&NewOutputs, &HoudiniGeoImporter]()
 		{
 			// Remove the importer and output objects from the root set
-			BGEOImporter->RemoveFromRoot();
+			HoudiniGeoImporter->RemoveFromRoot();
 			for (auto Out : NewOutputs)
 				Out->RemoveFromRoot();
 		};
 		
 		// Failure lambda
-		auto FailImportAndReturn = [this, &CleanUp, &NewOutputs, &BGEOImporter]()
+		auto FailImportAndReturn = [this, &CleanUp, &NewOutputs, &HoudiniGeoImporter]()
 		{
 			CleanUp();
 
 			this->LastFetchStatus = EHoudiniNodeSyncStatus::Failed;
 			this->FetchStatusMessage = "Failed";
+			this->FetchStatusDetails = "Houdini Node Sync - Fetch Failed.";
 
 			// TODO: Improve me!
-			FString Notification = TEXT("Houdini Node Sync failed!");
+			FString Notification = TEXT("Houdini Node Sync - Fetch failed!");
 			FHoudiniEngineUtils::CreateSlateNotification(Notification);
 
 			return;
@@ -521,7 +511,7 @@ UHoudiniEditorSubsystem::FetchFromHoudini(
 		PackageParams.BakeFolder = InPackageFolder;//FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetName());
 		PackageParams.ObjectName = InPackageName;// FPaths::GetBaseFilename(InParent->GetName());
 
-		if (bReimport)
+		if (NodeSyncOptions.bReplaceExisting)
 		{
 			PackageParams.ReplaceMode = EPackageReplaceMode::ReplaceExistingAssets;
 		}
@@ -530,30 +520,35 @@ UHoudiniEditorSubsystem::FetchFromHoudini(
 			PackageParams.ReplaceMode = EPackageReplaceMode::CreateNewAssets;
 		}
 
-		// 4. Get the output from the file node
-		if (!BGEOImporter->BuildOutputsForNode(UnrealContentNode, DummyOldOutputs, NewOutputs))
+		// Create the fetch (object merge) node for the geo importer
+		HAPI_NodeId FetchNodeId = -1;
+		if(!HoudiniGeoImporter->MergeGeoFromNode(FetchNodePath, FetchNodeId))
+			return FailImportAndReturn();
+
+		// 4. Get the output from the Fetch node
+		if (!HoudiniGeoImporter->BuildOutputsForNode(FetchNodeId, DummyOldOutputs, NewOutputs, NodeSyncOptions.bUseOutputNodes))
 			return FailImportAndReturn();
 
 		// 5. Create the static meshes in the outputs
 		const FHoudiniStaticMeshGenerationProperties& StaticMeshGenerationProperties = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
 		const FMeshBuildSettings& MeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
-		if (!BGEOImporter->CreateStaticMeshes(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
+		if (!HoudiniGeoImporter->CreateStaticMeshes(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
 			return FailImportAndReturn();
 
 		// 6. Create the curves in the outputs
-		if (!BGEOImporter->CreateCurves(NewOutputs, PackageParams))
+		if (!HoudiniGeoImporter->CreateCurves(NewOutputs, PackageParams))
 			return FailImportAndReturn();
 
 		// 7. Create the landscapes in the outputs
-		if (!BGEOImporter->CreateLandscapes(NewOutputs, PackageParams))
+		if (!HoudiniGeoImporter->CreateLandscapes(NewOutputs, PackageParams))
 			return FailImportAndReturn();
 
 		// 8. Create the instancers in the outputs
-		if (!BGEOImporter->CreateInstancers(NewOutputs, PackageParams))
+		if (!HoudiniGeoImporter->CreateInstancers(NewOutputs, PackageParams))
 			return FailImportAndReturn();
 
 		// Get our result object and "finalize" them
-		TArray<UObject*> Results = BGEOImporter->GetOutputObjects();
+		TArray<UObject*> Results = HoudiniGeoImporter->GetOutputObjects();
 		for (UObject* Object : Results)
 		{
 			if (!IsValid(Object))
@@ -570,6 +565,22 @@ UHoudiniEditorSubsystem::FetchFromHoudini(
 	}
 	else
 	{
+		// TODO: Implement me!
+		// Copy back the fetch to  world implementation!
+		Notification = TEXT("Node Sync Failed! - Fetch To World Not implemented yet!");
+		FHoudiniEngineUtils::CreateSlateNotification(Notification);
+
+		LastFetchStatus = EHoudiniNodeSyncStatus::Failed;
+		FetchStatusMessage = "Failed - Fetch To World Not implemented";
+		FetchStatusDetails = "Houdini Node Sync - Fetch Failed -  Fetch To World is not implemented yet!";
+
+		return;
+	}
+	
+	if(false)
+	{
+		// TODO: DELETE ME!!! - LEGACY CODE
+
 		// TODO:
 		// Use the Output translator to support all types of outputs
 
@@ -583,18 +594,18 @@ UHoudiniEditorSubsystem::FetchFromHoudini(
 		bool bHasSkeletalMeshData = false;
 		HAPI_Result CaptXFormsInfoResult = FHoudiniApi::GetAttributeInfo(
 			FHoudiniEngine::Get().GetSession(),
-			UnrealContentNode, PartId,
+			UnrealFetchNodeId, PartId,
 			"capt_xforms", HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &CaptXFormsInfo);
 
 		bHasSkeletalMeshData = CaptXFormsInfo.exists && (CaptXFormsInfoResult == HAPI_RESULT_SUCCESS);
 
 		if (bHasSkeletalMeshData)
 		{
-			bSuccess = FetchSkeletalMeshFromHoudini(UnrealContentNode, InPackageName, InPackageFolder, InMaxInfluences, InImportNormals);
+			bSuccess = FetchSkeletalMeshFromHoudini(UnrealFetchNodeId, InPackageName, InPackageFolder, InMaxInfluences, InImportNormals);
 		}
 		else
 		{
-			bSuccess = FetchStaticMeshFromHoudini(UnrealContentNode, InPackageName, InPackageFolder);
+			bSuccess = FetchStaticMeshFromHoudini(UnrealFetchNodeId, InPackageName, InPackageFolder);
 		}
 	}
 
@@ -605,7 +616,8 @@ UHoudiniEditorSubsystem::FetchFromHoudini(
 		FHoudiniEngineUtils::CreateSlateNotification(Notification);
 
 		LastFetchStatus = EHoudiniNodeSyncStatus::Success;
-		FetchStatusMessage = "Success";
+		FetchStatusMessage = "Fetch Success";
+		FetchStatusDetails = "Houdini Node Sync - Succesfully fetched data from Houdini";
 	}
 	else
 	{
@@ -614,7 +626,8 @@ UHoudiniEditorSubsystem::FetchFromHoudini(
 		FHoudiniEngineUtils::CreateSlateNotification(Notification);
 
 		LastFetchStatus = EHoudiniNodeSyncStatus::Failed;
-		FetchStatusMessage = "Failed";
+		FetchStatusMessage = "Fetch Failed";
+		FetchStatusDetails = "Houdini Node Sync - Failed fetching data from Houdini";
 	}
 }
 

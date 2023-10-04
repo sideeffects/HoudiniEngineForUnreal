@@ -150,13 +150,17 @@ UHoudiniGeoImporter::AutoStartHoudiniEngineSessionIfNeeded()
 }
 
 bool
-UHoudiniGeoImporter::BuildOutputsForNode(const HAPI_NodeId& InNodeId, TArray<UHoudiniOutput*>& InOldOutputs, TArray<UHoudiniOutput*>& OutNewOutputs)
+UHoudiniGeoImporter::BuildOutputsForNode(
+	const HAPI_NodeId& InNodeId, 
+	TArray<UHoudiniOutput*>& InOldOutputs,
+	TArray<UHoudiniOutput*>& OutNewOutputs,
+	bool bInUseOutputNodes)
 {
 	FString Notification = TEXT("BGEO Importer: Getting output geos...");
 	FHoudiniEngine::Get().UpdateTaskSlateNotification(FText::FromString(Notification));
 
 	const bool bInAddOutputsToRootSet = true;
-	return BuildAllOutputsForNode(InNodeId, this, InOldOutputs, OutNewOutputs, bInAddOutputsToRootSet);
+	return BuildAllOutputsForNode(InNodeId, this, InOldOutputs, OutNewOutputs, bInAddOutputsToRootSet, bInUseOutputNodes);
 }
 
 bool
@@ -719,7 +723,7 @@ UHoudiniGeoImporter::ImportBGEOFile(
 	// 4. Get the output from the file node
 	TArray<UHoudiniOutput*> NewOutputs;
 	TArray<UHoudiniOutput*> OldOutputs;
-	if (!BuildOutputsForNode(NodeId, OldOutputs, NewOutputs))
+	if (!BuildOutputsForNode(NodeId, OldOutputs, NewOutputs, true))
 		return false;
 
 	// Failure lambda
@@ -884,6 +888,57 @@ UHoudiniGeoImporter::OpenBGEOFile(const FString& InBGEOFile, HAPI_NodeId& OutNod
 }
 
 bool
+UHoudiniGeoImporter::MergeGeoFromNode(const FString& InNodePath, HAPI_NodeId& OutNodeId)
+{
+	if (InNodePath.IsEmpty())
+		return false;
+
+	// 1. Houdini Engine Session
+	// See if we should/can start the default "first" HE session
+	if (!AutoStartHoudiniEngineSessionIfNeeded())
+		return false;
+
+	// TODO
+	// Check that InNodePath is valid
+	OutNodeId = -1;
+
+	// Check HoudiniEngine / HAPI init?
+	if (!FHoudiniEngine::IsInitialized())
+	{
+		HOUDINI_LOG_ERROR(TEXT("Couldn't initialize HoudiniEngine!"));
+		return false;
+	}
+
+	FString Notification = TEXT("Merging node data...");
+	FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(Notification), true);
+
+	// Create a file SOP
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
+		-1, "SOP/object_merge", "NodeSyncFetch", true, &OutNodeId), false);
+
+	// Set the object path parameter
+	HAPI_ParmId ParmId = -1;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmIdFromName(
+		FHoudiniEngine::Get().GetSession(),
+		OutNodeId, "objpath1", &ParmId), false);
+
+	const std::string ConvertedString = TCHAR_TO_UTF8(*InNodePath);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(
+		FHoudiniEngine::Get().GetSession(), OutNodeId, ConvertedString.c_str(), ParmId, 0), false);
+
+	// Cook the node
+	HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
+	if(!FHoudiniEngineUtils::HapiCookNode(OutNodeId, &CookOptions, true))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Failed to cook NodeSyncFetch node!"));
+		return false;
+	}
+
+	return true;
+}
+
+
+bool
 UHoudiniGeoImporter::CloseBGEOFile(const HAPI_NodeId& InNodeId)
 {
 	// 8. Delete the created  node in Houdini
@@ -912,6 +967,7 @@ UHoudiniGeoImporter::LoadBGEOFileInHAPI(HAPI_NodeId& NodeId)
 	FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(Notification), true);
 
 	// Create a file SOP
+	// We still create a file SOP as we need a Node that LoadGeoFromFile can use to store the data on
 	HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
 		-1,	"SOP/file", "bgeo", true, &NodeId), false);
 
@@ -973,18 +1029,23 @@ UHoudiniGeoImporter::CookFileNode(const HAPI_NodeId& InNodeId)
 }
 
 bool
-UHoudiniGeoImporter::BuildAllOutputsForNode(const HAPI_NodeId& InNodeId, UObject* InOuter, TArray<UHoudiniOutput*>& InOldOutputs, TArray<UHoudiniOutput*>& OutNewOutputs, bool bInAddOutputsToRootSet)
+UHoudiniGeoImporter::BuildAllOutputsForNode(
+	const HAPI_NodeId& InNodeId,
+	UObject* InOuter,
+	TArray<UHoudiniOutput*>& InOldOutputs,
+	TArray<UHoudiniOutput*>& OutNewOutputs,
+	bool bInAddOutputsToRootSet,
+	bool bInUseOutputNodes)
 {
-	bool bUseOutputNodes = true;
 	bool bOutputTemplateGeos = false;
 
 	// Gather output nodes for the HAC
 	TArray<int32> OutputNodes;
-	FHoudiniEngineUtils::GatherAllAssetOutputs(InNodeId, bUseOutputNodes, bOutputTemplateGeos, OutputNodes);
+	FHoudiniEngineUtils::GatherAllAssetOutputs(InNodeId, bInUseOutputNodes, bOutputTemplateGeos, OutputNodes);
 
 	// TArray<UHoudiniOutput*> OldOutputs;	
 	TMap<HAPI_NodeId, int32> OutputNodeCookCount;
-	if (!FHoudiniOutputTranslator::BuildAllOutputs(InNodeId, InOuter, OutputNodes, OutputNodeCookCount, InOldOutputs, OutNewOutputs, bOutputTemplateGeos, bUseOutputNodes))
+	if (!FHoudiniOutputTranslator::BuildAllOutputs(InNodeId, InOuter, OutputNodes, OutputNodeCookCount, InOldOutputs, OutNewOutputs, bOutputTemplateGeos, bInUseOutputNodes))
 	{
 		// Couldn't create the package
 		HOUDINI_LOG_ERROR(TEXT("Houdini GEO Importer: Failed to process the File SOP's outputs!"));
