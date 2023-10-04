@@ -88,6 +88,11 @@ public:
 
 	// Get the path of the houdini asset / preset relative to its owning package. 
 	static bool ResolveHoudiniAssetRelativePath(const UObject* Object, FString& OutPath);
+	
+	// Get the path of the houdini asset / preset relative to its owning package. This version doesn't
+	// search for a PackageAsset from the given object, instead it assumes that the given package asset is the
+	// owner of AssetObject. This is to save us from searching for the owning package if we already have it.
+	static bool ResolveHoudiniAssetRelativePath(const UObject* AssetObject, const UHoudiniToolsPackageAsset* OwningPackageAsset, FString& OutPath);
 
 	static FAssetData GetAssetDataByObject(const UObject* AssetObject);
 	
@@ -278,9 +283,12 @@ public:
 	// User Categories
 	// --------------------------------
 
+	static FText GetFavoritesCategoryName();
+
 	// Add the tool to the specified user category. If the category does not exist, it will be created.
 	static void AddToolToUserCategory(const UObject* Object, const FString& CategoryName);
 	static void RemoveToolFromUserCategory(const UObject* Object, const FString& CategoryName);
+	static bool UserCategoryContainsTool(const FString& CategoryName, const UObject* AssetObject, const UHoudiniToolsPackageAsset* PackageAsset);
 
 	// Get a list of user categories
 	static void GetUserCategoriesList(TArray<FString>& OutCategories);

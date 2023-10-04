@@ -3193,14 +3193,15 @@ SHoudiniToolsPanel::ConstructHoudiniToolContextMenu()
 	FMenuBuilder MenuBuilder( true, NULL );
 
 	bool bHasHelp = false;
+	bool bIsFavoritesCategory = ActiveCategoryName == FHoudiniToolsEditor::GetFavoritesCategoryName().ToString();
 	FString HelpURL;
 	TArray< UObject* > AssetArray;
 	EHoudiniToolCategoryType CategoryType = EHoudiniToolCategoryType::Package; 
 	const UClass* AssetClass = nullptr;
+	UObject* AssetObj = ActiveTool->GetAssetObject();
 	if ( ActiveTool.IsValid() && !ActiveTool->HoudiniAsset.IsNull() )
 	{
 		// Load the underlying asset (HoudiniAsset or HoudiniPreset) for the active tool 
-		UObject* AssetObj = ActiveTool->GetAssetObject();
 		if( AssetObj )
 		{
 			AssetArray.Add( AssetObj );
@@ -3225,55 +3226,78 @@ SHoudiniToolsPanel::ConstructHoudiniToolContextMenu()
 	// Add HoudiniTools actions
 	MenuBuilder.AddMenuSeparator();
 
-	// Edit Tool properties has been moved to the AssetType Actions.
-	// // Edit Tool
-	// MenuBuilder.AddMenuEntry(
-	// 	NSLOCTEXT( "HoudiniToolsTypeActions", "HoudiniTool_Edit", "Edit Tool Properties" ),
-	// 	NSLOCTEXT( "HoudiniToolsTypeActions", "HoudiniTool_EditTooltip", "Edit the selected tool properties." ),
-	// 	FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
-	// 	FUIAction(
-	// 		FExecuteAction::CreateSP(this, &SHoudiniToolsPanel::EditActiveHoudiniTool ),
-	// 		FCanExecuteAction::CreateLambda([&] { return IsActiveHoudiniToolEditable(); } )
-	// 	)
-	// );
-
-	if (ActiveTool->IsHiddenInCategory(ActiveCategoryName))
+	if (FHoudiniToolsEditor::UserCategoryContainsTool("Favorites", AssetObj, ActiveTool->ToolsPackage.LoadSynchronous()))
 	{
-		// The tool is already hidden in this category. Allow the user to 'show' this tool in this category.
-		// TODO: First check whether it's even possible to remove this tool from the exclusion list. If not, disable these options.
-		const FText HideLabel = LOCTEXT( "HoudiniTool_ContextMenu_ShowInPackageCategory", "Make Visible In Category" );
-		const FText HideTooltip = LOCTEXT( "HoudiniTool_ContextMenu_ShowInPackageCategoryTooltip", "Make this tool visible in the Package Category by removing it from the category exclusion list, if possible." );
+		// Remove From Favorites
+		const FText HideLabel = LOCTEXT( "HoudiniTool_ContextMenu_ShowInPackageCategory", "Unfavorite" );
+		const FText HideTooltip = LOCTEXT( "HoudiniTool_ContextMenu_ShowInPackageCategoryTooltip", "Remove this tool from the 'Favorites' user category." );
 		MenuBuilder.AddMenuEntry(
 			HideLabel,
 			HideTooltip,
 			FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
 			FUIAction(
-				FExecuteAction::CreateSP(this, &SHoudiniToolsPanel::ShowActiveToolInCategory ),
-				FCanExecuteAction::CreateLambda([&] { return IsActiveHoudiniToolEditable() && CanShowActiveToolInCategory(); } )
+				FExecuteAction::CreateSP(this, &SHoudiniToolsPanel::HandleRemoveFromFavorites ),
+				FCanExecuteAction::CreateLambda([&] { return true; } )
 			)
 		);
 	}
 	else
 	{
-		// Hide Tool from category
-		const FText HideLabel = CategoryType == EHoudiniToolCategoryType::Package ?
-			LOCTEXT( "HoudiniTool_ContextMenu_HideFromPackageCategory", "Hide From Category" ) :
-			LOCTEXT( "HoudiniTool_ContextMenu_RemoveFromPackageCategory", "Remove From Category" );
-		const FText HideTooltip = CategoryType == EHoudiniToolCategoryType::Package ?
-			LOCTEXT( "HoudiniTool_ContextMenu_HideFromPackageCategoryTooltip", "Hide the selected tool from this package category." ) :
-			LOCTEXT( "HoudiniTool_ContextMenu_RemoveFromPackageCategoryTooltip", "Remove the selected tool from this user category." );
+		// Add To Favorites
+		const FText HideLabel = LOCTEXT( "HoudiniTool_ContextMenu_ShowInPackageCategory", "Favorite" );
+		const FText HideTooltip = LOCTEXT( "HoudiniTool_ContextMenu_ShowInPackageCategoryTooltip", "Add this tool the 'Favorites' user category" );
 		MenuBuilder.AddMenuEntry(
 			HideLabel,
 			HideTooltip,
 			FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
 			FUIAction(
-				FExecuteAction::CreateSP(this, &SHoudiniToolsPanel::HideActiveToolFromCategory ),
-				FCanExecuteAction::CreateLambda([&] { return IsActiveHoudiniToolEditable(); } )
+				FExecuteAction::CreateSP(this, &SHoudiniToolsPanel::HandleAddToFavorites ),
+				FCanExecuteAction::CreateLambda([&] { return true; } )
 			)
 		);
 	}
 
-	// Hide Tool from category
+	if (!bIsFavoritesCategory)
+	{
+		if (ActiveTool->IsHiddenInCategory(ActiveCategoryName))
+		{
+			// The tool is already hidden in this category. Allow the user to 'show' this tool in this category.
+			// TODO: First check whether it's even possible to remove this tool from the exclusion list. If not, disable these options.
+			const FText HideLabel = LOCTEXT( "HoudiniTool_ContextMenu_ShowInPackageCategory", "Make Visible In Category" );
+			const FText HideTooltip = LOCTEXT( "HoudiniTool_ContextMenu_ShowInPackageCategoryTooltip", "Make this tool visible in the Package Category by removing it from the category exclusion list, if possible." );
+			MenuBuilder.AddMenuEntry(
+				HideLabel,
+				HideTooltip,
+				FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &SHoudiniToolsPanel::ShowActiveToolInCategory ),
+					FCanExecuteAction::CreateLambda([&] { return IsActiveHoudiniToolEditable() && CanShowActiveToolInCategory(); } )
+				)
+			);
+		}
+		else
+		{
+			// Hide Tool from category
+			const FText HideLabel = CategoryType == EHoudiniToolCategoryType::Package ?
+				LOCTEXT( "HoudiniTool_ContextMenu_HideFromPackageCategory", "Hide From Category" ) :
+				LOCTEXT( "HoudiniTool_ContextMenu_RemoveFromPackageCategory", "Remove From Category" );
+			const FText HideTooltip = CategoryType == EHoudiniToolCategoryType::Package ?
+				LOCTEXT( "HoudiniTool_ContextMenu_HideFromPackageCategoryTooltip", "Hide the selected tool from this package category." ) :
+				LOCTEXT( "HoudiniTool_ContextMenu_RemoveFromPackageCategoryTooltip", "Remove the selected tool from this user category." );
+			MenuBuilder.AddMenuEntry(
+				HideLabel,
+				HideTooltip,
+				FSlateIcon( FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &SHoudiniToolsPanel::HideActiveToolFromCategory ),
+					FCanExecuteAction::CreateLambda([&] { return IsActiveHoudiniToolEditable(); } )
+				)
+			);
+		}
+	}
+
+	// Add To User Category
+	
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT( "HoudiniTool_ContextMenu_AddToUserCategory", "Add To User Category" ),
 		LOCTEXT("HoudiniTool_ContextMenu_AddToUserCategoryTooltip", "Add the selected tool a user category." ),
@@ -4238,6 +4262,16 @@ SHoudiniToolsPanel::HandleAddToolToUserCategory() const
 		SNew(SHoudiniToolAddToUserCategory)
 		.ActiveTool(ActiveTool)
 		);
+}
+
+void SHoudiniToolsPanel::HandleAddToFavorites() const
+{
+	FHoudiniToolsEditor::AddToolToUserCategory(ActiveTool->GetAssetObject(), FHoudiniToolsEditor::GetFavoritesCategoryName().ToString());
+}
+
+void SHoudiniToolsPanel::HandleRemoveFromFavorites() const
+{
+	FHoudiniToolsEditor::RemoveToolFromUserCategory(ActiveTool->GetAssetObject(), FHoudiniToolsEditor::GetFavoritesCategoryName().ToString());
 }
 
 void

@@ -276,6 +276,7 @@ FHoudiniToolsEditor::ResolveHoudiniAssetIconPath(const UHoudiniAsset* HoudiniAss
 	return FHoudiniToolsRuntimeUtils::GetDefaultHoudiniAssetIconPath(HoudiniAsset);
 }
 
+
 bool
 FHoudiniToolsEditor::ResolveHoudiniAssetRelativePath(const UObject* Object, FString& OutPath)
 {
@@ -286,13 +287,29 @@ FHoudiniToolsEditor::ResolveHoudiniAssetRelativePath(const UObject* Object, FStr
 	if (!IsValid(ToolsPackage))
 		return false;
 
+	return ResolveHoudiniAssetRelativePath(Object, ToolsPackage, OutPath);
+}
+
+
+bool
+FHoudiniToolsEditor::ResolveHoudiniAssetRelativePath(
+	const UObject* AssetObject,
+	const UHoudiniToolsPackageAsset* OwningPackageAsset,
+	FString& OutPath)
+{
+	if (!IsValid(AssetObject))
+		return false;
+	
+	if (!IsValid(OwningPackageAsset))
+		return false;
+
 	//NOTE: We're constructing a relative path here for the purposes of include/exclude pattern matching.
 	//      to keep things as straightforward as possible, we always use the path name of the relevant
 	//      asset for pattern matching. We will NOT be using the operator type or the tool label.
 	
-	const FString ToolsPackagePath = ToolsPackage->GetPackage()->GetPathName();
+	const FString ToolsPackagePath = OwningPackageAsset->GetPackage()->GetPathName();
 
-	const UPackage* Package = Object->GetPackage();
+	const UPackage* Package = AssetObject->GetPackage();
 	if (!IsValid(Package))
 	{
 		return false;
@@ -304,6 +321,7 @@ FHoudiniToolsEditor::ResolveHoudiniAssetRelativePath(const UObject* Object, FStr
 	
 	return true;
 }
+
 
 FAssetData FHoudiniToolsEditor::GetAssetDataByObject(const UObject* AssetObject)
 {
@@ -2440,6 +2458,13 @@ void FHoudiniToolsEditor::PopulatePackageWithDefaultData(UHoudiniToolsPackageAss
 }
 
 
+FText
+FHoudiniToolsEditor::GetFavoritesCategoryName()
+{
+	return NSLOCTEXT("HoudiniEngine", "HoudiniTools_FavoritesCategoryName", "Favorites");
+}
+
+
 void
 FHoudiniToolsEditor::AddToolToUserCategory(const UObject* Object, const FString& CategoryName)
 {
@@ -2560,6 +2585,64 @@ void FHoudiniToolsEditor::RemoveToolFromUserCategory(const UObject* Object, cons
 	FHoudiniEngineRuntimeUtils::DoPostEditChangeProperty(Settings, "UserToolCategories");
 	
 	Settings->SaveConfig();
+}
+
+bool
+FHoudiniToolsEditor::UserCategoryContainsTool(
+	const FString& CategoryName,
+	const UObject* AssetObject,
+	const UHoudiniToolsPackageAsset* PackageAsset)
+{
+	if (!IsValid(AssetObject))
+	{
+		return false;
+	}
+	
+	if (!IsValid(PackageAsset))
+	{
+		return false;
+	}
+
+	UHoudiniEngineEditorSettings* Settings = GetMutableDefault<UHoudiniEngineEditorSettings>();
+	if (!Settings)
+	{
+		return false;
+	}
+
+	if (!Settings->UserToolCategories.Contains(CategoryName))
+	{
+		return false;
+	}
+
+	FUserCategoryRules& Rules = Settings->UserToolCategories.FindChecked(CategoryName); 
+
+	// Try to find an entry containing the owning package.
+	int FoundIndex = INDEX_NONE;
+	for (int i = 0; i < Rules.Packages.Num(); ++i)
+	{
+		if (Rules.Packages[i].ToolsPackageAsset == PackageAsset)
+		{
+			FoundIndex = i;
+			break;
+		}
+	}
+
+	if (FoundIndex == INDEX_NONE)
+	{
+		// We don't have a record of this tool in the user categories settings.
+		return false;
+	}
+
+	const FUserPackageRules PackageRules = Rules.Packages[FoundIndex];
+
+	// Get the relative tool path and add it to the package rules.
+	FString RelPath;
+	ResolveHoudiniAssetRelativePath(AssetObject, PackageAsset, RelPath);
+
+	if (PackageRules.Include.Contains(RelPath))
+		return true;
+
+	return false;
 }
 
 void

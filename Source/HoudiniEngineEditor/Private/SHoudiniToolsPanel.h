@@ -544,6 +544,10 @@ private:
 
 	void HandleAddToolToUserCategory() const;
 
+	void HandleAddToFavorites() const;
+
+	void HandleRemoveFromFavorites() const;
+
 	static const FString SettingsIniSection;
 
 	/** Make a widget for the list view display */
