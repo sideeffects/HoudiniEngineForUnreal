@@ -3501,6 +3501,11 @@ FHoudiniToolsEditor::HandleHoudiniAssetPropertyEditorSaveClicked(TSharedPtr<FHou
 			bModifiedIcon = true;
 			ToolData->ClearCachedIcon();
 		}
+		else
+		{
+			// If we're not changed the icon, at least ensure our thumbnail icon is up to date
+			FHoudiniToolsRuntimeUtils::UpdateAssetThumbnailFromImageData(HoudiniAsset, ToolData->IconImageData);
+		}
 
 		if (bModifiedIcon)
 		{
@@ -3600,6 +3605,11 @@ FHoudiniToolsEditor::HandleHoudiniPresetPropertyEditorSaveClicked(TSharedPtr<FHo
 			bModifiedIcon = true;
 			HoudiniPreset->IconImageData = FHImageData();
 			FHoudiniToolsRuntimeUtils::UpdateAssetThumbnailFromImageData(HoudiniPreset, FHImageData());
+		}
+		else
+		{
+			// If we're not changed the icon, at least ensure our thumbnail icon is up to date
+			FHoudiniToolsRuntimeUtils::UpdateAssetThumbnailFromImageData(HoudiniPreset, HoudiniPreset->IconImageData);
 		}
 		
 		if (bModifiedIcon)
